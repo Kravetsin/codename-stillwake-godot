@@ -15,7 +15,8 @@ namespace Stillwake.Game.Render;
 /// keeps its hue: clamping each colour alone would wash a fire's orange over a lamp out to yellow. Each
 /// lamp gives its share of that by what it gives of the light all of them pour there
 /// (<see cref="ShowLamplight"/>), so a surface by a fire, a lamp and embers is never brighter than its
-/// own colour fully lit. A normal-mapped picture is shaded toward or away from a lamp within that; a
+/// own colour fully lit — but for a glowing particle's spot, added over it up to <see cref="Light.ParticleMost"/>,
+/// so an ember by a fire still lights the wall behind it. A normal-mapped picture is shaded toward or away from a lamp within that; a
 /// wall takes <see cref="Light.WallIn"/> of what reaches its face.
 /// </summary>
 public static class Lit
@@ -34,6 +35,8 @@ public static class Lit
             // Drawn in wall cells, it takes the stars' light from wall cells; all else from the open ones.
             uniform bool blocks = false;
             uniform vec3 ambient = vec3(0.0);
+            // The most a glowing particle's spot adds in a colour, past whatever else lights it.
+            uniform float spot_most = 0.0;
             // The stars' light, a texel a cell, its alpha whole in a wall's cell, laid over the world at
             // starlight_rect (corner, size, in pixels).
             uniform sampler2D starlight : filter_nearest, repeat_disable, hint_default_black;
@@ -44,6 +47,7 @@ public static class Lit
             varying vec2 world;
             varying vec3 star;
             varying vec3 lamps;
+            varying float spots;
             varying float scale;
 
             void vertex() {
@@ -73,7 +77,9 @@ public static class Lit
                     }
                 }
                 star = weight > 0.0 ? sum / weight : own.rgb;
-                lamps = texture(lamplight, (world - lamplight_rect.xy) / lamplight_rect.zw).rgb;
+                vec4 field = texture(lamplight, (world - lamplight_rect.xy) / lamplight_rect.zw);
+                lamps = field.rgb;
+                spots = field.a;
                 // Where the stars and lamps together pass whole in a colour, all of their light is scaled down
                 // till none does: each colour at most whole, and a fire's orange over a lamp stays orange.
                 vec3 fits = (1.0 - ambient) / max(star + lamps, vec3(0.0001));
@@ -92,10 +98,17 @@ public static class Lit
                     // Lights add: this lamp gives its share of the sum, scaled to fit, up to what the ambient
                     // and the stars leave.
                     vec3 gives = LIGHT_COLOR.rgb;
-                    vec3 all = max(lamps, gives);
-                    vec3 room = max(1.0 - ambient - star, 0.0);
-                    shine = gives / max(all, vec3(0.0001)) * min(all * scale * mix(1.0, facing, relief), room);
-                    alpha = LIGHT_COLOR.a;
+                    if (LIGHT_COLOR.a < 0.75) {
+                        // A glowing particle's light, marked by its alpha: a spot over what is lit already,
+                        // past whole, or an ember by a fire would light nothing.
+                        // Its share of all the spots here, together at most spot_most.
+                        shine = gives * mix(1.0, facing, relief) * min(1.0, spot_most / max(spots, 0.0001));
+                    } else {
+                        vec3 all = max(lamps, gives);
+                        vec3 room = max(1.0 - ambient - star, 0.0);
+                        shine = gives / max(all, vec3(0.0001)) * min(all * scale * mix(1.0, facing, relief), room);
+                        alpha = LIGHT_COLOR.a;
+                    }
                 }
                 LIGHT = vec4(shine * COLOR.rgb * share, alpha);
             }
@@ -125,6 +138,7 @@ public static class Lit
         kept.SetShaderParameter("relief", relief ? 0.7f : 0f);
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("ambient", new Vector3(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B));
+        kept.SetShaderParameter("spot_most", Light.ParticleMost);
         if (_starlight is var (stars, starsAt)) ShowOn(kept, "starlight", stars, starsAt);
         if (_lamplight is var (lamps, lampsAt)) ShowOn(kept, "lamplight", lamps, lampsAt);
         return Made[(share, relief)] = kept;

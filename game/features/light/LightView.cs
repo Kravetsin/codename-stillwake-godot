@@ -229,7 +229,7 @@ public partial class LightView : Node2D
         for (int i = 0; i < glows; i++)
         {
             var g = _glows[i];
-            _field.Add(g.Position.X / Cell, g.Position.Y / Cell, (1, 1, 1), 1, (g.Color.R, g.Color.G, g.Color.B), GlowReach, L.ParticleKeep);
+            _field.Add(g.Position.X / Cell, g.Position.Y / Cell, (1, 1, 1), 1, (g.Color.R, g.Color.G, g.Color.B), GlowReach, L.ParticleKeep, spot: true);
         }
         ShowFieldLight();
     }
@@ -256,7 +256,9 @@ public partial class LightView : Node2D
 
     /// <summary>
     /// A light under each glowing particle (sparks, embers), <see cref="L.Particle"/> of its glow's colour
-    /// as it fades, shadowed as a lamp's; at most <see cref="GlowLights"/>, the rest dark. Answers how many glow.
+    /// as it fades, shadowed as a lamp's; at most <see cref="GlowLights"/>, the rest dark. Its alpha marks it
+    /// for <see cref="Lit"/>, which adds it over the rest of the light, all of them together at most
+    /// <see cref="L.ParticleMost"/> by the field's spots. Answers how many glow.
     /// </summary>
     private int ShowGlows()
     {
@@ -281,7 +283,7 @@ public partial class LightView : Node2D
             glow.Visible = true;
             glow.Position = new Vector2((float)p.X, (float)p.Y);
             float shines = (float)(L.Particle * p.Alpha);
-            glow.Color = new Color(((colour >> 16) & 0xff) / 255f * shines, ((colour >> 8) & 0xff) / 255f * shines, (colour & 0xff) / 255f * shines);
+            glow.Color = new Color(((colour >> 16) & 0xff) / 255f * shines, ((colour >> 8) & 0xff) / 255f * shines, (colour & 0xff) / 255f * shines, 0.5f);
         }
         for (int i = shown; i < _glows.Count; i++) _glows[i].Visible = false;
         return shown;

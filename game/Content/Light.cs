@@ -20,7 +20,8 @@ namespace Stillwake.Game;
 /// lamp gives at most <see cref="LampMost"/> of a colour, white by the bulb and below whole, leaving a
 /// fire's warmth room to show over it. A fire and a glowing particle give what they gave there but
 /// fall off steeply, keeping <see cref="FireKeep"/> and <see cref="ParticleKeep"/> a cell: the fire's
-/// light pools at the furnace's mouth, an ember's at the ember.
+/// light pools at the furnace's mouth, an ember's at the ember. A particle's light is a spot added over
+/// all the rest, past whole by at most <see cref="ParticleMost"/> a colour, so an ember lights the wall by a fire.
 /// </summary>
 public static class Light
 {
@@ -38,5 +39,6 @@ public static class Light
     public const float FireKeep = 0.72f;
     public const float Particle = 0.5f;
     public const float ParticleKeep = 0.5f;
+    public const float ParticleMost = 0.5f;
     public static readonly (float R, float G, float B) Ambient = (0.05f, 0.055f, 0.07f);
 }

@@ -11,7 +11,7 @@ namespace Stillwake.Game.Features.Light;
 /// TypeScript game's <c>min(1, ambient + light)</c> did, and shares that out among Godot's lights by
 /// what each gives of the sum, rather than adding them past a surface's own colour. Cells from
 /// (<paramref name="x"/>, <paramref name="y"/>), <paramref name="width"/> by <paramref name="height"/>,
-/// red, green, blue and a fourth number unused a cell, as a texture of floats takes them.
+/// red, green, blue and the glowing particles' spots a cell, as a texture of floats takes them.
 /// </summary>
 public sealed class LightField(int x, int y, int width, int height)
 {
@@ -23,7 +23,10 @@ public sealed class LightField(int x, int y, int width, int height)
     public int Width { get; } = width;
     public int Height { get; } = height;
 
-    /// <summary>All the light, four numbers a cell (red, green, blue, unused), row by row.</summary>
+    /// <summary>
+    /// All the light, four numbers a cell, row by row: red, green, blue, and the spots of glowing particles
+    /// summed apart, their brightest colour, which <c>Lit.cs</c> keeps from adding up past its most.
+    /// </summary>
     public float[] Light { get; } = new float[width * height * 4];
 
     /// <summary>A light's spread over the cells round it, and each row's first and last lit cell.</summary>
@@ -57,13 +60,15 @@ public sealed class LightField(int x, int y, int width, int height)
     /// Adds a light at (<paramref name="cx"/>, <paramref name="cy"/>), in cells, of <paramref name="colour"/>
     /// at <paramref name="most"/> a colour, spread as <see cref="At"/> out to <paramref name="reach"/> cells, times <paramref name="strength"/>
     /// (how bright it shines, tinted), keeping <paramref name="keep"/> of itself a cell it crosses; worked
-    /// out at each cell's middle.
+    /// out at each cell's middle. A <paramref name="spot"/> adds its brightest colour to the spots alone.
     /// </summary>
-    public void Add(float cx, float cy, (float R, float G, float B) colour, float most, (float R, float G, float B) strength, int reach, float keep)
+    public void Add(float cx, float cy, (float R, float G, float B) colour, float most, (float R, float G, float B) strength, int reach, float keep, bool spot = false)
     {
         int left = (int)MathF.Floor(cx) - reach, top = (int)MathF.Floor(cy) - reach;
         var kernel = KernelOf(colour, most, reach, keep, (int)((cx - MathF.Floor(cx)) * Steps), (int)((cy - MathF.Floor(cy)) * Steps));
-        var times = new Vector4(strength.R, strength.G, strength.B, 0);
+        var times = spot
+            ? new Vector4(0, 0, 0, Math.Max(strength.R, Math.Max(strength.G, strength.B)))
+            : new Vector4(strength.R, strength.G, strength.B, 0);
         int y0 = Math.Max(Y, top), y1 = Math.Min(Y + Height, top + kernel.Across);
         for (int gy = y0; gy < y1; gy++)
         {
@@ -96,6 +101,7 @@ public sealed class LightField(int x, int y, int width, int height)
                 if (d >= reach) continue;
                 int k = (j * across + i) * 4;
                 (light[k], light[k + 1], light[k + 2]) = At(colour, most, d, reach, keep);
+                light[k + 3] = Math.Max(light[k], Math.Max(light[k + 1], light[k + 2]));
                 from[j] = Math.Min(from[j], i);
                 to[j] = i + 1;
             }
