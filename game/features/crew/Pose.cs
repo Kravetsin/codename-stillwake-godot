@@ -20,9 +20,12 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// breathing and drifting; <see cref="Landing"/> runs from 1 at touching down to 0; <see cref="Plan"/>,
 /// the head's turn, while the hands hold the plan; <see cref="OutMs"/>, how long since the hero passed out,
 /// <see cref="Slump"/>, what picks the heap it ends in, and <see cref="OutTilt"/>, how the body was turned
-/// as it passed out, which in space it keeps.
+/// as it passed out, which in space it keeps. Afloat, <see cref="Swim"/> and <see cref="Fast"/> blend from
+/// treading water into the breaststroke and on into the crawl, each 0 to 1, and <see cref="Heading"/> is the
+/// way it last swam; the figure eases them, and with none they follow the hero's speed at once.
 /// </summary>
-public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null, double? OutMs = null, int Slump = 0, double OutTilt = 0);
+public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null,
+    double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, double? Heading = null);
 
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
@@ -233,7 +236,8 @@ public static class Poses
             case Pose.Climb:
                 return Climbing(moment.Travelled / Stride.Climb);
             case Pose.Float:
-                return Floating(hero, moment.TimeMs);
+                return Floating(moment.TimeMs, moment.Swim ?? (Swimming(hero) ? 1 : 0), moment.Fast ?? (SwimmingFast(hero) ? 1 : 0),
+                    moment.Heading ?? HeadingOf(hero));
             case Pose.Lie:
                 // With no time given, long since: lying still.
                 return Collapse(moment.OutMs ?? 1e9, moment.Slump);
@@ -404,24 +408,40 @@ public static class Poses
     /// hands sculling, feet pedalling, rocking slowly, until now and then it panics and windmills
     /// (<see cref="Adrift"/>).
     /// </summary>
-    private static Limbs Floating(Hero hero, double timeMs)
+    /// <summary>Whether the hero swims, rather than treading water.</summary>
+    public static bool Swimming(Hero hero) => hero.Vx != 0 || hero.Vy != 0;
+
+    /// <summary>Whether the hero swims fast, Shift held: a crawl.</summary>
+    public static bool SwimmingFast(Hero hero) =>
+        Math.Abs(hero.Vx) > Stillwake.Content.Hero.Swim || Math.Abs(hero.Vy) > Stillwake.Content.Hero.Swim;
+
+    /// <summary>Head first the way the hero swims: up is upright, along the floor flat, down head down.</summary>
+    public static double HeadingOf(Hero hero) => Math.Atan2(Math.Abs(hero.Vx), -hero.Vy);
+
+    /// <summary>
+    /// Afloat: treading water, blended by <paramref name="swim"/> into a breaststroke, and that by
+    /// <paramref name="fast"/> into a crawl, so one turns into the next without a jump.
+    /// </summary>
+    private static Limbs Floating(double timeMs, double swim, double fast, double heading)
+    {
+        double drift = Math.Sin(timeMs / DriftMs * 2 * Math.PI);
+        var still = Treading(timeMs, drift);
+        if (swim <= 0) return still;
+        double stroke = timeMs / Adrift.StrokeMs;
+        var (frontArm, frontLeg) = StrokeAt(stroke);
+        var (backArm, backLeg) = StrokeAt(stroke - 0.04);
+        double s = stroke - Math.Floor(stroke);
+        double surge = s < 0.3 ? Math.Sin(s / 0.3 * Math.PI) : 0;
+        var breast = new Limbs(frontArm, backArm with { Upper = backArm.Upper * 0.92 }, frontLeg, backLeg,
+            heading, drift + 1.5 * surge, false);
+        var swimming = fast > 0 ? Mix(breast, Crawling(timeMs, heading, drift), fast) : breast;
+        return swim >= 1 ? swimming : Mix(still, swimming, swim);
+    }
+
+    /// <summary>Afloat and still: treading water, now and then panicking (<see cref="Adrift"/>).</summary>
+    private static Limbs Treading(double timeMs, double drift)
     {
         double Turn(double periodMs) => timeMs / periodMs * 2 * Math.PI;
-        double drift = Math.Sin(Turn(DriftMs));
-        if (hero.Vx != 0 || hero.Vy != 0)
-        {
-            // Stretched out head first the way it swims: up is upright, along the floor flat.
-            double heading = Math.Atan2(Math.Abs(hero.Vx), -hero.Vy);
-            if (Math.Abs(hero.Vx) > Stillwake.Content.Hero.Swim || Math.Abs(hero.Vy) > Stillwake.Content.Hero.Swim)
-                return Crawling(timeMs, heading, drift);
-            double stroke = timeMs / Adrift.StrokeMs;
-            var (frontArm, frontLeg) = StrokeAt(stroke);
-            var (backArm, backLeg) = StrokeAt(stroke - 0.04);
-            double s = stroke - Math.Floor(stroke);
-            double surge = s < 0.3 ? Math.Sin(s / 0.3 * Math.PI) : 0;
-            return new Limbs(frontArm, backArm with { Upper = backArm.Upper * 0.92 }, frontLeg, backLeg,
-                heading, drift + 1.5 * surge, false);
-        }
         double t = Turn(Adrift.TreadMs);
         Bend Scull(double up, double lag) => B(up + 0.3 * Math.Sin(t + lag), 0.9 + 0.3 * Math.Cos(t + lag));
         Bend Pedal(double lag) => B(0.35 + 0.3 * Math.Sin(0.7 * t + lag), -(0.45 + 0.45 * Positive(Math.Cos(0.7 * t + lag))));
@@ -476,6 +496,9 @@ public static class Poses
     /// <paramref name="a"/> turned toward <paramref name="b"/> by <paramref name="by"/>, angles the short
     /// way round, so whirling arms blend in without unwinding.
     /// </summary>
+    /// <summary>How far <paramref name="to"/> is from <paramref name="from"/>, the short way round, in radians.</summary>
+    public static double Apart(double from, double to) => ((to - from) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+
     private static Limbs Mix(Limbs a, Limbs b, double by)
     {
         double Angle(double x, double y) => x + (((y - x) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI) * by;
