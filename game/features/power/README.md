@@ -29,6 +29,9 @@ moving on every frame at 240 Hz, let go between two steps, and moved off a hull 
   new piece along its stretch of that line (`CableRopes.StartsOf`); the TypeScript snapped those to a
   fresh hang.
 - A dragged cable runs to where it would end: a machine's socket, an anchor's middle.
+- While a cable is carried, every powered machine's socket glows and is outlined along its own picture,
+  a screen pixel wide (`render/Outline.cs`): green where the cable would plug in, grey out of reach,
+  red where it may not.
 - Cables sync with the world at most every 250 ms once it has run a tick; bolts, pegs, plugs and loose
   plugs are made anew only when what they show changes, and the ropes' lines and traces are refilled
   in kept buffers, so a frame allocates next to nothing.

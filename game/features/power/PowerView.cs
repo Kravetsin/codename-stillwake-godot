@@ -49,6 +49,8 @@ public partial class PowerView : Node2D
     private readonly Sketch _lines = new(Layers.Cables, lit: true), _grommets = new(Layers.Fittings, lit: true);
     private readonly Node2D _ends = new() { ZIndex = Layers.Fittings }, _bolts = new() { ZIndex = Layers.Bolts }, _unplugged = new() { ZIndex = Layers.OverlayMarks };
     private readonly Sketch _overlay = new(Layers.Overlay), _ghost = new(Layers.OverlayHands);
+    /// <summary>Each powered machine's socket outlined while a cable is carried: where it would plug in.</summary>
+    private readonly Outline _sockets = new(Layers.OverlayHands);
     private IReadOnlyList<CableLine> _drawn = [];
     /// <summary>The bolts over machines with no power at all, which blink: kept, not looked up each frame.</summary>
     private readonly List<Sprite2D> _blinking = [];
@@ -62,7 +64,7 @@ public partial class PowerView : Node2D
         _ui = ui;
         Lit.Set(_lines);
         Lit.Set(_grommets);
-        foreach (var node in (Node2D[])[_lines, _grommets, _ends, _bolts, _overlay, _unplugged, _ghost]) AddChild(node);
+        foreach (var node in (Node2D[])[_lines, _grommets, _ends, _bolts, _overlay, _unplugged, _ghost, _sockets]) AddChild(node);
         _lines.Paint = g =>
         {
             foreach (var line in _drawn) g.Rope(line.Points, CableColour, CableWidth);
@@ -116,6 +118,7 @@ public partial class PowerView : Node2D
             if (_hands.Reason != null) _ui.Reason.Set(_hands.Reason);
             Tell(m, pointer);
         }
+        OutlineSockets();
         _ropes.Hold(_hands.Carried?.End);
         if (_hands.TakeLanding() is { } landing) _ropes.Land(landing.Node, landing.End);
         foreach (var laid in _hands.TakeLaid()) _ropes.Adopt(laid);
@@ -273,15 +276,25 @@ public partial class PowerView : Node2D
         }
     }
 
+    /// <summary>Each powered machine's socket outlined in whether the cable reaches it, while the overlay is on.</summary>
+    private void OutlineSockets()
+    {
+        _sockets.Begin();
+        if (On)
+            foreach (var socket in _hands.Sockets)
+                _sockets.Add(PixelArt.Picture("power-socket"), new Vector2((float)socket.At.X, (float)socket.At.Y) * Cell, 0, 1, ColourOf(socket.Light));
+        _sockets.End();
+    }
+
+    private static Color ColourOf(Light light) => light switch { Light.Fits => Fits, Light.Far => OutOfReach, _ => Refused };
+
     private void PaintGhost(Sketch g)
     {
-        // Each powered machine's socket lit by whether the cable reaches it: where it would plug in.
+        // Each powered machine's socket glowing by whether the cable reaches it, outlined by OutlineSockets.
         foreach (var socket in _hands.Sockets)
         {
-            var colour = socket.Light switch { Light.Fits => Fits, Light.Far => OutOfReach, _ => Refused };
             var at = new Vector2((float)socket.At.X, (float)socket.At.Y) * Cell;
-            g.DrawCircle(at, 6, colour with { A = 0.25f });
-            g.DrawRect(new Rect2(at - new Vector2(3, 3), new Vector2(6, 6)), colour, false, 1);
+            g.DrawCircle(at, 6, ColourOf(socket.Light) with { A = 0.25f });
         }
         // The cable laid is a rope already, hanging from where it runs to the hand.
         if (_hands.Laying.Count > 0) g.Rope(_hands.Laying, (_hands.Why != null ? Refused : Fits) with { A = 0.9f }, 1.5f);

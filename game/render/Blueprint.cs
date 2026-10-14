@@ -1,7 +1,7 @@
 using System;
 using Stillwake.Sim.Grid;
 
-namespace Stillwake.Game.Features.Building;
+namespace Stillwake.Game.Render;
 
 /// <summary>How plans join the plans beside them when drawn (features/building/blueprint.ts).</summary>
 public static class Blueprint

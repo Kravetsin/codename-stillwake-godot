@@ -20,6 +20,7 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 | `Suits.cs`         | the suit colours, `Suits.Of`, their shades and the colour the PNGs are drawn in (`suits.ts`, `art.ts`) | no |
 | `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`) | yes |
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
+| `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway, a valve's wheel, a plan's own pictures | yes |
 | `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder                             | no    |
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`)          | no    |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads          | no    |
@@ -62,6 +63,10 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 
 ## Differences from the TypeScript
 
+- The aim is outlined along the pictures of what E works, a screen pixel wide (`render/Outline.cs`), where
+  the TypeScript boxed its cells two pixels of the world wide. A mark on a wall, back wall, floor, ladder,
+  pipe or door still outlines its cell. Traced once per aim: a door or plan added beside the one aimed at
+  shows in its outline when the pointer next moves to another cell.
 - The body's middle is `Height / 2` rounded down, 1312 above the feet, where the TypeScript has 1312.5:
   positions stay whole numbers. A tether cut back to its limit no longer leaves a half thousandth.
   Others' heroes between samples are rounded to whole thousandths too.
@@ -89,8 +94,13 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
   left button held), a crate, furnace or analyzer, a tank, a door, a valve (E), else the nearest piece
   of debris out in space (E or the left button). Pieces with a grab in flight are passed over
   (`Shared.Predicted.Grabbing`).
-- With the hand free and the hero awake, what E would work is outlined (a machine's whole footprint,
-  over the machines, under the heroes and the plans as the TypeScript layers stacked: `Layers.Aim`) and `UsePrompt` says what E does, red with the sim's reason. A piece of
+- With the hand free and the hero awake, what E would work is outlined along its own pictures, a
+  screen pixel wide at 1080 lines whatever the zoom (`render/Outline.cs`), green, or red when the sim
+  would refuse: a crate, furnace, analyzer or tank's whole picture with its socket; the whole doorway,
+  which opens as one; a valve's wheel; a plan's own pictures, joined to the plans beside it as the
+  building draws them; a mark's machine, else its cell. Over the machines, under the heroes and the
+  plans as the TypeScript layers stacked (`Layers.Aim`); traced again only when the aim, its verdict or
+  its cell changes. `UsePrompt` says what E does, red with the sim's reason. A piece of
   debris is outlined by the debris feature, through `Ui.AimedPiece`; a crate opened is shown by the
   items feature, through `Ui.OpenCrate`, and closed here once out of reach or passed out.
 - With anything else in hand (`Ui.Hand`, 0022) the hero holds the plan's sheet (`Figure`'s `sheet`,

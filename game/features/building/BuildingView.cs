@@ -261,7 +261,8 @@ public partial class BuildingView : Node2D
             var box = new Rect2(cell % _width * Cell, cell / _width * Cell, Cell, Cell);
             var colour = refused ? Refused : Fits;
             g.DrawRect(box, colour with { A = 0.3f });
-            g.DrawRect(box, colour, false, 1);
+            // A screen pixel wide at any zoom: a primitive line.
+            g.DrawRect(box, colour, false);
         }
     }
 }

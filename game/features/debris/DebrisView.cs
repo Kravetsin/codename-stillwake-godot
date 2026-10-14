@@ -21,9 +21,13 @@ public partial class DebrisView(Ui ui) : Node2D
     private const int Unit = DebrisModule.Unit;
     /// <summary>A piece's size, in cells.</summary>
     private const float Size = 0.8f;
+    /// <summary>An item picture's scale drawn the size of a piece.</summary>
+    private const float PictureScale = Size * Cell / ItemIcons.Pixels;
     private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
 
-    private readonly Dictionary<int, (Node2D View, Sprite2D Rim)> _shown = new();
+    private readonly Dictionary<int, Sprite2D> _shown = new();
+    /// <summary>The piece aimed at, outlined over the rest.</summary>
+    private readonly Outline _aimed = new(1);
     private double _clockMs;
     private readonly HashSet<int> _ids = [];
     private readonly List<int> _gone = [];
@@ -35,6 +39,7 @@ public partial class DebrisView(Ui ui) : Node2D
     {
         // Behind the back walls: debris drifts past behind the hull.
         ZIndex = Layers.Debris;
+        AddChild(_aimed);
     }
 
     /// <summary>
@@ -56,11 +61,12 @@ public partial class DebrisView(Ui ui) : Node2D
             if (!_ids.Contains(id)) _gone.Add(id);
         foreach (int id in _gone)
         {
-            _shown[id].View.QueueFree();
+            _shown[id].QueueFree();
             _shown.Remove(id);
         }
 
         var aimed = ui.AimedPiece.Get();
+        _aimed.Begin();
         for (int i = 0; i < all.Count; i++)
         {
             var piece = all[i];
@@ -69,36 +75,24 @@ public partial class DebrisView(Ui ui) : Node2D
             {
                 one = PictureOf(piece.Item);
                 _shown[piece.Id] = one;
-                AddChild(one.View);
+                AddChild(one);
             }
             double x = piece.X - piece.Speed * progress;
-            one.View.Position = new Vector2((float)(x / Unit * Cell), (float)((double)piece.Y / Unit * Cell));
-            one.View.Modulate = new Color(1, 1, 1, (float)Fading.FadeOf(x, piece.Start, piece.End));
+            one.Position = new Vector2((float)(x / Unit * Cell), (float)((double)piece.Y / Unit * Cell));
+            one.Modulate = new Color(1, 1, 1, (float)Fading.FadeOf(x, piece.Start, piece.End));
             // A slow tumble, each piece its own way.
-            one.View.Rotation = (float)(_clockMs / 4000 * (piece.Id % 2 == 0 ? 1 : -1) + piece.Id);
-            one.Rim.Visible = aimed?.Id == piece.Id;
-            if (aimed is { } a && a.Id == piece.Id) one.Rim.Modulate = a.Refused ? AimRefused : AimReady;
+            one.Rotation = (float)(_clockMs / 4000 * (piece.Id % 2 == 0 ? 1 : -1) + piece.Id);
+            if (aimed is { } a && a.Id == piece.Id)
+                _aimed.Add(ItemIcons.Icon(piece.Item), one.Position, one.Rotation, PictureScale, (a.Refused ? AimRefused : AimReady) with { A = one.Modulate.A });
         }
+        _aimed.End();
     }
 
-    private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
-
-    /// <summary>An item's picture the size of a piece, centred, and its outline behind it, hidden until aimed at.</summary>
-    private static (Node2D View, Sprite2D Rim) PictureOf(string item)
+    /// <summary>An item's picture the size of a piece, centred, lit.</summary>
+    private static Sprite2D PictureOf(string item)
     {
-        var rim = new Sprite2D
-        {
-            Texture = ItemIcons.Silhouette(item),
-            Scale = Vector2.One * ((Size * Cell + 4) / ItemIcons.Pixels),
-            Visible = false,
-            // Unlit: the outline says what E does, whatever light falls there.
-            Material = Unlit,
-        };
-        var body = new Sprite2D { Texture = ItemIcons.Icon(item), Scale = Vector2.One * (Size * Cell / ItemIcons.Pixels) };
+        var body = new Sprite2D { Texture = ItemIcons.Icon(item), Scale = Vector2.One * PictureScale };
         Lit.Set(body);
-        var view = new Node2D();
-        view.AddChild(rim);
-        view.AddChild(body);
-        return (view, rim);
+        return body;
     }
 }
