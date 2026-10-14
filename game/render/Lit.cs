@@ -16,7 +16,8 @@ namespace Stillwake.Game.Render;
 /// lamp gives its share of that by what it gives of the light all of them pour there
 /// (<see cref="ShowLamplight"/>), so a surface by a fire, a lamp and embers is never brighter than its
 /// own colour fully lit. A normal-mapped picture is shaded toward or away from a lamp within that; a
-/// wall takes <see cref="Light.WallIn"/> of what reaches its face.
+/// wall takes <see cref="Light.WallIn"/> of what reaches its face. In the cells mode (0026,
+/// <see cref="Cells"/>) all of its light comes from the cells' texture instead, Godot's lights hidden.
 /// </summary>
 public static class Lit
 {

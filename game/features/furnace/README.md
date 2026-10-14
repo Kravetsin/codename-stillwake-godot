@@ -18,6 +18,8 @@ only: the sim (`sim/Furnace`) decides whether it burns.
 - **Light:** `LightView.Fire` — a burning furnace's fire lights round its mouth in `Light.Fire`, a
   shadowed light like a lamp's, and glows; `Main` answers it from `BlazeOf`, adding this view
   before the light's so the light follows the picture of the same frame.
+- **Emits** (the cells mode, 0026): an `Emitter` of `Light.Emits.Fire` on the fire's sprite, its
+  `Strength` the blaze: the flames' bright pixels light the cells they burn in.
 - **Recording:** `-- --furnace` starts in the wreck with a furnace in room A, by the start, holding
   scrap chunks and planks, played on until it burns (`FurnaceDemo.cs`, the items put in through the
   save).

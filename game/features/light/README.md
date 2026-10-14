@@ -58,6 +58,14 @@ its back walls. Drawn only: nothing of it reaches the sim. Numbers from `game/Co
 - **What it lights:** everything drawn with `Lit.Set` — the ship's cells and machines, cables, stacks on
   the floor, debris and every hero's figure, all by the one model; not fire, glows, particles, plans or
   overlays.
+- **The cells mode** (0026; `--light=cells`, F9 or the dev panel's `light:` button, live): light
+  worked out each frame over the screen and `Light.Margin` cells round it as the TypeScript game did,
+  from emitters (`render/Emitter.cs`: a lamp's bulb — a node at its cell with the lamp's picture, its
+  `Strength` the lamp's flicker — and the furnace's flames, from the furnace feature), glowing
+  particles and the stars, spread by `Sweeps` (shared with `Starlight`) in `CellLight` and handed to
+  `render/Lit.cs` as a float texture (`LightView.ShowCells`). Every `Light2D` here is hidden meanwhile,
+  and the fire's glow; the lamps' glows stay. `--measure` and `--frames` print what it costs
+  (`CellsCost`) and how many Godot lights shine: none in this mode.
 - **Kept current:** `LightView.Sync()` after every tick; lamps flicker, fires show and waver and
   particles glow in `_Process`.
 
