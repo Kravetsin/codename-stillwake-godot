@@ -342,7 +342,7 @@ public class DebrisTests
                         w.Do(new Enter(s.Cell % (cells + 4) - 2) { From = s.Peer });
                         break;
                     case "grab":
-                        w.Do(new Grab(pieces.Count > 0 && s.Cell % 3 != 0 ? pieces[s.Cell % pieces.Count].Id : s.Cell % (last + 3)) { From = s.Peer });
+                        w.Do(new Grab(pieces.Count > 0 && s.Cell % 3 != 0 ? pieces[Math.Abs(s.Cell) % pieces.Count].Id : s.Cell % (last + 3)) { From = s.Peer });
                         break;
                     case "wall":
                         int at = Math.Abs(s.Cell) % cells;
