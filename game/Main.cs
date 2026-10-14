@@ -14,6 +14,7 @@ using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Features.Research;
+using Stillwake.Game.Menu;
 using Stillwake.Game.Net;
 using Stillwake.Game.Platform;
 using Stillwake.Game.Render;
@@ -29,13 +30,15 @@ namespace Stillwake.Game;
 /// with <c>-- --join[=address]</c>; the world it plays drawn by the client's features after every
 /// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves, loads tanks, opens
 /// crates and catches debris, the left button held works plans; the camera follows it; its items (Tab,
-/// 1–9, the wheel, Q), the plan (B), what the world has just learned, and the dev panel (`).
+/// 1–9, the wheel, Q), the plan (B), what the world has just learned, the game menu (Esc: settings, save,
+/// load, quit) and the dev panel (`).
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
-/// <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>),
+/// <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
+/// the items room's inventory and the game menu (<see cref="MenuDemo"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
@@ -90,7 +93,7 @@ public partial class Main : Node2D
         if (Has("--debris")) AddChild(new DebrisDemo(_debris, _hands.Ui));
         AddChild(_camera = new ShipCamera());
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
-        if (Has("--items")) _layout = ItemsDemo.Map;
+        if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
@@ -99,7 +102,6 @@ public partial class Main : Node2D
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             // Its own layer, above the world: read from whatever registry the session runs now.
             AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
-            AddChild(new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour))));
             _camera.DevControls = false;
         }
         AddChild(new EffectsView());
@@ -114,7 +116,18 @@ public partial class Main : Node2D
         if (Has("--host")) Host();
         else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args));
         else Alone();
-        AddChild(new DevPanel(() => _session, () => _m, () => _net, SaveDev, LoadDev));
+        AddChild(new DevPanel(() => _session, () => _m, () => _net));
+        var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
+        var menu = new GameMenu(_hands.Ui,
+            busy: () => (_items?.Panel.Shown ?? false) || _hands.Plan.PlanOut.Get(),
+            putAway: () =>
+            {
+                _items?.Panel.Close();
+                _hands.Plan.PutPlanAway();
+            },
+            suits, SaveWorld, LoadWorld, canLoad: () => _role == "alone", Quit);
+        AddChild(menu);
+        if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} occluders={_light?.OccluderCount}"));
@@ -136,7 +149,7 @@ public partial class Main : Node2D
         var world = Has("--gallery") ? DevWorlds.Gallery(modules)
             : Has("--furnace") ? FurnaceDemo.Create(modules)
             : World.Create(1, layout, modules);
-        if (Has("--items")) world = ItemsDemo.Seed(world, Modules);
+        if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
         var (host, client) = LocalSession.Create(world, Build);
         _session = new Session(host, client);
@@ -224,23 +237,23 @@ public partial class Main : Node2D
         return World.Load(save, Modules());
     }
 
-    /// <summary>Save files in Godot's user folder: the dev panel's world and the last desync report.</summary>
+    /// <summary>Save files in Godot's user folder: the menu's world and the last desync report.</summary>
     private readonly Saves _saves = new(ProjectSettings.GlobalizePath("user://saves"));
     private static readonly System.Text.Json.JsonSerializerOptions Indented = new() { WriteIndented = true };
 
-    /// <summary>The dev panel's save: the world as this machine has it, to the dev slot.</summary>
-    private string SaveDev()
+    /// <summary>The menu's save: the world as this machine has it, to the world slot; how it went as an i18n key.</summary>
+    private string SaveWorld()
     {
-        if (_session is not Session s) return "Nothing to save yet.";
-        _saves.Write(Saves.Dev, s.Client.World.Save());
-        return "Saved.";
+        if (_session is not Session s) return "menu.nothingToSave";
+        _saves.Write(Saves.World, s.Client.World.Save());
+        return "menu.saved";
     }
 
-    /// <summary>The dev panel's load: the dev slot's world, as a session of this machine's own at the same speed.</summary>
-    private string LoadDev()
+    /// <summary>The menu's load: the world slot's world, as a session of this machine's own at the same speed.</summary>
+    private string LoadWorld()
     {
-        if (_role != "alone") return "Loads only in a world of this machine's own.";
-        if (_saves.Read(Saves.Dev) is not string save) return "Nothing saved yet.";
+        if (_role != "alone") return "menu.aloneOnly";
+        if (_saves.Read(Saves.World) is not string save) return "menu.nothingSaved";
         // The registry is swapped only once the save has loaded: a broken one leaves the world as it was.
         var m = new Registry();
         var world = World.Load(save, m.All);
@@ -248,7 +261,7 @@ public partial class Main : Node2D
         var (host, client) = LocalSession.Create(world, Build);
         _session = new Session(host, client) { Speed = _session?.Speed ?? 1 };
         ShowWorld();
-        return "Loaded.";
+        return "menu.loaded";
     }
 
     /// <summary>The views drawing the current registry's world, made again when a load brings a new one.</summary>

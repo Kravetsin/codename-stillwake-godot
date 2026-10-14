@@ -113,4 +113,10 @@ public sealed class Ui
     /// the pointer is on one within reach, <c>debris</c> outlines that piece.
     /// </summary>
     public Store<(int Id, bool Refused)?> AimedPiece { get; } = new(null);
+
+    /// <summary>
+    /// Whether the game menu is open: set by the menu. The world runs on behind it, but the hero takes
+    /// no keys and the hands no pointer, so nothing in the world answers a player who is not there.
+    /// </summary>
+    public Store<bool> MenuOpen { get; } = new(false);
 }

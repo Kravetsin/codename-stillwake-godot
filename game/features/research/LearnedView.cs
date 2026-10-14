@@ -29,6 +29,7 @@ public partial class LearnedView : CanvasLayer
 
     public override void _Ready()
     {
+        Layer = ScreenLayers.Hud;
         var box = Style.Box(Style.Slate900 with { A = 0.95f }, Style.Sky600, 0);
         (box.ContentMarginLeft, box.ContentMarginRight, box.ContentMarginTop, box.ContentMarginBottom) = (12, 12, 8, 8);
         (box.ShadowColor, box.ShadowSize) = (Style.Sky700 with { A = 0.5f }, 16);

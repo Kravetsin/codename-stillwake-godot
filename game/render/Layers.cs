@@ -44,3 +44,29 @@ public static class Layers
     // An overlay over the whole world (air, pipes, power), what it marks, and the cable dragged in it.
     public const int Overlay = 22, OverlayMarks = 23, OverlayHands = 24;
 }
+
+/// <summary>
+/// The screen's canvas layers, back to front: every <c>CanvasLayer</c> takes its <c>Layer</c> from here,
+/// so no panel added later draws over a tip. Words by the pointer have a layer of their own, over all
+/// of it; within a layer, nodes draw in tree order.
+/// </summary>
+public static class ScreenLayers
+{
+    /// <summary>The stars, under the world (<see cref="Render.Stars"/>).</summary>
+    public const int Stars = -1;
+
+    /// <summary>The top of the screen: the suit's gauge, the hotbar and inventory, what was learned, pick-ups over a head.</summary>
+    public const int Hud = 1;
+
+    /// <summary>The bottom of the screen: the build menu, the prompt for E, the overlays' bar.</summary>
+    public const int Bars = 10;
+
+    /// <summary>The dev panel, then the game menu over it all.</summary>
+    public const int Dev = 12, Menu = 20;
+
+    /// <summary>
+    /// Words by the pointer over every panel: an item's name, a card's tooltip, a cost, an overlay's
+    /// words, a refusal, the stack carried; then a scripted run's drawn pointer.
+    /// </summary>
+    public const int Tips = 30, Pointer = 31;
+}

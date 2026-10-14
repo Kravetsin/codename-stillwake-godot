@@ -43,6 +43,7 @@
     <Compile Include="../game/render/Buttons.cs" Link="Game/Render/Buttons.cs" />
     <Compile Include="../game/render/CableShape.cs" Link="Game/Render/CableShape.cs" />
     <Compile Include="../game/shared/Ui.cs" Link="Game/Shared/Ui.cs" />
+    <Compile Include="../game/shared/Escape.cs" Link="Game/Shared/Escape.cs" />
     <Compile Include="../game/overlays/OverlaySwitch.cs" Link="Game/Overlays/OverlaySwitch.cs" />
     <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />
     <Compile Include="../game/features/building/PlanHand.cs" Link="Game/Building/PlanHand.cs" />

@@ -24,7 +24,7 @@ public partial class Stars : CanvasLayer
 
     public Stars()
     {
-        Layer = -1;
+        Layer = ScreenLayers.Stars;
         // After every node at the default priority, the camera among them: its centre is this frame's.
         ProcessPriority = 1;
         var rng = new RandomNumberGenerator { Seed = 7 };

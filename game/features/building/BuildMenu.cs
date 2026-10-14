@@ -48,7 +48,7 @@ public partial class BuildMenu : CanvasLayer
     {
         _hand = hand;
         _ui = ui;
-        Layer = 10;
+        Layer = ScreenLayers.Bars;
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _root.Theme = new Theme { DefaultFont = Mono, DefaultFontSize = 12 };
         AddChild(_root);
@@ -76,7 +76,10 @@ public partial class BuildMenu : CanvasLayer
         _tooltip.MouseFilter = Control.MouseFilterEnum.Ignore;
         _tooltip.CustomMinimumSize = new Vector2(224, 0);
         _tooltip.Visible = false;
-        _root.AddChild(_tooltip);
+        // Over every panel, as all words by the pointer are.
+        var tips = new CanvasLayer { Layer = ScreenLayers.Tips };
+        tips.AddChild(_tooltip);
+        AddChild(tips);
     }
 
     private void BottomCentre(Control panel)
@@ -133,9 +136,8 @@ public partial class BuildMenu : CanvasLayer
 
     public override void _UnhandledInput(InputEvent e)
     {
+        // Esc puts the plan away through Shared.Escape, before it opens the game menu.
         if (e is not InputEventKey { Pressed: true } key) return;
-        // Esc is left to the inventory too, which it closes.
-        if (key.PhysicalKeycode == Key.Escape) _hand.PutPlanAway();
         if (key.PhysicalKeycode != Key.B || key.Echo) return;
         _hand.Toggle();
         GetViewport().SetInputAsHandled();

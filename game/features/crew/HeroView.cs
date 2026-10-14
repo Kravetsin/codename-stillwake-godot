@@ -211,7 +211,7 @@ public partial class HeroView : Node2D
     }
 
     /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none while the mouse is off the window.</summary>
-    private (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? _mouse.Pointer();
+    private (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? (_ui.MenuOpen.Get() ? null : _mouse.Pointer());
 
     /// <summary>A hero's tether tied at <paramref name="anchor"/>, anew wherever it is tied; none aboard.</summary>
     private static Tether? Tie(Tether? line, int seed, Point? anchor, (double X, double Y) clip, double elapsedMs)
@@ -234,6 +234,12 @@ public partial class HeroView : Node2D
     {
         static bool Held(Key a, Key b) => Input.IsPhysicalKeyPressed(a) || Input.IsPhysicalKeyPressed(b);
         static int Axis(bool minus, bool plus) => (plus ? 1 : 0) - (minus ? 1 : 0);
+        // Keys held as the game menu opened are not walked on behind it.
+        if (_ui.MenuOpen.Get())
+        {
+            _jump = false;
+            return new HeroInput(0, 0, false);
+        }
         var input = new HeroInput(
             Axis(Held(Key.A, Key.Left), Held(Key.D, Key.Right)),
             Axis(Held(Key.W, Key.Up), Held(Key.S, Key.Down)),

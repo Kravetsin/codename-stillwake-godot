@@ -24,7 +24,7 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`)          | no    |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads          | no    |
 | `SuitGauge.cs`     | the suit bar, red edges when low, the dark when passed out (`SuitGauge.tsx`)              | yes   |
-| `SuitColours.cs`   | the suit colours under the bar: the one worn ringed, those taken dimmed, the rest a click away (`SuitColours.tsx`) | yes |
+| `SuitColours.cs`   | the suit colours, a row in the game menu's settings: the one worn ringed, those taken dimmed, the rest a click away (`SuitColours.tsx`) | yes |
 
 The files without Godot are compiled a second time into `game.tests/` (linked, as `sim/Tests` links
 `game/Content/Light.cs`), where their TypeScript tests are ported one for one: `hero.test.ts`,
@@ -78,7 +78,8 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 - Every frame, after the steps, it sends `Report.Of`'s `Enter` when the sim has no hero for this peer,
   or holds it in another room or on the other side of the air's edge than its body: the same frames
   `index.ts` sends `reportOf`'s.
-- `SuitGauge` and `SuitColours`, layers of their own made by `Main`, read the sim four times a second.
+- `SuitGauge`, a layer of its own made by `Main`, and `SuitColours`, a row `Main` hands the game menu
+  (`game/menu`), read the sim four times a second, the row only while shown.
 - The host passes `crew`'s `Leave` as the farewell of a peer whose link closes (`Main.Host`).
 - The tether's anchor is the controller's own (0007), sent with the hero.
 

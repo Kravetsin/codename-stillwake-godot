@@ -79,7 +79,7 @@ public partial class DebrisDemo : CanvasLayer
     {
         _view = view;
         _ui = ui;
-        Layer = 10;
+        Layer = ScreenLayers.Pointer;
         AddChild(_arrow);
         _arrow.Draw += () =>
         {

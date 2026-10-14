@@ -1,3 +1,4 @@
+using System;
 using Godot;
 
 namespace Stillwake.Game.Render;
@@ -45,6 +46,34 @@ public static class Style
         ShadowSize = shadow ? 1 : 0,
         ShadowOffset = new Vector2(0, 1),
     };
+
+    /// <summary>A button, <c>rounded bg-slate-700 px-… py-… text-slate-300 hover:bg-slate-600</c> in mono, never taking the keyboard's focus.</summary>
+    public static Button Button(string text, Action pressed, int size = 12, int padX = 8, int padY = 4)
+    {
+        var button = new Button { Text = text, FocusMode = Control.FocusModeEnum.None };
+        Paint(button, Slate700, Slate600, padX, padY);
+        button.AddThemeFontOverride("font", Mono);
+        button.AddThemeFontSizeOverride("font_size", size);
+        foreach (var state in (string[])["font_color", "font_hover_color", "font_pressed_color"]) button.AddThemeColorOverride(state, Slate300);
+        button.AddThemeColorOverride("font_disabled_color", Slate600);
+        button.Pressed += pressed;
+        return button;
+    }
+
+    /// <summary>A button's background, <paramref name="colour"/> and <paramref name="hover"/> under the pointer; disabled, dark.</summary>
+    public static void Paint(Button button, Color colour, Color hover, int padX = 8, int padY = 4)
+    {
+        StyleBoxFlat Of(Color c)
+        {
+            var box = Box(c, c);
+            (box.ContentMarginLeft, box.ContentMarginRight, box.ContentMarginTop, box.ContentMarginBottom) = (padX, padX, padY, padY);
+            return box;
+        }
+        button.AddThemeStyleboxOverride("normal", Of(colour));
+        button.AddThemeStyleboxOverride("hover", Of(hover));
+        button.AddThemeStyleboxOverride("pressed", Of(hover));
+        button.AddThemeStyleboxOverride("disabled", Of(Slate800));
+    }
 
     /// <summary>The gap between a box's children, <c>gap-…</c>.</summary>
     public static T Gap<T>(T box, int gap) where T : Control

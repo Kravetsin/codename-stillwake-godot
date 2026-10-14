@@ -30,7 +30,7 @@ public partial class PointerTip : CanvasLayer
     public PointerTip(Ui ui)
     {
         _ui = ui;
-        Layer = 11;
+        Layer = ScreenLayers.Tips;
         _reason.LabelSettings = _reasonText;
         AddChild(_reason);
         _lines.AddThemeConstantOverride("separation", 0);

@@ -33,6 +33,8 @@ public partial class InventoryPanel : CanvasLayer
 
     private readonly List<SlotBox> _slots = [];
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    /// <summary>The stack carried and the name under the pointer, over every panel.</summary>
+    private readonly CanvasLayer _tips = new() { Layer = ScreenLayers.Tips };
     private Control _hotbar = null!, _shown = null!, _held = null!, _fire = null!;
     private Control? _cratePanel;
     private TextureRect _heldIcon = null!;
@@ -80,14 +82,17 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The hotbar slot chosen, with 1–9 or the wheel.</summary>
     public int Chosen => _chosen;
 
-    private bool Shown => _open || Crate != null;
+    /// <summary>Whether the inventory or a crate is open: what Esc closes before it opens the menu.</summary>
+    public bool Shown => _open || Crate != null;
 
     /// <summary>A picked stack whose slot still holds it, while the panels are open: one emptied meanwhile, by another player at a crate, is dropped.</summary>
     private Picked? Held => Shown && _picked is { } p && _reading?.At(p.Place) != null ? p : null;
 
     public override void _Ready()
     {
+        Layer = ScreenLayers.Hud;
         AddChild(_root);
+        AddChild(_tips);
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
 
         var top = Style.Gap(new HBoxContainer(), 8);
@@ -127,7 +132,7 @@ public partial class InventoryPanel : CanvasLayer
             VerticalAlignment = VerticalAlignment.Bottom,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
-        _root.AddChild(_held);
+        _tips.AddChild(_held);
 
         _tip = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
         var tipBox = Style.Box(Style.Slate950 with { A = 0.9f }, Style.Slate600 with { A = 0.8f });
@@ -135,7 +140,7 @@ public partial class InventoryPanel : CanvasLayer
         (tipBox.ShadowColor, tipBox.ShadowSize) = (new Color(0, 0, 0, 0.3f), 3);
         _tip.AddThemeStyleboxOverride("panel", tipBox);
         _tip.AddChild(_tipText = new Label { LabelSettings = Style.Text(Style.Bold, 12, Style.Slate100) });
-        _root.AddChild(_tip);
+        _tips.AddChild(_tip);
     }
 
     /// <summary>
@@ -150,8 +155,8 @@ public partial class InventoryPanel : CanvasLayer
         if (fresh || _sinceRead >= RefreshMs) Read();
     }
 
-    /// <summary>Closes both the inventory and the crate, putting a picked stack back.</summary>
-    private void Close()
+    /// <summary>Closes both the inventory and the crate, putting a picked stack back: Tab, or Esc through <see cref="Escape"/>.</summary>
+    public void Close()
     {
         (_open, _picked) = (false, null);
         _ui.OpenCrate.Set(null);
@@ -263,10 +268,6 @@ public partial class InventoryPanel : CanvasLayer
                         (_open, _picked) = (true, null);
                     }
                     break;
-                case Key.Escape:
-                    // Left to the plan too, which Esc puts away.
-                    Close();
-                    return;
                 case >= Key.Key1 and <= Key.Key9:
                     _ui.Hand.Set(Holding.Free);
                     _chosen = (int)(key.PhysicalKeycode - Key.Key1);
@@ -318,7 +319,8 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The middle of the slot at <paramref name="place"/> on screen, for scripted runs.</summary>
     public Vector2 CenterOf(Place place) => _slots.First(s => s.Place == place).GetGlobalRect().GetCenter();
 
-    private Place? SlotUnder(Vector2 at) =>
+    // Under the open menu no slot is pointed at: its name would show over the menu.
+    private Place? SlotUnder(Vector2 at) => _ui.MenuOpen.Get() ? null :
         _slots.FirstOrDefault(s => s.IsVisibleInTree() && s.GetGlobalRect().HasPoint(at))?.Place;
 
     private bool OverPanel(Vector2 at) =>
