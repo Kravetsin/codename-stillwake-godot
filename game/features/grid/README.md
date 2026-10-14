@@ -1,0 +1,25 @@
+# Grid (client)
+
+Draws the ship's cells and machines in pixel art, a pixel of art a pixel of the world, sixteen to a
+cell (TypeScript `features/grid` and `render/ship-art.ts`).
+
+- **Reads:** `IGridQueries` only — `StructureLayer`, `MaterialLayer`, `ConduitLayer`, `BackLayer`,
+  `BackMaterialLayer`, `Machines`; the machine's `Plug` from `Content.Machines` for its socket.
+- **Draws:** a `TileMapLayer` per kind of picture, back to front: back walls (scrap cut from its
+  picture, iron a panel with a grille in about one cell of seven), pipes reaching toward their
+  neighbours, valves, walls cut from their material's picture, their edges on every side that faces no
+  wall, floors and ladders, doors (shut or slid open, joined to the door cells above and below),
+  machines over their footprints; a sprite per power socket.
+- **Kept current:** `GridView.Sync()` runs after every tick. It compares the layers with what it drew
+  and redraws only the changed cells and their four neighbours; machines are redrawn when the list
+  changes. Nothing is rebuilt per frame.
+- **Pictures:** every PNG of `game/art` that cells use is packed at start into one atlas with one
+  normal map (`render/ShipTiles.cs`), so a layer's piece of the screen is one draw call. Walls, edges,
+  doors, machines and sockets are lit with relief from their normal maps; back walls, pipes, floors
+  and ladders flat (`render/Lit.cs`).
+
+## Deliberately not handled
+
+- Pipes overlay, sockets where conduits join machines, the furnace's fire: they belong to the pipes
+  and furnace features (G-08); `fire_*.png` and `socket.png` are exported for them.
+- A grid that changes size: the sim's grid never does.

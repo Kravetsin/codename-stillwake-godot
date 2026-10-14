@@ -1,49 +1,75 @@
+using System.Linq;
 using Godot;
+using Stillwake.Game.Dev;
+using Stillwake.Game.Features.Grid;
+using Stillwake.Game.Features.Light;
+using Stillwake.Game.Render;
 using Stillwake.Sim;
-using Stillwake.Sim.Grid;
-using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Game;
 
 /// <summary>
-/// The wreck from the C# sim, drawn cell by cell: rooms in colour, space dark. A placeholder until the
-/// client's features are ported (docs/plans/port.md); the sim steps at the physics rate, 20 a second.
+/// The wreck from the C# sim, stepped at the physics rate, 20 a second, and drawn by the client's
+/// features after every tick. Until the hero is ported the camera is moved by hand.
+/// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
+/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--autopilot</c> toggles doors for recordings,
+/// <c>--measure</c> prints what frames cost and quits.
 /// </summary>
 public partial class Main : Node2D
 {
-    private const int CellPx = 20;
-    private static readonly Rect2I View = new(28, 15, 32, 10);
     private World _world = null!;
     private Registry _m = null!;
+    private GridView _grid = null!;
+    private LightView _light = null!;
+    private ShipCamera _camera = null!;
+    private string[] _args = [];
+    private double _worstSyncMs;
 
     public override void _Ready()
     {
+        _args = OS.GetCmdlineUserArgs();
         _m = new Registry();
-        _world = World.Create(1, Registry.Wreck, _m.All);
+        bool perf = Has("--perf");
+        Layout? layout = null;
+        if (Has("--gallery")) _world = DevWorlds.Gallery(_m.All);
+        else _world = World.Create(1, layout = perf ? DevWorlds.Perf() : Registry.Wreck, _m.All);
+
+        AddChild(new Stars());
+        AddChild(_grid = new GridView(_m.Grid));
+        AddChild(_light = new LightView(_m.Grid));
+        AddChild(_camera = new ShipCamera());
+        Sync();
+        _worstSyncMs = 0;
+
+        var start = layout?.CellsOf('S').FirstOrDefault(-1) ?? -1;
+        if (perf) _camera.Fit(new Rect2(0, 0, _m.Grid.Width, _m.Grid.Height));
+        else if (start >= 0) _camera.Follow(new Vector2(start % _m.Grid.Width + 0.5f, start / _m.Grid.Width));
+        else _camera.Follow(new Vector2(_m.Grid.Width, _m.Grid.Height) / 2);
+        if (Arg("--view") is { } view)
+        {
+            var v = view.Split(',').Select(s => float.Parse(s, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            _camera.Follow(new Vector2(v[0], v[1]));
+            if (v.Length > 2) _camera.SetZoom(v[2]);
+        }
+        if (Has("--measure"))
+            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light.LampCount} occluders={_light.OccluderCount}"));
     }
+
+    private bool Has(string flag) => _args.Contains(flag);
+    private string? Arg(string flag) => _args.SkipWhile(a => a != flag).Skip(1).FirstOrDefault();
 
     public override void _PhysicsProcess(double delta)
     {
-        _world.Step([]);
-        QueueRedraw();
+        var commands = Has("--autopilot") ? Autopilot.At(_world.Tick, _m.Grid) : [];
+        _world.Step(commands);
+        Sync();
     }
 
-    public override void _Draw()
+    private void Sync()
     {
-        for (int y = View.Position.Y; y < View.End.Y; y++)
-            for (int x = View.Position.X; x < View.End.X; x++)
-            {
-                int cell = y * _m.Grid.Width + x;
-                var room = _m.Rooms.RoomAt(cell);
-                Color c = _m.Grid.StructureAt(cell) switch
-                {
-                    Structure.Wall => new Color(0.45f, 0.47f, 0.52f),
-                    Structure.DoorClosed => new Color(0.8f, 0.48f, 0.23f),
-                    _ when room == RoomsModule.Space => new Color(0.04f, 0.05f, 0.08f),
-                    _ when room is int id => Color.FromHsv(id * 0.137f % 1f, 0.45f, 0.75f),
-                    _ => Colors.Magenta,
-                };
-                DrawRect(new Rect2((x - View.Position.X) * CellPx, (y - View.Position.Y) * CellPx, CellPx - 1, CellPx - 1), c);
-            }
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        _grid.Sync();
+        _light.Sync();
+        _worstSyncMs = System.Math.Max(_worstSyncMs, System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
     }
 }
