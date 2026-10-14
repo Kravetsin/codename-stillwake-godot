@@ -46,11 +46,12 @@ the principle wins and the rule gets revisited.
 | `sim/Registry`   | every module of a world wired through constructors, in run order; the wreck layout     |
 | `sim/Analyzers`  | our Roslyn analyzer: the determinism rules BannedApiAnalyzers cannot express          |
 | `sim/Tests`      | xUnit and FsCheck: scenario, invariant and core tests                                 |
-| `game/`          | the Godot project: rendering, UI, input, the hero controller, networking              |
+| `net/`           | the session (`Net`): host, client, protocol, playout, hash checks; its tests (`Tests`) |
+| `game/`          | the Godot project: rendering, UI, input, the hero controller, the ENet transport      |
 | `docs/`          | concept, decisions (ADRs), plans, playtests                                           |
 
-Assemblies reference one way only: `Content` → `Core` → modules → `Registry` → `game`. Nothing under `sim/`
-references Godot.
+Assemblies reference one way only: `Content` → `Core` → modules → `Registry` → `game`, and
+`Core` → `Net` → `game`. Nothing under `sim/` or `net/` references Godot.
 
 ## Sim modules
 
