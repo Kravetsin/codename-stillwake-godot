@@ -17,6 +17,10 @@ window/size/viewport_height=720
 
 project/assembly_name="Stillwake.Game"
 
+[gui]
+
+theme/custom_font="res://render/fonts/sans.tres"
+
 [physics]
 
 common/physics_ticks_per_second=20

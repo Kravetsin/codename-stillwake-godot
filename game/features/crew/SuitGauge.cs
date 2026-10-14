@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using Stillwake.Game.Render;
 using CrewSpec = Stillwake.Content.Crew;
 
 namespace Stillwake.Game.Features.Crew;
@@ -92,7 +93,7 @@ public partial class SuitGauge : CanvasLayer
             var box = new Rect2(Vector2.Zero, Size);
             DrawRect(box, Back);
             DrawRect(box, Edge, false, 1);
-            var font = ThemeDB.FallbackFont;
+            var font = Style.Mono;
             DrawString(font, new Vector2(12, 20), "O₂", HorizontalAlignment.Left, -1, 12, Text);
             var track = new Rect2(40, 12, Size.X - 52, 6);
             DrawRect(track, Track);

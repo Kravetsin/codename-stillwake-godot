@@ -11,8 +11,11 @@ public static class Style
         Orange400 = new("fb923c"), Orange500 = new("f97316"), Orange700 = new("c2410c"), Red300 = new("fca5a5"),
         Sky200 = new("bae6fd"), Sky400 = new("38bdf8"), Sky600 = new("0284c7"), Sky700 = new("0369a1");
 
-    public static readonly Font Mono = new SystemFont { FontNames = ["Consolas", "Menlo", "monospace"] };
-    public static readonly Font Bold = new SystemFont { FontNames = ["Segoe UI", "sans-serif"], FontWeight = 600 };
+    // Stems widened a touch, as Chrome's DirectWrite drew light text on dark; mono on whole pixels (render/fonts).
+    // sans.tres is the project's default font (gui/theme/custom_font), so every Control falls back to it.
+    public static readonly Font Mono = GD.Load<Font>("res://render/fonts/mono.tres");
+    public static readonly Font Sans = GD.Load<Font>("res://render/fonts/sans.tres");
+    public static readonly Font Bold = GD.Load<Font>("res://render/fonts/semibold.tres");
 
     /// <summary><c>rounded border bg-… border-… p-…</c>.</summary>
     public static StyleBoxFlat Box(Color bg, Color border, int padding = 0, int radius = 4)

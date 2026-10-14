@@ -1,6 +1,7 @@
 using System.Linq;
 using Godot;
 using Stillwake.Game.I18n;
+using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Overlays;
@@ -13,7 +14,6 @@ public partial class OverlayBar : CanvasLayer
 {
     private static readonly Color Slate900 = new("0f172a"), Slate700 = new("334155"), Slate400 = new("94a3b8"),
         Sky900 = new("0c4a6e"), Sky400 = new("38bdf8"), Sky100 = new("e0f2fe");
-    private static readonly Font Mono = new SystemFont { FontNames = ["Consolas", "Menlo", "monospace"] };
 
     private readonly OverlaySwitch _switch;
     private readonly HBoxContainer _row = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -58,7 +58,7 @@ public partial class OverlayBar : CanvasLayer
             panel.AddChild(new Label
             {
                 Text = $"{overlay.Key} {En.T(overlay.Name)}",
-                LabelSettings = new LabelSettings { Font = Mono, FontSize = 12, FontColor = on ? Sky100 : Slate400 },
+                LabelSettings = new LabelSettings { Font = Style.Mono, FontSize = 12, FontColor = on ? Sky100 : Slate400 },
             });
             _row.AddChild(panel);
         }

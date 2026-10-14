@@ -18,7 +18,6 @@ public partial class PointerTip : CanvasLayer
     /// <summary>The reason's size and its outline, in pixels of the world: it grows and shrinks with the zoom, as world text does.</summary>
     private const float ReasonSize = 10, ReasonStroke = 3, ReasonOffset = 12;
     private static readonly Color ReasonColour = new("ffe4e4"), Outline = new("0b0f17"), Red400 = new("f87171");
-    private static readonly Font Sans = new SystemFont { FontNames = ["Segoe UI", "sans-serif"] };
 
     private readonly Ui _ui;
     private readonly Label _reason = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -96,7 +95,7 @@ public partial class PointerTip : CanvasLayer
         }
         _panel.AddThemeStyleboxOverride("panel", world == null && cost != null ? _cost : _plain);
         for (int i = 0; i < (world?.Count ?? 0); i++)
-            _lines.AddChild(i == 0 ? Line(world![i], Style.Bold, 12, Style.Slate100) : Line(world![i], Sans, 12, Style.Slate300));
+            _lines.AddChild(i == 0 ? Line(world![i], Style.Bold, 12, Style.Slate100) : Line(world![i], Style.Sans, 12, Style.Slate300));
         if (world == null && cost != null)
         {
             var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 8);

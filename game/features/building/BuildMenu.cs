@@ -27,7 +27,7 @@ public partial class BuildMenu : CanvasLayer
         Slate300 = new("cbd5e1"), Slate100 = new("f1f5f9"), Sky500 = new("0ea5e9"), Sky700 = new("0369a1"),
         Sky950 = new("082f49"), Red400 = new("f87171");
 
-    private static readonly Font Mono = new SystemFont { FontNames = ["Consolas", "Menlo", "monospace"] };
+    private static readonly Font Mono = Render.Style.Mono;
 
     private readonly PlanHand _hand;
     private readonly Ui _ui;
