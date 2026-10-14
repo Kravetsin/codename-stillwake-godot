@@ -178,7 +178,8 @@ public class AimTests
         Use(h, 45, 22);
         h = Run(h, HeroTests.Left, 300);
         // Into room B, torn open to space, as far as the tether from its doorway lets the hero.
-        Assert.Equal(45 * Unit + Unit / 2 - Spec.Hero.Tether, h.X);
+        // The tether cuts a move back to its length rounded toward its anchor: within a thousandth of a cell.
+        Assert.InRange(h.X, 45 * Unit + Unit / 2 - Spec.Hero.Tether, 45 * Unit + Unit / 2 - Spec.Hero.Tether + 1);
 
         // Back the other way, the airlock's inner doorway stops the hero, until opened.
         h = Run(h, HeroTests.Right, 400);
@@ -201,7 +202,8 @@ public class AimTests
         Assert.NotEqual(m.Grid.StructureLayer.ToArray(), Predicted.Grid(client, m.Grid).Structure);
         for (int i = 0; i < 300; i++) h = h.Step(HeroTests.Left, ShipNow());
         // Into room B, torn open to space, as far as the tether from its doorway lets the hero.
-        Assert.Equal(45 * Unit + Unit / 2 - Spec.Hero.Tether, h.X);
+        // The tether cuts a move back to its length rounded toward its anchor: within a thousandth of a cell.
+        Assert.InRange(h.X, 45 * Unit + Unit / 2 - Spec.Hero.Tether, 45 * Unit + Unit / 2 - Spec.Hero.Tether + 1);
     }
 
     // A crate under the pointer.

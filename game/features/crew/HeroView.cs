@@ -253,7 +253,8 @@ public partial class HeroView : Node2D
         var input = new HeroInput(
             Axis(Held(Key.A, Key.Left), Held(Key.D, Key.Right)),
             Axis(Held(Key.W, Key.Up), Held(Key.S, Key.Down)),
-            _jump);
+            _jump,
+            Sprint: Input.IsPhysicalKeyPressed(Key.Shift));
         _jump = false;
         return input;
     }

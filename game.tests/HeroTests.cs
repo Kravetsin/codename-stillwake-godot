@@ -59,7 +59,7 @@ public class HeroTests
     internal static Hero Settle(Ship ship, Hero hero, HeroInput input)
     {
         var h = hero;
-        for (int i = 0; i < 2000; i++)
+        for (int i = 0; i < 10000; i++)
         {
             var next = h.Step(input, ship);
             if (next.X == h.X && next.Y == h.Y && next.Vy == h.Vy && next.Climbing == h.Climbing) return next;
@@ -109,6 +109,17 @@ public class HeroTests
         Assert.Equal(hero.X + Spec.Walk, hero.Step(Right, ship).X);
         Assert.Equal(6 * Unit - Half, Settle(ship, hero, Right).X);
         Assert.Equal(1 * Unit + Half, Settle(ship, hero, Left).X);
+    }
+
+    [Fact]
+    public void RunsWithShiftHeldFasterThanItWalksAndSwimsFastInSpace()
+    {
+        var (ship, hero) = Start(Room);
+        Assert.Equal(hero.X + Spec.Run, hero.Step(Right with { Sprint = true }, ship).X);
+        Assert.True(Spec.Run > Spec.Walk && Spec.SwimFast > Spec.Swim);
+        var opened = Opened();
+        var h = Hero.At(opened, 40 * opened.Width + 120);
+        Assert.Equal(h.X + Spec.SwimFast, h.Step(Right with { Sprint = true }, opened).X);
     }
 
     [Fact]

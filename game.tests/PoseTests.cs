@@ -8,7 +8,7 @@ namespace Stillwake.Game.Tests;
 public class PoseTests
 {
     private static readonly Hero Standing = new(5500, 10000, 0, 0, false, 1);
-    private static readonly Hero Walking = Standing with { Vx = 240 };
+    private static readonly Hero Walking = Standing with { Vx = 120 };
 
     private static Moment At(double travelled, double timeMs = 0) => new(travelled, timeMs);
 
@@ -20,7 +20,8 @@ public class PoseTests
     public void PoseOfReadsWhatTheHeroDoesFromHowItMoves()
     {
         Assert.Equal(Pose.Stand, PoseOf(Standing, false, false));
-        Assert.Equal(Pose.Walk, PoseOf(Standing with { Vx = 240 }, false, false));
+        Assert.Equal(Pose.Walk, PoseOf(Standing with { Vx = 120 }, false, false));
+        Assert.Equal(Pose.Run, PoseOf(Standing with { Vx = -220 }, false, false));
         Assert.Equal(Pose.Air, PoseOf(Standing with { Vx = 240, Vy = -420 }, false, false));
         Assert.Equal(Pose.Air, PoseOf(Standing with { Vy = 21 }, false, false));
         Assert.Equal(Pose.Climb, PoseOf(Standing with { Climbing = true }, false, false));
@@ -125,15 +126,15 @@ public class PoseTests
     [Fact]
     public void LeansIntoASwimAlongTheFloorInSpaceUprightOtherwise()
     {
-        double across = LimbsOf(Pose.Float, Standing with { Vx = 120 }, At(1)).Tilt;
-        double up = LimbsOf(Pose.Float, Standing with { Vy = -120 }, At(1)).Tilt;
+        double across = LimbsOf(Pose.Float, Standing with { Vx = 80 }, At(1)).Tilt;
+        double up = LimbsOf(Pose.Float, Standing with { Vy = -80 }, At(1)).Tilt;
         Assert.True(across > up);
     }
 
     [Fact]
     public void SwimsABreaststrokeInSpaceArmsReachAheadThenSweepBackToTheHips()
     {
-        var swimming = Standing with { Vx = 120 };
+        var swimming = Standing with { Vx = 80 };
         Assert.True(LimbsOf(Pose.Float, swimming, At(0, 0)).FrontArm.Upper > 2.5);
         Assert.True(LimbsOf(Pose.Float, swimming, At(0, Adrift.StrokeMs * 0.4)).FrontArm.Upper < 0);
         // Folded to the chest with the knees drawn up before reaching again.
@@ -142,10 +143,28 @@ public class PoseTests
     }
 
     [Fact]
+    public void SwimsFastHeadFirstFlatAlongTheFloorUprightGoingUp()
+    {
+        Close(Math.PI / 2, LimbsOf(Pose.Float, Standing with { Vx = 160 }, At(0)).Tilt);
+        Close(0, LimbsOf(Pose.Float, Standing with { Vy = -160 }, At(0)).Tilt);
+        Assert.True(LimbsOf(Pose.Float, Standing with { Vy = 160 }, At(0)).Tilt > 3);
+    }
+
+    [Fact]
+    public void RunsLeaningInElbowsBentKneesHigherThanItWalks()
+    {
+        var run = LimbsOf(Pose.Run, Standing with { Vx = 220 }, At(Stride.Run / 2));
+        var walk = LimbsOf(Pose.Walk, Walking, At(Stride.Walk / 2));
+        Assert.True(run.Tilt > walk.Tilt);
+        Assert.True(run.FrontArm.Lower > 1.2);
+        Assert.True(Math.Min(run.FrontLeg.Lower, run.BackLeg.Lower) < Math.Min(walk.FrontLeg.Lower, walk.BackLeg.Lower));
+    }
+
+    [Fact]
     public void KeepsItsStrokeOnTheDiagonalTimedNotByDistance()
     {
-        var across = LimbsOf(Pose.Float, Standing with { Vx = 120 }, At(0, 500));
-        var diagonal = LimbsOf(Pose.Float, Standing with { Vx = 120, Vy = 120 }, At(7, 500));
+        var across = LimbsOf(Pose.Float, Standing with { Vx = 80 }, At(0, 500));
+        var diagonal = LimbsOf(Pose.Float, Standing with { Vx = 80, Vy = 80 }, At(7, 500));
         Assert.Equal(across.FrontArm, diagonal.FrontArm);
     }
 

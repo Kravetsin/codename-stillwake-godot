@@ -3,7 +3,7 @@ using System;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>What a hero's figure is doing, read from its movement: never decided anywhere else.</summary>
-public enum Pose { Stand, Walk, Air, Climb, Float, Lie, Tumble }
+public enum Pose { Stand, Walk, Run, Air, Climb, Float, Lie, Tumble }
 
 /// <summary>
 /// Each limb's bend (<see cref="Rig"/>), and how the whole body is placed: <see cref="Tilt"/> radians
@@ -31,7 +31,7 @@ public static class Poses
     /// </summary>
     public static class Stride
     {
-        public const double Walk = 3.6, Climb = 3.6;
+        public const double Walk = 2.8, Run = 4.6, Climb = 3.6;
     }
 
     /// <summary>
@@ -42,8 +42,11 @@ public static class Poses
     /// </summary>
     public static class Adrift
     {
-        /// <summary>A breaststroke swimming in space, timed rather than by distance, so a swim on the diagonal keeps its pace.</summary>
-        public const double StrokeMs = 1150;
+        /// <summary>
+        /// A breaststroke swimming in space, timed rather than by distance, so a swim on the diagonal keeps
+        /// its pace; quicker swimming fast, the body stretched out head first.
+        /// </summary>
+        public const double StrokeMs = 1150, StrokeFastMs = 750;
         public const double TreadMs = 1500, SwayMs = 5200, PanicEveryMs = 9000, PanicMs = 1400, WhirlMs = 360;
         /// <summary>How long the flailing takes to start and to calm down.</summary>
         public const double PanicEaseMs = 250;
@@ -138,7 +141,8 @@ public static class Poses
         if (hero.Climbing) return Pose.Climb;
         // Standing on something, the controller leaves no fall speed.
         if (hero.Vy != 0) return Pose.Air;
-        return hero.Vx == 0 ? Pose.Stand : Pose.Walk;
+        if (hero.Vx == 0) return Pose.Stand;
+        return Math.Abs(hero.Vx) > Stillwake.Content.Hero.Walk ? Pose.Run : Pose.Walk;
     }
 
     private static Bend B(double upper, double lower) => new(upper, lower);
@@ -152,7 +156,7 @@ public static class Poses
     public static Limbs LimbsOf(Pose pose, Hero hero, Moment moment)
     {
         var body = BodyOf(pose, hero, moment);
-        var landed = pose is Pose.Stand or Pose.Walk ? Grounded(LandingOf(body, moment.Landing)) : body;
+        var landed = pose is Pose.Stand or Pose.Walk or Pose.Run ? Grounded(LandingOf(body, moment.Landing)) : body;
         if (moment.Plan is not double look || !HoldsIn(pose)) return landed;
         var front = PlanHand(look);
         double along = Hold.FarHand * Sheet.Length;
@@ -201,11 +205,22 @@ public static class Poses
                     double p = Phase(Stride.Walk), s = Math.Sin(p), c = Math.Cos(p);
                     // A leg swinging forward lifts its knee; the one under the body stays straight.
                     return new Limbs(
-                        FrontArm: B(-0.45 * s, 0.3 + 0.35 * Positive(-c)),
-                        BackArm: B(0.45 * s, 0.3 + 0.35 * Positive(c)),
-                        FrontLeg: B(0.55 * s, -(0.08 + 0.9 * Positive(c))),
-                        BackLeg: B(-0.55 * s, -(0.08 + 0.9 * Positive(-c))),
-                        Tilt: 0.05, Lift: 0, Lying: false);
+                        FrontArm: B(-0.3 * s, 0.25 + 0.25 * Positive(-c)),
+                        BackArm: B(0.3 * s, 0.25 + 0.25 * Positive(c)),
+                        FrontLeg: B(0.5 * s, -(0.08 + 0.8 * Positive(c))),
+                        BackLeg: B(-0.5 * s, -(0.08 + 0.8 * Positive(-c))),
+                        Tilt: 0.03, Lift: 0, Lying: false);
+                }
+            case Pose.Run:
+                {
+                    double p = Phase(Stride.Run), s = Math.Sin(p), c = Math.Cos(p);
+                    // Leaning in, elbows bent square and pumping, knees driven high.
+                    return new Limbs(
+                        FrontArm: B(-0.85 * s, 1.35 + 0.25 * Positive(-c)),
+                        BackArm: B(0.85 * s, 1.35 + 0.25 * Positive(c)),
+                        FrontLeg: B(0.85 * s, -(0.15 + 1.4 * Positive(c))),
+                        BackLeg: B(-0.85 * s, -(0.15 + 1.4 * Positive(-c))),
+                        Tilt: 0.2, Lift: 0, Lying: false);
                 }
             case Pose.Air:
                 // Rising, knees tucked and arms up; falling, legs reach for the floor and arms out.
@@ -291,6 +306,17 @@ public static class Poses
     {
         double Turn(double periodMs) => timeMs / periodMs * 2 * Math.PI;
         double drift = Math.Sin(Turn(DriftMs));
+        if (Math.Abs(hero.Vx) > Stillwake.Content.Hero.Swim || Math.Abs(hero.Vy) > Stillwake.Content.Hero.Swim)
+        {
+            // Stretched out head first along the way it goes: up is upright, along the floor flat.
+            double stroke = timeMs / Adrift.StrokeFastMs;
+            var (arm, leg) = StrokeAt(stroke);
+            var (farArm, farLeg) = StrokeAt(stroke - 0.04);
+            double s = stroke - Math.Floor(stroke);
+            double surge = s < 0.3 ? Math.Sin(s / 0.3 * Math.PI) : 0;
+            double heading = Math.Atan2(Math.Abs(hero.Vx), -hero.Vy);
+            return new Limbs(arm, farArm with { Upper = farArm.Upper * 0.92 }, leg, farLeg, heading, 0.5 * drift + surge, false);
+        }
         if (hero.Vx != 0 || hero.Vy != 0)
         {
             double stroke = timeMs / Adrift.StrokeMs;
