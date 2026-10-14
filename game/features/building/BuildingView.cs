@@ -79,8 +79,14 @@ public partial class BuildingView : Node2D
         }
         void Send(Act act, Spot from, Spot to)
         {
+            var planned = new List<int>();
             foreach (var verdict in Drag.Judge(act, Drag.LineOf(width, act, from, to), building))
-                foreach (var c in verdict.Commands) client.Send(c);
+                foreach (var c in verdict.Commands)
+                {
+                    client.Send(c);
+                    if (c is PlacePlan p) planned.Add(p.Cell);
+                }
+            if (planned.Count > 0) _ui.Plan(planned);
         }
         // A drag ends with the hand that began it: a card swapped or put away mid-drag sends nothing.
         if (_drag is { } d && (d.Act is Remove ? holds == Holding.Free : d.Act != tool)) _drag = null;

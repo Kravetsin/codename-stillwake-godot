@@ -38,6 +38,8 @@ public partial class HeroView : Node2D
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
     private readonly Clock _clock = new(Hero.StepMs);
+    /// <summary>The grid's width last frame, to find where a planned cell is.</summary>
+    private int _width = 1;
     private readonly HeroAutopilot? _autopilot;
     private readonly RemoteHeroes _remote = new();
     private readonly HeroSender _sender;
@@ -66,6 +68,9 @@ public partial class HeroView : Node2D
     public HeroView(Ui ui, WorldButtons mouse, HeroAutopilot? autopilot = null)
     {
         _ui = ui;
+        // Plans placed: the planner in the hero's hand beams them in, cell by cell.
+        _ui.Planned += cells => _figure.Beam(cells
+            .Select(c => new Vector2((float)((c % _width + 0.5) * Rig.Cell), (float)((c / _width + 0.5) * Rig.Cell))).ToList());
         _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
@@ -97,6 +102,7 @@ public partial class HeroView : Node2D
     public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double elapsedMs)
     {
         var grid = m.Grid;
+        _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
         var shown = Predicted.Grid(client, grid);
         var ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell));
