@@ -151,6 +151,24 @@ public class PoseTests
     }
 
     [Fact]
+    public void CrawlsSwimmingFastOneArmAheadWhileTheOtherPullsFeetFluttering()
+    {
+        var fast = Standing with { Vx = 160 };
+        var l = LimbsOf(Pose.Float, fast, At(0, 0));
+        Close(Math.PI, l.FrontArm.Upper);
+        Assert.True(l.BackArm.Upper < 1);
+        var later = LimbsOf(Pose.Float, fast, At(0, Adrift.CrawlMs / 12));
+        Assert.True(Math.Sign(later.FrontLeg.Upper - 0.05) != Math.Sign(later.BackLeg.Upper - 0.05));
+    }
+
+    [Fact]
+    public void KeepsAFootUnderTheBodyRunningSoItNeverSinksFar()
+    {
+        for (double at = 0; at < Stride.Run; at += 0.1)
+            Assert.True(LimbsOf(Pose.Run, Standing with { Vx = 220 }, At(at)).Lift > -Rig.Hip * 0.18);
+    }
+
+    [Fact]
     public void RunsLeaningInElbowsBentKneesHigherThanItWalks()
     {
         var run = LimbsOf(Pose.Run, Standing with { Vx = 220 }, At(Stride.Run / 2));

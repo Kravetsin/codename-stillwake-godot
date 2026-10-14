@@ -25,7 +25,7 @@ public partial class Figure : Node2D
     /// <summary>How far the air pack sticks out behind the middle: what a body lying on its back rests on.</summary>
     private const double Back = Rig.W * 0.62;
     /// <summary>Specks of dust a boot kicks up stepping, and a landing at most to either side, by its fall (DUST).</summary>
-    private const int DustStep = 3, DustRun = 6, DustLandLeast = 4, DustLandMost = 12;
+    private const int DustRun = 6, DustLandLeast = 4, DustLandMost = 12;
     private const double DustLandPerSpeed = 1.0 / 40;
 
     /// <summary>Each part's joint, the pixel it turns at, as art.ts draws it.</summary>
@@ -176,10 +176,11 @@ public partial class Figure : Node2D
             Particles.Shared.Emit(Effect.Dust, feetX, feetY, puff, Math.PI + 0.35);
         }
         // A foot comes down at the end of each half stride, a quarter stride in.
-        double? stride = pose switch { Pose.Walk => Poses.Stride.Walk, Pose.Run => Poses.Stride.Run, _ => null };
+        // Only running kicks up dust; a walk is quiet.
+        double? stride = pose == Pose.Run ? Poses.Stride.Run : null;
         int? stepping = stride is double st ? (int)Math.Floor((_travelled - _strideFrom - st / 4) / (st / 2)) : null;
         if (stepping != null && _step != null && stepping != _step)
-            Particles.Shared.Emit(Effect.Dust, feetX + hero.Facing * Rig.W * 0.3, feetY, pose == Pose.Run ? DustRun : DustStep);
+            Particles.Shared.Emit(Effect.Dust, feetX + hero.Facing * Rig.W * 0.3, feetY, DustRun);
         _step = stepping;
         _landingMs = Math.Max(0, _landingMs - elapsedMs);
         _wasPose = pose;

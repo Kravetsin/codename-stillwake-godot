@@ -43,10 +43,11 @@ public static class Poses
     public static class Adrift
     {
         /// <summary>
-        /// A breaststroke swimming in space, timed rather than by distance, so a swim on the diagonal keeps
-        /// its pace; quicker swimming fast, the body stretched out head first.
+        /// Swimming in space, timed rather than by distance, so a swim on the diagonal keeps its pace: a
+        /// breaststroke every <see cref="StrokeMs"/>, and swimming fast a crawl, each arm going round once
+        /// every <see cref="CrawlMs"/>.
         /// </summary>
-        public const double StrokeMs = 1150, StrokeFastMs = 750;
+        public const double StrokeMs = 1150, CrawlMs = 800;
         public const double TreadMs = 1500, SwayMs = 5200, PanicEveryMs = 9000, PanicMs = 1400, WhirlMs = 360;
         /// <summary>How long the flailing takes to start and to calm down.</summary>
         public const double PanicEaseMs = 250;
@@ -213,14 +214,16 @@ public static class Poses
                 }
             case Pose.Run:
                 {
-                    double p = Phase(Stride.Run), s = Math.Sin(p), c = Math.Cos(p);
-                    // Leaning in, elbows bent square and pumping, knees driven high.
+                    double p = Phase(Stride.Run), s = Math.Sin(p);
+                    double q = p / (2 * Math.PI);
+                    // Leaning in, elbows bent square and pumping against the legs; each leg pushes off
+                    // nearly straight under the body, then folds heel to seat and drives its knee high.
                     return new Limbs(
-                        FrontArm: B(-0.85 * s, 1.35 + 0.25 * Positive(-c)),
-                        BackArm: B(0.85 * s, 1.35 + 0.25 * Positive(c)),
-                        FrontLeg: B(0.85 * s, -(0.15 + 1.4 * Positive(c))),
-                        BackLeg: B(-0.85 * s, -(0.15 + 1.4 * Positive(-c))),
-                        Tilt: 0.2, Lift: 0, Lying: false);
+                        FrontArm: B(-0.8 * s, 1.4),
+                        BackArm: B(0.8 * s, 1.4),
+                        FrontLeg: Running(q),
+                        BackLeg: Running(q + 0.5),
+                        Tilt: 0.15, Lift: 0, Lying: false);
                 }
             case Pose.Air:
                 // Rising, knees tucked and arms up; falling, legs reach for the floor and arms out.
@@ -236,6 +239,23 @@ public static class Poses
             default:
                 return new Limbs(B(1.4, 0.6), B(0.6, 0.9), B(0.5, -0.9), B(-0.2, -0.5), moment.TimeMs / 1000 * Tumble, 0, false);
         }
+    }
+
+    /// <summary>The share of a running stride a foot is on the floor, pushing the body on.</summary>
+    private const double Stance = 0.42;
+
+    /// <summary>
+    /// A running leg at <paramref name="cycle"/> through its stride: on the floor from under the hips to
+    /// behind them, nearly straight; then off it, the heel kicked up and the knee brought through high.
+    /// </summary>
+    private static Bend Running(double cycle)
+    {
+        double p = cycle - Math.Floor(cycle);
+        if (p < Stance) return B(0.4 - 0.95 * p / Stance, -0.12);
+        double u = (p - Stance) / (1 - Stance);
+        // Back from behind to high ahead, then down to meet the floor under the hips again.
+        double thigh = u < 0.7 ? -0.55 + 1.65 * Math.Sin(u / 0.7 * Math.PI / 2) : 1.1 - 0.7 * (u - 0.7) / 0.3;
+        return B(thigh, -(0.12 + 1.9 * Math.Sin(u * Math.PI)));
     }
 
     /// <summary>
@@ -306,27 +326,19 @@ public static class Poses
     {
         double Turn(double periodMs) => timeMs / periodMs * 2 * Math.PI;
         double drift = Math.Sin(Turn(DriftMs));
-        if (Math.Abs(hero.Vx) > Stillwake.Content.Hero.Swim || Math.Abs(hero.Vy) > Stillwake.Content.Hero.Swim)
-        {
-            // Stretched out head first along the way it goes: up is upright, along the floor flat.
-            double stroke = timeMs / Adrift.StrokeFastMs;
-            var (arm, leg) = StrokeAt(stroke);
-            var (farArm, farLeg) = StrokeAt(stroke - 0.04);
-            double s = stroke - Math.Floor(stroke);
-            double surge = s < 0.3 ? Math.Sin(s / 0.3 * Math.PI) : 0;
-            double heading = Math.Atan2(Math.Abs(hero.Vx), -hero.Vy);
-            return new Limbs(arm, farArm with { Upper = farArm.Upper * 0.92 }, leg, farLeg, heading, 0.5 * drift + surge, false);
-        }
         if (hero.Vx != 0 || hero.Vy != 0)
         {
+            // Stretched out head first the way it swims: up is upright, along the floor flat.
+            double heading = Math.Atan2(Math.Abs(hero.Vx), -hero.Vy);
+            if (Math.Abs(hero.Vx) > Stillwake.Content.Hero.Swim || Math.Abs(hero.Vy) > Stillwake.Content.Hero.Swim)
+                return Crawling(timeMs, heading, drift);
             double stroke = timeMs / Adrift.StrokeMs;
             var (frontArm, frontLeg) = StrokeAt(stroke);
             var (backArm, backLeg) = StrokeAt(stroke - 0.04);
             double s = stroke - Math.Floor(stroke);
             double surge = s < 0.3 ? Math.Sin(s / 0.3 * Math.PI) : 0;
-            double lean = hero.Vx != 0 ? 0.45 : 0.05;
             return new Limbs(frontArm, backArm with { Upper = backArm.Upper * 0.92 }, frontLeg, backLeg,
-                lean + (s is > 0.55 and < 0.9 ? -0.06 : 0), drift + 1.5 * surge, false);
+                heading, drift + 1.5 * surge, false);
         }
         double t = Turn(Adrift.TreadMs);
         Bend Scull(double up, double lag) => B(up + 0.3 * Math.Sin(t + lag), 0.9 + 0.3 * Math.Cos(t + lag));
@@ -340,6 +352,30 @@ public static class Poses
         var flail = new Limbs(B(w, 0.15), B(w + Math.PI, 0.15), Thrash(0), Thrash(Math.PI),
             0.08 + 0.22 * Math.Sin(w / 2), 2 * drift + 1.5, false);
         return Mix(calm, flail, panic);
+    }
+
+    /// <summary>
+    /// The crawl, swimming fast: each arm in turn reaches ahead of the head, pulls down along the body to
+    /// the hip, and swings back over to reach again, its elbow bending on the way over; the feet flutter,
+    /// three kicks an arm, and the body rolls a little with the strokes.
+    /// </summary>
+    private static Limbs Crawling(double timeMs, double heading, double drift)
+    {
+        double f = timeMs / Adrift.CrawlMs;
+        Bend Arm(double lag)
+        {
+            double p = f + lag - Math.Floor(f + lag);
+            // Ahead of the head is a half turn from hanging: down to the hip, then on round over the back.
+            return p < 0.55
+                ? B(Math.PI * (1 - p / 0.55), 0.35 * Math.Sin(p / 0.55 * Math.PI))
+                : B(-Math.PI * (p - 0.55) / 0.45, 0.9 * Math.Sin((p - 0.55) / 0.45 * Math.PI));
+        }
+        Bend Kick(double lag)
+        {
+            double k = Math.Sin(f * 6 * Math.PI + lag);
+            return B(0.05 + 0.3 * k, -(0.1 + 0.35 * Positive(-k)));
+        }
+        return new Limbs(Arm(0), Arm(0.5), Kick(0), Kick(Math.PI), heading + 0.05 * Math.Sin(f * 4 * Math.PI), 0.5 * drift, false);
     }
 
     /// <summary>
