@@ -1,6 +1,7 @@
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Power;
 using Xunit;
 using Pairs = System.Collections.Generic.IReadOnlyList<((int X, int Y) A, (int X, int Y) B)>;
@@ -142,7 +143,7 @@ public class PowerTests
     }
 
     // TypeScript goes on to run the generators (atmosphere): waiting for atmosphere, as is "runs a
-    // generator at full power at its rate"; "keeps a cabled machine from being taken apart" waits for building.
+    // generator at full power at its rate".
     [Fact]
     public void SlowsEveryUserAlikeWhenShortTwoGeneratorsOnOnePanelGet625()
     {
@@ -150,6 +151,21 @@ public class PowerTests
         var n = w.M.Power.Networks[0];
         Assert.Equal((5, 8, 625), (n.Supply, n.Demand, n.Satisfaction));
         Assert.Equal(625, w.M.Power.Satisfaction(IdAt(w, Second)));
+    }
+
+    [Fact]
+    public void KeepsACabledMachineFromBeingTakenApartMarkedOrCabledAfterItsMark()
+    {
+        var w = World();
+        w.Do(new Deconstruct(Generator, "machine")).Run();
+        Assert.Equal(["building.cabled"], Reasons(w));
+        w.Do(new Cut(Generator, Panel)).Run();
+        w.Do(new Deconstruct(Generator, "machine")).Run();
+        int plan = w.M.Building.Plans[0].Id;
+        Lay(w, Generator, Panel).Run();
+        w.Do(new Work(plan)).Run();
+        Assert.Equal(["building.cabled", "building.cabled"], Reasons(w));
+        Assert.Equal("generator", w.M.Grid.MachineAt(Generator)?.Kind);
     }
 
     private sealed record Step(bool Lay, int A, int B, int Peer);

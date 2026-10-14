@@ -47,11 +47,6 @@ what is put in them. A blueprint not known cannot be planned. Ported from
 
 - `Known` only grows, holds only blueprints there are, each once, sorted.
 
-## Tests waiting for building
-
-From `research.test.ts`, added with `building`: a plan for a blueprint not known is refused with
-`building.unknown`, by the command and by `problem`, and accepted in creative mode.
-
 ## Deliberately not handled
 
 - Two analyzers may finish the same thing on one tick; the world learns it once.

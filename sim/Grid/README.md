@@ -29,7 +29,9 @@ free back slot: it stands behind anything, and in space.
 - **Queries** (`IGridQueries`): `Width`, `Height`, `StructureLayer`, `BackLayer` and `ConduitLayer`
   (live, read-only, as the codes above), `StructureAt(cell)`, `ConduitAt(cell)`, `MachineAt(cell)`, `Machines`,
   `PortsOf(machine)` — the cells where conduits meet it, from its kind's port offsets,
-  `PlacementProblem(cell, placement)`.
+  `WallAt(cell)` and `BackAt(cell)` — the `Material` of the wall or back wall there, null for none,
+  `Footprint(kind, cell)` — the cells a machine of that kind would cover from that top-left, null
+  when it is no machine or does not fit, `PlacementProblem(cell, placement)`.
 - **Operations** (`IGridOps`): `Place(cell, placement)` — the caller checks `PlacementProblem` first, a
   problem here throws; `Clear(cell, layer)` — for machines, removes the whole machine covering the
   cell. Only in commands or construction: modules reading the grid in derivation trust that nothing
@@ -39,7 +41,7 @@ free back slot: it stands behind anything, and in space.
   refused with `grid.noValve`.
 - **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.occupied`, `grid.machineInTheWay`,
   `grid.blocked`, `grid.noSuchMaterial`, `grid.noSuchMachine`.
-- **Not yet ported** (added with the module that needs them): the material layers, `backAt`, `footprint`, `afterToggles`. TypeScript's `codes()` is the public `Structure`,
+- **Not yet ported** (added with the module that needs them): the material layers, `afterToggles`. TypeScript's `codes()` is the public `Structure`,
   `Conduit` and `Back` constants.
 
 ## Maps

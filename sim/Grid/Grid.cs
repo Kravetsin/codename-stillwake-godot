@@ -59,12 +59,18 @@ public interface IGridQueries
     /// <summary>The conduit layer as <see cref="Conduit"/> codes.</summary>
     ReadOnlySpan<int> ConduitLayer { get; }
     int StructureAt(int cell);
+    /// <summary>What the wall at <paramref name="cell"/> is made of; null for no wall, or off the grid.</summary>
+    Material? WallAt(int cell);
+    /// <summary>What the back wall behind <paramref name="cell"/> is made of; null for none, or off the grid.</summary>
+    Material? BackAt(int cell);
     /// <summary>The conduit code at <paramref name="cell"/>: <see cref="Conduit.None"/> off the grid.</summary>
     int ConduitAt(int cell);
     Machine? MachineAt(int cell);
     IReadOnlyList<Machine> Machines { get; }
     /// <summary>The cells where conduits meet machine <paramref name="m"/>, in the order its kind lists its ports.</summary>
     IReadOnlyList<int> PortsOf(Machine m);
+    /// <summary>The cells a machine of <paramref name="kind"/> covers with its top-left at <paramref name="cell"/>; null when it is no machine or does not fit on the grid.</summary>
+    IReadOnlyList<int>? Footprint(string kind, int cell);
     string? PlacementProblem(int cell, Placement placement);
 }
 
@@ -167,6 +173,19 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public int StructureAt(int cell) => InBounds(cell) ? State.Structure[cell] : Structure.Empty;
     public int ConduitAt(int cell) => InBounds(cell) ? State.Conduit[cell] : Conduit.None;
 
+    public Material? WallAt(int cell) =>
+        InBounds(cell) && State.Structure[cell] == Structure.Wall ? MaterialOf(State.Material[cell]) : null;
+
+    public Material? BackAt(int cell) =>
+        InBounds(cell) && State.Back[cell] == Back.Wall ? MaterialOf(State.BackMaterial[cell]) : null;
+
+    private static readonly Material?[] ByCode = Enumerable.Range(0, Materials.All.Max(m => m.Code) + 1)
+        .Select(code => Materials.All.FirstOrDefault(m => m.Code == code)).ToArray();
+
+    /// <summary>The material stored as <paramref name="code"/>; the default hull for a code none has, as TypeScript reads it.</summary>
+    private static Material MaterialOf(int code) =>
+        (code >= 0 && code < ByCode.Length ? ByCode[code] : null) ?? Materials.Get(Materials.DefaultHull);
+
     public Machine? MachineAt(int cell)
     {
         int id = InBounds(cell) ? State.Occupancy[cell] : 0;
@@ -183,8 +202,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     private bool IsDoor(int cell) => StructureAt(cell) is Structure.DoorClosed or Structure.DoorOpen;
     private bool IsValve(int cell) => InBounds(cell) && State.Conduit[cell] is Conduit.ValveOpen or Conduit.ValveClosed;
 
-    /// <summary>The cells a machine of <paramref name="kind"/> covers with its top-left at <paramref name="cell"/>.</summary>
-    private List<int>? Footprint(string kind, int cell)
+    public IReadOnlyList<int>? Footprint(string kind, int cell)
     {
         if (!Content.Machines.TryGet(kind, out var spec) || !InBounds(cell)) return null;
         int x = cell % State.Width, y = cell / State.Width;
