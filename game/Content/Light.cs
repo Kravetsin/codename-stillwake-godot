@@ -39,4 +39,36 @@ public static class Light
     public const float Particle = 0.5f;
     public const float ParticleKeep = 0.5f;
     public static readonly (float R, float G, float B) Ambient = (0.05f, 0.055f, 0.07f);
+
+    /// <summary>
+    /// Going into a closed door's cell in the cells mode (0026) light keeps this, as into a wall
+    /// (<see cref="WallIn"/>, the TypeScript game's door); deeper and out of it as through a wall.
+    /// </summary>
+    public const float DoorIn = 0.7f;
+
+    /// <summary>
+    /// What gives off light in the cells mode (0026), one entry a kind: its colour and strength, the light
+    /// it gives the cell holding most of its glowing pixels (a cell with fewer gets its share by their
+    /// count), and which of its pixels glow: those at least <see cref="Emission.Glowing"/> bright, 0 for
+    /// every opaque one. A lamp's, a fire's and a particle's are the TypeScript game's.
+    /// </summary>
+    public static class Emits
+    {
+        /// <summary>A lamp's bulb, by the power it gets: its white pixels, not its shade or bracket.</summary>
+        public static readonly Emission Lamp = new(Light.Lamp, 1, Glowing: 0.8f);
+        /// <summary>A furnace's fire, by how brightly it burns: its flames, not the bars of its grate or the dim embers under them.</summary>
+        public static readonly Emission Fire = new(Light.Fire, 1, Glowing: 0.3f);
+        /// <summary>An ember rising from a fire and a spark off work on a plan, as they fade: the colours of their glows.</summary>
+        public static readonly Emission Ember = new((1f, 0.48f, 0.125f), Particle);
+        public static readonly Emission Spark = new((1f, 0.63f, 0.25f), Particle);
+        /// <summary>The stars, in every open cell with no back wall and past the grid's edge.</summary>
+        public static readonly Emission Star = new(Light.Star, 1);
+    }
 }
+
+/// <summary>
+/// How a kind of thing gives off light (<see cref="Light.Emits"/>): <paramref name="Colour"/> times
+/// <paramref name="Strength"/> in its brightest cell, from its pixels at least <paramref name="Glowing"/>
+/// bright (their luminance, 0 to 1).
+/// </summary>
+public sealed record Emission((float R, float G, float B) Colour, float Strength, float Glowing = 0);
