@@ -11,10 +11,12 @@ command but what E presses and the room it reports entering (`crew`'s `Enter`).
 | `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship`, `Point`; one `Step` at 60 a second | no    |
 | `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`)                 | no    |
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`) | no    |
-| `Aim.cs`           | reach, what the pointer aims at and what E sends (`aim.ts`, doors and valves only)      | no    |
+| `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris | no    |
+| `Prompt.cs`        | `Prompts.Of`: what E does at the aim, in words, and why the sim would refuse it (`prompt.ts`) | no    |
+| `UsePrompt.cs`     | the prompt at the bottom middle, red with the reason when refused (`CrewPanel.tsx`'s `UsePrompt`) | yes   |
 | `Tether.cs`        | the tether as drawn, a reeled rope (`tether.ts`) on `game/render/Rope.cs` (`rope.ts`)   | no    |
 | `Figure.cs`        | the rig of `art/hero_*.png` sprites, posed and settled every frame (`figure.ts`)        | yes   |
-| `HeroView.cs`      | the layer: keys, steps, drawing between steps, the tether, the aim outline, the camera  | yes   |
+| `HeroView.cs`      | the layer: keys, steps, drawing between steps, the tether, the hands, the aim outline, the camera | yes   |
 | `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder                             | no    |
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`)          | no    |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads          | no    |
@@ -22,8 +24,9 @@ command but what E presses and the room it reports entering (`crew`'s `Enter`).
 
 The files without Godot are compiled a second time into `game.tests/` (linked, as `sim/Tests` links
 `game/Content/Light.cs`), where their TypeScript tests are ported one for one: `hero.test.ts`,
-`pose.test.ts`, `rig.test.ts`, `tether.test.ts`, `report.test.ts`, `danger.test.ts`, and of `aim.test.ts`
-the tests of doors, valves, reach and the wreck crossed through a local session.
+`pose.test.ts`, `rig.test.ts`, `tether.test.ts`, `report.test.ts`, `danger.test.ts`, `prompt.test.ts`
+(`PromptTests`) and `aim.test.ts` (`AimTests`) but its door shown open while its toggle is in flight,
+which comes with `grid.afterToggles`.
 
 ## Guarantees
 
@@ -55,11 +58,29 @@ the tests of doors, valves, reach and the wreck crossed through a local session.
 - The host passes `crew`'s `Leave` as the farewell of a peer whose link closes (`Main.Host`).
 - The tether's anchor is the controller's own (0007), sent with the hero once heroes are replicated.
 
+## The hands
+
+- One aim (`Aiming.AimAt`) for everything the hands work under the pointer: a plan in the cell (the
+  left button held), a crate, furnace or analyzer, a tank, a door, a valve (E), else the nearest piece
+  of debris out in space (E or the left button). Pieces with a grab in flight are passed over
+  (`Shared.Predicted.Grabbing`).
+- With the hand free and the hero awake, what E would work is outlined (a machine's whole footprint,
+  over the machines, under the plans as the TypeScript layers stacked) and `UsePrompt` says what E does,
+  red with the sim's reason. A piece of debris is outlined by the debris feature, through
+  `Ui.AimedPiece`; a crate opened is shown by the items feature, through `Ui.OpenCrate`, and closed
+  here once out of reach or passed out.
+- With anything else in hand (`Ui.Hand`, 0022) the hero holds the plan's sheet (`Figure`'s `sheet`),
+  and E and the left button do nothing here: a press is spent, a hold works no plan.
+- The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
+  The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
+- Door and valve prompts read the grid as it is; with `grid.afterToggles` they should read the doors
+  as shown, as `promptOf`'s `shown` did.
+
 ## Not ported yet
 
 - Other peers' heroes (`remote.ts`, sending ~20 a second and drawing them behind), with their figures,
   tethers and passing out: `Client.SendHero` carries no hero yet.
 - Doors shown open at once while a toggle is in flight (`predictedGrid`, 0014): `Ship.Of` reads the
   grid as it is.
-  hands (`holdsPlan` is false), dust from steps and landings, light on the hero, a helmet lamp.
+- Dust from steps and landings, light on the hero, a helmet lamp.
 - `keys.test.ts`: the keys are Godot's input here, read in `HeroView`.

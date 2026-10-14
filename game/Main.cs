@@ -60,7 +60,7 @@ public partial class Main : Node2D
     private Layout _layout = Registry.Wreck;
     private HeroView? _hero;
     private ItemsView? _items;
-    private readonly DebrisView _debris = new();
+    private DebrisView _debris = null!;
     private readonly LearnedView _learned = new();
     private Hands _hands = null!;
     private PlanDemo? _demo;
@@ -72,9 +72,12 @@ public partial class Main : Node2D
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
 
+        // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
+        _hands = new Hands();
+        _debris = new DebrisView(_hands.Ui);
         AddChild(new Stars());
         AddChild(_debris);
-        if (Has("--debris")) AddChild(new DebrisDemo(_debris));
+        if (Has("--debris")) AddChild(new DebrisDemo(_debris, _hands.Ui));
         AddChild(_camera = new ShipCamera());
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items")) _layout = ItemsDemo.Map;
@@ -82,14 +85,14 @@ public partial class Main : Node2D
         if (!Has("--perf") && !Has("--gallery"))
         {
             var script = !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
-            AddChild(_hero = new HeroView(script));
-            AddChild(_items = new ItemsView(demo: Has("--items")));
+            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
+            AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             // Its own layer, above the world: read from whatever registry the session runs now.
             AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
             _camera.DevControls = false;
         }
         AddChild(_learned);
-        AddChild(_hands = new Hands());
+        AddChild(_hands);
         if (Has("--plan-demo"))
         {
             _demo = new PlanDemo(_hands, _layout);
@@ -257,43 +260,35 @@ public partial class Main : Node2D
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         ShowWorld();
         if (client.World.Tick != before) Sync();
-        _hero?.Frame(client, _m.Grid, _m.Rooms, _m.Atmosphere, _m.Crew, _camera, delta * 1000);
+        _hero?.Frame(client, _m, _camera, delta * 1000);
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
         _learned.Frame(_m.Research, delta * 1000);
-        _debris.Frame(client, _m.Rooms, _m.Debris, _m.Grid.Width, SpotOf(_hero) is { } spot ? (spot.Cell, spot.Reaches) : null, HandsBusy, session.Progress, delta * 1000);
+        _debris.Frame(client, _m.Debris, session.Progress, delta * 1000);
         ShowHands(client, delta * 1000);
     }
 
-    /// <summary>Where the hero stands for its items: what a drop is thrown from, what it picks up and reaches.</summary>
+    /// <summary>Where the hero stands for its items: what a drop is thrown from, what it picks up.</summary>
     private HeroSpot? SpotOf(HeroView? view)
     {
         if (view == null) return null;
         var hero = view.Current;
-        int width = _m.Grid.Width;
-        return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(width), cell => Aiming.Reaches(hero, cell, width));
+        return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(_m.Grid.Width));
     }
 
-    /// <summary>Whether E works something under the pointer at <paramref name="point"/> before debris: a door, a valve, a crate.</summary>
-    private bool HandsBusy((double X, double Y) point) =>
-        _hero is { } view && Aiming.AimAt(_m.Grid, view.Current, point) is { } aim && (aim.Press != null || Reach.CrateAt(_m.Grid, aim.Cell) != null);
-
-    /// <summary>The plan, cables and overlays (<see cref="Hands"/>): the hero's body sways the cables, its reach works plans.</summary>
+    /// <summary>The plan, cables and overlays (<see cref="Hands"/>): the hero's body sways the cables.</summary>
     private void ShowHands(Client client, double elapsedMs)
     {
         Body[] bodies = [];
-        Func<int, bool>? reaches = null;
         if (_hero != null)
         {
             var hero = _hero.Current;
-            int width = _m.Grid.Width;
             double unit = Hero.Unit;
             bodies = [new Body((hero.X - Content.Hero.Width / 2.0) / unit, (hero.X + Content.Hero.Width / 2.0) / unit,
                 (hero.Y - Content.Hero.Height) / unit, hero.Y / unit, hero.Vx / unit, hero.Vy / unit)];
-            reaches = cell => Aiming.Reaches(hero, cell, width);
         }
         _demo?.Frame(client, _m.Grid, Log);
-        _hands.Frame(client, _m, bodies, reaches, elapsedMs);
+        _hands.Frame(client, _m, bodies, elapsedMs);
     }
 
     private void Sync()

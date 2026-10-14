@@ -69,6 +69,25 @@ public class ButtonsTests
         Assert.True(buttons.HoldsLeft);
         Assert.Equal([true], buttons.TakeLeft().Select(b => b.Down));
     }
+
+    // The left press the hero's hands read (crew/keys.test.ts).
+
+    [Fact]
+    public void CountsALeftPressOnTheWorldNotOnAPanelOnce()
+    {
+        var buttons = new Buttons();
+        Pointer(buttons, "move", Buttons.Left, 0, 0);
+        Pointer(buttons, "up", 0, 0, 0);
+        Assert.False(buttons.TakeClick());
+        Pointer(buttons, "down", Buttons.Right, 0, 0);
+        Pointer(buttons, "up", 0, 0, 0);
+        Assert.False(buttons.TakeClick());
+        Pointer(buttons, "down", Buttons.Left, 0, 0);
+        // Taken apart from the card's presses: one read leaves the other.
+        Assert.Single(buttons.TakeLeft());
+        Assert.True(buttons.TakeClick());
+        Assert.False(buttons.TakeClick());
+    }
 }
 
 /// <summary>The overlay switch: apps/game/src/overlays/switch.test.ts, one for one.</summary>

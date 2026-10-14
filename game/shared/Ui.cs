@@ -101,4 +101,16 @@ public sealed class Ui
     /// feature whose card it is (a ghost, a cable dragged), drawn in the world beside the pointer.
     /// </summary>
     public Store<string?> Reason { get; } = new(null);
+
+    /// <summary>
+    /// The crate, furnace or analyzer this player has open: <c>crew</c> opens it on E within reach and
+    /// closes it out of reach, <c>items</c> shows it beside the inventory and closes it on Tab or Esc.
+    /// </summary>
+    public Store<int?> OpenCrate { get; } = new(null);
+
+    /// <summary>
+    /// The piece of debris E would grab, and whether the sim would refuse it: <c>crew</c> sets it while
+    /// the pointer is on one within reach, <c>debris</c> outlines that piece.
+    /// </summary>
+    public Store<(int Id, bool Refused)?> AimedPiece { get; } = new(null);
 }

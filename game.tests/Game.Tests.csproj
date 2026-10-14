@@ -35,7 +35,7 @@
     <Compile Include="../game/features/items/Reach.cs" Link="Game/Items/Reach.cs" />
     <Compile Include="../game/features/items/Reading.cs" Link="Game/Items/Reading.cs" />
     <Compile Include="../game/features/research/News.cs" Link="Game/Research/News.cs" />
-    <Compile Include="../game/features/debris/Catching.cs" Link="Game/Debris/Catching.cs" />
+    <Compile Include="../game/features/debris/Fading.cs" Link="Game/Debris/Fading.cs" />
     <Compile Include="../game/i18n/En.cs" Link="Game/I18n/En.cs" />
     <Compile Include="../game/render/Buttons.cs" Link="Game/Render/Buttons.cs" />
     <Compile Include="../game/render/CableShape.cs" Link="Game/Render/CableShape.cs" />
@@ -46,7 +46,8 @@
     <Compile Include="../game/features/building/Drag.cs" Link="Game/Building/Drag.cs" />
     <Compile Include="../game/features/building/NearGrid.cs" Link="Game/Building/NearGrid.cs" />
     <Compile Include="../game/features/building/Blueprint.cs" Link="Game/Building/Blueprint.cs" />
-    <Compile Include="../game/features/building/PlanWork.cs" Link="Game/Building/PlanWork.cs" />
+    <Compile Include="../game/features/crew/Prompt.cs" Link="Game/Crew/Prompt.cs" />
+    <Compile Include="../game/shared/Predicted.cs" Link="Game/Shared/Predicted.cs" />
     <Compile Include="../game/features/power/Wiring.cs" Link="Game/Power/Wiring.cs" />
     <Compile Include="../game/features/power/CableRopes.cs" Link="Game/Power/CableRopes.cs" />
     <Compile Include="../game/features/power/PowerHands.cs" Link="Game/Power/PowerHands.cs" />

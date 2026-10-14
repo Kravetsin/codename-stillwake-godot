@@ -134,9 +134,10 @@ public partial class BuildMenu : CanvasLayer
     public override void _UnhandledInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true } key) return;
-        if (key.PhysicalKeycode == Key.B && !key.Echo) _hand.Toggle();
-        else if (key.PhysicalKeycode == Key.Escape) _hand.PutPlanAway();
-        else return;
+        // Esc is left to the inventory too, which it closes.
+        if (key.PhysicalKeycode == Key.Escape) _hand.PutPlanAway();
+        if (key.PhysicalKeycode != Key.B || key.Echo) return;
+        _hand.Toggle();
         GetViewport().SetInputAsHandled();
     }
 

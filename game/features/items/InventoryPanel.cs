@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Furnace;
@@ -49,7 +50,6 @@ public partial class InventoryPanel : CanvasLayer
     private double _sinceRead;
 
     private bool _open;
-    private int? _crate;
     /// <summary>The crate and its kind the crate panel was made for.</summary>
     private (int Id, string Kind)? _built;
     private int _chosen;
@@ -57,8 +57,22 @@ public partial class InventoryPanel : CanvasLayer
     private Place? _dragFrom, _hovered;
     private Vector2 _mouse;
 
+    private readonly Ui _ui;
+
+    /// <param name="ui">The hand, which choosing a hotbar slot or opening the inventory frees, and the crate open.</param>
+    public InventoryPanel(Ui ui)
+    {
+        _ui = ui;
+        // The crew's E opens a crate, and reaching out of it closes it: shown at once.
+        ui.OpenCrate.Subscribe(Read);
+        // The chosen slot is outlined only while the hand holds what is in it.
+        ui.Hand.Subscribe(Refresh);
+    }
+
     /// <summary>The crate open beside the inventory: E on one within reach opens it, out of reach it closes.</summary>
-    public int? Crate => _crate;
+    private int? Crate => _ui.OpenCrate.Get();
+
+    private bool HandFree => _ui.Hand.Get() == Holding.Free;
 
     /// <summary>What a furnace is doing, by machine id: the furnace module's <c>At</c>.</summary>
     public Func<int, Smelting>? Furnace { get; set; }
@@ -66,7 +80,7 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The hotbar slot chosen, with 1–9 or the wheel.</summary>
     public int Chosen => _chosen;
 
-    private bool Shown => _open || _crate != null;
+    private bool Shown => _open || Crate != null;
 
     /// <summary>A picked stack whose slot still holds it, while the panels are open: one emptied meanwhile, by another player at a crate, is dropped.</summary>
     private Picked? Held => Shown && _picked is { } p && _reading?.At(p.Place) != null ? p : null;
@@ -136,25 +150,11 @@ public partial class InventoryPanel : CanvasLayer
         if (fresh || _sinceRead >= RefreshMs) Read();
     }
 
-    /// <summary>Opens crate <paramref name="id"/> beside the inventory.</summary>
-    public void Open(int id)
-    {
-        if (_crate == id) return;
-        _crate = id;
-        Read();
-    }
-
-    /// <summary>Closes the crate beside the inventory: out of reach, or gone.</summary>
-    public void CloseCrate()
-    {
-        _crate = null;
-        Read();
-    }
-
     /// <summary>Closes both the inventory and the crate, putting a picked stack back.</summary>
-    public void Close()
+    private void Close()
     {
-        (_open, _picked, _crate) = (false, null, null);
+        (_open, _picked) = (false, null);
+        _ui.OpenCrate.Set(null);
         Read();
     }
 
@@ -162,7 +162,7 @@ public partial class InventoryPanel : CanvasLayer
     {
         _sinceRead = 0;
         if (_client == null || _items == null || _grid == null || _research == null) return;
-        _reading = Reading.Of(_client.Id, _client.InFlight, _items, _grid, _research, _crate);
+        _reading = Reading.Of(_client.Id, _client.InFlight, _items, _grid, _research, Crate);
         Refresh();
     }
 
@@ -191,7 +191,7 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The open crate's panel, made anew for each crate: a crate's grid, a furnace's or an analyzer's own.</summary>
     private void BuildCrate()
     {
-        (int, string)? want = _crate is int id && _reading?.Kind is string k ? (id, k) : null;
+        (int, string)? want = Crate is int id && _reading?.Kind is string k ? (id, k) : null;
         if (want == _built) return;
         _built = want;
         if (_cratePanel != null)
@@ -256,15 +256,24 @@ public partial class InventoryPanel : CanvasLayer
             {
                 case Key.Tab:
                     if (Shown) Close();
-                    else (_open, _picked) = (true, null);
+                    else
+                    {
+                        // One hand (0022): the inventory, a stack carried from it, takes it.
+                        _ui.Hand.Set(Holding.Free);
+                        (_open, _picked) = (true, null);
+                    }
                     break;
                 case Key.Escape:
+                    // Left to the plan too, which Esc puts away.
                     Close();
-                    break;
+                    return;
                 case >= Key.Key1 and <= Key.Key9:
+                    _ui.Hand.Set(Holding.Free);
                     _chosen = (int)(key.PhysicalKeycode - Key.Key1);
                     break;
                 case Key.Q:
+                    // A card in hand, not the chosen slot: Q drops nothing it does not show.
+                    if (!HandFree) return;
                     if (_reading?.Inventory[_chosen] is { } stack) DropFrom(new Place(_chosen), stack.Count);
                     break;
                 default:
@@ -276,6 +285,7 @@ public partial class InventoryPanel : CanvasLayer
         // Over the world only: a panel under the pointer takes the wheel before it gets here.
         else if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown or MouseButton.WheelUp } wheel)
         {
+            _ui.Hand.Set(Holding.Free);
             _chosen = Hotbar.WheelSlot(_chosen, wheel.ButtonIndex == MouseButton.WheelDown ? 1 : -1);
             Refresh();
         }
@@ -339,9 +349,9 @@ public partial class InventoryPanel : CanvasLayer
         if (Shown) return;
         // Along the hotbar with the inventory closed, where a press only chooses a slot: the stack is
         // lifted and put down in one go, as two clicks would with it open.
-        var lifted = Clicks.On(null, new SlotClick(from, _reading.At(from), false, false, _crate));
+        var lifted = Clicks.On(null, new SlotClick(from, _reading.At(from), false, false, Crate));
         if (lifted.Picked == null) return;
-        var put = Clicks.On(lifted.Picked, new SlotClick(place, _reading.At(place), false, false, _crate));
+        var put = Clicks.On(lifted.Picked, new SlotClick(place, _reading.At(place), false, false, Crate));
         if (put.Command == null) return;
         _chosen = place.Slot;
         Send(put.Command);
@@ -358,7 +368,7 @@ public partial class InventoryPanel : CanvasLayer
         }
         if (_reading == null) return;
         int? fuelSlot = _reading.Kind == "furnace" ? FurnaceSpec.FuelSlot : null;
-        var result = Clicks.On(Held, new SlotClick(place, _reading.At(place), right, shift, _crate, fuelSlot));
+        var result = Clicks.On(Held, new SlotClick(place, _reading.At(place), right, shift, Crate, fuelSlot));
         _picked = result.Picked;
         if (result.Command != null) Send(result.Command);
         else Refresh();
@@ -387,7 +397,7 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var box in _slots)
         {
             var p = box.Place;
-            box.Show(reading.At(p), p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p);
+            box.Show(reading.At(p), HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p);
         }
         _held.Visible = held != null;
         if (held is { } h)
@@ -416,7 +426,7 @@ public partial class InventoryPanel : CanvasLayer
         }
         else if (reading.Kind == "furnace")
         {
-            var at = _crate is int id ? Furnace?.Invoke(id) : null;
+            var at = Crate is int id ? Furnace?.Invoke(id) : null;
             _fire.AddThemeStyleboxOverride("panel", at?.Burning == true ? FireOn : FireOut);
             _progress.Value = at is { Item: not null, Work: > 0 } ? (double)at.Progress / at.Work : 0;
             problem = at?.Problem;

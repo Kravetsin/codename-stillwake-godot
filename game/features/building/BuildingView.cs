@@ -15,8 +15,7 @@ namespace Stillwake.Game.Features.Building;
 /// Plans drawn over the ship as their own pictures in blue, marks as red crosses, and the hand at work
 /// (features/building/index.ts, 0022): a card's ghost along a left drag, a removal's along a right one in
 /// the overlay's layers, coloured by what the sim would say, with its reason by the pointer; a release
-/// sends the commands. The middle button picks a card. With an empty hand, the left button held on a
-/// plan within reach works it. With no card out, no grid: space stays space.
+/// sends the commands. The middle button picks a card. With no card out, no grid: space stays space.
 /// </summary>
 public partial class BuildingView : Node2D
 {
@@ -40,13 +39,9 @@ public partial class BuildingView : Node2D
     private List<(Rect2 Box, bool Cross, float Share, bool Lacks)> _shownPlans = [];
     private List<Edge> _near = [];
     private List<(int Cell, bool Refused)> _removing = [];
-    private (int Cell, bool Refused)? _aimed;
     private int _width;
     /// <summary>The drag under way: what it does, the button that began it and the cell it began on.</summary>
     private (Act Act, bool Left, Spot From)? _drag;
-    /// <summary>Blueprints delivered to in this hold of the left button, and the tick work was last sent on.</summary>
-    private readonly HashSet<int> _served = [];
-    private int _workedOnTick = -1;
 
     public BuildingView(Ui ui, PlanHand hand)
     {
@@ -59,9 +54,9 @@ public partial class BuildingView : Node2D
 
     /// <summary>
     /// One frame: the plans brought up to the world, the buttons pressed since the last read, the ghost
-    /// drawn. <paramref name="reaches"/> says whether this player's hero reaches a cell; null while it has none.
+    /// drawn.
     /// </summary>
-    public void Frame(Client client, Registry m, Buttons buttons, (double X, double Y)? pointer, Func<int, bool>? reaches)
+    public void Frame(Client client, Registry m, Buttons buttons, (double X, double Y)? pointer)
     {
         var grid = m.Grid;
         var building = m.Building;
@@ -114,7 +109,6 @@ public partial class BuildingView : Node2D
         tool = _hand.Selected.Get();
         bool onGrid = pointer is { } p0 && Drag.OnGrid(width, height, p0);
         ShowTray(onGrid ? CellAt(pointer!.Value) : null, building);
-        Work(client, building, holds, onGrid ? CellAt(pointer!.Value) : null, buttons.HoldsLeft, reaches);
         Ghost(tool, pointer, onGrid, width, height, building);
         _hands.QueueRedraw();
     }
@@ -204,25 +198,6 @@ public partial class BuildingView : Node2D
         _ui.CostTip.SetLines(plan != null && cost != null ? CostLine.Of(cost, plan.Delivered.Select(s => (s.Item, s.Count)).ToList()) : null);
     }
 
-    /// <summary>With an empty hand, the left button held on a plan within reach works it (0022).</summary>
-    private void Work(Client client, BuildingModule building, Holding holds, int? cell, bool held, Func<int, bool>? reaches)
-    {
-        _aimed = null;
-        if (!held) _served.Clear();
-        if (holds != Holding.Free || cell is not int at || reaches == null)
-        {
-            _workedOnTick = -1;
-            return;
-        }
-        var aim = PlanWork.AimAt(building, client.Id, at, _served);
-        bool inReach = reaches(at);
-        if (aim != null && inReach) _aimed = (at, aim.Problem != null);
-        var uses = PlanWork.UsesOf(aim, inReach, held, client.World.Tick, _workedOnTick);
-        _workedOnTick = uses.WorkedOnTick;
-        if (uses.Served is int served) _served.Add(served);
-        foreach (var c in uses.Commands) client.Send(c);
-    }
-
     /// <summary>The ghost of the card along a drag, or of a removal: its own pictures, green where the sim would take it and red where not.</summary>
     private void Ghost(Tool? tool, (double X, double Y)? pointer, bool onGrid, int width, int height, BuildingModule building)
     {
@@ -261,8 +236,5 @@ public partial class BuildingView : Node2D
             g.DrawRect(box, colour with { A = 0.3f });
             g.DrawRect(box, colour, false, 1);
         }
-        // The plan the left button would work, outlined as the hero's aim is.
-        if (_aimed is { } aim)
-            g.DrawRect(new Rect2(aim.Cell % _width * Cell + 1, aim.Cell / _width * Cell + 1, Cell - 2, Cell - 2), aim.Refused ? Refused : Fits, false, 2);
     }
 }
