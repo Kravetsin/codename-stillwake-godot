@@ -60,6 +60,10 @@
     <Compile Include="../game/features/atmosphere/Streams.cs" Link="Game/Atmosphere/Streams.cs" />
     <Compile Include="../game/render/Particles.cs" Link="Game/Render/Particles.cs" />
     <Compile Include="../game/features/light/LightField.cs" Link="Game/Light/LightField.cs" />
+    <Compile Include="../game/Content/Light.cs" Link="Game/Content/Light.cs" />
+    <Compile Include="../game/render/EmitterMask.cs" Link="Game/Render/EmitterMask.cs" />
+    <Compile Include="../game/features/light/Sweeps.cs" Link="Game/Light/Sweeps.cs" />
+    <Compile Include="../game/features/light/CellLight.cs" Link="Game/Light/CellLight.cs" />
     <Compile Include="../game/features/light/Flicker.cs" Link="Game/Light/Flicker.cs" />
     <Compile Include="../game/features/furnace/Flames.cs" Link="Game/Furnace/Flames.cs" />
   </ItemGroup>
