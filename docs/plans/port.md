@@ -36,14 +36,12 @@ In dependency order, each with its README, tests and fuzz generator ported: `haz
 `items`, `power`, `atmosphere`, `crew`, `debris`, `furnace`, `building`, `research`. Then the wreck's
 own tests (`modules/wreck.test.ts`).
 
-- Ported: `items`, `power`, `research`, `building`, `pipes`, `atmosphere`, `hazards`. Left: `crew`,
-  `debris`, `furnace`.
+- Ported: `items`, `power`, `research`, `building`, `pipes`, `atmosphere`, `hazards`, `furnace`.
+  Left: `crew`, `debris`.
 - A module namespace `Stillwake.Sim.<X>` hides the content class `Stillwake.Content.<X>` inside
   `Stillwake.Sim.*`: write `Content.Furnace.FuelSlot`.
-- Tests waiting for a module (add them with it): `atmosphere` — the scrap refunded when a back
-  wall is taken apart, and its two back-wall tests through planned work rather than the test
-  builder (building, now merged); `net` — the desync scenario where air fills, leaks and vents
-  (crew).
+- Tests waiting for a module (add them with it): `net` — the desync scenario where air fills,
+  leaks and vents (crew).
 - **Done when** every TypeScript sim test has a passing C# twin, and a sim tick on the reference
   world stays under 2 ms.
 
