@@ -37,12 +37,12 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 2, 2, [(0, 1)], [("scrap", 4), ("iron", 4)], BuildTicks: 160),
-        new("generator", 2, 2, [(0, 1)], [("scrap", 8), ("iron", 6)], BuildTicks: 200, Draws: 4, Plug: (16, 5)),
+        new("tank", 2, 2, [(0, 1)], [("plate", 4), ("gear", 1)], BuildTicks: 160),
+        new("generator", 2, 2, [(0, 1)], [("plate", 4), ("rotor", 1), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (16, 5)),
         new("solarPanel", 3, 1, [], [("scrap", 6), ("iron", 6)], BuildTicks: 160, Makes: 5, Plug: (24, 14)),
-        new("vent", 1, 1, [(0, 0)], [("scrap", 2)], BuildTicks: 60),
-        new("lamp", 1, 1, [], [("scrap", 2)], BuildTicks: 60, Draws: 1, Plug: (11, 1)),
-        // Learns blueprints from what is put in its slot (ADR 0024).
+        new("vent", 1, 1, [(0, 0)], [("plate", 1), ("gear", 1)], BuildTicks: 60),
+        new("lamp", 1, 1, [], [("wire", 2), ("scrap", 1)], BuildTicks: 60, Draws: 1, Plug: (11, 1)),
+        // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
         new("analyzer", 2, 2, [], [("scrap", 8), ("iron", 4)], BuildTicks: 200, Draws: 2, Plug: (26, 3), Slots: 1),
         new("crate", 2, 1, [], [("planks", 6), ("iron", 2)], BuildTicks: 40, Slots: 27),
         // Its input, its fuel (Furnace.FuelSlot), then three outputs.

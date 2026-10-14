@@ -37,12 +37,14 @@
     <Compile Include="../game/features/items/Hotbar.cs" Link="Game/Items/Hotbar.cs" />
     <Compile Include="../game/features/items/Reach.cs" Link="Game/Items/Reach.cs" />
     <Compile Include="../game/features/items/Reading.cs" Link="Game/Items/Reading.cs" />
-    <Compile Include="../game/features/research/News.cs" Link="Game/Research/News.cs" />
+    <Compile Include="../game/features/items/Lessons.cs" Link="Game/Items/Lessons.cs" />
+    <Compile Include="../game/features/crafting/Crafts.cs" Link="Game/Crafting/Crafts.cs" />
     <Compile Include="../game/features/debris/Fading.cs" Link="Game/Debris/Fading.cs" />
     <Compile Include="../game/i18n/En.cs" Link="Game/I18n/En.cs" />
     <Compile Include="../game/render/Buttons.cs" Link="Game/Render/Buttons.cs" />
     <Compile Include="../game/render/CableShape.cs" Link="Game/Render/CableShape.cs" />
     <Compile Include="../game/shared/Ui.cs" Link="Game/Shared/Ui.cs" />
+    <Compile Include="../game/shared/Tip.cs" Link="Game/Shared/Tip.cs" />
     <Compile Include="../game/shared/Escape.cs" Link="Game/Shared/Escape.cs" />
     <Compile Include="../game/overlays/OverlaySwitch.cs" Link="Game/Overlays/OverlaySwitch.cs" />
     <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />

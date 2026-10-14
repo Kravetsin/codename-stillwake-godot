@@ -2,10 +2,10 @@ using Stillwake.Sim.Grid;
 
 namespace Stillwake.Sim.Research;
 
-/// <summary>A blueprint: its id, as the build menu names its card, and what it places.</summary>
-public sealed record Blueprint(string Id, Placement Placement);
+/// <summary>A blueprint: its id, as the build menu names its card, what it places and what that costs.</summary>
+public sealed record Blueprint(string Id, Placement Placement, IReadOnlyList<(string Item, int Count)> Cost);
 
-/// <summary>What blueprints there are and their names (blueprints.ts).</summary>
+/// <summary>What blueprints there are, their names and costs (blueprints.ts).</summary>
 public static class Blueprints
 {
     /// <summary>The blueprint <paramref name="placement"/> is built by, named as the build menu names its card (<c>wallIron</c>).</summary>
@@ -14,12 +14,14 @@ public static class Blueprints
 
     private static string Titled(string id) => id.Length == 0 ? "" : char.ToUpperInvariant(id[0]) + id[1..];
 
-    /// <summary>Every blueprint there is, with what it places: walls and back walls by material, builds, machines.</summary>
-    public static readonly IReadOnlyList<Blueprint> All = ((Placement[])
+    /// <summary>Every blueprint there is, with what it places and costs: walls and back walls by material, builds, machines.</summary>
+    public static readonly IReadOnlyList<Blueprint> All =
     [
-        .. Content.Materials.All.Select(m => Placement.Wall(m.Id)),
-        .. Content.Materials.All.Select(m => Placement.BackWall(m.Id)),
-        .. Content.Builds.All.Select(b => new Placement(b.Id is "pipe" or "valve" ? "conduit" : "structure", b.Id)),
-        .. Content.Machines.All.Select(m => new Placement("machine", m.Kind)),
-    ]).Select(p => new Blueprint(Of(p), p)).ToArray();
+        .. Content.Materials.All.Select(m => Of(Placement.Wall(m.Id), m.Cost)),
+        .. Content.Materials.All.Select(m => Of(Placement.BackWall(m.Id), m.Cost)),
+        .. Content.Builds.All.Select(b => Of(new Placement(b.Id is "pipe" or "valve" ? "conduit" : "structure", b.Id), b.Cost)),
+        .. Content.Machines.All.Select(m => Of(new Placement("machine", m.Kind), m.Cost)),
+    ];
+
+    private static Blueprint Of(Placement placement, IReadOnlyList<(string Item, int Count)> cost) => new(Of(placement), placement, cost);
 }

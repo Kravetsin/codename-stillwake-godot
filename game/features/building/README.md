@@ -14,7 +14,7 @@ The plan, its menu and the hand at work (0022), ported from `apps/game/src/featu
 | `Drag.cs`         | a drag's line of cells and what the card or removal would do in each (`drag.ts`)               | no    |
 | `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
 | `BuildingView.cs` | plans in blue as their own pictures, marks, bars, ghosts, the buttons, the pipette, plan work  | yes   |
-| `BuildMenu.cs`    | the menu shown while the plan is out: tabs, thumbnails, tooltips, the card in hand; B (Esc: `game/menu`) | yes |
+| `BuildMenu.cs`    | the menu shown while the plan is out: tabs, thumbnails, the card in hand, a card's words in the one tooltip; B (Esc: `game/menu`) | yes |
 
 Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, the words by the
 pointer; `Hands`: every view of this player's hands wired together, the building first to take the

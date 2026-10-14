@@ -11,43 +11,45 @@ namespace Stillwake.Game.Features.Building;
 /// <summary>
 /// The plan in hand (features/building/BuildMenu.tsx, 0022), taken out with B and shown the whole while it
 /// is out: the build menu's tabs of what can be built, each card a picture of what it builds, its name,
-/// cost and use in a tooltip over it, so a card is swapped for another at a click. A plan costs nothing
-/// until it is delivered to, so a card the player carries too little for is as bright as any. Taken out
-/// while an overlay is on, it opens on that overlay's tab. Under the cards, the card in hand and its
-/// buttons. B or Esc puts the plan away; with it away, the key that takes it out. Only what the world
-/// knows is shown (0024): a tab with nothing known, not at all.
+/// cost and use in the one tooltip by the pointer, so a card is swapped for another at a click. A plan
+/// costs nothing until it is delivered to, so a card the player carries too little for is as bright as
+/// any. Taken out while an overlay is on, it opens on that overlay's tab. Under the cards, the card in
+/// hand and its buttons. B or Esc puts the plan away; with it away, the key that takes it out. Only what
+/// the world knows is shown (0024): a tab with nothing known, not at all.
 /// </summary>
 public partial class BuildMenu : CanvasLayer
 {
     /// <summary>The inventory's counts are read this often while the menu is open: a panel reads on a timer.</summary>
     private const double RefreshMs = 250;
 
-    private static readonly Color Slate950 = new("020617"), Slate900 = new("0f172a"), Slate800 = new("1e293b"),
+    private static readonly Color Slate900 = new("0f172a"), Slate800 = new("1e293b"),
         Slate700 = new("334155"), Slate600 = new("475569"), Slate500 = new("64748b"), Slate400 = new("94a3b8"),
         Slate300 = new("cbd5e1"), Slate100 = new("f1f5f9"), Sky500 = new("0ea5e9"), Sky700 = new("0369a1"),
-        Sky950 = new("082f49"), Red400 = new("f87171");
+        Sky950 = new("082f49");
 
     private static readonly Font Mono = Render.Style.Mono;
 
     private readonly PlanHand _hand;
     private readonly Ui _ui;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly PanelContainer _closed, _open, _tooltip;
+    private readonly PanelContainer _closed, _open;
     private readonly HBoxContainer _tabs = new(), _held = new();
     private readonly HFlowContainer _cards = new();
-    private readonly VBoxContainer _tip = new();
     private string _tab = Tools.Tabs[0].Id;
     private Tool? _hovered;
     private IReadOnlyList<(string Item, int Count)> _carried = [];
     private double _sinceRead = RefreshMs;
-    private string _shown = "", _tipShown = "";
+    private string _shown = "";
     private bool _wasOpen;
     private readonly Dictionary<Tool, Button> _buttons = new();
+    /// <summary>The card under the pointer says what it is, costs and does in the one tooltip.</summary>
+    private readonly TipSpots _tips;
 
     public BuildMenu(PlanHand hand, Ui ui)
     {
         _hand = hand;
         _ui = ui;
+        _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Bars;
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _root.Theme = new Theme { DefaultFont = Mono, DefaultFontSize = 12 };
@@ -70,16 +72,6 @@ public partial class BuildMenu : CanvasLayer
         _open = Panel(Slate900 with { A = 0.95f }, Slate700, 8, body);
         _open.CustomMinimumSize = new Vector2(448, 0);
         BottomCentre(_open);
-
-        _tip.AddThemeConstantOverride("separation", 4);
-        _tooltip = Panel(Slate950, Slate600, 6, _tip);
-        _tooltip.MouseFilter = Control.MouseFilterEnum.Ignore;
-        _tooltip.CustomMinimumSize = new Vector2(224, 0);
-        _tooltip.Visible = false;
-        // Over every panel, as all words by the pointer are.
-        var tips = new CanvasLayer { Layer = ScreenLayers.Tips };
-        tips.AddChild(_tooltip);
-        AddChild(tips);
     }
 
     private void BottomCentre(Control panel)
@@ -151,7 +143,7 @@ public partial class BuildMenu : CanvasLayer
         _open.Visible = open;
         if (!open)
         {
-            _tooltip.Visible = false;
+            _tips.Show(null);
             _wasOpen = false;
             _hovered = null;
             return;
@@ -204,7 +196,7 @@ public partial class BuildMenu : CanvasLayer
         foreach (var each in shownTab?.Tools ?? [])
         {
             bool held = each == tool;
-            var card = new Button { CustomMinimumSize = new Vector2(48, 48), FocusMode = Control.FocusModeEnum.None, TooltipText = "" };
+            var card = new Button { CustomMinimumSize = new Vector2(48, 48), FocusMode = Control.FocusModeEnum.None };
             Style(card, held ? Sky950 : Slate800 with { A = 0.8f }, held ? Sky500 : Slate700, Slate300, padding: 4);
             var thumb = Picture(ThumbOf(each), 36);
             thumb.Size = new Vector2(36, 36);
@@ -224,7 +216,6 @@ public partial class BuildMenu : CanvasLayer
             _held.AddChild(Text(En.T(tool is CableTool ? "hand.cable" : "hand.card"), Slate500));
         }
         else _held.AddChild(Text(En.T(wiring ? "hand.wires" : "build.close"), Slate500));
-        _tipShown = "";
     }
 
     private static void Style(Button button, Color bg, Color border, Color text, int padding)
@@ -240,46 +231,17 @@ public partial class BuildMenu : CanvasLayer
         foreach (var colour in (string[])["font_color", "font_hover_color", "font_pressed_color"]) button.AddThemeColorOverride(colour, text);
     }
 
-    /// <summary>The tooltip over the card the pointer is on: its name, cost against what is carried, and what it does.</summary>
+    /// <summary>The one tooltip over the card the pointer is on: its name, each item of its cost carried against needed, and what it does.</summary>
     private void ShowTooltip(Registry m)
     {
-        if (_hovered is not { } tool || !_buttons.TryGetValue(tool, out var card))
+        if (_hovered is not { } tool || !_buttons.ContainsKey(tool))
         {
-            _tooltip.Visible = false;
+            _tips.Show(null);
             return;
         }
-        var lines = CostLine.Of(Tools.CostOf(tool, m.Building.CostFor), _carried);
-        string key = $"{tool.Id}|{string.Join(",", lines)}";
-        if (key != _tipShown)
-        {
-            _tipShown = key;
-            foreach (var child in _tip.GetChildren())
-            {
-                _tip.RemoveChild(child);
-                child.QueueFree();
-            }
-            _tip.AddChild(Text(tool.Label, Slate100));
-            var cost = new HFlowContainer();
-            cost.AddThemeConstantOverride("h_separation", 8);
-            foreach (var line in lines)
-            {
-                var item = new HBoxContainer();
-                item.AddThemeConstantOverride("separation", 2);
-                item.AddChild(Picture(PixelArt.Picture($"items/{line.Item}"), 16));
-                item.AddChild(Text($"{line.Have}/{line.Need}", line.Have < line.Need ? Red400 : Slate300, 10));
-                cost.AddChild(item);
-            }
-            _tip.AddChild(cost);
-            var about = Text(En.T($"tool.{tool.Id}.about"), Slate400);
-            about.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            about.CustomMinimumSize = new Vector2(212, 0);
-            _tip.AddChild(about);
-            _tooltip.Size = _tooltip.GetCombinedMinimumSize();
-        }
-        _tooltip.Visible = true;
-        // Over the card, centred on it.
-        var rect = card.GetGlobalRect();
-        var size = _tooltip.GetCombinedMinimumSize();
-        _tooltip.Position = new Vector2(rect.Position.X + rect.Size.X / 2 - size.X / 2, rect.Position.Y - size.Y - 4);
+        var lines = CostLine.Of(Tools.CostOf(tool, m.Building.CostFor), _carried)
+            .Select(c => new TipLine($"{c.Have}/{c.Need} {En.T($"item.{c.Item}")}", c.Have < c.Need ? Tone.Bad : Tone.Plain, c.Item))
+            .Append(new TipLine(En.T($"tool.{tool.Id}.about"), Tone.Dim));
+        _tips.Show(new Tip(tool.Label, lines.ToList()));
     }
 }

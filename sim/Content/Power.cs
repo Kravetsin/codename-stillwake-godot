@@ -10,5 +10,5 @@ public static class Power
     public const int MaxSpan = 10;
 
     /// <summary>What a cable costs its layer, and gives back when cut.</summary>
-    public static readonly IReadOnlyList<(string Item, int Count)> CableCost = [("scrap", 2)];
+    public static readonly IReadOnlyList<(string Item, int Count)> CableCost = [("wire", 1)];
 }

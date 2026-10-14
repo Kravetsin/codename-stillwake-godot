@@ -27,7 +27,8 @@ public class ContentTests
         amounts.Sum(a => (a.Count + Content.Items.Get(a.Item).Stack - 1) / Content.Items.Get(a.Item).Stack);
 
     private static IEnumerable<(IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks)> AllBuilds() =>
-        Builds.All.Select(b => (b.Cost, b.BuildTicks)).Concat(Machines.All.Select(m => (m.Cost, m.BuildTicks)));
+        Builds.All.Select(b => (b.Cost, b.BuildTicks)).Concat(Machines.All.Select(m => (m.Cost, m.BuildTicks)))
+            .Concat(Materials.All.Select(m => (m.Cost, m.BuildTicks)));
 
     // Materials
 
@@ -43,7 +44,7 @@ public class ContentTests
     public void MaterialsHavePositiveWholeNumberStats()
     {
         foreach (var m in Materials.All)
-            foreach (int value in (int[])[m.Strength, m.Leak, m.Cost, m.BuildTicks])
+            foreach (int value in (int[])[m.Strength, m.Leak, m.BuildTicks])
                 Assert.True(value > 0, m.Id);
     }
 
@@ -235,8 +236,7 @@ public class ContentTests
     [Fact]
     public void BuildsCostWhatAnEmptyInventoryHoldsWallsIncluded()
     {
-        var walls = Materials.All.Select(m => (IReadOnlyList<(string, int)>)[(m.Id, m.Cost)]);
-        foreach (var cost in AllBuilds().Select(b => b.Cost).Concat(walls))
+        foreach (var cost in AllBuilds().Select(b => b.Cost))
             Assert.True(SlotsFor(cost) <= Inventory.Slots);
     }
 
@@ -360,12 +360,49 @@ public class ContentTests
     }
 
     [Fact]
-    public void ResearchLearnsEveryBlueprintOnceKnownFromTheStartFromAMaterialOrFromASchematic()
+    public void ResearchGrantsAndLocksOnlyBlueprintsAndCraftsThereAreNamingNoneTwice()
     {
-        var learned = Content.Research.StartKnown.Concat(Content.Research.Unlocks.SelectMany(u => u.Blueprints)).Concat(Content.Research.Schematics);
-        Assert.Equal(Blueprints().Order(StringComparer.Ordinal), learned.Order(StringComparer.Ordinal));
-        foreach (var (item, _) in Content.Research.Unlocks) Assert.True(Content.Items.TryGet(item, out _), item);
-        Assert.True(Content.Items.TryGet("schematic", out _));
+        var names = Blueprints().Concat(Crafts.All.Select(c => c.Item)).ToList();
+        Assert.Equal(names.Count, names.Distinct().Count());
+        foreach (var id in Content.Research.StartKnown.Concat(Content.Research.Locked)) Assert.Contains(id, names);
+        Assert.Empty(Content.Research.StartKnown.Intersect(Content.Research.Locked));
+    }
+
+    // Crafts
+
+    [Fact]
+    public void CraftsMakeItemsOfWholeUnitsOfOtherRealItemsInWholeTicks()
+    {
+        Assert.True(Content.Crafting.QueueMost > 0);
+        foreach (var craft in Crafts.All)
+        {
+            Assert.True(Content.Items.TryGet(craft.Item, out _), craft.Item);
+            Assert.NotEmpty(craft.Cost);
+            foreach (var (item, amount) in craft.Cost)
+            {
+                Assert.True(Content.Items.TryGet(item, out _), item);
+                Assert.NotEqual(craft.Item, item);
+                Assert.True(amount > 0, item);
+            }
+            Assert.True(craft.Ticks > 0, craft.Item);
+        }
+    }
+
+    /// <summary>Beyond content.test.ts: nothing costs what no player could ever get.</summary>
+    [Fact]
+    public void EveryItemACostNamesIsCaughtSmeltedOrCrafted()
+    {
+        var had = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (item, _) in DebrisSpec.Kinds)
+        {
+            had.Add(item);
+            foreach (var entry in Loot.Of(item) ?? []) had.Add(entry.Item);
+        }
+        foreach (var item in Content.Items.All)
+            foreach (var (made, _) in item.Yields ?? []) had.Add(made);
+        foreach (var craft in Crafts.All) had.Add(craft.Item);
+        var costs = AllBuilds().Select(b => b.Cost).Concat(Crafts.All.Select(c => c.Cost)).Append(Content.Power.CableCost);
+        foreach (var (item, _) in costs.SelectMany(c => c)) Assert.Contains(item, had);
     }
 
     [Fact]

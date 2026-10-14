@@ -1,0 +1,35 @@
+using System.Diagnostics.CodeAnalysis;
+
+namespace Stillwake.Content;
+
+/// <summary>A part a hero makes by hand, one unit at a time: what one unit costs and how long it takes.</summary>
+/// <param name="Item">The item made, one a unit; the craft is named by it.</param>
+/// <param name="Cost">Whole units of items one unit takes, all of a queued craft's taken when it is queued.</param>
+/// <param name="Ticks">Ticks one unit takes, 20 to a second.</param>
+public sealed record Craft(string Item, IReadOnlyList<(string Item, int Count)> Cost, int Ticks);
+
+/// <summary>What a hero crafts by hand, by the item made (the crafting module).</summary>
+public static class Crafts
+{
+    public static readonly IReadOnlyList<Craft> All =
+    [
+        new("wire", [("scrap", 2)], Ticks: 20),
+        new("plate", [("iron", 2)], Ticks: 40),
+        new("gear", [("iron", 1)], Ticks: 40),
+        new("rotor", [("gear", 1), ("wire", 2)], Ticks: 60),
+    ];
+
+    private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);
+
+    /// <summary>The craft making <paramref name="item"/>; throws for an item no craft makes.</summary>
+    public static Craft Get(string item) => ByItem[item];
+
+    public static bool TryGet(string item, [MaybeNullWhen(false)] out Craft craft) => ByItem.TryGetValue(item, out craft);
+}
+
+/// <summary>A hero's crafting queue.</summary>
+public static class Crafting
+{
+    /// <summary>The most crafts one hero's queue holds; each may make many units.</summary>
+    public const int QueueMost = 8;
+}

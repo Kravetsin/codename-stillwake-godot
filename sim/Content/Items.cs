@@ -19,7 +19,7 @@ public sealed record ItemSpec(
 
 /// <summary>
 /// Everything a hero carries. Every material is an item by the same id; the salvage items are what
-/// debris becomes when caught; a container caught opens.
+/// debris becomes when caught; a container caught opens; parts are crafted.
 /// </summary>
 public static class Items
 {
@@ -34,8 +34,11 @@ public static class Items
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1),
         new("cargoCrate", 1),
-        // Analysed, it teaches a machine (Research.Schematics), and is used up.
-        new("schematic", 10),
+        // Parts, made by hand (Crafts) of materials and other parts.
+        new("wire", 100),
+        new("plate", 100),
+        new("gear", 50),
+        new("rotor", 20),
     ];
 
     private static readonly Dictionary<string, ItemSpec> ById = All.ToDictionary(i => i.Id, StringComparer.Ordinal);

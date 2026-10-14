@@ -19,10 +19,17 @@ A living document: what is decided about the game and what is still open. Techni
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
   [0023](decisions/0023-a-furnace-burns-fuel.md)).
-- **Blueprints are learned,** Grounded's way: the wreck knows only the furnace, the analyzer, the
-  crate and scrap walls; closing the torn room and cabling its analyzer is the first lesson, and
-  each new material or schematic analysed shows what it unlocked
-  ([0024](decisions/0024-blueprints-are-learned-by-analysis.md)).
+- **Blueprints are learned,** Grounded's way: a blueprint or a craft opens once every item of its
+  cost is analysed in a powered analyzer, raw or made. The wreck knows only the furnace, the
+  analyzer, the crate, scrap walls and the wire; smelting scrap, making wire, cabling the torn room's
+  analyzer and analysing iron is the first lesson. An item not analysed yet has a violet "?" in its
+  slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
+  item in it goes into, opened or still closed; nothing pops up over the hero
+  ([0024](decisions/0024-blueprints-are-learned-by-analysis.md),
+  [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md)).
+- **Parts are crafted by hand,** Rust's way: wire of scrap, plates and gears of iron, a rotor of a gear
+  and wire, queued from the inventory (Tab), paid when queued and made one at a time. Most builds cost
+  parts, so the furnace feeds the hands before it feeds the hull.
 - **Spacewalks:** on a tether from the hull at first; a jetpack later frees the hero from it.
 - **Dangers:** yes — the game can hurt you. Which ones is open.
 - **Time runs only while the game runs.** Nothing happens offline and there is no offline progress,

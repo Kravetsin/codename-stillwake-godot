@@ -4,8 +4,8 @@ namespace Stillwake.Content;
 
 /// <summary>Something a hero builds, kept by the name the grid gives it.</summary>
 /// <param name="Cost">
-/// Whole units of items it takes from its builder, and gives back when taken apart: materials mostly,
-/// salvage or planks for what is built before there are any.
+/// Whole units of items it takes from its builder, and gives back when taken apart: materials and
+/// parts, salvage or planks for what is built before there are any.
 /// </param>
 /// <param name="BuildTicks">Ticks of a hero's work to build it.</param>
 public sealed record Build(string Id, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks);
@@ -20,9 +20,9 @@ public static class Builds
     [
         new("floor", [("scrap", 1)], BuildTicks: 7),
         new("ladder", [("scrap", 1)], BuildTicks: 7),
-        new("door", [("scrap", 2), ("iron", 1)], BuildTicks: 20),
+        new("door", [("plate", 2), ("gear", 1)], BuildTicks: 20),
         new("pipe", [("scrap", 1)], BuildTicks: 7),
-        new("valve", [("scrap", 1), ("iron", 1)], BuildTicks: 40),
+        new("valve", [("scrap", 1), ("gear", 1)], BuildTicks: 40),
     ];
 
     /// <summary>Taking a thing apart is this many times faster than building it; its ticks round up.</summary>

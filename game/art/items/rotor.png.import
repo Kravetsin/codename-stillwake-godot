@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cbrwr3l5lq6lc"
-path="res://.godot/imported/schematic.png-0ce4cf3af3e27bebfd69177ea0a86594.ctex"
+uid="uid://dde8m7oaik5hm"
+path="res://.godot/imported/rotor.png-73a5aff7a70c129673c3ef0bc34e7603.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/items/schematic.png"
-dest_files=["res://.godot/imported/schematic.png-0ce4cf3af3e27bebfd69177ea0a86594.ctex"]
+source_file="res://art/items/rotor.png"
+dest_files=["res://.godot/imported/rotor.png-73a5aff7a70c129673c3ef0bc34e7603.ctex"]
 
 [params]
 

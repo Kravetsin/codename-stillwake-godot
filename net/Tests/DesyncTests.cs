@@ -56,7 +56,7 @@ public class DesyncTests
         bool drawn = false, refilled = false, woke = false;
         var suits = new Dictionary<int, (int Suit, int Out)>();
         var game = Definition.Game();
-        var run = Desync.Fuzz(game, 8, layout: room,
+        var run = Desync.Fuzz(game, 9, layout: room,
             // Past two leak beats: an aired room leaks once a minute, 1200 ticks.
             ticks: 2600,
             tamper: (tick, clients) =>

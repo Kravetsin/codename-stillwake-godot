@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
+using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Items;
 
@@ -11,10 +13,12 @@ namespace Stillwake.Game.Features.Items;
 /// The slots as this peer shows them (<c>read</c> in Inventory.tsx): the world with its own moves still
 /// in flight made, so a stack lands on the click rather than a round trip later, and the next click acts
 /// on what is seen (0014). <see cref="Crate"/> is the open crate's slots, <see cref="Kind"/> its kind;
-/// an analyzer shows what is in its slot, how far its analysis is and why it stands still.
+/// an analyzer shows what is in its slot, why it stands still and its <see cref="Items.Lessons"/>.
+/// <see cref="Analysed"/> are the items analysed so far, which no slot marks.
 /// </summary>
 public sealed record Reading(
-    IReadOnlyList<Stack?> Inventory, IReadOnlyList<Stack?>? Crate, bool Creative, string? Kind, Analyzing? Analyzer)
+    IReadOnlyList<Stack?> Inventory, IReadOnlyList<Stack?>? Crate, bool Creative, string? Kind, Analyzing? Analyzer,
+    IReadOnlyList<string> Analysed, Lessons? Lessons = null)
 {
     /// <summary>What the slot at <paramref name="place"/> shows: null when empty or not shown.</summary>
     public Stack? At(Place place)
@@ -22,6 +26,14 @@ public sealed record Reading(
         var slots = place.Crate == null ? Inventory : Crate;
         return slots != null && place.Slot >= 0 && place.Slot < slots.Count ? slots[place.Slot] : null;
     }
+
+    /// <summary>Whether a slot holding <paramref name="item"/> shows the violet "?": not analysed yet, and never in creative mode.</summary>
+    public bool Unknown(string item) => !Creative && !Analysed.Contains(item);
+
+    /// <summary>The one tooltip over a stack of <paramref name="item"/>: its name, and under it whether it waits for an analyzer.</summary>
+    public Tip TipOf(string item) => Unknown(item)
+        ? new Tip(T($"item.{item}"), new TipLine(T("items.notAnalysed"), Tone.Unknown))
+        : new Tip(T($"item.{item}"));
 
     /// <summary>
     /// Peer <paramref name="peer"/>'s inventory and crate <paramref name="crate"/> as its commands in flight,
@@ -39,6 +51,11 @@ public sealed record Reading(
             slots = shown.Crates.Where(c => c.Crate == id).Select(c => c.Slots).FirstOrDefault() ?? items.Crate(id);
             kind = grid.Machines.FirstOrDefault(m => m.Id == id)?.Kind;
         }
-        return new Reading(shown.Inventory, slots, items.Creative, kind, kind == "analyzer" ? research.At(crate!.Value) : null);
+        // Copied: the sim's list is live, and a reading stands for what was read.
+        var analysed = research.Analysed.ToList();
+        if (kind != "analyzer") return new Reading(shown.Inventory, slots, items.Creative, kind, null, analysed);
+        var at = research.At(crate!.Value);
+        var item = slots is { Count: > 0 } ? slots[0]?.Item : null;
+        return new Reading(shown.Inventory, slots, items.Creative, kind, at, analysed, Lessons.Of(research, item, at));
     }
 }

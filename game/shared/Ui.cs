@@ -97,6 +97,12 @@ public sealed class Ui
     public Store<IReadOnlyList<CostLine>?> CostTip { get; } = new(null);
 
     /// <summary>
+    /// What a panel says of what the pointer is on, a slot, a card, a craft: set by the feature that owns
+    /// it, through <c>TipSpots</c>, and drawn by the pointer over the world's own words.
+    /// </summary>
+    public Store<Tip?> Tip { get; } = new(null);
+
+    /// <summary>
     /// Why what the hand would do under the pointer is refused, an i18n key: set each frame by the
     /// feature whose card it is (a ghost, a cable dragged), drawn in the world beside the pointer.
     /// </summary>
@@ -107,6 +113,12 @@ public sealed class Ui
     /// closes it out of reach, <c>items</c> shows it beside the inventory and closes it on Tab or Esc.
     /// </summary>
     public Store<int?> OpenCrate { get; } = new(null);
+
+    /// <summary>
+    /// Where the open inventory's grid ends on the screen, its right edge and its top; null while it is
+    /// closed. Set by <c>items</c> every frame; <c>crafting</c> docks its crafts beside it.
+    /// </summary>
+    public Store<(float Right, float Top)?> InventoryEdge { get; } = new(null);
 
     /// <summary>
     /// The piece of debris E would grab, and whether the sim would refuse it: <c>crew</c> sets it while

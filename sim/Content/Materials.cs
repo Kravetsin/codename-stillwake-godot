@@ -9,17 +9,17 @@ namespace Stillwake.Content;
 /// Oxygen units lost every <see cref="Air.LeakEvery"/> ticks (ten minutes) through one cell of it that an
 /// aired room's air touches: a back wall behind the room, or a wall of its hull.
 /// </param>
-/// <param name="Cost">Units of this material spent to build one cell.</param>
+/// <param name="Cost">Whole units of items one cell of it takes: scrap itself, iron as plates.</param>
 /// <param name="BuildTicks">Ticks of a hero's work to build one cell.</param>
-public sealed record Material(string Id, int Code, int Strength, int Leak, int Cost, int BuildTicks);
+public sealed record Material(string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks);
 
 /// <summary>Hull materials, weakest first.</summary>
 public static class Materials
 {
     public static readonly IReadOnlyList<Material> All =
     [
-        new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: 2, BuildTicks: 13),
-        new("iron", Code: 2, Strength: 5, Leak: 24, Cost: 3, BuildTicks: 27),
+        new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 2)], BuildTicks: 13),
+        new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 27),
     ];
 
     /// <summary>What a <c>#</c> on a map is built of.</summary>

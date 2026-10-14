@@ -8,6 +8,7 @@
     <ProjectReference Include="../Power/Power.csproj" />
     <ProjectReference Include="../Research/Research.csproj" />
     <ProjectReference Include="../Building/Building.csproj" />
+    <ProjectReference Include="../Crafting/Crafting.csproj" />
     <ProjectReference Include="../Atmosphere/Atmosphere.csproj" />
     <ProjectReference Include="../Furnace/Furnace.csproj" />
     <ProjectReference Include="../Crew/Crew.csproj" />

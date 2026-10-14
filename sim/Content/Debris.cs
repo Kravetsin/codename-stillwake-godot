@@ -50,13 +50,11 @@ public static class Loot
         ("cargoCrate",
         [
             new("planks", 3, 6),
-            new("schematic", 1, 1, OneIn: 4),
         ]),
         ("supplyPod",
         [
             new("canister", 1, 1),
             new("scrap", 6, 6),
-            new("schematic", 1, 1, OneIn: 2),
         ]),
     ];
 

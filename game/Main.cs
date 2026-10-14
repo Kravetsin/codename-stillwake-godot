@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Godot;
 using Stillwake.Game.Dev;
+using Stillwake.Game.Features.Crafting;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Debris;
 using Stillwake.Game.Features.Dev;
@@ -30,7 +31,7 @@ namespace Stillwake.Game;
 /// with <c>-- --join[=address]</c>; the world it plays drawn by the client's features after every
 /// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves, loads tanks, opens
 /// crates and catches debris, the left button held works plans; the camera follows it; its items (Tab,
-/// 1–9, the wheel, Q), the plan (B), what the world has just learned, the game menu (Esc: settings, save,
+/// 1–9, the wheel, Q) and its crafts beside the inventory, the plan (B), the game menu (Esc: settings, save,
 /// load, quit) and the dev panel (`).
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
@@ -57,6 +58,7 @@ public partial class Main : Node2D
     private GridView? _grid;
     private LightView? _light;
     private FurnaceView? _furnace;
+    private AnalyzerScreens? _screens;
     private ShipCamera _camera = null!;
     private string[] _args = [];
     private string _role = "alone";
@@ -69,8 +71,8 @@ public partial class Main : Node2D
     private Layout _layout = Registry.Wreck;
     private HeroView? _hero;
     private ItemsView? _items;
+    private CraftsPanel? _crafts;
     private DebrisView _debris = null!;
-    private readonly LearnedView _learned = new();
     private Hands _hands = null!;
     private PlanDemo? _demo;
     private FrameLog? _frameLog;
@@ -100,12 +102,12 @@ public partial class Main : Node2D
             var script = !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
+            AddChild(_crafts = new CraftsPanel(_hands.Ui));
             // Its own layer, above the world: read from whatever registry the session runs now.
             AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
             _camera.DevControls = false;
         }
         AddChild(new EffectsView());
-        AddChild(_learned);
         AddChild(_hands);
         if (Has("--plan-demo"))
         {
@@ -271,7 +273,9 @@ public partial class Main : Node2D
         _grid?.QueueFree();
         _light?.QueueFree();
         _furnace?.QueueFree();
+        _screens?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
+        AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research));
         var power = _m.Power;
         // The furnaces before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);
@@ -342,7 +346,7 @@ public partial class Main : Node2D
         _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
-        _learned.Frame(_m.Research, delta * 1000);
+        _crafts?.Frame(client, _m.Crafting, _m.Research, _m.Items, delta * 1000);
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, session.Progress, delta * 1000);
         _frameLog?.Mark("debris");

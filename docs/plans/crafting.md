@@ -16,8 +16,8 @@ add needs nothing to run, so fuel matters to the furnace alone.
 3. Iron goes in the analyzer: stripes on its screen, then a green check; plate and gear appear among
    the crafts. Every item is learned this way, raw or made.
 4. Nothing pops up over the hero. Seeing the check, the player walks to the analyzer and opens it:
-   right under the item in its slot are the blueprints and crafts that item opened. Below, what is
-   analysed so far and what is one item short: the door's thumbnail beside the gear's.
+   right under the item in its slot are the blueprints and crafts that item goes into, the opened ones
+   edged green, the closed ones grey; over a closed one, the items it still waits for.
 5. Plates, gears, wire and a rotor analysed, the burner generator opens. Built and fed planks, it
    burns, breathes its room's air like the furnace and powers what is cabled to it.
 
@@ -129,8 +129,8 @@ counts no resting maker. `Power` runs first, so it sees this a tick late. No new
   and what is short. Click queues 1, shift-click 5 (refused whole when unpaid). The queue under them:
   the running unit's bar, a click on an entry cancels it.
 - The analyzer's screen: running lines while working, a green check when done, dark unpowered. Its
-  panel: under the slot, what the item in it opened (as many as there are, in rows); below, analysed
-  items and what is one item short. `Learned`, the list over the hero's head, goes: with many
+  panel: under the slot, every blueprint and craft the item in it goes into once analysed (as many as
+  there are, in rows), opened or greyed out. `Learned`, the list over the hero's head, goes: with many
   blueprints opening at once it would cover the screen.
 - The burner generator: art knocked together from scrap like the furnace, its fire seen through a
   grate; the fire, its light and embers drawn by the furnace's code, moved to a shared place since
@@ -198,7 +198,7 @@ change to wire; the furnace's become fire scenarios where they hold for both.
 - A new ADR supersedes the parts of 0024 about unlocks and schematics; the concept is updated.
 - Estimated diff: 1400–1800 lines with tests, in two tasks, each playable and tested alone (the new
   costs need parts, and parts need crafting, so the rule and the crafts cannot be split):
-  1. **Parts and their blueprints:** the analysed rule, `Locked`, schematics gone, the four parts, the
+  1. **Parts and their blueprints** (built): the analysed rule, `Locked`, schematics gone, the four parts, the
      `Crafting` module and its panel, the new costs, the analyzer's screen and panel.
   2. **The burner generator:** shared fires, the fuel slot by spec, resting makers, its art.
 

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.I18n;
 using Stillwake.Game.Render;
@@ -7,25 +7,28 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// Words by the pointer: why the hand's card is refused there (<see cref="Ui.Reason"/>), written in the
-/// world beside it as the building and power layers wrote it; and, beside the pointer on the screen
-/// (session/PointerTip.tsx), what an overlay says of the cell (<see cref="Ui.WorldTip"/>), the first line
-/// naming it, or else a blueprint's cost delivered against needed (<see cref="Ui.CostTip"/>). The
-/// world's words need the world under the pointer: over a panel they hide. Text on demand, only while
-/// there is something to say.
+/// world beside it as the building and power layers wrote it; and the one tooltip, Terraria's: shown at
+/// once, following the pointer, a name in bold and lines in colour under it. It says what a panel says
+/// of what the pointer is on (<see cref="Ui.Tip"/>), else, over the world, what an overlay says of the
+/// cell (<see cref="Ui.WorldTip"/>), the first line naming it, or a blueprint's cost delivered against
+/// needed (<see cref="Ui.CostTip"/>). Text on demand, only while there is something to say.
 /// </summary>
 public partial class PointerTip : CanvasLayer
 {
     /// <summary>The reason's size and its outline, in pixels of the world: it grows and shrinks with the zoom, as world text does.</summary>
     private const float ReasonSize = 10, ReasonStroke = 3, ReasonOffset = 12;
-    private static readonly Color ReasonColour = new("ffe4e4"), Outline = new("0b0f17"), Red400 = new("f87171");
+    /// <summary>The tip's widest, its padding and its gap from the pointer and the screen's edge, in pixels.</summary>
+    private const float Widest = 260, PadX = 8, Edge = 6;
+    private static readonly Vector2 FromPointer = new(14, 16);
+    private static readonly Color ReasonColour = new("ffe4e4"), Outline = new("0b0f17");
 
     private readonly Ui _ui;
     private readonly Label _reason = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly LabelSettings _reasonText = new() { Font = Style.Mono, FontColor = ReasonColour, OutlineColor = Outline };
     private readonly PanelContainer _panel = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly VBoxContainer _lines = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly StyleBoxFlat _plain = Edge(Style.Slate600 with { A = 0.8f }), _cost = Edge(Style.Amber700 with { A = 0.7f });
-    private string _shown = "";
+    private static readonly LabelSettings NameText = Style.Text(Style.Bold, 12, Style.Slate100);
+    private Tip? _shown;
 
     public PointerTip(Ui ui)
     {
@@ -33,28 +36,31 @@ public partial class PointerTip : CanvasLayer
         Layer = ScreenLayers.Tips;
         _reason.LabelSettings = _reasonText;
         AddChild(_reason);
+        // rounded border border-slate-600/80 bg-slate-950/90 px-2 pt-[3px] pb-1, a faint dark ring.
+        var box = Style.Box(Style.Slate950 with { A = 0.92f }, Style.Slate600 with { A = 0.8f }, radius: 3);
+        (box.ContentMarginLeft, box.ContentMarginRight, box.ContentMarginTop, box.ContentMarginBottom) = (PadX, PadX, 3, 4);
+        (box.ShadowColor, box.ShadowSize) = (new Color(0, 0, 0, 0.18f), 3);
+        _panel.AddThemeStyleboxOverride("panel", box);
         _lines.AddThemeConstantOverride("separation", 0);
         _panel.AddChild(_lines);
+        _panel.Visible = false;
         AddChild(_panel);
     }
 
-    /// <summary><c>rounded border bg-slate-950/90 px-2 py-1 shadow</c> with the given edge.</summary>
-    private static StyleBoxFlat Edge(Color border)
+    /// <summary>A line's colour by its tone.</summary>
+    private static Color Of(Tone tone) => tone switch
     {
-        var box = Style.Box(Style.Slate950 with { A = 0.9f }, border);
-        (box.ContentMarginLeft, box.ContentMarginRight, box.ContentMarginTop, box.ContentMarginBottom) = (8, 8, 4, 4);
-        (box.ShadowColor, box.ShadowSize) = (new Color(0, 0, 0, 0.3f), 3);
-        return box;
-    }
-
-    private static Label Line(string text, Font font, int size, Color colour) => new()
-    {
-        Text = text,
-        LabelSettings = new LabelSettings { Font = font, FontSize = size, FontColor = colour },
-        MouseFilter = Control.MouseFilterEnum.Ignore,
+        Tone.Dim => Style.Slate400,
+        Tone.Good => Style.Green400,
+        Tone.Bad => Style.Red300,
+        Tone.Unknown => Style.Violet400,
+        _ => Style.Slate300,
     };
 
-    /// <summary>Follows the pointer at <paramref name="pointer"/>, in cells of the world; hidden off the world.</summary>
+    /// <summary>
+    /// Follows the pointer at <paramref name="pointer"/>, in cells of the world, wherever a script or the
+    /// mouse puts it; hidden off the window and behind the menu.
+    /// </summary>
     public void Frame((double X, double Y)? pointer)
     {
         if (pointer is not { } p)
@@ -72,50 +78,75 @@ public partial class PointerTip : CanvasLayer
         _reasonText.OutlineSize = Mathf.RoundToInt(ReasonStroke * zoom);
         _reason.Position = toScreen * (cell + Vector2.One * ReasonOffset);
 
-        // What the world says needs the world under the pointer; the cost shows when nothing else is said.
-        bool overWorld = GetViewport().GuiGetHoveredControl() == null;
-        var world = overWorld ? _ui.WorldTip.Get() : null;
-        var cost = overWorld && world == null ? _ui.CostTip.Get() : null;
-        string key = $"{string.Join("\n", world ?? [])}|{string.Join(",", cost ?? [])}";
-        if (key != _shown)
+        // A panel's word first; what the world says needs the world under the pointer.
+        var tip = _ui.Tip.Get() ?? (GetViewport().GuiGetHoveredControl() == null ? OfWorld() : null);
+        if (!Equals(tip, _shown))
         {
-            _shown = key;
-            Fill(world, cost);
+            _shown = tip;
+            if (tip != null) Fill(tip);
         }
-        _panel.Visible = world != null || cost != null;
-        _panel.Position = toScreen * cell + new Vector2(16, 16);
+        _panel.Visible = tip != null;
+        if (tip == null) return;
+        // Beside the pointer, kept inside the screen.
+        var screen = GetViewport().GetVisibleRect().Size;
+        var at = toScreen * cell + FromPointer;
+        _panel.Position = new Vector2(
+            Mathf.Max(Edge, Mathf.Min(at.X, screen.X - _panel.Size.X - Edge)),
+            Mathf.Max(Edge, Mathf.Min(at.Y, screen.Y - _panel.Size.Y - Edge)));
     }
 
-    private void Fill(IReadOnlyList<string>? world, IReadOnlyList<CostLine>? cost)
+    /// <summary>An overlay's words, the first naming the cell; or else a blueprint's cost.</summary>
+    private Tip? OfWorld()
+    {
+        if (_ui.WorldTip.Get() is { Count: > 0 } world)
+            return new Tip(world[0], world.Skip(1).Select(line => new TipLine(line)).ToList());
+        if (_ui.CostTip.Get() is { } cost)
+            return new Tip(null, cost.Select(c => new TipLine($"{c.Have}/{c.Need}", c.Have < c.Need ? Tone.Bad : Tone.Plain, c.Item)).ToList());
+        return null;
+    }
+
+    private void Fill(Tip tip)
     {
         foreach (var child in _lines.GetChildren())
         {
             _lines.RemoveChild(child);
             child.QueueFree();
         }
-        _panel.AddThemeStyleboxOverride("panel", world == null && cost != null ? _cost : _plain);
-        for (int i = 0; i < (world?.Count ?? 0); i++)
-            _lines.AddChild(i == 0 ? Line(world![i], Style.Bold, 12, Style.Slate100) : Line(world![i], Style.Sans, 12, Style.Slate300));
-        if (world == null && cost != null)
-        {
-            var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 8);
-            foreach (var c in cost)
-            {
-                var item = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 2);
-                item.AddChild(new TextureRect
-                {
-                    Texture = ItemIcons.Icon(c.Item),
-                    CustomMinimumSize = new Vector2(16, 16),
-                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                    TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-                    MouseFilter = Control.MouseFilterEnum.Ignore,
-                });
-                item.AddChild(Line($"{c.Have}/{c.Need}", Style.Mono, 10, c.Have < c.Need ? Red400 : Style.Slate300));
-                row.AddChild(item);
-            }
-            _lines.AddChild(row);
-        }
+        if (tip.Name != null) _lines.AddChild(Text(tip.Name, NameText));
+        foreach (var line in tip.Lines) _lines.AddChild(LineOf(line));
         _panel.Size = _panel.GetCombinedMinimumSize();
     }
+
+    /// <summary><c>flex items-center gap-[5px]</c> in mono 11: the item's icon, then the words, wrapped past the tip's widest.</summary>
+    private static Control LineOf(TipLine line)
+    {
+        var text = Text(line.Text, Style.Text(Style.Mono, 11, Of(line.Tone)));
+        float room = Widest - 2 * PadX - (line.Icon != null ? 19 : 0);
+        if (Style.Mono.GetStringSize(line.Text, fontSize: 11).X > room)
+        {
+            text.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            text.CustomMinimumSize = new Vector2(room, 0);
+        }
+        if (line.Icon == null) return text;
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 5);
+        row.AddChild(new TextureRect
+        {
+            Texture = ItemIcons.Icon(line.Icon),
+            CustomMinimumSize = new Vector2(14, 14),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        });
+        row.AddChild(text);
+        return row;
+    }
+
+    private static Label Text(string text, LabelSettings settings) => new()
+    {
+        Text = text,
+        LabelSettings = settings,
+        MouseFilter = Control.MouseFilterEnum.Ignore,
+    };
 }

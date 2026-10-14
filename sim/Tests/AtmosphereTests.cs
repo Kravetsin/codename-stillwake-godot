@@ -87,7 +87,7 @@ public class AtmosphereTests
         s.PipeUp();
         Assert.Equal(RoomStatus.Venting, StatusAt(w));
         var iron = Materials.Get("iron");
-        w.GiveItems(0, ("iron", iron.Cost));
+        w.GiveItems(0, [.. iron.Cost]);
         w.Do(new PlacePlan(At(5, 2), Placement.BackWall("iron"))).Run();
         WorkOn(w, 1 + iron.BuildTicks);
         Assert.Equal("iron", w.M.Grid.BackAt(At(5, 2))?.Id);
@@ -109,7 +109,7 @@ public class AtmosphereTests
         // Math.ceil of TypeScript, in whole ticks.
         WorkOn(w, (scrap.BuildTicks + Builds.DeconstructSpeedup - 1) / Builds.DeconstructSpeedup);
         Assert.Equal(RoomStatus.Venting, StatusAt(w));
-        Assert.Equal([new Stack("scrap", scrap.Cost)], w.M.Items.Inventory(0).Where(st => st?.Item == "scrap"));
+        Assert.Equal(scrap.Cost.Select(c => new Stack(c.Item, c.Count)), w.M.Items.Inventory(0).Where(st => st?.Item == "scrap"));
     }
 
     // Air machines.

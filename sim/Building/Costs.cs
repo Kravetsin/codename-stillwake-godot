@@ -8,7 +8,7 @@ namespace Stillwake.Sim.Building;
 /// <summary>What things cost and take to build, from content, and what a blueprint still lacks (costs.ts).</summary>
 internal static class Costs
 {
-    private static Build Wall(Material material) => new(material.Id, [(material.Id, material.Cost)], material.BuildTicks);
+    private static Build Wall(Material material) => new(material.Id, material.Cost, material.BuildTicks);
 
     private static Build Machine(string kind)
     {

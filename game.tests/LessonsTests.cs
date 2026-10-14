@@ -1,0 +1,133 @@
+using Stillwake.Game.Features.Items;
+using Stillwake.Game.Shared;
+using Stillwake.Sim;
+using Stillwake.Sim.Items;
+using Xunit;
+using static Stillwake.Game.I18n.En;
+
+namespace Stillwake.Game.Tests;
+
+/// <summary>What an analyzer's panel shows: its stage, how far it is, and what the item in it goes into once analysed.</summary>
+public class LessonsTests
+{
+    /// <summary>An analyzer in a room, cabled to a solar panel unless <paramref name="powered"/> is false; the world granted what the wreck is.</summary>
+    private static (TestWorld W, int Analyzer) World(bool powered = true)
+    {
+        string[] map = ["PPP       ", "          ", "##########", "#AA......#", "#AA......#", "##########"];
+        var layout = Layout.Parse(map, null, powered ? [((0, 0), (1, 3))] : []);
+        var w = new TestWorld(layout with { Known = Content.Research.StartKnown }).Give(0, ("iron", 2), ("scrap", 1));
+        return (w, w.M.Grid.MachineAt(31)!.Id);
+    }
+
+    private static Lessons Shown(TestWorld w, int analyzer) =>
+        Lessons.Of(w.M.Research, w.M.Items.Crate(analyzer)[0]?.Item, w.M.Research.At(analyzer));
+
+    private static void Analyse(TestWorld w, int analyzer, int from)
+    {
+        w.Step(new Move(new Place(from), new Target(Crate: analyzer), 1));
+        for (int i = 0; i < Content.Research.Ticks; i++) w.Step();
+        w.Step(new Move(new Place(0, analyzer), new Target(), 1));
+    }
+
+    [Fact]
+    public void ListNothingForAnEmptyAnalyzer()
+    {
+        var (w, analyzer) = World();
+        var lessons = Shown(w, analyzer);
+        Assert.Equal((Stage.Empty, (string?)null, 0), (lessons.Stage, lessons.Item, lessons.Percent));
+        Assert.Empty(lessons.Recipes);
+    }
+
+    [Fact]
+    public void ShowAnItemJustPutInAtWorkFromNothingBeforeItsTickRuns()
+    {
+        var (w, _) = World();
+        var lessons = Lessons.Of(w.M.Research, "iron", null);
+        Assert.Equal((Stage.Working, 0), (lessons.Stage, lessons.Percent));
+        Assert.Empty(lessons.Recipes);
+    }
+
+    [Fact]
+    public void ShowHowFarTheWorkIsRoundedDownAndListNothingUntilItIsDone()
+    {
+        var (w, analyzer) = World();
+        w.Step(new Move(new Place(0), new Target(Crate: analyzer), 1));
+        for (int i = 0; i < Content.Research.Ticks / 3; i++) w.Step();
+        var at = w.M.Research.At(analyzer)!;
+        var lessons = Shown(w, analyzer);
+        Assert.Equal(Stage.Working, lessons.Stage);
+        Assert.Equal((int)((long)at.Progress * 100 / at.Work), lessons.Percent);
+        Assert.InRange(lessons.Percent, 1, 99);
+        Assert.Empty(lessons.Recipes);
+    }
+
+    [Fact]
+    public void SayAnAnalyzerWithoutPowerIsUnpowered()
+    {
+        var (w, analyzer) = World(powered: false);
+        w.Step(new Move(new Place(0), new Target(Crate: analyzer), 1));
+        w.Step();
+        Assert.Equal(Stage.Unpowered, Shown(w, analyzer).Stage);
+    }
+
+    [Fact]
+    public void ListEveryBlueprintAndCraftTheAnalysedItemGoesIntoOpenedOrNot()
+    {
+        var (w, analyzer) = World();
+        w.Step(new Move(new Place(0), new Target(Crate: analyzer), 1));
+        for (int i = 0; i < Content.Research.Ticks; i++) w.Step();
+        var lessons = Shown(w, analyzer);
+        Assert.Equal((Stage.Done, "iron", 100), (lessons.Stage, lessons.Item, lessons.Percent));
+        // Exactly what has iron in its cost, blueprints first, in content's order.
+        var expected = w.M.Research.Recipes().Where(r => r.Cost.Any(c => c.Item == "iron")).Select(r => r.Id);
+        Assert.Equal(expected, lessons.Recipes.Select(l => l.Recipe.Id));
+        Assert.Contains("plate", expected);
+        Assert.DoesNotContain("wire", expected);
+        // Granted and opened alike are open; the solar panel waits for scrap, and is locked besides.
+        Assert.Equal(["solarPanel"], lessons.Recipes.Where(l => !l.Opened).Select(l => l.Recipe.Id));
+        Assert.True(lessons.Recipes.Single(l => l.Recipe.Id == "crate").Opened);
+    }
+
+    [Fact]
+    public void ShowAnItemAnalysedAlreadyAsDoneAtOnceWhenItIsPutBackIn()
+    {
+        var (w, analyzer) = World();
+        Analyse(w, analyzer, 0);
+        Assert.Equal(Stage.Empty, Shown(w, analyzer).Stage);
+        var lessons = Lessons.Of(w.M.Research, "iron", null);
+        Assert.Equal(Stage.Done, lessons.Stage);
+        Assert.NotEmpty(lessons.Recipes);
+    }
+
+    [Fact]
+    public void TipAnOpenedOneAsOpenedAndAClosedOneWithEachItemItWaitsFor()
+    {
+        var (w, analyzer) = World();
+        Analyse(w, analyzer, 0);
+        var lessons = Lessons.Of(w.M.Research, "iron", null);
+        Assert.Equal(new Tip(T("item.plate"), new TipLine(T("research.opened"), Tone.Good)),
+            lessons.Recipes.Single(l => l.Recipe.Id == "plate").Tip);
+        Assert.Equal(new Tip(T("tool.solarPanel"), new TipLine("Scrap not analysed", Tone.Unknown, "scrap")),
+            lessons.Recipes.Single(l => l.Recipe.Id == "solarPanel").Tip);
+    }
+
+    [Fact]
+    public void TipALockedOneWithNothingLeftToAnalyseAsOutOfAnalysisReach()
+    {
+        var (w, analyzer) = World();
+        Analyse(w, analyzer, 0);
+        Analyse(w, analyzer, 1);
+        var solar = Lessons.Of(w.M.Research, "iron", null).Recipes.Single(l => l.Recipe.Id == "solarPanel");
+        Assert.False(solar.Opened);
+        Assert.Equal([new TipLine(T("research.locked"), Tone.Dim)], solar.Tip.Lines);
+    }
+
+    [Fact]
+    public void OpenEveryOneInCreativeMode()
+    {
+        var (w, analyzer) = World();
+        Analyse(w, analyzer, 0);
+        w.Step(new SetCreative(true));
+        Assert.All(Lessons.Of(w.M.Research, "iron", null).Recipes, l => Assert.True(l.Opened));
+    }
+}
