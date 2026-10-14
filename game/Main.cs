@@ -13,6 +13,7 @@ using Stillwake.Game.Features.Light;
 using Stillwake.Game.Features.Research;
 using Stillwake.Game.Net;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
@@ -29,6 +30,7 @@ namespace Stillwake.Game;
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them,
+/// <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--for=seconds</c> quits after a while,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
@@ -58,6 +60,8 @@ public partial class Main : Node2D
     private HeroView? _hero;
     private ItemsView? _items;
     private readonly LearnedView _learned = new();
+    private Hands _hands = null!;
+    private PlanDemo? _demo;
 
     public override void _Ready()
     {
@@ -81,6 +85,12 @@ public partial class Main : Node2D
             _camera.DevControls = false;
         }
         AddChild(_learned);
+        AddChild(_hands = new Hands());
+        if (Has("--plan-demo"))
+        {
+            _demo = new PlanDemo(_hands, _layout);
+            _demo.Start();
+        }
         var join = _args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
         if (Has("--host")) Host();
         else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args));
@@ -243,6 +253,7 @@ public partial class Main : Node2D
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
         _learned.Frame(_m.Research, delta * 1000);
+        ShowHands(client, delta * 1000);
     }
 
     /// <summary>Where the hero stands for its items: what a drop is thrown from, what it picks up and reaches.</summary>
@@ -252,6 +263,25 @@ public partial class Main : Node2D
         var hero = view.Current;
         int width = _m.Grid.Width;
         return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(width), cell => Aiming.Reaches(hero, cell, width));
+    }
+
+
+    /// <summary>The plan, cables and overlays (<see cref="Hands"/>): the hero's body sways the cables, its reach works plans.</summary>
+    private void ShowHands(Client client, double elapsedMs)
+    {
+        Body[] bodies = [];
+        Func<int, bool>? reaches = null;
+        if (_hero != null)
+        {
+            var hero = _hero.Current;
+            int width = _m.Grid.Width;
+            double unit = Hero.Unit;
+            bodies = [new Body((hero.X - Content.Hero.Width / 2.0) / unit, (hero.X + Content.Hero.Width / 2.0) / unit,
+                (hero.Y - Content.Hero.Height) / unit, hero.Y / unit, hero.Vx / unit, hero.Vy / unit)];
+            reaches = cell => Aiming.Reaches(hero, cell, width);
+        }
+        _demo?.Frame(client, _m.Grid, Log);
+        _hands.Frame(client, _m, bodies, reaches, elapsedMs);
     }
 
     private void Sync()

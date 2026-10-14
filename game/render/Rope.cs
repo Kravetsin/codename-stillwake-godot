@@ -13,11 +13,14 @@ namespace Stillwake.Game.Render;
 /// </summary>
 public sealed record RopeStyle(int Links, double Keep, double Gravity, double Drift, double DriftSpeed, double Wave);
 
+/// <summary>A body moving past a rope, a hero: the box it fills and how far it moves a step, in the rope's units.</summary>
+public readonly record struct Body(double Left, double Right, double Top, double Bottom, double Vx, double Vy);
+
 /// <summary>
 /// A rope between two ends (apps/game/src/render/rope.ts): points carried on by their speed, pulled by
 /// gravity and nudged by a slow drift, its links held to their length and its ends pinned. It starts
-/// straight from one end to the other. Drawn only, never simulated: every peer moves its own.
-/// Bodies brushing it along come with cables (port G-08), its second caller.
+/// straight from one end to the other, or where it is told. Drawn only, never simulated: every peer moves its own.
+/// Brushed along by bodies moving through it, a hero walking through a hanging cable.
 /// </summary>
 public sealed class Rope
 {
@@ -27,6 +30,8 @@ public sealed class Rope
     private const int Passes = 12;
     /// <summary>Steps a frame may take at most, so a long stall does not run the rope on for seconds.</summary>
     private const int MostSteps = 4;
+    /// <summary>The share of a body's speed a point it brushes takes on, each step it is inside the body.</summary>
+    private const double Brush = 0.12;
 
     /// <summary>A point of a rope, and where it was a step before: its speed, as a Verlet rope keeps it.</summary>
     public sealed class Knot
@@ -39,7 +44,8 @@ public sealed class Rope
     private readonly double[] _phases;
     private double _time, _owed;
 
-    public Rope(RopeStyle style, (double X, double Y) from, (double X, double Y) to, int seed = 0)
+    /// <param name="start">Where its points start, moving on as they were (each <c>Px</c>, <c>Py</c> where it was a step before); straight from one end to the other when not given.</param>
+    public Rope(RopeStyle style, (double X, double Y) from, (double X, double Y) to, int seed = 0, IReadOnlyList<Knot>? start = null)
     {
         _style = style;
         _knots = new Knot[style.Links + 1];
@@ -48,7 +54,9 @@ public sealed class Rope
         {
             double t = (double)i / style.Links;
             double x = from.X + (to.X - from.X) * t, y = from.Y + (to.Y - from.Y) * t;
-            _knots[i] = new Knot { X = x, Y = y, Px = x, Py = y };
+            _knots[i] = start != null && i < start.Count
+                ? new Knot { X = start[i].X, Y = start[i].Y, Px = start[i].Px, Py = start[i].Py }
+                : new Knot { X = x, Y = y, Px = x, Py = y };
             // Neighbours drift nearly alike, a wave along the rope: it bends in long curves, never kinks.
             _phases[i] = seed * 1.7 + i * style.Wave;
         }
@@ -59,16 +67,16 @@ public sealed class Rope
     /// <summary>
     /// Moves the rope on by <paramref name="elapsedMs"/>, its ends at <paramref name="a"/> and
     /// <paramref name="b"/>, as long as <paramref name="lengthFor"/> says each step given the way its
-    /// ends span.
+    /// ends span, brushed by <paramref name="bodies"/>.
     /// </summary>
-    public void Update((double X, double Y) a, (double X, double Y) b, double elapsedMs, Func<double, double> lengthFor)
+    public void Update((double X, double Y) a, (double X, double Y) b, double elapsedMs, Func<double, double> lengthFor, IReadOnlyList<Body>? bodies = null)
     {
         _owed += elapsedMs;
         int steps = 0;
         while (_owed >= StepMs && steps < MostSteps)
         {
             double span = Math.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y));
-            Step(a, b, Math.Max(lengthFor(span), 0));
+            Step(a, b, Math.Max(lengthFor(span), 0), bodies ?? []);
             _owed -= StepMs;
             steps += 1;
         }
@@ -86,7 +94,7 @@ public sealed class Rope
         last.Y = last.Py = b.Y;
     }
 
-    private void Step((double X, double Y) a, (double X, double Y) b, double length)
+    private void Step((double X, double Y) a, (double X, double Y) b, double length, IReadOnlyList<Body> bodies)
     {
         int links = _style.Links;
         _time += 1;
@@ -100,6 +108,13 @@ public sealed class Rope
             k.Py = k.Y;
             k.X += vx;
             k.Y += vy;
+            // Brushed: a point inside a moving body takes on some of its speed, and swings back after.
+            foreach (var body in bodies)
+            {
+                if (k.X <= body.Left || k.X >= body.Right || k.Y <= body.Top || k.Y >= body.Bottom) continue;
+                k.Px -= body.Vx * Brush;
+                k.Py -= body.Vy * Brush;
+            }
         }
         double link = length / links;
         for (int pass = 0; pass < Passes; pass++)

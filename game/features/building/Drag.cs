@@ -1,0 +1,117 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Stillwake.Game.Render;
+using Stillwake.Sim;
+using Stillwake.Sim.Building;
+using Stillwake.Sim.Grid;
+
+namespace Stillwake.Game.Features.Building;
+
+/// <summary>A cell by its column and row.</summary>
+public readonly record struct Spot(int X, int Y);
+
+/// <summary>One cell of a drag: why the tool cannot work there, if it cannot, and what it sends if it can.</summary>
+public sealed record Verdict(int Cell, string? Problem, IReadOnlyList<Command> Commands);
+
+/// <summary>
+/// A drag of the left or right button over the grid (features/building/drag.ts): the line of cells it
+/// covers and what the card, or removal, would do in each, as the sim judges it now.
+/// </summary>
+public static class Drag
+{
+    /// <summary>The cell under a world point, kept on the grid: a drag that leaves it runs along the edge.</summary>
+    public static Spot SpotAt(int width, int height, (double X, double Y) p) =>
+        new(Math.Clamp((int)Math.Floor(p.X), 0, width - 1), Math.Clamp((int)Math.Floor(p.Y), 0, height - 1));
+
+    public static bool OnGrid(int width, int height, (double X, double Y) p) =>
+        p.X >= 0 && p.Y >= 0 && p.X < width && p.Y < height;
+
+    /// <summary>
+    /// One left-button event in a drag: a press on the grid starts one where it is, a release ends the
+    /// one under way and gives its two ends. A press off the grid starts nothing.
+    /// </summary>
+    public static (Spot? Pressed, (Spot From, Spot To)? Line) OnButton(Spot? pressed, ButtonEvent button, int width, int height)
+    {
+        if (button.Down) return (OnGrid(width, height, button.At) ? SpotAt(width, height, button.At) : null, null);
+        if (pressed is not Spot from) return (null, null);
+        return (null, (from, SpotAt(width, height, button.At)));
+    }
+
+    /// <summary>
+    /// The cells a drag from <paramref name="from"/> to <paramref name="to"/> covers: a straight line along
+    /// the longer axis, horizontal on a tie. A machine goes only where the drag began.
+    /// </summary>
+    public static List<int> LineOf(int width, Act act, Spot from, Spot to)
+    {
+        if (act is PlaceTool { Placement.Layer: "machine" }) return [from.Y * width + from.X];
+        bool across = Math.Abs(to.X - from.X) >= Math.Abs(to.Y - from.Y);
+        int length = across ? Math.Abs(to.X - from.X) : Math.Abs(to.Y - from.Y);
+        int step = Math.Sign(across ? to.X - from.X : to.Y - from.Y);
+        var cells = new List<int>();
+        for (int i = 0; i <= length; i++)
+        {
+            int x = across ? from.X + i * step : from.X;
+            int y = across ? from.Y : from.Y + i * step;
+            cells.Add(y * width + x);
+        }
+        return cells;
+    }
+
+    /// <summary>
+    /// What <paramref name="act"/> would do in each of <paramref name="cells"/>, as the sim judges it now.
+    /// Removing cancels plans if the drag begins on one, a mark included, and marks what is built in its
+    /// layers otherwise.
+    /// </summary>
+    public static List<Verdict> Judge(Act act, IReadOnlyList<int> cells, BuildingModule building)
+    {
+        // A machine spans several cells of a line, yet takes one mark and is cancelled once.
+        var cancelled = new HashSet<int>();
+        var marked = new HashSet<(string, int)>();
+        bool cancels = cells.Count > 0 && building.PlansAt(cells[0]).Count > 0;
+        var verdicts = new List<Verdict>();
+        foreach (int cell in cells)
+        {
+            switch (act)
+            {
+                case PlaceTool place:
+                    {
+                        string? problem = building.Problem(cell, place.Placement);
+                        verdicts.Add(new Verdict(cell, problem, problem != null ? [] : [new PlacePlan(cell, place.Placement)]));
+                        break;
+                    }
+                case Remove remove when cancels:
+                    {
+                        var here = building.PlansAt(cell);
+                        var ids = here.Select(p => p.Id).Where(id => !cancelled.Contains(id)).ToList();
+                        foreach (int id in ids) cancelled.Add(id);
+                        verdicts.Add(new Verdict(cell, here.Count > 0 ? null : "building.noPlan",
+                            ids.Select(id => (Command)new CancelPlan(id)).ToList()));
+                        break;
+                    }
+                case Remove remove:
+                    {
+                        if (building.ClearAt(cell, remove.Layers) is not { } next)
+                        {
+                            verdicts.Add(new Verdict(cell, "building.nothingThere", []));
+                            break;
+                        }
+                        string layer = next.Layer;
+                        string? problem = building.Problem(cell, layer);
+                        if (problem != null || !marked.Add((layer, next.Cell)))
+                        {
+                            verdicts.Add(new Verdict(cell, problem, []));
+                            break;
+                        }
+                        verdicts.Add(new Verdict(cell, null, [new Deconstruct(cell, layer)]));
+                        break;
+                    }
+                default:
+                    // A cable is laid by the power feature, from press to release, not along a line of cells.
+                    verdicts.Add(new Verdict(cell, null, []));
+                    break;
+            }
+        }
+        return verdicts;
+    }
+}
