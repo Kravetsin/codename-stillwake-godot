@@ -3,5 +3,6 @@
   <ItemGroup>
     <ProjectReference Include="../Rooms/Rooms.csproj" />
     <ProjectReference Include="../Hazards/Hazards.csproj" />
+    <ProjectReference Include="../Pipes/Pipes.csproj" />
   </ItemGroup>
 </Project>
