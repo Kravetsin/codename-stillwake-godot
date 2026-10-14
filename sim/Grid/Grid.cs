@@ -56,9 +56,13 @@ public interface IGridQueries
     int Height { get; }
     ReadOnlySpan<int> StructureLayer { get; }
     ReadOnlySpan<int> BackLayer { get; }
+    /// <summary>The conduit layer as <see cref="Conduit"/> codes.</summary>
+    ReadOnlySpan<int> ConduitLayer { get; }
     int StructureAt(int cell);
     Machine? MachineAt(int cell);
     IReadOnlyList<Machine> Machines { get; }
+    /// <summary>The cells where conduits meet machine <paramref name="m"/>, in the order its kind lists its ports.</summary>
+    IReadOnlyList<int> PortsOf(Machine m);
     string? PlacementProblem(int cell, Placement placement);
 }
 
@@ -156,6 +160,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public int Height => State.Height;
     public ReadOnlySpan<int> StructureLayer => State.Structure;
     public ReadOnlySpan<int> BackLayer => State.Back;
+    public ReadOnlySpan<int> ConduitLayer => State.Conduit;
     public IReadOnlyList<Machine> Machines => State.Machines;
     public int StructureAt(int cell) => InBounds(cell) ? State.Structure[cell] : Structure.Empty;
 
@@ -163,6 +168,12 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     {
         int id = InBounds(cell) ? State.Occupancy[cell] : 0;
         return id == 0 ? null : State.Machines.Find(m => m.Id == id);
+    }
+
+    public IReadOnlyList<int> PortsOf(Machine m)
+    {
+        int x = m.Cell % State.Width, y = m.Cell / State.Width;
+        return Content.Machines.Get(m.Kind).Ports.Select(p => (y + p.Y) * State.Width + x + p.X).ToArray();
     }
 
     private bool InBounds(int cell) => cell >= 0 && cell < State.Width * State.Height;

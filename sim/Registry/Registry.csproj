@@ -2,5 +2,6 @@
   <PropertyGroup><AssemblyName>Stillwake.Sim.Registry</AssemblyName><RootNamespace>Stillwake.Sim</RootNamespace></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Rooms/Rooms.csproj" />
+    <ProjectReference Include="../Pipes/Pipes.csproj" />
   </ItemGroup>
 </Project>

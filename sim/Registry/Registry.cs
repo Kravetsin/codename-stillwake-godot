@@ -1,5 +1,6 @@
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Sim;
@@ -13,6 +14,7 @@ public sealed class Registry
 {
     public GridModule Grid { get; }
     public RoomsModule Rooms { get; }
+    public PipesModule Pipes { get; }
 
     /// <summary>In run order.</summary>
     public IReadOnlyList<Module> All { get; }
@@ -21,7 +23,8 @@ public sealed class Registry
     {
         Grid = new GridModule();
         Rooms = new RoomsModule(Grid);
-        All = [Grid, Rooms];
+        Pipes = new PipesModule(Grid);
+        All = [Grid, Rooms, Pipes];
     }
 
     /// <summary>The wreck the game starts in.</summary>
