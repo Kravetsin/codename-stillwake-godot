@@ -9,11 +9,14 @@ namespace Stillwake.Game.Render;
 /// takes the stars' light from the starlight worked out cell by cell, blended with the neighbouring
 /// cells of its own side only — a picture drawn in wall cells (walls, their edges, doors) from wall
 /// cells, all else from the open ones, so the back wall beside a door is lit by the room it is in —
-/// and adds what Godot's lamps give over it. Each colour of a point's light stops at whole, as in the
-/// TypeScript game: the lamps share out what the stars and the ambient leave, each by what it gives of
-/// the light all of them pour there (<see cref="ShowLamplight"/>), so a surface by a fire, a lamp and
-/// embers is never brighter than its own colour fully lit. A normal-mapped picture is shaded toward or
-/// away from a lamp within that; a wall takes <see cref="Light.WallIn"/> of what reaches its face.
+/// and adds what Godot's lamps give over it. Lights add — a fire's warmth over a lamp's — and where
+/// their sum with the stars would pass whole in a colour, as the TypeScript game's
+/// <c>min(1, ambient + light)</c> stopped it, the whole of it is scaled down till no colour does, so it
+/// keeps its hue: clamping each colour alone would wash a fire's orange over a lamp out to yellow. Each
+/// lamp gives its share of that by what it gives of the light all of them pour there
+/// (<see cref="ShowLamplight"/>), so a surface by a fire, a lamp and embers is never brighter than its
+/// own colour fully lit. A normal-mapped picture is shaded toward or away from a lamp within that; a
+/// wall takes <see cref="Light.WallIn"/> of what reaches its face.
 /// </summary>
 public static class Lit
 {
@@ -35,14 +38,13 @@ public static class Lit
             // starlight_rect (corner, size, in pixels).
             uniform sampler2D starlight : filter_nearest, repeat_disable, hint_default_black;
             uniform vec4 starlight_rect = vec4(0.0, 0.0, 1.0, 1.0);
-            // The lamps' light unshadowed, a texel a cell, laid at lamplight_rect: all of it, and its brightest.
+            // All the lamps' light summed, unshadowed, a texel a cell, laid at lamplight_rect.
             uniform sampler2D lamplight : filter_linear, repeat_disable, hint_default_black;
-            uniform sampler2D brightest : filter_linear, repeat_disable, hint_default_black;
             uniform vec4 lamplight_rect = vec4(0.0, 0.0, 1.0, 1.0);
             varying vec2 world;
             varying vec3 star;
             varying vec3 lamps;
-            varying vec3 lamp;
+            varying float scale;
 
             void vertex() {
                 world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
@@ -71,9 +73,12 @@ public static class Lit
                     }
                 }
                 star = weight > 0.0 ? sum / weight : own.rgb;
-                vec2 uv = (world - lamplight_rect.xy) / lamplight_rect.zw;
-                lamps = texture(lamplight, uv).rgb;
-                lamp = texture(brightest, uv).rgb;
+                lamps = texture(lamplight, (world - lamplight_rect.xy) / lamplight_rect.zw).rgb;
+                // Where the stars and lamps together pass whole in a colour, all of their light is scaled down
+                // till none does: each colour at most whole, and a fire's orange over a lamp stays orange.
+                vec3 fits = (1.0 - ambient) / max(star + lamps, vec3(0.0001));
+                scale = min(1.0, min(fits.r, min(fits.g, fits.b)));
+                star *= scale;
             }
 
             void light() {
@@ -84,12 +89,12 @@ public static class Lit
                     // A lamp far off along the floor shades as one 45 degrees up, never as a grazing one.
                     vec3 tilted = normalize(vec3(l.xy, max(l.z, length(l.xy))));
                     float facing = clamp(dot(NORMAL, tilted) / tilted.z, 0.0, 1.5);
-                    // A point shows the brightest light on it, each colour at most whole (lighting.ts): this
-                    // lamp gives its share of what the brightest gives over the stars, up to what is left.
+                    // Lights add: this lamp gives its share of the sum, scaled to fit, up to what the ambient
+                    // and the stars leave.
                     vec3 gives = LIGHT_COLOR.rgb;
+                    vec3 all = max(lamps, gives);
                     vec3 room = max(1.0 - ambient - star, 0.0);
-                    vec3 over = min(max(max(lamp, gives) - star, 0.0), room);
-                    shine = gives / max(max(lamps, gives), vec3(0.0001)) * min(over * mix(1.0, facing, relief), room);
+                    shine = gives / max(all, vec3(0.0001)) * min(all * scale * mix(1.0, facing, relief), room);
                     alpha = LIGHT_COLOR.a;
                 }
                 LIGHT = vec4(shine * COLOR.rgb * share, alpha);
@@ -98,8 +103,7 @@ public static class Lit
     };
 
     private static readonly Dictionary<(float Share, bool Relief), ShaderMaterial> Made = new();
-    private static (Texture2D Texture, Rect2 Rect)? _starlight;
-    private static (Texture2D All, Texture2D Brightest, Rect2 Rect)? _lamplight;
+    private static (Texture2D Texture, Rect2 Rect)? _starlight, _lamplight;
 
     /// <summary>
     /// Lights <paramref name="item"/> from now on: by the lamps and the stars, with a normal map's
@@ -122,7 +126,7 @@ public static class Lit
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("ambient", new Vector3(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B));
         if (_starlight is var (stars, starsAt)) ShowOn(kept, "starlight", stars, starsAt);
-        if (_lamplight is var (all, brightest, lampsAt)) ShowLampsOn(kept, all, brightest, lampsAt);
+        if (_lamplight is var (lamps, lampsAt)) ShowOn(kept, "lamplight", lamps, lampsAt);
         return Made[(share, relief)] = kept;
     }
 
@@ -137,20 +141,13 @@ public static class Lit
     }
 
     /// <summary>
-    /// The lamps' light from now on (<c>features/light/LightField.cs</c>), unshadowed, a texel a cell laid
-    /// over <paramref name="rect"/> in pixels: <paramref name="all"/> of it summed and the <paramref name="brightest"/>
-    /// of it, kept current by updating them in place.
+    /// The lamps' light from now on (<c>features/light/LightField.cs</c>): all of it summed, unshadowed,
+    /// a texel a cell laid over <paramref name="rect"/> in pixels, kept current by updating it in place.
     /// </summary>
-    public static void ShowLamplight(Texture2D all, Texture2D brightest, Rect2 rect)
+    public static void ShowLamplight(Texture2D texture, Rect2 rect)
     {
-        _lamplight = (all, brightest, rect);
-        foreach (var material in Made.Values) ShowLampsOn(material, all, brightest, rect);
-    }
-
-    private static void ShowLampsOn(ShaderMaterial material, Texture2D all, Texture2D brightest, Rect2 rect)
-    {
-        ShowOn(material, "lamplight", all, rect);
-        material.SetShaderParameter("brightest", brightest);
+        _lamplight = (texture, rect);
+        foreach (var material in Made.Values) ShowOn(material, "lamplight", texture, rect);
     }
 
     private static void ShowOn(ShaderMaterial material, string name, Texture2D texture, Rect2 rect)

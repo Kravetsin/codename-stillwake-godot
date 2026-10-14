@@ -15,6 +15,11 @@ namespace Stillwake.Game;
 /// every open cell with no back wall, a lamp's bulb in proportion to the power it gets, a working
 /// furnace's fire, and each glowing particle at <see cref="Particle"/> of its glow's colour. What is
 /// shown is <see cref="Ambient"/> more, so no corner is quite black.
+///
+/// Here lights add where the TypeScript game took the brightest, each colour stopping at whole, so a
+/// lamp gives at most <see cref="LampMost"/> of a colour, white by the bulb and below whole, and a fire
+/// and a glowing particle less than they gave there: a fire's warmth shows over a lamp's light, and a
+/// dozen embers together light no more than the fire.
 /// </summary>
 public static class Light
 {
@@ -27,7 +32,8 @@ public static class Light
     public const float WallOut = 0.06f;
     public static readonly (float R, float G, float B) Star = (0.62f, 0.66f, 0.8f);
     public static readonly (float R, float G, float B) Lamp = (1.5f, 1.3f, 0.95f);
-    public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
-    public const float Particle = 0.5f;
+    public const float LampMost = 0.6f;
+    public static readonly (float R, float G, float B) Fire = (0.6f, 0.29f, 0.08f);
+    public const float Particle = 0.1f;
     public static readonly (float R, float G, float B) Ambient = (0.05f, 0.055f, 0.07f);
 }
