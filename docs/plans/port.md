@@ -36,14 +36,15 @@ In dependency order, each with its README, tests and fuzz generator ported: `haz
 `items`, `power`, `atmosphere`, `crew`, `debris`, `furnace`, `building`, `research`. Then the wreck's
 own tests (`modules/wreck.test.ts`).
 
-- Ported: `items`, `power`, `hazards`, `pipes`.
+- Ported: `items`, `power`, `research`, `hazards`, `pipes`.
 - A module namespace `Stillwake.Sim.<X>` hides the content class `Stillwake.Content.<X>` inside
   `Stillwake.Sim.*`: write `Content.Furnace.FuelSlot`.
 - Tests waiting for a module (add them with it): `hazards` — venting and draining (atmosphere),
   a planned wall stopping the vent (building, atmosphere), a valve cutting the vent off
   (atmosphere), deconstruction marks broken with their wall (building, items); see the hazards
   README. `power` — generators running at full and short power (atmosphere), a cabled machine kept
-  from being taken apart (building); see the power README.
+  from being taken apart (building); see the power README. `research` — a plan for a blueprint
+  not known refused (building); see the research README.
 - **Done when** every TypeScript sim test has a passing C# twin, and a sim tick on the reference
   world stays under 2 ms.
 
