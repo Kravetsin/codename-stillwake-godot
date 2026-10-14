@@ -202,6 +202,16 @@ public class PoseTests
     }
 
     [Fact]
+    public void BlendsTreadingWaterIntoTheStrokeAndTheStrokeIntoTheCrawlWithoutAJump()
+    {
+        double Arm(double swim, double fast) => LimbsOf(Pose.Float, Standing, At(0, 0) with { Swim = swim, Fast = fast, Heading = 0 }).FrontArm.Upper;
+        double still = Arm(0, 0), stroke = Arm(1, 0), crawl = Arm(1, 1);
+        Assert.InRange(Arm(0.5, 0), Math.Min(still, stroke), Math.Max(still, stroke));
+        Assert.NotEqual(still, Arm(0.5, 0));
+        Assert.InRange(Arm(1, 0.5), Math.Min(stroke, crawl), Math.Max(stroke, crawl));
+    }
+
+    [Fact]
     public void KeepsItsStrokeOnTheDiagonalTimedNotByDistance()
     {
         var across = LimbsOf(Pose.Float, Standing with { Vx = 80 }, At(0, 500));

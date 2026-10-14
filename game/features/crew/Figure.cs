@@ -21,7 +21,15 @@ public partial class Figure : Node2D
     /// <summary>Slower for the head, so it follows the pointer rather than snapping to it.</summary>
     private const double HeadSettleMs = 90;
     /// <summary>Afloat, limbs lag as if pushing through water.</summary>
-    private const double FloatSettleMs = 110, FloatTurnMs = 220;
+    private const double FloatSettleMs = 110;
+    /// <summary>
+    /// Afloat: how slowly the body turns to the way it swims, the arms reaching that way at once; how
+    /// slowly treading water, the breaststroke and the crawl blend into each other; and how long the
+    /// body takes to turn round, left for right.
+    /// </summary>
+    private const double FloatTurnMs = 650, SwimBlendMs = 320, FlipMs = 200;
+    /// <summary>The most the arms reach ahead of a body still turning, in radians, so they never pass through it.</summary>
+    private const double ArmsLeadMost = 1.2;
     /// <summary>How far the air pack sticks out behind the middle: what a body lying on its back rests on.</summary>
     private const double Back = Rig.W * 0.62;
     /// <summary>Specks of dust a boot kicks up stepping, and a landing at most to either side, by its fall (DUST).</summary>
@@ -70,6 +78,7 @@ public partial class Figure : Node2D
     /// <summary>How long since passing out, and what picks the heap it ends in, new each time.</summary>
     private double _outMs, _outTilt;
     private int _slump;
+    private double _swim, _fast, _heading, _flip = 1;
     /// <summary>Passed out in space, limbs go slack slowly, as if the strength drained out of them.</summary>
     private const double SlackMs = 450;
     /// <summary>The step the walk is on, counted from where it began; a new one puts a foot down.</summary>
@@ -192,7 +201,12 @@ public partial class Figure : Node2D
         _landingMs = Math.Max(0, _landingMs - elapsedMs);
         _wasPose = pose;
         bool holding = holdsPlan && Poses.HoldsIn(pose);
-        var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _landingMs / Poses.Land.Ms, holding ? _head : null, _outMs, _slump, _outTilt));
+        if (Poses.Swimming(hero)) _heading = Poses.HeadingOf(hero);
+        bool afloat = pose == Pose.Float;
+        _swim = afloat ? Settle(_swim, Poses.Swimming(hero) ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
+        _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
+        var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _landingMs / Poses.Land.Ms, holding ? _head : null,
+            _outMs, _slump, _outTilt, _swim, _fast, _heading));
         var from = _shown ?? to;
         double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(
@@ -205,8 +219,10 @@ public partial class Figure : Node2D
             Settle(from.Lift, to.Lift, elapsedMs),
             to.Lying);
         _shown = shown;
-        _frontArm.Bend(shown.FrontArm);
-        _backArm.Bend(shown.BackArm);
+        // Afloat, the arms already reach the way the body is still turning to.
+        double lead = afloat ? Math.Clamp(Poses.Apart(shown.Tilt, to.Tilt), -ArmsLeadMost, ArmsLeadMost) : 0;
+        _frontArm.Bend(shown.FrontArm with { Upper = shown.FrontArm.Upper + lead });
+        _backArm.Bend(shown.BackArm with { Upper = shown.BackArm.Upper + lead });
         _frontLeg.Bend(shown.FrontLeg);
         _backLeg.Bend(shown.BackLeg);
         _body.Rotation = (float)shown.Tilt;
@@ -226,7 +242,9 @@ public partial class Figure : Node2D
         double c = Math.Abs(Math.Cos(shown.Tilt)), s = Math.Abs(Math.Sin(shown.Tilt));
         _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
         Position = new Vector2((float)feetX, (float)feetY);
-        Scale = new Vector2(hero.Facing, 1);
+        // Afloat the body turns round, left for right, through a narrow moment; aboard at once.
+        _flip = afloat ? Settle(_flip, hero.Facing, elapsedMs, FlipMs) : hero.Facing;
+        Scale = new Vector2((float)(Math.Abs(_flip) < 0.15 ? 0.15 * Math.Sign(_flip == 0 ? hero.Facing : _flip) : _flip), 1);
     }
 }
 
