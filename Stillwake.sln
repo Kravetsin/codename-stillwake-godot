@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "net\Tests\Tests.cs
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Items", "sim\Items\Items.csproj", "{E4751AE1-5CE5-4EBC-AE3C-8E5A2DE4CE3A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Game.Tests", "game.tests\Game.Tests.csproj", "{2151D5E4-B6A9-4F00-A56A-ABF88959FA14}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -94,6 +96,10 @@ Global
 		{E4751AE1-5CE5-4EBC-AE3C-8E5A2DE4CE3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E4751AE1-5CE5-4EBC-AE3C-8E5A2DE4CE3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E4751AE1-5CE5-4EBC-AE3C-8E5A2DE4CE3A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2151D5E4-B6A9-4F00-A56A-ABF88959FA14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2151D5E4-B6A9-4F00-A56A-ABF88959FA14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2151D5E4-B6A9-4F00-A56A-ABF88959FA14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2151D5E4-B6A9-4F00-A56A-ABF88959FA14}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{78D898A1-1D90-4694-8E8E-90985442DEB4} = {E4504A9F-8B20-412E-AF3E-B98C97B406EA}

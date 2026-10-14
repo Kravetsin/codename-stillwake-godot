@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json.Nodes;
 using Godot;
+using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Net;
 using Stillwake.Net;
 using Stillwake.Sim;
@@ -18,13 +19,13 @@ namespace Stillwake.Game;
 /// or with <c>-- --host</c> one others join over ENet with <c>-- --join[=address]</c>.
 /// Dev flags: <c>--for=seconds</c> quits after a while, <c>--auto</c> plays a short script,
 /// <c>--cheat</c> makes a joiner's world differ so the host must resync it, <c>--lag</c> and
-/// <c>--jitter</c> make a joiner's link bad on purpose.
+/// <c>--jitter</c> make a joiner's link bad on purpose. The hero walks on A/D, climbs on W/S, jumps on
+/// Space and works doors with E; <c>--autopilot</c> plays it by a script, <c>--gym</c> in a room with a ladder.
 /// </summary>
 public partial class Main : Node2D
 {
     private const int Port = 24600;
-    private const int CellPx = 20;
-    private static readonly Rect2I View = new(28, 15, 32, 10);
+    private const int CellPx = (int)Rig.Cell;
     private static readonly string Build =
         typeof(Main).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
 
@@ -35,12 +36,23 @@ public partial class Main : Node2D
     private Action _poll = () => { };
     private readonly List<int> _doors = [];
     private int _heroes, _start;
+    private Layout _layout = Registry.Wreck;
+    private int _spawn;
+    private HeroView _hero = null!;
+    private readonly Camera2D _camera = new() { Zoom = new Vector2(2, 2) };
+    private readonly Texture2D _ladder = GD.Load<Texture2D>("res://art/ladder.png"), _floor = GD.Load<Texture2D>("res://art/floor.png");
 
     public override void _Ready()
     {
         var args = OS.GetCmdlineUserArgs();
         _auto = args.Contains("--auto");
         _cheat = args.Contains("--cheat");
+        if (args.Contains("--gym")) _layout = HeroAutopilot.Gym;
+        _spawn = _layout.CellsOf('S').First();
+        var autopilot = !args.Contains("--autopilot") ? null : args.Contains("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
+        AddChild(_hero = new HeroView(autopilot));
+        AddChild(_camera);
+        RenderingServer.SetDefaultClearColor(new Color(0.02f, 0.025f, 0.04f));
         var seconds = args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
         var join = args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
@@ -48,7 +60,7 @@ public partial class Main : Node2D
         else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(args));
         else
         {
-            var (host, client) = LocalSession.Create(World.Create(1, Registry.Wreck, Modules()), Build);
+            var (host, client) = LocalSession.Create(World.Create(1, _layout, Modules()), Build);
             _session = new Session(host, client);
         }
     }
@@ -62,7 +74,7 @@ public partial class Main : Node2D
     private void Host()
     {
         _role = "host";
-        var (host, client) = LocalSession.Create(World.Create(1, Registry.Wreck, Modules()), Build);
+        var (host, client) = LocalSession.Create(World.Create(1, _layout, Modules()), Build);
         _session = new Session(host, client);
         var (link, error) = EnetLink<ToHost, ToClient>.Host(Port);
         if (error != Error.Ok) GD.PrintErr($"[host] cannot listen on {Port}: {error}");
@@ -141,6 +153,7 @@ public partial class Main : Node2D
         if (client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
         _heroes += client.TakeHeroes().Count;
         if (_auto) Autopilot(client, before);
+        _hero.Frame(client, _m.Grid, _m.Rooms, _camera, _spawn, passedOut: false, delta * 1000);
         QueueRedraw();
     }
 
@@ -176,20 +189,20 @@ public partial class Main : Node2D
     public override void _Draw()
     {
         if (_session == null) return;
-        for (int y = View.Position.Y; y < View.End.Y; y++)
-            for (int x = View.Position.X; x < View.End.X; x++)
+        // In the world's pixels, where the hero walks; space is left to the clear colour.
+        for (int y = 0; y < _m.Grid.Height; y++)
+            for (int x = 0; x < _m.Grid.Width; x++)
             {
                 int cell = y * _m.Grid.Width + x;
                 var room = _m.Rooms.RoomAt(cell);
-                Color c = _m.Grid.StructureAt(cell) switch
-                {
-                    Structure.Wall => new Color(0.45f, 0.47f, 0.52f),
-                    Structure.DoorClosed => new Color(0.8f, 0.48f, 0.23f),
-                    _ when room == RoomsModule.Space => new Color(0.04f, 0.05f, 0.08f),
-                    _ when room is int id => Color.FromHsv(id * 0.137f % 1f, 0.45f, 0.75f),
-                    _ => Colors.Magenta,
-                };
-                DrawRect(new Rect2((x - View.Position.X) * CellPx, (y - View.Position.Y) * CellPx, CellPx - 1, CellPx - 1), c);
+                var at = new Rect2(x * CellPx, y * CellPx, CellPx, CellPx);
+                int structure = _m.Grid.StructureAt(cell);
+                if (room is int id and >= 0) DrawRect(at, Color.FromHsv(id * 0.137f % 1f, 0.3f, 0.35f));
+                if (structure == Structure.Ladder) DrawTextureRect(_ladder, at, false);
+                else if (structure == Structure.Floor) DrawTextureRect(_floor, new Rect2(at.Position, CellPx, 4), false);
+                else if (structure == Structure.Wall) DrawRect(at.Grow(-0.5f), new Color(0.45f, 0.47f, 0.52f));
+                else if (structure == Structure.DoorClosed) DrawRect(at.Grow(-0.5f), new Color(0.8f, 0.48f, 0.23f));
+                else if (structure == Structure.DoorOpen) DrawRect(at.Grow(-0.5f), new Color(0.8f, 0.48f, 0.23f, 0.25f));
             }
     }
 }
