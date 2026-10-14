@@ -1,0 +1,13 @@
+# Godot
+.godot/
+game/.godot/
+*.translation
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Recordings of scripted runs
+frames*/

@@ -1,0 +1,52 @@
+{
+ "names": {
+  "scrap": "Scrap",
+  "iron": "Iron",
+  "canister": "Oxygen canister",
+  "scrapChunk": "Scrap chunk",
+  "hullPlate": "Hull plate",
+  "supplyPod": "Supply pod",
+  "planks": "Planks",
+  "cargoCrate": "Cargo crate",
+  "schematic": "Schematic"
+ },
+ "items": {
+  "scrap": {
+   "stack": 500
+  },
+  "iron": {
+   "stack": 500
+  },
+  "canister": {
+   "stack": 5
+  },
+  "planks": {
+   "stack": 50,
+   "burnTicks": 300
+  },
+  "scrapChunk": {
+   "stack": 10
+  },
+  "hullPlate": {
+   "stack": 5
+  },
+  "supplyPod": {
+   "stack": 1
+  },
+  "cargoCrate": {
+   "stack": 1
+  },
+  "schematic": {
+   "stack": 10
+  }
+ },
+ "inventory": {
+  "slots": 36,
+  "hotbar": 9
+ },
+ "furnace": {
+  "slots": 5,
+  "inputs": 2,
+  "fuelSlot": 1
+ }
+}

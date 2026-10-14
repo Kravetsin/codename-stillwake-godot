@@ -1,0 +1,21 @@
+T:System.Single;Floats may round differently between CPUs: use integers, in units and ticks
+T:System.Double;Floats may round differently between CPUs: use integers, in units and ticks
+T:System.Decimal;Use integers, in units and ticks
+T:System.Random;Use the world's Rng
+T:System.DateTime;The sim has no clock: count ticks
+T:System.DateTimeOffset;The sim has no clock: count ticks
+T:System.Diagnostics.Stopwatch;The sim has no clock: count ticks
+P:System.Environment.TickCount;The sim has no clock: count ticks
+P:System.Environment.TickCount64;The sim has no clock: count ticks
+T:System.Threading.Tasks.Task;No async code in the sim
+T:System.Threading.Thread;No threads in the sim
+T:System.Security.Cryptography.RandomNumberGenerator;Use the world's Rng
+M:System.Collections.Generic.Dictionary`2.GetEnumerator;A Dictionary's order is not guaranteed: iterate a list or sort the keys
+P:System.Collections.Generic.Dictionary`2.Keys;A Dictionary's order is not guaranteed: iterate a list or sort the keys
+P:System.Collections.Generic.Dictionary`2.Values;A Dictionary's order is not guaranteed: iterate a list or sort the keys
+M:System.Collections.Generic.HashSet`1.GetEnumerator;A HashSet's order is not guaranteed: iterate a list
+M:System.String.Compare(System.String,System.String);Culture-dependent: use string.CompareOrdinal
+M:System.String.CompareTo(System.String);Culture-dependent: use string.CompareOrdinal
+M:System.String.ToLower;Culture-dependent: use ToLowerInvariant
+M:System.String.ToUpper;Culture-dependent: use ToUpperInvariant
+M:System.Object.GetHashCode;Differs between runs: never let it decide an order

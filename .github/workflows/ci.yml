@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: format, build, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet restore Stillwake.sln
+      - run: dotnet format Stillwake.sln --verify-no-changes --no-restore
+      # The game builds without the Godot editor: Godot.NET.Sdk comes from NuGet. Analyzers fail it.
+      - run: dotnet build Stillwake.sln --no-restore
+      - run: dotnet test Stillwake.sln --no-build

@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>Stillwake.Sim.Rooms</AssemblyName><RootNamespace>Stillwake.Sim.Rooms</RootNamespace></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Grid/Grid.csproj" /></ItemGroup>
+</Project>
