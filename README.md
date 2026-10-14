@@ -11,9 +11,9 @@ The game is being ported from its TypeScript prototype
 ## Run
 
 Needs the .NET 8 SDK and Godot 4.7 (.NET build); the scripts look for Godot in
-`%USERPROFILE%Toolsgodot-4.7.2` unless `STILLWAKE_GODOT` names the exe.
+`%USERPROFILE%\Tools\godot-4.7.2\` unless `STILLWAKE_GODOT` names the exe.
 
 - `play.cmd` — builds the C# and starts the game; arguments go to the game: `play.cmd --host`,
   `play.cmd --join=192.168.1.5`, `play.cmd --debris`.
-- `export.cmd` — the Windows build, `buildwindowsStillwake.exe`, zipped as `buildStillwake-windows.zip`.
+- `export.cmd` — the Windows build, `build\windows\Stillwake.exe`, zipped as `build\Stillwake-windows.zip`.
 - `dotnet test Stillwake.sln` — every test.
