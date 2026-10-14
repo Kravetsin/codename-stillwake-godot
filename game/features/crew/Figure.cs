@@ -46,7 +46,7 @@ public partial class Figure : Node2D
         ["forearm"] = new(2.5f, 2.9f),
         ["thigh"] = new(3, 2.5f),
         ["shin"] = new(3, 2.18f),
-        ["sheet"] = new(0, 8),
+        ["sheet"] = new(0, 5),
     };
 
     private sealed record Limb(Node2D Upper, Node2D Lower)
@@ -92,7 +92,7 @@ public partial class Figure : Node2D
             FillFrom = new Vector2(0.5f, 0.5f), FillTo = new Vector2(1, 0.5f),
             Gradient = new Gradient { Colors = [new Color(1, 1, 1), new Color(0.25f, 0.25f, 0.25f), new Color(0, 0, 0)], Offsets = [0, 0.35f, 1] },
         },
-        Position = new Vector2(7, -4),
+        Position = new Vector2(6, -4),
         RangeItemCullMask = Lit.LampMask,
         ShadowEnabled = true,
         Height = 16,
@@ -185,7 +185,7 @@ public partial class Figure : Node2D
     {
         float left = (float)(_beamMs / BeamMs);
         // The middle of its screen.
-        var from = _plan.ToGlobal(new Vector2(7, -4));
+        var from = _plan.ToGlobal(new Vector2(6, -4));
         for (int i = 0; i < _beams.Count; i++)
         {
             var beam = _beams[i];
