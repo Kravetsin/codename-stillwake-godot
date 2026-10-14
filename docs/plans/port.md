@@ -24,10 +24,11 @@ Rng, layouts), `grid` and `rooms` with their tests, the wreck as content, a Godo
   commands and no generator fails the suite.
 - **Done when** the suites cover `grid` and `rooms`, and fail for a module that breaks them.
 
-## G-03 — Content
+## G-03 — Content ✅
 
 Everything in `packages/content` as C# data in `sim/Content`: items, materials, builds, machines with
 costs, air, power, crew, hero, debris and loot, furnace, research, light. Its content tests ported.
+Light is drawn only and in floats, so it lives in `game/Content/Light.cs`; the tests link that file.
 
 ## G-04 — The sim modules
 
