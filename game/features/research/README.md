@@ -16,10 +16,10 @@ how far its analysis is and why it stands (`IResearchQueries.At`).
 ## Guarantees
 
 - `Known` is read every 250 ms through the current registry's research; what is new since the last
-  read shows on every peer, the pictures from `render/Thumbnails.cs`. Nothing at the first read, nor
+  read shows on every peer, the pictures the build menu's cards are (`BlueprintArt.Thumbnail`). Nothing at the first read, nor
   after a load that knows less.
 
 ## Differences from the TypeScript
 
-- The pictures are composed from `art/*.png` (`Thumbnails.Of`); the building port's menu cards will
-  want the same pictures, and should use or replace that class rather than make a second one.
+- The pictures are composed from `art/*.png` by `render/BlueprintArt.cs` (`placementPicture` in
+  `render/blueprint-art.ts`), the one thumbnail maker, which the build menu uses too.

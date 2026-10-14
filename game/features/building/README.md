@@ -20,7 +20,7 @@ The plan, its menu and the hand at work (0022), ported from `apps/game/src/featu
 
 Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, the words by the
 pointer; `Hands`: every view of this player's hands wired together, the building first to take the
-buttons; `PointerTip`; `Words`, the local i18n table), `game/render/` (`Buttons`/`WorldButtons`: the mouse
+buttons; `PointerTip`), `game/i18n/En.cs` (the words), `game/render/` (`Buttons`/`WorldButtons`: the mouse
 as the world reads it; `BlueprintArt`/`PlanTiles`: the ship's own tiles for plans, ghosts and
 thumbnails; `Sketch`). The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
 `drag.test.ts`, `near-grid.test.ts` and the plan tests of `aim.test.ts` are ported one for one.
@@ -50,4 +50,3 @@ thumbnails; `Sketch`). The plain files are compiled again into `game.tests/`, wh
 - Sparks from work on a plan (effects, G-08).
 - The hero holding the plan in its hands (`HeroView` passes `holdsPlan: false`), and the wheel and 1–9
   freeing the hand: with the hotbar (port/items-ui), which sets `Ui.Hand` to `Free`.
-- The words move to the game's i18n table once it lands (`game/shared/Words.cs`).

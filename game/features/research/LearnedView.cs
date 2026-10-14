@@ -67,7 +67,7 @@ public partial class LearnedView : CanvasLayer
             if (research.Blueprints.FirstOrDefault(b => b.Id == id) is not { } blueprint) continue;
             _pictures.AddChild(new TextureRect
             {
-                Texture = Thumbnails.Of(blueprint.Placement),
+                Texture = BlueprintArt.Thumbnail(blueprint.Placement),
                 CustomMinimumSize = new Vector2(40, 40),
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,

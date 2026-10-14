@@ -1,5 +1,6 @@
 using System.Linq;
 using Godot;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Overlays;
@@ -56,7 +57,7 @@ public partial class OverlayBar : CanvasLayer
             panel.AddThemeStyleboxOverride("panel", box);
             panel.AddChild(new Label
             {
-                Text = $"{overlay.Key} {Words.T(overlay.Name)}",
+                Text = $"{overlay.Key} {En.T(overlay.Name)}",
                 LabelSettings = new LabelSettings { Font = Mono, FontSize = 12, FontColor = on ? Sky100 : Slate400 },
             });
             _row.AddChild(panel);

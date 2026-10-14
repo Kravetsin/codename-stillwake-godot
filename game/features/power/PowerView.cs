@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Content;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
@@ -134,7 +135,7 @@ public partial class PowerView : Node2D
         string[] said = [];
         if (pointer is { } p && p.X >= 0 && p.Y >= 0 && p.X < _size.W && p.Y < _size.H
             && m.Power.NodeAt((int)p.Y * _size.W + (int)p.X) is int node && m.Power.NetworkOf(node) is { } network)
-            said = [Words.T("power.supply", ("supply", network.Supply), ("demand", network.Demand))];
+            said = [En.T("power.supply", ("supply", network.Supply), ("demand", network.Demand))];
         _ui.WorldTip.SetLines(said);
     }
 

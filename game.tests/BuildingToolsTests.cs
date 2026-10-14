@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Stillwake.Content;
 using Stillwake.Game.Features.Building;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Building;
@@ -40,11 +41,11 @@ public class BuildingToolsTests
     [Fact]
     public void NamesEveryTabAndToolAndSaysWhatEachToolIsForInWordsNotKeys()
     {
-        foreach (var tab in Tools.Tabs) Assert.True(Words.Table.ContainsKey($"build.tab.{tab.Id}"), tab.Id);
+        foreach (var tab in Tools.Tabs) Assert.True(En.Table.ContainsKey($"build.tab.{tab.Id}"), tab.Id);
         foreach (var tool in Tools.All)
         {
             Assert.DoesNotMatch(new Regex(@"\b(tool|material)\.\w"), tool.Label);
-            Assert.True(Words.Table.ContainsKey($"tool.{tool.Id}.about"), tool.Id);
+            Assert.True(En.Table.ContainsKey($"tool.{tool.Id}.about"), tool.Id);
         }
     }
 

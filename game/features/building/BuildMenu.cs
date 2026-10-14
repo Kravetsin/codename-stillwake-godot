@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
@@ -52,7 +53,7 @@ public partial class BuildMenu : CanvasLayer
         _root.Theme = new Theme { DefaultFont = Mono, DefaultFontSize = 12 };
         AddChild(_root);
 
-        _closed = Panel(Slate900 with { A = 0.9f }, Slate700, 4, Text(Words.T("build.open"), Slate400));
+        _closed = Panel(Slate900 with { A = 0.9f }, Slate700, 4, Text(En.T("build.open"), Slate400));
         _closed.MouseFilter = Control.MouseFilterEnum.Ignore;
         BottomCentre(_closed);
 
@@ -191,7 +192,7 @@ public partial class BuildMenu : CanvasLayer
         foreach (var tab in tabs)
         {
             bool on = tab.Id == shownTab?.Id;
-            var button = new Button { Text = Words.T($"build.tab.{tab.Id}"), FocusMode = Control.FocusModeEnum.None };
+            var button = new Button { Text = En.T($"build.tab.{tab.Id}"), FocusMode = Control.FocusModeEnum.None };
             Style(button, on ? Sky700 : Slate800, on ? Sky700 : Slate800, on ? Colors.White : Slate300, padding: 4);
             string id = tab.Id;
             button.Pressed += () => _tab = id;
@@ -217,9 +218,9 @@ public partial class BuildMenu : CanvasLayer
         {
             _held.AddChild(Picture(ThumbOf(tool), 20));
             _held.AddChild(Text(tool.Label, Slate100));
-            _held.AddChild(Text(Words.T(tool is CableTool ? "hand.cable" : "hand.card"), Slate500));
+            _held.AddChild(Text(En.T(tool is CableTool ? "hand.cable" : "hand.card"), Slate500));
         }
-        else _held.AddChild(Text(Words.T(wiring ? "hand.wires" : "build.close"), Slate500));
+        else _held.AddChild(Text(En.T(wiring ? "hand.wires" : "build.close"), Slate500));
         _tipShown = "";
     }
 
@@ -266,7 +267,7 @@ public partial class BuildMenu : CanvasLayer
                 cost.AddChild(item);
             }
             _tip.AddChild(cost);
-            var about = Text(Words.T($"tool.{tool.Id}.about"), Slate400);
+            var about = Text(En.T($"tool.{tool.Id}.about"), Slate400);
             about.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             about.CustomMinimumSize = new Vector2(212, 0);
             _tip.AddChild(about);

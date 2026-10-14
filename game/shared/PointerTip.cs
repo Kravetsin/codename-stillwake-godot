@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Render;
 
 namespace Stillwake.Game.Shared;
@@ -58,7 +59,7 @@ public partial class PointerTip : CanvasLayer
         }
         var screen = GetViewport().GetCanvasTransform() * (new Vector2((float)p.X, (float)p.Y) * ShipCamera.Cell);
         _reason.Visible = reason != null;
-        _reason.Text = reason != null ? Words.T(reason) : "";
+        _reason.Text = reason != null ? En.T(reason) : "";
         _reason.Position = screen + new Vector2(24, 24);
         string key = $"{string.Join("\n", world ?? [])}|{string.Join(",", cost ?? [])}";
         if (key != _shown)

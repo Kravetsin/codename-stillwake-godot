@@ -30,6 +30,7 @@ public class EnTests
         // Checked against keys known to exist, so a broken pattern cannot pass by finding nothing.
         Assert.Contains("grid.occupied", keys);
         Assert.Contains("items.full", keys);
+        Assert.Contains("building.noPlan", keys);
         Assert.Empty(keys.Where(key => !Table.ContainsKey(key)).Order(StringComparer.Ordinal));
     }
 
