@@ -78,7 +78,7 @@ public class ContentTests
     [Fact]
     public void HeroWalksClimbsAndSwimsLessThanACellPerStep()
     {
-        foreach (int speed in (int[])[Hero.Walk, Hero.Climb, Hero.Swim]) Assert.True(speed < Cell);
+        foreach (int speed in (int[])[Hero.Walk, Hero.Run, Hero.Climb, Hero.Swim, Hero.SwimFast]) Assert.True(speed < Cell);
     }
 
     [Fact]

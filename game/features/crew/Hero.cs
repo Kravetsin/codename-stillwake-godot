@@ -11,9 +11,9 @@ public readonly record struct Point(int X, int Y);
 /// <summary>
 /// What the player holds during one step; <see cref="Y"/> is -1 for up. <see cref="Jump"/> is set once
 /// per press. <see cref="Face"/> is the side the pointer is on, which the hero faces whichever way it
-/// moves; with none, it faces the way it walks.
+/// moves; with none, it faces the way it walks. <see cref="Sprint"/>, Shift held, runs and swims fast.
 /// </summary>
-public readonly record struct HeroInput(int X, int Y, bool Jump, int? Face = null);
+public readonly record struct HeroInput(int X, int Y, bool Jump, int? Face = null, bool Sprint = false);
 
 /// <summary>The cells the hero moves against, and which of them are space, where the hero floats.</summary>
 public sealed class Ship(int width, int height, Func<int, int> structureAt, Func<int, bool> space)
@@ -117,7 +117,8 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     private static Hero Move(Hero hero, HeroInput input, Ship ship)
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
-        if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero.X, hero.Y, input, facing);
+        // Swimming, the hero faces the way it swims, head first, whatever the pointer does.
+        if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero.X, hero.Y, input, input.X == 0 ? facing : input.X);
         bool grab = !hero.Climbing && input.Y != 0 && input.X == 0 && !input.Jump &&
             TouchesLadder(ship, hero.X, hero.Y, input.Y > 0);
         if (grab || hero.Climbing)
@@ -125,24 +126,25 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
             // A ladder centres the hero on it; narrower than a cell, the hero touches nothing beside it.
             if (input.X == 0 && !input.Jump) return Climb(ship, CellOf(hero.X) * Unit + Unit / 2, hero.Y, input.Y, facing);
             // Walking or jumping lets go.
-            return Fall(ship, hero.X, hero.Y, input.X, input.Jump ? -Spec.Jump : 0, facing);
+            return Fall(ship, hero.X, hero.Y, input.X, input.Jump ? -Spec.Jump : 0, facing, input.Sprint);
         }
         int vy = input.Jump && Grounded(ship, hero.X, hero.Y) ? -Spec.Jump : hero.Vy;
-        return Fall(ship, hero.X, hero.Y, input.X, vy, facing);
+        return Fall(ship, hero.X, hero.Y, input.X, vy, facing, input.Sprint);
     }
 
-    private static Hero Fall(Ship ship, int x, int y, int dir, int vy, int facing)
+    private static Hero Fall(Ship ship, int x, int y, int dir, int vy, int facing, bool sprint)
     {
         int speed = Math.Min(vy + Spec.Gravity, Spec.MaxFall);
-        int nx = MoveX(ship, x, y, dir * Spec.Walk);
+        int nx = MoveX(ship, x, y, dir * (sprint ? Spec.Run : Spec.Walk));
         int ny = MoveY(ship, nx, y, speed, false);
         return new Hero(nx, ny, nx - x, ny - y == speed ? speed : 0, false, facing);
     }
 
     private static Hero Swim(Ship ship, int x, int y, HeroInput input, int facing)
     {
-        int nx = MoveX(ship, x, y, input.X * Spec.Swim);
-        int ny = MoveY(ship, nx, y, input.Y * Spec.Swim, false);
+        int swim = input.Sprint ? Spec.SwimFast : Spec.Swim;
+        int nx = MoveX(ship, x, y, input.X * swim);
+        int ny = MoveY(ship, nx, y, input.Y * swim, false);
         return new Hero(nx, ny, nx - x, ny - y, false, facing);
     }
 

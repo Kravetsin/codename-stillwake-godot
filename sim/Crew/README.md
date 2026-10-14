@@ -8,7 +8,8 @@ holding it, the suit anywhere else, passing out when the suit runs dry. Ported f
   room has air and takes it).
 - **State** (`CrewState`, members internal): `Spawn` — the map's first `S`, or cell 0 on a map
   without one; `Clock` — ticks run, for the breath beat; `Heroes` — by peer id, in id order: cell,
-  suit, ticks left passed out, suit colour (`Hero`, public with internal setters). All saved.
+  suit, ticks left passed out, suit colour, whether it exerts itself (`Hero`, public with internal
+  setters). All saved.
 - **Files:** `Crew.cs` — the module, its commands, `ICrewQueries` and the rules below; `State.cs` —
   its slice and `Hero`; `Fuzz.cs` — its fuzz generator.
 
@@ -30,6 +31,10 @@ holding it, the suit anywhere else, passing out when the suit runs dry. Ported f
   sender's hero into a colour no other hero wears.
 - `Leave` takes the sender's hero out, its colour freed: the host sends it on behalf of a peer it
   heard leave (`Host.Disconnect`'s farewell, which the game passes).
+- `Exert(On)` says the sender's hero runs or swims fast, or has stopped; its client sends it when
+  that changes, judging by its speed. Exerting, a hero breathes `Crew.Exerted` units a breath rather
+  than one, from room air or the suit alike: stamina is the air it costs. What the air falls short
+  of the breath, the suit pays. Passing out ends the exertion.
 - A suit at zero passes the hero out for `Crew.PassOut` ticks; then it wakes at the spawn with a full
   suit. The client moves its hero there when the passing out ends.
 - The breaths run in the simulation phase, after `Atmosphere`'s (crew is registered right after it),
@@ -42,8 +47,8 @@ holding it, the suit anywhere else, passing out when the suit runs dry. Ported f
   `Heroes` — all of them, in id order, live and read-only.
 - **Commands:** `Enter(Cell)`, with no refusals: a cell off the grid or in a wall is simply no air;
   `PickColour(Colour)`, refused with `crew.noHero`, `crew.noSuchColour` or `crew.colourTaken`;
-  `Leave`, refused with `crew.noHero`.
-- **Fuzz:** a `Leave` one time in 200; else a `PickColour` one time in five, of `Crew.Colours + 1`
+  `Leave`, refused with `crew.noHero`; `Exert(On)`, refused with `crew.noHero`.
+- **Fuzz:** a `Leave` one time in 200; else an `Exert`, on or off, one time in six; else a `PickColour` one time in five, of `Crew.Colours + 1`
   colours, so taken and missing ones are refused; else an `Enter` within four cells of the spawn,
   or one time in four anywhere from 50 cells before the grid to 1050 past its start.
 

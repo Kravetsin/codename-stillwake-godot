@@ -20,10 +20,12 @@ public partial class Figure : Node2D
     private const double SettleMs = 30;
     /// <summary>Slower for the head, so it follows the pointer rather than snapping to it.</summary>
     private const double HeadSettleMs = 90;
+    /// <summary>Afloat, limbs lag as if pushing through water.</summary>
+    private const double FloatSettleMs = 110, FloatTurnMs = 220;
     /// <summary>How far the air pack sticks out behind the middle: what a body lying on its back rests on.</summary>
     private const double Back = Rig.W * 0.62;
     /// <summary>Specks of dust a boot kicks up stepping, and a landing at most to either side, by its fall (DUST).</summary>
-    private const int DustStep = 4, DustLandLeast = 4, DustLandMost = 12;
+    private const int DustRun = 6, DustLandLeast = 4, DustLandMost = 12;
     private const double DustLandPerSpeed = 1.0 / 40;
 
     /// <summary>Each part's joint, the pixel it turns at, as art.ts draws it.</summary>
@@ -139,15 +141,16 @@ public partial class Figure : Node2D
     private static double Settle(double from, double to, double elapsedMs, double within = SettleMs) =>
         from + (to - from) * Math.Min(1, elapsedMs / within);
 
-    private static Bend SettleBend(Bend from, Bend to, double elapsedMs) =>
-        new(Settle(from.Upper, to.Upper, elapsedMs), Settle(from.Lower, to.Lower, elapsedMs));
+    /// <summary>A limb settled the short way round, so arms whirling in space never unwind.</summary>
+    private static Bend SettleBend(Bend from, Bend to, double elapsedMs, double within) =>
+        new(SettleAngle(from.Upper, to.Upper, elapsedMs, within), SettleAngle(from.Lower, to.Lower, elapsedMs, within));
 
     /// <summary>An angle settled toward <paramref name="to"/> the short way round, so a body stops tumbling without unwinding.</summary>
-    private static double SettleAngle(double from, double to, double elapsedMs)
+    private static double SettleAngle(double from, double to, double elapsedMs, double within = SettleMs)
     {
         const double turn = 2 * Math.PI;
         double apart = ((to - from) % turn + turn + Math.PI) % turn - Math.PI;
-        return Settle(to - apart, to, elapsedMs);
+        return Settle(to - apart, to, elapsedMs, within);
     }
 
     /// <summary>
@@ -165,7 +168,7 @@ public partial class Figure : Node2D
         // Where the feet are, in pixels of the world.
         double feetX = (double)hero.X / Hero.Unit * Rig.Cell, feetY = (double)hero.Y / Hero.Unit * Rig.Cell;
         if (pose == Pose.Air) _fall = Math.Max(0, hero.Vy);
-        if (_wasPose == Pose.Air && pose is Pose.Stand or Pose.Walk)
+        if (_wasPose == Pose.Air && pose is Pose.Stand or Pose.Walk or Pose.Run)
         {
             _landingMs = Poses.Land.Ms;
             int puff = Math.Min(DustLandMost, Math.Max(DustLandLeast, (int)Math.Round(_fall * DustLandPerSpeed, MidpointRounding.AwayFromZero)));
@@ -173,23 +176,25 @@ public partial class Figure : Node2D
             Particles.Shared.Emit(Effect.Dust, feetX, feetY, puff, Math.PI + 0.35);
         }
         // A foot comes down at the end of each half stride, a quarter stride in.
-        int? stepping = pose == Pose.Walk
-            ? (int)Math.Floor((_travelled - _strideFrom - Poses.Stride.Walk / 4) / (Poses.Stride.Walk / 2))
-            : null;
+        // Only running kicks up dust; a walk is quiet.
+        double? stride = pose == Pose.Run ? Poses.Stride.Run : null;
+        int? stepping = stride is double st ? (int)Math.Floor((_travelled - _strideFrom - st / 4) / (st / 2)) : null;
         if (stepping != null && _step != null && stepping != _step)
-            Particles.Shared.Emit(Effect.Dust, feetX + hero.Facing * Rig.W * 0.3, feetY, DustStep);
+            Particles.Shared.Emit(Effect.Dust, feetX + hero.Facing * Rig.W * 0.3, feetY, DustRun);
         _step = stepping;
         _landingMs = Math.Max(0, _landingMs - elapsedMs);
         _wasPose = pose;
         bool holding = holdsPlan && Poses.HoldsIn(pose);
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _landingMs / Poses.Land.Ms, holding ? _head : null));
         var from = _shown ?? to;
+        double within = pose == Pose.Float ? FloatSettleMs : SettleMs;
         var shown = new Limbs(
-            SettleBend(from.FrontArm, to.FrontArm, elapsedMs),
-            SettleBend(from.BackArm, to.BackArm, elapsedMs),
-            SettleBend(from.FrontLeg, to.FrontLeg, elapsedMs),
-            SettleBend(from.BackLeg, to.BackLeg, elapsedMs),
-            SettleAngle(from.Tilt, to.Tilt, elapsedMs),
+            SettleBend(from.FrontArm, to.FrontArm, elapsedMs, within),
+            SettleBend(from.BackArm, to.BackArm, elapsedMs, within),
+            SettleBend(from.FrontLeg, to.FrontLeg, elapsedMs, within),
+            SettleBend(from.BackLeg, to.BackLeg, elapsedMs, within),
+            // Afloat the body turns slowly, stretching out head first or righting itself to land.
+            SettleAngle(from.Tilt, to.Tilt, elapsedMs, pose == Pose.Float ? FloatTurnMs : SettleMs),
             Settle(from.Lift, to.Lift, elapsedMs),
             to.Lying);
         _shown = shown;
