@@ -1,122 +1,162 @@
-# Design: Crafting, and recipes opened by analysed items
+# Design: Crafting, blueprints opened by their parts, a burner generator
 
 ## Problem
 
-Recipes open from hand-written tables and random schematics, so how fast you progress is luck, and
-nothing tells the player why a machine is locked. Every build is paid in raw materials: there are no
-parts to make, carry or later automate.
+Blueprints open from a hand-written table (`Research.Unlocks`) and from random schematics, so how fast
+the ship grows is luck, and nothing tells the player why a blueprint is closed. Every build is paid in
+raw materials: there are no parts to make, carry or later automate. The only power the player can
+add needs nothing to run, so fuel matters to the furnace alone.
 
 ## Player experience
 
-1. In the wreck the hero smelts scrap, opens the inventory (Tab) and clicks the wire craft: a bar
-   fills for a second, a wire lands in the inventory.
-2. The wire lays the cable that powers the analyzer in room B.
-3. Scrap goes in the analyzer: its screen runs stripes, then shows a green check; floor, ladder and
-   pipe appear in the build menu.
-4. Opened, the analyzer lists what is analysed, what each opened, and recipes one item short: the
-   door's thumbnail beside a gear's.
-5. The hero crafts a plate and a gear, analyses both, and the door opens.
+1. In the wreck the hero smelts scrap, opens the inventory (Tab) and clicks the wire in the crafts
+   beside it: the wire joins the queue, its bar fills for a second, a wire lands in the inventory.
+   Shift-click queues five; each unit takes its own second.
+2. The wire lays the cable that powers the analyzer in room B from the wreck's solar panel.
+3. Iron goes in the analyzer: stripes on its screen, then a green check; plate and gear appear among
+   the crafts. Every item is learned this way, raw or made.
+4. The analyzer's panel lists what is analysed, what each opened, and what is one item short: the
+   door's thumbnail beside the gear's.
+5. Plates, gears, wire and a rotor analysed, the burner generator opens. Built and fed planks, it
+   burns, breathes its room's air like the furnace and powers what is cabled to it.
 
-Goes wrong: ten wires queued with scrap for six. The job stops after six, its bar empties, nothing is
-lost. A full inventory: the finished wire waits in the bar until a slot is free.
+Goes wrong:
+
+- Ten wires queued with scrap for six: refused, nothing is queued; the craft shows the scrap short.
+- A queued craft is cancelled: what its units not yet made took is given back, the one in progress
+  included; with no room for it in the inventory, the cancel is refused.
+- The inventory is full when a unit finishes: it waits, its bar full, until a slot is free.
+- The generator's room loses its air: the fire goes out, the fuel in it is lost, the lights go dark.
 
 ## Out of scope
 
-- Workbench (faster basic crafts, complex ones), auto-assembler, crafting speed.
-- Tools such as the screwdriver; faster building.
-- Recipes that make more than one item; recipes needing a station.
-- Any notice of learning besides the analyzer's screen and its panel: no popup.
+- Electronics: circuits, broken electronics, mining them. Until then the solar panel cannot be built:
+  the wreck's one panel is the only one.
+- Workbenches and crafting speed; the auto-assembler; tools.
+- Recipes that make more than one item, or need a station.
+- A generator burning only on demand: it burns while it has fuel.
+- Dropping a finished item at the hero's feet.
 - Loading saves from before this change.
 
 ## Scale
 
-- World: one craft job per hero, a few analyzers, about 25 recipes.
+- World: one queue per hero of at most `Crafting.QueueMost` (8) entries; a few analyzers and
+  generators; about 25 blueprints and crafts.
 - Players: each crafts alone, all in parallel.
-- Frequency: a craft command every few seconds at most.
+- Frequency: a craft or cancel command every few seconds at most.
 
 ## Approach
 
-Map-granted at start: furnace, analyzer, crate, scrap wall, scrap back wall, wire, solar panel. The
-cable is always known. The solar panel is granted so that a player who takes the wreck's panel apart
-can build it again from its refund: without it the analyzer would stay dark for good.
+### What opens what (Grounded)
 
-| Recipe                     | Cost                               | Opens with                 |
-| -------------------------- | ---------------------------------- | -------------------------- |
-| wire (craft, 20 ticks)     | 2 scrap                            | granted                    |
-| plate (craft, 40)          | 2 iron                             | iron                       |
-| gear (craft, 40)           | 1 iron                             | iron                       |
-| circuit (craft, 100)       | 1 brokenElectronics, 2 wire        | brokenElectronics, wire    |
-| cable                      | 1 wire                             | always                     |
-| scrap / iron wall and back | 2 scrap / 3 iron                   | granted / iron             |
-| floor, ladder, pipe        | 1 scrap                            | scrap                      |
-| lamp                       | 2 wire, 1 scrap                    | wire, scrap                |
-| door, vent                 | 1 plate, 1 gear                    | plate, gear                |
-| valve                      | 1 scrap, 1 gear                    | scrap, gear                |
-| tank                       | 4 plate, 1 gear                    | plate, gear                |
-| solarPanel                 | 2 plate, 4 wire, 1 circuit         | granted                    |
-| generator                  | 4 plate, 2 gear, 2 wire, 1 circuit | plate, gear, wire, circuit |
-| analyzer                   | 2 plate, 4 wire, 1 circuit         | granted                    |
-| crate / furnace            | unchanged                          | granted                    |
+A blueprint or a craft is known when it is granted, or when every item of its cost is analysed. One
+rule, no table: `Research.Unlocks` and the schematics go. Granted at the start of the wreck: furnace,
+analyzer, crate, scrap wall and back wall, and the wire craft. The cable is always known.
+`Research.Locked` lists what analysis cannot open yet: the solar panel, until electronics exist.
 
-Supply pods give 1–2 `brokenElectronics` in place of schematics.
+| Made by hand (each unit) | Cost                 | Opens with      |
+| ------------------------ | -------------------- | --------------- |
+| wire (1 s)               | 2 scrap              | granted         |
+| plate (2 s)              | 2 iron               | iron            |
+| gear (2 s)               | 1 iron               | iron            |
+| rotor (3 s)              | 1 gear, 2 wire       | gear, wire      |
 
-**research** stores `analysed` items (sorted) and `granted` recipes (`Layout.known`, now naming crafts
-too; a map that sets none knows all). A recipe is known in creative mode, when granted, or when every
-ingredient of its cost is analysed. Queries compute this; it is not derived state: 25 recipes, read
-on validation and panel timers. Queries: `knows(recipe)`, `recipes()` (each with its cost, whether it
-is known, and which ingredients are not analysed yet; it replaces `blueprints()`), `at(analyzer)`:
-working, done or unpowered. "Almost open" and "what an item opened" are the client's filters of
-`recipes()`, no queries of their own.
+| Built                           | Cost                             | Opens with              |
+| ------------------------------- | -------------------------------- | ----------------------- |
+| cable                           | 1 wire                           | always                  |
+| scrap wall / back wall          | 2 scrap                          | granted                 |
+| iron wall / back wall           | 1 plate                          | plate                   |
+| floor, ladder, pipe             | 1 scrap                          | scrap                   |
+| lamp                            | 2 wire, 1 scrap                  | wire, scrap             |
+| door                            | 2 plate, 1 gear                  | plate, gear             |
+| valve                           | 1 scrap, 1 gear                  | scrap, gear             |
+| vent                            | 1 plate, 1 gear                  | plate, gear             |
+| tank                            | 4 plate, 1 gear                  | plate, gear             |
+| oxygen generator                | 4 plate, 1 rotor, 2 wire         | plate, rotor, wire      |
+| burner generator (new)          | 4 plate, 2 gear, 1 rotor, 4 wire | plate, gear, rotor, wire|
+| solar panel                     | unchanged                        | locked                  |
+| furnace, analyzer, crate        | unchanged                        | granted                 |
 
-An analyzer works only while its item is not yet analysed; empty or done, it rests. Items stay in the
-slot. `UNLOCKS`, `SCHEMATICS` and the schematic item go.
+Schematics leave the loot of supply pods and cargo crates; nothing takes their place.
 
-**crafting** is a new module. `items` cannot own it: it needs to know what is known, and `research`
-already depends on `items`.
+### research
 
-- State: one job per peer, `{ peer, recipe, left, progress }`.
-- `craft { recipe, count }` is refused with `crafting.unknown`, `crafting.busy` or `items.notEnough`.
-- `cancel {}` is refused with `crafting.idle`: the unit in progress finishes, no more start. Nothing
-  is refunded, so nothing needs to remember what was paid.
-- Each unit's cost is taken as that unit starts. The unit finishes after its ticks and goes into the
-  inventory; with no room for it, it waits there, the bar full, until there is. Short for the next
-  unit, the job ends.
-- Runs in the simulation phase; moving does not stop it. Depends on `items` and `research` only.
+Stores `Analysed` (items, sorted) and `Granted` (`Layout.Known`, now naming crafts too; a map that
+sets none knows all). `Known` is no longer stored: queries work it out from costs, 25 entries read on
+validation and on panel timers. Queries: `Knows(Placement)` stays for `Building`, with `Knows(name)`
+beside it for crafts; `Recipes()` — each blueprint and craft with its cost, whether known, and which
+of its items are not analysed yet (replacing `Blueprints()`); `At(analyzer)` as today, its
+`research.nothingNew` read as "done". "One item short" and "what an item opened" are the client's
+filters of `Recipes()`.
 
-Content: `CRAFTS`, keyed by the item made, `{ cost, ticks }`. `CABLE_COST` becomes `{ wire: 1 }`.
-`paid` and refunds work as before: a refund is the current cost.
+An analyzer works only while its item is not yet analysed; empty or done, it rests and draws nothing
+(as today). Items stay in its slot.
 
-Client:
+### crafting (new module)
 
-- A crafting feature docked beside the inventory: known crafts only (creative mode shows all). A
-  click crafts 1; shift-click crafts as many as can be paid. The running job's bar; a click on it
-  cancels.
-- The analyzer's screen: stripes while working, a check when done, dark when unpowered.
-- The analyzer panel: analysed items, what each opened, and recipes one analysed item short.
-- `Learned` goes.
-- Art: wire coil, plate, gear, circuit and broken electronics, each visibly made of its source.
+`Items` cannot own it: it needs `Research` to know what is known, and `Research` depends on `Items`.
+
+- State: a queue per peer, entries `{ id, recipe, count }`, the first with its `progress` in ticks;
+  ids count up per peer, so an entry keeps its id while those before it finish.
+- `craft { recipe, count }`: the whole cost of `count` units is taken at once (as Rust does). Refused
+  with `crafting.unknown`, `crafting.full` (queue at `QueueMost`) or `items.notEnough`.
+- `cancel { entry }` by id: the entry goes and the cost of its `count` units left comes back, the
+  unit in progress included. Refused with `crafting.noEntry`, or `items.full` when the refund does
+  not fit, as `Cut` is. The refund is the cost as content gives it now, as building's is.
+- In the simulation phase, in peer order, each queue's first entry counts a tick; at its ticks one
+  unit goes into the inventory and the next starts. With no room it waits, full, and counts no more.
+- Needs no power; moving does not stop it. Depends on `Items` and `Research` only.
+
+Content: `Crafts`, keyed by the item made, `{ cost, ticks }`; `Crafting.QueueMost`. `Power.CableCost`
+becomes 1 wire.
+
+### burner generator
+
+The furnace's fire, a second time: a fuel slot, fuel burnt tick by tick, the room's air breathed
+(`Breath` every `BreathEvery` ticks), out when either runs short. The `Furnace` module keeps every fire
+(`Fires` by machine id) and lights a burner generator by the same rules but smelts nothing; that is
+its second caller, so the fire's rules become shared there rather than copied. Which slot holds the
+fuel moves from the constant `Furnace.FuelSlot` to the machine's spec: the furnace's second, the
+generator's only one. While burning, a generator makes `Makes` (6, the panel's 5 and a little more)
+to its cable network; out, `Furnace` rests it through the existing `IPowerOps.Rest`, and `Power`
+counts no resting maker. `Power` runs first, so it sees this a tick late. No new dependency of
+`Power`: `Atmosphere` already depends on it and `Furnace` on `Atmosphere`.
+
+### Client
+
+- Crafts docked beside the inventory: the known ones (creative mode shows all), each with its cost
+  and what is short. Click queues 1, shift-click 5 (refused whole when unpaid). The queue under them:
+  the running unit's bar, a click on an entry cancels it.
+- The analyzer's screen: stripes while working, a check when done, dark unpowered. Its panel:
+  analysed items, what each opened, what is one item short. `Learned` goes.
+- The burner generator: art knocked together from scrap like the furnace, its fire seen through a
+  grate; the fire, its light and embers drawn by the furnace's code, moved to a shared place since
+  features do not import each other. The fuel slot opened with E.
+- Art for wire, plate, gear and rotor, each visibly made of its source.
 
 ## Determinism and co-op
 
-Only `craft` and `cancel` enter the sim, per `ctx.from`. Progress is whole ticks per job and needs no
-power. Jobs run in peer order. A peer that joins gets the jobs and `analysed` in the snapshot. Nothing
-new is client-authoritative.
+Only `craft` and `cancel` enter the sim, stamped with `ctx.from`. Progress is whole ticks; queues run
+in peer order, fires in machine id order. `Power` reading `Burning` a tick late is the same on every
+peer. A peer that joins gets queues, `Analysed` and fires in the snapshot. Nothing new is
+client-authoritative. Fuzz draws `craft` (known, unknown, unpaid, full) and `cancel` (real and missing
+entries, and ids of entries that finished).
 
 ## Trade-offs accepted
 
-- A peer leaves mid-craft → the job finishes into that peer's inventory → items already belong to the
+- A peer leaves with a queue → it finishes into that peer's inventory → items already belong to the
   peer id.
-- The inventory is full at the finish → the job waits with the item → no item dropped where the
-  hero is, so no dependency on `crew`.
-- A bulk craft started by mistake stops after its running unit and is never refunded → no `paid` to
-  keep.
-- Planks, canisters, chunks and hull plates open nothing yet → they are still analysed and get the
-  check → one rule, no exceptions. Containers are never carried, so they never reach the slot.
-- Taking apart a wreck machine refunds parts, a circuit included, early, and analysing them opens
-  door, valve, tank before iron → the cost is the room's power or air → everything is made of
-  something.
-- The panel feeds 5 to a generator 4, a lamp 1 and an analyzer 2: the analyzer works at 714‰ in the
-  first lesson → a first, gentle look at a short network.
+- The inventory is full at a finish → the unit waits in the queue → no drop, so no dependency on
+  `crew`.
+- The whole cost is taken at queueing → a player cannot spend the same scrap twice, and a refund needs
+  no record of what was paid.
+- A generator burns with nothing cabled → the player takes the fuel out to stop it → no demand logic.
+- Planks, canisters, chunks and hull plates open nothing yet → they are still analysed and checked →
+  one rule, no exceptions.
+- The power reaches `Power` a tick late → 50 ms nobody sees → no new module order or dependency.
+- The same recipe queued twice is two entries → each cancelled alone → as Rust shows it.
+- Taking apart the wreck's machines refunds parts and opens blueprints early → the cost is the room's
+  power or air → everything is made of something.
 - Two analyzers finish the same item on one tick → it is learned once.
 - Saves from before this change are refused → the format bump.
 
@@ -124,39 +164,42 @@ new is client-authoritative.
 
 Scenarios:
 
-- A wire is made in its ticks.
-- A count stops when the scrap runs out.
-- Each refusal: unknown, busy, notEnough, idle.
-- Cancel lets the unit in progress finish and starts no more.
-- A full inventory holds the finished item in the job until a slot is free.
-- Creative mode crafts for free and knows every recipe.
-- Analysed scrap makes the floor known but not the door; the door opens only after plate and gear.
-- An analyzer rests empty and when its item is done; it stalls unpowered.
-- The wreck: furnace → wire → cable → scrap analysed.
+- A wire is made in its ticks; five queued come one by one.
+- Each refusal: unknown, full, notEnough, noEntry.
+- Cancel gives back the whole entry's cost, the running unit's included.
+- A full inventory holds the finished unit until a slot is free.
+- Creative mode crafts for free and knows everything.
+- Analysed iron opens plate and gear but not the door; the door opens after plate and gear.
+- A locked blueprint stays closed with every item of its cost analysed.
+- An analyzer rests empty and when done; it stalls unpowered.
+- A burner generator with planks and air powers a lamp; without air its fire goes out and the lamp
+  goes dark; without fuel it makes nothing.
+- The wreck: furnace → wire → cable → iron analysed → plate crafted.
 
 Invariants:
 
-- `analysed` only grows; it holds real items, each once, sorted.
-- A job's progress stays below its ticks.
+- `Analysed` only grows; real items, each once, sorted.
+- A queue never passes `QueueMost`; its first entry's progress stays below its ticks; ids within a
+  queue only grow.
+- Items are conserved: what a craft took equals what its units gave plus what cancelling returned.
 
-Existing tests:
-
-- The `UNLOCKS`, `SCHEMATICS` and loot scenarios become analysed-item scenarios.
-- Cable costs change to wire.
-- The `news` tests and the popup's e2e go.
-- The e2e "analyse iron, the iron wall card appears" stays.
+Existing tests: `Unlocks`, schematics and pod loot scenarios become analysed-item ones; cable costs
+change to wire; the furnace's become fire scenarios where they hold for both.
 
 ## Cost
 
-- Modules: new `crafting` (sim and client). Changed: `research`, `building`, `power`, `debris` loot,
-  `items` content, the analyzer art. ADR 0025 supersedes parts of 0024; the concept is updated.
-- Content: `CRAFTS`; the wire, plate, gear, circuit and brokenElectronics items; new costs.
-- Estimated diff: 1000–1300 lines with tests.
+- Modules: new `Crafting` (sim and client). Changed: `Research`, `Furnace` (fires of both kinds),
+  `Power`, `Building` costs, `Debris` loot, `Items` content, the analyzer's screen and panel.
+- Content: `Crafts`, `Crafting.QueueMost`, `Research.Locked`; wire, plate, gear, rotor; the burner
+  generator; new costs.
+- A new ADR supersedes the parts of 0024 about unlocks and schematics; the concept is updated.
+- Estimated diff: 1400–1800 lines with tests, in two tasks, each playable and tested alone (the new
+  costs need parts, and parts need crafting, so the rule and the crafts cannot be split):
+  1. **Parts and their blueprints:** the analysed rule, `Locked`, schematics gone, the four parts, the
+     `Crafting` module and its panel, the new costs, the analyzer's screen and panel.
+  2. **The burner generator:** shared fires, the fuel slot by spec, resting makers, its art.
 
 ## Open questions
 
-- Circuits from supply pods gate the panel, the generator and the analyzer: a pod drifting by is luck,
-  though each always gives electronics. Keep, or build those from plates, gears and wire for now?
-- Craft ticks, and 1–2 electronics a pod: are these first numbers fine?
-- Should iron walls cost plates? Recommended no: there are many cells, and a craft step per cell is
-  tedious.
+- Is 6 the right first output for the burner generator, and how long should a plank burn in it (the
+  furnace's 300 ticks, 15 s)?
