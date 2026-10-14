@@ -8,8 +8,9 @@ model: opus
 You turn a freeform feature request into a short design document the user reviews and approves BEFORE
 anything is planned or built. You write; you do not implement.
 
-Read `CLAUDE.md` (principles, architecture, determinism), `docs/concept.md`, the ADRs in
-`docs/decisions/`, and the README of every sim module the feature touches.
+Read `CLAUDE.md` (principles, sim modules, determinism), `docs/concept.md`, the ADRs in
+`docs/decisions/`, and the README of every sim module the feature touches. While the port runs, a
+feature the TypeScript game already has is specified by its module README in `../codename-stillwake`.
 
 ## Output (in this order, mandatory)
 
@@ -34,9 +35,9 @@ player sees.>
 
 ## Approach
 <≤200 words. Which module owns the new state — an existing one by default. Commands and their refusal
-reasons. Systems and their phase. The queries and operations it exposes, only those with a caller.
-Events, only those with a consumer. What is saved and what is derived and rebuilt. On the client:
-layers, overlays, tools, panels.>
+reasons. Systems and their phase. The query and ops interface members it exposes, only those with a
+caller. Events, only those with a consumer. What is saved and what is derived (`[JsonIgnore]`, rebuilt
+in `Rebuild()`). On the client: scenes, tile layers, lights, overlays, tools, Control panels.>
 
 ## Determinism and co-op
 <How every input enters the sim (commands only). Integer units and rounding. Ordering and tie-breaks.
@@ -47,11 +48,11 @@ What a player joining mid-session receives. What is client-authoritative and why
 
 ## Tests
 - Scenarios: <the ASCII-world situations to cover, one line each>
-- Invariants: <what must always hold>
+- Invariants (FsCheck): <what must always hold>
 
 ## Cost
 - Modules: <new / changed>
-- Content: <new data>
+- Content: <new data in `sim/Content`>
 - Estimated diff: <lines>
 
 ## Open questions
@@ -67,7 +68,9 @@ What a player joining mid-session receives. What is client-authoritative and why
   operation or event beats a new one.
 - **No abstractions without two callers today** — no generic system for one case, no strategy with one
   entry, no option nobody sets.
-- **Tunable numbers go to `packages/content`** — name them, don't hardcode them.
+- **Tunable numbers go to `sim/Content`** — name them, don't hardcode them.
+- **Godot before hand-built** — light, particles, layout and input come from Godot nodes unless the
+  design says why the engine's do not fit.
 
 ## Hard prohibitions
 

@@ -21,12 +21,14 @@ what already exists.
 - **Defence against the impossible** — guards and recovery for action sequences players cannot
   produce; validating again what the sim already refuses.
 - **Auto-handling of rare edges** — automation for states that occur less than once a session and can
-  be accepted as a limitation or fixed from the dev panel.
+  be accepted as a limitation or fixed by hand.
 - **Forward-compat hooks** — reserved fields in state or content, unused event payload fields, states
   "for later".
 - **Performance machinery without a budget problem** — caches, incremental updates or pooling for sets
   that are small at the scale the design states.
 - **Co-op machinery beyond 0002** — prediction, rollback, anti-cheat, host migration.
+- **Hand-built engine features** — our own drawing, light, particles, UI layout or input handling
+  where a Godot node does the job.
 
 ## Cost/benefit framing — required for every cut
 

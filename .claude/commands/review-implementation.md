@@ -8,8 +8,8 @@ User arguments: `$ARGUMENTS`
 Argument shape:
 
 - **First** — path to the plan (markdown file)
-- **Second** — the code to review: a directory, a file or a module (e.g.
-  `packages/sim/src/modules/atmosphere/`)
+- **Second** — the code to review: a directory, a file or a module (e.g. `sim/Atmosphere/` or
+  `game/features/atmosphere/`)
 - **Third and beyond (optional)** — lens names. If absent, run all 8.
 
 Lens names (the agent suffix after `code-reviewer-`):
@@ -30,12 +30,16 @@ Execute strictly in one message:
 
 3. In each agent's prompt include:
    - the plan path and the code path
-   - the instruction to read `CLAUDE.md` and the README of every sim module in scope
-   - the base to diff against (`main` unless the user names another), so the agent reviews the change
-     and not only its end state
-   - for `tests`: the test files next to the code in scope
-   - for `determinism` and `tests`: that they may run `pnpm test`
-   - for `performance`: the benchmark or reference world, if one exists
+   - the instruction to read `CLAUDE.md` and the README of every sim module in scope; for a port task,
+     also the TypeScript module it ports in `../codename-stillwake`
+   - the base to diff against (`main` unless the user names another — while commits go straight to
+     `main`, the commit before the task's first), so the agent reviews the change and not only its end
+     state
+   - for `tests`: the test files in `sim/Tests` for the code in scope
+   - for `determinism` and `tests`: that they may run `dotnet build Stillwake.sln` and
+     `dotnet test Stillwake.sln`
+   - for `performance`: the reference world, and that it may measure with a throwaway test or a
+     `godot --write-movie` run
 
 4. Wait for all results.
 

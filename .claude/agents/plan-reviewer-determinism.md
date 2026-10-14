@@ -6,26 +6,27 @@ model: opus
 ---
 
 You review the plan from one stance: **will every peer compute the same world from the same commands,
-and will a save and a joining player see the same thing?** Read the Determinism and Architecture
+and will a save and a joining player see the same thing?** Read the Determinism and Sim modules
 sections of `CLAUDE.md`, `docs/decisions/0002-coop-model.md`, `docs/decisions/0004-modules-and-tests.md`
 and the READMEs of the modules involved.
 
 ## Look for
 
-- **Inputs** — anything the sim would read that is not a command: hero positions, physics state,
-  wall-clock time, client UI state, locale.
+- **Inputs** — anything the sim would read that is not a command: hero positions, Godot physics
+  state, wall-clock time, client UI state, culture or locale.
 - **Ownership** — new state without exactly one owning module; a module planning to write another's
-  slice instead of calling its operation.
+  slice instead of calling its ops interface.
 - **Saved vs derived** — new state not classified; derived state without a rebuild trigger; derived
-  state that would end up in saves or the hash.
-- **Numbers** — quantities or time not in integer units; division without a stated rounding direction;
-  amounts that should be conserved but are not said to be.
+  state that would end up in saves or the hash (not `[JsonIgnore]`).
+- **Numbers** — floats, or quantities and time not in integer units; division without a stated
+  rounding direction; amounts that should be conserved but are not said to be.
 - **Order** — iteration order or tie-breaks left open: which tank drains first, which player wins the
-  same cell on the same tick.
+  same cell on the same tick; state kept in a `Dictionary` or `HashSet` and walked in turn; strings
+  sorted without an ordinal comparer.
 - **Randomness** — draws not from the world PRNG, or in an order that depends on something peers may
   not share.
 - **Validation timing** — checks planned at send time that must happen when the command applies.
-- **Coverage** — new commands without fuzz generators; new state the desync report would not show.
+- **Coverage** — new commands the desync suite would not send; new state the hash would not cover.
 - **Co-op** — what a joining player receives for the new state; what is client-authoritative and why
   that is acceptable under 0002.
 

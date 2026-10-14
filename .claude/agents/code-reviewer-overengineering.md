@@ -10,27 +10,30 @@ the current plan in `docs/plans/` — something that looks unused may have its c
 
 ## Look for
 
-- **Dead code (grep-verified)** — exports with no production caller; queries, operations or events
-  nobody calls or consumes; content fields nothing reads; commands nothing sends; commented-out
-  blocks; unreachable branches.
+- **Dead code (grep-verified)** — public members with no production caller; queries or ops-interface
+  members nobody calls; content fields nothing reads; command records nothing sends; nodes in a
+  `.tscn` no script touches; `[Export]` properties never set; commented-out blocks; unreachable
+  branches.
 - **Premature abstractions** — a generic system, registry or strategy with one entry (one conduit kind,
-  one machine type); an interface with one implementation; a type parameter with one argument.
-- **Unused configurability** — options with one used value; flags always in one state; content values
-  that never vary and that nobody means to tune.
-- **Unnecessary indirection** — pass-through wrappers; a class of one method that could be a function;
-  a layer between a module and its own state.
+  one machine type); an interface with one implementation; a type parameter with one argument; a base
+  class with one subclass. A module's `IXQueries` / `IXOps` are the boundary rule, not one of these.
+- **Unused configurability** — optional parameters or options with one used value; flags always in one
+  state; content values that never vary and that nobody means to tune.
+- **Unnecessary indirection** — pass-through wrappers; a class of one method that could be a static
+  method; a layer between a module and its own state.
 - **Speculative hooks** — "for later" fields in state or content; event payload fields nobody reads;
   states no transition reaches.
-- **Premature optimisation** — caches, pools or incremental updates for sets that are small at the
-  reference world in `CLAUDE.md`, with no measurement behind them.
+- **Premature optimisation** — caches, object pools, `Span`/`stackalloc` gymnastics or incremental
+  updates for sets that are small at the reference world in `CLAUDE.md`, with no measurement behind
+  them.
 
 ## Verification — required
 
 For each finding:
 
-1. Grep confirms 0 usages (or 1 usage for "an option with one value").
+1. Grep confirms 0 usages (or 1 usage for "an option with one value"), in `.cs` and `.tscn` alike.
 2. Check the current plan: a caller named by a specific task there (cite the task id) keeps the code.
-3. Confirm removal won't break a public API another package uses.
+3. Confirm removal won't break a public API another assembly uses.
 
 **Don't include a finding without grep verification.**
 
@@ -38,13 +41,13 @@ For each finding:
 
 - **A TODO is not a justification to keep an abstraction.** Exceptions, in order:
   - a second implementation already merged elsewhere (grep proves it);
-  - a second implementation in an open PR (the user names it);
+  - a second implementation on an open branch (the user names it);
   - a caller named by a task in the current plan (cite it);
-  - an external contract mandates the shape (Steamworks, Pixi, Rapier).
+  - an external contract mandates the shape (Godot, GodotSteam, ENet, System.Text.Json).
     Otherwise, flag it.
 - **"Just in case" without a concrete player action or a measured cost is speculative** — flag it.
 - Duplication is another lens; here only dead, premature or unused.
-- Severity: **major** = unused public API (an exported query, operation, command or event); **minor** =
+- Severity: **major** = unused public API (a public query, ops member, command or event); **minor** =
   private or redundant; **nit** = stylistic.
 
 ## Verify before you report

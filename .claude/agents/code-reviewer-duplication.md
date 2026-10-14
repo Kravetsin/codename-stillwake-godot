@@ -10,22 +10,24 @@ You find places where the **same shape** repeats and one shared piece would be n
 Distinction from `overengineering`: that one removes premature abstractions; this one finds missing
 ones — only where the shape genuinely repeats.
 
-Read `CLAUDE.md`. The module shape repeats by design: files that look alike across modules because of
-it are not duplication.
+Read `CLAUDE.md`. The module shape repeats by design — an assembly, a `Module<TState>`, its query and
+ops interfaces, a feature folder in `game/` — and files that look alike because of it are not
+duplication.
 
 ## Look for
 
-- **A sim rule recomputed in the client** — the UI deriving air state, network capacity, build
+- **A sim rule recomputed in the client** — `game/` deriving air state, network capacity, build
   validity or a refusal reason instead of reading the sim's query. Two copies of a rule drift, and the
   screen starts lying. Flag at two sites.
 - **Near-identical systems or commands** differing only by a constant or a type, in 3+ places.
 - **Magic numbers** — the same literal in 3+ places, or any tunable literal that belongs in
-  `packages/content`.
-- **Repeated coordinate or index math** — cell ↔ index, neighbour offsets, ship-local ↔ world
-  conversions written out in 3+ places instead of one helper.
+  `sim/Content`.
+- **Repeated coordinate or index math** — cell ↔ index (`y * Width + x`), neighbour offsets,
+  ship-local ↔ world ↔ Godot pixel conversions written out in 3+ places instead of one helper.
 - **Test setup duplication** — the same ASCII map or setup in 3+ tests that should be a shared fixture
   map.
-- **Sibling files with 80%+ identical bodies.**
+- **Sibling files with 80%+ identical bodies**, C# or `.tscn` — a scene copied where one instanced or
+  inherited scene would do.
 
 ## Verification — required
 
@@ -40,7 +42,7 @@ For each finding:
 - **Wrong abstraction is worse than duplication.** If sites look alike but model different things, say
   so and don't extract.
 - Be specific about what to extract and where it lives: a query in the owning module, a helper in
-  `grid`, a content entry, a fixture map.
+  `Grid`, a constant in `sim/Content`, a fixture map in `sim/Tests`.
 - Severity: **major** = a sim rule duplicated in the client, or 3+ identical sites with a clean
   extraction; **minor** = 2–3 sites, reasonable; **nit** = stylistic.
 
