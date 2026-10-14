@@ -85,6 +85,12 @@ public sealed class Rope
         return (bx + (k.X - bx) * t, by + (k.Y - by) * t);
     }
 
+    /// <summary>Adds the points as drawn (<see cref="DrawnAt"/>) to <paramref name="into"/>, from point <paramref name="from"/> on.</summary>
+    public void DrawnInto(List<(double X, double Y)> into, int from = 0)
+    {
+        for (int i = from; i < _knots.Length; i++) into.Add(DrawnAt(i));
+    }
+
     /// <summary>
     /// The points as drawn (<see cref="DrawnAt"/>), each moving on at its speed: what a rope that takes this
     /// one's place starts from, so nothing jumps where one gives way to the other.
@@ -178,33 +184,5 @@ public sealed class Rope
             }
         }
         Pin(a, b);
-    }
-
-    /// <summary>
-    /// The rope as a smooth line, <paramref name="scale"/> turning its unit into pixels: through the
-    /// middle of each link and bending at the points, so no corners show where links meet.
-    /// </summary>
-    public List<(double X, double Y)> Trace(double scale, int perLink = 4)
-    {
-        var first = DrawnAt(0);
-        var line = new List<(double X, double Y)> { (first.X * scale, first.Y * scale) };
-        var from = line[0];
-        for (int i = 1; i < _knots.Length - 1; i++)
-        {
-            var (px, py) = DrawnAt(i);
-            var (nx, ny) = DrawnAt(i + 1);
-            var p = (X: px * scale, Y: py * scale);
-            var to = ((px + nx) / 2 * scale, (py + ny) / 2 * scale);
-            // A quadratic curve from the last link's middle, bent toward this point, to the next middle.
-            for (int s = 1; s <= perLink; s++)
-            {
-                double t = (double)s / perLink, u = 1 - t;
-                line.Add((u * u * from.X + 2 * u * t * p.X + t * t * to.Item1, u * u * from.Y + 2 * u * t * p.Y + t * t * to.Item2));
-            }
-            from = to;
-        }
-        var last = DrawnAt(_knots.Length - 1);
-        line.Add((last.X * scale, last.Y * scale));
-        return line;
     }
 }

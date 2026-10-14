@@ -29,7 +29,10 @@ moving on every frame at 240 Hz, let go between two steps, and moved off a hull 
   new piece along its stretch of that line (`CableRopes.StartsOf`); the TypeScript snapped those to a
   fresh hang.
 - A dragged cable runs to where it would end: a machine's socket, an anchor's middle.
-- Cables sync with the world at most every 250 ms once it has run a tick; ropes step 60 times a second,
-  a step ahead of the clock, and are drawn between their last two steps (`Rope.DrawnAt`), so they move
-  on every frame of a faster screen rather than hold still three frames in four at 240 Hz; they sway out of every hero's body: this one and the others where they are drawn
+- Cables sync with the world at most every 250 ms once it has run a tick; bolts, pegs, plugs and loose
+  plugs are made anew only when what they show changes, and the ropes' lines and traces are refilled
+  in kept buffers, so a frame allocates next to nothing.
+- Ropes step 60 times a second, a step ahead of the clock, and are drawn between their last two steps
+  (`Rope.DrawnAt`), so they move on every frame of a faster screen rather than hold still three frames
+  in four at 240 Hz; they sway out of every hero's body: this one and the others where they are drawn
   (`HeroView.Others`).

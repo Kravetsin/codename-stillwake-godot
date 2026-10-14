@@ -25,6 +25,8 @@ public partial class DebrisView(Ui ui) : Node2D
 
     private readonly Dictionary<int, (Node2D View, Sprite2D Rim)> _shown = new();
     private double _clockMs;
+    private readonly HashSet<int> _ids = [];
+    private readonly List<int> _gone = [];
 
     /// <summary>The pieces read last frame: for scripted runs.</summary>
     public IReadOnlyList<Piece> Pieces { get; private set; } = [];
@@ -44,17 +46,25 @@ public partial class DebrisView(Ui ui) : Node2D
         _clockMs += elapsedMs;
         Pieces = debris.Pieces;
         var grabbed = Predicted.Grabbing(client.InFlight);
-        var pieces = debris.Pieces.Where(p => !grabbed.Contains(p.Id)).ToList();
-        var ids = pieces.Select(p => p.Id).ToHashSet();
-        foreach (int id in _shown.Keys.Where(id => !ids.Contains(id)).ToList())
+        // Kept between frames, refilled: a frame allocates nothing here.
+        _ids.Clear();
+        var all = debris.Pieces;
+        for (int i = 0; i < all.Count; i++)
+            if (!grabbed.Contains(all[i].Id)) _ids.Add(all[i].Id);
+        _gone.Clear();
+        foreach (int id in _shown.Keys)
+            if (!_ids.Contains(id)) _gone.Add(id);
+        foreach (int id in _gone)
         {
             _shown[id].View.QueueFree();
             _shown.Remove(id);
         }
 
         var aimed = ui.AimedPiece.Get();
-        foreach (var piece in pieces)
+        for (int i = 0; i < all.Count; i++)
         {
+            var piece = all[i];
+            if (!_ids.Contains(piece.Id)) continue;
             if (!_shown.TryGetValue(piece.Id, out var one))
             {
                 one = PictureOf(piece.Item);
@@ -71,6 +81,8 @@ public partial class DebrisView(Ui ui) : Node2D
         }
     }
 
+    private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+
     /// <summary>An item's picture the size of a piece, centred, and its outline behind it, hidden until aimed at.</summary>
     private static (Node2D View, Sprite2D Rim) PictureOf(string item)
     {
@@ -80,7 +92,7 @@ public partial class DebrisView(Ui ui) : Node2D
             Scale = Vector2.One * ((Size * Cell + 4) / ItemIcons.Pixels),
             Visible = false,
             // Unlit: the outline says what E does, whatever light falls there.
-            Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded },
+            Material = Unlit,
         };
         var body = new Sprite2D { Texture = ItemIcons.Icon(item), Scale = Vector2.One * (Size * Cell / ItemIcons.Pixels) };
         Lit.Set(body);

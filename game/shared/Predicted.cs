@@ -23,6 +23,10 @@ public static class Predicted
     /// </summary>
     public static ShownGrid Grid(Client client, IGridQueries grid)
     {
+        // Asked a few times a frame: with no toggle in flight, the tick's grid as last made, nothing built.
+        if (!Any<ToggleDoor, ToggleValve>(client.InFlight) && _quiet.World == client.World && _quiet.Tick == client.World.Tick
+            && Made.TryGetValue(client.World, out var quiet) && quiet == _quiet.Shown)
+            return quiet;
         var toggles = client.InFlight.Where(c => c is ToggleDoor or ToggleValve).ToList();
         string key = $"{client.World.Tick}:{string.Join(",", toggles.Select(Name))}";
         if (Made.TryGetValue(client.World, out var known) && known.Key == key) return known;
@@ -34,8 +38,20 @@ public static class Predicted
             shown = new ShownGrid(key, structure, conduit);
         }
         Made.AddOrUpdate(client.World, shown);
+        _quiet = toggles.Count == 0 ? (client.World, client.World.Tick, shown) : default;
         return shown;
     }
+
+    /// <summary>The world, tick and grid last made with no toggle in flight.</summary>
+    private static (World? World, int Tick, ShownGrid? Shown) _quiet;
+
+    private static bool Any<TA, TB>(IReadOnlyList<Command> commands)
+    {
+        for (int i = 0; i < commands.Count; i++) if (commands[i] is TA or TB) return true;
+        return false;
+    }
+
+    private static readonly IReadOnlySet<int> None = new HashSet<int>();
 
     private static string Name(Command c) => c switch
     {
@@ -46,7 +62,7 @@ public static class Predicted
 
     /// <summary>The pieces of debris this peer has a grab in flight for: gone from its view, and passed over by its aim, at once.</summary>
     public static IReadOnlySet<int> Grabbing(IReadOnlyList<Command> inFlight) =>
-        inFlight.OfType<Grab>().Select(g => g.Piece).ToHashSet();
+        Any<Grab, Grab>(inFlight) ? inFlight.OfType<Grab>().Select(g => g.Piece).ToHashSet() : None;
 }
 
 /// <summary>

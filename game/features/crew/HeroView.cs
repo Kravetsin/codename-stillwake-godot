@@ -48,6 +48,7 @@ public partial class HeroView : Node2D
     private Hero _previous, _current;
     private bool _placed, _wasOut, _jump, _use;
     private Tether? _tether;
+    private readonly List<(double X, double Y)> _tetherPoints = [];
     /// <summary>What E would work, outlined: its cells, and whether the sim would refuse it.</summary>
     private (IReadOnlyList<int> Cells, bool Refused)? _aimed;
     private int _width, _steps;
@@ -261,13 +262,18 @@ public partial class HeroView : Node2D
 
     private void PaintTethers(Sketch g)
     {
-        foreach (var line in _shownOthers.Values.Select(s => s.Tether).Append(_tether))
-        {
-            if (line == null) continue;
-            float scale = (float)(Rig.Cell / Hero.Unit);
-            var points = line.Trace(scale).Select(p => new Vector2((float)p.X, (float)p.Y)).ToArray();
-            g.DrawPolyline(points, Line, 1, true);
-            g.DrawCircle(new Vector2(line.Anchor.X, line.Anchor.Y) * scale, 1.5f, Line);
-        }
+        foreach (var shown in _shownOthers.Values) PaintTether(g, shown.Tether);
+        PaintTether(g, _tether);
+    }
+
+    private void PaintTether(Sketch g, Tether? line)
+    {
+        if (line == null) return;
+        _tetherPoints.Clear();
+        line.DrawnInto(_tetherPoints);
+        // Thousandths of a cell to cells, which the sketch traces ropes in.
+        for (int i = 0; i < _tetherPoints.Count; i++) _tetherPoints[i] = (_tetherPoints[i].X / Hero.Unit, _tetherPoints[i].Y / Hero.Unit);
+        g.Rope(_tetherPoints, Line, 1);
+        g.DrawCircle(new Vector2(line.Anchor.X, line.Anchor.Y) * (float)(Rig.Cell / Hero.Unit), 1.5f, Line);
     }
 }

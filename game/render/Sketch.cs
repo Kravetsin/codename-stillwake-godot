@@ -27,11 +27,14 @@ public partial class Sketch : Node2D
     public void Rope(System.Collections.Generic.IReadOnlyList<(double X, double Y)> points, Color colour, float width)
     {
         if (points.Count < 2) return;
-        var line = new System.Collections.Generic.List<Vector2>(points.Count * 4);
+        // A rope of so many points is always traced into as many: one array for each count, filled anew each frame.
+        int count = 2 + (points.Count - 2) * 4;
+        if (!Traces.TryGetValue(count, out var line)) Traces[count] = line = new Vector2[count];
         const float cell = ShipCamera.Cell;
         Vector2 At(int i) => new Vector2((float)points[i].X, (float)points[i].Y) * cell;
         var from = At(0);
-        line.Add(from);
+        int n = 0;
+        line[n++] = from;
         for (int i = 1; i < points.Count - 1; i++)
         {
             var p = At(i);
@@ -39,11 +42,13 @@ public partial class Sketch : Node2D
             for (int s = 1; s <= 4; s++)
             {
                 float t = s / 4f, u = 1 - t;
-                line.Add(u * u * from + 2 * u * t * p + t * t * to);
+                line[n++] = u * u * from + 2 * u * t * p + t * t * to;
             }
             from = to;
         }
-        line.Add(At(points.Count - 1));
-        DrawPolyline(line.ToArray(), colour, width, true);
+        line[n] = At(points.Count - 1);
+        DrawPolyline(line, colour, width, true);
     }
+
+    private static readonly System.Collections.Generic.Dictionary<int, Vector2[]> Traces = new();
 }

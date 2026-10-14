@@ -20,8 +20,15 @@ public static class Reach
     private const int Unit = 1000;
 
     /// <summary>The stacks on the floor this peer has a pick-up in flight for: gone from its view at once (0014).</summary>
-    public static IReadOnlySet<int> PickingUp(IReadOnlyList<Command> inFlight) =>
-        inFlight.OfType<PickUp>().Select(p => p.Id).ToHashSet();
+    public static IReadOnlySet<int> PickingUp(IReadOnlyList<Command> inFlight)
+    {
+        // Asked every frame, and most have no pick-up in flight: then nothing is built.
+        for (int i = 0; i < inFlight.Count; i++)
+            if (inFlight[i] is PickUp) return inFlight.OfType<PickUp>().Select(p => p.Id).ToHashSet();
+        return None;
+    }
+
+    private static readonly IReadOnlySet<int> None = new HashSet<int>();
 
     /// <summary>
     /// The stacks on the floor peer <paramref name="peer"/>'s hero, its feet at (<paramref name="x"/>,

@@ -50,17 +50,27 @@ public sealed class CableRopes
     /// <summary>How long a hanging cable is for its span, in cells.</summary>
     public static double HangFor(double span) => span * Hang;
 
+    /// <summary>How long a cable floating outside is for its span, in cells.</summary>
+    private static double LooseFor(double span) => span * Loose;
+
     /// <summary>A rope for a cable being laid from <paramref name="from"/>: it hangs as a cable aboard does.</summary>
     public static Rope LayingRope((double X, double Y) from) => new(Hanging, from, from);
 
     private sealed record Stretch(CablePiece Piece, Rope Rope);
 
-    private sealed record Roped(List<Stretch> Stretches, List<(double X, double Y)> Feeds, List<CablePiece> Shape);
+    private sealed record Roped(List<Stretch> Stretches, List<(double X, double Y)> Feeds, List<CablePiece> Shape)
+    {
+        /// <summary>The cable as drawn, its points filled anew whenever the lines are asked for.</summary>
+        public List<(double X, double Y)> Points { get; } = [];
+        public CableLine? Line { get; set; }
+    }
 
     private sealed class Pending(Laid laid)
     {
         public Laid Laid { get; } = laid;
         public double Ms;
+        public List<(double X, double Y)> Points { get; } = [];
+        public CableLine? Line { get; set; }
     }
 
     private sealed class Landing(int node, Held end)
@@ -72,6 +82,8 @@ public sealed class CableRopes
 
     private readonly Dictionary<(int A, int B), Roped> _cables = new();
     private readonly Dictionary<(int A, int B), Pending> _pending = new();
+    private readonly List<CableLine> _lines = [];
+    private readonly List<(int A, int B)> _gone = [];
     private bool _started;
     private Held? _held;
     /// <summary>An end let go on a node, kept where it was let go until the world has the cable there.</summary>
@@ -207,11 +219,13 @@ public sealed class CableRopes
     public void Update(double elapsedMs, IReadOnlyList<Body> bodies)
     {
         if (_landing != null && (_landing.Ms += elapsedMs) > LandingMs) _landing = null;
-        foreach (var (key, laid) in _pending.ToList())
+        _gone.Clear();
+        foreach (var (key, laid) in _pending)
         {
-            if ((laid.Ms += elapsedMs) > LandingMs) _pending.Remove(key);
+            if ((laid.Ms += elapsedMs) > LandingMs) _gone.Add(key);
             else laid.Laid.Rope.Update(laid.Laid.From, laid.Laid.To, elapsedMs, HangFor, bodies);
         }
+        foreach (var key in _gone) _pending.Remove(key);
         var hand = _held ?? _landing?.End;
         foreach (var ((a, b), c) in _cables)
         {
@@ -220,29 +234,36 @@ public sealed class CableRopes
             for (int i = 0; i <= last; i++)
             {
                 var (piece, rope) = c.Stretches[i];
-                double factor = piece.Hangs ? Hang : Loose;
                 rope.Update(
                     i == 0 && carried?.Node == a ? carried.At : piece.From,
                     i == last && carried?.Node == b ? carried.At : piece.To,
                     elapsedMs,
-                    span => span * factor,
+                    piece.Hangs ? HangFor : LooseFor,
                     piece.Hangs ? bodies : []);
             }
         }
     }
 
-    /// <summary>Each cable's points, end to end, by its two nodes, and where it goes through the hull; then the cables laid and not yet had.</summary>
-    public IEnumerable<CableLine> Lines()
+    /// <summary>
+    /// Each cable's points as drawn now, end to end, by its two nodes, and where it goes through the hull; then
+    /// the cables laid and not yet had. The same lines each time, their points filled anew: read them before
+    /// the next call, or copy them.
+    /// </summary>
+    public IReadOnlyList<CableLine> Lines()
     {
+        _lines.Clear();
         foreach (var ((a, b), c) in _cables)
         {
-            var points = c.Stretches.SelectMany((s, i) => Drawn(s.Rope).Skip(i == 0 ? 0 : 1)).ToList();
-            yield return new CableLine(a, b, points, c.Feeds);
+            c.Points.Clear();
+            for (int i = 0; i < c.Stretches.Count; i++) c.Stretches[i].Rope.DrawnInto(c.Points, i == 0 ? 0 : 1);
+            _lines.Add(c.Line ??= new CableLine(a, b, c.Points, c.Feeds));
         }
         foreach (var p in _pending.Values)
-            yield return new CableLine(p.Laid.A, p.Laid.B, Drawn(p.Laid.Rope).ToList(), []);
+        {
+            p.Points.Clear();
+            p.Laid.Rope.DrawnInto(p.Points);
+            _lines.Add(p.Line ??= new CableLine(p.Laid.A, p.Laid.B, p.Points, []));
+        }
+        return _lines;
     }
-
-    /// <summary>The points of <paramref name="rope"/> as drawn this frame.</summary>
-    public static IEnumerable<(double X, double Y)> Drawn(Rope rope) => Enumerable.Range(0, rope.Points.Count).Select(rope.DrawnAt);
 }

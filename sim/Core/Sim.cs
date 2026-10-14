@@ -120,20 +120,25 @@ public sealed class World
         return Encoding.UTF8.GetString(stream.ToArray());
     }
 
-    /// <summary>A hash of what a save holds (FNV-1a over its bytes), compared between peers.</summary>
+    /// <summary>
+    /// A hash of what a save holds (FNV-1a over its bytes), compared between peers: hashed as it is written,
+    /// never held, so a hash a second allocates no copy of the world.
+    /// </summary>
     public ulong Hash()
     {
-        using var stream = new MemoryStream();
-        Write(stream);
-        ulong h = 14695981039346656037;
-        foreach (byte b in stream.GetBuffer().AsSpan(0, (int)stream.Length))
-            h = unchecked((h ^ b) * 1099511628211);
-        return h;
+        var hash = new HashingWriter();
+        using (var w = new Utf8JsonWriter(hash)) Write(w);
+        return hash.Hash;
     }
 
     private void Write(Stream stream)
     {
         using var w = new Utf8JsonWriter(stream);
+        Write(w);
+    }
+
+    private void Write(Utf8JsonWriter w)
+    {
         w.WriteStartObject();
         w.WriteNumber("format", SaveFormat);
         w.WriteNumber("tick", Tick);
@@ -146,6 +151,30 @@ public sealed class World
         }
         w.WriteEndObject();
         w.WriteEndObject();
+    }
+
+    /// <summary>Takes the bytes written to it into an FNV-1a hash, writing each batch into the same buffer.</summary>
+    private sealed class HashingWriter : System.Buffers.IBufferWriter<byte>
+    {
+        private byte[] _buffer = new byte[16 * 1024];
+
+        public ulong Hash { get; private set; } = 14695981039346656037;
+
+        public void Advance(int count)
+        {
+            ulong h = Hash;
+            foreach (byte b in _buffer.AsSpan(0, count))
+                h = unchecked((h ^ b) * 1099511628211);
+            Hash = h;
+        }
+
+        public Memory<byte> GetMemory(int sizeHint = 0)
+        {
+            if (sizeHint > _buffer.Length) _buffer = new byte[sizeHint];
+            return _buffer;
+        }
+
+        public Span<byte> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
     }
 
     /// <summary>A command as the network carries it, and back.</summary>

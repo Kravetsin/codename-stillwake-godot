@@ -15,6 +15,8 @@ public partial class SuitGauge : CanvasLayer
     /// <summary>How long the red edges and the dark take to come and go, as the CSS transitions did.</summary>
     private const double VignetteS = 0.7, DarkS = 1.0;
     private const float Dark = 0.85f;
+    // Made once: a string passed each frame would make a StringName each frame for the GC to finalize.
+    private static readonly StringName Strength = "strength";
 
     private const string VignetteShader = """
         shader_type canvas_item;
@@ -60,7 +62,7 @@ public partial class SuitGauge : CanvasLayer
         }
         _vignetteShown = Toward(_vignetteShown, _danger == SuitDanger.Low ? 1 : 0, delta / VignetteS);
         _darkShown = Toward(_darkShown, _danger == SuitDanger.Out ? 1 : 0, delta / DarkS);
-        _edges.SetShaderParameter("strength", (float)_vignetteShown);
+        _edges.SetShaderParameter(Strength, (float)_vignetteShown);
         _dark.Color = new Color(0, 0, 0, (float)_darkShown * Dark);
         _bar.QueueRedraw();
     }

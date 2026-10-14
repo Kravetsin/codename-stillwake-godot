@@ -34,5 +34,7 @@ its back walls. Drawn only: nothing of it reaches the sim. Numbers from `game/Co
 - Light bending round corners and through doorways the way the TypeScript sweeps let it: Godot's
   lamps cast straight shadows; only starlight keeps the sweeps.
 - A lamp's reach is cut at 16 cells for the frame rate (see `LightView.LampReach`).
-- Recomputing starlight near a change only: it is redone over the whole grid, about 6 ms on the
-  reference world per change.
+- Recomputing starlight near a change only: light carries some 45 cells before it rounds to nothing,
+  as far as the wreck is wide, so it is redone over the whole grid, in one channel (the stars are
+  one colour) into kept buffers and texture: about 2.7 ms on the reference world and 1.3 ms on the
+  wreck per change, nothing allocated.

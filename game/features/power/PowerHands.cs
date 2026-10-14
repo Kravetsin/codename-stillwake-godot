@@ -33,6 +33,7 @@ public sealed class PowerHands
     /// <summary>The cable being laid, as the rope it will be.</summary>
     private Rope? _rope;
     private List<Laid> _laid = [];
+    private readonly List<(double X, double Y)> _laying = [];
     private (int Node, Held End)? _landing;
 
     /// <summary>The cable's end carried now, and whether it may be let go where it is; null if none.</summary>
@@ -171,7 +172,9 @@ public sealed class PowerHands
             var p = CableShape.EndOf(grid, from);
             _rope ??= CableRopes.LayingRope(p);
             _rope.Update(p, to, elapsedMs, CableRopes.HangFor);
-            Laying = CableRopes.Drawn(_rope).ToList();
+            _laying.Clear();
+            _rope.DrawnInto(_laying);
+            Laying = _laying;
         }
         else
         {

@@ -29,6 +29,8 @@ public partial class ShipCamera : Camera2D
     public bool DevControls { get; set; } = true;
 
     private bool _dragging;
+    // Made once: a string passed each frame would make a StringName each frame for the GC to finalize.
+    private static readonly StringName Left = "ui_left", Right = "ui_right", Up = "ui_up", Down = "ui_down";
 
     public ShipCamera() => SetZoom(StartZoom);
 
@@ -96,7 +98,7 @@ public partial class ShipCamera : Camera2D
     public override void _Process(double delta)
     {
         if (!DevControls) return;
-        var pan = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
+        var pan = Input.GetVector(Left, Right, Up, Down);
         Position += pan * PanSpeed * (float)delta / CurrentZoom;
     }
 }

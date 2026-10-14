@@ -13,7 +13,8 @@ namespace Stillwake.Game.Features.Light;
 /// every row and column, fading by what they cross. Worked out over the whole grid only when the ship
 /// changes, a texel a cell, and handed to <see cref="Lit"/>, whose material reads it smoothed between
 /// cells wherever this light, a directional one with no shadows, falls: the sweeps have already
-/// stopped it at walls.
+/// stopped it at walls. Its buffers and texture are kept and filled anew, so a door toggled allocates
+/// nothing and costs only the sweeps.
 /// </summary>
 public partial class Starlight : DirectionalLight2D
 {
@@ -22,14 +23,23 @@ public partial class Starlight : DirectionalLight2D
     private const int Margin = 4;
     private const byte Air = 0, Machine = 1, Wall = 2;
 
+    private byte[] _kind = [], _bytes = [];
+    /// <summary>Each cell's share of the stars' light: the stars are the one colour it comes in.</summary>
+    private float[] _light = [];
+    private Image? _image;
+    private ImageTexture? _texture;
+
     public Starlight() => RangeItemCullMask = Lit.StarMask;
 
     /// <summary>Works the starlight out anew for the grid as it stands.</summary>
     public void Show(IGridQueries grid)
     {
         int w = grid.Width + Margin * 2, h = grid.Height + Margin * 2;
-        var kind = new byte[w * h];
-        var light = new float[w * h * 3];
+        if (_kind.Length != w * h) (_kind, _light, _bytes) = (new byte[w * h], new float[w * h], new byte[w * h * 3]);
+        var kind = _kind;
+        var light = _light;
+        Array.Clear(kind);
+        Array.Clear(light);
         ReadOnlySpan<int> structure = grid.StructureLayer, back = grid.BackLayer;
         // A machine dims the light through every cell of its footprint.
         foreach (var m in grid.Machines)
@@ -46,19 +56,28 @@ public partial class Starlight : DirectionalLight2D
                 bool inside = gx >= 0 && gy >= 0 && gx < grid.Width && gy < grid.Height;
                 int cell = gy * grid.Width + gx;
                 if (inside && structure[cell] is Structure.Wall or Structure.DoorClosed) kind[i] = Wall;
-                if (kind[i] != Wall && (!inside || back[cell] == Back.None))
-                    (light[i * 3], light[i * 3 + 1], light[i * 3 + 2]) = L.Star;
+                if (kind[i] != Wall && (!inside || back[cell] == Back.None)) light[i] = 1;
             }
         Spread(light, kind, w, h);
-        var bytes = new byte[w * h * 3];
+        var bytes = _bytes;
+        var (r, g, b) = L.Star;
         for (int i = 0; i < w * h; i++)
         {
             // Walls are drawn taking WallIn of the light on their face, so a wall cell holds its face's light.
-            float face = kind[i] == Wall ? 1 / L.WallIn : 1;
-            for (int c = 0; c < 3; c++) bytes[i * 3 + c] = (byte)(Math.Min(1, light[i * 3 + c] * face) * 255);
+            float face = kind[i] == Wall ? light[i] / L.WallIn : light[i];
+            bytes[i * 3] = (byte)(Math.Min(1, r * face) * 255);
+            bytes[i * 3 + 1] = (byte)(Math.Min(1, g * face) * 255);
+            bytes[i * 3 + 2] = (byte)(Math.Min(1, b * face) * 255);
         }
-        var texture = ImageTexture.CreateFromImage(Image.CreateFromData(w, h, false, Image.Format.Rgb8, bytes));
-        Lit.ShowStarlight(texture, new Rect2(-Margin * Cell, -Margin * Cell, w * Cell, h * Cell));
+        if (_image != null && _texture != null && _image.GetWidth() == w && _image.GetHeight() == h)
+        {
+            _image.SetData(w, h, false, Image.Format.Rgb8, bytes);
+            _texture.Update(_image);
+            return;
+        }
+        _image = Image.CreateFromData(w, h, false, Image.Format.Rgb8, bytes);
+        _texture = ImageTexture.CreateFromImage(_image);
+        Lit.ShowStarlight(_texture, new Rect2(-Margin * Cell, -Margin * Cell, w * Cell, h * Cell));
     }
 
     /// <summary>The share of light going on from a cell of one kind into the next, by <c>from × 3 + to</c>.</summary>
@@ -76,30 +95,47 @@ public partial class Starlight : DirectionalLight2D
         return shares;
     }
 
-    /// <summary>Terraria's sweeps (lightOf in cells.ts): each cell takes its neighbour's light times what crossing keeps, the brightest way winning.</summary>
+    /// <summary>
+    /// Terraria's sweeps (lightOf in cells.ts): each cell takes its neighbour's light times what crossing
+    /// keeps, the brightest way winning. One channel: every share is the same for red, green and blue.
+    /// </summary>
     private static void Spread(float[] light, byte[] kind, int w, int h)
     {
-        void Pass(int a, int b)
-        {
-            float share = Shares[kind[a] * 3 + kind[b]];
-            for (int c = 0; c < 3; c++)
-            {
-                float v = light[a * 3 + c] * share;
-                if (v > light[b * 3 + c]) light[b * 3 + c] = v;
-            }
-        }
+        var shares = Shares;
+        int n = w * h;
         for (int round = 0; round < L.Rounds; round++)
         {
-            for (int y = 0; y < h; y++)
+            for (int row = 0; row < n; row += w)
             {
-                int row = y * w;
-                for (int x = row + 1; x < row + w; x++) Pass(x - 1, x);
-                for (int x = row + w - 2; x >= row; x--) Pass(x + 1, x);
+                for (int to = row + 1; to < row + w; to++)
+                {
+                    float v = light[to - 1];
+                    if (v == 0) continue;
+                    v *= shares[kind[to - 1] * 3 + kind[to]];
+                    if (v > light[to]) light[to] = v;
+                }
+                for (int to = row + w - 2; to >= row; to--)
+                {
+                    float v = light[to + 1];
+                    if (v == 0) continue;
+                    v *= shares[kind[to + 1] * 3 + kind[to]];
+                    if (v > light[to]) light[to] = v;
+                }
             }
-            for (int x = 0; x < w; x++)
+            // Every column down, then up, a row at a time: the same order within each column, in memory order.
+            for (int to = w; to < n; to++)
             {
-                for (int at = x + w; at < w * h; at += w) Pass(at - w, at);
-                for (int at = x + (h - 2) * w; at >= 0; at -= w) Pass(at + w, at);
+                float v = light[to - w];
+                if (v == 0) continue;
+                v *= shares[kind[to - w] * 3 + kind[to]];
+                if (v > light[to]) light[to] = v;
+            }
+            for (int to = n - w - 1; to >= 0; to--)
+            {
+                float v = light[to + w];
+                if (v == 0) continue;
+                v *= shares[kind[to + w] * 3 + kind[to]];
+                if (v > light[to]) light[to] = v;
             }
         }
     }

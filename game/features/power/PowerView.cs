@@ -49,7 +49,9 @@ public partial class PowerView : Node2D
     private readonly Sketch _lines = new(Layers.Cables, lit: true), _grommets = new(Layers.Fittings, lit: true);
     private readonly Node2D _ends = new() { ZIndex = Layers.Fittings }, _bolts = new() { ZIndex = Layers.Bolts }, _unplugged = new() { ZIndex = Layers.OverlayMarks };
     private readonly Sketch _overlay = new(Layers.Overlay), _ghost = new(Layers.OverlayHands);
-    private List<CableLine> _drawn = [];
+    private IReadOnlyList<CableLine> _drawn = [];
+    /// <summary>The bolts over machines with no power at all, which blink: kept, not looked up each frame.</summary>
+    private readonly List<Sprite2D> _blinking = [];
     private Dictionary<int, PowerNetwork> _byNode = new();
     private double _since = RefreshMs, _timeMs;
     private int _shownTick = -1;
@@ -67,12 +69,13 @@ public partial class PowerView : Node2D
         };
         _grommets.Paint = g =>
         {
-            foreach (var feed in _drawn.SelectMany(l => l.Feeds))
-            {
-                var at = new Vector2((float)feed.X, (float)feed.Y) * Cell;
-                g.DrawCircle(at, 2, Fitting);
-                g.DrawCircle(at, 1, CableColour);
-            }
+            foreach (var line in _drawn)
+                foreach (var feed in line.Feeds)
+                {
+                    var at = new Vector2((float)feed.X, (float)feed.Y) * Cell;
+                    g.DrawCircle(at, 2, Fitting);
+                    g.DrawCircle(at, 1, CableColour);
+                }
         };
         _overlay.Paint = PaintOverlay;
         _ghost.Paint = PaintGhost;
@@ -97,9 +100,10 @@ public partial class PowerView : Node2D
             _shownTick = client.World.Tick;
             _ropes.Sync(grid, m.Rooms, m.Power.Cables);
             _byNode = m.Power.Networks.SelectMany(n => n.Nodes.Select(node => (node, n))).ToDictionary(p => p.node, p => p.n);
-            PlaceBolts(m);
-            PlaceEnds(m);
-            PlaceUnplugged(m);
+            // Made anew only when what they show changes: nodes made four times a second are garbage for the GC to finalize.
+            if (Changed(_boltsShown, BoltsOf(m))) PlaceBolts(m);
+            if (Changed(_endsShown, EndsOf())) PlaceEnds(m);
+            if (Changed(_unpluggedShown, UnpluggedOf(m))) PlaceUnplugged(m);
         }
         _timeMs += elapsedMs;
         _overlay.Visible = _unplugged.Visible = _ghost.Visible = On;
@@ -116,10 +120,9 @@ public partial class PowerView : Node2D
         if (_hands.TakeLanding() is { } landing) _ropes.Land(landing.Node, landing.End);
         foreach (var laid in _hands.TakeLaid()) _ropes.Adopt(laid);
         _ropes.Update(elapsedMs, bodies);
-        _drawn = _ropes.Lines().ToList();
+        _drawn = _ropes.Lines();
         bool blinkOn = (int)Math.Floor(_timeMs / 1000 * Blink * 2) % 2 == 0;
-        foreach (var bolt in _bolts.GetChildren().OfType<Sprite2D>())
-            if (bolt.HasMeta("none")) bolt.Modulate = new Color(1, 1, 1, blinkOn ? 1 : 0.25f);
+        foreach (var bolt in _blinking) bolt.Modulate = new Color(1, 1, 1, blinkOn ? 1 : 0.25f);
         _lines.QueueRedraw();
         _grommets.QueueRedraw();
         if (On)
@@ -139,10 +142,62 @@ public partial class PowerView : Node2D
         _ui.WorldTip.SetLines(said);
     }
 
+    private readonly List<int> _key = [], _boltsShown = [], _endsShown = [], _unpluggedShown = [];
+
+    /// <summary>Whether <paramref name="now"/> differs from <paramref name="shown"/>, which then takes it.</summary>
+    private static bool Changed(List<int> shown, List<int> now)
+    {
+        if (shown.SequenceEqual(now)) return false;
+        shown.Clear();
+        shown.AddRange(now);
+        return true;
+    }
+
+    /// <summary>What the bolts show: each machine short of power, where, and whether it has none.</summary>
+    private List<int> BoltsOf(Registry m)
+    {
+        _key.Clear();
+        foreach (var machine in m.Grid.Machines)
+            if (Machines.Get(machine.Kind).Draws != null && m.Power.Satisfaction(machine.Id) is var s and < 1000)
+            {
+                _key.Add(machine.Id);
+                _key.Add(machine.Cell);
+                _key.Add(s == 0 ? 0 : 1);
+            }
+        return _key;
+    }
+
+    /// <summary>What the pegs and plugs show: the nodes cables end at.</summary>
+    private List<int> EndsOf()
+    {
+        _key.Clear();
+        foreach (var line in _ropes.Lines())
+        {
+            _key.Add(line.A);
+            _key.Add(line.B);
+        }
+        return _key;
+    }
+
+    /// <summary>What the loose plugs show: the machines making or drawing power with no cable.</summary>
+    private List<int> UnpluggedOf(Registry m)
+    {
+        _key.Clear();
+        foreach (var machine in m.Grid.Machines)
+        {
+            var spec = Machines.Get(machine.Kind);
+            if ((spec.Makes != null || spec.Draws != null) && !_byNode.ContainsKey(machine.Cell)) _key.Add(machine.Cell);
+        }
+        return _key;
+    }
+
+    private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+
     /// <summary>A bolt over each machine that draws power and gets less than it would: red with none, amber with some.</summary>
     private void PlaceBolts(Registry m)
     {
         foreach (var child in _bolts.GetChildren()) child.QueueFree();
+        _blinking.Clear();
         foreach (var machine in m.Grid.Machines)
         {
             var spec = Machines.Get(machine.Kind);
@@ -155,9 +210,9 @@ public partial class PowerView : Node2D
                 Texture = AsciiArt.Bolt(satisfaction == 0),
                 Offset = new Vector2(0, -AsciiArt.Bolt(true).GetHeight() / 2f),
                 Position = new Vector2((float)at.X * Cell, (float)(at.Y - spec.Height / 2.0) * Cell - 1),
-                Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded },
+                Material = Unlit,
             };
-            if (satisfaction == 0) bolt.SetMeta("none", true);
+            if (satisfaction == 0) _blinking.Add(bolt);
             _bolts.AddChild(bolt);
         }
     }
@@ -190,7 +245,7 @@ public partial class PowerView : Node2D
             {
                 Texture = AsciiArt.Unplugged(),
                 Position = new Vector2((float)at.X, (float)at.Y) * Cell,
-                Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded },
+                Material = Unlit,
             });
         }
     }
