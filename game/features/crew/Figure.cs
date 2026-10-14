@@ -23,11 +23,11 @@ public partial class Figure : Node2D
     /// <summary>Afloat, limbs lag as if pushing through water.</summary>
     private const double FloatSettleMs = 110;
     /// <summary>
-    /// Afloat: how slowly the body turns to the way it swims, the arms reaching that way at once; how
-    /// slowly treading water, the breaststroke and the crawl blend into each other; and how long the
-    /// body takes to turn round, left for right.
+    /// Afloat: how slowly the body turns to the way it swims, the arms reaching that way at once, and how
+    /// slowly treading water, the breaststroke and the crawl blend into each other. Left for right it
+    /// turns at once: a flat figure squeezed through a turn looks worse than a jump.
     /// </summary>
-    private const double FloatTurnMs = 650, SwimBlendMs = 320, FlipMs = 200;
+    private const double FloatTurnMs = 650, SwimBlendMs = 320;
     /// <summary>The most the arms reach ahead of a body still turning, in radians, so they never pass through it.</summary>
     private const double ArmsLeadMost = 1.2;
     /// <summary>How far the air pack sticks out behind the middle: what a body lying on its back rests on.</summary>
@@ -78,7 +78,7 @@ public partial class Figure : Node2D
     /// <summary>How long since passing out, and what picks the heap it ends in, new each time.</summary>
     private double _outMs, _outTilt;
     private int _slump;
-    private double _swim, _fast, _heading, _flip = 1;
+    private double _swim, _fast, _heading;
     /// <summary>Passed out in space, limbs go slack slowly, as if the strength drained out of them.</summary>
     private const double SlackMs = 450;
     /// <summary>The step the walk is on, counted from where it began; a new one puts a foot down.</summary>
@@ -242,9 +242,7 @@ public partial class Figure : Node2D
         double c = Math.Abs(Math.Cos(shown.Tilt)), s = Math.Abs(Math.Sin(shown.Tilt));
         _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
         Position = new Vector2((float)feetX, (float)feetY);
-        // Afloat the body turns round, left for right, through a narrow moment; aboard at once.
-        _flip = afloat ? Settle(_flip, hero.Facing, elapsedMs, FlipMs) : hero.Facing;
-        Scale = new Vector2((float)(Math.Abs(_flip) < 0.15 ? 0.15 * Math.Sign(_flip == 0 ? hero.Facing : _flip) : _flip), 1);
+        Scale = new Vector2(hero.Facing, 1);
     }
 }
 
