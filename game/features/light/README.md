@@ -18,12 +18,13 @@ its back walls. Drawn only: nothing of it reaches the sim. Numbers from `game/Co
   walls, doors, back walls or machines change, and hands it to `render/Lit.cs` as a texture of a texel
   a cell; a directional light with no shadows triggers it. Where a lamp and the stars both reach, the
   brighter shows, not their sum, as in the TypeScript game.
-- **Kept current:** `LightView.Sync()` after every tick; lamps flicker in `_Process`.
+- **Fire:** a shadowed light per furnace from the middle of its bottom row, falling off as a lamp's in
+  `Light.Fire`, shown while `LightView.Burns` says its fire burns (`Main` asks the furnace module).
+- **Kept current:** `LightView.Sync()` after every tick; lamps flicker and fires show in `_Process`.
 
 ## Deliberately not handled
 
-- Fire and glowing particles as light sources, and helmet lamps: with the furnace, effects and hero
-  (G-07, G-08).
+- Glowing particles as light sources, and helmet lamps: with the effects and hero (G-07, G-08).
 - Light bending round corners and through doorways the way the TypeScript sweeps let it: Godot's
   lamps cast straight shadows; only starlight keeps the sweeps.
 - A lamp's reach is cut at 16 cells for the frame rate (see `LightView.LampReach`).

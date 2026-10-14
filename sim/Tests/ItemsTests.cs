@@ -448,7 +448,7 @@ public class ItemsTests
         });
     }
 
-    // Beyond items.test.ts: rules its callers' tests (furnace) prove there, not yet ported.
+    // Beyond items.test.ts: the furnace rules at items' own level, which FurnaceTests prove through a fire.
 
     [Fact]
     public void FurnacesTakeItemsOnlyIntoTheirInputsAMoveNamingNoSlotGoingIntoTheFirst()
