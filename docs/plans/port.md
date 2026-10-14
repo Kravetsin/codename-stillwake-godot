@@ -77,6 +77,17 @@ pipette, moving pegs); power (cables as ropes, the power mode); pipes and the ai
 (fire, embers); debris and catching (physics on the host); the analyzer and its panel; effects; the
 dev panel.
 
+- **The UI half, built:** one i18n table (`game/i18n/En.cs`) and one thumbnail maker
+  (`BlueprintArt.Thumbnail`); the hero's hands as `aim.ts` had them, one aim for plans, crates, tanks,
+  doors, valves and debris, with the prompt for E at the bottom of the screen (`features/crew`);
+  ADR 0022's one hand between the hotbar and the plan (1–9, the wheel and Tab free it, Q waits for a
+  free hand, the hero holds the plan's sheet); the refusal by the pointer at the world's size; the
+  world's words only over the world; the dev panel (`features/dev-panel`).
+- **Left of the client's UI:** the build in the screen's corner (`VersionBar.tsx`, with the build's
+  day and commit stamped at G-09; its reload offer has no place outside a browser); the pose gallery
+  (`dev/PoseGallery.tsx`). Not ported on purpose: the light's CPU readout (`light/readout.ts`), as
+  Godot lights the ship on the GPU and `--measure` reads what frames cost.
+
 ## G-09 — Builds and playtest
 
 Saves as files, a Windows export, a build the team can hand to a friend; then the parity playtest
