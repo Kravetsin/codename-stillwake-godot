@@ -20,8 +20,8 @@ namespace Stillwake.Game.Features.Crew;
 /// followed by the camera; sent to the others about 20 times a second. Every hero in its suit's colour.
 /// E under the pointer, within reach, toggles a door or valve, loads a tank, catches a piece or opens a
 /// crate when pressed, and the left button works a plan while held, grabbing debris too: one
-/// <c>Work</c> for every tick released. With an empty hand, what E would work is outlined, and a prompt
-/// says what E does.
+/// <c>Work</c> for every tick released. With an empty hand, what E would work is outlined along its own
+/// pictures (<see cref="AimOutline"/>), and a prompt says what E does.
 /// </summary>
 public partial class HeroView : Node2D
 {
@@ -33,7 +33,7 @@ public partial class HeroView : Node2D
     private readonly WorldButtons _mouse;
     private readonly Figure _figure = new(Suits.All[0]) { ZIndex = Layers.Hero };
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
-    private readonly Sketch _outline = new(Layers.Aim);
+    private readonly Outline _outline = new(Layers.Aim);
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
@@ -49,9 +49,12 @@ public partial class HeroView : Node2D
     private bool _placed, _wasOut, _jump, _use;
     private Tether? _tether;
     private readonly List<(double X, double Y)> _tetherPoints = [];
-    /// <summary>What E would work, outlined: its cells, and whether the sim would refuse it.</summary>
-    private (IReadOnlyList<int> Cells, bool Refused)? _aimed;
-    private int _width, _steps;
+    /// <summary>
+    /// What the outline was traced for: the aim's cell, its plan, whether the sim would refuse it, and the
+    /// cell's structure, conduit and machine; traced again only when one of them changes.
+    /// </summary>
+    private (int Cell, int? Plan, bool Refused, int Structure, int Conduit, int? Machine)? _traced;
+    private int _steps;
     private double _clockMs;
     /// <summary>The blueprints delivered to in this hold of the left button: a sweep delivers to each it passes once.</summary>
     private readonly HashSet<int> _served = [];
@@ -72,7 +75,6 @@ public partial class HeroView : Node2D
         AddChild(_figure);
         AddChild(_outline);
         AddChild(_prompt);
-        _outline.Paint = PaintAim;
         _tethers.Paint = PaintTethers;
     }
 
@@ -98,7 +100,6 @@ public partial class HeroView : Node2D
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
         var shown = Predicted.Grid(client, grid);
         var ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell));
-        _width = grid.Width;
         bool passedOut = (m.Crew.HeroOf(client.Id)?.Out ?? 0) > 0;
         // Waking from passing out, the sim has put the hero at the spawn: so does the client.
         if (!_placed || (_wasOut && !passedOut))
@@ -145,7 +146,6 @@ public partial class HeroView : Node2D
         _figure.Show(drawn, Poses.PoseOf(drawn, inSpace, passedOut), look, holdsPlan, elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         UseHands(client, m, shown, pointer, passedOut, handFree: !HoldsPlan);
-        _outline.QueueRedraw();
         _tethers.QueueRedraw();
     }
 
@@ -160,7 +160,7 @@ public partial class HeroView : Node2D
         var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served) : null;
         // With a card out the building shows the pointer's cell and its own reasons.
         var prompt = passedOut || !handFree ? null : Prompts.Of(m, aim, shown);
-        _aimed = prompt != null && aim is { Piece: null } ? (OutlineOf(m, aim), prompt.Problem != null) : null;
+        TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
         _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);
 
@@ -178,9 +178,19 @@ public partial class HeroView : Node2D
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
     }
 
-    /// <summary>The cells outlined for <paramref name="aim"/>: a machine's whole footprint, unless a plan in its cell is worked, else the cell.</summary>
-    private static IReadOnlyList<int> OutlineOf(Registry m, Aim aim) =>
-        aim.Work == null && m.Grid.MachineAt(aim.Cell) is { } machine ? m.Grid.Footprint(machine.Kind, machine.Cell) ?? [aim.Cell] : [aim.Cell];
+    /// <summary>Outlines <paramref name="aim"/>, green, or red when the sim would <paramref name="refuse"/>; nothing with none.</summary>
+    private void TraceAim(Registry m, ShownGrid shown, Aim? aim, bool refuse)
+    {
+        var grid = m.Grid;
+        var traced = aim is { } a
+            ? (a.Cell, a.Work?.Plan, refuse, shown.StructureAt(grid, a.Cell), shown.ConduitAt(grid, a.Cell), grid.MachineAt(a.Cell)?.Id)
+            : ((int, int?, bool, int, int, int?)?)null;
+        if (traced == _traced) return;
+        _traced = traced;
+        _outline.Begin();
+        if (aim != null) AimOutline.Trace(_outline, m, aim, shown, refuse ? AimRefused : AimReady);
+        _outline.End();
+    }
 
     /// <summary>Every other hero heard from lately, in its suit, posed by how it moves and whether it is out; those gone, hidden.</summary>
     private void ShowOthers(Ship ship, ICrewQueries crew, double elapsedMs)
@@ -247,17 +257,6 @@ public partial class HeroView : Node2D
         bool pressed = _use;
         _use = false;
         return pressed;
-    }
-
-    /// <summary>What E would work under the pointer within reach, a machine's whole footprint: green, or red when the sim would refuse.</summary>
-    private void PaintAim(Sketch g)
-    {
-        if (_aimed is not var (cells, refused)) return;
-        int left = cells.Min(c => c % _width), top = cells.Min(c => c / _width);
-        int right = cells.Max(c => c % _width) + 1, bottom = cells.Max(c => c / _width) + 1;
-        float cell = (float)Rig.Cell;
-        var box = new Rect2(left * cell + 1, top * cell + 1, (right - left) * cell - 2, (bottom - top) * cell - 2);
-        g.DrawRect(box, refused ? AimRefused : AimReady, false, 2);
     }
 
     private void PaintTethers(Sketch g)

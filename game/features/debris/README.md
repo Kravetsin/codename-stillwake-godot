@@ -13,7 +13,9 @@ everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`.
   `render/Stars.cs`: a filtered tile placed once the camera has followed the hero, so they glide by
   fractions of a pixel a frame as the TypeScript tile did, never holding still and jumping a pixel.
 - **Aimed:** the piece the crew sets in `Ui.AimedPiece` — out in space, within reach, the hand free —
-  is outlined, green, or red while the sim would refuse the grab; the crew's prompt says "[E] Catch".
+  is outlined along its own picture as it tumbles, a screen pixel wide whatever the zoom
+  (`render/Outline.cs`), green, or red while the sim would refuse the grab, fading with the piece; the
+  crew's prompt says "[E] Catch".
 - **Own grabs at once (0014):** a piece this peer has a grab in flight for is gone from its view and
   passed over by the aim, so E cannot send it twice.
 - **Recording:** `-- --autopilot --debris` starts in the wreck with pieces already out

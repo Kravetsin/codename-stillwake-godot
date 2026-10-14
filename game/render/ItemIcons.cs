@@ -25,7 +25,7 @@ public static class ItemIcons
 
     /// <summary>
     /// Makes every item's silhouette now, while the game loads: one is read back from the GPU, which waits for
-    /// the frames in flight, two refreshes of a 240 Hz screen, if left until a piece of debris first shows it.
+    /// the frames in flight, two refreshes of a 240 Hz screen, if left until a stack first lies on the floor.
     /// </summary>
     public static void MakeSilhouettes()
     {
