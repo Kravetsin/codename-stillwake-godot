@@ -31,20 +31,24 @@ public sealed class Scenario
     public Layout Layout { get; }
     public List<Refused> Refusals { get; } = [];
     private readonly List<Command> _pending = [];
+    private readonly Func<Registry, IEnumerable<Module>>? _with;
 
-    public Scenario(string map, uint seed = 1) : this(Layout.Parse(map), seed) { }
+    public Scenario(string map, uint seed = 1, Func<Registry, IEnumerable<Module>>? with = null)
+        : this(Layout.Parse(map), seed, with) { }
 
-    public Scenario(Layout layout, uint seed = 1)
+    /// <param name="with">Test modules run after the registered ones, made anew on every load.</param>
+    public Scenario(Layout layout, uint seed = 1, Func<Registry, IEnumerable<Module>>? with = null)
     {
         Layout = layout;
+        _with = with;
         World = World.Create(seed, layout, Modules());
     }
 
-    /// <summary>A fresh registry, and the builder after it.</summary>
+    /// <summary>A fresh registry, the builder after it, then the scenario's own test modules.</summary>
     public IReadOnlyList<Module> Modules()
     {
         M = new Registry();
-        return [.. M.All, new Builder(M.Grid, M.Grid)];
+        return [.. M.All, new Builder(M.Grid, M.Grid), .. _with?.Invoke(M) ?? []];
     }
 
     public int At(int x, int y) => y * Layout.Width + x;

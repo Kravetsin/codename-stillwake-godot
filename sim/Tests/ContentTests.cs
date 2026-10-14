@@ -23,7 +23,7 @@ public class ContentTests
 
     /// <summary>Slots <paramref name="amounts"/> fill in an empty inventory, every item in stacks as full as they go.</summary>
     private static int SlotsFor(IEnumerable<(string Item, int Count)> amounts) =>
-        amounts.Sum(a => (a.Count + Items.Get(a.Item).Stack - 1) / Items.Get(a.Item).Stack);
+        amounts.Sum(a => (a.Count + Content.Items.Get(a.Item).Stack - 1) / Content.Items.Get(a.Item).Stack);
 
     private static IEnumerable<(IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks)> AllBuilds() =>
         Builds.All.Select(b => (b.Cost, b.BuildTicks)).Concat(Machines.All.Select(m => (m.Cost, m.BuildTicks)));
@@ -93,8 +93,8 @@ public class ContentTests
     [Fact]
     public void ItemsStackWholeNumbersAndEveryMaterialIsOne()
     {
-        foreach (var item in Items.All) Assert.True(item.Stack > 0, item.Id);
-        foreach (var material in Materials.All) Assert.Contains(material.Id, Items.All.Select(i => i.Id));
+        foreach (var item in Content.Items.All) Assert.True(item.Stack > 0, item.Id);
+        foreach (var material in Materials.All) Assert.Contains(material.Id, Content.Items.All.Select(i => i.Id));
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class ContentTests
     {
         var furnace = Machines.Get("furnace");
         int outputs = furnace.Slots!.Value - furnace.Inputs!.Value;
-        foreach (var spec in Items.All)
+        foreach (var spec in Content.Items.All)
             if (spec.Yields != null) Assert.True(SlotsFor(spec.Yields) <= outputs, spec.Id);
     }
 
@@ -143,14 +143,14 @@ public class ContentTests
     [Fact]
     public void FuelBurnsForWholeTicksLongEnoughToSmeltSomethingAndIsNoSalvage()
     {
-        var fuels = Items.All.Where(i => i.BurnTicks != null).ToList();
+        var fuels = Content.Items.All.Where(i => i.BurnTicks != null).ToList();
         Assert.NotEmpty(fuels);
         foreach (var spec in fuels)
         {
             Assert.True(spec.BurnTicks > 0, spec.Id);
             Assert.Null(spec.Yields);
         }
-        int fastest = Items.All.Min(s => s.SmeltTicks ?? int.MaxValue);
+        int fastest = Content.Items.All.Min(s => s.SmeltTicks ?? int.MaxValue);
         Assert.True(fuels.Max(s => s.BurnTicks!.Value) > fastest);
     }
 
@@ -169,7 +169,7 @@ public class ContentTests
     [Fact]
     public void SalvageSmeltsInWholeTicksIntoWholeAmountsOfItemsThatAreNotSalvage()
     {
-        foreach (var spec in Items.All)
+        foreach (var spec in Content.Items.All)
         {
             Assert.True(spec.Yields != null == (spec.SmeltTicks != null), spec.Id);
             if (spec.Yields == null) continue;
@@ -179,7 +179,7 @@ public class ContentTests
             {
                 // What the Yields type held in TypeScript: materials and canisters only.
                 Assert.True(Materials.TryGet(item, out _) || item == "canister", item);
-                Assert.True(Items.TryGet(item, out var yielded), item);
+                Assert.True(Content.Items.TryGet(item, out var yielded), item);
                 Assert.Null(yielded!.Yields);
                 Assert.True(amount > 0, item);
             }
@@ -199,7 +199,7 @@ public class ContentTests
         foreach (var (item, weight) in Debris.Kinds)
         {
             bool opens = Loot.Of(item) != null;
-            Assert.True(opens || Items.Get(item).Yields != null, item);
+            Assert.True(opens || Content.Items.Get(item).Yields != null, item);
             Assert.True(weight > 0, item);
         }
     }
@@ -209,11 +209,11 @@ public class ContentTests
     {
         foreach (var (container, loot) in Loot.All)
         {
-            Assert.True(Items.TryGet(container, out _), container);
+            Assert.True(Content.Items.TryGet(container, out _), container);
             Assert.NotEmpty(loot);
             foreach (var entry in loot)
             {
-                Assert.True(Items.TryGet(entry.Item, out _), entry.Item);
+                Assert.True(Content.Items.TryGet(entry.Item, out _), entry.Item);
                 Assert.Null(Loot.Of(entry.Item));
                 Assert.True(entry.Min >= 0, entry.Item);
                 Assert.True(entry.Max >= Math.Max(1, entry.Min), entry.Item);
@@ -247,7 +247,7 @@ public class ContentTests
             Assert.NotEmpty(cost);
             foreach (var (item, amount) in cost)
             {
-                Assert.True(Items.TryGet(item, out _), item);
+                Assert.True(Content.Items.TryGet(item, out _), item);
                 Assert.Null(Loot.Of(item));
                 Assert.True(amount > 0, item);
             }
@@ -276,7 +276,7 @@ public class ContentTests
         foreach (var (item, amount) in Power.CableCost)
         {
             // What the BuildCost type held in TypeScript: items there are.
-            Assert.True(Items.TryGet(item, out _), item);
+            Assert.True(Content.Items.TryGet(item, out _), item);
             Assert.True(amount > 0, item);
         }
         foreach (var m in Machines.All)
@@ -363,8 +363,8 @@ public class ContentTests
     {
         var learned = Research.StartKnown.Concat(Research.Unlocks.SelectMany(u => u.Blueprints)).Concat(Research.Schematics);
         Assert.Equal(Blueprints().Order(StringComparer.Ordinal), learned.Order(StringComparer.Ordinal));
-        foreach (var (item, _) in Research.Unlocks) Assert.True(Items.TryGet(item, out _), item);
-        Assert.True(Items.TryGet("schematic", out _));
+        foreach (var (item, _) in Research.Unlocks) Assert.True(Content.Items.TryGet(item, out _), item);
+        Assert.True(Content.Items.TryGet("schematic", out _));
     }
 
     [Fact]
