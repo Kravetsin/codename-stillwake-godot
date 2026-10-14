@@ -46,9 +46,9 @@ public partial class PowerView : Node2D
     private readonly CableRopes _ropes = new();
     private readonly PowerHands _hands = new();
     // Behind the walls and machines, in front of back walls and pipes; fittings on the wall's face.
-    private readonly Sketch _lines = new(-4, lit: true), _grommets = new(6, lit: true);
-    private readonly Node2D _ends = new() { ZIndex = 6 }, _bolts = new() { ZIndex = 25 }, _unplugged = new() { ZIndex = 21 };
-    private readonly Sketch _overlay = new(20), _ghost = new(22);
+    private readonly Sketch _lines = new(Layers.Cables, lit: true), _grommets = new(Layers.Fittings, lit: true);
+    private readonly Node2D _ends = new() { ZIndex = Layers.Fittings }, _bolts = new() { ZIndex = Layers.Bolts }, _unplugged = new() { ZIndex = Layers.OverlayMarks };
+    private readonly Sketch _overlay = new(Layers.Overlay), _ghost = new(Layers.OverlayHands);
     private List<CableLine> _drawn = [];
     private Dictionary<int, PowerNetwork> _byNode = new();
     private double _since = RefreshMs, _timeMs;

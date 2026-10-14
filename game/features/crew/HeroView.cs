@@ -31,15 +31,17 @@ public partial class HeroView : Node2D
 
     private readonly Ui _ui;
     private readonly WorldButtons _mouse;
-    private readonly Figure _figure = new(Suits.All[0]);
+    private readonly Figure _figure = new(Suits.All[0]) { ZIndex = Layers.Hero };
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
-    private readonly Sketch _outline = new(4);
+    private readonly Sketch _outline = new(Layers.Aim);
+    /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
+    private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
     private readonly Clock _clock = new(Hero.StepMs);
     private readonly HeroAutopilot? _autopilot;
     private readonly RemoteHeroes _remote = new();
     private readonly HeroSender _sender;
-    private readonly Node2D _others = new();
+    private readonly Node2D _others = new() { ZIndex = Layers.OtherHeroes };
     /// <summary>Each other hero's figure, and its tether while it has one, by peer id.</summary>
     private readonly Dictionary<int, (Figure Figure, Tether? Tether)> _shownOthers = new();
     private Client? _sendTo;
@@ -63,12 +65,14 @@ public partial class HeroView : Node2D
         _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
-        // Others behind this machine's hero.
+        // Others behind this machine's hero, every tether behind them both (Layers).
+        AddChild(_tethers);
         AddChild(_others);
         AddChild(_figure);
         AddChild(_outline);
         AddChild(_prompt);
         _outline.Paint = PaintAim;
+        _tethers.Paint = PaintTethers;
     }
 
     /// <summary>The hero after its latest step: what the sim learns of where it is.</summary>
@@ -141,7 +145,7 @@ public partial class HeroView : Node2D
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         UseHands(client, m, shown, pointer, passedOut, handFree: !HoldsPlan);
         _outline.QueueRedraw();
-        QueueRedraw();
+        _tethers.QueueRedraw();
     }
 
     /// <summary>
@@ -255,16 +259,15 @@ public partial class HeroView : Node2D
         g.DrawRect(box, refused ? AimRefused : AimReady, false, 2);
     }
 
-    public override void _Draw()
+    private void PaintTethers(Sketch g)
     {
-        // Behind the heroes, unlit: every tether, a line to find the way back by.
         foreach (var line in _shownOthers.Values.Select(s => s.Tether).Append(_tether))
         {
             if (line == null) continue;
             float scale = (float)(Rig.Cell / Hero.Unit);
             var points = line.Trace(scale).Select(p => new Vector2((float)p.X, (float)p.Y)).ToArray();
-            DrawPolyline(points, Line, 1, true);
-            DrawCircle(new Vector2(line.Anchor.X, line.Anchor.Y) * scale, 1.5f, Line);
+            g.DrawPolyline(points, Line, 1, true);
+            g.DrawCircle(new Vector2(line.Anchor.X, line.Anchor.Y) * scale, 1.5f, Line);
         }
     }
 }

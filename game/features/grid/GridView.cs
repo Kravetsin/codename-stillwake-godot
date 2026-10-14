@@ -27,7 +27,7 @@ public partial class GridView : Node2D
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = new();
     private readonly TileMapLayer _back, _pipes, _valves, _walls, _edges, _fixtures, _doors, _machines;
-    private readonly Node2D _sockets = new() { ZIndex = 5 };
+    private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
     private readonly Dictionary<int, string> _materials = Materials.All.ToDictionary(m => m.Code, m => m.Id);
     private int[] _structure = [], _material = [], _conduit = [], _backs = [], _backMaterial = [];
     private Machine[] _drawnMachines = [];
@@ -37,14 +37,14 @@ public partial class GridView : Node2D
     {
         _grid = grid;
         // Walls and doors take the share of light a wall keeps of what reaches its face; the rest all of it.
-        _back = Layer(-10);
-        _pipes = Layer(-6);
-        _valves = Layer(-5);
-        _walls = Layer(0, L.WallIn, relief: true);
-        _edges = Layer(1, L.WallIn, relief: true);
-        _fixtures = Layer(2);
-        _doors = Layer(3, L.WallIn, relief: true);
-        _machines = Layer(4, relief: true);
+        _back = Layer(Layers.BackWalls);
+        _pipes = Layer(Layers.Pipes);
+        _valves = Layer(Layers.Valves);
+        _walls = Layer(Layers.Walls, L.WallIn, relief: true);
+        _edges = Layer(Layers.Edges, L.WallIn, relief: true);
+        _fixtures = Layer(Layers.Fixtures);
+        _doors = Layer(Layers.Doors, L.WallIn, relief: true);
+        _machines = Layer(Layers.Machines, relief: true);
         AddChild(_sockets);
     }
 

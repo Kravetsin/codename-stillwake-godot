@@ -112,7 +112,7 @@ public partial class LightView : Node2D
                 Position = at,
                 Modulate = GlowColour,
                 Scale = Vector2.One * GlowCells * Cell / PixelArt.Glow.GetWidth(),
-                ZIndex = 6,
+                ZIndex = Layers.Glows,
                 Material = new CanvasItemMaterial
                 {
                     BlendMode = CanvasItemMaterial.BlendModeEnum.Add,

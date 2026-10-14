@@ -32,7 +32,7 @@ public partial class DebrisView(Ui ui) : Node2D
     public override void _Ready()
     {
         // Behind the back walls: debris drifts past behind the hull.
-        ZIndex = -20;
+        ZIndex = Layers.Debris;
     }
 
     /// <summary>

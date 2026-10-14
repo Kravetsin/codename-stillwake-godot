@@ -42,6 +42,8 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
   toggles in flight already made, so it walks through a door opened on the frame E was pressed.
 - Floats only in drawing: the rig, the poses, the tether's rope, others' heroes between samples.
 - Every hero is lit where it stands, as the ship is (`render/Lit.cs`); tethers are not.
+- Drawn over the machines, the floor's stacks and the furnace's fire, as the crew's layer stacked in
+  TypeScript (`render/Layers.cs`): every tether, then others' heroes, then this machine's.
 
 ## Others' heroes
 
@@ -85,8 +87,7 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
   of debris out in space (E or the left button). Pieces with a grab in flight are passed over
   (`Shared.Predicted.Grabbing`).
 - With the hand free and the hero awake, what E would work is outlined (a machine's whole footprint,
-  over the machines and so over the hero, who draws under them, and under the plans as the
-  TypeScript layers stacked) and `UsePrompt` says what E does, red with the sim's reason. A piece of
+  over the machines, under the heroes and the plans as the TypeScript layers stacked: `Layers.Aim`) and `UsePrompt` says what E does, red with the sim's reason. A piece of
   debris is outlined by the debris feature, through `Ui.AimedPiece`; a crate opened is shown by the
   items feature, through `Ui.OpenCrate`, and closed here once out of reach or passed out.
 - With anything else in hand (`Ui.Hand`, 0022) the hero holds the plan's sheet (`Figure`'s `sheet`,

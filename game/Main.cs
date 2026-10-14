@@ -263,8 +263,6 @@ public partial class Main : Node2D
             Burns = m => furnace.At(m.Id).Burning,
         });
         AddChild(_furnace = new FurnaceView(_m.Grid, furnace));
-        if (_items != null) MoveChild(_items, -1);
-        if (_hero != null) MoveChild(_hero, -1);
         MoveChild(_camera, -1);
         _shown = _m;
         _gridKey = null;
