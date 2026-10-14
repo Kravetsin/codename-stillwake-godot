@@ -97,7 +97,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
             Back = new int[size],
             BackMaterial = new int[size],
         };
-        int hull = Data.MaterialById(Data.DefaultHull)!.Code;
+        int hull = Materials.Get(Materials.DefaultHull).Code;
         for (int cell = 0; cell < size; cell++)
         {
             char c = layout.At(cell);
@@ -172,8 +172,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     /// <summary>The cells a machine of <paramref name="kind"/> covers with its top-left at <paramref name="cell"/>.</summary>
     private List<int>? Footprint(string kind, int cell)
     {
-        var spec = Data.Machine(kind);
-        if (spec == null || !InBounds(cell)) return null;
+        if (!Content.Machines.TryGet(kind, out var spec) || !InBounds(cell)) return null;
         int x = cell % State.Width, y = cell / State.Width;
         if (x + spec.Width > State.Width || y + spec.Height > State.Height) return null;
         var cells = new List<int>();
@@ -211,15 +210,15 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
             case "structure":
                 if (State.Structure[cell] != Structure.Empty) return "grid.occupied";
                 if (State.Occupancy[cell] != 0) return "grid.machineInTheWay";
-                if (p.Kind == "wall" && Data.MaterialById(p.Material ?? "") == null) return "grid.noSuchMaterial";
+                if (p.Kind == "wall" && !Materials.TryGet(p.Material ?? "", out _)) return "grid.noSuchMaterial";
                 return null;
             case "conduit":
                 return State.Conduit[cell] == Conduit.None ? null : "grid.occupied";
             case "back":
                 if (State.Back[cell] != Back.None) return "grid.occupied";
-                return Data.MaterialById(p.Material ?? "") == null ? "grid.noSuchMaterial" : null;
+                return Materials.TryGet(p.Material ?? "", out _) ? null : "grid.noSuchMaterial";
             case "machine":
-                if (Data.Machine(p.Kind) == null) return "grid.noSuchMachine";
+                if (!Content.Machines.TryGet(p.Kind, out _)) return "grid.noSuchMachine";
                 var cells = Footprint(p.Kind, cell);
                 if (cells == null) return "grid.outOfBounds";
                 if (cells.Any(c => State.Structure[c] != Structure.Empty)) return "grid.blocked";
@@ -244,14 +243,14 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
                     "ladder" => Structure.Ladder,
                     _ => Structure.DoorClosed,
                 };
-                if (p.Kind == "wall") State.Material[cell] = Data.MaterialById(p.Material!)!.Code;
+                if (p.Kind == "wall") State.Material[cell] = Materials.Get(p.Material!).Code;
                 return;
             case "conduit":
                 State.Conduit[cell] = p.Kind == "pipe" ? Conduit.Pipe : Conduit.ValveOpen;
                 return;
             case "back":
                 State.Back[cell] = Back.Wall;
-                State.BackMaterial[cell] = Data.MaterialById(p.Material!)!.Code;
+                State.BackMaterial[cell] = Materials.Get(p.Material!).Code;
                 return;
             case "machine":
                 int id = State.NextMachineId++;

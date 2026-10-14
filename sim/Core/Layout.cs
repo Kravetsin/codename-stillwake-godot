@@ -18,11 +18,11 @@ public sealed record Layout(int Width, int Height, IReadOnlyList<string> Rows, I
     {
         int width = rows.Count == 0 ? 0 : rows.Max(r => r.Length);
         var padded = rows.Select(r => r.PadRight(width)).ToArray();
-        Check(padded, Data.Legend, "");
+        Check(padded, Legend.MapChars, "");
         if (under == null) return new Layout(width, padded.Length, padded);
         var below = Enumerable.Range(0, padded.Length)
             .Select(y => (y < under.Count ? under[y] : "").PadRight(width)).ToArray();
-        Check(below, Data.LegendUnder, " under");
+        Check(below, Legend.UnderChars, " under");
         return new Layout(width, padded.Length, padded, below);
     }
 
@@ -66,9 +66,9 @@ public sealed record Layout(int Width, int Height, IReadOnlyList<string> Rows, I
         for (int cell = 0; cell < Width * Height; cell++)
         {
             char c = At(cell);
-            var kind = Data.MachineOf(c);
+            var kind = Legend.MachineOf(c);
             if (kind == null || claimed[cell]) continue;
-            var spec = Data.Machine(kind)!;
+            var spec = Content.Machines.Get(kind);
             int x = cell % Width, y = cell / Width;
             for (int dy = 0; dy < spec.Height; dy++)
                 for (int dx = 0; dx < spec.Width; dx++)
