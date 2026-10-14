@@ -4,6 +4,7 @@ using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Power;
+using Stillwake.Sim.Research;
 using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Sim;
@@ -19,6 +20,7 @@ public sealed class Registry
     public RoomsModule Rooms { get; }
     public ItemsModule Items { get; }
     public PowerModule Power { get; }
+    public ResearchModule Research { get; }
     public PipesModule Pipes { get; }
     public HazardsModule Hazards { get; }
 
@@ -31,11 +33,13 @@ public sealed class Registry
         Rooms = new RoomsModule(Grid);
         Items = new ItemsModule(Grid, Rooms);
         Power = new PowerModule(Grid, Rooms, Items, Items);
+        Research = new ResearchModule(Grid, Items, Items, Power, Power);
         Pipes = new PipesModule(Grid);
         Hazards = new HazardsModule(Grid, Grid);
-        All = [Grid, Rooms, Items, Power, Pipes, Hazards];
+        All = [Grid, Rooms, Items, Power, Research, Pipes, Hazards];
     }
 
     /// <summary>The wreck the game starts in.</summary>
-    public static Layout Wreck => Layout.Parse(Content.Wreck.Rows, Content.Wreck.Under, Content.Wreck.Cables);
+    public static Layout Wreck =>
+        Layout.Parse(Content.Wreck.Rows, Content.Wreck.Under, Content.Wreck.Cables) with { Known = Content.Research.StartKnown };
 }

@@ -4,9 +4,10 @@ namespace Stillwake.Sim;
 
 /// <summary>A map drawn as ASCII, a character a cell, cells numbered row by row from the top-left.</summary>
 /// <param name="Cables">The cells of the two ends of each power cable laid on the map.</param>
+/// <param name="Known">The blueprints known at the start (ADR 0024); every one when not given.</param>
 public sealed record Layout(
     int Width, int Height, IReadOnlyList<string> Rows, IReadOnlyList<string>? Under = null,
-    IReadOnlyList<(int A, int B)>? Cables = null)
+    IReadOnlyList<(int A, int B)>? Cables = null, IReadOnlyList<string>? Known = null)
 {
     public static readonly Layout Empty = new(0, 0, []);
 

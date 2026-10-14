@@ -361,14 +361,14 @@ public class ContentTests
     [Fact]
     public void ResearchLearnsEveryBlueprintOnceKnownFromTheStartFromAMaterialOrFromASchematic()
     {
-        var learned = Research.StartKnown.Concat(Research.Unlocks.SelectMany(u => u.Blueprints)).Concat(Research.Schematics);
+        var learned = Content.Research.StartKnown.Concat(Content.Research.Unlocks.SelectMany(u => u.Blueprints)).Concat(Content.Research.Schematics);
         Assert.Equal(Blueprints().Order(StringComparer.Ordinal), learned.Order(StringComparer.Ordinal));
-        foreach (var (item, _) in Research.Unlocks) Assert.True(Content.Items.TryGet(item, out _), item);
+        foreach (var (item, _) in Content.Research.Unlocks) Assert.True(Content.Items.TryGet(item, out _), item);
         Assert.True(Content.Items.TryGet("schematic", out _));
     }
 
     [Fact]
-    public void ResearchAnalysesInWholeTicks() => Assert.True(Research.Ticks > 0);
+    public void ResearchAnalysesInWholeTicks() => Assert.True(Content.Research.Ticks > 0);
 
     // What TypeScript's types guaranteed, which C#'s strings do not.
 
