@@ -15,8 +15,9 @@ add needs nothing to run, so fuel matters to the furnace alone.
 2. The wire lays the cable that powers the analyzer in room B from the wreck's solar panel.
 3. Iron goes in the analyzer: stripes on its screen, then a green check; plate and gear appear among
    the crafts. Every item is learned this way, raw or made.
-4. The analyzer's panel lists what is analysed, what each opened, and what is one item short: the
-   door's thumbnail beside the gear's.
+4. Nothing pops up over the hero. Seeing the check, the player walks to the analyzer and opens it:
+   right under the item in its slot are the blueprints and crafts that item opened. Below, what is
+   analysed so far and what is one item short: the door's thumbnail beside the gear's.
 5. Plates, gears, wire and a rotor analysed, the burner generator opens. Built and fed planks, it
    burns, breathes its room's air like the furnace and powers what is cabled to it.
 
@@ -127,8 +128,10 @@ counts no resting maker. `Power` runs first, so it sees this a tick late. No new
 - Crafts docked beside the inventory: the known ones (creative mode shows all), each with its cost
   and what is short. Click queues 1, shift-click 5 (refused whole when unpaid). The queue under them:
   the running unit's bar, a click on an entry cancels it.
-- The analyzer's screen: stripes while working, a check when done, dark unpowered. Its panel:
-  analysed items, what each opened, what is one item short. `Learned` goes.
+- The analyzer's screen: running lines while working, a green check when done, dark unpowered. Its
+  panel: under the slot, what the item in it opened (as many as there are, in rows); below, analysed
+  items and what is one item short. `Learned`, the list over the hero's head, goes: with many
+  blueprints opening at once it would cover the screen.
 - The burner generator: art knocked together from scrap like the furnace, its fire seen through a
   grate; the fire, its light and embers drawn by the furnace's code, moved to a shared place since
   features do not import each other. The fuel slot opened with E.
@@ -199,7 +202,6 @@ change to wire; the furnace's become fire scenarios where they hold for both.
      `Crafting` module and its panel, the new costs, the analyzer's screen and panel.
   2. **The burner generator:** shared fires, the fuel slot by spec, resting makers, its art.
 
-## Open questions
+## Decided with the team
 
-- Is 6 the right first output for the burner generator, and how long should a plank burn in it (the
-  furnace's 300 ticks, 15 s)?
+- The burner generator makes 6; a plank burns in it as in the furnace, 300 ticks (15 s).
