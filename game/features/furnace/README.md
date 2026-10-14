@@ -11,8 +11,13 @@ only: the sim (`sim/Furnace`) decides whether it burns.
   `features/furnace/art.ts`) in turn every 110 ms, never the same picture twice running.
 - **Embers:** 7 a second from the middle of a burning furnace, a little to either side, owed between
   frames, emitted into `Particles.Shared` as `Effect.Ember` and drawn and lit by the effects feature.
-- **Light:** `LightView.Burns` — a burning furnace's fire lights its room in `Light.Fire` from the
-  middle of its bottom row, a shadowed light like a lamp's; `Main` answers it from `At(id).Burning`.
+- **Crackle:** with each new picture its fire draws how brightly it burns (`Flames.Blaze`): from
+  `Flames.Low` to whole, held till the next picture, or one picture in ten a coal cracks: it flares
+  to `Flames.Crack` and throws up `Flames.CrackEmbers` embers at once. `BlazeOf(id)` answers it, 0
+  while out.
+- **Light:** `LightView.Fire` — a burning furnace's fire lights round its mouth in `Light.Fire`, a
+  shadowed light like a lamp's, and glows; `Main` answers it from `BlazeOf`, adding this view
+  before the light's so the light follows the picture of the same frame.
 - **Recording:** `-- --furnace` starts in the wreck with a furnace in room A, by the start, holding
   scrap chunks and planks, played on until it burns (`FurnaceDemo.cs`, the items put in through the
   save).
@@ -22,6 +27,7 @@ only: the sim (`sim/Furnace`) decides whether it burns.
 | File             | Holds                                                    |
 | ---------------- | -------------------------------------------------------- |
 | `FurnaceView.cs` | the layer: fires and where embers come from              |
+| `Flames.cs`      | how brightly a fire burns with each picture, and cracks  |
 | `FurnaceDemo.cs` | the world of `--furnace`                                 |
 
 ## Deliberately not handled

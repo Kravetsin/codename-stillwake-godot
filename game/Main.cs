@@ -273,13 +273,14 @@ public partial class Main : Node2D
         _furnace?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
         var power = _m.Power;
-        var furnace = _m.Furnace;
+        // The furnaces before the light: each frame a fire picks its picture, then its light follows it.
+        var fires = new FurnaceView(_m.Grid, _m.Furnace);
+        AddChild(_furnace = fires);
         AddChild(_light = new LightView(_m.Grid)
         {
             LampShare = lamp => power.Satisfaction(lamp.Id) / 1000f,
-            Burns = m => furnace.At(m.Id).Burning,
+            Fire = m => fires.BlazeOf(m.Id),
         });
-        AddChild(_furnace = new FurnaceView(_m.Grid, furnace));
         MoveChild(_camera, -1);
         _shown = _m;
         _gridKey = null;
