@@ -79,6 +79,26 @@ public partial class Figure : Node2D
     private double _outMs, _outTilt;
     private int _slump;
     private readonly Sprite2D _screen;
+    /// <summary>
+    /// The planner's screen lights what is near it, a little, in its blue: added over the room's light
+    /// as an ember's is (its alpha marks it so for <see cref="Lit"/>), brighter as it beams.
+    /// </summary>
+    private readonly PointLight2D _glow = new()
+    {
+        Texture = new GradientTexture2D
+        {
+            Width = 96, Height = 96,
+            Fill = GradientTexture2D.FillEnum.Radial,
+            FillFrom = new Vector2(0.5f, 0.5f), FillTo = new Vector2(1, 0.5f),
+            Gradient = new Gradient { Colors = [new Color(1, 1, 1), new Color(0.25f, 0.25f, 0.25f), new Color(0, 0, 0)], Offsets = [0, 0.35f, 1] },
+        },
+        Position = new Vector2(7, -4),
+        RangeItemCullMask = Lit.LampMask,
+        ShadowEnabled = true,
+        Height = 16,
+    };
+    private const float GlowStrength = 0.35f;
+    private static readonly Color GlowColour = new(0.45f, 0.8f, 1f);
     private readonly List<Line2D> _beams = new();
     private readonly List<Vector2> _beamTo = new();
     private double _beamMs;
@@ -133,6 +153,7 @@ public partial class Figure : Node2D
             Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded },
         };
         _plan.AddChild(_screen);
+        _plan.AddChild(_glow);
         for (int i = 0; i < BeamsMost; i++)
         {
             var beam = new Line2D { TopLevel = true, Width = 1, Visible = false, ZIndex = 1, Material = BeamMaterial };
@@ -311,6 +332,8 @@ public partial class Figure : Node2D
             double turn = Poses.SheetTurn(_head);
             _plan.Rotation = (float)(turn + Poses.Apart(turn, aim) * thrust);
             _screen.Modulate = new Color(1, 1, 1) * (float)(1 + 0.8 * thrust);
+            float glow = GlowStrength * (float)(1 + 1.5 * thrust);
+            _glow.Color = new Color(GlowColour.R * glow, GlowColour.G * glow, GlowColour.B * glow, 0.5f);
         }
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         // Lying down, the middle sinks as the body turns, so it comes to rest on the floor.
