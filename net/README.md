@@ -93,8 +93,8 @@ peer stamped with the sender, and keeps nothing.
   networks wait for GodotSteam (G-09), whose relays cross NAT. Its routing and tests are not ported.
 - **Browser time:** the worker's beat (`time.ts`) and the build check (`update.ts`) served a page;
   Godot keeps processing in a background window.
-- Others hear of a peer leaving only through the farewell the game passes; the game passes none until
-  `crew.leave` is ported.
+- Others hear of a peer leaving only through the farewell the game passes: `crew`'s `Leave`, which
+  takes its hero out (`game/Main.cs`).
 - A host that loads a save leaves its joined peers behind.
 - No host migration, no anti-cheat: friends trust each other (0002).
 - Large saves go in one reliable ENet packet; fine for the wreck, measured again with the reference

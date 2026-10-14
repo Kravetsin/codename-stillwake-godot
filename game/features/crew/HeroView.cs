@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using Godot;
 using Stillwake.Net;
+using Stillwake.Sim.Atmosphere;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
 using Spec = Stillwake.Content.Hero;
@@ -36,22 +38,26 @@ public partial class HeroView : Node2D
         AddChild(_figure);
     }
 
-    /// <summary>The hero after its latest step: what the sim learns of where it is, once crew is ported.</summary>
+    /// <summary>The hero after its latest step: what the sim learns of where it is.</summary>
     public Hero Current => _current;
 
     /// <summary>
     /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world and draws it, the
-    /// camera centred on it. The crew module's seams: the hero wakes at <paramref name="spawn"/>, and
-    /// again there on coming round, and takes no orders while <paramref name="passedOut"/>.
+    /// camera centred on it, and tells the sim where it is when that matters to its breathing
+    /// (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming round, and
+    /// takes no orders while passed out.
     /// </summary>
-    public void Frame(Client client, IGridQueries grid, IRoomsQueries rooms, Camera2D camera, int spawn, bool passedOut, double elapsedMs)
+    public void Frame(
+        Client client, IGridQueries grid, IRoomsQueries rooms, IAtmosphereQueries air, ICrewQueries crew, Camera2D camera,
+        double elapsedMs)
     {
         var ship = Ship.Of(grid, rooms);
         _width = grid.Width;
+        bool passedOut = (crew.HeroOf(client.Id)?.Out ?? 0) > 0;
         // Waking from passing out, the sim has put the hero at the spawn: so does the client.
         if (!_placed || (_wasOut && !passedOut))
         {
-            _previous = _current = Hero.At(ship, spawn);
+            _previous = _current = Hero.At(ship, crew.Spawn);
             _placed = true;
         }
         _wasOut = passedOut;
@@ -65,6 +71,7 @@ public partial class HeroView : Node2D
             var input = passedOut ? new HeroInput(0, 0, false) : taken with { Face = face };
             (_previous, _current) = (_current, _current.Step(input, ship));
         }
+        if (Report.Of(crew, rooms, air, grid.Width, client.Id, _current) is { } report) client.Send(report);
 
         double between = _clock.Progress;
         double x = _previous.X + (_current.X - _previous.X) * between;

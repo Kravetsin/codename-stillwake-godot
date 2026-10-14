@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>Stillwake.Sim.Crew</AssemblyName><RootNamespace>Stillwake.Sim.Crew</RootNamespace></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Atmosphere/Atmosphere.csproj" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Stillwake.Sim.Tests" /></ItemGroup>
+</Project>

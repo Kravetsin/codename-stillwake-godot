@@ -2,6 +2,7 @@ using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
 using Stillwake.Sim.Atmosphere;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
 using Xunit;
@@ -11,8 +12,7 @@ using Materials = Stillwake.Content.Materials;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// packages/sim/src/modules/atmosphere/air.test.ts, ported. Crew is not ported yet: its breathing comes
-/// from the test <see cref="Breather"/>.
+/// packages/sim/src/modules/atmosphere/air.test.ts, ported.
 /// </summary>
 public class AirTests
 {
@@ -53,12 +53,10 @@ public class AirTests
         }
     }
 
-    private static Scenario NewWorld(string map) => new(map, with: m => [new Breather(m.Atmosphere)]);
-
     /// <summary>A world from <paramref name="map"/> in creative mode, its vent piped to its tank through a valve if asked.</summary>
     private static Setup SetUp(string map = Room, bool valve = false)
     {
-        var w = NewWorld(map).Do(new Items.SetCreative(true));
+        var w = new Scenario(map).Do(new Items.SetCreative(true));
         foreach (int cell in new[] { At(1, 1), At(1, 2), At(1, 3) })
             w.Do(new Place(cell, new Placement("conduit", valve && cell == At(1, 2) ? "valve" : "pipe")));
         w.Run();
@@ -327,7 +325,7 @@ public class AirTests
     /// <summary><see cref="Two"/> with its left room aired from three canisters; its vent's pipe cut after if asked.</summary>
     private static (Scenario W, int Left, int Door, int Right) TwoRooms(bool cut = false)
     {
-        var w = NewWorld(Two).Do(new Items.SetCreative(true));
+        var w = new Scenario(Two).Do(new Items.SetCreative(true));
         foreach (int cell in new[] { At15(1, 1), At15(1, 2), At15(1, 3) }) w.Do(new Place(cell, Pipe));
         w.Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
@@ -412,7 +410,7 @@ public class AirTests
     [Fact]
     public void LaysARoomOutAroundAVentBuiltInItAndFromItsMiddleWithNone()
     {
-        var w = NewWorld("#########\n#.......#\n#.......#\n#.......#\n#########");
+        var w = new Scenario("#########\n#.......#\n#.......#\n#.......#\n#########");
         int room = w.M.Rooms.All[0].Id;
         Assert.Equal(At(4, 2), w.Air().Orders[room][0]);
         w.Do(new Place(At(1, 1), new Placement("machine", "vent"))).Run();
@@ -483,7 +481,7 @@ public class AirTests
             }
             // Loaded between beats, a world plays on exactly as the one that never stopped.
             var m = new Registry();
-            var loaded = World.Load(w.World.Save(), [.. m.All, new Builder(m.Grid, m.Grid), new Breather(m.Atmosphere)]);
+            var loaded = World.Load(w.World.Save(), [.. m.All, new Builder(m.Grid, m.Grid)]);
             for (int i = 0; i < Air.TicksPerCell * 3 + 1; i++)
             {
                 if (loaded.Hash() != w.World.Hash()) return false.Label($"hashes differ {i} ticks after the load");
@@ -538,7 +536,7 @@ public class AirTests
     [Fact]
     public void LeaksThroughTheBackWallBehindAnOpenDoorACellOfTheRoomNotAClosedOne()
     {
-        var w = NewWorld(Two);
+        var w = new Scenario(Two);
         // Shut, each room its hull and its own cells; the door's back wall touches no air.
         Assert.Equal(new int?[] { (17 + 21) * Scrap, (13 + 15) * Scrap }, new[] { LeakAt(w, At15(4, 2)), LeakAt(w, At15(10, 2)) });
         w.Do(new ToggleDoor(At15(8, 2))).Run();
@@ -592,11 +590,11 @@ public class AirTests
     [Fact]
     public void SaysWhyARoomStaysInVacuumNoVentAVentWithNoPipeOrPipesWithNoOxygen()
     {
-        var bare = NewWorld("#####\n#...#\n#####");
+        var bare = new Scenario("#####\n#...#\n#####");
         var none = Of(bare, bare.M.Rooms.All[0].Id)!;
         Assert.Equal((RoomStatus.Vacuum, "atmosphere.noVent"), (none.Status, none.Problem));
 
-        var unpiped = NewWorld(Room);
+        var unpiped = new Scenario(Room);
         var room = Of(unpiped, unpiped.M.Rooms.RoomAt(At(4, 2))!.Value)!;
         Assert.Equal(("atmosphere.notPiped", (int?)null), (room.Problem, room.Lasts));
 

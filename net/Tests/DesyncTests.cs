@@ -1,4 +1,9 @@
 using Stillwake.Sim;
+using Stillwake.Sim.Atmosphere;
+using Stillwake.Sim.Building;
+using Stillwake.Sim.Crew;
+using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
 using Xunit;
 
 namespace Stillwake.Net.Tests;
@@ -29,13 +34,74 @@ public class DesyncTests
         Assert.Equal(4, count);
     }
 
-    // A room with a vent above a tank and the spawn beside them: the first client pipes them and loads
-    // the tank through building, then the fuzz plays on past two leak beats, breaching walls and moving
-    // heroes in and out, one kept outside till it passes out. Asserts air aired, a tank drawn from, a
-    // suit refilled from room air, and a hero that passed out and woke, with no desync over 2600 ticks.
-    [Fact(Skip = "needs atmosphere, building, items and crew (G-04)")]
+    [Fact]
     public void KeepsEveryClientInSyncWhileAirFillsLeaksAndVentsAndHeroesBreatheIt()
     {
+        // A room with a vent above a tank and the spawn beside them. The first client pipes them and
+        // loads the tank through the pipeline, then the fuzz plays on past two leak beats, breaching
+        // walls and moving heroes in and out as it goes, one kept outside till it passes out.
+        var room = Layout.Parse([
+            ".............",
+            ".###########.",
+            ".#V..S.....#.",
+            ".#TT.......#.",
+            ".#TT.......#.",
+            ".###########.",
+            ".............",
+        ]);
+        static int Cell(int x, int y) => y * 13 + x;
+        var pipe = new Placement("conduit", "pipe");
+        const int tank = 2;
+        int aired = 0, peak = 0;
+        bool drawn = false, refilled = false, woke = false;
+        var suits = new Dictionary<int, (int Suit, int Out)>();
+        var game = Definition.Game();
+        var run = Desync.Fuzz(game, 8, layout: room,
+            // Past two leak beats: an aired room leaks once a minute, 1200 ticks.
+            ticks: 2600,
+            tamper: (tick, clients) =>
+            {
+                var first = clients[0];
+                // Building and loading are free, whatever creative mode the fuzz switched to meanwhile.
+                if (tick <= 40) first.Send(new SetCreative(true));
+                if (tick < 40)
+                {
+                    // Each missing pipe planned, or its plan worked: the fuzz may cancel a plan meanwhile.
+                    foreach (int at in new[] { Cell(2, 2), Cell(2, 3), Cell(2, 4) })
+                    {
+                        if (game.Module<GridModule>(first.World).ConduitAt(at) != Conduit.None) continue;
+                        var plan = game.Module<BuildingModule>(first.World).PlansAt(at)
+                            .FirstOrDefault(p => p.Place?.Layer == "conduit");
+                        first.Send(plan != null ? new Work(plan.Id) : new PlacePlan(at, pipe));
+                    }
+                }
+                else if (tick == 40)
+                {
+                    for (int i = 0; i < 3; i++) first.Send(new LoadCanister(tank));
+                }
+                // One hero is kept out in space, whatever the fuzz does with it, until a hero passes out and wakes.
+                if (clients.Count > 1 && tick > 40 && !woke) clients[1].Send(new Enter(Cell(0, 0)));
+                var air = game.Module<AtmosphereModule>(first.World);
+                aired = Math.Max(aired, air.AiredCells.Count);
+                int oxygen = air.OxygenIn(tank);
+                if (oxygen < peak) drawn = true;
+                peak = Math.Max(peak, oxygen);
+                foreach (var h in game.Module<CrewModule>(first.World).Heroes)
+                {
+                    if (suits.TryGetValue(h.Id, out var before))
+                    {
+                        if (before.Out == 0 && h.Out == 0 && h.Suit > before.Suit) refilled = true;
+                        if (before.Out > 0 && h.Out == 0) woke = true;
+                    }
+                    suits[h.Id] = (h.Suit, h.Out);
+                }
+            });
+        Assert.Null(run.Desync);
+        Assert.True(aired > 0);
+        Assert.True(drawn);
+        // Breathing ran both ways: a suit refilled from room air, and a hero passed out and woke.
+        Assert.True(refilled);
+        Assert.True(woke);
     }
 
     // The harness itself.

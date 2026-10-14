@@ -1,6 +1,7 @@
 using Stillwake.Content;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Furnace;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
@@ -27,6 +28,7 @@ public sealed class Registry
     public BuildingModule Building { get; }
     public PipesModule Pipes { get; }
     public AtmosphereModule Atmosphere { get; }
+    public CrewModule Crew { get; }
     public HazardsModule Hazards { get; }
     public FurnaceModule Furnace { get; }
 
@@ -43,9 +45,10 @@ public sealed class Registry
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Research);
         Pipes = new PipesModule(Grid);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
+        Crew = new CrewModule(Atmosphere);
         Hazards = new HazardsModule(Grid, Grid);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere);
-        All = [Grid, Rooms, Items, Power, Research, Building, Pipes, Atmosphere, Hazards, Furnace];
+        All = [Grid, Rooms, Items, Power, Research, Building, Pipes, Atmosphere, Crew, Hazards, Furnace];
     }
 
     /// <summary>The wreck the game starts in.</summary>

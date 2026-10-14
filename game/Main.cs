@@ -55,7 +55,6 @@ public partial class Main : Node2D
     private int _heroes, _start;
     private double _worstSyncMs;
     private Layout _layout = Registry.Wreck;
-    private int _spawn;
     private HeroView? _hero;
     private ItemsView? _items;
     private readonly LearnedView _learned = new();
@@ -71,13 +70,14 @@ public partial class Main : Node2D
         AddChild(_camera = new ShipCamera());
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items")) _layout = ItemsDemo.Map;
-        _spawn = _layout.CellsOf('S').FirstOrDefault(-1);
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
             var script = !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(script));
             AddChild(_items = new ItemsView(demo: Has("--items")));
+            // Its own layer, above the world: read from whatever registry the session runs now.
+            AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
             _camera.DevControls = false;
         }
         AddChild(_learned);
@@ -129,8 +129,8 @@ public partial class Main : Node2D
         };
         link.Disconnected += enet =>
         {
-            // No farewell yet: crew.leave comes with the crew module (G-04).
-            if (ids.Remove(enet, out int id)) host.Disconnect(id);
+            // Its hero leaves with it, its suit colour freed.
+            if (ids.Remove(enet, out int id)) host.Disconnect(id, client.World.Encode(new Sim.Crew.Leave()));
             Log($"peer {id} left");
         };
         _poll = link.Poll;
@@ -239,7 +239,7 @@ public partial class Main : Node2D
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         ShowWorld();
         if (client.World.Tick != before) Sync();
-        if (_hero != null && _spawn >= 0) _hero.Frame(client, _m.Grid, _m.Rooms, _camera, _spawn, passedOut: false, delta * 1000);
+        _hero?.Frame(client, _m.Grid, _m.Rooms, _m.Atmosphere, _m.Crew, _camera, delta * 1000);
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
         _learned.Frame(_m.Research, delta * 1000);
@@ -248,7 +248,7 @@ public partial class Main : Node2D
     /// <summary>Where the hero stands for its items: what a drop is thrown from, what it picks up and reaches.</summary>
     private HeroSpot? SpotOf(HeroView? view)
     {
-        if (view == null || _spawn < 0) return null;
+        if (view == null) return null;
         var hero = view.Current;
         int width = _m.Grid.Width;
         return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(width), cell => Aiming.Reaches(hero, cell, width));

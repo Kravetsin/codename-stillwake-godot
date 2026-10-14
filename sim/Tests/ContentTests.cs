@@ -309,8 +309,8 @@ public class ContentTests
     [Fact]
     public void CrewBreathesInWholeUnitsAndTicksWithASuitThatLastsSomeBreaths()
     {
-        AllPositive(typeof(Crew));
-        Assert.True(Crew.Refill < Crew.Suit);
+        AllPositive(typeof(Content.Crew));
+        Assert.True(Content.Crew.Refill < Content.Crew.Suit);
     }
 
     // Light

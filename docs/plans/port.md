@@ -36,12 +36,10 @@ In dependency order, each with its README, tests and fuzz generator ported: `haz
 `items`, `power`, `atmosphere`, `crew`, `debris`, `furnace`, `building`, `research`. Then the wreck's
 own tests (`modules/wreck.test.ts`).
 
-- Ported: `items`, `power`, `research`, `building`, `pipes`, `atmosphere`, `hazards`, `furnace`.
-  Left: `crew`, `debris`.
+- Ported: `items`, `power`, `research`, `building`, `pipes`, `atmosphere`, `crew`, `hazards`,
+  `furnace`. Left: `debris`.
 - A module namespace `Stillwake.Sim.<X>` hides the content class `Stillwake.Content.<X>` inside
   `Stillwake.Sim.*`: write `Content.Furnace.FuelSlot`.
-- Tests waiting for a module (add them with it): `net` — the desync scenario where air fills,
-  leaks and vents (crew).
 - **Done when** every TypeScript sim test has a passing C# twin, and a sim tick on the reference
   world stays under 2 ms.
 
@@ -54,8 +52,7 @@ desync fuzz across host and guest. A relay for playtests across networks (0012) 
 - **Built:** `net/` (its README) and `game/net/EnetLink.cs`; two Godot processes share the
   wreck, hashes checked, a drifted guest resynced, 355 ms round trip under `--lag=100 --jitter=60`.
 - **Left:** the folds of 0014 (`grid.afterToggles`, `items.afterMoves`, debris grabs) with their
-  modules in G-04 and their features in G-08; the air scenario of the desync fuzz (`desync.test.ts`)
-  once atmosphere, building, items and crew are ported. The relay is not needed while ENet connects
+  modules in G-04 and their features in G-08. The relay is not needed while ENet connects
   directly; Steam crosses networks (G-09).
 
 ## G-06 — The world on screen ✅ (but overlays and i18n)
@@ -65,13 +62,14 @@ grid's layers, kept current as it changes; machines as sprites; light (lamps by 
 flicker, starlight, helmet lamps, fire) with normal maps and merged occluders; i18n. The art moves
 from ASCII pictures to PNGs in `game/art`.
 
-## G-07 — The hero ✅ (but what waits for crew)
+## G-07 — The hero ✅ (but other heroes)
 
 The controller (`features/crew/hero.ts`, client-authoritative, unit-tested), the rig and its poses,
 aim and reach, the tether and spacewalks, the camera following.
 
 - Left from G-06/G-07: overlays and i18n; the hero lit by the ship's light (it is drawn unshaded now);
-  other players' heroes, suit air, passing out and the helmet lamp with the crew module.
+  other players' heroes (`remote.ts`) and the helmet lamp. Suit air, passing out and the room
+  reports came with `crew`.
 
 ## G-08 — The features
 
