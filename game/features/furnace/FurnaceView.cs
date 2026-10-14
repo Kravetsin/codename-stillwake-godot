@@ -29,7 +29,6 @@ public partial class FurnaceView : Node2D
     private readonly IGridQueries _grid;
     private readonly FurnaceModule _furnace;
     private readonly Content.MachineSpec _spec = Content.Machines.Get("furnace");
-    private readonly Embers _embers = new() { ZIndex = 7 };
     /// <summary>The fire in each furnace at work, its picture, and the embers owed to it, carried over between frames, by machine id.</summary>
     private readonly Dictionary<int, (Sprite2D Sprite, int Frame, double Owed)> _fires = new();
     private readonly HashSet<int> _burning = new();
@@ -41,12 +40,10 @@ public partial class FurnaceView : Node2D
     {
         _grid = grid;
         _furnace = furnace;
-        AddChild(_embers);
     }
 
-    /// <summary>The fires shown, and the embers flying: what a recording checks.</summary>
+    /// <summary>The fires shown: what a recording checks.</summary>
     public int Fires => _fires.Count;
-    public int EmberCount => _embers.Count;
 
     public override void _Process(double delta)
     {
@@ -77,7 +74,7 @@ public partial class FurnaceView : Node2D
             fire.Owed = due - count;
             // From the fire in its middle, a little to either side.
             var from = corner + new Vector2(_spec.Width / 2f, _spec.Height * 0.45f) * Cell;
-            for (int i = 0; i < count; i++) _embers.Emit(from + new Vector2((_random.NextSingle() - 0.5f) * Cell, 0));
+            for (int i = 0; i < count; i++) Particles.Shared.Emit(Effect.Ember, from.X + (_random.NextDouble() - 0.5) * Cell, from.Y, 1);
             _fires[m.Id] = fire;
         }
         _out.Clear();

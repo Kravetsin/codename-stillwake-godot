@@ -1,6 +1,6 @@
 using System;
 using Godot;
-using Suits = Stillwake.Content.Crew;
+using CrewSpec = Stillwake.Content.Crew;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -55,7 +55,7 @@ public partial class SuitGauge : CanvasLayer
         {
             _sinceRead = 0;
             (int suit, _danger) = _read();
-            _bar.Share = (float)suit / Suits.Suit;
+            _bar.Share = (float)suit / CrewSpec.Suit;
             _bar.InDanger = _danger != SuitDanger.None;
         }
         _vignetteShown = Toward(_vignetteShown, _danger == SuitDanger.Low ? 1 : 0, delta / VignetteS);

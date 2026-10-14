@@ -8,6 +8,7 @@ using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Game.Features.Building;
 
@@ -47,6 +48,11 @@ public partial class BuildingView : Node2D
     /// <summary>Blueprints delivered to in this hold of the left button, and the tick work was last sent on.</summary>
     private readonly HashSet<int> _served = [];
     private int _workedOnTick = -1;
+    /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
+    private Dictionary<int, int> _worked = [];
+    private double _owedSparks;
+    /// <summary>Sparks off a tick of work on a plan.</summary>
+    private const double SparksPerTick = 0.3;
 
     public BuildingView(Ui ui, PlanHand hand)
     {
@@ -66,7 +72,7 @@ public partial class BuildingView : Node2D
         var grid = m.Grid;
         var building = m.Building;
         int width = _width = grid.Width, height = grid.Height;
-        DrawPlans(grid, building);
+        DrawPlans(grid, building, m.Rooms);
 
         var tool = _hand.Selected.Get();
         var holds = _ui.Hand.Get();
@@ -125,7 +131,7 @@ public partial class BuildingView : Node2D
     /// blueprint's share delivered while it lacks something, in amber, then the work done, in white.
     /// Redrawn only when the plans change.
     /// </summary>
-    private void DrawPlans(IGridQueries grid, BuildingModule building)
+    private void DrawPlans(IGridQueries grid, BuildingModule building, IRoomsQueries rooms)
     {
         var plans = building.Plans;
         // What was delivered and the work done are in the key, so bars grow as they go on.
@@ -157,6 +163,27 @@ public partial class BuildingView : Node2D
             return (box, p.Clear != null, share, lacks);
         }).ToList();
         _marks.QueueRedraw();
+        SparkWork(plans, grid, rooms);
+        _worked = plans.ToDictionary(p => p.Id, p => p.Progress);
+    }
+
+    /// <summary>
+    /// Sparks off every plan whose work went on since it was last seen, from its middle: falling aboard,
+    /// drifting off in space (sparkWork of features/building/index.ts).
+    /// </summary>
+    private void SparkWork(IReadOnlyList<Sim.Building.Plan> plans, IGridQueries grid, IRoomsQueries rooms)
+    {
+        foreach (var p in plans)
+        {
+            if (!_worked.TryGetValue(p.Id, out int was) || p.Progress <= was) continue;
+            _owedSparks += (p.Progress - was) * SparksPerTick;
+            int count = (int)Math.Floor(_owedSparks);
+            _owedSparks -= count;
+            if (count == 0) continue;
+            var box = BoxOf(CellsOf(grid, p), grid.Width);
+            var at = box.Position + box.Size / 2;
+            Particles.Shared.Emit(Effect.Spark, at.X, at.Y, count, -Math.PI / 2, rooms.RoomAt(p.Cell) == RoomsModule.Space);
+        }
     }
 
     /// <summary>The cells a plan covers: a machine's footprint, else its cell.</summary>

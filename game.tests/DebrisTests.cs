@@ -88,15 +88,6 @@ public class DebrisTests
 
     // The debris this peer is grabbing (predicted.test.ts).
 
-    /// <summary>A link whose host is not here: the test releases ticks by hand.</summary>
-    private sealed class Fed : IChannel<ToClient, ToHost>
-    {
-        private Action<ToClient> _receive = _ => { };
-        public void Send(ToHost message) { }
-        public void OnMessage(Action<ToClient> handler) => _receive = handler;
-        public void Receive(ToClient message) => _receive(message);
-    }
-
     [Fact]
     public void IsEachPieceWithAGrabInFlightAndNoneOnceItHasRun()
     {

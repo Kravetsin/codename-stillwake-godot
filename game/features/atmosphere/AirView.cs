@@ -14,7 +14,8 @@ namespace Stillwake.Game.Features.Atmosphere;
 
 /// <summary>
 /// The ship's air (features/atmosphere/index.ts, air-overlay.ts). Without a word: each tank's gauge up its
-/// right side, and every room losing oxygen into space pulsing red. With O, the air overlay: each cell
+/// right side, every room losing oxygen into space pulsing red, and air streaming out through its
+/// openings while it holds any (<see cref="AirStream"/>). With O, the air overlay: each cell
 /// holding air coloured, each room cell without it grey, a room open to space red, a filling room filling
 /// in before the eyes; beside the pointer, what the sim says of that room's air (<see cref="Explain"/>).
 /// </summary>
@@ -38,6 +39,10 @@ public partial class AirView : Node2D
     private List<(Rect2 Track, Rect2 Level)> _tanks = [];
     private Dictionary<int, RoomAir> _byRoom = new();
     private double _since = RefreshMs, _clock;
+    private List<AirStream> _streams = [];
+    /// <summary>Particles owed to each stream, carried over between frames.</summary>
+    private double[] _owed = [];
+    private readonly Random _random = new();
 
     public AirView(Ui ui)
     {
@@ -62,12 +67,29 @@ public partial class AirView : Node2D
         _clock += elapsedMs;
         _pulse.Modulate = new Color(1, 1, 1, (float)(0.15 + 0.3 * (0.5 + 0.5 * Math.Sin(_clock / PulseMs * 2 * Math.PI))));
         _tint.Visible = On;
+        Stream(elapsedMs);
         if ((_since += elapsedMs) >= RefreshMs)
         {
             _since = 0;
             Survey(m);
         }
         if (On) Tell(m, pointer);
+    }
+
+    /// <summary>Air streaming out of every venting room's openings, the particles owed carried over between frames.</summary>
+    private void Stream(double elapsedMs)
+    {
+        for (int i = 0; i < _streams.Count; i++)
+        {
+            var stream = _streams[i];
+            double due = _owed[i] + stream.PerSecond * elapsedMs / 1000;
+            int count = (int)Math.Floor(due);
+            _owed[i] = due - count;
+            if (count == 0) continue;
+            // Anywhere across the opening; through a missing back wall, out every way.
+            double x = (stream.X + _random.NextDouble() - 0.5) * Cell, y = (stream.Y + _random.NextDouble() - 0.5) * Cell;
+            Particles.Shared.Emit(Effect.Air, x, y, count, stream.Heading ?? _random.NextDouble() * 2 * Math.PI, inSpace: true);
+        }
     }
 
     private void Survey(Registry m)
@@ -77,6 +99,12 @@ public partial class AirView : Node2D
         _byRoom = air.ToDictionary(a => a.Room);
         var roomOf = m.Rooms.RoomOfCells;
         var losing = Explain.Draining(air);
+        var next = AirStream.Of(air, room => m.Rooms.RoomById(room)?.Openings ?? [], width, m.Grid.Height, cell => m.Rooms.RoomAt(cell) == RoomsModule.Space);
+        if (!next.SequenceEqual(_streams))
+        {
+            _streams = next;
+            _owed = new double[next.Count];
+        }
         _losing = Runs(roomOf, width, (_, room) => losing.Contains(room) ? Pulse : null);
         if (On)
             _cells = Runs(roomOf, width, (cell, room) =>
@@ -122,8 +150,8 @@ public partial class AirView : Node2D
         if (pointer is { } p && p.X >= 0 && p.Y >= 0 && p.X < m.Grid.Width && p.Y < m.Grid.Height
             && m.Rooms.RoomAt((int)p.Y * m.Grid.Width + (int)p.X) is int room && room != RoomsModule.Space
             && _byRoom.TryGetValue(room, out var air) && m.Rooms.RoomById(room) is { } r)
-            // Who breathes in the room comes with the crew module: none are counted yet.
-            lines = Explain.Of(air, r.Volume);
+            // Heroes awake in the room breathe its air: the forecast counts them.
+            lines = Explain.Of(air, r.Volume, m.Crew.Heroes.Count(h => h.Out == 0 && m.Rooms.RoomAt(h.Cell) == room));
         _ui.WorldTip.SetLines(lines);
     }
 }

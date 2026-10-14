@@ -7,6 +7,7 @@ using Godot;
 using Stillwake.Game.Dev;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Debris;
+using Stillwake.Game.Features.Effects;
 using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Items;
@@ -57,6 +58,7 @@ public partial class Main : Node2D
     private readonly List<int> _doors = [];
     private int _heroes, _start;
     private double _worstSyncMs;
+    private string? _gridKey;
     private Layout _layout = Registry.Wreck;
     private HeroView? _hero;
     private ItemsView? _items;
@@ -86,8 +88,10 @@ public partial class Main : Node2D
             AddChild(_items = new ItemsView(demo: Has("--items")));
             // Its own layer, above the world: read from whatever registry the session runs now.
             AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
+            AddChild(new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour))));
             _camera.DevControls = false;
         }
+        AddChild(new EffectsView());
         AddChild(_learned);
         AddChild(_hands = new Hands());
         if (Has("--plan-demo"))
@@ -222,7 +226,9 @@ public partial class Main : Node2D
         if (_hero != null) MoveChild(_hero, -1);
         MoveChild(_camera, -1);
         _shown = _m;
-        Sync();
+        _gridKey = null;
+        if (_session is Session s) SyncGrid(s.Client);
+        SyncLight();
     }
 
     private void AimCamera(Layout? layout)
@@ -251,13 +257,16 @@ public partial class Main : Node2D
                 Log($"tick {report.Tick}: {refused.Command.GetType().Name} from {refused.Command.From} refused, {refused.Reason}");
         foreach (var report in session.Desyncs.Skip(desyncs)) Log($"desync, resynced from the host: {report}");
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
-        _heroes += client.TakeHeroes().Count;
+        var heard = client.TakeHeroes();
+        _heroes += heard.Count;
         if (Has("--auto")) Auto(client, before);
         if (Has("--doors") && client.World.Tick != before)
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         ShowWorld();
-        if (client.World.Tick != before) Sync();
-        _hero?.Frame(client, _m.Grid, _m.Rooms, _m.Atmosphere, _m.Crew, _camera, delta * 1000);
+        if (client.World.Tick != before) SyncLight();
+        _hero?.Frame(client, _m.Grid, _m.Rooms, _m.Atmosphere, _m.Crew, _camera, heard, delta * 1000);
+        // After the hero, so a door it toggles shows on the frame E is pressed (0014).
+        SyncGrid(client);
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
         _learned.Frame(_m.Research, delta * 1000);
@@ -288,20 +297,41 @@ public partial class Main : Node2D
             var hero = _hero.Current;
             int width = _m.Grid.Width;
             double unit = Hero.Unit;
-            bodies = [new Body((hero.X - Content.Hero.Width / 2.0) / unit, (hero.X + Content.Hero.Width / 2.0) / unit,
-                (hero.Y - Content.Hero.Height) / unit, hero.Y / unit, hero.Vx / unit, hero.Vy / unit)];
+            // Every hero sways the cables, this one and the others where they are drawn.
+            bodies = _hero.Others.Append(hero).Select(h => new Body((h.X - Content.Hero.Width / 2.0) / unit, (h.X + Content.Hero.Width / 2.0) / unit,
+                (h.Y - Content.Hero.Height) / unit, h.Y / unit, h.Vx / unit, h.Vy / unit)).ToArray();
             reaches = cell => Aiming.Reaches(hero, cell, width);
         }
         _demo?.Frame(client, _m.Grid, Log);
         _hands.Frame(client, _m, bodies, reaches, elapsedMs);
     }
 
-    private void Sync()
+    /// <summary>The grid as this peer shows it, redrawn when that changes: a tick, or a door or valve toggle of its own sent (0014).</summary>
+    private void SyncGrid(Client client)
+    {
+        var shown = ShownGrid.Of(client, _m.Grid);
+        if (shown.Key == _gridKey) return;
+        _gridKey = shown.Key;
+        Measure(() => _grid?.Sync(shown));
+    }
+
+    /// <summary>Shadows, starlight and lamps after a tick: the light follows the world, not this peer's toggles in flight, as in TypeScript.</summary>
+    private void SyncLight() => Measure(() => _light?.Sync());
+
+    private void Measure(Action sync)
     {
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
-        _grid?.Sync();
-        _light?.Sync();
+        sync();
         _worstSyncMs = Math.Max(_worstSyncMs, System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+    }
+
+    /// <summary>The suit colour this player wears, and those other heroes wear (SuitColours.tsx's read).</summary>
+    private (int? Mine, IReadOnlySet<int> Taken) SuitsWorn()
+    {
+        if (_session is not Session s) return (null, new HashSet<int>());
+        var heroes = _m.Crew.Heroes;
+        return (heroes.FirstOrDefault(h => h.Id == s.Client.Id)?.Colour,
+            heroes.Where(h => h.Id != s.Client.Id).Select(h => h.Colour).ToHashSet());
     }
 
     /// <summary>Each peer opens a door 30 ticks into its session, host and guest each their own; both say where they are.</summary>

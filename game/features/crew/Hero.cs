@@ -26,9 +26,12 @@ public sealed class Ship(int width, int height, Func<int, int> structureAt, Func
 
     public bool Space(int cell) => space(cell);
 
-    /// <summary>The ship as the sim's grid and rooms see it now.</summary>
-    public static Ship Of(IGridQueries grid, IRoomsQueries rooms) =>
-        new(grid.Width, grid.Height, grid.StructureAt, cell => rooms.RoomAt(cell) == RoomsModule.Space);
+    /// <summary>
+    /// The ship as the sim's grid and rooms see it now, its cells' structure as <paramref name="structureAt"/>
+    /// gives it when given: doors as this peer shows them, its own toggles in flight made (0014).
+    /// </summary>
+    public static Ship Of(IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null) =>
+        new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, cell => rooms.RoomAt(cell) == RoomsModule.Space);
 }
 
 /// <summary>

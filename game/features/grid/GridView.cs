@@ -4,6 +4,7 @@ using System.Linq;
 using Godot;
 using Stillwake.Content;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Grid;
 using L = Stillwake.Game.Light;
 
@@ -55,31 +56,34 @@ public partial class GridView : Node2D
         return layer;
     }
 
-    /// <summary>Brings the drawing up to the grid: called after each tick, cheap when nothing changed.</summary>
-    public void Sync()
+    /// <summary>
+    /// Brings the drawing up to the grid as this peer shows it (<paramref name="shown"/>: its own door and
+    /// valve toggles in flight already made, 0014): called when that changes, cheap when nothing did.
+    /// </summary>
+    public void Sync(ShownGrid shown)
     {
-        var dirty = ChangedCells();
+        var dirty = ChangedCells(shown);
         foreach (int cell in dirty) DrawCell(cell);
         if (!_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
     }
 
     /// <summary>The cells whose drawing is stale, bringing what was drawn up to date: each changed cell and its neighbours.</summary>
-    private List<int> ChangedCells()
+    private List<int> ChangedCells(ShownGrid shown)
     {
         int w = _grid.Width, size = w * _grid.Height;
         var dirty = new List<int>();
         if (!_drawn)
         {
             _drawn = true;
-            _structure = _grid.StructureLayer.ToArray();
+            _structure = (shown.Structure ?? _grid.StructureLayer).ToArray();
             _material = _grid.MaterialLayer.ToArray();
-            _conduit = _grid.ConduitLayer.ToArray();
+            _conduit = (shown.Conduit ?? _grid.ConduitLayer).ToArray();
             _backs = _grid.BackLayer.ToArray();
             _backMaterial = _grid.BackMaterialLayer.ToArray();
             for (int c = 0; c < size; c++) dirty.Add(c);
             return dirty;
         }
-        ReadOnlySpan<int> s = _grid.StructureLayer, m = _grid.MaterialLayer, cd = _grid.ConduitLayer,
+        ReadOnlySpan<int> s = shown.Structure ?? _grid.StructureLayer, m = _grid.MaterialLayer, cd = shown.Conduit ?? _grid.ConduitLayer,
             b = _grid.BackLayer, bm = _grid.BackMaterialLayer;
         if (s.SequenceEqual(_structure) && m.SequenceEqual(_material) && cd.SequenceEqual(_conduit)
             && b.SequenceEqual(_backs) && bm.SequenceEqual(_backMaterial))

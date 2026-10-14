@@ -43,3 +43,12 @@ public sealed class TestWorld
         return this;
     }
 }
+
+/// <summary>A link whose host is not here: a test releases ticks by hand (<c>guest</c> of predicted.test.ts).</summary>
+public sealed class Fed : Stillwake.Net.IChannel<Stillwake.Net.ToClient, Stillwake.Net.ToHost>
+{
+    private Action<Stillwake.Net.ToClient> _receive = _ => { };
+    public void Send(Stillwake.Net.ToHost message) { }
+    public void OnMessage(Action<Stillwake.Net.ToClient> handler) => _receive = handler;
+    public void Receive(Stillwake.Net.ToClient message) => _receive(message);
+}

@@ -75,6 +75,13 @@ public interface IGridQueries
     /// <summary>The cells a machine of <paramref name="kind"/> covers with its top-left at <paramref name="cell"/>; null when it is no machine or does not fit on the grid.</summary>
     IReadOnlyList<int>? Footprint(string kind, int cell);
     string? PlacementProblem(int cell, Placement placement);
+    /// <summary>
+    /// The structure and conduit layers as they would be after the <see cref="ToggleDoor"/>s and
+    /// <see cref="ToggleValve"/>s among <paramref name="toggles"/>, in order, each as its command would
+    /// apply it and skipped where it would be refused: what a client shows of its own toggles before
+    /// their tick runs (0014). Copies; the world is untouched.
+    /// </summary>
+    (int[] Structure, int[] Conduit) AfterToggles(IReadOnlyList<Command> toggles);
 }
 
 /// <summary>How a module that depends on the grid may change it.</summary>
@@ -94,9 +101,8 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
 
     public GridModule()
     {
-        Handles<ToggleDoor>(c => IsDoor(c.Cell) ? null : "grid.noDoor", c => ToggleDoorAt(c.Cell));
-        Handles<ToggleValve>(c => IsValve(c.Cell) ? null : "grid.noValve", c =>
-            State.Conduit[c.Cell] = State.Conduit[c.Cell] == Conduit.ValveOpen ? Conduit.ValveClosed : Conduit.ValveOpen);
+        Handles<ToggleDoor>(c => IsDoor(State.Structure, c.Cell) ? null : "grid.noDoor", c => ToggleDoorAt(State.Structure, c.Cell));
+        Handles<ToggleValve>(c => IsValve(State.Conduit, c.Cell) ? null : "grid.noValve", c => ToggleValveAt(State.Conduit, c.Cell));
     }
 
     protected override GridState Init(Layout layout)
@@ -204,8 +210,8 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     }
 
     private bool InBounds(int cell) => cell >= 0 && cell < State.Width * State.Height;
-    private bool IsDoor(int cell) => StructureAt(cell) is Structure.DoorClosed or Structure.DoorOpen;
-    private bool IsValve(int cell) => InBounds(cell) && State.Conduit[cell] is Conduit.ValveOpen or Conduit.ValveClosed;
+    private bool IsDoor(int[] structure, int cell) => InBounds(cell) && structure[cell] is Structure.DoorClosed or Structure.DoorOpen;
+    private bool IsValve(int[] conduit, int cell) => InBounds(cell) && conduit[cell] is Conduit.ValveOpen or Conduit.ValveClosed;
 
     public IReadOnlyList<int>? Footprint(string kind, int cell)
     {
@@ -219,20 +225,34 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         return cells;
     }
 
-    /// <summary>A doorway is every door cell joined to the clicked one: opened or closed as one.</summary>
-    private void ToggleDoorAt(int cell)
+    public (int[] Structure, int[] Conduit) AfterToggles(IReadOnlyList<Command> toggles)
     {
-        int to = State.Structure[cell] == Structure.DoorOpen ? Structure.DoorClosed : Structure.DoorOpen;
+        int[] structure = [.. State.Structure], conduit = [.. State.Conduit];
+        foreach (var t in toggles)
+        {
+            if (t is ToggleDoor door && IsDoor(structure, door.Cell)) ToggleDoorAt(structure, door.Cell);
+            if (t is ToggleValve valve && IsValve(conduit, valve.Cell)) ToggleValveAt(conduit, valve.Cell);
+        }
+        return (structure, conduit);
+    }
+
+    private static void ToggleValveAt(int[] conduit, int cell) =>
+        conduit[cell] = conduit[cell] == Conduit.ValveOpen ? Conduit.ValveClosed : Conduit.ValveOpen;
+
+    /// <summary>A doorway is every door cell joined to the clicked one in <paramref name="structure"/>: opened or closed as one.</summary>
+    private void ToggleDoorAt(int[] structure, int cell)
+    {
+        int to = structure[cell] == Structure.DoorOpen ? Structure.DoorClosed : Structure.DoorOpen;
         var todo = new Stack<int>([cell]);
-        var found = new bool[State.Structure.Length];
+        var found = new bool[structure.Length];
         found[cell] = true;
         while (todo.Count > 0)
         {
             int at = todo.Pop(), x = at % State.Width;
-            State.Structure[at] = to;
+            structure[at] = to;
             foreach (int n in (int[])[at - State.Width, at + State.Width, x > 0 ? at - 1 : -1, x < State.Width - 1 ? at + 1 : -1])
             {
-                if (!InBounds(n) || found[n] || !IsDoor(n)) continue;
+                if (!InBounds(n) || found[n] || !IsDoor(structure, n)) continue;
                 found[n] = true;
                 todo.Push(n);
             }
