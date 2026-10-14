@@ -15,6 +15,7 @@ using Stillwake.Game.Features.Items;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Features.Research;
 using Stillwake.Game.Net;
+using Stillwake.Game.Platform;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
@@ -219,16 +220,15 @@ public partial class Main : Node2D
         return World.Load(save, Modules());
     }
 
-    /// <summary>The dev panel's save slot (session/game.ts's <c>DEV_SLOT</c>), a file in Godot's user folder.</summary>
-    private const string DevSave = "user://saves/dev.json";
+    /// <summary>Save files in Godot's user folder: the dev panel's world and the last desync report.</summary>
+    private readonly Saves _saves = new(ProjectSettings.GlobalizePath("user://saves"));
+    private static readonly System.Text.Json.JsonSerializerOptions Indented = new() { WriteIndented = true };
 
     /// <summary>The dev panel's save: the world as this machine has it, to the dev slot.</summary>
     private string SaveDev()
     {
         if (_session is not Session s) return "Nothing to save yet.";
-        DirAccess.MakeDirRecursiveAbsolute(DevSave.GetBaseDir());
-        using var file = FileAccess.Open(DevSave, FileAccess.ModeFlags.Write) ?? throw new InvalidOperationException(FileAccess.GetOpenError().ToString());
-        file.StoreString(s.Client.World.Save());
+        _saves.Write(Saves.Dev, s.Client.World.Save());
         return "Saved.";
     }
 
@@ -236,10 +236,10 @@ public partial class Main : Node2D
     private string LoadDev()
     {
         if (_role != "alone") return "Loads only in a world of this machine's own.";
-        if (!FileAccess.FileExists(DevSave)) return "Nothing saved yet.";
+        if (_saves.Read(Saves.Dev) is not string save) return "Nothing saved yet.";
         // The registry is swapped only once the save has loaded: a broken one leaves the world as it was.
         var m = new Registry();
-        var world = World.Load(FileAccess.GetFileAsString(DevSave), m.All);
+        var world = World.Load(save, m.All);
         _m = m;
         var (host, client) = LocalSession.Create(world, Build);
         _session = new Session(host, client) { Speed = _session?.Speed ?? 1 };
@@ -296,7 +296,12 @@ public partial class Main : Node2D
         foreach (var report in session.Frame(delta * 1000))
             foreach (var refused in report.Refused)
                 Log($"tick {report.Tick}: {refused.Command.GetType().Name} from {refused.Command.From} refused, {refused.Reason}");
-        foreach (var report in session.Desyncs.Skip(desyncs)) Log($"desync, resynced from the host: {report}");
+        foreach (var report in session.Desyncs.Skip(desyncs))
+        {
+            Log($"desync, resynced from the host: {report}");
+            // A determinism bug: the host has already mended the world, so the report is all that is left.
+            _saves.Write(Saves.Desync, System.Text.Json.JsonSerializer.Serialize(report, Indented));
+        }
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
         var heard = client.TakeHeroes();
         _heroes += heard.Count;
