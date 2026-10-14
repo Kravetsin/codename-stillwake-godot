@@ -3,7 +3,10 @@ using Stillwake.Content;
 namespace Stillwake.Sim;
 
 /// <summary>A map drawn as ASCII, a character a cell, cells numbered row by row from the top-left.</summary>
-public sealed record Layout(int Width, int Height, IReadOnlyList<string> Rows, IReadOnlyList<string>? Under = null)
+/// <param name="Cables">The cells of the two ends of each power cable laid on the map.</param>
+public sealed record Layout(
+    int Width, int Height, IReadOnlyList<string> Rows, IReadOnlyList<string>? Under = null,
+    IReadOnlyList<(int A, int B)>? Cables = null)
 {
     public static readonly Layout Empty = new(0, 0, []);
 
@@ -14,16 +17,20 @@ public sealed record Layout(int Width, int Height, IReadOnlyList<string> Rows, I
     /// </summary>
     public static Layout Parse(string map) => Parse(Trimmed(map));
 
-    public static Layout Parse(IReadOnlyList<string> rows, IReadOnlyList<string>? under = null)
+    /// <param name="cables">Power cables laid on the map, each by its two ends, column and row.</param>
+    public static Layout Parse(
+        IReadOnlyList<string> rows, IReadOnlyList<string>? under = null,
+        IReadOnlyList<((int X, int Y) A, (int X, int Y) B)>? cables = null)
     {
         int width = rows.Count == 0 ? 0 : rows.Max(r => r.Length);
         var padded = rows.Select(r => r.PadRight(width)).ToArray();
         Check(padded, Legend.MapChars, "");
-        if (under == null) return new Layout(width, padded.Length, padded);
+        var ends = cables?.Select(c => (c.A.Y * width + c.A.X, c.B.Y * width + c.B.X)).ToArray();
+        if (under == null) return new Layout(width, padded.Length, padded, Cables: ends);
         var below = Enumerable.Range(0, padded.Length)
             .Select(y => (y < under.Count ? under[y] : "").PadRight(width)).ToArray();
         Check(below, Legend.UnderChars, " under");
-        return new Layout(width, padded.Length, padded, below);
+        return new Layout(width, padded.Length, padded, below, ends);
     }
 
     private static void Check(string[] rows, string legend, string which)
