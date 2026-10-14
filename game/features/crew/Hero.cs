@@ -15,8 +15,11 @@ public readonly record struct Point(int X, int Y);
 /// </summary>
 public readonly record struct HeroInput(int X, int Y, bool Jump, int? Face = null, bool Sprint = false);
 
-/// <summary>The cells the hero moves against, and which of them are space, where the hero floats.</summary>
-public sealed class Ship(int width, int height, Func<int, int> structureAt, Func<int, bool> space)
+/// <summary>
+/// The cells the hero moves against; which of them are space, where the hero floats; and which are the
+/// hull, where a tether is not yet needed: any cell with a structure or a back wall, aired or not.
+/// </summary>
+public sealed class Ship(int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null)
 {
     public int Width => width;
     public int Height => height;
@@ -26,12 +29,15 @@ public sealed class Ship(int width, int height, Func<int, int> structureAt, Func
 
     public bool Space(int cell) => space(cell);
 
+    public bool Hull(int cell) => hull?.Invoke(cell) ?? structureAt(cell) != Structure.Empty;
+
     /// <summary>
     /// The ship as the sim's grid and rooms see it now, its cells' structure as <paramref name="structureAt"/>
     /// gives it when given: doors as this peer shows them, its own toggles in flight made (0014).
     /// </summary>
     public static Ship Of(IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null) =>
-        new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, cell => rooms.RoomAt(cell) == RoomsModule.Space);
+        new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, cell => rooms.RoomAt(cell) == RoomsModule.Space,
+            cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null);
 }
 
 /// <summary>
@@ -76,14 +82,18 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
 
     /// <summary>
     /// <paramref name="after"/>, a step from <paramref name="before"/>, on its tether: anchored as the
-    /// body leaves the ship, cleared as it comes aboard, and a move past the tether's length cut back to
-    /// the limit, toward where it was going, so the hero slides along it.
+    /// body leaves the hull, cleared as it comes aboard, and a move past the tether's length cut back to
+    /// the limit, toward where it was going, so the hero slides along it. A ship open to space all
+    /// through is still the hull: afloat inside it the hero needs no tether, and leaving it ties one.
     /// </summary>
     private static Hero Tethered(Hero before, Hero after, Ship ship)
     {
-        if (!ship.Space(after.BodyCell(ship.Width))) return after;
+        int at = after.BodyCell(ship.Width);
+        if (!ship.Space(at)) return after;
         int left = before.BodyCell(ship.Width);
-        Point? tied = before.Anchor ?? (ship.Space(left)
+        // Back within the hull, the tether comes off; it ties again where the body next leaves it.
+        if (ship.Hull(at)) return after;
+        Point? tied = before.Anchor ?? (ship.Space(left) && !ship.Hull(left)
             ? null
             : new Point(left % ship.Width * Unit + Unit / 2, left / ship.Width * Unit + Unit / 2));
         if (tied is not Point anchor) return after;
