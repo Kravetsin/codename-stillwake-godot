@@ -59,7 +59,8 @@ Commands travel encoded by the sender's world (`World.Encode`), and are decoded 
 ## Heroes
 
 A client sends `hero` with a state net never reads (a string); the host passes it to every other
-peer stamped with the sender, and keeps nothing.
+peer stamped with the sender, and keeps nothing. The game writes the hero there and draws the others
+(`game/features/crew/Remote.cs`).
 
 ## Hash checks
 
@@ -87,10 +88,11 @@ peer stamped with the sender, and keeps nothing.
 
 ## Deliberately not handled
 
-- **The door fold of 0014.** Own commands in flight are folded into what a peer shows by the features
-  that show them: stacks by `features/items` (`Reading`), grabs by `features/debris`
-  (`Catching.Grabbing`). Doors and valves wait for `grid.afterToggles` and its client fold, not ported
-  yet: a door shows open when its tick runs.
+- **The folds of 0014 live in the game, not here.** Own commands in flight are folded into what a peer
+  shows by the features that show them: stacks by `features/items` (`Reading`), grabs by
+  `features/debris` (`Catching.Grabbing`), doors and valves by `game/shared/ShownGrid.cs` over
+  `grid.AfterToggles`, read by the grid's drawing and the hero's walking. `session/predicted.test.ts`
+  is ported with them (`ShownGridTests`, `DebrisTests`); its `pickingUp` with the items feature.
 - **The relay of 0012.** ENet connects peers directly on a LAN or a forwarded port; playtests across
   networks wait for GodotSteam (G-09), whose relays cross NAT. Its routing and tests are not ported.
 - **Browser time:** the worker's beat (`time.ts`) and the build check (`update.ts`) served a page;

@@ -50,9 +50,9 @@ desync fuzz across host and guest. A relay for playtests across networks (0012) 
 
 - **Built:** `net/` (its README) and `game/net/EnetLink.cs`; two Godot processes share the
   wreck, hashes checked, a drifted guest resynced, 355 ms round trip under `--lag=100 --jitter=60`.
-- **Left:** the folds of 0014 (`grid.afterToggles`, `items.afterMoves`, debris grabs) with their
-  modules in G-04 and their features in G-08. The relay is not needed while ENet connects
-  directly; Steam crosses networks (G-09).
+- **Built since:** the folds of 0014 — `grid.AfterToggles` with `game/shared/ShownGrid.cs`,
+  `items.AfterMoves`, debris grabs — and heroes replicated, drawn by `features/crew` (`Remote.cs`).
+- **Left:** the relay is not needed while ENet connects directly; Steam crosses networks (G-09).
 
 ## G-06 — The world on screen ✅ (but overlays and i18n)
 
@@ -61,14 +61,15 @@ grid's layers, kept current as it changes; machines as sprites; light (lamps by 
 flicker, starlight, helmet lamps, fire) with normal maps and merged occluders; i18n. The art moves
 from ASCII pictures to PNGs in `game/art`.
 
-## G-07 — The hero ✅ (but other heroes)
+## G-07 — The hero ✅
 
 The controller (`features/crew/hero.ts`, client-authoritative, unit-tested), the rig and its poses,
 aim and reach, the tether and spacewalks, the camera following.
 
-- Left from G-06/G-07: overlays and i18n; the hero lit by the ship's light (it is drawn unshaded now);
-  other players' heroes (`remote.ts`) and the helmet lamp. Suit air, passing out and the room
-  reports came with `crew`.
+- Left from G-06/G-07: overlays and i18n. Suit air, passing out and the room reports came with
+  `crew`; every hero lit by the ship's light, other players' heroes (`remote.ts`, interpolated, with
+  their tethers), suit colours recoloured from the PNGs and the colour picker came with the world
+  polish. The TypeScript game has no helmet lamp.
 
 ## G-08 — The features
 
@@ -76,6 +77,10 @@ Inventory, hotbar and crates; building (the plan, the menu with thumbnails, ghos
 pipette, moving pegs); power (cables as ropes, the power mode); pipes and the air overlay; the furnace
 (fire, embers); debris and catching (physics on the host); the analyzer and its panel; effects; the
 dev panel.
+
+- **Effects built** (`features/effects`, `render/Particles.cs`): dust from steps and landings, sparks
+  from work on plans, embers, air streaming out of venting rooms; sparks and embers light their
+  surroundings (0019). The air overlay's forecast counts the heroes breathing.
 
 ## G-09 — Builds and playtest
 

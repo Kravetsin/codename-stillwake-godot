@@ -12,8 +12,9 @@ namespace Stillwake.Game.Features.Light;
 /// Light without a word (0019, 0025): a dark ship, the ambient light of <see cref="L.Ambient"/> in
 /// every corner, lit by its lamps — Godot lights casting soft shadows from the walls, falling off as the
 /// TypeScript game's did — and by starlight through the holes in its back walls. A lit lamp glows,
-/// and short of power it flickers. <see cref="Sync"/> follows the grid after each tick; the shadows
-/// and the starlight change only when walls, doors, back walls or machines do.
+/// and short of power it flickers; sparks and embers light what is around them. <see cref="Sync"/>
+/// follows the grid after each tick; the shadows and the starlight change only when walls, doors, back
+/// walls or machines do.
 /// </summary>
 public partial class LightView : Node2D
 {
@@ -26,11 +27,18 @@ public partial class LightView : Node2D
     /// <summary>A lit lamp's warm glow, and how far across it reaches, in cells.</summary>
     private static readonly Color GlowColour = new(0xffd9a0ff);
     private const float GlowCells = 3;
+    /// <summary>
+    /// How many glowing particles light their surroundings at once, and how far, in cells: each light draws
+    /// its walls' shadows, and a furnace at work keeps a dozen embers in the air.
+    /// </summary>
+    private const int GlowLights = 48, GlowReach = 8;
 
     private readonly IGridQueries _grid;
     private readonly Occluders _occluders = new();
     private readonly Starlight _starlight = new();
     private readonly Node2D _lamps = new();
+    private readonly Node2D _glowing = new();
+    private readonly List<PointLight2D> _glows = new();
     private readonly List<(Machine Lamp, PointLight2D Light, Sprite2D Glow)> _shown = new();
     private readonly List<(Machine Furnace, PointLight2D Light)> _fires = new();
     private int[] _structure = [], _back = [];
@@ -57,6 +65,7 @@ public partial class LightView : Node2D
         AddChild(_occluders);
         AddChild(_starlight);
         AddChild(_lamps);
+        AddChild(_glowing);
     }
 
     /// <summary>Brings shadows, starlight and lamps up to the grid: called after each tick, cheap when nothing changed.</summary>
@@ -148,31 +157,67 @@ public partial class LightView : Node2D
             glow.Modulate = GlowColour with { A = shines };
         }
         foreach (var (furnace, light) in _fires) light.Visible = Burns(furnace);
+        ShowGlows();
     }
 
-    private static ImageTexture? _lampTexture, _fireTexture;
+    /// <summary>
+    /// A light under each glowing particle (sparks, embers), <see cref="L.Particle"/> of its glow's colour
+    /// as it fades, shadowed as a lamp's; at most <see cref="GlowLights"/>, the rest dark.
+    /// </summary>
+    private void ShowGlows()
+    {
+        int shown = 0;
+        foreach (var p in Particles.Shared.Live)
+        {
+            if (p.Effect.Glow is not var (colour, _) || shown == GlowLights) continue;
+            if (shown == _glows.Count)
+            {
+                var light = new PointLight2D
+                {
+                    Texture = GlowTexture,
+                    TextureScale = GlowReach * 2f * Cell / GlowTexture.GetWidth(),
+                    RangeItemCullMask = Lit.LampMask,
+                    ShadowEnabled = true,
+                    Height = 32,
+                };
+                _glowing.AddChild(light);
+                _glows.Add(light);
+            }
+            var glow = _glows[shown++];
+            glow.Visible = true;
+            glow.Position = new Vector2((float)p.X, (float)p.Y);
+            glow.Color = new Color(((colour >> 16) & 0xff) / 255f, ((colour >> 8) & 0xff) / 255f, (colour & 0xff) / 255f);
+            glow.Energy = (float)(L.Particle * p.Alpha);
+        }
+        for (int i = shown; i < _glows.Count; i++) _glows[i].Visible = false;
+    }
+
+    private static ImageTexture? _lampTexture, _fireTexture, _glowTexture;
 
     /// <summary>
     /// A lamp's light as the TypeScript game spread it: <see cref="L.Lamp"/> fading by <see cref="L.Air"/>
     /// a cell, each colour clamped at whole, so it is white by the bulb and warm further off; faded to
     /// nothing over the last cells of <see cref="LampReach"/>.
     /// </summary>
-    private static ImageTexture LampTexture => _lampTexture ??= MakeTexture(L.Lamp);
+    private static ImageTexture LampTexture => _lampTexture ??= MakeTexture(L.Lamp, LampReach);
 
     /// <summary>A fire's light, spread as a lamp's is, in <see cref="L.Fire"/>.</summary>
-    private static ImageTexture FireTexture => _fireTexture ??= MakeTexture(L.Fire);
+    private static ImageTexture FireTexture => _fireTexture ??= MakeTexture(L.Fire, LampReach);
 
-    private static ImageTexture MakeTexture((float R, float G, float B) colour)
+    /// <summary>A glowing particle's light, white to be tinted by its glow, spread as a lamp's out to <see cref="GlowReach"/>.</summary>
+    private static ImageTexture GlowTexture => _glowTexture ??= MakeTexture((1, 1, 1), GlowReach);
+
+    private static ImageTexture MakeTexture((float R, float G, float B) colour, int reach)
     {
         // Two pixels of the world a texel: a light is sampled as unfiltered as the pixel art it falls on.
-        const int size = LampReach * Cell;
-        float cellsPerTexel = LampReach * 2f / size;
+        int size = reach * Cell;
+        float cellsPerTexel = reach * 2f / size;
         var image = Image.CreateEmpty(size, size, false, Image.Format.Rgb8);
         for (int y = 0; y < size; y++)
             for (int x = 0; x < size; x++)
             {
                 float d = new Vector2(x + 0.5f - size / 2f, y + 0.5f - size / 2f).Length() * cellsPerTexel;
-                float f = Mathf.Pow(L.Air, d) * Mathf.Clamp((LampReach - d) / 4f, 0, 1);
+                float f = Mathf.Pow(L.Air, d) * Mathf.Clamp((reach - d) / 4f, 0, 1);
                 image.SetPixel(x, y, new Color(Math.Min(1, colour.R * f), Math.Min(1, colour.G * f), Math.Min(1, colour.B * f)));
             }
         return ImageTexture.CreateFromImage(image);

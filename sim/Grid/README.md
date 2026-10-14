@@ -32,7 +32,10 @@ free back slot: it stands behind anything, and in space.
   `MachineAt(cell)`, `Machines`, `PortsOf(machine)` — the cells where conduits meet it, from its
   kind's port offsets —, `WallAt(cell)` and `BackAt(cell)` — the `Material` of the wall or back
   wall there, null for none —, `Footprint(kind, cell)` — the cells a machine of that kind would cover
-  from that top-left, null when it is no machine or does not fit —, `PlacementProblem(cell, placement)`.
+  from that top-left, null when it is no machine or does not fit —, `PlacementProblem(cell, placement)`,
+  `AfterToggles(commands)` — copies of the structure and conduit layers after the `ToggleDoor`s and
+  `ToggleValve`s among the commands, each as it would apply and skipped where refused: what a client
+  shows of its own toggles before their tick runs (0014).
 - **Operations** (`IGridOps`): `Place(cell, placement)` — the caller checks `PlacementProblem` first, a
   problem here throws; `Clear(cell, layer)` — for machines, removes the whole machine covering the
   cell. Only in commands or construction: modules reading the grid in derivation trust that nothing
@@ -42,7 +45,7 @@ free back slot: it stands behind anything, and in space.
   refused with `grid.noValve`.
 - **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.occupied`, `grid.machineInTheWay`,
   `grid.blocked`, `grid.noSuchMaterial`, `grid.noSuchMachine`.
-- **Not yet ported** (added with the module that needs them): `afterToggles`. TypeScript's `codes()`
+- TypeScript's `codes()`
   is the public `Structure`, `Conduit` and `Back` constants.
 
 ## Maps

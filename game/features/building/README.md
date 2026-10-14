@@ -37,6 +37,7 @@ thumbnails; `Sketch`). The plain files are compiled again into `game.tests/`, wh
 - With an empty hand, the left button held on a plan within the hero's reach delivers once per sweep or
   works one tick per tick released, at most five a frame.
 - Plans redraw only when the plans change; ghosts are tiles laid and erased each frame.
+- Work on a plan throws sparks from its middle, 0.3 a tick of work it goes on by (`Effect.Spark`).
 
 ## Differences from the TypeScript
 
@@ -47,7 +48,6 @@ thumbnails; `Sketch`). The plain files are compiled again into `game.tests/`, wh
 
 ## Not ported yet
 
-- Sparks from work on a plan (effects, G-08).
 - The hero holding the plan in its hands (`HeroView` passes `holdsPlan: false`), and the wheel and 1–9
   freeing the hand: with the hotbar (port/items-ui), which sets `Ui.Hand` to `Free`.
 - The words move to the game's i18n table once it lands (`game/shared/Words.cs`).

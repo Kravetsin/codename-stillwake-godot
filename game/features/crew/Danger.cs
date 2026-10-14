@@ -1,6 +1,6 @@
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crew;
-using Suits = Stillwake.Content.Crew;
+using CrewSpec = Stillwake.Content.Crew;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -21,7 +21,7 @@ public static class Danger
     {
         if (hero is not var (suit, @out)) return SuitDanger.None;
         if (@out > 0) return SuitDanger.Out;
-        return (double)suit / Suits.Suit < Low && !inRoomAir ? SuitDanger.Low : SuitDanger.None;
+        return (double)suit / CrewSpec.Suit < Low && !inRoomAir ? SuitDanger.Low : SuitDanger.None;
     }
 
     /// <summary>Hero <paramref name="id"/>'s suit, full while the sim does not know it, and its danger: what the gauge shows.</summary>
@@ -29,6 +29,6 @@ public static class Danger
     {
         var hero = crew.HeroOf(id);
         bool inRoomAir = hero != null && air.AiredAt(hero.Cell);
-        return (hero?.Suit ?? Suits.Suit, Of(hero == null ? null : (hero.Suit, hero.Out), inRoomAir));
+        return (hero?.Suit ?? CrewSpec.Suit, Of(hero == null ? null : (hero.Suit, hero.Out), inRoomAir));
     }
 }

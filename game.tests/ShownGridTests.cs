@@ -1,0 +1,84 @@
+using Stillwake.Game.Shared;
+using Stillwake.Net;
+using Stillwake.Sim;
+using Stillwake.Sim.Grid;
+using Xunit;
+
+namespace Stillwake.Game.Tests;
+
+/// <summary>"the grid as this peer shows it" of session/predicted.ts, ported.</summary>
+public class ShownGridTests
+{
+    private const string Map = "#D#\n#D#\n...";
+    private static readonly int[] Open = [Structure.DoorOpen, Structure.DoorOpen];
+    private static readonly int[] Shut = [Structure.DoorClosed, Structure.DoorClosed];
+
+    /// <summary>A guest whose host is not here: the test sends its commands and releases its ticks by hand.</summary>
+    private sealed class Guest
+    {
+        private readonly Fed _link = new();
+        public Registry M { get; } = new();
+        public Client Client { get; }
+
+        public Guest() => Client = new Client(World.Create(1, Layout.Parse(Map), M.All), _link, 1);
+
+        public ShownGrid Shown => ShownGrid.Of(Client, M.Grid);
+
+        /// <summary>Releases the next tick with these commands, stamped as this guest's, and runs it.</summary>
+        public void Run(params Command[] commands)
+        {
+            _link.Receive(new TickMessage(Client.World.Tick, commands.Select(c => new Stamped(1, Client.World.Encode(c))).ToList()));
+            Client.Update();
+        }
+    }
+
+    private static int[] Doorway(int[] structure) => [structure[1], structure[4]];
+
+    [Fact]
+    public void IsTheWorldAsItIsWithNothingInFlight()
+    {
+        var g = new Guest();
+        Assert.Null(g.Shown.Structure);
+        Assert.Equal(Structure.DoorClosed, g.Shown.StructureAt(g.M.Grid, 4));
+    }
+
+    [Fact]
+    public void ShowsADoorToggleAtOnceTheWholeDoorwayWhileTheWorldWaitsForItsTick()
+    {
+        var g = new Guest();
+        g.Client.Send(new ToggleDoor(4));
+        Assert.Equal(Open, Doorway(g.Shown.Structure!));
+        Assert.Equal(Shut, Doorway(g.M.Grid.StructureLayer.ToArray()));
+        Assert.Equal(Structure.DoorOpen, g.Shown.StructureAt(g.M.Grid, 1));
+    }
+
+    [Fact]
+    public void ShowsTwoTogglesInFlightUndoneAndOneTheSimWouldRefuseNotAtAll()
+    {
+        var g = new Guest();
+        g.Client.Send(new ToggleDoor(1));
+        g.Client.Send(new ToggleDoor(4));
+        g.Client.Send(new ToggleDoor(7));
+        Assert.Equal(g.M.Grid.StructureLayer.ToArray(), g.Shown.Structure);
+    }
+
+    [Fact]
+    public void ShowsTheSameOnceTheTickRunsItWithNothingInFlight()
+    {
+        var g = new Guest();
+        g.Client.Send(new ToggleDoor(1));
+        var before = g.Shown;
+        g.Run(new ToggleDoor(1));
+        Assert.Empty(g.Client.InFlight);
+        Assert.Equal(before.Structure, g.M.Grid.StructureLayer.ToArray());
+        Assert.NotEqual(before.Key, g.Shown.Key);
+    }
+
+    [Fact]
+    public void IsMadeOnceForTheSameWorldAndTheSameToggles()
+    {
+        var g = new Guest();
+        g.Client.Send(new ToggleDoor(1));
+        Assert.Same(g.Shown, g.Shown);
+    }
+}

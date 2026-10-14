@@ -26,8 +26,5 @@ are shared. Ported tests: `cable.test.ts`, `ropes.test.ts`, `wiring.test.ts`.
   move was refused (two seconds).
 - A dragged cable runs to where it would end: a machine's socket, an anchor's middle.
 - Cables sync with the world at most every 250 ms once it has run a tick; ropes move every frame at 60
-  steps a second and sway out of the hero's body.
-
-## Not ported yet
-
-- Other heroes' bodies swaying the cables: with crew's remote heroes.
+  steps a second and sway out of every hero's body: this one and the others where they are drawn
+  (`HeroView.Others`).
