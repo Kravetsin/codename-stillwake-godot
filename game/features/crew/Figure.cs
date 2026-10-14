@@ -46,7 +46,7 @@ public partial class Figure : Node2D
         ["forearm"] = new(2.5f, 2.9f),
         ["thigh"] = new(3, 2.5f),
         ["shin"] = new(3, 2.18f),
-        ["sheet"] = new(0, 6),
+        ["sheet"] = new(0, 5),
     };
 
     private sealed record Limb(Node2D Upper, Node2D Lower)
@@ -78,6 +78,43 @@ public partial class Figure : Node2D
     /// <summary>How long since passing out, and what picks the heap it ends in, new each time.</summary>
     private double _outMs, _outTilt;
     private int _slump;
+    private readonly Sprite2D _screen;
+    /// <summary>
+    /// The planner's screen lights what is near it, a little, in its blue: added over the room's light
+    /// as an ember's is (its alpha marks it so for <see cref="Lit"/>), brighter as it beams.
+    /// </summary>
+    private readonly PointLight2D _glow = new()
+    {
+        Texture = new GradientTexture2D
+        {
+            Width = 96, Height = 96,
+            Fill = GradientTexture2D.FillEnum.Radial,
+            FillFrom = new Vector2(0.5f, 0.5f), FillTo = new Vector2(1, 0.5f),
+            Gradient = new Gradient { Colors = [new Color(1, 1, 1), new Color(0.25f, 0.25f, 0.25f), new Color(0, 0, 0)], Offsets = [0, 0.35f, 1] },
+        },
+        Position = new Vector2(6, -4),
+        RangeItemCullMask = Lit.LampMask,
+        ShadowEnabled = true,
+        Height = 16,
+    };
+    private const float GlowStrength = 0.35f;
+    private static readonly Color GlowColour = new(0.45f, 0.8f, 1f);
+    private readonly List<Line2D> _beams = new();
+    private readonly List<Vector2> _beamTo = new();
+    private double _beamMs;
+    /// <summary>
+    /// Placing plans, the hand thrusts the planner at them and it beams each one in, a line of its light
+    /// fading over <see cref="BeamMs"/>; at most <see cref="BeamsMost"/> lines, a long drag beaming its
+    /// first cells.
+    /// </summary>
+    private const double BeamMs = 320;
+    private const int BeamsMost = 8;
+    private static readonly Color BeamColour = new(0.49f, 0.83f, 0.99f);
+    private static readonly CanvasItemMaterial BeamMaterial = new()
+    {
+        BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
+        LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
+    };
     private double _swim, _fast, _heading;
     /// <summary>Passed out in space, limbs go slack slowly, as if the strength drained out of them.</summary>
     private const double SlackMs = 450;
@@ -107,6 +144,22 @@ public partial class Figure : Node2D
         _helmet.AddChild(Part("helmet"));
         _plan = Part("sheet");
         _plan.Visible = false;
+        // The planner's screen glows: drawn unlit over it, so it shows in the dark.
+        _screen = new Sprite2D
+        {
+            Texture = GD.Load<Texture2D>("res://art/hero_sheet_screen.png"),
+            Centered = false,
+            Offset = -Joints["sheet"],
+            Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded },
+        };
+        _plan.AddChild(_screen);
+        _plan.AddChild(_glow);
+        for (int i = 0; i < BeamsMost; i++)
+        {
+            var beam = new Line2D { TopLevel = true, Width = 1, Visible = false, ZIndex = 1, Material = BeamMaterial };
+            _beams.Add(beam);
+            AddChild(beam);
+        }
 
         // The body turns and leans around its middle: its parts hang from a node half its height down.
         _body = new Node2D();
@@ -117,6 +170,30 @@ public partial class Figure : Node2D
         foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, frontArm }) parts.AddChild(n);
         AddChild(_body);
         Wear(colour);
+    }
+
+    /// <summary>Has the hero aim its planner at <paramref name="cells"/>, in pixels of the world, and beam them in.</summary>
+    public void Beam(IReadOnlyList<Vector2> cells)
+    {
+        _beamTo.Clear();
+        for (int i = 0; i < cells.Count && i < BeamsMost; i++) _beamTo.Add(cells[i]);
+        _beamMs = BeamMs;
+    }
+
+    /// <summary>A line of the planner's light from its screen to each cell just planned, fading.</summary>
+    private void ShowBeams(bool holding)
+    {
+        float left = (float)(_beamMs / BeamMs);
+        // The middle of its screen.
+        var from = _plan.ToGlobal(new Vector2(6, -4));
+        for (int i = 0; i < _beams.Count; i++)
+        {
+            var beam = _beams[i];
+            beam.Visible = holding && left > 0 && i < _beamTo.Count;
+            if (!beam.Visible) continue;
+            beam.Points = [from, _beamTo[i]];
+            beam.DefaultColor = BeamColour with { A = 0.85f * left * left };
+        }
     }
 
     /// <summary>The figure in a suit of <paramref name="colour"/>, 0xRRGGBB: its pictures recoloured, when it changes.</summary>
@@ -221,7 +298,24 @@ public partial class Figure : Node2D
         _shown = shown;
         // Afloat, the arms already reach the way the body is still turning to.
         double lead = afloat ? Math.Clamp(Poses.Apart(shown.Tilt, to.Tilt), -ArmsLeadMost, ArmsLeadMost) : 0;
-        _frontArm.Bend(shown.FrontArm with { Upper = shown.FrontArm.Upper + lead });
+        // Placing plans, the planner thrusts at them: out fast, back slower.
+        double t = 1 - _beamMs / BeamMs;
+        double thrust = holding && _beamMs > 0 ? (t < 0.3 ? t / 0.3 : (1 - t) / 0.7) : 0;
+        var frontArm = shown.FrontArm;
+        double aim = 0;
+        if (thrust > 0 && _beamTo.Count > 0)
+        {
+            // Toward the first cell, from the shoulder, as the figure faces.
+            var at = _beamTo[0];
+            double dx = (at.X - feetX) * hero.Facing, dy = at.Y - (feetY - Rig.Shoulder);
+            aim = Math.Atan2(dy, dx);
+            double reach = 0.95 * (Rig.Arm.Upper + Rig.Arm.Lower);
+            var held = Rig.EndOf(shown.FrontArm, Rig.Arm);
+            var point = new Vec(Math.Cos(aim) * reach, Math.Sin(aim) * reach);
+            frontArm = Rig.Reach(new Vec(held.X + (point.X - held.X) * thrust, held.Y + (point.Y - held.Y) * thrust), Rig.Arm, 1);
+        }
+        // The hand holding the planner keeps it before the eyes, ahead of no turn.
+        _frontArm.Bend(frontArm with { Upper = frontArm.Upper + (holding ? 0 : lead) });
         _backArm.Bend(shown.BackArm with { Upper = shown.BackArm.Upper + lead });
         _frontLeg.Bend(shown.FrontLeg);
         _backLeg.Bend(shown.BackLeg);
@@ -234,15 +328,21 @@ public partial class Figure : Node2D
         _plan.Visible = holding;
         if (holding)
         {
-            var hand = Rig.EndOf(shown.FrontArm, Rig.Arm);
+            var hand = Rig.EndOf(frontArm, Rig.Arm);
             _plan.Position = new Vector2((float)hand.X, (float)(-Rig.Shoulder + hand.Y));
-            _plan.Rotation = (float)Poses.SheetTurn(_head);
+            double turn = Poses.SheetTurn(_head);
+            _plan.Rotation = (float)(turn + Poses.Apart(turn, aim) * thrust);
+            _screen.Modulate = new Color(1, 1, 1) * (float)(1 + 0.8 * thrust);
+            float glow = GlowStrength * (float)(1 + 1.5 * thrust);
+            _glow.Color = new Color(GlowColour.R * glow, GlowColour.G * glow, GlowColour.B * glow, 0.5f);
         }
+        _beamMs = Math.Max(0, _beamMs - elapsedMs);
         // Lying down, the middle sinks as the body turns, so it comes to rest on the floor.
         double c = Math.Abs(Math.Cos(shown.Tilt)), s = Math.Abs(Math.Sin(shown.Tilt));
         _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
         Position = new Vector2((float)feetX, (float)feetY);
         Scale = new Vector2(hero.Facing, 1);
+        ShowBeams(holding);
     }
 }
 

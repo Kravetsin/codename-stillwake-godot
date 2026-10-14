@@ -166,6 +166,8 @@ public static class Poses
         double along = Hold.FarHand * Sheet.Length;
         double turn = SheetTurn(look);
         var far = new Vec(front.X + Math.Cos(turn) * along, front.Y + Math.Sin(turn) * along);
+        // Afloat one hand holds it and the other swims on.
+        if (pose == Pose.Float) return landed with { FrontArm = Rig.Reach(front, Rig.Arm, 1) };
         return landed with { FrontArm = Rig.Reach(front, Rig.Arm, 1), BackArm = Rig.Reach(far, Rig.Arm, 1) };
     }
 

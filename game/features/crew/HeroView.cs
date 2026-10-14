@@ -38,6 +38,8 @@ public partial class HeroView : Node2D
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
     private readonly Clock _clock = new(Hero.StepMs);
+    /// <summary>The grid's width last frame, to find where a planned cell is.</summary>
+    private int _width = 1;
     private readonly HeroAutopilot? _autopilot;
     private readonly RemoteHeroes _remote = new();
     private readonly HeroSender _sender;
@@ -66,6 +68,9 @@ public partial class HeroView : Node2D
     public HeroView(Ui ui, WorldButtons mouse, HeroAutopilot? autopilot = null)
     {
         _ui = ui;
+        // Plans placed: the planner in the hero's hand beams them in, cell by cell.
+        _ui.Planned += cells => _figure.Beam(cells
+            .Select(c => new Vector2((float)((c % _width + 0.5) * Rig.Cell), (float)((c / _width + 0.5) * Rig.Cell))).ToList());
         _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
@@ -97,6 +102,7 @@ public partial class HeroView : Node2D
     public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double elapsedMs)
     {
         var grid = m.Grid;
+        _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
         var shown = Predicted.Grid(client, grid);
         var ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell));
@@ -152,17 +158,18 @@ public partial class HeroView : Node2D
     }
 
     /// <summary>
-    /// What the hands do at the pointer: the aim outlined and said while the hand is free and the hero
-    /// awake, doors and valves as <paramref name="shown"/>; E and the left button on what it works.
-    /// Passed out, or with the plan in hand, the hands do nothing: a press is spent, a hold works no plan.
+    /// What the hands do at the pointer: the aim said while the hero is awake and outlined while the hand
+    /// is free, doors and valves as <paramref name="shown"/>; E on what it works whatever the hand holds,
+    /// so a door opens with a card or a cable out; the left button only with a free hand, as it is the
+    /// card's otherwise. Passed out, the hands do nothing: a press is spent, a hold works no plan.
     /// </summary>
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, bool handFree)
     {
         if (!_mouse.Buttons.HoldsLeft) _served.Clear();
         var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served) : null;
-        // With a card out the building shows the pointer's cell and its own reasons.
-        var prompt = passedOut || !handFree ? null : Prompts.Of(m, aim, shown);
-        TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
+        // With a card out the building shows the pointer's cell and its own reasons: only the prompt for E.
+        var prompt = passedOut ? null : Prompts.Of(m, aim, shown);
+        TraceAim(m, shown, handFree && prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
         _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);
 
@@ -171,7 +178,7 @@ public partial class HeroView : Node2D
         bool pressed = (_autopilot?.TakePress() ?? false) | TakeUse();
         bool grab = _mouse.Buttons.TakeClick() && aim?.Piece != null;
         bool acts = !passedOut && handFree;
-        var uses = Aiming.UsesOf(aim, acts && (pressed || grab), acts && _mouse.Buttons.HoldsLeft, client.World.Tick, _workedOnTick);
+        var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, acts && _mouse.Buttons.HoldsLeft, client.World.Tick, _workedOnTick);
         _workedOnTick = uses.WorkedOnTick;
         if (uses.Served is int served) _served.Add(served);
         foreach (var command in uses.Commands) client.Send(command);

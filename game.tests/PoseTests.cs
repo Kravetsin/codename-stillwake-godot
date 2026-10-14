@@ -212,6 +212,16 @@ public class PoseTests
     }
 
     [Fact]
+    public void HoldsThePlanInOneHandAfloatTheOtherSwimmingOn()
+    {
+        var swimming = Standing with { Vx = 80 };
+        var free = LimbsOf(Pose.Float, swimming, At(0, 300));
+        var holding = LimbsOf(Pose.Float, swimming, At(0, 300) with { Plan = 0 });
+        Assert.Equal(free.BackArm, holding.BackArm);
+        Assert.NotEqual(free.FrontArm, holding.FrontArm);
+    }
+
+    [Fact]
     public void KeepsItsStrokeOnTheDiagonalTimedNotByDistance()
     {
         var across = LimbsOf(Pose.Float, Standing with { Vx = 80 }, At(0, 500));

@@ -131,4 +131,12 @@ public sealed class Ui
     /// no keys and the hands no pointer, so nothing in the world answers a player who is not there.
     /// </summary>
     public Store<bool> MenuOpen { get; } = new(false);
+
+    /// <summary>
+    /// This player just placed plans in these cells: <c>building</c> says so as it sends them, and
+    /// <c>crew</c> has the hero aim the planner at them and beam them in. Told once a placing.
+    /// </summary>
+    public event Action<IReadOnlyList<int>>? Planned;
+
+    public void Plan(IReadOnlyList<int> cells) => Planned?.Invoke(cells);
 }
