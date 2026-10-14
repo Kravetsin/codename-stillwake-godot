@@ -39,6 +39,7 @@ namespace Stillwake.Game;
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>),
+/// <c>--light=cells</c> lights by cells from emitters (0026) where <c>--light=godot</c>, the default, lights by Godot's lights (F9 or the dev panel switches),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
@@ -81,6 +82,7 @@ public partial class Main : Node2D
     {
         _args = OS.GetCmdlineUserArgs();
         _cheat = Has("--cheat");
+        Lit.UseCells(Has("--light=cells"));
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
 
@@ -130,7 +132,8 @@ public partial class Main : Node2D
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
-            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} occluders={_light?.OccluderCount}"));
+            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} occluders={_light?.OccluderCount} "
+                + $"light={(Lit.Cells ? "cells" : "godot")} godot-lights={_light?.GodotLightsShown} {_light?.CellsCost}"));
     }
 
     private bool Has(string flag) => _args.Contains(flag);
@@ -427,6 +430,7 @@ public partial class Main : Node2D
     private void Quit()
     {
         _frameLog?.Report();
+        if (_frameLog != null) GD.Print($"LIGHT {(Lit.Cells ? "cells" : "godot")} godot-lights={_light?.GodotLightsShown} {_light?.CellsCost}");
         if (_session is Session s)
         {
             var c = s.Client;

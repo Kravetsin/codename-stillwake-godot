@@ -36,7 +36,7 @@ public partial class DevPanel : CanvasLayer
     private readonly Label _fps = Text(Style.Slate400), _status = Text(Style.Slate400);
     private readonly GridContainer _readings = new() { Columns = 2 };
     private readonly VBoxContainer _slices = new();
-    private readonly Button _speed, _creative;
+    private readonly Button _speed, _creative, _light;
     private readonly HashSet<string> _expanded = [];
     private readonly Dictionary<string, (Button Toggle, ScrollContainer Box, Label Json)> _entries = [];
     private double _sinceRead = RefreshMs;
@@ -72,6 +72,7 @@ public partial class DevPanel : CanvasLayer
         buttons.AddChild(_speed = Style.Button("×4", ToggleSpeed));
         buttons.AddChild(_creative = Style.Button("creative", ToggleCreative));
         buttons.AddChild(Style.Button("meteor", Meteor));
+        buttons.AddChild(_light = Style.Button(LightName(), ToggleLight));
         column.AddChild(buttons);
         column.AddChild(_status);
         Say("");
@@ -120,8 +121,23 @@ public partial class DevPanel : CanvasLayer
         Say("");
     }
 
+    /// <summary>Lights by cells from emitters (0026) or by Godot's lights, the other of the two from now on: F9 too.</summary>
+    private void ToggleLight()
+    {
+        Lit.UseCells(!Lit.Cells);
+        _light.Text = LightName();
+    }
+
+    private static string LightName() => Lit.Cells ? "light: cells" : "light: godot";
+
     public override void _UnhandledInput(InputEvent e)
     {
+        if (e is InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.F9 })
+        {
+            ToggleLight();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.Quoteleft }) return;
         Visible = !Visible;
         _sinceRead = RefreshMs;

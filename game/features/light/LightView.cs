@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
@@ -53,7 +54,7 @@ public partial class LightView : Node2D
     private readonly Node2D _lamps = new();
     private readonly Node2D _glowing = new();
     private readonly List<PointLight2D> _glows = new();
-    private readonly List<(Machine Lamp, PointLight2D Light, Sprite2D Glow)> _shown = new();
+    private readonly List<(Machine Lamp, PointLight2D Light, Sprite2D Glow, Emitter Bulb)> _shown = new();
     private readonly List<(Machine Furnace, PointLight2D Light, Sprite2D Glow)> _fires = new();
     private int[] _structure = [], _back = [];
     private Machine[] _machines = [];
@@ -67,6 +68,13 @@ public partial class LightView : Node2D
     private byte[] _fieldBytes = [];
     private readonly List<float> _steadyKey = new();
     private bool _moved;
+    // The cells mode (0026): the light over the screen and round it, worked out each frame, and its texture.
+    private readonly CellLight _cells = new(Cell);
+    private Image? _cellImage;
+    private ImageTexture? _cellTexture;
+    private double _cellsMs, _cellsWorstMs;
+    private long _cellsBytes;
+    private int _cellsFrames, _cellsArea, _cellsKept;
 
     /// <summary>
     /// The share of the power each lamp gets, 0 to 1: its brightness, flickering when short. Full
@@ -91,7 +99,24 @@ public partial class LightView : Node2D
         AddChild(_starlight);
         AddChild(_lamps);
         AddChild(_glowing);
+        Lit.CellsChanged += Switched;
     }
+
+    public override void _ExitTree() => Lit.CellsChanged -= Switched;
+
+    /// <summary>The lamps' field is worked out anew on coming back from the cells mode: their flicker went on meanwhile.</summary>
+    private void Switched() => _steadyKey.Clear();
+
+    /// <summary>
+    /// What working out the cells' light has cost a frame in the cells mode, in ms, its worst, and the bytes
+    /// it allocated a frame: for the dev readouts.
+    /// </summary>
+    public string CellsCost => _cellsFrames == 0 ? "cells=off"
+        : $"cells={_cellsMs / _cellsFrames:F3}/{_cellsWorstMs:F2}ms over {_cellsFrames} frames of {_cellsArea} cells, {(_cellsKept == 0 ? 0 : (double)_cellsBytes / _cellsKept):F0} B a frame allocated once sized";
+
+    /// <summary>How many of Godot's lights shine now: none in the cells mode.</summary>
+    public int GodotLightsShown =>
+        _lamps.GetChildren().OfType<Light2D>().Count(l => l.Visible) + _glows.Count(l => l.Visible) + (_starlight.Visible ? 1 : 0);
 
     /// <summary>Brings shadows, starlight and lamps up to the grid: called after each tick, cheap when nothing changed.</summary>
     public void Sync()
@@ -142,9 +167,16 @@ public partial class LightView : Node2D
                 ZIndex = Layers.Glows,
                 Material = GlowMaterial,
             };
+            // Its bulb, as the cells mode lights it: the lamp's picture is a tile, laid from its cell's corner.
+            var bulb = new Emitter(L.Emits.Lamp)
+            {
+                Picture = PixelArt.Picture("machine_lamp"),
+                Position = new Vector2(lamp.Cell % _grid.Width, lamp.Cell / _grid.Width) * Cell,
+            };
             _lamps.AddChild(light);
             _lamps.AddChild(glow);
-            _shown.Add((lamp, light, glow));
+            _lamps.AddChild(bulb);
+            _shown.Add((lamp, light, glow, bulb));
         }
         _fires.Clear();
         var furnace = Content.Machines.Get("furnace");
@@ -189,12 +221,15 @@ public partial class LightView : Node2D
             steady |= _steadyKey[key] != value;
             _steadyKey[key++] = value;
         }
-        foreach (var (lamp, light, glow) in _shown)
+        bool cells = Lit.Cells;
+        _starlight.Visible = !cells;
+        foreach (var (lamp, light, glow, bulb) in _shown)
         {
             float shines = Flicker.BrightnessOf(LampShare(lamp), _timeMs, lamp.Id);
             // Its strength in its colour, not its energy: the lit shader reads a light's colour as what it gives.
             light.Color = new Color(shines, shines, shines);
-            light.Visible = shines > 0;
+            light.Visible = shines > 0 && !cells;
+            bulb.Strength = shines;
             glow.Visible = shines > 0;
             glow.Modulate = GlowColour with { A = shines };
             Keep(shines);
@@ -205,19 +240,25 @@ public partial class LightView : Node2D
         foreach (var (furnace, light, glow) in _fires)
         {
             float burns = Fire(furnace);
-            light.Visible = burns > 0;
-            glow.Visible = burns > 0;
+            // The cells mode lights the fire from its picture's flames, and the TypeScript game's had no glow.
+            light.Visible = burns > 0 && !cells;
+            glow.Visible = light.Visible;
             if (!light.Visible) continue;
             light.Color = new Color(burns, burns, burns);
             glow.Modulate = FireGlowColour with { A = Math.Min(1, FireGlowAlpha * burns) };
             fires++;
         }
-        int glows = ShowGlows();
+        int glows = cells ? HideGlows() : ShowGlows();
+        if (cells)
+        {
+            ShowCells();
+            return;
+        }
         if (_steady is null || _field is null) return;
         if (steady)
         {
             _steady.Clear();
-            foreach (var (_, light, _) in _shown)
+            foreach (var (_, light, _, _) in _shown)
                 if (light.Visible) _steady.Add(light.Position.X / Cell, light.Position.Y / Cell, L.Lamp, L.LampMost, (light.Color.R, light.Color.G, light.Color.B), LampReach, L.Air);
         }
         bool moving = fires + glows > 0;
@@ -232,6 +273,72 @@ public partial class LightView : Node2D
             _field.Add(g.Position.X / Cell, g.Position.Y / Cell, (1, 1, 1), 1, (g.Color.R, g.Color.G, g.Color.B), GlowReach, L.ParticleKeep);
         }
         ShowFieldLight();
+    }
+
+    /// <summary>
+    /// The cells mode (0026): the light of the screen and <see cref="L.Margin"/> cells round it (half a
+    /// screen at most, area.ts), worked out as the TypeScript game did: the stars, every emitter's glowing
+    /// pixels and every glowing particle, spread by sweeps, handed to <see cref="Lit"/> as floats.
+    /// </summary>
+    private void ShowCells()
+    {
+        long started = Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
+        var view = GetCanvasTransform().AffineInverse() * GetViewportRect();
+        float vx = view.Position.X / Cell, vy = view.Position.Y / Cell, vw = view.Size.X / Cell, vh = view.Size.Y / Cell;
+        int across = Math.Min(L.Margin, (int)Math.Ceiling(vw / 2)), down = Math.Min(L.Margin, (int)Math.Ceiling(vh / 2));
+        // As many cells as the screen can span, wherever it lies: the texture keeps its size while the camera moves.
+        int x = (int)Math.Floor(vx) - across, y = (int)Math.Floor(vy) - down;
+        int w = (int)Math.Ceiling(vw) + 1 + across * 2, h = (int)Math.Ceiling(vh) + 1 + down * 2;
+        _cells.Begin(_grid, x, y, w, h);
+        var emitters = Emitter.All;
+        for (int i = 0; i < emitters.Count; i++)
+        {
+            var e = emitters[i];
+            if (!e.Shows(out var mask, out var toWorld)) continue;
+            float s = e.Emits.Strength * e.Strength;
+            var (r, g, b) = e.Emits.Colour;
+            _cells.Give(mask, toWorld, new System.Numerics.Vector4(r, g, b, 0) * s);
+        }
+        var live = Particles.Shared.Live;
+        for (int i = 0; i < live.Count; i++)
+        {
+            var p = live[i];
+            if (p.Effect.Glow is null) continue;
+            var emits = p.Effect == Effect.Ember ? L.Emits.Ember : L.Emits.Spark;
+            float s = emits.Strength * (float)p.Alpha;
+            _cells.Give((float)p.X, (float)p.Y, new System.Numerics.Vector4(emits.Colour.R, emits.Colour.G, emits.Colour.B, 0) * s);
+        }
+        _cells.Spread();
+        _cells.Finish();
+        if (_cellImage == null || _cellTexture == null || _cellImage.GetWidth() != w || _cellImage.GetHeight() != h)
+        {
+            _cellImage = Image.CreateFromData(w, h, false, Image.Format.Rgbaf, _cells.Texels);
+            _cellTexture = ImageTexture.CreateFromImage(_cellImage);
+        }
+        else
+        {
+            _cellImage.SetData(w, h, false, Image.Format.Rgbaf, _cells.Texels);
+            _cellTexture.Update(_cellImage);
+        }
+        Lit.ShowCells(_cellTexture, new Rect2(x * Cell, y * Cell, w * Cell, h * Cell));
+        double ms = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        // Allocation counted only once the buffers fit the screen: a zoom makes them anew.
+        if (_cellsArea == w * h)
+        {
+            _cellsKept++;
+            _cellsBytes += GC.GetAllocatedBytesForCurrentThread() - allocated;
+            _cellsWorstMs = Math.Max(_cellsWorstMs, ms);
+        }
+        _cellsArea = w * h;
+        _cellsFrames++;
+        _cellsMs += ms;
+    }
+
+    /// <summary>The cells mode lights round glowing particles itself: Godot's lights under them are hidden.</summary>
+    private int HideGlows()
+    {
+        for (int i = 0; i < _glows.Count; i++) _glows[i].Visible = false;
+        return 0;
     }
 
     /// <summary>The field of all the lamps' light, over the grid and as far round it as a lamp reaches, handed to <see cref="Lit"/>.</summary>

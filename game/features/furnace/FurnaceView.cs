@@ -32,7 +32,7 @@ public partial class FurnaceView : Node2D
     /// The fire in each furnace at work, its picture, how brightly it burns in it, and the embers owed to
     /// it, carried over between frames, by machine id.
     /// </summary>
-    private readonly Dictionary<int, (Sprite2D Sprite, int Frame, float Blaze, double Owed)> _fires = new();
+    private readonly Dictionary<int, (Sprite2D Sprite, Emitter Flames, int Frame, float Blaze, double Owed)> _fires = new();
     private readonly HashSet<int> _burning = new();
     private readonly List<int> _out = new();
     private readonly Random _random = new();
@@ -63,7 +63,11 @@ public partial class FurnaceView : Node2D
             _burning.Add(m.Id);
             if (!_fires.TryGetValue(m.Id, out var fire))
             {
-                fire = (new Sprite2D { Centered = false, ZIndex = Layers.Fire, Material = Unlit, Texture = Picture(m.Id) }, m.Id, 1, 0);
+                var sprite = new Sprite2D { Centered = false, ZIndex = Layers.Fire, Material = Unlit, Texture = Picture(m.Id) };
+                // Its flames light the cells they burn in, in the cells mode (0026), as brightly as it burns.
+                var flames = new Emitter(Game.Light.Emits.Fire);
+                sprite.AddChild(flames);
+                fire = (sprite, flames, m.Id, 1, 0);
                 AddChild(fire.Sprite);
             }
             if (turn)
@@ -73,6 +77,7 @@ public partial class FurnaceView : Node2D
                 fire.Sprite.Texture = Picture(fire.Frame);
                 fire.Blaze = Flames.Blaze(_random.NextDouble());
             }
+            fire.Flames.Strength = fire.Blaze;
             var corner = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * Cell;
             fire.Sprite.Position = corner + FireAt;
             double due = fire.Owed + EmbersPerSecond * elapsedMs / 1000;
