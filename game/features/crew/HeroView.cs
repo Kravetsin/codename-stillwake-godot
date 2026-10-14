@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
-using Stillwake.Sim.Atmosphere;
+using Stillwake.Sim;
 using Stillwake.Sim.Crew;
-using Stillwake.Sim.Grid;
-using Stillwake.Sim.Rooms;
 using Spec = Stillwake.Content.Hero;
 
 namespace Stillwake.Game.Features.Crew;
@@ -17,9 +16,12 @@ namespace Stillwake.Game.Features.Crew;
 /// smoothly between sends (<see cref="RemoteHeroes"/>); and this machine's hero (features/crew/index.ts):
 /// moved by the keyboard against the ship's cells, doors as this peer shows them (0014), outside the
 /// sim, at the controller's 60 steps a second; drawn between its last two steps, so it moves smoothly at
-/// any refresh rate, with its tether out in space; followed by the camera; sent to the others about 20
-/// times a second. Every hero in its suit's colour. E under the pointer, within reach, toggles a door
-/// or valve, outlined while it would.
+/// any refresh rate, with its tether out in space and the plan in its hands while the hand is not free;
+/// followed by the camera; sent to the others about 20 times a second. Every hero in its suit's colour.
+/// E under the pointer, within reach, toggles a door or valve, loads a tank, catches a piece or opens a
+/// crate when pressed, and the left button works a plan while held, grabbing debris too: one
+/// <c>Work</c> for every tick released. With an empty hand, what E would work is outlined, and a prompt
+/// says what E does.
 /// </summary>
 public partial class HeroView : Node2D
 {
@@ -27,7 +29,12 @@ public partial class HeroView : Node2D
     /// <summary>A safety line's yellow, pale enough not to shout across the dark.</summary>
     private static readonly Color Line = new(new Color("d9c27a"), 0.9f);
 
+    private readonly Ui _ui;
+    private readonly WorldButtons _mouse;
     private readonly Figure _figure = new(Suits.All[0]);
+    // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
+    private readonly Sketch _outline = new(4);
+    private readonly UsePrompt _prompt = new();
     private readonly Clock _clock = new(Hero.StepMs);
     private readonly HeroAutopilot? _autopilot;
     private readonly RemoteHeroes _remote = new();
@@ -39,54 +46,64 @@ public partial class HeroView : Node2D
     private Hero _previous, _current;
     private bool _placed, _wasOut, _jump, _use;
     private Tether? _tether;
-    private Aim? _aim;
+    /// <summary>What E would work, outlined: its cells, and whether the sim would refuse it.</summary>
+    private (IReadOnlyList<int> Cells, bool Refused)? _aimed;
     private int _width, _steps;
     private double _clockMs;
+    /// <summary>The blueprints delivered to in this hold of the left button: a sweep delivers to each it passes once.</summary>
+    private readonly HashSet<int> _served = [];
+    private int _workedOnTick = -1;
 
+    /// <param name="ui">What the hand holds, the crate open and the piece aimed at, shared with the other features.</param>
+    /// <param name="mouse">The pointer and the left button as the world reads them.</param>
     /// <param name="autopilot">A script to play the hero by instead of the keyboard, for recordings.</param>
-    public HeroView(HeroAutopilot? autopilot = null)
+    public HeroView(Ui ui, WorldButtons mouse, HeroAutopilot? autopilot = null)
     {
+        _ui = ui;
+        _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
         // Others behind this machine's hero.
         AddChild(_others);
         AddChild(_figure);
+        AddChild(_outline);
+        AddChild(_prompt);
+        _outline.Paint = PaintAim;
     }
 
     /// <summary>The hero after its latest step: what the sim learns of where it is.</summary>
     public Hero Current => _current;
 
-    /// <summary>Whether this machine's hero holds the plan in its hands, drawn and sent to the others: the hand not free.</summary>
-    public bool HoldsPlan { get; set; }
+    /// <summary>Whether this machine's hero holds the plan in its hands, drawn and sent to the others: the hand not free (0022).</summary>
+    public bool HoldsPlan => _ui.Hand.Get() != Holding.Free;
 
     /// <summary>Other heroes where they are drawn this frame: what sways the cables besides this one.</summary>
     public IReadOnlyList<Hero> Others { get; private set; } = [];
 
     /// <summary>
-    /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world and draws it, the
-    /// camera centred on it, and tells the sim where it is when that matters to its breathing
-    /// (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming round, and
-    /// takes no orders while passed out. <paramref name="heard"/> are the other heroes the client took
-    /// since the last frame, each drawn where it stood a little while ago.
+    /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world <paramref name="m"/>
+    /// and draws it, the camera centred on it, and tells the sim where it is when that matters to its
+    /// breathing (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming
+    /// round, and takes no orders while passed out. <paramref name="heard"/> are the other heroes the
+    /// client took since the last frame, each drawn where it stood a little while ago.
     /// </summary>
-    public void Frame(
-        Client client, IGridQueries grid, IRoomsQueries rooms, IAtmosphereQueries air, ICrewQueries crew, Camera2D camera,
-        IReadOnlyList<PeerHeroMessage> heard, double elapsedMs)
+    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double elapsedMs)
     {
+        var grid = m.Grid;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
-        var shown = ShownGrid.Of(client, grid);
-        var ship = Ship.Of(grid, rooms, cell => shown.StructureAt(grid, cell));
+        var shown = Predicted.Grid(client, grid);
+        var ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell));
         _width = grid.Width;
-        bool passedOut = (crew.HeroOf(client.Id)?.Out ?? 0) > 0;
+        bool passedOut = (m.Crew.HeroOf(client.Id)?.Out ?? 0) > 0;
         // Waking from passing out, the sim has put the hero at the spawn: so does the client.
         if (!_placed || (_wasOut && !passedOut))
         {
-            _previous = _current = Hero.At(ship, crew.Spawn);
+            _previous = _current = Hero.At(ship, m.Crew.Spawn);
             _placed = true;
         }
         _wasOut = passedOut;
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
-        var pointed = Pointer(camera);
+        var pointed = Pointer();
         int? face = Poses.FaceOf(pointed, _current);
         for (int due = _clock.Advance(elapsedMs); due > 0; due--)
         {
@@ -97,16 +114,17 @@ public partial class HeroView : Node2D
             _steps++;
         }
         double ownLook = passedOut ? 0 : Poses.LookOf(_current, pointed);
-        if (Report.Of(crew, rooms, air, grid.Width, client.Id, _current) is { } report) client.Send(report);
+        if (Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current) is { } report) client.Send(report);
 
         // Others' heroes in, this one out: through the host, never through the simulation. Stamped with
         // its step's time, so others place it by when it was there, not when it came.
+        bool holdsPlan = HoldsPlan && !passedOut;
         _clockMs += elapsedMs;
         _sendTo = client;
-        _sender.Step(elapsedMs, new Seen(_current, ownLook, HoldsPlan && !passedOut), _steps * Hero.StepMs);
+        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan), _steps * Hero.StepMs);
         foreach (var message in heard)
             if (SentHero.Decode(message.State) is { } sent) _remote.Add(message.From, sent, _clockMs);
-        ShowOthers(ship, crew, elapsedMs);
+        ShowOthers(ship, m.Crew, elapsedMs);
 
         double between = _clock.Progress;
         double x = _previous.X + (_current.X - _previous.X) * between;
@@ -114,20 +132,50 @@ public partial class HeroView : Node2D
         camera.Position = new Vector2((float)(x / Hero.Unit), (float)((y - Spec.Height / 2.0) / Hero.Unit)) * (float)Rig.Cell;
 
         // Aimed after following, so the pointer is read where the camera now is.
-        var pointer = Pointer(camera);
+        var pointer = Pointer();
         var drawn = _current with { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
         bool inSpace = ship.Space(drawn.BodyCell(ship.Width));
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
-        _figure.Wear(Suits.Of(crew, client.Id));
-        _figure.Show(drawn, Poses.PoseOf(drawn, inSpace, passedOut), look, HoldsPlan && !passedOut, elapsedMs);
+        _figure.Wear(Suits.Of(m.Crew, client.Id));
+        _figure.Show(drawn, Poses.PoseOf(drawn, inSpace, passedOut), look, holdsPlan, elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
-
-        // The press is taken every frame, so one made out of reach is spent rather than kept.
-        bool pressed = (_autopilot?.TakePress() ?? false) | TakeUse();
-        _aim = pointer is { } p && !passedOut ? Aiming.AimAt(grid, _current, p) : null;
-        if (Aiming.UseOf(_aim, pressed && !passedOut) is { } use) client.Send(use);
+        UseHands(client, m, shown, pointer, passedOut, handFree: !HoldsPlan);
+        _outline.QueueRedraw();
         QueueRedraw();
     }
+
+    /// <summary>
+    /// What the hands do at the pointer: the aim outlined and said while the hand is free and the hero
+    /// awake, doors and valves as <paramref name="shown"/>; E and the left button on what it works.
+    /// Passed out, or with the plan in hand, the hands do nothing: a press is spent, a hold works no plan.
+    /// </summary>
+    private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, bool handFree)
+    {
+        if (!_mouse.Buttons.HoldsLeft) _served.Clear();
+        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served) : null;
+        // With a card out the building shows the pointer's cell and its own reasons.
+        var prompt = passedOut || !handFree ? null : Prompts.Of(m, aim, shown);
+        _aimed = prompt != null && aim is { Piece: null } ? (OutlineOf(m, aim), prompt.Problem != null) : null;
+        _prompt.Show(prompt);
+        _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);
+
+        // The press is taken every frame, so one made out of reach is spent rather than kept. The left
+        // button grabs debris too: out in space, with the keys held and the mouse aiming, E is a stretch.
+        bool pressed = (_autopilot?.TakePress() ?? false) | TakeUse();
+        bool grab = _mouse.Buttons.TakeClick() && aim?.Piece != null;
+        bool acts = !passedOut && handFree;
+        var uses = Aiming.UsesOf(aim, acts && (pressed || grab), acts && _mouse.Buttons.HoldsLeft, client.World.Tick, _workedOnTick);
+        _workedOnTick = uses.WorkedOnTick;
+        if (uses.Served is int served) _served.Add(served);
+        foreach (var command in uses.Commands) client.Send(command);
+        if (uses.Open is int open) _ui.OpenCrate.Set(open);
+        // A crate stays open while the hero can reach it, awake.
+        if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
+    }
+
+    /// <summary>The cells outlined for <paramref name="aim"/>: a machine's whole footprint, unless a plan in its cell is worked, else the cell.</summary>
+    private static IReadOnlyList<int> OutlineOf(Registry m, Aim aim) =>
+        aim.Work == null && m.Grid.MachineAt(aim.Cell) is { } machine ? m.Grid.Footprint(machine.Kind, machine.Cell) ?? [aim.Cell] : [aim.Cell];
 
     /// <summary>Every other hero heard from lately, in its suit, posed by how it moves and whether it is out; those gone, hidden.</summary>
     private void ShowOthers(Ship ship, ICrewQueries crew, double elapsedMs)
@@ -157,16 +205,8 @@ public partial class HeroView : Node2D
         Others = others.Select(o => o.Seen.Hero).ToList();
     }
 
-    /// <summary>The world point under the mouse, in cells, or the autopilot's; none while the mouse is off the window.</summary>
-    private (double X, double Y)? Pointer(Camera2D camera)
-    {
-        if (_autopilot != null) return _autopilot.PointerFor(_current);
-        var viewport = GetViewport();
-        var mouse = viewport.GetMousePosition();
-        if (!viewport.GetVisibleRect().HasPoint(mouse)) return null;
-        var at = camera.GetGlobalMousePosition() / (float)Rig.Cell;
-        return (at.X, at.Y);
-    }
+    /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none while the mouse is off the window.</summary>
+    private (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? _mouse.Pointer();
 
     /// <summary>A hero's tether tied at <paramref name="anchor"/>, anew wherever it is tied; none aboard.</summary>
     private static Tether? Tie(Tether? line, int seed, Point? anchor, (double X, double Y) clip, double elapsedMs)
@@ -204,15 +244,20 @@ public partial class HeroView : Node2D
         return pressed;
     }
 
+    /// <summary>What E would work under the pointer within reach, a machine's whole footprint: green, or red when the sim would refuse.</summary>
+    private void PaintAim(Sketch g)
+    {
+        if (_aimed is not var (cells, refused)) return;
+        int left = cells.Min(c => c % _width), top = cells.Min(c => c / _width);
+        int right = cells.Max(c => c % _width) + 1, bottom = cells.Max(c => c / _width) + 1;
+        float cell = (float)Rig.Cell;
+        var box = new Rect2(left * cell + 1, top * cell + 1, (right - left) * cell - 2, (bottom - top) * cell - 2);
+        g.DrawRect(box, refused ? AimRefused : AimReady, false, 2);
+    }
+
     public override void _Draw()
     {
-        // Behind the heroes: what E would work, then every tether, unlit, a line to find the way back by.
-        if (_aim is { InReach: true, Press: { } press })
-        {
-            float cell = (float)Rig.Cell;
-            var at = new Vector2(_aim.Cell % _width, _aim.Cell / _width) * cell;
-            DrawRect(new Rect2(at + Vector2.One, new Vector2(cell - 2, cell - 2)), press.Problem == null ? AimReady : AimRefused, false, 2);
-        }
+        // Behind the heroes, unlit: every tether, a line to find the way back by.
         foreach (var line in _shownOthers.Values.Select(s => s.Tether).Append(_tether))
         {
             if (line == null) continue;

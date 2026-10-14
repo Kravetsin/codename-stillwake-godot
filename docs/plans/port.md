@@ -50,7 +50,7 @@ desync fuzz across host and guest. A relay for playtests across networks (0012) 
 
 - **Built:** `net/` (its README) and `game/net/EnetLink.cs`; two Godot processes share the
   wreck, hashes checked, a drifted guest resynced, 355 ms round trip under `--lag=100 --jitter=60`.
-- **Built since:** the folds of 0014 — `grid.AfterToggles` with `game/shared/ShownGrid.cs`,
+- **Built since:** the folds of 0014 — `grid.AfterToggles` with `game/shared/Predicted.cs`,
   `items.AfterMoves`, debris grabs — and heroes replicated, drawn by `features/crew` (`Remote.cs`).
 - **Left:** the relay is not needed while ENet connects directly; Steam crosses networks (G-09).
 
@@ -81,6 +81,16 @@ dev panel.
 - **Effects built** (`features/effects`, `render/Particles.cs`): dust from steps and landings, sparks
   from work on plans, embers, air streaming out of venting rooms; sparks and embers light their
   surroundings (0019). The air overlay's forecast counts the heroes breathing.
+- **The UI half, built:** one i18n table (`game/i18n/En.cs`) and one thumbnail maker
+  (`BlueprintArt.Thumbnail`); the hero's hands as `aim.ts` had them, one aim for plans, crates, tanks,
+  doors, valves and debris, with the prompt for E at the bottom of the screen (`features/crew`);
+  ADR 0022's one hand between the hotbar and the plan (1–9, the wheel and Tab free it, Q waits for a
+  free hand, the hero holds the plan's sheet); the refusal by the pointer at the world's size; the
+  world's words only over the world; the dev panel (`features/dev-panel`).
+- **Left of the client's UI:** the build in the screen's corner (`VersionBar.tsx`, with the build's
+  day and commit stamped at G-09; its reload offer has no place outside a browser); the pose gallery
+  (`dev/PoseGallery.tsx`). Not ported on purpose: the light's CPU readout (`light/readout.ts`), as
+  Godot lights the ship on the GPU and `--measure` reads what frames cost.
 
 ## G-09 — Builds and playtest
 

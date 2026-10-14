@@ -48,14 +48,13 @@ public partial class Hands : Node2D
 
     /// <summary>
     /// One frame against the world <paramref name="m"/> of <paramref name="client"/>: <paramref name="bodies"/>
-    /// are the heroes cables sway out of the way of, <paramref name="reaches"/> whether this player's hero
-    /// reaches a cell, null while it has none.
+    /// are the heroes cables sway out of the way of.
     /// </summary>
-    public void Frame(Client client, Registry m, IReadOnlyList<Body> bodies, Func<int, bool>? reaches, double elapsedMs)
+    public void Frame(Client client, Registry m, IReadOnlyList<Body> bodies, double elapsedMs)
     {
         var pointer = Mouse.Pointer();
         var buttons = Mouse.Buttons;
-        _building.Frame(client, m, buttons, pointer, reaches);
+        _building.Frame(client, m, buttons, pointer);
         _power.Frame(client, m, buttons, pointer, bodies, elapsedMs);
         _pipes.Visible = Ui.OverlayOn.Get() == PipesOverlay.Id;
         if (_pipes.Visible) _pipes.Frame(client, m, elapsedMs);

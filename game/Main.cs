@@ -7,6 +7,7 @@ using Godot;
 using Stillwake.Game.Dev;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Debris;
+using Stillwake.Game.Features.Dev;
 using Stillwake.Game.Features.Effects;
 using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Grid;
@@ -25,8 +26,9 @@ namespace Stillwake.Game;
 /// <summary>
 /// The game: a session (net/README.md) of its own, or with <c>-- --host</c> one others join over ENet
 /// with <c>-- --join[=address]</c>; the world it plays drawn by the client's features after every
-/// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves, opens crates and catches debris; the camera
-/// follows it; its items (Tab, 1–9, the wheel, Q) and what the world has just learned.
+/// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves, loads tanks, opens
+/// crates and catches debris, the left button held works plans; the camera follows it; its items (Tab,
+/// 1–9, the wheel, Q), the plan (B), what the world has just learned, and the dev panel (`).
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
@@ -62,10 +64,12 @@ public partial class Main : Node2D
     private Layout _layout = Registry.Wreck;
     private HeroView? _hero;
     private ItemsView? _items;
-    private readonly DebrisView _debris = new();
+    private DebrisView _debris = null!;
     private readonly LearnedView _learned = new();
     private Hands _hands = null!;
     private PlanDemo? _demo;
+    /// <summary>Where this machine stands on the network, for the dev panel; none alone.</summary>
+    private string? _net;
 
     public override void _Ready()
     {
@@ -74,9 +78,12 @@ public partial class Main : Node2D
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
 
+        // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
+        _hands = new Hands();
+        _debris = new DebrisView(_hands.Ui);
         AddChild(new Stars());
         AddChild(_debris);
-        if (Has("--debris")) AddChild(new DebrisDemo(_debris));
+        if (Has("--debris")) AddChild(new DebrisDemo(_debris, _hands.Ui));
         AddChild(_camera = new ShipCamera());
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items")) _layout = ItemsDemo.Map;
@@ -84,8 +91,8 @@ public partial class Main : Node2D
         if (!Has("--perf") && !Has("--gallery"))
         {
             var script = !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
-            AddChild(_hero = new HeroView(script));
-            AddChild(_items = new ItemsView(demo: Has("--items")));
+            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
+            AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             // Its own layer, above the world: read from whatever registry the session runs now.
             AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
             AddChild(new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour))));
@@ -93,7 +100,7 @@ public partial class Main : Node2D
         }
         AddChild(new EffectsView());
         AddChild(_learned);
-        AddChild(_hands = new Hands());
+        AddChild(_hands);
         if (Has("--plan-demo"))
         {
             _demo = new PlanDemo(_hands, _layout);
@@ -103,6 +110,7 @@ public partial class Main : Node2D
         if (Has("--host")) Host();
         else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args));
         else Alone();
+        AddChild(new DevPanel(() => _session, () => _m, () => _net, SaveDev, LoadDev));
         if (Has("--measure"))
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} occluders={_light?.OccluderCount}"));
     }
@@ -144,9 +152,11 @@ public partial class Main : Node2D
         var (link, error) = EnetLink<ToHost, ToClient>.Host(Port);
         if (error != Error.Ok) GD.PrintErr($"[host] cannot listen on {Port}: {error}");
         var ids = new Dictionary<long, int>();
+        _net = $"hosting :{Port} · peers 0";
         link.Connected += (enet, channel) =>
         {
             ids[enet] = host.Admit(channel);
+            _net = $"hosting :{Port} · peers {ids.Count}";
             Log($"peer {ids[enet]} joined at tick {host.Tick}");
         };
         link.Disconnected += enet =>
@@ -154,6 +164,7 @@ public partial class Main : Node2D
             // Its hero leaves with it, its suit colour freed.
             if (ids.Remove(enet, out int id)) host.Disconnect(id, client.World.Encode(new Sim.Crew.Leave()));
             Log($"peer {id} left");
+            _net = $"hosting :{Port} · peers {ids.Count}";
         };
         _poll = link.Poll;
     }
@@ -161,11 +172,13 @@ public partial class Main : Node2D
     private void Join(string address, BadNetwork? network)
     {
         _role = "guest";
+        _net = $"joining {address}";
         var (link, error) = EnetLink<ToClient, ToHost>.Join(address, Port);
         if (error != Error.Ok) GD.PrintErr($"[guest] cannot reach {address}: {error}");
         link.Connected += (_, channel) =>
         {
             Log($"connected to {address}{(network != null ? $" over {network}" : "")}");
+            _net = $"joined {address}";
             Client.Join(Load, network?.Over(channel, new GodotTiming(GetTree())) ?? channel, Build,
                 client =>
                 {
@@ -204,6 +217,34 @@ public partial class Main : Node2D
             Log($"cheated: door {door} open here only");
         }
         return World.Load(save, Modules());
+    }
+
+    /// <summary>The dev panel's save slot (session/game.ts's <c>DEV_SLOT</c>), a file in Godot's user folder.</summary>
+    private const string DevSave = "user://saves/dev.json";
+
+    /// <summary>The dev panel's save: the world as this machine has it, to the dev slot.</summary>
+    private string SaveDev()
+    {
+        if (_session is not Session s) return "Nothing to save yet.";
+        DirAccess.MakeDirRecursiveAbsolute(DevSave.GetBaseDir());
+        using var file = FileAccess.Open(DevSave, FileAccess.ModeFlags.Write) ?? throw new InvalidOperationException(FileAccess.GetOpenError().ToString());
+        file.StoreString(s.Client.World.Save());
+        return "Saved.";
+    }
+
+    /// <summary>The dev panel's load: the dev slot's world, as a session of this machine's own at the same speed.</summary>
+    private string LoadDev()
+    {
+        if (_role != "alone") return "Loads only in a world of this machine's own.";
+        if (!FileAccess.FileExists(DevSave)) return "Nothing saved yet.";
+        // The registry is swapped only once the save has loaded: a broken one leaves the world as it was.
+        var m = new Registry();
+        var world = World.Load(FileAccess.GetFileAsString(DevSave), m.All);
+        _m = m;
+        var (host, client) = LocalSession.Create(world, Build);
+        _session = new Session(host, client) { Speed = _session?.Speed ?? 1 };
+        ShowWorld();
+        return "Loaded.";
     }
 
     /// <summary>The views drawing the current registry's world, made again when a load brings a new one.</summary>
@@ -264,52 +305,44 @@ public partial class Main : Node2D
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         ShowWorld();
         if (client.World.Tick != before) SyncLight();
-        _hero?.Frame(client, _m.Grid, _m.Rooms, _m.Atmosphere, _m.Crew, _camera, heard, delta * 1000);
+        _hero?.Frame(client, _m, _camera, heard, delta * 1000);
         // After the hero, so a door it toggles shows on the frame E is pressed (0014).
         SyncGrid(client);
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
         _learned.Frame(_m.Research, delta * 1000);
-        _debris.Frame(client, _m.Rooms, _m.Debris, _m.Grid.Width, SpotOf(_hero) is { } spot ? (spot.Cell, spot.Reaches) : null, HandsBusy, session.Progress, delta * 1000);
+        _debris.Frame(client, _m.Debris, session.Progress, delta * 1000);
         ShowHands(client, delta * 1000);
     }
 
-    /// <summary>Where the hero stands for its items: what a drop is thrown from, what it picks up and reaches.</summary>
+    /// <summary>Where the hero stands for its items: what a drop is thrown from, what it picks up.</summary>
     private HeroSpot? SpotOf(HeroView? view)
     {
         if (view == null) return null;
         var hero = view.Current;
-        int width = _m.Grid.Width;
-        return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(width), cell => Aiming.Reaches(hero, cell, width));
+        return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(_m.Grid.Width));
     }
 
-    /// <summary>Whether E works something under the pointer at <paramref name="point"/> before debris: a door, a valve, a crate.</summary>
-    private bool HandsBusy((double X, double Y) point) =>
-        _hero is { } view && Aiming.AimAt(_m.Grid, view.Current, point) is { } aim && (aim.Press != null || Reach.CrateAt(_m.Grid, aim.Cell) != null);
-
-    /// <summary>The plan, cables and overlays (<see cref="Hands"/>): the hero's body sways the cables, its reach works plans.</summary>
+    /// <summary>The plan, cables and overlays (<see cref="Hands"/>): the hero's body sways the cables.</summary>
     private void ShowHands(Client client, double elapsedMs)
     {
         Body[] bodies = [];
-        Func<int, bool>? reaches = null;
         if (_hero != null)
         {
             var hero = _hero.Current;
-            int width = _m.Grid.Width;
             double unit = Hero.Unit;
             // Every hero sways the cables, this one and the others where they are drawn.
             bodies = _hero.Others.Append(hero).Select(h => new Body((h.X - Content.Hero.Width / 2.0) / unit, (h.X + Content.Hero.Width / 2.0) / unit,
                 (h.Y - Content.Hero.Height) / unit, h.Y / unit, h.Vx / unit, h.Vy / unit)).ToArray();
-            reaches = cell => Aiming.Reaches(hero, cell, width);
         }
         _demo?.Frame(client, _m.Grid, Log);
-        _hands.Frame(client, _m, bodies, reaches, elapsedMs);
+        _hands.Frame(client, _m, bodies, elapsedMs);
     }
 
     /// <summary>The grid as this peer shows it, redrawn when that changes: a tick, or a door or valve toggle of its own sent (0014).</summary>
     private void SyncGrid(Client client)
     {
-        var shown = ShownGrid.Of(client, _m.Grid);
+        var shown = Predicted.Grid(client, _m.Grid);
         if (shown.Key == _gridKey) return;
         _gridKey = shown.Key;
         Measure(() => _grid?.Sync(shown));

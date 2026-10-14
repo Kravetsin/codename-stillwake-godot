@@ -18,7 +18,7 @@ public sealed class Buttons
 
     private List<ButtonEvent> _left = [], _right = [];
     private List<(double X, double Y)> _middle = [];
-    private bool _leftDown, _rightDown, _middleDown, _ours;
+    private bool _leftDown, _rightDown, _middleDown, _ours, _clicked;
 
     /// <summary>
     /// One pointer event: <paramref name="pressedOnWorld"/> when it is a press that reached the world
@@ -33,6 +33,7 @@ public sealed class Buttons
         {
             _leftDown = left;
             _left.Add(new ButtonEvent(left, at, shift));
+            if (left) _clicked = true;
         }
         bool right = (held & Right) != 0;
         if (right != _rightDown)
@@ -48,6 +49,17 @@ public sealed class Buttons
 
     /// <summary>Whether the left button is held now, pressed on the world.</summary>
     public bool HoldsLeft => _leftDown;
+
+    /// <summary>
+    /// Whether the left button was pressed on the world since the last call: the hero's hands read it
+    /// (crew/keys.ts's <c>takeClick</c>) apart from the presses <see cref="TakeLeft"/> hands the card.
+    /// </summary>
+    public bool TakeClick()
+    {
+        bool clicked = _clicked;
+        _clicked = false;
+        return clicked;
+    }
 
     /// <summary>Left-button presses and releases since the last call, in order.</summary>
     public IReadOnlyList<ButtonEvent> TakeLeft()

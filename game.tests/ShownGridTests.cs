@@ -22,7 +22,7 @@ public class ShownGridTests
 
         public Guest() => Client = new Client(World.Create(1, Layout.Parse(Map), M.All), _link, 1);
 
-        public ShownGrid Shown => ShownGrid.Of(Client, M.Grid);
+        public ShownGrid Shown => Predicted.Grid(Client, M.Grid);
 
         /// <summary>Releases the next tick with these commands, stamped as this guest's, and runs it.</summary>
         public void Run(params Command[] commands)

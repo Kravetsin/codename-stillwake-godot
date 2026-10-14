@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Stillwake.Content;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
@@ -16,7 +17,7 @@ public static class Explain
     public static string Span(int ticks)
     {
         int seconds = (ticks + World.TicksPerSecond - 1) / World.TicksPerSecond;
-        return seconds < 60 ? Words.T("time.seconds", ("n", seconds)) : Words.T("time.minutes", ("n", seconds / 60));
+        return seconds < 60 ? En.T("time.seconds", ("n", seconds)) : En.T("time.minutes", ("n", seconds / 60));
     }
 
     /// <summary>What <paramref name="breathers"/> heroes breathe every <c>Air.LeakEvery</c> ticks, a breath a unit: rates are counted so.</summary>
@@ -42,8 +43,8 @@ public static class Explain
     {
         double spare = air.Made - air.Leak - Breathing(breathers);
         return spare >= 0
-            ? Words.T("air.keepsUp", ("n", PerMinute(spare)))
-            : Words.T("air.fallsShort", ("time", Lasting(air.Oxygen + air.Aired, -spare, 0)));
+            ? En.T("air.keepsUp", ("n", PerMinute(spare)))
+            : En.T("air.fallsShort", ("time", Lasting(air.Oxygen + air.Aired, -spare, 0)));
     }
 
     /// <summary>
@@ -57,24 +58,24 @@ public static class Explain
         string lasts = air.Made > 0
             ? Generated(air, breathers)
             : air.Oxygen > 0
-                ? Words.T("air.lasts", ("oxygen", air.Oxygen), ("time", Lasting(air.Oxygen, air.Leak, breathers)))
-                : Words.T("air.lastsNot", ("time", Lasting(air.Aired, air.Leak, breathers)));
-        string[] problem = air.Problem is { } why ? [Words.T(why)] : [];
+                ? En.T("air.lasts", ("oxygen", air.Oxygen), ("time", Lasting(air.Oxygen, air.Leak, breathers)))
+                : En.T("air.lastsNot", ("time", Lasting(air.Aired, air.Leak, breathers)));
+        string[] problem = air.Problem is { } why ? [En.T(why)] : [];
         return air.Status switch
         {
-            RoomStatus.Aired => [Words.T("air.aired", ("cells", volume)), lasts],
+            RoomStatus.Aired => [En.T("air.aired", ("cells", volume)), lasts],
             RoomStatus.Filling =>
             [
-                Words.T("air.filling", ("aired", air.Aired), ("cells", volume)),
-                air.Made > 0 ? lasts : Words.T("air.pipes", ("oxygen", air.Oxygen)),
+                En.T("air.filling", ("aired", air.Aired), ("cells", volume)),
+                air.Made > 0 ? lasts : En.T("air.pipes", ("oxygen", air.Oxygen)),
             ],
             // With no piped vent in it, nothing drains: there are no pipes to speak of.
             RoomStatus.Venting => air.Lasts is int ticks
-                ? [Words.T("air.venting"), Words.T("air.drains", ("oxygen", air.Oxygen), ("time", Span(ticks)))]
-                : [Words.T("air.venting")],
+                ? [En.T("air.venting"), En.T("air.drains", ("oxygen", air.Oxygen), ("time", Span(ticks)))]
+                : [En.T("air.venting")],
             _ => air.Aired > 0
-                ? [Words.T("air.holding", ("aired", air.Aired), ("cells", volume)), lasts, .. problem]
-                : [Words.T("air.vacuum", ("cells", volume)), .. problem],
+                ? [En.T("air.holding", ("aired", air.Aired), ("cells", volume)), lasts, .. problem]
+                : [En.T("air.vacuum", ("cells", volume)), .. problem],
         };
     }
 

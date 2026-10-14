@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 
 namespace Stillwake.Game.Features.Debris;
@@ -67,15 +68,17 @@ public partial class DebrisDemo : CanvasLayer
     }
 
     private readonly DebrisView _view;
+    private readonly Ui _ui;
     /// <summary>The pointer, drawn over everything on the screen.</summary>
     private readonly Node2D _arrow = new();
     private Vector2 _pos = new(640, 300), _target = new(640, 300);
     private double _t;
     private bool _caught;
 
-    public DebrisDemo(DebrisView view)
+    public DebrisDemo(DebrisView view, Ui ui)
     {
         _view = view;
+        _ui = ui;
         Layer = 10;
         AddChild(_arrow);
         _arrow.Draw += () =>
@@ -97,7 +100,7 @@ public partial class DebrisDemo : CanvasLayer
         _t += delta;
         // Once the hero waits out by the airlock, the pointer goes to the crate, and E catches it in reach.
         if (_t >= FollowAt && PieceOnScreen(Crate) is { } crate) _target = crate;
-        if (!_caught && _view.Aimed is { Piece: Crate, InReach: true, Problem: null } && _pos.DistanceTo(_target) < 2)
+        if (!_caught && _ui.AimedPiece.Get() is (Crate, false) && _pos.DistanceTo(_target) < 2)
         {
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.E, PhysicalKeycode = Key.E, Pressed = true });
             Input.ParseInputEvent(new InputEventKey { Keycode = Key.E, PhysicalKeycode = Key.E, Pressed = false });

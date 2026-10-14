@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Content;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
@@ -38,14 +39,14 @@ public static class Tools
     public const string Power = "power", Pipes = "pipes", Air = "atmosphere";
 
     private static PlaceTool Place(string id, Placement placement, string? label = null) =>
-        new(id, placement, label ?? Words.T($"tool.{id}"));
+        new(id, placement, label ?? En.T($"tool.{id}"));
 
     /// <summary>A card for each material, its id and its text's key followed by the material's name.</summary>
     private static IEnumerable<Tool> OfEveryMaterial(string id, System.Func<string, Placement> placement) =>
         Materials.All.Select(m => Place(
             id + char.ToUpperInvariant(m.Id[0]) + m.Id[1..],
             placement(m.Id),
-            $"{Words.T($"tool.{id}")}: {Words.T($"material.{m.Id}")}"));
+            $"{En.T($"tool.{id}")}: {En.T($"material.{m.Id}")}"));
 
     /// <summary>The build menu's tabs, in order, each with its cards: what the player builds, grouped by use.</summary>
     public static readonly IReadOnlyList<Tab> Tabs =
@@ -68,7 +69,7 @@ public static class Tools
         ]),
         new("power",
         [
-            new CableTool("cable", Words.T("tool.cable")),
+            new CableTool("cable", En.T("tool.cable")),
             Place("solarPanel", new Placement("machine", "solarPanel")),
             Place("lamp", new Placement("machine", "lamp")),
         ]),
