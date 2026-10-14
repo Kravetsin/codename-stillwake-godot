@@ -58,5 +58,6 @@
     <Compile Include="../game/features/atmosphere/Explain.cs" Link="Game/Atmosphere/Explain.cs" />
     <Compile Include="../game/features/atmosphere/Streams.cs" Link="Game/Atmosphere/Streams.cs" />
     <Compile Include="../game/render/Particles.cs" Link="Game/Render/Particles.cs" />
+    <Compile Include="../game/features/light/LightField.cs" Link="Game/Light/LightField.cs" />
   </ItemGroup>
 </Project>
