@@ -28,8 +28,8 @@ or later automate between the furnace and the hull.
   unit at work included. It is not part of `items`: it asks `research` what is known, and research
   depends on items.
 - **Nothing pops up over the hero.** With many blueprints opening at once a list of them would cover
-  the screen. The analyzer's screen says it is done; its panel shows what the item in it opened, what
-  is analysed so far and what is one item short.
+  the screen. The analyzer's screen says it is done; its panel shows every blueprint and craft the
+  item in it goes into, opened or still closed, and in a tooltip what each closed one waits for.
 
 ## Rejected
 

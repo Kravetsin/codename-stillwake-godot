@@ -47,7 +47,7 @@ planned, a craft not known cannot be queued. Ported from `packages/sim/src/modul
   analysed yet, in the cost's order; `At(id)` — what analyzer `id` holds, how far, out of how much
   work, and why it stands (`Analyzing(Item, Progress, Work, Problem)`, `Problem` `research.unpowered`
   or `research.nothingNew`, which means done: the item is analysed); null for an empty slot.
-- What an item opened and what is one item short are the client's filters of `Recipes()`.
+- What an analysed item goes into, opened or not, is the client's filter of `Recipes()`.
 - No commands, so no fuzz generator: a hero works an analyzer by moving items in and out
   (`Items.Move`).
 

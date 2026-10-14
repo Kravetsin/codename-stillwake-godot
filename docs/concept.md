@@ -22,8 +22,9 @@ A living document: what is decided about the game and what is still open. Techni
 - **Blueprints are learned,** Grounded's way: a blueprint or a craft opens once every item of its
   cost is analysed in a powered analyzer, raw or made. The wreck knows only the furnace, the
   analyzer, the crate, scrap walls and the wire; smelting scrap, making wire, cabling the torn room's
-  analyzer and analysing iron is the first lesson. The analyzer's screen shows a check when done, and
-  its panel what the item opened and what is one item short; nothing pops up over the hero
+  analyzer and analysing iron is the first lesson. An item not analysed yet has a violet "?" in its
+  slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
+  item in it goes into, opened or still closed; nothing pops up over the hero
   ([0024](decisions/0024-blueprints-are-learned-by-analysis.md),
   [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md)).
 - **Parts are crafted by hand,** Rust's way: wire of scrap, plates and gears of iron, a rotor of a gear

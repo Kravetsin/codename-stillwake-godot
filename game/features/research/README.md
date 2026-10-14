@@ -2,10 +2,10 @@
 
 Knowledge without a word ([0024](../../../docs/decisions/0024-blueprints-are-learned-by-analysis.md),
 [0027](../../../docs/decisions/0027-what-is-analysed-opens-what-is-made-of-it.md)). An analyzer is
-worked as a crate is, through the items feature's panel, which shows its slot, how far its analysis
-is, why it stands, and its lessons: what the item in it opened, what is analysed so far and what is one
-item short (`features/items/Lessons.cs`). Nothing pops up over the hero: with many blueprints opening
-at once a list would cover the screen.
+worked as a crate is, through the items feature's panel (`features/items/AnalyzerPanel.cs`), which
+speaks only of the item in its slot: how far its analysis is, why it stands, and once it is analysed
+every blueprint and craft it goes into, opened or still closed. Nothing pops up over the hero: with
+many blueprints opening at once a list would cover the screen.
 
 ## Files
 
