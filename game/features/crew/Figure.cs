@@ -20,6 +20,8 @@ public partial class Figure : Node2D
     private const double SettleMs = 30;
     /// <summary>Slower for the head, so it follows the pointer rather than snapping to it.</summary>
     private const double HeadSettleMs = 90;
+    /// <summary>Afloat, limbs lag as if pushing through water.</summary>
+    private const double FloatSettleMs = 110;
     /// <summary>How far the air pack sticks out behind the middle: what a body lying on its back rests on.</summary>
     private const double Back = Rig.W * 0.62;
     /// <summary>Specks of dust a boot kicks up stepping, and a landing at most to either side, by its fall (DUST).</summary>
@@ -139,15 +141,16 @@ public partial class Figure : Node2D
     private static double Settle(double from, double to, double elapsedMs, double within = SettleMs) =>
         from + (to - from) * Math.Min(1, elapsedMs / within);
 
-    private static Bend SettleBend(Bend from, Bend to, double elapsedMs) =>
-        new(Settle(from.Upper, to.Upper, elapsedMs), Settle(from.Lower, to.Lower, elapsedMs));
+    /// <summary>A limb settled the short way round, so arms whirling in space never unwind.</summary>
+    private static Bend SettleBend(Bend from, Bend to, double elapsedMs, double within) =>
+        new(SettleAngle(from.Upper, to.Upper, elapsedMs, within), SettleAngle(from.Lower, to.Lower, elapsedMs, within));
 
     /// <summary>An angle settled toward <paramref name="to"/> the short way round, so a body stops tumbling without unwinding.</summary>
-    private static double SettleAngle(double from, double to, double elapsedMs)
+    private static double SettleAngle(double from, double to, double elapsedMs, double within = SettleMs)
     {
         const double turn = 2 * Math.PI;
         double apart = ((to - from) % turn + turn + Math.PI) % turn - Math.PI;
-        return Settle(to - apart, to, elapsedMs);
+        return Settle(to - apart, to, elapsedMs, within);
     }
 
     /// <summary>
@@ -184,11 +187,12 @@ public partial class Figure : Node2D
         bool holding = holdsPlan && Poses.HoldsIn(pose);
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _landingMs / Poses.Land.Ms, holding ? _head : null));
         var from = _shown ?? to;
+        double within = pose == Pose.Float ? FloatSettleMs : SettleMs;
         var shown = new Limbs(
-            SettleBend(from.FrontArm, to.FrontArm, elapsedMs),
-            SettleBend(from.BackArm, to.BackArm, elapsedMs),
-            SettleBend(from.FrontLeg, to.FrontLeg, elapsedMs),
-            SettleBend(from.BackLeg, to.BackLeg, elapsedMs),
+            SettleBend(from.FrontArm, to.FrontArm, elapsedMs, within),
+            SettleBend(from.BackArm, to.BackArm, elapsedMs, within),
+            SettleBend(from.FrontLeg, to.FrontLeg, elapsedMs, within),
+            SettleBend(from.BackLeg, to.BackLeg, elapsedMs, within),
             SettleAngle(from.Tilt, to.Tilt, elapsedMs),
             Settle(from.Lift, to.Lift, elapsedMs),
             to.Lying);

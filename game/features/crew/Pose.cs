@@ -25,10 +25,26 @@ public readonly record struct Moment(double Travelled, double TimeMs, double? La
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
 {
-    /// <summary>Cells walked, climbed or swum per full cycle of the limbs: two steps, two strokes.</summary>
+    /// <summary>
+    /// Cells walked, climbed or swum per full cycle of the limbs: two steps, two rungs, a paddle of each
+    /// hand. The climb is far quicker than hands could take rungs, so the limbs keep a pace that reads.
+    /// </summary>
     public static class Stride
     {
-        public const double Walk = 3.6, Climb = 1.2, Float = 3;
+        public const double Walk = 3.6, Climb = 3.6, Float = 2.2;
+    }
+
+    /// <summary>
+    /// Afloat and still: hands sculling and feet pedalling once every <see cref="TreadMs"/>, the body
+    /// rocking every <see cref="SwayMs"/>. Every <see cref="PanicEveryMs"/> the hero seems to remember
+    /// there is no floor and flails for <see cref="PanicMs"/>, arms whirling a turn every
+    /// <see cref="WhirlMs"/>.
+    /// </summary>
+    public static class Adrift
+    {
+        public const double TreadMs = 1500, SwayMs = 5200, PanicEveryMs = 9000, PanicMs = 1400, WhirlMs = 360;
+        /// <summary>How long the flailing takes to start and to calm down.</summary>
+        public const double PanicEaseMs = 250;
     }
 
     /// <summary>How long a landing takes to spring back, and how far, in pixels, the body sinks into it.</summary>
@@ -197,7 +213,7 @@ public static class Poses
             case Pose.Climb:
                 return Climbing(moment.Travelled / Stride.Climb);
             case Pose.Float:
-                return Floating(hero, Phase(Stride.Float), Wave(DriftMs));
+                return Floating(hero, Phase(Stride.Float), moment.TimeMs);
             case Pose.Lie:
                 return new Limbs(B(0.4, 0.6), B(-0.3, 0.3), B(0.35, -0.7), B(0.05, -0.2), -Math.PI / 2, 0, true);
             default:
@@ -231,27 +247,62 @@ public static class Poses
             BackArm: Rig.Reach(Hand(cycle + 0.5), Rig.Arm, -1),
             FrontLeg: Rig.Reach(Foot(cycle + 0.5), Rig.Leg, -1),
             BackLeg: Rig.Reach(Foot(cycle), Rig.Leg, -1),
-            Tilt: 0, Lift: 0, Lying: false);
+            // Each pull lifts the body a little.
+            Tilt: 0, Lift: 0.8 * Math.Abs(Math.Sin(cycle * 2 * Math.PI)), Lying: false);
     }
 
     /// <summary>
-    /// Swimming in no gravity: a breaststroke, arms reaching forward and pulling to the sides, then
-    /// folding back, with a frog kick; at rest, limbs loose and drifting.
+    /// Afloat in no gravity, as a dog swims: moving, hands paddle in turn before the chest and feet kick
+    /// twice as fast, the body leaning into a swim along the floor; still, it treads water, hands
+    /// sculling, feet pedalling, rocking slowly, until now and then it panics and windmills (<see cref="Adrift"/>).
     /// </summary>
-    private static Limbs Floating(Hero hero, double phase, double drift)
+    private static Limbs Floating(Hero hero, double phase, double timeMs)
     {
-        bool moving = hero.Vx != 0 || hero.Vy != 0;
-        // Leaning into a swim along the floor, upright otherwise.
-        double tilt = hero.Vx != 0 ? 0.35 : 0.08;
-        double lift = 1.5 * drift;
-        if (!moving)
-            return new Limbs(
-                B(0.75 + 0.12 * drift, 0.7), B(0.5 - 0.12 * drift, 0.8),
-                B(0.4 + 0.08 * drift, -0.65), B(-0.05 - 0.08 * drift, -0.45), tilt, lift, false);
-        double c = Math.Cos(phase), s = Math.Sin(phase);
-        // Reaching at the start of the cycle, pulled to the sides halfway, elbows folding on the way back.
-        Bend Arm(double lag) => B(1.55 + 1.15 * c - lag, 0.3 + 1.2 * Positive(-s));
-        Bend Leg(double lag) => B(0.45 + 0.35 * s - lag, -(0.2 + 1.2 * Positive(s)));
-        return new Limbs(Arm(0), Arm(0.25), Leg(0), Leg(0.3), tilt, lift, false);
+        double Turn(double periodMs) => timeMs / periodMs * 2 * Math.PI;
+        double drift = Math.Sin(Turn(DriftMs));
+        if (hero.Vx != 0 || hero.Vy != 0)
+        {
+            Bend Paddle(double lag) => B(1.35 + 0.55 * Math.Sin(phase + lag), 0.55 + 0.6 * Positive(Math.Cos(phase + lag)));
+            Bend Kick(double lag) => B(0.25 + 0.4 * Math.Sin(2 * phase + lag), -(0.2 + 0.6 * Positive(-Math.Sin(2 * phase + lag))));
+            double lean = hero.Vx != 0 ? 0.45 : hero.Vy > 0 ? 0.25 : 0.1;
+            return new Limbs(Paddle(0), Paddle(Math.PI), Kick(Math.PI), Kick(0),
+                lean + 0.05 * Math.Sin(2 * phase), 1.5 * drift + Math.Sin(2 * phase), false);
+        }
+        double t = Turn(Adrift.TreadMs);
+        Bend Scull(double up, double lag) => B(up + 0.3 * Math.Sin(t + lag), 0.9 + 0.3 * Math.Cos(t + lag));
+        Bend Pedal(double lag) => B(0.35 + 0.3 * Math.Sin(0.7 * t + lag), -(0.45 + 0.45 * Positive(Math.Cos(0.7 * t + lag))));
+        var calm = new Limbs(Scull(1.05, 0), Scull(0.8, Math.PI), Pedal(Math.PI), Pedal(0),
+            0.08 + 0.12 * Math.Sin(Turn(Adrift.SwayMs)), 2 * drift, false);
+        double panic = Panic(timeMs);
+        if (panic == 0) return calm;
+        double w = Turn(Adrift.WhirlMs) % (2 * Math.PI);
+        Bend Thrash(double lag) => B(0.4 + 0.7 * Math.Sin(1.6 * w + lag), -(0.3 + 0.7 * Positive(Math.Cos(1.6 * w + lag))));
+        var flail = new Limbs(B(w, 0.15), B(w + Math.PI, 0.15), Thrash(0), Thrash(Math.PI),
+            0.08 + 0.22 * Math.Sin(w / 2), 2 * drift + 1.5, false);
+        return Mix(calm, flail, panic);
+    }
+
+    /// <summary>
+    /// How much a still hero afloat is panicking at <paramref name="timeMs"/>: 0 calm, 1 flailing, easing in
+    /// and out at the edges of each bout. Only drawn, so the clock may be each peer's own.
+    /// </summary>
+    public static double Panic(double timeMs)
+    {
+        double into = timeMs % Adrift.PanicEveryMs - (Adrift.PanicEveryMs - Adrift.PanicMs);
+        if (into <= 0) return 0;
+        double edge = Math.Min(into, Adrift.PanicMs - into) / Adrift.PanicEaseMs;
+        return Math.Min(1, edge);
+    }
+
+    /// <summary>
+    /// <paramref name="a"/> turned toward <paramref name="b"/> by <paramref name="by"/>, angles the short
+    /// way round, so whirling arms blend in without unwinding.
+    /// </summary>
+    private static Limbs Mix(Limbs a, Limbs b, double by)
+    {
+        double Angle(double x, double y) => x + (((y - x) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI) * by;
+        Bend Limb(Bend x, Bend y) => new(Angle(x.Upper, y.Upper), Angle(x.Lower, y.Lower));
+        return new Limbs(Limb(a.FrontArm, b.FrontArm), Limb(a.BackArm, b.BackArm), Limb(a.FrontLeg, b.FrontLeg),
+            Limb(a.BackLeg, b.BackLeg), Angle(a.Tilt, b.Tilt), a.Lift + (b.Lift - a.Lift) * by, a.Lying);
     }
 }

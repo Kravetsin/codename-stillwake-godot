@@ -131,11 +131,32 @@ public class PoseTests
     }
 
     [Fact]
-    public void StrokesInSpaceArmsReachAheadThenPullBackToTheSides()
+    public void PaddlesInSpaceOneHandUpWhileTheOtherPullsDown()
     {
         var swimming = Standing with { Vx = 120 };
-        Assert.True(LimbsOf(Pose.Float, swimming, At(0)).FrontArm.Upper > 2);
-        Assert.True(LimbsOf(Pose.Float, swimming, At(Stride.Float / 2)).FrontArm.Upper < 1);
+        var quarter = LimbsOf(Pose.Float, swimming, At(Stride.Float / 4));
+        Assert.True(quarter.FrontArm.Upper > quarter.BackArm.Upper + 0.8);
+        var threeQuarters = LimbsOf(Pose.Float, swimming, At(Stride.Float * 3 / 4));
+        Assert.True(threeQuarters.BackArm.Upper > threeQuarters.FrontArm.Upper + 0.8);
+    }
+
+    [Fact]
+    public void TreadsWaterAdriftUntilNowAndThenItPanicsAndWindmills()
+    {
+        double Reach(double ms) => Math.Max(LimbsOf(Pose.Float, Standing, At(0, ms)).FrontArm.Upper,
+            LimbsOf(Pose.Float, Standing, At(0, ms)).BackArm.Upper);
+        double calmest = Enumerable.Range(0, 70).Max(k => Reach(k * 100));
+        Assert.True(calmest < 1.5);
+        Assert.Equal(0, Panic(1000));
+        double bout = Adrift.PanicEveryMs - Adrift.PanicMs / 2;
+        Assert.Equal(1, Panic(bout));
+        // Mid-bout the arms whirl right round, over the head and on behind it.
+        Assert.Contains(Enumerable.Range(0, 8), k =>
+        {
+            var l = LimbsOf(Pose.Float, Standing, At(0, bout + k * Adrift.WhirlMs / 8));
+            return Math.Abs(l.FrontArm.Upper) > 2.6 || Math.Abs(l.BackArm.Upper) > 2.6;
+        });
+        Assert.True(Panic(Adrift.PanicEveryMs - Adrift.PanicMs + Adrift.PanicEaseMs / 2) is > 0 and < 1);
     }
 
     [Fact]
