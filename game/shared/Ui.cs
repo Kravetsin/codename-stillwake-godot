@@ -109,6 +109,12 @@ public sealed class Ui
     public Store<int?> OpenCrate { get; } = new(null);
 
     /// <summary>
+    /// Where the open inventory's grid ends on the screen, its right edge and its top; null while it is
+    /// closed. Set by <c>items</c> every frame; <c>crafting</c> docks its crafts beside it.
+    /// </summary>
+    public Store<(float Right, float Top)?> InventoryEdge { get; } = new(null);
+
+    /// <summary>
     /// The piece of debris E would grab, and whether the sim would refuse it: <c>crew</c> sets it while
     /// the pointer is on one within reach, <c>debris</c> outlines that piece.
     /// </summary>

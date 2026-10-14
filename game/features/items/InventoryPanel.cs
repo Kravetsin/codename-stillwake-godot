@@ -35,7 +35,7 @@ public partial class InventoryPanel : CanvasLayer
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     /// <summary>The stack carried and the name under the pointer, over every panel.</summary>
     private readonly CanvasLayer _tips = new() { Layer = ScreenLayers.Tips };
-    private Control _hotbar = null!, _shown = null!, _held = null!, _fire = null!;
+    private Control _hotbar = null!, _shown = null!, _inventory = null!, _held = null!, _fire = null!;
     private Control? _cratePanel;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!, _tipText = null!;
@@ -109,7 +109,7 @@ public partial class InventoryPanel : CanvasLayer
         _root.AddChild(_hotbar);
 
         var shown = Style.Gap(new VBoxContainer { Position = new Vector2(12, 112) }, 8);
-        shown.AddChild(Style.Panel(Style.Slate700,
+        shown.AddChild(_inventory = Style.Panel(Style.Slate700,
             Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i)))));
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
@@ -323,8 +323,10 @@ public partial class InventoryPanel : CanvasLayer
     private Place? SlotUnder(Vector2 at) => _ui.MenuOpen.Get() ? null :
         _slots.FirstOrDefault(s => s.IsVisibleInTree() && s.GetGlobalRect().HasPoint(at))?.Place;
 
+    // Any panel under the pointer counts, another feature's too: a click on the crafts throws nothing.
     private bool OverPanel(Vector2 at) =>
-        _hotbar.GetGlobalRect().HasPoint(at)
+        GetViewport().GuiGetHoveredControl() != null
+        || _hotbar.GetGlobalRect().HasPoint(at)
         || (_shown.Visible && _shown.GetChildren().OfType<Control>().Any(c => c.IsVisibleInTree() && c.GetGlobalRect().HasPoint(at)));
 
     /// <summary>Throws a stack from the hero the way it faces.</summary>
@@ -386,6 +388,8 @@ public partial class InventoryPanel : CanvasLayer
             Refresh();
         }
         _held.Position = _mouse + new Vector2(6, 6);
+        var grid = _inventory.GetGlobalRect();
+        _ui.InventoryEdge.Set(_shown.Visible ? (grid.End.X, grid.Position.Y) : null);
         _tip.Position = _mouse + new Vector2(16, 16);
     }
 

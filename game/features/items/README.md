@@ -42,6 +42,9 @@ everything E works is, in the crew feature (`AimTests`).
   before it opens the game menu (`Shared.Escape`, `game/menu`).
 - The crate open (`Ui.OpenCrate`) is set by the crew's E within reach and cleared out of reach; the
   panel shows it at once.
+- Where the open inventory ends on the screen is set every frame (`Ui.InventoryEdge`), null while it
+  is closed: the crafting feature docks its crafts there. A stack let go over any panel, another
+  feature's too, is not thrown.
 - A stack in a cell the hero's body overlaps is picked up unless the sim would refuse it or its
   pick-up is in flight, and vanishes from the floor at once.
 
