@@ -28,5 +28,11 @@
     <Compile Include="../game/features/crew/Aim.cs" Link="Game/Crew/Aim.cs" />
     <Compile Include="../game/features/crew/Tether.cs" Link="Game/Crew/Tether.cs" />
     <Compile Include="../game/render/Rope.cs" Link="Game/Render/Rope.cs" />
+    <Compile Include="../game/features/items/Click.cs" Link="Game/Items/Click.cs" />
+    <Compile Include="../game/features/items/Hotbar.cs" Link="Game/Items/Hotbar.cs" />
+    <Compile Include="../game/features/items/Reach.cs" Link="Game/Items/Reach.cs" />
+    <Compile Include="../game/features/items/Reading.cs" Link="Game/Items/Reading.cs" />
+    <Compile Include="../game/features/research/News.cs" Link="Game/Research/News.cs" />
+    <Compile Include="../game/i18n/En.cs" Link="Game/I18n/En.cs" />
   </ItemGroup>
 </Project>
