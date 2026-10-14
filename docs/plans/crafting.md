@@ -198,7 +198,7 @@ change to wire; the furnace's become fire scenarios where they hold for both.
 - A new ADR supersedes the parts of 0024 about unlocks and schematics; the concept is updated.
 - Estimated diff: 1400–1800 lines with tests, in two tasks, each playable and tested alone (the new
   costs need parts, and parts need crafting, so the rule and the crafts cannot be split):
-  1. **Parts and their blueprints:** the analysed rule, `Locked`, schematics gone, the four parts, the
+  1. **Parts and their blueprints** (built): the analysed rule, `Locked`, schematics gone, the four parts, the
      `Crafting` module and its panel, the new costs, the analyzer's screen and panel.
   2. **The burner generator:** shared fires, the fuel slot by spec, resting makers, its art.
 
