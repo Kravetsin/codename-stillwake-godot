@@ -36,17 +36,30 @@ panel's `light:` button switches it while playing. Nothing of the godot mode is 
      of them gets the kind's colour × strength × `Strength`, each other cell its share by its count —
      so an emitter's light does not depend on how many of its pixels glow, and does not halve as it
      moves across a cell's edge;
-  3. each glowing particle (ember, spark) gives its colour × strength × its fading alpha to its cell;
-  4. the TypeScript sweeps (`Sweeps.Spread`, the one Starlight uses too): rows and columns both ways,
+  3. the TypeScript sweeps (`Sweeps.Spread`, the one Starlight uses too): rows and columns both ways,
      `Light.Rounds` times, each colour the brightest way;
-  5. a float texture of a texel a cell, its alpha marking cells that block light.
+  4. a float texture of a texel a cell, its alpha marking cells that block light;
+  5. where relief takes its light from (`CellLight.Settle`), a second texture of two floats a cell:
+     each cell's brightness smoothed over `Light.ReliefSettleMs` (300 ms), and its slope a cell
+     either way among cells of its own side, toward where it grows, as long as 1 where it falls off as
+     steeply as a lamp's in air; only for the cells on screen.
+- **Small emitters light pixels, not cells.** Each glowing particle (ember, spark) draws a soft spot
+  into `features/light/Splashes.cs`, a `SubViewport` over the screen at a texel a world pixel,
+  additive: its kind's colour × strength (`Light.Emits.Ember`/`Spark`) × its fading alpha in the
+  middle, falling to nothing `Light.SplashPerSize` pixels per pixel of its size away (an ember 1.3
+  pixels across lights a spot some 12 across). Nothing shadows it, and it gives the cells nothing:
+  spread over a 16-pixel cell and its neighbours, an ember's light showed as no point at all.
 - **Drawn** by `render/Lit.cs`'s material, in `fragment()`: blended between the four cells round a
   point, those of its own side only (walls with walls, all else with the open), then
-  `min(1, ambient + light)` per colour, as the TypeScript game did. A normal-mapped picture is
-  shaded toward where the field grows brighter: the slope of its brightness half a cell either way,
-  as steep as a lamp's falloff in air giving light from that side 45 degrees up (as a lamp's in the
-  godot mode), flat light coming from straight in front; a flat surface takes the field's colour
-  whole either way.
+  `min(1, ambient + light + spots)` per colour, as the TypeScript game did, the particles' spots
+  added a pixel at a time. A normal-mapped picture is shaded toward the side the relief texture gives,
+  blended between cells as the light is: from that side 45 degrees up where the light falls off as a
+  lamp's (as a lamp's in the godot mode), from straight in front where it is as bright all round; and
+  only ever brightened or darkened by `swing` (0.35) round flat, never inverted. A flat surface takes
+  the field's colour whole either way. The relief once took its side from the slope of the light as it
+  was that frame, half a cell either way: a furnace's light, new with each picture of its flames every
+  110 ms and moving between its cells, swung it from side to side frame by frame and cell by cell, and
+  pictures by a fire seemed to warp. Smoothed, the side holds while the brightness still crackles.
 - **The modes never both light.** In cells the `PointLight2D`s of lamps, fires and particles and
   the starlight's directional light are hidden (not freed), and the fire's additive glow with them
   (the TypeScript game had none); the lamps' glows stay. In godot the material ignores the cells'
@@ -77,16 +90,25 @@ No texture, reach, falloff or shadow is designed: the sweeps give every emitter 
   work each frame, allocation once its buffers fit the screen):
   | world, view                                  | cells     | per frame          | allocated |
   | -------------------------------------------- | --------- | ------------------ | --------- |
-  | wreck with the furnace, zoom 2               | 3,888     | 0.08 ms            | 0 B       |
-  | reference world, zoom 1 (the farthest a player zooms) | 11,868 | 0.23 ms     | 0 B       |
-  | reference world whole on screen, zoom 0.31   | 60,564    | 1.23 ms (2.6 worst) | 0 B      |
-  The development build Godot runs from `--path game` is unoptimised and about four times slower
-  (4.4 ms whole). The float texture is uploaded each frame: 16 bytes a cell, about 1 MB whole.
+  | wreck with the furnace, zoom 2               | 3,888     | 0.10 ms            | 0 B       |
+  | reference world, zoom 1 (the farthest a player zooms) | 11,868 | 0.28 ms     | 0 B       |
+  | reference world whole on screen, zoom 0.31   | 60,564    | 1.58 ms (3.8 worst) | 0 B      |
+  Settling the relief adds 0.01, 0.02 and 0.36 ms of these (0.08, 0.25 and 1.22 without it); the
+  particles' spots cost no measurable GPU time (0.07 ms a frame on the wreck either way). The
+  development build Godot runs from `--path game` is unoptimised and about four times slower. The
+  textures are uploaded each frame: 24 bytes a cell, about 1.5 MB whole. Making an emitter's mask for
+  a picture first shown allocates a few KB, once.
 - **Only what has an emitter gives light.** A lamp's light comes from its bulb's pixels, a fire's
   from its flames; a picture drawn with no sprite (the lamps' tiles) needs an emitter placed by its
   feature.
+- **Relief lags the light by a few hundred ms:** a door opening or a lamp coming on turns the
+  relief toward it over `ReliefSettleMs`, and coming back to the cells mode with F9 the relief eases
+  in from the light as it was when it was left. Embers' spots shade no relief: they are lit flat.
+- **Spots are capped like all light:** by a lamp and a fire, where a colour is already whole, an
+  ember's spot shows only in the colours left, paler than its orange.
 - **Not handled:** shaded items not drawn with `Lit.Set` lose the godot lamps' light in the cells
-  mode (not audited); a rotated normal-mapped picture is shaded as if unrotated.
+  mode (not audited); a rotated normal-mapped picture is shaded as if unrotated. Only particles draw
+  spots: an `Emitter` on a small sprite (a held stick) still lights cells, until one needs a point.
 
 ## Consequences
 

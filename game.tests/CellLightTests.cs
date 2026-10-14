@@ -183,14 +183,62 @@ public class CellLightTests
         Assert.Equal(new Vector4(2, 2, 2, 0), cells.Light[0]);
     }
 
-    [Fact]
-    public void AParticleLightsTheCellItIsIn()
+    /// <summary>A row of <paramref name="w"/> cells inside a grid of walls wider than it, begun from cell <paramref name="x"/>, its light <paramref name="light"/> of x.</summary>
+    private static void Frame(CellLight cells, TestWorld walls, int x, int w, Func<int, float> light)
     {
-        var cells = Empty(3, 3);
-        cells.Give(Cell * 2.5f, Cell * 3.9f, new Vector4(0.5f, 0.24f, 0.06f, 0));
-        Assert.Equal(new Vector4(0.5f, 0.24f, 0.06f, 0), cells.Light[2 * 3 + 1]);
-        cells.Give(-50, 0, Vector4.One);
-        Assert.Equal(1, cells.Light.ToArray().Count(v => v != Vector4.Zero));
+        cells.Begin(walls.M.Grid, x, 1, w, 1);
+        for (int i = 0; i < w; i++) cells.Light[i] = new Vector4(light(x + i), light(x + i), light(x + i), 0);
+    }
+
+    private static readonly TestWorld Walls = new(string.Join("\n", Rows(16, 3)));
+
+    [Fact]
+    public void ReliefTakesItsLightFromWhereItGrowsWholeWhereItFallsOffAsALampsInAir()
+    {
+        var cells = new CellLight(Cell);
+        Frame(cells, Walls, 1, 9, x => MathF.Pow(L.Air, x));
+        cells.Settle(0);
+        Assert.Equal(-1, cells.Toward[4].X, 3);
+        Assert.Equal(0, cells.Toward[4].Y);
+        // Lit as brightly from both sides, it comes from straight in front.
+        Frame(cells, Walls, 1, 9, x => MathF.Pow(L.Air, Math.Abs(x - 5)));
+        cells.Settle(0);
+        Assert.Equal(Vector2.Zero, cells.Toward[4]);
+    }
+
+    [Fact]
+    public void ReliefKeepsItsSideWhileAFireByItCracklesFrameByFrame()
+    {
+        // A lamp to the left; to the right a fire flaring past it one frame and out the next.
+        static float Lit(int x, bool flare) => MathF.Pow(L.Air, x) + (flare ? 1.6f * MathF.Pow(L.Air, 10 - x) : 0);
+        int Flips(float keep)
+        {
+            var cells = new CellLight(Cell);
+            int flips = 0;
+            for (int frame = 0; frame < 20; frame++)
+            {
+                Frame(cells, Walls, 1, 9, x => Lit(x, frame % 2 == 1));
+                cells.Settle(keep);
+                if (frame > 0 && cells.Toward[4].X > 0) flips++;
+            }
+            return flips;
+        }
+        Assert.Equal(0, Flips(MathF.Exp(-1000f / 30 / L.ReliefSettleMs)));
+        // Unsmoothed, it turns to the fire with each flare.
+        Assert.Equal(10, Flips(0));
+    }
+
+    [Fact]
+    public void TheSmoothedLightMovesWithTheStretchAsTheCameraDoes()
+    {
+        var cells = new CellLight(Cell);
+        Frame(cells, Walls, 1, 9, x => MathF.Pow(L.Air, x));
+        cells.Settle(0);
+        var before = cells.Toward[5];
+        // Moved a cell on, dark now, all of the old kept: the cell that was sixth is fifth.
+        Frame(cells, Walls, 2, 9, _ => 0);
+        cells.Settle(1);
+        Assert.Equal(before, cells.Toward[4]);
     }
 
     [Fact]

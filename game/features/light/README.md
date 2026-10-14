@@ -61,11 +61,21 @@ its back walls. Drawn only: nothing of it reaches the sim. Numbers from `game/Co
 - **The cells mode** (0026; `--light=cells`, F9 or the dev panel's `light:` button, live): light
   worked out each frame over the screen and `Light.Margin` cells round it as the TypeScript game did,
   from emitters (`render/Emitter.cs`: a lamp's bulb — a node at its cell with the lamp's picture, its
-  `Strength` the lamp's flicker — and the furnace's flames, from the furnace feature), glowing
-  particles and the stars, spread by `Sweeps` (shared with `Starlight`) in `CellLight` and handed to
-  `render/Lit.cs` as a float texture (`LightView.ShowCells`). Every `Light2D` here is hidden meanwhile,
-  and the fire's glow; the lamps' glows stay. `--measure` and `--frames` print what it costs
-  (`CellsCost`) and how many Godot lights shine: none in this mode.
+  `Strength` the lamp's flicker — and the furnace's flames, from the furnace feature) and the stars,
+  spread by `Sweeps` (shared with `Starlight`) in `CellLight` and handed to `render/Lit.cs` as a float
+  texture (`LightView.ShowCells`). A normal map's relief takes its side from a second texture,
+  `CellLight.Settle`'s: each cell's slope a cell either way, of its own side, worked out from the light
+  smoothed over `Light.ReliefSettleMs` (300 ms), so a fire's crackle — a new brightness every 110 ms,
+  its flames moving between 16-pixel cells — no longer swings it from side to side and pictures stop
+  seeming to warp; the brightness itself still jumps each picture. Blended between cells as the light
+  is, and only ever brightening or darkening a picture by `swing` (0.35), never inverting it. Glowing
+  particles (embers, sparks) light no cells: each draws a soft spot (`Splashes`, a `SubViewport` a
+  texel a world pixel over the screen, additive) that the lit shader adds pixel by pixel, unshadowed
+  and capped like the rest, so an ember passing the back wall leaves a glowing spot a few pixels wide
+  that moves with it. Its strength and colour are `Light.Emits.Ember`/`Spark`; it reaches
+  `Light.SplashPerSize` pixels per pixel of the particle's size. Every `Light2D` here is hidden
+  meanwhile, and the fire's glow; the lamps' glows stay. `--measure` and `--frames` print what it
+  costs (`CellsCost`) and how many Godot lights shine: none in this mode.
 - **Kept current:** `LightView.Sync()` after every tick; lamps flicker, fires show and waver and
   particles glow in `_Process`.
 

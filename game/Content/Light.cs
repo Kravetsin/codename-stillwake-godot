@@ -47,6 +47,18 @@ public static class Light
     public const float DoorIn = 0.7f;
 
     /// <summary>
+    /// In the cells mode, how long the light a normal map's relief is shaded by takes to follow the light
+    /// itself, in ms: the brightness crackles with a fire's every picture, the relief's side holds steady.
+    /// </summary>
+    public const float ReliefSettleMs = 300;
+
+    /// <summary>
+    /// In the cells mode, how far a glowing particle's spot of light reaches round it, in pixels of the world
+    /// per pixel of its size: an ember 1.3 pixels across lights a spot some 12 across.
+    /// </summary>
+    public const float SplashPerSize = 4.5f;
+
+    /// <summary>
     /// What gives off light in the cells mode (0026), one entry a kind: its colour and strength, the light
     /// it gives the cell holding most of its glowing pixels (a cell with fewer gets its share by their
     /// count), and which of its pixels glow: those at least <see cref="Emission.Glowing"/> bright, 0 for
@@ -58,9 +70,13 @@ public static class Light
         public static readonly Emission Lamp = new(Light.Lamp, 1, Glowing: 0.8f);
         /// <summary>A furnace's fire, by how brightly it burns: its flames, not the bars of its grate or the dim embers under them.</summary>
         public static readonly Emission Fire = new(Light.Fire, 1, Glowing: 0.3f);
-        /// <summary>An ember rising from a fire and a spark off work on a plan, as they fade: the colours of their glows.</summary>
-        public static readonly Emission Ember = new((1f, 0.48f, 0.125f), Particle);
-        public static readonly Emission Spark = new((1f, 0.63f, 0.25f), Particle);
+        /// <summary>
+        /// An ember rising from a fire and a spark off work on a plan, as they fade, in the colours of their
+        /// glows: each lights a spot round it, a pixel at a time and never shadowed, its strength the light at
+        /// its middle, reaching <see cref="SplashPerSize"/> pixels per pixel of its size; not the cells.
+        /// </summary>
+        public static readonly Emission Ember = new((1f, 0.48f, 0.125f), 1.2f);
+        public static readonly Emission Spark = new((1f, 0.63f, 0.25f), 1.2f);
         /// <summary>The stars, in every open cell with no back wall and past the grid's edge.</summary>
         public static readonly Emission Star = new(Light.Star, 1);
     }

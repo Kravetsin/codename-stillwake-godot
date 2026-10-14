@@ -70,8 +70,9 @@ public partial class LightView : Node2D
     private bool _moved;
     // The cells mode (0026): the light over the screen and round it, worked out each frame, and its texture.
     private readonly CellLight _cells = new(Cell);
-    private Image? _cellImage;
-    private ImageTexture? _cellTexture;
+    private readonly Splashes _splashes = new();
+    private Image? _cellImage, _reliefImage;
+    private ImageTexture? _cellTexture, _reliefTexture;
     private double _cellsMs, _cellsWorstMs;
     private long _cellsBytes;
     private int _cellsFrames, _cellsArea, _cellsKept;
@@ -99,6 +100,7 @@ public partial class LightView : Node2D
         AddChild(_starlight);
         AddChild(_lamps);
         AddChild(_glowing);
+        AddChild(_splashes);
         Lit.CellsChanged += Switched;
     }
 
@@ -249,9 +251,10 @@ public partial class LightView : Node2D
             fires++;
         }
         int glows = cells ? HideGlows() : ShowGlows();
+        if (!cells) _splashes.Stop();
         if (cells)
         {
-            ShowCells();
+            ShowCells(delta);
             return;
         }
         if (_steady is null || _field is null) return;
@@ -277,10 +280,11 @@ public partial class LightView : Node2D
 
     /// <summary>
     /// The cells mode (0026): the light of the screen and <see cref="L.Margin"/> cells round it (half a
-    /// screen at most, area.ts), worked out as the TypeScript game did: the stars, every emitter's glowing
-    /// pixels and every glowing particle, spread by sweeps, handed to <see cref="Lit"/> as floats.
+    /// screen at most, area.ts), worked out as the TypeScript game did: the stars and every emitter's glowing
+    /// pixels, spread by sweeps, handed to <see cref="Lit"/> as floats with where relief is shaded from,
+    /// steady over frames; and each glowing particle's spot of light over the screen (<see cref="Splashes"/>).
     /// </summary>
-    private void ShowCells()
+    private void ShowCells(double delta)
     {
         long started = Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
         var view = GetCanvasTransform().AffineInverse() * GetViewportRect();
@@ -299,28 +303,13 @@ public partial class LightView : Node2D
             var (r, g, b) = e.Emits.Colour;
             _cells.Give(mask, toWorld, new System.Numerics.Vector4(r, g, b, 0) * s);
         }
-        var live = Particles.Shared.Live;
-        for (int i = 0; i < live.Count; i++)
-        {
-            var p = live[i];
-            if (p.Effect.Glow is null) continue;
-            var emits = p.Effect == Effect.Ember ? L.Emits.Ember : L.Emits.Spark;
-            float s = emits.Strength * (float)p.Alpha;
-            _cells.Give((float)p.X, (float)p.Y, new System.Numerics.Vector4(emits.Colour.R, emits.Colour.G, emits.Colour.B, 0) * s);
-        }
         _cells.Spread();
         _cells.Finish();
-        if (_cellImage == null || _cellTexture == null || _cellImage.GetWidth() != w || _cellImage.GetHeight() != h)
-        {
-            _cellImage = Image.CreateFromData(w, h, false, Image.Format.Rgbaf, _cells.Texels);
-            _cellTexture = ImageTexture.CreateFromImage(_cellImage);
-        }
-        else
-        {
-            _cellImage.SetData(w, h, false, Image.Format.Rgbaf, _cells.Texels);
-            _cellTexture.Update(_cellImage);
-        }
-        Lit.ShowCells(_cellTexture, new Rect2(x * Cell, y * Cell, w * Cell, h * Cell));
+        _cells.Settle((float)Math.Exp(-delta * 1000 / L.ReliefSettleMs), across, down);
+        Upload(ref _cellImage, ref _cellTexture, w, h, Image.Format.Rgbaf, _cells.Texels);
+        Upload(ref _reliefImage, ref _reliefTexture, w, h, Image.Format.Rgf, _cells.Relief);
+        Lit.ShowCells(_cellTexture!, _reliefTexture!, new Rect2(x * Cell, y * Cell, w * Cell, h * Cell));
+        _splashes.Show(view);
         double ms = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
         // Allocation counted only once the buffers fit the screen: a zoom makes them anew.
         if (_cellsArea == w * h)
@@ -334,7 +323,20 @@ public partial class LightView : Node2D
         _cellsMs += ms;
     }
 
-    /// <summary>The cells mode lights round glowing particles itself: Godot's lights under them are hidden.</summary>
+    /// <summary><paramref name="bytes"/> into <paramref name="texture"/>, made anew only when its size changes.</summary>
+    private static void Upload(ref Image? image, ref ImageTexture? texture, int w, int h, Image.Format format, byte[] bytes)
+    {
+        if (image == null || texture == null || image.GetWidth() != w || image.GetHeight() != h)
+        {
+            image = Image.CreateFromData(w, h, false, format, bytes);
+            texture = ImageTexture.CreateFromImage(image);
+            return;
+        }
+        image.SetData(w, h, false, format, bytes);
+        texture.Update(image);
+    }
+
+    /// <summary>The cells mode lights round glowing particles itself, with spots (<see cref="Splashes"/>): Godot's lights under them are hidden.</summary>
     private int HideGlows()
     {
         for (int i = 0; i < _glows.Count; i++) _glows[i].Visible = false;

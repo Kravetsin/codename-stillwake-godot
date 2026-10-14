@@ -17,7 +17,8 @@ namespace Stillwake.Game.Render;
 /// (<see cref="ShowLamplight"/>), so a surface by a fire, a lamp and embers is never brighter than its
 /// own colour fully lit. A normal-mapped picture is shaded toward or away from a lamp within that; a
 /// wall takes <see cref="Light.WallIn"/> of what reaches its face. In the cells mode (0026,
-/// <see cref="Cells"/>) all of its light comes from the cells' texture instead, Godot's lights hidden.
+/// <see cref="Cells"/>) its light comes from the cells' texture instead, relief from their light settled over frames,
+/// and glowing particles' spots (<see cref="ShowSplashes"/>) are added a pixel at a time, Godot's lights hidden.
 /// </summary>
 public static class Lit
 {
@@ -47,8 +48,14 @@ public static class Lit
             uniform bool cells = false;
             uniform sampler2D celllight : filter_nearest, repeat_disable, hint_default_black;
             uniform vec4 celllight_rect = vec4(0.0, 0.0, 1.0, 1.0);
-            // How sharply light must fall off across a cell to come from one side whole: a lamp's in air.
-            uniform float directional = 7.8;
+            // Where relief takes its light from, a texel a cell beside celllight: toward where the light grows,
+            // as long as 1 where it comes from one side whole, steady over frames (CellLight.Settle).
+            uniform sampler2D cellrelief : filter_nearest, repeat_disable, hint_default_black;
+            // The glowing particles' spots of light, a texel a pixel of the world, laid at splashes_rect.
+            uniform sampler2D splashes : filter_nearest, repeat_disable, hint_default_black;
+            uniform vec4 splashes_rect = vec4(0.0, 0.0, 1.0, 1.0);
+            // The most relief brightens or darkens a picture's light: a modulation round flat, never a flip.
+            uniform float swing = 0.35;
             varying vec2 world;
             varying vec3 star;
             varying vec3 lamps;
@@ -66,33 +73,28 @@ public static class Lit
                 return texelFetch(celllight, clamp(at, ivec2(0), textureSize(celllight, 0) - 1), 0);
             }
 
-            // The cells' light at `at`, in texels, blended between the four cells round it of one side; its
-            // alpha the weight they had, nothing where none is of that side.
-            vec4 lit_at(vec2 at, bool wall) {
+            // The cells' light at `at`, in texels, blended between the four cells round it of one side, and
+            // where relief takes it from, `toward`; its alpha the weight they had, nothing where none is of that side.
+            vec4 lit_at(vec2 at, bool wall, out vec2 toward) {
                 vec2 corner = floor(at - 0.5);
                 vec2 f = at - 0.5 - corner;
                 vec3 sum = vec3(0.0);
+                vec2 sloped = vec2(0.0);
                 float weight = 0.0;
+                ivec2 most = textureSize(celllight, 0) - 1;
                 for (int i = 0; i < 4; i++) {
                     vec2 o = vec2(float(i % 2), float(i / 2));
-                    vec4 near = lit_cell(ivec2(corner + o));
+                    ivec2 c = clamp(ivec2(corner + o), ivec2(0), most);
+                    vec4 near = texelFetch(celllight, c, 0);
                     float w = mix(1.0 - f.x, f.x, o.x) * mix(1.0 - f.y, f.y, o.y);
                     if ((near.a > 0.5) == wall) {
                         sum += near.rgb * w;
+                        sloped += texelFetch(cellrelief, c, 0).xy * w;
                         weight += w;
                     }
                 }
+                toward = weight > 0.0 ? sloped / weight : vec2(0.0);
                 return vec4(weight > 0.0 ? sum / weight : vec3(0.0), weight);
-            }
-
-            float brightness(vec3 c) {
-                return dot(c, vec3(0.2126, 0.7152, 0.0722));
-            }
-
-            // How bright the light is at `at` on one side, `here` where none of that side is near.
-            float brightness_at(vec2 at, bool wall, float here) {
-                vec4 l = lit_at(at, wall);
-                return l.a > 0.0 ? brightness(l.rgb) : here;
             }
 
             void fragment() {
@@ -102,22 +104,21 @@ public static class Lit
                     vec2 at = (world - celllight_rect.xy) / celllight_rect.zw * vec2(textureSize(celllight, 0));
                     vec4 own = lit_cell(ivec2(floor(at)));
                     bool wall = blocks && own.a > 0.5;
-                    vec4 blended = lit_at(at, wall);
+                    vec2 toward;
+                    vec4 blended = lit_at(at, wall, toward);
                     vec3 light = blended.a > 0.0 ? blended.rgb : own.rgb;
                     if (relief > 0.0) {
-                        float here = brightness(light);
-                        vec2 slope = vec2(
-                            brightness_at(at + vec2(0.5, 0.0), wall, here) - brightness_at(at - vec2(0.5, 0.0), wall, here),
-                            brightness_at(at + vec2(0.0, 0.5), wall, here) - brightness_at(at - vec2(0.0, 0.5), wall, here));
-                        // Light falling off as a lamp's does comes from one side whole, 45 degrees up as a
-                        // lamp's in the other mode; light as bright all round, from straight in front.
-                        float steep = length(slope) / max(here, 0.0001);
-                        vec2 toward = steep > 0.0 ? normalize(slope) * clamp(steep * directional, 0.0, 1.0) : vec2(0.0);
+                        // Light falling off as a lamp's comes from one side whole, 45 degrees up as a lamp's in
+                        // the other mode; light as bright all round, from straight in front. Its side is taken
+                        // from the light smoothed over frames, and it only ever brightens or darkens by `swing`.
                         vec3 tilted = normalize(vec3(toward, 1.0));
-                        light *= mix(1.0, clamp(dot(NORMAL, tilted) / tilted.z, 0.0, 1.5), relief);
+                        float facing = dot(NORMAL, tilted) / tilted.z;
+                        light *= clamp(mix(1.0, facing, relief), 1.0 - swing, 1.0 + swing);
                     }
+                    // Each particle's spot of light, added pixel by pixel and shaded by no relief.
+                    vec3 splash = texture(splashes, (world - splashes_rect.xy) / splashes_rect.zw).rgb;
                     // The CanvasModulate multiplies what is drawn by the ambient after this: undone here.
-                    COLOR.rgb *= min(vec3(1.0), ambient + light * share) / ambient;
+                    COLOR.rgb *= min(vec3(1.0), ambient + light * share + splash) / ambient;
                 } else {
                     // Blended between the four cells round this point, those of its side only (lighting.ts).
                     vec2 at = (world - starlight_rect.xy) / starlight_rect.zw * vec2(textureSize(starlight, 0));
@@ -193,8 +194,8 @@ public static class Lit
         if (_starlight is var (stars, starsAt)) ShowOn(kept, "starlight", stars, starsAt);
         if (_lamplight is var (lamps, lampsAt)) ShowOn(kept, "lamplight", lamps, lampsAt);
         kept.SetShaderParameter(CellsName, Cells);
-        kept.SetShaderParameter("directional", 1 / -System.MathF.Log(Light.Air));
-        if (_cells is var (cells, cellsAt)) ShowCellsOn(kept, cells, cellsAt);
+        if (_cells is var (cells, toward, cellsAt)) ShowCellsOn(kept, cells, toward, cellsAt);
+        if (_splashes is var (splashes, splashesAt)) ShowSplashesOn(kept, splashes, splashesAt);
         return Made[(share, relief)] = kept;
     }
 
@@ -228,8 +229,10 @@ public static class Lit
     public static event System.Action? CellsChanged;
 
     // Made once: a string handed over each frame would make a StringName each frame.
-    private static readonly StringName CellsName = "cells", CellLight = "celllight", CellLightRect = "celllight_rect";
-    private static (Texture2D Texture, Rect2 Rect)? _cells;
+    private static readonly StringName CellsName = "cells", CellLight = "celllight", CellLightRect = "celllight_rect",
+        CellRelief = "cellrelief", SplashesName = "splashes", SplashesRect = "splashes_rect";
+    private static (Texture2D Light, Texture2D Toward, Rect2 Rect)? _cells;
+    private static (Texture2D Texture, Rect2 Rect)? _splashes;
 
     /// <summary>Lights from the cells from now on, or from Godot's lights again.</summary>
     public static void UseCells(bool cells)
@@ -242,25 +245,53 @@ public static class Lit
 
     /// <summary>
     /// The cells' light from now on (<c>features/light/CellLight.cs</c>): <paramref name="texture"/>, a texel
-    /// a cell of floats, its alpha whole where a cell blocks light, laid over <paramref name="rect"/> in pixels.
+    /// a cell of floats, its alpha whole where a cell blocks light, and <paramref name="toward"/>, a texel a cell
+    /// of where relief takes its light from (<c>CellLight.Settle</c>), both laid over <paramref name="rect"/> in pixels.
     /// </summary>
-    public static void ShowCells(Texture2D texture, Rect2 rect)
+    public static void ShowCells(Texture2D texture, Texture2D toward, Rect2 rect)
     {
-        // Each frame as the camera moves: the texture handed over again only when it is another.
-        bool same = _cells is var (was, _) && was == texture;
-        _cells = (texture, rect);
+        // Each frame as the camera moves: the textures handed over again only when they are others.
+        bool same = _cells is var (was, wasToward, _) && was == texture && wasToward == toward;
+        _cells = (texture, toward, rect);
         var at = new Vector4(rect.Position.X, rect.Position.Y, rect.Size.X, rect.Size.Y);
         foreach (var material in Made.Values)
         {
-            if (!same) material.SetShaderParameter(CellLight, texture);
+            if (!same)
+            {
+                material.SetShaderParameter(CellLight, texture);
+                material.SetShaderParameter(CellRelief, toward);
+            }
             material.SetShaderParameter(CellLightRect, at);
         }
     }
 
-    private static void ShowCellsOn(ShaderMaterial material, Texture2D texture, Rect2 rect)
+    private static void ShowCellsOn(ShaderMaterial material, Texture2D texture, Texture2D toward, Rect2 rect)
     {
         material.SetShaderParameter(CellLight, texture);
+        material.SetShaderParameter(CellRelief, toward);
         material.SetShaderParameter(CellLightRect, new Vector4(rect.Position.X, rect.Position.Y, rect.Size.X, rect.Size.Y));
+    }
+
+    /// <summary>
+    /// The glowing particles' spots of light from now on, in the cells mode (<c>features/light/Splashes.cs</c>):
+    /// <paramref name="texture"/>, a texel a pixel of the world, laid over <paramref name="rect"/> in pixels.
+    /// </summary>
+    public static void ShowSplashes(Texture2D texture, Rect2 rect)
+    {
+        bool same = _splashes is var (was, _) && was == texture;
+        _splashes = (texture, rect);
+        var at = new Vector4(rect.Position.X, rect.Position.Y, rect.Size.X, rect.Size.Y);
+        foreach (var material in Made.Values)
+        {
+            if (!same) material.SetShaderParameter(SplashesName, texture);
+            material.SetShaderParameter(SplashesRect, at);
+        }
+    }
+
+    private static void ShowSplashesOn(ShaderMaterial material, Texture2D texture, Rect2 rect)
+    {
+        material.SetShaderParameter(SplashesName, texture);
+        material.SetShaderParameter(SplashesRect, new Vector4(rect.Position.X, rect.Position.Y, rect.Size.X, rect.Size.Y));
     }
 
     private static void ShowOn(ShaderMaterial material, string name, Texture2D texture, Rect2 rect)
