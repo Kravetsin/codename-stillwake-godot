@@ -272,8 +272,8 @@ public class ContentTests
     [Fact]
     public void PowerIsInWholeUnitsAndACableCostsSomethingAndSpansMoreThanACell()
     {
-        Assert.True(Power.MaxSpan > 1);
-        foreach (var (item, amount) in Power.CableCost)
+        Assert.True(Content.Power.MaxSpan > 1);
+        foreach (var (item, amount) in Content.Power.CableCost)
         {
             // What the BuildCost type held in TypeScript: items there are.
             Assert.True(Content.Items.TryGet(item, out _), item);
