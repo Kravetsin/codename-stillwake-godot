@@ -27,7 +27,7 @@ free back slot: it stands behind anything, and in space.
 ## API
 
 - **Queries** (`IGridQueries`): `Width`, `Height`, `StructureLayer` and `BackLayer` (live, read-only),
-  `StructureAt(cell)`, `MachineAt(cell)`, `Machines`, `PlacementProblem(cell, placement)`.
+  `StructureAt(cell)`, `ConduitAt(cell)`, `MachineAt(cell)`, `Machines`, `PlacementProblem(cell, placement)`.
 - **Operations** (`IGridOps`): `Place(cell, placement)` — the caller checks `PlacementProblem` first, a
   problem here throws; `Clear(cell, layer)` — for machines, removes the whole machine covering the
   cell. Only in commands or construction: modules reading the grid in derivation trust that nothing
@@ -38,7 +38,7 @@ free back slot: it stands behind anything, and in space.
 - **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.occupied`, `grid.machineInTheWay`,
   `grid.blocked`, `grid.noSuchMaterial`, `grid.noSuchMachine`.
 - **Not yet ported** (added with the module that needs them): `layers`/`codes` for every layer,
-  `backAt`, `conduitAt`, `portsOf`, `footprint`, `afterToggles`.
+  `backAt`, `portsOf`, `footprint`, `afterToggles`.
 
 ## Maps
 
