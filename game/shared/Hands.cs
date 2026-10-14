@@ -52,7 +52,8 @@ public partial class Hands : Node2D
     /// </summary>
     public void Frame(Client client, Registry m, IReadOnlyList<Body> bodies, double elapsedMs)
     {
-        var pointer = Mouse.Pointer();
+        // Behind the open menu the hands point at nothing: no ghost, no tip, no work.
+        var pointer = Ui.MenuOpen.Get() ? null : Mouse.Pointer();
         var buttons = Mouse.Buttons;
         _building.Frame(client, m, buttons, pointer);
         _power.Frame(client, m, buttons, pointer, bodies, elapsedMs);

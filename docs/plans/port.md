@@ -96,7 +96,7 @@ dev panel.
 
 - **Built:** the Windows export (`game/export_presets.cfg`, the .NET export templates of 4.7.2
   installed on this machine): `build/windows/Stillwake.exe` with its data folder, about 180 MB.
-- **Built:** saves as files (`game/platform/Saves.cs`, apps/desktop/src/saves.ts): the dev panel's
+- **Built:** saves as files (`game/platform/Saves.cs`, apps/desktop/src/saves.ts): the game menu's
   world and the last desync report in Godot's user folder, written aside and moved over.
 - **Left:** the parity playtest against the TypeScript build; Steam (GodotSteam) after.
 

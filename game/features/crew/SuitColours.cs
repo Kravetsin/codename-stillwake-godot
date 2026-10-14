@@ -6,18 +6,22 @@ using Godot;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The suit colours under the oxygen bar, without a word (SuitColours.tsx): the one worn ringed, those
-/// other heroes wear dimmed, the rest a click away, which sends <c>crew</c>'s <c>PickColour</c>. Reads the
-/// sim four times a second, never every frame.
+/// The suit colours, a row in the game menu's settings (SuitColours.tsx's buttons): the one worn ringed,
+/// those other heroes wear dimmed, the rest a click away, which sends <c>crew</c>'s <c>PickColour</c>.
+/// Reads the sim four times a second while shown, never every frame.
 /// </summary>
-public partial class SuitColours : CanvasLayer
+public partial class SuitColours : Control
 {
     private const double RefreshS = 0.25;
+    private static readonly Color Ring = new("f1f5f9");
+    /// <summary>A button's size and the gap between, in pixels (h-3.5 gap-2, a size up in a menu); a hovered one grows by a quarter.</summary>
+    private const float Dot = 20, Gap = 12, Grown = 1.25f;
 
     private readonly Func<(int? Mine, IReadOnlySet<int> Taken)> _read;
     private readonly Action<int> _pick;
-    private readonly Row _row = new();
     private double _sinceRead = RefreshS;
+    private int? _mine, _hovered;
+    private HashSet<int> _taken = [];
 
     /// <param name="read">The colour this player wears, if any yet, and those other heroes wear, by index into <see cref="Suits.All"/>.</param>
     /// <param name="pick">Sends the pick of a free colour.</param>
@@ -25,94 +29,77 @@ public partial class SuitColours : CanvasLayer
     {
         _read = read;
         _pick = pick;
-        _row.Picked += i => _pick(i);
-        AddChild(_row);
+        // Room for a hovered button grown at either end.
+        CustomMinimumSize = new Vector2(Suits.All.Length * Dot + (Suits.All.Length - 1) * Gap + Dot * (Grown - 1), Dot * Grown);
+        MouseFilter = MouseFilterEnum.Stop;
+    }
+
+    /// <summary>The middle of colour <paramref name="i"/>'s button on screen, for scripted runs.</summary>
+    public Vector2 CenterOf(int i) => GetGlobalTransformWithCanvas() * CentreOf(i);
+
+    private bool Free(int i) => i != _mine && !_taken.Contains(i);
+
+    private Vector2 CentreOf(int i) => new(Dot * (Grown - 1) / 2 + i * (Dot + Gap) + Dot / 2, Size.Y / 2);
+
+    private int? At(Vector2 point)
+    {
+        for (int i = 0; i < Suits.All.Length; i++)
+            if (point.DistanceTo(CentreOf(i)) <= Dot / 2) return i;
+        return null;
     }
 
     public override void _Process(double delta)
     {
+        if (!IsVisibleInTree()) return;
         _sinceRead += delta;
         if (_sinceRead < RefreshS) return;
         _sinceRead = 0;
         var (mine, taken) = _read();
-        if (_row.Mine == mine && _row.Taken.SetEquals(taken)) return;
-        _row.Mine = mine;
-        _row.Taken = taken.ToHashSet();
-        _row.QueueRedraw();
+        if (_mine == mine && _taken.SetEquals(taken)) return;
+        _mine = mine;
+        _taken = taken.ToHashSet();
+        QueueRedraw();
     }
 
-    /// <summary>The row of colours, drawn by hand: Tailwind's slate box and round buttons.</summary>
-    private sealed partial class Row : Control
+    public override void _Notification(int what)
     {
-        private static readonly Color Back = new(new Color("0f172a"), 0.9f), Edge = new("334155"), Ring = new("f1f5f9");
-        /// <summary>A button's size, the gap between and the box's padding, in pixels (h-3.5, gap-2, px-3 py-1.5).</summary>
-        private const float Dot = 14, Gap = 8, PadX = 12, PadY = 6;
+        // Shown again, it reads at once rather than show a colour another hero took meanwhile.
+        if (what == NotificationVisibilityChanged) _sinceRead = RefreshS;
+        if (what != NotificationMouseExit || _hovered == null) return;
+        _hovered = null;
+        QueueRedraw();
+    }
 
-        public int? Mine { get; set; }
-        public HashSet<int> Taken { get; set; } = [];
-        public event Action<int>? Picked;
-        private int? _hovered;
-
-        public Row()
+    public override void _GuiInput(InputEvent e)
+    {
+        if (e is InputEventMouseMotion motion)
         {
-            // Under the oxygen bar: left-3 top-[6.5rem].
-            Position = new Vector2(12, 104);
-            Size = new Vector2(2 * PadX + Suits.All.Length * Dot + (Suits.All.Length - 1) * Gap, 2 * PadY + Dot);
-            MouseFilter = MouseFilterEnum.Stop;
-        }
-
-        private bool Free(int i) => i != Mine && !Taken.Contains(i);
-
-        private Vector2 CentreOf(int i) => new(PadX + i * (Dot + Gap) + Dot / 2, PadY + Dot / 2);
-
-        private int? At(Vector2 point)
-        {
-            for (int i = 0; i < Suits.All.Length; i++)
-                if (point.DistanceTo(CentreOf(i)) <= Dot / 2) return i;
-            return null;
-        }
-
-        public override void _GuiInput(InputEvent e)
-        {
-            if (e is InputEventMouseMotion motion)
+            int? over = At(motion.Position);
+            if (over != _hovered)
             {
-                int? over = At(motion.Position);
-                if (over != _hovered)
-                {
-                    _hovered = over;
-                    MouseDefaultCursorShape = over is int o && Free(o) ? CursorShape.PointingHand : CursorShape.Arrow;
-                    QueueRedraw();
-                }
-            }
-            if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } click && At(click.Position) is int i && Free(i))
-            {
-                Picked?.Invoke(i);
-                AcceptEvent();
+                _hovered = over;
+                MouseDefaultCursorShape = over is int o && Free(o) ? CursorShape.PointingHand : CursorShape.Arrow;
+                QueueRedraw();
             }
         }
-
-        public override void _Notification(int what)
+        if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } click && At(click.Position) is int i && Free(i))
         {
-            if (what != NotificationMouseExit || _hovered == null) return;
-            _hovered = null;
-            QueueRedraw();
+            _pick(i);
+            AcceptEvent();
         }
+    }
 
-        public override void _Draw()
+    public override void _Draw()
+    {
+        for (int i = 0; i < Suits.All.Length; i++)
         {
-            var box = new Rect2(Vector2.Zero, Size);
-            DrawRect(box, Back);
-            DrawRect(box, Edge, false, 1);
-            for (int i = 0; i < Suits.All.Length; i++)
-            {
-                bool worn = i == Mine, free = Free(i);
-                int rgb = Suits.All[i];
-                var colour = new Color(((rgb >> 16) & 0xff) / 255f, ((rgb >> 8) & 0xff) / 255f, (rgb & 0xff) / 255f, worn || free ? 1 : 0.25f);
-                // hover:scale-125 on a free one.
-                float radius = Dot / 2 * (free && i == _hovered ? 1.25f : 1);
-                DrawCircle(CentreOf(i), radius, colour, true, -1, true);
-                if (worn) DrawArc(CentreOf(i), radius + 1, 0, Mathf.Tau, 24, Ring, 2, true);
-            }
+            bool worn = i == _mine, free = Free(i);
+            int rgb = Suits.All[i];
+            var colour = new Color(((rgb >> 16) & 0xff) / 255f, ((rgb >> 8) & 0xff) / 255f, (rgb & 0xff) / 255f, worn || free ? 1 : 0.25f);
+            // hover:scale-125 on a free one.
+            float radius = Dot / 2 * (free && i == _hovered ? Grown : 1);
+            DrawCircle(CentreOf(i), radius, colour, true, -1, true);
+            if (worn) DrawArc(CentreOf(i), radius + 1, 0, Mathf.Tau, 24, Ring, 2, true);
         }
     }
 }

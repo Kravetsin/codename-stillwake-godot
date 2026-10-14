@@ -6,13 +6,13 @@ namespace Stillwake.Game.Platform;
 
 /// <summary>
 /// Save files in <paramref name="dir"/>, one <c>&lt;slot&gt;.json</c> each (apps/desktop/src/saves.ts):
-/// the dev panel's world and the last desync report. Plain .NET files, so it is tested without Godot;
-/// the game gives it Godot's user folder.
+/// the world saved from the game menu and the last desync report. Plain .NET files, so it is tested
+/// without Godot; the game gives it Godot's user folder.
 /// </summary>
 public sealed partial class Saves(string dir)
 {
-    /// <summary>The dev panel's slot, and the one a desync report goes to.</summary>
-    public const string Dev = "dev", Desync = "desync";
+    /// <summary>The game menu's slot, and the one a desync report goes to.</summary>
+    public const string World = "world", Desync = "desync";
 
     private readonly object _writing = new();
     private int _written;

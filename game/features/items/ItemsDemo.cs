@@ -86,8 +86,6 @@ public partial class ItemsDemo : Control
     public ItemsDemo(ItemsView view)
     {
         _view = view;
-        TopLevel = true;
-        ZIndex = 30;
         MouseFilter = MouseFilterEnum.Ignore;
         static Place Inv(int slot) => new(slot);
         int Column(HeroSpot h) => h.X / 1000;

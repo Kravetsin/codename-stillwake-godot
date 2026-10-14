@@ -14,8 +14,8 @@ using Stillwake.Sim.Items;
 namespace Stillwake.Game.Features.Dev;
 
 /// <summary>
-/// Development readouts and controls (features/dev-panel/DevPanel.tsx), in the top-right corner and open
-/// from the start; the backquote key hides and shows it. Refreshed four times a second, never every
+/// Development readouts and controls (features/dev-panel/DevPanel.tsx), in the top-right corner, hidden
+/// at the start; the backquote key shows and hides it. Refreshed four times a second, never every
 /// frame, and not at all while hidden: on a big world the readouts themselves would cost frames.
 /// </summary>
 public partial class DevPanel : CanvasLayer
@@ -31,7 +31,6 @@ public partial class DevPanel : CanvasLayer
     private readonly Func<Session?> _session;
     private readonly Func<Registry> _modules;
     private readonly Func<string?> _link;
-    private readonly Func<string> _save, _load;
 
     private readonly PanelContainer _panel = new() { MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly Label _fps = Text(Style.Slate400), _status = Text(Style.Slate400);
@@ -45,12 +44,12 @@ public partial class DevPanel : CanvasLayer
     /// <param name="session">The session this machine plays in now; none before it has one.</param>
     /// <param name="modules">The registry of the world it plays: a load or a resync brings a new one.</param>
     /// <param name="link">Where this machine stands on the network, in a line; none alone.</param>
-    /// <param name="save">Saves the world to the dev slot, and says how it went.</param>
-    /// <param name="load">Loads the world from the dev slot, and says how it went.</param>
-    public DevPanel(Func<Session?> session, Func<Registry> modules, Func<string?> link, Func<string> save, Func<string> load)
+    public DevPanel(Func<Session?> session, Func<Registry> modules, Func<string?> link)
     {
-        (_session, _modules, _link, _save, _load) = (session, modules, link, save, load);
-        Layer = 12;
+        (_session, _modules, _link) = (session, modules, link);
+        // Hidden until the backquote: it covers much of the screen, and players never need it.
+        Visible = false;
+        Layer = ScreenLayers.Dev;
         var box = Style.Box(Style.Slate900 with { A = 0.9f }, Style.Slate700, 12);
         _panel.AddThemeStyleboxOverride("panel", box);
         (_panel.AnchorLeft, _panel.AnchorRight) = (1, 1);
@@ -70,11 +69,9 @@ public partial class DevPanel : CanvasLayer
         column.AddChild(_readings);
 
         var buttons = Style.Gap(new HBoxContainer(), 8);
-        buttons.AddChild(Action("save", () => Say(Run("Save", _save))));
-        buttons.AddChild(Action("load", () => Say(Run("Load", _load))));
-        buttons.AddChild(_speed = Action("×4", ToggleSpeed));
-        buttons.AddChild(_creative = Action("creative", ToggleCreative));
-        buttons.AddChild(Action("meteor", Meteor));
+        buttons.AddChild(_speed = Style.Button("×4", ToggleSpeed));
+        buttons.AddChild(_creative = Style.Button("creative", ToggleCreative));
+        buttons.AddChild(Style.Button("meteor", Meteor));
         column.AddChild(buttons);
         column.AddChild(_status);
         Say("");
@@ -87,50 +84,11 @@ public partial class DevPanel : CanvasLayer
 
     private static Label Text(Color colour, int size = 12) => new() { LabelSettings = Style.Text(Style.Mono, size, colour) };
 
-    private static Button Action(string text, Action pressed)
-    {
-        var button = new Button { Text = text, FocusMode = Control.FocusModeEnum.None };
-        Paint(button, Style.Slate700, Style.Slate600);
-        button.AddThemeFontOverride("font", Style.Mono);
-        button.AddThemeFontSizeOverride("font_size", 12);
-        button.AddThemeColorOverride("font_color", Style.Slate300);
-        button.AddThemeColorOverride("font_hover_color", Style.Slate300);
-        button.AddThemeColorOverride("font_pressed_color", Style.Slate300);
-        button.Pressed += pressed;
-        return button;
-    }
-
-    /// <summary><c>rounded bg-… px-2 py-1 hover:bg-…</c>.</summary>
-    private static void Paint(Button button, Color colour, Color hover)
-    {
-        StyleBoxFlat Of(Color c)
-        {
-            var box = Style.Box(c, c);
-            (box.ContentMarginLeft, box.ContentMarginRight, box.ContentMarginTop, box.ContentMarginBottom) = (8, 8, 4, 4);
-            return box;
-        }
-        button.AddThemeStyleboxOverride("normal", Of(colour));
-        button.AddThemeStyleboxOverride("hover", Of(hover));
-        button.AddThemeStyleboxOverride("pressed", Of(hover));
-    }
-
     /// <summary>A line under the buttons saying how the last of them went; none when there is nothing to say.</summary>
     private void Say(string text)
     {
         _status.Text = text;
         _status.Visible = text != "";
-    }
-
-    private static string Run(string label, Func<string> action)
-    {
-        try
-        {
-            return action();
-        }
-        catch (Exception e)
-        {
-            return $"{label} failed: {e.Message}";
-        }
     }
 
     private void ToggleSpeed()
@@ -201,7 +159,7 @@ public partial class DevPanel : CanvasLayer
         ShowReadings(lines);
         _speed.Text = s.Speed == 1 ? "×4" : "×1";
         bool creative = m.Items.Creative;
-        Paint(_creative, creative ? Style.Amber700 : Style.Slate700, creative ? Amber600 : Style.Slate600);
+        Style.Paint(_creative, creative ? Style.Amber700 : Style.Slate700, creative ? Amber600 : Style.Slate600);
         ShowSlices(client.World, m);
     }
 

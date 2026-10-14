@@ -43,11 +43,14 @@ public partial class ItemsView : Node2D
         // Over the machines, so a stack beside one shows, and under the heroes walking over it.
         ZIndex = Layers.FloorItems;
         AddChild(_floor);
-        var overWorld = new CanvasLayer();
+        var overWorld = new CanvasLayer { Layer = ScreenLayers.Hud };
         overWorld.AddChild(_popups);
         AddChild(overWorld);
         AddChild(Panel);
-        if (_demo) Panel.AddChild(new ItemsDemo(this));
+        if (!_demo) return;
+        var pointer = new CanvasLayer { Layer = ScreenLayers.Pointer };
+        pointer.AddChild(new ItemsDemo(this));
+        AddChild(pointer);
     }
 
     /// <summary>

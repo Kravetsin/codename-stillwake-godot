@@ -40,6 +40,7 @@ public partial class SuitGauge : CanvasLayer
     public SuitGauge(Func<(int Suit, SuitDanger Danger)> read)
     {
         _read = read;
+        Layer = ScreenLayers.Hud;
         // The bar first: the red edges and the dark cover it too.
         AddChild(_bar);
         foreach (var screen in new[] { _vignette, _dark })

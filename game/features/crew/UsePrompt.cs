@@ -20,7 +20,7 @@ public partial class UsePrompt : CanvasLayer
 
     public UsePrompt()
     {
-        Layer = 10;
+        Layer = ScreenLayers.Bars;
         var line = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         line.AddThemeConstantOverride("separation", 0);
         line.AddChild(_action);

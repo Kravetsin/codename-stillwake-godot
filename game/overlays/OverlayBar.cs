@@ -22,7 +22,7 @@ public partial class OverlayBar : CanvasLayer
     public OverlayBar(OverlaySwitch overlays)
     {
         _switch = overlays;
-        Layer = 10;
+        Layer = ScreenLayers.Bars;
         _row.AddThemeConstantOverride("separation", 8);
         _row.AnchorTop = _row.AnchorBottom = 1;
         _row.GrowVertical = Control.GrowDirection.Begin;

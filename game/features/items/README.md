@@ -38,8 +38,8 @@ everything E works is, in the crew feature (`AimTests`).
   putting the plan away; Tab frees it too as it opens the inventory. Q throws the chosen slot's whole
   stack from the hero's cell the way it faces, and does nothing while a card is in hand. The chosen
   slot is outlined only while the hand is free.
-- Tab opens and closes the inventory, Esc closes it and the crate (and puts the plan away, which
-  hears Esc too).
+- Tab opens and closes the inventory; Esc closes it and the crate, and puts the plan away with them,
+  before it opens the game menu (`Shared.Escape`, `game/menu`).
 - The crate open (`Ui.OpenCrate`) is set by the crew's E within reach and cleared out of reach; the
   panel shows it at once.
 - A stack in a cell the hero's body overlaps is picked up unless the sim would refuse it or its
