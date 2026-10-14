@@ -6,5 +6,6 @@
     <ProjectReference Include="../Pipes/Pipes.csproj" />
     <ProjectReference Include="../Items/Items.csproj" />
     <ProjectReference Include="../Power/Power.csproj" />
+    <ProjectReference Include="../Research/Research.csproj" />
   </ItemGroup>
 </Project>
