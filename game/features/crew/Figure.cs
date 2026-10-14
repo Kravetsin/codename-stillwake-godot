@@ -314,7 +314,8 @@ public partial class Figure : Node2D
             var point = new Vec(Math.Cos(aim) * reach, Math.Sin(aim) * reach);
             frontArm = Rig.Reach(new Vec(held.X + (point.X - held.X) * thrust, held.Y + (point.Y - held.Y) * thrust), Rig.Arm, 1);
         }
-        _frontArm.Bend(frontArm with { Upper = frontArm.Upper + lead });
+        // The hand holding the planner keeps it before the eyes, ahead of no turn.
+        _frontArm.Bend(frontArm with { Upper = frontArm.Upper + (holding ? 0 : lead) });
         _backArm.Bend(shown.BackArm with { Upper = shown.BackArm.Upper + lead });
         _frontLeg.Bend(shown.FrontLeg);
         _backLeg.Bend(shown.BackLeg);
