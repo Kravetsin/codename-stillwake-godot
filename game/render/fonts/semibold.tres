@@ -1,0 +1,11 @@
+[gd_resource type="FontVariation" load_steps=2 format=3]
+
+[sub_resource type="SystemFont" id="SystemFont_semibold"]
+font_names = PackedStringArray("Segoe UI", "sans-serif")
+font_weight = 600
+hinting = 2
+subpixel_positioning = 1
+
+[resource]
+base_font = SubResource("SystemFont_semibold")
+variation_embolden = 0.35

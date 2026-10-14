@@ -1,0 +1,10 @@
+[gd_resource type="FontVariation" load_steps=2 format=3]
+
+[sub_resource type="SystemFont" id="SystemFont_mono"]
+font_names = PackedStringArray("Consolas", "Menlo", "monospace")
+hinting = 2
+subpixel_positioning = 0
+
+[resource]
+base_font = SubResource("SystemFont_mono")
+variation_embolden = 0.35
