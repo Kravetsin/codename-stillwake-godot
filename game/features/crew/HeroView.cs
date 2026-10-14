@@ -104,7 +104,7 @@ public partial class HeroView : Node2D
         bool handFree = _ui.Hand.Get() == Holding.Free;
         _figure.Show(drawn, Poses.PoseOf(drawn, inSpace, passedOut), look, holdsPlan: !handFree && !passedOut, elapsedMs);
         Tie(_current.Anchor, Tether.ClipOf(x, y), elapsedMs);
-        Use(client, m, pointer, passedOut, handFree);
+        UseHands(client, m, pointer, passedOut, handFree);
         _outline.QueueRedraw();
         QueueRedraw();
     }
@@ -114,7 +114,7 @@ public partial class HeroView : Node2D
     /// awake; E and the left button on what it works. Passed out, or with the plan in hand, the hands do
     /// nothing: a press is spent, a hold works no plan.
     /// </summary>
-    private void Use(Client client, Registry m, (double X, double Y)? pointer, bool passedOut, bool handFree)
+    private void UseHands(Client client, Registry m, (double X, double Y)? pointer, bool passedOut, bool handFree)
     {
         if (!_mouse.Buttons.HoldsLeft) _served.Clear();
         var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served) : null;

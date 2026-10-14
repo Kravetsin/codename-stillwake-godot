@@ -65,10 +65,10 @@ which comes with `grid.afterToggles`.
   of debris out in space (E or the left button). Pieces with a grab in flight are passed over
   (`Shared.Predicted.Grabbing`).
 - With the hand free and the hero awake, what E would work is outlined (a machine's whole footprint,
-  over the machines, under the plans as the TypeScript layers stacked) and `UsePrompt` says what E does,
-  red with the sim's reason. A piece of debris is outlined by the debris feature, through
-  `Ui.AimedPiece`; a crate opened is shown by the items feature, through `Ui.OpenCrate`, and closed
-  here once out of reach or passed out.
+  over the machines and so over the hero, who draws under them, and under the plans as the
+  TypeScript layers stacked) and `UsePrompt` says what E does, red with the sim's reason. A piece of
+  debris is outlined by the debris feature, through `Ui.AimedPiece`; a crate opened is shown by the
+  items feature, through `Ui.OpenCrate`, and closed here once out of reach or passed out.
 - With anything else in hand (`Ui.Hand`, 0022) the hero holds the plan's sheet (`Figure`'s `sheet`),
   and E and the left button do nothing here: a press is spent, a hold works no plan.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
