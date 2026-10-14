@@ -1,6 +1,7 @@
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
+using Stillwake.Sim.Items;
 using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Rooms;
 
@@ -15,6 +16,7 @@ public sealed class Registry
 {
     public GridModule Grid { get; }
     public RoomsModule Rooms { get; }
+    public ItemsModule Items { get; }
     public PipesModule Pipes { get; }
     public HazardsModule Hazards { get; }
 
@@ -25,9 +27,10 @@ public sealed class Registry
     {
         Grid = new GridModule();
         Rooms = new RoomsModule(Grid);
+        Items = new ItemsModule(Grid, Rooms);
         Pipes = new PipesModule(Grid);
         Hazards = new HazardsModule(Grid, Grid);
-        All = [Grid, Rooms, Pipes, Hazards];
+        All = [Grid, Rooms, Items, Pipes, Hazards];
     }
 
     /// <summary>The wreck the game starts in.</summary>

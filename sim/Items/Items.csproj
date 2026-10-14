@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>Stillwake.Sim.Items</AssemblyName><RootNamespace>Stillwake.Sim.Items</RootNamespace></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Rooms/Rooms.csproj" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Stillwake.Sim.Tests" /></ItemGroup>
+</Project>

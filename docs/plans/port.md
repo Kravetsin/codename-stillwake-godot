@@ -36,7 +36,9 @@ In dependency order, each with its README, tests and fuzz generator ported: `haz
 `items`, `power`, `atmosphere`, `crew`, `debris`, `furnace`, `building`, `research`. Then the wreck's
 own tests (`modules/wreck.test.ts`).
 
-- Ported: `hazards`, `pipes`.
+- Ported: `items`, `hazards`, `pipes`.
+- A module namespace `Stillwake.Sim.<X>` hides the content class `Stillwake.Content.<X>` inside
+  `Stillwake.Sim.*`: write `Content.Furnace.FuelSlot`.
 - Tests waiting for a module (add them with it): `hazards` — venting and draining (atmosphere),
   a planned wall stopping the vent (building, atmosphere), a valve cutting the vent off
   (atmosphere), deconstruction marks broken with their wall (building, items); see the hazards

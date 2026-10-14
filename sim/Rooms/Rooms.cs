@@ -15,11 +15,21 @@ public sealed class RoomsState
     [JsonIgnore] internal int[] BuiltBack { get; set; } = [];
 }
 
+/// <summary>What any module may read of the rooms.</summary>
+public interface IRoomsQueries
+{
+    /// <summary>The room <paramref name="cell"/> is in, <see cref="RoomsModule.Space"/>, or null for a solid cell or one off the grid.</summary>
+    int? RoomAt(int cell);
+    Room? RoomById(int id);
+    /// <summary>Every room, in id order.</summary>
+    IReadOnlyList<Room> All { get; }
+}
+
 /// <summary>
 /// Rooms: the spaces air fills, closed by walls and closed doors (packages/sim/src/modules/rooms).
 /// It reads the grid through <see cref="IGridQueries"/> only: it cannot change it, nor see its state.
 /// </summary>
-public sealed class RoomsModule : Module<RoomsState>
+public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
 {
     public const int Space = -1, Solid = -2;
     private const int Unseen = -3, Edge = -1;

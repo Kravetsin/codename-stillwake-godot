@@ -23,7 +23,7 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
 
 ## API
 
-- **Queries:** `RoomAt(cell)` — a room's id, `Space`, or null for a solid cell or off the grid;
+- **Queries** (`IRoomsQueries`, what a module depending on rooms receives): `RoomAt(cell)` — a room's id, `Space`, or null for a solid cell or off the grid;
   `RoomById(id)`; `All`, in id order. `Find(...)` is the flood itself, static, for tests and tools.
 - **Not yet ported:** `roomOfCells` (every cell at once), added with `atmosphere`.
 
