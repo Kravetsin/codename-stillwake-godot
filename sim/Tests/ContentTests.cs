@@ -2,6 +2,7 @@ using System.Reflection;
 using Stillwake.Content;
 using Stillwake.Game;
 using Xunit;
+using DebrisSpec = Stillwake.Content.Debris;
 
 namespace Stillwake.Sim.Tests;
 
@@ -191,12 +192,12 @@ public class ContentTests
     [Fact]
     public void SalvageDriftsPastAtWholeRatesUnderACellATickAsSalvageOrContainersOfPositiveWeight()
     {
-        foreach (int value in (int[])[Debris.Every, Debris.Max, Debris.DriftMin, Debris.Margin, Debris.Lead, Debris.AimRadius])
+        foreach (int value in (int[])[DebrisSpec.Every, DebrisSpec.Max, DebrisSpec.DriftMin, DebrisSpec.Margin, DebrisSpec.Lead, DebrisSpec.AimRadius])
             Assert.True(value > 0);
-        Assert.True(Debris.Jitter >= 0);
-        Assert.True(Debris.Jitter < Debris.Every);
-        Assert.True(Debris.DriftMin <= Debris.DriftMax && Debris.DriftMax < 1000);
-        foreach (var (item, weight) in Debris.Kinds)
+        Assert.True(DebrisSpec.Jitter >= 0);
+        Assert.True(DebrisSpec.Jitter < DebrisSpec.Every);
+        Assert.True(DebrisSpec.DriftMin <= DebrisSpec.DriftMax && DebrisSpec.DriftMax < 1000);
+        foreach (var (item, weight) in DebrisSpec.Kinds)
         {
             bool opens = Loot.Of(item) != null;
             Assert.True(opens || Content.Items.Get(item).Yields != null, item);
@@ -226,7 +227,7 @@ public class ContentTests
     public void SalvageSpawnsOnTheWrecksGridItsLeadRightOfTheHull()
     {
         int right = Wreck.Rows.Max(row => row.TrimEnd().Length - 1);
-        Assert.True(right + Debris.Lead < Wreck.Rows.Max(row => row.Length));
+        Assert.True(right + DebrisSpec.Lead < Wreck.Rows.Max(row => row.Length));
     }
 
     // Builds
