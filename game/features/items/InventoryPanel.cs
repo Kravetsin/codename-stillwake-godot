@@ -19,7 +19,7 @@ namespace Stillwake.Game.Features.Items;
 /// <summary>
 /// The hotbar, always in the top-left corner; and with Tab, or E on a crate, the rest of the inventory
 /// and the crate beside it (Inventory.tsx): a crate's slots, a furnace's input over its fuel and its
-/// outputs, an analyzer's slot and how far it is. Stacks move by clicks (<see cref="Clicks.On"/>), or
+/// outputs, an analyzer's slot, how far it is and its lessons (<see cref="Lessons"/>). Stacks move by clicks (<see cref="Clicks.On"/>), or
 /// dragged from one slot to another; Tab or Esc closes both. 1–9 and the wheel over the world choose a
 /// hotbar slot, Q throws its stack.
 /// </summary>
@@ -30,6 +30,11 @@ public partial class InventoryPanel : CanvasLayer
 
     private static readonly StyleBoxFlat FireOut = Style.Box(Style.Slate700, Style.Slate700, 0, 5);
     private static readonly StyleBoxFlat FireOn = Style.Box(Style.Orange400, Style.Orange400, 0, 5);
+    private static readonly LabelSettings Trouble = Style.Text(Style.Bold, 10, Style.Red300);
+    private static readonly LabelSettings Done = Style.Text(Style.Bold, 10, Style.Green400);
+    private static readonly LabelSettings Heading = Style.Text(Style.Bold, 10, Style.Slate400);
+    /// <summary>How wide an analyzer's lessons run before they wrap: the inventory's width, less the panel's edge.</summary>
+    private const float LessonsWidth = Hotbar.Row * 40 - 14;
 
     private readonly List<SlotBox> _slots = [];
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -42,6 +47,8 @@ public partial class InventoryPanel : CanvasLayer
     private PanelContainer _tip = null!;
     private ProgressBar? _progress;
     private Label? _problem;
+    private VBoxContainer? _lessons;
+    private string? _lessonsKey;
 
     private Client? _client;
     private IItemsQueries? _items;
@@ -204,7 +211,7 @@ public partial class InventoryPanel : CanvasLayer
             _slots.RemoveAll(s => s.Place.Crate != null);
             _shown.RemoveChild(_cratePanel);
             _cratePanel.QueueFree();
-            (_cratePanel, _progress, _problem) = (null, null, null);
+            (_cratePanel, _progress, _problem, _lessons, _lessonsKey) = (null, null, null, null, null);
         }
         if (want is not var (crate, kind)) return;
         _cratePanel = kind switch
@@ -235,23 +242,65 @@ public partial class InventoryPanel : CanvasLayer
         return WithProblem(Style.Orange700, line);
     }
 
-    /// <summary>What is in its slot, and how far its analysis is.</summary>
+    /// <summary>What is in its slot and how far its analysis is; under it what that item opened, what is analysed and what is one item short.</summary>
     private Control AnalyzerPanel(int crate)
     {
         var line = Style.Gap(new HBoxContainer(), 8);
         line.AddChild(Box(new Place(0, crate)));
         line.AddChild(_progress = Style.Bar(Style.Sky400, 80));
-        return WithProblem(Style.Sky700, line);
+        return WithProblem(Style.Sky700, line, _lessons = Style.Gap(new VBoxContainer(), 4));
     }
 
-    /// <summary>A panel of <paramref name="edge"/> with <paramref name="line"/>, and under it why the machine stands still.</summary>
-    private Control WithProblem(Color edge, Control line)
+    /// <summary>A panel of <paramref name="edge"/> with <paramref name="line"/>, under it why the machine stands still, then <paramref name="below"/>.</summary>
+    private Control WithProblem(Color edge, Control line, Control? below = null)
     {
         var stack = Style.Gap(new VBoxContainer(), 4);
         stack.AddChild(line);
-        stack.AddChild(_problem = new Label { LabelSettings = Style.Text(Style.Bold, 10, Style.Red300), Visible = false });
+        stack.AddChild(_problem = new Label { LabelSettings = Trouble, Visible = false });
+        if (below != null) stack.AddChild(below);
         return Style.Panel(edge with { A = 0.7f }, stack);
     }
+
+    /// <summary>The analyzer's lessons, in rows that wrap, built again only when they change.</summary>
+    private void ShowLessons(Lessons? lessons)
+    {
+        if (_lessons == null || lessons == null || lessons.Key == _lessonsKey) return;
+        _lessonsKey = lessons.Key;
+        foreach (var old in _lessons.GetChildren()) old.QueueFree();
+        void Section(string heading, IEnumerable<Control> pictures)
+        {
+            var flow = Style.Gap(new HFlowContainer { CustomMinimumSize = new Vector2(LessonsWidth, 0) }, 4);
+            foreach (var picture in pictures) flow.AddChild(picture);
+            if (flow.GetChildCount() == 0) return;
+            _lessons.AddChild(new Label { Text = T(heading), LabelSettings = Heading });
+            _lessons.AddChild(flow);
+        }
+        Section("research.opened", lessons.Opened.Select(r => Picture(r, 32)));
+        Section("research.analysed", lessons.Analysed.Select(item => Picture(ItemIcons.Icon(item), 20, T($"item.{item}"))));
+        Section("research.oneShort", lessons.OneShort.Select(s =>
+        {
+            var pair = Style.Gap(new HBoxContainer(), 1);
+            pair.AddChild(Picture(s.Recipe, 28));
+            pair.AddChild(Picture(ItemIcons.Icon(s.Item), 16, T($"item.{s.Item}")));
+            return (Control)pair;
+        }));
+        _cratePanel?.ResetSize();
+    }
+
+    /// <summary>A blueprint as the build menu pictures it, a craft as the item it makes, named by the pointer.</summary>
+    private static Control Picture(Recipe recipe, int size) => recipe.Placement is { } p
+        ? Picture(BlueprintArt.Thumbnail(p), size, p.Material is { } m ? $"{T($"tool.{p.Kind}")}: {T($"material.{m}")}" : T($"tool.{p.Kind}"))
+        : Picture(ItemIcons.Icon(recipe.Id), size, T($"item.{recipe.Id}"));
+
+    private static Control Picture(Texture2D texture, int size, string name) => new TextureRect
+    {
+        Texture = texture,
+        CustomMinimumSize = new Vector2(size, size),
+        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+        TooltipText = name,
+    };
 
     public override void _UnhandledInput(InputEvent e)
     {
@@ -427,8 +476,10 @@ public partial class InventoryPanel : CanvasLayer
         if (reading.Kind == "analyzer")
         {
             var at = reading.Analyzer;
-            _progress.Value = at == null ? 0 : (double)at.Progress / at.Work;
+            // Done, its bar stays full.
+            _progress.Value = at == null ? 0 : at.Problem == "research.nothingNew" ? 1 : (double)at.Progress / at.Work;
             problem = at?.Problem;
+            ShowLessons(reading.Lessons);
         }
         else if (reading.Kind == "furnace")
         {
@@ -438,6 +489,7 @@ public partial class InventoryPanel : CanvasLayer
             problem = at?.Problem;
         }
         _problem.Text = problem == null ? "" : T(problem);
+        _problem.LabelSettings = problem == "research.nothingNew" ? Done : Trouble;
         _problem.Visible = problem != null;
     }
 }

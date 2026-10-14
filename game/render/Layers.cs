@@ -17,6 +17,9 @@ public static class Layers
     // The ship's structure and machines (grid), a socket on each powered machine.
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
 
+    /// <summary>An analyzer's screen, on its face beside its socket (research).</summary>
+    public const int Screens = Sockets;
+
     /// <summary>Grommets, pegs and plugs on the wall's face, then the bolts over machines short of power (power).</summary>
     public const int Fittings = 6, Bolts = 7;
 

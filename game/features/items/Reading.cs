@@ -11,10 +11,12 @@ namespace Stillwake.Game.Features.Items;
 /// The slots as this peer shows them (<c>read</c> in Inventory.tsx): the world with its own moves still
 /// in flight made, so a stack lands on the click rather than a round trip later, and the next click acts
 /// on what is seen (0014). <see cref="Crate"/> is the open crate's slots, <see cref="Kind"/> its kind;
-/// an analyzer shows what is in its slot, how far its analysis is and why it stands still.
+/// an analyzer shows what is in its slot, how far its analysis is, why it stands still and its
+/// <see cref="Items.Lessons"/>.
 /// </summary>
 public sealed record Reading(
-    IReadOnlyList<Stack?> Inventory, IReadOnlyList<Stack?>? Crate, bool Creative, string? Kind, Analyzing? Analyzer)
+    IReadOnlyList<Stack?> Inventory, IReadOnlyList<Stack?>? Crate, bool Creative, string? Kind, Analyzing? Analyzer,
+    Lessons? Lessons = null)
 {
     /// <summary>What the slot at <paramref name="place"/> shows: null when empty or not shown.</summary>
     public Stack? At(Place place)
@@ -39,6 +41,8 @@ public sealed record Reading(
             slots = shown.Crates.Where(c => c.Crate == id).Select(c => c.Slots).FirstOrDefault() ?? items.Crate(id);
             kind = grid.Machines.FirstOrDefault(m => m.Id == id)?.Kind;
         }
-        return new Reading(shown.Inventory, slots, items.Creative, kind, kind == "analyzer" ? research.At(crate!.Value) : null);
+        if (kind != "analyzer") return new Reading(shown.Inventory, slots, items.Creative, kind, null);
+        var item = slots is { Count: > 0 } ? slots[0]?.Item : null;
+        return new Reading(shown.Inventory, slots, items.Creative, kind, research.At(crate!.Value), Lessons.Of(research, item));
     }
 }

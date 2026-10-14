@@ -13,6 +13,7 @@ registry, and the furnace's `At` (`InventoryPanel.Furnace`), and changes it only
 | `Click.cs`         | the click rules (`click.ts`): `Clicks.On`, `Picked`, `SlotClick`, `Clicked`                  | no    |
 | `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`)                                                  | no    |
 | `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s and `Drop`s in flight (0014) | no    |
+| `Lessons.cs`       | an analyzer's lessons: what its item opened, what is analysed, what is one item short (0027) | no    |
 | `Reach.cs`         | `HeroSpot`; pick-ups (`pickup.ts`)                                                           | no    |
 | `SlotBox.cs`       | one slot: icon, count, chosen, picked, hovered                                               | yes   |
 | `InventoryPanel.cs`| the hotbar, the inventory, the open crate, furnace or analyzer, the stack in hand, the name tip | yes |
@@ -23,7 +24,7 @@ registry, and the furnace's `At` (`InventoryPanel.Furnace`), and changes it only
 
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
 one for one: `click.test.ts` (`ClickTests`), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
-(`PickUpTests`), and a test for the fold of own moves (`CrateTests`). Opening a crate is aimed as
+(`PickUpTests`), a test for the fold of own moves (`CrateTests`) and one for the lessons (`LessonsTests`). Opening a crate is aimed as
 everything E works is, in the crew feature (`AimTests`).
 
 ## Guarantees
@@ -42,6 +43,10 @@ everything E works is, in the crew feature (`AimTests`).
   before it opens the game menu (`Shared.Escape`, `game/menu`).
 - The crate open (`Ui.OpenCrate`) is set by the crew's E within reach and cleared out of reach; the
   panel shows it at once.
+- An analyzer's panel shows its slot, its bar (full once done, `research.nothingNew` said in green)
+  and, under them, its lessons in rows that wrap, as many as there are: the blueprints and crafts the
+  item in it opened, the items analysed so far, and each blueprint or craft one item short beside that
+  item. Built again only when they change.
 - Where the open inventory ends on the screen is set every frame (`Ui.InventoryEdge`), null while it
   is closed: the crafting feature docks its crafts there. A stack let go over any panel, another
   feature's too, is not thrown.

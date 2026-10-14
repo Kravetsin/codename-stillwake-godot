@@ -14,6 +14,7 @@ using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Features.Light;
+using Stillwake.Game.Features.Research;
 using Stillwake.Game.Menu;
 using Stillwake.Game.Net;
 using Stillwake.Game.Platform;
@@ -57,6 +58,7 @@ public partial class Main : Node2D
     private GridView? _grid;
     private LightView? _light;
     private FurnaceView? _furnace;
+    private AnalyzerScreens? _screens;
     private ShipCamera _camera = null!;
     private string[] _args = [];
     private string _role = "alone";
@@ -271,7 +273,9 @@ public partial class Main : Node2D
         _grid?.QueueFree();
         _light?.QueueFree();
         _furnace?.QueueFree();
+        _screens?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
+        AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research));
         var power = _m.Power;
         // The furnaces before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);
