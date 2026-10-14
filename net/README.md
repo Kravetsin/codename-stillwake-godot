@@ -68,6 +68,9 @@ peer stamped with the sender, and keeps nothing. The game writes the hero there 
   host may check it at once and save peer 0's world, which must not be halfway through its ticks. The
   host checks the others against peer 0's, holding a report that comes first, and keeps peer 0's
   last 30.
+- A host player alone hashes nothing (`Client.Hashing`, set by its session from `Host.Peers`):
+  there is no one to check against, and a hash costs milliseconds on a big world. Once a guest is
+  admitted it hashes again, from the ticks the guest will report.
 - A peer that differs gets `resync`: peer 0's world on the host's next tick. The client takes it in
   order with the ticks, records a `DesyncReport` (each module that differs, up to ten paths in it,
   and whether the rng drifted), and plays on from the host's world. Its older reports are not checked

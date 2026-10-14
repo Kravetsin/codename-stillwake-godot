@@ -32,6 +32,28 @@ public class HashesTests
     private static string Describe(IEnumerable<DesyncReport> reports) => string.Join(" | ", reports);
 
     [Fact]
+    public void HashNothingWhileTheHostPlayerPlaysAloneAndCheckAGuestOnceOneJoins()
+    {
+        var own = LocalSession.Create(_game.Create(1), "b");
+        var session = new Session(own.Host, own.Client);
+        for (int i = 0; i < 3 * Every; i++) session.Frame(1000.0 / Stillwake.Sim.World.TicksPerSecond);
+        Assert.Null(own.Client.LastHash);
+        var (toPeer, fromHost) = Loopback.Create<ToClient, ToHost>();
+        own.Host.Admit(toPeer);
+        Client? peer = null;
+        Client.Join(_game.Load, fromHost, "b", c => peer = c, why => throw why);
+        Drift(peer!, 1);
+        for (int i = 0; i < 3 * Every; i++)
+        {
+            session.Frame(1000.0 / Stillwake.Sim.World.TicksPerSecond);
+            peer!.Update();
+        }
+        Assert.NotNull(own.Client.LastHash);
+        // The guest drifted after it joined: the host player's hashes catch it.
+        Assert.NotEmpty(peer!.TakeDesyncs());
+    }
+
+    [Fact]
     public void LeavePeersInStepAlone()
     {
         var (own, peer) = Session();

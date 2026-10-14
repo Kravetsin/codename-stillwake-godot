@@ -50,6 +50,9 @@ public sealed class Session(Host? host, Client client)
         if (host != null)
         {
             for (int n = _clock.Advance(elapsedMs * Speed); n > 0; n--) host.Advance();
+            // Hashed only while someone else plays: a guest is checked against the host player's hashes
+            // from the ticks after it joined, which this then hashes.
+            client.Hashing = host.Peers > 1;
             reports = client.Update();
         }
         else

@@ -94,6 +94,12 @@ public sealed class Client
     /// returns their reports. Every <see cref="Protocol.HashEvery"/> ticks it tells the host its hash; a
     /// resync from the host, met in order, is taken in between and does not count.
     /// </summary>
+    /// <summary>
+    /// Whether this peer hashes its world for the host to check. A host player alone has no one to be
+    /// checked against, and a hash costs milliseconds on a big world: its session turns this off.
+    /// </summary>
+    public bool Hashing { get; set; } = true;
+
     public IReadOnlyList<TickReport> Update(int limit = int.MaxValue)
     {
         var reports = new List<TickReport>();
@@ -118,7 +124,7 @@ public sealed class Client
             var commands = tick.Commands.Select(s => World.Decode(s.Command) with { From = s.From }).ToList();
             Landed(commands);
             reports.Add(new TickReport(tick.Tick, World.Step(commands)));
-            if (World.Tick % Protocol.HashEvery == 0)
+            if (Hashing && World.Tick % Protocol.HashEvery == 0)
             {
                 LastHash = World.Hash();
                 hashes.Add(new HashMessage(World.Tick, LastHash.Value));

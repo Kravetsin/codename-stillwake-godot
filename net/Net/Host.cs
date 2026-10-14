@@ -33,6 +33,9 @@ public sealed class Host(int firstTick, IWorldSource? world = null)
     /// <summary>The next tick <see cref="Advance"/> releases.</summary>
     public int Tick { get; private set; } = firstTick;
 
+    /// <summary>How many peers are connected, the host player's own among them.</summary>
+    public int Peers => _peers.Count;
+
     /// <summary>
     /// Adds a peer, which receives every tick released from now on and every other peer's hero, and
     /// returns its id: every command and hero it sends is stamped with it. Ids count up from 0 and are
