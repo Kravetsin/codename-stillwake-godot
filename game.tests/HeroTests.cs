@@ -538,6 +538,9 @@ public class HeroTests
     internal static readonly Layout Wreck = Registry.Wreck;
     internal static readonly int Spawn = Wreck.CellsOf('S').First();
     /// <summary>The wreck with every door open, the airlock's two doorways among them.</summary>
+    /// <summary>The middle of room B's last cell of hull before space, where a tether out of it is tied.</summary>
+    internal const int TornEdge = 36 * Unit + Unit / 2;
+
     internal static Ship Opened() => ShipFrom(Wreck.Rows.Select(r => r.Replace('D', 'd')).ToArray());
 
     [Fact]
@@ -546,9 +549,9 @@ public class HeroTests
         var ship = ShipFrom(Wreck.Rows);
         var opened = Opened();
 
-        // From room A, where the hero wakes, through the doorway into room B, torn open to space: on its
-        // tether from the doorway, as far as the tether lets it.
-        Assert.Equal(45 * Unit + Unit / 2 - Spec.Tether, Settle(opened, Hero.At(opened, Spawn), Left).X);
+        // From room A, where the hero wakes, through the doorway into room B, torn open to space, afloat
+        // and untied while within the hull; on its tether from the torn edge, as far as it lets the hero.
+        Assert.Equal(TornEdge - Spec.Tether, Settle(opened, Hero.At(opened, Spawn), Left).X);
 
         // With the doorway closed, the hero stops at it, past the generator.
         Assert.Equal(46 * Unit + Half, Settle(ship, Hero.At(ship, Spawn), Left).X);
@@ -577,6 +580,20 @@ public class HeroTests
         h = Settle(opened, h, Right);
         Assert.Equal(opened.Width * Unit - Half, h.X);
         Assert.Null(h.Anchor);
+    }
+
+    [Fact]
+    public void TiesATetherLeavingAShipOpenToSpaceAllThroughNeverLettingTheHeroDriftOff()
+    {
+        // Every door broken out and room B torn: the whole wreck is space, yet still the hull.
+        var opened = ShipFrom(Layout.Parse(Wreck.Rows.Select(r => r.Replace('D', '.')).ToArray(), Wreck.Under));
+        var h = Hero.At(opened, Spawn);
+        Assert.True(opened.Space(h.BodyCell(opened.Width)));
+        h = h.Step(Right, opened);
+        Assert.Null(h.Anchor);
+        h = Settle(opened, h, Right);
+        Assert.NotNull(h.Anchor);
+        Assert.True(ReachOf(h) <= Spec.Tether);
     }
 
     [Fact]

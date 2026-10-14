@@ -113,13 +113,36 @@ public class PoseTests
     }
 
     [Fact]
-    public void LiesTurnedOntoItsBackAndTumblesFurtherTheLongerItDrifts()
+    public void CollapsesPassingOutKneesFirstThenTopplesFasterAndFasterOntoItsBack()
+    {
+        double Tilt(double ms) => LimbsOf(Pose.Lie, Standing, At(0) with { OutMs = ms }).Tilt;
+        Close(0, Tilt(0));
+        Assert.True(LimbsOf(Pose.Lie, Standing, At(0) with { OutMs = Faint.BuckleMs }).Lift < -1);
+        double quarter = Tilt(Faint.BuckleMs + Faint.FallMs / 4), half = Tilt(Faint.BuckleMs + Faint.FallMs / 2);
+        Assert.True(half < quarter && quarter < 0);
+        // Faster and faster: the second quarter of the fall turns it further than the first.
+        Assert.True(quarter - half > Tilt(Faint.BuckleMs) - quarter);
+        Close(-Math.PI / 2, Tilt(Faint.Ms), 1);
+    }
+
+    [Fact]
+    public void EndsEachFaintInAHeapOfItsOwn()
+    {
+        var one = LimbsOf(Pose.Lie, Standing, At(0) with { OutMs = Faint.Ms, Slump = 1 });
+        var other = LimbsOf(Pose.Lie, Standing, At(0) with { OutMs = Faint.Ms, Slump = 2 });
+        Assert.NotEqual(one.FrontArm, other.FrontArm);
+        Assert.Equal(one, LimbsOf(Pose.Lie, Standing, At(0) with { OutMs = Faint.Ms, Slump = 1 }));
+    }
+
+    [Fact]
+    public void LiesTurnedOntoItsBackAboardAndKeepsItsTurnPassedOutInSpace()
     {
         var lying = LimbsOf(Pose.Lie, Standing, At(0));
         Assert.Equal(-Math.PI / 2, lying.Tilt);
         Assert.True(lying.Lying);
-        double Tumble(double ms) => LimbsOf(Pose.Tumble, Standing, At(0, ms)).Tilt;
-        Assert.True(Tumble(2000) > Tumble(1000));
+        double Tumble(double ms) => LimbsOf(Pose.Tumble, Standing, At(0, ms) with { OutTilt = 1.2 }).Tilt;
+        Assert.Equal(1.2, Tumble(0));
+        Assert.Equal(1.2, Tumble(5000));
         Assert.False(LimbsOf(Pose.Tumble, Standing, At(0, 1000)).Lying);
     }
 

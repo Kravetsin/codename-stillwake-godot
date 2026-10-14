@@ -67,6 +67,11 @@ public partial class Figure : Node2D
     private double _timeMs, _head;
     /// <summary>Milliseconds of a landing still to spring back from.</summary>
     private double _landingMs;
+    /// <summary>How long since passing out, and what picks the heap it ends in, new each time.</summary>
+    private double _outMs, _outTilt;
+    private int _slump;
+    /// <summary>Passed out in space, limbs go slack slowly, as if the strength drained out of them.</summary>
+    private const double SlackMs = 450;
     /// <summary>The step the walk is on, counted from where it began; a new one puts a foot down.</summary>
     private int? _step;
     /// <summary>How fast the hero last fell, thousandths of a cell a step: how hard it lands.</summary>
@@ -165,6 +170,8 @@ public partial class Figure : Node2D
         if (_last is var (lx, ly)) _travelled += ((double)(hero.X - lx) * hero.Facing + Math.Abs(hero.Y - ly)) / Hero.Unit;
         _last = (hero.X, hero.Y);
         if (pose != _wasPose) _strideFrom = _travelled;
+        if (pose is Pose.Lie or Pose.Tumble && pose != _wasPose) (_outMs, _slump, _outTilt) = (0, Random.Shared.Next(), _shown?.Tilt ?? 0);
+        _outMs += elapsedMs;
         // Where the feet are, in pixels of the world.
         double feetX = (double)hero.X / Hero.Unit * Rig.Cell, feetY = (double)hero.Y / Hero.Unit * Rig.Cell;
         if (pose == Pose.Air) _fall = Math.Max(0, hero.Vy);
@@ -185,9 +192,9 @@ public partial class Figure : Node2D
         _landingMs = Math.Max(0, _landingMs - elapsedMs);
         _wasPose = pose;
         bool holding = holdsPlan && Poses.HoldsIn(pose);
-        var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _landingMs / Poses.Land.Ms, holding ? _head : null));
+        var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _landingMs / Poses.Land.Ms, holding ? _head : null, _outMs, _slump, _outTilt));
         var from = _shown ?? to;
-        double within = pose == Pose.Float ? FloatSettleMs : SettleMs;
+        double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(
             SettleBend(from.FrontArm, to.FrontArm, elapsedMs, within),
             SettleBend(from.BackArm, to.BackArm, elapsedMs, within),
@@ -217,7 +224,7 @@ public partial class Figure : Node2D
         }
         // Lying down, the middle sinks as the body turns, so it comes to rest on the floor.
         double c = Math.Abs(Math.Cos(shown.Tilt)), s = Math.Abs(Math.Sin(shown.Tilt));
-        _body.Position = new Vector2(0, (float)(shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2 - shown.Lift));
+        _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
         Position = new Vector2((float)feetX, (float)feetY);
         Scale = new Vector2(hero.Facing, 1);
     }
