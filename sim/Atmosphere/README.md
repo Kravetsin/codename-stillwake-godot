@@ -127,7 +127,6 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
 
 ## Tests waiting for other modules
 
-From `atmosphere.test.ts` and `air.test.ts`, ported with the test builder in place of `building` and
-a test `Breather` in place of `crew`'s breathing: the back wall built through a plan and the refund of
-one taken apart wait for `building`. `net/Tests`' desync scenario "air fills, leaks and vents" waits
-for `building` and `crew`.
+From `atmosphere.test.ts` and `air.test.ts`, ported with the test builder in place of `building`
+(heroes breathe through `Crew`): the back wall built through a plan and the refund of one taken apart
+wait for `building`.

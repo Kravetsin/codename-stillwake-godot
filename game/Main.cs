@@ -48,7 +48,6 @@ public partial class Main : Node2D
     private int _heroes, _start;
     private double _worstSyncMs;
     private Layout _layout = Registry.Wreck;
-    private int _spawn;
     private HeroView? _hero;
 
     public override void _Ready()
@@ -61,12 +60,13 @@ public partial class Main : Node2D
         AddChild(new Stars());
         AddChild(_camera = new ShipCamera());
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
-        _spawn = _layout.CellsOf('S').FirstOrDefault(-1);
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
             var script = !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(script));
+            // Its own layer, above the world: read from whatever registry the session runs now.
+            AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
             _camera.DevControls = false;
         }
         var join = _args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
@@ -114,8 +114,8 @@ public partial class Main : Node2D
         };
         link.Disconnected += enet =>
         {
-            // No farewell yet: crew.leave comes with the crew module (G-04).
-            if (ids.Remove(enet, out int id)) host.Disconnect(id);
+            // Its hero leaves with it, its suit colour freed.
+            if (ids.Remove(enet, out int id)) host.Disconnect(id, client.World.Encode(new Sim.Crew.Leave()));
             Log($"peer {id} left");
         };
         _poll = link.Poll;
@@ -216,7 +216,7 @@ public partial class Main : Node2D
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         ShowWorld();
         if (client.World.Tick != before) Sync();
-        if (_hero != null && _spawn >= 0) _hero.Frame(client, _m.Grid, _m.Rooms, _camera, _spawn, passedOut: false, delta * 1000);
+        _hero?.Frame(client, _m.Grid, _m.Rooms, _m.Atmosphere, _m.Crew, _camera, delta * 1000);
     }
 
     private void Sync()
