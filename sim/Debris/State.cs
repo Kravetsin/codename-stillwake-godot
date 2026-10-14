@@ -17,7 +17,7 @@ public sealed class Piece
     [JsonInclude] public int Y { get; internal set; }
     /// <summary>How far it drifts left a tick, in thousandths of a cell.</summary>
     [JsonInclude] public int Speed { get; internal set; }
-    /// <summary>Where it spawned: <see cref="X"/> at its first tick.</summary>
+    /// <summary>Where its way begins: <see cref="X"/> at its first tick, but for a piece a world begins with.</summary>
     [JsonInclude] public int Start { get; internal set; }
     /// <summary>It is gone once <see cref="X"/> is below this.</summary>
     [JsonInclude] public int End { get; internal set; }
@@ -37,4 +37,6 @@ public sealed class DebrisState
     [JsonInclude] internal int Clock { get; set; }
     /// <summary>The clock at which the next piece is due.</summary>
     [JsonInclude] internal int NextSpawn { get; set; } = Content.Debris.Every;
+    /// <summary>Pieces put out at once on the first tick, the map's <c>Layout.DebrisAtStart</c>.</summary>
+    [JsonInclude] internal int AtStart { get; set; }
 }

@@ -105,6 +105,28 @@ public class DebrisTests
     }
 
     [Fact]
+    public void BeginsAWorldWithItsMapsPiecesAlreadyAlongTheirWayThenSpawnsOnItsBeat()
+    {
+        var w = new Scenario(Roomy with { DebrisAtStart = 6 }).Run();
+        int start = (75 + DebrisSpec.Lead) * 1000 + 500, end = (70 - DebrisSpec.Lead) * 1000;
+        Assert.Equal([1, 2, 3, 4, 5, 6], Pieces(w).Select(p => p.Id));
+        Assert.All(Pieces(w), p => Assert.Equal((start, end), (p.Start, p.End)));
+        Assert.All(Pieces(w), p => Assert.InRange(p.X, end, start));
+        Assert.All(Pieces(w), p => Assert.InRange(p.Y / 1000, 25 - DebrisSpec.Margin, 30 + DebrisSpec.Margin));
+        // Spread along the way, not bunched at its start.
+        Assert.Contains(Pieces(w), p => p.X < start - 30_000);
+        w.Run(DebrisSpec.Every - 1);
+        Assert.Equal(start, Pieces(w).Single(p => p.Id == 7).X);
+    }
+
+    [Fact]
+    public void BeginsTheWrecksWorldWithItsPiecesOut()
+    {
+        var w = new Scenario(Registry.Wreck).Run();
+        Assert.Equal(DebrisSpec.AtStart, Pieces(w).Count);
+    }
+
+    [Fact]
     public void KeepsWhereAPieceSpawnsAndIsGoneOnTheGrid()
     {
         var piece = Pieces(Spawned())[0];

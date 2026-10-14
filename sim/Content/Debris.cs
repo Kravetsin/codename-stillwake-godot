@@ -7,13 +7,15 @@ namespace Stillwake.Content;
 /// <see cref="Lead"/> cells right of the hull, past what the farthest zoom shows, in a row of the hull's
 /// own and <see cref="Margin"/> more above and below; it drifts left at a speed of its own between
 /// <see cref="DriftMin"/> and <see cref="DriftMax"/> a tick, and is gone <see cref="Lead"/> cells left of
-/// the hull. Its kind is drawn by weight from <see cref="Kinds"/>.
+/// the hull. Its kind is drawn by weight from <see cref="Kinds"/>. The wreck's world begins with
+/// <see cref="AtStart"/> out, each already somewhere along its way, so a player waits for none.
 /// </summary>
 public static class Debris
 {
     public const int Every = 160;
     public const int Jitter = 80;
     public const int Max = 20;
+    public const int AtStart = 8;
     public const int DriftMin = 30;
     public const int DriftMax = 55;
     public const int Margin = 12;

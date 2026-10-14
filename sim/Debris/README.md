@@ -11,7 +11,7 @@ The pieces of debris drifting past the ship, and catching them
 - **State** (`DebrisState`, members internal): `Pieces` in spawn order, each a `Piece` (public, with
   internal setters) `{ Id, Item, X, Y, Speed, Start, End }`, its middle at `X`, `Y` in thousandths
   of a cell (`DebrisModule.Unit`), drifting `Speed` a tick from `Start` till below `End`; `NextId`,
-  never reused; `Clock`, ticks run; `NextSpawn`, the clock the next piece is due at. All saved;
+  never reused; `Clock`, ticks run; `NextSpawn`, the clock the next piece is due at; `AtStart`, the pieces the first tick puts out. All saved;
   nothing is derived.
 - **Files:** `Debris.cs` — the module, `Grab` and the rules below; `State.cs` — its slice and
   `Piece`; `Fuzz.cs` — its fuzz generator.
@@ -28,6 +28,10 @@ The pieces of debris drifting past the ship, and catching them
   `Debris.Kinds` in order; a speed from `Debris.DriftMin` to `DriftMax`. It starts in the middle of
   the cell `Debris.Lead` right of the hull and ends `Debris.Lead` left of it, both kept on the grid.
   The first is due on clock `Debris.Every`.
+- On the first tick a world begins with its map's `Layout.DebrisAtStart` pieces out (at most
+  `Debris.Max`), each drawn as a spawn is, then placed along its way, its `X` drawn evenly from its
+  `End` to its `Start`. The wreck sets `Debris.AtStart`, so a player waits for none; test maps set
+  none and begin empty.
 - Pieces pass through the hull and each other: nothing collides.
 - `Grab(Piece)` puts the piece into the sender's inventory as one of its salvage item, or, a
   container (`Loot`: a cargo crate, a supply pod), as what it opens into, drawn entry by entry by

@@ -56,5 +56,5 @@ public sealed class Registry
 
     /// <summary>The wreck the game starts in.</summary>
     public static Layout Wreck =>
-        Layout.Parse(Content.Wreck.Rows, Content.Wreck.Under, Content.Wreck.Cables) with { Known = Content.Research.StartKnown };
+        Layout.Parse(Content.Wreck.Rows, Content.Wreck.Under, Content.Wreck.Cables) with { Known = Content.Research.StartKnown, DebrisAtStart = Content.Debris.AtStart };
 }

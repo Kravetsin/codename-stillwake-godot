@@ -40,7 +40,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         System(Phase.Simulation, Drift);
     }
 
-    protected override DebrisState Init(Layout layout) => new();
+    protected override DebrisState Init(Layout layout) => new() { AtStart = layout.DebrisAtStart };
 
     // Queries.
 
@@ -108,6 +108,9 @@ public sealed partial class DebrisModule : Module<DebrisState>
     private void Drift()
     {
         var s = State;
+        // A world begins with pieces already on their way, as if the ship had drifted a while.
+        if (s.Clock == 0 && s.AtStart > 0 && HullOf() is { } first)
+            for (int i = 0; i < Math.Min(s.AtStart, Content.Debris.Max); i++) Spawn(first, along: true);
         s.Clock += 1;
         foreach (var piece in s.Pieces) piece.X -= piece.Speed;
         s.Pieces.RemoveAll(p => p.X < p.End);
@@ -115,7 +118,16 @@ public sealed partial class DebrisModule : Module<DebrisState>
         s.NextSpawn = s.Clock + Content.Debris.Every + (int)Random.Below(Content.Debris.Jitter + 1);
         if (s.Pieces.Count >= Content.Debris.Max) return;
         // Found again on every beat, so a ship grown taller gets a taller stream.
-        if (HullOf() is not { } hull) return;
+        if (HullOf() is { } hull) Spawn(hull, along: false);
+    }
+
+    /// <summary>
+    /// A piece drawn by the world's Rng: its row, kind and speed, then, <paramref name="along"/>, how far
+    /// along its way it already is; otherwise at its start.
+    /// </summary>
+    private void Spawn((int Left, int Right, int Top, int Bottom) hull, bool along)
+    {
+        var s = State;
         var (left, right, top, bottom) = hull;
         int width = _grid.Width, height = _grid.Height;
         int from = Math.Max(0, top - Content.Debris.Margin);
@@ -124,15 +136,16 @@ public sealed partial class DebrisModule : Module<DebrisState>
         var item = KindOf();
         int speed = Content.Debris.DriftMin + (int)Random.Below(Content.Debris.DriftMax - Content.Debris.DriftMin + 1);
         int start = Math.Min(width - 1, right + Content.Debris.Lead) * Unit + Unit / 2;
+        int end = Math.Max(0, left - Content.Debris.Lead) * Unit;
         s.Pieces.Add(new Piece
         {
             Id = s.NextId,
             Item = item,
-            X = start,
+            X = along ? end + (int)Random.Below((uint)(start - end + 1)) : start,
             Y = row * Unit + Unit / 2,
             Speed = speed,
             Start = start,
-            End = Math.Max(0, left - Content.Debris.Lead) * Unit,
+            End = end,
         });
         s.NextId += 1;
     }
