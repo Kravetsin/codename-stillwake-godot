@@ -18,9 +18,10 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// Where the figure is in its motion: <see cref="Travelled"/>, the cells moved in this pose, sets the
 /// stride so feet keep pace with the floor; <see cref="TimeMs"/> drives what moves without travel,
 /// breathing and drifting; <see cref="Landing"/> runs from 1 at touching down to 0; <see cref="Plan"/>,
-/// the head's turn, while the hands hold the plan.
+/// the head's turn, while the hands hold the plan; <see cref="OutMs"/>, how long since the hero passed out,
+/// and <see cref="Slump"/>, what picks the heap it ends in.
 /// </summary>
-public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null);
+public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null, double? OutMs = null, int Slump = 0);
 
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
@@ -235,10 +236,76 @@ public static class Poses
             case Pose.Float:
                 return Floating(hero, moment.TimeMs);
             case Pose.Lie:
-                return new Limbs(B(0.4, 0.6), B(-0.3, 0.3), B(0.35, -0.7), B(0.05, -0.2), -Math.PI / 2, 0, true);
+                // With no time given, long since: lying still.
+                return Collapse(moment.OutMs ?? 1e9, moment.Slump);
             default:
                 return new Limbs(B(1.4, 0.6), B(0.6, 0.9), B(0.5, -0.9), B(-0.2, -0.5), moment.TimeMs / 1000 * Tumble, 0, false);
         }
+    }
+
+    /// <summary>
+    /// Passing out: the knees give way for <see cref="BuckleMs"/>, the body topples onto its back for
+    /// <see cref="FallMs"/>, faster and faster, and the limbs flop and settle for <see cref="FlopMs"/>.
+    /// </summary>
+    public static class Faint
+    {
+        public const double BuckleMs = 280, FallMs = 380, FlopMs = 600, Ms = BuckleMs + FallMs + FlopMs;
+    }
+
+    /// <summary>A number from <paramref name="lo"/> to <paramref name="hi"/>, the same for a slump and a limb every time.</summary>
+    private static double Pick(int slump, int k, double lo, double hi)
+    {
+        double x = Math.Sin(slump * 12.9898 + k * 78.233) * 43758.5453;
+        return lo + (hi - lo) * (x - Math.Floor(x));
+    }
+
+    /// <summary>
+    /// A hero passing out <paramref name="ms"/> ago, as a rag doll: limp arms, knees buckling, a topple
+    /// onto its back, and a flop into a heap of its own, picked by <paramref name="slump"/>.
+    /// </summary>
+    private static Limbs Collapse(double ms, int slump)
+    {
+        var standing = new Limbs(B(0.05, 0.18), B(-0.05, 0.22), B(0.02, -0.04), B(-0.02, -0.04), 0, 0, true);
+        var buckled = new Limbs(B(0.15, 0.35), B(-0.1, 0.3), B(0.75, -1.5), B(0.55, -1.3), -0.12, -Rig.Hip * 0.4, true);
+        var heap = new Limbs(
+            B(Pick(slump, 0, -0.5, 2.4), Pick(slump, 1, 0.1, 1.3)),
+            B(Pick(slump, 2, -0.6, 1.6), Pick(slump, 3, 0.1, 1.2)),
+            B(Pick(slump, 4, -0.1, 0.9), -Pick(slump, 5, 0.05, 1.3)),
+            B(Pick(slump, 6, -0.2, 0.7), -Pick(slump, 7, 0.05, 1.0)),
+            -Math.PI / 2, 0, true);
+        if (ms < Faint.BuckleMs)
+        {
+            double u = ms / Faint.BuckleMs;
+            return Mix(standing, buckled, u * u * (3 - 2 * u));
+        }
+        ms -= Faint.BuckleMs;
+        if (ms < Faint.FallMs)
+        {
+            double v = ms / Faint.FallMs;
+            var falling = Mix(buckled, heap, v);
+            // The arms trail the falling body and swing up past it; the body only gathers speed.
+            double trail = 1.2 * Math.Sin(v * Math.PI);
+            return falling with
+            {
+                FrontArm = falling.FrontArm with { Upper = falling.FrontArm.Upper + trail },
+                BackArm = falling.BackArm with { Upper = falling.BackArm.Upper + trail * 0.8 },
+                Tilt = -0.12 + (0.12 - Math.PI / 2) * v * v,
+                Lift = -Rig.Hip * 0.4 * (1 - v),
+            };
+        }
+        ms -= Faint.FallMs;
+        // Hitting the floor, everything bounces and wobbles a little, then lies still.
+        double wobble = Math.Exp(-ms / 140) * Math.Sin(ms / 35);
+        Bend Flop(Bend b, double by) => new(b.Upper + 0.3 * by * wobble, b.Lower + 0.5 * by * wobble);
+        return heap with
+        {
+            FrontArm = Flop(heap.FrontArm, 1),
+            BackArm = Flop(heap.BackArm, -0.8),
+            FrontLeg = Flop(heap.FrontLeg, 0.7),
+            BackLeg = Flop(heap.BackLeg, -0.6),
+            Tilt = -Math.PI / 2 + 0.06 * wobble,
+            Lift = 1.5 * Math.Max(0, wobble),
+        };
     }
 
     /// <summary>The share of a running stride a foot is on the floor, pushing the body on.</summary>
