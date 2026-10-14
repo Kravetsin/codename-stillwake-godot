@@ -32,6 +32,7 @@ public partial class LightView : Node2D
     private readonly Starlight _starlight = new();
     private readonly Node2D _lamps = new();
     private readonly List<(Machine Lamp, PointLight2D Light, Sprite2D Glow)> _shown = new();
+    private readonly List<(Machine Furnace, PointLight2D Light)> _fires = new();
     private int[] _structure = [], _back = [];
     private Machine[] _machines = [];
     private bool _drawn;
@@ -42,6 +43,9 @@ public partial class LightView : Node2D
     /// until the power module is ported (G-04), which answers it from a lamp's satisfaction.
     /// </summary>
     public Func<Machine, float> LampShare { get; set; } = _ => 1f;
+
+    /// <summary>Whether a furnace's fire burns: then it lights its room in <see cref="L.Fire"/>. None burn until the furnace answers it.</summary>
+    public Func<Machine, bool> Burns { get; set; } = _ => false;
 
     public int OccluderCount => _occluders.Count;
     public int LampCount => _shown.Count;
@@ -110,6 +114,26 @@ public partial class LightView : Node2D
             _lamps.AddChild(glow);
             _shown.Add((lamp, light, glow));
         }
+        _fires.Clear();
+        var furnace = Content.Machines.Get("furnace");
+        foreach (var m in _machines.Where(m => m.Kind == "furnace"))
+        {
+            // From the middle of its bottom row, where the TypeScript game's fire gave its light.
+            var at = new Vector2(m.Cell % _grid.Width + furnace.Width / 2f, m.Cell / _grid.Width + furnace.Height - 0.5f) * Cell;
+            var light = new PointLight2D
+            {
+                Position = at,
+                Texture = FireTexture,
+                TextureScale = LampReach * 2f * Cell / FireTexture.GetWidth(),
+                RangeItemCullMask = Lit.LampMask,
+                ShadowEnabled = true,
+                ShadowFilter = Light2D.ShadowFilterEnum.Pcf5,
+                Height = 32,
+                Visible = false,
+            };
+            _lamps.AddChild(light);
+            _fires.Add((m, light));
+        }
     }
 
     public override void _Process(double delta)
@@ -123,18 +147,22 @@ public partial class LightView : Node2D
             glow.Visible = shines > 0;
             glow.Modulate = GlowColour with { A = shines };
         }
+        foreach (var (furnace, light) in _fires) light.Visible = Burns(furnace);
     }
 
-    private static ImageTexture? _lampTexture;
+    private static ImageTexture? _lampTexture, _fireTexture;
 
     /// <summary>
     /// A lamp's light as the TypeScript game spread it: <see cref="L.Lamp"/> fading by <see cref="L.Air"/>
     /// a cell, each colour clamped at whole, so it is white by the bulb and warm further off; faded to
     /// nothing over the last cells of <see cref="LampReach"/>.
     /// </summary>
-    private static ImageTexture LampTexture => _lampTexture ??= MakeLampTexture();
+    private static ImageTexture LampTexture => _lampTexture ??= MakeTexture(L.Lamp);
 
-    private static ImageTexture MakeLampTexture()
+    /// <summary>A fire's light, spread as a lamp's is, in <see cref="L.Fire"/>.</summary>
+    private static ImageTexture FireTexture => _fireTexture ??= MakeTexture(L.Fire);
+
+    private static ImageTexture MakeTexture((float R, float G, float B) colour)
     {
         // Two pixels of the world a texel: a light is sampled as unfiltered as the pixel art it falls on.
         const int size = LampReach * Cell;
@@ -145,7 +173,7 @@ public partial class LightView : Node2D
             {
                 float d = new Vector2(x + 0.5f - size / 2f, y + 0.5f - size / 2f).Length() * cellsPerTexel;
                 float f = Mathf.Pow(L.Air, d) * Mathf.Clamp((LampReach - d) / 4f, 0, 1);
-                image.SetPixel(x, y, new Color(Math.Min(1, L.Lamp.R * f), Math.Min(1, L.Lamp.G * f), Math.Min(1, L.Lamp.B * f)));
+                image.SetPixel(x, y, new Color(Math.Min(1, colour.R * f), Math.Min(1, colour.G * f), Math.Min(1, colour.B * f)));
             }
         return ImageTexture.CreateFromImage(image);
     }

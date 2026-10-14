@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Godot;
 using Stillwake.Game.Dev;
 using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Net;
@@ -23,6 +24,7 @@ namespace Stillwake.Game;
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
+/// <c>--furnace</c> a lit furnace in the wreck,
 /// <c>--measure</c> prints what frames cost and quits, <c>--for=seconds</c> quits after a while,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
@@ -39,6 +41,7 @@ public partial class Main : Node2D
     private Registry? _shown;
     private GridView? _grid;
     private LightView? _light;
+    private FurnaceView? _furnace;
     private ShipCamera _camera = null!;
     private string[] _args = [];
     private string _role = "alone";
@@ -90,7 +93,9 @@ public partial class Main : Node2D
     {
         var modules = Modules();
         var layout = Has("--perf") ? DevWorlds.Perf() : _layout;
-        var world = Has("--gallery") ? DevWorlds.Gallery(modules) : World.Create(1, layout, modules);
+        var world = Has("--gallery") ? DevWorlds.Gallery(modules)
+            : Has("--furnace") ? FurnaceDemo.Create(modules)
+            : World.Create(1, layout, modules);
         var (host, client) = LocalSession.Create(world, Build);
         _session = new Session(host, client);
         ShowWorld();
@@ -175,9 +180,16 @@ public partial class Main : Node2D
         if (_shown == _m) return;
         _grid?.QueueFree();
         _light?.QueueFree();
+        _furnace?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
         var power = _m.Power;
-        AddChild(_light = new LightView(_m.Grid) { LampShare = lamp => power.Satisfaction(lamp.Id) / 1000f });
+        var furnace = _m.Furnace;
+        AddChild(_light = new LightView(_m.Grid)
+        {
+            LampShare = lamp => power.Satisfaction(lamp.Id) / 1000f,
+            Burns = m => furnace.At(m.Id).Burning,
+        });
+        AddChild(_furnace = new FurnaceView(_m.Grid, furnace));
         if (_hero != null) MoveChild(_hero, -1);
         MoveChild(_camera, -1);
         _shown = _m;

@@ -20,6 +20,6 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
 
 ## Deliberately not handled
 
-- Pipes overlay, sockets where conduits join machines, the furnace's fire: they belong to the pipes
-  and furnace features (G-08); `fire_*.png` and `socket.png` are exported for them.
+- Pipes overlay, sockets where conduits join machines: they belong to the pipes feature (G-08);
+  `socket.png` is exported for it. The furnace's fire is the furnace feature's (`fire_*.png`).
 - A grid that changes size: the sim's grid never does.

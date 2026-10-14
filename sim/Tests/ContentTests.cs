@@ -157,11 +157,11 @@ public class ContentTests
     [Fact]
     public void FuelBreathesAFurnacesFireInWholeUnitsOnWholeBeatsItsFuelASlotItPutsThingsInto()
     {
-        Constants(typeof(Furnace));
-        Assert.True(Furnace.Breath > 0);
-        Assert.True(Furnace.BreathEvery > 0);
-        Assert.True(Furnace.FuelSlot > 0);
-        Assert.True(Furnace.FuelSlot < (Machines.Get("furnace").Inputs ?? 0));
+        Constants(typeof(Content.Furnace));
+        Assert.True(Content.Furnace.Breath > 0);
+        Assert.True(Content.Furnace.BreathEvery > 0);
+        Assert.True(Content.Furnace.FuelSlot > 0);
+        Assert.True(Content.Furnace.FuelSlot < (Machines.Get("furnace").Inputs ?? 0));
     }
 
     // Salvage

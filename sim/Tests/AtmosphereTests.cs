@@ -1,15 +1,16 @@
 using Stillwake.Sim.Atmosphere;
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
 using Xunit;
 using Air = Stillwake.Content.Air;
+using Builds = Stillwake.Content.Builds;
+using Materials = Stillwake.Content.Materials;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>
-/// packages/sim/src/modules/atmosphere/atmosphere.test.ts, ported. Building is not ported yet: where
-/// TypeScript builds through a plan and a hero's work, the test builder places and clears at once.
-/// </summary>
+/// <summary>packages/sim/src/modules/atmosphere/atmosphere.test.ts, ported.</summary>
 public class AtmosphereTests
 {
     /// <summary>
@@ -72,6 +73,12 @@ public class AtmosphereTests
         return room is >= 0 ? w.M.Atmosphere.StatusOf(room.Value) : null;
     }
 
+    /// <summary>E held on plan 1 for <paramref name="ticks"/> ticks by peer 0.</summary>
+    private static void WorkOn(Scenario w, int ticks)
+    {
+        for (int i = 0; i < ticks; i++) w.Do(new Work(1)).Run();
+    }
+
     [Fact]
     public void VentsARoomOpenBehindAndFillsItOnceThatBackWallIsBuilt()
     {
@@ -79,15 +86,17 @@ public class AtmosphereTests
         var w = s.W;
         s.PipeUp();
         Assert.Equal(RoomStatus.Venting, StatusAt(w));
-        w.Do(new Place(At(5, 2), Placement.BackWall("iron"))).Run();
+        var iron = Materials.Get("iron");
+        w.GiveItems(0, ("iron", iron.Cost));
+        w.Do(new PlacePlan(At(5, 2), Placement.BackWall("iron"))).Run();
+        WorkOn(w, 1 + iron.BuildTicks);
         Assert.Equal("iron", w.M.Grid.BackAt(At(5, 2))?.Id);
         w.Do(new LoadCanister(s.Tank)).Run();
         Assert.Equal(RoomStatus.Filling, StatusAt(w));
     }
 
-    /// <summary>The refund of the back wall taken apart is building's, and waits for it.</summary>
     [Fact]
-    public void VentsAnAiredRoomWhoseBackWallIsTakenApart()
+    public void VentsAnAiredRoomWhoseBackWallIsTakenApartAndRefundsIt()
     {
         var s = SetUp();
         var w = s.W;
@@ -95,8 +104,12 @@ public class AtmosphereTests
         w.Do(new LoadCanister(s.Tank)).Run();
         w.Run(w.M.Rooms.RoomById(s.Room)!.Volume * Air.TicksPerCell + 1);
         Assert.Equal(RoomStatus.Aired, StatusAt(w));
-        w.Do(new ClearAt(At(5, 2), "back")).Run();
+        w.Do(new Deconstruct(At(5, 2), "back")).Run();
+        var scrap = Materials.Get("scrap");
+        // Math.ceil of TypeScript, in whole ticks.
+        WorkOn(w, (scrap.BuildTicks + Builds.DeconstructSpeedup - 1) / Builds.DeconstructSpeedup);
         Assert.Equal(RoomStatus.Venting, StatusAt(w));
+        Assert.Equal([new Stack("scrap", scrap.Cost)], w.M.Items.Inventory(0).Where(st => st?.Item == "scrap"));
     }
 
     // Air machines.
