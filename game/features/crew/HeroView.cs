@@ -121,6 +121,8 @@ public partial class HeroView : Node2D
         }
         double ownLook = passedOut ? 0 : Poses.LookOf(_current, pointed);
         if (Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current) is { } report) client.Send(report);
+        bool exerting = !passedOut && Report.Exerting(_current, ship.Space(_current.BodyCell(grid.Width)));
+        if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
 
         // Others' heroes in, this one out: through the host, never through the simulation. Stamped with
         // its step's time, so others place it by when it was there, not when it came.

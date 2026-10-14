@@ -92,6 +92,36 @@ public class CrewTests
     }
 
     [Fact]
+    public void BreathesTwiceAsMuchFromTheSuitRunningAndOnceAgainOnceItStops()
+    {
+        var (w, _, _) = SetUp();
+        w.Do(EnterAt(At(4, 1))).Do(new Exert(true) { From = 0 }).Run();
+        Breaths(w, 5);
+        Assert.Equal(Content.Crew.Suit - 5 * Content.Crew.Exerted, HeroOf(w)?.Suit);
+        w.Do(new Exert(false) { From = 0 }).Run();
+        int suit = HeroOf(w)!.Suit;
+        Breaths(w, 3);
+        Assert.Equal(suit - 3, HeroOf(w)?.Suit);
+    }
+
+    [Fact]
+    public void PassesOutRunningOnALastUnitAndWakesBreathingCalmly()
+    {
+        var (w, _, _) = SetUp();
+        w.Do(EnterAt(At(4, 1))).Do(new Exert(true) { From = 0 }).Run();
+        Breaths(w, (Content.Crew.Suit + 1) / Content.Crew.Exerted);
+        var hero = HeroOf(w)!;
+        Assert.Equal((0, Content.Crew.PassOut, false), (hero.Suit, hero.Out, hero.Exerting));
+    }
+
+    [Fact]
+    public void RefusesToExertAHeroNotAboard()
+    {
+        var w = new Scenario(Room).Do(new Exert(true) { From = 3 }).Run();
+        Assert.Equal(["crew.noHero"], w.Refusals.Select(r => r.Reason));
+    }
+
+    [Fact]
     public void PassesOutWhenTheSuitRunsDryThenWakesAtTheSpawnWithAFullSuit()
     {
         var (w, _, _) = SetUp();

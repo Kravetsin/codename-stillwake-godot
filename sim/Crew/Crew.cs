@@ -17,6 +17,9 @@ public sealed record Leave : Command;
 /// <summary>The sender's hero puts on suit colour <c>Colour</c>, if no other hero wears it.</summary>
 public sealed record PickColour(int Colour) : Command;
 
+/// <summary>The sender's hero starts running or swimming fast (<c>On</c>), or stops: sent when it changes.</summary>
+public sealed record Exert(bool On) : Command;
+
 /// <summary>What any module or the client may read of the heroes.</summary>
 public interface ICrewQueries
 {
@@ -54,6 +57,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
             c => HeroOf(c.From) == null ? "crew.noHero" : null,
             c => State.Heroes.RemoveAll(h => h.Id == c.From));
         Handles<PickColour>(c => ColourProblem(c.From, c.Colour), c => HeroOf(c.From)!.Colour = c.Colour);
+        Handles<Exert>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.Exerting = c.On);
         // After atmosphere in the simulation phase, so a breath reads this tick's air.
         System(Phase.Simulation, () =>
         {
@@ -72,16 +76,17 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                     continue;
                 }
                 if (!breath) continue;
-                // One draw for the breath and the refill: what comes beyond the breath tops up the suit.
-                int want = 1 + Math.Min(Content.Crew.Refill, Content.Crew.Suit - hero.Suit);
+                // One draw for the breath and the refill: what comes beyond the breath tops up the suit,
+                // and what the air falls short of the breath the suit pays.
+                int breathes = hero.Exerting ? Content.Crew.Exerted : 1;
+                int want = breathes + Math.Min(Content.Crew.Refill, Content.Crew.Suit - hero.Suit);
                 int taken = atmosphere.Breathe(hero.Cell, want);
-                if (taken > 0)
+                hero.Suit = Math.Max(0, hero.Suit + taken - breathes);
+                if (hero.Suit == 0 && taken < breathes)
                 {
-                    hero.Suit += taken - 1;
-                    continue;
+                    hero.Out = Content.Crew.PassOut;
+                    hero.Exerting = false;
                 }
-                hero.Suit -= 1;
-                if (hero.Suit == 0) hero.Out = Content.Crew.PassOut;
             }
         });
     }

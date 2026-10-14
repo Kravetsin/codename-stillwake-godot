@@ -1,3 +1,4 @@
+using System;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crew;
@@ -23,4 +24,19 @@ public static class Report
             return null;
         return new Enter(cell);
     }
+
+    /// <summary>
+    /// Whether <paramref name="hero"/> is out of breath: running aboard, or swimming fast with the body in
+    /// space (<paramref name="inSpace"/>). Shift held standing still costs nothing.
+    /// </summary>
+    public static bool Exerting(Hero hero, bool inSpace) => inSpace
+        ? Math.Abs(hero.Vx) > Stillwake.Content.Hero.Swim || Math.Abs(hero.Vy) > Stillwake.Content.Hero.Swim
+        : !hero.Climbing && Math.Abs(hero.Vx) > Stillwake.Content.Hero.Walk;
+
+    /// <summary>
+    /// <c>Exert</c> when the sim's hero <paramref name="id"/> breathes otherwise than <paramref name="exerting"/>
+    /// says; null while they agree or the sim has no hero. Sent again each frame until the host releases it.
+    /// </summary>
+    public static Command? ExertOf(ICrewQueries crew, int id, bool exerting) =>
+        crew.HeroOf(id) is { } known && known.Exerting != exerting ? new Exert(exerting) : null;
 }
