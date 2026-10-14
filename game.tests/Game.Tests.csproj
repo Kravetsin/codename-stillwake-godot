@@ -61,5 +61,6 @@
     <Compile Include="../game/render/Particles.cs" Link="Game/Render/Particles.cs" />
     <Compile Include="../game/features/light/LightField.cs" Link="Game/Light/LightField.cs" />
     <Compile Include="../game/features/light/Flicker.cs" Link="Game/Light/Flicker.cs" />
+    <Compile Include="../game/features/furnace/Flames.cs" Link="Game/Furnace/Flames.cs" />
   </ItemGroup>
 </Project>

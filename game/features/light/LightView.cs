@@ -29,13 +29,21 @@ public partial class LightView : Node2D
     private static readonly Color GlowColour = new(0xffd9a0ff);
     private const float GlowCells = 3;
     /// <summary>
-    /// How many glowing particles light their surroundings at once, and how far, in cells: each light draws
-    /// its walls' shadows, and a furnace at work keeps a dozen embers in the air.
+    /// A burning fire's glow at the furnace's mouth, how far across it reaches, in cells, and how opaque it
+    /// is at the fire's full light: it shows the fire as the source of its light where a lamp already
+    /// lights the furnace nearly whole, and jumps with it.
     /// </summary>
-    private const int GlowLights = 48, GlowReach = 8;
+    private static readonly Color FireGlowColour = new(0xff8a3cff);
+    private const float FireGlowCells = 3, FireGlowAlpha = 0.55f;
     /// <summary>
-    /// How far a furnace's fire reaches, in cells: half a lamp's, so its warmth pools round the furnace
-    /// rather than tinting a lamp's whole room, now that lights add.
+    /// How many glowing particles light their surroundings at once, and how far, in cells: each light draws
+    /// its walls' shadows, and a furnace at work keeps a dozen embers in the air. A cell or two round each,
+    /// so an ember lights what it passes and not its room.
+    /// </summary>
+    private const int GlowLights = 48, GlowReach = 3;
+    /// <summary>
+    /// How far a furnace's fire reaches, in cells: falling off by <see cref="L.FireKeep"/> a cell, it gives
+    /// under a seventh of its light six cells off, where a lamp still gives near half of its own.
     /// </summary>
     private const int FireReach = 8;
 
@@ -46,7 +54,7 @@ public partial class LightView : Node2D
     private readonly Node2D _glowing = new();
     private readonly List<PointLight2D> _glows = new();
     private readonly List<(Machine Lamp, PointLight2D Light, Sprite2D Glow)> _shown = new();
-    private readonly List<(Machine Furnace, PointLight2D Light)> _fires = new();
+    private readonly List<(Machine Furnace, PointLight2D Light, Sprite2D Glow)> _fires = new();
     private int[] _structure = [], _back = [];
     private Machine[] _machines = [];
     private bool _drawn;
@@ -66,8 +74,11 @@ public partial class LightView : Node2D
     /// </summary>
     public Func<Machine, float> LampShare { get; set; } = _ => 1f;
 
-    /// <summary>Whether a furnace's fire burns: then it lights its room in <see cref="L.Fire"/>. None burn until the furnace answers it.</summary>
-    public Func<Machine, bool> Burns { get; set; } = _ => false;
+    /// <summary>
+    /// How brightly a furnace's fire burns, as a share of <see cref="L.Fire"/>: 0 while it is out, past 1
+    /// as a coal cracks. None burn until the furnace feature answers it.
+    /// </summary>
+    public Func<Machine, float> Fire { get; set; } = _ => 0;
 
     public int OccluderCount => _occluders.Count;
     public int LampCount => _shown.Count;
@@ -129,11 +140,7 @@ public partial class LightView : Node2D
                 Modulate = GlowColour,
                 Scale = Vector2.One * GlowCells * Cell / PixelArt.Glow.GetWidth(),
                 ZIndex = Layers.Glows,
-                Material = new CanvasItemMaterial
-                {
-                    BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
-                    LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
-                },
+                Material = GlowMaterial,
             };
             _lamps.AddChild(light);
             _lamps.AddChild(glow);
@@ -156,8 +163,18 @@ public partial class LightView : Node2D
                 Height = 32,
                 Visible = false,
             };
+            var glow = new Sprite2D
+            {
+                Texture = PixelArt.Glow,
+                Position = at,
+                Scale = Vector2.One * FireGlowCells * Cell / PixelArt.Glow.GetWidth(),
+                ZIndex = Layers.Glows,
+                Material = GlowMaterial,
+                Visible = false,
+            };
             _lamps.AddChild(light);
-            _fires.Add((m, light));
+            _lamps.AddChild(glow);
+            _fires.Add((m, light, glow));
         }
     }
 
@@ -185,12 +202,14 @@ public partial class LightView : Node2D
         steady |= key != _steadyKey.Count;
         _steadyKey.RemoveRange(key, _steadyKey.Count - key);
         int fires = 0;
-        foreach (var (furnace, light) in _fires)
+        foreach (var (furnace, light, glow) in _fires)
         {
-            light.Visible = Burns(furnace);
+            float burns = Fire(furnace);
+            light.Visible = burns > 0;
+            glow.Visible = burns > 0;
             if (!light.Visible) continue;
-            float burns = Flicker.FireOf(_timeMs, furnace.Id);
             light.Color = new Color(burns, burns, burns);
+            glow.Modulate = FireGlowColour with { A = Math.Min(1, FireGlowAlpha * burns) };
             fires++;
         }
         int glows = ShowGlows();
@@ -199,18 +218,18 @@ public partial class LightView : Node2D
         {
             _steady.Clear();
             foreach (var (_, light, _) in _shown)
-                if (light.Visible) _steady.Add(light.Position.X / Cell, light.Position.Y / Cell, L.Lamp, L.LampMost, (light.Color.R, light.Color.G, light.Color.B), LampReach);
+                if (light.Visible) _steady.Add(light.Position.X / Cell, light.Position.Y / Cell, L.Lamp, L.LampMost, (light.Color.R, light.Color.G, light.Color.B), LampReach, L.Air);
         }
         bool moving = fires + glows > 0;
         if (!steady && !moving && !_moved) return;
         _moved = moving;
         _field.CopyFrom(_steady);
-        foreach (var (_, light) in _fires)
-            if (light.Visible) _field.Add(light.Position.X / Cell, light.Position.Y / Cell, L.Fire, 1, (light.Color.R, light.Color.G, light.Color.B), FireReach);
+        foreach (var (_, light, _) in _fires)
+            if (light.Visible) _field.Add(light.Position.X / Cell, light.Position.Y / Cell, L.Fire, 1, (light.Color.R, light.Color.G, light.Color.B), FireReach, L.FireKeep);
         for (int i = 0; i < glows; i++)
         {
             var g = _glows[i];
-            _field.Add(g.Position.X / Cell, g.Position.Y / Cell, (1, 1, 1), 1, (g.Color.R, g.Color.G, g.Color.B), GlowReach);
+            _field.Add(g.Position.X / Cell, g.Position.Y / Cell, (1, 1, 1), 1, (g.Color.R, g.Color.G, g.Color.B), GlowReach, L.ParticleKeep);
         }
         ShowFieldLight();
     }
@@ -219,8 +238,8 @@ public partial class LightView : Node2D
     private void ShowField()
     {
         int w = _grid.Width + LampReach * 2, h = _grid.Height + LampReach * 2;
-        _steady = new LightField(-LampReach, -LampReach, w, h, L.Air);
-        _field = new LightField(-LampReach, -LampReach, w, h, L.Air);
+        _steady = new LightField(-LampReach, -LampReach, w, h);
+        _field = new LightField(-LampReach, -LampReach, w, h);
         _fieldBytes = new byte[w * h * 16];
         _fieldImage = Image.CreateFromData(w, h, false, Image.Format.Rgbaf, _fieldBytes);
         _fieldTexture = ImageTexture.CreateFromImage(_fieldImage);
@@ -268,6 +287,13 @@ public partial class LightView : Node2D
         return shown;
     }
 
+    /// <summary>A glow's: added over what lies under it, unlit, for it gives light.</summary>
+    private static readonly CanvasItemMaterial GlowMaterial = new()
+    {
+        BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
+        LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
+    };
+
     private static ImageTexture? _lampTexture, _fireTexture, _glowTexture;
 
     /// <summary>
@@ -275,15 +301,15 @@ public partial class LightView : Node2D
     /// a cell, each colour clamped at <see cref="L.LampMost"/>, so it is white by the bulb and warm further
     /// off; faded to nothing over the last cells of <see cref="LampReach"/>.
     /// </summary>
-    private static ImageTexture LampTexture => _lampTexture ??= MakeTexture(L.Lamp, L.LampMost, LampReach);
+    private static ImageTexture LampTexture => _lampTexture ??= MakeTexture(L.Lamp, L.LampMost, LampReach, L.Air);
 
-    /// <summary>A fire's light, spread as a lamp's is, in <see cref="L.Fire"/> out to <see cref="FireReach"/>.</summary>
-    private static ImageTexture FireTexture => _fireTexture ??= MakeTexture(L.Fire, 1, FireReach);
+    /// <summary>A fire's light in <see cref="L.Fire"/>, falling off by <see cref="L.FireKeep"/> a cell out to <see cref="FireReach"/>.</summary>
+    private static ImageTexture FireTexture => _fireTexture ??= MakeTexture(L.Fire, 1, FireReach, L.FireKeep);
 
-    /// <summary>A glowing particle's light, white to be tinted by its glow, spread as a lamp's out to <see cref="GlowReach"/>.</summary>
-    private static ImageTexture GlowTexture => _glowTexture ??= MakeTexture((1, 1, 1), 1, GlowReach);
+    /// <summary>A glowing particle's light, white to be tinted by its glow, by <see cref="L.ParticleKeep"/> a cell out to <see cref="GlowReach"/>.</summary>
+    private static ImageTexture GlowTexture => _glowTexture ??= MakeTexture((1, 1, 1), 1, GlowReach, L.ParticleKeep);
 
-    private static ImageTexture MakeTexture((float R, float G, float B) colour, float most, int reach)
+    private static ImageTexture MakeTexture((float R, float G, float B) colour, float most, int reach, float keep)
     {
         // Two pixels of the world a texel: a light is sampled as unfiltered as the pixel art it falls on.
         int size = reach * Cell;
@@ -293,7 +319,7 @@ public partial class LightView : Node2D
             for (int x = 0; x < size; x++)
             {
                 float d = new Vector2(x + 0.5f - size / 2f, y + 0.5f - size / 2f).Length() * cellsPerTexel;
-                var (r, g, b) = LightField.At(colour, most, d, reach, L.Air);
+                var (r, g, b) = LightField.At(colour, most, d, reach, keep);
                 image.SetPixel(x, y, new Color(r, g, b));
             }
         return ImageTexture.CreateFromImage(image);

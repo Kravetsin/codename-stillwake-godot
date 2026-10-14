@@ -8,7 +8,7 @@ its back walls. Drawn only: nothing of it reaches the sim. Numbers from `game/Co
 - **Ambient:** a `CanvasModulate` of `Light.Ambient`, so no corner is quite black.
 - **Lamps:** a `PointLight2D` per lamp, soft shadows (PCF5), its texture falling off as the
   TypeScript game spread a lamp's light (`Light.Lamp`, `Light.Air` a cell, each colour clamped at
-  `Light.LampMost`, white by the bulb and below whole so a fire's warmth shows over it) out to
+  `Light.LampMost`, whole as there, so it is white by the bulb and warm further off) out to
   `LampReach` cells, and an unlit additive glow. Brightness comes from `LightView.LampShare`, the
   power it gets; short of power a lamp flickers (`Flicker`, flicker.ts ported). A light's strength is
   its colour, its energy always 1: the lit shader reads the colour as what the light gives.
@@ -26,16 +26,22 @@ its back walls. Drawn only: nothing of it reaches the sim. Numbers from `game/Co
   edges and doors (pictures taking `Light.WallIn`) from wall cells, everything else — back walls,
   machines, heroes — from the open cells alone, so the back wall in a door's cell is lit by the room
   either side of the door, never by the door.
-- **Fire:** a shadowed light per furnace from the middle of its bottom row, `Light.Fire` falling off
-  as a lamp's to `FireReach` (8 cells, half a lamp's, so its warmth pools round the furnace), as the
-  TypeScript game's fire gave its bottom row's cells its light; shown while `LightView.Burns` says its
-  fire burns (`Main` asks the furnace module). It wavers with its flames (`Flicker.FireOf`): a new
-  brightness from 0.6 to whole every 110 ms, as long as the fire shows one picture, faded into. The
-  TypeScript game's fire gave a steady light; its flicker was the flames' pictures and the embers.
+- **Fire:** a shadowed light per furnace from the middle of its bottom row, as the TypeScript game's
+  fire gave its bottom row's cells its light, in `Light.Fire` as it gave it there, but falling off
+  steeply, keeping `Light.FireKeep` (0.72, what light kept crossing a machine there) a cell out to
+  `FireReach` (8 cells): bright at the furnace's mouth, under a seventh of it six cells off, so the
+  room further away is lit by its lamp. An unlit additive glow at the mouth, `FireGlowCells` across,
+  marks it as the source where a lamp already lights the furnace near whole and the light itself
+  could show no brighter. Both are as bright as `LightView.Fire` says, which `Main` answers from the
+  furnace feature's `FurnaceView.BlazeOf`: a new brightness with each picture of the flames, held
+  till the next and jumping, never faded, and now and then a coal cracking, the fire flaring past
+  whole for a picture and throwing up embers (`features/furnace/Flames.cs`). The furnace view runs
+  before this one each frame, so the light follows the picture shown.
 - **Glowing particles** (0019): a shadowed light under each spark and ember
-  (`render/Particles.cs`), `Light.Particle` of its glow's colour as it fades, out to 8 cells, at most
-  48 at once. A fifth of what each gave in the TypeScript game, where only the brightest light counted:
-  here a furnace's dozen embers add up, and together waver over its fire.
+  (`render/Particles.cs`), `Light.Particle` of its glow's colour as it fades, as in the TypeScript
+  game, keeping `Light.ParticleKeep` (0.5) a cell out to `GlowReach` (3 cells), at most 48 at once:
+  each lights the cell it is in and next to nothing past its neighbours, so rising embers make the
+  light round a furnace jump where they pass rather than adding up to a wash over its room.
 - **Lights add, each colour at most whole:** a fire's warmth over a lamp's light, embers' over both.
   Godot adds its lights one over another, so a lamp, a fire and embers together once lit a hero and
   the furnace far past their own colours; a point showing only the brightest light, as the TypeScript
@@ -46,9 +52,9 @@ its back walls. Drawn only: nothing of it reaches the sim. Numbers from `game/Co
   TypeScript game's `min(1, ambient + light)` — the lit shader scales all of it down until none does,
   keeping its hue: clamped colour by colour, a fire over a lamp washed out to yellow-grey on the
   furnace (measured 144,154,135 there) where scaled it stays orange. Each lamp then gives its share by
-  what it gives of the sum, so where none is shadowed they add up to exactly that. The lamps' cap
-  (`Light.LampMost`) and the fire's and embers' lower strengths leave a lit room the headroom for a
-  fire to warm it; a room by a lamp alone is that much dimmer than the TypeScript game's.
+  what it gives of the sum, so where none is shadowed they add up to exactly that. A lamp is as bright
+  as the TypeScript game's: capping it lower (0.6 once) to leave a fire headroom darkened every
+  lamp-lit room, and the fire's steep falloff and its glow now show where it burns instead.
 - **What it lights:** everything drawn with `Lit.Set` — the ship's cells and machines, cables, stacks on
   the floor, debris and every hero's figure, all by the one model; not fire, glows, particles, plans or
   overlays.
@@ -66,9 +72,11 @@ its back walls. Drawn only: nothing of it reaches the sim. Numbers from `game/Co
   still reaching a point is scaled down as though the shadowed one reached it too: dimmer by its share.
   Below whole each light gives exactly its own. The field is unshadowed because Godot's shadows are
   worked out only on the GPU.
-- A fire by a lamp wavers mostly in hue, not brightness: where the two pass whole, the sum is scaled
-  to whole whatever the fire gives. Its waver shows in brightness only where they stay below it.
-  Lowering the lamps further to show it would darken every lamp-lit room.
+- A fire by a lamp jumps mostly in hue, not brightness: where the two pass whole, the sum is scaled
+  to whole whatever the fire gives; its glow jumps in brightness wherever it stands. A flare or an
+  ember passing a hero's side turned from it dims that side a little (up to a fifth, measured): the
+  sum the shader scales by is worked out unshaded, so it counts light the normal map turns away.
+  Lowering the lamps to show more would darken every lamp-lit room.
 - A lamp's reach is cut at 16 cells for the frame rate (see `LightView.LampReach`).
 - Recomputing starlight near a change only: light carries some 45 cells before it rounds to nothing,
   as far as the wreck is wide, so it is redone over the whole grid, in one channel (the stars are
