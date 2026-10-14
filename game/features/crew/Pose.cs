@@ -26,12 +26,12 @@ public readonly record struct Moment(double Travelled, double TimeMs, double? La
 public static class Poses
 {
     /// <summary>
-    /// Cells walked, climbed or swum per full cycle of the limbs: two steps, two rungs, a paddle of each
-    /// hand. The climb is far quicker than hands could take rungs, so the limbs keep a pace that reads.
+    /// Cells walked or climbed per full cycle of the limbs: two steps, two rungs. The climb is far quicker
+    /// than hands could take rungs, so the limbs keep a pace that reads.
     /// </summary>
     public static class Stride
     {
-        public const double Walk = 3.6, Climb = 3.6, Float = 2.2;
+        public const double Walk = 3.6, Climb = 3.6;
     }
 
     /// <summary>
@@ -42,6 +42,8 @@ public static class Poses
     /// </summary>
     public static class Adrift
     {
+        /// <summary>A breaststroke swimming in space, timed rather than by distance, so a swim on the diagonal keeps its pace.</summary>
+        public const double StrokeMs = 1150;
         public const double TreadMs = 1500, SwayMs = 5200, PanicEveryMs = 9000, PanicMs = 1400, WhirlMs = 360;
         /// <summary>How long the flailing takes to start and to calm down.</summary>
         public const double PanicEaseMs = 250;
@@ -213,7 +215,7 @@ public static class Poses
             case Pose.Climb:
                 return Climbing(moment.Travelled / Stride.Climb);
             case Pose.Float:
-                return Floating(hero, Phase(Stride.Float), moment.TimeMs);
+                return Floating(hero, moment.TimeMs);
             case Pose.Lie:
                 return new Limbs(B(0.4, 0.6), B(-0.3, 0.3), B(0.35, -0.7), B(0.05, -0.2), -Math.PI / 2, 0, true);
             default:
@@ -241,10 +243,10 @@ public static class Poses
         // Out past the helmet, so the hands are never across the visor.
         Vec Hand(double at) => OnRung(at, -arm * 0.85, arm * 0.6, Rig.W * 0.6, Rig.W * 0.2);
         Vec Foot(double at) => OnRung(at, Rig.Hip - arm * 0.75, arm * 0.7, Rig.W * 0.25, Rig.W * 0.25);
-        // Elbows point down and back, as when pulling up.
+        // Elbows bend as arms do, forearms forward, the elbows below the hands as when pulling up.
         return new Limbs(
-            FrontArm: Rig.Reach(Hand(cycle), Rig.Arm, -1),
-            BackArm: Rig.Reach(Hand(cycle + 0.5), Rig.Arm, -1),
+            FrontArm: Rig.Reach(Hand(cycle), Rig.Arm, 1),
+            BackArm: Rig.Reach(Hand(cycle + 0.5), Rig.Arm, 1),
             FrontLeg: Rig.Reach(Foot(cycle + 0.5), Rig.Leg, -1),
             BackLeg: Rig.Reach(Foot(cycle), Rig.Leg, -1),
             // Each pull lifts the body a little.
@@ -252,21 +254,53 @@ public static class Poses
     }
 
     /// <summary>
-    /// Afloat in no gravity, as a dog swims: moving, hands paddle in turn before the chest and feet kick
-    /// twice as fast, the body leaning into a swim along the floor; still, it treads water, hands
-    /// sculling, feet pedalling, rocking slowly, until now and then it panics and windmills (<see cref="Adrift"/>).
+    /// The breaststroke, keyframed through a stroke from 0 to 1: arms reach ahead, sweep wide back to the
+    /// hips and hold there through a glide, then fold to the chest with the knees drawn up, and shoot
+    /// ahead again as the legs kick out. Arm and leg as (upper, lower) each.
     /// </summary>
-    private static Limbs Floating(Hero hero, double phase, double timeMs)
+    private static readonly (double At, double ArmUp, double ArmLow, double LegUp, double LegLow)[] Stroke =
+    [
+        (0.00, 2.7, 0.15, 0.15, -0.10),
+        (0.30, -0.25, 0.20, 0.15, -0.10),
+        (0.50, -0.25, 0.20, 0.10, -0.05),
+        (0.75, 0.70, 2.00, 1.00, -1.70),
+        (0.90, 1.80, 1.00, 0.30, -0.40),
+        (1.00, 2.7, 0.15, 0.15, -0.10),
+    ];
+
+    /// <summary>The stroke at <paramref name="t"/>, eased between its keyframes.</summary>
+    private static (Bend Arm, Bend Leg) StrokeAt(double t)
+    {
+        t -= Math.Floor(t);
+        int k = 0;
+        while (Stroke[k + 1].At < t) k++;
+        var (a, b) = (Stroke[k], Stroke[k + 1]);
+        double u = (t - a.At) / (b.At - a.At);
+        u = u * u * (3 - 2 * u);
+        double L(double x, double y) => x + (y - x) * u;
+        return (B(L(a.ArmUp, b.ArmUp), L(a.ArmLow, b.ArmLow)), B(L(a.LegUp, b.LegUp), L(a.LegLow, b.LegLow)));
+    }
+
+    /// <summary>
+    /// Afloat in no gravity, as a swimmer: moving, a breaststroke (<see cref="Stroke"/>), the body leaning
+    /// into a swim along the floor and upright otherwise, surging on each pull; still, it treads water,
+    /// hands sculling, feet pedalling, rocking slowly, until now and then it panics and windmills
+    /// (<see cref="Adrift"/>).
+    /// </summary>
+    private static Limbs Floating(Hero hero, double timeMs)
     {
         double Turn(double periodMs) => timeMs / periodMs * 2 * Math.PI;
         double drift = Math.Sin(Turn(DriftMs));
         if (hero.Vx != 0 || hero.Vy != 0)
         {
-            Bend Paddle(double lag) => B(1.35 + 0.55 * Math.Sin(phase + lag), 0.55 + 0.6 * Positive(Math.Cos(phase + lag)));
-            Bend Kick(double lag) => B(0.25 + 0.4 * Math.Sin(2 * phase + lag), -(0.2 + 0.6 * Positive(-Math.Sin(2 * phase + lag))));
-            double lean = hero.Vx != 0 ? 0.45 : hero.Vy > 0 ? 0.25 : 0.1;
-            return new Limbs(Paddle(0), Paddle(Math.PI), Kick(Math.PI), Kick(0),
-                lean + 0.05 * Math.Sin(2 * phase), 1.5 * drift + Math.Sin(2 * phase), false);
+            double stroke = timeMs / Adrift.StrokeMs;
+            var (frontArm, frontLeg) = StrokeAt(stroke);
+            var (backArm, backLeg) = StrokeAt(stroke - 0.04);
+            double s = stroke - Math.Floor(stroke);
+            double surge = s < 0.3 ? Math.Sin(s / 0.3 * Math.PI) : 0;
+            double lean = hero.Vx != 0 ? 0.45 : 0.05;
+            return new Limbs(frontArm, backArm with { Upper = backArm.Upper * 0.92 }, frontLeg, backLeg,
+                lean + (s is > 0.55 and < 0.9 ? -0.06 : 0), drift + 1.5 * surge, false);
         }
         double t = Turn(Adrift.TreadMs);
         Bend Scull(double up, double lag) => B(up + 0.3 * Math.Sin(t + lag), 0.9 + 0.3 * Math.Cos(t + lag));

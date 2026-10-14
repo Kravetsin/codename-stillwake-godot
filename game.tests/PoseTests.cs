@@ -131,13 +131,32 @@ public class PoseTests
     }
 
     [Fact]
-    public void PaddlesInSpaceOneHandUpWhileTheOtherPullsDown()
+    public void SwimsABreaststrokeInSpaceArmsReachAheadThenSweepBackToTheHips()
     {
         var swimming = Standing with { Vx = 120 };
-        var quarter = LimbsOf(Pose.Float, swimming, At(Stride.Float / 4));
-        Assert.True(quarter.FrontArm.Upper > quarter.BackArm.Upper + 0.8);
-        var threeQuarters = LimbsOf(Pose.Float, swimming, At(Stride.Float * 3 / 4));
-        Assert.True(threeQuarters.BackArm.Upper > threeQuarters.FrontArm.Upper + 0.8);
+        Assert.True(LimbsOf(Pose.Float, swimming, At(0, 0)).FrontArm.Upper > 2.5);
+        Assert.True(LimbsOf(Pose.Float, swimming, At(0, Adrift.StrokeMs * 0.4)).FrontArm.Upper < 0);
+        // Folded to the chest with the knees drawn up before reaching again.
+        var folded = LimbsOf(Pose.Float, swimming, At(0, Adrift.StrokeMs * 0.75));
+        Assert.True(folded.FrontArm.Lower > 1.5 && folded.FrontLeg.Lower < -1.5);
+    }
+
+    [Fact]
+    public void KeepsItsStrokeOnTheDiagonalTimedNotByDistance()
+    {
+        var across = LimbsOf(Pose.Float, Standing with { Vx = 120 }, At(0, 500));
+        var diagonal = LimbsOf(Pose.Float, Standing with { Vx = 120, Vy = 120 }, At(7, 500));
+        Assert.Equal(across.FrontArm, diagonal.FrontArm);
+    }
+
+    [Fact]
+    public void BendsItsElbowsForwardOnALadderAsArmsBend()
+    {
+        for (double at = 0; at < 2; at += 0.1)
+        {
+            var l = LimbsOf(Pose.Climb, Standing with { Climbing = true }, At(at));
+            Assert.True(l.FrontArm.Lower >= 0 && l.BackArm.Lower >= 0);
+        }
     }
 
     [Fact]
