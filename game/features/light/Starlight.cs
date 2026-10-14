@@ -11,9 +11,9 @@ namespace Stillwake.Game.Features.Light;
 /// Starlight as the TypeScript game worked it out (0019), cell by cell: the stars shine in every open
 /// cell with no back wall and everywhere past the grid's edge, and spread from there in sweeps along
 /// every row and column, fading by what they cross. Worked out over the whole grid only when the ship
-/// changes, a texel a cell, and handed to <see cref="Lit"/>, whose material reads it smoothed between
-/// cells wherever this light, a directional one with no shadows, falls: the sweeps have already
-/// stopped it at walls.
+/// changes, a texel a cell marked wall or open, and handed to <see cref="Lit"/>, whose material reads it
+/// smoothed between the cells of a picture's own side wherever this light, a directional one with no
+/// shadows, falls: the sweeps have already stopped it at walls.
 /// </summary>
 public partial class Starlight : DirectionalLight2D
 {
@@ -50,14 +50,16 @@ public partial class Starlight : DirectionalLight2D
                     (light[i * 3], light[i * 3 + 1], light[i * 3 + 2]) = L.Star;
             }
         Spread(light, kind, w, h);
-        var bytes = new byte[w * h * 3];
+        var bytes = new byte[w * h * 4];
         for (int i = 0; i < w * h; i++)
         {
-            // Walls are drawn taking WallIn of the light on their face, so a wall cell holds its face's light.
+            // Walls are drawn taking WallIn of the light on their face, so a wall cell holds its face's light;
+            // its alpha says it is a wall's, so the shader blends it only with walls.
             float face = kind[i] == Wall ? 1 / L.WallIn : 1;
-            for (int c = 0; c < 3; c++) bytes[i * 3 + c] = (byte)(Math.Min(1, light[i * 3 + c] * face) * 255);
+            for (int c = 0; c < 3; c++) bytes[i * 4 + c] = (byte)(Math.Min(1, light[i * 3 + c] * face) * 255);
+            bytes[i * 4 + 3] = kind[i] == Wall ? (byte)255 : (byte)0;
         }
-        var texture = ImageTexture.CreateFromImage(Image.CreateFromData(w, h, false, Image.Format.Rgb8, bytes));
+        var texture = ImageTexture.CreateFromImage(Image.CreateFromData(w, h, false, Image.Format.Rgba8, bytes));
         Lit.ShowStarlight(texture, new Rect2(-Margin * Cell, -Margin * Cell, w * Cell, h * Cell));
     }
 
