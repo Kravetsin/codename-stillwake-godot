@@ -11,3 +11,6 @@ obj/
 
 # Recordings of scripted runs
 frames*/
+
+# Exported builds
+build/

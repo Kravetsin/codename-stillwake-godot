@@ -168,6 +168,7 @@ dotnet test Stillwake.sln                  # the sim's tests
 dotnet format Stillwake.sln --verify-no-changes
 godot --path game                          # play; --headless --import once after new assets
 godot --path game --write-movie /tmp/f/shot.png --fixed-fps 20 --quit-after 100 -- --autopilot
+godot --headless --path game --export-release "Windows Desktop" ../build/windows/Stillwake.exe
 ```
 
 `godot` is `Godot_v4.7.2-stable_mono_win64_console.exe` (on this machine in

@@ -79,6 +79,9 @@ dev panel.
 
 ## G-09 — Builds and playtest
 
+- **Built:** the Windows export (`game/export_presets.cfg`, the .NET export templates of 4.7.2
+  installed on this machine): `build/windows/Stillwake.exe` with its data folder, about 180 MB.
+
 Saves as files, a Windows export, a build the team can hand to a friend; then the parity playtest
 against the TypeScript build. Steam (GodotSteam) after.
 
