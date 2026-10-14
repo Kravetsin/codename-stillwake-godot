@@ -13,10 +13,9 @@ namespace Stillwake.Game.Features.Light;
 /// every corner, lit by its lamps — Godot lights casting soft shadows from the walls, falling off as the
 /// TypeScript game's did — and by starlight through the holes in its back walls. A lit lamp glows,
 /// and short of power it flickers; a furnace's fire, sparks and embers light what is around them. Where
-/// lights meet, a point shows the brightest, each colour at most whole, as in the TypeScript game: the
-/// lit shader shares it out by the <see cref="LightField"/> this keeps. <see cref="Sync"/> follows the
-/// grid after each tick; the shadows and the starlight change only when walls, doors, back walls or
-/// machines do.
+/// lights meet they add, each colour at most whole: the lit shader shares the sum out by the
+/// <see cref="LightField"/> this keeps. <see cref="Sync"/> follows the grid after each tick; the
+/// shadows and the starlight change only when walls, doors, back walls or machines do.
 /// </summary>
 public partial class LightView : Node2D
 {
@@ -34,6 +33,11 @@ public partial class LightView : Node2D
     /// its walls' shadows, and a furnace at work keeps a dozen embers in the air.
     /// </summary>
     private const int GlowLights = 48, GlowReach = 8;
+    /// <summary>
+    /// How far a furnace's fire reaches, in cells: half a lamp's, so its warmth pools round the furnace
+    /// rather than tinting a lamp's whole room, now that lights add.
+    /// </summary>
+    private const int FireReach = 8;
 
     private readonly IGridQueries _grid;
     private readonly Occluders _occluders = new();
@@ -47,14 +51,14 @@ public partial class LightView : Node2D
     private Machine[] _machines = [];
     private bool _drawn;
     private double _timeMs;
-    // All the lamps' light together, for the lit shader to share out: the lamps and fires (steady) worked
-    // out again only when one of them changes, glowing particles added to it each frame some glow.
+    // All the lamps' light together, for the lit shader to share out: the lamps (steady) worked out again
+    // only when one of them changes, wavering fires and glowing particles added each frame some burn or glow.
     private LightField? _steady, _field;
-    private Image? _sumImage, _brightestImage;
-    private ImageTexture? _sumTexture, _brightestTexture;
+    private Image? _fieldImage;
+    private ImageTexture? _fieldTexture;
     private byte[] _fieldBytes = [];
     private readonly List<float> _steadyKey = new();
-    private bool _glowed;
+    private bool _moved;
 
     /// <summary>
     /// The share of the power each lamp gets, 0 to 1: its brightness, flickering when short. Full
@@ -145,7 +149,7 @@ public partial class LightView : Node2D
             {
                 Position = at,
                 Texture = FireTexture,
-                TextureScale = LampReach * 2f * Cell / FireTexture.GetWidth(),
+                TextureScale = FireReach * 2f * Cell / FireTexture.GetWidth(),
                 RangeItemCullMask = Lit.LampMask,
                 ShadowEnabled = true,
                 ShadowFilter = Light2D.ShadowFilterEnum.Pcf5,
@@ -178,30 +182,35 @@ public partial class LightView : Node2D
             glow.Modulate = GlowColour with { A = shines };
             Keep(shines);
         }
+        steady |= key != _steadyKey.Count;
+        _steadyKey.RemoveRange(key, _steadyKey.Count - key);
+        int fires = 0;
         foreach (var (furnace, light) in _fires)
         {
             light.Visible = Burns(furnace);
-            Keep(light.Visible ? 1 : 0);
+            if (!light.Visible) continue;
+            float burns = Flicker.FireOf(_timeMs, furnace.Id);
+            light.Color = new Color(burns, burns, burns);
+            fires++;
         }
-        steady |= key != _steadyKey.Count;
-        _steadyKey.RemoveRange(key, _steadyKey.Count - key);
         int glows = ShowGlows();
         if (_steady is null || _field is null) return;
         if (steady)
         {
             _steady.Clear();
             foreach (var (_, light, _) in _shown)
-                if (light.Visible) _steady.Add(light.Position.X / Cell, light.Position.Y / Cell, L.Lamp, (light.Color.R, light.Color.G, light.Color.B), LampReach);
-            foreach (var (_, light) in _fires)
-                if (light.Visible) _steady.Add(light.Position.X / Cell, light.Position.Y / Cell, L.Fire, (1, 1, 1), LampReach);
+                if (light.Visible) _steady.Add(light.Position.X / Cell, light.Position.Y / Cell, L.Lamp, L.LampMost, (light.Color.R, light.Color.G, light.Color.B), LampReach);
         }
-        if (!steady && glows == 0 && !_glowed) return;
-        _glowed = glows > 0;
+        bool moving = fires + glows > 0;
+        if (!steady && !moving && !_moved) return;
+        _moved = moving;
         _field.CopyFrom(_steady);
+        foreach (var (_, light) in _fires)
+            if (light.Visible) _field.Add(light.Position.X / Cell, light.Position.Y / Cell, L.Fire, 1, (light.Color.R, light.Color.G, light.Color.B), FireReach);
         for (int i = 0; i < glows; i++)
         {
             var g = _glows[i];
-            _field.Add(g.Position.X / Cell, g.Position.Y / Cell, (1, 1, 1), (g.Color.R, g.Color.G, g.Color.B), GlowReach);
+            _field.Add(g.Position.X / Cell, g.Position.Y / Cell, (1, 1, 1), 1, (g.Color.R, g.Color.G, g.Color.B), GlowReach);
         }
         ShowFieldLight();
     }
@@ -213,25 +222,17 @@ public partial class LightView : Node2D
         _steady = new LightField(-LampReach, -LampReach, w, h, L.Air);
         _field = new LightField(-LampReach, -LampReach, w, h, L.Air);
         _fieldBytes = new byte[w * h * 16];
-        _sumImage = Image.CreateFromData(w, h, false, Image.Format.Rgbaf, _fieldBytes);
-        _brightestImage = Image.CreateFromData(w, h, false, Image.Format.Rgbaf, _fieldBytes);
-        _sumTexture = ImageTexture.CreateFromImage(_sumImage);
-        _brightestTexture = ImageTexture.CreateFromImage(_brightestImage);
-        Lit.ShowLamplight(_sumTexture, _brightestTexture, new Rect2(-LampReach * Cell, -LampReach * Cell, w * Cell, h * Cell));
+        _fieldImage = Image.CreateFromData(w, h, false, Image.Format.Rgbaf, _fieldBytes);
+        _fieldTexture = ImageTexture.CreateFromImage(_fieldImage);
+        Lit.ShowLamplight(_fieldTexture, new Rect2(-LampReach * Cell, -LampReach * Cell, w * Cell, h * Cell));
     }
 
-    /// <summary>The field as it stands into its textures, as floats: light passes whole where lights meet.</summary>
+    /// <summary>The field as it stands into its texture, as floats: light passes whole where lights meet.</summary>
     private void ShowFieldLight()
     {
-        Upload(_field!.Light, _sumImage!, _sumTexture!);
-        Upload(_field.Brightest, _brightestImage!, _brightestTexture!);
-    }
-
-    private void Upload(float[] light, Image image, ImageTexture texture)
-    {
-        Buffer.BlockCopy(light, 0, _fieldBytes, 0, _fieldBytes.Length);
-        image.SetData(_field!.Width, _field.Height, false, Image.Format.Rgbaf, _fieldBytes);
-        texture.Update(image);
+        Buffer.BlockCopy(_field!.Light, 0, _fieldBytes, 0, _fieldBytes.Length);
+        _fieldImage!.SetData(_field.Width, _field.Height, false, Image.Format.Rgbaf, _fieldBytes);
+        _fieldTexture!.Update(_fieldImage);
     }
 
     /// <summary>
@@ -271,18 +272,18 @@ public partial class LightView : Node2D
 
     /// <summary>
     /// A lamp's light as the TypeScript game spread it: <see cref="L.Lamp"/> fading by <see cref="L.Air"/>
-    /// a cell, each colour clamped at whole, so it is white by the bulb and warm further off; faded to
-    /// nothing over the last cells of <see cref="LampReach"/>.
+    /// a cell, each colour clamped at <see cref="L.LampMost"/>, so it is white by the bulb and warm further
+    /// off; faded to nothing over the last cells of <see cref="LampReach"/>.
     /// </summary>
-    private static ImageTexture LampTexture => _lampTexture ??= MakeTexture(L.Lamp, LampReach);
+    private static ImageTexture LampTexture => _lampTexture ??= MakeTexture(L.Lamp, L.LampMost, LampReach);
 
-    /// <summary>A fire's light, spread as a lamp's is, in <see cref="L.Fire"/>.</summary>
-    private static ImageTexture FireTexture => _fireTexture ??= MakeTexture(L.Fire, LampReach);
+    /// <summary>A fire's light, spread as a lamp's is, in <see cref="L.Fire"/> out to <see cref="FireReach"/>.</summary>
+    private static ImageTexture FireTexture => _fireTexture ??= MakeTexture(L.Fire, 1, FireReach);
 
     /// <summary>A glowing particle's light, white to be tinted by its glow, spread as a lamp's out to <see cref="GlowReach"/>.</summary>
-    private static ImageTexture GlowTexture => _glowTexture ??= MakeTexture((1, 1, 1), GlowReach);
+    private static ImageTexture GlowTexture => _glowTexture ??= MakeTexture((1, 1, 1), 1, GlowReach);
 
-    private static ImageTexture MakeTexture((float R, float G, float B) colour, int reach)
+    private static ImageTexture MakeTexture((float R, float G, float B) colour, float most, int reach)
     {
         // Two pixels of the world a texel: a light is sampled as unfiltered as the pixel art it falls on.
         int size = reach * Cell;
@@ -292,7 +293,7 @@ public partial class LightView : Node2D
             for (int x = 0; x < size; x++)
             {
                 float d = new Vector2(x + 0.5f - size / 2f, y + 0.5f - size / 2f).Length() * cellsPerTexel;
-                var (r, g, b) = LightField.At(colour, d, reach, L.Air);
+                var (r, g, b) = LightField.At(colour, most, d, reach, L.Air);
                 image.SetPixel(x, y, new Color(r, g, b));
             }
         return ImageTexture.CreateFromImage(image);
