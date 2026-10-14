@@ -21,7 +21,7 @@ everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`.
 - **Recording:** `-- --autopilot --debris` starts in the wreck with pieces already out
   (`DebrisDemo.Seed`, put in through the save) and a cargo crate drifting to where the wreck's
   autopilot leaves the hero outside the airlock; there the pointer goes to it and E catches it,
-  planks and maybe a schematic landing in the hotbar. With `--host` the demo is hosted, so a guest
+  planks landing in the hotbar. With `--host` the demo is hosted, so a guest
   sees the catch.
 
 ## Files

@@ -1,53 +1,64 @@
 # Research
 
-Knowing blueprints (ADR 0024): which blueprints the world knows, and analyzers learning more from
-what is put in them. A blueprint not known cannot be planned. Ported from
-`packages/sim/src/modules/research`; its rules hold here unchanged.
+Knowing blueprints and crafts ([0024](../../docs/decisions/0024-blueprints-are-learned-by-analysis.md),
+[0027](../../docs/decisions/0027-what-is-analysed-opens-what-is-made-of-it.md)): what the world was
+granted, the items analyzers have analysed, and what that opens. A blueprint not known cannot be
+planned, a craft not known cannot be queued. Ported from `packages/sim/src/modules/research`; since
+0027 a blueprint opens by the rule below, not by a table or schematics.
 
 - **Depends on:** `Grid` (`IGridQueries`: which machines are analyzers), `Items` (`IItemsQueries`:
-  what their slot holds, creative mode; `IItemsOps`: `Consume`), `Power` (`IPowerQueries`: their
-  satisfaction; `IPowerOps`: `Rest`).
-- **State** (`ResearchState`, members internal): `Known` — the blueprints known, by id, sorted
-  ordinally; `Analyses` — each analyzer at work, `Analysis(Analyzer, Progress)` by machine id in id
-  order, its work in thousandths of a tick at full power. Saved; nothing is derived.
+  what their slot holds, creative mode), `Power` (`IPowerQueries`: their satisfaction; `IPowerOps`:
+  `Rest`).
+- **State** (`ResearchState`, members internal): `Granted` — the blueprints and crafts known from the
+  start, by id, sorted ordinally; `Analysed` — the items analysed, by id, sorted ordinally; `Analyses`
+  — each analyzer at work, `Analysis(Analyzer, Progress)` by machine id in id order, its work in
+  thousandths of a tick at full power. Saved; nothing is derived. What is known is not stored: it is
+  worked out from costs when asked, some 25 entries.
 - **Files:** `Research.cs` — the module, its state, records and query interface; `Blueprints.cs` —
-  what blueprints there are and their names.
+  what blueprints there are, their names and costs.
 
 ## Rules
 
 - A blueprint is named as the build menu names its card: a wall or a back wall by kind and material
   (`wallIron`, `backWallScrap`), anything else by the grid's name for it (`floor`, `furnace`)
-  (`Blueprints.Of`). Cables are no blueprint.
-- A map's `Layout.Known` is what its world knows at the start; a map without one knows every
-  blueprint. The wreck knows `Content.Research.StartKnown`, through `Registry.Wreck`.
-- Each tick, in the simulation phase, in machine id order, an analyzer whose slot holds something it
-  can teach adds its satisfaction to its progress; at `Content.Research.Ticks × 1000` the world
-  learns it:
-  - a material (`Content.Research.Unlocks`): the blueprints it unlocks but those known; it stays in
-    the slot;
-  - a schematic: the first machine of `Content.Research.Schematics` not known; it is used up
-    (`IItemsOps.Consume`).
-- An empty slot, or one holding what teaches nothing new, drops the work done; so does taking it out.
-  Such an analyzer rests (`IPowerOps.Rest`), drawing no power from the next tick, until it has work
-  again.
-- `building` refuses a plan for a blueprint not known with `building.unknown`, but in creative mode:
-  it asks `IResearchQueries.Knows`.
+  (`Blueprints.Of`). A craft is named by the item it makes (`wire`, `Content.Crafts`). Cables are no
+  blueprint and always known.
+- **The opening rule:** a blueprint or a craft is known when it is granted, or when every item of its
+  cost is analysed and it is not in `Content.Research.Locked` (the solar panel, until electronics
+  exist). In creative mode everything is known.
+- A map's `Layout.Known` is what its world is granted; a map without one is granted every blueprint
+  and craft. The wreck is granted `Content.Research.StartKnown`, through `Registry.Wreck`.
+- Each tick, in the simulation phase, in machine id order, an analyzer whose slot holds an item not
+  yet analysed adds its satisfaction to its progress; at `Content.Research.Ticks × 1000` the item is
+  analysed. It stays in the slot. Every item is analysed alike, whether it opens anything or not.
+- An empty slot, or one holding what is analysed already, drops the work done; so does taking it
+  out. Such an analyzer rests (`IPowerOps.Rest`), drawing no power from the next tick, until it has
+  work again.
+- `building` refuses a plan for a blueprint not known with `building.unknown`, and `crafting` a craft
+  not known with `crafting.unknown`, but in creative mode: they ask `IResearchQueries.Knows`.
 
 ## API
 
 - **Queries** (`IResearchQueries`): `Knows(placement)` — whether its blueprint is known, every one in
-  creative mode; `Known` — live, sorted; `Blueprints` — every blueprint with what it places
-  (`Blueprint(Id, Placement)`); `At(id)` — what analyzer `id` holds, how far, out of how much work,
-  and why it stands (`Analyzing(Item, Progress, Work, Problem)`, `Problem` `research.unpowered` or
-  `research.nothingNew`); null for an empty slot.
+  creative mode; `Knows(id)` — the same for a blueprint or a craft by its id, false for an id that is
+  neither; `Analysed` — live, sorted; `Recipes()` — every blueprint, then every craft, each a
+  `Recipe(Id, Placement, Cost, Granted, Locked, Unanalysed)` with `Known` worked out by the opening
+  rule (creative mode aside), `Placement` null for a craft and `Unanalysed` the items of its cost not
+  analysed yet, in the cost's order; `At(id)` — what analyzer `id` holds, how far, out of how much
+  work, and why it stands (`Analyzing(Item, Progress, Work, Problem)`, `Problem` `research.unpowered`
+  or `research.nothingNew`, which means done: the item is analysed); null for an empty slot.
+- What an item opened and what is one item short are the client's filters of `Recipes()`.
 - No commands, so no fuzz generator: a hero works an analyzer by moving items in and out
   (`Items.Move`).
 
 ## Invariants
 
-- `Known` only grows, holds only blueprints there are, each once, sorted.
+- `Analysed` only grows, holds only items there are, each once, sorted.
 
 ## Deliberately not handled
 
-- Two analyzers may finish the same thing on one tick; the world learns it once.
-- Taking apart what is built needs no knowledge of it: its refund is its cost.
+- Two analyzers may finish the same item on one tick; it is analysed once.
+- Taking apart what is built needs no knowledge of it: its refund is its cost. Taking apart the
+  wreck's machines refunds parts and opens blueprints early; the cost is the room's power or air.
+- Items that open nothing yet (planks, canisters, salvage) are still analysed: one rule, no
+  exceptions.

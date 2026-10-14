@@ -45,8 +45,8 @@ it, or a mark on what a layer of a cell holds, taken out by heroes' work. Both c
   - In creative mode a blueprint lacks nothing: it is worked as it is, taking nothing.
 - **Cancelling** a blueprint lets what was delivered fall on the floor at it, dropped by whoever
   cancels (`IItemsOps.DropAt`); cancelling a mark drops nothing.
-- What a thing costs and takes: its material's for a wall or a back wall, `Builds` and `Machines`
-  otherwise.
+- What a thing costs and takes: its material's for a wall or a back wall (`Materials`: scrap for
+  scrap, plates for iron), `Builds` and `Machines` otherwise.
 - Anyone may cancel or work on any plan.
 - A mark whose thing is gone (a meteor broke it) is dropped in the derivation phase of that tick,
   refunding nothing; worked on that tick, it completes with nothing to refund.

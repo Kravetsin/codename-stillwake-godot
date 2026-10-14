@@ -1,6 +1,7 @@
 # 0024 — Blueprints are learned by analysis
 
-- Status: accepted
+- Status: accepted; its unlocks, schematics and the moment shown superseded by
+  [0027](0027-what-is-analysed-opens-what-is-made-of-it.md)
 - Date: 2026-10-14
 
 ## Context

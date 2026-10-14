@@ -12,10 +12,10 @@ namespace Stillwake.Game.Features.Items;
 
 /// <summary>
 /// <c>-- --items</c>: a room with a crate, a furnace and an analyzer cabled to a solar panel, the hero
-/// carrying a few stacks, lamps lit, the analyzer at work on iron and a schematic lying on the floor; and a script
+/// carrying a few stacks, lamps lit, the analyzer at work on iron and wire lying on the floor; and a script
 /// played through Godot's own input, for recordings with <c>--write-movie</c>: the hotbar chosen by the
 /// wheel and keys, stacks picked, split and put down in the inventory, dragged along the closed hotbar,
-/// the schematic walked over and picked up, the furnace, the analyzer learning, a stack thrown with Q,
+/// the wire walked over and picked up, the furnace, the analyzer learning, a stack thrown with Q,
 /// the crate. It draws the pointer, which a movie does not.
 /// </summary>
 public partial class ItemsDemo : Control
@@ -33,11 +33,11 @@ public partial class ItemsDemo : Control
         cables: [((9, 0), (10, 3)), ((8, 0), (4, 2)), ((10, 0), (13, 2))]) with
     { Known = Spec.Research.StartKnown };
 
-    /// <summary>The schematic lying on the floor, column and row.</summary>
+    /// <summary>The wire lying on the floor, column and row.</summary>
     private static readonly (int X, int Y) Lying = (12, 4);
 
     /// <summary>
-    /// <paramref name="world"/> with peer 0 carrying a few stacks, iron in the analyzer and a schematic
+    /// <paramref name="world"/> with peer 0 carrying a few stacks, iron in the analyzer and wire
     /// lying on the floor: put into its save, as no command makes items out of nothing.
     /// </summary>
     public static World Seed(World world, Func<IReadOnlyList<Module>> modules)
@@ -61,7 +61,7 @@ public partial class ItemsDemo : Control
         items["floor"] = new JsonArray(new JsonObject
         {
             ["id"] = 1,
-            ["item"] = "schematic",
+            ["item"] = "wire",
             ["count"] = 2,
             ["cell"] = Lying.Y * width + Lying.X,
             ["x"] = Lying.X * 1000 + 500,
@@ -111,7 +111,7 @@ public partial class ItemsDemo : Control
         At(4.0, () => Button(MouseButton.Left, true));
         At(4.05, () => Go(Inv(7)));
         At(4.4, () => Button(MouseButton.Left, false));
-        // Over to the schematic on the floor, which is picked up on the way.
+        // Over to the wire on the floor, which is picked up on the way.
         At(4.6, () => Walk(Key.D, h => Column(h) >= 12));
         // The furnace: a plank into its fuel slot and a chunk into its input with shift.
         At(5.6, () => Aim(14, 4));

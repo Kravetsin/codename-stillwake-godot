@@ -13,7 +13,6 @@ using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Features.Light;
-using Stillwake.Game.Features.Research;
 using Stillwake.Game.Menu;
 using Stillwake.Game.Net;
 using Stillwake.Game.Platform;
@@ -30,7 +29,7 @@ namespace Stillwake.Game;
 /// with <c>-- --join[=address]</c>; the world it plays drawn by the client's features after every
 /// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves, loads tanks, opens
 /// crates and catches debris, the left button held works plans; the camera follows it; its items (Tab,
-/// 1–9, the wheel, Q), the plan (B), what the world has just learned, the game menu (Esc: settings, save,
+/// 1–9, the wheel, Q), the plan (B), the game menu (Esc: settings, save,
 /// load, quit) and the dev panel (`).
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
@@ -70,7 +69,6 @@ public partial class Main : Node2D
     private HeroView? _hero;
     private ItemsView? _items;
     private DebrisView _debris = null!;
-    private readonly LearnedView _learned = new();
     private Hands _hands = null!;
     private PlanDemo? _demo;
     private FrameLog? _frameLog;
@@ -105,7 +103,6 @@ public partial class Main : Node2D
             _camera.DevControls = false;
         }
         AddChild(new EffectsView());
-        AddChild(_learned);
         AddChild(_hands);
         if (Has("--plan-demo"))
         {
@@ -342,7 +339,6 @@ public partial class Main : Node2D
         _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
-        _learned.Frame(_m.Research, delta * 1000);
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, session.Progress, delta * 1000);
         _frameLog?.Mark("debris");

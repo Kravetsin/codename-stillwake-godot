@@ -41,7 +41,7 @@ public class PowerTests
     private static int At(int x, int y) => y * 16 + x;
     private static readonly int Panel = At(0, 0), Generator = At(1, 3), Second = At(4, 3);
     private static readonly Pairs ToFirst = [((0, 0), (1, 3))];
-    private static readonly int CableScrap = Content.Power.CableCost.Single(c => c.Item == "scrap").Count;
+    private static readonly int CableWire = Content.Power.CableCost.Single(c => c.Item == "wire").Count;
 
     private static Layout Map(Pairs? cables = null, string[]? rows = null) =>
         Layout.Parse(rows ?? Rows, Under, cables ?? ToFirst);
@@ -49,8 +49,8 @@ public class PowerTests
     private static Scenario World(Pairs? cables = null, string[]? rows = null) => new(Map(cables, rows));
 
     private static int IdAt(Scenario w, int cell) => w.M.Grid.MachineAt(cell)?.Id ?? 0;
-    private static int Scrap(Scenario w, int peer = 0) =>
-        w.M.Items.Inventory(peer).Sum(s => s?.Item == "scrap" ? s.Count : 0);
+    private static int Wire(Scenario w, int peer = 0) =>
+        w.M.Items.Inventory(peer).Sum(s => s?.Item == "wire" ? s.Count : 0);
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
     private static (int, int, bool)[] CablesOf(Scenario w) => w.M.Power.Cables.Select(c => (c.A, c.B, c.Paid)).ToArray();
     private static (int, int[], int, int, int) Summary(PowerNetwork n) => (n.Id, n.Nodes.ToArray(), n.Supply, n.Demand, n.Satisfaction);
@@ -74,18 +74,18 @@ public class PowerTests
     [Fact]
     public void LaysACableFromAnyCellOfAMachineToAnAnchorOnAWallPaidByTheSender()
     {
-        var w = World().GiveItems(0, ("scrap", 10));
+        var w = World().GiveItems(0, ("wire", 10));
         Lay(w, At(2, 4), At(0, 3)).Run();
         Assert.Empty(w.Refusals);
         Assert.Contains((At(0, 3), Generator, true), CablesOf(w));
-        Assert.Equal(10 - CableScrap, Scrap(w));
+        Assert.Equal(10 - CableWire, Wire(w));
         Assert.Equal(new[] { Panel, At(0, 3), Generator }, w.M.Power.Networks[0].Nodes);
     }
 
     [Fact]
     public void RefusesACableToNoNodeToTheSameNodePastASpanTwiceOrUnpaid()
     {
-        var w = World().GiveItems(0, ("scrap", 10));
+        var w = World().GiveItems(0, ("wire", 10));
         Lay(w, Generator, At(8, 1)).Run(); // open space, nothing to mount on
         Lay(w, Generator, At(3, 4)).Run(); // a vent draws no power
         Lay(w, At(1, 3), At(2, 4)).Run();
@@ -106,7 +106,7 @@ public class PowerTests
         w.Do(new Cut(Generator, Panel)).Run();
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Power.Cables);
-        Assert.Equal(CableScrap, Scrap(w));
+        Assert.Equal(CableWire, Wire(w));
         Assert.Equal(0, w.M.Power.Satisfaction(IdAt(w, Generator)));
         w.Do(new Cut(Generator, Panel)).Run();
         Assert.Equal(new[] { "power.noCable" }, Reasons(w));
@@ -115,14 +115,14 @@ public class PowerTests
     [Fact]
     public void RefusesACutWhoseRefundDoesNotFitAndGivesNothingBackForOneLaidForFree()
     {
-        var w = World().GiveItems(1, ("scrap", Content.Inventory.Slots * Content.Items.Get("scrap").Stack));
+        var w = World().GiveItems(1, ("wire", Content.Inventory.Slots * Content.Items.Get("wire").Stack));
         w.Do(new Cut(Panel, Generator) { From = 1 }).Run();
         Assert.Equal(new[] { "items.full" }, Reasons(w));
         w.Do(new Items.SetCreative(true)).Run();
         Lay(w, Generator, At(0, 3), peer: 2).Run();
         Assert.Contains((At(0, 3), Generator, false), CablesOf(w));
         w.Do(new Cut(Generator, At(0, 3)) { From = 2 }).Run();
-        Assert.Equal(0, Scrap(w, 2));
+        Assert.Equal(0, Wire(w, 2));
     }
 
     [Fact]
@@ -204,7 +204,7 @@ public class PowerTests
         var steps = from n in Gen.Choose(0, 40) from s in step.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
         {
-            var w = World().GiveItems(0, ("scrap", 40));
+            var w = World().GiveItems(0, ("wire", 40));
             foreach (var s in all)
             {
                 w.Do(s.Lay ? new Lay(s.A, s.B) { From = s.Peer } : new Cut(s.A, s.B) { From = s.Peer });

@@ -71,7 +71,8 @@ public class WreckTests
         var m = new Registry();
         World.Create(1, Wreck, m.All);
         Assert.Equal(["solarPanel", "lamp", "analyzer", "generator", "vent"], m.Grid.Machines.Select(x => x.Kind));
-        Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Known);
+        Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
+        Assert.Empty(m.Research.Analysed);
         var doors = Wreck.CellsOf('D').Select(m.Grid.StructureAt).ToList();
         Assert.Equal(Enumerable.Repeat(Structure.DoorClosed, 9), doors);
         var cells = m.Grid.Machines.Select(x => x.Cell).ToArray();
@@ -83,12 +84,10 @@ public class WreckTests
         Assert.Contains(m.Crew.Spawn, A);
     }
 
-    [Fact]
-    public void BuildsAFurnaceInAOfCaughtSalvageBurnsAPlankInItAndSmeltsScrap()
+    /// <summary>A furnace built in A by peer 0 of the salvage it costs, given with <paramref name="more"/>; its machine id.</summary>
+    private static int BuildFurnace(Scenario w, params (string Item, int Count)[] more)
     {
-        var w = AiredWreck();
-        var cost = Machines.Get("furnace").Cost.ToDictionary(c => c.Item, c => c.Count);
-        w.GiveItems(0, ("scrapChunk", cost["scrapChunk"] + 1), ("hullPlate", cost["hullPlate"]), ("planks", 1));
+        w.GiveItems(0, [.. Machines.Get("furnace").Cost, .. more]);
         w.Do(new PlacePlan(At(49, 21), new Placement("machine", "furnace"))).Run();
         int plan = w.M.Building.Plans.FirstOrDefault()?.Id ?? 0;
         Machine? Built() => w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "furnace");
@@ -96,9 +95,18 @@ public class WreckTests
         for (int i = 0; i < 2 * Machines.Get("furnace").BuildTicks && Built() == null; i++) w.Do(new Work(plan)).Run();
         int id = Built()?.Id ?? 0;
         Assert.True(id > 0);
-        int SlotOf(string item) => w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == item);
-        w.Do(new Move(new Slot(SlotOf("planks")), new Target(FurnaceSpec.FuelSlot, id), 1)).Run();
-        w.Do(new Move(new Slot(SlotOf("scrapChunk")), new Target(Crate: id), 1)).Run();
+        return id;
+    }
+
+    private static int SlotOf(Scenario w, string item) => w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == item);
+
+    [Fact]
+    public void BuildsAFurnaceInAOfCaughtSalvageBurnsAPlankInItAndSmeltsScrap()
+    {
+        var w = AiredWreck();
+        int id = BuildFurnace(w, ("scrapChunk", 1), ("planks", 1));
+        w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(FurnaceSpec.FuelSlot, id), 1)).Run();
+        w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: id), 1)).Run();
         // Lit in A's air on the tick of the move, which was the first of its smelting.
         var chunk = ItemSpecs.Get("scrapChunk");
         w.Run(chunk.SmeltTicks!.Value - 1);
@@ -193,7 +201,7 @@ public class WreckTests
         Assert.NotEqual(RoomsModule.Space, room);
         Assert.Empty(w.M.Rooms.All.First(r => r.Id == room).Openings);
         // A cable from the panel reaches it through the roof.
-        w.GiveItems(0, ("scrap", 2 + 1));
+        w.GiveItems(0, ("wire", 1), ("scrap", 1));
         w.Do(new Lay(Panel, Analyzer)).Run();
         Assert.Empty(w.Refusals);
         int id = w.M.Grid.MachineAt(Analyzer)?.Id ?? 0;
@@ -201,7 +209,7 @@ public class WreckTests
         w.Do(new Move(new Slot(slot), new Target(Crate: id), 1)).Run();
         Assert.True(w.M.Power.Satisfaction(id) > 0);
         w.Run(2 * ResearchSpec.Ticks);
-        foreach (var blueprint in ResearchSpec.Unlocks.Single(u => u.Item == "scrap").Blueprints)
-            Assert.Contains(blueprint, w.M.Research.Known);
+        Assert.Equal(["scrap"], w.M.Research.Analysed);
+        foreach (var made in new[] { "floor", "ladder", "pipe" }) Assert.True(w.M.Research.Knows(made), made);
     }
 }

@@ -14,14 +14,14 @@ mode, the world setting in which nothing is ever taken
   `Ticks`, the module's own clock. All saved, as sorted lists; nothing is derived.
 - **Files:** `Stacks.cs` — the rules below, on slots; `Floor.cs` — stacks on the floor; `Items.cs` —
   the module, its commands and interfaces; `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
-- **Start:** every inventory and every machine empty: what a hero has, it caught and smelted.
+- **Start:** every inventory and every machine empty: what a hero has, it caught, smelted and crafted.
 
 ## Rules
 
 - An inventory is `Inventory.Slots` slots, a machine holding items its `Slots` in `Machines`, each a
   `Stack` (`Item`, `Count` from 1 to the item's `Stack` limit in `Items`) or null. Items are known by
-  their id; every material is one, and the salvage items, with `Yields`, are what caught debris
-  becomes. The inventory's first row is the hotbar.
+  their id; every material is one, the salvage items, with `Yields`, are what caught debris
+  becomes, and the parts (wire, plate, gear, rotor) are crafted by `Crafting`. The inventory's first row is the hotbar.
 - **Giving** puts each item onto the stacks of that item in slot order, up to their limit, then into
   the empty slots in slot order. It gives all of a cost or none of it.
 - **Taking** takes each item from the last slots first, so the hotbar is the last to empty. It takes
