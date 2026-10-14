@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Godot;
 using Stillwake.Game.Dev;
 using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Features.Debris;
 using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Items;
@@ -22,13 +23,13 @@ namespace Stillwake.Game;
 /// <summary>
 /// The game: a session (net/README.md) of its own, or with <c>-- --host</c> one others join over ENet
 /// with <c>-- --join[=address]</c>; the world it plays drawn by the client's features after every
-/// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves and opens crates; the camera
+/// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves, opens crates and catches debris; the camera
 /// follows it; its items (Tab, 1–9, the wheel, Q) and what the world has just learned.
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--items</c> a room with a crate, a furnace and an
-/// analyzer and a script working them,
+/// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--measure</c> prints what frames cost and quits, <c>--for=seconds</c> quits after a while,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
@@ -57,6 +58,7 @@ public partial class Main : Node2D
     private Layout _layout = Registry.Wreck;
     private HeroView? _hero;
     private ItemsView? _items;
+    private readonly DebrisView _debris = new();
     private readonly LearnedView _learned = new();
 
     public override void _Ready()
@@ -67,6 +69,8 @@ public partial class Main : Node2D
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
 
         AddChild(new Stars());
+        AddChild(_debris);
+        if (Has("--debris")) AddChild(new DebrisDemo(_debris));
         AddChild(_camera = new ShipCamera());
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items")) _layout = ItemsDemo.Map;
@@ -106,6 +110,7 @@ public partial class Main : Node2D
             : Has("--furnace") ? FurnaceDemo.Create(modules)
             : World.Create(1, layout, modules);
         if (Has("--items")) world = ItemsDemo.Seed(world, Modules);
+        if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
         var (host, client) = LocalSession.Create(world, Build);
         _session = new Session(host, client);
         ShowWorld();
@@ -115,7 +120,10 @@ public partial class Main : Node2D
     private void Host()
     {
         _role = "host";
-        var (host, client) = LocalSession.Create(World.Create(1, _layout, Modules()), Build);
+        var world = World.Create(1, _layout, Modules());
+        // The debris demo is played hosting too, so a guest sees a catch.
+        if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
+        var (host, client) = LocalSession.Create(world, Build);
         _session = new Session(host, client);
         ShowWorld();
         AimCamera(_layout);
@@ -243,6 +251,7 @@ public partial class Main : Node2D
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
         _learned.Frame(_m.Research, delta * 1000);
+        _debris.Frame(client, _m.Rooms, _m.Debris, _m.Grid.Width, SpotOf(_hero) is { } spot ? (spot.Cell, spot.Reaches) : null, HandsBusy, session.Progress, delta * 1000);
     }
 
     /// <summary>Where the hero stands for its items: what a drop is thrown from, what it picks up and reaches.</summary>
@@ -253,6 +262,10 @@ public partial class Main : Node2D
         int width = _m.Grid.Width;
         return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(width), cell => Aiming.Reaches(hero, cell, width));
     }
+
+    /// <summary>Whether E works something under the pointer at <paramref name="point"/> before debris: a door, a valve, a crate.</summary>
+    private bool HandsBusy((double X, double Y) point) =>
+        _hero is { } view && Aiming.AimAt(_m.Grid, view.Current, point) is { } aim && (aim.Press != null || Reach.CrateAt(_m.Grid, aim.Cell) != null);
 
     private void Sync()
     {
