@@ -1,9 +1,7 @@
 using Godot;
-using Stillwake.Content;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
-using SimLayout = Stillwake.Sim.Layout;
 
 namespace Stillwake.Game;
 
@@ -16,14 +14,12 @@ public partial class Main : Node2D
     private const int CellPx = 20;
     private static readonly Rect2I View = new(28, 15, 32, 10);
     private World _world = null!;
-    private GridModule _grid = null!;
-    private RoomsModule _rooms = null!;
+    private Registry _m = null!;
 
     public override void _Ready()
     {
-        _grid = new GridModule();
-        _rooms = new RoomsModule(_grid);
-        _world = World.Create(1, SimLayout.Parse(Wreck.Rows, Wreck.Under), [_grid, _rooms]);
+        _m = new Registry();
+        _world = World.Create(1, Registry.Wreck, _m.All);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -37,9 +33,9 @@ public partial class Main : Node2D
         for (int y = View.Position.Y; y < View.End.Y; y++)
             for (int x = View.Position.X; x < View.End.X; x++)
             {
-                int cell = y * _grid.Width + x;
-                var room = _rooms.RoomAt(cell);
-                Color c = _grid.StructureAt(cell) switch
+                int cell = y * _m.Grid.Width + x;
+                var room = _m.Rooms.RoomAt(cell);
+                Color c = _m.Grid.StructureAt(cell) switch
                 {
                     Structure.Wall => new Color(0.45f, 0.47f, 0.52f),
                     Structure.DoorClosed => new Color(0.8f, 0.48f, 0.23f),

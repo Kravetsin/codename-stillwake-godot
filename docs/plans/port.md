@@ -17,7 +17,7 @@ Order: every task leaves `dotnet build` and `dotnet test` green and the game run
 The repo, the solution, CI (format, build, tests), the analyzers, the sim core (modules, phases, commands, saves, hashes, the
 Rng, layouts), `grid` and `rooms` with their tests, the wreck as content, a Godot project drawing it.
 
-## G-02 — The generic suites
+## G-02 — The generic suites ✅
 
 - Save, load and play on for every registered module; the desync fuzz: two worlds fed the same
   random commands from each module's fuzz generator, hashes compared every tick. A module with

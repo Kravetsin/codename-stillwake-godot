@@ -31,7 +31,7 @@ public class CoreTests
         var refused = Assert.Single(w.Refusals);
         Assert.Equal("grid.noDoor", refused.Reason);
         Assert.NotEqual(before, w.World.Hash()); // the tick moved on
-        Assert.Equal(Structure.Empty, w.Grid.StructureAt(w.At(2, 2)));
+        Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(w.At(2, 2)));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class CoreTests
         a.Do(new Place(a.At(2, 3), Placement.Wall())).Run(5);
         b.Do(new Place(b.At(2, 3), Placement.Wall())).Run(5);
         Assert.Equal(a.World.Hash(), b.World.Hash());
-        Assert.Equal(a.Rooms.All.Count, b.Rooms.All.Count);
+        Assert.Equal(a.M.Rooms.All.Count, b.M.Rooms.All.Count);
         // A machine's footprint is derived: rebuilt after the load, so a wall still cannot go there.
         b.Do(new Place(b.At(6, 3), Placement.Wall())).Run();
         Assert.Equal("grid.machineInTheWay", Assert.Single(b.Refusals).Reason);

@@ -11,7 +11,7 @@ namespace Stillwake.Sim.Tests;
 /// <summary>packages/sim/src/modules/rooms/rooms.test.ts, ported.</summary>
 public class RoomsTests
 {
-    private static (int, int)[] Summary(Scenario w) => w.Rooms.All.Select(r => (r.Id, r.Volume)).ToArray();
+    private static (int, int)[] Summary(Scenario w) => w.M.Rooms.All.Select(r => (r.Id, r.Volume)).ToArray();
 
     [Fact]
     public void FindsASealedRoomWithTheHullItLeaksThroughAndNoOpenings()
@@ -23,15 +23,15 @@ public class RoomsTests
             .#####.
             .......
             """);
-        var room = Assert.Single(w.Rooms.All);
+        var room = Assert.Single(w.M.Rooms.All);
         Assert.Equal(w.At(2, 2), room.Id);
         Assert.Equal(3, room.Volume);
         Assert.Equal(new[] { w.At(2, 1), w.At(3, 1), w.At(4, 1), w.At(1, 2), w.At(5, 2), w.At(2, 3), w.At(3, 3), w.At(4, 3) }, room.Hull);
         Assert.Empty(room.Openings);
-        Assert.Equal(w.At(2, 2), w.Rooms.RoomAt(w.At(3, 2)));
-        Assert.Equal(RoomsModule.Space, w.Rooms.RoomAt(w.At(0, 0)));
-        Assert.Null(w.Rooms.RoomAt(w.At(1, 1)));
-        Assert.Null(w.Rooms.RoomAt(-1));
+        Assert.Equal(w.At(2, 2), w.M.Rooms.RoomAt(w.At(3, 2)));
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(0, 0)));
+        Assert.Null(w.M.Rooms.RoomAt(w.At(1, 1)));
+        Assert.Null(w.M.Rooms.RoomAt(-1));
     }
 
     [Fact]
@@ -61,10 +61,10 @@ public class RoomsTests
             .#####.
             .......
             """);
-        var room = Assert.Single(w.Rooms.All);
+        var room = Assert.Single(w.M.Rooms.All);
         Assert.Equal(4, room.Volume);
         Assert.Equal(new[] { w.At(5, 2) }, room.Openings);
-        Assert.Equal(RoomsModule.Space, w.Rooms.RoomAt(w.At(6, 2)));
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(6, 2)));
     }
 
     [Fact]
@@ -78,8 +78,8 @@ public class RoomsTests
             .#####.
             .......
             """);
-        Assert.Empty(w.Rooms.All);
-        Assert.Equal(RoomsModule.Space, w.Rooms.RoomAt(w.At(3, 2)));
+        Assert.Empty(w.M.Rooms.All);
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(3, 2)));
     }
 
     [Fact]
@@ -106,12 +106,12 @@ public class RoomsTests
             #.....#
             #######
             """);
-        Assert.Equal(w.At(1, 1), w.Rooms.RoomAt(w.At(3, 1)));
-        Assert.Equal(new[] { w.At(3, 1) }, w.Rooms.RoomById(w.At(1, 1))!.Openings);
+        Assert.Equal(w.At(1, 1), w.M.Rooms.RoomAt(w.At(3, 1)));
+        Assert.Equal(new[] { w.At(3, 1) }, w.M.Rooms.RoomById(w.At(1, 1))!.Openings);
         w.Do(new Place(w.At(3, 1), Placement.BackWall())).Run();
-        Assert.Empty(w.Rooms.RoomById(w.At(1, 1))!.Openings);
+        Assert.Empty(w.M.Rooms.RoomById(w.At(1, 1))!.Openings);
         w.Do(new ClearAt(w.At(5, 2), "back")).Run();
-        Assert.Equal(new[] { w.At(5, 2) }, w.Rooms.RoomById(w.At(1, 1))!.Openings);
+        Assert.Equal(new[] { w.At(5, 2) }, w.M.Rooms.RoomById(w.At(1, 1))!.Openings);
     }
 
     [Fact]
@@ -119,9 +119,9 @@ public class RoomsTests
     {
         var w = new Scenario(Layout.Parse(Wreck.Rows, Wreck.Under));
         // As packages/sim/src/modules/wreck.test.ts expects: A and the airlock; torn B is space.
-        Assert.Equal(new[] { w.At(46, 19), w.At(55, 20) }, w.Rooms.All.Select(r => r.Id));
-        Assert.Equal(RoomsModule.Space, w.Rooms.RoomAt(w.At(41, 21)));
-        Assert.Equal(new[] { "solarPanel", "lamp", "analyzer", "generator", "vent" }, w.Grid.Machines.Select(m => m.Kind));
+        Assert.Equal(new[] { w.At(46, 19), w.At(55, 20) }, w.M.Rooms.All.Select(r => r.Id));
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(41, 21)));
+        Assert.Equal(new[] { "solarPanel", "lamp", "analyzer", "generator", "vent" }, w.M.Grid.Machines.Select(m => m.Kind));
     }
 
     private static readonly char[] Chars = [' ', '.', '#', '#', '#', '=', 'H', 'D', 'd'];
@@ -146,35 +146,35 @@ public class RoomsTests
             var w = new Scenario(Layout.Parse(rows));
             int size = t.width * t.height;
             foreach (int cell in t.toggles)
-                if (w.Grid.StructureAt(cell) is Structure.DoorClosed or Structure.DoorOpen)
+                if (w.M.Grid.StructureAt(cell) is Structure.DoorClosed or Structure.DoorOpen)
                     w.Do(new ToggleDoor(cell)).Run();
             foreach (int cell in t.backs)
-                w.Do(w.Grid.BackLayer[cell] == Back.Wall ? new ClearAt(cell, "back") : new Place(cell, Placement.BackWall())).Run();
+                w.Do(w.M.Grid.BackLayer[cell] == Back.Wall ? new ClearAt(cell, "back") : new Place(cell, Placement.BackWall())).Run();
 
-            bool Solid(int c) => w.Grid.StructureAt(c) is Structure.Wall or Structure.DoorClosed;
+            bool Solid(int c) => w.M.Grid.StructureAt(c) is Structure.Wall or Structure.DoorClosed;
             var counts = new SortedDictionary<int, int>();
             for (int cell = 0; cell < size; cell++)
             {
-                var at = w.Rooms.RoomAt(cell);
+                var at = w.M.Rooms.RoomAt(cell);
                 if ((at == null) != Solid(cell)) return false;
                 if (at is not >= 0) continue;
                 if (!counts.ContainsKey(at.Value) && cell != at) return false;
                 counts[at.Value] = counts.GetValueOrDefault(at.Value) + 1;
-                var room = w.Rooms.RoomById(at.Value)!;
-                if (w.Grid.BackLayer[cell] != Back.Wall && !room.Openings.Contains(cell)) return false;
+                var room = w.M.Rooms.RoomById(at.Value)!;
+                if (w.M.Grid.BackLayer[cell] != Back.Wall && !room.Openings.Contains(cell)) return false;
                 int x = cell % t.width;
                 foreach (int n in new[] { x > 0 ? cell - 1 : -1, x < t.width - 1 ? cell + 1 : -1, cell - t.width, cell + t.width })
                 {
                     if (n < 0 || n >= size || Solid(n)) continue;
-                    var there = w.Rooms.RoomAt(n);
+                    var there = w.M.Rooms.RoomAt(n);
                     if (there == RoomsModule.Space ? !room.Openings.Contains(cell) : there != at) return false;
                 }
             }
-            var found = w.Rooms.All.Select(r => (r.Id, r.Volume)).ToArray();
+            var found = w.M.Rooms.All.Select(r => (r.Id, r.Volume)).ToArray();
             if (!found.SequenceEqual(counts.Select(kv => (kv.Key, kv.Value)))) return false;
-            var before = w.Rooms.All.Select(r => (r.Id, r.Volume, string.Join(",", r.Hull), string.Join(",", r.Openings))).ToArray();
+            var before = w.M.Rooms.All.Select(r => (r.Id, r.Volume, string.Join(",", r.Hull), string.Join(",", r.Openings))).ToArray();
             w.Reload();
-            return before.SequenceEqual(w.Rooms.All.Select(r => (r.Id, r.Volume, string.Join(",", r.Hull), string.Join(",", r.Openings))));
+            return before.SequenceEqual(w.M.Rooms.All.Select(r => (r.Id, r.Volume, string.Join(",", r.Hull), string.Join(",", r.Openings))));
         });
     }
 }

@@ -11,6 +11,6 @@
     <PackageReference Include="FsCheck.Xunit" Version="3.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../Rooms/Rooms.csproj" />
+    <ProjectReference Include="../Registry/Registry.csproj" />
   </ItemGroup>
 </Project>

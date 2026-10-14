@@ -8,6 +8,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../sim/Rooms/Rooms.csproj" />
+    <ProjectReference Include="../sim/Registry/Registry.csproj" />
   </ItemGroup>
 </Project>

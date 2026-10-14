@@ -43,12 +43,13 @@ the principle wins and the rule gets revisited.
 | `sim/Content`    | game data as C# records and constants: materials, machines, rates, ASCII maps; no logic |
 | `sim/Core`       | the simulation core: modules, phases, commands, saves, hashes, the world's Rng, layouts |
 | `sim/<Module>`   | one assembly per sim module (`Grid`, `Rooms`, …), referencing only what it depends on  |
+| `sim/Registry`   | every module of a world wired through constructors, in run order; the wreck layout     |
 | `sim/Analyzers`  | our Roslyn analyzer: the determinism rules BannedApiAnalyzers cannot express          |
 | `sim/Tests`      | xUnit and FsCheck: scenario, invariant and core tests                                 |
 | `game/`          | the Godot project: rendering, UI, input, the hero controller, networking              |
 | `docs/`          | concept, decisions (ADRs), plans, playtests                                           |
 
-Assemblies reference one way only: `Content` → `Core` → modules → `game`. Nothing under `sim/`
+Assemblies reference one way only: `Content` → `Core` → modules → `Registry` → `game`. Nothing under `sim/`
 references Godot.
 
 ## Sim modules
@@ -140,7 +141,9 @@ in the sim.
   module's TypeScript tests with it, one for one.
 - **Invariant tests** (FsCheck `[Property]`) for what must always hold; draw maps that reach every
   limit, and prove the test bites by breaking the rule once and watching it fail.
-- **Save, load and play on**, and the desync suite, cover every module.
+- **Generic suites** (`ModulesTests`) cover every registered module: save, load and play on, two
+  worlds kept alike, and every module with commands drawing them in its `Fuzz` override (refused
+  ones too). Do not copy them per module.
 - **Client:** scripted runs (`-- --autopilot` and the like) recorded with `--write-movie` and read
   frame by frame; logic such as the hero controller in plain C# with unit tests.
 - A bug fix starts with a failing test. Tests never touch real time; time is ticks.

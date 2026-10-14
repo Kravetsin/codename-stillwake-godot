@@ -1,5 +1,4 @@
 using Stillwake.Sim.Grid;
-using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Sim.Tests;
 
@@ -21,12 +20,14 @@ public sealed class Builder : Module<Builder.Nothing>
     protected override Nothing Init(Layout layout) => new();
 }
 
-/// <summary>A world of the ported modules on an ASCII map, as packages/sim/src/testing/scenario.ts.</summary>
+/// <summary>
+/// A world of every registered module and the test <see cref="Builder"/> on an ASCII map, as
+/// packages/sim/src/testing/scenario.ts. Modules are read through <see cref="M"/>: <c>w.M.Rooms</c>.
+/// </summary>
 public sealed class Scenario
 {
     public World World { get; private set; }
-    public GridModule Grid { get; private set; } = null!;
-    public RoomsModule Rooms { get; private set; } = null!;
+    public Registry M { get; private set; } = null!;
     public Layout Layout { get; }
     public List<Refused> Refusals { get; } = [];
     private readonly List<Command> _pending = [];
@@ -39,12 +40,11 @@ public sealed class Scenario
         World = World.Create(seed, layout, Modules());
     }
 
-    /// <summary>The modules in dependency order: each takes what it depends on through its constructor.</summary>
+    /// <summary>A fresh registry, and the builder after it.</summary>
     public IReadOnlyList<Module> Modules()
     {
-        Grid = new GridModule();
-        Rooms = new RoomsModule(Grid);
-        return [Grid, Rooms, new Builder(Grid, Grid)];
+        M = new Registry();
+        return [.. M.All, new Builder(M.Grid, M.Grid)];
     }
 
     public int At(int x, int y) => y * Layout.Width + x;

@@ -42,6 +42,18 @@ public abstract class Module
 
     protected void System(Phase phase, Action run) => Systems.Add((phase, run));
 
+    /// <summary>Whether the module has commands: then it must draw them in <see cref="Fuzz"/>.</summary>
+    public bool HasCommands => Commands.Count > 0;
+
+    /// <summary>
+    /// Draws a random command, as peer <paramref name="from"/> would send it, for the desync and save
+    /// suites; refused ones too, so refusals are fuzzed. Null skips a turn. Reads the module's own state.
+    /// </summary>
+    public virtual Command? Fuzz(Rng rng, int from) => null;
+
+    /// <summary>Whether this module draws its commands: one with commands and no generator fails the suites.</summary>
+    public bool Fuzzes => GetType().GetMethod(nameof(Fuzz))!.DeclaringType != typeof(Module);
+
     /// <summary>
     /// Declares a command: <paramref name="validate"/> returns a refusal key or null, and runs on the
     /// command's tick; <paramref name="apply"/> changes this module's slice only.

@@ -126,6 +126,24 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         return s;
     }
 
+    /// <summary>A real door or valve most of the time, any cell (off the grid too) otherwise, so refusals are drawn.</summary>
+    public override Command? Fuzz(Rng rng, int from)
+    {
+        int size = State.Width * State.Height;
+        int Pick(List<int> cells) =>
+            cells.Count > 0 && rng.Below(4) != 0 ? cells[(int)rng.Below((uint)cells.Count)] : (int)rng.Below((uint)size + 2) - 1;
+        if (rng.Below(2) == 0)
+            return new ToggleDoor(Pick(CellsWith(State.Structure, Structure.DoorClosed, Structure.DoorOpen))) { From = from };
+        return new ToggleValve(Pick(CellsWith(State.Conduit, Conduit.ValveOpen, Conduit.ValveClosed))) { From = from };
+    }
+
+    private static List<int> CellsWith(int[] codes, int a, int b)
+    {
+        var cells = new List<int>();
+        for (int c = 0; c < codes.Length; c++) if (codes[c] == a || codes[c] == b) cells.Add(c);
+        return cells;
+    }
+
     public override void Rebuild()
     {
         State.Occupancy = new int[State.Width * State.Height];
