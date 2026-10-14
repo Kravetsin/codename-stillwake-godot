@@ -41,8 +41,8 @@ public sealed class Tether
 
     public IReadOnlyList<Rope.Knot> Points => _rope.Points;
 
-    /// <summary>The line as a smooth trace in pixels, <paramref name="scale"/> to a thousandth.</summary>
-    public List<(double X, double Y)> Trace(double scale) => _rope.Trace(scale);
+    /// <summary>Adds the line's points as drawn this frame, in thousandths of a cell, to <paramref name="into"/>.</summary>
+    public void DrawnInto(List<(double X, double Y)> into) => _rope.DrawnInto(into);
 
     /// <summary>Moves the line on by <paramref name="elapsedMs"/>, its ends at <paramref name="from"/> and <paramref name="to"/>.</summary>
     public void Update((double X, double Y) from, (double X, double Y) to, double elapsedMs) =>

@@ -58,8 +58,8 @@ is the hero's feet, facing and body cell, so this feature never reads the crew f
   stays sharp at any zoom.
 - The panels are Control nodes styled as the Tailwind classes were (`render/Style.cs`); the slot
   hover is a hit test, since Godot sends no enter events while a button is held.
-- The floor draws over the machines (z 4): a stack beside a furnace shows, and also in front of the
-  hero, which draws at z 0 under the machines.
+- The floor draws over the machines and under the heroes (`Layers.FloorItems`): a stack beside a
+  furnace shows, and a hero walks over it.
 
 ## Not ported yet
 

@@ -25,7 +25,7 @@ public partial class EffectsView : Node2D
 
     public EffectsView()
     {
-        ZIndex = 21;
+        ZIndex = Layers.Effects;
         AddChild(_halos);
         AddChild(_specks);
         _halos.Draw += DrawHalos;

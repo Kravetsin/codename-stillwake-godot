@@ -35,6 +35,18 @@ public class CoreTests
     }
 
     [Fact]
+    public void HashesTheSavesBytesWithFnv1a()
+    {
+        // Hashed as it is written, never held: the same hash as the save's bytes, on a world big enough to need many batches.
+        var w = new Scenario(Registry.Wreck);
+        w.Run(3);
+        ulong h = 14695981039346656037;
+        foreach (byte b in System.Text.Encoding.UTF8.GetBytes(w.World.Save()))
+            h = unchecked((h ^ b) * 1099511628211);
+        Assert.Equal(h, w.World.Hash());
+    }
+
+    [Fact]
     public void SavesLoadsAndPlaysOnAsIfNeverSaved()
     {
         var a = new Scenario(Map);

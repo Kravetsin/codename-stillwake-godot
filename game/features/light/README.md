@@ -56,7 +56,10 @@ its back walls. Drawn only: nothing of it reaches the sim. Numbers from `game/Co
   though the wall were not there: dimmer than the TypeScript game's by the shadowed light's share. The
   field is unshadowed because Godot's shadows are worked out only on the GPU.
 - A lamp's reach is cut at 16 cells for the frame rate (see `LightView.LampReach`).
-- Recomputing starlight near a change only: it is redone over the whole grid, about 6 ms on the
-  reference world per change. The lamps' field is likewise redone whole when a lamp's brightness
-  changes — every frame while one flickers short of power, about 0.7 ms on the reference world's 103
-  lamps — and copied with the glows added, about 0.15 ms, every frame some glow.
+- Recomputing starlight near a change only: light carries some 45 cells before it rounds to nothing,
+  as far as the wreck is wide, so it is redone over the whole grid, in one channel (the stars are
+  one colour) into kept buffers and texture: about 2.7 ms on the reference world and 1.3 ms on the
+  wreck per change, nothing allocated.
+- The lamps' field is redone whole when a lamp's brightness changes — every frame while one
+  flickers short of power, about 0.7 ms on the reference world's 103 lamps — and copied with the
+  glows added, about 0.15 ms, every frame some glow.

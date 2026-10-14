@@ -30,23 +30,42 @@ public partial class FloorLayer : Node2D
 
     private readonly Dictionary<int, (Node2D View, Node2D Picture)> _shown = new();
     private double _clockMs;
+    private readonly List<FloorStack> _lying = [];
+    private readonly HashSet<int> _ids = [];
+    private readonly List<int> _gone = [];
+    private readonly Dictionary<int, int> _inCell = new(), _placed = new();
 
     /// <param name="taking">Stacks this peer has a pick-up in flight for.</param>
     /// <param name="progress">How far the world is between its last tick and the next, 0 to 1.</param>
     public void Update(IItemsQueries items, IRoomsQueries rooms, IReadOnlySet<int> taking, double progress, double elapsedMs)
     {
         _clockMs += elapsedMs;
-        var lying = items.Floor.Where(s => !taking.Contains(s.Id)).ToList();
-        var ids = lying.Select(s => s.Id).ToHashSet();
-        foreach (var id in _shown.Keys.Where(id => !ids.Contains(id)).ToList())
+        // Kept between frames, refilled: a frame allocates nothing here.
+        var lying = _lying;
+        lying.Clear();
+        _ids.Clear();
+        var floor = items.Floor;
+        for (int i = 0; i < floor.Count; i++)
+            if (!taking.Contains(floor[i].Id))
+            {
+                lying.Add(floor[i]);
+                _ids.Add(floor[i].Id);
+            }
+        _gone.Clear();
+        foreach (int id in _shown.Keys)
+            if (!_ids.Contains(id)) _gone.Add(id);
+        foreach (int id in _gone)
         {
             _shown[id].View.QueueFree();
             _shown.Remove(id);
         }
         // Stacks at rest in one cell, of different items, side by side rather than one over another.
-        var inCell = new Dictionary<int, int>();
-        foreach (var s in lying.Where(Resting)) inCell[s.Cell] = inCell.GetValueOrDefault(s.Cell) + 1;
-        var placed = new Dictionary<int, int>();
+        var inCell = _inCell;
+        var placed = _placed;
+        inCell.Clear();
+        placed.Clear();
+        foreach (var s in lying)
+            if (Resting(s)) inCell[s.Cell] = inCell.GetValueOrDefault(s.Cell) + 1;
         foreach (var s in lying)
         {
             if (!_shown.TryGetValue(s.Id, out var one))

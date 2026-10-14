@@ -31,10 +31,10 @@ public partial class BuildingView : Node2D
     private readonly Ui _ui;
     private readonly PlanHand _hand;
     // Back walls at 0.35 against the rest's 0.75, as the TypeScript game drew them.
-    private readonly PlanTiles _plans = new(backAlpha: 0.35f / 0.75f) { ZIndex = 9, Modulate = Plan };
-    private readonly PlanTiles _fits = new() { ZIndex = 11, Modulate = Fits with { A = 0.75f } };
-    private readonly PlanTiles _refused = new() { ZIndex = 11, Modulate = Refused with { A = 0.75f } };
-    private readonly Sketch _marks = new(10), _hands = new(12);
+    private readonly PlanTiles _plans = new(backAlpha: 0.35f / 0.75f) { ZIndex = Layers.Plans, Modulate = Plan };
+    private readonly PlanTiles _fits = new() { ZIndex = Layers.PlanGhost, Modulate = Fits with { A = 0.75f } };
+    private readonly PlanTiles _refused = new() { ZIndex = Layers.PlanGhost, Modulate = Refused with { A = 0.75f } };
+    private readonly Sketch _marks = new(Layers.PlanMarks), _hands = new(Layers.PlanHands);
 
     private string _drawn = "";
     private List<(Rect2 Box, bool Cross, float Share, bool Lacks)> _shownPlans = [];

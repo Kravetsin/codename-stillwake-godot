@@ -58,7 +58,7 @@ public partial class FurnaceView : Node2D
             _burning.Add(m.Id);
             if (!_fires.TryGetValue(m.Id, out var fire))
             {
-                fire = (new Sprite2D { Centered = false, ZIndex = 5, Material = Unlit, Texture = Picture(m.Id) }, m.Id, 0);
+                fire = (new Sprite2D { Centered = false, ZIndex = Layers.Fire, Material = Unlit, Texture = Picture(m.Id) }, m.Id, 0);
                 AddChild(fire.Sprite);
             }
             if (turn)

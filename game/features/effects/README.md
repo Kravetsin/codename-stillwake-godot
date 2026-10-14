@@ -13,7 +13,7 @@ Particles without a word, ported from `apps/game/src/features/effects/` and `ren
   work on a plan from its middle, falling aboard, drifting in space; the furnace (`FurnaceView`) — 7
   embers a second from a burning furnace; the air (`AirView`) — air streaming out of a venting room's
   openings into the space beside each (`atmosphere/Streams.cs`).
-- **Drawn** unlit over everything in the world, plans included (z 21): a square of the effect's colour
+- **Drawn** unlit over everything in the world, plans included (`Layers.Effects`), under an overlay: a square of the effect's colour
   fading over its life (an ember flickering), a soft additive halo under those that glow.
 - **Light (0019):** sparks and embers light what is around them: `LightView` puts a light under each,
   `Light.Particle` of its glow's colour as it fades, shadowed as a lamp's, at most 48 at once, 8 cells

@@ -36,7 +36,8 @@ namespace Stillwake.Game;
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>),
-/// <c>--measure</c> prints what frames cost and quits, <c>--for=seconds</c> quits after a while,
+/// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
+/// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
 /// </summary>
@@ -69,6 +70,7 @@ public partial class Main : Node2D
     private readonly LearnedView _learned = new();
     private Hands _hands = null!;
     private PlanDemo? _demo;
+    private FrameLog? _frameLog;
     /// <summary>Where this machine stands on the network, for the dev panel; none alone.</summary>
     private string? _net;
 
@@ -81,6 +83,7 @@ public partial class Main : Node2D
 
         // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
         _hands = new Hands();
+        ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
         AddChild(new Stars());
         AddChild(_debris);
@@ -112,6 +115,7 @@ public partial class Main : Node2D
         else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args));
         else Alone();
         AddChild(new DevPanel(() => _session, () => _m, () => _net, SaveDev, LoadDev));
+        if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} occluders={_light?.OccluderCount}"));
     }
@@ -263,12 +267,15 @@ public partial class Main : Node2D
             Burns = m => furnace.At(m.Id).Burning,
         });
         AddChild(_furnace = new FurnaceView(_m.Grid, furnace));
-        if (_items != null) MoveChild(_items, -1);
-        if (_hero != null) MoveChild(_hero, -1);
         MoveChild(_camera, -1);
         _shown = _m;
         _gridKey = null;
-        if (_session is Session s) SyncGrid(s.Client);
+        if (_session is Session s)
+        {
+            SyncGrid(s.Client);
+            // The first hash builds the serializer for every slice, some 10 ms: done while the world loads, not a second into play.
+            s.Client.World.Hash();
+        }
         SyncLight();
     }
 
@@ -288,7 +295,9 @@ public partial class Main : Node2D
 
     public override void _Process(double delta)
     {
+        _frameLog?.Start();
         _poll();
+        _frameLog?.Mark("net");
         if (_session is not Session session) return;
         var client = session.Client;
         int before = client.World.Tick;
@@ -309,15 +318,22 @@ public partial class Main : Node2D
         if (Has("--doors") && client.World.Tick != before)
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         ShowWorld();
+        _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
+        _frameLog?.Mark("light");
         _hero?.Frame(client, _m, _camera, heard, delta * 1000);
+        _frameLog?.Mark("hero");
         // After the hero, so a door it toggles shows on the frame E is pressed (0014).
         SyncGrid(client);
+        _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
         _learned.Frame(_m.Research, delta * 1000);
+        _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, session.Progress, delta * 1000);
+        _frameLog?.Mark("debris");
         ShowHands(client, delta * 1000);
+        _frameLog?.Mark("hands");
     }
 
     /// <summary>Where the hero stands for its items: what a drop is thrown from, what it picks up.</summary>
@@ -331,17 +347,24 @@ public partial class Main : Node2D
     /// <summary>The plan, cables and overlays (<see cref="Hands"/>): the hero's body sways the cables.</summary>
     private void ShowHands(Client client, double elapsedMs)
     {
-        Body[] bodies = [];
+        _bodies.Clear();
         if (_hero != null)
         {
-            var hero = _hero.Current;
-            double unit = Hero.Unit;
             // Every hero sways the cables, this one and the others where they are drawn.
-            bodies = _hero.Others.Append(hero).Select(h => new Body((h.X - Content.Hero.Width / 2.0) / unit, (h.X + Content.Hero.Width / 2.0) / unit,
-                (h.Y - Content.Hero.Height) / unit, h.Y / unit, h.Vx / unit, h.Vy / unit)).ToArray();
+            foreach (var other in _hero.Others) _bodies.Add(BodyOf(other));
+            _bodies.Add(BodyOf(_hero.Current));
         }
         _demo?.Frame(client, _m.Grid, Log);
-        _hands.Frame(client, _m, bodies, elapsedMs);
+        _hands.Frame(client, _m, _bodies, elapsedMs);
+    }
+
+    private readonly List<Body> _bodies = [];
+
+    private static Body BodyOf(Hero h)
+    {
+        const double unit = Hero.Unit;
+        return new Body((h.X - Content.Hero.Width / 2.0) / unit, (h.X + Content.Hero.Width / 2.0) / unit,
+            (h.Y - Content.Hero.Height) / unit, h.Y / unit, h.Vx / unit, h.Vy / unit);
     }
 
     /// <summary>The grid as this peer shows it, redrawn when that changes: a tick, or a door or valve toggle of its own sent (0014).</summary>
@@ -389,6 +412,7 @@ public partial class Main : Node2D
 
     private void Quit()
     {
+        _frameLog?.Report();
         if (_session is Session s)
         {
             var c = s.Client;

@@ -6,11 +6,12 @@ everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`.
 
 - **Reads:** `DebrisModule.Pieces`; `Client.InFlight` — its own grabs (`Shared.Predicted.Grabbing`);
   `Ui.AimedPiece` — the piece the crew's E would catch; `Session.Progress`.
-- **Drawn** behind the back walls (`ZIndex` −20): it never collides with the hull (0006). Each piece
+- **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
   is its item's picture (`ItemIcons`), 0.8 of a cell, lit by the stars and the lamps, between ticks
   at `X − Speed × Progress` so it glides, tumbling a turn every 4 s each its own way, faded in over the
   first 8 cells of its path and out over the last (`Fading.FadeOf`, 0009). The stars behind it are
-  `render/Stars.cs`.
+  `render/Stars.cs`: a filtered tile placed once the camera has followed the hero, so they glide by
+  fractions of a pixel a frame as the TypeScript tile did, never holding still and jumping a pixel.
 - **Aimed:** the piece the crew sets in `Ui.AimedPiece` — out in space, within reach, the hand free —
   is outlined, green, or red while the sim would refuse the grab; the crew's prompt says "[E] Catch".
 - **Own grabs at once (0014):** a piece this peer has a grab in flight for is gone from its view and

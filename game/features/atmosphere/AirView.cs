@@ -33,8 +33,8 @@ public partial class AirView : Node2D
     private static readonly Color Pulse = AsciiArt.Colour(0xe03030), Track = AsciiArt.Colour(0x16212d), Oxygen = AsciiArt.Colour(0x6fd3ff);
 
     private readonly Ui _ui;
-    private readonly Sketch _tint = new(20) { Modulate = new Color(1, 1, 1, 0.35f) };
-    private readonly Sketch _pulse = new(19), _gauges = new(8);
+    private readonly Sketch _tint = new(Layers.Overlay) { Modulate = new Color(1, 1, 1, 0.35f) };
+    private readonly Sketch _pulse = new(Layers.Pulse), _gauges = new(Layers.Gauges);
     private List<(Rect2 Box, Color Colour)> _cells = [], _losing = [];
     private List<(Rect2 Track, Rect2 Level)> _tanks = [];
     private Dictionary<int, RoomAir> _byRoom = new();

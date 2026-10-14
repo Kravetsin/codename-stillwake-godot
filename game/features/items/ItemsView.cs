@@ -1,5 +1,6 @@
 using System.Linq;
 using Godot;
+using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim.Grid;
@@ -39,8 +40,8 @@ public partial class ItemsView : Node2D
 
     public override void _Ready()
     {
-        // Over the machines, so a stack beside one shows.
-        ZIndex = 4;
+        // Over the machines, so a stack beside one shows, and under the heroes walking over it.
+        ZIndex = Layers.FloorItems;
         AddChild(_floor);
         var overWorld = new CanvasLayer();
         overWorld.AddChild(_popups);

@@ -30,7 +30,7 @@ public partial class PipesOverlay : Node2D
     private static readonly Color ValveOpen = AsciiArt.Colour(0x4caf6a), ValveClosed = AsciiArt.Colour(0xd05050), ValveEdge = AsciiArt.Colour(0x10161d);
     private static readonly Color Dim = AsciiArt.Colour(0x05080d, 0.45f);
 
-    private readonly Sketch _view = new(20);
+    private readonly Sketch _view = new(Layers.Overlay);
     private readonly List<(Rect2 Box, Color Colour)> _pipes = [];
     private readonly List<(Rect2 Box, Color Colour)> _valves = [];
     private readonly List<Vector2> _sockets = [];

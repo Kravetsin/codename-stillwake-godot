@@ -23,6 +23,15 @@ public static class ItemIcons
         return icon;
     }
 
+    /// <summary>
+    /// Makes every item's silhouette now, while the game loads: one is read back from the GPU, which waits for
+    /// the frames in flight, two refreshes of a 240 Hz screen, if left until a piece of debris first shows it.
+    /// </summary>
+    public static void MakeSilhouettes()
+    {
+        foreach (var item in Content.Items.All) Silhouette(item.Id);
+    }
+
     /// <summary>The picture of <paramref name="item"/> with every pixel drawn white, its clear ones clear.</summary>
     public static Texture2D Silhouette(string item)
     {
