@@ -1,0 +1,118 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text.RegularExpressions;
+
+namespace Stillwake.Game.Shared;
+
+/// <summary>
+/// The words the plan, power, pipes and air features show (apps/game/src/i18n/en.ts), until the game's
+/// one i18n table (<c>game/i18n</c>, port/items-ui) lands: then these keys move there and
+/// <see cref="T"/> becomes its <c>En.T</c>.
+/// </summary>
+public static partial class Words
+{
+    public static readonly IReadOnlyDictionary<string, string> Table = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["grid.outOfBounds"] = "Outside the ship",
+        ["grid.occupied"] = "Something is already there",
+        ["grid.machineInTheWay"] = "A machine is in the way",
+        ["grid.blocked"] = "Something is in the way",
+        ["grid.noSuchMaterial"] = "No such material",
+        ["grid.noSuchMachine"] = "No such machine",
+        ["grid.noSuchLayer"] = "No such layer",
+        ["building.planned"] = "Already planned",
+        ["building.notEmpty"] = "Empty the crate first",
+        ["building.nothingThere"] = "Nothing to take apart",
+        ["building.noPlan"] = "No plan here",
+        ["building.cabled"] = "Cut its cables first",
+        ["building.unknown"] = "You do not know how to build this yet",
+        ["power.noNode"] = "Nothing to fix a cable to",
+        ["power.sameNode"] = "Both ends on one place",
+        ["power.tooLong"] = "Too long: add an anchor",
+        ["power.taut"] = "A cable there would be pulled taut",
+        ["power.twice"] = "Already cabled",
+        ["power.noCable"] = "No cable here",
+        ["items.notEnough"] = "You do not carry enough",
+        ["items.full"] = "Not enough room",
+        ["tool.wall"] = "Wall",
+        ["tool.floor"] = "Floor",
+        ["tool.ladder"] = "Ladder",
+        ["tool.door"] = "Door",
+        ["tool.backWall"] = "Back wall",
+        ["tool.pipe"] = "Pipe",
+        ["tool.valve"] = "Valve",
+        ["tool.tank"] = "Tank",
+        ["tool.generator"] = "Generator",
+        ["tool.solarPanel"] = "Solar panel",
+        ["tool.lamp"] = "Lamp",
+        ["tool.furnace"] = "Furnace",
+        ["tool.analyzer"] = "Analyzer",
+        ["tool.vent"] = "Vent",
+        ["tool.crate"] = "Crate",
+        ["tool.cable"] = "Cable",
+        ["hand.card"] = "drag to build · right removes · middle picks · B leaves",
+        ["hand.cable"] = "drag to lay · Shift+drag moves a peg or plug · right cuts · B leaves",
+        ["build.open"] = "[B] Plan",
+        ["build.close"] = "Pick a card · right drag removes · middle picks · B leaves the plan",
+        ["hand.wires"] = "Pick a card · drag a peg or plug to move it · right cuts · B leaves the plan",
+        ["build.tab.structure"] = "Structure",
+        ["build.tab.air"] = "Air",
+        ["build.tab.power"] = "Power",
+        ["build.tab.production"] = "Production",
+        ["build.tab.storage"] = "Storage",
+        ["tool.wallScrap.about"] = "A cheap hull wall. Leaks air a little.",
+        ["tool.wallIron.about"] = "A strong hull wall. Leaks a fifth less than scrap.",
+        ["tool.backWallScrap.about"] = "A cheap wall behind a room, leaking as a scrap wall does. Without one, the room is open to space.",
+        ["tool.backWallIron.about"] = "A wall behind a room that leaks a fifth less than scrap.",
+        ["tool.floor.about"] = "A platform to stand on, climbed through from below.",
+        ["tool.ladder.about"] = "Climbs between decks.",
+        ["tool.door.about"] = "Opens with E. Closed, it holds air.",
+        ["tool.pipe.about"] = "Carries oxygen between tanks, generators, vents and furnaces.",
+        ["tool.valve.about"] = "A pipe that opens and closes with E: cuts a network in two.",
+        ["tool.vent.about"] = "Airs its room from the oxygen in its pipes.",
+        ["tool.tank.about"] = "Stores oxygen. Takes canisters.",
+        ["tool.generator.about"] = "Makes oxygen into its pipes from power.",
+        ["tool.solarPanel.about"] = "Makes power out in space, never in a room.",
+        ["tool.lamp.about"] = "Lights what it reaches, as bright as the power it gets. Walls stop its light.",
+        ["tool.furnace.about"] = "Smelts salvage into materials, burning planks and breathing the air of its room.",
+        ["tool.crate.about"] = "Holds items. Open it with E.",
+        ["tool.cable.about"] = "Drag from a machine, a wall or a peg to lay a cable; led too far, it is held on the walls on its way. Shift and drag moves a peg or a plug.",
+        ["tool.analyzer.about"] = "Analyses what is put in it, on power: a material teaches what it is used in, a schematic a machine.",
+        ["material.scrap"] = "scrap",
+        ["material.iron"] = "iron",
+        ["overlay.air"] = "air",
+        ["overlay.pipes"] = "pipes",
+        ["overlay.power"] = "power",
+        ["power.supply"] = "Power: {supply} made / {demand} drawn",
+        ["air.aired"] = "Aired · {cells} cells",
+        ["air.filling"] = "Filling · {aired}/{cells} cells",
+        ["air.venting"] = "Venting to space",
+        ["air.vacuum"] = "No air · {cells} cells",
+        ["air.holding"] = "Some air · {aired}/{cells} cells",
+        ["air.pipes"] = "O₂ in pipes: {oxygen}",
+        ["air.lasts"] = "O₂ in pipes: {oxygen} · lasts {time}",
+        ["air.lastsNot"] = "No supply · lasts {time}",
+        ["air.keepsUp"] = "Generator keeps up · +{n}/min",
+        ["air.fallsShort"] = "Generator falls short · lasts {time}",
+        ["air.drains"] = "O₂ in pipes: {oxygen} · gone in {time}",
+        ["atmosphere.noVent"] = "No vent here",
+        ["atmosphere.notPiped"] = "Vent not piped to a tank or generator",
+        ["atmosphere.unpowered"] = "Generator has no power",
+        ["atmosphere.dry"] = "Pipes empty: load a canister into a tank",
+        ["time.seconds"] = "{n} s",
+        ["time.minutes"] = "{n} min",
+    };
+
+    [GeneratedRegex(@"\{(\w+)\}")]
+    private static partial Regex Slot();
+
+    /// <summary>The text of <paramref name="key"/>, each <c>{name}</c> in it filled from <paramref name="values"/>; the key itself when it has none.</summary>
+    public static string T(string key, params (string Name, object Value)[] values) =>
+        Slot().Replace(Table.GetValueOrDefault(key, key), m =>
+        {
+            foreach (var (name, value) in values)
+                if (name == m.Groups[1].Value) return Convert.ToString(value, CultureInfo.InvariantCulture) ?? "";
+            return m.Value;
+        });
+}

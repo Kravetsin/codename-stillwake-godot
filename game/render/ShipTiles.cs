@@ -21,6 +21,11 @@ public sealed class ShipTiles
 
     public TileSet Set { get; } = new() { TileSize = new Vector2I(Cell, Cell) };
 
+    private static ShipTiles? _shared;
+
+    /// <summary>One atlas for the views that draw what is not built yet (plans, ghosts): made on first use.</summary>
+    public static ShipTiles Shared => _shared ??= new();
+
     public ShipTiles()
     {
         var pictures = new List<(string Name, Image Diffuse, Image Normal)>();

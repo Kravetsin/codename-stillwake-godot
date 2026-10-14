@@ -10,6 +10,7 @@ using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Net;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
@@ -22,7 +23,8 @@ namespace Stillwake.Game;
 /// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves; the camera follows it.
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
-/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
+/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--plan-demo</c>
+/// plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--for=seconds</c> quits after a while,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
@@ -50,6 +52,8 @@ public partial class Main : Node2D
     private Layout _layout = Registry.Wreck;
     private int _spawn;
     private HeroView? _hero;
+    private Hands _hands = null!;
+    private PlanDemo? _demo;
 
     public override void _Ready()
     {
@@ -68,6 +72,12 @@ public partial class Main : Node2D
             var script = !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(script));
             _camera.DevControls = false;
+        }
+        AddChild(_hands = new Hands());
+        if (Has("--plan-demo"))
+        {
+            _demo = new PlanDemo(_hands, _layout);
+            _demo.Start();
         }
         var join = _args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
         if (Has("--host")) Host();
@@ -217,6 +227,25 @@ public partial class Main : Node2D
         ShowWorld();
         if (client.World.Tick != before) Sync();
         if (_hero != null && _spawn >= 0) _hero.Frame(client, _m.Grid, _m.Rooms, _camera, _spawn, passedOut: false, delta * 1000);
+        ShowHands(client, delta * 1000);
+    }
+
+    /// <summary>The plan, cables and overlays (<see cref="Hands"/>): the hero's body sways the cables, its reach works plans.</summary>
+    private void ShowHands(Client client, double elapsedMs)
+    {
+        Body[] bodies = [];
+        Func<int, bool>? reaches = null;
+        if (_hero != null && _spawn >= 0)
+        {
+            var hero = _hero.Current;
+            int width = _m.Grid.Width;
+            double unit = Hero.Unit;
+            bodies = [new Body((hero.X - Content.Hero.Width / 2.0) / unit, (hero.X + Content.Hero.Width / 2.0) / unit,
+                (hero.Y - Content.Hero.Height) / unit, hero.Y / unit, hero.Vx / unit, hero.Vy / unit)];
+            reaches = cell => Aiming.Reaches(hero, cell, width);
+        }
+        _demo?.Frame(client, _m.Grid, Log);
+        _hands.Frame(client, _m, bodies, reaches, elapsedMs);
     }
 
     private void Sync()

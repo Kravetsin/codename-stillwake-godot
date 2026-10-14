@@ -28,5 +28,21 @@
     <Compile Include="../game/features/crew/Aim.cs" Link="Game/Crew/Aim.cs" />
     <Compile Include="../game/features/crew/Tether.cs" Link="Game/Crew/Tether.cs" />
     <Compile Include="../game/render/Rope.cs" Link="Game/Render/Rope.cs" />
+    <Compile Include="../game/render/Buttons.cs" Link="Game/Render/Buttons.cs" />
+    <Compile Include="../game/render/CableShape.cs" Link="Game/Render/CableShape.cs" />
+    <Compile Include="../game/shared/Ui.cs" Link="Game/Shared/Ui.cs" />
+    <Compile Include="../game/shared/Words.cs" Link="Game/Shared/Words.cs" />
+    <Compile Include="../game/overlays/OverlaySwitch.cs" Link="Game/Overlays/OverlaySwitch.cs" />
+    <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />
+    <Compile Include="../game/features/building/PlanHand.cs" Link="Game/Building/PlanHand.cs" />
+    <Compile Include="../game/features/building/Drag.cs" Link="Game/Building/Drag.cs" />
+    <Compile Include="../game/features/building/NearGrid.cs" Link="Game/Building/NearGrid.cs" />
+    <Compile Include="../game/features/building/Blueprint.cs" Link="Game/Building/Blueprint.cs" />
+    <Compile Include="../game/features/building/PlanWork.cs" Link="Game/Building/PlanWork.cs" />
+    <Compile Include="../game/features/power/Wiring.cs" Link="Game/Power/Wiring.cs" />
+    <Compile Include="../game/features/power/CableRopes.cs" Link="Game/Power/CableRopes.cs" />
+    <Compile Include="../game/features/power/PowerHands.cs" Link="Game/Power/PowerHands.cs" />
+    <Compile Include="../game/features/pipes/Flow.cs" Link="Game/Pipes/Flow.cs" />
+    <Compile Include="../game/features/atmosphere/Explain.cs" Link="Game/Atmosphere/Explain.cs" />
   </ItemGroup>
 </Project>
