@@ -65,9 +65,9 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
 
 ## Tests waiting for other modules
 
-From `power.test.ts`, added with the module they need: the generators run at their rate, alone and
-slowed to 625‰ (`atmosphere`); a cabled machine is not taken apart, marked or cabled after its mark
-(`building`).
+From `power.test.ts`, added with the module it needs: a cabled machine is not taken apart, marked or
+cabled after its mark (`building`). The generators running at their rate, alone and slowed to 625‰,
+came with `atmosphere`.
 
 ## Deliberately not handled
 

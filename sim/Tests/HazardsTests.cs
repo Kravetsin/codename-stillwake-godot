@@ -1,6 +1,7 @@
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
 using Xunit;
@@ -8,12 +9,12 @@ using Xunit;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// packages/sim/src/modules/hazards/hazards.test.ts, ported as far as grid and rooms can show it; the
-/// rest waits for atmosphere, building and items (see sim/Hazards/README.md).
+/// packages/sim/src/modules/hazards/hazards.test.ts, ported. Building is not yet: a wall is built on the
+/// hole by the test builder, and the deconstruction marks wait for it (see sim/Hazards/README.md).
 /// </summary>
 public class HazardsTests
 {
-    /// <summary>Nine wide: a sealed room with a vent above a tank.</summary>
+    /// <summary>Nine wide: a sealed room with a vent above a tank and a valve between them.</summary>
     private const string Room = """
         #########
         #V......#
@@ -22,29 +23,61 @@ public class HazardsTests
         #########
         """;
 
-    /// <summary>"break a hull wall, so the room vents": the hole is the room's opening to space.</summary>
-    [Fact]
-    public void BreakAHullWallSoTheRoomOpensToSpace()
+    /// <summary><see cref="Room"/> in creative mode, piped through a valve, its tank loaded and the room aired.</summary>
+    private static (Scenario W, int Tank, int Room) Aired()
     {
-        var w = new Scenario(Room);
+        var w = new Scenario(Room).Do(new Items.SetCreative(true));
+        w.Do(new Place(w.At(1, 1), new Placement("conduit", "pipe")))
+            .Do(new Place(w.At(1, 2), new Placement("conduit", "valve")))
+            .Do(new Place(w.At(1, 3), new Placement("conduit", "pipe")))
+            .Run();
+        int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
+        for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
+        w.Run();
         int room = w.M.Rooms.RoomAt(w.At(4, 2)) ?? throw new InvalidOperationException("room");
+        for (int i = 0; i < 1000 && w.M.Atmosphere.StatusOf(room) != RoomStatus.Aired; i++) w.Run();
+        Assert.Equal(RoomStatus.Aired, w.M.Atmosphere.StatusOf(room));
+        return (w, tank, room);
+    }
+
+    [Fact]
+    public void BreakAHullWallSoTheRoomVentsAndDrainsItsNetwork()
+    {
+        var (w, tank, room) = Aired();
         Assert.Empty(w.M.Rooms.RoomById(room)!.Openings);
+        int before = w.M.Atmosphere.OxygenIn(tank);
         w.Do(new MeteorHit(w.At(8, 2))).Run();
         Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(w.At(8, 2)));
         Assert.Equal(room, w.M.Rooms.RoomAt(w.At(4, 2)));
         Assert.Equal(new[] { w.At(8, 2) }, w.M.Rooms.RoomById(room)!.Openings);
+        Assert.Equal(RoomStatus.Venting, w.M.Atmosphere.StatusOf(room));
+        Assert.Equal(before - Content.Air.VentDrain, w.M.Atmosphere.OxygenIn(tank));
+    }
+
+    [Fact]
+    public void StopDrainingTheNetworkOnceAValveCutsTheVentOff()
+    {
+        var (w, tank, _) = Aired();
+        w.Do(new MeteorHit(w.At(8, 2))).Run(2);
+        w.Do(new ToggleValve(w.At(1, 2))).Run();
+        int cut = w.M.Atmosphere.OxygenIn(tank);
+        w.Run(10);
+        Assert.Equal(cut, w.M.Atmosphere.OxygenIn(tank));
     }
 
     /// <summary>"stop venting once a wall planned on the hole is built", with the test builder for building.</summary>
     [Fact]
-    public void CloseTheRoomAgainOnceAWallIsBuiltOnTheHole()
+    public void StopVentingOnceAWallIsBuiltOnTheHole()
     {
-        var w = new Scenario(Room);
+        var (w, tank, room) = Aired();
         w.Do(new MeteorHit(w.At(8, 2))).Run();
         w.Do(new Place(w.At(8, 2), Placement.Wall())).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(w.At(8, 2)));
         Assert.Empty(Assert.Single(w.M.Rooms.All).Openings);
+        // Built at once, the tank is far from dry; a fresh canister fills the room again all the same.
+        w.Do(new LoadCanister(tank)).Run();
+        Assert.Equal(RoomStatus.Filling, w.M.Atmosphere.StatusOf(room));
     }
 
     [Fact]

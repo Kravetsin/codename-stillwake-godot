@@ -23,6 +23,11 @@ public interface IRoomsQueries
     Room? RoomById(int id);
     /// <summary>Every room, in id order.</summary>
     IReadOnlyList<Room> All { get; }
+    /// <summary>
+    /// Per cell, live and read-only: a room's id (never negative), or <see cref="RoomsModule.Space"/> or
+    /// <see cref="RoomsModule.Solid"/>. For a module walking every cell; one at a time, use <see cref="RoomAt"/>.
+    /// </summary>
+    ReadOnlySpan<int> RoomOfCells { get; }
 }
 
 /// <summary>
@@ -64,6 +69,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
 
     public Room? RoomById(int id) => State.Rooms.Find(r => r.Id == id);
     public IReadOnlyList<Room> All => State.Rooms;
+    public ReadOnlySpan<int> RoomOfCells => State.RoomOf;
 
     public override void Rebuild()
     {

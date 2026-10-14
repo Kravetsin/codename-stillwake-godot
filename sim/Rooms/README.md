@@ -24,8 +24,9 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
 ## API
 
 - **Queries** (`IRoomsQueries`, what a module depending on rooms receives): `RoomAt(cell)` — a room's id, `Space`, or null for a solid cell or off the grid;
-  `RoomById(id)`; `All`, in id order. `Find(...)` is the flood itself, static, for tests and tools.
-- **Not yet ported:** `roomOfCells` (every cell at once), added with `atmosphere`.
+  `RoomById(id)`; `All`, in id order, a new list whenever the rooms or their openings are found again (atmosphere keys leaks on it);
+  `RoomOfCells` — every cell at once, live and read-only: a room's id, `Space` or `Solid`, for a
+  module walking every cell (`atmosphere`). `Find(...)` is the flood itself, static, for tests and tools.
 
 ## Invariants
 

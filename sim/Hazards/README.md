@@ -34,12 +34,11 @@ break some hulls and not others (see `docs/concept.md`). Ported from
 
 ## Tests not yet ported
 
-`hazards.test.ts` checks what a breach does to modules not ported yet. Their C# twins go into
-`HazardsTests` with those modules; what grid and rooms can show is tested already.
+`hazards.test.ts` checks what a breach does to `building` too, not ported yet; its C# twins go into
+`HazardsTests` with it. Venting, draining and the valve cutting the vent off are ported with
+`atmosphere`; the wall on the hole is built by the test builder for now.
 
-- with `atmosphere`: the broken room vents and drains its network by `Air.VentDrain` a tick; it stops
-  draining once a valve cuts the vent off; it fills again once a wall is built on the hole.
-- with `building`: a wall planned on the hole and built closes the room; a deconstruction mark on the
-  broken wall is dropped.
+- with `building`: a wall planned on the hole and built through work closes the room; a
+  deconstruction mark on the broken wall is dropped.
 - with `building` and `items`: a mark worked on the tick its wall breaks refunds nothing and is not
   refused.

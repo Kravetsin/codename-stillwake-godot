@@ -34,6 +34,26 @@ public class RoomsTests
         Assert.Null(w.M.Rooms.RoomAt(-1));
     }
 
+    /// <summary>roomOfCells, which atmosphere walks: every cell at once, as RoomAt gives them, solid ones negative too.</summary>
+    [Fact]
+    public void GivesEveryCellsRoomAtOnceSpaceAndSolidAsNegatives()
+    {
+        var w = new Scenario("""
+            .........
+            .#######.
+            .#..D..#.
+            .#######.
+            .........
+            """);
+        var all = w.M.Rooms.RoomOfCells.ToArray();
+        Assert.Equal(9 * 5, all.Length);
+        for (int cell = 0; cell < all.Length; cell++) Assert.Equal(w.M.Rooms.RoomAt(cell) ?? RoomsModule.Solid, all[cell]);
+        Assert.Equal(new[] { RoomsModule.Space, RoomsModule.Solid, w.At(2, 2), RoomsModule.Solid, w.At(5, 2) },
+            new[] { all[0], all[w.At(1, 1)], all[w.At(3, 2)], all[w.At(4, 2)], all[w.At(6, 2)] });
+        w.Do(new ToggleDoor(w.At(4, 2))).Run();
+        Assert.Equal(w.At(2, 2), w.M.Rooms.RoomOfCells[w.At(6, 2)]);
+    }
+
     [Fact]
     public void JoinsTwoRoomsThroughAnOpenDoorAndSplitsThemWhenItCloses()
     {

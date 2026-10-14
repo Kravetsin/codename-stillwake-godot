@@ -141,8 +141,9 @@ public class PowerTests
         Assert.Equal((0, 4, 0), (n.Supply, n.Demand, n.Satisfaction));
     }
 
-    // TypeScript goes on to run the generators (atmosphere): waiting for atmosphere, as is "runs a
-    // generator at full power at its rate"; "keeps a cabled machine from being taken apart" waits for building.
+    private static int Store(Scenario w, int cell) => w.M.Atmosphere.OxygenIn(IdAt(w, cell));
+
+    // "keeps a cabled machine from being taken apart, marked or cabled after its mark" waits for building.
     [Fact]
     public void SlowsEveryUserAlikeWhenShortTwoGeneratorsOnOnePanelGet625()
     {
@@ -150,6 +151,20 @@ public class PowerTests
         var n = w.M.Power.Networks[0];
         Assert.Equal((5, 8, 625), (n.Supply, n.Demand, n.Satisfaction));
         Assert.Equal(625, w.M.Power.Satisfaction(IdAt(w, Second)));
+        // Unpiped, the second keeps all it makes: 187.5 a minute, thirty units in 192 ticks.
+        const int ticks = 192;
+        w.Run(ticks);
+        Assert.Equal(ticks * Content.Air.GeneratorRate * 625 / 1000 / Content.Air.LeakEvery, Store(w, Second));
+        Assert.Equal(30, Store(w, Second));
+    }
+
+    [Fact]
+    public void RunsAGeneratorAtFullPowerAtItsRateItsFractionCarried()
+    {
+        var w = new Scenario(Layout.Parse(Rows, [], ToFirst));
+        w.Run(120);
+        // Three hundred a minute: one every four ticks.
+        Assert.Equal(30, Store(w, Generator));
     }
 
     private sealed record Step(bool Lay, int A, int B, int Peer);
