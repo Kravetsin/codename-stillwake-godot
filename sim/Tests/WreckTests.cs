@@ -114,6 +114,37 @@ public class WreckTests
     }
 
     [Fact]
+    public void SmeltsScrapCraftsAWireCablesTheAnalyzerAnalysesIronAndCraftsAPlate()
+    {
+        var w = AiredWreck();
+        int furnace = BuildFurnace(w, ("scrapChunk", 1), ("hullPlate", 1), ("planks", 2));
+        w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(FurnaceSpec.FuelSlot, furnace), 2)).Run();
+        w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: furnace), 1)).Run();
+        w.Run(ItemSpecs.Get("scrapChunk").SmeltTicks!.Value);
+        w.Do(new Move(new Slot(SlotOf(w, "hullPlate")), new Target(Crate: furnace), 1)).Run();
+        w.Run(ItemSpecs.Get("hullPlate").SmeltTicks!.Value);
+        for (int slot = 2; slot < 5; slot++)
+            if (w.M.Items.Crate(furnace)[slot] != null) w.Do(new Move(new Slot(slot, furnace), new Target(), 999));
+        w.Run();
+        Assert.True(w.M.Items.Totals(0).Single(t => t.Item == "iron").Count >= 2);
+
+        // Wire, the one craft the wreck grants, of the scrap smelted; the cable of the wire.
+        w.Do(new Sim.Crafting.Craft("wire", 1)).Run(Content.Crafts.Get("wire").Ticks);
+        w.Do(new Lay(Panel, Analyzer)).Run();
+        Assert.Empty(w.Refusals);
+        int analyzer = w.M.Grid.MachineAt(Analyzer)?.Id ?? 0;
+        Assert.True(w.M.Power.Satisfaction(analyzer) > 0);
+
+        // Iron analysed opens the plate.
+        w.Do(new Move(new Slot(SlotOf(w, "iron")), new Target(Crate: analyzer), 1)).Run();
+        for (int i = 0; i < 4 * ResearchSpec.Ticks && !w.M.Research.Analysed.Contains("iron"); i++) w.Run();
+        Assert.True(w.M.Research.Knows("plate"));
+        w.Do(new Sim.Crafting.Craft("plate", 1)).Run(Content.Crafts.Get("plate").Ticks);
+        Assert.Empty(w.Refusals);
+        Assert.Equal(1, w.M.Items.Totals(0).Single(t => t.Item == "plate").Count);
+    }
+
+    [Fact]
     public void FindsRoomAAndTheAirlockBTornOpenIsSpaceItsAnalyzerUncabled()
     {
         var m = new Registry();
