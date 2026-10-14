@@ -9,5 +9,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../sim/Registry/Registry.csproj" />
+    <ProjectReference Include="../net/Net/Net.csproj" />
   </ItemGroup>
 </Project>

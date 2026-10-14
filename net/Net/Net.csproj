@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>Stillwake.Net</AssemblyName><RootNamespace>Stillwake.Net</RootNamespace></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../sim/Core/Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -44,6 +44,13 @@ own tests (`modules/wreck.test.ts`).
 shown at once (0014), joining from a snapshot, hash checks, a local transport for tests, and the
 desync fuzz across host and guest. A relay for playtests across networks (0012) when needed.
 
+- **Built:** `net/` (its README) and `game/net/EnetLink.cs`; two Godot processes share the
+  wreck, hashes checked, a drifted guest resynced, 355 ms round trip under `--lag=100 --jitter=60`.
+- **Left:** the folds of 0014 (`grid.afterToggles`, `items.afterMoves`, debris grabs) with their
+  modules in G-04 and their features in G-08; the air scenario of the desync fuzz (`desync.test.ts`)
+  once atmosphere, building, items and crew are ported. The relay is not needed while ENet connects
+  directly; Steam crosses networks (G-09).
+
 ## G-06 — The world on screen
 
 The camera; walls, edges, back walls, floors, ladders, doors and pipes as `TileMapLayer`s from the
