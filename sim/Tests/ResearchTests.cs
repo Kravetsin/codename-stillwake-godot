@@ -1,6 +1,7 @@
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
@@ -162,7 +163,21 @@ public class ResearchTests
         Assert.Equal(Sorted(Blueprints.All.Select(b => b.Id)), Known(w));
     }
 
-    /// <summary>What building leans on until it is ported: the TypeScript test plans through it.</summary>
+    [Fact]
+    public void RefusesAPlanForABlueprintNotKnownButInCreativeMode()
+    {
+        var (w, _) = SetUp();
+        var wall = Placement.Wall("iron");
+        w.Do(new PlacePlan(3 * Width + 6, wall)).Run();
+        Assert.Equal(new[] { "building.unknown" }, w.Refusals.Select(r => r.Reason));
+        Assert.Equal("building.unknown", w.M.Building.Problem(3 * Width + 6, wall));
+        w.Do(new SetCreative(true)).Run();
+        w.Do(new PlacePlan(3 * Width + 6, wall)).Run();
+        Assert.Equal(new[] { "building.unknown" }, w.Refusals.Select(r => r.Reason));
+        Assert.Single(w.M.Building.Plans);
+    }
+
+    /// <summary>Beyond research.test.ts: the names building asks <c>Knows</c> by.</summary>
     [Fact]
     public void KnowsAPlacementByItsBlueprintNameAndEveryOneInCreativeMode()
     {

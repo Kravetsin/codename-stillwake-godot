@@ -1,15 +1,17 @@
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
+using Stillwake.Sim.Items;
 using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// packages/sim/src/modules/hazards/hazards.test.ts, ported as far as grid and rooms can show it; the
-/// rest waits for atmosphere, building and items (see sim/Hazards/README.md).
+/// packages/sim/src/modules/hazards/hazards.test.ts, ported as far as grid, rooms, items and building can show it;
+/// the rest waits for atmosphere (see sim/Hazards/README.md).
 /// </summary>
 public class HazardsTests
 {
@@ -35,17 +37,44 @@ public class HazardsTests
         Assert.Equal(new[] { w.At(8, 2) }, w.M.Rooms.RoomById(room)!.Openings);
     }
 
-    /// <summary>"stop venting once a wall planned on the hole is built", with the test builder for building.</summary>
+    /// <summary>
+    /// "stop venting once a wall planned on the hole is built", in creative mode as there: the room
+    /// closed again. What its air does then waits for atmosphere.
+    /// </summary>
     [Fact]
-    public void CloseTheRoomAgainOnceAWallIsBuiltOnTheHole()
+    public void CloseTheRoomAgainOnceAWallPlannedOnTheHoleIsBuilt()
     {
-        var w = new Scenario(Room);
+        var w = new Scenario(Room).Do(new SetCreative(true)).Run();
         w.Do(new MeteorHit(w.At(8, 2))).Run();
-        w.Do(new Place(w.At(8, 2), Placement.Wall())).Run();
-        Assert.Empty(w.Refusals);
+        w.Do(new PlacePlan(w.At(8, 2), Placement.Wall("scrap"))).Run();
+        int plan = w.M.Building.Plans[0].Id;
+        for (int i = 0; i <= Content.Materials.Get("scrap").BuildTicks; i++) w.Do(new Work(plan)).Run();
         Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(w.At(8, 2)));
         Assert.Empty(Assert.Single(w.M.Rooms.All).Openings);
     }
+
+    [Fact]
+    public void TakeADeconstructionMarkWithTheWallTheyBreak()
+    {
+        var w = new Scenario(Room).Do(new Deconstruct(RoomCell(8, 2), "structure")).Run();
+        w.Do(new MeteorHit(w.At(8, 2))).Run();
+        Assert.Empty(w.M.Building.Plans);
+    }
+
+    [Fact]
+    public void LeaveNothingToRefundForAMarkWorkedOnTheTickItsWallBreaks()
+    {
+        var w = new Scenario(Room).Do(new Deconstruct(RoomCell(8, 2), "structure")).Run();
+        int plan = w.M.Building.Plans[0].Id;
+        var held = w.M.Items.Inventory(0).ToArray();
+        w.Do(new MeteorHit(w.At(8, 2))).Do(new Work(plan)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(w.M.Building.Plans);
+        Assert.Equal(held, w.M.Items.Inventory(0));
+    }
+
+    /// <summary>Cell (x, y) of the nine-wide <see cref="Room"/>, before a scenario is there to ask.</summary>
+    private static int RoomCell(int x, int y) => y * 9 + x;
 
     [Fact]
     public void BreakThePipeRunningThroughTheWallToo()
