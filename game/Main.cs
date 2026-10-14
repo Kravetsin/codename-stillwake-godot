@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.Json.Nodes;
 using Godot;
 using Stillwake.Game.Dev;
+using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Net;
@@ -18,9 +19,10 @@ namespace Stillwake.Game;
 /// <summary>
 /// The game: a session (net/README.md) of its own, or with <c>-- --host</c> one others join over ENet
 /// with <c>-- --join[=address]</c>; the world it plays drawn by the client's features after every
-/// tick. Until the hero is ported the camera is moved by hand.
+/// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves; the camera follows it.
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
-/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--autopilot</c> toggles doors for recordings,
+/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
+/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
 /// <c>--measure</c> prints what frames cost and quits, <c>--for=seconds</c> quits after a while,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
@@ -45,6 +47,9 @@ public partial class Main : Node2D
     private readonly List<int> _doors = [];
     private int _heroes, _start;
     private double _worstSyncMs;
+    private Layout _layout = Registry.Wreck;
+    private int _spawn;
+    private HeroView? _hero;
 
     public override void _Ready()
     {
@@ -55,6 +60,15 @@ public partial class Main : Node2D
 
         AddChild(new Stars());
         AddChild(_camera = new ShipCamera());
+        if (Has("--gym")) _layout = HeroAutopilot.Gym;
+        _spawn = _layout.CellsOf('S').FirstOrDefault(-1);
+        // The dev worlds are looked at, not walked: the camera moves by hand there.
+        if (!Has("--perf") && !Has("--gallery"))
+        {
+            var script = !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
+            AddChild(_hero = new HeroView(script));
+            _camera.DevControls = false;
+        }
         var join = _args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
         if (Has("--host")) Host();
         else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args));
@@ -75,7 +89,7 @@ public partial class Main : Node2D
     private void Alone()
     {
         var modules = Modules();
-        var layout = Has("--perf") ? DevWorlds.Perf() : Registry.Wreck;
+        var layout = Has("--perf") ? DevWorlds.Perf() : _layout;
         var world = Has("--gallery") ? DevWorlds.Gallery(modules) : World.Create(1, layout, modules);
         var (host, client) = LocalSession.Create(world, Build);
         _session = new Session(host, client);
@@ -86,10 +100,10 @@ public partial class Main : Node2D
     private void Host()
     {
         _role = "host";
-        var (host, client) = LocalSession.Create(World.Create(1, Registry.Wreck, Modules()), Build);
+        var (host, client) = LocalSession.Create(World.Create(1, _layout, Modules()), Build);
         _session = new Session(host, client);
         ShowWorld();
-        AimCamera(Registry.Wreck);
+        AimCamera(_layout);
         var (link, error) = EnetLink<ToHost, ToClient>.Host(Port);
         if (error != Error.Ok) GD.PrintErr($"[host] cannot listen on {Port}: {error}");
         var ids = new Dictionary<long, int>();
@@ -164,6 +178,7 @@ public partial class Main : Node2D
         AddChild(_grid = new GridView(_m.Grid));
         var power = _m.Power;
         AddChild(_light = new LightView(_m.Grid) { LampShare = lamp => power.Satisfaction(lamp.Id) / 1000f });
+        if (_hero != null) MoveChild(_hero, -1);
         MoveChild(_camera, -1);
         _shown = _m;
         Sync();
@@ -197,10 +212,11 @@ public partial class Main : Node2D
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
         _heroes += client.TakeHeroes().Count;
         if (Has("--auto")) Auto(client, before);
-        if (Has("--autopilot") && client.World.Tick != before)
+        if (Has("--doors") && client.World.Tick != before)
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         ShowWorld();
         if (client.World.Tick != before) Sync();
+        if (_hero != null && _spawn >= 0) _hero.Frame(client, _m.Grid, _m.Rooms, _camera, _spawn, passedOut: false, delta * 1000);
     }
 
     private void Sync()

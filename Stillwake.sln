@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Power", "sim\Power\Power.cs
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Research", "sim\Research\Research.csproj", "{BB9DA920-0C03-45D8-A064-43D3230DFDBC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Game.Tests", "game.tests\Game.Tests.csproj", "{972850BE-BDEA-4A65-98E6-6E73E5E25DB0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -106,6 +108,10 @@ Global
 		{BB9DA920-0C03-45D8-A064-43D3230DFDBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB9DA920-0C03-45D8-A064-43D3230DFDBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB9DA920-0C03-45D8-A064-43D3230DFDBC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{972850BE-BDEA-4A65-98E6-6E73E5E25DB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{972850BE-BDEA-4A65-98E6-6E73E5E25DB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{972850BE-BDEA-4A65-98E6-6E73E5E25DB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{972850BE-BDEA-4A65-98E6-6E73E5E25DB0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{78D898A1-1D90-4694-8E8E-90985442DEB4} = {E4504A9F-8B20-412E-AF3E-B98C97B406EA}

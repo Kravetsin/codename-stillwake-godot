@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyName>Stillwake.Game.Tests</AssemblyName>
+    <RootNamespace>Stillwake.Game.Tests</RootNamespace>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="FsCheck.Xunit" Version="3.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../net/Net/Net.csproj" />
+    <ProjectReference Include="../sim/Registry/Registry.csproj" />
+  </ItemGroup>
+  <!-- The client's logic, plain C# with no Godot in it, compiled here from game/ to be tested. -->
+  <ItemGroup>
+    <Compile Include="../game/features/crew/Hero.cs" Link="Game/Crew/Hero.cs" />
+    <Compile Include="../game/features/crew/Rig.cs" Link="Game/Crew/Rig.cs" />
+    <Compile Include="../game/features/crew/Pose.cs" Link="Game/Crew/Pose.cs" />
+    <Compile Include="../game/features/crew/Aim.cs" Link="Game/Crew/Aim.cs" />
+    <Compile Include="../game/features/crew/Tether.cs" Link="Game/Crew/Tether.cs" />
+    <Compile Include="../game/render/Rope.cs" Link="Game/Render/Rope.cs" />
+  </ItemGroup>
+</Project>

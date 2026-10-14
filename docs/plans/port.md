@@ -61,17 +61,20 @@ desync fuzz across host and guest. A relay for playtests across networks (0012) 
   once atmosphere, building, items and crew are ported. The relay is not needed while ENet connects
   directly; Steam crosses networks (G-09).
 
-## G-06 — The world on screen
+## G-06 — The world on screen ✅ (but overlays and i18n)
 
 The camera; walls, edges, back walls, floors, ladders, doors and pipes as `TileMapLayer`s from the
 grid's layers, kept current as it changes; machines as sprites; light (lamps by their satisfaction,
 flicker, starlight, helmet lamps, fire) with normal maps and merged occluders; i18n. The art moves
 from ASCII pictures to PNGs in `game/art`.
 
-## G-07 — The hero
+## G-07 — The hero ✅ (but what waits for crew)
 
 The controller (`features/crew/hero.ts`, client-authoritative, unit-tested), the rig and its poses,
 aim and reach, the tether and spacewalks, the camera following.
+
+- Left from G-06/G-07: overlays and i18n; the hero lit by the ship's light (it is drawn unshaded now);
+  other players' heroes, suit air, passing out and the helmet lamp with the crew module.
 
 ## G-08 — The features
 
