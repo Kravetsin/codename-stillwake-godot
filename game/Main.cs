@@ -4,54 +4,67 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json.Nodes;
 using Godot;
+using Stillwake.Game.Dev;
+using Stillwake.Game.Features.Grid;
+using Stillwake.Game.Features.Light;
 using Stillwake.Game.Net;
+using Stillwake.Game.Render;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
-using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Game;
 
 /// <summary>
-/// The wreck from the C# sim, drawn cell by cell: rooms in colour, space dark. A placeholder until the
-/// client's features are ported (docs/plans/port.md). It plays in a session (net/README.md): its own,
-/// or with <c>-- --host</c> one others join over ENet with <c>-- --join[=address]</c>.
-/// Dev flags: <c>--for=seconds</c> quits after a while, <c>--auto</c> plays a short script,
-/// <c>--cheat</c> makes a joiner's world differ so the host must resync it, <c>--lag</c> and
-/// <c>--jitter</c> make a joiner's link bad on purpose.
+/// The game: a session (net/README.md) of its own, or with <c>-- --host</c> one others join over ENet
+/// with <c>-- --join[=address]</c>; the world it plays drawn by the client's features after every
+/// tick. Until the hero is ported the camera is moved by hand.
+/// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
+/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--autopilot</c> toggles doors for recordings,
+/// <c>--measure</c> prints what frames cost and quits, <c>--for=seconds</c> quits after a while,
+/// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
+/// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
 /// </summary>
 public partial class Main : Node2D
 {
     private const int Port = 24600;
-    private const int CellPx = 20;
-    private static readonly Rect2I View = new(28, 15, 32, 10);
     private static readonly string Build =
         typeof(Main).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
 
     private Session? _session;
     private Registry _m = null!;
+    /// <summary>The registry the views draw: a load or a resync brings a new one.</summary>
+    private Registry? _shown;
+    private GridView? _grid;
+    private LightView? _light;
+    private ShipCamera _camera = null!;
+    private string[] _args = [];
     private string _role = "alone";
-    private bool _auto, _cheat;
+    private bool _cheat;
     private Action _poll = () => { };
     private readonly List<int> _doors = [];
     private int _heroes, _start;
+    private double _worstSyncMs;
 
     public override void _Ready()
     {
-        var args = OS.GetCmdlineUserArgs();
-        _auto = args.Contains("--auto");
-        _cheat = args.Contains("--cheat");
-        var seconds = args.FirstOrDefault(a => a.StartsWith("--for="));
+        _args = OS.GetCmdlineUserArgs();
+        _cheat = Has("--cheat");
+        var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
-        var join = args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
-        if (args.Contains("--host")) Host();
-        else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(args));
-        else
-        {
-            var (host, client) = LocalSession.Create(World.Create(1, Registry.Wreck, Modules()), Build);
-            _session = new Session(host, client);
-        }
+
+        AddChild(new Stars());
+        AddChild(_camera = new ShipCamera());
+        var join = _args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
+        if (Has("--host")) Host();
+        else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args));
+        else Alone();
+        if (Has("--measure"))
+            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} occluders={_light?.OccluderCount}"));
     }
+
+    private bool Has(string flag) => _args.Contains(flag);
+    private string? Arg(string flag) => _args.SkipWhile(a => a != flag).Skip(1).FirstOrDefault();
 
     private IReadOnlyList<Sim.Module> Modules()
     {
@@ -59,11 +72,24 @@ public partial class Main : Node2D
         return _m.All;
     }
 
+    private void Alone()
+    {
+        var modules = Modules();
+        var layout = Has("--perf") ? DevWorlds.Perf() : Registry.Wreck;
+        var world = Has("--gallery") ? DevWorlds.Gallery(modules) : World.Create(1, layout, modules);
+        var (host, client) = LocalSession.Create(world, Build);
+        _session = new Session(host, client);
+        ShowWorld();
+        AimCamera(Has("--gallery") ? null : layout);
+    }
+
     private void Host()
     {
         _role = "host";
         var (host, client) = LocalSession.Create(World.Create(1, Registry.Wreck, Modules()), Build);
         _session = new Session(host, client);
+        ShowWorld();
+        AimCamera(Registry.Wreck);
         var (link, error) = EnetLink<ToHost, ToClient>.Host(Port);
         if (error != Error.Ok) GD.PrintErr($"[host] cannot listen on {Port}: {error}");
         var ids = new Dictionary<long, int>();
@@ -94,6 +120,8 @@ public partial class Main : Node2D
                 {
                     _session = new Session(null, client);
                     _start = client.World.Tick;
+                    ShowWorld();
+                    AimCamera(Registry.Wreck);
                     Log($"joined as peer {client.Id} at tick {client.World.Tick}");
                 },
                 why =>
@@ -127,6 +155,34 @@ public partial class Main : Node2D
         return World.Load(save, Modules());
     }
 
+    /// <summary>The views drawing the current registry's world, made again when a load brings a new one.</summary>
+    private void ShowWorld()
+    {
+        if (_shown == _m) return;
+        _grid?.QueueFree();
+        _light?.QueueFree();
+        AddChild(_grid = new GridView(_m.Grid));
+        var power = _m.Power;
+        AddChild(_light = new LightView(_m.Grid) { LampShare = lamp => power.Satisfaction(lamp.Id) / 1000f });
+        MoveChild(_camera, -1);
+        _shown = _m;
+        Sync();
+    }
+
+    private void AimCamera(Layout? layout)
+    {
+        var start = layout?.CellsOf('S').FirstOrDefault(-1) ?? -1;
+        if (Has("--perf")) _camera.Fit(new Rect2(0, 0, _m.Grid.Width, _m.Grid.Height));
+        else if (start >= 0) _camera.Follow(new Vector2(start % _m.Grid.Width + 0.5f, start / _m.Grid.Width));
+        else _camera.Follow(new Vector2(_m.Grid.Width, _m.Grid.Height) / 2);
+        if (Arg("--view") is { } view)
+        {
+            var v = view.Split(',').Select(s => float.Parse(s, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            _camera.Follow(new Vector2(v[0], v[1]));
+            if (v.Length > 2) _camera.SetZoom(v[2]);
+        }
+    }
+
     public override void _Process(double delta)
     {
         _poll();
@@ -138,14 +194,25 @@ public partial class Main : Node2D
             foreach (var refused in report.Refused)
                 Log($"tick {report.Tick}: {refused.Command.GetType().Name} from {refused.Command.From} refused, {refused.Reason}");
         foreach (var report in session.Desyncs.Skip(desyncs)) Log($"desync, resynced from the host: {report}");
-        if (client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
+        if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
         _heroes += client.TakeHeroes().Count;
-        if (_auto) Autopilot(client, before);
-        QueueRedraw();
+        if (Has("--auto")) Auto(client, before);
+        if (Has("--autopilot") && client.World.Tick != before)
+            foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
+        ShowWorld();
+        if (client.World.Tick != before) Sync();
+    }
+
+    private void Sync()
+    {
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        _grid?.Sync();
+        _light?.Sync();
+        _worstSyncMs = Math.Max(_worstSyncMs, System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
     }
 
     /// <summary>Each peer opens a door 30 ticks into its session, host and guest each their own; both say where they are.</summary>
-    private void Autopilot(Client client, int before)
+    private void Auto(Client client, int before)
     {
         if (_doors.Count == 0)
             for (int cell = 0; cell < _m.Grid.Width * _m.Grid.Height; cell++)
@@ -172,24 +239,4 @@ public partial class Main : Node2D
     }
 
     private void Log(string text) => GD.Print($"[{_role}] {text}");
-
-    public override void _Draw()
-    {
-        if (_session == null) return;
-        for (int y = View.Position.Y; y < View.End.Y; y++)
-            for (int x = View.Position.X; x < View.End.X; x++)
-            {
-                int cell = y * _m.Grid.Width + x;
-                var room = _m.Rooms.RoomAt(cell);
-                Color c = _m.Grid.StructureAt(cell) switch
-                {
-                    Structure.Wall => new Color(0.45f, 0.47f, 0.52f),
-                    Structure.DoorClosed => new Color(0.8f, 0.48f, 0.23f),
-                    _ when room == RoomsModule.Space => new Color(0.04f, 0.05f, 0.08f),
-                    _ when room is int id => Color.FromHsv(id * 0.137f % 1f, 0.45f, 0.75f),
-                    _ => Colors.Magenta,
-                };
-                DrawRect(new Rect2((x - View.Position.X) * CellPx, (y - View.Position.Y) * CellPx, CellPx - 1, CellPx - 1), c);
-            }
-    }
 }

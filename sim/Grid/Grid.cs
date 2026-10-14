@@ -55,9 +55,12 @@ public interface IGridQueries
     int Width { get; }
     int Height { get; }
     ReadOnlySpan<int> StructureLayer { get; }
-    ReadOnlySpan<int> BackLayer { get; }
-    /// <summary>The conduit layer as <see cref="Conduit"/> codes.</summary>
+    /// <summary>Each cell's wall material code (<c>Materials</c>), 0 where no wall stands.</summary>
+    ReadOnlySpan<int> MaterialLayer { get; }
     ReadOnlySpan<int> ConduitLayer { get; }
+    ReadOnlySpan<int> BackLayer { get; }
+    /// <summary>Each cell's back wall material code, 0 where there is no back wall.</summary>
+    ReadOnlySpan<int> BackMaterialLayer { get; }
     int StructureAt(int cell);
     /// <summary>The conduit code at <paramref name="cell"/>: <see cref="Conduit.None"/> off the grid.</summary>
     int ConduitAt(int cell);
@@ -161,8 +164,10 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public int Width => State.Width;
     public int Height => State.Height;
     public ReadOnlySpan<int> StructureLayer => State.Structure;
-    public ReadOnlySpan<int> BackLayer => State.Back;
+    public ReadOnlySpan<int> MaterialLayer => State.Material;
     public ReadOnlySpan<int> ConduitLayer => State.Conduit;
+    public ReadOnlySpan<int> BackLayer => State.Back;
+    public ReadOnlySpan<int> BackMaterialLayer => State.BackMaterial;
     public IReadOnlyList<Machine> Machines => State.Machines;
     public int StructureAt(int cell) => InBounds(cell) ? State.Structure[cell] : Structure.Empty;
     public int ConduitAt(int cell) => InBounds(cell) ? State.Conduit[cell] : Conduit.None;
