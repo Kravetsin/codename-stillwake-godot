@@ -6,6 +6,8 @@ namespace Stillwake.Game.Render;
 /// Space behind the ship (the stars of features/debris in TypeScript): a tile of stars over the whole
 /// screen, a screen pixel a star whatever the zoom, moving a little with the camera so they read as far
 /// away and streaming slowly by as the ship moves. Unlit, on a canvas layer of its own behind the world.
+/// They glide a fraction of a pixel a frame: the tile is filtered, as Pixi filtered the TypeScript tile,
+/// and read where the camera is this frame, once it has followed the hero.
 /// </summary>
 public partial class Stars : CanvasLayer
 {
@@ -15,6 +17,7 @@ public partial class Stars : CanvasLayer
     private const float Speed = 8;
     /// <summary>How much of the camera's movement the stars follow.</summary>
     private const float Parallax = 0.08f;
+    private static readonly Color Star = new(223 / 255f, 232 / 255f, 245 / 255f);
 
     private readonly Sprite2D _sky;
     private float _stream;
@@ -22,12 +25,16 @@ public partial class Stars : CanvasLayer
     public Stars()
     {
         Layer = -1;
+        // After every node at the default priority, the camera among them: its centre is this frame's.
+        ProcessPriority = 1;
         var rng = new RandomNumberGenerator { Seed = 7 };
         var image = Image.CreateEmpty(Tile, Tile, false, Image.Format.Rgba8);
+        // Clear in the stars' own colour: filtered toward black, a star between two pixels would dim twice over.
+        image.Fill(new Color(Star, 0));
         for (int i = 0; i < Count; i++)
         {
             int size = rng.Randf() < 0.15f ? 2 : 1;
-            var colour = new Color(223 / 255f, 232 / 255f, 245 / 255f, 0.2f + rng.Randf() * 0.55f);
+            var colour = new Color(Star, 0.2f + rng.Randf() * 0.55f);
             int x = rng.RandiRange(0, Tile - size), y = rng.RandiRange(0, Tile - size);
             image.FillRect(new Rect2I(x, y, size, size), colour);
         }
@@ -37,6 +44,8 @@ public partial class Stars : CanvasLayer
             Centered = false,
             RegionEnabled = true,
             TextureRepeat = CanvasItem.TextureRepeatEnum.Enabled,
+            // The project draws nearest: a star would hold still and jump a whole pixel every few frames.
+            TextureFilter = CanvasItem.TextureFilterEnum.Linear,
         };
         AddChild(_sky);
     }
