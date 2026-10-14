@@ -57,6 +57,8 @@ public interface IGridQueries
     ReadOnlySpan<int> StructureLayer { get; }
     ReadOnlySpan<int> BackLayer { get; }
     int StructureAt(int cell);
+    /// <summary>The conduit code at <paramref name="cell"/>: <see cref="Conduit.None"/> off the grid.</summary>
+    int ConduitAt(int cell);
     Machine? MachineAt(int cell);
     IReadOnlyList<Machine> Machines { get; }
     string? PlacementProblem(int cell, Placement placement);
@@ -158,6 +160,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public ReadOnlySpan<int> BackLayer => State.Back;
     public IReadOnlyList<Machine> Machines => State.Machines;
     public int StructureAt(int cell) => InBounds(cell) ? State.Structure[cell] : Structure.Empty;
+    public int ConduitAt(int cell) => InBounds(cell) ? State.Conduit[cell] : Conduit.None;
 
     public Machine? MachineAt(int cell)
     {
