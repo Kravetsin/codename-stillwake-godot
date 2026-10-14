@@ -34,7 +34,4 @@ break some hulls and not others (see `docs/concept.md`). Ported from
 
 ## Tests not yet ported
 
-`hazards.test.ts` checks what a breach does to the air, waiting for `atmosphere`: the broken room
-vents and drains its network by `Air.VentDrain` a tick; it stops draining once a valve cuts the vent
-off; it fills again once a wall planned on the hole is built (the wall built and the room closed are
-tested already, with `building`).
+Every test of `hazards.test.ts` is ported, with `atmosphere`, `building` and `items`.

@@ -8,5 +8,6 @@
     <ProjectReference Include="../Power/Power.csproj" />
     <ProjectReference Include="../Research/Research.csproj" />
     <ProjectReference Include="../Building/Building.csproj" />
+    <ProjectReference Include="../Atmosphere/Atmosphere.csproj" />
   </ItemGroup>
 </Project>

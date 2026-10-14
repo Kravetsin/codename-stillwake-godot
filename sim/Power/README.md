@@ -65,8 +65,7 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
 
 ## Tests waiting for other modules
 
-From `power.test.ts`, added with `atmosphere`: the generators run at their rate, alone and slowed to
-625‰.
+Every test of `power.test.ts` is ported, with `atmosphere` and `building`.
 
 ## Deliberately not handled
 
