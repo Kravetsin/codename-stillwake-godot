@@ -35,6 +35,9 @@ public partial class CraftsPanel : CanvasLayer
     private readonly GridContainer _cards = Style.Gap(new GridContainer { Columns = 2 }, 4);
     private readonly HBoxContainer _queue = Style.Gap(new HBoxContainer(), 4);
     private PanelContainer _panel = null!;
+    /// <summary>The cards and the queue, each naming its item in the one tooltip.</summary>
+    private readonly TipSpots _tips;
+    private Vector2 _mouse;
     private ProgressBar? _bar;
 
     private Client? _client;
@@ -46,7 +49,11 @@ public partial class CraftsPanel : CanvasLayer
     private string? _shownKey;
 
     /// <param name="ui">Where the open inventory ends, which the panel docks beside.</param>
-    public CraftsPanel(Ui ui) => _ui = ui;
+    public CraftsPanel(Ui ui)
+    {
+        _ui = ui;
+        _tips = new TipSpots(ui.Tip);
+    }
 
     /// <summary>The crafts shown, by the item each makes: for scripted runs.</summary>
     public IReadOnlyList<string> Showing { get; private set; } = [];
@@ -61,6 +68,15 @@ public partial class CraftsPanel : CanvasLayer
         AddChild(_panel);
         _ui.InventoryEdge.Subscribe(Dock);
     }
+
+    /// <summary>The pointer, from its events, so a recording's own events move it too.</summary>
+    public override void _Input(InputEvent e)
+    {
+        if (e is InputEventMouse mouse) _mouse = mouse.Position;
+    }
+
+    // A card rebuilt under a still pointer gets no mouse_entered: the tip is found by a hit test.
+    public override void _Process(double delta) => _tips.Frame(_ui.MenuOpen.Get() ? null : _mouse);
 
     /// <summary>Reads the client's world on a timer, through the current registry: a load or a resync brings new modules.</summary>
     public void Frame(Client client, CraftingModule crafting, IResearchQueries research, IItemsQueries items, double elapsedMs)
@@ -110,6 +126,7 @@ public partial class CraftsPanel : CanvasLayer
         foreach (var old in _cards.GetChildren()) old.QueueFree();
         foreach (var old in _queue.GetChildren()) old.QueueFree();
         _bar = null;
+        _tips.Clear();
         foreach (var craft in crafts) _cards.AddChild(CardOf(craft, Crafts.Lines(craft, carried), creative));
         for (int i = 0; i < queue.Count; i++) _queue.AddChild(EntryOf(queue[i], i == 0));
         _queue.Visible = queue.Count > 0;
@@ -119,7 +136,9 @@ public partial class CraftsPanel : CanvasLayer
     /// <summary>A craft: the item it makes, and beside it each item a unit takes, what is carried of it against what is needed.</summary>
     private PanelContainer CardOf(Recipe craft, IReadOnlyList<CostLine> lines, bool creative)
     {
-        var card = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = T($"item.{craft.Id}") };
+        var card = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop };
+        var tip = new Tip(T($"item.{craft.Id}"));
+        _tips.Add(card, () => tip);
         card.AddThemeStyleboxOverride("panel", Card);
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
         row.AddChild(Icon(craft.Id, 32));
@@ -153,7 +172,9 @@ public partial class CraftsPanel : CanvasLayer
     private Control EntryOf(Entry entry, bool atWork)
     {
         var column = Style.Gap(new VBoxContainer(), 2);
-        var box = new Panel { CustomMinimumSize = new Vector2(36, 36), MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = T($"item.{entry.Recipe}") };
+        var box = new Panel { CustomMinimumSize = new Vector2(36, 36), MouseFilter = Control.MouseFilterEnum.Stop };
+        var tip = new Tip(T($"item.{entry.Recipe}"));
+        _tips.Add(box, () => tip);
         box.AddThemeStyleboxOverride("panel", Entry);
         var icon = Icon(entry.Recipe, 28);
         box.AddChild(icon);

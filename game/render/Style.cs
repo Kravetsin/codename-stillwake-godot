@@ -10,7 +10,9 @@ public static class Style
         Slate700 = new("334155"), Slate600 = new("475569"), Slate400 = new("94a3b8"), Slate300 = new("cbd5e1"),
         Slate100 = new("f1f5f9"), Amber300 = new("fcd34d"), Amber400 = new("fbbf24"), Amber700 = new("b45309"),
         Orange400 = new("fb923c"), Green400 = new("4ade80"), Orange500 = new("f97316"), Orange700 = new("c2410c"), Red300 = new("fca5a5"),
-        Sky200 = new("bae6fd"), Sky400 = new("38bdf8"), Sky600 = new("0284c7"), Sky700 = new("0369a1");
+        Sky200 = new("bae6fd"), Sky400 = new("38bdf8"), Sky600 = new("0284c7"), Sky700 = new("0369a1"),
+        // Not analysed yet: the slot's "?" and the tooltip's line under the name.
+        Violet400 = new("a78bfa");
 
     // Stems widened a touch, as Chrome's DirectWrite drew light text on dark; mono on whole pixels (render/fonts).
     // sans.tres is the project's default font (gui/theme/custom_font), so every Control falls back to it.

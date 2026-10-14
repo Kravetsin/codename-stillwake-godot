@@ -21,6 +21,8 @@ registry, and changes the sim only by sending `Craft` and `Cancel`.
 - A card per known craft, every one in creative mode: the item made and, per item a unit takes, what
   is carried against what is needed, red where it is short (never in creative mode). A click queues
   one, a shift-click five; the sim refuses the whole lot when it is unpaid.
+- A card or a queued entry names its item in the one tooltip (`Shared.PointerTip`), found under the
+  pointer by a hit test (`TipSpots`), so a card rebuilt under a still pointer still says it.
 - Under the cards, this player's queue in order: each entry's item and its units left, the one at work
   with a bar, full while its unit waits for room. A click on an entry cancels it.
 - Read every 100 ms and at once after a click; cards and entries are rebuilt only when what they show

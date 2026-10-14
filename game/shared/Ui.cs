@@ -97,6 +97,12 @@ public sealed class Ui
     public Store<IReadOnlyList<CostLine>?> CostTip { get; } = new(null);
 
     /// <summary>
+    /// What a panel says of what the pointer is on, a slot, a card, a craft: set by the feature that owns
+    /// it, through <c>TipSpots</c>, and drawn by the pointer over the world's own words.
+    /// </summary>
+    public Store<Tip?> Tip { get; } = new(null);
+
+    /// <summary>
     /// Why what the hand would do under the pointer is refused, an i18n key: set each frame by the
     /// feature whose card it is (a ghost, a cable dragged), drawn in the world beside the pointer.
     /// </summary>
