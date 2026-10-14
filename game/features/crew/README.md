@@ -61,6 +61,5 @@ the tests of doors, valves, reach and the wreck crossed through a local session.
   tethers and passing out: `Client.SendHero` carries no hero yet.
 - Doors shown open at once while a toggle is in flight (`predictedGrid`, 0014): `Ship.Of` reads the
   grid as it is.
-- Tanks, crates, plans and debris under the pointer (`aim.ts`), pick-ups, prompts, the plan held in the
   hands (`holdsPlan` is false), dust from steps and landings, light on the hero, a helmet lamp.
 - `keys.test.ts`: the keys are Godot's input here, read in `HeroView`.

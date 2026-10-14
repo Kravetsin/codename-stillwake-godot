@@ -35,6 +35,7 @@
     <Compile Include="../game/features/items/Reach.cs" Link="Game/Items/Reach.cs" />
     <Compile Include="../game/features/items/Reading.cs" Link="Game/Items/Reading.cs" />
     <Compile Include="../game/features/research/News.cs" Link="Game/Research/News.cs" />
+    <Compile Include="../game/features/debris/Catching.cs" Link="Game/Debris/Catching.cs" />
     <Compile Include="../game/i18n/En.cs" Link="Game/I18n/En.cs" />
     <Compile Include="../game/render/Buttons.cs" Link="Game/Render/Buttons.cs" />
     <Compile Include="../game/render/CableShape.cs" Link="Game/Render/CableShape.cs" />

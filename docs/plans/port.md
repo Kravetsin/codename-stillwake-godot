@@ -30,14 +30,13 @@ Everything in `packages/content` as C# data in `sim/Content`: items, materials, 
 costs, air, power, crew, hero, debris and loot, furnace, research, light. Its content tests ported.
 Light is drawn only and in floats, so it lives in `game/Content/Light.cs`; the tests link that file.
 
-## G-04 — The sim modules
+## G-04 — The sim modules ✅
 
 In dependency order, each with its README, tests and fuzz generator ported: `hazards`, `pipes`,
 `items`, `power`, `atmosphere`, `crew`, `debris`, `furnace`, `building`, `research`. Then the wreck's
 own tests (`modules/wreck.test.ts`).
 
-- Ported: `items`, `power`, `research`, `building`, `pipes`, `atmosphere`, `crew`, `hazards`,
-  `furnace`. Left: `debris`.
+- Ported: all twelve, and the wreck's own tests (`WreckTests`).
 - A module namespace `Stillwake.Sim.<X>` hides the content class `Stillwake.Content.<X>` inside
   `Stillwake.Sim.*`: write `Content.Furnace.FuelSlot`.
 - **Done when** every TypeScript sim test has a passing C# twin, and a sim tick on the reference

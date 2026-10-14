@@ -87,8 +87,10 @@ peer stamped with the sender, and keeps nothing.
 
 ## Deliberately not handled
 
-- **The folds of 0014.** What a door, a stack or a grab looks like with own commands in flight needs
-  `grid.afterToggles`, `items.afterMoves` and `debris`, which are not ported yet; `InFlight` is.
+- **The door fold of 0014.** Own commands in flight are folded into what a peer shows by the features
+  that show them: stacks by `features/items` (`Reading`), grabs by `features/debris`
+  (`Catching.Grabbing`). Doors and valves wait for `grid.afterToggles` and its client fold, not ported
+  yet: a door shows open when its tick runs.
 - **The relay of 0012.** ENet connects peers directly on a LAN or a forwarded port; playtests across
   networks wait for GodotSteam (G-09), whose relays cross NAT. Its routing and tests are not ported.
 - **Browser time:** the worker's beat (`time.ts`) and the build check (`update.ts`) served a page;
