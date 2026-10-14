@@ -19,9 +19,10 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// stride so feet keep pace with the floor; <see cref="TimeMs"/> drives what moves without travel,
 /// breathing and drifting; <see cref="Landing"/> runs from 1 at touching down to 0; <see cref="Plan"/>,
 /// the head's turn, while the hands hold the plan; <see cref="OutMs"/>, how long since the hero passed out,
-/// and <see cref="Slump"/>, what picks the heap it ends in.
+/// <see cref="Slump"/>, what picks the heap it ends in, and <see cref="OutTilt"/>, how the body was turned
+/// as it passed out, which in space it keeps.
 /// </summary>
-public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null, double? OutMs = null, int Slump = 0);
+public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null, double? OutMs = null, int Slump = 0, double OutTilt = 0);
 
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
@@ -86,8 +87,6 @@ public static class Poses
     }
 
     private const double BreathMs = 2600, DriftMs = 3400;
-    /// <summary>Radians a hero passed out in space turns per second.</summary>
-    private const double Tumble = 0.7;
     /// <summary>The share of a climbing cycle a hand or foot holds on, sliding down as the body rises past it.</summary>
     private const double Grip = 0.6;
     /// <summary>Within this many cells of the body's middle the pointer turns nobody: no flicker over the hero.</summary>
@@ -239,7 +238,7 @@ public static class Poses
                 // With no time given, long since: lying still.
                 return Collapse(moment.OutMs ?? 1e9, moment.Slump);
             default:
-                return new Limbs(B(1.4, 0.6), B(0.6, 0.9), B(0.5, -0.9), B(-0.2, -0.5), moment.TimeMs / 1000 * Tumble, 0, false);
+                return Limp(moment);
         }
     }
 
@@ -306,6 +305,22 @@ public static class Poses
             Tilt = -Math.PI / 2 + 0.06 * wobble,
             Lift = 1.5 * Math.Max(0, wobble),
         };
+    }
+
+    /// <summary>
+    /// Passed out in space: the body stays turned as it was, the limbs gone slack, floating up a little
+    /// and stirring slowly, each faint its own way.
+    /// </summary>
+    private static Limbs Limp(Moment moment)
+    {
+        int slump = moment.Slump;
+        double stir = Math.Sin(moment.TimeMs / DriftMs * 2 * Math.PI);
+        return new Limbs(
+            B(Pick(slump, 0, 0.9, 1.7) + 0.08 * stir, Pick(slump, 1, 0.4, 1.0)),
+            B(Pick(slump, 2, 0.5, 1.3) - 0.08 * stir, Pick(slump, 3, 0.4, 1.1)),
+            B(Pick(slump, 4, 0.2, 0.7) + 0.05 * stir, -Pick(slump, 5, 0.3, 1.0)),
+            B(Pick(slump, 6, -0.1, 0.4) - 0.05 * stir, -Pick(slump, 7, 0.2, 0.8)),
+            moment.OutTilt, 0, false);
     }
 
     /// <summary>The share of a running stride a foot is on the floor, pushing the body on.</summary>

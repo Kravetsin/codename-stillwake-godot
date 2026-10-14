@@ -135,13 +135,14 @@ public class PoseTests
     }
 
     [Fact]
-    public void LiesTurnedOntoItsBackAndTumblesFurtherTheLongerItDrifts()
+    public void LiesTurnedOntoItsBackAboardAndKeepsItsTurnPassedOutInSpace()
     {
         var lying = LimbsOf(Pose.Lie, Standing, At(0));
         Assert.Equal(-Math.PI / 2, lying.Tilt);
         Assert.True(lying.Lying);
-        double Tumble(double ms) => LimbsOf(Pose.Tumble, Standing, At(0, ms)).Tilt;
-        Assert.True(Tumble(2000) > Tumble(1000));
+        double Tumble(double ms) => LimbsOf(Pose.Tumble, Standing, At(0, ms) with { OutTilt = 1.2 }).Tilt;
+        Assert.Equal(1.2, Tumble(0));
+        Assert.Equal(1.2, Tumble(5000));
         Assert.False(LimbsOf(Pose.Tumble, Standing, At(0, 1000)).Lying);
     }
 
