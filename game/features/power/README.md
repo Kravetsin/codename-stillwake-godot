@@ -16,15 +16,20 @@ Cables hanging between their nodes and the power overlay, where they are laid, c
 
 `game/render/CableShape.cs` (`render/cable.ts`: ends, hangs, pieces through the hull) and
 `game/render/Rope.cs` (the tether's rope, now also started from given points and brushed by bodies)
-are shared. Ported tests: `cable.test.ts`, `ropes.test.ts`, `wiring.test.ts`.
+are shared. Ported tests: `cable.test.ts`, `ropes.test.ts`, `wiring.test.ts`; beyond them (`CableRopesTests`), a cable
+moving on every frame at 240 Hz, let go between two steps, and moved off a hull crossing.
 
 ## Guarantees
 
 - A cable is the same rope throughout: laid, it is the rope it was dragged as from the first press; a
   carried end is the real cable, highlighted white (red where it may not be let go); dropped on a node
   it waits there until the world moves it and goes on from where it hangs, never snapping back unless the
-  move was refused (two seconds).
+  move was refused (two seconds). It goes on from the line it was drawn as even where its pieces change:
+  a cable through the hull moved to a node on it, or one laid from outside to a lamp inside, starts each
+  new piece along its stretch of that line (`CableRopes.StartsOf`); the TypeScript snapped those to a
+  fresh hang.
 - A dragged cable runs to where it would end: a machine's socket, an anchor's middle.
-- Cables sync with the world at most every 250 ms once it has run a tick; ropes move every frame at 60
-  steps a second and sway out of every hero's body: this one and the others where they are drawn
+- Cables sync with the world at most every 250 ms once it has run a tick; ropes step 60 times a second,
+  a step ahead of the clock, and are drawn between their last two steps (`Rope.DrawnAt`), so they move
+  on every frame of a faster screen rather than hold still three frames in four at 240 Hz; they sway out of every hero's body: this one and the others where they are drawn
   (`HeroView.Others`).

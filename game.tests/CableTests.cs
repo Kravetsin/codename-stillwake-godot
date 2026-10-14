@@ -216,6 +216,66 @@ public class CableRopesTests
         Run(ropes, 10);
         Assert.True(OffRest(ropes) < 0.15);
     }
+
+    // Beyond ropes.test.ts: what a screen faster than the ropes' 60 steps a second shows, and cables through the hull.
+
+    [Fact]
+    public void MoveOnEveryFrameAtAnyRefreshRateNotOnceAStep()
+    {
+        // Laid later, the cable falls into its hang: drawn 240 times a second, every frame shows it lower.
+        var ropes = new CableRopes();
+        Sync(ropes, new TestWorld(Layout.Parse(Rows)));
+        Sync(ropes, Sim);
+        var last = PointsOf(ropes)[CableShape.Steps / 2];
+        for (int frame = 0; frame < 40; frame++)
+        {
+            ropes.Update(Rope.StepMs / 4, []);
+            var now = PointsOf(ropes)[CableShape.Steps / 2];
+            Assert.True(now.Y > last.Y, $"frame {frame}: {now.Y} after {last.Y}");
+            last = now;
+        }
+    }
+
+    [Fact]
+    public void LetGoBetweenTwoStepsGoOnFromWhereTheyWereDrawn()
+    {
+        var before = new TestWorld(Layout.Parse(Rows, [], [((1, 1), (8, 2))]));
+        var ropes = new CableRopes();
+        Sync(ropes, before);
+        ropes.Land(10 + 8, new Held(20 + 8, null, Rest[^1]));
+        // Frames a third of a step long: the world has the cable there while it is drawn between steps.
+        for (int frame = 0; frame < 100; frame++) ropes.Update(Rope.StepMs / 3, []);
+        var drawn = PointsOf(ropes).ToList();
+        Sync(ropes, Sim);
+        Assert.All(PointsOf(ropes).Zip(drawn), p => Near(p.Second, p.First));
+    }
+
+    /// <summary>A panel out in space over a room's roof, a lamp under the roof inside; the roof is row 2.</summary>
+    private static readonly string[] Roofed = ["PPP     ", "        ", "########", "#..L...#", "#......#", "########"];
+
+    [Fact]
+    public void CarriedFromThroughTheHullToANodeOnItGoOnFromWhereTheyWereDrawn()
+    {
+        // The panel's cable ran in through the roof to the lamp at 27; its end is let go on the roof at 21.
+        var through = new TestWorld(Layout.Parse(Roofed, [], [((0, 0), (3, 3))]));
+        var onRoof = new TestWorld(Layout.Parse(Roofed, [], [((0, 0), (5, 2))]));
+        Assert.NotEqual(
+            CableShape.PiecesOf(through.M.Grid, through.M.Rooms, 0, 27).Pieces.Count,
+            CableShape.PiecesOf(onRoof.M.Grid, onRoof.M.Rooms, 0, 21).Pieces.Count);
+        var ropes = new CableRopes();
+        Sync(ropes, through);
+        Run(ropes, 2);
+        var roof = CableShape.EndOf(onRoof.M.Grid, 21);
+        ropes.Land(21, new Held(27, null, roof));
+        Run(ropes, 1);
+        var carried = PointsOf(ropes).ToList();
+        // The world has it there, its pieces changed: it goes on along the line it was drawn as, not from a new shape.
+        Sync(ropes, onRoof);
+        var now = PointsOf(ropes);
+        Near(carried[0], now[0]);
+        Near(carried[^1], now[^1]);
+        Assert.All(now, p => Assert.True(CableShape.DistanceTo(carried, p) < 0.01, $"{p} is off the line"));
+    }
 }
 
 /// <summary>The hands on cables: apps/game/src/features/power/wiring.test.ts, one for one.</summary>

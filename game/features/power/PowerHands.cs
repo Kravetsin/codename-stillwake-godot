@@ -171,7 +171,7 @@ public sealed class PowerHands
             var p = CableShape.EndOf(grid, from);
             _rope ??= CableRopes.LayingRope(p);
             _rope.Update(p, to, elapsedMs, CableRopes.HangFor);
-            Laying = _rope.Points.Select(k => (k.X, k.Y)).ToList();
+            Laying = CableRopes.Drawn(_rope).ToList();
         }
         else
         {

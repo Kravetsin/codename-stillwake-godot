@@ -20,7 +20,9 @@ public readonly record struct Body(double Left, double Right, double Top, double
 /// A rope between two ends (apps/game/src/render/rope.ts): points carried on by their speed, pulled by
 /// gravity and nudged by a slow drift, its links held to their length and its ends pinned. It starts
 /// straight from one end to the other, or where it is told. Drawn only, never simulated: every peer moves its own.
-/// Brushed along by bodies moving through it, a hero walking through a hanging cable.
+/// Brushed along by bodies moving through it, a hero walking through a hanging cable. Stepped up to a step
+/// ahead of the clock and drawn between its last two steps (<see cref="Drawn"/>), as the hero is, so it
+/// moves every frame at any refresh rate rather than once in every few.
 /// </summary>
 public sealed class Rope
 {
@@ -42,6 +44,9 @@ public sealed class Rope
     private readonly RopeStyle _style;
     private readonly Knot[] _knots;
     private readonly double[] _phases;
+    /// <summary>Where each point was before the last step: what <see cref="Drawn"/> moves it on from.</summary>
+    private readonly (double X, double Y)[] _before;
+    /// <summary>The time owed to the rope, at most 0 after an update: how far ahead of the clock its last step ran.</summary>
     private double _time, _owed;
 
     /// <param name="start">Where its points start, moving on as they were (each <c>Px</c>, <c>Py</c> where it was a step before); straight from one end to the other when not given.</param>
@@ -50,6 +55,7 @@ public sealed class Rope
         _style = style;
         _knots = new Knot[style.Links + 1];
         _phases = new double[style.Links + 1];
+        _before = new (double, double)[style.Links + 1];
         for (int i = 0; i <= style.Links; i++)
         {
             double t = (double)i / style.Links;
@@ -59,10 +65,41 @@ public sealed class Rope
                 : new Knot { X = x, Y = y, Px = x, Py = y };
             // Neighbours drift nearly alike, a wave along the rope: it bends in long curves, never kinks.
             _phases[i] = seed * 1.7 + i * style.Wave;
+            _before[i] = (_knots[i].X, _knots[i].Y);
         }
     }
 
+    /// <summary>The points as the rope last stepped them: where it is, and its speed.</summary>
     public IReadOnlyList<Knot> Points => _knots;
+
+    /// <summary>How far between its last two steps the rope is drawn: 1 at the last.</summary>
+    private double Shown => 1 + _owed / StepMs;
+
+    /// <summary>Point <paramref name="i"/> as drawn: its ends where they are pinned now, the rest between their last two steps.</summary>
+    public (double X, double Y) DrawnAt(int i)
+    {
+        var k = _knots[i];
+        if (i == 0 || i == _knots.Length - 1) return (k.X, k.Y);
+        double t = Shown;
+        var (bx, by) = _before[i];
+        return (bx + (k.X - bx) * t, by + (k.Y - by) * t);
+    }
+
+    /// <summary>
+    /// The points as drawn (<see cref="DrawnAt"/>), each moving on at its speed: what a rope that takes this
+    /// one's place starts from, so nothing jumps where one gives way to the other.
+    /// </summary>
+    public List<Knot> Drawn()
+    {
+        var drawn = new List<Knot>(_knots.Length);
+        for (int i = 0; i < _knots.Length; i++)
+        {
+            var (x, y) = DrawnAt(i);
+            var k = _knots[i];
+            drawn.Add(new Knot { X = x, Y = y, Px = x - (k.X - k.Px), Py = y - (k.Y - k.Py) });
+        }
+        return drawn;
+    }
 
     /// <summary>
     /// Moves the rope on by <paramref name="elapsedMs"/>, its ends at <paramref name="a"/> and
@@ -73,14 +110,16 @@ public sealed class Rope
     {
         _owed += elapsedMs;
         int steps = 0;
-        while (_owed >= StepMs && steps < MostSteps)
+        // A step as soon as any time is owed: the rope runs ahead of the clock, and is drawn back between steps.
+        while (_owed > 0 && steps < MostSteps)
         {
+            for (int i = 0; i < _knots.Length; i++) _before[i] = (_knots[i].X, _knots[i].Y);
             double span = Math.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y));
             Step(a, b, Math.Max(lengthFor(span), 0), bodies ?? []);
             _owed -= StepMs;
             steps += 1;
         }
-        if (steps == MostSteps) _owed = 0;
+        if (_owed > 0) _owed = 0;
         Pin(a, b);
     }
 
@@ -147,12 +186,15 @@ public sealed class Rope
     /// </summary>
     public List<(double X, double Y)> Trace(double scale, int perLink = 4)
     {
-        var line = new List<(double X, double Y)> { (_knots[0].X * scale, _knots[0].Y * scale) };
+        var first = DrawnAt(0);
+        var line = new List<(double X, double Y)> { (first.X * scale, first.Y * scale) };
         var from = line[0];
         for (int i = 1; i < _knots.Length - 1; i++)
         {
-            var p = (X: _knots[i].X * scale, Y: _knots[i].Y * scale);
-            var to = ((_knots[i].X + _knots[i + 1].X) / 2 * scale, (_knots[i].Y + _knots[i + 1].Y) / 2 * scale);
+            var (px, py) = DrawnAt(i);
+            var (nx, ny) = DrawnAt(i + 1);
+            var p = (X: px * scale, Y: py * scale);
+            var to = ((px + nx) / 2 * scale, (py + ny) / 2 * scale);
             // A quadratic curve from the last link's middle, bent toward this point, to the next middle.
             for (int s = 1; s <= perLink; s++)
             {
@@ -161,7 +203,8 @@ public sealed class Rope
             }
             from = to;
         }
-        line.Add((_knots[^1].X * scale, _knots[^1].Y * scale));
+        var last = DrawnAt(_knots.Length - 1);
+        line.Add((last.X * scale, last.Y * scale));
         return line;
     }
 }

@@ -44,6 +44,8 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 - Every hero is lit where it stands, as the ship is (`render/Lit.cs`); tethers are not.
 - Drawn over the machines, the floor's stacks and the furnace's fire, as the crew's layer stacked in
   TypeScript (`render/Layers.cs`): every tether, then others' heroes, then this machine's.
+- A tether's rope steps 60 times a second and is drawn between its last two steps, as the hero is
+  (`render/Rope.cs`'s `DrawnAt`).
 
 ## Others' heroes
 

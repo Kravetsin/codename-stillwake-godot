@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Game.Render;
@@ -26,7 +27,8 @@ public sealed record CableLine(int A, int B, IReadOnlyList<(double X, double Y)>
 /// the part outside floats, held where it goes through the hull. The cables found at the start are
 /// already at rest; one laid later starts straight and falls into its hang, swinging. A cable's end
 /// carried by hand (<see cref="Hold"/>) follows the hand, the rope swinging after it, and a cable
-/// carried to a node (<see cref="Land"/>) starts there in its hang, as it was carried.
+/// carried to a node (<see cref="Land"/>) or laid (<see cref="Adopt"/>) goes on from where it was drawn,
+/// moving as it was, however its pieces change on the way: through the hull no longer, or newly.
 /// </summary>
 public sealed class CableRopes
 {
@@ -75,28 +77,80 @@ public sealed class CableRopes
     /// <summary>An end let go on a node, kept where it was let go until the world has the cable there.</summary>
     private Landing? _landing;
 
-    /// <summary>The points of <paramref name="rope"/>, moving as they are, end to end the other way round when <paramref name="turned"/>.</summary>
-    private static List<Rope.Knot> Handed(Rope rope, bool turned)
+    /// <summary>The points of <paramref name="ropes"/> end to end as drawn, moving as they are, the other way round when <paramref name="turned"/>.</summary>
+    private static List<Rope.Knot> Handed(IEnumerable<Rope> ropes, bool turned)
     {
-        var points = rope.Points.Select(k => new Rope.Knot { X = k.X, Y = k.Y, Px = k.Px, Py = k.Py }).ToList();
+        var points = new List<Rope.Knot>();
+        // Each rope after the first begins where the last ended, at a fitting in the hull.
+        foreach (var rope in ropes) points.AddRange(rope.Drawn().Skip(points.Count == 0 ? 0 : 1));
         if (turned) points.Reverse();
         return points;
     }
 
     /// <summary>
-    /// The points of the one-piece cable <paramref name="c"/> was carried from: the cable between its other
-    /// end and the node the hand took it from, its rope's points, moving as they were, turned to run as
-    /// <paramref name="c"/> does. Nothing when that cable is not one rope.
+    /// The points of the cable <paramref name="c"/> was carried from: the cable between its other end and
+    /// the node the hand took it from, as drawn and moving as it was, turned to run as <paramref name="c"/> does.
     /// </summary>
     private List<Rope.Knot>? CarriedPoints(SimCable c, Landing to)
     {
         int other = c.A == to.Node ? c.B : c.A;
         int was = to.End.Node;
         bool fromOther = _cables.TryGetValue((other, was), out var old);
-        if (!fromOther) _cables.TryGetValue((was, other), out old);
-        if (old is not { Stretches.Count: 1 }) return null;
+        if (!fromOther && !_cables.TryGetValue((was, other), out old)) return null;
         // The old rope ran from its own A; the new one runs from c.A.
-        return Handed(old.Stretches[0].Rope, fromOther != (c.A == other));
+        return Handed(old!.Stretches.Select(s => s.Rope), fromOther != (c.A == other));
+    }
+
+    /// <summary>
+    /// Where each of <paramref name="pieces"/> starts, taken from <paramref name="line"/>, a cable as it was
+    /// drawn: the line itself for one piece of as many points, else each piece's stretch of it between the
+    /// points nearest its ends, its links evenly along it, moving as the line did there.
+    /// </summary>
+    private static List<List<Rope.Knot>> StartsOf(List<Rope.Knot> line, List<CablePiece> pieces)
+    {
+        if (pieces.Count == 1 && line.Count == CableShape.Steps + 1) return [line];
+        var at = new double[line.Count];
+        for (int i = 1; i < line.Count; i++) at[i] = at[i - 1] + Math.Sqrt(Squared(line[i - 1], (line[i].X, line[i].Y)));
+        var starts = new List<List<Rope.Knot>>(pieces.Count);
+        double s = 0;
+        foreach (var piece in pieces)
+        {
+            double from = Nearest(line, at, piece.From, s), to = Nearest(line, at, piece.To, from);
+            starts.Add(Enumerable.Range(0, CableShape.Steps + 1).Select(j => Sample(line, at, from + (to - from) * j / CableShape.Steps)).ToList());
+            s = to;
+        }
+        return starts;
+    }
+
+    private static double Squared(Rope.Knot p, (double X, double Y) q) => (q.X - p.X) * (q.X - p.X) + (q.Y - p.Y) * (q.Y - p.Y);
+
+    /// <summary>How far along <paramref name="line"/> its point nearest <paramref name="p"/> is, no nearer its start than <paramref name="from"/>.</summary>
+    private static double Nearest(List<Rope.Knot> line, double[] at, (double X, double Y) p, double from)
+    {
+        double best = from, bestD = double.MaxValue;
+        for (int i = 0; i + 1 < line.Count; i++)
+        {
+            if (at[i + 1] < from) continue;
+            double dx = line[i + 1].X - line[i].X, dy = line[i + 1].Y - line[i].Y, length = dx * dx + dy * dy;
+            double t = length == 0 ? 0 : Math.Clamp(((p.X - line[i].X) * dx + (p.Y - line[i].Y) * dy) / length, 0, 1);
+            double along = Math.Max(from, at[i] + t * (at[i + 1] - at[i]));
+            double d = Squared(Sample(line, at, along), p);
+            if (d < bestD) (best, bestD) = (along, d);
+        }
+        return best;
+    }
+
+    /// <summary>The point <paramref name="along"/> <paramref name="line"/>, moving as the points either side of it.</summary>
+    private static Rope.Knot Sample(List<Rope.Knot> line, double[] at, double along)
+    {
+        int i = 0;
+        while (i + 2 < line.Count && at[i + 1] < along) i++;
+        int j = Math.Min(i + 1, line.Count - 1);
+        var (p, q) = (line[i], line[j]);
+        double u = at[j] == at[i] ? 0 : Math.Clamp((along - at[i]) / (at[j] - at[i]), 0, 1);
+        double x = p.X + (q.X - p.X) * u, y = p.Y + (q.Y - p.Y) * u;
+        double vx = p.X - p.Px + (q.X - q.Px - (p.X - p.Px)) * u, vy = p.Y - p.Py + (q.Y - q.Py - (p.Y - p.Py)) * u;
+        return new Rope.Knot { X = x, Y = y, Px = x - vx, Py = y - vy };
     }
 
     /// <summary>Takes the cables as the world has them now: new ones in, gone ones out.</summary>
@@ -116,13 +170,14 @@ public sealed class CableRopes
             if (!_pending.TryGetValue((c.A, c.B), out var laid)) _pending.TryGetValue((c.B, c.A), out laid);
             if (laid != null) _pending.Remove((laid.Laid.A, laid.Laid.B));
             var carried = laid != null
-                ? Handed(laid.Laid.Rope, laid.Laid.A != c.A)
+                ? Handed([laid.Laid.Rope], laid.Laid.A != c.A)
                 : lands && _landing != null ? CarriedPoints(c, _landing) : null;
+            var starts = carried != null ? StartsOf(carried, pieces) : null;
             var stretches = pieces.Select((piece, i) =>
             {
                 var style = piece.Hangs ? Hanging : Floating;
-                var rest = carried != null && pieces.Count == 1
-                    ? carried
+                var rest = starts != null
+                    ? starts[i]
                     : _started && !lands && laid == null
                         ? null
                         : CableShape.CablePoints(piece.From, piece.To, piece.Hangs)
@@ -181,10 +236,13 @@ public sealed class CableRopes
     {
         foreach (var ((a, b), c) in _cables)
         {
-            var points = c.Stretches.SelectMany((s, i) => s.Rope.Points.Skip(i == 0 ? 0 : 1)).Select(k => (k.X, k.Y)).ToList();
+            var points = c.Stretches.SelectMany((s, i) => Drawn(s.Rope).Skip(i == 0 ? 0 : 1)).ToList();
             yield return new CableLine(a, b, points, c.Feeds);
         }
         foreach (var p in _pending.Values)
-            yield return new CableLine(p.Laid.A, p.Laid.B, p.Laid.Rope.Points.Select(k => (k.X, k.Y)).ToList(), []);
+            yield return new CableLine(p.Laid.A, p.Laid.B, Drawn(p.Laid.Rope).ToList(), []);
     }
+
+    /// <summary>The points of <paramref name="rope"/> as drawn this frame.</summary>
+    public static IEnumerable<(double X, double Y)> Drawn(Rope rope) => Enumerable.Range(0, rope.Points.Count).Select(rope.DrawnAt);
 }
