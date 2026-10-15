@@ -79,7 +79,7 @@ public partial class CraftsPanel : CanvasLayer
     private readonly List<Cell> _cells = [];
     private Cell? _hovered;
     private Vector2 _mouse;
-    private ProgressBar? _bar;
+    private ColorRect? _fill;
 
     private Client? _client;
     private CraftingModule? _crafting;
@@ -187,7 +187,7 @@ public partial class CraftsPanel : CanvasLayer
             _shownKey = key;
             Build(queue);
         }
-        if (_bar != null && queue.Count > 0) _bar.Value = Crafts.Share(queue[0].Recipe, _crafting.Progress(peer));
+        if (_fill != null && queue.Count > 0) Fill(_fill, Crafts.Share(queue[0].Recipe, _crafting.Progress(peer)));
     }
 
     private Look LookOf(string craft) => Crafts.LookOf(_research!.Knows(craft), Crafts.Lines(craft, _carried), _creative);
@@ -206,7 +206,7 @@ public partial class CraftsPanel : CanvasLayer
                 box.RemoveChild(old);
                 old.QueueFree();
             }
-        (_bar, _hovered) = (null, null);
+        (_fill, _hovered) = (null, null);
         _cells.Clear();
         _tips.Clear();
 
@@ -308,7 +308,18 @@ public partial class CraftsPanel : CanvasLayer
         return new Tip(T($"item.{craft}"), lines);
     }
 
-    /// <summary>A queued craft: the item and how many are left, the one at work with its bar along the bottom. A click cancels it.</summary>
+    /// <summary>The slot at work filled from the bottom by <paramref name="share"/> of its unit, 0 to 1.</summary>
+    private static void Fill(ColorRect fill, double share)
+    {
+        float inside = Small - 2, high = (float)(inside * System.Math.Clamp(share, 0, 1));
+        fill.Position = new Vector2(1, 1 + inside - high);
+        fill.Size = new Vector2(inside, high);
+    }
+
+    /// <summary>
+    /// A queued craft: the item and how many are left, the one at work filling its slot from the bottom up
+    /// as it goes, under the item and its count. A click cancels it.
+    /// </summary>
     private Panel EntrySlot(Entry entry, bool atWork)
     {
         var box = Box(Small);
@@ -326,17 +337,11 @@ public partial class CraftsPanel : CanvasLayer
         (count.OffsetRight, count.OffsetBottom) = (-2, 2);
         if (atWork)
         {
-            _bar = new ProgressBar
-            {
-                ShowPercentage = false,
-                MaxValue = 1,
-                Position = new Vector2(2, Small - 5),
-                Size = new Vector2(Small - 4, 3),
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-            };
-            _bar.AddThemeStyleboxOverride("background", new StyleBoxFlat { BgColor = Style.Slate700 });
-            _bar.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = Style.Amber400 });
-            box.AddChild(_bar);
+            _fill = new ColorRect { Color = Style.Amber400 with { A = 0.35f }, MouseFilter = Control.MouseFilterEnum.Ignore };
+            box.AddChild(_fill);
+            // Behind the item and its count.
+            box.MoveChild(_fill, 0);
+            Fill(_fill, 0);
         }
         Add(new Cell(box, Filled, FilledHover, null));
         var tip = new Tip(T($"item.{entry.Recipe}"));
