@@ -7,7 +7,7 @@ namespace Stillwake.Game.Render;
 public static class Style
 {
     public static readonly Color Slate950 = new("020617"), Slate900 = new("0f172a"), Slate800 = new("1e293b"),
-        Slate700 = new("334155"), Slate600 = new("475569"), Slate400 = new("94a3b8"), Slate300 = new("cbd5e1"),
+        Slate700 = new("334155"), Slate600 = new("475569"), Slate500 = new("64748b"), Slate400 = new("94a3b8"), Slate300 = new("cbd5e1"),
         Slate100 = new("f1f5f9"), Amber300 = new("fcd34d"), Amber400 = new("fbbf24"), Amber700 = new("b45309"),
         Orange400 = new("fb923c"), Green400 = new("4ade80"), Orange500 = new("f97316"), Orange700 = new("c2410c"), Red300 = new("fca5a5"),
         Sky200 = new("bae6fd"), Sky400 = new("38bdf8"), Sky600 = new("0284c7"), Sky700 = new("0369a1"),
