@@ -9,22 +9,22 @@ public class UpdatesTests
     [Fact]
     public void ReadsAReleaseFromItsVersionAndADeskBuildAsNone()
     {
-        Assert.Equal(new Updates.Version("0.3", "67019ff"), Updates.Of("0.3+67019ffabcdef0123"));
+        Assert.Equal(new Updates.Version("0.0.3", "67019ff"), Updates.Of("0.0.3+67019ffabcdef0123"));
         Assert.Equal(new Updates.Version(null, "67019ff"), Updates.Of("0.0.0+67019ffabcdef"));
-        Assert.Equal(new Updates.Version(null, "unknown"), Updates.Of("1.0.0"));
-        Assert.Equal("v0.3 · 67019ff", Updates.Of("0.3+67019ffabc").ToString());
-        Assert.Equal("dev · 67019ff", Updates.Of("0.0.0+67019ffabc").ToString());
+        Assert.Equal(new Updates.Version("1.0.0", "unknown"), Updates.Of("1.0.0"));
+        Assert.Equal("v0.0.3", Updates.Of("0.0.3+67019ffabc").ToString());
+        Assert.Equal("dev 67019ff", Updates.Of("0.0.0+67019ffabc").ToString());
     }
 
     [Fact]
     public void OffersOnlyANewerReleaseNumberByNumberAndNothingToADeskBuild()
     {
-        Assert.True(Updates.Newer("v0.4", "0.3"));
-        Assert.True(Updates.Newer("v0.10", "0.9"));
-        Assert.True(Updates.Newer("v1.0", "0.12"));
-        Assert.True(Updates.Newer("v0.3.1", "0.3"));
-        Assert.False(Updates.Newer("v0.3", "0.3"));
-        Assert.False(Updates.Newer("v0.2", "0.3"));
+        Assert.True(Updates.Newer("v0.0.4", "0.0.3"));
+        Assert.True(Updates.Newer("v0.0.10", "0.0.9"));
+        Assert.True(Updates.Newer("v0.1.0", "0.0.12"));
+        Assert.True(Updates.Newer("v1.0.0", "0.12.3"));
+        Assert.False(Updates.Newer("v0.0.3", "0.0.3"));
+        Assert.False(Updates.Newer("v0.0.2", "0.0.3"));
         Assert.False(Updates.Newer("v9.9", null));
     }
 

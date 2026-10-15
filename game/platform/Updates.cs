@@ -6,7 +6,7 @@ namespace Stillwake.Game.Platform;
 
 /// <summary>
 /// Which build this is, and whether a newer one is out (docs/releasing.md): a release is built by CI
-/// from a tag <c>vX.Y</c> and published on GitHub; the game asks GitHub for the latest and, offered it,
+/// from a tag <c>vMAJOR.MINOR.PATCH</c> and published on GitHub; the game asks GitHub for the latest and, offered it,
 /// fetches it and puts it over itself. Plain .NET, tested without Godot.
 /// </summary>
 public static class Updates
@@ -17,15 +17,15 @@ public static class Updates
     /// <summary>A build: its release, none for one built at a desk, and its commit, short.</summary>
     public readonly record struct Version(string? Release, string Commit)
     {
-        /// <summary>As the menu shows it: <c>v0.3 · 67019ff</c>, or <c>dev · 67019ff</c>.</summary>
-        public override string ToString() => $"{(Release is { } r ? $"v{r}" : "dev")} · {Commit}";
+        /// <summary>As the corner and the menu show it: <c>v0.0.3</c> for a release, <c>dev 67019ff</c> for a desk build.</summary>
+        public override string ToString() => Release is { } r ? $"v{r}" : $"dev {Commit}";
     }
 
     /// <summary>A release on GitHub: its tag and where its Windows zip downloads from.</summary>
     public readonly record struct Release(string Tag, string Zip);
 
     /// <summary>
-    /// The build an assembly's informational version names, <c>0.3+67019ff…</c>: a release when CI set
+    /// The build an assembly's informational version names, <c>0.0.3+67019ff…</c>: a release when CI set
     /// the version from a tag, a desk build at the project's 0.0.0.
     /// </summary>
     public static Version Of(string informational)
@@ -33,7 +33,7 @@ public static class Updates
         var parts = informational.Split('+', 2);
         string commit = parts.Length > 1 ? parts[1][..Math.Min(7, parts[1].Length)] : "unknown";
         string number = parts[0];
-        return new Version(number is "0.0.0" or "1.0.0" or "" ? null : number, commit);
+        return new Version(number is "0.0.0" or "" ? null : number, commit);
     }
 
     /// <summary>The latest release as GitHub's API answers it, and its zip; none without a tag or a zip.</summary>
