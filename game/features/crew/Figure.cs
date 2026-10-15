@@ -96,6 +96,17 @@ public partial class Figure : Node2D
     /// </summary>
     private const double BeamMs = 320;
     private const int BeamsMost = 8;
+    /// <summary>
+    /// Working a plan, the screwdriver in the front hand (0030): its ribs turn a step every
+    /// <see cref="TwistStepMs"/>, the wrist rocks <see cref="TwistRock"/> radians either way at
+    /// <see cref="TwistHz"/>, and the arm reaches out a share <see cref="WorkReach"/> of its length.
+    /// </summary>
+    private const double TwistStepMs = 220, TwistRock = 0.14, TwistHz = 0.9, WorkReach = 0.85;
+    /// <summary>The screwdriver's grip in its picture, a frame of <c>hero_screwdriver.png</c>.</summary>
+    private static readonly Vector2 Grip = new(3, 2);
+    private readonly Sprite2D _tool;
+    private Vector2? _workAt;
+    private double _workMs;
     private static readonly Color BeamColour = new(0.49f, 0.83f, 0.99f);
     private static readonly CanvasItemMaterial BeamMaterial = new()
     {
@@ -141,6 +152,15 @@ public partial class Figure : Node2D
         };
         _plan.AddChild(_screen);
         _plan.AddChild(_glow);
+        _tool = new Sprite2D
+        {
+            Texture = GD.Load<Texture2D>("res://art/hero_screwdriver.png"),
+            Hframes = 3,
+            Centered = false,
+            Offset = -Grip,
+            Visible = false,
+        };
+        Lit.Set(_tool);
         for (int i = 0; i < BeamsMost; i++)
         {
             var beam = new Line2D { TopLevel = true, Width = 1, Visible = false, ZIndex = 1, Material = BeamMaterial };
@@ -154,7 +174,7 @@ public partial class Figure : Node2D
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds.
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, frontArm }) parts.AddChild(n);
+        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, frontArm }) parts.AddChild(n);
         AddChild(_body);
         Wear(colour);
     }
@@ -166,6 +186,9 @@ public partial class Figure : Node2D
         for (int i = 0; i < cells.Count && i < BeamsMost; i++) _beamTo.Add(cells[i]);
         _beamMs = BeamMs;
     }
+
+    /// <summary>Has the hero work the plan at <paramref name="at"/>, in pixels of the world, with its screwdriver; null when it stops.</summary>
+    public void Work(Vector2? at) => _workAt = at;
 
     /// <summary>A line of the planner's light from its screen to each cell just planned, fading.</summary>
     private void ShowBeams(bool holding)
@@ -264,7 +287,10 @@ public partial class Figure : Node2D
         _step = stepping;
         _landingMs = Math.Max(0, _landingMs - elapsedMs);
         _wasPose = pose;
-        bool holding = holdsPlan && Poses.HoldsIn(pose);
+        // Working a plan the screwdriver takes the front hand; the planner waits till it is done.
+        bool working = _workAt != null && Poses.HoldsIn(pose);
+        _workMs = working ? _workMs + elapsedMs : 0;
+        bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
         if (Poses.Swimming(hero)) _heading = Poses.HeadingOf(hero);
         bool afloat = pose == Pose.Float;
         _swim = afloat ? Settle(_swim, Poses.Swimming(hero) ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
@@ -301,6 +327,15 @@ public partial class Figure : Node2D
             var point = new Vec(Math.Cos(aim) * reach, Math.Sin(aim) * reach);
             frontArm = Rig.Reach(new Vec(held.X + (point.X - held.X) * thrust, held.Y + (point.Y - held.Y) * thrust), Rig.Arm, 1);
         }
+        double work = 0;
+        if (working && _workAt is { } plan)
+        {
+            // Toward the plan, from the shoulder, as the figure faces; the wrist rocking as it turns.
+            double dx = (plan.X - feetX) * hero.Facing, dy = plan.Y - (feetY - Rig.Shoulder);
+            work = Math.Atan2(dy, dx);
+            double reach = WorkReach * (Rig.Arm.Upper + Rig.Arm.Lower);
+            frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach, Math.Sin(work) * reach), Rig.Arm, 1);
+        }
         // The hand holding the planner keeps it before the eyes, ahead of no turn.
         _frontArm.Bend(frontArm with { Upper = frontArm.Upper + (holding ? 0 : lead) });
         _backArm.Bend(shown.BackArm with { Upper = shown.BackArm.Upper + lead });
@@ -322,6 +357,14 @@ public partial class Figure : Node2D
             _screen.Modulate = new Color(1, 1, 1) * (float)(1 + 0.8 * thrust);
             float glow = GlowStrength * (float)(1 + 1.5 * thrust);
             _glow.Colour = new Color(GlowColour.R * glow, GlowColour.G * glow, GlowColour.B * glow);
+        }
+        _tool.Visible = working;
+        if (working)
+        {
+            var hand = Rig.EndOf(frontArm, Rig.Arm);
+            _tool.Position = new Vector2((float)hand.X, (float)(-Rig.Shoulder + hand.Y));
+            _tool.Rotation = (float)(work + TwistRock * Math.Sin(_workMs / 1000 * TwistHz * 2 * Math.PI));
+            _tool.Frame = (int)(_workMs / TwistStepMs) % 3;
         }
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         // Lying down, the middle sinks as the body turns, so it comes to rest on the floor.

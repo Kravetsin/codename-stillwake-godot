@@ -183,6 +183,9 @@ public partial class HeroView : Node2D
         _workedOnTick = uses.WorkedOnTick;
         if (uses.Served is int served) _served.Add(served);
         foreach (var command in uses.Commands) client.Send(command);
+        // Held on a plan it can work, the hero turns its screwdriver at it.
+        bool working = !passedOut && _mouse.Buttons.HoldsRight && aim is { InReach: true, Work.Problem: null };
+        _figure.Work(working ? new Vector2(aim!.Cell % m.Grid.Width + 0.5f, aim.Cell / m.Grid.Width + 0.5f) * ShipCamera.Cell : null);
         if (uses.Open is int open) _ui.OpenCrate.Set(open);
         // A crate stays open while the hero can reach it, awake.
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);

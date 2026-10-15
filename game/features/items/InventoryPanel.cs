@@ -101,6 +101,7 @@ public partial class InventoryPanel : CanvasLayer
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
 
         var top = Style.Gap(new HBoxContainer(), 8);
+        top.AddChild(ToolSlot());
         top.AddChild(Grid(Enumerable.Range(0, Hotbar.Row).Select(i => new Place(i))));
         top.AddChild(_creative = new Label
         {
@@ -181,6 +182,33 @@ public partial class InventoryPanel : CanvasLayer
         var grid = Style.Gap(new GridContainer { Columns = Hotbar.Row }, 4);
         foreach (var place in places) grid.AddChild(Box(place));
         return grid;
+    }
+
+    /// <summary>
+    /// The tool the right button works with, left of the hotbar: empty, the screwdriver everyone has, pale.
+    /// Only shown for now (0030): nothing is put in it until a tool better than the screwdriver exists.
+    /// </summary>
+    private Control ToolSlot()
+    {
+        var slot = new Panel { CustomMinimumSize = new Vector2(36, 36), MouseFilter = Control.MouseFilterEnum.Stop };
+        slot.AddThemeStyleboxOverride("panel", Style.Box(Style.Slate800 with { A = 0.9f }, Style.Slate600));
+        var icon = new TextureRect
+        {
+            Texture = GD.Load<Texture2D>("res://art/tool_screwdriver.png"),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Modulate = new Color(1, 1, 1, 0.5f),
+        };
+        slot.AddChild(icon);
+        icon.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.Minsize, 4);
+        var key = new Label { Text = "RMB", LabelSettings = Style.Text(Style.Mono, 8, Style.Slate400, shadow: true), MouseFilter = Control.MouseFilterEnum.Ignore };
+        slot.AddChild(key);
+        // The icon runs from the bottom left to the top right: the bottom right corner is free.
+        key.Position = new Vector2(19, 24);
+        _tipSpots.Add(slot, () => new Tip(T("gear.screwdriver"), [new TipLine(T("gear.screwdriver.about"), Tone.Dim)]));
+        return slot;
     }
 
     private SlotBox Box(Place place)
