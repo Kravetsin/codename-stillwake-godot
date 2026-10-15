@@ -15,5 +15,9 @@ Needs the .NET 8 SDK and Godot 4.7 (.NET build); the scripts look for Godot in
 
 - `play.cmd` — builds the C# and starts the game; arguments go to the game: `play.cmd --host`,
   `play.cmd --join=192.168.1.5`, `play.cmd --debris`.
-- `export.cmd` — the Windows build, `build\windows\Stillwake.exe`, zipped as `build\Stillwake-windows.zip`.
+- `export.cmd` — the Windows build, `build\windows\Stillwake.exe`, zipped as `build\Stillwake-windows.zip`,
+  with `host.cmd` and `join.cmd` beside it: co-op across networks through the playtest server's relay
+  (ADR 0012), each asking for a session name and the playtest password. By hand:
+  `Stillwake.exe -- --relay --host=name` and `Stillwake.exe -- --relay --join=name`, the password in
+  `STILLWAKE_PASSWORD` or `--password=...`; `--relay=ws://...` names another relay.
 - `dotnet test Stillwake.sln` — every test.

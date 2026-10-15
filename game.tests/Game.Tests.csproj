@@ -23,6 +23,7 @@
   <!-- The client's logic, plain C# with no Godot in it, compiled here from game/ to be tested. -->
   <ItemGroup>
     <Compile Include="../game/platform/Saves.cs" Link="Game/Platform/Saves.cs" />
+    <Compile Include="../game/net/RelayFrames.cs" Link="Game/Net/RelayFrames.cs" />
     <Compile Include="../game/features/crew/Hero.cs" Link="Game/Crew/Hero.cs" />
     <Compile Include="../game/features/crew/Rig.cs" Link="Game/Crew/Rig.cs" />
     <Compile Include="../game/features/crew/Pose.cs" Link="Game/Crew/Pose.cs" />

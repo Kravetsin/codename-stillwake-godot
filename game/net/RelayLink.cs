@@ -1,0 +1,140 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Godot;
+using Stillwake.Net;
+
+namespace Stillwake.Game.Net;
+
+/// <summary>
+/// Net's channels over the playtest server's relay (ADR 0012, <see cref="RelayFrames"/>): a WebSocket
+/// out to the server, so neither end needs an open port; the relay passes a host's messages to its
+/// guests and theirs back. A host is told its session's name (<see cref="Hosted"/>); a guest joins it
+/// by that name. The socket's buffers fit a world sent whole to a guest joining.
+/// </summary>
+public sealed class RelayLink<TIn, TOut> : ILink<TIn, TOut>
+{
+    /// <summary>The most a frame may hold, either way: a world's save rides in one.</summary>
+    private const int Buffer = 32 * 1024 * 1024;
+
+    private readonly WebSocketPeer _socket = new() { InboundBufferSize = Buffer, OutboundBufferSize = Buffer, MaxQueuedPackets = 4096 };
+    private readonly Dictionary<long, Channel> _channels = new();
+    private readonly bool _hosting;
+    private readonly string _opening;
+    private bool _open, _closed;
+
+    private RelayLink(bool hosting, string opening)
+    {
+        _hosting = hosting;
+        _opening = opening;
+    }
+
+    public event Action<long, IChannel<TIn, TOut>>? Connected;
+    public event Action<long>? Disconnected;
+
+    /// <summary>The relay opened this host's session, by the name a guest joins with.</summary>
+    public event Action<string>? Hosted;
+
+    /// <summary>The link could not be made or was lost, and why, in a few words.</summary>
+    public event Action<string>? Failed;
+
+    /// <summary>Hosts a session named <paramref name="name"/> on the relay at <paramref name="url"/>.</summary>
+    public static RelayLink<ToHost, ToClient> Host(string url, string password, string? name) =>
+        Open(new RelayLink<ToHost, ToClient>(true, RelayFrames.HostFrame(name)), url, password);
+
+    /// <summary>Joins session <paramref name="session"/> on the relay at <paramref name="url"/>.</summary>
+    public static RelayLink<ToClient, ToHost> Join(string url, string password, string session) =>
+        Open(new RelayLink<ToClient, ToHost>(false, RelayFrames.JoinFrame(session)), url, password);
+
+    private static RelayLink<I, O> Open<I, O>(RelayLink<I, O> link, string url, string password)
+    {
+        link._socket.HandshakeHeaders = [RelayFrames.Authorization(password)];
+        var error = link._socket.ConnectToUrl(url);
+        if (error != Error.Ok) link._closed = true;
+        return link;
+    }
+
+    public void Poll()
+    {
+        if (_closed) return;
+        _socket.Poll();
+        switch (_socket.GetReadyState())
+        {
+            case WebSocketPeer.State.Open:
+                if (!_open)
+                {
+                    _open = true;
+                    _socket.SendText(_opening);
+                }
+                while (_socket.GetAvailablePacketCount() > 0) Take(_socket.GetPacket().GetStringFromUtf8());
+                break;
+            case WebSocketPeer.State.Closed:
+                _closed = true;
+                Failed?.Invoke(_open
+                    ? $"the relay closed the link ({_socket.GetCloseCode()})"
+                    : "cannot reach the relay: wrong password, or the server is down");
+                foreach (long id in new List<long>(_channels.Keys)) Disconnected?.Invoke(id);
+                _channels.Clear();
+                break;
+        }
+    }
+
+    public void Close()
+    {
+        _socket.Close();
+        _closed = true;
+    }
+
+    private void Take(string text)
+    {
+        if (RelayFrames.Read(text) is not { } frame) return;
+        switch (frame.Event)
+        {
+            case RelayFrames.Hosted when frame.Session is { } session:
+                Hosted?.Invoke(session);
+                break;
+            case RelayFrames.Joined when _hosting && frame.Peer is int peer:
+                Add(peer);
+                break;
+            case RelayFrames.Connected when !_hosting:
+                // A guest's only peer is its host.
+                Add(0);
+                break;
+            case RelayFrames.Refused:
+                Failed?.Invoke("no session by that name on the relay");
+                break;
+            case RelayFrames.FromPeer when frame is { Peer: int from, Message: { } message }:
+                if (_channels.TryGetValue(from, out var channel)) channel.Inbox.Deliver(Protocol.Read<TIn>(Encoding.UTF8.GetBytes(message)));
+                break;
+            case RelayFrames.FromHost when frame.Message is { } message:
+                if (_channels.TryGetValue(0, out var host)) host.Inbox.Deliver(Protocol.Read<TIn>(Encoding.UTF8.GetBytes(message)));
+                break;
+            case RelayFrames.Left when frame.Peer is int gone:
+                if (_channels.Remove(gone)) Disconnected?.Invoke(gone);
+                break;
+            case RelayFrames.HostLeft:
+                if (_channels.Remove(0)) Disconnected?.Invoke(0);
+                break;
+        }
+    }
+
+    private void Add(long id)
+    {
+        var channel = new Channel(this, id);
+        _channels[id] = channel;
+        Connected?.Invoke(id, channel);
+    }
+
+    private sealed class Channel(RelayLink<TIn, TOut> link, long peer) : IChannel<TIn, TOut>
+    {
+        public Inbox<TIn> Inbox { get; } = new();
+
+        public void Send(TOut message)
+        {
+            string json = Encoding.UTF8.GetString(Protocol.Write(message));
+            link._socket.SendText(link._hosting ? RelayFrames.ToPeerFrame((int)peer, json) : RelayFrames.ToHostFrame(json));
+        }
+
+        public void OnMessage(Action<TIn> handler) => Inbox.Listen(handler);
+    }
+}

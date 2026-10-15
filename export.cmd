@@ -9,5 +9,8 @@ if exist build\windows rmdir /s /q build\windows
 mkdir build\windows
 "%GODOT%" --headless --path game --import
 "%GODOT%" --headless --path game --export-release "Windows Desktop" ..\build\windows\Stillwake.exe || exit /b 1
+rem The co-op launchers: host or join through the playtest server's relay.
+copy /y deploy\build\host.cmd build\windows\ >nul
+copy /y deploy\build\join.cmd build\windows\ >nul
 powershell -NoProfile -Command "Compress-Archive -Path build\windows\* -DestinationPath build\Stillwake-windows.zip -Force"
 echo Built build\windows\Stillwake.exe and build\Stillwake-windows.zip

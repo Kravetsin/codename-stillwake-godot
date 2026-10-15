@@ -10,7 +10,7 @@ namespace Stillwake.Game.Net;
 /// (<see cref="Host"/>), a guest its host (<see cref="Join"/>). Messages go as Protocol JSON. Nothing
 /// happens until <see cref="Poll"/>, which the game calls every frame on the main thread.
 /// </summary>
-public sealed class EnetLink<TIn, TOut>
+public sealed class EnetLink<TIn, TOut> : ILink<TIn, TOut>
 {
     private readonly ENetMultiplayerPeer _peer = new();
     private readonly Dictionary<long, Channel> _channels = new();

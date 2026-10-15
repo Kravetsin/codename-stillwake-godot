@@ -28,7 +28,8 @@ namespace Stillwake.Game;
 
 /// <summary>
 /// The game: a session (net/README.md) of its own, or with <c>-- --host</c> one others join over ENet
-/// with <c>-- --join[=address]</c>; the world it plays drawn by the client's features after every
+/// with <c>-- --join[=address]</c>, or through the playtest server's relay with <c>--relay</c>, hosting as
+/// <c>--host=name</c> and joining by <c>--join=name</c> (<see cref="Relay"/>); the world it plays drawn by the client's features after every
 /// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves, loads tanks, opens
 /// crates and catches debris, the left button held works plans; the camera follows it; its items (Tab,
 /// 1–9, the wheel, Q) and its crafts beside the inventory, the plan (B), the game menu (Esc: settings, save,
@@ -115,7 +116,8 @@ public partial class Main : Node2D
             _demo.Start();
         }
         var join = _args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
-        if (Has("--host")) Host();
+        var hostAs = _args.FirstOrDefault(a => a == "--host" || a.StartsWith("--host="));
+        if (hostAs != null) Host(hostAs.Length > 7 ? hostAs[7..] : null);
         else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args));
         else Alone();
         AddChild(new DevPanel(() => _session, () => _m, () => _net));
@@ -159,7 +161,22 @@ public partial class Main : Node2D
         AimCamera(Has("--gallery") ? null : layout);
     }
 
-    private void Host()
+    /// <summary>
+    /// The relay to meet through rather than ENet, with <c>--relay</c> (the playtest server) or
+    /// <c>--relay=wss://...</c>, and its password, <c>--password=...</c> or <c>STILLWAKE_PASSWORD</c>; none without.
+    /// </summary>
+    private (string Url, string Password)? Relay()
+    {
+        var relay = _args.FirstOrDefault(a => a == "--relay" || a.StartsWith("--relay="));
+        if (relay == null) return null;
+        string url = relay.Length > 8 ? relay[8..] : RelayFrames.PlaytestUrl;
+        string password = _args.FirstOrDefault(a => a.StartsWith("--password="))?[11..]
+            ?? System.Environment.GetEnvironmentVariable("STILLWAKE_PASSWORD") ?? "";
+        return (url, password);
+    }
+
+    /// <summary>Hosts a session: over ENet on <see cref="Port"/>, or on the relay as <paramref name="name"/>.</summary>
+    private void Host(string? name)
     {
         _role = "host";
         var world = World.Create(1, _layout, Modules());
@@ -169,32 +186,67 @@ public partial class Main : Node2D
         _session = new Session(host, client);
         ShowWorld();
         AimCamera(_layout);
-        var (link, error) = EnetLink<ToHost, ToClient>.Host(Port);
-        if (error != Error.Ok) GD.PrintErr($"[host] cannot listen on {Port}: {error}");
-        var ids = new Dictionary<long, int>();
-        _net = $"hosting :{Port} · peers 0";
-        link.Connected += (enet, channel) =>
+        ILink<ToHost, ToClient> link;
+        string where = $":{Port}";
+        if (Relay() is var (url, password))
         {
-            ids[enet] = host.Admit(channel);
-            _net = $"hosting :{Port} · peers {ids.Count}";
-            Log($"peer {ids[enet]} joined at tick {host.Tick}");
+            var relayed = RelayLink<ToHost, ToClient>.Host(url, password, name);
+            where = "the relay";
+            relayed.Hosted += session =>
+            {
+                where = $"\"{session}\" on the relay";
+                _net = $"hosting {where} · peers 0";
+                Log($"hosting session {session} on {url}");
+            };
+            relayed.Failed += why => Log(why);
+            link = relayed;
+        }
+        else
+        {
+            var (enet, error) = EnetLink<ToHost, ToClient>.Host(Port);
+            if (error != Error.Ok) GD.PrintErr($"[host] cannot listen on {Port}: {error}");
+            link = enet;
+        }
+        var ids = new Dictionary<long, int>();
+        _net = $"hosting {where} · peers 0";
+        link.Connected += (peer, channel) =>
+        {
+            ids[peer] = host.Admit(channel);
+            _net = $"hosting {where} · peers {ids.Count}";
+            Log($"peer {ids[peer]} joined at tick {host.Tick}");
         };
-        link.Disconnected += enet =>
+        link.Disconnected += peer =>
         {
             // Its hero leaves with it, its suit colour freed.
-            if (ids.Remove(enet, out int id)) host.Disconnect(id, client.World.Encode(new Sim.Crew.Leave()));
+            if (ids.Remove(peer, out int id)) host.Disconnect(id, client.World.Encode(new Sim.Crew.Leave()));
             Log($"peer {id} left");
-            _net = $"hosting :{Port} · peers {ids.Count}";
+            _net = $"hosting {where} · peers {ids.Count}";
         };
         _poll = link.Poll;
     }
 
+    /// <summary>Joins a session: a host's address over ENet, or a session's name on the relay.</summary>
     private void Join(string address, BadNetwork? network)
     {
         _role = "guest";
         _net = $"joining {address}";
-        var (link, error) = EnetLink<ToClient, ToHost>.Join(address, Port);
-        if (error != Error.Ok) GD.PrintErr($"[guest] cannot reach {address}: {error}");
+        ILink<ToClient, ToHost> link;
+        if (Relay() is var (url, password))
+        {
+            var relayed = RelayLink<ToClient, ToHost>.Join(url, password, address);
+            relayed.Failed += why =>
+            {
+                Log(why);
+                _net = why;
+            };
+            link = relayed;
+        }
+        else
+        {
+            var (enet, error) = EnetLink<ToClient, ToHost>.Join(address, Port);
+            if (error != Error.Ok) GD.PrintErr($"[guest] cannot reach {address}: {error}");
+            link = enet;
+        }
         link.Connected += (_, channel) =>
         {
             Log($"connected to {address}{(network != null ? $" over {network}" : "")}");
