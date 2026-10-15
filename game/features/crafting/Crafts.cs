@@ -28,8 +28,8 @@ public static class Crafts
     /// <summary>Units a shift-click queues; a plain click queues one.</summary>
     public const int Many = 5;
 
-    /// <summary>The grid's columns, and its rows shown without scrolling.</summary>
-    public const int Columns = Content.Crafts.RowMost, RowsShown = 5;
+    /// <summary>The grid's columns, and its rows a page: as many as the inventory has.</summary>
+    public const int Columns = Content.Crafts.RowMost, RowsShown = 3;
 
     /// <summary>The most crafts pinned over the tabs.</summary>
     public const int PinMost = 9;
@@ -44,8 +44,11 @@ public static class Crafts
     /// <summary>Where <paramref name="craft"/> sits; null for an item no craft makes.</summary>
     public static Spot? SpotOf(string craft) => Spots.GetValueOrDefault(craft);
 
-    /// <summary>Rows a tab's grid draws: its own, and empty ones up to <see cref="RowsShown"/>.</summary>
-    public static int RowsOf(CraftTab tab) => Math.Max(RowsShown, tab.Rows.Count);
+    /// <summary>A tab's pages, <see cref="RowsShown"/> rows each: one at least.</summary>
+    public static int PagesOf(CraftTab tab) => Math.Max(1, (tab.Rows.Count + RowsShown - 1) / RowsShown);
+
+    /// <summary>The page a row of its tab is on.</summary>
+    public static int PageOf(int row) => row / RowsShown;
 
     /// <summary>The tab <paramref name="step"/> away from <paramref name="tab"/>, wrapping round: the wheel over the tabs.</summary>
     public static int Step(int tab, int step) => ((tab + step) % Tabs.Count + Tabs.Count) % Tabs.Count;

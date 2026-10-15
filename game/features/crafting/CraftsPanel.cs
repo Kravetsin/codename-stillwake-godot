@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
@@ -22,7 +23,8 @@ public partial class CraftsPanel : CanvasLayer
 {
     /// <summary>What the panel shows is read this often.</summary>
     private const double RefreshMs = 100;
-    private const int Gap = 8, Slot = 36, Small = 32;
+    /// <summary>Every slot one size, the inventory's; the tabs this tall over the panel.</summary>
+    private const int Gap = 8, Slot = 36, Small = 36, TabHigh = 32;
     /// <summary>One beat of the pulse on a craft gone to, in seconds, and how many beats.</summary>
     private const double Beat = 0.9;
     private const int Beats = 2;
@@ -63,14 +65,12 @@ public partial class CraftsPanel : CanvasLayer
     private readonly Ui _ui;
     private readonly VBoxContainer _column = Style.Gap(new VBoxContainer(), 6);
     private readonly HBoxContainer _pins = Style.Gap(new HBoxContainer(), 4);
-    private readonly HBoxContainer _tabs = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Stop }, 4);
+    /// <summary>The tabs, outside the panel and over its top edge, so a few buttons make it no taller.</summary>
+    private readonly HBoxContainer _tabs = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Stop, Visible = false }, 4);
     private readonly Label _tabName = new() { LabelSettings = HeadingText }, _opened = new() { LabelSettings = AsideText };
-    private readonly ScrollContainer _scroll = new()
-    {
-        HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-        CustomMinimumSize = new Vector2(0, Crafts.RowsShown * Slot + (Crafts.RowsShown - 1) * 4),
-    };
-    private readonly GridContainer _grid = Style.Gap(new GridContainer { Columns = Crafts.Columns }, 4);
+    private readonly Label _pageOf = new() { LabelSettings = AsideText };
+    private readonly Button _back = Style.Button("<", () => { }, size: 12, padX: 6, padY: 0), _on = Style.Button(">", () => { }, size: 12, padX: 6, padY: 0);
+    private readonly GridContainer _grid = Style.Gap(new GridContainer { Columns = Crafts.Columns, MouseFilter = Control.MouseFilterEnum.Stop }, 4);
     private readonly HBoxContainer _queue = Style.Gap(new HBoxContainer(), 4);
     private PanelContainer _panel = null!;
     /// <summary>The slots, the queue's entries and the tabs, each saying what it is in the one tooltip.</summary>
@@ -91,7 +91,7 @@ public partial class CraftsPanel : CanvasLayer
     /// <summary>What the slots and the queue were built from: rebuilt only when it changes.</summary>
     private string? _shownKey;
 
-    private int _tab;
+    private int _tab, _page;
     private IReadOnlyList<string> _pinned = [];
     /// <summary>The craft a click went to, and how long it has pulsed.</summary>
     private (string Craft, double Time)? _pulse;
@@ -112,19 +112,20 @@ public partial class CraftsPanel : CanvasLayer
         var kept = new ConfigFile();
         if (kept.Load(PinsFile) == Error.Ok) _pinned = Crafts.Loaded(kept.GetValue("crafts", "pinned", new string[0]).AsStringArray());
 
-        _column.AddChild(Section(Heading(T("crafts.pinned"), T("crafts.pinHow")), _pins));
-        var tabs = new VBoxContainer();
-        tabs.AddThemeConstantOverride("separation", 0);
-        tabs.AddChild(_tabs);
-        tabs.AddChild(new ColorRect { Color = Style.Slate600, CustomMinimumSize = new Vector2(0, 1), MouseFilter = Control.MouseFilterEnum.Ignore });
-        _column.AddChild(tabs);
         _tabs.GuiInput += WheelOverTabs;
-        _scroll.AddChild(_grid);
-        _column.AddChild(Section(Heading(_tabName, _opened), _scroll));
+        _grid.GuiInput += WheelOverPages;
+        _back.Pressed += () => Turn(-1);
+        _on.Pressed += () => Turn(1);
+        var pages = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        _tabName.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        foreach (var c in (Control[])[_tabName, _opened, _back, _pageOf, _on]) pages.AddChild(c);
+        _column.AddChild(Section(pages, _grid));
+        _column.AddChild(Section(Heading(T("crafts.pinned"), T("crafts.pinHow")), _pins));
         _column.AddChild(Section(Heading(T("crafts.queue"), ""), _queue));
         _panel = Style.Panel(Style.Slate700, _column);
         _panel.Visible = false;
         AddChild(_panel);
+        AddChild(_tabs);
         _ui.InventoryEdge.Subscribe(Dock);
     }
 
@@ -167,7 +168,12 @@ public partial class CraftsPanel : CanvasLayer
     {
         var edge = _ui.InventoryEdge.Get();
         _panel.Visible = edge != null;
-        if (edge is var (right, top)) _panel.Position = new Vector2(right + Gap, top);
+        _tabs.Visible = edge != null;
+        if (edge is var (right, top))
+        {
+            _panel.Position = new Vector2(right + Gap, top);
+            _tabs.Position = new Vector2(right + Gap + 6, top - TabHigh);
+        }
         if (edge != null) Read();
     }
 
@@ -179,7 +185,7 @@ public partial class CraftsPanel : CanvasLayer
         _carried = _items.Totals(peer);
         _creative = _items.Creative;
         var queue = _crafting.Queue(peer);
-        string key = $"{_tab}|{string.Join(",", _pinned)}|"
+        string key = $"{_tab}:{_page}|{string.Join(",", _pinned)}|"
             + string.Join(",", Content.Crafts.All.Select(c => (int)LookOf(c.Item)))
             + "|" + string.Join(";", queue.Select(e => $"{e.Id}:{e.Recipe}:{e.Count}"));
         if (key != _shownKey)
@@ -216,7 +222,9 @@ public partial class CraftsPanel : CanvasLayer
         for (int i = 0; i < Crafts.Tabs.Count; i++) _tabs.AddChild(TabButton(i));
 
         var tab = Crafts.Tabs[_tab];
-        for (int row = 0; row < Crafts.RowsOf(tab); row++)
+        int pages = Crafts.PagesOf(tab);
+        _page = Math.Clamp(_page, 0, pages - 1);
+        for (int row = _page * Crafts.RowsShown; row < (_page + 1) * Crafts.RowsShown; row++)
         {
             var crafts = row < tab.Rows.Count ? tab.Rows[row] : [];
             for (int column = 0; column < Crafts.Columns; column++)
@@ -225,6 +233,8 @@ public partial class CraftsPanel : CanvasLayer
         var placed = tab.Rows.SelectMany(r => r).ToList();
         _tabName.Text = T($"crafts.tab.{tab.Id}");
         _opened.Text = T("crafts.opened", ("n", placed.Count(_research!.Knows)), ("all", placed.Count));
+        _pageOf.Text = $"{_page + 1}/{pages}";
+        foreach (var c in (Control[])[_back, _pageOf, _on]) c.Visible = pages > 1;
 
         for (int i = 0; i < Content.Crafting.QueueMost; i++)
             _queue.AddChild(i < queue.Count ? EntrySlot(queue[i], i == 0) : EmptySlot(Small));
@@ -275,11 +285,9 @@ public partial class CraftsPanel : CanvasLayer
     private void GoTo(string craft)
     {
         if (Crafts.SpotOf(craft) is not { } spot) return;
-        _tab = spot.Tab;
+        (_tab, _page) = (spot.Tab, Crafts.PageOf(spot.Row));
         _pulse = (craft, 0);
         Read();
-        if (_cells.FirstOrDefault(c => c.Craft == craft && c.Box.GetParent() == _grid) is { } cell)
-            Callable.From(() => _scroll.EnsureControlVisible(cell.Box)).CallDeferred();
     }
 
     private void Pin(string craft)
@@ -386,9 +394,24 @@ public partial class CraftsPanel : CanvasLayer
     private void Show(int tab)
     {
         if (tab == _tab) return;
-        _tab = tab;
-        _scroll.ScrollVertical = 0;
+        (_tab, _page) = (tab, 0);
         Read();
+    }
+
+    /// <summary>The page <paramref name="step"/> on in this tab, if there is one.</summary>
+    private void Turn(int step)
+    {
+        int page = Math.Clamp(_page + step, 0, Crafts.PagesOf(Crafts.Tabs[_tab]) - 1);
+        if (page == _page) return;
+        _page = page;
+        Read();
+    }
+
+    private void WheelOverPages(InputEvent e)
+    {
+        if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown or MouseButton.WheelUp } wheel) return;
+        _grid.AcceptEvent();
+        Turn(wheel.ButtonIndex == MouseButton.WheelDown ? 1 : -1);
     }
 
     private void Add(Cell cell)
@@ -414,7 +437,7 @@ public partial class CraftsPanel : CanvasLayer
     private static Panel Box(int size) => new()
     {
         CustomMinimumSize = new Vector2(size, size),
-        // Pass, not Stop: the wheel over a slot still reaches the grid's scroll.
+        // Pass, not Stop: the wheel over a slot still reaches the grid, which turns its pages.
         MouseFilter = Control.MouseFilterEnum.Pass,
     };
 
@@ -446,7 +469,7 @@ public partial class CraftsPanel : CanvasLayer
         return section;
     }
 
-    /// <summary>A tab's box: rounded at the top, open at the bottom, where the line under the tabs runs.</summary>
+    /// <summary>A tab's box: rounded at the top, open at the bottom, standing on the panel's edge.</summary>
     private static StyleBoxFlat TabBox(Color bg, Color border)
     {
         var box = Style.Box(bg, border, radius: 3);

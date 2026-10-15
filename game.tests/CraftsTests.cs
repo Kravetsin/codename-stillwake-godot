@@ -33,9 +33,11 @@ public class CraftsTests
     }
 
     [Fact]
-    public void DrawsAtLeastFiveRowsAndWrapsTheWheelRoundTheTabs()
+    public void ShowsThreeRowsAPageAndWrapsTheWheelRoundTheTabs()
     {
-        Assert.Equal(Crafts.RowsShown, Crafts.RowsOf(Crafts.Tabs[0]));
+        Assert.Equal(3, Crafts.RowsShown);
+        Assert.Equal(1, Crafts.PagesOf(Crafts.Tabs[0]));
+        Assert.Equal((0, 0, 1, 1), (Crafts.PageOf(0), Crafts.PageOf(2), Crafts.PageOf(3), Crafts.PageOf(5)));
         Assert.Equal(0, Crafts.Step(0, 1 * Crafts.Tabs.Count));
         Assert.Equal(Crafts.Tabs.Count - 1, Crafts.Step(0, -1));
     }
