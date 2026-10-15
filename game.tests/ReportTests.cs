@@ -73,6 +73,19 @@ public class ReportTests
     }
 
     [Fact]
+    public void EntersAgainOnComingIntoOrLeavingTheLifepodsReachInsideOneRoomWithoutAir()
+    {
+        // A room with no air, the lifepod at its left end: the pod's reach runs to column 4.
+        var s = WorldFrom(Layout.Parse(["............", "############", "#OOO.......#", "#OOO.......#", "#OOO.......#", "############"]));
+        int At12(int x, int y) => y * 12 + x;
+        Tell(s, HeroIn(9, 4));
+        Assert.Null(Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 12, 0, HeroIn(8, 4)));
+        Assert.Equal(new Enter(At12(4, 3)), Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 12, 0, HeroIn(4, 4)));
+        Tell(s, HeroIn(4, 4));
+        Assert.Equal(new Enter(At12(5, 3)), Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 12, 0, HeroIn(5, 4)));
+    }
+
+    [Fact]
     public void NoticesACrossingThroughADoorThatIsThenShutThoughTheRoomsAreRenamed()
     {
         var s = TwoRooms();
