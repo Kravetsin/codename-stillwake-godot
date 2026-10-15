@@ -52,6 +52,8 @@ public static partial class En
         ["tool.crate"] = "Crate",
         ["tool.cable"] = "Cable",
         ["build.open"] = "[B] Build",
+        ["gear.screwdriver"] = "Screwdriver",
+        ["gear.screwdriver.about"] = "Hold RMB on a plan to build it. Always at hand; better tools will go in this slot.",
         ["hint.build"] = "Drag to plan · hold RMB builds · MMB removes · Q picks · B closes",
         ["hint.air"] = "Drag to plan · hold RMB builds · MMB removes pipes and machines · Q picks · B closes",
         ["hint.power"] = "Drag a peg or plug to move it · Cable lays · MMB cuts · hold RMB builds · B closes",

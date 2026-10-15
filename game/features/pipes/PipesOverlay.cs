@@ -9,7 +9,7 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Features.Pipes;
 
 /// <summary>
-/// Every pipe network brought out of the ship (features/pipes/index.ts), with P: the ship dimmed and each
+/// Every pipe network brought out of the ship (features/pipes/index.ts), on the Air tab: the ship as it is and each
 /// network's pipes over it, slim, in a colour of their own, so a player sees which tanks and generators
 /// reach which vents. Where oxygen comes into a network, from a tank holding some or a powered generator,
 /// dots run along its pipes away from it; a network none comes into is faded and still. A valve shows its
@@ -28,7 +28,6 @@ public partial class PipesOverlay : Node2D
     private const double FlowSpeed = 2;
     private const int DotEvery = 3;
     private static readonly Color ValveOpen = AsciiArt.Colour(0x4caf6a), ValveClosed = AsciiArt.Colour(0xd05050), ValveEdge = AsciiArt.Colour(0x10161d);
-    private static readonly Color Dim = AsciiArt.Colour(0x05080d, 0.45f);
 
     private readonly Sketch _view = new(Layers.Overlay);
     private readonly List<(Rect2 Box, Color Colour)> _pipes = [];
@@ -37,7 +36,6 @@ public partial class PipesOverlay : Node2D
     private List<(Run Run, Color Colour)> _runs = [];
     private double _since = RefreshMs, _along;
     private int _shownTick = -1;
-    private (int W, int H) _size;
 
     public PipesOverlay()
     {
@@ -55,7 +53,6 @@ public partial class PipesOverlay : Node2D
         _shownTick = client.World.Tick;
         var grid = m.Grid;
         int width = grid.Width;
-        _size = (width, grid.Height);
         var byId = grid.Machines.ToDictionary(x => x.Id);
         // A tank holding oxygen feeds its pipes; a powered generator does, its store empty or not.
         bool Feeds(int id) => byId.TryGetValue(id, out var x) && (x.Kind == "generator"
@@ -98,7 +95,6 @@ public partial class PipesOverlay : Node2D
 
     private void Paint(Sketch g)
     {
-        g.DrawRect(new Rect2(0, 0, _size.W * Cell, _size.H * Cell), Dim);
         foreach (var (box, colour) in _pipes) g.DrawRect(box, colour);
         foreach (var (box, colour) in _valves)
         {

@@ -13,7 +13,8 @@ using Stillwake.Sim.Rooms;
 namespace Stillwake.Game.Features.Building;
 
 /// <summary>
-/// Plans drawn over the ship as their own pictures in blue, marks as red crosses, and the hand at work
+/// Plans drawn over the ship as their own pictures in blue, marks as what they take out in red, both as
+/// projections (<see cref="PlanTiles"/>), and the hand at work
 /// (features/building/index.ts, 0022, 0030): a card's ghost along a left drag, a removal's along a middle
 /// one in the open tab's layers, coloured by what the sim would say, with its reason by the pointer; a
 /// release sends the commands. Q picks a card. With no card out, no grid: space stays space.
@@ -31,13 +32,15 @@ public partial class BuildingView : Node2D
     private readonly Ui _ui;
     private readonly PlanHand _hand;
     // Back walls at 0.35 against the rest's 0.75, as the TypeScript game drew them.
-    private readonly PlanTiles _plans = new(backAlpha: 0.35f / 0.75f) { ZIndex = Layers.Plans, Modulate = Plan };
+    private readonly PlanTiles _plans = new(backAlpha: 0.35f / 0.75f, projected: true) { ZIndex = Layers.Plans, Modulate = Plan };
+    /// <summary>What a mark takes out, its own picture again in red over it.</summary>
+    private readonly PlanTiles _marked = new(projected: true) { ZIndex = Layers.Plans, Modulate = Mark with { A = 0.7f } };
     private readonly PlanTiles _fits = new() { ZIndex = Layers.PlanGhost, Modulate = Fits with { A = 0.75f } };
     private readonly PlanTiles _refused = new() { ZIndex = Layers.PlanGhost, Modulate = Refused with { A = 0.75f } };
     private readonly Sketch _marks = new(Layers.PlanMarks), _hands = new(Layers.PlanHands);
 
     private string _drawn = "";
-    private List<(Rect2 Box, bool Cross, float Share, bool Lacks)> _shownPlans = [];
+    private List<(Rect2 Box, float Share, bool Lacks)> _shownPlans = [];
     private List<Edge> _near = [];
     private List<(int Cell, bool Refused)> _removing = [];
     private int _width;
@@ -53,7 +56,7 @@ public partial class BuildingView : Node2D
     {
         _ui = ui;
         _hand = hand;
-        foreach (var node in (Node2D[])[_plans, _marks, _fits, _refused, _hands]) AddChild(node);
+        foreach (var node in (Node2D[])[_plans, _marked, _marks, _fits, _refused, _hands]) AddChild(node);
         _marks.Paint = PaintPlans;
         _hands.Paint = PaintHands;
     }
@@ -132,7 +135,7 @@ public partial class BuildingView : Node2D
 
     /// <summary>
     /// The plans as their own pictures in blue, pipes and doors joined to the plans beside them, back walls
-    /// fainter; marks as red crosses over what they take out; and a bar along the bottom of each plan: a
+    /// fainter; marks as what they take out in red; and a bar along the bottom of each plan: a
     /// blueprint's share delivered while it lacks something, in amber, then the work done, in white.
     /// Redrawn only when the plans change.
     /// </summary>
@@ -158,6 +161,15 @@ public partial class BuildingView : Node2D
             int linked = Blueprint.LinksOf(p.Cell, width, c => placed.TryGetValue(c, out var others) && others.Any(o => Blueprint.Joins(place, o)));
             _plans.Lay(place, p.Cell, width, linked);
         }
+        _marked.Begin();
+        foreach (var p in plans)
+        {
+            if (p.Clear is not { } layer) continue;
+            int at = layer == "machine" && grid.MachineAt(p.Cell) is { } machine ? machine.Cell : p.Cell;
+            if (Tools.BuiltAt(at, layer, grid) is not { } built) continue;
+            int joined = Blueprint.LinksOf(at, width, c => Tools.BuiltAt(c, layer, grid) is { } other && Blueprint.Joins(built, other));
+            _marked.Lay(built, at, width, joined);
+        }
         _shownPlans = plans.Select(p =>
         {
             var box = BoxOf(CellsOf(grid, p), width);
@@ -165,7 +177,7 @@ public partial class BuildingView : Node2D
             float share = lacks
                 ? (float)p.Delivered.Sum(s => s.Count) / Math.Max(1, building.CostOf(p.Id)?.Sum(c => c.Count) ?? 1)
                 : (float)p.Progress / (building.TicksFor(p.Id) ?? 1);
-            return (box, p.Clear != null, share, lacks);
+            return (box, share, lacks);
         }).ToList();
         _marks.QueueRedraw();
         SparkWork(plans, grid, rooms);
@@ -210,14 +222,8 @@ public partial class BuildingView : Node2D
 
     private void PaintPlans(Sketch g)
     {
-        foreach (var (box, cross, share, lacks) in _shownPlans)
+        foreach (var (box, share, lacks) in _shownPlans)
         {
-            if (cross)
-            {
-                var (a, b) = (box.Position + new Vector2(4, 4), box.End - new Vector2(4, 4));
-                g.DrawLine(a, b, Mark, 2);
-                g.DrawLine(new Vector2(b.X, a.Y), new Vector2(a.X, b.Y), Mark, 2);
-            }
             if (share <= 0) continue;
             var bar = new Rect2(box.Position.X + 2, box.End.Y - 5, box.Size.X - 4, 3);
             g.DrawRect(bar, BarBack);

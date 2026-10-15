@@ -17,7 +17,7 @@ namespace Stillwake.Game.Features.Power;
 /// inside the ship, swinging out of a hero's way and drifting loose out in space, drawn behind the ship's
 /// structure, with a peg where one ends on a wall, a plug in each socket and a grommet where one goes
 /// through the hull; a bolt over each machine short of power, blinking with none. With L, the power
-/// overlay: the ship dimmed and every cable over it in its network's state, the very ropes the cables
+/// overlay: the ship as it is, every cable over it in its network's state, the very ropes the cables
 /// hang as, a loose plug over each powered machine with no cable, and beside the pointer on a node what
 /// its network makes against what it would draw. Cables are laid, moved and cut there, with the cable or
 /// the plan in hand (<see cref="PowerHands"/>, 0022): a cable carried is the real rope, highlighted.
@@ -39,7 +39,6 @@ public partial class PowerView : Node2D
     private static readonly Color Carried = Colors.White;
     private const float CarriedWidth = 2.5f;
     /// <summary>What the overlay lays over the ship, so the cables stand out from it.</summary>
-    private static readonly Color Dim = AsciiArt.Colour(0x05080d, 0.45f);
     private static readonly Color Fits = AsciiArt.Colour(0x7fe08a), Refused = AsciiArt.Colour(0xe05555), OutOfReach = AsciiArt.Colour(0x9aa3ad);
 
     private readonly Ui _ui;
@@ -266,7 +265,6 @@ public partial class PowerView : Node2D
 
     private void PaintOverlay(Sketch g)
     {
-        g.DrawRect(new Rect2(0, 0, _size.W * Cell, _size.H * Cell), Dim);
         var carried = _hands.Carried;
         bool Holds(int a, int b) => carried is { } c && (c.End.Cable is { } cable ? cable.A == a && cable.B == b : c.End.Node == a || c.End.Node == b);
         foreach (var line in _drawn)
