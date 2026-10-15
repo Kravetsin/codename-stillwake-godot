@@ -36,6 +36,16 @@ public class RelayFramesTests
     }
 
     [Fact]
+    public void NamesASessionAsTheRelayTakesItWhateverCaseOrSpacesWereTyped()
+    {
+        Assert.Equal("kravets", RelayFrames.SessionName(" Kravets "));
+        Assert.Equal("our-ship-2", RelayFrames.SessionName("Our Ship_2!"));
+        Assert.Equal(24, RelayFrames.SessionName(new string('a', 40)).Length);
+        Assert.Equal("kravets", (string)Parsed(RelayFrames.JoinFrame("Kravets"))["data"]!["session"]!);
+        Assert.Equal("kravets", (string)Parsed(RelayFrames.HostFrame("Kravets"))["data"]!["name"]!);
+    }
+
+    [Fact]
     public void AsksWithThePasswordUnderAnyUserAsTheServerChecksIt()
     {
         string header = RelayFrames.Authorization("secret");

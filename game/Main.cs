@@ -136,6 +136,7 @@ public partial class Main : Node2D
             updating: () => _updater.Status);
         AddChild(menu);
         AddChild(_updater);
+        AddChild(new VersionCorner(Updates.Of(Build).ToString()));
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))

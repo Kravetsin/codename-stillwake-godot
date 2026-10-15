@@ -22,10 +22,26 @@ public static class RelayFrames
     public readonly record struct Frame(string Event, int? Peer, string? Message, string? Session);
 
     /// <summary>Opens a session named <paramref name="name"/>, or numbered by the relay when it is taken or none.</summary>
-    public static string HostFrame(string? name) => Of(Host, name == null ? new JsonObject() : new JsonObject { ["name"] = name });
+    public static string HostFrame(string? name) => Of(Host, name == null ? new JsonObject() : new JsonObject { ["name"] = SessionName(name) });
 
     /// <summary>Joins session <paramref name="session"/>; the relay answers with the token it was sent.</summary>
-    public static string JoinFrame(string session) => Of(Join, new JsonObject { ["session"] = session, ["token"] = 1 });
+    public static string JoinFrame(string session) => Of(Join, new JsonObject { ["session"] = SessionName(session), ["token"] = 1 });
+
+    /// <summary>
+    /// A session's name as the relay takes it: lower case letters, digits and dashes, at most 24, so
+    /// <c>Kravets</c> and <c>kravets</c> name one session rather than the relay numbering one it refuses.
+    /// </summary>
+    public static string SessionName(string typed)
+    {
+        var name = new System.Text.StringBuilder();
+        foreach (char c in typed.Trim().ToLowerInvariant())
+        {
+            if (name.Length == 24) break;
+            if (c is >= 'a' and <= 'z' or >= '0' and <= '9' or '-') name.Append(c);
+            else if (c == ' ' || c == '_') name.Append('-');
+        }
+        return name.ToString();
+    }
 
     /// <summary>A guest's message to its host.</summary>
     public static string ToHostFrame(string message) => Of(ToHost, new JsonObject { ["message"] = message });
