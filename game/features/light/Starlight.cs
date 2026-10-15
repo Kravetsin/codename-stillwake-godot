@@ -12,11 +12,10 @@ namespace Stillwake.Game.Features.Light;
 /// cell with no back wall and everywhere past the grid's edge, and spread from there in sweeps along
 /// every row and column, fading by what they cross. Worked out over the whole grid only when the ship
 /// changes, a texel a cell marked wall or open, and handed to <see cref="Lit"/>, whose material reads it
-/// smoothed between the cells of a picture's own side wherever this light, a directional one with no
-/// shadows, falls: the sweeps have already stopped it at walls. Its buffers and texture are kept and
+/// smoothed between the cells of a picture's own side: the sweeps have already stopped it at walls. Its buffers and texture are kept and
 /// filled anew, so a door toggled allocates nothing and costs only the sweeps.
 /// </summary>
-public partial class Starlight : DirectionalLight2D
+public partial class Starlight : Node
 {
     private const int Cell = ShipCamera.Cell;
     /// <summary>Cells of open space worked out round the grid, so its edge is lit as the space beyond it.</summary>
@@ -28,8 +27,6 @@ public partial class Starlight : DirectionalLight2D
     private float[] _light = [];
     private Image? _image;
     private ImageTexture? _texture;
-
-    public Starlight() => RangeItemCullMask = Lit.StarMask;
 
     /// <summary>Works the starlight out anew for the grid as it stands.</summary>
     public void Show(IGridQueries grid)

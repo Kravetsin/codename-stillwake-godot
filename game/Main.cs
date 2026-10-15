@@ -35,7 +35,7 @@ namespace Stillwake.Game;
 /// crates and catches debris, the left button held works plans; the camera follows it; its items (Tab,
 /// 1–9, the wheel, Q) and the lifepod's Fabricator beside them (E at the pod), the plan (B), the game menu (Esc: settings, save,
 /// load, quit) and the dev panel (`).
-/// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
+/// Dev arguments after <c>--</c>: <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit), <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--items</c> a room with a crate, a furnace and an
@@ -148,7 +148,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
-            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} occluders={_light?.OccluderCount}"));
+            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount}"));
     }
 
     private bool Has(string flag) => _args.Contains(flag);
@@ -429,7 +429,8 @@ public partial class Main : Node2D, ITogether
         AddChild(_furnace = fires);
         AddChild(_light = new LightView(_m.Grid)
         {
-            LampShare = lamp => power.Satisfaction(lamp.Id) / 1000f,
+            // --lit: every lamp at full power, to measure the light on the reference world.
+            LampShare = Has("--lit") ? _ => 1f : lamp => power.Satisfaction(lamp.Id) / 1000f,
             Fire = m => fires.BlazeOf(m.Id),
         });
         MoveChild(_camera, -1);
