@@ -9,7 +9,7 @@ public class LightSourcesTests
 {
     private const int Cell = 16;
 
-    private static LightSource Lamp(double x, double y, float strength = 1) => new(x, y, (1.5f, 1.3f, 0.95f), strength, 16, 0.88f, 1);
+    private static LightSource Lamp(double x, double y, float strength = 1) => new(x, y, (1.5f, 1.3f, 0.95f), strength, 16, 0.88f, 1, 6);
 
     [Fact]
     public void StopsLightAtWallsAndClosedDoorsAndLetsItThroughOpenDoorsAndTheOpen()
@@ -32,7 +32,7 @@ public class LightSourcesTests
         Assert.Equal(16f * Cell, buffer[5]);
         Assert.Equal((480f, 80f), (buffer[3], buffer[7]));
         Assert.Equal((1.5f, 1f), (buffer[8], buffer[11]));
-        Assert.Equal((16f, 0.88f, 1f), (buffer[12], buffer[13], buffer[14]));
+        Assert.Equal((16f, 0.88f, 1f, 6f), (buffer[12], buffer[13], buffer[14], buffer[15]));
     }
 
     [Fact]

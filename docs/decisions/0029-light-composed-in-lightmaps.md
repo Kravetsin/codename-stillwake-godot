@@ -18,7 +18,8 @@ open doors and an evenly shaded ship.
   into two HDR lightmaps over the view, a texel a world pixel, one additive quad a light over its reach.
 - Shadows are traced per texel: the quad's shader walks the cells to the light through a byte-a-cell
   occupancy texture and drops the texel behind a wall or a closed door's panel. Walls are lit on the
-  faces light reaches. Shadows are exact to the pixel.
+  faces light reaches. Lamps and fires have a width, so a shadow's edge is soft: rays to more points of
+  the light are walked only where the two ends disagree.
 - The lit shader reads the lightmaps unshaded: ambient, the stars and the main map scaled together to
   keep hue, the spots capped apart. Starlight stays the cell-by-cell sweeps of 0019.
 - Relief by normal maps is dropped for now; the team decides after seeing the ship flat.
@@ -26,8 +27,8 @@ open doors and an evenly shaded ship.
 ## Consequences
 
 - Any number of lights may touch a thing.
-- Cheaper than Godot's lights, which drew every wall's shadow for every light each frame: 0.62 against
-  1.61 ms a frame at zoom 1 on the reference world with 103 lamps lit.
+- No dearer than Godot's lights, which drew every wall's shadow for every light each frame: 1.38 against
+  1.61 ms a frame at zoom 1 on the reference world with 103 lamps lit, 0.96 against 0.97 at zoom 2.
 - Cost grows with lights on screen times reach squared; caching still lights' shadows is the next step
   if that ever binds.
 - A new light is a `LightSource` in `LightView`, or a `render/Glow` node for a small one.

@@ -10,7 +10,9 @@ namespace Stillwake.Game.Features.Light;
 /// (0029): <see cref="Main"/> for lamps and fires, <see cref="Spots"/> for embers, sparks and the like,
 /// capped apart by <see cref="Lit"/>. Each light is one additive quad over its reach whose shader walks
 /// the cells from each texel to the light and drops the texel if a wall or a closed door's panel stands
-/// between: shadows to the pixel, a wall lit on the faces the light reaches, and no limit on how many
+/// between; a light with a size is seen from the texel as a line across that wide, and where its two
+/// ends disagree, in a shadow's edge, more points along it are walked and the share seen kept: soft
+/// edges where Godot's PCF gave them. A wall is lit on the faces the light reaches, and no limit on how many
 /// lights touch a thing, as Godot's 2D lights have. A texel a world pixel, or more pixels a texel when
 /// the view is too big for <see cref="MostTexels"/> across.
 /// </summary>
@@ -35,12 +37,12 @@ public partial class Lightmap : Node
             varying vec2 world;
             varying flat vec2 centre;
             varying flat vec4 light;
-            varying flat vec3 shape;
+            varying flat vec4 shape;
 
             void vertex() {
                 world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
-                // reach in cells, keep a cell, most a colour; the quad's UV runs -1..1 across its reach.
-                shape = INSTANCE_CUSTOM.xyz;
+                // reach in cells, keep a cell, most a colour, size in pixels; the quad's UV runs -1..1 across its reach.
+                shape = INSTANCE_CUSTOM;
                 centre = world - UV * shape.x * CELL;
                 light = COLOR;
             }
@@ -55,7 +57,8 @@ public partial class Lightmap : Node
 
             // Whether a wall or a door's panel stands between a point and the light, cell by cell along
             // the line. The walls the point is in are passed until the line comes out of them, so a wall
-            // is lit on its faces; in a door's cell only a point on the panel itself passes it.
+            // is lit on its faces; so is the door panel it is on, down the door's cells, till the line
+            // leaves the panel. A point beside a panel in its cell is shadowed by it.
             bool shadowed(vec2 from, vec2 to) {
                 vec2 a = from / CELL, d = to / CELL - a;
                 ivec2 c = ivec2(floor(a)), end = ivec2(floor(to / CELL));
@@ -71,12 +74,16 @@ public partial class Lightmap : Node
                     int k = kind(c);
                     if (k == 2) {
                         if (!leaving) return true;
-                    } else {
-                        if (k == 1) {
-                            float x0 = (a.x + d.x * t0 - float(c.x)) * CELL, x1 = (a.x + d.x * t1 - float(c.x)) * CELL;
-                            bool face = i == 0 && x0 >= panel.x && x0 < panel.y;
-                            if (!face && max(min(x0, x1), panel.x) < min(max(x0, x1), panel.y)) return true;
+                    } else if (k == 1) {
+                        float x0 = (a.x + d.x * t0 - float(c.x)) * CELL, x1 = (a.x + d.x * t1 - float(c.x)) * CELL;
+                        bool on = x0 >= panel.x && x0 <= panel.y;
+                        if (leaving && on) {
+                            leaving = x1 >= panel.x && x1 <= panel.y;
+                        } else {
+                            leaving = false;
+                            if (max(min(x0, x1), panel.x) < min(max(x0, x1), panel.y)) return true;
                         }
+                    } else {
                         leaving = false;
                     }
                     if (c == end || t1 >= 1.0) break;
@@ -99,8 +106,24 @@ public partial class Lightmap : Node
                 if (dist >= reach) discard;
                 // As the TypeScript game spread light: keep a cell, faded out over the last cells.
                 float fall = pow(shape.y, dist) * clamp((reach - dist) / min(4.0, reach / 2.0), 0.0, 1.0);
-                if (fall <= 0.0 || shadowed(world, centre)) discard;
-                COLOR = vec4(min(vec3(shape.z), light.rgb * fall) * light.a, 1.0);
+                if (fall <= 0.0) discard;
+                // The light seen from here: a line across the way to it, size wide; its ends first.
+                vec2 across = normalize(vec2(centre.y - world.y, world.x - centre.x) + vec2(1e-6, 0.0)) * shape.w * 0.5;
+                float seen;
+                if (shape.w < 1.0) {
+                    seen = shadowed(world, centre) ? 0.0 : 1.0;
+                } else {
+                    float ends = (shadowed(world, centre - across) ? 0.0 : 1.0) + (shadowed(world, centre + across) ? 0.0 : 1.0);
+                    seen = ends * 0.5;
+                    if (ends == 1.0) {
+                        // A shadow's edge: the points between the ends too.
+                        float lit = ends;
+                        for (int s = 1; s < 8; s++) lit += shadowed(world, centre + across * (float(s) / 4.0 - 1.0)) ? 0.0 : 1.0;
+                        seen = lit / 9.0;
+                    }
+                }
+                if (seen <= 0.0) discard;
+                COLOR = vec4(min(vec3(shape.z), light.rgb * fall) * light.a * seen, 1.0);
             }
             """,
     };

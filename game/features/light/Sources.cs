@@ -7,9 +7,10 @@ namespace Stillwake.Game.Features.Light;
 /// <summary>
 /// One light as the lightmap draws it, in pixels of the world: <see cref="Colour"/> falling off by
 /// <see cref="Keep"/> a cell out to <see cref="Reach"/> cells, each colour at most <see cref="Most"/>, then
-/// times <see cref="Strength"/> — a lamp's flicker, a fire's flame, an ember's fade.
+/// times <see cref="Strength"/> — a lamp's flicker, a fire's flame, an ember's fade; <see cref="Size"/>
+/// pixels across, which softens its shadows' edges, or a point at 0.
 /// </summary>
-public readonly record struct LightSource(double X, double Y, (float R, float G, float B) Colour, float Strength, int Reach, float Keep, float Most);
+public readonly record struct LightSource(double X, double Y, (float R, float G, float B) Colour, float Strength, int Reach, float Keep, float Most, float Size = 0);
 
 /// <summary>What the lightmap's shader reads: the walls and doors light stops at, and each light it draws.</summary>
 public static class Sources
@@ -35,7 +36,7 @@ public static class Sources
     /// <summary>
     /// Packs each of <paramref name="lights"/> whose reach touches <paramref name="view"/> (pixels) into
     /// <paramref name="buffer"/>, grown as needed, <paramref name="cell"/> pixels a cell: a quad over its
-    /// reach, its colour with its strength, its reach, keep and most. Answers how many it packed.
+    /// reach, its colour with its strength, its reach, keep, most and size. Answers how many it packed.
     /// </summary>
     public static int Pack(IReadOnlyList<LightSource> lights, (double X, double Y, double W, double H) view, int cell, ref float[] buffer)
     {
@@ -56,7 +57,7 @@ public static class Sources
             buffer[k + 6] = 0;
             buffer[k + 7] = (float)l.Y;
             (buffer[k + 8], buffer[k + 9], buffer[k + 10], buffer[k + 11]) = (l.Colour.R, l.Colour.G, l.Colour.B, l.Strength);
-            (buffer[k + 12], buffer[k + 13], buffer[k + 14], buffer[k + 15]) = (l.Reach, l.Keep, l.Most, 0);
+            (buffer[k + 12], buffer[k + 13], buffer[k + 14], buffer[k + 15]) = (l.Reach, l.Keep, l.Most, l.Size);
         }
         return n;
     }

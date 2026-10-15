@@ -150,7 +150,7 @@ public partial class LightView : Node2D
             float shines = Flicker.BrightnessOf(LampShare(lamp), _timeMs, lamp.Id);
             glow.Visible = shines > 0;
             glow.Modulate = GlowColour with { A = shines };
-            _main.Add(new LightSource(at.X, at.Y, L.Lamp, shines, LampReach, L.Air, L.LampMost));
+            _main.Add(new LightSource(at.X, at.Y, L.Lamp, shines, LampReach, L.Air, L.LampMost, L.LampSize));
         }
         foreach (var (furnace, at, glow) in _fires)
         {
@@ -158,7 +158,7 @@ public partial class LightView : Node2D
             glow.Visible = burns > 0;
             if (burns <= 0) continue;
             glow.Modulate = FireGlowColour with { A = Math.Min(1, FireGlowAlpha * burns) };
-            _main.Add(new LightSource(at.X, at.Y, L.Fire, burns, FireReach, L.FireKeep, 1));
+            _main.Add(new LightSource(at.X, at.Y, L.Fire, burns, FireReach, L.FireKeep, 1, L.FireSize));
         }
         foreach (var p in Particles.Shared.Live)
         {

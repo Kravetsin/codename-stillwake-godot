@@ -40,5 +40,11 @@ public static class Light
     public const float Particle = 0.5f;
     public const float ParticleKeep = 0.5f;
     public const float ParticleMost = 0.5f;
+
+    /// <summary>
+    /// How wide a lamp's bulb and a fire's mouth are, in pixels: a shadow's edge is soft over as much as
+    /// the light seen from it is wide, sharp by what casts it, wider further off. Glows are points.
+    /// </summary>
+    public const float LampSize = 6f, FireSize = 10f;
     public static readonly (float R, float G, float B) Ambient = (0.05f, 0.055f, 0.07f);
 }

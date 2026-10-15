@@ -20,7 +20,11 @@ Numbers from `game/Content/Light.cs`.
   door, open; rebuilt only when walls or doors change), and drops the texel if a wall or a closed
   door's panel stands between: shadows to the pixel. The walls a texel is in are passed until the
   line comes out of them, so a wall is lit on the faces light reaches; in a door's cell only a texel
-  on the panel itself passes it, so the back wall beside a door stays dark to a light beyond it.
+  on the panel itself passes it, down the door's cells till the line leaves the panel, so a door is
+  lit whole and the back wall beside it stays dark to a light beyond it. A lamp (`Light.LampSize`) and a
+  fire (`Light.FireSize`) have a width: seen from a texel the light is a line across that wide; its two
+  ends are walked, and where they disagree — a shadow's edge — seven points between, the share seen
+  kept. Edges are soft over as much as the light seen from them is wide, as Godot's PCF softened them.
 - **Lamps:** `Light.Lamp`, keeping `Light.Air` a cell, each colour at most `Light.LampMost`, out to
   `LampReach` (16) cells, as bright as `LightView.LampShare` says — the power it gets, flickering when
   short (`Flicker`) — and an unlit additive glow.
@@ -44,7 +48,8 @@ Numbers from `game/Content/Light.cs`.
 - **What it lights:** the ship's cells and machines, cables, stacks on the floor, debris and every
   hero's figure; not fire, glows, particles, plans or overlays.
 - **Cost** on the reference world with its 103 lamps lit (`--perf --lit --measure`, RTX 4060 Ti):
-  0.62 ms a frame at zoom 1 and 0.50 ms at zoom 2, against 1.61 and 0.97 ms with Godot's lights.
+  1.38 ms a frame at zoom 1 and 0.96 ms at zoom 2 with soft edges (0.62 and 0.50 sharp), against 1.61
+  and 0.97 ms with Godot's lights.
 
 ## Deliberately not handled
 
