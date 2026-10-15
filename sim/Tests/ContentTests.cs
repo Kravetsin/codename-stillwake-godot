@@ -371,6 +371,19 @@ public class ContentTests
     // Crafts
 
     [Fact]
+    public void EveryCraftHasOnePlaceInTheCraftsWindowAndEveryPlaceIsACraft()
+    {
+        var placed = Crafts.Tabs.SelectMany(t => t.Rows).SelectMany(row => row).ToList();
+        Assert.Equal(Crafts.All.Select(c => c.Item).Order(StringComparer.Ordinal), placed.Order(StringComparer.Ordinal));
+        Assert.Equal(Crafts.Tabs.Count, Crafts.Tabs.Select(t => t.Id).Distinct().Count());
+        foreach (var tab in Crafts.Tabs)
+        {
+            Assert.True(Content.Items.TryGet(tab.Icon, out _), tab.Icon);
+            foreach (var row in tab.Rows) Assert.InRange(row.Count, 1, Crafts.RowMost);
+        }
+    }
+
+    [Fact]
     public void CraftsMakeItemsOfWholeUnitsOfOtherRealItemsInWholeTicks()
     {
         Assert.True(Content.Crafting.QueueMost > 0);

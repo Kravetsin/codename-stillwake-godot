@@ -8,6 +8,12 @@ namespace Stillwake.Content;
 /// <param name="Ticks">Ticks one unit takes, 20 to a second.</param>
 public sealed record Craft(string Item, IReadOnlyList<(string Item, int Count)> Cost, int Ticks);
 
+/// <summary>A tab of the crafts window, where every craft has a place that never moves.</summary>
+/// <param name="Id">Its name's key in the client, <c>crafts.tab.&lt;Id&gt;</c>.</param>
+/// <param name="Icon">The item its button shows.</param>
+/// <param name="Rows">Its rows from the top, each a family of crafts by the item made, simple to complex left to right.</param>
+public sealed record CraftTab(string Id, string Icon, IReadOnlyList<IReadOnlyList<string>> Rows);
+
 /// <summary>What a hero crafts by hand, by the item made (the crafting module).</summary>
 public static class Crafts
 {
@@ -18,6 +24,15 @@ public static class Crafts
         new("gear", [("iron", 1)], Ticks: 40),
         new("rotor", [("gear", 1), ("wire", 2)], Ticks: 60),
     ];
+
+    /// <summary>Where each craft sits in the crafts window: every craft once, known or not.</summary>
+    public static readonly IReadOnlyList<CraftTab> Tabs =
+    [
+        new("parts", Icon: "gear", Rows: [["plate", "gear", "rotor"], ["wire"]]),
+    ];
+
+    /// <summary>The most crafts a row holds: the window's columns.</summary>
+    public const int RowMost = 9;
 
     private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);
 
@@ -31,5 +46,5 @@ public static class Crafts
 public static class Crafting
 {
     /// <summary>The most crafts one hero's queue holds; each may make many units.</summary>
-    public const int QueueMost = 8;
+    public const int QueueMost = 9;
 }
