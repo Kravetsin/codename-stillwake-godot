@@ -1,4 +1,4 @@
-# Design: Crafting, blueprints opened by their parts, a burner generator
+# Design: Crafting, blueprints opened by their parts, a burner generator, a Fabricator
 
 ## Problem
 
@@ -207,6 +207,70 @@ change to wire; the furnace's become fire scenarios where they hold for both.
   1. **Parts and their blueprints** (built): the analysed rule, `Locked`, schematics gone, the four parts, the
      `Crafting` module and its panel, the new costs, the analyzer's screen and panel.
   2. **The burner generator:** shared fires, the fuel slot by spec, resting makers, its art.
+  3. **The Fabricator** (below): crafting by machine only, the hand queue and its window gone.
+
+## Task 3: no crafting by hand, a Fabricator
+
+Decided with the team on 2026-10-15, after the crafts window by hand proved either bulky or hard to
+search: parts are made by machines only, as in Subnautica and RimWorld. The window of tabs and pages
+goes; what a player crafts is what the machine before them makes.
+
+### Player experience
+
+1. In the wreck a **Fabricator** stands in room A, cabled to the solar panel. E opens it beside the
+   inventory, as the furnace and the analyzer open: its recipes in fixed places, its queue, its output.
+2. A click on the wire queues one, a shift-click five; the scrap leaves the inventory at once. The
+   machine's screen runs and the queued slot fills from the bottom, faster or slower as its power is.
+3. Finished wire lands in its output slots; a click takes it into the inventory. The hero may walk off
+   meanwhile: the queue runs without them.
+4. Co-op: the queue is the machine's, seen by all; anyone may add to it, take from it, or cancel an
+   entry, its cost given back to whoever cancels.
+
+Goes wrong: the panel's power falls short and the queue slows to the share it gets, at none it stops
+("No power" on its screen); the output is full and the unit at work waits there, full; the Fabricator
+is taken apart with entries queued: what they took and its output go to the one who takes it apart,
+what does not fit floats at their feet.
+
+### Approach
+
+- **Content.** `fabricator`: 2×2, draws 2 while it works (resting otherwise, as the analyzer), 3
+  output slots and no input slots (`Inputs = 0`); granted at the start, placed in the wreck's room A on
+  the panel's network. Every craft is the Fabricator's while it is the only station; a craft names its
+  station once a second one comes (principle 2).
+- **`Crafting`: queues by machine, not by peer.** State: each Fabricator's `{ machine, next, progress,
+  entries }`. `Craft(Machine, Recipe, Count)` and `Cancel(Machine, Entry)` add `crafting.noStation`
+  (no Fabricator by that id) to today's refusals; the cost leaves the sender, the refund goes to the
+  sender. Each tick, in machine order: a Fabricator with an entry works at its power satisfaction
+  (thousandths, as research counts), rests at none or with nothing queued; a unit done goes to its
+  output (the machine's slots in `Items`), or waits full. Depends on `Items`, `Research`, `Power`
+  (`Satisfaction`, `Rest`) and `Grid` (which machines are Fabricators).
+- **Taken apart.** `Building` asks `Crafting` for a machine's queued costs when it refunds it, as it
+  refunds a crate's contents (`GiveOrDrop`).
+- **Client.** The Fabricator's panel beside the inventory (the mockup, "Fabricator panel"): its
+  recipes as the crafts grid draws them now (silhouettes, short items dim, a click on a short one shows
+  the missing ingredient's recipe when the Fabricator makes it), its shared queue filling from the
+  bottom, its output, and its screen as the analyzer's: lines while it works, dark without power. The
+  Tab crafts window, its tabs, pages and pins go.
+
+### Trade-offs
+
+- A queue paid by one and cancelled by another refunds the canceller → friends share a ship → no
+  record of who paid.
+- A short panel slows every machine at once → the burner generator (task 2) is the way out, and among
+  the first things the Fabricator should make.
+- Walking to the machine for every part → the queue runs while the hero is away; ordering from the
+  planner tablet is a later idea, not this task.
+- Old saves with hand queues are refused → the format bump.
+
+### Tests
+
+- A wire queued is made in its ticks at full power, slower at half, not at all unpowered; the
+  Fabricator rests while idle.
+- The output fills; a unit waits full until a slot is taken from.
+- Refusals: noStation, unknown, full, notEnough, noEntry.
+- Two peers queue on one Fabricator; one cancels the other's entry and gets its cost.
+- Taken apart with a queue: the dismantler gets the queued costs and the output.
+- The wreck: a Fabricator on the panel's network, granted.
 
 ## Decided with the team
 
