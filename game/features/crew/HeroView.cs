@@ -158,8 +158,8 @@ public partial class HeroView : Node2D
     }
 
     /// <summary>
-    /// What the hands do at the pointer: the aim said while the hero is awake and outlined while the hand
-    /// is free, doors and valves as <paramref name="shown"/>; E on what it works whatever the hand holds,
+    /// What the hands do at the pointer: the aim said and outlined while the hero is awake, whatever the
+    /// hand holds, doors and valves as <paramref name="shown"/>; E on what it works whatever the hand holds,
     /// so a door opens with a card or a cable out; the left button only with a free hand, as it is the
     /// card's otherwise. Passed out, the hands do nothing: a press is spent, a hold works no plan.
     /// </summary>
@@ -167,10 +167,10 @@ public partial class HeroView : Node2D
     {
         if (!_mouse.Buttons.HoldsLeft) _served.Clear();
         var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served) : null;
-        // With a card out the building shows the pointer's cell and its own reasons: only the prompt for E.
         var prompt = passedOut ? null : Prompts.Of(m, aim, shown);
-        TraceAim(m, shown, handFree && prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
+        TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
+        _prompt.Place(_ui.MenuTop);
         _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);
 
         // The press is taken every frame, so one made out of reach is spent rather than kept. The left

@@ -121,6 +121,12 @@ public sealed class Ui
     public Store<(float Right, float Top)?> InventoryEdge { get; } = new(null);
 
     /// <summary>
+    /// Where the open build menu's top edge is on the screen; null while it is closed. Set by
+    /// <c>building</c> every frame; <c>crew</c> lifts the prompt for E above it.
+    /// </summary>
+    public float? MenuTop { get; set; }
+
+    /// <summary>
     /// The piece of debris E would grab, and whether the sim would refuse it: <c>crew</c> sets it while
     /// the pointer is on one within reach, <c>debris</c> outlines that piece.
     /// </summary>

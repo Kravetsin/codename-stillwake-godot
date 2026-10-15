@@ -141,6 +141,7 @@ public partial class BuildMenu : CanvasLayer
         bool open = _hand.PlanOut.Get();
         _closed.Visible = !open;
         _open.Visible = open;
+        _ui.MenuTop = open ? _open.GetGlobalRect().Position.Y : null;
         if (!open)
         {
             _tips.Show(null);
