@@ -1,3 +1,4 @@
+using Stillwake.Content;
 using Stillwake.Sim.Grid;
 using Cost = System.Collections.Generic.IReadOnlyList<(string Item, int Count)>;
 
@@ -71,20 +72,25 @@ public sealed partial class BuildingModule
         return _items.Crate(machine.Id).Any(s => s != null) ? "building.notEmpty" : null;
     }
 
+    /// <summary>Whether <paramref name="kind"/> is a machine built into the ship from its start (the lifepod): never planned, never taken apart.</summary>
+    private static bool IsFixed(string kind) => Machines.TryGet(kind, out var spec) && spec.Fixed;
+
     /// <summary>Why <paramref name="layer"/> of <paramref name="cell"/> cannot be marked, as a refusal key; null when it can.</summary>
     private string? MarkProblem(int cell, string layer)
     {
         if (MarkedCell(cell, layer) is not int at) return "building.nothingThere";
+        if (layer == "machine" && _grid.MachineAt(at) is { } machine && IsFixed(machine.Kind)) return "building.fixed";
         if (IsMarked(layer, at)) return "building.planned";
         return InUse(at, layer);
     }
 
     /// <summary>
-    /// Why <paramref name="place"/> cannot be planned at <paramref name="cell"/>: a blueprint not known
+    /// Why <paramref name="place"/> cannot be planned at <paramref name="cell"/>: a machine built into the ship, a blueprint not known
     /// (ADR 0024), what the grid says, then a plan already claiming its slot in a cell it covers.
     /// </summary>
     private string? PlaceProblem(int cell, Placement place)
     {
+        if (place.Layer == "machine" && IsFixed(place.Kind)) return "building.fixed";
         if (!_research.Knows(place)) return "building.unknown";
         var gridProblem = _grid.PlacementProblem(cell, place);
         if (gridProblem != null) return gridProblem;

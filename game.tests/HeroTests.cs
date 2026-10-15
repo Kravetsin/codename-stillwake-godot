@@ -25,11 +25,11 @@ public class HeroTests
     internal static Ship ShipFrom(string map) => ShipFrom(Layout.Parse(map));
     internal static Ship ShipFrom(IReadOnlyList<string> rows) => ShipFrom(Layout.Parse(rows));
 
-    /// <summary>The ship and a hero standing at its S.</summary>
+    /// <summary>The ship and a hero standing where the crew makes heroes: its lifepod's hatch, or its S.</summary>
     private static (Ship Ship, Hero Hero) Start(Layout layout)
     {
         var ship = ShipFrom(layout);
-        int spawn = layout.CellsOf('S').First();
+        int spawn = new TestWorld(layout).M.Crew.Spawn;
         return (ship, Hero.At(ship, spawn));
     }
 
@@ -536,7 +536,7 @@ public class HeroTests
     }
 
     internal static readonly Layout Wreck = Registry.Wreck;
-    internal static readonly int Spawn = Wreck.CellsOf('S').First();
+    internal static readonly int Spawn = new TestWorld(Wreck).M.Crew.Spawn;
     /// <summary>The wreck with every door open, the airlock's two doorways among them.</summary>
     /// <summary>The middle of room B's last cell of hull before space, where a tether out of it is tied.</summary>
     internal const int TornEdge = 36 * Unit + Unit / 2;

@@ -1,4 +1,5 @@
 using Stillwake.Sim.Atmosphere;
+using Stillwake.Sim.Grid;
 
 namespace Stillwake.Sim.Crew;
 
@@ -23,8 +24,10 @@ public sealed record Exert(bool On) : Command;
 /// <summary>What any module or the client may read of the heroes.</summary>
 public interface ICrewQueries
 {
-    /// <summary>Where heroes wake: the map's first S, or cell 0 on a map without one.</summary>
+    /// <summary>Where heroes are made: the lifepod's hatch, else the map's first S, or cell 0 on a map with neither.</summary>
     int Spawn { get; }
+    /// <summary>Whether a hero in <paramref name="cell"/> draws the lifepod's air into its suit: within <c>Crew.PodReach</c> of it.</summary>
+    bool ByPod(int cell);
     /// <summary>Hero <paramref name="id"/>, played by that peer; null while the sim has none (TypeScript's <c>hero</c>).</summary>
     Hero? HeroOf(int id);
     /// <summary>Every hero, in id order: live and read-only, for counting who breathes where.</summary>
@@ -40,8 +43,11 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
 {
     public override string Id => "crew";
 
-    public CrewModule(IAtmosphereOps atmosphere)
+    private readonly IGridQueries _grid;
+
+    public CrewModule(IAtmosphereOps atmosphere, IGridQueries grid)
     {
+        _grid = grid;
         Handles<Enter>(_ => null, c =>
         {
             var hero = HeroOf(c.From);
@@ -76,13 +82,15 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                     continue;
                 }
                 if (!breath) continue;
-                // One draw for the breath and the refill: what comes beyond the breath tops up the suit,
-                // and what the air falls short of the breath the suit pays.
+                // The pod's air first, for the breath and the suit alike; then one draw from the room for
+                // what is left of both, the room's refill as before. What the air falls short of the breath the suit pays.
                 int breathes = hero.Exerting ? Content.Crew.Exerted : 1;
-                int want = breathes + Math.Min(Content.Crew.Refill, Content.Crew.Suit - hero.Suit);
-                int taken = atmosphere.Breathe(hero.Cell, want);
-                hero.Suit = Math.Max(0, hero.Suit + taken - breathes);
-                if (hero.Suit == 0 && taken < breathes)
+                int lack = Content.Crew.Suit - hero.Suit;
+                int pod = ByPod(hero.Cell) ? Math.Min(Content.Crew.PodRefill, breathes + lack) : 0;
+                int want = Math.Min(breathes + Math.Min(Content.Crew.Refill, lack), breathes + lack - pod);
+                int taken = want > 0 ? atmosphere.Breathe(hero.Cell, want) : 0;
+                hero.Suit = Math.Max(0, hero.Suit + pod + taken - breathes);
+                if (hero.Suit == 0 && pod + taken < breathes)
                 {
                     hero.Out = Content.Crew.PassOut;
                     hero.Exerting = false;
@@ -91,8 +99,28 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
         });
     }
 
-    protected override CrewState Init(Layout layout) =>
-        new() { Spawn = layout.CellsOf('S').DefaultIfEmpty(0).First() };
+    /// <summary>The map's first lifepod makes heroes at its hatch; a map without one wakes them at its first S.</summary>
+    protected override CrewState Init(Layout layout)
+    {
+        var pods = layout.Machines().Where(m => m.Kind == Pod).Select(m => m.Cell).ToList();
+        if (pods.Count == 0) return new() { Spawn = layout.CellsOf('S').DefaultIfEmpty(0).First() };
+        var (x, y) = Content.Crew.PodHatch;
+        return new() { Pod = pods[0], Spawn = pods[0] + y * layout.Width + x };
+    }
+
+    private const string Pod = "lifepod";
+
+    /// <summary>Whether <paramref name="cell"/> is within <c>Crew.PodReach</c> cells of every side of the pod, either way.</summary>
+    public bool ByPod(int cell)
+    {
+        if (State.Pod is not int pod || cell < 0) return false;
+        var spec = Content.Machines.Get(Pod);
+        int width = _grid.Width;
+        int x = cell % width, y = cell / width, left = pod % width, top = pod / width;
+        int dx = Math.Max(0, Math.Max(left - x, x - (left + spec.Width - 1)));
+        int dy = Math.Max(0, Math.Max(top - y, y - (top + spec.Height - 1)));
+        return Math.Max(dx, dy) <= Content.Crew.PodReach;
+    }
 
     /// <summary>
     /// The colour a hero coming in wears: the first no hero wears, or with every one worn, the one worn

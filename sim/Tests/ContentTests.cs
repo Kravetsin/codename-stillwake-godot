@@ -27,7 +27,7 @@ public class ContentTests
         amounts.Sum(a => (a.Count + Content.Items.Get(a.Item).Stack - 1) / Content.Items.Get(a.Item).Stack);
 
     private static IEnumerable<(IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks)> AllBuilds() =>
-        Builds.All.Select(b => (b.Cost, b.BuildTicks)).Concat(Machines.All.Select(m => (m.Cost, m.BuildTicks)))
+        Builds.All.Select(b => (b.Cost, b.BuildTicks)).Concat(Machines.All.Where(m => !m.Fixed).Select(m => (m.Cost, m.BuildTicks)))
             .Concat(Materials.All.Select(m => (m.Cost, m.BuildTicks)));
 
     // Materials
@@ -100,7 +100,7 @@ public class ContentTests
     }
 
     [Fact]
-    public void ItemsGoIntoInventoriesAndMachinesOfWholeSlotsAMachineTakingThemIntoItsFirstFew()
+    public void ItemsGoIntoInventoriesAndMachinesOfWholeSlotsAMachineTakingThemIntoItsFirstFewOrNone()
     {
         Assert.True(Inventory.Slots > 0);
         foreach (var m in Machines.All)
@@ -108,8 +108,21 @@ public class ContentTests
             if (m.Slots != null) Assert.True(m.Slots > 0, m.Kind);
             if (m.Inputs == null) continue;
             Assert.NotNull(m.Slots);
-            Assert.True(m.Inputs > 0 && m.Inputs < m.Slots, m.Kind);
+            Assert.True(m.Inputs >= 0 && m.Inputs < m.Slots, m.Kind);
         }
+    }
+
+    [Fact]
+    public void MachinesBuiltIntoTheShipAreTheLifepodAloneAMapDrawsItAndItCostsNothing()
+    {
+        Assert.Equal(["lifepod"], Machines.All.Where(m => m.Fixed).Select(m => m.Kind));
+        var pod = Machines.Get("lifepod");
+        Assert.Empty(pod.Cost);
+        Assert.Equal((0, null, null), (pod.Inputs, pod.Makes, pod.Draws));
+        Assert.Contains(Legend.Map, e => Legend.MachineOf(e.Char) == "lifepod");
+        Assert.Single(Layout.Parse(Wreck.Rows).Machines(), m => m.Kind == "lifepod");
+        var (x, y) = Content.Crew.PodHatch;
+        Assert.True(x >= 0 && x < pod.Width && y >= 0 && y < pod.Height);
     }
 
     [Fact]
@@ -312,6 +325,9 @@ public class ContentTests
     {
         AllPositive(typeof(Content.Crew));
         Assert.True(Content.Crew.Refill < Content.Crew.Suit);
+        // By the pod a calm breath gains, even in vacuum; running there holds the suit at worst.
+        Assert.True(Content.Crew.PodRefill > 1);
+        Assert.True(Content.Crew.PodRefill >= Content.Crew.Exerted);
     }
 
     // Light
@@ -356,7 +372,7 @@ public class ContentTests
         static string Titled(string id) => id.Length == 0 ? "" : char.ToUpperInvariant(id[0]) + id[1..];
         return Materials.All.SelectMany(m => new[] { $"wall{Titled(m.Id)}", $"backWall{Titled(m.Id)}" })
             .Concat(Builds.All.Select(b => b.Id))
-            .Concat(Machines.All.Select(m => m.Kind));
+            .Concat(Machines.All.Where(m => !m.Fixed).Select(m => m.Kind));
     }
 
     [Fact]
@@ -371,16 +387,18 @@ public class ContentTests
     // Crafts
 
     [Fact]
-    public void EveryCraftHasOnePlaceInTheCraftsWindowAndEveryPlaceIsACraft()
+    public void EveryCraftHasOnePlaceInTheFabricatorAndEveryPlaceIsACraft()
     {
-        var placed = Crafts.Tabs.SelectMany(t => t.Rows).SelectMany(row => row).ToList();
+        var placed = Crafts.Rows.SelectMany(row => row).ToList();
         Assert.Equal(Crafts.All.Select(c => c.Item).Order(StringComparer.Ordinal), placed.Order(StringComparer.Ordinal));
-        Assert.Equal(Crafts.Tabs.Count, Crafts.Tabs.Select(t => t.Id).Distinct().Count());
-        foreach (var tab in Crafts.Tabs)
-        {
-            Assert.True(Content.Items.TryGet(tab.Icon, out _), tab.Icon);
-            foreach (var row in tab.Rows) Assert.InRange(row.Count, 1, Crafts.RowMost);
-        }
+        foreach (var row in Crafts.Rows) Assert.InRange(row.Count, 1, Crafts.RowMost);
+    }
+
+    [Fact]
+    public void CraftsAtThePodAtAShareOfFullSpeedEveryUnitInWholeTicks()
+    {
+        Assert.InRange(Crafts.PodSpeed, 1, 1000);
+        foreach (var craft in Crafts.All) Assert.Equal(0, craft.Ticks * 1000 % Crafts.PodSpeed);
     }
 
     [Fact]

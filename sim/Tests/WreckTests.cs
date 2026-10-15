@@ -32,6 +32,8 @@ public class WreckTests
     private const int BLeft = 30, BRight = 44, BTop = 18, BBottom = 23;
     private static bool Torn(int x, int y) => x < WreckRows.Rows[y].Length && WreckRows.Rows[y][x] == ' ';
     private static readonly int Panel = At(50, 17);
+    /// <summary>The lifepod's top-left cell, in A against the airlock's inner doorway, and its hatch.</summary>
+    private static readonly int Pod = At(51, 20), Hatch = At(52, 22);
     /// <summary>A cell of open space, far from the hull.</summary>
     private static readonly int Space = At(10, 10);
 
@@ -66,22 +68,51 @@ public class WreckTests
     }
 
     [Fact]
-    public void HoldsAPanelCabledToALampAndAGeneratorAVentAnAnalyzerNoFurnaceOrCrate()
+    public void HoldsAPanelCabledToALampAndAGeneratorAVentAnAnalyzerTheLifepodNoFurnaceOrCrate()
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
-        Assert.Equal(["solarPanel", "lamp", "analyzer", "generator", "vent"], m.Grid.Machines.Select(x => x.Kind));
+        Assert.Equal(["solarPanel", "lamp", "lifepod", "analyzer", "generator", "vent"], m.Grid.Machines.Select(x => x.Kind));
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
         Assert.Empty(m.Research.Analysed);
         var doors = Wreck.CellsOf('D').Select(m.Grid.StructureAt).ToList();
         Assert.Equal(Enumerable.Repeat(Structure.DoorClosed, 9), doors);
         var cells = m.Grid.Machines.Select(x => x.Cell).ToArray();
-        var (panel, lamp, generator) = (cells[0], cells[1], cells[3]);
+        var (panel, lamp, generator) = (cells[0], cells[1], cells[4]);
         // The generator and the lamp draw what the panel makes: in full.
         var network = Assert.Single(m.Power.Networks);
         Assert.Equal((panel, 5, 5, 1000), (network.Id, network.Supply, network.Demand, network.Satisfaction));
         Assert.Equal([panel, lamp, generator], network.Nodes);
+        Assert.Equal(Pod, cells[2]);
+        Assert.Equal(Hatch, m.Crew.Spawn);
         Assert.Contains(m.Crew.Spawn, A);
+        Assert.All(m.Grid.Footprint("lifepod", Pod)!, cell => Assert.Contains(cell, A));
+    }
+
+    [Fact]
+    public void MakesHeroesAtThePodInAWhereTheyBreatheWithAOpenToSpace()
+    {
+        var w = new Scenario(Wreck);
+        int pod = w.M.Grid.MachineAt(Pod)!.Id;
+        w.Do(new ToggleDoor(DoorToB)).Do(new Enter(w.M.Crew.Spawn) { From = 1 }).Run(10);
+        Assert.Equal(0, AiredIn(w, A));
+        w.Run(30 * CrewSpec.BreathEvery);
+        Assert.Equal(CrewSpec.Suit, w.M.Crew.HeroOf(1)?.Suit);
+        // Its Fabricator works with no power and no air.
+        w.GiveItems(1, ("scrap", 2));
+        w.Do(new Sim.Crafting.Craft(pod, "wire", 1) { From = 1 }).Run(PodTicks("wire"));
+        Assert.Equal(new Stack("wire", 1), w.M.Items.Crate(pod)[0]);
+    }
+
+    /// <summary>Ticks one unit of <paramref name="craft"/> takes at the pod.</summary>
+    private static int PodTicks(string craft) => Content.Crafts.Get(craft).Ticks * 1000 / Content.Crafts.PodSpeed;
+
+    /// <summary>Crafts one of <paramref name="craft"/> at the pod for peer 0 and takes it from the pod's outputs.</summary>
+    private static void CraftAtPod(Scenario w, string craft)
+    {
+        int pod = w.M.Grid.MachineAt(Pod)!.Id;
+        w.Do(new Sim.Crafting.Craft(pod, craft, 1)).Run(PodTicks(craft));
+        w.Do(new Move(new Slot(0, pod), new Target(), 99)).Run();
     }
 
     /// <summary>A furnace built in A by peer 0 of the salvage it costs, given with <paramref name="more"/>; its machine id.</summary>
@@ -114,7 +145,7 @@ public class WreckTests
     }
 
     [Fact]
-    public void SmeltsScrapCraftsAWireCablesTheAnalyzerAnalysesIronAndCraftsAPlate()
+    public void SmeltsScrapCraftsAWireAtThePodCablesTheAnalyzerAnalysesIronAndCraftsAPlate()
     {
         var w = AiredWreck();
         int furnace = BuildFurnace(w, ("scrapChunk", 1), ("hullPlate", 1), ("planks", 2));
@@ -128,8 +159,8 @@ public class WreckTests
         w.Run();
         Assert.True(w.M.Items.Totals(0).Single(t => t.Item == "iron").Count >= 2);
 
-        // Wire, the one craft the wreck grants, of the scrap smelted; the cable of the wire.
-        w.Do(new Sim.Crafting.Craft("wire", 1)).Run(Content.Crafts.Get("wire").Ticks);
+        // Wire, the one craft the wreck grants, of the scrap smelted, at the pod; the cable of the wire.
+        CraftAtPod(w, "wire");
         w.Do(new Lay(Panel, Analyzer)).Run();
         Assert.Empty(w.Refusals);
         int analyzer = w.M.Grid.MachineAt(Analyzer)?.Id ?? 0;
@@ -139,7 +170,7 @@ public class WreckTests
         w.Do(new Move(new Slot(SlotOf(w, "iron")), new Target(Crate: analyzer), 1)).Run();
         for (int i = 0; i < 4 * ResearchSpec.Ticks && !w.M.Research.Analysed.Contains("iron"); i++) w.Run();
         Assert.True(w.M.Research.Knows("plate"));
-        w.Do(new Sim.Crafting.Craft("plate", 1)).Run(Content.Crafts.Get("plate").Ticks);
+        CraftAtPod(w, "plate");
         Assert.Empty(w.Refusals);
         Assert.Equal(1, w.M.Items.Totals(0).Single(t => t.Item == "plate").Count);
     }
@@ -182,7 +213,8 @@ public class WreckTests
     public void LetsFourHeroesBreathingInAOutrunTheGeneratorWithinAMinute()
     {
         var w = AiredWreck();
-        foreach (int peer in new[] { 1, 2, 3, 4 }) w.Do(new Enter(At(47 + peer, 21)) { From = peer });
+        // Out of the pod's reach, whose air would pay their breaths.
+        foreach (int peer in new[] { 1, 2, 3, 4 }) w.Do(new Enter(At(45 + peer, 21)) { From = peer });
         w.Run(60 * 20);
         Assert.True(AiredIn(w, A) < A.Length);
     }

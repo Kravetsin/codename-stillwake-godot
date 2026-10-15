@@ -17,7 +17,11 @@ namespace Stillwake.Content;
 /// <param name="Slots">Item slots it holds, opened with E as a crate is.</param>
 /// <param name="Inputs">
 /// How many of its first slots items are put into; the rest are only taken from. All of them when not
-/// given. A move into it naming no slot goes to the first.
+/// given; none for a machine that only gives out (the lifepod). A move into it naming no slot goes to the first.
+/// </param>
+/// <param name="Fixed">
+/// Built into the ship from its start: never planned, never taken apart, and no blueprint (the lifepod).
+/// Meteors hit no machine at all.
 /// </param>
 public sealed record MachineSpec(
     string Kind,
@@ -30,7 +34,8 @@ public sealed record MachineSpec(
     int? Draws = null,
     (int X, int Y)? Plug = null,
     int? Slots = null,
-    int? Inputs = null);
+    int? Inputs = null,
+    bool Fixed = false);
 
 /// <summary>The machines, by the kind saves and the grid name them.</summary>
 public static class Machines
@@ -47,6 +52,8 @@ public static class Machines
         new("crate", 2, 1, [], [("planks", 6), ("iron", 2)], BuildTicks: 40, Slots: 27),
         // Its input, its fuel (Furnace.FuelSlot), then three outputs.
         new("furnace", 2, 2, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2),
+        // Where heroes are made and where parts are crafted (Crafts.PodSpeed); its slots are the crafts made.
+        new("lifepod", 3, 3, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true),
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);

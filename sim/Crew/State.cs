@@ -25,8 +25,10 @@ public sealed class Hero
 /// </summary>
 public sealed class CrewState
 {
-    /// <summary>Where heroes wake, from the map's S; the first cell when it has none.</summary>
+    /// <summary>Where heroes are made: the lifepod's hatch, else the map's S; the first cell when it has neither.</summary>
     [JsonInclude] internal int Spawn { get; set; }
+    /// <summary>The map's lifepod's top-left cell, whose air a hero near it draws into its suit; null for a map without one.</summary>
+    [JsonInclude] internal int? Pod { get; set; }
     /// <summary>Ticks run: breaths come every <c>Crew.BreathEvery</c> of them.</summary>
     [JsonInclude] internal int Clock { get; set; }
     /// <summary>Every hero, in id order.</summary>
