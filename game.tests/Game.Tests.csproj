@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="../game/platform/Saves.cs" Link="Game/Platform/Saves.cs" />
     <Compile Include="../game/net/RelayFrames.cs" Link="Game/Net/RelayFrames.cs" />
+    <Compile Include="../game/platform/Updates.cs" Link="Game/Platform/Updates.cs" />
     <Compile Include="../game/features/crew/Hero.cs" Link="Game/Crew/Hero.cs" />
     <Compile Include="../game/features/crew/Rig.cs" Link="Game/Crew/Rig.cs" />
     <Compile Include="../game/features/crew/Pose.cs" Link="Game/Crew/Pose.cs" />

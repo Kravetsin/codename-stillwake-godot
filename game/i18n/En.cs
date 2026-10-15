@@ -171,6 +171,7 @@ public static partial class En
         ["menu.nothingSaved"] = "Nothing saved yet",
         ["menu.aloneOnly"] = "Loads only when playing alone",
         ["menu.failed"] = "Failed: {why}",
+        ["menu.update"] = "Update to {version}",
         ["menu.coop"] = "Co-op",
         ["menu.session"] = "Session name",
         ["menu.password"] = "Playtest password",

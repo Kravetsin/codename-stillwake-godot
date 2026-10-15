@@ -53,6 +53,7 @@ public partial class Main : Node2D
         typeof(Main).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
 
     private Session? _session;
+    private readonly Updater _updater = new(Updates.Of(Build));
     private Registry _m = null!;
     /// <summary>The registry the views draw: a load or a resync brings a new one.</summary>
     private Registry? _shown;
@@ -130,8 +131,11 @@ public partial class Main : Node2D
                 _hands.Plan.PutPlanAway();
             },
             suits, SaveWorld, LoadWorld, canLoad: () => _role == "alone", Quit,
-            host: HostFromMenu, join: JoinFromMenu, net: () => _net);
+            host: HostFromMenu, join: JoinFromMenu, net: () => _net,
+            version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
+            updating: () => _updater.Status);
         AddChild(menu);
+        AddChild(_updater);
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
@@ -284,7 +288,7 @@ public partial class Main : Node2D
                 why =>
                 {
                     Log(why.Message);
-                    _net = why.Message;
+                    _net = why.Message.Contains("runs build") ? "the host runs another version: update (Esc)" : why.Message;
                     if (_session == null) GetTree().Quit(1);
                 });
         };

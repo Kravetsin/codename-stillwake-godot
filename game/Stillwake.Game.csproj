@@ -6,6 +6,9 @@
     <AssemblyName>Stillwake.Game</AssemblyName>
     <RootNamespace>Stillwake.Game</RootNamespace>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- A desk build is 0.0.0; CI sets a release's from its tag (docs/releasing.md). -->
+    <Version>0.0.0</Version>
+    <Version Condition="'$(STILLWAKE_VERSION)' != ''">$(STILLWAKE_VERSION)</Version>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../sim/Registry/Registry.csproj" />

@@ -24,7 +24,9 @@ public partial class GameMenu : CanvasLayer
     private readonly VBoxContainer _main, _settings, _coop;
     private readonly LineEdit _sessionName, _password;
     private readonly Label _netLine;
-    private readonly Func<string?> _net;
+    private readonly Func<string?> _net, _updateTo, _updating;
+    private readonly Button _update;
+    private readonly Label _updateLine;
     /// <summary>Where the co-op page keeps the last session name and password, on this machine only.</summary>
     private const string CoopFile = "user://coop.cfg";
     private readonly Button _loadButton;
@@ -43,10 +45,16 @@ public partial class GameMenu : CanvasLayer
     /// <param name="host">Hosts a session by name and password, and says how it went as an i18n key.</param>
     /// <param name="join">Joins a session by name and password, and says how it went as an i18n key.</param>
     /// <param name="net">How the session stands now, in a few words; none alone.</param>
+    /// <param name="version">This build, as the menu shows it at its foot.</param>
+    /// <param name="updateTo">A newer release's tag, once one is known to be out.</param>
+    /// <param name="update">Fetches the newer release and restarts into it.</param>
+    /// <param name="updating">How an update stands while it runs.</param>
     public GameMenu(Ui ui, Func<bool> busy, Action putAway, Control suits, Func<string> save, Func<string> load, Func<bool> canLoad, Action quit,
-        Func<string, string, string> host, Func<string, string, string> join, Func<string?> net)
+        Func<string, string, string> host, Func<string, string, string> join, Func<string?> net,
+        string version, Func<string?> updateTo, Action update, Func<string?> updating)
     {
         (_ui, _busy, _putAway, _save, _load, _canLoad, _net) = (ui, busy, putAway, save, load, canLoad, net);
+        (_updateTo, _updating) = (updateTo, updating);
         Layer = ScreenLayers.Menu;
         Visible = false;
 
@@ -63,6 +71,10 @@ public partial class GameMenu : CanvasLayer
         panel.AddChild(column);
 
         _main = Style.Gap(new VBoxContainer(), 8);
+        _main.AddChild(_update = Choice("menu.update", update));
+        _update.Visible = false;
+        _main.AddChild(_updateLine = Line("", Style.Sky200, 11));
+        _updateLine.Visible = false;
         _main.AddChild(Choice("menu.resume", () => Show(MenuPage.Closed)));
         _main.AddChild(Choice("menu.settings", () => Show(MenuPage.Settings)));
         _main.AddChild(Choice("menu.coop", () => Show(MenuPage.Coop)));
@@ -105,6 +117,7 @@ public partial class GameMenu : CanvasLayer
 
         column.AddChild(_status = Line("", Style.Slate300, 12));
         column.AddChild(Line(T("menu.running"), Style.Slate400, 11));
+        column.AddChild(Line(version, Style.Slate600, 10));
         _settings.Visible = false;
         Say("");
     }
@@ -137,6 +150,12 @@ public partial class GameMenu : CanvasLayer
     public override void _Process(double delta)
     {
         if (_page == MenuPage.Coop) _netLine.Text = _net() ?? "";
+        if (_page != MenuPage.Main) return;
+        string? tag = _updateTo(), how = _updating();
+        _update.Visible = tag != null && how == null;
+        if (tag != null) _update.Text = T("menu.update", ("version", tag));
+        _updateLine.Text = how ?? "";
+        _updateLine.Visible = how != null;
     }
 
     private static Label Line(string text, Color colour, int size) => new()
