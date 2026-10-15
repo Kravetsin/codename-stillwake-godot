@@ -40,18 +40,18 @@ public partial class GridView : Node2D
         _back = Layer(Layers.BackWalls);
         _pipes = Layer(Layers.Pipes);
         _valves = Layer(Layers.Valves);
-        _walls = Layer(Layers.Walls, L.WallIn, relief: true);
-        _edges = Layer(Layers.Edges, L.WallIn, relief: true);
+        _walls = Layer(Layers.Walls, L.WallIn);
+        _edges = Layer(Layers.Edges, L.WallIn);
         _fixtures = Layer(Layers.Fixtures);
-        _doors = Layer(Layers.Doors, L.WallIn, relief: true);
-        _machines = Layer(Layers.Machines, relief: true);
+        _doors = Layer(Layers.Doors, L.WallIn);
+        _machines = Layer(Layers.Machines);
         AddChild(_sockets);
     }
 
-    private TileMapLayer Layer(int z, float share = 1, bool relief = false)
+    private TileMapLayer Layer(int z, float share = 1)
     {
         var layer = new TileMapLayer { TileSet = _tiles.Set, ZIndex = z };
-        Lit.Set(layer, share, relief);
+        Lit.Set(layer, share);
         AddChild(layer);
         return layer;
     }
@@ -211,7 +211,7 @@ public partial class GridView : Node2D
                     Texture = PixelArt.Lit("power-socket"),
                     Position = (Vector2)CellOf(m.Cell) * Cell + new Vector2(plug.X, plug.Y),
                 };
-                Lit.Set(socket, relief: true);
+                Lit.Set(socket);
                 _sockets.AddChild(socket);
             }
         }

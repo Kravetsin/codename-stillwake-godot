@@ -5,50 +5,45 @@ namespace Stillwake.Game.Render;
 
 /// <summary>
 /// How light falls on what the ship draws (render/lighting.ts), one model for all of it — cells,
-/// machines, heroes, items, debris: every lit picture is drawn with <see cref="Set"/>'s material. It
-/// takes the stars' light from the starlight worked out cell by cell, blended with the neighbouring
-/// cells of its own side only — a picture drawn in wall cells (walls, their edges, doors) from wall
-/// cells, all else from the open ones, so the back wall beside a door is lit by the room it is in —
-/// and adds what Godot's lamps give over it. Lights add — a fire's warmth over a lamp's — and where
-/// their sum with the stars would pass whole in a colour, as the TypeScript game's
+/// machines, heroes, items, debris: every lit picture is drawn with <see cref="Set"/>'s material, its
+/// light worked out here, never by Godot's lights (0029). It takes the stars' light from the starlight
+/// worked out cell by cell, blended with the neighbouring cells of its own side only — a picture drawn
+/// in wall cells (walls, their edges, doors) from wall cells, all else from the open ones, so the back
+/// wall beside a door is lit by the room it is in — and the lamps' and fires' from the lightmap at its
+/// pixel (<c>features/light/Lightmap.cs</c>), shadowed already. Lights add — a fire's warmth over a
+/// lamp's — and where their sum with the stars would pass whole in a colour, as the TypeScript game's
 /// <c>min(1, ambient + light)</c> stopped it, the whole of it is scaled down till no colour does, so it
-/// keeps its hue: clamping each colour alone would wash a fire's orange over a lamp out to yellow. Each
-/// lamp gives its share of that by what it gives of the light all of them pour there
-/// (<see cref="ShowLamplight"/>), so a surface by a fire, a lamp and embers is never brighter than its
-/// own colour fully lit — but for a glowing particle's spot, added over it up to <see cref="Light.ParticleMost"/>,
-/// so an ember by a fire still lights the wall behind it. A normal-mapped picture is shaded toward or away from a lamp within that; a
-/// wall takes <see cref="Light.WallIn"/> of what reaches its face.
+/// keeps its hue: clamping each colour alone would wash a fire's orange over a lamp out to yellow. The
+/// glowing particles' spots are added over that, past whole, together at most
+/// <see cref="Light.ParticleMost"/> by their brightest colour, so an ember by a fire still lights the
+/// wall behind it. A wall takes <see cref="Light.WallIn"/> of what reaches its face. Shaded flat: the
+/// normal maps the pictures carry are not read.
 /// </summary>
 public static class Lit
 {
-    /// <summary>The light mask of lamps, and of the starlight: what <see cref="Set"/> gives what it lights.</summary>
-    public const int LampMask = 1, StarMask = 2;
-
     private static readonly Shader Shader = new()
     {
         Code = """
             shader_type canvas_item;
-            // How much a normal map shades: 0 flat, 1 as a face turned toward a lamp 45 degrees up.
-            uniform float relief = 0.0;
+            render_mode unshaded;
             // The share of light that falls on it: a wall keeps Light.WallIn of what reaches its face.
             uniform float share = 1.0;
             // Drawn in wall cells, it takes the stars' light from wall cells; all else from the open ones.
             uniform bool blocks = false;
             uniform vec3 ambient = vec3(0.0);
-            // The most a glowing particle's spot adds in a colour, past whatever else lights it.
+            // The most the glowing particles' spots add in a colour, past whatever else lights it.
             uniform float spot_most = 0.0;
             // The stars' light, a texel a cell, its alpha whole in a wall's cell, laid over the world at
             // starlight_rect (corner, size, in pixels).
             uniform sampler2D starlight : filter_nearest, repeat_disable, hint_default_black;
             uniform vec4 starlight_rect = vec4(0.0, 0.0, 1.0, 1.0);
-            // All the lamps' light summed, unshadowed, a texel a cell, laid at lamplight_rect.
-            uniform sampler2D lamplight : filter_linear, repeat_disable, hint_default_black;
-            uniform vec4 lamplight_rect = vec4(0.0, 0.0, 1.0, 1.0);
+            // The lamps' and fires' light, and the spots', shadowed, from lightmap_at (pixels) a texel
+            // every lightmap_texel pixels.
+            uniform sampler2D lightmap : filter_nearest, repeat_disable, hint_default_black;
+            uniform sampler2D spotmap : filter_nearest, repeat_disable, hint_default_black;
+            uniform vec2 lightmap_at = vec2(0.0);
+            uniform float lightmap_texel = 1.0;
             varying vec2 world;
-            varying vec3 star;
-            varying vec3 lamps;
-            varying float spots;
-            varying float scale;
 
             void vertex() {
                 world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
@@ -56,6 +51,12 @@ public static class Lit
 
             vec4 cell(ivec2 at) {
                 return texelFetch(starlight, clamp(at, ivec2(0), textureSize(starlight, 0) - 1), 0);
+            }
+
+            vec3 mapped(sampler2D map, ivec2 at) {
+                ivec2 size = textureSize(map, 0);
+                if (at.x < 0 || at.y < 0 || at.x >= size.x || at.y >= size.y) return vec3(0.0);
+                return texelFetch(map, at, 0).rgb;
             }
 
             void fragment() {
@@ -76,72 +77,44 @@ public static class Lit
                         weight += w;
                     }
                 }
-                star = weight > 0.0 ? sum / weight : own.rgb;
-                vec4 field = texture(lamplight, (world - lamplight_rect.xy) / lamplight_rect.zw);
-                lamps = field.rgb;
-                spots = field.a;
+                vec3 star = weight > 0.0 ? sum / weight : own.rgb;
+                ivec2 texel = ivec2(floor((world - lightmap_at) / lightmap_texel));
+                vec3 lamps = mapped(lightmap, texel), spots = mapped(spotmap, texel);
                 // Where the stars and lamps together pass whole in a colour, all of their light is scaled down
                 // till none does: each colour at most whole, and a fire's orange over a lamp stays orange.
                 vec3 fits = (1.0 - ambient) / max(star + lamps, vec3(0.0001));
-                scale = min(1.0, min(fits.r, min(fits.g, fits.b)));
-                star *= scale;
-            }
-
-            void light() {
-                vec3 shine = star;
-                float alpha = 1.0;
-                if (!LIGHT_IS_DIRECTIONAL) {
-                    vec3 l = LIGHT_DIRECTION;
-                    // A lamp far off along the floor shades as one 45 degrees up, never as a grazing one.
-                    vec3 tilted = normalize(vec3(l.xy, max(l.z, length(l.xy))));
-                    float facing = clamp(dot(NORMAL, tilted) / tilted.z, 0.0, 1.5);
-                    // Lights add: this lamp gives its share of the sum, scaled to fit, up to what the ambient
-                    // and the stars leave.
-                    vec3 gives = LIGHT_COLOR.rgb;
-                    if (LIGHT_COLOR.a < 0.75) {
-                        // A glowing particle's light, marked by its alpha: a spot over what is lit already,
-                        // past whole, or an ember by a fire would light nothing.
-                        // Its share of all the spots here, together at most spot_most.
-                        shine = gives * mix(1.0, facing, relief) * min(1.0, spot_most / max(spots, 0.0001));
-                    } else {
-                        vec3 all = max(lamps, gives);
-                        vec3 room = max(1.0 - ambient - star, 0.0);
-                        shine = gives / max(all, vec3(0.0001)) * min(all * scale * mix(1.0, facing, relief), room);
-                        alpha = LIGHT_COLOR.a;
-                    }
-                }
-                LIGHT = vec4(shine * COLOR.rgb * share, alpha);
+                float scale = min(1.0, min(fits.r, min(fits.g, fits.b)));
+                float brightest = max(spots.r, max(spots.g, spots.b));
+                vec3 light = (star + lamps) * scale + spots * min(1.0, spot_most / max(brightest, 0.0001));
+                COLOR.rgb *= ambient + light * share;
             }
             """,
     };
 
-    private static readonly Dictionary<(float Share, bool Relief), ShaderMaterial> Made = new();
-    private static (Texture2D Texture, Rect2 Rect)? _starlight, _lamplight;
+    private static readonly Dictionary<float, ShaderMaterial> Made = new();
+    private static (Texture2D Texture, Rect2 Rect)? _starlight;
+    private static (Texture2D Main, Texture2D Spots)? _lightmaps;
+    private static (Vector2 At, float Texel) _placed = (Vector2.Zero, 1);
 
     /// <summary>
-    /// Lights <paramref name="item"/> from now on: by the lamps and the stars, with a normal map's
-    /// <paramref name="relief"/>. One that takes less than the whole <paramref name="share"/> — a wall's,
-    /// an edge's, a door's <see cref="Light.WallIn"/> — is drawn in wall cells and takes the stars'
-    /// light from its own side.
+    /// Lights <paramref name="item"/> from now on, by the lamps and the stars. One that takes less than
+    /// the whole <paramref name="share"/> — a wall's, an edge's, a door's <see cref="Light.WallIn"/> — is
+    /// drawn in wall cells and takes the stars' light from its own side.
     /// </summary>
-    public static void Set(CanvasItem item, float share = 1f, bool relief = false)
-    {
-        item.Material = MaterialOf(share, relief);
-        item.LightMask = LampMask | StarMask;
-    }
+    public static void Set(CanvasItem item, float share = 1f) => item.Material = MaterialOf(share);
 
-    private static ShaderMaterial MaterialOf(float share, bool relief)
+    private static ShaderMaterial MaterialOf(float share)
     {
-        if (Made.TryGetValue((share, relief), out var kept)) return kept;
+        if (Made.TryGetValue(share, out var kept)) return kept;
         kept = new ShaderMaterial { Shader = Shader };
         kept.SetShaderParameter("share", share);
-        kept.SetShaderParameter("relief", relief ? 0.7f : 0f);
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("ambient", new Vector3(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B));
         kept.SetShaderParameter("spot_most", Light.ParticleMost);
-        if (_starlight is var (stars, starsAt)) ShowOn(kept, "starlight", stars, starsAt);
-        if (_lamplight is var (lamps, lampsAt)) ShowOn(kept, "lamplight", lamps, lampsAt);
-        return Made[(share, relief)] = kept;
+        if (_starlight is var (stars, starsAt)) ShowStars(kept, stars, starsAt);
+        if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);
+        Place(kept);
+        return Made[share] = kept;
     }
 
     /// <summary>
@@ -151,22 +124,39 @@ public static class Lit
     public static void ShowStarlight(Texture2D texture, Rect2 rect)
     {
         _starlight = (texture, rect);
-        foreach (var material in Made.Values) ShowOn(material, "starlight", texture, rect);
+        foreach (var material in Made.Values) ShowStars(material, texture, rect);
     }
 
-    /// <summary>
-    /// The lamps' light from now on (<c>features/light/LightField.cs</c>): all of it summed, unshadowed,
-    /// a texel a cell laid over <paramref name="rect"/> in pixels, kept current by updating it in place.
-    /// </summary>
-    public static void ShowLamplight(Texture2D texture, Rect2 rect)
+    /// <summary>The lamps' and fires' lightmap and the spots', from now on, wherever <see cref="PlaceLightmaps"/> lays them.</summary>
+    public static void ShowLightmaps(Texture2D main, Texture2D spots)
     {
-        _lamplight = (texture, rect);
-        foreach (var material in Made.Values) ShowOn(material, "lamplight", texture, rect);
+        _lightmaps = (main, spots);
+        foreach (var material in Made.Values) ShowMaps(material, main, spots);
     }
 
-    private static void ShowOn(ShaderMaterial material, string name, Texture2D texture, Rect2 rect)
+    /// <summary>Where the lightmaps lie this frame: their corner, in pixels, and how many pixels a texel spans.</summary>
+    public static void PlaceLightmaps(Vector2 at, float texel)
     {
-        material.SetShaderParameter(name, texture);
-        material.SetShaderParameter(name + "_rect", new Vector4(rect.Position.X, rect.Position.Y, rect.Size.X, rect.Size.Y));
+        if (_placed == (at, texel)) return;
+        _placed = (at, texel);
+        foreach (var material in Made.Values) Place(material);
+    }
+
+    private static void ShowStars(ShaderMaterial material, Texture2D texture, Rect2 rect)
+    {
+        material.SetShaderParameter("starlight", texture);
+        material.SetShaderParameter("starlight_rect", new Vector4(rect.Position.X, rect.Position.Y, rect.Size.X, rect.Size.Y));
+    }
+
+    private static void ShowMaps(ShaderMaterial material, Texture2D main, Texture2D spots)
+    {
+        material.SetShaderParameter("lightmap", main);
+        material.SetShaderParameter("spotmap", spots);
+    }
+
+    private static void Place(ShaderMaterial material)
+    {
+        material.SetShaderParameter("lightmap_at", _placed.At);
+        material.SetShaderParameter("lightmap_texel", _placed.Texel);
     }
 }

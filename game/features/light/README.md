@@ -1,87 +1,60 @@
 # Light (client)
 
-Light without a word (0019, 0025): a dark ship lit by its lamps and by the stars through the holes in
-its back walls. Drawn only: nothing of it reaches the sim. Numbers from `game/Content/Light.cs`.
+Light without a word (0019, 0029): a dark ship lit by its lamps, its furnaces' fires, whatever glows,
+and by the stars through the holes in its back walls. Drawn only: nothing of it reaches the sim.
+Numbers from `game/Content/Light.cs`.
 
-- **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors cast shadows), `BackLayer`,
-  `Machines` (lamps; machines dim starlight), `Width`/`Height`.
-- **Ambient:** a `CanvasModulate` of `Light.Ambient`, so no corner is quite black.
-- **Lamps:** a `PointLight2D` per lamp, soft shadows (PCF5), its texture falling off as the
-  TypeScript game spread a lamp's light (`Light.Lamp`, `Light.Air` a cell, each colour clamped at
-  `Light.LampMost`, whole as there, so it is white by the bulb and warm further off) out to
-  `LampReach` cells, and an unlit additive glow. Brightness comes from `LightView.LampShare`, the
-  power it gets; short of power a lamp flickers (`Flicker`, flicker.ts ported). A light's strength is
-  its colour, its energy always 1: the lit shader reads the colour as what the light gives.
-- **Shadows:** `Occluders` merges walls and closed doors into rectangles (row runs, joined down) and
-  makes them one-sided, so a wall is lit on the faces light reaches and shadows what lies behind it —
-  no unshadowed twin lights needed. A wall fills its cells; a closed door only the columns its
-  picture fills (`door_closed_0`'s opaque pixels, a panel in the middle of its cell), so the back wall
-  either side of a door takes the light of the room it is in. On a change only the rectangles that
-  differ are replaced.
+- **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors stop light), `BackLayer`,
+  `Machines` (lamps, furnaces; machines dim starlight), `Width`/`Height`; `Particles.Shared` (what
+  glows); every `render/Glow` in the tree (a planner's screen).
+- **No Godot lights.** Godot lights a drawn thing by at most 15 lights and drops the rest: a furnace's
+  embers once pushed a lamp out and whole tile chunks went dark. All light is composed here instead,
+  with no limit on how many lights touch a thing.
+- **Lightmap** (`Lightmap.cs`): two `SubViewport`s over the view and a margin of 4 cells, HDR, cleared
+  each frame, a texel a world pixel (more pixels a texel past 4096 texels across), laid with their
+  `CanvasTransform` — no camera. *Main* takes lamps and fires, *Spots* embers, sparks and glows, which
+  `Lit` caps apart. Each light whose reach touches the view is one additive quad of a multimesh
+  (`Sources.Pack`): its colour falling off by its keep a cell out to its reach as the TypeScript game
+  spread it, each colour at most its most, times its strength. The quad's shader walks the cells from
+  each texel to the light through an occupancy texture, a byte a cell (`Sources.Occupy`: wall, closed
+  door, open; rebuilt only when walls or doors change), and drops the texel if a wall or a closed
+  door's panel stands between: shadows to the pixel. The walls a texel is in are passed until the
+  line comes out of them, so a wall is lit on the faces light reaches; in a door's cell only a texel
+  on the panel itself passes it, so the back wall beside a door stays dark to a light beyond it.
+- **Lamps:** `Light.Lamp`, keeping `Light.Air` a cell, each colour at most `Light.LampMost`, out to
+  `LampReach` (16) cells, as bright as `LightView.LampShare` says — the power it gets, flickering when
+  short (`Flicker`) — and an unlit additive glow.
+- **Fire:** from the middle of a furnace's bottom row, `Light.Fire` keeping `Light.FireKeep` a cell
+  out to `FireReach` (8) cells, as bright as `LightView.Fire` says (`FurnaceView.BlazeOf`: a new
+  brightness with each picture of the flames, past whole as a coal cracks), and a glow at the mouth.
+  The furnace view runs before this one each frame, so the light follows the picture shown.
+- **Spots:** each glowing particle at `Light.Particle` of its glow's colour as it fades, and each
+  `Glow` at its colour, keeping `Light.ParticleKeep` a cell out to `GlowReach` (3) cells: an ember
+  lights what it passes, not its room.
 - **Starlight:** `Starlight` works it out cell by cell as the TypeScript game did (the stars in every
   open cell with no back wall and past the grid's edge, spread by row and column sweeps), only when
   walls, doors, back walls or machines change, and hands it to `render/Lit.cs` as a texture of a texel
-  a cell, its alpha marking a wall's or closed door's cell; a directional light with no shadows
-  triggers it. As lighting.ts did, a picture blends it only with cells of its own side: walls, their
-  edges and doors (pictures taking `Light.WallIn`) from wall cells, everything else — back walls,
-  machines, heroes — from the open cells alone, so the back wall in a door's cell is lit by the room
-  either side of the door, never by the door.
-- **Fire:** a shadowed light per furnace from the middle of its bottom row, as the TypeScript game's
-  fire gave its bottom row's cells its light, in `Light.Fire` as it gave it there, but falling off
-  steeply, keeping `Light.FireKeep` (0.72, what light kept crossing a machine there) a cell out to
-  `FireReach` (8 cells): bright at the furnace's mouth, under a seventh of it six cells off, so the
-  room further away is lit by its lamp. An unlit additive glow at the mouth, `FireGlowCells` across,
-  marks it as the source where a lamp already lights the furnace near whole and the light itself
-  could show no brighter. Both are as bright as `LightView.Fire` says, which `Main` answers from the
-  furnace feature's `FurnaceView.BlazeOf`: a new brightness with each picture of the flames, held
-  till the next and jumping, never faded, and now and then a coal cracking, the fire flaring past
-  whole for a picture and throwing up embers (`features/furnace/Flames.cs`). The furnace view runs
-  before this one each frame, so the light follows the picture shown.
-- **Glowing particles** (0019): a shadowed light under each spark and ember
-  (`render/Particles.cs`), `Light.Particle` of its glow's colour as it fades, as in the TypeScript
-  game, keeping `Light.ParticleKeep` (0.5) a cell out to `GlowReach` (3 cells), at most 48 at once:
-  each lights the cell it is in and next to nothing past its neighbours, so rising embers make the
-  light round a furnace jump where they pass rather than adding up to a wash over its room.
-- **Lights add, each colour at most whole:** a fire's warmth over a lamp's light, embers' over both.
-  Godot adds its lights one over another, so a lamp, a fire and embers together once lit a hero and
-  the furnace far past their own colours; a point showing only the brightest light, as the TypeScript
-  game did, let the lamp drown the fire. `LightField` keeps, a cell at a time and unshadowed, the sum
-  of every lamp's, fire's and glow's light; `LightView` hands it to `render/Lit.cs` as a float texture,
-  the lamps worked out again only when one changes, the fires and glows added each frame some burn or
-  glow. Where the stars and that sum would pass what the ambient leaves of whole in a colour — the
-  TypeScript game's `min(1, ambient + light)` — the lit shader scales all of it down until none does,
-  keeping its hue: clamped colour by colour, a fire over a lamp washed out to yellow-grey on the
-  furnace (measured 144,154,135 there) where scaled it stays orange. Each lamp then gives its share by
-  what it gives of the sum, so where none is shadowed they add up to exactly that. A lamp is as bright
-  as the TypeScript game's: capping it lower (0.6 once) to leave a fire headroom darkened every
-  lamp-lit room, and the fire's steep falloff and its glow now show where it burns instead.
-- **What it lights:** everything drawn with `Lit.Set` — the ship's cells and machines, cables, stacks on
-  the floor, debris and every hero's figure, all by the one model; not fire, glows, particles, plans or
-  overlays.
-- **Kept current:** `LightView.Sync()` after every tick; lamps flicker, fires show and waver and
-  particles glow in `_Process`.
+  a cell, its alpha marking a wall's or closed door's cell; a picture blends it only with cells of its
+  own side.
+- **`render/Lit.cs`** draws everything set with `Lit.Set`, unshaded: ambient, plus the stars and the
+  main map — scaled down together where they would pass whole in a colour, so a fire's orange over a
+  lamp stays orange — plus the spots, together at most `Light.ParticleMost` by their brightest colour;
+  a wall takes `Light.WallIn` of what reaches its face. The `CanvasModulate` of `Light.Ambient` stays
+  for anything drawn lit without `Lit`; unshaded things are not tinted by it.
+- **What it lights:** the ship's cells and machines, cables, stacks on the floor, debris and every
+  hero's figure; not fire, glows, particles, plans or overlays.
+- **Cost** on the reference world with its 103 lamps lit (`--perf --lit --measure`, RTX 4060 Ti):
+  0.62 ms a frame at zoom 1 and 0.50 ms at zoom 2, against 1.61 and 0.97 ms with Godot's lights.
 
 ## Deliberately not handled
 
-- Helmet lamps: the TypeScript game has none.
-- Light bending round corners and through doorways the way the TypeScript sweeps let it: Godot's
-  lamps cast straight shadows; only starlight keeps the sweeps. Nor do lamps leak the TypeScript
-  game's `Light.WallOut` through a closed door: an airlock shut at both ends shows the ambient alone,
-  where the TypeScript game gave it a few hundredths more.
-- Where a wall shadows one light and not another, and the lights together would pass whole, the light
-  still reaching a point is scaled down as though the shadowed one reached it too: dimmer by its share.
-  Below whole each light gives exactly its own. The field is unshadowed because Godot's shadows are
-  worked out only on the GPU.
-- A fire by a lamp jumps mostly in hue, not brightness: where the two pass whole, the sum is scaled
-  to whole whatever the fire gives; its glow jumps in brightness wherever it stands. A flare or an
-  ember passing a hero's side turned from it dims that side a little (up to a fifth, measured): the
-  sum the shader scales by is worked out unshaded, so it counts light the normal map turns away.
-  Lowering the lamps to show more would darken every lamp-lit room.
-- A lamp's reach is cut at 16 cells for the frame rate (see `LightView.LampReach`).
-- Recomputing starlight near a change only: light carries some 45 cells before it rounds to nothing,
-  as far as the wreck is wide, so it is redone over the whole grid, in one channel (the stars are
-  one colour) into kept buffers and texture: about 2.7 ms on the reference world and 1.3 ms on the
-  wreck per change, nothing allocated.
-- The lamps' field is redone whole when a lamp's brightness changes — every frame while one
-  flickers short of power, about 0.7 ms on the reference world's 103 lamps — and copied with the
-  fires and glows added, about 0.15 ms, every frame some fire burns or something glows.
+- Relief: pictures are shaded flat; their normal maps are still made but not read. Whether a light's
+  side of walls and machines comes back is the team's call after seeing it flat.
+- Light bending round corners and through doorways the way the TypeScript sweeps let it: lamps cast
+  straight shadows; only starlight keeps the sweeps. Nor does a closed door leak `Light.WallOut`.
+- Heroes and machines cast no shadows.
+- Light follows the grid as the sim has it, not a door this peer has just toggled (0014).
+- Cost grows with the lights on screen times their reach squared; no light is cached between frames.
+  A cache of each still light's shadows is the next step if a ship ever outgrows the budget.
+- Recomputing starlight near a change only: it is redone over the whole grid, about 2.7 ms on the
+  reference world per change.
