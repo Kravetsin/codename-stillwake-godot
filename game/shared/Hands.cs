@@ -59,7 +59,7 @@ public partial class Hands : Node2D
         _power.Frame(client, m, buttons, pointer, bodies, elapsedMs);
         _pipes.Visible = Ui.OverlayOn.Get() == PipesOverlay.Id;
         if (_pipes.Visible) _pipes.Frame(client, m, elapsedMs);
-        _air.Frame(client, m, pointer, bodies, elapsedMs);
+        _air.Frame(client, m, pointer, elapsedMs);
         Menu.Frame(m, client.Id, elapsedMs);
         _tip.Frame(pointer);
     }

@@ -77,21 +77,16 @@ public class AirLookTests
     }
 
     [Fact]
-    public void StreamsFromThePodsValveToASuitItFillsAndStopsWithIt()
+    public void KeepsAFewMotesInThePodsReachAndLetsThemGoWithoutAPod()
     {
         var random = new Random(7);
         var motes = new AirMotes(Cell, random.NextDouble);
         var field = Field(_ => false);
-        var pod = new PodAir((0, 0, 96, 48), (10, 30), [(60, 30)]);
-        double nearest = double.MaxValue;
-        for (int i = 0; i < 120; i++)
-        {
-            motes.Step(16, field, [], [], pod);
-            foreach (var m in motes.Live.Where(m => m.Kind == MoteKind.Feed)) nearest = Math.Min(nearest, Math.Abs(m.X - 60) + Math.Abs(m.Y - 30));
-        }
-        Assert.True(nearest < 6, $"{nearest}");
-        for (int i = 0; i < 20; i++) motes.Step(16, field, [], [], pod with { Feeds = [] });
-        Assert.DoesNotContain(motes.Live, m => m.Kind == MoteKind.Feed);
-        Assert.Contains(motes.Live, m => m.Kind == MoteKind.Pod);
+        (double, double, double, double) reach = (0, 0, 96, 48);
+        for (int i = 0; i < 600; i++) motes.Step(16, field, [], [], reach);
+        Assert.InRange(motes.Live.Count, 1, AirMotes.InReach);
+        Assert.All(motes.Live, m => Assert.True(m.X is >= 0 and <= 96 && m.Y is >= 0 and <= 48, $"{m.X}, {m.Y}"));
+        for (int i = 0; i < 30; i++) motes.Step(16, field, [], [], null);
+        Assert.Empty(motes.Live);
     }
 }
