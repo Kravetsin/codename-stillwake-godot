@@ -5,8 +5,8 @@ namespace Stillwake.Game.Render;
 
 /// <summary>
 /// The ship's pictures from <c>game/art</c> (exported from the TypeScript ASCII art, a pixel of art a
-/// pixel of the world), and for those lit with relief a normal map worked out from each picture's own
-/// brightness, so bevels, rivets and seams catch a lamp from the side they face.
+/// pixel of the world), and for those lit with relief a normal map of each picture's whole shape, so
+/// the side toward a lamp is the brighter.
 /// </summary>
 public static class PixelArt
 {
@@ -28,37 +28,32 @@ public static class PixelArt
         var diffuse = Picture(name);
         var image = diffuse.GetImage();
         if (image.IsCompressed()) image.Decompress();
-        kept = new CanvasTexture { DiffuseTexture = diffuse, NormalTexture = ImageTexture.CreateFromImage(NormalMap(image)) };
+        kept = new CanvasTexture { DiffuseTexture = diffuse, NormalTexture = ImageTexture.CreateFromImage(VolumeMap(image)) };
         WithNormals[name] = kept;
         return kept;
     }
 
     /// <summary>
-    /// A normal map of <paramref name="image"/>, its brightness read as height. A clear pixel stands at
-    /// <paramref name="clearHeight"/>, so an overlay such as a wall's edge, drawn over a wall, has no
-    /// cliff where it ends; a seamless picture laid over the world <paramref name="wraps"/> at its edges.
+    /// A normal map of <paramref name="image"/>'s whole shape, not its detail: a gentle dome over the box
+    /// its opaque pixels fill, or with <paramref name="across"/> a gentle roll from side to side only (a
+    /// door, drawn a cell at a time, would show each cell's dome). Lit, the side toward a light is
+    /// brighter than the side away from it, and no rivet or seam casts a shadow.
     /// </summary>
-    public static Image NormalMap(Image image, float clearHeight = 0, bool wraps = false, float strength = 2.5f)
+    public static Image VolumeMap(Image image, bool across = false)
     {
+        // How far the edge of the shape leans out: past about half a seam reads as a hard rim.
+        const float Lean = 0.55f;
         int w = image.GetWidth(), h = image.GetHeight();
+        var box = image.GetUsedRect();
         var normal = Image.CreateEmpty(w, h, false, Image.Format.Rgba8);
-        float Height(int x, int y)
-        {
-            var c = wraps
-                ? image.GetPixel((x + w) % w, (y + h) % h)
-                : image.GetPixel(Mathf.Clamp(x, 0, w - 1), Mathf.Clamp(y, 0, h - 1));
-            return c.A < 0.5f ? clearHeight : c.Luminance;
-        }
+        float cx = box.Position.X + box.Size.X / 2f, cy = box.Position.Y + box.Size.Y / 2f;
+        float hw = Mathf.Max(1, box.Size.X / 2f), hh = Mathf.Max(1, box.Size.Y / 2f);
         for (int y = 0; y < h; y++)
             for (int x = 0; x < w; x++)
             {
-                // Sobel slopes, screen-wise: x to the right, y down.
-                float dx = Height(x + 1, y - 1) + 2 * Height(x + 1, y) + Height(x + 1, y + 1)
-                         - Height(x - 1, y - 1) - 2 * Height(x - 1, y) - Height(x - 1, y + 1);
-                float dy = Height(x - 1, y + 1) + 2 * Height(x, y + 1) + Height(x + 1, y + 1)
-                         - Height(x - 1, y - 1) - 2 * Height(x, y - 1) - Height(x + 1, y - 1);
-                // Godot reads normal maps Y-up (OpenGL), so the screen's downward slope is stored as it is.
-                var n = new Vector3(-dx * strength, dy * strength, 1f).Normalized();
+                float u = Mathf.Clamp((x + 0.5f - cx) / hw, -1, 1), v = across ? 0 : Mathf.Clamp((y + 0.5f - cy) / hh, -1, 1);
+                // Screen-wise the normal leans (u, v); Godot reads normal maps Y-up (OpenGL), so v is stored turned.
+                var n = new Vector3(u * Lean, -v * Lean, 1f).Normalized();
                 normal.SetPixel(x, y, new Color(n.X * 0.5f + 0.5f, n.Y * 0.5f + 0.5f, n.Z * 0.5f + 0.5f));
             }
         return normal;

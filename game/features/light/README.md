@@ -45,8 +45,9 @@ Numbers from `game/Content/Light.cs`.
   texels so a shadow's edge does not step at the world's pixels on screen: ambient, plus the stars and the
   main map — scaled down together where they would pass whole in a colour, so a fire's orange over a
   lamp stays orange — plus the spots, together at most `Light.ParticleMost` by their brightest colour;
-  a wall takes `Light.WallIn` of what reaches its face. A normal-mapped picture (walls, doors,
-  machines, sockets) is shaded toward where the lamps' light comes from — up the main map's slope over
+  a wall takes `Light.WallIn` of what reaches its face. A normal-mapped picture — a machine or a
+  socket domed over its shape, a door rolled side to side, walls flat (`PixelArt.VolumeMap`), so the
+  side toward a light is the brighter and no rivet casts a shadow — is shaded toward where the lamps' light comes from — up the main map's slope over
   half a cell each side, tilted 45° up — and the sum held at whole after it; where the light hardly
   changes the picture is shaded as facing it. Near a fire under a lamp the slope turns a little with
   the flames. The `CanvasModulate` of `Light.Ambient` stays

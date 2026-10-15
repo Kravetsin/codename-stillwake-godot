@@ -31,21 +31,21 @@ public sealed class ShipTiles
         var pictures = new List<(string Name, Image Diffuse, Image Normal)>();
         foreach (var material in Materials.All.Select(m => m.Id))
         {
-            pictures.Add(Picture($"wall_{material}", relief: true));
-            float edge = MeanLuminance(PixelArt.Picture($"wall_{material}").GetImage());
-            for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", relief: true, edge));
+            // Walls are no things standing in the light: flat.
+            pictures.Add(Picture($"wall_{material}", Relief.None));
+            for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", Relief.None));
         }
         foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", "floor", "ladder"])
-            pictures.Add(Picture(name, relief: false));
+            pictures.Add(Picture(name, Relief.None));
         for (int linked = 0; linked < 16; linked++)
         {
-            pictures.Add(Picture($"door_closed_{linked}", relief: true));
-            pictures.Add(Picture($"door_open_{linked}", relief: true));
-            pictures.Add(Picture($"pipe_{linked}", relief: false));
+            pictures.Add(Picture($"door_closed_{linked}", Relief.Across));
+            pictures.Add(Picture($"door_open_{linked}", Relief.Across));
+            pictures.Add(Picture($"pipe_{linked}", Relief.None));
         }
-        pictures.Add(Picture("valve_open", relief: false, centred: true));
-        pictures.Add(Picture("valve_closed", relief: false, centred: true));
-        foreach (var kind in Machines.All.Select(m => m.Kind)) pictures.Add(Picture($"machine_{kind}", relief: true));
+        pictures.Add(Picture("valve_open", Relief.None, centred: true));
+        pictures.Add(Picture("valve_closed", Relief.None, centred: true));
+        foreach (var kind in Machines.All.Select(m => m.Kind)) pictures.Add(Picture($"machine_{kind}", Relief.Round));
 
         // Shelves of pictures, tallest first, a cell at a time.
         var order = pictures.OrderByDescending(p => p.Diffuse.GetHeight()).ThenBy(p => p.Name, System.StringComparer.Ordinal).ToList();
@@ -109,18 +109,16 @@ public sealed class ShipTiles
     }
 
     /// <summary>
-    /// The picture <paramref name="name"/> and its normal map, a flat one without relief, filled out to
+    /// The picture <paramref name="name"/> and its normal map (<see cref="PixelArt.VolumeMap"/>), a flat one without relief, filled out to
     /// whole cells: from the top-left (a floor along the top of its cell) or round the middle
     /// (a valve's wheel, as ship-art.ts lays it).
     /// </summary>
-    private static (string, Image, Image) Picture(string name, bool relief, float clearHeight = 0, bool centred = false)
+    private static (string, Image, Image) Picture(string name, Relief relief, bool centred = false)
     {
         var diffuse = PixelArt.Picture(name).GetImage();
         if (diffuse.IsCompressed()) diffuse.Decompress();
         diffuse.Convert(Image.Format.Rgba8);
-        var normal = relief
-            ? PixelArt.NormalMap(diffuse, clearHeight, wraps: name.StartsWith("wall_"))
-            : Filled(diffuse.GetSize(), Flat);
+        var normal = relief == Relief.None ? Filled(diffuse.GetSize(), Flat) : PixelArt.VolumeMap(diffuse, across: relief == Relief.Across);
         var whole = (diffuse.GetSize() + new Vector2I(Cell - 1, Cell - 1)) / Cell * Cell;
         if (whole == diffuse.GetSize()) return (name, diffuse, normal);
         var at = centred ? (whole - diffuse.GetSize()) / 2 : Vector2I.Zero;
@@ -133,6 +131,9 @@ public sealed class ShipTiles
         return (name, Padded(diffuse, Colors.Transparent), Padded(normal, Flat));
     }
 
+    /// <summary>How a picture stands out toward a light: flat, rolled from side to side, or domed.</summary>
+    private enum Relief { None, Across, Round }
+
     /// <summary>A normal facing straight out of the screen.</summary>
     private static readonly Color Flat = new(0.5f, 0.5f, 1f);
 
@@ -141,15 +142,5 @@ public sealed class ShipTiles
         var image = Image.CreateEmpty(size.X, size.Y, false, Image.Format.Rgba8);
         image.Fill(colour);
         return image;
-    }
-
-    /// <summary>A wall's mean brightness: how high its edge's clear pixels stand, so the bevel rises from the wall under it.</summary>
-    private static float MeanLuminance(Image image)
-    {
-        float sum = 0;
-        for (int y = 0; y < image.GetHeight(); y++)
-            for (int x = 0; x < image.GetWidth(); x++)
-                sum += image.GetPixel(x, y).Luminance;
-        return sum / (image.GetWidth() * image.GetHeight());
     }
 }
