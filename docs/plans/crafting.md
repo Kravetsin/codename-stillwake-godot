@@ -41,7 +41,7 @@ Goes wrong:
 
 ## Scale
 
-- World: one queue per hero of at most `Crafting.QueueMost` (8) entries; a few analyzers and
+- World: one queue per hero of at most `Crafting.QueueMost` (9, the window's row) entries; a few analyzers and
   generators; about 25 blueprints and crafts.
 - Players: each crafts alone, all in parallel.
 - Frequency: a craft or cancel command every few seconds at most.
@@ -125,8 +125,14 @@ counts no resting maker. `Power` runs first, so it sees this a tick late. No new
 
 ### Client
 
-- Crafts docked beside the inventory: the known ones (creative mode shows all), each with its cost
-  and what is short. Click queues 1, shift-click 5 (refused whole when unpaid). The queue under them:
+- The crafts window, docked beside the inventory (built: `game/features/crafting/README.md`): a
+  pinned row of up to 9 (right-click pins, kept in `user://crafts.cfg`), tabs by an item's icon (the
+  wheel over them switches), then the tab's grid of 9 columns by 5 rows, a family per row. Every
+  craft has a fixed place in content (`Crafts.Tabs`; today one tab, Parts: plate, gear, rotor; then
+  wire), so nothing moves when one opens: one not known is a dark silhouette in its place, one short
+  of items dimmed. Click queues 1, shift-click 5 (refused whole when unpaid); a click on a short one
+  goes to the first crafted item it lacks, its slot pulsing amber; a raw one's tip says where it
+  comes from. Cost, need and have, time, all in the one tooltip. The queue under the grid, 9 slots:
   the running unit's bar, a click on an entry cancels it.
 - The analyzer's screen: running lines while working, a green check when done, dark unpowered. Its
   panel: under the slot, every blueprint and craft the item in it goes into once analysed (as many as
