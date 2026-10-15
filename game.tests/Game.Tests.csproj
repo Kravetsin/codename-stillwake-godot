@@ -63,6 +63,8 @@
     <Compile Include="../game/features/pipes/Flow.cs" Link="Game/Pipes/Flow.cs" />
     <Compile Include="../game/features/atmosphere/Explain.cs" Link="Game/Atmosphere/Explain.cs" />
     <Compile Include="../game/features/atmosphere/Streams.cs" Link="Game/Atmosphere/Streams.cs" />
+    <Compile Include="../game/features/atmosphere/AirField.cs" Link="Game/Atmosphere/AirField.cs" />
+    <Compile Include="../game/features/atmosphere/AirMotes.cs" Link="Game/Atmosphere/AirMotes.cs" />
     <Compile Include="../game/render/Particles.cs" Link="Game/Render/Particles.cs" />
     <Compile Include="../game/features/light/LightField.cs" Link="Game/Light/LightField.cs" />
     <Compile Include="../game/features/light/Flicker.cs" Link="Game/Light/Flicker.cs" />

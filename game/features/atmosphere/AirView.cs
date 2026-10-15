@@ -14,10 +14,12 @@ namespace Stillwake.Game.Features.Atmosphere;
 
 /// <summary>
 /// The ship's air (features/atmosphere/index.ts, air-overlay.ts). Without a word: each tank's gauge up its
-/// right side, every room losing oxygen into space pulsing red, and air streaming out through its
-/// openings while it holds any (<see cref="AirStream"/>). With O, the air overlay: each cell
-/// holding air coloured, each room cell without it grey, a room open to space red, a filling room filling
-/// in before the eyes; beside the pointer, what the sim says of that room's air (<see cref="Explain"/>).
+/// right side, every room losing oxygen into space pulsing red, air streaming out through its openings
+/// while it holds any (<see cref="AirStream"/>), faint motes gliding in all air (<see cref="AirMotes"/>).
+/// With O, the air overlay (<see cref="AirLook"/>): air dithered in the rooms, coming and going softly
+/// (<see cref="AirField"/>), red and running out while a room vents, grey dots where a room holds none,
+/// a ragged aura of the lifepod's air round it with motes in it; beside the pointer, what the sim says
+/// of that room's air (<see cref="Explain"/>).
 /// </summary>
 public partial class AirView : Node2D
 {
@@ -29,13 +31,23 @@ public partial class AirView : Node2D
     /// <summary>One pulse of a venting room, in milliseconds of real time.</summary>
     private const double PulseMs = 900;
     private const int GaugeWidth = 6;
-    private static readonly Color Aired = AsciiArt.Colour(0x3fc7a0), Empty = AsciiArt.Colour(0x6a7488), Venting = AsciiArt.Colour(0xe05050);
+    /// <summary>Room motes show this much of themselves with the overlay off: there, but quiet.</summary>
+    private const float QuietMotes = 0.45f;
+    private static readonly Color Mote = AsciiArt.Colour(0xcfeaff), PodMote = AsciiArt.Colour(0xc8eeff);
     private static readonly Color Pulse = AsciiArt.Colour(0xe03030), Track = AsciiArt.Colour(0x16212d), Oxygen = AsciiArt.Colour(0x6fd3ff);
 
     private readonly Ui _ui;
-    private readonly Sketch _tint = new(Layers.Overlay) { Modulate = new Color(1, 1, 1, 0.35f) };
-    private readonly Sketch _pulse = new(Layers.Pulse), _gauges = new(Layers.Gauges);
-    private List<(Rect2 Box, Color Colour)> _cells = [], _losing = [];
+    private readonly Sketch _pulse = new(Layers.Pulse), _gauges = new(Layers.Gauges), _specks = new(Layers.Effects);
+    private readonly Sprite2D _look = new() { Centered = false, ZIndex = Layers.Air, Scale = new Vector2(Cell, Cell), Material = new ShaderMaterial { Shader = AirLook.Shader } };
+    private AirField? _field;
+    private byte[] _texels = [];
+    private Image? _image;
+    private ImageTexture? _texture;
+    private readonly AirMotes _motes = new(Cell);
+    private List<(double X, double Y)> _fillingVents = [];
+    /// <summary>The lifepod's reach in pixels: left, top, right, bottom; null without a pod.</summary>
+    private (double X0, double Y0, double X1, double Y1)? _reach;
+    private List<(Rect2 Box, Color Colour)> _losing = [];
     private List<(Rect2 Track, Rect2 Level)> _tanks = [];
     private Dictionary<int, RoomAir> _byRoom = new();
     private double _since = RefreshMs, _clock;
@@ -47,8 +59,8 @@ public partial class AirView : Node2D
     public AirView(Ui ui)
     {
         _ui = ui;
-        foreach (var node in (Node2D[])[_tint, _pulse, _gauges]) AddChild(node);
-        _tint.Paint = g => { foreach (var (box, colour) in _cells) g.DrawRect(box, colour); };
+        foreach (var node in (Node2D[])[_look, _pulse, _gauges, _specks]) AddChild(node);
+        _specks.Paint = PaintMotes;
         _pulse.Paint = g => { foreach (var (box, colour) in _losing) g.DrawRect(box, colour); };
         _gauges.Paint = g =>
         {
@@ -66,14 +78,45 @@ public partial class AirView : Node2D
     {
         _clock += elapsedMs;
         _pulse.Modulate = new Color(1, 1, 1, (float)(0.15 + 0.3 * (0.5 + 0.5 * Math.Sin(_clock / PulseMs * 2 * Math.PI))));
-        _tint.Visible = On;
         Stream(elapsedMs);
         if ((_since += elapsedMs) >= RefreshMs)
         {
             _since = 0;
             Survey(m);
         }
+        Show(m, elapsedMs);
         if (On) Tell(m, pointer);
+    }
+
+    /// <summary>The field eased on and written out if it moved, the motes moved on.</summary>
+    private void Show(Registry m, double elapsedMs)
+    {
+        if (_field == null) return;
+        if (!_field.Settled)
+        {
+            _field.Ease(elapsedMs);
+            _field.Write(_texels);
+            _image!.SetData(_field.Width, _field.Height, false, Image.Format.Rgba8, _texels);
+            _texture!.Update(_image);
+        }
+        ((ShaderMaterial)_look.Material).SetShaderParameter("overlay", On);
+        _motes.Step(elapsedMs, _field, m.Atmosphere.AiredCells, _fillingVents, _reach);
+        _specks.QueueRedraw();
+    }
+
+    private void PaintMotes(Sketch g)
+    {
+        float quiet = On ? 1 : QuietMotes;
+        foreach (var mote in _motes.Live)
+        {
+            // The pod's motes belong to its aura, drawn with the overlay only.
+            if (mote.Kind == MoteKind.Pod && !On) continue;
+            var (colour, alpha, size) = mote.Kind == MoteKind.Room
+                ? (Mote, (mote.Big ? 0.5f : 0.8f) * quiet, mote.Big ? 2 : 1)
+                : (PodMote, 0.6f, 1);
+            // Where it is to a fraction of a pixel: rounded to whole ones, a slow mote steps.
+            g.DrawRect(new Rect2((float)mote.X, (float)mote.Y, size, size), colour with { A = alpha * (float)Math.Max(0, mote.Alpha) });
+        }
     }
 
     /// <summary>Air streaming out of every venting room's openings, the particles owed carried over between frames.</summary>
@@ -106,12 +149,8 @@ public partial class AirView : Node2D
             _owed = new double[next.Count];
         }
         _losing = Runs(roomOf, width, (_, room) => losing.Contains(room) ? Pulse : null);
-        if (On)
-            _cells = Runs(roomOf, width, (cell, room) =>
-                _byRoom.TryGetValue(room, out var a) && a.Status == RoomStatus.Venting ? Venting
-                : m.Atmosphere.AiredAt(cell) ? Aired : Empty);
         _pulse.QueueRedraw();
-        _tint.QueueRedraw();
+        Look(m, air, roomOf);
 
         var tank = Machines.Get("tank");
         float full = tank.Height * Cell - 8;
@@ -122,6 +161,40 @@ public partial class AirView : Node2D
             return (new Rect2(left, top, GaugeWidth, full), new Rect2(left, top + full - level, GaugeWidth, level));
         }).ToList();
         _gauges.QueueRedraw();
+    }
+
+    /// <summary>What the field, the motes and the pod's reach are drawn from, as the sim has it now.</summary>
+    private void Look(Registry m, IReadOnlyList<RoomAir> air, ReadOnlySpan<int> roomOf)
+    {
+        int width = m.Grid.Width, height = m.Grid.Height;
+        if (_field == null || _field.Width != width || _field.Height != height)
+        {
+            _field = new AirField(width, height);
+            _texels = new byte[width * height * 4];
+            _image = Image.CreateFromData(width, height, false, Image.Format.Rgba8, _texels);
+            _texture = ImageTexture.CreateFromImage(_image);
+            _look.Texture = _texture;
+            ((ShaderMaterial)_look.Material).SetShaderParameter("cell", (float)Cell);
+        }
+        var venting = new Dictionary<int, IReadOnlyList<int>>();
+        foreach (var a in air)
+            if (a.Status == RoomStatus.Venting && m.Rooms.RoomById(a.Room) is { } room) venting[a.Room] = room.Openings;
+        _field.Survey(roomOf, m.Atmosphere.AiredAt, venting);
+        _fillingVents = m.Grid.Machines
+            .Where(x => x.Kind == "vent" && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && a.Status == RoomStatus.Filling)
+            .Select(x => ((x.Cell % width + 0.5) * Cell, (x.Cell / width + 0.5) * Cell)).ToList();
+        var pod = m.Grid.Machines.FirstOrDefault(x => x.Kind == "lifepod");
+        _reach = null;
+        var reach = new Vector4();
+        if (pod != null)
+        {
+            var spec = Machines.Get(pod.Kind);
+            int left = pod.Cell % width, top = pod.Cell / width, r = Content.Crew.PodReach;
+            var box = ((double)(left - r) * Cell, (double)(top - r) * Cell, (double)(left + spec.Width + r) * Cell, (double)(top + spec.Height + r) * Cell);
+            _reach = box;
+            reach = new Vector4((float)box.Item1, (float)box.Item2, (float)box.Item3, (float)box.Item4);
+        }
+        ((ShaderMaterial)_look.Material).SetShaderParameter("reach", reach);
     }
 
     /// <summary>

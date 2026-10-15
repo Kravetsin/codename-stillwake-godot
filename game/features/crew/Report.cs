@@ -11,8 +11,8 @@ public static class Report
 {
     /// <summary>
     /// <c>Enter</c> with the body's cell, when the sim does not know hero <paramref name="id"/> yet, or
-    /// puts it in another room than the body is in, or on the other side of the air's edge: a hero
-    /// breathes room air only in a cell holding it. Null otherwise. Rooms and air are compared where
+    /// puts it in another room than the body is in, on the other side of the air's edge, or of the
+    /// lifepod's reach: a hero breathes room air only in a cell holding it, the pod's only by it. Null otherwise. Rooms and air are compared where
     /// they are now, never remembered: a door that merges or splits rooms renames them. Until the host
     /// releases it, the same <c>Enter</c> goes out again each frame — a few, and only on crossing an edge.
     /// </summary>
@@ -20,7 +20,8 @@ public static class Report
     {
         int cell = hero.BodyCell(width);
         var known = crew.HeroOf(id);
-        if (known != null && rooms.RoomAt(known.Cell) == rooms.RoomAt(cell) && air.AiredAt(known.Cell) == air.AiredAt(cell))
+        if (known != null && rooms.RoomAt(known.Cell) == rooms.RoomAt(cell) && air.AiredAt(known.Cell) == air.AiredAt(cell)
+            && crew.ByPod(known.Cell) == crew.ByPod(cell))
             return null;
         return new Enter(cell);
     }

@@ -14,6 +14,9 @@ public static class Layers
     // What runs behind the ship's structure: back walls, pipes and their valves, cables (grid's and power's behind).
     public const int BackWalls = -10, Pipes = -6, Valves = -5, Cables = -4;
 
+    /// <summary>The air in the rooms and the lifepod's reach, over the back walls, behind all that stands in them (atmosphere).</summary>
+    public const int Air = -9;
+
     // The ship's structure and machines (grid), a socket on each powered machine.
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
 
