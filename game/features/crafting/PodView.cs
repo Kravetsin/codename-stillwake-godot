@@ -15,7 +15,8 @@ namespace Stillwake.Game.Features.Crafting;
 /// screen runs green while it works or waits full and shows a steady green READY light idle; something
 /// in its tray while its outputs hold what it made. While a hero is being made, passed out, its glass
 /// glows from inside with a hero's shape, brighter as the hero comes round; as one is made, a puff of air
-/// at the hatch and the glow fades. Drawn unlit, for a screen and a glowing glass give their own light.
+/// at the hatch and the glow fades. Drawn unlit, for a screen and a glowing glass give their own light,
+/// and each lights the room round it a little in its colour (a <see cref="Glow"/>).
 /// </summary>
 public partial class PodView : Node2D
 {
@@ -26,6 +27,8 @@ public partial class PodView : Node2D
     private static readonly Rect2I Screen = new(37, 19, 6, 5), Tray = new(37, 29, 6, 3);
     /// <summary>Seconds the glass glows on once a hero is made.</summary>
     private const double Afterglow = 1.2;
+    /// <summary>How much of its colour a screen's light gives, ready and at work, and the glass's at its brightest.</summary>
+    private const float ReadyLight = 0.22f, WorkingLight = 0.4f, GlassLight = 0.6f;
 
     private static readonly Color Dark = new("04130d"), Green = new("4ade80"), GreenLo = new("167a40"), Amber = new("fbbf24"),
         Made = new("e0a030"), Warm = new(1f, 0.85f, 0.55f);
@@ -54,6 +57,8 @@ public partial class PodView : Node2D
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded, BlendMode = CanvasItemMaterial.BlendModeEnum.Add },
         Visible = false,
     };
+    private readonly List<Glow> _screens = [];
+    private readonly Glow _glassLight = new();
     /// <summary>Each hero's ticks out at the last read, by peer; null before the first read, which makes no one.</summary>
     private Dictionary<int, int>? _outs;
     private double _sinceRead = RefreshMs, _clock, _afterglow;
@@ -70,6 +75,7 @@ public partial class PodView : Node2D
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
         AddChild(_glass);
         AddChild(_halo);
+        AddChild(_glassLight);
     }
 
     /// <summary>How many screens run and whether the glass glows: what a recording checks.</summary>
@@ -89,7 +95,31 @@ public partial class PodView : Node2D
         _glass.Visible = _halo.Visible = glow > 0 && _pods.Count > 0;
         _glass.Modulate = new Color(1, 1, 1, glow);
         _halo.Modulate = Warm with { A = 0.35f * glow };
+        _glassLight.Visible = _glass.Visible;
+        _glassLight.Position = _halo.Position;
+        _glassLight.Colour = Warm * (GlassLight * glow);
+        Light();
         QueueRedraw();
+    }
+
+    /// <summary>Each pod's screen lighting the room: steady green ready, flickering with the dots at work.</summary>
+    private void Light()
+    {
+        while (_screens.Count < _pods.Count)
+        {
+            var glow = new Glow();
+            AddChild(glow);
+            _screens.Add(glow);
+        }
+        for (int i = 0; i < _screens.Count; i++)
+        {
+            var glow = _screens[i];
+            glow.Visible = i < _pods.Count;
+            if (!glow.Visible) continue;
+            var (corner, doing, _) = _pods[i];
+            glow.Position = corner + (Vector2)Screen.Position + (Vector2)Screen.Size / 2;
+            glow.Colour = Green * (doing == Doing.Ready ? ReadyLight : WorkingLight * (float)(0.8 + 0.2 * Math.Sin(_clock * 8)));
+        }
     }
 
     private void Read()
