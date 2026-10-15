@@ -78,11 +78,13 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 
 ## The crew module
 
-- `HeroView.Frame` reads the sim's `crew`: the hero wakes at `Spawn`, and again there when its `Out`
-  runs down; passed out it takes no orders, its E does nothing, and it falls and lies (`PoseOf`).
+- `HeroView.Frame` reads the sim's `crew`: the hero is made at `Spawn`, the lifepod's hatch, and
+  again there when its `Out` runs down; passed out it takes no orders, its E does nothing, and it falls and lies (`PoseOf`).
 - Every frame, after the steps, it sends `Report.Of`'s `Enter` when the sim has no hero for this peer,
   or holds it in another room or on the other side of the air's edge than its body: the same frames
   `index.ts` sends `reportOf`'s.
+- `Danger.Read` counts the lifepod's air (`ICrewQueries.ByPod`) as room air: a low suit by the pod
+  fills, so the gauge shows it filling and no danger.
 - `SuitGauge`, a layer of its own made by `Main`, and `SuitColours`, a row `Main` hands the game menu
   (`game/menu`), read the sim four times a second, the row only while shown.
 - The host passes `crew`'s `Leave` as the farewell of a peer whose link closes (`Main.Host`).

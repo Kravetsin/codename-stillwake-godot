@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Crew;
+using Stillwake.Sim.Crew;
 using Xunit;
 using Suits = Stillwake.Content.Crew;
 
@@ -21,6 +22,24 @@ public class DangerTests
     {
         Assert.Equal(SuitDanger.Low, Danger.Of((Low, 0), false));
         Assert.Equal(SuitDanger.None, Danger.Of((Low, 0), true));
+    }
+
+    [Fact]
+    public void ReadsALowSuitByTheLifepodInVacuumAsNoDangerAndPastItsReachAsLow()
+    {
+        var w = new TestWorld("""
+            #########
+            #OOO....#
+            #OOO....#
+            #OOO....#
+            #########
+            """);
+        int byPod = w.M.Crew.Spawn, away = 3 * 9 + 7;
+        w.Step(new Enter(away) { From = 0 }).Step(new Enter(away) { From = 1 });
+        for (int i = 0; i < (Suits.Suit - Low) * Suits.BreathEvery; i++) w.Step();
+        w.Step(new Enter(byPod) { From = 1 });
+        Assert.Equal((Low, SuitDanger.Low), Danger.Read(w.M.Crew, w.M.Atmosphere, 0));
+        Assert.Equal(SuitDanger.None, Danger.Read(w.M.Crew, w.M.Atmosphere, 1).Danger);
     }
 
     [Fact]

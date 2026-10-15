@@ -1,53 +1,65 @@
-# crafting (client): the crafts window beside the inventory
+# crafting (client): the lifepod and its Fabricator
 
-Making parts by hand ([0027](../../../docs/decisions/0027-what-is-analysed-opens-what-is-made-of-it.md)),
-the client of `sim/Crafting`. It reads `Registry.Crafting` (`Queue`, `Progress`), `IResearchQueries`
-(`Knows`) and `IItemsQueries` (`Totals`, `Creative`), handed in every frame from the current registry,
-and changes the sim only by sending `Craft` and `Cancel`. Where each craft sits is content:
-`Content.Crafts.Tabs`.
+Making parts by machine only ([0028](../../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)),
+the client of `sim/Crafting`. It reads `Registry.Crafting` (`Queue`, `Progress`, `Crafts`),
+`IResearchQueries` (`Knows`), `IItemsQueries` (`Totals`, `Creative`, `Crate`, `AfterMoves`),
+`IGridQueries` (`Machines`) and `ICrewQueries` (`Heroes`, `Spawn`), and changes the sim only by
+sending `Craft`, `Cancel` and `Move`. Where each recipe sits is content: `Content.Crafts.Rows`. The
+mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 
 ## Files
 
-| File             | Holds                                                                                        | Godot |
-| ---------------- | -------------------------------------------------------------------------------------------- | ----- |
-| `Crafts.cs`      | a craft's fixed place, how its slot looks, where a click on a short one goes, pins, the bar | no    |
-| `CraftsPanel.cs` | the window: pinned row, tabs, the grid, the queue; pins kept in `user://crafts.cfg`          | yes   |
+| File                  | Holds                                                                                   | Godot |
+| --------------------- | --------------------------------------------------------------------------------------- | ----- |
+| `Crafts.cs`           | a recipe's fixed place, how its slot looks, where a click on a short one goes, the bar, what the pod is doing | no |
+| `FabricatorPanel.cs`  | the panel beside the inventory: header and screen, recipes, the shared queue, outputs, status | yes |
+| `FabricatorScreen.cs` | the panel's small screen: lines running while it works, READY idle                      | yes   |
+| `PodView.cs`          | over the pod's picture: its screen, its tray, its glass glowing while a hero is made    | yes   |
+| `PodDemo.cs`          | `-- --pod`: the wreck's pod opened and crafting, for recordings                        | yes   |
 
-`Crafts.cs` is compiled again into `game.tests/` (`CraftsTests`).
+`Crafts.cs` is compiled again into `game.tests/` (`CraftsTests`). The pod's pictures are
+`art/machine_lifepod.png`, laid by the grid feature like every machine's and normal-mapped with
+them, and `art/lifepod_glass.png`, its glass lit from inside with a hero's shape; both were drawn from
+the mockup's pixel recipe (`PODS[2].draw`) in the ship art's palette.
 
 ## Guarantees
 
-- Docked beside the open inventory, its top level with the inventory's, wherever `items` says it ends
-  (`Ui.InventoryEdge`): shown with it, on Tab or E on a crate, and gone when it closes.
-- Over its top edge, outside it, the tabs holding any craft, each an item's icon, the wheel over them
-  switching tab. In it, from the top: the tab's name, how many of its crafts are opened and, with
-  more than one, its page and arrows; the grid, 9 columns by 3 rows a page, a family per row, empty
-  slots dim, the wheel over it turning pages; the pinned row, up to 9; the queue, 9 slots
-  (`Content.Crafting.QueueMost`). Every slot is 36 px, the inventory's.
-- Every craft has one place, a tab, a page, a row and a column, that never moves: one not known yet is a dark silhouette in it.
-  One known but short of an item for a unit is dimmed and grey; in creative mode every one is known
-  and ready.
-- A click on a ready craft queues one, a shift-click five; the sim refuses the whole lot when it is
-  unpaid. A click on a short one shows the tab and page of the first item it lacks that is itself crafted and
-  pulses that slot amber twice; with only raw items lacking it does nothing. A silhouette does nothing.
-- A right-click pins a known craft at the end of the pinned row, or unpins a pinned one; pinned crafts
-  have a sky dot in the grid. A pin acts on a click as its craft does.
-- The one tooltip (`Shared.PointerTip`), found by a hit test (`TipSpots`): a craft's name; per item a
+- **The panel** shows while E has a machine that crafts open (`Ui.OpenCrate`, `Crafts(id)`) and the
+  inventory is shown, docked beside it, its top level with the inventory's (`Ui.InventoryEdge`); gone
+  when either closes. The items feature gives the pod no crate panel of its own.
+- From the top: "Fabricator" and its screen; "Recipes", how many are opened; every recipe in its place
+  from content, four a row, two rows at least, empty places dim. One not known yet is a dark
+  silhouette; one known but short of an item for a unit is dimmed and grey; in creative mode every one
+  is known and ready. A click on a ready one queues one, a shift-click five, refused whole by the sim
+  when unpaid; a click on a short one pulses the first item it lacks that is itself crafted, amber,
+  twice; a silhouette does nothing.
+- "Queue · shared": `Content.Crafting.QueueMost` slots, each entry its item and units left, a mark in
+  the top-left corner in its orderer's suit colour, the one at work filling its slot from the bottom,
+  full while its unit waits for room. A click cancels it; its cost goes to whoever cancels.
+- "Output": the pod's slots; a click takes a stack into the inventory as a whole (`Move` to the
+  inventory), shown at once as the inventory's own moves are (0014).
+- The status line: "Ready" in green, "Making X…", or "Output full: take what is made" in amber. The
+  pod needs no power, so it never says so.
+- The one tooltip (`Shared.PointerTip`), found by a hit test (`TipSpots`): a recipe's name; per item a
   unit takes, its icon, what is needed and what is carried, green or red; for a raw item short, where
-  it comes from (`crafts.from.<item>`); its seconds a unit; "click: go to what is missing" when a
-  click goes somewhere. A silhouette says "???" and, in violet, that analysing what it is made of
-  opens it. A tab says its name; a queued entry its item.
-- The queue in order: each entry's item and its units left, the one at work filling its slot from the
-  bottom up, behind its item and count, full while its unit waits for room. A click on an entry cancels it.
-- Read every 100 ms and at once after a click; slots are rebuilt only when the tab, the pins, a
-  craft's look or the queue change, the bar every read. Hover and the pulse are painted every frame.
+  it comes from (`crafts.from.<item>`); its seconds a unit at the pod's speed; "click: go to what is
+  missing" when a click goes somewhere. A silhouette says "???" and, in violet, that analysing what it
+  is made of opens it. A queued entry: its item and units, whose it is and that a click cancels it;
+  an output: its item and that a click takes it.
+- **In the world**, over the pod's picture, unlit: its screen runs green while it works or waits full
+  and shows a steady green READY light idle; a line in its tray while its outputs hold something.
+  While a hero is passed out, being made, the glass glows from inside with a hero's shape, brighter as
+  it comes round; when a hero is made (coming round, or coming aboard) a puff of air leaves the hatch
+  and the glow fades over a second.
+- Read every 100 ms and at once after a click; slots are rebuilt only when a recipe's look, the queue
+  or the outputs change, the bar every read. Hover and the pulse are painted every frame.
 
 ## Deliberately not handled
 
 - A craft sent shows in the queue once its tick has run, a round trip later, not at once as moves do
   (0014): queueing is not a hand's motion, and nothing in the world waits on it.
-- The window is taller than the inventory beside it by its pinned row and queue: the two share their
-  top, not their height.
-- A shift-click on a craft ready for one unit but short of five is sent: the sim refuses it whole,
-  as it would any unpaid lot, and nothing is jumped to.
-- Pins are this machine's, not the world's: the same in every world played here.
+- A shift-click on a recipe ready for one unit but short of five is sent: the sim refuses it whole,
+  as it would any unpaid lot, and nothing is pulsed.
+- The pod's glow lights nothing around it: it is drawn, not a lamp in the light field.
+- The hero climbing out is the glow fading behind the hero standing at the hatch, not an animation of
+  its own.

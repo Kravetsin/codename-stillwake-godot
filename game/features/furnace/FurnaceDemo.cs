@@ -7,13 +7,13 @@ using Stillwake.Sim.Furnace;
 namespace Stillwake.Game.Features.Furnace;
 
 /// <summary>
-/// For recordings (<c>-- --furnace</c>): the wreck with a furnace in room A, beside where the hero
-/// wakes, holding scrap chunks and planks, played on until its room is aired and its fire lit.
+/// For recordings (<c>-- --furnace</c>): the wreck with a furnace in room A, beside the lifepod the hero
+/// is made in, holding scrap chunks and planks, played on until its room is aired and its fire lit.
 /// </summary>
 public static class FurnaceDemo
 {
-    /// <summary>The furnace's top-left cell in the wreck: the right end of room A, by the start.</summary>
-    private const int X = 52, Y = 21;
+    /// <summary>The furnace's top-left cell in the wreck: in room A, between its vent and the lifepod.</summary>
+    private const int X = 49, Y = 21;
 
     public static World Create(IReadOnlyList<Module> modules)
     {
