@@ -38,9 +38,10 @@ public static class Lit
             uniform sampler2D starlight : filter_nearest, repeat_disable, hint_default_black;
             uniform vec4 starlight_rect = vec4(0.0, 0.0, 1.0, 1.0);
             // The lamps' and fires' light, and the spots', shadowed, from lightmap_at (pixels) a texel
-            // every lightmap_texel pixels.
-            uniform sampler2D lightmap : filter_nearest, repeat_disable, hint_default_black;
-            uniform sampler2D spotmap : filter_nearest, repeat_disable, hint_default_black;
+            // every lightmap_texel pixels; blended between texels, so a shadow's edge does not step at
+            // the world's pixels on a screen showing each of them larger.
+            uniform sampler2D lightmap : filter_linear, repeat_disable, hint_default_black;
+            uniform sampler2D spotmap : filter_linear, repeat_disable, hint_default_black;
             uniform vec2 lightmap_at = vec2(0.0);
             uniform float lightmap_texel = 1.0;
             varying vec2 world;
@@ -53,10 +54,8 @@ public static class Lit
                 return texelFetch(starlight, clamp(at, ivec2(0), textureSize(starlight, 0) - 1), 0);
             }
 
-            vec3 mapped(sampler2D map, ivec2 at) {
-                ivec2 size = textureSize(map, 0);
-                if (at.x < 0 || at.y < 0 || at.x >= size.x || at.y >= size.y) return vec3(0.0);
-                return texelFetch(map, at, 0).rgb;
+            vec3 mapped(sampler2D map, vec2 at) {
+                return texture(map, at / vec2(textureSize(map, 0))).rgb;
             }
 
             void fragment() {
@@ -78,7 +77,7 @@ public static class Lit
                     }
                 }
                 vec3 star = weight > 0.0 ? sum / weight : own.rgb;
-                ivec2 texel = ivec2(floor((world - lightmap_at) / lightmap_texel));
+                vec2 texel = (world - lightmap_at) / lightmap_texel;
                 vec3 lamps = mapped(lightmap, texel), spots = mapped(spotmap, texel);
                 // Where the stars and lamps together pass whole in a colour, all of their light is scaled down
                 // till none does: each colour at most whole, and a fire's orange over a lamp stays orange.

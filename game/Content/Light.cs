@@ -37,9 +37,12 @@ public static class Light
     public const float LampMost = 1f;
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
     public const float FireKeep = 0.72f;
-    public const float Particle = 0.5f;
-    public const float ParticleKeep = 0.5f;
-    public const float ParticleMost = 0.5f;
+    // An ember's light is a bright point, not a wash: the furnace's fire lights the room round it anyway.
+    public const float Particle = 1.2f;
+    public const float ParticleKeep = 0.2f;
+    public const float ParticleMost = 1f;
+    /// <summary>A planner's screen, keeping this a cell: softer than an ember's.</summary>
+    public const float ScreenKeep = 0.5f;
 
     /// <summary>
     /// How wide a lamp's bulb and a fire's mouth are, in pixels: a shadow's edge is soft over as much as

@@ -32,15 +32,17 @@ Numbers from `game/Content/Light.cs`.
   out to `FireReach` (8) cells, as bright as `LightView.Fire` says (`FurnaceView.BlazeOf`: a new
   brightness with each picture of the flames, past whole as a coal cracks), and a glow at the mouth.
   The furnace view runs before this one each frame, so the light follows the picture shown.
-- **Spots:** each glowing particle at `Light.Particle` of its glow's colour as it fades, and each
-  `Glow` at its colour, keeping `Light.ParticleKeep` a cell out to `GlowReach` (3) cells: an ember
-  lights what it passes, not its room.
+- **Spots:** each glowing particle at `Light.Particle` of its glow's colour as it fades, keeping
+  `Light.ParticleKeep` a cell out to `ParticleReach` (2) cells: a bright point, not a wash, for the
+  fire lights the room round a furnace anyway; and each `Glow` at its colour, keeping
+  `Light.ScreenKeep` out to `ScreenReach` (3).
 - **Starlight:** `Starlight` works it out cell by cell as the TypeScript game did (the stars in every
   open cell with no back wall and past the grid's edge, spread by row and column sweeps), only when
   walls, doors, back walls or machines change, and hands it to `render/Lit.cs` as a texture of a texel
   a cell, its alpha marking a wall's or closed door's cell; a picture blends it only with cells of its
   own side.
-- **`render/Lit.cs`** draws everything set with `Lit.Set`, unshaded: ambient, plus the stars and the
+- **`render/Lit.cs`** draws everything set with `Lit.Set`, unshaded, the lightmaps blended between
+  texels so a shadow's edge does not step at the world's pixels on screen: ambient, plus the stars and the
   main map — scaled down together where they would pass whole in a colour, so a fire's orange over a
   lamp stays orange — plus the spots, together at most `Light.ParticleMost` by their brightest colour;
   a wall takes `Light.WallIn` of what reaches its face. The `CanvasModulate` of `Light.Ambient` stays
