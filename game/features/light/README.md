@@ -65,6 +65,9 @@ Numbers from `game/Content/Light.cs`.
   straight shadows; only starlight keeps the sweeps. Nor does a closed door leak `Light.WallOut`.
 - Heroes and machines cast no shadows.
 - Light follows the grid as the sim has it, not a door this peer has just toggled (0014).
+- The multimeshes carry a fixed huge `CustomAabb`: Godot culls one by the box its quads filled when
+  first drawn and keeps it, so spots first drawn with nothing glowing never showed. The shader drops
+  what is out of reach anyway.
 - Cost grows with the lights on screen times their reach squared; no light is cached between frames.
   A cache of each still light's shadows is the next step if a ship ever outgrows the budget.
 - Recomputing starlight near a change only: it is redone over the whole grid, about 2.7 ms on the

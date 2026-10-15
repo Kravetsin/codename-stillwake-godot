@@ -223,6 +223,9 @@ public partial class Lightmap : Node
             UseColors = true,
             UseCustomData = true,
             Mesh = quad,
+            // Godot culls a multimesh by the box its quads filled when it was first drawn, and keeps
+            // that box: one first drawn empty, as the spots are before anything glows, never showed.
+            CustomAabb = new Aabb(new Vector3(-1e7f, -1e7f, -1), new Vector3(2e7f, 2e7f, 2)),
         };
     }
 }
