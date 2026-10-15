@@ -108,6 +108,8 @@ public partial class Figure : Node2D
     /// <summary>The screwdriver's grip in its picture, a frame of <c>hero_screwdriver.png</c>.</summary>
     private static readonly Vector2 Grip = new(3, 2);
     private readonly Sprite2D _tool;
+    /// <summary>The node the body's parts hang from: where a shoulder is, the arms' own frame.</summary>
+    private readonly Node2D _frame;
     private Vector2? _workAt;
     private double _workMs;
     private static readonly Color BeamColour = new(0.49f, 0.83f, 0.99f);
@@ -173,7 +175,7 @@ public partial class Figure : Node2D
 
         // The body turns and leans around its middle: its parts hang from a node half its height down.
         _body = new Node2D();
-        var parts = new Node2D { Position = new Vector2(0, (float)(Rig.H / 2)) };
+        var parts = _frame = new Node2D { Position = new Vector2(0, (float)(Rig.H / 2)) };
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds.
@@ -188,6 +190,13 @@ public partial class Figure : Node2D
         _beamTo.Clear();
         for (int i = 0; i < cells.Count && i < BeamsMost; i++) _beamTo.Add(cells[i]);
         _beamMs = BeamMs;
+    }
+
+    /// <summary>A point of the world from the front shoulder, in the arms' own frame: the body as it is placed, turned, lifted and faced.</summary>
+    private (double X, double Y) FromShoulder(Vector2 at)
+    {
+        var local = _frame.ToLocal(at);
+        return (local.X, local.Y + Rig.Shoulder);
     }
 
     /// <summary>Has the hero work the plan at <paramref name="at"/>, in pixels of the world, with its screwdriver; null when it stops.</summary>
@@ -294,12 +303,15 @@ public partial class Figure : Node2D
         bool working = _workAt != null && Poses.HoldsIn(pose);
         _workMs = working ? _workMs + elapsedMs : 0;
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
+        // The hands at work, whatever the pose (0030): afloat the stroke stops, the hero treads water
+        // calmly and rights itself, and the front arm reaches where the work is, in the body's own frame.
+        bool acting = working || holding && _beamMs > 0;
         if (Poses.Swimming(hero)) _heading = Poses.HeadingOf(hero);
         bool afloat = pose == Pose.Float;
-        _swim = afloat ? Settle(_swim, Poses.Swimming(hero) ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
-        _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
+        _swim = afloat ? Settle(_swim, Poses.Swimming(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
+        _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _landingMs / Poses.Land.Ms, holding ? _head : null,
-            _outMs, _slump, _outTilt, _swim, _fast, _heading));
+            _outMs, _slump, _outTilt, _swim, _fast, _heading, acting));
         var from = _shown ?? to;
         double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(
@@ -312,6 +324,13 @@ public partial class Figure : Node2D
             Settle(from.Lift, to.Lift, elapsedMs),
             to.Lying);
         _shown = shown;
+        // The body placed first: what the hands reach for is found in its own frame, turned and lifted.
+        _body.Rotation = (float)shown.Tilt;
+        double c = Math.Abs(Math.Cos(shown.Tilt)), s = Math.Abs(Math.Sin(shown.Tilt));
+        // Lying down, the middle sinks as the body turns, so it comes to rest on the floor.
+        _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
+        Position = new Vector2((float)feetX, (float)feetY);
+        Scale = new Vector2(hero.Facing, 1);
         // Afloat, the arms already reach the way the body is still turning to.
         double lead = afloat ? Math.Clamp(Poses.Apart(shown.Tilt, to.Tilt), -ArmsLeadMost, ArmsLeadMost) : 0;
         // Placing plans, the planner thrusts at them: out fast, back slower.
@@ -321,9 +340,8 @@ public partial class Figure : Node2D
         double aim = 0;
         if (thrust > 0 && _beamTo.Count > 0)
         {
-            // Toward the first cell, from the shoulder, as the figure faces.
-            var at = _beamTo[0];
-            double dx = (at.X - feetX) * hero.Facing, dy = at.Y - (feetY - Rig.Shoulder);
+            // Toward the first cell, from the shoulder.
+            var (dx, dy) = FromShoulder(_beamTo[0]);
             aim = Math.Atan2(dy, dx);
             double reach = 0.95 * (Rig.Arm.Upper + Rig.Arm.Lower);
             var held = Rig.EndOf(shown.FrontArm, Rig.Arm);
@@ -333,8 +351,8 @@ public partial class Figure : Node2D
         double work = 0, twist = 0;
         if (working && _workAt is { } plan)
         {
-            // Toward the plan, from the shoulder, as the figure faces.
-            double dx = (plan.X - feetX) * hero.Facing, dy = plan.Y - (feetY - Rig.Shoulder);
+            // Toward the plan, from the shoulder.
+            var (dx, dy) = FromShoulder(plan);
             work = Math.Atan2(dy, dx);
             double cycle = _workMs % TwistMs / TwistMs;
             twist = Math.Min(1, cycle / TurnShare);
@@ -350,7 +368,6 @@ public partial class Figure : Node2D
         _backArm.Bend(shown.BackArm with { Upper = shown.BackArm.Upper + lead });
         _frontLeg.Bend(shown.FrontLeg);
         _backLeg.Bend(shown.BackLeg);
-        _body.Rotation = (float)shown.Tilt;
         bool awake = pose is not (Pose.Lie or Pose.Tumble);
         _head = Settle(_head, awake ? look : 0, elapsedMs, HeadSettleMs);
         _helmet.Rotation = (float)_head;
@@ -377,11 +394,6 @@ public partial class Figure : Node2D
             _tool.Frame = (int)Math.Min(2, Math.Floor(twist * 3));
         }
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
-        // Lying down, the middle sinks as the body turns, so it comes to rest on the floor.
-        double c = Math.Abs(Math.Cos(shown.Tilt)), s = Math.Abs(Math.Sin(shown.Tilt));
-        _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
-        Position = new Vector2((float)feetX, (float)feetY);
-        Scale = new Vector2(hero.Facing, 1);
         ShowBeams(holding);
     }
 }
