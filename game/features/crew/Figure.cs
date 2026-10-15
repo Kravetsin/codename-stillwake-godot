@@ -97,11 +97,14 @@ public partial class Figure : Node2D
     private const double BeamMs = 320;
     private const int BeamsMost = 8;
     /// <summary>
-    /// Working a plan, the screwdriver in the front hand (0030): its ribs turn a step every
-    /// <see cref="TwistStepMs"/>, the wrist rocks <see cref="TwistRock"/> radians either way at
-    /// <see cref="TwistHz"/>, and the arm reaches out a share <see cref="WorkReach"/> of its length.
+    /// Working a plan, the screwdriver in the front hand (0030), the arm reaching out a share
+    /// <see cref="WorkReach"/> of its length, the tool held at one angle as a hand holds it. Each
+    /// <see cref="TwistMs"/> the wrist turns for <see cref="TurnShare"/> of it — the handle's ribs rolling
+    /// on three steps, the knuckles coming over so the hand, seen from the side, rises
+    /// <see cref="TwistLift"/> pixels and presses <see cref="TwistPush"/> on — then lets go and turns back
+    /// to grip again, the hand sinking.
     /// </summary>
-    private const double TwistStepMs = 220, TwistRock = 0.14, TwistHz = 0.9, WorkReach = 0.85;
+    private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.85;
     /// <summary>The screwdriver's grip in its picture, a frame of <c>hero_screwdriver.png</c>.</summary>
     private static readonly Vector2 Grip = new(3, 2);
     private readonly Sprite2D _tool;
@@ -327,14 +330,20 @@ public partial class Figure : Node2D
             var point = new Vec(Math.Cos(aim) * reach, Math.Sin(aim) * reach);
             frontArm = Rig.Reach(new Vec(held.X + (point.X - held.X) * thrust, held.Y + (point.Y - held.Y) * thrust), Rig.Arm, 1);
         }
-        double work = 0;
+        double work = 0, twist = 0;
         if (working && _workAt is { } plan)
         {
-            // Toward the plan, from the shoulder, as the figure faces; the wrist rocking as it turns.
+            // Toward the plan, from the shoulder, as the figure faces.
             double dx = (plan.X - feetX) * hero.Facing, dy = plan.Y - (feetY - Rig.Shoulder);
             work = Math.Atan2(dy, dx);
-            double reach = WorkReach * (Rig.Arm.Upper + Rig.Arm.Lower);
-            frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach, Math.Sin(work) * reach), Rig.Arm, 1);
+            double cycle = _workMs % TwistMs / TwistMs;
+            twist = Math.Min(1, cycle / TurnShare);
+            // Rising as the wrist turns over, sinking as it turns back to grip again.
+            double rise = cycle < TurnShare ? Math.Sin(twist * Math.PI / 2) : Math.Cos((cycle - TurnShare) / (1 - TurnShare) * Math.PI / 2);
+            double reach = WorkReach * (Rig.Arm.Upper + Rig.Arm.Lower) + TwistPush * rise;
+            // Up, square to the tool: the side the knuckles come over.
+            double ux = Math.Sin(work), uy = -Math.Cos(work);
+            frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
         // The hand holding the planner keeps it before the eyes, ahead of no turn.
         _frontArm.Bend(frontArm with { Upper = frontArm.Upper + (holding ? 0 : lead) });
@@ -363,8 +372,9 @@ public partial class Figure : Node2D
         {
             var hand = Rig.EndOf(frontArm, Rig.Arm);
             _tool.Position = new Vector2((float)hand.X, (float)(-Rig.Shoulder + hand.Y));
-            _tool.Rotation = (float)(work + TwistRock * Math.Sin(_workMs / 1000 * TwistHz * 2 * Math.PI));
-            _tool.Frame = (int)(_workMs / TwistStepMs) % 3;
+            _tool.Rotation = (float)work;
+            // Three steps of the ribs a turn, held on the way back: they roll on one way only.
+            _tool.Frame = (int)Math.Min(2, Math.Floor(twist * 3));
         }
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         // Lying down, the middle sinks as the body turns, so it comes to rest on the floor.

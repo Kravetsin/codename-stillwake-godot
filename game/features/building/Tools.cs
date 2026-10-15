@@ -127,31 +127,32 @@ public static class Tools
         foreach (var plan in building.PlansAt(cell))
             if (plan.Place is { } place && layers.Contains(place.Layer)) return place;
         foreach (var layer in layers)
-        {
-            switch (layer)
-            {
-                case "machine":
-                    if (grid.MachineAt(cell) is { } m) return new Placement(layer, m.Kind);
-                    break;
-                case "conduit":
-                    int c = grid.ConduitAt(cell);
-                    if (c != Conduit.None) return new Placement(layer, c == Conduit.Pipe ? "pipe" : "valve");
-                    break;
-                case "structure":
-                    switch (grid.StructureAt(cell))
-                    {
-                        case Structure.Wall: return Placement.Wall(grid.WallAt(cell)!.Id);
-                        case Structure.Floor: return new Placement(layer, "floor");
-                        case Structure.Ladder: return new Placement(layer, "ladder");
-                        case Structure.DoorClosed or Structure.DoorOpen: return new Placement(layer, "door");
-                    }
-                    break;
-                default:
-                    if (grid.BackAt(cell) is { } material) return Placement.BackWall(material.Id);
-                    break;
-            }
-        }
+            if (BuiltAt(cell, layer, grid) is { } built) return built;
         return null;
+    }
+
+    /// <summary>What is built at <paramref name="cell"/> in <paramref name="layer"/>, as the card that places it would: what a mark takes out.</summary>
+    public static Placement? BuiltAt(int cell, string layer, IGridQueries grid)
+    {
+        switch (layer)
+        {
+            case "machine":
+                return grid.MachineAt(cell) is { } m ? new Placement(layer, m.Kind) : null;
+            case "conduit":
+                int c = grid.ConduitAt(cell);
+                return c != Conduit.None ? new Placement(layer, c == Conduit.Pipe ? "pipe" : "valve") : null;
+            case "structure":
+                return grid.StructureAt(cell) switch
+                {
+                    Structure.Wall => Placement.Wall(grid.WallAt(cell)!.Id),
+                    Structure.Floor => new Placement(layer, "floor"),
+                    Structure.Ladder => new Placement(layer, "ladder"),
+                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer, "door"),
+                    _ => null,
+                };
+            default:
+                return grid.BackAt(cell) is { } material ? Placement.BackWall(material.Id) : null;
+        }
     }
 
     /// <summary>
