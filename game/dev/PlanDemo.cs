@@ -14,9 +14,10 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// A script for recordings of the plan and the power and air overlays (<c>-- --plan-demo</c>), frame by
 /// frame at 20 a second in the wreck: the menu with what is known and a card's tooltip; creative mode
-/// and every card; a wall dragged over the lamp, red where it may not go, and planned; the plan put
-/// away and a blueprint built by holding the left button on it; the cable card, the lamp's cable carried
-/// by its plug to the wall and dropped, a new cable laid from the lamp; then each overlay in turn.
+/// and every card; a wall dragged over the lamp, red where it may not go, and planned; the blueprint
+/// built by holding the right button on it; the power tab, the lamp's cable carried by its plug to the
+/// wall and dropped, the cable card and a new cable laid from the lamp; the plan away and its overlay
+/// with it; air, pipes over it on the air tab, and air back once the menu closes.
 /// </summary>
 public sealed class PlanDemo(Hands hands, Layout layout)
 {
@@ -36,8 +37,8 @@ public sealed class PlanDemo(Hands hands, Layout layout)
 
     private (double X, double Y) Of(int cell, double dx = 0.5, double dy = 0.5) => (cell % _width + dx, cell / _width + dy);
 
-    private void Press(int held, bool shift = false) => hands.Mouse.Buttons.OnPointer(true, held, _pointer!.Value, shift);
-    private void Release() => hands.Mouse.Buttons.OnPointer(false, 0, _pointer!.Value, false);
+    private void Press(int held) => hands.Mouse.Buttons.OnPointer(true, held, _pointer!.Value);
+    private void Release() => hands.Mouse.Buttons.OnPointer(false, 0, _pointer!.Value);
 
     /// <summary>The pointer moved from <paramref name="from"/> to <paramref name="to"/> over frames <paramref name="start"/> to <paramref name="end"/>.</summary>
     private void Glide(int start, int end, (double X, double Y) from, (double X, double Y) to)
@@ -45,11 +46,10 @@ public sealed class PlanDemo(Hands hands, Layout layout)
         if (_frame < start || _frame > end) return;
         double t = (double)(_frame - start) / (end - start);
         _pointer = (from.X + (to.X - from.X) * t, from.Y + (to.Y - from.Y) * t);
-        hands.Mouse.Buttons.OnPointer(false, Held, _pointer.Value, Shift);
+        hands.Mouse.Buttons.OnPointer(false, Held, _pointer.Value);
     }
 
     private int Held { get; set; }
-    private bool Shift { get; set; }
 
     private static Tool Card(string id) => Tools.All.First(t => t.Id == id);
 
@@ -96,11 +96,8 @@ public sealed class PlanDemo(Hands hands, Layout layout)
                 log("a wall planned along the ceiling");
                 break;
             case 44:
-                log("B: the plan away; the left button held on the blueprint builds it");
-                hands.Plan.Toggle();
-                break;
-            case 46:
-                Held = Buttons.Left;
+                log("the right button held on the blueprint builds it, the menu still open");
+                Held = Buttons.Right;
                 Press(Held);
                 break;
             case 76:
@@ -108,21 +105,23 @@ public sealed class PlanDemo(Hands hands, Layout layout)
                 Release();
                 break;
             case 80:
-                log("the cable card: the power overlay");
-                hands.Menu.Pick(Card("cable"));
+                log("the power tab: the cables overlay");
+                hands.Menu.ShowTab("power");
                 _pointer = plug;
                 break;
             case 84:
-                log("Shift and the lamp's plug: its cable carried");
+                log("the lamp's plug dragged with no card: its cable carried");
                 Held = Buttons.Left;
-                Shift = true;
-                Press(Held, shift: true);
+                Press(Held);
                 break;
             case 96:
                 Held = 0;
-                Shift = false;
                 Release();
                 log("let go on the wall: a peg there");
+                break;
+            case 100:
+                log("the cable card");
+                hands.Menu.Pick(Card("cable"));
                 break;
             case 106:
                 _pointer = Of(_lamp);
@@ -137,21 +136,22 @@ public sealed class PlanDemo(Hands hands, Layout layout)
                 Release();
                 break;
             case 132:
-                log("B: the plan away");
+                log("B: the plan away, and the cables overlay with it");
                 hands.Plan.Toggle();
                 break;
             case 136:
                 log("O: air");
-                hands.Overlays.Press("O");
+                hands.Ui.AirOn.Set(true);
                 _pointer = Of(Around(1, 2));
                 break;
             case 146:
-                log("P: pipes");
-                hands.Overlays.Press("P");
+                log("B on the air tab: pipes over the air");
+                hands.Plan.Toggle();
+                hands.Menu.ShowTab("air");
                 break;
             case 156:
-                log("L: power");
-                hands.Overlays.Press("L");
+                log("B: the plan away, the air back");
+                hands.Plan.Toggle();
                 _pointer = Of(_lamp);
                 break;
         }

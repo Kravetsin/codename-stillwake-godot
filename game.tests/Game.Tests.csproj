@@ -49,7 +49,6 @@
     <Compile Include="../game/shared/Ui.cs" Link="Game/Shared/Ui.cs" />
     <Compile Include="../game/shared/Tip.cs" Link="Game/Shared/Tip.cs" />
     <Compile Include="../game/shared/Escape.cs" Link="Game/Shared/Escape.cs" />
-    <Compile Include="../game/overlays/OverlaySwitch.cs" Link="Game/Overlays/OverlaySwitch.cs" />
     <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />
     <Compile Include="../game/features/building/PlanHand.cs" Link="Game/Building/PlanHand.cs" />
     <Compile Include="../game/features/building/Drag.cs" Link="Game/Building/Drag.cs" />

@@ -9,13 +9,14 @@ using Stillwake.Sim;
 namespace Stillwake.Game.Features.Building;
 
 /// <summary>
-/// The plan in hand (features/building/BuildMenu.tsx, 0022), taken out with B and shown the whole while it
-/// is out: the build menu's tabs of what can be built, each card a picture of what it builds, its name,
-/// cost and use in the one tooltip by the pointer, so a card is swapped for another at a click. A plan
-/// costs nothing until it is delivered to, so a card the player carries too little for is as bright as
-/// any. Taken out while an overlay is on, it opens on that overlay's tab. Under the cards, the card in
-/// hand and its buttons. B or Esc puts the plan away; with it away, the key that takes it out. Only what
-/// the world knows is shown (0024): a tab with nothing known, not at all.
+/// The plan in hand (features/building/BuildMenu.tsx, 0022, 0030), taken out with B and shown the whole
+/// while it is out: the build menu's tabs of what can be built — each tab the mode, its overlay showing
+/// while it is open — each card a picture of what it builds, its name, cost and use in the one tooltip
+/// by the pointer, so a card is swapped for another at a click. A plan costs nothing until it is
+/// delivered to, so a card the player carries too little for is as bright as any. It opens on the tab
+/// it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B or Esc
+/// puts the plan away; with it away, the key that takes it out. Q picks the card under the pointer.
+/// Only what the world knows is shown (0024): a tab with nothing known, not at all, nor its mode.
 /// </summary>
 public partial class BuildMenu : CanvasLayer
 {
@@ -35,7 +36,6 @@ public partial class BuildMenu : CanvasLayer
     private readonly PanelContainer _closed, _open;
     private readonly HBoxContainer _tabs = new(), _held = new();
     private readonly HFlowContainer _cards = new();
-    private string _tab = Tools.Tabs[0].Id;
     private Tool? _hovered;
     private IReadOnlyList<(string Item, int Count)> _carried = [];
     private double _sinceRead = RefreshMs;
@@ -118,20 +118,30 @@ public partial class BuildMenu : CanvasLayer
     public static Texture2D ThumbOf(Tool tool) => tool is PlaceTool p ? BlueprintArt.Thumbnail(p.Placement) : AsciiArt.Plug();
 
     /// <summary>A card clicked: picked, or let go when it is the one in hand. The menu stays open.</summary>
-    public void Pick(Tool tool) => _hand.Selected.Set(tool == _hand.Selected.Get() ? null : tool);
+    public void Pick(Tool tool) => _hand.Pick(tool);
 
     /// <summary>The pointer over a card, or off every card: its tooltip shown.</summary>
     public void Hover(Tool? tool) => _hovered = tool;
 
-    /// <summary>The tab shown.</summary>
-    public void ShowTab(string id) => _tab = id;
+    /// <summary>The tab shown, and its mode.</summary>
+    public void ShowTab(string id) => _hand.Tab.Set(id);
 
     public override void _UnhandledInput(InputEvent e)
     {
         // Esc puts the plan away through Shared.Escape, before it opens the game menu.
-        if (e is not InputEventKey { Pressed: true } key) return;
-        if (key.PhysicalKeycode != Key.B || key.Echo) return;
-        _hand.Toggle();
+        if (e is not InputEventKey { Pressed: true } key || key.Echo) return;
+        switch (key.PhysicalKeycode)
+        {
+            case Key.B:
+                _hand.Toggle();
+                break;
+            // With a hand free Q drops the hotbar's item, taken before it gets here; with the menu open it picks.
+            case Key.Q when _hand.PlanOut.Get():
+                _hand.PickWanted = true;
+                break;
+            default:
+                return;
+        }
         GetViewport().SetInputAsHandled();
     }
 
@@ -141,6 +151,7 @@ public partial class BuildMenu : CanvasLayer
         bool open = _hand.PlanOut.Get();
         _closed.Visible = !open;
         _open.Visible = open;
+        _ui.MenuTop = open ? _open.GetGlobalRect().Position.Y : null;
         if (!open)
         {
             _tips.Show(null);
@@ -150,8 +161,6 @@ public partial class BuildMenu : CanvasLayer
         }
         if (!_wasOpen)
         {
-            // Taken out while an overlay is on, it opens on that overlay's tab.
-            if (Tools.TabFor(_ui.OverlayOn.Get()) is { } opensOn) _tab = opensOn;
             _sinceRead = RefreshMs;
             _wasOpen = true;
         }
@@ -161,22 +170,23 @@ public partial class BuildMenu : CanvasLayer
             _carried = m.Items.Totals(peer);
         }
         var tabs = Tools.Tabs
-            .Select(t => new Tab(t.Id, t.Tools.Where(each => Tools.Known(each, m.Research)).ToList()))
+            .Select(t => t with { Tools = t.Tools.Where(each => Tools.Known(each, m.Research)).ToList() })
             .Where(t => t.Tools.Count > 0)
             .ToList();
-        var shownTab = tabs.FirstOrDefault(t => t.Id == _tab) ?? tabs.FirstOrDefault();
+        var shownTab = tabs.FirstOrDefault(t => t.Id == _hand.Tab.Get()) ?? tabs.FirstOrDefault();
+        // A tab the world shows nothing on is never the mode: the one shown instead is.
+        if (shownTab != null && shownTab.Id != _hand.Tab.Get()) _hand.Tab.Set(shownTab.Id);
         var tool = _hand.Selected.Get();
-        bool wiring = _ui.OverlayOn.Get() == Tools.Power;
-        string key = $"{string.Join(",", tabs.Select(t => $"{t.Id}:{t.Tools.Count}"))}|{shownTab?.Id}|{tool?.Id}|{wiring}";
+        string key = $"{string.Join(",", tabs.Select(t => $"{t.Id}:{t.Tools.Count}"))}|{shownTab?.Id}|{tool?.Id}";
         if (key != _shown)
         {
             _shown = key;
-            Rebuild(tabs, shownTab, tool, wiring);
+            Rebuild(tabs, shownTab, tool);
         }
         ShowTooltip(m);
     }
 
-    private void Rebuild(List<Tab> tabs, Tab? shownTab, Tool? tool, bool wiring)
+    private void Rebuild(List<Tab> tabs, Tab? shownTab, Tool? tool)
     {
         foreach (var child in _tabs.GetChildren().Concat(_cards.GetChildren()).Concat(_held.GetChildren()))
         {
@@ -190,7 +200,7 @@ public partial class BuildMenu : CanvasLayer
             var button = new Button { Text = En.T($"build.tab.{tab.Id}"), FocusMode = Control.FocusModeEnum.None };
             Style(button, on ? Sky700 : Slate800, on ? Sky700 : Slate800, on ? Colors.White : Slate300, padding: 4);
             string id = tab.Id;
-            button.Pressed += () => _tab = id;
+            button.Pressed += () => _hand.Tab.Set(id);
             _tabs.AddChild(button);
         }
         foreach (var each in shownTab?.Tools ?? [])
@@ -213,9 +223,8 @@ public partial class BuildMenu : CanvasLayer
         {
             _held.AddChild(Picture(ThumbOf(tool), 20));
             _held.AddChild(Text(tool.Label, Slate100));
-            _held.AddChild(Text(En.T(tool is CableTool ? "hand.cable" : "hand.card"), Slate500));
         }
-        else _held.AddChild(Text(En.T(wiring ? "hand.wires" : "build.close"), Slate500));
+        if (shownTab != null) _held.AddChild(Text(En.T(Tools.HintOf(shownTab.Id)), Slate500));
     }
 
     private static void Style(Button button, Color bg, Color border, Color text, int padding)

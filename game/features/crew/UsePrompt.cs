@@ -6,8 +6,8 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// What E does at the pointer, in a line at the bottom middle, above the build menu (CrewPanel.tsx's
-/// UsePrompt); red, with the reason, when the sim would refuse it. Nothing when there is nothing to do
-/// within reach.
+/// UsePrompt) — lifted over the open menu, which is taller than the line's place; red, with the reason,
+/// when the sim would refuse it. Nothing when there is nothing to do within reach.
 /// </summary>
 public partial class UsePrompt : CanvasLayer
 {
@@ -28,8 +28,22 @@ public partial class UsePrompt : CanvasLayer
         _panel.AddChild(line);
         // bottom-28, centred: its middle on the screen's, 112 pixels above the bottom edge.
         (_panel.AnchorLeft, _panel.AnchorRight, _panel.AnchorTop, _panel.AnchorBottom) = (0.5f, 0.5f, 1, 1);
-        _panel.OffsetBottom = -112;
+        _panel.OffsetBottom = -Bottom;
         AddChild(_panel);
+    }
+
+    /// <summary>The line's bottom, in pixels above the screen's, and its gap over the open build menu.</summary>
+    private const float Bottom = 112, AboveMenu = 8;
+
+    /// <summary>Lays the line above the build menu, every frame: the menu grows with its tab's cards.</summary>
+    public void Place(float? menuTop)
+    {
+        float height = _panel.GetViewportRect().Size.Y;
+        float bottom = menuTop is float top ? Mathf.Max(Bottom, height - top + AboveMenu) : Bottom;
+        if (_panel.OffsetBottom == -bottom) return;
+        float tall = _panel.OffsetBottom - _panel.OffsetTop;
+        _panel.OffsetBottom = -bottom;
+        _panel.OffsetTop = -bottom - tall;
     }
 
     private static StyleBoxFlat Edge(Color border)

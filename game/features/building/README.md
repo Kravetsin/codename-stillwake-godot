@@ -1,6 +1,6 @@
 # building (client): the plan in hand
 
-The plan, its menu and the hand at work (0022), ported from `apps/game/src/features/building/` and
+The plan, its menu and the hand at work (0022, 0030), ported from `apps/game/src/features/building/` and
 `session/ui.ts` (G-08). Game rules stay in `sim/Building`: the client shows what `Problem`, `ClearAt`,
 `Lacking`, `CostOf`, `TicksFor` and `CostFor` say and sends `PlacePlan`, `Deconstruct`, `CancelPlan` and
 `Work`.
@@ -27,15 +27,19 @@ draws too; `Sketch`). The plain files are compiled again into `game.tests/`, whe
 
 ## Guarantees
 
-- One thing in hand (`Holding`): free, the plan, a card or the cable. A card in hand is the plan out;
-  the plan put away takes the card; the hand freed elsewhere (a hotbar slot) puts the plan away. Each
-  card shows its overlay and the plan put away gives back the one before; another overlay puts the cable
-  away.
-- Left drags place along a line (a machine where it began); right drags cancel plans when begun on one,
-  else mark what is built in the overlay's layers; the middle button picks the card under the pointer,
-  known cards only. A drag ends with the hand that began it.
-- With an empty hand, the left button held on a plan is the hero's (crew's `Aiming.UsesOf`): within its
-  reach it delivers once per sweep or works one tick per tick released, at most five a frame.
+- One thing in hand (`Holding`): free, the plan, a card or the cable. The plan put away takes the card;
+  the hand freed elsewhere (a hotbar slot, the wheel) puts the plan away.
+- The open tab is the mode (`PlanHand.Tab`): Air shows the pipes overlay, Power the cables. The overlay
+  shown is never kept — `Tools.OverlayShown` from the plan out, the tab and `Ui.AirOn` on each read — so
+  with the menu closed it is air or nothing. The menu opens on the tab it closed on; a card picked opens
+  its tab; another tab lets the card go; a tab with nothing known is never the tab.
+- Left drags place along a line (a machine where it began); middle drags cancel plans when begun on one,
+  else mark what is built in the tab's layers (Air: pipes, valves, machines); Q picks the card under the
+  pointer onto its tab, known cards only. A drag ends with the hand that began it.
+- The right button held on a plan is the hero's, whatever the hand holds (crew's `Aiming.UsesOf`): within
+  its reach it delivers once per sweep or works one tick per tick released, at most five a frame.
+- Under the cards, the card in hand and one line of what the buttons do on the tab (`Tools.HintOf`); the
+  menu's top is `Ui.MenuTop`, which the prompt for E keeps above.
 - Plans redraw only when the plans change; ghosts are tiles laid and erased each frame.
 - A removal's ghost is a box per cell edged a screen pixel wide at any zoom (a primitive line).
 - Work on a plan throws sparks from its middle, 0.3 a tick of work it goes on by (`Effect.Spark`).

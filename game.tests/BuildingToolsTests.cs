@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The build menu, the hand and the overlay as a filter: apps/game/src/features/building/tools.test.ts, one for one.</summary>
+/// <summary>The build menu, the hand and the tab as the mode (0030): from apps/game/src/features/building/tools.test.ts.</summary>
 public class BuildingToolsTests
 {
     /// <summary>What a card puts in the world, by the name the grid gives it, a wall by its material.</summary>
@@ -67,11 +67,62 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void OpensOnTheTabOfTheOverlayThatIsOn()
+    public void ShowsTheOpenTabsOverlayAndWithTheMenuClosedOnlyAirIfWanted()
     {
-        Assert.Equal(new[] { "power", "air", "air", null }, new[] { Tools.TabFor(Tools.Power), Tools.TabFor("pipes"), Tools.TabFor("atmosphere"), Tools.TabFor(null) });
-        Assert.Contains(Tools.Tabs, tab => tab.Id == "power");
-        Assert.Contains(Tools.Tabs, tab => tab.Id == "air");
+        foreach (bool airOn in new[] { false, true })
+            foreach (var tab in Tools.Tabs.Select(t => t.Id))
+            {
+                string? air = airOn ? Tools.Air : null;
+                // Closed, whatever the tab: air or nothing.
+                Assert.Equal(air, Tools.OverlayShown(false, tab, airOn));
+                string? own = tab switch { "air" => Tools.Pipes, "power" => Tools.Power, _ => null };
+                Assert.Equal(own ?? air, Tools.OverlayShown(true, tab, airOn));
+            }
+    }
+
+    [Fact]
+    public void ReadsTheOverlayAnewFromThePlanItsTabAndAirNeverKeepingIt()
+    {
+        var ui = new Ui();
+        var plan = new PlanHand(ui);
+        ui.AirOn.Set(true);
+        Assert.Equal(Tools.Air, ui.OverlayOn);
+        plan.Toggle();
+        plan.Tab.Set("air");
+        Assert.Equal(Tools.Pipes, ui.OverlayOn);
+        plan.Tab.Set("power");
+        Assert.Equal(Tools.Power, ui.OverlayOn);
+        plan.PutPlanAway();
+        Assert.Equal(Tools.Air, ui.OverlayOn);
+        ui.AirOn.Set(false);
+        Assert.Null(ui.OverlayOn);
+        // B again opens on the tab it was closed on.
+        plan.Toggle();
+        Assert.Equal(("power", Tools.Power), (plan.Tab.Get(), ui.OverlayOn));
+    }
+
+    [Fact]
+    public void LetsACardGoWithAnotherTabAndPicksOneOntoItsOwnTab()
+    {
+        var ui = new Ui();
+        var plan = new PlanHand(ui);
+        plan.Toggle();
+        plan.Pick(Card("lamp"));
+        Assert.Equal(("power", "lamp"), (plan.Tab.Get(), What(plan.Selected.Get())));
+        plan.Tab.Set("structure");
+        Assert.Equal(((Tool?)null, Holding.Plan), (plan.Selected.Get(), ui.Hand.Get()));
+        plan.Pick(Card("pipe"));
+        Assert.Equal(("air", Tools.Pipes), (plan.Tab.Get(), ui.OverlayOn));
+        // The same card again lets it go and keeps the tab.
+        plan.Pick(Card("pipe"));
+        Assert.Equal(((Tool?)null, "air"), (plan.Selected.Get(), plan.Tab.Get()));
+    }
+
+    [Fact]
+    public void SaysWhatTheButtonsDoOnEveryTabInWords()
+    {
+        foreach (var tab in Tools.Tabs) Assert.True(En.Table.ContainsKey(Tools.HintOf(tab.Id)), tab.Id);
+        Assert.NotEqual(Tools.HintOf("power"), Tools.HintOf("structure"));
     }
 
     [Fact]
@@ -98,8 +149,11 @@ public class BuildingToolsTests
     {
         var ui = new Ui();
         var plan = new PlanHand(ui);
-        plan.Selected.Set(Card("lamp"));
+        plan.Toggle();
+        plan.Pick(Card("lamp"));
         Assert.Equal((Holding.Card, true), (ui.Hand.Get(), plan.PlanOut.Get()));
+        plan.Pick(Card("cable"));
+        Assert.Equal(Holding.Cable, ui.Hand.Get());
     }
 
     [Fact]
@@ -107,57 +161,17 @@ public class BuildingToolsTests
     {
         var ui = new Ui();
         var plan = new PlanHand(ui);
-        plan.Selected.Set(Card("floor"));
+        plan.Toggle();
+        plan.Pick(Card("floor"));
+        // 1–9 or the wheel with the menu open: the plan away, its overlay with it.
         ui.Hand.Set(Holding.Free);
         Assert.Equal((Holding.Free, false, (Tool?)null), (ui.Hand.Get(), plan.PlanOut.Get(), plan.Selected.Get()));
     }
 
     [Fact]
-    public void ShowsEachCardsOverlayOrNoneAndGivesBackTheOneBeforeOnceThePlanIsAway()
+    public void RemovesAndPicksPipesAndMachinesOnTheAirTabAndWhatTheShipIsBuiltOfElsewhere()
     {
-        string? Shown(string kind) => Tools.OverlayFor(Card(kind));
-        Assert.All(new[] { "wall:iron", "floor", "door", "crate", "furnace" }.Select(Shown), Assert.Null);
-        Assert.All(new[] { "pipe", "valve", "vent", "tank", "generator" }.Select(Shown), o => Assert.Equal("pipes", o));
-        Assert.All(new[] { "cable", "lamp", "solarPanel" }.Select(Shown), o => Assert.Equal(Tools.Power, o));
-
-        var ui = new Ui();
-        var plan = new PlanHand(ui);
-        ui.OverlayOn.Set("atmosphere");
-        plan.Selected.Set(Card("pipe"));
-        Assert.Equal("pipes", ui.OverlayOn.Get());
-        plan.Selected.Set(Card("floor"));
-        Assert.Null(ui.OverlayOn.Get());
-        plan.Selected.Set(Card("lamp"));
-        Assert.Equal(Tools.Power, ui.OverlayOn.Get());
-        // A card let go keeps what is shown while the plan is out; the plan away gives back the one before.
-        plan.Selected.Set(null);
-        Assert.Equal(Tools.Power, ui.OverlayOn.Get());
-        plan.PutPlanAway();
-        Assert.Equal("atmosphere", ui.OverlayOn.Get());
-    }
-
-    [Fact]
-    public void KeepsAnyCardButTheCableUnderAnyOverlayTheCableGoesWithThePowerOverlay()
-    {
-        var ui = new Ui();
-        var plan = new PlanHand(ui);
-        plan.Selected.Set(Card("wall:iron"));
-        ui.OverlayOn.Set(Tools.Power);
-        Assert.Equal("wall:iron", What(plan.Selected.Get()));
-        plan.Selected.Set(Card("cable"));
-        Assert.Equal(Tools.Power, ui.OverlayOn.Get());
-        // Another overlay, or none, puts the cable away and stays; the plan stays out.
-        ui.OverlayOn.Set("pipes");
-        Assert.Equal(((Tool?)null, "pipes", Holding.Plan), (plan.Selected.Get(), ui.OverlayOn.Get(), ui.Hand.Get()));
-        plan.Selected.Set(Card("cable"));
-        ui.OverlayOn.Set(null);
-        Assert.Equal(((Tool?)null, (string?)null), (plan.Selected.Get(), ui.OverlayOn.Get()));
-    }
-
-    [Fact]
-    public void RemovesAndPicksPipesUnderThePipesOverlayAndWhatTheShipIsBuiltOfElsewhere()
-    {
-        Assert.Equal(["conduit"], Tools.LayersFor("pipes"));
+        Assert.Equal(["conduit", "machine"], Tools.LayersFor("pipes"));
         Assert.Equal(["machine", "structure", "back"], Tools.LayersFor(null));
         Assert.Equal(Tools.LayersFor(null), Tools.LayersFor("atmosphere"));
     }

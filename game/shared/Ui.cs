@@ -79,16 +79,23 @@ public sealed class Ui
     /// <summary>
     /// What the hand holds: <c>building</c> sets it with the card; a hotbar slot picked or the inventory
     /// opened frees it, and <c>building</c> then puts the plan away. With anything but a free hand, the
-    /// hero leaves the left button to the card.
+    /// hero leaves the left button to the card; the right button works plans whatever it holds (0030).
     /// </summary>
     public Store<Holding> Hand { get; } = new(Holding.Free);
 
+    /// <summary>Whether the air overlay is wanted: O switches it, outside building too, for air keeps the crew alive.</summary>
+    public Store<bool> AirOn { get; } = new(false);
+
     /// <summary>
-    /// Which overlay is on, by its feature's id, or none: switched by its key, and by <c>building</c>
-    /// while a card that needs one is out. It only shows, and says what the right button removes and
-    /// the middle one picks (0022).
+    /// Which overlay shows, by its feature's id, or none (0030): never kept, worked out on each read by
+    /// what <c>building</c> sets here — the open build tab's overlay, else air if <see cref="AirOn"/>.
+    /// With the build menu closed it is air or nothing, so no mode outlives the menu. It says what the
+    /// middle button removes and Q picks.
     /// </summary>
-    public Store<string?> OverlayOn { get; } = new(null);
+    public string? OverlayOn => OverlayShown();
+
+    /// <summary>What <see cref="OverlayOn"/> reads: set once by whoever holds the build menu's state.</summary>
+    public System.Func<string?> OverlayShown { get; set; } = () => null;
 
     /// <summary>What an overlay says of the cell under the pointer, set by that overlay while it is on.</summary>
     public Store<IReadOnlyList<string>?> WorldTip { get; } = new(null);
@@ -119,6 +126,12 @@ public sealed class Ui
     /// closed. Set by <c>items</c> every frame; <c>crafting</c> docks its crafts beside it.
     /// </summary>
     public Store<(float Right, float Top)?> InventoryEdge { get; } = new(null);
+
+    /// <summary>
+    /// Where the open build menu's top edge is on the screen; null while it is closed. Set by
+    /// <c>building</c> every frame; <c>crew</c> lifts the prompt for E above it.
+    /// </summary>
+    public float? MenuTop { get; set; }
 
     /// <summary>
     /// The piece of debris E would grab, and whether the sim would refuse it: <c>crew</c> sets it while

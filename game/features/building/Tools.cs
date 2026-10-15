@@ -10,7 +10,7 @@ using Stillwake.Sim.Research;
 
 namespace Stillwake.Game.Features.Building;
 
-/// <summary>What a drag does: a card's work, or the right button's removal (0022).</summary>
+/// <summary>What a drag does: a card's work, or the middle button's removal (0030).</summary>
 public abstract record Act;
 
 /// <summary>A card in hand: what the left button does in the world with it; <c>Id</c> names its text.</summary>
@@ -22,16 +22,16 @@ public sealed record PlaceTool(string Id, Placement Placement, string Label) : T
 /// <summary>The cable card: laid by the power feature, from press to release.</summary>
 public sealed record CableTool(string Id, string Label) : Tool(Id, Label);
 
-/// <summary>The right button's removal from <paramref name="Layers"/>, in the order they are taken.</summary>
+/// <summary>The middle button's removal from <paramref name="Layers"/>, in the order they are taken.</summary>
 public sealed record Remove(IReadOnlyList<string> Layers) : Act;
 
-/// <summary>A tab of the build menu and its cards.</summary>
-public sealed record Tab(string Id, IReadOnlyList<Tool> Tools);
+/// <summary>A tab of the build menu, its cards, and the overlay it shows while open, if any: the tab is the mode (0030).</summary>
+public sealed record Tab(string Id, IReadOnlyList<Tool> Tools, string? Overlay = null);
 
 /// <summary>
-/// The build menu's cards and the rules of the hand around them (features/building/tools.ts): which
-/// overlay a card is used in, which tab an overlay opens the menu on, which layers removal and the
-/// pipette take, and the pipette's card for a cell.
+/// The build menu's cards and the rules of the hand around them (features/building/tools.ts, 0030):
+/// which overlay shows for the open tab, which layers removal and the pipette take, the pipette's card
+/// for a cell and the hint each tab gives.
 /// </summary>
 public static class Tools
 {
@@ -66,13 +66,13 @@ public static class Tools
             Place("vent", new Placement("machine", "vent")),
             Place("tank", new Placement("machine", "tank")),
             Place("generator", new Placement("machine", "generator")),
-        ]),
+        ], Pipes),
         new("power",
         [
             new CableTool("cable", En.T("tool.cable")),
             Place("solarPanel", new Placement("machine", "solarPanel")),
             Place("lamp", new Placement("machine", "lamp")),
-        ]),
+        ], Power),
         new("production",
         [
             Place("furnace", new Placement("machine", "furnace")),
@@ -92,33 +92,30 @@ public static class Tools
         tool is PlaceTool p ? costFor(p.Placement) : Content.Power.CableCost;
 
     /// <summary>
-    /// The overlay a card is used in, where what it joins is in sight: pipes for a pipe, a valve and a
-    /// machine with ports; power for the cable and a machine with a socket and no ports; none for the rest.
+    /// The overlay that shows: the open tab's, if the menu is open and the tab has one; else air if the
+    /// player wants it; else none. With the menu closed, air or nothing.
     /// </summary>
-    public static string? OverlayFor(Tool tool)
-    {
-        if (tool is not PlaceTool { Placement: var placement }) return Power;
-        if (placement.Layer == "conduit") return Pipes;
-        if (placement.Layer != "machine") return null;
-        var spec = Machines.Get(placement.Kind);
-        return spec.Ports.Count > 0 ? Pipes : spec.Plug != null ? Power : null;
-    }
+    public static string? OverlayShown(bool planOut, string tab, bool airOn) =>
+        planOut && Tabs.FirstOrDefault(t => t.Id == tab)?.Overlay is { } overlay ? overlay : airOn ? Air : null;
 
-    /// <summary>The menu's tab an overlay opens it on: what is built in what it shows.</summary>
-    public static string? TabFor(string? overlay) => overlay switch
+    /// <summary>The tab a card is on.</summary>
+    public static string TabOf(Tool tool) => Tabs.First(t => t.Tools.Contains(tool)).Id;
+
+    /// <summary>What the buttons do on a tab, an i18n key: the pipes' and the cables' tabs say their own.</summary>
+    public static string HintOf(string tab) => tab switch
     {
-        Power => "power",
-        Pipes or Air => "air",
-        _ => null,
+        "air" => "hint.air",
+        "power" => "hint.power",
+        _ => "hint.build",
     };
 
     /// <summary>
-    /// The layers the right button removes from and the middle one picks in, under <paramref name="overlay"/>,
-    /// in the order they are taken: pipes and valves under the pipes overlay, else what the ship is built
-    /// of. Cables, under the power overlay, are the power feature's.
+    /// The layers the middle button removes from and Q picks in, under <paramref name="overlay"/>, in the
+    /// order they are taken: pipes, valves and the machines on them under the pipes overlay, else what the
+    /// ship is built of. Cables, under the power overlay, are the power feature's.
     /// </summary>
     public static IReadOnlyList<string> LayersFor(string? overlay) =>
-        overlay == Pipes ? ["conduit"] : ["machine", "structure", "back"];
+        overlay == Pipes ? ["conduit", "machine"] : ["machine", "structure", "back"];
 
     /// <summary>Whether <paramref name="tool"/> is a card the world knows (0024): the cable always, else its blueprint.</summary>
     public static bool Known(Tool tool, IResearchQueries research) =>

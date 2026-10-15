@@ -72,7 +72,7 @@ public partial class AirView : Node2D
         };
     }
 
-    private bool On => _ui.OverlayOn.Get() == Id;
+    private bool On => _ui.OverlayOn == Id;
 
     public void Frame(Client client, Registry m, (double X, double Y)? pointer, double elapsedMs)
     {

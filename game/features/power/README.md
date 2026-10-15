@@ -1,7 +1,7 @@
 # power (client): cables as ropes
 
-Cables hanging between their nodes and the power overlay, where they are laid, carried and cut (0017,
-0021, 0022), ported from `apps/game/src/features/power/` and `render/cable.ts` (G-08). The sim's
+Cables hanging between their nodes and the power tab's overlay, where they are laid, carried and cut
+(0017, 0021, 0022, 0030), ported from `apps/game/src/features/power/` and `render/cable.ts` (G-08). The sim's
 `sim/Power` decides: the client reads `Cables`, `Networks`, `NodeAt`, `NetworkOf`, `Satisfaction`,
 `LayProblem` and `MoveProblem`, and sends `Lay`, `Cut` and `Move`.
 
@@ -11,7 +11,7 @@ Cables hanging between their nodes and the power overlay, where they are laid, c
 | --------------- | -------------------------------------------------------------------------------------- | ----- |
 | `Wiring.cs`     | what a press takes hold of (`GripAt`), supports on the way (`SupportOnWay`), `LightOf` (`wiring.ts`) | no    |
 | `CableRopes.cs` | every cable as ropes, a rope per piece, hanging aboard and floating outside; carried ends, landings and cables just laid (`ropes.ts`) | no    |
-| `PowerHands.cs` | the hands in the overlay: lay, lead on through supports, carry with Shift or the plan, cut with the right button (`mode.ts`) | no    |
+| `PowerHands.cs` | the hands on the power tab: the Cable card lays and leads on through supports, no card carries a peg or plug, a middle press near a cable cuts (`mode.ts`) | no    |
 | `PowerView.cs`  | the cables, pegs, plugs, grommets and bolts; the overlay, its colours and the ghost    | yes   |
 
 `game/render/CableShape.cs` (`render/cable.ts`: ends, hangs, pieces through the hull) and
