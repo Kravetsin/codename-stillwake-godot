@@ -45,7 +45,11 @@ Numbers from `game/Content/Light.cs`.
   texels so a shadow's edge does not step at the world's pixels on screen: ambient, plus the stars and the
   main map — scaled down together where they would pass whole in a colour, so a fire's orange over a
   lamp stays orange — plus the spots, together at most `Light.ParticleMost` by their brightest colour;
-  a wall takes `Light.WallIn` of what reaches its face. The `CanvasModulate` of `Light.Ambient` stays
+  a wall takes `Light.WallIn` of what reaches its face. A normal-mapped picture (walls, doors,
+  machines, sockets) is shaded toward where the lamps' light comes from — up the main map's slope over
+  half a cell each side, tilted 45° up — and the sum held at whole after it; where the light hardly
+  changes the picture is shaded as facing it. Near a fire under a lamp the slope turns a little with
+  the flames. The `CanvasModulate` of `Light.Ambient` stays
   for anything drawn lit without `Lit`; unshaded things are not tinted by it.
 - **What it lights:** the ship's cells and machines, cables, stacks on the floor, debris and every
   hero's figure; not fire, glows, particles, plans or overlays.
@@ -55,8 +59,7 @@ Numbers from `game/Content/Light.cs`.
 
 ## Deliberately not handled
 
-- Relief: pictures are shaded flat; their normal maps are still made but not read. Whether a light's
-  side of walls and machines comes back is the team's call after seeing it flat.
+- Relief from more than one light is from their sum's slope: one direction a point, not each lamp's.
 - Light bending round corners and through doorways the way the TypeScript sweeps let it: lamps cast
   straight shadows; only starlight keeps the sweeps. Nor does a closed door leak `Light.WallOut`.
 - Heroes and machines cast no shadows.

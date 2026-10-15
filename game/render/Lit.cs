@@ -16,8 +16,9 @@ namespace Stillwake.Game.Render;
 /// keeps its hue: clamping each colour alone would wash a fire's orange over a lamp out to yellow. The
 /// glowing particles' spots are added over that, past whole, together at most
 /// <see cref="Light.ParticleMost"/> by their brightest colour, so an ember by a fire still lights the
-/// wall behind it. A wall takes <see cref="Light.WallIn"/> of what reaches its face. Shaded flat: the
-/// normal maps the pictures carry are not read.
+/// wall behind it. A wall takes <see cref="Light.WallIn"/> of what reaches its face. A normal-mapped
+/// picture is shaded toward the way the lamps' light comes from — up the main lightmap's slope, tilted
+/// 45 degrees up — within that cap; one without a normal map faces the screen and is shaded flat.
 /// </summary>
 public static class Lit
 {
@@ -31,6 +32,8 @@ public static class Lit
             // Drawn in wall cells, it takes the stars' light from wall cells; all else from the open ones.
             uniform bool blocks = false;
             uniform vec3 ambient = vec3(0.0);
+            // How much a normal map shades: 0 flat, 1 as a face turned toward the light 45 degrees up.
+            uniform float relief = 0.7;
             // The most the glowing particles' spots add in a colour, past whatever else lights it.
             uniform float spot_most = 0.0;
             // The stars' light, a texel a cell, its alpha whole in a wall's cell, laid over the world at
@@ -79,12 +82,23 @@ public static class Lit
                 vec3 star = weight > 0.0 ? sum / weight : own.rgb;
                 vec2 texel = (world - lightmap_at) / lightmap_texel;
                 vec3 lamps = mapped(lightmap, texel), spots = mapped(spotmap, texel);
+                // Where the lamps' light comes from: up its slope, half a cell each side. Where it hardly
+                // changes, or none falls, the picture is shaded as facing it.
+                const vec3 LUMA = vec3(0.3, 0.59, 0.11);
+                float h = 8.0 / lightmap_texel;
+                vec2 slope = vec2(
+                    dot(mapped(lightmap, texel + vec2(h, 0.0)) - mapped(lightmap, texel - vec2(h, 0.0)), LUMA),
+                    dot(mapped(lightmap, texel + vec2(0.0, h)) - mapped(lightmap, texel - vec2(0.0, h)), LUMA));
+                float steep = clamp(length(slope) / max(dot(lamps, LUMA), 0.0001) / 0.06, 0.0, 1.0);
+                vec3 toward = normalize(vec3(slope / max(length(slope), 0.0001) * steep, 1.0));
+                float facing = clamp(dot(NORMAL, toward) / toward.z, 0.0, 1.5);
                 // Where the stars and lamps together pass whole in a colour, all of their light is scaled down
                 // till none does: each colour at most whole, and a fire's orange over a lamp stays orange.
                 vec3 fits = (1.0 - ambient) / max(star + lamps, vec3(0.0001));
                 float scale = min(1.0, min(fits.r, min(fits.g, fits.b)));
                 float brightest = max(spots.r, max(spots.g, spots.b));
-                vec3 light = (star + lamps) * scale + spots * min(1.0, spot_most / max(brightest, 0.0001));
+                vec3 lit = min(star * scale + lamps * scale * mix(1.0, facing, relief), 1.0 - ambient);
+                vec3 light = lit + spots * min(1.0, spot_most / max(brightest, 0.0001));
                 COLOR.rgb *= ambient + light * share;
             }
             """,

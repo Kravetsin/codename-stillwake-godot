@@ -22,7 +22,8 @@ open doors and an evenly shaded ship.
   the light are walked only where the two ends disagree.
 - The lit shader reads the lightmaps unshaded: ambient, the stars and the main map scaled together to
   keep hue, the spots capped apart. Starlight stays the cell-by-cell sweeps of 0019.
-- Relief by normal maps is dropped for now; the team decides after seeing the ship flat.
+- Relief by normal maps comes from the main lightmap's slope: a picture is shaded toward where the light
+  grows, one direction a point for all lights together.
 
 ## Consequences
 
