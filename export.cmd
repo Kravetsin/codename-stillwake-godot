@@ -1,6 +1,10 @@
 @echo off
 rem Exports the Windows build to build\windows\Stillwake.exe and zips it as build\Stillwake-windows.zip.
 setlocal
+rem No build servers left behind once the build is done: they idle in the task manager otherwise.
+set MSBUILDDISABLENODEREUSE=1
+set DOTNET_CLI_USE_MSBUILD_SERVER=0
+set UseSharedCompilation=false
 set GODOT=%USERPROFILE%\Tools\godot-4.7.2\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe
 if not "%STILLWAKE_GODOT%"=="" set GODOT=%STILLWAKE_GODOT%
 cd /d "%~dp0"
