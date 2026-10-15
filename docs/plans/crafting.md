@@ -1,4 +1,4 @@
-# Design: Crafting, blueprints opened by their parts, a burner generator
+# Design: Crafting, blueprints opened by their parts, a burner generator, the lifepod
 
 ## Problem
 
@@ -207,6 +207,83 @@ change to wire; the furnace's become fire scenarios where they hold for both.
   1. **Parts and their blueprints** (built): the analysed rule, `Locked`, schematics gone, the four parts, the
      `Crafting` module and its panel, the new costs, the analyzer's screen and panel.
   2. **The burner generator:** shared fires, the fuel slot by spec, resting makers, its art.
+  3. **The lifepod** (below, built): where the hero is made, air for the suit, the Fabricator in it;
+     crafting by machine only, the hand queue and its window gone.
+
+## Task 3: the lifepod, and no crafting by hand (built)
+
+Decided with the team on 2026-10-15; built on `feat/lifepod`
+([0028](../decisions/0028-the-lifepod-and-crafting-by-machine-only.md)). As built: `PodRefill` 2 and
+`PodReach` 1 (standing by it); `QueueMost` 4, the panel's four slots; the pod in the wreck's room A
+at columns 51–53 against the airlock, its hatch at (52, 22), the furnace's place at (49, 21) kept. The crafts window by hand proved either bulky or hard to
+search, so parts are made by machines only, as in Subnautica and RimWorld. And a ship taken apart
+or opened to space must never leave a player stuck: waking in vacuum, passing out, waking again; or
+with no power and nothing to make parts with. One object answers both: the **lifepod**, as
+Subnautica's Lifepod 5.
+
+### Player experience
+
+1. The hero is made in the lifepod: at the start, and after passing out, its hatch opens and the hero
+   climbs out with a full suit.
+2. Standing by it, the suit fills with the pod's own air, slowly; it gives none to the room. A hero in a
+   ship open to space can still breathe and work at the pod.
+3. E at the pod opens its **Fabricator** beside the inventory, as the furnace and the analyzer open:
+   its recipes in fixed places, its queue, its output (the mockup, "Fabricator panel").
+4. A click on the wire queues one, a shift-click five; the scrap leaves the inventory at once. The
+   pod's screen runs and the queued slot fills from the bottom. It needs no power and is slow, half
+   speed: the pod is the floor that is always there, not the factory.
+5. Finished wire lands in its output slots; a click takes it into the inventory. The queue runs while
+   the hero is away.
+6. Co-op: one pod for the crew, its queue seen by all; anyone may add to it, take from it, or cancel
+   an entry, its cost given back to whoever cancels. Every hero is made there.
+
+Goes wrong: the output is full and the unit at work waits there, full; a hero dismantling the pod is
+refused (`building.fixed`), as for everything built into it.
+
+### Approach
+
+- **Content.** `lifepod`: about 3×3 cells, `Fixed` (never taken apart, never hit), 3 output slots and
+  no input slots (`Inputs = 0`), no power drawn; crafts at `Crafts.PodSpeed` (half). Its air for the
+  suit: `Crew.PodRefill` units a breath within `Crew.PodReach` cells, from no store. Every craft is the
+  pod's while it is the only station; a craft names its station once a second one comes (principle 2).
+  A Fabricator built by the player, drawing power and working at full speed, is a later task.
+- **Map.** The wreck's room A holds the pod where `S` is now; a map's pod replaces `S` as where heroes
+  are made. A map with no pod keeps `S`, as the tests' maps do.
+- **`Crew`.** The spawn is the pod's hatch cell. A conscious hero within `PodReach` of it draws the
+  pod's air into the suit each breath, before the room's or the suit's own.
+- **`Building`.** Refuses taking apart anything `Fixed`, with `building.fixed`.
+- **`Crafting`: queues by machine, not by peer.** State: each crafting machine's `{ machine, next,
+  progress, entries }`. `Craft(Machine, Recipe, Count)` and `Cancel(Machine, Entry)` add
+  `crafting.noStation` (no crafting machine by that id) to today's refusals; the cost leaves the sender,
+  the refund goes to the sender. Each tick, in machine order, a machine with an entry adds its speed
+  (thousandths, as research counts); a unit done goes to its output (the machine's slots in `Items`),
+  or waits full. Depends on `Items`, `Research` and `Grid` (which machines craft).
+- **Client.** The pod's art: a capsule with a hatch, a porthole lit from inside and the Fabricator's
+  screen (the sketch, "Lifepod"); the hatch opening as a hero is made. Its panel beside the inventory as
+  the mockup draws it, with the suit's air filling while near. The Tab crafts window, its tabs, pages
+  and pins go.
+
+### Trade-offs
+
+- The pod's air is endless → only for the suit, only by the pod, slowly → aired rooms, tanks and
+  generators stay the way to live; the pod is the way not to die.
+- The pod cannot be moved or taken apart → the ship grows round it; moving it is a later question.
+- A queue paid by one and cancelled by another refunds the canceller → friends share a ship → no
+  record of who paid.
+- Walking to the pod for every part → the queue runs while the hero is away; ordering from the
+  planner tablet is a later idea.
+- Old saves (hand queues, no pod) are refused → the format bump.
+
+### Tests
+
+- A hero is made at the pod: first entering, and waking from passing out, with a full suit.
+- By the pod the suit fills even in vacuum; past `PodReach` it drains as before.
+- The pod refuses being taken apart, with `building.fixed`.
+- A wire queued is made in twice its ticks at the pod's half speed, with no power anywhere.
+- The output fills; a unit waits full until a slot is taken from.
+- Refusals: noStation, unknown, full, notEnough, noEntry.
+- Two peers queue at the pod; one cancels the other's entry and gets its cost.
+- The wreck: the pod in room A, heroes made there.
 
 ## Decided with the team
 

@@ -47,10 +47,10 @@ public sealed class Registry
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Grid, Items, Power, Power);
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Research);
-        Crafting = new CraftingModule(Items, Items, Research);
+        Crafting = new CraftingModule(Grid, Items, Items, Research);
         Pipes = new PipesModule(Grid);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
-        Crew = new CrewModule(Atmosphere);
+        Crew = new CrewModule(Atmosphere, Grid);
         Hazards = new HazardsModule(Grid, Grid);
         Debris = new DebrisModule(Grid, Crew, Rooms, Items);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere);

@@ -19,7 +19,7 @@ namespace Stillwake.Game.Features.Items;
 /// <summary>
 /// The hotbar, always in the top-left corner; and with Tab, or E on a crate, the rest of the inventory
 /// and the crate beside it (Inventory.tsx): a crate's slots, a furnace's input over its fuel and its
-/// outputs, an analyzer's own panel (<see cref="AnalyzerPanel"/>). Stacks move by clicks (<see cref="Clicks.On"/>),
+/// outputs, an analyzer's own panel (<see cref="AnalyzerPanel"/>); the lifepod's is the crafting feature's. Stacks move by clicks (<see cref="Clicks.On"/>),
 /// or dragged from one slot to another; Tab or Esc closes both. 1–9 and the wheel over the world choose a
 /// hotbar slot, Q throws its stack. A stack's name, and whether it waits for an analyzer, show in the one
 /// tooltip; an item not analysed has a violet "?" in its slot's corner, and in the hand.
@@ -206,6 +206,8 @@ public partial class InventoryPanel : CanvasLayer
             (_cratePanel, _progress, _problem, _analyzer) = (null, null, null, null);
         }
         if (want is not var (crate, kind)) return;
+        // The lifepod's Fabricator docks beside the inventory, the crafting feature's own panel.
+        if (kind == "lifepod") return;
         _cratePanel = kind switch
         {
             "furnace" => FurnacePanel(crate),

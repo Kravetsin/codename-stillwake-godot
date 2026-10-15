@@ -451,6 +451,23 @@ public class ItemsTests
     // Beyond items.test.ts: the furnace rules at items' own level, which FurnaceTests prove through a fire.
 
     [Fact]
+    public void TheLifepodTakesNothingInWhicheverSlotIsNamedAndGivesOutWhatItMade()
+    {
+        var w = new Scenario("OOO\nOOO\nOOO").GiveItems(0, ("scrap", 3));
+        DoMove(w, Own(0), new Target(Crate: 1), 1);
+        DoMove(w, Own(0), new Target(0, 1), 1);
+        DoMove(w, Own(0), new Target(2, 1), 1);
+        Assert.Equal(new[] { "items.takeOnly", "items.takeOnly", "items.takeOnly" }, Reasons(w));
+        Assert.Equal(new Stack?[3], Crate(w, 1));
+        Assert.Null(w.M.Items.OutputFull(1, [("wire", 250)]));
+        Assert.Equal("items.full", w.M.Items.OutputFull(1, [("wire", 301)]));
+        w.FillCrate(1, ("wire", 2));
+        DoMove(w, In(1, 0), new Target(), 2);
+        Assert.Equal(3, w.Refusals.Count);
+        Assert.Equal(2, Count(w, "wire"));
+    }
+
+    [Fact]
     public void FurnacesTakeItemsOnlyIntoTheirInputsAMoveNamingNoSlotGoingIntoTheFirst()
     {
         var w = new Scenario("FF\nFF").GiveItems(0, ("scrapChunk", 3), ("planks", 2));

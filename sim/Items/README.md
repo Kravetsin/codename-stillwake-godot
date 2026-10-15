@@ -21,7 +21,7 @@ mode, the world setting in which nothing is ever taken
 - An inventory is `Inventory.Slots` slots, a machine holding items its `Slots` in `Machines`, each a
   `Stack` (`Item`, `Count` from 1 to the item's `Stack` limit in `Items`) or null. Items are known by
   their id; every material is one, the salvage items, with `Yields`, are what caught debris
-  becomes, and the parts (wire, plate, gear, rotor) are crafted by `Crafting`. The inventory's first row is the hotbar.
+  becomes, and the parts (wire, plate, gear, rotor) are crafted by `Crafting` into the lifepod's outputs. The inventory's first row is the hotbar.
 - **Giving** puts each item onto the stacks of that item in slot order, up to their limit, then into
   the empty slots in slot order. It gives all of a cost or none of it.
 - **Taking** takes each item from the last slots first, so the hotbar is the last to empty. It takes
@@ -33,7 +33,8 @@ mode, the world setting in which nothing is ever taken
   - With no slot in `Dst`, that side as a whole: the item's stacks there in slot order, then its
     empty slots, as much as fits. Within one side a move names its slot.
   - A machine with `Inputs` (a furnace) takes items only into its first `Inputs` slots, refusing the
-    rest with `items.takeOnly`; a move into it naming no slot goes into the first.
+    rest with `items.takeOnly`; a move into it naming no slot goes into the first. One with no inputs
+    (the lifepod) takes nothing in, refused with `items.takeOnly` whichever slot is named.
 - A change of nothing (a cost of zeros) changes nothing and stores no inventory; a machine emptied
   loses its entry.
 - In creative mode nothing is taken; giving still gives: what is taken apart is still there.
@@ -69,6 +70,9 @@ counted twice.
 - **Furnaces:** `CanSmelt(id)` — whether its input holds salvage whose `Yields` fit its outputs;
   the operation `Smelt(id)` turns one of it into them, the caller checking `CanSmelt` first;
   `Consume(id, slot)` uses up one of what a slot holds, a fuel as a fire is lit.
+- **Crafting machines:** `OutputFull(id, cost)` — `items.full` when `cost` does not fit into the
+  machine's outputs, its slots past its inputs; the operation `Output(id, cost)` puts it there, the
+  caller checking `OutputFull` first: what `Crafting` makes.
 - **Operations** (`IItemsOps`): `Take(peer, cost)` — the caller checks `ShortOf` first, and taking
   past what is there throws; it returns what it took, nothing in creative mode, so a caller refunds
   exactly that. `Give(peer, cost)` — the caller checks `FullFor` first, and giving past the room

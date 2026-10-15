@@ -7,7 +7,8 @@ namespace Stillwake.Content;
 /// breath. An empty suit passes the hero out for <see cref="PassOut"/> ticks. Heroes wear one of
 /// <see cref="Colours"/> suit colours, each taken by one hero at most while there are colours to go round.
 /// Running or swimming fast, a hero is out of breath and breathes <see cref="Exerted"/> units a breath:
-/// stamina is the air it costs.
+/// stamina is the air it costs. Within <see cref="PodReach"/> cells of the lifepod a hero's suit takes
+/// up to <see cref="PodRefill"/> units a breath of the pod's own air first, from no store.
 /// </summary>
 public static class Crew
 {
@@ -17,4 +18,11 @@ public static class Crew
     public const int PassOut = 100;
     public const int Colours = 4;
     public const int Exerted = 2;
+    /// <summary>The pod's air a breath: twice a calm breath, so a suit fills by the pod even in vacuum, slowly.</summary>
+    public const int PodRefill = 2;
+    /// <summary>How far from the pod's cells its air reaches a hero's, in cells either way: standing by it.</summary>
+    public const int PodReach = 1;
+
+    /// <summary>The pod's hatch, where heroes are made, from its top-left cell: the middle of its bottom row.</summary>
+    public static readonly (int X, int Y) PodHatch = (1, 2);
 }

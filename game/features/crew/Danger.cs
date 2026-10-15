@@ -15,7 +15,7 @@ public static class Danger
 
     /// <summary>
     /// <see cref="SuitDanger.Out"/> while passed out, <see cref="SuitDanger.Low"/> while the suit is low
-    /// with no room air to refill it. In an aired room a low suit fills again, so it is no danger.
+    /// with no air to refill it. In an aired room or by the lifepod a low suit fills again, so it is no danger.
     /// </summary>
     public static SuitDanger Of((int Suit, int Out)? hero, bool inRoomAir)
     {
@@ -28,7 +28,8 @@ public static class Danger
     public static (int Suit, SuitDanger Danger) Read(ICrewQueries crew, IAtmosphereQueries air, int id)
     {
         var hero = crew.HeroOf(id);
-        bool inRoomAir = hero != null && air.AiredAt(hero.Cell);
+        // The pod's air refills a suit as room air does.
+        bool inRoomAir = hero != null && (air.AiredAt(hero.Cell) || crew.ByPod(hero.Cell));
         return (hero?.Suit ?? CrewSpec.Suit, Of(hero == null ? null : (hero.Suit, hero.Out), inRoomAir));
     }
 }

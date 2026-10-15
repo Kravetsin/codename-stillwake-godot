@@ -223,6 +223,29 @@ public class BuildingTests
     }
 
     [Fact]
+    public void RefusesTakingApartOrPlanningTheLifepodBuiltIntoTheShipCreativeModeOrNot()
+    {
+        var w = new Scenario("""
+            #######
+            #OOO..#
+            #OOO..#
+            #OOO..#
+            #######
+            """);
+        int pod = w.M.Grid.Machines.Single().Id;
+        w.Do(new Deconstruct(8, "machine")).Do(new Deconstruct(23, "machine")).Run();
+        w.Do(new Items.SetCreative(true)).Run();
+        w.Do(new Deconstruct(16, "machine")).Do(new PlacePlan(8, new Placement("machine", "lifepod"))).Run();
+        w.Do(new PlacePlan(12, new Placement("machine", "lifepod"))).Run();
+        Assert.Equal(Enumerable.Repeat("building.fixed", 5), Reasons(w));
+        Assert.Empty(w.M.Building.Plans);
+        Assert.Equal(pod, w.M.Grid.MachineAt(16)?.Id);
+        // What it stands on and behind it are still the ship's to change.
+        w.Do(new Deconstruct(8, "back")).Run();
+        Assert.Equal(5, w.Refusals.Count);
+    }
+
+    [Fact]
     public void KeepsAMachinesMarkAtItsTopLeftFromWhicheverCellItWasMarked()
     {
         var w = new Scenario(Room)

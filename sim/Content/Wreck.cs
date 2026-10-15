@@ -1,7 +1,7 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// The wreck the hero wakes in (content/src/wreck.ts): one small room a weak generator holds, beside it
+/// The wreck the hero wakes in (content/src/wreck.ts): one small room a weak generator holds, the lifepod in it, beside it
 /// a room torn half away with an analyzer in it, an airlock. Rows as drawn, the space around kept.
 /// </summary>
 public static class Wreck
@@ -28,9 +28,9 @@ public static class Wreck
         "                                                  PPP                                           ",
         "                                      #################                                         ",
         "                                      .......#....L...####                                      ",
-        "                                     ........D........D..D                                      ",
-        "                                    .....AA..DGG......D..D                                      ",
-        "                                   ......AA..DGGV..S..D..D                                      ",
+        "                                     ........D.....OOOD..D                                      ",
+        "                                    .....AA..DGG...OOOD..D                                      ",
+        "                                   ......AA..DGGV..OOOD..D                                      ",
         "                                  ########################                                      ",
         "                                                                                                ",
         "                                                                                                ",

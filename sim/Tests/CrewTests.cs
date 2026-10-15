@@ -204,6 +204,98 @@ public class CrewTests
         Assert.Equal(Content.Crew.Suit - 2, HeroOf(w)?.Suit);
     }
 
+    // The lifepod.
+
+    /// <summary>Eleven wide: the lifepod in a room with no air at all, its hatch at (4, 4).</summary>
+    private const string PodRoom = """
+        ###########
+        #.........#
+        #..OOO...S#
+        #..OOO....#
+        #..OOO....#
+        ###########
+        """;
+
+    private static int AtPod(int x, int y) => y * 11 + x;
+    private static readonly int Hatch = AtPod(4, 4);
+    /// <summary>The last cells either side of the pod its air reaches, and the first past them.</summary>
+    private static readonly int Reached = AtPod(6, 3), Beyond = AtPod(7, 3);
+
+    /// <summary>The pod room with hero 0 brought in at <paramref name="cell"/>.</summary>
+    private static Scenario PodWorld(int cell)
+    {
+        var w = new Scenario(PodRoom).Do(EnterAt(cell)).Run();
+        Assert.Empty(w.M.Atmosphere.AiredCells);
+        return w;
+    }
+
+    [Fact]
+    public void MakesHeroesAtThePodsHatchOnAMapWithOneWhateverItsS()
+    {
+        Assert.Equal(Hatch, new Scenario(PodRoom).M.Crew.Spawn);
+        var w = new Scenario(PodRoom).Do(EnterAt(Hatch, 3)).Run();
+        Assert.Equal((3, Hatch, Content.Crew.Suit, 0, 0), All(HeroOf(w, 3)));
+    }
+
+    [Fact]
+    public void ReachesTheCellsWithinPodReachOfThePodEitherWayAndNoneWithoutOne()
+    {
+        var w = new Scenario(PodRoom);
+        Assert.Equal(1, Content.Crew.PodReach);
+        foreach (int cell in new[] { Hatch, AtPod(3, 2), Reached, AtPod(2, 1), AtPod(6, 5) }) Assert.True(w.M.Crew.ByPod(cell), $"{cell}");
+        foreach (int cell in new[] { Beyond, AtPod(9, 1), AtPod(1, 1), -5, 999 }) Assert.False(w.M.Crew.ByPod(cell), $"{cell}");
+        Assert.False(new Scenario(Room).M.Crew.ByPod(At(4, 1)));
+    }
+
+    [Fact]
+    public void KeepsASuitFullByThePodInVacuumGivingTheRoomNothing()
+    {
+        var w = PodWorld(Hatch);
+        Breaths(w, 20);
+        Assert.Equal(Content.Crew.Suit, HeroOf(w)?.Suit);
+        Assert.Empty(w.M.Atmosphere.AiredCells);
+    }
+
+    [Fact]
+    public void FillsASuitByThePodInVacuumSlowlyAndDrainsItPastPodReachAsBefore()
+    {
+        var w = PodWorld(Beyond);
+        Breaths(w, 20);
+        Assert.Equal(Content.Crew.Suit - 20, HeroOf(w)?.Suit);
+        w.Do(EnterAt(Reached)).Run();
+        int suit = HeroOf(w)!.Suit;
+        Breaths(w, 5);
+        Assert.Equal(suit + 5 * (Content.Crew.PodRefill - 1), HeroOf(w)?.Suit);
+        w.Do(EnterAt(Beyond)).Run();
+        suit = HeroOf(w)!.Suit;
+        Breaths(w, 5);
+        Assert.Equal(suit - 5, HeroOf(w)?.Suit);
+    }
+
+    [Fact]
+    public void HoldsAnExertedHerosSuitByThePodWithoutFillingIt()
+    {
+        var w = PodWorld(Beyond);
+        Breaths(w, 10);
+        w.Do(EnterAt(Hatch)).Do(new Exert(true) { From = 0 }).Run();
+        int suit = HeroOf(w)!.Suit;
+        Breaths(w, 5);
+        Assert.Equal(suit + 5 * (Content.Crew.PodRefill - Content.Crew.Exerted), HeroOf(w)?.Suit);
+    }
+
+    [Fact]
+    public void WakesAHeroThatPassedOutPastPodReachAtTheHatchWithAFullSuit()
+    {
+        var w = PodWorld(Beyond);
+        Breaths(w, Content.Crew.Suit);
+        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w)!.Suit, HeroOf(w)!.Out));
+        w.Run(Content.Crew.PassOut);
+        Assert.Equal((0, Hatch, Content.Crew.Suit, 0, 0), All(HeroOf(w)));
+        // Made at the pod, it breathes there in vacuum on a full suit.
+        Breaths(w, 10);
+        Assert.Equal(Content.Crew.Suit, HeroOf(w)?.Suit);
+    }
+
     // Suit colours.
 
     [Fact]

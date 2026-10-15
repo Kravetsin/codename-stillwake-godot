@@ -58,7 +58,8 @@ as everything E works is, in the crew feature (`AimTests`).
   the one tooltip (`Shared.PointerTip`) at once by the pointer, and for such an item a violet line under
   it says to put it in an analyzer.
 - Where the open inventory ends on the screen is set every frame (`Ui.InventoryEdge`), null while it
-  is closed: the crafting feature docks its crafts there. A stack let go over any panel, another
+  is closed: the crafting feature docks the lifepod's Fabricator there while E has the pod open, so the
+  pod gets no crate panel here. A stack let go over any panel, another
   feature's too, is not thrown.
 - A stack in a cell the hero's body overlaps is picked up unless the sim would refuse it or its
   pick-up is in flight, and vanishes from the floor at once.

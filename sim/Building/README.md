@@ -24,6 +24,8 @@ it, or a mark on what a layer of a cell holds, taken out by heroes' work. Both c
   the other plans: in each cell, structure and machines share one solid slot, and a conduit and a
   back wall each have their own, as in the grid. A machine's blueprint covers its whole footprint.
   Placing one costs nothing.
+- A machine built into the ship (`Fixed` in `Machines`: the lifepod) is never planned nor marked,
+  refused with `building.fixed`, creative mode or not; it is no blueprint.
 - A mark needs something in that layer of that cell, and one thing takes one mark. A machine holding
   items (a crate, a furnace) is marked only empty, refused with `building.notEmpty`; a machine a cable
   ends on, only with its cables cut, refused with `building.cabled`. Both are checked again when the
@@ -66,9 +68,9 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   begin; `TicksFor(planId)` — the ticks a plan takes in all, null for no plan; `CostOf(planId)` —
   what a blueprint costs in all, null for a mark or no plan; `CostFor(placement)` — what placing it
   costs, for the build menu.
-- **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.unknown`, grid's keys or
-  `building.planned`; `Deconstruct(Cell, Layer)`, refused with `building.nothingThere`,
-  `building.planned`, `building.notEmpty` or `building.cabled`; `CancelPlan(Id)`, refused with
+- **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.unknown`,
+  grid's keys or `building.planned`; `Deconstruct(Cell, Layer)`, refused with `building.nothingThere`,
+  `building.fixed`, `building.planned`, `building.notEmpty` or `building.cabled`; `CancelPlan(Id)`, refused with
   `building.noPlan`; `Work(Plan)`, refused with `building.noPlan`, `items.notEnough`,
   `building.notEmpty` or `building.cabled`.
 - **Fuzz:** every command, refused ones too: placements of every kind at any cell or one off the

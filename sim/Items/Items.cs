@@ -30,6 +30,7 @@ public interface IItemsQueries
     IReadOnlyList<(string Item, int Count)> Totals(int peer);
     string? ShortOf(int peer, IReadOnlyList<(string Item, int Count)> cost);
     string? FullFor(int peer, IReadOnlyList<(string Item, int Count)> cost);
+    string? OutputFull(int id, IReadOnlyList<(string Item, int Count)> cost);
     IReadOnlyList<FloorStack> Floor { get; }
     string? PickUpProblem(int peer, int id);
     int PickUpAmount(int peer, int id);
@@ -43,6 +44,7 @@ public interface IItemsOps
     void Give(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void Smelt(int id);
     void Consume(int id, int slot);
+    void Output(int id, IReadOnlyList<(string Item, int Count)> cost);
     void GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
 }
@@ -113,6 +115,13 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary><c>items.full</c> when <paramref name="cost"/> does not fit into <paramref name="peer"/>'s inventory, creative mode or not.</summary>
     public string? FullFor(int peer, IReadOnlyList<(string Item, int Count)> cost) =>
         Stacks.Placed(Inventory(peer), cost) == null ? "items.full" : null;
+
+    /// <summary>
+    /// <c>items.full</c> when <paramref name="cost"/> does not fit into machine <paramref name="id"/>'s
+    /// outputs, its slots past its inputs: where what a crafting machine makes goes.
+    /// </summary>
+    public string? OutputFull(int id, IReadOnlyList<(string Item, int Count)> cost) =>
+        Outputs(id, cost) == null ? "items.full" : null;
 
     /// <summary>The stacks on the floor, in id order; live and read-only.</summary>
     public IReadOnlyList<FloorStack> Floor => State.Floor;
@@ -226,6 +235,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Stacks.SetCrate(State, id, left);
     }
 
+    /// <summary>Puts <paramref name="cost"/> into machine <paramref name="id"/>'s outputs: what it made. The caller checks <see cref="OutputFull"/> first.</summary>
+    public void Output(int id, IReadOnlyList<(string Item, int Count)> cost)
+    {
+        if (Stacks.IsNothing(cost)) return;
+        var slots = Outputs(id, cost) ?? throw new InvalidOperationException("items.output: no room; check OutputFull first");
+        Stacks.SetCrate(State, id, slots);
+    }
+
     /// <summary>Gives <paramref name="peer"/> as much of <paramref name="cost"/> as fits; the rest falls on <paramref name="cell"/>, as if <paramref name="peer"/> dropped it.</summary>
     public void GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
@@ -296,6 +313,15 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     private bool IsCrate(int id) => HolderOf(id) != null;
 
+    /// <summary>Machine <paramref name="id"/>'s slots with <paramref name="cost"/> placed in its outputs, or null when it does not fit or holds no items.</summary>
+    private Stack?[]? Outputs(int id, IReadOnlyList<(string Item, int Count)> cost)
+    {
+        if (HolderOf(id) is not { } spec) return null;
+        int inputs = spec.Inputs ?? spec.Slots ?? 0;
+        var slots = Crate(id);
+        return Stacks.Placed(slots.Skip(inputs).ToList(), cost) is { } placed ? [.. slots.Take(inputs), .. placed] : null;
+    }
+
     /// <summary>The slots of one side of a move: machine <c>Crate</c>, or <paramref name="peer"/>'s inventory when there is none.</summary>
     private IReadOnlyList<Stack?> SideOf(int peer, Target side) => side.Crate is int id ? Crate(id) : Inventory(peer);
 
@@ -316,6 +342,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         into = dst;
         if (dst.Crate is not int id || HolderOf(id)?.Inputs is not int inputs) return null;
+        // A machine that only gives out (the lifepod) takes nothing in, whichever slot is named.
+        if (inputs == 0) return "items.takeOnly";
         if (dst.Slot is not int slot) { into = dst with { Slot = 0 }; return null; }
         return slot >= inputs ? "items.takeOnly" : null;
     }

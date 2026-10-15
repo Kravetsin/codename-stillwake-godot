@@ -33,14 +33,14 @@ namespace Stillwake.Game;
 /// <c>--host=name</c> and joining by <c>--join=name</c> (<see cref="Relay"/>); the world it plays drawn by the client's features after every
 /// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves, loads tanks, opens
 /// crates and catches debris, the left button held works plans; the camera follows it; its items (Tab,
-/// 1–9, the wheel, Q) and its crafts beside the inventory, the plan (B), the game menu (Esc: settings, save,
+/// 1–9, the wheel, Q) and the lifepod's Fabricator beside them (E at the pod), the plan (B), the game menu (Esc: settings, save,
 /// load, quit) and the dev panel (`).
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world, <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
-/// <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
+/// <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
@@ -78,7 +78,8 @@ public partial class Main : Node2D, ITogether
     private Layout _layout = Registry.Wreck;
     private HeroView? _hero;
     private ItemsView? _items;
-    private CraftsPanel? _crafts;
+    private FabricatorPanel? _fabricator;
+    private PodView? _pods;
     private DebrisView _debris = null!;
     private Hands _hands = null!;
     private PlanDemo? _demo;
@@ -109,7 +110,7 @@ public partial class Main : Node2D, ITogether
             var script = !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
-            AddChild(_crafts = new CraftsPanel(_hands.Ui));
+            AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))));
             // Its own layer, above the world: read from whatever registry the session runs now.
             AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
             _camera.DevControls = false;
@@ -144,6 +145,7 @@ public partial class Main : Node2D, ITogether
         // Playing together, how long an action takes to happen: sent, stamped by the host, run here.
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
+        if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} occluders={_light?.OccluderCount}"));
@@ -167,6 +169,7 @@ public partial class Main : Node2D, ITogether
             : World.Create(1, layout, modules);
         if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
+        if (Has("--pod")) world = PodDemo.Seed(world, Modules);
         var (host, client) = LocalSession.Create(world, Build);
         _session = new Session(host, client);
         ShowWorld();
@@ -416,8 +419,10 @@ public partial class Main : Node2D, ITogether
         _light?.QueueFree();
         _furnace?.QueueFree();
         _screens?.QueueFree();
+        _pods?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
         AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research));
+        AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
         var power = _m.Power;
         // The furnaces before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);
@@ -441,7 +446,9 @@ public partial class Main : Node2D, ITogether
 
     private void AimCamera(Layout? layout)
     {
-        var start = layout?.CellsOf('S').FirstOrDefault(-1) ?? -1;
+        // Where the crew makes heroes: the pod's hatch, or the map's S; a map with neither is looked at whole.
+        bool made = layout != null && (layout.CellsOf('S').Any() || layout.Machines().Any(m => m.Kind == "lifepod"));
+        int start = made ? _m.Crew.Spawn : -1;
         if (Has("--perf")) _camera.Fit(new Rect2(0, 0, _m.Grid.Width, _m.Grid.Height));
         else if (start >= 0) _camera.Follow(new Vector2(start % _m.Grid.Width + 0.5f, start / _m.Grid.Width));
         else _camera.Follow(new Vector2(_m.Grid.Width, _m.Grid.Height) / 2);
@@ -488,7 +495,7 @@ public partial class Main : Node2D, ITogether
         _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
-        _crafts?.Frame(client, _m.Crafting, _m.Research, _m.Items, delta * 1000);
+        _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, session.Progress, delta * 1000);
         _frameLog?.Mark("debris");

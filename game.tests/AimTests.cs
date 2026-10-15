@@ -290,7 +290,7 @@ public class AimTests
         var w = new TestWorld(Registry.Wreck);
         for (int i = 0; i < 4 * Spec.Debris.Every && w.M.Debris.Pieces.Count == 0; i++) w.Step();
         var piece = w.M.Debris.Pieces[0];
-        var aboard = Hero.At(Ship.Of(w.M.Grid, w.M.Rooms), Registry.Wreck.CellsOf('S').First());
+        var aboard = Hero.At(Ship.Of(w.M.Grid, w.M.Rooms), w.M.Crew.Spawn);
         Assert.Null(Aiming.AimAt(w.M, 0, aboard, ((double)piece.X / Unit, (double)piece.Y / Unit))?.Piece);
     }
 

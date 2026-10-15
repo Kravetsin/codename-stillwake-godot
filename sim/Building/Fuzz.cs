@@ -20,7 +20,7 @@ public sealed partial class BuildingModule
     private static readonly Layout FuzzWreck = Layout.Parse(Wreck.Rows);
     private static readonly int FuzzCells = FuzzWreck.Width * FuzzWreck.Height;
     private static readonly int[] FuzzBuilt = Enumerable.Range(0, FuzzCells)
-        .Where(c => "#=HDd-vxTVK.".Contains(FuzzWreck.At(c))).ToArray();
+        .Where(c => "#=HDd-vxTVKO.".Contains(FuzzWreck.At(c))).ToArray();
 
     /// <summary>
     /// Draws every command, refused ones included: off the grid, on nothing, twice on one thing, E on a
