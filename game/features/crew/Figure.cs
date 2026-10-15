@@ -84,7 +84,7 @@ public partial class Figure : Node2D
     /// as an ember's is, brighter as it beams.
     /// </summary>
     private readonly Glow _glow = new() { Position = new Vector2(6, -4) };
-    private const float GlowStrength = 0.35f;
+    private const float GlowStrength = 1f;
     private static readonly Color GlowColour = new(0.45f, 0.8f, 1f);
     private readonly List<Line2D> _beams = new();
     private readonly List<Vector2> _beamTo = new();
