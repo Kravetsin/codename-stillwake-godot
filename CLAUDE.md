@@ -151,8 +151,12 @@ in the sim.
 
 ## Workflow
 
-- Small commits straight to `main` while the port runs; CI must stay green. Once the second developer
-  works here too, one task, one branch, one PR.
+- Two developers, each with Claude: one task, one branch (`feat/...`, `fix/...`), one PR into `main`.
+  `main` is protected: nothing lands without a PR and a green CI, no approval needed, so nobody waits
+  on the other. Never push to `main`; keep branches short and merge `main` into them often. Small
+  edits to the files every task touches (`game/Main.cs`, `game/i18n/En.cs`).
+- Before a push: `dotnet format Stillwake.sln` and `dotnet test Stillwake.sln`; CI fails on whitespace.
+- Releases only on request, only from a green `main`: `release.cmd` (docs/releasing.md).
 - A non-trivial feature: `design-author` → `design-reviewer` → a plan in `docs/plans/` → `/review-plan`
   → implementation → `/review-implementation` → human review.
 - Docs: decisions in `docs/decisions/` (numbered; a changed decision gets a new ADR that supersedes the

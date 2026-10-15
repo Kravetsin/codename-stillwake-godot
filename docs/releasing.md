@@ -13,7 +13,11 @@ Semantic, `MAJOR.MINOR.PATCH`, so a player can tell where the game stands:
 
 ## Steps
 
-1. On `main`, green, tag the next version and push the tag: `git tag v0.0.2` then `git push origin v0.0.2`.
+1. Run `release.cmd` (`release.cmd minor`, `release.cmd major`, or `release.cmd v0.1.0` for another
+   step). It fetches `origin/main` and the tags, takes the next version after the latest, refuses while
+   `main`'s CI is not green (when the GitHub CLI can tell), asks to confirm, then tags `main` and
+   pushes the tag. Two releasing at once cannot clash: the second tag push is refused, and running it
+   again takes the next number. Say in the chat who releases, all the same.
 2. CI (`.github/workflows/release.yml`) exports the Windows game with that version stamped into it
    (`STILLWAKE_VERSION`, read by `game/Stillwake.Game.csproj`) and publishes
    `Stillwake-windows.zip` as the GitHub release of the tag, with `host.cmd` and `join.cmd` beside the game.
