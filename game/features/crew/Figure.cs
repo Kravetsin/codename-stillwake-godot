@@ -87,9 +87,11 @@ public partial class Figure : Node2D
     {
         Texture = new GradientTexture2D
         {
-            Width = 96, Height = 96,
+            Width = 96,
+            Height = 96,
             Fill = GradientTexture2D.FillEnum.Radial,
-            FillFrom = new Vector2(0.5f, 0.5f), FillTo = new Vector2(1, 0.5f),
+            FillFrom = new Vector2(0.5f, 0.5f),
+            FillTo = new Vector2(1, 0.5f),
             Gradient = new Gradient { Colors = [new Color(1, 1, 1), new Color(0.25f, 0.25f, 0.25f), new Color(0, 0, 0)], Offsets = [0, 0.35f, 1] },
         },
         Position = new Vector2(6, -4),
