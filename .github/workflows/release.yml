@@ -41,7 +41,7 @@ jobs:
           "$GODOT_BIN" --headless --path game --import || true
           "$GODOT_BIN" --headless --path game --export-release "Windows Desktop" ../build/windows/Stillwake.exe
           test -f build/windows/Stillwake.exe
-          cp deploy/build/host.cmd deploy/build/join.cmd build/windows/
+          cp deploy/launchers/host.cmd deploy/launchers/join.cmd build/windows/
           (cd build/windows && zip -qr ../Stillwake-windows.zip .)
       - name: Publish
         env:
