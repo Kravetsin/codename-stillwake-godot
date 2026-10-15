@@ -1,6 +1,6 @@
 # 0022 — One hand
 
-- Status: accepted
+- Status: accepted; overlays as filters and the mouse superseded by [0030](0030-the-build-tab-is-the-mode.md)
 - Date: 2026-10-13
 - Supersedes in part: [0021](0021-cables-by-hand-in-the-power-mode.md) (the power mode)
 

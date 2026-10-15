@@ -45,9 +45,9 @@ public partial class WorldButtons : Node2D
         if (e is InputEventMouse mouse) _mouse = mouse.Position;
         if (Script != null) return;
         if (e is InputEventMouseButton { Pressed: false } up && Ours(up.ButtonIndex))
-            Buttons.OnPointer(false, (int)up.ButtonMask, WorldOf(up.Position), up.ShiftPressed);
+            Buttons.OnPointer(false, (int)up.ButtonMask, WorldOf(up.Position));
         else if (e is InputEventMouseMotion move)
-            Buttons.OnPointer(false, (int)move.ButtonMask, WorldOf(move.Position), move.ShiftPressed);
+            Buttons.OnPointer(false, (int)move.ButtonMask, WorldOf(move.Position));
     }
 
     // A press counts only when no panel took it.
@@ -55,6 +55,6 @@ public partial class WorldButtons : Node2D
     {
         if (Script != null) return;
         if (e is InputEventMouseButton { Pressed: true } down && Ours(down.ButtonIndex))
-            Buttons.OnPointer(true, (int)down.ButtonMask, WorldOf(down.Position), down.ShiftPressed);
+            Buttons.OnPointer(true, (int)down.ButtonMask, WorldOf(down.Position));
     }
 }

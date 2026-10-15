@@ -38,17 +38,17 @@ public class DragTests
     [Fact]
     public void StartsOnAPressOnTheGridAndEndsOnTheReleaseKeptToTheGrid()
     {
-        var started = Drag.OnButton(null, new ButtonEvent(true, (2.5, 1.2), false), 10, 5);
+        var started = Drag.OnButton(null, new ButtonEvent(true, (2.5, 1.2)), 10, 5);
         Assert.Equal(((Spot?)new Spot(2, 1), ((Spot, Spot)?)null), started);
-        var ended = Drag.OnButton(started.Pressed, new ButtonEvent(false, (14, -3), false), 10, 5);
+        var ended = Drag.OnButton(started.Pressed, new ButtonEvent(false, (14, -3)), 10, 5);
         Assert.Equal(((Spot?)null, ((Spot, Spot)?)(new Spot(2, 1), new Spot(9, 0))), ended);
     }
 
     [Fact]
     public void StartsNothingOnAPressOffTheGridAndAReleaseAloneEndsNothing()
     {
-        Assert.Equal(((Spot?)null, ((Spot, Spot)?)null), Drag.OnButton(new Spot(1, 1), new ButtonEvent(true, (-0.5, 2), false), 10, 5));
-        Assert.Equal(((Spot?)null, ((Spot, Spot)?)null), Drag.OnButton(null, new ButtonEvent(false, (3, 2), false), 10, 5));
+        Assert.Equal(((Spot?)null, ((Spot, Spot)?)null), Drag.OnButton(new Spot(1, 1), new ButtonEvent(true, (-0.5, 2)), 10, 5));
+        Assert.Equal(((Spot?)null, ((Spot, Spot)?)null), Drag.OnButton(null, new ButtonEvent(false, (3, 2)), 10, 5));
     }
 
     // Seven cells wide: cell (x, y) is y * 7 + x. Cell 10 is open, with no back wall: nothing to take apart there.

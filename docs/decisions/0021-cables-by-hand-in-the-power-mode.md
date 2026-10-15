@@ -1,6 +1,6 @@
 # 0021 — Cables by hand, in the power mode
 
-- Status: accepted; its power mode superseded by [0022](0022-one-hand.md)
+- Status: accepted; its power mode superseded by [0022](0022-one-hand.md), Shift to move by [0030](0030-the-build-tab-is-the-mode.md)
 - Date: 2026-10-13
 
 ## Context

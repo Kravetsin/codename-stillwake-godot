@@ -1,6 +1,5 @@
 using Stillwake.Game.Features.Atmosphere;
 using Stillwake.Game.Features.Pipes;
-using Stillwake.Game.Overlays;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
@@ -15,8 +14,8 @@ public class ButtonsTests
     private const int Cell = 16;
 
     /// <summary>A pointer event at (x, y) on the canvas, in pixels, with <paramref name="held"/> held afterwards.</summary>
-    private static void Pointer(Buttons buttons, string type, int held, double x, double y, bool shift = false) =>
-        buttons.OnPointer(type == "down", held, (x / Cell, y / Cell), shift);
+    private static void Pointer(Buttons buttons, string type, int held, double x, double y) =>
+        buttons.OnPointer(type == "down", held, (x / Cell, y / Cell));
 
     [Fact]
     public void ReadsLeftPressesAndReleasesInOrderAtTheirWorldPoints()
@@ -24,21 +23,21 @@ public class ButtonsTests
         var buttons = new Buttons();
         Pointer(buttons, "down", Buttons.Left, Cell, Cell);
         Pointer(buttons, "up", 0, 2 * Cell, Cell);
-        Assert.Equal([new ButtonEvent(true, (1, 1), false), new ButtonEvent(false, (2, 1), false)], buttons.TakeLeft());
+        Assert.Equal([new ButtonEvent(true, (1, 1)), new ButtonEvent(false, (2, 1))], buttons.TakeLeft());
         Assert.Empty(buttons.TakeLeft());
     }
 
     [Fact]
-    public void ReadsRightPressesAndReleasesMiddlePressesAndShiftHeldAtEach()
+    public void ReadsMiddlePressesAndReleasesAndWhetherTheRightButtonIsHeld()
     {
         var buttons = new Buttons();
-        Pointer(buttons, "down", Buttons.Right, 0, 0, shift: true);
+        Pointer(buttons, "down", Buttons.Right, 0, 0);
+        Assert.True(buttons.HoldsRight);
         Pointer(buttons, "move", Buttons.Right | Buttons.Middle, Cell, 0);
-        Pointer(buttons, "move", Buttons.Right, Cell, 0);
+        Pointer(buttons, "move", Buttons.Right, 2 * Cell, 0);
+        Assert.Equal([new ButtonEvent(true, (1, 0)), new ButtonEvent(false, (2, 0))], buttons.TakeMiddle());
         Pointer(buttons, "up", 0, 2 * Cell, 0);
-        Assert.Equal([new ButtonEvent(true, (0, 0), true), new ButtonEvent(false, (2, 0), false)], buttons.TakeRight());
-        Assert.Equal([(1.0, 0.0)], buttons.TakeMiddle());
-        Assert.Empty(buttons.TakeRight());
+        Assert.False(buttons.HoldsRight);
         Assert.Empty(buttons.TakeMiddle());
         Assert.Empty(buttons.TakeLeft());
     }
@@ -87,48 +86,6 @@ public class ButtonsTests
         Assert.Single(buttons.TakeLeft());
         Assert.True(buttons.TakeClick());
         Assert.False(buttons.TakeClick());
-    }
-}
-
-/// <summary>The overlay switch: apps/game/src/overlays/switch.test.ts, one for one.</summary>
-public class OverlaySwitchTests
-{
-    private static OverlaySwitch SetUp(Store<string?> on) =>
-        new([new Overlay("air", "overlay.air", "O"), new Overlay("pipes", "overlay.pipes", "P")], on);
-
-    [Fact]
-    public void TurnsAnOverlayOnWithItsKeyAndOffWithItAgain()
-    {
-        var overlays = SetUp(new Store<string?>(null));
-        Assert.Null(overlays.Active);
-        overlays.Press("O");
-        Assert.Equal("air", overlays.Active);
-        overlays.Press("O");
-        Assert.Null(overlays.Active);
-    }
-
-    [Fact]
-    public void SwapsToAnotherOverlayOnThatOnesKeyAndIgnoresOtherKeysAndRepeats()
-    {
-        var overlays = SetUp(new Store<string?>(null));
-        overlays.Press("O");
-        overlays.Press("P");
-        Assert.Equal("pipes", overlays.Active);
-        overlays.Press("E");
-        overlays.Press("P", repeat: true);
-        Assert.Equal("pipes", overlays.Active);
-    }
-
-    [Fact]
-    public void TellsItsListenersOfEachChange()
-    {
-        var on = new Store<string?>(null);
-        var overlays = SetUp(on);
-        int heard = 0;
-        on.Subscribe(() => heard++);
-        overlays.Press("O");
-        overlays.Press("E");
-        Assert.Equal(1, heard);
     }
 }
 

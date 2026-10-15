@@ -160,12 +160,13 @@ public partial class HeroView : Node2D
     /// <summary>
     /// What the hands do at the pointer: the aim said and outlined while the hero is awake, whatever the
     /// hand holds, doors and valves as <paramref name="shown"/>; E on what it works whatever the hand holds,
-    /// so a door opens with a card or a cable out; the left button only with a free hand, as it is the
-    /// card's otherwise. Passed out, the hands do nothing: a press is spent, a hold works no plan.
+    /// so a door opens with a card or a cable out; the right button held works plans whatever the hand
+    /// holds (0030); the left button grabs only with a free hand, as it is the card's otherwise. Passed
+    /// out, the hands do nothing: a press is spent, a hold works no plan.
     /// </summary>
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, bool handFree)
     {
-        if (!_mouse.Buttons.HoldsLeft) _served.Clear();
+        if (!_mouse.Buttons.HoldsRight) _served.Clear();
         var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served) : null;
         var prompt = passedOut ? null : Prompts.Of(m, aim, shown);
         TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
@@ -178,7 +179,7 @@ public partial class HeroView : Node2D
         bool pressed = (_autopilot?.TakePress() ?? false) | TakeUse();
         bool grab = _mouse.Buttons.TakeClick() && aim?.Piece != null;
         bool acts = !passedOut && handFree;
-        var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, acts && _mouse.Buttons.HoldsLeft, client.World.Tick, _workedOnTick);
+        var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, !passedOut && _mouse.Buttons.HoldsRight, client.World.Tick, _workedOnTick);
         _workedOnTick = uses.WorkedOnTick;
         if (uses.Served is int served) _served.Add(served);
         foreach (var command in uses.Commands) client.Send(command);

@@ -14,9 +14,9 @@ namespace Stillwake.Game.Features.Building;
 
 /// <summary>
 /// Plans drawn over the ship as their own pictures in blue, marks as red crosses, and the hand at work
-/// (features/building/index.ts, 0022): a card's ghost along a left drag, a removal's along a right one in
-/// the overlay's layers, coloured by what the sim would say, with its reason by the pointer; a release
-/// sends the commands. The middle button picks a card. With no card out, no grid: space stays space.
+/// (features/building/index.ts, 0022, 0030): a card's ghost along a left drag, a removal's along a middle
+/// one in the open tab's layers, coloured by what the sim would say, with its reason by the pointer; a
+/// release sends the commands. Q picks a card. With no card out, no grid: space stays space.
 /// </summary>
 public partial class BuildingView : Node2D
 {
@@ -59,10 +59,10 @@ public partial class BuildingView : Node2D
     }
 
     /// <summary>
-    /// One frame: the plans brought up to the world, the buttons pressed since the last read, the ghost
-    /// drawn.
+    /// One frame: the plans brought up to the world, the buttons pressed since the last read — the
+    /// middle one's <paramref name="removing"/>, those the cables did not take — the ghost drawn.
     /// </summary>
-    public void Frame(Client client, Registry m, Buttons buttons, (double X, double Y)? pointer)
+    public void Frame(Client client, Registry m, Buttons buttons, IReadOnlyList<ButtonEvent> removing, (double X, double Y)? pointer)
     {
         var grid = m.Grid;
         var building = m.Building;
@@ -71,7 +71,7 @@ public partial class BuildingView : Node2D
 
         var tool = _hand.Selected.Get();
         var holds = _ui.Hand.Get();
-        string? overlay = _ui.OverlayOn.Get();
+        string? overlay = _ui.OverlayOn;
         int CellAt((double X, double Y) p)
         {
             var s = Drag.SpotAt(width, height, p);
@@ -103,19 +103,24 @@ public partial class BuildingView : Node2D
             Send(under.Act, under.From, Drag.SpotAt(width, height, button.At));
             _drag = null;
         }
-        // The left button is the card's, but for the cable, which the power feature lays, and but for the
-        // plan out with no card under the power overlay, where it carries pegs and plugs.
-        bool wiring = holds == Holding.Cable || (holds == Holding.Plan && overlay == Tools.Power);
+        // The left button is the card's, but on the power tab with no card to place, where it lays the
+        // cable or carries pegs and plugs: the power feature's.
+        bool wiring = overlay == Tools.Power && tool is not PlaceTool;
         foreach (var button in wiring ? [] : buttons.TakeLeft())
             if (tool is PlaceTool place) DragWith(button, place, left: true);
-        // The right button removes with the plan in hand; under the power overlay it cuts cables, the power feature's.
-        foreach (var button in overlay == Tools.Power ? [] : buttons.TakeRight())
+        // The middle button removes in the tab's layers with the menu open.
+        foreach (var button in removing)
             if (holds != Holding.Free) DragWith(button, new Remove(Tools.LayersFor(overlay)), left: false);
-        // The middle button picks the card of what is under it.
-        foreach (var at in buttons.TakeMiddle())
+        // Q picks the card of what is under the pointer, onto its own tab.
+        if (_hand.PickWanted)
         {
-            if (!Drag.OnGrid(width, height, at)) continue;
-            if (Tools.CardAt(CellAt(at), overlay, grid, building, m.Power, m.Research) is { } card) _hand.Selected.Set(card);
+            _hand.PickWanted = false;
+            if (pointer is { } at && Drag.OnGrid(width, height, at)
+                && Tools.CardAt(CellAt(at), overlay, grid, building, m.Power, m.Research) is { } card)
+            {
+                _hand.Tab.Set(Tools.TabOf(card));
+                _hand.Selected.Set(card);
+            }
         }
 
         tool = _hand.Selected.Get();
