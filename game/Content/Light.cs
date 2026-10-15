@@ -33,7 +33,8 @@ public static class Light
     public const float WallDeep = 0.3f;
     public const float WallOut = 0.06f;
     public static readonly (float R, float G, float B) Star = (0.62f, 0.66f, 0.8f);
-    public static readonly (float R, float G, float B) Lamp = (1.5f, 1.3f, 0.95f);
+    // Dimmer than the TypeScript game's (1.5, 1.3, 0.95) by three tenths: a dim wreck, where a fire shows.
+    public static readonly (float R, float G, float B) Lamp = (1.05f, 0.91f, 0.665f);
     public const float LampMost = 1f;
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
     public const float FireKeep = 0.72f;
