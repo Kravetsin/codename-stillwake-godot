@@ -14,8 +14,8 @@ A living document: what is decided about the game and what is still open. Techni
 ## Decided
 
 - **Start:** the hero is left alive in a wreck, a fragment of a ship, and has to make it livable to
-  survive: one small room a weak oxygen generator holds, and beside it a room torn half away, an
-  analyzer surviving in it. Everything is caught as debris: a furnace built of caught salvage burns
+  survive: one small room a weak oxygen generator holds, the lifepod in it, and beside it a room torn
+  half away, an analyzer surviving in it. Everything is caught as debris: a furnace built of caught salvage burns
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
   [0023](decisions/0023-a-furnace-burns-fuel.md)).
@@ -27,9 +27,15 @@ A living document: what is decided about the game and what is still open. Techni
   item in it goes into, opened or still closed; nothing pops up over the hero
   ([0024](decisions/0024-blueprints-are-learned-by-analysis.md),
   [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md)).
-- **Parts are crafted by hand,** Rust's way: wire of scrap, plates and gears of iron, a rotor of a gear
-  and wire, queued from the inventory (Tab), paid when queued and made one at a time. Most builds cost
-  parts, so the furnace feeds the hands before it feeds the hull.
+- **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,
+  never taken apart. Heroes are made at its hatch, at the start and after passing out, with a full
+  suit; standing by it, a suit slowly fills with the pod's own air, even in a ship open to space, and
+  the room gets none ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)).
+- **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap, plates and gears
+  of iron, a rotor of a gear and wire. The first machine is the pod's Fabricator, opened with E beside
+  the inventory: no power, half speed, a queue the crew shares, paid when queued, made one at a time
+  into its outputs. Most builds cost parts, so the furnace feeds the Fabricator before it feeds the
+  hull. A Fabricator the player builds, powered and faster, comes later.
 - **Spacewalks:** on a tether from the hull at first; a jetpack later frees the hero from it.
 - **Dangers:** yes — the game can hurt you. Which ones is open.
 - **Time runs only while the game runs.** Nothing happens offline and there is no offline progress,

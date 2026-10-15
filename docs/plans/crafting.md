@@ -207,12 +207,15 @@ change to wire; the furnace's become fire scenarios where they hold for both.
   1. **Parts and their blueprints** (built): the analysed rule, `Locked`, schematics gone, the four parts, the
      `Crafting` module and its panel, the new costs, the analyzer's screen and panel.
   2. **The burner generator:** shared fires, the fuel slot by spec, resting makers, its art.
-  3. **The lifepod** (below): where the hero is made, air for the suit, the Fabricator in it;
+  3. **The lifepod** (below, built): where the hero is made, air for the suit, the Fabricator in it;
      crafting by machine only, the hand queue and its window gone.
 
-## Task 3: the lifepod, and no crafting by hand
+## Task 3: the lifepod, and no crafting by hand (built)
 
-Decided with the team on 2026-10-15. The crafts window by hand proved either bulky or hard to
+Decided with the team on 2026-10-15; built on `feat/lifepod`
+([0028](../decisions/0028-the-lifepod-and-crafting-by-machine-only.md)). As built: `PodRefill` 2 and
+`PodReach` 1 (standing by it); `QueueMost` 4, the panel's four slots; the pod in the wreck's room A
+at columns 51–53 against the airlock, its hatch at (52, 22), the furnace's place at (49, 21) kept. The crafts window by hand proved either bulky or hard to
 search, so parts are made by machines only, as in Subnautica and RimWorld. And a ship taken apart
 or opened to space must never leave a player stuck: waking in vacuum, passing out, waking again; or
 with no power and nothing to make parts with. One object answers both: the **lifepod**, as
