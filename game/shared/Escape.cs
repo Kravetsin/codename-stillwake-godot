@@ -6,6 +6,7 @@ public enum MenuPage
     Closed,
     Main,
     Settings,
+    Coop,
 }
 
 /// <summary>What one press of Esc does.</summary>
@@ -32,7 +33,7 @@ public static class Escape
     /// <param name="busy">Whether the inventory or a crate is open, or the plan out.</param>
     public static EscapeDoes Of(MenuPage page, bool busy) => page switch
     {
-        MenuPage.Settings => EscapeDoes.Back,
+        MenuPage.Settings or MenuPage.Coop => EscapeDoes.Back,
         MenuPage.Main => EscapeDoes.CloseMenu,
         _ => busy ? EscapeDoes.PutAway : EscapeDoes.OpenMenu,
     };

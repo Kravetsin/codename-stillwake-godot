@@ -17,6 +17,7 @@ public class EscapeTests
     public void ClosesTheMenuItHasOpenedAPageAtATime()
     {
         Assert.Equal(EscapeDoes.Back, Escape.Of(MenuPage.Settings, busy: false));
+        Assert.Equal(EscapeDoes.Back, Escape.Of(MenuPage.Coop, busy: false));
         Assert.Equal(EscapeDoes.CloseMenu, Escape.Of(MenuPage.Main, busy: false));
     }
 

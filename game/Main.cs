@@ -118,7 +118,7 @@ public partial class Main : Node2D
         var join = _args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
         var hostAs = _args.FirstOrDefault(a => a == "--host" || a.StartsWith("--host="));
         if (hostAs != null) Host(hostAs.Length > 7 ? hostAs[7..] : null);
-        else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args));
+        else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args), Relay());
         else Alone();
         AddChild(new DevPanel(() => _session, () => _m, () => _net));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
@@ -129,7 +129,8 @@ public partial class Main : Node2D
                 _items?.Panel.Close();
                 _hands.Plan.PutPlanAway();
             },
-            suits, SaveWorld, LoadWorld, canLoad: () => _role == "alone", Quit);
+            suits, SaveWorld, LoadWorld, canLoad: () => _role == "alone", Quit,
+            host: HostFromMenu, join: JoinFromMenu, net: () => _net);
         AddChild(menu);
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
@@ -175,10 +176,9 @@ public partial class Main : Node2D
         return (url, password);
     }
 
-    /// <summary>Hosts a session: over ENet on <see cref="Port"/>, or on the relay as <paramref name="name"/>.</summary>
+    /// <summary>Hosts a session from the start: over ENet on <see cref="Port"/>, or on the relay as <paramref name="name"/>.</summary>
     private void Host(string? name)
     {
-        _role = "host";
         var world = World.Create(1, _layout, Modules());
         // The debris demo is played hosting too, so a guest sees a catch.
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
@@ -186,19 +186,37 @@ public partial class Main : Node2D
         _session = new Session(host, client);
         ShowWorld();
         AimCamera(_layout);
+        Serve(name, Relay());
+    }
+
+    /// <summary>
+    /// Opens this machine's own world to guests: over ENet on <see cref="Port"/>, or on
+    /// <paramref name="relay"/> as <paramref name="name"/>. Its session's host welcomes them with its world.
+    /// </summary>
+    private void Serve(string? name, (string Url, string Password)? relay)
+    {
+        if (_session is not { Host: { } host } session) return;
+        var client = session.Client;
+        _role = "host";
         ILink<ToHost, ToClient> link;
         string where = $":{Port}";
-        if (Relay() is var (url, password))
+        if (relay is var (url, password))
         {
             var relayed = RelayLink<ToHost, ToClient>.Host(url, password, name);
             where = "the relay";
-            relayed.Hosted += session =>
+            relayed.Hosted += hosted =>
             {
-                where = $"\"{session}\" on the relay";
+                where = $"\"{hosted}\" on the relay";
                 _net = $"hosting {where} · peers 0";
-                Log($"hosting session {session} on {url}");
+                Log($"hosting session {hosted} on {url}");
             };
-            relayed.Failed += why => Log(why);
+            relayed.Failed += why =>
+            {
+                Log(why);
+                _net = why;
+                // Nobody can join a session the relay never opened: the world plays on alone.
+                _role = "alone";
+            };
             link = relayed;
         }
         else
@@ -225,13 +243,15 @@ public partial class Main : Node2D
         _poll = link.Poll;
     }
 
-    /// <summary>Joins a session: a host's address over ENet, or a session's name on the relay.</summary>
-    private void Join(string address, BadNetwork? network)
+    /// <summary>
+    /// Joins a session: a host's address over ENet, or a session's name on <paramref name="relay"/>. A world
+    /// of this machine's own plays on until the host's arrives, and on still if joining fails.
+    /// </summary>
+    private void Join(string address, BadNetwork? network, (string Url, string Password)? relay)
     {
-        _role = "guest";
         _net = $"joining {address}";
         ILink<ToClient, ToHost> link;
-        if (Relay() is var (url, password))
+        if (relay is var (url, password))
         {
             var relayed = RelayLink<ToClient, ToHost>.Join(url, password, address);
             relayed.Failed += why =>
@@ -254,6 +274,7 @@ public partial class Main : Node2D
             Client.Join(Load, network?.Over(channel, new GodotTiming(GetTree())) ?? channel, Build,
                 client =>
                 {
+                    _role = "guest";
                     _session = new Session(null, client);
                     _start = client.World.Tick;
                     ShowWorld();
@@ -263,7 +284,8 @@ public partial class Main : Node2D
                 why =>
                 {
                     Log(why.Message);
-                    GetTree().Quit(1);
+                    _net = why.Message;
+                    if (_session == null) GetTree().Quit(1);
                 });
         };
         link.Disconnected += _ =>
@@ -272,6 +294,22 @@ public partial class Main : Node2D
             Quit();
         };
         _poll = link.Poll;
+    }
+
+    /// <summary>The menu's Host: this machine's own world opened on the playtest relay as <paramref name="name"/>.</summary>
+    private string HostFromMenu(string name, string password)
+    {
+        if (_role != "alone") return "menu.coopAlone";
+        Serve(name, (RelayFrames.PlaytestUrl, password));
+        return "menu.hosting";
+    }
+
+    /// <summary>The menu's Join: session <paramref name="name"/> on the playtest relay, this world dropped once it is in.</summary>
+    private string JoinFromMenu(string name, string password)
+    {
+        if (_role != "alone") return "menu.coopAlone";
+        Join(name, null, (RelayFrames.PlaytestUrl, password));
+        return "menu.joining";
     }
 
     /// <summary>A world from the host's save: a joiner's first, or a resync's.</summary>
