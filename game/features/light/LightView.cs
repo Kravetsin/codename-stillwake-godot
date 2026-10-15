@@ -36,11 +36,12 @@ public partial class LightView : Node2D
     private static readonly Color FireGlowColour = new(0xff8a3cff);
     private const float FireGlowCells = 3, FireGlowAlpha = 0.55f;
     /// <summary>
-    /// How many glowing particles light their surroundings at once, and how far, in cells: each light draws
-    /// its walls' shadows, and a furnace at work keeps a dozen embers in the air. A cell or two round each,
-    /// so an ember lights what it passes and not its room.
+    /// How many glowing particles light their surroundings at once, and how far, in cells: a cell or two
+    /// round each, so an ember lights what it passes and not its room. Few, for Godot lights a drawn piece
+    /// (a chunk of tiles) by at most 15 lights and drops the rest: a furnace's dozen embers pushed the lamps
+    /// out, and whole chunks round it went dark.
     /// </summary>
-    private const int GlowLights = 48, GlowReach = 3;
+    private const int GlowLights = 8, GlowReach = 3;
     /// <summary>
     /// How far a furnace's fire reaches, in cells: falling off by <see cref="L.FireKeep"/> a cell, it gives
     /// under a seventh of its light six cells off, where a lamp still gives near half of its own.
