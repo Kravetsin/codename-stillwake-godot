@@ -23,9 +23,11 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// as it passed out, which in space it keeps. Afloat, <see cref="Swim"/> and <see cref="Fast"/> blend from
 /// treading water into the breaststroke and on into the crawl, each 0 to 1, and <see cref="Heading"/> is the
 /// way it last swam; the figure eases them, and with none they follow the hero's speed at once.
+/// <see cref="Busy"/> while the hands are at work: afloat the hero treads water calmly, never panicking.
 /// </summary>
 public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null,
-    double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, double? Heading = null);
+    double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, double? Heading = null,
+    bool Busy = false);
 
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
@@ -239,7 +241,7 @@ public static class Poses
                 return Climbing(moment.Travelled / Stride.Climb);
             case Pose.Float:
                 return Floating(moment.TimeMs, moment.Swim ?? (Swimming(hero) ? 1 : 0), moment.Fast ?? (SwimmingFast(hero) ? 1 : 0),
-                    moment.Heading ?? HeadingOf(hero));
+                    moment.Heading ?? HeadingOf(hero), moment.Busy);
             case Pose.Lie:
                 // With no time given, long since: lying still.
                 return Collapse(moment.OutMs ?? 1e9, moment.Slump);
@@ -424,10 +426,10 @@ public static class Poses
     /// Afloat: treading water, blended by <paramref name="swim"/> into a breaststroke, and that by
     /// <paramref name="fast"/> into a crawl, so one turns into the next without a jump.
     /// </summary>
-    private static Limbs Floating(double timeMs, double swim, double fast, double heading)
+    private static Limbs Floating(double timeMs, double swim, double fast, double heading, bool busy = false)
     {
         double drift = Math.Sin(timeMs / DriftMs * 2 * Math.PI);
-        var still = Treading(timeMs, drift);
+        var still = Treading(timeMs, drift, busy);
         if (swim <= 0) return still;
         double stroke = timeMs / Adrift.StrokeMs;
         var (frontArm, frontLeg) = StrokeAt(stroke);
@@ -440,8 +442,8 @@ public static class Poses
         return swim >= 1 ? swimming : Mix(still, swimming, swim);
     }
 
-    /// <summary>Afloat and still: treading water, now and then panicking (<see cref="Adrift"/>).</summary>
-    private static Limbs Treading(double timeMs, double drift)
+    /// <summary>Afloat and still: treading water, now and then panicking (<see cref="Adrift"/>) but for while <paramref name="busy"/>.</summary>
+    private static Limbs Treading(double timeMs, double drift, bool busy = false)
     {
         double Turn(double periodMs) => timeMs / periodMs * 2 * Math.PI;
         double t = Turn(Adrift.TreadMs);
@@ -449,7 +451,7 @@ public static class Poses
         Bend Pedal(double lag) => B(0.35 + 0.3 * Math.Sin(0.7 * t + lag), -(0.45 + 0.45 * Positive(Math.Cos(0.7 * t + lag))));
         var calm = new Limbs(Scull(1.05, 0), Scull(0.8, Math.PI), Pedal(Math.PI), Pedal(0),
             0.08 + 0.12 * Math.Sin(Turn(Adrift.SwayMs)), 2 * drift, false);
-        double panic = Panic(timeMs);
+        double panic = busy ? 0 : Panic(timeMs);
         if (panic == 0) return calm;
         double w = Turn(Adrift.WhirlMs) % (2 * Math.PI);
         Bend Thrash(double lag) => B(0.4 + 0.7 * Math.Sin(1.6 * w + lag), -(0.3 + 0.7 * Positive(Math.Cos(1.6 * w + lag))));
