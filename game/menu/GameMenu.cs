@@ -21,14 +21,11 @@ public partial class GameMenu : CanvasLayer
     private readonly Func<bool> _busy, _canLoad;
     private readonly Action _putAway;
     private readonly Func<string> _save, _load;
-    private readonly VBoxContainer _main, _settings, _coop;
-    private readonly LineEdit _sessionName, _password;
-    private readonly Label _netLine;
-    private readonly Func<string?> _net, _updateTo, _updating;
+    private readonly VBoxContainer _main, _settings;
+    private readonly TogetherPage _coop;
+    private readonly Func<string?> _updateTo, _updating;
     private readonly Button _update;
     private readonly Label _updateLine;
-    /// <summary>Where the co-op page keeps the last session name and password, on this machine only.</summary>
-    private const string CoopFile = "user://coop.cfg";
     private readonly Button _loadButton;
     private readonly Label _aloneOnly, _status;
     private readonly Dictionary<string, Button> _buttons = [];
@@ -42,18 +39,15 @@ public partial class GameMenu : CanvasLayer
     /// <param name="load">Loads the saved world, and says how it went as an i18n key.</param>
     /// <param name="canLoad">Whether this machine plays alone, the only way a load works.</param>
     /// <param name="quit">Quits the game.</param>
-    /// <param name="host">Hosts a session by name and password, and says how it went as an i18n key.</param>
-    /// <param name="join">Joins a session by name and password, and says how it went as an i18n key.</param>
-    /// <param name="net">How the session stands now, in a few words; none alone.</param>
+    /// <param name="together">Playing together: hosting, joining, and how it stands.</param>
     /// <param name="version">This build, as the menu shows it at its foot.</param>
     /// <param name="updateTo">A newer release's tag, once one is known to be out.</param>
     /// <param name="update">Fetches the newer release and restarts into it.</param>
     /// <param name="updating">How an update stands while it runs.</param>
     public GameMenu(Ui ui, Func<bool> busy, Action putAway, Control suits, Func<string> save, Func<string> load, Func<bool> canLoad, Action quit,
-        Func<string, string, string> host, Func<string, string, string> join, Func<string?> net,
-        string version, Func<string?> updateTo, Action update, Func<string?> updating)
+        ITogether together, string version, Func<string?> updateTo, Action update, Func<string?> updating)
     {
-        (_ui, _busy, _putAway, _save, _load, _canLoad, _net) = (ui, busy, putAway, save, load, canLoad, net);
+        (_ui, _busy, _putAway, _save, _load, _canLoad) = (ui, busy, putAway, save, load, canLoad);
         (_updateTo, _updating) = (updateTo, updating);
         Layer = ScreenLayers.Menu;
         Visible = false;
@@ -77,7 +71,7 @@ public partial class GameMenu : CanvasLayer
         _updateLine.Visible = false;
         _main.AddChild(Choice("menu.resume", () => Show(MenuPage.Closed)));
         _main.AddChild(Choice("menu.settings", () => Show(MenuPage.Settings)));
-        _main.AddChild(Choice("menu.coop", () => Show(MenuPage.Coop)));
+        _main.AddChild(Choice("menu.together", () => Show(MenuPage.Coop)));
         _main.AddChild(Choice("menu.save", () => Say(Run(_save))));
         _main.AddChild(_loadButton = Choice("menu.load", () => Say(Run(_load))));
         _main.AddChild(_aloneOnly = Line(T("menu.aloneOnly"), Style.Slate400, 11));
@@ -91,28 +85,7 @@ public partial class GameMenu : CanvasLayer
         _settings.AddChild(Choice("menu.back", () => Show(MenuPage.Main)));
         column.AddChild(_settings);
 
-        _coop = Style.Gap(new VBoxContainer(), 8);
-        var remembered = new ConfigFile();
-        remembered.Load(CoopFile);
-        _coop.AddChild(Line(T("menu.session"), Style.Slate300, 12));
-        _coop.AddChild(_sessionName = Field((string)remembered.GetValue("coop", "session", ""), secret: false));
-        _coop.AddChild(Line(T("menu.password"), Style.Slate300, 12));
-        _coop.AddChild(_password = Field((string)remembered.GetValue("coop", "password", ""), secret: true));
-        var pair = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 8);
-        void Go(Func<string, string, string> act)
-        {
-            remembered.SetValue("coop", "session", _sessionName.Text.Trim());
-            remembered.SetValue("coop", "password", _password.Text);
-            remembered.Save(CoopFile);
-            Say(T(act(_sessionName.Text.Trim(), _password.Text)));
-        }
-        pair.AddChild(Choice("menu.host", () => Go(host)));
-        pair.AddChild(Choice("menu.join", () => Go(join)));
-        _coop.AddChild(pair);
-        _coop.AddChild(Line(T("menu.coopHint"), Style.Slate400, 11));
-        _coop.AddChild(_netLine = Line("", Style.Sky200, 12));
-        _coop.AddChild(Choice("menu.back", () => Show(MenuPage.Main)));
-        column.AddChild(_coop);
+        column.AddChild(_coop = new TogetherPage(together, () => Show(MenuPage.Main)));
         _coop.Visible = false;
 
         column.AddChild(_status = Line("", Style.Slate300, 12));
@@ -135,21 +108,8 @@ public partial class GameMenu : CanvasLayer
         return button;
     }
 
-    /// <summary>A line of text to type, in the menu's look; dots for a <paramref name="secret"/>.</summary>
-    private static LineEdit Field(string text, bool secret)
-    {
-        var field = new LineEdit { Text = text, Secret = secret, CustomMinimumSize = new Vector2(220, 0) };
-        field.AddThemeStyleboxOverride("normal", Style.Box(Style.Slate800, Style.Slate600, 6));
-        field.AddThemeStyleboxOverride("focus", Style.Box(Style.Slate800, Style.Sky400, 6));
-        field.AddThemeFontOverride("font", Style.Mono);
-        field.AddThemeFontSizeOverride("font_size", 13);
-        field.AddThemeColorOverride("font_color", Style.Slate100);
-        return field;
-    }
-
     public override void _Process(double delta)
     {
-        if (_page == MenuPage.Coop) _netLine.Text = _net() ?? "";
         if (_page != MenuPage.Main) return;
         string? tag = _updateTo(), how = _updating();
         _update.Visible = tag != null && how == null;
@@ -193,6 +153,7 @@ public partial class GameMenu : CanvasLayer
         _main.Visible = page == MenuPage.Main;
         _settings.Visible = page == MenuPage.Settings;
         _coop.Visible = page == MenuPage.Coop;
+        if (page == MenuPage.Coop) _coop.Opened();
         bool alone = _canLoad();
         _loadButton.Disabled = !alone;
         _aloneOnly.Visible = !alone;

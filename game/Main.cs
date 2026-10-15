@@ -23,6 +23,7 @@ using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
+using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game;
 
@@ -46,13 +47,17 @@ namespace Stillwake.Game;
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
 /// </summary>
-public partial class Main : Node2D
+public partial class Main : Node2D, ITogether
 {
     private const int Port = 24600;
     private static readonly string Build =
         typeof(Main).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
 
     private Session? _session;
+    /// <summary>Playing together as the menu shows it; the link it runs over, and the guests by their peer on it.</summary>
+    private TogetherState _together = TogetherState.Alone;
+    private Action? _stopLink;
+    private readonly Dictionary<long, int> _guests = new();
     private readonly Updater _updater = new(Updates.Of(Build));
     private Registry _m = null!;
     /// <summary>The registry the views draw: a load or a resync brings a new one.</summary>
@@ -131,7 +136,7 @@ public partial class Main : Node2D
                 _hands.Plan.PutPlanAway();
             },
             suits, SaveWorld, LoadWorld, canLoad: () => _role == "alone", Quit,
-            host: HostFromMenu, join: JoinFromMenu, net: () => _net,
+            together: this,
             version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
             updating: () => _updater.Status);
         AddChild(menu);
@@ -203,16 +208,19 @@ public partial class Main : Node2D
         if (_session is not { Host: { } host } session) return;
         var client = session.Client;
         _role = "host";
+        _guests.Clear();
         ILink<ToHost, ToClient> link;
         string where = $":{Port}";
         if (relay is var (url, password))
         {
             var relayed = RelayLink<ToHost, ToClient>.Host(url, password, name);
             where = "the relay";
+            _together = new TogetherState(TogetherMode.Opening, name?.ToUpperInvariant(), [], null, false);
             relayed.Hosted += hosted =>
             {
                 where = $"\"{hosted}\" on the relay";
                 _net = $"hosting {where} · peers 0";
+                _together = _together with { Mode = TogetherMode.Hosting, Code = hosted.ToUpperInvariant() };
                 Log($"hosting session {hosted} on {url}");
             };
             relayed.Failed += why =>
@@ -220,7 +228,10 @@ public partial class Main : Node2D
                 Log(why);
                 _net = why;
                 // Nobody can join a session the relay never opened: the world plays on alone.
+                bool opened = _together.Mode == TogetherMode.Hosting;
+                _together = TogetherState.Alone with { Problem = why, PasswordRefused = !opened };
                 _role = "alone";
+                _poll = () => { };
             };
             link = relayed;
         }
@@ -230,7 +241,7 @@ public partial class Main : Node2D
             if (error != Error.Ok) GD.PrintErr($"[host] cannot listen on {Port}: {error}");
             link = enet;
         }
-        var ids = new Dictionary<long, int>();
+        var ids = _guests;
         _net = $"hosting {where} · peers 0";
         link.Connected += (peer, channel) =>
         {
@@ -246,6 +257,13 @@ public partial class Main : Node2D
             _net = $"hosting {where} · peers {ids.Count}";
         };
         _poll = link.Poll;
+        _stopLink = () =>
+        {
+            link.Close();
+            // Its guests' heroes leave the world as they would leaving themselves.
+            foreach (int id in ids.Values) host.Disconnect(id, client.World.Encode(new Sim.Crew.Leave()));
+            ids.Clear();
+        };
     }
 
     /// <summary>
@@ -259,10 +277,18 @@ public partial class Main : Node2D
         if (relay is var (url, password))
         {
             var relayed = RelayLink<ToClient, ToHost>.Join(url, password, address);
+            _together = new TogetherState(TogetherMode.Joining, address.ToUpperInvariant(), [], null, false);
             relayed.Failed += why =>
             {
                 Log(why);
                 _net = why;
+                bool refused = why.StartsWith("no session");
+                _together = TogetherState.Alone with
+                {
+                    Problem = refused ? T("menu.noGame", ("code", address.ToUpperInvariant())) : why,
+                    PasswordRefused = !refused && _together.Mode == TogetherMode.Joining,
+                };
+                _poll = () => { };
             };
             link = relayed;
         }
@@ -280,6 +306,7 @@ public partial class Main : Node2D
                 client =>
                 {
                     _role = "guest";
+                    _together = _together with { Mode = TogetherMode.Joined };
                     _session = new Session(null, client);
                     _start = client.World.Tick;
                     ShowWorld();
@@ -289,7 +316,8 @@ public partial class Main : Node2D
                 why =>
                 {
                     Log(why.Message);
-                    _net = why.Message.Contains("runs build") ? "the host runs another version: update (Esc)" : why.Message;
+                    _net = why.Message.Contains("runs build") ? T("menu.otherVersion") : why.Message;
+                    _together = TogetherState.Alone with { Problem = _net };
                     if (_session == null) GetTree().Quit(1);
                 });
         };
@@ -301,20 +329,38 @@ public partial class Main : Node2D
         _poll = link.Poll;
     }
 
-    /// <summary>The menu's Host: this machine's own world opened on the playtest relay as <paramref name="name"/>.</summary>
-    private string HostFromMenu(string name, string password)
+    public TogetherState Together =>
+        _together.Mode is TogetherMode.Hosting or TogetherMode.Joined ? _together with { Suits = SuitsAboard() } : _together;
+
+    /// <summary>The suit colours aboard, this player's first, as the Play together page shows them.</summary>
+    private IReadOnlyList<int> SuitsAboard()
     {
-        if (_role != "alone") return "menu.coopAlone";
-        Serve(name, (RelayFrames.PlaytestUrl, password));
-        return "menu.hosting";
+        if (_session is not Session s) return [];
+        return _m.Crew.Heroes.OrderBy(h => h.Id == s.Client.Id ? 0 : 1).ThenBy(h => h.Id)
+            .Select(h => h.Colour >= 0 && h.Colour < Suits.All.Length ? Suits.All[h.Colour] : Suits.All[0]).ToList();
     }
 
-    /// <summary>The menu's Join: session <paramref name="name"/> on the playtest relay, this world dropped once it is in.</summary>
-    private string JoinFromMenu(string name, string password)
+    public void HostTogether(string password)
     {
-        if (_role != "alone") return "menu.coopAlone";
-        Join(name, null, (RelayFrames.PlaytestUrl, password));
-        return "menu.joining";
+        if (_role != "alone" || _together.Mode != TogetherMode.Alone) return;
+        Serve(Codes.New(Random.Shared).ToLowerInvariant(), (Relay()?.Url ?? RelayFrames.PlaytestUrl, password));
+    }
+
+    public void JoinTogether(string code, string password)
+    {
+        if (_role != "alone" || _together.Mode != TogetherMode.Alone) return;
+        Join(code.ToLowerInvariant(), null, (Relay()?.Url ?? RelayFrames.PlaytestUrl, password));
+    }
+
+    public void StopTogether()
+    {
+        if (_role != "host") return;
+        _stopLink?.Invoke();
+        _stopLink = null;
+        _poll = () => { };
+        _role = "alone";
+        _net = null;
+        _together = TogetherState.Alone;
     }
 
     /// <summary>A world from the host's save: a joiner's first, or a resync's.</summary>
