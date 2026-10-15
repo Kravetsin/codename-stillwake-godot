@@ -421,7 +421,7 @@ public partial class Main : Node2D, ITogether
         _screens?.QueueFree();
         _pods?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
-        AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research));
+        AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
         AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
         var power = _m.Power;
         // The furnaces before the light: each frame a fire picks its picture, then its light follows it.
