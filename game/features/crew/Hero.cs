@@ -127,7 +127,7 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     private static Hero Move(Hero hero, HeroInput input, Ship ship)
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
-        // Swimming, the hero faces the way it swims, head first, whatever the pointer does.
+        // Swimming, the hero faces the way it swims, whatever the pointer does.
         if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero.X, hero.Y, input, input.X == 0 ? facing : input.X);
         bool grab = !hero.Climbing && input.Y != 0 && input.X == 0 && !input.Jump &&
             TouchesLadder(ship, hero.X, hero.Y, input.Y > 0);

@@ -14,7 +14,7 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// Other players' heroes, as their peers send them through the host, drawn a little behind so they move
-/// smoothly between sends (<see cref="RemoteHeroes"/>); and this machine's hero (features/crew/index.ts):
+/// smoothly between sends (<see cref="RemoteHeroes"/>), their hands wielding and working as sent (0037); and this machine's hero (features/crew/index.ts):
 /// moved by the keyboard against the ship's cells, doors as this peer shows them (0014), outside the
 /// sim, at the controller's 60 steps a second; drawn between its last two steps, so it moves smoothly at
 /// any refresh rate, with its tether out in space and the plan in its hands while the hand is not free;
@@ -27,7 +27,6 @@ namespace Stillwake.Game.Features.Crew;
 public partial class HeroView : Node2D
 {
     private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
-    private const float DebrisModuleUnit = Sim.Debris.DebrisModule.Unit;
     /// <summary>A safety line's yellow, pale enough not to shout across the dark.</summary>
     private static readonly Color Line = new(new Color("d9c27a"), 0.9f);
 
@@ -48,8 +47,14 @@ public partial class HeroView : Node2D
     private readonly RemoteHeroes _remote = new();
     private readonly HeroSender _sender;
     private readonly Node2D _others = new() { ZIndex = Layers.OtherHeroes };
-    /// <summary>Each other hero's figure, and its tether while it has one, by peer id.</summary>
-    private readonly Dictionary<int, (Figure Figure, Tether? Tether)> _shownOthers = new();
+    /// <summary>Each other hero's figure, its tether while it has one and what its hands were busy with last frame, by peer id.</summary>
+    private readonly Dictionary<int, (Figure Figure, Tether? Tether, Busy? Busy)> _shownOthers = new();
+    /// <summary>What this hero's hands wield and are busy with, as drawn and sent to the others.</summary>
+    private string? _wields;
+    private Busy? _busy;
+    /// <summary>The first cell the planner last beamed in, and how long the beam has left to fade: sent while it does.</summary>
+    private Point _beamAt;
+    private double _beamLeftMs;
     private Client? _sendTo;
     private Hero _previous, _current;
     private bool _placed, _wasOut, _jump, _use;
@@ -74,9 +79,12 @@ public partial class HeroView : Node2D
     public HeroView(Ui ui, WorldButtons mouse, HeroAutopilot? autopilot = null)
     {
         _ui = ui;
-        // Plans placed: the planner in the hero's hand beams them in, cell by cell.
-        _ui.Planned += cells => _figure.Beam(cells
-            .Select(c => new Vector2((float)((c % _width + 0.5) * Rig.Cell), (float)((c / _width + 0.5) * Rig.Cell))).ToList());
+        // Plans placed: the planner in the hero's hand beams them in, cell by cell; the others see it beam at the first.
+        _ui.Planned += cells =>
+        {
+            _figure.Beam(cells.Select(c => Pixels(Middle(c))).ToList());
+            (_beamAt, _beamLeftMs) = (Middle(cells[0]), Figure.BeamMs);
+        };
         _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
@@ -147,12 +155,11 @@ public partial class HeroView : Node2D
         bool exerting = !passedOut && Report.Exerting(_current, ship.Space(_current.BodyCell(grid.Width)));
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
 
-        // Others' heroes in, this one out: through the host, never through the simulation. Stamped with
-        // its step's time, so others place it by when it was there, not when it came.
+        // Others' heroes in, this one out once its hands are known: through the host, never through the simulation.
         bool holdsPlan = HoldsPlan && !passedOut;
         _clockMs += elapsedMs;
+        _beamLeftMs = Math.Max(0, _beamLeftMs - elapsedMs);
         _sendTo = client;
-        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan), _steps * Hero.StepMs);
         foreach (var message in heard)
             if (SentHero.Decode(message.State) is { } sent) _remote.Add(message.From, sent, _clockMs);
         ShowOthers(ship, m.Crew, elapsedMs);
@@ -172,6 +179,8 @@ public partial class HeroView : Node2D
         _figure.Show(drawn, Poses.PoseOf(drawn, inSpace, passedOut), look, holdsPlan, elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         UseHands(client, m, shown, pointer, passedOut, handFree: !HoldsPlan);
+        // Stamped with its step's time, so others place it by when it was there, not when it came.
+        _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy), _steps * Hero.StepMs);
         _tethers.QueueRedraw();
     }
 
@@ -208,18 +217,36 @@ public partial class HeroView : Node2D
         bool chops = acts && _mouse.Buttons.HoldsLeft;
         (var hit, _swungOnTick) = Aiming.Swing(aim, chops, client.World.Tick, _swungOnTick);
         if (hit != null) client.Send(hit);
-        _figure.Wields = axe && !passedOut;
-        _figure.Chop(chops && aim is { InReach: true, Press: { Command: Sim.Debris.Hit, Problem: null }, Piece: int chopped }
-            && m.Debris.Pieces.FirstOrDefault(x => x.Id == chopped) is { } wreck
-            ? new Vector2(wreck.X, wreck.Y) / DebrisModuleUnit * ShipCamera.Cell
-            : null);
-        // Held on a plan it can work, the hero turns its screwdriver at it.
+        // Held on a plan it can work, the hero turns its screwdriver at it; held on a wreck, it swings what it wields.
         bool working = !passedOut && _mouse.Buttons.HoldsRight && aim is { InReach: true, Work.Problem: null };
-        _figure.Work(working ? new Vector2(aim!.Cell % m.Grid.Width + 0.5f, aim.Cell / m.Grid.Width + 0.5f) * ShipCamera.Cell : null);
+        var chopped = chops && aim is { InReach: true, Press: { Command: Sim.Debris.Hit, Problem: null }, Piece: int target }
+            ? m.Debris.Pieces.FirstOrDefault(x => x.Id == target)
+            : null;
+        _wields = passedOut ? null : _ui.Wielded.Get();
+        _busy = working ? new Busy(Handwork.Work, Middle(aim!.Cell))
+            : chopped is { } wreck ? new Busy(Handwork.Chop, new Point(
+                (int)((long)wreck.X * Hero.Unit / Sim.Debris.DebrisModule.Unit), (int)((long)wreck.Y * Hero.Unit / Sim.Debris.DebrisModule.Unit)))
+            : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
+            : null;
+        ShowHands(_figure, _wields, _busy);
         if (uses.Open is int open) _ui.OpenCrate.Set(open);
         // A crate stays open while the hero can reach it, awake.
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
     }
+
+    /// <summary>A figure's hands as <paramref name="wields"/> and <paramref name="busy"/> say: this machine's hero's and the others' alike.</summary>
+    private static void ShowHands(Figure figure, string? wields, Busy? busy)
+    {
+        figure.Wields = wields == Content.Axe.Item;
+        figure.Chop(busy is { Work: Handwork.Chop, At: var wreck } ? Pixels(wreck) : null);
+        figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
+    }
+
+    /// <summary>The middle of <paramref name="cell"/>, in thousandths of a cell.</summary>
+    private Point Middle(int cell) => new(cell % _width * Hero.Unit + Hero.Unit / 2, cell / _width * Hero.Unit + Hero.Unit / 2);
+
+    /// <summary>A point in thousandths of a cell, in the world's pixels.</summary>
+    private static Vector2 Pixels(Point at) => new Vector2(at.X, at.Y) * (float)(Rig.Cell / Hero.Unit);
 
     /// <summary>Outlines <paramref name="aim"/>, green, or red when the sim would <paramref name="refuse"/>; nothing with none.</summary>
     private void TraceAim(Registry m, ShownGrid shown, Aim? aim, bool refuse)
@@ -235,7 +262,10 @@ public partial class HeroView : Node2D
         _outline.End();
     }
 
-    /// <summary>Every other hero heard from lately, in its suit, posed by how it moves and whether it is out; those gone, hidden.</summary>
+    /// <summary>
+    /// Every other hero heard from lately, in its suit, posed by how it moves and whether it is out, its
+    /// hands wielding and working as sent; those gone, hidden.
+    /// </summary>
     private void ShowOthers(Ship ship, ICrewQueries crew, double elapsedMs)
     {
         var others = _remote.At(_clockMs);
@@ -243,22 +273,24 @@ public partial class HeroView : Node2D
             if (!others.Any(o => o.Id == id))
             {
                 shown.Figure.Visible = false;
-                _shownOthers[id] = (shown.Figure, null);
+                _shownOthers[id] = (shown.Figure, null, null);
             }
         foreach (var (id, seen) in others)
         {
             if (!_shownOthers.TryGetValue(id, out var shown))
             {
-                shown = (new Figure(Suits.Of(crew, id), own: false), null);
+                shown = (new Figure(Suits.Of(crew, id), own: false), null, null);
                 _others.AddChild(shown.Figure);
             }
             var hero = seen.Hero;
             bool out_ = (crew.HeroOf(id)?.Out ?? 0) > 0;
             shown.Figure.Visible = true;
             shown.Figure.Wear(Suits.Of(crew, id));
+            ShowHands(shown.Figure, seen.Wields, seen.Busy);
+            if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Show(hero, Poses.PoseOf(hero, ship.Space(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
-            _shownOthers[id] = (shown.Figure, Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs));
+            _shownOthers[id] = (shown.Figure, Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs), seen.Busy);
         }
         Others = others.Select(o => o.Seen.Hero).ToList();
     }

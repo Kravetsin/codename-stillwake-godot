@@ -16,7 +16,7 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 | `Prompt.cs`        | `Prompts.Of`: what E does at the aim, in words, and why the sim would refuse it (`prompt.ts`) | no    |
 | `UsePrompt.cs`     | the prompt at the bottom middle, red with the reason when refused (`CrewPanel.tsx`'s `UsePrompt`) | yes   |
 | `Tether.cs`        | the tether as drawn, a reeled rope (`tether.ts`) on `game/render/Rope.cs` (`rope.ts`)   | no    |
-| `Remote.cs`        | `Seen`, `SentHero` (and its wire string), `RemoteHeroes`, `HeroSender` (`remote.ts`)     | no    |
+| `Remote.cs`        | `Seen` with its hands (`Busy`, `Handwork`), `SentHero` (and its wire string), `RemoteHeroes`, `HeroSender` (`remote.ts`)     | no    |
 | `Suits.cs`         | the suit colours, `Suits.Of`, their shades and the colour the PNGs are drawn in (`suits.ts`, `art.ts`) | no |
 | `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`) | yes |
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
@@ -51,14 +51,27 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 ## Others' heroes
 
 - This hero is sent (`Client.SendHero`, a string net never reads: `SentHero.Encode`, JSON) every 50 ms
-  while it moves, turns its head, ties or lets go its tether or takes the plan out, and every second
-  standing still, stamped with its controller step's time.
+  while it moves, turns its head, ties or lets go its tether, takes the plan or a tool out or its hands
+  begin or end work, and every second standing still, stamped with its controller step's time.
+- Its hands go with it (0037): the item it wields by id (`Seen.Wields`, `Ui.Wielded`, none passed out),
+  and what they are busy with and where (`Seen.Busy`: `Work` the plan the screwdriver turns at, `Chop`
+  the wreck swung at, `Beam` the first cell the planner beams in, sent while the beam fades), a point in
+  thousandths of a cell. Both are left out of the JSON while empty, so an idle hero is written as
+  before; the kind of work goes by name, and one not known makes no hero. A new tool needs no new field.
 - Each other hero is drawn 150 ms behind its newest sample, between the two around then, placed by the
   sender's stamps; it walks on 100 ms along its last speed when samples run out, then stands; a gap
   wider than three cells is a jump; one silent for three seconds is hidden with its tether.
 - Each in its suit (`Suits.Of`, the sim's `Hero.Colour`), posed by how it moves, lying while the sim
   says it is out, its head turned as sent, the plan in its hands as sent; its tether drawn too. They
   sway the cables as this hero does (`HeroView.Others`).
+- Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe hanging and swinging at
+  the wreck, the screwdriver turning at the plan, a beam once to the cell sent (`Busy.BeamsAnew`). Taken
+  from the sample at or before the moment drawn, never between two. The chop and the screwdriver are
+  heard from the world, where the wreck takes damage (`DebrisView`) and the plan progresses
+  (`BuildingView`), once whoever works them; the figures play no tool sounds.
+- `--aside` steps this hero off the spawn, so a recording of another peer's hero there sees it whole
+  (`play.cmd --host --wreck` with `--join --aside` recorded; or `--host --aside` recorded with
+  `--join --plan-demo --max-fps 20` beside it).
 - `Main` takes the heroes the client heard each frame and hands them to `HeroView.Frame`.
 
 ## Differences from the TypeScript
@@ -73,6 +86,10 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 - Suits are recoloured from the PNGs, drawn in `Suits.Drawn` (`e0a030`, an older first suit): each of
   its four shades becomes the same shade of the suit, once per part and colour (`SuitArt`). A figure
   whose colour changes is recoloured, not made anew.
+- Afloat the hero stays upright (0036), where the TypeScript swims head first: it leans into a swim
+  along the floor (`Poses.Adrift`, at most about 25°), the legs trail and the free hand paddles, and
+  still it drifts calmly, never panicking. `pose.test.ts`'s swimming tests are replaced by the upright
+  ones.
 - The camera is a plain `Camera2D` that `HeroView.Frame` centres on the body's middle; the world's
   camera from G-06 (`ShipCamera.Follow`) takes its place when the two land together.
 
@@ -116,8 +133,7 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
   is no faster; a press never chops, and a small piece is still caught. Bare-handed a wreck is aimed at
   with `Grab`, red: too big. The figure holds the axe (`art/hero_axe.png`) hanging from its front
   hand, and chopping swings it — raised back over the shoulder for 55% of a swing, down through the
-  wreck in 12%, eased back. Only this machine's figure: others' heroes are not sent the axe or the swing,
-  but their hits show on the wreck.
+  wreck in 12%, eased back. Others see it hang and swing too (0037).
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - Door and valve prompts read them as shown (`Shared.Predicted.Grid`), as `promptOf`'s `shown` did:

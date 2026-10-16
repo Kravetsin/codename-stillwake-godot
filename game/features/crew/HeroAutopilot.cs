@@ -114,6 +114,12 @@ public sealed class HeroAutopilot
         ]);
     }
 
+    /// <summary>
+    /// <c>-- --aside</c>: a few steps left of the spawn, then still, so a window recording another peer's
+    /// hero at the spawn does not draw its own over it.
+    /// </summary>
+    public static HeroAutopilot Aside() => new([Wait(20), Hold(new HeroInput(-1, 0, false), 25), Wait(1)]);
+
     /// <summary>The <see cref="Gym"/>'s script.</summary>
     public static HeroAutopilot GymRun()
     {
