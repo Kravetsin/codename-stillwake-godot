@@ -8,9 +8,9 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Menu;
 
 /// <summary>
-/// The game menu on Esc: resume, settings (the suit's colour), co-op (host or join a session on the
-/// playtest relay, its name and password remembered), save, load and quit, over a darkened
-/// screen. Esc is decided here for the whole game (<see cref="Escape"/>): it puts away what is open or
+/// The game menu on Esc (0031): resume, save, settings (the suit's colour), save and exit to the title,
+/// save and quit — a guest leaves and quits without saving — over a darkened screen, the world, when it
+/// was saved and the code while hosting at its foot. Only in a world: on the title, Esc does nothing. Esc is decided here for the whole game (<see cref="Escape"/>): it puts away what is open or
 /// in hand first and opens the menu only when nothing is. The world runs on behind it, alone too: in
 /// co-op every peer must keep stepping, and alone a pause is not worth a second way to run the world.
 /// While it is open it keeps every key and click from the game behind it.
@@ -18,16 +18,14 @@ namespace Stillwake.Game.Menu;
 public partial class GameMenu : CanvasLayer
 {
     private readonly Ui _ui;
-    private readonly Func<bool> _busy, _canLoad;
+    private readonly Func<bool> _busy, _inWorld, _owns;
     private readonly Action _putAway;
-    private readonly Func<string> _save, _load;
+    private readonly Func<string> _save, _foot;
     private readonly VBoxContainer _main, _settings;
-    private readonly TogetherPage _coop;
     private readonly Func<string?> _updateTo, _updating;
-    private readonly Button _update;
+    private readonly Button _update, _saveButton, _exitButton, _quitButton;
     private readonly Label _updateLine;
-    private readonly Button _loadButton;
-    private readonly Label _aloneOnly, _status;
+    private readonly Label _status, _footLine;
     private readonly Dictionary<string, Button> _buttons = [];
     private MenuPage _page = MenuPage.Closed;
 
@@ -36,18 +34,19 @@ public partial class GameMenu : CanvasLayer
     /// <param name="putAway">Closes the inventory and its crate and puts the plan away.</param>
     /// <param name="suits">The suit colours' row, shown in the settings.</param>
     /// <param name="save">Saves the world, and says how it went as an i18n key.</param>
-    /// <param name="load">Loads the saved world, and says how it went as an i18n key.</param>
-    /// <param name="canLoad">Whether this machine plays alone, the only way a load works.</param>
-    /// <param name="quit">Quits the game.</param>
-    /// <param name="together">Playing together: hosting, joining, and how it stands.</param>
+    /// <param name="inWorld">Whether a world is played: on the title the menu stays shut.</param>
+    /// <param name="owns">Whether this machine keeps the world it plays, so saves it; a guest does not.</param>
+    /// <param name="exitToTitle">Saves if it owns the world, leaves it and goes to the title.</param>
+    /// <param name="quit">Saves if it owns the world, and quits the game.</param>
+    /// <param name="foot">The world, when it was saved, and the code while hosting.</param>
     /// <param name="version">This build, as the menu shows it at its foot.</param>
     /// <param name="updateTo">A newer release's tag, once one is known to be out.</param>
     /// <param name="update">Fetches the newer release and restarts into it.</param>
     /// <param name="updating">How an update stands while it runs.</param>
-    public GameMenu(Ui ui, Func<bool> busy, Action putAway, Control suits, Func<string> save, Func<string> load, Func<bool> canLoad, Action quit,
-        ITogether together, string version, Func<string?> updateTo, Action update, Func<string?> updating)
+    public GameMenu(Ui ui, Func<bool> busy, Action putAway, Control suits, Func<string> save, Func<bool> inWorld, Func<bool> owns,
+        Action exitToTitle, Action quit, Func<string> foot, string version, Func<string?> updateTo, Action update, Func<string?> updating)
     {
-        (_ui, _busy, _putAway, _save, _load, _canLoad) = (ui, busy, putAway, save, load, canLoad);
+        (_ui, _busy, _putAway, _save, _inWorld, _owns, _foot) = (ui, busy, putAway, save, inWorld, owns, foot);
         (_updateTo, _updating) = (updateTo, updating);
         Layer = ScreenLayers.Menu;
         Visible = false;
@@ -70,12 +69,10 @@ public partial class GameMenu : CanvasLayer
         _main.AddChild(_updateLine = Line("", Style.Sky200, 11));
         _updateLine.Visible = false;
         _main.AddChild(Choice("menu.resume", () => Show(MenuPage.Closed)));
+        _main.AddChild(_saveButton = Choice("menu.save", () => Say(Run(_save))));
         _main.AddChild(Choice("menu.settings", () => Show(MenuPage.Settings)));
-        _main.AddChild(Choice("menu.together", () => Show(MenuPage.Coop)));
-        _main.AddChild(Choice("menu.save", () => Say(Run(_save))));
-        _main.AddChild(_loadButton = Choice("menu.load", () => Say(Run(_load))));
-        _main.AddChild(_aloneOnly = Line(T("menu.aloneOnly"), Style.Slate400, 11));
-        _main.AddChild(Choice("menu.quit", quit));
+        _main.AddChild(_exitButton = Choice("menu.saveExit", exitToTitle));
+        _main.AddChild(_quitButton = Choice("menu.saveQuit", quit));
         column.AddChild(_main);
 
         _settings = Style.Gap(new VBoxContainer(), 8);
@@ -85,10 +82,8 @@ public partial class GameMenu : CanvasLayer
         _settings.AddChild(Choice("menu.back", () => Show(MenuPage.Main)));
         column.AddChild(_settings);
 
-        column.AddChild(_coop = new TogetherPage(together, () => Show(MenuPage.Main)));
-        _coop.Visible = false;
-
         column.AddChild(_status = Line("", Style.Slate300, 12));
+        column.AddChild(_footLine = Line("", Style.Slate300, 11));
         column.AddChild(Line(T("menu.running"), Style.Slate400, 11));
         column.AddChild(Line(version, Style.Slate600, 10));
         _settings.Visible = false;
@@ -111,6 +106,7 @@ public partial class GameMenu : CanvasLayer
     public override void _Process(double delta)
     {
         if (_page != MenuPage.Main) return;
+        _footLine.Text = _foot();
         string? tag = _updateTo(), how = _updating();
         _update.Visible = tag != null && how == null;
         if (tag != null) _update.Text = T("menu.update", ("version", tag));
@@ -152,11 +148,11 @@ public partial class GameMenu : CanvasLayer
         Visible = page != MenuPage.Closed;
         _main.Visible = page == MenuPage.Main;
         _settings.Visible = page == MenuPage.Settings;
-        _coop.Visible = page == MenuPage.Coop;
-        if (page == MenuPage.Coop) _coop.Opened();
-        bool alone = _canLoad();
-        _loadButton.Disabled = !alone;
-        _aloneOnly.Visible = !alone;
+        // A guest keeps nothing: it leaves and quits, saving nothing.
+        bool owns = _owns();
+        _saveButton.Visible = owns;
+        _exitButton.Text = T(owns ? "menu.saveExit" : "menu.leave");
+        _quitButton.Text = T(owns ? "menu.saveQuit" : "menu.quit");
         _ui.MenuOpen.Set(Visible);
     }
 
@@ -164,6 +160,7 @@ public partial class GameMenu : CanvasLayer
     public override void _Input(InputEvent e)
     {
         if (e is not InputEventKey key) return;
+        if (!_inWorld()) return;
         if (key is { Pressed: true, Echo: false, PhysicalKeycode: Key.Escape })
         {
             switch (Escape.Of(_page, _busy()))

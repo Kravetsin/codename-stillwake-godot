@@ -6,13 +6,14 @@ namespace Stillwake.Game.Platform;
 
 /// <summary>
 /// Save files in <paramref name="dir"/>, one <c>&lt;slot&gt;.json</c> each (apps/desktop/src/saves.ts):
-/// the world saved from the game menu and the last desync report. Plain .NET files, so it is tested
-/// without Godot; the game gives it Godot's user folder.
+/// a world's save (<see cref="WorldIndex"/>) and the last desync report, the file before each kept as
+/// <c>&lt;slot&gt;.bak.json</c>. Plain .NET files, so it is tested without Godot; the game gives it
+/// Godot's user folder.
 /// </summary>
 public sealed partial class Saves(string dir)
 {
-    /// <summary>The game menu's slot, and the one a desync report goes to.</summary>
-    public const string World = "world", Desync = "desync";
+    /// <summary>The slot a desync report goes to.</summary>
+    public const string Desync = "desync";
 
     private readonly object _writing = new();
     private int _written;
@@ -34,7 +35,10 @@ public sealed partial class Saves(string dir)
         return File.Exists(file) ? File.ReadAllText(file) : null;
     }
 
-    /// <summary>Writes <paramref name="text"/> to <paramref name="slot"/>: aside first, then moved over, so a crash mid-write leaves the last save whole.</summary>
+    /// <summary>
+    /// Writes <paramref name="text"/> to <paramref name="slot"/>: aside first, then moved over, the file it
+    /// replaces kept as the slot's backup in the same step, so a crash mid-write leaves the last save whole.
+    /// </summary>
     public void Write(string slot, string text)
     {
         string target = FileOf(slot);
@@ -44,7 +48,8 @@ public sealed partial class Saves(string dir)
             Directory.CreateDirectory(dir);
             string aside = $"{target}.{++_written}.tmp";
             File.WriteAllText(aside, text);
-            File.Move(aside, target, overwrite: true);
+            if (File.Exists(target)) File.Replace(aside, target, Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(target)}.bak.json"));
+            else File.Move(aside, target);
         }
     }
 }

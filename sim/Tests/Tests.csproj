@@ -17,4 +17,8 @@
   <ItemGroup>
     <Compile Include="../../game/Content/Light.cs" Link="Game/Light.cs" />
   </ItemGroup>
+  <!-- Saves of every past format, for MigrationsTests. -->
+  <ItemGroup>
+    <None Include="Fixtures/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
