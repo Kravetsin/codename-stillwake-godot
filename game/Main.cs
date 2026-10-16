@@ -115,7 +115,7 @@ public partial class Main : Node2D, ITogether
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
         // Before everything else, so every button made after it clicks.
-        AddChild(new SoundView(Muffled));
+        AddChild(new SoundView(Muffled, () => _title != null));
 
         // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
         _hands = new Hands();

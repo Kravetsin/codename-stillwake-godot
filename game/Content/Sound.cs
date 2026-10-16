@@ -38,8 +38,8 @@ public static class Sound
     /// Settings will set Master, Effects, Ambient and UI; World and Suit are the hearing's. Ambient waits
     /// for the first ambience: the ship's hum comes from its vents and fires, in the world.
     /// </summary>
-    public const string Master = "Master", Ui = "UI", Ambient = "Ambient", Effects = "Effects", World = "World", Suit = "Suit";
-    public static readonly IReadOnlyList<string> Buses = [Master, Ui, Ambient, Effects, World, Suit];
+    public const string Master = "Master", Ui = "UI", Ambient = "Ambient", Effects = "Effects", World = "World", Suit = "Suit", Music = "Music";
+    public static readonly IReadOnlyList<string> Buses = [Master, Ui, Ambient, Effects, World, Suit, Music];
 
     public static readonly Cue Step = new(Shots("crew/step", 4), -12, Heard: new(4, 18));
     public static readonly Cue Land = new(Shots("crew/land", 2), -8, Heard: new(4, 18));
@@ -60,7 +60,13 @@ public static class Sound
     /// </summary>
     public static readonly Cue Chop = new(Shots("debris/chop", 3), -6, Pitch: 0.1f, Heard: new(5, 20));
 
-    public static readonly IReadOnlyList<Cue> All = [Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, Fire, Chop];
+    /// <summary>The title's music (0035), on the Music bus, faded in with the title and out on leaving it.</summary>
+    public static readonly Cue Title = new(["res://audio/music/title-1.ogg"], -2, Loops: true);
+
+    /// <summary>How long the title's music takes to fade in or out, in seconds.</summary>
+    public const double MusicFadeS = 2.5;
+
+    public static readonly IReadOnlyList<Cue> All = [Title, Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, Fire, Chop];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;

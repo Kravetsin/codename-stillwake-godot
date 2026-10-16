@@ -14,7 +14,9 @@ public partial class SoundView : Node
 {
     private const double ReadS = 0.1;
 
-    private readonly Func<bool> _muffled;
+    private readonly Func<bool> _muffled, _title;
+    private readonly AudioStreamPlayer _music = Cues.Player(S.Title, S.Music);
+    private double _musicShare;
     private readonly AudioStreamPlayer _click = Cues.Player(S.Click, S.Ui, voices: 2);
     private Callable _onPressed;
     private AudioEffectLowPassFilter _lowPass = null!;
@@ -23,12 +25,14 @@ public partial class SoundView : Node
     private double _sinceRead = ReadS, _muffle;
 
     /// <param name="muffled">Whether this player's placed hero floats out in space.</param>
-    public SoundView(Func<bool> muffled)
+    /// <param name="title">Whether the title is shown: its music plays while it is (0035).</param>
+    public SoundView(Func<bool> muffled, Func<bool> title)
     {
-        _muffled = muffled;
+        (_muffled, _title) = (muffled, title);
         // Heard behind the game menu as well.
         ProcessMode = ProcessModeEnum.Always;
         AddChild(_click);
+        AddChild(_music);
     }
 
     public override void _Ready()
@@ -53,6 +57,20 @@ public partial class SoundView : Node
         }
         _muffle = Toward(_muffle, _heard ? 1 : 0, delta * 1000 / S.MuffleMs);
         Hear();
+        _musicShare = Toward(_musicShare, _title() ? 1 : 0, delta / S.MusicFadeS);
+        Play(_music, _musicShare, S.Title.VolumeDb);
+    }
+
+    /// <summary>A loop at <paramref name="share"/> of its volume: playing while heard at all, stopped once silent.</summary>
+    private static void Play(AudioStreamPlayer loop, double share, float volumeDb)
+    {
+        if (share <= 0)
+        {
+            if (loop.Playing) loop.Stop();
+            return;
+        }
+        loop.VolumeDb = volumeDb + Mathf.LinearToDb((float)share);
+        if (!loop.Playing) loop.Play();
     }
 
     /// <summary>The World bus as dulled and faded as the hearing is now; the cutoff eased in log space, so it dulls evenly across the octaves.</summary>

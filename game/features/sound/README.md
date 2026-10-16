@@ -6,7 +6,7 @@ sound; each peer plays what it sees.
 | File                           | Holds                                                                              | Godot |
 | ------------------------------ | ---------------------------------------------------------------------------------- | ----- |
 | `game/Content/Sound.cs`        | every cue's files and volume, the bus names, the muffle and the alarm's tunables    | no    |
-| `game/default_bus_layout.tres` | the buses: Master → UI, Ambient, Effects → World (a low-pass), Suit                 | —     |
+| `game/default_bus_layout.tres` | the buses: Master → UI, Ambient, Music, Effects → World (a low-pass), Suit          | —     |
 | `game/shared/Cues.cs`          | a cue's stream (a randomizer over its files, ±6% pitch, or a loop) and its players  | yes   |
 | `game/shared/Heard2D.cs`       | a sound placed in the world, as loud as its distance from the screen's middle says  | yes   |
 | `SoundView.cs`                 | the hearing: button clicks and the silence while floating                          | yes   |
@@ -23,6 +23,8 @@ sound; each peer plays what it sees.
   the way to `Silent`, where it stops. A vent hums loud only close by (3 → 10), a fire crackles a
   little further (3 → 12), doors and venting carry far (6 → 24). Godot's own fall-off has no
   full-volume stretch, so `Heard2D` turns it off and sets the volume each frame; Godot still pans.
+- **Music** (0035): the title's track on the Music bus, faded in over `Sound.MusicFadeS` while the title is
+  shown and out once it is gone, stopped when silent; nothing plays in a world yet.
 - **Reset:** the `AudioServer` outlives `ReloadCurrentScene` (exit to title), so `SoundView._Ready`
   sets the World bus clear again.
 - **Clicks:** every `BaseButton` in the tree, found once on `_Ready` and then by `SceneTree.NodeAdded`,
@@ -51,7 +53,7 @@ sound; each peer plays what it sees.
 
 ## Deliberately not handled
 
-- Music and a Music bus; volume sliders (the bus names are their contract).
+- Music in a world; volume sliders (the bus names are their contract).
 - Reverb by room size, occlusion by walls, Doppler; one hiss however many breaches vent.
 - Silence by the room's air: only floating mutes the world (0033).
 - Other heroes' clicks and alarms; a drone in space; jump, swim, passing out, plans placed and
