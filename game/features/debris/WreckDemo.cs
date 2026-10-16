@@ -16,7 +16,8 @@ namespace Stillwake.Game.Features.Debris;
 /// fifths of the way to show the cracks; and a script played through Godot's own input, for recordings
 /// with <c>--write-movie</c>: the pointer on the section, bare-handed (outlined red, too big), the axe
 /// chosen with 2, the left button held till the section breaks, then the hero swims through what it
-/// broke into. It draws the pointer, which a movie does not.
+/// broke into. It draws the pointer, which a movie does not. <c>-- --wrecks</c> lines up one of every
+/// kind of wreckage instead, and the hero swims from one to the next, chopping each till it breaks.
 /// </summary>
 public partial class WreckDemo : CanvasLayer
 {
@@ -56,19 +57,35 @@ public partial class WreckDemo : CanvasLayer
     /// <summary>How fast they drift, slower than the sim's own, so the section stays in reach as it is chopped.</summary>
     private const int Speed = 12;
 
-    /// <summary>
-    /// <paramref name="world"/>, on <see cref="Map"/>, with the pieces out and the axe in peer 0's second
-    /// hotbar slot: put into its save, as no command makes items or places debris.
-    /// </summary>
-    public static World Seed(World world, Func<IReadOnlyList<Module>> modules)
+    /// <summary>One of every kind of wreckage, in a row at the hero's height from four cells right of it, two cells apart.</summary>
+    private static (int Id, string Item, double Right, int Below, int Damage)[] Row()
     {
+        var row = new List<(int, string, double, int, int)>();
+        double at = 4;
+        foreach (var (item, _) in Spec.Wreckage.All)
+        {
+            double width = DebrisLooks.Wrecks[item].W / 16.0;
+            row.Add((row.Count + 1, item, at + width / 2, 0, 0));
+            at += width + 2;
+        }
+        return [.. row];
+    }
+
+    /// <summary>
+    /// <paramref name="world"/>, on <see cref="Map"/>, with the pieces out (every kind in a row with
+    /// <paramref name="all"/>) and the axe in peer 0's second hotbar slot: put into its save, as no
+    /// command makes items or places debris.
+    /// </summary>
+    public static World Seed(World world, Func<IReadOnlyList<Module>> modules, bool all = false)
+    {
+        var drifting = all ? Row() : Drifting;
         var root = JsonNode.Parse(world.Save())!;
         int width = Map.Width, spawn = Map.CellsOf('S').First();
         int sx = spawn % width, sy = spawn / width;
         const int Right = 6, Left = 2, Lead = Spec.Debris.Lead;
         int start = Math.Min(width - 1, Right + Lead) * 1000 + 500, end = Math.Max(0, Left - Lead) * 1000;
         var pieces = new JsonArray();
-        foreach (var (id, item, right, below, damage) in Drifting)
+        foreach (var (id, item, right, below, damage) in drifting)
             pieces.Add(new JsonObject
             {
                 ["id"] = id,
@@ -86,7 +103,7 @@ public partial class WreckDemo : CanvasLayer
         grid["backMaterial"]![spawn] = 0;
         var debris = root["slices"]!["debris"]!;
         debris["pieces"] = pieces;
-        debris["nextId"] = Drifting.Length + 1;
+        debris["nextId"] = drifting.Length + 1;
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Slots; i++)
             slots.Add(i == 1 ? new JsonObject { ["item"] = Spec.Axe.Item, ["count"] = 1 } : null);
@@ -103,11 +120,16 @@ public partial class WreckDemo : CanvasLayer
     private bool _chose, _holding, _broken;
     private double _brokeAt;
     private bool _swimming, _swum, _done;
+    /// <summary>Every kind in a row (<c>--wrecks</c>), chopped one after another: the one at it now, by id.</summary>
+    private readonly bool _all;
+    private int _target = Target;
+    private Key? _swim;
 
-    public WreckDemo(DebrisView view, Ui ui)
+    public WreckDemo(DebrisView view, Ui ui, bool all = false)
     {
         _view = view;
         _ui = ui;
+        _all = all;
         Layer = ScreenLayers.Pointer;
         AddChild(_arrow);
         _arrow.Draw += () =>
@@ -137,10 +159,24 @@ public partial class WreckDemo : CanvasLayer
             GlobalPosition = _pos,
         });
 
+    /// <summary>Swims with <paramref name="key"/> held, or none; the key held before is let go.</summary>
+    private void Swim(Key? key)
+    {
+        if (key == _swim) return;
+        if (_swim is { } was) Press(was, false);
+        if (key is { } now) Press(now, true);
+        _swim = key;
+    }
+
     public override void _Process(double delta)
     {
         if (_done) return;
         _t += delta;
+        if (_all)
+        {
+            PlayRow(delta);
+            return;
+        }
         var target = OnScreen(Target);
         if (target is { } at && !_broken) _pos = _pos.MoveToward(at, (float)(1500 * delta));
         // Bare-handed first, outlined red; then the axe.
@@ -182,7 +218,65 @@ public partial class WreckDemo : CanvasLayer
             GD.Print($"[demo] done at {_t:0.00} s: the mouse is the player's");
             return;
         }
+        Pointer();
+    }
+
+    private void Pointer()
+    {
         Input.ParseInputEvent(new InputEventMouseMotion { Position = _pos, GlobalPosition = _pos, ButtonMask = _holding ? MouseButtonMask.Left : 0 });
         _arrow.QueueRedraw();
+    }
+
+    /// <summary>
+    /// The row's script: the axe chosen, then each wreck in turn swum up to till the blade would touch it and
+    /// chopped till it breaks; past the last, the hero swims on through what they broke into.
+    /// </summary>
+    private void PlayRow(double delta)
+    {
+        if (!_chose && _t >= 1.0)
+        {
+            Press(Key.Key2, true);
+            Press(Key.Key2, false);
+            _chose = true;
+        }
+        var target = OnScreen(_target);
+        if (target == null && _target <= Spec.Wreckage.All.Count && _chose)
+        {
+            GD.Print($"[demo] {Spec.Wreckage.All[_target - 1].Item} broken at {_t:0.00} s");
+            _target += 1;
+            _brokeAt = _t;
+            return;
+        }
+        if (_target > Spec.Wreckage.All.Count)
+        {
+            Mouse(false);
+            _holding = false;
+            Swim(_t < _brokeAt + 2.5 ? Key.D : null);
+            if (_t >= _brokeAt + 3.0)
+            {
+                _done = true;
+                _arrow.Visible = false;
+                GD.Print($"[demo] done at {_t:0.00} s: the mouse is the player's");
+                return;
+            }
+            Pointer();
+            return;
+        }
+        if (target is { } at) _pos = _pos.MoveToward(at, (float)(1500 * delta));
+        bool aimed = _chose && _ui.AimedPiece.Get() is (int id, false) && id == _target;
+        if (aimed != _holding)
+        {
+            Mouse(aimed);
+            _holding = aimed;
+        }
+        // Up to it while the blade cannot reach, backing off once the hero is inside it.
+        var piece = _view.Pieces.FirstOrDefault(p => p.Id == _target);
+        if (piece != null && _ui.Heroes.Count > 0 && _chose)
+        {
+            float gap = piece.X / 1000f * ShipCamera.Cell - _ui.Heroes[0].X;
+            float half = DebrisLooks.Wrecks[piece.Item].W / 2f;
+            Swim(aimed ? null : gap > half + ShipCamera.Cell ? Key.D : gap < half * 0.5f ? Key.A : null);
+        }
+        Pointer();
     }
 }

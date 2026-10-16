@@ -9,7 +9,7 @@ with the fire axe is the hands too, which send `Hit` (0034).
   `Ui.AimedPiece` — the piece the crew's hands would catch or chop; `Ui.Heroes` — who most likely
   struck a piece; `Session.Progress`.
 - **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
-  wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one hull section of 48 × 32, drawn by the debris generator), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
+  wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one picture of each wreck: a hull section, a machine block 48 × 32, a cargo container and a shield slab 64 × 32, a cable rack and a tank cluster 32 × 32 (`DebrisLooks.Wrecks`, the box they are aimed at and struck by)), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
   at `X − Speed × Progress` so it glides, tumbling a turn every 4 s each its own way, faded in over the
   first 8 cells of its path and out over the last (`Fading.FadeOf`, 0009); a wreck only rocks, 0.08 rad
   either way every 7 s, so its picture stays where the aim tests it.
@@ -39,7 +39,8 @@ with the fire axe is the hands too, which send `Hit` (0034).
 - **Recording:** `-- --wreck` (`WreckDemo`): the hero floating in space, a fire axe in its second
   slot, a hull section drifting up slowly and three more chopped a third, a half and four fifths of
   the way; the pointer on it bare-handed (red), 2 chooses the axe, the left button held till it breaks,
-  then the hero swims through the loot.
+  then the hero swims through the loot. `-- --wrecks` lines up one of every kind instead, and the
+  hero swims to each in turn and chops it till it breaks, sweeping up the loot on its way.
 
 ## Files
 
@@ -48,7 +49,7 @@ with the fire axe is the hands too, which send `Hit` (0034).
 | `Fading.cs`     | `FadeOf`                                                      | no    |
 | `DebrisView.cs` | the layer: pieces and the outline of the one aimed at         | yes   |
 | `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |
-| `WreckDemo.cs`  | the world and the script of `--wreck`                         | yes   |
+| `WreckDemo.cs`  | the world and the script of `--wreck` and `--wrecks`          | yes   |
 
 `Fading.cs` is compiled again into `game.tests/`, where `fade.test.ts` and the debris test of
 `predicted.test.ts` are ported (`DebrisTests`); the debris tests of `aim.test.ts` are in `AimTests`.

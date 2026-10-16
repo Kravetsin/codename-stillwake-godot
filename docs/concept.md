@@ -37,9 +37,11 @@ A living document: what is decided about the game and what is still open. Techni
   analyzer, the crate, scrap walls and the wire; smelting scrap, making wire, cabling the torn room's
   analyzer and analysing iron is the first lesson. An item not analysed yet has a violet "?" in its
   slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
-  item in it goes into, opened or still closed; nothing pops up over the hero
+  item in it goes into, opened or still closed; nothing pops up over the hero. The solar panel is
+  built of circuits, salvaged only from the electronics racks that drift by
   ([0024](decisions/0024-blueprints-are-learned-by-analysis.md),
-  [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md)).
+  [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md),
+  [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).
 - **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,
   never taken apart. Heroes are made at its hatch, at the start and after passing out, with a full
   suit; standing by it, a suit slowly fills with the pod's own air, even in a ship open to space, and
@@ -50,6 +52,10 @@ A living document: what is decided about the game and what is still open. Techni
   into its outputs. Most builds cost parts, so the furnace feeds the Fabricator before it feeds the
   hull. A Fabricator the player builds, powered and faster, comes later.
 - **Spacewalks:** on a tether from the hull at first; a jetpack later frees the hero from it.
+- **Wreckage** drifts among the small debris, too big to catch: a hull section, a cargo container,
+  a machine block, an electronics rack, oxygen tanks and a shield slab, each broken with the fire axe
+  into what its picture shows it holds, floating where it was
+  ([0034](decisions/0034-wreckage-and-the-axe.md), [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).
 - **Dangers:** yes — the game can hurt you. Which ones is open.
 - **Time runs only while the game runs.** Nothing happens offline and there is no offline progress,
   unlike the Factory in Tossit.

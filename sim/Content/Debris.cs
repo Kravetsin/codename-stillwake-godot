@@ -29,11 +29,17 @@ public static class Debris
 
     public static readonly IReadOnlyList<(string Item, int Weight)> Kinds =
     [
-        ("scrapChunk", 6),
-        ("hullPlate", 3),
-        ("cargoCrate", 2),
-        ("supplyPod", 1),
-        ("hullSection", 1),
+        ("scrapChunk", 18),
+        ("hullPlate", 9),
+        ("cargoCrate", 6),
+        ("supplyPod", 3),
+        // Wreckage (Wreckage): 9 of 45, one spawn in five, a wreck about every 50 s.
+        ("hullSection", 3),
+        ("cargoContainer", 2),
+        ("machineBlock", 1),
+        ("cableRack", 1),
+        ("tankCluster", 1),
+        ("shieldSlab", 1),
     ];
 }
 
@@ -62,6 +68,37 @@ public static class Loot
         [
             new("hullPlate", 2, 3),
             new("scrapChunk", 2, 4),
+        ]),
+        ("cargoContainer",
+        [
+            new("planks", 8, 12),
+            new("scrapChunk", 1, 2),
+            new("gear", 1, 2, OneIn: 4),
+            new("wire", 2, 4, OneIn: 4),
+        ]),
+        ("machineBlock",
+        [
+            new("gear", 2, 4),
+            new("hullPlate", 1, 2),
+            new("scrapChunk", 1, 2),
+            new("rotor", 1, 1, OneIn: 4),
+        ]),
+        // The only source of circuits: one a rack, always, so three racks make a solar panel.
+        ("cableRack",
+        [
+            new("wire", 6, 10),
+            new("scrapChunk", 1, 2),
+            new("circuit", 1, 1),
+        ]),
+        ("tankCluster",
+        [
+            new("canister", 2, 3),
+            new("scrapChunk", 1, 1),
+        ]),
+        ("shieldSlab",
+        [
+            new("hullPlate", 5, 7),
+            new("scrapChunk", 1, 2),
         ]),
     ];
 

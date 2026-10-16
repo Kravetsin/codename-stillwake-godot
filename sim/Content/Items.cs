@@ -19,7 +19,8 @@ public sealed record ItemSpec(
 
 /// <summary>
 /// Everything a hero carries. Every material is an item by the same id; the salvage items are what
-/// debris becomes when caught; a container caught opens; parts are crafted.
+/// debris becomes when caught; a container caught opens, a wreck broken too; parts are crafted, but the
+/// circuit, salvaged.
 /// </summary>
 public static class Items
 {
@@ -36,11 +37,18 @@ public static class Items
         new("cargoCrate", 1),
         // Wreckage: broken with an axe into its loot (Wreckage), and never carried either.
         new("hullSection", 1),
+        new("cargoContainer", 1),
+        new("machineBlock", 1),
+        new("cableRack", 1),
+        new("tankCluster", 1),
+        new("shieldSlab", 1),
         // Parts, made by hand (Crafts) of materials and other parts.
         new("wire", 100),
         new("plate", 100),
         new("gear", 50),
         new("rotor", 20),
+        // A part no craft makes: salvaged from cable racks alone (Loot).
+        new("circuit", 20),
         // Tools, made as parts are.
         new("fireAxe", 1),
     ];

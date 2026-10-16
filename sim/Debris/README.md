@@ -3,7 +3,8 @@
 The pieces of debris drifting past the ship, catching them, and breaking wreckage with an axe
 ([0006](../../docs/decisions/0006-debris-in-the-simulation.md),
 [0009](../../docs/decisions/0009-debris-around-the-ship.md),
-[0034](../../docs/decisions/0034-wreckage-and-the-axe.md)). Ported from
+[0034](../../docs/decisions/0034-wreckage-and-the-axe.md),
+[0041](../../docs/decisions/0041-wreckage-of-many-kinds-and-circuits.md)). Ported from
 `packages/sim/src/modules/debris`; its rules hold here unchanged.
 
 - **Depends on:** `Grid` (`IGridQueries`: its size and the hull's bounds), `Crew` (`ICrewQueries`:
@@ -28,7 +29,8 @@ The pieces of debris drifting past the ship, catching them, and breaking wreckag
   order: a row among the hull's and `Debris.Margin` above and below; a kind by weight, walking
   `Debris.Kinds` in order; a speed from `Debris.DriftMin` to `DriftMax`. It starts in the middle of
   the cell `Debris.Lead` right of the hull and ends `Debris.Lead` left of it, both kept on the grid.
-  The first is due on clock `Debris.Every`.
+  The first is due on clock `Debris.Every`. Of the weights' 45, 36 are small pieces and 9 wrecks:
+  a spawn every 10 s on average, a wreck one in five.
 - On the first tick a world begins with its map's `Layout.DebrisAtStart` pieces out (at most
   `Debris.Max`), each drawn as a spawn is, then placed along its way, its `X` drawn evenly from its
   `End` to its `Start`. The wreck sets `Debris.AtStart`, so a player waits for none; test maps set
@@ -41,8 +43,10 @@ The pieces of debris drifting past the ship, catching them, and breaking wreckag
   last reported, or the piece's middle is not in space). A full inventory is no reason: what does not
   fit floats at the hero's cell, on the floor of space (`IItemsOps.GiveOrDrop`). A wreck is refused
   with `debris.tooBig`.
-- **Wreckage** is a kind with hit points in `Wreckage` (a hull section, 15). It drifts, spawns and
-  is saved as any piece. `Hit(Piece)` takes `Axe.Damage` off them, adding it to the piece's `Damage`;
+- **Wreckage** is a kind with hit points in `Wreckage`: a hull section (15), a cargo container (11),
+  a machine block (19), a cable rack (9), a tank cluster (7) and a shield slab (31) (0034, 0041). It
+  drifts, spawns and is saved as any piece; each kind breaks into its own `Loot`, a cable rack always
+  into exactly one circuit, the only source of them. `Hit(Piece)` takes `Axe.Damage` off them, adding it to the piece's `Damage`;
   the hit that brings `Damage` to its hit points removes it, and its loot (`Loot`, drawn by `LootOf`
   as a container's is) falls on the cell under its middle, still, dropped by `FloorStack.Nobody`
   (`IItemsOps.DropAt`): floating there in space for anyone to pick up at once, the hero who broke it

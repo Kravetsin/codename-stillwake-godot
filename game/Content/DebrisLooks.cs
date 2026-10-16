@@ -18,6 +18,11 @@ public static class DebrisLooks
         ["cargoCrate"] = ("crate", 8),
         ["supplyPod"] = ("pod", 4),
         ["hullSection"] = ("section", 1),
+        ["cargoContainer"] = ("container", 1),
+        ["machineBlock"] = ("machine", 1),
+        ["cableRack"] = ("rack", 1),
+        ["tankCluster"] = ("tanks", 1),
+        ["shieldSlab"] = ("slab", 1),
     };
 
     /// <summary>
@@ -27,6 +32,11 @@ public static class DebrisLooks
     public static readonly IReadOnlyDictionary<string, (int W, int H)> Wrecks = new Dictionary<string, (int, int)>
     {
         ["hullSection"] = (48, 32),
+        ["cargoContainer"] = (64, 32),
+        ["machineBlock"] = (48, 32),
+        ["cableRack"] = (32, 32),
+        ["tankCluster"] = (32, 32),
+        ["shieldSlab"] = (64, 32),
     };
 
     /// <summary>The picture piece <paramref name="id"/> of <paramref name="item"/> wears, or null to draw the item.</summary>

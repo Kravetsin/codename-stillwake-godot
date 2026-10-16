@@ -16,16 +16,16 @@ public sealed record Analysis(int Analyzer, int Progress);
 public sealed record Analyzing(string Item, int Progress, int Work, string? Problem);
 
 /// <summary>
-/// A blueprint or a craft as the world knows it: what it costs, whether it was granted, whether
-/// analysis cannot open it yet, and the items of its cost not analysed yet, in the cost's order.
+/// A blueprint or a craft as the world knows it: what it costs, whether it was granted, and the items
+/// of its cost not analysed yet, in the cost's order.
 /// </summary>
 /// <param name="Placement">What a blueprint places; null for a craft, named by the item it makes.</param>
 public sealed record Recipe(
-    string Id, Placement? Placement, IReadOnlyList<(string Item, int Count)> Cost, bool Granted, bool Locked,
+    string Id, Placement? Placement, IReadOnlyList<(string Item, int Count)> Cost, bool Granted,
     IReadOnlyList<string> Unanalysed)
 {
-    /// <summary>Granted, or opened: every item of its cost analysed and it not locked. Creative mode aside.</summary>
-    public bool Known => Granted || (!Locked && Unanalysed.Count == 0);
+    /// <summary>Granted, or opened: every item of its cost analysed. Creative mode aside.</summary>
+    public bool Known => Granted || Unanalysed.Count == 0;
 }
 
 /// <summary>
@@ -110,7 +110,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     public IReadOnlyList<Recipe> Recipes() =>
         Every.Select(e => new Recipe(
-            e.Id, e.Placement, e.Cost, Granted(e.Id), Content.Research.Locked.Contains(e.Id),
+            e.Id, e.Placement, e.Cost, Granted(e.Id),
             e.Cost.Select(c => c.Item).Where(item => !IsAnalysed(item)).Distinct().ToList())).ToList();
 
     public Analyzing? At(int id)
@@ -128,9 +128,9 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     private bool IsAnalysed(string item) => State.Analysed.BinarySearch(item, StringComparer.Ordinal) >= 0;
 
-    /// <summary>The opening rule: granted, or every item of its cost analysed and it not locked.</summary>
+    /// <summary>The opening rule: granted, or every item of its cost analysed.</summary>
     private bool Known(string id, IReadOnlyList<(string Item, int Count)> cost) =>
-        Granted(id) || (!Content.Research.Locked.Contains(id) && cost.All(c => IsAnalysed(c.Item)));
+        Granted(id) || cost.All(c => IsAnalysed(c.Item));
 
     /// <summary>What machine <paramref name="id"/>'s first slot holds; null for none, or no such machine.</summary>
     private string? ItemIn(int id)
