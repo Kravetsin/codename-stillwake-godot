@@ -197,6 +197,7 @@ public static partial class En
         ["title.continue"] = "Continue",
         ["title.newGame"] = "New game",
         ["title.worlds"] = "Worlds",
+        ["title.oldSave"] = "Saved before worlds",
         ["title.together"] = "Play together",
         ["title.quit"] = "Quit",
         ["title.testbed"] = "Testbed",

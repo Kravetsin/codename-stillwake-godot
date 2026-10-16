@@ -35,6 +35,25 @@ public class WorldIndexTests
     }
 
     [Fact]
+    public void TakesTheOldSaveSlotInOnceAsAWorldLastPlayedWhenItWasSaved()
+    {
+        string dir = Fresh(), slot = Path.Combine(Path.GetDirectoryName(dir)!, "world.json");
+        var index = Index(dir);
+        Assert.Null(index.Adopt(slot, "Old ship", new DateTime(2026, 10, 16)));
+        Directory.CreateDirectory(Path.GetDirectoryName(slot)!);
+        File.WriteAllText(slot, SaveOf(Oldest, 20 * 60));
+        File.SetLastWriteTimeUtc(slot, new DateTime(2026, 10, 10));
+        string? id = index.Adopt(slot, "Old ship", new DateTime(2026, 10, 16));
+        Assert.NotNull(id);
+        var world = Assert.Single(index.List());
+        Assert.Equal(("Old ship", new DateTime(2026, 10, 10), 60, WorldStatus.Playable), (world.Name, world.LastPlayed, world.PlaySeconds, world.Status));
+        Assert.False(File.Exists(slot));
+        Assert.True(File.Exists(Path.ChangeExtension(slot, ".adopted.json")));
+        Assert.Null(index.Adopt(slot, "Old ship", new DateTime(2026, 10, 17)));
+        Assert.Single(index.List());
+    }
+
+    [Fact]
     public void SaysWhichWorldsThisBuildCannotPlayAndContinuesPastThem()
     {
         string dir = Fresh();

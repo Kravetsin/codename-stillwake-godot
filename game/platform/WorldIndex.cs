@@ -79,6 +79,22 @@ public sealed class WorldIndex(string dir, int oldest, int current, int ticksPer
         return points.Count == 0 ? $"World {count + 1}" : string.Concat(points.Select(r => r.ToString()));
     }
 
+    /// <summary>
+    /// The one save slot of the builds before worlds (0031), <paramref name="slot"/>, taken in as a world
+    /// named <paramref name="name"/>, last played when it was saved; the slot is renamed beside itself to
+    /// <c>.adopted.json</c>, so it is taken once and never lost. Null when there is no slot.
+    /// </summary>
+    public string? Adopt(string slot, string name, DateTime now)
+    {
+        if (!File.Exists(slot)) return null;
+        var saved = File.GetLastWriteTimeUtc(slot);
+        string id = Create(name, now);
+        File.Copy(slot, Path.Combine(dir, id, $"{Save}.json"));
+        File.SetLastWriteTimeUtc(Path.Combine(dir, id, $"{Save}.json"), saved);
+        File.Move(slot, Path.ChangeExtension(slot, ".adopted.json"), overwrite: true);
+        return id;
+    }
+
     /// <summary>World <paramref name="id"/>'s save, or null when it has none.</summary>
     public string? Read(string id) => new Saves(Path.Combine(dir, id)).Read(Save);
 

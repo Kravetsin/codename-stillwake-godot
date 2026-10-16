@@ -528,6 +528,7 @@ public partial class Main : Node2D, ITogether
     /// <summary>The title, loading nothing: what it says first, if the scene came back to it with a reason.</summary>
     private void ShowTitle()
     {
+        AdoptOldSave();
         var worlds = new WorldsPanel(_index.List, Play, id => _index.Delete(id), NewWorld,
             busy: () => _together.Mode is TogetherMode.Joining or TogetherMode.Opening);
         AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, Quit,
@@ -535,6 +536,20 @@ public partial class Main : Node2D, ITogether
             testbed: OS.IsDebugBuild() ? PlayTestbed : null));
         if (_next is { } said) _title.Say(said);
         _next = null;
+    }
+
+    /// <summary>The save slot of v0.0.3 and before, taken into the worlds once, so an update loses no ship.</summary>
+    private void AdoptOldSave()
+    {
+        try
+        {
+            if (_index.Adopt(ProjectSettings.GlobalizePath("user://saves/world.json"), T("title.oldSave"), DateTime.Now) is string id)
+                Log($"the old save slot is world {id} now");
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Log($"the old save slot not taken in: {e.Message}");
+        }
     }
 
     private void CloseTitle()
