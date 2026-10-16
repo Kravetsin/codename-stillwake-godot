@@ -1,6 +1,7 @@
 # 0038 — One swing, one hit
 
-- Status: accepted
+- Status: accepted; a swing begun only on a wreck in reach, and its one hit to it, superseded by
+  [0039](0039-melee-by-contact.md)
 - Supersedes: of [0034](0034-wreckage-and-the-axe.md), the hit sent at once on the press and its
   consequence "the swing hides the round trip"; of [0037](0037-others-see-the-hands.md), the swing taken
   from the sample drawn and its consequence "the blade coming down and the wreck's jolt may be up to a

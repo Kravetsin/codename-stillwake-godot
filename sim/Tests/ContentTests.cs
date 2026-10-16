@@ -264,6 +264,7 @@ public class ContentTests
     {
         Assert.True(Axe.Damage > 0);
         Assert.True(Axe.SwingTicks > 0);
+        Assert.True(Axe.Reach > 0);
         Assert.True(Content.Items.TryGet(Axe.Item, out var axe));
         Assert.Equal(1, axe!.Stack);
         Assert.True(Crafts.TryGet(Axe.Item, out _));

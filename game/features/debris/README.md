@@ -24,7 +24,8 @@ with the fire axe is the hands too, which send `Hit` (0034).
   hears the same, from the world. The stars behind it are
   `render/Stars.cs`: a filtered tile placed once the camera has followed the hero, so they glide by
   fractions of a pixel a frame as the TypeScript tile did, never holding still and jumping a pixel.
-- **Aimed:** the piece the crew sets in `Ui.AimedPiece` — out in space, within reach, the hand free —
+- **Aimed:** the piece the crew sets in `Ui.AimedPiece` — out in space, within reach (with the axe, the
+  first wreck its blade would touch, 0039), the hand free —
   is outlined along its own picture as it tumbles, a screen pixel wide whatever the zoom
   (`render/Outline.cs`), green, or red while the sim would refuse the grab, fading with the piece; the
   crew's prompt says "[E] Catch"; on a wreck, red with "Too big", or with the axe "[Hold LMB] Chop".

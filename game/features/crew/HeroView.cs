@@ -21,7 +21,7 @@ namespace Stillwake.Game.Features.Crew;
 /// followed by the camera; sent to the others about 20 times a second. Every hero in its suit's colour.
 /// E under the pointer, within reach, toggles a door or valve, loads a tank, catches a piece or opens a
 /// crate when pressed, and the left button works a plan while held, grabbing debris too: one
-/// <c>Work</c> for every tick released; with the fire axe wielded, held on a wreck it chops (0034). With an empty hand, what E would work is outlined along its own
+/// <c>Work</c> for every tick released; with the fire axe wielded, clicked or held it swings toward the pointer, hitting the wrecks its blade meets (0039). With an empty hand, what E would work is outlined along its own
 /// pictures (<see cref="AimOutline"/>), and a prompt says what E does.
 /// </summary>
 public partial class HeroView : Node2D
@@ -49,7 +49,7 @@ public partial class HeroView : Node2D
     private readonly Node2D _others = new() { ZIndex = Layers.OtherHeroes };
     /// <summary>
     /// Another hero as drawn: its figure, its tether while it has one, what its hands were busy with last
-    /// frame, and the swings of its axe as replayed here, at the wreck last sent.
+    /// frame, and the swings of its axe as replayed here, each at the point sent with it.
     /// </summary>
     private sealed class Other(Figure figure)
     {
@@ -57,7 +57,6 @@ public partial class HeroView : Node2D
         public Tether? Tether;
         public Busy? Busy;
         public AxeSwing Swing;
-        public Point ChopAt;
     }
 
     /// <summary>Each other hero drawn, by peer id.</summary>
@@ -85,10 +84,13 @@ public partial class HeroView : Node2D
     /// <summary>The blueprints delivered to in this hold of the left button: a sweep delivers to each it passes once.</summary>
     private readonly HashSet<int> _served = [];
     private int _workedOnTick = -1;
-    /// <summary>This hero's axe swinging, the hit its swing sends, and where the wreck it swings at is.</summary>
+    /// <summary>
+    /// This hero's axe swinging, and the side it faces while it does, toward the swing's point as it began
+    /// (0039); whether the left button's hold began with a grab, which swings nothing.
+    /// </summary>
     private AxeSwing _swing;
-    private Sim.Debris.Hit? _swingAt;
-    private Point _chopAt;
+    private int _swingFace = 1;
+    private bool _grabHeld;
 
     /// <param name="ui">What the hand holds, the crate open and the piece aimed at, shared with the other features.</param>
     /// <param name="mouse">The pointer and the left button as the world reads them.</param>
@@ -163,7 +165,9 @@ public partial class HeroView : Node2D
         {
             // Passed out, the hero takes no orders and only falls; keys pressed meanwhile are spent.
             var taken = _autopilot?.Next(_current) ?? Take();
-            var input = passedOut ? new HeroInput(0, 0, false) : taken with { Face = face };
+            // Swinging, it faces where the swing began toward, swimming too: the blade comes down there.
+            bool swinging = _swing.Phase != null;
+            var input = passedOut ? new HeroInput(0, 0, false) : taken with { Face = swinging ? _swingFace : face, Swings = swinging };
             (_previous, _current) = (_current, _current.Step(input, ship));
             _steps++;
         }
@@ -183,7 +187,7 @@ public partial class HeroView : Node2D
                 _remote.Add(message.From, sent, _clockMs);
                 // Swings are swung as heard, not behind with the body, so the blade meets the wreck as the hit lands (0038).
                 var last = _heardChops.GetValueOrDefault(message.From).Last;
-                _heardChops[message.From] = (sent.Seen.Wields == Content.Axe.Item, sent.Seen.Busy is { Work: Handwork.Chop } chop ? chop : last);
+                _heardChops[message.From] = (sent.Seen.Wields == Content.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
             }
         ShowOthers(ship, m.Crew, elapsedMs);
 
@@ -197,10 +201,11 @@ public partial class HeroView : Node2D
         var drawn = _current with { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
         _ui.Heroes = [Chest(drawn), .. Others.Select(Chest)];
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
-        double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         var pose = Poses.PoseOf(drawn, inSpace, passedOut);
-        // The hands first, so the frame a hit goes draws the blade meeting the wreck.
+        // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
         UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
+        drawn = drawn with { Facing = _current.Facing };
+        double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         _figure.Wear(Suits.Of(m.Crew, client.Id));
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
@@ -214,8 +219,9 @@ public partial class HeroView : Node2D
     /// hand holds, doors and valves as <paramref name="shown"/>; E on what it works whatever the hand holds,
     /// so a door opens with a card or a cable out; the right button held works plans whatever the hand
     /// holds (0030); the left button grabs only with a free hand, as it is the card's otherwise, and held
-    /// on a wreck, or clicked, swings the fire axe at it while the hand wields it (<see cref="AxeSwing"/>).
-    /// Passed out, the hands do nothing: a press is spent, a hold works no plan and swings no axe.
+    /// or clicked swings the fire axe toward the pointer while the hand wields it (<see cref="AxeSwing"/>),
+    /// unless the click grabbed a piece. Passed out, the hands do nothing: a press is spent, a hold works
+    /// no plan and swings no axe.
     /// </summary>
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, Pose pose,
         double elapsedMs, bool handFree)
@@ -242,35 +248,40 @@ public partial class HeroView : Node2D
         if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister)) _act.Play();
         // Held on a plan it can work, the hero turns its screwdriver at it.
         bool working = !passedOut && _mouse.Buttons.HoldsRight && aim is { InReach: true, Work.Problem: null };
-        // The axe: a swing begun on a wreck plays through and hits as the blade meets it, let go or not;
-        // put away, it stops unstruck. The chop is heard where the wreck takes the hit (DebrisView).
+        // The axe: a swing begun toward the pointer plays through and, as it strikes, hits every wreck its
+        // blade meets, let go or not; put away, it stops unstruck. A wreck's chop is heard where it takes the hit (DebrisView).
+        bool grabbed = grab && uses.Commands.Any(c => c is Sim.Debris.Grab);
+        _grabHeld = (_grabHeld || grabbed) && _mouse.Buttons.HoldsLeft;
         bool swings = acts && axe && !working && Poses.HoldsIn(pose);
         if (!swings) _swing.Stop();
-        var chop = Aiming.ChopOf(aim);
-        var swung = _swing.Advance(elapsedMs, swings && chop != null && (_mouse.Buttons.HoldsLeft || clicked));
-        if (swung.Begun) _swingAt = chop;
-        if (swung.Hits && _swingAt is { } hit) client.Send(hit);
-        if (_swing.Phase != null && _swingAt is { } at && m.Debris.Pieces.FirstOrDefault(x => x.Id == at.Piece) is { } wreck)
-            _chopAt = new Point((int)((long)wreck.X * Hero.Unit / Sim.Debris.DebrisModule.Unit), (int)((long)wreck.Y * Hero.Unit / Sim.Debris.DebrisModule.Unit));
+        bool wanted = swings && pointer != null && !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked);
+        var swung = _swing.Advance(elapsedMs, wanted, pointer is { } aimed ? Aiming.PointOf(aimed) : default);
+        if (swung.Begun)
+        {
+            _swingFace = Poses.FaceOf(pointer, _current) ?? _current.Facing;
+            _current = _current with { Facing = _swingFace };
+        }
+        if (swung.Hits)
+            foreach (var hit in Aiming.HitsOf(m, client.Id, _current, _swing.At)) client.Send(hit);
         _wields = passedOut ? null : _ui.Wielded.Get();
         _busy = working ? new Busy(Handwork.Work, Middle(aim!.Cell))
-            : _swing.Phase != null ? new Busy(Handwork.Chop, _chopAt, _swing.Count)
+            : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
             : null;
-        ShowHands(_figure, _wields, _busy, _swing.Phase is double phase ? (_chopAt, phase) : null);
+        ShowHands(_figure, _wields, _busy, _swing.Phase is double phase ? (_swing.At, phase) : null);
         if (uses.Open is int open) _ui.OpenCrate.Set(open);
         // A crate stays open while the hero can reach it, awake.
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
     }
 
     /// <summary>
-    /// A figure's hands as <paramref name="wields"/> and <paramref name="busy"/> say, the axe swung at a
-    /// wreck as <paramref name="swing"/> is through it: this machine's hero's and the others' alike.
+    /// A figure's hands as <paramref name="wields"/> and <paramref name="busy"/> say, the axe swung toward
+    /// <paramref name="swing"/>'s point as far as it is through: this machine's hero's and the others' alike.
     /// </summary>
     private static void ShowHands(Figure figure, string? wields, Busy? busy, (Point At, double Phase)? swing)
     {
         figure.Wields = wields == Content.Axe.Item;
-        figure.Chop(swing is { At: var wreck, Phase: var phase } ? (Pixels(wreck), phase) : null);
+        figure.Chop(swing is { At: var point, Phase: var phase } ? (Pixels(point), phase) : null);
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
     }
 
@@ -322,9 +333,8 @@ public partial class HeroView : Node2D
             shown.Figure.Wear(Suits.Of(crew, id));
             var (axe, chop) = _heardChops.GetValueOrDefault(id);
             if (!axe) shown.Swing.Stop();
-            if (chop is { At: var wreck }) shown.ChopAt = wreck;
-            shown.Swing.Follow(elapsedMs, axe ? chop?.Swings : null);
-            ShowHands(shown.Figure, seen.Wields, seen.Busy, shown.Swing.Phase is double phase ? (shown.ChopAt, phase) : null);
+            shown.Swing.Follow(elapsedMs, axe ? chop : null);
+            ShowHands(shown.Figure, seen.Wields, seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Show(hero, Poses.PoseOf(hero, ship.Space(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
