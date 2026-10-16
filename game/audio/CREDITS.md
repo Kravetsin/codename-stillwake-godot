@@ -5,8 +5,12 @@ the repository is public, so a file must be free to redistribute without attribu
 (`game.tests/SoundTests.cs`) fails on a file missing here or under another licence.
 
 Kenney's and Freesound's files are converted to mono WAV, trimmed and normalised to −3 dBFS peak;
-Freesound's are its public HQ previews of CC0 sounds. The vent hum and the fire are 20 s of their sources, its tail
-crossfaded into their heads, encoded as OGG at about −20 LUFS. The generated ones
+Freesound's are its public HQ previews of CC0 sounds. The chop's and the break's variants are then matched by the RMS of
+their K-weighted attack (the first 0.15 s of a chop, 0.4 s of a break), the louder turned down. `chop-1`
+has its ring cut (notches at 8.4, 11.6 and 14.2 kHz, a low-pass at 3.8 kHz) and its tail faded within
+0.3 s; `break-2`'s clipped peaks are rebuilt (ffmpeg `adeclip`) and its top cut from 9 kHz. The vent
+hum and the fire are 20 s of their sources, its tail crossfaded into their heads, encoded as OGG at
+about −20 LUFS. The generated ones
 are placeholders made procedurally for Stillwake (band-passed noise, sine tones), the team's own work
 released under CC0.
 
@@ -26,9 +30,12 @@ released under CC0.
 | `crew/step-2.wav` | Impact Sounds, `footstep_concrete_001.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
 | `crew/step-3.wav` | Impact Sounds, `footstep_concrete_002.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
 | `crew/step-4.wav` | Impact Sounds, `footstep_concrete_003.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
-| `debris/chop-1.wav` | Freesound, "Hacha contra Metal.wav", https://freesound.org/people/Josethehedgehog/sounds/390377/ | Josethehedgehog | CC0 |
-| `debris/chop-2.wav` | Freesound, "axe hits - 1.wav", https://freesound.org/people/quatricise/sounds/582372/ | quatricise | CC0 |
-| `debris/chop-3.wav` | Freesound, "MetalHit1.wav", https://freesound.org/people/ajanhallinta/sounds/650701/ | ajanhallinta | CC0 |
+| `debris/break-1.wav` | Freesound, "Car Crash (with Glass)", https://freesound.org/people/magnuswaker/sounds/592388/ | magnuswaker | CC0 |
+| `debris/break-2.wav` | Freesound, "Loud Bang Crashing Metal Chunk Dropped in Metal Dumpster", https://freesound.org/people/qubodup/sounds/859154/ | qubodup | CC0 |
+| `debris/break-3.wav` | Freesound, "metallic crash.wav", https://freesound.org/people/BehanSean/sounds/422438/ | BehanSean | CC0 |
+| `debris/chop-1.wav` | Freesound, "axe hits - 1.wav", https://freesound.org/people/quatricise/sounds/582372/ | quatricise | CC0 |
+| `debris/chop-2.wav` | Freesound, "shield guard", https://freesound.org/people/nekoninja/sounds/370203/ | nekoninja | CC0 |
+| `debris/chop-3.wav` | Freesound, "slightmetallicthud.mp3", https://freesound.org/people/profoundsounds/sounds/686282/ | profoundsounds | CC0 |
 | `furnace/fire-1.ogg` | Freesound, "Fire - Chimney / Stove", https://freesound.org/people/Vrymaa/sounds/770108/ | Vrymaa | CC0 |
 | `grid/door-close-1.wav` | Freesound, "SFX Door Close Big.wav", https://freesound.org/people/Paul368/sounds/264060/ | Paul368 | CC0 |
 | `grid/door-open-1.wav` | Freesound, "SFX Door Open.wav", https://freesound.org/people/Paul368/sounds/264061/ | Paul368 | CC0 |

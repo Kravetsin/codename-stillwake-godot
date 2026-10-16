@@ -20,7 +20,10 @@ with the fire axe is the hands too, which send `Hit` (0034).
   them. A rise in `Damage` jolts the piece 3 px away from the nearest hero and turns it a little,
   settling over 220 ms, throws sparks from the struck side and plays `Sound.Chop` there (on the Suit
   bus: wrecks are chopped in space, where the World bus is silent). A wreck gone with hits in it before
-  the end of its path was broken: a burst of dust and sparks and a last chop. Every peer sees and
+  the end of its path was broken (`Fading.Broken`, counting the ticks run since it was last seen, so one
+  drifting off its end only fades, a stall between frames or not): a burst of dust and sparks and
+  `Sound.Break`, louder and heard farther than a chop, on the Suit bus too. It takes the last chop's place:
+  the last hit removes the wreck on its tick, so its damage never rises in view and no chop plays for it. Every peer sees and
   hears the same, from the world. The stars behind it are
   `render/Stars.cs`: a filtered tile placed once the camera has followed the hero, so they glide by
   fractions of a pixel a frame as the TypeScript tile did, never holding still and jumping a pixel.
@@ -45,7 +48,7 @@ with the fire axe is the hands too, which send `Hit` (0034).
 
 | File            | Holds                                                         | Godot |
 | --------------- | ------------------------------------------------------------- | ----- |
-| `Fading.cs`     | `FadeOf`                                                      | no    |
+| `Fading.cs`     | `FadeOf`, `Broken`                                            | no    |
 | `DebrisView.cs` | the layer: pieces and the outline of the one aimed at         | yes   |
 | `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |
 | `WreckDemo.cs`  | the world and the script of `--wreck`                         | yes   |
