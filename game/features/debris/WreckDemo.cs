@@ -102,7 +102,7 @@ public partial class WreckDemo : CanvasLayer
     private double _t;
     private bool _chose, _holding, _broken;
     private double _brokeAt;
-    private bool _swimming, _swum;
+    private bool _swimming, _swum, _done;
 
     public WreckDemo(DebrisView view, Ui ui)
     {
@@ -139,6 +139,7 @@ public partial class WreckDemo : CanvasLayer
 
     public override void _Process(double delta)
     {
+        if (_done) return;
         _t += delta;
         var target = OnScreen(Target);
         if (target is { } at && !_broken) _pos = _pos.MoveToward(at, (float)(1500 * delta));
@@ -172,6 +173,14 @@ public partial class WreckDemo : CanvasLayer
         {
             Press(Key.D, false);
             (_swimming, _swum) = (false, true);
+        }
+        // The script played, the mouse is the player's again: it no longer pins the pointer where it ended.
+        if (_swum && _t >= _brokeAt + 3.5)
+        {
+            _done = true;
+            _arrow.Visible = false;
+            GD.Print($"[demo] done at {_t:0.00} s: the mouse is the player's");
+            return;
         }
         Input.ParseInputEvent(new InputEventMouseMotion { Position = _pos, GlobalPosition = _pos, ButtonMask = _holding ? MouseButtonMask.Left : 0 });
         _arrow.QueueRedraw();
