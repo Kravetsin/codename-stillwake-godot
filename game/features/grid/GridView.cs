@@ -30,7 +30,7 @@ public partial class GridView : Node2D
     private readonly TileMapLayer _back, _pipes, _valves, _walls, _edges, _fixtures, _doors, _machines;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
     // A door or valve that moves is heard where it stands, by everyone near (0033).
-    private readonly AudioStreamPlayer2D _opens = Cues.Player2D(S.DoorOpen, S.World, voices: 2),
+    private readonly Heard2D _opens = Cues.Player2D(S.DoorOpen, S.World, voices: 2),
         _closes = Cues.Player2D(S.DoorClose, S.World, voices: 2), _turns = Cues.Player2D(S.Valve, S.World, voices: 2);
     private readonly Dictionary<int, string> _materials = Materials.All.ToDictionary(m => m.Code, m => m.Id);
     private int[] _structure = [], _material = [], _conduit = [], _backs = [], _backMaterial = [];
@@ -125,15 +125,9 @@ public partial class GridView : Node2D
         static bool Door(int s) => s is Structure.DoorClosed or Structure.DoorOpen;
         var at = new Vector2((cell % w + 0.5f) * Cell, (cell / w + 0.5f) * Cell);
         if (Door(structure) && Door(_structure[cell]) && structure != _structure[cell] && !(cell >= w && Door(_structure[cell - w])))
-            Play(structure == Structure.DoorOpen ? _opens : _closes, at);
+            (structure == Structure.DoorOpen ? _opens : _closes).PlayAt(at);
         if (conduit is Conduit.ValveClosed or Conduit.ValveOpen && _conduit[cell] is Conduit.ValveClosed or Conduit.ValveOpen && conduit != _conduit[cell])
-            Play(_turns, at);
-    }
-
-    private static void Play(AudioStreamPlayer2D player, Vector2 at)
-    {
-        player.Position = at;
-        player.Play();
+            _turns.PlayAt(at);
     }
 
     private string MaterialOf(int code) => _materials.GetValueOrDefault(code, Materials.DefaultHull);

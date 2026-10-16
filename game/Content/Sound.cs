@@ -14,9 +14,22 @@ public static class Sound
     /// <summary>
     /// A cue: its files, any one of them each time a one-shot plays, its pitch varied by up to
     /// <see cref="Pitch"/> either way; a loop is one file, looped on import. <see cref="VolumeDb"/> is its
-    /// place in the mix.
+    /// place in the mix. Placed in the world, it is heard at full volume within <see cref="Reach"/>'s
+    /// <c>Full</c> cells of the listener, fading to silence at its <c>Silent</c> cells.
     /// </summary>
-    public sealed record Cue(IReadOnlyList<string> Files, float VolumeDb, float Pitch = 0.06f, bool Loops = false);
+    public sealed record Cue(IReadOnlyList<string> Files, float VolumeDb, float Pitch = 0.06f, bool Loops = false, Reach? Heard = null);
+
+    /// <summary>How far a sound in the world carries, in cells: full volume up to <paramref name="Full"/>, none from <paramref name="Silent"/>.</summary>
+    public sealed record Reach(float Full, float Silent)
+    {
+        /// <summary>The share of full volume heard <paramref name="cells"/> away: fading as the square of what is left of the way to silence.</summary>
+        public float Share(float cells)
+        {
+            if (cells <= Full) return 1;
+            float left = 1 - System.Math.Min(1, (cells - Full) / (Silent - Full));
+            return left * left;
+        }
+    }
 
     /// <summary>
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient and Effects into Master; World (every
@@ -28,19 +41,19 @@ public static class Sound
     public const string Master = "Master", Ui = "UI", Ambient = "Ambient", Effects = "Effects", World = "World", Suit = "Suit";
     public static readonly IReadOnlyList<string> Buses = [Master, Ui, Ambient, Effects, World, Suit];
 
-    public static readonly Cue Step = new(Shots("crew/step", 4), -12);
-    public static readonly Cue Land = new(Shots("crew/land", 2), -8);
+    public static readonly Cue Step = new(Shots("crew/step", 4), -12, Heard: new(4, 18));
+    public static readonly Cue Land = new(Shots("crew/land", 2), -8, Heard: new(4, 18));
     public static readonly Cue Alarm = new(Shots("crew/alarm", 1), -14, Pitch: 0);
-    public static readonly Cue Screwdriver = new(Shots("building/screwdriver", 5), -16);
-    public static readonly Cue Hiss = Looped("atmosphere/hiss", -8);
+    public static readonly Cue Screwdriver = new(Shots("building/screwdriver", 5), -16, Heard: new(4, 14));
+    public static readonly Cue Hiss = Looped("atmosphere/hiss", -8, new(6, 24));
     public static readonly Cue Click = new(Shots("ui/click", 2), -12);
-    public static readonly Cue VentHum = Looped("atmosphere/vent-hum", -12);
-    public static readonly Cue DoorOpen = new(Shots("grid/door-open", 1), -8);
-    public static readonly Cue DoorClose = new(Shots("grid/door-close", 1), -8);
-    public static readonly Cue Valve = new(Shots("grid/valve", 3), -12);
+    public static readonly Cue VentHum = Looped("atmosphere/vent-hum", -12, new(3, 10));
+    public static readonly Cue DoorOpen = new(Shots("grid/door-open", 1), -8, Heard: new(6, 24));
+    public static readonly Cue DoorClose = new(Shots("grid/door-close", 1), -8, Heard: new(6, 24));
+    public static readonly Cue Valve = new(Shots("grid/valve", 3), -12, Heard: new(4, 14));
     /// <summary>The one soft click an action makes: a crate opened, a canister loaded, debris caught, an item picked up.</summary>
     public static readonly Cue Act = new(Shots("hands/act", 1), -10);
-    public static readonly Cue Fire = Looped("furnace/fire", -10);
+    public static readonly Cue Fire = Looped("furnace/fire", -10, new(3, 12));
 
     public static readonly IReadOnlyList<Cue> All = [Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, Fire];
 
@@ -53,11 +66,8 @@ public static class Sound
     /// </summary>
     public const float ClearHz = 20000, MuffledHz = 300, MuffleMs = 600;
 
-    /// <summary>A sound in the world is heard up to this far from the middle of the screen, in screen pixels.</summary>
-    public const float HearPx = 900;
-
     private static string[] Shots(string cue, int count) =>
         Enumerable.Range(1, count).Select(n => $"res://audio/{cue}-{n}.wav").ToArray();
 
-    private static Cue Looped(string cue, float volumeDb) => new([$"res://audio/{cue}-1.ogg"], volumeDb, Loops: true);
+    private static Cue Looped(string cue, float volumeDb, Reach heard) => new([$"res://audio/{cue}-1.ogg"], volumeDb, Loops: true, Heard: heard);
 }

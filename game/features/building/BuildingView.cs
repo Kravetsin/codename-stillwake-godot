@@ -54,7 +54,7 @@ public partial class BuildingView : Node2D
     /// <summary>Sparks off a tick of work on a plan.</summary>
     private const double SparksPerTick = 0.3;
     /// <summary>The screwdriver, moved to each plan as it sparks: a few ticks at once, from plans worked side by side.</summary>
-    private readonly AudioStreamPlayer2D _screwdriver = Cues.Player2D(S.Screwdriver, S.World, voices: 4);
+    private readonly Heard2D _screwdriver = Cues.Player2D(S.Screwdriver, S.World, voices: 4);
 
     public BuildingView(Ui ui, PlanHand hand)
     {
@@ -204,8 +204,7 @@ public partial class BuildingView : Node2D
             var box = BoxOf(CellsOf(grid, p), grid.Width);
             var at = box.Position + box.Size / 2;
             Particles.Shared.Emit(Effect.Spark, at.X, at.Y, count, -Math.PI / 2, rooms.RoomAt(p.Cell) == RoomsModule.Space);
-            _screwdriver.GlobalPosition = at;
-            _screwdriver.Play();
+            _screwdriver.PlayAt(at);
         }
     }
 

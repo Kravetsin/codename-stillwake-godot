@@ -32,6 +32,9 @@ better recordings fit into without rework.
 - **Things that run make their own sound where they are:** the ship's hum comes from vents with
   oxygen behind them, not from the air; each burning furnace crackles. The Ambient bus waits for a
   first ambience.
+- **Each sound carries as far as it should:** full volume within a few cells, fading to silence at
+  its own distance, so a hum fills the room it is in and is gone two rooms away, while a door or a
+  breach is heard across the ship.
 - **Data, not code:** each cue's files and volume live in `Sound.cs`; one-shots are randomizers over
   their variants with a little pitch spread, loops OGG looped on import. Files are normalised before
   they are committed, so the mix is set by each cue's volume, and a file is swapped by changing data.

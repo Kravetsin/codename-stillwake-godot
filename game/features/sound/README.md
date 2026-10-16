@@ -8,6 +8,7 @@ sound; each peer plays what it sees.
 | `game/Content/Sound.cs`        | every cue's files and volume, the bus names, the muffle and the alarm's tunables    | no    |
 | `game/default_bus_layout.tres` | the buses: Master → UI, Ambient, Effects → World (a low-pass), Suit                 | —     |
 | `game/shared/Cues.cs`          | a cue's stream (a randomizer over its files, ±6% pitch, or a loop) and its players  | yes   |
+| `game/shared/Heard2D.cs`       | a sound placed in the world, as loud as its distance from the screen's middle says  | yes   |
 | `SoundView.cs`                 | the hearing: button clicks and the silence while floating                          | yes   |
 | `game/audio/`                  | the files, one-shots as WAV and loops as OGG looped on import; `CREDITS.md`, all CC0 | —     |
 
@@ -17,6 +18,11 @@ sound; each peer plays what it sees.
 - **Muffled:** over `Sound.MuffleMs` the World bus's low-pass eases from `ClearHz` to `MuffledHz` (in
   log space) as the bus fades out to silence; the reverse back aboard. Only Suit is left: the action
   click and the alarm.
+- **Reach:** a sound placed in the world carries as its cue's `Sound.Reach` says: full volume up to
+  `Full` cells from the middle of the screen (the hero), then fading as the square of what is left of
+  the way to `Silent`, where it stops. A vent hums loud only close by (3 → 10), a fire crackles a
+  little further (3 → 12), doors and venting carry far (6 → 24). Godot's own fall-off has no
+  full-volume stretch, so `Heard2D` turns it off and sets the volume each frame; Godot still pans.
 - **Reset:** the `AudioServer` outlives `ReloadCurrentScene` (exit to title), so `SoundView._Ready`
   sets the World bus clear again.
 - **Clicks:** every `BaseButton` in the tree, found once on `_Ready` and then by `SceneTree.NodeAdded`,

@@ -28,7 +28,12 @@ public static class Cues
     public static AudioStreamPlayer Player(S.Cue cue, string bus, int voices = 1) =>
         new() { Stream = Of(cue), VolumeDb = cue.VolumeDb, Bus = bus, MaxPolyphony = voices };
 
-    /// <summary>A player of <paramref name="cue"/> heard from where it is placed, fading and panned from the screen's middle.</summary>
-    public static AudioStreamPlayer2D Player2D(S.Cue cue, string bus, int voices = 1) =>
-        new() { Stream = Of(cue), VolumeDb = cue.VolumeDb, Bus = bus, MaxPolyphony = voices, MaxDistance = S.HearPx };
+    /// <summary>A player of <paramref name="cue"/> heard from where it is placed, panned from the screen's middle and fading as its <see cref="S.Reach"/> says.</summary>
+    public static Heard2D Player2D(S.Cue cue, string bus, int voices = 1) =>
+        new Heard2D(cue.Heard ?? throw new System.ArgumentException("a cue placed in the world needs its reach", nameof(cue)), cue.VolumeDb)
+        {
+            Stream = Of(cue),
+            Bus = bus,
+            MaxPolyphony = voices,
+        };
 }
