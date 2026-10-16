@@ -162,14 +162,16 @@ public sealed class Client
     /// Joins a session mid-way over <paramref name="channel"/> (packages/net/src/join.ts): waits for the
     /// host's welcome, loads the world it carries, and calls <paramref name="joined"/> with a client that
     /// catches up on every tick released since. <paramref name="refused"/> is called instead when the
-    /// host runs another build, since every peer must run the same simulation.
+    /// host runs another build, since every peer must run the same simulation, or will not let it in. It
+    /// says who it is first, <paramref name="player"/>'s key (0032), when it has one.
     /// </summary>
     public static void Join(
         Func<string, World> load,
         IChannel<ToClient, ToHost> channel,
         string build,
         Action<Client> joined,
-        Action<Exception> refused)
+        Action<Exception> refused,
+        string player = "")
     {
         Action<ToClient>? deliver = null;
         channel.OnMessage(message =>
@@ -177,6 +179,12 @@ public sealed class Client
             if (deliver != null)
             {
                 deliver(message);
+                return;
+            }
+            if (message is RefusedMessage no)
+            {
+                deliver = _ => { };
+                refused(new InvalidOperationException(no.Reason));
                 return;
             }
             // The host welcomes before it releases any tick to a peer: anything else first is our bug.
@@ -193,6 +201,7 @@ public sealed class Client
             var rest = new Rest(channel, handler => deliver = handler);
             joined(new Client(load(welcome.Save), rest, welcome.Id, load));
         });
+        if (player != "") channel.Send(new HelloMessage(player));
     }
 
     private sealed class Rest(IChannel<ToClient, ToHost> channel, Action<Action<ToClient>> listen) : IChannel<ToClient, ToHost>

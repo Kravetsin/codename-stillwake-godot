@@ -412,4 +412,18 @@ public class CrewTests
             return true.ToProperty();
         });
     }
+
+    [Fact]
+    public void BringsAHeroThatLeftBackWithWhatItCarriedWhenItsPeerComesAboardAgain()
+    {
+        // A player keeps their seat in a world (0032): leaving takes the hero out, not its inventory.
+        var w = new Scenario(Room);
+        w.Do(EnterAt(At(4, 1), 2)).Run();
+        w.GiveItems(2, ("scrap", 5));
+        w.Do(new Leave { From = 2 }).Run();
+        Assert.Null(HeroOf(w, 2));
+        w.Do(EnterAt(At(4, 1), 2)).Run();
+        Assert.NotNull(HeroOf(w, 2));
+        Assert.Equal(5, w.M.Items.Totals(2).Single(t => t.Item == "scrap").Count);
+    }
 }

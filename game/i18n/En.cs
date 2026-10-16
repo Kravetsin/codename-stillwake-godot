@@ -192,6 +192,7 @@ public static partial class En
         ["menu.notSaved"] = "not saved: {why}",
         ["menu.saveFailed"] = "Not saved",
         ["menu.hostLeft"] = "The host left",
+        ["menu.aboard"] = "You are aboard this world already. If you just left it, try again in a few seconds.",
         ["menu.hostingCode"] = "hosting · code {code}",
         ["title.continue"] = "Continue",
         ["title.newGame"] = "New game",

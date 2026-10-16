@@ -98,12 +98,16 @@ public partial class Main : Node2D, ITogether
     private DateTime? _savedAt;
     private string? _saveProblem;
     private TitleScreen? _title;
+    /// <summary>Who plays on this machine (0032), and who is who in the world it keeps.</summary>
+    private string _playerKey = "";
+    private Roster _roster = Roster.Empty();
     /// <summary>What the title says once the scene is back to it: why a world was left. Kept across the reload.</summary>
     private static string? _next;
 
     public override void _Ready()
     {
         _args = OS.GetCmdlineUserArgs();
+        _playerKey = Profile.Key(_args);
         _cheat = Has("--cheat");
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
@@ -187,7 +191,8 @@ public partial class Main : Node2D, ITogether
         if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
-        var (host, client) = LocalSession.Create(world, Build);
+        _roster = Roster.Empty();
+        var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
         _session = new Session(host, client);
         ShowWorld();
         AimCamera(Has("--gallery") ? null : layout);
@@ -213,7 +218,8 @@ public partial class Main : Node2D, ITogether
         var world = World.Create(1, _layout, Modules());
         // The debris demo is played hosting too, so a guest sees a catch.
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
-        var (host, client) = LocalSession.Create(world, Build);
+        _roster = Roster.Empty();
+        var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
         _session = new Session(host, client);
         ShowWorld();
         AimCamera(_layout);
@@ -264,16 +270,33 @@ public partial class Main : Node2D, ITogether
         }
         var ids = _guests;
         _net = $"hosting {where} · peers 0";
+        var keys = new Dictionary<long, string>();
         link.Connected += (peer, channel) =>
         {
-            ids[peer] = host.Admit(channel);
-            _net = $"hosting {where} · peers {ids.Count}";
-            Log($"peer {ids[peer]} joined at tick {host.Tick}");
+            // Seated only once it says who it is (0032): the same seat in this world every time.
+            channel.OnMessage(message =>
+            {
+                if (message is not HelloMessage hello || ids.ContainsKey(peer)) return;
+                if (hello.Player == _playerKey || keys.ContainsValue(hello.Player))
+                {
+                    Log($"peer refused: {hello.Player} is aboard already");
+                    channel.Send(new RefusedMessage(T("menu.aboard")));
+                    return;
+                }
+                int seat = _roster.SeatOf(hello.Player);
+                SaveRoster();
+                keys[peer] = hello.Player;
+                ids[peer] = host.Admit(channel, seat);
+                _net = $"hosting {where} · peers {ids.Count}";
+                Log($"peer {seat} joined at tick {host.Tick}");
+            });
         };
         link.Disconnected += peer =>
         {
-            // Its hero leaves with it, its suit colour freed.
-            if (ids.Remove(peer, out int id)) host.Disconnect(id, client.World.Encode(new Sim.Crew.Leave()));
+            keys.Remove(peer);
+            // Its hero leaves with it, its suit colour freed; its inventory stays in its seat.
+            if (!ids.Remove(peer, out int id)) return;
+            host.Disconnect(id, client.World.Encode(new Sim.Crew.Leave()));
             Log($"peer {id} left");
             _net = $"hosting {where} · peers {ids.Count}";
         };
@@ -341,7 +364,11 @@ public partial class Main : Node2D, ITogether
                     Log(why.Message);
                     _net = why.Message.Contains("runs build") ? T("menu.otherVersion") : why.Message;
                     _together = TogetherState.Alone with { Problem = _net };
-                });
+                    _stopLink?.Invoke();
+                    _stopLink = null;
+                    _poll = () => { };
+                },
+                player: _playerKey);
         };
         link.Disconnected += _ =>
         {
@@ -438,6 +465,20 @@ public partial class Main : Node2D, ITogether
         }
     }
 
+    /// <summary>Keeps who is who in the world played, as soon as a seat is given: a crash then forgets nobody.</summary>
+    private void SaveRoster()
+    {
+        if (_worldId is not string id) return;
+        try
+        {
+            _index.WritePlayers(id, _roster.ToJson());
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Log($"the roster not kept: {e.Message}");
+        }
+    }
+
     /// <summary>Saves the world when this machine keeps it: before every way out.</summary>
     private void SaveIfOwned()
     {
@@ -495,7 +536,7 @@ public partial class Main : Node2D, ITogether
             var m = new Registry();
             var world = World.Load(Migrations.Upgrade(save), m.All);
             _m = m;
-            Enter(world, id);
+            Enter(world, id, Roster.Read(_index.ReadPlayers(id), _playerKey));
         }
         catch (Exception e) when (e is System.IO.IOException or System.Text.Json.JsonException or System.IO.InvalidDataException or KeyNotFoundException or InvalidOperationException)
         {
@@ -511,15 +552,20 @@ public partial class Main : Node2D, ITogether
         string id = _index.Create(name, DateTime.Now);
         var world = World.Create(1, Registry.Wreck, Modules());
         _index.Write(id, world.Save());
-        Enter(world, id);
+        Enter(world, id, Roster.Empty());
     }
 
     /// <summary>Plays <paramref name="world"/> as a session of this machine's own, kept as <paramref name="id"/>.</summary>
-    private void Enter(World world, string id)
+    private void Enter(World world, string id, Roster roster)
     {
-        var (host, client) = LocalSession.Create(world, Build);
+        _roster = roster;
+        int seat = roster.SeatOf(_playerKey);
+        var (host, client) = LocalSession.Create(world, Build, seat);
         _session = new Session(host, client);
+        // Saved with friends aboard, the world still holds their heroes: they come back when their players do.
+        foreach (var hero in _m.Crew.Heroes.Where(h => h.Id != seat).ToList()) host.Release(hero.Id, client.World.Encode(new Sim.Crew.Leave()));
         (_worldId, _lastSaveTick, _savedAt, _saveProblem) = (id, world.Tick, DateTime.Now, null);
+        SaveRoster();
         CloseTitle();
         ShowWorld();
         AimCamera(Registry.Wreck);

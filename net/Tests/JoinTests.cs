@@ -57,6 +57,40 @@ public class JoinTests
     }
 
     [Fact]
+    public void SaysWhoItIsFirstAndIsSeatedWhereTheHostSaysForEveryTime()
+    {
+        var (host, own) = LocalSession.Create(_game.Create(1), "b1", seat: 3);
+        var (toPeer, fromHost) = Loopback.Create<ToClient, ToHost>();
+        string? said = null;
+        // The host's game waits for the hello before it seats the peer (0032).
+        toPeer.OnMessage(m =>
+        {
+            if (m is HelloMessage hello) said = hello.Player;
+        });
+        Client? joined = null;
+        Client.Join(_game.Load, fromHost, "b1", c => joined = c, _ => { }, player: "friend");
+        Assert.Equal("friend", said);
+        host.Admit(toPeer, seat: 7);
+        Assert.Equal((3, 7), (own.Id, joined!.Id));
+        // A seat that left and comes back is the same id again, never handed to another meanwhile.
+        host.Disconnect(7);
+        var (again, _) = Loopback.Create<ToClient, ToHost>();
+        Assert.Equal(7, host.Admit(again, seat: 7));
+        var (newcomer, _) = Loopback.Create<ToClient, ToHost>();
+        Assert.Equal(8, host.Admit(newcomer));
+    }
+
+    [Fact]
+    public void IsTurnedAwayWithTheHostsReasonWhenItsPlayerIsAboardAlready()
+    {
+        var (toPeer, fromHost) = Loopback.Create<ToClient, ToHost>();
+        Exception? refused = null;
+        Client.Join(_game.Load, fromHost, "b1", _ => { }, why => refused = why, player: "friend");
+        toPeer.Send(new RefusedMessage("You are aboard already"));
+        Assert.Equal("You are aboard already", refused?.Message);
+    }
+
+    [Fact]
     public void IsRefusedByAHostRunningAnotherBuild()
     {
         var (host, _) = LocalSession.Create(_game.Create(1), "b1");

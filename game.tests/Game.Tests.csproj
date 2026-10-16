@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="../game/platform/Saves.cs" Link="Game/Platform/Saves.cs" />
     <Compile Include="../game/platform/WorldIndex.cs" Link="Game/Platform/WorldIndex.cs" />
+    <Compile Include="../game/platform/Roster.cs" Link="Game/Platform/Roster.cs" />
     <Compile Include="../game/net/RelayFrames.cs" Link="Game/Net/RelayFrames.cs" />
     <Compile Include="../game/platform/Updates.cs" Link="Game/Platform/Updates.cs" />
     <Compile Include="../game/menu/Together.cs" Link="Game/Menu/Together.cs" />
