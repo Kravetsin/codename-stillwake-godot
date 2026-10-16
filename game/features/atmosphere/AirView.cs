@@ -56,12 +56,14 @@ public partial class AirView : Node2D
     /// <summary>Particles owed to each stream, carried over between frames.</summary>
     private double[] _owed = [];
     private readonly Random _random = new();
-    private readonly AudioStreamPlayer2D _hiss = Cues.Player2D(S.Hiss, S.World);
+    private readonly AudioStreamPlayer2D _hiss = Cues.Player2D(S.Hiss, S.World), _hum = Cues.Player2D(S.VentHum, S.World);
+    /// <summary>Vents with oxygen behind them, in pixels: the ship's hum comes from them.</summary>
+    private List<Vector2> _blowing = [];
 
     public AirView(Ui ui)
     {
         _ui = ui;
-        foreach (var node in (Node2D[])[_look, _pulse, _gauges, _specks, _hiss]) AddChild(node);
+        foreach (var node in (Node2D[])[_look, _pulse, _gauges, _specks, _hiss, _hum]) AddChild(node);
         _specks.Paint = PaintMotes;
         _pulse.Paint = g => { foreach (var (box, colour) in _losing) g.DrawRect(box, colour); };
         _gauges.Paint = g =>
@@ -81,7 +83,8 @@ public partial class AirView : Node2D
         _clock += elapsedMs;
         _pulse.Modulate = new Color(1, 1, 1, (float)(0.15 + 0.3 * (0.5 + 0.5 * Math.Sin(_clock / PulseMs * 2 * Math.PI))));
         Stream(elapsedMs);
-        Hiss();
+        Nearest(_hiss, _streams.Select(s => new Vector2((float)s.X, (float)s.Y) * Cell));
+        Nearest(_hum, _blowing);
         if ((_since += elapsedMs) >= RefreshMs)
         {
             _since = 0;
@@ -138,25 +141,24 @@ public partial class AirView : Node2D
         }
     }
 
-    /// <summary>The hiss at the stream nearest the middle of the screen, while any vents; none without.</summary>
-    private void Hiss()
+    /// <summary>A loop at the source nearest the middle of the screen, while there is any; stopped without: the hiss of venting, the hum of vents.</summary>
+    private void Nearest(AudioStreamPlayer2D loop, IEnumerable<Vector2> sources)
     {
-        if (_streams.Count == 0)
-        {
-            if (_hiss.Playing) _hiss.Stop();
-            return;
-        }
         var ear = GetViewport().GetCamera2D()?.GetScreenCenterPosition() ?? Vector2.Zero;
-        var nearest = Vector2.Zero;
+        Vector2? nearest = null;
         float best = float.MaxValue;
-        foreach (var stream in _streams)
+        foreach (var at in sources)
         {
-            var at = new Vector2((float)stream.X, (float)stream.Y) * Cell;
             float apart = at.DistanceSquaredTo(ear);
             if (apart < best) (best, nearest) = (apart, at);
         }
-        _hiss.GlobalPosition = nearest;
-        if (!_hiss.Playing) _hiss.Play();
+        if (nearest is not Vector2 found)
+        {
+            if (loop.Playing) loop.Stop();
+            return;
+        }
+        loop.GlobalPosition = found;
+        if (!loop.Playing) loop.Play();
     }
 
     private void Survey(Registry m)
@@ -207,6 +209,9 @@ public partial class AirView : Node2D
         _fillingVents = m.Grid.Machines
             .Where(x => x.Kind == "vent" && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && a.Status == RoomStatus.Filling)
             .Select(x => ((x.Cell % width + 0.5) * Cell, (x.Cell / width + 0.5) * Cell)).ToList();
+        _blowing = m.Grid.Machines
+            .Where(x => x.Kind == "vent" && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && (a.Oxygen > 0 || a.Made > 0))
+            .Select(x => new Vector2((x.Cell % width + 0.5f) * Cell, (x.Cell / width + 0.5f) * Cell)).ToList();
         var pod = m.Grid.Machines.FirstOrDefault(x => x.Kind == "lifepod");
         _reach = null;
         var reach = new Vector4();

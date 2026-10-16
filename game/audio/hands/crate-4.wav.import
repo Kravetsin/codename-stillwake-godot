@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://bybk1go0urr3o"
-path="res://.godot/imported/use-1.wav-aa0f1a6de001df867cf385cb729743ee.sample"
+uid="uid://c7ni456emas12"
+path="res://.godot/imported/crate-4.wav-2102d71740cd7df7bb0911bba7e3057b.sample"
 
 [deps]
 
-source_file="res://audio/hands/use-1.wav"
-dest_files=["res://.godot/imported/use-1.wav-aa0f1a6de001df867cf385cb729743ee.sample"]
+source_file="res://audio/hands/crate-4.wav"
+dest_files=["res://.godot/imported/crate-4.wav-2102d71740cd7df7bb0911bba7e3057b.sample"]
 
 [params]
 

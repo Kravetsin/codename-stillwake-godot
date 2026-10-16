@@ -38,8 +38,8 @@ public partial class HeroView : Node2D
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
-    // What the hands touch is heard through the suit, in vacuum too.
-    private readonly AudioStreamPlayer _used = Cues.Player(S.Use, S.Suit), _catch = Cues.Player(S.Catch, S.Suit);
+    // What the hands touch is heard through the suit, in vacuum too; doors and valves sound where they stand (GridView).
+    private readonly AudioStreamPlayer _crate = Cues.Player(S.Crate, S.Suit), _catch = Cues.Player(S.Catch, S.Suit);
     private readonly Clock _clock = new(Hero.StepMs);
     /// <summary>The grid's width last frame, to find where a planned cell is.</summary>
     private int _width = 1;
@@ -83,7 +83,7 @@ public partial class HeroView : Node2D
         AddChild(_figure);
         AddChild(_outline);
         AddChild(_prompt);
-        AddChild(_used);
+        AddChild(_crate);
         AddChild(_catch);
         _tethers.Paint = PaintTethers;
     }
@@ -191,9 +191,8 @@ public partial class HeroView : Node2D
         _workedOnTick = uses.WorkedOnTick;
         if (uses.Served is int served) _served.Add(served);
         foreach (var command in uses.Commands) client.Send(command);
-        var touched = uses.Commands.FirstOrDefault(c => c is not Sim.Building.Work);
-        if (touched is Sim.Debris.Grab) _catch.Play();
-        else if (touched != null || uses.Open != null) _used.Play();
+        if (uses.Commands.Any(c => c is Sim.Debris.Grab)) _catch.Play();
+        if (uses.Open != null || uses.Commands.Any(c => c is Sim.Atmosphere.LoadCanister)) _crate.Play();
         // Held on a plan it can work, the hero turns its screwdriver at it.
         bool working = !passedOut && _mouse.Buttons.HoldsRight && aim is { InReach: true, Work.Problem: null };
         _figure.Work(working ? new Vector2(aim!.Cell % m.Grid.Width + 0.5f, aim.Cell / m.Grid.Width + 0.5f) * ShipCamera.Cell : null);

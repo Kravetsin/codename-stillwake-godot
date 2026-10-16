@@ -22,7 +22,8 @@ public static class Sound
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient and Effects into Master; World (every
     /// hero's steps, machines, air: silenced out of air) and Suit (what this hero's hands touch and its
     /// suit's alarm: heard through the suit in vacuum too) into Effects.
-    /// Settings will set Master, Effects, Ambient and UI; World and Suit are the hearing's.
+    /// Settings will set Master, Effects, Ambient and UI; World and Suit are the hearing's. Ambient waits
+    /// for the first ambience: the ship's hum comes from its vents, in the world.
     /// </summary>
     public const string Master = "Master", Ui = "UI", Ambient = "Ambient", Effects = "Effects", World = "World", Suit = "Suit";
     public static readonly IReadOnlyList<string> Buses = [Master, Ui, Ambient, Effects, World, Suit];
@@ -33,19 +34,22 @@ public static class Sound
     public static readonly Cue Screwdriver = new(Shots("building/screwdriver", 3), -16);
     public static readonly Cue Hiss = Looped("atmosphere/hiss", -8);
     public static readonly Cue Click = new(Shots("ui/click", 2), -12);
-    public static readonly Cue RoomTone = Looped("ambient/room-tone", -16);
-    public static readonly Cue Use = new(Shots("hands/use", 2), -14);
-    public static readonly Cue Catch = new(Shots("hands/catch", 3), -10);
-    public static readonly Cue Pick = new(Shots("hands/pick", 2), -14);
+    public static readonly Cue VentHum = Looped("atmosphere/vent-hum", -12);
+    public static readonly Cue DoorOpen = new(Shots("grid/door-open", 1), -8);
+    public static readonly Cue DoorClose = new(Shots("grid/door-close", 1), -8);
+    public static readonly Cue Valve = new(Shots("grid/valve", 3), -12);
+    public static readonly Cue Crate = new(Shots("hands/crate", 4), -10);
+    public static readonly Cue Catch = new(Shots("hands/catch", 5), -8);
+    public static readonly Cue Pick = new(Shots("hands/pick", 6), -12);
 
-    public static readonly IReadOnlyList<Cue> All = [Step, Land, Alarm, Screwdriver, Hiss, Click, RoomTone, Use, Catch, Pick];
+    public static readonly IReadOnlyList<Cue> All = [Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Crate, Catch, Pick];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;
 
     /// <summary>
     /// Out of air the world goes silent over <see cref="MuffleMs"/>: the World bus's low-pass falls from
-    /// <see cref="ClearHz"/> to <see cref="MuffledHz"/> as the bus and the room tone fade out.
+    /// <see cref="ClearHz"/> to <see cref="MuffledHz"/> as the bus fades out.
     /// </summary>
     public const float ClearHz = 20000, MuffledHz = 300, MuffleMs = 600;
 
