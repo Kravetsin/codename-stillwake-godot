@@ -134,6 +134,12 @@ public sealed class Ui
     public float? MenuTop { get; set; }
 
     /// <summary>
+    /// Every hero's chest as drawn this frame, in the world's pixels, this machine's own first. Set by
+    /// <c>crew</c> every frame; <c>building</c> throws a plan's sparks from its side facing the nearest.
+    /// </summary>
+    public IReadOnlyList<(float X, float Y)> Heroes { get; set; } = [];
+
+    /// <summary>
     /// The piece of debris E would grab, and whether the sim would refuse it: <c>crew</c> sets it while
     /// the pointer is on one within reach, <c>debris</c> outlines that piece.
     /// </summary>
