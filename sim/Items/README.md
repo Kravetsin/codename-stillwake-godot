@@ -21,7 +21,9 @@ mode, the world setting in which nothing is ever taken
 - An inventory is `Inventory.Slots` slots, a machine holding items its `Slots` in `Machines`, each a
   `Stack` (`Item`, `Count` from 1 to the item's `Stack` limit in `Items`) or null. Items are known by
   their id; every material is one, the salvage items, with `Yields`, are what caught debris
-  becomes, and the parts (wire, plate, gear, rotor) are crafted by `Crafting` into the lifepod's outputs. The inventory's first row is the hotbar.
+  becomes, and the parts (wire, plate, gear, rotor) are crafted by `Crafting` into the lifepod's outputs;
+  circuits are salvaged only, from cable racks (`Debris`). Containers and wreckage are items too, a
+  stack of one, never carried but in creative mode and the testbed's crate. The inventory's first row is the hotbar.
 - **Giving** puts each item onto the stacks of that item in slot order, up to their limit, then into
   the empty slots in slot order. It gives all of a cost or none of it.
 - **Taking** takes each item from the last slots first, so the hotbar is the last to empty. It takes

@@ -11,6 +11,11 @@ public static class Wreckage
     public static readonly IReadOnlyList<(string Item, int Hp)> All =
     [
         ("hullSection", 15),
+        ("cargoContainer", 11),
+        ("machineBlock", 19),
+        ("cableRack", 9),
+        ("tankCluster", 7),
+        ("shieldSlab", 31),
     ];
 
     /// <summary>The hit points of <paramref name="item"/>, or null when it is no wreckage but caught by hand.</summary>

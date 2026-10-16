@@ -17,7 +17,7 @@ namespace Stillwake.Game.Features.Debris;
 /// hands would work is outlined, green while they would and red while the sim would refuse it
 /// (<see cref="Ui.AimedPiece"/>); a piece this peer is grabbing is gone at once (0014). Every piece shows
 /// the share of its hit points lost as cracks (<see cref="Cracks"/>, 0034); each hit jolts it and throws
-/// sparks, and a wreck broken bursts apart, for every peer alike; only this player's own hits are heard (0041).
+/// sparks, and a wreck broken bursts apart, for every peer alike; only this player's own hits are heard (0042).
 /// </summary>
 public partial class DebrisView(Ui ui) : Node2D
 {
@@ -127,7 +127,7 @@ public partial class DebrisView(Ui ui) : Node2D
 
     /// <summary>
     /// A hit landed on <paramref name="piece"/>, drawn at <paramref name="at"/>: its cracks deepen, it jolts away
-    /// from the nearest hero and sparks fly that way; the chop is heard if the hit was this player's own (0041).
+    /// from the nearest hero and sparks fly that way; the chop is heard if the hit was this player's own (0042).
     /// </summary>
     private void Struck(Shown one, Piece piece, Vector2 at)
     {
@@ -147,7 +147,7 @@ public partial class DebrisView(Ui ui) : Node2D
 
     /// <summary>
     /// A wreck broken at <paramref name="at"/>: a puff of dust and sparks, and the break heard if this player's
-    /// own hit broke it (<paramref name="own"/>, 0041). The last hit removes the wreck on its tick, so its chop
+    /// own hit broke it (<paramref name="own"/>, 0042). The last hit removes the wreck on its tick, so its chop
     /// never plays: the break, with an impact of its own, is the hit.
     /// </summary>
     private void Burst(Vector2 at, bool own)

@@ -24,8 +24,8 @@ planned, a craft not known cannot be queued. Ported from `packages/sim/src/modul
   (`Blueprints.Of`); a machine built into the ship (`Fixed`: the lifepod) is no blueprint. A craft is named by the item it makes (`wire`, `Content.Crafts`). Cables are no
   blueprint and always known.
 - **The opening rule:** a blueprint or a craft is known when it is granted, or when every item of its
-  cost is analysed and it is not in `Content.Research.Locked` (the solar panel, until electronics
-  exist). In creative mode everything is known.
+  cost is analysed. Nothing is held back: the solar panel opens as the rest do, once scrap, iron and
+  a circuit, salvaged from cable racks, are analysed (0041). In creative mode everything is known.
 - A map's `Layout.Known` is what its world is granted; a map without one is granted every blueprint
   and craft. The wreck is granted `Content.Research.StartKnown`, through `Registry.Wreck`.
 - Each tick, in the simulation phase, in machine id order, an analyzer whose slot holds an item not
@@ -42,7 +42,7 @@ planned, a craft not known cannot be queued. Ported from `packages/sim/src/modul
 - **Queries** (`IResearchQueries`): `Knows(placement)` — whether its blueprint is known, every one in
   creative mode; `Knows(id)` — the same for a blueprint or a craft by its id, false for an id that is
   neither; `Analysed` — live, sorted; `Recipes()` — every blueprint, then every craft, each a
-  `Recipe(Id, Placement, Cost, Granted, Locked, Unanalysed)` with `Known` worked out by the opening
+  `Recipe(Id, Placement, Cost, Granted, Unanalysed)` with `Known` worked out by the opening
   rule (creative mode aside), `Placement` null for a craft and `Unanalysed` the items of its cost not
   analysed yet, in the cost's order; `At(id)` — what analyzer `id` holds, how far, out of how much
   work, and why it stands (`Analyzing(Item, Progress, Work, Problem)`, `Problem` `research.unpowered`

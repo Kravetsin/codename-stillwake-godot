@@ -6,7 +6,7 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Sound;
 
 /// <summary>
-/// The hearing (ADR 0033, 0041): a click for every button; floating in space, the World bus's low-pass
+/// The hearing (ADR 0033, 0042): a click for every button; floating in space, the World bus's low-pass
 /// falling as it fades out, the Suit bus dulled to a thud, the Helmet bus left clear, and a quiet bed of
 /// music fading in; the title's music while the title is up. Reads whether this player's hero floats ten
 /// times a second and eases every frame.

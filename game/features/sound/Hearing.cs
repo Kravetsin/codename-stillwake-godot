@@ -3,7 +3,7 @@ using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Sound;
 
-/// <summary>The buses' settings at a share of the way into space (ADR 0033, 0041).</summary>
+/// <summary>The buses' settings at a share of the way into space (ADR 0033, 0042).</summary>
 /// <param name="WorldHz">The World bus's low-pass cutoff.</param>
 /// <param name="WorldGain">The World bus's volume, as a linear gain: fading to silence.</param>
 /// <param name="SuitHz">The Suit bus's low-pass cutoff: what the hero touches, dulled.</param>

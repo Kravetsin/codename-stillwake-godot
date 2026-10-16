@@ -217,8 +217,8 @@ public class DebrisTests
     [Fact]
     public void DrawsEveryKindTheHeavierOnesMoreOften()
     {
-        // Short paths and no cap reached: about a hundred spawns, each a draw.
-        var kinds = Watch(new Scenario(Layout.Parse(["   #   "])), 20000).Select(p => p.Item).ToList();
+        // Short paths and no cap reached: about a thousand spawns, each a draw, the rarest some twenty times.
+        var kinds = Watch(new Scenario(Layout.Parse(["   #   "])), 200000).Select(p => p.Item).ToList();
         var share = DebrisSpec.Kinds.Select(k => (k.Weight, Count: kinds.Count(item => item == k.Item))).ToList();
         Assert.All(share, s => Assert.True(s.Count > 0));
         foreach (var heavier in share)
@@ -251,12 +251,12 @@ public class DebrisTests
                 {
                     var entry = loot.FirstOrDefault(e => e.Item == item) ?? throw new Xunit.Sdk.XunitException($"{container} gave {item}");
                     Assert.InRange(n, entry.Min, entry.Max);
-                    if (!seen.TryGetValue(item, out var counts)) seen[item] = counts = [];
+                    if (!seen.TryGetValue($"{container}.{item}", out var counts)) seen[$"{container}.{item}"] = counts = [];
                     counts.Add(n);
                 }
         // The planks a cargo crate holds come in every count of their range.
         var planks = Loot.Of("cargoCrate")![0];
-        Assert.Equal(planks.Max - planks.Min + 1, seen["planks"].Count);
+        Assert.Equal(planks.Max - planks.Min + 1, seen["cargoCrate.planks"].Count);
         Assert.Equal([("scrapChunk", 1)], DebrisModule.LootOf("scrapChunk", rng));
     }
 
@@ -463,6 +463,50 @@ public class DebrisTests
         var (a, b) = (Broken(), Broken());
         Assert.Equal(a.World.Hash(), b.World.Hash());
         Assert.Equal(a.M.Items.Floor.Select(s => (s.Item, s.Count, s.X, s.Y)), b.M.Items.Floor.Select(s => (s.Item, s.Count, s.X, s.Y)));
+    }
+
+    /// <summary>Every kind of wreckage there is, for the theories below.</summary>
+    public static TheoryData<string> WreckKinds() => [.. WreckageSpec.All.Select(w => w.Item)];
+
+    /// <summary>The first piece, made a wreck of <paramref name="kind"/>, broken by peer 0 out in space by it, in a world of <paramref name="seed"/>.</summary>
+    private static Scenario BrokenWreck(string kind, uint seed = 1)
+    {
+        var w = new Scenario(Space, seed).Run(DebrisSpec.Every);
+        Pieces(w)[0].Item = kind;
+        w.Do(new Enter(At(12, 1))).Run();
+        int hits = (WreckageSpec.HpOf(kind)!.Value + Axe.Damage - 1) / Axe.Damage;
+        Hits(w, hits - 1).Run();
+        Assert.Single(Pieces(w));
+        return Hits(w, 1).Run();
+    }
+
+    [Theory]
+    [MemberData(nameof(WreckKinds))]
+    public void BreaksEveryKindOfWreckOnItsLastHitPointIntoItsOwnLootAlikeInTwoWorlds(string kind)
+    {
+        var (a, b) = (BrokenWreck(kind), BrokenWreck(kind));
+        Assert.Empty(a.Refusals);
+        Assert.Empty(Pieces(a));
+        var loot = Loot.Of(kind)!;
+        var floor = a.M.Items.Floor;
+        Assert.All(floor, s => Assert.Contains(s.Item, loot.Select(e => e.Item)));
+        foreach (var entry in loot)
+        {
+            int n = floor.Where(s => s.Item == entry.Item).Sum(s => s.Count);
+            Assert.InRange(n, entry.OneIn == null ? entry.Min : 0, entry.Max);
+        }
+        Assert.Equal(a.World.Hash(), b.World.Hash());
+        Assert.Equal(floor.Select(s => (s.Item, s.Count, s.X, s.Y)), b.M.Items.Floor.Select(s => (s.Item, s.Count, s.X, s.Y)));
+    }
+
+    [Fact]
+    public void BreaksEveryCableRackIntoExactlyOneCircuitWhateverTheWorldDraws()
+    {
+        for (uint seed = 1; seed <= 40; seed++)
+        {
+            var floor = BrokenWreck("cableRack", seed).M.Items.Floor;
+            Assert.Equal(1, floor.Where(s => s.Item == "circuit").Sum(s => s.Count));
+        }
     }
 
     [Fact]

@@ -1,6 +1,6 @@
 # sound (client): what is heard
 
-The first sound pass (ADR 0033), and what is heard in space (0041). Presentation only: nothing in
+The first sound pass (ADR 0033), and what is heard in space (0042). Presentation only: nothing in
 `sim/` or `net/` makes or knows of a sound; each peer plays what it sees.
 
 | File                           | Holds                                                                                          | Godot |
@@ -16,7 +16,7 @@ The first sound pass (ADR 0033), and what is heard in space (0041). Presentation
 - **Owns:** the hearing. `Main` adds `SoundView` first, asking it whether this player's placed hero
   floats out in space (`HeroView.Floats`). The title, a world with no hero yet and the dev worlds
   never float.
-- **Floating (0041):** over `Sound.MuffleMs` the World bus's low-pass eases from `ClearHz` to
+- **Floating (0042):** over `Sound.MuffleMs` the World bus's low-pass eases from `ClearHz` to
   `MuffledHz` (in log space) as the bus fades out to silence; over the same time the Suit bus — what
   the hero itself touches — dulls to a thud: its low-pass (24 dB an octave) falls to `SuitMuffledHz`
   and its low shelf under `SuitLowsHz` rises to `SuitLowsGain`. Helmet, the alarm's, is never touched.
@@ -28,7 +28,7 @@ The first sound pass (ADR 0033), and what is heard in space (0041). Presentation
   full-volume stretch, so `Heard2D` turns it off and sets the volume each frame; Godot still pans.
 - **Music** on the Music bus, each a loop at a share of its volume, stopped once silent: the title's
   track (0035) faded in over `Sound.MusicFadeS` while the title is shown and out once it is gone; the
-  bed of space (`Sound.Space`, 0041) faded in over `SpaceInS` while the hero floats and out over
+  bed of space (`Sound.Space`, 0042) faded in over `SpaceInS` while the hero floats and out over
   `SpaceOutS` back aboard, where the vents' hum takes over.
 - **Reset:** the `AudioServer` outlives `ReloadCurrentScene` (exit to title), so `SoundView._Ready`
   sets the World and Suit buses clear again.
@@ -51,7 +51,7 @@ The first sound pass (ADR 0033), and what is heard in space (0041). Presentation
   - `debris/DebrisView.cs` — on Suit, where the wreck is: this player's own axe's chop (`Sound.Chop`,
     0034) as the drawing sees the wreck's damage rise, and the break where a wreck its own hit broke
     bursts. Own is told by `debris/OwnHits.cs`: a `Hit` of this peer's that has left `Client.InFlight`
-    since the last frame. Another hero's hit is silent: a wreck is only out in space (0041).
+    since the last frame. Another hero's hit is silent: a wreck is only out in space (0042).
   - `atmosphere/AirView.cs` — two looped positional players, each at its source nearest the middle
     of the screen and stopped without one: the hiss at a venting stream, and the ship's hum at a vent
     with oxygen behind it (its room's networks hold some or make some). The hum is the vents', not the
@@ -65,5 +65,5 @@ The first sound pass (ADR 0033), and what is heard in space (0041). Presentation
 - Other heroes' clicks and alarms; a sound for the swing itself; jump, swim, passing out, plans placed
   and finished, the analyzer and the pod, the inventory and the hand-drawn controls (`SlotBox`,
   hotbar): later passes.
-- The action click in space: a high click, it all but vanishes through the muffle (0041).
+- The action click in space: a high click, it all but vanishes through the muffle (0042).
 - A loop still playing as the game quits is reported by Godot as leaked at exit; harmless.

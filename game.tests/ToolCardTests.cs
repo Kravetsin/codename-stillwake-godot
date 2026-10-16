@@ -39,7 +39,7 @@ public class ToolCardTests
     {
         var card = ToolCards.Of("fireAxe", unknown: false)!;
         Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
-        Assert.Equal(["Hull section"], card.Uses);
+        Assert.Equal(["Hull section", "Cargo container", "Machine block", "Electronics rack", "Oxygen tanks", "Shield slab"], card.Uses);
         Assert.Equal(("LMB", "hold on wreckage in space"), (card.Key, card.Hint));
         Assert.Empty(card.Effects);
         Assert.Equal(Spec.Wreckage.All.Count, card.Uses.Count);

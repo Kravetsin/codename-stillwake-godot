@@ -1,4 +1,4 @@
-# 0041 — What is heard in space
+# 0042 — What is heard in space
 
 - Status: accepted
 - Supersedes: of [0033](0033-first-sound.md), "only Suit is left" while floating and the consequence

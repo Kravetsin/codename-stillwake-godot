@@ -38,7 +38,7 @@ public static class Sound
     /// player's hero itself touches: the action click, its own axe's chop, a wreck its hit breaks; heard
     /// through the body, dulled while floating) and Helmet (the suit's alarm, in the helmet's air: always
     /// clear). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
-    /// hearing's (0033, 0041). Ambient waits for the first ambience: the ship's hum comes from its vents
+    /// hearing's (0033, 0042). Ambient waits for the first ambience: the ship's hum comes from its vents
     /// and fires, in the world.
     /// </summary>
     public const string Master = "Master", Ui = "UI", Ambient = "Ambient", Effects = "Effects", World = "World", Suit = "Suit", Helmet = "Helmet", Music = "Music";
@@ -58,7 +58,7 @@ public static class Sound
     public static readonly Cue Act = new(Shots("hands/act", 1), -10);
     public static readonly Cue Fire = Looped("furnace/fire", -10, new(3, 12));
     /// <summary>
-    /// This player's own axe biting into a wreck (0034, 0041), heard where the wreck is: on the Suit bus,
+    /// This player's own axe biting into a wreck (0034, 0042), heard where the wreck is: on the Suit bus,
     /// through the glove, as a wreck is only ever out in space; another hero's hit there is silent.
     /// </summary>
     public static readonly Cue Chop = new(Shots("debris/chop", 3), -2, Pitch: 0.1f, Heard: new(5, 20));
@@ -72,7 +72,7 @@ public static class Sound
     public const double MusicFadeS = 2.5;
 
     /// <summary>
-    /// The quiet bed that fills the silence of space (0041), on the Music bus: faded in over
+    /// The quiet bed that fills the silence of space (0042), on the Music bus: faded in over
     /// <see cref="SpaceInS"/> seconds as this player's hero leaves the ship, out over <see cref="SpaceOutS"/>
     /// back aboard. A placeholder, the synthesised drone "Wreck", until the team's own track.
     /// </summary>
@@ -88,7 +88,7 @@ public static class Sound
     /// <summary>
     /// Floating in space the world goes silent over <see cref="MuffleMs"/>: the World bus's low-pass falls from
     /// <see cref="ClearHz"/> to <see cref="MuffledHz"/> as the bus fades out. What the hero touches, on the
-    /// Suit bus, dulls over the same time to a thud through glove and helmet (0041): its low-pass falls to
+    /// Suit bus, dulls over the same time to a thud through glove and helmet (0042): its low-pass falls to
     /// <see cref="SuitMuffledHz"/> and its lows below <see cref="SuitLowsHz"/> rise to <see cref="SuitLowsGain"/>
     /// (Godot's shelf gain, the lows' amplitude times its square: 1.25 is about +4 dB).
     /// </summary>

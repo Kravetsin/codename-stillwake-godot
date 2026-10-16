@@ -441,6 +441,33 @@ public class AimTests
         Assert.Empty(StruckAhead(reach + 50));
     }
 
+    /// <summary>Every kind of wreckage, two cells square to four by two: each aimed at and struck by its own picture's size.</summary>
+    public static TheoryData<string> WreckKinds() => [.. Spec.Wreckage.All.Select(k => k.Item)];
+
+    [Theory]
+    [MemberData(nameof(WreckKinds))]
+    public void AimsAtAndStrikesEveryKindOfWreckByItsOwnPictureAndNoFarther(string kind)
+    {
+        var (pw, ph) = DebrisLooks.Wrecks[kind];
+        int halfW = pw * Unit / 32 + 250, halfH = ph * Unit / 32 + 250;
+        var shoulder = ShoulderOf(HeroOn(6, 7));
+        int reach = ReachOf(HeldLook.FireAxe);
+        var far = shoulder with { X = shoulder.X + 5_000 };
+        // Its near side just inside the blade's reach ahead, and just past it.
+        var (near, hero) = Field((kind, shoulder.X + reach - 50 + halfW, shoulder.Y));
+        Assert.Equal([1], Struck(near, hero, far));
+        var (beyond, _) = Field((kind, shoulder.X + reach + 50 + halfW, shoulder.Y));
+        Assert.Empty(Struck(beyond, hero, far));
+        // Its top a cell below the shoulder, chopped downward.
+        var (below, _) = Field((kind, shoulder.X + 500, shoulder.Y + 1_000 + halfH));
+        Assert.Equal([1], Struck(below, hero, shoulder with { Y = shoulder.Y + 3_000 }));
+        // Bare-handed, the pointer on its picture's far top corner aims at it, and just off it does not.
+        var (w, _) = Field((kind, 14_500, 7_500));
+        double right = 14.5 + pw / 32.0, top = 7.5 - ph / 32.0;
+        Assert.Equal(1, Aiming.AimAt(w.M, 0, hero, (right - 0.1, top + 0.1))?.Piece);
+        Assert.Null(Aiming.AimAt(w.M, 0, hero, (right + 0.4, top - 0.4))?.Piece);
+    }
+
     [Fact]
     public void ReachesFartherGrippedLowerOnTheHaft()
     {

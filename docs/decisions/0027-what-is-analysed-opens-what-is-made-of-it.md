@@ -1,7 +1,8 @@
 # 0027 — What is analysed opens what is made of it
 
 - Status: accepted; supersedes the unlocks, the schematics and the "moment is shown" of
-  [0024](0024-blueprints-are-learned-by-analysis.md)
+  [0024](0024-blueprints-are-learned-by-analysis.md); the `Locked` list superseded by
+  [0041](0041-wreckage-of-many-kinds-and-circuits.md): the solar panel costs circuits and opens by the rule
 - Date: 2026-10-14
 - Design: `docs/plans/crafting.md` (deleted once built)
 

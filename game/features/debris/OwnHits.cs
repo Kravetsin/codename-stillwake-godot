@@ -5,7 +5,7 @@ using Stillwake.Sim.Debris;
 namespace Stillwake.Game.Features.Debris;
 
 /// <summary>
-/// The pieces this peer's own hits have just run on (0041): out in space a hit is heard by its striker
+/// The pieces this peer's own hits have just run on (0042): out in space a hit is heard by its striker
 /// alone, through the suit. A hit seen in flight at one read and gone from it at the next has run, landed
 /// or refused. Read every frame after the session's ticks and the hero's hits sent, so every own hit is
 /// seen in flight before its tick can run.

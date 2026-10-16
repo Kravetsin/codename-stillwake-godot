@@ -109,18 +109,30 @@ public class ResearchTests
     }
 
     [Fact]
-    public void KeepsALockedBlueprintClosedWithEveryItemOfItsCostAnalysed()
+    public void OpensTheSolarPanelOnceItsCircuitsAndMaterialsAreAnalysedAndBuildsItOfThem()
     {
         var (w, id) = SetUp();
-        var panel = Content.Machines.Get("solarPanel").Cost;
-        foreach (var (item, _) in panel) Analyse(w, id, item);
-        var recipe = RecipeOf(w, "solarPanel");
-        Assert.Empty(recipe.Unanalysed);
-        Assert.True(recipe.Locked);
-        Assert.False(recipe.Known);
-        Assert.False(w.M.Research.Knows(new Placement("machine", "solarPanel")));
-        w.Do(new SetCreative(true)).Run();
-        Assert.True(w.M.Research.Knows(new Placement("machine", "solarPanel")));
+        var panel = new Placement("machine", "solarPanel");
+        var cost = Content.Machines.Get("solarPanel").Cost;
+        w.GiveItems(0, ("circuit", cost.Single(c => c.Item == "circuit").Count));
+        Analyse(w, id, "scrap");
+        Analyse(w, id, "iron");
+        Assert.Equal(["circuit"], RecipeOf(w, "solarPanel").Unanalysed);
+        Assert.False(w.M.Research.Knows(panel));
+        Analyse(w, id, "circuit");
+        Assert.True(RecipeOf(w, "solarPanel").Known);
+        Assert.True(w.M.Research.Knows(panel));
+        // Paid in full from what the hero carries, the analysed circuit taken back out among it.
+        w.GiveItems(0, ("scrap", 6), ("iron", 6));
+        w.Do(new PlacePlan(4, panel)).Run();
+        Assert.Empty(w.Refusals);
+        int plan = w.M.Building.Plans.Single().Id;
+        w.Do(new Work(plan)).Run();
+        Assert.Empty(w.M.Building.Lacking(plan));
+        for (int t = 0; t < Content.Machines.Get("solarPanel").BuildTicks; t++) w.Do(new Work(plan)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal("solarPanel", w.M.Grid.MachineAt(4)?.Kind);
+        Assert.Equal(0, w.M.Items.Inventory(0).Sum(s => s?.Item == "circuit" ? s.Count : 0));
     }
 
     [Fact]
