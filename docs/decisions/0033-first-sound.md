@@ -6,8 +6,8 @@
 ## Context
 
 The game was silent: a breach, a low suit, a friend working beside you went unheard, and vacuum, the
-main danger, was only seen. A first pass needs a few cues (steps, landing, breath, the suit's alarm, the
-screwdriver, venting, button clicks, a room tone) and a shape later passes, settings and real recordings
+main danger, was only seen. A first pass needs a few cues (steps, landing, the suit's alarm, the screwdriver,
+venting, button clicks, a room tone, what the hands touch) and a shape later passes, settings and real recordings
 fit into without rework.
 
 ## Decision
@@ -16,12 +16,14 @@ fit into without rework.
   over the network. Each peer plays what it sees, hooked where the client already draws the event
   (the figure's stride and landing, the suit gauge, the plan's sparks, the venting streams).
 - **Buses by name are the settings contract** (`game/default_bus_layout.tres`, named in
-  `game/Content/Sound.cs`): UI, Ambient and Effects into Master; World (other heroes, machines, air)
-  and Suit (this hero's steps, breath and alarm) into Effects. Settings will set Master, Effects,
+  `game/Content/Sound.cs`): UI, Ambient and Effects into Master; World (every hero's steps, machines,
+  air) and Suit (what this hero's hands touch, its suit's alarm) into Effects. Settings will set Master, Effects,
   Ambient and UI; World and Suit belong to the hearing.
-- **Muffled by the listener's air.** While this player's placed hero has its body in a cell without
-  air, the World bus's low-pass falls to a few hundred hertz and the bus drops, the room tone fades and
-  the breath rises, over a third of a second; own steps stay clear on Suit, heard through the boots. A
+- **Silence in vacuum, by the listener's air.** While this player's placed hero has its body in a cell
+  without air, the World bus's low-pass falls to a few hundred hertz as the bus and the room tone fade
+  out, over 0.6 s: a silence that swallows everything, own steps too. Only the Suit bus is left —
+  what the hands touch (a door, a valve, a crate, a caught piece of debris, an item picked up) and the
+  suit's alarm, heard through the suit. A breathing loop was tried and dropped: it read as a hiss. A
   source in vacuum is not silenced on its own: only where the listener stands decides.
 - **Data, not code:** each cue's files and volume live in `Sound.cs`; one-shots are randomizers over
   their variants with a little pitch spread, loops OGG looped on import. Files are normalised before
@@ -34,7 +36,7 @@ fit into without rework.
 
 ## Consequences
 
-- The wreck starts without air round the pod: a new world opens muffled, the player's breath loud,
-  until the room fills.
-- Music, sliders, reverb, occlusion, other heroes' breath and most machines wait for later passes.
+- The wreck starts without air round the pod: a new world opens silent until the room fills.
+- A low pressing drone in vacuum may come later; the silence is the first answer.
+- Music, sliders, reverb, occlusion, other heroes' hands and most machines wait for later passes.
 - CC-BY sounds wait for a credits screen; Sonniss's packs, which forbid redistribution, stay out.

@@ -7,14 +7,14 @@ namespace Stillwake.Game.Features.Sound;
 
 /// <summary>
 /// What this player hears by, as <see cref="SoundView"/> reads it: <see cref="Aboard"/> a world,
-/// <see cref="Muffled"/> while its placed hero's body is out of air, <see cref="Out"/> while it is passed out.
+/// <see cref="Muffled"/> while its placed hero's body is out of air.
 /// </summary>
-public readonly record struct Ears(bool Aboard, bool Muffled, bool Out);
+public readonly record struct Ears(bool Aboard, bool Muffled);
 
 /// <summary>
-/// The hearing (ADR 0033): a click for every button, the room tone aboard, and out of air the world
-/// dulled — the World bus's low-pass falling, the bus quieter, the room tone fading — and the hero's own
-/// breath rising, but not while passed out. Reads the ears ten times a second and eases every frame.
+/// The hearing (ADR 0033): a click for every button, the room tone aboard, and out of air silence — the
+/// World bus's low-pass falling as it and the room tone fade out; only the Suit bus is left. Reads the
+/// ears ten times a second and eases every frame.
 /// </summary>
 public partial class SoundView : Node
 {
@@ -23,12 +23,11 @@ public partial class SoundView : Node
     private readonly Func<Ears> _ears;
     private readonly AudioStreamPlayer _click = Cues.Player(S.Click, S.Ui, voices: 2);
     private readonly AudioStreamPlayer _roomTone = Cues.Player(S.RoomTone, S.Ambient);
-    private readonly AudioStreamPlayer _breath = Cues.Player(S.Breath, S.Suit);
     private Callable _onPressed;
     private AudioEffectLowPassFilter _lowPass = null!;
     private int _world;
     private Ears _heard;
-    private double _sinceRead = ReadS, _muffle, _breathing;
+    private double _sinceRead = ReadS, _muffle;
 
     /// <param name="ears">What this player hears by, read from the session and its hero.</param>
     public SoundView(Func<Ears> ears)
@@ -38,7 +37,6 @@ public partial class SoundView : Node
         ProcessMode = ProcessModeEnum.Always;
         AddChild(_click);
         AddChild(_roomTone);
-        AddChild(_breath);
     }
 
     public override void _Ready()
@@ -61,20 +59,17 @@ public partial class SoundView : Node
             _sinceRead = 0;
             _heard = _ears();
         }
-        double step = delta * 1000 / S.MuffleMs;
-        _muffle = Toward(_muffle, _heard.Muffled ? 1 : 0, step);
-        _breathing = Toward(_breathing, _heard.Muffled && !_heard.Out ? 1 : 0, step);
+        _muffle = Toward(_muffle, _heard.Muffled ? 1 : 0, delta * 1000 / S.MuffleMs);
         Hear();
         Keep(_roomTone, _heard.Aboard ? 1 - _muffle : 0, S.RoomTone.VolumeDb);
-        Keep(_breath, _breathing, S.Breath.VolumeDb);
     }
 
-    /// <summary>The World bus as dulled as the hearing is now; eased in log space, so it dulls evenly across the octaves.</summary>
+    /// <summary>The World bus as dulled and faded as the hearing is now; the cutoff eased in log space, so it dulls evenly across the octaves.</summary>
     private void Hear()
     {
         double hz = Math.Exp(Math.Log(S.ClearHz) + (Math.Log(S.MuffledHz) - Math.Log(S.ClearHz)) * _muffle);
         _lowPass.CutoffHz = (float)hz;
-        AudioServer.SetBusVolumeDb(_world, (float)(S.MuffledDb * _muffle));
+        AudioServer.SetBusVolumeDb(_world, Mathf.LinearToDb((float)Math.Max(1 - _muffle, 1e-4)));
     }
 
     /// <summary>A loop at <paramref name="share"/> of its volume: playing while heard at all, stopped once silent.</summary>

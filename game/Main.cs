@@ -177,13 +177,13 @@ public partial class Main : Node2D, ITogether
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount}"));
     }
 
-    /// <summary>What this player hears by: aboard a session, its placed hero's body out of air (0033), passed out.</summary>
+    /// <summary>What this player hears by: aboard a session, its placed hero's body out of air (0033).</summary>
     private Ears Hearing()
     {
-        if (_session is not Session s) return default;
-        if (_hero is not { Placed: true } hero) return new Ears(Aboard: true, Muffled: false, Out: false);
+        if (_session == null) return default;
+        if (_hero is not { Placed: true } hero) return new Ears(Aboard: true, Muffled: false);
         bool aired = _m.Atmosphere.AiredAt(hero.Current.BodyCell(_m.Grid.Width));
-        return new Ears(Aboard: true, Muffled: !aired, Out: Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id).Danger == SuitDanger.Out);
+        return new Ears(Aboard: true, Muffled: !aired);
     }
 
     private bool Has(string flag) => _args.Contains(flag);

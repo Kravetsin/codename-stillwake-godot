@@ -191,14 +191,14 @@ public partial class Figure : Node2D
         Wear(colour);
     }
 
-    /// <summary>A player of <paramref name="cue"/> at the feet: on the suit for this player's hero, else placed in the world.</summary>
+    /// <summary>A player of <paramref name="cue"/> at the feet, on the World bus, silent out of air: heard the same anywhere for this player's hero, else placed in the world.</summary>
     private Action Voice(S.Cue cue, bool own)
     {
         if (own)
         {
-            var suit = Cues.Player(cue, S.Suit);
-            AddChild(suit);
-            return () => suit.Play();
+            var mine = Cues.Player(cue, S.World);
+            AddChild(mine);
+            return () => mine.Play();
         }
         var world = Cues.Player2D(cue, S.World);
         AddChild(world);
