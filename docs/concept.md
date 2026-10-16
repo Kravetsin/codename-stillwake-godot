@@ -5,7 +5,8 @@ A living document: what is decided about the game and what is still open. Techni
 
 ## Pillars
 
-- Raft in space: an always-moving ship salvages debris on its way.
+- Raft in space: an always-moving ship salvages debris on its way. Within a place it only drifts: it
+  is never steered or turned.
 - Factorio-style automation turns salvage into production that grows and upgrades the ship.
 - Side view: the ship is seen in cross-section.
 - Online co-op for 4+ players, a hero each, in host-owned worlds.
@@ -13,6 +14,18 @@ A living document: what is decided about the game and what is still open. Techni
 
 ## Decided
 
+- **The arc:** a castaway, alone in a small fragment of a wrecked ship, drifts and survives on what
+  floats by; sets up the first processes and builds floor upon floor, filling them with machines.
+  The first stage ends with an engine and a radar. The radar finds what happens within its range —
+  places and events; the engine takes the ship there. It is a jump between places, never steering
+  inside one, and every place is drifted through like the first. From then on the ship is improved
+  and production automated, to bring the technology that fends off what is out there and reaches
+  further places.
+- **Places and their dangers:** the starting space is safe — debris only, now and then a random
+  event such as a great cluster of debris or another wreck; rare meteors may come once the ship has
+  grown. Harder places bring their own dangers (see meteors below).
+- **No hand-holding:** no tutorial text and no highlighted "click here". The player learns by trying,
+  picks their own path and pace; the world hints by colour, light and motion only.
 - **Start:** the hero is left alive in a wreck, a fragment of a ship, and has to make it livable to
   survive: one small room a weak oxygen generator holds, the lifepod in it, and beside it a room torn
   half away, an analyzer surviving in it. Everything is caught as debris: a furnace built of caught salvage burns
@@ -90,11 +103,16 @@ A living document: what is decided about the game and what is still open. Techni
 ## Open
 
 - Which dangers besides meteors, how often, how they are telegraphed; a peaceful mode as in Raft?
+  Directions so far: enemies living in other wrecks, pirate raids.
+- What the engine and the radar are made of, and what the path to them asks for.
+- How resources move between machines: belts, drones, or hired crew carrying them. In side view
+  this shapes the ship's layout; carrying by hand comes first, so automation is felt as relief.
 - Co-op start: one shared wreck, or separate wrecks that dock later?
 - Art direction: style and mood; where sprites and character parts come from (drawn or rendered from
   3D).
 - Which customization is cosmetic and which comes with equipment.
 - What the hero catches and with what: hands on a tether first; a hook or harpoon from the deck; drones
   later?
-- Planets: what landing gives and how it works.
+- Planets: landing as in Starbound, for new resources and maybe growing plants; what it gives and how
+  it works.
 - Parallel activities for 4+ players on one ship.
