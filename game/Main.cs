@@ -15,6 +15,7 @@ using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Features.Research;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Menu;
 using Stillwake.Game.Net;
 using Stillwake.Game.Platform;
@@ -113,6 +114,8 @@ public partial class Main : Node2D, ITogether
         _cheat = Has("--cheat");
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
+        // Before everything else, so every button made after it clicks.
+        AddChild(new SoundView(Hearing));
 
         // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
         _hands = new Hands();
@@ -172,6 +175,15 @@ public partial class Main : Node2D, ITogether
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount}"));
+    }
+
+    /// <summary>What this player hears by: aboard a session, its placed hero's body out of air (0033), passed out.</summary>
+    private Ears Hearing()
+    {
+        if (_session is not Session s) return default;
+        if (_hero is not { Placed: true } hero) return new Ears(Aboard: true, Muffled: false, Out: false);
+        bool aired = _m.Atmosphere.AiredAt(hero.Current.BodyCell(_m.Grid.Width));
+        return new Ears(Aboard: true, Muffled: !aired, Out: Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id).Danger == SuitDanger.Out);
     }
 
     private bool Has(string flag) => _args.Contains(flag);

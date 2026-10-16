@@ -31,7 +31,7 @@ public partial class HeroView : Node2D
 
     private readonly Ui _ui;
     private readonly WorldButtons _mouse;
-    private readonly Figure _figure = new(Suits.All[0]) { ZIndex = Layers.Hero };
+    private readonly Figure _figure = new(Suits.All[0], own: true) { ZIndex = Layers.Hero };
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
     private readonly Outline _outline = new(Layers.Aim);
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
@@ -85,6 +85,9 @@ public partial class HeroView : Node2D
 
     /// <summary>The hero after its latest step: what the sim learns of where it is.</summary>
     public Hero Current => _current;
+
+    /// <summary>Whether the hero stands in the world yet: until its first frame in a session, <see cref="Current"/> is nowhere.</summary>
+    public bool Placed => _placed;
 
     /// <summary>Whether this machine's hero holds the plan in its hands, drawn and sent to the others: the hand not free (0022).</summary>
     public bool HoldsPlan => _ui.Hand.Get() != Holding.Free;
@@ -219,7 +222,7 @@ public partial class HeroView : Node2D
         {
             if (!_shownOthers.TryGetValue(id, out var shown))
             {
-                shown = (new Figure(Suits.Of(crew, id)), null);
+                shown = (new Figure(Suits.Of(crew, id), own: false), null);
                 _others.AddChild(shown.Figure);
             }
             var hero = seen.Hero;

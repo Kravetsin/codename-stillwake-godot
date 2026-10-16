@@ -9,6 +9,7 @@ using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Rooms;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Atmosphere;
 
@@ -19,7 +20,7 @@ namespace Stillwake.Game.Features.Atmosphere;
 /// With O, the air overlay (<see cref="AirLook"/>): air dithered in the rooms, coming and going softly
 /// (<see cref="AirField"/>), red and running out while a room vents, grey dots where a room holds none,
 /// a ragged aura of the lifepod's air round it with motes in it; beside the pointer, what the sim says
-/// of that room's air (<see cref="Explain"/>).
+/// of that room's air (<see cref="Explain"/>). The nearest stream hisses: one, however many vent.
 /// </summary>
 public partial class AirView : Node2D
 {
@@ -55,11 +56,12 @@ public partial class AirView : Node2D
     /// <summary>Particles owed to each stream, carried over between frames.</summary>
     private double[] _owed = [];
     private readonly Random _random = new();
+    private readonly AudioStreamPlayer2D _hiss = Cues.Player2D(S.Hiss, S.World);
 
     public AirView(Ui ui)
     {
         _ui = ui;
-        foreach (var node in (Node2D[])[_look, _pulse, _gauges, _specks]) AddChild(node);
+        foreach (var node in (Node2D[])[_look, _pulse, _gauges, _specks, _hiss]) AddChild(node);
         _specks.Paint = PaintMotes;
         _pulse.Paint = g => { foreach (var (box, colour) in _losing) g.DrawRect(box, colour); };
         _gauges.Paint = g =>
@@ -79,6 +81,7 @@ public partial class AirView : Node2D
         _clock += elapsedMs;
         _pulse.Modulate = new Color(1, 1, 1, (float)(0.15 + 0.3 * (0.5 + 0.5 * Math.Sin(_clock / PulseMs * 2 * Math.PI))));
         Stream(elapsedMs);
+        Hiss();
         if ((_since += elapsedMs) >= RefreshMs)
         {
             _since = 0;
@@ -133,6 +136,27 @@ public partial class AirView : Node2D
             double x = (stream.X + _random.NextDouble() - 0.5) * Cell, y = (stream.Y + _random.NextDouble() - 0.5) * Cell;
             Particles.Shared.Emit(Effect.Air, x, y, count, stream.Heading ?? _random.NextDouble() * 2 * Math.PI, inSpace: true);
         }
+    }
+
+    /// <summary>The hiss at the stream nearest the middle of the screen, while any vents; none without.</summary>
+    private void Hiss()
+    {
+        if (_streams.Count == 0)
+        {
+            if (_hiss.Playing) _hiss.Stop();
+            return;
+        }
+        var ear = GetViewport().GetCamera2D()?.GetScreenCenterPosition() ?? Vector2.Zero;
+        var nearest = Vector2.Zero;
+        float best = float.MaxValue;
+        foreach (var stream in _streams)
+        {
+            var at = new Vector2((float)stream.X, (float)stream.Y) * Cell;
+            float apart = at.DistanceSquaredTo(ear);
+            if (apart < best) (best, nearest) = (apart, at);
+        }
+        _hiss.GlobalPosition = nearest;
+        if (!_hiss.Playing) _hiss.Play();
     }
 
     private void Survey(Registry m)

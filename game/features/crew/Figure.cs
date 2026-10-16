@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -10,7 +12,8 @@ namespace Stillwake.Game.Features.Crew;
 /// and two legs that bend at shoulders and elbows, hips and knees, each part a picture from
 /// <c>art/hero_*.png</c> recoloured into its suit (<see cref="Wear"/>), lit where it stands as everything
 /// in the ship is, the rig moving and turning the parts smoothly. <see cref="Show"/> places it at the
-/// hero's feet and poses it, dust kicked up from its boots stepping and landing.
+/// hero's feet and poses it, its boots heard stepping and landing and kicking up dust: this player's own
+/// hero on the suit, heard through the boots even out of air, any other from where it is in the world.
 /// </summary>
 public partial class Figure : Node2D
 {
@@ -125,9 +128,13 @@ public partial class Figure : Node2D
     private int? _step;
     /// <summary>How fast the hero last fell, thousandths of a cell a step: how hard it lands.</summary>
     private int _fall;
+    private readonly Action _stepped, _landed;
 
-    public Figure(int colour)
+    /// <param name="own">Whether it is this player's hero, heard on the suit rather than in the world.</param>
+    public Figure(int colour, bool own)
     {
+        _stepped = Voice(S.Step, own);
+        _landed = Voice(S.Land, own);
         _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
         _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
         _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
@@ -182,6 +189,20 @@ public partial class Figure : Node2D
         foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, frontArm }) parts.AddChild(n);
         AddChild(_body);
         Wear(colour);
+    }
+
+    /// <summary>A player of <paramref name="cue"/> at the feet: on the suit for this player's hero, else placed in the world.</summary>
+    private Action Voice(S.Cue cue, bool own)
+    {
+        if (own)
+        {
+            var suit = Cues.Player(cue, S.Suit);
+            AddChild(suit);
+            return () => suit.Play();
+        }
+        var world = Cues.Player2D(cue, S.World);
+        AddChild(world);
+        return () => world.Play();
     }
 
     /// <summary>Has the hero aim its planner at <paramref name="cells"/>, in pixels of the world, and beam them in.</summary>
@@ -277,7 +298,8 @@ public partial class Figure : Node2D
         // Walking backwards, away from where it faces, the stride runs backwards too.
         if (_last is var (lx, ly)) _travelled += ((double)(hero.X - lx) * hero.Facing + Math.Abs(hero.Y - ly)) / Hero.Unit;
         _last = (hero.X, hero.Y);
-        if (pose != _wasPose) _strideFrom = _travelled;
+        // A new pose starts its stride afresh, its first foot down a quarter stride in.
+        if (pose != _wasPose) (_strideFrom, _step) = (_travelled, null);
         if (pose is Pose.Lie or Pose.Tumble && pose != _wasPose) (_outMs, _slump, _outTilt) = (0, Random.Shared.Next(), _shown?.Tilt ?? 0);
         _outMs += elapsedMs;
         // Where the feet are, in pixels of the world.
@@ -286,16 +308,20 @@ public partial class Figure : Node2D
         if (_wasPose == Pose.Air && pose is Pose.Stand or Pose.Walk or Pose.Run)
         {
             _landingMs = Poses.Land.Ms;
+            _landed();
             int puff = Math.Min(DustLandMost, Math.Max(DustLandLeast, (int)Math.Round(_fall * DustLandPerSpeed, MidpointRounding.AwayFromZero)));
             Particles.Shared.Emit(Effect.Dust, feetX, feetY, puff, -0.35);
             Particles.Shared.Emit(Effect.Dust, feetX, feetY, puff, Math.PI + 0.35);
         }
-        // A foot comes down at the end of each half stride, a quarter stride in.
-        // Only running kicks up dust; a walk is quiet.
-        double? stride = pose == Pose.Run ? Poses.Stride.Run : null;
+        // A foot comes down at the end of each half stride, a quarter stride in: heard walking and running,
+        // kicking up dust only running.
+        double? stride = pose switch { Pose.Run => Poses.Stride.Run, Pose.Walk => Poses.Stride.Walk, _ => null };
         int? stepping = stride is double st ? (int)Math.Floor((_travelled - _strideFrom - st / 4) / (st / 2)) : null;
         if (stepping != null && _step != null && stepping != _step)
-            Particles.Shared.Emit(Effect.Dust, feetX + hero.Facing * Rig.W * 0.3, feetY, DustRun);
+        {
+            _stepped();
+            if (pose == Pose.Run) Particles.Shared.Emit(Effect.Dust, feetX + hero.Facing * Rig.W * 0.3, feetY, DustRun);
+        }
         _step = stepping;
         _landingMs = Math.Max(0, _landingMs - elapsedMs);
         _wasPose = pose;
