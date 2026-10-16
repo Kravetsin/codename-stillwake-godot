@@ -10,9 +10,8 @@ namespace Stillwake.Game;
 public sealed record HeldLook(string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo)
 {
     /// <summary>
-    /// The fire axe, <c>art/hero_axe.png</c>: gripped a third up its haft, two pixels of it showing below
-    /// the fist; held square to the forearm, as a hammer is, the blade facing along it; the bright
-    /// steel's outer line the edge.
+    /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
+    /// the forearm, as a hammer is, the blade facing along it; the bright steel's outer line the edge.
     /// </summary>
-    public static readonly HeldLook FireAxe = new("res://art/hero_axe.png", (5.5, 7), System.Math.PI / 2, (13, 13), (22, 13));
+    public static readonly HeldLook FireAxe = new("res://art/hero_axe.png", (7.5, 7), System.Math.PI / 2, (18, 13), (27, 13));
 }

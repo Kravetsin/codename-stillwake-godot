@@ -18,7 +18,7 @@ second melee item would have needed a second guess.
 These are the rules for every item swung in the front hand; the fire axe is the first.
 
 - **Gripped on the handle, not at its end.** The held picture has a grip point where the fist closes:
-  for the axe a third up the haft, two pixels of it showing below the fist (`HeldLook.Grip`).
+  for the axe the dark wrap a third up the haft, which the fist covers (`HeldLook.Grip`).
 - **Held at an angle to the forearm.** The handle leaves the fist turned back from the forearm by one
   angle per item (`HeldLook.Hold`): square, a quarter turn, for an axe, a hammer or a crowbar, held as a
   hammer is, the head standing up from the fist and its blade facing along the forearm, ahead. Hanging,
@@ -49,14 +49,16 @@ These are the rules for every item swung in the front hand; the fire axe is the 
 
 ## Consequences
 
-- The axe reaches 1.49 cells from the shoulder straight ahead (about 1488 thousandths), down from 2:
+- The axe reaches 1.62 cells from the shoulder straight ahead (about 1624 thousandths), down from 2:
   the straight arm's 0.70 to the fist, the haft square to it, the blade's toe; the edge's near end is
-  1.17 out. (Bent by reaching for a point, the arm gave 1.18 and 0.95.)
-  Chopping means floating close to the wreck, nearly touching it.
-- The arm in a swing points about 35° below the line to its point while the blade crosses it (52°
-  with the bent arm): the blade, not the fist, is aimed.
+  1.26 out. (The first, shorter picture gave 1.49 and 1.17; bent by reaching for a point, its arm gave
+  1.18 and 0.95.) Chopping means floating close to the wreck, nearly touching it.
+- The arm in a swing points about 41° below the line to its point while the blade crosses it (35° with
+  the first picture, 52° with the bent arm): the blade, not the fist, is aimed.
+- Redrawn with a longer haft and a wrap where the fist closes, the axe changed only `HeldLook.FireAxe`
+  (grip (7.5, 7), edge (18, 13) to (27, 13)): the reach and the lead followed the picture.
 - Held square, the blade's edge runs along the haft and so mostly along its own path: the band it
-  sweeps is narrow, an arc from 1.17 to 1.49 cells from the shoulder. Nothing nearer is touched; a wreck
+  sweeps is narrow, an arc from 1.26 to 1.62 cells from the shoulder. Nothing nearer is touched; a wreck
   is three cells long, so a hero that near is inside its aim box, which the band crosses.
 - The lean and a wreck's rocking are still ignored (0039): the contact is the upright body against the
   still picture.

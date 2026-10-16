@@ -436,7 +436,7 @@ public class AimTests
         // The edge's tip reaches about an arm and the axe, held square to it (0040); a wreck just short of
         // it is struck, one just past it is not.
         int reach = ReachOf(HeldLook.FireAxe);
-        Assert.InRange(reach, 1_000, 1_500);
+        Assert.InRange(reach, 1_500, 1_750);
         Assert.Equal([1], StruckAhead(reach - 50));
         Assert.Empty(StruckAhead(reach + 50));
     }

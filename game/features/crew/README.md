@@ -145,7 +145,7 @@ TypeScript original.
   the arm straight, the fist at its end, the grip, the hold, `HeldLook.FireAxe`), from its middle
   crossing the line to `AxeSwing.Through` past it, from the shoulder of the body upright, sampled every
   2° as segments against each wreck's aim box (`Aiming.Struck`); never the raised stretch over the head.
-  It reaches 1.49 cells ahead of the shoulder.
+  It reaches 1.62 cells ahead of the shoulder.
   Aboard it plays and touches nothing; at air it touches nothing. Once begun it plays through and
   strikes, let go or not; presses during it do nothing; held as it ends, the next begins at once,
   toward the pointer then, so clicking is no faster than holding. Putting the axe away, the hand taken,
