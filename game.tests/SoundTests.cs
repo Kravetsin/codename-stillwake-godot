@@ -17,6 +17,9 @@ public class SoundTests
 
     private static string Audio => Path.Combine(GameFolder(), "audio");
 
+    /// <summary>The team's own music made on Suno's free plan (0035): fine for playtests, replaced before any sale.</summary>
+    private const string Placeholder = "Suno Basic, non-commercial: replace before sale";
+
     /// <summary>Each file named in CREDITS.md's table, by its path under <c>game/audio</c>, with its licence.</summary>
     private static Dictionary<string, string> Credited() =>
         File.ReadAllLines(Path.Combine(Audio, "CREDITS.md"))
@@ -26,7 +29,7 @@ public class SoundTests
             .ToDictionary(cells => cells[0].Trim('`'), cells => cells[3]);
 
     [Fact]
-    public void EveryFileUnderAudioIsCreditedAsCc0()
+    public void EveryFileUnderAudioIsCreditedAsCc0OrAMarkedPlaceholder()
     {
         var credited = Credited();
         var files = Directory.EnumerateFiles(Audio, "*", SearchOption.AllDirectories)
@@ -37,7 +40,7 @@ public class SoundTests
         foreach (string file in files)
         {
             Assert.True(credited.TryGetValue(file, out string? licence), $"{file} has no line in CREDITS.md");
-            Assert.True(licence == "CC0", $"{file} is {licence}, not CC0");
+            Assert.True(licence is "CC0" or Placeholder, $"{file} is {licence}, neither CC0 nor a marked placeholder");
         }
     }
 
