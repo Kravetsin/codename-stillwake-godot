@@ -205,22 +205,22 @@ public class BuildingDeliveryTests
         Assert.Equal(1, Lying(w, "plate"));
     }
 
-    /// <summary>The conservation property's counterexample: what lies in space leaves the grid, as Items' floor rules say.</summary>
+    /// <summary>The conservation property's old counterexample: what was delivered into the hull comes out into the room, not into space.</summary>
     [Fact]
-    public void BlueprintsCancelledInTheHullLetWhatWasDeliveredRiseOutOfItIntoSpaceAndDriftAway()
+    public void BlueprintsCancelledInTheHullPushWhatWasDeliveredOutIntoTheRoomBesideIt()
     {
         var w = Stocked(Open).Do(new Deconstruct(At(0, 0), "structure")).Run();
         Hold(w, 1, Costs.ApartTicks(Scrap.BuildTicks));
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(At(0, 0)));
         PlacePlan(w, At(0, 3), new Placement("conduit", "pipe"));
         Press(w, 2);
-        w.Do(new CancelPlan(2)).Run(3);
-        // Up the hull's left column, out at its open corner, which is space.
-        Assert.Equal(At(0, 0), Assert.Single(w.M.Items.Floor).Cell);
-        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(At(0, 0)));
-        // Drifting back a cell's width at most takes it past the grid's left edge, gone.
+        w.Do(new CancelPlan(2)).Run();
+        // Out of the hull's corner into the room's nearest cell, not up the hull to its open corner.
+        Assert.Equal(At(1, 2), Assert.Single(w.M.Items.Floor).Cell);
         w.Run(1000 / Content.Floor.SpaceDrift);
-        Assert.Empty(w.M.Items.Floor);
-        Assert.Equal(StockScrap + ScrapUnits - CostIn(Builds.Get("pipe").Cost, "scrap"), Count(w, "scrap"));
+        var lying = Assert.Single(w.M.Items.Floor);
+        Assert.Equal(("scrap", CostIn(Builds.Get("pipe").Cost, "scrap"), At(1, 2)), (lying.Item, lying.Count, lying.Cell));
+        Assert.Equal(StockScrap + ScrapUnits, Count(w, "scrap") + Lying(w, "scrap"));
     }
 
     [Fact]
