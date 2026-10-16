@@ -6,7 +6,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Menu;
 
 /// <summary>
-/// The menu's Play together page (the approved mockup, coop-flow): Host and Join side by side; hosting,
+/// The title's Play together panel (the approved mockup, coop-flow, 0031): Host and Join side by side; hosting,
 /// the session's code large with Copy, the suits aboard and Stop hosting; joining, one field for a
 /// friend's code. The playtest server's password is asked once, on its own, the first time it is
 /// needed or after the server did not take it, and kept on this machine.
@@ -43,7 +43,6 @@ public partial class TogetherPage : VBoxContainer
         pair.AddChild(Big("menu.hostTitle", "menu.hostWhat", () => WithPassword(_together.HostTogether)));
         pair.AddChild(Big("menu.joinTitle", "menu.joinWhat", () => Show(View.Join)));
         _choose.AddChild(pair);
-        _choose.AddChild(Line(T("menu.hostStays"), Style.Slate400, 11));
         _choose.AddChild(_chooseStatus = Line("", Style.Red300, 12));
         AddChild(_choose);
 
@@ -74,7 +73,6 @@ public partial class TogetherPage : VBoxContainer
         _codeField.TextSubmitted += _ => JoinTyped();
         _joining.AddChild(Style.Button(T("menu.joinTitle"), JoinTyped, size: 14, padX: 16, padY: 6));
         _joining.AddChild(_joinStatus = Line("", Style.Sky200, 12));
-        _joining.AddChild(Line(T("menu.joinWarn"), Style.Slate400, 11));
         AddChild(_joining);
 
         _asking = Style.Gap(new VBoxContainer(), 6);

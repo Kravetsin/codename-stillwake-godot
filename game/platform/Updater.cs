@@ -55,6 +55,9 @@ public partial class Updater : Node
         _http.Request(release.Zip, ["User-Agent: Stillwake"]);
     }
 
+    /// <summary>Run before the game quits to restart into the update: the world saved first.</summary>
+    public Action? BeforeRestart { get; set; }
+
     private void Downloaded(long result, long code, string[] headers, byte[] body)
     {
         _http.RequestCompleted -= Downloaded;
@@ -72,6 +75,7 @@ public partial class Updater : Node
             string script = Path.Combine(folder, "update.cmd");
             File.WriteAllText(script, Updates.Script(OS.GetProcessId(), files, Path.GetDirectoryName(exe)!, exe));
             OS.CreateProcess("cmd.exe", ["/c", script]);
+            BeforeRestart?.Invoke();
             GetTree().Quit();
         }
         catch (Exception e)

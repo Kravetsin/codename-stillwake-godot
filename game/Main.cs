@@ -28,7 +28,9 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game;
 
 /// <summary>
-/// The game: a session (net/README.md) of its own, or with <c>-- --host</c> one others join over ENet
+/// The game: started with no arguments, the title (0031: Continue, Worlds, Play together, Quit), each
+/// world a folder of <see cref="WorldIndex"/>, saved every five minutes and on every way out; with any, a
+/// session (net/README.md) of its own straight away, or with <c>-- --host</c> one others join over ENet
 /// with <c>-- --join[=address]</c>, or through the playtest server's relay with <c>--relay</c>, hosting as
 /// <c>--host=name</c> and joining by <c>--join=name</c> (<see cref="Relay"/>); the world it plays drawn by the client's features after every
 /// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves, loads tanks, opens
@@ -86,6 +88,18 @@ public partial class Main : Node2D, ITogether
     private FrameLog? _frameLog;
     /// <summary>Where this machine stands on the network, for the dev panel; none alone.</summary>
     private string? _net;
+    /// <summary>A world is saved this often, in ticks: five minutes of it.</summary>
+    private const int AutosaveTicks = 5 * 60 * World.TicksPerSecond;
+    /// <summary>The player's worlds on disk.</summary>
+    private readonly WorldIndex _index = new(ProjectSettings.GlobalizePath("user://saves/worlds"), Migrations.Oldest, World.SaveFormat, World.TicksPerSecond);
+    /// <summary>The world played and kept by this machine; none for a dev world or a friend's.</summary>
+    private string? _worldId;
+    private int _lastSaveTick;
+    private DateTime? _savedAt;
+    private string? _saveProblem;
+    private TitleScreen? _title;
+    /// <summary>What the title says once the scene is back to it: why a world was left. Kept across the reload.</summary>
+    private static string? _next;
 
     public override void _Ready()
     {
@@ -124,7 +138,11 @@ public partial class Main : Node2D, ITogether
         }
         var join = _args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
         var hostAs = _args.FirstOrDefault(a => a == "--host" || a.StartsWith("--host="));
-        if (hostAs != null) Host(hostAs.Length > 7 ? hostAs[7..] : null);
+        // Every way out saves first: the window's close as well.
+        GetTree().AutoAcceptQuit = false;
+        _updater.BeforeRestart = SaveIfOwned;
+        if (_args.Length == 0) ShowTitle();
+        else if (hostAs != null) Host(hostAs.Length > 7 ? hostAs[7..] : null);
         else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args), Relay());
         else Alone();
         AddChild(new DevPanel(() => _session, () => _m, () => _net));
@@ -136,8 +154,7 @@ public partial class Main : Node2D, ITogether
                 _items?.Panel.Close();
                 _hands.Plan.PutPlanAway();
             },
-            suits, SaveWorld, LoadWorld, canLoad: () => _role == "alone", Quit,
-            together: this,
+            suits, SaveWorld, inWorld: () => _session != null, owns: () => _role != "guest", exitToTitle: () => ExitToTitle(null), Quit, Foot,
             version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
             updating: () => _updater.Status);
         AddChild(menu);
@@ -306,9 +323,11 @@ public partial class Main : Node2D, ITogether
         {
             Log($"connected to {address}{(network != null ? $" over {network}" : "")}");
             _net = $"joined {address}";
+            _stopLink = link.Close;
             Client.Join(Load, network?.Over(channel, new GodotTiming(GetTree())) ?? channel, Build,
                 client =>
                 {
+                    CloseTitle();
                     _role = "guest";
                     _together = _together with { Mode = TogetherMode.Joined };
                     _session = new Session(null, client);
@@ -322,13 +341,12 @@ public partial class Main : Node2D, ITogether
                     Log(why.Message);
                     _net = why.Message.Contains("runs build") ? T("menu.otherVersion") : why.Message;
                     _together = TogetherState.Alone with { Problem = _net };
-                    if (_session == null) GetTree().Quit(1);
                 });
         };
         link.Disconnected += _ =>
         {
             Log("the host left");
-            Quit();
+            if (_session != null) ExitToTitle(T("menu.hostLeft"));
         };
         _poll = link.Poll;
     }
@@ -346,6 +364,13 @@ public partial class Main : Node2D, ITogether
 
     public void HostTogether(string password)
     {
+        // From the title: the world picked in Worlds, else Continue's, else a new one.
+        if (_session == null)
+        {
+            if ((_title?.Worlds.Picked ?? _index.Continue()?.Id) is string id) Play(id);
+            else NewWorld("");
+            if (_session == null) return;
+        }
         if (_role != "alone" || _together.Mode != TogetherMode.Alone) return;
         Serve(Codes.New(Random.Shared).ToLowerInvariant(), (Relay()?.Url ?? RelayFrames.PlaytestUrl, password));
     }
@@ -388,27 +413,130 @@ public partial class Main : Node2D, ITogether
     private readonly Saves _saves = new(ProjectSettings.GlobalizePath("user://saves"));
     private static readonly System.Text.Json.JsonSerializerOptions Indented = new() { WriteIndented = true };
 
-    /// <summary>The menu's save: the world as this machine has it, to the world slot; how it went as an i18n key.</summary>
+    /// <summary>The menu's save: the world as this machine has it, to its folder; how it went as an i18n key.</summary>
     private string SaveWorld()
     {
-        if (_session is not Session s) return "menu.nothingToSave";
-        _saves.Write(Saves.World, s.Client.World.Save());
-        return "menu.saved";
+        if (_session == null || _worldId == null || _role == "guest") return "menu.nothingToSave";
+        return SaveNow() ? "menu.saved" : "menu.saveFailed";
     }
 
-    /// <summary>The menu's load: the world slot's world, as a session of this machine's own at the same speed.</summary>
-    private string LoadWorld()
+    /// <summary>Writes the world played to its folder, the save before kept; false, and why kept for the menu's foot, when it could not.</summary>
+    private bool SaveNow()
     {
-        if (_role != "alone") return "menu.aloneOnly";
-        if (_saves.Read(Saves.World) is not string save) return "menu.nothingSaved";
-        // The registry is swapped only once the save has loaded: a broken one leaves the world as it was.
-        var m = new Registry();
-        var world = World.Load(save, m.All);
-        _m = m;
+        if (_session is not Session s || _worldId is not string id) return false;
+        try
+        {
+            _index.Write(id, s.Client.World.Save());
+            (_lastSaveTick, _savedAt, _saveProblem) = (s.Client.World.Tick, DateTime.Now, null);
+            return true;
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Log($"not saved: {e.Message}");
+            (_lastSaveTick, _saveProblem) = (s.Client.World.Tick, e.Message);
+            return false;
+        }
+    }
+
+    /// <summary>Saves the world when this machine keeps it: before every way out.</summary>
+    private void SaveIfOwned()
+    {
+        if (_role != "guest") SaveNow();
+    }
+
+    /// <summary>The menu's foot: the world, when it was saved, and the code while hosting.</summary>
+    private string Foot()
+    {
+        var parts = new List<string>();
+        if (_worldId != null) parts.Add(_index.NameOf(_worldId));
+        if (_saveProblem != null) parts.Add(T("menu.notSaved", ("why", _saveProblem)));
+        else if (_savedAt is DateTime at)
+        {
+            int minutes = (int)(DateTime.Now - at).TotalMinutes;
+            parts.Add(minutes < 1 ? T("menu.savedNow") : T("menu.savedAgo", ("minutes", minutes)));
+        }
+        if (_together.Mode == TogetherMode.Hosting) parts.Add(T("menu.hostingCode", ("code", _together.Code ?? "")));
+        else if (_together.Problem != null && _role != "guest") parts.Add(_together.Problem);
+        return string.Join(" · ", parts);
+    }
+
+    /// <summary>The title, loading nothing: what it says first, if the scene came back to it with a reason.</summary>
+    private void ShowTitle()
+    {
+        var worlds = new WorldsPanel(_index.List, Play, id => _index.Delete(id), NewWorld,
+            busy: () => _together.Mode is TogetherMode.Joining or TogetherMode.Opening);
+        AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, Quit,
+            Updates.Of(Build).ToString(), () => _updater.Available?.Tag, _updater.Update, () => _updater.Status));
+        if (_next is { } said) _title.Say(said);
+        _next = null;
+    }
+
+    private void CloseTitle()
+    {
+        _title?.QueueFree();
+        _title = null;
+    }
+
+    /// <summary>Continue: the last world played, or a new one on a first run.</summary>
+    private void Continue()
+    {
+        if (_together.Mode is TogetherMode.Joining or TogetherMode.Opening) return;
+        if (_index.Continue() is { } world) Play(world.Id);
+        else NewWorld("");
+    }
+
+    /// <summary>Plays world <paramref name="id"/>, its save brought up to this build's format; a failure stays on the title, saying why.</summary>
+    private void Play(string id)
+    {
+        try
+        {
+            string save = _index.Read(id) ?? throw new System.IO.FileNotFoundException(T("worlds.noSave"));
+            // The registry is swapped only once the save has loaded: a broken one leaves nothing half made.
+            var m = new Registry();
+            var world = World.Load(Migrations.Upgrade(save), m.All);
+            _m = m;
+            Enter(world, id);
+        }
+        catch (Exception e) when (e is System.IO.IOException or System.Text.Json.JsonException or System.IO.InvalidDataException or KeyNotFoundException or InvalidOperationException)
+        {
+            Log($"world {id} not loaded: {e.Message}");
+            _title?.Worlds.Say(T("worlds.failed", ("why", e.Message)));
+            _title?.Say(T("worlds.failed", ("why", e.Message)));
+        }
+    }
+
+    /// <summary>A new world in the wreck, named <paramref name="name"/>, saved at once and played.</summary>
+    private void NewWorld(string name)
+    {
+        string id = _index.Create(name, DateTime.Now);
+        var world = World.Create(1, Registry.Wreck, Modules());
+        _index.Write(id, world.Save());
+        Enter(world, id);
+    }
+
+    /// <summary>Plays <paramref name="world"/> as a session of this machine's own, kept as <paramref name="id"/>.</summary>
+    private void Enter(World world, string id)
+    {
         var (host, client) = LocalSession.Create(world, Build);
-        _session = new Session(host, client) { Speed = _session?.Speed ?? 1 };
+        _session = new Session(host, client);
+        (_worldId, _lastSaveTick, _savedAt, _saveProblem) = (id, world.Tick, DateTime.Now, null);
+        CloseTitle();
         ShowWorld();
-        return "menu.loaded";
+        AimCamera(Registry.Wreck);
+    }
+
+    /// <summary>
+    /// Leaves the world for the title: saved if this machine keeps it, the link closed, what is drawn of it
+    /// let go, and the scene loaded afresh, every view with it; <paramref name="why"/> said on the title.
+    /// </summary>
+    private void ExitToTitle(string? why)
+    {
+        SaveIfOwned();
+        _stopLink?.Invoke();
+        _stopLink = null;
+        Particles.Shared.Clear();
+        _next = why;
+        GetTree().ReloadCurrentScene();
     }
 
     /// <summary>The views drawing the current registry's world, made again when a load brings a new one.</summary>
@@ -480,6 +608,7 @@ public partial class Main : Node2D, ITogether
             _saves.Write(Saves.Desync, System.Text.Json.JsonSerializer.Serialize(report, Indented));
         }
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
+        if (_worldId != null && _role != "guest" && client.World.Tick - _lastSaveTick >= AutosaveTicks) SaveNow();
         var heard = client.TakeHeroes();
         _heroes += heard.Count;
         if (Has("--auto")) Auto(client, before);
@@ -578,8 +707,14 @@ public partial class Main : Node2D, ITogether
         if (client.World.Tick / 20 != before / 20) client.SendHero($"{{\"tick\":{client.World.Tick}}}");
     }
 
+    public override void _Notification(int what)
+    {
+        if (what == NotificationWMCloseRequest) Quit();
+    }
+
     private void Quit()
     {
+        SaveIfOwned();
         _frameLog?.Report();
         if (_session is Session s)
         {
