@@ -19,7 +19,7 @@ registry, and the furnace's `At` (`InventoryPanel.Furnace`), and changes it only
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
 | `InventoryPanel.cs`| the hotbar, the inventory, the open crate, furnace or analyzer, the stack in hand            | yes   |
-| `FloorLayer.cs`    | stacks on the floor, rimmed, bobbing at rest, gliding between ticks, turning in space (`floor-layer.ts`) | yes |
+| `FloorLayer.cs`    | stacks on the floor, rimmed, bobbing at rest, side by side when still, gliding between ticks, turning in space (`floor-layer.ts`) | yes |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head                                                     | yes   |
 | `ItemsView.cs`     | the feature: pick-ups, the layers and the panel                                              | yes   |
 | `ItemsDemo.cs`     | `-- --items`: a room with a crate, a furnace and an analyzer, and a script for recordings    | yes   |
@@ -42,6 +42,8 @@ as everything E works is, in the crew feature (`AimTests`).
   putting the plan away; Tab frees it too as it opens the inventory. Q throws the chosen slot's whole
   stack from the hero's cell the way it faces, and does nothing while a card is in hand. The chosen
   slot is outlined only while the hand is free.
+- What the free hand holds (`Ui.Wielded`, 0034): the item in the chosen slot while the hand is free,
+  else none, set on every refresh; the crew swings the fire axe by it.
 - Tab opens and closes the inventory; Esc closes it and the crate, and puts the plan away with them,
   before it opens the game menu (`Shared.Escape`, `game/menu`).
 - The crate open (`Ui.OpenCrate`) is set by the crew's E within reach and cleared out of reach; the
@@ -61,6 +63,8 @@ as everything E works is, in the crew feature (`AimTests`).
   is closed: the crafting feature docks the lifepod's Fabricator there while E has the pod open, so the
   pod gets no crate panel here. A stack let go over any panel, another
   feature's too, is not thrown.
+- Stacks of different items still in one cell are drawn side by side, out in space too, where a
+  broken wreck's loot floats off together; only aboard do they bob.
 - A stack in a cell the hero's body overlaps is picked up unless the sim would refuse it or its
   pick-up is in flight, and vanishes from the floor at once.
 

@@ -26,6 +26,22 @@ public class DebrisLooksTests
     }
 
     [Fact]
+    public void KnowsTheSizeOfEveryWrecksPictureAsItIs()
+    {
+        foreach (var (item, _) in Content.Wreckage.All)
+        {
+            Assert.True(DebrisLooks.Wrecks.TryGetValue(item, out var size), $"{item} has no size to be aimed at by");
+            for (int id = 0; id < DebrisLooks.Of[item].Count; id++)
+            {
+                // A PNG's width and height are the two big-endian words after its signature and IHDR's header.
+                var head = File.ReadAllBytes(Path.Combine(GameFolder(), DebrisLooks.PictureOf(item, id)!["res://".Length..]))[16..24];
+                int w = head[0] << 24 | head[1] << 16 | head[2] << 8 | head[3], h = head[4] << 24 | head[5] << 16 | head[6] << 8 | head[7];
+                Assert.Equal(size, (w, h));
+            }
+        }
+    }
+
+    [Fact]
     public void DressesPiecesInARowDifferently()
     {
         var looks = Enumerable.Range(0, 12).Select(id => DebrisLooks.PictureOf("scrapChunk", id)).ToList();

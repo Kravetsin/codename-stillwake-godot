@@ -93,8 +93,9 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 ## The hands
 
 - One aim (`Aiming.AimAt`) for everything the hands work under the pointer: a plan in the cell (the
-  left button held), a crate, furnace or analyzer, a tank, a door, a valve (E), else the nearest piece
-  of debris out in space (E or the left button). Pieces with a grab in flight are passed over
+  left button held), a crate, furnace or analyzer, a tank, a door, a valve (E), else a wreck whose
+  picture is under the pointer (`DebrisLooks.Wrecks`, reached at its nearest edge), else the nearest
+  small piece of debris out in space (E or the left button). Pieces with a grab in flight are passed over
   (`Shared.Predicted.Grabbing`).
 - With the hand free and the hero awake, what E would work is outlined along its own pictures, a
   screen pixel wide at 1080 lines whatever the zoom (`render/Outline.cs`), green, or red when the sim
@@ -108,6 +109,15 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 - With anything else in hand (`Ui.Hand`, 0022) the hero holds the plan's sheet (`Figure`'s `sheet`,
   `HeroView.HoldsPlan`, sent to the others with the hero), and E and the left button do nothing here:
   a press is spent, a hold works no plan.
+- **The axe (0034):** `Ui.Wielded`, set by `items` from the chosen hotbar slot while the hand is
+  free, says whether the hero wields the fire axe. With it, a wreck is aimed at with `Hit` (prompt
+  "[Hold LMB] Chop"), and the left button held on one in reach sends a hit at once and then every
+  `Axe.SwingTicks` of the world's ticks (`Aiming.Swing`), the pace kept across letting go so clicking
+  is no faster; a press never chops, and a small piece is still caught. Bare-handed a wreck is aimed at
+  with `Grab`, red: too big. The figure holds the axe (`art/hero_axe.png`) hanging from its front
+  hand, and chopping swings it — raised back over the shoulder for 55% of a swing, down through the
+  wreck in 12%, eased back. Only this machine's figure: others' heroes are not sent the axe or the swing,
+  but their hits show on the wreck.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - Door and valve prompts read them as shown (`Shared.Predicted.Grid`), as `promptOf`'s `shown` did:

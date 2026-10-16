@@ -2,20 +2,32 @@
 
 The debris drifting past the ship (`apps/game/src/features/debris/`, G-08). Drawn only: the sim
 (`sim/Debris`) spawns, moves and hands out what a catch gives. Catching is the hero's hands, aimed as
-everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`.
+everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`; chopping wreckage
+with the fire axe is the hands too, which send `Hit` (0034).
 
 - **Reads:** `DebrisModule.Pieces`; `Client.InFlight` — its own grabs (`Shared.Predicted.Grabbing`);
-  `Ui.AimedPiece` — the piece the crew's E would catch; `Session.Progress`.
+  `Ui.AimedPiece` — the piece the crew's hands would catch or chop; `Ui.Heroes` — who most likely
+  struck a piece; `Session.Progress`.
 - **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
-  wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
+  wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one hull section of 48 × 32, drawn by the debris generator), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
   at `X − Speed × Progress` so it glides, tumbling a turn every 4 s each its own way, faded in over the
-  first 8 cells of its path and out over the last (`Fading.FadeOf`, 0009). The stars behind it are
+  first 8 cells of its path and out over the last (`Fading.FadeOf`, 0009); a wreck only rocks, 0.08 rad
+  either way every 7 s, so its picture stays where the aim tests it.
+- **Damage (0034):** one filter for every piece, in the lit pictures' shader (`render/Cracks.cs`, taken
+  into `render/Lit.cs`): set per picture by instance uniforms, the share of hit points lost and the
+  piece's id, it draws pixel-art cracks on the picture's own pixels — dark as the outline, a lit pixel
+  under each — from a dent that widens, more and longer as the share grows, before the light falls on
+  them. A rise in `Damage` jolts the piece 3 px away from the nearest hero and turns it a little,
+  settling over 220 ms, throws sparks from the struck side and plays `Sound.Chop` there (on the Suit
+  bus: wrecks are chopped in space, where the World bus is silent). A wreck gone with hits in it before
+  the end of its path was broken: a burst of dust and sparks and a last chop. Every peer sees and
+  hears the same, from the world. The stars behind it are
   `render/Stars.cs`: a filtered tile placed once the camera has followed the hero, so they glide by
   fractions of a pixel a frame as the TypeScript tile did, never holding still and jumping a pixel.
 - **Aimed:** the piece the crew sets in `Ui.AimedPiece` — out in space, within reach, the hand free —
   is outlined along its own picture as it tumbles, a screen pixel wide whatever the zoom
   (`render/Outline.cs`), green, or red while the sim would refuse the grab, fading with the piece; the
-  crew's prompt says "[E] Catch".
+  crew's prompt says "[E] Catch"; on a wreck, red with "Too big", or with the axe "[Hold LMB] Chop".
 - **Own grabs at once (0014):** a piece this peer has a grab in flight for is gone from its view and
   passed over by the aim, so E cannot send it twice.
 - **Recording:** `-- --autopilot --debris` starts in the wreck with pieces already out
@@ -23,6 +35,10 @@ everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`.
   autopilot leaves the hero outside the airlock; there the pointer goes to it and E catches it,
   planks landing in the hotbar. With `--host` the demo is hosted, so a guest
   sees the catch.
+- **Recording:** `-- --wreck` (`WreckDemo`): the hero floating in space, a fire axe in its second
+  slot, a hull section drifting up slowly and three more chopped a third, a half and four fifths of
+  the way; the pointer on it bare-handed (red), 2 chooses the axe, the left button held till it breaks,
+  then the hero swims through the loot.
 
 ## Files
 
@@ -31,6 +47,7 @@ everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`.
 | `Fading.cs`     | `FadeOf`                                                      | no    |
 | `DebrisView.cs` | the layer: pieces and the outline of the one aimed at         | yes   |
 | `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |
+| `WreckDemo.cs`  | the world and the script of `--wreck`                         | yes   |
 
 `Fading.cs` is compiled again into `game.tests/`, where `fade.test.ts` and the debris test of
 `predicted.test.ts` are ported (`DebrisTests`); the debris tests of `aim.test.ts` are in `AimTests`.
@@ -39,3 +56,7 @@ everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`.
 
 - Other peers' grabs in flight: a piece another player is catching stays until the host's tick says
   so, as in TypeScript.
+- Own hits before their tick (0014): a chop jolts and is heard when the tick it is stamped for runs,
+  a round trip after the swing lands in the figure; the swing's pace hides most of it.
+- Which hero struck: the jolt and sparks face the nearest, which is the striker but for two heroes
+  chopping one wreck from both sides.
