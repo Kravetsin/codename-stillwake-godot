@@ -33,6 +33,7 @@
     <Compile Include="../game/features/crew/Pose.cs" Link="Game/Crew/Pose.cs" />
     <Compile Include="../game/features/crew/Aim.cs" Link="Game/Crew/Aim.cs" />
     <Compile Include="../game/features/crew/AxeSwing.cs" Link="Game/Crew/AxeSwing.cs" />
+    <Compile Include="../game/features/crew/SwingArm.cs" Link="Game/Crew/SwingArm.cs" />
     <Compile Include="../game/features/crew/Tether.cs" Link="Game/Crew/Tether.cs" />
     <Compile Include="../game/features/crew/Report.cs" Link="Game/Crew/Report.cs" />
     <Compile Include="../game/features/crew/Danger.cs" Link="Game/Crew/Danger.cs" />

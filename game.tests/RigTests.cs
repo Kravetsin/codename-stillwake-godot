@@ -72,9 +72,10 @@ public class RigTests
         var (from, to) = AxeSwing.EdgeAt(axe, lead);
         Close(0, Math.Atan2((from.Y + to.Y) / 2, (from.X + to.X) / 2), 9);
         Assert.True(lead > 0);
+        // The arm straight, the hand at its full length.
         var hand = Rig.EndOf(AxeSwing.ArmAt(lead), Rig.Arm);
         Close(lead, Math.Atan2(hand.Y, hand.X), 9);
-        Close(AxeSwing.ArmReach * (Rig.Arm.Upper + Rig.Arm.Lower), Math.Sqrt(hand.X * hand.X + hand.Y * hand.Y), 9);
+        Close(Rig.Arm.Upper + Rig.Arm.Lower, Math.Sqrt(hand.X * hand.X + hand.Y * hand.Y), 9);
         // The edge is where the picture's is, held in the fist of that arm.
         var arm = AxeSwing.ArmAt(lead);
         Assert.Equal((Rig.HeldAt(arm, axe, axe.EdgeFrom), Rig.HeldAt(arm, axe, axe.EdgeTo)), (from, to));

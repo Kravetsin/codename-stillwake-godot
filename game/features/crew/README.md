@@ -14,6 +14,7 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`) | no    |
 | `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039) | no    |
 | `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the strike, its point, this hero's and others'; the arm and the edge through it (`ArmAt`, `EdgeAt`, `Lead`) (0038, 0039, 0040) | no    |
+| `SwingArm.cs`      | the front arm with the axe: straight through a swing, eased from rest into it, out of it and into the next (0040) | no    |
 | `Prompt.cs`        | `Prompts.Of`: what E does at the aim, in words, and why the sim would refuse it (`prompt.ts`) | no    |
 | `UsePrompt.cs`     | the prompt at the bottom middle, red with the reason when refused (`CrewPanel.tsx`'s `UsePrompt`) | yes   |
 | `Tether.cs`        | the tether as drawn, a reeled rope (`tether.ts`) on `game/render/Rope.cs` (`rope.ts`)   | no    |
@@ -136,15 +137,15 @@ TypeScript original.
   is free, says whether the hero wields the fire axe. With it, the left button held or clicked anywhere
   begins a swing (`AxeSwing`, 0038) toward the pointer as it was then (`AxeSwing.At`, fixed for the
   swing): `Axe.SwingTicks` long as real time, raised back over the shoulder for 35% of it, down through
-  the line to its point in 12%, eased back. The hero faces that point till the swing ends, swimming
+  the line to its point in 12%, eased back, still at either end (`AxeSwing.Lift`). The hero faces that point till the swing ends, swimming
   the other way too (`HeroInput.Swings`). It strikes the frame the blade crosses the line, drawn that
   same frame (the hands are used before the figure is shown): out in space, every wreck the downstroke
   touches then gets one `Hit` the sim would take (`Aiming.HitsOf`), the jolt a tick later. What it
   touches is the path of the axe's drawn edge (0040): held as the figure holds it (`AxeSwing.EdgeAt`:
-  the hand by the rig, the grip, the forearm's angle and the hold, `HeldLook.FireAxe`), from its middle
+  the arm straight, the fist at its end, the grip, the hold, `HeldLook.FireAxe`), from its middle
   crossing the line to `AxeSwing.Through` past it, from the shoulder of the body upright, sampled every
   2° as segments against each wreck's aim box (`Aiming.Struck`); never the raised stretch over the head.
-  It reaches 1.18 cells ahead of the shoulder.
+  It reaches 1.49 cells ahead of the shoulder.
   Aboard it plays and touches nothing; at air it touches nothing. Once begun it plays through and
   strikes, let go or not; presses during it do nothing; held as it ends, the next begins at once,
   toward the pointer then, so clicking is no faster than holding. Putting the axe away, the hand taken,
@@ -154,7 +155,12 @@ TypeScript original.
   pointer is on it. A small piece is still caught: by E, or by a click on it within reach, which with
   its hold swings nothing. E never chops. Bare-handed a wreck is aimed at with `Grab`, red: too big. The figure holds the axe (`art/hero_axe.png`) in its front fist
   by the haft, a third up it, square to the forearm, the hand drawn over it (`HeldLook.FireAxe`, 0040);
-  swinging, the arm turns past the line to the point by `AxeSwing.Lead`, so the blade crosses it. Others see it hang and swing too (0037, 0038).
+  swinging, the arm is straight and turns about the shoulder as one piece (`AxeSwing.ArmAt`), past the
+  line to the point by `AxeSwing.Lead`, so the blade crosses it. Hanging, it keeps its pose's bent arm.
+  Where a swing begins, ends or follows another toward a new point, the arm drawn the frame before is
+  kept as an offset that eases out over the wind-up's length, 175 ms (`SwingArm`): never a jump, and
+  the swing's own arm by its downstroke. Others' figures go the same way, through `Figure.Show`, and
+  see it hang and swing too (0037, 0038).
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - Door and valve prompts read them as shown (`Shared.Predicted.Grid`), as `promptOf`'s `shown` did:

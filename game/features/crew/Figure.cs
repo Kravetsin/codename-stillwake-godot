@@ -115,6 +115,8 @@ public partial class Figure : Node2D
     private readonly Sprite2D _axe;
     /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
     private (Vector2 At, double Phase)? _chop;
+    /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
+    private SwingArm _swingArm;
     /// <summary>The node the body's parts hang from: where a shoulder is, the arms' own frame.</summary>
     private readonly Node2D _frame;
     private Vector2? _workAt;
@@ -401,13 +403,15 @@ public partial class Figure : Node2D
             double ux = Math.Sin(work), uy = -Math.Cos(work);
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
+        (double Angle, double Phase)? swung = null;
         if (chopping && _chop is { At: var wreck, Phase: var phase })
         {
             // Toward the point, from the shoulder: raised back over it, then brought down till the blade,
             // not the hand, crosses the line to it (0040).
             var (dx, dy) = FromShoulder(wreck);
-            frontArm = AxeSwing.ArmAt(Math.Atan2(dy, dx) + AxeLead + AxeSwing.Lift(phase));
+            swung = (Math.Atan2(dy, dx) + AxeLead + AxeSwing.Lift(phase), phase);
         }
+        frontArm = _swingArm.Next(frontArm, swung, elapsedMs);
         _frontArm.Bend(frontArm);
         _backArm.Bend(shown.BackArm);
         _frontLeg.Bend(shown.FrontLeg);

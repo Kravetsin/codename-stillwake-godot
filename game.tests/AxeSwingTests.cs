@@ -3,6 +3,7 @@ using FsCheck.Fluent;
 using FsCheck.Xunit;
 using Stillwake.Game.Features.Crew;
 using Xunit;
+using static Stillwake.Game.Tests.PoseTests;
 
 namespace Stillwake.Game.Tests;
 
@@ -205,5 +206,95 @@ public class AxeSwingTests
         // Held as it ends, the next is aimed where the pointer is then.
         swing.Advance(3 * Frame, true, Below);
         Assert.Equal((2, Below), (swing.Count, swing.At));
+    }
+
+    // The arm (0040): straight through a swing, eased into and out of it.
+
+    /// <summary>The axe's front arm resting afloat: bent a little at the elbow.</summary>
+    private static readonly Bend Resting = new(-0.05, 0.35);
+
+    /// <summary>One frame of a figure's front arm: the arm drawn, the swing's phase, the arm the swing alone would draw, and whether a swing began.</summary>
+    private readonly record struct ArmFrame(Bend Drawn, double? Phase, Bend? Swung, bool Begun);
+
+    /// <summary>
+    /// The front arm drawn every <paramref name="frame"/> ms for <paramref name="ms"/>, as a figure draws it:
+    /// the button wanted when <paramref name="wanted"/> says at that time, the pointer toward
+    /// <paramref name="toward"/>'s point from the shoulder.
+    /// </summary>
+    private static List<ArmFrame> Arm(double ms, Func<double, bool> wanted, Func<double, Point> toward, double frame = Frame)
+    {
+        var swing = new AxeSwing();
+        var arm = new SwingArm();
+        double lead = AxeSwing.Lead(HeldLook.FireAxe);
+        var drawn = new List<ArmFrame>();
+        for (double t = 0; t < ms; t += frame)
+        {
+            bool begun = swing.Advance(frame, wanted(t), toward(t)).Begun;
+            (double, double)? swung = swing.Phase is double phase ? (Math.Atan2(swing.At.Y, swing.At.X) + lead + AxeSwing.Lift(phase), phase) : null;
+            drawn.Add(new(arm.Next(Resting, swung, frame), swing.Phase, swung is var (angle, _) ? AxeSwing.ArmAt(angle) : null, begun));
+        }
+        return drawn;
+    }
+
+    [Fact]
+    public void SwingsTheArmStraightAboutTheShoulderAndStrikesWithTheSwingsOwnArm()
+    {
+        // Held from rest, three swings, toward a point ahead and a little below.
+        var frames = Arm(3 * AxeSwing.Ms, _ => true, _ => new Point(3_000, 500));
+        int downstroke = 0;
+        for (int i = 0; i < frames.Count; i++)
+        {
+            var (drawn, phase, swung, _) = frames[i];
+            // Through the downstroke the arm is the swing's own, so the blade drawn is the one that hits.
+            if (phase is >= AxeSwing.WindShare and < AxeSwing.WindShare + AxeSwing.StrikeShare)
+            {
+                Assert.Equal(swung, drawn);
+                downstroke++;
+            }
+            if (i * Frame < SwingArm.BlendMs) continue;
+            // Once it has left the rest, the elbow is on the line from the shoulder to the hand, between them.
+            var elbow = Rig.EndOf(drawn with { Lower = 0 }, Rig.Arm with { Lower = 0 });
+            var hand = Rig.EndOf(drawn, Rig.Arm);
+            Assert.Equal(0, elbow.X * hand.Y - elbow.Y * hand.X, 9);
+            Assert.True(elbow.X * hand.X + elbow.Y * hand.Y > 0, $"frame {i}");
+            Close(Rig.Arm.Upper + Rig.Arm.Lower, Math.Sqrt(hand.X * hand.X + hand.Y * hand.Y), 9);
+        }
+        Assert.InRange(downstroke, 9, 12);
+    }
+
+    /// <summary>
+    /// Resting, a click, resting again; then held through a swing toward a point above and on into one
+    /// toward a point below, let go during it, and resting: the arm drawn every <paramref name="frame"/> ms.
+    /// </summary>
+    private static List<ArmFrame> ClickThenHold(double frame)
+    {
+        Point above = new(2_000, -2_500), below = new(2_000, 2_500);
+        return Arm(4_000, t => t is >= 300 and < 320 || t is >= 2_000 and < 2_700, t => t < 2_300 ? above : below, frame);
+    }
+
+    [Fact]
+    public void NeverJumpsAsASwingBeginsEndsOrFollowsAnotherTowardANewPoint()
+    {
+        // At 60 fps, the frame one hands over to the other draws the arm where it was.
+        var frames = ClickThenHold(Frame);
+        int handOvers = 0;
+        for (int i = 1; i < frames.Count; i++)
+        {
+            var (was, now) = (frames[i - 1].Drawn, frames[i]);
+            if ((frames[i - 1].Phase is null) == (now.Phase is null) && !now.Begun) continue;
+            handOvers++;
+            Assert.True(Math.Abs(Poses.Apart(was.Upper, now.Drawn.Upper)) < 0.02 && Math.Abs(now.Drawn.Lower - was.Lower) < 0.02, $"frame {i}: {was} to {now.Drawn}");
+        }
+        // Begun from rest, ended, begun from rest, followed by another, ended.
+        Assert.Equal(5, handOvers);
+        Assert.Equal(3, frames.Count(f => f.Begun));
+        Assert.Equal(Resting, frames[^1].Drawn);
+        // And at a thousand frames a second it moves smoothly throughout, the downstroke too: never a jump.
+        var fine = ClickThenHold(1);
+        for (int i = 1; i < fine.Count; i++)
+        {
+            var (was, now) = (fine[i - 1].Drawn, fine[i].Drawn);
+            Assert.True(Math.Abs(Poses.Apart(was.Upper, now.Upper)) < 0.05 && Math.Abs(now.Lower - was.Lower) < 0.05, $"at {i} ms: {was} to {now}");
+        }
     }
 }

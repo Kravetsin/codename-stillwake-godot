@@ -9,7 +9,7 @@ public readonly record struct SwingStep(bool Begun, bool Hits);
 /// The fire axe's swings (0034, 0038, 0039, 0040): one clock for the blade and the hit. A swing, once begun, is
 /// aimed at <see cref="At"/> and plays through <see cref="Ms"/>: raised back over the shoulder for
 /// <see cref="WindShare"/> of it, brought down through the line to its point in <see cref="StrikeShare"/>,
-/// eased back; it strikes the frame the blade crosses that line (<see cref="HitAt"/>), let go or not, and
+/// eased back (<see cref="Lift"/>), the arm straight throughout (<see cref="ArmAt"/>); it strikes the frame the blade crosses that line (<see cref="HitAt"/>), let go or not, and
 /// what the downstroke touches then is hit. Wanting a swing while one plays changes nothing; still
 /// wanted as it ends, the next begins at once, so held it swings every <see cref="Ms"/>, and clicking is
 /// no faster. Others' heroes replay the swings they are sent with the same clock, sending nothing.
@@ -24,9 +24,6 @@ public struct AxeSwing
     /// <see cref="Raised"/> back, then down to <see cref="Through"/> past it.
     /// </summary>
     public const double WindShare = 0.35, StrikeShare = 0.12, Raised = 2.1, Through = 0.3;
-
-    /// <summary>How far the hand is from the shoulder through a swing, a share of the arm's length.</summary>
-    public const double ArmReach = 0.9;
 
     /// <summary>The share of a swing at which the blade crosses the line to its point: when it strikes.</summary>
     public const double HitAt = WindShare + StrikeShare * Raised / (Raised + Through);
@@ -106,16 +103,15 @@ public struct AxeSwing
         return true;
     }
 
-    /// <summary>The front arm swinging with its hand <paramref name="angle"/> radians from straight ahead of the shoulder, down positive.</summary>
-    public static Bend ArmAt(double angle)
-    {
-        double reach = ArmReach * (Rig.Arm.Upper + Rig.Arm.Lower);
-        return Rig.Reach(new Vec(Math.Cos(angle) * reach, Math.Sin(angle) * reach), Rig.Arm, 1);
-    }
+    /// <summary>
+    /// The front arm swinging, <paramref name="angle"/> radians from straight ahead of the shoulder, down
+    /// positive: straight, turned about the shoulder as one piece, the elbow never bent (0040).
+    /// </summary>
+    public static Bend ArmAt(double angle) => new(Math.PI / 2 - angle, 0);
 
     /// <summary>
     /// Where the ends of <paramref name="look"/>'s edge are, in pixels from the shoulder, swung with the
-    /// hand at <paramref name="angle"/> (<see cref="ArmAt"/>), held as the figure draws it (0040).
+    /// arm at <paramref name="angle"/> (<see cref="ArmAt"/>), held as the figure draws it (0040).
     /// </summary>
     public static (Vec From, Vec To) EdgeAt(HeldLook look, double angle)
     {
@@ -124,7 +120,7 @@ public struct AxeSwing
     }
 
     /// <summary>
-    /// How far past the line to its point the hand swings while the middle of <paramref name="look"/>'s
+    /// How far past the line to its point the arm swings while the middle of <paramref name="look"/>'s
     /// edge is on it (0040): a swing turns the arm by this beside <see cref="Lift"/>, so the blade, held
     /// at an angle to the arm, meets what the swing is aimed at as it strikes.
     /// </summary>
@@ -136,12 +132,13 @@ public struct AxeSwing
 
     /// <summary>
     /// The axe's turn from the line to its point at <paramref name="phase"/> of a swing, back (negative)
-    /// or through (positive): eased up, brought down hard, eased back to the line.
+    /// or through (positive): eased up, brought down hard, eased back to the line, still at either end, so
+    /// a swing leaves the arm at rest and the next held begins from it unbroken.
     /// </summary>
     public static double Lift(double phase)
     {
-        if (phase < WindShare) return -Raised * Math.Sin(phase / WindShare * Math.PI / 2);
+        if (phase < WindShare) return -Raised * (1 - Math.Cos(phase / WindShare * Math.PI)) / 2;
         if (phase < WindShare + StrikeShare) return -Raised + (Raised + Through) * ((phase - WindShare) / StrikeShare);
-        return Through * (1 - (phase - WindShare - StrikeShare) / (1 - WindShare - StrikeShare));
+        return Through * (1 + Math.Cos((phase - WindShare - StrikeShare) / (1 - WindShare - StrikeShare) * Math.PI)) / 2;
     }
 }
