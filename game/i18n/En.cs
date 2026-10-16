@@ -219,6 +219,7 @@ public static partial class En
         ["menu.back"] = "Back",
         ["menu.running"] = "The world keeps running",
         ["menu.suit"] = "Suit colour",
+        ["menu.logs"] = "Open logs folder",
         ["menu.saved"] = "Saved",
         ["menu.nothingToSave"] = "Nothing to save yet",
         ["menu.failed"] = "Failed: {why}",

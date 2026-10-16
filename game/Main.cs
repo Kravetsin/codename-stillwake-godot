@@ -106,6 +106,8 @@ public partial class Main : Node2D, ITogether
 
     public override void _Ready()
     {
+        // A friend's log arrives without context: its first line says which build and system wrote it.
+        GD.Print($"Stillwake {Build} on {OS.GetName()} {OS.GetVersion()}");
         _args = OS.GetCmdlineUserArgs();
         _playerKey = Profile.Key(_args);
         _cheat = Has("--cheat");

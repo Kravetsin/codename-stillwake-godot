@@ -68,6 +68,7 @@ public partial class TitleScreen : CanvasLayer
         column.AddChild(_problem = new Label { LabelSettings = Style.Text(Style.Mono, 12, Style.Red300), AutowrapMode = TextServer.AutowrapMode.WordSmart });
         var foot = Style.Gap(new HBoxContainer(), 10);
         foot.AddChild(new Label { Text = version, LabelSettings = Style.Text(Style.Mono, 11, Style.Slate400) });
+        foot.AddChild(Style.Button(T("menu.logs"), Logs.OpenFolder, size: 11, padX: 8, padY: 3));
         foot.AddChild(_update = Style.Button("", update, size: 11, padX: 8, padY: 3));
         foot.AddChild(_updateLine = new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Sky200) });
         column.AddChild(foot);
