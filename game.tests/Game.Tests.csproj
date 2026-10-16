@@ -72,5 +72,6 @@
     <Compile Include="../game/features/furnace/Flames.cs" Link="Game/Furnace/Flames.cs" />
     <Compile Include="../game/dev/Testbed.cs" Link="Game/Dev/Testbed.cs" />
     <Compile Include="../game/Content/Sound.cs" Link="Game/Content/Sound.cs" />
+    <Compile Include="../game/features/dev-panel/CueNames.cs" Link="Game/Dev/CueNames.cs" />
   </ItemGroup>
 </Project>
