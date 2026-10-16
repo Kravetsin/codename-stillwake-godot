@@ -23,7 +23,8 @@ public static class Wreckage
 }
 
 /// <summary>
-/// The fire axe (ADR 0034): what a hit with it takes off a wreck, and how often a held button swings it.
+/// The fire axe (ADRs 0034, 0039): what a hit with it takes off a wreck, how often a held button swings
+/// it and how far its blade reaches.
 /// It never wears out.
 /// </summary>
 public static class Axe
@@ -36,6 +37,12 @@ public static class Axe
 
     /// <summary>Ticks between swings while the button is held: the client's pace, which the sim does not check (0034).</summary>
     public const int SwingTicks = 10;
+
+    /// <summary>
+    /// How far the blade reaches from the hero's shoulder, in thousandths of a cell: the arm and the axe's
+    /// length. A wreck within it as the blade comes down is hit (0039); the client's word, as the pace is.
+    /// </summary>
+    public const int Reach = 2000;
 
     /// <summary>What a hit does besides its damage: none yet. The axe's card shows each as a chip in its colours.</summary>
     public static readonly IReadOnlyList<HitEffect> Effects = [];

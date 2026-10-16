@@ -12,8 +12,8 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 | `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship`, `Point`; one `Step` at 60 a second | no    |
 | `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`)                 | no    |
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`) | no    |
-| `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris | no    |
-| `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the hit sent, this hero's and others' (0038) | no    |
+| `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039) | no    |
+| `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the strike, its point, this hero's and others' (0038, 0039) | no    |
 | `Prompt.cs`        | `Prompts.Of`: what E does at the aim, in words, and why the sim would refuse it (`prompt.ts`) | no    |
 | `UsePrompt.cs`     | the prompt at the bottom middle, red with the reason when refused (`CrewPanel.tsx`'s `UsePrompt`) | yes   |
 | `Tether.cs`        | the tether as drawn, a reeled rope (`tether.ts`) on `game/render/Rope.cs` (`rope.ts`)   | no    |
@@ -57,7 +57,7 @@ TypeScript original.
   begin or end work, and every second standing still, stamped with its controller step's time.
 - Its hands go with it (0037): the item it wields by id (`Seen.Wields`, `Ui.Wielded`, none passed out),
   and what they are busy with and where (`Seen.Busy`: `Work` the plan the screwdriver turns at, `Chop`
-  the wreck swung at while a swing plays, with the swings begun (`Busy.Swings`), `Beam` the first cell
+  the point the latest swing is aimed at while a swing plays, with the swings begun (`Busy.Swings`), `Beam` the first cell
   the planner beams in, sent while the beam fades), a point in thousandths of a cell. Both are left out
   of the JSON while empty, as are the swings while none, so an idle hero is written as before; the kind
   of work goes by name, and one not known makes no hero. A new tool needs no new field.
@@ -67,11 +67,12 @@ TypeScript original.
 - Each in its suit (`Suits.Of`, the sim's `Hero.Colour`), posed by how it moves, lying while the sim
   says it is out, its head turned as sent, the plan in its hands as sent; its tether drawn too. They
   sway the cables as this hero does (`HeroView.Others`).
-- Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe hanging and swinging at
-  the wreck, the screwdriver turning at the plan, a beam once to the cell sent (`Busy.BeamsAnew`). Taken
+- Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe hanging and swinging
+  toward its point, the screwdriver turning at the plan, a beam once to the cell sent (`Busy.BeamsAnew`). Taken
   from the sample at or before the moment drawn, never between two; but the axe swings once for each
-  swing number as it is heard, not 150 ms behind (`AxeSwing.Follow`, 0038), so its blade meets the
-  wreck as the hit lands: within a few hundredths of a second on a LAN and at 100 ms lag. The chop and
+  swing number as it is heard, not 150 ms behind (`AxeSwing.Follow`, 0038), toward the point sent with
+  that number, the last chop heard kept while its hands are idle (`Busy.Chopping`, 0039), so its blade
+  meets the wreck as the hit lands: within a few hundredths of a second on a LAN and at 100 ms lag. The chop and
   the screwdriver are heard from the world, where the wreck takes damage (`DebrisView`) and the plan progresses
   (`BuildingView`), once whoever works them; the figures play no tool sounds.
 - `--aside` steps this hero off the spawn, so a recording of another peer's hero there sees it whole
@@ -131,17 +132,25 @@ TypeScript original.
 - With anything else in hand (`Ui.Hand`, 0022) the hero holds the plan's sheet (`Figure`'s `sheet`,
   `HeroView.HoldsPlan`, sent to the others with the hero), and E and the left button do nothing here:
   a press is spent, a hold works no plan.
-- **The axe (0034):** `Ui.Wielded`, set by `items` from the chosen hotbar slot while the hand is
-  free, says whether the hero wields the fire axe. With it, a wreck is aimed at with `Hit` (prompt
-  "[Hold LMB] Chop"), and the left button held or clicked on one in reach (`Aiming.ChopOf`) begins a
-  swing (`AxeSwing`, 0038): `Axe.SwingTicks` long as real time, raised back over the shoulder for 35%
-  of it, down through the wreck in 12%, eased back. Its one `Hit` goes the frame the blade meets the
-  wreck, drawn that same frame (the hands are used before the figure is shown), and the jolt follows a
-  tick later. Once begun it plays through and hits, let go or not; presses during it do nothing; held as
-  it ends, the next begins at once, so clicking is no faster than holding. Putting the axe away, the
-  hand taken, working a plan, climbing or passing out stops it unstruck. A frame counts at most 100 ms,
-  so a stall owes no burst of hits. E never chops, and a small piece is still caught. Bare-handed a
-  wreck is aimed at with `Grab`, red: too big. The figure holds the axe (`art/hero_axe.png`) hanging
+- **The axe (0034, 0039):** `Ui.Wielded`, set by `items` from the chosen hotbar slot while the hand
+  is free, says whether the hero wields the fire axe. With it, the left button held or clicked anywhere
+  begins a swing (`AxeSwing`, 0038) toward the pointer as it was then (`AxeSwing.At`, fixed for the
+  swing): `Axe.SwingTicks` long as real time, raised back over the shoulder for 35% of it, down through
+  the line to its point in 12%, eased back. The hero faces that point till the swing ends, swimming
+  the other way too (`HeroInput.Swings`). It strikes the frame the blade crosses the line, drawn that
+  same frame (the hands are used before the figure is shown): out in space, every wreck the downstroke
+  touches then gets one `Hit` the sim would take (`Aiming.HitsOf`), the jolt a tick later. The
+  downstroke is the sector from the line to `AxeSwing.Through` past it, `AxeSwing.Edge` wider either
+  side, out to `Axe.Reach` (2 cells) from the shoulder of the body upright, sampled every 5° at three
+  distances against each wreck's aim box (`Aiming.Struck`); never the raised stretch over the head.
+  Aboard it plays and touches nothing; at air it touches nothing. Once begun it plays through and
+  strikes, let go or not; presses during it do nothing; held as it ends, the next begins at once,
+  toward the pointer then, so clicking is no faster than holding. Putting the axe away, the hand taken,
+  working a plan, climbing or passing out stops it unstruck. A frame counts at most 100 ms, so a stall
+  owes no burst of hits. Only the first wreck a swing begun now would touch is aimed at (`Hit`, outlined,
+  prompt "[Hold LMB] Chop"), wherever the pointer is; one out of the blade's reach is not, though the
+  pointer is on it. A small piece is still caught: by E, or by a click on it within reach, which with
+  its hold swings nothing. E never chops. Bare-handed a wreck is aimed at with `Grab`, red: too big. The figure holds the axe (`art/hero_axe.png`) hanging
   from its front hand. Others see it hang and swing too (0037, 0038).
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).

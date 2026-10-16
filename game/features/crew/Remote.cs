@@ -17,14 +17,22 @@ public enum Handwork { Work, Chop, Beam }
 
 /// <summary>
 /// What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's
-/// own position; chopping, how many swings it has begun (<see cref="AxeSwing.Count"/>), so others swing
-/// once for each. Left out of the wire while none.
+/// own position; chopping, the point its latest swing is aimed at (<see cref="AxeSwing.At"/>) and how many
+/// swings it has begun (<see cref="AxeSwing.Count"/>), so others swing once for each, where it did. Left
+/// out of the wire while none.
 /// </summary>
 public readonly record struct Busy(
     Handwork Work, Point At, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Swings = 0)
 {
     /// <summary>Whether <paramref name="now"/> is a beam not shown yet: a beam is sent for as long as it fades, and drawn once.</summary>
     public static bool BeamsAnew(Busy? was, Busy? now) => now is { Work: Handwork.Beam } && now != was;
+
+    /// <summary>
+    /// The chop to follow another's hero by once <paramref name="now"/> is heard: a new one, else the
+    /// <paramref name="last"/>, kept while its hands are idle, so a swing sent as it ended is still swung,
+    /// at its point (0038, 0039).
+    /// </summary>
+    public static Busy? Chopping(Busy? last, Busy? now) => now is { Work: Handwork.Chop } ? now : last;
 }
 
 /// <summary>A hero as sent (<c>SentHero</c> of remote.ts): stamped with the time of the controller step it stands at, on its own clock.</summary>
