@@ -19,10 +19,8 @@ public partial class DebrisView(Ui ui) : Node2D
 {
     private const float Cell = ShipCamera.Cell;
     private const int Unit = DebrisModule.Unit;
-    /// <summary>A piece's size, in cells.</summary>
-    private const float Size = 0.8f;
-    /// <summary>An item picture's scale drawn the size of a piece.</summary>
-    private const float PictureScale = Size * Cell / ItemIcons.Pixels;
+    /// <summary>A piece drawn as its item, with no pictures of its own: its size, in cells.</summary>
+    private const float ItemSize = 0.8f;
     private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
 
     private readonly Dictionary<int, Sprite2D> _shown = new();
@@ -73,7 +71,7 @@ public partial class DebrisView(Ui ui) : Node2D
             if (!_ids.Contains(piece.Id)) continue;
             if (!_shown.TryGetValue(piece.Id, out var one))
             {
-                one = PictureOf(piece.Item);
+                one = PictureOf(piece.Item, piece.Id);
                 _shown[piece.Id] = one;
                 AddChild(one);
             }
@@ -83,15 +81,17 @@ public partial class DebrisView(Ui ui) : Node2D
             // A slow tumble, each piece its own way.
             one.Rotation = (float)(_clockMs / 4000 * (piece.Id % 2 == 0 ? 1 : -1) + piece.Id);
             if (aimed is { } a && a.Id == piece.Id)
-                _aimed.Add(ItemIcons.Icon(piece.Item), one.Position, one.Rotation, PictureScale, (a.Refused ? AimRefused : AimReady) with { A = one.Modulate.A });
+                _aimed.Add(one.Texture, one.Position, one.Rotation, one.Scale.X, (a.Refused ? AimRefused : AimReady) with { A = one.Modulate.A });
         }
         _aimed.End();
     }
 
-    /// <summary>An item's picture the size of a piece, centred, lit.</summary>
-    private static Sprite2D PictureOf(string item)
+    /// <summary>The picture piece <paramref name="id"/> wears (<see cref="DebrisLooks"/>), a pixel of art a pixel of the world, or its item's the size of a piece; centred, lit.</summary>
+    private static Sprite2D PictureOf(string item, int id)
     {
-        var body = new Sprite2D { Texture = ItemIcons.Icon(item), Scale = Vector2.One * PictureScale };
+        var body = DebrisLooks.PictureOf(item, id) is string look
+            ? new Sprite2D { Texture = GD.Load<Texture2D>(look) }
+            : new Sprite2D { Texture = ItemIcons.Icon(item), Scale = Vector2.One * (ItemSize * Cell / ItemIcons.Pixels) };
         Lit.Set(body);
         return body;
     }

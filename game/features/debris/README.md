@@ -7,7 +7,7 @@ everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`.
 - **Reads:** `DebrisModule.Pieces`; `Client.InFlight` — its own grabs (`Shared.Predicted.Grabbing`);
   `Ui.AimedPiece` — the piece the crew's E would catch; `Session.Progress`.
 - **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
-  is its item's picture (`ItemIcons`), 0.8 of a cell, lit by the stars and the lamps, between ticks
+  wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
   at `X − Speed × Progress` so it glides, tumbling a turn every 4 s each its own way, faded in over the
   first 8 cells of its path and out over the last (`Fading.FadeOf`, 0009). The stars behind it are
   `render/Stars.cs`: a filtered tile placed once the camera has followed the hero, so they glide by
