@@ -617,17 +617,20 @@ public partial class Main : Node2D, ITogether
     }
 
     /// <summary>
-    /// Leaves the world for the title: saved if this machine keeps it, the link closed, what is drawn of it
-    /// let go, and the scene loaded afresh, every view with it; <paramref name="why"/> said on the title.
+    /// Leaves the world for the title: saved if this machine keeps it, the link closed and the session dropped,
+    /// what is drawn of it let go, and the scene loaded afresh once the frame ends, every view with it;
+    /// <paramref name="why"/> said on the title.
     /// </summary>
     private void ExitToTitle(string? why)
     {
         SaveIfOwned();
         _stopLink?.Invoke();
         _stopLink = null;
+        _session = null;
         Particles.Shared.Clear();
         _next = why;
-        GetTree().ReloadCurrentScene();
+        // A reload takes the scene out of the tree at once: deferred, the frame that asked (a click, the host gone) ends whole.
+        GetTree().CallDeferred(SceneTree.MethodName.ReloadCurrentScene);
     }
 
     /// <summary>The views drawing the current registry's world, made again when a load brings a new one.</summary>
