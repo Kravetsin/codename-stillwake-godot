@@ -362,22 +362,15 @@ public class AimTests
     }
 
     [Fact]
-    public void SwingsAtOnceThenEveryAxePaceWhileHeldAndNoFasterForClicking()
+    public void SwingsOnlyAtAWreckInReachTheSimWouldLetItHit()
     {
         var hit = new Hit(4);
         var aim = new Aim(3, true, new Use(hit, null), Piece: 4);
-        int swung = -1;
-        var sent = new List<int>();
-        foreach (var (tick, held) in new[] { (10, true), (11, true), (19, true), (20, true), (21, false), (22, true), (30, true) })
-        {
-            var (command, now) = Aiming.Swing(aim, held, tick, swung);
-            swung = now;
-            if (command != null) sent.Add(tick);
-        }
-        Assert.Equal([10, 20, 30], sent);
-        Assert.Equal((null, 5), Aiming.Swing(aim with { InReach = false }, true, 50, 5));
-        Assert.Equal((null, 5), Aiming.Swing(aim with { Press = new Use(hit, "debris.notOutside") }, true, 50, 5));
-        Assert.Equal((hit, 3), Aiming.Swing(aim, true, 3, 40));
+        Assert.Equal(hit, Aiming.ChopOf(aim));
+        Assert.Null(Aiming.ChopOf(aim with { InReach = false }));
+        Assert.Null(Aiming.ChopOf(aim with { Press = new Use(hit, "debris.notOutside") }));
+        Assert.Null(Aiming.ChopOf(aim with { Press = new Use(new Grab(4), null) }));
+        Assert.Null(Aiming.ChopOf(null));
     }
 
     // What E sends.

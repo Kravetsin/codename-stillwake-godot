@@ -1,6 +1,6 @@
 # 0034 — Wreckage and the axe
 
-- Status: accepted; "other heroes are not seen holding or swinging the axe" superseded by [0037](0037-others-see-the-hands.md)
+- Status: accepted; "other heroes are not seen holding or swinging the axe" superseded by [0037](0037-others-see-the-hands.md); the hit sent at the press superseded by [0038](0038-one-swing-one-hit.md)
 - Date: 2026-10-16
 
 ## Context
@@ -46,5 +46,6 @@ the spacewalk a job and the Fabricator a reason, without new systems for physics
   one hero's swinging; two heroes break it twice as fast.
 - A wreck half over the hull cannot be hit while its middle is over the ship.
 - A hit sent just after the axe was put away still lands, and creative mode chops without one.
-- Own hits show when their tick runs, not at once (0014 left aside): the swing hides the round trip.
+- Own hits show when their tick runs, not at once (0014 left aside): the swing hides the round trip
+  (superseded by 0038: the hit goes as the blade meets the wreck, the jolt a round trip after).
 - Other heroes are not seen holding or swinging the axe.

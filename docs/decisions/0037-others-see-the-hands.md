@@ -1,6 +1,6 @@
 # 0037 — Others see the hands
 
-- Status: accepted
+- Status: accepted; the swing taken from the sample drawn superseded by [0038](0038-one-swing-one-hit.md)
 - Supersedes: "Other heroes are not seen holding or swinging the axe" of
   [0034](0034-wreckage-and-the-axe.md), and its echo in [0036](0036-upright-in-space.md)
 - Date: 2026-10-16
@@ -32,6 +32,7 @@ themselves. The tools will only grow in number.
 
 - A hero swinging at a drifting wreck is sent every 50 ms, the wreck's point moving: as a walking one is.
 - A friend's swing keeps its own pace from when its chop was first seen, not each hit's tick: the
-  blade coming down and the wreck's jolt may be up to a swing apart.
+  blade coming down and the wreck's jolt may be up to a swing apart (superseded by 0038: once per swing
+  sent, as heard).
 - The sounds stay with what is worked: the chop where the wreck takes damage (`DebrisView`), the
   screwdriver where a plan progresses (`BuildingView`), once for every peer whoever works it.

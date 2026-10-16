@@ -182,15 +182,8 @@ public static class Aiming
     }
 
     /// <summary>
-    /// The hit the left button <paramref name="held"/> on a wreck in reach sends this frame, the axe
-    /// wielded, and the tick it last swung on: a swing every <c>Axe.SwingTicks</c> of the client's world
-    /// <paramref name="tick"/>, the first at once. Letting go does not reset the pace, so clicking is no
-    /// faster than holding; a load that took the tick back swings anew.
+    /// The hit a swing of the axe begun at <paramref name="aim"/> would send: a wreck in reach the sim
+    /// would let it hit, the axe wielded. None otherwise, and no swing begins (<see cref="AxeSwing"/>).
     /// </summary>
-    public static (Command? Hit, int SwungOnTick) Swing(Aim? aim, bool held, int tick, int swungOnTick)
-    {
-        if (!held || aim is not { InReach: true, Press: { Command: Hit hit, Problem: null } }) return (null, swungOnTick);
-        bool due = swungOnTick < 0 || tick < swungOnTick || tick - swungOnTick >= Spec.Axe.SwingTicks;
-        return due ? (hit, tick) : (null, swungOnTick);
-    }
+    public static Hit? ChopOf(Aim? aim) => aim is { InReach: true, Press: { Command: Hit hit, Problem: null } } ? hit : null;
 }
