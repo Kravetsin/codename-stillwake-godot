@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Furnace;
 using Stillwake.Sim.Grid;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Furnace;
 
@@ -65,6 +67,10 @@ public partial class FurnaceView : Node2D
             {
                 fire = (new Sprite2D { Centered = false, ZIndex = Layers.Fire, Material = Unlit, Texture = Picture(m.Id) }, m.Id, 1, 0);
                 AddChild(fire.Sprite);
+                // Its crackle goes with it, begun somewhere along the loop so two fires never crackle in step.
+                var crackle = Cues.Player2D(S.Fire, S.World);
+                fire.Sprite.AddChild(crackle);
+                crackle.Play((float)(_random.NextDouble() * 19));
             }
             if (turn)
             {

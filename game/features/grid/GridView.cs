@@ -7,6 +7,7 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Grid;
 using L = Stillwake.Game.Light;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Grid;
 
@@ -28,6 +29,9 @@ public partial class GridView : Node2D
     private readonly ShipTiles _tiles = new();
     private readonly TileMapLayer _back, _pipes, _valves, _walls, _edges, _fixtures, _doors, _machines;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
+    // A door or valve that moves is heard where it stands, by everyone near (0033).
+    private readonly Heard2D _opens = Cues.Player2D(S.DoorOpen, S.World, voices: 2),
+        _closes = Cues.Player2D(S.DoorClose, S.World, voices: 2), _turns = Cues.Player2D(S.Valve, S.World, voices: 2);
     private readonly Dictionary<int, string> _materials = Materials.All.ToDictionary(m => m.Code, m => m.Id);
     private int[] _structure = [], _material = [], _conduit = [], _backs = [], _backMaterial = [];
     private Machine[] _drawnMachines = [];
@@ -46,6 +50,7 @@ public partial class GridView : Node2D
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
         AddChild(_sockets);
+        foreach (var player in (Node[])[_opens, _closes, _turns]) AddChild(player);
     }
 
     private TileMapLayer Layer(int z, float share = 1)
@@ -99,6 +104,7 @@ public partial class GridView : Node2D
         {
             if (s[c] == _structure[c] && m[c] == _material[c] && cd[c] == _conduit[c] && b[c] == _backs[c] && bm[c] == _backMaterial[c])
                 continue;
+            Hear(c, w, s[c], cd[c]);
             (_structure[c], _material[c], _conduit[c], _backs[c], _backMaterial[c]) = (s[c], m[c], cd[c], b[c], bm[c]);
             int x = c % w;
             Mark(c);
@@ -108,6 +114,20 @@ public partial class GridView : Node2D
             if (x < w - 1) Mark(c + 1);
         }
         return dirty;
+    }
+
+    /// <summary>
+    /// A door or a valve at <paramref name="cell"/> that moved, heard there: once a door, at its top cell,
+    /// since the cells under it moved with it (the one above was brought up to date already).
+    /// </summary>
+    private void Hear(int cell, int w, int structure, int conduit)
+    {
+        static bool Door(int s) => s is Structure.DoorClosed or Structure.DoorOpen;
+        var at = new Vector2((cell % w + 0.5f) * Cell, (cell / w + 0.5f) * Cell);
+        if (Door(structure) && Door(_structure[cell]) && structure != _structure[cell] && !(cell >= w && Door(_structure[cell - w])))
+            (structure == Structure.DoorOpen ? _opens : _closes).PlayAt(at);
+        if (conduit is Conduit.ValveClosed or Conduit.ValveOpen && _conduit[cell] is Conduit.ValveClosed or Conduit.ValveOpen && conduit != _conduit[cell])
+            _turns.PlayAt(at);
     }
 
     private string MaterialOf(int code) => _materials.GetValueOrDefault(code, Materials.DefaultHull);

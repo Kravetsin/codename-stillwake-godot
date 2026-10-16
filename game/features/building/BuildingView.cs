@@ -9,6 +9,7 @@ using Stillwake.Sim;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Building;
 
@@ -17,7 +18,8 @@ namespace Stillwake.Game.Features.Building;
 /// projections (<see cref="PlanTiles"/>), and the hand at work
 /// (features/building/index.ts, 0022, 0030): a card's ghost along a left drag, a removal's along a middle
 /// one in the open tab's layers, coloured by what the sim would say, with its reason by the pointer; a
-/// release sends the commands. Q picks a card. With no card out, no grid: space stays space.
+/// release sends the commands. Q picks a card. With no card out, no grid: space stays space. Work on a
+/// plan sparks and ticks with the screwdriver, heard from the plan.
 /// </summary>
 public partial class BuildingView : Node2D
 {
@@ -51,12 +53,14 @@ public partial class BuildingView : Node2D
     private double _owedSparks;
     /// <summary>Sparks off a tick of work on a plan.</summary>
     private const double SparksPerTick = 0.3;
+    /// <summary>The screwdriver, moved to each plan as it sparks: a few ticks at once, from plans worked side by side.</summary>
+    private readonly Heard2D _screwdriver = Cues.Player2D(S.Screwdriver, S.World, voices: 4);
 
     public BuildingView(Ui ui, PlanHand hand)
     {
         _ui = ui;
         _hand = hand;
-        foreach (var node in (Node2D[])[_plans, _marked, _marks, _fits, _refused, _hands]) AddChild(node);
+        foreach (var node in (Node2D[])[_plans, _marked, _marks, _fits, _refused, _hands, _screwdriver]) AddChild(node);
         _marks.Paint = PaintPlans;
         _hands.Paint = PaintHands;
     }
@@ -200,6 +204,7 @@ public partial class BuildingView : Node2D
             var box = BoxOf(CellsOf(grid, p), grid.Width);
             var at = box.Position + box.Size / 2;
             Particles.Shared.Emit(Effect.Spark, at.X, at.Y, count, -Math.PI / 2, rooms.RoomAt(p.Cell) == RoomsModule.Space);
+            _screwdriver.PlayAt(at);
         }
     }
 
