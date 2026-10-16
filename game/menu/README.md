@@ -12,6 +12,10 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   a confirmation in the panel, New world by name. **Play together** (`TogetherPage`): Host enters the
   world picked (else Continue's, else a new one) and opens it on the relay; Join by code loads no world
   of its own. While joining, nothing is played.
+- **The old save slot:** v0.0.3 and before kept one save, `user://saves/world.json`. Shown, the title
+  first takes it in as a world, "Saved before worlds", last played when it was saved
+  (`WorldIndex.Adopt`), and renames the slot `world.adopted.json`, so it is taken once and kept.
+  A save of a format this build cannot bring up to date shows as such in the list.
 - **Testbed**, in a debug build only (`play.cmd`; an export has no button): under the others, it plays
   `dev/Testbed`, as `-- --testbed` does — a ready ship with every machine once, both rooms aired, the
   furnace lit, the analyzer at work, a crate holding a full stack of every item, creative mode on. A
