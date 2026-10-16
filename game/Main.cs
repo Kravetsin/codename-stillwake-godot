@@ -15,6 +15,7 @@ using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Features.Research;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Menu;
 using Stillwake.Game.Net;
 using Stillwake.Game.Platform;
@@ -113,6 +114,8 @@ public partial class Main : Node2D, ITogether
         _cheat = Has("--cheat");
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
+        // Before everything else, so every button made after it clicks.
+        AddChild(new SoundView(Muffled));
 
         // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
         _hands = new Hands();
@@ -174,6 +177,9 @@ public partial class Main : Node2D, ITogether
         if (Has("--measure"))
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount}"));
     }
+
+    /// <summary>Whether this player hears the world muffled (0033): its placed hero floating out in space.</summary>
+    private bool Muffled() => _session != null && _hero is { Placed: true, Floats: true };
 
     private bool Has(string flag) => _args.Contains(flag);
     private string? Arg(string flag) => _args.SkipWhile(a => a != flag).Skip(1).FirstOrDefault();

@@ -1,14 +1,17 @@
 using System;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using CrewSpec = Stillwake.Content.Crew;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// The suit without a word (SuitGauge.tsx): a bar at the top left that turns red and pulses when the
 /// suit runs low out of room air, red at the screen's edges then, and the screen going dark on passing
-/// out. Reads the sim four times a second, never every frame.
+/// out; a soft beep every <see cref="S.AlarmEveryS"/> while it runs low, silent once passed out. Reads
+/// the sim four times a second, never every frame.
 /// </summary>
 public partial class SuitGauge : CanvasLayer
 {
@@ -35,6 +38,9 @@ public partial class SuitGauge : CanvasLayer
     private readonly ShaderMaterial _edges = new() { Shader = new Shader { Code = VignetteShader } };
     private double _sinceRead = RefreshS, _vignetteShown, _darkShown;
     private SuitDanger _danger;
+    private readonly AudioStreamPlayer _alarm = Cues.Player(S.Alarm, S.Suit);
+    // Due at once: the first beep comes as the suit turns low.
+    private double _sinceAlarm = S.AlarmEveryS;
 
     /// <param name="read">This player's suit and its danger, as <see cref="Danger.Read"/> gives them.</param>
     public SuitGauge(Func<(int Suit, SuitDanger Danger)> read)
@@ -50,6 +56,7 @@ public partial class SuitGauge : CanvasLayer
             AddChild(screen);
         }
         _vignette.Material = _edges;
+        AddChild(_alarm);
     }
 
     public override void _Process(double delta)
@@ -62,11 +69,25 @@ public partial class SuitGauge : CanvasLayer
             _bar.Share = (float)suit / CrewSpec.Suit;
             _bar.InDanger = _danger != SuitDanger.None;
         }
+        Beep(delta);
         _vignetteShown = Toward(_vignetteShown, _danger == SuitDanger.Low ? 1 : 0, delta / VignetteS);
         _darkShown = Toward(_darkShown, _danger == SuitDanger.Out ? 1 : 0, delta / DarkS);
         _edges.SetShaderParameter(Strength, (float)_vignetteShown);
         _dark.Color = new Color(0, 0, 0, (float)_darkShown * Dark);
         _bar.QueueRedraw();
+    }
+
+    private void Beep(double delta)
+    {
+        if (_danger != SuitDanger.Low)
+        {
+            _sinceAlarm = S.AlarmEveryS;
+            if (_danger == SuitDanger.Out && _alarm.Playing) _alarm.Stop();
+            return;
+        }
+        if ((_sinceAlarm += delta) < S.AlarmEveryS) return;
+        _sinceAlarm = 0;
+        _alarm.Play();
     }
 
     private static double Toward(double from, double to, double step) =>
