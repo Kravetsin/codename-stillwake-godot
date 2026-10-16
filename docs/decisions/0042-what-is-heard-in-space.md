@@ -17,7 +17,7 @@ dead air between chops.
 ## Decision
 
 - **In space a hero hears only what it touches, through the suit.** While this player's hero floats,
-  the Suit bus — the action click, its own axe's chop, the break of a wreck its own hit broke — is
+  the Suit bus — an action's sound (out here a glove's thump), its own axe's chop, the break of a wreck its own hit broke — is
   dulled over the same 0.6 s as the World bus fades: a low-pass falling from 20 kHz to 900 Hz at
   24 dB an octave, eased in log space, and a low shelf under 300 Hz rising to a gain of 1.25 (about
   +4 dB) for the thud's body. No ring, no crack: a dull thunk through glove and helmet. Aboard,
@@ -43,8 +43,9 @@ dead air between chops.
 - Two heroes chopping one wreck each hear only their own blows; a guest watching hears nothing.
 - A wreck a friend breaks in the very frame one's own hit on it runs, refused as the wreck is gone, is
   heard breaking as one's own: a frame's window, on a wreck one was chopping anyway; left be.
-- The action click all but vanishes in space: the placeholder is a high click with almost nothing
-  under 900 Hz (about 40 dB down through the muffle), so catching debris out there is felt by the
-  hotbar alone. A click with a body of its own, or a glove's thump, is the next sound pass's to choose.
+- The action click would all but vanish in space: a high click with almost nothing under 900 Hz
+  (about 40 dB down through the muffle). So while this player's hero floats, an action plays a glove's
+  low thump instead (Faulkin's "LowHit_01", CC0), on the same Suit bus, muffled as all there is; aboard
+  it is the click as before. Both are chosen by the same floating the hearing reads.
 - A hero chopping from an open airlock, aboard, hears its own chop clear, as anything touched in air.
 - Music by place or by moment beyond the spacewalk is still to be decided.

@@ -14,7 +14,8 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   (`hazards`' `MeteorHit`), or a line saying none is left.
 - **Sounds:** a board, shut at the start, with a button for every cue in `Sound.All`, so a new cue
   appears on it unasked. Cues have no names; each is called by its first file under `res://audio/`
-  without its `-1` and extension (`crew/step`, `CueNames`). A one-shot plays at each press, any of its
+  without its `-1` and extension (`crew/step`, `CueNames`), and its tune when it plays another's files
+  at another pitch (the landing, `crew/step ×0.85`). A one-shot plays at each press, any of its
   files as the game picks them; a loop switches on and off, amber while on. Players come from
   `Cues.Player` on the UI bus, heard the same anywhere and through floating's silence; each is the
   panel's child, made at its cue's first press, so no stream loads before one is asked for.

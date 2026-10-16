@@ -6,7 +6,7 @@ the repository is public, so a file must be free to redistribute without attribu
 
 Kenney's and Freesound's files are converted to mono WAV, trimmed and normalised to −3 dBFS peak;
 Freesound's are its public HQ previews of CC0 sounds. The chop's and the break's variants are then matched by the RMS of
-their K-weighted attack (the first 0.15 s of a chop, 0.4 s of a break), the louder turned down. `chop-1`
+their K-weighted attack (the first 0.15 s of a chop, 0.4 s of a break), the louder turned down. The steps (which the landing plays too) are 0.3 s of each recording from its attack, held 0.08 s and then faded to −60 dB; the jump is the push-off of each `Jump_Metal`, 0.33 s from its attack after 0.1 s in, high-passed at 120 Hz, held 0.1 s; the glove's thump in space, `act-space-1`, is all of `LowHit_01` from its attack (0.14 s), held 0.04 s, raised 21 dB to its peak. `chop-1`
 keeps its ring, as the team wanted it; `break-2`'s clipped peaks are rebuilt (ffmpeg `adeclip`) and its top cut from 9 kHz. The vent
 hum and the fire are 20 s of their sources, its tail crossfaded into their heads, encoded as OGG at
 about −20 LUFS. The generated ones
@@ -23,12 +23,16 @@ released under CC0.
 | `building/screwdriver-4.wav` | Freesound, "Single_Ratchet (one of five)", https://freesound.org/people/CallFlan/sounds/495237/ | CallFlan | CC0 |
 | `building/screwdriver-5.wav` | Freesound, "Single_Ratchet (one of five)", https://freesound.org/people/CallFlan/sounds/495238/ | CallFlan | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |
-| `crew/land-1.wav` | Impact Sounds, `impactSoft_heavy_000.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
-| `crew/land-2.wav` | Impact Sounds, `impactSoft_heavy_002.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
-| `crew/step-1.wav` | Impact Sounds, `footstep_concrete_000.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
-| `crew/step-2.wav` | Impact Sounds, `footstep_concrete_001.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
-| `crew/step-3.wav` | Impact Sounds, `footstep_concrete_002.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
-| `crew/step-4.wav` | Impact Sounds, `footstep_concrete_003.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
+| `crew/jump-1.wav` | Freesound, "Jump_Metal_3.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421139/ | GiocoSound | CC0 |
+| `crew/jump-2.wav` | Freesound, "Jump_Metal_1.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421141/ | GiocoSound | CC0 |
+| `crew/jump-3.wav` | Freesound, "Jump_Metal_4.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421142/ | GiocoSound | CC0 |
+| `crew/jump-4.wav` | Freesound, "Jump_Metal_5.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421143/ | GiocoSound | CC0 |
+| `crew/step-1.wav` | Freesound, "Boots_On_Hollow_Metal_Deep_01", https://freesound.org/people/BlondPanda/sounds/778399/ | BlondPanda | CC0 |
+| `crew/step-2.wav` | Freesound, "Boots_On_Hollow_Metal_Deep_02", https://freesound.org/people/BlondPanda/sounds/778400/ | BlondPanda | CC0 |
+| `crew/step-3.wav` | Freesound, "Boots_On_Hollow_Metal_Deep_03", https://freesound.org/people/BlondPanda/sounds/778401/ | BlondPanda | CC0 |
+| `crew/step-4.wav` | Freesound, "Boots_On_Hollow_Metal_Deep_04", https://freesound.org/people/BlondPanda/sounds/778402/ | BlondPanda | CC0 |
+| `crew/step-5.wav` | Freesound, "Boots_On_Hollow_Metal_Deep_05", https://freesound.org/people/BlondPanda/sounds/778403/ | BlondPanda | CC0 |
+| `crew/step-6.wav` | Freesound, "Boots_On_Hollow_Metal_Deep_06", https://freesound.org/people/BlondPanda/sounds/778404/ | BlondPanda | CC0 |
 | `debris/break-1.wav` | Freesound, "Car Crash (with Glass)", https://freesound.org/people/magnuswaker/sounds/592388/ | magnuswaker | CC0 |
 | `debris/break-2.wav` | Freesound, "Loud Bang Crashing Metal Chunk Dropped in Metal Dumpster", https://freesound.org/people/qubodup/sounds/859154/ | qubodup | CC0 |
 | `debris/break-3.wav` | Freesound, "metallic crash.wav", https://freesound.org/people/BehanSean/sounds/422438/ | BehanSean | CC0 |
@@ -42,6 +46,7 @@ released under CC0.
 | `grid/valve-2.wav` | Freesound, "Squeak Rusty Metal Water Tap", https://freesound.org/people/brunoboselli/sounds/441096/ | brunoboselli | CC0 |
 | `grid/valve-3.wav` | Freesound, "Squeak Rusty Metal Water Tap", https://freesound.org/people/brunoboselli/sounds/441096/ | brunoboselli | CC0 |
 | `hands/act-1.wav` | Freesound, "Lego Click (short)", https://freesound.org/people/ImmergoMedia/sounds/670000/ | ImmergoMedia | CC0 |
+| `hands/act-space-1.wav` | Freesound, "LowHit_01.wav", https://freesound.org/people/Faulkin/sounds/336495/ | Faulkin | CC0 |
 | `music/space-1.ogg` | generated for Stillwake: the synthesised drone "Wreck" (v2), 80 s looping seamlessly, about −18 LUFS; a placeholder for the bed of space (ADR 0042) until the team writes its own | Stillwake team | CC0 |
 | `music/title-1.ogg` | made by the team with Suno (suno.com) on its free plan, 2026-10-16, normalised to about −18 LUFS | Stillwake team | Suno Basic, non-commercial: replace before sale |
 | `ui/click-1.wav` | Interface Sounds, `click_002.ogg`, https://kenney.nl/assets/interface-sounds | Kenney | CC0 |

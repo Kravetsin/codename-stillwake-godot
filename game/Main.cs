@@ -732,7 +732,7 @@ public partial class Main : Node2D, ITogether
     {
         if (view == null) return null;
         var hero = view.Current;
-        return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(_m.Grid.Width));
+        return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(_m.Grid.Width), view.Floats);
     }
 
     /// <summary>The plan, cables and overlays (<see cref="Hands"/>): the hero's body sways the cables.</summary>

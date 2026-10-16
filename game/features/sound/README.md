@@ -7,7 +7,8 @@ The first sound pass (ADR 0033), and what is heard in space (0042). Presentation
 | ------------------------------ | ---------------------------------------------------------------------------------------------- | ----- |
 | `game/Content/Sound.cs`        | every cue's files and volume, the bus names, the muffle's, the bed's and the alarm's tunables  | no    |
 | `game/default_bus_layout.tres` | the buses: Master → UI, Ambient, Music, Effects → World (a low-pass), Suit (a low-pass and a low shelf), Helmet | — |
-| `game/shared/Cues.cs`          | a cue's stream (a randomizer over its files, ±6% pitch, or a loop) and its players              | yes   |
+| `game/shared/Cues.cs`          | a cue's stream (a randomizer over its files, ±6% pitch, or a loop) and its players, at its tune | yes   |
+| `game/shared/ActSound.cs`      | an action's sound on Suit: the click aboard, the glove's thump floating; crew and items each hold one | yes   |
 | `game/shared/Heard2D.cs`       | a sound placed in the world, as loud as its distance from the screen's middle says              | yes   |
 | `Hearing.cs`                   | the buses at a share of the way into space (`Mix`), and the easing of a share                   | no    |
 | `SoundView.cs`                 | the hearing: button clicks, the muffle while floating, the title's music and the bed of space   | yes   |
@@ -35,10 +36,18 @@ The first sound pass (ADR 0033), and what is heard in space (0042). Presentation
 - **Clicks:** every `BaseButton` in the tree, found once on `_Ready` and then by `SceneTree.NodeAdded`,
   its `Pressed` connected once (a reparented button enters the tree again).
 - **Hooks elsewhere**, each feature owning its players as children, never in a static:
-  - `crew/Figure.cs` — a step at each half stride walking or running, a landing from the air; all on
-    World: this player's hero heard the same anywhere, the others' positional (`AudioStreamPlayer2D`).
-  - `crew/HeroView.cs` and `items/ItemsView.cs` — on Suit, the one soft action click (`Sound.Act`): a
-    crate opened, a canister loaded, debris caught, an item picked up.
+  - `crew/Figure.cs` — boots on the hollow metal deck: a step at each half stride walking or running;
+    a jump's push-off (`Sound.Jump`) as the hero leaves the deck or a ladder rising at least half a
+    jump's speed (`Poses.Jumped`), so walking off an edge, falling, makes none; a landing coming down
+    from the air (`Poses.Landed`), not at a jump's top where the controller leaves a step without
+    speed. The landing is the steps' own files, 4 dB louder and at 0.85 of their pitch (`Cue.Tune`).
+    All on World: this player's hero heard the same anywhere, the others' positional
+    (`AudioStreamPlayer2D`), their jumps read from their sent motion as their own peer's are; nothing
+    new goes over the wire.
+  - `crew/HeroView.cs` and `items/ItemsView.cs` — on Suit, through `ActSound`: the one soft action click
+    (`Sound.Act`) for a crate opened, a canister loaded, debris caught, an item picked up; while this
+    player's hero floats (`HeroView.Floats`, which the hearing reads too) the glove's low thump
+    (`Sound.ActInSpace`) in its place, dulled by the Suit muffle like all there is (0042).
   - `grid/GridView.cs` — on World, where it stands: a door opening or closing (once, at its top cell)
     and a valve turned, found as the drawing catches up with the grid, so anyone's are heard and this
     player's own at once (0014).
@@ -62,8 +71,9 @@ The first sound pass (ADR 0033), and what is heard in space (0042). Presentation
 - Music in a world beyond the spacewalk; volume sliders (the bus names are their contract).
 - Reverb by room size, occlusion by walls, Doppler; one hiss however many breaches vent.
 - Silence by the room's air: only floating mutes the world (0033).
-- Other heroes' clicks and alarms; a sound for the swing itself; jump, swim, passing out, plans placed
+- Other heroes' clicks and alarms; a sound for the swing itself; swim, passing out, plans placed
   and finished, the analyzer and the pod, the inventory and the hand-drawn controls (`SlotBox`,
   hotbar): later passes.
-- The action click in space: a high click, it all but vanishes through the muffle (0042).
+- A jump with its head against a ceiling at once has no speed to read and is silent; another's jump
+  heard more than ten steps into its rise (a send held up that long) is missed.
 - A loop still playing as the game quits is reported by Godot as leaked at exit; harmless.

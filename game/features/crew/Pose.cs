@@ -144,6 +144,23 @@ public static class Poses
         return Math.Abs(hero.Vx) > Stillwake.Content.Hero.Walk ? Pose.Run : Pose.Walk;
     }
 
+    /// <summary>
+    /// Whether <paramref name="hero"/>, in <paramref name="now"/> after <paramref name="was"/>, has just
+    /// jumped: off the deck or a ladder into the air, rising at least half a jump's push. Walking off an
+    /// edge leaves the hero falling, not rising. Read from the motion alone, so others' heroes, seen up to
+    /// a send late and a few steps into the rise, jump as their own peer saw them.
+    /// </summary>
+    public static bool Jumped(Pose? was, Pose now, Hero hero) =>
+        was is Pose.Stand or Pose.Walk or Pose.Run or Pose.Climb && now == Pose.Air && hero.Vy <= -Stillwake.Content.Hero.Jump / 2;
+
+    /// <summary>
+    /// Whether the hero has just landed, in <paramref name="now"/> after <paramref name="was"/>, having last
+    /// fallen at <paramref name="fall"/> in the air. At a jump's top, or with its head against a ceiling, the
+    /// controller leaves it no speed for a step, which reads as standing; it lands only coming down.
+    /// </summary>
+    public static bool Landed(Pose? was, Pose now, int fall) =>
+        was == Pose.Air && now is Pose.Stand or Pose.Walk or Pose.Run && fall > 0;
+
     private static Bend B(double upper, double lower) => new(upper, lower);
     private static double Positive(double n) => Math.Max(0, n);
 

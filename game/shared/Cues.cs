@@ -26,13 +26,14 @@ public static class Cues
 
     /// <summary>A player of <paramref name="cue"/> heard the same anywhere, on <paramref name="bus"/>.</summary>
     public static AudioStreamPlayer Player(S.Cue cue, string bus, int voices = 1) =>
-        new() { Stream = Of(cue), VolumeDb = cue.VolumeDb, Bus = bus, MaxPolyphony = voices };
+        new() { Stream = Of(cue), VolumeDb = cue.VolumeDb, PitchScale = cue.Tune, Bus = bus, MaxPolyphony = voices };
 
     /// <summary>A player of <paramref name="cue"/> heard from where it is placed, panned from the screen's middle and fading as its <see cref="S.Reach"/> says.</summary>
     public static Heard2D Player2D(S.Cue cue, string bus, int voices = 1) =>
         new Heard2D(cue.Heard ?? throw new System.ArgumentException("a cue placed in the world needs its reach", nameof(cue)), cue.VolumeDb)
         {
             Stream = Of(cue),
+            PitchScale = cue.Tune,
             Bus = bus,
             MaxPolyphony = voices,
         };

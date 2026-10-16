@@ -12,8 +12,8 @@ namespace Stillwake.Game.Features.Crew;
 /// and two legs that bend at shoulders and elbows, hips and knees, each part a picture from
 /// <c>art/hero_*.png</c> recoloured into its suit (<see cref="Wear"/>), lit where it stands as everything
 /// in the ship is, the rig moving and turning the parts smoothly. <see cref="Show"/> places it at the
-/// hero's feet and poses it, its boots heard stepping and landing and kicking up dust: this player's own
-/// hero heard the same anywhere, any other from where it is in the world; neither while floating.
+/// hero's feet and poses it, its boots heard stepping, jumping and landing and kicking up dust: this
+/// player's own hero heard the same anywhere, any other from where it is in the world; neither while floating.
 /// </summary>
 public partial class Figure : Node2D
 {
@@ -134,13 +134,14 @@ public partial class Figure : Node2D
     private int? _step;
     /// <summary>How fast the hero last fell, thousandths of a cell a step: how hard it lands.</summary>
     private int _fall;
-    private readonly Action _stepped, _landed;
+    private readonly Action _stepped, _landed, _jumped;
 
     /// <param name="own">Whether it is this player's hero, heard on the suit rather than in the world.</param>
     public Figure(int colour, bool own)
     {
         _stepped = Voice(S.Step, own);
         _landed = Voice(S.Land, own);
+        _jumped = Voice(S.Jump, own);
         _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
         _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
         _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
@@ -321,8 +322,9 @@ public partial class Figure : Node2D
         _outMs += elapsedMs;
         // Where the feet are, in pixels of the world.
         double feetX = (double)hero.X / Hero.Unit * Rig.Cell, feetY = (double)hero.Y / Hero.Unit * Rig.Cell;
+        if (Poses.Jumped(_wasPose, pose, hero)) _jumped();
         if (pose == Pose.Air) _fall = Math.Max(0, hero.Vy);
-        if (_wasPose == Pose.Air && pose is Pose.Stand or Pose.Walk or Pose.Run)
+        if (Poses.Landed(_wasPose, pose, _fall))
         {
             _landingMs = Poses.Land.Ms;
             _landed();

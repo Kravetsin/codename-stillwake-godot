@@ -7,7 +7,6 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
 using Stillwake.Sim.Rooms;
-using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Items;
 
@@ -21,7 +20,7 @@ public partial class ItemsView : Node2D
 {
     private readonly FloorLayer _floor = new();
     private readonly PickUpPopups _popups = new();
-    private readonly AudioStreamPlayer _pick = Cues.Player(S.Act, S.Suit, voices: 2);
+    private readonly ActSound _pick = new();
 
     /// <summary>Where the hero stood last frame, and the grid read then: for scripted runs.</summary>
     public HeroSpot? Hero { get; private set; }
@@ -75,7 +74,7 @@ public partial class ItemsView : Node2D
                 var stack = items.Floor.First(s => s.Id == id);
                 _popups.Add(stack.Item, items.PickUpAmount(client.Id, id));
                 client.Send(new PickUp(id));
-                _pick.Play();
+                _pick.Play(spot.Floats);
             }
             _popups.Update(elapsedMs, spot.X, spot.Y);
         }
