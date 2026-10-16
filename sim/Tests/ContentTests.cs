@@ -153,6 +153,14 @@ public class ContentTests
         Assert.True(Floor.Gravity < Floor.MaxFall);
     }
 
+    [Fact]
+    public void TheFloorPushesAStackOutOfAHullCornerAndTheMiddleOfAnyMachine()
+    {
+        // A hull corner is two steps from the room; a machine's middle half its narrower side, rounded up.
+        Assert.True(Floor.PushReach >= 2);
+        foreach (var m in Machines.All) Assert.True(Floor.PushReach >= (Math.Min(m.Width, m.Height) + 1) / 2, m.Kind);
+    }
+
     // Fuel
 
     [Fact]

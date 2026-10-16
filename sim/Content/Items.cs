@@ -88,4 +88,10 @@ public static class Floor
     /// as debris does: past the grid's edge it is gone, thrown away.
     /// </summary>
     public const int SpaceDrift = 30;
+
+    /// <summary>
+    /// How many steps through what is built a stack inside it is pushed out to the nearest room cell:
+    /// past a wall's thickness and out of the middle of the largest machine.
+    /// </summary>
+    public const int PushReach = 3;
 }

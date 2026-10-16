@@ -86,7 +86,8 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 - A plan's progress stays below its ticks: the tick that reaches them completes it.
 - Items are conserved across inventories, the floor, blueprints and what is built, but for what
   drifts off the grid from space (Items' floor rules): a delivery cancelled, or a refund that does not
-  fit, in or by a breached hull.
+  fit, out in space, or in a wall with no room within `Floor.PushReach`. One in the hull is pushed
+  out into the room beside it.
 
 ## Deliberately not handled
 
