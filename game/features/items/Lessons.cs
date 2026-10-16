@@ -17,14 +17,13 @@ public sealed record Lesson(Recipe Recipe, bool Opened)
         ? p.Material is { } m ? $"{T($"tool.{p.Kind}")}: {T($"material.{m}")}" : T($"tool.{p.Kind}")
         : T($"item.{Recipe.Id}");
 
-    /// <summary>The one tooltip over its picture: opened, or each item still to analyse, or that analysis cannot open it yet.</summary>
+    /// <summary>The one tooltip over its picture: opened, or each item still to analyse.</summary>
     public Tip Tip
     {
         get
         {
             if (Opened) return new Tip(Name, new TipLine(T("research.opened"), Tone.Good));
             var lines = Recipe.Unanalysed.Select(item => new TipLine(T("research.notAnalysed", ("item", T($"item.{item}"))), Tone.Unknown, item)).ToList();
-            if (Recipe.Locked && lines.Count == 0) lines.Add(new TipLine(T("research.locked"), Tone.Dim));
             return new Tip(Name, lines);
         }
     }

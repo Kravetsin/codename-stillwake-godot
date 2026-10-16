@@ -253,10 +253,24 @@ public class ContentTests
         foreach (var (item, hp) in Wreckage.All)
         {
             Assert.Contains(item, DebrisSpec.Kinds.Select(k => k.Item));
-            Assert.True(Content.Items.TryGet(item, out _), item);
-            Assert.NotNull(Loot.Of(item));
+            Assert.True(Content.Items.TryGet(item, out var spec), item);
+            // Never carried: broken where it drifts, a stack of one only to be named.
+            Assert.Equal(1, spec!.Stack);
+            Assert.NotEmpty(Loot.Of(item) ?? []);
             Assert.True(hp > Axe.Damage, item);
         }
+    }
+
+    [Fact]
+    public void CircuitsComeFromCableRacksAloneOneEachAlwaysAndTheSolarPanelTakesSeveral()
+    {
+        var sources = Loot.All.Where(l => l.Entries.Any(e => e.Item == "circuit")).Select(l => l.Container);
+        Assert.Equal(["cableRack"], sources);
+        Assert.Equal(new LootEntry("circuit", 1, 1), Loot.Of("cableRack")!.Single(e => e.Item == "circuit"));
+        Assert.False(Crafts.TryGet("circuit", out _));
+        Assert.Null(Content.Items.Get("circuit").Yields);
+        int panel = Machines.Get("solarPanel").Cost.Single(c => c.Item == "circuit").Count;
+        Assert.True(panel > 1, $"the panel takes {panel}");
     }
 
     [Fact]
@@ -409,12 +423,11 @@ public class ContentTests
     }
 
     [Fact]
-    public void ResearchGrantsAndLocksOnlyBlueprintsAndCraftsThereAreNamingNoneTwice()
+    public void ResearchGrantsOnlyBlueprintsAndCraftsThereAreNamingNoneTwice()
     {
         var names = Blueprints().Concat(Crafts.All.Select(c => c.Item)).ToList();
         Assert.Equal(names.Count, names.Distinct().Count());
-        foreach (var id in Content.Research.StartKnown.Concat(Content.Research.Locked)) Assert.Contains(id, names);
-        Assert.Empty(Content.Research.StartKnown.Intersect(Content.Research.Locked));
+        foreach (var id in Content.Research.StartKnown) Assert.Contains(id, names);
     }
 
     // Crafts
