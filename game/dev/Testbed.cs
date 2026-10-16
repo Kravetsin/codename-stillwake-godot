@@ -13,6 +13,9 @@ namespace Stillwake.Game.Dev;
 /// </summary>
 public static class Testbed
 {
+    /// <summary>Every item a hero can carry: wreckage is an item only to drift and burst, never held (0041).</summary>
+    public static IEnumerable<ItemSpec> Carried => Items.All.Where(i => Wreckage.HpOf(i.Id) == null);
+
     /// <summary>
     /// Room one holds the lifepod and the air: a tank with a canister and a generator piped to a vent
     /// in each room; room two the furnace, the crate and the analyzer; then the airlock, no vent in it.
@@ -74,7 +77,7 @@ public static class Testbed
         items["creative"] = true;
         var held = new List<JsonObject>
         {
-            new() { ["id"] = Id("crate"), ["slots"] = Slots("crate", Items.All.Select(i => Stack(i.Id, i.Stack))) },
+            new() { ["id"] = Id("crate"), ["slots"] = Slots("crate", Carried.Select(i => Stack(i.Id, i.Stack))) },
             new()
             {
                 ["id"] = Id("furnace"),

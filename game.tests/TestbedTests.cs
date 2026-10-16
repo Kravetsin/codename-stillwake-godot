@@ -28,12 +28,14 @@ public class TestbedTests
     }
 
     [Fact]
-    public void ItsCrateHoldsAFullStackOfEveryItem()
+    public void ItsCrateHoldsAFullStackOfEveryItemAHeroCanCarryAndNoWreckage()
     {
-        Assert.True(Spec.Items.All.Count <= Spec.Machines.Get("crate").Slots);
+        Assert.True(Testbed.Carried.Count() <= Spec.Machines.Get("crate").Slots);
         var m = Built.Value;
         var crate = m.Items.Crate(IdOf(m, "crate"));
-        Assert.All(Spec.Items.All, item => Assert.Contains(new Stack(item.Id, item.Stack), crate));
+        Assert.All(Testbed.Carried, item => Assert.Contains(new Stack(item.Id, item.Stack), crate));
+        Assert.DoesNotContain(crate, stack => stack is { } s && Spec.Wreckage.HpOf(s.Item) != null);
+        Assert.Contains(crate, stack => stack is { Item: "circuit" });
     }
 
     [Fact]
