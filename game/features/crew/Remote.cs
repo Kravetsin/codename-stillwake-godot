@@ -6,10 +6,21 @@ using System.Text.Json.Serialization;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// A hero as others see it: its movement, the turn of its head toward its pointer, and whether it holds
-/// the plan. Only drawn, never part of the world.
+/// A hero as others see it: its movement, the turn of its head toward its pointer, whether it holds the
+/// plan, the item it wields (an item's id, such as the fire axe's) and what its hands are busy with.
+/// Only drawn, never part of the world.
 /// </summary>
-public readonly record struct Seen(Hero Hero, double? Look = null, bool HoldsPlan = false);
+public readonly record struct Seen(Hero Hero, double? Look = null, bool HoldsPlan = false, string? Wields = null, Busy? Busy = null);
+
+/// <summary>What a hero's hands work: a plan with the screwdriver (0030), a wreck with what they wield (0034), plans beamed in by the planner.</summary>
+public enum Handwork { Work, Chop, Beam }
+
+/// <summary>What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's own position.</summary>
+public readonly record struct Busy(Handwork Work, Point At)
+{
+    /// <summary>Whether <paramref name="now"/> is a beam not shown yet: a beam is sent for as long as it fades, and drawn once.</summary>
+    public static bool BeamsAnew(Busy? was, Busy? now) => now is { Work: Handwork.Beam } && now != was;
+}
 
 /// <summary>A hero as sent (<c>SentHero</c> of remote.ts): stamped with the time of the controller step it stands at, on its own clock.</summary>
 public readonly record struct SentHero(Seen Seen, double? At = null)
@@ -18,16 +29,20 @@ public readonly record struct SentHero(Seen Seen, double? At = null)
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // By name: a garbled kind of work is no hero, rather than work no figure knows.
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false) },
     };
 
+    // Left out while null: a hero with idle, empty hands is written as before there were hands to send.
     private sealed record Wire(
-        int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor, double? Look, bool Plan, double? At);
+        int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor, double? Look, bool Plan, double? At,
+        string? Wields = null, Busy? Busy = null);
 
     /// <summary>What <c>Client.SendHero</c> carries: net never reads it.</summary>
     public string Encode()
     {
         var h = Seen.Hero;
-        return JsonSerializer.Serialize(new Wire(h.X, h.Y, h.Vx, h.Vy, h.Climbing, h.Facing, h.Anchor, Seen.Look, Seen.HoldsPlan, At), Options);
+        return JsonSerializer.Serialize(new Wire(h.X, h.Y, h.Vx, h.Vy, h.Climbing, h.Facing, h.Anchor, Seen.Look, Seen.HoldsPlan, At, Seen.Wields, Seen.Busy), Options);
     }
 
     /// <summary>A hero another peer sent, as <see cref="Encode"/> wrote it; none for what it did not write.</summary>
@@ -36,7 +51,7 @@ public readonly record struct SentHero(Seen Seen, double? At = null)
         try
         {
             if (JsonSerializer.Deserialize<Wire>(state, Options) is not { Facing: 1 or -1 } w) return null;
-            return new SentHero(new Seen(new Hero(w.X, w.Y, w.Vx, w.Vy, w.Climbing, w.Facing, w.Anchor), w.Look, w.Plan), w.At);
+            return new SentHero(new Seen(new Hero(w.X, w.Y, w.Vx, w.Vy, w.Climbing, w.Facing, w.Anchor), w.Look, w.Plan, w.Wields, w.Busy), w.At);
         }
         catch (JsonException)
         {
@@ -182,9 +197,8 @@ public sealed class HeroSender(Action<SentHero> send)
         if (_sinceSent < RemoteHeroes.SendMs) return;
         bool moved = _sent is not { } was
             // Speed too: a hero that stops is sent standing, not left mid-stride until the beat. A
-            // tether tied or let go is news even to a hero standing still.
-            || was.Hero != seen.Hero
-            || was.HoldsPlan != seen.HoldsPlan
+            // tether tied or let go, the plan or a tool taken out, work begun or ended: news even standing still.
+            || was with { Look = seen.Look } != seen
             || Math.Abs((was.Look ?? 0) - (seen.Look ?? 0)) > LookStep;
         if (!moved && _sinceSent < RemoteHeroes.BeatMs) return;
         send(new SentHero(seen, at));
