@@ -5,11 +5,13 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Dev;
 
@@ -36,6 +38,7 @@ public partial class DevPanel : CanvasLayer
     private readonly Label _fps = Text(Style.Slate400), _status = Text(Style.Slate400);
     private readonly GridContainer _readings = new() { Columns = 2 };
     private readonly VBoxContainer _slices = new();
+    private readonly HFlowContainer _sounds = Style.Gap(new HFlowContainer { Visible = false }, 4);
     private readonly Button _speed, _creative;
     private readonly HashSet<string> _expanded = [];
     private readonly Dictionary<string, (Button Toggle, ScrollContainer Box, Label Json)> _entries = [];
@@ -75,6 +78,16 @@ public partial class DevPanel : CanvasLayer
         column.AddChild(buttons);
         column.AddChild(_status);
         Say("");
+        // Shut at the start: open, the board takes a third of a 720-pixel screen.
+        var sounds = Toggle("▸ sounds", Style.Slate400);
+        sounds.Pressed += () =>
+        {
+            _sounds.Visible = !_sounds.Visible;
+            sounds.Text = $"{(_sounds.Visible ? "▾" : "▸")} sounds";
+        };
+        column.AddChild(sounds);
+        foreach (var cue in S.All) _sounds.AddChild(SoundButton(cue));
+        column.AddChild(_sounds);
         var heading = Text(Style.Slate400);
         heading.Text = "modules";
         column.AddChild(heading);
@@ -201,12 +214,44 @@ public partial class DevPanel : CanvasLayer
         }
     }
 
-    private (Button, ScrollContainer, Label) Entry(string id)
+    /// <summary>
+    /// A cue played on the UI bus, so floating's silence leaves it heard: a one-shot at each press, a loop
+    /// on and off. Its player is made at the first press, so no stream loads before a sound is asked for.
+    /// </summary>
+    private Button SoundButton(S.Cue cue)
     {
-        var toggle = new Button { Flat = true, FocusMode = Control.FocusModeEnum.None, Alignment = HorizontalAlignment.Left };
+        AudioStreamPlayer? player = null;
+        Button button = null!;
+        bool on = false;
+        button = Style.Button(CueNames.Of(cue), () =>
+        {
+            if (player == null) AddChild(player = Cues.Player(cue, S.Ui));
+            if (!cue.Loops)
+            {
+                player.Play();
+                return;
+            }
+            on = !on;
+            if (on) player.Play();
+            else player.Stop();
+            Style.Paint(button, on ? Style.Amber700 : Style.Slate700, on ? Amber600 : Style.Slate600, 6, 2);
+        }, size: 11, padX: 6, padY: 2);
+        return button;
+    }
+
+    /// <summary>A flat line that opens and closes what is under it.</summary>
+    private static Button Toggle(string text, Color colour)
+    {
+        var toggle = new Button { Text = text, Flat = true, FocusMode = Control.FocusModeEnum.None, Alignment = HorizontalAlignment.Left };
         toggle.AddThemeFontOverride("font", Style.Mono);
         toggle.AddThemeFontSizeOverride("font_size", 12);
-        foreach (string state in new[] { "font_color", "font_hover_color", "font_pressed_color" }) toggle.AddThemeColorOverride(state, Style.Slate300);
+        foreach (string state in new[] { "font_color", "font_hover_color", "font_pressed_color" }) toggle.AddThemeColorOverride(state, colour);
+        return toggle;
+    }
+
+    private (Button, ScrollContainer, Label) Entry(string id)
+    {
+        var toggle = Toggle("", Style.Slate300);
         toggle.Pressed += () =>
         {
             if (!_expanded.Remove(id)) _expanded.Add(id);

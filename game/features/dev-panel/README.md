@@ -12,12 +12,24 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
 - **Controls:** the world's speed ×4 and back, creative mode (`items`' `SetCreative`, read at the
   click so two quick clicks switch it back), and a meteor on a random wall of the outer hull
   (`hazards`' `MeteorHit`), or a line saying none is left.
+- **Sounds:** a board, shut at the start, with a button for every cue in `Sound.All`, so a new cue
+  appears on it unasked. Cues have no names; each is called by its first file under `res://audio/`
+  without its `-1` and extension (`crew/step`, `CueNames`). A one-shot plays at each press, any of its
+  files as the game picks them; a loop switches on and off, amber while on. Players come from
+  `Cues.Player` on the UI bus, heard the same anywhere and through floating's silence; each is the
+  panel's child, made at its cue's first press, so no stream loads before one is asked for.
 
 ## Files
 
-| File          | Holds                         | Godot |
-| ------------- | ----------------------------- | ----- |
-| `DevPanel.cs` | the panel, its readouts and buttons | yes   |
+| File          | Holds                                          | Godot |
+| ------------- | ---------------------------------------------- | ----- |
+| `DevPanel.cs` | the panel, its readouts, buttons and sound board | yes   |
+| `CueNames.cs` | what the sound board calls a cue               | no    |
+
+## Accepted limitations
+
+- A loop switched on keeps playing while the panel is hidden, until it is switched off: hiding the
+  panel is how one hears it over the game.
 
 ## Differences from the TypeScript
 
@@ -26,3 +38,4 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
 - Save and load are the game menu's (`game/menu`), not the panel's.
 - A slice shows its saved state only: derived state is never saved, where the TypeScript panel also
   showed a module's derived `Map`s and typed arrays.
+- The sound board is new: the TypeScript game had no sound.
