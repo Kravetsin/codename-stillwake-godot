@@ -6,40 +6,46 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Sound;
 
 /// <summary>
-/// The hearing (ADR 0033): a click for every button, and floating in space silence — the World bus's
-/// low-pass falling as it fades out; only the Suit bus is left. Reads whether this player's hero floats
-/// ten times a second and eases every frame.
+/// The hearing (ADR 0033, 0042): a click for every button; floating in space, the World bus's low-pass
+/// falling as it fades out, the Suit bus dulled to a thud, the Helmet bus left clear, and a quiet bed of
+/// music fading in; the title's music while the title is up. Reads whether this player's hero floats ten
+/// times a second and eases every frame.
 /// </summary>
 public partial class SoundView : Node
 {
     private const double ReadS = 0.1;
 
-    private readonly Func<bool> _muffled, _title;
-    private readonly AudioStreamPlayer _music = Cues.Player(S.Title, S.Music);
-    private double _musicShare;
+    private readonly Func<bool> _floats, _title;
+    private readonly AudioStreamPlayer _music = Cues.Player(S.Title, S.Music), _space = Cues.Player(S.Space, S.Music);
+    private double _musicShare, _spaceShare;
     private readonly AudioStreamPlayer _click = Cues.Player(S.Click, S.Ui, voices: 2);
     private Callable _onPressed;
-    private AudioEffectLowPassFilter _lowPass = null!;
+    private AudioEffectLowPassFilter _worldLowPass = null!, _suitLowPass = null!;
+    private AudioEffectLowShelfFilter _suitLows = null!;
     private int _world;
     private bool _heard;
     private double _sinceRead = ReadS, _muffle;
 
-    /// <param name="muffled">Whether this player's placed hero floats out in space.</param>
+    /// <param name="floats">Whether this player's placed hero floats out in space: the world falls silent and the bed of space plays.</param>
     /// <param name="title">Whether the title is shown: its music plays while it is (0035).</param>
-    public SoundView(Func<bool> muffled, Func<bool> title)
+    public SoundView(Func<bool> floats, Func<bool> title)
     {
-        (_muffled, _title) = (muffled, title);
+        (_floats, _title) = (floats, title);
         // Heard behind the game menu as well.
         ProcessMode = ProcessModeEnum.Always;
         AddChild(_click);
         AddChild(_music);
+        AddChild(_space);
     }
 
     public override void _Ready()
     {
         _world = AudioServer.GetBusIndex(S.World);
-        _lowPass = (AudioEffectLowPassFilter)AudioServer.GetBusEffect(_world, 0);
-        // The AudioServer outlives a scene reload: the title must not stay dulled from a world left out of air.
+        _worldLowPass = (AudioEffectLowPassFilter)AudioServer.GetBusEffect(_world, 0);
+        int suit = AudioServer.GetBusIndex(S.Suit);
+        _suitLowPass = (AudioEffectLowPassFilter)AudioServer.GetBusEffect(suit, 0);
+        _suitLows = (AudioEffectLowShelfFilter)AudioServer.GetBusEffect(suit, 1);
+        // The AudioServer outlives a scene reload: the title must not stay dulled from a world left floating.
         Hear();
         _onPressed = new Callable(this, MethodName.Click);
         GetTree().NodeAdded += Added;
@@ -53,12 +59,15 @@ public partial class SoundView : Node
         if ((_sinceRead += delta) >= ReadS)
         {
             _sinceRead = 0;
-            _heard = _muffled();
+            _heard = _floats();
         }
-        _muffle = Toward(_muffle, _heard ? 1 : 0, delta * 1000 / S.MuffleMs);
+        double muffleS = S.MuffleMs / 1000.0;
+        _muffle = Hearing.Ease(_muffle, _heard, delta, muffleS, muffleS);
         Hear();
-        _musicShare = Toward(_musicShare, _title() ? 1 : 0, delta / S.MusicFadeS);
+        _musicShare = Hearing.Ease(_musicShare, _title(), delta, S.MusicFadeS, S.MusicFadeS);
         Play(_music, _musicShare, S.Title.VolumeDb);
+        _spaceShare = Hearing.Ease(_spaceShare, _heard, delta, S.SpaceInS, S.SpaceOutS);
+        Play(_space, _spaceShare, S.Space.VolumeDb);
     }
 
     /// <summary>A loop at <paramref name="share"/> of its volume: playing while heard at all, stopped once silent.</summary>
@@ -73,16 +82,15 @@ public partial class SoundView : Node
         if (!loop.Playing) loop.Play();
     }
 
-    /// <summary>The World bus as dulled and faded as the hearing is now; the cutoff eased in log space, so it dulls evenly across the octaves.</summary>
+    /// <summary>The World and Suit buses as dulled as the hearing is now (<see cref="Hearing.At"/>).</summary>
     private void Hear()
     {
-        double hz = Math.Exp(Math.Log(S.ClearHz) + (Math.Log(S.MuffledHz) - Math.Log(S.ClearHz)) * _muffle);
-        _lowPass.CutoffHz = (float)hz;
-        AudioServer.SetBusVolumeDb(_world, Mathf.LinearToDb((float)Math.Max(1 - _muffle, 1e-4)));
+        var mix = Hearing.At(_muffle);
+        _worldLowPass.CutoffHz = (float)mix.WorldHz;
+        AudioServer.SetBusVolumeDb(_world, Mathf.LinearToDb((float)mix.WorldGain));
+        _suitLowPass.CutoffHz = (float)mix.SuitHz;
+        _suitLows.Gain = (float)mix.SuitLows;
     }
-
-    private static double Toward(double from, double to, double step) =>
-        from < to ? Math.Min(to, from + step) : Math.Max(to, from - step);
 
     private void Scan(Node node)
     {

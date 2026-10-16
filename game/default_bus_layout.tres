@@ -4,6 +4,15 @@
 resource_name = "LowPassFilter"
 cutoff_hz = 20000.0
 
+[sub_resource type="AudioEffectLowPassFilter" id="AudioEffectLowPassFilter_suit"]
+resource_name = "LowPassFilter"
+cutoff_hz = 20000.0
+db = 3
+
+[sub_resource type="AudioEffectLowShelfFilter" id="AudioEffectLowShelfFilter_suit"]
+resource_name = "LowShelfFilter"
+cutoff_hz = 300.0
+
 [resource]
 bus/1/name = &"UI"
 bus/1/solo = false
@@ -37,9 +46,19 @@ bus/5/mute = false
 bus/5/bypass_fx = false
 bus/5/volume_db = 0.0
 bus/5/send = &"Effects"
+bus/5/effect/0/effect = SubResource("AudioEffectLowPassFilter_suit")
+bus/5/effect/0/enabled = true
+bus/5/effect/1/effect = SubResource("AudioEffectLowShelfFilter_suit")
+bus/5/effect/1/enabled = true
 bus/6/name = &"Music"
 bus/6/solo = false
 bus/6/mute = false
 bus/6/bypass_fx = false
 bus/6/volume_db = 0.0
 bus/6/send = &"Master"
+bus/7/name = &"Helmet"
+bus/7/solo = false
+bus/7/mute = false
+bus/7/bypass_fx = false
+bus/7/volume_db = 0.0
+bus/7/send = &"Effects"

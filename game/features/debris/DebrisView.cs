@@ -16,8 +16,8 @@ namespace Stillwake.Game.Features.Debris;
 /// and out at its end; behind the hull, since it never collides with it (0006). The piece the crew's
 /// hands would work is outlined, green while they would and red while the sim would refuse it
 /// (<see cref="Ui.AimedPiece"/>); a piece this peer is grabbing is gone at once (0014). Every piece shows
-/// the share of its hit points lost as cracks (<see cref="Cracks"/>, 0034); each hit jolts it, throws
-/// sparks and is heard where it is, and a wreck broken bursts apart, for every peer alike.
+/// the share of its hit points lost as cracks (<see cref="Cracks"/>, 0034); each hit jolts it and throws
+/// sparks, and a wreck broken bursts apart, for every peer alike; only this player's own hits are heard (0042).
 /// </summary>
 public partial class DebrisView(Ui ui) : Node2D
 {
@@ -48,6 +48,7 @@ public partial class DebrisView(Ui ui) : Node2D
     /// <summary>The piece aimed at, outlined over the rest.</summary>
     private readonly Outline _aimed = new(1);
     private readonly Heard2D _chop = Cues.Player2D(S.Chop, S.Suit, voices: 4), _break = Cues.Player2D(S.Break, S.Suit, voices: 2);
+    private readonly OwnHits _own = new();
     private double _clockMs;
     private readonly HashSet<int> _ids = [];
     private readonly List<int> _gone = [];
@@ -72,6 +73,7 @@ public partial class DebrisView(Ui ui) : Node2D
     {
         _clockMs += elapsedMs;
         Pieces = debris.Pieces;
+        _own.Read(client.InFlight);
         var grabbed = Predicted.Grabbing(client.InFlight);
         // Kept between frames, refilled: a frame allocates nothing here.
         _ids.Clear();
@@ -84,7 +86,7 @@ public partial class DebrisView(Ui ui) : Node2D
         foreach (int id in _gone)
         {
             var gone = _shown[id];
-            if (Fading.Broken(gone.Damage, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick)) Burst(gone.Picture.Position);
+            if (Fading.Broken(gone.Damage, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick)) Burst(gone.Picture.Position, _own.Ran(id));
             gone.Picture.QueueFree();
             _shown.Remove(id);
         }
@@ -123,7 +125,10 @@ public partial class DebrisView(Ui ui) : Node2D
         _aimed.End();
     }
 
-    /// <summary>A hit landed on <paramref name="piece"/>, drawn at <paramref name="at"/>: its cracks deepen, it jolts away from the nearest hero, sparks fly that way and the chop is heard.</summary>
+    /// <summary>
+    /// A hit landed on <paramref name="piece"/>, drawn at <paramref name="at"/>: its cracks deepen, it jolts away
+    /// from the nearest hero and sparks fly that way; the chop is heard if the hit was this player's own (0042).
+    /// </summary>
     private void Struck(Shown one, Piece piece, Vector2 at)
     {
         one.Damage = piece.Damage;
@@ -137,19 +142,20 @@ public partial class DebrisView(Ui ui) : Node2D
         var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
         var side = at - away * Math.Min(size.X, size.Y) * 0.4f;
         Particles.Shared.Emit(Effect.Spark, side.X, side.Y, 8, (-away).Angle(), inSpace: true);
-        _chop.PlayAt(side);
+        if (_own.Ran(piece.Id)) _chop.PlayAt(side);
     }
 
     /// <summary>
-    /// A wreck broken at <paramref name="at"/>: a puff of dust and sparks, and the break heard. The last hit
-    /// removes the wreck on its tick, so its chop never plays: the break, with an impact of its own, is the hit.
+    /// A wreck broken at <paramref name="at"/>: a puff of dust and sparks, and the break heard if this player's
+    /// own hit broke it (<paramref name="own"/>, 0042). The last hit removes the wreck on its tick, so its chop
+    /// never plays: the break, with an impact of its own, is the hit.
     /// </summary>
-    private void Burst(Vector2 at)
+    private void Burst(Vector2 at, bool own)
     {
         Particles.Shared.Emit(Effect.Dust, at.X, at.Y, 24, 0, inSpace: true);
         Particles.Shared.Emit(Effect.Dust, at.X, at.Y, 24, Math.PI, inSpace: true);
         Particles.Shared.Emit(Effect.Spark, at.X, at.Y, 14, -Math.PI / 2, inSpace: true);
-        _break.PlayAt(at);
+        if (own) _break.PlayAt(at);
     }
 
     /// <summary>The chest of the hero nearest <paramref name="at"/>, as the crew drew them this frame: who most likely struck.</summary>

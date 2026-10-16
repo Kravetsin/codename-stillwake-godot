@@ -38,7 +38,7 @@ public partial class SuitGauge : CanvasLayer
     private readonly ShaderMaterial _edges = new() { Shader = new Shader { Code = VignetteShader } };
     private double _sinceRead = RefreshS, _vignetteShown, _darkShown;
     private SuitDanger _danger;
-    private readonly AudioStreamPlayer _alarm = Cues.Player(S.Alarm, S.Suit);
+    private readonly AudioStreamPlayer _alarm = Cues.Player(S.Alarm, S.Helmet);
     // Due at once: the first beep comes as the suit turns low.
     private double _sinceAlarm = S.AlarmEveryS;
 

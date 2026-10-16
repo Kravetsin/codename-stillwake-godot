@@ -116,7 +116,7 @@ public partial class Main : Node2D, ITogether
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
         // Before everything else, so every button made after it clicks.
-        AddChild(new SoundView(Muffled, () => _title != null));
+        AddChild(new SoundView(Floats, () => _title != null));
 
         // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
         _hands = new Hands();
@@ -181,8 +181,8 @@ public partial class Main : Node2D, ITogether
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount}"));
     }
 
-    /// <summary>Whether this player hears the world muffled (0033): its placed hero floating out in space.</summary>
-    private bool Muffled() => _session != null && _hero is { Placed: true, Floats: true };
+    /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
+    private bool Floats() => _session != null && _hero is { Placed: true, Floats: true };
 
     private bool Has(string flag) => _args.Contains(flag);
     private string? Arg(string flag) => _args.SkipWhile(a => a != flag).Skip(1).FirstOrDefault();
