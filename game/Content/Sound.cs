@@ -5,8 +5,9 @@ namespace Stillwake.Game;
 
 /// <summary>
 /// What is heard (ADR 0033): each cue's files under <c>game/audio</c>, one-shots normalised to −3 dBFS
-/// peak and loops to about −20 LUFS, and how loud each plays in the mix; the buses by name, the contract
-/// settings will set volumes by; and how the world falls silent round a hero floating in space. Swapping a placeholder
+/// peak (the chop's and the break's variants then matched by loudness, the louder turned down) and loops
+/// to about −20 LUFS, and how loud each plays in the mix; the buses by name, the contract settings will set
+/// volumes by; and how the world falls silent round a hero floating in space. Swapping a placeholder
 /// for another file is a change here only.
 /// </summary>
 public static class Sound
@@ -34,7 +35,7 @@ public static class Sound
     /// <summary>
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient and Effects into Master; World (every
     /// hero's steps, machines, air, doors: silenced while floating) and Suit (the action click, the
-    /// suit's alarm and the axe's chop: heard in space too) into Effects.
+    /// suit's alarm, the axe's chop and a wreck breaking: heard in space too) into Effects.
     /// Settings will set Master, Effects, Ambient and UI; World and Suit are the hearing's. Ambient waits
     /// for the first ambience: the ship's hum comes from its vents and fires, in the world.
     /// </summary>
@@ -58,7 +59,9 @@ public static class Sound
     /// An axe biting into a wreck (0034), heard where the wreck is by every hero near: on the Suit bus,
     /// since a wreck is only ever chopped out in space, where the World bus is silent.
     /// </summary>
-    public static readonly Cue Chop = new(Shots("debris/chop", 3), -6, Pitch: 0.1f, Heard: new(5, 20));
+    public static readonly Cue Chop = new(Shots("debris/chop", 3), -2, Pitch: 0.1f, Heard: new(5, 20));
+    /// <summary>A wreck breaking apart under the last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
+    public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: new(6, 28));
 
     /// <summary>The title's music (0035), on the Music bus, faded in with the title and out on leaving it.</summary>
     public static readonly Cue Title = new(["res://audio/music/title-1.ogg"], -2, Loops: true);
@@ -66,7 +69,7 @@ public static class Sound
     /// <summary>How long the title's music takes to fade in or out, in seconds.</summary>
     public const double MusicFadeS = 2.5;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, Fire, Chop];
+    public static readonly IReadOnlyList<Cue> All = [Title, Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, Fire, Chop, Break];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;
