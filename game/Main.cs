@@ -29,7 +29,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game;
 
 /// <summary>
-/// The game: started with no arguments, the title (0031: Continue, Worlds, Play together, Quit), each
+/// The game: started with no arguments, the title (0031: Continue, Worlds, Play together, Quit; Testbed in a debug build), each
 /// world a folder of <see cref="WorldIndex"/>, saved every five minutes and on every way out; with any, a
 /// session (net/README.md) of its own straight away, or with <c>-- --host</c> one others join over ENet
 /// with <c>-- --join[=address]</c>, or through the playtest server's relay with <c>--relay</c>, hosting as
@@ -41,7 +41,7 @@ namespace Stillwake.Game;
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit), <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
-/// <c>--furnace</c> a lit furnace in the wreck, <c>--items</c> a room with a crate, a furnace and an
+/// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>),
@@ -127,6 +127,7 @@ public partial class Main : Node2D, ITogether
         AddChild(_camera = new ShipCamera());
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
+        if (Has("--testbed")) _layout = Testbed.Map;
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
@@ -195,15 +196,30 @@ public partial class Main : Node2D, ITogether
         var layout = Has("--perf") ? DevWorlds.Perf() : _layout;
         var world = Has("--gallery") ? DevWorlds.Gallery(modules)
             : Has("--furnace") ? FurnaceDemo.Create(modules)
+            : Has("--testbed") ? Testbed.Create(modules)
             : World.Create(1, layout, modules);
         if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
+        PlayDev(world, Has("--gallery") ? null : layout);
+    }
+
+    /// <summary>The title's Testbed button, in a debug build: the testbed played as <c>--testbed</c> plays it.</summary>
+    private void PlayTestbed()
+    {
+        if (_together.Mode is TogetherMode.Joining or TogetherMode.Opening) return;
+        CloseTitle();
+        PlayDev(Testbed.Create(Modules()), Testbed.Map);
+    }
+
+    /// <summary>Plays a dev world as a session of this machine's own, kept nowhere: no world id, so never saved.</summary>
+    private void PlayDev(World world, Layout? aimAt)
+    {
         _roster = Roster.Empty();
         var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
         _session = new Session(host, client);
         ShowWorld();
-        AimCamera(Has("--gallery") ? null : layout);
+        AimCamera(aimAt);
     }
 
     /// <summary>
@@ -515,7 +531,8 @@ public partial class Main : Node2D, ITogether
         var worlds = new WorldsPanel(_index.List, Play, id => _index.Delete(id), NewWorld,
             busy: () => _together.Mode is TogetherMode.Joining or TogetherMode.Opening);
         AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, Quit,
-            Updates.Of(Build).ToString(), () => _updater.Available?.Tag, _updater.Update, () => _updater.Status));
+            Updates.Of(Build).ToString(), () => _updater.Available?.Tag, _updater.Update, () => _updater.Status,
+            testbed: OS.IsDebugBuild() ? PlayTestbed : null));
         if (_next is { } said) _title.Say(said);
         _next = null;
     }

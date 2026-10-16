@@ -12,6 +12,10 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   a confirmation in the panel, New world by name. **Play together** (`TogetherPage`): Host enters the
   world picked (else Continue's, else a new one) and opens it on the relay; Join by code loads no world
   of its own. While joining, nothing is played.
+- **Testbed**, in a debug build only (`play.cmd`; an export has no button): under the others, it plays
+  `dev/Testbed`, as `-- --testbed` does — a ready ship with every machine once, both rooms aired, the
+  furnace lit, the analyzer at work, a crate holding a full stack of every item, creative mode on. A
+  dev world: no world id, so never saved nor listed in Worlds; the menu's exit goes back to the title.
 
 - **Esc, in one place** (`Shared.Escape`, read by `GameMenu._Input` before any other node): the menu
   shown takes it first, Settings going back to the menu's first page and that page closing it; else
@@ -53,6 +57,8 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 
 - Keys rebound, sound, video or language settings: there are none to set yet.
 - Saving while joined to someone else's world: the world is the host's.
+- The testbed played together, saved, refilled or given items by a command: it is for looking, and
+  starts afresh each time.
 - Renaming, copying or exporting a world; loading its backup from the title.
 - Esc switching an overlay off: an overlay only shows (0022), and Esc with one on opens the menu.
 - A button held on the world as Esc opens the menu stays held behind it, with no pointer to work.

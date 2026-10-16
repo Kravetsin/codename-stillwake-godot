@@ -199,6 +199,7 @@ public static partial class En
         ["title.worlds"] = "Worlds",
         ["title.together"] = "Play together",
         ["title.quit"] = "Quit",
+        ["title.testbed"] = "Testbed",
         ["worlds.play"] = "Play “{name}”",
         ["worlds.playNone"] = "Play",
         ["worlds.delete"] = "Delete",

@@ -32,8 +32,9 @@ public partial class TitleScreen : CanvasLayer
 
     /// <param name="continueWorld">The world Continue plays, or none on a first run.</param>
     /// <param name="play">Continue: plays that world, or a new one.</param>
+    /// <param name="testbed">Plays the dev testbed (<c>Dev.Testbed</c>): given only in a debug build, so a release shows no button.</param>
     public TitleScreen(Func<WorldEntry?> continueWorld, Action play, WorldsPanel worlds, ITogether together, Action quit,
-        string version, Func<string?> updateTo, Action update, Func<string?> updating)
+        string version, Func<string?> updateTo, Action update, Func<string?> updating, Action? testbed = null)
     {
         (_continue, _updateTo, _updating) = (continueWorld, updateTo, updating);
         Worlds = worlds;
@@ -65,6 +66,12 @@ public partial class TitleScreen : CanvasLayer
         var quitButton = Style.Button(T("title.quit"), quit, size: 14, padX: 16, padY: 7);
         quitButton.Alignment = HorizontalAlignment.Left;
         column.AddChild(quitButton);
+        if (testbed != null)
+        {
+            var testbedButton = Style.Button(T("title.testbed"), testbed, size: 14, padX: 16, padY: 7);
+            testbedButton.Alignment = HorizontalAlignment.Left;
+            column.AddChild(testbedButton);
+        }
         column.AddChild(_problem = new Label { LabelSettings = Style.Text(Style.Mono, 12, Style.Red300), AutowrapMode = TextServer.AutowrapMode.WordSmart });
         var foot = Style.Gap(new HBoxContainer(), 10);
         foot.AddChild(new Label { Text = version, LabelSettings = Style.Text(Style.Mono, 11, Style.Slate400) });
