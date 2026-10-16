@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Stillwake.Game.Platform;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using static Stillwake.Game.I18n.En;
@@ -79,6 +80,7 @@ public partial class GameMenu : CanvasLayer
         _settings.AddChild(Line(T("menu.suit"), Style.Slate300, 12));
         suits.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
         _settings.AddChild(suits);
+        _settings.AddChild(Choice("menu.logs", Logs.OpenFolder));
         _settings.AddChild(Choice("menu.back", () => Show(MenuPage.Main)));
         column.AddChild(_settings);
 
