@@ -84,7 +84,9 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 - Plan ids only grow and are never reused.
 - A blueprint's `Delivered` never exceeds its cost, and it is worked only with all of it delivered.
 - A plan's progress stays below its ticks: the tick that reaches them completes it.
-- Items are conserved across inventories, the floor, blueprints and what is built.
+- Items are conserved across inventories, the floor, blueprints and what is built, but for what
+  drifts off the grid from space (Items' floor rules): a delivery cancelled, or a refund that does not
+  fit, in or by a breached hull.
 
 ## Deliberately not handled
 

@@ -5,6 +5,7 @@ using Stillwake.Content;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Rooms;
 using Xunit;
 
 namespace Stillwake.Sim.Tests;
@@ -204,6 +205,24 @@ public class BuildingDeliveryTests
         Assert.Equal(1, Lying(w, "plate"));
     }
 
+    /// <summary>The conservation property's counterexample: what lies in space leaves the grid, as Items' floor rules say.</summary>
+    [Fact]
+    public void BlueprintsCancelledInTheHullLetWhatWasDeliveredRiseOutOfItIntoSpaceAndDriftAway()
+    {
+        var w = Stocked(Open).Do(new Deconstruct(At(0, 0), "structure")).Run();
+        Hold(w, 1, Costs.ApartTicks(Scrap.BuildTicks));
+        PlacePlan(w, At(0, 3), new Placement("conduit", "pipe"));
+        Press(w, 2);
+        w.Do(new CancelPlan(2)).Run(3);
+        // Up the hull's left column, out at its open corner, which is space.
+        Assert.Equal(At(0, 0), Assert.Single(w.M.Items.Floor).Cell);
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(At(0, 0)));
+        // Drifting back a cell's width at most takes it past the grid's left edge, gone.
+        w.Run(1000 / Content.Floor.SpaceDrift);
+        Assert.Empty(w.M.Items.Floor);
+        Assert.Equal(StockScrap + ScrapUnits - CostIn(Builds.Get("pipe").Cost, "scrap"), Count(w, "scrap"));
+    }
+
     [Fact]
     public void BlueprintsAreWorkedInCreativeModeAsTheyAreAnOlderOneTooTakingNothing()
     {
@@ -337,10 +356,37 @@ public class BuildingDeliveryTests
         return total;
     }
 
+    /// <summary>Of each counted item, everything held and built.</summary>
+    private static int[] Total(Scenario w) => Counted.Select(i => Held(w, i) + Built(w, i)).ToArray();
+
+    /// <summary>
+    /// Runs <paramref name="c"/> for a tick, <paramref name="total"/> being what was held and built before it.
+    /// Nothing is made, and nothing lost but stacks lying in space that leave the grid by Items' floor
+    /// rules: inside the ship a stack stops at the edge. Whether that held; <paramref name="total"/> is kept current.
+    /// </summary>
+    private static bool Conserves(Scenario w, Command c, ref int[] total)
+    {
+        var inSpace = w.M.Items.Floor.Where(s => w.M.Rooms.RoomAt(s.Cell) == RoomsModule.Space).Select(s => (s.Id, s.Item, s.Count)).ToList();
+        // Counted only around a tick when something may leave, and after each step: every tick is slow.
+        if (inSpace.Count > 0 && !Total(w).SequenceEqual(total)) return false;
+        w.Do(c).Run();
+        if (inSpace.Count == 0) return true;
+        var after = Total(w);
+        for (int i = 0; i < Counted.Length; i++)
+        {
+            int lost = total[i] - after[i];
+            int left = inSpace.Where(s => s.Item == Counted[i] && w.M.Items.Floor.All(f => f.Id != s.Id)).Sum(s => s.Count);
+            if (lost < 0 || lost > left) return false;
+        }
+        total = after;
+        return true;
+    }
+
     [Property(MaxTest = 60)]
     public Property ConservesItemsAcrossInventoriesTheFloorAndBlueprintsDeliveringNoMoreThanACost()
     {
         var placement = Gen.Elements(IronWall, Placement.Wall("scrap"), Door, new Placement("conduit", "pipe"), Tank);
+        // The hull's cells too: taken apart, it lets what lies about out into space.
         var cell = Gen.Choose(0, 35);
         var sender = Gen.Choose(0, 4);
         var id = Gen.Frequency((3, Gen.Choose(1, 5)), (2, Gen.Choose(1, 20)));
@@ -354,18 +400,23 @@ public class BuildingDeliveryTests
             from f in sender
             select new Step(0, null, null, i, t, f));
         var steps = from n in Gen.Choose(0, 40) from s in step.ArrayOf(n) select s;
-        return Prop.ForAll(steps.ToArbitrary(), all =>
+        // Shrunk a step at a time, so a counterexample reads short.
+        var arb = Arb.From(steps, all => Enumerable.Range(0, all.Length).Select(i => all.Where((_, j) => j != i).ToArray()));
+        return Prop.ForAll(arb, all =>
         {
             var w = Stocked(Open);
-            // Peer 4 carries little, so blueprints are left part paid.
-            w.GiveItems(4, ("scrap", 3), ("plate", 1));
-            var before = Counted.Select(i => Held(w, i) + Built(w, i)).ToArray();
+            // Peer 4 carries little, so blueprints are left part paid, and has room for little, so refunds fall.
+            w.GiveItems(4, ("scrap", 3), ("plate", 1), ("canister", (Inventory.Slots - 2) * Content.Items.Get("canister").Stack));
+            var total = Total(w);
             foreach (var s in all)
             {
-                if (s.Placement != null) PlacePlan(w, s.Cell, s.Placement);
-                else if (s.Layer != null) w.Do(new Deconstruct(s.Cell, s.Layer)).Run();
-                else if (s.Ticks > 0) Hold(w, s.Id, s.Ticks, s.From);
-                else w.Do(new CancelPlan(s.Id) { From = s.From }).Run();
+                Command c = s.Placement != null ? new PlacePlan(s.Cell, s.Placement)
+                    : s.Layer != null ? new Deconstruct(s.Cell, s.Layer)
+                    : s.Ticks > 0 ? new Work(s.Id) { From = s.From }
+                    : new CancelPlan(s.Id) { From = s.From };
+                for (int t = 0; t < Math.Max(1, s.Ticks); t++)
+                    if (!Conserves(w, c, ref total)) return false;
+                if (!Total(w).SequenceEqual(total)) return false;
                 foreach (var p in w.M.Building.Plans)
                 {
                     if (p.Progress >= (w.M.Building.TicksFor(p.Id) ?? 0)) return false;
@@ -374,7 +425,7 @@ public class BuildingDeliveryTests
                     if (p.Delivered.Any(d => d.Count > CostIn(cost, d.Item))) return false;
                 }
             }
-            return Counted.Select(i => Held(w, i) + Built(w, i)).SequenceEqual(before);
+            return true;
         });
     }
 }
