@@ -31,12 +31,17 @@ public sealed record Tip(string? Name, IReadOnlyList<TipLine> Lines)
 {
     public Tip(string name, params TipLine[] lines) : this(name, (IReadOnlyList<TipLine>)lines) { }
 
-    public bool Equals(Tip? other) => other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines);
+    /// <summary>A tool's card, shown in place of the name and lines.</summary>
+    public ToolCard? Card { get; init; }
+
+    public bool Equals(Tip? other) =>
+        other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines) && Equals(Card, other.Card);
 
     public override int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(Name);
+        hash.Add(Card);
         foreach (var line in Lines) hash.Add(line);
         return hash.ToHashCode();
     }

@@ -50,6 +50,8 @@
     <Compile Include="../game/render/CableShape.cs" Link="Game/Render/CableShape.cs" />
     <Compile Include="../game/shared/Ui.cs" Link="Game/Shared/Ui.cs" />
     <Compile Include="../game/shared/Tip.cs" Link="Game/Shared/Tip.cs" />
+    <Compile Include="../game/shared/ToolCard.cs" Link="Game/Shared/ToolCard.cs" />
+    <Compile Include="../game/features/items/ToolCards.cs" Link="Game/Items/ToolCards.cs" />
     <Compile Include="../game/shared/Escape.cs" Link="Game/Shared/Escape.cs" />
     <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />
     <Compile Include="../game/features/building/PlanHand.cs" Link="Game/Building/PlanHand.cs" />
