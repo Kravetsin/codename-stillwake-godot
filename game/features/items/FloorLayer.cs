@@ -59,7 +59,7 @@ public partial class FloorLayer : Node2D
             _shown[id].View.QueueFree();
             _shown.Remove(id);
         }
-        // Stacks at rest in one cell, of different items, side by side rather than one over another.
+        // Stacks at rest in one cell, or floating still in space, of different items, side by side rather than one over another.
         var inCell = _inCell;
         var placed = _placed;
         inCell.Clear();
@@ -80,13 +80,14 @@ public partial class FloorLayer : Node2D
             double x = s.X + (s.Vx - drift) * progress;
             double y = s.Y + (inSpace || s.Vy != 0 ? s.Vy * progress : 0);
             double bob = 0;
-            if (Resting(s) && !inSpace)
+            // Afloat in space too, as a broken wreck's loot drifts off together (0034); only aboard does it bob.
+            if (Resting(s))
             {
                 int n = inCell.GetValueOrDefault(s.Cell, 1);
                 int i = placed.GetValueOrDefault(s.Cell);
                 placed[s.Cell] = i + 1;
                 x += (i - (n - 1) / 2.0) * Spread * Unit;
-                bob = Math.Sin((_clockMs + s.Id * 300) / BobMs * 2 * Math.PI) * Bob;
+                if (!inSpace) bob = Math.Sin((_clockMs + s.Id * 300) / BobMs * 2 * Math.PI) * Bob;
             }
             one.View.Position = new Vector2((float)(x / Unit * Cell), (float)(y / Unit * Cell - bob));
             one.Picture.Rotation = inSpace ? (float)((_clockMs + s.Id * 1000) / TurnMs * 2 * Math.PI) : 0;

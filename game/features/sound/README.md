@@ -40,6 +40,10 @@ sound; each peer plays what it sees.
   - `crew/SuitGauge.cs` — the alarm every `Sound.AlarmEveryS` while the suit runs low; none passed out.
   - `building/BuildingView.cs` — the screwdriver's ratchet: one positional player, four voices, moved
     to each plan as its work sparks.
+  - `debris/DebrisView.cs` — an axe's chop (`Sound.Chop`, 0034) where a piece is struck, whoever
+    struck it, found as the drawing sees its damage rise, and a last one where a wreck breaks: one
+    positional player, four voices, on Suit, since a wreck is only chopped out in space, where World is
+    silent.
   - `atmosphere/AirView.cs` — two looped positional players, each at its source nearest the middle
     of the screen and stopped without one: the hiss at a venting stream, and the ship's hum at a vent
     with oxygen behind it (its room's networks hold some or make some). The hum is the vents', not the

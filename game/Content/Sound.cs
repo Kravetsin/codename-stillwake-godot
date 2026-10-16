@@ -33,8 +33,8 @@ public static class Sound
 
     /// <summary>
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient and Effects into Master; World (every
-    /// hero's steps, machines, air, doors: silenced while floating) and Suit (the action click and the
-    /// suit's alarm: heard in space too) into Effects.
+    /// hero's steps, machines, air, doors: silenced while floating) and Suit (the action click, the
+    /// suit's alarm and the axe's chop: heard in space too) into Effects.
     /// Settings will set Master, Effects, Ambient and UI; World and Suit are the hearing's. Ambient waits
     /// for the first ambience: the ship's hum comes from its vents and fires, in the world.
     /// </summary>
@@ -54,8 +54,13 @@ public static class Sound
     /// <summary>The one soft click an action makes: a crate opened, a canister loaded, debris caught, an item picked up.</summary>
     public static readonly Cue Act = new(Shots("hands/act", 1), -10);
     public static readonly Cue Fire = Looped("furnace/fire", -10, new(3, 12));
+    /// <summary>
+    /// An axe biting into a wreck (0034), heard where the wreck is by every hero near: on the Suit bus,
+    /// since a wreck is only ever chopped out in space, where the World bus is silent.
+    /// </summary>
+    public static readonly Cue Chop = new(Shots("debris/chop", 3), -6, Pitch: 0.1f, Heard: new(5, 20));
 
-    public static readonly IReadOnlyList<Cue> All = [Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, Fire];
+    public static readonly IReadOnlyList<Cue> All = [Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, Fire, Chop];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;
