@@ -252,7 +252,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         DropAt(peer, left, cell);
     }
 
-    /// <summary>Lets <paramref name="cost"/> fall on cell <paramref name="cell"/> as if peer <paramref name="peer"/> dropped it there, still.</summary>
+    /// <summary>Lets <paramref name="cost"/> fall on cell <paramref name="cell"/> as if peer <paramref name="peer"/> dropped it there, still; <see cref="FloorStack.Nobody"/> for a stack anyone may take at once.</summary>
     public void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
         foreach (var (item, count) in Stacks.Entries(cost))

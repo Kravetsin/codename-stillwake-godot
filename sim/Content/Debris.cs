@@ -33,6 +33,7 @@ public static class Debris
         ("hullPlate", 3),
         ("cargoCrate", 2),
         ("supplyPod", 1),
+        ("hullSection", 1),
     ];
 }
 
@@ -40,7 +41,7 @@ public static class Debris
 public sealed record LootEntry(string Item, int Min, int Max, int? OneIn = null);
 
 /// <summary>
-/// What a container opens into when caught, drawn entry by entry in order from the world's Rng: the
+/// What a container opens into when caught, or a wreck breaks into, drawn entry by entry in order from the world's Rng: the
 /// count first, in [Min, Max], after the one-in roll when there is one.
 /// </summary>
 public static class Loot
@@ -55,6 +56,12 @@ public static class Loot
         [
             new("canister", 1, 1),
             new("scrap", 6, 6),
+        ]),
+        // Wreckage breaks into what it was made of (Wreckage).
+        ("hullSection",
+        [
+            new("hullPlate", 2, 3),
+            new("scrapChunk", 2, 4),
         ]),
     ];
 

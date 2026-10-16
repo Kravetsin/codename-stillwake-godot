@@ -238,6 +238,31 @@ public class ContentTests
     }
 
     [Fact]
+    public void WreckageDriftsByBreaksIntoLootTakesMoreThanOneHitAndNoneOfItIsCaughtByHand()
+    {
+        Assert.NotEmpty(Wreckage.All);
+        Assert.Equal(Wreckage.All.Count, Wreckage.All.Select(w => w.Item).Distinct().Count());
+        foreach (var (item, hp) in Wreckage.All)
+        {
+            Assert.Contains(item, DebrisSpec.Kinds.Select(k => k.Item));
+            Assert.True(Content.Items.TryGet(item, out _), item);
+            Assert.NotNull(Loot.Of(item));
+            Assert.True(hp > Axe.Damage, item);
+        }
+    }
+
+    [Fact]
+    public void TheAxeIsAToolCraftedAtThePodKnownFromTheStartThatHitsAndSwingsInWholeUnits()
+    {
+        Assert.True(Axe.Damage > 0);
+        Assert.True(Axe.SwingTicks > 0);
+        Assert.True(Content.Items.TryGet(Axe.Item, out var axe));
+        Assert.Equal(1, axe!.Stack);
+        Assert.True(Crafts.TryGet(Axe.Item, out _));
+        Assert.Contains(Axe.Item, Content.Research.StartKnown);
+    }
+
+    [Fact]
     public void SalvageSpawnsOnTheWrecksGridItsLeadRightOfTheHull()
     {
         int right = Wreck.Rows.Max(row => row.TrimEnd().Length - 1);

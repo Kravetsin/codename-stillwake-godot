@@ -17,6 +17,9 @@ public sealed record Target(int? Slot = null, int? Crate = null)
 /// <summary>A stack lying on the floor, flying where it was thrown, or floating in space, for anyone to pick up.</summary>
 public sealed class FloorStack
 {
+    /// <summary><see cref="By"/> for a stack no peer dropped, which anyone may pick up at once: peer ids are never negative.</summary>
+    public const int Nobody = -1;
+
     [JsonInclude] public int Id { get; internal set; }
     [JsonInclude] public string Item { get; internal set; } = "";
     /// <summary>From 1 to the item's stack limit.</summary>
@@ -28,7 +31,7 @@ public sealed class FloorStack
     [JsonInclude] public int Y { get; internal set; }
     [JsonInclude] public int Vx { get; internal set; }
     [JsonInclude] public int Vy { get; internal set; }
-    /// <summary>The peer that dropped it, and on which of the module's ticks: its own may not take it back at once.</summary>
+    /// <summary>The peer that dropped it (or <see cref="Nobody"/>), and on which of the module's ticks: its own may not take it back at once.</summary>
     [JsonInclude] public int By { get; internal set; }
     [JsonInclude] public int At { get; internal set; }
 }

@@ -17,6 +17,16 @@ public static class DebrisLooks
         ["hullPlate"] = ("hull", 12),
         ["cargoCrate"] = ("crate", 8),
         ["supplyPod"] = ("pod", 4),
+        ["hullSection"] = ("section", 1),
+    };
+
+    /// <summary>
+    /// Wreckage, aimed at by its whole picture rather than near its middle (0034): its picture's size in
+    /// pixels of the world, sixteen to a cell, outline included.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, (int W, int H)> Wrecks = new Dictionary<string, (int, int)>
+    {
+        ["hullSection"] = (48, 32),
     };
 
     /// <summary>The picture piece <paramref name="id"/> of <paramref name="item"/> wears, or null to draw the item.</summary>

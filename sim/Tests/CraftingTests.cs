@@ -67,6 +67,18 @@ public class CraftingTests
     }
 
     [Fact]
+    public void MakesTheFireAxeAtThePodOfScrapKnownInTheWreckFromItsStart()
+    {
+        var axe = Crafts.Get(Content.Axe.Item);
+        var w = World(start: true).GiveItems(0, ("scrap", axe.Cost.Single().Count));
+        Craft(w, Content.Axe.Item);
+        Assert.Empty(w.Refusals);
+        Assert.Equal(0, Count(w, "scrap"));
+        w.Run(axe.Ticks * 1000 / Crafts.PodSpeed);
+        Assert.Equal(1, Made(w, Content.Axe.Item));
+    }
+
+    [Fact]
     public void MakesFiveQueuedAtOnceOneByOneEachInItsOwnTicks()
     {
         var w = World().GiveItems(0, ("scrap", 10));

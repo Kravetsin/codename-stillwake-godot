@@ -1,19 +1,20 @@
 # Debris
 
-The pieces of debris drifting past the ship, and catching them
+The pieces of debris drifting past the ship, catching them, and breaking wreckage with an axe
 ([0006](../../docs/decisions/0006-debris-in-the-simulation.md),
-[0009](../../docs/decisions/0009-debris-around-the-ship.md)). Ported from
+[0009](../../docs/decisions/0009-debris-around-the-ship.md),
+[0034](../../docs/decisions/0034-wreckage-and-the-axe.md)). Ported from
 `packages/sim/src/modules/debris`; its rules hold here unchanged.
 
 - **Depends on:** `Grid` (`IGridQueries`: its size and the hull's bounds), `Crew` (`ICrewQueries`:
   where the sender's hero is), `Rooms` (`IRoomsQueries`: what is space), `Items` (`IItemsOps`:
-  `GiveOrDrop`, the inventory a caught piece goes into).
+  `GiveOrDrop`, the inventory a caught piece goes into; `DropAt`, the floor a broken wreck falls on).
 - **State** (`DebrisState`, members internal): `Pieces` in spawn order, each a `Piece` (public, with
-  internal setters) `{ Id, Item, X, Y, Speed, Start, End }`, its middle at `X`, `Y` in thousandths
-  of a cell (`DebrisModule.Unit`), drifting `Speed` a tick from `Start` till below `End`; `NextId`,
+  internal setters) `{ Id, Item, X, Y, Speed, Start, End, Damage }`, its middle at `X`, `Y` in thousandths
+  of a cell (`DebrisModule.Unit`), drifting `Speed` a tick from `Start` till below `End`, `Damage` the hit points axes took off it; `NextId`,
   never reused; `Clock`, ticks run; `NextSpawn`, the clock the next piece is due at; `AtStart`, the pieces the first tick puts out. All saved;
   nothing is derived.
-- **Files:** `Debris.cs` — the module, `Grab` and the rules below; `State.cs` — its slice and
+- **Files:** `Debris.cs` — the module, `Grab`, `Hit` and the rules below; `State.cs` — its slice and
   `Piece`; `Fuzz.cs` — its fuzz generator.
 - **Runs** after `Hazards` and before `Furnace` in `Registry.All`, as in TypeScript's `MODULES`.
 
@@ -38,23 +39,34 @@ The pieces of debris drifting past the ship, and catching them
   the world's `Rng` as the grab applies (`LootOf`): the one-in roll, then the count. Refused with
   `debris.gone` (no such piece out), `debris.notOutside` (the sender's hero, at the cell its client
   last reported, or the piece's middle is not in space). A full inventory is no reason: what does not
-  fit floats at the hero's cell, on the floor of space (`IItemsOps.GiveOrDrop`).
+  fit floats at the hero's cell, on the floor of space (`IItemsOps.GiveOrDrop`). A wreck is refused
+  with `debris.tooBig`.
+- **Wreckage** is a kind with hit points in `Wreckage` (a hull section, 15). It drifts, spawns and
+  is saved as any piece. `Hit(Piece)` takes `Axe.Damage` off them, adding it to the piece's `Damage`;
+  the hit that brings `Damage` to its hit points removes it, and its loot (`Loot`, drawn by `LootOf`
+  as a container's is) falls on the cell under its middle, still, dropped by `FloorStack.Nobody`
+  (`IItemsOps.DropAt`): floating there in space for anyone to pick up at once, the hero who broke it
+  too. Refused with `debris.gone`, `debris.notOutside` (as `Grab`) or `debris.notWreckage` (a piece
+  caught by hand). The sim does not ask whether the sender holds an axe, nor how fast it swings:
+  the client's word, among friends (principle 6).
 
 ## API
 
 - **Queries** (public members; no other module reads debris, so there is no query interface):
   `Pieces` — live and read-only; `PieceAt(cell)` — the first piece whose middle is in the cell;
-  `GrabProblem(peer, piece)` — the refusal that peer's `Grab` would get, for the client.
+  `GrabProblem(peer, piece)` and `HitProblem(peer, piece)` — the refusal that peer's `Grab` or `Hit`
+  would get, for the client.
 - **Static:** `CellOf(x, y, width)` — the cell under a piece's middle; `LootOf(item, rng)` — what
   catching a piece of that item gives, merged by item in the order its entries first give it.
-- **Commands:** `Grab(Piece)`.
-- **Fuzz:** a piece that is out three times in four, else an id from 0 to `NextId + 1`, gone or never
-  spawned. Most grabs are refused, as few fuzzed heroes stand in space.
+- **Commands:** `Grab(Piece)`, `Hit(Piece)`.
+- **Fuzz:** a grab or a hit, one in two each, at a piece that is out three times in four, else an id
+  from 0 to `NextId + 1`, gone or never spawned. Most are refused, as few fuzzed heroes stand in space.
 
 ## Invariants
 
 - Piece ids grow in spawn order and are never reused; no more than `Debris.Max` are out.
 - Every piece is on the grid, between its `Start` and `End`, in the band of the hull it spawned by.
+- A wreck's `Damage` is below its hit points; a piece caught by hand has none.
 
 ## Deliberately not handled
 
@@ -62,7 +74,12 @@ The pieces of debris drifting past the ship, and catching them
   reach, among friends.
 - A hero's reported cell is where its body entered space: inside space it is not reported again, so
   the sim knows the hero is outside, not where.
-- Two grabs of one piece on one tick: the host's order decides, and the second is `debris.gone`.
+- Two grabs of one piece on one tick: the host's order decides, and the second is `debris.gone`; so
+  for hits after the one that breaks a wreck.
+- A wreck half over the hull is judged by its middle cell, as a small piece is: with its middle over
+  the ship it cannot be hit, though its end sticks out into space. Accepted: it drifts on and out.
+- The axe in hand, the swing's pace and reach: the client's, among friends. A hit in flight after the
+  axe was put away still lands; creative mode needs no axe either.
 
 ## Differences from TypeScript
 

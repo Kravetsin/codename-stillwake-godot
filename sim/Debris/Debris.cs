@@ -12,8 +12,14 @@ namespace Stillwake.Sim.Debris;
 public sealed record Grab(int Piece) : Command;
 
 /// <summary>
-/// The pieces of debris drifting past the ship, and catching them (ADRs 0006 and 0009;
-/// packages/sim/src/modules/debris).
+/// Swings an axe at wreck <c>Piece</c>: takes <c>Axe.Damage</c> off its hit points, and at none left it
+/// breaks into its loot, floating where it was. Whether the sender holds an axe is the client's word (0034).
+/// </summary>
+public sealed record Hit(int Piece) : Command;
+
+/// <summary>
+/// The pieces of debris drifting past the ship, catching them, and breaking wreckage with an axe (ADRs
+/// 0006, 0009 and 0034; packages/sim/src/modules/debris).
 /// </summary>
 public sealed partial class DebrisModule : Module<DebrisState>
 {
@@ -36,6 +42,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         _rooms = rooms;
         _items = items;
         Handles<Grab>(c => GrabProblem(c.From, c.Piece), Apply);
+        Handles<Hit>(c => HitProblem(c.From, c.Piece), Apply);
         // After derivation, like the air: the grid's size is that of this tick.
         System(Phase.Simulation, Drift);
     }
@@ -52,12 +59,23 @@ public sealed partial class DebrisModule : Module<DebrisState>
 
     /// <summary>
     /// Why peer <paramref name="peer"/>'s grab of piece <paramref name="id"/> would be refused: it is
-    /// gone, or the hero or the piece is not in space; what the client shows first. A full inventory is
-    /// no reason: what does not fit floats where the hero is.
+    /// gone, the hero or the piece is not in space, or it is wreckage, too big to catch by hand; what the
+    /// client shows first. A full inventory is no reason: what does not fit floats where the hero is.
     /// </summary>
-    public string? GrabProblem(int peer, int id)
+    public string? GrabProblem(int peer, int id) =>
+        Reachable(peer, id, out var piece) ?? (Content.Wreckage.HpOf(piece!.Item) != null ? "debris.tooBig" : null);
+
+    /// <summary>
+    /// Why peer <paramref name="peer"/>'s hit of piece <paramref name="id"/> would be refused: it is gone,
+    /// the hero or the piece is not in space, or it is no wreckage.
+    /// </summary>
+    public string? HitProblem(int peer, int id) =>
+        Reachable(peer, id, out var piece) ?? (Content.Wreckage.HpOf(piece!.Item) == null ? "debris.notWreckage" : null);
+
+    /// <summary>Why peer <paramref name="peer"/>'s hands cannot get at piece <paramref name="id"/>: it is gone, or the hero or the piece's middle is not in space.</summary>
+    private string? Reachable(int peer, int id, out Piece? piece)
     {
-        var piece = State.Pieces.Find(p => p.Id == id);
+        piece = State.Pieces.Find(p => p.Id == id);
         if (piece == null) return "debris.gone";
         var hero = _crew.HeroOf(peer);
         if (hero == null || !Outside(hero.Cell) || !Outside(CellOf(piece.X, piece.Y, _grid.Width))) return "debris.notOutside";
@@ -70,8 +88,8 @@ public sealed partial class DebrisModule : Module<DebrisState>
     public static int CellOf(int x, int y, int width) => y / Unit * width + x / Unit;
 
     /// <summary>
-    /// What catching a piece of <paramref name="item"/> gives: the item itself, or, for a container, its
-    /// loot drawn by <paramref name="rng"/> entry by entry: the one-in roll, then the count. Merged by
+    /// What catching a piece of <paramref name="item"/> gives: the item itself, or, for a container (or a
+    /// wreck broken), its loot drawn by <paramref name="rng"/> entry by entry: the one-in roll, then the count. Merged by
     /// item, in the order the entries first give it.
     /// </summary>
     public static IReadOnlyList<(string Item, int Count)> LootOf(string item, Rng rng)
@@ -101,6 +119,19 @@ public sealed partial class DebrisModule : Module<DebrisState>
         State.Pieces.RemoveAt(at);
         var hero = _crew.HeroOf(c.From) ?? throw new InvalidOperationException("debris.grab: applied with no hero");
         _items.GiveOrDrop(c.From, LootOf(piece.Item, Random), hero.Cell);
+    }
+
+    private void Apply(Hit c)
+    {
+        int at = State.Pieces.FindIndex(p => p.Id == c.Piece);
+        if (at < 0) throw new InvalidOperationException("debris.hit: applied to a piece that is gone");
+        var piece = State.Pieces[at];
+        int hp = Content.Wreckage.HpOf(piece.Item) ?? throw new InvalidOperationException("debris.hit: applied to no wreck");
+        piece.Damage += Content.Axe.Damage;
+        if (piece.Damage < hp) return;
+        State.Pieces.RemoveAt(at);
+        // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
+        _items.DropAt(FloorStack.Nobody, LootOf(piece.Item, Random), CellOf(piece.X, piece.Y, _grid.Width));
     }
 
     // Systems.
