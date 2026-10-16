@@ -147,41 +147,86 @@ public class PoseTests
     }
 
     [Fact]
-    public void LeansIntoASwimAlongTheFloorInSpaceUprightOtherwise()
+    public void LeansIntoASwimAlongTheFloorInSpaceUprightRising()
     {
-        double across = LimbsOf(Pose.Float, Standing with { Vx = 80 }, At(1)).Tilt;
-        double up = LimbsOf(Pose.Float, Standing with { Vy = -80 }, At(1)).Tilt;
-        Assert.True(across > up);
+        Close(Adrift.Lean, LimbsOf(Pose.Float, Standing with { Vx = 80 }, At(1)).Tilt);
+        Close(0, LimbsOf(Pose.Float, Standing with { Vy = -80 }, At(1)).Tilt);
+        Close(Adrift.Lean + Adrift.Tuck, LimbsOf(Pose.Float, Standing with { Vx = 80, Vy = 80 }, At(1)).Tilt);
     }
 
     [Fact]
-    public void SwimsABreaststrokeInSpaceArmsReachAheadThenSweepBackToTheHips()
+    public void LeansFurtherSwimmingFastTowardTheWayItSwimsWhicheverWayItFaces()
+    {
+        Close(Adrift.LeanFast, LimbsOf(Pose.Float, Standing with { Vx = 160 }, At(0)).Tilt);
+        Close(Adrift.Lean, LimbsOf(Pose.Float, Standing with { Vx = -80, Facing = -1 }, At(0)).Tilt);
+        Close(-Adrift.Lean, LimbsOf(Pose.Float, Standing with { Vx = -80 }, At(0)).Tilt);
+    }
+
+    [Fact]
+    public void StaysUprightAfloatWhicheverWayAndHoweverFastItSwims()
+    {
+        int[] speeds = [-160, -80, 0, 80, 160];
+        foreach (int vx in speeds)
+            foreach (int vy in speeds)
+                foreach (int facing in new[] { -1, 1 })
+                    for (double ms = 0; ms < 6000; ms += 250)
+                    {
+                        var l = LimbsOf(Pose.Float, Standing with { Vx = vx, Vy = vy, Facing = facing }, At(0, ms) with { Fast = 0.5 });
+                        // Never more than about 25 degrees.
+                        Assert.True(Math.Abs(l.Tilt) <= 0.45, $"{vx},{vy}: {l.Tilt}");
+                    }
+    }
+
+    [Fact]
+    public void TrailsItsLegsSwimmingAlongDrawsThemUpSinkingAndHangsThemRising()
+    {
+        var across = LimbsOf(Pose.Float, Standing with { Vx = 80 }, At(0, 300));
+        // A foot in the world, the body turned forward by its tilt: behind the middle when negative.
+        double Ahead(Limbs l, Bend leg)
+        {
+            var end = Rig.EndOf(leg, Rig.Leg);
+            return end.X * Math.Cos(l.Tilt) - (end.Y + Rig.H / 2 - Rig.Hip) * Math.Sin(l.Tilt);
+        }
+        Assert.True(Ahead(across, across.FrontLeg) < 0 && Ahead(across, across.BackLeg) < 0);
+        var sinking = LimbsOf(Pose.Float, Standing with { Vy = 80 }, At(0, 300));
+        Assert.True(sinking.FrontLeg.Upper > 0.6 && sinking.FrontLeg.Lower < -1);
+        var rising = LimbsOf(Pose.Float, Standing with { Vy = -80 }, At(0, 300));
+        Assert.True(Math.Abs(rising.FrontLeg.Lower) < 0.3 && Math.Abs(rising.BackLeg.Lower) < 0.3);
+    }
+
+    [Fact]
+    public void PaddlesWithTheFreeHandsAndKeepsTheAxeHandCalm()
     {
         var swimming = Standing with { Vx = 80 };
-        Assert.True(LimbsOf(Pose.Float, swimming, At(0, 0)).FrontArm.Upper > 2.5);
-        Assert.True(LimbsOf(Pose.Float, swimming, At(0, Adrift.StrokeMs * 0.4)).FrontArm.Upper < 0);
-        // Folded to the chest with the knees drawn up before reaching again.
-        var folded = LimbsOf(Pose.Float, swimming, At(0, Adrift.StrokeMs * 0.75));
-        Assert.True(folded.FrontArm.Lower > 1.5 && folded.FrontLeg.Lower < -1.5);
+        double Range(Func<Limbs, double> of, bool wields)
+        {
+            var seen = Enumerable.Range(0, 12).Select(k => of(LimbsOf(Pose.Float, swimming, At(0, k * Adrift.PaddleMs / 12) with { Wields = wields }))).ToList();
+            return seen.Max() - seen.Min();
+        }
+        Assert.True(Range(l => l.BackArm.Upper, true) > 0.6);
+        Assert.True(Range(l => l.FrontArm.Upper, false) > 0.6);
+        Assert.True(Range(l => l.FrontArm.Upper, true) < 0.3);
     }
 
     [Fact]
-    public void SwimsFastHeadFirstFlatAlongTheFloorUprightGoingUp()
+    public void BlendsDriftingIntoSwimmingAndSwimmingIntoSwimmingFastWithoutAJump()
     {
-        Close(Math.PI / 2, LimbsOf(Pose.Float, Standing with { Vx = 160 }, At(0)).Tilt);
-        Close(0, LimbsOf(Pose.Float, Standing with { Vy = -160 }, At(0)).Tilt);
-        Assert.True(LimbsOf(Pose.Float, Standing with { Vy = 160 }, At(0)).Tilt > 3);
+        double Arm(double swim, double fast) => LimbsOf(Pose.Float, Standing, At(0, 200) with { Swim = swim, Fast = fast }).BackArm.Upper;
+        double still = Arm(0, 0), swimming = Arm(1, 0), fast = Arm(1, 1);
+        Assert.InRange(Arm(0.5, 0), Math.Min(still, swimming), Math.Max(still, swimming));
+        Assert.NotEqual(still, Arm(0.5, 0));
+        Assert.InRange(Arm(1, 0.5), Math.Min(swimming, fast), Math.Max(swimming, fast));
     }
 
     [Fact]
-    public void CrawlsSwimmingFastOneArmAheadWhileTheOtherPullsFeetFluttering()
+    public void DriftsStillAfloatUprightArmsLowNeverFlailing()
     {
-        var fast = Standing with { Vx = 160 };
-        var l = LimbsOf(Pose.Float, fast, At(0, 0));
-        Close(Math.PI, l.FrontArm.Upper);
-        Assert.True(l.BackArm.Upper < 1);
-        var later = LimbsOf(Pose.Float, fast, At(0, Adrift.CrawlMs / 12));
-        Assert.True(Math.Sign(later.FrontLeg.Upper - 0.05) != Math.Sign(later.BackLeg.Upper - 0.05));
+        for (double ms = 0; ms < 20000; ms += 100)
+        {
+            var l = LimbsOf(Pose.Float, Standing, At(0, ms));
+            Assert.True(Math.Abs(l.Tilt) < 0.05);
+            Assert.True(l.FrontArm.Upper is > 0 and < 0.6 && l.BackArm.Upper is > 0 and < 0.6);
+        }
     }
 
     [Fact]
@@ -199,16 +244,6 @@ public class PoseTests
         Assert.True(run.Tilt > walk.Tilt);
         Assert.True(run.FrontArm.Lower > 1.2);
         Assert.True(Math.Min(run.FrontLeg.Lower, run.BackLeg.Lower) < Math.Min(walk.FrontLeg.Lower, walk.BackLeg.Lower));
-    }
-
-    [Fact]
-    public void BlendsTreadingWaterIntoTheStrokeAndTheStrokeIntoTheCrawlWithoutAJump()
-    {
-        double Arm(double swim, double fast) => LimbsOf(Pose.Float, Standing, At(0, 0) with { Swim = swim, Fast = fast, Heading = 0 }).FrontArm.Upper;
-        double still = Arm(0, 0), stroke = Arm(1, 0), crawl = Arm(1, 1);
-        Assert.InRange(Arm(0.5, 0), Math.Min(still, stroke), Math.Max(still, stroke));
-        Assert.NotEqual(still, Arm(0.5, 0));
-        Assert.InRange(Arm(1, 0.5), Math.Min(stroke, crawl), Math.Max(stroke, crawl));
     }
 
     [Fact]
@@ -237,25 +272,6 @@ public class PoseTests
             var l = LimbsOf(Pose.Climb, Standing with { Climbing = true }, At(at));
             Assert.True(l.FrontArm.Lower >= 0 && l.BackArm.Lower >= 0);
         }
-    }
-
-    [Fact]
-    public void TreadsWaterAdriftUntilNowAndThenItPanicsAndWindmills()
-    {
-        double Reach(double ms) => Math.Max(LimbsOf(Pose.Float, Standing, At(0, ms)).FrontArm.Upper,
-            LimbsOf(Pose.Float, Standing, At(0, ms)).BackArm.Upper);
-        double calmest = Enumerable.Range(0, 70).Max(k => Reach(k * 100));
-        Assert.True(calmest < 1.5);
-        Assert.Equal(0, Panic(1000));
-        double bout = Adrift.PanicEveryMs - Adrift.PanicMs / 2;
-        Assert.Equal(1, Panic(bout));
-        // Mid-bout the arms whirl right round, over the head and on behind it.
-        Assert.Contains(Enumerable.Range(0, 8), k =>
-        {
-            var l = LimbsOf(Pose.Float, Standing, At(0, bout + k * Adrift.WhirlMs / 8));
-            return Math.Abs(l.FrontArm.Upper) > 2.6 || Math.Abs(l.BackArm.Upper) > 2.6;
-        });
-        Assert.True(Panic(Adrift.PanicEveryMs - Adrift.PanicMs + Adrift.PanicEaseMs / 2) is > 0 and < 1);
     }
 
     [Fact]

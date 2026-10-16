@@ -26,13 +26,11 @@ public partial class Figure : Node2D
     /// <summary>Afloat, limbs lag as if pushing through water.</summary>
     private const double FloatSettleMs = 110;
     /// <summary>
-    /// Afloat: how slowly the body turns to the way it swims, the arms reaching that way at once, and how
-    /// slowly treading water, the breaststroke and the crawl blend into each other. Left for right it
-    /// turns at once: a flat figure squeezed through a turn looks worse than a jump.
+    /// Afloat (0036): how slowly the upright body leans into a swim and rights itself, and how slowly
+    /// drifting still, swimming and swimming fast blend into each other. Left for right it turns at once:
+    /// a flat figure squeezed through a turn looks worse than a jump.
     /// </summary>
-    private const double FloatTurnMs = 650, SwimBlendMs = 320;
-    /// <summary>The most the arms reach ahead of a body still turning, in radians, so they never pass through it.</summary>
-    private const double ArmsLeadMost = 1.2;
+    private const double LeanMs = 450, SwimBlendMs = 320;
     /// <summary>How far the air pack sticks out behind the middle: what a body lying on its back rests on.</summary>
     private const double Back = Rig.W * 0.62;
     /// <summary>Specks of dust a boot kicks up stepping, and a landing at most to either side, by its fall (DUST).</summary>
@@ -134,7 +132,7 @@ public partial class Figure : Node2D
         BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
         LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
     };
-    private double _swim, _fast, _heading;
+    private double _swim, _fast;
     /// <summary>Passed out in space, limbs go slack slowly, as if the strength drained out of them.</summary>
     private const double SlackMs = 450;
     /// <summary>The step the walk is on, counted from where it began; a new one puts a foot down.</summary>
@@ -352,15 +350,14 @@ public partial class Figure : Node2D
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
         bool chopping = _chopAt != null && Wields && Poses.HoldsIn(pose) && !working && !holding;
         _chopMs = chopping ? _chopMs + elapsedMs : WindShare * SwingMs;
-        // The hands at work, whatever the pose (0030): afloat the stroke stops, the hero treads water
-        // calmly and rights itself, and the front arm reaches where the work is, in the body's own frame.
+        // The hands at work, whatever the pose (0030): afloat the paddling stops, the hero drifts calmly
+        // upright, and the front arm reaches where the work is, in the body's own frame.
         bool acting = working || chopping || holding && _beamMs > 0;
-        if (Poses.Swimming(hero)) _heading = Poses.HeadingOf(hero);
         bool afloat = pose == Pose.Float;
         _swim = afloat ? Settle(_swim, Poses.Swimming(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _landingMs / Poses.Land.Ms, holding ? _head : null,
-            _outMs, _slump, _outTilt, _swim, _fast, _heading, acting));
+            _outMs, _slump, _outTilt, _swim, _fast, Wields));
         var from = _shown ?? to;
         double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(
@@ -368,8 +365,7 @@ public partial class Figure : Node2D
             SettleBend(from.BackArm, to.BackArm, elapsedMs, within),
             SettleBend(from.FrontLeg, to.FrontLeg, elapsedMs, within),
             SettleBend(from.BackLeg, to.BackLeg, elapsedMs, within),
-            // Afloat the body turns slowly, stretching out head first or righting itself to land.
-            SettleAngle(from.Tilt, to.Tilt, elapsedMs, pose == Pose.Float ? FloatTurnMs : SettleMs),
+            SettleAngle(from.Tilt, to.Tilt, elapsedMs, afloat ? LeanMs : SettleMs),
             Settle(from.Lift, to.Lift, elapsedMs),
             to.Lying);
         _shown = shown;
@@ -380,8 +376,6 @@ public partial class Figure : Node2D
         _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
         Position = new Vector2((float)feetX, (float)feetY);
         Scale = new Vector2(hero.Facing, 1);
-        // Afloat, the arms already reach the way the body is still turning to.
-        double lead = afloat ? Math.Clamp(Poses.Apart(shown.Tilt, to.Tilt), -ArmsLeadMost, ArmsLeadMost) : 0;
         // Placing plans, the planner thrusts at them: out fast, back slower.
         double t = 1 - _beamMs / BeamMs;
         double thrust = holding && _beamMs > 0 ? (t < 0.3 ? t / 0.3 : (1 - t) / 0.7) : 0;
@@ -425,9 +419,8 @@ public partial class Figure : Node2D
             double reach = 0.9 * (Rig.Arm.Upper + Rig.Arm.Lower);
             frontArm = Rig.Reach(new Vec(Math.Cos(swing) * reach, Math.Sin(swing) * reach), Rig.Arm, 1);
         }
-        // The hand holding the planner keeps it before the eyes, ahead of no turn.
-        _frontArm.Bend(frontArm with { Upper = frontArm.Upper + (holding ? 0 : lead) });
-        _backArm.Bend(shown.BackArm with { Upper = shown.BackArm.Upper + lead });
+        _frontArm.Bend(frontArm);
+        _backArm.Bend(shown.BackArm);
         _frontLeg.Bend(shown.FrontLeg);
         _backLeg.Bend(shown.BackLeg);
         bool awake = pose is not (Pose.Lie or Pose.Tumble);
