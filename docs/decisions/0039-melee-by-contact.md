@@ -1,6 +1,7 @@
 # 0039 — Melee by contact
 
-- Status: accepted
+- Status: accepted; the reach as content (`Axe.Reach`) and the blade's width (`AxeSwing.Edge`)
+  superseded by [0040](0040-a-melee-weapon-is-held-by-its-handle.md): the drawn edge's path decides
 - Supersedes: of [0034](0034-wreckage-and-the-axe.md), the left button "held on a wreck within reach"
   (the hero's reach of six cells); of [0038](0038-one-swing-one-hit.md), "a swing begun on a wreck in
   reach" and its one `Hit` to that wreck

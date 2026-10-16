@@ -6,7 +6,7 @@ namespace Stillwake.Game.Features.Crew;
 public readonly record struct SwingStep(bool Begun, bool Hits);
 
 /// <summary>
-/// The fire axe's swings (0034, 0038, 0039): one clock for the blade and the hit. A swing, once begun, is
+/// The fire axe's swings (0034, 0038, 0039, 0040): one clock for the blade and the hit. A swing, once begun, is
 /// aimed at <see cref="At"/> and plays through <see cref="Ms"/>: raised back over the shoulder for
 /// <see cref="WindShare"/> of it, brought down through the line to its point in <see cref="StrikeShare"/>,
 /// eased back; it strikes the frame the blade crosses that line (<see cref="HitAt"/>), let go or not, and
@@ -25,11 +25,8 @@ public struct AxeSwing
     /// </summary>
     public const double WindShare = 0.35, StrikeShare = 0.12, Raised = 2.1, Through = 0.3;
 
-    /// <summary>
-    /// Radians either side of the downstroke's last stretch, from the line to <see cref="Through"/>, that
-    /// it still touches as it strikes (0039): the blade's own width.
-    /// </summary>
-    public const double Edge = 0.15;
+    /// <summary>How far the hand is from the shoulder through a swing, a share of the arm's length.</summary>
+    public const double ArmReach = 0.9;
 
     /// <summary>The share of a swing at which the blade crosses the line to its point: when it strikes.</summary>
     public const double HitAt = WindShare + StrikeShare * Raised / (Raised + Through);
@@ -107,6 +104,34 @@ public struct AxeSwing
         At = at;
         _struck = false;
         return true;
+    }
+
+    /// <summary>The front arm swinging with its hand <paramref name="angle"/> radians from straight ahead of the shoulder, down positive.</summary>
+    public static Bend ArmAt(double angle)
+    {
+        double reach = ArmReach * (Rig.Arm.Upper + Rig.Arm.Lower);
+        return Rig.Reach(new Vec(Math.Cos(angle) * reach, Math.Sin(angle) * reach), Rig.Arm, 1);
+    }
+
+    /// <summary>
+    /// Where the ends of <paramref name="look"/>'s edge are, in pixels from the shoulder, swung with the
+    /// hand at <paramref name="angle"/> (<see cref="ArmAt"/>), held as the figure draws it (0040).
+    /// </summary>
+    public static (Vec From, Vec To) EdgeAt(HeldLook look, double angle)
+    {
+        var arm = ArmAt(angle);
+        return (Rig.HeldAt(arm, look, look.EdgeFrom), Rig.HeldAt(arm, look, look.EdgeTo));
+    }
+
+    /// <summary>
+    /// How far past the line to its point the hand swings while the middle of <paramref name="look"/>'s
+    /// edge is on it (0040): a swing turns the arm by this beside <see cref="Lift"/>, so the blade, held
+    /// at an angle to the arm, meets what the swing is aimed at as it strikes.
+    /// </summary>
+    public static double Lead(HeldLook look)
+    {
+        var (from, to) = EdgeAt(look, 0);
+        return -Math.Atan2((from.Y + to.Y) / 2, (from.X + to.X) / 2);
     }
 
     /// <summary>

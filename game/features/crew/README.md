@@ -10,10 +10,10 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 | File               | Holds                                                                                   | Godot |
 | ------------------ | --------------------------------------------------------------------------------------- | ----- |
 | `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship`, `Point`; one `Step` at 60 a second | no    |
-| `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`)                 | no    |
+| `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`); the fist and an item held in it (`FistOf`, `HeldAt`, 0040) | no    |
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`) | no    |
 | `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039) | no    |
-| `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the strike, its point, this hero's and others' (0038, 0039) | no    |
+| `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the strike, its point, this hero's and others'; the arm and the edge through it (`ArmAt`, `EdgeAt`, `Lead`) (0038, 0039, 0040) | no    |
 | `Prompt.cs`        | `Prompts.Of`: what E does at the aim, in words, and why the sim would refuse it (`prompt.ts`) | no    |
 | `UsePrompt.cs`     | the prompt at the bottom middle, red with the reason when refused (`CrewPanel.tsx`'s `UsePrompt`) | yes   |
 | `Tether.cs`        | the tether as drawn, a reeled rope (`tether.ts`) on `game/render/Rope.cs` (`rope.ts`)   | no    |
@@ -67,7 +67,7 @@ TypeScript original.
 - Each in its suit (`Suits.Of`, the sim's `Hero.Colour`), posed by how it moves, lying while the sim
   says it is out, its head turned as sent, the plan in its hands as sent; its tether drawn too. They
   sway the cables as this hero does (`HeroView.Others`).
-- Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe hanging and swinging
+- Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe held and swinging
   toward its point, the screwdriver turning at the plan, a beam once to the cell sent (`Busy.BeamsAnew`). Taken
   from the sample at or before the moment drawn, never between two; but the axe swings once for each
   swing number as it is heard, not 150 ms behind (`AxeSwing.Follow`, 0038), toward the point sent with
@@ -139,10 +139,12 @@ TypeScript original.
   the line to its point in 12%, eased back. The hero faces that point till the swing ends, swimming
   the other way too (`HeroInput.Swings`). It strikes the frame the blade crosses the line, drawn that
   same frame (the hands are used before the figure is shown): out in space, every wreck the downstroke
-  touches then gets one `Hit` the sim would take (`Aiming.HitsOf`), the jolt a tick later. The
-  downstroke is the sector from the line to `AxeSwing.Through` past it, `AxeSwing.Edge` wider either
-  side, out to `Axe.Reach` (2 cells) from the shoulder of the body upright, sampled every 5° at three
-  distances against each wreck's aim box (`Aiming.Struck`); never the raised stretch over the head.
+  touches then gets one `Hit` the sim would take (`Aiming.HitsOf`), the jolt a tick later. What it
+  touches is the path of the axe's drawn edge (0040): held as the figure holds it (`AxeSwing.EdgeAt`:
+  the hand by the rig, the grip, the forearm's angle and the hold, `HeldLook.FireAxe`), from its middle
+  crossing the line to `AxeSwing.Through` past it, from the shoulder of the body upright, sampled every
+  2° as segments against each wreck's aim box (`Aiming.Struck`); never the raised stretch over the head.
+  It reaches 1.18 cells ahead of the shoulder.
   Aboard it plays and touches nothing; at air it touches nothing. Once begun it plays through and
   strikes, let go or not; presses during it do nothing; held as it ends, the next begins at once,
   toward the pointer then, so clicking is no faster than holding. Putting the axe away, the hand taken,
@@ -150,8 +152,9 @@ TypeScript original.
   owes no burst of hits. Only the first wreck a swing begun now would touch is aimed at (`Hit`, outlined,
   prompt "[Hold LMB] Chop"), wherever the pointer is; one out of the blade's reach is not, though the
   pointer is on it. A small piece is still caught: by E, or by a click on it within reach, which with
-  its hold swings nothing. E never chops. Bare-handed a wreck is aimed at with `Grab`, red: too big. The figure holds the axe (`art/hero_axe.png`) hanging
-  from its front hand. Others see it hang and swing too (0037, 0038).
+  its hold swings nothing. E never chops. Bare-handed a wreck is aimed at with `Grab`, red: too big. The figure holds the axe (`art/hero_axe.png`) in its front fist
+  by the haft, a third up it, square to the forearm, the hand drawn over it (`HeldLook.FireAxe`, 0040);
+  swinging, the arm turns past the line to the point by `AxeSwing.Lead`, so the blade crosses it. Others see it hang and swing too (0037, 0038).
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - Door and valve prompts read them as shown (`Shared.Predicted.Grid`), as `promptOf`'s `shown` did:

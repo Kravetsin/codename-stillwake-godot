@@ -49,7 +49,7 @@ The pieces of debris drifting past the ship, catching them, and breaking wreckag
   too. Refused with `debris.gone`, `debris.notOutside` (as `Grab`) or `debris.notWreckage` (a piece
   caught by hand). The sim does not ask whether the sender holds an axe, how fast it swings nor how
   far it reaches: the client's word, among friends (principle 6). The client sends one `Hit` for each
-  wreck a swing's blade touches within `Axe.Reach` (0039), so one swing may hit two wrecks.
+  wreck a swing's drawn blade touches (0039, 0040), so one swing may hit two wrecks.
 
 ## API
 
@@ -79,7 +79,7 @@ The pieces of debris drifting past the ship, catching them, and breaking wreckag
   for hits after the one that breaks a wreck.
 - A wreck half over the hull is judged by its middle cell, as a small piece is: with its middle over
   the ship it cannot be hit, though its end sticks out into space. Accepted: it drifts on and out.
-- The axe in hand, the swing's pace and reach (`Axe.SwingTicks`, `Axe.Reach`): the client's, among friends. A hit in flight after the
+- The axe in hand, the swing's pace (`Axe.SwingTicks`) and reach (the axe's picture, 0040): the client's, among friends. A hit in flight after the
   axe was put away still lands; creative mode needs no axe either.
 
 ## Differences from TypeScript

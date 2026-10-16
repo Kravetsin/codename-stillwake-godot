@@ -140,41 +140,53 @@ public static class Aiming
     /// <summary>How far the shoulder is above the feet, in thousandths of a cell, the body upright.</summary>
     private const int ShoulderUp = (int)(Rig.Shoulder / Rig.Cell * Hero.Unit);
 
-    /// <summary>The downstroke sampled every this many radians (5°), at three distances from the shoulder.</summary>
-    private const double SampleStep = Math.PI / 36;
+    /// <summary>The downstroke sampled every this many radians (2°): the edge moves under a tenth of a cell between two.</summary>
+    private const double SampleStep = Math.PI / 90;
 
     /// <summary>
-    /// The wrecks a swing of the axe by <paramref name="hero"/> toward <paramref name="at"/>, in thousandths
-    /// of a cell, touches as it strikes (0039), in spawn order; none while the hero is aboard. The blade
-    /// sweeps the downstroke's last stretch, from the line to the point to <see cref="AxeSwing.Through"/>
-    /// past it, <see cref="AxeSwing.Edge"/> wider either side, out to <c>Axe.Reach</c> from the shoulder of
-    /// the body upright, turned the way the hero faces; never the raised stretch over the head. A wreck is
-    /// touched where it is aimed at: its picture and a margin, square to the world.
+    /// The wrecks a swing of <paramref name="look"/>, the fire axe unless a test says, by
+    /// <paramref name="hero"/> toward <paramref name="at"/>, in thousandths of a cell, touches as it
+    /// strikes (0039, 0040), in spawn order; none while the hero is aboard. Its edge, held as the figure
+    /// draws it (<see cref="AxeSwing.EdgeAt"/>), sweeps the downstroke's last stretch, from crossing the
+    /// line to the point to <see cref="AxeSwing.Through"/> past it, from the shoulder of the body upright,
+    /// turned the way the hero faces; never the raised stretch over the head. A wreck is touched where it
+    /// is aimed at: its picture and a margin, square to the world.
     /// </summary>
-    public static List<Piece> Struck(Registry m, Hero hero, Point at)
+    public static List<Piece> Struck(Registry m, Hero hero, Point at, HeldLook? look = null)
     {
         var struck = new List<Piece>();
         if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return struck;
-        double sx = hero.X, sy = hero.Y - ShoulderUp;
-        double line = Math.Atan2(at.Y - sy, (at.X - sx) * hero.Facing);
-        double from = line - AxeSwing.Edge, span = AxeSwing.Through + 2 * AxeSwing.Edge;
-        int steps = (int)Math.Ceiling(span / SampleStep);
+        look ??= HeldLook.FireAxe;
+        double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
+        double line = Math.Atan2(at.Y - sy, (at.X - sx) * hero.Facing), from = line + AxeSwing.Lead(look);
+        int steps = (int)Math.Ceiling(AxeSwing.Through / SampleStep);
+        var edges = new (double Ax, double Ay, double Bx, double By)[steps + 1];
+        for (int i = 0; i <= steps; i++)
+        {
+            var (a, b) = AxeSwing.EdgeAt(look, from + AxeSwing.Through * i / steps);
+            edges[i] = (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
+        }
         foreach (var p in m.Debris.Pieces)
         {
             if (HalfOf(p.Item) is not var (halfW, halfH)) continue;
-            bool touched = false;
-            for (int i = 0; i <= steps && !touched; i++)
-            {
-                double angle = from + span * i / steps, cos = Math.Cos(angle), sin = Math.Sin(angle);
-                for (int r = 1; r <= 3 && !touched; r++)
-                {
-                    double far = Spec.Axe.Reach * r / 3.0;
-                    touched = Math.Abs(sx + hero.Facing * cos * far - p.X) <= halfW && Math.Abs(sy + sin * far - p.Y) <= halfH;
-                }
-            }
-            if (touched) struck.Add(p);
+            if (edges.Any(e => Crosses(e, p.X - halfW, p.Y - halfH, p.X + halfW, p.Y + halfH))) struck.Add(p);
         }
         return struck;
+    }
+
+    /// <summary>Whether the segment <paramref name="e"/> meets the box from (<paramref name="left"/>, <paramref name="top"/>) to (<paramref name="right"/>, <paramref name="bottom"/>): clipped to it, something is left.</summary>
+    private static bool Crosses((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)
+    {
+        double enter = 0, leave = 1, dx = e.Bx - e.Ax, dy = e.By - e.Ay;
+        bool Clip(double toward, double room)
+        {
+            if (toward == 0) return room >= 0;
+            double t = room / toward;
+            if (toward < 0) enter = Math.Max(enter, t);
+            else leave = Math.Min(leave, t);
+            return enter <= leave;
+        }
+        return Clip(-dx, e.Ax - left) && Clip(dx, right - e.Ax) && Clip(-dy, e.Ay - top) && Clip(dy, bottom - e.Ay);
     }
 
     /// <summary>
