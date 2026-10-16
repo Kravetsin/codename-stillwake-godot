@@ -22,6 +22,9 @@ public partial class FurnaceView : Node2D
     private const int Frames = 3;
     /// <summary>Where the fire goes in the furnace's picture, in pixels from its top left: the inside of its mouth (FIRE_AT).</summary>
     private static readonly Vector2 FireAt = new(14, 17);
+    /// <summary>Where embers rise from, in pixels from the furnace's top left: the top of the fire in its mouth, give or take <see cref="EmbersSpread"/> either way.</summary>
+    private static readonly Vector2 EmbersFrom = FireAt + new Vector2(5, 2);
+    private const float EmbersSpread = 3;
     /// <summary>Embers a furnace at work gives off a second.</summary>
     private const double EmbersPerSecond = 7;
 
@@ -29,7 +32,6 @@ public partial class FurnaceView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly FurnaceModule _furnace;
-    private readonly Content.MachineSpec _spec = Content.Machines.Get("furnace");
     /// <summary>
     /// The fire in each furnace at work, its picture, how brightly it burns in it, and the embers owed to
     /// it, carried over between frames, by machine id.
@@ -85,9 +87,8 @@ public partial class FurnaceView : Node2D
             int count = (int)Math.Floor(due);
             fire.Owed = due - count;
             if (turn && Flames.Cracks(fire.Blaze)) count += Flames.CrackEmbers;
-            // From the fire in its middle, a little to either side.
-            var from = corner + new Vector2(_spec.Width / 2f, _spec.Height * 0.45f) * Cell;
-            for (int i = 0; i < count; i++) Particles.Shared.Emit(Effect.Ember, from.X + (_random.NextDouble() - 0.5) * Cell, from.Y, 1);
+            var from = corner + EmbersFrom;
+            for (int i = 0; i < count; i++) Particles.Shared.Emit(Effect.Ember, from.X + (_random.NextDouble() * 2 - 1) * EmbersSpread, from.Y, 1);
             _fires[m.Id] = fire;
         }
         _out.Clear();

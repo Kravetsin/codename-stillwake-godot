@@ -53,6 +53,8 @@ public partial class BuildingView : Node2D
     private double _owedSparks;
     /// <summary>Sparks off a tick of work on a plan.</summary>
     private const double SparksPerTick = 0.3;
+    /// <summary>How far from a plan, in pixels, a hero still turns its sparks toward it: a little past the hands' reach.</summary>
+    private const double SparkReach = (Stillwake.Content.Hero.Reach / 1000.0 + 2) * Cell;
     /// <summary>The screwdriver, moved to each plan as it sparks: a few ticks at once, from plans worked side by side.</summary>
     private readonly Heard2D _screwdriver = Cues.Player2D(S.Screwdriver, S.World, voices: 4);
 
@@ -189,8 +191,8 @@ public partial class BuildingView : Node2D
     }
 
     /// <summary>
-    /// Sparks off every plan whose work went on since it was last seen, from its middle: falling aboard,
-    /// drifting off in space (sparkWork of features/building/index.ts).
+    /// Sparks off every plan whose work went on since it was last seen, from its side facing the nearest
+    /// hero and toward it (<see cref="Tools.SparksOf"/>): falling aboard, drifting off in space.
     /// </summary>
     private void SparkWork(IReadOnlyList<Sim.Building.Plan> plans, IGridQueries grid, IRoomsQueries rooms)
     {
@@ -202,9 +204,9 @@ public partial class BuildingView : Node2D
             _owedSparks -= count;
             if (count == 0) continue;
             var box = BoxOf(CellsOf(grid, p), grid.Width);
-            var at = box.Position + box.Size / 2;
-            Particles.Shared.Emit(Effect.Spark, at.X, at.Y, count, -Math.PI / 2, rooms.RoomAt(p.Cell) == RoomsModule.Space);
-            _screwdriver.PlayAt(at);
+            var (x, y, heading) = Tools.SparksOf((box.Position.X, box.Position.Y, box.Size.X, box.Size.Y), _ui.Heroes, SparkReach);
+            Particles.Shared.Emit(Effect.Spark, x, y, count, heading, rooms.RoomAt(p.Cell) == RoomsModule.Space);
+            _screwdriver.PlayAt(new Vector2((float)x, (float)y));
         }
     }
 

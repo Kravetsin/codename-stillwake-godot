@@ -35,6 +35,28 @@ public sealed record Tab(string Id, IReadOnlyList<Tool> Tools, string? Overlay =
 /// </summary>
 public static class Tools
 {
+    /// <summary>
+    /// Where a plan's sparks fly from and which way, in radians with y down: from the point of its
+    /// <paramref name="box"/> nearest the nearest of <paramref name="heroes"/> within <paramref name="reach"/>
+    /// pixels, toward that hero — the side being worked on; with none near, or one inside the box, from
+    /// its middle, upward.
+    /// </summary>
+    public static (double X, double Y, double Heading) SparksOf(
+        (double X, double Y, double W, double H) box, IReadOnlyList<(float X, float Y)> heroes, double reach)
+    {
+        (double X, double Y)? nearest = null;
+        double best = reach * reach;
+        foreach (var (hx, hy) in heroes)
+        {
+            double dx = hx - System.Math.Clamp(hx, box.X, box.X + box.W), dy = hy - System.Math.Clamp(hy, box.Y, box.Y + box.H);
+            if (dx * dx + dy * dy <= best) (best, nearest) = (dx * dx + dy * dy, (hx, hy));
+        }
+        if (nearest is not var (x, y) || best == 0) return (box.X + box.W / 2, box.Y + box.H / 2, -System.Math.PI / 2);
+        // A pixel inside its edge, so they leave the thing itself.
+        double sx = System.Math.Clamp(x, box.X + 1, box.X + box.W - 1), sy = System.Math.Clamp(y, box.Y + 1, box.Y + box.H - 1);
+        return (sx, sy, System.Math.Atan2(y - sy, x - sx));
+    }
+
     /// <summary>The overlays by their features' ids.</summary>
     public const string Power = "power", Pipes = "pipes", Air = "atmosphere";
 

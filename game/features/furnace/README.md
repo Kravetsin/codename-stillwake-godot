@@ -9,7 +9,7 @@ only: the sim (`sim/Furnace`) decides whether it burns.
 - **Fire:** a `Sprite2D` per burning furnace at `FireAt` (14, 17) in its picture, the inside of its
   mouth (TypeScript's `FIRE_AT`), unlit for it gives light, showing `art/fire_0..2.png` (exported from
   `features/furnace/art.ts`) in turn every 110 ms, never the same picture twice running.
-- **Embers:** 7 a second from the middle of a burning furnace, a little to either side, owed between
+- **Embers:** 7 a second from the top of the fire in its mouth (`EmbersFrom`, 3 px to either side), owed between
   frames, emitted into `Particles.Shared` as `Effect.Ember` and drawn and lit by the effects feature.
 - **Crackle:** with each new picture its fire draws how brightly it burns (`Flames.Blaze`): from
   `Flames.Low` to whole, held till the next picture, or one picture in ten a coal cracks: it flares

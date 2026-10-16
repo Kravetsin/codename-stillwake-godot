@@ -42,7 +42,10 @@ draws too; `Sketch`). The plain files are compiled again into `game.tests/`, whe
   menu's top is `Ui.MenuTop`, which the prompt for E keeps above.
 - Plans redraw only when the plans change; ghosts are tiles laid and erased each frame.
 - A removal's ghost is a box per cell edged a screen pixel wide at any zoom (a primitive line).
-- Work on a plan throws sparks from its middle, 0.3 a tick of work it goes on by (`Effect.Spark`).
+- Work on a plan throws sparks, 0.3 a tick of work it goes on by (`Effect.Spark`), from its side facing
+  the nearest hero within a little past the hands' reach and toward that hero (`Tools.SparksOf`, the
+  heroes from `Ui.Heroes`, set by `crew`); with none near, from its middle, upward. Whoever works it,
+  every peer sees the same side: the nearest hero, not the one working, which the sim does not tell.
 
 ## Differences from the TypeScript
 

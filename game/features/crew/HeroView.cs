@@ -99,6 +99,10 @@ public partial class HeroView : Node2D
     /// <summary>Whether this machine's hero holds the plan in its hands, drawn and sent to the others: the hand not free (0022).</summary>
     public bool HoldsPlan => _ui.Hand.Get() != Holding.Free;
 
+    /// <summary>Where <paramref name="hero"/>'s chest is, in the world's pixels.</summary>
+    private static (float X, float Y) Chest(Hero hero) =>
+        ((float)(hero.X * Rig.Cell / Hero.Unit), (float)((hero.Y - Spec.Height / 2.0) * Rig.Cell / Hero.Unit));
+
     /// <summary>Other heroes where they are drawn this frame: what sways the cables besides this one.</summary>
     public IReadOnlyList<Hero> Others { get; private set; } = [];
 
@@ -158,6 +162,7 @@ public partial class HeroView : Node2D
         // Aimed after following, so the pointer is read where the camera now is.
         var pointer = Pointer();
         var drawn = _current with { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
+        _ui.Heroes = [Chest(drawn), .. Others.Select(Chest)];
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         _figure.Wear(Suits.Of(m.Crew, client.Id));
