@@ -16,9 +16,11 @@ public class BudgetTests(ITestOutputHelper output)
     /// apps/game/src/dev/perf-map.ts: an 8×8 tile repeated, every chunk holding every kind of cell; here
     /// each tile's tank also starts with a canister and is piped to its vent, so every room fills and leaks.
     /// </summary>
-    internal static Layout Reference()
+    internal static Layout Reference() => Reference(256, 128);
+
+    /// <summary>The reference world's 256×128 in the corner of a <paramref name="width"/>×<paramref name="height"/> of space.</summary>
+    private static Layout Reference(int width, int height)
     {
-        const int width = 256, height = 128;
         string[] tile =
         [
             "########",
@@ -31,9 +33,20 @@ public class BudgetTests(ITestOutputHelper output)
             "########",
         ];
         string[] under = ["", " o --", " ---", "", "", "", "", ""];
-        var rows = Enumerable.Range(0, height).Select(y => string.Concat(Enumerable.Repeat(tile[y % 8], width / 8))).ToArray();
-        var below = Enumerable.Range(0, height).Select(y => string.Concat(Enumerable.Repeat(under[y % 8].PadRight(8), width / 8))).ToArray();
+        string Row(int y, Func<int, string> of) => (y < 128 ? string.Concat(Enumerable.Repeat(of(y % 8), 256 / 8)) : "").PadRight(width);
+        var rows = Enumerable.Range(0, height).Select(y => Row(y, i => tile[i])).ToArray();
+        var below = Enumerable.Range(0, height).Select(y => Row(y, i => under[i].PadRight(8))).ToArray();
         return Layout.Parse(rows, below);
+    }
+
+    [Fact]
+    public void SavesASmallShipInALargeWorldNoBiggerThanTheShipAlone()
+    {
+        // Bytes rather than time, so it never flakes: what a save holds is what a hash, a welcome and a load cost.
+        string ship = World.Create(1, Reference(), new Registry().All).Save();
+        string large = World.Create(1, Reference(1024, 512), new Registry().All).Save();
+        output.WriteLine($"the ship alone {ship.Length / 1024} KB, in a 1024×512 world {large.Length / 1024} KB");
+        Assert.True(large.Length < ship.Length * 3 / 2, $"{large.Length} bytes for the large world, {ship.Length} for the ship");
     }
 
     private (double Mean, double Max) Time(World world, int ticks, Func<int, IReadOnlyList<Command>> commands)

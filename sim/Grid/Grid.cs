@@ -38,11 +38,11 @@ public sealed class GridState
 {
     [JsonInclude] internal int Width { get; set; }
     [JsonInclude] internal int Height { get; set; }
-    [JsonInclude] internal int[] Structure { get; set; } = [];
-    [JsonInclude] internal int[] Material { get; set; } = [];
-    [JsonInclude] internal int[] Conduit { get; set; } = [];
-    [JsonInclude] internal int[] Back { get; set; } = [];
-    [JsonInclude] internal int[] BackMaterial { get; set; } = [];
+    [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Structure { get; set; } = [];
+    [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Material { get; set; } = [];
+    [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Conduit { get; set; } = [];
+    [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Back { get; set; } = [];
+    [JsonInclude, JsonConverter(typeof(Runs))] internal int[] BackMaterial { get; set; } = [];
     [JsonInclude] internal List<Machine> Machines { get; set; } = [];
     [JsonInclude] internal int NextMachineId { get; set; } = 1;
     /// <summary>Derived: the id of the machine covering each cell, 0 for none.</summary>

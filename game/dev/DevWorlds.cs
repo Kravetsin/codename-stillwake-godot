@@ -66,17 +66,20 @@ public static class DevWorlds
         // Iron is built, never drawn on a map: the right room is turned to iron in the save.
         var grid = save["slices"]!["grid"]!;
         int iron = Materials.Get("iron").Code;
-        var material = grid["material"]!.AsArray();
-        var back = grid["back"]!.AsArray();
-        var backMaterial = grid["backMaterial"]!.AsArray();
+        var material = Runs.Cells(grid["material"]!);
+        var back = Runs.Cells(grid["back"]!);
+        var backMaterial = Runs.Cells(grid["backMaterial"]!);
         for (int cell = 0; cell < layout.Width * layout.Height; cell++)
         {
             int x = cell % layout.Width, y = cell / layout.Width;
-            if (x >= 24 && (int)material[cell]! != 0) material[cell] = iron;
-            if (x >= 24 && (int)back[cell]! != 0) backMaterial[cell] = iron;
+            if (x >= 24 && material[cell] != 0) material[cell] = iron;
+            if (x >= 24 && back[cell] != 0) backMaterial[cell] = iron;
             // A hole in the left room's back wall, where the stars shine in.
             if (x is >= 11 and <= 12 && y is >= 2 and <= 3) { back[cell] = 0; backMaterial[cell] = 0; }
         }
+        grid["material"] = Runs.Node(material);
+        grid["back"] = Runs.Node(back);
+        grid["backMaterial"] = Runs.Node(backMaterial);
         return World.Load(save.ToJsonString(), modules);
     }
 }

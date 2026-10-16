@@ -456,9 +456,11 @@ public partial class Main : Node2D, ITogether
             // Once: a door this peer alone sees open, as a determinism bug would leave it.
             _cheat = false;
             var root = JsonNode.Parse(save)!;
-            var structure = root["slices"]!["grid"]!["structure"]!.AsArray();
-            int door = structure.Select(n => (int)n!).ToList().IndexOf(Structure.DoorClosed);
+            var grid = root["slices"]!["grid"]!;
+            var structure = Runs.Cells(grid["structure"]!);
+            int door = Array.IndexOf(structure, Structure.DoorClosed);
             structure[door] = Structure.DoorOpen;
+            grid["structure"] = Runs.Node(structure);
             save = root.ToJsonString();
             Log($"cheated: door {door} open here only");
         }
