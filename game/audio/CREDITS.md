@@ -7,8 +7,7 @@ the repository is public, so a file must be free to redistribute without attribu
 Kenney's and Freesound's files are converted to mono WAV, trimmed and normalised to −3 dBFS peak;
 Freesound's are its public HQ previews of CC0 sounds. The chop's and the break's variants are then matched by the RMS of
 their K-weighted attack (the first 0.15 s of a chop, 0.4 s of a break), the louder turned down. `chop-1`
-has its ring cut (notches at 8.4, 11.6 and 14.2 kHz, a low-pass at 3.8 kHz) and its tail faded within
-0.3 s; `break-2`'s clipped peaks are rebuilt (ffmpeg `adeclip`) and its top cut from 9 kHz. The vent
+keeps its ring, as the team wanted it; `break-2`'s clipped peaks are rebuilt (ffmpeg `adeclip`) and its top cut from 9 kHz. The vent
 hum and the fire are 20 s of their sources, its tail crossfaded into their heads, encoded as OGG at
 about −20 LUFS. The generated ones
 are placeholders made procedurally for Stillwake (band-passed noise, sine tones), the team's own work
