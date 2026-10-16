@@ -298,7 +298,7 @@ public class AimTests
 
     /// <summary>
     /// The corner's first piece made a hull section, a scrap chunk a cell below its middle, and peer 0's
-    /// hero reported out in space three cells left of it: the wreck's middle and the hero.
+    /// hero reported out in space two cells left of it, its blade's reach: the wreck's middle and the hero.
     /// </summary>
     private static (TestWorld W, Piece Wreck, Hero Hero) Wrecked()
     {
@@ -315,8 +315,8 @@ public class AimTests
         });
         var wreck = w.M.Debris.Pieces[0];
         int x = wreck.X / Unit, y = wreck.Y / Unit;
-        w.Step(new Sim.Crew.Enter(y * 12 + x - 3));
-        return (w, w.M.Debris.Pieces[0], HeroOn(x - 3, y));
+        w.Step(new Sim.Crew.Enter(y * 12 + x - 2));
+        return (w, w.M.Debris.Pieces[0], HeroOn(x - 2, y));
     }
 
     [Fact]
@@ -400,18 +400,57 @@ public class AimTests
 
     private static List<int> Struck(TestWorld w, Hero hero, Point at) => Aiming.Struck(w.M, hero, at).Select(p => p.Id).ToList();
 
-    [Fact]
-    public void HitsAWreckTheDownstrokeMeetsOutToTheAxesReachFromTheShoulder()
+    /// <summary>
+    /// How far ahead of the shoulder the edge of <paramref name="look"/> gets, in thousandths of a cell,
+    /// swung level: its ends where the figure draws them (<see cref="AxeSwing.EdgeAt"/>), every tenth of a
+    /// degree of the downstroke from the blade on the line to <see cref="AxeSwing.Through"/> past it.
+    /// </summary>
+    private static int ReachOf(HeldLook look)
+    {
+        double far = 0, lead = AxeSwing.Lead(look);
+        for (double lift = 0; lift <= AxeSwing.Through; lift += Math.PI / 1800)
+        {
+            var (a, b) = AxeSwing.EdgeAt(look, lead + lift);
+            far = Math.Max(far, Math.Max(a.X, b.X));
+        }
+        return (int)(far / Rig.Cell * Unit);
+    }
+
+    /// <summary>The wreck <paramref name="look"/> swung level strikes with its near side <paramref name="ahead"/> of the shoulder, if it does.</summary>
+    private static List<int> StruckAhead(int ahead, HeldLook? look = null)
     {
         var shoulder = ShoulderOf(HeroOn(6, 7));
-        // Its near edge 1.5 cells ahead, level with the shoulder: struck, the pointer on it or short of it.
-        var (w, hero) = Field(("hullSection", shoulder.X + 1_500 + HalfW, shoulder.Y));
+        var (w, hero) = Field(("hullSection", shoulder.X + ahead + HalfW, shoulder.Y));
+        return Aiming.Struck(w.M, hero, shoulder with { X = shoulder.X + 5_000 }, look).Select(p => p.Id).ToList();
+    }
+
+    [Fact]
+    public void HitsAWreckTheDrawnEdgeSweepsAndMissesOneJustBeyondIt()
+    {
+        var shoulder = ShoulderOf(HeroOn(6, 7));
+        // Its near edge 0.8 of a cell ahead, level with the shoulder: struck, the pointer on it or short of it.
+        var (w, hero) = Field(("hullSection", shoulder.X + 800 + HalfW, shoulder.Y));
         Assert.Equal([1], Struck(w, hero, new Point(shoulder.X + 3_000, shoulder.Y)));
         Assert.Equal([1], Struck(w, hero, new Point(shoulder.X + 500, shoulder.Y)));
         Assert.Equal([new Hit(1)], Aiming.HitsOf(w.M, 0, hero, new Point(shoulder.X + 500, shoulder.Y)));
-        // Just within the reach, and just beyond it.
-        Assert.Equal([1], Struck(Field(("hullSection", shoulder.X + Spec.Axe.Reach - 100 + HalfW, shoulder.Y)).W, hero, shoulder with { X = shoulder.X + 5_000 }));
-        Assert.Empty(Struck(Field(("hullSection", shoulder.X + Spec.Axe.Reach + 100 + HalfW, shoulder.Y)).W, hero, shoulder with { X = shoulder.X + 5_000 }));
+        // The edge's tip reaches about an arm and the axe, held square to it (0040); a wreck just short of
+        // it is struck, one just past it is not.
+        int reach = ReachOf(HeldLook.FireAxe);
+        Assert.InRange(reach, 1_000, 1_500);
+        Assert.Equal([1], StruckAhead(reach - 50));
+        Assert.Empty(StruckAhead(reach + 50));
+    }
+
+    [Fact]
+    public void ReachesFartherGrippedLowerOnTheHaft()
+    {
+        // The same axe held at the very end of its haft: the edge, and with it the reach, moves out.
+        var atTheEnd = HeldLook.FireAxe with { Grip = (2, 7) };
+        int reach = ReachOf(HeldLook.FireAxe), longer = ReachOf(atTheEnd);
+        Assert.True(longer > reach + 100, $"{longer} against {reach}");
+        Assert.Empty(StruckAhead(reach + 50));
+        Assert.Equal([1], StruckAhead(reach + 50, atTheEnd));
+        Assert.Empty(StruckAhead(longer + 50, atTheEnd));
     }
 
     [Fact]
@@ -463,7 +502,8 @@ public class AimTests
     public void ChopsBelowAndAboveTowardThePointer()
     {
         var shoulder = ShoulderOf(HeroOn(6, 7));
-        var (w, hero) = Field(("hullSection", shoulder.X + 500, shoulder.Y + 1_500 + 1_250), ("hullSection", shoulder.X + 500, shoulder.Y - 1_500 - 1_250));
+        // Their near sides a cell below and above the shoulder.
+        var (w, hero) = Field(("hullSection", shoulder.X + 500, shoulder.Y + 1_000 + 1_250), ("hullSection", shoulder.X + 500, shoulder.Y - 1_000 - 1_250));
         Assert.Equal([new Hit(1)], Aiming.HitsOf(w.M, 0, hero, shoulder with { Y = shoulder.Y + 3_000 }));
         Assert.Equal([new Hit(2)], Aiming.HitsOf(w.M, 0, hero, shoulder with { Y = shoulder.Y - 3_000 }));
     }

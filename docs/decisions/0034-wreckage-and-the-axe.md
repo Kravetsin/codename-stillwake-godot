@@ -27,7 +27,7 @@ the spacewalk a job and the Fabricator a reason, without new systems for physics
 - **The tool is the client's word.** The sim does not ask whether the sender holds an axe, nor how
   fast it swings (principle 6, friends): the client sends `Hit` only with the fire axe chosen on the
   hotbar, the hand free, the left button held on a wreck within reach, once every `SwingTicks`
-  (superseded by 0039: held or clicked anywhere, a hit for each wreck the blade touches within `Axe.Reach`).
+  (superseded by 0039: held or clicked anywhere, a hit for each wreck the blade touches; 0040: where its drawn edge sweeps).
   The chosen hotbar item reaches the crew through `Ui.Wielded`; the screwdriver's tool slot (0030) is
   left alone. A small piece is still caught by hand, axe or not.
 - **Tools never break.** The fire axe (6 scrap, at the lifepod, known from the start) has no

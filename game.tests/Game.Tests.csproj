@@ -33,6 +33,7 @@
     <Compile Include="../game/features/crew/Pose.cs" Link="Game/Crew/Pose.cs" />
     <Compile Include="../game/features/crew/Aim.cs" Link="Game/Crew/Aim.cs" />
     <Compile Include="../game/features/crew/AxeSwing.cs" Link="Game/Crew/AxeSwing.cs" />
+    <Compile Include="../game/features/crew/SwingArm.cs" Link="Game/Crew/SwingArm.cs" />
     <Compile Include="../game/features/crew/Tether.cs" Link="Game/Crew/Tether.cs" />
     <Compile Include="../game/features/crew/Report.cs" Link="Game/Crew/Report.cs" />
     <Compile Include="../game/features/crew/Danger.cs" Link="Game/Crew/Danger.cs" />
@@ -76,6 +77,7 @@
     <Compile Include="../game/dev/Testbed.cs" Link="Game/Dev/Testbed.cs" />
     <Compile Include="../game/Content/Sound.cs" Link="Game/Content/Sound.cs" />
     <Compile Include="../game/Content/DebrisLooks.cs" Link="Game/Content/DebrisLooks.cs" />
+    <Compile Include="../game/Content/HeldLook.cs" Link="Game/Content/HeldLook.cs" />
     <Compile Include="../game/features/dev-panel/CueNames.cs" Link="Game/Dev/CueNames.cs" />
   </ItemGroup>
 </Project>

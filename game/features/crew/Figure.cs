@@ -109,11 +109,14 @@ public partial class Figure : Node2D
     /// <summary>The screwdriver's grip in its picture, a frame of <c>hero_screwdriver.png</c>.</summary>
     private static readonly Vector2 Grip = new(3, 2);
     private readonly Sprite2D _tool;
-    /// <summary>The axe's grip in <c>hero_axe.png</c>: its haft runs right from the hand, the head at the far end, the blade below.</summary>
-    private static readonly Vector2 AxeGrip = new(3, 7);
+    /// <summary>How the fire axe is held (0040), and how far past the line to a swing's point the arm swings for its blade to meet it.</summary>
+    private static readonly HeldLook Axe = HeldLook.FireAxe;
+    private static readonly double AxeLead = AxeSwing.Lead(Axe);
     private readonly Sprite2D _axe;
     /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
     private (Vector2 At, double Phase)? _chop;
+    /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
+    private SwingArm _swingArm;
     /// <summary>The node the body's parts hang from: where a shoulder is, the arms' own frame.</summary>
     private readonly Node2D _frame;
     private Vector2? _workAt;
@@ -176,7 +179,7 @@ public partial class Figure : Node2D
             Visible = false,
         };
         Lit.Set(_tool);
-        _axe = new Sprite2D { Texture = GD.Load<Texture2D>("res://art/hero_axe.png"), Centered = false, Offset = -AxeGrip, Visible = false };
+        _axe = new Sprite2D { Texture = GD.Load<Texture2D>(Axe.Picture), Centered = false, Offset = -new Vector2((float)Axe.Grip.X, (float)Axe.Grip.Y), Visible = false };
         Lit.Set(_axe);
         for (int i = 0; i < BeamsMost; i++)
         {
@@ -190,7 +193,7 @@ public partial class Figure : Node2D
         var parts = _frame = new Node2D { Position = new Vector2(0, (float)(Rig.H / 2)) };
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
-        // its hand over the sheet it holds.
+        // its hand over the sheet it holds and closed round the axe's haft.
         foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _axe, frontArm }) parts.AddChild(n);
         AddChild(_body);
         Wear(colour);
@@ -400,15 +403,15 @@ public partial class Figure : Node2D
             double ux = Math.Sin(work), uy = -Math.Cos(work);
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
-        double swing = 0;
+        (double Angle, double Phase)? swung = null;
         if (chopping && _chop is { At: var wreck, Phase: var phase })
         {
-            // Toward the wreck, from the shoulder: raised back over it, then brought down through it.
+            // Toward the point, from the shoulder: raised back over it, then brought down till the blade,
+            // not the hand, crosses the line to it (0040).
             var (dx, dy) = FromShoulder(wreck);
-            swing = Math.Atan2(dy, dx) + AxeSwing.Lift(phase);
-            double reach = 0.9 * (Rig.Arm.Upper + Rig.Arm.Lower);
-            frontArm = Rig.Reach(new Vec(Math.Cos(swing) * reach, Math.Sin(swing) * reach), Rig.Arm, 1);
+            swung = (Math.Atan2(dy, dx) + AxeLead + AxeSwing.Lift(phase), phase);
         }
+        frontArm = _swingArm.Next(frontArm, swung, elapsedMs);
         _frontArm.Bend(frontArm);
         _backArm.Bend(shown.BackArm);
         _frontLeg.Bend(shown.FrontLeg);
@@ -438,14 +441,13 @@ public partial class Figure : Node2D
             // Three steps of the ribs a turn, held on the way back: they roll on one way only.
             _tool.Frame = (int)Math.Min(2, Math.Floor(twist * 3));
         }
-        // The axe in the front hand: swung along the arm, its blade leading down; else hanging from the hand.
+        // The axe in the front fist, held square to the forearm (0040): swung or hanging, the hand closed round its haft.
         _axe.Visible = Wields && Poses.HoldsIn(pose) && !working && !holding;
         if (_axe.Visible)
         {
-            var hand = Rig.EndOf(frontArm, Rig.Arm);
-            double turn = frontArm.Upper + frontArm.Lower;
-            _axe.Position = new Vector2((float)hand.X, (float)(-Rig.Shoulder + hand.Y));
-            _axe.Rotation = (float)(chopping ? swing : Math.Atan2(Math.Cos(turn), Math.Sin(turn)));
+            var fist = Rig.FistOf(frontArm);
+            _axe.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
+            _axe.Rotation = (float)Rig.HeldTurn(frontArm, Axe);
         }
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);

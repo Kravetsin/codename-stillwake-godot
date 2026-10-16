@@ -49,6 +49,42 @@ public static class Rig
     }
 
     /// <summary>
+    /// How far the fist's middle is back from the forearm's end, in pixels: the glove of
+    /// <c>hero_forearm.png</c>, where a held item's grip sits (0040).
+    /// </summary>
+    public const double FistBack = 1;
+
+    /// <summary>The middle of the fist of an arm bent as <paramref name="arm"/>, from its shoulder.</summary>
+    public static Vec FistOf(Bend arm)
+    {
+        var end = EndOf(arm, Arm);
+        double turn = arm.Upper + arm.Lower;
+        return new Vec(end.X - Math.Sin(turn) * FistBack, end.Y - Math.Cos(turn) * FistBack);
+    }
+
+    /// <summary>
+    /// The turn of <paramref name="look"/>'s picture, clockwise, held in the fist of an arm bent as
+    /// <paramref name="arm"/>: its handle leaves the fist <c>Hold</c> back from the forearm (0040).
+    /// </summary>
+    public static double HeldTurn(Bend arm, HeldLook look)
+    {
+        double turn = arm.Upper + arm.Lower;
+        return Math.Atan2(Math.Cos(turn), Math.Sin(turn)) - look.Hold;
+    }
+
+    /// <summary>
+    /// Where <paramref name="pixel"/> of <paramref name="look"/>'s picture is, from the shoulder, held in
+    /// the fist of an arm bent as <paramref name="arm"/>: its grip on the fist's middle, turned by <see cref="HeldTurn"/>.
+    /// </summary>
+    public static Vec HeldAt(Bend arm, HeldLook look, (double X, double Y) pixel)
+    {
+        var fist = FistOf(arm);
+        double turn = HeldTurn(arm, look), cos = Math.Cos(turn), sin = Math.Sin(turn);
+        double x = pixel.X - look.Grip.X, y = pixel.Y - look.Grip.Y;
+        return new Vec(fist.X + x * cos - y * sin, fist.Y + x * sin + y * cos);
+    }
+
+    /// <summary>
     /// The bend that puts a limb's end at <paramref name="target"/>, from its joint, or as near as it
     /// reaches. With <paramref name="bends"/> 1 the middle joint sits on the side the angles fall, as an
     /// elbow below a hand held before the chest; with -1 on the side they rise, as a knee in front.
