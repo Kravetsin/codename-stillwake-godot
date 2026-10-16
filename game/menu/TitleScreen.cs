@@ -168,10 +168,10 @@ public partial class TitleScreen : CanvasLayer
             DrawRect(new Rect2(Vector2.Zero, screen), Space);
             foreach (var (at, depth) in _stars)
                 if (at.X < screen.X && at.Y < screen.Y)
-                    DrawRect(new Rect2(at.Floor(), Vector2.One * (depth > 0.85f ? 2 : 1)), depth > 0.8f ? Near : depth > 0.5f ? Mid : Far);
+                    Star(at, depth > 0.85f ? 2 : 1, depth > 0.8f ? Near : depth > 0.5f ? Mid : Far);
             foreach (var (at, turn, size, _, _) in _pieces)
             {
-                DrawSetTransform(at.Round(), turn, Vector2.One * 2);
+                DrawSetTransform(at, turn, Vector2.One * 2);
                 var box = new Rect2(-size / 2, size);
                 DrawRect(box, Plate);
                 DrawRect(new Rect2(box.Position, new Vector2(box.Size.X, 1)), Lit);
@@ -179,6 +179,22 @@ public partial class TitleScreen : CanvasLayer
                 DrawRect(new Rect2(box.Position + new Vector2(2, 2), Vector2.One), Dark);
             }
             DrawSetTransform(Vector2.Zero, 0, Vector2.One);
+        }
+
+        /// <summary>
+        /// A star a fraction of a pixel along, shared between the pixels it lies across by how much of it is
+        /// in each: drawn whole on one pixel, a slow star would stand still and then jump.
+        /// </summary>
+        private void Star(Vector2 at, int size, Color colour)
+        {
+            var whole = at.Floor();
+            float fx = at.X - whole.X, fy = at.Y - whole.Y;
+            for (int dy = 0; dy < 2; dy++)
+                for (int dx = 0; dx < 2; dx++)
+                {
+                    float share = (dx == 0 ? 1 - fx : fx) * (dy == 0 ? 1 - fy : fy);
+                    if (share > 0.01f) DrawRect(new Rect2(whole + new Vector2(dx, dy), Vector2.One * size), colour with { A = share });
+                }
         }
     }
 }
