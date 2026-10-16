@@ -20,8 +20,8 @@ public sealed record WorkAim(int Plan, string? Problem, bool Delivers = false);
 /// <summary>
 /// The cell under the pointer and what the hands do there: the left button held works a plan; E toggles
 /// a door or valve, puts a canister into a tank, grabs a piece of debris or opens crate <see cref="Crate"/>.
-/// <see cref="Piece"/> names the piece of debris a press grabs, or the left button held chops with the
-/// axe (0034), which is outlined itself, not its cell.
+/// <see cref="Piece"/> names the piece of debris a press grabs, or the wreck a swing of the axe would hit
+/// (0034, 0039), which is outlined itself, not its cell.
 /// </summary>
 public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null);
 
@@ -87,8 +87,10 @@ public static class Aiming
     /// is under it all the same: a crate, a furnace or an analyzer, a tank, a door, a valve. With neither,
     /// a wreck whose picture is under the pointer, else the piece of debris nearest it within
     /// <c>Debris.AimRadius</c>, only while the hero is out in space, where it can catch one, and none in
-    /// <paramref name="passOver"/>: grabbed already, its grab still in flight. A wreck is chopped while the
-    /// hero wields the <paramref name="axe"/>, else grabbed, which the sim refuses: too big.
+    /// <paramref name="passOver"/>: grabbed already, its grab still in flight. Bare-handed, a wreck is
+    /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/>, a small piece is still
+    /// grabbed, but no wreck by the pointer is aimed at: the first a swing toward the pointer begun now
+    /// would touch is (<see cref="Struck"/>), wherever the pointer is.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
@@ -112,16 +114,75 @@ public static class Aiming
         int? crate = machine != null && HoldsItems(machine.Kind) ? machine.Id : null;
         var press = crate == null ? PressOf(m, peer, cell) : null;
         if (work != null || crate != null || press != null) return new Aim(cell, inReach, press, work, crate);
-        if (PieceNear(m, hero, point, passOver) is not { } piece) return new Aim(cell, inReach);
+        var piece = PieceNear(m, hero, point, passOver);
         // Aimed at where the piece is, which may be a cell beside the pointer's.
-        int at = DebrisModule.CellOf(piece.X, piece.Y, grid.Width);
-        if (HalfOf(piece.Item) is not var (halfW, halfH))
+        if (piece != null && HalfOf(piece.Item) == null)
+        {
+            int at = DebrisModule.CellOf(piece.X, piece.Y, grid.Width);
             return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id)), Piece: piece.Id);
-        var use = axe
-            ? new Use(new Hit(piece.Id), m.Debris.HitProblem(peer, piece.Id))
-            : new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id));
-        return new Aim(at, ReachesBox(hero, piece.X, piece.Y, halfW, halfH), use, Piece: piece.Id);
+        }
+        if (axe)
+        {
+            // A swing begun now faces the pointer (Poses.FaceOf), and so does the stroke it is judged by.
+            var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
+            if (Struck(m, toward, PointOf(point)).FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
+            return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true, new Use(new Hit(wreck.Id), m.Debris.HitProblem(peer, wreck.Id)), Piece: wreck.Id);
+        }
+        if (piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
+        var grab = new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id));
+        return new Aim(DebrisModule.CellOf(piece.X, piece.Y, grid.Width), ReachesBox(hero, piece.X, piece.Y, halfW, halfH), grab, Piece: piece.Id);
     }
+
+    /// <summary>A point in cells, in thousandths of a cell.</summary>
+    public static Point PointOf((double X, double Y) cells) =>
+        new((int)Math.Round(cells.X * Hero.Unit), (int)Math.Round(cells.Y * Hero.Unit));
+
+    /// <summary>How far the shoulder is above the feet, in thousandths of a cell, the body upright.</summary>
+    private const int ShoulderUp = (int)(Rig.Shoulder / Rig.Cell * Hero.Unit);
+
+    /// <summary>The downstroke sampled every this many radians (5°), at three distances from the shoulder.</summary>
+    private const double SampleStep = Math.PI / 36;
+
+    /// <summary>
+    /// The wrecks a swing of the axe by <paramref name="hero"/> toward <paramref name="at"/>, in thousandths
+    /// of a cell, touches as it strikes (0039), in spawn order; none while the hero is aboard. The blade
+    /// sweeps the downstroke's last stretch, from the line to the point to <see cref="AxeSwing.Through"/>
+    /// past it, <see cref="AxeSwing.Edge"/> wider either side, out to <c>Axe.Reach</c> from the shoulder of
+    /// the body upright, turned the way the hero faces; never the raised stretch over the head. A wreck is
+    /// touched where it is aimed at: its picture and a margin, square to the world.
+    /// </summary>
+    public static List<Piece> Struck(Registry m, Hero hero, Point at)
+    {
+        var struck = new List<Piece>();
+        if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return struck;
+        double sx = hero.X, sy = hero.Y - ShoulderUp;
+        double line = Math.Atan2(at.Y - sy, (at.X - sx) * hero.Facing);
+        double from = line - AxeSwing.Edge, span = AxeSwing.Through + 2 * AxeSwing.Edge;
+        int steps = (int)Math.Ceiling(span / SampleStep);
+        foreach (var p in m.Debris.Pieces)
+        {
+            if (HalfOf(p.Item) is not var (halfW, halfH)) continue;
+            bool touched = false;
+            for (int i = 0; i <= steps && !touched; i++)
+            {
+                double angle = from + span * i / steps, cos = Math.Cos(angle), sin = Math.Sin(angle);
+                for (int r = 1; r <= 3 && !touched; r++)
+                {
+                    double far = Spec.Axe.Reach * r / 3.0;
+                    touched = Math.Abs(sx + hero.Facing * cos * far - p.X) <= halfW && Math.Abs(sy + sin * far - p.Y) <= halfH;
+                }
+            }
+            if (touched) struck.Add(p);
+        }
+        return struck;
+    }
+
+    /// <summary>
+    /// The hits peer <paramref name="peer"/>'s swing toward <paramref name="at"/> sends as it strikes:
+    /// one for each wreck it touches (<see cref="Struck"/>) the sim would let it hit.
+    /// </summary>
+    public static List<Hit> HitsOf(Registry m, int peer, Hero hero, Point at) =>
+        Struck(m, hero, at).Where(p => m.Debris.HitProblem(peer, p.Id) == null).Select(p => new Hit(p.Id)).ToList();
 
     /// <summary>
     /// The first wreck, in spawn order, with <paramref name="point"/> on its picture, else the small piece
@@ -170,7 +231,7 @@ public static class Aiming
         if (aim is not { InReach: true }) return new([], null, null, -1);
         if (pressed && aim.Crate is int crate) return new([], crate, null, -1);
         var commands = new List<Command>();
-        // A wreck is chopped by the left button held (Swing), never by a press.
+        // A wreck is chopped by a swing of the axe (AxeSwing), never by a press.
         if (pressed && aim.Press is { Problem: null } press && press.Command is not Hit) commands.Add(press.Command);
         if (aim.Work is not { Problem: null } work || !held) return new(commands, null, null, -1);
         if (work.Delivers) return new([.. commands, new Work(work.Plan)], null, work.Plan, -1);
@@ -180,10 +241,4 @@ public static class Aiming
         for (int i = 0; i < due; i++) commands.Add(new Work(work.Plan));
         return new(commands, null, null, due > 0 ? tick : workedOnTick);
     }
-
-    /// <summary>
-    /// The hit a swing of the axe begun at <paramref name="aim"/> would send: a wreck in reach the sim
-    /// would let it hit, the axe wielded. None otherwise, and no swing begins (<see cref="AxeSwing"/>).
-    /// </summary>
-    public static Hit? ChopOf(Aim? aim) => aim is { InReach: true, Press: { Command: Hit hit, Problem: null } } ? hit : null;
 }

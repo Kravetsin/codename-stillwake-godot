@@ -142,6 +142,17 @@ public class HeroTests
     }
 
     [Fact]
+    public void SwimmingKeepsFacingWhereItsAxeSwingBeganTowardTillTheSwingEnds()
+    {
+        var opened = Opened();
+        var h = Hero.At(opened, 40 * opened.Width + 120);
+        Assert.Equal(-1, h.Step(Left with { Face = 1 }, opened).Facing);
+        var swinging = h.Step(Left with { Face = 1, Swings = true }, opened);
+        Assert.Equal(1, swinging.Facing);
+        Assert.True(swinging.X < h.X);
+    }
+
+    [Fact]
     public void FallsNoFasterThanItsTopSpeed()
     {
         const int depth = 60;

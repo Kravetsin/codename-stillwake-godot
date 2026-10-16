@@ -11,9 +11,11 @@ public readonly record struct Point(int X, int Y);
 /// <summary>
 /// What the player holds during one step; <see cref="Y"/> is -1 for up. <see cref="Jump"/> is set once
 /// per press. <see cref="Face"/> is the side the pointer is on, which the hero faces whichever way it
-/// moves; with none, it faces the way it walks. <see cref="Sprint"/>, Shift held, runs and swims fast.
+/// walks; with none, it faces the way it walks; swimming, the way it swims. <see cref="Sprint"/>, Shift
+/// held, runs and swims fast. <see cref="Swings"/>, the axe mid-swing (0039): it faces
+/// <see cref="Face"/> swimming too, so the blade comes down where the swing was aimed.
 /// </summary>
-public readonly record struct HeroInput(int X, int Y, bool Jump, int? Face = null, bool Sprint = false);
+public readonly record struct HeroInput(int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false);
 
 /// <summary>
 /// The cells the hero moves against; which of them are space, where the hero floats; and which are the
@@ -127,8 +129,8 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     private static Hero Move(Hero hero, HeroInput input, Ship ship)
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
-        // Swimming, the hero faces the way it swims, whatever the pointer does.
-        if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero.X, hero.Y, input, input.X == 0 ? facing : input.X);
+        // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
+        if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero.X, hero.Y, input, input.X == 0 || input.Swings ? facing : input.X);
         bool grab = !hero.Climbing && input.Y != 0 && input.X == 0 && !input.Jump &&
             TouchesLadder(ship, hero.X, hero.Y, input.Y > 0);
         if (grab || hero.Climbing)

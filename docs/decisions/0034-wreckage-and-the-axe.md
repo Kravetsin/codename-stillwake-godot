@@ -1,6 +1,6 @@
 # 0034 — Wreckage and the axe
 
-- Status: accepted; "other heroes are not seen holding or swinging the axe" superseded by [0037](0037-others-see-the-hands.md); the hit sent at the press superseded by [0038](0038-one-swing-one-hit.md)
+- Status: accepted; "other heroes are not seen holding or swinging the axe" superseded by [0037](0037-others-see-the-hands.md); the hit sent at the press superseded by [0038](0038-one-swing-one-hit.md); the left button held on a wreck within reach superseded by [0039](0039-melee-by-contact.md)
 - Date: 2026-10-16
 
 ## Context
@@ -26,9 +26,10 @@ the spacewalk a job and the Fabricator a reason, without new systems for physics
   small pieces, no spread, no physics.
 - **The tool is the client's word.** The sim does not ask whether the sender holds an axe, nor how
   fast it swings (principle 6, friends): the client sends `Hit` only with the fire axe chosen on the
-  hotbar, the hand free, the left button held on a wreck within reach, once every `SwingTicks`. The
-  chosen hotbar item reaches the crew through `Ui.Wielded`; the screwdriver's tool slot (0030) is left
-  alone. A small piece is still caught by hand, axe or not.
+  hotbar, the hand free, the left button held on a wreck within reach, once every `SwingTicks`
+  (superseded by 0039: held or clicked anywhere, a hit for each wreck the blade touches within `Axe.Reach`).
+  The chosen hotbar item reaches the crew through `Ui.Wielded`; the screwdriver's tool slot (0030) is
+  left alone. A small piece is still caught by hand, axe or not.
 - **Tools never break.** The fire axe (6 scrap, at the lifepod, known from the start) has no
   durability and no better versions yet.
 - **One crack filter for all debris.** The lit pictures' shader draws pixel-art cracks on any picture's

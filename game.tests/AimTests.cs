@@ -348,7 +348,7 @@ public class AimTests
     }
 
     [Fact]
-    public void ReachesAWreckByItsNearestEdgeNotItsMiddle()
+    public void ReachesAWreckBareHandedByItsNearestEdgeNotItsMiddle()
     {
         var (w, wreck, _) = Wrecked();
         int halfW = DebrisLooks.Wrecks["hullSection"].W * Unit / 32;
@@ -357,20 +357,154 @@ public class AimTests
         var near = new Hero(wreck.X - halfW - Spec.Hero.Reach + 100, wreck.Y + Hero.MiddleUp, 0, 0, false, 1);
         var far = near with { X = near.X - 600 };
         var at = ((double)wreck.X / Unit, (double)y + 0.5);
-        Assert.True(Aiming.AimAt(w.M, 0, near, at, axe: true)!.InReach);
-        Assert.False(Aiming.AimAt(w.M, 0, far, at, axe: true)!.InReach);
+        Assert.True(Aiming.AimAt(w.M, 0, near, at)!.InReach);
+        Assert.False(Aiming.AimAt(w.M, 0, far, at)!.InReach);
+    }
+
+    // The axe's blade (0039): what a swing's downstroke touches as it strikes.
+
+    private const int FieldWidth = 24;
+
+    /// <summary>
+    /// Open space <see cref="FieldWidth"/> by 14 cells, peer 0's hero out in it on cell (6, 7) facing right,
+    /// and still pieces of <paramref name="items"/> with their middles where they say, in thousandths of a
+    /// cell, ids from 1 in that order.
+    /// </summary>
+    private static (TestWorld W, Hero Hero) Field(params (string Item, int X, int Y)[] items)
+    {
+        var w = new TestWorld(Layout.Parse(["#".PadRight(FieldWidth), .. Enumerable.Repeat(new string(' ', FieldWidth), 13)]));
+        for (int i = 0; i < Spec.Debris.Every; i++) w.Step();
+        w.Edit(root =>
+        {
+            var debris = root["slices"]!["debris"]!;
+            var pieces = debris["pieces"]!.AsArray();
+            var model = pieces[0]!.DeepClone();
+            pieces.Clear();
+            for (int i = 0; i < items.Length; i++)
+            {
+                var piece = model.DeepClone();
+                (piece["id"], piece["item"], piece["x"], piece["y"], piece["speed"]) = (i + 1, items[i].Item, items[i].X, items[i].Y, 0);
+                pieces.Add(piece);
+            }
+            debris["nextId"] = items.Length + 1;
+        });
+        w.Step(new Sim.Crew.Enter(7 * FieldWidth + 6));
+        return (w, HeroOn(6, 7));
+    }
+
+    /// <summary>The hero's shoulder upright, in thousandths of a cell: where the blade's reach is measured from.</summary>
+    private static Point ShoulderOf(Hero hero) => new(hero.X, hero.Y - (int)(Rig.Shoulder / Rig.Cell * Unit));
+
+    /// <summary>Half a hull section's aim box across: its picture and the margin.</summary>
+    private static readonly int HalfW = DebrisLooks.Wrecks["hullSection"].W * Unit / 32 + 250;
+
+    private static List<int> Struck(TestWorld w, Hero hero, Point at) => Aiming.Struck(w.M, hero, at).Select(p => p.Id).ToList();
+
+    [Fact]
+    public void HitsAWreckTheDownstrokeMeetsOutToTheAxesReachFromTheShoulder()
+    {
+        var shoulder = ShoulderOf(HeroOn(6, 7));
+        // Its near edge 1.5 cells ahead, level with the shoulder: struck, the pointer on it or short of it.
+        var (w, hero) = Field(("hullSection", shoulder.X + 1_500 + HalfW, shoulder.Y));
+        Assert.Equal([1], Struck(w, hero, new Point(shoulder.X + 3_000, shoulder.Y)));
+        Assert.Equal([1], Struck(w, hero, new Point(shoulder.X + 500, shoulder.Y)));
+        Assert.Equal([new Hit(1)], Aiming.HitsOf(w.M, 0, hero, new Point(shoulder.X + 500, shoulder.Y)));
+        // Just within the reach, and just beyond it.
+        Assert.Equal([1], Struck(Field(("hullSection", shoulder.X + Spec.Axe.Reach - 100 + HalfW, shoulder.Y)).W, hero, shoulder with { X = shoulder.X + 5_000 }));
+        Assert.Empty(Struck(Field(("hullSection", shoulder.X + Spec.Axe.Reach + 100 + HalfW, shoulder.Y)).W, hero, shoulder with { X = shoulder.X + 5_000 }));
     }
 
     [Fact]
-    public void SwingsOnlyAtAWreckInReachTheSimWouldLetItHit()
+    public void MissesAWreckFourCellsOffThoughThePointerIsOnIt()
     {
-        var hit = new Hit(4);
-        var aim = new Aim(3, true, new Use(hit, null), Piece: 4);
-        Assert.Equal(hit, Aiming.ChopOf(aim));
-        Assert.Null(Aiming.ChopOf(aim with { InReach = false }));
-        Assert.Null(Aiming.ChopOf(aim with { Press = new Use(hit, "debris.notOutside") }));
-        Assert.Null(Aiming.ChopOf(aim with { Press = new Use(new Grab(4), null) }));
-        Assert.Null(Aiming.ChopOf(null));
+        var shoulder = ShoulderOf(HeroOn(6, 7));
+        var (w, hero) = Field(("hullSection", shoulder.X + 4_000 + HalfW, shoulder.Y));
+        var on = new Point(shoulder.X + 4_000 + HalfW, shoulder.Y);
+        Assert.Empty(Aiming.HitsOf(w.M, 0, hero, on));
+        // Nothing outlined, no prompt: the blade would cut air.
+        var aim = Aiming.AimAt(w.M, 0, hero, ((double)on.X / Unit, (double)on.Y / Unit), axe: true);
+        Assert.Null(aim?.Piece);
+        Assert.Null(Prompts.Of(w.M, aim));
+    }
+
+    [Fact]
+    public void MissesAWreckBehindTheHeroOrInTheRaisedStretchOverItsHead()
+    {
+        var shoulder = ShoulderOf(HeroOn(6, 7));
+        var ahead = shoulder with { X = shoulder.X + 3_000 };
+        // Behind, as near as one ahead that is struck.
+        var (behind, hero) = Field(("hullSection", shoulder.X - 1_000 - HalfW, shoulder.Y));
+        Assert.Empty(Struck(behind, hero, ahead));
+        Assert.Equal([1], Struck(behind, hero with { Facing = -1 }, shoulder with { X = shoulder.X - 3_000 }));
+        // Over the head, where the blade is raised before it comes down ahead: struck only swung up at it.
+        var (over, _) = Field(("hullSection", shoulder.X, shoulder.Y - 600 - 1_250));
+        Assert.Empty(Struck(over, hero, ahead));
+        Assert.Equal([1], Struck(over, hero, shoulder with { Y = shoulder.Y - 3_000 }));
+    }
+
+    [Fact]
+    public void HitsEachOfTwoWrecksTheStrokeMeetsOnceAndNeverASmallPiece()
+    {
+        var shoulder = ShoulderOf(HeroOn(6, 7));
+        // One along the line to the pointer, one lower, a scrap chunk on the line between them and the hero.
+        var (w, hero) = Field(
+            ("hullSection", shoulder.X + 2_500, shoulder.Y - 1_000),
+            ("scrapChunk", shoulder.X + 700, shoulder.Y),
+            ("hullSection", shoulder.X + 2_500, shoulder.Y + 1_500));
+        var ahead = shoulder with { X = shoulder.X + 3_000 };
+        Assert.Equal([new Hit(1), new Hit(3)], Aiming.HitsOf(w.M, 0, hero, ahead));
+        // Aimed at, the first of them is outlined, with the axe's prompt.
+        var aim = Aiming.AimAt(w.M, 0, hero, (9.9, (double)shoulder.Y / Unit - 0.2), axe: true);
+        Assert.Equal((1, true), (aim?.Piece, aim?.InReach));
+        Assert.Equal(new Prompt("use.chop", null), Prompts.Of(w.M, aim));
+    }
+
+    [Fact]
+    public void ChopsBelowAndAboveTowardThePointer()
+    {
+        var shoulder = ShoulderOf(HeroOn(6, 7));
+        var (w, hero) = Field(("hullSection", shoulder.X + 500, shoulder.Y + 1_500 + 1_250), ("hullSection", shoulder.X + 500, shoulder.Y - 1_500 - 1_250));
+        Assert.Equal([new Hit(1)], Aiming.HitsOf(w.M, 0, hero, shoulder with { Y = shoulder.Y + 3_000 }));
+        Assert.Equal([new Hit(2)], Aiming.HitsOf(w.M, 0, hero, shoulder with { Y = shoulder.Y - 3_000 }));
+    }
+
+    [Fact]
+    public void StrikesNothingAboard()
+    {
+        // The hero in a room, a wreck just outside its wall: nothing is touched from inside the hull.
+        var w = new TestWorld(Layout.Parse(["#####".PadRight(FieldWidth), "#...#".PadRight(FieldWidth), "#...#".PadRight(FieldWidth), "#####".PadRight(FieldWidth), .. Enumerable.Repeat(new string(' ', FieldWidth), 6)]));
+        for (int i = 0; i < Spec.Debris.Every; i++) w.Step();
+        var aboard = HeroOn(3, 2);
+        var shoulder = ShoulderOf(aboard);
+        w.Edit(root =>
+        {
+            var piece = root["slices"]!["debris"]!["pieces"]![0]!;
+            (piece["item"], piece["x"], piece["y"], piece["speed"]) = ("hullSection", shoulder.X + 1_000 + HalfW, shoulder.Y, 0);
+        });
+        Assert.Empty(Aiming.Struck(w.M, aboard, shoulder with { X = shoulder.X + 3_000 }));
+        Assert.Null(Aiming.AimAt(w.M, 0, aboard, (6.0, (double)shoulder.Y / Unit), axe: true)?.Piece);
+        // The same reach out in space strikes it.
+        Assert.Single(Aiming.Struck(w.M, aboard with { X = aboard.X + 1_000 * 3 }, shoulder with { X = shoulder.X + 5_000 }));
+    }
+
+    [Fact]
+    public void ASwingAtAirBeginsStrikesOnceAndSendsNothing()
+    {
+        var (w, hero) = Field(("hullSection", 18_500, 3_500));
+        var swing = new AxeSwing();
+        var point = new Point(9_000, 9_000);
+        int begun = 0, strikes = 0;
+        var sent = new List<Hit>();
+        for (int frame = 0; frame < 60; frame++)
+        {
+            var step = swing.Advance(1000.0 / 60, frame == 0, point);
+            begun += step.Begun ? 1 : 0;
+            if (!step.Hits) continue;
+            strikes++;
+            sent.AddRange(Aiming.HitsOf(w.M, 0, hero, swing.At));
+        }
+        Assert.Equal((1, 1), (begun, strikes));
+        Assert.Empty(sent);
     }
 
     // What E sends.

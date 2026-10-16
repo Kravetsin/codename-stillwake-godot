@@ -360,4 +360,30 @@ public class RemoteTests
         Assert.False(Busy.BeamsAnew(null, new Busy(Handwork.Work, Wreck)));
         Assert.False(Busy.BeamsAnew(beam, null));
     }
+
+    // A friend's swings, each toward the point it was swung at (0039).
+
+    private const double Frame = 1000.0 / 60;
+
+    private static readonly Point Ahead = new(9_000, 7_000), Above = new(6_500, 4_000), Below = new(6_000, 10_000);
+
+    [Fact]
+    public void FollowsAnothersSwingTowardThePointSentWithItsNumber()
+    {
+        var swing = new AxeSwing();
+        Busy? heard = null;
+        void Hear(Busy? busy) => heard = Busy.Chopping(heard, busy);
+        // Its first swing sent, then its hands idle again at once: the swing is still swung, toward its point.
+        Hear(new Busy(Handwork.Chop, Ahead, 1));
+        Hear(null);
+        Assert.True(swing.Follow(Frame, heard).Begun);
+        Assert.Equal(Ahead, swing.At);
+        // The next heard while it plays: this one keeps its point, the next swings toward its own.
+        Hear(new Busy(Handwork.Chop, Above, 2));
+        swing.Follow(AxeSwing.Ms / 2, heard);
+        Assert.Equal(Ahead, swing.At);
+        Hear(new Busy(Handwork.Work, Below));
+        for (int i = 0; i < 100 && !swing.Follow(Frame, heard).Begun; i++) { }
+        Assert.Equal((2, Above), (swing.Count, swing.At));
+    }
 }

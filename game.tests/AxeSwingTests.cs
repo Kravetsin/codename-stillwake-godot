@@ -168,7 +168,7 @@ public class AxeSwingTests
         void Run(double ms, int? sent)
         {
             for (double t = 0; t < ms; t += Frame)
-                if (swing.Follow(Frame, sent).Begun) begun++;
+                if (swing.Follow(Frame, sent is int n ? new Busy(Handwork.Chop, default, n) : null).Begun) begun++;
         }
         Run(100, null);
         Assert.Equal(0, begun);
@@ -187,5 +187,23 @@ public class AxeSwingTests
         Run(AxeSwing.Ms + 100, null);
         Assert.Null(swing.Phase);
         Assert.Equal(3, begun);
+    }
+
+    // Where it swings (0039).
+
+    private static readonly Point Ahead = new(9_000, 7_000), Above = new(6_500, 4_000), Below = new(6_000, 10_000);
+
+    [Fact]
+    public void ASwingIsAimedAtThePointerAsItBeganFixedTillItEnds()
+    {
+        var swing = new AxeSwing();
+        Assert.True(swing.Advance(Frame, true, Ahead).Begun);
+        Assert.Equal(Ahead, swing.At);
+        // The pointer moved, the button held or pressed again: the swing playing keeps its point.
+        for (double t = Frame; t < AxeSwing.Ms - 2 * Frame; t += Frame) swing.Advance(Frame, true, Above);
+        Assert.Equal(Ahead, swing.At);
+        // Held as it ends, the next is aimed where the pointer is then.
+        swing.Advance(3 * Frame, true, Below);
+        Assert.Equal((2, Below), (swing.Count, swing.At));
     }
 }
