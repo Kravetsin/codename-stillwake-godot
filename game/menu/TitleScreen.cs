@@ -124,7 +124,7 @@ public partial class TitleScreen : CanvasLayer
     /// </summary>
     private sealed partial class Wreckage : Control
     {
-        private const int Pieces = 6, StarCount = 260;
+        private const int Pieces = 18, StarCount = 650;
         private static readonly Color Space = new("04060a"), Near = new("cfe0ff"), Mid = new("7d8fb0"), Far = new("3a4560");
         private readonly (Vector2 At, float Depth)[] _stars = new (Vector2, float)[StarCount];
         private readonly (Vector2 At, float Turn, Vector2 Size, float Speed, float Spin)[] _pieces = new (Vector2, float, Vector2, float, float)[Pieces];
@@ -138,7 +138,7 @@ public partial class TitleScreen : CanvasLayer
             for (int i = 0; i < StarCount; i++) _stars[i] = (new Vector2(rng.Next(0, 2560), rng.Next(0, 1440)), 0.2f + 0.8f * rng.NextSingle());
             for (int i = 0; i < Pieces; i++)
                 _pieces[i] = (new Vector2(rng.Next(0, 1600), rng.Next(60, 900)), rng.NextSingle() * 6,
-                    new Vector2(8 + rng.Next(0, 26), 6 + rng.Next(0, 14)), 6 + rng.NextSingle() * 12, (rng.NextSingle() - 0.5f) * 0.3f);
+                    new Vector2(3 + rng.Next(0, 8), 2 + rng.Next(0, 5)), 6 + rng.NextSingle() * 12, (rng.NextSingle() - 0.5f) * 0.3f);
         }
 
         public override void _Process(double delta)
