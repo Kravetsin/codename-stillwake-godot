@@ -99,8 +99,11 @@ public partial class WreckDemo : CanvasLayer
             });
         // Waking in space, the hero leaves no back wall where it woke.
         var grid = root["slices"]!["grid"]!;
-        grid["back"]![spawn] = 0;
-        grid["backMaterial"]![spawn] = 0;
+        var back = Runs.Cells(grid["back"]!);
+        var backMaterial = Runs.Cells(grid["backMaterial"]!);
+        back[spawn] = backMaterial[spawn] = 0;
+        grid["back"] = Runs.Node(back);
+        grid["backMaterial"] = Runs.Node(backMaterial);
         var debris = root["slices"]!["debris"]!;
         debris["pieces"] = pieces;
         debris["nextId"] = drifting.Length + 1;

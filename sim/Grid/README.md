@@ -9,7 +9,8 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
 - **Cells:** numbered row by row from the top-left, `cell = y * width + x`.
 - **State** (`GridState`, members internal): the layers as `int[]` codes (`Structure`, `Conduit`,
   `Back`, and the materials of walls and back walls), `Machines`, `NextMachineId`. Derived:
-  `Occupancy`, the id of the machine covering each cell, rebuilt after a load.
+  `Occupancy`, the id of the machine covering each cell, rebuilt after a load. A save holds each layer
+  as runs, `[value, count, …]` (`Runs` in Core), so empty space costs a save and its hash nothing.
 
 ## Layers
 

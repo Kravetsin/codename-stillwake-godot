@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Nodes;
 
 namespace Stillwake.Sim;
@@ -24,6 +25,14 @@ public static class Migrations
         save =>
         {
             foreach (var piece in save["slices"]!["debris"]!["pieces"]!.AsArray()) piece!["damage"] = 0;
+            return save;
+        },
+        // 4 → 5: the grid's layers saved as runs, so empty space costs nothing.
+        save =>
+        {
+            var grid = save["slices"]!["grid"]!;
+            foreach (var layer in new[] { "structure", "material", "conduit", "back", "backMaterial" })
+                grid[layer] = Runs.Node([.. grid[layer]!.AsArray().Select(n => (int)n!)]);
             return save;
         },
     ];
