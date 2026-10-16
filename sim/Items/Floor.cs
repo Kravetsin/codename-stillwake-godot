@@ -13,7 +13,7 @@ internal static class FloorRules
     /// <summary>Division rounding down, as Math.floor does, for positions left of or above the grid.</summary>
     private static int Down(int a, int b) => a >= 0 ? a / b : -((-a + b - 1) / b);
 
-    /// <summary>Built up: a wall, a floor, a closed door or a machine. A stack rests on one and rises out of one.</summary>
+    /// <summary>Built up: a wall, a floor, a closed door or a machine. A stack rests on one and is pushed out of one.</summary>
     private static bool Built(IGridQueries grid, int cell) =>
         grid.StructureAt(cell) is Structure.Wall or Structure.Floor or Structure.DoorClosed || grid.MachineAt(cell) != null;
 
@@ -24,6 +24,9 @@ internal static class FloorRules
     /// <summary>The cell a stack is in: the one its bottom middle point lies just above.</summary>
     public static int CellOf(int x, int y, int width) => Down(y - 1, Unit) * width + Down(x, Unit);
 
+    /// <summary>The bottom middle point of <paramref name="cell"/>: where a stack laid on it lies.</summary>
+    private static (int X, int Y) BottomMiddle(int cell, int width) => (cell % width * Unit + Unit / 2, (cell / width + 1) * Unit);
+
     /// <summary>
     /// Lays <paramref name="count"/> of <paramref name="item"/> on cell <paramref name="cell"/>, dropped by
     /// peer <paramref name="by"/> and thrown at <paramref name="vx"/>: as new stacks of at most the stack
@@ -31,8 +34,7 @@ internal static class FloorRules
     /// </summary>
     public static void LayDown(ItemsState state, string item, int count, int cell, int vx, int width, int by)
     {
-        int x = cell % width * Unit + Unit / 2;
-        int y = (cell / width + 1) * Unit;
+        var (x, y) = BottomMiddle(cell, width);
         int limit = Content.Items.Get(item).Stack;
         for (int left = count; left > 0;)
         {
@@ -55,8 +57,43 @@ internal static class FloorRules
     }
 
     /// <summary>
-    /// A tick of one stack. Inside something built it rises a cell. In space it flies on as it was
-    /// thrown, and with everything outside it drifts back past the moving ship. Inside the ship it
+    /// Where a stack inside something built at <paramref name="from"/> is pushed out to: breadth-first
+    /// through built cells, up to <see cref="Tune.PushReach"/> steps, the nearest open cell in a room;
+    /// with none, the nearest open cell (space); ties by cell index. Null when nothing open is in reach.
+    /// </summary>
+    private static int? PushedTo(int from, IGridQueries grid, IRoomsQueries rooms)
+    {
+        int width = grid.Width, size = width * grid.Height;
+        var seen = new List<int> { from };
+        var layer = new List<int> { from };
+        int? open = null;
+        for (int step = 1; step <= Tune.PushReach && layer.Count > 0; step++)
+        {
+            var next = new List<int>();
+            int? room = null, space = null;
+            foreach (int c in layer)
+            {
+                int x = c % width;
+                foreach (int n in new[] { c - width, x > 0 ? c - 1 : -1, x < width - 1 ? c + 1 : -1, c + width })
+                {
+                    if (n < 0 || n >= size || seen.Contains(n)) continue;
+                    seen.Add(n);
+                    if (Built(grid, n)) next.Add(n);
+                    else if (rooms.RoomAt(n) >= 0) room = Math.Min(room ?? n, n);
+                    else space = Math.Min(space ?? n, n);
+                }
+            }
+            if (room != null) return room;
+            open ??= space;
+            layer = next;
+        }
+        return open;
+    }
+
+    /// <summary>
+    /// A tick of one stack. Inside something built it is pushed out, still, into the cell
+    /// <see cref="PushedTo"/> finds, or rises a cell with nothing open in reach. In space it flies on as
+    /// it was thrown, and with everything outside it drifts back past the moving ship. Inside the ship it
     /// falls, stops against what is built, and slides to a stop on what it lands on. Whether it is
     /// still on the grid: past the edge it is gone.
     /// </summary>
@@ -66,7 +103,8 @@ internal static class FloorRules
         int row = Down(s.Y - 1, Unit);
         if (Built(grid, s.Cell))
         {
-            if (row > 0) s.Y -= Unit;
+            if (PushedTo(s.Cell, grid, rooms) is int to) (s.X, s.Y) = BottomMiddle(to, width);
+            else if (row > 0) s.Y -= Unit;
             s.Vx = 0;
             s.Vy = 0;
         }

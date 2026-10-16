@@ -7,7 +7,7 @@ mode, the world setting in which nothing is ever taken
 `packages/sim/src/modules/items`; its rules hold here unchanged.
 
 - **Depends on:** `Grid` (`IGridQueries`), for which machines hold items and what holds a stack on
-  the floor up; `Rooms` (`IRoomsQueries`), for where space is.
+  the floor up; `Rooms` (`IRoomsQueries`), for where space is and which open cells are in a room.
 - **State:** `Inventories` — those changed at least once, by peer id in id order; `Crates` — the
   machines holding something, by machine id in id order; `Creative`; `Floor` — stacks lying about
   (`FloorStack`: id, item, count, cell, x, y, vx, vy, by, at) in id order, with `NextFloorId`;
@@ -42,7 +42,13 @@ mode, the world setting in which nothing is ever taken
   drop throws it from the bottom middle of the sender's cell the way its hero faces, at
   `Floor.ThrowSpeed` and up at `Floor.ThrowLift`; one with no way to face (an overflow) is let go
   still. Each tick, in id order: inside anything built (a wall, a floor, a closed door, a machine)
-  it rises a cell and stops; in space it flies on, nothing slowing it, and drifts back
+  it is **pushed out**, still, to the bottom middle of an open cell found breadth-first from its
+  cell over the four neighbours, through built cells only, up to `Floor.PushReach` steps: the
+  nearest open cell in a room; with none in reach, the nearest open cell of any kind, which is
+  space; ties in both by the lowest cell index (up, then left, then right, then down). So a stack
+  comes out into the room even where space is nearer. With nothing open in reach (deep in a block
+  of walls) it rises a cell instead, and stops, and is pushed out once in reach; in the top row it
+  stays. In space it flies on, nothing slowing it, and drifts back
   `Floor.SpaceDrift` with everything outside the moving ship; inside the ship it falls by
   `Floor.Gravity` up to `Floor.MaxFall`, stops against what is built or the grid's edge, and on what
   it lands slides to a stop by `Floor.Friction`. One past the grid's edge is gone: thrown away into
@@ -106,6 +112,10 @@ Tests put items into an inventory with `GiveItems` and into a machine with `Fill
 - Who owns items across sessions: an inventory belongs to a peer id, so after a load it goes to
   whoever joins in that slot, and a peer that rejoins mid-session starts under a new id.
 - Reach: the sim moves items between a hero and any crate; the client opens only crates within reach.
+- Nothing in space collides: a stack let go still out there that drifts back into the hull is pushed
+  out of it like any other, into the room behind when one is in reach, not stopped against it.
+- A stack pushed out of a wall with space on both sides and no room within `Floor.PushReach` goes
+  into space and drifts away: what was delivered to or refunded at a wall standing out in space.
 - A stale pick at a shared crate moves whatever is in the slot by the time it applies.
 - Who may switch creative mode: anyone; it is a dev panel switch among friends.
 - The desync fuzz never fills an inventory with refunds, so `items.full` from building is proven by

@@ -2,6 +2,7 @@ using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Rooms;
 using Xunit;
 
 namespace Stillwake.Sim.Tests;
@@ -83,10 +84,89 @@ public class ItemsFloorTests
     public void LiftsAStackOutOfSomethingBuiltWhereItLiesOntoTheTopOfIt()
     {
         var w = Room().GiveItems(0, ("scrap", 1));
-        // Into the hull's bottom row: up through the floor row onto the floor.
+        // Into the hull's bottom row: out through the floor row, the nearest room cell, onto the floor.
         Drop(w, Own(0), 1, At(3, 5));
         w.Run(40);
         Assert.Equal(At(3, 3), Floor(w)[0].Cell);
+    }
+
+    /// <summary>A world from <paramref name="map"/> with peer 0 carrying one scrap for each cell of <paramref name="at"/>, let go still there in turn.</summary>
+    private static Scenario DroppedInto(string[] map, params (int X, int Y)[] at)
+    {
+        var w = new Scenario(Layout.Parse(map)).GiveItems(0, ("scrap", at.Length));
+        foreach (var (x, y) in at) Drop(w, Own(0), 1, CellOf(map, x, y));
+        return w;
+    }
+
+    private static int CellOf(string[] map, int x, int y) => y * map[0].Length + x;
+    private static (string, int, int)[] Lying(Scenario w) => Floor(w).Select(s => (s.Item, s.Count, s.Cell)).ToArray();
+
+    /// <summary>A room whose hull has space to its left and above.</summary>
+    private static readonly string[] HullInSpace = ["          ", "   #######", "   #.....#", "   #.....#", "   #######"];
+
+    [Fact]
+    public void PushesAStackOutOfTheHullIntoTheRoomRatherThanIntoSpaceEvenWhenSpaceIsNearer()
+    {
+        // Space and the room a step away either side: the room, though space's cell comes first.
+        var w = DroppedInto(HullInSpace, (3, 2));
+        Assert.Equal(CellOf(HullInSpace, 4, 2), Floor(w)[0].Cell);
+        // The hull's corner: space a step away up and left, the room two.
+        Drop(w.GiveItems(0, ("scrap", 1)), Own(0), 1, CellOf(HullInSpace, 3, 1));
+        w.Run(40);
+        Assert.Equal([("scrap", 2, CellOf(HullInSpace, 4, 3))], Lying(w));
+    }
+
+    [Fact]
+    public void PushesAStackInAWallBetweenRoomsIntoTheNearestRoomCellTheFirstByIndexOnATie()
+    {
+        string[] map = ["#######", "#..#..#", "#..#..#", "#######", "#.....#", "#######"];
+        // Between two rooms side by side: the left; between one above and one below: the one above.
+        var w = DroppedInto(map, (3, 2), (5, 3));
+        w.Run(40);
+        Assert.Equal([("scrap", 1, CellOf(map, 2, 2)), ("scrap", 1, CellOf(map, 5, 2))], Lying(w));
+    }
+
+    [Fact]
+    public void PushesAStackInAWallWithNoRoomWithinReachIntoTheNearestSpaceWhereItDriftsAway()
+    {
+        string[] map = ["      #####", "  #   #...#", "  #   #####"];
+        var w = DroppedInto(map, (2, 2));
+        Assert.Equal(CellOf(map, 1, 2), Floor(w)[0].Cell);
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(CellOf(map, 1, 2)));
+        w.Run(2 * 1000 / Content.Floor.SpaceDrift);
+        Assert.Empty(Floor(w));
+    }
+
+    [Fact]
+    public void RaisesAStackDeepInsideSomethingBuiltACellATickUntilARoomIsWithinReach()
+    {
+        int depth = Content.Floor.PushReach + 2;
+        string[] map = ["#######", "#.....#", .. Enumerable.Repeat("#######", depth)];
+        var w = DroppedInto(map, (3, depth + 1));
+        Assert.Equal(CellOf(map, 3, depth), Floor(w)[0].Cell);
+        w.Run();
+        Assert.Equal(CellOf(map, 3, depth - 1), Floor(w)[0].Cell);
+        w.Run();
+        Assert.Equal(CellOf(map, 3, 1), Floor(w)[0].Cell);
+    }
+
+    [Fact]
+    public void PushesAStackInsideAMachineOutBesideItNotUpIntoTheHull()
+    {
+        string[] map = ["######", "#TT..#", "#TT..#", "######"];
+        var w = DroppedInto(map, (2, 2), (1, 1));
+        w.Run(40);
+        Assert.Equal([("scrap", 2, CellOf(map, 3, 2))], Lying(w));
+    }
+
+    [Fact]
+    public void PushesAStackDriftingIntoTheHullFromSpaceIntoTheRoomBehindIt()
+    {
+        var w = Room().GiveItems(0, ("scrap", 1));
+        Drop(w, Own(0), 1, At(14, 2));
+        // Let go still, it drifts back onto the hull's right wall in under a hundred ticks.
+        w.Run(120);
+        Assert.Equal([("scrap", 1, At(10, 3))], Lying(w));
     }
 
     [Fact]
