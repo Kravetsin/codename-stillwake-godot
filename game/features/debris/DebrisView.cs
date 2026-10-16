@@ -31,7 +31,7 @@ public partial class DebrisView(Ui ui) : Node2D
     private const double JoltMs = 220, JoltPixels = 3, JoltTurn = 0.07;
     private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
 
-    /// <summary>What is shown of a piece: its picture, the damage last seen, the jolt still settling and which way, and where it was.</summary>
+    /// <summary>What is shown of a piece: its picture, the damage last seen, the jolt still settling and which way, and where it was on which tick.</summary>
     private sealed class Shown(Sprite2D picture, int damage)
     {
         public Sprite2D Picture { get; } = picture;
@@ -41,12 +41,13 @@ public partial class DebrisView(Ui ui) : Node2D
         public int X { get; set; }
         public int Speed { get; set; }
         public int End { get; set; }
+        public int Tick { get; set; }
     }
 
     private readonly Dictionary<int, Shown> _shown = new();
     /// <summary>The piece aimed at, outlined over the rest.</summary>
     private readonly Outline _aimed = new(1);
-    private readonly Heard2D _chop = Cues.Player2D(S.Chop, S.Suit, voices: 4);
+    private readonly Heard2D _chop = Cues.Player2D(S.Chop, S.Suit, voices: 4), _break = Cues.Player2D(S.Break, S.Suit, voices: 2);
     private double _clockMs;
     private readonly HashSet<int> _ids = [];
     private readonly List<int> _gone = [];
@@ -60,6 +61,7 @@ public partial class DebrisView(Ui ui) : Node2D
         ZIndex = Layers.Debris;
         AddChild(_aimed);
         AddChild(_chop);
+        AddChild(_break);
     }
 
     /// <summary>
@@ -82,8 +84,7 @@ public partial class DebrisView(Ui ui) : Node2D
         foreach (int id in _gone)
         {
             var gone = _shown[id];
-            // A wreck gone with hits in it, short of the end of its path, was broken: it bursts.
-            if (gone.Damage > 0 && gone.X - gone.Speed >= gone.End) Burst(gone.Picture.Position);
+            if (Fading.Broken(gone.Damage, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick)) Burst(gone.Picture.Position);
             gone.Picture.QueueFree();
             _shown.Remove(id);
         }
@@ -101,7 +102,7 @@ public partial class DebrisView(Ui ui) : Node2D
                 AddChild(one.Picture);
                 ShowCracks(one.Picture, piece);
             }
-            (one.X, one.Speed, one.End) = (piece.X, piece.Speed, piece.End);
+            (one.X, one.Speed, one.End, one.Tick) = (piece.X, piece.Speed, piece.End, client.World.Tick);
             double x = piece.X - piece.Speed * progress;
             var at = new Vector2((float)(x / Unit * Cell), (float)((double)piece.Y / Unit * Cell));
             if (piece.Damage > one.Damage) Struck(one, piece, at);
@@ -139,13 +140,16 @@ public partial class DebrisView(Ui ui) : Node2D
         _chop.PlayAt(side);
     }
 
-    /// <summary>A wreck broken at <paramref name="at"/>: a puff of dust and sparks, and a last chop.</summary>
+    /// <summary>
+    /// A wreck broken at <paramref name="at"/>: a puff of dust and sparks, and the break heard. The last hit
+    /// removes the wreck on its tick, so its chop never plays: the break, with an impact of its own, is the hit.
+    /// </summary>
     private void Burst(Vector2 at)
     {
         Particles.Shared.Emit(Effect.Dust, at.X, at.Y, 24, 0, inSpace: true);
         Particles.Shared.Emit(Effect.Dust, at.X, at.Y, 24, Math.PI, inSpace: true);
         Particles.Shared.Emit(Effect.Spark, at.X, at.Y, 14, -Math.PI / 2, inSpace: true);
-        _chop.PlayAt(at);
+        _break.PlayAt(at);
     }
 
     /// <summary>The chest of the hero nearest <paramref name="at"/>, as the crew drew them this frame: who most likely struck.</summary>

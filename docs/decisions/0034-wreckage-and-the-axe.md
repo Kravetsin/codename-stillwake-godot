@@ -37,7 +37,8 @@ the spacewalk a job and the Fabricator a reason, without new systems for physics
   and a lit edge from a widening dent, more and longer as the share grows, before the light falls on
   them. No crack art per picture; a picture never set costs a branch.
 - **Feedback from the world.** A rise in a piece's damage jolts it, throws sparks and plays a chop
-  where it is; a wreck gone with damage before its path's end bursts. Every peer sees and hears the
+  where it is; a wreck gone with damage before its path's end bursts, heard as a crash of its own (`Sound.Break`) in
+  place of the last chop. Every peer sees and hears the
   same from its own world, so friends see cracks and hear hits; only the striker's figure swings. The
   chop is on the Suit bus, as wrecks are chopped only out in space, where the World bus is silent.
 
