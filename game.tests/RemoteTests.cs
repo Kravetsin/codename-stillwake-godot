@@ -244,4 +244,103 @@ public class RemoteTests
         Assert.Equal(Sent(HeroAt(1)), SentHero.Decode(Sent(HeroAt(1)).Encode()));
         Assert.Null(SentHero.Decode("{\"tick\":20}"));
     }
+
+    // Its hands: what they wield and what they are busy with, so others draw them as its own client does.
+
+    private static readonly Point Wreck = new(14_500, 7_250);
+
+    [Theory]
+    [InlineData(Handwork.Chop, "fireAxe")]
+    [InlineData(Handwork.Work, null)]
+    [InlineData(Handwork.Beam, null)]
+    public void GoThroughTheWireWithWhatTheyWieldAndWorkAt(Handwork work, string? wields)
+    {
+        var sent = new SentHero(new Seen(HeroAt(1200, 3400), 0.2, work == Handwork.Beam, wields, new Busy(work, Wreck)), 1250);
+        Assert.Equal(sent, SentHero.Decode(sent.Encode()));
+    }
+
+    [Fact]
+    public void GoThroughTheWireWieldingWithIdleHands()
+    {
+        var sent = new SentHero(new Seen(HeroAt(1), Wields: "fireAxe"), 50);
+        Assert.Equal(sent, SentHero.Decode(sent.Encode()));
+    }
+
+    [Fact]
+    public void AreWrittenAsBeforeWhileEmptyAndIdle()
+    {
+        string written = Sent(HeroAt(1), at: 50, plan: true).Encode();
+        Assert.DoesNotContain("wields", written);
+        Assert.DoesNotContain("busy", written);
+    }
+
+    [Fact]
+    public void AreEmptyAndIdleInAHeroWrittenBeforeThereWereHandsToSend()
+    {
+        var decoded = SentHero.Decode("{\"x\":1200,\"y\":3400,\"vx\":0,\"vy\":0,\"climbing\":false,\"facing\":1,\"plan\":true,\"at\":50}");
+        Assert.Equal(new SentHero(new Seen(HeroAt(1200, 3400), HoldsPlan: true), 50), decoded);
+        Assert.Null(decoded!.Value.Seen.Wields);
+        Assert.Null(decoded.Value.Seen.Busy);
+    }
+
+    [Theory]
+    [InlineData("\"juggle\"")]
+    [InlineData("7")]
+    [InlineData("null")]
+    public void MakeNoHeroOfWorkNoFigureKnows(string work)
+    {
+        string state = "{\"x\":1,\"y\":0,\"vx\":0,\"vy\":0,\"climbing\":false,\"facing\":1,\"plan\":false,\"busy\":{\"work\":" + work + ",\"at\":{\"x\":1,\"y\":2}}}";
+        Assert.Null(SentHero.Decode(state));
+    }
+
+    [Fact]
+    public void MakeNoHeroOfAShortOrGarbledState()
+    {
+        string whole = new SentHero(new Seen(HeroAt(1), Wields: "fireAxe", Busy: new Busy(Handwork.Chop, Wreck)), 50).Encode();
+        for (int cut = 0; cut < whole.Length; cut++) Assert.Null(SentHero.Decode(whole[..cut]));
+        Assert.Null(SentHero.Decode(whole.Replace("\"fireAxe\"", "[1]")));
+    }
+
+    [Fact]
+    public void AreSentStandingStillWhenTheyTakeUpAToolBeginWorkOrStop()
+    {
+        var sent = new List<SentHero>();
+        var sender = new HeroSender(sent.Add);
+        var chop = new Busy(Handwork.Chop, Wreck);
+        Seen[] frames =
+        [
+            Seen(HeroAt(5)),
+            new(HeroAt(5), Wields: "fireAxe"),
+            new(HeroAt(5), Wields: "fireAxe", Busy: chop),
+            new(HeroAt(5), Wields: "fireAxe", Busy: chop),
+            new(HeroAt(5), Wields: "fireAxe", Busy: chop with { At = new Point(14_400, 7_250) }),
+            new(HeroAt(5), Wields: "fireAxe"),
+        ];
+        foreach (var frame in frames) sender.Step(SendMs, frame, 0);
+        Assert.Equal([frames[0], frames[1], frames[2], frames[4], frames[5]], sent.Select(h => h.Seen));
+    }
+
+    [Fact]
+    public void AreDrawnAsTheSampleAtOrBeforeSaysNeverBetweenTwo()
+    {
+        var heroes = new RemoteHeroes();
+        heroes.Add(2, new SentHero(new Seen(HeroAt(0), Wields: "fireAxe", Busy: new Busy(Handwork.Chop, Wreck))), 1000);
+        heroes.Add(2, Sent(HeroAt(1000)), 1050);
+        var between = heroes.At(1000 + BehindMs + 25)[0].Seen;
+        Assert.Equal(500, between.Hero.X);
+        Assert.Equal(("fireAxe", new Busy(Handwork.Chop, Wreck)), (between.Wields, between.Busy));
+        var after = heroes.At(1050 + BehindMs)[0].Seen;
+        Assert.Equal((null, null), (after.Wields, after.Busy));
+    }
+
+    [Fact]
+    public void BeamOncePerPlacingThoughTheBeamIsSentWhileItFades()
+    {
+        var beam = new Busy(Handwork.Beam, Wreck);
+        Assert.True(Busy.BeamsAnew(null, beam));
+        Assert.False(Busy.BeamsAnew(beam, beam));
+        Assert.True(Busy.BeamsAnew(beam, beam with { At = new Point(1500, 500) }));
+        Assert.False(Busy.BeamsAnew(null, new Busy(Handwork.Work, Wreck)));
+        Assert.False(Busy.BeamsAnew(beam, null));
+    }
 }

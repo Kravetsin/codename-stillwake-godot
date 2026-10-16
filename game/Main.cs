@@ -40,7 +40,8 @@ namespace Stillwake.Game;
 /// load, quit) and the dev panel (`).
 /// Dev arguments after <c>--</c>: <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit), <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
-/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
+/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--aside</c> steps the hero
+/// off the spawn, so a window recording another peer's hero there sees it whole,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
@@ -133,7 +134,7 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
+            var script = Has("--aside") ? HeroAutopilot.Aside() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))));
@@ -243,8 +244,9 @@ public partial class Main : Node2D, ITogether
     private void Host(string? name)
     {
         var world = World.Create(1, _layout, Modules());
-        // The debris demo is played hosting too, so a guest sees a catch.
+        // The debris and wreck demos are played hosting too, so a guest sees a catch, or the host chop.
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
+        if (Has("--wreck")) world = WreckDemo.Seed(world, Modules);
         _roster = Roster.Empty();
         var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
         _session = new Session(host, client);

@@ -95,7 +95,7 @@ public partial class Figure : Node2D
     /// fading over <see cref="BeamMs"/>; at most <see cref="BeamsMost"/> lines, a long drag beaming its
     /// first cells.
     /// </summary>
-    private const double BeamMs = 320;
+    public const double BeamMs = 320;
     private const int BeamsMost = 8;
     /// <summary>
     /// Working a plan, the screwdriver in the front hand (0030), the arm reaching out a share

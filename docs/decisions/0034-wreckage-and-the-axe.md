@@ -1,6 +1,6 @@
 # 0034 — Wreckage and the axe
 
-- Status: accepted
+- Status: accepted; "other heroes are not seen holding or swinging the axe" superseded by [0037](0037-others-see-the-hands.md)
 - Date: 2026-10-16
 
 ## Context

@@ -1,6 +1,6 @@
 # 0036 — Upright in space
 
-- Status: accepted
+- Status: accepted; its last consequence, others showing no axe, superseded by [0037](0037-others-see-the-hands.md)
 - Date: 2026-10-16
 
 ## Context
