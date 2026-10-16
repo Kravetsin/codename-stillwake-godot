@@ -15,8 +15,13 @@ public readonly record struct Seen(Hero Hero, double? Look = null, bool HoldsPla
 /// <summary>What a hero's hands work: a plan with the screwdriver (0030), a wreck with what they wield (0034), plans beamed in by the planner.</summary>
 public enum Handwork { Work, Chop, Beam }
 
-/// <summary>What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's own position.</summary>
-public readonly record struct Busy(Handwork Work, Point At)
+/// <summary>
+/// What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's
+/// own position; chopping, how many swings it has begun (<see cref="AxeSwing.Count"/>), so others swing
+/// once for each. Left out of the wire while none.
+/// </summary>
+public readonly record struct Busy(
+    Handwork Work, Point At, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Swings = 0)
 {
     /// <summary>Whether <paramref name="now"/> is a beam not shown yet: a beam is sent for as long as it fades, and drawn once.</summary>
     public static bool BeamsAnew(Busy? was, Busy? now) => now is { Work: Handwork.Beam } && now != was;

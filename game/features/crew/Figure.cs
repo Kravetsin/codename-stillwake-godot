@@ -109,19 +109,11 @@ public partial class Figure : Node2D
     /// <summary>The screwdriver's grip in its picture, a frame of <c>hero_screwdriver.png</c>.</summary>
     private static readonly Vector2 Grip = new(3, 2);
     private readonly Sprite2D _tool;
-    /// <summary>
-    /// Chopping wreckage (0034), the fire axe in the front hand: each swing, <see cref="Axe.SwingTicks"/>
-    /// long, raises it <see cref="Raised"/> radians back over the shoulder for <see cref="WindShare"/> of
-    /// the swing, brings it down hard through the wreck to <see cref="Through"/> past it in
-    /// <see cref="StrikeShare"/>, and eases back. A chop just begun starts at the top of a swing.
-    /// </summary>
-    private const double WindShare = 0.55, StrikeShare = 0.12, Raised = 2.1, Through = 0.3;
-    private static readonly double SwingMs = Stillwake.Content.Axe.SwingTicks * 1000.0 / Stillwake.Sim.World.TicksPerSecond;
     /// <summary>The axe's grip in <c>hero_axe.png</c>: its haft runs right from the hand, the head at the far end, the blade below.</summary>
     private static readonly Vector2 AxeGrip = new(3, 7);
     private readonly Sprite2D _axe;
-    private Vector2? _chopAt;
-    private double _chopMs;
+    /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
+    private (Vector2 At, double Phase)? _chop;
     /// <summary>The node the body's parts hang from: where a shoulder is, the arms' own frame.</summary>
     private readonly Node2D _frame;
     private Vector2? _workAt;
@@ -236,8 +228,11 @@ public partial class Figure : Node2D
     /// <summary>Has the hero work the plan at <paramref name="at"/>, in pixels of the world, with its screwdriver; null when it stops.</summary>
     public void Work(Vector2? at) => _workAt = at;
 
-    /// <summary>Has the hero chop at the wreck at <paramref name="at"/>, in pixels of the world, with the axe it wields; null when it stops.</summary>
-    public void Chop(Vector2? at) => _chopAt = at;
+    /// <summary>
+    /// Has the hero swing the axe it wields at the wreck at <paramref name="swing"/>'s point, in pixels of
+    /// the world, as far through the swing as its phase says; null between swings.
+    /// </summary>
+    public void Chop((Vector2 At, double Phase)? swing) => _chop = swing;
 
     /// <summary>Whether the front hand holds the fire axe: its hotbar slot chosen, the hand free.</summary>
     public bool Wields { get; set; }
@@ -348,8 +343,7 @@ public partial class Figure : Node2D
         bool working = _workAt != null && Poses.HoldsIn(pose);
         _workMs = working ? _workMs + elapsedMs : 0;
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
-        bool chopping = _chopAt != null && Wields && Poses.HoldsIn(pose) && !working && !holding;
-        _chopMs = chopping ? _chopMs + elapsedMs : WindShare * SwingMs;
+        bool chopping = _chop != null && Wields && Poses.HoldsIn(pose) && !working && !holding;
         // The hands at work, whatever the pose (0030): afloat the paddling stops, the hero drifts calmly
         // upright, and the front arm reaches where the work is, in the body's own frame.
         bool acting = working || chopping || holding && _beamMs > 0;
@@ -407,15 +401,11 @@ public partial class Figure : Node2D
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
         double swing = 0;
-        if (chopping && _chopAt is { } wreck)
+        if (chopping && _chop is { At: var wreck, Phase: var phase })
         {
             // Toward the wreck, from the shoulder: raised back over it, then brought down through it.
             var (dx, dy) = FromShoulder(wreck);
-            double cycle = _chopMs % SwingMs / SwingMs, lift;
-            if (cycle < WindShare) lift = -Raised * Math.Sin(cycle / WindShare * Math.PI / 2);
-            else if (cycle < WindShare + StrikeShare) lift = -Raised + (Raised + Through) * ((cycle - WindShare) / StrikeShare);
-            else lift = Through * (1 - (cycle - WindShare - StrikeShare) / (1 - WindShare - StrikeShare));
-            swing = Math.Atan2(dy, dx) + lift;
+            swing = Math.Atan2(dy, dx) + AxeSwing.Lift(phase);
             double reach = 0.9 * (Rig.Arm.Upper + Rig.Arm.Lower);
             frontArm = Rig.Reach(new Vec(Math.Cos(swing) * reach, Math.Sin(swing) * reach), Rig.Arm, 1);
         }

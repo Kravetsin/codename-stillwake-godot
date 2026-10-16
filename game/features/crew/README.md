@@ -13,6 +13,7 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 | `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`)                 | no    |
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`) | no    |
 | `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris | no    |
+| `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the hit sent, this hero's and others' (0038) | no    |
 | `Prompt.cs`        | `Prompts.Of`: what E does at the aim, in words, and why the sim would refuse it (`prompt.ts`) | no    |
 | `UsePrompt.cs`     | the prompt at the bottom middle, red with the reason when refused (`CrewPanel.tsx`'s `UsePrompt`) | yes   |
 | `Tether.cs`        | the tether as drawn, a reeled rope (`tether.ts`) on `game/render/Rope.cs` (`rope.ts`)   | no    |
@@ -30,7 +31,8 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 The files without Godot are compiled a second time into `game.tests/` (linked, as `sim/Tests` links
 `game/Content/Light.cs`), where their TypeScript tests are ported one for one: `hero.test.ts`,
 `pose.test.ts`, `rig.test.ts`, `tether.test.ts`, `report.test.ts`, `danger.test.ts`, `remote.test.ts`,
-`suits.test.ts`, `prompt.test.ts` (`PromptTests`) and `aim.test.ts` (`AimTests`).
+`suits.test.ts`, `prompt.test.ts` (`PromptTests`) and `aim.test.ts` (`AimTests`); `AxeSwingTests` has no
+TypeScript original.
 
 ## Guarantees
 
@@ -55,9 +57,10 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
   begin or end work, and every second standing still, stamped with its controller step's time.
 - Its hands go with it (0037): the item it wields by id (`Seen.Wields`, `Ui.Wielded`, none passed out),
   and what they are busy with and where (`Seen.Busy`: `Work` the plan the screwdriver turns at, `Chop`
-  the wreck swung at, `Beam` the first cell the planner beams in, sent while the beam fades), a point in
-  thousandths of a cell. Both are left out of the JSON while empty, so an idle hero is written as
-  before; the kind of work goes by name, and one not known makes no hero. A new tool needs no new field.
+  the wreck swung at while a swing plays, with the swings begun (`Busy.Swings`), `Beam` the first cell
+  the planner beams in, sent while the beam fades), a point in thousandths of a cell. Both are left out
+  of the JSON while empty, as are the swings while none, so an idle hero is written as before; the kind
+  of work goes by name, and one not known makes no hero. A new tool needs no new field.
 - Each other hero is drawn 150 ms behind its newest sample, between the two around then, placed by the
   sender's stamps; it walks on 100 ms along its last speed when samples run out, then stands; a gap
   wider than three cells is a jump; one silent for three seconds is hidden with its tether.
@@ -66,8 +69,10 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
   sway the cables as this hero does (`HeroView.Others`).
 - Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe hanging and swinging at
   the wreck, the screwdriver turning at the plan, a beam once to the cell sent (`Busy.BeamsAnew`). Taken
-  from the sample at or before the moment drawn, never between two. The chop and the screwdriver are
-  heard from the world, where the wreck takes damage (`DebrisView`) and the plan progresses
+  from the sample at or before the moment drawn, never between two; but the axe swings once for each
+  swing number as it is heard, not 150 ms behind (`AxeSwing.Follow`, 0038), so its blade meets the
+  wreck as the hit lands: within a few hundredths of a second on a LAN and at 100 ms lag. The chop and
+  the screwdriver are heard from the world, where the wreck takes damage (`DebrisView`) and the plan progresses
   (`BuildingView`), once whoever works them; the figures play no tool sounds.
 - `--aside` steps this hero off the spawn, so a recording of another peer's hero there sees it whole
   (`play.cmd --host --wreck` with `--join --aside` recorded; or `--host --aside` recorded with
@@ -128,12 +133,16 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
   a press is spent, a hold works no plan.
 - **The axe (0034):** `Ui.Wielded`, set by `items` from the chosen hotbar slot while the hand is
   free, says whether the hero wields the fire axe. With it, a wreck is aimed at with `Hit` (prompt
-  "[Hold LMB] Chop"), and the left button held on one in reach sends a hit at once and then every
-  `Axe.SwingTicks` of the world's ticks (`Aiming.Swing`), the pace kept across letting go so clicking
-  is no faster; a press never chops, and a small piece is still caught. Bare-handed a wreck is aimed at
-  with `Grab`, red: too big. The figure holds the axe (`art/hero_axe.png`) hanging from its front
-  hand, and chopping swings it — raised back over the shoulder for 55% of a swing, down through the
-  wreck in 12%, eased back. Others see it hang and swing too (0037).
+  "[Hold LMB] Chop"), and the left button held or clicked on one in reach (`Aiming.ChopOf`) begins a
+  swing (`AxeSwing`, 0038): `Axe.SwingTicks` long as real time, raised back over the shoulder for 35%
+  of it, down through the wreck in 12%, eased back. Its one `Hit` goes the frame the blade meets the
+  wreck, drawn that same frame (the hands are used before the figure is shown), and the jolt follows a
+  tick later. Once begun it plays through and hits, let go or not; presses during it do nothing; held as
+  it ends, the next begins at once, so clicking is no faster than holding. Putting the axe away, the
+  hand taken, working a plan, climbing or passing out stops it unstruck. A frame counts at most 100 ms,
+  so a stall owes no burst of hits. E never chops, and a small piece is still caught. Bare-handed a
+  wreck is aimed at with `Grab`, red: too big. The figure holds the axe (`art/hero_axe.png`) hanging
+  from its front hand. Others see it hang and swing too (0037, 0038).
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - Door and valve prompts read them as shown (`Shared.Predicted.Grid`), as `promptOf`'s `shown` did:

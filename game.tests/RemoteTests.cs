@@ -260,6 +260,22 @@ public class RemoteTests
     }
 
     [Fact]
+    public void GoThroughTheWireWithTheSwingsBegunChopping()
+    {
+        var sent = new SentHero(new Seen(HeroAt(1200, 3400), Wields: "fireAxe", Busy: new Busy(Handwork.Chop, Wreck, 7)), 1250);
+        Assert.Contains("\"swings\":7", sent.Encode());
+        Assert.Equal(sent, SentHero.Decode(sent.Encode()));
+    }
+
+    [Fact]
+    public void LeaveTheSwingsOutWhileNoneAndReadNoneWhereLeftOut()
+    {
+        Assert.DoesNotContain("swings", new SentHero(new Seen(HeroAt(1), Busy: new Busy(Handwork.Work, Wreck)), 50).Encode());
+        var decoded = SentHero.Decode("{\"x\":1,\"y\":0,\"vx\":0,\"vy\":0,\"climbing\":false,\"facing\":1,\"plan\":false,\"busy\":{\"work\":\"chop\",\"at\":{\"x\":1,\"y\":2}}}");
+        Assert.Equal(new Busy(Handwork.Chop, new Point(1, 2)), decoded!.Value.Seen.Busy);
+    }
+
+    [Fact]
     public void GoThroughTheWireWieldingWithIdleHands()
     {
         var sent = new SentHero(new Seen(HeroAt(1), Wields: "fireAxe"), 50);
@@ -306,7 +322,7 @@ public class RemoteTests
     {
         var sent = new List<SentHero>();
         var sender = new HeroSender(sent.Add);
-        var chop = new Busy(Handwork.Chop, Wreck);
+        var chop = new Busy(Handwork.Chop, Wreck, 1);
         Seen[] frames =
         [
             Seen(HeroAt(5)),
@@ -314,10 +330,11 @@ public class RemoteTests
             new(HeroAt(5), Wields: "fireAxe", Busy: chop),
             new(HeroAt(5), Wields: "fireAxe", Busy: chop),
             new(HeroAt(5), Wields: "fireAxe", Busy: chop with { At = new Point(14_400, 7_250) }),
+            new(HeroAt(5), Wields: "fireAxe", Busy: chop with { At = new Point(14_400, 7_250), Swings = 2 }),
             new(HeroAt(5), Wields: "fireAxe"),
         ];
         foreach (var frame in frames) sender.Step(SendMs, frame, 0);
-        Assert.Equal([frames[0], frames[1], frames[2], frames[4], frames[5]], sent.Select(h => h.Seen));
+        Assert.Equal([frames[0], frames[1], frames[2], frames[4], frames[5], frames[6]], sent.Select(h => h.Seen));
     }
 
     [Fact]
