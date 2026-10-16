@@ -39,7 +39,7 @@ public partial class HeroView : Node2D
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
     // What the hands touch is heard through the suit, in vacuum too; doors and valves sound where they stand (GridView).
-    private readonly AudioStreamPlayer _crate = Cues.Player(S.Crate, S.Suit), _catch = Cues.Player(S.Catch, S.Suit);
+    private readonly AudioStreamPlayer _act = Cues.Player(S.Act, S.Suit, voices: 2);
     private readonly Clock _clock = new(Hero.StepMs);
     /// <summary>The grid's width last frame, to find where a planned cell is.</summary>
     private int _width = 1;
@@ -83,8 +83,7 @@ public partial class HeroView : Node2D
         AddChild(_figure);
         AddChild(_outline);
         AddChild(_prompt);
-        AddChild(_crate);
-        AddChild(_catch);
+        AddChild(_act);
         _tethers.Paint = PaintTethers;
     }
 
@@ -93,6 +92,9 @@ public partial class HeroView : Node2D
 
     /// <summary>Whether the hero stands in the world yet: until its first frame in a session, <see cref="Current"/> is nowhere.</summary>
     public bool Placed => _placed;
+
+    /// <summary>Whether the hero floats out in space, weightless, as drawn this frame.</summary>
+    public bool Floats { get; private set; }
 
     /// <summary>Whether this machine's hero holds the plan in its hands, drawn and sent to the others: the hand not free (0022).</summary>
     public bool HoldsPlan => _ui.Hand.Get() != Holding.Free;
@@ -156,7 +158,7 @@ public partial class HeroView : Node2D
         // Aimed after following, so the pointer is read where the camera now is.
         var pointer = Pointer();
         var drawn = _current with { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
-        bool inSpace = ship.Space(drawn.BodyCell(ship.Width));
+        bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         _figure.Wear(Suits.Of(m.Crew, client.Id));
         _figure.Show(drawn, Poses.PoseOf(drawn, inSpace, passedOut), look, holdsPlan, elapsedMs);
@@ -191,8 +193,7 @@ public partial class HeroView : Node2D
         _workedOnTick = uses.WorkedOnTick;
         if (uses.Served is int served) _served.Add(served);
         foreach (var command in uses.Commands) client.Send(command);
-        if (uses.Commands.Any(c => c is Sim.Debris.Grab)) _catch.Play();
-        if (uses.Open != null || uses.Commands.Any(c => c is Sim.Atmosphere.LoadCanister)) _crate.Play();
+        if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister)) _act.Play();
         // Held on a plan it can work, the hero turns its screwdriver at it.
         bool working = !passedOut && _mouse.Buttons.HoldsRight && aim is { InReach: true, Work.Problem: null };
         _figure.Work(working ? new Vector2(aim!.Cell % m.Grid.Width + 0.5f, aim.Cell / m.Grid.Width + 0.5f) * ShipCamera.Cell : null);

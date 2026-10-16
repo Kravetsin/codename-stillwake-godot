@@ -13,7 +13,7 @@ namespace Stillwake.Game.Features.Crew;
 /// <c>art/hero_*.png</c> recoloured into its suit (<see cref="Wear"/>), lit where it stands as everything
 /// in the ship is, the rig moving and turning the parts smoothly. <see cref="Show"/> places it at the
 /// hero's feet and poses it, its boots heard stepping and landing and kicking up dust: this player's own
-/// hero on the suit, heard through the boots even out of air, any other from where it is in the world.
+/// hero heard the same anywhere, any other from where it is in the world; neither while floating.
 /// </summary>
 public partial class Figure : Node2D
 {
@@ -191,7 +191,7 @@ public partial class Figure : Node2D
         Wear(colour);
     }
 
-    /// <summary>A player of <paramref name="cue"/> at the feet, on the World bus, silent out of air: heard the same anywhere for this player's hero, else placed in the world.</summary>
+    /// <summary>A player of <paramref name="cue"/> at the feet, on the World bus, silent while floating: heard the same anywhere for this player's hero, else placed in the world.</summary>
     private Action Voice(S.Cue cue, bool own)
     {
         if (own)

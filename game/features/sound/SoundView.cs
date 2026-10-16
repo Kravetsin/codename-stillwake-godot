@@ -6,8 +6,8 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Sound;
 
 /// <summary>
-/// The hearing (ADR 0033): a click for every button, and out of air silence — the World bus's low-pass
-/// falling as it fades out; only the Suit bus is left. Reads whether this player's hero is out of air
+/// The hearing (ADR 0033): a click for every button, and floating in space silence — the World bus's
+/// low-pass falling as it fades out; only the Suit bus is left. Reads whether this player's hero floats
 /// ten times a second and eases every frame.
 /// </summary>
 public partial class SoundView : Node
@@ -22,7 +22,7 @@ public partial class SoundView : Node
     private bool _heard;
     private double _sinceRead = ReadS, _muffle;
 
-    /// <param name="muffled">Whether this player's placed hero has its body out of air.</param>
+    /// <param name="muffled">Whether this player's placed hero floats out in space.</param>
     public SoundView(Func<bool> muffled)
     {
         _muffled = muffled;

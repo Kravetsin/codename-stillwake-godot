@@ -21,7 +21,7 @@ public partial class ItemsView : Node2D
 {
     private readonly FloorLayer _floor = new();
     private readonly PickUpPopups _popups = new();
-    private readonly AudioStreamPlayer _pick = Cues.Player(S.Pick, S.Suit, voices: 2);
+    private readonly AudioStreamPlayer _pick = Cues.Player(S.Act, S.Suit, voices: 2);
 
     /// <summary>Where the hero stood last frame, and the grid read then: for scripted runs.</summary>
     public HeroSpot? Hero { get; private set; }

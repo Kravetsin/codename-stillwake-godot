@@ -177,9 +177,8 @@ public partial class Main : Node2D, ITogether
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount}"));
     }
 
-    /// <summary>Whether this player hears the world muffled (0033): its placed hero's body out of air.</summary>
-    private bool Muffled() =>
-        _session != null && _hero is { Placed: true } hero && !_m.Atmosphere.AiredAt(hero.Current.BodyCell(_m.Grid.Width));
+    /// <summary>Whether this player hears the world muffled (0033): its placed hero floating out in space.</summary>
+    private bool Muffled() => _session != null && _hero is { Placed: true, Floats: true };
 
     private bool Has(string flag) => _args.Contains(flag);
     private string? Arg(string flag) => _args.SkipWhile(a => a != flag).Skip(1).FirstOrDefault();
