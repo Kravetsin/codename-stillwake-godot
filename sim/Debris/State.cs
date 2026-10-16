@@ -11,7 +11,7 @@ public sealed class Piece
 {
     /// <summary>Its id: they grow in spawn order and are never reused.</summary>
     [JsonInclude] public int Id { get; internal set; }
-    /// <summary>The item it is: salvage caught as itself, or a container that opens when caught.</summary>
+    /// <summary>The item it is: salvage caught as itself, a container that opens when caught, or wreckage broken with an axe.</summary>
     [JsonInclude] public string Item { get; internal set; } = "";
     [JsonInclude] public int X { get; internal set; }
     [JsonInclude] public int Y { get; internal set; }
@@ -21,6 +21,8 @@ public sealed class Piece
     [JsonInclude] public int Start { get; internal set; }
     /// <summary>It is gone once <see cref="X"/> is below this.</summary>
     [JsonInclude] public int End { get; internal set; }
+    /// <summary>The hit points axes have taken off it: below its kind's <c>Wreckage</c> hit points, and none for a piece caught by hand.</summary>
+    [JsonInclude] public int Damage { get; internal set; }
 }
 
 /// <summary>

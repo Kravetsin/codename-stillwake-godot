@@ -83,6 +83,12 @@ public sealed class Ui
     /// </summary>
     public Store<Holding> Hand { get; } = new(Holding.Free);
 
+    /// <summary>
+    /// The item in the chosen hotbar slot while the hand is free, else none: set by <c>items</c>, which
+    /// owns the hotbar; <c>crew</c> swings it with the left button when it is the fire axe (0034).
+    /// </summary>
+    public Store<string?> Wielded { get; } = new(null);
+
     /// <summary>Whether the air overlay is wanted: O switches it, outside building too, for air keeps the crew alive.</summary>
     public Store<bool> AirOn { get; } = new(false);
 
@@ -140,7 +146,7 @@ public sealed class Ui
     public IReadOnlyList<(float X, float Y)> Heroes { get; set; } = [];
 
     /// <summary>
-    /// The piece of debris E would grab, and whether the sim would refuse it: <c>crew</c> sets it while
+    /// The piece of debris the hands would grab or chop, and whether the sim would refuse it: <c>crew</c> sets it while
     /// the pointer is on one within reach, <c>debris</c> outlines that piece.
     /// </summary>
     public Store<(int Id, bool Refused)?> AimedPiece { get; } = new(null);

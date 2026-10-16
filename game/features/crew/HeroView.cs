@@ -21,12 +21,13 @@ namespace Stillwake.Game.Features.Crew;
 /// followed by the camera; sent to the others about 20 times a second. Every hero in its suit's colour.
 /// E under the pointer, within reach, toggles a door or valve, loads a tank, catches a piece or opens a
 /// crate when pressed, and the left button works a plan while held, grabbing debris too: one
-/// <c>Work</c> for every tick released. With an empty hand, what E would work is outlined along its own
+/// <c>Work</c> for every tick released; with the fire axe wielded, held on a wreck it chops (0034). With an empty hand, what E would work is outlined along its own
 /// pictures (<see cref="AimOutline"/>), and a prompt says what E does.
 /// </summary>
 public partial class HeroView : Node2D
 {
     private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
+    private const float DebrisModuleUnit = Sim.Debris.DebrisModule.Unit;
     /// <summary>A safety line's yellow, pale enough not to shout across the dark.</summary>
     private static readonly Color Line = new(new Color("d9c27a"), 0.9f);
 
@@ -64,6 +65,8 @@ public partial class HeroView : Node2D
     /// <summary>The blueprints delivered to in this hold of the left button: a sweep delivers to each it passes once.</summary>
     private readonly HashSet<int> _served = [];
     private int _workedOnTick = -1;
+    /// <summary>The client's tick the axe last swung on: the pace holds across letting go (<see cref="Aiming.Swing"/>).</summary>
+    private int _swungOnTick = -1;
 
     /// <param name="ui">What the hand holds, the crate open and the piece aimed at, shared with the other features.</param>
     /// <param name="mouse">The pointer and the left button as the world reads them.</param>
@@ -176,13 +179,15 @@ public partial class HeroView : Node2D
     /// What the hands do at the pointer: the aim said and outlined while the hero is awake, whatever the
     /// hand holds, doors and valves as <paramref name="shown"/>; E on what it works whatever the hand holds,
     /// so a door opens with a card or a cable out; the right button held works plans whatever the hand
-    /// holds (0030); the left button grabs only with a free hand, as it is the card's otherwise. Passed
-    /// out, the hands do nothing: a press is spent, a hold works no plan.
+    /// holds (0030); the left button grabs only with a free hand, as it is the card's otherwise, and held
+    /// on a wreck chops it while the hand wields the fire axe. Passed out, the hands do nothing: a press is
+    /// spent, a hold works no plan and swings no axe.
     /// </summary>
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, bool handFree)
     {
         if (!_mouse.Buttons.HoldsRight) _served.Clear();
-        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served) : null;
+        bool axe = handFree && _ui.Wielded.Get() == Content.Axe.Item;
+        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served, axe) : null;
         var prompt = passedOut ? null : Prompts.Of(m, aim, shown);
         TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
@@ -199,6 +204,15 @@ public partial class HeroView : Node2D
         if (uses.Served is int served) _served.Add(served);
         foreach (var command in uses.Commands) client.Send(command);
         if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister)) _act.Play();
+        // Held on a wreck with the axe, it swings at the axe's pace; the chop is heard where the wreck is (DebrisView).
+        bool chops = acts && _mouse.Buttons.HoldsLeft;
+        (var hit, _swungOnTick) = Aiming.Swing(aim, chops, client.World.Tick, _swungOnTick);
+        if (hit != null) client.Send(hit);
+        _figure.Wields = axe && !passedOut;
+        _figure.Chop(chops && aim is { InReach: true, Press: { Command: Sim.Debris.Hit, Problem: null }, Piece: int chopped }
+            && m.Debris.Pieces.FirstOrDefault(x => x.Id == chopped) is { } wreck
+            ? new Vector2(wreck.X, wreck.Y) / DebrisModuleUnit * ShipCamera.Cell
+            : null);
         // Held on a plan it can work, the hero turns its screwdriver at it.
         bool working = !passedOut && _mouse.Buttons.HoldsRight && aim is { InReach: true, Work.Problem: null };
         _figure.Work(working ? new Vector2(aim!.Cell % m.Grid.Width + 0.5f, aim.Cell / m.Grid.Width + 0.5f) * ShipCamera.Cell : null);

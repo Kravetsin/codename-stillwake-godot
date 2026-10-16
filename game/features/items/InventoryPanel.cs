@@ -420,6 +420,7 @@ public partial class InventoryPanel : CanvasLayer
         BuildCrate();
         _shown.Visible = Shown;
         _creative.Visible = reading.Creative;
+        _ui.Wielded.Set(HandFree ? reading.Inventory[_chosen]?.Item : null);
         var held = Held;
         foreach (var box in _slots)
         {

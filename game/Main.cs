@@ -43,7 +43,7 @@ namespace Stillwake.Game;
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
-/// <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
+/// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
@@ -124,10 +124,12 @@ public partial class Main : Node2D, ITogether
         AddChild(new Stars());
         AddChild(_debris);
         if (Has("--debris")) AddChild(new DebrisDemo(_debris, _hands.Ui));
+        if (Has("--wreck")) AddChild(new WreckDemo(_debris, _hands.Ui));
         AddChild(_camera = new ShipCamera());
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         if (Has("--testbed")) _layout = Testbed.Map;
+        if (Has("--wreck")) _layout = WreckDemo.Map;
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
@@ -200,6 +202,7 @@ public partial class Main : Node2D, ITogether
             : World.Create(1, layout, modules);
         if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
+        if (Has("--wreck")) world = WreckDemo.Seed(world, Modules);
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
         PlayDev(world, Has("--gallery") ? null : layout);
     }

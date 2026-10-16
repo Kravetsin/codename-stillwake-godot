@@ -5,10 +5,14 @@ using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Xunit;
+using Axe = Stillwake.Content.Axe;
 using DebrisSpec = Stillwake.Content.Debris;
+using FloorStack = Stillwake.Sim.Items.FloorStack;
 using Inventory = Stillwake.Content.Inventory;
 using ItemSpecs = Stillwake.Content.Items;
 using Loot = Stillwake.Content.Loot;
+using PickUp = Stillwake.Sim.Items.PickUp;
+using WreckageSpec = Stillwake.Content.Wreckage;
 
 namespace Stillwake.Sim.Tests;
 
@@ -215,9 +219,11 @@ public class DebrisTests
     {
         // Short paths and no cap reached: about a hundred spawns, each a draw.
         var kinds = Watch(new Scenario(Layout.Parse(["   #   "])), 20000).Select(p => p.Item).ToList();
-        var share = DebrisSpec.Kinds.Select(k => kinds.Count(item => item == k.Item)).ToList();
-        Assert.All(share, n => Assert.True(n > 0));
-        Assert.Equal(share.OrderDescending(), share);
+        var share = DebrisSpec.Kinds.Select(k => (k.Weight, Count: kinds.Count(item => item == k.Item))).ToList();
+        Assert.All(share, s => Assert.True(s.Count > 0));
+        foreach (var heavier in share)
+            foreach (var lighter in share.Where(s => s.Weight < heavier.Weight))
+                Assert.True(heavier.Count > lighter.Count, $"weight {heavier.Weight} drawn {heavier.Count} times, {lighter.Weight} {lighter.Count}");
     }
 
     [Fact]
@@ -323,6 +329,182 @@ public class DebrisTests
         Assert.Null(w.M.Debris.PieceAt(cell - 1));
     }
 
+    // Wreckage and the axe (0034).
+
+    private const string Wreck = "hullSection";
+    private static readonly int Hp = WreckageSpec.HpOf(Wreck)!.Value;
+    /// <summary>Hits a hull section takes to break: its hit points over the axe's damage, rounded up.</summary>
+    private static readonly int HitsToBreak = (Hp + Axe.Damage - 1) / Axe.Damage;
+
+    /// <summary>The first piece, made a hull section, and heroes <paramref name="peers"/> out in space by it.</summary>
+    private static Scenario Wrecked(params int[] peers)
+    {
+        var w = Spawned();
+        Pieces(w)[0].Item = Wreck;
+        foreach (int peer in peers) w.Do(new Enter(At(12, 1)) { From = peer });
+        return w.Run();
+    }
+
+    private static Scenario Hits(Scenario w, int times, int peer = 0, int piece = 1)
+    {
+        for (int i = 0; i < times; i++) w.Do(new Hit(piece) { From = peer });
+        return w;
+    }
+
+    [Fact]
+    public void RefusesAHitOnAPieceGoneOrNeverThere()
+    {
+        var w = Wrecked(0);
+        w.Do(new Hit(7)).Run();
+        w.Run(Width * 1000);
+        w.Do(new Hit(1)).Run();
+        Assert.Equal(["debris.gone", "debris.gone"], Reasons(w));
+    }
+
+    [Fact]
+    public void RefusesAHitUnlessBothTheHeroAndTheWrecksMiddleAreInSpace()
+    {
+        var w = Spawned();
+        Pieces(w)[0].Item = Wreck;
+        w.Do(new Hit(1) { From = 1 }).Run();
+        w.Do(new Enter(At(3, 4)) { From = 1 }).Do(new Hit(1) { From = 1 }).Run();
+        Assert.Equal(["debris.notOutside", "debris.notOutside"], Reasons(w));
+        // Its middle over the room: judged by that cell alone, however far it reaches out.
+        Until(w, 4).Do(new Enter(At(12, 1)) { From = 1 });
+        Assert.Equal("debris.notOutside", w.M.Debris.HitProblem(1, 1));
+        w.Do(new Hit(1) { From = 1 }).Run();
+        Assert.Equal("debris.notOutside", Reasons(w)[^1]);
+        Assert.Equal(0, Pieces(w)[0].Damage);
+    }
+
+    [Fact]
+    public void RefusesAHitOnAPieceCaughtByHand()
+    {
+        var w = Spawned();
+        Pieces(w)[0].Item = "scrapChunk";
+        w.Do(new Enter(At(12, 1))).Run();
+        Assert.Equal("debris.notWreckage", w.M.Debris.HitProblem(0, 1));
+        w.Do(new Hit(1)).Run();
+        Assert.Equal(["debris.notWreckage"], Reasons(w));
+        Assert.Equal(0, Pieces(w)[0].Damage);
+    }
+
+    [Fact]
+    public void RefusesToCatchAWreckByHandTooBig()
+    {
+        var w = Wrecked(0);
+        Assert.Equal("debris.tooBig", w.M.Debris.GrabProblem(0, 1));
+        w.Do(new Grab(1)).Run();
+        Assert.Equal(["debris.tooBig"], Reasons(w));
+        Assert.Single(Pieces(w));
+        Assert.Empty(Held(w, 0));
+        Assert.Empty(w.M.Items.Floor);
+    }
+
+    [Fact]
+    public void TakesTheAxesDamageOffAWreckHitByHitKeptAcrossASaveAndLoad()
+    {
+        var w = Wrecked(0);
+        Hits(w, 1).Run();
+        Assert.Equal(Axe.Damage, Pieces(w)[0].Damage);
+        Hits(w, 2).Run();
+        Assert.Equal(3 * Axe.Damage, Pieces(w)[0].Damage);
+        w.Reload();
+        Assert.Equal(3 * Axe.Damage, Pieces(w)[0].Damage);
+        Hits(w, 1).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(4 * Axe.Damage, Pieces(w)[0].Damage);
+    }
+
+    [Fact]
+    public void BreaksAWreckOnTheHitThatTakesItsLastHitPointsIntoItsLootFloatingAtItsMiddle()
+    {
+        var w = Wrecked(0);
+        Hits(w, HitsToBreak - 1).Run();
+        var wreck = Pieces(w)[0];
+        Assert.True(wreck.Damage < Hp);
+        int x = wreck.X, y = wreck.Y;
+        Assert.Empty(w.M.Items.Floor);
+        Hits(w, 1).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(Pieces(w));
+        // Dropped where its middle was, the tick it broke on; drifting from there with all in space.
+        var floor = w.M.Items.Floor;
+        Assert.NotEmpty(floor);
+        var loot = Loot.Of(Wreck)!;
+        foreach (var entry in loot)
+        {
+            int n = floor.Where(s => s.Item == entry.Item).Sum(s => s.Count);
+            Assert.InRange(n, entry.Min, entry.Max);
+        }
+        Assert.All(floor, s =>
+        {
+            Assert.Contains(s.Item, loot.Select(e => e.Item));
+            Assert.Equal(FloorStack.Nobody, s.By);
+            Assert.Equal(y / 1000, (s.Y - 1) / 1000);
+            Assert.InRange(s.X / 1000, x / 1000 - 1, x / 1000);
+        });
+        Assert.Empty(Held(w, 0));
+        // Dropped by nobody: whoever broke it sweeps it up at once.
+        Assert.All(floor, s => Assert.Null(w.M.Items.PickUpProblem(0, s.Id)));
+        w.Do(new PickUp(floor[0].Id)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.NotEmpty(Held(w, 0));
+    }
+
+    [Fact]
+    public void BreaksAWreckIntoTheSameLootInTwoWorldsSteppedAlike()
+    {
+        Scenario Broken()
+        {
+            var w = Wrecked(0);
+            return Hits(w, HitsToBreak).Run();
+        }
+        var (a, b) = (Broken(), Broken());
+        Assert.Equal(a.World.Hash(), b.World.Hash());
+        Assert.Equal(a.M.Items.Floor.Select(s => (s.Item, s.Count, s.X, s.Y)), b.M.Items.Floor.Select(s => (s.Item, s.Count, s.X, s.Y)));
+    }
+
+    [Fact]
+    public void LetsTwoHeroesChopOneWreckTheirHitsAddingUp()
+    {
+        var w = Wrecked(1, 2);
+        int half = (HitsToBreak - 1) / 2;
+        Hits(w, half, peer: 1);
+        Hits(w, half, peer: 2).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(2 * half * Axe.Damage, Pieces(w)[0].Damage);
+        Hits(w, HitsToBreak - 2 * half, peer: 2).Run();
+        Assert.Empty(Pieces(w));
+        Assert.NotEmpty(w.M.Items.Floor);
+    }
+
+    [Fact]
+    public void RefusesAHitAfterTheBreakOnTheSameTickOrTheNext()
+    {
+        var w = Wrecked(1, 2);
+        Hits(w, HitsToBreak - 1, peer: 1).Run();
+        // Two heroes land the last blow on one tick: the host's order decides, and the second is too late.
+        w.Do(new Hit(1) { From = 2 }).Do(new Hit(1) { From = 1 }).Run();
+        w.Do(new Hit(1) { From = 2 }).Run();
+        Assert.Equal(["debris.gone", "debris.gone"], Reasons(w));
+    }
+
+    [Fact]
+    public void BeginsEveryPieceUnhurtAndUpgradesAnOldSavesPiecesUnhurtToo()
+    {
+        Assert.All(Pieces(new Scenario(Registry.Wreck).Run()), p => Assert.Equal(0, p.Damage));
+        var old = new System.Text.Json.Nodes.JsonObject
+        {
+            ["slices"] = new System.Text.Json.Nodes.JsonObject
+            {
+                ["debris"] = new System.Text.Json.Nodes.JsonObject { ["pieces"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject { ["id"] = 3 }) },
+            },
+        };
+        var upgraded = Migrations.Steps[3 - Migrations.Oldest](old);
+        Assert.Equal(0, (int)upgraded["slices"]!["debris"]!["pieces"]![0]!["damage"]!);
+    }
+
     // The README's invariants, whatever happens: a hull grown and cut down, heroes in and out of space
     // grabbing pieces out, gone and never spawned, and long waits.
 
@@ -340,7 +522,7 @@ public class DebrisTests
                   from rolls in Gen.Choose(0, 99).ArrayOf(s.w * s.h)
                   select (s.w, s.h, Walls: rolls.Select(r => r < density).ToArray());
         var step = from kind in Gen.Frequency(
-                       (2, Gen.Constant("wait")), (2, Gen.Constant("grab")), (2, Gen.Constant("enter")),
+                       (2, Gen.Constant("wait")), (2, Gen.Constant("grab")), (2, Gen.Constant("enter")), (2, Gen.Constant("chop")),
                        (1, Gen.Constant("wall")), (1, Gen.Constant("breach")))
                    from cell in Gen.Choose(-2, 3000)
                    from peer in Gen.Choose(0, 2)
@@ -365,6 +547,11 @@ public class DebrisTests
                         break;
                     case "grab":
                         w.Do(new Grab(pieces.Count > 0 && s.Cell % 3 != 0 ? pieces[Math.Abs(s.Cell) % pieces.Count].Id : s.Cell % (last + 3)) { From = s.Peer });
+                        break;
+                    case "chop":
+                        // A wreck when one is out, else any piece; a few swings landing on one tick.
+                        var wreck = pieces.FirstOrDefault(p => WreckageSpec.HpOf(p.Item) != null) ?? (pieces.Count > 0 ? pieces[Math.Abs(s.Cell) % pieces.Count] : null);
+                        for (int n = 0; n < s.Ticks % 4 + 1; n++) w.Do(new Hit(wreck?.Id ?? s.Cell % (last + 3)) { From = s.Peer });
                         break;
                     case "wall":
                         int at = Math.Abs(s.Cell) % cells;
@@ -397,6 +584,8 @@ public class DebrisTests
             if (i > 0 && p.Id <= pieces[i - 1].Id) return "ids out of spawn order";
             if (p.X < 0 || p.X >= width * 1000 || p.Y < 0 || p.Y >= height * 1000) return $"piece {p.Id} off the grid";
             if (p.X < p.End || p.X > p.Start) return $"piece {p.Id} off its path";
+            int hp = WreckageSpec.HpOf(p.Item) ?? 0;
+            if (hp == 0 ? p.Damage != 0 : p.Damage < 0 || p.Damage >= hp) return $"piece {p.Id}, a {p.Item}, at damage {p.Damage}";
             if (p.Id <= last) continue;
             // New this tick: in the band of the hull it spawned by, which the tick's commands have shaped.
             if (p.Id != last + 1) return $"piece {p.Id} after {last}: an id skipped or reused";

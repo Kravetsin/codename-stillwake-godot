@@ -294,6 +294,92 @@ public class AimTests
         Assert.Null(Aiming.AimAt(w.M, 0, aboard, ((double)piece.X / Unit, (double)piece.Y / Unit))?.Piece);
     }
 
+    // A wreck (0034): aimed at by its picture, chopped with the axe, too big to catch.
+
+    /// <summary>
+    /// The corner's first piece made a hull section, a scrap chunk a cell below its middle, and peer 0's
+    /// hero reported out in space three cells left of it: the wreck's middle and the hero.
+    /// </summary>
+    private static (TestWorld W, Piece Wreck, Hero Hero) Wrecked()
+    {
+        var w = Corner().Edit(root =>
+        {
+            var pieces = root["slices"]!["debris"]!["pieces"]!.AsArray();
+            var first = pieces[0]!;
+            first["item"] = "hullSection";
+            var chunk = first.DeepClone();
+            chunk["id"] = 99;
+            chunk["item"] = "scrapChunk";
+            chunk["y"] = (int)first["y"]! + Unit;
+            pieces.Add(chunk);
+        });
+        var wreck = w.M.Debris.Pieces[0];
+        int x = wreck.X / Unit, y = wreck.Y / Unit;
+        w.Step(new Sim.Crew.Enter(y * 12 + x - 3));
+        return (w, w.M.Debris.Pieces[0], HeroOn(x - 3, y));
+    }
+
+    [Fact]
+    public void AimsAtAWreckAnywhereOnItsPictureOverASmallPieceNearerThePointer()
+    {
+        var (w, wreck, hero) = Wrecked();
+        var (pw, ph) = DebrisLooks.Wrecks["hullSection"];
+        // Near its bottom left corner: the chunk below its middle is nearer, the wreck still wins.
+        double x = (double)wreck.X / Unit - pw / 16.0 / 2 + 0.2, y = (double)wreck.Y / Unit + ph / 16.0 / 2 - 0.2;
+        Assert.Equal(wreck.Id, Aiming.AimAt(w.M, 0, hero, (x, y))?.Piece);
+        // Off its picture, the chunk below.
+        Assert.Equal(99, Aiming.AimAt(w.M, 0, hero, ((double)wreck.X / Unit, (double)wreck.Y / Unit + ph / 16.0 / 2 + 0.6))?.Piece);
+    }
+
+    [Fact]
+    public void ChopsAWreckWithTheAxeAndBareHandedTriesToCatchItWhichIsTooBig()
+    {
+        var (w, wreck, hero) = Wrecked();
+        var at = ((double)wreck.X / Unit, (double)wreck.Y / Unit);
+        Assert.Equal(new Use(new Grab(wreck.Id), "debris.tooBig"), Aiming.AimAt(w.M, 0, hero, at)?.Press);
+        var axe = Aiming.AimAt(w.M, 0, hero, at, axe: true);
+        Assert.Equal(new Use(new Hit(wreck.Id), null), axe?.Press);
+        Assert.Equal(new Prompt("use.chop", null), Prompts.Of(w.M, axe));
+        // A press never chops: the left button held does, at the axe's pace.
+        Assert.Empty(Aiming.UsesOf(axe, pressed: true, held: true, 5, -1).Commands);
+        // The axe in hand, a small piece is still caught.
+        var chunk = w.M.Debris.Pieces.Single(p => p.Id == 99);
+        Assert.IsType<Grab>(Aiming.AimAt(w.M, 0, hero, ((double)chunk.X / Unit, (double)chunk.Y / Unit + 0.4), axe: true)?.Press?.Command);
+    }
+
+    [Fact]
+    public void ReachesAWreckByItsNearestEdgeNotItsMiddle()
+    {
+        var (w, wreck, _) = Wrecked();
+        int halfW = DebrisLooks.Wrecks["hullSection"].W * Unit / 32;
+        int y = wreck.Y / Unit;
+        // A hero whose reach just passes its left edge, though its middle is farther.
+        var near = new Hero(wreck.X - halfW - Spec.Hero.Reach + 100, wreck.Y + Hero.MiddleUp, 0, 0, false, 1);
+        var far = near with { X = near.X - 600 };
+        var at = ((double)wreck.X / Unit, (double)y + 0.5);
+        Assert.True(Aiming.AimAt(w.M, 0, near, at, axe: true)!.InReach);
+        Assert.False(Aiming.AimAt(w.M, 0, far, at, axe: true)!.InReach);
+    }
+
+    [Fact]
+    public void SwingsAtOnceThenEveryAxePaceWhileHeldAndNoFasterForClicking()
+    {
+        var hit = new Hit(4);
+        var aim = new Aim(3, true, new Use(hit, null), Piece: 4);
+        int swung = -1;
+        var sent = new List<int>();
+        foreach (var (tick, held) in new[] { (10, true), (11, true), (19, true), (20, true), (21, false), (22, true), (30, true) })
+        {
+            var (command, now) = Aiming.Swing(aim, held, tick, swung);
+            swung = now;
+            if (command != null) sent.Add(tick);
+        }
+        Assert.Equal([10, 20, 30], sent);
+        Assert.Equal((null, 5), Aiming.Swing(aim with { InReach = false }, true, 50, 5));
+        Assert.Equal((null, 5), Aiming.Swing(aim with { Press = new Use(hit, "debris.notOutside") }, true, 50, 5));
+        Assert.Equal((hit, 3), Aiming.Swing(aim, true, 3, 40));
+    }
+
     // What E sends.
 
     private static readonly ToggleDoor Door = new(3);

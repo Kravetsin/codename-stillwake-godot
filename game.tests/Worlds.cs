@@ -42,6 +42,15 @@ public sealed class TestWorld
         World = World.Load(root.ToJsonString(), Modules());
         return this;
     }
+
+    /// <summary>The world with its save changed by <paramref name="edit"/>: what no command makes, put in as <see cref="Give"/> does.</summary>
+    public TestWorld Edit(Action<JsonNode> edit)
+    {
+        var root = JsonNode.Parse(World.Save())!;
+        edit(root);
+        World = World.Load(root.ToJsonString(), Modules());
+        return this;
+    }
 }
 
 /// <summary>A link whose host is not here: a test releases ticks by hand (<c>guest</c> of predicted.test.ts).</summary>

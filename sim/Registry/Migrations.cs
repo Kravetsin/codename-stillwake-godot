@@ -18,7 +18,15 @@ public static class Migrations
     public const int Oldest = 3;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
-    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [];
+    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps =
+    [
+        // 3 → 4: every piece of debris has taken no hits yet (0034).
+        save =>
+        {
+            foreach (var piece in save["slices"]!["debris"]!["pieces"]!.AsArray()) piece!["damage"] = 0;
+            return save;
+        },
+    ];
 
     /// <summary>The format a save says it has.</summary>
     public static int FormatOf(string save) => JsonNode.Parse(save)!["format"]!.GetValue<int>();

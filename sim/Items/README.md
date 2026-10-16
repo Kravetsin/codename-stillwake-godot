@@ -78,7 +78,8 @@ counted twice.
   exactly that. `Give(peer, cost)` — the caller checks `FullFor` first, and giving past the room
   throws. `GiveOrDrop(peer, cost, cell)` — gives what fits; the rest falls on `cell`, dropped by that
   peer. `DropAt(peer, cost, cell)` — lets all of `cost` fall on `cell`, still, dropped by that peer:
-  what a cancelled blueprint held.
+  what a cancelled blueprint held; or by `FloorStack.Nobody`, for anyone to pick up at once: what a
+  broken wreck held.
 - **Commands:** `SetCreative(On)`, from the dev panel, with no refusals.
   `Move(Src, Dst, Count)` — `Src` a `Place(Slot, Crate?)`, `Dst` a `Target(Slot?, Crate?)`, no crate
   meaning the sender's inventory; refused with `items.noCrate` (a side names no machine holding

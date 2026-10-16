@@ -26,6 +26,9 @@ released under CC0.
 | `crew/step-2.wav` | Impact Sounds, `footstep_concrete_001.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
 | `crew/step-3.wav` | Impact Sounds, `footstep_concrete_002.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
 | `crew/step-4.wav` | Impact Sounds, `footstep_concrete_003.ogg`, https://kenney.nl/assets/impact-sounds | Kenney | CC0 |
+| `debris/chop-1.wav` | Freesound, "Hacha contra Metal.wav", https://freesound.org/people/Josethehedgehog/sounds/390377/ | Josethehedgehog | CC0 |
+| `debris/chop-2.wav` | Freesound, "axe hits - 1.wav", https://freesound.org/people/quatricise/sounds/582372/ | quatricise | CC0 |
+| `debris/chop-3.wav` | Freesound, "MetalHit1.wav", https://freesound.org/people/ajanhallinta/sounds/650701/ | ajanhallinta | CC0 |
 | `furnace/fire-1.ogg` | Freesound, "Fire - Chimney / Stove", https://freesound.org/people/Vrymaa/sounds/770108/ | Vrymaa | CC0 |
 | `grid/door-close-1.wav` | Freesound, "SFX Door Close Big.wav", https://freesound.org/people/Paul368/sounds/264060/ | Paul368 | CC0 |
 | `grid/door-open-1.wav` | Freesound, "SFX Door Open.wav", https://freesound.org/people/Paul368/sounds/264061/ | Paul368 | CC0 |

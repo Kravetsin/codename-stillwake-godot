@@ -111,6 +111,19 @@ public partial class Figure : Node2D
     /// <summary>The screwdriver's grip in its picture, a frame of <c>hero_screwdriver.png</c>.</summary>
     private static readonly Vector2 Grip = new(3, 2);
     private readonly Sprite2D _tool;
+    /// <summary>
+    /// Chopping wreckage (0034), the fire axe in the front hand: each swing, <see cref="Axe.SwingTicks"/>
+    /// long, raises it <see cref="Raised"/> radians back over the shoulder for <see cref="WindShare"/> of
+    /// the swing, brings it down hard through the wreck to <see cref="Through"/> past it in
+    /// <see cref="StrikeShare"/>, and eases back. A chop just begun starts at the top of a swing.
+    /// </summary>
+    private const double WindShare = 0.55, StrikeShare = 0.12, Raised = 2.1, Through = 0.3;
+    private static readonly double SwingMs = Stillwake.Content.Axe.SwingTicks * 1000.0 / Stillwake.Sim.World.TicksPerSecond;
+    /// <summary>The axe's grip in <c>hero_axe.png</c>: its haft runs right from the hand, the head at the far end, the blade below.</summary>
+    private static readonly Vector2 AxeGrip = new(3, 7);
+    private readonly Sprite2D _axe;
+    private Vector2? _chopAt;
+    private double _chopMs;
     /// <summary>The node the body's parts hang from: where a shoulder is, the arms' own frame.</summary>
     private readonly Node2D _frame;
     private Vector2? _workAt;
@@ -173,6 +186,8 @@ public partial class Figure : Node2D
             Visible = false,
         };
         Lit.Set(_tool);
+        _axe = new Sprite2D { Texture = GD.Load<Texture2D>("res://art/hero_axe.png"), Centered = false, Offset = -AxeGrip, Visible = false };
+        Lit.Set(_axe);
         for (int i = 0; i < BeamsMost; i++)
         {
             var beam = new Line2D { TopLevel = true, Width = 1, Visible = false, ZIndex = 1, Material = BeamMaterial };
@@ -186,7 +201,7 @@ public partial class Figure : Node2D
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds.
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, frontArm }) parts.AddChild(n);
+        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _axe, frontArm }) parts.AddChild(n);
         AddChild(_body);
         Wear(colour);
     }
@@ -222,6 +237,12 @@ public partial class Figure : Node2D
 
     /// <summary>Has the hero work the plan at <paramref name="at"/>, in pixels of the world, with its screwdriver; null when it stops.</summary>
     public void Work(Vector2? at) => _workAt = at;
+
+    /// <summary>Has the hero chop at the wreck at <paramref name="at"/>, in pixels of the world, with the axe it wields; null when it stops.</summary>
+    public void Chop(Vector2? at) => _chopAt = at;
+
+    /// <summary>Whether the front hand holds the fire axe: its hotbar slot chosen, the hand free.</summary>
+    public bool Wields { get; set; }
 
     /// <summary>A line of the planner's light from its screen to each cell just planned, fading.</summary>
     private void ShowBeams(bool holding)
@@ -329,9 +350,11 @@ public partial class Figure : Node2D
         bool working = _workAt != null && Poses.HoldsIn(pose);
         _workMs = working ? _workMs + elapsedMs : 0;
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
+        bool chopping = _chopAt != null && Wields && Poses.HoldsIn(pose) && !working && !holding;
+        _chopMs = chopping ? _chopMs + elapsedMs : WindShare * SwingMs;
         // The hands at work, whatever the pose (0030): afloat the stroke stops, the hero treads water
         // calmly and rights itself, and the front arm reaches where the work is, in the body's own frame.
-        bool acting = working || holding && _beamMs > 0;
+        bool acting = working || chopping || holding && _beamMs > 0;
         if (Poses.Swimming(hero)) _heading = Poses.HeadingOf(hero);
         bool afloat = pose == Pose.Float;
         _swim = afloat ? Settle(_swim, Poses.Swimming(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
@@ -389,6 +412,19 @@ public partial class Figure : Node2D
             double ux = Math.Sin(work), uy = -Math.Cos(work);
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
+        double swing = 0;
+        if (chopping && _chopAt is { } wreck)
+        {
+            // Toward the wreck, from the shoulder: raised back over it, then brought down through it.
+            var (dx, dy) = FromShoulder(wreck);
+            double cycle = _chopMs % SwingMs / SwingMs, lift;
+            if (cycle < WindShare) lift = -Raised * Math.Sin(cycle / WindShare * Math.PI / 2);
+            else if (cycle < WindShare + StrikeShare) lift = -Raised + (Raised + Through) * ((cycle - WindShare) / StrikeShare);
+            else lift = Through * (1 - (cycle - WindShare - StrikeShare) / (1 - WindShare - StrikeShare));
+            swing = Math.Atan2(dy, dx) + lift;
+            double reach = 0.9 * (Rig.Arm.Upper + Rig.Arm.Lower);
+            frontArm = Rig.Reach(new Vec(Math.Cos(swing) * reach, Math.Sin(swing) * reach), Rig.Arm, 1);
+        }
         // The hand holding the planner keeps it before the eyes, ahead of no turn.
         _frontArm.Bend(frontArm with { Upper = frontArm.Upper + (holding ? 0 : lead) });
         _backArm.Bend(shown.BackArm with { Upper = shown.BackArm.Upper + lead });
@@ -418,6 +454,15 @@ public partial class Figure : Node2D
             _tool.Rotation = (float)work;
             // Three steps of the ribs a turn, held on the way back: they roll on one way only.
             _tool.Frame = (int)Math.Min(2, Math.Floor(twist * 3));
+        }
+        // The axe in the front hand: swung along the arm, its blade leading down; else hanging from the hand.
+        _axe.Visible = Wields && Poses.HoldsIn(pose) && !working && !holding;
+        if (_axe.Visible)
+        {
+            var hand = Rig.EndOf(frontArm, Rig.Arm);
+            double turn = frontArm.Upper + frontArm.Lower;
+            _axe.Position = new Vector2((float)hand.X, (float)(-Rig.Shoulder + hand.Y));
+            _axe.Rotation = (float)(chopping ? swing : Math.Atan2(Math.Cos(turn), Math.Sin(turn)));
         }
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);

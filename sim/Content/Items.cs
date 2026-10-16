@@ -34,11 +34,15 @@ public static class Items
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1),
         new("cargoCrate", 1),
+        // Wreckage: broken with an axe into its loot (Wreckage), and never carried either.
+        new("hullSection", 1),
         // Parts, made by hand (Crafts) of materials and other parts.
         new("wire", 100),
         new("plate", 100),
         new("gear", 50),
         new("rotor", 20),
+        // Tools, made as parts are.
+        new("fireAxe", 1),
     ];
 
     private static readonly Dictionary<string, ItemSpec> ById = All.ToDictionary(i => i.Id, StringComparer.Ordinal);

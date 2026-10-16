@@ -18,7 +18,8 @@ namespace Stillwake.Game.Render;
 /// <see cref="Light.ParticleMost"/> by their brightest colour, so an ember by a fire still lights the
 /// wall behind it. A wall takes <see cref="Light.WallIn"/> of what reaches its face. A normal-mapped
 /// picture is shaded toward the way the lamps' light comes from — up the main lightmap's slope, tilted
-/// 45 degrees up — within that cap; one without a normal map faces the screen and is shaded flat.
+/// 45 degrees up — within that cap; one without a normal map faces the screen and is shaded flat. A
+/// picture of debris shows its damage first, as cracks (<see cref="Cracks"/>).
 /// </summary>
 public static class Lit
 {
@@ -48,6 +49,7 @@ public static class Lit
             uniform vec2 lightmap_at = vec2(0.0);
             uniform float lightmap_texel = 1.0;
             varying vec2 world;
+            """ + Cracks.Code + """
 
             void vertex() {
                 world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
@@ -62,6 +64,8 @@ public static class Lit
             }
 
             void fragment() {
+                // Debris that axes have hit shows it, on its own pixels, before the light falls on it.
+                COLOR.rgb = cracked(COLOR.rgb, UV, TEXTURE_PIXEL_SIZE);
                 // Blended between the four cells round this point, those of its side only (lighting.ts).
                 vec2 at = (world - starlight_rect.xy) / starlight_rect.zw * vec2(textureSize(starlight, 0));
                 vec2 corner = floor(at - 0.5);

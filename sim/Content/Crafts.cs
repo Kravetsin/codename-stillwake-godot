@@ -17,13 +17,14 @@ public static class Crafts
         new("plate", [("iron", 2)], Ticks: 40),
         new("gear", [("iron", 1)], Ticks: 40),
         new("rotor", [("gear", 1), ("wire", 2)], Ticks: 60),
+        new("fireAxe", [("scrap", 6)], Ticks: 60),
     ];
 
     /// <summary>
     /// Where each craft sits in the Fabricator's panel, a family a row, simple to complex left to right:
     /// every craft once, known or not, so nothing moves when one opens.
     /// </summary>
-    public static readonly IReadOnlyList<IReadOnlyList<string>> Rows = [["plate", "gear", "rotor"], ["wire"]];
+    public static readonly IReadOnlyList<IReadOnlyList<string>> Rows = [["plate", "gear", "rotor"], ["wire", "fireAxe"]];
 
     /// <summary>The most crafts a row holds: the panel's columns.</summary>
     public const int RowMost = 4;
