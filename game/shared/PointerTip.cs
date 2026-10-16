@@ -11,7 +11,8 @@ namespace Stillwake.Game.Shared;
 /// once, following the pointer, a name in bold and lines in colour under it. It says what a panel says
 /// of what the pointer is on (<see cref="Ui.Tip"/>), else, over the world, what an overlay says of the
 /// cell (<see cref="Ui.WorldTip"/>), the first line naming it, or a blueprint's cost delivered against
-/// needed (<see cref="Ui.CostTip"/>). Text on demand, only while there is something to say.
+/// needed (<see cref="Ui.CostTip"/>). A tip with a tool's card shows the card (<see cref="ToolCardView"/>)
+/// in place of its lines. Text on demand, only while there is something to say.
 /// </summary>
 public partial class PointerTip : CanvasLayer
 {
@@ -28,6 +29,8 @@ public partial class PointerTip : CanvasLayer
     private readonly PanelContainer _panel = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly VBoxContainer _lines = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private static readonly LabelSettings NameText = Style.Text(Style.Bold, 12, Style.Slate100);
+    private static readonly StyleBoxEmpty CardBox = new();
+    private readonly StyleBoxFlat _box;
     private Tip? _shown;
 
     public PointerTip(Ui ui)
@@ -37,7 +40,7 @@ public partial class PointerTip : CanvasLayer
         _reason.LabelSettings = _reasonText;
         AddChild(_reason);
         // rounded border border-slate-600/80 bg-slate-950/90 px-2 pt-[3px] pb-1, a faint dark ring.
-        var box = Style.Box(Style.Slate950 with { A = 0.92f }, Style.Slate600 with { A = 0.8f }, radius: 3);
+        var box = _box = Style.Box(Style.Slate950 with { A = 0.92f }, Style.Slate600 with { A = 0.8f }, radius: 3);
         (box.ContentMarginLeft, box.ContentMarginRight, box.ContentMarginTop, box.ContentMarginBottom) = (PadX, PadX, 3, 4);
         (box.ShadowColor, box.ShadowSize) = (new Color(0, 0, 0, 0.18f), 3);
         _panel.AddThemeStyleboxOverride("panel", box);
@@ -111,6 +114,14 @@ public partial class PointerTip : CanvasLayer
         {
             _lines.RemoveChild(child);
             child.QueueFree();
+        }
+        // A tool's card draws its own edge.
+        _panel.AddThemeStyleboxOverride("panel", tip.Card != null ? CardBox : _box);
+        if (tip.Card != null)
+        {
+            _lines.AddChild(ToolCardView.Build(tip.Card));
+            _panel.Size = _panel.GetCombinedMinimumSize();
+            return;
         }
         if (tip.Name != null) _lines.AddChild(Text(tip.Name, NameText));
         foreach (var line in tip.Lines) _lines.AddChild(LineOf(line));
