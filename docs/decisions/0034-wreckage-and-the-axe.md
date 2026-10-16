@@ -1,6 +1,6 @@
 # 0034 — Wreckage and the axe
 
-- Status: accepted; "other heroes are not seen holding or swinging the axe" superseded by [0037](0037-others-see-the-hands.md); the hit sent at the press superseded by [0038](0038-one-swing-one-hit.md); the left button held on a wreck within reach superseded by [0039](0039-melee-by-contact.md)
+- Status: accepted; "other heroes are not seen holding or swinging the axe" superseded by [0037](0037-others-see-the-hands.md); the hit sent at the press superseded by [0038](0038-one-swing-one-hit.md); the left button held on a wreck within reach superseded by [0039](0039-melee-by-contact.md); every peer hearing every hit and break superseded by [0041](0041-what-is-heard-in-space.md)
 - Date: 2026-10-16
 
 ## Context
@@ -40,7 +40,8 @@ the spacewalk a job and the Fabricator a reason, without new systems for physics
   where it is; a wreck gone with damage before its path's end bursts, heard as a crash of its own (`Sound.Break`) in
   place of the last chop. Every peer sees and hears the
   same from its own world, so friends see cracks and hear hits; only the striker's figure swings. The
-  chop is on the Suit bus, as wrecks are chopped only out in space, where the World bus is silent.
+  chop is on the Suit bus, as wrecks are chopped only out in space, where the World bus is silent
+  (superseded by 0041: in space only the striker hears its own hit, dulled through the suit).
 
 ## Consequences
 

@@ -1,6 +1,6 @@
 # 0033 — First sound
 
-- Status: accepted
+- Status: accepted; "only Suit is left" while floating and the drone in space left for later superseded by [0041](0041-what-is-heard-in-space.md)
 - Date: 2026-10-16
 
 ## Context

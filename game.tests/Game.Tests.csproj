@@ -47,6 +47,8 @@
     <Compile Include="../game/features/items/Lessons.cs" Link="Game/Items/Lessons.cs" />
     <Compile Include="../game/features/crafting/Crafts.cs" Link="Game/Crafting/Crafts.cs" />
     <Compile Include="../game/features/debris/Fading.cs" Link="Game/Debris/Fading.cs" />
+    <Compile Include="../game/features/debris/OwnHits.cs" Link="Game/Debris/OwnHits.cs" />
+    <Compile Include="../game/features/sound/Hearing.cs" Link="Game/Sound/Hearing.cs" />
     <Compile Include="../game/i18n/En.cs" Link="Game/I18n/En.cs" />
     <Compile Include="../game/render/Buttons.cs" Link="Game/Render/Buttons.cs" />
     <Compile Include="../game/render/CableShape.cs" Link="Game/Render/CableShape.cs" />

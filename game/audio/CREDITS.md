@@ -1,6 +1,6 @@
 # Audio credits
 
-Every sound under `game/audio`: where it came from, who made it and its licence. CC0 only (ADR 0033), but for the team's own music marked as a placeholder (ADR 0035):
+Every sound under `game/audio`: where it came from, who made it and its licence. CC0 only (ADR 0033), but for the team's own music made on Suno, marked as a placeholder (ADR 0035):
 the repository is public, so a file must be free to redistribute without attribution. A test
 (`game.tests/SoundTests.cs`) fails on a file missing here or under another licence.
 
@@ -42,6 +42,7 @@ released under CC0.
 | `grid/valve-2.wav` | Freesound, "Squeak Rusty Metal Water Tap", https://freesound.org/people/brunoboselli/sounds/441096/ | brunoboselli | CC0 |
 | `grid/valve-3.wav` | Freesound, "Squeak Rusty Metal Water Tap", https://freesound.org/people/brunoboselli/sounds/441096/ | brunoboselli | CC0 |
 | `hands/act-1.wav` | Freesound, "Lego Click (short)", https://freesound.org/people/ImmergoMedia/sounds/670000/ | ImmergoMedia | CC0 |
+| `music/space-1.ogg` | generated for Stillwake: the synthesised drone "Wreck" (v2), 80 s looping seamlessly, about −18 LUFS; a placeholder for the bed of space (ADR 0041) until the team writes its own | Stillwake team | CC0 |
 | `music/title-1.ogg` | made by the team with Suno (suno.com) on its free plan, 2026-10-16, normalised to about −18 LUFS | Stillwake team | Suno Basic, non-commercial: replace before sale |
 | `ui/click-1.wav` | Interface Sounds, `click_002.ogg`, https://kenney.nl/assets/interface-sounds | Kenney | CC0 |
 | `ui/click-2.wav` | Interface Sounds, `click_003.ogg`, https://kenney.nl/assets/interface-sounds | Kenney | CC0 |

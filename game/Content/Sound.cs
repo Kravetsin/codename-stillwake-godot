@@ -33,14 +33,16 @@ public static class Sound
     }
 
     /// <summary>
-    /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient and Effects into Master; World (every
-    /// hero's steps, machines, air, doors: silenced while floating) and Suit (the action click, the
-    /// suit's alarm, the axe's chop and a wreck breaking: heard in space too) into Effects.
-    /// Settings will set Master, Effects, Ambient and UI; World and Suit are the hearing's. Ambient waits
-    /// for the first ambience: the ship's hum comes from its vents and fires, in the world.
+    /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient, Music and Effects into Master; into
+    /// Effects, World (every hero's steps, machines, air, doors: silenced while floating), Suit (what this
+    /// player's hero itself touches: the action click, its own axe's chop, a wreck its hit breaks; heard
+    /// through the body, dulled while floating) and Helmet (the suit's alarm, in the helmet's air: always
+    /// clear). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
+    /// hearing's (0033, 0041). Ambient waits for the first ambience: the ship's hum comes from its vents
+    /// and fires, in the world.
     /// </summary>
-    public const string Master = "Master", Ui = "UI", Ambient = "Ambient", Effects = "Effects", World = "World", Suit = "Suit", Music = "Music";
-    public static readonly IReadOnlyList<string> Buses = [Master, Ui, Ambient, Effects, World, Suit, Music];
+    public const string Master = "Master", Ui = "UI", Ambient = "Ambient", Effects = "Effects", World = "World", Suit = "Suit", Helmet = "Helmet", Music = "Music";
+    public static readonly IReadOnlyList<string> Buses = [Master, Ui, Ambient, Effects, World, Suit, Helmet, Music];
 
     public static readonly Cue Step = new(Shots("crew/step", 4), -12, Heard: new(4, 18));
     public static readonly Cue Land = new(Shots("crew/land", 2), -8, Heard: new(4, 18));
@@ -56,11 +58,11 @@ public static class Sound
     public static readonly Cue Act = new(Shots("hands/act", 1), -10);
     public static readonly Cue Fire = Looped("furnace/fire", -10, new(3, 12));
     /// <summary>
-    /// An axe biting into a wreck (0034), heard where the wreck is by every hero near: on the Suit bus,
-    /// since a wreck is only ever chopped out in space, where the World bus is silent.
+    /// This player's own axe biting into a wreck (0034, 0041), heard where the wreck is: on the Suit bus,
+    /// through the glove, as a wreck is only ever out in space; another hero's hit there is silent.
     /// </summary>
     public static readonly Cue Chop = new(Shots("debris/chop", 3), -2, Pitch: 0.1f, Heard: new(5, 20));
-    /// <summary>A wreck breaking apart under the last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
+    /// <summary>A wreck breaking apart under this player's last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
     public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: new(6, 28));
 
     /// <summary>The title's music (0035), on the Music bus, faded in with the title and out on leaving it.</summary>
@@ -69,16 +71,28 @@ public static class Sound
     /// <summary>How long the title's music takes to fade in or out, in seconds.</summary>
     public const double MusicFadeS = 2.5;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, Fire, Chop, Break];
+    /// <summary>
+    /// The quiet bed that fills the silence of space (0041), on the Music bus: faded in over
+    /// <see cref="SpaceInS"/> seconds as this player's hero leaves the ship, out over <see cref="SpaceOutS"/>
+    /// back aboard. A placeholder, the synthesised drone "Wreck", until the team's own track.
+    /// </summary>
+    public static readonly Cue Space = new(["res://audio/music/space-1.ogg"], -10, Loops: true);
+
+    public const double SpaceInS = 2.5, SpaceOutS = 2;
+
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, Fire, Chop, Break];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;
 
     /// <summary>
     /// Floating in space the world goes silent over <see cref="MuffleMs"/>: the World bus's low-pass falls from
-    /// <see cref="ClearHz"/> to <see cref="MuffledHz"/> as the bus fades out.
+    /// <see cref="ClearHz"/> to <see cref="MuffledHz"/> as the bus fades out. What the hero touches, on the
+    /// Suit bus, dulls over the same time to a thud through glove and helmet (0041): its low-pass falls to
+    /// <see cref="SuitMuffledHz"/> and its lows below <see cref="SuitLowsHz"/> rise to <see cref="SuitLowsGain"/>
+    /// (Godot's shelf gain, the lows' amplitude times its square: 1.25 is about +4 dB).
     /// </summary>
-    public const float ClearHz = 20000, MuffledHz = 300, MuffleMs = 600;
+    public const float ClearHz = 20000, MuffledHz = 300, MuffleMs = 600, SuitMuffledHz = 900, SuitLowsHz = 300, SuitLowsGain = 1.25f;
 
     private static string[] Shots(string cue, int count) =>
         Enumerable.Range(1, count).Select(n => $"res://audio/{cue}-{n}.wav").ToArray();

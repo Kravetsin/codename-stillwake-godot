@@ -5,7 +5,7 @@ The debris drifting past the ship (`apps/game/src/features/debris/`, G-08). Draw
 everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`; chopping wreckage
 with the fire axe is the hands too, which send `Hit` (0034).
 
-- **Reads:** `DebrisModule.Pieces`; `Client.InFlight` — its own grabs (`Shared.Predicted.Grabbing`);
+- **Reads:** `DebrisModule.Pieces`; `Client.InFlight` — its own grabs (`Shared.Predicted.Grabbing`) and hits (`OwnHits`);
   `Ui.AimedPiece` — the piece the crew's hands would catch or chop; `Ui.Heroes` — who most likely
   struck a piece; `Session.Progress`.
 - **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
@@ -18,13 +18,13 @@ with the fire axe is the hands too, which send `Hit` (0034).
   piece's id, it draws pixel-art cracks on the picture's own pixels — dark as the outline, a lit pixel
   under each — from a dent that widens, more and longer as the share grows, before the light falls on
   them. A rise in `Damage` jolts the piece 3 px away from the nearest hero and turns it a little,
-  settling over 220 ms, throws sparks from the struck side and plays `Sound.Chop` there (on the Suit
-  bus: wrecks are chopped in space, where the World bus is silent). A wreck gone with hits in it before
+  settling over 220 ms, throws sparks from the struck side and, if the hit was this player's own, plays `Sound.Chop` there (on the Suit
+  bus, dulled while floating: wrecks are chopped in space, where only what the hero touches is heard, 0041). A wreck gone with hits in it before
   the end of its path was broken (`Fading.Broken`, counting the ticks run since it was last seen, so one
   drifting off its end only fades, a stall between frames or not): a burst of dust and sparks and
-  `Sound.Break`, louder and heard farther than a chop, on the Suit bus too. It takes the last chop's place:
-  the last hit removes the wreck on its tick, so its damage never rises in view and no chop plays for it. Every peer sees and
-  hears the same, from the world. The stars behind it are
+  `Sound.Break` if its own hit broke it, louder and heard farther than a chop, on the Suit bus too. It takes the last chop's place:
+  the last hit removes the wreck on its tick, so its damage never rises in view and no chop plays for it. Every peer sees the
+  same, from the world; only the striker hears it. Own is a `Hit` of this peer's seen in flight one frame and gone the next (`OwnHits`), read after the hero sends this frame's hits, so none runs unseen. The stars behind it are
   `render/Stars.cs`: a filtered tile placed once the camera has followed the hero, so they glide by
   fractions of a pixel a frame as the TypeScript tile did, never holding still and jumping a pixel.
 - **Aimed:** the piece the crew sets in `Ui.AimedPiece` — out in space, within reach (with the axe, the
@@ -49,11 +49,12 @@ with the fire axe is the hands too, which send `Hit` (0034).
 | File            | Holds                                                         | Godot |
 | --------------- | ------------------------------------------------------------- | ----- |
 | `Fading.cs`     | `FadeOf`, `Broken`                                            | no    |
+| `OwnHits.cs`    | which pieces this peer's own hits ran on since the last frame | no    |
 | `DebrisView.cs` | the layer: pieces and the outline of the one aimed at         | yes   |
 | `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |
 | `WreckDemo.cs`  | the world and the script of `--wreck`                         | yes   |
 
-`Fading.cs` is compiled again into `game.tests/`, where `fade.test.ts` and the debris test of
+`Fading.cs` and `OwnHits.cs` are compiled again into `game.tests/` (`OwnHits` tested in `HearingTests`), where `fade.test.ts` and the debris test of
 `predicted.test.ts` are ported (`DebrisTests`); the debris tests of `aim.test.ts` are in `AimTests`.
 
 ## Deliberately not handled
