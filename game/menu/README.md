@@ -18,7 +18,7 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   A save of a format this build cannot bring up to date shows as such in the list.
 - **Testbed**, in a debug build only (`play.cmd`; an export has no button): under the others, it plays
   `dev/Testbed`, as `-- --testbed` does — a ready ship with every machine once, both rooms aired, the
-  furnace lit, the analyzer at work, a crate holding a full stack of every item, creative mode on. A
+  furnace lit, the analyzer at work, a crate holding a full stack of every item a hero can carry (no wreckage), creative mode on. A
   dev world: no world id, so never saved nor listed in Worlds; the menu's exit goes back to the title.
 
 - **Esc, in one place** (`Shared.Escape`, read by `GameMenu._Input` before any other node): the menu
