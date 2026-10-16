@@ -29,6 +29,56 @@ public class PoseTests
     }
 
     [Fact]
+    public void JumpedOnlyLeavingTheDeckOrALadderRising()
+    {
+        var ship = new Ship(10, 12, cell => cell / 10 == 10 && cell % 10 < 5 ? Stillwake.Sim.Grid.Structure.Floor : Stillwake.Sim.Grid.Structure.Empty, _ => false);
+        var standing = new Hero(2500, 10000, 0, 0, false, 1);
+        var jumped = standing.Step(new HeroInput(0, 0, true), ship);
+        Assert.True(Jumped(Pose.Stand, PoseOf(jumped, false, false), jumped));
+        Assert.True(Jumped(Pose.Run, Pose.Air, jumped));
+        Assert.True(Jumped(Pose.Climb, Pose.Air, jumped));
+        // Seen a send late, a few steps into the rise, it is still a jump.
+        var risen = jumped.Step(new HeroInput(0, 0, false), ship).Step(new HeroInput(0, 0, false), ship).Step(new HeroInput(0, 0, false), ship);
+        Assert.True(Jumped(Pose.Walk, Pose.Air, risen));
+
+        // Walking off the floor's edge, the hero falls: no jump.
+        var atEdge = new Hero(5400, 10000, 0, 0, false, 1);
+        var off = atEdge.Step(new HeroInput(1, 0, false), ship);
+        for (int i = 0; i < 10 && PoseOf(off, false, false) != Pose.Air; i++) off = off.Step(new HeroInput(1, 0, false), ship);
+        Assert.Equal(Pose.Air, PoseOf(off, false, false));
+        Assert.False(Jumped(Pose.Walk, Pose.Air, off));
+
+        // Already in the air, or still on the deck, or the first frame drawn: none.
+        Assert.False(Jumped(Pose.Air, Pose.Air, jumped));
+        Assert.False(Jumped(Pose.Stand, Pose.Stand, standing));
+        Assert.False(Jumped(null, Pose.Air, jumped));
+        Assert.False(Jumped(Pose.Float, Pose.Air, jumped));
+    }
+
+    [Fact]
+    public void LandsOnceAJumpComesDownNotAtItsTop()
+    {
+        var ship = new Ship(10, 12, cell => cell / 10 == 10 ? Stillwake.Sim.Grid.Structure.Floor : Stillwake.Sim.Grid.Structure.Empty, _ => false);
+        var hero = new Hero(2500, 10000, 0, 0, false, 1);
+        Pose? was = PoseOf(hero, false, false);
+        int fall = 0;
+        var landed = new List<int>();
+        for (int step = 0; step < 90; step++)
+        {
+            hero = hero.Step(new HeroInput(0, 0, step == 0), ship);
+            var now = PoseOf(hero, false, false);
+            // As the figure reads it: the fall speed kept from the last step in the air.
+            if (now == Pose.Air) fall = Math.Max(0, hero.Vy);
+            if (Landed(was, now, fall)) landed.Add(hero.Y);
+            was = now;
+        }
+        Assert.Equal([10000], landed);
+        Assert.False(Landed(Pose.Air, Pose.Stand, 0));
+        Assert.True(Landed(Pose.Air, Pose.Run, 21));
+        Assert.False(Landed(Pose.Walk, Pose.Stand, 400));
+    }
+
+    [Fact]
     public void PoseOfLiesOnTheFloorPassedOutAndTumblesInSpace()
     {
         Assert.Equal(Pose.Lie, PoseOf(Standing with { Vy = 21 }, false, true));

@@ -13,6 +13,7 @@ public class CueNamesTests
         Assert.Equal("crew/step", CueNames.Of(Sound.Step));
         Assert.Equal("atmosphere/vent-hum", CueNames.Of(Sound.VentHum));
         Assert.Equal("grid/door-open", CueNames.Of(Sound.DoorOpen));
+        Assert.Equal("crew/step ×0.85", CueNames.Of(Sound.Land));
     }
 
     [Fact]

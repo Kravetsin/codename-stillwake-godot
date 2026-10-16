@@ -7,7 +7,6 @@ using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Crew;
-using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content.Hero;
 
 namespace Stillwake.Game.Features.Crew;
@@ -38,8 +37,8 @@ public partial class HeroView : Node2D
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
-    // What the hands touch is heard through the suit, in vacuum too; doors and valves sound where they stand (GridView).
-    private readonly AudioStreamPlayer _act = Cues.Player(S.Act, S.Suit, voices: 2);
+    // What the hands touch is heard through the suit, in vacuum as a glove's thump; doors and valves sound where they stand (GridView).
+    private readonly ActSound _act = new();
     private readonly Clock _clock = new(Hero.StepMs);
     /// <summary>The grid's width last frame, to find where a planned cell is.</summary>
     private int _width = 1;
@@ -245,7 +244,7 @@ public partial class HeroView : Node2D
         _workedOnTick = uses.WorkedOnTick;
         if (uses.Served is int served) _served.Add(served);
         foreach (var command in uses.Commands) client.Send(command);
-        if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister)) _act.Play();
+        if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister)) _act.Play(Floats);
         // Held on a plan it can work, the hero turns its screwdriver at it.
         bool working = !passedOut && _mouse.Buttons.HoldsRight && aim is { InReach: true, Work.Problem: null };
         // The axe: a swing begun toward the pointer plays through and, as it strikes, hits every wreck its

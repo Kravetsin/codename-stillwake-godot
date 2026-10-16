@@ -14,11 +14,12 @@ public static class Sound
 {
     /// <summary>
     /// A cue: its files, any one of them each time a one-shot plays, its pitch varied by up to
-    /// <see cref="Pitch"/> either way; a loop is one file, looped on import. <see cref="VolumeDb"/> is its
-    /// place in the mix. Placed in the world, it is heard at full volume within <see cref="Reach"/>'s
-    /// <c>Full</c> cells of the listener, fading to silence at its <c>Silent</c> cells.
+    /// <see cref="Pitch"/> either way around <see cref="Tune"/>, its files' own pitch times this; a loop is one
+    /// file, looped on import. <see cref="VolumeDb"/> is its place in the mix. Placed in the world, it is heard
+    /// at full volume within <see cref="Reach"/>'s <c>Full</c> cells of the listener, fading to silence at its
+    /// <c>Silent</c> cells.
     /// </summary>
-    public sealed record Cue(IReadOnlyList<string> Files, float VolumeDb, float Pitch = 0.06f, bool Loops = false, Reach? Heard = null);
+    public sealed record Cue(IReadOnlyList<string> Files, float VolumeDb, float Pitch = 0.06f, bool Loops = false, Reach? Heard = null, float Tune = 1);
 
     /// <summary>How far a sound in the world carries, in cells: full volume up to <paramref name="Full"/>, none from <paramref name="Silent"/>.</summary>
     public sealed record Reach(float Full, float Silent)
@@ -35,7 +36,7 @@ public static class Sound
     /// <summary>
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient, Music and Effects into Master; into
     /// Effects, World (every hero's steps, machines, air, doors: silenced while floating), Suit (what this
-    /// player's hero itself touches: the action click, its own axe's chop, a wreck its hit breaks; heard
+    /// player's hero itself touches: an action's sound, its own axe's chop, a wreck its hit breaks; heard
     /// through the body, dulled while floating) and Helmet (the suit's alarm, in the helmet's air: always
     /// clear). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
     /// hearing's (0033, 0042). Ambient waits for the first ambience: the ship's hum comes from its vents
@@ -44,8 +45,12 @@ public static class Sound
     public const string Master = "Master", Ui = "UI", Ambient = "Ambient", Effects = "Effects", World = "World", Suit = "Suit", Helmet = "Helmet", Music = "Music";
     public static readonly IReadOnlyList<string> Buses = [Master, Ui, Ambient, Effects, World, Suit, Helmet, Music];
 
-    public static readonly Cue Step = new(Shots("crew/step", 4), -12, Heard: new(4, 18));
-    public static readonly Cue Land = new(Shots("crew/land", 2), -8, Heard: new(4, 18));
+    /// <summary>A boot on the hollow metal deck, at each half stride walking or running.</summary>
+    public static readonly Cue Step = new(Shots("crew/step", 6), -12, Heard: new(4, 18));
+    /// <summary>A landing: the same boot on the same deck, louder and a little lower for the body's weight.</summary>
+    public static readonly Cue Land = Step with { VolumeDb = -8, Tune = 0.85f };
+    /// <summary>The boots pushing off the deck as the hero jumps; walking off an edge makes none.</summary>
+    public static readonly Cue Jump = new(Shots("crew/jump", 4), -12, Heard: new(4, 18));
     public static readonly Cue Alarm = new(Shots("crew/alarm", 1), -14, Pitch: 0);
     public static readonly Cue Screwdriver = new(Shots("building/screwdriver", 5), -16, Heard: new(4, 14));
     public static readonly Cue Hiss = Looped("atmosphere/hiss", -8, new(6, 24));
@@ -56,6 +61,11 @@ public static class Sound
     public static readonly Cue Valve = new(Shots("grid/valve", 3), -12, Heard: new(4, 14));
     /// <summary>The one soft click an action makes: a crate opened, a canister loaded, debris caught, an item picked up.</summary>
     public static readonly Cue Act = new(Shots("hands/act", 1), -10);
+    /// <summary>
+    /// The action's sound while this player's hero floats in space (0042): a glove's low thump in place of the
+    /// click, which has almost nothing the muffle lets through; on the Suit bus, muffled as all there is.
+    /// </summary>
+    public static readonly Cue ActInSpace = new(Shots("hands/act-space", 1), -6);
     public static readonly Cue Fire = Looped("furnace/fire", -10, new(3, 12));
     /// <summary>
     /// This player's own axe biting into a wreck (0034, 0042), heard where the wreck is: on the Suit bus,
@@ -80,7 +90,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, Fire, Chop, Break];
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, Break];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;
