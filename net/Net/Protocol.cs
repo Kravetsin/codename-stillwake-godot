@@ -12,7 +12,14 @@ namespace Stillwake.Net;
 [JsonDerivedType(typeof(CommandMessage), "command")]
 [JsonDerivedType(typeof(HeroMessage), "hero")]
 [JsonDerivedType(typeof(HashMessage), "hash")]
+[JsonDerivedType(typeof(HelloMessage), "hello")]
 public abstract record ToHost;
+
+/// <summary>
+/// A peer joining says who it is, before anything else (0032): the player's key, which the host seats
+/// at the same peer id in a world every time, so its hero comes back with what it carried.
+/// </summary>
+public sealed record HelloMessage(string Player) : ToHost;
 
 /// <summary>A peer asks the host to apply a command.</summary>
 public sealed record CommandMessage(string Command) : ToHost;
@@ -32,7 +39,11 @@ public sealed record HashMessage(int Tick, ulong Hash) : ToHost;
 [JsonDerivedType(typeof(WelcomeMessage), "welcome")]
 [JsonDerivedType(typeof(PeerHeroMessage), "hero")]
 [JsonDerivedType(typeof(ResyncMessage), "resync")]
+[JsonDerivedType(typeof(RefusedMessage), "refused")]
 public abstract record ToClient;
+
+/// <summary>The host will not let a joining peer in, and why, in words for the player: its player is aboard already.</summary>
+public sealed record RefusedMessage(string Reason) : ToClient;
 
 /// <summary>A command as the host released it: encoded as its sender wrote it, stamped with who sent it.</summary>
 public sealed record Stamped(int From, string Command);

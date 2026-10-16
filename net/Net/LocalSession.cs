@@ -10,12 +10,12 @@ namespace Stillwake.Net;
 /// </summary>
 public static class LocalSession
 {
-    public static (Host Host, Client Client) Create(World world, string build = "")
+    public static (Host Host, Client Client) Create(World world, string build = "", int seat = 0)
     {
         var source = new OwnWorld(build);
-        var host = new Host(world.Tick, source);
+        var host = new Host(world.Tick, source, seat);
         var (toClient, toHost) = Loopback.Create<ToClient, ToHost>();
-        int id = host.Connect(toClient);
+        int id = host.Connect(toClient, seat);
         var client = new Client(world, toHost, id);
         source.Bind(host, client);
         return (host, client);

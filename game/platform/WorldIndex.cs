@@ -24,7 +24,7 @@ public sealed record WorldEntry(string Id, string Name, DateTime LastPlayed, int
 
 /// <summary>
 /// The player's worlds (0031), a folder each under <paramref name="dir"/>: <c>world.json</c>, the save
-/// before it as <c>world.bak.json</c>, and <c>name.txt</c>. Nothing else is kept about a world: the list
+/// before it as <c>world.bak.json</c>, <c>name.txt</c>, and who is who in it, <c>players.json</c> (0032). Nothing else is kept about a world: the list
 /// reads <c>format</c> and <c>tick</c>, the first keys of a save, from its first bytes, and the file's
 /// time as when it was last played. A save of a format from <paramref name="oldest"/> to
 /// <paramref name="current"/> can be played; <paramref name="ticksPerSecond"/> turns its tick into play
@@ -34,7 +34,7 @@ public sealed class WorldIndex(string dir, int oldest, int current, int ticksPer
 {
     /// <summary>The longest name, in code points.</summary>
     public const int NameMost = 32;
-    private const string Save = "world", Name = "name.txt";
+    private const string Save = "world", Players = "players", Name = "name.txt";
 
     /// <summary>Every world, the last played first, ties by id.</summary>
     public IReadOnlyList<WorldEntry> List()
@@ -84,6 +84,12 @@ public sealed class WorldIndex(string dir, int oldest, int current, int ticksPer
 
     /// <summary>Saves world <paramref name="id"/>: the save before it kept as its backup.</summary>
     public void Write(string id, string save) => new Saves(Path.Combine(dir, id)).Write(Save, save);
+
+    /// <summary>Who is who in world <paramref name="id"/> (<see cref="Roster"/>), or null for a world from before rosters.</summary>
+    public string? ReadPlayers(string id) => new Saves(Path.Combine(dir, id)).Read(Players);
+
+    /// <summary>Keeps who is who in world <paramref name="id"/>.</summary>
+    public void WritePlayers(string id, string roster) => new Saves(Path.Combine(dir, id)).Write(Players, roster);
 
     /// <summary>The name world <paramref name="id"/> was given.</summary>
     public string NameOf(string id) =>

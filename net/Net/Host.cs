@@ -11,12 +11,12 @@ public interface IWorldSource
 
 /// <summary>
 /// Orders the session (packages/net/src/host.ts): collects every peer's commands and releases them
-/// tick by tick. It runs no world of its own; the host player's game is a client like any other, the
-/// first to connect (id 0), and the one every other peer's hashes are checked against: a peer that
+/// tick by tick. It runs no world of its own; the host player's game is a client like any other, peer
+/// <paramref name="hostId"/>, and the one every other peer's hashes are checked against: a peer that
 /// differs is resynced. <paramref name="firstTick"/> is the world's current tick; a host with no
 /// <paramref name="world"/> admits no one, as tests and single-player need none.
 /// </summary>
-public sealed class Host(int firstTick, IWorldSource? world = null)
+public sealed class Host(int firstTick, IWorldSource? world = null, int hostId = 0)
 {
     /// <summary>Peer 0's hashes are kept for this many checks: a peer further behind is not checked.</summary>
     private const int Kept = 30;
@@ -38,12 +38,15 @@ public sealed class Host(int firstTick, IWorldSource? world = null)
 
     /// <summary>
     /// Adds a peer, which receives every tick released from now on and every other peer's hero, and
-    /// returns its id: every command and hero it sends is stamped with it. Ids count up from 0 and are
-    /// never handed out twice.
+    /// returns its id: every command and hero it sends is stamped with it. The id is <paramref name="seat"/>,
+    /// the one its player always has in this world (0032), or else the next of a count that never hands
+    /// one out twice; a seat already connected is our bug.
     /// </summary>
-    public int Connect(IChannel<ToHost, ToClient> channel)
+    public int Connect(IChannel<ToHost, ToClient> channel, int? seat = null)
     {
-        int id = _nextPeer++;
+        int id = seat ?? _nextPeer;
+        if (_peers.Exists(p => p.Id == id)) throw new InvalidOperationException($"Peer {id} is connected already.");
+        _nextPeer = Math.Max(_nextPeer, id + 1);
         _peers.Add((id, channel));
         channel.OnMessage(message =>
         {
@@ -67,15 +70,16 @@ public sealed class Host(int firstTick, IWorldSource? world = null)
 
     /// <summary>
     /// Connects a peer that joins mid-session and holds no world yet: it is welcomed first with the
-    /// world as it stands, then receives every tick released from now on. Returns its id.
+    /// world as it stands, then receives every tick released from now on, as <paramref name="seat"/> if
+    /// given. Returns its id.
     /// </summary>
-    public int Admit(IChannel<ToHost, ToClient> channel)
+    public int Admit(IChannel<ToHost, ToClient> channel, int? seat = null)
     {
         // Our bug: only a session that knows its world opens to joining peers.
         if (world == null) throw new InvalidOperationException("This host has no world to welcome a peer with.");
         // Saved before connecting, so the peer misses no tick and gets none twice.
         var save = world.Save();
-        int id = Connect(channel);
+        int id = Connect(channel, seat);
         channel.Send(new WelcomeMessage(id, world.Build, save));
         return id;
     }
@@ -92,8 +96,16 @@ public sealed class Host(int firstTick, IWorldSource? world = null)
         if (at < 0) return;
         _peers.RemoveAt(at);
         _resyncedAt.Remove(id);
+        // Its seat may come back: what it reported before must not be checked against the next world.
+        foreach (var list in _waiting.Values) list.RemoveAll(w => w.Id == id);
         if (farewell != null) _pending.Add(new Stamped(id, farewell));
     }
+
+    /// <summary>
+    /// Releases <paramref name="command"/>, encoded, in the next tick as though peer <paramref name="from"/>
+    /// sent it, connected or not: how a world loaded with heroes of players not here takes them out.
+    /// </summary>
+    public void Release(int from, string command) => _pending.Add(new Stamped(from, command));
 
     /// <summary>Releases the next tick, carrying every command received since the last one.</summary>
     public void Advance()
@@ -106,7 +118,7 @@ public sealed class Host(int firstTick, IWorldSource? world = null)
 
     private void Report(int id, int at, ulong hash)
     {
-        if (id != 0)
+        if (id != hostId)
         {
             if (_truth.ContainsKey(at)) Check(id, at, hash);
             else
