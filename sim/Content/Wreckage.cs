@@ -43,4 +43,14 @@ public static class Axe
     /// length. A wreck within it as the blade comes down is hit (0039); the client's word, as the pace is.
     /// </summary>
     public const int Reach = 2000;
+
+    /// <summary>What a hit does besides its damage: none yet. The axe's card shows each as a chip in its colours.</summary>
+    public static readonly IReadOnlyList<HitEffect> Effects = [];
 }
+
+/// <summary>
+/// Something a tool's hit does besides its damage, named in the client's words <c>effect.&lt;Id&gt;</c> and
+/// told in <c>effect.&lt;Id&gt;.about</c>; its card's chip is <paramref name="Colour"/> on
+/// <paramref name="Ground"/>, "rrggbb" (the card mockup's fire was ff7a2e on 3a1a0c, its ice 6fd3ff on 0c2a3a).
+/// </summary>
+public sealed record HitEffect(string Id, string Colour, string Ground);
