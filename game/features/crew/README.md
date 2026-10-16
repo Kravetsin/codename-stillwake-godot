@@ -73,6 +73,10 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 - Suits are recoloured from the PNGs, drawn in `Suits.Drawn` (`e0a030`, an older first suit): each of
   its four shades becomes the same shade of the suit, once per part and colour (`SuitArt`). A figure
   whose colour changes is recoloured, not made anew.
+- Afloat the hero stays upright (0036), where the TypeScript swims head first: it leans into a swim
+  along the floor (`Poses.Adrift`, at most about 25°), the legs trail and the free hand paddles, and
+  still it drifts calmly, never panicking. `pose.test.ts`'s swimming tests are replaced by the upright
+  ones.
 - The camera is a plain `Camera2D` that `HeroView.Frame` centres on the body's middle; the world's
   camera from G-06 (`ShipCamera.Follow`) takes its place when the two land together.
 
