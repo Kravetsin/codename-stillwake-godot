@@ -23,9 +23,11 @@ namespace Stillwake.Game.Render;
 /// </summary>
 public static class Lit
 {
-    private static readonly Shader Shader = new()
-    {
-        Code = """
+    // Only debris cracks: instance uniforms take slots of Godot's global buffer for every item drawn with them,
+    // which a big ship's thousands of sockets ran out of (each failure logged, a minute to load), so all else has none.
+    private static readonly Shader Plain = new() { Code = Head + Cracks.None + Body }, Cracking = new() { Code = Head + Cracks.Code + Body };
+
+    private const string Head = """
             shader_type canvas_item;
             render_mode unshaded;
             // The share of light that falls on it: a wall keeps Light.WallIn of what reaches its face.
@@ -49,7 +51,9 @@ public static class Lit
             uniform vec2 lightmap_at = vec2(0.0);
             uniform float lightmap_texel = 1.0;
             varying vec2 world;
-            """ + Cracks.Code + """
+            """;
+
+    private const string Body = """
 
             void vertex() {
                 world = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
@@ -105,10 +109,9 @@ public static class Lit
                 vec3 light = lit + spots * min(1.0, spot_most / max(brightest, 0.0001));
                 COLOR.rgb *= ambient + light * share;
             }
-            """,
-    };
+            """;
 
-    private static readonly Dictionary<float, ShaderMaterial> Made = new();
+    private static readonly Dictionary<(float Share, bool Cracks), ShaderMaterial> Made = new();
     private static (Texture2D Texture, Rect2 Rect)? _starlight;
     private static (Texture2D Main, Texture2D Spots)? _lightmaps;
     private static (Vector2 At, float Texel) _placed = (Vector2.Zero, 1);
@@ -116,14 +119,15 @@ public static class Lit
     /// <summary>
     /// Lights <paramref name="item"/> from now on, by the lamps and the stars. One that takes less than
     /// the whole <paramref name="share"/> — a wall's, an edge's, a door's <see cref="Light.WallIn"/> — is
-    /// drawn in wall cells and takes the stars' light from its own side.
+    /// drawn in wall cells and takes the stars' light from its own side. One that <paramref name="cracks"/>,
+    /// a piece of debris, shows its damage as <see cref="Cracks.Show"/> sets it.
     /// </summary>
-    public static void Set(CanvasItem item, float share = 1f) => item.Material = MaterialOf(share);
+    public static void Set(CanvasItem item, float share = 1f, bool cracks = false) => item.Material = MaterialOf(share, cracks);
 
-    private static ShaderMaterial MaterialOf(float share)
+    private static ShaderMaterial MaterialOf(float share, bool cracks)
     {
-        if (Made.TryGetValue(share, out var kept)) return kept;
-        kept = new ShaderMaterial { Shader = Shader };
+        if (Made.TryGetValue((share, cracks), out var kept)) return kept;
+        kept = new ShaderMaterial { Shader = cracks ? Cracking : Plain };
         kept.SetShaderParameter("share", share);
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("ambient", new Vector3(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B));
@@ -131,7 +135,7 @@ public static class Lit
         if (_starlight is var (stars, starsAt)) ShowStars(kept, stars, starsAt);
         if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);
         Place(kept);
-        return Made[share] = kept;
+        return Made[(share, cracks)] = kept;
     }
 
     /// <summary>
