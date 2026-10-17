@@ -6,11 +6,55 @@ namespace Stillwake.Sim;
 /// <param name="Cables">The cells of the two ends of each power cable laid on the map.</param>
 /// <param name="Known">The blueprints known at the start (ADR 0024); every one when not given.</param>
 /// <param name="DebrisAtStart">Pieces of debris already on their way past the ship when its world begins.</param>
+/// <param name="Zone">Where the crew may build (0048); the whole map when not given, as test maps leave it.</param>
 public sealed record Layout(
     int Width, int Height, IReadOnlyList<string> Rows, IReadOnlyList<string>? Under = null,
-    IReadOnlyList<(int A, int B)>? Cables = null, IReadOnlyList<string>? Known = null, int DebrisAtStart = 0)
+    IReadOnlyList<(int A, int B)>? Cables = null, IReadOnlyList<string>? Known = null, int DebrisAtStart = 0,
+    Box? Zone = null)
 {
     public static readonly Layout Empty = new(0, 0, []);
+
+    /// <summary>The build zone of a world of <c>Content.World</c>'s size: <c>ZoneWidth</c> × <c>ZoneHeight</c> in its middle.</summary>
+    public static Box WorldZone
+    {
+        get
+        {
+            var (left, top) = OffsetInWorld(Content.World.ZoneWidth, Content.World.ZoneHeight);
+            return new Box(left, top, left + Content.World.ZoneWidth - 1, top + Content.World.ZoneHeight - 1);
+        }
+    }
+
+    /// <summary>Where the top-left cell of a map of <paramref name="width"/> × <paramref name="height"/> lands, centred in a world of <c>Content.World</c>'s size; rounded down.</summary>
+    public static (int X, int Y) OffsetInWorld(int width, int height) =>
+        ((Content.World.Width - width) / 2, (Content.World.Height - height) / 2);
+
+    /// <summary>
+    /// This map centred in a world of <c>Content.World</c>'s size, space all round it, its under-map and
+    /// cables moved with it, the build zone <see cref="WorldZone"/>: what a new world is made from.
+    /// </summary>
+    public Layout InWorld()
+    {
+        int width = Content.World.Width, height = Content.World.Height;
+        var (ox, oy) = OffsetInWorld(Width, Height);
+        string[] Padded(IReadOnlyList<string> rows)
+        {
+            var blank = new string(' ', width);
+            var padded = new string[height];
+            for (int y = 0; y < height; y++)
+                padded[y] = y >= oy && y < oy + Height ? new string(' ', ox) + rows[y - oy] + new string(' ', width - ox - Width) : blank;
+            return padded;
+        }
+        int Moved(int cell) => (cell / Width + oy) * width + cell % Width + ox;
+        return this with
+        {
+            Width = width,
+            Height = height,
+            Rows = Padded(Rows),
+            Under = Under == null ? null : Padded(Under),
+            Cables = Cables?.Select(c => (Moved(c.A), Moved(c.B))).ToArray(),
+            Zone = WorldZone,
+        };
+    }
 
     /// <summary>
     /// Parses a map as packages/sim/src/core/layout.ts does: a single string is trimmed of blank first

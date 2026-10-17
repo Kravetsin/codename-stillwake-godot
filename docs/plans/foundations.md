@@ -117,6 +117,16 @@ screen keeps what scrolls into view as it would have been.
 
 - Decided with the user on 2026-10-17. One migration moves an old wreck into the new grid; the
   new-world map and the camera follow.
+- **Slice (a) ✅ — world, zone, centred wreck, migration** (0048): `Content.World` 2048×1024 with a
+  1024×512 build zone in its middle; `Layout.InWorld` centres the wreck and carries `Layout.Zone`;
+  the grid saves its `Zone` and refuses `grid.outsideZone`; debris finds the hull within `Built`;
+  save format 10 moves every saved cell by (928, 464). Dev runs and their scripts keep the wreck as
+  drawn (`Registry.WreckMap`); `--world` plays the new world without the title. On the new world the
+  grid's sync (~2 ms) and the light's compare (~1 ms) still walk whole layers on a change: slice 0.
+- Slice 0: the client's grid, light, starlight, predicted toggles and pipes overlay cost only what is
+  built (measure `--perf --size 2048x1024 --built 192x96` before and after).
+- Slice (b): the position report cadence, the oxygen drain past the zone, the vignette.
+- Slice (c): the build-mode zone frame.
 
 ## Not in this plan
 

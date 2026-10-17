@@ -7,6 +7,7 @@ using Stillwake.Game.I18n;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
+using World = Stillwake.Sim.World;
 
 namespace Stillwake.Game.Features.Atmosphere;
 
