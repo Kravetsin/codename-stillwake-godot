@@ -72,6 +72,11 @@ public static class Sound
     /// through the glove, as a wreck is only ever out in space; another hero's hit there is silent.
     /// </summary>
     public static readonly Cue Chop = new(Shots("debris/chop", 3), -2, Pitch: 0.1f, Heard: new(5, 20));
+    /// <summary>
+    /// This player's own drill biting into a wreck (0054), each of its ten hits a second, on the Suit bus as the
+    /// chop is: a placeholder, the chop pitched up and quieter, varied a little more, until a one-shot is picked.
+    /// </summary>
+    public static readonly Cue DrillBite = Chop with { VolumeDb = -9, Pitch = 0.12f, Tune = 1.6f };
     /// <summary>A wreck breaking apart under this player's last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
     public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: new(6, 28));
 
@@ -106,7 +111,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, Break, Shot, Drum, Ready, Breathe];
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, DrillBite, Break, Shot, Drum, Ready, Breathe];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;

@@ -39,7 +39,7 @@ public partial class ChargeDemo : Control
             int at = belt.IndexOf(i);
             slots.Add(at >= 0 && at < Belt.Length ? Battery(Belt[at])
                 : i == EmptySlot ? Battery(0)
-                : i == AxeSlot ? new JsonObject { ["item"] = Spec.Axe.Item, ["count"] = 1 } : null);
+                : i == AxeSlot ? new JsonObject { ["item"] = Spec.Weapons.Axe.Item, ["count"] = 1 } : null);
         }
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         return World.Load(root.ToJsonString(), modules());

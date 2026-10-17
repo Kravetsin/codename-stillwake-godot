@@ -5,7 +5,7 @@ namespace Stillwake.Sim.Debris;
 
 /// <summary>
 /// The debris module's system: pieces drift and are gone, and each zone of <c>Debris.Zones</c> spawns on
-/// its beat, the stream by the hull and the far field round every hero (0052).
+/// its beat, the stream by the hull, the far field round every hero (0052) and the asteroid band (0054).
 /// </summary>
 public sealed partial class DebrisModule
 {
@@ -191,6 +191,9 @@ public sealed partial class DebrisModule
             case AroundHeroes around:
                 if (Hull() is { } from) SpawnAround(zone, around, from);
                 break;
+            case HullBand band:
+                if (CountOf(zone) < zone.Max && Hull() is { } by) SpawnInBand(zone, band, by);
+                break;
         }
     }
 
@@ -229,6 +232,37 @@ public sealed partial class DebrisModule
             Speed = speed,
             Start = start,
             End = end,
+        });
+        s.NextId += 1;
+    }
+
+    /// <summary>
+    /// A piece in the band by the hull, drawn by the world's Rng: its row, of the band's above the hull and
+    /// then below it, its kind and its speed; a row off the grid spawns nothing, its draws taken all the
+    /// same. It drifts from its lead right of the hull to as far left of it, as the stream does.
+    /// </summary>
+    private void SpawnInBand(DebrisZone zone, HullBand band, (int Left, int Right, int Top, int Bottom) hull)
+    {
+        var s = State;
+        int width = _grid.Width, height = _grid.Height;
+        int rows = band.To - band.From + 1;
+        int drawn = (int)Random.Below((uint)(2 * rows));
+        int row = drawn < rows ? hull.Top - band.To + drawn : hull.Bottom + band.From + drawn - rows;
+        int column = Math.Min(width - 1, hull.Right + band.Lead);
+        var item = KindOf(zone, column, row, hull);
+        int speed = zone.DriftMin + (int)Random.Below((uint)(zone.DriftMax - zone.DriftMin + 1));
+        if (row < 0 || row >= height) return;
+        int start = column * Unit + Unit / 2;
+        s.Pieces.Add(new Piece
+        {
+            Id = s.NextId,
+            Zone = zone.Id,
+            Item = item,
+            X = start,
+            Y = row * Unit + Unit / 2,
+            Speed = speed,
+            Start = start,
+            End = Math.Max(0, hull.Left - band.Lead) * Unit,
         });
         s.NextId += 1;
     }

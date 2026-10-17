@@ -192,12 +192,13 @@ public static class Aiming
     /// <paramref name="passOver"/>: grabbed already, its grab still in flight. Bare-handed, a wreck is
     /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/>, a small piece is still
     /// grabbed, but no wreck by the pointer is aimed at: the first a swing toward the pointer begun now
-    /// would touch is (<see cref="Struck"/>), wherever the pointer is. With a <paramref name="gun"/>, the
+    /// would touch is (<see cref="Struck"/>), wherever the pointer is. With the <paramref name="drill"/>, the
+    /// same, the first wreck its bit aimed at the pointer touches (<see cref="Touched"/>). With a <paramref name="gun"/>, the
     /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, IReadOnlySet<int>? served = null, bool axe = false, bool gun = false)
+        IReadOnlySet<int>? passOver = null, IReadOnlySet<int>? served = null, bool axe = false, bool gun = false, bool drill = false)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -224,12 +225,14 @@ public static class Aiming
             int at = DebrisModule.CellOf(piece.X, piece.Y, grid.Width);
             return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id)), Piece: piece.Id);
         }
-        if (axe)
+        if (axe || drill)
         {
-            // A swing begun now faces the pointer (Poses.FaceOf), and so does the stroke it is judged by.
+            // A swing begun now faces the pointer (Poses.FaceOf), and so does the stroke it is judged by; the drill always does.
             var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
-            if (Struck(m, toward, PointOf(point)).FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
-            return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true, new Use(new Hit(wreck.Id), m.Debris.HitProblem(peer, wreck.Id)), Piece: wreck.Id);
+            string tool = axe ? Spec.Weapons.Axe.Item : Spec.Weapons.Drill.Item;
+            var touched = axe ? Struck(m, toward, PointOf(point)) : Touched(m, toward, PointOf(point));
+            if (touched.FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
+            return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true, new Use(new Hit(wreck.Id, tool), m.Debris.HitProblem(peer, wreck.Id, tool)), Piece: wreck.Id);
         }
         if (gun || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
         var grab = new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id));
@@ -297,11 +300,35 @@ public static class Aiming
     }
 
     /// <summary>
-    /// The hits peer <paramref name="peer"/>'s swing toward <paramref name="at"/> sends as it strikes:
+    /// The hits peer <paramref name="peer"/>'s swing of the axe toward <paramref name="at"/> sends as it strikes:
     /// one for each wreck it touches (<see cref="Struck"/>) the sim would let it hit.
     /// </summary>
-    public static List<Hit> HitsOf(Registry m, int peer, Hero hero, Point at) =>
-        Struck(m, hero, at).Where(p => m.Debris.HitProblem(peer, p.Id) == null).Select(p => new Hit(p.Id)).ToList();
+    public static List<Hit> HitsOf(Registry m, int peer, Hero hero, Point at) => HitsOf(m, peer, Struck(m, hero, at), Spec.Weapons.Axe.Item);
+
+    /// <summary>A hit with <paramref name="tool"/> on each of <paramref name="touched"/> the sim would let peer <paramref name="peer"/> hit.</summary>
+    public static List<Hit> HitsOf(Registry m, int peer, IEnumerable<Piece> touched, string tool) =>
+        touched.Where(p => m.Debris.HitProblem(peer, p.Id, tool) == null).Select(p => new Hit(p.Id, tool)).ToList();
+
+    /// <summary>
+    /// The wrecks the bit of <paramref name="look"/>, the drill unless a test says, touches, held by
+    /// <paramref name="hero"/> aimed at <paramref name="at"/>, in thousandths of a cell (0054), in spawn order;
+    /// none while the hero is aboard. The straight arm turns so the bit's line runs through the point
+    /// (<see cref="HarpoonShot.ArmFor"/>), from the shoulder of the body upright, turned the way the hero faces,
+    /// as the figure draws it; the bit, its edge, is tested against each wreck's aim box as the axe's blade is.
+    /// </summary>
+    public static List<Piece> Touched(Registry m, Hero hero, Point at, HeldLook? look = null)
+    {
+        var touched = new List<Piece>();
+        if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return touched;
+        look ??= HeldLook.Drill;
+        double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
+        double arm = HarpoonShot.ArmFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
+        var (a, b) = AxeSwing.EdgeAt(look, arm);
+        var bit = (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
+        foreach (var p in m.Debris.Pieces)
+            if (HalfOf(p.Item) is var (halfW, halfH) && Crosses(bit, p.X - halfW, p.Y - halfH, p.X + halfW, p.Y + halfH)) touched.Add(p);
+        return touched;
+    }
 
     /// <summary>
     /// The first wreck, in spawn order, with <paramref name="point"/> on its picture, else the small piece

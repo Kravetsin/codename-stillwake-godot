@@ -338,7 +338,7 @@ public class AimTests
         var at = ((double)wreck.X / Unit, (double)wreck.Y / Unit);
         Assert.Equal(new Use(new Grab(wreck.Id), "debris.tooBig"), Aiming.AimAt(w.M, 0, hero, at)?.Press);
         var axe = Aiming.AimAt(w.M, 0, hero, at, axe: true);
-        Assert.Equal(new Use(new Hit(wreck.Id), null), axe?.Press);
+        Assert.Equal(new Use(new Hit(wreck.Id, Spec.Weapons.Axe.Item), null), axe?.Press);
         Assert.Equal(new Prompt("use.chop", null), Prompts.Of(w.M, axe));
         // A press never chops: the left button held does, at the axe's pace.
         Assert.Empty(Aiming.UsesOf(axe, pressed: true, held: true, 5, -1).Commands);
@@ -432,7 +432,7 @@ public class AimTests
         var (w, hero) = Field(("hullSection", shoulder.X + 800 + HalfW, shoulder.Y));
         Assert.Equal([1], Struck(w, hero, new Point(shoulder.X + 3_000, shoulder.Y)));
         Assert.Equal([1], Struck(w, hero, new Point(shoulder.X + 500, shoulder.Y)));
-        Assert.Equal([new Hit(1)], Aiming.HitsOf(w.M, 0, hero, new Point(shoulder.X + 500, shoulder.Y)));
+        Assert.Equal([new Hit(1, Spec.Weapons.Axe.Item)], Aiming.HitsOf(w.M, 0, hero, new Point(shoulder.X + 500, shoulder.Y)));
         // The edge's tip reaches about an arm and the axe, held square to it (0040); a wreck just short of
         // it is struck, one just past it is not.
         int reach = ReachOf(HeldLook.FireAxe);
@@ -518,7 +518,7 @@ public class AimTests
             ("scrapChunk", shoulder.X + 700, shoulder.Y),
             ("hullSection", shoulder.X + 2_500, shoulder.Y + 1_500));
         var ahead = shoulder with { X = shoulder.X + 3_000 };
-        Assert.Equal([new Hit(1), new Hit(3)], Aiming.HitsOf(w.M, 0, hero, ahead));
+        Assert.Equal([new Hit(1, Spec.Weapons.Axe.Item), new Hit(3, Spec.Weapons.Axe.Item)], Aiming.HitsOf(w.M, 0, hero, ahead));
         // Aimed at, the first of them is outlined, with the axe's prompt.
         var aim = Aiming.AimAt(w.M, 0, hero, (9.9, (double)shoulder.Y / Unit - 0.2), axe: true);
         Assert.Equal((1, true), (aim?.Piece, aim?.InReach));
@@ -531,8 +531,8 @@ public class AimTests
         var shoulder = ShoulderOf(HeroOn(6, 7));
         // Their near sides a cell below and above the shoulder.
         var (w, hero) = Field(("hullSection", shoulder.X + 500, shoulder.Y + 1_000 + 1_250), ("hullSection", shoulder.X + 500, shoulder.Y - 1_000 - 1_250));
-        Assert.Equal([new Hit(1)], Aiming.HitsOf(w.M, 0, hero, shoulder with { Y = shoulder.Y + 3_000 }));
-        Assert.Equal([new Hit(2)], Aiming.HitsOf(w.M, 0, hero, shoulder with { Y = shoulder.Y - 3_000 }));
+        Assert.Equal([new Hit(1, Spec.Weapons.Axe.Item)], Aiming.HitsOf(w.M, 0, hero, shoulder with { Y = shoulder.Y + 3_000 }));
+        Assert.Equal([new Hit(2, Spec.Weapons.Axe.Item)], Aiming.HitsOf(w.M, 0, hero, shoulder with { Y = shoulder.Y - 3_000 }));
     }
 
     [Fact]
@@ -552,6 +552,83 @@ public class AimTests
         Assert.Null(Aiming.AimAt(w.M, 0, aboard, (6.0, (double)shoulder.Y / Unit), axe: true)?.Piece);
         // The same reach out in space strikes it.
         Assert.Single(Aiming.Struck(w.M, aboard with { X = aboard.X + 1_000 * 3 }, shoulder with { X = shoulder.X + 5_000 }));
+    }
+
+    // The drill's bit (0054): aimed at the pointer, it touches what its point reaches.
+
+    /// <summary>Half an asteroid's aim box across: its picture and the margin.</summary>
+    private static readonly int RockHalf = DebrisLooks.Wrecks["asteroid"].W * Unit / 32 + 250;
+
+    /// <summary>How far ahead of the shoulder the drill's point gets, aimed level, in thousandths of a cell, as the figure holds it.</summary>
+    private static int DrillReach()
+    {
+        var look = HeldLook.Drill;
+        var (_, tip) = AxeSwing.EdgeAt(look, HarpoonShot.ArmFor(look, 200, 0));
+        return (int)(tip.X / Rig.Cell * Unit);
+    }
+
+    [Fact]
+    public void TouchesAWreckTheDrillsPointReachesAimedAtItAndNotOneJustBeyond()
+    {
+        var shoulder = ShoulderOf(HeroOn(6, 7));
+        int reach = DrillReach();
+        // An arm and a stubby drill: a little over a cell.
+        Assert.InRange(reach, 1_000, 1_600);
+        var far = shoulder with { X = shoulder.X + 5_000 };
+        foreach (var kind in new[] { "asteroid", "hullSection" })
+        {
+            int half = DebrisLooks.Wrecks[kind].W * Unit / 32 + 250;
+            var (near, hero) = Field((kind, shoulder.X + reach - 60 + half, shoulder.Y));
+            Assert.Equal([1], Aiming.Touched(near.M, hero, far).Select(p => p.Id));
+            var (beyond, _) = Field((kind, shoulder.X + reach + 60 + half, shoulder.Y));
+            Assert.Empty(Aiming.Touched(beyond.M, hero, far));
+        }
+        // Aimed away from it, up or behind, the bit touches nothing.
+        var (w, h) = Field(("asteroid", shoulder.X + reach - 60 + RockHalf, shoulder.Y));
+        Assert.Empty(Aiming.Touched(w.M, h, shoulder with { Y = shoulder.Y - 5_000 }));
+    }
+
+    [Fact]
+    public void AimsTheDrillAtWhatItsBitTouchesAndSaysWhenTheBeltIsFlat()
+    {
+        var shoulder = ShoulderOf(HeroOn(6, 7));
+        var (w, hero) = Field(("asteroid", shoulder.X + DrillReach() - 60 + RockHalf, shoulder.Y));
+        var at = ((double)shoulder.X / Unit + 5, (double)shoulder.Y / Unit);
+        var aim = Aiming.AimAt(w.M, 0, hero, at, drill: true);
+        Assert.Equal(new Use(new Hit(1, Spec.Weapons.Drill.Item), "debris.flat"), aim?.Press);
+        Assert.Equal(1, aim?.Piece);
+        Assert.Equal(new Prompt("use.chop", "debris.flat"), Prompts.Of(w.M, aim));
+        Assert.Empty(Aiming.HitsOf(w.M, 0, Aiming.Touched(w.M, hero, Aiming.PointOf(at)), Spec.Weapons.Drill.Item));
+        // In creative mode it needs no battery.
+        w.Step(new SetCreative(true));
+        Assert.Equal(new Use(new Hit(1, Spec.Weapons.Drill.Item), null), Aiming.AimAt(w.M, 0, hero, at, drill: true)?.Press);
+        Assert.Equal([new Hit(1, Spec.Weapons.Drill.Item)], Aiming.HitsOf(w.M, 0, Aiming.Touched(w.M, hero, Aiming.PointOf(at)), Spec.Weapons.Drill.Item));
+    }
+
+    [Fact]
+    public void HitsWithTheDrillOnTheTickItStartsThenEveryPaceTicksAndOwesNoBurstAfterAStall()
+    {
+        const int pace = 2;
+        var drill = new DrillPace();
+        var due = new List<int>();
+        // Three frames a tick, as at 60 frames a second: a hit on 10, 12, 14.
+        for (int frame = 0; frame < 18; frame++)
+            if (drill.Due(10 + frame / 3, runs: true, pace)) due.Add(10 + frame / 3);
+        Assert.Equal([10, 12, 14], due);
+        // A frame a tick and a half: it keeps the pace, catching up a tick it fell behind.
+        Assert.True(drill.Due(16, true, pace));
+        Assert.False(drill.Due(17, true, pace));
+        Assert.True(drill.Due(19, true, pace));
+        Assert.True(drill.Due(20, true, pace));
+        // A stall of ten ticks: one hit, then the pace again from there.
+        Assert.True(drill.Due(30, true, pace));
+        Assert.False(drill.Due(31, true, pace));
+        Assert.True(drill.Due(32, true, pace));
+        // Let go, it stops; held again, it hits at once.
+        Assert.False(drill.Due(33, false, pace));
+        Assert.True(drill.Due(33, true, pace));
+        // A load took the tick back: it starts afresh.
+        Assert.True(drill.Due(5, true, pace));
     }
 
     [Fact]

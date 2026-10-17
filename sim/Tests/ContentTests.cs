@@ -283,18 +283,19 @@ public class ContentTests
     }
 
     [Fact]
-    public void WreckageDriftsByBreaksIntoLootTakesMoreThanOneHitAndNoneOfItIsCaughtByHand()
+    public void WreckageDriftsByBreaksIntoLootTakesMoreThanOneHitOfAnyWeaponAndNoneOfItIsCaughtByHand()
     {
         Assert.NotEmpty(Wreckage.All);
         Assert.Equal(Wreckage.All.Count, Wreckage.All.Select(w => w.Item).Distinct().Count());
+        var drifting = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Select(k => k.Item).ToHashSet();
         foreach (var (item, hp) in Wreckage.All)
         {
-            Assert.Contains(item, DebrisSpec.Kinds.Select(k => k.Item));
+            Assert.Contains(item, drifting);
             Assert.True(Content.Items.TryGet(item, out var spec), item);
             // Never carried: broken where it drifts, a stack of one only to be named.
             Assert.Equal(1, spec!.Stack);
             Assert.NotEmpty(Loot.Of(item) ?? []);
-            Assert.True(hp > Axe.Damage, item);
+            Assert.All(Weapons.All, weapon => Assert.True(hp > weapon.Damage, item));
         }
     }
 
@@ -313,12 +314,52 @@ public class ContentTests
     [Fact]
     public void TheAxeIsAToolCraftedAtThePodKnownFromTheStartThatHitsAndSwingsInWholeUnits()
     {
-        Assert.True(Axe.Damage > 0);
-        Assert.True(Axe.SwingTicks > 0);
-        Assert.True(Content.Items.TryGet(Axe.Item, out var axe));
+        Assert.True(Weapons.Axe.Damage > 0);
+        Assert.True(Weapons.Axe.Pace > 0);
+        Assert.True(Content.Items.TryGet(Weapons.Axe.Item, out var axe));
         Assert.Equal(1, axe!.Stack);
-        Assert.True(Crafts.TryGet(Axe.Item, out _));
-        Assert.Contains(Axe.Item, Content.Research.StartKnown);
+        Assert.True(Crafts.TryGet(Weapons.Axe.Item, out _));
+        Assert.Contains(Weapons.Axe.Item, Content.Research.StartKnown);
+    }
+
+    [Fact]
+    public void EveryWeaponIsAToolOfOneCraftedHitsInWholeUnitsAndTheDrillOutdamagesTheAxeOnTheBelt()
+    {
+        Assert.Equal(Weapons.All.Count, Weapons.All.Select(w => w.Item).Distinct().Count());
+        foreach (var weapon in Weapons.All)
+        {
+            Assert.True(weapon.Damage > 0 && weapon.Pace > 0, weapon.Item);
+            Assert.Equal(1, Content.Items.Get(weapon.Item).Stack);
+            Assert.True(Crafts.TryGet(weapon.Item, out _), weapon.Item);
+            Assert.Same(weapon, Weapons.Of(weapon.Item));
+        }
+        Assert.Null(Weapons.Of(Harpoon.Item));
+        // Damage a second is all that sets them apart (0054): the drill 10, the axe 4.
+        Assert.Equal(10, Weapons.Drill.Damage * 20 / Weapons.Drill.Pace);
+        Assert.Equal(4, Weapons.Axe.Damage * 20 / Weapons.Axe.Pace);
+        // Electric: a hit spends its draw for each tick of its pace, so a full battery lasts 300 hits, 30 s.
+        int draw = Content.Items.Get(Weapons.Drill.Item).Draw!.Value;
+        Assert.Equal(3, draw);
+        Assert.Equal(300, Charge.Battery / Charge.Scale / (draw * Weapons.Drill.Pace));
+        Assert.Null(Content.Items.Get(Weapons.Axe.Item).Draw);
+        Assert.Equal([("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1)], Crafts.Get(Weapons.Drill.Item).Cost);
+        Assert.Equal(160, Crafts.Get(Weapons.Drill.Item).Ticks);
+        Assert.DoesNotContain(Weapons.Drill.Item, Content.Research.StartKnown);
+    }
+
+    [Fact]
+    public void TheAsteroidBandLiesPastTheTetherIsRareAndCappedAndItsRockBreaksIntoRockToCarry()
+    {
+        var band = Assert.IsType<HullBand>(DebrisSpec.Asteroids.Anchor);
+        Assert.True(band.From * 1000 > Hero.Tether, $"the band's {band.From} rows within the tether's reach");
+        Assert.True(band.From <= band.To && band.Lead > 0);
+        // About one every 4 minutes, at most 2 out.
+        Assert.Equal(4 * 60 * 20, DebrisSpec.Asteroids.Every + DebrisSpec.Asteroids.Jitter / 2);
+        Assert.Equal(2, DebrisSpec.Asteroids.Max);
+        Assert.Equal([("asteroid", 1)], DebrisSpec.Asteroids.Tiers.Single().Kinds);
+        Assert.Equal(120, Wreckage.HpOf("asteroid"));
+        Assert.Equal([new LootEntry("rock", 3, 5)], Loot.Of("asteroid"));
+        Assert.Equal(10, Content.Items.Get("rock").Stack);
     }
 
     [Fact]

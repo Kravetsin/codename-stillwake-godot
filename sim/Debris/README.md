@@ -1,23 +1,25 @@
 # Debris
 
-The pieces of debris drifting by, in zones by the hull and round every hero, catching them, reeling
-them in by harpoon, and breaking wreckage with an axe
+The pieces of debris drifting by, in zones by the hull, in its asteroid band and round every hero,
+catching them, reeling them in by harpoon, and breaking wreckage and asteroids with any weapon
 ([0006](../../docs/decisions/0006-debris-in-the-simulation.md),
 [0009](../../docs/decisions/0009-debris-around-the-ship.md),
 [0034](../../docs/decisions/0034-wreckage-and-the-axe.md),
 [0041](../../docs/decisions/0041-wreckage-of-many-kinds-and-circuits.md),
 [0044](../../docs/decisions/0044-the-harpoon-reels-a-piece-to-a-point.md),
-[0052](../../docs/decisions/0052-debris-by-zones-around-every-hero.md)). Ported from
+[0052](../../docs/decisions/0052-debris-by-zones-around-every-hero.md),
+[0054](../../docs/decisions/0054-asteroids-and-the-drill.md)). Ported from
 `packages/sim/src/modules/debris`; its rules hold here unchanged, the harpoon and the zones new in the port.
 
 - **Depends on:** `Grid` (`IGridQueries`: its size, its `Version` and the hull's bounds), `Crew`
   (`ICrewQueries`: where the sender's hero is, and every hero's reported cell), `Rooms`
-  (`IRoomsQueries`: what is space), `Items` (`IItemsOps`: `GiveOrDrop`, the inventory a caught piece
-  goes into; `DropAt`, the floor a broken wreck falls on).
+  (`IRoomsQueries`: what is space), `Items` (`IItemsQueries`: `CanDrain`, whether the belt can pay an
+  electric weapon's hit; `IItemsOps`: `GiveOrDrop`, the inventory a caught piece goes into; `DropAt`, the
+  floor a broken wreck falls on; `Drain`, the belt paying a hit of the drill).
 - **State** (`DebrisState`, members internal): `Pieces` in spawn order, so in id order, each a `Piece` (public, with
   internal setters) `{ Id, Zone, Item, X, Y, Speed, Start, End, Damage, Reel, SeenAt }`, of the zone `Zone` (an id of
   `Debris.Zones`), its middle at `X`, `Y` in thousandths
-  of a cell (`DebrisModule.Unit`), drifting `Speed` a tick from `Start` till below `End`, `Damage` the hit points axes took off it,
+  of a cell (`DebrisModule.Unit`), drifting `Speed` a tick from `Start` till below `End`, `Damage` the hit points weapons took off it,
   `Reel` a harpoon pulling it (a `Reeling { By, ToX, ToY, Left }`: the peer, the point, the ticks still to go) or null,
   `SeenAt` the clock it was last in a hero's keep box (0 for the stream's); `NextId`,
   never reused; `Clock`, ticks run; `Beats`, each zone's `Beat { Zone, Next }`, the clock its next piece is due at;
@@ -41,7 +43,10 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - **`far`, the far field** (`AroundHeroes`): round every hero out past every stream's box, from the
   cell its client last reported (`Hero.Cell`, about once a second, 0050). Three tiers, at 0, 128 and 256
   cells: small salvage near the ship, more and bigger wrecks, cable racks most of all, the farther out.
-- The asteroid band, named next, is a zone by the hull with a gap: a content entry and at most an anchor kind.
+- **`asteroids`, the asteroid band** (`HullBand(From, To, Lead)`, 0054): two bands of rows, 22 to 44 past the
+  hull's top row and as far past its bottom row, beyond the tether's 12 cells; across, the stream's way, from
+  `Lead` right of the hull to as far left of it. One tier, `asteroid` alone. Not a stream's box: the far field
+  spawns in it as anywhere. A beat every 3 to 5 minutes (`Every` 3600, `Jitter` 2400), at most 2 out.
 
 ## Rules
 
@@ -62,6 +67,10 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   the cell `Lead` right of the hull and ends `Lead` left of it, both kept on the grid.
   The first is due on clock `Debris.Every`. Of the weights' 45, 36 are small pieces and 9 wrecks:
   a spawn every 10 s on average, a wreck one in five.
+- **The band's beat** (`HullBand`): an asteroid spawns if fewer than `Max` of the band are out and there is a
+  hull. Drawn in this order: a row of the band's `2 × (To − From + 1)`, those above the hull first, top down,
+  then those below; a kind from its tier; a speed. A row off the grid spawns nothing, its draws taken all the
+  same. It starts and ends as the stream's pieces do, `Lead` right and left of the hull.
 - **The far field's beat** (`AroundHeroes`), with a hull: for each hero on the grid in id order, while
   fewer than the zone's `Max` (640) are out — so at the cap lower ids spawn first — and skipping, with
   no draw, a hero whose reported cell is in a stream's box or that already has `PerHero` (110) of the
@@ -91,16 +100,24 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   fit floats at the hero's cell, on the floor of space (`IItemsOps.GiveOrDrop`). A wreck is refused
   with `debris.tooBig`.
 - **Wreckage** is a kind with hit points in `Wreckage`: a hull section (15), a cargo container (11),
-  a machine block (19), a cable rack (9), a tank cluster (7) and a shield slab (31) (0034, 0041). It
-  drifts, spawns and is saved as any piece; each kind breaks into its own `Loot`, a cable rack always
-  into exactly one circuit, the only source of them. `Hit(Piece)` takes `Axe.Damage` off them, adding it to the piece's `Damage`;
+  a machine block (19), a cable rack (9), a tank cluster (7), a shield slab (31) (0034, 0041) and an asteroid
+  (120, 0054). It drifts, spawns and is saved as any piece; each kind breaks into its own `Loot`, a cable rack always
+  into exactly one circuit, the only source of them, an asteroid into 3 to 5 rock. Hit points alone say how
+  hard a kind is: **every weapon breaks every kind** (0054). `Hit(Piece, Tool)` takes the weapon's
+  `Weapons.Of(Tool).Damage` off them, adding it to the piece's `Damage`;
   the hit that brings `Damage` to its hit points removes it, and its loot (`Loot`, drawn by `LootOf`
   as a container's is) falls on the cell under its middle, still, dropped by `FloorStack.Nobody`
   (`IItemsOps.DropAt`): floating there in space for anyone to pick up at once, the hero who broke it
-  too. Refused with `debris.gone`, `debris.notOutside` (as `Grab`) or `debris.notWreckage` (a piece
-  caught by hand). The sim does not ask whether the sender holds an axe, how fast it swings nor how
-  far it reaches: the client's word, among friends (principle 6). The client sends one `Hit` for each
-  wreck a swing's drawn blade touches (0039, 0040), so one swing may hit two wrecks.
+  too. Refused with `debris.gone`, `debris.notOutside` (as `Grab`), `debris.notWreckage` (a piece
+  caught by hand), or **`debris.flat`**: the weapon is electric (its item has a `Draw`, the drill) and no
+  battery on the sender's belt holds a hit's worth, its `Draw` for each tick of its `Pace`
+  (`DebrisModule.Spent`, 3 × 2 = 6 power-ticks), checked by `IItemsQueries.CanDrain`. Applied, an electric
+  hit is paid first by `IItemsOps.Drain`, in the host's order: the belt left to right, one battery paying it
+  whole; nothing in creative mode. A `Tool` that deals no damage is our bug and throws: the client sends
+  hits only with a weapon. The sim does not ask whether the sender holds the weapon, how fast it strikes nor
+  how far it reaches: the client's word, among friends (principle 6). The client sends one `Hit` for each
+  wreck a swing's drawn blade touches (0039, 0040), so one swing may hit two wrecks; the drill one for each
+  its bit touches every `Pace` ticks while held.
 - **The harpoon** (0044): `Reel(Piece, ToX, ToY)` reels a piece, small or a wreck, to a point in
   thousandths of a cell, the client's word: `Harpoon.Stop` before the gun. Applying it clamps the point
   to the grid and sets the piece's `Reel` to `{ By = sender, ToX, ToY, Left }`, `Left` the ticks its
@@ -116,11 +133,12 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 
 - **Queries** (public members; no other module reads debris, so there is no query interface):
   `Pieces` — live and read-only; `PieceAt(cell)` — the first piece whose middle is in the cell;
-  `GrabProblem(peer, piece)`, `HitProblem(peer, piece)` and `ReelProblem(peer, piece)` — the refusal
+  `GrabProblem(peer, piece)`, `HitProblem(peer, piece, tool)` and `ReelProblem(peer, piece)` — the refusal
   that peer's `Grab`, `Hit` or `Reel` would get, for the client.
-- **Static:** `CellOf(x, y, width)` — the cell under a piece's middle; `LootOf(item, rng)` — what
+- **Static:** `Spent(weapon)` — the power-ticks a hit of an electric weapon spends, none for another;
+  `CellOf(x, y, width)` — the cell under a piece's middle; `LootOf(item, rng)` — what
   catching a piece of that item gives, merged by item in the order its entries first give it.
-- **Commands:** `Grab(Piece)`, `Hit(Piece)`, `Reel(Piece, ToX, ToY)`.
+- **Commands:** `Grab(Piece)`, `Hit(Piece, Tool)`, `Reel(Piece, ToX, ToY)`.
 - **Lookups:** `Grab`, `Hit` and `Reel` find their piece by a binary search of the pieces, in id order.
   No spatial index: the box tests and each hero's share are pieces times heroes a tick, some 0.12 ms at
   600 pieces and four
@@ -129,7 +147,7 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   default zoom's view (40 × 22) and the farthest's (120 × 68): hovering some 4.7 and 40, a new piece in the
   default view every 11 s; flying at 15 cells a second some 4 and 31, never empty more than 1.4 s. Pieces
   spread evenly hold about a ninth as many in the default view as in the farthest.
-- **Fuzz:** a grab, a hit or a reel, one in three each, at a piece that is out three times in four,
+- **Fuzz:** a grab, a hit with a weapon drawn among `Weapons.All` or a reel, one in three each, at a piece that is out three times in four,
   else an id from 0 to `NextId + 1`, gone or never spawned; a reel's point is anywhere from a grid's
   size before the grid to one past it, so the clamp is drawn too. Most are refused, as few fuzzed
   heroes stand in space. The far field needs none of its own: crew's fuzz enters heroes anywhere on
@@ -139,7 +157,8 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 
 - Piece ids grow in spawn order and are never reused; no more than its zone's `Max` of a zone are out.
 - Every piece is on the grid, at or right of its `End`, and left of its `Start` unless it was reeled;
-  each of the stream spawned in the band of the hull it spawned by.
+  each of the stream spawned in the band of the hull it spawned by, each asteroid in the asteroid band of
+  the hull it spawned by, on its lead (`AsteroidTests`).
 - A far piece spawns on the ring of a hero out past every stream's box that held fewer than `PerHero`,
   never in a stream's box nor in any hero's view; `SeenAt` is never past the clock, and 0 on the stream's.
 - A reel's point is on the grid and its `Left` above zero.
@@ -165,8 +184,10 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   for hits after the one that breaks a wreck.
 - A wreck half over the hull is judged by its middle cell, as a small piece is: with its middle over
   the ship it cannot be hit, though its end sticks out into space. Accepted: it drifts on and out.
-- The axe in hand, the swing's pace (`Axe.SwingTicks`) and reach (the axe's picture, 0040): the client's, among friends. A hit in flight after the
-  axe was put away still lands; creative mode needs no axe either.
+- The weapon in hand, its pace (`Weapon.Pace`) and reach (its picture, 0040): the client's, among friends. A hit
+  in flight after the weapon was put away still lands; creative mode needs no weapon either. The drill's hits in
+  flight meet the belt only as they apply: one sent as the belt runs flat is refused `debris.flat`.
+- An asteroid reeled out of its band stays out: the band is where they spawn, not where they must be.
 - The harpoon's shot, its range, the hit test, the hooked rod before the reel and the cooldown: the
   client's (0044). The cooldown is the hero's: every harpoon it holds waits for it. The sim does not
   ask whether a harpoon is held nor where the gun is; a hook not yet reeled is never saved.
@@ -183,4 +204,5 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   down, heroes grabbing in and out of space, reels to points on and off the grid, waits long enough
   to reach the cap.
 - The harpoon and `Reel` are new in the port; TypeScript has none. So are the zones and the far field
-  (0052), with their own scenarios and invariant test in `DebrisZonesTests`.
+  (0052), with their own scenarios and invariant test in `DebrisZonesTests`, and the asteroid band and the
+  weapons (0054), in `AsteroidTests`.

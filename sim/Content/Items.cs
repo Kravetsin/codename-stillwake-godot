@@ -44,16 +44,19 @@ public static class Items
         new("planks", 50, BurnTicks: 400),
         new("scrapChunk", 10, Yields: [("scrap", 4)], SmeltTicks: 60),
         new("hullPlate", 5, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100),
+        // Broken out of asteroids (0054); smelted into silicon once there is silicon.
+        new("rock", 10),
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1),
         new("cargoCrate", 1),
-        // Wreckage: broken with an axe into its loot (Wreckage), and never carried either.
+        // Wreckage: broken by a weapon into its loot (Wreckage), and never carried either.
         new("hullSection", 1),
         new("cargoContainer", 1),
         new("machineBlock", 1),
         new("cableRack", 1),
         new("tankCluster", 1),
         new("shieldSlab", 1),
+        new("asteroid", 1),
         // Parts, made at the Fabricator (Crafts) of materials; then assemblies, of parts.
         new("wire", 100),
         new("plate", 100),
@@ -67,6 +70,8 @@ public static class Items
         // Tools, made as parts are.
         new("fireAxe", 1),
         new("harpoon", 1),
+        // Electric: draws from the belt's batteries while it drills (0053, 0054).
+        new("drill", 1, Draw: 3),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back"),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.

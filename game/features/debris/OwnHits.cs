@@ -14,7 +14,8 @@ public sealed class OwnHits
 {
     // By reference: two hits on one piece are equal records, and one may run while the other flies.
     private HashSet<Command> _flying = new(ReferenceEqualityComparer.Instance), _still = new(ReferenceEqualityComparer.Instance);
-    private readonly HashSet<int> _ran = [];
+    /// <summary>Each piece an own hit ran on, and the weapon of the last that did.</summary>
+    private readonly Dictionary<int, string> _ran = [];
 
     /// <summary>Takes this peer's commands in flight now (<c>Client.InFlight</c>).</summary>
     public void Read(IReadOnlyList<Command> inFlight)
@@ -24,10 +25,13 @@ public sealed class OwnHits
         for (int i = 0; i < inFlight.Count; i++)
             if (inFlight[i] is Hit) _still.Add(inFlight[i]);
         foreach (var hit in _flying)
-            if (!_still.Contains(hit)) _ran.Add(((Hit)hit).Piece);
+            if (!_still.Contains(hit)) _ran[((Hit)hit).Piece] = ((Hit)hit).Tool;
         (_flying, _still) = (_still, _flying);
     }
 
     /// <summary>Whether a hit of this peer's on <paramref name="piece"/> ran since the read before the last.</summary>
-    public bool Ran(int piece) => _ran.Contains(piece);
+    public bool Ran(int piece) => _ran.ContainsKey(piece);
+
+    /// <summary>The weapon of this peer's hit that ran on <paramref name="piece"/> since the read before the last; none for none.</summary>
+    public string? ToolOn(int piece) => _ran.GetValueOrDefault(piece);
 }

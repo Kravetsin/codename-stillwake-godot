@@ -24,13 +24,14 @@ public static class Crafts
         new("harpoon", [("planks", 1), ("frame", 1), ("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 120),
         new("jetpack", [("frame", 1), ("tube", 2), ("canister", 1), ("wire", 2)], Ticks: 120),
         new("battery", [("plate", 1), ("coil", 1), ("wire", 2)], Ticks: 60),
+        new("drill", [("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1)], Ticks: 160),
     ];
 
     /// <summary>
     /// Where each craft sits in the Fabricator's panel, a family a row, simple to complex left to right:
     /// every craft once, known or not, so nothing moves when one opens.
     /// </summary>
-    public static readonly IReadOnlyList<IReadOnlyList<string>> Rows = [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor"], ["fireAxe", "harpoon", "jetpack", "battery"]];
+    public static readonly IReadOnlyList<IReadOnlyList<string>> Rows = [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor"], ["fireAxe", "harpoon", "drill"], ["jetpack", "battery"]];
 
     /// <summary>The most crafts a row holds: the panel's columns.</summary>
     public const int RowMost = 4;

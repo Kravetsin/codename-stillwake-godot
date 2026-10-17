@@ -115,7 +115,7 @@ public partial class Figure : Node2D
     private readonly Sprite2D _tool;
     /// <summary>How far past the line to a swing's point the arm swings for the axe's blade to meet it (0040).</summary>
     private static readonly double AxeLead = AxeSwing.Lead(HeldLook.FireAxe);
-    /// <summary>What the front fist holds, the fire axe or the harpoon, in the picture of its look (<see cref="HeldLook"/>).</summary>
+    /// <summary>What the front fist holds, the fire axe, the harpoon or the drill, in the picture of its look (<see cref="HeldLook"/>).</summary>
     private readonly Sprite2D _held;
     /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
     private (Vector2 At, double Phase)? _chop;
@@ -258,7 +258,7 @@ public partial class Figure : Node2D
     /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
     public string? Wields { get; set; }
 
-    /// <summary>Where the harpoon held aims, in pixels of the world: the arm straight, the barrel's line through it; none to let it hang.</summary>
+    /// <summary>Where the harpoon or the drill held aims, in pixels of the world: the arm straight, the barrel's or the bit's line through it; none to let it hang.</summary>
     public Vector2? Aim { get; set; }
 
     /// <summary>Whether the hero wears a jetpack on its back (0047).</summary>
@@ -274,7 +274,15 @@ public partial class Figure : Node2D
     /// <summary>Whether the harpoon held shows its rod in the barrel: ready to fire.</summary>
     public bool Loaded { get; set; } = true;
 
-    /// <summary>The held harpoon's muzzle as drawn this frame, in pixels of the world; none while no gun is shown.</summary>
+    /// <summary>Whether the drill held runs (0054): its bit spins up, and winds down once it stops, as when its batteries are flat.</summary>
+    public bool Spinning { get; set; }
+
+    /// <summary>How fast the bit turns, from still (0) to full (1), and how far through its turn the picture is.</summary>
+    private double _spin, _spinTurn;
+    /// <summary>The bit spins up in <see cref="SpinUpMs"/> and down in <see cref="SpinDownMs"/>, its picture flipping <see cref="SpinHz"/> times a second at full speed.</summary>
+    private const double SpinUpMs = 120, SpinDownMs = 700, SpinHz = 24;
+
+    /// <summary>The held harpoon's muzzle, or the drill's point, as drawn this frame, in pixels of the world; none while neither is shown.</summary>
     public Vector2? Muzzle { get; private set; }
 
     /// <summary>The way the held harpoon's barrel points as drawn, a unit vector in the world.</summary>
@@ -390,7 +398,7 @@ public partial class Figure : Node2D
         var item = HeldLook.Of(Wields);
         bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding;
         bool chopping = _chop != null && item == HeldLook.FireAxe && inHand;
-        bool aiming = Aim != null && item?.Loaded != null && inHand;
+        bool aiming = Aim != null && item?.Aimed == true && inHand;
         // The hands at work, whatever the pose (0030): afloat the paddling stops, the hero drifts calmly
         // upright, and the front arm reaches where the work is, in the body's own frame.
         bool acting = working || chopping || holding && _beamMs > 0;
@@ -498,11 +506,15 @@ public partial class Figure : Node2D
         if (inHand && item != null)
         {
             var fist = Rig.FistOf(frontArm);
-            _held.Texture = Picture(item.Loaded != null && Loaded ? item.Loaded : item.Picture);
+            _spin = Spinning ? Math.Min(1, _spin + elapsedMs / SpinUpMs) : Math.Max(0, _spin - elapsedMs / SpinDownMs);
+            _spinTurn = (_spinTurn + _spin * SpinHz * elapsedMs / 1000) % 1;
+            _held.Texture = Picture(item.Loaded != null && Loaded ? item.Loaded
+                : item.Spin != null && _spin > 0 && _spinTurn >= 0.5 ? item.Spin
+                : item.Picture);
             _held.Offset = -new Vector2((float)item.Grip.X, (float)item.Grip.Y);
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
             _held.Rotation = (float)Rig.HeldTurn(frontArm, item);
-            if (item.Loaded != null)
+            if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
                 Muzzle = At(item.EdgeTo);

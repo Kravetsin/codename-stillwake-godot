@@ -37,6 +37,7 @@ public interface IItemsQueries
     Shown AfterMoves(int peer, IReadOnlyList<Command> moves);
     bool Equipped(int peer, string item);
     (int Charge, int Capacity) BeltCharge(int peer);
+    bool CanDrain(int peer, int amount);
 }
 
 /// <summary>How a module that depends on the items may change them.</summary>
@@ -316,25 +317,31 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>
     /// Takes <paramref name="amount"/> power-ticks from the first battery on <paramref name="peer"/>'s belt,
-    /// in slot order, that holds at least that much, and whether one did: an electric tool's <c>Draw</c> for a
-    /// tick of its work. One battery pays it whole, so the belt drains left to right. Nothing is taken in
+    /// in slot order, that holds at least that much, and whether one did: an electric tool's <c>Draw</c> for the
+    /// ticks of its work. One battery pays it whole, so the belt drains left to right. Nothing is taken in
     /// creative mode.
     /// </summary>
     public bool Drain(int peer, int amount)
     {
-        if (amount < 0) throw new ArgumentException($"items.drain: {amount} is no charge");
+        if (Payer(peer, amount) is not int slot) return State.Creative;
         if (State.Creative) return true;
-        amount *= Content.Charge.Scale;
+        var drained = Inventory(peer).ToArray();
+        drained[slot] = drained[slot]! with { Charge = drained[slot]!.Charge - amount * Content.Charge.Scale };
+        Stacks.SetInventory(State, peer, drained);
+        return true;
+    }
+
+    /// <summary>Whether <see cref="Drain"/> would take <paramref name="amount"/> power-ticks from <paramref name="peer"/>'s belt now: always in creative mode.</summary>
+    public bool CanDrain(int peer, int amount) => State.Creative || Payer(peer, amount) != null;
+
+    /// <summary>The first belt slot of <paramref name="peer"/>'s, in slot order, whose battery holds at least <paramref name="amount"/> power-ticks; none for none.</summary>
+    private int? Payer(int peer, int amount)
+    {
+        if (amount < 0) throw new ArgumentException($"items.drain: {amount} is no charge");
         var slots = Inventory(peer);
         foreach (int slot in Belt)
-        {
-            if (slots[slot] is not { } s || Content.Items.Get(s.Item).Capacity == null || s.Charge < amount) continue;
-            var drained = slots.ToArray();
-            drained[slot] = s with { Charge = s.Charge - amount };
-            Stacks.SetInventory(State, peer, drained);
-            return true;
-        }
-        return false;
+            if (slots[slot] is { } s && Content.Items.Get(s.Item).Capacity != null && s.Charge >= amount * Content.Charge.Scale) return slot;
+        return null;
     }
 
     // Commands.

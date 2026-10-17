@@ -5,7 +5,6 @@ using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Xunit;
-using Axe = Stillwake.Content.Axe;
 using DebrisSpec = Stillwake.Content.Debris;
 using FloorStack = Stillwake.Sim.Items.FloorStack;
 using Harpoon = Stillwake.Content.Harpoon;
@@ -13,6 +12,7 @@ using Inventory = Stillwake.Content.Inventory;
 using ItemSpecs = Stillwake.Content.Items;
 using Loot = Stillwake.Content.Loot;
 using PickUp = Stillwake.Sim.Items.PickUp;
+using Weapons = Stillwake.Content.Weapons;
 using WreckageSpec = Stillwake.Content.Wreckage;
 
 namespace Stillwake.Sim.Tests;
@@ -79,7 +79,7 @@ public class DebrisTests
 
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
 
-    /// <summary>Every piece seen in <paramref name="ticks"/> ticks, by id in the order first seen, as it was then.</summary>
+    /// <summary>Every piece of the stream seen in <paramref name="ticks"/> ticks, by id in the order first seen, as it was then; the asteroid band's left out.</summary>
     private static List<Seen> Watch(Scenario w, int ticks)
     {
         var seen = new List<Seen>();
@@ -90,7 +90,7 @@ public class DebrisTests
             foreach (var p in Pieces(w))
                 if (p.Id > last)
                 {
-                    seen.Add(Seen.Of(p));
+                    if (p.Zone == DebrisSpec.Ship.Id) seen.Add(Seen.Of(p));
                     last = p.Id;
                 }
         }
@@ -358,9 +358,10 @@ public class DebrisTests
     // Wreckage and the axe (0034).
 
     private const string Wreck = "hullSection";
+    private static readonly string Axe = Weapons.Axe.Item;
     private static readonly int Hp = WreckageSpec.HpOf(Wreck)!.Value;
     /// <summary>Hits a hull section takes to break: its hit points over the axe's damage, rounded up.</summary>
-    private static readonly int HitsToBreak = (Hp + Axe.Damage - 1) / Axe.Damage;
+    private static readonly int HitsToBreak = (Hp + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage;
 
     /// <summary>The first piece, made a hull section, and heroes <paramref name="peers"/> out in space by it.</summary>
     private static Scenario Wrecked(params int[] peers)
@@ -373,7 +374,7 @@ public class DebrisTests
 
     private static Scenario Hits(Scenario w, int times, int peer = 0, int piece = 1)
     {
-        for (int i = 0; i < times; i++) w.Do(new Hit(piece) { From = peer });
+        for (int i = 0; i < times; i++) w.Do(new Hit(piece, Axe) { From = peer });
         return w;
     }
 
@@ -381,9 +382,9 @@ public class DebrisTests
     public void RefusesAHitOnAPieceGoneOrNeverThere()
     {
         var w = Wrecked(0);
-        w.Do(new Hit(7)).Run();
+        w.Do(new Hit(7, Axe)).Run();
         w.Run(Width * 1000);
-        w.Do(new Hit(1)).Run();
+        w.Do(new Hit(1, Axe)).Run();
         Assert.Equal(["debris.gone", "debris.gone"], Reasons(w));
     }
 
@@ -392,13 +393,13 @@ public class DebrisTests
     {
         var w = Spawned();
         Pieces(w)[0].Item = Wreck;
-        w.Do(new Hit(1) { From = 1 }).Run();
-        w.Do(new Enter(At(3, 4)) { From = 1 }).Do(new Hit(1) { From = 1 }).Run();
+        w.Do(new Hit(1, Axe) { From = 1 }).Run();
+        w.Do(new Enter(At(3, 4)) { From = 1 }).Do(new Hit(1, Axe) { From = 1 }).Run();
         Assert.Equal(["debris.notOutside", "debris.notOutside"], Reasons(w));
         // Its middle over the room: judged by that cell alone, however far it reaches out.
         Until(w, 4).Do(new Enter(At(12, 1)) { From = 1 });
-        Assert.Equal("debris.notOutside", w.M.Debris.HitProblem(1, 1));
-        w.Do(new Hit(1) { From = 1 }).Run();
+        Assert.Equal("debris.notOutside", w.M.Debris.HitProblem(1, 1, Axe));
+        w.Do(new Hit(1, Axe) { From = 1 }).Run();
         Assert.Equal("debris.notOutside", Reasons(w)[^1]);
         Assert.Equal(0, Pieces(w)[0].Damage);
     }
@@ -409,8 +410,8 @@ public class DebrisTests
         var w = Spawned();
         Pieces(w)[0].Item = "scrapChunk";
         w.Do(new Enter(At(12, 1))).Run();
-        Assert.Equal("debris.notWreckage", w.M.Debris.HitProblem(0, 1));
-        w.Do(new Hit(1)).Run();
+        Assert.Equal("debris.notWreckage", w.M.Debris.HitProblem(0, 1, Axe));
+        w.Do(new Hit(1, Axe)).Run();
         Assert.Equal(["debris.notWreckage"], Reasons(w));
         Assert.Equal(0, Pieces(w)[0].Damage);
     }
@@ -432,14 +433,14 @@ public class DebrisTests
     {
         var w = Wrecked(0);
         Hits(w, 1).Run();
-        Assert.Equal(Axe.Damage, Pieces(w)[0].Damage);
+        Assert.Equal(Weapons.Axe.Damage, Pieces(w)[0].Damage);
         Hits(w, 2).Run();
-        Assert.Equal(3 * Axe.Damage, Pieces(w)[0].Damage);
+        Assert.Equal(3 * Weapons.Axe.Damage, Pieces(w)[0].Damage);
         w.Reload();
-        Assert.Equal(3 * Axe.Damage, Pieces(w)[0].Damage);
+        Assert.Equal(3 * Weapons.Axe.Damage, Pieces(w)[0].Damage);
         Hits(w, 1).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(4 * Axe.Damage, Pieces(w)[0].Damage);
+        Assert.Equal(4 * Weapons.Axe.Damage, Pieces(w)[0].Damage);
     }
 
     [Fact]
@@ -500,7 +501,7 @@ public class DebrisTests
         var w = new Scenario(Space, seed).Run(DebrisSpec.Every);
         Pieces(w)[0].Item = kind;
         w.Do(new Enter(At(12, 1))).Run();
-        int hits = (WreckageSpec.HpOf(kind)!.Value + Axe.Damage - 1) / Axe.Damage;
+        int hits = (WreckageSpec.HpOf(kind)!.Value + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage;
         Hits(w, hits - 1).Run();
         Assert.Single(Pieces(w));
         return Hits(w, 1).Run();
@@ -543,7 +544,7 @@ public class DebrisTests
         Hits(w, half, peer: 1);
         Hits(w, half, peer: 2).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(2 * half * Axe.Damage, Pieces(w)[0].Damage);
+        Assert.Equal(2 * half * Weapons.Axe.Damage, Pieces(w)[0].Damage);
         Hits(w, HitsToBreak - 2 * half, peer: 2).Run();
         Assert.Empty(Pieces(w));
         Assert.NotEmpty(w.M.Items.Floor);
@@ -555,8 +556,8 @@ public class DebrisTests
         var w = Wrecked(1, 2);
         Hits(w, HitsToBreak - 1, peer: 1).Run();
         // Two heroes land the last blow on one tick: the host's order decides, and the second is too late.
-        w.Do(new Hit(1) { From = 2 }).Do(new Hit(1) { From = 1 }).Run();
-        w.Do(new Hit(1) { From = 2 }).Run();
+        w.Do(new Hit(1, Axe) { From = 2 }).Do(new Hit(1, Axe) { From = 1 }).Run();
+        w.Do(new Hit(1, Axe) { From = 2 }).Run();
         Assert.Equal(["debris.gone", "debris.gone"], Reasons(w));
     }
 
@@ -670,7 +671,7 @@ public class DebrisTests
         int left = ReelOf(w)!.Left;
         Hits(w, HitsToBreak - 1).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal((HitsToBreak - 1) * Axe.Damage, Pieces(w)[0].Damage);
+        Assert.Equal((HitsToBreak - 1) * Weapons.Axe.Damage, Pieces(w)[0].Damage);
         Assert.Equal(left - 1, ReelOf(w)!.Left);
         w.Run(left - 1);
         Assert.Equal((toX, toY), (Pieces(w)[0].X, Pieces(w)[0].Y));
@@ -805,7 +806,7 @@ public class DebrisTests
                     case "chop":
                         // A wreck when one is out, else any piece; a few swings landing on one tick.
                         var wreck = pieces.FirstOrDefault(p => WreckageSpec.HpOf(p.Item) != null) ?? (pieces.Count > 0 ? pieces[Math.Abs(s.Cell) % pieces.Count] : null);
-                        for (int n = 0; n < s.Ticks % 4 + 1; n++) w.Do(new Hit(wreck?.Id ?? s.Cell % (last + 3)) { From = s.Peer });
+                        for (int n = 0; n < s.Ticks % 4 + 1; n++) w.Do(new Hit(wreck?.Id ?? s.Cell % (last + 3), n % 2 == 0 ? Axe : Weapons.Drill.Item) { From = s.Peer });
                         break;
                     case "reel":
                         int reel = pieces.Count > 0 && s.Cell % 3 != 0 ? pieces[Math.Abs(s.Cell) % pieces.Count].Id : s.Cell % (last + 3);
