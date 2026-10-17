@@ -28,8 +28,9 @@ public static class ItemCards
     public static ItemCard Of(string item, bool unknown)
     {
         string name = T($"item.{item}"), kind = T($"item.{item}.kind");
-        if (!IsTool(item)) return new ItemCard(item, name, kind, null, [], GoesInto(item), null, unknown);
-        var key = new CardKey(T($"item.{item}.key"), T($"item.{item}.hint"));
+        // Anything used by a key of its own says so: a canister breathed, a jetpack worn (0047).
+        var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key"), T($"item.{item}.hint")) : null;
+        if (!IsTool(item)) return new ItemCard(item, name, kind, null, [], GoesInto(item), key, unknown);
         if (item == Spec.Harpoon.Item)
             return new ItemCard(item, name, kind, HarpoonTiles(), [], [T("card.debris"), T("card.wreckage")], key, unknown);
         double every = (double)Spec.Axe.SwingTicks / World.TicksPerSecond;

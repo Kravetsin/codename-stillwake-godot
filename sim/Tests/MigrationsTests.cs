@@ -92,6 +92,28 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void GivesEveryInventoryOfAFormat8SaveItsEquipmentEmptyAndNoHeroAThrust()
+    {
+        string old = File.ReadAllText(Fixture(8));
+        var before = System.Text.Json.Nodes.JsonNode.Parse(old)!["slices"]!["items"]!["inventories"]!.AsArray();
+        Assert.All(before, held => Assert.Equal(Content.Inventory.Slots, held!["slots"]!.AsArray().Count));
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(old), m.All);
+        Assert.NotEmpty(before);
+        foreach (var held in before)
+        {
+            int peer = (int)held!["id"]!;
+            var slots = m.Items.Inventory(peer);
+            Assert.Equal(Content.Inventory.Total, slots.Count);
+            // What it carried stays in its own slots, where it was.
+            for (int i = 0; i < Content.Inventory.Slots; i++)
+                Assert.Equal((string?)held["slots"]![i]?["item"], slots[i]?.Item);
+            Assert.All(slots.Skip(Content.Inventory.Slots), Assert.Null);
+        }
+        Assert.All(m.Crew.Heroes, hero => Assert.Equal((false, 0), (hero.Thrusting, hero.ThrustTicks)));
+    }
+
+    [Fact]
     public void LeavesASaveOfThisFormatAsItIsAndOneTooOldForTheLoadToRefuse()
     {
         string save = Played();

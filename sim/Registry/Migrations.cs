@@ -77,6 +77,21 @@ public static class Migrations
             }
             return save;
         },
+        // 8 → 9: every inventory gains its equipment slots, empty (0047); no hero thrusts yet.
+        save =>
+        {
+            foreach (var held in save["slices"]!["items"]!["inventories"]!.AsArray())
+            {
+                var slots = held!["slots"]!.AsArray();
+                while (slots.Count < Content.Inventory.Total) slots.Add(null);
+            }
+            foreach (var hero in save["slices"]!["crew"]!["heroes"]!.AsArray())
+            {
+                hero!["thrusting"] = false;
+                hero["thrustTicks"] = 0;
+            }
+            return save;
+        },
     ];
 
     /// <summary>The format a save says it has.</summary>

@@ -112,14 +112,15 @@ public class HeroTests
     }
 
     [Fact]
-    public void RunsWithShiftHeldFasterThanItWalksAndSwimsFastInSpace()
+    public void RunsWithShiftHeldFasterThanItWalksButSwimsNoFasterForItInSpace()
     {
         var (ship, hero) = Start(Room);
         Assert.Equal(hero.X + Spec.Run, hero.Step(Right with { Sprint = true }, ship).X);
-        Assert.True(Spec.Run > Spec.Walk && Spec.SwimFast > Spec.Swim);
+        Assert.True(Spec.Run > Spec.Walk);
         var opened = Opened();
         var h = Hero.At(opened, 40 * opened.Width + 120);
-        Assert.Equal(h.X + Spec.SwimFast, h.Step(Right with { Sprint = true }, opened).X);
+        // Shift in space only thrusts, with a jetpack (0047): without one it swims as slowly as ever.
+        Assert.Equal(h.X + Spec.Swim, h.Step(Right with { Sprint = true }, opened).X);
     }
 
     [Fact]

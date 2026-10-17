@@ -8,7 +8,7 @@ namespace Stillwake.Sim.Items;
 /// </summary>
 internal static class Stacks
 {
-    private static readonly IReadOnlyList<Stack?> NoInventory = Array.AsReadOnly(new Stack?[Inventory.Slots]);
+    private static readonly IReadOnlyList<Stack?> NoInventory = Array.AsReadOnly(new Stack?[Inventory.Total]);
 
     /// <summary>The items of <paramref name="cost"/> with their amounts; a negative amount is a caller's bug.</summary>
     public static IReadOnlyList<(string Item, int Count)> Entries(IReadOnlyList<(string Item, int Count)> cost)
@@ -73,12 +73,15 @@ internal static class Stacks
 
     private static Stack?[] Copy(IReadOnlyList<Stack?> slots) => [.. slots];
 
-    /// <summary>Adds <paramref name="count"/> of <paramref name="item"/> to <paramref name="slots"/> in place: onto its stacks in slot order, then into empty slots. What did not fit.</summary>
-    private static int Fill(Stack?[] slots, string item, int count)
+    /// <summary>
+    /// Adds <paramref name="count"/> of <paramref name="item"/> to the first <paramref name="usable"/> of
+    /// <paramref name="slots"/> in place: onto its stacks in slot order, then into empty slots. What did not fit.
+    /// </summary>
+    private static int Fill(Stack?[] slots, string item, int count, int usable)
     {
         int limit = Content.Items.Get(item).Stack;
-        int left = count;
-        for (int i = 0; i < slots.Length && left > 0; i++)
+        int left = count, end = Math.Min(usable, slots.Length);
+        for (int i = 0; i < end && left > 0; i++)
         {
             var s = slots[i];
             if (s == null || s.Item != item || s.Count >= limit) continue;
@@ -86,7 +89,7 @@ internal static class Stacks
             slots[i] = s with { Count = s.Count + n };
             left -= n;
         }
-        for (int i = 0; i < slots.Length && left > 0; i++)
+        for (int i = 0; i < end && left > 0; i++)
         {
             if (slots[i] != null) continue;
             int n = Math.Min(left, limit);
@@ -98,13 +101,15 @@ internal static class Stacks
 
     /// <summary>
     /// <paramref name="slots"/> with <paramref name="cost"/> added, or null when it does not fit: onto
-    /// the stacks of each item in slot order up to their limit, then into the empty slots in slot order.
+    /// the stacks of each item in slot order up to their limit, then into the empty slots in slot order;
+    /// only into the first <paramref name="usable"/> slots, an inventory's own (<see cref="Inventory.Slots"/>),
+    /// all of them with none.
     /// </summary>
-    public static Stack?[]? Placed(IReadOnlyList<Stack?> slots, IReadOnlyList<(string Item, int Count)> cost)
+    public static Stack?[]? Placed(IReadOnlyList<Stack?> slots, IReadOnlyList<(string Item, int Count)> cost, int? usable = null)
     {
         var into = Copy(slots);
         foreach (var (item, amount) in Entries(cost))
-            if (Fill(into, item, amount) > 0) return null;
+            if (Fill(into, item, amount, usable ?? into.Length) > 0) return null;
         return into;
     }
 
@@ -113,13 +118,13 @@ internal static class Stacks
     /// adds it, and what did not fit: what falls to the floor when an inventory is full.
     /// </summary>
     public static (Stack?[] Slots, List<(string Item, int Count)> Left) PlacedSome(
-        IReadOnlyList<Stack?> slots, IReadOnlyList<(string Item, int Count)> cost)
+        IReadOnlyList<Stack?> slots, IReadOnlyList<(string Item, int Count)> cost, int? usable = null)
     {
         var into = Copy(slots);
         var left = new List<(string, int)>();
         foreach (var (item, amount) in Entries(cost))
         {
-            int over = Fill(into, item, amount);
+            int over = Fill(into, item, amount, usable ?? into.Length);
             if (over > 0) left.Add((item, over));
         }
         return (into, left);
@@ -143,15 +148,16 @@ internal static class Stacks
 
     /// <summary>
     /// <paramref name="slots"/> with <paramref name="cost"/> taken out, or null when they hold too little.
-    /// Taken from the last slots first, so the first row, the hotbar, is the last to empty.
+    /// Taken from the last slots first, so the first row, the hotbar, is the last to empty; only from the first
+    /// <paramref name="usable"/> slots, as <see cref="Placed"/> gives.
     /// </summary>
-    public static Stack?[]? Taken(IReadOnlyList<Stack?> slots, IReadOnlyList<(string Item, int Count)> cost)
+    public static Stack?[]? Taken(IReadOnlyList<Stack?> slots, IReadOnlyList<(string Item, int Count)> cost, int? usable = null)
     {
         var from = Copy(slots);
         foreach (var (item, amount) in Entries(cost))
         {
             int left = amount;
-            for (int i = from.Length - 1; i >= 0 && left > 0; i--)
+            for (int i = Math.Min(usable ?? from.Length, from.Length) - 1; i >= 0 && left > 0; i--)
             {
                 var s = from[i];
                 if (s == null || s.Item != item) continue;
@@ -167,12 +173,13 @@ internal static class Stacks
     /// <summary>
     /// Moves the lesser of <paramref name="count"/>, what <paramref name="src"/> holds and what fits to
     /// <paramref name="dst"/>: onto a slot, where a whole stack onto another item swaps with it, or with
-    /// no slot onto that side's stacks of the item and then its empty slots, in slot order. Both sides
-    /// are one array when <paramref name="same"/>. Slots and crates are checked by the caller.
+    /// no slot onto that side's stacks of the item and then its empty slots, in slot order, its first
+    /// <paramref name="usable"/> only (an inventory's own). Both sides are one array when <paramref name="same"/>.
+    /// Slots and crates are checked by the caller, and what equipment slots may hold (<see cref="Misfit"/>).
     /// </summary>
     public static string? Moved(
         IReadOnlyList<Stack?> fromSlots, IReadOnlyList<Stack?> toSlots, bool same, Place src, Target dst, int count,
-        out Stack?[] from, out Stack?[] to)
+        out Stack?[] from, out Stack?[] to, int? usable = null)
     {
         from = Copy(fromSlots);
         to = same ? from : Copy(toSlots);
@@ -182,7 +189,7 @@ internal static class Stacks
         int kept = s.Count;
         if (dst.Slot is not int slot)
         {
-            int left = Fill(to, s.Item, n);
+            int left = Fill(to, s.Item, n, usable ?? to.Length);
             if (left == n) return "items.full";
             kept -= n - left;
         }
@@ -210,6 +217,18 @@ internal static class Stacks
             }
         }
         from[src.Slot] = kept == 0 ? null : s with { Count = kept };
+        return null;
+    }
+
+    /// <summary>
+    /// <c>items.notEquipment</c> when an equipment slot of <paramref name="inventory"/>, an inventory's
+    /// slots, holds an item not worn in its kind of slot (<c>ItemSpec.Equip</c>); null when each holds its own.
+    /// </summary>
+    public static string? Misfit(IReadOnlyList<Stack?> inventory)
+    {
+        for (int i = 0; i < Inventory.Equipment.Count; i++)
+            if (inventory[Inventory.Slots + i] is { } s && Content.Items.Get(s.Item).Equip != Inventory.Equipment[i])
+                return "items.notEquipment";
         return null;
     }
 }

@@ -22,7 +22,7 @@ public class CrateTests
             {
                 ["id"] = 0,
                 ["slots"] = new JsonArray(
-                    [Stack("scrap", 360), Stack("iron", 60), .. Enumerable.Repeat<JsonNode?>(null, Spec.Inventory.Slots - 2)]),
+                    [Stack("scrap", 360), Stack("iron", 60), .. Enumerable.Repeat<JsonNode?>(null, Spec.Inventory.Total - 2)]),
             }));
         return m;
     }

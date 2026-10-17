@@ -115,6 +115,35 @@ public sealed class HeroAutopilot
     }
 
     /// <summary>
+    /// <c>-- --jetpack</c> on the testbed (0047): still while the jetpack goes onto the back, then through the
+    /// doorway to room two and out by the airlock, the inner door shut behind; out in space it thrusts right,
+    /// up, coasts, brakes, thrusts toward the pointer, and drifts.
+    /// </summary>
+    public static HeroAutopilot Jetpack()
+    {
+        var thrust = new HeroInput(0, 0, false, Sprint: true);
+        return new HeroAutopilot(
+        [
+            Wait(170),
+            Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)),
+            Press(17, 6),
+            Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)),
+            Press(32, 6),
+            Walk(1, h => Column(h) >= 34),
+            Press(32, 6),
+            Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)),
+            Press(36, 6),
+            Walk(1, h => Column(h) >= 38),
+            Hold(thrust with { X = 1 }, 40),
+            Hold(thrust with { Y = -1 }, 18),
+            Wait(50),
+            Hold(thrust with { X = -1 }, 30),
+            Hold(thrust, 45, Beside(6, 1.5)),
+            Wait(240),
+        ]);
+    }
+
+    /// <summary>
     /// <c>-- --aside</c>: a few steps left of the spawn, then still, so a window recording another peer's
     /// hero at the spawn does not draw its own over it.
     /// </summary>

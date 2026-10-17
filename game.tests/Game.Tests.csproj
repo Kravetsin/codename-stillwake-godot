@@ -44,6 +44,7 @@
     <Compile Include="../game/render/Rope.cs" Link="Game/Render/Rope.cs" />
     <Compile Include="../game/features/items/Click.cs" Link="Game/Items/Click.cs" />
     <Compile Include="../game/features/items/Hotbar.cs" Link="Game/Items/Hotbar.cs" />
+    <Compile Include="../game/features/items/Equipment.cs" Link="Game/Items/Equipment.cs" />
     <Compile Include="../game/features/items/Reach.cs" Link="Game/Items/Reach.cs" />
     <Compile Include="../game/features/items/Reading.cs" Link="Game/Items/Reading.cs" />
     <Compile Include="../game/features/items/Lessons.cs" Link="Game/Items/Lessons.cs" />

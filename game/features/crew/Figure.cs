@@ -62,6 +62,10 @@ public partial class Figure : Node2D
 
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
     private readonly Node2D _body, _helmet;
+    /// <summary>The jetpack worn on the back over the air pack (0047), a placeholder picture till its art is picked.</summary>
+    private readonly Sprite2D _jetpack;
+    /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
+    private static readonly Vector2 NozzleAt = new(3, 14);
     private readonly Sprite2D _plan;
     /// <summary>Every part with its picture's name, and whether it is a far limb's, to recolour.</summary>
     private readonly List<(Sprite2D Sprite, string Part, bool Far)> _parts = [];
@@ -154,7 +158,11 @@ public partial class Figure : Node2D
         pack.Position = new Vector2((float)-Back, (float)(-Rig.Shoulder - Rig.H * 0.02));
         var chest = Part("torso");
         chest.Position = new Vector2(0, (float)-Rig.Neck);
+        _jetpack = new Sprite2D { Texture = GD.Load<Texture2D>("res://art/hero_jetpack.png"), Centered = false, Visible = false };
+        _jetpack.Position = pack.Position + new Vector2(-2, -1);
+        Lit.Set(_jetpack);
         torso.AddChild(pack);
+        torso.AddChild(_jetpack);
         torso.AddChild(chest);
         // The helmet turns at the neck.
         _helmet = new Node2D { Position = new Vector2(0, (float)-Rig.Neck) };
@@ -252,6 +260,16 @@ public partial class Figure : Node2D
 
     /// <summary>Where the harpoon held aims, in pixels of the world: the arm straight, the barrel's line through it; none to let it hang.</summary>
     public Vector2? Aim { get; set; }
+
+    /// <summary>Whether the hero wears a jetpack on its back (0047).</summary>
+    public bool Jetpack
+    {
+        get => _jetpack.Visible;
+        set => _jetpack.Visible = value;
+    }
+
+    /// <summary>The worn jetpack's nozzle as drawn, in pixels of the world; none without one.</summary>
+    public Vector2? Nozzle => _jetpack.Visible ? _jetpack.ToGlobal(NozzleAt) : null;
 
     /// <summary>Whether the harpoon held shows its rod in the barrel: ready to fire.</summary>
     public bool Loaded { get; set; } = true;

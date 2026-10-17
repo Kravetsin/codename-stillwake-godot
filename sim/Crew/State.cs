@@ -15,8 +15,12 @@ public sealed class Hero
     [JsonInclude] public int Out { get; internal set; }
     /// <summary>Its suit colour, of <c>Crew.Colours</c>: what tells heroes apart.</summary>
     [JsonInclude] public int Colour { get; internal set; }
-    /// <summary>Whether it runs or swims fast, as its client last said: it breathes <c>Crew.Exerted</c> a breath.</summary>
+    /// <summary>Whether it runs, as its client last said: it breathes <c>Crew.Exerted</c> a breath.</summary>
     [JsonInclude] public bool Exerting { get; internal set; }
+    /// <summary>Whether it thrusts with its jetpack, as its client last said, and wears one, awake: the suit pays <c>Jetpack.TicksPerUnit</c> ticks a unit.</summary>
+    [JsonInclude] public bool Thrusting { get; internal set; }
+    /// <summary>Ticks of thrust toward the next unit the suit pays, kept between bursts so short taps add up.</summary>
+    [JsonInclude] public int ThrustTicks { get; internal set; }
 }
 
 /// <summary>

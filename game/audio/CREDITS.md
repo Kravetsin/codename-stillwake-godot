@@ -23,6 +23,7 @@ released under CC0.
 | `building/screwdriver-4.wav` | Freesound, "Single_Ratchet (one of five)", https://freesound.org/people/CallFlan/sounds/495237/ | CallFlan | CC0 |
 | `building/screwdriver-5.wav` | Freesound, "Single_Ratchet (one of five)", https://freesound.org/people/CallFlan/sounds/495238/ | CallFlan | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |
+| `crew/breathe-1.ogg` | the first 0.7 s of `atmosphere/hiss-1.ogg`, faded out (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/harpoon-ready-1.wav` | Freesound, ".22 Bolt Action Long Rifle Rechambering" (0.95 s from its start), https://freesound.org/people/AlexCoover/sounds/706404/ | AlexCoover | CC0 |
 | `crew/harpoon-reel-1.ogg` | Freesound, "reeling.wav" (2.45 s, looped), https://freesound.org/people/BranndyBottle/sounds/464701/ | BranndyBottle | CC0 |
 | `crew/harpoon-shot-1.wav` | Freesound, "Dart/Arrow Trap." (0.85 s from its attack), https://freesound.org/people/jacobo1304/sounds/866990/ | jacobo1304 | CC0 |
