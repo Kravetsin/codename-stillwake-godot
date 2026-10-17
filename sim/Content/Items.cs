@@ -16,7 +16,7 @@ namespace Stillwake.Content;
 /// tool runs on. Only for a stack of one, and never in a cost, so paying with one never destroys its charge.
 /// </param>
 /// <param name="Draw">
-/// An electric tool: the power it draws while it works, as a machine draws (<see cref="Charge"/>), from the
+/// An electric tool: the power it draws every tick it runs, hitting or not, as a machine draws (<see cref="Charge"/>), from the
 /// belt's batteries. Held, the energy bar shows; its card shows the draw.
 /// </param>
 public sealed record ItemSpec(

@@ -405,12 +405,14 @@ public partial class HeroView : Node2D
         }
         if (swung.Hits)
             foreach (var hit in Aiming.HitsOf(m, client.Id, _current, _swing.At)) client.Send(hit);
-        // The drill: aimed at the pointer; held, it runs while a battery on the belt can pay for a hit, and hits
-        // every wreck its bit touches each Pace ticks. Flat, it winds down and does nothing.
+        // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
+        // its power every tick it runs (0055), and hits every wreck its bit touches each Pace ticks. Flat, it winds down.
         bool wieldsDrill = acts && drill && !working && Poses.HoldsIn(pose);
         _aimsDrill = wieldsDrill && pointer != null;
-        bool runs = _aimsDrill && !grabbed && !_grabHeld && _mouse.Buttons.HoldsLeft
-            && m.Items.CanDrain(client.Id, DebrisModule.Spent(Content.Weapons.Drill) ?? 0);
+        var running = Motor.Wanted(m.Items, client.Id, _aimsDrill ? Content.Weapons.Drill.Item : null, _mouse.Buttons.HoldsLeft, _grabHeld);
+        // Sent before this frame's hits, so the host applies the run first: a hit of the drill needs it.
+        if (Motor.RunOf(m.Items, client.Id, running) is { } run) client.Send(run);
+        bool runs = running != null;
         Drill(client, m, runs ? pointer : null);
         _figure.Spinning = runs;
         // Heard while its bit is on a piece the sim would let it hit, whatever the hits' pace.
@@ -559,9 +561,9 @@ public partial class HeroView : Node2D
             if (!axe) shown.Swing.Stop();
             shown.Swing.Follow(elapsedMs, axe ? chop : null);
             ShowHands(shown.Figure, seen.Wields, seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
-            // A friend's drill running points where it drills and spins; else it hangs, still.
+            // A friend's drill running points where it drills, else it hangs; it spins while the sim says it runs.
             shown.Figure.Aim = seen.Busy is { Work: Handwork.Drill, At: var drilled } ? Pixels(drilled) : null;
-            shown.Figure.Spinning = shown.Figure.Aim != null;
+            shown.Figure.Spinning = m.Items.Running(id) == Content.Weapons.Drill.Item;
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             var reeled = ReeledBy(pieces, id);
             // Its rod is out while the sim reels a piece by it; its shots, flights and hooks are not sent.

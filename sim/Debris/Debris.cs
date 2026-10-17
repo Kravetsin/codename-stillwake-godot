@@ -13,9 +13,9 @@ public sealed record Grab(int Piece) : Command;
 
 /// <summary>
 /// Strikes wreck <c>Piece</c> with weapon <c>Tool</c>, by its item: takes the weapon's <c>Damage</c> off its hit
-/// points, and at none left it breaks into its loot, floating where it was. An electric weapon spends its
-/// <c>Draw</c> for each tick of its <c>Pace</c> from the sender's belt first. Whether the sender holds it, and
-/// how often it strikes, is the client's word (0034, 0054).
+/// points, and at none left it breaks into its loot, floating where it was. An electric weapon hits only while
+/// the sender's hero runs it (<c>Run</c>), which pays for it by the tick (0055); the hit itself spends nothing.
+/// Whether the sender holds it, and how often it strikes, is the client's word (0034, 0054).
 /// </summary>
 public sealed record Hit(int Piece, string Tool) : Command;
 
@@ -51,7 +51,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         _held = held;
         _items = items;
         Handles<Grab>(c => GrabProblem(c.From, c.Piece), Apply);
-        Handles<Hit>(c => HitProblem(c.From, c.Piece, c.Tool), Apply);
+        Handles<Hit>(c => HitProblem(c.From, c.Piece, c.Tool) ?? NotRunning(c.From, c.Tool), Apply);
         Handles<Reel>(c => ReelProblem(c.From, c.Piece), Apply);
         // After derivation, like the air: the grid's size is that of this tick.
         System(Phase.Simulation, Drift);
@@ -83,19 +83,24 @@ public sealed partial class DebrisModule : Module<DebrisState>
     /// <summary>
     /// Why peer <paramref name="peer"/>'s hit of piece <paramref name="id"/> with weapon <paramref name="tool"/>
     /// would be refused: it is gone, the hero or the piece is not in space, it is no wreckage, or the weapon is
-    /// electric and no battery on the belt can pay for the hit. Any weapon breaks any wreck (0054).
+    /// electric and no battery on the belt can pay a tick of its draw. Any weapon breaks any wreck (0054). What
+    /// the client asks before it sends: the command is refused besides while an electric weapon is not running.
     /// </summary>
     public string? HitProblem(int peer, int id, string tool)
     {
-        var weapon = Content.Weapons.Of(tool) ?? throw new InvalidOperationException($"debris.hit: {tool} deals no damage");
+        if (Content.Weapons.Of(tool) == null) throw new InvalidOperationException($"debris.hit: {tool} deals no damage");
         return Reachable(peer, id, out var piece)
             ?? (Content.Wreckage.HpOf(piece!.Item) == null ? "debris.notWreckage"
-            : Spent(weapon) is int spent && !_held.CanDrain(peer, spent) ? "debris.flat"
+            : Content.Items.Get(tool).Draw is int draw && !_held.CanDrain(peer, draw) ? "debris.flat"
             : null);
     }
 
-    /// <summary>The power-ticks a hit of <paramref name="weapon"/> spends: its draw for each tick of its pace; none for one that is not electric.</summary>
-    public static int? Spent(Content.Weapon weapon) => Content.Items.Get(weapon.Item).Draw * weapon.Pace;
+    /// <summary>
+    /// <c>debris.notRunning</c> for an electric weapon <paramref name="tool"/> the hero of <paramref name="peer"/> is
+    /// not running: it hits only while its motor runs, paid by the tick (0055). The client sends its <c>Run</c> first.
+    /// </summary>
+    private string? NotRunning(int peer, string tool) =>
+        Content.Items.Get(tool).Draw != null && _held.Running(peer) != tool ? "debris.notRunning" : null;
 
     /// <summary>
     /// Why peer <paramref name="peer"/>'s reel of piece <paramref name="id"/> would be refused: it is gone,
@@ -159,10 +164,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         if (at < 0) throw new InvalidOperationException("debris.hit: applied to a piece that is gone");
         var piece = State.Pieces[at];
         int hp = Content.Wreckage.HpOf(piece.Item) ?? throw new InvalidOperationException("debris.hit: applied to no wreck");
-        var weapon = Content.Weapons.Of(c.Tool)!;
-        // Paid in the host's order, like the hit: a battery its validation saw able to pay still is.
-        if (Spent(weapon) is int spent && !_items.Drain(c.From, spent)) throw new InvalidOperationException("debris.hit: no battery paid");
-        piece.Damage += weapon.Damage;
+        piece.Damage += Content.Weapons.Of(c.Tool)!.Damage;
         if (piece.Damage < hp) return;
         State.Pieces.RemoveAt(at);
         // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.

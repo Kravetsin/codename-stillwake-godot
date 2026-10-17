@@ -15,7 +15,7 @@ public sealed partial class DebrisModule
         int piece = pieces.Count > 0 && rng.Below(4) != 0
             ? pieces[(int)rng.Below((uint)pieces.Count)].Id
             : (int)rng.Below((uint)State.NextId + 2);
-        // Struck with any weapon, the drill too, which pays from the belt or is refused flat.
+        // Struck with any weapon, the drill too, refused unless its sender runs it with charge (0055).
         if (kind == 0) return new Hit(piece, Content.Weapons.All[(int)rng.Below((uint)Content.Weapons.All.Count)].Item) { From = from };
         if (kind == 1) return new Grab(piece) { From = from };
         int width = _grid.Width * Unit, height = _grid.Height * Unit;

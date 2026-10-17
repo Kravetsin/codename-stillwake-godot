@@ -8,7 +8,8 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
 - **Depends on:** `Atmosphere` (`IAtmosphereOps`: its `Breathe` operation decides whether a cell's
   room has air and takes it); `Grid` (`IGridQueries.Width`, `Height` and `Zone`: where a cell is, for the pod's reach and the field); `Items`
   (`IItemsQueries.Equipped` and `ShortOf`, whether a hero wears a jetpack and carries a canister;
-  `IItemsOps.Take`, the canister breathed).
+  `IItemsOps.Take`, the canister breathed; `IItemsOps.StopRunning`, an electric tool stopped as its hero passes out
+  or leaves, 0055).
 - **State** (`CrewState`, members internal): `Spawn` — the hatch of the map's first lifepod
   (`Content.Crew.PodHatch` from its top-left), else the map's first `S`, or cell 0 on a map with
   neither; `Pod` — that lifepod's top-left cell, null without one (it is `Fixed`: it never moves); `Clock` — ticks run, for the breath beat; `Heroes` — by peer id, in id order: cell,
@@ -41,7 +42,8 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   no hero wears, or with all worn, the least worn (the first on a tie). `PickColour(Colour)` puts the
   sender's hero into a colour no other hero wears.
 - `Leave` takes the sender's hero out, its colour freed: the host sends it on behalf of a peer it
-  heard leave (`Host.Disconnect`'s farewell, which the game passes).
+  heard leave (`Host.Disconnect`'s farewell, which the game passes). Whatever electric tool it ran stops
+  (`StopRunning`): its inventory stays for its seat, and its belt would drain with no one at it.
 - `Exert(On)` says the sender's hero runs, or has stopped (its client no longer sends it for a swim, 0047); its client sends it when
   that changes, judging by its speed. Exerting, a hero breathes `Crew.Exerted` units a breath rather
   than one, from room air or the suit alike: stamina is the air it costs. What the air falls short
@@ -53,6 +55,10 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   its suit pays a unit, never below nothing, the ticks short of a unit kept between bursts so taps add
   up. One no longer wearing a jetpack stops thrusting; passing out stops it too, and a thrust landing on a
   hero out is cleared the same tick. The flight itself is the client's.
+- **Electric tools** ([0055](../../docs/decisions/0055-an-electric-tool-draws-while-it-runs.md)): a run belongs to
+  `Items`, which owns charge; crew only stops it (`StopRunning`) as a hero passes out and every tick it stays out, so
+  a `Run` landing on a hero out is stopped on its first tick. `Items` draws before crew in a tick, so that tick is
+  paid: a draw of 3 power-ticks, accepted.
 - **A canister breathed:** `Refill` takes one canister from the sender (through `Take`, so from its last
   stack, and none in creative mode) and adds `Crew.CanisterRefill` units to its suit, up to `Crew.Suit`:
   an absolute amount, so a bigger suit later still gets a canister's worth.

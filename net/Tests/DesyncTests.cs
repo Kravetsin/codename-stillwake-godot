@@ -156,8 +156,8 @@ public class DesyncTests
     [Fact]
     public void KeepsEveryClientInSyncWhileBatteriesChargeAndMoveBetweenBeltsAndAStation()
     {
-        // A panel out in space cabled to a charging station by the lifepod, each peer carrying batteries of
-        // every charge. The fuzz moves them onto belts, into the station, into crates and onto the floor, and
+        // A panel out in space cabled to a charging station by the lifepod, each peer carrying a drill and batteries of
+        // every charge. The fuzz runs the drills and moves the batteries onto belts, into the station, into crates and onto the floor, and
         // cuts the cables; the first client keeps the station cabled and, when it stands empty, fills it.
         var layout = Layout.Parse(
             ["PPP          ", "             ", "#############", "#.OOO.C.....#", "#.OOO.C.....#", "#.OOO.......#", "#############"],
@@ -172,14 +172,15 @@ public class DesyncTests
             {
                 var slots = new JsonArray();
                 for (int i = 0; i < Content.Inventory.Total; i++)
-                    slots.Add(i < 3 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = full / 2 * i } : null);
+                    slots.Add(i < 3 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = full / 2 * i }
+                        : i == 3 ? new JsonObject { ["item"] = "drill", ["count"] = 1 } : null);
                 inventories.Add(new JsonObject { ["id"] = peer, ["slots"] = slots });
             }
             root["slices"]!["items"]!["inventories"] = inventories;
             return root.ToJsonString();
         }
         var game = new Definition(() => new Registry().All, Stocked);
-        int rose = 0, worn = 0, inStation = 0, last = -1;
+        int rose = 0, worn = 0, inStation = 0, ran = 0, last = -1;
         var run = Desync.Fuzz(game, 11, layout: layout, ticks: 1500, tamper: (tick, clients) =>
         {
             var first = clients[0];
@@ -206,11 +207,16 @@ public class DesyncTests
             else last = -1;
             foreach (var client in clients)
                 if (items.BeltCharge(client.Id).Capacity > 0) worn++;
+            // And runs its drill now and then, which draws from its belt every tick it runs (0055).
+            if (tick % 40 == 0) first.Send(new Run("drill", true));
+            foreach (var client in clients)
+                if (items.Running(client.Id) != null) ran++;
         });
         Assert.Null(run.Desync);
         Assert.True(inStation > 100, $"a battery stood in the station on {inStation} ticks");
         Assert.True(rose > 50, $"a battery charged on {rose} ticks");
         Assert.True(worn > 100, $"a battery was worn on {worn} ticks");
+        Assert.True(ran > 100, $"a drill ran on {ran} ticks");
     }
 
     // The harness itself.

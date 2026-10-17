@@ -22,6 +22,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `UsePrompt.cs`     | the prompt at the bottom middle, red with the reason when refused (`CrewPanel.tsx`'s `UsePrompt`) | yes   |
 | `Tether.cs`        | the tether as drawn, a reeled rope (`tether.ts`) on `game/render/Rope.cs` (`rope.ts`)   | no    |
 | `DrillPace.cs`     | when the drill hits, on the world's ticks: the tick it starts, then every `Pace` ticks while it runs, no burst after a stall (0054) | no    |
+| `Motor.cs`         | an electric tool in the hand (0055): what this client wants it to run (`Wanted`) and the `Run` sent while the sim differs (`RunOf`) | no    |
 | `Remote.cs`        | `Seen` with its hands (`Busy`, `Handwork`), `SentHero` (and its wire string), `RemoteHeroes`, `HeroSender` (`remote.ts`)     | no    |
 | `Suits.cs`         | the suit colours, `Suits.Of`, their shades and the colour the PNGs are drawn in (`suits.ts`, `art.ts`) | no |
 | `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`) | yes |
@@ -77,8 +78,8 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
 - Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe held and swinging
   toward its point, the screwdriver turning at the plan, a beam once to the cell sent (`Busy.BeamsAnew`), the harpoon
   hanging, empty while the sim reels a piece by that hero (`Reel.By`), with a taut line from its muzzle
-  to the edge of that piece; its shots, flights and hooks are not sent (0044); the drill aimed at its point and
-  spinning while it runs (`Handwork.Drill`), else hanging still. Taken
+  to the edge of that piece; its shots, flights and hooks are not sent (0044); the drill aimed at its point while it runs
+  (`Handwork.Drill`), else hanging, and spinning while the sim says that hero runs it (`IItemsQueries.Running`, 0055). Taken
   from the sample at or before the moment drawn, never between two; but the axe swings once for each
   swing number as it is heard, not 150 ms behind (`AxeSwing.Follow`, 0038), toward the point sent with
   that number, the last chop heard kept while its hands are idle (`Busy.Chopping`, 0039), so its blade
@@ -247,8 +248,11 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
 - **The drill (0054):** with `Ui.Wielded` the drill, the arm aims it as it aims the harpoon, the bit's line
   through the pointer (`HarpoonShot.ArmFor`), the hero facing it; the figure holds it as a pistol by its handle
   (`HeldLook.Drill`, `art/hero_drill.png`, its bit the edge, `Aimed`). Held on the left button (not a hold begun
-  by a grab), it **runs** while the belt can pay a hit (`IItemsQueries.CanDrain` of `DebrisModule.Spent`, always
-  in creative mode): its bit spins, the picture flipping with `hero_drill_spin.png` (`Figure.Spinning`, up in
+  by a grab), it **runs** while the belt can pay a tick of its draw (`IItemsQueries.CanDrain` of its `Draw`, always
+  in creative mode), aboard or at nothing too (`Motor.Wanted`, 0055): the client sends `Run(drill, On)` every frame
+  till the sim runs it, and `Run(drill, Off)` every frame till it stops once let go, put away, passed out or flat
+  (`Motor.RunOf`, as `Thrust`), the run before the frame's hits; the sim draws its power every tick it runs, so the
+  energy bar falls while it runs at nothing. Its bit spins, the picture flipping with `hero_drill_spin.png` (`Figure.Spinning`, up in
   120 ms, winding down over 700 ms once it stops), and on the tick it starts and every `Weapons.Drill.Pace`
   ticks after (`DrillPace`) it sends a `Hit(Piece, "drill")` for each wreck its bit touches that the sim would
   take: the bit's segment, held as the figure draws it from the shoulder of the body upright, against each
@@ -257,7 +261,8 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
   and sends nothing; aboard it spins and touches nothing. The energy bar shows while it is held (0053). Every
   weapon works on every wreck alike: the axe chops an asteroid as any wreck, the drill bores a hull section.
   Heard while its bit works on a piece: 18 short strikes a second at the bit, each its own pitch and
-  loudness (`StrikeTrain`, `features/sound`), silent the moment it stops.
+  loudness (`StrikeTrain`, `features/sound`), silent the moment it stops. Running free it makes no sound yet: a
+  motor's whir waits for the user's audition.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - Door and valve prompts read them as shown (`Shared.Predicted.Grid`), as `promptOf`'s `shown` did:

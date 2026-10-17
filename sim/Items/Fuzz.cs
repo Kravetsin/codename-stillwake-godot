@@ -9,12 +9,13 @@ public sealed partial class ItemsModule
     /// now and then from an empty slot, a slot out of range, a crate that is not there, or onto a full
     /// or other stack, or into an equipment slot that does not wear it, so every refusal is drawn too; now
     /// and then a battery into a charging station or onto the belt (<see cref="ToStationOrBelt"/>).
-    /// Creative mode switches now and then, mostly off. Now and then a drop onto a cell, off the grid
+    /// Creative mode switches now and then, mostly off; now and then a run of an electric tool (<see cref="RunOrStop"/>). Now and then a drop onto a cell, off the grid
     /// too, or a pick-up of a stack on the floor or of one long gone.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         if (rng.Below(10) == 0) return new SetCreative(rng.Below(4) == 0) { From = from };
+        if (rng.Below(10) == 0) return RunOrStop(rng, from);
         var own = State.Inventories.Find(h => h.Id == from)?.Slots;
         // Mostly a machine that holds something; the wreck's other machines and missing ids otherwise.
         int AnyCrate() => State.Crates.Count > 0 && rng.Below(4) != 0
@@ -57,6 +58,20 @@ public sealed partial class ItemsModule
             return new PickUp(pick) { From = from };
         }
         return new Move(src, dst, count) { From = from };
+    }
+
+    private static readonly ItemSpec[] Electric = [.. Content.Items.All.Where(i => i.Draw != null)];
+
+    /// <summary>
+    /// A run of an electric item turned on, mostly, or off; now and then of any item, so <c>items.notElectric</c> is
+    /// drawn. Turning on is refused <c>items.notHeld</c> by a sender carrying none and <c>items.flat</c> by one whose
+    /// belt cannot pay; taken, it drains the belt every tick till it is turned off or the belt is flat.
+    /// </summary>
+    private static Run RunOrStop(Rng rng, int from)
+    {
+        var all = Content.Items.All;
+        string item = rng.Below(6) == 0 ? all[(int)rng.Below((uint)all.Count)].Id : Electric[(int)rng.Below((uint)Electric.Length)].Id;
+        return new Run(item, rng.Below(3) != 0) { From = from };
     }
 
     /// <summary>

@@ -11,7 +11,8 @@ mode, the world setting in which nothing is ever taken
 - **State:** `Inventories` — those changed at least once, by peer id in id order; `Crates` — the
   machines holding something, by machine id in id order; `Creative`; `Floor` — stacks lying about
   (`FloorStack`: id, item, count, charge, cell, x, y, vx, vy, by, at) in id order, with `NextFloorId`;
-  `Ticks`, the module's own clock. All saved, as sorted lists; nothing is derived.
+  `Ticks`, the module's own clock; `Running` — the electric tools heroes run (`Runner`: peer, item), at most one a
+  peer, in peer order (0055). All saved, as sorted lists; nothing is derived.
 - **Files:** `Stacks.cs` — the rules below, on slots; `Floor.cs` — stacks on the floor; `Items.cs` —
   the module, its commands and interfaces; `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
 - **Start:** every inventory and every machine empty: what a hero has, it caught, smelted and crafted.
@@ -59,8 +60,17 @@ mode, the world setting in which nothing is ever taken
     leave anything else in it, put or swapped in, is refused with `items.notBattery` (`Stacks.Unfit`).
 - **Charge** is filled at a charging station by `Power`, through `Charge(id, amount)`, never past full,
   and spent from the belt by an electric tool through `Drain(peer, amount)`, `amount` in power-ticks (a
-  tool's `Draw` for the ticks of its work, the drill's 3 for each of a hit's 2, 0054): the first battery on the belt, in slot order, holding at least that pays it whole, so the belt drains left to right; false
+  running tool's `Draw` for a tick, the drill's 3, 0055): the first battery on the belt, in slot order, holding at least that pays it whole, so the belt drains left to right; false
   when none can. In creative mode nothing is taken and it answers true.
+- **Running an electric tool** (0055): `Run(Item, On)` says the sender's hero runs an item with a `Draw` it carries,
+  in any slot (which one is in hand is the client's word), or has stopped; its client sends it while its own run
+  differs from the sim's, as `Thrust` is. A hero runs one thing: on replaces what it ran, off stops whatever it runs.
+  Every tick, before the floor settles, each run in peer order draws its item's `Draw` through `Drain`, touching
+  anything or nothing; one whose belt cannot pay the tick, or whose item its peer no longer carries, stops by itself,
+  so a run never outlives a belt that cannot pay. The draw is whole power-ticks a tick, so nothing is left over to
+  carry. Creative mode draws nothing and never stops a run for want of charge. `Crew` stops a run as its hero passes
+  out and while it stays out, and as it leaves (`StopRunning`). `Debris` takes an electric weapon's hit only while
+  its sender runs it; the hit itself spends nothing.
 - A change of nothing (a cost of zeros) changes nothing and stores no inventory; a machine emptied
   loses its entry.
 - In creative mode nothing is taken; giving still gives: what is taken apart is still there.
@@ -95,7 +105,9 @@ counted twice.
   peer carries in its own slots, in the order first found; `Equipped(peer, item)` — whether it wears that
   item in an equipment slot (crew reads the jetpack so); `BeltCharge(peer)` — what the batteries on its belt
   hold, summed, and what they would hold full: the energy bar; `CanDrain(peer, amount)` — whether `Drain`
-  would take that many power-ticks now, always in creative mode: `Debris` refusing the drill `debris.flat`; `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
+  would take that many power-ticks now, always in creative mode: `Debris` refusing the drill `debris.flat`, and
+  the client's drill; `Running(peer)` — the electric item that peer's hero runs, or null: `Debris` taking its hits,
+  the client comparing its own run and drawing others' drills spinning; `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
   mode; `FullFor(peer, cost)` — `items.full` when `cost` does not fit, creative mode or not. A caller
   refuses with these keys. `AfterMoves(peer, moves)` — copies of the peer's inventory and of the
   machines the `Move`s and `Drop`s touch, as the commands would leave them, refused ones skipped: what
@@ -117,7 +129,8 @@ counted twice.
   broken wreck held. `Charge(id, amount)` — adds up to
   `amount` of charge, stored in thousandths of a power-tick, to what machine `id`'s first slot holds, never past its capacity: `Power`'s
   charging station; it throws for a slot holding nothing with a capacity. `Drain(peer, amount)` — takes
-  `amount` power-ticks from the first belt battery that holds that much, as above: `Debris`'s drill paying a hit.
+  `amount` power-ticks from the first belt battery that holds that much, as above: a run's tick. `StopRunning(peer)` —
+  stops whatever that peer's hero runs: `Crew`, as the hero passes out or leaves.
 - **Commands:** `SetCreative(On)`, from the dev panel, with no refusals.
   `Move(Src, Dst, Count)` — `Src` a `Place(Slot, Crate?)`, `Dst` a `Target(Slot?, Crate?)`, no crate
   meaning the sender's inventory; refused with `items.noCrate` (a side names no machine holding
@@ -128,7 +141,9 @@ counted twice.
   `Drop(Src, Count, Cell, Facing)` — throws up to `Count` from a slot from `Cell`, the sender's as its
   client reports it; refused with `items.noCrate`, `items.noSlot`, `items.empty` or `items.noCell`.
   `PickUp(Id)` — refused with `items.gone`, `items.tooSoon` or `items.full` (none of it fits).
-
+  `Run(Item, On)` — refused with `items.notElectric` (the item has no `Draw`, on or off), and turning on with
+  `items.notHeld` (the sender carries none) or `items.flat` (no belt battery holds a tick of its draw; never in
+  creative mode). Off with nothing running is no refusal.
 Tests put items into an inventory with `GiveItems`, onto a hero with `Wear`, into a machine with `FillCrate` and a
 stack holding charge into any slot with `Put`, from
 `sim/Tests/ItemsTesting.cs`.
@@ -142,6 +157,8 @@ stack holding charge into any slot with `Put`, from
 - Every stack on the floor holds from 1 to its item's limit.
 - Charge is between 0 and the item's capacity, and only on items with one, a stack of one; moves, drops
   and pick-ups keep every item's total and the total charge (`ChargeTests`, FsCheck).
+- A run draws exactly its `Draw` a tick it goes on, and one its belt cannot pay stops that tick, paying nothing;
+  charge never goes below nothing; a peer runs only what it carries (`RunTests`, FsCheck).
 - A machine has an entry only while it holds something; `building` takes a crate apart only empty.
 
 ## Deliberately not handled
@@ -156,6 +173,12 @@ stack holding charge into any slot with `Put`, from
 - A stale pick at a shared crate moves whatever is in the slot by the time it applies.
 - Who may switch creative mode: anyone; it is a dev panel switch among friends.
 - A battery's charge never leaks, in a crate, on the floor or on a belt: only a tool spends it.
+- A `Run` landing on a hero already passed out pays one tick before `Crew` stops it: items run before crew in a
+  tick, and the client of a hero out sends none of its own; 3 power-ticks, accepted.
+- What is left in a battery short of a tick's draw stays there until it is charged: one battery pays a tick whole
+  (0053), and a run moves on to the next.
+- A run needs no hero: a peer whose hero has not come in yet may run what it carries; nothing a player does sends
+  one before its first `Enter`.
 - `Drain` in creative mode answers true with no battery worn: nothing is ever taken there, and refusing
   a tool for want of a battery would be the only payment creative mode still asks for.
 - The desync fuzz never fills an inventory with refunds, so `items.full` from building is proven by
