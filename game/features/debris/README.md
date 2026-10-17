@@ -62,7 +62,7 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   it is fired into the ceiling, the hero pulled up and hanging, D lets go; then the same into the far wall.
 - **Recording:** `-- --asteroid` (`AsteroidDemo`): the big world, the hero in the asteroid band above the hull
   with a jetpack, the drill on the first slot, the axe on the second and one battery on the belt half full; two
-  asteroids all but still either side of it. The drill bores the right one till it breaks into rock (12 s),
+  asteroids held still either side of it, and a canister breathed when the suit runs half empty. The drill bores the right one till it breaks into rock (12 s),
   then the left one till the belt is flat and the drill winds down, red "Batteries flat"; then the axe chops
   that one till it breaks (0054). `--manual` leaves the script off.
 - **Recording:** `-- --wreck` (`WreckDemo`): the hero floating in space, a fire axe in its second
