@@ -67,6 +67,7 @@ public partial class FabricatorPanel : CanvasLayer
     private readonly Func<int, Color> _suitOf;
     private readonly GridContainer _recipes = Grid(), _queue = Grid(), _outputs = Grid();
     private readonly Label _opened = new() { LabelSettings = AsideText };
+    private Label _name = null!;
     private readonly FabricatorScreen _screen = new() { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
     private PanelContainer _panel = null!;
     /// <summary>The slots, each saying what it is in the one tooltip.</summary>
@@ -102,8 +103,9 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>A slot that answers the pointer, and the box it is drawn with when the pointer is elsewhere.</summary>
     private sealed record Cell(Panel Box, StyleBoxFlat Rest, StyleBoxFlat Hover, string? Craft);
 
-    /// <summary>The pod open beside the inventory: the machine E opened, while it crafts and the inventory is shown.</summary>
-    private int? Pod => _ui.InventoryEdge.Get() != null && _ui.OpenCrate.Get() is int id && _crafting?.Crafts(id) == true ? id : null;
+    /// <summary>The queued station open beside the inventory: the machine E opened, while it is one and the inventory is shown.</summary>
+    private (int Id, Content.Station Station)? Open =>
+        _ui.InventoryEdge.Get() != null && _ui.OpenCrate.Get() is int id && _crafting?.StationOf(id) is { Fed: false } station ? (id, station) : null;
 
     /// <summary>Whether the panel shows, and what its screen shows: what a recording checks.</summary>
     public (bool Shown, Doing Doing) Shown => (_panel.Visible, _screen.Doing);
@@ -117,7 +119,7 @@ public partial class FabricatorPanel : CanvasLayer
         Layer = ScreenLayers.Hud;
         var column = Style.Gap(new VBoxContainer(), 6);
         var head = Style.Gap(new HBoxContainer(), 8);
-        var name = new Label { Text = T("fabricator.name"), LabelSettings = NameText, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, VerticalAlignment = VerticalAlignment.Center };
+        var name = _name = new Label { LabelSettings = NameText, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, VerticalAlignment = VerticalAlignment.Center };
         head.AddChild(name);
         head.AddChild(_screen);
         column.AddChild(head);
@@ -175,7 +177,7 @@ public partial class FabricatorPanel : CanvasLayer
     private void Dock()
     {
         var edge = _ui.InventoryEdge.Get();
-        bool shown = Pod != null;
+        bool shown = Open != null;
         _panel.Visible = shown;
         if (shown && edge is var (right, top)) _panel.Position = new Vector2(right + Gap, top);
         if (!shown) _tips.Show(null);
@@ -185,7 +187,7 @@ public partial class FabricatorPanel : CanvasLayer
     private void Read()
     {
         _sinceRead = 0;
-        if (Pod is not int pod || _client == null || _crafting == null || _research == null || _items == null) return;
+        if (Open is not var (pod, station) || _client == null || _crafting == null || _research == null || _items == null) return;
         int peer = _client.Id;
         _carried = _items.Totals(peer);
         _creative = _items.Creative;
@@ -200,7 +202,7 @@ public partial class FabricatorPanel : CanvasLayer
         if (key != _shownKey)
         {
             _shownKey = key;
-            Build(pod, queue, outputs);
+            Build(pod, station, queue, outputs);
         }
         if (_fill != null && queue.Count > 0) Fill(_fill, Crafts.Share(queue[0].Recipe, progress));
         _screen.Doing = Crafts.DoingOf(queue, progress);
@@ -214,7 +216,7 @@ public partial class FabricatorPanel : CanvasLayer
         Read();
     }
 
-    private void Build(int pod, IReadOnlyList<Entry> queue, IReadOnlyList<Stack?> outputs)
+    private void Build(int pod, Content.Station station, IReadOnlyList<Entry> queue, IReadOnlyList<Stack?> outputs)
     {
         foreach (var box in (Container[])[_recipes, _queue, _outputs])
             foreach (var old in box.GetChildren())
@@ -226,10 +228,12 @@ public partial class FabricatorPanel : CanvasLayer
         _cells.Clear();
         _tips.Clear();
 
-        foreach (var place in Crafts.Places) _recipes.AddChild(place is { } craft ? RecipeSlot(pod, craft) : EmptySlot());
-        int opened = Content.Crafts.All.Count(c => _research!.Knows(c.Item));
-        _opened.Text = T("crafts.opened", ("n", opened), ("all", Content.Crafts.All.Count));
-        for (int i = 0; i < Content.Crafting.QueueMost; i++)
+        _name.Text = T($"station.{station.Machine}");
+        var places = Crafts.Places(station);
+        foreach (var place in places) _recipes.AddChild(place is { } craft ? RecipeSlot(pod, station, craft) : EmptySlot());
+        var crafts = places.OfType<string>().ToList();
+        _opened.Text = T("crafts.opened", ("n", crafts.Count(_research!.Knows)), ("all", crafts.Count));
+        for (int i = 0; i < station.QueueMost; i++)
             _queue.AddChild(i < queue.Count ? EntrySlot(pod, queue[i], i == 0) : EmptySlot());
         for (int i = 0; i < outputs.Count; i++)
             _outputs.AddChild(outputs[i] is { } stack ? OutputSlot(pod, i, stack) : EmptySlot());
@@ -237,7 +241,7 @@ public partial class FabricatorPanel : CanvasLayer
     }
 
     /// <summary>A recipe in its place: as it looks now, its cost in the tip; a click queues it or goes to what it is short of.</summary>
-    private Panel RecipeSlot(int pod, string craft)
+    private Panel RecipeSlot(int pod, Content.Station station, string craft)
     {
         var look = LookOf(craft);
         var box = Box();
@@ -247,7 +251,7 @@ public partial class FabricatorPanel : CanvasLayer
         Add(look == Look.Locked ? new Cell(box, Dark, DarkHover, craft)
             : ItemCards.IsTool(craft) ? new Cell(box, ToolFilled, ToolHover, craft)
             : new Cell(box, Filled, FilledHover, craft));
-        _tips.Add(box, () => TipOf(craft));
+        _tips.Add(box, () => TipOf(craft, station));
         box.GuiInput += e =>
         {
             if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press) return;
@@ -267,10 +271,10 @@ public partial class FabricatorPanel : CanvasLayer
     }
 
     /// <summary>A recipe's tip: its item's card with the craft block (<see cref="Crafts.Block"/>); a closed one, what opens it.</summary>
-    private Tip TipOf(string craft)
+    private Tip TipOf(string craft, Content.Station station)
     {
         if (_research?.Knows(craft) != true) return new Tip("???", new TipLine(T("crafts.notOpened"), Tone.Unknown));
-        return CardTip(craft, Crafts.Block(craft, _carried, _creative));
+        return CardTip(craft, Crafts.Block(craft, station, _carried, _creative));
     }
 
     /// <summary>The card of <paramref name="item"/> with what this station adds, its band as a slot's "?".</summary>
@@ -323,7 +327,7 @@ public partial class FabricatorPanel : CanvasLayer
         return box;
     }
 
-    /// <summary>What the pod made, in an output slot: a click takes the stack into the inventory.</summary>
+    /// <summary>What the station made, in an output slot: a click takes the stack into the inventory.</summary>
     private Panel OutputSlot(int pod, int slot, Stack stack)
     {
         var box = Box();

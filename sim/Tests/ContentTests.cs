@@ -674,27 +674,57 @@ public class ContentTests
         foreach (var id in Content.Research.StartKnown) Assert.Contains(id, names);
     }
 
-    // Crafts
+    // Crafts and stations
 
     [Fact]
-    public void EveryCraftHasOnePlaceInTheFabricatorAndEveryPlaceIsACraft()
+    public void TheFabricatorMakesEveryCraftAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        var placed = Crafts.Rows.SelectMany(row => row).ToList();
-        Assert.Equal(Crafts.All.Select(c => c.Item).Order(StringComparer.Ordinal), placed.Order(StringComparer.Ordinal));
-        foreach (var row in Crafts.Rows) Assert.InRange(row.Count, 1, Crafts.RowMost);
+        Assert.Equal(Crafts.All.Select(c => c.Item).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        foreach (var station in Stations.All.Where(s => !s.Fed))
+        {
+            var placed = station.Rows.SelectMany(row => row).ToList();
+            Assert.Equal(placed.Count, placed.Distinct().Count());
+            Assert.All(placed, craft => Assert.True(Crafts.TryGet(craft, out _), $"{station.Machine} lays out {craft}"));
+            foreach (var row in station.Rows) Assert.InRange(row.Count, 1, Stations.RowMost);
+        }
     }
 
+    /// <summary>
+    /// A queued station only gives out what it makes, with a queue; a fed one takes into its input and
+    /// smelts at some heat; each has one energy at most, a machine's, and works every unit and smelt in whole
+    /// ticks at full share.
+    /// </summary>
     [Fact]
-    public void CraftsAtThePodAtAShareOfFullSpeedEveryUnitInWholeTicks()
+    public void StationsAreMachinesQueuedOrFedEachWorkingInWholeTicks()
     {
-        Assert.InRange(Crafts.PodSpeed, 1, 1000);
-        foreach (var craft in Crafts.All) Assert.Equal(0, craft.Ticks * 1000 % Crafts.PodSpeed);
+        Assert.Equal(Stations.All.Count, Stations.All.Select(s => s.Machine).Distinct().Count());
+        foreach (var station in Stations.All)
+        {
+            Assert.True(Machines.TryGet(station.Machine, out var spec), station.Machine);
+            Assert.NotNull(spec!.Slots);
+            Assert.False(spec.Draws != null && spec.FuelSlot != null, station.Machine);
+            Assert.True(station.Speed > 0, station.Machine);
+            if (station.Fed)
+            {
+                Assert.Equal((0, 0), (station.QueueMost, station.Rows.Count));
+                Assert.True(spec.Inputs >= 1, station.Machine);
+                foreach (var item in Content.Items.All.Where(i => i.SmeltTicks != null))
+                    Assert.Equal(0, item.SmeltTicks!.Value * 1000 % station.Speed);
+            }
+            else
+            {
+                Assert.True(station.QueueMost > 0, station.Machine);
+                Assert.Equal(0, spec.Inputs);
+                foreach (var craft in station.Rows.SelectMany(r => r)) Assert.Equal(0, Crafts.Get(craft).Ticks * 1000 % station.Speed);
+            }
+        }
+        Assert.All(Content.Items.All, i => Assert.True(i.Heat > 0, i.Id));
+        Assert.InRange(Stations.Get("lifepod").Speed, 1, 1000);
     }
 
     [Fact]
     public void CraftsMakeItemsOfWholeUnitsOfOtherRealItemsInWholeTicks()
     {
-        Assert.True(Content.Crafting.QueueMost > 0);
         foreach (var craft in Crafts.All)
         {
             Assert.True(Content.Items.TryGet(craft.Item, out _), craft.Item);
@@ -744,29 +774,61 @@ public class ContentTests
     }
 
     /// <summary>
-    /// Under the opening rule (0027), from what the wreck grants: what is caught, smelted or crafted is
-    /// analysed, which opens crafts, which make more to analyse; every craft and blueprint opens so.
+    /// What the wreck can come to, walking stations (0057): an item is reachable when it is salvage — what any
+    /// zone's debris is or breaks into — or made at a reachable station from reachable items: crafted at a queued
+    /// one that lays it out, smelted at a fed one hot enough. A station is reachable when it is built into the ship,
+    /// or its blueprint is known and its cost reachable; under the opening rule (0027) a blueprint or craft is
+    /// known when granted or when every item of its cost is reachable, and so analysed.
     /// </summary>
-    [Fact]
-    public void EveryCraftAndBlueprintOpensFromTheWrecksStartByAnalysingWhatIsCaughtSmeltedOrCrafted()
+    private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations)
     {
         var had = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var (item, _) in DebrisSpec.Kinds)
-            foreach (var got in Loot.Of(item)?.Select(e => e.Item) ?? [item]) had.Add(got);
+        foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds))
+        {
+            had.Add(item);
+            foreach (var entry in Loot.Of(item) ?? []) had.Add(entry.Item);
+        }
         var known = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost))
             .Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost))).ToList();
+        var built = new HashSet<string>(StringComparer.Ordinal);
         for (bool more = true; more;)
         {
             more = false;
-            foreach (var item in Content.Items.All.Where(i => had.Contains(i.Id)).SelectMany(i => i.Yields ?? []).ToList())
-                more |= had.Add(item.Item);
-            foreach (var (id, cost) in recipes.Where(r => !known.Contains(r.Id) && r.Cost.All(c => had.Contains(c.Item))))
+            foreach (var (id, _) in recipes.Where(r => !known.Contains(r.Id) && r.Cost.All(c => had.Contains(c.Item))))
                 more |= known.Add(id);
-            foreach (var craft in Crafts.All.Where(c => known.Contains(c.Item)))
-                more |= had.Add(craft.Item);
+            foreach (var station in stations)
+            {
+                var spec = Machines.Get(station.Machine);
+                if (spec.Fixed || (known.Contains(station.Machine) && spec.Cost.All(c => had.Contains(c.Item))))
+                    more |= built.Add(station.Machine);
+            }
+            foreach (var station in stations.Where(s => built.Contains(s.Machine)))
+            {
+                var made = station.Fed
+                    ? Content.Items.All.Where(i => had.Contains(i.Id) && i.Yields != null && i.Heat <= station.Heat).SelectMany(i => i.Yields!).Select(y => y.Item)
+                    : station.Rows.SelectMany(r => r).Where(c => known.Contains(c) && Crafts.Get(c).Cost.All(p => had.Contains(p.Item)));
+                foreach (var item in made.ToList()) more |= had.Add(item);
+            }
         }
-        Assert.Equal([], recipes.Select(r => r.Id).Where(id => !known.Contains(id)).ToArray());
+        return (had, known);
+    }
+
+    /// <summary>Every craft and blueprint opens from the wreck's start, by analysing what is caught or made at its stations.</summary>
+    [Fact]
+    public void EveryCraftAndBlueprintOpensFromTheWrecksStartByAnalysingWhatItsStationsMake()
+    {
+        var (_, known) = Reachable(Stations.All);
+        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item));
+        Assert.Equal([], recipes.Where(id => !known.Contains(id)).ToArray());
+    }
+
+    /// <summary>The invariant: every item there is can be had from the wreck, caught or made at a station reachable.</summary>
+    [Fact]
+    public void EveryItemIsReachableFromTheWreck()
+    {
+        var (had, _) = Reachable(Stations.All);
+        Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id)).ToArray());
     }
 
     [Fact]

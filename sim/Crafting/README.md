@@ -1,79 +1,109 @@
 # Crafting
 
-Making parts by machine only ([0028](../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)):
-each crafting machine's queue, shared by the crew, paid when queued, made one unit at a time into the
-machine's outputs. Today the one crafting machine is the lifepod's Fabricator. A module of its own
-rather than part of `Items`: it asks `Research` what is known, and research depends on items.
+Stations ([0057](../../docs/decisions/0057-stations-one-model-for-every-crafting-machine.md)): every
+crafting machine on one model. A **queued** station (the lifepod's Fabricator) makes crafts from a queue
+shared by the crew, paid when queued, one unit at a time into its outputs
+([0028](../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)); a **fed** station (the
+furnace) smelts what its input holds into that item's yields. A module of its own rather than part of
+`Items`: it asks `Research` what is known, and research depends on items.
 
-- **Depends on:** `Grid` (`IGridQueries.MachineById`: which machines craft), `Items` (`IItemsQueries`:
-  `ShortOf`, `FullFor`, `OutputFull`; `IItemsOps`: `Take`, `Give`, `Output`), `Research`
-  (`IResearchQueries.Knows`).
-- **State** (`CraftingState`, members internal): `Queues` — each machine's ever crafted at, in machine
-  id order: `Machine`, `Next` (the id the next entry gets), `Progress` (work on the first entry's unit,
-  in thousandths of a tick at full speed) and `Entries`, each an `Entry(Id, Recipe, Count, By)` in the
+- **Depends on:** `Grid` (`IGridQueries`: `Machines`, `MachineById`: which machines are stations),
+  `Items` (`IItemsQueries`: `Crate`, `CanSmelt`, `ShortOf`, `FullFor`, `OutputFull`; `IItemsOps`: `Take`,
+  `Give`, `Output`, `Smelt`), `Research` (`IResearchQueries.Knows`), `Power` (`IPowerQueries.Satisfaction`,
+  a powered station's share; `IPowerOps.Rest`, an idle one draws nothing).
+- **Depended on by:** `Building` (`ICraftingQueries.Queue`: a station with crafts queued is not taken
+  apart), `Furnace` (`ICraftingQueries.CanSmelt`, `Progress`: what lights a furnace's fire and what its
+  panel shows; `ICraftingOps.Heat`: a furnace's fire burns this tick).
+- **State** (`CraftingState`, members internal): `Queues` — each queued station's ever crafted at, in
+  machine id order: `Machine`, `Next` (the id the next entry gets), `Progress` (work on the first entry's
+  unit, in thousandths of a tick at full speed) and `Entries`, each an `Entry(Id, Recipe, Count, By)` in the
   order queued, `Count` the units left, the one at work included, `By` the peer that queued it. A queue
-  that empties is kept, so its ids keep counting. Saved; nothing is derived.
-- **Files:** `Crafting.cs` — the module, its commands and system; `State.cs` — its slice and
-  `Entry`; `Fuzz.cs` — its fuzz generator.
-- **Runs** after `Building` in `Registry.All`.
+  that empties is kept, so its ids keep counting. `Smelts` — each fed station part-way through what its
+  input holds, `Smelt(Machine, Item, Progress)` in machine id order, its work in thousandths of a tick.
+  Both saved. Derived: `Heated`, the fed stations whose fire burns this tick, told by `Furnace` in the
+  construction phase and cleared once crafting has worked, so empty between ticks; never saved.
+- **Files:** `Crafting.cs` — the module, its commands, system and interfaces; `State.cs` — its slice,
+  `Entry` and `Smelt`; `Fuzz.cs` — its fuzz generator.
+- **Runs** after `Research` and before `Building` in `Registry.All`.
 
 ## Rules
 
-- A craft is named by the item it makes and costs, a unit, what `Content.Crafts` says; a unit takes
-  its `Ticks` × 1000 of work. Crafts come in layers: parts of materials (wire, plate, gear, tube),
-  components of parts (rotor, frame, coil), and products, tools as builds, of either (0046). Electronics need
-  circuits besides, salvaged from cable racks until silicon makes them: the battery one, the drill two; the
-  charging station, a build, one.
-- A machine crafts when it is a lifepod: every craft is the pod's while it is the only crafting
-  machine (principle 2). It needs no power and no air.
-- The pod is the most basic bench, slow on purpose: a wire takes 5 s there, a plate 10, a rotor 15, a
-  frame 20, the harpoon 30, while the hero is out salvaging. Machines for parts (a former and the
-  like), faster and with longer queues, are planned
-  ([0046](../../docs/decisions/0046-recipes-show-what-a-thing-is-made-of.md)).
-- `Craft(Machine, Recipe, Count)` takes the cost of all `Count` units from the sender at once (nothing
-  in creative mode) and adds an entry, by the sender, at the end of that machine's queue, with the
-  queue's next id. Refused with `crafting.noStation` (no crafting machine by that id),
-  `crafting.unknown` (no craft makes it, or it is not known), `crafting.full` (the queue holds
-  `Content.Crafting.QueueMost` entries, whoever queued them) or `items.notEnough`; refused whole,
-  nothing is queued.
-- `Cancel(Machine, Entry)` takes the entry of that id off the machine's queue, whoever queued it, and
-  gives the sender the cost of its units left, the one at work included, as content prices them now.
-  Refused with `crafting.noStation`, `crafting.noEntry` (no such entry: never queued, or finished) or
-  `items.full` (the refund does not fit). The first entry cancelled, the next starts from nothing.
-- Each tick, in the simulation phase, in machine order, each queue's first entry adds
-  `Content.Crafts.PodSpeed` (200, a fifth of full speed) to its progress, at most its work; at its
-  work one unit goes into the machine's outputs (`IItemsOps.Output`: its slots past its inputs, all
-  three of the pod's) and the next starts. With no room there the unit waits, its progress at its
-  work, counting no more, until a slot is taken from. The queue runs whoever is near.
+- **A station** is a machine with an entry in `Content.Stations`: its `Speed` in thousandths of full
+  speed, its `QueueMost`, its `Rows` (what a queued one makes, as its panel lays them out) and its `Heat`
+  (a fed one's; above 0 makes it fed). `StationOf` is the one place these are read, so a machine upgrade
+  folds in there. Its slots are its machine's (`MachineSpec.Slots`, `Inputs`), read by `Items`.
+- **Energy** is the machine's: one that `Draws` works at its network's satisfaction; one with a `FuelSlot`
+  at full while its fire burns (`Heat`) and not at all while it is out; one with neither (the pod) at full.
+  **Work a tick** is `Speed × share / 1000`, rounded down. Stations work in the simulation phase, after
+  power's derivation, in machine id order.
+- **A queued station:** a craft is named by the item it makes and costs, a unit, what `Content.Crafts`
+  says; a unit takes its `Ticks` × 1000 of work. Crafts come in layers: parts of materials (wire, plate,
+  gear, tube), components of parts (rotor, frame, coil), and products, tools as builds, of either (0046).
+  Electronics need circuits besides, salvaged from cable racks until silicon makes them.
+  - The pod is the most basic bench, slow on purpose (speed 200, a fifth): a wire takes 5 s there, a plate
+    10, a rotor 15, a frame 20, the harpoon 30, while the hero is out salvaging. It needs no power and no air.
+  - `Craft(Machine, Recipe, Count)` takes the cost of all `Count` units from the sender at once (nothing in
+    creative mode) and adds an entry, by the sender, at the end of that station's queue, with the queue's
+    next id. Refused with `crafting.noStation` (no station by that id), `crafting.unknown` (no craft makes
+    it, or it is not known), `crafting.notHere` (not in this station's rows, or the station is fed),
+    `crafting.full` (the queue holds the station's `QueueMost` entries, whoever queued them) or
+    `items.notEnough`; refused whole, nothing is queued.
+  - `Cancel(Machine, Entry)` takes the entry of that id off the station's queue, whoever queued it, and
+    gives the sender the cost of its units left, the one at work included, as content prices them now.
+    Refused with `crafting.noStation`, `crafting.notHere` (a fed station has no queue),
+    `crafting.noEntry` (no such entry: never queued, or finished) or `items.full` (the refund does not
+    fit). The first entry cancelled, the next starts from nothing.
+  - Each tick the first entry adds its work, at most its craft's; at its work one unit goes into the
+    station's outputs (`IItemsOps.Output`: its slots past its inputs, all three of the pod's) and the next
+    starts. With no room there the unit waits, its progress at its work, until a slot is taken from. The
+    queue runs whoever is near.
+  - **Idle** — nothing queued, or a unit done waiting for room — a station that draws power is told to
+    rest (`IPowerOps.Rest`, as research rests an analyzer), so it draws nothing from the next tick; told to
+    work again on the tick it has work, it works at once at its network's share.
+- **A fed station:** its input slot is its queue. Each tick, work on another item than its input holds,
+  or none, is dropped; then, if its input holds an item with `Yields` whose `Heat` is at most the
+  station's and whose yields fit its outputs (`IItemsQueries.CanSmelt`), it adds its work, and at the
+  item's `SmeltTicks` × 1000 one of it becomes its yields (`IItemsOps.Smelt`). Work stopped — the fire out,
+  the outputs full — is kept while the item stays. The furnace: speed 1000, heat 1; a scrap chunk smelts
+  in 60 ticks of fire into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap.
+- **A furnace smelts while its fire burns at the tick's start:** `Furnace` tells crafting in its
+  construction phase, from the fire as the last tick left it. So a furnace starts smelting the tick after
+  it lights, and smelts on the tick its fire goes out for want of air; a fire fed in time relights within
+  its tick and never misses one (0057).
 
 ## API
 
-No module depends on crafting, so it has no query interface: the client reads `Registry.Crafting`.
-
-- **Queries:** `Queue(machine)` — its entries, live and read-only, the first at work;
-  `Progress(machine)` — work on its first entry's unit, in thousandths of a tick, its full work while
-  that unit waits for room; `Crafts(machine)` — whether that machine crafts.
+- **Queries** (`ICraftingQueries`): `StationOf(machine)` — its station as it works now, null for none;
+  `Queue(machine)` — a queued station's entries, live and read-only, the first at work; `Progress(machine)`
+  — work on its unit in thousandths of a tick, a queued one's first entry (its full work while that unit
+  waits for room), a fed one's input; `CanSmelt(machine)` — whether a fed station has what it can smelt.
+- **Operations** (`ICraftingOps`): `Heat(machine)` — that fed station's fire burns this tick.
 - **Commands:** `Craft(Machine, Recipe, Count)`, `Cancel(Machine, Entry)`.
-- **Fuzz:** mostly at the map's pod, now and then at another machine or an id that is none (no
-  station); crafts of every recipe and of an item no craft makes, one to nine units, refused as
-  unknown, unpaid or full, paid mostly in creative mode, which the items fuzz switches on now and then;
-  cancels of the machine's entries, of finished ids and of ids never given.
+- **Fuzz:** mostly at the map's stations, queued and fed alike (a fed one refuses both as not here), now
+  and then at another machine or an id that is none (no station); crafts of every recipe and of an item
+  no craft makes, one to nine units, refused as unknown, not here, unpaid or full, paid mostly in creative
+  mode, which the items fuzz switches on now and then; cancels of the station's entries, of finished ids
+  and of ids never given.
 
 ## Invariants
 
-- A queue never holds more than `QueueMost` entries; its first entry's progress stays below its work
-  but while its unit waits for room; ids within a queue only grow.
-- Items are conserved: what a craft took comes back as its units in the outputs or a cancel's refund,
-  whoever cancels (`CraftingTests`, counting every item by the raw items it is made of).
+- A queue never holds more than its station's `QueueMost` entries; its first entry's progress stays
+  below its work but while its unit waits for room; ids within a queue only grow.
+- Items are conserved across both feeds: what a craft took comes back as its units in the outputs or a
+  cancel's refund, whoever cancels, and a smelt turns one item into its yields and nothing else
+  (`CraftingTests`, `StationsTests`, counting every item by the salvage it is made of).
+- Every item is reachable from the wreck: salvage, or made at a reachable station from reachable items
+  (`ContentTests`).
 
 ## Deliberately not handled
 
 - A count below one: the client sends one or five, and peers run one build.
-- A finished unit is never dropped at anyone's feet: it waits in the machine, so crafting needs no
+- A finished unit is never dropped at anyone's feet: it waits in the station, so crafting needs no
   `crew`.
 - A queue paid by one and cancelled by another refunds the canceller: friends share a ship, and no
   record of who paid is kept. `By` only marks whose order an entry is.
 - In creative mode a cancel gives back what was never taken, as taking apart does.
 - The same recipe queued twice is two entries, each cancelled alone, as Rust shows it.
-- A crafting machine that goes: the lifepod is `Fixed`, never taken apart, so its queue never loses
-  its machine.
+- A queued station taken apart with crafts queued: `Building` refuses it (`building.notEmpty`); the pod is
+  `Fixed`. An empty queue left by a station taken apart stays in the slice: machine ids are never reused.
+- A smelt's work past the item's on its last tick is dropped, not carried to the next item.

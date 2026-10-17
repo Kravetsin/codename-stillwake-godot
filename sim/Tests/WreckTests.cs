@@ -121,7 +121,7 @@ public class WreckTests
     }
 
     /// <summary>Ticks one unit of <paramref name="craft"/> takes at the pod.</summary>
-    private static int PodTicks(string craft) => Content.Crafts.Get(craft).Ticks * 1000 / Content.Crafts.PodSpeed;
+    private static int PodTicks(string craft) => Content.Crafts.Get(craft).Ticks * 1000 / Content.Stations.Get("lifepod").Speed;
 
     /// <summary>Crafts one of <paramref name="craft"/> at the pod for peer 0 and takes it from the pod's outputs.</summary>
     private static void CraftAtPod(Scenario w, string craft)
@@ -154,9 +154,11 @@ public class WreckTests
         int id = BuildFurnace(w, ("scrapChunk", 1), ("planks", 1));
         w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(Machines.Get("furnace").FuelSlot, id), 1)).Run();
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: id), 1)).Run();
-        // Lit in A's air on the tick of the move, which was the first of its smelting.
+        // Lit in A's air on the tick of the move, it smelts from the next (0057).
         var chunk = ItemSpecs.Get("scrapChunk");
         w.Run(chunk.SmeltTicks!.Value - 1);
+        Assert.Null(w.M.Items.Crate(id)[2]);
+        w.Run();
         Assert.Equal(new Stack("scrap", chunk.Yields!.Single(y => y.Item == "scrap").Count), w.M.Items.Crate(id)[2]);
     }
 

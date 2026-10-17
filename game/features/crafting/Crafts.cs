@@ -20,7 +20,7 @@ public enum Look
     Locked,
 }
 
-/// <summary>What the Fabricator is doing, as its screen says it.</summary>
+/// <summary>What a queued station is doing, as its screen says it.</summary>
 public enum Doing
 {
     /// <summary>Nothing queued: READY on its screen.</summary>
@@ -31,25 +31,25 @@ public enum Doing
     OutputFull,
 }
 
-/// <summary>What the Fabricator's panel shows, without Godot: where each recipe sits, how it looks, where a click on it goes, how far the unit at work is.</summary>
+/// <summary>What a queued station's panel shows, without Godot: where each recipe sits, how it looks, where a click on it goes, how far the unit at work is.</summary>
 public static class Crafts
 {
     /// <summary>Units a shift-click queues; a plain click queues one.</summary>
     public const int Many = 5;
 
     /// <summary>The recipes' columns.</summary>
-    public const int Columns = Content.Crafts.RowMost;
+    public const int Columns = Content.Stations.RowMost;
 
     /// <summary>The fewest rows of recipes shown, empty places dim: the panel keeps its size as recipes come.</summary>
     public const int RowsLeast = 2;
 
     /// <summary>
-    /// Every place of the recipes' grid, row by row: a craft in the place content gives it, or null for an
-    /// empty one; whole rows, <see cref="RowsLeast"/> at least.
+    /// Every place of <paramref name="station"/>'s recipes' grid, row by row: a craft in the place content gives it,
+    /// or null for an empty one; whole rows, <see cref="RowsLeast"/> at least.
     /// </summary>
-    public static IReadOnlyList<string?> Places { get; } = Enumerable.Range(0, Math.Max(RowsLeast, Content.Crafts.Rows.Count))
+    public static IReadOnlyList<string?> Places(Content.Station station) => Enumerable.Range(0, Math.Max(RowsLeast, station.Rows.Count))
         .SelectMany(r => Enumerable.Range(0, Columns).Select(c =>
-            r < Content.Crafts.Rows.Count && c < Content.Crafts.Rows[r].Count ? Content.Crafts.Rows[r][c] : null))
+            r < station.Rows.Count && c < station.Rows[r].Count ? station.Rows[r][c] : null))
         .ToList();
 
     /// <summary>What one unit of <paramref name="craft"/> costs, item by item, against what is <paramref name="carried"/>.</summary>
@@ -76,16 +76,16 @@ public static class Crafts
     /// <summary>Work a unit of <paramref name="recipe"/> takes, in thousandths of a tick at full speed: the sim's measure of progress.</summary>
     public static int WorkOf(string recipe) => Content.Crafts.Get(recipe).Ticks * 1000;
 
-    /// <summary>How long a unit takes at the pod, in seconds: whole, or to a tenth.</summary>
-    public static string Seconds(string craft) =>
-        ((double)WorkOf(craft) / Content.Crafts.PodSpeed / World.TicksPerSecond).ToString("0.#", CultureInfo.InvariantCulture);
+    /// <summary>How long a unit takes at <paramref name="station"/> at full power, in seconds: whole, or to a tenth.</summary>
+    public static string Seconds(string craft, Content.Station station) =>
+        ((double)WorkOf(craft) / station.Speed / World.TicksPerSecond).ToString("0.#", CultureInfo.InvariantCulture);
 
     /// <summary>
-    /// What a recipe adds to its item's card: "Craft" and a unit's seconds at the pod; each item of its cost
+    /// What a recipe adds to its item's card: "Craft" and a unit's seconds at <paramref name="station"/>; each item of its cost
     /// against what is <paramref name="carried"/>, where a short raw one comes from; and what a click does,
     /// queue it (shift, <see cref="Many"/>) or go to what is missing.
     /// </summary>
-    public static StationBlock Block(string craft, IReadOnlyList<(string Item, int Count)> carried, bool creative)
+    public static StationBlock Block(string craft, Content.Station station, IReadOnlyList<(string Item, int Count)> carried, bool creative)
     {
         var lines = Lines(craft, carried);
         var rows = lines.Select(l =>
@@ -96,7 +96,7 @@ public static class Crafts
         IReadOnlyList<CardKey> keys = !rows.Any(r => r.Short)
             ? [new(T("key.lmb"), T("card.craftIt")), new(T("key.shift"), T("card.many", ("n", Many)))]
             : MissingCraft(lines, creative) != null ? [new(T("key.lmb"), T("card.goTo"))] : [];
-        return new StationBlock(T("time.seconds", ("n", Seconds(craft))), rows, keys);
+        return new StationBlock(T("time.seconds", ("n", Seconds(craft, station))), rows, keys);
     }
 
     /// <summary>How far the unit at work is, from 0 to 1: full while it waits for room.</summary>

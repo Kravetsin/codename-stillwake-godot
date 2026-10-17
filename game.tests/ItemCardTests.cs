@@ -11,6 +11,8 @@ namespace Stillwake.Game.Tests;
 /// <summary>An item's card in the one tooltip: a tool's numbers from content, anything else's kind and what it goes into, a station's craft block, the band of an unknown item.</summary>
 public class ItemCardTests
 {
+    private static readonly Content.Station Fabricator = Content.Stations.Get("lifepod");
+
     private static Reading With(bool creative, params string[] analysed) => new([], null, creative, null, null, analysed);
 
     [Fact]
@@ -142,8 +144,8 @@ public class ItemCardTests
     [Fact]
     public void LayARecipesCostAgainstWhatIsCarriedWithItsTimeAtThePod()
     {
-        var block = Crafts.Block("rotor", [("gear", 3), ("wire", 1)], creative: false);
-        Assert.Equal(T("time.seconds", ("n", Crafts.Seconds("rotor"))), block.Seconds);
+        var block = Crafts.Block("rotor", Fabricator, [("gear", 3), ("wire", 1)], creative: false);
+        Assert.Equal(T("time.seconds", ("n", Crafts.Seconds("rotor", Fabricator))), block.Seconds);
         // 60 ticks at full speed, the pod at a fifth: fifteen seconds.
         Assert.Equal("15 s", block.Seconds);
         Assert.Equal([new CraftRow("gear", "Gear", 3, 1, false), new CraftRow("wire", "Wire", 1, 2, true)], block.Rows);
@@ -153,17 +155,17 @@ public class ItemCardTests
     [Fact]
     public void QueueARecipeCarriedByAClickOrFiveWithShiftAndNothingShortInCreativeMode()
     {
-        var ready = Crafts.Block("wire", [("scrap", 2)], creative: false);
+        var ready = Crafts.Block("wire", Fabricator, [("scrap", 2)], creative: false);
         Assert.Equal([new CraftRow("scrap", "Scrap", 2, 2, false)], ready.Rows);
         Assert.Equal([new CardKey("LMB", "craft"), new CardKey("Shift", "×5")], ready.Keys);
-        Assert.Equal(ready.Keys, Crafts.Block("rotor", [], creative: true).Keys);
-        Assert.All(Crafts.Block("rotor", [], creative: true).Rows, r => Assert.False(r.Short));
+        Assert.Equal(ready.Keys, Crafts.Block("rotor", Fabricator, [], creative: true).Keys);
+        Assert.All(Crafts.Block("rotor", Fabricator, [], creative: true).Rows, r => Assert.False(r.Short));
     }
 
     [Fact]
     public void SayWhereARawItemShortComesFromAndOfferNoClick()
     {
-        var plate = Crafts.Block("plate", [("iron", 1)], creative: false);
+        var plate = Crafts.Block("plate", Fabricator, [("iron", 1)], creative: false);
         Assert.Equal([new CraftRow("iron", "Iron", 1, 2, true, "smelt hull plates")], plate.Rows);
         Assert.Empty(plate.Keys);
     }
@@ -180,10 +182,10 @@ public class ItemCardTests
         var card = ItemCards.Of("fireAxe", false);
         Assert.Equal(card with { Effects = [effect] }, card with { Effects = [effect with { }] });
         Assert.NotEqual(card with { Effects = [effect] }, card);
-        var short1 = Crafts.Block("rotor", [], false);
-        Assert.Equal(card with { Station = short1 }, card with { Station = Crafts.Block("rotor", [], false) });
-        Assert.Equal((card with { Station = short1 }).GetHashCode(), (card with { Station = Crafts.Block("rotor", [], false) }).GetHashCode());
-        Assert.NotEqual(card with { Station = short1 }, card with { Station = Crafts.Block("rotor", [("gear", 1)], false) });
+        var short1 = Crafts.Block("rotor", Fabricator, [], false);
+        Assert.Equal(card with { Station = short1 }, card with { Station = Crafts.Block("rotor", Fabricator, [], false) });
+        Assert.Equal((card with { Station = short1 }).GetHashCode(), (card with { Station = Crafts.Block("rotor", Fabricator, [], false) }).GetHashCode());
+        Assert.NotEqual(card with { Station = short1 }, card with { Station = Crafts.Block("rotor", Fabricator, [("gear", 1)], false) });
         Assert.NotEqual(card with { Station = short1 }, card);
     }
 

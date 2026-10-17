@@ -4,7 +4,6 @@ using FsCheck.Xunit;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Items;
 using Xunit;
-using CraftingSpec = Stillwake.Content.Crafting;
 using Crafts = Stillwake.Content.Crafts;
 using Move = Stillwake.Sim.Items.Move;
 using Slot = Stillwake.Sim.Items.Place;
@@ -25,7 +24,9 @@ public class CraftingTests
         """;
     /// <summary>The pod's machine id and the crate's, by their top-left cells in reading order.</summary>
     private const int Pod = 1, Crate = 2;
-    private static readonly int Wire = Crafts.Get("wire").Ticks * 1000 / Crafts.PodSpeed;
+    private static readonly Content.Station PodStation = Content.Stations.Get("lifepod");
+    private static readonly int PodSpeed = PodStation.Speed, QueueMost = PodStation.QueueMost;
+    private static readonly int Wire = Crafts.Get("wire").Ticks * 1000 / PodSpeed;
     private static readonly int WireScrap = Crafts.Get("wire").Cost.Single().Count;
     private static readonly int Outputs = Content.Machines.Get("lifepod").Slots!.Value;
 
@@ -57,7 +58,7 @@ public class CraftingTests
         Assert.Equal(10 - WireScrap, Count(w, "scrap"));
         Assert.Equal([new Entry(1, "wire", 1, 0)], w.M.Crafting.Queue(Pod));
         w.Run(Wire - 2);
-        Assert.Equal((Wire - 1) * Crafts.PodSpeed, w.M.Crafting.Progress(Pod));
+        Assert.Equal((Wire - 1) * PodSpeed, w.M.Crafting.Progress(Pod));
         Assert.Equal(0, Made(w, "wire"));
         w.Run();
         Assert.Equal(1, Made(w, "wire"));
@@ -75,7 +76,7 @@ public class CraftingTests
         Craft(w, Content.Weapons.Axe.Item);
         Assert.Empty(w.Refusals);
         Assert.All(axe.Cost, c => Assert.Equal(0, Count(w, c.Item)));
-        w.Run(axe.Ticks * 1000 / Crafts.PodSpeed);
+        w.Run(axe.Ticks * 1000 / PodSpeed);
         Assert.Equal(1, Made(w, Content.Weapons.Axe.Item));
     }
 
@@ -102,7 +103,7 @@ public class CraftingTests
         var w = World().GiveItems(0, ("gear", 1), ("wire", 2));
         Craft(w, "rotor");
         Assert.Equal((0, 0), (Count(w, "gear"), Count(w, "wire")));
-        w.Run(Crafts.Get("rotor").Ticks * 1000 / Crafts.PodSpeed - 1);
+        w.Run(Crafts.Get("rotor").Ticks * 1000 / PodSpeed - 1);
         Assert.Equal(1, Made(w, "rotor"));
     }
 
@@ -125,6 +126,19 @@ public class CraftingTests
         Assert.Equal(["crafting.noStation", "crafting.noStation", "crafting.noStation"], Reasons(w));
         Assert.Equal(10, Count(w, "scrap"));
         Assert.Empty(w.M.Crafting.Queue(Crate));
+    }
+
+    [Fact]
+    public void RefusesACraftOrCancelAtAFedStationItsInputItsQueue()
+    {
+        // A furnace beside the pod: a station, but fed, so it takes no craft and has no entry to cancel.
+        var w = new Scenario(Layout.Parse(["#########", "#.OOO...#", "#.OOOFF.#", "#.OOOFF.#", "#########"])).GiveItems(0, ("scrap", 10));
+        int furnace = w.M.Grid.MachinesOf("furnace").Single().Id;
+        Craft(w, "wire", at: furnace);
+        Cancel(w, 1, at: furnace);
+        Assert.Equal(["crafting.notHere", "crafting.notHere"], Reasons(w));
+        Assert.Equal(10, Count(w, "scrap"));
+        Assert.Empty(w.M.Crafting.Queue(furnace));
     }
 
     [Fact]
@@ -152,12 +166,12 @@ public class CraftingTests
     public void RefusesACraftPastTheMostTheSharedQueueHoldsWhoeverSendsIt()
     {
         var w = World().GiveItems(0, ("scrap", 100)).GiveItems(1, ("scrap", 100));
-        for (int i = 0; i < CraftingSpec.QueueMost; i++) w.Do(new Craft(Pod, "wire", 1) { From = i % 2 });
+        for (int i = 0; i < QueueMost; i++) w.Do(new Craft(Pod, "wire", 1) { From = i % 2 });
         w.Run();
         Craft(w, "wire", from: 1);
         Assert.Equal(["crafting.full"], Reasons(w));
-        Assert.Equal(CraftingSpec.QueueMost, w.M.Crafting.Queue(Pod).Count);
-        Assert.Equal(200 - CraftingSpec.QueueMost * WireScrap, Count(w, "scrap", 0) + Count(w, "scrap", 1));
+        Assert.Equal(QueueMost, w.M.Crafting.Queue(Pod).Count);
+        Assert.Equal(200 - QueueMost * WireScrap, Count(w, "scrap", 0) + Count(w, "scrap", 1));
     }
 
     [Fact]
@@ -179,7 +193,7 @@ public class CraftingTests
         var w = World().GiveItems(0, ("scrap", 6), ("iron", 2));
         Craft(w, "wire").Do(new Craft(Pod, "gear", 2)).Run(4);
         Cancel(w, 2);
-        Assert.Equal(6 * Crafts.PodSpeed, w.M.Crafting.Progress(Pod));
+        Assert.Equal(6 * PodSpeed, w.M.Crafting.Progress(Pod));
         Assert.Equal([new Entry(1, "wire", 1, 0)], w.M.Crafting.Queue(Pod));
         Assert.Equal(2, Count(w, "iron"));
     }
@@ -251,7 +265,7 @@ public class CraftingTests
         w.Do(new SetCreative(true)).Run();
         Craft(w, "rotor", 2);
         Assert.Empty(w.Refusals);
-        w.Run(2 * Crafts.Get("rotor").Ticks * 1000 / Crafts.PodSpeed);
+        w.Run(2 * Crafts.Get("rotor").Ticks * 1000 / PodSpeed);
         Assert.Equal(2, Made(w, "rotor"));
     }
 
@@ -264,7 +278,7 @@ public class CraftingTests
         w.Reload();
         Assert.Equal(before, w.World.Save());
         Assert.Equal([new Entry(1, "wire", 1, 0), new Entry(2, "gear", 1, 1)], w.M.Crafting.Queue(Pod));
-        Assert.Equal(4 * Crafts.PodSpeed, w.M.Crafting.Progress(Pod));
+        Assert.Equal(4 * PodSpeed, w.M.Crafting.Progress(Pod));
     }
 
     // Invariants.
@@ -337,7 +351,7 @@ public class CraftingTests
                 {
                     w.Run();
                     var queue = w.M.Crafting.Queue(Pod);
-                    if (queue.Count > CraftingSpec.QueueMost) return false;
+                    if (queue.Count > QueueMost) return false;
                     int progress = w.M.Crafting.Progress(Pod);
                     if (queue.Count == 0)
                     {

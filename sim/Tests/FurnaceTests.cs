@@ -84,12 +84,14 @@ public class FurnaceTests
         var (w, id) = SetUp();
         Put(w, id, "planks", Fuel);
         Put(w, id, "scrapChunk", 0, 2);
-        // The tick of the move lit it and did its first tick of work.
-        w.Run(ChunkTicks - 2);
+        // The tick of the move lit it; its fire burning at the start of the next, it smelts from then (0057): an
+        // item takes its ticks of fire, one tick later than when the furnace smelted on the tick it lit.
+        Assert.Equal(new Smelting(true, "scrapChunk", 0, ChunkTicks * 1000), w.M.Furnace.At(id));
+        w.Run(ChunkTicks - 1);
         Assert.Null(w.M.Items.Crate(id)[2]);
         var at = w.M.Furnace.At(id);
-        Assert.Equal(ChunkTicks - 1, at.Progress);
-        Assert.Equal(ChunkTicks, at.Work);
+        Assert.Equal((ChunkTicks - 1) * 1000, at.Progress);
+        Assert.Equal(ChunkTicks * 1000, at.Work);
         w.Run();
         Assert.Equal(new Stack("scrapChunk", 1), w.M.Items.Crate(id)[0]);
         Assert.Equal(new Stack("scrap", ChunkScrap), w.M.Items.Crate(id)[2]);
@@ -148,6 +150,27 @@ public class FurnaceTests
     }
 
     [Fact]
+    public void SmeltsTheTickItsFireGoesOutForWantOfAirAsItBurnedAtTheTicksStart()
+    {
+        // Crafting reads the fire as the tick begins (0057): a fire that breathes no air smelts that tick still.
+        var (w, id) = SetUp();
+        Put(w, id, "planks", Fuel);
+        Put(w, id, "scrapChunk", 0, 2);
+        w.Run(10).Do(new ClearAt(At(9, 1), "structure"));
+        bool wentOut = false;
+        for (int i = 0; i < 3 * FurnaceContent.BreathEvery; i++)
+        {
+            var before = w.M.Furnace.At(id);
+            w.Run();
+            var after = w.M.Furnace.At(id);
+            Assert.Equal(before.Burning ? 1000 : 0, after.Progress - before.Progress);
+            wentOut |= before.Burning && !after.Burning;
+        }
+        Assert.True(wentOut);
+        Assert.Equal(new Stack("scrapChunk", 2), w.M.Items.Crate(id)[0]);
+    }
+
+    [Fact]
     public void WaitsUnlitWithNoRoomForWhatItMakes()
     {
         var (w, id) = SetUp();
@@ -172,7 +195,7 @@ public class FurnaceTests
         w.Do(new Move(new Items.Place(0, id), new Target(), 1)).Run();
         Assert.Equal(new Smelting(true), w.M.Furnace.At(id));
         Put(w, id, "scrapChunk", 0);
-        Assert.Equal(1, w.M.Furnace.At(id).Progress);
+        Assert.Equal(1000, w.M.Furnace.At(id).Progress);
     }
 
     [Fact]

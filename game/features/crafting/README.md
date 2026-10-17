@@ -1,10 +1,11 @@
 # crafting (client): the lifepod and its Fabricator
 
 Making parts by machine only ([0028](../../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)),
-the client of `sim/Crafting`. It reads `Registry.Crafting` (`Queue`, `Progress`, `Crafts`),
+the client of `sim/Crafting`. It reads `Registry.Crafting` (`Queue`, `Progress`, `StationOf`),
 `IResearchQueries` (`Knows`), `IItemsQueries` (`Totals`, `Creative`, `Crate`, `AfterMoves`),
 `IGridQueries` (`Machines`) and `ICrewQueries` (`Heroes`, `Spawn`), and changes the sim only by
-sending `Craft`, `Cancel` and `Move`. Where each recipe sits is content: `Content.Crafts.Rows`. The
+sending `Craft`, `Cancel` and `Move`. Where each recipe sits is content: the station's `Rows` in
+`Content.Stations`; the panel serves every queued station (0057), the pod's Fabricator first. The
 mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 
 ## Files
@@ -24,8 +25,8 @@ the mockup's pixel recipe (`PODS[2].draw`) in the ship art's palette.
 
 ## Guarantees
 
-- **The panel** shows while E has a machine that crafts open (`Ui.OpenCrate`, `Crafts(id)`) and the
-  inventory is shown, docked beside it, its top level with the inventory's (`Ui.InventoryEdge`); gone
+- **The panel** shows while E has a machine that crafts open (`Ui.OpenCrate`, `StationOf(id)` a queued
+  station) and the inventory is shown, docked beside it, its top level with the inventory's (`Ui.InventoryEdge`); gone
   when either closes. The items feature gives the pod no crate panel of its own.
 - From the top: "Fabricator" and its screen; "Recipes", how many are opened; every recipe in its place
   from content, four a row, two rows at least, empty places dim. One not known yet is a dark
@@ -36,14 +37,14 @@ the mockup's pixel recipe (`PODS[2].draw`) in the ship art's palette.
   amber-ish, amber under the pointer; a silhouette is not.
 - No status line: the screen says whether it works, the queue's slot filling and full says the rest,
   and the outputs show what can be taken.
-- "Queue · shared": `Content.Crafting.QueueMost` slots, each entry its item and units left, a mark in
+- "Queue · shared": the station's `QueueMost` slots, each entry its item and units left, a mark in
   the top-left corner in its orderer's suit colour, the one at work filling its slot from the bottom,
   full while its unit waits for room. A click cancels it; its cost goes to whoever cancels.
 - "Output": the pod's slots; a click takes a stack into the inventory as a whole (`Move` to the
   inventory), shown at once as the inventory's own moves are (0014).
 - The one tooltip (`Shared.PointerTip`), found by a hit test (`TipSpots`): over a recipe, its item's
   card, as a stack's (`Shared.ItemCards`), with the craft block the station adds at its bottom
-  (`Crafts.Block`): "Craft" and a unit's seconds at the pod's speed; a row per item a unit takes, its
+  (`Crafts.Block`): "Craft" and a unit's seconds at the station's speed; a row per item a unit takes, its
   icon, name, how many are carried in dim brackets and ×N, green when enough, red when short; for a raw
   item short, where it comes from (`crafts.from.<item>`); then the keys: LMB craft · Shift ×5 when a
   unit is carried, LMB go to what is missing when a click goes somewhere, none else. A silhouette says

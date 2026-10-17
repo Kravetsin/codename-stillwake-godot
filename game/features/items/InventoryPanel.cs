@@ -278,8 +278,8 @@ public partial class InventoryPanel : CanvasLayer
             (_charged, _station) = (null, null);
         }
         if (want is not var (crate, kind)) return;
-        // The lifepod's Fabricator docks beside the inventory, the crafting feature's own panel.
-        if (kind == "lifepod") return;
+        // A queued station (the lifepod's Fabricator, the Former) docks beside the inventory, the crafting feature's own panel.
+        if (Content.Stations.TryGet(kind, out var station) && !station.Fed) return;
         _cratePanel = kind switch
         {
             "furnace" => FurnacePanel(crate),

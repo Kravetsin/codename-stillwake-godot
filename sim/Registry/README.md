@@ -22,3 +22,6 @@ saved moves by it — the five layers, machines, floor stacks (their `x`, `y` in
 ends, plans, aired cells, the crew's spawn, pod and heroes — as does every piece of debris (`x`, `y`,
 `start`, `end`, its reel's point); the grid gets the world's zone. A cell off the old grid, which only
 the fuzz reports, becomes -1.
+
+Format 14 moved what a furnace was smelting from its fire to crafting's `smelts` (0057), in thousandths of a
+tick, dropped the fires kept only for it, and put crafting's slice before building's, as the modules now run.

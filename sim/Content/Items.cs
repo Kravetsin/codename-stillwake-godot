@@ -5,10 +5,11 @@ namespace Stillwake.Content;
 /// <summary>Something a hero carries, by the id saves store: never rename one.</summary>
 /// <param name="Stack">The most of it one inventory slot holds.</param>
 /// <param name="Yields">
-/// A salvage item, caught as debris, is smelted in a furnace into these: materials and canisters, never
+/// A salvage item, caught as debris, is smelted at a fed station into these: materials and canisters, never
 /// more salvage.
 /// </param>
-/// <param name="SmeltTicks">Ticks of a furnace's fire it takes to smelt one; given with <paramref name="Yields"/>.</param>
+/// <param name="SmeltTicks">Ticks at full speed a fed station takes to smelt one; given with <paramref name="Yields"/>.</param>
+/// <param name="Heat">How hot a fed station must be to smelt it (<see cref="Station.Heat"/>): the furnace's 1 for all of them yet.</param>
 /// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
 /// <param name="Equip">Equipment: the kind of a hero's equipment slot it is worn in, of <c>Inventory.Equipment</c>; none for anything else.</param>
 /// <param name="Capacity">
@@ -24,6 +25,7 @@ public sealed record ItemSpec(
     int Stack,
     IReadOnlyList<(string Item, int Count)>? Yields = null,
     int? SmeltTicks = null,
+    int Heat = 1,
     int? BurnTicks = null,
     string? Equip = null,
     int? Capacity = null,

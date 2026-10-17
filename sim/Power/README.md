@@ -59,8 +59,9 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   `Charges(machineId)` — whether that charging station fills what it holds this tick (short of full, on a
   network giving it power): its light and its panel's bolt.
 - **Operations** (`IPowerOps`): `Rest(machineId, resting)` — the machine draws or makes nothing from
-  the next derivation on, or works again: `research` rests an analyzer with nothing to learn, from its
-  simulation system, so it shows from the next tick; `furnace` a burner generator whose fire is out,
+  the next derivation on, or works again: `research` rests an analyzer with nothing to learn, and
+  `crafting` an idle station that draws (nothing queued, or a unit done waiting for room), from their
+  simulation systems, so it shows from the next tick; `furnace` a burner generator whose fire is out,
   from its construction system, so it shows this tick. Resting a resting machine does nothing.
 - **Commands:** `Lay(A, B)` — a cable between the nodes at those cells, paid from the sender
   (`Content.Power.CableCost`, nothing in creative mode: paid only if `Take` took something), refused

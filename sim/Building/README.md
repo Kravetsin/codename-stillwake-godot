@@ -8,7 +8,8 @@ it, or a mark on what a layer of a cell holds, taken out by heroes' work. Both c
 
 - **Depends on:** `Grid` (`IGridQueries`, `IGridOps`) and `Items` (`IItemsQueries`, `IItemsOps`);
   `Power` (`IPowerQueries.Cabled`), to keep a cabled machine standing; `Research`
-  (`IResearchQueries.Knows`), to refuse a blueprint not known (ADR 0024).
+  (`IResearchQueries.Knows`), to refuse a blueprint not known (ADR 0024); `Crafting`
+  (`ICraftingQueries.Queue`), to keep a station with crafts queued standing (0057).
 - **State** (`BuildingState`, members internal): `Plans` in the order they were made, each a `Plan`
   with its `Progress` in ticks of work — a blueprint (`Place` set) with what was `Delivered` to it so
   far, as `Stack`s in the order first given, or a mark (`Clear`, the layer, set); `NextPlanId`. All
@@ -27,7 +28,8 @@ it, or a mark on what a layer of a cell holds, taken out by heroes' work. Both c
 - A machine built into the ship (`Fixed` in `Machines`: the lifepod) is never planned nor marked,
   refused with `building.fixed`, creative mode or not; it is no blueprint.
 - A mark needs something in that layer of that cell, and one thing takes one mark. A machine holding
-  items (a crate, a furnace) is marked only empty, refused with `building.notEmpty`; a machine a cable
+  items (a crate, a furnace) or a station with crafts queued is marked only empty, refused with
+  `building.notEmpty`; a machine a cable
   ends on, only with its cables cut, refused with `building.cabled`. Both are checked again when the
   mark is worked. A machine's mark is kept at the machine's top-left, whichever of its cells was
   marked. A marked thing is still built, so the grid refuses a plan for that slot until it is gone.
