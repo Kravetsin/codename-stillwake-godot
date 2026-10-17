@@ -10,7 +10,7 @@ namespace Stillwake.Content;
 public static class Research
 {
     /// <summary>An analyzer analyses an item in this many ticks at full power, slower short of it.</summary>
-    public const int Ticks = 200;
+    public const int Ticks = 1200;
 
     /// <summary>
     /// What the wreck grants from its start: the furnace and the analyzer, the crate, the scrap walls and

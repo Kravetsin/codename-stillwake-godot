@@ -16,25 +16,29 @@ public static class Crafts
         new("wire", [("scrap", 2)], Ticks: 20),
         new("plate", [("iron", 2)], Ticks: 40),
         new("gear", [("iron", 1)], Ticks: 40),
+        new("tube", [("iron", 1)], Ticks: 40),
         new("rotor", [("gear", 1), ("wire", 2)], Ticks: 60),
-        new("fireAxe", [("scrap", 6)], Ticks: 60),
-        new("harpoon", [("plate", 2), ("wire", 4), ("scrap", 4)], Ticks: 80),
+        new("frame", [("plate", 2)], Ticks: 80),
+        new("coil", [("wire", 3)], Ticks: 60),
+        new("fireAxe", [("iron", 2), ("planks", 1)], Ticks: 60),
+        new("harpoon", [("planks", 1), ("frame", 1), ("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 120),
     ];
 
     /// <summary>
     /// Where each craft sits in the Fabricator's panel, a family a row, simple to complex left to right:
     /// every craft once, known or not, so nothing moves when one opens.
     /// </summary>
-    public static readonly IReadOnlyList<IReadOnlyList<string>> Rows = [["plate", "gear", "rotor"], ["wire", "fireAxe", "harpoon"]];
+    public static readonly IReadOnlyList<IReadOnlyList<string>> Rows = [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor"], ["fireAxe", "harpoon"]];
 
     /// <summary>The most crafts a row holds: the panel's columns.</summary>
     public const int RowMost = 4;
 
     /// <summary>
     /// The lifepod's speed, in thousandths of full speed: work it adds a tick, a unit taking its
-    /// <see cref="Craft.Ticks"/> × 1000. Half: the pod is the floor that is always there, not the factory.
+    /// <see cref="Craft.Ticks"/> × 1000. A fifth: the pod is the most basic bench, always there, not the
+    /// factory; machines for parts, faster and with longer queues, come later.
     /// </summary>
-    public const int PodSpeed = 500;
+    public const int PodSpeed = 200;
 
     private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);
 

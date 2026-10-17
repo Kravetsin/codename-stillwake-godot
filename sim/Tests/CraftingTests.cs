@@ -47,10 +47,10 @@ public class CraftingTests
     private static Scenario Cancel(Scenario w, int entry, int from = 0, int at = Pod) => w.Do(new Cancel(at, entry) { From = from }).Run();
 
     [Fact]
-    public void MakesAWireAtThePodInTwiceItsTicksWithNoPowerPayingWhenQueued()
+    public void MakesAWireAtThePodInFiveTimesItsTicksWithNoPowerPayingWhenQueued()
     {
         var w = World().GiveItems(0, ("scrap", 10));
-        Assert.Equal(2 * Crafts.Get("wire").Ticks, Wire);
+        Assert.Equal(5 * Crafts.Get("wire").Ticks, Wire);
         Assert.Empty(w.M.Power.Networks);
         // The tick of the craft is the first of its work.
         Craft(w, "wire");
@@ -67,13 +67,14 @@ public class CraftingTests
     }
 
     [Fact]
-    public void MakesTheFireAxeAtThePodOfScrapKnownInTheWreckFromItsStart()
+    public void MakesTheFireAxeAtThePodOfIronAndAPlankKnownInTheWreckFromItsStart()
     {
         var axe = Crafts.Get(Content.Axe.Item);
-        var w = World(start: true).GiveItems(0, ("scrap", axe.Cost.Single().Count));
+        Assert.Equal([("iron", 2), ("planks", 1)], axe.Cost);
+        var w = World(start: true).GiveItems(0, [.. axe.Cost]);
         Craft(w, Content.Axe.Item);
         Assert.Empty(w.Refusals);
-        Assert.Equal(0, Count(w, "scrap"));
+        Assert.All(axe.Cost, c => Assert.Equal(0, Count(w, c.Item)));
         w.Run(axe.Ticks * 1000 / Crafts.PodSpeed);
         Assert.Equal(1, Made(w, Content.Axe.Item));
     }

@@ -80,9 +80,9 @@ public class ItemCardTests
         Assert.Null(gear.Tiles);
         Assert.Null(gear.Use);
         Assert.Equal(("Gear", "Part"), (gear.Name, gear.Kind));
-        // The crafts first, then the blueprints in content's order: door, valve, tank, vent, burner generator.
-        Assert.Equal(["Rotor", "Door", "Valve", "Tank", "+2"], gear.Uses);
-        Assert.Equal(["Rotor", "Harpoon", "Generator", "Lamp", "+2"], ItemCards.Of("wire", false).Uses);
+        // The crafts first, then the blueprints in content's order: the rotor, then the door and the valve.
+        Assert.Equal(["Rotor", "Door", "Valve"], gear.Uses);
+        Assert.Equal(["Rotor", "Coil", "Harpoon", "Generator", "+3"], ItemCards.Of("wire", false).Uses);
         Assert.Equal(("Iron", "Material"), (ItemCards.Of("iron", false).Name, ItemCards.Of("iron", false).Kind));
         Assert.Equal("Salvage", ItemCards.Of("scrapChunk", false).Kind);
     }
@@ -92,7 +92,7 @@ public class ItemCardTests
     {
         var scrap = ItemCards.Of("scrap", false).Uses;
         Assert.Equal(ItemCards.MostInto + 1, scrap.Count);
-        Assert.Equal(["Wire", "Fire axe", "Harpoon", "Wall: scrap"], scrap.Take(ItemCards.MostInto));
+        Assert.Equal(["Wire", "Wall: scrap", "Back wall: scrap", "Floor"], scrap.Take(ItemCards.MostInto));
         int into = Spec.Crafts.All.Count(c => c.Cost.Any(i => i.Item == "scrap"))
             + Sim.Research.Blueprints.All.Count(b => b.Cost.Any(i => i.Item == "scrap"));
         Assert.Equal($"+{into - ItemCards.MostInto}", scrap[^1]);
@@ -129,8 +129,8 @@ public class ItemCardTests
     {
         var block = Crafts.Block("rotor", [("gear", 3), ("wire", 1)], creative: false);
         Assert.Equal(T("time.seconds", ("n", Crafts.Seconds("rotor"))), block.Seconds);
-        // 60 ticks at full speed, the pod at half: six seconds.
-        Assert.Equal("6 s", block.Seconds);
+        // 60 ticks at full speed, the pod at a fifth: fifteen seconds.
+        Assert.Equal("15 s", block.Seconds);
         Assert.Equal([new CraftRow("gear", "Gear", 3, 1, false), new CraftRow("wire", "Wire", 1, 2, true)], block.Rows);
         Assert.Equal([new CardKey("LMB", "go to what is missing")], block.Keys);
     }

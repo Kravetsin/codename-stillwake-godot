@@ -29,9 +29,9 @@ public static class Items
         new("scrap", 500),
         new("iron", 500),
         new("canister", 5),
-        new("planks", 50, BurnTicks: 300),
-        new("scrapChunk", 10, Yields: [("scrap", 12)], SmeltTicks: 100),
-        new("hullPlate", 5, Yields: [("iron", 6), ("scrap", 4)], SmeltTicks: 200),
+        new("planks", 50, BurnTicks: 400),
+        new("scrapChunk", 10, Yields: [("scrap", 4)], SmeltTicks: 60),
+        new("hullPlate", 5, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100),
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1),
         new("cargoCrate", 1),
@@ -42,11 +42,14 @@ public static class Items
         new("cableRack", 1),
         new("tankCluster", 1),
         new("shieldSlab", 1),
-        // Parts, made by hand (Crafts) of materials and other parts.
+        // Parts, made at the Fabricator (Crafts) of materials; then assemblies, of parts.
         new("wire", 100),
         new("plate", 100),
         new("gear", 50),
+        new("tube", 100),
         new("rotor", 20),
+        new("frame", 20),
+        new("coil", 50),
         // A part no craft makes: salvaged from cable racks alone (Loot).
         new("circuit", 20),
         // Tools, made as parts are.

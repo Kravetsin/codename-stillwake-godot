@@ -29,7 +29,7 @@ public class CraftsTests
     public void LaysEveryRecipeInItsFixedPlaceFourARowTwoRowsAtLeast()
     {
         Assert.Equal(4, Crafts.Columns);
-        Assert.Equal(["plate", "gear", "rotor", null, "wire", "fireAxe", "harpoon", null], Crafts.Places);
+        Assert.Equal(["plate", "gear", "tube", "frame", "wire", "coil", "rotor", null, "fireAxe", "harpoon", null, null], Crafts.Places);
         Assert.Equal(Content.Crafts.All.Count, Crafts.Places.Count(p => p != null));
     }
 
@@ -81,7 +81,8 @@ public class CraftsTests
     [Fact]
     public void SaysAUnitsTimeAtThePodInSecondsToATenth()
     {
-        Assert.Equal("2", Crafts.Seconds("wire"));
+        // The pod at a fifth of full speed: a wire 5 s, a plate 10, a rotor 15, a frame 20, the harpoon 30.
+        Assert.Equal(["5", "10", "15", "20", "30"], new[] { "wire", "plate", "rotor", "frame", "harpoon" }.Select(Crafts.Seconds));
         Assert.All(Content.Crafts.All, c => Assert.InRange(
             double.Parse(Crafts.Seconds(c.Item), System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond,
             c.Ticks * 1000 / Content.Crafts.PodSpeed - 1, c.Ticks * 1000 / Content.Crafts.PodSpeed + 1));

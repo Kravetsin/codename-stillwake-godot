@@ -1,6 +1,6 @@
 # 0044 — The harpoon reels a piece to a point
 
-- Status: accepted
+- Status: accepted; its recipe superseded by [0046](0046-recipes-show-what-a-thing-is-made-of.md)
 - Date: 2026-10-17
 
 ## Context

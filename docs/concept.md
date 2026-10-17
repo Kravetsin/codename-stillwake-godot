@@ -46,11 +46,14 @@ A living document: what is decided about the game and what is still open. Techni
   never taken apart. Heroes are made at its hatch, at the start and after passing out, with a full
   suit; standing by it, a suit slowly fills with the pod's own air, even in a ship open to space, and
   the room gets none ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)).
-- **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap, plates and gears
-  of iron, a rotor of a gear and wire. The first machine is the pod's Fabricator, opened with E beside
-  the inventory: no power, half speed, a queue the crew shares, paid when queued, made one at a time
-  into its outputs. Most builds cost parts, so the furnace feeds the Fabricator before it feeds the
-  hull. A Fabricator the player builds, powered and faster, comes later.
+- **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
+  tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
+  recipe shows what a thing is made of: the harpoon is a frame, a tube, a coil, wire and a plank stock
+  ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md)). The first machine is the pod's
+  Fabricator, opened with E beside the inventory: no power, a fifth of full speed, a queue the crew
+  shares, paid when queued, made one at a time into its outputs. Most builds cost parts, so the
+  furnace feeds the Fabricator before it feeds the hull. Machines for parts the player builds,
+  powered, faster and with longer queues, come later.
 - **Spacewalks:** on a tether from the hull at first; a jetpack later frees the hero from it.
 - **Catching:** by hand on the tether, within reach; farther out, a hand harpoon made at the Fabricator
   shoots a rod on a line into a piece, small or a wreck, and a second click reels it in to just before

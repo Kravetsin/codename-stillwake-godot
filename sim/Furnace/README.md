@@ -33,6 +33,9 @@ once.
     not; a furnace smelts a tick: at `SmeltTicks`, one of the input becomes its yields
     (`IItemsOps.Smelt`). Its last tick of fuel burnt, it is lit again on the same tick if it can be,
     so a fire fed in time never goes out between two fuels.
+- The numbers are content's (`Content.Items`): a plank burns 400 ticks; a scrap chunk smelts in 60
+  into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap, so a plank smelts about 6 chunks or 4
+  plates ([0046](../../docs/decisions/0046-recipes-show-what-a-thing-is-made-of.md)).
 - Work on an item is dropped once the input holds another item or none, and begins again.
 - **A generator rests while its fire is out:** in the construction phase, before power's derivation,
   each one not burning is told to rest (`IPowerOps.Rest`), one burning to work. `Power` counts no

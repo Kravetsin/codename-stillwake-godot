@@ -494,7 +494,7 @@ public class ItemsTests
         DoMove(w, Own(1), new Target(1, 1), 2);
         Assert.True(w.M.Items.CanSmelt(1));
         w.M.Items.Smelt(1);
-        Assert.Equal(new Stack?[] { new("hullPlate", 1), new("planks", 2), new("iron", 6), new("scrap", 4), null }, Crate(w, 1));
+        Assert.Equal(new Stack?[] { new("hullPlate", 1), new("planks", 2), new("iron", 2), new("scrap", 1), null }, Crate(w, 1));
         w.M.Items.Consume(1, 1);
         Assert.Equal(new Stack("planks", 1), Crate(w, 1)[1]);
         Assert.Throws<InvalidOperationException>(() => w.M.Items.Consume(1, 4));

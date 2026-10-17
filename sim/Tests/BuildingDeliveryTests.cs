@@ -14,13 +14,13 @@ namespace Stillwake.Sim.Tests;
 public class BuildingDeliveryTests
 {
     /// <summary>What every hero in these tests carries from the start.</summary>
-    private const int StockScrap = 360, StockIron = 60, StockPlate = 60, StockGear = 20;
+    private const int StockScrap = 360, StockIron = 60, StockPlate = 60, StockGear = 20, StockTube = 20;
 
     /// <summary>A world from <paramref name="map"/> with peers 0 to 3 carrying the stock.</summary>
     private static Scenario Stocked(Layout map)
     {
         var w = new Scenario(map);
-        foreach (int peer in new[] { 0, 1, 2, 3 }) w.GiveItems(peer, ("scrap", StockScrap), ("iron", StockIron), ("plate", StockPlate), ("gear", StockGear));
+        foreach (int peer in new[] { 0, 1, 2, 3 }) w.GiveItems(peer, ("scrap", StockScrap), ("iron", StockIron), ("plate", StockPlate), ("gear", StockGear), ("tube", StockTube));
         return w;
     }
 
@@ -219,8 +219,9 @@ public class BuildingDeliveryTests
         Assert.Equal(At(1, 2), Assert.Single(w.M.Items.Floor).Cell);
         w.Run(1000 / Content.Floor.SpaceDrift);
         var lying = Assert.Single(w.M.Items.Floor);
-        Assert.Equal(("scrap", CostIn(Builds.Get("pipe").Cost, "scrap"), At(1, 2)), (lying.Item, lying.Count, lying.Cell));
-        Assert.Equal(StockScrap + ScrapUnits, Count(w, "scrap") + Lying(w, "scrap"));
+        Assert.Equal(("tube", CostIn(Builds.Get("pipe").Cost, "tube"), At(1, 2)), (lying.Item, lying.Count, lying.Cell));
+        Assert.Equal(StockScrap + ScrapUnits, Count(w, "scrap"));
+        Assert.Equal(StockTube, Count(w, "tube") + Lying(w, "tube"));
     }
 
     [Fact]
@@ -266,8 +267,8 @@ public class BuildingDeliveryTests
     {
         var w = Stocked(Open);
         w.GiveItems(0, ("iron", Content.Items.Get("iron").Stack - StockIron), ("plate", Content.Items.Get("plate").Stack - StockPlate));
-        w.GiveItems(0, ("gear", Content.Items.Get("gear").Stack - StockGear));
-        w.GiveItems(0, ("scrap", (Inventory.Slots - 3) * Content.Items.Get("scrap").Stack - StockScrap));
+        w.GiveItems(0, ("gear", Content.Items.Get("gear").Stack - StockGear), ("tube", Content.Items.Get("tube").Stack - StockTube));
+        w.GiveItems(0, ("scrap", (Inventory.Slots - 4) * Content.Items.Get("scrap").Stack - StockScrap));
         w.Do(new Deconstruct(At(0, 1), "structure")).Run();
         Hold(w, 1, Costs.ApartTicks(Scrap.BuildTicks));
         Assert.Empty(w.Refusals);
@@ -334,7 +335,7 @@ public class BuildingDeliveryTests
     /// <summary>A placePlan (with a placement), a deconstruct (with a layer), a cancelPlan, or E held for <c>Ticks</c>.</summary>
     private sealed record Step(int Cell, Placement? Placement, string? Layer, int Id, int Ticks, int From);
 
-    private static readonly string[] Counted = ["scrap", "iron", "plate", "gear"];
+    private static readonly string[] Counted = ["scrap", "iron", "plate", "gear", "tube"];
 
     /// <summary>What the heroes carry, what lies on the floor and what blueprints were given, of <paramref name="item"/>.</summary>
     private static int Held(Scenario w, string item) =>
