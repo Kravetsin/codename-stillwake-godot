@@ -66,8 +66,9 @@ What a player joining mid-session receives. What is client-authoritative and why
   softlock or lost progress.
 - **Extend before adding.** An existing module that owns the concept beats a new module; an existing
   operation or event beats a new one.
-- **No abstractions without two callers today** — no generic system for one case, no strategy with one
-  entry, no option nobody sets.
+- **Design the mechanic, not its first use** — name the users the mechanic will have (this stage and the
+  next, from the concept and plans) and build the shared module that serves them. Still no option
+  nobody sets and no hook without a named user.
 - **Tunable numbers go to `sim/Content`** — name them, don't hardcode them.
 - **Godot before hand-built** — light, particles, layout and input come from Godot nodes unless the
   design says why the engine's do not fit.

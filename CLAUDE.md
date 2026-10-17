@@ -23,8 +23,11 @@ the principle wins and the rule gets revisited.
 1. **Design before code.** A non-trivial feature starts as a short design (`design-author`), cut down by
    `design-reviewer`, then a plan. Rewriting the same code three times means the first two passes were
    design done in the most expensive medium.
-2. **No abstraction without two callers today.** An interface, generic parameter, registry, strategy or
-   option needs two existing callers, in the same change or already merged. "Later" does not count.
+2. **Design the mechanic, not its first use.** A feature here is a mechanic that grows over many changes.
+   Before building, name where it is heading: the users it will have this stage and next, from the
+   concept and the plans. Build the shared module that serves them, rather than patching each caller and
+   generalising later ([0049](docs/decisions/0049-design-the-mechanic-not-its-first-use.md)). An option
+   or hook with no named user still does not go in.
 3. **Trade-offs are explicit.** "We do not handle X because Y" is a complete answer. A design without
    its list of deliberate omissions is unfinished.
 4. **Handle what players can actually do.** Before adding a guard, fallback or recovery path, name the
