@@ -646,13 +646,14 @@ public class AimTests
     private const int SmallPicture = 500, SmallBox = 750, Bite = 150;
 
     [Fact]
-    public void HooksTheFirstPieceInSpawnOrderTheRodMeetsNotTheNearest()
+    public void HooksTheNearestPieceTheRodMeetsNotTheFirstSpawned()
     {
         var (w, _) = Field(("hullSection", 12_000, 7_500), ("scrapChunk", 10_000, 7_500));
-        var hooked = Aiming.Hooks(w.M, 0, (6_500, 7_500), (14_000, 7_500), 0);
-        Assert.Equal(1, hooked?.Piece);
+        Assert.Equal(2, Aiming.Hooks(w.M, 0, (6_500, 7_500), (14_000, 7_500), 0)?.Piece);
+        Assert.Equal(1, Aiming.Hooks(w.M, 0, (14_000, 7_500), (6_500, 7_500), 0)?.Piece);
+        var (section, _) = Field(("hullSection", 12_000, 7_500));
         // It enters the section's box at its margin and sticks just inside its picture.
-        Assert.Equal((12_000.0 - HalfW + 250 + Bite, 7_500.0), hooked?.At);
+        Assert.Equal((12_000.0 - HalfW + 250 + Bite, 7_500.0), Aiming.Hooks(section.M, 0, (6_500, 7_500), (14_000, 7_500), 0)?.At);
     }
 
     [Fact]
@@ -700,5 +701,39 @@ public class AimTests
         Assert.Null(Aiming.AimAt(w.M, 0, hero, at, gun: true)?.Piece);
         var chunk = w.M.Debris.Pieces.Single(p => p.Id == 99);
         Assert.IsType<Grab>(Aiming.AimAt(w.M, 0, hero, ((double)chunk.X / Unit, (double)chunk.Y / Unit + 0.4), gun: true)?.Press?.Command);
+    }
+
+    // The grapple (0044): the rod grips walls, floors and closed doors.
+
+    private static readonly Ship Gripped = HeroTests.ShipFrom([
+        "###########",
+        "#.H.d.D.=.#",
+        "###########",
+    ]);
+
+    [Fact]
+    public void GripsWallsFloorsAndClosedDoorsNotBackWallsOpenDoorsOrLadders()
+    {
+        // Back walls, a ladder and an open door: the rod flies through.
+        Assert.Null(Aiming.Grapples(Gripped, (1_500, 1_500), (5_900, 1_500)));
+        Assert.Equal((6_000.0 + Bite, 1_500.0), Aiming.Grapples(Gripped, (1_500, 1_500), (9_900, 1_500))?.At);
+        Assert.Equal((8_000.0 + Bite, 1_500.0), Aiming.Grapples(Gripped, (7_500, 1_500), (8_900, 1_500))?.At);
+        Assert.Equal((10_000.0 + Bite, 1_500.0), Aiming.Grapples(Gripped, (9_500, 1_500), (12_000, 1_500))?.At);
+        // Going down and left into the bottom wall, the cell it enters first.
+        var down = Aiming.Grapples(Gripped, (5_500, 1_500), (4_500, 2_500));
+        Assert.Equal(0.5, down?.T);
+        Assert.True(Aiming.Grips(Gripped, (6_500, 1_500)));
+        Assert.False(Aiming.Grips(Gripped, (4_500, 1_500)));
+        Assert.False(Aiming.Grips(Gripped, (-500, 1_500)));
+    }
+
+    [Fact]
+    public void MeetsTheNearerOfAPieceAndTheShipsStructure()
+    {
+        var (w, _) = Field(("scrapChunk", 10_000, 7_500));
+        Ship WallAt(int column) => new(FieldWidth, 14, cell => cell % FieldWidth == column ? Structure.Wall : Structure.Empty, _ => true);
+        Assert.Equal(new RodHit(null, (8_000.0 + Bite, 7_500.0)), Aiming.RodMeets(w.M, WallAt(8), 0, (6_500, 7_500), (14_000, 7_500), 0));
+        Assert.Equal(new RodHit(1, (10_000.0 - SmallPicture + Bite, 7_500.0)), Aiming.RodMeets(w.M, WallAt(12), 0, (6_500, 7_500), (14_000, 7_500), 0));
+        Assert.Null(Aiming.RodMeets(w.M, WallAt(20), 0, (6_500, 0), (14_000, 0), 0));
     }
 }

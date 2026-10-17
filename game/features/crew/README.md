@@ -168,26 +168,32 @@ too); `AxeSwingTests` and `HarpoonTests` have no TypeScript original.
   see it hang and swing too (0037, 0038).
 - **The harpoon (0044):** with `Ui.Wielded` the harpoon, in space or aboard, the arm is straight and turned
   so the barrel's line runs through the pointer (`HarpoonShot.ArmFor`, eased in by `SwingArm`), the hero
-  facing it, swimming the other way too; it fires only out in space. The figure holds it as a pistol by its stock
+  facing it, swimming the other way too; it fires aboard as out in space. The figure holds it as a pistol by its stock
   (`HeldLook.Harpoon`, `art/hero_harpoon.png`, its rod in the barrel, `hero_harpoon_loaded.png`, only
   while it is ready) and reports its muzzle and barrel as drawn (`Figure.Muzzle`, `Barrel`). A fresh
   click (never a hold) fires the rod (`art/hero_harpoon_rod.png`) from the muzzle along the barrel at
   `Harpoon.RodSpeed` out to `Harpoon.Range`; each frame the segment its point moved is tested against
   every piece's box, as drawn between ticks (`Shared.PieceDrawn`): a wreck's aim box, a small piece's
-  picture a cell across, each with the quarter-cell margin (`Aiming.Hooks`), the first in spawn order the
-  sim would let this hero reel. It sticks there, 0.15 of a cell inside the picture, and rides the piece;
+  picture a cell across, each with the quarter-cell margin (`Aiming.Hooks`), that the sim would let this
+  hero reel; and walked cell by cell for a wall, floor or closed door (`Aiming.Grapples`), the nearest of
+  them winning (`Aiming.RodMeets`). In a piece it sticks 0.15 of a cell inside the picture and rides it;
   the line hangs slack. The next click sends `Reel` to `Harpoon.Stop` before the muzzle on the way to the
   piece (`HarpoonShot.ReelOf`) and the line goes taut till the sim's reel is over, then the rod snaps back
   at `Harpoon.ReturnSpeed`; a click while reeling sends it again from where the hero is, and so does the
   point before the muzzle moving over `Harpoon.FollowBeyond` from the last sent, at most every `Harpoon.FollowTicks`. A miss, a
-  piece gone or refused, one drifting past the range unreeled, or going aboard frees the line, the rod
-  snapping back; put away or passed out, it is in the gun at once. Clicks in flight, on the way back
-  or in the cooldown, and any aboard, do nothing; with the rod out a click is the gun's, never a grab.
+  piece gone or refused, or one drifting past the range unreeled frees the line, the rod snapping back;
+  put away or passed out, it is in the gun at once. **The grapple:** stuck in the structure, the next
+  click pulls the hero's middle toward `HarpoonShot.PullTo`, `Harpoon.PullStop` short of the hook, at
+  `Harpoon.PullSpeed` (`HeroInput.Pull`, `Hero.PullStep` a step, keys and gravity aside, walls and the
+  tether stopping it), the gun aimed at the hook and the hero facing it; there, or stopped short, it hangs
+  (`Rod.Hanging`), facing and aiming at the pointer again, till a jump, a movement key or a click lets go and
+  it drops; a cell that stops gripping (a door opened) frees it too. Clicks in flight, pulled, on the way
+  back or in the cooldown do nothing; with the rod out a click is the gun's, never a grab.
   The cooldown, `Harpoon.CooldownTicks` as real time from the shot, is the hero's: one `HarpoonShot`
   for every harpoon it holds. With the harpoon no wreck is aimed at (`Aiming.AimAt`'s `gun`); a small
   piece within reach is still caught by E or a click while the rod is in the gun, and the piece reeled in
   is caught with E. Heard through the suit (0042): the shot, the rod biting where it struck (the chop on
-  metal, the glove's thump on a crate or pod), the drum while reeling, a ready cue as the cooldown ends
+  metal or structure, the glove's thump on a crate or pod), the drum while reeling or pulled, a ready cue as the cooldown ends
   with a harpoon in hand. The line and the rod are drawn over the heroes (`Layers.Hero`), the line
   unlit as the tethers are.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.

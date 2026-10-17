@@ -2,8 +2,8 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// The hand harpoon (ADR 0044): distances in thousandths of a cell, speeds in thousandths of a cell a
-/// tick, times in ticks. The sim reads only <see cref="ReelSpeed"/>; the shot, its reach and its
-/// cooldown are the client's, among friends.
+/// tick, times in ticks. The sim reads only <see cref="ReelSpeed"/>; the shot, its reach, its cooldown and
+/// the grapple that pulls the hero are the client's, among friends.
 /// </summary>
 public static class Harpoon
 {
@@ -34,6 +34,12 @@ public static class Harpoon
 
     /// <summary>And at most once in this many ticks: 0.5 s.</summary>
     public const int FollowTicks = 10;
+
+    /// <summary>How fast the grapple pulls the hero toward a rod stuck in the ship's structure: 10 cells a second.</summary>
+    public const int PullSpeed = 500;
+
+    /// <summary>How far short of the rod's point the hero's middle is pulled to, as of a surface: half a cell.</summary>
+    public const int PullStop = 500;
 
     /// <summary>
     /// Ticks from a hero's shot till it fires again: 5 s. The cooldown is the hero's: every harpoon it

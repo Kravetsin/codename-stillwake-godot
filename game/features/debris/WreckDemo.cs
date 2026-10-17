@@ -86,6 +86,32 @@ public partial class WreckDemo : CanvasLayer
     /// <paramref name="all"/>, two to shoot with <paramref name="harpoon"/>), the axe in peer 0's second
     /// hotbar slot and a harpoon in its third: put into its save, as no command makes items or places debris.
     /// </summary>
+    /// <summary>For <c>--grapple</c>: a hall aboard, lamps under its ceiling (lit with <c>--lit</c>), the hero waking at its left end.</summary>
+    public static readonly Layout Hall = Layout.Parse(
+        [
+            new string(' ', 30),
+            "  ########################",
+            "  #...L.......L.......L..#",
+            "  #......................#",
+            "  #......................#",
+            "  #......................#",
+            "  #......................#",
+            "  #.....S................#",
+            "  ########################",
+            "",
+        ]) with
+    { Known = Spec.Research.StartKnown };
+
+    /// <summary><paramref name="world"/>, on <see cref="Hall"/>, with a harpoon in peer 0's first hotbar slot, put in through its save.</summary>
+    public static World SeedGrapple(World world, Func<IReadOnlyList<Module>> modules)
+    {
+        var root = JsonNode.Parse(world.Save())!;
+        var slots = new JsonArray();
+        for (int i = 0; i < Spec.Inventory.Slots; i++) slots.Add(i == 0 ? new JsonObject { ["item"] = Spec.Harpoon.Item, ["count"] = 1 } : null);
+        root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        return World.Load(root.ToJsonString(), modules());
+    }
+
     public static World Seed(World world, Func<IReadOnlyList<Module>> modules, bool all = false, bool harpoon = false)
     {
         var drifting = all ? Row() : harpoon ? Shootable : Drifting;
@@ -139,17 +165,18 @@ public partial class WreckDemo : CanvasLayer
     private int _target = Target;
     private Key? _swim;
     /// <summary>The harpoon's script (<c>--harpoon</c>): the piece shot at now, its step, and when that step began.</summary>
-    private readonly bool _harpoon;
+    private readonly bool _harpoon, _grapple;
     private int _shotAt = 1, _stage;
     private double _stageAt, _firedAt = -100;
     private bool _clicking, _reeled;
 
-    public WreckDemo(DebrisView view, Ui ui, bool all = false, bool harpoon = false)
+    public WreckDemo(DebrisView view, Ui ui, bool all = false, bool harpoon = false, bool grapple = false)
     {
         _view = view;
         _ui = ui;
         _all = all;
         _harpoon = harpoon;
+        _grapple = grapple;
         Layer = ScreenLayers.Pointer;
         AddChild(_arrow);
         _arrow.Draw += () =>
@@ -200,6 +227,11 @@ public partial class WreckDemo : CanvasLayer
         if (_harpoon)
         {
             PlayHarpoon(delta);
+            return;
+        }
+        if (_grapple)
+        {
+            PlayGrapple(delta);
             return;
         }
         var target = OnScreen(Target);
@@ -300,6 +332,67 @@ public partial class WreckDemo : CanvasLayer
                 GD.Print($"[demo] to the section at {_t:0.00} s");
                 break;
             case 5 when _shotAt == 2 && _t >= _stageAt + 1.5:
+                _done = true;
+                _arrow.Visible = false;
+                GD.Print($"[demo] done at {_t:0.00} s: the mouse is the player's");
+                return;
+        }
+        Pointer();
+    }
+
+    /// <summary>
+    /// The grapple's script (<c>--grapple</c>): 1 chooses the harpoon; the pointer goes to the hall's ceiling up
+    /// and to the right, a click fires into it, a second pulls the hero up to it; it hangs there a while, then D
+    /// lets go and it drops; then the same into the far wall.
+    /// </summary>
+    private void PlayGrapple(double delta)
+    {
+        if (_clicking)
+        {
+            Mouse(false);
+            _clicking = false;
+        }
+        // In the ceiling over the hall's middle, then in its right wall, in thousandths of a cell.
+        // Hanging, the pointer goes back into the hall, where a player would aim next.
+        var at = _stage is 4 or 5 ? new Vector2(13_000, 5_000) : _shotAt == 1 ? new Vector2(15_500, 1_900) : new Vector2(25_100, 5_500);
+        var aim = GetViewport().GetCanvasTransform() * (at / 1000f * ShipCamera.Cell);
+        _pos = _pos.MoveToward(aim, (float)(1500 * delta));
+        void Next(string said)
+        {
+            GD.Print($"[demo] {said} at {_t:0.00} s");
+            (_stage, _stageAt) = (_stage + 1, _t);
+        }
+        switch (_stage)
+        {
+            case 0 when _t >= 0.8:
+                Press(Key.Key1, true);
+                Press(Key.Key1, false);
+                Next("harpoon chosen");
+                break;
+            case 1 when _t >= _stageAt + 0.8 && _t >= _firedAt + 5.5 && aim.DistanceTo(_pos) < 2:
+                Click();
+                _firedAt = _t;
+                Next(_shotAt == 1 ? "fired into the ceiling" : "fired into the wall");
+                break;
+            case 2 when _t >= _stageAt + 0.6:
+                Click();
+                Next("pulling");
+                break;
+            case 3 when _t >= _stageAt + 2.0:
+                Next("hanging");
+                break;
+            case 4 when _t >= _stageAt + 1.2:
+                Press(Key.D, true);
+                Next("let go with D");
+                break;
+            case 5 when _t >= _stageAt + 0.15:
+                Press(Key.D, false);
+                Next("dropped");
+                break;
+            case 6 when _shotAt == 1 && _t >= _stageAt + 0.5:
+                (_shotAt, _stage) = (2, 1);
+                break;
+            case 6 when _shotAt == 2 && _t >= _stageAt + 1.5:
                 _done = true;
                 _arrow.Visible = false;
                 GD.Print($"[demo] done at {_t:0.00} s: the mouse is the player's");

@@ -43,6 +43,8 @@ with the fire axe is the hands too, which send `Hit` (0034).
 - **Recording:** `-- --harpoon` (`WreckDemo`): a harpoon in the third slot, a cargo crate and a hull
   section out of reach; 3 chooses it, the crate is shot, reeled in with a second click and caught with E,
   then, the gun ready again, the section is shot and reeled in to the gun (0044).
+- **Recording:** `-- --grapple --lit` (`WreckDemo.Hall`): a lit hall aboard, a harpoon in the first slot;
+  it is fired into the ceiling, the hero pulled up and hanging, D lets go; then the same into the far wall.
 - **Recording:** `-- --wreck` (`WreckDemo`): the hero floating in space, a fire axe in its second
   slot, a hull section drifting up slowly and three more chopped a third, a half and four fifths of
   the way; the pointer on it bare-handed (red), 2 chooses the axe, the left button held till it breaks,
@@ -57,7 +59,7 @@ with the fire axe is the hands too, which send `Hit` (0034).
 | `OwnHits.cs`    | which pieces this peer's own hits ran on since the last frame | no    |
 | `DebrisView.cs` | the layer: pieces and the outline of the one aimed at         | yes   |
 | `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |
-| `WreckDemo.cs`  | the world and the script of `--wreck`, `--wrecks` and `--harpoon` | yes   |
+| `WreckDemo.cs`  | the world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple` | yes   |
 
 `Fading.cs` and `OwnHits.cs` are compiled again into `game.tests/` (`OwnHits` tested in `HearingTests`), where `fade.test.ts` and the debris test of
 `predicted.test.ts` are ported (`DebrisTests`); the debris tests of `aim.test.ts` are in `AimTests`.

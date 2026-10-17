@@ -44,7 +44,7 @@ namespace Stillwake.Game;
 /// off the spawn, so a window recording another peer's hero there sees it whole,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
-/// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
+/// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
@@ -125,12 +125,14 @@ public partial class Main : Node2D, ITogether
         AddChild(new Stars());
         AddChild(_debris);
         if (Has("--debris")) AddChild(new DebrisDemo(_debris, _hands.Ui));
-        if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) AddChild(new WreckDemo(_debris, _hands.Ui, all: Has("--wrecks"), harpoon: Has("--harpoon")));
+        if (Has("--wreck") || Has("--wrecks") || Has("--harpoon") || Has("--grapple"))
+            AddChild(new WreckDemo(_debris, _hands.Ui, all: Has("--wrecks"), harpoon: Has("--harpoon"), grapple: Has("--grapple")));
         AddChild(_camera = new ShipCamera());
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         if (Has("--testbed")) _layout = Testbed.Map;
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) _layout = WreckDemo.Map;
+        if (Has("--grapple")) _layout = WreckDemo.Hall;
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
@@ -204,6 +206,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) world = WreckDemo.Seed(world, Modules, all: Has("--wrecks"), harpoon: Has("--harpoon"));
+        if (Has("--grapple")) world = WreckDemo.SeedGrapple(world, Modules);
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
         PlayDev(world, Has("--gallery") ? null : layout);
     }

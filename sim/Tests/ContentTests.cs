@@ -304,6 +304,16 @@ public class ContentTests
     }
 
     [Fact]
+    public void TheGrapplePullsTheHeroFasterThanItWalksAndStopsItWithinTheHandsReachOfTheHook()
+    {
+        // Per tick against the hero's per step: 20 ticks a second, 60 steps.
+        Assert.True(Harpoon.PullSpeed > Hero.Walk * 3);
+        Assert.True(Harpoon.PullStop < Hero.Reach);
+        Assert.True(Harpoon.PullStop < Harpoon.Stop);
+        Assert.True(Harpoon.PullSpeed < Harpoon.RodSpeed);
+    }
+
+    [Fact]
     public void TheHarpoonIsAToolOfOneCraftedAtThePodAndOpenedByAnalysingWhatItIsMadeOf()
     {
         Assert.True(Content.Items.TryGet(Harpoon.Item, out var harpoon));

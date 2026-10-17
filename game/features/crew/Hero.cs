@@ -14,9 +14,10 @@ public readonly record struct Point(int X, int Y);
 /// walks; with none, it faces the way it walks; swimming, the way it swims. <see cref="Sprint"/>, Shift
 /// held, runs and swims fast. <see cref="Swings"/>, the axe mid-swing (0039) or the harpoon aimed (0044): it
 /// faces <see cref="Face"/> swimming too, so the blade comes down where the swing was aimed and the gun
-/// points at the pointer.
+/// points at the pointer. <see cref="Pull"/>, the harpoon's grapple (0044): the body's middle is pulled
+/// toward that point, keys and gravity aside, and held there once it is.
 /// </summary>
-public readonly record struct HeroInput(int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false);
+public readonly record struct HeroInput(int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false, Point? Pull = null);
 
 /// <summary>
 /// The cells the hero moves against; which of them are space, where the hero floats; and which are the
@@ -127,9 +128,13 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
 
     private static double Distance(int dx, int dy) => Math.Sqrt((double)dx * dx + (double)dy * dy);
 
+    /// <summary>How far the grapple pulls the body a step: <c>Harpoon.PullSpeed</c> a tick, rounded to whole thousandths.</summary>
+    public const int PullStep = (Stillwake.Content.Harpoon.PullSpeed * Stillwake.Sim.World.TicksPerSecond + 30) / 60;
+
     private static Hero Move(Hero hero, HeroInput input, Ship ship)
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
+        if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero.X, hero.Y, input, input.X == 0 || input.Swings ? facing : input.X);
         bool grab = !hero.Climbing && input.Y != 0 && input.X == 0 && !input.Jump &&
@@ -151,6 +156,21 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         int nx = MoveX(ship, x, y, dir * (sprint ? Spec.Run : Spec.Walk));
         int ny = MoveY(ship, nx, y, speed, false);
         return new Hero(nx, ny, nx - x, ny - y == speed ? speed : 0, false, facing);
+    }
+
+    /// <summary>
+    /// The body's middle pulled straight toward <paramref name="to"/> by <see cref="PullStep"/>, landing on it,
+    /// walls and closed doors stopping it as anything does; no gravity, so pulled there it stays.
+    /// </summary>
+    private static Hero Pulled(Ship ship, Hero hero, Point to, int facing)
+    {
+        var middle = hero.Middle;
+        int dx = to.X - middle.X, dy = to.Y - middle.Y;
+        double far = Distance(dx, dy);
+        if (far > PullStep) (dx, dy) = ((int)Math.Round(dx / far * PullStep), (int)Math.Round(dy / far * PullStep));
+        int nx = MoveX(ship, hero.X, hero.Y, dx);
+        int ny = MoveY(ship, nx, hero.Y, dy, false);
+        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing);
     }
 
     private static Hero Swim(Ship ship, int x, int y, HeroInput input, int facing)
