@@ -20,8 +20,8 @@ with the fire axe is the hands too, which send `Hit` (0034).
 - **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
   wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one picture of each wreck: a hull section, a machine block 48 × 32, a cargo container and a shield slab 64 × 32, a cable rack and a tank cluster 32 × 32 (`DebrisLooks.Wrecks`, the box they are aimed at and struck by)), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
   at `X − Speed × Progress`, or reeled by a harpoon its share of the way to its reel's point
-  (`Shared.PieceDrawn`, where the crew's rod sticks to it too), so it glides, tumbling a turn every 4 s each its own way, faded in over the
-  first 8 cells of its path and out over the last (`Fading.FadeOf`, 0009); a wreck only rocks, 0.08 rad
+  (`Shared.PieceDrawn`, where the crew's rod sticks to it too), so it glides, tumbling a turn every 4 s each its own way, at full
+  strength from the first frame (it spawns out of sight; no fade since 0052); a wreck only rocks, 0.08 rad
   either way every 7 s, so its picture stays where the aim tests it.
 - **Damage (0034):** one filter for every wreck, in the lit pictures' shader (`render/Cracks.cs`, taken
   into `render/Lit.cs`): set per picture by instance uniforms, the share of hit points lost and the
@@ -70,7 +70,7 @@ with the fire axe is the hands too, which send `Hit` (0034).
 
 | File            | Holds                                                         | Godot |
 | --------------- | ------------------------------------------------------------- | ----- |
-| `Fading.cs`     | `FadeOf`, `Broken`                                            | no    |
+| `Fading.cs`     | `Broken`                                                      | no    |
 | `OwnHits.cs`    | which pieces this peer's own hits ran on since the last frame | no    |
 | `DebrisView.cs` | the layer: pieces and the outline of the one aimed at         | yes   |
 | `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |

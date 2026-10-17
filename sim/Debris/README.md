@@ -70,7 +70,7 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   farthest view, so what spawns on the right drifts into sight within a minute); then a kind
   from the tier the point's distance picks, and a speed. A point off the grid, in a stream's box or in
   any hero's `View` (60 × 34, the farthest zoom) spawns nothing, its draws taken all the same. The
-  piece starts there, in its cell's middle, `Start` its `X`, `End` 0, so it fades in where it spawns
+  piece starts there, in its cell's middle, `Start` its `X`, `End` 0, so it drifts in from where it spawns, out of sight
   and is gone past the grid's left edge; `SeenAt` the clock. A beat every tick, no jitter.
 - **Despawn,** for a zone round the heroes only: a piece in some hero's `Keep` box is seen (`SeenAt` the
   clock) and stays; one outside every keep box stays while within some hero's `Hard` box (100 × 64)
@@ -149,7 +149,7 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - Reach: the sim lets a hero in space grab any piece in space; the client offers only those within
   reach, among friends.
 - A hero's reported cell is up to a second and a round trip behind its body (0050): a ring drawn round
-  a stale cell may spawn near the screen's edge for a hero flying fast; the fade in covers it.
+  a stale cell may spawn near the screen's edge for a hero flying fast; it shows at once, at full strength.
 - Heroes together share one far field's density; at the far field's cap lower ids spawn first; a point
   off the grid or in a stream's box wastes that hero's beat; the tiers move with the hull.
 - Far pieces drift through the stream's box without counting toward its cap. A half-chopped wreck left

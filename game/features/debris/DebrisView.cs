@@ -143,7 +143,7 @@ public partial class DebrisView(Ui ui) : Node2D
             jolt *= jolt;
             var picture = one.Picture;
             picture.Position = at + one.Away * (float)(JoltPixels * jolt);
-            picture.Modulate = new Color(1, 1, 1, (float)Fading.FadeOf(x, piece.Start, piece.End));
+            picture.Modulate = Colors.White;
             // A slow tumble, each piece its own way; a wreck rocks.
             double turn = one.Wreck
                 ? Rock * Math.Sin(_clockMs / RockMs * 2 * Math.PI + piece.Id)

@@ -15,13 +15,6 @@ namespace Stillwake.Game.Tests;
 public class DebrisTests
 {
     [Fact]
-    public void APieceComesOutOfTheDarkOverTheStartOfItsPathAndGoesBackIntoItAtTheEnd()
-    {
-        double Fade(int x) => Fading.FadeOf(x, 100_000, 10_000);
-        Assert.Equal([0, 0.5, 1, 0.5, 0], new[] { Fade(100_000), Fade(96_000), Fade(50_000), Fade(14_000), Fade(9_000) });
-    }
-
-    [Fact]
     public void AWreckGoneWithHitsShortOfItsPathsEndWasBrokenAndOneThatDriftedOffWasNot()
     {
         // Last seen at 10 400, drifting 300 a tick to an end at 10 000.

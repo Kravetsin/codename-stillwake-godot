@@ -33,8 +33,8 @@ stream.
   from half-box (61, 36) out to (64, 42): just past what the farthest zoom shows (60, 34), so what
   spawns on the right drifts into sight soon. Five draws, always taken: the side, the offset
   along it, the depth across, the kind, the speed. A point off the grid, in a stream's box or in any
-  hero's view spawns nothing. The piece starts there, `Start` its `X`, `End` 0: the fade in and the
-  left edge as for every piece.
+  hero's view spawns nothing. The piece starts there, `Start` its `X`, `End` 0: it is
+  gone at the left edge as every piece is.
 - **Tiers by distance from the hull's box,** `d = max(dx, 2·dy)` in cells past it, rows counting double
   as the world is half as tall: from 0, 128 and 256 cells, small salvage near the ship, more and
   bigger wrecks out far, cable racks the most of all at 256 and beyond.
@@ -100,7 +100,7 @@ stream.
   145 bytes a piece.
 - A ring drawn round a cell a second stale may spawn a piece near the screen's edge for a hero flying
   fast, inside the farthest view (15 cells a second outruns the ring's 1 to 4 cells past it) but never
-  the default one; the fade in covers it. A hero stopping where no far field was waits some 45 s for the
+  the default one; it shows at once, at full strength (no fade). A hero stopping where no far field was waits some 45 s for the
   first piece in the default view: nothing spawns in sight, and the drift is under a cell a second. A hero
   that hovered and then climbs or dives meets its ring's top or bottom band, a share's quarter in a few
   rows: up to some 20 pieces in the default view at once, a passing cloud; bands thick enough to spread it
