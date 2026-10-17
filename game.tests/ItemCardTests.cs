@@ -80,9 +80,9 @@ public class ItemCardTests
         Assert.Null(gear.Tiles);
         Assert.Null(gear.Use);
         Assert.Equal(("Gear", "Part"), (gear.Name, gear.Kind));
-        // The crafts first, then the blueprints in content's order: door, valve, tank, vent.
-        Assert.Equal(["Rotor", "Door", "Valve", "Tank", "+1"], gear.Uses);
-        Assert.Equal(["Rotor", "Harpoon", "Generator", "Lamp", "+1"], ItemCards.Of("wire", false).Uses);
+        // The crafts first, then the blueprints in content's order: door, valve, tank, vent, burner generator.
+        Assert.Equal(["Rotor", "Door", "Valve", "Tank", "+2"], gear.Uses);
+        Assert.Equal(["Rotor", "Harpoon", "Generator", "Lamp", "+2"], ItemCards.Of("wire", false).Uses);
         Assert.Equal(("Iron", "Material"), (ItemCards.Of("iron", false).Name, ItemCards.Of("iron", false).Kind));
         Assert.Equal("Salvage", ItemCards.Of("scrapChunk", false).Kind);
     }

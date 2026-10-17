@@ -651,7 +651,7 @@ public partial class Main : Node2D, ITogether
         AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
         AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
         var power = _m.Power;
-        // The furnaces before the light: each frame a fire picks its picture, then its light follows it.
+        // The fires before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);
         AddChild(_furnace = fires);
         AddChild(_light = new LightView(_m.Grid)
@@ -659,6 +659,7 @@ public partial class Main : Node2D, ITogether
             // --lit: every lamp at full power, to measure the light on the reference world.
             LampShare = Has("--lit") ? _ => 1f : lamp => power.Satisfaction(lamp.Id) / 1000f,
             Fire = m => fires.BlazeOf(m.Id),
+            FireAt = FurnaceView.LightAt,
         });
         MoveChild(_camera, -1);
         _shown = _m;

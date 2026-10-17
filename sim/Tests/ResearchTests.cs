@@ -109,6 +109,20 @@ public class ResearchTests
     }
 
     [Fact]
+    public void OpensTheBurnerGeneratorOncePlateGearRotorAndWireAreAnalysed()
+    {
+        var (w, id) = SetUp();
+        w.GiveItems(0, ("rotor", 1));
+        var generator = new Placement("machine", "burnerGenerator");
+        Assert.Equal(["plate", "gear", "rotor", "wire"], RecipeOf(w, "burnerGenerator").Unanalysed);
+        foreach (var item in new[] { "plate", "gear", "wire" }) Analyse(w, id, item);
+        Assert.Equal(["rotor"], RecipeOf(w, "burnerGenerator").Unanalysed);
+        Assert.False(w.M.Research.Knows(generator));
+        Analyse(w, id, "rotor");
+        Assert.True(w.M.Research.Knows(generator));
+    }
+
+    [Fact]
     public void OpensTheSolarPanelOnceItsCircuitsAndMaterialsAreAnalysedAndBuildsItOfThem()
     {
         var (w, id) = SetUp();

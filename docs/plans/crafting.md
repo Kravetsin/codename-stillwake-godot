@@ -206,9 +206,26 @@ change to wire; the furnace's become fire scenarios where they hold for both.
   costs need parts, and parts need crafting, so the rule and the crafts cannot be split):
   1. **Parts and their blueprints** (built): the analysed rule, `Locked`, schematics gone, the four parts, the
      `Crafting` module and its panel, the new costs, the analyzer's screen and panel.
-  2. **The burner generator:** shared fires, the fuel slot by spec, resting makers, its art.
+  2. **The burner generator** (below, built): shared fires, the fuel slot by spec, resting makers, its art.
   3. **The lifepod** (below, built): where the hero is made, air for the suit, the Fabricator in it;
      crafting by machine only, the hand queue and its window gone.
+
+## Task 2: the burner generator (built)
+
+Built on `feat/burner-generator` ([0045](../decisions/0045-a-burner-generator-shares-the-furnaces-fire.md)),
+as the burner generator section above says, with these differences:
+
+- `Furnace` rests a cold generator from its **construction** phase, not after its fire: power's
+  derivation the same tick sees it, so one just built never makes a tick, and the lag stays one tick.
+- **A fire fed in time relights at once,** the furnace's too: its last tick of fuel burnt, the next
+  fuel is lit on the same tick. Otherwise every plank burnt out left a dark tick: a lamp blinking and
+  the crackle starting over every fifteen seconds.
+- Format 8: a fire's `furnace` is now `machine`, renamed by its step.
+- The client: the furnace feature draws both fires, since it mirrors the module that owns them; nothing
+  moved to a shared place. The generator's flywheel spins while it burns. Its panel: the fire over
+  its fuel slot and a bolt with what it makes. No hum yet: a new sound waits for the user's audition.
+- Map character `B`; on the build menu's Power tab after the solar panel; the testbed lights one in
+  room two, powering the lamp over it and the airlock's.
 
 ## Task 3: the lifepod, and no crafting by hand (built)
 

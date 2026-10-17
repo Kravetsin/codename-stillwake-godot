@@ -23,7 +23,7 @@ public sealed class PowerState
 {
     /// <summary>Every cable, ordered by its ends.</summary>
     [JsonInclude] internal List<Cable> Cables { get; set; } = [];
-    /// <summary>The machines told to rest by the module they work for, by id, sorted: they draw nothing.</summary>
+    /// <summary>The machines told to rest by the module they work for, by id, sorted: they draw and make nothing.</summary>
     [JsonInclude] internal List<int> Resting { get; set; } = [];
     /// <summary>Derived: the networks the cables join, in id order.</summary>
     [JsonIgnore] internal List<PowerNetwork> Networks { get; set; } = [];
@@ -55,7 +55,7 @@ public interface IPowerQueries
 /// <summary>How a module that depends on the power may change it.</summary>
 public interface IPowerOps
 {
-    /// <summary>Tells machine <paramref name="machineId"/> to rest, drawing nothing from the next derivation on, or to work again.</summary>
+    /// <summary>Tells machine <paramref name="machineId"/> to rest, drawing or making nothing from the next derivation on, or to work again.</summary>
     void Rest(int machineId, bool resting);
 }
 
@@ -71,7 +71,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     private readonly IItemsOps _itemsOps;
     /// <summary>Made once, so the tick's derivation allocates no delegates.</summary>
     private readonly Predicate<int> _standing;
-    private readonly Func<Machine, bool> _drawing;
+    private readonly Func<Machine, bool> _drawing, _making;
 
     public override string Id => "power";
 
@@ -83,6 +83,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         _itemsOps = itemsOps;
         _standing = id => _grid.MachineById(id) != null;
         _drawing = Drawing;
+        _making = m => !IsResting(m.Id);
         Handles<Lay>(c => LayProblem(c.From, c.A, c.B), ApplyLay);
         Handles<Move>(c => MoveProblem(c.Node, c.To, c.Cable), ApplyMove);
         Handles<Cut>(CutProblem, ApplyCut);
@@ -97,7 +98,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     protected override PowerState Init(Layout layout) => new() { Cables = StartingCables(layout) };
 
-    public override void Rebuild() => (State.Networks, State.Satisfaction) = Find(_grid, _rooms, State.Cables, _drawing);
+    public override void Rebuild() => (State.Networks, State.Satisfaction) = Find(_grid, _rooms, State.Cables, _drawing, _making);
 
     /// <summary>
     /// The cables a map lays, each end resolved to its node as <see cref="Lay"/> would: a machine drawn
@@ -134,7 +135,9 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     /// something, and none told to rest.
     /// </summary>
     private bool Drawing(Machine m) =>
-        (Spec(m).Slots == null || _items.Crate(m.Id)[0] != null) && State.Resting.BinarySearch(m.Id) < 0;
+        (Spec(m).Slots == null || _items.Crate(m.Id)[0] != null) && !IsResting(m.Id);
+
+    private bool IsResting(int machineId) => State.Resting.BinarySearch(machineId) >= 0;
 
     // Queries.
 

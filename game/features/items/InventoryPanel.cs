@@ -11,7 +11,6 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
 using static Stillwake.Game.I18n.En;
-using FurnaceSpec = Stillwake.Content.Furnace;
 using MachineSpecs = Stillwake.Content.Machines;
 
 namespace Stillwake.Game.Features.Items;
@@ -19,7 +18,7 @@ namespace Stillwake.Game.Features.Items;
 /// <summary>
 /// The hotbar, always in the top-left corner; and with Tab, or E on a crate, the rest of the inventory
 /// and the crate beside it (Inventory.tsx): a crate's slots, a furnace's input over its fuel and its
-/// outputs, an analyzer's own panel (<see cref="AnalyzerPanel"/>); the lifepod's is the crafting feature's. Stacks move by clicks (<see cref="Clicks.On"/>),
+/// outputs, a burner generator's fuel and what it makes, an analyzer's own panel (<see cref="AnalyzerPanel"/>); the lifepod's is the crafting feature's. Stacks move by clicks (<see cref="Clicks.On"/>),
 /// or dragged from one slot to another; Tab or Esc closes both. 1–9 and the wheel over the world choose a
 /// hotbar slot, Q throws its stack. A stack's name, and whether it waits for an analyzer, show in the one
 /// tooltip; an item not analysed has a violet "?" in its slot's corner, and in the hand.
@@ -32,6 +31,8 @@ public partial class InventoryPanel : CanvasLayer
     private static readonly StyleBoxFlat FireOut = Style.Box(Style.Slate700, Style.Slate700, 0, 5);
     private static readonly StyleBoxFlat FireOn = Style.Box(Style.Orange400, Style.Orange400, 0, 5);
     private static readonly LabelSettings Trouble = Style.Text(Style.Bold, 10, Style.Red300);
+    /// <summary>What a cold generator's output is dimmed to.</summary>
+    private static readonly Color Dark = new(0.35f, 0.35f, 0.4f);
 
     private readonly List<SlotBox> _slots = [];
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -43,6 +44,9 @@ public partial class InventoryPanel : CanvasLayer
     private Label _heldCount = null!, _creative = null!, _heldMark = null!;
     private ProgressBar? _progress;
     private Label? _problem;
+    /// <summary>A burner generator's output: a bolt and the power it makes, lit while it burns.</summary>
+    private TextureRect? _bolt;
+    private Label? _makes;
     private AnalyzerPanel? _analyzer;
     /// <summary>The slots and the analyzer's pictures, each saying what it holds in the one tooltip.</summary>
     private readonly TipSpots _tipSpots;
@@ -81,7 +85,7 @@ public partial class InventoryPanel : CanvasLayer
 
     private bool HandFree => _ui.Hand.Get() == Holding.Free;
 
-    /// <summary>What a furnace is doing, by machine id: the furnace module's <c>At</c>.</summary>
+    /// <summary>What a furnace or a burner generator is doing, by machine id: the furnace module's <c>At</c>.</summary>
     public Func<int, Smelting>? Furnace { get; set; }
 
     /// <summary>The hotbar slot chosen, with 1–9 or the wheel.</summary>
@@ -231,7 +235,7 @@ public partial class InventoryPanel : CanvasLayer
             _slots.RemoveAll(s => s.Place.Crate != null);
             _shown.RemoveChild(_cratePanel);
             _cratePanel.QueueFree();
-            (_cratePanel, _progress, _problem, _analyzer) = (null, null, null, null);
+            (_cratePanel, _progress, _problem, _analyzer, _bolt, _makes) = (null, null, null, null, null, null);
         }
         if (want is not var (crate, kind)) return;
         // The lifepod's Fabricator docks beside the inventory, the crafting feature's own panel.
@@ -239,6 +243,7 @@ public partial class InventoryPanel : CanvasLayer
         _cratePanel = kind switch
         {
             "furnace" => FurnacePanel(crate),
+            "burnerGenerator" => GeneratorPanel(crate),
             "analyzer" => _analyzer = new AnalyzerPanel(Box(new Place(0, crate)), _tipSpots),
             _ => Style.Panel(Style.Amber700 with { A = 0.7f },
                 Grid(Enumerable.Range(0, MachineSpecs.Get(kind).Slots ?? 0).Select(i => new Place(i, crate)))),
@@ -251,18 +256,53 @@ public partial class InventoryPanel : CanvasLayer
     private Control FurnacePanel(int crate)
     {
         var column = Style.Gap(new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
+        int fuel = MachineSpecs.Get("furnace").FuelSlot!.Value;
         column.AddChild(Box(new Place(0, crate)));
-        _fire = new Panel { CustomMinimumSize = new Vector2(10, 10), SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore };
-        column.AddChild(_fire);
-        column.AddChild(Box(new Place(FurnaceSpec.FuelSlot, crate)));
+        column.AddChild(_fire = FireMark());
+        column.AddChild(Box(new Place(fuel, crate)));
         var outputs = Style.Gap(new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter }, 4);
-        for (int i = FurnaceSpec.FuelSlot + 1; i < MachineSpecs.Get("furnace").Slots; i++) outputs.AddChild(Box(new Place(i, crate)));
+        for (int i = fuel + 1; i < MachineSpecs.Get("furnace").Slots; i++) outputs.AddChild(Box(new Place(i, crate)));
         var line = Style.Gap(new HBoxContainer(), 8);
         line.AddChild(column);
         line.AddChild(_progress = Style.Bar(Style.Orange400, 56));
         line.AddChild(outputs);
         return WithProblem(Style.Orange700, line);
     }
+
+    /// <summary>Its fire over its fuel, as the furnace's; beside them a bolt and the power it makes, lit while it burns.</summary>
+    private Control GeneratorPanel(int crate)
+    {
+        var column = Style.Gap(new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
+        column.AddChild(_fire = FireMark());
+        column.AddChild(Box(new Place(MachineSpecs.Get("burnerGenerator").FuelSlot!.Value, crate)));
+        var line = Style.Gap(new HBoxContainer(), 8);
+        line.AddChild(column);
+        line.AddChild(_bolt = new TextureRect
+        {
+            Texture = AsciiArt.Bolt(false),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            CustomMinimumSize = new Vector2(14, 18),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkEnd,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        });
+        line.AddChild(_makes = new Label
+        {
+            LabelSettings = Style.Text(Style.Mono, 14, Style.Amber400),
+            Text = MachineSpecs.Get("burnerGenerator").Makes.ToString(),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkEnd,
+        });
+        return WithProblem(Style.Orange700, line);
+    }
+
+    /// <summary>The square between a fire's slots: orange while it burns.</summary>
+    private static Panel FireMark() => new()
+    {
+        CustomMinimumSize = new Vector2(10, 10),
+        SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+        MouseFilter = Control.MouseFilterEnum.Ignore,
+    };
 
     /// <summary>A panel of <paramref name="edge"/> with <paramref name="line"/>, under it why the machine stands still.</summary>
     private Control WithProblem(Color edge, Control line)
@@ -391,7 +431,7 @@ public partial class InventoryPanel : CanvasLayer
             return;
         }
         if (_reading == null) return;
-        int? fuelSlot = _reading.Kind == "furnace" ? FurnaceSpec.FuelSlot : null;
+        int? fuelSlot = _reading.Kind is string kind && MachineSpecs.TryGet(kind, out var spec) ? spec.FuelSlot : null;
         var result = Clicks.On(Held, new SlotClick(place, _reading.At(place), right, shift, Crate, fuelSlot));
         _picked = result.Picked;
         if (result.Command != null) Send(result.Command);
@@ -440,14 +480,20 @@ public partial class InventoryPanel : CanvasLayer
         ShowMachine(reading);
     }
 
-    /// <summary>The open analyzer's panel; how far the open furnace's work is, whether it burns, and why it stands still.</summary>
+    /// <summary>
+    /// The open analyzer's panel; whether the open furnace or generator burns and why it stands still; how
+    /// far the furnace's work is, what the generator makes.
+    /// </summary>
     private void ShowMachine(Reading reading)
     {
         if (reading.Lessons != null) _analyzer?.Show(reading.Lessons);
-        if (_progress == null || _problem == null || reading.Kind != "furnace") return;
+        if (_problem == null || reading.Kind is not ("furnace" or "burnerGenerator")) return;
         var at = Crate is int id ? Furnace?.Invoke(id) : null;
-        _fire.AddThemeStyleboxOverride("panel", at?.Burning == true ? FireOn : FireOut);
-        _progress.Value = at is { Item: not null, Work: > 0 } ? (double)at.Progress / at.Work : 0;
+        bool burning = at?.Burning == true;
+        _fire.AddThemeStyleboxOverride("panel", burning ? FireOn : FireOut);
+        if (_progress != null) _progress.Value = at is { Item: not null, Work: > 0 } ? (double)at.Progress / at.Work : 0;
+        if (_bolt != null) _bolt.Modulate = burning ? Colors.White : Dark;
+        if (_makes != null) _makes.Modulate = burning ? Colors.White : Dark;
         _problem.Text = at?.Problem is { } problem ? T(problem) : "";
         _problem.Visible = at?.Problem != null;
     }

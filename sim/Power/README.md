@@ -8,7 +8,7 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   in space), `items` (what a cable costs: `IItemsQueries`, `IItemsOps`).
 - **State** (`PowerState`, members internal): `Cables` — every cable as the cells of its two nodes,
   the lower first, and whether it was paid for, ordered by its ends; `Resting` — the machines told to
-  rest, by id, sorted. Saved. Derived: `Networks` — what the cables join, in id order, each with its
+  rest, by id, sorted: they draw and make nothing. Saved. Derived: `Networks` — what the cables join, in id order, each with its
   nodes, supply, demand and satisfaction; `Satisfaction` — each cabled user's, by machine id, only
   looked up. Both found again every tick, in the derivation phase, from the cables: the machines on
   them are those at their ends (`MachineAt`), so a tick costs what is cabled, not the ship's machines.
@@ -27,8 +27,10 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
 - **A cable's end moves** to another node with `Move`: every cable ending at a node, or one named;
   none may then span farther than a cable does, or it would be pulled taut. Moving costs nothing.
 - **A network** is the nodes cables join, named by its lowest node cell. Its supply is what the
-  machines on it that make power make, each only under the stars: every cell of it in space with no back wall behind it (a
-  solar panel in a room, or before a back wall, is in the shade; 0043); its demand, what the machines on it that draw power draw, one working on
+  machines on it that make power make, none told to rest: one that burns fuel (with a `FuelSlot`: the
+  burner generator, which `furnace` rests while its fire is out; 0045) wherever it stands, any other
+  only under the stars: every cell of it in space with no back wall behind it (a solar panel in a
+  room, or before a back wall, is in the shade; 0043); its demand, what the machines on it that draw power draw, one working on
   what is put in it (an analyzer, with `Slots`) only while its first slot holds something, and none
   told to rest by the module it works for (`Rest`); a machine taken apart rests no more. Its
   satisfaction is `floor(1000 × supply / demand)`, at most 1000, and 1000 with no demand: every user
@@ -45,9 +47,10 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   refuses to take a machine apart; `Satisfaction(machineId)` — in thousandths, 0 off every network;
   `LayProblem(peer, a, b)` — why that peer's `Lay` would be refused, for the cable ghost;
   `MoveProblem(from, to, cable?)` — why that `Move` would be refused, for a dragged end.
-- **Operations** (`IPowerOps`): `Rest(machineId, resting)` — the machine draws nothing from the next
-  derivation on, or works again: `research` rests an analyzer with nothing to learn. Called from
-  research's simulation system, it shows from the next tick; resting a resting machine does nothing.
+- **Operations** (`IPowerOps`): `Rest(machineId, resting)` — the machine draws or makes nothing from
+  the next derivation on, or works again: `research` rests an analyzer with nothing to learn, from its
+  simulation system, so it shows from the next tick; `furnace` a burner generator whose fire is out,
+  from its construction system, so it shows this tick. Resting a resting machine does nothing.
 - **Commands:** `Lay(A, B)` — a cable between the nodes at those cells, paid from the sender
   (`Content.Power.CableCost`, nothing in creative mode: paid only if `Take` took something), refused
   with `power.noNode`, `power.sameNode`, `power.tooLong`, `power.twice` or `items.notEnough`;

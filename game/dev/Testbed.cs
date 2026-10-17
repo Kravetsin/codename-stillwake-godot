@@ -9,7 +9,8 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// A ready ship for checking things by eye (<c>-- --testbed</c>, or the title's Testbed button in a debug
 /// build): every machine once, two rooms aired, an airlock out to space, every user powered, creative
-/// mode on, a crate with a full stack of every item, the furnace lit and the analyzer at work.
+/// mode on, a crate with a full stack of every item, the furnace and the burner generator lit and the
+/// analyzer at work.
 /// </summary>
 public static class Testbed
 {
@@ -18,8 +19,9 @@ public static class Testbed
 
     /// <summary>
     /// Room one holds the lifepod and the air: a tank with a canister and a generator piped to a vent
-    /// in each room; room two the furnace, the crate and the analyzer; then the airlock, no vent in it.
-    /// Two panels on the roof, every user cabled to the nearer; the airlock's lamp to room two's.
+    /// in each room; room two the furnace, the crate, the analyzer and the burner generator; then the
+    /// airlock, no vent in it. Two panels on the roof, every user cabled to the nearer, but room two's
+    /// right lamp, cabled to the generator, and the airlock's, cabled to that lamp.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
@@ -29,8 +31,8 @@ public static class Testbed
             "  ###################################",
             "  #.......L......#....L.....L...#.L.#",
             "  #.OOO..........D..............D...D",
-            "  #.OOO..TTGG....D...FF....AA...D...D",
-            "  #.OOO..TTGGV...D.V.FF.KK.AA...D...D",
+            "  #.OOO..TTGG....D...FF....AA.BBD...D",
+            "  #.OOO..TTGGV...D.V.FF.KK.AA.BBD...D",
             "  ###################################",
         ],
         [
@@ -45,7 +47,7 @@ public static class Testbed
         ],
         [
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
-            ((19, 2), (22, 4)), ((19, 2), (27, 6)), ((19, 2), (28, 4)), ((28, 4), (34, 4)),
+            ((19, 2), (22, 4)), ((19, 2), (27, 6)), ((30, 6), (28, 4)), ((28, 4), (34, 4)),
         ]);
 
     /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>
@@ -56,8 +58,9 @@ public static class Testbed
 
     /// <summary>
     /// The testbed's world, played on <paramref name="modules"/>: run until its rooms are aired, its
-    /// items put in through the save (no command makes items), loaded, and one tick on, so the furnace
-    /// is lit and the analyzer has its whole work ahead.
+    /// items put in through the save (no command makes items), loaded, and two ticks on: the furnace and
+    /// the generator are lit on the first, the generator's power reaches its lamps on the second
+    /// (it rests while cold), and the analyzer has nearly its whole work ahead.
     /// </summary>
     public static World Create(IReadOnlyList<Module> modules)
     {
@@ -84,11 +87,13 @@ public static class Testbed
                 ["slots"] = Slots("furnace", [Stack("scrapChunk", Items.Get("scrapChunk").Stack), Stack("planks", Items.Get("planks").Stack)]),
             },
             new() { ["id"] = Id("analyzer"), ["slots"] = Slots("analyzer", [Stack(Analysing, 1)]) },
+            new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
         };
         // The slice keeps its machines in id order; the lifepod's may hold something already.
         var crates = items["crates"]!.AsArray().Select(c => c!.DeepClone().AsObject()).Concat(held).OrderBy(c => (int)c["id"]!);
         items["crates"] = new JsonArray([.. crates]);
         var world = World.Load(save.ToJsonString(), modules);
+        world.Step([]);
         world.Step([]);
         return world;
     }

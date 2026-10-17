@@ -22,7 +22,7 @@ public class FurnaceTests
     private static int At(int x, int y) => y * 10 + x;
     private static readonly int FurnaceAt = At(1, 1);
     private static readonly int Tank = At(4, 1);
-    private static readonly int Fuel = FurnaceContent.FuelSlot;
+    private static readonly int Fuel = Content.Machines.Get("furnace").FuelSlot!.Value;
     private static readonly Content.ItemSpec Chunk = ItemSpecs.Get("scrapChunk");
     private static readonly Content.ItemSpec Plank = ItemSpecs.Get("planks");
     private static readonly int ChunkTicks = Chunk.SmeltTicks!.Value;

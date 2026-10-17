@@ -79,12 +79,13 @@ internal static class PowerNodes
 
     /// <summary>
     /// The networks the cables join, in id order, with each user's satisfaction by machine id. Supply is
-    /// what the makers under the stars make; demand what the users draw, each only while
+    /// what the makers make, each only while <paramref name="making"/> says it works: one that burns fuel
+    /// anywhere, any other under the stars; demand what the users draw, each only while
     /// <paramref name="drawing"/> says it works. Satisfaction is <c>floor(1000 × supply / demand)</c>, at
     /// most 1000, and 1000 with nothing drawn. A powered machine with no cable is on no network.
     /// </summary>
     public static (List<PowerNetwork> Networks, Dictionary<int, int> Satisfaction) Find(
-        IGridQueries grid, IRoomsQueries rooms, IReadOnlyList<Cable> cables, Func<Machine, bool> drawing)
+        IGridQueries grid, IRoomsQueries rooms, IReadOnlyList<Cable> cables, Func<Machine, bool> drawing, Func<Machine, bool> making)
     {
         var ends = new List<int>(cables.Count * 2);
         foreach (var c in cables) { ends.Add(c.A); ends.Add(c.B); }
@@ -127,7 +128,8 @@ internal static class PowerNodes
             var s = Spec(m);
             if (!IsPowered(s)) continue;
             int network = networkOf[at];
-            if (s.Makes is int makes && UnderStars(grid, rooms, m)) supply[network] += makes;
+            // A fire needs no stars: its module rests it while it is out.
+            if (s.Makes is int makes && making(m) && (s.FuelSlot != null || UnderStars(grid, rooms, m))) supply[network] += makes;
             if (s.Draws is int draws)
             {
                 if (drawing(m)) demand[network] += draws;

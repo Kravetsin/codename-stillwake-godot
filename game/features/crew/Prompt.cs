@@ -28,11 +28,12 @@ public static class Prompts
             string action = plan?.Clear != null ? "use.takeApart" : work.Delivers ? "use.deliver" : "use.build";
             return new Prompt(action, work.Problem);
         }
-        // Named for what it opens: a furnace, an analyzer, the lifepod's Fabricator, else a crate.
+        // Named for what it opens: a furnace, a generator, an analyzer, the lifepod's Fabricator, else a crate.
         if (aim.Crate is int opens)
             return new Prompt(m.Grid.Machines.FirstOrDefault(x => x.Id == opens)?.Kind switch
             {
                 "furnace" => "use.openFurnace",
+                "burnerGenerator" => "use.openGenerator",
                 "analyzer" => "use.openAnalyzer",
                 "lifepod" => "use.openFabricator",
                 _ => "use.openCrate",

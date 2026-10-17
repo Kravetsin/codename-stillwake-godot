@@ -65,6 +65,18 @@ public static class Migrations
             foreach (var piece in save["slices"]!["debris"]!["pieces"]!.AsArray()) piece!["reel"] = null;
             return save;
         },
+        // 7 → 8: a fire names its machine, a furnace's or a burner generator's, no longer its furnace.
+        save =>
+        {
+            foreach (var fire in save["slices"]!["furnace"]!["fires"]!.AsArray())
+            {
+                var o = fire!.AsObject();
+                var machine = o["furnace"];
+                o.Remove("furnace");
+                o["machine"] = machine;
+            }
+            return save;
+        },
     ];
 
     /// <summary>The format a save says it has.</summary>

@@ -1,11 +1,11 @@
 # Light (client)
 
-Light without a word (0019, 0029): a dark ship lit by its lamps, its furnaces' fires, whatever glows,
+Light without a word (0019, 0029): a dark ship lit by its lamps, its fires, whatever glows,
 and by the stars through the holes in its back walls. Drawn only: nothing of it reaches the sim.
 Numbers from `game/Content/Light.cs`.
 
 - **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors stop light), `BackLayer`,
-  `Machines` (lamps, furnaces; machines dim starlight), `Width`/`Height`; `Particles.Shared` (what
+  `Machines` (lamps, fires; machines dim starlight), `Width`/`Height`; `Particles.Shared` (what
   glows); every `render/Glow` in the tree (a planner's screen).
 - **No Godot lights.** Godot lights a drawn thing by at most 15 lights and drops the rest: a furnace's
   embers once pushed a lamp out and whole tile chunks went dark. All light is composed here instead,
@@ -28,7 +28,8 @@ Numbers from `game/Content/Light.cs`.
 - **Lamps:** `Light.Lamp`, keeping `Light.Air` a cell, each colour at most `Light.LampMost`, out to
   `LampReach` (16) cells, as bright as `LightView.LampShare` says — the power it gets, flickering when
   short (`Flicker`) — and an unlit additive glow.
-- **Fire:** from the middle of a furnace's bottom row, `Light.Fire` keeping `Light.FireKeep` a cell
+- **Fire:** from where a furnace's or a burner generator's fire gives its light (`LightView.FireAt`, which
+  `Main` answers from `FurnaceView.LightAt`: a furnace's bottom row's middle, low in a generator's mouth), `Light.Fire` keeping `Light.FireKeep` a cell
   out to `FireReach` (8) cells, as bright as `LightView.Fire` says (`FurnaceView.BlazeOf`: a new
   brightness with each picture of the flames, past whole as a coal cracks), and a glow at the mouth.
   The furnace view runs before this one each frame, so the light follows the picture shown.
