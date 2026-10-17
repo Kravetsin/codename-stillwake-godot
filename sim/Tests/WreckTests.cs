@@ -20,7 +20,10 @@ namespace Stillwake.Sim.Tests;
 public class WreckTests
 {
     private static readonly Layout Wreck = Registry.Wreck;
-    private static int At(int x, int y) => y * Wreck.Width + x;
+    /// <summary>Where the wreck's drawing lies in the world: its top-left cell, centred.</summary>
+    private static readonly (int X, int Y) Drawn = Layout.OffsetInWorld(Registry.WreckMap.Width, Registry.WreckMap.Height);
+    /// <summary>The world's cell at (<paramref name="x"/>, <paramref name="y"/>) of the wreck as content draws it.</summary>
+    private static int At(int x, int y) => (y + Drawn.Y) * Wreck.Width + x + Drawn.X;
     /// <summary>Room A's cells: the generator's room, where the hero wakes.</summary>
     private static readonly int[] A = Enumerable.Range(0, 4 * 8).Select(i => At(46 + i % 8, 19 + i / 8)).ToArray();
     private static readonly int DoorToB = At(45, 21);
@@ -52,18 +55,32 @@ public class WreckTests
         Assert.Equal(World.Create(42, Wreck, new Registry().All).Hash(), World.Create(42, Wreck, new Registry().All).Hash());
 
     [Fact]
-    public void LeavesRoomToBuildAllAroundItTheEdgeFarFromTheHull()
+    public void LiesInTheMiddleOfTheWorldWithinItsBuildZoneRoomToBuildAllAroundIt()
     {
-        Assert.Equal((192, 96), (Wreck.Width, Wreck.Height));
+        var m = new Registry();
+        World.Create(1, Wreck, m.All);
+        Assert.Equal((Content.World.Width, Content.World.Height), (m.Grid.Width, m.Grid.Height));
+        Assert.Equal(new Box(512, 256, 1535, 767), m.Grid.Zone);
         var hull = Wreck.Rows.SelectMany((row, y) => row.Select((c, x) => (c, x, y)).Where(h => h.c != ' ')).ToList();
-        // The margin a tether must stay within: at least this many cells of space on every side.
-        int margin = new[]
-        {
-            hull.Min(h => h.x), hull.Min(h => h.y), Wreck.Width - 1 - hull.Max(h => h.x), Wreck.Height - 1 - hull.Max(h => h.y),
-        }.Min();
-        Assert.True(margin >= 16);
-        // A hero on a tether from the hull, half a cell in, stays clear of the edge, all of its box.
-        Assert.True(margin * 1000 - 500 > HeroSpec.Tether + HeroSpec.Height / 2);
+        var built = m.Grid.Built;
+        Assert.All(hull, h => Assert.True(built.Contains(h.x, h.y)));
+        // The whole wreck inside the zone, a margin of the zone's space round it on every side.
+        int margin = new[] { built.Left - m.Grid.Zone.Left, built.Top - m.Grid.Zone.Top, m.Grid.Zone.Right - built.Right, m.Grid.Zone.Bottom - built.Bottom }.Min();
+        Assert.True(margin >= 200, $"{margin} cells from the hull to the zone's edge");
+        // A hero on a tether from the hull, half a cell in, stays clear of the grid's edge, all of its box.
+        Assert.True((margin + 256) * 1000 - 500 > HeroSpec.Tether + HeroSpec.Height / 2);
+    }
+
+    [Fact]
+    public void PutsThePodAtTheZonesCornerPlusTheCentringPlusItsPlaceInTheDrawing()
+    {
+        var m = new Registry();
+        World.Create(1, Wreck, m.All);
+        var zone = m.Grid.Zone;
+        int pod = m.Grid.MachinesOf("lifepod").Single().Cell;
+        // The drawing's 192×96 centred in the zone's 1024×512: (416, 208) in, then the pod's own (51, 20).
+        Assert.Equal((416 + 51, 208 + 20), (pod % m.Grid.Width - zone.Left, pod / m.Grid.Width - zone.Top));
+        Assert.Equal(Pod, pod);
     }
 
     [Fact]

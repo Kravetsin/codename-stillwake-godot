@@ -547,7 +547,7 @@ public class HeroTests
         Assert.Equal(5 * Unit, stuck.Y - Spec.Height);
     }
 
-    internal static readonly Layout Wreck = Registry.Wreck;
+    internal static readonly Layout Wreck = Registry.WreckMap;
     internal static readonly int Spawn = new TestWorld(Wreck).M.Crew.Spawn;
     /// <summary>The wreck with every door open, the airlock's two doorways among them.</summary>
     /// <summary>The middle of room B's last cell of hull before space, where a tether out of it is tied.</summary>

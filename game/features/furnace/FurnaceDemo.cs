@@ -17,9 +17,9 @@ public static class FurnaceDemo
 
     public static World Create(IReadOnlyList<Module> modules)
     {
-        var rows = Registry.Wreck.Rows.ToArray();
+        var rows = Registry.WreckMap.Rows.ToArray();
         for (int y = Y; y < Y + 2; y++) rows[y] = rows[y][..X] + "FF" + rows[y][(X + 2)..];
-        var layout = Registry.Wreck with { Rows = rows };
+        var layout = Registry.WreckMap with { Rows = rows };
         var save = JsonNode.Parse(World.Create(1, layout, modules).Save())!;
         var furnace = save["slices"]!["grid"]!["machines"]!.AsArray().First(m => (string?)m!["kind"] == "furnace")!;
         // Items come into a world only as the hero catches them: here they are put in through the save.

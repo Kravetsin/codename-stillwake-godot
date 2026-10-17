@@ -2,13 +2,7 @@ namespace Stillwake.Sim.Power;
 
 public sealed partial class PowerModule
 {
-    // The module cannot see the grid. The generic suites fuzz it on the wreck, so ends are drawn mostly
-    // from the cells where it has something built, near one another, and now and then anywhere.
-    private static readonly int FuzzWidth = Content.Wreck.Rows[0].Length;
-    private static readonly int FuzzCells = FuzzWidth * Content.Wreck.Rows.Count;
-    private static readonly int[] Built = Content.Wreck.Rows
-        .SelectMany((row, y) => row.Select((c, x) => (c, cell: y * FuzzWidth + x)))
-        .Where(t => t.c != ' ').Select(t => t.cell).ToArray();
+    // Ends are drawn mostly within what the grid has built, near one another, and now and then anywhere.
     private const int Span = Content.Power.MaxSpan + 3;
 
     /// <summary>
@@ -19,24 +13,27 @@ public sealed partial class PowerModule
     public override Command? Fuzz(Rng rng, int from)
     {
         int Below(int n) => (int)rng.Below((ulong)n);
-        int Near(int cell) => cell + (Below(Span) - (Span >> 1)) + FuzzWidth * (Below(Span) - (Span >> 1));
+        int width = _grid.Width, cells = Math.Max(1, width * _grid.Height);
+        var built = _grid.Built;
+        int Near(int cell) => cell + (Below(Span) - (Span >> 1)) + width * (Below(Span) - (Span >> 1));
+        int InBuilt() => built.IsEmpty ? Below(cells) : (built.Top + Below(built.Height)) * width + built.Left + Below(built.Width);
 
         if (State.Cables.Count > 0 && Below(3) == 0)
         {
             var cable = State.Cables[Below(State.Cables.Count)];
-            int at = Below(6) == 0 ? Below(FuzzCells) : Below(2) == 0 ? cable.A : cable.B;
+            int at = Below(6) == 0 ? Below(cells) : Below(2) == 0 ? cable.A : cable.B;
             int to = Near(at);
             var one = Below(2) == 0 ? new Ends(cable.A, cable.B) : null;
-            return new Move(at, Below(8) == 0 ? Below(FuzzCells) : to, one) { From = from };
+            return new Move(at, Below(8) == 0 ? Below(cells) : to, one) { From = from };
         }
         if (State.Cables.Count > 0 && Below(3) == 0)
         {
             var cable = State.Cables[Below(State.Cables.Count)];
-            var (a, b) = Below(5) == 0 ? (Below(FuzzCells), Below(FuzzCells)) : (cable.A, cable.B);
+            var (a, b) = Below(5) == 0 ? (Below(cells), Below(cells)) : (cable.A, cable.B);
             return new Cut(a, b) { From = from };
         }
-        int start = Below(8) == 0 ? Below(FuzzCells) : Built[Below(Built.Length)];
+        int start = Below(8) == 0 ? Below(cells) : InBuilt();
         int near = Near(start);
-        return new Lay(start, Below(8) == 0 ? Below(FuzzCells) : near) { From = from };
+        return new Lay(start, Below(8) == 0 ? Below(cells) : near) { From = from };
     }
 }
