@@ -83,13 +83,14 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             }
         });
         // A tank taken apart takes its oxygen with it; ids are never reused, so this is only tidying.
-        // Only a machine taken apart, which moves the grid's version, leaves a tank with none.
+        // Only a machine taken apart leaves a tank with none: looked for when the grid's log names a machine's cell.
         _standing = t => _grid.MachineById(t.Tank) != null;
         System(Phase.Construction, () =>
         {
             if (_tanksCheckedAt == _grid.Version) return;
+            bool moved = _tanksCheckedAt is not int at || MachinesMoved(_grid.ChangedSince(at));
             _tanksCheckedAt = _grid.Version;
-            if (State.Tanks.TrueForAll(_standing)) return;
+            if (!moved || State.Tanks.TrueForAll(_standing)) return;
             State.Tanks = State.Tanks.FindAll(_standing);
             _readFor = null;
         });
@@ -123,7 +124,8 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     {
         if (_grid.Version == State.OrderedGrid && _rooms.Version == State.OrderedVersion) return;
         var roomOf = _rooms.RoomOfCells;
-        var vents = VentCells();
+        // Vents move only with machines: the grid's log says when one came or went.
+        var vents = MachinesMoved(_grid.ChangedSince(State.OrderedGrid)) ? VentCells() : State.OrderedVents;
         int was = State.OrderedVersion;
         var found = _rooms.ChangedSince(was);
         List<int> changed;
@@ -172,6 +174,15 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         foreach (int cell in oxygen)
             if (!filled.Contains(cell)) throw new FormatException($"Map cell {cell} under: 'o' is under no tank.");
         return tanks;
+    }
+
+    /// <summary>Whether a machine came or went among the grid's <paramref name="changes"/>; true when the log no longer knows.</summary>
+    private static bool MachinesMoved(IReadOnlyList<CellChange>? changes)
+    {
+        if (changes == null) return true;
+        foreach (var c in changes)
+            if ((c.Layers & GridLayers.Machine) != 0) return true;
+        return false;
     }
 
     /// <summary>The cells of the vents, in machine id order: where each room's air lies around.</summary>

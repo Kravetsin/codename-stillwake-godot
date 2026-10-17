@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Stillwake.Content;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
@@ -11,8 +12,9 @@ namespace Stillwake.Game.Features.Light;
 /// cell with no back wall and everywhere past the grid's edge, and spread from there in sweeps along
 /// every row and column, fading by what they cross. Worked out over <see cref="Region"/> only, what is
 /// built and <see cref="Margin"/> cells of space round it: past what is built every cell is open and
-/// holds the stars whole, the light of the region's edge, as it did over the whole world. Its buffers
-/// are kept and filled anew. Plain C#, so it is tested.
+/// holds the stars whole, the light of the region's edge, as it did over the whole world. After a change
+/// it is worked out again only around the cells changed (<see cref="Follow"/>), within <see cref="Reach"/>
+/// of them: past it, what a change does to the light rounds to nothing. Plain C#, so it is tested.
 /// </summary>
 public sealed class StarField
 {
@@ -33,58 +35,183 @@ public sealed class StarField
     /// <summary>Each cell's share of the stars' light: the stars are the one colour it comes in.</summary>
     private float[] _light = [];
 
+    /// <summary>Light this faint, or fainter, is 0 in every byte of a texel; a hundredth under, against rounding.</summary>
+    private static readonly double Faint = 0.99 * Math.Min(1, L.WallIn) / (Math.Max(L.Star.R, Math.Max(L.Star.G, L.Star.B)) * 255);
+
+    /// <summary>The share of light going on from a cell of one kind into the next, by <c>from × 3 + to</c>.</summary>
+    private static readonly float[] Shares = SharesOf();
+
+    /// <summary>
+    /// How many cells from a change its light may still show: past that, light that crossed the changed
+    /// cell keeps under <see cref="Faint"/> of itself, so every texel there rounds as it did. Every cell
+    /// crossed keeps at most the largest share; no texel shows light below <see cref="Faint"/>, a wall's
+    /// face, which shows light at its strongest, included. No reach when a share keeps it all.
+    /// </summary>
+    public static readonly int Reach = ReachOf();
+
+    private static int ReachOf()
+    {
+        double keep = 0;
+        foreach (float share in Shares) keep = Math.Max(keep, share);
+        if (keep >= 1) return int.MaxValue;
+        // A float a step keeps a ten-millionth more than the share at most; the margin covers it many times.
+        int reach = 0;
+        for (double light = 1; light >= Faint * 0.999; light *= keep) reach++;
+        return reach;
+    }
+
     /// <summary>Works the starlight out anew for the grid as it stands, over what is built and the margin; with nothing built, over a little open space.</summary>
-    public void Work(IGridQueries grid)
+    public void Work(IGridQueries grid) => Work(grid, RegionOf(grid));
+
+    private static Box RegionOf(IGridQueries grid)
     {
         var b = grid.Built;
-        Work(grid, new Box(b.Left - Margin, b.Top - Margin, b.Right + Margin, b.Bottom + Margin));
+        return new Box(b.Left - Margin, b.Top - Margin, b.Right + Margin, b.Bottom + Margin);
     }
 
     /// <summary>Works the starlight out over <paramref name="region"/>, which must hold everything built and a cell of space round it.</summary>
     public void Work(IGridQueries grid, Box region)
     {
         Region = region;
-        int w = region.Width, h = region.Height, n = w * h;
-        if (_kind.Length != n) (_kind, _light, Texels) = (new byte[n], new float[n], new byte[n * 4]);
+        int n = region.Width * region.Height;
+        if (Texels.Length != n * 4) Texels = new byte[n * 4];
+        Compute(grid, region, region, machinesListed: true);
+    }
+
+    /// <summary>
+    /// Brings the starlight up to the grid after <paramref name="cells"/> changed what stops or dims light or
+    /// lets the stars in (structure, back walls, machines), and what is built with them: worked out again
+    /// only within <see cref="Reach"/> of them, from what lies within twice that, where all light that can
+    /// reach them starts. The texels are the same as <see cref="Work"/> gives.
+    /// </summary>
+    public void Follow(IGridQueries grid, IReadOnlyList<int> cells)
+    {
+        var region = RegionOf(grid);
+        if (Texels.Length == 0 || Reach == int.MaxValue)
+        {
+            Work(grid, region);
+            return;
+        }
+        if (region != Region) Move(region);
+        // Changes near each other are worked out together: a box each, grown by each cell within twice the reach.
+        var boxes = new List<Box>();
+        int w = grid.Width, spread = 2 * Reach;
+        foreach (int cell in cells)
+        {
+            int x = cell % w, y = cell / w, near = -1;
+            for (int i = 0; i < boxes.Count && near < 0; i++)
+            {
+                var b = boxes[i];
+                if (x >= b.Left - spread && x <= b.Right + spread && y >= b.Top - spread && y <= b.Bottom + spread) near = i;
+            }
+            if (near < 0) boxes.Add(new Box(x, y, x, y));
+            else boxes[near] = boxes[near].Union(new Box(x, y, x, y));
+        }
+        long worked = 0;
+        foreach (var b in boxes) worked += (long)Within(Grown(b, spread), region).Width * Within(Grown(b, spread), region).Height;
+        if (worked >= (long)region.Width * region.Height)
+        {
+            Work(grid, region);
+            return;
+        }
+        foreach (var b in boxes)
+        {
+            var write = Within(Grown(b, Reach), region);
+            if (!write.IsEmpty) Compute(grid, Within(Grown(b, spread), region), write, machinesListed: false);
+        }
+    }
+
+    private static Box Grown(Box b, int by) => new(b.Left - by, b.Top - by, b.Right + by, b.Bottom + by);
+
+    private static Box Within(Box b, Box region)
+    {
+        var r = new Box(Math.Max(b.Left, region.Left), Math.Max(b.Top, region.Top), Math.Min(b.Right, region.Right), Math.Min(b.Bottom, region.Bottom));
+        return r.IsEmpty ? Box.None : r;
+    }
+
+    /// <summary>
+    /// The texels laid over <paramref name="region"/> now, kept where it overlaps the last one, and every other
+    /// cell open stars at full: a cell not built then or since, which the stars light whole.
+    /// </summary>
+    private void Move(Box region)
+    {
+        var old = Region;
+        var was = Texels;
+        int n = region.Width * region.Height;
+        var texels = new byte[n * 4];
+        var open = OpenTexel();
+        for (int i = 0; i < n; i++) open.CopyTo(texels, i * 4);
+        var both = Within(old, region);
+        for (int y = both.Top; y <= both.Bottom; y++)
+            Array.Copy(was, ((y - old.Top) * old.Width + both.Left - old.Left) * 4,
+                texels, ((y - region.Top) * region.Width + both.Left - region.Left) * 4, both.Width * 4);
+        (Region, Texels) = (region, texels);
+    }
+
+    /// <summary>An open cell's texel with the stars whole in it.</summary>
+    private static byte[] OpenTexel()
+    {
+        var bytes = new byte[4];
+        Texel(bytes, 0, 1, Air);
+        return bytes;
+    }
+
+    /// <summary>
+    /// Works the light out over <paramref name="box"/>, a part of <see cref="Region"/>, as if nothing lay past
+    /// its sides, and writes the texels of the cells in <paramref name="write"/>, which it holds.
+    /// </summary>
+    private void Compute(IGridQueries grid, Box box, Box write, bool machinesListed)
+    {
+        int w = box.Width, h = box.Height, n = w * h;
+        if (_kind.Length < n) (_kind, _light) = (new byte[n], new float[n]);
         var kind = _kind;
         var light = _light;
-        Array.Clear(kind);
-        Array.Clear(light);
+        Array.Clear(kind, 0, n);
+        Array.Clear(light, 0, n);
         ReadOnlySpan<int> structure = grid.StructureLayer, back = grid.BackLayer;
-        // A machine dims the light through every cell of its footprint.
-        foreach (var m in grid.Machines)
+        if (machinesListed)
         {
-            var spec = Machines.Get(m.Kind);
-            for (int dy = 0; dy < spec.Height; dy++)
-                for (int dx = 0; dx < spec.Width; dx++)
-                    kind[(m.Cell / grid.Width + dy - region.Top) * w + m.Cell % grid.Width + dx - region.Left] = Machine;
+            // A machine dims the light through every cell of its footprint; over the region, every machine is in it.
+            foreach (var m in grid.Machines)
+            {
+                var spec = Machines.Get(m.Kind);
+                for (int dy = 0; dy < spec.Height; dy++)
+                    for (int dx = 0; dx < spec.Width; dx++)
+                        kind[(m.Cell / grid.Width + dy - box.Top) * w + m.Cell % grid.Width + dx - box.Left] = Machine;
+            }
         }
         for (int y = 0; y < h; y++)
             for (int x = 0; x < w; x++)
             {
-                int i = y * w + x, gx = x + region.Left, gy = y + region.Top;
+                int i = y * w + x, gx = x + box.Left, gy = y + box.Top;
                 bool inside = gx >= 0 && gy >= 0 && gx < grid.Width && gy < grid.Height;
                 int cell = gy * grid.Width + gx;
+                if (!machinesListed && inside && grid.MachineAt(cell) != null) kind[i] = Machine;
                 if (inside && structure[cell] is Structure.Wall or Structure.DoorClosed) kind[i] = Wall;
                 if (kind[i] != Wall && (!inside || back[cell] == Back.None)) light[i] = 1;
             }
         Spread(light, kind, w, h);
         var bytes = Texels;
-        var (r, g, bl) = L.Star;
-        for (int i = 0; i < n; i++)
+        var region = Region;
+        for (int y = write.Top; y <= write.Bottom; y++)
         {
-            // Walls are drawn taking WallIn of the light on their face, so a wall cell holds its face's light.
-            float face = kind[i] == Wall ? light[i] / L.WallIn : light[i];
-            bytes[i * 4] = (byte)(Math.Min(1, r * face) * 255);
-            bytes[i * 4 + 1] = (byte)(Math.Min(1, g * face) * 255);
-            bytes[i * 4 + 2] = (byte)(Math.Min(1, bl * face) * 255);
-            // Its alpha says whether it is a wall's, so the shader blends it only with its own side.
-            bytes[i * 4 + 3] = kind[i] == Wall ? (byte)255 : (byte)0;
+            int i = (y - box.Top) * w + write.Left - box.Left, at = ((y - region.Top) * region.Width + write.Left - region.Left) * 4;
+            for (int x = write.Left; x <= write.Right; x++, i++, at += 4) Texel(bytes, at, light[i], kind[i]);
         }
     }
 
-    /// <summary>The share of light going on from a cell of one kind into the next, by <c>from × 3 + to</c>.</summary>
-    private static readonly float[] Shares = SharesOf();
+    private static readonly float StarR = L.Star.R, StarG = L.Star.G, StarB = L.Star.B;
+
+    private static void Texel(byte[] bytes, int at, float light, byte kind)
+    {
+        // Walls are drawn taking WallIn of the light on their face, so a wall cell holds its face's light.
+        float face = kind == Wall ? light / L.WallIn : light;
+        bytes[at] = (byte)(Math.Min(1, StarR * face) * 255);
+        bytes[at + 1] = (byte)(Math.Min(1, StarG * face) * 255);
+        bytes[at + 2] = (byte)(Math.Min(1, StarB * face) * 255);
+        // Its alpha says whether it is a wall's, so the shader blends it only with its own side.
+        bytes[at + 3] = kind == Wall ? (byte)255 : (byte)0;
+    }
 
     private static float[] SharesOf()
     {

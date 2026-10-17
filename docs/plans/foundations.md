@@ -156,17 +156,54 @@ The fully built world is drawn whole at zoom 0.1 and bound by rendering (18 ms o
 change (35 ms). The single 15–19 ms frame of every run, before and after alike, is spent in the
 debris and sim sections, not in what this slice touched.
 
-### F-7 — The grid keeps a log of changed cells
+### F-7 — The grid keeps a log of changed cells ✅
 
-- Today every reader of the grid finds what changed on its own, by comparing layers with a copy:
-  rooms, pipes, the tile view, the light, the starlight, the door prediction. F-2, F-4 and F-6's
-  slice 0 bounded those compares; the log removes them.
-- The grid records each changed cell (and the layers that changed) as it changes, under its version.
-  A reader asks for the cells changed since the version it last saw and handles only those; a reader
-  too far behind, or a load, rebuilds as today.
-- Derived, never saved or hashed. Every reader moves to it in the same change (0049).
-- Done when a door toggle, a breach and a wall built cost a handful of cells everywhere, whatever the
-  size of the world or the ship, measured on a fully built 1024×512 and on the 2048×1024 world.
+The grid logs every write to a layer or a machine's cells — the version, the cell, the layer, what it
+held — in a ring of 65,536 writes, derived, never saved or hashed (0051). `ChangedSince(version)` names
+the cells that differ since then, ascending, with the layers that do, exactly: a cell changed and
+changed back is not named. Null when the log no longer reaches back or the version is no version of
+this grid; every reader then looks at everything again, as on its first look. Every reader moved to
+it in the same change (0049): rooms, pipes and atmosphere (its vents and tanks looked at again only
+when a machine's cell changed) in the sim; the tile view (machines too), the light's occupancy
+texture and lamps, the starlight and the pipes overlay's valves in the client. Their layer copies are
+gone. Starlight is worked out again only within 45 cells of a change, past which what crossed it is
+fainter than a texel shows, from what lies within 90: its texels are those of working it all out,
+byte for byte. Rooms, with the cells changed in hand, no longer flood the ship's box for a change
+beside space: they label again only the cells beside a change and the rooms within two cells of it;
+where a cell stops passing space, a walk through the space beside it tells a pocket closed off, which
+becomes a room.
+
+The world hash, every room and every pipe network after fuzzed wreck runs, the reference world with
+doors toggled, and edits inside, on the hull and in space of a 256×128 ship in 1024×512, a 192×96 one
+in 2048×1024 and a fully built 1024×512 (a load half-way) are the same as before; so are the movie
+frames of the gallery and four perf views (`--toggle` on the reference, 2048×1024 and fully built
+worlds, and the ship's edge), pixel for pixel. A tick in Release (JIT tiering off, so runs agree), mean
+ms over 200 ticks; a door toggled, or a hull wall beside space taken apart and built again, every tick:
+
+| World | Steady | Door: before → after | Breach: before → after |
+| --- | --- | --- | --- |
+| 272×144, the reference ship 8 in | 0.04 | 0.10 → 0.06 | 0.70 → 0.07 |
+| 2048×1024, the reference ship 8 in | 0.04 | 0.10 → 0.07 | 0.69 → 0.07 |
+| 1024×512, fully built (8k rooms) | 0.61 | 1.50 (max 12.7) → 1.00 | 10.8 (max 34) → 1.04 |
+
+On the fully built world all that is left of a door or a breach, 0.4 ms, is atmosphere's own: it
+walks every vent (16k) to see whose room moved and every room to pick the changed ones; rooms and the
+rest take 0.04 ms. The client, debug build, `--perf`, 20 s of the frame log (frame avg; light and grid
+sections avg / max; starlight's work per change avg):
+
+| World, `--toggle` | Frame avg | Light | Grid | Starlight a change |
+| --- | --- | --- | --- | --- |
+| 1024×512, fully built | 65.0 → 29.8 | 35.2 / 43.9 → 0.90 / 2.3 | 0.93 / 1.4 → 0.03 / 0.4 | 32.8 → 1.5 |
+| 2048×1024, 192×96 built | 0.40 → 0.39 | 0.013 / 3.0 → 0.007 / 1.7 | 0.004 / 11.2 → 0.003 / 0.07 | 1.5 → 0.9 |
+| 256×128, the reference world | 1.61 → 1.57 | 0.09 / 4.2 → 0.03 / 1.6 | 0.006 / 8.9 → 0.004 / 0.06 | 2.6 → 0.9 |
+
+The fully built world is drawn whole at zoom 0.1 and bound by rendering, about 18 ms of render CPU,
+before as after; steady, it runs at 20–22 ms a frame either way. A change's starlight costs its window,
+about 181 cells square, and an upload of the whole texture (2 MB there): the same on every world.
+
+Not done here: atmosphere's walk over every vent and room on a change (above); pipes find every
+network again over the whole grid when a conduit or machine changes (a pipe built, not a door or a
+breach); the air overlay compares the rooms per cell row by row within what is built, not the grid.
 
 ## Not in this plan
 
