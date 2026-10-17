@@ -246,14 +246,17 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
   second, wider and longer out in space; only this hero's own. The line and the rod are drawn over the heroes (`Layers.Hero`), the line
   unlit as the tethers are.
 - **The drill (0054):** with `Ui.Wielded` the drill, the arm aims it as it aims the harpoon, the bit's line
-  through the pointer (`HarpoonShot.ArmFor`), the hero facing it; the figure holds it as a pistol by its handle
-  (`HeldLook.Drill`, `art/hero_drill.png`, its bit the edge, `Aimed`). Held on the left button (not a hold begun
+  through the pointer (`HarpoonShot.ArmFor`), the hero facing it; the figure holds it as a pistol by the loop of frame
+  under its rear (`HeldLook.Drill`, `art/hero_drill.png`, the tube hammer picked by the user, its long bit the edge,
+  `Aimed`), so its reach is the drawn bit's: some two and a half cells from the shoulder. Held on the left button (not a hold begun
   by a grab), it **runs** while the belt can pay a tick of its draw (`IItemsQueries.CanDrain` of its `Draw`, always
   in creative mode), aboard or at nothing too (`Motor.Wanted`, 0055): the client sends `Run(drill, On)` every frame
   till the sim runs it, and `Run(drill, Off)` every frame till it stops once let go, put away, passed out or flat
   (`Motor.RunOf`, as `Thrust`), the run before the frame's hits; the sim draws its power every tick it runs, so the
-  energy bar falls while it runs at nothing. Its bit spins, the picture flipping with `hero_drill_spin.png` (`Figure.Spinning`, up in
-  120 ms, winding down over 700 ms once it stops), and on the tick it starts and every `Weapons.Drill.Pace`
+  energy bar falls while it runs at nothing. Its bit spins, the picture cycling through itself and
+  `hero_drill_spin1..3.png` (`HeldLook.Spin`, `Figure.Spinning`), 18 frames a second at full speed, up in 120 ms and
+  winding down over 700 ms once it stops, to rest on its picture; the lamp on its rear cap lights while it runs
+  (`HeldLook.Lamp`: its pixel drawn unlit over the frames, which draw it dim, and a `Glow` giving a little green light), and on the tick it starts and every `Weapons.Drill.Pace`
   ticks after (`DrillPace`) it sends a `Hit(Piece, "drill")` for each wreck its bit touches that the sim would
   take: the bit's segment, held as the figure draws it from the shoulder of the body upright, against each
   wreck's aim box (`Aiming.Touched`), out in space only. The aim marks the first such wreck with the axe's prompt,
