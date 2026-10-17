@@ -17,7 +17,7 @@ public static class Crafts
         new("plate", [("iron", 2)], Ticks: 40),
         new("gear", [("iron", 1)], Ticks: 40),
         new("rotor", [("gear", 1), ("wire", 2)], Ticks: 60),
-        new("fireAxe", [("scrap", 6)], Ticks: 60),
+        new("fireAxe", [("iron", 2), ("planks", 1)], Ticks: 60),
         new("harpoon", [("plate", 2), ("wire", 4), ("scrap", 4)], Ticks: 80),
     ];
 

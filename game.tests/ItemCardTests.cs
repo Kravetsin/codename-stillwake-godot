@@ -92,7 +92,7 @@ public class ItemCardTests
     {
         var scrap = ItemCards.Of("scrap", false).Uses;
         Assert.Equal(ItemCards.MostInto + 1, scrap.Count);
-        Assert.Equal(["Wire", "Fire axe", "Harpoon", "Wall: scrap"], scrap.Take(ItemCards.MostInto));
+        Assert.Equal(["Wire", "Harpoon", "Wall: scrap", "Back wall: scrap"], scrap.Take(ItemCards.MostInto));
         int into = Spec.Crafts.All.Count(c => c.Cost.Any(i => i.Item == "scrap"))
             + Sim.Research.Blueprints.All.Count(b => b.Cost.Any(i => i.Item == "scrap"));
         Assert.Equal($"+{into - ItemCards.MostInto}", scrap[^1]);

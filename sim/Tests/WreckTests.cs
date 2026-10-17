@@ -169,6 +169,8 @@ public class WreckTests
         w.Do(new Move(new Slot(SlotOf(w, "iron")), new Target(Crate: analyzer), 1)).Run();
         for (int i = 0; i < 4 * ResearchSpec.Ticks && !w.M.Research.Analysed.Contains("iron"); i++) w.Run();
         Assert.True(w.M.Research.Knows("plate"));
+        // One hull plate smelts into two iron, a plate's worth: the one analysed is taken back out.
+        w.Do(new Move(new Slot(0, analyzer), new Target(), 1)).Run();
         CraftAtPod(w, "plate");
         Assert.Empty(w.Refusals);
         Assert.Equal(1, w.M.Items.Totals(0).Single(t => t.Item == "plate").Count);
