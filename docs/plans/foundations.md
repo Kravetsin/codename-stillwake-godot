@@ -50,11 +50,27 @@ edits is the same as before. A tick in Release, steady / a door toggled every ti
 
 A change within two cells of space, a breach, still floods the whole grid (F-4).
 
-### F-3 — A machine by its id at once
+### F-3 — A machine by its id at once ✅
 
-- A derived id-to-machine map in Grid for `MachineAt`, `HolderOf`, `Crafting`, `Furnace`; machines
-  listed by kind for the systems that walk one kind. A thousand furnaces cost 13 ms today.
-- The per-machine allocations of the furnace, research and air loops go.
+The grid keeps every machine by its id and each kind's machines in id order, derived and kept
+current on every build and removal (`MachineById`, `MachinesOf`); items find a machine's slots, and
+furnace, research and air their records, by a binary search or one pass in id order. Power finds a
+network's machines from the cables' ends, atmosphere reads the tanks and generators once a tick and
+looks for tanks taken apart only when the grid moved, and a door toggle reuses its scratch. No
+per-machine closures or per-tick allocations are left in those loops. The world hash after fuzzed
+wreck runs, the reference world with door toggles, and factory worlds with random builds, removals,
+cables and items moved into furnaces and analyzers (a save and load half-way) is the same as before.
+A tick in Release, in ms (steady / a door toggled every tick, or steady alone):
+
+| World | Before | After |
+| --- | --- | --- |
+| 1024×512, fully built (24k machines) | 1.8 / 2.4 | 0.4 / 0.9 |
+| 2048×1024, fully built (98k machines) | 7.0 / 9.5 | 2.0 / 5.9 |
+| 256×256, 1,024 furnaces and 1,024 analyzers at work (`BudgetTests`) | 50.5 | 0.5 |
+| 512×256, 6k machines: the furnace / research system alone, 1,024 of each | 13.5 / 17.4 | 0.2 / 0.04 |
+
+Power's networks are still found every tick: they now cost what is cabled, and a cache would have to
+follow analyzers' slots and resting machines, which move no version.
 
 ### F-4 — Rooms flooded within the ship, not the world
 

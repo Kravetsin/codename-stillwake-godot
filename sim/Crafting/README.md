@@ -5,7 +5,7 @@ each crafting machine's queue, shared by the crew, paid when queued, made one un
 machine's outputs. Today the one crafting machine is the lifepod's Fabricator. A module of its own
 rather than part of `Items`: it asks `Research` what is known, and research depends on items.
 
-- **Depends on:** `Grid` (`IGridQueries.Machines`: which machines craft), `Items` (`IItemsQueries`:
+- **Depends on:** `Grid` (`IGridQueries.MachineById`: which machines craft), `Items` (`IItemsQueries`:
   `ShortOf`, `FullFor`, `OutputFull`; `IItemsOps`: `Take`, `Give`, `Output`), `Research`
   (`IResearchQueries.Knows`).
 - **State** (`CraftingState`, members internal): `Queues` — each machine's ever crafted at, in machine

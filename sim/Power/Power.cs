@@ -69,6 +69,9 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     private readonly IRoomsQueries _rooms;
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
+    /// <summary>Made once, so the tick's derivation allocates no delegates.</summary>
+    private readonly Predicate<int> _standing;
+    private readonly Func<Machine, bool> _drawing;
 
     public override string Id => "power";
 
@@ -78,6 +81,8 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         _rooms = rooms;
         _items = items;
         _itemsOps = itemsOps;
+        _standing = id => _grid.MachineById(id) != null;
+        _drawing = Drawing;
         Handles<Lay>(c => LayProblem(c.From, c.A, c.B), ApplyLay);
         Handles<Move>(c => MoveProblem(c.Node, c.To, c.Cable), ApplyMove);
         Handles<Cut>(CutProblem, ApplyCut);
@@ -85,16 +90,14 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         System(Phase.Derivation, () =>
         {
             // A machine taken apart rests no more: nothing else tells it to work again.
-            var machines = _grid.Machines;
-            if (State.Resting.Any(id => !machines.Any(m => m.Id == id)))
-                State.Resting = State.Resting.Where(id => machines.Any(m => m.Id == id)).ToList();
+            if (!State.Resting.TrueForAll(_standing)) State.Resting = State.Resting.FindAll(_standing);
             Rebuild();
         });
     }
 
     protected override PowerState Init(Layout layout) => new() { Cables = StartingCables(layout) };
 
-    public override void Rebuild() => (State.Networks, State.Satisfaction) = Find(_grid, _rooms, State.Cables, Drawing);
+    public override void Rebuild() => (State.Networks, State.Satisfaction) = Find(_grid, _rooms, State.Cables, _drawing);
 
     /// <summary>
     /// The cables a map lays, each end resolved to its node as <see cref="Lay"/> would: a machine drawn
@@ -131,7 +134,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     /// something, and none told to rest.
     /// </summary>
     private bool Drawing(Machine m) =>
-        (Spec(m).Slots == null || _items.Crate(m.Id)[0] != null) && !State.Resting.Contains(m.Id);
+        (Spec(m).Slots == null || _items.Crate(m.Id)[0] != null) && State.Resting.BinarySearch(m.Id) < 0;
 
     // Queries.
 

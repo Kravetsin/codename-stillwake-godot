@@ -119,11 +119,13 @@ internal static class PowerNodes
         var supply = new int[lists.Count];
         var demand = new int[lists.Count];
         var users = new List<(int Id, int Network)>();
-        foreach (var m in grid.Machines)
+        // A network's machines are those whose top-left a cable ends on: found from the ends, not every machine.
+        for (int at = 0; at < nodes.Length; at++)
         {
-            int at = Array.BinarySearch(nodes, m.Cell);
+            var m = grid.MachineAt(nodes[at]);
+            if (m == null || m.Cell != nodes[at]) continue;
             var s = Spec(m);
-            if (at < 0 || !IsPowered(s)) continue;
+            if (!IsPowered(s)) continue;
             int network = networkOf[at];
             if (s.Makes is int makes && UnderStars(grid, rooms, m)) supply[network] += makes;
             if (s.Draws is int draws)

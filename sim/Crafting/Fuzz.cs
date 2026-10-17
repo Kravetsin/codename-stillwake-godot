@@ -18,7 +18,7 @@ public sealed partial class CraftingModule
     {
         int Below(int n) => (int)rng.Below((ulong)n);
         var machines = _grid.Machines;
-        var pod = machines.FirstOrDefault(m => m.Kind == Pod);
+        var pod = _grid.MachinesOf(Pod).FirstOrDefault();
         int machine = pod != null && Below(8) != 0 ? pod.Id
             : machines.Count > 0 && Below(2) == 0 ? machines[Below(machines.Count)].Id
             : Below(50);

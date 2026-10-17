@@ -56,7 +56,7 @@ public sealed record Reading(
         if (crate is int id)
         {
             slots = shown.Crates.Where(c => c.Crate == id).Select(c => c.Slots).FirstOrDefault() ?? items.Crate(id);
-            kind = grid.Machines.FirstOrDefault(m => m.Id == id)?.Kind;
+            kind = grid.MachineById(id)?.Kind;
         }
         // Copied: the sim's list is live, and a reading stands for what was read.
         var analysed = research.Analysed.ToList();

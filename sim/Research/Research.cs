@@ -117,7 +117,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     {
         var item = ItemIn(id);
         if (item == null) return null;
-        int progress = State.Analyses.Find(a => a.Analyzer == id)?.Progress ?? 0;
+        int progress = ProgressOf(id);
         string? problem = IsAnalysed(item) ? "research.nothingNew"
             : _power.Satisfaction(id) == 0 ? "research.unpowered"
             : null;
@@ -139,18 +139,36 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         return slots.Count == 0 ? null : slots[0]?.Item;
     }
 
+    /// <summary>Analyzer <paramref name="id"/>'s work so far; none for one not at work.</summary>
+    private int ProgressOf(int id)
+    {
+        var analyses = State.Analyses;
+        int lo = 0, hi = analyses.Count - 1;
+        while (lo <= hi)
+        {
+            int mid = lo + ((hi - lo) >> 1);
+            if (analyses[mid].Analyzer == id) return analyses[mid].Progress;
+            if (analyses[mid].Analyzer < id) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return 0;
+    }
+
     private void Analyse()
     {
         var kept = new List<Analysis>();
-        foreach (var m in _grid.Machines)
+        var analyses = State.Analyses;
+        int next = 0;
+        foreach (var m in _grid.MachinesOf("analyzer"))
         {
-            if (m.Kind != "analyzer") continue;
             var item = ItemIn(m.Id);
             bool works = item != null && !IsAnalysed(item);
             // Empty, or what it holds analysed: what was done is dropped, and no power drawn.
             _powerOps.Rest(m.Id, !works);
             if (!works) continue;
-            int was = State.Analyses.Find(a => a.Analyzer == m.Id)?.Progress ?? 0;
+            // Analyses and analyzers are both in id order: one pass finds each analyzer's.
+            while (next < analyses.Count && analyses[next].Analyzer < m.Id) next++;
+            int was = next < analyses.Count && analyses[next].Analyzer == m.Id ? analyses[next].Progress : 0;
             int progress = was + _power.Satisfaction(m.Id);
             if (progress < Work)
             {

@@ -10,7 +10,8 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   the lower first, and whether it was paid for, ordered by its ends; `Resting` — the machines told to
   rest, by id, sorted. Saved. Derived: `Networks` — what the cables join, in id order, each with its
   nodes, supply, demand and satisfaction; `Satisfaction` — each cabled user's, by machine id, only
-  looked up. Both found again every tick, in the derivation phase.
+  looked up. Both found again every tick, in the derivation phase, from the cables: the machines on
+  them are those at their ends (`MachineAt`), so a tick costs what is cabled, not the ship's machines.
 - **Files:** `PowerNodes.cs` — nodes, spans and networks, and the `Cable`, `Ends` and `PowerNetwork`
   records; `Power.cs` — the module, its queries, operation and commands; `Fuzz.cs` — its fuzz generator.
 
@@ -75,4 +76,5 @@ Every test of `power.test.ts` is ported, with `atmosphere` and `building`.
   anchor otherwise leaves the anchor inside it. Both are rare and harmless.
 - No storage, no priorities, no switches, no overload: a short network slows everything on it.
 - Networks are found from scratch every tick: tens of cables, so a cache would cost more than it
-  saves until the reference world says otherwise.
+  saves until the reference world says otherwise. One kept between ticks would also have to follow
+  what an analyzer's slot holds and which machines rest, neither of which moves the grid's `Version`.
