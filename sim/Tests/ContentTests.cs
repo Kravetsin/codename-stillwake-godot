@@ -285,6 +285,16 @@ public class ContentTests
     }
 
     [Fact]
+    public void TheHarpoonShootsFasterThanItReelsAndStopsAPieceWithinTheHandsReachInsideItsRange()
+    {
+        AllPositive(typeof(Harpoon));
+        Assert.True(Harpoon.ReelSpeed < Harpoon.RodSpeed);
+        Assert.True(Harpoon.RodSpeed < Harpoon.Range);
+        Assert.True(Harpoon.Stop < Hero.Reach);
+        Assert.True(Harpoon.Stop < Harpoon.Range);
+    }
+
+    [Fact]
     public void SalvageSpawnsOnTheWrecksGridItsLeadRightOfTheHull()
     {
         int right = Wreck.Rows.Max(row => row.TrimEnd().Length - 1);

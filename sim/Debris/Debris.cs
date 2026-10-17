@@ -18,8 +18,14 @@ public sealed record Grab(int Piece) : Command;
 public sealed record Hit(int Piece) : Command;
 
 /// <summary>
-/// The pieces of debris drifting past the ship, catching them, and breaking wreckage with an axe (ADRs
-/// 0006, 0009 and 0034; packages/sim/src/modules/debris).
+/// Reels piece <c>Piece</c> by a harpoon to (<c>ToX</c>, <c>ToY</c>), in thousandths of a cell: the point
+/// the client puts before the gun, kept on the grid. The last reel of a piece wins (0044).
+/// </summary>
+public sealed record Reel(int Piece, int ToX, int ToY) : Command;
+
+/// <summary>
+/// The pieces of debris drifting past the ship, catching them, reeling them in and breaking wreckage with
+/// an axe (ADRs 0006, 0009, 0034 and 0044; packages/sim/src/modules/debris).
 /// </summary>
 public sealed partial class DebrisModule : Module<DebrisState>
 {
@@ -43,6 +49,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         _items = items;
         Handles<Grab>(c => GrabProblem(c.From, c.Piece), Apply);
         Handles<Hit>(c => HitProblem(c.From, c.Piece), Apply);
+        Handles<Reel>(c => ReelProblem(c.From, c.Piece), Apply);
         // After derivation, like the air: the grid's size is that of this tick.
         System(Phase.Simulation, Drift);
     }
@@ -71,6 +78,12 @@ public sealed partial class DebrisModule : Module<DebrisState>
     /// </summary>
     public string? HitProblem(int peer, int id) =>
         Reachable(peer, id, out var piece) ?? (Content.Wreckage.HpOf(piece!.Item) == null ? "debris.notWreckage" : null);
+
+    /// <summary>
+    /// Why peer <paramref name="peer"/>'s reel of piece <paramref name="id"/> would be refused: it is gone,
+    /// or the hero or the piece is not in space, as for a grab. One reeled already is no reason: the last reel wins.
+    /// </summary>
+    public string? ReelProblem(int peer, int id) => Reachable(peer, id, out _);
 
     /// <summary>Why peer <paramref name="peer"/>'s hands cannot get at piece <paramref name="id"/>: it is gone, or the hero or the piece's middle is not in space.</summary>
     private string? Reachable(int peer, int id, out Piece? piece)
@@ -134,7 +147,29 @@ public sealed partial class DebrisModule : Module<DebrisState>
         _items.DropAt(FloorStack.Nobody, LootOf(piece.Item, Random), CellOf(piece.X, piece.Y, _grid.Width));
     }
 
+    private void Apply(Reel c)
+    {
+        var piece = State.Pieces.Find(p => p.Id == c.Piece) ?? throw new InvalidOperationException("debris.reel: applied to a piece that is gone");
+        int toX = Math.Clamp(c.ToX, 0, _grid.Width * Unit - 1), toY = Math.Clamp(c.ToY, 0, _grid.Height * Unit - 1);
+        int far = Math.Max(Math.Abs(toX - piece.X), Math.Abs(toY - piece.Y));
+        // Rounded up, so no tick moves it more than the reel's speed; at least one, so it lands on a tick.
+        int left = Math.Max(1, (far + Content.Harpoon.ReelSpeed - 1) / Content.Harpoon.ReelSpeed);
+        piece.Reel = new Reeling { By = c.From, ToX = toX, ToY = toY, Left = left };
+    }
+
     // Systems.
+
+    /// <summary>
+    /// Moves a reeled piece its share of the way still to go, truncated toward zero, so the last tick
+    /// lands it exactly; the line comes free on that tick.
+    /// </summary>
+    private static void Pull(Piece piece, Reeling reel)
+    {
+        piece.X += (reel.ToX - piece.X) / reel.Left;
+        piece.Y += (reel.ToY - piece.Y) / reel.Left;
+        reel.Left -= 1;
+        if (reel.Left == 0) piece.Reel = null;
+    }
 
     private void Drift()
     {
@@ -143,7 +178,9 @@ public sealed partial class DebrisModule : Module<DebrisState>
         if (s.Clock == 0 && s.AtStart > 0 && HullOf() is { } first)
             for (int i = 0; i < Math.Min(s.AtStart, Content.Debris.Max); i++) Spawn(first, along: true);
         s.Clock += 1;
-        foreach (var piece in s.Pieces) piece.X -= piece.Speed;
+        foreach (var piece in s.Pieces)
+            if (piece.Reel is { } reel) Pull(piece, reel);
+            else piece.X -= piece.Speed;
         s.Pieces.RemoveAll(p => p.X < p.End);
         if (s.Clock < s.NextSpawn) return;
         s.NextSpawn = s.Clock + Content.Debris.Every + (int)Random.Below(Content.Debris.Jitter + 1);
