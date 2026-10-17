@@ -18,7 +18,7 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   hero and some 35 drawn, the debris section costs 0.03 ms a frame on average (0.20 before) and
   allocates nothing (`-- --fly --far=300 --frames`).
 - **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
-  wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one picture of each wreck: a hull section, a machine block 48 × 32, a cargo container and a shield slab 64 × 32, a cable rack and a tank cluster 32 × 32, three placeholder pictures of an asteroid of grey rock 32 × 32 (`DebrisLooks.Wrecks`, the box they are aimed at and struck by)), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
+  wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one picture of each wreck: a hull section, a machine block 48 × 32, a cargo container and a shield slab 64 × 32, a cable rack and a tank cluster 32 × 32, three placeholder pictures of an asteroid of grey rock 32 × 32, three of each of its kinds (0056) in sizes and shades of it, small 24 × 24, large 48 × 48 and ore-rich 40 × 40 with gold veins and a glint, and two of each derelict, an engine block 80 × 48, a cargo hold 96 × 48 and a pod cluster 64 × 64, drawn of what they break into (`DebrisLooks.Wrecks`, the box they are aimed at and struck by)), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
   at `X − Speed × Progress`, or reeled by a harpoon its share of the way to its reel's point
   (`Shared.PieceDrawn`, where the crew's rod sticks to it too), so it glides, tumbling a turn every 4 s each its own way, at full
   strength from the first frame (it spawns out of sight; no fade since 0052); a wreck only rocks, 0.08 rad
@@ -31,7 +31,7 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   settling over 220 ms, throws sparks from the struck side (3 for the drill's hits, ten a second, 8 for others) and, if the hit was this player's own, plays `Sound.Chop` there, but for the drill's hits (`OwnHits.ToolOn`), whose strikes the crew plays as it works, apart from them (on the Suit
   bus, dulled while floating: wrecks are chopped in space, where only what the hero touches is heard, 0042). A wreck gone with hits in it before
   the end of its path was broken (`Fading.Broken`, counting the ticks run since it was last seen, so one
-  drifting off its end only fades, a stall between frames or not): a burst of dust and sparks and
+  drifting off its end only fades, a stall between frames or not): a burst of dust and sparks (half as much again for a derelict's big picture) and
   `Sound.Break` if its own hit broke it, louder and heard farther than a chop, on the Suit bus too. It takes the last chop's place:
   the last hit removes the wreck on its tick, so its damage never rises in view and no chop plays for it. Every peer sees the
   same, from the world; only the striker hears it. Own is a `Hit` of this peer's seen in flight one frame and gone the next (`OwnHits`), read after the hero sends this frame's hits, so none runs unseen. The stars behind it are
@@ -65,6 +65,10 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   asteroids held still either side of it, and a canister breathed when the suit runs half empty. The drill bores the right one till it breaks into rock (12 s),
   then the left one till the belt is flat and the drill winds down, red "Batteries flat"; then the axe chops
   that one till it breaks (0054). `--manual` leaves the script off.
+- **Recording:** `-- --sortie` (`SortieDemo`): the big world, the hero 140 rows above the hull, in the far field's
+  outermost tier, with a jetpack, the drill and the axe, ten canisters and two full batteries; one of each derelict
+  and of the asteroid's new kinds round it, still (0056). The drill bores the engine block till it breaks into its
+  loot (18 s). `--manual` leaves the script off, to try them by hand.
 - **Recording:** `-- --wreck` (`WreckDemo`): the hero floating in space, a fire axe in its second
   slot, a hull section drifting up slowly and three more chopped a third, a half and four fifths of
   the way; the pointer on it bare-handed (red), 2 chooses the axe, the left button held till it breaks,
@@ -81,6 +85,7 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
 | `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |
 | `WreckDemo.cs`  | the world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple` | yes   |
 | `AsteroidDemo.cs` | the world and the script of `--asteroid`                    | yes   |
+| `SortieDemo.cs` | the world and the script of `--sortie`                      | yes   |
 | `FarDemo.cs`    | the big world, a jetpack worn and the far field of `--fly` (`--manual` to fly it yourself) and `--far=N` | yes   |
 
 `Fading.cs` and `OwnHits.cs` are compiled again into `game.tests/` (`OwnHits` tested in `HearingTests`), where `fade.test.ts` and the debris test of

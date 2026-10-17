@@ -42,10 +42,14 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   tier `Debris.Kinds`. Its **box** is the hull grown by `Lead` columns either way and `Margin` rows.
 - **`far`, the far field** (`AroundHeroes`): round every hero out past every stream's box, from the
   cell its client last reported (`Hero.Cell`, about once a second, 0050). Three tiers, at 0, 128 and 256
-  cells: small salvage near the ship, more and bigger wrecks, cable racks most of all, the farther out.
+  cells: small salvage near the ship, more and bigger wrecks, cable racks most of all, the farther out;
+  past 128 the **derelicts** too, and past 256 big and rich rock ([0056](../../docs/decisions/0056-rich-finds-far-out.md)):
+  an engine block and a cargo hold one spawn in 83 past 128; with the pod cluster one in 31 past 256.
 - **`asteroids`, the asteroid band** (`HullBand(From, To, Lead)`, 0054): two bands of rows, 22 to 44 past the
   hull's top row and as far past its bottom row, beyond the tether's 12 cells; across, the stream's way, from
-  `Lead` right of the hull to as far left of it. One tier, `asteroid` alone. Not a stream's box: the far field
+  `Lead` right of the hull to as far left of it. Two tiers of the asteroid's kinds (0056): small, middling and large
+  nearer, and from 72, its far edge, rows 36 to 44 out (every piece spawning `Lead` across, `d` is twice its rows
+  there), more large and the ore-rich. Not a stream's box: the far field
   spawns in it as anywhere. A beat every 3 to 5 minutes (`Every` 3600, `Jitter` 2400), at most 2 out.
 
 ## Rules
@@ -100,9 +104,11 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   fit floats at the hero's cell, on the floor of space (`IItemsOps.GiveOrDrop`). A wreck is refused
   with `debris.tooBig`.
 - **Wreckage** is a kind with hit points in `Wreckage`: a hull section (15), a cargo container (11),
-  a machine block (19), a cable rack (9), a tank cluster (7), a shield slab (31) (0034, 0041) and an asteroid
-  (120, 0054). It drifts, spawns and is saved as any piece; each kind breaks into its own `Loot`, a cable rack always
-  into exactly one circuit, the only source of them, an asteroid into 3 to 5 rock. Hit points alone say how
+  a machine block (19), a cable rack (9), a tank cluster (7), a shield slab (31) (0034, 0041), an asteroid
+  (120, 0054), a small (50), a large (200) and an ore-rich one (160), an engine block (180), a cargo hold (140) and a
+  pod cluster (110) (0056). It drifts, spawns and is saved as any piece; each kind breaks into its own `Loot`, a cable rack always
+  into exactly one circuit, their sure source (an engine block or a pod cluster may hold one or two), an asteroid into
+  3 to 5 rock, the others by their size. Hit points alone say how
   hard a kind is: **every weapon breaks every kind** (0054). `Hit(Piece, Tool)` takes the weapon's
   `Weapons.Of(Tool).Damage` off them, adding it to the piece's `Damage`;
   the hit that brings `Damage` to its hit points removes it, and its loot (`Loot`, drawn by `LootOf`
@@ -205,4 +211,5 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   to reach the cap.
 - The harpoon and `Reel` are new in the port; TypeScript has none. So are the zones and the far field
   (0052), with their own scenarios and invariant test in `DebrisZonesTests`, and the asteroid band and the
-  weapons (0054), in `AsteroidTests`.
+  weapons (0054), in `AsteroidTests`; the asteroid's kinds and the derelicts (0056) in `RichFindsTests`, a sortie's
+  finds measured in `DebrisDensityTests`.

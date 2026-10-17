@@ -117,7 +117,7 @@ public partial class DebrisView(Ui ui) : Node2D
             var gone = _shown[id];
             // Gone from the world, not only from the view: broken, or faded out at its end.
             if (!_out.Contains(id) && Fading.Broken(gone.Damage, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
-                Burst(gone.Picture.Position, _own.Ran(id));
+                Burst(gone.Picture.Position, _own.Ran(id), gone.Picture.Texture.GetSize());
             gone.Picture.Visible = false;
             (gone.Wreck ? _wrecks : _small).Push(gone);
             _shown.Remove(id);
@@ -209,13 +209,15 @@ public partial class DebrisView(Ui ui) : Node2D
     /// <summary>
     /// A wreck broken at <paramref name="at"/>: a puff of dust and sparks, and the break heard if this player's
     /// own hit broke it (<paramref name="own"/>, 0042). The last hit removes the wreck on its tick, so its chop
-    /// never plays: the break, with an impact of its own, is the hit.
+    /// never plays: the break, with an impact of its own, is the hit. A bigger picture (<paramref name="size"/>), a
+    /// derelict's, bursts with more, half as much again for the biggest.
     /// </summary>
-    private void Burst(Vector2 at, bool own)
+    private void Burst(Vector2 at, bool own, Vector2 size)
     {
-        Particles.Shared.Emit(Effect.Dust, at.X, at.Y, 24, 0, inSpace: true);
-        Particles.Shared.Emit(Effect.Dust, at.X, at.Y, 24, Math.PI, inSpace: true);
-        Particles.Shared.Emit(Effect.Spark, at.X, at.Y, 14, -Math.PI / 2, inSpace: true);
+        float big = Math.Clamp(size.Length() / 72f, 1f, 2f);
+        Particles.Shared.Emit(Effect.Dust, at.X, at.Y, (int)(24 * big), 0, inSpace: true);
+        Particles.Shared.Emit(Effect.Dust, at.X, at.Y, (int)(24 * big), Math.PI, inSpace: true);
+        Particles.Shared.Emit(Effect.Spark, at.X, at.Y, (int)(14 * big), -Math.PI / 2, inSpace: true);
         if (own) _break.PlayAt(at);
     }
 

@@ -31,8 +31,8 @@ public partial class FarWrecks : DriftLayer
         _pieces = regions[cores.Count..];
     }
 
-    /// <summary>The farthest a wreck reaches from its middle, in its plane's pixels: its core's half-diagonal and a piece's beyond it, at the largest.</summary>
-    private const float Reach = (40 + 26) * WreckScaleMax;
+    /// <summary>The farthest a wreck reaches from its middle, in its plane's pixels: the largest core's half-diagonal and a piece's beyond it, at the largest.</summary>
+    private static readonly float Reach = (DebrisLooks.Wrecks.Values.Max(s => new Vector2(s.W, s.H).Length() / 2) + 26) * WreckScaleMax;
 
     private static IEnumerable<string> Paths((string Look, int Count) look) =>
         Enumerable.Range(1, look.Count).Select(n => $"res://art/debris/{look.Look}_{n:00}.png");

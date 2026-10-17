@@ -24,6 +24,12 @@ public static class DebrisLooks
         ["tankCluster"] = ("tanks", 1),
         ["shieldSlab"] = ("slab", 1),
         ["asteroid"] = ("asteroid", 3),
+        ["asteroidSmall"] = ("smallrock", 3),
+        ["asteroidLarge"] = ("bigrock", 3),
+        ["asteroidRich"] = ("orerock", 3),
+        ["engineBlock"] = ("engine", 2),
+        ["cargoHold"] = ("hold", 2),
+        ["podCluster"] = ("pods", 2),
     };
 
     /// <summary>
@@ -39,6 +45,13 @@ public static class DebrisLooks
         ["tankCluster"] = (32, 32),
         ["shieldSlab"] = (64, 32),
         ["asteroid"] = (32, 32),
+        ["asteroidSmall"] = (24, 24),
+        ["asteroidLarge"] = (48, 48),
+        ["asteroidRich"] = (40, 40),
+        // Derelicts (0056): the biggest pieces out, 5 to 6 cells across.
+        ["engineBlock"] = (80, 48),
+        ["cargoHold"] = (96, 48),
+        ["podCluster"] = (64, 64),
     };
 
     /// <summary>The picture piece <paramref name="id"/> of <paramref name="item"/> wears, or null to draw the item.</summary>
