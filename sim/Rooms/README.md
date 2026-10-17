@@ -6,8 +6,8 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
 
 - **Depends on:** `Grid`, through `IGridQueries`.
 - **State:** nothing saved. Derived: `RoomOf` per cell (a room's id, `Space` or `Solid`), the rooms in
-  id order, the grid's `Version` they were last found at, the box last flooded (`Flooded`), and the
-  rooms' own `Version` with the ids found again at it (`Changed`, null for all).
+  id order, the grid's `Version` they were last found at, and the rooms' own `Version` with the ids
+  found again at it (`Changed`, null for all).
 
 ## Rules
 
@@ -24,18 +24,23 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
   (`IGridQueries.ChangedSince`, 0050). When the log no longer reaches back that far, every room is
   found again as after a load.
   - Back walls alone: each changed cell joins or leaves its room's openings, no flood.
-  - Structure alone, no changed cell within two cells of space or the grid's edge: only the rooms
-    beside the changed cells are flooded again. Space cannot move there: a change moves openings at
-    most a cell away, and space floods in only from a cell beside one.
-  - Otherwise, or structure and back walls together: every room is flooded again within the built
-    box, the ship. Every cell outside it is empty, so space, reached straight away from the box; so a
-    cell on the box's side sees outside beyond and nothing solid, as one on the grid's edge does, and
-    no ring around the box is needed. The ids named are the rooms whose cells, hull or openings
-    differ, gone and new, and those at the back walls changed with it, which may leak differently.
+  - Structure, with back walls or not: only what a change can move is labelled again — the changed
+    cells and those beside them, whose solidity or opening may change, and every room within two
+    cells of a change, which they may join or split. Space comes in from the grid's edge and from the
+    space round them, through open cells that are no opening; the open cells left make the rooms,
+    each its smallest cell's. The rooms whose cells stayed have their hull and openings found again
+    where space came or went within two cells of them, or a back wall of theirs changed. A door, a
+    breach or a wall built costs the rooms it touches, not the ship.
+  - A change that may close space off — a cell space passed stops passing it — is followed by a walk
+    through the space beside it, which stops at the grid's edge or past what is built, where all is
+    space that reaches the edge. Space that reaches neither is a pocket, closed off: it becomes a room
+    with every room whose openings touch it, labelled again as above.
 
-  Found around a change or within the ship, the rooms are exactly what `Find` gives over the whole
-  grid: ids, volumes, hull and openings in cell order, rooms in id order. Each time they change,
-  `Version` is bumped. A load floods the built box too.
+  The ids named are the rooms gone and new, but for a room found again just as it was (its cells,
+  hull and openings), and those at the back walls changed, which may leak differently. Found around a
+  change or after a load, the rooms are exactly what `Find` gives over the whole grid: ids,
+  volumes, hull and openings in cell order, rooms in id order. Each time they change, `Version` is
+  bumped.
 
 ## API
 
@@ -55,7 +60,7 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
 - A room is closed: an open neighbour of a room cell is in the room, or is space beside one of its
   openings.
 - What the rooms are depends on the grid alone: the same after a load as before it, and the same
-  found around a change or within the ship as over the whole grid. Every room that differs from the
+  found around a change as over the whole grid. Every room that differs from the
   version before is among the ids `ChangedSince` gives.
 
 ## Deliberately not handled
@@ -64,6 +69,10 @@ As in the TypeScript module: rooms have no identity across a rebuild; a hole two
 room into space; a wall two cells thick leaks nothing; a notch in the hull is a tiny room open to
 space.
 
-A change within two cells of space or the grid's edge, a breach, floods the whole built box: it costs
-the ship, not the build area, and anything built far out (a back wall or a pipe in space) widens the
-box and so the cost. The grid logs every write to its layers (0050), so no change goes unseen.
+A room a change touches is flooded whole: a door in a great hall costs the hall, and a pocket closed
+off costs the pocket. The walk that tells a pocket goes through the space round the change until it
+leaves what is built: a wall built in a courtyard of the ship, open to space only by a long way round,
+walks the courtyard. A load floods within the built box, the ship: every cell outside it is empty, so
+space, reached straight away from the box; a cell on the box's side sees outside beyond and nothing
+solid, as one on the grid's edge does, so no ring around the box is needed. The grid logs every write
+to its layers (0050), so no change goes unseen.
