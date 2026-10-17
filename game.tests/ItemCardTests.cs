@@ -18,11 +18,36 @@ public class ItemCardTests
     {
         var tiles = ItemCards.Of("fireAxe", unknown: false).Tiles!;
         double every = (double)Spec.Axe.SwingTicks / World.TicksPerSecond;
-        Assert.Equal(ItemCards.Number(Spec.Axe.Damage / every), tiles.Dps);
-        Assert.Equal(Spec.Axe.Damage.ToString(), tiles.Damage);
-        Assert.Equal($"{ItemCards.Number(every)}s", tiles.Hit);
+        Assert.Equal(ItemCards.Number(Spec.Axe.Damage / every), tiles[0].Value);
+        Assert.Equal(Spec.Axe.Damage.ToString(), tiles[1].Value);
+        Assert.Equal($"{ItemCards.Number(every)}s", tiles[2].Value);
         // As content stands: 2 damage every 10 ticks of 20 a second.
-        Assert.Equal(new ToolTiles("4", "2", "0.5s"), tiles);
+        Assert.Equal([new CardTile("4", "DPS"), new CardTile("2", "DMG"), new CardTile("0.5s", "HIT")], tiles);
+    }
+
+    [Fact]
+    public void TileTheHarpoonsRangeReloadAndReelSpeedFromContentInsteadOfDamage()
+    {
+        var tiles = ItemCards.Of(Spec.Harpoon.Item, unknown: false).Tiles!;
+        Assert.Equal(ItemCards.Number(Spec.Harpoon.Range / 1000.0), tiles[0].Value);
+        Assert.Equal($"{ItemCards.Number((double)Spec.Harpoon.CooldownTicks / World.TicksPerSecond)}s", tiles[1].Value);
+        Assert.Equal($"{ItemCards.Number(Spec.Harpoon.ReelSpeed * World.TicksPerSecond / 1000.0)}/s", tiles[2].Value);
+        // As content stands: 12 cells, 100 ticks, 250 thousandths a tick of 20 a second.
+        Assert.Equal([new CardTile("12", "RANGE"), new CardTile("5s", "RELOAD"), new CardTile("5/s", "REEL")], tiles);
+    }
+
+    [Fact]
+    public void NameTheHarpoonAToolForDebrisAndWreckageShotWithTheLeftButton()
+    {
+        var card = ItemCards.Of(Spec.Harpoon.Item, unknown: false);
+        Assert.True(card.Tool);
+        Assert.True(ItemCards.IsTool(Spec.Harpoon.Item));
+        Assert.Equal(("Harpoon", "Tool · Harpoon"), (card.Name, card.Kind));
+        Assert.Equal(["Debris", "Wreckage"], card.Uses);
+        Assert.Equal("LMB", card.Use!.Key);
+        Assert.Empty(card.Effects);
+        Assert.NotEqual(card, card with { Tiles = [.. card.Tiles!.Take(2)] });
+        Assert.Equal(card, card with { Tiles = [.. card.Tiles!] });
     }
 
     [Fact]
@@ -57,7 +82,7 @@ public class ItemCardTests
         Assert.Equal(("Gear", "Part"), (gear.Name, gear.Kind));
         // The crafts first, then the blueprints in content's order: door, valve, tank, vent.
         Assert.Equal(["Rotor", "Door", "Valve", "Tank", "+1"], gear.Uses);
-        Assert.Equal(["Rotor", "Generator", "Lamp", "Cable"], ItemCards.Of("wire", false).Uses);
+        Assert.Equal(["Rotor", "Harpoon", "Generator", "Lamp", "+1"], ItemCards.Of("wire", false).Uses);
         Assert.Equal(("Iron", "Material"), (ItemCards.Of("iron", false).Name, ItemCards.Of("iron", false).Kind));
         Assert.Equal("Salvage", ItemCards.Of("scrapChunk", false).Kind);
     }
@@ -67,7 +92,7 @@ public class ItemCardTests
     {
         var scrap = ItemCards.Of("scrap", false).Uses;
         Assert.Equal(ItemCards.MostInto + 1, scrap.Count);
-        Assert.Equal(["Wire", "Fire axe", "Wall: scrap", "Back wall: scrap"], scrap.Take(ItemCards.MostInto));
+        Assert.Equal(["Wire", "Fire axe", "Harpoon", "Wall: scrap"], scrap.Take(ItemCards.MostInto));
         int into = Spec.Crafts.All.Count(c => c.Cost.Any(i => i.Item == "scrap"))
             + Sim.Research.Blueprints.All.Count(b => b.Cost.Any(i => i.Item == "scrap"));
         Assert.Equal($"+{into - ItemCards.MostInto}", scrap[^1]);

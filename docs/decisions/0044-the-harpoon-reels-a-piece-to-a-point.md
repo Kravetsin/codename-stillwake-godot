@@ -36,6 +36,36 @@ reeled piece must move there too, the same on every peer; the shot itself lives 
   harpoon is held: as the axe (0034).
 - **Format 7.** Its step gives every piece of an older save no reel.
 
+### The gun in the hand
+
+- **The item:** `harpoon`, a stack of one, made at the Fabricator of 2 plates, 4 wire and 4 scrap in 80
+  ticks, opened by analysis as every craft is (0027); a tool, its recipe amber as the axe's. Its card tiles
+  its range, reload and reel speed (RANGE 12 · RELOAD 5s · REEL 5/s) where the axe's tiles damage.
+- **The spring gun,** held as a pistol (`HeldLook.Harpoon`: hold 0, gripped by its plank stock, its
+  edge the rod seated in the tube, ending at the muzzle). Out in space the straight arm turns so the
+  barrel's line, not the arm's, runs through the pointer, and the hero keeps facing it; aboard it hangs.
+  Its picture shows the rod in the barrel only while the gun is ready.
+- **Presses:** a fresh left click fires out in space; aboard it does nothing and costs no cooldown. In
+  flight, on the way back and in the cooldown a click does nothing. Hooked, a click always reels, even
+  on a small piece in reach; a held button never reels. Reeling, a click reels again from where the hero
+  is now (the last reel wins).
+- **The point reeled to** is `Harpoon.Stop` before the muzzle on the way to the piece's middle as drawn.
+- **A miss** flies out to the full range and snaps back at `Harpoon.ReturnSpeed`, 80 cells a second,
+  twice the shot's; so does a line come free. No sound of the drum on a miss.
+- **The line comes free** when the piece is gone or the sim would refuse its reel, when it drifts past the
+  range unreeled, or the hero goes aboard; put away or passed out, the rod is back in the gun at once.
+  Reeling, it rides the piece in till the sim's reel is over (or a refused `Reel` leaves none), then
+  snaps back. **The piece is caught with E** where it stops: no catch on arrival.
+- **The cooldown is the hero's,** 5 s from the shot, hit or miss, one clock for every harpoon it holds.
+- **Heard, through the suit** (0042), by the shooter only: the shot; the rod biting at its contact frame
+  (metal, a wreck or salvage, the axe's chop; a crate or a pod, the glove's thump); the drum, looped from
+  the press that reels till the piece is in; and **a ready cue when the cooldown ends,** tied to the gun
+  being ready rather than to the rod coming back, played only with a harpoon in hand. No sound of the line
+  going taut.
+- **Others** see the gun hang in a friend's hand by `Seen.Wields`, and a taut line from its muzzle to any
+  piece the sim says it reels (`Reel.By`). Its shots, flights and hooks are not sent: nothing on the wire
+  changes.
+
 ## Consequences
 
 - A hook not yet reeled is never saved: a save or a join while the rod is stuck in a piece drops it.
@@ -47,3 +77,6 @@ reeled piece must move there too, the same on every peer; the shot itself lives 
 - A piece reeled left of its path's end is gone on that tick, as a drifting one would be. A hero on the
   tether never gets that far left of the hull.
 - A friend's hooked rod is drawn about 0.15 cells late, from 20 Hz samples, once others see shots.
+- Others see a friend's line only while the sim reels: not its shot, its rod in flight, nor the piece it
+  hooked; its gun hangs, unaimed, empty while it reels. Later, with a kind of work of its own.
+- A wreck reeled to `Stop` by its middle overlaps the gun, being three cells long: within the axe's reach.

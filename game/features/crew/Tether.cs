@@ -12,9 +12,12 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public sealed class Tether
 {
-    /// <summary>Out in space: no gravity, only a slow drift, a wave along the line. Thousandths of a cell.</summary>
-    private static readonly RopeStyle Style = new(Links: 20, Keep: 0.95, Gravity: 0, Drift: 0.5, DriftSpeed: 0.01, Wave: 0.35);
-    public static int Links => Style.Links;
+    /// <summary>
+    /// A line out in space: no gravity, only a slow drift, a wave along the line. Thousandths of a cell. The
+    /// tether's, and the harpoon's (<see cref="HarpoonLine"/>).
+    /// </summary>
+    public static readonly RopeStyle Space = new(Links: 20, Keep: 0.95, Gravity: 0, Drift: 0.5, DriftSpeed: 0.01, Wave: 0.35);
+    public static int Links => Space.Links;
     /// <summary>How much longer than the way it spans the line is let out, and the least it is.</summary>
     private const double Slack = 1.25, Shortest = 1000;
     /// <summary>The share of the difference the reel takes in each step, so the line pays out smoothly.</summary>
@@ -26,7 +29,7 @@ public sealed class Tether
     public Tether(Point anchor, (double X, double Y) clip, int seed = 0)
     {
         Anchor = anchor;
-        _rope = new Rope(Style, (anchor.X, anchor.Y), clip, seed);
+        _rope = new Rope(Space, (anchor.X, anchor.Y), clip, seed);
         _length = Math.Max(Shortest, Math.Sqrt((clip.X - anchor.X) * (clip.X - anchor.X) + (clip.Y - anchor.Y) * (clip.Y - anchor.Y)));
     }
 

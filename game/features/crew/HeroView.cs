@@ -7,6 +7,8 @@ using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Crew;
+using Stillwake.Sim.Debris;
+using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content.Hero;
 
 namespace Stillwake.Game.Features.Crew;
@@ -20,7 +22,9 @@ namespace Stillwake.Game.Features.Crew;
 /// followed by the camera; sent to the others about 20 times a second. Every hero in its suit's colour.
 /// E under the pointer, within reach, toggles a door or valve, loads a tank, catches a piece or opens a
 /// crate when pressed, and the left button works a plan while held, grabbing debris too: one
-/// <c>Work</c> for every tick released; with the fire axe wielded, clicked or held it swings toward the pointer, hitting the wrecks its blade meets (0039). With an empty hand, what E would work is outlined along its own
+/// <c>Work</c> for every tick released; with the fire axe wielded, clicked or held it swings toward the pointer, hitting the wrecks its blade meets (0039);
+/// with the harpoon, out in space, the arm aims it at the pointer, a click fires its rod on a line and the next reels in what it
+/// stuck in (<see cref="HarpoonShot"/>, 0044); every other hero's line to a piece the sim says it reels is drawn. With an empty hand, what E would work is outlined along its own
 /// pictures (<see cref="AimOutline"/>), and a prompt says what E does.
 /// </summary>
 public partial class HeroView : Node2D
@@ -28,6 +32,8 @@ public partial class HeroView : Node2D
     private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
     /// <summary>A safety line's yellow, pale enough not to shout across the dark.</summary>
     private static readonly Color Line = new(new Color("d9c27a"), 0.9f);
+    /// <summary>The harpoon's line, the rope of its picture's spool: warmer than the tether's.</summary>
+    private static readonly Color HarpoonRope = new(new Color("ecc67e"), 0.95f);
 
     private readonly Ui _ui;
     private readonly WorldButtons _mouse;
@@ -90,6 +96,29 @@ public partial class HeroView : Node2D
     private AxeSwing _swing;
     private int _swingFace = 1;
     private bool _grabHeld;
+    /// <summary>
+    /// The harpoon (0044): this hero's rod and the cooldown every harpoon it holds waits for, the line to the
+    /// rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the pointer.
+    /// </summary>
+    private readonly HarpoonShot _harpoon = new();
+    private readonly HarpoonWorld _harpoonWorld;
+    private HarpoonLine? _line;
+    private bool _aimsGun;
+    private readonly Sprite2D _rod = new() { Centered = false, Visible = false, ZIndex = Layers.Hero };
+    /// <summary>Every harpoon's line, over the heroes, unlit as the tethers are.</summary>
+    private readonly Sketch _lines = new(Layers.Hero);
+    /// <summary>Another hero's line to the piece the sim says it reels, by peer.</summary>
+    private readonly Dictionary<int, HarpoonLine> _othersLines = new();
+    private readonly List<(double X, double Y)> _linePoints = [];
+    // The gun is this hero's own, heard through the suit (0042): the shot, the drum while it reels, ready again.
+    private readonly AudioStreamPlayer _shot = Cues.Player(S.Shot, S.Suit), _drum = Cues.Player(S.Drum, S.Suit),
+        _ready = Cues.Player(S.Ready, S.Suit);
+    /// <summary>The rod biting into metal, where it struck; a crate or a pod thumps as a glove does.</summary>
+    private readonly Heard2D _bite = Cues.Player2D(S.Chop, S.Suit, voices: 2);
+    /// <summary>What the harpoon reads of the world, set at the start of every frame.</summary>
+    private Registry? _m;
+    private Client? _client;
+    private double _progress;
 
     /// <param name="ui">What the hand holds, the crate open and the piece aimed at, shared with the other features.</param>
     /// <param name="mouse">The pointer and the left button as the world reads them.</param>
@@ -113,7 +142,38 @@ public partial class HeroView : Node2D
         AddChild(_outline);
         AddChild(_prompt);
         AddChild(_act);
+        // The lines and the rod over this machine's hero: they leave its gun's muzzle.
+        AddChild(_lines);
+        _rod.Texture = GD.Load<Texture2D>(RodLook.Picture);
+        _rod.Offset = -new Vector2((float)RodLook.Eye.X, (float)RodLook.Eye.Y);
+        Lit.Set(_rod);
+        AddChild(_rod);
+        foreach (var player in new Node[] { _shot, _drum, _ready, _bite }) AddChild(player);
         _tethers.Paint = PaintTethers;
+        _lines.Paint = PaintLines;
+        _harpoonWorld = new HarpoonWorld(
+            Touches: (from, to) => Aiming.Hooks(_m!, _client!.Id, from, to, _progress),
+            PieceAt: id => PieceOf(id) is { } piece ? PieceDrawn.At(piece, _progress) : null,
+            Reelable: id => _m!.Debris.ReelProblem(_client!.Id, id) == null,
+            Reeled: id => ReelInFlight(id) || PieceOf(id)?.Reel?.By == _client!.Id);
+    }
+
+    /// <summary>Piece <paramref name="id"/> as the sim has it this frame; none once it is gone.</summary>
+    private Piece? PieceOf(int id)
+    {
+        var pieces = _m!.Debris.Pieces;
+        for (int i = 0; i < pieces.Count; i++)
+            if (pieces[i].Id == id) return pieces[i];
+        return null;
+    }
+
+    /// <summary>Whether a <see cref="Reel"/> of piece <paramref name="id"/> this peer sent has yet to run.</summary>
+    private bool ReelInFlight(int id)
+    {
+        var flying = _client!.InFlight;
+        for (int i = 0; i < flying.Count; i++)
+            if (flying[i] is Reel reel && reel.Piece == id) return true;
+        return false;
     }
 
     /// <summary>The hero after its latest step: what the sim learns of where it is.</summary>
@@ -140,10 +200,12 @@ public partial class HeroView : Node2D
     /// and draws it, the camera centred on it, and tells the sim where it is when that matters to its
     /// breathing (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming
     /// round, and takes no orders while passed out. <paramref name="heard"/> are the other heroes the
-    /// client took since the last frame, each drawn where it stood a little while ago.
+    /// client took since the last frame, each drawn where it stood a little while ago; <paramref name="progress"/> is
+    /// how far the world is between its last tick and the next, where the debris a harpoon's rod sticks in is drawn.
     /// </summary>
-    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double elapsedMs)
+    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double progress, double elapsedMs)
     {
+        (_m, _client, _progress) = (m, client, progress);
         var grid = m.Grid;
         _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
@@ -164,9 +226,10 @@ public partial class HeroView : Node2D
         {
             // Passed out, the hero takes no orders and only falls; keys pressed meanwhile are spent.
             var taken = _autopilot?.Next(_current) ?? Take();
-            // Swinging, it faces where the swing began toward, swimming too: the blade comes down there.
+            // Swinging, it faces where the swing began toward, swimming too: the blade comes down there. Aiming
+            // the harpoon, it faces the pointer, swimming the other way too.
             bool swinging = _swing.Phase != null;
-            var input = passedOut ? new HeroInput(0, 0, false) : taken with { Face = swinging ? _swingFace : face, Swings = swinging };
+            var input = passedOut ? new HeroInput(0, 0, false) : taken with { Face = swinging ? _swingFace : face, Swings = swinging || _aimsGun };
             (_previous, _current) = (_current, _current.Step(input, ship));
             _steps++;
         }
@@ -188,7 +251,7 @@ public partial class HeroView : Node2D
                 var last = _heardChops.GetValueOrDefault(message.From).Last;
                 _heardChops[message.From] = (sent.Seen.Wields == Content.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
             }
-        ShowOthers(ship, m.Crew, elapsedMs);
+        ShowOthers(ship, m.Crew, m.Debris.Pieces, elapsedMs);
 
         double between = _clock.Progress;
         double x = _previous.X + (_current.X - _previous.X) * between;
@@ -207,10 +270,12 @@ public partial class HeroView : Node2D
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         _figure.Wear(Suits.Of(m.Crew, client.Id));
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
+        ShowHarpoon(elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         // Stamped with its step's time, so others place it by when it was there, not when it came.
         _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy), _steps * Hero.StepMs);
         _tethers.QueueRedraw();
+        _lines.QueueRedraw();
     }
 
     /// <summary>
@@ -227,7 +292,8 @@ public partial class HeroView : Node2D
     {
         if (!_mouse.Buttons.HoldsRight) _served.Clear();
         bool axe = handFree && _ui.Wielded.Get() == Content.Axe.Item;
-        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served, axe) : null;
+        bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
+        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served, axe, gun) : null;
         var prompt = passedOut ? null : Prompts.Of(m, aim, shown);
         TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
@@ -238,7 +304,8 @@ public partial class HeroView : Node2D
         // button grabs debris too: out in space, with the keys held and the mouse aiming, E is a stretch.
         bool pressed = (_autopilot?.TakePress() ?? false) | TakeUse();
         bool clicked = _mouse.Buttons.TakeClick();
-        bool grab = clicked && aim?.Piece != null;
+        // With the harpoon's rod out of the gun, a click is the gun's: hooked, it reels, even on a piece in reach.
+        bool grab = clicked && aim?.Piece != null && !(gun && _harpoon.Rod != Rod.Seated);
         bool acts = !passedOut && handFree;
         var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, !passedOut && _mouse.Buttons.HoldsRight, client.World.Tick, _workedOnTick);
         _workedOnTick = uses.WorkedOnTick;
@@ -262,6 +329,23 @@ public partial class HeroView : Node2D
         }
         if (swung.Hits)
             foreach (var hit in Aiming.HitsOf(m, client.Id, _current, _swing.At)) client.Send(hit);
+        // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
+        bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
+        _aimsGun = wieldsGun && Floats && pointer != null;
+        var hold = new GunHold(wieldsGun, Floats, _figure.Muzzle is { } muzzle ? Thousandths(muzzle) : null, (_figure.Barrel.X, _figure.Barrel.Y));
+        var shot = _harpoon.Step(elapsedMs, clicked && !grabbed, hold, _harpoonWorld);
+        if (shot.Fired) _shot.Play();
+        if (shot.Hooked is int hooked) Bite(hooked);
+        if (shot.Reel is { } reel) client.Send(reel);
+        if (shot.Ready) _ready.Play();
+        // The drum turns from the press that reels till the piece is in, or the line comes free.
+        if ((_harpoon.Rod == Rod.Reeling) != _drum.Playing)
+        {
+            if (_drum.Playing) _drum.Stop();
+            else _drum.Play();
+        }
+        _figure.Aim = _aimsGun && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
+        _figure.Loaded = _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
         _busy = working ? new Busy(Handwork.Work, Middle(aim!.Cell))
             : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
@@ -279,7 +363,7 @@ public partial class HeroView : Node2D
     /// </summary>
     private static void ShowHands(Figure figure, string? wields, Busy? busy, (Point At, double Phase)? swing)
     {
-        figure.Wields = wields == Content.Axe.Item;
+        figure.Wields = wields;
         figure.Chop(swing is { At: var point, Phase: var phase } ? (Pixels(point), phase) : null);
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
     }
@@ -309,12 +393,13 @@ public partial class HeroView : Node2D
     /// hands wielding and working as sent, the axe swung once for each swing sent (<see cref="AxeSwing.Follow"/>);
     /// those gone, hidden.
     /// </summary>
-    private void ShowOthers(Ship ship, ICrewQueries crew, double elapsedMs)
+    private void ShowOthers(Ship ship, ICrewQueries crew, IReadOnlyList<Piece> pieces, double elapsedMs)
     {
         var others = _remote.At(_clockMs);
         foreach (var (id, shown) in _shownOthers)
             if (!others.Any(o => o.Id == id))
             {
+                _othersLines.Remove(id);
                 shown.Figure.Visible = false;
                 (shown.Tether, shown.Busy) = (null, null);
                 shown.Swing.Stop();
@@ -335,11 +420,102 @@ public partial class HeroView : Node2D
             shown.Swing.Follow(elapsedMs, axe ? chop : null);
             ShowHands(shown.Figure, seen.Wields, seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
+            var reeled = ReeledBy(pieces, id);
+            // Its rod is out while the sim reels a piece by it; its shots, flights and hooks are not sent.
+            shown.Figure.Loaded = reeled == null;
             shown.Figure.Show(hero, Poses.PoseOf(hero, ship.Space(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
+            ReelLine(id, shown.Figure.Muzzle, reeled, elapsedMs);
             (shown.Tether, shown.Busy) = (Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs), seen.Busy);
         }
         Others = others.Select(o => o.Seen.Hero).ToList();
+    }
+
+    /// <summary>The first piece the sim says peer <paramref name="peer"/>'s harpoon reels; none while it reels none.</summary>
+    private static Piece? ReeledBy(IReadOnlyList<Piece> pieces, int peer)
+    {
+        for (int i = 0; i < pieces.Count; i++)
+            if (pieces[i].Reel?.By == peer) return pieces[i];
+        return null;
+    }
+
+    /// <summary>
+    /// Another hero's line, taut from its gun's <paramref name="muzzle"/> to the edge of the piece the sim says it
+    /// reels, toward its middle; none while it reels nothing or shows no gun.
+    /// </summary>
+    private void ReelLine(int peer, Vector2? muzzle, Piece? reeled, double elapsedMs)
+    {
+        if (muzzle is not { } at || reeled == null)
+        {
+            _othersLines.Remove(peer);
+            return;
+        }
+        var gun = Thousandths(at);
+        var (x, y) = PieceDrawn.At(reeled, _progress);
+        // Its rod is not sent: the line ends where the piece's picture begins on the way to its middle.
+        var (halfW, halfH) = Aiming.PictureOf(reeled.Item);
+        double dx = gun.X - x, dy = gun.Y - y;
+        double edge = Math.Min(dx == 0 ? 1 : halfW / Math.Abs(dx), dy == 0 ? 1 : halfH / Math.Abs(dy));
+        var piece = edge < 1 ? (x + dx * edge, y + dy * edge) : (x, y);
+        if (!_othersLines.TryGetValue(peer, out var line)) _othersLines[peer] = line = new HarpoonLine(gun, piece, peer);
+        line.Update(gun, piece, taut: true, elapsedMs);
+    }
+
+    /// <summary>A point in the world's pixels, in thousandths of a cell.</summary>
+    private static (double X, double Y) Thousandths(Vector2 at) => (at.X / Rig.Cell * Hero.Unit, at.Y / Rig.Cell * Hero.Unit);
+
+    /// <summary>The rod's eye this far behind its point, in thousandths of a cell, as its picture is drawn.</summary>
+    private static readonly double RodLength = (RodLook.Tip.X - RodLook.Eye.X) / Rig.Cell * Hero.Unit;
+
+    /// <summary>
+    /// This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn
+    /// with: the rod pointing the way it flew, or, reeled or winding back, away from the gun along the line; the
+    /// line slack in flight and hooked, taut reeling and winding back. Nothing while the rod is in the gun.
+    /// </summary>
+    private void ShowHarpoon(double elapsedMs)
+    {
+        if (_harpoon.Rod == Rod.Seated || _figure.Muzzle is not { } muzzle)
+        {
+            (_line, _rod.Visible) = (null, false);
+            return;
+        }
+        var gun = Thousandths(muzzle);
+        var tip = _harpoon.Tip;
+        var pointing = _harpoon.Heading;
+        double far = Math.Sqrt((tip.X - gun.X) * (tip.X - gun.X) + (tip.Y - gun.Y) * (tip.Y - gun.Y));
+        if (_harpoon.Rod is Rod.Reeling or Rod.Returning && far > 1) pointing = ((tip.X - gun.X) / far, (tip.Y - gun.Y) / far);
+        var eye = (tip.X - pointing.X * RodLength, tip.Y - pointing.Y * RodLength);
+        _line ??= new HarpoonLine(gun, eye);
+        _line.Update(gun, eye, taut: _harpoon.Rod is Rod.Reeling or Rod.Returning, elapsedMs);
+        _rod.Visible = true;
+        _rod.Position = new Vector2((float)(eye.Item1 / Hero.Unit * Rig.Cell), (float)(eye.Item2 / Hero.Unit * Rig.Cell));
+        _rod.Rotation = (float)Math.Atan2(pointing.Y, pointing.X);
+    }
+
+    /// <summary>
+    /// The rod biting into piece <paramref name="id"/> as it sticks (0042): metal, a wreck or salvage, heard as an
+    /// axe's chop where it struck; a crate or a pod as the glove's thump.
+    /// </summary>
+    private void Bite(int id)
+    {
+        if (PieceOf(id) is not { } piece) return;
+        bool container = Content.Loot.Of(piece.Item) != null && Content.Wreckage.HpOf(piece.Item) == null;
+        if (container) _act.Play(Floats);
+        else _bite.PlayAt(new Vector2((float)(_harpoon.Tip.X / Hero.Unit * Rig.Cell), (float)(_harpoon.Tip.Y / Hero.Unit * Rig.Cell)));
+    }
+
+    private void PaintLines(Sketch g)
+    {
+        foreach (var line in _othersLines.Values) PaintLine(g, line);
+        if (_line != null) PaintLine(g, _line);
+    }
+
+    private void PaintLine(Sketch g, HarpoonLine line)
+    {
+        _linePoints.Clear();
+        line.DrawnInto(_linePoints);
+        for (int i = 0; i < _linePoints.Count; i++) _linePoints[i] = (_linePoints[i].X / Hero.Unit, _linePoints[i].Y / Hero.Unit);
+        g.Rope(_linePoints, HarpoonRope, 1);
     }
 
     /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none while the mouse is off the window.</summary>

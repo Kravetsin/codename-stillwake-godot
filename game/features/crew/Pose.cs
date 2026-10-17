@@ -22,8 +22,8 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// <see cref="Slump"/>, what picks the heap it ends in, and <see cref="OutTilt"/>, how the body was turned
 /// as it passed out, which in space it keeps. Afloat, <see cref="Swim"/> and <see cref="Fast"/> blend from
 /// drifting still into swimming and on into swimming fast, each 0 to 1; the figure eases them, and with
-/// none they follow the hero's speed at once. <see cref="Wields"/> while the front hand holds the axe:
-/// afloat that arm keeps calm rather than paddling.
+/// none they follow the hero's speed at once. <see cref="Wields"/> while the front hand holds an item, the
+/// axe or the harpoon: afloat that arm keeps calm rather than paddling.
 /// </summary>
 public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null,
     double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, bool Wields = false);

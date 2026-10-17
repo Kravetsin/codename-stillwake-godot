@@ -68,6 +68,49 @@ public static class Aiming
 
     private const int PixelsPerCell = 16, WreckMargin = 250;
 
+    /// <summary>Half a small piece's picture each way, in thousandths of a cell: they are a cell or a little more across.</summary>
+    private const int SmallHalf = 500;
+
+    /// <summary>How far inside a picture's edge the harpoon's rod sticks, in thousandths of a cell: its point sinks in.</summary>
+    private const int Bite = 150;
+
+    /// <summary>
+    /// The box a piece is struck in, half its size each way in thousandths of a cell, and half its picture:
+    /// a wreck's as it is aimed at (<see cref="HalfOf"/>), a small piece's picture; both with the margin.
+    /// </summary>
+    private static (int HalfW, int HalfH, int PictureW, int PictureH) BoxOf(string item) => HalfOf(item) is var (w, h)
+        ? (w, h, w - WreckMargin, h - WreckMargin)
+        : (SmallHalf + WreckMargin, SmallHalf + WreckMargin, SmallHalf, SmallHalf);
+
+    /// <summary>Half the picture of a piece of <paramref name="item"/> each way, in thousandths of a cell.</summary>
+    public static (int HalfW, int HalfH) PictureOf(string item)
+    {
+        var (_, _, w, h) = BoxOf(item);
+        return (w, h);
+    }
+
+    /// <summary>
+    /// The first piece, in spawn order, that the harpoon's rod meets moving from <paramref name="from"/> to
+    /// <paramref name="to"/>, in thousandths of a cell, that peer <paramref name="peer"/> could reel (0044), each
+    /// piece where it is drawn <paramref name="progress"/> of the way to its next tick; and where the rod sticks:
+    /// where it enters the piece's box, kept <see cref="Bite"/> inside its picture. None while it meets nothing.
+    /// </summary>
+    public static (int Piece, (double X, double Y) At)? Hooks(
+        Registry m, int peer, (double X, double Y) from, (double X, double Y) to, double progress)
+    {
+        foreach (var p in m.Debris.Pieces)
+        {
+            var (x, y) = Shared.PieceDrawn.At(p, progress);
+            var (halfW, halfH, pictureW, pictureH) = BoxOf(p.Item);
+            if (Entered((from.X, from.Y, to.X, to.Y), x - halfW, y - halfH, x + halfW, y + halfH) is not double t) continue;
+            if (m.Debris.ReelProblem(peer, p.Id) != null) continue;
+            double ax = from.X + (to.X - from.X) * t, ay = from.Y + (to.Y - from.Y) * t;
+            int inW = pictureW - Bite, inH = pictureH - Bite;
+            return (p.Id, (Math.Clamp(ax, x - inW, x + inW), Math.Clamp(ay, y - inH, y + inH)));
+        }
+        return null;
+    }
+
     /// <summary>Whether a machine of <paramref name="kind"/> holds items, opened with E: a crate, a furnace, an analyzer.</summary>
     private static bool HoldsItems(string kind) => Spec.Machines.TryGet(kind, out var spec) && spec.Slots != null;
 
@@ -90,11 +133,12 @@ public static class Aiming
     /// <paramref name="passOver"/>: grabbed already, its grab still in flight. Bare-handed, a wreck is
     /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/>, a small piece is still
     /// grabbed, but no wreck by the pointer is aimed at: the first a swing toward the pointer begun now
-    /// would touch is (<see cref="Struck"/>), wherever the pointer is.
+    /// would touch is (<see cref="Struck"/>), wherever the pointer is. With a <paramref name="gun"/>, the
+    /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, IReadOnlySet<int>? served = null, bool axe = false)
+        IReadOnlySet<int>? passOver = null, IReadOnlySet<int>? served = null, bool axe = false, bool gun = false)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -128,7 +172,7 @@ public static class Aiming
             if (Struck(m, toward, PointOf(point)).FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
             return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true, new Use(new Hit(wreck.Id), m.Debris.HitProblem(peer, wreck.Id)), Piece: wreck.Id);
         }
-        if (piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
+        if (gun || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
         var grab = new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id));
         return new Aim(DebrisModule.CellOf(piece.X, piece.Y, grid.Width), ReachesBox(hero, piece.X, piece.Y, halfW, halfH), grab, Piece: piece.Id);
     }
@@ -175,7 +219,11 @@ public static class Aiming
     }
 
     /// <summary>Whether the segment <paramref name="e"/> meets the box from (<paramref name="left"/>, <paramref name="top"/>) to (<paramref name="right"/>, <paramref name="bottom"/>): clipped to it, something is left.</summary>
-    private static bool Crosses((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)
+    private static bool Crosses((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom) =>
+        Entered(e, left, top, right, bottom) != null;
+
+    /// <summary>How far along the segment <paramref name="e"/>, from 0 to 1, it enters the box, as <see cref="Crosses"/> clips it; none when it misses.</summary>
+    private static double? Entered((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)
     {
         double enter = 0, leave = 1, dx = e.Bx - e.Ax, dy = e.By - e.Ay;
         bool Clip(double toward, double room)
@@ -186,7 +234,7 @@ public static class Aiming
             else leave = Math.Min(leave, t);
             return enter <= leave;
         }
-        return Clip(-dx, e.Ax - left) && Clip(dx, right - e.Ax) && Clip(-dy, e.Ay - top) && Clip(dy, bottom - e.Ay);
+        return Clip(-dx, e.Ax - left) && Clip(dx, right - e.Ax) && Clip(-dy, e.Ay - top) && Clip(dy, bottom - e.Ay) ? enter : null;
     }
 
     /// <summary>

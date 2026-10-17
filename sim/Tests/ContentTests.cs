@@ -292,6 +292,17 @@ public class ContentTests
         Assert.True(Harpoon.RodSpeed < Harpoon.Range);
         Assert.True(Harpoon.Stop < Hero.Reach);
         Assert.True(Harpoon.Stop < Harpoon.Range);
+        Assert.True(Harpoon.RodSpeed < Harpoon.ReturnSpeed);
+    }
+
+    [Fact]
+    public void TheHarpoonIsAToolOfOneCraftedAtThePodAndOpenedByAnalysingWhatItIsMadeOf()
+    {
+        Assert.True(Content.Items.TryGet(Harpoon.Item, out var harpoon));
+        Assert.Equal(1, harpoon!.Stack);
+        Assert.True(Crafts.TryGet(Harpoon.Item, out var craft));
+        Assert.Equal([("plate", 2), ("wire", 4), ("scrap", 4)], craft!.Cost);
+        Assert.DoesNotContain(Harpoon.Item, Content.Research.StartKnown);
     }
 
     [Fact]

@@ -18,6 +18,9 @@ namespace Stillwake.Game.Features.Debris;
 /// chosen with 2, the left button held till the section breaks, then the hero swims through what it
 /// broke into. It draws the pointer, which a movie does not. <c>-- --wrecks</c> lines up one of every
 /// kind of wreckage instead, and the hero swims from one to the next, chopping each till it breaks.
+/// <c>-- --harpoon</c> puts a harpoon in the third slot and a cargo crate and a hull section out of reach:
+/// the harpoon chosen with 3, the crate shot, hooked and reeled in with a second click, caught with E;
+/// then, once the gun is ready again, the section shot and reeled in close enough for the axe (0044).
 /// </summary>
 public partial class WreckDemo : CanvasLayer
 {
@@ -57,6 +60,13 @@ public partial class WreckDemo : CanvasLayer
     /// <summary>How fast they drift, slower than the sim's own, so the section stays in reach as it is chopped.</summary>
     private const int Speed = 12;
 
+    /// <summary>For <c>--harpoon</c>: a crate up and right, out of the hands' reach, and a hull section farther, below.</summary>
+    private static readonly (int Id, string Item, double Right, int Below, int Damage)[] Shootable =
+    [
+        (1, "cargoCrate", 9.5, -2, 0),
+        (2, "hullSection", 10.5, 3, 0),
+    ];
+
     /// <summary>One of every kind of wreckage, in a row at the hero's height from four cells right of it, two cells apart.</summary>
     private static (int Id, string Item, double Right, int Below, int Damage)[] Row()
     {
@@ -73,12 +83,12 @@ public partial class WreckDemo : CanvasLayer
 
     /// <summary>
     /// <paramref name="world"/>, on <see cref="Map"/>, with the pieces out (every kind in a row with
-    /// <paramref name="all"/>) and the axe in peer 0's second hotbar slot: put into its save, as no
-    /// command makes items or places debris.
+    /// <paramref name="all"/>, two to shoot with <paramref name="harpoon"/>), the axe in peer 0's second
+    /// hotbar slot and a harpoon in its third: put into its save, as no command makes items or places debris.
     /// </summary>
-    public static World Seed(World world, Func<IReadOnlyList<Module>> modules, bool all = false)
+    public static World Seed(World world, Func<IReadOnlyList<Module>> modules, bool all = false, bool harpoon = false)
     {
-        var drifting = all ? Row() : Drifting;
+        var drifting = all ? Row() : harpoon ? Shootable : Drifting;
         var root = JsonNode.Parse(world.Save())!;
         int width = Map.Width, spawn = Map.CellsOf('S').First();
         int sx = spawn % width, sy = spawn / width;
@@ -109,7 +119,8 @@ public partial class WreckDemo : CanvasLayer
         debris["nextId"] = drifting.Length + 1;
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Slots; i++)
-            slots.Add(i == 1 ? new JsonObject { ["item"] = Spec.Axe.Item, ["count"] = 1 } : null);
+            slots.Add(i == 1 ? new JsonObject { ["item"] = Spec.Axe.Item, ["count"] = 1 }
+                : i == 2 ? new JsonObject { ["item"] = Spec.Harpoon.Item, ["count"] = 1 } : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         return World.Load(root.ToJsonString(), modules());
     }
@@ -127,12 +138,18 @@ public partial class WreckDemo : CanvasLayer
     private readonly bool _all;
     private int _target = Target;
     private Key? _swim;
+    /// <summary>The harpoon's script (<c>--harpoon</c>): the piece shot at now, its step, and when that step began.</summary>
+    private readonly bool _harpoon;
+    private int _shotAt = 1, _stage;
+    private double _stageAt, _firedAt = -100;
+    private bool _clicking, _reeled;
 
-    public WreckDemo(DebrisView view, Ui ui, bool all = false)
+    public WreckDemo(DebrisView view, Ui ui, bool all = false, bool harpoon = false)
     {
         _view = view;
         _ui = ui;
         _all = all;
+        _harpoon = harpoon;
         Layer = ScreenLayers.Pointer;
         AddChild(_arrow);
         _arrow.Draw += () =>
@@ -180,6 +197,11 @@ public partial class WreckDemo : CanvasLayer
             PlayRow(delta);
             return;
         }
+        if (_harpoon)
+        {
+            PlayHarpoon(delta);
+            return;
+        }
         var target = OnScreen(Target);
         if (target is { } at && !_broken) _pos = _pos.MoveToward(at, (float)(1500 * delta));
         // Bare-handed first, outlined red; then the axe.
@@ -222,6 +244,74 @@ public partial class WreckDemo : CanvasLayer
             return;
         }
         Pointer();
+    }
+
+    /// <summary>
+    /// The harpoon's script: 3 chooses it; the pointer goes to the piece, a click fires, a second click once
+    /// it is hooked reels it in; a crate in is caught with E. Then the section, once the gun is ready again.
+    /// </summary>
+    private void PlayHarpoon(double delta)
+    {
+        // A click is a press one frame and its release the next.
+        if (_clicking)
+        {
+            Mouse(false);
+            _clicking = false;
+        }
+        var piece = _view.Pieces.FirstOrDefault(p => p.Id == _shotAt);
+        if (OnScreen(_shotAt) is { } at) _pos = _pos.MoveToward(at, (float)(900 * delta));
+        void Next(string said)
+        {
+            GD.Print($"[demo] {said} at {_t:0.00} s");
+            (_stage, _stageAt) = (_stage + 1, _t);
+        }
+        switch (_stage)
+        {
+            case 0 when _t >= 1.0:
+                Press(Key.Key3, true);
+                Press(Key.Key3, false);
+                Next("harpoon chosen");
+                break;
+            // The gun is ready again 5 s after its last shot.
+            case 1 when _t >= _stageAt + 1.2 && _t >= _firedAt + 5.5 && piece != null && OnScreen(_shotAt) is { } aim && aim.DistanceTo(_pos) < 2:
+                Click();
+                _firedAt = _t;
+                Next($"fired at piece {_shotAt}");
+                break;
+            case 2 when _t >= _stageAt + 0.8:
+                Click();
+                Next($"reeling piece {_shotAt}");
+                break;
+            case 3:
+                _reeled |= piece?.Reel != null;
+                if (piece != null && (!_reeled || piece.Reel != null) && _t < _stageAt + 6) break;
+                Next($"piece {_shotAt} in");
+                break;
+            case 4 when _t >= _stageAt + 0.6:
+                if (piece is { Item: "cargoCrate" })
+                {
+                    Press(Key.E, true);
+                    Press(Key.E, false);
+                }
+                Next(piece is { Item: "cargoCrate" } ? "crate caught" : "done with it");
+                break;
+            case 5 when _shotAt == 1 && _t >= _stageAt + 0.5:
+                (_shotAt, _stage, _reeled) = (2, 1, false);
+                GD.Print($"[demo] to the section at {_t:0.00} s");
+                break;
+            case 5 when _shotAt == 2 && _t >= _stageAt + 1.5:
+                _done = true;
+                _arrow.Visible = false;
+                GD.Print($"[demo] done at {_t:0.00} s: the mouse is the player's");
+                return;
+        }
+        Pointer();
+    }
+
+    private void Click()
+    {
+        Mouse(true);
+        _clicking = true;
     }
 
     private void Pointer()

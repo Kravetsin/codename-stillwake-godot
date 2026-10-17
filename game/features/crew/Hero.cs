@@ -12,8 +12,9 @@ public readonly record struct Point(int X, int Y);
 /// What the player holds during one step; <see cref="Y"/> is -1 for up. <see cref="Jump"/> is set once
 /// per press. <see cref="Face"/> is the side the pointer is on, which the hero faces whichever way it
 /// walks; with none, it faces the way it walks; swimming, the way it swims. <see cref="Sprint"/>, Shift
-/// held, runs and swims fast. <see cref="Swings"/>, the axe mid-swing (0039): it faces
-/// <see cref="Face"/> swimming too, so the blade comes down where the swing was aimed.
+/// held, runs and swims fast. <see cref="Swings"/>, the axe mid-swing (0039) or the harpoon aimed (0044): it
+/// faces <see cref="Face"/> swimming too, so the blade comes down where the swing was aimed and the gun
+/// points at the pointer.
 /// </summary>
 public readonly record struct HeroInput(int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false);
 

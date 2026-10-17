@@ -639,4 +639,66 @@ public class AimTests
     [Fact]
     public void WorksAPlanInADoorCellOnAPressRatherThanTogglingTheDoor() =>
         Assert.Equal([WorkOn], Aiming.UsesOf(OnPlan with { Cell = 3 }, pressed: true, held: true, 5, -1).Commands);
+
+    // The harpoon's rod (0044): what it meets on its way, and where it sticks.
+
+    /// <summary>Half a small piece's picture across, and its box with the margin.</summary>
+    private const int SmallPicture = 500, SmallBox = 750, Bite = 150;
+
+    [Fact]
+    public void HooksTheFirstPieceInSpawnOrderTheRodMeetsNotTheNearest()
+    {
+        var (w, _) = Field(("hullSection", 12_000, 7_500), ("scrapChunk", 10_000, 7_500));
+        var hooked = Aiming.Hooks(w.M, 0, (6_500, 7_500), (14_000, 7_500), 0);
+        Assert.Equal(1, hooked?.Piece);
+        // It enters the section's box at its margin and sticks just inside its picture.
+        Assert.Equal((12_000.0 - HalfW + 250 + Bite, 7_500.0), hooked?.At);
+    }
+
+    [Fact]
+    public void HooksASmallPieceInABoxOfItsPictureAndAMarginStickingOnThePicture()
+    {
+        var (w, _) = Field(("scrapChunk", 10_000, 7_500));
+        Assert.Equal((10_000.0 - SmallPicture + Bite, 7_500.0), Aiming.Hooks(w.M, 0, (6_500, 7_500), (14_000, 7_500), 0)?.At);
+        // Passing just inside the margin above it, or stopping just short of it.
+        Assert.Equal(1, Aiming.Hooks(w.M, 0, (6_500, 7_500 - SmallBox + 10), (14_000, 7_500 - SmallBox + 10), 0)?.Piece);
+        Assert.Null(Aiming.Hooks(w.M, 0, (6_500, 7_500 - SmallBox - 10), (14_000, 7_500 - SmallBox - 10), 0));
+        Assert.Null(Aiming.Hooks(w.M, 0, (6_500, 7_500), (10_000 - SmallBox - 10, 7_500), 0));
+    }
+
+    [Fact]
+    public void PassesOverAPieceTheSimWouldNotLetTheHeroReel()
+    {
+        // The first lies over the hull's one cell: not in space. The second is.
+        var (w, _) = Field(("scrapChunk", 500, 500), ("scrapChunk", 3_000, 500));
+        Assert.Equal(2, Aiming.Hooks(w.M, 0, (6_000, 500), (0, 500), 0)?.Piece);
+        Assert.Equal("debris.notOutside", w.M.Debris.ReelProblem(0, 1));
+        // A peer with no hero out reels nothing.
+        Assert.Null(Aiming.Hooks(w.M, 5, (6_000, 500), (0, 500), 0));
+    }
+
+    [Fact]
+    public void MeetsAPieceWhereItIsDrawnBetweenTicksReeledOrDrifting()
+    {
+        var (w, _) = Field(("scrapChunk", 10_000, 7_500));
+        // Reeled 4000 to the left: 16 ticks at 250, one of them run with the reel.
+        w.Step(new Reel(1, 6_000, 7_500));
+        var piece = w.M.Debris.Pieces.Single();
+        Assert.Equal((9_750, 15), (piece.X, piece.Reel!.Left));
+        Assert.Equal((9_625.0, 7_500.0), PieceDrawn.At(piece, 0.5));
+        // Its box drawn halfway reaches 125 further left than at the tick: a rod passing there meets it then only.
+        const int Edge = 9_625 - SmallBox + 50;
+        Assert.Equal(1, Aiming.Hooks(w.M, 0, (Edge, 0), (Edge, 10_000), 0.5)?.Piece);
+        Assert.Null(Aiming.Hooks(w.M, 0, (Edge, 0), (Edge, 10_000), 0));
+    }
+
+    [Fact]
+    public void WithTheHarpoonAimsAtNoWreckButStillCatchesASmallPiece()
+    {
+        var (w, wreck, hero) = Wrecked();
+        var at = ((double)wreck.X / Unit, (double)wreck.Y / Unit);
+        Assert.Null(Aiming.AimAt(w.M, 0, hero, at, gun: true)?.Piece);
+        var chunk = w.M.Debris.Pieces.Single(p => p.Id == 99);
+        Assert.IsType<Grab>(Aiming.AimAt(w.M, 0, hero, ((double)chunk.X / Unit, (double)chunk.Y / Unit + 0.4), gun: true)?.Press?.Command);
+    }
 }

@@ -109,10 +109,10 @@ public partial class Figure : Node2D
     /// <summary>The screwdriver's grip in its picture, a frame of <c>hero_screwdriver.png</c>.</summary>
     private static readonly Vector2 Grip = new(3, 2);
     private readonly Sprite2D _tool;
-    /// <summary>How the fire axe is held (0040), and how far past the line to a swing's point the arm swings for its blade to meet it.</summary>
-    private static readonly HeldLook Axe = HeldLook.FireAxe;
-    private static readonly double AxeLead = AxeSwing.Lead(Axe);
-    private readonly Sprite2D _axe;
+    /// <summary>How far past the line to a swing's point the arm swings for the axe's blade to meet it (0040).</summary>
+    private static readonly double AxeLead = AxeSwing.Lead(HeldLook.FireAxe);
+    /// <summary>What the front fist holds, the fire axe or the harpoon, in the picture of its look (<see cref="HeldLook"/>).</summary>
+    private readonly Sprite2D _held;
     /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
     private (Vector2 At, double Phase)? _chop;
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
@@ -180,8 +180,8 @@ public partial class Figure : Node2D
             Visible = false,
         };
         Lit.Set(_tool);
-        _axe = new Sprite2D { Texture = GD.Load<Texture2D>(Axe.Picture), Centered = false, Offset = -new Vector2((float)Axe.Grip.X, (float)Axe.Grip.Y), Visible = false };
-        Lit.Set(_axe);
+        _held = new Sprite2D { Centered = false, Visible = false };
+        Lit.Set(_held);
         for (int i = 0; i < BeamsMost; i++)
         {
             var beam = new Line2D { TopLevel = true, Width = 1, Visible = false, ZIndex = 1, Material = BeamMaterial };
@@ -194,10 +194,19 @@ public partial class Figure : Node2D
         var parts = _frame = new Node2D { Position = new Vector2(0, (float)(Rig.H / 2)) };
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
-        // its hand over the sheet it holds and closed round the axe's haft.
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _axe, frontArm }) parts.AddChild(n);
+        // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
+        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm }) parts.AddChild(n);
         AddChild(_body);
         Wear(colour);
+    }
+
+    private static readonly Dictionary<string, Texture2D> Pictures = new();
+
+    /// <summary>A held item's picture, loaded once.</summary>
+    private static Texture2D Picture(string path)
+    {
+        if (!Pictures.TryGetValue(path, out var picture)) Pictures[path] = picture = GD.Load<Texture2D>(path);
+        return picture;
     }
 
     /// <summary>A player of <paramref name="cue"/> at the feet, on the World bus, silent while floating: heard the same anywhere for this player's hero, else placed in the world.</summary>
@@ -238,8 +247,20 @@ public partial class Figure : Node2D
     /// </summary>
     public void Chop((Vector2 At, double Phase)? swing) => _chop = swing;
 
-    /// <summary>Whether the front hand holds the fire axe: its hotbar slot chosen, the hand free.</summary>
-    public bool Wields { get; set; }
+    /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
+    public string? Wields { get; set; }
+
+    /// <summary>Where the harpoon held aims, in pixels of the world: the arm straight, the barrel's line through it; none to let it hang.</summary>
+    public Vector2? Aim { get; set; }
+
+    /// <summary>Whether the harpoon held shows its rod in the barrel: ready to fire.</summary>
+    public bool Loaded { get; set; } = true;
+
+    /// <summary>The held harpoon's muzzle as drawn this frame, in pixels of the world; none while no gun is shown.</summary>
+    public Vector2? Muzzle { get; private set; }
+
+    /// <summary>The way the held harpoon's barrel points as drawn, a unit vector in the world.</summary>
+    public Vector2 Barrel { get; private set; } = Vector2.Right;
 
     /// <summary>A line of the planner's light from its screen to each cell just planned, fading.</summary>
     private void ShowBeams(bool holding)
@@ -348,7 +369,10 @@ public partial class Figure : Node2D
         bool working = _workAt != null && Poses.HoldsIn(pose);
         _workMs = working ? _workMs + elapsedMs : 0;
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
-        bool chopping = _chop != null && Wields && Poses.HoldsIn(pose) && !working && !holding;
+        var item = HeldLook.Of(Wields);
+        bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding;
+        bool chopping = _chop != null && item == HeldLook.FireAxe && inHand;
+        bool aiming = Aim != null && item?.Loaded != null && inHand;
         // The hands at work, whatever the pose (0030): afloat the paddling stops, the hero drifts calmly
         // upright, and the front arm reaches where the work is, in the body's own frame.
         bool acting = working || chopping || holding && _beamMs > 0;
@@ -356,7 +380,7 @@ public partial class Figure : Node2D
         _swim = afloat ? Settle(_swim, Poses.Swimming(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _landingMs / Poses.Land.Ms, holding ? _head : null,
-            _outMs, _slump, _outTilt, _swim, _fast, Wields));
+            _outMs, _slump, _outTilt, _swim, _fast, item != null));
         var from = _shown ?? to;
         double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(
@@ -413,6 +437,12 @@ public partial class Figure : Node2D
             var (dx, dy) = FromShoulder(wreck);
             swung = (Math.Atan2(dy, dx) + AxeLead + AxeSwing.Lift(phase), phase);
         }
+        else if (aiming && Aim is { } target && item != null)
+        {
+            // The gun: the arm straight, turned so the barrel's line, not the arm's, runs through the point; eased in as a swing is.
+            var (dx, dy) = FromShoulder(target);
+            swung = (HarpoonShot.ArmFor(item, dx, dy), 0);
+        }
         frontArm = _swingArm.Next(frontArm, swung, elapsedMs);
         _frontArm.Bend(frontArm);
         _backArm.Bend(shown.BackArm);
@@ -443,13 +473,23 @@ public partial class Figure : Node2D
             // Three steps of the ribs a turn, held on the way back: they roll on one way only.
             _tool.Frame = (int)Math.Min(2, Math.Floor(twist * 3));
         }
-        // The axe in the front fist, held square to the forearm (0040): swung or hanging, the hand closed round its haft.
-        _axe.Visible = Wields && Poses.HoldsIn(pose) && !working && !holding;
-        if (_axe.Visible)
+        // The item in the front fist, held by its grip at its angle to the forearm (0040): swung, aimed or
+        // hanging, the hand closed round its haft or stock.
+        _held.Visible = inHand;
+        Muzzle = null;
+        if (inHand && item != null)
         {
             var fist = Rig.FistOf(frontArm);
-            _axe.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
-            _axe.Rotation = (float)Rig.HeldTurn(frontArm, Axe);
+            _held.Texture = Picture(item.Loaded != null && Loaded ? item.Loaded : item.Picture);
+            _held.Offset = -new Vector2((float)item.Grip.X, (float)item.Grip.Y);
+            _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
+            _held.Rotation = (float)Rig.HeldTurn(frontArm, item);
+            if (item.Loaded != null)
+            {
+                Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
+                Muzzle = At(item.EdgeTo);
+                Barrel = (Muzzle.Value - At(item.EdgeFrom)).Normalized();
+            }
         }
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);

@@ -29,7 +29,7 @@ public class CraftsTests
     public void LaysEveryRecipeInItsFixedPlaceFourARowTwoRowsAtLeast()
     {
         Assert.Equal(4, Crafts.Columns);
-        Assert.Equal(["plate", "gear", "rotor", null, "wire", "fireAxe", null, null], Crafts.Places);
+        Assert.Equal(["plate", "gear", "rotor", null, "wire", "fireAxe", "harpoon", null], Crafts.Places);
         Assert.Equal(Content.Crafts.All.Count, Crafts.Places.Count(p => p != null));
     }
 

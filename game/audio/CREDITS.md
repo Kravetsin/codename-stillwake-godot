@@ -6,7 +6,7 @@ the repository is public, so a file must be free to redistribute without attribu
 
 Kenney's and Freesound's files are converted to mono WAV, trimmed and normalised to −3 dBFS peak;
 Freesound's are its public HQ previews of CC0 sounds. The chop's and the break's variants are then matched by the RMS of
-their K-weighted attack (the first 0.15 s of a chop, 0.4 s of a break), the louder turned down. The steps (which the landing plays too) are 0.3 s of each recording from its attack, held 0.08 s and then faded to −60 dB; the jump is the push-off of each `Jump_Metal`, 0.33 s from its attack after 0.1 s in, high-passed at 120 Hz, held 0.1 s; the glove's thump in space, `act-space-1`, is all of `LowHit_01` from its attack (0.14 s), held 0.04 s, raised 21 dB to its peak. `chop-1`
+their K-weighted attack (the first 0.15 s of a chop, 0.4 s of a break), the louder turned down. The steps (which the landing plays too) are 0.3 s of each recording from its attack, held 0.08 s and then faded to −60 dB; the jump is the push-off of each `Jump_Metal`, 0.33 s from its attack after 0.1 s in, high-passed at 120 Hz, held 0.1 s; the glove's thump in space, `act-space-1`, is all of `LowHit_01` from its attack (0.14 s), held 0.04 s, raised 21 dB to its peak. The harpoon's shot and ready are cut from their attack, held and faded to −60 dB; its reel is 2.45 s of its source with short fades, looped. `chop-1`
 keeps its ring, as the team wanted it; `break-2`'s clipped peaks are rebuilt (ffmpeg `adeclip`) and its top cut from 9 kHz. The vent
 hum and the fire are 20 s of their sources, its tail crossfaded into their heads, encoded as OGG at
 about −20 LUFS. The generated ones
@@ -23,6 +23,9 @@ released under CC0.
 | `building/screwdriver-4.wav` | Freesound, "Single_Ratchet (one of five)", https://freesound.org/people/CallFlan/sounds/495237/ | CallFlan | CC0 |
 | `building/screwdriver-5.wav` | Freesound, "Single_Ratchet (one of five)", https://freesound.org/people/CallFlan/sounds/495238/ | CallFlan | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |
+| `crew/harpoon-ready-1.wav` | Freesound, ".22 Bolt Action Long Rifle Rechambering" (0.95 s from its start), https://freesound.org/people/AlexCoover/sounds/706404/ | AlexCoover | CC0 |
+| `crew/harpoon-reel-1.ogg` | Freesound, "reeling.wav" (2.45 s, looped), https://freesound.org/people/BranndyBottle/sounds/464701/ | BranndyBottle | CC0 |
+| `crew/harpoon-shot-1.wav` | Freesound, "Dart/Arrow Trap." (0.85 s from its attack), https://freesound.org/people/jacobo1304/sounds/866990/ | jacobo1304 | CC0 |
 | `crew/jump-1.wav` | Freesound, "Jump_Metal_3.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421139/ | GiocoSound | CC0 |
 | `crew/jump-2.wav` | Freesound, "Jump_Metal_1.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421141/ | GiocoSound | CC0 |
 | `crew/jump-3.wav` | Freesound, "Jump_Metal_4.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421142/ | GiocoSound | CC0 |

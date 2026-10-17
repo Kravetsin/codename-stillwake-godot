@@ -36,7 +36,7 @@ public static class Sound
     /// <summary>
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient, Music and Effects into Master; into
     /// Effects, World (every hero's steps, machines, air, doors: silenced while floating), Suit (what this
-    /// player's hero itself touches: an action's sound, its own axe's chop, a wreck its hit breaks; heard
+    /// player's hero itself touches: an action's sound, its own axe's chop, a wreck its hit breaks, its harpoon; heard
     /// through the body, dulled while floating) and Helmet (the suit's alarm, in the helmet's air: always
     /// clear). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
     /// hearing's (0033, 0042). Ambient waits for the first ambience: the ship's hum comes from its vents
@@ -75,6 +75,16 @@ public static class Sound
     /// <summary>A wreck breaking apart under this player's last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
     public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: new(6, 28));
 
+    /// <summary>
+    /// This player's harpoon (0044), on the Suit bus, through the glove: its rod fired, a dart trap's click and
+    /// whoosh (<see cref="Shot"/>); its drum winding the line in, a fishing reel, looped from the press that reels
+    /// till the piece is in (<see cref="Drum"/>); and a bolt worked home as the hero's cooldown ends, ready to fire
+    /// again (<see cref="Ready"/>). The rod biting plays <see cref="Chop"/>, or <see cref="ActInSpace"/> on a crate or pod.
+    /// </summary>
+    public static readonly Cue Shot = new(Shots("crew/harpoon-shot", 1), -6);
+    public static readonly Cue Drum = new(["res://audio/crew/harpoon-reel-1.ogg"], -10, Loops: true);
+    public static readonly Cue Ready = new(Shots("crew/harpoon-ready", 1), -10);
+
     /// <summary>The title's music (0035), on the Music bus, faded in with the title and out on leaving it.</summary>
     public static readonly Cue Title = new(["res://audio/music/title-1.ogg"], -2, Loops: true);
 
@@ -90,7 +100,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, Break];
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, Break, Shot, Drum, Ready];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;
