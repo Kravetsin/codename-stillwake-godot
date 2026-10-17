@@ -327,3 +327,44 @@ public class AtmosphereTests
         Assert.Equal(new[] { "atmosphere.noTank" }, Reasons(w));
     }
 }
+
+/// <summary>Breathes at once, in the commands phase: a breath taken before atmosphere's own system runs.</summary>
+public sealed record BreatheNow(int Cell, int Amount) : Command;
+
+public sealed class Breather : Module<Breather.Nothing>
+{
+    public sealed class Nothing;
+    public override string Id => "breather";
+    public Breather(IAtmosphereOps air) => Handles<BreatheNow>(_ => null, c => air.Breathe(c.Cell, c.Amount));
+    protected override Nothing Init(Layout layout) => new();
+}
+
+/// <summary>What the air keeps read between calls is read again after a canister, whenever in the tick a breath comes.</summary>
+public class AtmosphereReadingTests
+{
+    [Fact]
+    public void ABreathRightAfterACanisterIsPaidFromItAsAWorldLoadedBeforeItPaysIt()
+    {
+        string[] rows = ["#########", "#V......#", "#TT.....#", "#TT.....#", "#########"];
+        string[] under = ["", " -", " -o", " -"];
+        var w = new Scenario(Layout.Parse(rows, under), with: m => [new Breather(m.Atmosphere)]);
+        int tank = w.M.Grid.MachineAt(9 * 2 + 1)!.Id;
+        int cell = 9 * 1 + 4;
+        w.Run(60);
+        Assert.True(w.M.Atmosphere.AiredAt(cell));
+        // The room aired and its tank emptied, as filling a room bigger than a canister leaves it.
+        ((AtmosphereState)w.M.Atmosphere.Slice).Tanks.Clear();
+        w.GiveItems(0, ("canister", 1)).Run(2);
+        int aired = w.M.Atmosphere.AiredCells.Count;
+
+        var r = new Registry();
+        var loaded = World.Load(w.World.Save(), [.. r.All, new Builder(r.Grid, r.Grid), new Breather(r.Atmosphere)]);
+        Command[] commands = [new LoadCanister(tank) { From = 0 }, new BreatheNow(cell, 5)];
+        w.World.Step(commands);
+        loaded.Step(commands);
+
+        Assert.Equal(aired, w.M.Atmosphere.AiredCells.Count);
+        Assert.Equal(r.Atmosphere.AiredCells.Count, w.M.Atmosphere.AiredCells.Count);
+        Assert.Equal(loaded.Hash(), w.World.Hash());
+    }
+}

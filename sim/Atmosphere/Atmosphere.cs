@@ -73,6 +73,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         Handles<LoadCanister>(c => CanisterProblem(c.Tank, c.From), c =>
         {
             itemsOps.Take(c.From, Canister);
+            _readFor = null;
             var held = State.Tanks.Find(t => t.Tank == c.Tank);
             if (held != null) held.Oxygen += Content.Air.Canister;
             else
@@ -88,11 +89,15 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         {
             if (_tanksCheckedAt == _grid.Version) return;
             _tanksCheckedAt = _grid.Version;
-            if (!State.Tanks.TrueForAll(_standing)) State.Tanks = State.Tanks.FindAll(_standing);
+            if (State.Tanks.TrueForAll(_standing)) return;
+            State.Tanks = State.Tanks.FindAll(_standing);
+            _readFor = null;
         });
         // After derivation, so rooms and networks are those of this tick.
         System(Phase.Simulation, () =>
         {
+            // Power was found again in derivation, and the air steps with what this tick holds.
+            _readFor = null;
             State.Clock += 1;
             Follow();
             StepAir();

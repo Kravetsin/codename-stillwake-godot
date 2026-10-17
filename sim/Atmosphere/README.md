@@ -75,10 +75,10 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
 - **The survey** — vents by room, tanks and generators by network, aired cells by room — is kept
   between ticks and gathered again in one pass only when the pipes' `Version` moved or every room
   was found again; around a change, only the changed rooms' counts and vents are redone.
-  Generators' satisfaction and the tanks holding oxygen are read again once a tick, on the first call
-  after the clock moved: power changes only in derivation, and tanks come only before the air steps
-  (a canister, a generator's unit); a tank emptied since stays read, at none, so it draws and counts
-  as a missing one would. Vents, tanks and generators are walked by kind (`MachinesOf`). The aired
+  Generators' satisfaction and the tanks holding oxygen are read again on the first call after they
+  may have changed: a canister loaded, a tank taken apart, or atmosphere's system starting a tick,
+  with power found again in derivation and generators' new stores yet to come. A tank emptied since
+  stays read, at none, so it draws and counts as a missing one would. Vents, tanks and generators are walked by kind (`MachinesOf`). The aired
   cells it counts are kept in step with every change of `Aired`. Every walk over cells covers all
   rooms at once (`IRoomsQueries.RoomOfCells`).
 - **`Aired` is edited in place** when a call changes up to 32 cells (a binary search each), and

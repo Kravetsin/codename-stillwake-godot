@@ -49,22 +49,21 @@ public sealed partial class AtmosphereModule
     /// <summary>The survey kept between ticks; null when it must be gathered again.</summary>
     private Survey? _survey;
 
-    /// <summary>The survey and the clock the generators' power and the tanks holding oxygen were last read at.</summary>
+    /// <summary>The survey the generators' power and the tanks holding oxygen were last read into; null, to read them again.</summary>
     private Survey? _readFor;
-    private int _readAt;
 
     /// <summary>
     /// The survey, gathered again only when the pipes or the rooms are new; the generators' power and the
-    /// tanks holding oxygen read again once a tick: power changes in derivation, tanks come before the air steps.
+    /// tanks holding oxygen read again only after they may have changed: a canister loaded, tanks taken
+    /// apart, or a new tick, its power found again in derivation.
     /// </summary>
     private Survey Gather()
     {
         if (_survey == null || _survey.Pipes != _pipes.Version || _survey.Rooms != _rooms.Version) _survey = GatherAll();
         var s = _survey;
         // Tanks emptied since are still held, at none: they give nothing, as if they were gone.
-        if (s == _readFor && State.Clock == _readAt) return s;
+        if (s == _readFor) return s;
         _readFor = s;
-        _readAt = State.Clock;
         s.MadeOn.Clear();
         foreach (var (network, generator) in s.Generators)
             s.MadeOn[network] = s.MadeOn.GetValueOrDefault(network) + _power.Satisfaction(generator);

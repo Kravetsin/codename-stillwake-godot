@@ -8,7 +8,7 @@ namespace Stillwake.Sim.Items;
 /// </summary>
 internal static class Stacks
 {
-    private static readonly Stack?[] NoInventory = new Stack?[Inventory.Slots];
+    private static readonly IReadOnlyList<Stack?> NoInventory = Array.AsReadOnly(new Stack?[Inventory.Slots]);
 
     /// <summary>The items of <paramref name="cost"/> with their amounts; a negative amount is a caller's bug.</summary>
     public static IReadOnlyList<(string Item, int Count)> Entries(IReadOnlyList<(string Item, int Count)> cost)
@@ -25,9 +25,9 @@ internal static class Stacks
     public static IReadOnlyList<Stack?> InventoryOf(ItemsState state, int peer) =>
         state.Inventories.Find(h => h.Id == peer)?.Slots ?? NoInventory;
 
-    /// <summary>All-empty slots by their count, shared: read-only, as every slots a query gives.</summary>
-    private static readonly Stack?[][] NoneHeld =
-        [.. Enumerable.Range(0, Machines.All.Max(m => m.Slots ?? 0) + 1).Select(n => new Stack?[n])];
+    /// <summary>All-empty slots by their count, shared by every world: read-only collections, so no caller can write them.</summary>
+    private static readonly IReadOnlyList<Stack?>[] NoneHeld =
+        [.. Enumerable.Range(0, Machines.All.Max(m => m.Slots ?? 0) + 1).Select(n => Array.AsReadOnly(new Stack?[n]))];
 
     /// <summary>What machine <paramref name="id"/>, of <paramref name="slots"/> slots, holds: all empty when it holds nothing.</summary>
     public static IReadOnlyList<Stack?> CrateOf(ItemsState state, int id, int slots)
