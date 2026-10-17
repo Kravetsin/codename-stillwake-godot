@@ -5,10 +5,13 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
 `packages/sim/src/modules/grid`; its rules hold here unchanged.
 
 - **Depends on:** nothing.
-- **Size:** set by the starting map; the grid does not grow.
+- **Size:** set by the starting map; the grid does not grow. A new world is `Content.World`, 2048×1024,
+  the wreck centred in it (`Layout.InWorld`, [0048](../../docs/decisions/0048-a-big-world-a-build-zone-inside-it.md)).
+- **Zone:** the box where anything may be built, saved with the grid: the map's `Layout.Zone`, the
+  world's middle 1024×512 for a new world, the whole grid for a map that sets none (tests, dev maps).
 - **Cells:** numbered row by row from the top-left, `cell = y * width + x`.
 - **State** (`GridState`, members internal): the layers as `int[]` codes (`Structure`, `Conduit`,
-  `Back`, and the materials of walls and back walls), `Machines` (in id order), `NextMachineId`.
+  `Back`, and the materials of walls and back walls), `Zone` (a `Box`), `Machines` (in id order), `NextMachineId`.
   Derived, rebuilt after a load and kept current by every machine placed or cleared: `Occupancy`, the
   id of the machine covering each cell; `ById`, every machine by its id; `ByKind`, each kind's
   machines in id order; `Version`; and `Built`, the smallest box (`Box`, edges included) holding
@@ -36,7 +39,7 @@ free back slot: it stands behind anything, and in space.
   machine, by a command or an operation, never saved and 0 again after a load: a module deriving from
   the grid (`rooms`, `pipes`, `atmosphere`) looks again only when it moved; `Built` — the box past
   which every cell is empty space, never saved: `rooms` floods within it and `rooms` and `pipes`
-  compare their copies of the layers within it; every layer as codes, a
+  compare their copies of the layers within it; `Zone` — the build zone, nothing placed outside it; every layer as codes, a
   cell each, live and read-only, as TypeScript's `layers()`: `StructureLayer`, `MaterialLayer` (a
   wall's material, 0 for none), `ConduitLayer`, `BackLayer`, `BackMaterialLayer`; `StructureAt(cell)`, `ConduitAt(cell)`,
   `MachineAt(cell)`, `MachineById(id)` — null for none or one taken apart —, `Machines` — every
@@ -55,7 +58,8 @@ free back slot: it stands behind anything, and in space.
 - **Commands:** `ToggleDoor(cell)` — opens or closes the whole doorway, every door cell 4-connected
   to `cell` taking the opposite of its state; refused with `grid.noDoor`. `ToggleValve(cell)`,
   refused with `grid.noValve`.
-- **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.occupied`, `grid.machineInTheWay`,
+- **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.outsideZone` (the cell, or any cell of a
+  machine's footprint, outside the zone), `grid.occupied`, `grid.machineInTheWay`,
   `grid.blocked`, `grid.noSuchMaterial`, `grid.noSuchMachine`.
 - TypeScript's `codes()`
   is the public `Structure`, `Conduit` and `Back` constants.
@@ -74,12 +78,15 @@ hull walls included. A map's machines take ids 1, 2, … by their top-left cells
 - Machine ids only grow; a removed machine's id is never reused. `Machines` is in id order, and
   `ById` and `ByKind` hold exactly what a scan of it finds.
 - Every change to a layer or a machine bumps `Version`.
+- Nothing is placed outside `Zone`: `Built` lies within it, unless the map drew something outside.
 - `Built` is the smallest box holding every cell with a structure, conduit, back wall or machine, as
   a scan of them all finds it, after any change and after a load; `Box.None` when there is none.
 - Stored codes are part of the save format: never renumber them.
 
 ## Deliberately not handled
 
-- A grid that grows: its size is the map's.
+- A grid that grows: its size is the map's. A world keeps the size it was made with when
+  `Content.World` changes.
+- Taking apart what stands outside the zone is allowed: only a map could put it there.
 - Machines need no floor under them.
 - Doorways have no shape: any run of door cells is one.

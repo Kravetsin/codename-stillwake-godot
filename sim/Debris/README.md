@@ -28,7 +28,8 @@ wreckage with an axe
   reeled, toward its reel's point (below); and one whose `X` is below its `End` is gone.
 - On the clock `NextSpawn`, the next is due `Debris.Every` plus `Below(Debris.Jitter + 1)` ticks
   on, and a piece spawns if fewer than `Debris.Max` are out and there is a hull: the bounds of every
-  cell with a structure in it, found again on each beat. Drawn with the world's `Rng.Below`, in this
+  cell with a structure in it, found again on each beat, walked only within the grid's `Built` box,
+  so it costs the ship, not the world (0048). Drawn with the world's `Rng.Below`, in this
   order: a row among the hull's and `Debris.Margin` above and below; a kind by weight, walking
   `Debris.Kinds` in order; a speed from `Debris.DriftMin` to `DriftMax`. It starts in the middle of
   the cell `Debris.Lead` right of the hull and ends `Debris.Lead` left of it, both kept on the grid.

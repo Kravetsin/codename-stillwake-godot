@@ -92,7 +92,70 @@ public static class Migrations
             }
             return save;
         },
+        // 9 → 10: the world grows to Content.World's size, a build zone in its middle (0048).
+        IntoWorld,
     ];
+
+    /// <summary>
+    /// A save's grid centred in a world of <c>Content.World</c>'s size, by the offset its own size gives:
+    /// every cell saved moves there, every position in thousandths of a cell with it, and the grid gets
+    /// the world's zone. A cell off the old grid, which only the fuzz reports, is off the new one too: -1.
+    /// </summary>
+    private static JsonObject IntoWorld(JsonObject save)
+    {
+        var slices = save["slices"]!;
+        var grid = slices["grid"]!;
+        int w = (int)grid["width"]!, h = (int)grid["height"]!;
+        int width = Content.World.Width, height = Content.World.Height;
+        var (ox, oy) = Layout.OffsetInWorld(w, h);
+        int Cell(int c) => c < 0 || c >= w * h ? -1 : (c / w + oy) * width + c % w + ox;
+        void MoveCell(JsonNode o, string key) => o[key] = Cell((int)o[key]!);
+        void MoveX(JsonNode o, string key) => o[key] = (int)o[key]! + ox * 1000;
+        void MoveY(JsonNode o, string key) => o[key] = (int)o[key]! + oy * 1000;
+
+        foreach (var layer in new[] { "structure", "material", "conduit", "back", "backMaterial" })
+        {
+            var old = Runs.Cells(grid[layer]!);
+            var cells = new int[width * height];
+            for (int y = 0; y < h; y++) Array.Copy(old, y * w, cells, (y + oy) * width + ox, w);
+            grid[layer] = Runs.Node(cells);
+        }
+        grid["width"] = width;
+        grid["height"] = height;
+        var zone = Layout.WorldZone;
+        grid["zone"] = new JsonObject { ["left"] = zone.Left, ["top"] = zone.Top, ["right"] = zone.Right, ["bottom"] = zone.Bottom };
+        foreach (var m in grid["machines"]!.AsArray()) MoveCell(m!, "cell");
+
+        foreach (var stack in slices["items"]!["floor"]!.AsArray())
+        {
+            MoveCell(stack!, "cell");
+            MoveX(stack!, "x");
+            MoveY(stack!, "y");
+        }
+        foreach (var cable in slices["power"]!["cables"]!.AsArray())
+        {
+            MoveCell(cable!, "a");
+            MoveCell(cable!, "b");
+        }
+        foreach (var plan in slices["building"]!["plans"]!.AsArray()) MoveCell(plan!, "cell");
+        var atmosphere = slices["atmosphere"]!;
+        atmosphere["aired"] = new JsonArray([.. atmosphere["aired"]!.AsArray().Select(n => (JsonNode?)Cell((int)n!))]);
+        var crew = slices["crew"]!;
+        MoveCell(crew, "spawn");
+        if (crew["pod"] != null) MoveCell(crew, "pod");
+        foreach (var hero in crew["heroes"]!.AsArray()) MoveCell(hero!, "cell");
+        foreach (var piece in slices["debris"]!["pieces"]!.AsArray())
+        {
+            foreach (var x in new[] { "x", "start", "end" }) MoveX(piece!, x);
+            MoveY(piece!, "y");
+            if (piece!["reel"] is { } reel)
+            {
+                MoveX(reel, "toX");
+                MoveY(reel, "toY");
+            }
+        }
+        return save;
+    }
 
     /// <summary>The format a save says it has.</summary>
     public static int FormatOf(string save) => JsonNode.Parse(save)!["format"]!.GetValue<int>();

@@ -73,10 +73,11 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   `building.fixed`, `building.planned`, `building.notEmpty` or `building.cabled`; `CancelPlan(Id)`, refused with
   `building.noPlan`; `Work(Plan)`, refused with `building.noPlan`, `items.notEnough`,
   `building.notEmpty` or `building.cabled`.
-- **Fuzz:** every command, refused ones too: placements of every kind at any cell or one off the
-  grid; marks mostly on the wreck's built cells (cells drawn from the wreck as drawn, as in
-  TypeScript, which cannot see the grid); cancels of ids that are and are not there; `Work` mostly on
-  the oldest plan or a mark, so plans complete within a run.
+- **Fuzz:** every command, refused ones too: placements of every kind mostly within 16 cells of
+  what the grid has built, as players build, now and then at any cell of the grid or one off it, so
+  the build zone's edge is drawn too; marks mostly within what is built (TypeScript draws from the
+  wreck as drawn, which in the big world of 0048 would miss the ship); cancels of ids that are and
+  are not there; `Work` mostly on the oldest plan or a mark, so plans complete within a run.
 
 ## Invariants
 

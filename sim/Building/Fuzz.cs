@@ -15,12 +15,8 @@ public sealed partial class BuildingModule
     ];
     private static readonly string[] FuzzLayers = ["structure", "conduit", "machine", "back"];
 
-    // The module draws without the grid, as TypeScript's generator does. The generic suites fuzz it on the
-    // wreck, so cells are drawn from the wreck's size, and marks mostly from the cells where it has something built.
-    private static readonly Layout FuzzWreck = Layout.Parse(Wreck.Rows);
-    private static readonly int FuzzCells = FuzzWreck.Width * FuzzWreck.Height;
-    private static readonly int[] FuzzBuilt = Enumerable.Range(0, FuzzCells)
-        .Where(c => "#=HDd-vxTVKO.".Contains(FuzzWreck.At(c))).ToArray();
+    /// <summary>How far round what is built cells are mostly drawn: as players build, by their ship.</summary>
+    private const int FuzzMargin = 16;
 
     /// <summary>
     /// Draws every command, refused ones included: off the grid, on nothing, twice on one thing, E on a
@@ -29,18 +25,29 @@ public sealed partial class BuildingModule
     public override Command? Fuzz(Rng rng, int from)
     {
         int Below(int n) => (int)rng.Below((ulong)n);
-        int Anywhere() => Below(FuzzCells + 2) - 1;
+        // Cells mostly round what is built, now and then anywhere on the grid or just off it, so the
+        // build zone's edge and the grid's are drawn too; marks mostly within what is built.
+        var built = _grid.Built;
+        int Anywhere() => Below(_grid.Width * _grid.Height + 2) - 1;
+        int Within(int margin)
+        {
+            if (built.IsEmpty) return Anywhere();
+            int left = Math.Max(0, built.Left - margin), right = Math.Min(_grid.Width - 1, built.Right + margin);
+            int top = Math.Max(0, built.Top - margin), bottom = Math.Min(_grid.Height - 1, built.Bottom + margin);
+            return (top + Below(bottom - top + 1)) * _grid.Width + left + Below(right - left + 1);
+        }
+        int Cell() => Below(8) == 0 ? Anywhere() : Within(FuzzMargin);
         var marks = State.Plans.Where(p => p.Clear != null).ToList();
         switch (Below(5))
         {
             case 0:
-                return new PlacePlan(Anywhere(), FuzzPlacements[Below(FuzzPlacements.Length)]) { From = from };
+                return new PlacePlan(Cell(), FuzzPlacements[Below(FuzzPlacements.Length)]) { From = from };
             case 1:
                 {
                     int pick = Below(4);
                     int cell = pick == 0 && marks.Count > 0 ? marks[Below(marks.Count)].Cell
-                        : pick < 3 && FuzzBuilt.Length > 0 ? FuzzBuilt[Below(FuzzBuilt.Length)]
-                        : Anywhere();
+                        : pick < 3 ? Within(0)
+                        : Cell();
                     return new Deconstruct(cell, FuzzLayers[Below(FuzzLayers.Length)]) { From = from };
                 }
             case 2:

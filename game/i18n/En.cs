@@ -14,6 +14,7 @@ public static partial class En
     public static readonly IReadOnlyDictionary<string, string> Table = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["grid.outOfBounds"] = "Outside the ship",
+        ["grid.outsideZone"] = "Outside the build area",
         ["grid.occupied"] = "Something is already there",
         ["grid.machineInTheWay"] = "A machine is in the way",
         ["grid.blocked"] = "Something is in the way",

@@ -31,7 +31,7 @@ public partial class DebrisDemo : CanvasLayer
     public static World Seed(World world, Func<IReadOnlyList<Module>> modules)
     {
         var root = JsonNode.Parse(world.Save())!;
-        int width = Registry.Wreck.Width;
+        int width = Registry.WreckMap.Width;
         // Where the sim would start and end them: the lead right and left of the hull, kept on the grid.
         const int Right = 57, Left = 34, Lead = Stillwake.Content.Debris.Lead;
         int start = Math.Min(width - 1, Right + Lead) * 1000 + 500, end = Math.Max(0, Left - Lead) * 1000;

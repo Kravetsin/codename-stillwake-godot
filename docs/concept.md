@@ -32,6 +32,9 @@ A living document: what is decided about the game and what is still open. Techni
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
   [0023](decisions/0023-a-furnace-burns-fuel.md)).
+- **The world** is 2048×1024 cells of space with the wreck in its middle; the ship is built only
+  within the middle 1024×512, the build zone, and the space round it is there to fly out into
+  ([0048](decisions/0048-a-big-world-a-build-zone-inside-it.md)).
 - **Blueprints are learned,** Grounded's way: a blueprint or a craft opens once every item of its
   cost is analysed in a powered analyzer, raw or made. The wreck knows only the furnace, the
   analyzer, the crate, scrap walls and the wire; smelting scrap, making wire, cabling the torn room's

@@ -131,6 +131,31 @@ public class DebrisTests
         Assert.Equal(DebrisSpec.AtStart, Pieces(w).Count);
     }
 
+    /// <summary>
+    /// The wreck centred in the big world (0048): pieces still drift by in the band of the hull's rows,
+    /// from its lead right of the hull to its lead left, none clamped by a grid edge far away.
+    /// </summary>
+    [Fact]
+    public void SpawnsByTheWreckInTheBigWorldInItsHullsBandAsOnItsOwnGrid()
+    {
+        var w = new Scenario(Registry.Wreck).Run(3 * DebrisSpec.Every);
+        var grid = w.M.Grid;
+        var walls = Enumerable.Range(0, grid.Width * grid.Height).Where(c => grid.StructureAt(c) != Structure.Empty).ToList();
+        int left = walls.Min(c => c % grid.Width), right = walls.Max(c => c % grid.Width);
+        int top = walls.Min(c => c / grid.Width), bottom = walls.Max(c => c / grid.Width);
+        int start = (right + DebrisSpec.Lead) * 1000 + 500, end = (left - DebrisSpec.Lead) * 1000;
+        Assert.Contains(Pieces(w), p => p.Id > DebrisSpec.AtStart);
+        Assert.All(Pieces(w), p => Assert.Equal((start, end), (p.Start, p.End)));
+        Assert.All(Pieces(w), p => Assert.InRange(p.Y / 1000, top - DebrisSpec.Margin, bottom + DebrisSpec.Margin));
+        // The same kinds in the same rows as the wreck drawn on its own grid, moved down with it.
+        var drawn = new Scenario(Registry.WreckMap).Run(3 * DebrisSpec.Every);
+        var (_, oy) = Layout.OffsetInWorld(Registry.WreckMap.Width, Registry.WreckMap.Height);
+        var rows = Pieces(drawn).ToDictionary(p => p.Id, p => (p.Item, p.Y + oy * 1000));
+        var shared = Pieces(w).Where(p => rows.ContainsKey(p.Id)).ToList();
+        Assert.True(shared.Count > DebrisSpec.AtStart / 2);
+        Assert.All(shared, p => Assert.Equal(rows[p.Id], (p.Item, p.Y)));
+    }
+
     [Fact]
     public void KeepsWhereAPieceSpawnsAndIsGoneOnTheGrid()
     {

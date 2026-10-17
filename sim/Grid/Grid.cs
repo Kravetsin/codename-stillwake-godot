@@ -23,22 +23,6 @@ public static class Back
 
 public sealed record Machine(int Id, string Kind, int Cell);
 
-/// <summary>A rectangle of cells, its edges included; <see cref="None"/> holds none.</summary>
-public readonly record struct Box(int Left, int Top, int Right, int Bottom)
-{
-    public static readonly Box None = new(0, 0, -1, -1);
-    public bool IsEmpty => Right < Left || Bottom < Top;
-    public int Width => IsEmpty ? 0 : Right - Left + 1;
-    public int Height => IsEmpty ? 0 : Bottom - Top + 1;
-    public bool Contains(int x, int y) => x >= Left && x <= Right && y >= Top && y <= Bottom;
-
-    /// <summary>The smallest box holding both.</summary>
-    public Box Union(Box other) =>
-        IsEmpty ? other
-        : other.IsEmpty ? this
-        : new(Math.Min(Left, other.Left), Math.Min(Top, other.Top), Math.Max(Right, other.Right), Math.Max(Bottom, other.Bottom));
-}
-
 /// <summary>What may be put in a cell: a layer, a kind, and a material for walls and back walls.</summary>
 public sealed record Placement(string Layer, string Kind, string? Material = null)
 {
@@ -54,6 +38,8 @@ public sealed class GridState
 {
     [JsonInclude] internal int Width { get; set; }
     [JsonInclude] internal int Height { get; set; }
+    /// <summary>Where anything may be built (0048): the map's zone, or the whole grid.</summary>
+    [JsonInclude] internal Box Zone { get; set; }
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Structure { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Material { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Conduit { get; set; } = [];
@@ -89,6 +75,8 @@ public interface IGridQueries
     /// when nothing is: every cell outside it is empty space. Kept tight by every change, never saved.
     /// </summary>
     Box Built { get; }
+    /// <summary>The build zone (0048): nothing is placed outside it. The whole grid for a map that sets none.</summary>
+    Box Zone { get; }
     ReadOnlySpan<int> StructureLayer { get; }
     /// <summary>Each cell's wall material code (<c>Materials</c>), 0 where no wall stands.</summary>
     ReadOnlySpan<int> MaterialLayer { get; }
@@ -160,6 +148,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         {
             Width = layout.Width,
             Height = layout.Height,
+            Zone = layout.Zone ?? new Box(0, 0, layout.Width - 1, layout.Height - 1),
             Structure = new int[size],
             Material = new int[size],
             Conduit = new int[size],
@@ -207,10 +196,14 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         return new ToggleValve(Pick(CellsWith(State.Conduit, Conduit.ValveOpen, Conduit.ValveClosed))) { From = from };
     }
 
-    private static List<int> CellsWith(int[] codes, int a, int b)
+    /// <summary>The cells holding <paramref name="a"/> or <paramref name="b"/>, in reading order: within <see cref="Built"/>, where anything is.</summary>
+    private List<int> CellsWith(int[] codes, int a, int b)
     {
         var cells = new List<int>();
-        for (int c = 0; c < codes.Length; c++) if (codes[c] == a || codes[c] == b) cells.Add(c);
+        var box = State.Built;
+        for (int y = box.Top; y <= box.Bottom; y++)
+            for (int c = y * State.Width + box.Left; c <= y * State.Width + box.Right; c++)
+                if (codes[c] == a || codes[c] == b) cells.Add(c);
         return cells;
     }
 
@@ -296,6 +289,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public int Height => State.Height;
     public int Version => State.Version;
     public Box Built => State.Built;
+    public Box Zone => State.Zone;
     public ReadOnlySpan<int> StructureLayer => State.Structure;
     public ReadOnlySpan<int> MaterialLayer => State.Material;
     public ReadOnlySpan<int> ConduitLayer => State.Conduit;
@@ -338,6 +332,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     }
 
     private bool InBounds(int cell) => cell >= 0 && cell < State.Width * State.Height;
+    private bool InZone(int cell) => State.Zone.Contains(cell % State.Width, cell / State.Width);
     private bool IsDoor(int[] structure, int cell) => InBounds(cell) && structure[cell] is Structure.DoorClosed or Structure.DoorOpen;
     private bool IsValve(int[] conduit, int cell) => InBounds(cell) && conduit[cell] is Conduit.ValveOpen or Conduit.ValveClosed;
 
@@ -402,6 +397,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public string? PlacementProblem(int cell, Placement p)
     {
         if (!InBounds(cell)) return "grid.outOfBounds";
+        if (!InZone(cell)) return "grid.outsideZone";
         switch (p.Layer)
         {
             case "structure":
@@ -418,6 +414,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
                 if (!Content.Machines.TryGet(p.Kind, out _)) return "grid.noSuchMachine";
                 var cells = Footprint(p.Kind, cell);
                 if (cells == null) return "grid.outOfBounds";
+                if (!cells.All(InZone)) return "grid.outsideZone";
                 if (cells.Any(c => State.Structure[c] != Structure.Empty)) return "grid.blocked";
                 if (cells.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
                 return null;

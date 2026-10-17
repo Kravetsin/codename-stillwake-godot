@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using Stillwake.Content;
 using Stillwake.Sim;
+using World = Stillwake.Sim.World;
 
 namespace Stillwake.Game.Dev;
 
