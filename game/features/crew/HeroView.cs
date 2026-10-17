@@ -87,6 +87,8 @@ public partial class HeroView : Node2D
     /// </summary>
     private (int Cell, int? Plan, bool Refused, int Structure, int Conduit, int? Machine)? _traced;
     private int _steps;
+    /// <summary>The world tick the last <c>Enter</c> went out on: the report waits <c>Crew.ReportEvery</c> after it (0050).</summary>
+    private int _reportedAt = -Content.Crew.ReportEvery;
     private double _clockMs;
     /// <summary>The blueprints delivered to in this hold of the left button: a sweep delivers to each it passes once.</summary>
     private readonly HashSet<int> _served = [];
@@ -198,6 +200,9 @@ public partial class HeroView : Node2D
     /// <summary>The hero after its latest step: what the sim learns of where it is.</summary>
     public Hero Current => _current;
 
+    /// <summary>Where a dev run places the hero first (<c>--edge</c>), not the crew's spawn; it wakes at the spawn as ever.</summary>
+    public Func<Registry, int>? Start { get; set; }
+
     /// <summary>Whether the hero stands in the world yet: until its first frame in a session, <see cref="Current"/> is nowhere.</summary>
     public bool Placed => _placed;
 
@@ -238,7 +243,7 @@ public partial class HeroView : Node2D
         // Waking from passing out, the sim has put the hero at the spawn: so does the client.
         if (!_placed || (_wasOut && !passedOut))
         {
-            _previous = _current = Hero.At(ship, m.Crew.Spawn);
+            _previous = _current = Hero.At(ship, !_placed && Start != null ? Start(m) : m.Crew.Spawn);
             _placed = true;
         }
         _wasOut = passedOut;
@@ -271,7 +276,14 @@ public partial class HeroView : Node2D
             _steps++;
         }
         double ownLook = passedOut ? 0 : Poses.LookOf(_current, pointed);
-        if (Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current) is { } report) client.Send(report);
+        // Passed out it reports no cell: one landing after it wakes at the pod would put it back out there.
+        int tick = client.World.Tick;
+        if (passedOut) _reportedAt = tick;
+        if (Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current, tick, _reportedAt) is { } report)
+        {
+            client.Send(report);
+            _reportedAt = tick;
+        }
         bool exerting = !passedOut && Report.Exerting(_current, ship.Space(_current.BodyCell(grid.Width)));
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
         // Off as Shift is let go, aboard, the jetpack taken off or the suit empty: the sim stops venting it.

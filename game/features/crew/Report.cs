@@ -12,18 +12,33 @@ public static class Report
     /// <summary>
     /// <c>Enter</c> with the body's cell, when the sim does not know hero <paramref name="id"/> yet, or
     /// puts it in another room than the body is in, on the other side of the air's edge, or of the
-    /// lifepod's reach: a hero breathes room air only in a cell holding it, the pod's only by it. Null otherwise. Rooms and air are compared where
-    /// they are now, never remembered: a door that merges or splits rooms renames them. Until the host
-    /// releases it, the same <c>Enter</c> goes out again each frame — a few, and only on crossing an edge.
+    /// lifepod's reach: a hero breathes room air only in a cell holding it, the pod's only by it. Rooms and
+    /// air are compared where they are now, never remembered: a door that merges or splits rooms renames
+    /// them. Until the host releases it, the same <c>Enter</c> goes out again each frame — a few, and only
+    /// on crossing an edge. Else, as the hero's report, while the sim holds it in another cell than the
+    /// body's and <c>Crew.ReportEvery</c> ticks have gone since the last one sent (<paramref name="reported"/>,
+    /// at world tick <paramref name="tick"/>): what the cold past the field reads (0050). Null otherwise.
     /// </summary>
-    public static Command? Of(ICrewQueries crew, IRoomsQueries rooms, IAtmosphereQueries air, int width, int id, Hero hero)
+    public static Command? Of(ICrewQueries crew, IRoomsQueries rooms, IAtmosphereQueries air, int width, int id, Hero hero, int tick, int reported)
     {
         int cell = hero.BodyCell(width);
         var known = crew.HeroOf(id);
         if (known != null && rooms.RoomAt(known.Cell) == rooms.RoomAt(cell) && air.AiredAt(known.Cell) == air.AiredAt(cell)
             && crew.ByPod(known.Cell) == crew.ByPod(cell))
-            return null;
+            return known.Cell != cell && tick - reported >= Stillwake.Content.Crew.ReportEvery ? new Enter(cell) : null;
         return new Enter(cell);
+    }
+
+    /// <summary>
+    /// How hard the cold bites at <paramref name="cell"/>, the body's own, from 0 inside the field to 1 at
+    /// the world's edge: the crew's <c>EdgeCost</c> over <c>Field.EdgeCost</c>, eased out (2s − s²) so the
+    /// frost shows a little past the line and is heavy well before the edge (0050). What the frost on the
+    /// screen is drawn at.
+    /// </summary>
+    public static float Cold(ICrewQueries crew, int cell)
+    {
+        float share = Math.Clamp((float)crew.EdgeCost(cell) / Stillwake.Content.Field.EdgeCost, 0f, 1f);
+        return share * (2 - share);
     }
 
     /// <summary>

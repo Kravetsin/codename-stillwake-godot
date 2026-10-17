@@ -61,8 +61,11 @@ public static class ScreenLayers
     /// <summary>The stars, under the world (<see cref="Render.Stars"/>).</summary>
     public const int Stars = -1;
 
+    /// <summary>The frost past the field, over the world and under all that is read (<c>Features.Crew.Frost</c>, 0050).</summary>
+    public const int Frost = 1;
+
     /// <summary>The top of the screen: the suit's gauge, the hotbar, the inventory and crafts, pick-ups over a head.</summary>
-    public const int Hud = 1;
+    public const int Hud = 2;
 
     /// <summary>The bottom of the screen: the build menu, the prompt for E, the overlays' bar.</summary>
     public const int Bars = 10;

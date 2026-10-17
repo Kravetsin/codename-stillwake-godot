@@ -125,7 +125,10 @@ screen keeps what scrolls into view as it would have been.
   grid's sync (~2 ms) and the light's compare (~1 ms) still walk whole layers on a change: slice 0.
 - Slice 0: the client's grid, light, starlight, predicted toggles and pipes overlay cost only what is
   built (measure `--perf --size 2048x1024 --built 192x96` before and after).
-- Slice (b): the position report cadence, the oxygen drain past the zone, the vignette.
+- **Slice (b) ✅ — the report, the cold, the frost** (0050): the client also sends `Enter` every
+  `Crew.ReportEvery` ticks while its hero's body is in another cell than the sim's; crew's `EdgeCost`
+  drains the suit past the field (the zone grown by `Field.Margin`), 1 a breath just past it to 45 at the
+  edge; a frost shader over the world shows it. `--edge=N` starts the hero N cells past the field.
 - Slice (c): the build-mode zone frame.
 
 **Slice 0 — the client costs what is built ✅.** Nothing of the client walks the whole grid on a
