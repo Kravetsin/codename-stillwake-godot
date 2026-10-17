@@ -18,23 +18,30 @@ mode, the world setting in which nothing is ever taken
 
 ## Rules
 
-- An inventory is `Inventory.Slots` slots, a machine holding items its `Slots` in `Machines`, each a
+- An inventory is `Inventory.Slots` slots of its own and then its equipment, a slot for each kind in
+  `Inventory.Equipment` (head, back, three on the belt), `Inventory.Total` in all
+  ([0047](../../docs/decisions/0047-equipment-the-jetpack-and-the-slower-swim.md)); a machine holding items
+  has its `Slots` in `Machines`. Each slot is a
   `Stack` (`Item`, `Count` from 1 to the item's `Stack` limit in `Items`) or null. Items are known by
   their id; every material is one, the salvage items, with `Yields`, are what caught debris
   becomes, and the parts (wire, plate, gear, tube, and of them the rotor, frame and coil) are crafted by
   `Crafting` into the lifepod's outputs;
   circuits are salvaged only, from cable racks (`Debris`). Containers and wreckage are items too, a
   stack of one, never carried but in creative mode and the testbed's crate. The inventory's first row is the hotbar.
+- **Equipment.** An equipment slot holds only an item whose `Equip` in `Items` is its kind: the jetpack on
+  the back. A move that would leave anything else in one, put there or swapped in from either side, is
+  refused with `items.notEquipment` (`Stacks.Misfit`).
 - **Giving** puts each item onto the stacks of that item in slot order, up to their limit, then into
-  the empty slots in slot order. It gives all of a cost or none of it.
-- **Taking** takes each item from the last slots first, so the hotbar is the last to empty. It takes
-  all of a cost or none of it.
+  the empty slots in slot order, an inventory's own slots only, never its equipment. It gives all of a
+  cost or none of it.
+- **Taking** takes each item from the last of an inventory's own slots first, so the hotbar is the last
+  to empty; what is worn is never taken nor counted (`Totals`). It takes all of a cost or none of it.
 - **Moving** takes up to `Count` from the `Src` slot to `Dst`, within the sender's inventory, between
   it and a crate, or between crates: the lesser of `Count`, what `Src` holds and what fits.
   - Onto an empty slot or a stack of the same item, as much as fits there.
   - A whole stack onto another item swaps the two; part of one is refused.
   - With no slot in `Dst`, that side as a whole: the item's stacks there in slot order, then its
-    empty slots, as much as fits. Within one side a move names its slot.
+    empty slots, as much as fits; an inventory's own slots only. Within one side a move names its slot.
   - A machine with `Inputs` (a furnace) takes items only into its first `Inputs` slots, refusing the
     rest with `items.takeOnly`; a move into it naming no slot goes into the first. One with no inputs
     (the lifepod) takes nothing in, refused with `items.takeOnly` whichever slot is named.
@@ -57,7 +64,7 @@ mode, the world setting in which nothing is ever taken
   it lands slides to a stop by `Floor.Friction`. One past the grid's edge is gone: thrown away into
   space. Then stacks of one item at rest in one cell merge into the oldest, up to the stack limit.
   Positions divide by a cell rounding down, left of and above the grid too.
-- **Picking up** gives as much of a stack as fits into the picker's inventory and leaves the rest.
+- **Picking up** gives as much of a stack as fits into the picker's own slots and leaves the rest.
   The peer that dropped a stack may not take it back for `Floor.OwnPickupDelay` ticks; anyone else
   may at once.
 
@@ -68,8 +75,9 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as content writes `Cost` an
 counted twice.
 
 - **Queries** (`IItemsQueries`): `Inventory(peer)` and `Crate(id)` — their slots, live and
-  read-only; `Creative`; `Totals(peer)` — how much of each item the peer carries, in the order first
-  found; `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
+  read-only, an inventory's equipment after its own; `Creative`; `Totals(peer)` — how much of each item the
+  peer carries in its own slots, in the order first found; `Equipped(peer, item)` — whether it wears that
+  item in an equipment slot (crew reads the jetpack so); `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
   mode; `FullFor(peer, cost)` — `items.full` when `cost` does not fit, creative mode or not. A caller
   refuses with these keys. `AfterMoves(peer, moves)` — copies of the peer's inventory and of the
   machines the `Move`s and `Drop`s touch, as the commands would leave them, refused ones skipped: what
@@ -93,18 +101,20 @@ counted twice.
   `Move(Src, Dst, Count)` — `Src` a `Place(Slot, Crate?)`, `Dst` a `Target(Slot?, Crate?)`, no crate
   meaning the sender's inventory; refused with `items.noCrate` (a side names no machine holding
   items), `items.noSlot` (a slot out of range, `Src` itself, or no slot within one side),
-  `items.takeOnly` (a slot of a machine's past its inputs), `items.empty` (nothing in `Src`, or
+  `items.takeOnly` (a slot of a machine's past its inputs), `items.notEquipment` (an equipment slot left
+  holding what is not worn there), `items.empty` (nothing in `Src`, or
   `Count` below 1) or `items.full` (nothing fits at `Dst`, or part of a stack onto another item).
   `Drop(Src, Count, Cell, Facing)` — throws up to `Count` from a slot from `Cell`, the sender's as its
   client reports it; refused with `items.noCrate`, `items.noSlot`, `items.empty` or `items.noCell`.
   `PickUp(Id)` — refused with `items.gone`, `items.tooSoon` or `items.full` (none of it fits).
 
-Tests put items into an inventory with `GiveItems` and into a machine with `FillCrate`, from
+Tests put items into an inventory with `GiveItems`, onto a hero with `Wear` and into a machine with `FillCrate`, from
 `sim/Tests/ItemsTesting.cs`.
 
 ## Invariants
 
 - Every stack holds from 1 to its item's limit; every inventory and machine has its number of slots.
+- Every equipment slot holds only an item of its kind (`EquipmentTests`, FsCheck).
 - A take or a give changes the peer's totals by exactly the cost, or not at all; a move, a drop and
   a pick-up change no total across inventories, machines and the floor.
 - Every stack on the floor holds from 1 to its item's limit.
@@ -123,6 +133,9 @@ Tests put items into an inventory with `GiveItems` and into a machine with `Fill
 - Who may switch creative mode: anyone; it is a dev panel switch among friends.
 - The desync fuzz never fills an inventory with refunds, so `items.full` from building is proven by
   scenarios; moves draw it.
+
+- Equipment is new here, with no TypeScript original: its rules are 0047's. A worn item counts toward no
+  payment, so a hero can never spend the jetpack on its back on a recipe.
 
 ## Differences from TypeScript
 

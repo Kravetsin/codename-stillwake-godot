@@ -391,7 +391,7 @@ public static class Poses
     /// <summary>Whether the hero swims, rather than drifting still.</summary>
     public static bool Swimming(Hero hero) => hero.Vx != 0 || hero.Vy != 0;
 
-    /// <summary>Whether the hero swims fast, Shift held.</summary>
+    /// <summary>Whether the hero moves faster than it swims: flying on a jetpack (0047).</summary>
     public static bool SwimmingFast(Hero hero) =>
         Math.Abs(hero.Vx) > Stillwake.Content.Hero.Swim || Math.Abs(hero.Vy) > Stillwake.Content.Hero.Swim;
 

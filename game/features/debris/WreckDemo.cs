@@ -107,7 +107,7 @@ public partial class WreckDemo : CanvasLayer
     {
         var root = JsonNode.Parse(world.Save())!;
         var slots = new JsonArray();
-        for (int i = 0; i < Spec.Inventory.Slots; i++) slots.Add(i == 0 ? new JsonObject { ["item"] = Spec.Harpoon.Item, ["count"] = 1 } : null);
+        for (int i = 0; i < Spec.Inventory.Total; i++) slots.Add(i == 0 ? new JsonObject { ["item"] = Spec.Harpoon.Item, ["count"] = 1 } : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         return World.Load(root.ToJsonString(), modules());
     }
@@ -144,7 +144,7 @@ public partial class WreckDemo : CanvasLayer
         debris["pieces"] = pieces;
         debris["nextId"] = drifting.Length + 1;
         var slots = new JsonArray();
-        for (int i = 0; i < Spec.Inventory.Slots; i++)
+        for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == 1 ? new JsonObject { ["item"] = Spec.Axe.Item, ["count"] = 1 }
                 : i == 2 ? new JsonObject { ["item"] = Spec.Harpoon.Item, ["count"] = 1 } : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });

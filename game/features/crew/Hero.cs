@@ -1,6 +1,7 @@
 using System;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
+using Pack = Stillwake.Content.Jetpack;
 using Spec = Stillwake.Content.Hero;
 
 namespace Stillwake.Game.Features.Crew;
@@ -12,12 +13,17 @@ public readonly record struct Point(int X, int Y);
 /// What the player holds during one step; <see cref="Y"/> is -1 for up. <see cref="Jump"/> is set once
 /// per press. <see cref="Face"/> is the side the pointer is on, which the hero faces whichever way it
 /// walks; with none, it faces the way it walks; swimming, the way it swims. <see cref="Sprint"/>, Shift
-/// held, runs and swims fast. <see cref="Swings"/>, the axe mid-swing (0039) or the harpoon aimed (0044): it
-/// faces <see cref="Face"/> swimming too, so the blade comes down where the swing was aimed and the gun
+/// held, runs aboard; in space it only thrusts, with a jetpack worn. <see cref="Swings"/>, the axe
+/// mid-swing (0039) or the harpoon aimed (0044): it faces <see cref="Face"/> swimming too, so the blade comes down where the swing was aimed and the gun
 /// points at the pointer. <see cref="Pull"/>, the harpoon's grapple (0044): the body's middle is pulled
-/// toward that point, keys and gravity aside, and held there once it is.
+/// toward that point, keys and gravity aside, and held there once it is. <see cref="Jetpack"/>, a jetpack worn
+/// (0047): in space the hero keeps its speed, ties no tether, and while <see cref="Thrust"/> is set, a unit
+/// vector in thousandths, gains <c>Jetpack.Accel</c> a step that way up to <c>Jetpack.Top</c>; else it slows
+/// by <c>Jetpack.Drag</c> a step toward what the keys swim.
 /// </summary>
-public readonly record struct HeroInput(int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false, Point? Pull = null);
+public readonly record struct HeroInput(
+    int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false, Point? Pull = null,
+    bool Jetpack = false, Point? Thrust = null);
 
 /// <summary>
 /// The cells the hero moves against; which of them are space, where the hero floats; and which are the
@@ -80,9 +86,15 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     /// One controller step. Walls, closed doors and the grid's edges block; floors and the tops of
     /// ladders hold the hero up but let them through from below; ladders are climbed while held. With
     /// the body in space there is no gravity: the hero swims where the keys point and stops with them,
-    /// on a tether that keeps the body's middle within <see cref="Spec.Tether"/> of where it left the ship.
+    /// on a tether that keeps the body's middle within <see cref="Spec.Tether"/> of where it left the ship;
+    /// with a jetpack worn, untethered and flying on (<see cref="HeroInput.Jetpack"/>).
     /// </summary>
-    public Hero Step(HeroInput input, Ship ship) => Tethered(this, Move(this, input, ship), ship);
+    public Hero Step(HeroInput input, Ship ship)
+    {
+        var after = Move(this, input, ship);
+        // A jetpack worn ties no tether: the hero flies free.
+        return input.Jetpack ? after with { Anchor = null } : Tethered(this, after, ship);
+    }
 
     /// <summary>
     /// <paramref name="after"/>, a step from <paramref name="before"/>, on its tether: anchored as the
@@ -126,8 +138,6 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         return after with { X = to.X, Y = to.Y, Vx = to.X - before.X, Vy = to.Y - before.Y, Anchor = anchor };
     }
 
-    private static double Distance(int dx, int dy) => Math.Sqrt((double)dx * dx + (double)dy * dy);
-
     /// <summary>How far the grapple pulls the body a step: <c>Harpoon.PullSpeed</c> a tick, rounded to whole thousandths.</summary>
     public const int PullStep = (Stillwake.Content.Harpoon.PullSpeed * Stillwake.Sim.World.TicksPerSecond + 30) / 60;
 
@@ -136,7 +146,7 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
         if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
-        if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero.X, hero.Y, input, input.X == 0 || input.Swings ? facing : input.X);
+        if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
         bool grab = !hero.Climbing && input.Y != 0 && input.X == 0 && !input.Jump &&
             TouchesLadder(ship, hero.X, hero.Y, input.Y > 0);
         if (grab || hero.Climbing)
@@ -173,13 +183,57 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing);
     }
 
-    private static Hero Swim(Ship ship, int x, int y, HeroInput input, int facing)
+    /// <summary>
+    /// A step in space: where the keys point at <c>Hero.Swim</c>, stopping with them; with a jetpack worn,
+    /// on at its speed (<see cref="Flown"/>). Walls stop it, and what a wall stops it loses.
+    /// </summary>
+    private static Hero Swim(Ship ship, Hero hero, HeroInput input, int facing)
     {
-        int swim = input.Sprint ? Spec.SwimFast : Spec.Swim;
-        int nx = MoveX(ship, x, y, input.X * swim);
-        int ny = MoveY(ship, nx, y, input.Y * swim, false);
-        return new Hero(nx, ny, nx - x, ny - y, false, facing);
+        var (vx, vy) = input.Jetpack ? Flown(hero.Vx, hero.Vy, input) : (input.X * Spec.Swim, input.Y * Spec.Swim);
+        int nx = MoveX(ship, hero.X, hero.Y, vx);
+        int ny = MoveY(ship, nx, hero.Y, vy, false);
+        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing);
     }
+
+    /// <summary>
+    /// A jetpack's speed after a step from (<paramref name="vx"/>, <paramref name="vy"/>), never past
+    /// <c>Jetpack.Top</c> (a fall carried out into space is cut to it): thrusting, gaining <c>Jetpack.Accel</c>
+    /// along the thrust; coasting, nearing what the keys swim by <c>Jetpack.Drag</c>, landing on it.
+    /// </summary>
+    public static (int X, int Y) Flown(int vx, int vy, HeroInput input)
+    {
+        double x = vx, y = vy;
+        if (input.Thrust is Point dir) (x, y) = (x + (double)dir.X * Pack.Accel / Unit, y + (double)dir.Y * Pack.Accel / Unit);
+        else
+        {
+            int tx = input.X * Spec.Swim, ty = input.Y * Spec.Swim;
+            double dx = x - tx, dy = y - ty, off = Distance(dx, dy);
+            (x, y) = off <= Pack.Drag ? (tx, ty) : (x - dx / off * Pack.Drag, y - dy / off * Pack.Drag);
+        }
+        double speed = Distance(x, y);
+        if (speed > Pack.Top) (x, y) = (x / speed * Pack.Top, y / speed * Pack.Top);
+        return ((int)Math.Round(x), (int)Math.Round(y));
+    }
+
+    /// <summary>
+    /// Which way a jetpack thrusts, a unit vector in thousandths (0047): where the movement keys
+    /// (<paramref name="x"/>, <paramref name="y"/>) point, or with none held toward <paramref name="pointer"/>,
+    /// in cells, from the body's <paramref name="middle"/>; none with no key held and no pointer, or the pointer
+    /// on the middle.
+    /// </summary>
+    public static Point? ThrustToward(int x, int y, Point middle, (double X, double Y)? pointer)
+    {
+        double dx = x, dy = y;
+        if (x == 0 && y == 0)
+        {
+            if (pointer is not var (px, py)) return null;
+            (dx, dy) = (px * Unit - middle.X, py * Unit - middle.Y);
+        }
+        double far = Distance(dx, dy);
+        return far < 1 ? null : new Point((int)Math.Round(dx / far * Unit), (int)Math.Round(dy / far * Unit));
+    }
+
+    private static double Distance(double dx, double dy) => Math.Sqrt(dx * dx + dy * dy);
 
     private static Hero Climb(Ship ship, int x, int y, int dir, int facing)
     {

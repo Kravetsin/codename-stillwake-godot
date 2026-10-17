@@ -53,7 +53,7 @@ public partial class ItemsDemo : Control
             ("scrap", 120), ("iron", 64), ("planks", 30), ("scrapChunk", 6), ("hullPlate", 3), ("canister", 2), null, null, null,
             ("scrap", 500), null, ("planks", 50), null, ("iron", 500),
         ];
-        for (int i = 0; i < Spec.Inventory.Slots; i++)
+        for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i < carried.Length && carried[i] is var (item, count) ? Stack(item, count) : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         items["crates"] = new JsonArray(new JsonObject { ["id"] = analyzer, ["slots"] = new JsonArray(Stack("iron", 1)) });

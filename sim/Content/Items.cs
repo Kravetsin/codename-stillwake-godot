@@ -10,12 +10,14 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="SmeltTicks">Ticks of a furnace's fire it takes to smelt one; given with <paramref name="Yields"/>.</param>
 /// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
+/// <param name="Equip">Equipment: the kind of a hero's equipment slot it is worn in, of <c>Inventory.Equipment</c>; none for anything else.</param>
 public sealed record ItemSpec(
     string Id,
     int Stack,
     IReadOnlyList<(string Item, int Count)>? Yields = null,
     int? SmeltTicks = null,
-    int? BurnTicks = null);
+    int? BurnTicks = null,
+    string? Equip = null);
 
 /// <summary>
 /// Everything a hero carries. Every material is an item by the same id; the salvage items are what
@@ -55,6 +57,8 @@ public static class Items
         // Tools, made as parts are.
         new("fireAxe", 1),
         new("harpoon", 1),
+        // Equipment, worn in a slot of its kind (Inventory.Equipment).
+        new("jetpack", 1, Equip: "back"),
     ];
 
     private static readonly Dictionary<string, ItemSpec> ById = All.ToDictionary(i => i.Id, StringComparer.Ordinal);
@@ -65,10 +69,21 @@ public static class Items
     public static bool TryGet(string id, [MaybeNullWhen(false)] out ItemSpec spec) => ById.TryGetValue(id, out spec);
 }
 
-/// <summary>A hero's inventory, which starts empty; its first row is the hotbar.</summary>
+/// <summary>
+/// A hero's inventory, which starts empty: <see cref="Slots"/> slots of its own, the first row the hotbar,
+/// then its equipment, a slot for each kind in <see cref="Equipment"/>, by the body: the head, the back, three
+/// on the belt. Giving, taking and picking up use only its own slots; a slot of equipment holds only an item
+/// whose <c>Equip</c> is its kind.
+/// </summary>
 public static class Inventory
 {
     public const int Slots = 36;
+
+    /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
+    public static readonly IReadOnlyList<string> Equipment = ["head", "back", "belt", "belt", "belt"];
+
+    /// <summary>Every slot of an inventory: its own, then its equipment.</summary>
+    public static readonly int Total = Slots + Equipment.Count;
 }
 
 /// <summary>Stacks on the floor.</summary>

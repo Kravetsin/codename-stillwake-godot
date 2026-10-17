@@ -37,7 +37,7 @@ public sealed class TestWorld
         var root = JsonNode.Parse(World.Save())!;
         var slots = new JsonArray();
         foreach (var (item, count) in items) slots.Add(new JsonObject { ["item"] = item, ["count"] = count });
-        while (slots.Count < Content.Inventory.Slots) slots.Add(null);
+        while (slots.Count < Content.Inventory.Total) slots.Add(null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = peer, ["slots"] = slots });
         World = World.Load(root.ToJsonString(), Modules());
         return this;

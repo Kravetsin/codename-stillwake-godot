@@ -1,6 +1,6 @@
 # 0007 — Spacewalks and airlocks
 
-- Status: accepted
+- Status: accepted; a tether for every hero in space superseded by [0047](0047-equipment-the-jetpack-and-the-slower-swim.md): one wearing a jetpack has none
 - Date: 2026-10-11
 
 ## Context

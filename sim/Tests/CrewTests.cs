@@ -375,13 +375,18 @@ public class CrewTests
     private sealed record Step(string Type, int Hero = 0, int Cell = 0, int Ticks = 0);
 
     /// <summary>
-    /// fast-check's steps: heroes 0–3 entering inside, outside or off the grid, loads, a breach, and
-    /// waits of up to 1500 ticks, mostly short as fast-check draws them.
+    /// fast-check's steps: heroes 0–3 entering inside, outside or off the grid, loads, a breach, thrusting
+    /// or stopping (heroes 0 and 1 wear jetpacks), breathing canisters, and waits of up to 1500 ticks, mostly
+    /// short as fast-check draws them.
     /// </summary>
     private static readonly Gen<Step> Steps = Gen.OneOf(
         from hero in Gen.Choose(0, 3)
         from cell in Gen.Elements(At(4, 1), At(6, 3), Outside, -5, 999)
         select new Step("enter", hero, cell),
+        from hero in Gen.Choose(0, 3)
+        from thrusting in Gen.Elements(0, 1)
+        select new Step("thrust", hero, Ticks: thrusting),
+        from hero in Gen.Choose(0, 3) select new Step("refill", hero),
         Gen.Constant(new Step("load")),
         Gen.Constant(new Step("breach")),
         Gen.Frequency((2, Gen.Choose(1, 20)), (1, Gen.Choose(1, 1500)), (1, Gen.Elements(1, 1500)))
@@ -394,9 +399,12 @@ public class CrewTests
         return Prop.ForAll(steps.ToArbitrary(), all =>
         {
             var (w, tank, _) = SetUp();
+            w.Wear(0, Content.Jetpack.Item).Wear(1, Content.Jetpack.Item);
             foreach (var s in all)
             {
                 if (s.Type == "enter") w.Do(EnterAt(s.Cell, s.Hero));
+                else if (s.Type == "thrust") w.Do(new Thrust(s.Ticks == 1) { From = s.Hero });
+                else if (s.Type == "refill") w.Do(new Refill { From = s.Hero });
                 else if (s.Type == "load") w.Do(new LoadCanister(tank));
                 else if (s.Type == "breach" && w.M.Grid.StructureAt(At(8, 2)) == Structure.Wall)
                     w.Do(new ClearAt(At(8, 2), "structure"));

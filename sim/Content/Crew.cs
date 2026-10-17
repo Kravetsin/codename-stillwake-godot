@@ -6,7 +6,7 @@ namespace Stillwake.Content;
 /// <see cref="Suit"/> units; in an aired room the suit also refills by up to <see cref="Refill"/> units a
 /// breath. An empty suit passes the hero out for <see cref="PassOut"/> ticks. Heroes wear one of
 /// <see cref="Colours"/> suit colours, each taken by one hero at most while there are colours to go round.
-/// Running or swimming fast, a hero is out of breath and breathes <see cref="Exerted"/> units a breath:
+/// Running, a hero is out of breath and breathes <see cref="Exerted"/> units a breath:
 /// stamina is the air it costs. Within <see cref="PodReach"/> cells of the lifepod a hero's suit takes
 /// up to <see cref="PodRefill"/> units a breath of the pod's own air first, from no store.
 /// </summary>
@@ -25,4 +25,14 @@ public static class Crew
 
     /// <summary>The pod's hatch, where heroes are made, from its top-left cell: the middle of its bottom row.</summary>
     public static readonly (int X, int Y) PodHatch = (1, 2);
+
+    /// <summary>
+    /// What a canister breathed into the suit gives it, in units, up to full: absolute, so a bigger suit
+    /// later still gets a canister's worth (0047).
+    /// </summary>
+    public const int CanisterRefill = 20;
+
+    // Not a const: every constant of this table is a whole number (ContentTests).
+    /// <summary>The item breathed into the suit.</summary>
+    public static readonly string Canister = "canister";
 }

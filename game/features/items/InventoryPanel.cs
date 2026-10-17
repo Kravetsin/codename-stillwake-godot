@@ -21,7 +21,9 @@ namespace Stillwake.Game.Features.Items;
 /// outputs, a burner generator's fuel and what it makes, an analyzer's own panel (<see cref="AnalyzerPanel"/>); the lifepod's is the crafting feature's. Stacks move by clicks (<see cref="Clicks.On"/>),
 /// or dragged from one slot to another; Tab or Esc closes both. 1–9 and the wheel over the world choose a
 /// hotbar slot, Q throws its stack. A stack's name, and whether it waits for an analyzer, show in the one
-/// tooltip; an item not analysed has a violet "?" in its slot's corner, and in the hand.
+/// tooltip; an item not analysed has a violet "?" in its slot's corner, and in the hand. Right of the grid,
+/// the equipment by the body (0047): a stack carried lights the slots that would wear it and dims the
+/// rest; a right click on a canister of the hero's own breathes it (<see cref="Ui.Breathe"/>).
 /// </summary>
 public partial class InventoryPanel : CanvasLayer
 {
@@ -119,8 +121,13 @@ public partial class InventoryPanel : CanvasLayer
         _root.AddChild(_hotbar);
 
         var shown = Style.Gap(new VBoxContainer { Position = new Vector2(12, 112) }, 8);
-        shown.AddChild(_inventory = Style.Panel(Style.Slate700,
-            Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i)))));
+        // The equipment by the grid, laid out as the body (0047); the crafts dock past both.
+        var bag = Style.Gap(new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin }, 6);
+        var grid = Style.Panel(Style.Slate700, Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
+        grid.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
+        bag.AddChild(grid);
+        bag.AddChild(Body());
+        shown.AddChild(_inventory = bag);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
 
@@ -186,6 +193,31 @@ public partial class InventoryPanel : CanvasLayer
         var grid = Style.Gap(new GridContainer { Columns = Hotbar.Row }, 4);
         foreach (var place in places) grid.AddChild(Box(place));
         return grid;
+    }
+
+    /// <summary>
+    /// The equipment, by the body (0047): the head's slot over the back's over the belt's three, each row
+    /// under its name; no silhouettes in empty slots.
+    /// </summary>
+    private Control Body()
+    {
+        var column = Style.Gap(new VBoxContainer(), 2);
+        foreach (var kind in Content.Inventory.Equipment.Distinct())
+        {
+            column.AddChild(new Label
+            {
+                Text = T($"equip.{kind}"),
+                LabelSettings = Style.Text(Style.Mono, 9, Style.Slate500),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            });
+            var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
+            foreach (var place in Equipment.Of(kind)) row.AddChild(Box(place));
+            column.AddChild(row);
+        }
+        var body = Style.Panel(Style.Slate700, column);
+        body.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
+        return body;
     }
 
     /// <summary>
@@ -434,6 +466,7 @@ public partial class InventoryPanel : CanvasLayer
         int? fuelSlot = _reading.Kind is string kind && MachineSpecs.TryGet(kind, out var spec) ? spec.FuelSlot : null;
         var result = Clicks.On(Held, new SlotClick(place, _reading.At(place), right, shift, Crate, fuelSlot));
         _picked = result.Picked;
+        if (result.Breathes) _ui.Breathe();
         if (result.Command != null) Send(result.Command);
         else Refresh();
     }
@@ -462,12 +495,14 @@ public partial class InventoryPanel : CanvasLayer
         _creative.Visible = reading.Creative;
         _ui.Wielded.Set(HandFree ? reading.Inventory[_chosen]?.Item : null);
         var held = Held;
+        // Carried, a stack lights the equipment slots that would wear it and dims the rest (0047).
+        var carried = held is { } inHand ? reading.At(inHand.Place)?.Item : null;
         foreach (var box in _slots)
         {
             var p = box.Place;
             var stack = reading.At(p);
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,
-                stack != null && reading.Unknown(stack.Item));
+                stack != null && reading.Unknown(stack.Item), Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null);
         }
         _held.Visible = held != null;
         if (held is { } h)

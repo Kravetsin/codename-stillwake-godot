@@ -35,6 +35,7 @@ public interface IItemsQueries
     string? PickUpProblem(int peer, int id);
     int PickUpAmount(int peer, int id);
     Shown AfterMoves(int peer, IReadOnlyList<Command> moves);
+    bool Equipped(int peer, string item);
 }
 
 /// <summary>How a module that depends on the items may change them.</summary>
@@ -57,6 +58,9 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 {
     private readonly IGridQueries _grid;
     private readonly IRoomsQueries _rooms;
+
+    /// <summary>An inventory's own slots, before its equipment: what giving, taking and picking up use.</summary>
+    private const int Own = Content.Inventory.Slots;
 
     public override string Id => "items";
 
@@ -91,12 +95,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     public bool Creative => State.Creative;
 
-    /// <summary>How much of each item <paramref name="peer"/> carries over all its slots, in the order first found: what it could pay with.</summary>
+    /// <summary>How much of each item <paramref name="peer"/> carries in its own slots, its equipment left out, in the order first found: what it could pay with.</summary>
     public IReadOnlyList<(string Item, int Count)> Totals(int peer)
     {
         var totals = new List<(string Item, int Count)>();
-        foreach (var s in Inventory(peer))
+        var slots = Inventory(peer);
+        for (int i = 0; i < Own; i++)
         {
+            var s = slots[i];
             if (s == null) continue;
             int at = totals.FindIndex(t => t.Item == s.Item);
             if (at < 0) totals.Add((s.Item, s.Count));
@@ -108,13 +114,13 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary><c>items.notEnough</c> when <paramref name="peer"/> cannot pay <paramref name="cost"/>; never in creative mode.</summary>
     public string? ShortOf(int peer, IReadOnlyList<(string Item, int Count)> cost)
     {
-        bool cannot = Stacks.Taken(Inventory(peer), cost) == null;
+        bool cannot = Stacks.Taken(Inventory(peer), cost, Own) == null;
         return cannot && !State.Creative ? "items.notEnough" : null;
     }
 
     /// <summary><c>items.full</c> when <paramref name="cost"/> does not fit into <paramref name="peer"/>'s inventory, creative mode or not.</summary>
     public string? FullFor(int peer, IReadOnlyList<(string Item, int Count)> cost) =>
-        Stacks.Placed(Inventory(peer), cost) == null ? "items.full" : null;
+        Stacks.Placed(Inventory(peer), cost, Own) == null ? "items.full" : null;
 
     /// <summary>
     /// <c>items.full</c> when <paramref name="cost"/> does not fit into machine <paramref name="id"/>'s
@@ -140,7 +146,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     private int PickUpAmount(int peer, FloorStack stack)
     {
-        var (_, left) = Stacks.PlacedSome(Inventory(peer), [(stack.Item, stack.Count)]);
+        var (_, left) = Stacks.PlacedSome(Inventory(peer), [(stack.Item, stack.Count)], Own);
         return stack.Count - (left.Count > 0 ? left[0].Count : 0);
     }
 
@@ -176,7 +182,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
                 case Move mv:
                     if (Into(mv.Dst, out var dst) != null) break;
                     if (MoveSides(SlotsOf, mv.Src, dst, out var from, out var to, out bool same) != null) break;
-                    if (Stacks.Moved(from, to, same, mv.Src, dst, mv.Count, out var after, out var into) != null) break;
+                    if (Moved(from, to, same, mv.Src, dst, mv.Count, out var after, out var into) != null) break;
                     Show(mv.Src.Crate, after);
                     Show(mv.Dst.Crate, into);
                     break;
@@ -190,6 +196,15 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
             shown.Where(s => s.Crate != null).Select(s => (s.Crate!.Value, s.Slots)).ToList());
     }
 
+    /// <summary>Whether <paramref name="peer"/> wears <paramref name="item"/> in one of its equipment slots: a jetpack on its back.</summary>
+    public bool Equipped(int peer, string item)
+    {
+        var slots = Inventory(peer);
+        for (int i = Own; i < slots.Count; i++)
+            if (slots[i]?.Item == item) return true;
+        return false;
+    }
+
     // Operations.
 
     /// <summary>
@@ -201,7 +216,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         // Amounts are checked in creative mode too, so a caller's bug shows in either mode.
         if (Stacks.IsNothing(cost) || State.Creative) return [];
-        var left = Stacks.Taken(Inventory(peer), cost)
+        var left = Stacks.Taken(Inventory(peer), cost, Own)
             ?? throw new InvalidOperationException("items.take: not enough; check ShortOf first");
         Stacks.SetInventory(State, peer, left);
         return [.. cost];
@@ -211,7 +226,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     public void Give(int peer, IReadOnlyList<(string Item, int Count)> cost)
     {
         if (Stacks.IsNothing(cost)) return;
-        var more = Stacks.Placed(Inventory(peer), cost)
+        var more = Stacks.Placed(Inventory(peer), cost, Own)
             ?? throw new InvalidOperationException("items.give: no room; check FullFor first");
         Stacks.SetInventory(State, peer, more);
     }
@@ -247,7 +262,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     public void GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
         if (Stacks.IsNothing(cost)) return;
-        var (slots, left) = Stacks.PlacedSome(Inventory(peer), cost);
+        var (slots, left) = Stacks.PlacedSome(Inventory(peer), cost, Own);
         Stacks.SetInventory(State, peer, slots);
         DropAt(peer, left, cell);
     }
@@ -281,7 +296,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         var stack = State.Floor.Find(s => s.Id == c.Id)
             ?? throw new InvalidOperationException("items.pickUp: applied to a stack that is gone");
-        var (slots, left) = Stacks.PlacedSome(Inventory(c.From), [(stack.Item, stack.Count)]);
+        var (slots, left) = Stacks.PlacedSome(Inventory(c.From), [(stack.Item, stack.Count)], Own);
         Stacks.SetInventory(State, c.From, slots);
         stack.Count = left.Count > 0 ? left[0].Count : 0;
         if (stack.Count == 0) State.Floor.Remove(stack);
@@ -290,14 +305,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     private string? MoveProblem(Move c) =>
         Into(c.Dst, out var dst)
         ?? MoveSides(side => SideOf(c.From, side), c.Src, dst, out var from, out var to, out bool same)
-        ?? Stacks.Moved(from, to, same, c.Src, dst, c.Count, out _, out _);
+        ?? Moved(from, to, same, c.Src, dst, c.Count, out _, out _);
 
     private void ApplyMove(Move c)
     {
         if (MoveProblem(c) != null) throw new InvalidOperationException("items.move: refused in apply");
         Into(c.Dst, out var dst);
         MoveSides(side => SideOf(c.From, side), c.Src, dst, out var from, out var to, out bool same);
-        Stacks.Moved(from, to, same, c.Src, dst, c.Count, out var after, out var into);
+        Moved(from, to, same, c.Src, dst, c.Count, out var after, out var into);
         SetSide(c.From, c.Src, after);
         SetSide(c.From, dst, into);
     }
@@ -378,6 +393,18 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         if (same && (dst.Slot == null || dst.Slot == src.Slot)) return "items.noSlot";
         return null;
     }
+
+    /// <summary>
+    /// A move as <see cref="Stacks.Moved"/> makes it, onto an inventory as a whole into its own slots only,
+    /// or why it is refused: also when it leaves an equipment slot of an inventory side holding what is not
+    /// worn there (<c>items.notEquipment</c>), put in or swapped in.
+    /// </summary>
+    private static string? Moved(
+        IReadOnlyList<Stack?> from, IReadOnlyList<Stack?> to, bool same, Place src, Target dst, int count,
+        out Stack?[] after, out Stack?[] into) =>
+        Stacks.Moved(from, to, same, src, dst, count, out after, out into, dst.Crate == null ? Own : null)
+        ?? (src.Crate == null ? Stacks.Misfit(after) : null)
+        ?? (dst.Crate == null ? Stacks.Misfit(into) : null);
 
     /// <summary>A furnace's outputs after smelting one of its input, or null when its input holds no salvage or its yields do not fit.</summary>
     private static Stack?[]? Smelted(IReadOnlyList<Stack?> slots, int inputs)

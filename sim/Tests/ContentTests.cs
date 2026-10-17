@@ -78,7 +78,7 @@ public class ContentTests
     [Fact]
     public void HeroWalksClimbsAndSwimsLessThanACellPerStep()
     {
-        foreach (int speed in (int[])[Hero.Walk, Hero.Run, Hero.Climb, Hero.Swim, Hero.SwimFast]) Assert.True(speed < Cell);
+        foreach (int speed in (int[])[Hero.Walk, Hero.Run, Hero.Climb, Hero.Swim, Jetpack.Top]) Assert.True(speed < Cell);
     }
 
     [Fact]
@@ -284,6 +284,21 @@ public class ContentTests
         Assert.Equal(1, axe!.Stack);
         Assert.True(Crafts.TryGet(Axe.Item, out _));
         Assert.Contains(Axe.Item, Content.Research.StartKnown);
+    }
+
+    [Fact]
+    public void TheJetpackOutfliesTheSwimIsWornOnTheBackAndACanisterRefillsLessThanAWholeSuit()
+    {
+        AllPositive(typeof(Jetpack));
+        Assert.True(Jetpack.Top > Hero.Swim * 4);
+        Assert.True(Jetpack.Accel < Jetpack.Top && Jetpack.Drag < Jetpack.Accel);
+        Assert.Equal("back", Content.Items.Get(Jetpack.Item).Equip);
+        Assert.Equal(1, Content.Items.Get(Jetpack.Item).Stack);
+        Assert.Contains(Inventory.Equipment, kind => kind == "back");
+        // Everything worn names a kind of slot there is.
+        Assert.All(Content.Items.All.Where(i => i.Equip != null), i => Assert.Contains(i.Equip, Inventory.Equipment));
+        Assert.InRange(Content.Crew.CanisterRefill, 1, Content.Crew.Suit - 1);
+        Assert.Contains(Crafts.Get(Jetpack.Item).Cost, c => c.Item == Content.Crew.Canister);
     }
 
     [Fact]
