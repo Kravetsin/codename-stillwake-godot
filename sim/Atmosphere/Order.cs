@@ -99,33 +99,55 @@ internal static class Order
     }
 
     /// <summary>
-    /// The rooms whose order may differ from the one found from <paramref name="before"/> and
-    /// <paramref name="ventsBefore"/>: each room a cell left or joined, as it was and as it is, and each
-    /// room a vent came to or left, each once in the order found. Ids that name no room now are among
-    /// them; none when nothing moved.
+    /// The rooms whose order may differ from the one found from <paramref name="before"/>: each a cell
+    /// left or joined, as it was and is, and those of <see cref="VentRoomsMoved"/>; ids gone included.
     /// </summary>
     public static List<int> ChangedRooms(
         int[] before, ReadOnlySpan<int> roomOf, IReadOnlyList<int> ventsBefore, IReadOnlyList<int> vents)
     {
         var changed = new List<int>();
-        // Most ticks nothing moved: one vectorised compare instead of a walk and two sets.
+        // Most ticks nothing moved: one vectorised compare instead of a walk.
         if (roomOf.SequenceEqual(before) && vents.SequenceEqual(ventsBefore)) return changed;
-        var known = new HashSet<int>();
-        void Add(int room)
-        {
-            if (room >= 0 && known.Add(room)) changed.Add(room);
-        }
         for (int cell = 0; cell < roomOf.Length; cell++)
         {
-            int was = cell < before.Length ? before[cell] : -1;
+            int was = before[cell];
             if (roomOf[cell] == was) continue;
-            Add(roomOf[cell]);
-            Add(was);
+            if (roomOf[cell] >= 0) changed.Add(roomOf[cell]);
+            if (was >= 0) changed.Add(was);
         }
-        var had = new HashSet<int>(ventsBefore);
-        var has = new HashSet<int>(vents);
-        foreach (int cell in vents) if (!had.Contains(cell)) Add(roomOf[cell]);
-        foreach (int cell in ventsBefore) if (!has.Contains(cell) && cell < roomOf.Length) Add(roomOf[cell]);
+        changed.AddRange(VentRoomsMoved(roomOf, ventsBefore, vents));
         return changed;
+    }
+
+    /// <summary>
+    /// The rooms, as they are now, whose vents in order differ between <paramref name="before"/> and
+    /// <paramref name="vents"/>: a vent came, went, or moved in the order, which its air spreads from.
+    /// </summary>
+    public static List<int> VentRoomsMoved(ReadOnlySpan<int> roomOf, IReadOnlyList<int> before, IReadOnlyList<int> vents)
+    {
+        var moved = new List<int>();
+        if (before.SequenceEqual(vents)) return moved;
+        var had = ByRoom(roomOf, before);
+        var has = ByRoom(roomOf, vents);
+        foreach (int cell in (IEnumerable<int>)[.. before, .. vents])
+        {
+            int room = roomOf[cell];
+            if (room < 0) continue;
+            if (!had.TryGetValue(room, out var was) || !has.TryGetValue(room, out var now) || !was.SequenceEqual(now))
+                moved.Add(room);
+        }
+        return moved;
+    }
+
+    private static Dictionary<int, List<int>> ByRoom(ReadOnlySpan<int> roomOf, IReadOnlyList<int> vents)
+    {
+        var byRoom = new Dictionary<int, List<int>>();
+        foreach (int cell in vents)
+        {
+            if (roomOf[cell] < 0) continue;
+            if (byRoom.TryGetValue(roomOf[cell], out var list)) list.Add(cell);
+            else byRoom[roomOf[cell]] = [cell];
+        }
+        return byRoom;
     }
 }

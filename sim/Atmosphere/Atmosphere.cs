@@ -101,53 +101,38 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     {
         _leaksFor = null;
         _survey = null;
-        Reorder(VentCells(), null);
-        State.OrderedGrid = _grid.Version;
+        Reorder(VentCells());
         State.OrderedVersion = _rooms.Version;
     }
 
     /// <summary>
     /// Rooms or vents moved: the orders of the rooms they touch are found again, and what is kept per
-    /// room with them; the air stays put. Nothing can have moved while the grid has not.
+    /// room with them; the air stays put.
     /// </summary>
     private void Follow()
     {
-        if (_grid.Version == State.OrderedGrid) return;
+        if (_grid.Version == State.OrderedGrid && _rooms.Version == State.OrderedVersion) return;
+        var roomOf = _rooms.RoomOfCells;
         var vents = VentCells();
-        var found = _rooms.ChangedSince(State.OrderedVersion);
+        int was = State.OrderedVersion;
+        var found = _rooms.ChangedSince(was);
+        List<int> changed;
         if (found == null)
         {
-            var changed = Order.ChangedRooms(State.OrderedRooms, _rooms.RoomOfCells, State.OrderedVents, vents);
-            if (changed.Count > 0)
-            {
-                Reorder(vents, changed);
-                Strand();
-            }
+            // Every room was found again, hull and openings too: what is kept per room is gathered afresh.
             _leaksFor = null;
             _survey = null;
+            changed = Order.ChangedRooms(State.OrderedRooms, roomOf, State.OrderedVents, vents);
         }
         else
         {
-            var changed = VentRoomsMoved(vents);
+            changed = Order.VentRoomsMoved(roomOf, State.OrderedVents, vents);
             changed.AddRange(found);
-            if (changed.Count > 0) ReorderAround(vents, [.. changed.Distinct().Order()]);
         }
+        if (changed.Count > 0) ReorderAround(vents, [.. changed.Distinct().Order()], was);
         State.OrderedGrid = _grid.Version;
         State.OrderedVersion = _rooms.Version;
         State.OrderedVents = vents;
-    }
-
-    /// <summary>The rooms a vent came to or left since the orders were found, as they are now.</summary>
-    private List<int> VentRoomsMoved(List<int> vents)
-    {
-        var moved = new List<int>();
-        if (vents.SequenceEqual(State.OrderedVents)) return moved;
-        var roomOf = _rooms.RoomOfCells;
-        var had = new HashSet<int>(State.OrderedVents);
-        var has = new HashSet<int>(vents);
-        foreach (int cell in vents) if (!had.Contains(cell) && roomOf[cell] >= 0) moved.Add(roomOf[cell]);
-        foreach (int cell in State.OrderedVents) if (!has.Contains(cell) && roomOf[cell] >= 0) moved.Add(roomOf[cell]);
-        return moved;
     }
 
     /// <summary>
@@ -187,37 +172,21 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         return vents;
     }
 
-    /// <summary>
-    /// Finds the orders again: of every room, or only of the <paramref name="changed"/> ones, dropping
-    /// those of rooms gone. A door moves one or two rooms of hundreds.
-    /// </summary>
-    private void Reorder(List<int> vents, List<int>? changed)
+    /// <summary>Every room's order found again, as after a load.</summary>
+    private void Reorder(List<int> vents)
     {
         var roomOf = _rooms.RoomOfCells;
-        int width = _grid.Width;
-        if (changed == null)
-        {
-            State.Orders = new Dictionary<int, int[]>();
-            foreach (var (id, cells) in Order.Rooms(roomOf, width, _rooms.All, vents, Seen())) State.Orders[id] = cells;
-        }
-        else
-        {
-            var wanted = new HashSet<int>(changed);
-            var rooms = _rooms.All.Where(r => wanted.Contains(r.Id)).ToList();
-            // A room gone is among the changed: its cells were in it before.
-            foreach (int id in changed) State.Orders.Remove(id);
-            foreach (var (id, cells) in Order.Rooms(roomOf, width, rooms, vents, Seen())) State.Orders[id] = cells;
-        }
+        State.Orders = new Dictionary<int, int[]>();
+        foreach (var (id, cells) in Order.Rooms(roomOf, _grid.Width, _rooms.All, vents, Seen())) State.Orders[id] = cells;
         State.OrderedRooms = roomOf.ToArray();
         State.OrderedVents = vents;
     }
 
     /// <summary>
-    /// Finds the orders of the <paramref name="changed"/> rooms only, ascending ids gone or new, and
-    /// what is kept for them; no walk over every cell. Only cells those rooms held can have left every
-    /// room, so only those lose their air.
+    /// The orders of the <paramref name="changed"/> rooms (ascending ids, gone and new) found again, and
+    /// what is kept for them. Only cells those rooms held can have left every room, losing their air.
     /// </summary>
-    private void ReorderAround(List<int> vents, List<int> changed)
+    private void ReorderAround(List<int> vents, List<int> changed, int was)
     {
         var roomOf = _rooms.RoomOfCells;
         var held = new List<int>();
@@ -239,10 +208,13 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             State.OrderedRooms[cell] = roomOf[cell];
             if (roomOf[cell] < 0 && State.Aired.BinarySearch(cell) >= 0) stranded.Add(cell);
         }
-        KeepAround(changed, rooms, orders, stranded);
+        KeepAround(changed, rooms, orders, stranded, was);
     }
 
-    /// <summary>Scratch for <see cref="Order.Rooms"/>: a flag a cell, all false between calls.</summary>
+
+    private bool[] _seen = [];
+
+    /// <summary>Scratch for <see cref="Order.Rooms"/>, run on every change of rooms: a flag a cell, all false between calls.</summary>
     private bool[] Seen()
     {
         if (_seen.Length != _grid.Width * _grid.Height) _seen = new bool[_grid.Width * _grid.Height];

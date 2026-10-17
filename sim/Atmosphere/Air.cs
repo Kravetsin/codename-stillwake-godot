@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
 
@@ -10,9 +11,8 @@ namespace Stillwake.Sim.Atmosphere;
 public sealed partial class AtmosphereModule
 {
     /// <summary>
-    /// Who is where, gathered in one pass over the machines and the aired cells, so the rules read
-    /// lookups instead of scanning the ship once per room: the reference world has hundreds of rooms.
-    /// Kept between ticks while the pipes and the rooms stay; what changes every tick is read anew.
+    /// Who is where, so the rules read lookups instead of scanning the ship once per room; kept between
+    /// ticks while the pipes and the rooms stay, what changes every tick read anew.
     /// </summary>
     private sealed class Survey
     {
@@ -49,10 +49,6 @@ public sealed partial class AtmosphereModule
     /// <summary>The survey kept between ticks; null when it must be gathered again.</summary>
     private Survey? _survey;
 
-    /// <summary>The per-cell arrays the survey holds, and scratch for <see cref="FindLeaks"/> and <see cref="Order.Rooms"/>: reused, never saved.</summary>
-    private int[] _airedIn = [], _behind = [];
-    private bool[] _airedAt = [], _seen = [];
-
     /// <summary>The survey, gathered again only when the pipes or the rooms are new; the generators' power and the tanks' oxygen are read on every call.</summary>
     private Survey Gather()
     {
@@ -87,19 +83,8 @@ public sealed partial class AtmosphereModule
         foreach (var (cell, network) in s.Vents)
             if (_rooms.RoomAt(cell) is int place) AddTo(s.VentsIn, place, network);
         var roomOf = _rooms.RoomOfCells;
-        // Per-cell arrays are big enough to be costly to allocate: one pair, cleared, serves every survey.
-        if (_airedIn.Length != roomOf.Length)
-        {
-            _airedIn = new int[roomOf.Length];
-            _airedAt = new bool[roomOf.Length];
-        }
-        else
-        {
-            Array.Clear(_airedIn);
-            Array.Clear(_airedAt);
-        }
-        s.AiredIn = _airedIn;
-        s.AiredAt = _airedAt;
+        s.AiredIn = new int[roomOf.Length];
+        s.AiredAt = new bool[roomOf.Length];
         foreach (int cell in State.Aired)
         {
             s.AiredAt[cell] = true;
@@ -110,14 +95,12 @@ public sealed partial class AtmosphereModule
     }
 
     /// <summary>
-    /// After rooms found again around a change: the <paramref name="stranded"/> cells lose their air,
-    /// and the survey's counts and vents and the leaks of the <paramref name="changed"/> rooms (ascending)
-    /// are found again from the <paramref name="rooms"/> they are now and their <paramref name="orders"/>;
-    /// those of every other room are kept.
+    /// After rooms found around a change: <paramref name="stranded"/> cells lose their air, and the survey's
+    /// counts and vents and the leaks of the <paramref name="changed"/> rooms are redone; the rest are kept.
     /// </summary>
-    private void KeepAround(List<int> changed, List<Room> rooms, List<(int Room, int[] Cells)> orders, List<int> stranded)
+    private void KeepAround(List<int> changed, List<Room> rooms, List<(int Room, int[] Cells)> orders, List<int> stranded, int was)
     {
-        var s = _survey != null && _survey.Pipes == _pipes.Version && _survey.Rooms == State.OrderedVersion ? _survey : null;
+        var s = _survey != null && _survey.Pipes == _pipes.Version && _survey.Rooms == was ? _survey : null;
         _survey = s;
         if (stranded.Count > 0)
         {
@@ -139,7 +122,7 @@ public sealed partial class AtmosphereModule
                 if (roomOf[cell] >= 0 && changed.BinarySearch(roomOf[cell]) >= 0) AddTo(s.VentsIn, roomOf[cell], network);
             s.Rooms = _rooms.Version;
         }
-        if (_leaksFor == State.OrderedVersion)
+        if (_leaksFor == was)
         {
             foreach (int id in changed) _leaks.Remove(id);
             for (int i = 0; i < rooms.Count; i++)
@@ -159,18 +142,15 @@ public sealed partial class AtmosphereModule
         else lists[key] = [value];
     }
 
-    private static readonly List<int> None = [];
-
-    // Concrete types, so a foreach over them, a few for each room every tick, allocates no enumerator.
-    private static List<int> ListAt(Dictionary<int, List<int>> lists, int key) =>
-        lists.TryGetValue(key, out var list) ? list : None;
+    // Spans and arrays, so the few loops over them for each room every tick allocate no enumerator.
+    private static ReadOnlySpan<int> ListAt(Dictionary<int, List<int>> lists, int key) =>
+        lists.TryGetValue(key, out var list) ? CollectionsMarshal.AsSpan(list) : [];
 
     private int[] OrderOf(int room) => State.Orders.TryGetValue(room, out var order) ? order : [];
 
     /// <summary>
-    /// Takes <paramref name="removed"/> out of the sorted aired cells and puts <paramref name="added"/> in,
-    /// a cell in both ending aired: a few in place, more by one merge, as shifting a long list a few
-    /// times costs less than copying it.
+    /// Takes <paramref name="removed"/> out of the sorted aired cells and puts <paramref name="added"/> in, a
+    /// cell in both ending aired: a few in place, as a few shifts of a long list cost less than a copy.
     /// </summary>
     private void EditAired(List<int> removed, List<int> added)
     {
@@ -294,15 +274,6 @@ public sealed partial class AtmosphereModule
         return had + TakeFar(s, room, amount - had, edits);
     }
 
-    /// <summary>Takes the air out of cells no longer in a room: a wall built on them, a room open wide.</summary>
-    private void Strand()
-    {
-        var roomOf = _rooms.RoomOfCells;
-        var stranded = new List<int>();
-        foreach (int cell in State.Aired) if (roomOf[cell] < 0) stranded.Add(cell);
-        if (stranded.Count > 0) EditAired(stranded, []);
-    }
-
     /// <summary>Every room's air, in rooms order, from one survey.</summary>
     private List<RoomAir> AllRoomsAir()
     {
@@ -314,7 +285,7 @@ public sealed partial class AtmosphereModule
         var all = new List<RoomAir>(_rooms.All.Count);
         foreach (var room in _rooms.All)
         {
-            var networks = ListAt(s.VentsIn, room.Id);
+            var networks = ListAt(s.VentsIn, room.Id).ToArray();
             var once = networks.Distinct().ToList();
             int oxygen = 0, made = 0;
             foreach (int n in once)
@@ -328,12 +299,12 @@ public sealed partial class AtmosphereModule
             int? lasts =
                 made > 0 ? null
                 : now == RoomStatus.Aired && leak > 0 ? (int)((long)oxygen * Content.Air.LeakEvery / leak)
-                : now == RoomStatus.Venting && networks.Count > 0 ? CeilDiv(oxygen, Content.Air.VentDrain * networks.Count)
+                : now == RoomStatus.Venting && networks.Length > 0 ? CeilDiv(oxygen, Content.Air.VentDrain * networks.Length)
                 : null;
             string? problem =
                 now != RoomStatus.Vacuum ? null
                 : !standing.Contains(room.Id) ? "atmosphere.noVent"
-                : networks.Count == 0 ? "atmosphere.notPiped"
+                : networks.Length == 0 ? "atmosphere.notPiped"
                 : networks.Any(s.MadeOn.ContainsKey) ? "atmosphere.unpowered"
                 : "atmosphere.dry";
             all.Add(new RoomAir(room.Id, now, s.AiredIn[room.Id], leak, oxygen, made, lasts, problem));
@@ -345,10 +316,8 @@ public sealed partial class AtmosphereModule
     private static int CeilDiv(int a, int b) => (a + b - 1) / b;
 
     /// <summary>
-    /// The cells of air a room loses every <c>Air.LeakEvery</c> ticks through what its air touches
-    /// (0020): the back wall behind each of its cells, and its hull, each by its material, a door by
-    /// <c>Air.DoorLeak</c>. Kept per room while the rooms' version stays, and found again for the rooms
-    /// found again, which they are whenever walls or back walls change; a material changes only by being rebuilt.
+    /// The cells of air a room loses every <c>Air.LeakEvery</c> ticks through what its air touches (0020),
+    /// kept per room while the rooms' version stays: a material changes only by being rebuilt.
     /// </summary>
     private int LeakOf(Room room)
     {
@@ -360,9 +329,7 @@ public sealed partial class AtmosphereModule
     private void FindLeaks()
     {
         var roomOf = _rooms.RoomOfCells;
-        if (_behind.Length != roomOf.Length) _behind = new int[roomOf.Length];
-        else Array.Clear(_behind);
-        var behind = _behind;
+        var behind = new int[roomOf.Length];
         for (int cell = 0; cell < roomOf.Length; cell++)
         {
             int id = roomOf[cell];

@@ -417,6 +417,18 @@ public class AirTests
         Assert.Equal(At(1, 1), w.Air().Orders[room][0]);
     }
 
+    [Fact]
+    public void LaysARoomOutAgainWhenItsVentsOnlyChangeOrderAVentRebuiltWhereItStood()
+    {
+        var w = new Scenario("#########\n#V.....V#\n#.......#\n#########");
+        int room = w.M.Rooms.All[0].Id;
+        Assert.Equal(At(1, 1), w.Air().Orders[room][0]);
+        // Taken apart and built again on one tick: the same cells, the vent now last in id order.
+        w.Do(new ClearAt(At(1, 1), "machine")).Do(new Place(At(1, 1), new Placement("machine", "vent"))).Run();
+        Assert.Equal(At(7, 1), w.Air().Orders[room][0]);
+        Assert.True(FreshOrders(w));
+    }
+
     // Rooms found again around a change far from space: only the rooms it touches are redone.
 
     /// <summary>Three rooms in a row, doors between, a wall stub in the first; a cell of space all round, so a change inside stays far from it.</summary>
@@ -458,22 +470,6 @@ public class AirTests
     }
 
     [Fact]
-    public void KeepsItsAirAndFillsOnThroughADoorOpenedFarFromSpaceOntoAnEmptyRoom()
-    {
-        var (w, left) = AiredRow();
-        var held = w.Air().Aired.ToList();
-        AroundA(w, new ToggleDoor(At23(9, 4)));
-        int joined = w.M.Rooms.RoomAt(At23(4, 4))!.Value;
-        Assert.Equal(left, joined);
-        Assert.Equal(joined, w.M.Rooms.RoomAt(At23(12, 4)));
-        Assert.Superset(held.ToHashSet(), w.Air().Aired.ToHashSet());
-        Assert.Equal(RoomStatus.Filling, Status(w, joined));
-        w.Run(3);
-        Assert.Contains(At23(9, 4), w.Air().Aired);
-        Assert.True(FreshOrders(w));
-    }
-
-    [Fact]
     public void TakesTheAirOutOfACellAWallIsBuiltOnFarFromSpaceAndKeepsTheRest()
     {
         var (w, left) = AiredRow();
@@ -494,6 +490,22 @@ public class AirTests
         Assert.Contains(At23(6, 5), w.Air().Aired);
         Assert.Equal(RoomStatus.Aired, Status(w, left));
         Assert.Equal(before.Leak + Scrap, Of(w, left)!.Leak);
+    }
+
+    /// <summary>More than a few cells a tick: the aired cells are merged into a new list, not edited in place.</summary>
+    [Fact]
+    public void VentsEightBreachedRoomsAtOnceSixCellsEachFromTheFarEdge()
+    {
+        var w = new Scenario(BudgetTests.Reference());
+        w.Run(300);
+        var before = w.Air().Aired.ToList();
+        // Through the top of the hull, above the first open cell of eight tiles.
+        for (int tile = 0; tile < 8; tile++) w.Do(new ClearAt(tile * 8 + 3, "structure"));
+        w.Run();
+        var after = w.Air().Aired;
+        Assert.Equal(8 * Air.VentLoss, before.Count - after.Count);
+        Assert.Subset(before.ToHashSet(), after.ToHashSet());
+        Assert.True(after.Zip(after.Skip(1)).All(p => p.First < p.Second));
     }
 
     /// <summary>

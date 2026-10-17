@@ -34,7 +34,7 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
   no vent is ordered from its middle, the cell nearest the mean of its cells (rounded down; the
   smallest such cell on a tie). Vents air the first empty cell of the order, and whatever takes air
   takes the last aired one, so a room's air gathers around its vents and never jumps.
-- **When the rooms or the vents' cells change,** the orders of the rooms they touch are found again
+- **When the rooms change, or a room's vents or their order,** the orders of the rooms they touch are found again
   and the air stays put; cells no longer in a room lose theirs. So a door opened onto an empty room
   lets the vents fill it through the doorway, and closed again each part keeps the cells it holds.
 - **What uses air** — a hero's breath, a room's leak — is paid by the networks of the room's vents,
@@ -50,12 +50,11 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
   the store sits empty between units.
 - **A tick of air,** in the simulation phase, in this order:
   1. Each generator, in id order, makes its share for the tick.
-  2. If the grid's `Version` moved, the rooms and vents are followed: the orders of the rooms they
-     touch are found again, and cells left outside every room lose their air. When the rooms were
-     found again around a change (`IRoomsQueries.ChangedSince` names the ids), those rooms and any a
-     vent came to or left are redone, with their leaks and survey counts, and only cells they held
-     can lose air; when every room was found again, the rooms per cell and the vents are compared
-     with those the orders were found from, and the leaks and the survey are found afresh.
+  2. If the grid's or the rooms' `Version` moved, the rooms and vents are followed: the rooms
+     `IRoomsQueries.ChangedSince` names, or, when every room was found again, those whose cells
+     differ from what the orders were found from, and any whose vents in order changed, get new
+     orders; only cells they held can lose their air. Around a change their leaks and survey counts
+     are redone and the rest kept; when every room was found again, both are found afresh.
   3. A room open to space loses `Air.VentLoss` cells from the far edge, and every vent in it — or
      standing in space — drains its network by `Air.VentDrain`.
   4. Every `Air.TicksPerCell` ticks, each filling room airs the next cell of its order, paying one unit
@@ -116,8 +115,11 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
 
 - TypeScript caches each room's leak in a `WeakMap` keyed by the room object; here the leaks are kept
   by room id while the rooms' `Version` stays, and found again for the ids `ChangedSince` names.
-- TypeScript gathers the survey every tick; here it is kept between ticks (above). Its per-cell
-  arrays and the scratch of the leak pass and of the orders are reused rather than allocated.
+- TypeScript gathers the survey every tick; here it is kept between ticks (above). The orders'
+  per-cell scratch is reused, as orders are found on every change of rooms.
+- TypeScript's `changedRooms` compares the vents as sets, so a room whose vents only changed order
+  (one taken apart and built again in the same cell) kept its old order; here the vents are compared
+  room by room in order.
 
 ## Deliberately not handled
 
