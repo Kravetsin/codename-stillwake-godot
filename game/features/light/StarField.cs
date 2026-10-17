@@ -1,5 +1,6 @@
 using System;
 using Stillwake.Content;
+using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using L = Stillwake.Game.Light;
 

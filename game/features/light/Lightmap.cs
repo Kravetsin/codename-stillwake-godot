@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Features.Light;

@@ -1,4 +1,5 @@
 using System;
+using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Shared;

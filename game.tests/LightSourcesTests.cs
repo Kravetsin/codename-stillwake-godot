@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Light;
+using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Xunit;
 

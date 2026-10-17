@@ -4,6 +4,7 @@ using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
+using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using L = Stillwake.Game.Light;
 

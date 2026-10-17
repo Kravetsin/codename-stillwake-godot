@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Stillwake.Game.Shared;
+using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Features.Grid;
