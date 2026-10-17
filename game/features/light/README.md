@@ -5,8 +5,17 @@ and by the stars through the holes in its back walls. Drawn only: nothing of it 
 Numbers from `game/Content/Light.cs`.
 
 - **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors stop light), `BackLayer`,
-  `Machines` (lamps, fires; machines dim starlight), `Width`/`Height`; `Particles.Shared` (what
-  glows); every `render/Glow` in the tree (a planner's screen).
+  `Machines` (lamps, fires; machines dim starlight), `Width`/`Height`, `Version` and `Built`;
+  `Particles.Shared` (what glows); every `render/Glow` in the tree (a planner's screen).
+- **Costs what is built, not the world** (F-6 slice 0). `LightView.Sync` after a tick does nothing
+  while the grid's `Version` stands; when it moved, it compares its copies of the structure and back
+  walls only within what is built now and was at its last look (`shared/BuiltRows.cs`), since past
+  both every layer is empty. The occupancy texture covers `Built` and the shader is told its corner
+  (`origin`); past it every cell is open, as it was. Starlight is worked out over `Built` and 4 cells of
+  space round it (`StarField`): past what is built every cell is open stars at full, which is what the
+  texel at the texture's edge holds, and `Lit` reads that edge texel for anything beyond, so the
+  picture is the old whole-grid one (`BuiltBoundsTests`). A ship of 192×96 in a 2048×1024 world lit a
+  toggled door in 130 ms a tick, now in 0.01 ms (2.5 at most).
 - **No Godot lights.** Godot lights a drawn thing by at most 15 lights and drops the rest: a furnace's
   embers once pushed a lamp out and whole tile chunks went dark. All light is composed here instead,
   with no limit on how many lights touch a thing.
@@ -16,7 +25,7 @@ Numbers from `game/Content/Light.cs`.
   `Lit` caps apart. Each light whose reach touches the view is one additive quad of a multimesh
   (`Sources.Pack`): its colour falling off by its keep a cell out to its reach as the TypeScript game
   spread it, each colour at most its most, times its strength. The quad's shader walks the cells from
-  each texel to the light through an occupancy texture, a byte a cell (`Sources.Occupy`: wall, closed
+  each texel to the light through an occupancy texture, a byte a cell of what is built (`Sources.Occupy`: wall, closed
   door, open; rebuilt only when walls or doors change), and drops the texel if a wall or a closed
   door's panel stands between: shadows to the pixel. The walls a texel is in are passed until the
   line comes out of them, so a wall is lit on the faces light reaches; in a door's cell only a texel
@@ -37,11 +46,11 @@ Numbers from `game/Content/Light.cs`.
   `Light.ParticleKeep` a cell out to `ParticleReach` (2) cells: a bright point, not a wash, for the
   fire lights the room round a furnace anyway; and each `Glow` at its colour, keeping
   `Light.ScreenKeep` out to `ScreenReach` (3).
-- **Starlight:** `Starlight` works it out cell by cell as the TypeScript game did (the stars in every
-  open cell with no back wall and past the grid's edge, spread by row and column sweeps), only when
-  walls, doors, back walls or machines change, and hands it to `render/Lit.cs` as a texture of a texel
-  a cell, its alpha marking a wall's or closed door's cell; a picture blends it only with cells of its
-  own side.
+- **Starlight:** `StarField` (plain C#, tested) works it out cell by cell as the TypeScript game did
+  (the stars in every open cell with no back wall and past the grid's edge, spread by row and column
+  sweeps), only when walls, doors, back walls or machines change, over what is built and a margin; and
+  `Starlight` hands it to `render/Lit.cs` as a texture of a texel a cell laid where that region lies,
+  its alpha marking a wall's or closed door's cell; a picture blends it only with cells of its own side.
 - **`render/Lit.cs`** draws everything set with `Lit.Set`, unshaded, the lightmaps blended between
   texels so a shadow's edge does not step at the world's pixels on screen: ambient, plus the stars and the
   main map — scaled down together where they would pass whole in a colour, so a fire's orange over a
@@ -71,5 +80,8 @@ Numbers from `game/Content/Light.cs`.
   what is out of reach anyway.
 - Cost grows with the lights on screen times their reach squared; no light is cached between frames.
   A cache of each still light's shadows is the next step if a ship ever outgrows the budget.
-- Recomputing starlight near a change only: it is redone over the whole grid, about 2.7 ms on the
-  reference world per change.
+- Recomputing starlight near a change only: it is redone over everything built, about 2.7 ms on the
+  reference world per change and 35 ms on a fully built 1024×512 (debug).
+- Starlight's texture moves with what is built, and the shader finds a texel by
+  `(world − corner) / size × texels` in floats: at a texel's edge the rounding can fall the other way
+  than over the whole grid. Seen once in a run of the wreck: one pixel, one step of 255 in a colour.

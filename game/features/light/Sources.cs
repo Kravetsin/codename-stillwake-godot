@@ -21,16 +21,21 @@ public static class Sources
     /// <summary>Floats an instance takes in the multimesh: a 2D transform, a colour, custom data.</summary>
     public const int Stride = 16;
 
-    /// <summary>A byte a cell of <paramref name="structure"/>: what stops light there.</summary>
-    public static void Occupy(ReadOnlySpan<int> structure, byte[] cells)
+    /// <summary>
+    /// A byte a cell of <paramref name="box"/> of <paramref name="structure"/>, a grid <paramref name="width"/>
+    /// wide, row by row into <paramref name="cells"/>: what stops light there.
+    /// </summary>
+    public static void Occupy(ReadOnlySpan<int> structure, int width, Box box, byte[] cells)
     {
-        for (int i = 0; i < structure.Length; i++)
-            cells[i] = structure[i] switch
-            {
-                Structure.Wall => Wall,
-                Structure.DoorClosed => Door,
-                _ => Open,
-            };
+        int i = 0;
+        for (int y = box.Top; y <= box.Bottom; y++)
+            foreach (int code in structure.Slice(y * width + box.Left, box.Width))
+                cells[i++] = code switch
+                {
+                    Structure.Wall => Wall,
+                    Structure.DoorClosed => Door,
+                    _ => Open,
+                };
     }
 
     /// <summary>

@@ -5,8 +5,6 @@ using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
-using Codes = Stillwake.Sim.Grid.Structure;
-using Conduits = Stillwake.Sim.Grid.Conduit;
 
 namespace Stillwake.Game.Shared;
 
@@ -67,15 +65,16 @@ public static class Predicted
 
 /// <summary>
 /// The grid's doors and valves as this peer shows them (<see cref="Predicted.Grid"/>). <see cref="Key"/>
-/// changes when they do. The layers are null while nothing is in flight: then the world's own serve, uncopied.
+/// changes when they do. <see cref="Structure"/> and <see cref="Conduit"/> hold the codes of the cells its
+/// toggles in flight move, the rest as the world has them; both are null while nothing is in flight.
 /// </summary>
-public sealed record ShownGrid(string Key, int[]? Structure, int[]? Conduit)
+public sealed record ShownGrid(string Key, IReadOnlyDictionary<int, int>? Structure, IReadOnlyDictionary<int, int>? Conduit)
 {
-    /// <summary>The structure code shown at <paramref name="cell"/>: the world's when nothing is in flight; empty off the grid.</summary>
+    /// <summary>The structure code shown at <paramref name="cell"/>: the world's but where a toggle in flight moved it; empty off the grid.</summary>
     public int StructureAt(IGridQueries grid, int cell) =>
-        Structure is { } s ? (cell >= 0 && cell < s.Length ? s[cell] : Codes.Empty) : grid.StructureAt(cell);
+        Structure != null && Structure.TryGetValue(cell, out int code) ? code : grid.StructureAt(cell);
 
-    /// <summary>The conduit code shown at <paramref name="cell"/>: the world's when nothing is in flight; none off the grid.</summary>
+    /// <summary>The conduit code shown at <paramref name="cell"/>: the world's but where a toggle in flight moved it; none off the grid.</summary>
     public int ConduitAt(IGridQueries grid, int cell) =>
-        Conduit is { } c ? (cell >= 0 && cell < c.Length ? c[cell] : Conduits.None) : grid.ConduitAt(cell);
+        Conduit != null && Conduit.TryGetValue(cell, out int code) ? code : grid.ConduitAt(cell);
 }

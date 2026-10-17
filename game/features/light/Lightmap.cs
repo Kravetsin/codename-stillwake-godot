@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Features.Light;
 
@@ -29,8 +30,9 @@ public partial class Lightmap : Node
         Code = """
             shader_type canvas_item;
             render_mode unshaded, blend_add;
-            // A texel a cell: 0 open, half a closed door, whole a wall.
+            // A texel a cell: 0 open, half a closed door, whole a wall; over what is built, its first texel at cell origin.
             uniform sampler2D occupancy : filter_nearest, repeat_disable;
+            uniform ivec2 origin = ivec2(0);
             // The columns of its cell a closed door's panel fills, in pixels: from, to.
             uniform vec2 panel = vec2(6.0, 10.0);
             const float CELL = 16.0;
@@ -47,8 +49,9 @@ public partial class Lightmap : Node
                 light = COLOR;
             }
 
-            // 2 a wall, 1 a closed door, 0 open, past the grid too.
+            // 2 a wall, 1 a closed door, 0 open, past what is built too.
             int kind(ivec2 c) {
+                c -= origin;
                 ivec2 size = textureSize(occupancy, 0);
                 if (c.x < 0 || c.y < 0 || c.x >= size.x || c.y >= size.y) return 0;
                 float v = texelFetch(occupancy, c, 0).r;
@@ -149,23 +152,29 @@ public partial class Lightmap : Node
     /// <summary>The lights drawn the last frame, both maps together: what the dev readout shows.</summary>
     public int Drawn { get; private set; }
 
-    /// <summary>Where light stops, from the grid's structure a texel a cell; <paramref name="panel"/> the door panel's columns in pixels.</summary>
-    public void Occupy(ReadOnlySpan<int> structure, int width, (int From, int To) panel)
+    /// <summary>
+    /// Where light stops, from the grid's structure a texel a cell over <paramref name="built"/>, what is
+    /// built: past it every cell is open. <paramref name="panel"/> the door panel's columns in pixels.
+    /// </summary>
+    public void Occupy(ReadOnlySpan<int> structure, int width, Box built, (int From, int To) panel)
     {
-        int height = structure.Length / width;
-        if (_cells.Length != structure.Length) _cells = new byte[structure.Length];
-        Sources.Occupy(structure, _cells);
-        if (_occupancy != null && _occupancyTexture != null && _occupancy.GetWidth() == width && _occupancy.GetHeight() == height)
+        // Nothing built: one open texel, for a texture cannot be empty.
+        if (built.IsEmpty) built = new Box(0, 0, 0, 0);
+        int w = built.Width, h = built.Height;
+        if (_cells.Length != w * h) _cells = new byte[w * h];
+        Sources.Occupy(structure, width, built, _cells);
+        if (_occupancy != null && _occupancyTexture != null && _occupancy.GetWidth() == w && _occupancy.GetHeight() == h)
         {
-            _occupancy.SetData(width, height, false, Image.Format.R8, _cells);
+            _occupancy.SetData(w, h, false, Image.Format.R8, _cells);
             _occupancyTexture.Update(_occupancy);
         }
         else
         {
-            _occupancy = Image.CreateFromData(width, height, false, Image.Format.R8, _cells);
+            _occupancy = Image.CreateFromData(w, h, false, Image.Format.R8, _cells);
             _occupancyTexture = ImageTexture.CreateFromImage(_occupancy);
             _material.SetShaderParameter("occupancy", _occupancyTexture);
         }
+        _material.SetShaderParameter("origin", new Vector2I(built.Left, built.Top));
         _material.SetShaderParameter("panel", new Vector2(panel.From, panel.To));
     }
 

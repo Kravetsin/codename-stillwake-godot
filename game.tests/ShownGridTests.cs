@@ -32,7 +32,7 @@ public class ShownGridTests
         }
     }
 
-    private static int[] Doorway(int[] structure) => [structure[1], structure[4]];
+    private static int[] Doorway(ShownGrid shown, IGridQueries grid) => [shown.StructureAt(grid, 1), shown.StructureAt(grid, 4)];
 
     [Fact]
     public void IsTheWorldAsItIsWithNothingInFlight()
@@ -47,8 +47,8 @@ public class ShownGridTests
     {
         var g = new Guest();
         g.Client.Send(new ToggleDoor(4));
-        Assert.Equal(Open, Doorway(g.Shown.Structure!));
-        Assert.Equal(Shut, Doorway(g.M.Grid.StructureLayer.ToArray()));
+        Assert.Equal(Open, Doorway(g.Shown, g.M.Grid));
+        Assert.Equal(Shut, new[] { g.M.Grid.StructureAt(1), g.M.Grid.StructureAt(4) });
         Assert.Equal(Structure.DoorOpen, g.Shown.StructureAt(g.M.Grid, 1));
     }
 
@@ -59,7 +59,8 @@ public class ShownGridTests
         g.Client.Send(new ToggleDoor(1));
         g.Client.Send(new ToggleDoor(4));
         g.Client.Send(new ToggleDoor(7));
-        Assert.Equal(g.M.Grid.StructureLayer.ToArray(), g.Shown.Structure);
+        Assert.Equal(Shut, Doorway(g.Shown, g.M.Grid));
+        Assert.Equal(Structure.Empty, g.Shown.StructureAt(g.M.Grid, 7));
     }
 
     [Fact]
@@ -70,7 +71,7 @@ public class ShownGridTests
         var before = g.Shown;
         g.Run(new ToggleDoor(1));
         Assert.Empty(g.Client.InFlight);
-        Assert.Equal(before.Structure, g.M.Grid.StructureLayer.ToArray());
+        Assert.Equal(Doorway(before, g.M.Grid), Doorway(g.Shown, g.M.Grid));
         Assert.NotEqual(before.Key, g.Shown.Key);
     }
 

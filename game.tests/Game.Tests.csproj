@@ -79,6 +79,10 @@
     <Compile Include="../game/render/Particles.cs" Link="Game/Render/Particles.cs" />
     <Compile Include="../game/features/light/Sources.cs" Link="Game/Light/Sources.cs" />
     <Compile Include="../game/features/light/Flicker.cs" Link="Game/Light/Flicker.cs" />
+    <Compile Include="../game/features/light/StarField.cs" Link="Game/Light/StarField.cs" />
+    <Compile Include="../game/Content/Light.cs" Link="Game/Content/Light.cs" />
+    <Compile Include="../game/features/grid/DrawnLayers.cs" Link="Game/Grid/DrawnLayers.cs" />
+    <Compile Include="../game/shared/BuiltRows.cs" Link="Game/Shared/BuiltRows.cs" />
     <Compile Include="../game/features/furnace/Flames.cs" Link="Game/Furnace/Flames.cs" />
     <Compile Include="../game/dev/Testbed.cs" Link="Game/Dev/Testbed.cs" />
     <Compile Include="../game/Content/Sound.cs" Link="Game/Content/Sound.cs" />

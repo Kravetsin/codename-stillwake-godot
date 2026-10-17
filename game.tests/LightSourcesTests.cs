@@ -14,10 +14,11 @@ public class LightSourcesTests
     [Fact]
     public void StopsLightAtWallsAndClosedDoorsAndLetsItThroughOpenDoorsAndTheOpen()
     {
-        int[] structure = [Structure.Wall, Structure.DoorClosed, Structure.DoorOpen, Structure.Floor];
-        var cells = new byte[4];
-        Sources.Occupy(structure, cells);
-        Assert.Equal(new[] { Sources.Wall, Sources.Door, Sources.Open, Sources.Open }, cells);
+        int[] structure = [Structure.Empty, Structure.Wall, Structure.DoorClosed, Structure.Empty, Structure.Empty, Structure.DoorOpen, Structure.Floor, Structure.Wall];
+        var cells = new byte[6];
+        // Two rows four wide, the box from the second column on: row by row, what is built only.
+        Sources.Occupy(structure, 4, new Box(1, 0, 3, 1), cells);
+        Assert.Equal(new[] { Sources.Wall, Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Wall }, cells);
     }
 
     [Fact]

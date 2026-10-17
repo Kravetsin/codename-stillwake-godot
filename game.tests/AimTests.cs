@@ -199,7 +199,7 @@ public class AimTests
         for (int i = 0; i < 120; i++) h = h.Step(HeroTests.Left, ShipNow());
         if (Aiming.AimAt(m, 0, h, Centre(45, 22))?.Press is { } press) client.Send(press.Command);
         // Sent, not released: the world still has the doorway shut.
-        Assert.NotEqual(m.Grid.StructureLayer.ToArray(), Predicted.Grid(client, m.Grid).Structure);
+        Assert.Contains(Predicted.Grid(client, m.Grid).Structure!, shown => shown.Value != m.Grid.StructureAt(shown.Key));
         for (int i = 0; i < 900; i++) h = h.Step(HeroTests.Left, ShipNow());
         // Into room B, torn open to space, and out past its torn edge as far as the tether lets the hero.
         // The tether cuts a move back to its length rounded toward its anchor: within a thousandth of a cell.

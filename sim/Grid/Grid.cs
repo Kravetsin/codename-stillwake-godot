@@ -116,12 +116,12 @@ public interface IGridQueries
     IReadOnlyList<int>? Footprint(string kind, int cell);
     string? PlacementProblem(int cell, Placement placement);
     /// <summary>
-    /// The structure and conduit layers as they would be after the <see cref="ToggleDoor"/>s and
-    /// <see cref="ToggleValve"/>s among <paramref name="toggles"/>, in order, each as its command would
-    /// apply it and skipped where it would be refused: what a client shows of its own toggles before
-    /// their tick runs (0014). Copies; the world is untouched.
+    /// The structure and conduit codes of the cells the <see cref="ToggleDoor"/>s and <see cref="ToggleValve"/>s
+    /// among <paramref name="toggles"/> would change, in order, each as its command would apply it and skipped
+    /// where it would be refused: what a client shows of its own toggles before their tick runs (0014). Every
+    /// other cell is as the world has it; a cell toggled back is listed at its own code. The world is untouched.
     /// </summary>
-    (int[] Structure, int[] Conduit) AfterToggles(IReadOnlyList<Command> toggles);
+    (IReadOnlyDictionary<int, int> Structure, IReadOnlyDictionary<int, int> Conduit) AfterToggles(IReadOnlyList<Command> toggles);
 }
 
 /// <summary>How a module that depends on the grid may change it.</summary>
@@ -141,10 +141,12 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
 
     public GridModule()
     {
+        _structureAt = c => State.Structure[c];
+        _setStructure = (c, code) => State.Structure[c] = code;
         Handles<ToggleDoor>(c => IsDoor(State.Structure, c.Cell) ? null : "grid.noDoor", c =>
         {
             State.Version++;
-            ToggleDoorAt(State.Structure, c.Cell);
+            ToggleDoorAt(c.Cell, _structureAt, _setStructure);
         });
         Handles<ToggleValve>(c => IsValve(State.Conduit, c.Cell) ? null : "grid.noValve", c =>
         {
@@ -353,34 +355,46 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         return cells;
     }
 
-    public (int[] Structure, int[] Conduit) AfterToggles(IReadOnlyList<Command> toggles)
+    public (IReadOnlyDictionary<int, int> Structure, IReadOnlyDictionary<int, int> Conduit) AfterToggles(IReadOnlyList<Command> toggles)
     {
-        int[] structure = [.. State.Structure], conduit = [.. State.Conduit];
+        // Only the toggled cells: copying the layers cost a big world 16 MB a tick while a toggle was in flight.
+        var structure = new Dictionary<int, int>();
+        var conduit = new Dictionary<int, int>();
+        int StructureAt(int c) => structure.TryGetValue(c, out int code) ? code : State.Structure[c];
         foreach (var t in toggles)
         {
-            if (t is ToggleDoor door && IsDoor(structure, door.Cell)) ToggleDoorAt(structure, door.Cell);
-            if (t is ToggleValve valve && IsValve(conduit, valve.Cell)) ToggleValveAt(conduit, valve.Cell);
+            if (t is ToggleDoor door && InBounds(door.Cell) && StructureAt(door.Cell) is Structure.DoorClosed or Structure.DoorOpen)
+                ToggleDoorAt(door.Cell, StructureAt, (c, code) => structure[c] = code);
+            if (t is ToggleValve valve && InBounds(valve.Cell))
+            {
+                int code = conduit.TryGetValue(valve.Cell, out int shown) ? shown : State.Conduit[valve.Cell];
+                if (code is Conduit.ValveOpen or Conduit.ValveClosed) conduit[valve.Cell] = Toggled(code);
+            }
         }
         return (structure, conduit);
     }
 
-    private static void ToggleValveAt(int[] conduit, int cell) =>
-        conduit[cell] = conduit[cell] == Conduit.ValveOpen ? Conduit.ValveClosed : Conduit.ValveOpen;
+    private static void ToggleValveAt(int[] conduit, int cell) => conduit[cell] = Toggled(conduit[cell]);
 
-    /// <summary>A doorway is every door cell joined to the clicked one in <paramref name="structure"/>: opened or closed as one.</summary>
-    private void ToggleDoorAt(int[] structure, int cell)
+    private static int Toggled(int valve) => valve == Conduit.ValveOpen ? Conduit.ValveClosed : Conduit.ValveOpen;
+
+    /// <summary>
+    /// A doorway is every door cell joined to the clicked one, as <paramref name="codeAt"/> reads them: opened or
+    /// closed as one, each cell given its new code through <paramref name="set"/>.
+    /// </summary>
+    private void ToggleDoorAt(int cell, Func<int, int> codeAt, Action<int, int> set)
     {
-        int to = structure[cell] == Structure.DoorOpen ? Structure.DoorClosed : Structure.DoorOpen;
-        if (_inDoorway.Length != structure.Length) _inDoorway = new bool[structure.Length];
-        Visit(structure, cell);
+        int to = codeAt(cell) == Structure.DoorOpen ? Structure.DoorClosed : Structure.DoorOpen;
+        if (_inDoorway.Length != State.Structure.Length) _inDoorway = new bool[State.Structure.Length];
+        Visit(codeAt, cell);
         while (_todo.Count > 0)
         {
             int at = _todo.Pop(), x = at % State.Width;
-            structure[at] = to;
-            Visit(structure, at - State.Width);
-            Visit(structure, at + State.Width);
-            if (x > 0) Visit(structure, at - 1);
-            if (x < State.Width - 1) Visit(structure, at + 1);
+            set(at, to);
+            Visit(codeAt, at - State.Width);
+            Visit(codeAt, at + State.Width);
+            if (x > 0) Visit(codeAt, at - 1);
+            if (x < State.Width - 1) Visit(codeAt, at + 1);
         }
         foreach (int c in _visited) _inDoorway[c] = false;
         _visited.Clear();
@@ -390,10 +404,13 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     private bool[] _inDoorway = [];
     private readonly Stack<int> _todo = new();
     private readonly List<int> _visited = [];
+    /// <summary>The live structure layer read and written, made once so a door toggle allocates nothing.</summary>
+    private readonly Func<int, int> _structureAt;
+    private readonly Action<int, int> _setStructure;
 
-    private void Visit(int[] structure, int cell)
+    private void Visit(Func<int, int> codeAt, int cell)
     {
-        if (!InBounds(cell) || _inDoorway[cell] || !IsDoor(structure, cell)) return;
+        if (!InBounds(cell) || _inDoorway[cell] || codeAt(cell) is not (Structure.DoorClosed or Structure.DoorOpen)) return;
         _inDoorway[cell] = true;
         _visited.Add(cell);
         _todo.Push(cell);

@@ -312,10 +312,10 @@ public class WiringTests
     [Fact]
     public void LightsANodeACableFitsOneTooFarGreyAndOneRefusedOtherwiseRed()
     {
-        Assert.Equal(Light.Fits, Wiring.LightOf(null));
-        Assert.Equal(Light.Far, Wiring.LightOf("power.tooLong"));
-        Assert.Equal(Light.Far, Wiring.LightOf("power.taut"));
-        Assert.Equal(Light.Refused, Wiring.LightOf("power.twice"));
-        Assert.Equal(Light.Refused, Wiring.LightOf("items.notEnough"));
+        Assert.Equal(Features.Power.Light.Fits, Wiring.LightOf(null));
+        Assert.Equal(Features.Power.Light.Far, Wiring.LightOf("power.tooLong"));
+        Assert.Equal(Features.Power.Light.Far, Wiring.LightOf("power.taut"));
+        Assert.Equal(Features.Power.Light.Refused, Wiring.LightOf("power.twice"));
+        Assert.Equal(Features.Power.Light.Refused, Wiring.LightOf("items.notEnough"));
     }
 }

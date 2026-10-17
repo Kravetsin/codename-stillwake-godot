@@ -121,17 +121,35 @@ public class GridTests
 /// <summary>From grid.test.ts: "toggles a client has in flight", folded by <c>AfterToggles</c> (0014).</summary>
 public class GridAfterTogglesTests
 {
+    /// <summary><paramref name="layer"/> with the cells <c>AfterToggles</c> listed laid over it.</summary>
+    private static int[] Over(ReadOnlySpan<int> layer, IReadOnlyDictionary<int, int> cells)
+    {
+        int[] shown = layer.ToArray();
+        foreach (var (cell, code) in cells) shown[cell] = code;
+        return shown;
+    }
+
     [Fact]
     public void ShowTheLayersAsTheirCommandsWouldLeaveThemSkippingWhatTheyWouldRefuse()
     {
         var w = new Scenario("#D#v\n#D#-");
         Command[] toggles = [new ToggleDoor(5), new ToggleValve(3), new ToggleDoor(0), new ToggleValve(7)];
         var (structure, conduit) = w.M.Grid.AfterToggles(toggles);
+        int[] shownStructure = Over(w.M.Grid.StructureLayer, structure), shownConduit = Over(w.M.Grid.ConduitLayer, conduit);
         foreach (var t in toggles) w.Do(t);
         w.Run();
         Assert.Equal(new[] { "grid.noDoor", "grid.noValve" }, w.Refusals.Select(r => r.Reason));
-        Assert.Equal(w.M.Grid.StructureLayer.ToArray(), structure);
-        Assert.Equal(w.M.Grid.ConduitLayer.ToArray(), conduit);
+        Assert.Equal(w.M.Grid.StructureLayer.ToArray(), shownStructure);
+        Assert.Equal(w.M.Grid.ConduitLayer.ToArray(), shownConduit);
+    }
+
+    [Fact]
+    public void ListOnlyTheCellsTheToggledDoorwaysAndValvesCover()
+    {
+        var w = new Scenario("#D#v\n#D#-\n#.#.");
+        var (structure, conduit) = w.M.Grid.AfterToggles([new ToggleDoor(5), new ToggleValve(3), new ToggleDoor(0)]);
+        Assert.Equal(new[] { 1, 5 }, structure.Keys.Order());
+        Assert.Equal(new[] { 3 }, conduit.Keys);
     }
 
     [Fact]
