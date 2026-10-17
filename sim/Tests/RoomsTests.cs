@@ -197,4 +197,111 @@ public class RoomsTests
             return before.SequenceEqual(w.M.Rooms.All.Select(r => (r.Id, r.Volume, string.Join(",", r.Hull), string.Join(",", r.Openings))));
         });
     }
+
+    private static readonly char[] Inside = ['.', '.', '#', '#', '=', 'H', 'D', 'd'];
+
+    /// <summary>A hull <paramref name="width"/> by <paramref name="height"/> filled with <paramref name="inside"/>, in <paramref name="margin"/> cells of space.</summary>
+    private static string[] Ship(int width, int height, int margin, char[] inside)
+    {
+        var rows = new List<string>();
+        string space = new(' ', width + 2 * margin);
+        for (int i = 0; i < margin; i++) rows.Add(space);
+        for (int y = 0; y < height; y++)
+        {
+            var row = y == 0 || y == height - 1 ? new string('#', width)
+                : "#" + new string(inside, y * width + 1, width - 2) + "#";
+            rows.Add(new string(' ', margin) + row + new string(' ', margin));
+        }
+        for (int i = 0; i < margin; i++) rows.Add(space);
+        return [.. rows];
+    }
+
+    /// <summary>An edit drawn for a cell: built on if empty, toggled or taken apart if a door, taken apart otherwise; or its back wall built or taken.</summary>
+    private static Command Edit(GridModule grid, int cell, int kind)
+    {
+        if (kind >= 7) return grid.BackLayer[cell] == Back.Wall ? new ClearAt(cell, "back") : new Place(cell, Placement.BackWall());
+        int structure = grid.StructureAt(cell);
+        if (structure == Structure.Empty)
+            return new Place(cell, (kind % 4) switch
+            {
+                0 => Placement.Wall(),
+                1 => new Placement("structure", "door"),
+                2 => new Placement("structure", "floor"),
+                _ => new Placement("structure", "ladder"),
+            });
+        if (structure is Structure.DoorClosed or Structure.DoorOpen && kind < 4) return new ToggleDoor(cell);
+        return new ClearAt(cell, "structure");
+    }
+
+    private static string Of(Room r) => $"{r.Id}:{r.Volume}:{string.Join(",", r.Hull)}:{string.Join(",", r.Openings)}";
+
+    /// <summary>
+    /// The rooms found around each change are those found from scratch, whatever is built, taken apart
+    /// or opened, beside space and the grid's edge or far from both, rooms joined or split; and every
+    /// room that differs from the tick before is among those the rooms say changed.
+    /// </summary>
+    [Property(MaxTest = 400)]
+    public Property FindsTheSameRoomsAroundAChangeAsFromScratch()
+    {
+        var ships =
+            from width in Gen.Choose(3, 20)
+            from height in Gen.Choose(3, 16)
+            from margin in Gen.Choose(0, 3)
+            from inside in Gen.Elements(Inside).ArrayOf(width * height)
+            select Ship(width, height, margin, inside);
+        var anything =
+            from width in Gen.Choose(1, 14)
+            from height in Gen.Choose(1, 12)
+            from cells in Gen.Elements(Chars).ArrayOf(width * height)
+            select Enumerable.Range(0, height).Select(y => new string(cells, y * width, width)).ToArray();
+        var edit =
+            from cell in Gen.Choose(0, 1 << 20)
+            from kind in Gen.Choose(0, 9)
+            from together in Gen.Frequency((3, Gen.Constant(false)), (1, Gen.Constant(true)))
+            select (cell, kind, together);
+        var gen =
+            from rows in Gen.Frequency((3, ships), (1, anything))
+            from edits in edit.ListOf()
+            select (rows, edits: edits.Take(60).ToList());
+        return Prop.ForAll(gen.ToArbitrary(), t =>
+        {
+            var layout = Layout.Parse(t.rows);
+            var grid = new GridModule();
+            var rooms = new RoomsModule(grid);
+            var world = World.Create(1, layout, [grid, rooms, new Builder(grid, grid)]);
+            int size = layout.Width * layout.Height;
+            if (size == 0) return true.Label("no cells");
+            var pending = new List<Command>();
+            foreach (var (cell, kind, together) in t.edits.Append((0, 0, false)))
+            {
+                if (!together && pending.Count > 0)
+                {
+                    var before = rooms.All.Select(Of).ToList();
+                    int version = rooms.Version;
+                    world.Step(pending);
+                    pending.Clear();
+                    var broken = Differs(grid, rooms, before, version);
+                    if (broken != null) return false.Label(broken);
+                }
+                pending.Add(Edit(grid, cell % size, kind));
+            }
+            return true.ToProperty();
+        });
+    }
+
+    /// <summary>What differs between the rooms kept and those found from scratch, or the rooms said changed and those that did; null for nothing.</summary>
+    private static string? Differs(GridModule grid, RoomsModule rooms, List<string> before, int version)
+    {
+        var (roomOf, fresh) = RoomsModule.Find(grid.Width, grid.Height, grid.StructureLayer, grid.BackLayer);
+        for (int c = 0; c < roomOf.Length; c++)
+            if (roomOf[c] != rooms.RoomOfCells[c]) return $"cell {c} is in {rooms.RoomOfCells[c]}, not {roomOf[c]}";
+        var now = rooms.All.Select(Of).ToList();
+        if (!now.SequenceEqual(fresh.Select(Of))) return $"rooms [{string.Join(" ", now)}], not [{string.Join(" ", fresh.Select(Of))}]";
+        var changed = rooms.ChangedSince(version);
+        if (changed == null) return null;
+        if (!changed.SequenceEqual(changed.Distinct().Order())) return "the changed ids are not ascending and distinct";
+        foreach (var r in before.Except(now).Concat(now.Except(before)))
+            if (!changed.Contains(int.Parse(r[..r.IndexOf(':')]))) return $"room {r} changed unsaid";
+        return null;
+    }
 }
