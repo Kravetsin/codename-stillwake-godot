@@ -50,9 +50,10 @@ A living document: what is decided about the game and what is still open. Techni
   tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
   recipe shows what a thing is made of: the harpoon is a frame, a tube, a coil, wire and a plank stock
   ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md)). The first machine is the pod's
-  Fabricator, opened with E beside the inventory: no power, half speed, a queue the crew shares, paid
-  when queued, made one at a time into its outputs. Most builds cost parts, so the furnace feeds the
-  Fabricator before it feeds the hull. A Fabricator the player builds, powered and faster, comes later.
+  Fabricator, opened with E beside the inventory: no power, a fifth of full speed, a queue the crew
+  shares, paid when queued, made one at a time into its outputs. Most builds cost parts, so the
+  furnace feeds the Fabricator before it feeds the hull. Machines for parts the player builds,
+  powered, faster and with longer queues, come later.
 - **Spacewalks:** on a tether from the hull at first; a jetpack later frees the hero from it.
 - **Catching:** by hand on the tether, within reach; farther out, a hand harpoon made at the Fabricator
   shoots a rod on a line into a piece, small or a wreck, and a second click reels it in to just before

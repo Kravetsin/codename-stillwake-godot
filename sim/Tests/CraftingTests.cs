@@ -47,10 +47,10 @@ public class CraftingTests
     private static Scenario Cancel(Scenario w, int entry, int from = 0, int at = Pod) => w.Do(new Cancel(at, entry) { From = from }).Run();
 
     [Fact]
-    public void MakesAWireAtThePodInTwiceItsTicksWithNoPowerPayingWhenQueued()
+    public void MakesAWireAtThePodInFiveTimesItsTicksWithNoPowerPayingWhenQueued()
     {
         var w = World().GiveItems(0, ("scrap", 10));
-        Assert.Equal(2 * Crafts.Get("wire").Ticks, Wire);
+        Assert.Equal(5 * Crafts.Get("wire").Ticks, Wire);
         Assert.Empty(w.M.Power.Networks);
         // The tick of the craft is the first of its work.
         Craft(w, "wire");

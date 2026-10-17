@@ -20,9 +20,14 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
 ## Rules
 
 - A craft is named by the item it makes and costs, a unit, what `Content.Crafts` says; a unit takes
-  its `Ticks` × 1000 of work.
+  its `Ticks` × 1000 of work. Crafts come in layers: parts of materials (wire, plate, gear, tube),
+  components of parts (rotor, frame, coil), and products, tools as builds, of either (0046).
 - A machine crafts when it is a lifepod: every craft is the pod's while it is the only crafting
   machine (principle 2). It needs no power and no air.
+- The pod is the most basic bench, slow on purpose: a wire takes 5 s there, a plate 10, a rotor 15, a
+  frame 20, the harpoon 30, while the hero is out salvaging. Machines for parts (a former and the
+  like), faster and with longer queues, are planned
+  ([0046](../../docs/decisions/0046-recipes-show-what-a-thing-is-made-of.md)).
 - `Craft(Machine, Recipe, Count)` takes the cost of all `Count` units from the sender at once (nothing
   in creative mode) and adds an entry, by the sender, at the end of that machine's queue, with the
   queue's next id. Refused with `crafting.noStation` (no crafting machine by that id),
@@ -34,10 +39,10 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
   Refused with `crafting.noStation`, `crafting.noEntry` (no such entry: never queued, or finished) or
   `items.full` (the refund does not fit). The first entry cancelled, the next starts from nothing.
 - Each tick, in the simulation phase, in machine order, each queue's first entry adds
-  `Content.Crafts.PodSpeed` (500, half speed) to its progress, at most its work; at its work one unit
-  goes into the machine's outputs (`IItemsOps.Output`: its slots past its inputs, all three of the
-  pod's) and the next starts. With no room there the unit waits, its progress at its work, counting no
-  more, until a slot is taken from. The queue runs whoever is near.
+  `Content.Crafts.PodSpeed` (200, a fifth of full speed) to its progress, at most its work; at its
+  work one unit goes into the machine's outputs (`IItemsOps.Output`: its slots past its inputs, all
+  three of the pod's) and the next starts. With no room there the unit waits, its progress at its
+  work, counting no more, until a slot is taken from. The queue runs whoever is near.
 
 ## API
 

@@ -1,6 +1,7 @@
 # 0045 — A burner generator shares the furnace's fire
 
-- Status: accepted
+- Status: accepted; the generator's cost and a plank's 300 ticks superseded by
+  [0046](0046-recipes-show-what-a-thing-is-made-of.md)
 - Date: 2026-10-17
 
 ## Context

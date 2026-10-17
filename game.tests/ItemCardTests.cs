@@ -129,8 +129,8 @@ public class ItemCardTests
     {
         var block = Crafts.Block("rotor", [("gear", 3), ("wire", 1)], creative: false);
         Assert.Equal(T("time.seconds", ("n", Crafts.Seconds("rotor"))), block.Seconds);
-        // 60 ticks at full speed, the pod at half: six seconds.
-        Assert.Equal("6 s", block.Seconds);
+        // 60 ticks at full speed, the pod at a fifth: fifteen seconds.
+        Assert.Equal("15 s", block.Seconds);
         Assert.Equal([new CraftRow("gear", "Gear", 3, 1, false), new CraftRow("wire", "Wire", 1, 2, true)], block.Rows);
         Assert.Equal([new CardKey("LMB", "go to what is missing")], block.Keys);
     }

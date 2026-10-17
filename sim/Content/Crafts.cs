@@ -35,9 +35,10 @@ public static class Crafts
 
     /// <summary>
     /// The lifepod's speed, in thousandths of full speed: work it adds a tick, a unit taking its
-    /// <see cref="Craft.Ticks"/> × 1000. Half: the pod is the floor that is always there, not the factory.
+    /// <see cref="Craft.Ticks"/> × 1000. A fifth: the pod is the most basic bench, always there, not the
+    /// factory; machines for parts, faster and with longer queues, come later.
     /// </summary>
-    public const int PodSpeed = 500;
+    public const int PodSpeed = 200;
 
     private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);
 
