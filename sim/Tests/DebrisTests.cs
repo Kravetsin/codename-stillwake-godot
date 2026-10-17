@@ -8,6 +8,7 @@ using Xunit;
 using Axe = Stillwake.Content.Axe;
 using DebrisSpec = Stillwake.Content.Debris;
 using FloorStack = Stillwake.Sim.Items.FloorStack;
+using Harpoon = Stillwake.Content.Harpoon;
 using Inventory = Stillwake.Content.Inventory;
 using ItemSpecs = Stillwake.Content.Items;
 using Loot = Stillwake.Content.Loot;
@@ -549,13 +550,193 @@ public class DebrisTests
         Assert.Equal(0, (int)upgraded["slices"]!["debris"]!["pieces"]![0]!["damage"]!);
     }
 
-    // The README's invariants, whatever happens: a hull grown and cut down, heroes in and out of space
-    // grabbing pieces out, gone and never spawned, and long waits.
+    // The harpoon reels a piece to a point (0044).
 
-    private sealed record Step(string Type, int Cell = 0, int Peer = 0, int Ticks = 0);
+    private static Reeling? ReelOf(Scenario w, int id = 1) => Pieces(w).Single(p => p.Id == id).Reel;
+
+    /// <summary>The ticks a reel from (<paramref name="x"/>, <paramref name="y"/>) to its point takes: its longer axis at the reel's speed, rounded up.</summary>
+    private static int ReelTicks(int x, int y, int toX, int toY) =>
+        Math.Max(1, (Math.Max(Math.Abs(toX - x), Math.Abs(toY - y)) + Harpoon.ReelSpeed - 1) / Harpoon.ReelSpeed);
+
+    /// <summary>The first piece and hero 0 out in space by it.</summary>
+    private static Scenario Outside()
+    {
+        var w = Spawned();
+        return w.Do(new Enter(At(12, 1))).Run();
+    }
+
+    [Fact]
+    public void ReelsAPieceToItsPointNoFasterThanTheReelLandsItExactlyThereThenDriftsItOn()
+    {
+        var w = Outside();
+        var piece = Seen.Of(Pieces(w)[0]);
+        const int toX = 14_250, toY = 3_700;
+        int ticks = ReelTicks(piece.X, piece.Y, toX, toY);
+        w.Do(new Reel(1, toX, toY) { From = 0 }).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal((0, toX, toY, ticks - 1), (ReelOf(w)!.By, ReelOf(w)!.ToX, ReelOf(w)!.ToY, ReelOf(w)!.Left));
+        int x = piece.X, y = piece.Y;
+        for (int t = 1; t <= ticks; t++)
+        {
+            var now = Pieces(w)[0];
+            Assert.InRange(Math.Abs(now.X - x), 0, Harpoon.ReelSpeed);
+            Assert.InRange(Math.Abs(now.Y - y), 0, Harpoon.ReelSpeed);
+            Assert.Equal(t == ticks, now.Reel == null);
+            (x, y) = (now.X, now.Y);
+            if (t < ticks) w.Run();
+        }
+        Assert.Equal((toX, toY), (x, y));
+        // The line free, it drifts on from its point at its own speed.
+        w.Run();
+        Assert.Equal((toX - piece.Speed, toY), (Pieces(w)[0].X, Pieces(w)[0].Y));
+        Assert.Null(ReelOf(w));
+    }
+
+    [Fact]
+    public void RefusesAReelOfAPieceThatNeverWasOrIsGone()
+    {
+        var w = Outside();
+        Assert.Equal("debris.gone", w.M.Debris.ReelProblem(0, 7));
+        w.Do(new Reel(7, 14_000, 3_000)).Run();
+        w.Run(Width * 1000);
+        w.Do(new Reel(1, 14_000, 3_000)).Run();
+        Assert.Equal(["debris.gone", "debris.gone"], Reasons(w));
+    }
+
+    [Fact]
+    public void RefusesAReelUnlessBothTheHeroAndThePieceAreInSpaceAsAGrab()
+    {
+        var w = Spawned();
+        var piece = Seen.Of(Pieces(w)[0]);
+        w.Do(new Reel(1, 14_000, 3_000) { From = 1 }).Run();
+        w.Do(new Enter(At(3, 4)) { From = 1 }).Do(new Reel(1, 14_000, 3_000) { From = 1 }).Run();
+        Assert.Equal(["debris.notOutside", "debris.notOutside"], Reasons(w));
+        Assert.Null(ReelOf(w));
+        Assert.Equal(piece.X - 2 * piece.Speed, Pieces(w)[0].X);
+        // Its middle over the room: judged by that cell, as a grab is.
+        Until(w, 4).Do(new Enter(At(12, 1)) { From = 1 });
+        Assert.Equal("debris.notOutside", w.M.Debris.ReelProblem(1, 1));
+        w.Do(new Reel(1, 14_000, 3_000) { From = 1 }).Run();
+        Assert.Equal("debris.notOutside", Reasons(w)[^1]);
+        Assert.Null(ReelOf(w));
+    }
+
+    [Fact]
+    public void CatchesAPieceMidReelLineAndAll()
+    {
+        var w = Outside();
+        var piece = Seen.Of(Pieces(w)[0]);
+        w.Do(new Reel(1, 13_500, 1_500)).Run(3);
+        Assert.NotNull(ReelOf(w));
+        Assert.Null(w.M.Debris.GrabProblem(0, 1));
+        w.Do(new Grab(1)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(Pieces(w));
+        Assert.All(Held(w, 0), s => Assert.Contains(s.Item, Gives(piece.Item)));
+        Assert.NotEmpty(Held(w, 0));
+    }
+
+    [Fact]
+    public void ChopsAWreckMidReelWhichComesOnTillItBreaksLineAndAll()
+    {
+        var w = Wrecked(0);
+        const int toX = 13_500, toY = 1_500;
+        w.Do(new Reel(1, toX, toY)).Run();
+        int left = ReelOf(w)!.Left;
+        Hits(w, HitsToBreak - 1).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal((HitsToBreak - 1) * Axe.Damage, Pieces(w)[0].Damage);
+        Assert.Equal(left - 1, ReelOf(w)!.Left);
+        w.Run(left - 1);
+        Assert.Equal((toX, toY), (Pieces(w)[0].X, Pieces(w)[0].Y));
+        Assert.Null(ReelOf(w));
+        w.Do(new Reel(1, 16_000, 2_000)).Run();
+        Hits(w, 1).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(Pieces(w));
+        Assert.NotEmpty(w.M.Items.Floor);
+    }
+
+    [Fact]
+    public void KeepsAPointBeyondTheGridOnItsEdgeSoThePieceStaysOnTheGrid()
+    {
+        var w = Outside();
+        w.Do(new Reel(1, 999_999, -5_000)).Run();
+        Assert.Equal((Width * 1000 - 1, 0), (ReelOf(w)!.ToX, ReelOf(w)!.ToY));
+        w.Run(ReelOf(w)!.Left);
+        Assert.Equal((Width * 1000 - 1, 0), (Pieces(w)[0].X, Pieces(w)[0].Y));
+        w.Do(new Reel(1, -50_000, 99_999)).Run();
+        Assert.Equal((0, 8 * 1000 - 1), (ReelOf(w)!.ToX, ReelOf(w)!.ToY));
+        w.Run(ReelOf(w)!.Left);
+        Assert.Equal((0, 7_999), (Pieces(w)[0].X, Pieces(w)[0].Y));
+        // At its end already: the next drift takes it.
+        w.Run();
+        Assert.Empty(Pieces(w));
+    }
+
+    [Fact]
+    public void LetsTheLastReelWinByAnyoneOnALaterTickOrTheSame()
+    {
+        var w = Spawned().Do(new Enter(At(12, 1)) { From = 1 }).Do(new Enter(At(13, 1)) { From = 2 }).Run();
+        w.Do(new Reel(1, 12_000, 1_000) { From = 1 }).Run(2);
+        var piece = Pieces(w)[0];
+        int ticks = ReelTicks(piece.X, piece.Y, 15_000, 6_000);
+        w.Do(new Reel(1, 15_000, 6_000) { From = 2 }).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal((2, 15_000, 6_000, ticks - 1), (ReelOf(w)!.By, ReelOf(w)!.ToX, ReelOf(w)!.ToY, ReelOf(w)!.Left));
+        w.Run(ticks - 1);
+        Assert.Equal((15_000, 6_000), (Pieces(w)[0].X, Pieces(w)[0].Y));
+        // Two on one tick: the host's order decides, and the later one is where it goes.
+        w.Do(new Reel(1, 13_000, 2_000) { From = 2 }).Do(new Reel(1, 16_000, 4_000) { From = 1 }).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal((1, 16_000, 4_000), (ReelOf(w)!.By, ReelOf(w)!.ToX, ReelOf(w)!.ToY));
+    }
+
+    [Fact]
+    public void ReelsOnAlikeAfterASaveAndLoadMidReel()
+    {
+        Scenario Reeled()
+        {
+            var w = Outside();
+            return w.Do(new Reel(1, 13_250, 6_400)).Run(3);
+        }
+        var (kept, loaded) = (Reeled(), Reeled().Reload());
+        var reel = ReelOf(loaded)!;
+        Assert.Equal((ReelOf(kept)!.Left, 13_250, 6_400), (reel.Left, reel.ToX, reel.ToY));
+        Assert.Equal(kept.World.Hash(), loaded.World.Hash());
+        for (int t = 0, ticks = reel.Left + 5; t < ticks; t++)
+        {
+            kept.Run();
+            loaded.Run();
+            Assert.Equal(Seen.Of(Pieces(kept)[0]), Seen.Of(Pieces(loaded)[0]));
+        }
+        Assert.Equal(kept.World.Hash(), loaded.World.Hash());
+        Assert.Null(ReelOf(loaded));
+    }
+
+    [Fact]
+    public void BeginsEveryPieceUnreeledAndUpgradesAnOldSavesPiecesUnreeledToo()
+    {
+        Assert.All(Pieces(new Scenario(Registry.Wreck).Run()), p => Assert.Null(p.Reel));
+        var old = new System.Text.Json.Nodes.JsonObject
+        {
+            ["slices"] = new System.Text.Json.Nodes.JsonObject
+            {
+                ["debris"] = new System.Text.Json.Nodes.JsonObject { ["pieces"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject { ["id"] = 3 }) },
+            },
+        };
+        var piece = Migrations.Steps[6 - Migrations.Oldest](old)["slices"]!["debris"]!["pieces"]![0]!.AsObject();
+        Assert.True(piece.ContainsKey("reel"));
+        Assert.Null(piece["reel"]);
+    }
+
+    // The README's invariants, whatever happens: a hull grown and cut down, heroes in and out of space
+    // grabbing pieces out, gone and never spawned, reeling them to points on and off the grid, and long waits.
+
+    private sealed record Step(string Type, int Cell = 0, int Peer = 0, int Ticks = 0, int ToX = 0, int ToY = 0);
 
     [Property(MaxTest = 60)]
-    public Property KeepsIdsInSpawnOrderNoMoreThanTheCapAndEveryPieceOnItsPathInItsHullsBand()
+    public Property KeepsIdsInSpawnOrderNoMoreThanTheCapAndEveryPieceOnTheGridItsPathAndItsHullsBand()
     {
         // Mostly small grids, now and then one wide enough for the cap; hulls from none to the whole grid.
         var size = Gen.Frequency(
@@ -566,12 +747,15 @@ public class DebrisTests
                   from rolls in Gen.Choose(0, 99).ArrayOf(s.w * s.h)
                   select (s.w, s.h, Walls: rolls.Select(r => r < density).ToArray());
         var step = from kind in Gen.Frequency(
-                       (2, Gen.Constant("wait")), (2, Gen.Constant("grab")), (2, Gen.Constant("enter")), (2, Gen.Constant("chop")),
+                       (2, Gen.Constant("wait")), (2, Gen.Constant("grab")), (2, Gen.Constant("enter")), (2, Gen.Constant("chop")), (2, Gen.Constant("reel")),
                        (1, Gen.Constant("wall")), (1, Gen.Constant("breach")))
                    from cell in Gen.Choose(-2, 3000)
                    from peer in Gen.Choose(0, 2)
                    from ticks in Gen.Frequency((3, Gen.Choose(1, 40)), (2, Gen.Choose(150, 400)), (1, Gen.Choose(1000, 6000)))
-                   select new Step(kind, cell, peer, ticks);
+                       // Points mostly on a small grid, now and then anywhere, far off every edge.
+                   from toX in Gen.Frequency((3, Gen.Choose(-2_000, 26_000)), (1, Gen.Choose(-300_000, 300_000)))
+                   from toY in Gen.Frequency((3, Gen.Choose(-2_000, 14_000)), (1, Gen.Choose(-300_000, 300_000)))
+                   select new Step(kind, cell, peer, ticks, toX, toY);
         var cases = from m in map from n in Gen.Choose(0, 25) from steps in step.ArrayOf(n) select (m, steps);
         return Prop.ForAll(cases.ToArbitrary(), c =>
         {
@@ -581,6 +765,7 @@ public class DebrisTests
                 .ToArray();
             var w = new Scenario(Layout.Parse(rows));
             int cells = m.w * m.h, last = 0;
+            var reeled = new HashSet<int>();
             foreach (var s in steps)
             {
                 var pieces = Pieces(w);
@@ -597,6 +782,11 @@ public class DebrisTests
                         var wreck = pieces.FirstOrDefault(p => WreckageSpec.HpOf(p.Item) != null) ?? (pieces.Count > 0 ? pieces[Math.Abs(s.Cell) % pieces.Count] : null);
                         for (int n = 0; n < s.Ticks % 4 + 1; n++) w.Do(new Hit(wreck?.Id ?? s.Cell % (last + 3)) { From = s.Peer });
                         break;
+                    case "reel":
+                        int reel = pieces.Count > 0 && s.Cell % 3 != 0 ? pieces[Math.Abs(s.Cell) % pieces.Count].Id : s.Cell % (last + 3);
+                        reeled.Add(reel);
+                        w.Do(new Reel(reel, s.ToX, s.ToY) { From = s.Peer });
+                        break;
                     case "wall":
                         int at = Math.Abs(s.Cell) % cells;
                         if (w.M.Grid.StructureAt(at) == Structure.Empty) w.Do(new Place(at, Placement.Wall()));
@@ -608,7 +798,7 @@ public class DebrisTests
                 for (int t = 0; t < (s.Type == "wait" ? s.Ticks : 1); t++)
                 {
                     w.Run();
-                    var broken = Broken(w, ref last);
+                    var broken = Broken(w, ref last, reeled);
                     if (broken != null) return false.Label(broken);
                 }
             }
@@ -616,8 +806,11 @@ public class DebrisTests
         });
     }
 
-    /// <summary>What breaks the README's invariants after a tick, or null; <paramref name="last"/> is the newest id seen so far.</summary>
-    private static string? Broken(Scenario w, ref int last)
+    /// <summary>
+    /// What breaks the README's invariants after a tick, or null; <paramref name="last"/> is the newest id seen so
+    /// far, <paramref name="reeled"/> the pieces a reel was sent for, which may have been pulled right of their start.
+    /// </summary>
+    private static string? Broken(Scenario w, ref int last, IReadOnlySet<int> reeled)
     {
         var pieces = Pieces(w);
         if (pieces.Count > DebrisSpec.Max) return $"{pieces.Count} pieces out";
@@ -627,7 +820,9 @@ public class DebrisTests
             var p = pieces[i];
             if (i > 0 && p.Id <= pieces[i - 1].Id) return "ids out of spawn order";
             if (p.X < 0 || p.X >= width * 1000 || p.Y < 0 || p.Y >= height * 1000) return $"piece {p.Id} off the grid";
-            if (p.X < p.End || p.X > p.Start) return $"piece {p.Id} off its path";
+            if (p.X < p.End || (p.X > p.Start && !reeled.Contains(p.Id))) return $"piece {p.Id} off its path";
+            if (p.Reel is { } reel && (reel.Left <= 0 || reel.ToX < 0 || reel.ToX >= width * 1000 || reel.ToY < 0 || reel.ToY >= height * 1000))
+                return $"piece {p.Id} reeled to ({reel.ToX}, {reel.ToY}) in {reel.Left} ticks";
             int hp = WreckageSpec.HpOf(p.Item) ?? 0;
             if (hp == 0 ? p.Damage != 0 : p.Damage < 0 || p.Damage >= hp) return $"piece {p.Id}, a {p.Item}, at damage {p.Damage}";
             if (p.Id <= last) continue;

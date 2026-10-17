@@ -4,8 +4,9 @@ namespace Stillwake.Sim.Debris;
 
 /// <summary>
 /// One piece drifting past, its middle at <see cref="X"/>, <see cref="Y"/> in thousandths of a cell,
-/// always on the grid. It drifts left by <see cref="Speed"/> a tick from <see cref="Start"/> and is gone
-/// once <see cref="X"/> is below <see cref="End"/>. Read by others, changed by debris alone.
+/// always on the grid. It drifts left by <see cref="Speed"/> a tick from <see cref="Start"/>, but while
+/// <see cref="Reel"/> pulls it, and is gone once <see cref="X"/> is below <see cref="End"/>. Read by
+/// others, changed by debris alone.
 /// </summary>
 public sealed class Piece
 {
@@ -23,6 +24,22 @@ public sealed class Piece
     [JsonInclude] public int End { get; internal set; }
     /// <summary>The hit points axes have taken off it: below its kind's <c>Wreckage</c> hit points, and none for a piece caught by hand.</summary>
     [JsonInclude] public int Damage { get; internal set; }
+    /// <summary>A harpoon's line pulling it to a point instead of its drift, or null (0044).</summary>
+    [JsonInclude] public Reeling? Reel { get; internal set; }
+}
+
+/// <summary>
+/// A piece reeled in by a harpoon (0044): it comes to (<see cref="ToX"/>, <see cref="ToY"/>), a point on
+/// the grid in thousandths of a cell, in <see cref="Left"/> more ticks, then drifts on from there.
+/// </summary>
+public sealed class Reeling
+{
+    /// <summary>The peer whose harpoon reels it: the last to send <c>Reel</c> for it.</summary>
+    [JsonInclude] public int By { get; internal set; }
+    [JsonInclude] public int ToX { get; internal set; }
+    [JsonInclude] public int ToY { get; internal set; }
+    /// <summary>The ticks till it is there, above zero: the reel clears on the tick it lands.</summary>
+    [JsonInclude] public int Left { get; internal set; }
 }
 
 /// <summary>

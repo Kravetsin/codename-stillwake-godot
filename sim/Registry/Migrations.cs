@@ -59,6 +59,12 @@ public static class Migrations
             grid["backMaterial"] = Runs.Node(backMaterial);
             return save;
         },
+        // 6 → 7: no piece of debris is being reeled in by a harpoon yet (0044).
+        save =>
+        {
+            foreach (var piece in save["slices"]!["debris"]!["pieces"]!.AsArray()) piece!["reel"] = null;
+            return save;
+        },
     ];
 
     /// <summary>The format a save says it has.</summary>
