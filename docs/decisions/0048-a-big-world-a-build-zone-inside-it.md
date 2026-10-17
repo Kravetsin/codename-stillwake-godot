@@ -35,8 +35,8 @@ cheap. The ship needs room to grow, and space round it to fly out into.
 
 - A ship can grow to 1024×512 cells, and the edge of what may be built is far from the grid's edge.
 - Changing `Content.World` later does not resize worlds already made: their size is saved.
-- Leaving the zone has no cost yet: the oxygen drain past it, the report cadence and the vignette that
-  show it (slice b) and the build frame (slice c) come next.
+- Leaving the zone costs the suit's oxygen past a margin round it, the hero reporting its cell and the
+  frost showing the cold ([0050](0050-the-edge-is-made-of-oxygen.md)); the build frame (slice c) comes next.
 - Client views that still walk whole layers (the grid's sync, the light's compare) cost more on the
   big world, some 2 ms on a change; bounding them to `Built` is the plan's slice 0.
 - A cell off the old grid, which only the fuzz ever reports for a hero, becomes -1 in a migrated save.

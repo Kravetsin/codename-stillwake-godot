@@ -32,6 +32,12 @@ public static class Crew
     /// </summary>
     public const int CanisterRefill = 20;
 
+    /// <summary>
+    /// The fewest ticks between two of a client's reports of its hero's cell while the sim's is not the
+    /// body's: once a second, so the drain past the field follows a hero flying out (0050).
+    /// </summary>
+    public const int ReportEvery = 20;
+
     // Not a const: every constant of this table is a whole number (ContentTests).
     /// <summary>The item breathed into the suit.</summary>
     public static readonly string Canister = "canister";
