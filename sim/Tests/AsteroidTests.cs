@@ -57,7 +57,7 @@ public class AsteroidTests
         Assert.InRange(most, 1, DebrisSpec.Asteroids.Max);
         Assert.All(seen, p =>
         {
-            Assert.Equal("asteroid", p.Item);
+            Assert.StartsWith("asteroid", p.Item);
             int row = p.Y / 1000;
             Assert.True(row is >= 50 - 44 and <= 50 - 22 or >= 52 + 22 and <= 52 + 44, $"an asteroid in row {row}");
             Assert.Equal(((95 + Band.Lead) * 1000 + 500, (90 - Band.Lead) * 1000), (p.Start, p.End));
@@ -371,7 +371,7 @@ public class AsteroidTests
             if (p.Id <= last) continue;
             last = p.Id;
             if (p.Zone != DebrisSpec.Asteroids.Id) continue;
-            if (p.Item != "asteroid") return $"a {p.Item} in the asteroid band";
+            if (Loot.Of(p.Item) is not [{ Item: "rock" }]) return $"a {p.Item} in the asteroid band";
             var cells = Enumerable.Range(0, width * height).Where(c => w.M.Grid.StructureAt(c) != Structure.Empty).ToList();
             if (cells.Count == 0) return $"asteroid {p.Id} spawned with no hull";
             int left = cells.Min(c => c % width), right = cells.Max(c => c % width), top = cells[0] / width, bottom = cells[^1] / width;

@@ -9,7 +9,7 @@ used (the features' READMEs) and in its own `///` summaries.
   hide them. None takes a material of `Lit`: no lamp, fire or star lights them.
   - *Stars* (`Stars.cs`): a filtered 512 px tile of stars repeated over the screen, a screen pixel a star
     whatever the zoom, following 0.08 of the camera and streaming 8 screen px a second on local time.
-  - *Far wrecks* (`FarWrecks.cs`, parallax 0.3): each a core of one of the six wrecks' pictures with
+  - *Far wrecks* (`FarWrecks.cs`, parallax 0.3): each a core of one of the wrecks' pictures, the asteroids' and derelicts' among them, with
     up to five pieces of scrap, hull, crates and pods gathered round its rim, from `art/debris` — the same
     wrecks, far away. Made once at start into one grey atlas with mipmaps: each pixel's lightness lifted
     to at least `WreckLift`, so the outlines soften, then drawn in a colour between space's own clear colour

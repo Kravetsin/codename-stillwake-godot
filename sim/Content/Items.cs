@@ -57,6 +57,13 @@ public static class Items
         new("tankCluster", 1),
         new("shieldSlab", 1),
         new("asteroid", 1),
+        new("asteroidSmall", 1),
+        new("asteroidLarge", 1),
+        new("asteroidRich", 1),
+        // Derelicts, in the far field's outer tiers alone (0056): big, slow to break, rich in what wrecks give.
+        new("engineBlock", 1),
+        new("cargoHold", 1),
+        new("podCluster", 1),
         // Parts, made at the Fabricator (Crafts) of materials; then assemblies, of parts.
         new("wire", 100),
         new("plate", 100),

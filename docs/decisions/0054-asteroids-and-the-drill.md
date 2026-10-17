@@ -1,7 +1,8 @@
 # 0054 — Asteroids and the drill
 
 - Status: accepted; superseded in part by [0055](0055-an-electric-tool-draws-while-it-runs.md): an electric
-  weapon draws while it runs, not by the hit
+  weapon draws while it runs, not by the hit; the band's one kind of rock made four, with a far edge, by
+  [0056](0056-rich-finds-far-out.md)
 - Supersedes: of [0034](0034-wreckage-and-the-axe.md) and [0039](0039-melee-by-contact.md), `Content.Axe`
   as the one item that deals damage and `Hit(Piece)` naming none; of
   [0052](0052-debris-by-zones-around-every-hero.md), the asteroid band as a zone still to come

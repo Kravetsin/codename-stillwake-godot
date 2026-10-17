@@ -55,7 +55,10 @@ public static class Debris
     /// while a hero's keep box holds fewer than 110, so a hero flying by jetpack meets a piece a second;
     /// pieces left out of the small keep box go soon, at the hard box. 640 in all: four heroes' shares and
     /// what lingers. No jitter, so a world with no hero out takes no draw for it. Small salvage near the
-    /// ship; the farther out, the more and the bigger the wrecks, and the circuits with them.
+    /// ship; the farther out, the more and the bigger the wrecks, and the circuits with them. Out past 128
+    /// the derelicts (0056), one spawn in some 80, and past 256 one in 30, with big and rich rock: a sortie's
+    /// prize, one or two a sortie (<c>DebrisDensityTests</c>). The weights are 0052's four times over, so the
+    /// rare fit in whole.
     /// </summary>
     public static readonly DebrisZone Far = new("far",
         new AroundHeroes(PerHero: 110, RingFrom: new(61, 36), RingTo: new(64, 42), View: new(60, 34), Keep: new(68, 48), Hard: new(100, 64), Linger: 600),
@@ -63,28 +66,37 @@ public static class Debris
         [
             new(0,
             [
-                ("scrapChunk", 12), ("hullPlate", 8), ("cargoCrate", 6), ("supplyPod", 4), ("hullSection", 4),
-                ("cargoContainer", 3), ("machineBlock", 2), ("cableRack", 2), ("tankCluster", 2), ("shieldSlab", 1),
+                ("scrapChunk", 48), ("hullPlate", 32), ("cargoCrate", 24), ("supplyPod", 16), ("hullSection", 16),
+                ("cargoContainer", 12), ("machineBlock", 8), ("cableRack", 8), ("tankCluster", 8), ("shieldSlab", 4),
             ]),
             new(128,
             [
-                ("scrapChunk", 6), ("hullPlate", 6), ("cargoCrate", 5), ("supplyPod", 5), ("hullSection", 4),
-                ("cargoContainer", 4), ("machineBlock", 3), ("cableRack", 3), ("tankCluster", 3), ("shieldSlab", 2),
+                ("scrapChunk", 24), ("hullPlate", 24), ("cargoCrate", 20), ("supplyPod", 20), ("hullSection", 16),
+                ("cargoContainer", 16), ("machineBlock", 12), ("cableRack", 12), ("tankCluster", 12), ("shieldSlab", 8),
+                ("engineBlock", 1), ("cargoHold", 1),
             ]),
             new(256,
             [
-                ("scrapChunk", 2), ("hullPlate", 3), ("cargoCrate", 3), ("supplyPod", 5), ("hullSection", 3),
-                ("cargoContainer", 4), ("machineBlock", 4), ("cableRack", 5), ("tankCluster", 4), ("shieldSlab", 3),
+                ("scrapChunk", 8), ("hullPlate", 12), ("cargoCrate", 12), ("supplyPod", 20), ("hullSection", 12),
+                ("cargoContainer", 16), ("machineBlock", 16), ("cableRack", 20), ("tankCluster", 16), ("shieldSlab", 12),
+                ("engineBlock", 2), ("cargoHold", 1), ("podCluster", 2), ("asteroidLarge", 2), ("asteroidRich", 2),
             ]),
         ]);
 
     /// <summary>
     /// The asteroid band (0054): rock in two bands 22 to 44 rows above the hull's top and below its bottom,
     /// past the tether's 12 cells, so only a jetpack reaches it. Rare: a beat every 3 to 5 minutes, 4 on
-    /// average, at most 2 out; drifting from the stream's start to its end as the stream does.
+    /// average, at most 2 out; drifting from the stream's start to its end as the stream does. Small and
+    /// middling rock nearer; on its far edge, rows 36 to 44 out, more large and the rich (0056). Every piece
+    /// of the band spawns <see cref="Lead"/> (64) columns right of the hull, so its distance is twice its rows
+    /// past it once they pass 32: the far edge is the tier from 72.
     /// </summary>
     public static readonly DebrisZone Asteroids = new("asteroids", new HullBand(From: 22, To: 44, Lead), Every: 3600, Jitter: 2400, Max: 2,
-        DriftMin, DriftMax, [new(0, [("asteroid", 1)])]);
+        DriftMin, DriftMax,
+        [
+            new(0, [("asteroidSmall", 3), ("asteroid", 4), ("asteroidLarge", 1)]),
+            new(2 * 36, [("asteroidSmall", 1), ("asteroid", 3), ("asteroidLarge", 3), ("asteroidRich", 2)]),
+        ]);
 
     /// <summary>Every zone, in the order they spawn on a tick: the stream first, so a world with no hero out draws as it always did.</summary>
     public static readonly IReadOnlyList<DebrisZone> Zones = [Ship, Far, Asteroids];
@@ -173,7 +185,8 @@ public static class Loot
             new("scrapChunk", 1, 2),
             new("rotor", 1, 1, OneIn: 4),
         ]),
-        // The only source of circuits: one a rack, always, so three racks make a solar panel.
+        // Circuits' one sure source: one a rack, always, so three racks make a solar panel. Derelicts far out
+        // may hold one or two besides (0056), far fewer for the hit points.
         ("cableRack",
         [
             new("wire", 6, 10),
@@ -193,6 +206,47 @@ public static class Loot
         ("asteroid",
         [
             new("rock", 3, 5),
+        ]),
+        // The asteroid's kinds (0056): a hit point buys a little more rock the bigger the rock, and twice it in the rich.
+        ("asteroidSmall",
+        [
+            new("rock", 1, 2),
+        ]),
+        ("asteroidLarge",
+        [
+            new("rock", 6, 9),
+        ]),
+        ("asteroidRich",
+        [
+            new("rock", 8, 12),
+        ]),
+        // Derelicts (0056): the wrecks' own loot, some five wrecks' worth in one place, so a sortie's air goes on breaking, not searching.
+        ("engineBlock",
+        [
+            new("gear", 10, 16),
+            new("hullPlate", 5, 8),
+            new("scrapChunk", 5, 8),
+            new("wire", 4, 8),
+            new("rotor", 1, 2),
+            new("circuit", 1, 1, OneIn: 3),
+        ]),
+        ("cargoHold",
+        [
+            new("planks", 36, 54),
+            new("hullPlate", 3, 5),
+            new("scrapChunk", 4, 6),
+            new("gear", 3, 5),
+            new("wire", 6, 10, OneIn: 2),
+            new("canister", 1, 2, OneIn: 3),
+        ]),
+        // The farthest prize: air for the way home, and the likeliest circuits after a rack.
+        ("podCluster",
+        [
+            new("canister", 5, 8),
+            new("scrapChunk", 5, 8),
+            new("hullPlate", 3, 5),
+            new("wire", 6, 10),
+            new("circuit", 1, 2, OneIn: 2),
         ]),
     ];
 

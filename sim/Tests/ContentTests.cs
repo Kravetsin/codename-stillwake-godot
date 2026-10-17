@@ -300,11 +300,22 @@ public class ContentTests
     }
 
     [Fact]
-    public void CircuitsComeFromCableRacksAloneOneEachAlwaysAndTheSolarPanelTakesSeveral()
+    public void CircuitsComeSurelyFromCableRacksOneEachAndRarelyFromDerelictsAndTheSolarPanelTakesSeveral()
     {
         var sources = Loot.All.Where(l => l.Entries.Any(e => e.Item == "circuit")).Select(l => l.Container);
-        Assert.Equal(["cableRack"], sources);
+        Assert.Equal(["cableRack", "engineBlock", "podCluster"], sources);
         Assert.Equal(new LootEntry("circuit", 1, 1), Loot.Of("cableRack")!.Single(e => e.Item == "circuit"));
+        // A derelict's are a chance, two at most, and a tenth of the rack's or fewer for the hit points (0056):
+        // in thousandths of a circuit a hit point, the rack's 1 in 9.
+        long rack = 1000 / Wreckage.HpOf("cableRack")!.Value;
+        foreach (var source in sources.Skip(1))
+        {
+            var entry = Loot.Of(source)!.Single(e => e.Item == "circuit");
+            Assert.NotNull(entry.OneIn);
+            Assert.True(entry.Max <= 2, source);
+            long each = 1000L * (entry.Min + entry.Max) / 2 / entry.OneIn!.Value / Wreckage.HpOf(source)!.Value;
+            Assert.True(each * 10 <= rack, $"{source}: {each} thousandths of a circuit a hit point, the rack's {rack}");
+        }
         Assert.False(Crafts.TryGet("circuit", out _));
         Assert.Null(Content.Items.Get("circuit").Yields);
         int panel = Machines.Get("solarPanel").Cost.Single(c => c.Item == "circuit").Count;
@@ -356,10 +367,61 @@ public class ContentTests
         // About one every 4 minutes, at most 2 out.
         Assert.Equal(4 * 60 * 20, DebrisSpec.Asteroids.Every + DebrisSpec.Asteroids.Jitter / 2);
         Assert.Equal(2, DebrisSpec.Asteroids.Max);
-        Assert.Equal([("asteroid", 1)], DebrisSpec.Asteroids.Tiers.Single().Kinds);
+        Assert.All(DebrisSpec.Asteroids.Tiers.SelectMany(t => t.Kinds), k => Assert.All(Loot.Of(k.Item)!, e => Assert.Equal("rock", e.Item)));
         Assert.Equal(120, Wreckage.HpOf("asteroid"));
         Assert.Equal([new LootEntry("rock", 3, 5)], Loot.Of("asteroid"));
         Assert.Equal(10, Content.Items.Get("rock").Stack);
+    }
+
+    [Fact]
+    public void TheBiggerTheAsteroidTheHarderAndTheMoreRockTheRichOneMostRockForItsHitPoints()
+    {
+        // In thousandths of a rock a hit point, the middle of each range.
+        long Hp(string kind) => Wreckage.HpOf(kind)!.Value;
+        long Rock(string kind) => Loot.Of(kind)!.Single() is { Item: "rock" } e ? 1000L * (e.Min + e.Max) / 2 : throw new InvalidOperationException(kind);
+        string[] sizes = ["asteroidSmall", "asteroid", "asteroidLarge"];
+        for (int i = 1; i < sizes.Length; i++)
+        {
+            Assert.True(Hp(sizes[i]) > Hp(sizes[i - 1]), sizes[i]);
+            Assert.True(Rock(sizes[i]) > Rock(sizes[i - 1]), sizes[i]);
+            Assert.True(Rock(sizes[i]) / Hp(sizes[i]) >= Rock(sizes[i - 1]) / Hp(sizes[i - 1]), $"{sizes[i]} pays less a hit point");
+        }
+        Assert.All(sizes, size => Assert.True(Rock("asteroidRich") / Hp("asteroidRich") >= 3 * Rock(size) / Hp(size) / 2, size));
+        // The rich only on the band's far edge, its last tier, and far out.
+        Assert.DoesNotContain(DebrisSpec.Asteroids.Tiers[0].Kinds, k => k.Item == "asteroidRich");
+        Assert.Contains(DebrisSpec.Asteroids.Tiers[^1].Kinds, k => k.Item == "asteroidRich");
+        var band = (HullBand)DebrisSpec.Asteroids.Anchor;
+        Assert.InRange(DebrisSpec.Asteroids.Tiers[^1].From, Math.Max(band.Lead, 2 * band.From) + 1, 2 * band.To);
+    }
+
+    [Fact]
+    public void DerelictsAreAsHardAsRockGiveTheWrecksOwnLootAndDriftOnlyFarOutRarely()
+    {
+        string[] derelicts = ["engineBlock", "cargoHold", "podCluster"];
+        string[] wrecks = ["hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab"];
+        static long Expected(IReadOnlyList<LootEntry> loot) => loot.Sum(e => 1000L * (e.Min + e.Max) / 2 / (e.OneIn ?? 1));
+        // Every item a container or a wreck gives, but rock: the derelicts give nothing new.
+        var given = Loot.All.Where(l => !derelicts.Contains(l.Container)).SelectMany(l => l.Entries).Select(e => e.Item).ToHashSet();
+        foreach (var derelict in derelicts)
+        {
+            Assert.InRange(Wreckage.HpOf(derelict)!.Value, 100, 200);
+            var loot = Loot.Of(derelict)!;
+            Assert.All(loot, e => Assert.Contains(e.Item, given));
+            Assert.DoesNotContain(loot, e => e.Item == "rock");
+            // Some three ordinary wrecks' worth or more, counted in items on average, in thousandths.
+            Assert.True(Expected(loot) >= 3 * wrecks.Sum(w => Expected(Loot.Of(w)!)) / wrecks.Length, derelict);
+        }
+        // Never by the ship, nor in the band, nor in the far field's first tier.
+        foreach (var zone in DebrisSpec.Zones)
+            foreach (var tier in zone.Tiers)
+            {
+                int total = tier.Kinds.Sum(k => k.Weight), rare = tier.Kinds.Where(k => derelicts.Contains(k.Item)).Sum(k => k.Weight);
+                bool outer = zone == DebrisSpec.Far && tier.From >= 128;
+                Assert.True(outer || rare == 0, $"{zone.Id} {tier.From}");
+                // Rare: one spawn in twenty at the most.
+                Assert.True(rare * 20 <= total, $"{zone.Id} {tier.From}: {rare} of {total}");
+            }
+        Assert.Contains(DebrisSpec.Far.Tiers, t => t.Kinds.Any(k => derelicts.Contains(k.Item)));
     }
 
     [Fact]

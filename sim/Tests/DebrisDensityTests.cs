@@ -112,4 +112,65 @@ public class DebrisDensityTests(ITestOutputHelper output)
         Print("hovering, then climbing at 3 cells a second", s);
         Assert.True(s.NearMax <= 25, $"{s.NearMax} pieces at once in the default view");
     }
+
+    // A sortie (0056): what a canister or two buys.
+
+    /// <summary>2048×600, the hull at columns 1000 to 1005 and rows 500 to 502: room above it for the far field's every tier.</summary>
+    private static readonly Layout High = DebrisZonesTests.Open(2048, 600, 1000, 500);
+
+    /// <summary>
+    /// Where a hero on a sortie is on tick <paramref name="t"/>: up from over the hull by jetpack to <paramref name="rows"/>
+    /// above its top, looking about slowly for 15 s, 15 s still (breaking what it found), and back down. Some 60 s;
+    /// its air some 45 for the breath and 2 a second of thrust: the suit and one or two canisters.
+    /// </summary>
+    private static (double X, double Y) Sortie(int t, int rows)
+    {
+        const int Look = 300, Still = 300;
+        double over = 486.5, high = 500.5 - rows, x = 1003.5;
+        int climb = (int)((over - high) / Jetpack);
+        if (t < climb) return (x, over - t * Jetpack);
+        t -= climb;
+        if (t < Look) return (x + t * Slowly, high);
+        x += Look * Slowly;
+        t -= Look;
+        return t < Still ? (x, high) : (x, Math.Min(over, high + (t - Still) * Jetpack));
+    }
+
+    /// <summary>The derelicts that came into the farthest view (120×68) and into the default one (40×22) of a sortie <paramref name="rows"/> up.</summary>
+    private static (int Wide, int Near) Derelicts(uint seed, int rows)
+    {
+        var w = new Scenario(High, seed);
+        var wide = new HashSet<int>();
+        var near = new HashSet<int>();
+        int ticks = 2 * (int)((rows - 14) / Jetpack) + 600;
+        for (int t = 0; t < ticks; t++)
+        {
+            var (x, y) = Sortie(t, rows);
+            if (t % Content.Crew.ReportEvery == 0) w.Do(new Enter((int)y * High.Width + (int)x));
+            w.Run();
+            foreach (var p in w.M.Debris.Pieces)
+            {
+                if (!RichFindsTests.Derelicts.Contains(p.Item)) continue;
+                double dx = Math.Abs(p.X / 1000.0 - x), dy = Math.Abs(p.Y / 1000.0 - y);
+                if (dx <= Wide.X && dy <= Wide.Y) wide.Add(p.Id);
+                if (dx <= Near.X && dy <= Near.Y) near.Add(p.Id);
+            }
+        }
+        return (wide.Count, near.Count);
+    }
+
+    [Theory]
+    // Into the 128 tier only: a derelict a sortie, on average.
+    [InlineData(100, 0.6, 1.6)]
+    // Just into the 256: one or two, seldom none.
+    [InlineData(130, 1.4, 2.8)]
+    public void ShowsASortieOneOrTwoDerelictsFarOutAndSeldomNone(int rows, double least, double most)
+    {
+        var runs = Enumerable.Range(1, 30).Select(seed => Derelicts((uint)seed, rows)).ToList();
+        double wide = runs.Average(r => r.Wide), near = runs.Average(r => r.Near);
+        int none = runs.Count(r => r.Wide == 0);
+        output.WriteLine($"a sortie {rows} rows up: {wide:F2} derelicts in the farthest view, {near:F2} in the default one; none in {none} of 30");
+        Assert.InRange(wide, least, most);
+        if (rows >= 128) Assert.True(none <= 6, $"none in {none} of 30 sorties");
+    }
 }

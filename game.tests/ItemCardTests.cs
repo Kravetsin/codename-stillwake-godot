@@ -66,7 +66,8 @@ public class ItemCardTests
         var card = ItemCards.Of("fireAxe", unknown: false);
         Assert.True(card.Tool);
         Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
-        Assert.Equal(["Hull section", "Cargo container", "Machine block", "Electronics rack", "Oxygen tanks", "Shield slab", "Asteroid"], card.Uses);
+        Assert.Equal(["Hull section", "Cargo container", "Machine block", "Electronics rack", "Oxygen tanks", "Shield slab", "Asteroid",
+            "Small asteroid", "Large asteroid", "Ore-rich asteroid", "Engine block", "Cargo hold", "Pod cluster"], card.Uses);
         Assert.Equal(new CardKey("LMB", "hold on wreckage in space"), card.Use);
         Assert.Empty(card.Effects);
         Assert.Equal(Spec.Wreckage.All.Count, card.Uses.Count);
