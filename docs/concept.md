@@ -88,7 +88,10 @@ A living document: what is decided about the game and what is still open. Techni
 - **Power runs on cables** laid point to point between machines and anchors, hanging inside the
   ship and taut out in space; a network short of power slows everything on it alike. Solar panels
   work only under the stars, out in space with no back wall behind them ([0043](decisions/0043-a-solar-panel-needs-the-stars.md)); the oxygen generator is the first thing that needs power
-  ([0017](decisions/0017-power-runs-on-cables.md)).
+  ([0017](decisions/0017-power-runs-on-cables.md)). The first power the player builds is the burner
+  generator, of plates, gears, a rotor and wire: the furnace's fire turning a flywheel, it burns
+  planks and breathes its room's air, and makes power while it burns, wherever it stands
+  ([0045](decisions/0045-a-burner-generator-shares-the-furnaces-fire.md)).
 - **Building is cell by cell, in layers.** Structure: hull walls of different materials, floors,
   ladders, doors, airlocks. Back walls, of the same materials: behind every cell of a room, or it is
   open to space.
