@@ -101,27 +101,39 @@ public class BudgetTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The reference ship in a world of space, a hull wall beside space taken apart and built again every
-    /// tick: rooms are flooded again within the ship's box, so the world around it costs nothing.
+    /// The reference ship in a world of space, or the whole of one built, a hull wall beside space taken
+    /// apart and built again every tick, and a wall built against the hull out in space and taken apart
+    /// again: rooms are found again only round the change, so neither the world nor the ship costs anything.
     /// </summary>
     [Theory]
-    [InlineData(1024, 512)]
-    [InlineData(2048, 1024)]
-    public void KeepsABreachBesideSpaceAsCheapInALargeWorldAsTheShipIs(int width, int height)
+    [InlineData(1024, 512, 256, 128, 8)]
+    [InlineData(2048, 1024, 256, 128, 400)]
+    [InlineData(1024, 512, 1024, 512, 0)]
+    public void KeepsABreachBesideSpaceAndAWallBuiltOutsideAsCheapInALargeWorldAsInASmallShip(int width, int height, int shipWidth, int shipHeight, int margin)
     {
-        const int margin = 8;
-        var w = new Scenario(Reference(width, height, margin: margin));
+        var w = new Scenario(Reference(width, height, shipWidth, shipHeight, margin));
         int wall = w.At(margin + 9, margin);
         Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(wall));
         Time(w.World, 100, _ => []);
+        // What a tick costs anyway, the air of every room in it: a change may add a little, not the ship or the world.
+        var still = Time(w.World, 100, _ => []);
+        double bound = 4 * still.Mean + 1;
         IReadOnlyList<Command> Breach(int i) => [i % 2 == 0 ? new ClearAt(wall, "structure") : new Place(wall, Placement.Wall())];
         Time(w.World, 10, Breach);
         var breaching = Time(w.World, 100, Breach);
         Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(wall));
-        output.WriteLine($"{width}×{height}, the reference ship {margin} cells in: rooms {w.M.Rooms.All.Count}");
-        output.WriteLine($"tick breaching and mending a hull wall: {breaching.Mean:F3} ms mean, {breaching.Max:F3} ms max");
-        // Loose for CI's shared runners (17 ms seen there, 3 ms locally); the whole-world flood took 105 ms locally.
-        Assert.True(breaching.Mean < 40, "a breach costs the world, not the ship");
+        output.WriteLine($"{width}×{height}, the reference ship {shipWidth}×{shipHeight} {margin} cells in: rooms {w.M.Rooms.All.Count}");
+        output.WriteLine($"tick: {still.Mean:F3} ms mean; breaching and mending a hull wall: {breaching.Mean:F3} ms mean, {breaching.Max:F3} ms max");
+        // Against the tick on the same machine, for CI's shared runners: the whole-world flood took 105 ms
+        // locally, the ship's 11 ms on a fully built 1024×512.
+        Assert.True(breaching.Mean < bound, "a breach costs the ship or the world");
+        if (margin == 0) return;
+        // A cell of space it closes, whose space must be walked to know it still reaches the outside.
+        int outside = w.At(margin + 9, margin - 1);
+        IReadOnlyList<Command> Build(int i) => [i % 2 == 0 ? new Place(outside, Placement.Wall()) : new ClearAt(outside, "structure")];
+        var building = Time(w.World, 100, Build);
+        output.WriteLine($"tick building and taking apart a wall outside the hull: {building.Mean:F3} ms mean, {building.Max:F3} ms max");
+        Assert.True(building.Mean < bound, "a wall built beside space costs the ship or the world");
     }
 
     /// <summary>

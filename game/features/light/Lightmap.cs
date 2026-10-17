@@ -137,6 +137,8 @@ public partial class Lightmap : Node
     private readonly ShaderMaterial _material = new() { Shader = Shader };
     private float[] _mainBuffer = [], _spotBuffer = [];
     private byte[] _cells = [];
+    /// <summary>The cells the occupancy texture covers: what was built when it was last laid out whole.</summary>
+    private Box _occupied = Box.None;
     private Image? _occupancy;
     private ImageTexture? _occupancyTexture;
 
@@ -161,9 +163,34 @@ public partial class Lightmap : Node
     {
         // Nothing built: one open texel, for a texture cannot be empty.
         if (built.IsEmpty) built = new Box(0, 0, 0, 0);
+        _occupied = built;
         int w = built.Width, h = built.Height;
         if (_cells.Length != w * h) _cells = new byte[w * h];
         Sources.Occupy(structure, width, built, _cells);
+        Upload(built, panel);
+    }
+
+    /// <summary>
+    /// After the structure of <paramref name="changed"/> cells moved: their texels set again, or, when one lies
+    /// past the texture, the whole of what is built laid out anew (<see cref="Occupy"/>). The texture may cover
+    /// more than is built: past what is built every cell is open, inside the texture or past it alike.
+    /// </summary>
+    public void Follow(ReadOnlySpan<int> structure, int width, Box built, IReadOnlyList<int> changed, (int From, int To) panel)
+    {
+        var box = _occupied;
+        foreach (int c in changed)
+            if (_occupancy == null || !box.Contains(c % width, c / width))
+            {
+                Occupy(structure, width, built, panel);
+                return;
+            }
+        foreach (int c in changed) _cells[(c / width - box.Top) * box.Width + c % width - box.Left] = Sources.Of(structure[c]);
+        Upload(box, panel);
+    }
+
+    private void Upload(Box built, (int From, int To) panel)
+    {
+        int w = built.Width, h = built.Height;
         if (_occupancy != null && _occupancyTexture != null && _occupancy.GetWidth() == w && _occupancy.GetHeight() == h)
         {
             _occupancy.SetData(w, h, false, Image.Format.R8, _cells);

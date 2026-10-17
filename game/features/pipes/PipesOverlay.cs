@@ -32,6 +32,7 @@ public partial class PipesOverlay : Node2D
     private readonly Sketch _view = new(Layers.Overlay);
     private readonly List<(Rect2 Box, Color Colour)> _pipes = [];
     private readonly List<(Rect2 Box, Color Colour)> _valves = [];
+    private readonly Valves _valveCells = new();
     private readonly List<Vector2> _sockets = [];
     private List<(Run Run, Color Colour)> _runs = [];
     private double _since = RefreshMs, _along;
@@ -80,16 +81,12 @@ public partial class PipesOverlay : Node2D
             foreach (var run in Flow.RunsOf(Flow.StepsFrom(network.Cells, width, sources), width)) _runs.Add((run, colour with { A = 1 }));
         }
         _valves.Clear();
-        // Every valve is within what is built.
         var conduit = grid.ConduitLayer;
-        var built = grid.Built;
-        for (int y = built.Top; y <= built.Bottom; y++)
-            for (int cell = y * width + built.Left, end = cell + built.Width; cell < end; cell++)
-            {
-                if (conduit[cell] is not (Conduit.ValveOpen or Conduit.ValveClosed)) continue;
-                float cx = cell % width * Cell + Cell / 2f, cy = cell / width * Cell + Cell / 2f;
-                _valves.Add((new Rect2(cx - 3, cy - 3, 6, 6), conduit[cell] == Conduit.ValveOpen ? ValveOpen : ValveClosed));
-            }
+        foreach (int cell in _valveCells.Of(grid))
+        {
+            float cx = cell % width * Cell + Cell / 2f, cy = cell / width * Cell + Cell / 2f;
+            _valves.Add((new Rect2(cx - 3, cy - 3, 6, 6), conduit[cell] == Conduit.ValveOpen ? ValveOpen : ValveClosed));
+        }
         _sockets.Clear();
         foreach (var machine in grid.Machines)
             foreach (int port in grid.PortsOf(machine))

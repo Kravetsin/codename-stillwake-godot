@@ -31,13 +31,16 @@ public static class Sources
         int i = 0;
         for (int y = box.Top; y <= box.Bottom; y++)
             foreach (int code in structure.Slice(y * width + box.Left, box.Width))
-                cells[i++] = code switch
-                {
-                    Structure.Wall => Wall,
-                    Structure.DoorClosed => Door,
-                    _ => Open,
-                };
+                cells[i++] = Of(code);
     }
+
+    /// <summary>What stops light in a cell of structure <paramref name="code"/>.</summary>
+    public static byte Of(int code) => code switch
+    {
+        Structure.Wall => Wall,
+        Structure.DoorClosed => Door,
+        _ => Open,
+    };
 
     /// <summary>
     /// Packs each of <paramref name="lights"/> whose reach touches <paramref name="view"/> (pixels) into

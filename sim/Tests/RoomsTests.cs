@@ -315,7 +315,8 @@ public class RoomsTests
     /// The rooms found around each change are those found from scratch, whatever is built, taken apart
     /// or opened, beside space and the grid's edge or far from both, rooms joined or split, the built box
     /// grown by building out in space and shrunk by clearing its edge; and every room that differs from
-    /// the tick before is among those the rooms say changed.
+    /// the tick before is among those the rooms say changed. A tick that writes more than a small log
+    /// holds leaves the rooms behind it, and they are found again from scratch.
     /// </summary>
     [Property(MaxTest = 400)]
     public Property FindsTheSameRoomsAroundAChangeAsFromScratch()
@@ -339,11 +340,12 @@ public class RoomsTests
         var gen =
             from rows in Gen.Frequency((3, ships), (1, anything))
             from edits in edit.ListOf()
-            select (rows, edits: edits.Take(60).ToList());
+            from capacity in Gen.Frequency((3, Gen.Constant(1 << 16)), (1, Gen.Elements(1, 2, 4)))
+            select (rows, edits: edits.Take(60).ToList(), capacity);
         return Prop.ForAll(gen.ToArbitrary(), t =>
         {
             var layout = Layout.Parse(t.rows);
-            var grid = new GridModule();
+            var grid = new GridModule { LogCapacity = t.capacity };
             var rooms = new RoomsModule(grid);
             var world = World.Create(1, layout, [grid, rooms, new Builder(grid, grid)]);
             int size = layout.Width * layout.Height;
