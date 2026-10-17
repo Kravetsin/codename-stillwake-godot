@@ -6,7 +6,7 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
 [0028](../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md).
 
 - **Depends on:** `Atmosphere` (`IAtmosphereOps`: its `Breathe` operation decides whether a cell's
-  room has air and takes it); `Grid` (`IGridQueries.Width`: where a cell is, for the pod's reach); `Items`
+  room has air and takes it); `Grid` (`IGridQueries.Width`, `Height` and `Zone`: where a cell is, for the pod's reach and the field); `Items`
   (`IItemsQueries.Equipped` and `ShortOf`, whether a hero wears a jetpack and carries a canister;
   `IItemsOps.Take`, the canister breathed).
 - **State** (`CrewState`, members internal): `Spawn` — the hatch of the map's first lifepod
@@ -24,7 +24,11 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   client sends it whenever the sim has no such hero, places it in another room than its body is in,
   or on the other side of the air's edge, comparing both cells every frame (a door renames rooms, so
   ids are never remembered); the sim resolves the room from the cell at every breath. Later ones
-  never refill the suit. Passed out, a hero's client sends no other command.
+  never refill the suit. The client also sends it as the hero's **report** (0050): whenever the sim
+  holds it in another cell than its body's and `Crew.ReportEvery` ticks have gone since the last
+  `Enter` it sent, never while passed out. So `Hero.Cell` is the reported cell, up to a second and a
+  round trip behind the body: what the breath reads, and what anything placed by where heroes are
+  reads. Passed out, a hero's client sends no other command.
 - Every `Crew.BreathEvery` ticks, in hero id order, each conscious hero breathes. Within
   `Crew.PodReach` cells of the lifepod's footprint, either way (`ByPod`), it first takes up to
   `Crew.PodRefill` units of the pod's own air, from no store, for the breath and what its suit lacks;
@@ -55,12 +59,22 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
 - A suit at zero passes the hero out for `Crew.PassOut` ticks; then it is made again at the spawn,
   the pod's hatch, with a full suit. The client moves its hero there when the passing out ends. A
   hero's first `Enter` is where its client placed it, the spawn.
+- **The cold past the field** ([0050](../../docs/decisions/0050-the-edge-is-made-of-oxygen.md)): the field is
+  the grid's build zone grown by `Field.Margin` cells every way. `EdgeCost(cell)` is 0 inside it; past
+  it, with `dx` and `dy` the cells beyond it and each axis's span the cells from the field to the grid's
+  edge on that side, `depth = min(1000, max(dx·1000/spanX, dy·1000/spanY))` (thousandths, rounded down;
+  a box, no root) and the cost is `ceil(Field.EdgeCost · depth² / 10⁶)`: 1 just past the line, 12 half
+  way, 45 at the edge; a cell off the grid costs `Field.EdgeCost`. At every breath, after the breath
+  and the refill, the suit alone pays it for the reported cell, never below nothing; a suit emptied
+  so (or by the breath) passes the hero out as ever. It adds to thrust, which the suit pays apart. On a
+  map that sets no zone the field reaches past the grid, so no cell on it costs anything.
 - The breaths run in the simulation phase, after `Atmosphere`'s (crew is registered right after it),
   so a breath reads this tick's air.
 
 ## API
 
-- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)` — whether a hero there draws the pod's air; `HeroOf(id)` (TypeScript's `hero`; a method cannot share
+- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)` — whether a hero there draws the pod's air; `EdgeCost(cell)` — what the
+  cold takes from a suit a breath there (the breath and the client's frost read it); `HeroOf(id)` (TypeScript's `hero`; a method cannot share
   the `Hero` class's name) — the `Hero` with `Id`, `Cell`, `Suit`, `Out`, `Colour`, or null;
   `Heroes` — all of them, in id order, live and read-only.
 - **Commands:** `Enter(Cell)`, with no refusals: a cell off the grid or in a wall is simply no air;
@@ -74,11 +88,14 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   off, one time in eight, mostly from heroes wearing no jetpack, so `crew.noJetpack` is drawn; else a
   `Refill` one time in twelve, refused with a full suit or no canister; else a `PickColour` one time in five, of `Crew.Colours + 1`
   colours, so taken and missing ones are refused; else an `Enter` within four cells of the spawn,
-  or one time in four anywhere from 50 cells before the grid to 1050 past its start.
+  or one time in four anywhere on the grid or up to 50 cells off either end of it.
 
 ## Invariants
 
-- A suit holds between nothing and `Crew.Suit`. Thrust and canisters included (`CrewTests`, FsCheck).
+- A suit holds between nothing and `Crew.Suit`. Thrust and canisters included (`CrewTests`, FsCheck). With heroes
+  anywhere on the new world, the field's line and off the grid, cold included (`FieldTests`).
+- `EdgeCost` is 0 inside the field, never less farther out, never more than `Field.EdgeCost`
+  (`FieldTests`, FsCheck).
 - Heroes are in id order, one per peer.
 - While no more heroes are aboard than there are colours, no two wear the same.
 
@@ -92,7 +109,10 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
 
 - The sim trusts the client's flight: where a jetpack takes the hero, and that it thrusts only in space,
   as for every movement (0002). It pays the oxygen whatever the hero does with it.
-- The sim trusts the client's cell: heroes move on the client, and friends trust each other.
+- The sim trusts the client's cell: heroes move on the client, and friends trust each other. The
+  cold is paid for the reported cell, up to a second and a round trip old: a hero diving out and back
+  between two reports pays nothing, one coming back in pays a breath or so more than its body's cell
+  would.
 - Peer ids last a session but are saved: after a load a hero belongs to whoever connects in its slot,
   until lasting player ids arrive with joining (P1-41). Heroes of peers who left before a save stay
   in it, with their colours.

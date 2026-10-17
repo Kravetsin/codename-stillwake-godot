@@ -7,7 +7,8 @@ namespace Stillwake.Game.Render;
 /// screen, a screen pixel a star whatever the zoom, moving a little with the camera so they read as far
 /// away and streaming slowly by as the ship moves. Unlit, on a canvas layer of its own behind the world.
 /// They glide a fraction of a pixel a frame: the tile is filtered, as Pixi filtered the TypeScript tile,
-/// and read where the camera is this frame, once it has followed the hero.
+/// and read where the camera is this frame, once it has followed the hero. Over them, nearer, the far
+/// wrecks and the dust (<see cref="FarWrecks"/>, <see cref="Dust"/>), still under the world.
 /// </summary>
 public partial class Stars : CanvasLayer
 {
@@ -20,6 +21,8 @@ public partial class Stars : CanvasLayer
     private static readonly Color Star = new(223 / 255f, 232 / 255f, 245 / 255f);
 
     private readonly Sprite2D _sky;
+    private readonly FarWrecks _wrecks = new();
+    private readonly Dust _dust = new();
     private float _stream;
 
     public Stars()
@@ -48,7 +51,12 @@ public partial class Stars : CanvasLayer
             TextureFilter = CanvasItem.TextureFilterEnum.Linear,
         };
         AddChild(_sky);
+        AddChild(_wrecks);
+        AddChild(_dust);
     }
+
+    /// <summary>The world's time, in seconds of ticks, that the far wrecks and the dust have drifted by: every peer's alike.</summary>
+    public double Seconds { get; set; }
 
     public override void _Process(double delta)
     {
@@ -56,7 +64,10 @@ public partial class Stars : CanvasLayer
         var viewport = GetViewport();
         var screen = viewport.GetVisibleRect().Size;
         var camera = viewport.GetCamera2D();
-        var seen = camera == null ? Vector2.Zero : camera.GetScreenCenterPosition() * camera.Zoom.X;
-        _sky.RegionRect = new Rect2(seen * Parallax + new Vector2(_stream, 0), screen);
+        var centre = camera?.GetScreenCenterPosition() ?? Vector2.Zero;
+        float zoom = camera?.Zoom.X ?? 1;
+        _sky.RegionRect = new Rect2(centre * zoom * Parallax + new Vector2(_stream, 0), screen);
+        _wrecks.Follow(centre, zoom, screen, Seconds);
+        _dust.Follow(centre, zoom, screen, Seconds);
     }
 }

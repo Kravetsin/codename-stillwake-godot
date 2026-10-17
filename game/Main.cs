@@ -74,6 +74,7 @@ public partial class Main : Node2D, ITogether
     private FurnaceView? _furnace;
     private AnalyzerScreens? _screens;
     private ShipCamera _camera = null!;
+    private Stars _stars = null!;
     private string[] _args = [];
     private string _role = "alone";
     private bool _cheat;
@@ -127,7 +128,7 @@ public partial class Main : Node2D, ITogether
         _hands = new Hands();
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
-        AddChild(new Stars());
+        AddChild(_stars = new Stars());
         AddChild(_debris);
         if (Has("--debris")) AddChild(new DebrisDemo(_debris, _hands.Ui));
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon") || Has("--grapple"))
@@ -144,10 +145,14 @@ public partial class Main : Node2D, ITogether
         {
             var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
+            // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
+            if (_args.FirstOrDefault(a => a.StartsWith("--edge=")) is { } edge)
+                _hero.Start = m => m.Grid.Height / 2 * m.Grid.Width + Math.Max(0, m.Grid.Zone.Left - Content.Field.Margin - int.Parse(edge[7..]));
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))));
             // Its own layer, above the world: read from whatever registry the session runs now.
             AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
+            AddChild(new Frost(() => _session != null && _hero is { Placed: true } h ? Report.Cold(_m.Crew, h.Current.BodyCell(_m.Grid.Width)) : 0));
             _camera.DevControls = false;
         }
         AddChild(new EffectsView());
@@ -725,6 +730,7 @@ public partial class Main : Node2D, ITogether
             // A determinism bug: the host has already mended the world, so the report is all that is left.
             _saves.Write(Saves.Desync, System.Text.Json.JsonSerializer.Serialize(report, Indented));
         }
+        _stars.Seconds = (client.World.Tick + session.Progress) / World.TicksPerSecond;
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
         if (_worldId != null && _role != "guest" && client.World.Tick - _lastSaveTick >= AutosaveTicks) SaveNow();
         var heard = client.TakeHeroes();
