@@ -37,6 +37,18 @@ public class PipesTests
         Assert.Null(w.M.Pipes.NetworkAt(-1));
     }
 
+    /// <summary>A pipe laid out in space, then taken up: what is built shrinks past it, and the network still loses it.</summary>
+    [Fact]
+    public void FindsANetworkAgainWhenAPipeAtTheEdgeOfWhatIsBuiltIsTakenUp()
+    {
+        var w = new Scenario(Layout.Parse(["---     "]));
+        w.Do(new Place(w.At(3, 0), Pipe)).Do(new Place(w.At(4, 0), Pipe)).Run();
+        Assert.Equal(new[] { (0, 5) }, Summary(w));
+        w.Do(new ClearAt(w.At(4, 0), "conduit")).Run();
+        Assert.Equal(new Box(0, 0, 3, 0), w.M.Grid.Built);
+        Assert.Equal(new[] { (0, 4) }, Summary(w));
+    }
+
     [Fact]
     public void JoinsPipesSideBySideOnlyNotCornerToCorner()
     {

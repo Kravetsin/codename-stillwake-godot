@@ -11,7 +11,9 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
   `Back`, and the materials of walls and back walls), `Machines` (in id order), `NextMachineId`.
   Derived, rebuilt after a load and kept current by every machine placed or cleared: `Occupancy`, the
   id of the machine covering each cell; `ById`, every machine by its id; `ByKind`, each kind's
-  machines in id order; and `Version`. A save
+  machines in id order; `Version`; and `Built`, the smallest box (`Box`, edges included) holding
+  every cell with anything in any layer or under a machine: grown by every placement, and moved in
+  past each edge line a removal leaves empty, so it stays tight. A save
   holds each layer as runs, `[value, count, …]` (`Runs` in Core), so empty space costs a save and
   its hash nothing.
 
@@ -32,7 +34,9 @@ free back slot: it stands behind anything, and in space.
 
 - **Queries** (`IGridQueries`): `Width`, `Height`; `Version` — bumped on every change to any layer or
   machine, by a command or an operation, never saved and 0 again after a load: a module deriving from
-  the grid (`rooms`, `pipes`, `atmosphere`) looks again only when it moved; every layer as codes, a
+  the grid (`rooms`, `pipes`, `atmosphere`) looks again only when it moved; `Built` — the box past
+  which every cell is empty space, never saved: `rooms` floods within it and `rooms` and `pipes`
+  compare their copies of the layers within it; every layer as codes, a
   cell each, live and read-only, as TypeScript's `layers()`: `StructureLayer`, `MaterialLayer` (a
   wall's material, 0 for none), `ConduitLayer`, `BackLayer`, `BackMaterialLayer`; `StructureAt(cell)`, `ConduitAt(cell)`,
   `MachineAt(cell)`, `MachineById(id)` — null for none or one taken apart —, `Machines` — every
@@ -70,6 +74,8 @@ hull walls included. A map's machines take ids 1, 2, … by their top-left cells
 - Machine ids only grow; a removed machine's id is never reused. `Machines` is in id order, and
   `ById` and `ByKind` hold exactly what a scan of it finds.
 - Every change to a layer or a machine bumps `Version`.
+- `Built` is the smallest box holding every cell with a structure, conduit, back wall or machine, as
+  a scan of them all finds it, after any change and after a load; `Box.None` when there is none.
 - Stored codes are part of the save format: never renumber them.
 
 ## Deliberately not handled

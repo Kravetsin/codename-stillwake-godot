@@ -16,6 +16,10 @@ public sealed class RoomsState
     [JsonIgnore] internal int[] BuiltBack { get; set; } = [];
     /// <summary>The grid's version last looked at.</summary>
     [JsonIgnore] internal int GridVersion { get; set; }
+    /// <summary>The grid's built box last looked at: the copies differ from the layers only within it and the box now.</summary>
+    [JsonIgnore] internal Box Looked { get; set; } = Box.None;
+    /// <summary>Where the rooms were last flooded: every cell outside it is space.</summary>
+    [JsonIgnore] internal Box Flooded { get; set; } = Box.None;
     /// <summary>Bumped each time rooms are found again, around a change or all of them.</summary>
     [JsonIgnore] internal int Version { get; set; }
     /// <summary>The ids found again at <see cref="Version"/>, ascending; null when every room was.</summary>
@@ -65,12 +69,14 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         {
             if (_grid.Version == State.GridVersion) return;
             State.GridVersion = _grid.Version;
-            var structure = Changes(_grid.StructureLayer, State.BuiltFrom);
-            var back = Changes(_grid.BackLayer, State.BuiltBack);
+            var window = _grid.Built.Union(State.Looked);
+            State.Looked = _grid.Built;
+            var structure = Changes(_grid.StructureLayer, State.BuiltFrom, window, _grid.Width);
+            var back = Changes(_grid.BackLayer, State.BuiltBack, window, _grid.Width);
             if (structure.Count == 0 && back.Count == 0) return;
-            var changed = structure.Count == 0 ? Reopen(back) : back.Count == 0 ? Reflood(structure) : null;
-            if (changed == null) FindAll();
-            else if (changed.Count > 0)
+            var changed = (structure.Count == 0 ? Reopen(back) : back.Count == 0 ? Reflood(structure) : null)
+                ?? FindInShip(back);
+            if (changed.Count > 0)
             {
                 State.Version++;
                 State.Changed = changed;
@@ -105,14 +111,69 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
     {
         State.BuiltFrom = _grid.StructureLayer.ToArray();
         State.BuiltBack = _grid.BackLayer.ToArray();
-        FindAll();
-    }
-
-    private void FindAll()
-    {
-        (State.RoomOf, State.Rooms) = Find(_grid.Width, _grid.Height, _grid.StructureLayer, _grid.BackLayer);
+        State.Looked = _grid.Built;
+        State.Flooded = _grid.Built;
+        State.RoomOf = new int[_grid.Width * _grid.Height];
+        Array.Fill(State.RoomOf, Space);
+        (var local, State.Rooms) = FindIn(_grid.Width, _grid.StructureLayer, _grid.BackLayer, State.Flooded);
+        CopyIn(local, State.Flooded, State.Flooded, null);
         State.Version++;
         State.Changed = null;
+    }
+
+    /// <summary>
+    /// Every room found again within the grid's built box, past which all is space, as <see cref="Find"/>
+    /// would over the whole grid; the ids that differ, gone and new, and those of the rooms at the
+    /// <paramref name="back"/> cells changed with it, which may leak differently with their cells unmoved.
+    /// </summary>
+    private List<int> FindInShip(List<int> back)
+    {
+        var ids = new List<int>();
+        var region = _grid.Built;
+        var (local, rooms) = FindIn(_grid.Width, _grid.StructureLayer, _grid.BackLayer, region);
+        CopyIn(local, region, region.Union(State.Flooded), ids);
+        State.Flooded = region;
+        foreach (int c in back)
+            if (State.RoomOf[c] >= 0) ids.Add(State.RoomOf[c]);
+        // Rooms whose cells stayed may still have new hull or openings.
+        var was = State.Rooms;
+        int i = 0, j = 0;
+        while (i < was.Count || j < rooms.Count)
+        {
+            if (j == rooms.Count || (i < was.Count && was[i].Id < rooms[j].Id)) ids.Add(was[i++].Id);
+            else if (i == was.Count || rooms[j].Id < was[i].Id) ids.Add(rooms[j++].Id);
+            else
+            {
+                if (!Same(was[i], rooms[j])) ids.Add(rooms[j].Id);
+                i++;
+                j++;
+            }
+        }
+        State.Rooms = rooms;
+        return [.. ids.Distinct().Order()];
+    }
+
+    private static bool Same(Room a, Room b) =>
+        a.Volume == b.Volume && a.Hull.SequenceEqual(b.Hull) && a.Openings.SequenceEqual(b.Openings);
+
+    /// <summary>
+    /// Writes <paramref name="local"/>, found over <paramref name="region"/>, into the rooms per cell, and
+    /// space over the rest of <paramref name="over"/>; the ids of every cell that moved go to <paramref name="ids"/>.
+    /// </summary>
+    private void CopyIn(int[] local, Box region, Box over, List<int>? ids)
+    {
+        var roomOf = State.RoomOf;
+        int width = _grid.Width;
+        for (int y = over.Top; y <= over.Bottom; y++)
+            for (int x = over.Left; x <= over.Right; x++)
+            {
+                int c = y * width + x;
+                int now = region.Contains(x, y) ? local[(y - region.Top) * region.Width + x - region.Left] : Space;
+                if (roomOf[c] == now) continue;
+                if (ids != null && roomOf[c] >= 0) ids.Add(roomOf[c]);
+                if (ids != null && now >= 0) ids.Add(now);
+                roomOf[c] = now;
+            }
     }
 
     /// <summary>Where room <paramref name="id"/> is in the rooms, which are in id order; negative for none.</summary>
@@ -129,14 +190,16 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         return -1;
     }
 
-    /// <summary>The cells where <paramref name="now"/> differs from <paramref name="was"/>, ascending; <paramref name="was"/> is brought up to date.</summary>
-    private static List<int> Changes(ReadOnlySpan<int> now, int[] was)
+    /// <summary>
+    /// The cells where <paramref name="now"/> differs from <paramref name="was"/>, ascending, looked for
+    /// within <paramref name="window"/>, outside which both are empty; <paramref name="was"/> is brought up to date.
+    /// </summary>
+    private static List<int> Changes(ReadOnlySpan<int> now, int[] was, Box window, int width)
     {
-        const int block = 1024;
         var cells = new List<int>();
-        for (int start = 0; start < now.Length; start += block)
+        for (int y = window.Top; y <= window.Bottom; y++)
         {
-            int end = Math.Min(start + block, now.Length);
+            int start = y * width + window.Left, end = start + window.Width;
             if (now[start..end].SequenceEqual(was.AsSpan(start, end - start))) continue;
             for (int c = start; c < end; c++)
                 if (now[c] != was[c]) { cells.Add(c); was[c] = now[c]; }
@@ -177,11 +240,20 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
     /// Splits the grid into space and rooms. An open cell in a wall line is an opening; space floods
     /// from the border never through one; a room is a component of what is left, openings included.
     /// </summary>
-    public static (int[] RoomOf, List<Room> Rooms) Find(int width, int height, ReadOnlySpan<int> structure, ReadOnlySpan<int> back)
+    public static (int[] RoomOf, List<Room> Rooms) Find(int width, int height, ReadOnlySpan<int> structure, ReadOnlySpan<int> back) =>
+        FindIn(width, structure, back, new Box(0, 0, width - 1, height - 1));
+
+    /// <summary>
+    /// <see cref="Find"/> over <paramref name="region"/> alone, its cells numbered within it, row by row.
+    /// Past its sides lies the grid's edge, or empty space, which a cell on a side sees as it sees the edge:
+    /// outside beyond, nothing solid.
+    /// </summary>
+    private static (int[] RoomOf, List<Room> Rooms) FindIn(int gridWidth, ReadOnlySpan<int> structure, ReadOnlySpan<int> back, Box region)
     {
-        int size = width * height;
+        int width = region.Width, size = width * region.Height;
+        int Cell(int c) => (region.Top + c / width) * gridWidth + region.Left + c % width;
         var solid = new bool[size];
-        for (int c = 0; c < size; c++) solid[c] = IsSolid(structure[c]);
+        for (int c = 0; c < size; c++) solid[c] = IsSolid(structure[Cell(c)]);
         var opening = new bool[size];
         for (int c = 0; c < size; c++)
         {
@@ -189,7 +261,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
             int x = c % width;
             bool across = x > 0 && x < width - 1 && solid[c - 1] && solid[c + 1];
             bool down = c >= width && c + width < size && solid[c - width] && solid[c + width];
-            opening[c] = structure[c] == Structure.DoorOpen || across || down;
+            opening[c] = structure[Cell(c)] == Structure.DoorOpen || across || down;
         }
         Span<int> near = stackalloc int[4];
 
@@ -223,7 +295,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
             index[start] = rooms.Count;
             hulls.Add([]);
             openings.Add([]);
-            rooms.Add(new Room(start, cells.Count, [], []));
+            rooms.Add(new Room(Cell(start), cells.Count, [], []));
         }
 
         // Openings and hull in one pass in cell order, so both come out sorted.
@@ -234,7 +306,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
             bool outside = Outside(roomOf, width, c);
             if (here != Solid)
             {
-                if (outside || back[c] != Back.Wall) openings[index[here]].Add(c);
+                if (outside || back[Cell(c)] != Back.Wall) openings[index[here]].Add(Cell(c));
                 continue;
             }
             if (!outside) continue;
@@ -246,10 +318,11 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
                 if (id < 0) continue;
                 bool seen = false;
                 for (int j = 0; j < i; j++) if (near[j] != Edge && roomOf[near[j]] == id) seen = true;
-                if (!seen) hulls[index[id]].Add(c);
+                if (!seen) hulls[index[id]].Add(Cell(c));
             }
         }
         for (int i = 0; i < rooms.Count; i++) rooms[i] = rooms[i] with { Hull = hulls[i], Openings = openings[i] };
+        for (int c = 0; c < size; c++) if (roomOf[c] >= 0) roomOf[c] = Cell(roomOf[c]);
         return (roomOf, rooms);
     }
 

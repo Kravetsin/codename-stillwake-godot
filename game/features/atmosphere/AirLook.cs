@@ -7,8 +7,8 @@ namespace Stillwake.Game.Features.Atmosphere;
 /// the overlay on only: every room's air in an ordered dither that drifts like a gas, its front lit,
 /// blended between cells, red and running to the opening while the room vents, a sparse grid of grey dots
 /// where a room holds none; and round the lifepod an aura of its air, a ragged blob about its reach whose
-/// edge wavers and thins out, never a box. Reads <see cref="AirField.Write"/>'s texture, a texel a cell,
-/// on a sprite scaled a cell a texel.
+/// edge wavers and thins out, never a box. Reads <see cref="AirField.Write"/>'s texture, a texel a cell of its region,
+/// on a sprite scaled a cell a texel and placed over the region, at `origin`.
 /// </summary>
 public static class AirLook
 {
@@ -18,6 +18,8 @@ public static class AirLook
             shader_type canvas_item;
             render_mode unshaded;
             uniform float cell = 16.0;
+            // Where the texture's first cell lies in the world, in pixels: it covers only what is built.
+            uniform vec2 origin = vec2(0.0);
             uniform bool overlay = false;
             // The lifepod's reach in pixels: left, top, right, bottom; none while right is not past left.
             uniform vec4 reach = vec4(0.0);
@@ -37,8 +39,8 @@ public static class AirLook
             void fragment() {
                 if (!overlay) discard;
                 ivec2 size = textureSize(TEXTURE, 0);
-                vec2 px = floor(UV * vec2(size) * cell);
-                vec4 own = texelFetch(TEXTURE, ivec2(px / cell), 0);
+                vec2 local = floor(UV * vec2(size) * cell), px = local + origin;
+                vec4 own = texelFetch(TEXTURE, ivec2(local / cell), 0);
                 if (own.a < 0.5) discard;
                 ivec2 ip = ivec2(px);
                 float threshold = (BAYER[(ip.y % 4) * 4 + ip.x % 4] + 0.5) / 16.0;
@@ -59,7 +61,7 @@ public static class AirLook
                     wisp = noise(px * 0.09 + vec2(t * 0.3, -t * 0.5));
                 }
                 // Blended between the four cells round this pixel, a cell out of every room counting as this one.
-                vec2 g = (px + 0.5) / cell - 0.5, corner = floor(g), f = g - corner;
+                vec2 g = (local + 0.5) / cell - 0.5, corner = floor(g), f = g - corner;
                 vec2 v = vec2(0.0);
                 for (int i = 0; i < 4; i++) {
                     vec2 o = vec2(float(i % 2), float(i / 2));

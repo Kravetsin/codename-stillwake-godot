@@ -130,8 +130,11 @@ public sealed partial class AtmosphereModule
                 foreach (int cell in cells)
                     if (s.AiredAt[cell]) s.AiredIn[id] += 1;
             var roomOf = _rooms.RoomOfCells;
+            // Space moves with a change beside it: the vents standing in it are gathered again too.
+            s.VentsIn.Remove(RoomsModule.Space);
             foreach (var (cell, network) in s.Vents)
-                if (roomOf[cell] >= 0 && changed.BinarySearch(roomOf[cell]) >= 0) AddTo(s.VentsIn, roomOf[cell], network);
+                if (roomOf[cell] == RoomsModule.Space || (roomOf[cell] >= 0 && changed.BinarySearch(roomOf[cell]) >= 0))
+                    AddTo(s.VentsIn, roomOf[cell], network);
             s.Rooms = _rooms.Version;
         }
         if (_leaksFor == was)

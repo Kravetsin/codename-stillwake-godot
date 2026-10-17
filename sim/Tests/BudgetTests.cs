@@ -101,6 +101,29 @@ public class BudgetTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// The reference ship in a world of space, a hull wall beside space taken apart and built again every
+    /// tick: rooms are flooded again within the ship's box, so the world around it costs nothing.
+    /// </summary>
+    [Theory]
+    [InlineData(1024, 512)]
+    [InlineData(2048, 1024)]
+    public void KeepsABreachBesideSpaceAsCheapInALargeWorldAsTheShipIs(int width, int height)
+    {
+        const int margin = 8;
+        var w = new Scenario(Reference(width, height, margin: margin));
+        int wall = w.At(margin + 9, margin);
+        Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(wall));
+        Time(w.World, 100, _ => []);
+        IReadOnlyList<Command> Breach(int i) => [i % 2 == 0 ? new ClearAt(wall, "structure") : new Place(wall, Placement.Wall())];
+        Time(w.World, 10, Breach);
+        var breaching = Time(w.World, 100, Breach);
+        Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(wall));
+        output.WriteLine($"{width}×{height}, the reference ship {margin} cells in: rooms {w.M.Rooms.All.Count}");
+        output.WriteLine($"tick breaching and mending a hull wall: {breaching.Mean:F3} ms mean, {breaching.Max:F3} ms max");
+        Assert.True(breaching.Mean < 15, "a breach costs the world, not the ship");
+    }
+
+    /// <summary>
     /// A thousand furnaces and a thousand analyzers at work, in aired rooms of their own: each finds its
     /// machine, slots and records at once, so the tick grows with the machines, not with their square.
     /// </summary>

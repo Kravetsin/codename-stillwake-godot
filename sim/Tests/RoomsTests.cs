@@ -198,6 +198,78 @@ public class RoomsTests
         });
     }
 
+    /// <summary>
+    /// A breach beside space floods only the ship's box, not the world around it, and names the rooms it
+    /// changed: the room breached, under its new id, and no other.
+    /// </summary>
+    [Fact]
+    public void FindsABreachBesideSpaceWithinTheShipAndNamesOnlyTheRoomBreached()
+    {
+        var w = new Scenario(Layout.Parse([
+            "                    ",
+            "  #######           ",
+            "  #..#..#           ",
+            "  #######           ",
+            "                    ",
+            "                    ",
+        ]));
+        Assert.Equal(new Box(2, 1, 8, 3), w.M.Grid.Built);
+        int version = w.M.Rooms.Version;
+        w.Do(new ClearAt(w.At(3, 1), "structure")).Run();
+        Assert.Equal(new[] { w.At(3, 1), w.At(3, 2) }, w.M.Rooms.ChangedSince(version));
+        Assert.Equal(new[] { (w.At(3, 1), 3), (w.At(6, 2), 2) }, Summary(w));
+        Assert.Equal(new[] { w.At(3, 1) }, w.M.Rooms.RoomById(w.At(3, 1))!.Openings);
+    }
+
+    /// <summary>
+    /// A back wall taken from behind a room's hole on the tick another room is breached: the room keeps its
+    /// cells, hull and openings, but is named, as what its air leaks through changed.
+    /// </summary>
+    [Fact]
+    public void NamesARoomWhoseBackWallChangedOnTheTickOfABreach()
+    {
+        var w = new Scenario(Layout.Parse([
+            "                    ",
+            "  #.#####           ",
+            "  #..#..#           ",
+            "  #######           ",
+            "                    ",
+        ]));
+        var leaks = w.M.Atmosphere.RoomsAir().Select(r => (r.Room, r.Leak)).ToList();
+        var hole = w.M.Rooms.RoomById(w.At(3, 1))!;
+        int version = w.M.Rooms.Version;
+        w.Do(new ClearAt(w.At(3, 1), "back")).Do(new ClearAt(w.At(6, 1), "structure")).Run();
+        Assert.Equal(new[] { w.At(3, 1), w.At(6, 1), w.At(6, 2) }, w.M.Rooms.ChangedSince(version));
+        Assert.Equal(Of(hole), Of(w.M.Rooms.RoomById(w.At(3, 1))!));
+        var now = w.M.Atmosphere.RoomsAir().Select(r => (r.Room, r.Leak)).ToList();
+        Assert.NotEqual(leaks[0], now[0]);
+        Assert.Equal(now, w.Reload().M.Atmosphere.RoomsAir().Select(r => (r.Room, r.Leak)));
+    }
+
+    /// <summary>A room built out in space grows the ship's box, and is found in it; taken apart, the box shrinks back.</summary>
+    [Fact]
+    public void FindsARoomBuiltOutInSpaceAndForgetsItWhenTakenApart()
+    {
+        var w = new Scenario(Layout.Parse([
+            "                    ",
+            "  #####             ",
+            "  #...#             ",
+            "  #####             ",
+            "                    ",
+            "                    ",
+        ]));
+        var ring = new[] { (14, 2), (15, 2), (16, 2), (14, 3), (16, 3), (14, 4), (15, 4), (16, 4) }.Select(p => w.At(p.Item1, p.Item2)).ToList();
+        foreach (int cell in ring) w.Do(new Place(cell, Placement.Wall()));
+        w.Run();
+        Assert.Equal(new Box(2, 1, 16, 4), w.M.Grid.Built);
+        Assert.Equal(new[] { (w.At(3, 2), 3), (w.At(15, 3), 1) }, Summary(w));
+        foreach (int cell in ring) w.Do(new ClearAt(cell, "structure"));
+        w.Run();
+        Assert.Equal(new Box(2, 1, 6, 3), w.M.Grid.Built);
+        Assert.Equal(new[] { (w.At(3, 2), 3) }, Summary(w));
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(15, 3)));
+    }
+
     private static readonly char[] Inside = ['.', '.', '#', '#', '=', 'H', 'D', 'd'];
 
     /// <summary>A hull <paramref name="width"/> by <paramref name="height"/> filled with <paramref name="inside"/>, in <paramref name="margin"/> cells of space.</summary>
@@ -216,29 +288,34 @@ public class RoomsTests
         return [.. rows];
     }
 
-    /// <summary>An edit drawn for a cell: built on if empty, toggled or taken apart if a door, taken apart otherwise; or its back wall built or taken.</summary>
-    private static Command Edit(GridModule grid, int cell, int kind)
+    /// <summary>
+    /// An edit drawn for a cell: built on if empty, toggled or taken apart if a door, taken apart otherwise;
+    /// its back wall built or taken; or the cell left empty, so what is built shrinks.
+    /// </summary>
+    private static Command[] Edit(GridModule grid, int cell, int kind)
     {
-        if (kind >= 7) return grid.BackLayer[cell] == Back.Wall ? new ClearAt(cell, "back") : new Place(cell, Placement.BackWall());
+        if (kind >= 10) return [new ClearAt(cell, "structure"), new ClearAt(cell, "back")];
+        if (kind >= 7) return [grid.BackLayer[cell] == Back.Wall ? new ClearAt(cell, "back") : new Place(cell, Placement.BackWall())];
         int structure = grid.StructureAt(cell);
         if (structure == Structure.Empty)
-            return new Place(cell, (kind % 4) switch
+            return [new Place(cell, (kind % 4) switch
             {
                 0 => Placement.Wall(),
                 1 => new Placement("structure", "door"),
                 2 => new Placement("structure", "floor"),
                 _ => new Placement("structure", "ladder"),
-            });
-        if (structure is Structure.DoorClosed or Structure.DoorOpen && kind < 4) return new ToggleDoor(cell);
-        return new ClearAt(cell, "structure");
+            })];
+        if (structure is Structure.DoorClosed or Structure.DoorOpen && kind < 4) return [new ToggleDoor(cell)];
+        return [new ClearAt(cell, "structure")];
     }
 
     private static string Of(Room r) => $"{r.Id}:{r.Volume}:{string.Join(",", r.Hull)}:{string.Join(",", r.Openings)}";
 
     /// <summary>
     /// The rooms found around each change are those found from scratch, whatever is built, taken apart
-    /// or opened, beside space and the grid's edge or far from both, rooms joined or split; and every
-    /// room that differs from the tick before is among those the rooms say changed.
+    /// or opened, beside space and the grid's edge or far from both, rooms joined or split, the built box
+    /// grown by building out in space and shrunk by clearing its edge; and every room that differs from
+    /// the tick before is among those the rooms say changed.
     /// </summary>
     [Property(MaxTest = 400)]
     public Property FindsTheSameRoomsAroundAChangeAsFromScratch()
@@ -246,7 +323,7 @@ public class RoomsTests
         var ships =
             from width in Gen.Choose(3, 20)
             from height in Gen.Choose(3, 16)
-            from margin in Gen.Choose(0, 3)
+            from margin in Gen.Choose(0, 5)
             from inside in Gen.Elements(Inside).ArrayOf(width * height)
             select Ship(width, height, margin, inside);
         var anything =
@@ -256,7 +333,7 @@ public class RoomsTests
             select Enumerable.Range(0, height).Select(y => new string(cells, y * width, width)).ToArray();
         var edit =
             from cell in Gen.Choose(0, 1 << 20)
-            from kind in Gen.Choose(0, 9)
+            from kind in Gen.Choose(0, 11)
             from together in Gen.Frequency((3, Gen.Constant(false)), (1, Gen.Constant(true)))
             select (cell, kind, together);
         var gen =
@@ -283,7 +360,7 @@ public class RoomsTests
                     var broken = Differs(grid, rooms, before, version);
                     if (broken != null) return false.Label(broken);
                 }
-                pending.Add(Edit(grid, cell % size, kind));
+                pending.AddRange(Edit(grid, cell % size, kind));
             }
             return true.ToProperty();
         });

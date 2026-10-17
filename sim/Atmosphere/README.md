@@ -74,7 +74,8 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
   the grid's `Version` moved: only a machine taken apart leaves a tank's oxygen with no machine.
 - **The survey** — vents by room, tanks and generators by network, aired cells by room — is kept
   between ticks and gathered again in one pass only when the pipes' `Version` moved or every room
-  was found again; around a change, only the changed rooms' counts and vents are redone.
+  was found again; around a change, only the changed rooms' counts and vents are redone, and the vents
+  standing in space, which a breach beside space may move.
   Generators' satisfaction and the tanks holding oxygen are read again on the first call after they
   may have changed: a canister loaded, a tank taken apart, or atmosphere's system starting a tick,
   with power found again in derivation and generators' new stores yet to come. A tank emptied since
