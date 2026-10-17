@@ -1,6 +1,7 @@
 # 0009 — Debris flies around the ship, each piece at its own speed
 
-- Status: accepted
+- Status: accepted; the stream as the only place debris spawns, and the rejection of spawning where
+  players are, superseded by [0052](0052-debris-by-zones-around-every-hero.md)
 - Date: 2026-10-11
 - Supersedes: in [0006](0006-debris-in-the-simulation.md), the rejection of a speed per piece and the
   fixed band of rows

@@ -2,6 +2,7 @@ using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Crew;
+using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Rooms;
@@ -20,9 +21,14 @@ public class DesyncTests
     [MemberData(nameof(Seeds))]
     public void KeepsEveryClientInSyncOnTheStartingWreck(uint seed)
     {
-        var run = Desync.Fuzz(Definition.Game(), seed, layout: Registry.Wreck);
+        // Heroes entered anywhere on the big world: the far field round them spawns, drifts and is gone in sync too.
+        var game = Definition.Game();
+        int far = 0;
+        var run = Desync.Fuzz(game, seed, layout: Registry.Wreck, tamper: (_, clients) =>
+            far = Math.Max(far, game.Module<DebrisModule>(clients[0].World).Pieces.Count(p => p.Zone == Content.Debris.Far.Id)));
         Assert.Null(run.Desync);
         Assert.Equal(600, run.Ticks);
+        Assert.True(far > 0, "no far piece spawned");
     }
 
     [Fact]
