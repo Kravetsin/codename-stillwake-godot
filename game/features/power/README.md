@@ -13,6 +13,7 @@ Cables hanging between their nodes and the power tab's overlay, where they are l
 | `CableRopes.cs` | every cable as ropes, a rope per piece, hanging aboard and floating outside; carried ends, landings and cables just laid (`ropes.ts`) | no    |
 | `PowerHands.cs` | the hands on the power tab: the Cable card lays and leads on through supports, no card carries a peg or plug, a middle press near a cable cuts (`mode.ts`) | no    |
 | `PowerView.cs`  | the cables, pegs, plugs, grommets and bolts; the overlay, its colours and the ghost    | yes   |
+| `ChargerLights.cs` | each charging station's light and the battery in its bay (0053)                     | yes   |
 
 `game/render/CableShape.cs` (`render/cable.ts`: ends, hangs, pieces through the hull) and
 `game/render/Rope.cs` (the tether's rope, now also started from given points and brushed by bodies)
@@ -20,6 +21,13 @@ are shared. Ported tests: `cable.test.ts`, `ropes.test.ts`, `wiring.test.ts`; be
 moving on every frame at 240 Hz, let go between two steps, and moved off a hull crossing.
 
 ## Guarantees
+
+- **A charging station without a word** (`ChargerLights`, made by `Main.ShowWorld` with the registry):
+  its light pulses green while it charges (`IPowerQueries.Charges`), shines steady once its battery is
+  full on a network that makes power, and is dark empty or unpowered; a battery in its bay shows with
+  its charge rising up it, amber under a quarter. Drawn unlit over its picture, the light lighting the
+  room round it a little in the same green (a `Glow`), none while dark. Read every 100 ms; the pulse
+  runs every frame. The picture is a placeholder (a cabinet, a light, a bay) until art is picked.
 
 - A cable is the same rope throughout: laid, it is the rope it was dragged as from the first press; a
   carried end is the real cable, highlighted white (red where it may not be let go); dropped on a node

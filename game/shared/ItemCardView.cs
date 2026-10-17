@@ -36,6 +36,9 @@ public static class ItemCardView
     private static readonly LabelSettings EnoughText = Style.Text(Style.Mono, 12, Style.Green400);
     private static readonly LabelSettings ShortText = Style.Text(Style.Mono, 12, Style.Red300);
     private static readonly LabelSettings FromText = Style.Text(Style.Mono, 10, Style.Slate500);
+    /// <summary>Charge's green: the meter's words and its bar (the charge mockup).</summary>
+    public static readonly Color Green = new(Charges.Green);
+    private static readonly LabelSettings ChargeText = Style.Text(BoldMono, 10, Green);
 
     /// <summary>The card of <paramref name="card"/>, sized to its content.</summary>
     public static Control Build(ItemCard card)
@@ -47,6 +50,7 @@ public static class ItemCardView
         (edge.ShadowColor, edge.ShadowSize, edge.ShadowOffset) = (new Color(0, 0, 0, 0.45f), 7, new Vector2(0, 4));
         var ring = Style.Box(Style.Slate950 with { A = 0.95f }, Ring, padding: 1, radius: 0);
         var column = Column(0, Head(card));
+        if (card.Charge is { } charge) column.AddChild(Meter(charge));
         if (card.Tiles is { } tiles) column.AddChild(Tiles(tiles));
         if (Body(card) is { } body) column.AddChild(body);
         if (card.Unknown) column.AddChild(UnknownBand());
@@ -67,11 +71,50 @@ public static class ItemCardView
         var frameBox = Style.Box(Style.Slate900, Style.Slate700, radius: 3);
         frameBox.SetBorderWidthAll(2);
         frameBox.SetContentMarginAll(2);
-        var frame = Boxed(frameBox, Icon(card.Item, 40));
+        var frame = Boxed(frameBox, Icon(card.Picture, 40));
         frame.CustomMinimumSize = new Vector2(52, 52);
         frame.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
         var name = Text(card.Name, NameText);
         return Boxed(box, Column(2, frame, Spacer(4), name, Text(card.Kind, card.Tool ? ToolKindText : KindText)));
+    }
+
+    /// <summary>
+    /// The charge mockup's meter, <c>border-t-2 border-slate-800 px-2.5 py-2 gap-1</c>: "CHARGE" and, in green,
+    /// the percent and the seconds of drilling left; under them an 8 px bar of what it holds.
+    /// </summary>
+    private static Control Meter(ChargeMeter charge)
+    {
+        var box = new StyleBoxFlat
+        {
+            BgColor = Colors.Transparent,
+            BorderColor = Style.Slate800,
+            BorderWidthTop = 2,
+            ContentMarginLeft = Pad,
+            ContentMarginRight = Pad,
+            ContentMarginTop = 8,
+            ContentMarginBottom = 8,
+        };
+        var top = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        var name = Text(T("card.charge").ToUpperInvariant(), CraftText);
+        name.HorizontalAlignment = HorizontalAlignment.Left;
+        name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        top.AddChild(name);
+        top.AddChild(Text(T("card.chargeLeft", ("n", charge.Percent), ("s", charge.Seconds)), ChargeText));
+        return Boxed(box, Column(4, top, Gauge(charge.Share, 8)));
+    }
+
+    /// <summary>A bar <paramref name="height"/> px tall, <c>bg-[#0b1220] border border-slate-700</c>, filled in charge's green to <paramref name="share"/>.</summary>
+    public static Control Gauge(float share, int height)
+    {
+        var track = new Panel { CustomMinimumSize = new Vector2(0, height), MouseFilter = Control.MouseFilterEnum.Ignore };
+        track.AddThemeStyleboxOverride("panel", Style.Box(new Color("0b1220"), Style.Slate700, radius: 2));
+        var fill = new ColorRect { Color = Green, MouseFilter = Control.MouseFilterEnum.Ignore };
+        track.AddChild(fill);
+        fill.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        (fill.OffsetLeft, fill.OffsetTop, fill.OffsetBottom) = (1, 1, -1);
+        fill.AnchorRight = Mathf.Clamp(share, 0, 1);
+        fill.OffsetRight = share >= 1 ? -1 : 0;
+        return track;
     }
 
     /// <summary><c>grid-cols-3 border-y-2 border-slate-800</c>, each tile after the first ruled on its left, the first in amber.</summary>

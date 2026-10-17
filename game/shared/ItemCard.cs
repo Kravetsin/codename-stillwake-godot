@@ -40,8 +40,8 @@ public sealed record StationBlock(string? Seconds, IReadOnlyList<CraftRow> Rows,
 /// <summary>
 /// What the one tooltip shows over an item (<c>PointerTip</c>), the plaque of the card mockup: its icon
 /// large, its name and kind. A tool adds its tiles, its effects, what it works on and how it is
-/// used; anything else, what it goes into. A violet band while it is not analysed; a station's block at
-/// the bottom where one adds it. Equal by what it says, as <see cref="Tip"/> is.
+/// used; anything else, what it goes into. A battery's charge under the head. A violet band while it is not
+/// analysed; a station's block at the bottom where one adds it. Equal by what it says, as <see cref="Tip"/> is.
 /// </summary>
 /// <param name="Item">The item, whose icon heads the card.</param>
 /// <param name="Tiles">A tool's tiles, its key number first; null for an item that is no tool.</param>
@@ -58,11 +58,17 @@ public sealed record ItemCard(
     /// <summary>What the station the item is shown in adds; null elsewhere.</summary>
     public StationBlock? Station { get; init; }
 
+    /// <summary>What this one holds, a battery's charge, under the head; null for an item that holds none.</summary>
+    public ChargeMeter? Charge { get; init; }
+
+    /// <summary>The picture heading the card: its item's, or the empty battery's for one holding no charge.</summary>
+    public string Picture { get; init; } = Item;
+
     public bool Equals(ItemCard? other) =>
         other is not null && Item == other.Item && Name == other.Name && Kind == other.Kind
         && (Tiles == null ? other.Tiles == null : other.Tiles != null && Tiles.SequenceEqual(other.Tiles))
         && Effects.SequenceEqual(other.Effects) && Uses.SequenceEqual(other.Uses) && Use == other.Use
-        && Unknown == other.Unknown && Equals(Station, other.Station);
+        && Unknown == other.Unknown && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture;
 
     public override int GetHashCode()
     {
@@ -71,6 +77,8 @@ public sealed record ItemCard(
         hash.Add(Name);
         hash.Add(Unknown);
         hash.Add(Station);
+        hash.Add(Charge);
+        hash.Add(Picture);
         foreach (var effect in Effects) hash.Add(effect);
         foreach (var use in Uses) hash.Add(use);
         foreach (var tile in Tiles ?? []) hash.Add(tile);

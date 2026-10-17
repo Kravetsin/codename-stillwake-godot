@@ -1,6 +1,7 @@
 using System;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Items;
 
 namespace Stillwake.Game.Features.Items;
@@ -54,6 +55,9 @@ public partial class SlotBox : Panel
         MouseFilter = MouseFilterEnum.Ignore,
     };
     private readonly Label _mark = Mark();
+    /// <summary>A battery's charge, a thin bar along the icon's foot (0053): no numbers.</summary>
+    private readonly ColorRect _track = new() { Color = new Color("0b1220"), MouseFilter = MouseFilterEnum.Ignore, Visible = false };
+    private readonly ColorRect _fill = new() { MouseFilter = MouseFilterEnum.Ignore };
 
     public SlotBox() : this(new Place(0)) { }
 
@@ -64,6 +68,11 @@ public partial class SlotBox : Panel
         AddChild(_icon);
         _icon.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, LayoutPresetMode.Minsize, 4);
         AddChild(_mark);
+        AddChild(_track);
+        // The charge mockup's 3 px bar, inset along the foot: 4 px from the sides of a 36 px slot, 3 from its bottom.
+        _track.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide);
+        (_track.OffsetLeft, _track.OffsetRight, _track.OffsetTop, _track.OffsetBottom) = (4, -4, -6, -3);
+        _track.AddChild(_fill);
         AddChild(_count);
         _count.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         _count.OffsetRight = -2;
@@ -102,9 +111,21 @@ public partial class SlotBox : Panel
             _ => hovered ? Hover : stack != null ? Worn : Unworn,
         };
         AddThemeStyleboxOverride("panel", box);
-        _icon.Texture = stack == null ? null : ItemIcons.Icon(stack.Item);
+        _icon.Texture = stack == null ? null : ItemIcons.Icon(Charges.Picture(stack.Item, stack.Charge));
+        ShowCharge(stack);
         _count.Text = stack is { Count: > 1 } ? stack.Count.ToString() : "";
         Modulate = picked ? new Color(1, 1, 1, 0.4f) : glow == SlotGlow.Refuses ? new Color(1, 1, 1, Refused) : Colors.White;
+    }
+
+    /// <summary>The thin bar of a battery's charge, green, amber under a quarter, empty at none; hidden for any other item.</summary>
+    private void ShowCharge(Stack? stack)
+    {
+        var bar = stack == null ? null : Charges.BarOf(stack);
+        _track.Visible = bar != null;
+        if (bar == null) return;
+        _fill.Color = bar == ChargeBar.Low ? new Color(Charges.Amber) : new Color(Charges.Green);
+        _fill.Visible = bar != ChargeBar.Flat;
+        _fill.Size = new Vector2(Mathf.Max(1, Mathf.Round((CustomMinimumSize.X - 8) * Charges.Share(stack!))), 3);
     }
 
     /// <summary>The left button acts as it goes down, so a press can begin a drag; a click is a press let go.</summary>

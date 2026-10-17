@@ -145,7 +145,8 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
 - `Danger.Read` counts the lifepod's air (`ICrewQueries.ByPod`) as room air: a low suit by the pod
   fills, so the gauge shows it filling and no danger.
 - `SuitGauge`, a layer of its own made by `Main`, and `SuitColours`, a row `Main` hands the game menu
-  (`game/menu`), read the sim four times a second, the row only while shown.
+  (`game/menu`), read the sim four times a second, the row only while shown. The items feature's
+  energy bar (`EnergyBar`, 0053) sits right of the gauge, drawn as it is, while an electric tool is held.
 - The host passes `crew`'s `Leave` as the farewell of a peer whose link closes (`Main.Host`).
 - The tether's anchor is the controller's own (0007), sent with the hero.
 

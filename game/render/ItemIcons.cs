@@ -29,7 +29,12 @@ public static class ItemIcons
     /// </summary>
     public static void MakeSilhouettes()
     {
-        foreach (var item in Content.Items.All) Silhouette(item.Id);
+        foreach (var item in Content.Items.All)
+        {
+            Silhouette(item.Id);
+            // An empty battery lies on the floor in its own picture (0053).
+            if (item.Capacity != null) Silhouette($"{item.Id}_empty");
+        }
     }
 
     /// <summary>The picture of <paramref name="item"/> with every pixel drawn white, its clear ones clear.</summary>

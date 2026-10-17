@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Rooms;
 using FloorSpec = Stillwake.Content.Floor;
@@ -70,7 +71,7 @@ public partial class FloorLayer : Node2D
         {
             if (!_shown.TryGetValue(s.Id, out var one))
             {
-                one = PictureOf(s.Item);
+                one = PictureOf(Charges.Picture(s.Item, s.Charge));
                 _shown[s.Id] = one;
                 AddChild(one.View);
             }

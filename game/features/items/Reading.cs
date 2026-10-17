@@ -36,6 +36,13 @@ public sealed record Reading(
         return new Tip(card.Name) { Card = card };
     }
 
+    /// <summary>The one tooltip over <paramref name="stack"/>: its item's card, with what this one holds of its own, a battery's charge.</summary>
+    public Tip TipOf(Stack stack)
+    {
+        var tip = TipOf(stack.Item);
+        return tip with { Card = tip.Card! with { Charge = Charges.MeterOf(stack), Picture = Charges.Picture(stack.Item, stack.Charge) } };
+    }
+
     /// <summary>
     /// Peer <paramref name="peer"/>'s inventory and crate <paramref name="crate"/> as its commands in flight,
     /// <paramref name="inFlight"/>, will leave them.
