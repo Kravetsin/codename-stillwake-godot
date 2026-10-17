@@ -12,7 +12,7 @@ P brings every pipe network out of the dimmed ship in a colour of its own, porte
 
 - Oxygen runs from tanks holding some and powered generators; a network none feeds is faded and still.
 - Read every 250 ms once the world ticked; the dots move every frame. `flow.test.ts` is ported.
-- Valves are kept up with the grid's log (`Valves`, 0050): only the cells changed since the last read are
+- Valves are kept up with the grid's log (`Valves`, 0051): only the cells changed since the last read are
   looked at. A grid not seen before, or one whose log no longer reaches back, is looked at within its
   `Built` only, where every conduit is: a big world of space costs nothing. `BuiltBoundsTests` holds
   them to a whole look.

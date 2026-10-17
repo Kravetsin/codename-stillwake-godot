@@ -58,7 +58,7 @@ public sealed class GridState
     [JsonIgnore] internal int Version { get; set; }
     /// <summary>Derived: the smallest box holding every cell with anything in it, kept tight by every change.</summary>
     [JsonIgnore] internal Box Built { get; set; } = Box.None;
-    /// <summary>Derived: every write to a layer or a machine's cells since the last load, as far back as it holds (0050).</summary>
+    /// <summary>Derived: every write to a layer or a machine's cells since the last load, as far back as it holds (0051).</summary>
     [JsonIgnore] internal ChangeLog Log { get; set; } = null!;
 }
 

@@ -159,7 +159,7 @@ debris and sim sections, not in what this slice touched.
 ### F-7 — The grid keeps a log of changed cells ✅
 
 The grid logs every write to a layer or a machine's cells — the version, the cell, the layer, what it
-held — in a ring of 65,536 writes, derived, never saved or hashed (0050). `ChangedSince(version)` names
+held — in a ring of 65,536 writes, derived, never saved or hashed (0051). `ChangedSince(version)` names
 the cells that differ since then, ascending, with the layers that do, exactly: a cell changed and
 changed back is not named. Null when the log no longer reaches back or the version is no version of
 this grid; every reader then looks at everything again, as on its first look. Every reader moved to

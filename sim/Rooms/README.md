@@ -21,7 +21,7 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
   edge beyond. Both in cell order.
 - Rooms are looked at again, by a derivation system, only on a tick the grid's `Version` moved: then
   the grid's log names the cells whose structure or back wall changed since the rooms were last found
-  (`IGridQueries.ChangedSince`, 0050). When the log no longer reaches back that far, every room is
+  (`IGridQueries.ChangedSince`, 0051). When the log no longer reaches back that far, every room is
   found again as after a load.
   - Back walls alone: each changed cell joins or leaves its room's openings, no flood.
   - Structure, with back walls or not: only what a change can move is labelled again — the changed
@@ -75,4 +75,4 @@ leaves what is built: a wall built in a courtyard of the ship, open to space onl
 walks the courtyard. A load floods within the built box, the ship: every cell outside it is empty, so
 space, reached straight away from the box; a cell on the box's side sees outside beyond and nothing
 solid, as one on the grid's edge does, so no ring around the box is needed. The grid logs every write
-to its layers (0050), so no change goes unseen.
+to its layers (0051), so no change goes unseen.

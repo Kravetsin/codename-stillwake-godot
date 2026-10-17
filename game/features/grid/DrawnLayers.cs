@@ -9,7 +9,7 @@ namespace Stillwake.Game.Features.Grid;
 /// <summary>
 /// The grid's five layers as <see cref="GridView"/> last drew them, this peer's toggles in flight made
 /// (0014), and the cells that changed since. The grid is looked at again only when its version moved, and
-/// then only at the cells its log names (0050); the first time, or when the log let go of them, within what
+/// then only at the cells its log names (0051); the first time, or when the log let go of them, within what
 /// is built now and was at the last look (<see cref="BuiltRows"/>). The cells a toggle in flight shows
 /// apart, now or last time, are looked at every time. Plain C#, so it is tested.
 /// </summary>

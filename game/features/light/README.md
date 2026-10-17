@@ -8,7 +8,7 @@ Numbers from `game/Content/Light.cs`.
   `Machines` (lamps, fires; machines dim starlight), `MachineAt`, `Width`/`Height`, `Version`,
   `ChangedSince` and `Built`; `Particles.Shared` (what glows); every `render/Glow` in the tree (a
   planner's screen).
-- **Costs the cells changed, not the ship or the world** (F-7, 0050). `LightView.Sync` after a tick
+- **Costs the cells changed, not the ship or the world** (F-7, 0051). `LightView.Sync` after a tick
   does nothing while the grid's `Version` stands; when it moved, the grid's log names the cells changed
   since its last look. A cell whose structure changed has its texel of the occupancy texture set again
   (`Lightmap.Follow`); one past the texture lays the texture out anew over `Built`, whose corner the

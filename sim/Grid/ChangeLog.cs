@@ -20,7 +20,7 @@ public readonly record struct CellChange(int Cell, GridLayers Layers);
 
 /// <summary>
 /// Every write to the grid's layers, oldest first, as the version it was made under, the cell, the layer and
-/// what the cell held before (0050). A ring: once full, the oldest write goes, and the versions it covered
+/// what the cell held before (0051). A ring: once full, the oldest write goes, and the versions it covered
 /// can no longer be answered. Derived: never saved, empty after a load.
 /// </summary>
 internal sealed class ChangeLog

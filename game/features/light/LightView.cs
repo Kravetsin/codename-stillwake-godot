@@ -87,7 +87,7 @@ public partial class LightView : Node2D
 
     /// <summary>
     /// Brings what stops light, starlight and lamps up to the grid: called after each tick, nothing done
-    /// while the grid's version stands, and then only for the cells its log names (0050).
+    /// while the grid's version stands, and then only for the cells its log names (0051).
     /// </summary>
     public void Sync()
     {

@@ -19,7 +19,7 @@ unchanged.
   connect it.
 - Networks are found again on the tick a conduit or machine changes: a system in the derivation phase
   asks the grid's log, on each tick its `Version` moved, for the cells changed since the networks were
-  found (0050), and finds them again, bumping `Version`, when a conduit or a machine is among them, or
+  found (0051), and finds them again, bumping `Version`, when a conduit or a machine is among them, or
   the log no longer reaches back that far. Read networks in systems at or after derivation, never in
   commands or construction.
 

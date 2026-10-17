@@ -15,7 +15,7 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   on the frame this peer sends a door or valve toggle, which shows at once, before its tick runs (0014). It
   brings what it drew (`DrawnLayers`, plain C#) up to the grid and redraws only the changed cells and
   their four neighbours; machines are redrawn when the list changes. Nothing is rebuilt per frame.
-- **Costs the cells changed, not the ship or the world** (F-7, 0050). When the grid's `Version` moved, the
+- **Costs the cells changed, not the ship or the world** (F-7, 0051). When the grid's `Version` moved, the
   cells its log names since the last look (`ChangedSince`) are compared with what was drawn; machines
   are compared only when the log names a machine's cell. The first drawing, or a look the log no
   longer reaches back to, compares within what is built now and was at the last look

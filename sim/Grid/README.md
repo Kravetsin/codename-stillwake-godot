@@ -22,7 +22,7 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
   holds each layer as runs, `[value, count, …]` (`Runs` in Core), so empty space costs a save and
   its hash nothing.
 - **Files:** `Grid.cs` — the module, its state, queries and operations; `ChangeLog.cs` — the log of
-  changed cells (0050).
+  changed cells (0051).
 
 ## Layers
 
@@ -47,7 +47,7 @@ free back slot: it stands behind anything, and in space.
   machine covering the cell, by id): a cell changed and changed back is not named, and none while the
   version is current. Null when the log no longer reaches back to the version, or it is not one this
   grid has had (later than now; any version from before a load, which brings a new grid): the reader
-  then looks at the whole grid again, as on its first look (0050). Every reader of the grid follows
+  then looks at the whole grid again, as on its first look (0051). Every reader of the grid follows
   it — rooms, pipes, atmosphere; the client's tile view, light, starlight and pipes overlay — and
   keeps the version it last saw, and the grid with it; `Built` — the box past which every cell is
   empty space, never saved: `rooms` floods within it after a load, `rooms` walks space until it leaves

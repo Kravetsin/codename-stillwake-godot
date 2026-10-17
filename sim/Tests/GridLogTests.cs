@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The grid's log of changed cells (0050): what it names, how far back it reaches, and readers that fall behind it.</summary>
+/// <summary>The grid's log of changed cells (0051): what it names, how far back it reaches, and readers that fall behind it.</summary>
 public class GridLogTests
 {
     private static readonly GridLayers[] Layers =

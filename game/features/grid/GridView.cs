@@ -16,7 +16,7 @@ namespace Stillwake.Game.Features.Grid;
 /// picture: back walls behind everything, pipes and valves in front of them, then walls with their
 /// edges, floors and ladders, doors, and machines over their footprints with a socket where power
 /// plugs in. <see cref="Sync"/> compares what was drawn (<see cref="DrawnLayers"/>) with the cells the grid's
-/// log names (0050) and redraws only the cells that changed and their neighbours, whose edges and
+/// log names (0051) and redraws only the cells that changed and their neighbours, whose edges and
 /// links reach toward them.
 /// </summary>
 public partial class GridView : Node2D

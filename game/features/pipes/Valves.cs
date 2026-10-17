@@ -5,7 +5,7 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Features.Pipes;
 
 /// <summary>
-/// The cells holding a valve, open or closed, ascending, kept up with the grid's log (0050): looked for
+/// The cells holding a valve, open or closed, ascending, kept up with the grid's log (0051): looked for
 /// within what is built only for a grid not seen before, or when the log let go of what changed. Plain C#,
 /// so it is tested.
 /// </summary>

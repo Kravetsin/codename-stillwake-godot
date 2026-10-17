@@ -9,7 +9,7 @@ using Xunit;
 namespace Stillwake.Game.Tests;
 
 /// <summary>
-/// The client looks only within what is built (F-6 slice 0) and at the cells the grid's log names (0050):
+/// The client looks only within what is built (F-6 slice 0) and at the cells the grid's log names (0051):
 /// starlight, the drawn layers and the valves come out as they did over the whole grid, for ships anywhere
 /// in worlds of space, edited inside, on the hull and out in space, with toggles in flight, past the log too.
 /// </summary>

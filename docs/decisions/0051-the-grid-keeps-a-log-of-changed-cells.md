@@ -1,4 +1,4 @@
-# 0050 — The grid keeps a log of changed cells
+# 0051 — The grid keeps a log of changed cells
 
 - Status: accepted
 - Date: 2026-10-17
