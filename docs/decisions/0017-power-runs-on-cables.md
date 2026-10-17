@@ -17,7 +17,7 @@ inside the ship, taut in zero gravity outside, not a second line of cells beside
   A cable's span is limited (`POWER.maxSpan`), so long runs need anchors. Cables cross walls freely.
 - **A network is what cables join,** derived every tick. Supply against demand gives each user a
   satisfaction in thousandths, floored; short, every user slows alike.
-- **A solar panel works only in space.** The generator is the first user: it makes oxygen at its rate
+- **A solar panel works only in space**, under the stars since [0043](0043-a-solar-panel-needs-the-stars.md). The generator is the first user: it makes oxygen at its rate
   times its satisfaction, the fraction carried in its saved remainder.
 - **A cabled machine is not taken apart** (`building.cabled`): cut its cables first. Cables are laid
   and cut at once, paid and refunded like a build, not worked by hand: they have no cell to plan.

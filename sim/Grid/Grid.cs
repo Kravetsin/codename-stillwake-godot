@@ -137,8 +137,9 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         for (int cell = 0; cell < size; cell++)
         {
             char c = layout.At(cell);
-            // Every cell but space has a back wall of the default hull, hull walls included.
-            if (c != ' ') { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = hull; }
+            // Every cell but space has a back wall of the default hull, hull walls included; a solar panel
+            // is drawn under the stars, which it needs.
+            if (c != ' ' && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind).Makes != null)) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = hull; }
             s.Structure[cell] = c switch
             {
                 '#' => Structure.Wall,

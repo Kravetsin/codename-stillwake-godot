@@ -49,6 +49,35 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void TakesTheBackWallFromBehindAPanelOutInSpaceSoItSeesTheStars()
+    {
+        // The fixture's cables are cut by its random commands: its panel feeds nothing, but stands on the stars.
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(File.ReadAllText(Fixture(5))), m.All);
+        var panel = m.Grid.Machines.Single(x => x.Kind == "solarPanel");
+        Assert.All(Enumerable.Range(0, 3), dx => Assert.Null(m.Grid.BackAt(panel.Cell + dx)));
+        // Every other back wall of the wreck stands as it did.
+        Assert.NotNull(m.Grid.BackAt(panel.Cell + 3 * m.Grid.Width));
+    }
+
+    [Fact]
+    public void LeavesTheBackWallBehindAPanelInARoomWhichMadeNoPowerBefore()
+    {
+        var layout = Layout.Parse(["      ", "######", "#PPP.#", "######"]);
+        var root = System.Text.Json.Nodes.JsonNode.Parse(World.Create(1, layout, new Registry().All).Save())!.AsObject();
+        root["format"] = 5;
+        var grid = root["slices"]!["grid"]!;
+        var back = Runs.Cells(grid["back"]!);
+        var backMaterial = Runs.Cells(grid["backMaterial"]!);
+        foreach (int x in new[] { 1, 2, 3 }) (back[2 * 6 + x], backMaterial[2 * 6 + x]) = (1, Content.Materials.Get("scrap").Code);
+        grid["back"] = Runs.Node(back);
+        grid["backMaterial"] = Runs.Node(backMaterial);
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(root.ToJsonString()), m.All);
+        Assert.All(new[] { 1, 2, 3 }, x => Assert.NotNull(m.Grid.BackAt(2 * 6 + x)));
+    }
+
+    [Fact]
     public void LeavesASaveOfThisFormatAsItIsAndOneTooOldForTheLoadToRefuse()
     {
         string save = Played();

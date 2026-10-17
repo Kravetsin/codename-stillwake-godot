@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
+using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Sim;
 
@@ -33,6 +34,29 @@ public static class Migrations
             var grid = save["slices"]!["grid"]!;
             foreach (var layer in new[] { "structure", "material", "conduit", "back", "backMaterial" })
                 grid[layer] = Runs.Node([.. grid[layer]!.AsArray().Select(n => (int)n!)]);
+            return save;
+        },
+        // 5 → 6: a solar panel needs the stars (0043): one that made power, out in space, loses the back
+        // wall behind it, so it makes power still; one in a room made none and is left as it was.
+        save =>
+        {
+            var grid = save["slices"]!["grid"]!;
+            int width = (int)grid["width"]!, height = (int)grid["height"]!;
+            var back = Runs.Cells(grid["back"]!);
+            var backMaterial = Runs.Cells(grid["backMaterial"]!);
+            var (roomOf, _) = RoomsModule.Find(width, height, Runs.Cells(grid["structure"]!), back);
+            foreach (var m in grid["machines"]!.AsArray())
+            {
+                var spec = Content.Machines.Get((string)m!["kind"]!);
+                if (spec.Makes == null) continue;
+                int cell = (int)m["cell"]!;
+                var cells = Enumerable.Range(0, spec.Height)
+                    .SelectMany(dy => Enumerable.Range(0, spec.Width).Select(dx => cell + dy * width + dx)).ToList();
+                if (cells.All(c => roomOf[c] == RoomsModule.Space))
+                    foreach (int c in cells) back[c] = backMaterial[c] = 0;
+            }
+            grid["back"] = Runs.Node(back);
+            grid["backMaterial"] = Runs.Node(backMaterial);
             return save;
         },
     ];

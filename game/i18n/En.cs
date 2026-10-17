@@ -74,7 +74,7 @@ public static partial class En
         ["tool.vent.about"] = "Airs its room from the oxygen in its pipes.",
         ["tool.tank.about"] = "Stores oxygen. Takes canisters.",
         ["tool.generator.about"] = "Makes oxygen into its pipes from power.",
-        ["tool.solarPanel.about"] = "Makes power out in space, never in a room.",
+        ["tool.solarPanel.about"] = "Makes power where it sees the stars: out in space, no back wall behind it.",
         ["tool.lamp.about"] = "Lights what it reaches, as bright as the power it gets. Walls stop its light.",
         ["tool.furnace.about"] = "Smelts salvage into materials, burning planks and breathing the air of its room.",
         ["tool.crate.about"] = "Holds items. Open it with E.",
