@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Stillwake.Game.Render;
 using Stillwake.Sim;
 using Stillwake.Sim.Debris;
 using Spec = Stillwake.Content.Harpoon;
@@ -268,6 +270,17 @@ public sealed class HarpoonShot
         double dx = middle.X - muzzle.X, dy = middle.Y - muzzle.Y, far = Math.Sqrt(dx * dx + dy * dy);
         (double X, double Y) to = far == 0 ? muzzle : (muzzle.X + dx / far * Spec.Stop, muzzle.Y + dy / far * Spec.Stop);
         return new Reel(piece, (int)Math.Round(to.X), (int)Math.Round(to.Y));
+    }
+
+    /// <summary>
+    /// The puff of air a shot blows from the muzzle (0044), as bursts of particles: most along the barrel,
+    /// pointing <paramref name="barrel"/>, one off either side; braked aboard, freer out in space.
+    /// </summary>
+    public static IReadOnlyList<(Effect Effect, int Count, double Heading)> Puff((double X, double Y) barrel, bool inSpace)
+    {
+        var effect = inSpace ? Effect.PuffInSpace : Effect.Puff;
+        double along = Math.Atan2(barrel.Y, barrel.X);
+        return [(effect, 7, along), (effect, 1, along - Math.PI / 2), (effect, 1, along + Math.PI / 2)];
     }
 
     /// <summary>

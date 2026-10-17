@@ -194,7 +194,9 @@ too); `AxeSwingTests` and `HarpoonTests` have no TypeScript original.
   piece within reach is still caught by E or a click while the rod is in the gun, and the piece reeled in
   is caught with E. Heard through the suit (0042): the shot, the rod biting where it struck (the chop on
   metal or structure, the glove's thump on a crate or pod), the drum while reeling or pulled, a ready cue as the cooldown ends
-  with a harpoon in hand. The line and the rod are drawn over the heroes (`Layers.Hero`), the line
+  with a harpoon in hand. Each shot blows a puff of grey air from the muzzle, most along the barrel and one
+  off either side (`HarpoonShot.Puff`, `Effect.Puff` on the shared particles): braked aboard in a third of a
+  second, wider and longer out in space; only this hero's own. The line and the rod are drawn over the heroes (`Layers.Hero`), the line
   unlit as the tethers are.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).

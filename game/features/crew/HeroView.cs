@@ -347,7 +347,14 @@ public partial class HeroView : Node2D
             (middle.X, middle.Y), _letsGo);
         _letsGo = false;
         var shot = _harpoon.Step(elapsedMs, clicked && !grabbed, hold, _harpoonWorld);
-        if (shot.Fired) _shot.Play();
+        if (shot.Fired)
+        {
+            _shot.Play();
+            // The spring's breath leaves the muzzle with the rod; only this hero's shots are seen.
+            if (_figure.Muzzle is { } puffAt)
+                foreach (var (effect, count, heading) in HarpoonShot.Puff((_figure.Barrel.X, _figure.Barrel.Y), Floats))
+                    Particles.Shared.Emit(effect, puffAt.X, puffAt.Y, count, heading, Floats);
+        }
         if (shot.Hooked is int hooked) Bite(hooked);
         // The rod biting into the ship's structure rings as metal does.
         if (shot.Gripped) _bite.PlayAt(Pixels(_harpoon.Tip));

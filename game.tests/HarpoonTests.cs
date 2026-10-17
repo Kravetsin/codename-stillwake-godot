@@ -469,4 +469,20 @@ public class HarpoonTests
         Assert.Equal(new Point(300, -400 + Spec.PullStop), HarpoonShot.PullOf((300, 2_000), (300, -400)));
         Assert.Equal(new Point(100, 100), HarpoonShot.PullOf((100, 100), (300, 100)));
     }
+
+    [Fact]
+    public void PuffsAirMostlyAlongTheBarrelAFewSidewaysFreerInSpace()
+    {
+        var aboard = HarpoonShot.Puff((0, -2), inSpace: false);
+        Assert.All(aboard, b => Assert.Equal(Stillwake.Game.Render.Effect.Puff, b.Effect));
+        var (_, most, along) = aboard.MaxBy(b => b.Count);
+        Assert.Equal(-Math.PI / 2, along, 6);
+        Assert.True(most > aboard.Where(b => b.Heading != along).Sum(b => b.Count));
+        Assert.All(aboard.Where(b => b.Heading != along), b => Assert.Equal(Math.PI / 2, Math.Abs(b.Heading - along), 6));
+        var space = HarpoonShot.Puff((0, -2), inSpace: true);
+        Assert.All(space, b => Assert.Equal(Stillwake.Game.Render.Effect.PuffInSpace, b.Effect));
+        var (free, braked) = (Stillwake.Game.Render.Effect.PuffInSpace, Stillwake.Game.Render.Effect.Puff);
+        Assert.True(free.Drag < braked.Drag && free.LifeMs.To > braked.LifeMs.To && free.Spread > braked.Spread);
+        Assert.InRange(braked.LifeMs.To, 300, 400);
+    }
 }
