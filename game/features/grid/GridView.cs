@@ -15,8 +15,8 @@ namespace Stillwake.Game.Features.Grid;
 /// The ship in pixel art (features/grid in TypeScript), a <see cref="TileMapLayer"/> per kind of
 /// picture: back walls behind everything, pipes and valves in front of them, then walls with their
 /// edges, floors and ladders, doors, and machines over their footprints with a socket where power
-/// plugs in. <see cref="Sync"/> compares the grid's layers with what was drawn (<see cref="DrawnLayers"/>,
-/// within what is built) and redraws only the cells that changed and their neighbours, whose edges and
+/// plugs in. <see cref="Sync"/> compares what was drawn (<see cref="DrawnLayers"/>) with the cells the grid's
+/// log names (0051) and redraws only the cells that changed and their neighbours, whose edges and
 /// links reach toward them.
 /// </summary>
 public partial class GridView : Node2D
@@ -84,12 +84,20 @@ public partial class GridView : Node2D
             foreach (int cell in _drawn.Stale(changes)) DrawCell(cell, blank: false);
         }
         _blank = false;
-        if (version != _machinesVersion && !_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
+        if (version != _machinesVersion && MachinesMoved() && !_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
         _machinesVersion = version;
     }
 
-    /// <summary>The grid's version when its machines were last compared: they move it as every layer does.</summary>
+    /// <summary>The grid's version when its machines were last compared: the log since then says whether one came or went.</summary>
     private int _machinesVersion = -1;
+
+    private bool MachinesMoved()
+    {
+        if (_grid.ChangedSince(_machinesVersion) is not { } changes) return true;
+        foreach (var c in changes)
+            if ((c.Layers & GridLayers.Machine) != 0) return true;
+        return false;
+    }
 
     /// <summary>
     /// A door or a valve that moved, heard there: once a door, at its top cell, since the cells under it
