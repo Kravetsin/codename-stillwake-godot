@@ -55,4 +55,7 @@ public sealed class AtmosphereState
     [JsonIgnore] internal int[] OrderedRooms { get; set; } = [];
     /// <summary>Derived: the vents' cells, in machine id order, the orders were found from.</summary>
     [JsonIgnore] internal List<int> OrderedVents { get; set; } = [];
+    /// <summary>Derived: the grid's and the rooms' versions the orders were found at.</summary>
+    [JsonIgnore] internal int OrderedGrid { get; set; }
+    [JsonIgnore] internal int OrderedVersion { get; set; }
 }

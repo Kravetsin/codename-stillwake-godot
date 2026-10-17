@@ -90,4 +90,20 @@ public class BudgetTests(ITestOutputHelper output)
         output.WriteLine($"tick toggling a door: {toggling.Mean:F3} ms mean, {toggling.Max:F3} ms max");
         Assert.True(still.Mean < 20 && toggling.Mean < 40, "a tick is far over its budget");
     }
+
+    [Fact]
+    public void KeepsATickTogglingADoorUnderBudgetWithTheReferenceShipInALargeWorld()
+    {
+        // Rooms are found again only around the door, so the space around the ship costs nothing.
+        var m = new Registry();
+        var world = World.Create(1, Reference(1024, 512), m.All);
+        Time(world, 100, _ => []);
+        var still = Time(world, 200, _ => []);
+        var door = Enumerable.Range(0, 128 * 256).First(c => m.Grid.StructureAt(c) == Structure.DoorClosed);
+        var toggling = Time(world, 300, _ => [new ToggleDoor(door)]);
+        output.WriteLine($"1024×512, the reference ship in its corner: rooms {m.Rooms.All.Count}, aired cells {m.Atmosphere.AiredCells.Count}");
+        output.WriteLine($"tick: {still.Mean:F3} ms mean, {still.Max:F3} ms max");
+        output.WriteLine($"tick toggling a door: {toggling.Mean:F3} ms mean, {toggling.Max:F3} ms max");
+        Assert.True(still.Mean < 20 && toggling.Mean < 20, "a tick is far over its budget");
+    }
 }

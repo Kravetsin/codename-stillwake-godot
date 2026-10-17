@@ -11,8 +11,10 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
   holding any, by machine id, in id order; `Making` — each generator's work toward its next unit, by
   machine id; `Aired` — the cells holding air, sorted; `Clock` — ticks run, for the fill and leak
   beats. All saved. Derived: `Orders` — each room's cells in the order its air lies in, by room id
-  (only looked up), and the rooms per cell (`OrderedRooms`) and vents' cells (`OrderedVents`) they
-  were found from. A tank drawn over an `o` on the map under the map starts with `Air.Canister`; an
+  (only looked up), the rooms per cell (`OrderedRooms`) and vents' cells (`OrderedVents`) they
+  were found from, and the grid's and the rooms' versions they were found at (`OrderedGrid`,
+  `OrderedVersion`). In the module, also derived: the survey (below) and each room's leak, kept
+  between ticks. A tank drawn over an `o` on the map under the map starts with `Air.Canister`; an
   `o` under anything else is a broken map and does not load (`FormatException`).
 - **Files:** `Air.cs` — the rules below; `Order.cs` — the order of a room's cells; `Atmosphere.cs` —
   the module, its interfaces and command; `State.cs` — its slice and records; `Fuzz.cs` — its fuzz
@@ -48,8 +50,12 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
   the store sits empty between units.
 - **A tick of air,** in the simulation phase, in this order:
   1. Each generator, in id order, makes its share for the tick.
-  2. The rooms and vents are compared with those the orders were found from; on a change, the orders
-     of the rooms they touch are found again, and cells left outside every room lose their air.
+  2. If the grid's `Version` moved, the rooms and vents are followed: the orders of the rooms they
+     touch are found again, and cells left outside every room lose their air. When the rooms were
+     found again around a change (`IRoomsQueries.ChangedSince` names the ids), those rooms and any a
+     vent came to or left are redone, with their leaks and survey counts, and only cells they held
+     can lose air; when every room was found again, the rooms per cell and the vents are compared
+     with those the orders were found from, and the leaks and the survey are found afresh.
   3. A room open to space loses `Air.VentLoss` cells from the far edge, and every vent in it — or
      standing in space — drains its network by `Air.VentDrain`.
   4. Every `Air.TicksPerCell` ticks, each filling room airs the next cell of its order, paying one unit
@@ -59,16 +65,21 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
      `Leak` of the back wall behind each of its cells and of each hull wall, or `Air.DoorLeak` for a
      door in its hull, every `Air.LeakEvery` ticks — spread over the period: on each tick what is due
      by its end less what was by its start (rounded down, in 64 bits), so its total is exact. A back
-     wall behind a wall or a closed door touches no air and leaks nothing. Leaks are found once per
-     rooms list, every room's in one pass over the cells: rooms are new whenever walls or back walls
-     change.
+     wall behind a wall or a closed door touches no air and leaks nothing. Leaks are kept per room
+     while the rooms' `Version` stays: rooms are found again whenever walls or back walls change.
 - **Draws** go tank by tank in tank id order along the network. Tanks a tick empties leave `Tanks` at
   its end.
 - **Canisters:** a tank holds up to `Air.TankCapacity`; `LoadCanister` takes a canister from the
   sender's inventory (free in creative mode) and adds `Air.Canister`, refused when the tank would
   spill. A tank taken apart takes its oxygen with it, in the construction phase.
-- One pass per tick gathers vents by room, tanks by network and aired cells by room, and every walk
+- **The survey** — vents by room, tanks and generators by network, aired cells by room — is kept
+  between ticks and gathered again in one pass only when the pipes' `Version` moved or every room
+  was found again; around a change, only the changed rooms' counts and vents are redone.
+  Generators' satisfaction and the tanks' oxygen are read again on
+  every call; the aired cells it counts are kept in step with every change of `Aired`. Every walk
   over cells covers all rooms at once (`IRoomsQueries.RoomOfCells`).
+- **`Aired` is edited in place** when a call changes up to 32 cells (a binary search each), and
+  merged into a new list for more: copying a long list costs more than a few shifts of it.
 
 ## API
 
@@ -98,15 +109,15 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
 - A tank holds between nothing and its capacity; a generator, between nothing and its store. Only
   tanks holding oxygen are listed.
 - Aired cells are sorted, distinct, and each in a room.
-- The orders kept room by room are those found afresh for the whole ship, as after a load.
+- The orders kept room by room are those found afresh for the whole ship, as after a load; so are
+  the survey and the leaks kept: a world loaded from a save goes on with the same air.
 
 ## Differences from TypeScript
 
 - TypeScript caches each room's leak in a `WeakMap` keyed by the room object; here the leaks are kept
-  for the rooms list they were found for (`IRoomsQueries.All`, a new list whenever the rooms are found
-  again), which holds the same rooms.
-- The survey's per-cell arrays and the leak pass's are reused between calls rather than allocated
-  each tick: no survey outlives the call that gathered it.
+  by room id while the rooms' `Version` stays, and found again for the ids `ChangedSince` names.
+- TypeScript gathers the survey every tick; here it is kept between ticks (above). Its per-cell
+  arrays and the scratch of the leak pass and of the orders are reused rather than allocated.
 
 ## Deliberately not handled
 
@@ -115,8 +126,11 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
 - A vent in a venting room drains its whole network, aired rooms on it included: cut it with a valve.
 - A wall facing a one-cell gap is no hull: the gap is a tiny room open to space, not space (see
   `Rooms`), so two modules built one cell apart do not leak through the walls they face.
-- `StatusOf` gathers the whole survey on each call: fine for one room, slow for every room each
-  frame; `RoomsAir` gives them all at once.
+- `StatusOf` reads the tanks and generators of the whole survey on each call: fine for one room,
+  slow for every room each frame; `RoomsAir` gives them all at once.
+- A wall's or back wall's material changed without its code (taken apart and built again in one
+  tick, which no player can do: a plan claims its slot) reaches the leaks only once its room is
+  found again.
 - A generator needs nothing but power, cannot be switched off, and its surplus is lost even with a
   tank on its network: spilling into tanks comes with processing, before which no tank can be built.
 - Oxygen in a tank taken apart is lost, not refunded as canisters. A valve under a tank is not worked
