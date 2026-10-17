@@ -87,7 +87,13 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         return State.RoomOf[cell];
     }
 
-    public Room? RoomById(int id) => State.Rooms.Find(r => r.Id == id);
+
+    public Room? RoomById(int id)
+    {
+        int at = IndexOf(id);
+        return at >= 0 ? State.Rooms[at] : null;
+    }
+
     public IReadOnlyList<Room> All => State.Rooms;
     public ReadOnlySpan<int> RoomOfCells => State.RoomOf;
     public int Version => State.Version;
@@ -102,13 +108,25 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         FindAll();
     }
 
-    /// <summary>Every room found again from the whole grid.</summary>
     private void FindAll()
     {
         (State.RoomOf, State.Rooms) = Find(_grid.Width, _grid.Height, _grid.StructureLayer, _grid.BackLayer);
-        State.GridVersion = _grid.Version;
         State.Version++;
         State.Changed = null;
+    }
+
+    /// <summary>Where room <paramref name="id"/> is in the rooms, which are in id order; negative for none.</summary>
+    private int IndexOf(int id)
+    {
+        int low = 0, high = State.Rooms.Count - 1;
+        while (low <= high)
+        {
+            int mid = (low + high) / 2, at = State.Rooms[mid].Id;
+            if (at == id) return mid;
+            if (at < id) low = mid + 1;
+            else high = mid - 1;
+        }
+        return -1;
     }
 
     /// <summary>The cells where <paramref name="now"/> differs from <paramref name="was"/>, ascending; <paramref name="was"/> is brought up to date.</summary>
@@ -135,6 +153,24 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         into[1] = x < width - 1 ? c + 1 : Edge;
         into[2] = c >= width ? c - width : Edge;
         into[3] = c + width < size ? c + width : Edge;
+    }
+
+    /// <summary>
+    /// Floods from <paramref name="start"/> through the cells marked <paramref name="from"/>, marking
+    /// each <paramref name="to"/> and adding it to <paramref name="cells"/>.
+    /// </summary>
+    private static void Spread(int[] roomOf, int width, int start, int from, int to, List<int> cells)
+    {
+        Span<int> near = stackalloc int[4];
+        int head = cells.Count;
+        roomOf[start] = to;
+        cells.Add(start);
+        for (; head < cells.Count; head++)
+        {
+            Neighbours(cells[head], width, roomOf.Length, near);
+            foreach (int n in near)
+                if (n != Edge && roomOf[n] == from) { roomOf[n] = to; cells.Add(n); }
+        }
     }
 
     /// <summary>
@@ -178,22 +214,16 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         var hulls = new List<List<int>>();
         var openings = new List<List<int>>();
         var index = new int[size];
+        var cells = new List<int>();
         for (int start = 0; start < size; start++)
         {
             if (roomOf[start] != Unseen) continue;
-            int count = 0;
-            roomOf[start] = start;
-            queue[count++] = start;
-            for (int head = 0; head < count; head++)
-            {
-                Neighbours(queue[head], width, size, near);
-                foreach (int n in near)
-                    if (n != Edge && roomOf[n] == Unseen) { roomOf[n] = start; queue[count++] = n; }
-            }
+            cells.Clear();
+            Spread(roomOf, width, start, Unseen, start, cells);
             index[start] = rooms.Count;
             hulls.Add([]);
             openings.Add([]);
-            rooms.Add(new Room(start, count, [], []));
+            rooms.Add(new Room(start, cells.Count, [], []));
         }
 
         // Openings and hull in one pass in cell order, so both come out sorted.
@@ -230,10 +260,11 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         return roomOf[c - 1] == Space || roomOf[c + 1] == Space || roomOf[c - width] == Space || roomOf[c + width] == Space;
     }
 
+    private bool IsOpening(int c, ReadOnlySpan<int> back) => Outside(State.RoomOf, _grid.Width, c) || back[c] != Back.Wall;
+
     /// <summary>
-    /// Floods again only the rooms beside the <paramref name="changed"/> cells, as <see cref="Find"/>
-    /// would find them; every other room, and space, stays. Null when a changed cell is within two
-    /// cells of space or the grid's edge: there space itself may move.
+    /// Floods again only the rooms beside the <paramref name="changed"/> cells; the ids gone and new.
+    /// Null when a changed cell is within two cells of space or the grid's edge: space may move there.
     /// </summary>
     private List<int>? Reflood(List<int> changed)
     {
@@ -249,8 +280,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
                     if (roomOf[y * width + x] == Space) return null;
         }
 
-        // The cells of every room the change touches, marked unseen, and the changed cells that were solid.
-        Span<int> near = stackalloc int[4];
+        // Every room beside a changed cell is marked unseen, and so is each changed cell that was solid.
         var gone = new List<int>();
         var region = new List<int>();
         foreach (int c in changed)
@@ -259,15 +289,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
                 int id = roomOf[at];
                 if (id < 0) continue;
                 gone.Add(id);
-                int head = region.Count;
-                roomOf[id] = Unseen;
-                region.Add(id);
-                for (; head < region.Count; head++)
-                {
-                    Neighbours(region[head], width, size, near);
-                    foreach (int n in near)
-                        if (n != Edge && roomOf[n] == id) { roomOf[n] = Unseen; region.Add(n); }
-                }
+                Spread(roomOf, width, id, id, Unseen, region);
             }
         foreach (int c in changed)
             if (roomOf[c] == Solid) { roomOf[c] = Unseen; region.Add(c); }
@@ -277,27 +299,24 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         var back = _grid.BackLayer;
         foreach (int c in region) roomOf[c] = IsSolid(structure[c]) ? Solid : Unseen;
 
+        Span<int> near = stackalloc int[4];
         var made = new List<Room>();
         foreach (int start in region)
         {
             if (roomOf[start] != Unseen) continue;
-            var cells = new List<int> { start };
-            roomOf[start] = start;
-            for (int head = 0; head < cells.Count; head++)
-            {
-                Neighbours(cells[head], width, size, near);
-                foreach (int n in near)
-                    if (n != Edge && roomOf[n] == Unseen) { roomOf[n] = start; cells.Add(n); }
-            }
+            var cells = new List<int>();
+            Spread(roomOf, width, start, Unseen, start, cells);
             cells.Sort();
             var hull = new List<int>();
+            var openings = new List<int>();
             foreach (int c in cells)
             {
+                if (IsOpening(c, back)) openings.Add(c);
                 Neighbours(c, width, size, near);
                 foreach (int n in near)
                     if (n != Edge && roomOf[n] == Solid && Outside(roomOf, width, n)) hull.Add(n);
             }
-            made.Add(new Room(start, cells.Count, [.. hull.Distinct().Order()], Openings(cells, back)));
+            made.Add(new Room(start, cells.Count, [.. hull.Distinct().Order()], openings));
         }
 
         var rooms = new List<Room>(State.Rooms.Count - gone.Count + made.Count);
@@ -314,52 +333,37 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
     }
 
     /// <summary>
-    /// The openings found again for the back walls changed in <paramref name="changed"/> cells: only
-    /// in the rooms holding one, with no flood. The ids of those rooms.
+    /// Each cell whose back wall changed joins or leaves its room's openings, as it is now one or not;
+    /// the ids of those rooms. Their cells and the outside stay, so nothing else does.
     /// </summary>
     private List<int> Reopen(List<int> changed)
     {
         var roomOf = State.RoomOf;
-        var ids = new List<int>();
-        foreach (int c in changed) if (roomOf[c] >= 0) ids.Add(roomOf[c]);
-        ids = [.. ids.Distinct().Order()];
-        if (ids.Count == 0) return ids;
         var back = _grid.BackLayer;
+        var ids = new List<int>();
+        var copies = new Dictionary<int, List<int>>();
+        foreach (int c in changed)
+        {
+            int id = roomOf[c];
+            if (id < 0) continue;
+            if (!copies.TryGetValue(id, out var openings))
+            {
+                copies[id] = openings = [.. State.Rooms[IndexOf(id)].Openings];
+                ids.Add(id);
+            }
+            int at = openings.BinarySearch(c);
+            if (IsOpening(c, back) && at < 0) openings.Insert(~at, c);
+            else if (!IsOpening(c, back) && at >= 0) openings.RemoveAt(at);
+        }
+        if (ids.Count == 0) return ids;
+        ids.Sort();
         var rooms = new List<Room>(State.Rooms);
         foreach (int id in ids)
         {
-            int at = rooms.FindIndex(r => r.Id == id);
-            rooms[at] = rooms[at] with { Openings = Openings(CellsOf(id), back) };
+            int at = IndexOf(id);
+            rooms[at] = rooms[at] with { Openings = copies[id] };
         }
         State.Rooms = rooms;
         return ids;
-    }
-
-    /// <summary>The cells of room <paramref name="id"/>, ascending, flooded from its id, its smallest cell.</summary>
-    private List<int> CellsOf(int id)
-    {
-        int width = _grid.Width, size = State.RoomOf.Length;
-        var roomOf = State.RoomOf;
-        Span<int> near = stackalloc int[4];
-        var cells = new List<int> { id };
-        roomOf[id] = Unseen;
-        for (int head = 0; head < cells.Count; head++)
-        {
-            Neighbours(cells[head], width, size, near);
-            foreach (int n in near)
-                if (n != Edge && roomOf[n] == id) { roomOf[n] = Unseen; cells.Add(n); }
-        }
-        foreach (int c in cells) roomOf[c] = id;
-        cells.Sort();
-        return cells;
-    }
-
-    /// <summary>A room's openings, from its <paramref name="cells"/> in ascending order: those beside the outside or with no back wall.</summary>
-    private List<int> Openings(List<int> cells, ReadOnlySpan<int> back)
-    {
-        var openings = new List<int>();
-        foreach (int c in cells)
-            if (Outside(State.RoomOf, _grid.Width, c) || back[c] != Back.Wall) openings.Add(c);
-        return openings;
     }
 }

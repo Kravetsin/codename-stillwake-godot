@@ -68,7 +68,6 @@ public sealed class PipesModule : Module<PipesState>, IPipesQueries
         (State.NetworkOf, State.Networks) = PipeNetworks.Find(_grid.Width, _grid.Height, _grid.ConduitLayer, machines);
         State.BuiltConduit = _grid.ConduitLayer.ToArray();
         State.BuiltMachines = _grid.Machines.SelectMany(m => new[] { m.Id, m.Cell }).ToArray();
-        State.GridVersion = _grid.Version;
         State.Version++;
     }
 

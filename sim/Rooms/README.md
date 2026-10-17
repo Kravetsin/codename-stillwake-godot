@@ -21,7 +21,7 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
   edge beyond. Both in cell order.
 - Rooms are looked at again, by a derivation system, only on a tick the grid's `Version` moved: then
   the structure and back layers are compared with the copies, block by block, for the cells changed.
-  - Back walls alone: only the openings of the rooms holding a changed cell are found again, no flood.
+  - Back walls alone: each changed cell joins or leaves its room's openings, no flood.
   - Structure alone, no changed cell within two cells of space or the grid's edge: only the rooms
     beside the changed cells are flooded again. Space cannot move there: a change moves openings at
     most a cell away, and space floods in only from a cell beside one.
