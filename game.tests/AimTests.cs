@@ -31,9 +31,9 @@ public class AimTests
     /// <summary>The <paramref name="i"/>-th cell inside a hall, row by row.</summary>
     private static int Inside(int i) => (1 + i / 7) * 9 + 1 + i % 7;
 
-    /// <summary><paramref name="map"/> with a crate drawn below it, and peer 0 carrying scrap and iron.</summary>
+    /// <summary><paramref name="map"/> with a crate drawn below it, and peer 0 carrying scrap, iron and tubes.</summary>
     private static TestWorld WithStore(string map) =>
-        new TestWorld(Layout.Parse([.. Layout.Parse(map).Rows, "KK"])).Give(0, ("scrap", 360), ("iron", 60));
+        new TestWorld(Layout.Parse([.. Layout.Parse(map).Rows, "KK"])).Give(0, ("scrap", 360), ("iron", 60), ("tube", 20));
 
     // Aiming.
 
@@ -131,7 +131,7 @@ public class AimTests
     [Fact]
     public void PassesOverABlueprintDeliveredToInThisHoldOfEToTheNextInItsCell()
     {
-        // A wall and a pipe through it, both planned in one cell, for a hero carrying scrap.
+        // A wall and a pipe through it, both planned in one cell, for a hero carrying scrap and tubes.
         var w = WithStore(Hall(1));
         w.Step(new PlacePlan(Inside(0), Placement.Wall("scrap")), new PlacePlan(Inside(0), new Placement("conduit", "pipe")));
         var hero = HeroOn(2, 1);

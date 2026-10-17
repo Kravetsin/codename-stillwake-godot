@@ -321,7 +321,7 @@ public class ContentTests
         Assert.True(Content.Items.TryGet(Harpoon.Item, out var harpoon));
         Assert.Equal(1, harpoon!.Stack);
         Assert.True(Crafts.TryGet(Harpoon.Item, out var craft));
-        Assert.Equal([("plate", 2), ("wire", 4), ("scrap", 4)], craft!.Cost);
+        Assert.Equal([("planks", 1), ("frame", 1), ("tube", 1), ("coil", 1), ("wire", 4)], craft!.Cost);
         Assert.DoesNotContain(Harpoon.Item, Content.Research.StartKnown);
     }
 
@@ -521,6 +521,49 @@ public class ContentTests
         foreach (var craft in Crafts.All) had.Add(craft.Item);
         var costs = AllBuilds().Select(b => b.Cost).Concat(Crafts.All.Select(c => c.Cost)).Append(Content.Power.CableCost);
         foreach (var (item, _) in costs.SelectMany(c => c)) Assert.Contains(item, had);
+    }
+
+    [Fact]
+    public void NoCraftIsMadeOfItselfThroughTheCraftsItsCostNames()
+    {
+        // Depth first over the crafts' costs: an item met again on the path in is a cycle.
+        var done = new HashSet<string>(StringComparer.Ordinal);
+        void Walk(string item, List<string> path)
+        {
+            Assert.False(path.Contains(item), $"a cycle: {string.Join(" > ", path.Append(item))}");
+            if (done.Contains(item) || !Crafts.TryGet(item, out var craft)) return;
+            path.Add(item);
+            foreach (var (part, _) in craft.Cost) Walk(part, path);
+            path.RemoveAt(path.Count - 1);
+            done.Add(item);
+        }
+        foreach (var craft in Crafts.All) Walk(craft.Item, []);
+    }
+
+    /// <summary>
+    /// Under the opening rule (0027), from what the wreck grants: what is caught, smelted or crafted is
+    /// analysed, which opens crafts, which make more to analyse; every craft and blueprint opens so.
+    /// </summary>
+    [Fact]
+    public void EveryCraftAndBlueprintOpensFromTheWrecksStartByAnalysingWhatIsCaughtSmeltedOrCrafted()
+    {
+        var had = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (item, _) in DebrisSpec.Kinds)
+            foreach (var got in Loot.Of(item)?.Select(e => e.Item) ?? [item]) had.Add(got);
+        var known = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
+        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost))
+            .Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost))).ToList();
+        for (bool more = true; more;)
+        {
+            more = false;
+            foreach (var item in Content.Items.All.Where(i => had.Contains(i.Id)).SelectMany(i => i.Yields ?? []).ToList())
+                more |= had.Add(item.Item);
+            foreach (var (id, cost) in recipes.Where(r => !known.Contains(r.Id) && r.Cost.All(c => had.Contains(c.Item))))
+                more |= known.Add(id);
+            foreach (var craft in Crafts.All.Where(c => known.Contains(c.Item)))
+                more |= had.Add(craft.Item);
+        }
+        Assert.Equal([], recipes.Select(r => r.Id).Where(id => !known.Contains(id)).ToArray());
     }
 
     [Fact]

@@ -274,6 +274,6 @@ public class WreckTests
         Assert.True(w.M.Power.Satisfaction(id) > 0);
         w.Run(2 * ResearchSpec.Ticks);
         Assert.Equal(["scrap"], w.M.Research.Analysed);
-        foreach (var made in new[] { "floor", "ladder", "pipe" }) Assert.True(w.M.Research.Knows(made), made);
+        foreach (var made in new[] { "floor", "ladder" }) Assert.True(w.M.Research.Knows(made), made);
     }
 }

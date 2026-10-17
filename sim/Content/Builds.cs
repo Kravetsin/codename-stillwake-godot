@@ -21,8 +21,8 @@ public static class Builds
         new("floor", [("scrap", 1)], BuildTicks: 7),
         new("ladder", [("scrap", 1)], BuildTicks: 7),
         new("door", [("plate", 2), ("gear", 1)], BuildTicks: 20),
-        new("pipe", [("scrap", 1)], BuildTicks: 7),
-        new("valve", [("scrap", 1), ("gear", 1)], BuildTicks: 40),
+        new("pipe", [("tube", 1)], BuildTicks: 7),
+        new("valve", [("tube", 1), ("gear", 1)], BuildTicks: 40),
     ];
 
     /// <summary>Taking a thing apart is this many times faster than building it; its ticks round up.</summary>

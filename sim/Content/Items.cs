@@ -42,11 +42,14 @@ public static class Items
         new("cableRack", 1),
         new("tankCluster", 1),
         new("shieldSlab", 1),
-        // Parts, made by hand (Crafts) of materials and other parts.
+        // Parts, made at the Fabricator (Crafts) of materials; then assemblies, of parts.
         new("wire", 100),
         new("plate", 100),
         new("gear", 50),
+        new("tube", 100),
         new("rotor", 20),
+        new("frame", 20),
+        new("coil", 50),
         // A part no craft makes: salvaged from cable racks alone (Loot).
         new("circuit", 20),
         // Tools, made as parts are.
