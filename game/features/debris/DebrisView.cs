@@ -185,7 +185,7 @@ public partial class DebrisView(Ui ui) : Node2D
         var body = DebrisLooks.PictureOf(item, id) is string look
             ? new Sprite2D { Texture = GD.Load<Texture2D>(look) }
             : new Sprite2D { Texture = ItemIcons.Icon(item), Scale = Vector2.One * (ItemSize * Cell / ItemIcons.Pixels) };
-        Lit.Set(body);
+        Lit.Set(body, cracks: true);
         return body;
     }
 }

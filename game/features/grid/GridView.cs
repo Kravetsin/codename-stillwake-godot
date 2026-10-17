@@ -28,6 +28,8 @@ public partial class GridView : Node2D
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = new();
     private readonly TileMapLayer _back, _pipes, _valves, _walls, _edges, _fixtures, _doors, _machines;
+    /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
+    private readonly TileMapLayer[] _cellLayers;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
     // A door or valve that moves is heard where it stands, by everyone near (0033).
     private readonly Heard2D _opens = Cues.Player2D(S.DoorOpen, S.World, voices: 2),
@@ -49,13 +51,15 @@ public partial class GridView : Node2D
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
+        _cellLayers = [_back, _pipes, _valves, _walls, _edges, _fixtures, _doors];
         AddChild(_sockets);
         foreach (var player in (Node[])[_opens, _closes, _turns]) AddChild(player);
     }
 
     private TileMapLayer Layer(int z, float share = 1)
     {
-        var layer = new TileMapLayer { TileSet = _tiles.Set, ZIndex = z };
+        // Cells have no bodies or paths, but Godot would still walk every cell for them each time a layer is built.
+        var layer = new TileMapLayer { TileSet = _tiles.Set, ZIndex = z, CollisionEnabled = false, NavigationEnabled = false };
         Lit.Set(layer, share);
         AddChild(layer);
         return layer;
@@ -67,8 +71,9 @@ public partial class GridView : Node2D
     /// </summary>
     public void Sync(ShownGrid shown)
     {
+        bool blank = !_drawn;
         var dirty = ChangedCells(shown);
-        foreach (int cell in dirty) DrawCell(cell);
+        foreach (int cell in dirty) DrawCell(cell, blank);
         if (!_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
     }
 
@@ -132,6 +137,20 @@ public partial class GridView : Node2D
 
     private string MaterialOf(int code) => _materials.GetValueOrDefault(code, Materials.DefaultHull);
 
+    // The pictures' names made once, not a string a cell: a big ship draws half a million cells as it loads.
+    private static readonly string[] PipeNames = Names("pipe_"), ClosedDoorNames = Names("door_closed_"), OpenDoorNames = Names("door_open_");
+    private readonly Dictionary<int, (string Wall, string[] Edges)> _wallNames = new();
+
+    private static string[] Names(string prefix) => Enumerable.Range(0, 16).Select(sides => $"{prefix}{sides}").ToArray();
+
+    /// <summary>A wall of material <paramref name="code"/>'s picture, and its edges' by the sides open.</summary>
+    private (string Wall, string[] Edges) WallNamesOf(int code)
+    {
+        if (_wallNames.TryGetValue(code, out var names)) return names;
+        string material = MaterialOf(code);
+        return _wallNames[code] = ($"wall_{material}", Names($"wall-edge_{material}_"));
+    }
+
     /// <summary>The sides of <paramref name="cell"/> whose neighbour passes <paramref name="isOne"/>; past the grid's edge none does.</summary>
     private int SidesOf(int cell, int[] layer, Func<int, bool> isOne)
     {
@@ -143,11 +162,13 @@ public partial class GridView : Node2D
         return sides;
     }
 
-    private void DrawCell(int cell)
+    /// <summary>Draws <paramref name="cell"/> anew; <paramref name="blank"/> when nothing was drawn there yet, so nothing need be erased.</summary>
+    private void DrawCell(int cell, bool blank)
     {
         int x = cell % _grid.Width, y = cell / _grid.Width;
         var at = new Vector2I(x, y);
-        foreach (var layer in (TileMapLayer[])[_back, _pipes, _valves, _walls, _edges, _fixtures, _doors]) layer.EraseCell(at);
+        if (!blank)
+            foreach (var layer in _cellLayers) layer.EraseCell(at);
 
         if (_backs[cell] == Back.Wall) DrawBack(at, _backMaterial[cell]);
 
@@ -156,7 +177,7 @@ public partial class GridView : Node2D
         {
             // A pipe reaches toward every neighbouring conduit, so runs read as lines.
             int linked = SidesOf(cell, _conduit, c => c != Conduit.None);
-            Put(_pipes, at, $"pipe_{linked}");
+            Put(_pipes, at, PipeNames[linked]);
             if (conduit is Conduit.ValveOpen or Conduit.ValveClosed)
             {
                 Put(_valves, at, conduit == Conduit.ValveOpen ? "valve_open" : "valve_closed");
@@ -167,11 +188,11 @@ public partial class GridView : Node2D
         {
             case Structure.Wall:
                 {
-                    string material = MaterialOf(_material[cell]);
-                    _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt($"wall_{material}", x, y));
+                    var (wall, edges) = WallNamesOf(_material[cell]);
+                    _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
                     int open = ~SidesOf(cell, _structure, s => s == Structure.Wall) & 0b1111;
                     if (open != 0)
-                        Put(_edges, at, $"wall-edge_{material}_{open}");
+                        Put(_edges, at, edges[open]);
                     break;
                 }
             case Structure.Floor:
@@ -184,8 +205,8 @@ public partial class GridView : Node2D
                 {
                     // A door several cells tall is one door: its frame and window at the top, its stripes at the bottom.
                     int linked = SidesOf(cell, _structure, s => s is Structure.DoorClosed or Structure.DoorOpen) & (Up | Down);
-                    string look = _structure[cell] == Structure.DoorClosed ? "closed" : "open";
-                    Put(_doors, at, $"door_{look}_{linked}");
+                    var looks = _structure[cell] == Structure.DoorClosed ? ClosedDoorNames : OpenDoorNames;
+                    Put(_doors, at, looks[linked]);
                     break;
                 }
         }

@@ -8,7 +8,7 @@ namespace Stillwake.Game.Render;
 /// the light from above catches the far wall, only where the picture is drawn. They run out from a dent
 /// where the blows land, the dent wider and the cracks more and longer as the share of its hit points
 /// a piece has lost grows; each piece's seed lays them its own way. Set per picture with
-/// <see cref="Show"/>; a picture never set has none and costs a branch.
+/// <see cref="Show"/>, on one lit with <c>Lit.Set(picture, cracks: true)</c>; one never set has none and costs a branch.
 /// </summary>
 public static class Cracks
 {
@@ -66,6 +66,12 @@ public static class Cracks
             if (lit) return min(colour * 1.35 + vec3(0.04), vec3(1.0));
             return colour;
         }
+        """;
+
+    /// <summary>What <see cref="Lit"/> takes in for a picture that never cracks, with no instance uniforms: its colour as it is.</summary>
+    public const string None = """
+
+        vec3 cracked(vec3 colour, vec2 uv, vec2 texel) { return colour; }
         """;
 
     /// <summary>Shows <paramref name="share"/> of its hit points lost on <paramref name="picture"/>, laid out by <paramref name="seed"/>.</summary>
