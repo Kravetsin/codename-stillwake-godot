@@ -192,22 +192,23 @@ public sealed class StarField
             }
         Spread(light, kind, w, h);
         var bytes = Texels;
+        var region = Region;
         for (int y = write.Top; y <= write.Bottom; y++)
-            for (int x = write.Left; x <= write.Right; x++)
-            {
-                int i = (y - box.Top) * w + x - box.Left;
-                Texel(bytes, ((y - Region.Top) * Region.Width + x - Region.Left) * 4, light[i], kind[i]);
-            }
+        {
+            int i = (y - box.Top) * w + write.Left - box.Left, at = ((y - region.Top) * region.Width + write.Left - region.Left) * 4;
+            for (int x = write.Left; x <= write.Right; x++, i++, at += 4) Texel(bytes, at, light[i], kind[i]);
+        }
     }
+
+    private static readonly float StarR = L.Star.R, StarG = L.Star.G, StarB = L.Star.B;
 
     private static void Texel(byte[] bytes, int at, float light, byte kind)
     {
-        var (r, g, bl) = L.Star;
         // Walls are drawn taking WallIn of the light on their face, so a wall cell holds its face's light.
         float face = kind == Wall ? light / L.WallIn : light;
-        bytes[at] = (byte)(Math.Min(1, r * face) * 255);
-        bytes[at + 1] = (byte)(Math.Min(1, g * face) * 255);
-        bytes[at + 2] = (byte)(Math.Min(1, bl * face) * 255);
+        bytes[at] = (byte)(Math.Min(1, StarR * face) * 255);
+        bytes[at + 1] = (byte)(Math.Min(1, StarG * face) * 255);
+        bytes[at + 2] = (byte)(Math.Min(1, StarB * face) * 255);
         // Its alpha says whether it is a wall's, so the shader blends it only with its own side.
         bytes[at + 3] = kind == Wall ? (byte)255 : (byte)0;
     }
