@@ -14,12 +14,12 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Crafting;
 
 /// <summary>
-/// A queued station's panel — the lifepod's Fabricator, the Former — docked beside the inventory while E has it
-/// open (the mockup, "Fabricator panel"): its name, a powered one's bolt and what it draws, and its small
-/// screen, running while it works, READY idle and dark with no power; its recipes in fixed places, a locked
-/// one a silhouette, a short one dimmed; the queue every hero shares,
+/// A queued station's panel — the lifepod's Fabricator, the Former — docked under the inventory while E has it
+/// open, in the one machine frame (0058; the mockup, "Fabricator panel"): its name, a powered one's bolt and what it draws, and its small
+/// screen, running while it works, READY idle and dark with no power; its recipes in fixed places on the left, a locked
+/// one a silhouette, a short one dimmed; on the right the queue every hero shares,
 /// the unit at work filling its slot from the bottom, each entry marked in its orderer's suit colour;
-/// the outputs, a click taking a stack into the inventory; a tool's recipe tinted amber. A click on a
+/// the outputs, a click taking a stack into the inventory; a tool's recipe tinted amber, a worn item's green. A click on a
 /// recipe queues one, a shift-click five, a click on a short one pulses what it lacks; a click on an
 /// entry cancels it. Read on a timer, and at once after a click; everything else said in the one
 /// tooltip, a recipe's as its item's card with the craft block.
@@ -28,7 +28,7 @@ public partial class FabricatorPanel : CanvasLayer
 {
     /// <summary>What the panel shows is read this often.</summary>
     private const double RefreshMs = 100;
-    private const int Gap = 8, Slot = 36;
+    private const int Gap = 8;
     /// <summary>One beat of the pulse on a recipe gone to, in seconds, and how many beats.</summary>
     private const double Beat = 0.9;
     private const int Beats = 2;
@@ -37,17 +37,11 @@ public partial class FabricatorPanel : CanvasLayer
     private static readonly StyleBoxFlat FilledHover = Style.Box(Style.Slate800 with { A = 0.85f }, Style.Slate400, radius: 3);
     private static readonly StyleBoxFlat Dark = Style.Box(Style.Slate900 with { A = 0.9f }, Style.Slate800, radius: 3);
     private static readonly StyleBoxFlat DarkHover = Style.Box(Style.Slate900 with { A = 0.9f }, Style.Slate400, radius: 3);
-    // A tool's recipe: the ground mixed with amber, its edge amber-ish, amber under the pointer: the mockup's option B.
-    private static readonly StyleBoxFlat ToolFilled = Style.Box((Style.Slate800 with { A = 0.85f }).Lerp(ItemCardView.Amber, 0.16f), Style.Slate700.Lerp(ItemCardView.Amber, 0.6f), radius: 3);
-    private static readonly StyleBoxFlat ToolHover = Style.Box((Style.Slate800 with { A = 0.85f }).Lerp(ItemCardView.Amber, 0.16f), ItemCardView.Amber, radius: 3);
     private static readonly StyleBoxFlat Empty = Style.Box(Style.Slate800 with { A = 0.35f }, Style.Slate700 with { A = 0.45f }, radius: 3);
     private static readonly StyleBoxFlat Pulse = Style.Box(Style.Slate800 with { A = 0.85f }, Style.Amber400, radius: 3);
-    private static readonly LabelSettings NameText = Style.Text(Style.Bold, 13, Style.Slate100);
     private static readonly LabelSettings HeadingText = Style.Text(Style.Bold, 11, Style.Slate400);
     private static readonly LabelSettings AsideText = Style.Text(Style.Sans, 11, Style.Slate500);
     private static readonly LabelSettings Count = Style.Text(Style.Mono, 10, Colors.White, shadow: true);
-    /// <summary>A bolt with no power through it.</summary>
-    private static readonly Color Unlit = new(0.35f, 0.35f, 0.4f);
 
     /// <summary>A recipe short of items: its icon grey and faint.</summary>
     private static readonly ShaderMaterial Greyed = Shaded("""
@@ -70,22 +64,11 @@ public partial class FabricatorPanel : CanvasLayer
     private readonly Func<int, Color> _suitOf;
     private readonly GridContainer _recipes = Grid(), _queue = Grid(), _outputs = Grid();
     private readonly Label _opened = new() { LabelSettings = AsideText };
-    private Label _name = null!;
-    /// <summary>A powered station's bolt and what it draws, as the charging station's panel shows them.</summary>
-    private readonly TextureRect _bolt = new()
-    {
-        Texture = AsciiArt.Bolt(false),
-        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-        CustomMinimumSize = new Vector2(10, 13),
-        SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-        MouseFilter = Control.MouseFilterEnum.Ignore,
-        Visible = false,
-    };
-    private readonly Label _draws = new() { LabelSettings = Style.Text(Style.Mono, 12, Style.Amber400), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, Visible = false };
     private readonly FabricatorScreen _screen = new() { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-    private PanelContainer _panel = null!;
+    /// <summary>The machine frame every machine opens in: the station's name, a powered one's bolt, and the screen in its header.</summary>
+    private MachineFrame _panel = null!;
+    /// <summary>A slot's side, <see cref="Ui.Slot"/> as the slots were last built.</summary>
+    private int _slot;
     /// <summary>The slots, each saying what it is in the one tooltip.</summary>
     private readonly TipSpots _tips;
     /// <summary>Every slot that answers the pointer: its edge lights under it.</summary>
@@ -107,7 +90,7 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>The recipe a click went to, and how long it has pulsed.</summary>
     private (string Craft, double Time)? _pulse;
 
-    /// <param name="ui">Where the open inventory ends, which the panel docks beside, and the machine E opened.</param>
+    /// <param name="ui">Where the open inventory ends, which the panel docks under, the machine E opened, and the slots' size.</param>
     /// <param name="suitOf">The suit colour of a peer's hero, marking whose order an entry is.</param>
     public FabricatorPanel(Ui ui, Func<int, Color> suitOf)
     {
@@ -119,9 +102,9 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>A slot that answers the pointer, and the box it is drawn with when the pointer is elsewhere.</summary>
     private sealed record Cell(Panel Box, StyleBoxFlat Rest, StyleBoxFlat Hover, string? Craft);
 
-    /// <summary>The queued station open beside the inventory: the machine E opened, while it is one and the inventory is shown.</summary>
+    /// <summary>The queued station open under the inventory: the machine E opened, while it is one and the inventory is shown.</summary>
     private (int Id, Content.Station Station)? Open =>
-        _ui.InventoryEdge.Get() != null && _ui.OpenCrate.Get() is int id && _crafting?.StationOf(id) is { Fed: false } station ? (id, station) : null;
+        _ui.InventoryFoot.Get() != null && _ui.OpenCrate.Get() is int id && _crafting?.StationOf(id) is { Fed: false } station ? (id, station) : null;
 
     /// <summary>Whether the panel shows, and what its screen shows: what a recording checks.</summary>
     public (bool Shown, Doing Doing) Shown => (_panel.Visible, _screen.Doing);
@@ -133,27 +116,30 @@ public partial class FabricatorPanel : CanvasLayer
     public override void _Ready()
     {
         Layer = ScreenLayers.Hud;
-        var column = Style.Gap(new VBoxContainer(), 6);
-        var head = Style.Gap(new HBoxContainer(), 8);
-        var name = _name = new Label { LabelSettings = NameText, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, VerticalAlignment = VerticalAlignment.Center };
-        head.AddChild(name);
-        head.AddChild(_bolt);
-        head.AddChild(_draws);
-        head.AddChild(_screen);
-        column.AddChild(head);
-        column.AddChild(new ColorRect { Color = Style.Slate800, CustomMinimumSize = new Vector2(0, 1), MouseFilter = Control.MouseFilterEnum.Ignore });
-        column.AddChild(Heading(T("fabricator.recipes"), _opened));
-        column.AddChild(_recipes);
-        column.AddChild(Heading(T("crafts.queue"), new Label { Text = T("fabricator.shared"), LabelSettings = AsideText }));
-        column.AddChild(_queue);
-        column.AddChild(Heading(T("fabricator.output"), new Label()));
-        column.AddChild(_outputs);
-        _panel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop, Visible = false };
-        _panel.AddThemeStyleboxOverride("panel", Style.Box(Style.Slate900 with { A = 0.92f }, Style.Slate600 with { A = 0.55f }, 6));
-        _panel.AddChild(column);
+        _panel = new MachineFrame("", null) { Visible = false };
+        _panel.Head.AddChild(_screen);
+        // The recipes on the left, the queue and the outputs on the right: the whole Tab screen fits 720 px at the large slot size.
+        var body = Style.Gap(new HBoxContainer(), 12);
+        var left = Style.Gap(new VBoxContainer(), 6);
+        left.AddChild(Heading(T("fabricator.recipes"), _opened));
+        left.AddChild(_recipes);
+        var right = Style.Gap(new VBoxContainer(), 6);
+        right.AddChild(Heading(T("crafts.queue"), new Label { Text = T("fabricator.shared"), LabelSettings = AsideText }));
+        right.AddChild(_queue);
+        right.AddChild(Heading(T("fabricator.output"), new Label()));
+        right.AddChild(_outputs);
+        body.AddChild(left);
+        body.AddChild(right);
+        _panel.Add(body);
         AddChild(_panel);
-        _ui.InventoryEdge.Subscribe(Dock);
+        _ui.InventoryFoot.Subscribe(Dock);
         _ui.OpenCrate.Subscribe(Dock);
+        // Another slot size: every slot built again at it.
+        _ui.SlotScale.Subscribe(() =>
+        {
+            _shownKey = null;
+            Read();
+        });
     }
 
     /// <summary>The pointer, from its events, so a recording's own events move it too.</summary>
@@ -194,10 +180,11 @@ public partial class FabricatorPanel : CanvasLayer
 
     private void Dock()
     {
-        var edge = _ui.InventoryEdge.Get();
+        var foot = _ui.InventoryFoot.Get();
         bool shown = Open != null;
         _panel.Visible = shown;
-        if (shown && edge is var (right, top)) _panel.Position = new Vector2(right + Gap, top);
+        // Where the items feature opens every other machine: under the grid, level with its left edge (0058).
+        if (shown && foot is var (left, bottom)) _panel.Position = new Vector2(left, bottom + Gap);
         if (!shown) _tips.Show(null);
         Read();
     }
@@ -225,11 +212,8 @@ public partial class FabricatorPanel : CanvasLayer
         if (_fill != null && queue.Count > 0) Fill(_fill, Crafts.Share(queue[0].Recipe, progress));
         bool works = _crafting.Works(pod);
         _screen.Doing = Crafts.DoingOf(queue, progress, works);
-        // A station that draws shows its bolt and what it draws, lit while it works and dark while it rests or has no power.
-        int? draws = Content.Machines.Get(station.Machine).Draws;
-        _bolt.Visible = _draws.Visible = draws != null;
-        _draws.Text = draws?.ToString() ?? "";
-        _bolt.Modulate = _draws.Modulate = works ? Colors.White : Unlit;
+        // A station that draws shows its bolt and what it draws, lit while it works and dark at 0 while it rests or has no power.
+        _panel.Light(works);
     }
 
     private Look LookOf(string craft) => Crafts.LookOf(_research!.Knows(craft), Crafts.Lines(craft, _carried), _creative);
@@ -252,7 +236,8 @@ public partial class FabricatorPanel : CanvasLayer
         _cells.Clear();
         _tips.Clear();
 
-        _name.Text = T($"station.{station.Machine}");
+        _slot = _ui.Slot;
+        _panel.Describe(T($"station.{station.Machine}"), Content.Machines.Get(station.Machine).Draws);
         var places = Crafts.Places(station);
         foreach (var place in places) _recipes.AddChild(place is { } craft ? RecipeSlot(pod, station, craft) : EmptySlot());
         var crafts = places.OfType<string>().ToList();
@@ -273,7 +258,8 @@ public partial class FabricatorPanel : CanvasLayer
         icon.Material = look switch { Look.Short => Greyed, Look.Locked => Silhouette, _ => null };
         box.AddChild(icon);
         Add(look == Look.Locked ? new Cell(box, Dark, DarkHover, craft)
-            : ItemCards.IsTool(craft) ? new Cell(box, ToolFilled, ToolHover, craft)
+            // A tool's recipe amber, a worn item's green, as their slots are everywhere (0058).
+            : Slots.TintOf(craft) is not SlotTint.Plain and var tint ? new Cell(box, SlotLooks.Of(tint, false, false), SlotLooks.Of(tint, true, false), craft)
             : new Cell(box, Filled, FilledHover, craft));
         _tips.Add(box, () => TipOf(craft, station));
         box.GuiInput += e =>
@@ -310,9 +296,9 @@ public partial class FabricatorPanel : CanvasLayer
     }
 
     /// <summary>The slot at work filled from the bottom by <paramref name="share"/> of its unit, 0 to 1.</summary>
-    private static void Fill(ColorRect fill, double share)
+    private void Fill(ColorRect fill, double share)
     {
-        float inside = Slot - 2, high = (float)(inside * Math.Clamp(share, 0, 1));
+        float inside = _slot - 2, high = (float)(inside * Math.Clamp(share, 0, 1));
         fill.Position = new Vector2(1, 1 + inside - high);
         fill.Size = new Vector2(inside, high);
     }
@@ -390,17 +376,17 @@ public partial class FabricatorPanel : CanvasLayer
     }
 
     private static GridContainer Grid() =>
-        Style.Gap(new GridContainer { Columns = Crafts.Columns, MouseFilter = Control.MouseFilterEnum.Ignore }, 4);
+        Style.Gap(new GridContainer { Columns = Crafts.Columns, MouseFilter = Control.MouseFilterEnum.Ignore }, Slots.Gap);
 
-    private static Panel Box() => new()
+    private Panel Box() => new()
     {
-        CustomMinimumSize = new Vector2(Slot, Slot),
+        CustomMinimumSize = new Vector2(_slot, _slot),
         MouseFilter = Control.MouseFilterEnum.Stop,
     };
 
-    private static Panel EmptySlot()
+    private Panel EmptySlot()
     {
-        var box = new Panel { CustomMinimumSize = new Vector2(Slot, Slot), MouseFilter = Control.MouseFilterEnum.Ignore };
+        var box = new Panel { CustomMinimumSize = new Vector2(_slot, _slot), MouseFilter = Control.MouseFilterEnum.Ignore };
         box.AddThemeStyleboxOverride("panel", Empty);
         return box;
     }
@@ -431,11 +417,11 @@ public partial class FabricatorPanel : CanvasLayer
 
     private static ShaderMaterial Shaded(string code) => new() { Shader = new Shader { Code = code } };
 
-    private static TextureRect Icon(string item) => new()
+    private TextureRect Icon(string item) => new()
     {
         Texture = ItemIcons.Icon(item),
-        Position = new Vector2(4, 4),
-        Size = new Vector2(Slot - 8, Slot - 8),
+        Position = new Vector2(Slots.Inset, Slots.Inset),
+        Size = new Vector2(_slot - 2 * Slots.Inset, _slot - 2 * Slots.Inset),
         ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
         StretchMode = TextureRect.StretchModeEnum.Scale,
         TextureFilter = CanvasItem.TextureFilterEnum.Nearest,

@@ -128,6 +128,10 @@ public partial class Main : Node2D, ITogether
 
         // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
         _hands = new Hands();
+        // The slots' size kept on this machine (0058); --slots=large shows the other for a recording, keeping nothing then.
+        var slots = _args.FirstOrDefault(a => a.StartsWith("--slots=", StringComparison.Ordinal));
+        _hands.Ui.SlotScale.Set(slots != null ? Slots.ScaleNamed(slots[8..]) : Settings.SlotScale());
+        if (slots == null) _hands.Ui.SlotScale.Subscribe(() => Settings.Keep(_hands.Ui.SlotScale.Get()));
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
         AddChild(_stars = new Stars());
@@ -157,11 +161,11 @@ public partial class Main : Node2D, ITogether
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))));
             // Its own layer, above the world: read from whatever registry the session runs now.
-            AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
+            AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None), _hands.Ui));
             // --electric=fireAxe: that item counts as electric, so the energy bar shows before any tool is (0053).
             var electric = _args.FirstOrDefault(a => a.StartsWith("--electric="))?[11..];
             Func<string, bool>? isElectric = electric == null ? null : item => item == electric || Content.Items.Get(item).Draw != null;
-            AddChild(new EnergyBar(() => _session is Session s ? Charges.EnergyOf(_hands.Ui.Wielded.Get(), _m.Items.BeltCharge(s.Client.Id), isElectric) : null));
+            AddChild(new EnergyBar(() => _session is Session s ? Charges.EnergyOf(_hands.Ui.Wielded.Get(), _m.Items.BeltCharge(s.Client.Id), isElectric) : null, _hands.Ui));
             AddChild(new Frost(() => _session != null && _hero is { Placed: true } h ? Report.Cold(_m.Crew, h.Current.BodyCell(_m.Grid.Width)) : 0));
             _camera.DevControls = false;
         }

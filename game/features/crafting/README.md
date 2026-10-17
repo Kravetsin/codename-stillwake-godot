@@ -13,7 +13,7 @@ mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 | File                  | Holds                                                                                   | Godot |
 | --------------------- | --------------------------------------------------------------------------------------- | ----- |
 | `Crafts.cs`           | a recipe's fixed place, how its slot looks, where a click on a short one goes, its block on the card, the bar, what a station is doing | no |
-| `FabricatorPanel.cs`  | any queued station's panel beside the inventory: header, bolt and screen, recipes, the shared queue, outputs | yes |
+| `FabricatorPanel.cs`  | any queued station's panel under the inventory, in the machine frame: header, bolt and screen; recipes on the left, the shared queue and outputs on the right | yes |
 | `FabricatorScreen.cs` | the panel's small screen: lines running while it works, READY idle, dark with no power | yes   |
 | `StationView.cs`      | over a station's picture: the Former's flywheel, gears and press head moving, the smelter's coils glowing and lighting the room, while it works; a cold-blue mark on a fed station too cold for its input | yes |
 | `PodView.cs`          | over the pod's picture: its screen, its tray, its glass glowing while a hero is made    | yes   |
@@ -34,20 +34,20 @@ pixels between the bars, glowing, the heat running up them a winding a picture. 
 ## Guarantees
 
 - **The panel** shows while E has a queued station open (`Ui.OpenCrate`, `StationOf(id)`) and the inventory
-  is shown, docked beside it, its top level with the inventory's (`Ui.InventoryEdge`); gone when either
+  is shown, docked under its grid, level with its left edge, where every machine opens (`Ui.InventoryFoot`, 0058); gone when either
   closes. The items feature gives a queued station no crate panel of its own. It lays out that station:
   its name (`station.<kind>`), its rows, its queue size, its speed in the card's seconds.
-- From the top: the station's name, for one that draws power its bolt and what it draws (lit while it
-  works, dark while it rests or has no power), and its screen (dark while a unit has no power);
+- In the machine frame (`Shared.MachineFrame`, 0058), its header: the station's name, for one that draws power its bolt and what it draws (lit while it
+  works, dark at 0 while it rests or has no power), and its screen (dark while a unit has no power). On the left
   "Recipes", how many are opened; every recipe in its place from content, four a row, two rows at
   least, empty places dim. One not known yet is a dark silhouette; one known but short of an item for
   a unit is dimmed and grey; in creative mode every one is known and ready. A click on a ready one queues one, a shift-click five, refused whole by the sim
   when unpaid; a click on a short one pulses the first item it lacks that is itself crafted, amber,
-  twice; a silhouette does nothing. A tool's recipe (the fire axe) is tinted amber, its edge
-  amber-ish, amber under the pointer; a silhouette is not.
+  twice; a silhouette does nothing. A tool's recipe (the fire axe) is tinted amber, a worn item's (the jetpack, the battery) green,
+  each edged in its colour, full under the pointer, as their slots are everywhere (`Shared.SlotLooks`); a silhouette is not. Every slot is `Ui.Slot` wide, built again when the slot size changes.
 - No status line: the screen says whether it works, the queue's slot filling and full says the rest,
   and the outputs show what can be taken.
-- "Queue · shared": the station's `QueueMost` slots, each entry its item and units left, a mark in
+- On the right, "Queue · shared": the station's `QueueMost` slots, each entry its item and units left, a mark in
   the top-left corner in its orderer's suit colour, the one at work filling its slot from the bottom,
   full while its unit waits for room. A click cancels it; its cost goes to whoever cancels.
 - "Output": the station's slots; a click takes a stack into the inventory as a whole (`Move` to the

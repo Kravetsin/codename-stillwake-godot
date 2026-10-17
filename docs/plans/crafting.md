@@ -125,7 +125,7 @@ counts no resting maker. `Power` runs first, so it sees this a tick late. No new
 
 ### Client
 
-- The crafts window, docked beside the inventory (built: `game/features/crafting/README.md`): a
+- The crafts window, docked under the inventory since 0058 (built: `game/features/crafting/README.md`): a
   pinned row of up to 9 (right-click pins, kept in `user://crafts.cfg`), tabs by an item's icon (the
   wheel over them switches), then the tab's grid of 9 columns by 5 rows, a family per row. Every
   craft has a fixed place in content (`Crafts.Tabs`; today one tab, Parts: plate, gear, rotor; then

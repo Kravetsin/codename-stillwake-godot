@@ -55,7 +55,7 @@ A living document: what is decided about the game and what is still open. Techni
   tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
   recipe shows what a thing is made of: the harpoon is a frame, a tube, a coil, wire and a plank stock
   ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md)). The first machine is the pod's
-  Fabricator, opened with E beside the inventory: no power, a fifth of full speed, a queue the crew
+  Fabricator, opened with E under the inventory, where every machine opens ([0058](decisions/0058-one-place-for-every-machine-window.md)): no power, a fifth of full speed, a queue the crew
   shares, paid when queued, made one at a time into its outputs. Most builds cost parts, so the
   furnace feeds the Fabricator before it feeds the hull. Machines for parts the player builds are
   powered, faster and with longer queues: the Former first, presses for the parts at five times the

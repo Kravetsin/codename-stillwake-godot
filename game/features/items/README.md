@@ -13,15 +13,15 @@ by sending `Move`,
 | File               | Holds                                                                                        | Godot |
 | ------------------ | -------------------------------------------------------------------------------------------- | ----- |
 | `Click.cs`         | the click rules (`click.ts`): `Clicks.On`, `Picked`, `SlotClick`, `Clicked`                  | no    |
-| `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`)                                                  | no    |
+| `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`); the digit each slot shows, the key that chooses it | no    |
 | `Equipment.cs`     | the equipment slots by kind, and which light up or dim while a stack is carried (`SlotGlow`, 0047) | no    |
 | `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s and `Drop`s in flight (0014); which items are marked unanalysed, a stack's tip | no    |
 | `Lessons.cs`       | an analyzer's panel: its stage, how far, what an analysed item goes into, each one's tip (0027) | no    |
 | `Reach.cs`         | `HeroSpot`; pick-ups (`pickup.ts`)                                                           | no    |
-| `SlotBox.cs`       | one slot: icon, count, chosen, picked, hovered, the violet "?" of an item not analysed; an equipment slot's looks        | yes   |
+| `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, the violet "?" of an item not analysed; an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
-| `InventoryPanel.cs`| the hotbar, the inventory and its equipment by the body, the open crate, furnace, electric smelter, burner generator, analyzer or charging station, the stack in hand | yes   |
+| `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, burner generator, analyzer or charging station in the machine frame under the inventory, the stack in hand; all built again at another slot size | yes   |
 | `EnergyBar.cs`     | the energy bar right of the suit's, while an electric tool is held (0053)                      | yes   |
 | `FloorLayer.cs`    | stacks on the floor, rimmed, bobbing at rest, side by side when still, gliding between ticks, turning in space (`floor-layer.ts`) | yes |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head                                                     | yes   |
@@ -35,7 +35,7 @@ the energy bar, is worked out in `game/shared/Charges.cs` (no Godot), shared wit
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
 one for one: `click.test.ts` (`ClickTests`), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
 (`PickUpTests`), a test for the fold of own moves (`CrateTests`), one for the analyzer's panel
-(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`) and one for charge
+(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`), one for the slots' size, tint and setting (`SlotsTests`, of `game/shared/Slots.cs`) and one for charge
 on screen (`ChargesTests`). Opening a crate is aimed
 as everything E works is, in the crew feature (`AimTests`).
 
@@ -50,13 +50,29 @@ as everything E works is, in the crew feature (`AimTests`).
 - One hand (0022, `Ui.Hand`): 1–9 and the wheel over the world choose a hotbar slot and free the hand,
   putting the plan away; Tab frees it too as it opens the inventory. Q throws the chosen slot's whole
   stack from the hero's cell the way it faces, and does nothing while a card is in hand. The chosen
-  slot is outlined only while the hand is free.
-- **Equipment** (0047): right of the grid while the inventory is open, a block laid out as the body, each
-  row of slots under its name (head, back, belt; `equip.<kind>`): an empty slot darker, its edge faint, a
-  worn one edged a little green, no silhouettes. While a stack is in hand or dragged, the equipment slots
-  that would wear it (`Equipment.GlowOf`, from `Items.Equip`) are lit green with a glow and the others
-  dimmed; the sim decides (`items.notEquipment`). Where the open inventory ends (`Ui.InventoryEdge`) is
-  past the block, so the Fabricator docks beside it.
+  slot is edged 2 px near-white only while the hand is free. Each hotbar slot shows the digit that
+  chooses it (`Hotbar.KeyOf`) small in its top-left corner, open or closed (0058).
+- **Layout** (0058): the hotbar at the top-left margin; the suit's and the energy gauges under it and the
+  inventory's grid under them, at heights worked out from the slot size (`Slots.GaugeTop`,
+  `Slots.InventoryTop`); the open machine under the grid, level with its left edge.
+- **Slot size** (0058): every slot, the stack in hand and the analyzer's pictures are `Ui.Slot` wide, 40 px
+  (icons 32, the art ×2) or 56 (icons 48, ×3) as Esc → Settings chooses (`Ui.SlotScale`). A change builds
+  the hotbar, the inventory, the equipment and the open machine again at once, keeping what is open.
+- **Tints** (0058): a slot holding a tool (`ItemCards.IsTool`) is tinted amber, one holding a worn item
+  (`ItemSpec.Equip`: the jetpack, the battery) the equipment's green, the rest plain grey (`Slots.TintOf`,
+  painted by `Shared.SlotLooks`); under the pointer a tinted slot's edge goes full amber or green. In the
+  inventory, the hotbar, crates and machines alike.
+- **Equipment** (0047, 0058): at the screen's right edge while the inventory is open, its top level with
+  the grid's, a block laid out as the body, each row of slots under its name (head, back, belt;
+  `equip.<kind>`): an empty slot darker, its edge faint, a worn one edged a little green, no silhouettes.
+  While a stack is in hand or dragged, the equipment slots that would wear it (`Equipment.GlowOf`, from
+  `Items.Equip`) are lit green with a glow and the others dimmed; the sim decides (`items.notEquipment`).
+  Its last row, **Hands** (`equip.hands`), shows the screwdriver the right button works with: display-only
+  (0030), nothing is put in it; its tooltip says what it does, no key is written on it.
+- **Every machine opens in one frame** (`Shared.MachineFrame`, 0058) under the inventory: the same panel,
+  its name (`tool.<kind>`) in bold and, for one on the power grid, a bolt and its power in the header, lit
+  while it works and dark at 0 otherwise (a burner generator's is what it makes, lit while it burns, an
+  analyzer's lit while it analyses); then its body, below.
 - What the free hand holds (`Ui.Wielded`, 0034): the item in the chosen slot while the hand is free,
   else none, set on every refresh; the crew swings the fire axe and aims the harpoon by it.
 - Tab opens and closes the inventory; Esc closes it and the crate, and puts the plan away with them,
@@ -71,7 +87,7 @@ as everything E works is, in the crew feature (`AimTests`).
   each, the one tooltip says "Opened", or each item of its cost not analysed yet, or that analysis
   cannot open it yet. Its pictures are built again only when they change.
 - Every slot showing an item not analysed yet, the stack in hand too, has a violet "?" in its
-  top-left corner, never in creative mode; the slot's fill is left for rarity.
+  top-right corner (the top-left is the hotbar's digit), never in creative mode.
 - Every stack, in the inventory, the hotbar, a crate, a furnace or an analyzer, shows its card in the
   one tooltip (`Shared.PointerTip`) at once by the pointer (`Shared.ItemCards`, drawn by
   `Shared.ItemCardView`, the mockup's plaque): its icon large, its name and its kind (`item.<id>.kind`);
@@ -92,8 +108,8 @@ as everything E works is, in the crew feature (`AimTests`).
   full in power-ticks, the units machines draw in (`⚡ 1170 / 1800`), both rounded down (`Charges.MeterOf`).
   No time is shown: a battery is a store for any tool, and how long one lasts is felt, not spelled out.
   An electric tool's card shows its `Draw` as a machine shows its own: a bolt and the number.
-- **A charging station's panel** (the station mockup): its name and a bolt with what it draws, lit while
-  it charges (`IPowerQueries.Charges`), dark at 0 otherwise; its slot beside a bar of what the battery
+- **A charging station's panel** (the station mockup): in its frame's header its name and a bolt with what it
+  draws, lit while it charges (`IPowerQueries.Charges`), dark at 0 otherwise; its slot beside a bar of what the battery
   holds, and under it "empty", "full", "charging" or "no power" (`Charges.StationState`). The sim refuses
   anything but a battery there (`items.notBattery`).
 - **The energy bar** (`EnergyBar`, a layer of its own made by `Main`), right of the suit's gauge, shows the
@@ -102,20 +118,20 @@ as everything E works is, in the crew feature (`AimTests`).
   (`Charges.ColourOf`: charge's green); hidden otherwise. Read four times a second. No item is electric
   yet; `-- --electric=fireAxe` counts one as electric in a dev run, so the bar can be seen.
 - A furnace's panel is its input over its fuel, the fire between them, its bar and its outputs; a
-  burner generator's its fire over its fuel slot, and beside them a bolt with the power it makes
-  (its `Makes`), lit while it burns and dimmed while cold. Both say why they stand still under them
+  burner generator's its fire over its fuel slot, and in its header a bolt with the power it makes
+  (its `Makes`), lit while it burns and dark at 0 while cold. Both say why they stand still under them
   (`furnace.full`, `furnace.noFuel`, `furnace.noAir`), from the furnace module's `At`.
 - An electric smelter's panel is the furnace's without the fuel (0057): its input over its mark, orange
-  while it works, its bar and its three outputs, then a bolt with what it draws, lit while it works and
-  dimmed otherwise, as the Former's; under it `furnace.full` when it has no room for what it makes. It
+  while it works, its bar and its three outputs; in its header a bolt with what it draws, lit while it works
+  and dark at 0 otherwise, as the Former's; under it `furnace.full` when it has no room for what it makes. It
   reads `CraftingModule` (`Works`, `Progress`, `TooCold`, `CanSmelt`), handed in by `Main`.
 - **Too cold:** a furnace or a smelter whose input holds what needs more heat than it has turns the
   mark between its slots cold blue, with no line under the panel; over the mark the one tooltip says
   "Needs more heat · " and the first fed station hot enough, by name (`Reading.TooColdTip`).
-- Where the open inventory ends on the screen is set every frame (`Ui.InventoryEdge`), null while it
-  is closed: the crafting feature docks the lifepod's Fabricator there while E has the pod open, so the
-  pod gets no crate panel here. A stack let go over any panel, another
-  feature's too, is not thrown.
+- Where the open inventory's grid ends on the screen, its left edge and bottom, is set every frame
+  (`Ui.InventoryFoot`), null while it is closed: the crafting feature docks a queued station's panel
+  (the Fabricator, the Former) there, where this feature opens every other machine, so a queued station
+  gets no crate panel here. A stack let go over any panel, another feature's too, is not thrown.
 - Stacks of different items still in one cell are drawn side by side, out in space too, where a
   broken wreck's loot floats off together; only aboard do they bob.
 - A stack in a cell the hero's body overlaps is picked up unless the sim would refuse it or its

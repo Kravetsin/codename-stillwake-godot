@@ -17,15 +17,18 @@ using MachineSpecs = Stillwake.Content.Machines;
 namespace Stillwake.Game.Features.Items;
 
 /// <summary>
-/// The hotbar, always in the top-left corner; and with Tab, or E on a crate, the rest of the inventory
-/// and the crate beside it (Inventory.tsx): a crate's slots, a furnace's input over its fuel and its
-/// outputs, an electric smelter's input, outputs and what it draws, a burner generator's fuel and what it makes, an analyzer's own panel (<see cref="AnalyzerPanel"/>), a
-/// charging station's slot, bar and bolt (0053); the lifepod's is the crafting feature's. Stacks move by clicks (<see cref="Clicks.On"/>),
-/// or dragged from one slot to another; Tab or Esc closes both. 1–9 and the wheel over the world choose a
-/// hotbar slot, Q throws its stack. A stack's name, and whether it waits for an analyzer, show in the one
-/// tooltip; an item not analysed has a violet "?" in its slot's corner, and in the hand. Right of the grid,
-/// the equipment by the body (0047): a stack carried lights the slots that would wear it and dims the
-/// rest; a right click on a canister of the hero's own breathes it (<see cref="Ui.Breathe"/>).
+/// The hotbar, always in the top-left corner, each slot's key in its corner; and with Tab, or E on a crate, the
+/// rest of the inventory, the open machine under it in the one frame (0058, <see cref="MachineFrame"/>): a crate's
+/// slots, a furnace's input over its fuel and its outputs, an electric smelter's input and outputs, a burner
+/// generator's fuel, an analyzer's own body (<see cref="AnalyzerPanel"/>), a charging station's slot and bar
+/// (0053), each named, a powered one with its bolt; a queued station's is the crafting feature's, docked in the
+/// same place. Stacks move by clicks (<see cref="Clicks.On"/>), or dragged from one slot to another; Tab or Esc
+/// closes both. 1–9 and the wheel over the world choose a hotbar slot, Q throws its stack. A stack's name, and
+/// whether it waits for an analyzer, show in the one tooltip; an item not analysed has a violet "?" in its
+/// slot's corner, and in the hand. At the screen's right edge, the equipment by the body (0047, 0058) and the
+/// hands' tool: a stack carried lights the slots that would wear it and dims the rest; a right click on a
+/// canister of the hero's own breathes it (<see cref="Ui.Breathe"/>). Every slot is <see cref="Ui.Slot"/> wide,
+/// and all of it is built again when that changes.
 /// </summary>
 public partial class InventoryPanel : CanvasLayer
 {
@@ -37,22 +40,18 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>A fed station too cold for what its input holds: its mark cold blue (0057).</summary>
     private static readonly StyleBoxFlat Cold = Style.Box(Style.Sky400, Style.Sky400, 0, 5);
     private static readonly LabelSettings Trouble = Style.Text(Style.Bold, 10, Style.Red300);
-    /// <summary>What a cold generator's output is dimmed to.</summary>
-    private static readonly Color Dark = new(0.35f, 0.35f, 0.4f);
 
     private readonly List<SlotBox> _slots = [];
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     /// <summary>The stack carried, over every panel.</summary>
     private readonly CanvasLayer _over = new() { Layer = ScreenLayers.Tips };
-    private Control _hotbar = null!, _shown = null!, _inventory = null!, _held = null!, _fire = null!;
-    private Control? _cratePanel;
+    private Control _hotbar = null!, _shown = null!, _inventory = null!, _body = null!, _held = null!, _fire = null!;
+    /// <summary>The open machine's frame, under the inventory.</summary>
+    private MachineFrame? _frame;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!, _heldMark = null!;
     private ProgressBar? _progress;
     private Label? _problem;
-    /// <summary>A burner generator's output: a bolt and the power it makes, lit while it burns.</summary>
-    private TextureRect? _bolt;
-    private Label? _makes;
     /// <summary>A charging station's: the bar of what its battery holds, and what it does now in words.</summary>
     private ColorRect? _charged;
     private Label? _station;
@@ -80,7 +79,7 @@ public partial class InventoryPanel : CanvasLayer
 
     private readonly Ui _ui;
 
-    /// <param name="ui">The hand, which choosing a hotbar slot or opening the inventory frees, and the crate open.</param>
+    /// <param name="ui">The hand, which choosing a hotbar slot or opening the inventory frees, the crate open, and the slots' size.</param>
     public InventoryPanel(Ui ui)
     {
         _ui = ui;
@@ -89,9 +88,17 @@ public partial class InventoryPanel : CanvasLayer
         ui.OpenCrate.Subscribe(Read);
         // The chosen slot is outlined only while the hand holds what is in it.
         ui.Hand.Subscribe(Refresh);
+        // A slot size chosen in the settings: everything built again at once, what is open kept open.
+        ui.SlotScale.Subscribe(() =>
+        {
+            if (!IsInsideTree()) return;
+            Clear();
+            Build();
+            Refresh();
+        });
     }
 
-    /// <summary>The crate open beside the inventory: E on one within reach opens it, out of reach it closes.</summary>
+    /// <summary>The crate open under the inventory: E on one within reach opens it, out of reach it closes.</summary>
     private int? Crate => _ui.OpenCrate.Get();
 
     private bool HandFree => _ui.Hand.Get() == Holding.Free;
@@ -120,10 +127,15 @@ public partial class InventoryPanel : CanvasLayer
         AddChild(_root);
         AddChild(_over);
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        Build();
+    }
 
+    /// <summary>The hotbar, the inventory, the equipment and the stack in hand, at the slot size chosen now.</summary>
+    private void Build()
+    {
+        int size = _ui.Slot, icon = size - 2 * Slots.Inset;
         var top = Style.Gap(new HBoxContainer(), 8);
-        top.AddChild(ToolSlot());
-        top.AddChild(Grid(Enumerable.Range(0, Hotbar.Row).Select(i => new Place(i))));
+        top.AddChild(Grid(Enumerable.Range(0, Hotbar.Row).Select(i => new Place(i)), keys: true));
         top.AddChild(_creative = new Label
         {
             LabelSettings = Style.Text(Style.Mono, 12, Style.Amber400),
@@ -132,40 +144,54 @@ public partial class InventoryPanel : CanvasLayer
             Visible = false,
         });
         _hotbar = Style.Panel(Style.Slate700, top);
-        _hotbar.Position = new Vector2(12, 12);
+        _hotbar.Position = new Vector2(Slots.Margin, Slots.Margin);
         _root.AddChild(_hotbar);
 
-        var shown = Style.Gap(new VBoxContainer { Position = new Vector2(12, 112) }, 8);
-        // The equipment by the grid, laid out as the body (0047); the crafts dock past both.
-        var bag = Style.Gap(new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin }, 6);
+        // The grid, and under it the machine open; the equipment at the screen's other edge (0058).
+        var shown = Style.Gap(new VBoxContainer { Position = new Vector2(Slots.Margin, Slots.InventoryTop(size)) }, 8);
         var grid = Style.Panel(Style.Slate700, Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
-        grid.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
-        bag.AddChild(grid);
-        bag.AddChild(Body());
-        shown.AddChild(_inventory = bag);
+        grid.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+        shown.AddChild(_inventory = grid);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
+        _root.AddChild(_body = Body(size));
+        _body.Visible = false;
 
-        _held = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Size = new Vector2(36, 36), Visible = false };
+        _held = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Size = new Vector2(size, size), Visible = false };
         _held.AddChild(_heldIcon = new TextureRect
         {
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.Scale,
             TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-            Position = new Vector2(4, 4),
-            Size = new Vector2(28, 28),
+            Position = new Vector2(Slots.Inset, Slots.Inset),
+            Size = new Vector2(icon, icon),
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
-        _held.AddChild(_heldMark = SlotBox.Mark());
+        _held.AddChild(_heldMark = SlotBox.Mark(size));
         _held.AddChild(_heldCount = new Label
         {
             LabelSettings = Style.Text(Style.Mono, 10, Colors.White, shadow: true),
-            Size = new Vector2(34, 38),
+            Size = new Vector2(size - 2, size + 2),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Bottom,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
         _over.AddChild(_held);
+    }
+
+    /// <summary>Takes down everything <see cref="Build"/> and the machine's panel made, before they are built at another size.</summary>
+    private void Clear()
+    {
+        foreach (var node in _root.GetChildren().Concat(_over.GetChildren()))
+        {
+            node.GetParent().RemoveChild(node);
+            node.QueueFree();
+        }
+        _slots.Clear();
+        _tipSpots.Clear();
+        _tipSpots.Show(null);
+        _built = null;
+        (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _hovered) = (null, null, null, null, null, null, null, null);
     }
 
     /// <summary>
@@ -203,46 +229,53 @@ public partial class InventoryPanel : CanvasLayer
         Read();
     }
 
-    private GridContainer Grid(IEnumerable<Place> places)
+    /// <param name="keys">Whether each slot shows the key that chooses it: the hotbar's.</param>
+    private GridContainer Grid(IEnumerable<Place> places, bool keys = false)
     {
-        var grid = Style.Gap(new GridContainer { Columns = Hotbar.Row }, 4);
-        foreach (var place in places) grid.AddChild(Box(place));
+        var grid = Style.Gap(new GridContainer { Columns = Hotbar.Row }, Slots.Gap);
+        foreach (var place in places) grid.AddChild(Box(place, keys ? Hotbar.KeyOf(place.Slot) : null));
         return grid;
     }
 
     /// <summary>
-    /// The equipment, by the body (0047): the head's slot over the back's over the belt's three, each row
-    /// under its name; no silhouettes in empty slots.
+    /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058): the head's slot
+    /// over the back's over the belt's three, then the hands' tool, each row under its name; no silhouettes in
+    /// empty slots.
     /// </summary>
-    private Control Body()
+    private Control Body(int size)
     {
         var column = Style.Gap(new VBoxContainer(), 2);
         foreach (var kind in Content.Inventory.Equipment.Distinct())
         {
-            column.AddChild(new Label
-            {
-                Text = T($"equip.{kind}"),
-                LabelSettings = Style.Text(Style.Mono, 9, Style.Slate500),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-            });
-            var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
+            column.AddChild(Caption(kind));
+            var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
             foreach (var place in Equipment.Of(kind)) row.AddChild(Box(place));
             column.AddChild(row);
         }
+        column.AddChild(Caption("hands"));
+        var hands = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        hands.AddChild(ToolSlot(size));
+        column.AddChild(hands);
         var body = Style.Panel(Style.Slate700, column);
-        body.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
         return body;
     }
 
-    /// <summary>
-    /// The tool the right button works with, left of the hotbar: empty, the screwdriver everyone has, pale.
-    /// Only shown for now (0030): nothing is put in it until a tool better than the screwdriver exists.
-    /// </summary>
-    private Control ToolSlot()
+    private static Label Caption(string kind) => new()
     {
-        var slot = new Panel { CustomMinimumSize = new Vector2(36, 36), MouseFilter = Control.MouseFilterEnum.Stop };
-        slot.AddThemeStyleboxOverride("panel", Style.Box(Style.Slate800 with { A = 0.9f }, Style.Slate600));
+        Text = T($"equip.{kind}"),
+        LabelSettings = Style.Text(Style.Mono, 9, Style.Slate500),
+        HorizontalAlignment = HorizontalAlignment.Center,
+        MouseFilter = Control.MouseFilterEnum.Ignore,
+    };
+
+    /// <summary>
+    /// The tool the right button works with, the equipment's last row: the screwdriver everyone has. Only shown
+    /// for now (0030): nothing is put in it until a tool better than the screwdriver exists.
+    /// </summary>
+    private Control ToolSlot(int size)
+    {
+        var slot = new Panel { CustomMinimumSize = new Vector2(size, size), MouseFilter = Control.MouseFilterEnum.Stop };
+        slot.AddThemeStyleboxOverride("panel", SlotLooks.Of(SlotTint.Plain, false, false));
         var icon = new TextureRect
         {
             Texture = GD.Load<Texture2D>("res://art/tool_screwdriver.png"),
@@ -250,144 +283,104 @@ public partial class InventoryPanel : CanvasLayer
             StretchMode = TextureRect.StretchModeEnum.Scale,
             TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
             MouseFilter = Control.MouseFilterEnum.Ignore,
-            Modulate = new Color(1, 1, 1, 0.5f),
         };
         slot.AddChild(icon);
-        icon.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.Minsize, 4);
-        var key = new Label { Text = "RMB", LabelSettings = Style.Text(Style.Mono, 8, Style.Slate400, shadow: true), MouseFilter = Control.MouseFilterEnum.Ignore };
-        slot.AddChild(key);
-        // The icon runs from the bottom left to the top right: the bottom right corner is free.
-        key.Position = new Vector2(19, 24);
+        icon.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.Minsize, Slots.Inset);
         _tipSpots.Add(slot, () => new Tip(T("gear.screwdriver"), [new TipLine(T("gear.screwdriver.about"), Tone.Dim)]));
         return slot;
     }
 
-    private SlotBox Box(Place place)
+    private SlotBox Box(Place place, string? key = null)
     {
-        var box = new SlotBox(place);
+        var box = new SlotBox(place, _ui.Slot, key);
         box.Pressed += ClickAt;
         _tipSpots.Add(box, () => _reading?.At(box.Place) is { } stack ? _reading.TipOf(stack) : null);
         _slots.Add(box);
         return box;
     }
 
-    /// <summary>The open crate's panel, made anew for each crate: a crate's grid, a furnace's or an analyzer's own.</summary>
+    /// <summary>The open crate's panel, made anew for each crate: a crate's grid, a furnace's or an analyzer's own, in the machine frame.</summary>
     private void BuildCrate()
     {
         (int, string)? want = Crate is int id && _reading?.Kind is string k ? (id, k) : null;
         if (want == _built) return;
         _built = want;
-        if (_cratePanel != null)
+        if (_frame != null)
         {
             _slots.RemoveAll(s => s.Place.Crate != null);
-            _shown.RemoveChild(_cratePanel);
-            _cratePanel.QueueFree();
-            (_cratePanel, _progress, _problem, _analyzer, _bolt, _makes) = (null, null, null, null, null, null);
-            (_charged, _station, _tooCold) = (null, null, null);
+            _shown.RemoveChild(_frame);
+            _frame.QueueFree();
+            (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold) = (null, null, null, null, null, null, null);
         }
         if (want is not var (crate, kind)) return;
-        // A queued station (the lifepod's Fabricator, the Former) docks beside the inventory, the crafting feature's own panel.
+        // A queued station (the lifepod's Fabricator, the Former) docks in the same place, the crafting feature's own panel.
         if (Content.Stations.TryGet(kind, out var station) && !station.Fed) return;
-        _cratePanel = kind switch
+        var spec = MachineSpecs.Get(kind);
+        _frame = new MachineFrame(T($"tool.{kind}"), kind == "burnerGenerator" ? spec.Makes : spec.Draws);
+        _frame.Add(kind switch
         {
-            "furnace" => FurnacePanel(crate),
-            "burnerGenerator" => GeneratorPanel(crate),
-            "smelter" => SmelterPanel(crate),
-            "analyzer" => _analyzer = new AnalyzerPanel(Box(new Place(0, crate)), _tipSpots),
-            "charger" => ChargerPanel(crate),
-            _ => Style.Panel(Style.Amber700 with { A = 0.7f },
-                Grid(Enumerable.Range(0, MachineSpecs.Get(kind).Slots ?? 0).Select(i => new Place(i, crate)))),
-        };
-        _cratePanel.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
-        _shown.AddChild(_cratePanel);
+            "furnace" => FurnaceBody(crate),
+            "burnerGenerator" => GeneratorBody(crate),
+            "smelter" => SmelterBody(crate),
+            "analyzer" => _analyzer = new AnalyzerPanel(Box(new Place(0, crate)), _tipSpots, _ui.Slot),
+            "charger" => ChargerBody(crate),
+            _ => Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
+        });
+        _shown.AddChild(_frame);
     }
 
     /// <summary>Its input over its fuel, as Minecraft lays them, the fire between them; then how far its work is and its outputs.</summary>
-    private Control FurnacePanel(int crate)
+    private Control FurnaceBody(int crate)
     {
         var column = Style.Gap(new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
         int fuel = MachineSpecs.Get("furnace").FuelSlot!.Value;
         column.AddChild(Box(new Place(0, crate)));
         column.AddChild(_fire = HeatMark());
         column.AddChild(Box(new Place(fuel, crate)));
-        var outputs = Style.Gap(new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter }, 4);
+        var outputs = Style.Gap(new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter }, Slots.Gap);
         for (int i = fuel + 1; i < MachineSpecs.Get("furnace").Slots; i++) outputs.AddChild(Box(new Place(i, crate)));
         var line = Style.Gap(new HBoxContainer(), 8);
         line.AddChild(column);
         line.AddChild(_progress = Style.Bar(Style.Orange400, 56));
         line.AddChild(outputs);
-        return WithProblem(Style.Orange700, line);
+        return WithProblem(line);
     }
 
-    /// <summary>
-    /// The furnace's, without the fuel: its input over its coils' mark, glowing while it works, its bar and its outputs;
-    /// then a bolt and what it draws, lit while it works, as the Former's.
-    /// </summary>
-    private Control SmelterPanel(int crate)
+    /// <summary>The furnace's, without the fuel: its input over its coils' mark, glowing while it works, its bar and its outputs.</summary>
+    private Control SmelterBody(int crate)
     {
         var column = Style.Gap(new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
         var spec = MachineSpecs.Get("smelter");
         column.AddChild(Box(new Place(0, crate)));
         column.AddChild(_fire = HeatMark());
-        var outputs = Style.Gap(new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter }, 4);
+        var outputs = Style.Gap(new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter }, Slots.Gap);
         for (int i = spec.Inputs!.Value; i < spec.Slots; i++) outputs.AddChild(Box(new Place(i, crate)));
         var line = Style.Gap(new HBoxContainer(), 8);
         line.AddChild(column);
         line.AddChild(_progress = Style.Bar(Style.Orange400, 56));
         line.AddChild(outputs);
-        line.AddChild(_bolt = BoltIcon(new Vector2(14, 18), Control.SizeFlags.ShrinkEnd));
-        line.AddChild(_makes = new Label
-        {
-            LabelSettings = Style.Text(Style.Mono, 14, Style.Amber400),
-            Text = spec.Draws.ToString(),
-            SizeFlagsVertical = Control.SizeFlags.ShrinkEnd,
-        });
-        return WithProblem(Style.Orange700, line);
+        return WithProblem(line);
     }
 
-    private static TextureRect BoltIcon(Vector2 size, Control.SizeFlags vertical) => new()
-    {
-        Texture = AsciiArt.Bolt(false),
-        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-        CustomMinimumSize = size,
-        SizeFlagsVertical = vertical,
-        MouseFilter = Control.MouseFilterEnum.Ignore,
-    };
-
-    /// <summary>Its fire over its fuel, as the furnace's; beside them a bolt and the power it makes, lit while it burns.</summary>
-    private Control GeneratorPanel(int crate)
+    /// <summary>Its fire over its fuel, as the furnace's; the power it makes is the frame's bolt, lit while it burns.</summary>
+    private Control GeneratorBody(int crate)
     {
         var column = Style.Gap(new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
         column.AddChild(_fire = HeatMark());
         column.AddChild(Box(new Place(MachineSpecs.Get("burnerGenerator").FuelSlot!.Value, crate)));
-        var line = Style.Gap(new HBoxContainer(), 8);
+        // In a row, as the furnace's: a column alone in the frame would stretch its slot across it.
+        var line = new HBoxContainer();
         line.AddChild(column);
-        line.AddChild(_bolt = BoltIcon(new Vector2(14, 18), Control.SizeFlags.ShrinkEnd));
-        line.AddChild(_makes = new Label
-        {
-            LabelSettings = Style.Text(Style.Mono, 14, Style.Amber400),
-            Text = MachineSpecs.Get("burnerGenerator").Makes.ToString(),
-            SizeFlagsVertical = Control.SizeFlags.ShrinkEnd,
-        });
-        return WithProblem(Style.Orange700, line);
+        return WithProblem(line);
     }
 
     /// <summary>
-    /// A charging station's, as the station mockup: its name and a bolt with what it draws, lit while it
-    /// charges; its slot beside a bar of what the battery holds, and under the bar what it does now.
+    /// A charging station's, as the station mockup: its slot beside a bar of what the battery holds, and under the
+    /// bar what it does now; what it draws is the frame's bolt, lit while it charges.
     /// </summary>
-    private Control ChargerPanel(int crate)
+    private Control ChargerBody(int crate)
     {
-        var column = Style.Gap(new VBoxContainer { CustomMinimumSize = new Vector2(196, 0) }, 8);
-        var head = Style.Gap(new HBoxContainer(), 4);
-        var name = new Label { Text = T("tool.charger"), LabelSettings = Style.Text(Style.Bold, 14, Style.Slate100), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        head.AddChild(name);
-        head.AddChild(_bolt = BoltIcon(new Vector2(10, 13), Control.SizeFlags.ShrinkCenter));
-        head.AddChild(_makes = new Label { LabelSettings = Style.Text(Style.Mono, 12, Style.Amber400), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter });
-        column.AddChild(head);
-        var bay = Style.Gap(new HBoxContainer(), 10);
+        var bay = Style.Gap(new HBoxContainer { CustomMinimumSize = new Vector2(196, 0) }, 10);
         bay.AddChild(Box(new Place(0, crate)));
         var right = Style.Gap(new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Alignment = BoxContainer.AlignmentMode.Center }, 4);
         var track = new Panel { CustomMinimumSize = new Vector2(0, 10), MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -398,8 +391,7 @@ public partial class InventoryPanel : CanvasLayer
         right.AddChild(track);
         right.AddChild(_station = new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Slate400) });
         bay.AddChild(right);
-        column.AddChild(bay);
-        return Style.Panel(ItemCardView.Green with { A = 0.35f }, column);
+        return bay;
     }
 
     /// <summary>
@@ -418,13 +410,13 @@ public partial class InventoryPanel : CanvasLayer
         return mark;
     }
 
-    /// <summary>A panel of <paramref name="edge"/> with <paramref name="line"/>, under it why the machine stands still.</summary>
-    private Control WithProblem(Color edge, Control line)
+    /// <summary><paramref name="line"/>, and under it why the machine stands still.</summary>
+    private Control WithProblem(Control line)
     {
         var stack = Style.Gap(new VBoxContainer(), 4);
         stack.AddChild(line);
         stack.AddChild(_problem = new Label { LabelSettings = Trouble, Visible = false });
-        return Style.Panel(edge with { A = 0.7f }, stack);
+        return stack;
     }
 
     public override void _UnhandledInput(InputEvent e)
@@ -444,7 +436,7 @@ public partial class InventoryPanel : CanvasLayer
                     break;
                 case >= Key.Key1 and <= Key.Key9:
                     _ui.Hand.Set(Holding.Free);
-                    _chosen = (int)(key.PhysicalKeycode - Key.Key1);
+                    _chosen = Hotbar.SlotOfDigit((int)(key.PhysicalKeycode - Key.Key0))!.Value;
                     break;
                 case Key.Q:
                     // A card in hand, not the chosen slot: Q drops nothing it does not show.
@@ -501,6 +493,7 @@ public partial class InventoryPanel : CanvasLayer
     private bool OverPanel(Vector2 at) =>
         GetViewport().GuiGetHoveredControl() != null
         || _hotbar.GetGlobalRect().HasPoint(at)
+        || (_body.Visible && _body.GetGlobalRect().HasPoint(at))
         || (_shown.Visible && _shown.GetChildren().OfType<Control>().Any(c => c.IsVisibleInTree() && c.GetGlobalRect().HasPoint(at)));
 
     /// <summary>Throws a stack from the hero the way it faces.</summary>
@@ -563,8 +556,10 @@ public partial class InventoryPanel : CanvasLayer
             Refresh();
         }
         _held.Position = _mouse + new Vector2(6, 6);
+        // The equipment keeps its margin from the right edge, whatever the window's width and its own.
+        _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
-        _ui.InventoryEdge.Set(_shown.Visible ? (grid.End.X, grid.Position.Y) : null);
+        _ui.InventoryFoot.Set(_shown.Visible ? (grid.Position.X, grid.End.Y) : null);
         // A hidden slot says nothing; under the open menu none is pointed at.
         _tipSpots.Frame(_ui.MenuOpen.Get() ? null : _mouse);
     }
@@ -573,7 +568,7 @@ public partial class InventoryPanel : CanvasLayer
     {
         if (_reading is not { } reading) return;
         BuildCrate();
-        _shown.Visible = Shown;
+        _shown.Visible = _body.Visible = Shown;
         _creative.Visible = reading.Creative;
         _ui.Wielded.Set(HandFree ? reading.Inventory[_chosen]?.Item : null);
         var held = Held;
@@ -601,24 +596,26 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The open charging station's bar, what it does in words, and its bolt lit with what it draws while it charges.</summary>
     private void ShowCharger(Stack? held, bool charging)
     {
-        if (_charged == null || _station == null || _bolt == null || _makes == null) return;
+        if (_charged == null || _station == null) return;
         float share = held == null ? 0 : Charges.Share(held);
         _charged.AnchorRight = share;
         _charged.OffsetRight = share >= 1 ? -1 : 0;
         _charged.Visible = share > 0;
         _station.Text = T(Charges.StationState(held, charging));
-        _bolt.Modulate = charging ? Colors.White : Dark;
-        _makes.Text = (charging ? MachineSpecs.Get("charger").Draws ?? 0 : 0).ToString();
-        _makes.Modulate = charging ? Colors.White : Dark;
+        _frame?.Light(charging);
     }
 
     /// <summary>
     /// The open analyzer's panel; whether the open furnace or generator burns and why it stands still; how
-    /// far the furnace's work is, what the generator makes.
+    /// far the furnace's work is; the frame's bolt lit while the machine works.
     /// </summary>
     private void ShowMachine(Reading reading)
     {
-        if (reading.Lessons != null) _analyzer?.Show(reading.Lessons);
+        if (reading.Lessons != null && _analyzer != null)
+        {
+            _analyzer.Show(reading.Lessons);
+            _frame?.Light(_analyzer.Works);
+        }
         if (reading.Kind == "charger" && Crate is int station) ShowCharger(reading.At(new Place(0, station)), Charger?.Invoke(station) == true);
         if (reading.Kind == "smelter" && Crate is int smelter) ShowSmelter(reading, smelter);
         if (_problem == null || reading.Kind is not ("furnace" or "burnerGenerator")) return;
@@ -628,26 +625,25 @@ public partial class InventoryPanel : CanvasLayer
         _tooCold = at is { Problem: "crafting.tooCold", Item: { } cold } ? cold : null;
         _fire.AddThemeStyleboxOverride("panel", _tooCold != null ? Cold : burning ? FireOn : FireOut);
         if (_progress != null) _progress.Value = at is { Item: not null, Work: > 0 } ? (double)at.Progress / at.Work : 0;
-        if (_bolt != null) _bolt.Modulate = burning ? Colors.White : Dark;
-        if (_makes != null) _makes.Modulate = burning ? Colors.White : Dark;
+        _frame?.Light(burning);
         _problem.Text = at?.Problem is { } problem ? T(problem) : "";
         _problem.Visible = at?.Problem != null && _tooCold == null;
     }
 
     /// <summary>
-    /// The open smelter's: its coils' mark glowing while it works and cold blue while it is too cold, its bar, its
-    /// bolt and draw lit while it works, and under it when it has no room for what it makes.
+    /// The open smelter's: its coils' mark glowing while it works and cold blue while it is too cold, its bar, the
+    /// frame's bolt lit while it works, and under it when it has no room for what it makes.
     /// </summary>
     private void ShowSmelter(Reading reading, int id)
     {
-        if (Crafting is not { } crafting || _problem == null || _progress == null || _bolt == null || _makes == null) return;
+        if (Crafting is not { } crafting || _problem == null || _progress == null) return;
         var input = reading.At(new Place(0, id))?.Item;
         bool works = crafting.Works(id);
         _tooCold = input != null && crafting.TooCold(id) ? input : null;
         _fire.AddThemeStyleboxOverride("panel", _tooCold != null ? Cold : works ? FireOn : FireOut);
         int? ticks = input == null ? null : Content.Items.Get(input).SmeltTicks;
         _progress.Value = ticks is int t ? (double)crafting.Progress(id) / (t * 1000) : 0;
-        _bolt.Modulate = _makes.Modulate = works ? Colors.White : Dark;
+        _frame?.Light(works);
         bool full = ticks != null && _tooCold == null && !crafting.CanSmelt(id);
         _problem.Text = full ? T("furnace.full") : "";
         _problem.Visible = full;
