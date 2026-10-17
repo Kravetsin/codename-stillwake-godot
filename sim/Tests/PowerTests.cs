@@ -142,6 +142,39 @@ public class PowerTests
         Assert.Equal((0, 4, 0), (n.Supply, n.Demand, n.Satisfaction));
     }
 
+    [Fact]
+    public void ShadesAPanelInSpaceOnceABackWallStandsBehindItAndLightsItWhenItGoes()
+    {
+        var w = World();
+        Assert.Null(w.M.Grid.BackAt(Panel));
+        Assert.Equal(5, w.M.Power.Networks[0].Supply);
+        w.Do(new Place(At(1, 0), Grid.Placement.BackWall())).Run();
+        Assert.Equal(0, w.M.Power.Networks[0].Supply);
+        w.Do(new ClearAt(At(1, 0), "back")).Run();
+        Assert.Equal(5, w.M.Power.Networks[0].Supply);
+    }
+
+    [Fact]
+    public void MakesNothingFromAPanelInARoomTornOpenToSpaceWhileItsBackWallStands()
+    {
+        // The left wall gone two cells high: the room is space to the air, its back walls still up.
+        string[] torn =
+        [
+            "                ",
+            "################",
+            "  PPP..........#",
+            "  GG...........#",
+            "  GG...........#",
+            "################",
+        ];
+        var w = World([((2, 2), (2, 3))], torn);
+        Assert.Equal(Rooms.RoomsModule.Space, w.M.Rooms.RoomAt(At(5, 2)));
+        Assert.Equal(5, w.M.Power.Networks[0].Supply);
+        foreach (int x in new[] { 2, 3, 4 }) w.Do(new Place(At(x, 2), Grid.Placement.BackWall()));
+        w.Run();
+        Assert.Equal(0, w.M.Power.Networks[0].Supply);
+    }
+
     private static int Store(Scenario w, int cell) => w.M.Atmosphere.OxygenIn(IdAt(w, cell));
 
     [Fact]

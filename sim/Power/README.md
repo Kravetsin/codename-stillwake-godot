@@ -26,8 +26,8 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
 - **A cable's end moves** to another node with `Move`: every cable ending at a node, or one named;
   none may then span farther than a cable does, or it would be pulled taut. Moving costs nothing.
 - **A network** is the nodes cables join, named by its lowest node cell. Its supply is what the
-  machines on it that make power make, each only with every cell of it in space (a solar panel inside
-  a room is in the shade); its demand, what the machines on it that draw power draw, one working on
+  machines on it that make power make, each only under the stars: every cell of it in space with no back wall behind it (a
+  solar panel in a room, or before a back wall, is in the shade; 0043); its demand, what the machines on it that draw power draw, one working on
   what is put in it (an analyzer, with `Slots`) only while its first slot holds something, and none
   told to rest by the module it works for (`Rest`); a machine taken apart rests no more. Its
   satisfaction is `floor(1000 × supply / demand)`, at most 1000, and 1000 with no demand: every user

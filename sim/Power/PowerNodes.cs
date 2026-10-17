@@ -63,20 +63,23 @@ internal static class PowerNodes
     /// <summary>A total order on cables: by their first node, then their second.</summary>
     public static int ByEnds(Cable p, Cable q) => p.A != q.A ? p.A.CompareTo(q.A) : p.B.CompareTo(q.B);
 
-    /// <summary>Whether a machine making power stands wholly in space, where the sun reaches it.</summary>
-    private static bool Outside(IGridQueries grid, IRoomsQueries rooms, Machine m)
+    /// <summary>Whether a machine making power sees the stars: every cell of it in space with no back wall behind it.</summary>
+    private static bool UnderStars(IGridQueries grid, IRoomsQueries rooms, Machine m)
     {
         var s = Spec(m);
         int x = m.Cell % grid.Width, y = m.Cell / grid.Width;
         for (int dy = 0; dy < s.Height; dy++)
             for (int dx = 0; dx < s.Width; dx++)
-                if (rooms.RoomAt((y + dy) * grid.Width + x + dx) != RoomsModule.Space) return false;
+            {
+                int cell = (y + dy) * grid.Width + x + dx;
+                if (rooms.RoomAt(cell) != RoomsModule.Space || grid.BackAt(cell) != null) return false;
+            }
         return true;
     }
 
     /// <summary>
     /// The networks the cables join, in id order, with each user's satisfaction by machine id. Supply is
-    /// what the makers out in space make; demand what the users draw, each only while
+    /// what the makers under the stars make; demand what the users draw, each only while
     /// <paramref name="drawing"/> says it works. Satisfaction is <c>floor(1000 × supply / demand)</c>, at
     /// most 1000, and 1000 with nothing drawn. A powered machine with no cable is on no network.
     /// </summary>
@@ -122,7 +125,7 @@ internal static class PowerNodes
             var s = Spec(m);
             if (at < 0 || !IsPowered(s)) continue;
             int network = networkOf[at];
-            if (s.Makes is int makes && Outside(grid, rooms, m)) supply[network] += makes;
+            if (s.Makes is int makes && UnderStars(grid, rooms, m)) supply[network] += makes;
             if (s.Draws is int draws)
             {
                 if (drawing(m)) demand[network] += draws;
