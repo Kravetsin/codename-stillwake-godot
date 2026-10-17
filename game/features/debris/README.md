@@ -8,13 +8,22 @@ with the fire axe is the hands too, which send `Hit` (0034).
 - **Reads:** `DebrisModule.Pieces`; `Client.InFlight` — its own grabs (`Shared.Predicted.Grabbing`) and hits (`OwnHits`);
   `Ui.AimedPiece` — the piece the crew's hands would catch or chop; `Ui.Heroes` — who most likely
   struck a piece; `Session.Progress`.
+- **Only what the camera sees (0052):** a piece gets a picture only while its middle is within the
+  camera's view (`ShipCamera.View`) and 4 cells round it, and only those are drawn between ticks and
+  faded. Pictures come from two pools, a wreck's and a small piece's, that grow to the most ever on
+  screen and never free, 48 small and 32 wrecks made in `_Ready` so a cloud drifting in makes none;
+  every debris texture is loaded there too. Only wrecks take the cracking
+  material: a small piece is `Lit` plain, with no instance uniforms. A piece leaving the view goes back
+  to its pool; one gone from the world while drawn may burst, as below. With 300 pieces out round the
+  hero and some 35 drawn, the debris section costs 0.03 ms a frame on average (0.20 before) and
+  allocates nothing (`-- --fly --far=300 --frames`).
 - **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
   wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one picture of each wreck: a hull section, a machine block 48 × 32, a cargo container and a shield slab 64 × 32, a cable rack and a tank cluster 32 × 32 (`DebrisLooks.Wrecks`, the box they are aimed at and struck by)), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
   at `X − Speed × Progress`, or reeled by a harpoon its share of the way to its reel's point
   (`Shared.PieceDrawn`, where the crew's rod sticks to it too), so it glides, tumbling a turn every 4 s each its own way, faded in over the
   first 8 cells of its path and out over the last (`Fading.FadeOf`, 0009); a wreck only rocks, 0.08 rad
   either way every 7 s, so its picture stays where the aim tests it.
-- **Damage (0034):** one filter for every piece, in the lit pictures' shader (`render/Cracks.cs`, taken
+- **Damage (0034):** one filter for every wreck, in the lit pictures' shader (`render/Cracks.cs`, taken
   into `render/Lit.cs`): set per picture by instance uniforms, the share of hit points lost and the
   piece's id, it draws pixel-art cracks on the picture's own pixels — dark as the outline, a lit pixel
   under each — from a dent that widens, more and longer as the share grows, before the light falls on
@@ -41,6 +50,11 @@ with the fire axe is the hands too, which send `Hit` (0034).
   autopilot leaves the hero outside the airlock; there the pointer goes to it and E catches it,
   planks landing in the hotbar. With `--host` the demo is hosted, so a guest
   sees the catch.
+- **Recording:** `-- --fly` (`FarDemo`, `HeroAutopilot.Fly`): the big world, the hero floating 30 rows
+  above what is built with a jetpack worn and canisters breathed when the suit runs low; it waits 25 s
+  while the far field spawns round it (0052), then flies right, up and back through it. `--far=N` puts N
+  far pieces out round the start through the save; with `--edge=N` it starts past the field instead.
+  Every 5 s it prints the pieces out and the pictures drawn and made.
 - **Recording:** `-- --harpoon` (`WreckDemo`): a harpoon in the third slot, a cargo crate and a hull
   section out of reach; 3 chooses it, the crate is shot, reeled in with a second click and caught with E,
   then, the gun ready again, the section is shot and reeled in to the gun (0044).
@@ -61,6 +75,7 @@ with the fire axe is the hands too, which send `Hit` (0034).
 | `DebrisView.cs` | the layer: pieces and the outline of the one aimed at         | yes   |
 | `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |
 | `WreckDemo.cs`  | the world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple` | yes   |
+| `FarDemo.cs`    | the big world, a jetpack worn and the far field of `--fly` (`--manual` to fly it yourself) and `--far=N` | yes   |
 
 `Fading.cs` and `OwnHits.cs` are compiled again into `game.tests/` (`OwnHits` tested in `HearingTests`), where `fade.test.ts` and the debris test of
 `predicted.test.ts` are ported (`DebrisTests`); the debris tests of `aim.test.ts` are in `AimTests`.
@@ -73,3 +88,6 @@ with the fire axe is the hands too, which send `Hit` (0034).
   a round trip after the swing lands in the figure; the swing's pace hides most of it.
 - Which hero struck: the jolt and sparks face the nearest, which is the striker but for two heroes
   chopping one wreck from both sides.
+- Off the view: a hit on a piece not drawn jolts nothing and a wreck broken there bursts unseen; a piece
+  coming into view shows its damage as it is. Pictures taken back from a pool draw over or under one
+  another in no set order, which overlapping pieces drifting by do not show.
