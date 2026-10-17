@@ -21,8 +21,9 @@ them in by harpoon, and breaking wreckage with an axe
   `Reel` a harpoon pulling it (a `Reeling { By, ToX, ToY, Left }`: the peer, the point, the ticks still to go) or null,
   `SeenAt` the clock it was last in a hero's keep box (0 for the stream's); `NextId`,
   never reused; `Clock`, ticks run; `Beats`, each zone's `Beat { Zone, Next }`, the clock its next piece is due at;
-  `AtStart`, the pieces the first tick puts out. All saved. **Derived:** the hull's bounds, found again only when
-  the grid's `Version` has moved since (never saved; forgotten by `Rebuild` after a create and a load).
+  `AtStart`, the pieces the first tick puts out. All saved. **Derived:** the hull's bounds, followed by the
+  grid's log (0051): grown over a structure come, and only when one on its edge goes, its edge lines looked
+  at again (never saved; scanned whole after a create, a load, or when the log no longer reaches back).
 - **Files:** `Debris.cs` — the module, `Grab`, `Hit`, `Reel` and their rules; `Drift.cs` — the system:
   drift, the zones' beats and spawns, despawn, the hull; `State.cs` — its slice, `Piece`, `Reeling` and
   `Beat`; `Fuzz.cs` — its fuzz generator.

@@ -363,6 +363,28 @@ public class DebrisZonesTests
 
     private sealed record Step(string Type, int Cell = 0, int Peer = 0, int Ticks = 0);
 
+    [Property(MaxTest = 60)]
+    public Property FollowsTheHullByTheGridsLogAsAScanOfItWouldFindIt()
+    {
+        // Walls built and taken anywhere, the hull's edges and its last cell included (0051).
+        var edit = from wall in Gen.Elements(true, false)
+                   from x in Gen.Choose(0, 23)
+                   from y in Gen.Choose(0, 11)
+                   select (wall, cell: y * 24 + x);
+        var edits = from n in Gen.Choose(1, 60) from e in edit.ArrayOf(n) select e;
+        return Prop.ForAll(edits.ToArbitrary(), all =>
+        {
+            var w = new Scenario(Layout.Parse(Enumerable.Range(0, 12).Select(y => y is >= 4 and <= 7 ? "         ######         " : new string(' ', 24)).ToArray()));
+            var debris = w.M.Debris;
+            Assert.Equal(debris.HullOf(), debris.Hull());
+            foreach (var (wall, cell) in all)
+            {
+                w.Do(wall ? new Place(cell, Placement.Wall()) : new ClearAt(cell, "structure")).Run();
+                Assert.Equal(debris.HullOf(), debris.Hull());
+            }
+        });
+    }
+
     [Property(MaxTest = 40)]
     public Property KeepsEveryZoneUnderItsCapAndSpawnsTheFarFieldOnlyOnTheRingOfAHeroUnderItsShare()
     {

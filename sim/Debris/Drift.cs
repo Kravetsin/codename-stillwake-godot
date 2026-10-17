@@ -19,12 +19,54 @@ public sealed partial class DebrisModule
     /// <summary>The hull is found again after a create and a load: the grid's version starts over then.</summary>
     public override void Rebuild() => _hullAt = int.MinValue;
 
-    private (int Left, int Right, int Top, int Bottom)? Hull()
+    internal (int Left, int Right, int Top, int Bottom)? Hull()
     {
         if (_grid.Version == _hullAt) return _hull;
-        _hull = HullOf();
+        // Followed by the grid's log (0051): only a structure cell emptied on the box's edge makes it look again, and then at that edge's lines.
+        var changes = _hullAt == int.MinValue ? null : _grid.ChangedSince(_hullAt);
+        _hull = changes == null ? HullOf() : Follow(_hull, changes);
         _hullAt = _grid.Version;
         return _hull;
+    }
+
+    /// <summary><paramref name="hull"/> after <paramref name="changes"/>: grown over every structure come, its edges moved in past lines left empty.</summary>
+    private (int Left, int Right, int Top, int Bottom)? Follow((int Left, int Right, int Top, int Bottom)? hull, IReadOnlyList<CellChange> changes)
+    {
+        var structure = _grid.StructureLayer;
+        int width = _grid.Width;
+        bool edge = false;
+        foreach (var change in changes)
+        {
+            if ((change.Layers & GridLayers.Structure) == 0) continue;
+            int x = change.Cell % width, y = change.Cell / width;
+            if (structure[change.Cell] != Structure.Empty)
+                hull = hull is { } h ? (Math.Min(h.Left, x), Math.Max(h.Right, x), Math.Min(h.Top, y), Math.Max(h.Bottom, y)) : (x, x, y, y);
+            else if (hull is { } h && (x == h.Left || x == h.Right || y == h.Top || y == h.Bottom))
+                edge = true;
+        }
+        return edge && hull is { } box ? Tighten(box) : hull;
+    }
+
+    /// <summary><paramref name="box"/> with each edge moved in past every line of it holding no structure; null when none is left.</summary>
+    private (int Left, int Right, int Top, int Bottom)? Tighten((int Left, int Right, int Top, int Bottom) box)
+    {
+        var structure = _grid.StructureLayer;
+        int width = _grid.Width;
+        var (left, right, top, bottom) = box;
+        while (top <= bottom && !Any(structure, top * width + left, 1, right - left + 1)) top++;
+        while (bottom >= top && !Any(structure, bottom * width + left, 1, right - left + 1)) bottom--;
+        if (top > bottom) return null;
+        while (!Any(structure, top * width + left, width, bottom - top + 1)) left++;
+        while (!Any(structure, top * width + right, width, bottom - top + 1)) right--;
+        return (left, right, top, bottom);
+    }
+
+    /// <summary>Whether any of <paramref name="count"/> cells from <paramref name="from"/>, <paramref name="step"/> apart, holds a structure.</summary>
+    private static bool Any(ReadOnlySpan<int> structure, int from, int step, int count)
+    {
+        for (int i = 0, cell = from; i < count; i++, cell += step)
+            if (structure[cell] != Structure.Empty) return true;
+        return false;
     }
 
     /// <summary>The binary search of <paramref name="id"/> among the pieces, in id order as they spawned; -1 for none.</summary>
@@ -293,7 +335,7 @@ public sealed partial class DebrisModule
     /// within the grid's <c>Built</c>, past which nothing stands, so it costs the ship and not the world,
     /// and only when the grid has changed since.
     /// </summary>
-    private (int Left, int Right, int Top, int Bottom)? HullOf()
+    internal (int Left, int Right, int Top, int Bottom)? HullOf()
     {
         var structure = _grid.StructureLayer;
         int width = _grid.Width;
