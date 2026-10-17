@@ -838,7 +838,9 @@ public class DebrisTests
     private static string? Broken(Scenario w, ref int last, IReadOnlySet<int> reeled)
     {
         var pieces = Pieces(w);
-        if (pieces.Count > DebrisSpec.Max) return $"{pieces.Count} pieces out";
+        // The stream's own; a hero entered out past it brings the far field, whose invariants are DebrisZonesTests'.
+        int stream = pieces.Count(p => p.Zone == DebrisSpec.Ship.Id);
+        if (stream > DebrisSpec.Max) return $"{stream} pieces of the stream out";
         int width = w.M.Grid.Width, height = w.M.Grid.Height;
         for (int i = 0; i < pieces.Count; i++)
         {
@@ -854,6 +856,7 @@ public class DebrisTests
             // New this tick: in the band of the hull it spawned by, which the tick's commands have shaped.
             if (p.Id != last + 1) return $"piece {p.Id} after {last}: an id skipped or reused";
             last = p.Id;
+            if (p.Zone != DebrisSpec.Ship.Id) continue;
             var hull = HullOf(w.M.Grid);
             if (hull is not var (left, right, top, bottom)) return $"piece {p.Id} spawned with no hull";
             int row = p.Y / 1000;

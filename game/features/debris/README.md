@@ -11,7 +11,8 @@ with the fire axe is the hands too, which send `Hit` (0034).
 - **Only what the camera sees (0052):** a piece gets a picture only while its middle is within the
   camera's view (`ShipCamera.View`) and 4 cells round it, and only those are drawn between ticks and
   faded. Pictures come from two pools, a wreck's and a small piece's, that grow to the most ever on
-  screen and never free; every debris texture is loaded in `_Ready`. Only wrecks take the cracking
+  screen and never free, 48 small and 32 wrecks made in `_Ready` so a cloud drifting in makes none;
+  every debris texture is loaded there too. Only wrecks take the cracking
   material: a small piece is `Lit` plain, with no instance uniforms. A piece leaving the view goes back
   to its pool; one gone from the world while drawn may burst, as below. With 300 pieces out round the
   hero and some 35 drawn, the debris section costs 0.03 ms a frame on average (0.20 before) and

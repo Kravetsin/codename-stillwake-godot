@@ -22,16 +22,16 @@ stream.
   field. The asteroid band will be a third entry, by the hull with a gap: a content entry and at most
   an anchor kind.
 - **Two zones now.** `ship`, the stream as it always was, one tier, `Debris.Kinds`. `far`, round every
-  hero: a beat a second, at most `PerHero` (32) in a hero's keep box (128 × 88 cells either way) and
-  160 in all.
+  hero: a beat every tick, at most `PerHero` (110) in a hero's keep box (68 × 48 cells either way) and
+  640 in all. The numbers are tuned by measurement (below), not by eye.
 - **Each piece names its zone** (`Piece.Zone`) and keeps the clock it was last in some hero's keep
   box (`Piece.SeenAt`). Each zone keeps its own beat (`DebrisState.Beats`); a zone with none, one added
   to content later, is given one on its first tick, so a new zone needs no migration.
 - **Far spawning.** On the far beat, per hero in id order: none while the zone is at its cap, for a
   hero in a stream's box (the hull grown by `Lead` across and `Margin` up and down), nor for one whose
   keep box holds its share; and none without a hull. Else a point on a ring round its reported cell,
-  from half-box (80, 54) out to (96, 70): past what the farthest zoom shows (60, 34), and 20 cells,
-  a report's flight at the jetpack's top speed, beyond it. Five draws, always taken: the side, the offset
+  from half-box (61, 36) out to (64, 42): just past what the farthest zoom shows (60, 34), so what
+  spawns on the right drifts into sight soon. Five draws, always taken: the side, the offset
   along it, the depth across, the kind, the speed. A point off the grid, in a stream's box or in any
   hero's view spawns nothing. The piece starts there, `Start` its `X`, `End` 0: the fade in and the
   left edge as for every piece.
@@ -54,9 +54,18 @@ stream.
 
 - **Despawn, far pieces only.** In some hero's keep box a piece is seen; out of every keep box it is
   gone `Linger` (600 ticks, 30 s) after it was last seen, and at once out of every hero's hard box
-  (256 × 176). The stream's pieces are gone only past their end, never by distance.
+  (100 × 64). The stream's pieces are gone only past their end, never by distance.
 - **Drift** is left for every zone, as everything outside the moving ship; the far field at the stream's
   30 to 55 thousandths a tick.
+- **How full, measured.** Space must not feel empty: `DebrisDensityTests` hovers a hero and flies one
+  straight at the jetpack's 15 cells a second and slowly at 3, counting far pieces in the default
+  zoom's view (40 × 22 cells) and the farthest's (120 × 68). The numbers above give, hovering, some
+  4.7 in the default view and 40 in the farthest, a new piece in the default view every 11 s; flying by
+  jetpack some 4 and 31, the default view never empty more than 1.4 s, a new piece every 0.7 s; flying
+  slowly some 4.4 and 39. Pieces spread evenly put about a ninth of the farthest view's count in the
+  default one, so 4 in the default view means some 36 in the farthest: the farthest runs a little over
+  the 25–35 aimed at, to keep the default view full. A beat every tick is what flying needs: only the
+  ring's side ahead, 85 rows tall, meets a 23-row view; a hovering hero is held by its share instead.
 - **The hull's box is derived,** found again only when the grid's `Version` moves, not walked on
   every beat. `Grab`, `Hit` and `Reel` find their piece by a binary search in id order; no spatial
   index.
@@ -78,7 +87,7 @@ stream.
   zones serves all three.
 - **Spawning by each peer's screen:** each peer has its own; the sim must not depend on one (0009). A
   hero's reported cell is sim state, the same on every peer.
-- **A spatial index:** 180 pieces at most, tested against four heroes, cost some 0.04 ms a tick; a
+- **A spatial index:** 600 far pieces, tested against four heroes, cost some 0.12 ms a tick; a
   grid of buckets would cost more to keep than it saves.
 - **A far beat with jitter:** a draw on every beat, so even a world with no hero out would draw
   differently from before zones.
@@ -87,10 +96,15 @@ stream.
 
 ## Consequences
 
-- Up to 20 stream pieces and 160 far; the tick is tested at 300 with four heroes. A save holds some
+- Up to 20 stream pieces and 640 far; the tick is tested at 600 with four heroes. A save holds some
   145 bytes a piece.
 - A ring drawn round a cell a second stale may spawn a piece near the screen's edge for a hero flying
-  fast; the fade in covers it. Heroes together share one share; at the cap lower ids spawn first; a point
+  fast, inside the farthest view (15 cells a second outruns the ring's 1 to 4 cells past it) but never
+  the default one; the fade in covers it. A hero stopping where no far field was waits some 45 s for the
+  first piece in the default view: nothing spawns in sight, and the drift is under a cell a second. A hero
+  that hovered and then climbs or dives meets its ring's top or bottom band, a share's quarter in a few
+  rows: up to some 20 pieces in the default view at once, a passing cloud; bands thick enough to spread it
+  (tried: 61–84 by 36–56) thin the field everywhere else and slow it for a hero flying. Heroes together share one share; at the cap lower ids spawn first; a point
   off the grid or in a stream's box wastes that hero's beat; the tiers move with the hull.
 - Far pieces drift through the stream without counting toward its cap. A half-chopped wreck left out
   of every keep box for 30 s is gone with its damage; one last hero leaving takes the far field with it.

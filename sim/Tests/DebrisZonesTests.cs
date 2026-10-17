@@ -22,7 +22,7 @@ public class DebrisZonesTests
     /// Space round a hull block of <paramref name="w"/>×<paramref name="h"/> cells at (<paramref name="x"/>,
     /// <paramref name="y"/>) in a grid of <paramref name="width"/>×<paramref name="height"/>; no zone, so no cold.
     /// </summary>
-    private static Layout Open(int width, int height, int x, int y, int w = 6, int h = 3) => Layout.Parse(
+    internal static Layout Open(int width, int height, int x, int y, int w = 6, int h = 3) => Layout.Parse(
         [.. Enumerable.Range(0, height).Select(r => r >= y && r < y + h ? (new string(' ', x) + new string('#', w)).PadRight(width) : new string(' ', width))]);
 
     /// <summary>640×320, the hull at columns 100 to 105 and rows 150 to 152: its stream's box spans columns 36 to 169, rows 138 to 164.</summary>
@@ -69,7 +69,7 @@ public class DebrisZonesTests
         var spawns = Spawns(w, 600).Where(s => s.Piece.Zone == DebrisSpec.Far.Id).ToList();
         Assert.True(spawns.Count > 20, $"{spawns.Count} far pieces");
         Assert.All(spawns, s => Assert.True(OnRing(CellOf(s.Piece), (400, 150)) && !Within(CellOf(s.Piece), (400, 150), Around.View)));
-        Assert.All(new Func<(int X, int Y), bool>[] { c => c.X >= 480, c => c.X <= 320, c => c.Y <= 96, c => c.Y >= 204 },
+        Assert.All(new Func<(int X, int Y), bool>[] { c => c.X >= 400 + Around.RingFrom.X, c => c.X <= 400 - Around.RingFrom.X, c => c.Y <= 150 - Around.RingFrom.Y, c => c.Y >= 150 + Around.RingFrom.Y },
             side => Assert.Contains(spawns, s => side(CellOf(s.Piece))));
     }
 
@@ -154,8 +154,9 @@ public class DebrisZonesTests
     [Fact]
     public void LetsTwoHeroesTogetherFillOneShareAndTwoApartFillTwo()
     {
-        var (_, together) = Peaks(With(Wide, (400, 150), (400, 150)), 850, (400, 150));
-        Assert.Equal(Around.PerHero, together);
+        // Together they share one keep box: never more than one share in it (Peaks), and that share filled.
+        var (shared, _) = Peaks(With(Wide, (400, 150), (400, 150)), 850, (400, 150));
+        Assert.Equal(Around.PerHero, shared[0]);
         var (each, apart) = Peaks(With(Wide, (250, 80), (520, 240)), 850, (250, 80), (520, 240));
         Assert.Equal([Around.PerHero, Around.PerHero], each);
         Assert.True(apart >= 2 * Around.PerHero, $"{apart} far pieces for two heroes apart");
@@ -189,11 +190,12 @@ public class DebrisZonesTests
 
     private static Piece? PieceOf(Scenario w, int id) => Pieces(w).FirstOrDefault(p => p.Id == id);
 
-    /// <summary>A cell 100 rows above or below piece <paramref name="id"/>: out of its keep box, within its hard box however far it drifts the next 600 ticks.</summary>
+    /// <summary>A cell between its keep and hard boxes' heights above or below piece <paramref name="id"/>: out of its keep box, within its hard box however far it drifts the next 600 ticks.</summary>
     private static int Aside(Scenario w, int id)
     {
         var (x, y) = CellOf(PieceOf(w, id)!);
-        return (y >= 100 ? y - 100 : y + 100) * 640 + x;
+        int off = (Around.Keep.Y + Around.Hard.Y) / 2;
+        return (y >= off ? y - off : y + off) * 640 + x;
     }
 
     [Fact]

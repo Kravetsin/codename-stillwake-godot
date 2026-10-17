@@ -62,17 +62,18 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   The first is due on clock `Debris.Every`. Of the weights' 45, 36 are small pieces and 9 wrecks:
   a spawn every 10 s on average, a wreck one in five.
 - **The far field's beat** (`AroundHeroes`), with a hull: for each hero on the grid in id order, while
-  fewer than the zone's `Max` (160) are out — so at the cap lower ids spawn first — and skipping, with
-  no draw, a hero whose reported cell is in a stream's box or that already has `PerHero` (32) of the
-  zone in its `Keep` box (128 × 88 cells either way): a point on the ring round its cell, drawn as a
+  fewer than the zone's `Max` (640) are out — so at the cap lower ids spawn first — and skipping, with
+  no draw, a hero whose reported cell is in a stream's box or that already has `PerHero` (110) of the
+  zone in its `Keep` box (68 × 48 cells either way): a point on the ring round its cell, drawn as a
   side of four (right, left, up, down), an offset along it (up to `RingTo`'s other half-size either way)
-  and a depth across it (from `RingFrom` to `RingTo`: 80 to 96 columns, 54 to 70 rows); then a kind
+  and a depth across it (from `RingFrom` to `RingTo`: 61 to 64 columns, 36 to 42 rows, just past the
+  farthest view, so what spawns on the right drifts into sight within a minute); then a kind
   from the tier the point's distance picks, and a speed. A point off the grid, in a stream's box or in
   any hero's `View` (60 × 34, the farthest zoom) spawns nothing, its draws taken all the same. The
   piece starts there, in its cell's middle, `Start` its `X`, `End` 0, so it fades in where it spawns
-  and is gone past the grid's left edge; `SeenAt` the clock. A beat a second, no jitter.
+  and is gone past the grid's left edge; `SeenAt` the clock. A beat every tick, no jitter.
 - **Despawn,** for a zone round the heroes only: a piece in some hero's `Keep` box is seen (`SeenAt` the
-  clock) and stays; one outside every keep box stays while within some hero's `Hard` box (256 × 176)
+  clock) and stays; one outside every keep box stays while within some hero's `Hard` box (100 × 64)
   and seen less than `Linger` (600, 30 s) ago; else it is gone that tick: `Linger` after it was last
   seen, or at once outside every hard box, or when the last hero leaves. The stream's pieces are never
   gone by distance, only past their `End`.
@@ -120,8 +121,13 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   catching a piece of that item gives, merged by item in the order its entries first give it.
 - **Commands:** `Grab(Piece)`, `Hit(Piece)`, `Reel(Piece, ToX, ToY)`.
 - **Lookups:** `Grab`, `Hit` and `Reel` find their piece by a binary search of the pieces, in id order.
-  No spatial index: the box tests are pieces times heroes a tick, some 0.04 ms at 300 pieces and four
-  heroes (`BudgetTests`).
+  No spatial index: the box tests and each hero's share are pieces times heroes a tick, some 0.12 ms at
+  600 pieces and four
+  heroes in a debug build (`BudgetTests`).
+- **Density:** `DebrisDensityTests` flies a hero by jetpack and hovers one, and counts the far pieces in the
+  default zoom's view (40 × 22) and the farthest's (120 × 68): hovering some 4.7 and 40, a new piece in the
+  default view every 11 s; flying at 15 cells a second some 4 and 31, never empty more than 1.4 s. Pieces
+  spread evenly hold about a ninth as many in the default view as in the farthest.
 - **Fuzz:** a grab, a hit or a reel, one in three each, at a piece that is out three times in four,
   else an id from 0 to `NextId + 1`, gone or never spawned; a reel's point is anywhere from a grid's
   size before the grid to one past it, so the clamp is drawn too. Most are refused, as few fuzzed
@@ -149,6 +155,11 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - Far pieces drift through the stream's box without counting toward its cap. A half-chopped wreck left
   30 s out of every keep box is gone with its damage.
 - With no hull there is no far field: its distances are from the hull's box.
+- A hero stopping where no far field was waits some 45 s for the first piece in the default view: nothing
+  spawns in the farthest view, so pieces come in by the drift, under a cell a second.
+- A hero that hovered a while and then climbs or dives meets its ring's top or bottom band: a share's quarter
+  in a few rows, up to some 20 pieces at once in the default view where the field holds 4. Accepted: a
+  passing cloud; thicker bands thin the field everywhere else (`DebrisDensityTests` bounds it).
 - Two grabs of one piece on one tick: the host's order decides, and the second is `debris.gone`; so
   for hits after the one that breaks a wreck.
 - A wreck half over the hull is judged by its middle cell, as a small piece is: with its middle over

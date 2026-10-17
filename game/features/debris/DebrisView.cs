@@ -33,6 +33,8 @@ public partial class DebrisView(Ui ui) : Node2D
     private const double JoltMs = 220, JoltPixels = 3, JoltTurn = 0.07;
     /// <summary>Cells round the camera's view a piece is still drawn in: the biggest wreck's half and a frame's drift.</summary>
     private const int Margin = 4;
+    /// <summary>Pictures made at the start, small pieces' and wrecks': more than the far field shows in view at once (0052).</summary>
+    private const int WarmSmall = 48, WarmWrecks = 32;
     private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
 
     /// <summary>What is shown of a piece: its picture, the damage last seen, the jolt still settling and which way, and where it was on which tick.</summary>
@@ -75,6 +77,9 @@ public partial class DebrisView(Ui ui) : Node2D
         // Every picture loaded now, not on the frame a piece first comes into view.
         foreach (var (item, (_, count)) in DebrisLooks.Of)
             for (int look = 0; look < count; look++) PictureOf(item, look);
+        // Pictures made now for a crowd of pieces in view, not some forty in the frame a cloud drifts in.
+        for (int i = 0; i < WarmSmall; i++) _small.Push(Made(wreck: false));
+        for (int i = 0; i < WarmWrecks; i++) _wrecks.Push(Made(wreck: true));
         AddChild(_aimed);
         AddChild(_chop);
         AddChild(_break);
@@ -158,16 +163,7 @@ public partial class DebrisView(Ui ui) : Node2D
     {
         bool wreck = Wreckage.HpOf(piece.Item) != null;
         var pool = wreck ? _wrecks : _small;
-        Shown one;
-        if (pool.Count > 0) one = pool.Pop();
-        else
-        {
-            var body = new Sprite2D();
-            // Only wrecks crack: a small piece's picture takes no instance uniforms (render/Lit.cs).
-            Lit.Set(body, cracks: wreck);
-            AddChild(body);
-            one = new Shown(body, wreck);
-        }
+        var one = pool.Count > 0 ? pool.Pop() : Made(wreck);
         var picture = one.Picture;
         var (texture, scale) = PictureOf(piece.Item, piece.Id);
         picture.Texture = texture;
@@ -176,6 +172,16 @@ public partial class DebrisView(Ui ui) : Node2D
         (one.Damage, one.JoltMs, one.Away) = (piece.Damage, 0, Vector2.Zero);
         if (wreck) ShowCracks(picture, piece);
         return one;
+    }
+
+    /// <summary>A new picture, hidden: a wreck's or a small piece's.</summary>
+    private Shown Made(bool wreck)
+    {
+        var body = new Sprite2D { Visible = false };
+        // Only wrecks crack: a small piece's picture takes no instance uniforms (render/Lit.cs).
+        Lit.Set(body, cracks: wreck);
+        AddChild(body);
+        return new Shown(body, wreck);
     }
 
     /// <summary>

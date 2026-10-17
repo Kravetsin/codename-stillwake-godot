@@ -49,13 +49,17 @@ public static class Debris
     public static readonly DebrisZone Ship = new("ship", new ByHull(Margin, Lead), Every, Jitter, Max, DriftMin, DriftMax, [new(0, Kinds)]);
 
     /// <summary>
-    /// The far field round every hero out past the stream (0052): at most 32 in a hero's keep box and 160
-    /// in all, a beat a second with no jitter, so a world with no hero out takes no draw for it. Small
-    /// salvage near the ship; the farther out, the more and the bigger the wrecks, and the circuits with them.
+    /// The far field round every hero out past the stream (0052), tuned by <c>DebrisDensityTests</c>: a hero
+    /// sees some 4 pieces at the default zoom and 30 to 40 at the farthest, hovering or flying. The ring hugs
+    /// the farthest view (60 × 34), so what spawns on its right drifts into sight soon; a beat every tick
+    /// while a hero's keep box holds fewer than 110, so a hero flying by jetpack meets a piece a second;
+    /// pieces left out of the small keep box go soon, at the hard box. 640 in all: four heroes' shares and
+    /// what lingers. No jitter, so a world with no hero out takes no draw for it. Small salvage near the
+    /// ship; the farther out, the more and the bigger the wrecks, and the circuits with them.
     /// </summary>
     public static readonly DebrisZone Far = new("far",
-        new AroundHeroes(PerHero: 32, RingFrom: new(80, 54), RingTo: new(96, 70), View: new(60, 34), Keep: new(128, 88), Hard: new(256, 176), Linger: 600),
-        Every: 20, Jitter: 0, Max: 160, DriftMin, DriftMax,
+        new AroundHeroes(PerHero: 110, RingFrom: new(61, 36), RingTo: new(64, 42), View: new(60, 34), Keep: new(68, 48), Hard: new(100, 64), Linger: 600),
+        Every: 1, Jitter: 0, Max: 640, DriftMin, DriftMax,
         [
             new(0,
             [
