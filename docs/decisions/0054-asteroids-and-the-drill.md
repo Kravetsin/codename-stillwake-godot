@@ -51,8 +51,11 @@ so a second one needed a shape for every weapon to come (0049).
   shoulder of the body upright, against each wreck's aim box. Flat, it winds down and sends nothing; the
   prompt reads "[Hold LMB] Break · Batteries flat". Others see it held through `Wields`, and aimed and spinning
   while it runs (`Handwork.Drill`, its point).
-- **Heard:** own hits only, through the suit (0042): the drill's bite a placeholder, the chop pitched up,
-  quieter and varied more, until the user's pick; fewer sparks a hit, as they come ten a second.
+- **Heard apart from its hits:** a hammer drill strikes 4000 to 5500 times a minute, a buzz, not ten
+  clicks a second; so while this player's drill works on a piece the client plays its strike, a pickaxe on
+  metal cut to 50 ms, 18 times a second, each its own pitch (±12%) and loudness (±1.5 dB), at the bit on the
+  Suit bus, own only (0042), and stops the moment it stops (`StrikeTrain`). The rate and the spread are
+  tunables in `Sound`. Its hits play no chop and throw fewer sparks, as they come ten a second.
 - **No save format change.** Nothing saved changed shape: a hit's weapon is in the command, never in state, and
   a new zone gets its beat on its first tick (0052). A save holding rock or an asteroid does not load in an
   older build, as with every item added since the first.

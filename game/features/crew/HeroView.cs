@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
@@ -114,6 +115,13 @@ public partial class HeroView : Node2D
     /// </summary>
     private bool _aimsDrill;
     private DrillPace _drillPace;
+    /// <summary>The drill's strikes, heard at its bit through the suit while it works on a piece, apart from its hits (0054).</summary>
+    private readonly Heard2D _strike = Cues.Player2D(S.DrillStrike, S.Suit, voices: 2);
+    private StrikeTrain _strikes;
+    private readonly Random _strikeSpread = new();
+    /// <summary>The jetpack's thrust, heard through the suit while this hero thrusts, its envelope eased in and out (0047).</summary>
+    private readonly AudioStreamPlayer _thrustLoop = Cues.Player(S.Thrust, S.Suit);
+    private LoopEnvelope _thrustSound;
     private readonly Sprite2D _rod = new() { Centered = false, Visible = false, ZIndex = Layers.Hero };
     /// <summary>Every harpoon's line, over the heroes, unlit as the tethers are.</summary>
     private readonly Sketch _lines = new(Layers.Hero);
@@ -174,7 +182,7 @@ public partial class HeroView : Node2D
         _rod.Offset = -new Vector2((float)RodLook.Eye.X, (float)RodLook.Eye.Y);
         Lit.Set(_rod);
         AddChild(_rod);
-        foreach (var player in new Node[] { _shot, _drum, _ready, _bite, _breathes }) AddChild(player);
+        foreach (var player in new Node[] { _shot, _drum, _ready, _bite, _breathes, _strike, _thrustLoop }) AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
         _harpoonWorld = new HarpoonWorld(
@@ -294,6 +302,7 @@ public partial class HeroView : Node2D
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
         // Off as Shift is let go, aboard, the jetpack taken off or the suit empty: the sim stops venting it.
         if (Report.ThrustOf(m.Crew, client.Id, _thrust != null) is { } thrusts) client.Send(thrusts);
+        HearThrust(elapsedMs);
         if (_breathe && !passedOut) Breathe(client, m);
         _breathe = false;
 
@@ -404,6 +413,9 @@ public partial class HeroView : Node2D
             && m.Items.CanDrain(client.Id, DebrisModule.Spent(Content.Weapons.Drill) ?? 0);
         Drill(client, m, runs ? pointer : null);
         _figure.Spinning = runs;
+        // Heard while its bit is on a piece the sim would let it hit, whatever the hits' pace.
+        bool works = runs && Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), Content.Weapons.Drill.Item).Count > 0;
+        HearDrill(works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
         // Aimed aboard too, though it fires only out in space.
@@ -457,6 +469,30 @@ public partial class HeroView : Node2D
         if (!_drillPace.Due(client.World.Tick, pointer != null, Content.Weapons.Drill.Pace)) return;
         var touched = Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value));
         foreach (var hit in Aiming.HitsOf(m, client.Id, touched, Content.Weapons.Drill.Item)) client.Send(hit);
+    }
+
+    /// <summary>
+    /// The drill's strikes while it <paramref name="works"/> on a piece (0054): <c>Sound.DrillStrikesPerSecond</c>, each its
+    /// own pitch and volume, at its bit as last drawn; silent the moment it stops.
+    /// </summary>
+    private void HearDrill(bool works, double elapsedMs)
+    {
+        int due = _strikes.Due(elapsedMs, works, S.DrillStrikesPerSecond);
+        if (!works && _strike.Playing) _strike.Stop();
+        for (int i = 0; i < due; i++)
+        {
+            var (pitch, offsetDb) = StrikeTrain.Vary(_strikeSpread, S.DrillStrikePitch, S.DrillStrikeVolumeDb);
+            _strike.PlayAt(_figure.Muzzle ?? _figure.GlobalPosition, pitch, offsetDb);
+        }
+    }
+
+    /// <summary>The jetpack's hiss while this hero thrusts, risen and fallen by its envelope; stopped once fallen.</summary>
+    private void HearThrust(double elapsedMs)
+    {
+        _thrustSound.Step(_thrust != null, elapsedMs / 1000, S.ThrustAttackS, S.ThrustReleaseS);
+        if (_thrustSound.Playing && !_thrustLoop.Playing) _thrustLoop.Play();
+        else if (!_thrustSound.Playing && _thrustLoop.Playing) _thrustLoop.Stop();
+        _thrustLoop.VolumeDb = S.Thrust.VolumeDb + _thrustSound.GainDb;
     }
 
     /// <summary>

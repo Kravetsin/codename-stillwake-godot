@@ -64,6 +64,12 @@ public static class Charges
             (float)charge / full);
     }
 
+    /// <summary>
+    /// Whether a station's battery has just come full by charging: charging at the read before, short of full then and
+    /// full now. Put in full, or swapped for a full one while it stood unpowered, it has not.
+    /// </summary>
+    public static bool CameFull(bool wasCharging, float wasShare, float share) => wasCharging && wasShare < 1 && share >= 1;
+
     /// <summary>What a charging station's panel says it does: empty, full, charging, or held without power.</summary>
     public static string StationState(Stack? held, bool charging) =>
         held == null ? "charger.empty"

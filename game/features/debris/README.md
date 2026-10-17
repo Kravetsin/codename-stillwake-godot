@@ -28,7 +28,7 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   piece's id, it draws pixel-art cracks on the picture's own pixels — dark as the outline, a lit pixel
   under each — from a dent that widens, more and longer as the share grows, before the light falls on
   them. A rise in `Damage` jolts the piece 3 px away from the nearest hero and turns it a little,
-  settling over 220 ms, throws sparks from the struck side (3 for the drill's hits, ten a second, 8 for others) and, if the hit was this player's own, plays `Sound.Chop` there, or for the drill's `Sound.DrillBite` (`OwnHits.ToolOn`) (on the Suit
+  settling over 220 ms, throws sparks from the struck side (3 for the drill's hits, ten a second, 8 for others) and, if the hit was this player's own, plays `Sound.Chop` there, but for the drill's hits (`OwnHits.ToolOn`), whose strikes the crew plays as it works, apart from them (on the Suit
   bus, dulled while floating: wrecks are chopped in space, where only what the hero touches is heard, 0042). A wreck gone with hits in it before
   the end of its path was broken (`Fading.Broken`, counting the ticks run since it was last seen, so one
   drifting off its end only fades, a stall between frames or not): a burst of dust and sparks and

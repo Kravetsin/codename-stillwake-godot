@@ -11,6 +11,7 @@ The first sound pass (ADR 0033), and what is heard in space (0042). Presentation
 | `game/shared/ActSound.cs`      | an action's sound on Suit: the click aboard, the glove's thump floating; crew and items each hold one | yes   |
 | `game/shared/Heard2D.cs`       | a sound placed in the world, as loud as its distance from the screen's middle says              | yes   |
 | `Hearing.cs`                   | the buses at a share of the way into space (`Mix`), and the easing of a share                   | no    |
+| `Strikes.cs`                   | a train of one-shots at a rate, each its own pitch and volume (`StrikeTrain`); a loop's attack and release (`LoopEnvelope`) | no    |
 | `SoundView.cs`                 | the hearing: button clicks, the muffle while floating, the title's music and the bed of space   | yes   |
 | `game/audio/`                  | the files, one-shots as WAV and loops as OGG looped on import; `CREDITS.md`, CC0 or marked placeholders | — |
 
@@ -54,6 +55,19 @@ The first sound pass (ADR 0033), and what is heard in space (0042). Presentation
     that reels till the piece is in or the line comes free, never on a miss; and `Sound.Ready` as the
     hero's cooldown ends with a harpoon in hand, the gun ready, not the rod back. No sound of the line
     going taut; others' harpoons are silent.
+  - `crew/HeroView.cs` — this player's drill (0054), on Suit at its bit: while it runs with its bit on a
+    piece the sim would let it hit, `Sound.DrillStrike` (a pickaxe on metal cut to 50 ms) at
+    `Sound.DrillStrikesPerSecond` (18, a hammer drill's buzz, apart from the damage's 10 hits a second), the
+    first at once, each its pitch scale within ±`DrillStrikePitch` (12%) and its volume within
+    ±`DrillStrikeVolumeDb` (1.5 dB) (`StrikeTrain`); stopped, voices and all, the frame it stops. Its hits
+    play no chop. And this player's jetpack (0047), on Suit: `Sound.Thrust`, a loop, while it thrusts,
+    risen over `ThrustAttackS` (40 ms) and fallen over `ThrustReleaseS` (140 ms), linear in amplitude
+    (`LoopEnvelope`), then stopped. Others' drills and jetpacks are silent.
+  - `power/ChargerLights.cs` — each charging station, on World where it stands: `Sound.ChargerHum`, a
+    positional loop (2 → 8 cells) faded in over `HumInS` while it charges and out over `HumOutS`, begun
+    somewhere along its 4 s; and `Sound.ChargeFull` once as a battery charging there comes full
+    (`Charges.CameFull`), not when one is put in full. The hum is set level with a vent's (about −33 LUFS
+    as played).
   - `grid/GridView.cs` — on World, where it stands: a door opening or closing (once, at its top cell)
     and a valve turned, found as the drawing catches up with the grid, so anyone's are heard and this
     player's own at once (0014).

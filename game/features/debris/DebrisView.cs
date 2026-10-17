@@ -58,8 +58,7 @@ public partial class DebrisView(Ui ui) : Node2D
     private static readonly Dictionary<(string Item, int Look), Texture2D> Textures = new();
     /// <summary>The piece aimed at, outlined over the rest.</summary>
     private readonly Outline _aimed = new(1);
-    private readonly Heard2D _chop = Cues.Player2D(S.Chop, S.Suit, voices: 4), _break = Cues.Player2D(S.Break, S.Suit, voices: 2),
-        _drill = Cues.Player2D(S.DrillBite, S.Suit, voices: 4);
+    private readonly Heard2D _chop = Cues.Player2D(S.Chop, S.Suit, voices: 4), _break = Cues.Player2D(S.Break, S.Suit, voices: 2);
     private readonly OwnHits _own = new();
     private double _clockMs;
     /// <summary>Every piece out but those this peer is grabbing, and of them the ones drawn this frame.</summary>
@@ -83,7 +82,6 @@ public partial class DebrisView(Ui ui) : Node2D
         for (int i = 0; i < WarmWrecks; i++) _wrecks.Push(Made(wreck: true));
         AddChild(_aimed);
         AddChild(_chop);
-        AddChild(_drill);
         AddChild(_break);
     }
 
@@ -202,10 +200,10 @@ public partial class DebrisView(Ui ui) : Node2D
         // Struck on the side facing the hero, sparks thrown back toward it.
         var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
         var side = at - away * Math.Min(size.X, size.Y) * 0.4f;
-        // The drill's hits come ten a second: fewer sparks each, its own bite heard.
+        // The drill's hits come ten a second: fewer sparks each, and no chop: its strikes are heard as it works (HeroView).
         bool drilled = _own.ToolOn(piece.Id) == Content.Weapons.Drill.Item;
         Particles.Shared.Emit(Effect.Spark, side.X, side.Y, drilled ? 3 : 8, (-away).Angle(), inSpace: true);
-        if (_own.Ran(piece.Id)) (drilled ? _drill : _chop).PlayAt(side);
+        if (_own.Ran(piece.Id) && !drilled) _chop.PlayAt(side);
     }
 
     /// <summary>
