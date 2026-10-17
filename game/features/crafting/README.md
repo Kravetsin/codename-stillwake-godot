@@ -1,4 +1,4 @@
-# crafting (client): the lifepod's Fabricator, the Former, every queued station
+# crafting (client): the lifepod's Fabricator, the Former, every station at work
 
 Making parts by machine only ([0028](../../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)),
 the client of `sim/Crafting`. It reads `Registry.Crafting` (`Queue`, `Progress`, `StationOf`),
@@ -15,7 +15,7 @@ mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 | `Crafts.cs`           | a recipe's fixed place, how its slot looks, where a click on a short one goes, its block on the card, the bar, what a station is doing | no |
 | `FabricatorPanel.cs`  | any queued station's panel beside the inventory: header, bolt and screen, recipes, the shared queue, outputs | yes |
 | `FabricatorScreen.cs` | the panel's small screen: lines running while it works, READY idle, dark with no power | yes   |
-| `StationView.cs`      | over a station's picture: its moving parts, the Former's flywheel, gears and press head, shown moving while it works | yes |
+| `StationView.cs`      | over a station's picture: the Former's flywheel, gears and press head moving, the smelter's coils glowing and lighting the room, while it works; a cold-blue mark on a fed station too cold for its input | yes |
 | `PodView.cs`          | over the pod's picture: its screen, its tray, its glass glowing while a hero is made    | yes   |
 | `PodDemo.cs`          | `-- --pod`: the wreck's pod opened and crafting, the axe's and the rotor's cards shown, for recordings | yes |
 
@@ -26,7 +26,10 @@ the mockup's pixel recipe (`PODS[2].draw`) in the ship art's palette.
 The Former's are placeholders matching its recipe (0057), drawn by a script in the ship art's palette:
 `art/machine_former.png`, two frame posts, a rotor flywheel on top, gears and a press head over a die at rest,
 and `art/former_work_0..3.png`, the moving parts in four steps, each the machine's size and opaque over what
-it covers. `-- --testbed --open=former` (or `lifepod`, `furnace`) opens a machine for a recording.
+it covers. The electric smelter's too (0057): `art/machine_smelter.png`, a plated box on a frame, two copper coils
+cold behind a grate, a small control board and two insulators, and `art/smelter_work_0..2.png`, only the coils'
+pixels between the bars, glowing, the heat running up them a winding a picture. `-- --testbed --open=former` (or
+`smelter`, `lifepod`, `furnace`) opens a machine for a recording.
 
 ## Guarantees
 
@@ -65,6 +68,15 @@ it covers. `-- --testbed --open=former` (or `lifepod`, `furnace`) opens a machin
 - **The Former** in the world: its flywheel turns, its gears with it, and its press head beats on the
   die while it works (`CraftingModule.Works`: a unit at work with power), four pictures over its own;
   idle, waiting full or without power it stands still. No sound of its own yet.
+- **The electric smelter** in the world: while it works (`Works`: what it can smelt, with power) its
+  coils glow behind the grate, three pictures drawn unlit, 160 ms each, and each coil lights the room round
+  it in a hot orange (a `Glow`), a little brighter as the heat passes; idle, full or without power they
+  stand dull copper and give no light. Silent: the furnace's crackle is a fire's, and its own sound waits
+  for the user's audition.
+- **Too cold** (0057): a fed station whose input holds what needs more heat than it has
+  (`ICraftingQueries.TooCold`) shows a five-pixel star of ice where it would work it — the furnace's
+  mouth, the smelter's grate — drawn unlit, pulsing slowly between a dim and a cold blue, lighting a
+  little round it. Its panel (the items feature) says the rest.
 - Read every 100 ms and at once after a click; slots are rebuilt only when a recipe's look, the queue
   or the outputs change, the bar every read. Hover and the pulse are painted every frame.
 

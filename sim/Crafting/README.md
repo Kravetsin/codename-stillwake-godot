@@ -4,16 +4,17 @@ Stations ([0057](../../docs/decisions/0057-stations-one-model-for-every-crafting
 crafting machine on one model. A **queued** station (the lifepod's Fabricator, the Former) makes crafts
 from a queue shared by the crew, paid when queued, one unit at a time into its outputs
 ([0028](../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)); a **fed** station (the
-furnace) smelts what its input holds into that item's yields. A module of its own rather than part of
-`Items`: it asks `Research` what is known, and research depends on items.
+furnace, the electric smelter) smelts what its input holds into that item's yields, where it is hot
+enough. A module of its own rather than part of `Items`: it asks `Research` what is known, and research
+depends on items.
 
 - **Depends on:** `Grid` (`IGridQueries`: `Machines`, `MachineById`: which machines are stations),
   `Items` (`IItemsQueries`: `Crate`, `CanSmelt`, `ShortOf`, `FullFor`, `OutputFull`; `IItemsOps`: `Take`,
   `Give`, `Output`, `Smelt`), `Research` (`IResearchQueries.Knows`), `Power` (`IPowerQueries.Satisfaction`,
   a powered station's share; `IPowerOps.Rest`, an idle one draws nothing).
 - **Depended on by:** `Building` (`ICraftingQueries.Queue`: a station with crafts queued is not taken
-  apart), `Furnace` (`ICraftingQueries.CanSmelt`, `Progress`: what lights a furnace's fire and what its
-  panel shows; `ICraftingOps.Heat`: a furnace's fire burns this tick).
+  apart), `Furnace` (`ICraftingQueries.CanSmelt`, `TooCold`, `Progress`: what lights a furnace's fire and
+  what its panel shows; `ICraftingOps.Heat`: a furnace's fire burns this tick).
 - **State** (`CraftingState`, members internal): `Queues` — each queued station's ever crafted at, in
   machine id order: `Machine`, `Next` (the id the next entry gets), `Progress` (work on the first entry's
   unit, in thousandths of a tick at full speed) and `Entries`, each an `Entry(Id, Recipe, Count, By)` in the
@@ -68,8 +69,18 @@ furnace) smelts what its input holds into that item's yields. A module of its ow
   or none, is dropped; then, if its input holds an item with `Yields` whose `Heat` is at most the
   station's and whose yields fit its outputs (`IItemsQueries.CanSmelt`), it adds its work, and at the
   item's `SmeltTicks` × 1000 one of it becomes its yields (`IItemsOps.Smelt`). Work stopped — the fire out,
-  the outputs full — is kept while the item stays. The furnace: speed 1000, heat 1; a scrap chunk smelts
-  in 60 ticks of fire into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap.
+  the outputs full, the power cut — is kept while the item stays. The furnace: speed 1000, heat 1; a scrap
+  chunk smelts in 60 ticks of fire into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap, rock in 160
+  into 2 silicon.
+  - **The electric smelter** is the second fed station: 2×2, it draws 4 and works at speed 2000, twice the
+    furnace, at heat 2; an input and three outputs, no fuel. It costs a frame, 2 coils, 4 plates and a
+    circuit, so it opens once those four are analysed. Rock takes 4 s there at full power; silicon, which
+    needs heat 2, smelts into glass in 3 s, there only. Like a queued station that draws, it rests while it
+    has nothing it can smelt or no room for what it makes, drawing nothing from the next tick.
+  - **Heat** is the station's `Heat`, read in `StationOf` alone, so a machine upgrade folds in there.
+    **Too cold:** an item with `Yields` hotter than the station is taken into its input (`Items` refuses
+    nothing for it) and kept there, never worked, a furnace never lit for it: `TooCold(machine)` says so,
+    for the station's panel and its mark in the world. Replaced by what it can work, it works.
 - **A furnace smelts while its fire burns at the tick's start:** `Furnace` tells crafting in its
   construction phase, from the fire as the last tick left it. So a furnace starts smelting the tick after
   it lights, and smelts on the tick its fire goes out for want of air; a fire fed in time relights within
@@ -80,13 +91,16 @@ furnace) smelts what its input holds into that item's yields. A module of its ow
 - **Queries** (`ICraftingQueries`): `StationOf(machine)` — its station as it works now, null for none;
   `Queue(machine)` — a queued station's entries, live and read-only, the first at work; `Progress(machine)`
   — work on its unit in thousandths of a tick, a queued one's first entry (its full work while that unit
-  waits for room), a fed one's input; `CanSmelt(machine)` — whether a fed station has what it can smelt.
-  On the module only, for the client: `Works(machine)` — whether a queued station works now, a unit at work,
-  not done, with a share of its energy: what its picture's motion, its screen and its bolt show.
+  waits for room), a fed one's input; `CanSmelt(machine)` — whether a fed station has what it can smelt;
+  `TooCold(machine)` — whether a fed station's input holds what smelts, but hotter than the station.
+  On the module only, for the client: `Works(machine)` — whether a station works now with a share of its
+  energy, a queued one on a unit not done, a fed one on what it can smelt: what its picture's motion, its
+  screen and its bolt show. A furnace's fire reaches crafting only within a tick, so between ticks a
+  furnace reads as not working here; its fire is the furnace module's to show.
 - **Operations** (`ICraftingOps`): `Heat(machine)` — that fed station's fire burns this tick.
 - **Commands:** `Craft(Machine, Recipe, Count)`, `Cancel(Machine, Entry)`.
-- **Fuzz:** mostly at the map's stations, queued and fed alike (a fed one refuses both as not here), now
-  and then at another machine or an id that is none (no station); crafts of every recipe and of an item
+- **Fuzz:** mostly at the map's stations, queued and fed alike (a fed one, the furnace or the smelter,
+  refuses both as not here), now and then at another machine or an id that is none (no station); crafts of every recipe and of an item
   no craft makes, one to nine units, refused as unknown, not here, unpaid or full, paid mostly in creative
   mode, which the items fuzz switches on now and then; cancels of the station's entries, of finished ids
   and of ids never given.
@@ -113,3 +127,6 @@ furnace) smelts what its input holds into that item's yields. A module of its ow
 - A queued station taken apart with crafts queued: `Building` refuses it (`building.notEmpty`); the pod is
   `Fixed`. An empty queue left by a station taken apart stays in the slice: machine ids are never reused.
 - A smelt's work past the item's on its last tick is dropped, not carried to the next item.
+- Nothing stops a too-hot item going into a cold station: the player sees the station cold and moves it
+  (the user's decision, 0057). Only one item is too hot for anything yet, silicon for the furnace.
+- No machine upgrades: heat and speed are content's alone until modules come.

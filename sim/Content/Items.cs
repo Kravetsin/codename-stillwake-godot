@@ -5,11 +5,11 @@ namespace Stillwake.Content;
 /// <summary>Something a hero carries, by the id saves store: never rename one.</summary>
 /// <param name="Stack">The most of it one inventory slot holds.</param>
 /// <param name="Yields">
-/// A salvage item, caught as debris, is smelted at a fed station into these: materials and canisters, never
-/// more salvage.
+/// Smelted at a fed station into these: salvage, caught as debris, into materials and canisters, never more
+/// salvage; silicon on into glass, where it is hotter.
 /// </param>
 /// <param name="SmeltTicks">Ticks at full speed a fed station takes to smelt one; given with <paramref name="Yields"/>.</param>
-/// <param name="Heat">How hot a fed station must be to smelt it (<see cref="Station.Heat"/>): the furnace's 1 for all of them yet.</param>
+/// <param name="Heat">How hot a fed station must be to smelt it (<see cref="Station.Heat"/>): the furnace's 1, or the electric smelter's 2.</param>
 /// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
 /// <param name="Equip">Equipment: the kind of a hero's equipment slot it is worn in, of <c>Inventory.Equipment</c>; none for anything else.</param>
 /// <param name="Capacity">
@@ -46,8 +46,8 @@ public static class Items
         new("planks", 50, BurnTicks: 400),
         new("scrapChunk", 10, Yields: [("scrap", 4)], SmeltTicks: 60),
         new("hullPlate", 5, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100),
-        // Broken out of asteroids (0054); smelted into silicon once there is silicon.
-        new("rock", 10),
+        // Broken out of asteroids (0054); smelted into silicon at a furnace or the electric smelter.
+        new("rock", 10, Yields: [("silicon", 2)], SmeltTicks: 160),
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1),
         new("cargoCrate", 1),
@@ -74,6 +74,9 @@ public static class Items
         new("rotor", 20),
         new("frame", 20),
         new("coil", 50),
+        // Smelted from rock, and smelted on into glass only where it is hot enough: the electric smelter (0057).
+        new("silicon", 100, Yields: [("glass", 1)], SmeltTicks: 120, Heat: 2),
+        new("glass", 50),
         // A part no craft makes: salvaged from cable racks alone (Loot).
         new("circuit", 20),
         // Tools, made as parts are.

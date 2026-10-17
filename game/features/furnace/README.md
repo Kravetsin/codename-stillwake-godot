@@ -48,6 +48,8 @@ on it, its socket under the window.
 ## Deliberately not handled
 
 - The panels (slots, progress and why it stands): with the items feature's panels.
+- A furnace too cold for what its input holds (silicon): no fire lights; the crafting feature draws the
+  cold mark in its mouth, as on every fed station (0057).
 - A hum of the generator's own: a new sound goes through the user's audition first; it crackles as the
   furnace does.
 - The flywheel stops dead when the fire goes out, back at its picture's rest.

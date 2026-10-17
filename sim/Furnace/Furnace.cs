@@ -13,8 +13,8 @@ public sealed record Fire(int Machine, int Fuel);
 /// <summary>
 /// A furnace or a burner generator as its panel shows it: whether its fire burns; for a furnace with
 /// salvage in its input, what it smelts (<c>Item</c>), how far, out of how much work, both in thousandths of
-/// a tick (the crafting module's measure); and why it stands still if it does: <c>furnace.full</c> (a furnace
-/// only), <c>furnace.noFuel</c> or <c>furnace.noAir</c>. A furnace with nothing to smelt says only <c>Burning</c>.
+/// a tick (the crafting module's measure); and why it stands still if it does: <c>crafting.tooCold</c> (what is
+/// in its input needs more heat) or <c>furnace.full</c> (a furnace only), <c>furnace.noFuel</c> or <c>furnace.noAir</c>. A furnace with nothing to smelt says only <c>Burning</c>.
 /// </summary>
 public sealed record Smelting(bool Burning, string? Item = null, int Progress = 0, int Work = 0, string? Problem = null);
 
@@ -82,7 +82,8 @@ public sealed class FurnaceModule : Module<FurnaceState>
         int? ticks = input == null ? null : Content.Items.Get(input).SmeltTicks;
         if (smelter && ticks == null) return new Smelting(burning);
         bool aired = AiredCell(machine) >= 0;
-        string? problem = smelter && !_crafting.CanSmelt(id) ? "furnace.full"
+        string? problem = smelter && _crafting.TooCold(id) ? "crafting.tooCold"
+            : smelter && !_crafting.CanSmelt(id) ? "furnace.full"
             : !burning && FuelIn(machine) == null ? "furnace.noFuel"
             : !aired ? "furnace.noAir"
             : null;

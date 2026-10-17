@@ -29,6 +29,7 @@ public static class Legend
         ('A', "analyzer: draw its whole footprint"),
         ('C', "charging station: draw its whole footprint"),
         ('M', "former: draw its whole footprint"),
+        ('E', "electric smelter: draw its whole footprint"),
         ('O', "lifepod: draw its whole footprint; heroes are made at its hatch"),
         ('S', "where the hero wakes, on a map without a lifepod"),
     ];
@@ -64,6 +65,7 @@ public static class Legend
         'A' => "analyzer",
         'C' => "charger",
         'M' => "former",
+        'E' => "smelter",
         'O' => "lifepod",
         _ => null,
     };

@@ -313,7 +313,9 @@ in four slices, each a PR on its own:
    Timings proven unchanged by a fingerprint harness against main, but a furnace smelting from the tick after
    it lights (and on the tick its fire goes out for want of air).
 2. **The Former** (built, `feat/stations`): the first powered station, no new items.
-3. **The electric smelter, heat, silicon and glass** (open).
+3. **The electric smelter, heat, silicon and glass** (built, `feat/smelter`): a fed station on power at
+   twice the furnace's speed and heat 2; rock into silicon at either, silicon into glass at the smelter; a
+   too-hot item taken in and the station shown too cold.
 4. **The circuit assembler, circuits, solar cells, a new panel** (open).
 
 ## Decided with the team
