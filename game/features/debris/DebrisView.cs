@@ -105,8 +105,8 @@ public partial class DebrisView(Ui ui) : Node2D
                 ShowCracks(one.Picture, piece);
             }
             (one.X, one.Speed, one.End, one.Tick) = (piece.X, piece.Speed, piece.End, client.World.Tick);
-            double x = piece.X - piece.Speed * progress;
-            var at = new Vector2((float)(x / Unit * Cell), (float)((double)piece.Y / Unit * Cell));
+            var (x, y) = PieceDrawn.At(piece, progress);
+            var at = new Vector2((float)(x / Unit * Cell), (float)(y / Unit * Cell));
             if (piece.Damage > one.Damage) Struck(one, piece, at);
             one.JoltMs = Math.Max(0, one.JoltMs - elapsedMs);
             double jolt = one.JoltMs / JoltMs;

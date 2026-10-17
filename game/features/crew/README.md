@@ -14,7 +14,9 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`); `Jumped` and `Landed`, when the boots are heard pushing off and coming down | no    |
 | `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039) | no    |
 | `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the strike, its point, this hero's and others'; the arm and the edge through it (`ArmAt`, `EdgeAt`, `Lead`) (0038, 0039, 0040) | no    |
-| `SwingArm.cs`      | the front arm with the axe: straight through a swing, eased from rest into it, out of it and into the next (0040) | no    |
+| `SwingArm.cs`      | the front arm with the axe: straight through a swing, eased from rest into it, out of it and into the next (0040); the arm aiming the harpoon too | no    |
+| `HarpoonShot.cs`   | the hand harpoon (0044): the rod's flight, hook, reel and way back, the presses each state takes, the hero's cooldown, the point reeled to (`ReelOf`), the arm that aims the barrel (`ArmFor`) | no    |
+| `HarpoonLine.cs`   | the harpoon's line as drawn: the tether's space rope (`Tether.Space`), slack in flight and hooked, wound taut reeling | no    |
 | `Prompt.cs`        | `Prompts.Of`: what E does at the aim, in words, and why the sim would refuse it (`prompt.ts`) | no    |
 | `UsePrompt.cs`     | the prompt at the bottom middle, red with the reason when refused (`CrewPanel.tsx`'s `UsePrompt`) | yes   |
 | `Tether.cs`        | the tether as drawn, a reeled rope (`tether.ts`) on `game/render/Rope.cs` (`rope.ts`)   | no    |
@@ -32,8 +34,8 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 The files without Godot are compiled a second time into `game.tests/` (linked, as `sim/Tests` links
 `game/Content/Light.cs`), where their TypeScript tests are ported one for one: `hero.test.ts`,
 `pose.test.ts`, `rig.test.ts`, `tether.test.ts`, `report.test.ts`, `danger.test.ts`, `remote.test.ts`,
-`suits.test.ts`, `prompt.test.ts` (`PromptTests`) and `aim.test.ts` (`AimTests`); `AxeSwingTests` has no
-TypeScript original.
+`suits.test.ts`, `prompt.test.ts` (`PromptTests`) and `aim.test.ts` (`AimTests`, the harpoon rod's contact
+too); `AxeSwingTests` and `HarpoonTests` have no TypeScript original.
 
 ## Guarantees
 
@@ -69,7 +71,9 @@ TypeScript original.
   says it is out, its head turned as sent, the plan in its hands as sent; its tether drawn too. They
   sway the cables as this hero does (`HeroView.Others`).
 - Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe held and swinging
-  toward its point, the screwdriver turning at the plan, a beam once to the cell sent (`Busy.BeamsAnew`). Taken
+  toward its point, the screwdriver turning at the plan, a beam once to the cell sent (`Busy.BeamsAnew`), the harpoon
+  hanging, empty while the sim reels a piece by that hero (`Reel.By`), with a taut line from its muzzle
+  to the edge of that piece; its shots, flights and hooks are not sent (0044). Taken
   from the sample at or before the moment drawn, never between two; but the axe swings once for each
   swing number as it is heard, not 150 ms behind (`AxeSwing.Follow`, 0038), toward the point sent with
   that number, the last chop heard kept while its hands are idle (`Busy.Chopping`, 0039), so its blade
@@ -79,7 +83,8 @@ TypeScript original.
 - `--aside` steps this hero off the spawn, so a recording of another peer's hero there sees it whole
   (`play.cmd --host --wreck` with `--join --aside` recorded; or `--host --aside` recorded with
   `--join --plan-demo --max-fps 20` beside it).
-- `Main` takes the heroes the client heard each frame and hands them to `HeroView.Frame`.
+- `Main` takes the heroes the client heard each frame and hands them to `HeroView.Frame`, with the
+  session's progress between ticks, where the debris a rod sticks in is drawn.
 
 ## Differences from the TypeScript
 
@@ -161,6 +166,38 @@ TypeScript original.
   kept as an offset that eases out over the wind-up's length, 175 ms (`SwingArm`): never a jump, and
   the swing's own arm by its downstroke. Others' figures go the same way, through `Figure.Show`, and
   see it hang and swing too (0037, 0038).
+- **The harpoon (0044):** with `Ui.Wielded` the harpoon, in space or aboard, the arm is straight and turned
+  so the barrel's line runs through the pointer (`HarpoonShot.ArmFor`, eased in by `SwingArm`), the hero
+  facing it, swimming the other way too; it fires aboard as out in space. The figure holds it as a pistol by its stock
+  (`HeldLook.Harpoon`, `art/hero_harpoon.png`, its rod in the barrel, `hero_harpoon_loaded.png`, only
+  while it is ready) and reports its muzzle and barrel as drawn (`Figure.Muzzle`, `Barrel`). A fresh
+  click (never a hold) fires the rod (`art/hero_harpoon_rod.png`) from the muzzle along the barrel at
+  `Harpoon.RodSpeed` out to `Harpoon.Range`; each frame the segment its point moved is tested against
+  every piece's box, as drawn between ticks (`Shared.PieceDrawn`): a wreck's aim box, a small piece's
+  picture a cell across, each with the quarter-cell margin (`Aiming.Hooks`), that the sim would let this
+  hero reel; and walked cell by cell for a wall, floor or closed door (`Aiming.Grapples`), the nearest of
+  them winning (`Aiming.RodMeets`). In a piece it sticks 0.15 of a cell inside the picture and rides it;
+  the line hangs slack. The next click sends `Reel` to `Harpoon.Stop` before the muzzle on the way to the
+  piece (`HarpoonShot.ReelOf`) and the line goes taut till the sim's reel is over, then the rod snaps back
+  at `Harpoon.ReturnSpeed`; a click while reeling sends it again from where the hero is, and so does the
+  point before the muzzle moving over `Harpoon.FollowBeyond` from the last sent, at most every `Harpoon.FollowTicks`. A miss, a
+  piece gone or refused, or one drifting past the range unreeled frees the line, the rod snapping back;
+  put away or passed out, it is in the gun at once. **The grapple:** stuck in the structure, the next
+  click pulls the hero's middle toward `HarpoonShot.PullTo`, `Harpoon.PullStop` short of the hook, at
+  `Harpoon.PullSpeed` (`HeroInput.Pull`, `Hero.PullStep` a step, keys and gravity aside, walls and the
+  tether stopping it), the gun aimed at the hook and the hero facing it; there, or stopped short, it hangs
+  (`Rod.Hanging`), facing and aiming at the pointer again, till a jump, a movement key or a click lets go and
+  it drops; a cell that stops gripping (a door opened) frees it too. Clicks in flight, pulled, on the way
+  back or in the cooldown do nothing; with the rod out a click is the gun's, never a grab.
+  The cooldown, `Harpoon.CooldownTicks` as real time from the shot, is the hero's: one `HarpoonShot`
+  for every harpoon it holds. With the harpoon no wreck is aimed at (`Aiming.AimAt`'s `gun`); a small
+  piece within reach is still caught by E or a click while the rod is in the gun, and the piece reeled in
+  is caught with E. Heard through the suit (0042): the shot, the rod biting where it struck (the chop on
+  metal or structure, the glove's thump on a crate or pod), the drum while reeling or pulled, a ready cue as the cooldown ends
+  with a harpoon in hand. Each shot blows a puff of grey air from the muzzle, most along the barrel and one
+  off either side (`HarpoonShot.Puff`, `Effect.Puff` on the shared particles): braked aboard in a third of a
+  second, wider and longer out in space; only this hero's own. The line and the rod are drawn over the heroes (`Layers.Hero`), the line
+  unlit as the tethers are.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - Door and valve prompts read them as shown (`Shared.Predicted.Grid`), as `promptOf`'s `shown` did:

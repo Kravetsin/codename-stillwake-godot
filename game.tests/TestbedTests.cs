@@ -36,6 +36,7 @@ public class TestbedTests
         Assert.All(Testbed.Carried, item => Assert.Contains(new Stack(item.Id, item.Stack), crate));
         Assert.DoesNotContain(crate, stack => stack is { } s && Spec.Wreckage.HpOf(s.Item) != null);
         Assert.Contains(crate, stack => stack is { Item: "circuit" });
+        Assert.Contains(crate, stack => stack is { Item: "harpoon" });
     }
 
     [Fact]

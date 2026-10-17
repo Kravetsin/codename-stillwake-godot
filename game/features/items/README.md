@@ -43,7 +43,7 @@ as everything E works is, in the crew feature (`AimTests`).
   stack from the hero's cell the way it faces, and does nothing while a card is in hand. The chosen
   slot is outlined only while the hand is free.
 - What the free hand holds (`Ui.Wielded`, 0034): the item in the chosen slot while the hand is free,
-  else none, set on every refresh; the crew swings the fire axe by it.
+  else none, set on every refresh; the crew swings the fire axe and aims the harpoon by it.
 - Tab opens and closes the inventory; Esc closes it and the crate, and puts the plan away with them,
   before it opens the game menu (`Shared.Escape`, `game/menu`).
 - The crate open (`Ui.OpenCrate`) is set by the crew's E within reach and cleared out of reach; the
@@ -60,10 +60,12 @@ as everything E works is, in the crew feature (`AimTests`).
 - Every stack, in the inventory, the hotbar, a crate, a furnace or an analyzer, shows its card in the
   one tooltip (`Shared.PointerTip`) at once by the pointer (`Shared.ItemCards`, drawn by
   `Shared.ItemCardView`, the mockup's plaque): its icon large, its name and its kind (`item.<id>.kind`);
-  a violet "? Not analysed" band while unanalysed. A tool (the fire axe) is edged and its kind written
-  in amber, and adds damage a second, damage and seconds between hits, all from content (`Content.Axe`:
-  damage over `SwingTicks` / `TicksPerSecond`, one decimal at most); its effects (`Axe.Effects`, none
-  yet) as chips in their colours; the wreckage it breaks (`Content.Wreckage`); its key and hint. Any
+  a violet "? Not analysed" band while unanalysed. A tool (the fire axe, the harpoon) is edged and its kind
+  written in amber, and adds three tiles from content, the first in amber, one decimal at most
+  (`CardTile`): the axe's damage a second, damage and seconds between hits (`Content.Axe`: damage over
+  `SwingTicks` / `TicksPerSecond`), its effects (`Axe.Effects`, none yet) as chips in their colours and
+  the wreckage it breaks (`Content.Wreckage`); the harpoon's range in cells, reload in seconds and reel
+  speed in cells a second (`Content.Harpoon`), and "Debris" and "Wreckage"; then its key and hint. Any
   other item says under "Goes into" what has it in its cost: crafts, then blueprints, then the cable,
   in content's order, four at most and "+N" for the rest; nothing when it goes into nothing. The
   screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.

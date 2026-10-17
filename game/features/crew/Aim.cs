@@ -68,6 +68,108 @@ public static class Aiming
 
     private const int PixelsPerCell = 16, WreckMargin = 250;
 
+    /// <summary>Half a small piece's picture each way, in thousandths of a cell: they are a cell or a little more across.</summary>
+    private const int SmallHalf = 500;
+
+    /// <summary>How far inside a picture's edge the harpoon's rod sticks, in thousandths of a cell: its point sinks in.</summary>
+    private const int Bite = 150;
+
+    /// <summary>
+    /// The box a piece is struck in, half its size each way in thousandths of a cell, and half its picture:
+    /// a wreck's as it is aimed at (<see cref="HalfOf"/>), a small piece's picture; both with the margin.
+    /// </summary>
+    private static (int HalfW, int HalfH, int PictureW, int PictureH) BoxOf(string item) => HalfOf(item) is var (w, h)
+        ? (w, h, w - WreckMargin, h - WreckMargin)
+        : (SmallHalf + WreckMargin, SmallHalf + WreckMargin, SmallHalf, SmallHalf);
+
+    /// <summary>Half the picture of a piece of <paramref name="item"/> each way, in thousandths of a cell.</summary>
+    public static (int HalfW, int HalfH) PictureOf(string item)
+    {
+        var (_, _, w, h) = BoxOf(item);
+        return (w, h);
+    }
+
+    /// <summary>
+    /// The piece the harpoon's rod meets first on its way from <paramref name="from"/> to <paramref name="to"/>,
+    /// in thousandths of a cell, that peer <paramref name="peer"/> could reel (0044), each piece where it is drawn
+    /// <paramref name="progress"/> of the way to its next tick; where the rod sticks, where it enters the
+    /// piece's box kept <see cref="Bite"/> inside its picture; and how far along the way, from 0 to 1. None while
+    /// it meets nothing; of two met, the nearer, the first in spawn order at a tie.
+    /// </summary>
+    public static (int Piece, (double X, double Y) At, double T)? Hooks(
+        Registry m, int peer, (double X, double Y) from, (double X, double Y) to, double progress)
+    {
+        (int, (double, double), double)? first = null;
+        foreach (var p in m.Debris.Pieces)
+        {
+            var (x, y) = Shared.PieceDrawn.At(p, progress);
+            var (halfW, halfH, pictureW, pictureH) = BoxOf(p.Item);
+            if (Entered((from.X, from.Y, to.X, to.Y), x - halfW, y - halfH, x + halfW, y + halfH) is not double t) continue;
+            if (first is var (_, _, nearest) && nearest <= t) continue;
+            if (m.Debris.ReelProblem(peer, p.Id) != null) continue;
+            double ax = from.X + (to.X - from.X) * t, ay = from.Y + (to.Y - from.Y) * t;
+            int inW = pictureW - Bite, inH = pictureH - Bite;
+            first = (p.Id, (Math.Clamp(ax, x - inW, x + inW), Math.Clamp(ay, y - inH, y + inH)), t);
+        }
+        return first;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="cell"/> holds the harpoon's rod (the grapple, 0044): a wall, a floor or a closed
+    /// door, as <paramref name="ship"/> shows them. Not a back wall, behind the hero's plane; not an open door
+    /// nor a ladder, which are passed through; nothing off the grid.
+    /// </summary>
+    public static bool Grips(Ship ship, int x, int y) =>
+        x >= 0 && y >= 0 && x < ship.Width && y < ship.Height
+        && ship.StructureAt(y * ship.Width + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed;
+
+    /// <summary>Whether the cell under <paramref name="at"/>, in thousandths of a cell, holds the rod (<see cref="Grips(Ship, int, int)"/>).</summary>
+    public static bool Grips(Ship ship, (double X, double Y) at) =>
+        Grips(ship, (int)Math.Floor(at.X / Hero.Unit), (int)Math.Floor(at.Y / Hero.Unit));
+
+    /// <summary>
+    /// The first cell that holds the rod (<see cref="Grips(Ship, int, int)"/>) on its way from
+    /// <paramref name="from"/> to <paramref name="to"/>, in thousandths of a cell, walked cell by cell; where the
+    /// rod sticks, <see cref="Bite"/> into it past where it enters, and how far along the way, from 0 to 1.
+    /// </summary>
+    public static ((double X, double Y) At, double T)? Grapples(Ship ship, (double X, double Y) from, (double X, double Y) to)
+    {
+        double dx = to.X - from.X, dy = to.Y - from.Y, length = Math.Sqrt(dx * dx + dy * dy);
+        int x = (int)Math.Floor(from.X / Hero.Unit), y = (int)Math.Floor(from.Y / Hero.Unit);
+        int endX = (int)Math.Floor(to.X / Hero.Unit), endY = (int)Math.Floor(to.Y / Hero.Unit);
+        int stepX = Math.Sign(dx), stepY = Math.Sign(dy);
+        // How far along the way the next column and row begin, and how far one cell across takes.
+        double nextX = dx == 0 ? double.PositiveInfinity : ((stepX > 0 ? x + 1 : x) * (double)Hero.Unit - from.X) / dx;
+        double nextY = dy == 0 ? double.PositiveInfinity : ((stepY > 0 ? y + 1 : y) * (double)Hero.Unit - from.Y) / dy;
+        double acrossX = dx == 0 ? double.PositiveInfinity : Hero.Unit / Math.Abs(dx);
+        double acrossY = dy == 0 ? double.PositiveInfinity : Hero.Unit / Math.Abs(dy);
+        double t = 0;
+        while (t <= 1)
+        {
+            if (Grips(ship, x, y))
+            {
+                double sink = length == 0 ? 0 : Bite / length;
+                return ((from.X + dx * (t + sink), from.Y + dy * (t + sink)), t);
+            }
+            if (x == endX && y == endY) return null;
+            if (nextX < nextY) (t, nextX, x) = (nextX, nextX + acrossX, x + stepX);
+            else (t, nextY, y) = (nextY, nextY + acrossY, y + stepY);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// What the harpoon's rod meets first on its way (0044): a piece peer <paramref name="peer"/> could reel
+    /// (<see cref="Hooks"/>) or the ship's structure (<see cref="Grapples"/>), whichever is nearer along it.
+    /// </summary>
+    public static RodHit? RodMeets(Registry m, Ship ship, int peer, (double X, double Y) from, (double X, double Y) to, double progress)
+    {
+        var piece = Hooks(m, peer, from, to, progress);
+        var wall = Grapples(ship, from, to);
+        if (wall is var (at, t) && (piece is not var (_, _, near) || t < near)) return new RodHit(null, at);
+        return piece is var (id, stuck, _) ? new RodHit(id, stuck) : null;
+    }
+
     /// <summary>Whether a machine of <paramref name="kind"/> holds items, opened with E: a crate, a furnace, an analyzer.</summary>
     private static bool HoldsItems(string kind) => Spec.Machines.TryGet(kind, out var spec) && spec.Slots != null;
 
@@ -90,11 +192,12 @@ public static class Aiming
     /// <paramref name="passOver"/>: grabbed already, its grab still in flight. Bare-handed, a wreck is
     /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/>, a small piece is still
     /// grabbed, but no wreck by the pointer is aimed at: the first a swing toward the pointer begun now
-    /// would touch is (<see cref="Struck"/>), wherever the pointer is.
+    /// would touch is (<see cref="Struck"/>), wherever the pointer is. With a <paramref name="gun"/>, the
+    /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, IReadOnlySet<int>? served = null, bool axe = false)
+        IReadOnlySet<int>? passOver = null, IReadOnlySet<int>? served = null, bool axe = false, bool gun = false)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -128,7 +231,7 @@ public static class Aiming
             if (Struck(m, toward, PointOf(point)).FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
             return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true, new Use(new Hit(wreck.Id), m.Debris.HitProblem(peer, wreck.Id)), Piece: wreck.Id);
         }
-        if (piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
+        if (gun || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
         var grab = new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id));
         return new Aim(DebrisModule.CellOf(piece.X, piece.Y, grid.Width), ReachesBox(hero, piece.X, piece.Y, halfW, halfH), grab, Piece: piece.Id);
     }
@@ -175,7 +278,11 @@ public static class Aiming
     }
 
     /// <summary>Whether the segment <paramref name="e"/> meets the box from (<paramref name="left"/>, <paramref name="top"/>) to (<paramref name="right"/>, <paramref name="bottom"/>): clipped to it, something is left.</summary>
-    private static bool Crosses((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)
+    private static bool Crosses((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom) =>
+        Entered(e, left, top, right, bottom) != null;
+
+    /// <summary>How far along the segment <paramref name="e"/>, from 0 to 1, it enters the box, as <see cref="Crosses"/> clips it; none when it misses.</summary>
+    private static double? Entered((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)
     {
         double enter = 0, leave = 1, dx = e.Bx - e.Ax, dy = e.By - e.Ay;
         bool Clip(double toward, double room)
@@ -186,7 +293,7 @@ public static class Aiming
             else leave = Math.Min(leave, t);
             return enter <= leave;
         }
-        return Clip(-dx, e.Ax - left) && Clip(dx, right - e.Ax) && Clip(-dy, e.Ay - top) && Clip(dy, bottom - e.Ay);
+        return Clip(-dx, e.Ax - left) && Clip(dx, right - e.Ax) && Clip(-dy, e.Ay - top) && Clip(dy, bottom - e.Ay) ? enter : null;
     }
 
     /// <summary>

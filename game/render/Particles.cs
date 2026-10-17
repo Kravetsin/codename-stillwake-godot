@@ -25,6 +25,10 @@ public sealed record Effect(
     public static readonly Effect Ember = new(0xffe0a0, 1, (1, 1.6), (1200, 2200), (6, 18), 0.9, -8, 0.4, Glow: (0xff7a20, 7), Flicker: true);
     /// <summary>Air streaming out of a room through its openings into space.</summary>
     public static readonly Effect Air = new(0xcfeaff, 0.7, (1.5, 2.5), (500, 1000), (40, 90), 0.8, 0, 0.5);
+    /// <summary>The harpoon's puff of air from its muzzle as it fires (0044), aboard: braked by the air, gone in a third of a second.</summary>
+    public static readonly Effect Puff = new(0xc8ced6, 0.85, (1, 2), (220, 360), (30, 75), 0.7, 0, 6);
+    /// <summary>The same puff out in space: nothing brakes it, so it spreads wider and drifts on a little longer.</summary>
+    public static readonly Effect PuffInSpace = Puff with { LifeMs = (380, 620), Spread = 1.1, Drag = 2.2 };
 }
 
 /// <summary>One particle in flight.</summary>

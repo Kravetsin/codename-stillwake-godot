@@ -3,8 +3,9 @@ using System;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The front arm of a figure that holds the axe (0040). During a swing the arm is straight and turns
-/// about the shoulder (<see cref="AxeSwing.ArmAt"/>). Between swings it bends as its pose says. It never
+/// The front arm of a figure that holds the axe (0040) or aims the harpoon (0044). During a swing, or
+/// aiming at a phase that stays 0, the arm is straight and turns about the shoulder
+/// (<see cref="AxeSwing.ArmAt"/>). Between swings it bends as its pose says. It never
 /// jumps when a swing begins, ends or follows another toward a new point: the arm drawn the frame before
 /// is kept as an offset from the new one, and the offset eases out over <see cref="BlendMs"/>.
 /// </summary>

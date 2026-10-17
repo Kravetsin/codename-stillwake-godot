@@ -85,7 +85,8 @@ public sealed class Ui
 
     /// <summary>
     /// The item in the chosen hotbar slot while the hand is free, else none: set by <c>items</c>, which
-    /// owns the hotbar; <c>crew</c> swings it with the left button when it is the fire axe (0034).
+    /// owns the hotbar; <c>crew</c> swings it with the left button when it is the fire axe (0034), and aims
+    /// and fires it when it is the harpoon (0044).
     /// </summary>
     public Store<string?> Wielded { get; } = new(null);
 

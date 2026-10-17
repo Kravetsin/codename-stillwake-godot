@@ -2,22 +2,44 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// The hand harpoon (ADR 0044): distances in thousandths of a cell, speeds in thousandths of a cell a
-/// tick, times in ticks. The sim reads only <see cref="ReelSpeed"/>; the shot, its reach and its
-/// cooldown are the client's, among friends.
+/// tick, times in ticks. The sim reads only <see cref="ReelSpeed"/>; the shot, its reach, its cooldown and
+/// the grapple that pulls the hero are the client's, among friends.
 /// </summary>
 public static class Harpoon
 {
+    // Not a const: every constant of this table is a whole number (ContentTests).
+    /// <summary>The item that is the harpoon, crafted at the lifepod.</summary>
+    public static readonly string Item = "harpoon";
+
     /// <summary>How far the rod flies from the muzzle before it winds back: 12 cells.</summary>
     public const int Range = 12_000;
 
     /// <summary>How fast the rod flies: 40 cells a second.</summary>
     public const int RodSpeed = 2_000;
 
+    /// <summary>How fast a rod come free snaps back to the gun, a miss or a line let go: 80 cells a second.</summary>
+    public const int ReturnSpeed = 4_000;
+
     /// <summary>How fast a reeled piece comes in along its longer axis: 5 cells a second.</summary>
     public const int ReelSpeed = 250;
 
     /// <summary>How far before the gun a reeled piece stops, inside the hands' reach: 1.5 cells.</summary>
     public const int Stop = 1_500;
+
+    /// <summary>
+    /// Reeling, the client sends the reel again to where the point before the gun is now once it has moved
+    /// this far from the last one sent, so the piece follows a hero that swims: 1 cell.
+    /// </summary>
+    public const int FollowBeyond = 1_000;
+
+    /// <summary>And at most once in this many ticks: 0.5 s.</summary>
+    public const int FollowTicks = 10;
+
+    /// <summary>How fast the grapple pulls the hero toward a rod stuck in the ship's structure: 10 cells a second.</summary>
+    public const int PullSpeed = 500;
+
+    /// <summary>How far short of the rod's point the hero's middle is pulled to, as of a surface: half a cell.</summary>
+    public const int PullStop = 500;
 
     /// <summary>
     /// Ticks from a hero's shot till it fires again: 5 s. The cooldown is the hero's: every harpoon it

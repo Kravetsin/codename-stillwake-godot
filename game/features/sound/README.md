@@ -48,6 +48,12 @@ The first sound pass (ADR 0033), and what is heard in space (0042). Presentation
     (`Sound.Act`) for a crate opened, a canister loaded, debris caught, an item picked up; while this
     player's hero floats (`HeroView.Floats`, which the hearing reads too) the glove's low thump
     (`Sound.ActInSpace`) in its place, dulled by the Suit muffle like all there is (0042).
+  - `crew/HeroView.cs` — this player's harpoon (0044), on Suit: the shot (`Sound.Shot`) as the rod
+    leaves; the rod biting where it struck, the frame it does, `Sound.Chop` on metal (a wreck or salvage)
+    or the action's thump (`ActSound`) on a crate or pod; the drum (`Sound.Drum`, a loop) from the click
+    that reels till the piece is in or the line comes free, never on a miss; and `Sound.Ready` as the
+    hero's cooldown ends with a harpoon in hand, the gun ready, not the rod back. No sound of the line
+    going taut; others' harpoons are silent.
   - `grid/GridView.cs` — on World, where it stands: a door opening or closing (once, at its top cell)
     and a valve turned, found as the drawing catches up with the grid, so anyone's are heard and this
     player's own at once (0014).

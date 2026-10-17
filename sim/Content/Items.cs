@@ -51,6 +51,7 @@ public static class Items
         new("circuit", 20),
         // Tools, made as parts are.
         new("fireAxe", 1),
+        new("harpoon", 1),
     ];
 
     private static readonly Dictionary<string, ItemSpec> ById = All.ToDictionary(i => i.Id, StringComparer.Ordinal);

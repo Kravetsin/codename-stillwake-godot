@@ -10,8 +10,8 @@ public sealed record CardEffect(string Name, string About, string Colour, string
 /// <summary>A key cap and what it does: "LMB" and "craft".</summary>
 public sealed record CardKey(string Key, string Words);
 
-/// <summary>A tool's three tiles, as written: damage a second, damage, seconds between hits.</summary>
-public sealed record ToolTiles(string Dps, string Damage, string Hit);
+/// <summary>One of a tool's tiles: its number as written and its label; the first, its accent, in amber.</summary>
+public sealed record CardTile(string Value, string Label);
 
 /// <summary>One item of a craft's cost: its name, how many are carried and needed, and whether that is short.</summary>
 /// <param name="From">Where a raw item short comes from; null when it is not short, or is crafted itself.</param>
@@ -39,17 +39,17 @@ public sealed record StationBlock(string? Seconds, IReadOnlyList<CraftRow> Rows,
 
 /// <summary>
 /// What the one tooltip shows over an item (<c>PointerTip</c>), the plaque of the card mockup: its icon
-/// large, its name and kind. A tool adds its three tiles, its effects, what it works on and how it is
+/// large, its name and kind. A tool adds its tiles, its effects, what it works on and how it is
 /// used; anything else, what it goes into. A violet band while it is not analysed; a station's block at
 /// the bottom where one adds it. Equal by what it says, as <see cref="Tip"/> is.
 /// </summary>
 /// <param name="Item">The item, whose icon heads the card.</param>
-/// <param name="Tiles">A tool's tiles; null for an item that is no tool.</param>
+/// <param name="Tiles">A tool's tiles, its key number first; null for an item that is no tool.</param>
 /// <param name="Uses">The chips: what a tool works on, or what any other item goes into.</param>
 /// <param name="Use">How a tool is used: its key and a hint.</param>
 /// <param name="Unknown">Not analysed yet: the band.</param>
 public sealed record ItemCard(
-    string Item, string Name, string Kind, ToolTiles? Tiles, IReadOnlyList<CardEffect> Effects,
+    string Item, string Name, string Kind, IReadOnlyList<CardTile>? Tiles, IReadOnlyList<CardEffect> Effects,
     IReadOnlyList<string> Uses, CardKey? Use, bool Unknown)
 {
     /// <summary>A tool: its card edged and its kind written in amber.</summary>
@@ -59,7 +59,8 @@ public sealed record ItemCard(
     public StationBlock? Station { get; init; }
 
     public bool Equals(ItemCard? other) =>
-        other is not null && Item == other.Item && Name == other.Name && Kind == other.Kind && Tiles == other.Tiles
+        other is not null && Item == other.Item && Name == other.Name && Kind == other.Kind
+        && (Tiles == null ? other.Tiles == null : other.Tiles != null && Tiles.SequenceEqual(other.Tiles))
         && Effects.SequenceEqual(other.Effects) && Uses.SequenceEqual(other.Uses) && Use == other.Use
         && Unknown == other.Unknown && Equals(Station, other.Station);
 
@@ -68,11 +69,11 @@ public sealed record ItemCard(
         var hash = new HashCode();
         hash.Add(Item);
         hash.Add(Name);
-        hash.Add(Tiles);
         hash.Add(Unknown);
         hash.Add(Station);
         foreach (var effect in Effects) hash.Add(effect);
         foreach (var use in Uses) hash.Add(use);
+        foreach (var tile in Tiles ?? []) hash.Add(tile);
         return hash.ToHashCode();
     }
 }

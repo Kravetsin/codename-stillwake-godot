@@ -8,14 +8,14 @@ namespace Stillwake.Game.Shared;
 /// <summary>
 /// An <see cref="ItemCard"/> in Control nodes, as the card mockup (the plaque): a 2 px slate edge round a
 /// dark ring, amber-ish for a tool; a head darkening downward with the icon large in a frame, the name and
-/// the kind; a tool's three tiles, damage a second in amber; then chips and the hint, centred, or "Goes
+/// the kind; a tool's tiles, the first in amber; then chips and the hint, centred, or "Goes
 /// into" and its chips; a violet band while unknown; a station's block at the bottom.
 /// </summary>
 public static class ItemCardView
 {
     /// <summary>The card's inside, the mockup's 230 px; its edge and ring come round it.</summary>
     private const int Inside = 228, Pad = 10;
-    /// <summary>A tool's colour: its damage a second, its card's edge and kind, its recipe's tile.</summary>
+    /// <summary>A tool's colour: its first tile, its card's edge and kind, its recipe's tile.</summary>
     public static readonly Color Amber = new("f2b84b");
     private static readonly Color Ring = new("000000");
 
@@ -74,19 +74,18 @@ public static class ItemCardView
         return Boxed(box, Column(2, frame, Spacer(4), name, Text(card.Kind, card.Tool ? ToolKindText : KindText)));
     }
 
-    /// <summary><c>grid-cols-3 border-y-2 border-slate-800</c>, each tile after the first ruled on its left.</summary>
-    private static Control Tiles(ToolTiles tiles)
+    /// <summary><c>grid-cols-3 border-y-2 border-slate-800</c>, each tile after the first ruled on its left, the first in amber.</summary>
+    private static Control Tiles(IReadOnlyList<CardTile> tiles)
     {
         var rules = new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Style.Slate800, BorderWidthTop = 2, BorderWidthBottom = 2 };
         var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         row.AddThemeConstantOverride("separation", 0);
-        row.AddChild(Tile(tiles.Dps, T("card.dps"), first: true, Amber, 19));
-        row.AddChild(Tile(tiles.Damage, T("card.damage"), first: false, null, 16));
-        row.AddChild(Tile(tiles.Hit, T("card.hit"), first: false, null, 16));
+        for (int i = 0; i < tiles.Count; i++)
+            row.AddChild(Tile(tiles[i].Value, tiles[i].Label, first: i == 0, i == 0 ? Amber : null, i == 0 ? 19 : 16));
         return Boxed(rules, row);
     }
 
-    /// <param name="accent">The damage a second's amber, its ground faint amber; null for a plain tile.</param>
+    /// <param name="accent">The first tile's amber, its ground faint amber; null for a plain tile.</param>
     private static Control Tile(string value, string label, bool first, Color? accent, int size)
     {
         var box = new StyleBoxFlat

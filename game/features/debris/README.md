@@ -10,7 +10,8 @@ with the fire axe is the hands too, which send `Hit` (0034).
   struck a piece; `Session.Progress`.
 - **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
   wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one picture of each wreck: a hull section, a machine block 48 × 32, a cargo container and a shield slab 64 × 32, a cable rack and a tank cluster 32 × 32 (`DebrisLooks.Wrecks`, the box they are aimed at and struck by)), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
-  at `X − Speed × Progress` so it glides, tumbling a turn every 4 s each its own way, faded in over the
+  at `X − Speed × Progress`, or reeled by a harpoon its share of the way to its reel's point
+  (`Shared.PieceDrawn`, where the crew's rod sticks to it too), so it glides, tumbling a turn every 4 s each its own way, faded in over the
   first 8 cells of its path and out over the last (`Fading.FadeOf`, 0009); a wreck only rocks, 0.08 rad
   either way every 7 s, so its picture stays where the aim tests it.
 - **Damage (0034):** one filter for every piece, in the lit pictures' shader (`render/Cracks.cs`, taken
@@ -39,6 +40,11 @@ with the fire axe is the hands too, which send `Hit` (0034).
   autopilot leaves the hero outside the airlock; there the pointer goes to it and E catches it,
   planks landing in the hotbar. With `--host` the demo is hosted, so a guest
   sees the catch.
+- **Recording:** `-- --harpoon` (`WreckDemo`): a harpoon in the third slot, a cargo crate and a hull
+  section out of reach; 3 chooses it, the crate is shot, reeled in with a second click and caught with E,
+  then, the gun ready again, the section is shot and reeled in to the gun (0044).
+- **Recording:** `-- --grapple --lit` (`WreckDemo.Hall`): a lit hall aboard, a harpoon in the first slot;
+  it is fired into the ceiling, the hero pulled up and hanging, D lets go; then the same into the far wall.
 - **Recording:** `-- --wreck` (`WreckDemo`): the hero floating in space, a fire axe in its second
   slot, a hull section drifting up slowly and three more chopped a third, a half and four fifths of
   the way; the pointer on it bare-handed (red), 2 chooses the axe, the left button held till it breaks,
@@ -53,7 +59,7 @@ with the fire axe is the hands too, which send `Hit` (0034).
 | `OwnHits.cs`    | which pieces this peer's own hits ran on since the last frame | no    |
 | `DebrisView.cs` | the layer: pieces and the outline of the one aimed at         | yes   |
 | `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |
-| `WreckDemo.cs`  | the world and the script of `--wreck` and `--wrecks`          | yes   |
+| `WreckDemo.cs`  | the world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple` | yes   |
 
 `Fading.cs` and `OwnHits.cs` are compiled again into `game.tests/` (`OwnHits` tested in `HearingTests`), where `fade.test.ts` and the debris test of
 `predicted.test.ts` are ported (`DebrisTests`); the debris tests of `aim.test.ts` are in `AimTests`.
