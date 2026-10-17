@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
+using Stillwake.Net;
 using Stillwake.Sim;
 using Spec = Stillwake.Content;
 
@@ -13,10 +14,11 @@ namespace Stillwake.Game.Features.Debris;
 /// <summary>
 /// <c>-- --asteroid</c>: the big world (0048), the hero out in the asteroid band above the hull (0054) with a
 /// jetpack on, the drill on the hotbar's first slot and the fire axe on its second, and one battery on the belt
-/// half full: enough for one asteroid and a little of the next. Two asteroids float by it, all but still, one
+/// half full: enough for one asteroid and a little of the next. Two asteroids float by it, still, one
 /// on either side. A script played through Godot's own input, for recordings with <c>--write-movie</c>: the
 /// drill chosen and held on the right one till it breaks into rock, then on the left one till the belt runs
-/// flat and the drill winds down, then the axe chosen and the left one chopped till it breaks. With
+/// flat and the drill winds down, then the axe chosen and the left one chopped till it breaks; a canister breathed
+/// whenever the suit runs half empty. With
 /// <c>--manual</c> the script stays off and the hands are the player's. It draws the pointer, which a movie does not.
 /// </summary>
 public partial class AsteroidDemo : CanvasLayer
@@ -70,8 +72,8 @@ public partial class AsteroidDemo : CanvasLayer
                 ["item"] = "asteroid",
                 ["x"] = x,
                 ["y"] = sy * 1000 - up,
-                // All but still, so the script's hands stay on them.
-                ["speed"] = 1,
+                // Still, so the script's hands stay on them through a recording.
+                ["speed"] = 0,
                 ["start"] = x,
                 ["end"] = 0,
                 ["damage"] = 0,
@@ -85,15 +87,17 @@ public partial class AsteroidDemo : CanvasLayer
 
     private readonly DebrisView _view;
     private readonly Ui _ui;
+    private readonly Func<(Client Client, Registry M)?> _world;
+    private double _breathed = -10;
     private readonly Node2D _arrow = new();
     private Vector2 _pos = new(640, 300);
     private double _t, _stageAt;
     private int _stage, _first = -1;
     private bool _holding;
 
-    public AsteroidDemo(DebrisView view, Ui ui)
+    public AsteroidDemo(DebrisView view, Ui ui, Func<(Client Client, Registry M)?> world)
     {
-        (_view, _ui) = (view, ui);
+        (_view, _ui, _world) = (view, ui, world);
         Layer = ScreenLayers.Pointer;
         AddChild(_arrow);
         _arrow.Draw += () =>
@@ -142,6 +146,12 @@ public partial class AsteroidDemo : CanvasLayer
     public override void _Process(double delta)
     {
         _t += delta;
+        // Out in space the suit runs low over a long recording: a canister breathed whenever it is half empty.
+        if (_world() is var (client, m) && m.Crew.HeroOf(client.Id) is { } hero && hero.Suit < Spec.Crew.Suit / 2 && _t - _breathed > 2)
+        {
+            client.Send(new Sim.Crew.Refill());
+            _breathed = _t;
+        }
         if (_stage > 6) return;
         int rock = _stage < 3 ? 0 : 1;
         if (OnScreen(rock) is { } at) _pos = _pos.MoveToward(at, (float)(1200 * delta));
