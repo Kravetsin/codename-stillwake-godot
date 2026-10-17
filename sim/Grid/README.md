@@ -49,9 +49,10 @@ free back slot: it stands behind anything, and in space.
   grid has had (later than now; any version from before a load, which brings a new grid): the reader
   then looks at the whole grid again, as on its first look (0050). Every reader of the grid follows
   it — rooms, pipes, atmosphere; the client's tile view, light, starlight and pipes overlay — and
-  keeps the version it last saw, and the grid with it; `Built` — the box past
-  which every cell is empty space, never saved: `rooms` floods within it, and a reader the log let go
-  of looks again within it; `Zone` — the build zone, nothing placed outside it; every layer as codes, a
+  keeps the version it last saw, and the grid with it; `Built` — the box past which every cell is
+  empty space, never saved: `rooms` floods within it after a load, `rooms` walks space until it leaves
+  it, and a reader the log let go of looks again within it; `Zone` — the build zone, nothing placed
+  outside it; every layer as codes, a
   cell each, live and read-only, as TypeScript's `layers()`: `StructureLayer`, `MaterialLayer` (a
   wall's material, 0 for none), `ConduitLayer`, `BackLayer`, `BackMaterialLayer`; `StructureAt(cell)`, `ConduitAt(cell)`,
   `MachineAt(cell)`, `MachineById(id)` — null for none or one taken apart —, `Machines` — every

@@ -40,11 +40,13 @@ names.
 
 ## Consequences
 
-- A door toggled, a wall built or taken apart costs the readers the cells it changed, whatever the
-  size of the world or the ship: on a fully built 1024×512 world a toggled door cost the client's
-  light 35 ms a frame and now under 1 ms; the sim's door tick fell from 0.87 to 0.61 ms.
+- A door toggled, a breach, a wall built or taken apart costs the readers the cells it changed,
+  whatever the size of the world or the ship: on a fully built 1024×512 world a toggled door cost the
+  client's light 35 ms a frame and now under 1 ms. With the changed cells in hand, rooms label again
+  only the rooms near a change, a breach beside space included: its tick fell from 10.8 to 1.0 ms
+  there (F-7).
 - Layer copies kept only to compare are gone (rooms' two, pipes' conduits and machine list, the light's
   two). The tile view keeps what it drew, which it draws from and which a toggle in flight shows apart.
-- What is left of a change is the readers' own work: a breach still floods the rooms of the ship's box
-  (F-4), and pipes find every network again when a conduit or machine changes.
+- What is left of a change is the readers' own work: atmosphere walks every vent and room to follow
+  the rooms changed, and pipes find every network again when a conduit or machine changes.
 - A new reader of the grid asks the log and keeps a path for null; it never keeps a copy to compare.
