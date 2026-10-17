@@ -115,6 +115,12 @@ public static class Migrations
         // 11 → 12: a stack may hold charge (0053), written only when it holds some: no save before held any, so
         // nothing changes but the format, which keeps an older build from loading a battery and losing its charge.
         save => save,
+        // 12 → 13: an electric tool draws while it runs, not by the hit (0055); no save before ran one.
+        save =>
+        {
+            save["slices"]!["items"]!["running"] ??= new JsonArray();
+            return save;
+        },
     ];
 
     /// <summary>

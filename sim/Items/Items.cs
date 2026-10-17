@@ -16,6 +16,12 @@ public sealed record PickUp(int Id) : Command;
 /// <summary>Switches creative mode, from the dev panel.</summary>
 public sealed record SetCreative(bool On) : Command;
 
+/// <summary>
+/// The sender's hero runs electric item <c>Item</c>, one it carries (<c>On</c>), or stops what it runs: sent while
+/// its client's run differs from the sim's, as <c>Thrust</c> is. A run draws the item's <c>Draw</c> every tick (0055).
+/// </summary>
+public sealed record Run(string Item, bool On) : Command;
+
 /// <summary>A peer's inventory and the machines some moves touch, as the moves would leave them.</summary>
 /// <param name="Crates">The machines the moves touched, in the order they were first touched.</param>
 public sealed record Shown(IReadOnlyList<Stack?> Inventory, IReadOnlyList<(int Crate, IReadOnlyList<Stack?> Slots)> Crates);
@@ -38,6 +44,7 @@ public interface IItemsQueries
     bool Equipped(int peer, string item);
     (int Charge, int Capacity) BeltCharge(int peer);
     bool CanDrain(int peer, int amount);
+    string? Running(int peer);
 }
 
 /// <summary>How a module that depends on the items may change them.</summary>
@@ -52,6 +59,7 @@ public interface IItemsOps
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void Charge(int id, int amount);
     bool Drain(int peer, int amount);
+    void StopRunning(int peer);
 }
 
 /// <summary>
@@ -76,12 +84,29 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Handles<PickUp>(c => PickUpProblem(c.From, c.Id), ApplyPickUp);
         Handles<SetCreative>(_ => null, c => State.Creative = c.On);
         Handles<Move>(MoveProblem, ApplyMove);
+        Handles<Run>(RunProblem, ApplyRun);
         // After derivation: falling reads the rooms, rebuilt by then.
         System(Phase.Simulation, () =>
         {
             State.Ticks += 1;
+            Runs();
             FloorRules.Settle(State, _grid, _rooms);
         });
+    }
+
+    /// <summary>
+    /// Every run draws its item's <c>Draw</c> from its peer's belt for this tick, in peer order; one whose belt
+    /// cannot pay the tick, or whose item its peer no longer carries, stops (0055).
+    /// </summary>
+    private void Runs()
+    {
+        var running = State.Running;
+        for (int i = 0; i < running.Count;)
+        {
+            var r = running[i];
+            if (Carries(r.Peer, r.Item) && Drain(r.Peer, Content.Items.Get(r.Item).Draw!.Value)) i++;
+            else running.RemoveAt(i);
+        }
     }
 
     protected override ItemsState Init(Layout layout) => new();
@@ -317,8 +342,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>
     /// Takes <paramref name="amount"/> power-ticks from the first battery on <paramref name="peer"/>'s belt,
-    /// in slot order, that holds at least that much, and whether one did: an electric tool's <c>Draw</c> for the
-    /// ticks of its work. One battery pays it whole, so the belt drains left to right. Nothing is taken in
+    /// in slot order, that holds at least that much, and whether one did: a running electric tool's <c>Draw</c> for
+    /// a tick (0055). One battery pays it whole, so the belt drains left to right. Nothing is taken in
     /// creative mode.
     /// </summary>
     public bool Drain(int peer, int amount)
@@ -334,6 +359,21 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary>Whether <see cref="Drain"/> would take <paramref name="amount"/> power-ticks from <paramref name="peer"/>'s belt now: always in creative mode.</summary>
     public bool CanDrain(int peer, int amount) => State.Creative || Payer(peer, amount) != null;
 
+    /// <summary>The electric item <paramref name="peer"/>'s hero runs, drawing from its belt every tick (0055); none while it runs none.</summary>
+    public string? Running(int peer) => State.Running.Find(r => r.Peer == peer)?.Item;
+
+    /// <summary>Stops whatever <paramref name="peer"/>'s hero runs: crew's, as the hero passes out or leaves. Nothing while it runs nothing.</summary>
+    public void StopRunning(int peer) => State.Running.RemoveAll(r => r.Peer == peer);
+
+    /// <summary>Whether <paramref name="peer"/> carries <paramref name="item"/> in any slot, its equipment too.</summary>
+    private bool Carries(int peer, string item)
+    {
+        var slots = Inventory(peer);
+        for (int i = 0; i < slots.Count; i++)
+            if (slots[i]?.Item == item) return true;
+        return false;
+    }
+
     /// <summary>The first belt slot of <paramref name="peer"/>'s, in slot order, whose battery holds at least <paramref name="amount"/> power-ticks; none for none.</summary>
     private int? Payer(int peer, int amount)
     {
@@ -345,6 +385,27 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     // Commands.
+
+    /// <summary>
+    /// <c>items.notElectric</c> for an item with no <c>Draw</c>; turning on, <c>items.notHeld</c> when the sender
+    /// carries none, and <c>items.flat</c> when its belt cannot pay a tick of the draw (never in creative mode).
+    /// </summary>
+    private string? RunProblem(Run c)
+    {
+        if (Content.Items.Get(c.Item).Draw is not int draw) return "items.notElectric";
+        if (!c.On) return null;
+        if (!Carries(c.From, c.Item)) return "items.notHeld";
+        return CanDrain(c.From, draw) ? null : "items.flat";
+    }
+
+    /// <summary>A hero runs one thing: on replaces what it ran, off stops whatever it runs.</summary>
+    private void ApplyRun(Run c)
+    {
+        StopRunning(c.From);
+        if (!c.On) return;
+        int at = State.Running.FindIndex(r => r.Peer > c.From);
+        State.Running.Insert(at < 0 ? State.Running.Count : at, new Runner { Peer = c.From, Item = c.Item });
+    }
 
     private string? DropProblem(Drop c)
     {

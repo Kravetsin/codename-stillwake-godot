@@ -84,7 +84,12 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
         });
         Handles<Leave>(
             c => HeroOf(c.From) == null ? "crew.noHero" : null,
-            c => State.Heroes.RemoveAll(h => h.Id == c.From));
+            c =>
+            {
+                State.Heroes.RemoveAll(h => h.Id == c.From);
+                // Its inventory stays for its seat; a tool it ran would drain the belt with no one at it.
+                _itemsOps.StopRunning(c.From);
+            });
         Handles<PickColour>(c => ColourProblem(c.From, c.Colour), c => HeroOf(c.From)!.Colour = c.Colour);
         Handles<Exert>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.Exerting = c.On);
         Handles<Thrust>(ThrustProblem, c => HeroOf(c.From)!.Thrusting = c.On);
@@ -103,8 +108,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
             {
                 if (hero.Out > 0)
                 {
-                    // A thrust sent before passing out lands on a hero already out: it thrusts nothing.
+                    // A thrust or a run sent before passing out lands on a hero already out: it thrusts and runs nothing.
                     hero.Thrusting = false;
+                    _itemsOps.StopRunning(hero.Id);
                     hero.Out -= 1;
                     if (hero.Out == 0)
                     {
@@ -130,6 +136,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                     hero.Out = Content.Crew.PassOut;
                     hero.Exerting = false;
                     hero.Thrusting = false;
+                    _itemsOps.StopRunning(hero.Id);
                 }
             }
         });

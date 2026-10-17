@@ -3,8 +3,8 @@ namespace Stillwake.Content;
 /// <summary>
 /// An item that deals damage (ADRs 0034, 0054): tools are weapons, and every one works alike on everything.
 /// <paramref name="Damage"/> is what a hit takes off a wreck's hit points; <paramref name="Pace"/> the ticks
-/// between hits while the button is held, the client's pace, which the sim does not check (0034), but for
-/// what an electric weapon spends: its item's <c>Draw</c> for each of those ticks, a hit at a time.
+/// between hits while the button is held, the client's pace, which the sim does not check (0034). An electric
+/// weapon pays nothing a hit: its item draws its <c>Draw</c> every tick it runs (0055).
 /// <paramref name="Effects"/> are what a hit does besides, each a chip on its card.
 /// </summary>
 public sealed record Weapon(string Item, int Damage, int Pace, IReadOnlyList<HitEffect> Effects);

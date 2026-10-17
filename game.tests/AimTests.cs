@@ -572,8 +572,8 @@ public class AimTests
     {
         var shoulder = ShoulderOf(HeroOn(6, 7));
         int reach = DrillReach();
-        // An arm and a stubby drill: a little over a cell.
-        Assert.InRange(reach, 1_000, 1_600);
+        // An arm and the tube hammer's long bit, drawn: some two and a half cells.
+        Assert.InRange(reach, 2_300, 2_700);
         var far = shoulder with { X = shoulder.X + 5_000 };
         foreach (var kind in new[] { "asteroid", "hullSection" })
         {

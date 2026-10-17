@@ -190,6 +190,9 @@ public partial class Figure : Node2D
         Lit.Set(_tool);
         _held = new Sprite2D { Centered = false, Visible = false };
         Lit.Set(_held);
+        _held.AddChild(_lamp);
+        _held.AddChild(_lampGlow);
+        _lampGlow.Colour = LampColour * LampLight;
         for (int i = 0; i < BeamsMost; i++)
         {
             var beam = new Line2D { TopLevel = true, Width = 1, Visible = false, ZIndex = 1, Material = BeamMaterial };
@@ -274,13 +277,18 @@ public partial class Figure : Node2D
     /// <summary>Whether the harpoon held shows its rod in the barrel: ready to fire.</summary>
     public bool Loaded { get; set; } = true;
 
-    /// <summary>Whether the drill held runs (0054): its bit spins up, and winds down once it stops, as when its batteries are flat.</summary>
+    /// <summary>Whether the drill held runs (0054, 0055): its bit spins up and its lamp lights; stopped, the lamp goes out and the bit winds down.</summary>
     public bool Spinning { get; set; }
 
-    /// <summary>How fast the bit turns, from still (0) to full (1), and how far through its turn the picture is.</summary>
-    private double _spin, _spinTurn;
-    /// <summary>The bit spins up in <see cref="SpinUpMs"/> and down in <see cref="SpinDownMs"/>, its picture flipping <see cref="SpinHz"/> times a second at full speed.</summary>
-    private const double SpinUpMs = 120, SpinDownMs = 700, SpinHz = 24;
+    /// <summary>How fast the bit turns, from still (0) to full (1), and how far through its frames the picture is, in frames.</summary>
+    private double _spin, _spinFrame;
+    /// <summary>The bit spins up in <see cref="SpinUpMs"/> and down in <see cref="SpinDownMs"/>, its frames going by <see cref="SpinFps"/> a second at full speed.</summary>
+    private const double SpinUpMs = 120, SpinDownMs = 700, SpinFps = 18;
+    /// <summary>The held item's lamp, lit while it runs: its pixel drawn unlit, so it shows in the dark, and the little light it gives.</summary>
+    private readonly ColorRect _lamp = new() { Size = Vector2.One, Color = LampColour, Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
+    private readonly Glow _lampGlow = new() { Visible = false };
+    private static readonly Color LampColour = new("9dff8a");
+    private const float LampLight = 0.25f;
 
     /// <summary>The held harpoon's muzzle, or the drill's point, as drawn this frame, in pixels of the world; none while neither is shown.</summary>
     public Vector2? Muzzle { get; private set; }
@@ -507,10 +515,21 @@ public partial class Figure : Node2D
         {
             var fist = Rig.FistOf(frontArm);
             _spin = Spinning ? Math.Min(1, _spin + elapsedMs / SpinUpMs) : Math.Max(0, _spin - elapsedMs / SpinDownMs);
-            _spinTurn = (_spinTurn + _spin * SpinHz * elapsedMs / 1000) % 1;
+            // Through the picture and its spin frames in turn; still, it stops on the picture.
+            int frames = 1 + (item.Spin?.Count ?? 0);
+            _spinFrame = _spin > 0 ? (_spinFrame + _spin * SpinFps * elapsedMs / 1000) % frames : 0;
+            int frame = (int)_spinFrame;
             _held.Texture = Picture(item.Loaded != null && Loaded ? item.Loaded
-                : item.Spin != null && _spin > 0 && _spinTurn >= 0.5 ? item.Spin
+                : frame > 0 ? item.Spin![frame - 1]
                 : item.Picture);
+            bool lit = Spinning && item.Lamp != null;
+            _lamp.Visible = _lampGlow.Visible = lit;
+            // The frames draw the lamp dim; lit, its pixel is drawn over them.
+            if (item.Lamp is { } at)
+            {
+                var lamp = new Vector2((float)(at.X - item.Grip.X), (float)(at.Y - item.Grip.Y));
+                (_lamp.Position, _lampGlow.Position) = (lamp - Vector2.One / 2, lamp);
+            }
             _held.Offset = -new Vector2((float)item.Grip.X, (float)item.Grip.Y);
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
             _held.Rotation = (float)Rig.HeldTurn(frontArm, item);

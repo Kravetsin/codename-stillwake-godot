@@ -337,12 +337,12 @@ public class ContentTests
         // Damage a second is all that sets them apart (0054): the drill 10, the axe 4.
         Assert.Equal(10, Weapons.Drill.Damage * 20 / Weapons.Drill.Pace);
         Assert.Equal(4, Weapons.Axe.Damage * 20 / Weapons.Axe.Pace);
-        // Electric: a hit spends its draw for each tick of its pace, so a full battery lasts 300 hits, 30 s.
+        // Electric: it draws every tick it runs (0055), so a full battery runs it 600 ticks, 30 s.
         int draw = Content.Items.Get(Weapons.Drill.Item).Draw!.Value;
         Assert.Equal(3, draw);
-        Assert.Equal(300, Charge.Battery / Charge.Scale / (draw * Weapons.Drill.Pace));
+        Assert.Equal(600, Charge.Battery / Charge.Scale / draw);
         Assert.Null(Content.Items.Get(Weapons.Axe.Item).Draw);
-        Assert.Equal([("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1)], Crafts.Get(Weapons.Drill.Item).Cost);
+        Assert.Equal([("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1), ("circuit", 2)], Crafts.Get(Weapons.Drill.Item).Cost);
         Assert.Equal(160, Crafts.Get(Weapons.Drill.Item).Ticks);
         Assert.DoesNotContain(Weapons.Drill.Item, Content.Research.StartKnown);
     }

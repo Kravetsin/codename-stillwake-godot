@@ -36,6 +36,7 @@
     <Compile Include="../game/features/crew/SwingArm.cs" Link="Game/Crew/SwingArm.cs" />
     <Compile Include="../game/features/crew/HarpoonShot.cs" Link="Game/Crew/HarpoonShot.cs" />
     <Compile Include="../game/features/crew/DrillPace.cs" Link="Game/Crew/DrillPace.cs" />
+    <Compile Include="../game/features/crew/Motor.cs" Link="Game/Crew/Motor.cs" />
     <Compile Include="../game/features/crew/HarpoonLine.cs" Link="Game/Crew/HarpoonLine.cs" />
     <Compile Include="../game/features/crew/Tether.cs" Link="Game/Crew/Tether.cs" />
     <Compile Include="../game/features/crew/Report.cs" Link="Game/Crew/Report.cs" />

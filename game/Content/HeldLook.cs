@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Stillwake.Game;
 
 /// <summary>
@@ -9,11 +11,12 @@ namespace Stillwake.Game;
 /// its barrel, the rod seated in it, and the shot leaves <see cref="EdgeTo"/>, the muzzle, along it; its
 /// <see cref="Loaded"/> picture, the same size up and left, shows the rod in the barrel while it is ready.
 /// An <see cref="Aimed"/> item is pointed, not swung: the straight arm turns so its edge's line runs through
-/// the pointer. One that spins alternates its picture with <see cref="Spin"/>, the same size, while it runs.
+/// the pointer. One that spins cycles its picture through <see cref="Spin"/>, each the same size, while it runs,
+/// and stops on its picture; its <see cref="Lamp"/>, a pixel's middle, lights while it runs.
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
-    bool Aimed = false, string? Spin = null)
+    bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null)
 {
     /// <summary>
     /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
@@ -29,11 +32,14 @@ public sealed record HeldLook(
         "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true);
 
     /// <summary>
-    /// The drill, <c>art/hero_drill.png</c> (0054): a stubby pistol-grip drill gripped by its handle, held as a
-    /// pistol is, aimed at the pointer; the edge its bit, from the chuck to the point, which is what drills.
+    /// The drill, <c>art/hero_drill.png</c> (0054): the tube hammer, a motor in a length of tube, gripped by the frame
+    /// bent into a loop under its rear, held as a pistol is, aimed at the pointer; the edge its long bit, from the
+    /// chuck to the point, which is what drills. Running, the bit turns through three frames and the lamp on its
+    /// rear cap lights.
     /// </summary>
     public static readonly HeldLook Drill = new(
-        "res://art/hero_drill.png", (7.5, 9), 0, (13, 5), (21.5, 5), Aimed: true, Spin: "res://art/hero_drill_spin.png");
+        "res://art/hero_drill.png", (3, 10.5), 0, (25, 5.5), (32, 5.5), Aimed: true,
+        Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.5, 4.5));
 
     /// <summary>How <paramref name="item"/> looks in the hand; none for an item held as no picture.</summary>
     public static HeldLook? Of(string? item) =>

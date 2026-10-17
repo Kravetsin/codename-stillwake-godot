@@ -56,6 +56,13 @@ internal sealed class Held
     public Stack?[] Slots { get; set; } = [];
 }
 
+/// <summary>An electric item a peer's hero runs (0055): it draws its <c>Draw</c> from that peer's belt every tick.</summary>
+internal sealed class Runner
+{
+    public int Peer { get; set; }
+    public string Item { get; set; } = "";
+}
+
 /// <summary>The items' slice. Public so modules can be typed by it; its members internal.</summary>
 public sealed class ItemsState
 {
@@ -68,6 +75,8 @@ public sealed class ItemsState
     /// <summary>Stacks on the floor, in id order.</summary>
     [JsonInclude] internal List<FloorStack> Floor { get; set; } = [];
     [JsonInclude] internal int NextFloorId { get; set; } = 1;
+    /// <summary>The electric items heroes run, one at most a peer, in peer order.</summary>
+    [JsonInclude] internal List<Runner> Running { get; set; } = [];
     /// <summary>Ticks since the world began, counted here: the module's own clock.</summary>
     [JsonInclude] internal int Ticks { get; set; }
 }
