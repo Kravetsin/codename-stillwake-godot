@@ -53,8 +53,10 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
   2. If the grid's or the rooms' `Version` moved, the rooms and vents are followed: the rooms
      `IRoomsQueries.ChangedSince` names, or, when every room was found again, those whose cells
      differ from what the orders were found from, and any whose vents in order changed, get new
-     orders; only cells they held can lose their air. Around a change their leaks and survey counts
-     are redone and the rest kept; when every room was found again, both are found afresh.
+     orders; the vents are listed again only when the grid's log (`IGridQueries.ChangedSince`, 0050)
+     names a machine's cell, or no longer reaches back. Only cells the rooms held can lose their air.
+     Around a change their leaks and survey counts are redone and the rest kept; when every room was
+     found again, both are found afresh.
   3. A room open to space loses `Air.VentLoss` cells from the far edge, and every vent in it — or
      standing in space — drains its network by `Air.VentDrain`.
   4. Every `Air.TicksPerCell` ticks, each filling room airs the next cell of its order, paying one unit
@@ -71,7 +73,7 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
 - **Canisters:** a tank holds up to `Air.TankCapacity`; `LoadCanister` takes a canister from the
   sender's inventory (free in creative mode) and adds `Air.Canister`, refused when the tank would
   spill. A tank taken apart takes its oxygen with it, in the construction phase, looked for only when
-  the grid's `Version` moved: only a machine taken apart leaves a tank's oxygen with no machine.
+  the grid's log names a machine's cell: only a machine taken apart leaves a tank's oxygen with no machine.
 - **The survey** — vents by room, tanks and generators by network, aired cells by room — is kept
   between ticks and gathered again in one pass only when the pipes' `Version` moved or every room
   was found again; around a change, only the changed rooms' counts and vents are redone, and the vents

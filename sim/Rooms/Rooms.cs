@@ -11,13 +11,8 @@ public sealed class RoomsState
 {
     [JsonIgnore] internal int[] RoomOf { get; set; } = [];
     [JsonIgnore] internal List<Room> Rooms { get; set; } = [];
-    /// <summary>The structure and back layers as the rooms were last found from them.</summary>
-    [JsonIgnore] internal int[] BuiltFrom { get; set; } = [];
-    [JsonIgnore] internal int[] BuiltBack { get; set; } = [];
-    /// <summary>The grid's version last looked at.</summary>
+    /// <summary>The grid's version the rooms were last found at: its log names the cells changed since.</summary>
     [JsonIgnore] internal int GridVersion { get; set; }
-    /// <summary>The grid's built box last looked at: the copies differ from the layers only within it and the box now.</summary>
-    [JsonIgnore] internal Box Looked { get; set; } = Box.None;
     /// <summary>Where the rooms were last flooded: every cell outside it is space.</summary>
     [JsonIgnore] internal Box Flooded { get; set; } = Box.None;
     /// <summary>Bumped each time rooms are found again, around a change or all of them.</summary>
@@ -68,11 +63,21 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         System(Phase.Derivation, () =>
         {
             if (_grid.Version == State.GridVersion) return;
+            var log = _grid.ChangedSince(State.GridVersion);
             State.GridVersion = _grid.Version;
-            var window = _grid.Built.Union(State.Looked);
-            State.Looked = _grid.Built;
-            var structure = Changes(_grid.StructureLayer, State.BuiltFrom, window, _grid.Width);
-            var back = Changes(_grid.BackLayer, State.BuiltBack, window, _grid.Width);
+            // The log let go of what changed: every room found again, as after a load.
+            if (log == null)
+            {
+                Rebuild();
+                return;
+            }
+            var structure = new List<int>();
+            var back = new List<int>();
+            foreach (var change in log)
+            {
+                if ((change.Layers & GridLayers.Structure) != 0) structure.Add(change.Cell);
+                if ((change.Layers & GridLayers.Back) != 0) back.Add(change.Cell);
+            }
             if (structure.Count == 0 && back.Count == 0) return;
             var changed = (structure.Count == 0 ? Reopen(back) : back.Count == 0 ? Reflood(structure) : null)
                 ?? FindInShip(back);
@@ -109,9 +114,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
 
     public override void Rebuild()
     {
-        State.BuiltFrom = _grid.StructureLayer.ToArray();
-        State.BuiltBack = _grid.BackLayer.ToArray();
-        State.Looked = _grid.Built;
+        State.GridVersion = _grid.Version;
         State.Flooded = _grid.Built;
         State.RoomOf = new int[_grid.Width * _grid.Height];
         Array.Fill(State.RoomOf, Space);
@@ -188,23 +191,6 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
             else high = mid - 1;
         }
         return -1;
-    }
-
-    /// <summary>
-    /// The cells where <paramref name="now"/> differs from <paramref name="was"/>, ascending, looked for
-    /// within <paramref name="window"/>, outside which both are empty; <paramref name="was"/> is brought up to date.
-    /// </summary>
-    private static List<int> Changes(ReadOnlySpan<int> now, int[] was, Box window, int width)
-    {
-        var cells = new List<int>();
-        for (int y = window.Top; y <= window.Bottom; y++)
-        {
-            int start = y * width + window.Left, end = start + window.Width;
-            if (now[start..end].SequenceEqual(was.AsSpan(start, end - start))) continue;
-            for (int c = start; c < end; c++)
-                if (now[c] != was[c]) { cells.Add(c); was[c] = now[c]; }
-        }
-        return cells;
     }
 
     private static bool IsSolid(int structure) => structure is Structure.Wall or Structure.DoorClosed;

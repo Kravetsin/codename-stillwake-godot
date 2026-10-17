@@ -12,13 +12,7 @@ public sealed class PipesState
     /// <summary>Per cell, the id of its network, or <see cref="PipeNetworks.None"/>.</summary>
     [JsonIgnore] internal int[] NetworkOf { get; set; } = [];
     [JsonIgnore] internal List<Network> Networks { get; set; } = [];
-    /// <summary>The conduit layer the networks were found from.</summary>
-    [JsonIgnore] internal int[] BuiltConduit { get; set; } = [];
-    /// <summary>The machines they were found with, as an id and a cell each: enough to tell that one came or went.</summary>
-    [JsonIgnore] internal int[] BuiltMachines { get; set; } = [];
-    /// <summary>A box holding every conduit of the copy: the grid's built box when it was last seen the same.</summary>
-    [JsonIgnore] internal Box BuiltIn { get; set; } = Box.None;
-    /// <summary>The grid's version last looked at.</summary>
+    /// <summary>The grid's version last looked at: its log names the cells changed since.</summary>
     [JsonIgnore] internal int GridVersion { get; set; }
     /// <summary>Bumped each time the networks are found again.</summary>
     [JsonIgnore] internal int Version { get; set; }
@@ -57,8 +51,9 @@ public sealed class PipesModule : Module<PipesState>, IPipesQueries
         System(Phase.Derivation, () =>
         {
             if (_grid.Version == State.GridVersion) return;
+            var log = _grid.ChangedSince(State.GridVersion);
             State.GridVersion = _grid.Version;
-            if (!Current()) Rebuild();
+            if (log == null || Moved(log)) Rebuild();
         });
     }
 
@@ -68,31 +63,16 @@ public sealed class PipesModule : Module<PipesState>, IPipesQueries
     {
         var machines = _grid.Machines.Select(m => (m.Id, _grid.PortsOf(m))).ToList();
         (State.NetworkOf, State.Networks) = PipeNetworks.Find(_grid.Width, _grid.Height, _grid.ConduitLayer, machines);
-        State.BuiltConduit = _grid.ConduitLayer.ToArray();
-        State.BuiltIn = _grid.Built;
-        State.BuiltMachines = _grid.Machines.SelectMany(m => new[] { m.Id, m.Cell }).ToArray();
+        State.GridVersion = _grid.Version;
         State.Version++;
     }
 
-    /// <summary>Whether the grid's conduits and machines still are what the networks were found from.</summary>
-    private bool Current()
+    /// <summary>Whether a conduit or a machine is among the <paramref name="changes"/>: a machine came or went where its cells did.</summary>
+    private static bool Moved(IReadOnlyList<CellChange> changes)
     {
-        // Outside what is built now and was then, both are empty.
-        var window = _grid.Built.Union(State.BuiltIn);
-        var conduit = _grid.ConduitLayer;
-        for (int y = window.Top; y <= window.Bottom; y++)
-        {
-            int start = y * _grid.Width + window.Left;
-            if (!conduit.Slice(start, window.Width).SequenceEqual(State.BuiltConduit.AsSpan(start, window.Width))) return false;
-        }
-        State.BuiltIn = _grid.Built;
-        // Compared pair by pair without building a key: this runs every tick.
-        var machines = _grid.Machines;
-        var seen = State.BuiltMachines;
-        if (seen.Length != machines.Count * 2) return false;
-        for (int i = 0; i < machines.Count; i++)
-            if (seen[i * 2] != machines[i].Id || seen[i * 2 + 1] != machines[i].Cell) return false;
-        return true;
+        foreach (var c in changes)
+            if ((c.Layers & (GridLayers.Conduit | GridLayers.Machine)) != 0) return true;
+        return false;
     }
 
     public int? NetworkAt(int cell)

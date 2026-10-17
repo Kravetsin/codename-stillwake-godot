@@ -92,7 +92,8 @@ public class ModulesTests
     /// orders — is what a load finds from scratch: a world loaded from the live one's save before every
     /// tick, fed the same commands, hashes the same after it. Closed rooms three cells from space, so
     /// changes are followed around them; builds out in space above, so breaches flood a ship's box that
-    /// grows and shrinks; with the air read every tick, as an open panel does, and without.
+    /// grows and shrinks; with the air read every tick, as an open panel does, and without; and a few ticks
+    /// that write more than the grid's log holds, so every reader finds what it follows again from scratch.
     /// </summary>
     [Theory]
     [InlineData(5u, false)]
@@ -104,7 +105,7 @@ public class ModulesTests
         var rng = new Rng(new RngState { S = seed });
         var live = new Registry();
         var world = World.Create(seed, layout, [.. live.All, new Builder(live.Grid, live.Grid)]);
-        int around = 0, grown = 0, shrunk = 0;
+        int around = 0, grown = 0, shrunk = 0, behind = 0;
         for (int i = 0; i < 300; i++)
         {
             if (readAir && live.Rooms.All.Count > 0)
@@ -118,17 +119,29 @@ public class ModulesTests
             if (rng.Below(2) == 0) commands.Add(ShipEdit(live.Grid, rng, 3, 3, 32, 24));
             // Out in the space above the ship, so what is built grows and shrinks.
             if (rng.Below(3) == 0) commands.AddRange(SpaceEdit(live.Grid, rng, 19, 0, 1, 3));
+            // Now and then a door worked more times in a tick than the grid's log holds: every reader falls behind it.
+            int door = live.Grid.StructureLayer.IndexOfAny(Structure.DoorClosed, Structure.DoorOpen);
+            if (i % 100 == 60 && door >= 0)
+            {
+                commands.AddRange(Enumerable.Repeat(new ToggleDoor(door), ChangeLog.DefaultCapacity + 1));
+                // With a vent or a tank taken apart, which only the log would tell the air of.
+                var gone = live.Grid.MachinesOf(i % 200 == 60 ? "vent" : "tank");
+                if (gone.Count > 0) commands.Add(new ClearAt(gone[(int)rng.Below((uint)gone.Count)].Cell, "machine"));
+            }
             int version = live.Rooms.Version;
             var built = live.Grid.Built;
+            int gridWas = live.Grid.Version;
             world.Step(commands);
             copy.Step(commands);
             if (live.Rooms.ChangedSince(version) is { Count: > 0 }) around++;
             if (live.Grid.Built.Height > built.Height) grown++;
             if (live.Grid.Built.Height < built.Height) shrunk++;
+            if (live.Grid.ChangedSince(gridWas) == null) behind++;
             Assert.True(world.Hash() == copy.Hash(), $"tick {i}: the world differs from one loaded before it");
         }
         Assert.True(around > 30, $"rooms found around a change {around} times");
         Assert.True(grown > 3 && shrunk > 3, $"the built box grew {grown} times and shrank {shrunk}");
+        Assert.True(behind >= 2, $"the log was outrun {behind} times");
     }
 
     [Fact]

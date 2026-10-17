@@ -6,9 +6,8 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
 
 - **Depends on:** `Grid`, through `IGridQueries`.
 - **State:** nothing saved. Derived: `RoomOf` per cell (a room's id, `Space` or `Solid`), the rooms in
-  id order, the copies of the structure and back layers they were found in, the grid's `Version` and
-  built box last looked at (`Looked`), the box last flooded (`Flooded`), and the rooms' own `Version`
-  with the ids found again at it (`Changed`, null for all).
+  id order, the grid's `Version` they were last found at, the box last flooded (`Flooded`), and the
+  rooms' own `Version` with the ids found again at it (`Changed`, null for all).
 
 ## Rules
 
@@ -21,8 +20,9 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
   edge, or with no back wall; its **hull** is the walls and closed doors next to it with space or the
   edge beyond. Both in cell order.
 - Rooms are looked at again, by a derivation system, only on a tick the grid's `Version` moved: then
-  the structure and back layers are compared with the copies, row by row within the grid's built box
-  (`IGridQueries.Built`) now and at the last look, outside which both are empty, for the cells changed.
+  the grid's log names the cells whose structure or back wall changed since the rooms were last found
+  (`IGridQueries.ChangedSince`, 0050). When the log no longer reaches back that far, every room is
+  found again as after a load.
   - Back walls alone: each changed cell joins or leaves its room's openings, no flood.
   - Structure alone, no changed cell within two cells of space or the grid's edge: only the rooms
     beside the changed cells are flooded again. Space cannot move there: a change moves openings at
@@ -66,5 +66,4 @@ space.
 
 A change within two cells of space or the grid's edge, a breach, floods the whole built box: it costs
 the ship, not the build area, and anything built far out (a back wall or a pipe in space) widens the
-box and so the cost. The grid changes only through its commands and operations, which bump its
-`Version`; nothing else writes its layers, so no change goes unseen.
+box and so the cost. The grid logs every write to its layers (0050), so no change goes unseen.

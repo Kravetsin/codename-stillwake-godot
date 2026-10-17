@@ -58,6 +58,8 @@ public sealed class GridState
     [JsonIgnore] internal int Version { get; set; }
     /// <summary>Derived: the smallest box holding every cell with anything in it, kept tight by every change.</summary>
     [JsonIgnore] internal Box Built { get; set; } = Box.None;
+    /// <summary>Derived: every write to a layer or a machine's cells since the last load, as far back as it holds (0050).</summary>
+    [JsonIgnore] internal ChangeLog Log { get; set; } = null!;
 }
 
 /// <summary>What any module may read of the grid. Arrays are live: a reader never writes them.</summary>
@@ -70,6 +72,14 @@ public interface IGridQueries
     /// grid looks again only when it moved. After a load it starts over, as do the modules.
     /// </summary>
     int Version { get; }
+    /// <summary>
+    /// The cells whose layers differ now from what they held at <paramref name="version"/>, ascending, each
+    /// with the layers that do; a cell changed and changed back is not among them, and empty while
+    /// <paramref name="version"/> is current. Null when the grid no longer knows: the log has let go of
+    /// writes since then, or the version is not one this grid has had. A reader then looks at the whole
+    /// grid again. Versions start over with a load, which brings a new grid: a reader keeps the grid it read too.
+    /// </summary>
+    IReadOnlyList<CellChange>? ChangedSince(int version);
     /// <summary>
     /// The smallest box holding every cell with anything in any layer or under a machine, <see cref="Box.None"/>
     /// when nothing is: every cell outside it is empty space. Kept tight by every change, never saved.
@@ -127,10 +137,14 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
 {
     public override string Id => "grid";
 
+    /// <summary>How many writes the change log holds; small in tests, so they reach past it.</summary>
+    internal int LogCapacity { get; init; } = ChangeLog.DefaultCapacity;
+
     public GridModule()
     {
         _structureAt = c => State.Structure[c];
-        _setStructure = (c, code) => State.Structure[c] = code;
+        _setStructure = (c, code) => Set(State.Structure, GridLayers.Structure, c, code);
+        _now = ValueAt;
         Handles<ToggleDoor>(c => IsDoor(State.Structure, c.Cell) ? null : "grid.noDoor", c =>
         {
             State.Version++;
@@ -139,8 +153,43 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         Handles<ToggleValve>(c => IsValve(State.Conduit, c.Cell) ? null : "grid.noValve", c =>
         {
             State.Version++;
-            ToggleValveAt(State.Conduit, c.Cell);
+            Set(State.Conduit, GridLayers.Conduit, c.Cell, Toggled(State.Conduit[c.Cell]));
         });
+    }
+
+    /// <summary>Every write to a layer goes through here, so the log misses none: it holds what the cell held before.</summary>
+    private void Set(int[] layer, GridLayers which, int cell, int value)
+    {
+        int old = layer[cell];
+        if (old == value) return;
+        State.Log.Add(State.Version, cell, which, old);
+        layer[cell] = value;
+    }
+
+    /// <summary>What <paramref name="cell"/> holds in <paramref name="layer"/> now: the codes as saved, a machine by its id.</summary>
+    private int ValueAt(int cell, GridLayers layer) => layer switch
+    {
+        GridLayers.Structure => State.Structure[cell],
+        GridLayers.Material => State.Material[cell],
+        GridLayers.Conduit => State.Conduit[cell],
+        GridLayers.Back => State.Back[cell],
+        GridLayers.BackMaterial => State.BackMaterial[cell],
+        _ => State.Occupancy[cell],
+    };
+
+    private readonly Func<int, GridLayers, int> _now;
+    /// <summary>The last answer of <see cref="ChangedSince"/>, as the version asked and the version it was given at: the sim's readers all ask alike.</summary>
+    private (int Since, int At, IReadOnlyList<CellChange>? Changes) _asked = (-1, -1, null);
+    private static readonly CellChange[] NoChanges = [];
+
+    public IReadOnlyList<CellChange>? ChangedSince(int version)
+    {
+        if (version == State.Version) return NoChanges;
+        if (version > State.Version || version < 0) return null;
+        if (_asked.Since == version && _asked.At == State.Version && _asked.Changes != null) return _asked.Changes;
+        var changes = State.Log.Since(version, _now);
+        _asked = (version, State.Version, changes);
+        return changes;
     }
 
     protected override GridState Init(Layout layout)
@@ -223,6 +272,8 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         State.Built = Box.None;
         for (int c = 0; c < State.Occupancy.Length; c++)
             if (IsBuilt(c)) Grow(c);
+        State.Log = new ChangeLog(LogCapacity, State.Version);
+        _asked = (-1, -1, null);
     }
 
     private bool IsBuilt(int c) =>
@@ -369,8 +420,6 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         return (structure, conduit);
     }
 
-    private static void ToggleValveAt(int[] conduit, int cell) => conduit[cell] = Toggled(conduit[cell]);
-
     private static int Toggled(int valve) => valve == Conduit.ValveOpen ? Conduit.ValveClosed : Conduit.ValveOpen;
 
     /// <summary>
@@ -449,28 +498,28 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         switch (p.Layer)
         {
             case "structure":
-                State.Structure[cell] = p.Kind switch
+                Set(State.Structure, GridLayers.Structure, cell, p.Kind switch
                 {
                     "wall" => Structure.Wall,
                     "floor" => Structure.Floor,
                     "ladder" => Structure.Ladder,
                     _ => Structure.DoorClosed,
-                };
-                if (p.Kind == "wall") State.Material[cell] = Materials.Get(p.Material!).Code;
+                });
+                if (p.Kind == "wall") Set(State.Material, GridLayers.Material, cell, Materials.Get(p.Material!).Code);
                 return;
             case "conduit":
-                State.Conduit[cell] = p.Kind == "pipe" ? Conduit.Pipe : Conduit.ValveOpen;
+                Set(State.Conduit, GridLayers.Conduit, cell, p.Kind == "pipe" ? Conduit.Pipe : Conduit.ValveOpen);
                 return;
             case "back":
-                State.Back[cell] = Back.Wall;
-                State.BackMaterial[cell] = Materials.Get(p.Material!).Code;
+                Set(State.Back, GridLayers.Back, cell, Back.Wall);
+                Set(State.BackMaterial, GridLayers.BackMaterial, cell, Materials.Get(p.Material!).Code);
                 return;
             case "machine":
                 var added = new Machine(State.NextMachineId++, p.Kind, cell);
                 State.Machines.Add(added);
                 Listed(added);
                 var footprint = Footprint(p.Kind, cell)!;
-                foreach (int c in footprint) State.Occupancy[c] = added.Id;
+                foreach (int c in footprint) Set(State.Occupancy, GridLayers.Machine, c, added.Id);
                 Grow(footprint[^1]);
                 return;
         }
@@ -482,16 +531,22 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         State.Version++;
         switch (layer)
         {
-            case "structure": State.Structure[cell] = Structure.Empty; State.Material[cell] = 0; break;
-            case "conduit": State.Conduit[cell] = Conduit.None; break;
-            case "back": State.Back[cell] = Back.None; State.BackMaterial[cell] = 0; break;
+            case "structure":
+                Set(State.Structure, GridLayers.Structure, cell, Structure.Empty);
+                Set(State.Material, GridLayers.Material, cell, 0);
+                break;
+            case "conduit": Set(State.Conduit, GridLayers.Conduit, cell, Conduit.None); break;
+            case "back":
+                Set(State.Back, GridLayers.Back, cell, Back.None);
+                Set(State.BackMaterial, GridLayers.BackMaterial, cell, 0);
+                break;
             case "machine":
                 if (!State.ById.Remove(State.Occupancy[cell], out var removed)) return;
                 State.Machines.RemoveAt(IndexOf(State.Machines, removed.Id));
                 var kind = State.ByKind[removed.Kind];
                 kind.RemoveAt(IndexOf(kind, removed.Id));
                 var footprint = Footprint(removed.Kind, removed.Cell) ?? [];
-                foreach (int c in footprint) State.Occupancy[c] = 0;
+                foreach (int c in footprint) Set(State.Occupancy, GridLayers.Machine, c, 0);
                 Shrink(footprint);
                 return;
             default: return;
