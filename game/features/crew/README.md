@@ -32,7 +32,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`), on a room's change and as its report every `Crew.ReportEvery` ticks (0050); `ExertOf` and `ThrustOf`, what it breathes and vents; `Cold`, how hard the cold bites at a cell | no    |
 | `Frost.cs`         | the frost past the field: one full-screen shader quad over the world, under the HUD (0050) | yes   |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads          | no    |
-| `SuitGauge.cs`     | the suit bar, red edges when low, the dark when passed out (`SuitGauge.tsx`)              | yes   |
+| `SuitGauge.cs`     | the suit bar under the hotbar, as low as the slot size puts it (0058), red edges when low, the dark when passed out (`SuitGauge.tsx`) | yes   |
 | `SuitColours.cs`   | the suit colours, a row in the game menu's settings: the one worn ringed, those taken dimmed, the rest a click away (`SuitColours.tsx`) | yes |
 
 The files without Godot are compiled a second time into `game.tests/` (linked, as `sim/Tests` links

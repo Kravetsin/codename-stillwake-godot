@@ -19,9 +19,13 @@ public partial class EnergyBar : CanvasLayer
     private double _sinceRead = RefreshS;
 
     /// <param name="read">The bar as <see cref="Charges.EnergyOf"/> gives it for what is held now; null to hide it.</param>
-    public EnergyBar(Func<Energy?> read)
+    /// <param name="ui">The slots' size, which the hotbar's height and so the bar's place follow (0058).</param>
+    public EnergyBar(Func<Energy?> read, Ui ui)
     {
         _read = read;
+        void Place() => _bar.Position = _bar.Position with { Y = Slots.GaugeTop(ui.Slot) };
+        Place();
+        ui.SlotScale.Subscribe(Place);
         Layer = ScreenLayers.Hud;
         AddChild(_bar);
     }
@@ -51,8 +55,8 @@ public partial class EnergyBar : CanvasLayer
 
         public Bar()
         {
-            // The suit's gauge is 224 wide at (12, 64): this one sits 6 px right of it.
-            Position = new Vector2(242, 64);
+            // The suit's gauge is 224 wide at the margin: this one sits 6 px right of it, under the hotbar as it is.
+            Position = new Vector2(Slots.Margin + 224 + 6, 0);
             Size = new Vector2(150, 30);
             MouseFilter = MouseFilterEnum.Ignore;
             Visible = false;

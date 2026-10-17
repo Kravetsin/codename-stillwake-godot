@@ -15,4 +15,19 @@ public class HotbarTests
         Assert.Equal(3, Hotbar.WheelSlot(4, -1));
         Assert.Equal(4, Hotbar.WheelSlot(4, 0));
     }
+
+    [Fact]
+    public void EachSlotShowsTheDigitThatChoosesItFromOneToNine()
+    {
+        Assert.Equal("1", Hotbar.KeyOf(0));
+        Assert.Equal("9", Hotbar.KeyOf(Hotbar.Row - 1));
+        for (int slot = 0; slot < Hotbar.Row; slot++) Assert.Equal(slot, Hotbar.SlotOfDigit(int.Parse(Hotbar.KeyOf(slot))));
+    }
+
+    [Fact]
+    public void NoDigitButOneToNineChoosesASlot()
+    {
+        Assert.Null(Hotbar.SlotOfDigit(0));
+        Assert.Null(Hotbar.SlotOfDigit(Hotbar.Row + 1));
+    }
 }

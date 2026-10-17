@@ -7,7 +7,7 @@ namespace Stillwake.Game.Features.Items;
 /// <summary>A stack picked up to be put elsewhere: only on screen, the items stay in their slot till then.</summary>
 public readonly record struct Picked(Place Place, int Count);
 
-/// <summary>A click on a slot: what it holds now, and the crate open beside the inventory, if any.</summary>
+/// <summary>A click on a slot: what it holds now, and the crate open under the inventory, if any.</summary>
 /// <param name="FuelSlot">The slot the open crate burns fuel in, when it is a furnace.</param>
 public sealed record SlotClick(Place Place, Stack? Stack, bool Right, bool Shift, int? Crate, int? FuelSlot = null);
 

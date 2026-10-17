@@ -1,6 +1,6 @@
 # 0047 — Equipment, the jetpack and the slower swim
 
-- Status: accepted
+- Status: accepted; where the block sits superseded by [0058](0058-one-place-for-every-machine-window.md) (the screen's right edge)
 - Supersedes: of [0007](0007-spacewalks-and-airlocks.md), the tether for every hero in space (one wearing
   a jetpack has none); of the hero's controller, Shift swimming fast in space
 - Date: 2026-10-17
@@ -23,7 +23,7 @@ hero's stamina (`Exert`): what a jetpack burns.
 - **Giving, taking and picking up never touch equipment.** `Give`, `Take`, `ShortOf`, `FullFor`, `Totals`,
   a pick-up and a move onto the inventory as a whole use the own slots only: what is worn is never paid
   with, and nothing falls into a belt by itself.
-- **The block on screen** sits right of the inventory's grid while it is open, laid out as the body (the
+- **The block on screen** sits right of the inventory's grid while it is open (moved to the screen's right edge by 0058), laid out as the body (the
   mockup's "right, by the body"): head over back over belt, each row under its name, no silhouettes in an
   empty slot. While a stack is carried, the slots that would wear it are lit green and the rest dimmed.
 - **The jetpack:** `jetpack`, a stack of one, made at the lifepod of a frame, two tubes, a canister and two

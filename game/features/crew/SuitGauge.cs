@@ -43,9 +43,13 @@ public partial class SuitGauge : CanvasLayer
     private double _sinceAlarm = S.AlarmEveryS;
 
     /// <param name="read">This player's suit and its danger, as <see cref="Danger.Read"/> gives them.</param>
-    public SuitGauge(Func<(int Suit, SuitDanger Danger)> read)
+    /// <param name="ui">The slots' size, which the hotbar's height and so the gauge's place follow (0058).</param>
+    public SuitGauge(Func<(int Suit, SuitDanger Danger)> read, Ui ui)
     {
         _read = read;
+        void Place() => _bar.Position = _bar.Position with { Y = Slots.GaugeTop(ui.Slot) };
+        Place();
+        ui.SlotScale.Subscribe(Place);
         Layer = ScreenLayers.Hud;
         // The bar first: the red edges and the dark cover it too.
         AddChild(_bar);
@@ -105,7 +109,7 @@ public partial class SuitGauge : CanvasLayer
 
         public Bar()
         {
-            Position = new Vector2(12, 64);
+            Position = new Vector2(Slots.Margin, 0);
             Size = new Vector2(224, 30);
             MouseFilter = MouseFilterEnum.Ignore;
         }

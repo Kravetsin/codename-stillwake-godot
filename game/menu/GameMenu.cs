@@ -9,7 +9,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Menu;
 
 /// <summary>
-/// The game menu on Esc (0031): resume, save, settings (the suit's colour), save and exit to the title,
+/// The game menu on Esc (0031): resume, save, settings (the suit's colour, the slots' size), save and exit to the title,
 /// save and quit — a guest leaves and quits without saving — over a darkened screen, the world, when it
 /// was saved and the code while hosting at its foot. Only in a world: on the title, Esc does nothing. Esc is decided here for the whole game (<see cref="Escape"/>): it puts away what is open or
 /// in hand first and opens the menu only when nothing is. The world runs on behind it, alone too: in
@@ -80,6 +80,18 @@ public partial class GameMenu : CanvasLayer
         _settings.AddChild(Line(T("menu.suit"), Style.Slate300, 12));
         suits.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
         _settings.AddChild(suits);
+        _settings.AddChild(Line(T("menu.slots"), Style.Slate300, 12));
+        var sizes = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 8);
+        foreach (var (scale, key) in (ReadOnlySpan<(SlotScale, string)>)[(SlotScale.Normal, "menu.slotsNormal"), (SlotScale.Large, "menu.slotsLarge")])
+        {
+            var chosen = scale;
+            var button = Style.Button(T(key), () => _ui.SlotScale.Set(chosen), size: 13, padX: 14, padY: 5);
+            _buttons[key] = button;
+            sizes.AddChild(button);
+        }
+        _settings.AddChild(sizes);
+        PaintSizes();
+        _ui.SlotScale.Subscribe(PaintSizes);
         _settings.AddChild(Choice("menu.logs", Logs.OpenFolder));
         _settings.AddChild(Choice("menu.back", () => Show(MenuPage.Main)));
         column.AddChild(_settings);
@@ -97,6 +109,14 @@ public partial class GameMenu : CanvasLayer
 
     /// <summary>The middle of the button saying <paramref name="key"/> on screen, for scripted runs.</summary>
     public Vector2 CenterOf(string key) => _buttons[key].GetGlobalRect().GetCenter();
+
+    /// <summary>The slot size in use lit, the other as any button.</summary>
+    private void PaintSizes()
+    {
+        bool large = _ui.SlotScale.Get() == SlotScale.Large;
+        Style.Paint(_buttons["menu.slotsNormal"], large ? Style.Slate700 : Style.Sky700, large ? Style.Slate600 : Style.Sky700, 14, 5);
+        Style.Paint(_buttons["menu.slotsLarge"], large ? Style.Sky700 : Style.Slate700, large ? Style.Sky700 : Style.Slate600, 14, 5);
+    }
 
     private Button Choice(string key, Action pressed)
     {

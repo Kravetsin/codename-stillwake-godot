@@ -124,15 +124,22 @@ public sealed class Ui
 
     /// <summary>
     /// The crate, furnace or analyzer this player has open: <c>crew</c> opens it on E within reach and
-    /// closes it out of reach, <c>items</c> shows it beside the inventory and closes it on Tab or Esc.
+    /// closes it out of reach, <c>items</c> shows it under the inventory and closes it on Tab or Esc.
     /// </summary>
     public Store<int?> OpenCrate { get; } = new(null);
 
     /// <summary>
-    /// Where the open inventory's grid ends on the screen, its right edge and its top; null while it is
-    /// closed. Set by <c>items</c> every frame; <c>crafting</c> docks its crafts beside it.
+    /// Where the open inventory's grid ends on the screen, its left edge and its bottom; null while it is
+    /// closed. Set by <c>items</c> every frame; every machine's panel opens under it (0058), and
+    /// <c>crafting</c> docks a queued station's there.
     /// </summary>
-    public Store<(float Right, float Top)?> InventoryEdge { get; } = new(null);
+    public Store<(float Left, float Bottom)?> InventoryFoot { get; } = new(null);
+
+    /// <summary>How large every item slot is drawn: set from the settings file at the start and by the menu's Settings.</summary>
+    public Store<SlotScale> SlotScale { get; } = new(Shared.SlotScale.Normal);
+
+    /// <summary>A slot's side in pixels now (<see cref="Slots.SizeOf"/>).</summary>
+    public int Slot => Slots.SizeOf(SlotScale.Get());
 
     /// <summary>
     /// Where the open build menu's top edge is on the screen; null while it is closed. Set by
