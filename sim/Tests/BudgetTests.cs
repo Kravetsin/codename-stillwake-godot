@@ -18,8 +18,11 @@ public class BudgetTests(ITestOutputHelper output)
     /// </summary>
     internal static Layout Reference() => Reference(256, 128);
 
-    /// <summary>The reference world's 256×128 in the corner of a <paramref name="width"/>×<paramref name="height"/> of space.</summary>
-    private static Layout Reference(int width, int height)
+    /// <summary>
+    /// The reference tile over <paramref name="shipWidth"/>×<paramref name="shipHeight"/>, <paramref name="margin"/>
+    /// cells of space in from the top-left of a <paramref name="width"/>×<paramref name="height"/> world.
+    /// </summary>
+    internal static Layout Reference(int width, int height, int shipWidth = 256, int shipHeight = 128, int margin = 0)
     {
         string[] tile =
         [
@@ -33,9 +36,12 @@ public class BudgetTests(ITestOutputHelper output)
             "########",
         ];
         string[] under = ["", " o --", " ---", "", "", "", "", ""];
-        string Row(int y, Func<int, string> of) => (y < 128 ? string.Concat(Enumerable.Repeat(of(y % 8), 256 / 8)) : "").PadRight(width);
-        var rows = Enumerable.Range(0, height).Select(y => Row(y, i => tile[i])).ToArray();
-        var below = Enumerable.Range(0, height).Select(y => Row(y, i => under[i].PadRight(8))).ToArray();
+        string Row(int y, string[] of) =>
+            (y >= margin && y < margin + shipHeight
+                ? new string(' ', margin) + string.Concat(Enumerable.Repeat(of[(y - margin) % 8].PadRight(8), shipWidth / 8))
+                : "").PadRight(width);
+        var rows = Enumerable.Range(0, height).Select(y => Row(y, tile)).ToArray();
+        var below = Enumerable.Range(0, height).Select(y => Row(y, under)).ToArray();
         return Layout.Parse(rows, below);
     }
 
@@ -65,43 +71,30 @@ public class BudgetTests(ITestOutputHelper output)
         return (watch.Elapsed.TotalMilliseconds / ticks, max);
     }
 
-    [Fact]
-    public void KeepsASimTickOnTheReferenceWorldUnderBudget()
+    /// <summary>The reference ship alone, and in the corner of a world of space: rooms are found again only around a door, so the space costs nothing.</summary>
+    [Theory]
+    [InlineData(256, 128)]
+    [InlineData(1024, 512)]
+    public void KeepsASimTickWithTheReferenceShipUnderBudget(int width, int height)
     {
         var m = new Registry();
-        var world = World.Create(1, Reference(), m.All);
+        var world = World.Create(1, Reference(width, height), m.All);
         Assert.True(m.Rooms.All.Count > 500);
         // Filling first, so the timed ticks fill, leak and survey hundreds of rooms.
         Time(world, 100, _ => []);
         var still = Time(world, 300, _ => []);
         Assert.True(m.Atmosphere.AiredCells.Count > 5000);
         // A door toggled every tick: rooms found again, orders and leaks with them.
-        var door = Enumerable.Range(0, 128 * 256).First(c => m.Grid.StructureAt(c) == Structure.DoorClosed);
+        var door = Enumerable.Range(0, width * height).First(c => m.Grid.StructureAt(c) == Structure.DoorClosed);
         var toggling = Time(world, 300, _ => [new ToggleDoor(door)]);
         // The same without atmosphere, for its share of the tick.
         var bare = new Registry();
-        var without = World.Create(1, Reference(), bare.All.Where(x => x != bare.Atmosphere).ToList());
+        var without = World.Create(1, Reference(width, height), bare.All.Where(x => x != bare.Atmosphere).ToList());
         Time(without, 100, _ => []);
         var others = Time(without, 300, _ => []);
         var othersToggling = Time(without, 300, _ => [new ToggleDoor(door)]);
-        output.WriteLine($"rooms {m.Rooms.All.Count}, aired cells {m.Atmosphere.AiredCells.Count}");
+        output.WriteLine($"{width}×{height}: rooms {m.Rooms.All.Count}, aired cells {m.Atmosphere.AiredCells.Count}");
         output.WriteLine($"without atmosphere: {others.Mean:F3} ms mean, {othersToggling.Mean:F3} ms toggling a door");
-        output.WriteLine($"tick: {still.Mean:F3} ms mean, {still.Max:F3} ms max");
-        output.WriteLine($"tick toggling a door: {toggling.Mean:F3} ms mean, {toggling.Max:F3} ms max");
-        Assert.True(still.Mean < 20 && toggling.Mean < 40, "a tick is far over its budget");
-    }
-
-    [Fact]
-    public void KeepsATickTogglingADoorUnderBudgetWithTheReferenceShipInALargeWorld()
-    {
-        // Rooms are found again only around the door, so the space around the ship costs nothing.
-        var m = new Registry();
-        var world = World.Create(1, Reference(1024, 512), m.All);
-        Time(world, 100, _ => []);
-        var still = Time(world, 200, _ => []);
-        var door = Enumerable.Range(0, 128 * 256).First(c => m.Grid.StructureAt(c) == Structure.DoorClosed);
-        var toggling = Time(world, 300, _ => [new ToggleDoor(door)]);
-        output.WriteLine($"1024×512, the reference ship in its corner: rooms {m.Rooms.All.Count}, aired cells {m.Atmosphere.AiredCells.Count}");
         output.WriteLine($"tick: {still.Mean:F3} ms mean, {still.Max:F3} ms max");
         output.WriteLine($"tick toggling a door: {toggling.Mean:F3} ms mean, {toggling.Max:F3} ms max");
         Assert.True(still.Mean < 20 && toggling.Mean < 20, "a tick is far over its budget");
