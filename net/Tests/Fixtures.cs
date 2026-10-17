@@ -70,7 +70,8 @@ public sealed class DriftModule : Module<DriftState>
 /// How worlds of one set of modules are made and loaded (SimDefinition): each world remembers its
 /// modules, which hold its state, so a test can read the world a client runs now.
 /// </summary>
-public sealed class Definition(Func<IReadOnlyList<Module>> make)
+/// <param name="start">What a world is made with past its map: its save, changed before it is played. Only tests use it.</param>
+public sealed class Definition(Func<IReadOnlyList<Module>> make, Func<string, string>? start = null)
 {
     private readonly Dictionary<World, IReadOnlyList<Module>> _modules = new(ReferenceEqualityComparer.Instance);
 
@@ -93,6 +94,7 @@ public sealed class Definition(Func<IReadOnlyList<Module>> make)
     {
         var modules = make();
         var world = World.Create(seed, layout ?? Layout.Empty, modules);
+        if (start != null) world = World.Load(start(world.Save()), modules = make());
         _modules[world] = modules;
         return world;
     }

@@ -337,6 +337,30 @@ public class ContentTests
     }
 
     [Fact]
+    public void WhatHoldsChargeIsAStackOfOneNamedInNoCostAndAStationFillsItInWholeTicks()
+    {
+        AllPositive(typeof(Charge));
+        var holding = Content.Items.All.Where(i => i.Capacity != null).ToList();
+        Assert.NotEmpty(holding);
+        Assert.All(holding, i => Assert.Equal(1, i.Stack));
+        Assert.All(holding, i => Assert.True(i.Capacity > 0, i.Id));
+        Assert.All(holding, i => Assert.Equal(Charge.Belt, i.Equip));
+        Assert.Contains(Inventory.Equipment, kind => kind == Charge.Belt);
+        // Paying never takes what holds charge, so no charge is lost to a recipe, a build or a cable.
+        var costs = Crafts.All.Select(c => c.Cost)
+            .Concat(AllBuilds().Select(b => b.Cost))
+            .Append(Content.Power.CableCost);
+        Assert.All(costs, cost => Assert.DoesNotContain(cost, c => Content.Items.Get(c.Item).Capacity != null));
+        foreach (var station in Machines.All.Where(m => m.Charges != null))
+        {
+            Assert.True(station.Charges > 0 && station.Draws > 0 && station.Slots > 0, station.Kind);
+            Assert.Null(station.Inputs);
+            Assert.All(holding, i => Assert.Equal(0, i.Capacity!.Value % station.Charges!.Value));
+        }
+        Assert.DoesNotContain(Content.Items.All, i => i.Electric && i.Capacity != null);
+    }
+
+    [Fact]
     public void TheHarpoonShootsFasterThanItReelsAndStopsAPieceWithinTheHandsReachInsideItsRange()
     {
         AllPositive(typeof(Harpoon));

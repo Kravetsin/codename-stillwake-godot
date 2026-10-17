@@ -36,6 +36,7 @@ public interface IItemsQueries
     int PickUpAmount(int peer, int id);
     Shown AfterMoves(int peer, IReadOnlyList<Command> moves);
     bool Equipped(int peer, string item);
+    (int Charge, int Capacity) BeltCharge(int peer);
 }
 
 /// <summary>How a module that depends on the items may change them.</summary>
@@ -48,6 +49,8 @@ public interface IItemsOps
     void Output(int id, IReadOnlyList<(string Item, int Count)> cost);
     void GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
+    void Charge(int id, int amount);
+    bool Drain(int peer, int amount);
 }
 
 /// <summary>
@@ -146,8 +149,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     private int PickUpAmount(int peer, FloorStack stack)
     {
-        var (_, left) = Stacks.PlacedSome(Inventory(peer), [(stack.Item, stack.Count)], Own);
-        return stack.Count - (left.Count > 0 ? left[0].Count : 0);
+        var (_, left) = Stacks.PlacedSome(Inventory(peer), stack.AsStack(), Own);
+        return stack.Count - left;
     }
 
     /// <summary>
@@ -204,6 +207,28 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
             if (slots[i]?.Item == item) return true;
         return false;
     }
+
+    /// <summary>
+    /// What the batteries on <paramref name="peer"/>'s belt hold (<c>Content.Charge.Belt</c>), summed, and what
+    /// they would hold full: what an electric tool held runs on, and the energy bar shows.
+    /// </summary>
+    public (int Charge, int Capacity) BeltCharge(int peer)
+    {
+        int charge = 0, capacity = 0;
+        var slots = Inventory(peer);
+        foreach (int slot in Belt)
+            if (slots[slot] is { } s && Content.Items.Get(s.Item).Capacity is int full)
+                (charge, capacity) = (charge + s.Charge, capacity + full);
+        return (charge, capacity);
+    }
+
+    /// <summary>The inventory's belt slots, in slot order: the batteries an electric tool drains, left to right.</summary>
+    private static readonly int[] Belt =
+    [
+        .. Enumerable.Range(0, Content.Inventory.Equipment.Count)
+            .Where(i => Content.Inventory.Equipment[i] == Content.Charge.Belt)
+            .Select(i => Own + i),
+    ];
 
     // Operations.
 
@@ -271,7 +296,43 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     public void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
         foreach (var (item, count) in Stacks.Entries(cost))
-            if (count > 0) FloorRules.LayDown(State, item, count, cell, 0, _grid.Width, peer);
+            if (count > 0) FloorRules.LayDown(State, new Stack(item, count), cell, 0, _grid.Width, peer);
+    }
+
+    /// <summary>
+    /// Adds up to <paramref name="amount"/> of charge to what machine <paramref name="id"/>'s first slot holds,
+    /// never past its <c>Capacity</c>: a charging station's tick. The caller checks it holds an item that has one.
+    /// </summary>
+    public void Charge(int id, int amount)
+    {
+        if (amount < 0) throw new ArgumentException($"items.charge: {amount} is no charge");
+        var slots = Crate(id);
+        if (slots.Count == 0 || slots[0] is not { } s || Content.Items.Get(s.Item).Capacity is not int full)
+            throw new InvalidOperationException("items.charge: nothing there holds charge");
+        var charged = slots.ToArray();
+        charged[0] = s with { Charge = Math.Min(full, s.Charge + amount) };
+        Stacks.SetCrate(State, id, charged);
+    }
+
+    /// <summary>
+    /// Takes <paramref name="amount"/> of charge from the first battery on <paramref name="peer"/>'s belt, in
+    /// slot order, that holds at least that much, and whether one did: a tick of an electric tool's work. One
+    /// battery pays it whole, so the belt drains left to right. Nothing is taken in creative mode.
+    /// </summary>
+    public bool Drain(int peer, int amount)
+    {
+        if (amount < 0) throw new ArgumentException($"items.drain: {amount} is no charge");
+        if (State.Creative) return true;
+        var slots = Inventory(peer);
+        foreach (int slot in Belt)
+        {
+            if (slots[slot] is not { } s || Content.Items.Get(s.Item).Capacity == null || s.Charge < amount) continue;
+            var drained = slots.ToArray();
+            drained[slot] = s with { Charge = s.Charge - amount };
+            Stacks.SetInventory(State, peer, drained);
+            return true;
+        }
+        return false;
     }
 
     // Commands.
@@ -289,16 +350,16 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         if (Stacks.TakenFrom(SideOf(c.From, c.Src), c.Src.Slot, c.Count, out var left, out var taken) != null)
             throw new InvalidOperationException("items.drop: refused in apply");
         SetSide(c.From, c.Src, left);
-        FloorRules.LayDown(State, taken.Item, taken.Count, c.Cell, Math.Sign(c.Facing) * Content.Floor.ThrowSpeed, _grid.Width, c.From);
+        FloorRules.LayDown(State, taken, c.Cell, Math.Sign(c.Facing) * Content.Floor.ThrowSpeed, _grid.Width, c.From);
     }
 
     private void ApplyPickUp(PickUp c)
     {
         var stack = State.Floor.Find(s => s.Id == c.Id)
             ?? throw new InvalidOperationException("items.pickUp: applied to a stack that is gone");
-        var (slots, left) = Stacks.PlacedSome(Inventory(c.From), [(stack.Item, stack.Count)], Own);
+        var (slots, left) = Stacks.PlacedSome(Inventory(c.From), stack.AsStack(), Own);
         Stacks.SetInventory(State, c.From, slots);
-        stack.Count = left.Count > 0 ? left[0].Count : 0;
+        stack.Count = left;
         if (stack.Count == 0) State.Floor.Remove(stack);
     }
 
@@ -397,14 +458,15 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary>
     /// A move as <see cref="Stacks.Moved"/> makes it, onto an inventory as a whole into its own slots only,
     /// or why it is refused: also when it leaves an equipment slot of an inventory side holding what is not
-    /// worn there (<c>items.notEquipment</c>), put in or swapped in.
+    /// worn there (<c>items.notEquipment</c>), or a machine side holding what it does not take: a charging
+    /// station anything without a charge to fill (<c>items.notBattery</c>), put in or swapped in.
     /// </summary>
-    private static string? Moved(
+    private string? Moved(
         IReadOnlyList<Stack?> from, IReadOnlyList<Stack?> to, bool same, Place src, Target dst, int count,
         out Stack?[] after, out Stack?[] into) =>
         Stacks.Moved(from, to, same, src, dst, count, out after, out into, dst.Crate == null ? Own : null)
-        ?? (src.Crate == null ? Stacks.Misfit(after) : null)
-        ?? (dst.Crate == null ? Stacks.Misfit(into) : null);
+        ?? (src.Crate is int a ? Stacks.Unfit(HolderOf(a)!, after) : Stacks.Misfit(after))
+        ?? (dst.Crate is int b ? Stacks.Unfit(HolderOf(b)!, into) : Stacks.Misfit(into));
 
     /// <summary>A furnace's outputs after smelting one of its input, or null when its input holds no salvage or its yields do not fit.</summary>
     private static Stack?[]? Smelted(IReadOnlyList<Stack?> slots, int inputs)

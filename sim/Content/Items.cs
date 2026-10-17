@@ -11,13 +11,20 @@ namespace Stillwake.Content;
 /// <param name="SmeltTicks">Ticks of a furnace's fire it takes to smelt one; given with <paramref name="Yields"/>.</param>
 /// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
 /// <param name="Equip">Equipment: the kind of a hero's equipment slot it is worn in, of <c>Inventory.Equipment</c>; none for anything else.</param>
+/// <param name="Capacity">
+/// The most charge one holds (<see cref="Charge"/>): a battery. Only for a stack of one, and never in a cost,
+/// so paying with one never destroys its charge.
+/// </param>
+/// <param name="Electric">An electric tool: held, it runs on the belt's batteries, and the energy bar shows.</param>
 public sealed record ItemSpec(
     string Id,
     int Stack,
     IReadOnlyList<(string Item, int Count)>? Yields = null,
     int? SmeltTicks = null,
     int? BurnTicks = null,
-    string? Equip = null);
+    string? Equip = null,
+    int? Capacity = null,
+    bool Electric = false);
 
 /// <summary>
 /// Everything a hero carries. Every material is an item by the same id; the salvage items are what
@@ -59,6 +66,8 @@ public static class Items
         new("harpoon", 1),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back"),
+        // Holds charge for an electric tool, worn on the belt; filled at a charging station.
+        new("battery", 1, Equip: "belt", Capacity: Charge.Battery),
     ];
 
     private static readonly Dictionary<string, ItemSpec> ById = All.ToDictionary(i => i.Id, StringComparer.Ordinal);
