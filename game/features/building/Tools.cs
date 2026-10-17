@@ -93,6 +93,7 @@ public static class Tools
         [
             new CableTool("cable", En.T("tool.cable")),
             Place("solarPanel", new Placement("machine", "solarPanel")),
+            Place("burnerGenerator", new Placement("machine", "burnerGenerator")),
             Place("lamp", new Placement("machine", "lamp")),
         ], Power),
         new("production",

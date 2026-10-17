@@ -9,7 +9,7 @@ namespace Stillwake.Content;
 /// more salvage.
 /// </param>
 /// <param name="SmeltTicks">Ticks of a furnace's fire it takes to smelt one; given with <paramref name="Yields"/>.</param>
-/// <param name="BurnTicks">Ticks a furnace's fire burns on one: a fuel.</param>
+/// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
 public sealed record ItemSpec(
     string Id,
     int Stack,

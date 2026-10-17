@@ -3,7 +3,8 @@
 This machine's items, ported from `apps/game/src/features/items/` and the item parts of
 `features/crew/` (`pickup.ts`, `pickup-popups.ts`) (G-08). It reads the sim through `IItemsQueries`,
 `IGridQueries`, `IRoomsQueries` and `IResearchQueries`, handed in every frame from the current
-registry, and the furnace's `At` (`InventoryPanel.Furnace`), and changes it only by sending `Move`,
+registry, and the furnace module's `At` for a furnace or a burner generator (`InventoryPanel.Furnace`),
+and changes it only by sending `Move`,
 `Drop` and `PickUp`.
 
 ## Files
@@ -18,7 +19,7 @@ registry, and the furnace's `At` (`InventoryPanel.Furnace`), and changes it only
 | `SlotBox.cs`       | one slot: icon, count, chosen, picked, hovered, the violet "?" of an item not analysed        | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
-| `InventoryPanel.cs`| the hotbar, the inventory, the open crate, furnace or analyzer, the stack in hand            | yes   |
+| `InventoryPanel.cs`| the hotbar, the inventory, the open crate, furnace, burner generator or analyzer, the stack in hand | yes   |
 | `FloorLayer.cs`    | stacks on the floor, rimmed, bobbing at rest, side by side when still, gliding between ticks, turning in space (`floor-layer.ts`) | yes |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head                                                     | yes   |
 | `ItemsView.cs`     | the feature: pick-ups, the layers and the panel                                              | yes   |
@@ -35,8 +36,8 @@ as everything E works is, in the crew feature (`AimTests`).
 - What the slots show is the world with this peer's own moves and drops in flight made (`Reading`),
   read every 100 ms and at once after each move it sends, so a quick next click acts on what is seen.
 - Clicks follow `click.ts` exactly: left picks a stack and puts it on the next slot, right picks half
-  rounded up or puts one, shift sends a stack across to the open crate (a fuel into a furnace's fuel
-  slot), a click on the picked slot puts it back. A press begins a drag; let go over another slot it
+  rounded up or puts one, shift sends a stack across to the open crate (a fuel into the fuel slot of a
+  furnace or a burner generator, its machine's `FuelSlot`), a click on the picked slot puts it back. A press begins a drag; let go over another slot it
   puts the stack there, over the world it throws it. Along the closed hotbar a drag moves a stack.
 - One hand (0022, `Ui.Hand`): 1–9 and the wheel over the world choose a hotbar slot and free the hand,
   putting the plan away; Tab frees it too as it opens the inventory. Q throws the chosen slot's whole
@@ -69,6 +70,10 @@ as everything E works is, in the crew feature (`AimTests`).
   other item says under "Goes into" what has it in its cost: crafts, then blueprints, then the cable,
   in content's order, four at most and "+N" for the rest; nothing when it goes into nothing. The
   screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.
+- A furnace's panel is its input over its fuel, the fire between them, its bar and its outputs; a
+  burner generator's its fire over its fuel slot, and beside them a bolt with the power it makes
+  (its `Makes`), lit while it burns and dimmed while cold. Both say why they stand still under them
+  (`furnace.full`, `furnace.noFuel`, `furnace.noAir`), from the furnace module's `At`.
 - Where the open inventory ends on the screen is set every frame (`Ui.InventoryEdge`), null while it
   is closed: the crafting feature docks the lifepod's Fabricator there while E has the pod open, so the
   pod gets no crate panel here. A stack let go over any panel, another

@@ -53,7 +53,7 @@ public sealed class Registry
         Crew = new CrewModule(Atmosphere, Grid);
         Hazards = new HazardsModule(Grid, Grid);
         Debris = new DebrisModule(Grid, Crew, Rooms, Items);
-        Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere);
+        Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power);
         All = [Grid, Rooms, Items, Power, Research, Building, Crafting, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace];
     }
 

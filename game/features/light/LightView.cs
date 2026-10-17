@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Light;
 
 /// <summary>
 /// Light without a word (0019, 0029): a dark ship, the ambient light of <see cref="L.Ambient"/> in
-/// every corner, lit by its lamps, its furnaces' fires and whatever glows — each drawn into the
+/// every corner, lit by its lamps, its furnaces' and generators' fires and whatever glows — each drawn into the
 /// <see cref="Lightmap"/> with its shadows, falling off as the TypeScript game's did — and by starlight
 /// through the holes in its back walls. A lit lamp glows, and short of power it flickers; a furnace's
 /// fire, sparks, embers and a planner's screen light what is around them. Where lights meet they add,
@@ -26,7 +26,7 @@ public partial class LightView : Node2D
     private static readonly Color GlowColour = new(0xffd9a0ff);
     private const float GlowCells = 3;
     /// <summary>
-    /// A burning fire's glow at the furnace's mouth, how far across it reaches, in cells, and how opaque it
+    /// A burning fire's glow at its machine's mouth, how far across it reaches, in cells, and how opaque it
     /// is at the fire's full light: it shows the fire as the source of its light where a lamp already
     /// lights the furnace nearly whole, and jumps with it.
     /// </summary>
@@ -48,7 +48,7 @@ public partial class LightView : Node2D
     private readonly Starlight _starlight = new();
     private readonly Node2D _lamps = new();
     private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow)> _shown = new();
-    private readonly List<(Machine Furnace, Vector2 At, Sprite2D Glow)> _fires = new();
+    private readonly List<(Machine Machine, Vector2 At, Sprite2D Glow)> _fires = new();
     private readonly List<LightSource> _main = new(), _spots = new();
     private int[] _structure = [], _back = [];
     private Machine[] _machines = [];
@@ -62,10 +62,13 @@ public partial class LightView : Node2D
     public Func<Machine, float> LampShare { get; set; } = _ => 1f;
 
     /// <summary>
-    /// How brightly a furnace's fire burns, as a share of <see cref="L.Fire"/>: 0 while it is out, past 1
-    /// as a coal cracks. None burn until the furnace feature answers it.
+    /// How brightly a furnace's or a generator's fire burns, as a share of <see cref="L.Fire"/>: 0 while
+    /// it is out, past 1 as a coal cracks. None burn until the furnace feature answers it.
     /// </summary>
     public Func<Machine, float> Fire { get; set; } = _ => 0;
+
+    /// <summary>Where a machine of a kind gives its fire's light, in pixels from its top left; null for one with no fire.</summary>
+    public Func<string, Vector2?> FireAt { get; set; } = _ => null;
 
     /// <summary>The lights drawn into the lightmap the last frame.</summary>
     public int LightCount => _lightmap.Drawn;
@@ -121,11 +124,10 @@ public partial class LightView : Node2D
             _shown.Add((lamp, at, glow));
         }
         _fires.Clear();
-        var furnace = Content.Machines.Get("furnace");
-        foreach (var m in _machines.Where(m => m.Kind == "furnace"))
+        foreach (var m in _machines)
         {
-            // From the middle of its bottom row, where the TypeScript game's fire gave its light.
-            var at = new Vector2(m.Cell % _grid.Width + furnace.Width / 2f, m.Cell / _grid.Width + furnace.Height - 0.5f) * Cell;
+            if (FireAt(m.Kind) is not { } fireAt) continue;
+            var at = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * Cell + fireAt;
             var glow = new Sprite2D
             {
                 Texture = PixelArt.Glow,
@@ -152,9 +154,9 @@ public partial class LightView : Node2D
             glow.Modulate = GlowColour with { A = shines };
             _main.Add(new LightSource(at.X, at.Y, L.Lamp, shines, LampReach, L.Air, L.LampMost, L.LampSize));
         }
-        foreach (var (furnace, at, glow) in _fires)
+        foreach (var (machine, at, glow) in _fires)
         {
-            float burns = Fire(furnace);
+            float burns = Fire(machine);
             glow.Visible = burns > 0;
             if (burns <= 0) continue;
             glow.Modulate = FireGlowColour with { A = Math.Min(1, FireGlowAlpha * burns) };

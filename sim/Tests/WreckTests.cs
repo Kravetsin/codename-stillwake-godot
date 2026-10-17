@@ -6,7 +6,6 @@ using Stillwake.Sim.Power;
 using Stillwake.Sim.Rooms;
 using Xunit;
 using CrewSpec = Stillwake.Content.Crew;
-using FurnaceSpec = Stillwake.Content.Furnace;
 using HeroSpec = Stillwake.Content.Hero;
 using ItemSpecs = Stillwake.Content.Items;
 using Machines = Stillwake.Content.Machines;
@@ -136,7 +135,7 @@ public class WreckTests
     {
         var w = AiredWreck();
         int id = BuildFurnace(w, ("scrapChunk", 1), ("planks", 1));
-        w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(FurnaceSpec.FuelSlot, id), 1)).Run();
+        w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(Machines.Get("furnace").FuelSlot, id), 1)).Run();
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: id), 1)).Run();
         // Lit in A's air on the tick of the move, which was the first of its smelting.
         var chunk = ItemSpecs.Get("scrapChunk");
@@ -149,7 +148,7 @@ public class WreckTests
     {
         var w = AiredWreck();
         int furnace = BuildFurnace(w, ("scrapChunk", 1), ("hullPlate", 1), ("planks", 2));
-        w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(FurnaceSpec.FuelSlot, furnace), 2)).Run();
+        w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(Machines.Get("furnace").FuelSlot, furnace), 2)).Run();
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: furnace), 1)).Run();
         w.Run(ItemSpecs.Get("scrapChunk").SmeltTicks!.Value);
         w.Do(new Move(new Slot(SlotOf(w, "hullPlate")), new Target(Crate: furnace), 1)).Run();

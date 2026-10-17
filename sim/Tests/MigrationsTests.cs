@@ -78,6 +78,20 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void NamesAFiresMachineWhereItNamedItsFurnaceSoAFireBurnsOn()
+    {
+        // A furnace's fire, saved as format 7 named it: read as soon as it loads.
+        var layout = Layout.Parse(["######", "#FF..#", "#FF..#", "######"]);
+        var root = System.Text.Json.Nodes.JsonNode.Parse(World.Create(1, layout, new Registry().All).Save())!.AsObject();
+        root["format"] = 7;
+        root["slices"]!["furnace"]!["fires"] = new System.Text.Json.Nodes.JsonArray(
+            new System.Text.Json.Nodes.JsonObject { ["furnace"] = 1, ["fuel"] = 120, ["item"] = null, ["progress"] = 0 });
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(root.ToJsonString()), m.All);
+        Assert.True(m.Furnace.At(1).Burning);
+    }
+
+    [Fact]
     public void LeavesASaveOfThisFormatAsItIsAndOneTooOldForTheLoadToRefuse()
     {
         string save = Played();

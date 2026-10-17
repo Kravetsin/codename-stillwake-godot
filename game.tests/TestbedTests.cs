@@ -45,10 +45,11 @@ public class TestbedTests
         var m = Built.Value;
         Assert.True(m.Items.Creative);
         Assert.True(m.Furnace.At(IdOf(m, "furnace")).Burning);
+        Assert.True(m.Furnace.At(IdOf(m, "burnerGenerator")).Burning);
         var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 6 + 34);
         Assert.NotNull(airlock);
         Assert.All(m.Rooms.All, room => Assert.Equal(room.Id == airlock ? RoomStatus.Vacuum : RoomStatus.Aired, m.Atmosphere.StatusOf(room.Id)));
         Assert.All(m.Grid.Machines.Where(x => Spec.Machines.Get(x.Kind).Draws != null), x => Assert.Equal(1000, m.Power.Satisfaction(x.Id)));
-        Assert.Equal(new Analyzing(Testbed.Analysing, 1000, Spec.Research.Ticks * 1000, null), m.Research.At(IdOf(m, "analyzer")));
+        Assert.Equal(new Analyzing(Testbed.Analysing, 2000, Spec.Research.Ticks * 1000, null), m.Research.At(IdOf(m, "analyzer")));
     }
 }

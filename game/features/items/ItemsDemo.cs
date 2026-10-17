@@ -120,7 +120,7 @@ public partial class ItemsDemo : Control
         At(6.4, () => Click(MouseButton.Left, shift: true));
         At(6.5, () => Go(Inv(3)));
         At(6.8, () => Click(MouseButton.Left, shift: true));
-        At(7.0, () => Go(new Place(Spec.Furnace.FuelSlot, FurnaceId())));
+        At(7.0, () => Go(new Place(Spec.Machines.Get("furnace").FuelSlot!.Value, FurnaceId())));
         At(7.6, () => Press(Key.Escape));
         // The analyzer, at work on the iron since the start: it learns, and then has nothing new.
         At(7.8, () => Aim(10, 3));

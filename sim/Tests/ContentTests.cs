@@ -178,13 +178,15 @@ public class ContentTests
     }
 
     [Fact]
-    public void FuelBreathesAFurnacesFireInWholeUnitsOnWholeBeatsItsFuelASlotItPutsThingsInto()
+    public void FuelBreathesAFireInWholeUnitsOnWholeBeatsItsFuelASlotThingsArePutInto()
     {
         Constants(typeof(Content.Furnace));
         Assert.True(Content.Furnace.Breath > 0);
         Assert.True(Content.Furnace.BreathEvery > 0);
-        Assert.True(Content.Furnace.FuelSlot > 0);
-        Assert.True(Content.Furnace.FuelSlot < (Machines.Get("furnace").Inputs ?? 0));
+        // The furnace's fuel after its input; the generator's its only slot. Either is put into.
+        Assert.Equal(1, Machines.Get("furnace").FuelSlot);
+        Assert.Equal(0, Machines.Get("burnerGenerator").FuelSlot);
+        Assert.All(Machines.All.Where(m => m.FuelSlot != null), m => Assert.True(m.FuelSlot < (m.Inputs ?? m.Slots)));
     }
 
     // Salvage
