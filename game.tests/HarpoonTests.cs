@@ -275,4 +275,60 @@ public class HarpoonTests
         for (int i = 1; i <= 60; i++) line.Update((0, 0), (10_000 - i * 5_000 / 60.0, 0), taut: true, 1000.0 / 60);
         Assert.Equal(5_000, line.Length, 0);
     }
+
+    /// <summary>A harpoon reeling piece 1 in, the sim showing the reel, sent from <see cref="Muzzle"/>.</summary>
+    private static (HarpoonShot Shot, Pieces World) Reeling()
+    {
+        var (shot, world) = Hooked();
+        Assert.NotNull(shot.Step(10, true, Out(), world.World).Reel);
+        world.Reeled.Add(1);
+        return (shot, world);
+    }
+
+    /// <summary>The reels <paramref name="shot"/> sends over <paramref name="ms"/> in frames of 10 ms, the muzzle at <paramref name="muzzle"/>.</summary>
+    private static List<Reel> Sent(HarpoonShot shot, Pieces world, double ms, (double X, double Y) muzzle)
+    {
+        var sent = new List<Reel>();
+        for (double t = 0; t < ms; t += 10)
+            if (shot.Step(10, false, Out(muzzle), world.World).Reel is { } reel) sent.Add(reel);
+        return sent;
+    }
+
+    [Fact]
+    public void ReelsAgainToFollowAHeroThatSwimsMoreThanACellOnceTheWaitIsOver()
+    {
+        var (shot, world) = Reeling();
+        Assert.Equal(500, HarpoonShot.FollowMs);
+        var swum = (0.0, Spec.FollowBeyond + 500.0);
+        // Swum off at once: the first goes once the wait since the press is over, then none while it stays.
+        var sent = Sent(shot, world, 1_000, swum);
+        Assert.Equal([HarpoonShot.ReelOf(1, swum, world.At[1])], sent);
+        // On a cell and more again: once more, the wait since the last long over.
+        var farther = (0.0, 3 * Spec.FollowBeyond + 500.0);
+        Assert.Equal([HarpoonShot.ReelOf(1, farther, world.At[1])], Sent(shot, world, 20, farther));
+    }
+
+    [Fact]
+    public void NeverReelsAgainForLessThanACellNorSoonerThanTheWait()
+    {
+        var (shot, world) = Reeling();
+        Assert.Empty(Sent(shot, world, 2_000, (0, Spec.FollowBeyond - 200)));
+        // Far enough, but within the wait after a press: held back till it is over.
+        Assert.NotNull(shot.Step(10, true, Out(), world.World).Reel);
+        var swum = (0.0, Spec.FollowBeyond + 500.0);
+        Assert.Empty(Sent(shot, world, HarpoonShot.FollowMs - 20, swum));
+        Assert.Single(Sent(shot, world, 20, swum));
+    }
+
+    [Fact]
+    public void NeverReelsAgainOnceTheReelIsOverOrTheLineFree()
+    {
+        var (shot, world) = Reeling();
+        world.Reeled.Remove(1);
+        Assert.Empty(Sent(shot, world, 2_000, (0, 3 * Spec.FollowBeyond)));
+        Assert.NotEqual(Rod.Reeling, shot.Rod);
+        var (freed, other) = Reeling();
+        other.At.Remove(1);
+        Assert.Empty(Sent(freed, other, 2_000, (0, 3 * Spec.FollowBeyond)));
+    }
 }

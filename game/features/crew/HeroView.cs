@@ -331,7 +331,8 @@ public partial class HeroView : Node2D
             foreach (var hit in Aiming.HitsOf(m, client.Id, _current, _swing.At)) client.Send(hit);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
-        _aimsGun = wieldsGun && Floats && pointer != null;
+        // Aimed aboard too, though it fires only out in space.
+        _aimsGun = wieldsGun && pointer != null;
         var hold = new GunHold(wieldsGun, Floats, _figure.Muzzle is { } muzzle ? Thousandths(muzzle) : null, (_figure.Barrel.X, _figure.Barrel.Y));
         var shot = _harpoon.Step(elapsedMs, clicked && !grabbed, hold, _harpoonWorld);
         if (shot.Fired) _shot.Play();

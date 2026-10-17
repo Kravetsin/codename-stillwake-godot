@@ -296,6 +296,14 @@ public class ContentTests
     }
 
     [Fact]
+    public void AReelFollowsAHeroThatMovesFartherThanThePieceIsHeldBeforeTheGunNoMoreOftenThanItTakesToArrive()
+    {
+        AllPositive(typeof(Harpoon));
+        Assert.True(Harpoon.FollowBeyond < Harpoon.Stop);
+        Assert.True(Harpoon.FollowTicks < Harpoon.CooldownTicks);
+    }
+
+    [Fact]
     public void TheHarpoonIsAToolOfOneCraftedAtThePodAndOpenedByAnalysingWhatItIsMadeOf()
     {
         Assert.True(Content.Items.TryGet(Harpoon.Item, out var harpoon));

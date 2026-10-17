@@ -27,6 +27,15 @@ public static class Harpoon
     public const int Stop = 1_500;
 
     /// <summary>
+    /// Reeling, the client sends the reel again to where the point before the gun is now once it has moved
+    /// this far from the last one sent, so the piece follows a hero that swims: 1 cell.
+    /// </summary>
+    public const int FollowBeyond = 1_000;
+
+    /// <summary>And at most once in this many ticks: 0.5 s.</summary>
+    public const int FollowTicks = 10;
+
+    /// <summary>
     /// Ticks from a hero's shot till it fires again: 5 s. The cooldown is the hero's: every harpoon it
     /// holds waits for it, so swapping guns does not dodge it.
     /// </summary>

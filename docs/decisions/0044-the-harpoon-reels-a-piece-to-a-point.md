@@ -42,14 +42,17 @@ reeled piece must move there too, the same on every peer; the shot itself lives 
   ticks, opened by analysis as every craft is (0027); a tool, its recipe amber as the axe's. Its card tiles
   its range, reload and reel speed (RANGE 12 · RELOAD 5s · REEL 5/s) where the axe's tiles damage.
 - **The spring gun,** held as a pistol (`HeldLook.Harpoon`: hold 0, gripped by its plank stock, its
-  edge the rod seated in the tube, ending at the muzzle). Out in space the straight arm turns so the
-  barrel's line, not the arm's, runs through the pointer, and the hero keeps facing it; aboard it hangs.
+  edge the rod seated in the tube, ending at the muzzle). Out in space and aboard alike the straight arm
+  turns so the barrel's line, not the arm's, runs through the pointer, and the hero keeps facing it.
   Its picture shows the rod in the barrel only while the gun is ready.
 - **Presses:** a fresh left click fires out in space; aboard it does nothing and costs no cooldown. In
   flight, on the way back and in the cooldown a click does nothing. Hooked, a click always reels, even
   on a small piece in reach; a held button never reels. Reeling, a click reels again from where the hero
   is now (the last reel wins).
 - **The point reeled to** is `Harpoon.Stop` before the muzzle on the way to the piece's middle as drawn.
+  **It follows the hero:** while its reel is on, the client sends `Reel` again whenever that point is more
+  than `Harpoon.FollowBeyond` (1 cell) from the last sent, at most every `Harpoon.FollowTicks` (0.5 s);
+  the last reel wins, so the piece comes to where the hero is, not where it pressed.
 - **A miss** flies out to the full range and snaps back at `Harpoon.ReturnSpeed`, 80 cells a second,
   twice the shot's; so does a line come free. No sound of the drum on a miss.
 - **The line comes free** when the piece is gone or the sim would refuse its reel, when it drifts past the

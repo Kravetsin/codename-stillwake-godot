@@ -166,9 +166,9 @@ too); `AxeSwingTests` and `HarpoonTests` have no TypeScript original.
   kept as an offset that eases out over the wind-up's length, 175 ms (`SwingArm`): never a jump, and
   the swing's own arm by its downstroke. Others' figures go the same way, through `Figure.Show`, and
   see it hang and swing too (0037, 0038).
-- **The harpoon (0044):** with `Ui.Wielded` the harpoon, out in space, the arm is straight and turned so
-  the barrel's line runs through the pointer (`HarpoonShot.ArmFor`, eased in by `SwingArm`), the hero
-  facing it, swimming the other way too; aboard it hangs. The figure holds it as a pistol by its stock
+- **The harpoon (0044):** with `Ui.Wielded` the harpoon, in space or aboard, the arm is straight and turned
+  so the barrel's line runs through the pointer (`HarpoonShot.ArmFor`, eased in by `SwingArm`), the hero
+  facing it, swimming the other way too; it fires only out in space. The figure holds it as a pistol by its stock
   (`HeldLook.Harpoon`, `art/hero_harpoon.png`, its rod in the barrel, `hero_harpoon_loaded.png`, only
   while it is ready) and reports its muzzle and barrel as drawn (`Figure.Muzzle`, `Barrel`). A fresh
   click (never a hold) fires the rod (`art/hero_harpoon_rod.png`) from the muzzle along the barrel at
@@ -178,7 +178,8 @@ too); `AxeSwingTests` and `HarpoonTests` have no TypeScript original.
   sim would let this hero reel. It sticks there, 0.15 of a cell inside the picture, and rides the piece;
   the line hangs slack. The next click sends `Reel` to `Harpoon.Stop` before the muzzle on the way to the
   piece (`HarpoonShot.ReelOf`) and the line goes taut till the sim's reel is over, then the rod snaps back
-  at `Harpoon.ReturnSpeed`; a click while reeling sends it again from where the hero is. A miss, a
+  at `Harpoon.ReturnSpeed`; a click while reeling sends it again from where the hero is, and so does the
+  point before the muzzle moving over `Harpoon.FollowBeyond` from the last sent, at most every `Harpoon.FollowTicks`. A miss, a
   piece gone or refused, one drifting past the range unreeled, or going aboard frees the line, the rod
   snapping back; put away or passed out, it is in the gun at once. Clicks in flight, on the way back
   or in the cooldown, and any aboard, do nothing; with the rod out a click is the gun's, never a grab.

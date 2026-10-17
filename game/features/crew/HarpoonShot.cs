@@ -52,7 +52,8 @@ public readonly record struct ShotStep(bool Fired = false, int? Hooked = null, R
 /// that the sim would let this hero reel, else snaps back at <c>Harpoon.ReturnSpeed</c>. Hooked, the next
 /// press sends <see cref="Reel"/> to the point <c>Harpoon.Stop</c> before the muzzle toward the piece, and
 /// the rod rides the piece in till the sim's reel is over, then snaps back; a press while reeling sends it
-/// again from where the hero is now. The line comes free when the piece is gone or the sim would refuse its
+/// again from where the hero is now, and so does the hero moving the point before the muzzle more than
+/// <c>Harpoon.FollowBeyond</c> from the last sent, at most every <c>Harpoon.FollowTicks</c>. The line comes free when the piece is gone or the sim would refuse its
 /// reel, drifts past the range unreeled, or the hero goes aboard; put away or passed out, the rod is back in
 /// the gun at once. The cooldown, <c>Harpoon.CooldownTicks</c> as real time from the shot, hit or miss, is
 /// the hero's: one machine for every harpoon it holds. Presses in flight, on the way back or in the
@@ -71,6 +72,12 @@ public sealed class HarpoonShot
     private double _cooldownMs;
     private (double X, double Y) _from, _stuck;
     private bool _wasReady = true;
+    /// <summary>Reeling: the point the last <see cref="Reel"/> went to, and the ms since it went.</summary>
+    private (int X, int Y) _sentTo;
+    private double _sinceSentMs;
+
+    /// <summary>The ms a reel waits at least before it is sent again to follow the hero: <c>Harpoon.FollowTicks</c>.</summary>
+    public static readonly double FollowMs = Spec.FollowTicks * 1000.0 / World.TicksPerSecond;
 
     public Rod Rod { get; private set; }
 
@@ -104,7 +111,7 @@ public sealed class HarpoonShot
             Rod.Seated => pressed && hold.Floats && _cooldownMs <= 0 ? Fire(muzzle, hold.Barrel) : step,
             Rod.Flying => hold.Floats ? Fly(ms, world) : Free(step),
             Rod.Hooked => Hooked(pressed, hold.Floats, muzzle, world),
-            Rod.Reeling => Reeling(pressed, hold.Floats, muzzle, world),
+            Rod.Reeling => Reeling(ms, pressed, hold.Floats, muzzle, world),
             _ => Return(ms, muzzle, step),
         };
         bool ready = Ready;
@@ -142,16 +149,28 @@ public sealed class HarpoonShot
         Tip = (middle.X + _stuck.X, middle.Y + _stuck.Y);
         if (!pressed) return Distance(muzzle, Tip) > Spec.Range ? Free(default) : default;
         Rod = Rod.Reeling;
-        return new ShotStep(Reel: ReelOf(piece, muzzle, middle));
+        return Send(ReelOf(piece, muzzle, middle));
     }
 
-    private ShotStep Reeling(bool pressed, bool floats, (double X, double Y) muzzle, HarpoonWorld world)
+    private ShotStep Reeling(double ms, bool pressed, bool floats, (double X, double Y) muzzle, HarpoonWorld world)
     {
         if (!floats || Piece is not int piece || world.PieceAt(piece) is not { } middle) return Free(default);
         Tip = (middle.X + _stuck.X, middle.Y + _stuck.Y);
+        _sinceSentMs += ms;
+        var reel = ReelOf(piece, muzzle, middle);
         // Pressed again, the reel goes again from where the hero is now; the last reel wins (0044).
-        if (pressed) return new ShotStep(Reel: ReelOf(piece, muzzle, middle));
-        return world.Reeled(piece) ? default : Free(default);
+        if (pressed) return Send(reel);
+        if (!world.Reeled(piece)) return Free(default);
+        // The hero swum on: the reel follows it, the point before the gun sent again once it is a cell off.
+        double dx = reel.ToX - _sentTo.X, dy = reel.ToY - _sentTo.Y;
+        bool moved = dx * dx + dy * dy > (double)Spec.FollowBeyond * Spec.FollowBeyond;
+        return moved && _sinceSentMs >= FollowMs ? Send(reel) : default;
+    }
+
+    private ShotStep Send(Reel reel)
+    {
+        (_sentTo, _sinceSentMs) = ((reel.ToX, reel.ToY), 0);
+        return new ShotStep(Reel: reel);
     }
 
     private ShotStep Return(double ms, (double X, double Y) muzzle, ShotStep step)
