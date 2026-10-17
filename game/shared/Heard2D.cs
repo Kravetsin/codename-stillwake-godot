@@ -15,6 +15,8 @@ public partial class Heard2D : AudioStreamPlayer2D
 {
     private readonly S.Reach _reach;
     private readonly float _volumeDb;
+    /// <summary>What is added to the cue's volume, in decibels: a strike's own spread, a loop's envelope.</summary>
+    public float OffsetDb { get; set; }
 
     public Heard2D(S.Reach reach, float volumeDb)
     {
@@ -25,8 +27,12 @@ public partial class Heard2D : AudioStreamPlayer2D
     }
 
     /// <summary>Moves it to <paramref name="at"/>, in the world's pixels, and plays it there, at once as loud as it is heard from there.</summary>
-    public void PlayAt(Vector2 at)
+    public void PlayAt(Vector2 at) => PlayAt(at, PitchScale, 0);
+
+    /// <summary>Plays it at <paramref name="at"/> at <paramref name="pitch"/>, <paramref name="offsetDb"/> louder or quieter than its cue.</summary>
+    public void PlayAt(Vector2 at, float pitch, float offsetDb)
     {
+        (PitchScale, OffsetDb) = (pitch, offsetDb);
         GlobalPosition = at;
         Hear();
         Play();
@@ -38,6 +44,6 @@ public partial class Heard2D : AudioStreamPlayer2D
     {
         if (!IsInsideTree()) return;
         var ear = GetViewport().GetCamera2D()?.GetScreenCenterPosition() ?? GlobalPosition;
-        VolumeDb = _volumeDb + Mathf.LinearToDb(Math.Max(_reach.Share(GlobalPosition.DistanceTo(ear) / ShipCamera.Cell), 1e-4f));
+        VolumeDb = _volumeDb + OffsetDb + Mathf.LinearToDb(Math.Max(_reach.Share(GlobalPosition.DistanceTo(ear) / ShipCamera.Cell), 1e-4f));
     }
 }

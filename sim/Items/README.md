@@ -59,7 +59,7 @@ mode, the world setting in which nothing is ever taken
     leave anything else in it, put or swapped in, is refused with `items.notBattery` (`Stacks.Unfit`).
 - **Charge** is filled at a charging station by `Power`, through `Charge(id, amount)`, never past full,
   and spent from the belt by an electric tool through `Drain(peer, amount)`, `amount` in power-ticks (a
-  tool's `Draw` for a tick): the first battery on the belt, in slot order, holding at least that pays it whole, so the belt drains left to right; false
+  tool's `Draw` for the ticks of its work, the drill's 3 for each of a hit's 2, 0054): the first battery on the belt, in slot order, holding at least that pays it whole, so the belt drains left to right; false
   when none can. In creative mode nothing is taken and it answers true.
 - A change of nothing (a cost of zeros) changes nothing and stores no inventory; a machine emptied
   loses its entry.
@@ -94,7 +94,8 @@ counted twice.
   read-only, an inventory's equipment after its own; `Creative`; `Totals(peer)` — how much of each item the
   peer carries in its own slots, in the order first found; `Equipped(peer, item)` — whether it wears that
   item in an equipment slot (crew reads the jetpack so); `BeltCharge(peer)` — what the batteries on its belt
-  hold, summed, and what they would hold full: the energy bar; `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
+  hold, summed, and what they would hold full: the energy bar; `CanDrain(peer, amount)` — whether `Drain`
+  would take that many power-ticks now, always in creative mode: `Debris` refusing the drill `debris.flat`; `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
   mode; `FullFor(peer, cost)` — `items.full` when `cost` does not fit, creative mode or not. A caller
   refuses with these keys. `AfterMoves(peer, moves)` — copies of the peer's inventory and of the
   machines the `Move`s and `Drop`s touch, as the commands would leave them, refused ones skipped: what
@@ -116,8 +117,7 @@ counted twice.
   broken wreck held. `Charge(id, amount)` — adds up to
   `amount` of charge, stored in thousandths of a power-tick, to what machine `id`'s first slot holds, never past its capacity: `Power`'s
   charging station; it throws for a slot holding nothing with a capacity. `Drain(peer, amount)` — takes
-  `amount` power-ticks from the first belt battery that holds that much, as above; no caller yet (the
-  first electric tool is next), tested on its own.
+  `amount` power-ticks from the first belt battery that holds that much, as above: `Debris`'s drill paying a hit.
 - **Commands:** `SetCreative(On)`, from the dev panel, with no refusals.
   `Move(Src, Dst, Count)` — `Src` a `Place(Slot, Crate?)`, `Dst` a `Target(Slot?, Crate?)`, no crate
   meaning the sender's inventory; refused with `items.noCrate` (a side names no machine holding

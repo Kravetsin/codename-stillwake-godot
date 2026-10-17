@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
@@ -108,6 +109,19 @@ public partial class HeroView : Node2D
     private readonly HarpoonWorld _harpoonWorld;
     private HarpoonLine? _line;
     private bool _aimsGun;
+    /// <summary>
+    /// The drill (0054): whether the arm aims it at the pointer, so the hero keeps facing it, and the world tick
+    /// its last hits went on while it runs; none while it does not.
+    /// </summary>
+    private bool _aimsDrill;
+    private DrillPace _drillPace;
+    /// <summary>The drill's strikes, heard at its bit through the suit while it works on a piece, apart from its hits (0054).</summary>
+    private readonly Heard2D _strike = Cues.Player2D(S.DrillStrike, S.Suit, voices: 2);
+    private StrikeTrain _strikes;
+    private readonly Random _strikeSpread = new();
+    /// <summary>The jetpack's thrust, heard through the suit while this hero thrusts, its envelope eased in and out (0047).</summary>
+    private readonly AudioStreamPlayer _thrustLoop = Cues.Player(S.Thrust, S.Suit);
+    private LoopEnvelope _thrustSound;
     private readonly Sprite2D _rod = new() { Centered = false, Visible = false, ZIndex = Layers.Hero };
     /// <summary>Every harpoon's line, over the heroes, unlit as the tethers are.</summary>
     private readonly Sketch _lines = new(Layers.Hero);
@@ -168,7 +182,7 @@ public partial class HeroView : Node2D
         _rod.Offset = -new Vector2((float)RodLook.Eye.X, (float)RodLook.Eye.Y);
         Lit.Set(_rod);
         AddChild(_rod);
-        foreach (var player in new Node[] { _shot, _drum, _ready, _bite, _breathes }) AddChild(player);
+        foreach (var player in new Node[] { _shot, _drum, _ready, _bite, _breathes, _strike, _thrustLoop }) AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
         _harpoonWorld = new HarpoonWorld(
@@ -271,7 +285,7 @@ public partial class HeroView : Node2D
             if (thrust != null) _thrust = thrust;
             var input = passedOut
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
-                : taken with { Face = faces, Swings = swinging || _aimsGun, Pull = pull, Jetpack = jetpack, Thrust = thrust };
+                : taken with { Face = faces, Swings = swinging || _aimsGun || _aimsDrill, Pull = pull, Jetpack = jetpack, Thrust = thrust };
             (_previous, _current) = (_current, _current.Step(input, ship));
             _steps++;
         }
@@ -288,6 +302,7 @@ public partial class HeroView : Node2D
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
         // Off as Shift is let go, aboard, the jetpack taken off or the suit empty: the sim stops venting it.
         if (Report.ThrustOf(m.Crew, client.Id, _thrust != null) is { } thrusts) client.Send(thrusts);
+        HearThrust(elapsedMs);
         if (_breathe && !passedOut) Breathe(client, m);
         _breathe = false;
 
@@ -302,7 +317,7 @@ public partial class HeroView : Node2D
                 _remote.Add(message.From, sent, _clockMs);
                 // Swings are swung as heard, not behind with the body, so the blade meets the wreck as the hit lands (0038).
                 var last = _heardChops.GetValueOrDefault(message.From).Last;
-                _heardChops[message.From] = (sent.Seen.Wields == Content.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
+                _heardChops[message.From] = (sent.Seen.Wields == Content.Weapons.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
             }
         ShowOthers(ship, m, elapsedMs);
 
@@ -347,9 +362,10 @@ public partial class HeroView : Node2D
         double elapsedMs, bool handFree)
     {
         if (!_mouse.Buttons.HoldsRight) _served.Clear();
-        bool axe = handFree && _ui.Wielded.Get() == Content.Axe.Item;
+        bool axe = handFree && _ui.Wielded.Get() == Content.Weapons.Axe.Item;
         bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
-        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served, axe, gun) : null;
+        bool drill = handFree && _ui.Wielded.Get() == Content.Weapons.Drill.Item;
+        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served, axe, gun, drill) : null;
         var prompt = passedOut ? null : Prompts.Of(m, aim, shown);
         TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
@@ -389,6 +405,17 @@ public partial class HeroView : Node2D
         }
         if (swung.Hits)
             foreach (var hit in Aiming.HitsOf(m, client.Id, _current, _swing.At)) client.Send(hit);
+        // The drill: aimed at the pointer; held, it runs while a battery on the belt can pay for a hit, and hits
+        // every wreck its bit touches each Pace ticks. Flat, it winds down and does nothing.
+        bool wieldsDrill = acts && drill && !working && Poses.HoldsIn(pose);
+        _aimsDrill = wieldsDrill && pointer != null;
+        bool runs = _aimsDrill && !grabbed && !_grabHeld && _mouse.Buttons.HoldsLeft
+            && m.Items.CanDrain(client.Id, DebrisModule.Spent(Content.Weapons.Drill) ?? 0);
+        Drill(client, m, runs ? pointer : null);
+        _figure.Spinning = runs;
+        // Heard while its bit is on a piece the sim would let it hit, whatever the hits' pace.
+        bool works = runs && Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), Content.Weapons.Drill.Item).Count > 0;
+        HearDrill(works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
         // Aimed aboard too, though it fires only out in space.
@@ -419,17 +446,53 @@ public partial class HeroView : Node2D
         }
         // Pulled, the gun points along the line at the hook; hanging, at the pointer again, as a wall it hangs flush on would swallow it.
         _figure.Aim = _harpoon.Rod == Rod.Pulling && wieldsGun ? Pixels(_harpoon.Tip)
-            : _aimsGun && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
+            : (_aimsGun || _aimsDrill) && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
         _figure.Loaded = _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
         _busy = working ? new Busy(Handwork.Work, Middle(aim!.Cell))
             : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
+            : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
             : null;
         ShowHands(_figure, _wields, _busy, _swing.Phase is double phase ? (_swing.At, phase) : null);
         if (uses.Open is int open) _ui.OpenCrate.Set(open);
         // A crate stays open while the hero can reach it, awake.
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
+    }
+
+    /// <summary>
+    /// The drill running at <paramref name="pointer"/>, in cells, or not at all with none: when its pace says (<see cref="DrillPace"/>),
+    /// a hit for each wreck its bit touches that the sim would take.
+    /// </summary>
+    private void Drill(Client client, Registry m, (double X, double Y)? pointer)
+    {
+        if (!_drillPace.Due(client.World.Tick, pointer != null, Content.Weapons.Drill.Pace)) return;
+        var touched = Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value));
+        foreach (var hit in Aiming.HitsOf(m, client.Id, touched, Content.Weapons.Drill.Item)) client.Send(hit);
+    }
+
+    /// <summary>
+    /// The drill's strikes while it <paramref name="works"/> on a piece (0054): <c>Sound.DrillStrikesPerSecond</c>, each its
+    /// own pitch and volume, at its bit as last drawn; silent the moment it stops.
+    /// </summary>
+    private void HearDrill(bool works, double elapsedMs)
+    {
+        int due = _strikes.Due(elapsedMs, works, S.DrillStrikesPerSecond);
+        if (!works && _strike.Playing) _strike.Stop();
+        for (int i = 0; i < due; i++)
+        {
+            var (pitch, offsetDb) = StrikeTrain.Vary(_strikeSpread, S.DrillStrikePitch, S.DrillStrikeVolumeDb);
+            _strike.PlayAt(_figure.Muzzle ?? _figure.GlobalPosition, pitch, offsetDb);
+        }
+    }
+
+    /// <summary>The jetpack's hiss while this hero thrusts, risen and fallen by its envelope; stopped once fallen.</summary>
+    private void HearThrust(double elapsedMs)
+    {
+        _thrustSound.Step(_thrust != null, elapsedMs / 1000, S.ThrustAttackS, S.ThrustReleaseS);
+        if (_thrustSound.Playing && !_thrustLoop.Playing) _thrustLoop.Play();
+        else if (!_thrustSound.Playing && _thrustLoop.Playing) _thrustLoop.Stop();
+        _thrustLoop.VolumeDb = S.Thrust.VolumeDb + _thrustSound.GainDb;
     }
 
     /// <summary>
@@ -496,6 +559,9 @@ public partial class HeroView : Node2D
             if (!axe) shown.Swing.Stop();
             shown.Swing.Follow(elapsedMs, axe ? chop : null);
             ShowHands(shown.Figure, seen.Wields, seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
+            // A friend's drill running points where it drills and spins; else it hangs, still.
+            shown.Figure.Aim = seen.Busy is { Work: Handwork.Drill, At: var drilled } ? Pixels(drilled) : null;
+            shown.Figure.Spinning = shown.Figure.Aim != null;
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             var reeled = ReeledBy(pieces, id);
             // Its rod is out while the sim reels a piece by it; its shots, flights and hooks are not sent.

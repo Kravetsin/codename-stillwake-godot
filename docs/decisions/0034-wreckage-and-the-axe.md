@@ -1,6 +1,6 @@
 # 0034 — Wreckage and the axe
 
-- Status: accepted; "other heroes are not seen holding or swinging the axe" superseded by [0037](0037-others-see-the-hands.md); the hit sent at the press superseded by [0038](0038-one-swing-one-hit.md); the left button held on a wreck within reach superseded by [0039](0039-melee-by-contact.md); the hull section as the one wreck and how often wrecks come superseded by [0041](0041-wreckage-of-many-kinds-and-circuits.md); every peer hearing every hit and break superseded by [0042](0042-what-is-heard-in-space.md); the axe's cost of 6 scrap superseded by [0046](0046-recipes-show-what-a-thing-is-made-of.md)
+- Status: accepted; "other heroes are not seen holding or swinging the axe" superseded by [0037](0037-others-see-the-hands.md); the hit sent at the press superseded by [0038](0038-one-swing-one-hit.md); the left button held on a wreck within reach superseded by [0039](0039-melee-by-contact.md); the hull section as the one wreck and how often wrecks come superseded by [0041](0041-wreckage-of-many-kinds-and-circuits.md); every peer hearing every hit and break superseded by [0042](0042-what-is-heard-in-space.md); the axe's cost of 6 scrap superseded by [0046](0046-recipes-show-what-a-thing-is-made-of.md); the axe as the one item that deals damage, `Hit` naming none, superseded by [0054](0054-asteroids-and-the-drill.md)
 - Date: 2026-10-16
 
 ## Context

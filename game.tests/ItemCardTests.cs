@@ -17,9 +17,9 @@ public class ItemCardTests
     public void TakeTheAxesNumbersFromContentAndItsDamageASecondFromThem()
     {
         var tiles = ItemCards.Of("fireAxe", unknown: false).Tiles!;
-        double every = (double)Spec.Axe.SwingTicks / World.TicksPerSecond;
-        Assert.Equal(ItemCards.Number(Spec.Axe.Damage / every), tiles[0].Value);
-        Assert.Equal(Spec.Axe.Damage.ToString(), tiles[1].Value);
+        double every = (double)Spec.Weapons.Axe.Pace / World.TicksPerSecond;
+        Assert.Equal(ItemCards.Number(Spec.Weapons.Axe.Damage / every), tiles[0].Value);
+        Assert.Equal(Spec.Weapons.Axe.Damage.ToString(), tiles[1].Value);
         Assert.Equal($"{ItemCards.Number(every)}s", tiles[2].Value);
         // As content stands: 2 damage every 10 ticks of 20 a second.
         Assert.Equal([new CardTile("4", "DPS"), new CardTile("2", "DMG"), new CardTile("0.5s", "HIT")], tiles);
@@ -66,7 +66,7 @@ public class ItemCardTests
         var card = ItemCards.Of("fireAxe", unknown: false);
         Assert.True(card.Tool);
         Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
-        Assert.Equal(["Hull section", "Cargo container", "Machine block", "Electronics rack", "Oxygen tanks", "Shield slab"], card.Uses);
+        Assert.Equal(["Hull section", "Cargo container", "Machine block", "Electronics rack", "Oxygen tanks", "Shield slab", "Asteroid"], card.Uses);
         Assert.Equal(new CardKey("LMB", "hold on wreckage in space"), card.Use);
         Assert.Empty(card.Effects);
         Assert.Equal(Spec.Wreckage.All.Count, card.Uses.Count);
@@ -81,7 +81,7 @@ public class ItemCardTests
         Assert.Null(gear.Use);
         Assert.Equal(("Gear", "Part"), (gear.Name, gear.Kind));
         // The crafts first, then the blueprints in content's order: the rotor, then the door and the valve.
-        Assert.Equal(["Rotor", "Door", "Valve"], gear.Uses);
+        Assert.Equal(["Rotor", "Drill", "Door", "Valve"], gear.Uses);
         Assert.Equal(["Rotor", "Coil", "Harpoon", "Oxygen jetpack", "+6"], ItemCards.Of("wire", false).Uses);
         Assert.Equal(("Iron", "Material"), (ItemCards.Of("iron", false).Name, ItemCards.Of("iron", false).Kind));
         Assert.Equal("Salvage", ItemCards.Of("scrapChunk", false).Kind);
@@ -188,7 +188,7 @@ public class ItemCardTests
     [Fact]
     public void HaveWordsForEveryEffectOfTheAxe()
     {
-        Assert.All(Spec.Axe.Effects, e =>
+        Assert.All(Spec.Weapons.Axe.Effects, e =>
         {
             Assert.True(Table.ContainsKey($"effect.{e.Id}"), e.Id);
             Assert.True(Table.ContainsKey($"effect.{e.Id}.about"), e.Id);

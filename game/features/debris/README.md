@@ -2,8 +2,8 @@
 
 The debris drifting past the ship (`apps/game/src/features/debris/`, G-08). Drawn only: the sim
 (`sim/Debris`) spawns, moves and hands out what a catch gives. Catching is the hero's hands, aimed as
-everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`; chopping wreckage
-with the fire axe is the hands too, which send `Hit` (0034).
+everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`; breaking wreckage
+with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (0034, 0054).
 
 - **Reads:** `DebrisModule.Pieces`; `Client.InFlight` — its own grabs (`Shared.Predicted.Grabbing`) and hits (`OwnHits`);
   `Ui.AimedPiece` — the piece the crew's hands would catch or chop; `Ui.Heroes` — who most likely
@@ -18,7 +18,7 @@ with the fire axe is the hands too, which send `Hit` (0034).
   hero and some 35 drawn, the debris section costs 0.03 ms a frame on average (0.20 before) and
   allocates nothing (`-- --fly --far=300 --frames`).
 - **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
-  wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one picture of each wreck: a hull section, a machine block 48 × 32, a cargo container and a shield slab 64 × 32, a cable rack and a tank cluster 32 × 32 (`DebrisLooks.Wrecks`, the box they are aimed at and struck by)), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
+  wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one picture of each wreck: a hull section, a machine block 48 × 32, a cargo container and a shield slab 64 × 32, a cable rack and a tank cluster 32 × 32, three placeholder pictures of an asteroid of grey rock 32 × 32 (`DebrisLooks.Wrecks`, the box they are aimed at and struck by)), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
   at `X − Speed × Progress`, or reeled by a harpoon its share of the way to its reel's point
   (`Shared.PieceDrawn`, where the crew's rod sticks to it too), so it glides, tumbling a turn every 4 s each its own way, at full
   strength from the first frame (it spawns out of sight; no fade since 0052); a wreck only rocks, 0.08 rad
@@ -28,7 +28,7 @@ with the fire axe is the hands too, which send `Hit` (0034).
   piece's id, it draws pixel-art cracks on the picture's own pixels — dark as the outline, a lit pixel
   under each — from a dent that widens, more and longer as the share grows, before the light falls on
   them. A rise in `Damage` jolts the piece 3 px away from the nearest hero and turns it a little,
-  settling over 220 ms, throws sparks from the struck side and, if the hit was this player's own, plays `Sound.Chop` there (on the Suit
+  settling over 220 ms, throws sparks from the struck side (3 for the drill's hits, ten a second, 8 for others) and, if the hit was this player's own, plays `Sound.Chop` there, but for the drill's hits (`OwnHits.ToolOn`), whose strikes the crew plays as it works, apart from them (on the Suit
   bus, dulled while floating: wrecks are chopped in space, where only what the hero touches is heard, 0042). A wreck gone with hits in it before
   the end of its path was broken (`Fading.Broken`, counting the ticks run since it was last seen, so one
   drifting off its end only fades, a stall between frames or not): a burst of dust and sparks and
@@ -39,7 +39,7 @@ with the fire axe is the hands too, which send `Hit` (0034).
   fractions of a pixel a frame as the TypeScript tile did, never holding still and jumping a pixel; far
   wrecks and dust lie between them and the world (`render/README.md`).
 - **Aimed:** the piece the crew sets in `Ui.AimedPiece` — out in space, within reach (with the axe, the
-  first wreck its blade would touch, 0039), the hand free —
+  first wreck its blade would touch, 0039; with the drill, the first its bit touches, 0054), the hand free —
   is outlined along its own picture as it tumbles, a screen pixel wide whatever the zoom
   (`render/Outline.cs`), green, or red while the sim would refuse the grab, fading with the piece; the
   crew's prompt says "[E] Catch"; on a wreck, red with "Too big", or with the axe "[Hold LMB] Chop".
@@ -60,6 +60,11 @@ with the fire axe is the hands too, which send `Hit` (0034).
   then, the gun ready again, the section is shot and reeled in to the gun (0044).
 - **Recording:** `-- --grapple --lit` (`WreckDemo.Hall`): a lit hall aboard, a harpoon in the first slot;
   it is fired into the ceiling, the hero pulled up and hanging, D lets go; then the same into the far wall.
+- **Recording:** `-- --asteroid` (`AsteroidDemo`): the big world, the hero in the asteroid band above the hull
+  with a jetpack, the drill on the first slot, the axe on the second and one battery on the belt half full; two
+  asteroids held still either side of it, and a canister breathed when the suit runs half empty. The drill bores the right one till it breaks into rock (12 s),
+  then the left one till the belt is flat and the drill winds down, red "Batteries flat"; then the axe chops
+  that one till it breaks (0054). `--manual` leaves the script off.
 - **Recording:** `-- --wreck` (`WreckDemo`): the hero floating in space, a fire axe in its second
   slot, a hull section drifting up slowly and three more chopped a third, a half and four fifths of
   the way; the pointer on it bare-handed (red), 2 chooses the axe, the left button held till it breaks,
@@ -71,10 +76,11 @@ with the fire axe is the hands too, which send `Hit` (0034).
 | File            | Holds                                                         | Godot |
 | --------------- | ------------------------------------------------------------- | ----- |
 | `Fading.cs`     | `Broken`                                                      | no    |
-| `OwnHits.cs`    | which pieces this peer's own hits ran on since the last frame | no    |
+| `OwnHits.cs`    | which pieces this peer's own hits ran on since the last frame, and with which weapon | no    |
 | `DebrisView.cs` | the layer: pieces and the outline of the one aimed at         | yes   |
 | `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |
 | `WreckDemo.cs`  | the world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple` | yes   |
+| `AsteroidDemo.cs` | the world and the script of `--asteroid`                    | yes   |
 | `FarDemo.cs`    | the big world, a jetpack worn and the far field of `--fly` (`--manual` to fly it yourself) and `--far=N` | yes   |
 
 `Fading.cs` and `OwnHits.cs` are compiled again into `game.tests/` (`OwnHits` tested in `HearingTests`), where `fade.test.ts` and the debris test of

@@ -36,7 +36,7 @@ public static class Sound
     /// <summary>
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient, Music and Effects into Master; into
     /// Effects, World (every hero's steps, machines, air, doors: silenced while floating), Suit (what this
-    /// player's hero itself touches: an action's sound, its own axe's chop, a wreck its hit breaks, its harpoon; heard
+    /// player's hero itself touches: an action's sound, its own axe's chop and drill's strikes, a wreck its hit breaks, its harpoon, its jetpack; heard
     /// through the body, dulled while floating) and Helmet (the suit's alarm, in the helmet's air: always
     /// clear). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
     /// hearing's (0033, 0042). Ambient waits for the first ambience: the ship's hum comes from its vents
@@ -72,6 +72,34 @@ public static class Sound
     /// through the glove, as a wreck is only ever out in space; another hero's hit there is silent.
     /// </summary>
     public static readonly Cue Chop = new(Shots("debris/chop", 3), -2, Pitch: 0.1f, Heard: new(5, 20));
+    /// <summary>
+    /// This player's own drill working on a wreck (0054), heard at its bit on the Suit bus as the chop is: a pickaxe on
+    /// metal, a low heavy tuk, cut to 50 ms so <see cref="DrillStrikesPerSecond"/> of them buzz as a hammer drill does
+    /// (its 4000 to 5500 blows a minute are a buzz, not clicks), apart from the damage's pace. Each strike's pitch and
+    /// volume are varied by the player (<see cref="DrillStrikePitch"/>, <see cref="DrillStrikeVolumeDb"/>), not the cue.
+    /// </summary>
+    public static readonly Cue DrillStrike = new(Shots("debris/drill-strike", 1), -10, Pitch: 0, Heard: new(5, 20));
+    /// <summary>Strikes a second while the drill works on a piece, and how far each one's pitch scale and volume stray either way.</summary>
+    public const float DrillStrikesPerSecond = 18, DrillStrikePitch = 0.12f, DrillStrikeVolumeDb = 1.5f;
+
+    /// <summary>
+    /// This player's jetpack thrusting (0047), through the suit: bright noise, high-passed at 700 Hz, low-passed at
+    /// 4.8 kHz, its filters drifting ±150 cents, a 2 s loop rendered for Stillwake. It rises over
+    /// <see cref="ThrustAttackS"/> as the thrust begins and falls over <see cref="ThrustReleaseS"/> as it ends.
+    /// </summary>
+    public static readonly Cue Thrust = new(["res://audio/crew/thrust-1.ogg"], -7, Loops: true);
+    public const double ThrustAttackS = 0.04, ThrustReleaseS = 0.14;
+
+    /// <summary>
+    /// A charging station's hum while it charges (0053): a warm 50 Hz with its harmonics under a 500 Hz low-pass,
+    /// swaying ±4% twice a second, a 4 s loop rendered for Stillwake; heard close, as quiet as a vent's hum. Faded in
+    /// over <see cref="HumInS"/> and out over <see cref="HumOutS"/>.
+    /// </summary>
+    public static readonly Cue ChargerHum = Looped("power/charger-hum", -8, new(2, 8));
+    public const double HumInS = 0.4, HumOutS = 0.5;
+
+    /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>
+    public static readonly Cue ChargeFull = new(Shots("power/charge-full", 1), -10, Pitch: 0, Heard: new(4, 16));
     /// <summary>A wreck breaking apart under this player's last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
     public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: new(6, 28));
 
@@ -106,7 +134,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, Break, Shot, Drum, Ready, Breathe];
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, DrillStrike, Break, Shot, Drum, Ready, Breathe, Thrust, ChargerHum, ChargeFull];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;

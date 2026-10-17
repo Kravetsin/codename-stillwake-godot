@@ -8,9 +8,12 @@ namespace Stillwake.Game;
 /// touches: no reach of its own, so a new grip, angle or picture moves the reach with it. A gun's edge is
 /// its barrel, the rod seated in it, and the shot leaves <see cref="EdgeTo"/>, the muzzle, along it; its
 /// <see cref="Loaded"/> picture, the same size up and left, shows the rod in the barrel while it is ready.
+/// An <see cref="Aimed"/> item is pointed, not swung: the straight arm turns so its edge's line runs through
+/// the pointer. One that spins alternates its picture with <see cref="Spin"/>, the same size, while it runs.
 /// </summary>
 public sealed record HeldLook(
-    string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null)
+    string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
+    bool Aimed = false, string? Spin = null)
 {
     /// <summary>
     /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
@@ -23,11 +26,18 @@ public sealed record HeldLook(
     /// is, the barrel along the forearm; the edge the rod seated in the tube, from its eye to the muzzle.
     /// </summary>
     public static readonly HeldLook Harpoon = new(
-        "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png");
+        "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true);
+
+    /// <summary>
+    /// The drill, <c>art/hero_drill.png</c> (0054): a stubby pistol-grip drill gripped by its handle, held as a
+    /// pistol is, aimed at the pointer; the edge its bit, from the chuck to the point, which is what drills.
+    /// </summary>
+    public static readonly HeldLook Drill = new(
+        "res://art/hero_drill.png", (7.5, 9), 0, (13, 5), (21.5, 5), Aimed: true, Spin: "res://art/hero_drill_spin.png");
 
     /// <summary>How <paramref name="item"/> looks in the hand; none for an item held as no picture.</summary>
     public static HeldLook? Of(string? item) =>
-        item == Content.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : null;
+        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill : null;
 }
 
 /// <summary>

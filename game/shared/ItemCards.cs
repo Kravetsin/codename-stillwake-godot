@@ -11,8 +11,8 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// An item's card, from content: its name and kind; a tool's tiles, effects and what it works on — the
-/// fire axe's damage a second, damage and seconds between swings, and the wreckage it breaks; the harpoon's
+/// An item's card, from content: its name and kind; a tool's tiles, effects and what it works on — a
+/// weapon's (the fire axe's, the drill's) damage a second, damage and seconds between hits, and the wreckage it breaks; the harpoon's
 /// range, reload and reel speed, and debris and wreckage; for anything else, the crafts, blueprints and
 /// cables whose cost has it. Its words from the i18n table.
 /// </summary>
@@ -21,8 +21,8 @@ public static class ItemCards
     /// <summary>The most chips naming what an item goes into; past them, one more says how many are left.</summary>
     public const int MostInto = 4;
 
-    /// <summary>Whether <paramref name="item"/> is a tool: the fire axe or the harpoon.</summary>
-    public static bool IsTool(string item) => item == Spec.Axe.Item || item == Spec.Harpoon.Item;
+    /// <summary>Whether <paramref name="item"/> is a tool: a weapon (the fire axe, the drill) or the harpoon.</summary>
+    public static bool IsTool(string item) => Spec.Weapons.Of(item) != null || item == Spec.Harpoon.Item;
 
     /// <summary>The card of <paramref name="item"/>; <paramref name="unknown"/> while not analysed.</summary>
     public static ItemCard Of(string item, bool unknown) => Card(item, unknown) with { Draw = Spec.Items.Get(item).Draw };
@@ -35,15 +35,16 @@ public static class ItemCards
         if (!IsTool(item)) return new ItemCard(item, name, kind, null, [], GoesInto(item), key, unknown);
         if (item == Spec.Harpoon.Item)
             return new ItemCard(item, name, kind, HarpoonTiles(), [], [T("card.debris"), T("card.wreckage")], key, unknown);
-        double every = (double)Spec.Axe.SwingTicks / World.TicksPerSecond;
+        var weapon = Spec.Weapons.Of(item)!;
+        double every = (double)weapon.Pace / World.TicksPerSecond;
         return new ItemCard(
             item, name, kind,
             [
-                new CardTile(Number(Spec.Axe.Damage / every), T("card.dps")),
-                new CardTile(Number(Spec.Axe.Damage), T("card.damage")),
+                new CardTile(Number(weapon.Damage / every), T("card.dps")),
+                new CardTile(Number(weapon.Damage), T("card.damage")),
                 new CardTile(T("card.seconds", ("n", Number(every))), T("card.hit")),
             ],
-            Spec.Axe.Effects.Select(e => new CardEffect(T($"effect.{e.Id}"), T($"effect.{e.Id}.about"), e.Colour, e.Ground)).ToList(),
+            weapon.Effects.Select(e => new CardEffect(T($"effect.{e.Id}"), T($"effect.{e.Id}.about"), e.Colour, e.Ground)).ToList(),
             Spec.Wreckage.All.Select(w => T($"item.{w.Item}")).ToList(),
             key, unknown);
     }

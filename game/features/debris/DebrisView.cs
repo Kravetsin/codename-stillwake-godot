@@ -200,8 +200,10 @@ public partial class DebrisView(Ui ui) : Node2D
         // Struck on the side facing the hero, sparks thrown back toward it.
         var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
         var side = at - away * Math.Min(size.X, size.Y) * 0.4f;
-        Particles.Shared.Emit(Effect.Spark, side.X, side.Y, 8, (-away).Angle(), inSpace: true);
-        if (_own.Ran(piece.Id)) _chop.PlayAt(side);
+        // The drill's hits come ten a second: fewer sparks each, and no chop: its strikes are heard as it works (HeroView).
+        bool drilled = _own.ToolOn(piece.Id) == Content.Weapons.Drill.Item;
+        Particles.Shared.Emit(Effect.Spark, side.X, side.Y, drilled ? 3 : 8, (-away).Angle(), inSpace: true);
+        if (_own.Ran(piece.Id) && !drilled) _chop.PlayAt(side);
     }
 
     /// <summary>

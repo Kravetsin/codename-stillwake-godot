@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Power;
 
@@ -15,6 +17,7 @@ namespace Stillwake.Game.Features.Power;
 /// steady once its battery is full on a network that makes power, dark empty or unpowered; a battery in
 /// its bay with its charge rising up it. Drawn unlit over its picture (<c>machine_charger.png</c>), its
 /// light lighting the room round it a little in the same green (a <see cref="Glow"/>), none when dark.
+/// Heard where it stands: a low hum while it charges, faded in and out, and a blip as its battery comes full.
 /// </summary>
 public partial class ChargerLights : Node2D
 {
@@ -32,6 +35,18 @@ public partial class ChargerLights : Node2D
     private readonly IItemsQueries _items;
     private readonly IPowerQueries _power;
     private readonly List<(Vector2 Corner, Look Look, float Share, ChargeBar? Bar)> _stations = [];
+    /// <summary>Each station's hum and its envelope, and what it did at the last read, by machine id.</summary>
+    private readonly Dictionary<int, Heard> _heard = new();
+    private readonly List<int> _gone = [];
+    private readonly Heard2D _full = Cues.Player2D(S.ChargeFull, S.World, voices: 2);
+
+    private sealed class Heard(Heard2D hum)
+    {
+        public Heard2D Hum { get; } = hum;
+        public LoopEnvelope Envelope;
+        public bool Charging, Seen;
+        public float Share;
+    }
     private readonly List<Glow> _glows = [];
     private double _sinceRead = RefreshMs, _clock;
 
@@ -44,6 +59,7 @@ public partial class ChargerLights : Node2D
         _power = power;
         ZIndex = Layers.Screens;
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+        AddChild(_full);
     }
 
     public override void _Process(double delta)
@@ -56,12 +72,14 @@ public partial class ChargerLights : Node2D
             Read();
         }
         Light();
+        Hum(delta);
         QueueRedraw();
     }
 
     private void Read()
     {
         _stations.Clear();
+        foreach (var heard in _heard.Values) heard.Seen = false;
         foreach (var kind in Kinds)
             foreach (var m in _grid.MachinesOf(kind))
             {
@@ -72,7 +90,42 @@ public partial class ChargerLights : Node2D
                     : held != null && share >= 1 && Powered(m) ? Look.Full
                     : Look.Dark;
                 _stations.Add((corner, look, share, held == null ? null : Charges.BarOf(held)));
+                Listen(m.Id, corner, look == Look.Charging, share);
             }
+        _gone.Clear();
+        foreach (var (id, heard) in _heard)
+            if (!heard.Seen) _gone.Add(id);
+        foreach (int id in _gone)
+        {
+            _heard[id].Hum.QueueFree();
+            _heard.Remove(id);
+        }
+    }
+
+    /// <summary>A station read: its hum placed and told whether it charges, and the blip once its battery comes full.</summary>
+    private void Listen(int id, Vector2 corner, bool charging, float share)
+    {
+        var middle = corner + new Vector2(ShipCamera.Cell / 2, ShipCamera.Cell);
+        if (!_heard.TryGetValue(id, out var heard))
+        {
+            heard = _heard[id] = new Heard(Cues.Player2D(S.ChargerHum, S.World)) { Share = share };
+            AddChild(heard.Hum);
+        }
+        heard.Hum.Position = middle;
+        if (Charges.CameFull(heard.Charging, heard.Share, share)) _full.PlayAt(GlobalTransform * middle);
+        (heard.Charging, heard.Share, heard.Seen) = (charging, share, true);
+    }
+
+    /// <summary>Every station's hum faded in while it charges and out after; begun somewhere along its loop, so two never hum in step.</summary>
+    private void Hum(double delta)
+    {
+        foreach (var heard in _heard.Values)
+        {
+            heard.Envelope.Step(heard.Charging, delta, S.HumInS, S.HumOutS);
+            if (heard.Envelope.Playing && !heard.Hum.Playing) heard.Hum.Play((float)(Random.Shared.NextDouble() * 4));
+            else if (!heard.Envelope.Playing && heard.Hum.Playing) heard.Hum.Stop();
+            heard.Hum.OffsetDb = heard.Envelope.GainDb;
+        }
     }
 
     /// <summary>The kinds of machine that charge what they hold.</summary>

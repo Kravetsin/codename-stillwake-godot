@@ -87,8 +87,9 @@ public class ChargesTests
     [Fact]
     public void TheEnergyBarShowsOnlyWhileAnElectricToolIsHeldInItsColour()
     {
-        // No item is electric yet: with none held, or anything held, the bar hides.
-        Assert.DoesNotContain(Spec.Items.All, i => i.Draw != null);
+        // The drill is electric (0054): held, the bar shows the belt's charge; with none held, or anything else, it hides.
+        Assert.Equal(["drill"], Spec.Items.All.Where(i => i.Draw != null).Select(i => i.Id));
+        Assert.Equal(new Energy(0.5f, Charges.Green), Charges.EnergyOf("drill", (5, 10)));
         Assert.Null(Charges.EnergyOf(null, (5, 10)));
         Assert.Null(Charges.EnergyOf("fireAxe", (5, 10)));
         bool Electric(string item) => item == "fireAxe";

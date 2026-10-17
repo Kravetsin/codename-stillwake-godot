@@ -12,8 +12,8 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public readonly record struct Seen(Hero Hero, double? Look = null, bool HoldsPlan = false, string? Wields = null, Busy? Busy = null);
 
-/// <summary>What a hero's hands work: a plan with the screwdriver (0030), a wreck with what they wield (0034), plans beamed in by the planner.</summary>
-public enum Handwork { Work, Chop, Beam }
+/// <summary>What a hero's hands work: a plan with the screwdriver (0030), a wreck with what they wield (0034), plans beamed in by the planner, the drill running aimed at a point (0054).</summary>
+public enum Handwork { Work, Chop, Beam, Drill }
 
 /// <summary>
 /// What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's

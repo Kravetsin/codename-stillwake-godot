@@ -78,8 +78,16 @@ public static class Debris
             ]),
         ]);
 
+    /// <summary>
+    /// The asteroid band (0054): rock in two bands 22 to 44 rows above the hull's top and below its bottom,
+    /// past the tether's 12 cells, so only a jetpack reaches it. Rare: a beat every 3 to 5 minutes, 4 on
+    /// average, at most 2 out; drifting from the stream's start to its end as the stream does.
+    /// </summary>
+    public static readonly DebrisZone Asteroids = new("asteroids", new HullBand(From: 22, To: 44, Lead), Every: 3600, Jitter: 2400, Max: 2,
+        DriftMin, DriftMax, [new(0, [("asteroid", 1)])]);
+
     /// <summary>Every zone, in the order they spawn on a tick: the stream first, so a world with no hero out draws as it always did.</summary>
-    public static readonly IReadOnlyList<DebrisZone> Zones = [Ship, Far];
+    public static readonly IReadOnlyList<DebrisZone> Zones = [Ship, Far, Asteroids];
 }
 
 /// <summary>
@@ -104,6 +112,13 @@ public abstract record ZoneAnchor;
 /// cells right of it to as far left of it. That box, the hull grown so, is the stream's.
 /// </summary>
 public sealed record ByHull(int Margin, int Lead) : ZoneAnchor;
+
+/// <summary>
+/// By the hull, in two bands with a gap: the rows <paramref name=From/> to <paramref name=To/> beyond
+/// its top row and as far below its bottom row, from <paramref name=Lead/> cells right of it to as far left
+/// of it (0054). Not a stream's box: the far field spawns in it as anywhere.
+/// </summary>
+public sealed record HullBand(int From, int To, int Lead) : ZoneAnchor;
 
 /// <summary>
 /// Round every hero out past every stream's box, at the cell it last reported (0052): on a ring from
@@ -174,6 +189,10 @@ public static class Loot
         [
             new("hullPlate", 5, 7),
             new("scrapChunk", 1, 2),
+        ]),
+        ("asteroid",
+        [
+            new("rock", 3, 5),
         ]),
     ];
 

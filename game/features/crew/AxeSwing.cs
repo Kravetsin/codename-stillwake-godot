@@ -16,8 +16,8 @@ public readonly record struct SwingStep(bool Begun, bool Hits);
 /// </summary>
 public struct AxeSwing
 {
-    /// <summary>A swing's length: <c>Axe.SwingTicks</c> of the world's ticks, as real time.</summary>
-    public static readonly double Ms = Content.Axe.SwingTicks * 1000.0 / Sim.World.TicksPerSecond;
+    /// <summary>A swing's length: <c>Weapons.Axe.Pace</c> of the world's ticks, as real time.</summary>
+    public static readonly double Ms = Content.Weapons.Axe.Pace * 1000.0 / Sim.World.TicksPerSecond;
 
     /// <summary>
     /// The swing's shape, in shares of it and radians from the line to its point: raised

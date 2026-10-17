@@ -35,6 +35,7 @@
     <Compile Include="../game/features/crew/AxeSwing.cs" Link="Game/Crew/AxeSwing.cs" />
     <Compile Include="../game/features/crew/SwingArm.cs" Link="Game/Crew/SwingArm.cs" />
     <Compile Include="../game/features/crew/HarpoonShot.cs" Link="Game/Crew/HarpoonShot.cs" />
+    <Compile Include="../game/features/crew/DrillPace.cs" Link="Game/Crew/DrillPace.cs" />
     <Compile Include="../game/features/crew/HarpoonLine.cs" Link="Game/Crew/HarpoonLine.cs" />
     <Compile Include="../game/features/crew/Tether.cs" Link="Game/Crew/Tether.cs" />
     <Compile Include="../game/features/crew/Report.cs" Link="Game/Crew/Report.cs" />
@@ -54,6 +55,7 @@
     <Compile Include="../game/features/debris/Fading.cs" Link="Game/Debris/Fading.cs" />
     <Compile Include="../game/features/debris/OwnHits.cs" Link="Game/Debris/OwnHits.cs" />
     <Compile Include="../game/features/sound/Hearing.cs" Link="Game/Sound/Hearing.cs" />
+    <Compile Include="../game/features/sound/Strikes.cs" Link="Game/Sound/Strikes.cs" />
     <Compile Include="../game/i18n/En.cs" Link="Game/I18n/En.cs" />
     <Compile Include="../game/render/Buttons.cs" Link="Game/Render/Buttons.cs" />
     <Compile Include="../game/render/CableShape.cs" Link="Game/Render/CableShape.cs" />

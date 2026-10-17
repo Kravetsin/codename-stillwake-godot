@@ -4,6 +4,7 @@ using Stillwake.Game.Features.Sound;
 using Stillwake.Sim;
 using Stillwake.Sim.Debris;
 using Xunit;
+using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
@@ -14,7 +15,7 @@ public class HearingTests
     public void AnOwnHitIsHeardWhenItsTickHasRunAndNotWhileItFlies()
     {
         var own = new OwnHits();
-        var hit = new Hit(7);
+        var hit = new Hit(7, Spec.Weapons.Axe.Item);
         own.Read([hit]);
         Assert.False(own.Ran(7));
         own.Read([]);
@@ -37,7 +38,7 @@ public class HearingTests
     public void AHitRunsAsTheNextOnTheSamePieceIsSentAndOnlyItCounts()
     {
         var own = new OwnHits();
-        var (first, second) = (new Hit(7), new Hit(7));
+        var (first, second) = (new Hit(7, Spec.Weapons.Axe.Item), new Hit(7, Spec.Weapons.Axe.Item));
         own.Read([first]);
         own.Read([second]);
         Assert.True(own.Ran(7));
@@ -49,7 +50,7 @@ public class HearingTests
     public void OneSwingThroughTwoWrecksHearsBoth()
     {
         var own = new OwnHits();
-        own.Read(new List<Command> { new Hit(3), new Grab(5), new Hit(9) });
+        own.Read(new List<Command> { new Hit(3, Spec.Weapons.Axe.Item), new Grab(5), new Hit(9, Spec.Weapons.Axe.Item) });
         own.Read([]);
         Assert.True(own.Ran(3));
         Assert.True(own.Ran(9));

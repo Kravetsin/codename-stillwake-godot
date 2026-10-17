@@ -13,7 +13,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship`, `Point`; one `Step` at 60 a second; the jetpack's flight (`Flown`, `ThrustToward`, 0047) | no    |
 | `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`); the fist and an item held in it (`FistOf`, `HeldAt`, 0040) | no    |
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`); `Jumped` and `Landed`, when the boots are heard pushing off and coming down | no    |
-| `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039) | no    |
+| `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039), what the drill's bit touches (`Touched`, 0054) | no    |
 | `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the strike, its point, this hero's and others'; the arm and the edge through it (`ArmAt`, `EdgeAt`, `Lead`) (0038, 0039, 0040) | no    |
 | `SwingArm.cs`      | the front arm with the axe: straight through a swing, eased from rest into it, out of it and into the next (0040); the arm aiming the harpoon too | no    |
 | `HarpoonShot.cs`   | the hand harpoon (0044): the rod's flight, hook, reel and way back, the presses each state takes, the hero's cooldown, the point reeled to (`ReelOf`), the arm that aims the barrel (`ArmFor`) | no    |
@@ -21,6 +21,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Prompt.cs`        | `Prompts.Of`: what E does at the aim, in words, and why the sim would refuse it (`prompt.ts`) | no    |
 | `UsePrompt.cs`     | the prompt at the bottom middle, red with the reason when refused (`CrewPanel.tsx`'s `UsePrompt`) | yes   |
 | `Tether.cs`        | the tether as drawn, a reeled rope (`tether.ts`) on `game/render/Rope.cs` (`rope.ts`)   | no    |
+| `DrillPace.cs`     | when the drill hits, on the world's ticks: the tick it starts, then every `Pace` ticks while it runs, no burst after a stall (0054) | no    |
 | `Remote.cs`        | `Seen` with its hands (`Busy`, `Handwork`), `SentHero` (and its wire string), `RemoteHeroes`, `HeroSender` (`remote.ts`)     | no    |
 | `Suits.cs`         | the suit colours, `Suits.Of`, their shades and the colour the PNGs are drawn in (`suits.ts`, `art.ts`) | no |
 | `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`) | yes |
@@ -64,7 +65,7 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
 - Its hands go with it (0037): the item it wields by id (`Seen.Wields`, `Ui.Wielded`, none passed out),
   and what they are busy with and where (`Seen.Busy`: `Work` the plan the screwdriver turns at, `Chop`
   the point the latest swing is aimed at while a swing plays, with the swings begun (`Busy.Swings`), `Beam` the first cell
-  the planner beams in, sent while the beam fades), a point in thousandths of a cell. Both are left out
+  the planner beams in, sent while the beam fades, `Drill` the point the drill aims at while it runs), a point in thousandths of a cell. Both are left out
   of the JSON while empty, as are the swings while none, so an idle hero is written as before; the kind
   of work goes by name, and one not known makes no hero. A new tool needs no new field.
 - Each other hero is drawn 150 ms behind its newest sample, between the two around then, placed by the
@@ -76,7 +77,8 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
 - Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe held and swinging
   toward its point, the screwdriver turning at the plan, a beam once to the cell sent (`Busy.BeamsAnew`), the harpoon
   hanging, empty while the sim reels a piece by that hero (`Reel.By`), with a taut line from its muzzle
-  to the edge of that piece; its shots, flights and hooks are not sent (0044). Taken
+  to the edge of that piece; its shots, flights and hooks are not sent (0044); the drill aimed at its point and
+  spinning while it runs (`Handwork.Drill`), else hanging still. Taken
   from the sample at or before the moment drawn, never between two; but the axe swings once for each
   swing number as it is heard, not 150 ms behind (`AxeSwing.Follow`, 0038), toward the point sent with
   that number, the last chop heard kept while its hands are idle (`Busy.Chopping`, 0039), so its blade
@@ -242,6 +244,20 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
   off either side (`HarpoonShot.Puff`, `Effect.Puff` on the shared particles): braked aboard in a third of a
   second, wider and longer out in space; only this hero's own. The line and the rod are drawn over the heroes (`Layers.Hero`), the line
   unlit as the tethers are.
+- **The drill (0054):** with `Ui.Wielded` the drill, the arm aims it as it aims the harpoon, the bit's line
+  through the pointer (`HarpoonShot.ArmFor`), the hero facing it; the figure holds it as a pistol by its handle
+  (`HeldLook.Drill`, `art/hero_drill.png`, its bit the edge, `Aimed`). Held on the left button (not a hold begun
+  by a grab), it **runs** while the belt can pay a hit (`IItemsQueries.CanDrain` of `DebrisModule.Spent`, always
+  in creative mode): its bit spins, the picture flipping with `hero_drill_spin.png` (`Figure.Spinning`, up in
+  120 ms, winding down over 700 ms once it stops), and on the tick it starts and every `Weapons.Drill.Pace`
+  ticks after (`DrillPace`) it sends a `Hit(Piece, "drill")` for each wreck its bit touches that the sim would
+  take: the bit's segment, held as the figure draws it from the shoulder of the body upright, against each
+  wreck's aim box (`Aiming.Touched`), out in space only. The aim marks the first such wreck with the axe's prompt,
+  "[Hold LMB] Break", red with "Batteries flat" (`debris.flat`) once the belt cannot pay. Flat, it winds down
+  and sends nothing; aboard it spins and touches nothing. The energy bar shows while it is held (0053). Every
+  weapon works on every wreck alike: the axe chops an asteroid as any wreck, the drill bores a hull section.
+  Heard while its bit works on a piece: 18 short strikes a second at the bit, each its own pitch and
+  loudness (`StrikeTrain`, `features/sound`), silent the moment it stops.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - Door and valve prompts read them as shown (`Shared.Predicted.Grid`), as `promptOf`'s `shown` did:

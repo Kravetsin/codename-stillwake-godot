@@ -23,6 +23,7 @@ public static class DebrisLooks
         ["cableRack"] = ("rack", 1),
         ["tankCluster"] = ("tanks", 1),
         ["shieldSlab"] = ("slab", 1),
+        ["asteroid"] = ("asteroid", 3),
     };
 
     /// <summary>
@@ -37,6 +38,7 @@ public static class DebrisLooks
         ["cableRack"] = (32, 32),
         ["tankCluster"] = (32, 32),
         ["shieldSlab"] = (64, 32),
+        ["asteroid"] = (32, 32),
     };
 
     /// <summary>The picture piece <paramref name="id"/> of <paramref name="item"/> wears, or null to draw the item.</summary>
