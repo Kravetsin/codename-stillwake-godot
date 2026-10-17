@@ -10,9 +10,10 @@ internal static class Order
     /// <paramref name="vents"/> lists them, or from its middle when it has none; in <paramref name="rooms"/>
     /// order. Neighbours go up, left, right, down. Vents air the first empty cell of the order and
     /// whatever takes air takes the last aired one, so a room's air gathers around its vents.
+    /// <paramref name="seen"/> is scratch, a flag a cell, all false before and after.
     /// </summary>
     public static List<(int Room, int[] Cells)> Rooms(
-        ReadOnlySpan<int> roomOf, int width, IReadOnlyList<Room> rooms, IReadOnlyList<int> vents)
+        ReadOnlySpan<int> roomOf, int width, IReadOnlyList<Room> rooms, IReadOnlyList<int> vents, bool[] seen)
     {
         var starts = new Dictionary<int, List<int>>();
         foreach (int cell in vents)
@@ -22,39 +23,19 @@ internal static class Order
             if (starts.TryGetValue(room, out var list)) list.Add(cell);
             else starts[room] = [cell];
         }
-        var ventless = rooms.Where(r => !starts.ContainsKey(r.Id)).ToList();
-        var middles = ventless.Count > 0 ? MiddlesOf(roomOf, width, ventless) : null;
-        var seen = new bool[roomOf.Length];
         var orders = new List<(int, int[])>(rooms.Count);
         foreach (var room in rooms)
         {
             var order = new int[room.Volume];
-            int tail = 0;
-            IReadOnlyList<int> from = starts.TryGetValue(room.Id, out var found) ? found
-                : [middles != null && middles.TryGetValue(room.Id, out int middle) ? middle : room.Id];
-            foreach (int cell in from)
+            if (!starts.TryGetValue(room.Id, out var from))
             {
-                if (seen[cell]) continue;
-                seen[cell] = true;
-                order[tail++] = cell;
+                // A room with no vent is ordered from its middle, found from its cells.
+                int count = Spread(roomOf, width, room.Id, [room.Id], order, seen);
+                for (int i = 0; i < count; i++) seen[order[i]] = false;
+                from = [MiddleOf(order.AsSpan(0, count), width)];
             }
-            for (int head = 0; head < tail; head++)
-            {
-                int cell = order[head];
-                for (int i = 0; i < 4; i++)
-                {
-                    int next = i switch
-                    {
-                        0 => cell >= width ? cell - width : -1,
-                        1 => cell % width != 0 ? cell - 1 : -1,
-                        2 => (cell + 1) % width != 0 ? cell + 1 : -1,
-                        _ => cell + width < roomOf.Length ? cell + width : -1,
-                    };
-                    if (next < 0 || seen[next] || roomOf[next] != room.Id) continue;
-                    seen[next] = true;
-                    order[tail++] = next;
-                }
-            }
+            int tail = Spread(roomOf, width, room.Id, from, order, seen);
+            for (int i = 0; i < tail; i++) seen[order[i]] = false;
             if (tail != room.Volume) throw new InvalidOperationException($"Room {room.Id} is not connected.");
             orders.Add((room.Id, order));
         }
@@ -62,67 +43,111 @@ internal static class Order
     }
 
     /// <summary>
-    /// Each room's cell nearest the mean of its cells, counting steps along rows and columns; the
-    /// smallest such cell on a tie. The mean is rounded down (sums are never negative).
+    /// The cells of <paramref name="room"/> breadth first from <paramref name="from"/>, neighbours up,
+    /// left, right, down, into <paramref name="order"/>, each marked in <paramref name="seen"/>; how many.
     /// </summary>
-    private static Dictionary<int, int> MiddlesOf(ReadOnlySpan<int> roomOf, int width, List<Room> rooms)
+    private static int Spread(ReadOnlySpan<int> roomOf, int width, int room, List<int> from, int[] order, bool[] seen)
     {
-        int size = roomOf.Length;
-        // Room ids are cells, so per-room sums are kept in arrays indexed by id.
-        var wanted = new int[size];
-        var sumX = new long[size];
-        var sumY = new long[size];
-        foreach (var r in rooms) wanted[r.Id] = r.Volume;
-        for (int cell = 0; cell < size; cell++)
+        int tail = 0;
+        foreach (int cell in from)
         {
-            int room = roomOf[cell];
-            if (room < 0 || wanted[room] == 0) continue;
-            sumX[room] += cell % width;
-            sumY[room] += cell / width;
+            if (seen[cell]) continue;
+            seen[cell] = true;
+            order[tail++] = cell;
         }
-        var best = new int[size];
-        var bestOff = new long[size];
-        Array.Fill(best, -1);
-        for (int cell = 0; cell < size; cell++)
+        for (int head = 0; head < tail; head++)
         {
-            int room = roomOf[cell];
-            if (room < 0 || wanted[room] == 0) continue;
-            long off = Math.Abs(cell % width - sumX[room] / wanted[room]) + Math.Abs(cell / width - sumY[room] / wanted[room]);
-            if (best[room] < 0 || off < bestOff[room]) { best[room] = cell; bestOff[room] = off; }
+            int cell = order[head];
+            for (int i = 0; i < 4; i++)
+            {
+                int next = i switch
+                {
+                    0 => cell >= width ? cell - width : -1,
+                    1 => cell % width != 0 ? cell - 1 : -1,
+                    2 => (cell + 1) % width != 0 ? cell + 1 : -1,
+                    _ => cell + width < roomOf.Length ? cell + width : -1,
+                };
+                if (next < 0 || seen[next] || roomOf[next] != room) continue;
+                seen[next] = true;
+                order[tail++] = next;
+            }
         }
-        var middles = new Dictionary<int, int>();
-        foreach (var r in rooms) if (best[r.Id] >= 0) middles[r.Id] = best[r.Id];
-        return middles;
+        return tail;
     }
 
     /// <summary>
-    /// The rooms whose order may differ from the one found from <paramref name="before"/> and
-    /// <paramref name="ventsBefore"/>: each room a cell left or joined, as it was and as it is, and each
-    /// room a vent came to or left, each once in the order found. Ids that name no room now are among
-    /// them; none when nothing moved.
+    /// The cell nearest the mean of <paramref name="cells"/>, counting steps along rows and columns; the
+    /// smallest such cell on a tie. The mean is rounded down (sums are never negative).
+    /// </summary>
+    private static int MiddleOf(ReadOnlySpan<int> cells, int width)
+    {
+        long sumX = 0, sumY = 0;
+        foreach (int cell in cells)
+        {
+            sumX += cell % width;
+            sumY += cell / width;
+        }
+        long meanX = sumX / cells.Length, meanY = sumY / cells.Length;
+        int best = -1;
+        long bestOff = 0;
+        foreach (int cell in cells)
+        {
+            long off = Math.Abs(cell % width - meanX) + Math.Abs(cell / width - meanY);
+            if (best < 0 || off < bestOff || (off == bestOff && cell < best)) { best = cell; bestOff = off; }
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// The rooms whose order may differ from the one found from <paramref name="before"/>: each a cell
+    /// left or joined, as it was and is, and those of <see cref="VentRoomsMoved"/>; ids gone included.
     /// </summary>
     public static List<int> ChangedRooms(
         int[] before, ReadOnlySpan<int> roomOf, IReadOnlyList<int> ventsBefore, IReadOnlyList<int> vents)
     {
         var changed = new List<int>();
-        // Most ticks nothing moved: one vectorised compare instead of a walk and two sets.
+        // Most ticks nothing moved: one vectorised compare instead of a walk.
         if (roomOf.SequenceEqual(before) && vents.SequenceEqual(ventsBefore)) return changed;
-        var known = new HashSet<int>();
-        void Add(int room)
-        {
-            if (room >= 0 && known.Add(room)) changed.Add(room);
-        }
         for (int cell = 0; cell < roomOf.Length; cell++)
         {
-            int was = cell < before.Length ? before[cell] : -1;
+            int was = before[cell];
             if (roomOf[cell] == was) continue;
-            Add(roomOf[cell]);
-            Add(was);
+            if (roomOf[cell] >= 0) changed.Add(roomOf[cell]);
+            if (was >= 0) changed.Add(was);
         }
-        var had = new HashSet<int>(ventsBefore);
-        var has = new HashSet<int>(vents);
-        foreach (int cell in vents) if (!had.Contains(cell)) Add(roomOf[cell]);
-        foreach (int cell in ventsBefore) if (!has.Contains(cell) && cell < roomOf.Length) Add(roomOf[cell]);
+        changed.AddRange(VentRoomsMoved(roomOf, ventsBefore, vents));
         return changed;
+    }
+
+    /// <summary>
+    /// The rooms, as they are now, whose vents in order differ between <paramref name="before"/> and
+    /// <paramref name="vents"/>: a vent came, went, or moved in the order, which its air spreads from.
+    /// </summary>
+    public static List<int> VentRoomsMoved(ReadOnlySpan<int> roomOf, IReadOnlyList<int> before, IReadOnlyList<int> vents)
+    {
+        var moved = new List<int>();
+        if (before.SequenceEqual(vents)) return moved;
+        var had = ByRoom(roomOf, before);
+        var has = ByRoom(roomOf, vents);
+        foreach (int cell in (IEnumerable<int>)[.. before, .. vents])
+        {
+            int room = roomOf[cell];
+            if (room < 0) continue;
+            if (!had.TryGetValue(room, out var was) || !has.TryGetValue(room, out var now) || !was.SequenceEqual(now))
+                moved.Add(room);
+        }
+        return moved;
+    }
+
+    private static Dictionary<int, List<int>> ByRoom(ReadOnlySpan<int> roomOf, IReadOnlyList<int> vents)
+    {
+        var byRoom = new Dictionary<int, List<int>>();
+        foreach (int cell in vents)
+        {
+            if (roomOf[cell] < 0) continue;
+            if (byRoom.TryGetValue(roomOf[cell], out var list)) list.Add(cell);
+            else byRoom[roomOf[cell]] = [cell];
+        }
+        return byRoom;
     }
 }

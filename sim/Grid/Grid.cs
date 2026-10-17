@@ -47,6 +47,8 @@ public sealed class GridState
     [JsonInclude] internal int NextMachineId { get; set; } = 1;
     /// <summary>Derived: the id of the machine covering each cell, 0 for none.</summary>
     [JsonIgnore] internal int[] Occupancy { get; set; } = [];
+    /// <summary>Derived: bumped on every change to a layer or a machine; 0 again after a load.</summary>
+    [JsonIgnore] internal int Version { get; set; }
 }
 
 /// <summary>What any module may read of the grid. Arrays are live: a reader never writes them.</summary>
@@ -54,6 +56,11 @@ public interface IGridQueries
 {
     int Width { get; }
     int Height { get; }
+    /// <summary>
+    /// Bumped on every change to any layer or machine, never saved: a module that derives from the
+    /// grid looks again only when it moved. After a load it starts over, as do the modules.
+    /// </summary>
+    int Version { get; }
     ReadOnlySpan<int> StructureLayer { get; }
     /// <summary>Each cell's wall material code (<c>Materials</c>), 0 where no wall stands.</summary>
     ReadOnlySpan<int> MaterialLayer { get; }
@@ -101,8 +108,16 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
 
     public GridModule()
     {
-        Handles<ToggleDoor>(c => IsDoor(State.Structure, c.Cell) ? null : "grid.noDoor", c => ToggleDoorAt(State.Structure, c.Cell));
-        Handles<ToggleValve>(c => IsValve(State.Conduit, c.Cell) ? null : "grid.noValve", c => ToggleValveAt(State.Conduit, c.Cell));
+        Handles<ToggleDoor>(c => IsDoor(State.Structure, c.Cell) ? null : "grid.noDoor", c =>
+        {
+            State.Version++;
+            ToggleDoorAt(State.Structure, c.Cell);
+        });
+        Handles<ToggleValve>(c => IsValve(State.Conduit, c.Cell) ? null : "grid.noValve", c =>
+        {
+            State.Version++;
+            ToggleValveAt(State.Conduit, c.Cell);
+        });
     }
 
     protected override GridState Init(Layout layout)
@@ -175,6 +190,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
 
     public int Width => State.Width;
     public int Height => State.Height;
+    public int Version => State.Version;
     public ReadOnlySpan<int> StructureLayer => State.Structure;
     public ReadOnlySpan<int> MaterialLayer => State.Material;
     public ReadOnlySpan<int> ConduitLayer => State.Conduit;
@@ -290,6 +306,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     {
         var problem = PlacementProblem(cell, p);
         if (problem != null) throw new InvalidOperationException($"grid.place at {cell}: {problem}");
+        State.Version++;
         switch (p.Layer)
         {
             case "structure":
@@ -320,6 +337,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public void Clear(int cell, string layer)
     {
         if (!InBounds(cell)) throw new InvalidOperationException($"grid.clear at {cell}: out of bounds");
+        State.Version++;
         switch (layer)
         {
             case "structure": State.Structure[cell] = Structure.Empty; State.Material[cell] = 0; return;

@@ -9,8 +9,9 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
 - **Cells:** numbered row by row from the top-left, `cell = y * width + x`.
 - **State** (`GridState`, members internal): the layers as `int[]` codes (`Structure`, `Conduit`,
   `Back`, and the materials of walls and back walls), `Machines`, `NextMachineId`. Derived:
-  `Occupancy`, the id of the machine covering each cell, rebuilt after a load. A save holds each layer
-  as runs, `[value, count, …]` (`Runs` in Core), so empty space costs a save and its hash nothing.
+  `Occupancy`, the id of the machine covering each cell, rebuilt after a load, and `Version`. A save
+  holds each layer as runs, `[value, count, …]` (`Runs` in Core), so empty space costs a save and
+  its hash nothing.
 
 ## Layers
 
@@ -27,9 +28,11 @@ free back slot: it stands behind anything, and in space.
 
 ## API
 
-- **Queries** (`IGridQueries`): `Width`, `Height`; every layer as codes, a cell each, live and
-  read-only, as TypeScript's `layers()`: `StructureLayer`, `MaterialLayer` (a wall's material, 0 for
-  none), `ConduitLayer`, `BackLayer`, `BackMaterialLayer`; `StructureAt(cell)`, `ConduitAt(cell)`,
+- **Queries** (`IGridQueries`): `Width`, `Height`; `Version` — bumped on every change to any layer or
+  machine, by a command or an operation, never saved and 0 again after a load: a module deriving from
+  the grid (`rooms`, `pipes`, `atmosphere`) looks again only when it moved; every layer as codes, a
+  cell each, live and read-only, as TypeScript's `layers()`: `StructureLayer`, `MaterialLayer` (a
+  wall's material, 0 for none), `ConduitLayer`, `BackLayer`, `BackMaterialLayer`; `StructureAt(cell)`, `ConduitAt(cell)`,
   `MachineAt(cell)`, `Machines`, `PortsOf(machine)` — the cells where conduits meet it, from its
   kind's port offsets —, `WallAt(cell)` and `BackAt(cell)` — the `Material` of the wall or back
   wall there, null for none —, `Footprint(kind, cell)` — the cells a machine of that kind would cover
@@ -61,6 +64,7 @@ hull walls included. A map's machines take ids 1, 2, … by their top-left cells
 - Machines never overlap, and stand only on cells without structure.
 - `Occupancy` names exactly the machine covering each cell.
 - Machine ids only grow; a removed machine's id is never reused.
+- Every change to a layer or a machine bumps `Version`.
 - Stored codes are part of the save format: never renumber them.
 
 ## Deliberately not handled

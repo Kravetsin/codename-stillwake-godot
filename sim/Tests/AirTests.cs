@@ -74,7 +74,7 @@ public class AirTests
     private static bool FreshOrders(Scenario w)
     {
         var vents = w.M.Grid.Machines.Where(m => m.Kind == "vent").Select(m => m.Cell).ToList();
-        var fresh = Order.Rooms(w.M.Rooms.RoomOfCells, 9, w.M.Rooms.All, vents);
+        var fresh = Order.Rooms(w.M.Rooms.RoomOfCells, w.M.Grid.Width, w.M.Rooms.All, vents, new bool[w.M.Rooms.RoomOfCells.Length]);
         var kept = w.Air().Orders;
         if (fresh.Count != kept.Count) return false;
         foreach (var (room, order) in fresh)
@@ -415,6 +415,128 @@ public class AirTests
         Assert.Equal(At(4, 2), w.Air().Orders[room][0]);
         w.Do(new Place(At(1, 1), new Placement("machine", "vent"))).Run();
         Assert.Equal(At(1, 1), w.Air().Orders[room][0]);
+    }
+
+    [Fact]
+    public void LaysARoomOutAgainWhenItsVentsOnlyChangeOrderAVentRebuiltWhereItStood()
+    {
+        var w = new Scenario("#########\n#V.....V#\n#.......#\n#########");
+        int room = w.M.Rooms.All[0].Id;
+        Assert.Equal(At(1, 1), w.Air().Orders[room][0]);
+        // Taken apart and built again on one tick: the same cells, the vent now last in id order.
+        w.Do(new ClearAt(At(1, 1), "machine")).Do(new Place(At(1, 1), new Placement("machine", "vent"))).Run();
+        Assert.Equal(At(7, 1), w.Air().Orders[room][0]);
+        Assert.True(FreshOrders(w));
+    }
+
+    // Rooms found again around a change far from space: only the rooms it touches are redone.
+
+    /// <summary>Three rooms in a row, doors between, a wall stub in the first; a cell of space all round, so a change inside stays far from it.</summary>
+    private static readonly string[] Row =
+    [
+        "                       ",
+        " ##################### ",
+        " #V......#.....#.....# ",
+        " #TT.....#.....#.....# ",
+        " #TT.....D.....D.....# ",
+        " #....#..#.....#.....# ",
+        " #.......#.....#.....# ",
+        " ##################### ",
+        "                       ",
+    ];
+
+    private static int At23(int x, int y) => y * 23 + x;
+
+    /// <summary><see cref="Row"/> with its first room aired from its tank, piped to its vent.</summary>
+    private static (Scenario W, int Left) AiredRow()
+    {
+        var w = new Scenario(Layout.Parse(Row)).Do(new Items.SetCreative(true));
+        foreach (int cell in new[] { At23(2, 2), At23(2, 3), At23(2, 4) }) w.Do(new Place(cell, Pipe));
+        w.Run();
+        int tank = w.M.Grid.Machines.First(m => m.Kind == "tank").Id;
+        for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
+        w.Run();
+        int left = w.M.Rooms.RoomAt(At23(4, 4))!.Value;
+        AirUp(w, left);
+        return (w, left);
+    }
+
+    /// <summary>Runs <paramref name="c"/> and checks the rooms were found around it, not from scratch.</summary>
+    private static void AroundA(Scenario w, Command c)
+    {
+        int version = w.M.Rooms.Version;
+        w.Do(c).Run();
+        Assert.NotNull(w.M.Rooms.ChangedSince(version));
+    }
+
+    [Fact]
+    public void TakesTheAirOutOfACellAWallIsBuiltOnFarFromSpaceAndKeepsTheRest()
+    {
+        var (w, left) = AiredRow();
+        AroundA(w, new Place(At23(4, 4), Wall));
+        Assert.DoesNotContain(At23(4, 4), w.Air().Aired);
+        Assert.Equal(RoomStatus.Aired, Status(w, left));
+        Assert.Equal(w.M.Rooms.RoomById(left)!.Volume, AiredIn(w, left).Count);
+    }
+
+    [Fact]
+    public void AirsTheCellOfAWallTakenOutOfAnAiredRoomAndLeaksThroughTheBackWallBehindIt()
+    {
+        var (w, left) = AiredRow();
+        var before = Of(w, left)!;
+        int volume = w.M.Rooms.RoomById(left)!.Volume;
+        AroundA(w, new ClearAt(At23(6, 5), "structure"));
+        Assert.Equal(volume + 1, w.M.Rooms.RoomById(left)!.Volume);
+        Assert.Contains(At23(6, 5), w.Air().Aired);
+        Assert.Equal(RoomStatus.Aired, Status(w, left));
+        Assert.Equal(before.Leak + Scrap, Of(w, left)!.Leak);
+    }
+
+    /// <summary>More than a few cells a tick: the aired cells are merged into a new list, not edited in place.</summary>
+    [Fact]
+    public void VentsEightBreachedRoomsAtOnceSixCellsEachFromTheFarEdge()
+    {
+        var w = new Scenario(BudgetTests.Reference());
+        w.Run(300);
+        var before = w.Air().Aired.ToList();
+        // Through the top of the hull, above the first open cell of eight tiles.
+        for (int tile = 0; tile < 8; tile++) w.Do(new ClearAt(tile * 8 + 3, "structure"));
+        w.Run();
+        var after = w.Air().Aired;
+        Assert.Equal(8 * Air.VentLoss, before.Count - after.Count);
+        Assert.Subset(before.ToHashSet(), after.ToHashSet());
+        Assert.True(after.Zip(after.Skip(1)).All(p => p.First < p.Second));
+    }
+
+    /// <summary>
+    /// Doors toggled and walls built and taken apart, far from space and beside the hull, give the
+    /// same air as a world loaded from a save, which finds every order, leak and survey afresh.
+    /// </summary>
+    [Property(MaxTest = 40)]
+    public Property KeepsTheAirOfRoomsFoundAroundAChangeAsAWorldLoadedAfreshWould()
+    {
+        int[] cells = [At23(9, 4), At23(15, 4), At23(4, 4), At23(6, 5), At23(12, 3), At23(12, 4), At23(9, 3), At23(15, 5), At23(5, 2), At23(18, 6)];
+        var step = from cell in Gen.Elements(cells) from ticks in Gen.Choose(1, 40) select (cell, ticks);
+        var steps = from n in Gen.Choose(1, 12) from s in step.ArrayOf(n) select s;
+        return Prop.ForAll(steps.ToArbitrary(), all =>
+        {
+            var (w, _) = AiredRow();
+            foreach (var (cell, ticks) in all)
+            {
+                int structure = w.M.Grid.StructureAt(cell);
+                w.Do(structure is Structure.DoorClosed or Structure.DoorOpen ? new ToggleDoor(cell)
+                    : structure == Structure.Empty ? new Place(cell, Wall) : new ClearAt(cell, "structure"));
+                w.Run(ticks);
+                if (!FreshOrders(w)) return false.Label($"orders after {cell}");
+                var m = new Registry();
+                var loaded = World.Load(w.World.Save(), [.. m.All, new Builder(m.Grid, m.Grid)]);
+                if (!m.Atmosphere.RoomsAir().SequenceEqual(w.M.Atmosphere.RoomsAir())) return false.Label($"rooms' air after {cell}");
+                loaded.Step([]);
+                w.World.Step([]);
+                if (loaded.Hash() != w.World.Hash()) return false.Label($"the air a tick after {cell}");
+            }
+            return true.ToProperty();
+        });
     }
 
     private sealed record Step(string Type, int Cell = 0, int Ticks = 0);

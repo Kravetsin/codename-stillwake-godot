@@ -4,6 +4,7 @@ using Stillwake.Sim.Building;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Rooms;
 using Xunit;
 
 namespace Stillwake.Net.Tests;
@@ -32,6 +33,47 @@ public class DesyncTests
             tamper: (_, clients) => count = clients.Count);
         Assert.Null(run.Desync);
         Assert.Equal(4, count);
+    }
+
+    [Fact]
+    public void KeepsAJoinerInSyncWhileRoomsAreFoundAgainAroundDoorsFarFromSpace()
+    {
+        // Rooms closed by doors three cells and more from space: toggled by the fuzz, they are found
+        // again around the door, and the air follows only those rooms.
+        string[] ship =
+        [
+            "#####################",
+            "#V.....#.....#.....V#",
+            "#TT....D.....D....TT#",
+            "#TT....#..H..#....TT#",
+            "###D#######D#####D###",
+            "#.....V#.....#......#",
+            "#......D.....D......#",
+            "#......#.....#......#",
+            "#####################",
+        ];
+        string[] pipes = ["", " -                 -", " -o               --", " -                -o"];
+        string Pad(string row) => ("   " + row).PadRight(27);
+        var blank = Enumerable.Repeat("", 3);
+        var layout = Layout.Parse(
+            [.. blank.Concat(ship).Concat(blank).Select(Pad)],
+            [.. blank.Concat(pipes).Select(Pad)]);
+        var game = Definition.Game();
+        var seen = new Dictionary<Client, int>();
+        int around = 0, aired = 0;
+        var run = Desync.Fuzz(game, 7, layout: layout, joinAt: 150, ticks: 400, tamper: (_, clients) =>
+        {
+            aired = Math.Max(aired, game.Module<AtmosphereModule>(clients[0].World).AiredCells.Count);
+            foreach (var client in clients)
+            {
+                var rooms = game.Module<RoomsModule>(client.World);
+                if (seen.TryGetValue(client, out int version) && rooms.ChangedSince(version) is { Count: > 0 }) around++;
+                seen[client] = rooms.Version;
+            }
+        });
+        Assert.Null(run.Desync);
+        Assert.True(around > 10, $"rooms found around a change {around} times");
+        Assert.True(aired > 50, $"{aired} cells aired at most");
     }
 
     [Fact]

@@ -16,6 +16,10 @@ public sealed class PipesState
     [JsonIgnore] internal int[] BuiltConduit { get; set; } = [];
     /// <summary>The machines they were found with, as an id and a cell each: enough to tell that one came or went.</summary>
     [JsonIgnore] internal int[] BuiltMachines { get; set; } = [];
+    /// <summary>The grid's version last looked at.</summary>
+    [JsonIgnore] internal int GridVersion { get; set; }
+    /// <summary>Bumped each time the networks are found again.</summary>
+    [JsonIgnore] internal int Version { get; set; }
 }
 
 /// <summary>What any module may read of the pipe networks. Read them at or after derivation.</summary>
@@ -28,6 +32,11 @@ public interface IPipesQueries
     Network? Network(int id);
     /// <summary>Every network, in id order.</summary>
     IReadOnlyList<Network> Networks { get; }
+    /// <summary>
+    /// Bumped each time the networks are found again, on any change of a conduit or a machine; never
+    /// saved. A module keeping what it read of the networks keeps it while this stays.
+    /// </summary>
+    int Version { get; }
 }
 
 /// <summary>
@@ -43,8 +52,12 @@ public sealed class PipesModule : Module<PipesState>, IPipesQueries
     public PipesModule(IGridQueries grid)
     {
         _grid = grid;
-        // Compared every tick rather than told by the grid, so no change to a conduit or machine is missed.
-        System(Phase.Derivation, () => { if (!Current()) Rebuild(); });
+        System(Phase.Derivation, () =>
+        {
+            if (_grid.Version == State.GridVersion) return;
+            State.GridVersion = _grid.Version;
+            if (!Current()) Rebuild();
+        });
     }
 
     protected override PipesState Init(Layout layout) => new();
@@ -55,6 +68,7 @@ public sealed class PipesModule : Module<PipesState>, IPipesQueries
         (State.NetworkOf, State.Networks) = PipeNetworks.Find(_grid.Width, _grid.Height, _grid.ConduitLayer, machines);
         State.BuiltConduit = _grid.ConduitLayer.ToArray();
         State.BuiltMachines = _grid.Machines.SelectMany(m => new[] { m.Id, m.Cell }).ToArray();
+        State.Version++;
     }
 
     /// <summary>Whether the grid's conduits and machines still are what the networks were found from.</summary>
@@ -81,4 +95,5 @@ public sealed class PipesModule : Module<PipesState>, IPipesQueries
 
     public Network? Network(int id) => State.Networks.Find(n => n.Id == id);
     public IReadOnlyList<Network> Networks => State.Networks;
+    public int Version => State.Version;
 }

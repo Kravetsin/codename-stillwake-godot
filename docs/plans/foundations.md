@@ -27,34 +27,48 @@ every breach; the door case is already over the 2 ms budget on the reference wor
 
 ## Tasks
 
-### F-1 — The grid saved in runs
+### F-1 — The grid saved in runs ✅
 
-- The grid's five layers are written as runs, `[value, count, value, count, …]`, by one converter in
-  `sim/Core`, so the save, the hash, the welcome and a load cost what is built, not the area.
-- Format 5, with its migration step (layers to runs) and its fixture (0031).
-- A budget test: a 1024×512 world with 256×128 built saves no bigger than one and a half times the
-  same 256×128 alone. Bytes, not time, so it never flakes.
-- Accepted: a desync report on the grid names a run (`grid.structure[57]`), not a cell. It still
-  names the layer, and the grid is the module least likely to drift.
+The grid's five layers are saved as runs (`Runs` in Core), format 5 (PR #38). The wreck's save went
+from 188 KB to 4 KB; a 2048×1024 world with a 256×128 ship from 20 MB to 0.3 MB, its hash from 73 to
+4 ms. Accepted: a desync report on the grid names a run, not a cell.
 
-**Done when:** the migration and budget tests pass; the 2048×1024 experiment world saves well under
-1 MB; a guest no longer stalls each second on the experiment branch.
+### F-2 — Rooms and their air found again only around a change ✅
 
-### F-2 — Rooms found again only around a change
+The grid, rooms and pipes have a `Version`, never saved; rooms are flooded again only around a
+change away from space and name the ids they found again (`ChangedSince`); atmosphere redoes orders,
+stranded air, leaks and the survey's counts for those rooms only, keeps the survey between ticks,
+and edits up to 32 aired cells in place. The world hash after fuzzed runs, door toggles and random
+edits is the same as before. A tick in Release, steady / a door toggled every tick, in ms:
 
-- Rooms are rebuilt only in the region a wall or door change touches, not by a flood from the
-  grid's border.
-- A budget test: a door toggled every tick stays under 2 ms on the reference world, and on a large
-  world with a small ship.
+| World | Before | After |
+| --- | --- | --- |
+| 256×128, the reference world | 0.7 / 2.8 | 0.5 / 0.8 |
+| 1024×512, the reference ship in its corner | 0.4 / 8.3 | 0.1 / 0.2 |
+| 1024×512, fully built (24k machines, 8k rooms) | 6.7 / 18.4 | 1.2 / 1.7 |
+| 2048×1024, 512×256 built | 3.0 / 32.4 | 0.5 / 0.9 |
 
-### F-3 — The air overlay draws only what changed or is seen
+A change within two cells of space, a breach, still floods the whole grid (F-4).
+
+### F-3 — A machine by its id at once
+
+- A derived id-to-machine map in Grid for `MachineAt`, `HolderOf`, `Crafting`, `Furnace`; machines
+  listed by kind for the systems that walk one kind. A thousand furnaces cost 13 ms today.
+- The per-machine allocations of the furnace, research and air loops go.
+
+### F-4 — Rooms flooded within the ship, not the world
+
+- A change beside space floods only the ship's bounding box plus a margin, so a breach costs what
+  the ship is, not the build area (today 6 ms on 1024×512, 24 ms on 2048×1024, once).
+
+### F-5 — The air overlay draws only what changed or is seen
 
 - Client only. Its per-cell passes are limited to the cells on screen or the rooms that changed.
 
-### F-4 — The final ship grid
+### F-6 — The build area: 1024×512
 
-- Decided with the user once F-1 and F-2 are in: the build area's size, and one migration that
-  moves an old wreck into the new grid.
+- Decided with the user on 2026-10-17. One migration moves an old wreck into the new grid; the
+  new-world map and the camera follow.
 
 ## Not in this plan
 
