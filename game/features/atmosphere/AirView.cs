@@ -41,9 +41,13 @@ public partial class AirView : Node2D
     private readonly Sketch _pulse = new(Layers.Pulse), _gauges = new(Layers.Gauges), _specks = new(Layers.Effects);
     private readonly Sprite2D _look = new() { Centered = false, ZIndex = Layers.Air, Scale = new Vector2(Cell, Cell), Material = new ShaderMaterial { Shader = AirLook.Shader } };
     private AirField? _field;
-    private byte[] _texels = [];
     private Image? _image;
     private ImageTexture? _texture;
+    /// <summary>The cells the texture covers.</summary>
+    private Stillwake.Sim.Grid.Box _shown;
+    /// <summary>The rooms and their version the pulse was laid out for, and the rooms draining then.</summary>
+    private (IRoomsQueries? Rooms, int Version) _losingFor;
+    private HashSet<int> _losingRooms = [];
     private readonly AirMotes _motes = new(Cell);
     private List<(double X, double Y)> _fillingVents = [];
     /// <summary>The lifepod's reach in pixels: left, top, right, bottom; null without a pod.</summary>
@@ -101,13 +105,29 @@ public partial class AirView : Node2D
         if (!_field.Settled)
         {
             _field.Ease(elapsedMs);
-            _field.Write(_texels);
-            _image!.SetData(_field.Width, _field.Height, false, Image.Format.Rgba8, _texels);
-            _texture!.Update(_image);
+            if (_field.Write()) Upload(_field);
         }
         ((ShaderMaterial)_look.Material).SetShaderParameter("overlay", On);
         _motes.Step(elapsedMs, _field, m.Atmosphere.AiredCells, _fillingVents, _reach);
         _specks.QueueRedraw();
+    }
+
+    /// <summary>The field's texels to the texture, made anew, and the sprite moved over the field, when it grew.</summary>
+    private void Upload(AirField field)
+    {
+        var region = field.Region;
+        if (_image == null || region != _shown)
+        {
+            _shown = region;
+            _image = Image.CreateFromData(region.Width, region.Height, false, Image.Format.Rgba8, field.Texels);
+            _texture = ImageTexture.CreateFromImage(_image);
+            _look.Texture = _texture;
+            _look.Position = new Vector2(region.Left * Cell, region.Top * Cell);
+            ((ShaderMaterial)_look.Material).SetShaderParameter("origin", _look.Position);
+            return;
+        }
+        _image.SetData(region.Width, region.Height, false, Image.Format.Rgba8, field.Texels);
+        _texture!.Update(_image);
     }
 
     private void PaintMotes(Sketch g)
@@ -174,8 +194,13 @@ public partial class AirView : Node2D
             _streams = next;
             _owed = new double[next.Count];
         }
-        _losing = Runs(roomOf, width, (_, room) => losing.Contains(room) ? Pulse : null);
-        _pulse.QueueRedraw();
+        // Laid out again only when the rooms or those draining changed.
+        if (_losingFor != (m.Rooms, m.Rooms.Version) || !losing.SetEquals(_losingRooms))
+        {
+            (_losingFor, _losingRooms) = ((m.Rooms, m.Rooms.Version), losing);
+            _losing = Runs(roomOf, width, m.Grid.Built, (_, room) => losing.Contains(room) ? Pulse : null);
+            _pulse.QueueRedraw();
+        }
         Look(m, air, roomOf);
 
         var tank = Machines.Get("tank");
@@ -196,16 +221,12 @@ public partial class AirView : Node2D
         if (_field == null || _field.Width != width || _field.Height != height)
         {
             _field = new AirField(width, height);
-            _texels = new byte[width * height * 4];
-            _image = Image.CreateFromData(width, height, false, Image.Format.Rgba8, _texels);
-            _texture = ImageTexture.CreateFromImage(_image);
-            _look.Texture = _texture;
             ((ShaderMaterial)_look.Material).SetShaderParameter("cell", (float)Cell);
         }
         var venting = new Dictionary<int, IReadOnlyList<int>>();
         foreach (var a in air)
             if (a.Status == RoomStatus.Venting && m.Rooms.RoomById(a.Room) is { } room) venting[a.Room] = room.Openings;
-        _field.Survey(roomOf, m.Atmosphere.AiredAt, venting);
+        _field.Survey(roomOf, m.Atmosphere.AiredCells, venting, m.Grid.Built);
         _fillingVents = m.Grid.Machines
             .Where(x => x.Kind == "vent" && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && a.Status == RoomStatus.Filling)
             .Select(x => ((x.Cell % width + 0.5) * Cell, (x.Cell / width + 0.5) * Cell)).ToList();
@@ -228,20 +249,21 @@ public partial class AirView : Node2D
 
     /// <summary>
     /// Rooms' cells in the colour <paramref name="colourOf"/> gives each cell of a room, none where it gives
-    /// none: a rectangle per run of one colour along a row.
+    /// none: a rectangle per run of one colour along a row. Only <paramref name="built"/> holds rooms.
     /// </summary>
-    private static List<(Rect2, Color)> Runs(ReadOnlySpan<int> roomOf, int width, Func<int, int, Color?> colourOf)
+    private static List<(Rect2, Color)> Runs(ReadOnlySpan<int> roomOf, int width, Stillwake.Sim.Grid.Box built, Func<int, int, Color?> colourOf)
     {
         var runs = new List<(Rect2, Color)>();
         Color? ColourAt(ReadOnlySpan<int> rooms, int cell) => rooms[cell] >= 0 ? colourOf(cell, rooms[cell]) : null;
-        for (int start = 0; start < roomOf.Length;)
-        {
-            var here = ColourAt(roomOf, start);
-            int end = start + 1;
-            while (end < roomOf.Length && end % width != 0 && ColourAt(roomOf, end) == here) end++;
-            if (here is { } colour) runs.Add((new Rect2(start % width * Cell, start / width * Cell, (end - start) * Cell, Cell), colour));
-            start = end;
-        }
+        for (int y = built.Top; y <= built.Bottom; y++)
+            for (int start = y * width + built.Left, last = y * width + built.Right; start <= last;)
+            {
+                var here = ColourAt(roomOf, start);
+                int end = start + 1;
+                while (end <= last && ColourAt(roomOf, end) == here) end++;
+                if (here is { } colour) runs.Add((new Rect2(start % width * Cell, start / width * Cell, (end - start) * Cell, Cell), colour));
+                start = end;
+            }
         return runs;
     }
 

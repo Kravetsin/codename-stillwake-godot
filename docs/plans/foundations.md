@@ -92,9 +92,26 @@ apart and built again every tick, the reference ship (256×128) 8 cells into a w
 What is left is the ship: a flood of 256×128 costs 0.7 ms. Anything built far out, a back wall or a
 pipe in space, widens the box and so the cost.
 
-### F-5 — The air overlay draws only what changed or is seen
+### F-5 — The air overlay draws only what changed ✅
 
-- Client only. Its per-cell passes are limited to the cells on screen or the rooms that changed.
+The air field and its texture cover only what is built and a cell round it (the grid's `Built`),
+growing with it; the shader is told where the texture lies, so it draws what a texture of the whole
+world did, pixel for pixel. A survey looks again only at the rows whose rooms moved, the rooms whose
+openings changed and the cells whose air came or went; a frame eases, writes and uploads only the
+cells still on their way, so a still ship uploads nothing. The pulse of draining rooms is laid out
+again only when they change. A temporary harness fed the old field and the new the same random
+rooms, air, openings and growth for thousands of frames: every texel uploaded was the same. The
+perf world (`--perf`, now with `--size` and `--built`), debug build, 20 s of the frame log: the
+`hands` section, where the air is drawn, and the frames it pushed over a refresh:
+
+| World | Before: avg / max ms, slow frames | After |
+| --- | --- | --- |
+| 256×128 | 0.038 / 3.1, none | 0.028 / 1.3, none |
+| 1024×512, 256×128 built | 0.129 / 29.2, 77 over 16.7 ms | 0.027 / 10.1 (the first survey), none |
+| 2048×1024, 512×256 built | 0.613 / 127.3, 76 over 33 ms | 0.045 / 4.7, none |
+
+Not limited to the cells on screen: the box of what is built already bounds it, and easing cells off
+screen keeps what scrolls into view as it would have been.
 
 ### F-6 — The build area: 1024×512
 

@@ -38,7 +38,8 @@ namespace Stillwake.Game;
 /// crates and catches debris, the left button held works plans; the camera follows it; its items (Tab,
 /// 1–9, the wheel, Q) and the lifepod's Fabricator beside them (E at the pod), the plan (B), the game menu (Esc: settings, save,
 /// load, quit) and the dev panel (`).
-/// Dev arguments after <c>--</c>: <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit), <c>--gallery</c> every picture,
+/// Dev arguments after <c>--</c>: <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
+/// large, its tiles over <c>--built WxH</c> of it from the top-left, all of it by default), <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
@@ -187,6 +188,15 @@ public partial class Main : Node2D, ITogether
     private bool Floats() => _session != null && _hero is { Placed: true, Floats: true };
 
     private bool Has(string flag) => _args.Contains(flag);
+    private static (int, int) Size(string? text, (int, int) or) => text?.Split('x') is [var w, var h] ? (int.Parse(w), int.Parse(h)) : or;
+
+    /// <summary>The reference world, at <c>--size</c> and built over <c>--built</c> of it.</summary>
+    private Layout PerfLayout()
+    {
+        var (w, h) = Size(Arg("--size"), (256, 128));
+        var (bw, bh) = Size(Arg("--built"), (w, h));
+        return DevWorlds.Perf(w, h, bw, bh);
+    }
     private string? Arg(string flag) => _args.SkipWhile(a => a != flag).Skip(1).FirstOrDefault();
 
     private IReadOnlyList<Sim.Module> Modules()
@@ -198,7 +208,7 @@ public partial class Main : Node2D, ITogether
     private void Alone()
     {
         var modules = Modules();
-        var layout = Has("--perf") ? DevWorlds.Perf() : _layout;
+        var layout = Has("--perf") ? PerfLayout() : _layout;
         var world = Has("--gallery") ? DevWorlds.Gallery(modules)
             : Has("--furnace") ? FurnaceDemo.Create(modules)
             : Has("--testbed") ? Testbed.Create(modules)
@@ -246,6 +256,7 @@ public partial class Main : Node2D, ITogether
     /// <summary>Hosts a session from the start: over ENet on <see cref="Port"/>, or on the relay as <paramref name="name"/>.</summary>
     private void Host(string? name)
     {
+        if (Has("--perf")) _layout = PerfLayout();
         var world = World.Create(1, _layout, Modules());
         // The debris and wreck demos are played hosting too, so a guest sees a catch, or the host chop.
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);

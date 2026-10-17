@@ -12,11 +12,13 @@ public static class DevWorlds
     /// <summary>
     /// The reference world of CLAUDE.md's budgets (dev/perf-map.ts): 256×128 cells, every layer in
     /// use — walls, floors, ladders, doors, pipe runs with valves, tanks and vents — and a lamp in one
-    /// room of five, about a hundred shadowed lights.
+    /// room of five, about a hundred shadowed lights. Given a size, a world that large with the same tiles
+    /// over <paramref name="builtWidth"/>×<paramref name="builtHeight"/> of it from the top-left, the rest
+    /// space: what a large build area costs.
     /// </summary>
-    public static Layout Perf()
+    public static Layout Perf(int width = 256, int height = 128, int builtWidth = 0, int builtHeight = 0)
     {
-        const int width = 256, height = 128;
+        if (builtWidth == 0) (builtWidth, builtHeight) = (width, height);
         string[] tile =
         [
             "########",
@@ -31,9 +33,10 @@ public static class DevWorlds
         var rows = new List<string>();
         for (int y = 0; y < height; y++)
         {
-            var row = string.Concat(Enumerable.Range(0, width / 8).Select(tx =>
+            if (y >= builtHeight) { rows.Add(new string(' ', width)); continue; }
+            var row = string.Concat(Enumerable.Range(0, builtWidth / 8).Select(tx =>
                 y % 8 == 1 && (tx + y / 8 * 3) % 5 == 0 ? "#TT.VL-#" : tile[y % 8]));
-            rows.Add(row);
+            rows.Add(row.PadRight(width));
         }
         rows[1] = "#TTS" + rows[1][4..];
         return Layout.Parse(rows);
