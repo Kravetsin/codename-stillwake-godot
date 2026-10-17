@@ -72,6 +72,7 @@
     <Compile Include="../game/features/power/CableRopes.cs" Link="Game/Power/CableRopes.cs" />
     <Compile Include="../game/features/power/PowerHands.cs" Link="Game/Power/PowerHands.cs" />
     <Compile Include="../game/features/pipes/Flow.cs" Link="Game/Pipes/Flow.cs" />
+    <Compile Include="../game/features/pipes/Valves.cs" Link="Game/Pipes/Valves.cs" />
     <Compile Include="../game/features/atmosphere/Explain.cs" Link="Game/Atmosphere/Explain.cs" />
     <Compile Include="../game/features/atmosphere/Streams.cs" Link="Game/Atmosphere/Streams.cs" />
     <Compile Include="../game/features/atmosphere/AirField.cs" Link="Game/Atmosphere/AirField.cs" />

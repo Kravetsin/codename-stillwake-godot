@@ -52,12 +52,9 @@ public partial class LightView : Node2D
     private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow)> _shown = new();
     private readonly List<(Machine Machine, Vector2 At, Sprite2D Glow)> _fires = new();
     private readonly List<LightSource> _main = new(), _spots = new();
-    /// <summary>The structure and back walls as last looked at: empty past what is built, as the grid's are.</summary>
-    private readonly int[] _structure, _back;
     private Machine[] _machines = [];
     private bool _drawn;
     private int _version;
-    private Box _looked = Box.None;
     private double _timeMs;
 
     /// <summary>
@@ -82,7 +79,6 @@ public partial class LightView : Node2D
     public LightView(IGridQueries grid)
     {
         _grid = grid;
-        (_structure, _back) = (new int[grid.Width * grid.Height], new int[grid.Width * grid.Height]);
         AddChild(new CanvasModulate { Color = new Color(L.Ambient.R, L.Ambient.G, L.Ambient.B) });
         AddChild(_lightmap);
         AddChild(_starlight);
@@ -91,30 +87,43 @@ public partial class LightView : Node2D
 
     /// <summary>
     /// Brings what stops light, starlight and lamps up to the grid: called after each tick, nothing done
-    /// while the grid's version stands, and compared only within what is built now and was at the last look.
+    /// while the grid's version stands, and then only for the cells its log names (0050).
     /// </summary>
     public void Sync()
     {
         if (_drawn && _grid.Version == _version) return;
-        var box = _looked.Union(_grid.Built);
+        var log = _drawn ? _grid.ChangedSince(_version) : null;
+        (_drawn, _version) = (true, _grid.Version);
         int w = _grid.Width;
-        bool walls = !_drawn || !BuiltRows.Same(_grid.StructureLayer, _structure, w, box);
-        bool backs = !_drawn || !BuiltRows.Same(_grid.BackLayer, _back, w, box);
-        bool machines = !_drawn || !_machines.SequenceEqual(_grid.Machines);
-        (_drawn, _version, _looked) = (true, _grid.Version, _grid.Built);
-        if (walls)
+        if (log == null)
         {
-            BuiltRows.Copy(_grid.StructureLayer, _structure, w, box);
+            // The first look, or the grid's log let go of what changed: everything laid out anew.
             _lightmap.Occupy(_grid.StructureLayer, w, _grid.Built, DoorPanel);
+            _machines = _grid.Machines.ToArray();
+            ShowLamps();
+            _starlight.Show(_grid);
+            return;
         }
-        if (backs) BuiltRows.Copy(_grid.BackLayer, _back, w, box);
+        _walls.Clear();
+        _lit.Clear();
+        bool machines = false;
+        foreach (var change in log)
+        {
+            if ((change.Layers & GridLayers.Structure) != 0) _walls.Add(change.Cell);
+            if ((change.Layers & (GridLayers.Structure | GridLayers.Back | GridLayers.Machine)) != 0) _lit.Add(change.Cell);
+            machines |= (change.Layers & GridLayers.Machine) != 0;
+        }
+        if (_walls.Count > 0) _lightmap.Follow(_grid.StructureLayer, w, _grid.Built, _walls, DoorPanel);
         if (machines)
         {
             _machines = _grid.Machines.ToArray();
             ShowLamps();
         }
-        if (walls || backs || machines) _starlight.Show(_grid);
+        if (_lit.Count > 0) _starlight.Follow(_grid, _lit);
     }
+
+    /// <summary>Scratch for <see cref="Sync"/>: the cells changed in structure, and in what stops, dims or lets in starlight.</summary>
+    private readonly List<int> _walls = [], _lit = [];
 
     private void ShowLamps()
     {

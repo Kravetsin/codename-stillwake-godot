@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Sim;
@@ -9,8 +10,8 @@ namespace Stillwake.Game.Features.Light;
 /// The starlight (<see cref="StarField"/>) as a texture of a texel a cell over what is built and a margin
 /// round it, handed to <see cref="Lit"/>, whose material reads it smoothed between the cells of a picture's
 /// own side and, past its edge, the edge's texel: open space whole in the stars, as all space past what is
-/// built is. Worked out only when the ship changes; the texture is kept and filled anew while its size
-/// holds, so a door toggled allocates nothing and costs only the sweeps over the ship.
+/// built is. Worked out only when the ship changes, and then only around the cells changed; the texture is
+/// kept and filled anew while its size holds, so a door toggled allocates nothing.
 /// </summary>
 public partial class Starlight : Node
 {
@@ -26,6 +27,18 @@ public partial class Starlight : Node
     public void Show(IGridQueries grid)
     {
         _field.Work(grid);
+        Upload();
+    }
+
+    /// <summary>Works the starlight out again around <paramref name="cells"/>, changed in what stops, dims or lets in the stars.</summary>
+    public void Follow(IGridQueries grid, IReadOnlyList<int> cells)
+    {
+        _field.Follow(grid, cells);
+        Upload();
+    }
+
+    private void Upload()
+    {
         var r = _field.Region;
         int w = r.Width, h = r.Height;
         if (_image != null && _texture != null && _image.GetWidth() == w && _image.GetHeight() == h)

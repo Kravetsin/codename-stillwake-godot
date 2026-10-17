@@ -5,17 +5,26 @@ and by the stars through the holes in its back walls. Drawn only: nothing of it 
 Numbers from `game/Content/Light.cs`.
 
 - **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors stop light), `BackLayer`,
-  `Machines` (lamps, fires; machines dim starlight), `Width`/`Height`, `Version` and `Built`;
-  `Particles.Shared` (what glows); every `render/Glow` in the tree (a planner's screen).
-- **Costs what is built, not the world** (F-6 slice 0). `LightView.Sync` after a tick does nothing
-  while the grid's `Version` stands; when it moved, it compares its copies of the structure and back
-  walls only within what is built now and was at its last look (`shared/BuiltRows.cs`), since past
-  both every layer is empty. The occupancy texture covers `Built` and the shader is told its corner
-  (`origin`); past it every cell is open, as it was. Starlight is worked out over `Built` and 4 cells of
-  space round it (`StarField`): past what is built every cell is open stars at full, which is what the
-  texel at the texture's edge holds, and `Lit` reads that edge texel for anything beyond, so the
-  picture is the old whole-grid one (`BuiltBoundsTests`). A ship of 192×96 in a 2048×1024 world lit a
-  toggled door in 130 ms a tick, now in 0.01 ms (2.5 at most).
+  `Machines` (lamps, fires; machines dim starlight), `MachineAt`, `Width`/`Height`, `Version`,
+  `ChangedSince` and `Built`; `Particles.Shared` (what glows); every `render/Glow` in the tree (a
+  planner's screen).
+- **Costs the cells changed, not the ship or the world** (F-7, 0050). `LightView.Sync` after a tick
+  does nothing while the grid's `Version` stands; when it moved, the grid's log names the cells changed
+  since its last look. A cell whose structure changed has its texel of the occupancy texture set again
+  (`Lightmap.Follow`); one past the texture lays the texture out anew over `Built`, whose corner the
+  shader is told (`origin`). Past the texture every cell is open, so a texture that still covers what
+  was built is drawn alike. Lamps are laid out again only when the log names a machine's cell. Starlight
+  is worked out again only round the cells changed in structure, back wall or machine
+  (`StarField.Follow`): within `StarField.Reach` (45) cells of them, from what lies within twice that.
+  Every cell crossed keeps at most `Light.Air` of the light, so past 45 cells what crossed a changed
+  cell is under the faintest light a texel shows, and every texel there is as it was; and light from
+  past twice the reach is as faint where it is written. The texels are those working it all out gives,
+  byte for byte (`BuiltBoundsTests`, over ships and halls where the light runs far). A first look, or
+  one the log no longer reaches back to, lays everything out anew, as before (F-6 slice 0): starlight
+  over `Built` and 4 cells of space round it, past which every cell is open stars at full, which is what
+  the texel at the texture's edge holds, and `Lit` reads that edge texel for anything beyond. A door
+  toggled every tick on a fully built 1024×512 world cost the light 35 ms a frame, starlight 33 ms a
+  change; now 0.9 and 1.5 ms (debug build), whatever the size of the ship.
 - **No Godot lights.** Godot lights a drawn thing by at most 15 lights and drops the rest: a furnace's
   embers once pushed a lamp out and whole tile chunks went dark. All light is composed here instead,
   with no limit on how many lights touch a thing.
@@ -26,7 +35,7 @@ Numbers from `game/Content/Light.cs`.
   (`Sources.Pack`): its colour falling off by its keep a cell out to its reach as the TypeScript game
   spread it, each colour at most its most, times its strength. The quad's shader walks the cells from
   each texel to the light through an occupancy texture, a byte a cell of what is built (`Sources.Occupy`: wall, closed
-  door, open; rebuilt only when walls or doors change), and drops the texel if a wall or a closed
+  door, open; a texel set again for each wall or door changed), and drops the texel if a wall or a closed
   door's panel stands between: shadows to the pixel. The walls a texel is in are passed until the
   line comes out of them, so a wall is lit on the faces light reaches; in a door's cell only a texel
   on the panel itself passes it, down the door's cells till the line leaves the panel, so a door is
@@ -48,7 +57,7 @@ Numbers from `game/Content/Light.cs`.
   `Light.ScreenKeep` out to `ScreenReach` (3).
 - **Starlight:** `StarField` (plain C#, tested) works it out cell by cell as the TypeScript game did
   (the stars in every open cell with no back wall and past the grid's edge, spread by row and column
-  sweeps), only when walls, doors, back walls or machines change, over what is built and a margin; and
+  sweeps), only when walls, doors, back walls or machines change, and then only round them; and
   `Starlight` hands it to `render/Lit.cs` as a texture of a texel a cell laid where that region lies,
   its alpha marking a wall's or closed door's cell; a picture blends it only with cells of its own side.
 - **`render/Lit.cs`** draws everything set with `Lit.Set`, unshaded, the lightmaps blended between
@@ -80,8 +89,10 @@ Numbers from `game/Content/Light.cs`.
   what is out of reach anyway.
 - Cost grows with the lights on screen times their reach squared; no light is cached between frames.
   A cache of each still light's shadows is the next step if a ship ever outgrows the budget.
-- Recomputing starlight near a change only: it is redone over everything built, about 2.7 ms on the
-  reference world per change and 35 ms on a fully built 1024×512 (debug).
+- A change's starlight is worked out over a square of about 181 cells across (four times the reach and
+  the cell), 1.5 ms in a debug build: the reach is what the faintest texel allows, not where the light
+  of this ship fades out. Changes far apart in one tick are worked out apart. The texture is uploaded
+  whole after a change (2 MB on a fully built 1024×512), as Godot updates no part of one.
 - Starlight's texture moves with what is built, and the shader finds a texel by
   `(world − corner) / size × texels` in floats: at a texel's edge the rounding can fall the other way
   than over the whole grid. Seen once in a run of the wreck: one pixel, one step of 255 in a colour.

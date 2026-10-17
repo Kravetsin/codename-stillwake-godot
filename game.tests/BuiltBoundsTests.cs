@@ -1,5 +1,6 @@
 using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Features.Light;
+using Stillwake.Game.Features.Pipes;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
@@ -8,9 +9,9 @@ using Xunit;
 namespace Stillwake.Game.Tests;
 
 /// <summary>
-/// The client looks only within what is built (F-6 slice 0): starlight and the drawn layers come out as
-/// they did over the whole grid, for ships anywhere in worlds of space, edited inside, on the hull and
-/// out in space, with toggles in flight.
+/// The client looks only within what is built (F-6 slice 0) and at the cells the grid's log names (0050):
+/// starlight, the drawn layers and the valves come out as they did over the whole grid, for ships anywhere
+/// in worlds of space, edited inside, on the hull and out in space, with toggles in flight, past the log too.
 /// </summary>
 public class BuiltBoundsTests
 {
@@ -38,6 +39,23 @@ public class BuiltBoundsTests
     {
         var p = Placements[rng.Next(Placements.Length)];
         if (m.Grid.PlacementProblem(cell, p) == null) m.Grid.Place(cell, p);
+    }
+
+    /// <summary>A world of space with a hall in it: back walls with holes, many or very few, a wall or a lamp now and then.</summary>
+    private static Registry Hall(Random rng, int w, int h)
+    {
+        var m = new Registry();
+        World.Create(1, Layout.Parse(Enumerable.Repeat(new string(' ', w), h).ToList()), m.All);
+        int left = rng.Next(1, 8), top = rng.Next(1, 4), right = w - rng.Next(2, 8), bottom = h - rng.Next(2, 4), holes = rng.Next(3) switch { 0 => 400, 1 => 30, _ => 4 };
+        for (int y = top; y <= bottom; y++)
+            for (int x = left; x <= right; x++)
+            {
+                int cell = y * w + x, roll = rng.Next(10_000);
+                if (roll >= holes) m.Grid.Place(cell, Placement.BackWall());
+                if (roll >= 9_900) m.Grid.Place(cell, Placement.Wall());
+                if (roll is >= 9_850 and < 9_900 && m.Grid.PlacementProblem(cell, new Placement("machine", "lamp")) == null) m.Grid.Place(cell, new Placement("machine", "lamp"));
+            }
+        return m;
     }
 
     /// <summary>Some cells built, some taken apart, mostly in the ship and its edge, now and then far out in space.</summary>
@@ -94,7 +112,73 @@ public class BuiltBoundsTests
     }
 
     [Fact]
-    public void DrawnLayersFindTheCellsAWholeCompareFindsWithTogglesInFlight()
+    public void StarlightWorksAChangeOutWithinAReachShortOfTheWholeRegion() =>
+        Assert.InRange(StarField.Reach, 1, 60);
+
+    /// <summary>
+    /// Starlight followed around the cells the grid's log names comes out byte for byte as worked out anew,
+    /// over ships wider than the reach and narrower and halls where the light runs far, edited inside, on
+    /// the hull and out in space, what is built growing and shrinking, and several edits far apart at once.
+    /// </summary>
+    [Fact]
+    public void StarlightFollowedAroundTheChangesIsWhatWorkingItOutAnewGives()
+    {
+        var rng = new Random(12);
+        int windowed = 0;
+        for (int world = 0; world < 24; world++)
+        {
+            int w = world % 3 == 0 ? rng.Next(6, 40) : rng.Next(300, 420), h = world % 3 == 0 ? rng.Next(6, 28) : rng.Next(30, 90);
+            // A hall of back walls with a few holes, where the stars' light runs far, or cells of anything.
+            var m = world % 3 == 2 ? Hall(rng, w, h) : Ship(rng, w, h);
+            var followed = new StarField();
+            followed.Work(m.Grid);
+            for (int step = 0; step < 12; step++)
+            {
+                int version = m.Grid.Version;
+                for (int k = rng.Next(1, 3); k > 0; k--) Edit(m, rng);
+                var changed = m.Grid.ChangedSince(version)!
+                    .Where(c => (c.Layers & (GridLayers.Structure | GridLayers.Back | GridLayers.Machine)) != 0).Select(c => c.Cell).ToList();
+                if (changed.Count == 0) continue;
+                followed.Follow(m.Grid, changed);
+                var whole = new StarField();
+                whole.Work(m.Grid);
+                Assert.Equal(whole.Region, followed.Region);
+                Assert.True(whole.Texels.AsSpan().SequenceEqual(followed.Texels), $"world {world}, step {step}");
+                if (whole.Region.Width > 4 * StarField.Reach + 1) windowed++;
+            }
+        }
+        Assert.True(windowed > 50, $"{windowed} changes followed in a region wider than their window");
+    }
+
+    /// <summary>The valves the pipes overlay marks, followed by the grid's log, are those a look over the whole grid finds.</summary>
+    [Fact]
+    public void ValvesFollowedByTheLogAreThoseOfAWholeLook()
+    {
+        var rng = new Random(4);
+        for (int world = 0; world < 40; world++)
+        {
+            int w = rng.Next(6, 40), h = rng.Next(6, 24);
+            var m = Ship(rng, w, h);
+            var valves = new Valves();
+            for (int step = 0; step < 30; step++)
+            {
+                if (rng.Next(3) != 0) Edit(m, rng);
+                if (world % 8 == 0 && step == 15) Outrun(m, rng);
+                var whole = Enumerable.Range(0, w * h).Where(c => m.Grid.ConduitAt(c) is Conduit.ValveOpen or Conduit.ValveClosed);
+                Assert.Equal(whole, valves.Of(m.Grid));
+            }
+            // Another world's grid is looked at whole, though it has had the version last seen of this one.
+            var other = Ship(rng, w, h);
+            int middle = other.Grid.Built.IsEmpty ? 0 : (other.Grid.Built.Top + other.Grid.Built.Height / 2) * w + other.Grid.Built.Left + other.Grid.Built.Width / 2;
+            while (other.Grid.Version <= m.Grid.Version)
+                if (other.Grid.BackLayer[middle] == Back.Wall) other.Grid.Clear(middle, "back");
+                else other.Grid.Place(middle, Placement.BackWall());
+            Assert.Equal(Enumerable.Range(0, w * h).Where(c => other.Grid.ConduitAt(c) is Conduit.ValveOpen or Conduit.ValveClosed), valves.Of(other.Grid));
+        }
+    }
+
+    [Fact]
+    public void DrawnLayersFindTheCellsAWholeCompareFindsWithTogglesInFlightAndPastTheLog()
     {
         var rng = new Random(9);
         for (int world = 0; world < 60; world++)
@@ -106,6 +190,8 @@ public class BuiltBoundsTests
             for (int step = 0; step < 40; step++)
             {
                 if (step > 0 && rng.Next(3) != 0) Edit(m, rng);
+                // Now and then more written than the grid's log holds: the drawing looks within what is built again.
+                if (world % 4 == 0 && step == 20) Outrun(m, rng);
                 var view = InFlight(m, rng, step);
                 int[][] now =
                 [
@@ -128,6 +214,16 @@ public class BuiltBoundsTests
         var drawn = new DrawnLayers(4, 3);
         var stale = drawn.Stale([new DrawnLayers.Change(4, 0, 0), new DrawnLayers.Change(5, 0, 0), new DrawnLayers.Change(11, 0, 0)]);
         Assert.Equal(new[] { 0, 1, 4, 5, 6, 7, 8, 9, 10, 11 }, stale.Order());
+    }
+
+    /// <summary>A back wall built and taken apart again and again in one cell, more writes than the grid's log holds.</summary>
+    private static void Outrun(Registry m, Random rng)
+    {
+        int cell = rng.Next(m.Grid.Width * m.Grid.Height), version = m.Grid.Version;
+        for (int i = 0; i < 34_000; i++)
+            if (m.Grid.BackLayer[cell] == Back.Wall) m.Grid.Clear(cell, "back");
+            else if (m.Grid.PlacementProblem(cell, Placement.BackWall()) == null) m.Grid.Place(cell, Placement.BackWall());
+        Assert.Null(m.Grid.ChangedSince(version));
     }
 
     /// <summary>Now and then some doors and valves toggled, as a peer's in flight; else nothing in flight.</summary>
