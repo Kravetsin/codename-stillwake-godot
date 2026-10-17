@@ -27,7 +27,8 @@ mode, the world setting in which nothing is ever taken
   their id; every material is one, the salvage items, with `Yields`, are what caught debris
   becomes, and the parts (wire, plate, gear, tube, and of them the rotor, frame and coil) are crafted by
   `Crafting` into the lifepod's outputs;
-  circuits are salvaged only, from cable racks (`Debris`). Containers and wreckage are items too, a
+  circuits are salvaged only, from cable racks (`Debris`), and go into what is electric: the battery, the
+  charging station and the drill. Containers and wreckage are items too, a
   stack of one, never carried but in creative mode and the testbed's crate. The inventory's first row is the hotbar.
 - **What one item holds of its own** (0053) is on its stack: `Charge`, a battery's, from 0 to its item's
   `Capacity`, in the units machines draw power in (power-ticks, stored in thousandths: `Content.Charge`), only on items of a stack of one that have one, 0 on anything else. Every copy of a stack is

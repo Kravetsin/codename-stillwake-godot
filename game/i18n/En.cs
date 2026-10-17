@@ -217,6 +217,7 @@ public static partial class En
         ["crafts.from.iron"] = "smelt hull plates",
         ["crafts.from.planks"] = "cargo crates",
         ["crafts.from.canister"] = "supply pods, oxygen tanks",
+        ["crafts.from.circuit"] = "break cable racks",
         ["research.nothingNew"] = "Analysed",
         ["research.opened"] = "Opened",
         ["research.empty"] = "Put in an item to learn it",
