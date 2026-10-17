@@ -6,8 +6,8 @@ unchanged.
 
 - **Depends on:** `Grid`, through `IGridQueries` (`ConduitLayer`, `Machines`, `PortsOf`).
 - **State:** nothing saved. Derived: `NetworkOf` per cell (a network's id, or `PipeNetworks.None`), the
-  networks in id order, and the copies of the conduit layer and of the machines (id and cell each)
-  they were found from.
+  networks in id order, the copies of the conduit layer and of the machines (id and cell each)
+  they were found from, the grid's `Version` last looked at, and the networks' own `Version`.
 - **Files:** `PipeNetworks.cs` — the rules below, on plain arrays; `Pipes.cs` — the module.
 
 ## Rules
@@ -19,7 +19,8 @@ unchanged.
   its own cell, a tank through its bottom-left. A pipe under another cell of a machine does not
   connect it.
 - Networks are found again on the tick a conduit or machine changes: a system in the derivation phase
-  compares the conduit layer and the machines with its copies every tick. Read networks in systems at
+  compares the conduit layer and the machines with its copies on each tick the grid's `Version`
+  moved, and bumps `Version` when it finds them again. Read networks in systems at
   or after derivation, never in commands or construction.
 
 ## API
@@ -27,7 +28,9 @@ unchanged.
 - **Queries** (`IPipesQueries`): `NetworkAt(cell)` — a network's id, or null; `NetworksOf(machineId)`
   — the networks a machine has a port on, in id order; `Network(id)`; `Networks` in id order, each a
   `Network(Id, Cells, Machines)` with cells in cell order and machines by id. `Networks` is the same
-  list until a conduit or machine changes: a reader may compare it by reference.
+  list until a conduit or machine changes: a reader may compare it by reference. `Version` — bumped
+  each time the networks are found again, never saved: what `atmosphere` keeps of the networks, it
+  keeps while this stays.
 - **Commands, operations, events:** none.
 
 ## Invariants
