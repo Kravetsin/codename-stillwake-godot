@@ -7,9 +7,9 @@ public sealed partial class ItemsModule
     /// <summary>
     /// Mostly moves, from the sender's own inventory or a crate holding something, so most are taken;
     /// now and then from an empty slot, a slot out of range, a crate that is not there, or onto a full
-    /// or other stack, so every refusal is drawn too. Creative mode switches now and then, mostly off.
-    /// Now and then a drop onto a cell, off the grid too, or a pick-up of a stack on the floor or of
-    /// one long gone.
+    /// or other stack, or into an equipment slot that does not wear it, so every refusal is drawn too.
+    /// Creative mode switches now and then, mostly off. Now and then a drop onto a cell, off the grid
+    /// too, or a pick-up of a stack on the floor or of one long gone.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
@@ -33,11 +33,11 @@ public sealed partial class ItemsModule
         var at = Side();
         var src = at is int id
             ? new Place(SlotIn(State.Crates.Find(h => h.Id == id)?.Slots, crateSlots), id)
-            : new Place(SlotIn(own, Content.Inventory.Slots));
+            : new Place(SlotIn(own, Content.Inventory.Total));
         var to = Side();
         var dst = rng.Below(3) == 0
             ? new Target(Crate: to)
-            : new Target((int)rng.Below((uint)(to == null ? Content.Inventory.Slots : crateSlots) + 1), to);
+            : new Target((int)rng.Below((uint)(to == null ? Content.Inventory.Total : crateSlots) + 1), to);
         // Whole stacks, halves and single items, and now and then none.
         int count = rng.Below(5) switch { 0 => 999, 1 => 1, 2 => 3, 3 => (int)rng.Below(40), _ => 0 };
         uint roll = rng.Below(8);

@@ -13,13 +13,14 @@ and changes it only by sending `Move`,
 | ------------------ | -------------------------------------------------------------------------------------------- | ----- |
 | `Click.cs`         | the click rules (`click.ts`): `Clicks.On`, `Picked`, `SlotClick`, `Clicked`                  | no    |
 | `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`)                                                  | no    |
+| `Equipment.cs`     | the equipment slots by kind, and which light up or dim while a stack is carried (`SlotGlow`, 0047) | no    |
 | `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s and `Drop`s in flight (0014); which items are marked unanalysed, a stack's tip | no    |
 | `Lessons.cs`       | an analyzer's panel: its stage, how far, what an analysed item goes into, each one's tip (0027) | no    |
 | `Reach.cs`         | `HeroSpot`; pick-ups (`pickup.ts`)                                                           | no    |
-| `SlotBox.cs`       | one slot: icon, count, chosen, picked, hovered, the violet "?" of an item not analysed        | yes   |
+| `SlotBox.cs`       | one slot: icon, count, chosen, picked, hovered, the violet "?" of an item not analysed; an equipment slot's looks        | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
-| `InventoryPanel.cs`| the hotbar, the inventory, the open crate, furnace, burner generator or analyzer, the stack in hand | yes   |
+| `InventoryPanel.cs`| the hotbar, the inventory and its equipment by the body, the open crate, furnace, burner generator or analyzer, the stack in hand | yes   |
 | `FloorLayer.cs`    | stacks on the floor, rimmed, bobbing at rest, side by side when still, gliding between ticks, turning in space (`floor-layer.ts`) | yes |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head                                                     | yes   |
 | `ItemsView.cs`     | the feature: pick-ups, the layers and the panel                                              | yes   |
@@ -28,7 +29,7 @@ and changes it only by sending `Move`,
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
 one for one: `click.test.ts` (`ClickTests`), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
 (`PickUpTests`), a test for the fold of own moves (`CrateTests`), one for the analyzer's panel
-(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`) and one for an item's card (`ItemCardTests`). Opening a crate is aimed
+(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the equipment's glow (`EquipmentTests`) and one for an item's card (`ItemCardTests`). Opening a crate is aimed
 as everything E works is, in the crew feature (`AimTests`).
 
 ## Guarantees
@@ -36,13 +37,19 @@ as everything E works is, in the crew feature (`AimTests`).
 - What the slots show is the world with this peer's own moves and drops in flight made (`Reading`),
   read every 100 ms and at once after each move it sends, so a quick next click acts on what is seen.
 - Clicks follow `click.ts` exactly: left picks a stack and puts it on the next slot, right picks half
-  rounded up or puts one, shift sends a stack across to the open crate (a fuel into the fuel slot of a
+  rounded up or puts one, but on a canister of the hero's own with none picked breathes it (`Ui.Breathe`, 0047), shift sends a stack across to the open crate (a fuel into the fuel slot of a
   furnace or a burner generator, its machine's `FuelSlot`), a click on the picked slot puts it back. A press begins a drag; let go over another slot it
   puts the stack there, over the world it throws it. Along the closed hotbar a drag moves a stack.
 - One hand (0022, `Ui.Hand`): 1–9 and the wheel over the world choose a hotbar slot and free the hand,
   putting the plan away; Tab frees it too as it opens the inventory. Q throws the chosen slot's whole
   stack from the hero's cell the way it faces, and does nothing while a card is in hand. The chosen
   slot is outlined only while the hand is free.
+- **Equipment** (0047): right of the grid while the inventory is open, a block laid out as the body, each
+  row of slots under its name (head, back, belt; `equip.<kind>`): an empty slot darker, its edge faint, a
+  worn one edged a little green, no silhouettes. While a stack is in hand or dragged, the equipment slots
+  that would wear it (`Equipment.GlowOf`, from `Items.Equip`) are lit green with a glow and the others
+  dimmed; the sim decides (`items.notEquipment`). Where the open inventory ends (`Ui.InventoryEdge`) is
+  past the block, so the Fabricator docks beside it.
 - What the free hand holds (`Ui.Wielded`, 0034): the item in the chosen slot while the hand is free,
   else none, set on every refresh; the crew swings the fire axe and aims the harpoon by it.
 - Tab opens and closes the inventory; Esc closes it and the crate, and puts the plan away with them,
@@ -68,7 +75,8 @@ as everything E works is, in the crew feature (`AimTests`).
   the wreckage it breaks (`Content.Wreckage`); the harpoon's range in cells, reload in seconds and reel
   speed in cells a second (`Content.Harpoon`), and "Debris" and "Wreckage"; then its key and hint. Any
   other item says under "Goes into" what has it in its cost: crafts, then blueprints, then the cable,
-  in content's order, four at most and "+N" for the rest; nothing when it goes into nothing. The
+  in content's order, four at most and "+N" for the rest; nothing when it goes into nothing; and its key
+  where it has one (`item.<id>.key`): a canister "RMB breathe", the jetpack "Shift thrust in space". The
   screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.
 - A furnace's panel is its input over its fuel, the fire between them, its bar and its outputs; a
   burner generator's its fire over its fuel slot, and beside them a bolt with the power it makes

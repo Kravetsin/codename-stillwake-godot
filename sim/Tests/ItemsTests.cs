@@ -78,7 +78,7 @@ public class ItemsTests
     public void InventoriesStartEmptyAndNoneIsKeptUntilItChanges()
     {
         var w = new Scenario(Layout.Empty);
-        Assert.Equal(Empty(Inventory.Slots), w.M.Items.Inventory(3));
+        Assert.Equal(Empty(Inventory.Total), w.M.Items.Inventory(3));
         Assert.False(w.M.Items.Creative);
         Assert.Empty(w.Stored().Inventories);
         Assert.Empty(w.Stored().Crates);
@@ -229,7 +229,7 @@ public class ItemsTests
                 for (int peer = 0; peer < 3; peer++)
                 {
                     var slots = w.M.Items.Inventory(peer);
-                    Assert.Equal(Inventory.Slots, slots.Count);
+                    Assert.Equal(Inventory.Total, slots.Count);
                     foreach (var slot in slots)
                         if (slot != null) Assert.InRange(slot.Count, 1, StackOf(slot.Item));
                     int sign = s.Type == "creative" || !accepted || peer != s.From ? 0
@@ -350,7 +350,7 @@ public class ItemsTests
         Assert.Equal(new[] { "items.noCrate", "items.noCrate" }, Reasons(w)[2..]);
 
         DoMove(w, Own(-1), new Target(1), 1);
-        DoMove(w, Own(Inventory.Slots), new Target(Crate: 1), 1);
+        DoMove(w, Own(Inventory.Total), new Target(Crate: 1), 1);
         DoMove(w, Own(0), new Target(CrateSlots, 1), 1);
         DoMove(w, Own(0), new Target(0), 1);
         DoMove(w, Own(0), new Target(), 1);
@@ -381,7 +381,7 @@ public class ItemsTests
 
     /// <summary>A slot of the sender's own inventory or of machines 1 to 3, out of range by one on either side.</summary>
     internal static readonly Gen<Items.Place> Places = Gen.OneOf(
-        Slots(37).Select(Own),
+        Slots(Inventory.Total).Select(Own),
         from crate in Gen.Choose(1, 3) from slot in Slots(28) select In(crate, slot));
 
     private static readonly Gen<Target> Targets = Gen.OneOf(

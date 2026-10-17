@@ -16,6 +16,14 @@ public partial class SlotBox : Panel
     private static readonly StyleBoxFlat Chosen = Style.Box(Style.Slate800 with { A = 0.9f }, Style.Amber300);
     private static readonly StyleBoxFlat Hover = Style.Box(Style.Slate700, Style.Slate400);
     private static readonly StyleBoxFlat HoverChosen = Style.Box(Style.Slate700, Style.Amber300);
+    // Equipment (0047), as the body mockup: an empty slot darker and its edge faint, a worn one edged a little
+    // green, and one that would wear what is carried lit green while the others dim.
+    private static readonly Color Charge = new("7ee36b");
+    private static readonly StyleBoxFlat Unworn = Style.Box(Style.Slate800 with { A = 0.55f }, Style.Slate600 with { A = 0.6f });
+    private static readonly StyleBoxFlat Worn = Style.Box(Style.Slate800 with { A = 0.9f }, Style.Slate700.Lerp(Charge, 0.4f));
+    private static readonly StyleBoxFlat Takes = Lit();
+    /// <summary>What a slot that would not wear what is carried is dimmed to.</summary>
+    private const float Refused = 0.45f;
     private static readonly LabelSettings CountText = Style.Text(Style.Mono, 10, Colors.White, shadow: true);
     private static readonly LabelSettings MarkText = new()
     {
@@ -73,14 +81,30 @@ public partial class SlotBox : Panel
         MouseFilter = MouseFilterEnum.Ignore,
     };
 
+    /// <summary>A slot lit green with a soft glow around and inside its edge: it would wear what is carried.</summary>
+    private static StyleBoxFlat Lit()
+    {
+        var box = Style.Box(Style.Slate800 with { A = 0.9f }, Charge);
+        box.ShadowColor = Charge with { A = 0.35f };
+        box.ShadowSize = 3;
+        return box;
+    }
+
     /// <param name="unknown">Whether its item is not analysed yet: the "?" shows.</param>
-    public void Show(Stack? stack, bool chosen, bool picked, bool hovered, bool unknown)
+    /// <param name="glow">An equipment slot's look while a stack is carried; null for any other slot.</param>
+    public void Show(Stack? stack, bool chosen, bool picked, bool hovered, bool unknown, SlotGlow? glow = null)
     {
         _mark.Visible = stack != null && unknown;
-        AddThemeStyleboxOverride("panel", hovered ? (chosen ? HoverChosen : Hover) : chosen ? Chosen : Plain);
+        var box = glow switch
+        {
+            null => hovered ? (chosen ? HoverChosen : Hover) : chosen ? Chosen : Plain,
+            SlotGlow.Takes => Takes,
+            _ => hovered ? Hover : stack != null ? Worn : Unworn,
+        };
+        AddThemeStyleboxOverride("panel", box);
         _icon.Texture = stack == null ? null : ItemIcons.Icon(stack.Item);
         _count.Text = stack is { Count: > 1 } ? stack.Count.ToString() : "";
-        Modulate = picked ? new Color(1, 1, 1, 0.4f) : Colors.White;
+        Modulate = picked ? new Color(1, 1, 1, 0.4f) : glow == SlotGlow.Refuses ? new Color(1, 1, 1, Refused) : Colors.White;
     }
 
     /// <summary>The left button acts as it goes down, so a press can begin a drag; a click is a press let go.</summary>

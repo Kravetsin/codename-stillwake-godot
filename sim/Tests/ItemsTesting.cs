@@ -11,8 +11,21 @@ public static class ItemsTesting
     public static Scenario GiveItems(this Scenario w, int peer, params (string Item, int Count)[] cost)
     {
         var state = StateOf(w);
-        var slots = Stacks.Placed(Stacks.InventoryOf(state, peer), cost)
+        var slots = Stacks.Placed(Stacks.InventoryOf(state, peer), cost, Content.Inventory.Slots)
             ?? throw new InvalidOperationException($"peer {peer}'s inventory has no room for that");
+        Stacks.SetInventory(state, peer, slots);
+        return w;
+    }
+
+    /// <summary>Puts one <paramref name="item"/> on <paramref name="peer"/> in the first empty equipment slot of its kind: a jetpack on its back.</summary>
+    public static Scenario Wear(this Scenario w, int peer, string item)
+    {
+        var state = StateOf(w);
+        var slots = Stacks.InventoryOf(state, peer).ToArray();
+        var kind = Content.Items.Get(item).Equip ?? throw new InvalidOperationException($"{item} is not worn");
+        int at = Enumerable.Range(0, Content.Inventory.Equipment.Count)
+            .First(i => Content.Inventory.Equipment[i] == kind && slots[Content.Inventory.Slots + i] == null);
+        slots[Content.Inventory.Slots + at] = new Stack(item, 1);
         Stacks.SetInventory(state, peer, slots);
         return w;
     }

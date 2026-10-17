@@ -107,6 +107,7 @@ public static partial class En
         ["item.circuit"] = "Circuit",
         ["item.fireAxe"] = "Fire axe",
         ["item.harpoon"] = "Harpoon",
+        ["item.jetpack"] = "Oxygen jetpack",
         // An item's card: its kind under its name; a tool's key and how it is used, the tiles' labels.
         ["item.scrap.kind"] = "Material",
         ["item.iron.kind"] = "Material",
@@ -136,6 +137,11 @@ public static partial class En
         ["item.harpoon.kind"] = "Tool · Harpoon",
         ["item.harpoon.key"] = "LMB",
         ["item.harpoon.hint"] = "shoot in space, click again to reel in",
+        ["item.jetpack.kind"] = "Equipment · Back",
+        // The equipment by the body, each row of slots under its name (0047).
+        ["equip.head"] = "HEAD",
+        ["equip.back"] = "BACK",
+        ["equip.belt"] = "BELT",
         ["card.dps"] = "DPS",
         ["card.damage"] = "DMG",
         ["card.hit"] = "HIT",
@@ -196,6 +202,7 @@ public static partial class En
         ["items.empty"] = "Nothing there",
         ["items.noCrate"] = "There is no crate here",
         ["items.noSlot"] = "There is no such slot",
+        ["items.notEquipment"] = "That is not worn there",
         ["debris.gone"] = "It drifted away",
         ["debris.notOutside"] = "Catch it from outside",
         ["debris.tooBig"] = "Too big · break it apart",
