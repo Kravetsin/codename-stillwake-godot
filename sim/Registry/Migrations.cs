@@ -121,7 +121,36 @@ public static class Migrations
             save["slices"]!["items"]!["running"] ??= new JsonArray();
             return save;
         },
+        // 13 → 14: stations (0057): a fire keeps only its fuel, and what a furnace was smelting moves to crafting.
+        Stations,
     ];
+
+    /// <summary>
+    /// 13 → 14: each fire's item and progress, in ticks, becomes crafting's smelt, in thousandths of a tick;
+    /// a fire with no fuel left, kept only for that, goes. Crafting now runs before building, so its slice does.
+    /// </summary>
+    private static JsonObject Stations(JsonObject save)
+    {
+        var slices = save["slices"]!.AsObject();
+        var crafting = slices["crafting"]!.AsObject();
+        if (crafting["smelts"] is not JsonArray smelts) crafting["smelts"] = smelts = [];
+        var fires = new JsonArray();
+        foreach (var fire in slices["furnace"]!["fires"]!.AsArray())
+        {
+            int machine = (int)fire!["machine"]!, fuel = (int)fire["fuel"]!;
+            if (fire["item"] is { } item)
+                smelts.Add(new JsonObject { ["machine"] = machine, ["item"] = (string)item!, ["progress"] = (int)fire["progress"]! * 1000 });
+            if (fuel > 0) fires.Add(new JsonObject { ["machine"] = machine, ["fuel"] = fuel });
+        }
+        slices["furnace"]!["fires"] = fires;
+        // The slices in the modules' order: crafting moved before building.
+        var order = slices.Select(p => p.Key).Where(k => k != "crafting").ToList();
+        order.Insert(order.IndexOf("building"), "crafting");
+        var moved = order.Select(k => (k, slices[k]!.DeepClone())).ToList();
+        slices.Clear();
+        foreach (var (key, slice) in moved) slices[key] = slice;
+        return save;
+    }
 
     /// <summary>
     /// A save's grid centred in a world of <c>Content.World</c>'s size, by the offset its own size gives:

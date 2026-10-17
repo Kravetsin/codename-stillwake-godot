@@ -5,9 +5,9 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Crafting;
 
 /// <summary>
-/// The Fabricator's screen in its panel, 64 by 30 (the mockup's <c>.fscreen</c>): green lines running
-/// across it while it works or waits full, READY while nothing is queued. The pod needs no power, so it
-/// is never dark.
+/// A queued station's screen in its panel, 64 by 30 (the mockup's <c>.fscreen</c>): green lines running
+/// across it while it works or waits full, READY while nothing is queued, dark while a unit waits for power.
+/// The pod needs no power, so its screen is never dark.
 /// </summary>
 public partial class FabricatorScreen : Control
 {
@@ -42,7 +42,7 @@ public partial class FabricatorScreen : Control
 
     public override void _Process(double delta)
     {
-        if (_doing == Doing.Ready) return;
+        if (_doing is Doing.Ready or Doing.NoPower) return;
         _clock = (_clock + delta) % Period;
         QueueRedraw();
     }
@@ -50,6 +50,11 @@ public partial class FabricatorScreen : Control
     public override void _Draw()
     {
         var all = new Rect2(Vector2.Zero, Size);
+        if (_doing == Doing.NoPower)
+        {
+            DrawStyleBox(Idle, all);
+            return;
+        }
         if (_doing == Doing.Ready)
         {
             DrawStyleBox(Idle, all);

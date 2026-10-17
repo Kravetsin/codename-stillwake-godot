@@ -2,8 +2,10 @@ using System.Text.Json.Nodes;
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Stillwake.Sim.Items;
 using Stillwake.Sim.Rooms;
 using Xunit;
+using Move = Stillwake.Sim.Items.Move;
 
 namespace Stillwake.Sim.Tests;
 
@@ -96,6 +98,64 @@ public class MigrationsTests
         var m = new Registry();
         World.Load(Migrations.Upgrade(root.ToJsonString()), m.All);
         Assert.True(m.Furnace.At(1).Burning);
+    }
+
+    /// <summary>
+    /// <paramref name="save"/>, of this build, as format 13 kept it: what a furnace smelts on its fire, in ticks,
+    /// a fire kept with no fuel while it holds work, and crafting's slice after building's.
+    /// </summary>
+    private static string AsFormat13(string save)
+    {
+        var root = JsonNode.Parse(save)!.AsObject();
+        root["format"] = 13;
+        var slices = root["slices"]!.AsObject();
+        var crafting = slices["crafting"]!.AsObject();
+        var smelts = crafting["smelts"]!.AsArray().ToDictionary(s => (int)s!["machine"]!);
+        var fires = slices["furnace"]!["fires"]!.AsArray().Select(f => (int)f!["machine"]!).Union(smelts.Keys).Order()
+            .Select(machine =>
+            {
+                var fire = slices["furnace"]!["fires"]!.AsArray().FirstOrDefault(f => (int)f!["machine"]! == machine);
+                var smelt = smelts.GetValueOrDefault(machine);
+                return (JsonNode)new JsonObject
+                {
+                    ["machine"] = machine,
+                    ["fuel"] = fire == null ? 0 : (int)fire["fuel"]!,
+                    ["item"] = smelt == null ? null : (string)smelt["item"]!,
+                    ["progress"] = smelt == null ? 0 : (int)smelt["progress"]! / 1000,
+                };
+            }).ToArray();
+        slices["furnace"]!["fires"] = new JsonArray(fires);
+        crafting.Remove("smelts");
+        var order = slices.Select(p => p.Key).Where(k => k != "crafting").ToList();
+        order.Insert(order.IndexOf("building") + 1, "crafting");
+        var moved = order.Select(k => (k, slices[k]!.DeepClone())).ToList();
+        slices.Clear();
+        foreach (var (key, slice) in moved) slices[key] = slice;
+        return root.ToJsonString();
+    }
+
+    [Fact]
+    public void MovesWhatAFireWasSmeltingIntoCraftingSoTheFurnaceSmeltsOnWhereItWas()
+    {
+        // A sealed, aired room with two furnaces: one burning part-way through a chunk, one cold part-way through another.
+        var w = new Scenario(Layout.Parse(["############", "#FF.TT..FF.#", "#FF.TTV.FF.#", "############"], ["", "    o", "    ---"]))
+            .GiveItems(0, ("scrapChunk", 9), ("planks", 2));
+        for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(8, 1)); i++) w.Run();
+        int hot = w.M.Grid.MachineAt(w.At(1, 1))!.Id, cold = w.M.Grid.MachineAt(w.At(8, 1))!.Id;
+        // One plank smelts six chunks and part of a seventh: the cold one's fire goes out with work on it.
+        w.Do(new Move(new Items.Place(0), new Target(0, cold), 8)).Do(new Move(new Items.Place(1), new Target(1, cold), 1)).Run(420);
+        w.Do(new Move(new Items.Place(0), new Target(0, hot), 1)).Do(new Move(new Items.Place(1), new Target(1, hot), 1)).Run(25);
+        Assert.True(w.M.Furnace.At(hot) is { Burning: true, Progress: > 0 });
+        Assert.True(w.M.Furnace.At(cold) is { Burning: false, Progress: > 0 });
+        string save = w.World.Save();
+        var was = (w.M.Furnace.At(hot), w.M.Furnace.At(cold));
+
+        string old = AsFormat13(save);
+        Assert.Contains("\"item\":\"scrapChunk\",\"progress\":", old);
+        Assert.Equal(save, Migrations.Upgrade(old));
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(old), [.. m.All, new Builder(m.Grid, m.Grid)]);
+        Assert.Equal(was, (m.Furnace.At(hot), m.Furnace.At(cold)));
     }
 
     [Fact]

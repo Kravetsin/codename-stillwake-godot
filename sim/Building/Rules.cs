@@ -62,14 +62,15 @@ public sealed partial class BuildingModule
     /// <summary>
     /// Why taking <paramref name="layer"/> out of <paramref name="cell"/> would leave something behind:
     /// <c>building.cabled</c> for a machine a cable ends on, <c>building.notEmpty</c> for one holding
-    /// items (a crate, a furnace).
+    /// items (a crate, a furnace) or a station with crafts queued.
     /// </summary>
     private string? InUse(int cell, string layer)
     {
         var machine = layer == "machine" ? _grid.MachineAt(cell) : null;
         if (machine == null) return null;
         if (_power.Cabled(machine.Cell)) return "building.cabled";
-        return _items.Crate(machine.Id).Any(s => s != null) ? "building.notEmpty" : null;
+        bool holds = _items.Crate(machine.Id).Any(s => s != null) || _crafting.Queue(machine.Id).Count > 0;
+        return holds ? "building.notEmpty" : null;
     }
 
     /// <summary>Whether <paramref name="kind"/> is a machine built into the ship from its start (the lifepod): never planned, never taken apart.</summary>

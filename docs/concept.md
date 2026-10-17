@@ -56,8 +56,10 @@ A living document: what is decided about the game and what is still open. Techni
   ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md)). The first machine is the pod's
   Fabricator, opened with E beside the inventory: no power, a fifth of full speed, a queue the crew
   shares, paid when queued, made one at a time into its outputs. Most builds cost parts, so the
-  furnace feeds the Fabricator before it feeds the hull. Machines for parts the player builds,
-  powered, faster and with longer queues, come later.
+  furnace feeds the Fabricator before it feeds the hull. Machines for parts the player builds are
+  powered, faster and with longer queues: the Former first, presses for the parts at five times the
+  pod's speed; an electric smelter and a circuit assembler come next
+  ([0057](decisions/0057-stations-one-model-for-every-crafting-machine.md)).
 - **Spacewalks:** on a tether from the hull at first, swimming slowly; an oxygen jetpack worn on the back
   frees the hero from it, its thrust paid in the suit's air, and canisters breathed refill the suit
   ([0047](decisions/0047-equipment-the-jetpack-and-the-slower-swim.md)).

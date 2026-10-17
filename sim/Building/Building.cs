@@ -1,3 +1,4 @@
+using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
@@ -44,12 +45,13 @@ public sealed partial class BuildingModule : Module<BuildingState>
     private readonly IItemsOps _itemsOps;
     private readonly IPowerQueries _power;
     private readonly IResearchQueries _research;
+    private readonly ICraftingQueries _crafting;
 
     public override string Id => "building";
 
     public BuildingModule(
         IGridQueries grid, IGridOps gridOps, IItemsQueries items, IItemsOps itemsOps,
-        IPowerQueries power, IResearchQueries research)
+        IPowerQueries power, IResearchQueries research, ICraftingQueries crafting)
     {
         _grid = grid;
         _gridOps = gridOps;
@@ -57,6 +59,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
         _itemsOps = itemsOps;
         _power = power;
         _research = research;
+        _crafting = crafting;
         Handles<PlacePlan>(c => PlaceProblem(c.Cell, c.Placement), ApplyPlacePlan);
         Handles<Deconstruct>(c => MarkProblem(c.Cell, c.Layer), ApplyDeconstruct);
         Handles<CancelPlan>(c => State.Plans.Exists(p => p.Id == c.Id) ? null : "building.noPlan", ApplyCancelPlan);

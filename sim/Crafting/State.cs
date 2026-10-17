@@ -8,7 +8,13 @@ namespace Stillwake.Sim.Crafting;
 /// </summary>
 public sealed record Entry(int Id, string Recipe, int Count, int By);
 
-/// <summary>A crafting machine's queue, shared by the crew: its entries in the order queued, the first at work.</summary>
+/// <summary>
+/// A fed station part-way through what its input holds: <c>Item</c> the item work was done on, <c>Progress</c>
+/// that work in thousandths of a tick at full speed.
+/// </summary>
+public sealed record Smelt(int Machine, string Item, int Progress);
+
+/// <summary>A queued station's queue, shared by the crew: its entries in the order queued, the first at work.</summary>
 internal sealed class Queue
 {
     /// <summary>The machine that crafts, and into whose outputs what is made goes.</summary>
@@ -23,6 +29,13 @@ internal sealed class Queue
 /// <summary>The crafting slice. Public so modules can be typed by it; its members internal.</summary>
 public sealed class CraftingState
 {
-    /// <summary>The queues of every machine ever crafted at, in machine id order; an empty one keeps its ids counting.</summary>
+    /// <summary>The queues of every queued station ever crafted at, in machine id order; an empty one keeps its ids counting.</summary>
     [JsonInclude] internal List<Queue> Queues { get; set; } = [];
+    /// <summary>Every fed station part-way through what its input holds, in machine id order.</summary>
+    [JsonInclude] internal List<Smelt> Smelts { get; set; } = [];
+    /// <summary>
+    /// Derived: the fed stations whose fire burns this tick, told by <c>Furnace</c> in the construction phase
+    /// and forgotten once crafting has worked; so empty between ticks, and never saved. Only looked up.
+    /// </summary>
+    [JsonIgnore] internal HashSet<int> Heated { get; set; } = [];
 }

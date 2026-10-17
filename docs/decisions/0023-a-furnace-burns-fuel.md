@@ -1,6 +1,7 @@
 # 0023 — A furnace burns fuel, and the wreck starts without one
 
-- Status: accepted
+- Status: accepted; smelting moved to the crafting module by
+  [0057](0057-stations-one-model-for-every-crafting-machine.md), the furnace a fed station
 - Date: 2026-10-14
 
 ## Context

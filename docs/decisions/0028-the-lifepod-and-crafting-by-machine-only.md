@@ -3,7 +3,9 @@
 - Status: accepted; supersedes the hand crafting of
   [0027](0027-what-is-analysed-opens-what-is-made-of-it.md) ("Parts are crafted by hand", "a queue per
   hero"); its opening rule stands; its half speed superseded by
-  [0046](0046-recipes-show-what-a-thing-is-made-of.md): the pod crafts at a fifth
+  [0046](0046-recipes-show-what-a-thing-is-made-of.md): the pod crafts at a fifth; "every craft is the pod's
+  while it is the only station" superseded by [0057](0057-stations-one-model-for-every-crafting-machine.md):
+  a craft names its station, and the pod is one of several
 - Date: 2026-10-15
 - Design: `docs/plans/crafting.md`, task 3 (deleted once built)
 

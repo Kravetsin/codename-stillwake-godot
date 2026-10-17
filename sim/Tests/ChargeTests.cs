@@ -65,7 +65,7 @@ public class ChargeTests
     {
         var w = new Scenario("##########\n#.OOO....#\n#.OOO....#\n#.OOO....#\n##########")
             .GiveItems(0, ("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1));
-        w.Do(new Stillwake.Sim.Crafting.Craft(1, Battery, 1) { From = 0 }).Run(Crafts.Get(Battery).Ticks * 1000 / Crafts.PodSpeed);
+        w.Do(new Stillwake.Sim.Crafting.Craft(1, Battery, 1) { From = 0 }).Run(Crafts.Get(Battery).Ticks * 1000 / Content.Stations.Get("lifepod").Speed);
         Assert.Empty(w.Refusals);
         Assert.Equal(new Stack(Battery, 1, 0), w.M.Items.Crate(1)[0]);
     }

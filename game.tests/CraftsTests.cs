@@ -19,6 +19,7 @@ public class CraftsTests
         #######
         """;
     private const int Pod = 1;
+    private static readonly Content.Station Fabricator = Content.Stations.Get("lifepod");
 
     private static TestWorld Start() => new(Layout.Parse(Room) with { Known = Content.Research.StartKnown });
 
@@ -29,8 +30,8 @@ public class CraftsTests
     public void LaysEveryRecipeInItsFixedPlaceFourARowTwoRowsAtLeast()
     {
         Assert.Equal(4, Crafts.Columns);
-        Assert.Equal(["plate", "gear", "tube", "frame", "wire", "coil", "rotor", null, "fireAxe", "harpoon", "drill", null, "jetpack", "battery", null, null], Crafts.Places);
-        Assert.Equal(Content.Crafts.All.Count, Crafts.Places.Count(p => p != null));
+        Assert.Equal(["plate", "gear", "tube", "frame", "wire", "coil", "rotor", null, "fireAxe", "harpoon", "drill", null, "jetpack", "battery", null, null], Crafts.Places(Fabricator));
+        Assert.Equal(Content.Crafts.All.Count, Crafts.Places(Fabricator).Count(p => p != null));
     }
 
     [Fact]
@@ -82,10 +83,10 @@ public class CraftsTests
     public void SaysAUnitsTimeAtThePodInSecondsToATenth()
     {
         // The pod at a fifth of full speed: a wire 5 s, a plate 10, a rotor 15, a frame 20, the harpoon 30.
-        Assert.Equal(["5", "10", "15", "20", "30"], new[] { "wire", "plate", "rotor", "frame", "harpoon" }.Select(Crafts.Seconds));
+        Assert.Equal(["5", "10", "15", "20", "30"], new[] { "wire", "plate", "rotor", "frame", "harpoon" }.Select(c => Crafts.Seconds(c, Fabricator)));
         Assert.All(Content.Crafts.All, c => Assert.InRange(
-            double.Parse(Crafts.Seconds(c.Item), System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond,
-            c.Ticks * 1000 / Content.Crafts.PodSpeed - 1, c.Ticks * 1000 / Content.Crafts.PodSpeed + 1));
+            double.Parse(Crafts.Seconds(c.Item, Fabricator), System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond,
+            c.Ticks * 1000 / Fabricator.Speed - 1, c.Ticks * 1000 / Fabricator.Speed + 1));
     }
 
     [Fact]
@@ -102,7 +103,7 @@ public class CraftsTests
         Assert.Equal(Doing.Ready, Crafts.DoingOf(w.M.Crafting.Queue(Pod), w.M.Crafting.Progress(Pod)));
         w.Step(new Craft(Pod, "wire", 1));
         int work = Crafts.WorkOf("wire");
-        Assert.Equal((double)Content.Crafts.PodSpeed / work, Crafts.Share("wire", w.M.Crafting.Progress(Pod)));
+        Assert.Equal((double)Fabricator.Speed / work, Crafts.Share("wire", w.M.Crafting.Progress(Pod)));
         Assert.Equal(1.0, Crafts.Share("wire", work));
         Assert.Equal(Doing.Making, Crafts.DoingOf(w.M.Crafting.Queue(Pod), w.M.Crafting.Progress(Pod)));
         Assert.Equal(Doing.OutputFull, Crafts.DoingOf([new Entry(1, "wire", 1, 0)], work));

@@ -11,7 +11,7 @@ namespace Stillwake.Game.Dev;
 /// A ready ship for checking things by eye (<c>-- --testbed</c>, or the title's Testbed button in a debug
 /// build): every machine once, two rooms aired, an airlock out to space, every user powered, creative
 /// mode on, a crate with a full stack of every item and a charged battery, the furnace and the burner
-/// generator lit, the analyzer at work and a battery charging.
+/// generator lit, the analyzer at work, a battery charging and the Former pressing plates.
 /// </summary>
 public static class Testbed
 {
@@ -19,23 +19,22 @@ public static class Testbed
     public static IEnumerable<ItemSpec> Carried => Items.All.Where(i => Wreckage.HpOf(i.Id) == null);
 
     /// <summary>
-    /// Room one holds the lifepod and the air: a tank with a canister and a generator piped to a vent
-    /// in each room; room two the furnace, the crate, the analyzer, the charging station and the burner
-    /// generator; then the airlock, no vent in it. Two panels on the roof, every user cabled to the nearer,
-    /// but room two's right lamp and the charging station, cabled to the generator, and the airlock's lamp,
-    /// cabled to that lamp. Sixty cells of space past
-    /// the airlock, room for a jetpack to fly.
+    /// Room one holds the lifepod, the crate and the air: a tank with a canister and a generator piped to a
+    /// vent in each room; room two the furnace, the Former, the analyzer, the charging station and the burner
+    /// generator; then the airlock, no vent in it. Three panels on the roof: the first two feed every user
+    /// near them, the third the charging station; the burner generator feeds the Former and room two's right
+    /// lamp, and through it the airlock's. Sixty cells of space past the airlock, room for a jetpack to fly.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
             new string(' ', 96),
             "",
-            "       PPP         PPP",
+            "       PPP         PPP   PPP",
             "  ###################################",
             "  #.......L......#....L.....L...#.L.#",
             "  #.OOO..........D..............D...D",
-            "  #.OOO..TTGG....D...FF....AACBBD...D",
-            "  #.OOO..TTGGV...D.V.FF.KK.AACBBD...D",
+            "  #.OOO..TTGG....D...FF.MM.AACBBD...D",
+            "  #.OOO..TTGGVKK.D.V.FF.MM.AACBBD...D",
             "  ###################################",
         ],
         [
@@ -50,7 +49,7 @@ public static class Testbed
         ],
         [
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
-            ((19, 2), (22, 4)), ((19, 2), (27, 6)), ((30, 6), (28, 4)), ((28, 4), (34, 4)), ((30, 6), (29, 6)),
+            ((19, 2), (22, 4)), ((19, 2), (27, 6)), ((30, 6), (28, 4)), ((28, 4), (34, 4)), ((30, 6), (24, 6)), ((25, 2), (29, 6)),
         ]);
 
     /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>
@@ -62,11 +61,15 @@ public static class Testbed
     /// <summary>What the battery in the charging station holds at the start, in thousandths of full: it charges.</summary>
     public const int Charging = 400;
 
+    /// <summary>The plates queued at the Former at the start: some minutes of work.</summary>
+    public const int Pressing = 99;
+
     /// <summary>
     /// The testbed's world, played on <paramref name="modules"/>: run until its rooms are aired, its
     /// items put in through the save (no command makes items), loaded, and two ticks on: the furnace and
-    /// the generator are lit on the first, the generator's power reaches its lamps on the second
-    /// (it rests while cold), and the analyzer has nearly its whole work ahead.
+    /// the generator are lit on the first, the generator's power reaches its lamps and the Former on the
+    /// second (it rests while cold), and the analyzer has nearly its whole work ahead. The Former has
+    /// <see cref="Pressing"/> plates queued, free in creative mode.
     /// </summary>
     public static World Create(IReadOnlyList<Module> modules)
     {
@@ -101,6 +104,13 @@ public static class Testbed
         // The slice keeps its machines in id order; the lifepod's may hold something already.
         var crates = items["crates"]!.AsArray().Select(c => c!.DeepClone().AsObject()).Concat(held).OrderBy(c => (int)c["id"]!);
         items["crates"] = new JsonArray([.. crates]);
+        save["slices"]!["crafting"]!["queues"] = new JsonArray(new JsonObject
+        {
+            ["machine"] = Id("former"),
+            ["next"] = 2,
+            ["progress"] = 0,
+            ["entries"] = new JsonArray(new JsonObject { ["id"] = 1, ["recipe"] = "plate", ["count"] = Pressing, ["by"] = 0 }),
+        });
         var world = World.Load(save.ToJsonString(), modules);
         world.Step([]);
         world.Step([]);

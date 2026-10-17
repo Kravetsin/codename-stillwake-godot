@@ -209,6 +209,7 @@ change to wire; the furnace's become fire scenarios where they hold for both.
   2. **The burner generator** (below, built): shared fires, the fuel slot by spec, resting makers, its art.
   3. **The lifepod** (below, built): where the hero is made, air for the suit, the Fabricator in it;
      crafting by machine only, the hand queue and its window gone.
+  4. **Powered production stations** (below): one station model, then machines for parts and silicon.
 
 ## Task 2: the burner generator (built)
 
@@ -301,6 +302,19 @@ refused (`building.fixed`), as for everything built into it.
 - Refusals: noStation, unknown, full, notEnough, noEntry.
 - Two peers queue at the pod; one cancels the other's entry and gets its cost.
 - The wreck: the pod in room A, heroes made there.
+
+## Task 4: powered production stations
+
+The approved design "powered production stations" ([0057](../decisions/0057-stations-one-model-for-every-crafting-machine.md)),
+in four slices, each a PR on its own:
+
+1. **Stations** (built, `feat/stations`): `Content.Stations`; the pod and the furnace on one model, owned by
+   `Crafting`, queued and fed; `Furnace` keeps fires only and heats its furnaces through an op; format 14.
+   Timings proven unchanged by a fingerprint harness against main, but a furnace smelting from the tick after
+   it lights (and on the tick its fire goes out for want of air).
+2. **The Former** (built, `feat/stations`): the first powered station, no new items.
+3. **The electric smelter, heat, silicon and glass** (open).
+4. **The circuit assembler, circuits, solar cells, a new panel** (open).
 
 ## Decided with the team
 

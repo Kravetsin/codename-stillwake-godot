@@ -1,37 +1,34 @@
 using System.Text.Json.Serialization;
 using Stillwake.Sim.Atmosphere;
+using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
 
 namespace Stillwake.Sim.Furnace;
 
-/// <summary>
-/// A fire, a furnace's or a burner generator's, by machine id: <c>Fuel</c> is the ticks of fire left,
-/// lit while above 0; <c>Item</c> what a furnace is at work on, with <c>Progress</c> its work on it in
-/// ticks of fire. A generator smelts nothing: its <c>Item</c> is always null.
-/// </summary>
-public sealed record Fire(int Machine, int Fuel, string? Item, int Progress);
+/// <summary>A fire burning, a furnace's or a burner generator's, by machine id: <c>Fuel</c> is the ticks of fire left, above 0.</summary>
+public sealed record Fire(int Machine, int Fuel);
 
 /// <summary>
 /// A furnace or a burner generator as its panel shows it: whether its fire burns; for a furnace with
-/// salvage in its input, what it smelts (<c>Item</c>), how far, out of how much work; and why it stands
-/// still if it does: <c>furnace.full</c> (a furnace only), <c>furnace.noFuel</c> or <c>furnace.noAir</c>.
-/// A furnace with nothing to smelt says only <c>Burning</c>.
+/// salvage in its input, what it smelts (<c>Item</c>), how far, out of how much work, both in thousandths of
+/// a tick (the crafting module's measure); and why it stands still if it does: <c>furnace.full</c> (a furnace
+/// only), <c>furnace.noFuel</c> or <c>furnace.noAir</c>. A furnace with nothing to smelt says only <c>Burning</c>.
 /// </summary>
 public sealed record Smelting(bool Burning, string? Item = null, int Progress = 0, int Work = 0, string? Problem = null);
 
 /// <summary>The furnace slice. Public so it can be named, its members internal: others read <see cref="FurnaceModule.At"/>.</summary>
 public sealed class FurnaceState
 {
-    /// <summary>Every furnace or generator burning, or a furnace part-way through an item, by machine id, in id order.</summary>
+    /// <summary>Every furnace or generator burning, by machine id, in id order.</summary>
     [JsonInclude] internal List<Fire> Fires { get; set; } = [];
 }
 
 /// <summary>
-/// Fire (ADR 0023): a furnace or a burner generator burns fuel and breathes its room's air; a furnace
-/// turns the salvage in its input into what it yields, a generator makes power while it burns
-/// (packages/sim/src/modules/furnace, and the crafting plan's burner generator).
+/// Fire (ADR 0023): a furnace or a burner generator burns fuel and breathes its room's air; a furnace's
+/// fire heats it, so <c>Crafting</c> smelts what is in its input (0057), a generator's makes power while it
+/// burns (packages/sim/src/modules/furnace, and the crafting plan's burner generator).
 /// </summary>
 public sealed class FurnaceModule : Module<FurnaceState>
 {
@@ -44,10 +41,14 @@ public sealed class FurnaceModule : Module<FurnaceState>
     private readonly IAtmosphereQueries _air;
     private readonly IAtmosphereOps _airOps;
     private readonly IPowerOps _powerOps;
+    private readonly ICraftingQueries _crafting;
+    private readonly ICraftingOps _craftingOps;
 
     public override string Id => "furnace";
 
-    public FurnaceModule(IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IAtmosphereQueries air, IAtmosphereOps airOps, IPowerOps powerOps)
+    public FurnaceModule(
+        IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IAtmosphereQueries air, IAtmosphereOps airOps,
+        IPowerOps powerOps, ICraftingQueries crafting, ICraftingOps craftingOps)
     {
         _grid = grid;
         _items = items;
@@ -55,8 +56,16 @@ public sealed class FurnaceModule : Module<FurnaceState>
         _air = air;
         _airOps = airOps;
         _powerOps = powerOps;
-        // Before power's derivation, so a generator just built, or one whose fire went out, makes nothing this tick.
-        System(Phase.Construction, RestCold);
+        _crafting = crafting;
+        _craftingOps = craftingOps;
+        // Before power's derivation, so a generator just built, or one whose fire went out, makes nothing this
+        // tick; before crafting's simulation, so a furnace smelts while its fire burns at the tick's start.
+        System(Phase.Construction, () =>
+        {
+            RestCold();
+            foreach (var m in _grid.MachinesOf(Smelter))
+                if (Burning(m.Id)) _craftingOps.Heat(m.Id);
+        });
         System(Phase.Simulation, Burn);
     }
 
@@ -65,24 +74,23 @@ public sealed class FurnaceModule : Module<FurnaceState>
     /// <summary>Furnace or generator <paramref name="id"/> as its panel shows it.</summary>
     public Smelting At(int id)
     {
-        var fire = FireOf(id);
-        bool burning = (fire?.Fuel ?? 0) > 0;
+        bool burning = Burning(id);
         var machine = _grid.MachineById(id);
         if (machine == null) return new Smelting(burning);
-        var slots = _items.Crate(id);
         bool smelter = machine.Kind == Smelter;
-        var input = smelter ? SlotItem(slots, 0) : null;
-        int? work = input == null ? null : Content.Items.Get(input).SmeltTicks;
-        if (smelter && work == null) return new Smelting(burning);
+        var input = smelter ? SlotItem(_items.Crate(id), 0) : null;
+        int? ticks = input == null ? null : Content.Items.Get(input).SmeltTicks;
+        if (smelter && ticks == null) return new Smelting(burning);
         bool aired = AiredCell(machine) >= 0;
-        string? problem = smelter && !_items.CanSmelt(id) ? "furnace.full"
+        string? problem = smelter && !_crafting.CanSmelt(id) ? "furnace.full"
             : !burning && FuelIn(machine) == null ? "furnace.noFuel"
             : !aired ? "furnace.noAir"
             : null;
         if (!smelter) return new Smelting(burning, Problem: problem);
-        int progress = fire is { } f && f.Item == input ? f.Progress : 0;
-        return new Smelting(burning, input, progress, work!.Value, problem);
+        return new Smelting(burning, input, _crafting.Progress(id), ticks!.Value * 1000, problem);
     }
+
+    private bool Burning(int id) => (FireOf(id)?.Fuel ?? 0) > 0;
 
     private static string? SlotItem(IReadOnlyList<Stack?> slots, int slot) => slot < slots.Count ? slots[slot]?.Item : null;
 
@@ -121,7 +129,7 @@ public sealed class FurnaceModule : Module<FurnaceState>
     /// <summary>Every generator rests while its fire is out: power counts no resting maker.</summary>
     private void RestCold()
     {
-        foreach (var m in _grid.MachinesOf(Generator)) _powerOps.Rest(m.Id, (FireOf(m.Id)?.Fuel ?? 0) == 0);
+        foreach (var m in _grid.MachinesOf(Generator)) _powerOps.Rest(m.Id, !Burning(m.Id));
     }
 
     private void Burn()
@@ -136,64 +144,38 @@ public sealed class FurnaceModule : Module<FurnaceState>
         {
             var m = g >= generators.Count || (s < smelters.Count && smelters[s].Id < generators[g].Id) ? smelters[s++] : generators[g++];
             while (next < fires.Count && fires[next].Machine < m.Id) next++;
-            var was = next < fires.Count && fires[next].Machine == m.Id ? fires[next] : null;
-            if (Burn(m, was) is { } fire) kept.Add(fire);
+            int fuel = Burn(m, next < fires.Count && fires[next].Machine == m.Id ? fires[next].Fuel : 0);
+            if (fuel > 0) kept.Add(new Fire(m.Id, fuel));
         }
         State.Fires = kept;
     }
 
-    /// <summary>Machine <paramref name="m"/>'s fire a tick on from <paramref name="was"/>: null when it is out with nothing in hand.</summary>
-    private Fire? Burn(Machine m, Fire? was)
+    /// <summary>Machine <paramref name="m"/>'s fuel left a tick on from <paramref name="fuel"/>: 0 when its fire is out.</summary>
+    private int Burn(Machine m, int fuel)
     {
-        int fuel = was?.Fuel ?? 0;
-        bool smelter = m.Kind == Smelter;
-        var input = smelter ? SlotItem(_items.Crate(m.Id), 0) : null;
-        int? work = input == null ? null : Content.Items.Get(input).SmeltTicks;
-        bool smelts = work != null && _items.CanSmelt(m.Id);
-        // Work on another item, or none, begins again.
-        var item = was?.Item == input ? was?.Item : null;
-        int progress = item == null ? 0 : was?.Progress ?? 0;
         int cell = AiredCell(m);
         if (fuel == 0) fuel = Light(m, cell);
-        if (fuel > 0)
-        {
-            // It breathes as a hero does: given less, its fire goes out and the fuel left is lost.
-            bool breathes = fuel % Content.Furnace.BreathEvery == 0;
-            int had = !breathes ? Content.Furnace.Breath
-                : cell < 0 ? 0
-                : _airOps.Breathe(cell, Content.Furnace.Breath);
-            if (had < Content.Furnace.Breath) fuel = 0;
-            else
-            {
-                fuel -= 1;
-                if (smelts && input != null)
-                {
-                    item = input;
-                    progress += 1;
-                    if (progress >= work)
-                    {
-                        _itemsOps.Smelt(m.Id);
-                        item = null;
-                        progress = 0;
-                    }
-                }
-                // Its last tick of fuel burnt, the next is lit at once: a fire fed in time never blinks out.
-                if (fuel == 0) fuel = Light(m, cell);
-            }
-        }
-        return fuel > 0 || item != null ? new Fire(m.Id, fuel, item, progress) : null;
+        if (fuel == 0) return 0;
+        // It breathes as a hero does: given less, its fire goes out and the fuel left is lost.
+        bool breathes = fuel % Content.Furnace.BreathEvery == 0;
+        int had = !breathes ? Content.Furnace.Breath
+            : cell < 0 ? 0
+            : _airOps.Breathe(cell, Content.Furnace.Breath);
+        if (had < Content.Furnace.Breath) return 0;
+        fuel -= 1;
+        // Its last tick of fuel burnt, the next is lit at once: a fire fed in time never blinks out.
+        return fuel > 0 ? fuel : Light(m, cell);
     }
 
     /// <summary>
-    /// Lights machine <paramref name=m/>'s fire, breathing at <paramref name=cell/>, if it can: with fuel
-    /// and air, a furnace only with salvage to smelt and room for its yields. One fuel is used up for it,
-    /// and the ticks it burns for come back; 0 when it does not light.
+    /// Lights machine <paramref name="m"/>'s fire, breathing at <paramref name="cell"/>, if it can: with fuel
+    /// and air, a furnace only with what it can smelt (<c>ICraftingQueries.CanSmelt</c>). One fuel is used up
+    /// for it, and the ticks it burns for come back; 0 when it does not light.
     /// </summary>
     private int Light(Machine m, int cell)
     {
         if (cell < 0 || FuelIn(m) is not int burns) return 0;
-        if (m.Kind == Smelter && !(SlotItem(_items.Crate(m.Id), 0) is { } input && Content.Items.Get(input).SmeltTicks != null && _items.CanSmelt(m.Id)))
-            return 0;
+        if (m.Kind == Smelter && !_crafting.CanSmelt(m.Id)) return 0;
         _itemsOps.Consume(m.Id, Content.Machines.Get(m.Kind).FuelSlot!.Value);
         return burns;
     }
