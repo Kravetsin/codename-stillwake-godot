@@ -78,11 +78,21 @@ public class ModulesTests
         return new ClearAt(cell, "structure");
     }
 
+    /// <summary>A cell in the box given emptied if anything is built there, otherwise walled or backed.</summary>
+    private static Command[] SpaceEdit(GridModule grid, Rng rng, int x0, int y0, int width, int height)
+    {
+        int cell = (y0 + (int)rng.Below((uint)height)) * grid.Width + x0 + (int)rng.Below((uint)width);
+        if (grid.StructureAt(cell) != Structure.Empty || grid.BackLayer[cell] != Back.None)
+            return [new ClearAt(cell, "structure"), new ClearAt(cell, "back")];
+        return [new Place(cell, rng.Below(2) == 0 ? Placement.Wall() : Placement.BackWall())];
+    }
+
     /// <summary>
     /// What modules keep between ticks — rooms found again around a change, the air's survey, leaks and
     /// orders — is what a load finds from scratch: a world loaded from the live one's save before every
     /// tick, fed the same commands, hashes the same after it. Closed rooms three cells from space, so
-    /// changes are followed around them; with the air read every tick, as an open panel does, and without.
+    /// changes are followed around them; builds out in space above, so breaches flood a ship's box that
+    /// grows and shrinks; with the air read every tick, as an open panel does, and without.
     /// </summary>
     [Theory]
     [InlineData(5u, false)]
@@ -94,7 +104,7 @@ public class ModulesTests
         var rng = new Rng(new RngState { S = seed });
         var live = new Registry();
         var world = World.Create(seed, layout, [.. live.All, new Builder(live.Grid, live.Grid)]);
-        int around = 0;
+        int around = 0, grown = 0, shrunk = 0;
         for (int i = 0; i < 300; i++)
         {
             if (readAir && live.Rooms.All.Count > 0)
@@ -106,13 +116,19 @@ public class ModulesTests
             var copy = World.Load(world.Save(), [.. loaded.All, new Builder(loaded.Grid, loaded.Grid)]);
             var commands = RandomCommands(live, rng);
             if (rng.Below(2) == 0) commands.Add(ShipEdit(live.Grid, rng, 3, 3, 32, 24));
+            // Out in the space above the ship, so what is built grows and shrinks.
+            if (rng.Below(3) == 0) commands.AddRange(SpaceEdit(live.Grid, rng, 19, 0, 1, 3));
             int version = live.Rooms.Version;
+            var built = live.Grid.Built;
             world.Step(commands);
             copy.Step(commands);
             if (live.Rooms.ChangedSince(version) is { Count: > 0 }) around++;
+            if (live.Grid.Built.Height > built.Height) grown++;
+            if (live.Grid.Built.Height < built.Height) shrunk++;
             Assert.True(world.Hash() == copy.Hash(), $"tick {i}: the world differs from one loaded before it");
         }
         Assert.True(around > 30, $"rooms found around a change {around} times");
+        Assert.True(grown > 3 && shrunk > 3, $"the built box grew {grown} times and shrank {shrunk}");
     }
 
     [Fact]

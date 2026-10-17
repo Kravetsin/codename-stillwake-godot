@@ -48,7 +48,7 @@ edits is the same as before. A tick in Release, steady / a door toggled every ti
 | 1024×512, fully built (24k machines, 8k rooms) | 6.7 / 18.4 | 1.2 / 1.7 |
 | 2048×1024, 512×256 built | 3.0 / 32.4 | 0.5 / 0.9 |
 
-A change within two cells of space, a breach, still floods the whole grid (F-4).
+A change within two cells of space, a breach, still flooded the whole grid, until F-4.
 
 ### F-3 — A machine by its id at once ✅
 
@@ -72,10 +72,25 @@ A tick in Release, in ms (steady / a door toggled every tick, or steady alone):
 Power's networks are still found every tick: they now cost what is cabled, and a cache would have to
 follow analyzers' slots and resting machines, which move no version.
 
-### F-4 — Rooms flooded within the ship, not the world
+### F-4 — Rooms flooded within the ship, not the world ✅
 
-- A change beside space floods only the ship's bounding box plus a margin, so a breach costs what
-  the ship is, not the build area (today 6 ms on 1024×512, 24 ms on 2048×1024, once).
+The grid keeps the smallest box holding everything built (`Built`, derived): grown by every
+placement, moved in past each edge line a removal empties. A change beside space floods only that
+box: every cell outside it is space, so a cell on its side sees what one on the grid's edge does,
+and no margin is needed. The rooms come out as a full `Find` gives them, and name the ids that
+differ, so atmosphere redoes those rooms only instead of the whole grid. Rooms and pipes compare
+their layer copies only within the box now and at their last look. The world hash after fuzzed
+wreck runs, ships in larger worlds edited inside, on the hull and out in space (a load half-way),
+and the reference world with door toggles is the same as before. A hull wall beside space taken
+apart and built again every tick, the reference ship (256×128) 8 cells into a world of space, in ms:
+
+| World | Before (Release / Debug) | After (Release / Debug) |
+| --- | --- | --- |
+| 1024×512 | 11.9 / 28.4 (rooms 10.3, air 1.4) | 1.4 / 4.5 (rooms 1.1, air 0.2) |
+| 2048×1024 | 28.7 / 104.6 (rooms 23.7, air 4.5) | 1.2 / 3.5 (rooms 1.0, air 0.2) |
+
+What is left is the ship: a flood of 256×128 costs 0.7 ms. Anything built far out, a back wall or a
+pipe in space, widens the box and so the cost.
 
 ### F-5 — The air overlay draws only what changed or is seen
 

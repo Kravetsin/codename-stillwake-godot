@@ -58,6 +58,52 @@ public class GridTests
         });
     }
 
+    /// <summary>
+    /// The built box is the smallest one a scan of every layer and machine finds, after any builds and
+    /// removals in any layer, out in space or on the edge of what stands, and after a load.
+    /// </summary>
+    [Property(MaxTest = 300)]
+    public Property KeepsTheBuiltBoxTheOneAScanOfEveryLayerFinds()
+    {
+        var gen =
+            from width in Gen.Choose(1, 12)
+            from height in Gen.Choose(1, 10)
+            from cells in Gen.Elements(' ', ' ', ' ', '#', '.', '-', 'D', 'V').ArrayOf(width * height)
+            from edits in (from cell in Gen.Choose(0, 1 << 20) from kind in Gen.Choose(0, 7) select (cell, kind)).ListOf()
+            from reload in Gen.Choose(0, 40)
+            select (rows: Enumerable.Range(0, height).Select(y => new string(cells, y * width, width)).ToArray(), edits: edits.Take(60).ToList(), reload);
+        return Prop.ForAll(gen.ToArbitrary(), t =>
+        {
+            var w = new Scenario(Layout.Parse(t.rows));
+            var grid = w.M.Grid;
+            int size = grid.Width * grid.Height;
+            for (int i = 0; i < t.edits.Count; i++)
+            {
+                var (at, kind) = t.edits[i];
+                int cell = at % size;
+                // Half of the edits take something apart, so the box grows and shrinks.
+                w.Do(kind switch
+                {
+                    0 => new Place(cell, Placement.Wall()),
+                    1 => new Place(cell, new Placement("conduit", "pipe")),
+                    2 => new Place(cell, Placement.BackWall()),
+                    3 => new Place(cell, new Placement("machine", "vent")),
+                    4 => new ClearAt(cell, "structure"),
+                    5 => new ClearAt(cell, "conduit"),
+                    6 => new ClearAt(cell, "back"),
+                    _ => new ClearAt(cell, "machine"),
+                }).Run();
+                if (i == t.reload) { w.Reload(); grid = w.M.Grid; }
+                var scanned = Box.None;
+                for (int c = 0; c < size; c++)
+                    if (grid.StructureAt(c) != Structure.Empty || grid.ConduitAt(c) != Conduit.None || grid.BackLayer[c] != Back.None || grid.MachineAt(c) != null)
+                        scanned = scanned.Union(new Box(c % grid.Width, c / grid.Width, c % grid.Width, c / grid.Width));
+                if (grid.Built != scanned) return false.Label($"edit {i}: the box is {grid.Built}, a scan finds {scanned}");
+            }
+            return true.ToProperty();
+        });
+    }
+
     private static bool AsAScanFinds(GridModule grid, int size, int ids)
     {
         var all = grid.Machines;

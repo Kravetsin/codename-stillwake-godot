@@ -4,10 +4,11 @@ Pipe networks: the runs of pipes that carry oxygen between tanks and vents, foun
 conduit layer and machines. Ported from `packages/sim/src/modules/pipes`; its rules hold here
 unchanged.
 
-- **Depends on:** `Grid`, through `IGridQueries` (`ConduitLayer`, `Machines`, `PortsOf`).
+- **Depends on:** `Grid`, through `IGridQueries` (`ConduitLayer`, `Built`, `Machines`, `PortsOf`).
 - **State:** nothing saved. Derived: `NetworkOf` per cell (a network's id, or `PipeNetworks.None`), the
   networks in id order, the copies of the conduit layer and of the machines (id and cell each)
-  they were found from, the grid's `Version` last looked at, and the networks' own `Version`.
+  they were found from, a box holding every conduit of that copy (`BuiltIn`), the grid's `Version`
+  last looked at, and the networks' own `Version`.
 - **Files:** `PipeNetworks.cs` — the rules below, on plain arrays; `Pipes.cs` — the module.
 
 ## Rules
@@ -19,7 +20,8 @@ unchanged.
   its own cell, a tank through its bottom-left. A pipe under another cell of a machine does not
   connect it.
 - Networks are found again on the tick a conduit or machine changes: a system in the derivation phase
-  compares the conduit layer and the machines with its copies on each tick the grid's `Version`
+  compares the conduit layer, row by row within the grid's built box now and `BuiltIn` (outside
+  both, both are empty), and the machines with its copies on each tick the grid's `Version`
   moved, and bumps `Version` when it finds them again. Read networks in systems at
   or after derivation, never in commands or construction.
 

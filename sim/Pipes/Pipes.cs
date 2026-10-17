@@ -16,6 +16,8 @@ public sealed class PipesState
     [JsonIgnore] internal int[] BuiltConduit { get; set; } = [];
     /// <summary>The machines they were found with, as an id and a cell each: enough to tell that one came or went.</summary>
     [JsonIgnore] internal int[] BuiltMachines { get; set; } = [];
+    /// <summary>A box holding every conduit of the copy: the grid's built box when it was last seen the same.</summary>
+    [JsonIgnore] internal Box BuiltIn { get; set; } = Box.None;
     /// <summary>The grid's version last looked at.</summary>
     [JsonIgnore] internal int GridVersion { get; set; }
     /// <summary>Bumped each time the networks are found again.</summary>
@@ -67,6 +69,7 @@ public sealed class PipesModule : Module<PipesState>, IPipesQueries
         var machines = _grid.Machines.Select(m => (m.Id, _grid.PortsOf(m))).ToList();
         (State.NetworkOf, State.Networks) = PipeNetworks.Find(_grid.Width, _grid.Height, _grid.ConduitLayer, machines);
         State.BuiltConduit = _grid.ConduitLayer.ToArray();
+        State.BuiltIn = _grid.Built;
         State.BuiltMachines = _grid.Machines.SelectMany(m => new[] { m.Id, m.Cell }).ToArray();
         State.Version++;
     }
@@ -74,7 +77,15 @@ public sealed class PipesModule : Module<PipesState>, IPipesQueries
     /// <summary>Whether the grid's conduits and machines still are what the networks were found from.</summary>
     private bool Current()
     {
-        if (!_grid.ConduitLayer.SequenceEqual(State.BuiltConduit)) return false;
+        // Outside what is built now and was then, both are empty.
+        var window = _grid.Built.Union(State.BuiltIn);
+        var conduit = _grid.ConduitLayer;
+        for (int y = window.Top; y <= window.Bottom; y++)
+        {
+            int start = y * _grid.Width + window.Left;
+            if (!conduit.Slice(start, window.Width).SequenceEqual(State.BuiltConduit.AsSpan(start, window.Width))) return false;
+        }
+        State.BuiltIn = _grid.Built;
         // Compared pair by pair without building a key: this runs every tick.
         var machines = _grid.Machines;
         var seen = State.BuiltMachines;

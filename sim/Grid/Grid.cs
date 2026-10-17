@@ -23,6 +23,22 @@ public static class Back
 
 public sealed record Machine(int Id, string Kind, int Cell);
 
+/// <summary>A rectangle of cells, its edges included; <see cref="None"/> holds none.</summary>
+public readonly record struct Box(int Left, int Top, int Right, int Bottom)
+{
+    public static readonly Box None = new(0, 0, -1, -1);
+    public bool IsEmpty => Right < Left || Bottom < Top;
+    public int Width => IsEmpty ? 0 : Right - Left + 1;
+    public int Height => IsEmpty ? 0 : Bottom - Top + 1;
+    public bool Contains(int x, int y) => x >= Left && x <= Right && y >= Top && y <= Bottom;
+
+    /// <summary>The smallest box holding both.</summary>
+    public Box Union(Box other) =>
+        IsEmpty ? other
+        : other.IsEmpty ? this
+        : new(Math.Min(Left, other.Left), Math.Min(Top, other.Top), Math.Max(Right, other.Right), Math.Max(Bottom, other.Bottom));
+}
+
 /// <summary>What may be put in a cell: a layer, a kind, and a material for walls and back walls.</summary>
 public sealed record Placement(string Layer, string Kind, string? Material = null)
 {
@@ -54,6 +70,8 @@ public sealed class GridState
     [JsonIgnore] internal Dictionary<string, List<Machine>> ByKind { get; set; } = new(StringComparer.Ordinal);
     /// <summary>Derived: bumped on every change to a layer or a machine; 0 again after a load.</summary>
     [JsonIgnore] internal int Version { get; set; }
+    /// <summary>Derived: the smallest box holding every cell with anything in it, kept tight by every change.</summary>
+    [JsonIgnore] internal Box Built { get; set; } = Box.None;
 }
 
 /// <summary>What any module may read of the grid. Arrays are live: a reader never writes them.</summary>
@@ -66,6 +84,11 @@ public interface IGridQueries
     /// grid looks again only when it moved. After a load it starts over, as do the modules.
     /// </summary>
     int Version { get; }
+    /// <summary>
+    /// The smallest box holding every cell with anything in any layer or under a machine, <see cref="Box.None"/>
+    /// when nothing is: every cell outside it is empty space. Kept tight by every change, never saved.
+    /// </summary>
+    Box Built { get; }
     ReadOnlySpan<int> StructureLayer { get; }
     /// <summary>Each cell's wall material code (<c>Materials</c>), 0 where no wall stands.</summary>
     ReadOnlySpan<int> MaterialLayer { get; }
@@ -202,6 +225,48 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
                 State.Occupancy[c] = m.Id;
             Listed(m);
         }
+        State.Built = Box.None;
+        for (int c = 0; c < State.Occupancy.Length; c++)
+            if (IsBuilt(c)) Grow(c);
+    }
+
+    private bool IsBuilt(int c) =>
+        State.Structure[c] != Structure.Empty || State.Conduit[c] != Conduit.None || State.Back[c] != Back.None || State.Occupancy[c] != 0;
+
+    private void Grow(int c)
+    {
+        int x = c % State.Width, y = c / State.Width;
+        State.Built = State.Built.Union(new Box(x, y, x, y));
+    }
+
+    /// <summary>After <paramref name="cleared"/> were emptied, the built box moves in past each edge line left empty.</summary>
+    private void Shrink(IReadOnlyList<int> cleared)
+    {
+        var b = State.Built;
+        bool onEdge = false;
+        foreach (int c in cleared)
+        {
+            int x = c % State.Width, y = c / State.Width;
+            onEdge |= x == b.Left || x == b.Right || y == b.Top || y == b.Bottom;
+        }
+        if (!onEdge) return;
+        while (!b.IsEmpty && RowEmpty(b.Top, b)) b = b with { Top = b.Top + 1 };
+        while (!b.IsEmpty && RowEmpty(b.Bottom, b)) b = b with { Bottom = b.Bottom - 1 };
+        while (!b.IsEmpty && ColumnEmpty(b.Left, b)) b = b with { Left = b.Left + 1 };
+        while (!b.IsEmpty && ColumnEmpty(b.Right, b)) b = b with { Right = b.Right - 1 };
+        State.Built = b.IsEmpty ? Box.None : b;
+    }
+
+    private bool RowEmpty(int y, Box b)
+    {
+        for (int x = b.Left; x <= b.Right; x++) if (IsBuilt(y * State.Width + x)) return false;
+        return true;
+    }
+
+    private bool ColumnEmpty(int x, Box b)
+    {
+        for (int y = b.Top; y <= b.Bottom; y++) if (IsBuilt(y * State.Width + x)) return false;
+        return true;
     }
 
     /// <summary>Puts <paramref name="m"/> into the derived lookups; it is the highest id yet, so its kind's list stays in id order.</summary>
@@ -230,6 +295,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public int Width => State.Width;
     public int Height => State.Height;
     public int Version => State.Version;
+    public Box Built => State.Built;
     public ReadOnlySpan<int> StructureLayer => State.Structure;
     public ReadOnlySpan<int> MaterialLayer => State.Material;
     public ReadOnlySpan<int> ConduitLayer => State.Conduit;
@@ -365,6 +431,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         var problem = PlacementProblem(cell, p);
         if (problem != null) throw new InvalidOperationException($"grid.place at {cell}: {problem}");
         State.Version++;
+        Grow(cell);
         switch (p.Layer)
         {
             case "structure":
@@ -388,7 +455,9 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
                 var added = new Machine(State.NextMachineId++, p.Kind, cell);
                 State.Machines.Add(added);
                 Listed(added);
-                foreach (int c in Footprint(p.Kind, cell)!) State.Occupancy[c] = added.Id;
+                var footprint = Footprint(p.Kind, cell)!;
+                foreach (int c in footprint) State.Occupancy[c] = added.Id;
+                Grow(footprint[^1]);
                 return;
         }
     }
@@ -399,16 +468,20 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         State.Version++;
         switch (layer)
         {
-            case "structure": State.Structure[cell] = Structure.Empty; State.Material[cell] = 0; return;
-            case "conduit": State.Conduit[cell] = Conduit.None; return;
-            case "back": State.Back[cell] = Back.None; State.BackMaterial[cell] = 0; return;
+            case "structure": State.Structure[cell] = Structure.Empty; State.Material[cell] = 0; break;
+            case "conduit": State.Conduit[cell] = Conduit.None; break;
+            case "back": State.Back[cell] = Back.None; State.BackMaterial[cell] = 0; break;
             case "machine":
                 if (!State.ById.Remove(State.Occupancy[cell], out var removed)) return;
                 State.Machines.RemoveAt(IndexOf(State.Machines, removed.Id));
                 var kind = State.ByKind[removed.Kind];
                 kind.RemoveAt(IndexOf(kind, removed.Id));
-                foreach (int c in Footprint(removed.Kind, removed.Cell) ?? []) State.Occupancy[c] = 0;
+                var footprint = Footprint(removed.Kind, removed.Cell) ?? [];
+                foreach (int c in footprint) State.Occupancy[c] = 0;
+                Shrink(footprint);
                 return;
+            default: return;
         }
+        Shrink([cell]);
     }
 }
