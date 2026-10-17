@@ -15,7 +15,9 @@ public class ChargeTests
 {
     private const string Battery = "battery";
     private static readonly int Full = Content.Items.Get(Battery).Capacity!.Value;
-    private static readonly int PerTick = Machines.Get("charger").Charges!.Value;
+    private const int S = Charge.Scale;
+    /// <summary>What the station puts in a tick at full power, stored: what it draws.</summary>
+    private static readonly int PerTick = Machines.Get("charger").Draws!.Value * S;
     private static readonly int Head = Inventory.Slots, Back = Inventory.Slots + 1, Belt = Inventory.Slots + 2;
 
     /// <summary>
@@ -47,11 +49,12 @@ public class ChargeTests
     // Batteries.
 
     [Fact]
-    public void ABatteryIsAStackOfOneWornOnTheBeltHoldingSixHundredTicksOfDrilling()
+    public void ABatteryIsAStackOfOneWornOnTheBeltHoldingEighteenHundredPowerTicks()
     {
         var spec = Content.Items.Get(Battery);
         Assert.Equal((1, "belt"), (spec.Stack, spec.Equip));
-        Assert.Equal(600 * Charge.PerTick, Full);
+        // What a machine drawing 3 uses in 600 ticks, stored scaled.
+        Assert.Equal(1800 * S, Full);
         Assert.Equal([("plate", 1), ("coil", 1), ("wire", 2)], Crafts.Get(Battery).Cost);
         Assert.Equal(60, Crafts.Get(Battery).Ticks);
         Assert.DoesNotContain(Battery, Content.Research.StartKnown);
@@ -85,7 +88,7 @@ public class ChargeTests
     public void TheStationIsOneByTwoDrawsThreeAndIsOpenedByAnalysis()
     {
         var spec = Machines.Get("charger");
-        Assert.Equal((1, 2, 3, 1), (spec.Width, spec.Height, spec.Draws, spec.Slots));
+        Assert.Equal((1, 2, 3, 1, true), (spec.Width, spec.Height, spec.Draws, spec.Slots, spec.Charges));
         Assert.Equal([("frame", 1), ("coil", 1), ("wire", 4)], spec.Cost);
         Assert.DoesNotContain("charger", Content.Research.StartKnown);
         Assert.Equal(600, Full / PerTick);
@@ -214,19 +217,20 @@ public class ChargeTests
     [Fact]
     public void DrainsTheFirstBatteryOnTheBeltThatCanPayThenTheNext()
     {
-        var w = new Scenario(Layout.Empty).Put(Belt, Charged(500)).Put(Belt + 1, Charged(5000)).Put(0, Charged(Full));
-        Assert.Equal((5500, 2 * Full), w.M.Items.BeltCharge(0));
-        // The first holds too little for a thousand: the second pays it whole.
-        Assert.True(w.M.Items.Drain(0, 1000));
-        Assert.Equal([Charged(500), Charged(4000), null], w.M.Items.Inventory(0).Skip(Belt));
-        Assert.True(w.M.Items.Drain(0, 400));
-        Assert.Equal([Charged(100), Charged(4000), null], w.M.Items.Inventory(0).Skip(Belt));
-        Assert.True(w.M.Items.Drain(0, 4000));
-        // Neither holds a thousand now; the full battery in the bag is not worn, so it pays nothing.
-        Assert.False(w.M.Items.Drain(0, 1000));
-        Assert.Equal([Charged(100), Charged(0), null], w.M.Items.Inventory(0).Skip(Belt));
+        // Drained in power-ticks, a tool's draw for a tick; held stored scaled.
+        var w = new Scenario(Layout.Empty).Put(Belt, Charged(2 * S)).Put(Belt + 1, Charged(10 * S)).Put(0, Charged(Full));
+        Assert.Equal((12 * S, 2 * Full), w.M.Items.BeltCharge(0));
+        // The first holds too little for 3: the second pays it whole.
+        Assert.True(w.M.Items.Drain(0, 3));
+        Assert.Equal([Charged(2 * S), Charged(7 * S), null], w.M.Items.Inventory(0).Skip(Belt));
+        Assert.True(w.M.Items.Drain(0, 1));
+        Assert.Equal([Charged(S), Charged(7 * S), null], w.M.Items.Inventory(0).Skip(Belt));
+        Assert.True(w.M.Items.Drain(0, 7));
+        // Neither holds 3 now; the full battery in the bag is not worn, so it pays nothing.
+        Assert.False(w.M.Items.Drain(0, 3));
+        Assert.Equal([Charged(S), Charged(0), null], w.M.Items.Inventory(0).Skip(Belt));
         Assert.Equal(Charged(Full), w.M.Items.Inventory(0)[0]);
-        Assert.Equal((100, 2 * Full), w.M.Items.BeltCharge(0));
+        Assert.Equal((S, 2 * Full), w.M.Items.BeltCharge(0));
         Assert.False(w.M.Items.Drain(1, 1));
         Assert.Equal((0, 0), w.M.Items.BeltCharge(1));
     }
@@ -236,8 +240,8 @@ public class ChargeTests
     {
         var w = new Scenario(Layout.Empty).Put(Belt, Charged(10));
         w.Do(new SetCreative(true)).Run();
-        Assert.True(w.M.Items.Drain(0, 1000));
-        Assert.True(w.M.Items.Drain(1, 1000));
+        Assert.True(w.M.Items.Drain(0, 3));
+        Assert.True(w.M.Items.Drain(1, 3));
         Assert.Equal(Charged(10), w.M.Items.Inventory(0)[Belt]);
     }
 

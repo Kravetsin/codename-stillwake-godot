@@ -38,10 +38,11 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   satisfaction is `floor(1000 × supply / demand)`, at most 1000, and 1000 with no demand: every user
   on it works at that share, slowed alike. A resting user is still on its network and gets its share.
   A powered machine with no cable is on no network: it makes nothing and gets nothing.
-- **A charging station** (a machine with `Charges` in `Content.Machines`, 0053) fills what its slot holds:
-  each tick, in the simulation phase after the networks are found, in machine id order, it adds its
-  `Charges` × its satisfaction / 1000, rounded down, through `IItemsOps.Charge`, never past full. The
-  charger's 1000 fills a battery (600,000) in 600 ticks at full power, 1200 at half. Empty or full it
+- **A charging station** (a machine with `Charges` in `Content.Machines`, 0053) puts what it draws into
+  what its slot holds: each tick, in the simulation phase after the networks are found, in machine id
+  order, its `Draws` in power-ticks × its satisfaction / 1000, stored in thousandths
+  (`Content.Charge.Scale`), rounded down, through `IItemsOps.Charge`, never past full. The charger draws
+  3 and fills a battery of 1800 in 600 ticks at full power, 1200 at half. Empty or full it
   draws nothing, so it takes nothing from the network. Power owns this rather than items or a module of
   its own: it already knows each machine's satisfaction and depends on items.
 - A map lays its cables from `Layout.Cables`, each end resolved to its node; a cable that ends on no

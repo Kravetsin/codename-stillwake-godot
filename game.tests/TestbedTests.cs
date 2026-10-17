@@ -58,6 +58,6 @@ public class TestbedTests
         int charger = IdOf(m, "charger");
         Assert.True(m.Power.Charges(charger));
         // Charged one tick: the generator lights on the first, its power reaches the station on the second.
-        Assert.Equal(new Stack("battery", 1, Spec.Charge.Battery / 1000 * Testbed.Charging + Spec.Charge.PerTick), m.Items.Crate(charger)[0]);
+        Assert.Equal(new Stack("battery", 1, Spec.Charge.Battery / 1000 * Testbed.Charging + Spec.Machines.Get("charger").Draws!.Value * Spec.Charge.Scale), m.Items.Crate(charger)[0]);
     }
 }

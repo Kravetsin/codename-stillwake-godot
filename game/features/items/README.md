@@ -88,15 +88,17 @@ as everything E works is, in the crew feature (`AimTests`).
 - **Charge** (0053): a slot holding a battery draws a thin bar along its icon's foot, no numbers: green,
   amber under a quarter of full, an empty track at none (`Charges.BarOf`); an empty battery shows its own
   picture (`battery_empty`, `Charges.Picture`), in a slot, in the hand, on its card and on the floor. Its
-  card adds a CHARGE meter under the head: the percent of full and the seconds of drilling it holds, both
-  rounded down (`Charges.MeterOf`), and a bar.
+  card adds a CHARGE meter under the head: the percent of full, a bar, and a bolt with what it holds of
+  full in power-ticks, the units machines draw in (`⚡ 1170 / 1800`), both rounded down (`Charges.MeterOf`).
+  No time is shown: a battery is a store for any tool, and how long one lasts is felt, not spelled out.
+  An electric tool's card shows its `Draw` as a machine shows its own: a bolt and the number.
 - **A charging station's panel** (the station mockup): its name and a bolt with what it draws, lit while
   it charges (`IPowerQueries.Charges`), dark at 0 otherwise; its slot beside a bar of what the battery
   holds, and under it "empty", "full", "charging" or "no power" (`Charges.StationState`). The sim refuses
   anything but a battery there (`items.notBattery`).
 - **The energy bar** (`EnergyBar`, a layer of its own made by `Main`), right of the suit's gauge, shows the
   charge of the batteries on the belt (`IItemsQueries.BeltCharge`) of what they hold full, only while the
-  free hand holds an electric item (`Ui.Wielded`, `Items.Electric`), in the colour of that item's energy
+  free hand holds an electric item (`Ui.Wielded`, an item with a `Draw`), in the colour of that item's energy
   (`Charges.ColourOf`: charge's green); hidden otherwise. Read four times a second. No item is electric
   yet; `-- --electric=fireAxe` counts one as electric in a dev run, so the bar can be seen.
 - A furnace's panel is its input over its fuel, the fire between them, its bar and its outputs; a

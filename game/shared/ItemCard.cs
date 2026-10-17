@@ -61,6 +61,9 @@ public sealed record ItemCard(
     /// <summary>What this one holds, a battery's charge, under the head; null for an item that holds none.</summary>
     public ChargeMeter? Charge { get; init; }
 
+    /// <summary>What an electric tool draws while it works, in the units machines draw in, as a machine shows its own; null for anything else.</summary>
+    public int? Draw { get; init; }
+
     /// <summary>The picture heading the card: its item's, or the empty battery's for one holding no charge.</summary>
     public string Picture { get; init; } = Item;
 
@@ -68,7 +71,7 @@ public sealed record ItemCard(
         other is not null && Item == other.Item && Name == other.Name && Kind == other.Kind
         && (Tiles == null ? other.Tiles == null : other.Tiles != null && Tiles.SequenceEqual(other.Tiles))
         && Effects.SequenceEqual(other.Effects) && Uses.SequenceEqual(other.Uses) && Use == other.Use
-        && Unknown == other.Unknown && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture;
+        && Unknown == other.Unknown && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw;
 
     public override int GetHashCode()
     {
@@ -79,6 +82,7 @@ public sealed record ItemCard(
         hash.Add(Station);
         hash.Add(Charge);
         hash.Add(Picture);
+        hash.Add(Draw);
         foreach (var effect in Effects) hash.Add(effect);
         foreach (var use in Uses) hash.Add(use);
         foreach (var tile in Tiles ?? []) hash.Add(tile);

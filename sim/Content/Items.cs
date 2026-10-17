@@ -12,10 +12,13 @@ namespace Stillwake.Content;
 /// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
 /// <param name="Equip">Equipment: the kind of a hero's equipment slot it is worn in, of <c>Inventory.Equipment</c>; none for anything else.</param>
 /// <param name="Capacity">
-/// The most charge one holds (<see cref="Charge"/>): a battery. Only for a stack of one, and never in a cost,
-/// so paying with one never destroys its charge.
+/// The most charge one holds, stored as <see cref="Charge"/> says: a battery, a general store any electric
+/// tool runs on. Only for a stack of one, and never in a cost, so paying with one never destroys its charge.
 /// </param>
-/// <param name="Electric">An electric tool: held, it runs on the belt's batteries, and the energy bar shows.</param>
+/// <param name="Draw">
+/// An electric tool: the power it draws while it works, as a machine draws (<see cref="Charge"/>), from the
+/// belt's batteries. Held, the energy bar shows; its card shows the draw.
+/// </param>
 public sealed record ItemSpec(
     string Id,
     int Stack,
@@ -24,7 +27,7 @@ public sealed record ItemSpec(
     int? BurnTicks = null,
     string? Equip = null,
     int? Capacity = null,
-    bool Electric = false);
+    int? Draw = null);
 
 /// <summary>
 /// Everything a hero carries. Every material is an item by the same id; the salvage items are what
@@ -66,7 +69,7 @@ public static class Items
         new("harpoon", 1),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back"),
-        // Holds charge for an electric tool, worn on the belt; filled at a charging station.
+        // Holds charge for any electric tool, worn on the belt; filled at a charging station.
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery),
     ];
 

@@ -1,5 +1,4 @@
 using System;
-using Stillwake.Sim;
 using Stillwake.Sim.Items;
 using Spec = Stillwake.Content;
 
@@ -13,8 +12,11 @@ public enum ChargeBar
     Flat,
 }
 
-/// <summary>A battery's CHARGE meter on its card: the share of full, in whole percent, and the seconds of drilling it holds.</summary>
-public sealed record ChargeMeter(int Percent, int Seconds, float Share);
+/// <summary>
+/// A battery's CHARGE meter on its card: the share of full in whole percent, and what it holds and holds
+/// full in power-ticks, the units machines draw in. Never how long any one tool would run on it.
+/// </summary>
+public sealed record ChargeMeter(int Percent, int Stored, int Capacity, float Share);
 
 /// <summary>The energy bar by the suit's: what the belt's batteries hold of full, in the colour of the energy what is held runs on.</summary>
 public sealed record Energy(float Share, string Colour);
@@ -49,7 +51,7 @@ public static class Charges
     /// <summary>The picture of <paramref name="item"/> holding <paramref name="charge"/>: an empty battery shows <c>battery_empty</c>.</summary>
     public static string Picture(string item, int charge) => CapacityOf(item) != null && charge <= 0 ? $"{item}_empty" : item;
 
-    /// <summary>The card's meter for <paramref name="stack"/>: whole percent and whole seconds, both rounded down; null with no charge to hold.</summary>
+    /// <summary>The card's meter for <paramref name="stack"/>: whole percent and whole power-ticks, rounded down; null with no charge to hold.</summary>
     public static ChargeMeter? MeterOf(Stack stack)
     {
         if (CapacityOf(stack.Item) is not int full) return null;
@@ -57,7 +59,8 @@ public static class Charges
         // Both are never negative, so integer division rounds down: 100% only when full.
         return new ChargeMeter(
             (int)(100L * charge / full),
-            charge / Spec.Charge.PerTick / World.TicksPerSecond,
+            charge / Spec.Charge.Scale,
+            full / Spec.Charge.Scale,
             (float)charge / full);
     }
 
@@ -70,12 +73,12 @@ public static class Charges
 
     /// <summary>The colour of the energy <paramref name="item"/> runs on, held: charge's green for an electric tool; null for one that runs on none.</summary>
     public static string? ColourOf(string item, Func<string, bool>? electric = null) =>
-        (electric ?? (i => Spec.Items.Get(i).Electric))(item) ? Green : null;
+        (electric ?? (i => Spec.Items.Get(i).Draw != null))(item) ? Green : null;
 
     /// <summary>
     /// The energy bar while <paramref name="held"/> runs on energy, null otherwise: the belt's charge,
     /// <paramref name="belt"/> as <c>BeltCharge</c> sums it, of what it holds full; empty with no battery worn.
-    /// <paramref name="electric"/> says what is electric, content's flag when not given.
+    /// <paramref name="electric"/> says what is electric, what has a <c>Draw</c> in content when not given.
     /// </summary>
     public static Energy? EnergyOf(string? held, (int Charge, int Capacity) belt, Func<string, bool>? electric = null)
     {

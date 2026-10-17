@@ -73,7 +73,7 @@ public sealed partial class ItemsModule
             for (int i = 0; i < held.Slots.Length; i++)
                 if (held.Slots[i] is { } s && Content.Items.Get(s.Item).Capacity != null) holding.Add(new Place(i, held.Id));
         var what = holding.Count > 0 ? holding[(int)rng.Below((uint)holding.Count)] : src;
-        var stations = Machines.All.Where(m => m.Charges != null).SelectMany(m => _grid.MachinesOf(m.Kind)).ToList();
+        var stations = Machines.All.Where(m => m.Charges).SelectMany(m => _grid.MachinesOf(m.Kind)).ToList();
         Target to = rng.Below(3) switch
         {
             0 when stations.Count > 0 => new Target(0, stations[(int)rng.Below((uint)stations.Count)].Id),

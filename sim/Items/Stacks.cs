@@ -257,7 +257,7 @@ internal static class Stacks
     /// </summary>
     public static string? Unfit(MachineSpec spec, IReadOnlyList<Stack?> slots)
     {
-        if (spec.Charges == null) return null;
+        if (!spec.Charges) return null;
         foreach (var s in slots)
             if (s != null && Content.Items.Get(s.Item).Capacity == null) return "items.notBattery";
         return null;

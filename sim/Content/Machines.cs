@@ -28,8 +28,9 @@ namespace Stillwake.Content;
 /// Meteors hit no machine at all.
 /// </param>
 /// <param name="Charges">
-/// Charge it puts a tick, at full power, into what its first slot holds (<see cref="Charge"/>): a charging
-/// station. Its slots take only items with a <c>Capacity</c>, and it draws only while one is short of full.
+/// A charging station: what it draws, scaled by its satisfaction, goes into what its first slot holds
+/// (<see cref="Charge"/>). Its slots take only items with a <c>Capacity</c>, and it draws only while one is
+/// short of full.
 /// </param>
 public sealed record MachineSpec(
     string Kind,
@@ -45,7 +46,7 @@ public sealed record MachineSpec(
     int? Inputs = null,
     int? FuelSlot = null,
     bool Fixed = false,
-    int? Charges = null);
+    bool Charges = false);
 
 /// <summary>The machines, by the kind saves and the grid name them.</summary>
 public static class Machines
@@ -64,8 +65,8 @@ public static class Machines
         new("furnace", 2, 2, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1),
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel.
         new("burnerGenerator", 2, 2, [], [("frame", 1), ("rotor", 1), ("coil", 1), ("scrap", 6)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0),
-        // Fills a battery on its network: from empty to full in Charge.Battery / Charge.PerTick ticks at full power.
-        new("charger", 1, 2, [], [("frame", 1), ("coil", 1), ("wire", 4)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: Charge.PerTick),
+        // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
+        new("charger", 1, 2, [], [("frame", 1), ("coil", 1), ("wire", 4)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: true),
         // Where heroes are made and where parts are crafted (Crafts.PodSpeed); its slots are the crafts made.
         new("lifepod", 3, 3, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true),
     ];

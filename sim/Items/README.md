@@ -29,7 +29,7 @@ mode, the world setting in which nothing is ever taken
   circuits are salvaged only, from cable racks (`Debris`). Containers and wreckage are items too, a
   stack of one, never carried but in creative mode and the testbed's crate. The inventory's first row is the hotbar.
 - **What one item holds of its own** (0053) is on its stack: `Charge`, a battery's, from 0 to its item's
-  `Capacity`, only on items of a stack of one that have one, 0 on anything else. Every copy of a stack is
+  `Capacity`, in the units machines draw power in (power-ticks, stored in thousandths: `Content.Charge`), only on items of a stack of one that have one, 0 on anything else. Every copy of a stack is
   made with `with`, so it goes wherever the stack goes: a move, a swap, a crate, a drop and its pick-up
   (`FloorStack.Charge`, `AsStack`). Stacks merge, onto a slot or on the floor, only when alike
   (`Stacks.Alike`: one item, one charge); a whole stack moved onto one not alike swaps with it, so two
@@ -55,11 +55,11 @@ mode, the world setting in which nothing is ever taken
   - A machine with `Inputs` (a furnace) takes items only into its first `Inputs` slots, refusing the
     rest with `items.takeOnly`; a move into it naming no slot goes into the first. One with no inputs
     (the lifepod) takes nothing in, refused with `items.takeOnly` whichever slot is named.
-  - A charging station (a machine with `Charges`) holds only items with a `Capacity`: a move that would
+  - A charging station (a machine with `Charges` set) holds only items with a `Capacity`: a move that would
     leave anything else in it, put or swapped in, is refused with `items.notBattery` (`Stacks.Unfit`).
 - **Charge** is filled at a charging station by `Power`, through `Charge(id, amount)`, never past full,
-  and spent from the belt by an electric tool through `Drain(peer, amount)`: the first battery on the
-  belt, in slot order, holding at least `amount` pays it whole, so the belt drains left to right; false
+  and spent from the belt by an electric tool through `Drain(peer, amount)`, `amount` in power-ticks (a
+  tool's `Draw` for a tick): the first battery on the belt, in slot order, holding at least that pays it whole, so the belt drains left to right; false
   when none can. In creative mode nothing is taken and it answers true.
 - A change of nothing (a cost of zeros) changes nothing and stores no inventory; a machine emptied
   loses its entry.
@@ -114,10 +114,10 @@ counted twice.
   peer. `DropAt(peer, cost, cell)` — lets all of `cost` fall on `cell`, still, dropped by that peer:
   what a cancelled blueprint held; or by `FloorStack.Nobody`, for anyone to pick up at once: what a
   broken wreck held. `Charge(id, amount)` — adds up to
-  `amount` of charge to what machine `id`'s first slot holds, never past its capacity: `Power`'s
+  `amount` of charge, stored in thousandths of a power-tick, to what machine `id`'s first slot holds, never past its capacity: `Power`'s
   charging station; it throws for a slot holding nothing with a capacity. `Drain(peer, amount)` — takes
-  `amount` from the first belt battery that holds that much, as above; no caller yet (the drill is
-  next), tested on its own.
+  `amount` power-ticks from the first belt battery that holds that much, as above; no caller yet (the
+  first electric tool is next), tested on its own.
 - **Commands:** `SetCreative(On)`, from the dev panel, with no refusals.
   `Move(Src, Dst, Count)` — `Src` a `Place(Slot, Crate?)`, `Dst` a `Target(Slot?, Crate?)`, no crate
   meaning the sender's inventory; refused with `items.noCrate` (a side names no machine holding

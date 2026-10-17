@@ -157,7 +157,7 @@ public partial class Main : Node2D, ITogether
             AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
             // --electric=fireAxe: that item counts as electric, so the energy bar shows before any tool is (0053).
             var electric = _args.FirstOrDefault(a => a.StartsWith("--electric="))?[11..];
-            Func<string, bool>? isElectric = electric == null ? null : item => item == electric || Content.Items.Get(item).Electric;
+            Func<string, bool>? isElectric = electric == null ? null : item => item == electric || Content.Items.Get(item).Draw != null;
             AddChild(new EnergyBar(() => _session is Session s ? Charges.EnergyOf(_hands.Ui.Wielded.Get(), _m.Items.BeltCharge(s.Client.Id), isElectric) : null));
             AddChild(new Frost(() => _session != null && _hero is { Placed: true } h ? Report.Cold(_m.Crew, h.Current.BodyCell(_m.Grid.Width)) : 0));
             _camera.DevControls = false;

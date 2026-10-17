@@ -300,7 +300,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     /// <summary>
-    /// Adds up to <paramref name="amount"/> of charge to what machine <paramref name="id"/>'s first slot holds,
+    /// Adds up to <paramref name="amount"/> of charge, stored scaled, to what machine <paramref name="id"/>'s first slot holds,
     /// never past its <c>Capacity</c>: a charging station's tick. The caller checks it holds an item that has one.
     /// </summary>
     public void Charge(int id, int amount)
@@ -315,14 +315,16 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     /// <summary>
-    /// Takes <paramref name="amount"/> of charge from the first battery on <paramref name="peer"/>'s belt, in
-    /// slot order, that holds at least that much, and whether one did: a tick of an electric tool's work. One
-    /// battery pays it whole, so the belt drains left to right. Nothing is taken in creative mode.
+    /// Takes <paramref name="amount"/> power-ticks from the first battery on <paramref name="peer"/>'s belt,
+    /// in slot order, that holds at least that much, and whether one did: an electric tool's <c>Draw</c> for a
+    /// tick of its work. One battery pays it whole, so the belt drains left to right. Nothing is taken in
+    /// creative mode.
     /// </summary>
     public bool Drain(int peer, int amount)
     {
         if (amount < 0) throw new ArgumentException($"items.drain: {amount} is no charge");
         if (State.Creative) return true;
+        amount *= Content.Charge.Scale;
         var slots = Inventory(peer);
         foreach (int slot in Belt)
         {

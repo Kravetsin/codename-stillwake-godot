@@ -351,13 +351,16 @@ public class ContentTests
             .Concat(AllBuilds().Select(b => b.Cost))
             .Append(Content.Power.CableCost);
         Assert.All(costs, cost => Assert.DoesNotContain(cost, c => Content.Items.Get(c.Item).Capacity != null));
-        foreach (var station in Machines.All.Where(m => m.Charges != null))
+        // A station puts in what it draws: it fills every store in whole ticks at full power.
+        foreach (var station in Machines.All.Where(m => m.Charges))
         {
-            Assert.True(station.Charges > 0 && station.Draws > 0 && station.Slots > 0, station.Kind);
+            Assert.True(station.Draws > 0 && station.Slots > 0, station.Kind);
             Assert.Null(station.Inputs);
-            Assert.All(holding, i => Assert.Equal(0, i.Capacity!.Value % station.Charges!.Value));
+            Assert.All(holding, i => Assert.Equal(0, i.Capacity!.Value % (station.Draws!.Value * Charge.Scale)));
         }
-        Assert.DoesNotContain(Content.Items.All, i => i.Electric && i.Capacity != null);
+        // Consumers draw as machines do, in whole power units; a store is no consumer.
+        Assert.All(Content.Items.All.Where(i => i.Draw != null), i => Assert.True(i.Draw > 0, i.Id));
+        Assert.DoesNotContain(Content.Items.All, i => i.Draw != null && i.Capacity != null);
     }
 
     [Fact]

@@ -39,14 +39,14 @@ public class ChargesTests
     }
 
     [Fact]
-    public void TheCardsMeterGivesWholePercentAndTheSecondsOfDrillingLeft()
+    public void TheCardsMeterGivesWholePercentAndWhatItHoldsInPowerTicksNeverATime()
     {
-        // The mockup's: 60% of thirty seconds of drilling is eighteen.
-        Assert.Equal(new ChargeMeter(60, 18, 0.6f), Charges.MeterOf(Charged(Full * 6 / 10)));
-        Assert.Equal(new ChargeMeter(100, Full / Spec.Charge.PerTick / World.TicksPerSecond, 1f), Charges.MeterOf(Charged(Full)));
-        // Rounded down: a hair short of full is 99%, a unit is none.
-        Assert.Equal(99, Charges.MeterOf(Charged(Full - 1))!.Percent);
-        Assert.Equal((0, 0), (Charges.MeterOf(Charged(1))!.Percent, Charges.MeterOf(Charged(1))!.Seconds));
+        // 65% of a battery of 1800 power-ticks is 1170, in the units machines draw in.
+        Assert.Equal(new ChargeMeter(65, 1170, 1800, 0.65f), Charges.MeterOf(Charged(Full * 65 / 100)));
+        Assert.Equal(new ChargeMeter(100, 1800, 1800, 1f), Charges.MeterOf(Charged(Full)));
+        // Rounded down: a hair short of full is 99% and 1799, a stored unit is none.
+        Assert.Equal((99, 1799), (Charges.MeterOf(Charged(Full - 1))!.Percent, Charges.MeterOf(Charged(Full - 1))!.Stored));
+        Assert.Equal((0, 0), (Charges.MeterOf(Charged(1))!.Percent, Charges.MeterOf(Charged(1))!.Stored));
         Assert.Null(Charges.MeterOf(new Stack("scrap", 3)));
     }
 
@@ -55,7 +55,7 @@ public class ChargesTests
     {
         var reading = new Reading([], null, Creative: true, null, null, []);
         var card = reading.TipOf(Charged(Full * 6 / 10)).Card!;
-        Assert.Equal(new ChargeMeter(60, 18, 0.6f), card.Charge);
+        Assert.Equal(new ChargeMeter(60, 1080, 1800, 0.6f), card.Charge);
         Assert.Equal(Battery, card.Picture);
         var empty = reading.TipOf(Charged(0)).Card!;
         Assert.Equal("battery_empty", empty.Picture);
@@ -63,6 +63,16 @@ public class ChargesTests
         Assert.NotEqual(card, empty);
         Assert.Null(reading.TipOf(new Stack("scrap", 2)).Card!.Charge);
         Assert.Equal(reading.TipOf("scrap").Card, reading.TipOf(new Stack("scrap", 2)).Card);
+    }
+
+    [Fact]
+    public void AnElectricToolsCardShowsItsDrawAsAMachineShowsItsOwn()
+    {
+        // From content, as a machine's Draws: no item is electric yet, so no card has one.
+        Assert.All(Spec.Items.All, i => Assert.Equal(i.Draw, ItemCards.Of(i.Id, unknown: false).Draw));
+        var axe = ItemCards.Of("fireAxe", unknown: false);
+        Assert.NotEqual(axe, axe with { Draw = 3 });
+        Assert.Equal(axe with { Draw = 3 }, axe with { Draw = 3 });
     }
 
     [Fact]
@@ -78,7 +88,7 @@ public class ChargesTests
     public void TheEnergyBarShowsOnlyWhileAnElectricToolIsHeldInItsColour()
     {
         // No item is electric yet: with none held, or anything held, the bar hides.
-        Assert.DoesNotContain(Spec.Items.All, i => i.Electric);
+        Assert.DoesNotContain(Spec.Items.All, i => i.Draw != null);
         Assert.Null(Charges.EnergyOf(null, (5, 10)));
         Assert.Null(Charges.EnergyOf("fireAxe", (5, 10)));
         bool Electric(string item) => item == "fireAxe";

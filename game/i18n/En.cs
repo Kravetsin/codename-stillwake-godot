@@ -166,9 +166,10 @@ public static partial class En
         ["card.notAnalysed"] = "? Not analysed",
         ["card.goesInto"] = "Goes into",
         ["card.more"] = "+{n}",
-        // What a battery holds, on its card: the share of full and the seconds of drilling left.
+        // What a battery holds, on its card: the share of full, and what it holds of full in power-ticks.
         ["card.charge"] = "Charge",
-        ["card.chargeLeft"] = "{n}% · {s} s",
+        ["card.percent"] = "{n}%",
+        ["card.stored"] = "{n} / {all}",
         // A charging station's panel: what its slot does now.
         ["charger.empty"] = "empty",
         ["charger.full"] = "full",

@@ -146,19 +146,19 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         if (IsResting(m.Id)) return false;
         var spec = Spec(m);
         if (spec.Slots == null) return true;
-        return _items.Crate(m.Id)[0] is { } held && (spec.Charges == null || Short(held));
+        return _items.Crate(m.Id)[0] is { } held && (!spec.Charges || Short(held));
     }
 
     /// <summary>Whether <paramref name="held"/> holds less charge than it can: a battery not yet full.</summary>
     private static bool Short(Stack held) => Content.Items.Get(held.Item).Capacity is int full && held.Charge < full;
 
     /// <summary>The kinds of machine that charge what they hold.</summary>
-    private static readonly string[] Chargers = [.. Content.Machines.All.Where(s => s.Charges != null).Select(s => s.Kind)];
+    private static readonly string[] Chargers = [.. Content.Machines.All.Where(s => s.Charges).Select(s => s.Kind)];
 
     /// <summary>
-    /// Each charging station, in id order, puts its <c>Charges</c> times its satisfaction into what it holds,
-    /// rounded down, never past full: from empty to full in <c>Capacity / Charges</c> ticks at full power,
-    /// twice that at half.
+    /// Each charging station, in id order, puts what it draws into what it holds: its <c>Draws</c> in
+    /// power-ticks times its satisfaction, stored scaled (<c>Charge.Scale</c>), rounded down, never past
+    /// full. Drawing 3, it fills a battery of 1800 in 600 ticks at full power, twice that at half.
     /// </summary>
     private void Charge()
     {
@@ -167,7 +167,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
             {
                 if (!Charges(m.Id)) continue;
                 // Both are never negative, so integer division is the floor.
-                int amount = Spec(m).Charges!.Value * Satisfaction(m.Id) / 1000;
+                int amount = (Spec(m).Draws ?? 0) * Content.Charge.Scale * Satisfaction(m.Id) / 1000;
                 if (amount > 0) _itemsOps.Charge(m.Id, amount);
             }
     }
@@ -184,7 +184,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     public int Satisfaction(int machineId) => State.Satisfaction.TryGetValue(machineId, out int s) ? s : 0;
 
     public bool Charges(int machineId) =>
-        _grid.MachineById(machineId) is { } m && Spec(m).Charges != null && Drawing(m) && Satisfaction(machineId) > 0;
+        _grid.MachineById(machineId) is { } m && Spec(m).Charges && Drawing(m) && Satisfaction(machineId) > 0;
 
     public string? LayProblem(int peer, int a, int b)
     {
