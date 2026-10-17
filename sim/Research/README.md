@@ -6,7 +6,7 @@ granted, the items analyzers have analysed, and what that opens. A blueprint not
 planned, a craft not known cannot be queued. Ported from `packages/sim/src/modules/research`; since
 0027 a blueprint opens by the rule below, not by a table or schematics.
 
-- **Depends on:** `Grid` (`IGridQueries`: which machines are analyzers), `Items` (`IItemsQueries`:
+- **Depends on:** `Grid` (`IGridQueries.MachinesOf`: which machines are analyzers), `Items` (`IItemsQueries`:
   what their slot holds, creative mode), `Power` (`IPowerQueries`: their satisfaction; `IPowerOps`:
   `Rest`).
 - **State** (`ResearchState`, members internal): `Granted` — the blueprints and crafts known from the

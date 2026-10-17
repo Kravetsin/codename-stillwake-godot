@@ -1,3 +1,6 @@
+using FsCheck;
+using FsCheck.Fluent;
+using FsCheck.Xunit;
 using Stillwake.Sim.Grid;
 using Xunit;
 
@@ -22,6 +25,50 @@ public class GridTests
         Assert.Equal("iron", w.M.Grid.BackAt(1)?.Id);
         Assert.Null(w.M.Grid.WallAt(-1));
         Assert.Null(w.M.Grid.BackAt(6));
+    }
+
+    private static readonly string[] Kinds = [.. Content.Machines.All.Select(m => m.Kind)];
+
+    /// <summary>
+    /// A machine found by its id, its kind or a cell of it is the one a scan of every machine finds, after
+    /// any builds and removals and after a load; and the machines stay in id order.
+    /// </summary>
+    [Property(MaxTest = 200)]
+    public Property FindsEveryMachineByIdKindAndCellAsAScanOfThemAll()
+    {
+        var gen =
+            from width in Gen.Choose(2, 12)
+            from height in Gen.Choose(2, 8)
+            from edits in (from cell in Gen.Choose(0, 1 << 20) from kind in Gen.Choose(0, 2 * Kinds.Length - 1) select (cell, kind)).ListOf()
+            from reload in Gen.Choose(0, 40)
+            select (width, height, edits: edits.Take(60).ToList(), reload);
+        return Prop.ForAll(gen.ToArbitrary(), t =>
+        {
+            var w = new Scenario(Layout.Parse(Enumerable.Repeat(new string('.', t.width), t.height).ToArray()));
+            int size = t.width * t.height;
+            for (int i = 0; i < t.edits.Count; i++)
+            {
+                var (cell, kind) = t.edits[i];
+                // Half of the edits take a machine apart, so builds and removals interleave.
+                w.Do(kind >= Kinds.Length ? new ClearAt(cell % size, "machine") : new Place(cell % size, new Placement("machine", Kinds[kind]))).Run();
+                if (i == t.reload) w.Reload();
+                if (!AsAScanFinds(w.M.Grid, size, t.edits.Count + 2)) return false;
+            }
+            return true;
+        });
+    }
+
+    private static bool AsAScanFinds(GridModule grid, int size, int ids)
+    {
+        var all = grid.Machines;
+        for (int i = 1; i < all.Count; i++) if (all[i - 1].Id >= all[i].Id) return false;
+        foreach (var kind in Kinds)
+            if (!grid.MachinesOf(kind).SequenceEqual(all.Where(m => m.Kind == kind))) return false;
+        for (int id = 0; id <= ids; id++)
+            if (grid.MachineById(id) != all.FirstOrDefault(m => m.Id == id)) return false;
+        for (int cell = -1; cell <= size; cell++)
+            if (grid.MachineAt(cell) != all.FirstOrDefault(m => grid.Footprint(m.Kind, m.Cell)!.Contains(cell))) return false;
+        return ((GridState)grid.Slice).ById.Count == all.Count;
     }
 }
 

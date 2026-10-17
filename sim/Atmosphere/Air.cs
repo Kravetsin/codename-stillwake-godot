@@ -49,11 +49,21 @@ public sealed partial class AtmosphereModule
     /// <summary>The survey kept between ticks; null when it must be gathered again.</summary>
     private Survey? _survey;
 
-    /// <summary>The survey, gathered again only when the pipes or the rooms are new; the generators' power and the tanks' oxygen are read on every call.</summary>
+    /// <summary>The survey the generators' power and the tanks holding oxygen were last read into; null, to read them again.</summary>
+    private Survey? _readFor;
+
+    /// <summary>
+    /// The survey, gathered again only when the pipes or the rooms are new; the generators' power and the
+    /// tanks holding oxygen read again only after they may have changed: a canister loaded, tanks taken
+    /// apart, or a new tick, its power found again in derivation.
+    /// </summary>
     private Survey Gather()
     {
         if (_survey == null || _survey.Pipes != _pipes.Version || _survey.Rooms != _rooms.Version) _survey = GatherAll();
         var s = _survey;
+        // Tanks emptied since are still held, at none: they give nothing, as if they were gone.
+        if (s == _readFor) return s;
+        _readFor = s;
         s.MadeOn.Clear();
         foreach (var (network, generator) in s.Generators)
             s.MadeOn[network] = s.MadeOn.GetValueOrDefault(network) + _power.Satisfaction(generator);
@@ -65,19 +75,21 @@ public sealed partial class AtmosphereModule
     private Survey GatherAll()
     {
         var s = new Survey { Pipes = _pipes.Version, Rooms = _rooms.Version };
-        foreach (var m in _grid.Machines)
+        foreach (var m in _grid.MachinesOf("vent"))
+            foreach (int port in _grid.PortsOf(m))
+                if (_pipes.NetworkAt(port) is int network) s.Vents.Add((m.Cell, network));
+        // Tanks and generators merged into one id order: draws take from both alike.
+        var tanks = _grid.MachinesOf("tank");
+        var generators = _grid.MachinesOf("generator");
+        for (int t = 0, g = 0; t < tanks.Count || g < generators.Count;)
         {
-            if (m.Kind is not ("vent" or "tank" or "generator")) continue;
+            bool generator = t == tanks.Count || (g < generators.Count && generators[g].Id < tanks[t].Id);
+            var m = generator ? generators[g++] : tanks[t++];
             foreach (int port in _grid.PortsOf(m))
             {
-                var network = _pipes.NetworkAt(port);
-                if (network == null) continue;
-                if (m.Kind == "vent") s.Vents.Add((m.Cell, network.Value));
-                else
-                {
-                    AddTo(s.TanksOn, network.Value, m.Id);
-                    if (m.Kind == "generator") s.Generators.Add((network.Value, m.Id));
-                }
+                if (_pipes.NetworkAt(port) is not int network) continue;
+                AddTo(s.TanksOn, network, m.Id);
+                if (generator) s.Generators.Add((network, m.Id));
             }
         }
         foreach (var (cell, network) in s.Vents)
@@ -281,7 +293,7 @@ public sealed partial class AtmosphereModule
         var roomOf = _rooms.RoomOfCells;
         // Vents standing in each room, piped or not: the survey keeps only the piped ones.
         var standing = new HashSet<int>();
-        foreach (var m in _grid.Machines) if (m.Kind == "vent") standing.Add(roomOf[m.Cell]);
+        foreach (var m in _grid.MachinesOf("vent")) standing.Add(roomOf[m.Cell]);
         var all = new List<RoomAir>(_rooms.All.Count);
         foreach (var room in _rooms.All)
         {
@@ -373,17 +385,21 @@ public sealed partial class AtmosphereModule
     {
         const int unit = Content.Air.LeakEvery * 1000;
         var making = new List<GeneratorWork>();
+        var was = State.Making;
+        // The tanks are in id order until the first one added below, which no later generator's id finds.
+        int sorted = State.Tanks.Count, next = 0;
         bool added = false;
-        foreach (var m in _grid.Machines)
+        foreach (var m in _grid.MachinesOf("generator"))
         {
-            if (m.Kind != "generator") continue;
-            int part = (State.Making.Find(g => g.Generator == m.Id)?.Part ?? 0)
+            // The work kept and the generators are both in id order: one pass finds each generator's.
+            while (next < was.Count && was[next].Generator < m.Id) next++;
+            int part = (next < was.Count && was[next].Generator == m.Id ? was[next].Part : 0)
                 + Content.Air.GeneratorRate * _power.Satisfaction(m.Id);
             int made = part / unit;
             part -= made * unit;
             making.Add(new GeneratorWork { Generator = m.Id, Part = part });
             if (made == 0) continue;
-            var store = State.Tanks.Find(t => t.Tank == m.Id);
+            var store = TankOf(m.Id, sorted);
             if (store != null) store.Oxygen = Math.Min(Content.Air.GeneratorStore, store.Oxygen + made);
             else
             {
@@ -393,6 +409,21 @@ public sealed partial class AtmosphereModule
         }
         State.Making = making;
         if (added) State.Tanks.Sort((a, b) => a.Tank.CompareTo(b.Tank));
+    }
+
+    /// <summary>Tank <paramref name="id"/>'s oxygen among the first <paramref name="count"/> tanks, which are in id order; null for none.</summary>
+    private TankAir? TankOf(int id, int count)
+    {
+        var tanks = State.Tanks;
+        int lo = 0, hi = count - 1;
+        while (lo <= hi)
+        {
+            int mid = lo + ((hi - lo) >> 1);
+            if (tanks[mid].Tank == id) return tanks[mid];
+            if (tanks[mid].Tank < id) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return null;
     }
 
     /// <summary>

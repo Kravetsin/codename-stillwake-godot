@@ -74,7 +74,7 @@ public static class Aiming
     /// <summary>Whether crate, furnace or analyzer <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
     public static bool CrateInReach(IGridQueries grid, Hero hero, int id)
     {
-        var crate = grid.Machines.FirstOrDefault(m => m.Id == id && HoldsItems(m.Kind));
+        var crate = grid.MachineById(id) is { } m && HoldsItems(m.Kind) ? m : null;
         var cells = crate == null ? [] : grid.Footprint(crate.Kind, crate.Cell) ?? [];
         return cells.Any(cell => Reaches(hero, cell, grid.Width));
     }

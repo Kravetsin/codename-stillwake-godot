@@ -50,6 +50,10 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     private readonly IRoomsQueries _rooms;
     private readonly IPipesQueries _pipes;
     private readonly IPowerQueries _power;
+    /// <summary>Whether a tank's machine still stands; made once, so construction allocates nothing a tick.</summary>
+    private readonly Predicate<TankAir> _standing;
+    /// <summary>Derived: the grid's version the tanks were last checked at; null for not yet.</summary>
+    private int? _tanksCheckedAt;
 
     /// <summary>Derived: each room's leak by room id, found for the rooms' version <see cref="_leaksFor"/>; null for none yet.</summary>
     private readonly Dictionary<int, int> _leaks = new();
@@ -69,6 +73,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         Handles<LoadCanister>(c => CanisterProblem(c.Tank, c.From), c =>
         {
             itemsOps.Take(c.From, Canister);
+            _readFor = null;
             var held = State.Tanks.Find(t => t.Tank == c.Tank);
             if (held != null) held.Oxygen += Content.Air.Canister;
             else
@@ -78,17 +83,21 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             }
         });
         // A tank taken apart takes its oxygen with it; ids are never reused, so this is only tidying.
+        // Only a machine taken apart, which moves the grid's version, leaves a tank with none.
+        _standing = t => _grid.MachineById(t.Tank) != null;
         System(Phase.Construction, () =>
         {
-            var machines = _grid.Machines;
-            var live = new HashSet<int>(machines.Count);
-            foreach (var m in machines) live.Add(m.Id);
-            if (State.Tanks.TrueForAll(t => live.Contains(t.Tank))) return;
-            State.Tanks = State.Tanks.FindAll(t => live.Contains(t.Tank));
+            if (_tanksCheckedAt == _grid.Version) return;
+            _tanksCheckedAt = _grid.Version;
+            if (State.Tanks.TrueForAll(_standing)) return;
+            State.Tanks = State.Tanks.FindAll(_standing);
+            _readFor = null;
         });
         // After derivation, so rooms and networks are those of this tick.
         System(Phase.Simulation, () =>
         {
+            // Power was found again in derivation, and the air steps with what this tick holds.
+            _readFor = null;
             State.Clock += 1;
             Follow();
             StepAir();
@@ -101,6 +110,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     {
         _leaksFor = null;
         _survey = null;
+        _tanksCheckedAt = null;
         Reorder(VentCells());
         State.OrderedVersion = _rooms.Version;
     }
@@ -167,8 +177,9 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// <summary>The cells of the vents, in machine id order: where each room's air lies around.</summary>
     private List<int> VentCells()
     {
-        var vents = new List<int>();
-        foreach (var m in _grid.Machines) if (m.Kind == "vent") vents.Add(m.Cell);
+        var machines = _grid.MachinesOf("vent");
+        var vents = new List<int>(machines.Count);
+        foreach (var m in machines) vents.Add(m.Cell);
         return vents;
     }
 
@@ -221,7 +232,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         return _seen;
     }
 
-    private bool IsTank(int id) => _grid.Machines.Any(m => m.Id == id && m.Kind == "tank");
+    private bool IsTank(int id) => _grid.MachineById(id)?.Kind == "tank";
 
     // Queries.
 

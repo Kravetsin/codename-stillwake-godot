@@ -99,4 +99,32 @@ public class BudgetTests(ITestOutputHelper output)
         output.WriteLine($"tick toggling a door: {toggling.Mean:F3} ms mean, {toggling.Max:F3} ms max");
         Assert.True(still.Mean < 20 && toggling.Mean < 20, "a tick is far over its budget");
     }
+
+    /// <summary>
+    /// A thousand furnaces and a thousand analyzers at work, in aired rooms of their own: each finds its
+    /// machine, slots and records at once, so the tick grows with the machines, not with their square.
+    /// </summary>
+    [Fact]
+    public void KeepsAThousandFurnacesAndAnalyzersAtWorkUnderBudget()
+    {
+        string[] tile = ["########", "#FF.AA.#", "#FF.AA.#", "#......#", "#.TT.V.#", "#.TT...#", "#......#", "########"];
+        string[] under = ["", "", "", "", "  o  -", "  ----", "", ""];
+        string[] Rows(string[] of) => [.. Enumerable.Range(0, 256).Select(y => string.Concat(Enumerable.Repeat(of[y % 8].PadRight(8), 32)))];
+        var w = new Scenario(Layout.Parse(Rows(tile), Rows(under)));
+        foreach (var m in w.M.Grid.Machines)
+        {
+            if (m.Kind == "furnace") w.FillCrate(m.Id, ("scrapChunk", 10), ("planks", 50));
+            if (m.Kind == "analyzer") w.FillCrate(m.Id, ("scrap", 1));
+        }
+        // Aired first, so the timed ticks burn, smelt and breathe.
+        Time(w.World, 100, _ => []);
+        var ticks = Time(w.World, 300, _ => []);
+        var furnaces = w.M.Grid.Machines.Where(m => m.Kind == "furnace").ToList();
+        int burning = furnaces.Count(m => w.M.Furnace.At(m.Id).Burning);
+        int analysing = w.M.Grid.Machines.Count(m => m.Kind == "analyzer" && w.M.Research.At(m.Id) != null);
+        output.WriteLine($"{w.M.Grid.Machines.Count} machines, {burning} of {furnaces.Count} furnaces burning, {analysing} analyzers at work");
+        output.WriteLine($"tick: {ticks.Mean:F3} ms mean, {ticks.Max:F3} ms max");
+        Assert.True(burning > 1000 && analysing > 1000, "the machines stand idle");
+        Assert.True(ticks.Mean < 10, "a tick is far over its budget");
+    }
 }
