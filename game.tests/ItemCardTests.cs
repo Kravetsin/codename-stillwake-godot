@@ -100,7 +100,7 @@ public class ItemCardTests
             + Sim.Research.Blueprints.All.Count(b => b.Cost.Any(i => i.Item == "scrap"));
         Assert.Equal($"+{into - ItemCards.MostInto}", scrap[^1]);
         // Electronics need circuits: the crafts first, then the builds.
-        Assert.Equal(["Battery", "Drill", "Solar panel", "Charging station", "+1"], ItemCards.Of("circuit", false).Uses);
+        Assert.Equal(["Battery", "Drill", "Solar panel", "Charging station", "+2"], ItemCards.Of("circuit", false).Uses);
     }
 
     [Fact]

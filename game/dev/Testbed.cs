@@ -11,7 +11,8 @@ namespace Stillwake.Game.Dev;
 /// A ready ship for checking things by eye (<c>-- --testbed</c>, or the title's Testbed button in a debug
 /// build): every machine once, two rooms aired, an airlock out to space, every user powered, creative
 /// mode on, a crate with a full stack of every item and a charged battery, the furnace and the burner
-/// generator lit, the analyzer at work, a battery charging and the Former pressing plates.
+/// generator lit, the analyzer at work, a battery charging, the Former pressing plates and the electric
+/// smelter smelting rock.
 /// </summary>
 public static class Testbed
 {
@@ -20,22 +21,23 @@ public static class Testbed
 
     /// <summary>
     /// Room one holds the lifepod, the crate and the air: a tank with a canister and a generator piped to a
-    /// vent in each room; room two the furnace, the Former, the analyzer, the charging station and the burner
-    /// generator; then the airlock, no vent in it. Three panels on the roof: the first two feed every user
-    /// near them, the third the charging station; the burner generator feeds the Former and room two's right
-    /// lamp, and through it the airlock's. Sixty cells of space past the airlock, room for a jetpack to fly.
+    /// vent in each room; room two the furnace, the Former, the electric smelter, the analyzer, the charging
+    /// station and the burner generator; then the airlock, no vent in it. Four panels on the roof: the first two
+    /// feed the lamps and the oxygen generator, the third the analyzer and the charging station, the fourth the
+    /// smelter; the burner generator feeds the Former and room two's right lamp, and through it the airlock's.
+    /// Sixty cells of space past the airlock, room for a jetpack to fly.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
             new string(' ', 96),
             "",
-            "       PPP         PPP   PPP",
-            "  ###################################",
-            "  #.......L......#....L.....L...#.L.#",
-            "  #.OOO..........D..............D...D",
-            "  #.OOO..TTGG....D...FF.MM.AACBBD...D",
-            "  #.OOO..TTGGVKK.D.V.FF.MM.AACBBD...D",
-            "  ###################################",
+            "       PPP         PPP   PPP PPP",
+            "  ######################################",
+            "  #.......L......#....L........L...#.L.#",
+            "  #.OOO..........D.................D...D",
+            "  #.OOO..TTGG....D...FF.MM.EE.AACBBD...D",
+            "  #.OOO..TTGGVKK.D.V.FF.MM.EE.AACBBD...D",
+            "  ######################################",
         ],
         [
             "",
@@ -49,7 +51,8 @@ public static class Testbed
         ],
         [
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
-            ((19, 2), (22, 4)), ((19, 2), (27, 6)), ((30, 6), (28, 4)), ((28, 4), (34, 4)), ((30, 6), (24, 6)), ((25, 2), (29, 6)),
+            ((19, 2), (22, 4)), ((25, 2), (30, 6)), ((33, 6), (31, 4)), ((31, 4), (37, 4)), ((33, 6), (24, 6)), ((25, 2), (32, 6)),
+            ((29, 2), (27, 6)),
         ]);
 
     /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>
@@ -64,12 +67,15 @@ public static class Testbed
     /// <summary>The plates queued at the Former at the start: some minutes of work.</summary>
     public const int Pressing = 99;
 
+    /// <summary>What the electric smelter holds at the start: rock, smelting into silicon.</summary>
+    public const string Smelting = "rock";
+
     /// <summary>
     /// The testbed's world, played on <paramref name="modules"/>: run until its rooms are aired, its
     /// items put in through the save (no command makes items), loaded, and two ticks on: the furnace and
     /// the generator are lit on the first, the generator's power reaches its lamps and the Former on the
     /// second (it rests while cold), and the analyzer has nearly its whole work ahead. The Former has
-    /// <see cref="Pressing"/> plates queued, free in creative mode.
+    /// <see cref="Pressing"/> plates queued, free in creative mode; the smelter a stack of rock.
     /// </summary>
     public static World Create(IReadOnlyList<Module> modules)
     {
@@ -100,6 +106,7 @@ public static class Testbed
             new() { ["id"] = Id("analyzer"), ["slots"] = Slots("analyzer", [Stack(Analysing, 1)]) },
             new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
+            new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },
         };
         // The slice keeps its machines in id order; the lifepod's may hold something already.
         var crates = items["crates"]!.AsArray().Select(c => c!.DeepClone().AsObject()).Concat(held).OrderBy(c => (int)c["id"]!);

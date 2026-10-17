@@ -5,6 +5,7 @@ using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
+using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Items;
 
@@ -34,6 +35,17 @@ public sealed record Reading(
     {
         var card = ItemCards.Of(item, Unknown(item));
         return new Tip(card.Name) { Card = card };
+    }
+
+    /// <summary>
+    /// The one tooltip over a fed station's mark while it is too cold for <paramref name="item"/> (0057): that it
+    /// needs more heat, and the first station hot enough for it, by name.
+    /// </summary>
+    public static Tip TooColdTip(string item)
+    {
+        int heat = Content.Items.Get(item).Heat;
+        var hot = Content.Stations.All.First(s => s.Fed && s.Heat >= heat);
+        return new Tip(T("crafting.tooCold", ("station", T($"station.{hot.Machine}"))));
     }
 
     /// <summary>The one tooltip over <paramref name="stack"/>: its item's card, with what this one holds of its own, a battery's charge.</summary>

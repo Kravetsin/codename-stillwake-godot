@@ -30,6 +30,11 @@ public interface ICraftingQueries
     /// most as hot as it is, its yields fitting its outputs. What lights a furnace's fire.
     /// </summary>
     bool CanSmelt(int machine);
+    /// <summary>
+    /// Whether fed station <paramref name="machine"/>'s input holds what smelts, but hotter than it is: taken in,
+    /// never worked, kept (0057). What its panel and its mark in the world say.
+    /// </summary>
+    bool TooCold(int machine);
 }
 
 /// <summary>How a module that depends on the crafting may change it.</summary>
@@ -92,13 +97,23 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     public bool CanSmelt(int machine) =>
         _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: true } station && InputOf(machine) is { } input && CanSmelt(m, station, input);
 
+    public bool TooCold(int machine) =>
+        _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: true } station && InputOf(machine) is { } input
+        && Content.Items.Get(input) is { Yields: not null } spec && spec.Heat > station.Heat;
+
     /// <summary>
-    /// Whether queued station <paramref name="machine"/> works now: a unit at work, not done, and a share of its
-    /// energy to work on it. What its picture's motion and its panel's screen and bolt show.
+    /// Whether station <paramref name="machine"/> works now with a share of its energy: a queued one on a unit not
+    /// done, a fed one on what it can smelt. What its picture's motion and its panel's screen and bolt show. A
+    /// furnace's fire is told to crafting only within a tick, so between ticks a furnace reads as cold here: the
+    /// furnace module shows its fire.
     /// </summary>
-    public bool Works(int machine) =>
-        _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: false } station && QueueOf(machine) is { Entries.Count: > 0 } queue
-        && queue.Progress < Content.Crafts.Get(queue.Entries[0].Recipe).Ticks * 1000 && Gain(m, station) > 0;
+    public bool Works(int machine)
+    {
+        if (_grid.MachineById(machine) is not { } m || StationOf(m) is not { } station) return false;
+        if (station.Fed) return InputOf(machine) is { } input && CanSmelt(m, station, input) && Gain(m, station) > 0;
+        return QueueOf(machine) is { Entries.Count: > 0 } queue
+            && queue.Progress < Content.Crafts.Get(queue.Entries[0].Recipe).Ticks * 1000 && Gain(m, station) > 0;
+    }
 
     // Operations.
 

@@ -223,13 +223,14 @@ public class DesyncTests
     [Fact]
     public void KeepsEveryClientInSyncWhileEveryKindOfStationWorks()
     {
-        // An aired room with the lifepod, a furnace and a Former cabled to a burner generator (0057), each peer
-        // carrying chunks and planks. The fuzz crafts and cancels at every station; the first client, in
-        // creative mode, keeps the Former's queue going and the furnace and the generator fed.
+        // An aired room with the lifepod, a furnace, and a Former and an electric smelter cabled to a burner
+        // generator (0057), each peer carrying chunks, planks and rock. The fuzz crafts and cancels at every
+        // station; the first client, in creative mode, keeps the Former's queue going and the furnace, the
+        // smelter and the generator fed.
         var layout = Layout.Parse(
-            ["################", "#.......OOO....#", "#FF.TT..OOOMMBB#", "#FF.TTV.OOOMMBB#", "################"],
+            ["###################", "#.......OOO.......#", "#FF.TT..OOOMMBB.EE#", "#FF.TTV.OOOMMBB.EE#", "###################"],
             ["", "", "    o", "    ---"],
-            [((13, 2), (11, 2))]);
+            [((13, 2), (11, 2)), ((13, 2), (16, 2))]);
         string Stocked(string save)
         {
             var root = JsonNode.Parse(save)!;
@@ -239,39 +240,45 @@ public class DesyncTests
                 var slots = new JsonArray();
                 for (int i = 0; i < Content.Inventory.Total; i++)
                     slots.Add(i < 3 ? new JsonObject { ["item"] = "scrapChunk", ["count"] = 10 }
-                        : i < 6 ? new JsonObject { ["item"] = "planks", ["count"] = 50 } : null);
+                        : i < 6 ? new JsonObject { ["item"] = "planks", ["count"] = 50 }
+                        : i < 9 ? new JsonObject { ["item"] = "rock", ["count"] = 10 } : null);
                 inventories.Add(new JsonObject { ["id"] = peer, ["slots"] = slots });
             }
             root["slices"]!["items"]!["inventories"] = inventories;
             return root.ToJsonString();
         }
         var game = new Definition(() => new Registry().All, Stocked);
-        int formed = 0, smelted = 0;
+        int formed = 0, smelted = 0, heated = 0;
         var run = Desync.Fuzz(game, 13, layout: layout, ticks: 1500, tamper: (tick, clients) =>
         {
             var first = clients[0];
             var grid = game.Module<GridModule>(first.World);
             var crafting = game.Module<CraftingModule>(first.World);
             int former = grid.MachinesOf("former")[0].Id, furnace = grid.MachinesOf("furnace")[0].Id;
-            int burner = grid.MachinesOf("burnerGenerator")[0].Id;
+            int burner = grid.MachinesOf("burnerGenerator")[0].Id, smelter = grid.MachinesOf("smelter")[0].Id;
             if (tick % 20 == 10)
             {
                 first.Send(new SetCreative(true));
                 first.Send(new Craft(former, "plate", 3));
                 // The power fuzz cuts and moves cables: the Former's laid again, free in creative mode.
                 first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(former)!.Cell));
+                first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(smelter)!.Cell));
             }
             var own = game.Module<ItemsModule>(first.World).Inventory(first.Id).ToList();
             int chunk = own.FindIndex(s => s is { Item: "scrapChunk" }), planks = own.FindIndex(s => s is { Item: "planks" });
+            int rock = own.FindIndex(s => s is { Item: "rock" });
             if (tick % 50 == 25 && chunk >= 0) first.Send(new Move(new Place(chunk), new Target(0, furnace), 2));
             if (tick % 50 == 30 && planks >= 0) first.Send(new Move(new Place(planks), new Target(1, furnace), 1));
             if (tick % 50 == 35 && planks >= 0) first.Send(new Move(new Place(planks), new Target(0, burner), 1));
+            if (tick % 50 == 40 && rock >= 0) first.Send(new Move(new Place(rock), new Target(0, smelter), 2));
             if (crafting.Works(former)) formed++;
             if (crafting.Progress(furnace) > 0) smelted++;
+            if (crafting.Works(smelter)) heated++;
         });
         Assert.Null(run.Desync);
         Assert.True(formed > 100, $"the Former worked on {formed} ticks");
         Assert.True(smelted > 30, $"the furnace smelted on {smelted} ticks");
+        Assert.True(heated > 30, $"the smelter smelted on {heated} ticks");
     }
 
     // The harness itself.

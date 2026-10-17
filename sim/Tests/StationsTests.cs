@@ -16,14 +16,14 @@ public class StationsTests
 {
     /// <summary>
     /// A sealed room aired by a tank piped to a vent, as the furnace's tests: the lifepod, a furnace, and a Former
-    /// cabled to a solar panel out under the stars.
+    /// and an electric smelter, each cabled to a solar panel of its own out under the stars.
     /// </summary>
-    private static readonly string[] Rows = ["   PPP        ", "              ", "##############", "#.......OOO..#", "#FF.TT..OOOMM#", "#FF.TTV.OOOMM#", "##############"];
+    private static readonly string[] Rows = ["   PPP   PPP     ", "                 ", "#################", "#.......OOO.....#", "#FF.TT..OOOMM.EE#", "#FF.TTV.OOOMM.EE#", "#################"];
     private static readonly string[] Under = ["", "", "", "", "    o", "    ---"];
 
     private static Scenario World()
     {
-        var w = new Scenario(Layout.Parse(Rows, Under, [((3, 0), (11, 4))]));
+        var w = new Scenario(Layout.Parse(Rows, Under, [((3, 0), (11, 4)), ((9, 0), (14, 4))]));
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 4)); i++) w.Run();
         return w;
     }
@@ -42,18 +42,21 @@ public class StationsTests
 
     /// <summary>
     /// The salvage worth of everything: inventories, every machine's slots, the floor and every queued unit,
-    /// a smelted item counted as what it smelts into and each yield as itself, so a smelt changes nothing;
+    /// a smelted item counted as what it smelts into, down to what smelts no more, so a smelt changes nothing;
     /// the planks apart, which a fire burns.
     /// </summary>
     private static (string Worth, int Planks) Worth(Scenario w, int peers)
     {
         var all = new Dictionary<string, int>(StringComparer.Ordinal);
+        void Smelted(string item, int count)
+        {
+            if (Content.Items.Get(item).Yields is { } yields)
+                foreach (var (y, n) in yields) Smelted(y, n * count);
+            else Raw(item, count, all);
+        }
         void Add(Stack? s)
         {
-            if (s == null) return;
-            if (Content.Items.Get(s.Item).Yields is { } yields)
-                foreach (var (y, n) in yields) Raw(y, n * s.Count, all);
-            else Raw(s.Item, s.Count, all);
+            if (s != null) Smelted(s.Item, s.Count);
         }
         for (int peer = 0; peer < peers; peer++)
             foreach (var s in w.M.Items.Inventory(peer)) Add(s);
@@ -96,7 +99,7 @@ public class StationsTests
         {
             var w = World();
             for (int peer = 0; peer < peers; peer++)
-                w.GiveItems(peer, ("scrap", 200), ("iron", 100), ("gear", 2), ("wire", 4), ("scrapChunk", 6), ("hullPlate", 3), ("planks", 3));
+                w.GiveItems(peer, ("scrap", 200), ("iron", 100), ("gear", 2), ("wire", 4), ("scrapChunk", 6), ("hullPlate", 3), ("planks", 3), ("rock", 2), ("silicon", 2));
             var stations = StationsIn(w);
             var (worth, planks) = Worth(w, peers);
             foreach (var s in all)
@@ -128,7 +131,7 @@ public class StationsTests
 
     /// <summary>
     /// The fuzz draws crafts and cancels at every station, queued and fed, and at machines that are none: refused as
-    /// not here (at the furnace, and of what the Former does not make), as no station, unknown, full and unpaid,
+    /// not here (at the furnace and the smelter, and of what the Former does not make), as no station, unknown, full and unpaid,
     /// and some taken, at both queued stations.
     /// </summary>
     [Fact]
@@ -157,6 +160,7 @@ public class StationsTests
         var notHere = w.Refusals.Where(r => r.Reason == "crafting.notHere").Select(r => r.Command).ToList();
         Assert.Contains(notHere, c => KindOf(c) == "former");
         Assert.Contains(notHere, c => KindOf(c) == "furnace");
+        Assert.Contains(notHere, c => KindOf(c) == "smelter");
         Assert.Equal(StationsIn(w).Where(s => !s.Station.Fed).Select(s => s.Id).Order(), taken.Order());
     }
 }

@@ -27,6 +27,14 @@ public class UnanalysedTests
     }
 
     [Fact]
+    public void TipAStationTooColdForWhatItHoldsByTheStationHotEnoughForIt()
+    {
+        // Silicon smelts into glass only at heat 2: the electric smelter, the first fed station that hot (0057).
+        Assert.Equal(new Tip("Needs more heat · Electric smelter"), Reading.TooColdTip("silicon"));
+        Assert.Equal(T("crafting.tooCold", ("station", T("station.smelter"))), Reading.TooColdTip("silicon").Name);
+    }
+
+    [Fact]
     public void TellTipsApartByWhatTheySayNotByTheirLists()
     {
         Tip Of() => new("Gear", [new TipLine("Iron not analysed", Tone.Unknown, "iron")]);

@@ -50,7 +50,7 @@ public class TestbedTests
         Assert.True(m.Items.Creative);
         Assert.True(m.Furnace.At(IdOf(m, "furnace")).Burning);
         Assert.True(m.Furnace.At(IdOf(m, "burnerGenerator")).Burning);
-        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 6 + 34);
+        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 6 + 37);
         Assert.NotNull(airlock);
         Assert.All(m.Rooms.All, room => Assert.Equal(room.Id == airlock ? RoomStatus.Vacuum : RoomStatus.Aired, m.Atmosphere.StatusOf(room.Id)));
         Assert.All(m.Grid.Machines.Where(x => Spec.Machines.Get(x.Kind).Draws != null), x => Assert.Equal(1000, m.Power.Satisfaction(x.Id)));
@@ -64,5 +64,10 @@ public class TestbedTests
         Assert.True(m.Crafting.Works(former));
         Assert.Equal(Spec.Stations.Get("former").Speed, m.Crafting.Progress(former));
         Assert.Equal(Testbed.Pressing, m.Crafting.Queue(former).Single().Count);
+        // The smelter at work on both ticks, its own panel on the roof feeding it.
+        int smelter = IdOf(m, "smelter");
+        Assert.True(m.Crafting.Works(smelter));
+        Assert.Equal(2 * Spec.Stations.Get("smelter").Speed, m.Crafting.Progress(smelter));
+        Assert.Equal(Testbed.Smelting, m.Items.Crate(smelter)[0]?.Item);
     }
 }

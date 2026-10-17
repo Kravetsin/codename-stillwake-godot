@@ -29,7 +29,8 @@ once, and smelting has moved to `Crafting`.
 - Each tick, in the simulation phase, furnaces and generators together in machine id order:
   - **lit** only when it has none, with fuel in its fuel slot (an item with `BurnTicks`) and air in a
     cell of it; a furnace also only with what it can smelt (`ICraftingQueries.CanSmelt`: salvage in its
-    input, hot enough, room for its yields). One fuel is used up (`IItemsOps.Consume`), worth its
+    input, hot enough, room for its yields; never for what is too hot for it, which stays in its input).
+    One fuel is used up (`IItemsOps.Consume`), worth its
     `BurnTicks`;
   - **burning**, it breathes `Content.Furnace.Breath` from its first aired cell every
     `Content.Furnace.BreathEvery` ticks of fuel (`IAtmosphereOps.Breathe`, as a hero does); given
@@ -41,7 +42,7 @@ once, and smelting has moved to `Crafting`.
   station's speed. The fire is read as the last tick left it, so a furnace starts smelting the tick after
   it lights, and a fire going out for want of air still smelts on its last tick.
 - The numbers are content's (`Content.Items`): a plank burns 400 ticks; a scrap chunk smelts in 60
-  into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap, so a plank smelts about 6 chunks or 4
+  into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap, rock in 160 into 2 silicon, so a plank smelts about 6 chunks or 4
   plates ([0046](../../docs/decisions/0046-recipes-show-what-a-thing-is-made-of.md)).
 - **A generator rests while its fire is out:** in the construction phase, before power's derivation,
   each one not burning is told to rest (`IPowerOps.Rest`), one burning to work. `Power` counts no
@@ -52,7 +53,8 @@ once, and smelting has moved to `Crafting`.
 ## API
 
 - **Queries:** `At(id)` — furnace or generator `id` as its panel shows it, a `Smelting(Burning, Item,
-  Progress, Work, Problem)`: whether it burns, and why it stands still: `furnace.full` (a furnace
+  Progress, Work, Problem)`: whether it burns, and why it stands still: `crafting.tooCold` (a furnace
+  only, what its input holds needs more heat: `ICraftingQueries.TooCold`), `furnace.full` (a furnace
   only, nothing it can smelt fits), `furnace.noFuel` or `furnace.noAir`; for a furnace with salvage in
   its input, also what it smelts, how far, out of how much work, in thousandths of a tick (crafting's
   measure). A furnace with nothing to smelt says only `Burning` (TypeScript's `{ burning }`). No query

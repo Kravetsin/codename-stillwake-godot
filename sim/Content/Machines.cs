@@ -69,6 +69,8 @@ public static class Machines
         new("charger", 1, 2, [], [("frame", 1), ("coil", 1), ("wire", 4), ("circuit", 1)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: true),
         // Presses and turns parts at full speed while it draws (Stations); its slots are what it made. Rests idle.
         new("former", 2, 2, [], [("frame", 2), ("rotor", 1), ("gear", 2), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 3, Inputs: 0),
+        // Smelts on power, twice the furnace's speed and hotter (Stations): its input, then three outputs. Rests idle.
+        new("smelter", 2, 2, [], [("frame", 1), ("coil", 2), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 4, Plug: (4, 17), Slots: 4, Inputs: 1),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made.
         new("lifepod", 3, 3, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true),
     ];

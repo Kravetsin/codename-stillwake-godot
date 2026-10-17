@@ -126,12 +126,15 @@ public class ContentTests
     }
 
     [Fact]
-    public void ItemsSmeltInAFurnaceWhoseOutputsTakeAnyOneItemsYields()
+    public void ItemsSmeltAtEveryFedStationWhoseOutputsTakeAnyOneItemsYields()
     {
-        var furnace = Machines.Get("furnace");
-        int outputs = furnace.Slots!.Value - furnace.Inputs!.Value;
-        foreach (var spec in Content.Items.All)
-            if (spec.Yields != null) Assert.True(SlotsFor(spec.Yields) <= outputs, spec.Id);
+        foreach (var station in Stations.All.Where(s => s.Fed))
+        {
+            var spec = Machines.Get(station.Machine);
+            int outputs = spec.Slots!.Value - spec.Inputs!.Value;
+            foreach (var item in Content.Items.All)
+                if (item.Yields != null) Assert.True(SlotsFor(item.Yields) <= outputs, $"{station.Machine}: {item.Id}");
+        }
     }
 
     // The floor
@@ -191,9 +194,15 @@ public class ContentTests
 
     // Salvage
 
+    /// <summary>
+    /// Salvage smelts into materials and canisters, never more salvage; rock into silicon, which smelts on into glass
+    /// (0057): whole amounts in whole ticks, each step of a chain as hot as the one before it or hotter, never back
+    /// into what it came from.
+    /// </summary>
     [Fact]
-    public void SalvageSmeltsInWholeTicksIntoWholeAmountsOfItemsThatAreNotSalvage()
+    public void SmeltingMakesWholeAmountsInWholeTicksOfItemsThatAreNotSalvageAndChainsOnlyUpInHeat()
     {
+        string[] refined = ["silicon", "glass"];
         foreach (var spec in Content.Items.All)
         {
             Assert.True(spec.Yields != null == (spec.SmeltTicks != null), spec.Id);
@@ -202,15 +211,20 @@ public class ContentTests
             Assert.NotEmpty(spec.Yields);
             foreach (var (item, amount) in spec.Yields)
             {
-                // What the Yields type held in TypeScript: materials and canisters only.
-                Assert.True(Materials.TryGet(item, out _) || item == "canister", item);
+                // What the Yields type held in TypeScript, materials and canisters, and silicon and glass.
+                Assert.True(Materials.TryGet(item, out _) || item == "canister" || refined.Contains(item), item);
                 Assert.True(Content.Items.TryGet(item, out var yielded), item);
-                Assert.Null(yielded!.Yields);
+                Assert.Null(Loot.Of(item));
+                Assert.True(yielded!.Yields == null || yielded.Heat >= spec.Heat, item);
                 Assert.True(amount > 0, item);
             }
             // Taken apart in its own slot, one piece yields what that slot and an empty inventory hold.
             Assert.True(SlotsFor(spec.Yields) <= Inventory.Slots, spec.Id);
         }
+        // What is smelted from something and smelts on yields what smelts no more: a chain of two, no cycle.
+        var chained = Content.Items.All.Where(i => i.Yields != null && Content.Items.All.Any(f => f.Yields?.Any(y => y.Item == i.Id) == true)).ToList();
+        Assert.Equal(["silicon"], chained.Select(i => i.Id));
+        Assert.All(chained, spec => Assert.All(spec.Yields!, y => Assert.Null(Content.Items.Get(y.Item).Yields)));
     }
 
     [Fact]
@@ -829,6 +843,16 @@ public class ContentTests
     {
         var (had, _) = Reachable(Stations.All);
         Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id)).ToArray());
+    }
+
+    /// <summary>Heat walks too: the furnace smelts rock into silicon, but glass is had only once the smelter is.</summary>
+    [Fact]
+    public void GlassIsReachableOnlyThroughTheElectricSmelterSiliconWithoutIt()
+    {
+        var (had, _) = Reachable([.. Stations.All.Where(s => s.Machine != "smelter")]);
+        Assert.Contains("silicon", had);
+        Assert.DoesNotContain("glass", had);
+        Assert.Contains("glass", Reachable(Stations.All).Items);
     }
 
     [Fact]

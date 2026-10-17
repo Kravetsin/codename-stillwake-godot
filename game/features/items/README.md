@@ -21,7 +21,7 @@ by sending `Move`,
 | `SlotBox.cs`       | one slot: icon, count, chosen, picked, hovered, the violet "?" of an item not analysed; an equipment slot's looks        | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
-| `InventoryPanel.cs`| the hotbar, the inventory and its equipment by the body, the open crate, furnace, burner generator, analyzer or charging station, the stack in hand | yes   |
+| `InventoryPanel.cs`| the hotbar, the inventory and its equipment by the body, the open crate, furnace, electric smelter, burner generator, analyzer or charging station, the stack in hand | yes   |
 | `EnergyBar.cs`     | the energy bar right of the suit's, while an electric tool is held (0053)                      | yes   |
 | `FloorLayer.cs`    | stacks on the floor, rimmed, bobbing at rest, side by side when still, gliding between ticks, turning in space (`floor-layer.ts`) | yes |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head                                                     | yes   |
@@ -105,6 +105,13 @@ as everything E works is, in the crew feature (`AimTests`).
   burner generator's its fire over its fuel slot, and beside them a bolt with the power it makes
   (its `Makes`), lit while it burns and dimmed while cold. Both say why they stand still under them
   (`furnace.full`, `furnace.noFuel`, `furnace.noAir`), from the furnace module's `At`.
+- An electric smelter's panel is the furnace's without the fuel (0057): its input over its mark, orange
+  while it works, its bar and its three outputs, then a bolt with what it draws, lit while it works and
+  dimmed otherwise, as the Former's; under it `furnace.full` when it has no room for what it makes. It
+  reads `CraftingModule` (`Works`, `Progress`, `TooCold`, `CanSmelt`), handed in by `Main`.
+- **Too cold:** a furnace or a smelter whose input holds what needs more heat than it has turns the
+  mark between its slots cold blue, with no line under the panel; over the mark the one tooltip says
+  "Needs more heat · " and the first fed station hot enough, by name (`Reading.TooColdTip`).
 - Where the open inventory ends on the screen is set every frame (`Ui.InventoryEdge`), null while it
   is closed: the crafting feature docks the lifepod's Fabricator there while E has the pod open, so the
   pod gets no crate panel here. A stack let go over any panel, another
