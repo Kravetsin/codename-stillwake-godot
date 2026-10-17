@@ -83,8 +83,8 @@ public class ItemCardTests
         Assert.Null(gear.Tiles);
         Assert.Null(gear.Use);
         Assert.Equal(("Gear", "Part"), (gear.Name, gear.Kind));
-        // The crafts first, then the blueprints in content's order: the rotor, then the door and the valve.
-        Assert.Equal(["Rotor", "Drill", "Door", "Valve"], gear.Uses);
+        // The crafts first, then the blueprints in content's order: the rotor, then the door, the valve and the Former.
+        Assert.Equal(["Rotor", "Drill", "Door", "Valve", "+1"], gear.Uses);
         Assert.Equal(["Rotor", "Coil", "Harpoon", "Oxygen jetpack", "+6"], ItemCards.Of("wire", false).Uses);
         Assert.Equal(("Iron", "Material"), (ItemCards.Of("iron", false).Name, ItemCards.Of("iron", false).Kind));
         Assert.Equal("Salvage", ItemCards.Of("scrapChunk", false).Kind);
@@ -100,7 +100,7 @@ public class ItemCardTests
             + Sim.Research.Blueprints.All.Count(b => b.Cost.Any(i => i.Item == "scrap"));
         Assert.Equal($"+{into - ItemCards.MostInto}", scrap[^1]);
         // Electronics need circuits: the crafts first, then the builds.
-        Assert.Equal(["Battery", "Drill", "Solar panel", "Charging station"], ItemCards.Of("circuit", false).Uses);
+        Assert.Equal(["Battery", "Drill", "Solar panel", "Charging station", "+1"], ItemCards.Of("circuit", false).Uses);
     }
 
     [Fact]

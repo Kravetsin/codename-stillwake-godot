@@ -101,6 +101,7 @@ public static class Tools
         [
             Place("furnace", new Placement("machine", "furnace")),
             Place("analyzer", new Placement("machine", "analyzer")),
+            Place("former", new Placement("machine", "former")),
         ]),
         new("storage", [Place("crate", new Placement("machine", "crate"))]),
     ];

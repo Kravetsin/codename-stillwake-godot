@@ -4,6 +4,7 @@ using FsCheck.Xunit;
 using Stillwake.Content;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Items;
+using Xunit;
 using Craft = Stillwake.Sim.Crafting.Craft;
 using Move = Stillwake.Sim.Items.Move;
 using Slot = Stillwake.Sim.Items.Place;
@@ -14,15 +15,16 @@ namespace Stillwake.Sim.Tests;
 public class StationsTests
 {
     /// <summary>
-    /// A sealed room aired by a tank piped to a vent, as the furnace's tests: the lifepod, a furnace.
+    /// A sealed room aired by a tank piped to a vent, as the furnace's tests: the lifepod, a furnace, and a Former
+    /// cabled to a solar panel out under the stars.
     /// </summary>
-    private static readonly string[] Rows = ["##############", "#.......OOO..#", "#FF.TT..OOO..#", "#FF.TTV.OOO..#", "##############"];
-    private static readonly string[] Under = ["", "", "    o", "    ---"];
+    private static readonly string[] Rows = ["   PPP        ", "              ", "##############", "#.......OOO..#", "#FF.TT..OOOMM#", "#FF.TTV.OOOMM#", "##############"];
+    private static readonly string[] Under = ["", "", "", "", "    o", "    ---"];
 
     private static Scenario World()
     {
-        var w = new Scenario(Layout.Parse(Rows, Under));
-        for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 2)); i++) w.Run();
+        var w = new Scenario(Layout.Parse(Rows, Under, [((3, 0), (11, 4))]));
+        for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 4)); i++) w.Run();
         return w;
     }
 
@@ -122,5 +124,39 @@ public class StationsTests
             }
             return true;
         });
+    }
+
+    /// <summary>
+    /// The fuzz draws crafts and cancels at every station, queued and fed, and at machines that are none: refused as
+    /// not here (at the furnace, and of what the Former does not make), as no station, unknown, full and unpaid,
+    /// and some taken, at both queued stations.
+    /// </summary>
+    [Fact]
+    public void TheFuzzDrawsCraftsAtEveryStationRefusedOnesToo()
+    {
+        var w = World();
+        var rng = new Rng(new RngState { S = 7 });
+        var at = new Dictionary<int, int>();
+        var taken = new HashSet<int>();
+        for (int i = 0; i < 3000; i++)
+        {
+            // Creative mode now and then, as the items fuzz switches it: crafts paid for nothing fill the queues.
+            if (i % 50 == 0) w.Do(new SetCreative(i % 100 == 0)).Run();
+            if (w.M.Crafting.Fuzz(rng, i % 3) is not { } c) continue;
+            int machine = c switch { Craft k => k.Machine, Cancel k => k.Machine, _ => -1 };
+            at[machine] = at.GetValueOrDefault(machine) + 1;
+            int refused = w.Refusals.Count;
+            w.Do(c).Run();
+            if (c is Craft && w.Refusals.Count == refused) taken.Add(machine);
+        }
+        Assert.All(StationsIn(w), s => Assert.True(at.GetValueOrDefault(s.Id) > 100, $"{s.Station.Machine}: {at.GetValueOrDefault(s.Id)}"));
+        var reasons = w.Refusals.Select(r => r.Reason).ToHashSet();
+        foreach (var why in new[] { "crafting.notHere", "crafting.noStation", "crafting.unknown", "crafting.full", "crafting.noEntry", "items.notEnough" })
+            Assert.Contains(why, reasons);
+        string? KindOf(Command c) => c is Craft k ? w.M.Grid.MachineById(k.Machine)?.Kind : null;
+        var notHere = w.Refusals.Where(r => r.Reason == "crafting.notHere").Select(r => r.Command).ToList();
+        Assert.Contains(notHere, c => KindOf(c) == "former");
+        Assert.Contains(notHere, c => KindOf(c) == "furnace");
+        Assert.Equal(StationsIn(w).Where(s => !s.Station.Fed).Select(s => s.Id).Order(), taken.Order());
     }
 }

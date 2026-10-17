@@ -57,7 +57,12 @@ public class TestbedTests
         Assert.Equal(new Analyzing(Testbed.Analysing, 2000, Spec.Research.Ticks * 1000, null), m.Research.At(IdOf(m, "analyzer")));
         int charger = IdOf(m, "charger");
         Assert.True(m.Power.Charges(charger));
-        // Charged one tick: the generator lights on the first, its power reaches the station on the second.
-        Assert.Equal(new Stack("battery", 1, Spec.Charge.Battery / 1000 * Testbed.Charging + Spec.Machines.Get("charger").Draws!.Value * Spec.Charge.Scale), m.Items.Crate(charger)[0]);
+        // Charged both ticks, by its own panel on the roof.
+        Assert.Equal(new Stack("battery", 1, Spec.Charge.Battery / 1000 * Testbed.Charging + 2 * Spec.Machines.Get("charger").Draws!.Value * Spec.Charge.Scale), m.Items.Crate(charger)[0]);
+        // The Former at work on the second tick, once the generator's power reaches it.
+        int former = IdOf(m, "former");
+        Assert.True(m.Crafting.Works(former));
+        Assert.Equal(Spec.Stations.Get("former").Speed, m.Crafting.Progress(former));
+        Assert.Equal(Testbed.Pressing, m.Crafting.Queue(former).Single().Count);
     }
 }

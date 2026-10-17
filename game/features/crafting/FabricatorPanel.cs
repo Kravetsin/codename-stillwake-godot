@@ -14,9 +14,10 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Crafting;
 
 /// <summary>
-/// The lifepod's Fabricator, docked beside the inventory while E has the pod open (the mockup,
-/// "Fabricator panel"): its name and its small screen, running while it works and READY idle; its
-/// recipes in fixed places, a locked one a silhouette, a short one dimmed; the queue every hero shares,
+/// A queued station's panel — the lifepod's Fabricator, the Former — docked beside the inventory while E has it
+/// open (the mockup, "Fabricator panel"): its name, a powered one's bolt and what it draws, and its small
+/// screen, running while it works, READY idle and dark with no power; its recipes in fixed places, a locked
+/// one a silhouette, a short one dimmed; the queue every hero shares,
 /// the unit at work filling its slot from the bottom, each entry marked in its orderer's suit colour;
 /// the outputs, a click taking a stack into the inventory; a tool's recipe tinted amber. A click on a
 /// recipe queues one, a shift-click five, a click on a short one pulses what it lacks; a click on an
@@ -45,6 +46,8 @@ public partial class FabricatorPanel : CanvasLayer
     private static readonly LabelSettings HeadingText = Style.Text(Style.Bold, 11, Style.Slate400);
     private static readonly LabelSettings AsideText = Style.Text(Style.Sans, 11, Style.Slate500);
     private static readonly LabelSettings Count = Style.Text(Style.Mono, 10, Colors.White, shadow: true);
+    /// <summary>A bolt with no power through it.</summary>
+    private static readonly Color Unlit = new(0.35f, 0.35f, 0.4f);
 
     /// <summary>A recipe short of items: its icon grey and faint.</summary>
     private static readonly ShaderMaterial Greyed = Shaded("""
@@ -68,6 +71,19 @@ public partial class FabricatorPanel : CanvasLayer
     private readonly GridContainer _recipes = Grid(), _queue = Grid(), _outputs = Grid();
     private readonly Label _opened = new() { LabelSettings = AsideText };
     private Label _name = null!;
+    /// <summary>A powered station's bolt and what it draws, as the charging station's panel shows them.</summary>
+    private readonly TextureRect _bolt = new()
+    {
+        Texture = AsciiArt.Bolt(false),
+        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+        CustomMinimumSize = new Vector2(10, 13),
+        SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        MouseFilter = Control.MouseFilterEnum.Ignore,
+        Visible = false,
+    };
+    private readonly Label _draws = new() { LabelSettings = Style.Text(Style.Mono, 12, Style.Amber400), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter, Visible = false };
     private readonly FabricatorScreen _screen = new() { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
     private PanelContainer _panel = null!;
     /// <summary>The slots, each saying what it is in the one tooltip.</summary>
@@ -121,6 +137,8 @@ public partial class FabricatorPanel : CanvasLayer
         var head = Style.Gap(new HBoxContainer(), 8);
         var name = _name = new Label { LabelSettings = NameText, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, VerticalAlignment = VerticalAlignment.Center };
         head.AddChild(name);
+        head.AddChild(_bolt);
+        head.AddChild(_draws);
         head.AddChild(_screen);
         column.AddChild(head);
         column.AddChild(new ColorRect { Color = Style.Slate800, CustomMinimumSize = new Vector2(0, 1), MouseFilter = Control.MouseFilterEnum.Ignore });
@@ -205,7 +223,13 @@ public partial class FabricatorPanel : CanvasLayer
             Build(pod, station, queue, outputs);
         }
         if (_fill != null && queue.Count > 0) Fill(_fill, Crafts.Share(queue[0].Recipe, progress));
-        _screen.Doing = Crafts.DoingOf(queue, progress);
+        bool works = _crafting.Works(pod);
+        _screen.Doing = Crafts.DoingOf(queue, progress, works);
+        // A station that draws shows its bolt and what it draws, lit while it works and dark while it rests or has no power.
+        int? draws = Content.Machines.Get(station.Machine).Draws;
+        _bolt.Visible = _draws.Visible = draws != null;
+        _draws.Text = draws?.ToString() ?? "";
+        _bolt.Modulate = _draws.Modulate = works ? Colors.White : Unlit;
     }
 
     private Look LookOf(string craft) => Crafts.LookOf(_research!.Knows(craft), Crafts.Lines(craft, _carried), _creative);

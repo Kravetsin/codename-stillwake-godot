@@ -33,6 +33,8 @@ public static class Stations
         // The lifepod's Fabricator: every craft, at a fifth of full speed, the most basic bench (0046).
         new("lifepod", Speed: 200, QueueMost: 4, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor"], ["fireAxe", "harpoon", "drill"], ["jetpack", "battery"]]),
         new("furnace", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1),
+        // The first powered station: the pod's parts and components, five times as fast, twice the queue.
+        new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor"]]),
     ];
 
     /// <summary>The most crafts a row holds: a panel's columns.</summary>

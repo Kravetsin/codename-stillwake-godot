@@ -37,6 +37,7 @@ public static class Prompts
                 "analyzer" => "use.openAnalyzer",
                 "charger" => "use.openCharger",
                 "lifepod" => "use.openFabricator",
+                "former" => "use.openFormer",
                 _ => "use.openCrate",
             }, null);
         if (aim.Press is not { } press) return null;

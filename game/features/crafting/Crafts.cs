@@ -29,6 +29,8 @@ public enum Doing
     Making,
     /// <summary>A unit done with no room in the outputs: it waits there, its slot full.</summary>
     OutputFull,
+    /// <summary>A unit at work with no power for it: its screen dark.</summary>
+    NoPower,
 }
 
 /// <summary>What a queued station's panel shows, without Godot: where each recipe sits, how it looks, where a click on it goes, how far the unit at work is.</summary>
@@ -103,7 +105,12 @@ public static class Crafts
     public static double Share(string recipe, int progress) =>
         Content.Crafts.TryGet(recipe, out _) ? (double)progress / WorkOf(recipe) : 0;
 
-    /// <summary>What a machine with <paramref name="queue"/> and the first entry's <paramref name="progress"/> is doing.</summary>
-    public static Doing DoingOf(IReadOnlyList<Entry> queue, int progress) =>
-        queue.Count == 0 ? Doing.Ready : progress >= WorkOf(queue[0].Recipe) ? Doing.OutputFull : Doing.Making;
+    /// <summary>
+    /// What a station with <paramref name="queue"/> and the first entry's <paramref name="progress"/> is doing;
+    /// <paramref name="works"/> whether the sim says it works now (<c>CraftingModule.Works</c>): false for a unit with no power.
+    /// </summary>
+    public static Doing DoingOf(IReadOnlyList<Entry> queue, int progress, bool works = true) =>
+        queue.Count == 0 ? Doing.Ready
+        : progress >= WorkOf(queue[0].Recipe) ? Doing.OutputFull
+        : works ? Doing.Making : Doing.NoPower;
 }

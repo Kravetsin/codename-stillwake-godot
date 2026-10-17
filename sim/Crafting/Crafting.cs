@@ -92,6 +92,14 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     public bool CanSmelt(int machine) =>
         _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: true } station && InputOf(machine) is { } input && CanSmelt(m, station, input);
 
+    /// <summary>
+    /// Whether queued station <paramref name="machine"/> works now: a unit at work, not done, and a share of its
+    /// energy to work on it. What its picture's motion and its panel's screen and bolt show.
+    /// </summary>
+    public bool Works(int machine) =>
+        _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: false } station && QueueOf(machine) is { Entries.Count: > 0 } queue
+        && queue.Progress < Content.Crafts.Get(queue.Entries[0].Recipe).Ticks * 1000 && Gain(m, station) > 0;
+
     // Operations.
 
     public void Heat(int machine) => State.Heated.Add(machine);

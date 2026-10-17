@@ -1,8 +1,8 @@
 # Crafting
 
 Stations ([0057](../../docs/decisions/0057-stations-one-model-for-every-crafting-machine.md)): every
-crafting machine on one model. A **queued** station (the lifepod's Fabricator) makes crafts from a queue
-shared by the crew, paid when queued, one unit at a time into its outputs
+crafting machine on one model. A **queued** station (the lifepod's Fabricator, the Former) makes crafts
+from a queue shared by the crew, paid when queued, one unit at a time into its outputs
 ([0028](../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)); a **fed** station (the
 furnace) smelts what its input holds into that item's yields. A module of its own rather than part of
 `Items`: it asks `Research` what is known, and research depends on items.
@@ -42,6 +42,10 @@ furnace) smelts what its input holds into that item's yields. A module of its ow
   Electronics need circuits besides, salvaged from cable racks until silicon makes them.
   - The pod is the most basic bench, slow on purpose (speed 200, a fifth): a wire takes 5 s there, a plate
     10, a rotor 15, a frame 20, the harpoon 30, while the hero is out salvaging. It needs no power and no air.
+  - **The Former** is the first powered station: 2×2, it draws 3 and works at speed 1000, five times the
+    pod, with a queue of eight; it makes the parts and components (wire, plate, gear, tube, frame, coil,
+    rotor), not tools. It costs 2 frames, a rotor, 2 gears and a circuit, so it opens once those four are
+    analysed (0027). A plate takes 2 s at full power, about 2.8 s at 70%. Idle, it rests and draws nothing.
   - `Craft(Machine, Recipe, Count)` takes the cost of all `Count` units from the sender at once (nothing in
     creative mode) and adds an entry, by the sender, at the end of that station's queue, with the queue's
     next id. Refused with `crafting.noStation` (no station by that id), `crafting.unknown` (no craft makes
@@ -77,6 +81,8 @@ furnace) smelts what its input holds into that item's yields. A module of its ow
   `Queue(machine)` — a queued station's entries, live and read-only, the first at work; `Progress(machine)`
   — work on its unit in thousandths of a tick, a queued one's first entry (its full work while that unit
   waits for room), a fed one's input; `CanSmelt(machine)` — whether a fed station has what it can smelt.
+  On the module only, for the client: `Works(machine)` — whether a queued station works now, a unit at work,
+  not done, with a share of its energy: what its picture's motion, its screen and its bolt show.
 - **Operations** (`ICraftingOps`): `Heat(machine)` — that fed station's fire burns this tick.
 - **Commands:** `Craft(Machine, Recipe, Count)`, `Cancel(Machine, Entry)`.
 - **Fuzz:** mostly at the map's stations, queued and fed alike (a fed one refuses both as not here), now

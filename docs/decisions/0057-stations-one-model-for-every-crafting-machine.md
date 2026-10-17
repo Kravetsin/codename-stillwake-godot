@@ -44,6 +44,27 @@ rule and a panel; the smelter would copy the furnace's smelt rules without its f
 - **Format 14:** a step moves each fire's item and progress (in ticks) into crafting's `smelts` (in
   thousandths), drops the fires kept only for them, and puts crafting's slice before building's.
 
+## The Former (slice 2)
+
+- **The first powered station:** 2×2, draws 3, speed 1000 (five times the pod's), a queue of eight. It
+  makes the parts and components — wire, plate, gear, tube, frame, coil, rotor — not tools; the pod keeps
+  all twelve at a fifth of the speed, and its list stops growing: new crafts go to machines.
+- It costs 2 frames, a rotor, 2 gears and a circuit, so it opens once those four are analysed (0027).
+- **It rests while idle:** nothing queued, or a unit done waiting for room. A machine whose slots only give
+  out (`Inputs` 0) draws whenever its module does not rest it; the old rule, "while its first slot holds
+  something", is for machines that work on what is put in them.
+- `CraftingModule.Works(machine)`: a unit at work, not done, with a share of energy. What the client shows
+  without words: the Former's flywheel turns, its gears with it, its press head beats on the die; its
+  panel's bolt is lit and its screen runs. Idle, full or without power it stands still, the bolt dark, the
+  screen dark when power is what it lacks.
+- Its panel is the Fabricator's, made general for any queued station: its name, rows, queue size and
+  speed come from its station; a station that draws shows its bolt and what it draws.
+- Placeholder art matching its recipe: two frame posts, a rotor flywheel on top, gears driving a press
+  head onto a die with a plate on it; the moving parts in four pictures over it. No sound of its own yet:
+  new sounds go through the user's audition.
+- The testbed has one in room two, cabled to the burner generator and pressing plates; a third panel on
+  the roof feeds the charging station so every user stays at full power.
+
 ## Rejected
 
 - **The furnace keeps its smelting, the smelter its own:** two copies of one rule, and upgrades would

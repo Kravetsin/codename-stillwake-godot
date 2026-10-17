@@ -139,13 +139,14 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     /// <summary>
     /// Whether a user draws now: one that works on what is put in it only while its first slot holds
-    /// something, a charging station only while that is short of full, and none told to rest.
+    /// something, a charging station only while that is short of full, and none told to rest. One whose
+    /// slots only give out (a station that makes things) draws unless its module rests it.
     /// </summary>
     private bool Drawing(Machine m)
     {
         if (IsResting(m.Id)) return false;
         var spec = Spec(m);
-        if (spec.Slots == null) return true;
+        if (spec.Slots == null || spec.Inputs == 0) return true;
         return _items.Crate(m.Id)[0] is { } held && (!spec.Charges || Short(held));
     }
 
