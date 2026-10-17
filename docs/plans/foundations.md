@@ -153,6 +153,18 @@ The fully built world is drawn whole at zoom 0.1 and bound by rendering (18 ms o
 change (35 ms). The single 15–19 ms frame of every run, before and after alike, is spent in the
 debris and sim sections, not in what this slice touched.
 
+### F-7 — The grid keeps a log of changed cells
+
+- Today every reader of the grid finds what changed on its own, by comparing layers with a copy:
+  rooms, pipes, the tile view, the light, the starlight, the door prediction. F-2, F-4 and F-6's
+  slice 0 bounded those compares; the log removes them.
+- The grid records each changed cell (and the layers that changed) as it changes, under its version.
+  A reader asks for the cells changed since the version it last saw and handles only those; a reader
+  too far behind, or a load, rebuilds as today.
+- Derived, never saved or hashed. Every reader moves to it in the same change (0049).
+- Done when a door toggle, a breach and a wall built cost a handful of cells everywhere, whatever the
+  size of the world or the ship, measured on a fully built 1024×512 and on the 2048×1024 world.
+
 ## Not in this plan
 
 - **The welcome and resync in pieces.** Only Steam caps a message (512 KB). ENet and the relay take

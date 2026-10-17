@@ -16,8 +16,9 @@ what already exists.
 - **New structure without need** — a new module where an existing one owns the concept; a new
   operation, query or event with no caller or consumer; new state that can be derived from existing
   state.
-- **One-implementation abstractions** — a generic system, registry, strategy or option with one
-  concrete user.
+- **Abstractions with no named user** — a generic system, registry, strategy or option whose users are
+  neither in the change nor named in the concept or a plan. A shared module whose future users are
+  named is the design working as intended (principle 2), not over-design.
 - **Defence against the impossible** — guards and recovery for action sequences players cannot
   produce; validating again what the sim already refuses.
 - **Auto-handling of rare edges** — automation for states that occur less than once a session and can

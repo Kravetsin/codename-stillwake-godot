@@ -14,9 +14,9 @@ the current plan in `docs/plans/` — something that looks unused may have its c
   members nobody calls; content fields nothing reads; command records nothing sends; nodes in a
   `.tscn` no script touches; `[Export]` properties never set; commented-out blocks; unreachable
   branches.
-- **Premature abstractions** — a generic system, registry or strategy with one entry (one conduit kind,
-  one machine type); an interface with one implementation; a type parameter with one argument; a base
-  class with one subclass. A module's `IXQueries` / `IXOps` are the boundary rule, not one of these.
+- **Abstractions with no named user** — a generic system, registry or strategy, an interface, a type
+  parameter or a base class whose other users are neither in the code nor named in the concept or a
+  plan. One serving users the plan names is principle 2 at work, not a finding. A module's `IXQueries` / `IXOps` are the boundary rule, not one of these.
 - **Unused configurability** — optional parameters or options with one used value; flags always in one
   state; content values that never vary and that nobody means to tune.
 - **Unnecessary indirection** — pass-through wrappers; a class of one method that could be a static
