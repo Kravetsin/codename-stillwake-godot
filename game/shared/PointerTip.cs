@@ -11,7 +11,7 @@ namespace Stillwake.Game.Shared;
 /// once, following the pointer, a name in bold and lines in colour under it. It says what a panel says
 /// of what the pointer is on (<see cref="Ui.Tip"/>), else, over the world, what an overlay says of the
 /// cell (<see cref="Ui.WorldTip"/>), the first line naming it, or a blueprint's cost delivered against
-/// needed (<see cref="Ui.CostTip"/>). A tip with a tool's card shows the card (<see cref="ToolCardView"/>)
+/// needed (<see cref="Ui.CostTip"/>). A tip with an item's card shows the card (<see cref="ItemCardView"/>)
 /// in place of its lines. Text on demand, only while there is something to say.
 /// </summary>
 public partial class PointerTip : CanvasLayer
@@ -115,11 +115,11 @@ public partial class PointerTip : CanvasLayer
             _lines.RemoveChild(child);
             child.QueueFree();
         }
-        // A tool's card draws its own edge.
+        // An item's card draws its own edge.
         _panel.AddThemeStyleboxOverride("panel", tip.Card != null ? CardBox : _box);
         if (tip.Card != null)
         {
-            _lines.AddChild(ToolCardView.Build(tip.Card));
+            _lines.AddChild(ItemCardView.Build(tip.Card));
             _panel.Size = _panel.GetCombinedMinimumSize();
             return;
         }

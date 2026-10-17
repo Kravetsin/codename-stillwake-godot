@@ -19,12 +19,11 @@ public class UnanalysedTests
     }
 
     [Fact]
-    public void TipAStackByItsNameThenInVioletThatItWaitsForAnAnalyzer()
+    public void TipAStackByItsCardWithTheVioletBandUntilItIsAnalysed()
     {
-        Assert.Equal(new Tip("Iron", new TipLine(T("items.notAnalysed"), Tone.Unknown)), With(false).TipOf("iron"));
-        Assert.Equal("Not analysed — put it in an analyzer", T("items.notAnalysed"));
-        Assert.Equal(new Tip("Iron"), With(false, "iron").TipOf("iron"));
-        Assert.Equal(new Tip("Iron"), With(true).TipOf("iron"));
+        Assert.Equal(new Tip("Iron") { Card = ItemCards.Of("iron", unknown: true) }, With(false).TipOf("iron"));
+        Assert.Equal(new Tip("Iron") { Card = ItemCards.Of("iron", unknown: false) }, With(false, "iron").TipOf("iron"));
+        Assert.Equal(new Tip("Iron") { Card = ItemCards.Of("iron", unknown: false) }, With(true).TipOf("iron"));
     }
 
     [Fact]

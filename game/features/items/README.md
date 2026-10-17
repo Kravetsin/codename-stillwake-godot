@@ -14,7 +14,6 @@ registry, and the furnace's `At` (`InventoryPanel.Furnace`), and changes it only
 | `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`)                                                  | no    |
 | `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s and `Drop`s in flight (0014); which items are marked unanalysed, a stack's tip | no    |
 | `Lessons.cs`       | an analyzer's panel: its stage, how far, what an analysed item goes into, each one's tip (0027) | no    |
-| `ToolCards.cs`     | a tool's card in the one tooltip: the fire axe's damage a second, damage and seconds between hits from content, its effects, the wreckage it breaks, its hint | no    |
 | `Reach.cs`         | `HeroSpot`; pick-ups (`pickup.ts`)                                                           | no    |
 | `SlotBox.cs`       | one slot: icon, count, chosen, picked, hovered, the violet "?" of an item not analysed        | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
@@ -28,7 +27,7 @@ registry, and the furnace's `At` (`InventoryPanel.Furnace`), and changes it only
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
 one for one: `click.test.ts` (`ClickTests`), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
 (`PickUpTests`), a test for the fold of own moves (`CrateTests`), one for the analyzer's panel
-(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`) and one for a tool's card (`ToolCardTests`). Opening a crate is aimed
+(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`) and one for an item's card (`ItemCardTests`). Opening a crate is aimed
 as everything E works is, in the crew feature (`AimTests`).
 
 ## Guarantees
@@ -57,15 +56,17 @@ as everything E works is, in the crew feature (`AimTests`).
   each, the one tooltip says "Opened", or each item of its cost not analysed yet, or that analysis
   cannot open it yet. Its pictures are built again only when they change.
 - Every slot showing an item not analysed yet, the stack in hand too, has a violet "?" in its
-  top-left corner, never in creative mode; the slot's fill is left for rarity. A stack's name shows in
-  the one tooltip (`Shared.PointerTip`) at once by the pointer, and for such an item a violet line under
-  it says to put it in an analyzer.
-- A tool's stack (the fire axe) shows a card in that tooltip instead (`ToolCards`, drawn by
-  `Shared.ToolCardView`, the mockup's plaque): its icon large, name and kind; damage a second, damage and
-  seconds between hits, all from content (`Content.Axe`: damage over `SwingTicks` / `TicksPerSecond`, one
-  decimal at most); its effects (`Axe.Effects`, none yet) as chips in their colours; the wreckage it
-  breaks (`Content.Wreckage`); its key and hint; and a violet "? Not analysed" band while unanalysed.
-  The screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.
+  top-left corner, never in creative mode; the slot's fill is left for rarity.
+- Every stack, in the inventory, the hotbar, a crate, a furnace or an analyzer, shows its card in the
+  one tooltip (`Shared.PointerTip`) at once by the pointer (`Shared.ItemCards`, drawn by
+  `Shared.ItemCardView`, the mockup's plaque): its icon large, its name and its kind (`item.<id>.kind`);
+  a violet "? Not analysed" band while unanalysed. A tool (the fire axe) is edged and its kind written
+  in amber, and adds damage a second, damage and seconds between hits, all from content (`Content.Axe`:
+  damage over `SwingTicks` / `TicksPerSecond`, one decimal at most); its effects (`Axe.Effects`, none
+  yet) as chips in their colours; the wreckage it breaks (`Content.Wreckage`); its key and hint. Any
+  other item says under "Goes into" what has it in its cost: crafts, then blueprints, then the cable,
+  in content's order, four at most and "+N" for the rest; nothing when it goes into nothing. The
+  screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.
 - Where the open inventory ends on the screen is set every frame (`Ui.InventoryEdge`), null while it
   is closed: the crafting feature docks the lifepod's Fabricator there while E has the pod open, so the
   pod gets no crate panel here. A stack let go over any panel, another

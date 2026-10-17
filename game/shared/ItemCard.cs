@@ -1,0 +1,78 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Stillwake.Game.Shared;
+
+/// <summary>An effect on a tool's card: a chip with its name, and a line telling it, in its colours, "rrggbb".</summary>
+public sealed record CardEffect(string Name, string About, string Colour, string Ground);
+
+/// <summary>A key cap and what it does: "LMB" and "craft".</summary>
+public sealed record CardKey(string Key, string Words);
+
+/// <summary>A tool's three tiles, as written: damage a second, damage, seconds between hits.</summary>
+public sealed record ToolTiles(string Dps, string Damage, string Hit);
+
+/// <summary>One item of a craft's cost: its name, how many are carried and needed, and whether that is short.</summary>
+/// <param name="From">Where a raw item short comes from; null when it is not short, or is crafted itself.</param>
+public sealed record CraftRow(string Item, string Name, int Have, int Need, bool Short, string? From = null);
+
+/// <summary>
+/// What a station adds at the bottom of an item's card: a recipe's "Craft" header with its seconds and
+/// its cost row by row, and the keys a click there takes. An output gives only its keys.
+/// </summary>
+/// <param name="Seconds">A unit's time at the station, as written; null for no header and no rows.</param>
+public sealed record StationBlock(string? Seconds, IReadOnlyList<CraftRow> Rows, IReadOnlyList<CardKey> Keys)
+{
+    public bool Equals(StationBlock? other) =>
+        other is not null && Seconds == other.Seconds && Rows.SequenceEqual(other.Rows) && Keys.SequenceEqual(other.Keys);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Seconds);
+        foreach (var row in Rows) hash.Add(row);
+        foreach (var key in Keys) hash.Add(key);
+        return hash.ToHashCode();
+    }
+}
+
+/// <summary>
+/// What the one tooltip shows over an item (<c>PointerTip</c>), the plaque of the card mockup: its icon
+/// large, its name and kind. A tool adds its three tiles, its effects, what it works on and how it is
+/// used; anything else, what it goes into. A violet band while it is not analysed; a station's block at
+/// the bottom where one adds it. Equal by what it says, as <see cref="Tip"/> is.
+/// </summary>
+/// <param name="Item">The item, whose icon heads the card.</param>
+/// <param name="Tiles">A tool's tiles; null for an item that is no tool.</param>
+/// <param name="Uses">The chips: what a tool works on, or what any other item goes into.</param>
+/// <param name="Use">How a tool is used: its key and a hint.</param>
+/// <param name="Unknown">Not analysed yet: the band.</param>
+public sealed record ItemCard(
+    string Item, string Name, string Kind, ToolTiles? Tiles, IReadOnlyList<CardEffect> Effects,
+    IReadOnlyList<string> Uses, CardKey? Use, bool Unknown)
+{
+    /// <summary>A tool: its card edged and its kind written in amber.</summary>
+    public bool Tool => Tiles != null;
+
+    /// <summary>What the station the item is shown in adds; null elsewhere.</summary>
+    public StationBlock? Station { get; init; }
+
+    public bool Equals(ItemCard? other) =>
+        other is not null && Item == other.Item && Name == other.Name && Kind == other.Kind && Tiles == other.Tiles
+        && Effects.SequenceEqual(other.Effects) && Uses.SequenceEqual(other.Uses) && Use == other.Use
+        && Unknown == other.Unknown && Equals(Station, other.Station);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Item);
+        hash.Add(Name);
+        hash.Add(Tiles);
+        hash.Add(Unknown);
+        hash.Add(Station);
+        foreach (var effect in Effects) hash.Add(effect);
+        foreach (var use in Uses) hash.Add(use);
+        return hash.ToHashCode();
+    }
+}

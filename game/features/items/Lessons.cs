@@ -13,9 +13,7 @@ public enum Stage { Empty, Working, Unpowered, Done }
 public sealed record Lesson(Recipe Recipe, bool Opened)
 {
     /// <summary>Its name: a craft's item, a blueprint's tool and material.</summary>
-    public string Name => Recipe.Placement is { } p
-        ? p.Material is { } m ? $"{T($"tool.{p.Kind}")}: {T($"material.{m}")}" : T($"tool.{p.Kind}")
-        : T($"item.{Recipe.Id}");
+    public string Name => ItemCards.NameOf(Recipe.Id, Recipe.Placement);
 
     /// <summary>The one tooltip over its picture: opened, or each item still to analyse.</summary>
     public Tip Tip

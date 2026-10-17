@@ -175,7 +175,7 @@ public partial class Main : Node2D, ITogether
         // Playing together, how long an action takes to happen: sent, stamped by the host, run here.
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
-        if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
+        if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null, () => _fabricator));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount}"));

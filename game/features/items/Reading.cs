@@ -5,7 +5,6 @@ using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
-using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Items;
 
@@ -30,16 +29,11 @@ public sealed record Reading(
     /// <summary>Whether a slot holding <paramref name="item"/> shows the violet "?": not analysed yet, and never in creative mode.</summary>
     public bool Unknown(string item) => !Creative && !Analysed.Contains(item);
 
-    /// <summary>
-    /// The one tooltip over a stack of <paramref name="item"/>: a tool's card (<see cref="ToolCards"/>), else
-    /// its name, and under it whether it waits for an analyzer.
-    /// </summary>
+    /// <summary>The one tooltip over a stack of <paramref name="item"/>: its card (<see cref="ItemCards"/>), the band while it is not analysed.</summary>
     public Tip TipOf(string item)
     {
-        if (ToolCards.Of(item, Unknown(item)) is { } card) return new Tip(card.Name) { Card = card };
-        return Unknown(item)
-            ? new Tip(T($"item.{item}"), new TipLine(T("items.notAnalysed"), Tone.Unknown))
-            : new Tip(T($"item.{item}"));
+        var card = ItemCards.Of(item, Unknown(item));
+        return new Tip(card.Name) { Card = card };
     }
 
     /// <summary>

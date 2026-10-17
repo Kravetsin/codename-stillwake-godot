@@ -1,0 +1,159 @@
+using Stillwake.Game.Features.Crafting;
+using Stillwake.Game.Features.Items;
+using Stillwake.Game.Shared;
+using Stillwake.Sim;
+using Xunit;
+using static Stillwake.Game.I18n.En;
+using Spec = Stillwake.Content;
+
+namespace Stillwake.Game.Tests;
+
+/// <summary>An item's card in the one tooltip: a tool's numbers from content, anything else's kind and what it goes into, a station's craft block, the band of an unknown item.</summary>
+public class ItemCardTests
+{
+    private static Reading With(bool creative, params string[] analysed) => new([], null, creative, null, null, analysed);
+
+    [Fact]
+    public void TakeTheAxesNumbersFromContentAndItsDamageASecondFromThem()
+    {
+        var tiles = ItemCards.Of("fireAxe", unknown: false).Tiles!;
+        double every = (double)Spec.Axe.SwingTicks / World.TicksPerSecond;
+        Assert.Equal(ItemCards.Number(Spec.Axe.Damage / every), tiles.Dps);
+        Assert.Equal(Spec.Axe.Damage.ToString(), tiles.Damage);
+        Assert.Equal($"{ItemCards.Number(every)}s", tiles.Hit);
+        // As content stands: 2 damage every 10 ticks of 20 a second.
+        Assert.Equal(new ToolTiles("4", "2", "0.5s"), tiles);
+    }
+
+    [Fact]
+    public void WriteNumbersWithOneDecimalAtMostHalfRoundedUp()
+    {
+        Assert.Equal("4", ItemCards.Number(4));
+        Assert.Equal("5.3", ItemCards.Number(16.0 / 3));
+        Assert.Equal("0.5", ItemCards.Number(0.5));
+        Assert.Equal("0.3", ItemCards.Number(0.25));
+        Assert.Equal("6.7", ItemCards.Number(20.0 / 3));
+    }
+
+    [Fact]
+    public void NameTheAxeItsKindWhatItBreaksAndHowItIsUsed()
+    {
+        var card = ItemCards.Of("fireAxe", unknown: false);
+        Assert.True(card.Tool);
+        Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
+        Assert.Equal(["Hull section", "Cargo container", "Machine block", "Electronics rack", "Oxygen tanks", "Shield slab"], card.Uses);
+        Assert.Equal(new CardKey("LMB", "hold on wreckage in space"), card.Use);
+        Assert.Empty(card.Effects);
+        Assert.Equal(Spec.Wreckage.All.Count, card.Uses.Count);
+    }
+
+    [Fact]
+    public void GiveAnItemThatIsNoToolItsKindAndWhatItGoesIntoButNoTiles()
+    {
+        var gear = ItemCards.Of("gear", unknown: false);
+        Assert.False(gear.Tool);
+        Assert.Null(gear.Tiles);
+        Assert.Null(gear.Use);
+        Assert.Equal(("Gear", "Part"), (gear.Name, gear.Kind));
+        // The crafts first, then the blueprints in content's order: door, valve, tank, vent.
+        Assert.Equal(["Rotor", "Door", "Valve", "Tank", "+1"], gear.Uses);
+        Assert.Equal(["Rotor", "Generator", "Lamp", "Cable"], ItemCards.Of("wire", false).Uses);
+        Assert.Equal(("Iron", "Material"), (ItemCards.Of("iron", false).Name, ItemCards.Of("iron", false).Kind));
+        Assert.Equal("Salvage", ItemCards.Of("scrapChunk", false).Kind);
+    }
+
+    [Fact]
+    public void NameEveryCraftBlueprintAndCableWhoseCostHasTheItemUpToAFewAndCountTheRest()
+    {
+        var scrap = ItemCards.Of("scrap", false).Uses;
+        Assert.Equal(ItemCards.MostInto + 1, scrap.Count);
+        Assert.Equal(["Wire", "Fire axe", "Wall: scrap", "Back wall: scrap"], scrap.Take(ItemCards.MostInto));
+        int into = Spec.Crafts.All.Count(c => c.Cost.Any(i => i.Item == "scrap"))
+            + Sim.Research.Blueprints.All.Count(b => b.Cost.Any(i => i.Item == "scrap"));
+        Assert.Equal($"+{into - ItemCards.MostInto}", scrap[^1]);
+        Assert.Equal(["Solar panel"], ItemCards.Of("circuit", false).Uses);
+    }
+
+    [Fact]
+    public void SayNothingOfWhatAnItemGoesIntoWhenItGoesIntoNothing()
+    {
+        Assert.Empty(ItemCards.Of("canister", false).Uses);
+        Assert.Empty(ItemCards.Of("supplyPod", false).Uses);
+    }
+
+    [Fact]
+    public void HaveAKindForEveryItemThereIs()
+    {
+        Assert.All(Spec.Items.All, item => Assert.True(Table.ContainsKey($"item.{item.Id}.kind"), item.Id));
+    }
+
+    [Fact]
+    public void GiveEveryStackACardWithTheBandOnlyWhileNotAnalysedAndNeverInCreativeMode()
+    {
+        Assert.True(With(false).TipOf("fireAxe").Card!.Unknown);
+        Assert.False(With(false, "fireAxe").TipOf("fireAxe").Card!.Unknown);
+        Assert.False(With(true).TipOf("fireAxe").Card!.Unknown);
+        Assert.True(With(false).TipOf("iron").Card!.Unknown);
+        Assert.False(With(false, "iron").TipOf("iron").Card!.Unknown);
+        Assert.Equal("Iron", With(false).TipOf("iron").Name);
+        Assert.Equal("? Not analysed", T("card.notAnalysed"));
+    }
+
+    [Fact]
+    public void LayARecipesCostAgainstWhatIsCarriedWithItsTimeAtThePod()
+    {
+        var block = Crafts.Block("rotor", [("gear", 3), ("wire", 1)], creative: false);
+        Assert.Equal(T("time.seconds", ("n", Crafts.Seconds("rotor"))), block.Seconds);
+        // 60 ticks at full speed, the pod at half: six seconds.
+        Assert.Equal("6 s", block.Seconds);
+        Assert.Equal([new CraftRow("gear", "Gear", 3, 1, false), new CraftRow("wire", "Wire", 1, 2, true)], block.Rows);
+        Assert.Equal([new CardKey("LMB", "go to what is missing")], block.Keys);
+    }
+
+    [Fact]
+    public void QueueARecipeCarriedByAClickOrFiveWithShiftAndNothingShortInCreativeMode()
+    {
+        var ready = Crafts.Block("wire", [("scrap", 2)], creative: false);
+        Assert.Equal([new CraftRow("scrap", "Scrap", 2, 2, false)], ready.Rows);
+        Assert.Equal([new CardKey("LMB", "craft"), new CardKey("Shift", "×5")], ready.Keys);
+        Assert.Equal(ready.Keys, Crafts.Block("rotor", [], creative: true).Keys);
+        Assert.All(Crafts.Block("rotor", [], creative: true).Rows, r => Assert.False(r.Short));
+    }
+
+    [Fact]
+    public void SayWhereARawItemShortComesFromAndOfferNoClick()
+    {
+        var plate = Crafts.Block("plate", [("iron", 1)], creative: false);
+        Assert.Equal([new CraftRow("iron", "Iron", 1, 2, true, "smelt hull plates")], plate.Rows);
+        Assert.Empty(plate.Keys);
+    }
+
+    [Fact]
+    public void TellTipsWithCardsApartByWhatTheCardsSay()
+    {
+        Tip Of(bool unknown) => With(!unknown).TipOf("fireAxe");
+        Assert.Equal(Of(true), Of(true));
+        Assert.Equal(Of(true).GetHashCode(), Of(true).GetHashCode());
+        Assert.NotEqual(Of(true), Of(false));
+        Assert.NotEqual(Of(false), new Tip("Fire axe"));
+        var effect = new CardEffect("Fire", "sets it burning", "ff7a2e", "3a1a0c");
+        var card = ItemCards.Of("fireAxe", false);
+        Assert.Equal(card with { Effects = [effect] }, card with { Effects = [effect with { }] });
+        Assert.NotEqual(card with { Effects = [effect] }, card);
+        var short1 = Crafts.Block("rotor", [], false);
+        Assert.Equal(card with { Station = short1 }, card with { Station = Crafts.Block("rotor", [], false) });
+        Assert.Equal((card with { Station = short1 }).GetHashCode(), (card with { Station = Crafts.Block("rotor", [], false) }).GetHashCode());
+        Assert.NotEqual(card with { Station = short1 }, card with { Station = Crafts.Block("rotor", [("gear", 1)], false) });
+        Assert.NotEqual(card with { Station = short1 }, card);
+    }
+
+    [Fact]
+    public void HaveWordsForEveryEffectOfTheAxe()
+    {
+        Assert.All(Spec.Axe.Effects, e =>
+        {
+            Assert.True(Table.ContainsKey($"effect.{e.Id}"), e.Id);
+            Assert.True(Table.ContainsKey($"effect.{e.Id}.about"), e.Id);
+        });
+    }
+}
