@@ -23,8 +23,8 @@ public static class Crafts
         new("fireAxe", [("iron", 2), ("planks", 1)], Ticks: 60),
         new("harpoon", [("planks", 1), ("frame", 1), ("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 120),
         new("jetpack", [("frame", 1), ("tube", 2), ("canister", 1), ("wire", 2)], Ticks: 120),
-        new("battery", [("plate", 1), ("coil", 1), ("wire", 2)], Ticks: 60),
-        new("drill", [("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1)], Ticks: 160),
+        new("battery", [("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 60),
+        new("drill", [("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1), ("circuit", 2)], Ticks: 160),
     ];
 
     /// <summary>

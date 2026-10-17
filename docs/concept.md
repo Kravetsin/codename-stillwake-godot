@@ -41,7 +41,8 @@ A living document: what is decided about the game and what is still open. Techni
   analyzer and analysing iron is the first lesson. An item not analysed yet has a violet "?" in its
   slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
   item in it goes into, opened or still closed; nothing pops up over the hero. The solar panel is
-  built of circuits, salvaged only from the electronics racks that drift by
+  built of circuits, salvaged only from the electronics racks that drift by, and so is every electric thing:
+  the battery and the charging station a circuit each, the drill two (silicon from asteroids will make them later)
   ([0024](decisions/0024-blueprints-are-learned-by-analysis.md),
   [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md),
   [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).

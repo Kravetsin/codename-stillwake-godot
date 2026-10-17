@@ -55,7 +55,7 @@ public class ChargeTests
         Assert.Equal((1, "belt"), (spec.Stack, spec.Equip));
         // What a machine drawing 3 uses in 600 ticks, stored scaled.
         Assert.Equal(1800 * S, Full);
-        Assert.Equal([("plate", 1), ("coil", 1), ("wire", 2)], Crafts.Get(Battery).Cost);
+        Assert.Equal([("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Crafts.Get(Battery).Cost);
         Assert.Equal(60, Crafts.Get(Battery).Ticks);
         Assert.DoesNotContain(Battery, Content.Research.StartKnown);
     }
@@ -64,7 +64,7 @@ public class ChargeTests
     public void ABatteryIsCraftedEmpty()
     {
         var w = new Scenario("##########\n#.OOO....#\n#.OOO....#\n#.OOO....#\n##########")
-            .GiveItems(0, ("plate", 1), ("coil", 1), ("wire", 2));
+            .GiveItems(0, ("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1));
         w.Do(new Stillwake.Sim.Crafting.Craft(1, Battery, 1) { From = 0 }).Run(Crafts.Get(Battery).Ticks * 1000 / Crafts.PodSpeed);
         Assert.Empty(w.Refusals);
         Assert.Equal(new Stack(Battery, 1, 0), w.M.Items.Crate(1)[0]);
@@ -89,7 +89,7 @@ public class ChargeTests
     {
         var spec = Machines.Get("charger");
         Assert.Equal((1, 2, 3, 1, true), (spec.Width, spec.Height, spec.Draws, spec.Slots, spec.Charges));
-        Assert.Equal([("frame", 1), ("coil", 1), ("wire", 4)], spec.Cost);
+        Assert.Equal([("frame", 1), ("coil", 1), ("wire", 4), ("circuit", 1)], spec.Cost);
         Assert.DoesNotContain("charger", Content.Research.StartKnown);
         Assert.Equal(600, Full / PerTick);
     }

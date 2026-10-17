@@ -21,7 +21,9 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
 
 - A craft is named by the item it makes and costs, a unit, what `Content.Crafts` says; a unit takes
   its `Ticks` × 1000 of work. Crafts come in layers: parts of materials (wire, plate, gear, tube),
-  components of parts (rotor, frame, coil), and products, tools as builds, of either (0046).
+  components of parts (rotor, frame, coil), and products, tools as builds, of either (0046). Electronics need
+  circuits besides, salvaged from cable racks until silicon makes them: the battery one, the drill two; the
+  charging station, a build, one.
 - A machine crafts when it is a lifepod: every craft is the pod's while it is the only crafting
   machine (principle 2). It needs no power and no air.
 - The pod is the most basic bench, slow on purpose: a wire takes 5 s there, a plate 10, a rotor 15, a

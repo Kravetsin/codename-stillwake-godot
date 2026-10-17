@@ -20,8 +20,8 @@ public class AsteroidTests
 {
     private static readonly HullBand Band = (HullBand)DebrisSpec.Asteroids.Anchor;
     private static readonly string Axe = Weapons.Axe.Item, Drill = Weapons.Drill.Item;
-    /// <summary>What a hit of the drill spends, in power-ticks: its draw for each tick of its pace.</summary>
-    private static readonly int Spent = DebrisModule.Spent(Weapons.Drill)!.Value;
+    /// <summary>What the drill draws a tick it runs, in power-ticks (0055).</summary>
+    private static readonly int Draw = Stillwake.Content.Items.Get(Weapons.Drill.Item).Draw!.Value;
     private const int S = Stillwake.Content.Charge.Scale;
     private static readonly int Full = Stillwake.Content.Charge.Battery;
     private static readonly int Belt = Inventory.Slots + 2;
@@ -100,7 +100,7 @@ public class AsteroidTests
 
     /// <summary>
     /// Twenty wide and eight tall, as DebrisTests' space: the first piece made a wreck of <paramref name="kind"/>,
-    /// hero 0 out in space by it with <paramref name="batteries"/> on its belt, left to right.
+    /// hero 0 out in space by it, carrying the drill, with <paramref name="batteries"/> on its belt, left to right.
     /// </summary>
     private static Scenario Facing(string kind, params int[] batteries)
     {
@@ -116,13 +116,16 @@ public class AsteroidTests
             " #####              ",
         ])).Run(DebrisSpec.Every);
         Pieces(w)[0].Item = kind;
+        w.GiveItems(0, (Drill, 1));
         for (int i = 0; i < batteries.Length; i++) w.Put(Belt + i, Battery(batteries[i]));
         return w.Do(new Enter(1 * 20 + 12)).Run();
     }
 
-    private static Scenario Hits(Scenario w, int times, string tool)
+    /// <summary><paramref name="times"/> hits with <paramref name="tool"/> by <paramref name="peer"/>, an electric one run first, as the client sends them.</summary>
+    private static Scenario Hits(Scenario w, int times, string tool, int peer = 0)
     {
-        for (int i = 0; i < times; i++) w.Do(new Hit(1, tool));
+        if (Stillwake.Content.Items.Get(tool).Draw != null) w.Do(new Run(tool, true) { From = peer });
+        for (int i = 0; i < times; i++) w.Do(new Hit(1, tool) { From = peer });
         return w;
     }
 
@@ -170,7 +173,7 @@ public class AsteroidTests
         {
             var w = new Scenario(DebrisZonesTests.Open(20, 8, 1, 1, w: 1, h: 1), seed).Run(DebrisSpec.Every);
             Pieces(w)[0].Item = "asteroid";
-            w.Do(new SetCreative(true)).Do(new Enter(1 * 20 + 12)).Run();
+            w.GiveItems(0, (Drill, 1)).Do(new SetCreative(true)).Do(new Enter(1 * 20 + 12)).Run();
             Hits(w, 119, Drill).Run();
             Assert.Equal(119, Pieces(w)[0].Damage);
             Assert.Empty(w.M.Items.Floor);
@@ -187,56 +190,79 @@ public class AsteroidTests
         }
     }
 
-    // The drill on the belt's batteries.
+    // The drill: run by the tick, its hits free (0055).
 
     [Fact]
-    public void DrainsADrillHitFromTheFirstBatteryOnTheBeltThatCanPayItWholeAndNothingForTheAxe()
+    public void HitsWithTheDrillOnlyWhileItsHeroRunsIt()
     {
-        // The first holds a hit and a little more; the second is full.
-        var w = Facing("asteroid", (Spent + 2) * S, Full);
-        Hits(w, 1, Axe).Run();
-        Assert.Equal([Battery((Spent + 2) * S), Battery(Full)], w.M.Items.Inventory(0).Skip(Belt).Take(2));
-        Hits(w, 1, Drill).Run();
-        Assert.Equal([Battery(2 * S), Battery(Full)], w.M.Items.Inventory(0).Skip(Belt).Take(2));
-        Hits(w, 1, Drill).Run();
-        Assert.Equal([Battery(2 * S), Battery(Full - Spent * S)], w.M.Items.Inventory(0).Skip(Belt).Take(2));
-        Assert.Empty(w.Refusals);
-        Assert.Equal(Weapons.Axe.Damage + 2 * Weapons.Drill.Damage, Pieces(w)[0].Damage);
+        var w = Facing("asteroid", Full);
+        w.Do(new Hit(1, Drill)).Run();
+        Assert.Equal(["debris.notRunning"], Reasons(w));
+        Assert.Equal(0, Pieces(w)[0].Damage);
+        // The client sends its run before the frame's hits: the host applies them in that order, on one tick.
+        w.Do(new Run(Drill, true)).Do(new Hit(1, Drill)).Run();
+        Assert.Single(w.Refusals);
+        Assert.Equal(Weapons.Drill.Damage, Pieces(w)[0].Damage);
+        w.Do(new Run(Drill, false)).Do(new Hit(1, Drill)).Run();
+        Assert.Equal(["debris.notRunning", "debris.notRunning"], Reasons(w));
+        // What the client asks before it sends says nothing of the run, so the first hit goes with the run.
+        Assert.Null(w.M.Debris.HitProblem(0, 1, Drill));
     }
 
     [Fact]
-    public void EmptiesAFullBatteryInThreeHundredHitsAndRefusesTheNextFlat()
+    public void AHitOfTheDrillSpendsNothingItsRunPaysByTheTickAndTheAxeNeither()
     {
         var w = Facing("asteroid", Full);
-        Assert.Equal(300, Full / S / Spent);
-        // A hundred hits a tick, the rock made whole again between, so it never breaks.
-        for (int i = 0; i < 3; i++)
-        {
-            Hits(w, 100, Drill).Run();
-            Pieces(w)[0].Damage = 0;
-        }
+        Hits(w, 1, Axe).Run(5);
+        Assert.Equal(Battery(Full), w.M.Items.Inventory(0)[Belt]);
+        // A hundred hits on one tick and none on the next three cost the same: four ticks of the draw.
+        Hits(w, 100, Drill).Run(4);
+        Assert.Equal(Battery(Full - 4 * Draw * S), w.M.Items.Inventory(0)[Belt]);
         Assert.Empty(w.Refusals);
+        Assert.Equal(Weapons.Axe.Damage + 100 * Weapons.Drill.Damage, Pieces(w)[0].Damage);
+    }
+
+    [Fact]
+    public void AFullBatteryRunsTheDrillSixHundredTicksThenItsHitsAreRefusedFlat()
+    {
+        var w = Facing("asteroid", Full);
+        // Held still, so the rock stays by the hero for the battery's whole run.
+        Pieces(w)[0].Speed = 0;
+        Assert.Equal(600, Full / S / Draw);
+        Hits(w, 1, Drill).Run(600);
         Assert.Equal(Battery(0), w.M.Items.Inventory(0)[Belt]);
         Assert.Equal("debris.flat", w.M.Debris.HitProblem(0, 1, Drill));
-        Hits(w, 1, Drill).Run();
+        w.Do(new Hit(1, Drill)).Run();
+        Assert.Null(w.M.Items.Running(0));
         Assert.Equal(["debris.flat"], Reasons(w));
-        Assert.Equal(0, Pieces(w)[0].Damage);
+        Assert.Equal(Weapons.Drill.Damage, Pieces(w)[0].Damage);
         // The axe needs no battery.
         Assert.Null(w.M.Debris.HitProblem(0, 1, Axe));
     }
 
     [Fact]
-    public void RefusesTheDrillFlatWithNoBatteryWornOrNoneHoldingAHitTheBagsLeftAlone()
+    public void RefusesTheDrillFlatWithNoBatteryWornOrNoneHoldingATickTheBagsLeftAlone()
     {
-        var w = Facing("hullSection", Spent * S - 1, Spent * S - 1).Put(0, Battery(Full));
+        var w = Facing("hullSection", Draw * S - 1, Draw * S - 1).Put(5, Battery(Full));
         Hits(w, 1, Drill).Run();
         var bare = Facing("hullSection");
         Hits(bare, 1, Drill).Run();
-        Assert.Equal(["debris.flat"], Reasons(w));
-        Assert.Equal(["debris.flat"], Reasons(bare));
+        // The run is refused flat, and so is its hit: the belt's want says more than the run's.
+        Assert.Equal(["items.flat", "debris.flat"], Reasons(w));
+        Assert.Equal(["items.flat", "debris.flat"], Reasons(bare));
         Assert.Equal(0, Pieces(w)[0].Damage);
-        Assert.Equal(Battery(Full), w.M.Items.Inventory(0)[0]);
-        Assert.Equal(Battery(Spent * S - 1), w.M.Items.Inventory(0)[Belt]);
+        Assert.Equal(Battery(Full), w.M.Items.Inventory(0)[5]);
+        Assert.Equal(Battery(Draw * S - 1), w.M.Items.Inventory(0)[Belt]);
+    }
+
+    [Fact]
+    public void RefusesAHitFlatWhileRunningOnceTheBatteryIsTakenOffTheBelt()
+    {
+        var w = Facing("asteroid", Full);
+        Hits(w, 1, Drill).Run();
+        w.Do(new Move(new Items.Place(Belt), new Target(5), 1)).Do(new Hit(1, Drill)).Run();
+        Assert.Equal(["debris.flat"], Reasons(w));
+        Assert.Null(w.M.Items.Running(0));
     }
 
     [Fact]
@@ -251,26 +277,27 @@ public class AsteroidTests
     [Fact]
     public void DrillsWithoutDrainingInCreativeMode()
     {
-        var w = Facing("asteroid", Spent * S);
+        var w = Facing("asteroid", Draw * S);
         w.Do(new SetCreative(true)).Run();
-        Hits(w, 5, Drill).Run();
+        Hits(w, 5, Drill).Run(10);
         var bare = Facing("asteroid");
         bare.Do(new SetCreative(true)).Run();
-        Hits(bare, 5, Drill).Run();
+        Hits(bare, 5, Drill).Run(10);
         Assert.Empty(w.Refusals);
         Assert.Empty(bare.Refusals);
-        Assert.Equal(Battery(Spent * S), w.M.Items.Inventory(0)[Belt]);
+        Assert.Equal(Battery(Draw * S), w.M.Items.Inventory(0)[Belt]);
         Assert.Equal((5, 5), (Pieces(w)[0].Damage, Pieces(bare)[0].Damage));
     }
 
     [Fact]
     public void LetsTwoHeroesDrillOneRockEachFromItsOwnBelt()
     {
-        var w = Facing("asteroid", Full).Put(Belt, Battery(Full), peer: 1).Do(new Enter(1 * 20 + 13) { From = 1 }).Run();
-        w.Do(new Hit(1, Drill)).Do(new Hit(1, Drill) { From = 1 }).Do(new Hit(1, Axe) { From = 1 }).Run();
+        var w = Facing("asteroid", Full).GiveItems(1, (Drill, 1)).Put(Belt, Battery(Full), peer: 1).Do(new Enter(1 * 20 + 13) { From = 1 }).Run();
+        Hits(w, 1, Drill);
+        Hits(w, 1, Drill, peer: 1).Do(new Hit(1, Axe) { From = 1 }).Run(2);
         Assert.Empty(w.Refusals);
-        Assert.Equal(Full - Spent * S, w.M.Items.Inventory(0)[Belt]!.Charge);
-        Assert.Equal(Full - Spent * S, w.M.Items.Inventory(1)[Belt]!.Charge);
+        Assert.Equal(Full - 2 * Draw * S, w.M.Items.Inventory(0)[Belt]!.Charge);
+        Assert.Equal(Full - 2 * Draw * S, w.M.Items.Inventory(1)[Belt]!.Charge);
         Assert.Equal(2 * Weapons.Drill.Damage + Weapons.Axe.Damage, Pieces(w)[0].Damage);
     }
 
@@ -299,7 +326,7 @@ public class AsteroidTests
         return Prop.ForAll(cases.ToArbitrary(), c =>
         {
             var (m, steps) = c;
-            var w = new Scenario(DebrisZonesTests.Open(m.width, m.height, m.x, m.y, m.w, m.h), (uint)(m.x * 31 + m.y)).Put(Belt, Battery(Full));
+            var w = new Scenario(DebrisZonesTests.Open(m.width, m.height, m.x, m.y, m.w, m.h), (uint)(m.x * 31 + m.y)).Put(Belt, Battery(Full)).GiveItems(0, (Drill, 1));
             int cells = m.width * m.height, last = 0;
             foreach (var s in steps)
             {
@@ -310,7 +337,10 @@ public class AsteroidTests
                         break;
                     case "strike":
                         if (Pieces(w).FirstOrDefault(p => WreckageSpec.HpOf(p.Item) != null) is { } wreck)
+                        {
+                            w.Do(new Run(Drill, true) { From = s.Peer });
                             for (int i = 0; i < 1 + s.Ticks % 40; i++) w.Do(new Hit(wreck.Id, i % 2 == 0 ? Drill : Axe) { From = s.Peer });
+                        }
                         break;
                     case "wall":
                         if (w.M.Grid.StructureAt(s.Cell % cells) == Structure.Empty) w.Do(new Place(s.Cell % cells, Placement.Wall()));

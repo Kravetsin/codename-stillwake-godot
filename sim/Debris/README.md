@@ -8,14 +8,14 @@ catching them, reeling them in by harpoon, and breaking wreckage and asteroids w
 [0041](../../docs/decisions/0041-wreckage-of-many-kinds-and-circuits.md),
 [0044](../../docs/decisions/0044-the-harpoon-reels-a-piece-to-a-point.md),
 [0052](../../docs/decisions/0052-debris-by-zones-around-every-hero.md),
-[0054](../../docs/decisions/0054-asteroids-and-the-drill.md)). Ported from
+[0054](../../docs/decisions/0054-asteroids-and-the-drill.md), [0055](../../docs/decisions/0055-an-electric-tool-draws-while-it-runs.md)). Ported from
 `packages/sim/src/modules/debris`; its rules hold here unchanged, the harpoon and the zones new in the port.
 
 - **Depends on:** `Grid` (`IGridQueries`: its size, its `Version` and the hull's bounds), `Crew`
   (`ICrewQueries`: where the sender's hero is, and every hero's reported cell), `Rooms`
-  (`IRoomsQueries`: what is space), `Items` (`IItemsQueries`: `CanDrain`, whether the belt can pay an
-  electric weapon's hit; `IItemsOps`: `GiveOrDrop`, the inventory a caught piece goes into; `DropAt`, the
-  floor a broken wreck falls on; `Drain`, the belt paying a hit of the drill).
+  (`IRoomsQueries`: what is space), `Items` (`IItemsQueries`: `CanDrain`, whether the belt can pay a tick of an
+  electric weapon's draw, and `Running`, whether the sender runs it; `IItemsOps`: `GiveOrDrop`, the inventory a
+  caught piece goes into; `DropAt`, the floor a broken wreck falls on).
 - **State** (`DebrisState`, members internal): `Pieces` in spawn order, so in id order, each a `Piece` (public, with
   internal setters) `{ Id, Zone, Item, X, Y, Speed, Start, End, Damage, Reel, SeenAt }`, of the zone `Zone` (an id of
   `Debris.Zones`), its middle at `X`, `Y` in thousandths
@@ -115,15 +115,16 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   as a container's is) falls on the cell under its middle, still, dropped by `FloorStack.Nobody`
   (`IItemsOps.DropAt`): floating there in space for anyone to pick up at once, the hero who broke it
   too. Refused with `debris.gone`, `debris.notOutside` (as `Grab`), `debris.notWreckage` (a piece
-  caught by hand), or **`debris.flat`**: the weapon is electric (its item has a `Draw`, the drill) and no
-  battery on the sender's belt holds a hit's worth, its `Draw` for each tick of its `Pace`
-  (`DebrisModule.Spent`, 3 × 2 = 6 power-ticks), checked by `IItemsQueries.CanDrain`. Applied, an electric
-  hit is paid first by `IItemsOps.Drain`, in the host's order: the belt left to right, one battery paying it
-  whole; nothing in creative mode. A `Tool` that deals no damage is our bug and throws: the client sends
+  caught by hand), **`debris.flat`**: the weapon is electric (its item has a `Draw`, the drill) and no
+  battery on the sender's belt holds a tick of its draw (`IItemsQueries.CanDrain`), or, for the command only,
+  **`debris.notRunning`**: the weapon is electric and the sender's hero is not running it (`IItemsQueries.Running`,
+  0055). A hit spends nothing: the run pays by the tick in `Items`, hitting or not. `HitProblem`, what the client
+  asks before it sends, leaves the run out, so the first hit goes in the same frame as the `Run` that starts it;
+  the host applies them in that order. A `Tool` that deals no damage is our bug and throws: the client sends
   hits only with a weapon. The sim does not ask whether the sender holds the weapon, how fast it strikes nor
   how far it reaches: the client's word, among friends (principle 6). The client sends one `Hit` for each
   wreck a swing's drawn blade touches (0039, 0040), so one swing may hit two wrecks; the drill one for each
-  its bit touches every `Pace` ticks while held.
+  its bit touches every `Pace` ticks while it runs, after its `Run`.
 - **The harpoon** (0044): `Reel(Piece, ToX, ToY)` reels a piece, small or a wreck, to a point in
   thousandths of a cell, the client's word: `Harpoon.Stop` before the gun. Applying it clamps the point
   to the grid and sets the piece's `Reel` to `{ By = sender, ToX, ToY, Left }`, `Left` the ticks its
@@ -141,8 +142,7 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   `Pieces` — live and read-only; `PieceAt(cell)` — the first piece whose middle is in the cell;
   `GrabProblem(peer, piece)`, `HitProblem(peer, piece, tool)` and `ReelProblem(peer, piece)` — the refusal
   that peer's `Grab`, `Hit` or `Reel` would get, for the client.
-- **Static:** `Spent(weapon)` — the power-ticks a hit of an electric weapon spends, none for another;
-  `CellOf(x, y, width)` — the cell under a piece's middle; `LootOf(item, rng)` — what
+- **Static:** `CellOf(x, y, width)` — the cell under a piece's middle; `LootOf(item, rng)` — what
   catching a piece of that item gives, merged by item in the order its entries first give it.
 - **Commands:** `Grab(Piece)`, `Hit(Piece, Tool)`, `Reel(Piece, ToX, ToY)`.
 - **Lookups:** `Grab`, `Hit` and `Reel` find their piece by a binary search of the pieces, in id order.
@@ -192,7 +192,8 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   the ship it cannot be hit, though its end sticks out into space. Accepted: it drifts on and out.
 - The weapon in hand, its pace (`Weapon.Pace`) and reach (its picture, 0040): the client's, among friends. A hit
   in flight after the weapon was put away still lands; creative mode needs no weapon either. The drill's hits in
-  flight meet the belt only as they apply: one sent as the belt runs flat is refused `debris.flat`.
+  flight meet the belt and the run only as they apply: one sent as the belt runs flat is refused `debris.flat`, one
+  sent after the run was stopped `debris.notRunning`.
 - An asteroid reeled out of its band stays out: the band is where they spawn, not where they must be.
 - The harpoon's shot, its range, the hit test, the hooked rod before the reel and the cooldown: the
   client's (0044). The cooldown is the hero's: every harpoon it holds waits for it. The sim does not
