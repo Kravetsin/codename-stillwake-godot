@@ -11,11 +11,11 @@ mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 
 | File                  | Holds                                                                                   | Godot |
 | --------------------- | --------------------------------------------------------------------------------------- | ----- |
-| `Crafts.cs`           | a recipe's fixed place, how its slot looks, where a click on a short one goes, the bar, what the pod is doing | no |
-| `FabricatorPanel.cs`  | the panel beside the inventory: header and screen, recipes, the shared queue, outputs, status | yes |
+| `Crafts.cs`           | a recipe's fixed place, how its slot looks, where a click on a short one goes, its block on the card, the bar, what the pod is doing | no |
+| `FabricatorPanel.cs`  | the panel beside the inventory: header and screen, recipes, the shared queue, outputs | yes |
 | `FabricatorScreen.cs` | the panel's small screen: lines running while it works, READY idle                      | yes   |
 | `PodView.cs`          | over the pod's picture: its screen, its tray, its glass glowing while a hero is made    | yes   |
-| `PodDemo.cs`          | `-- --pod`: the wreck's pod opened and crafting, for recordings                        | yes   |
+| `PodDemo.cs`          | `-- --pod`: the wreck's pod opened and crafting, the axe's and the rotor's cards shown, for recordings | yes |
 
 `Crafts.cs` is compiled again into `game.tests/` (`CraftsTests`). The pod's pictures are
 `art/machine_lifepod.png`, laid by the grid feature like every machine's and normal-mapped with
@@ -32,20 +32,23 @@ the mockup's pixel recipe (`PODS[2].draw`) in the ship art's palette.
   silhouette; one known but short of an item for a unit is dimmed and grey; in creative mode every one
   is known and ready. A click on a ready one queues one, a shift-click five, refused whole by the sim
   when unpaid; a click on a short one pulses the first item it lacks that is itself crafted, amber,
-  twice; a silhouette does nothing.
+  twice; a silhouette does nothing. A tool's recipe (the fire axe) is tinted amber, its edge
+  amber-ish, amber under the pointer; a silhouette is not.
+- No status line: the screen says whether it works, the queue's slot filling and full says the rest,
+  and the outputs show what can be taken.
 - "Queue · shared": `Content.Crafting.QueueMost` slots, each entry its item and units left, a mark in
   the top-left corner in its orderer's suit colour, the one at work filling its slot from the bottom,
   full while its unit waits for room. A click cancels it; its cost goes to whoever cancels.
 - "Output": the pod's slots; a click takes a stack into the inventory as a whole (`Move` to the
   inventory), shown at once as the inventory's own moves are (0014).
-- The status line: "Ready" in green, "Making X…", or "Output full: take what is made" in amber. The
-  pod needs no power, so it never says so.
-- The one tooltip (`Shared.PointerTip`), found by a hit test (`TipSpots`): a recipe's name; per item a
-  unit takes, its icon, what is needed and what is carried, green or red; for a raw item short, where
-  it comes from (`crafts.from.<item>`); its seconds a unit at the pod's speed; "click: go to what is
-  missing" when a click goes somewhere. A silhouette says "???" and, in violet, that analysing what it
-  is made of opens it. A queued entry: its item and units, whose it is and that a click cancels it;
-  an output: its item and that a click takes it.
+- The one tooltip (`Shared.PointerTip`), found by a hit test (`TipSpots`): over a recipe, its item's
+  card, as a stack's (`Shared.ItemCards`), with the craft block the station adds at its bottom
+  (`Crafts.Block`): "Craft" and a unit's seconds at the pod's speed; a row per item a unit takes, its
+  icon, name, how many are carried in dim brackets and ×N, green when enough, red when short; for a raw
+  item short, where it comes from (`crafts.from.<item>`); then the keys: LMB craft · Shift ×5 when a
+  unit is carried, LMB go to what is missing when a click goes somewhere, none else. A silhouette says
+  "???" and, in violet, that analysing what it is made of opens it. An output: its item's card with
+  LMB take. A queued entry: its item and units, whose it is and that a click cancels it.
 - **In the world**, over the pod's picture, unlit: its screen runs green while it works or waits full
   and shows a steady green READY light idle; a line in its tray while its outputs hold something.
   While a hero is passed out, being made, the glass glows from inside with a hero's shape, brighter as
@@ -63,3 +66,5 @@ the mockup's pixel recipe (`PODS[2].draw`) in the ship art's palette.
 - The pod's glow lights nothing around it: it is drawn, not a lamp in the light field.
 - The hero climbing out is the glow fading behind the hero standing at the hatch, not an animation of
   its own.
+- A queued entry keeps its line tip rather than its item's card: it is an order, whose and how many,
+  and a click on it cancels rather than uses the item.

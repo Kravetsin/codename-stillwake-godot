@@ -5,6 +5,7 @@ using System.Linq;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Crafting;
+using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Crafting;
 
@@ -19,7 +20,7 @@ public enum Look
     Locked,
 }
 
-/// <summary>What the Fabricator is doing, as its screen and status line say it.</summary>
+/// <summary>What the Fabricator is doing, as its screen says it.</summary>
 public enum Doing
 {
     /// <summary>Nothing queued: READY on its screen.</summary>
@@ -78,6 +79,25 @@ public static class Crafts
     /// <summary>How long a unit takes at the pod, in seconds: whole, or to a tenth.</summary>
     public static string Seconds(string craft) =>
         ((double)WorkOf(craft) / Content.Crafts.PodSpeed / World.TicksPerSecond).ToString("0.#", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// What a recipe adds to its item's card: "Craft" and a unit's seconds at the pod; each item of its cost
+    /// against what is <paramref name="carried"/>, where a short raw one comes from; and what a click does,
+    /// queue it (shift, <see cref="Many"/>) or go to what is missing.
+    /// </summary>
+    public static StationBlock Block(string craft, IReadOnlyList<(string Item, int Count)> carried, bool creative)
+    {
+        var lines = Lines(craft, carried);
+        var rows = lines.Select(l =>
+        {
+            bool isShort = Short(l, creative);
+            return new CraftRow(l.Item, T($"item.{l.Item}"), l.Have, l.Need, isShort, isShort && Raw(l.Item) ? T($"crafts.from.{l.Item}") : null);
+        }).ToList();
+        IReadOnlyList<CardKey> keys = !rows.Any(r => r.Short)
+            ? [new(T("key.lmb"), T("card.craftIt")), new(T("key.shift"), T("card.many", ("n", Many)))]
+            : MissingCraft(lines, creative) != null ? [new(T("key.lmb"), T("card.goTo"))] : [];
+        return new StationBlock(T("time.seconds", ("n", Seconds(craft))), rows, keys);
+    }
 
     /// <summary>How far the unit at work is, from 0 to 1: full while it waits for room.</summary>
     public static double Share(string recipe, int progress) =>

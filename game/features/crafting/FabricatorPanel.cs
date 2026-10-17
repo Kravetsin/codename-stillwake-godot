@@ -18,9 +18,10 @@ namespace Stillwake.Game.Features.Crafting;
 /// "Fabricator panel"): its name and its small screen, running while it works and READY idle; its
 /// recipes in fixed places, a locked one a silhouette, a short one dimmed; the queue every hero shares,
 /// the unit at work filling its slot from the bottom, each entry marked in its orderer's suit colour;
-/// the outputs, a click taking a stack into the inventory; a status line. A click on a recipe queues
-/// one, a shift-click five, a click on a short one pulses what it lacks; a click on an entry cancels it.
-/// Read on a timer, and at once after a click; everything else said in the one tooltip.
+/// the outputs, a click taking a stack into the inventory; a tool's recipe tinted amber. A click on a
+/// recipe queues one, a shift-click five, a click on a short one pulses what it lacks; a click on an
+/// entry cancels it. Read on a timer, and at once after a click; everything else said in the one
+/// tooltip, a recipe's as its item's card with the craft block.
 /// </summary>
 public partial class FabricatorPanel : CanvasLayer
 {
@@ -35,13 +36,15 @@ public partial class FabricatorPanel : CanvasLayer
     private static readonly StyleBoxFlat FilledHover = Style.Box(Style.Slate800 with { A = 0.85f }, Style.Slate400, radius: 3);
     private static readonly StyleBoxFlat Dark = Style.Box(Style.Slate900 with { A = 0.9f }, Style.Slate800, radius: 3);
     private static readonly StyleBoxFlat DarkHover = Style.Box(Style.Slate900 with { A = 0.9f }, Style.Slate400, radius: 3);
+    // A tool's recipe: the ground mixed with amber, its edge amber-ish, amber under the pointer: the mockup's option B.
+    private static readonly StyleBoxFlat ToolFilled = Style.Box((Style.Slate800 with { A = 0.85f }).Lerp(ItemCardView.Amber, 0.16f), Style.Slate700.Lerp(ItemCardView.Amber, 0.6f), radius: 3);
+    private static readonly StyleBoxFlat ToolHover = Style.Box((Style.Slate800 with { A = 0.85f }).Lerp(ItemCardView.Amber, 0.16f), ItemCardView.Amber, radius: 3);
     private static readonly StyleBoxFlat Empty = Style.Box(Style.Slate800 with { A = 0.35f }, Style.Slate700 with { A = 0.45f }, radius: 3);
     private static readonly StyleBoxFlat Pulse = Style.Box(Style.Slate800 with { A = 0.85f }, Style.Amber400, radius: 3);
     private static readonly LabelSettings NameText = Style.Text(Style.Bold, 13, Style.Slate100);
     private static readonly LabelSettings HeadingText = Style.Text(Style.Bold, 11, Style.Slate400);
     private static readonly LabelSettings AsideText = Style.Text(Style.Sans, 11, Style.Slate500);
     private static readonly LabelSettings Count = Style.Text(Style.Mono, 10, Colors.White, shadow: true);
-    private static readonly LabelSettings StatusText = Style.Text(Style.Mono, 11, Style.Slate400);
 
     /// <summary>A recipe short of items: its icon grey and faint.</summary>
     private static readonly ShaderMaterial Greyed = Shaded("""
@@ -64,7 +67,6 @@ public partial class FabricatorPanel : CanvasLayer
     private readonly Func<int, Color> _suitOf;
     private readonly GridContainer _recipes = Grid(), _queue = Grid(), _outputs = Grid();
     private readonly Label _opened = new() { LabelSettings = AsideText };
-    private readonly Label _status = new() { LabelSettings = StatusText };
     private readonly FabricatorScreen _screen = new() { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
     private PanelContainer _panel = null!;
     /// <summary>The slots, each saying what it is in the one tooltip.</summary>
@@ -106,6 +108,10 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>Whether the panel shows, and what its screen shows: what a recording checks.</summary>
     public (bool Shown, Doing Doing) Shown => (_panel.Visible, _screen.Doing);
 
+    /// <summary>The middle of recipe <paramref name="craft"/>'s slot on the screen while the panel shows: where a recording points.</summary>
+    public Vector2? CenterOf(string craft) =>
+        _cells.FirstOrDefault(c => c.Craft == craft && c.Box.IsVisibleInTree())?.Box.GetGlobalRect().GetCenter();
+
     public override void _Ready()
     {
         Layer = ScreenLayers.Hud;
@@ -122,7 +128,6 @@ public partial class FabricatorPanel : CanvasLayer
         column.AddChild(_queue);
         column.AddChild(Heading(T("fabricator.output"), new Label()));
         column.AddChild(_outputs);
-        column.AddChild(_status);
         _panel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop, Visible = false };
         _panel.AddThemeStyleboxOverride("panel", Style.Box(Style.Slate900 with { A = 0.92f }, Style.Slate600 with { A = 0.55f }, 6));
         _panel.AddChild(column);
@@ -198,14 +203,7 @@ public partial class FabricatorPanel : CanvasLayer
             Build(pod, queue, outputs);
         }
         if (_fill != null && queue.Count > 0) Fill(_fill, Crafts.Share(queue[0].Recipe, progress));
-        var doing = Crafts.DoingOf(queue, progress);
-        _screen.Doing = doing;
-        (_status.Text, _status.LabelSettings.FontColor) = doing switch
-        {
-            Doing.Ready => (T("fabricator.ready"), Style.Green400),
-            Doing.OutputFull => (T("fabricator.outputFull"), Style.Amber400),
-            _ => (T("fabricator.making", ("item", T($"item.{queue[0].Recipe}"))), Style.Slate400),
-        };
+        _screen.Doing = Crafts.DoingOf(queue, progress);
     }
 
     private Look LookOf(string craft) => Crafts.LookOf(_research!.Knows(craft), Crafts.Lines(craft, _carried), _creative);
@@ -246,7 +244,9 @@ public partial class FabricatorPanel : CanvasLayer
         var icon = Icon(craft);
         icon.Material = look switch { Look.Short => Greyed, Look.Locked => Silhouette, _ => null };
         box.AddChild(icon);
-        Add(new Cell(box, look == Look.Locked ? Dark : Filled, look == Look.Locked ? DarkHover : FilledHover, craft));
+        Add(look == Look.Locked ? new Cell(box, Dark, DarkHover, craft)
+            : ItemCards.IsTool(craft) ? new Cell(box, ToolFilled, ToolHover, craft)
+            : new Cell(box, Filled, FilledHover, craft));
         _tips.Add(box, () => TipOf(craft));
         box.GuiInput += e =>
         {
@@ -266,19 +266,19 @@ public partial class FabricatorPanel : CanvasLayer
         return box;
     }
 
-    /// <summary>A recipe's tip: its cost against what is carried, where a short raw item comes from, its time at the pod; a closed one, what opens it.</summary>
+    /// <summary>A recipe's tip: its item's card with the craft block (<see cref="Crafts.Block"/>); a closed one, what opens it.</summary>
     private Tip TipOf(string craft)
     {
         if (_research?.Knows(craft) != true) return new Tip("???", new TipLine(T("crafts.notOpened"), Tone.Unknown));
-        var lines = new List<TipLine>();
-        var cost = Crafts.Lines(craft, _carried);
-        foreach (var line in cost)
-            lines.Add(new TipLine($"{line.Need} {T($"item.{line.Item}")} ({line.Have})", Crafts.Short(line, _creative) ? Tone.Bad : Tone.Good, line.Item));
-        foreach (var line in cost.Where(l => Crafts.Short(l, _creative) && Crafts.Raw(l.Item)))
-            lines.Add(new TipLine($"{T($"item.{line.Item}")}: {T($"crafts.from.{line.Item}")}", Tone.Dim));
-        lines.Add(new TipLine(T("time.seconds", ("n", Crafts.Seconds(craft))), Tone.Dim));
-        if (Crafts.MissingCraft(cost, _creative) != null) lines.Add(new TipLine(T("crafts.goToMissing"), Tone.Dim));
-        return new Tip(T($"item.{craft}"), lines);
+        return CardTip(craft, Crafts.Block(craft, _carried, _creative));
+    }
+
+    /// <summary>The card of <paramref name="item"/> with what this station adds, its band as a slot's "?".</summary>
+    private Tip CardTip(string item, StationBlock station)
+    {
+        bool unknown = !_creative && _research?.Analysed.Contains(item) != true;
+        var card = ItemCards.Of(item, unknown) with { Station = station };
+        return new Tip(card.Name) { Card = card };
     }
 
     /// <summary>The slot at work filled from the bottom by <paramref name="share"/> of its unit, 0 to 1.</summary>
@@ -330,7 +330,7 @@ public partial class FabricatorPanel : CanvasLayer
         box.AddChild(Icon(stack.Item));
         box.AddChild(CountOf(stack.Count));
         Add(new Cell(box, Filled, FilledHover, null));
-        var tip = new Tip(T($"item.{stack.Item}"), new TipLine(T("fabricator.takeIt"), Tone.Dim));
+        var tip = CardTip(stack.Item, new StationBlock(null, [], [new CardKey(T("key.lmb"), T("card.take"))]));
         _tips.Add(box, () => tip);
         box.GuiInput += e =>
         {

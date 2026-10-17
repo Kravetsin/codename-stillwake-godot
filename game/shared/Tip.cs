@@ -31,8 +31,8 @@ public sealed record Tip(string? Name, IReadOnlyList<TipLine> Lines)
 {
     public Tip(string name, params TipLine[] lines) : this(name, (IReadOnlyList<TipLine>)lines) { }
 
-    /// <summary>A tool's card, shown in place of the name and lines.</summary>
-    public ToolCard? Card { get; init; }
+    /// <summary>An item's card, shown in place of the name and lines.</summary>
+    public ItemCard? Card { get; init; }
 
     public bool Equals(Tip? other) =>
         other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines) && Equals(Card, other.Card);
