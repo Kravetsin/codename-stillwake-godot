@@ -15,8 +15,9 @@ namespace Stillwake.Game.Features.Grid;
 /// The ship in pixel art (features/grid in TypeScript), a <see cref="TileMapLayer"/> per kind of
 /// picture: back walls behind everything, pipes and valves in front of them, then walls with their
 /// edges, floors and ladders, doors, and machines over their footprints with a socket where power
-/// plugs in. <see cref="Sync"/> compares the grid's layers with what was drawn and redraws only the
-/// cells that changed and their neighbours, whose edges and links reach toward them.
+/// plugs in. <see cref="Sync"/> compares the grid's layers with what was drawn (<see cref="DrawnLayers"/>,
+/// within what is built) and redraws only the cells that changed and their neighbours, whose edges and
+/// links reach toward them.
 /// </summary>
 public partial class GridView : Node2D
 {
@@ -35,13 +36,14 @@ public partial class GridView : Node2D
     private readonly Heard2D _opens = Cues.Player2D(S.DoorOpen, S.World, voices: 2),
         _closes = Cues.Player2D(S.DoorClose, S.World, voices: 2), _turns = Cues.Player2D(S.Valve, S.World, voices: 2);
     private readonly Dictionary<int, string> _materials = Materials.All.ToDictionary(m => m.Code, m => m.Id);
-    private int[] _structure = [], _material = [], _conduit = [], _backs = [], _backMaterial = [];
+    private readonly DrawnLayers _drawn;
     private Machine[] _drawnMachines = [];
-    private bool _drawn;
+    private bool _blank = true;
 
     public GridView(IGridQueries grid)
     {
         _grid = grid;
+        _drawn = new DrawnLayers(grid.Width, grid.Height);
         // Walls and doors take the share of light a wall keeps of what reaches its face; the rest all of it.
         _back = Layer(Layers.BackWalls);
         _pipes = Layer(Layers.Pipes);
@@ -71,67 +73,36 @@ public partial class GridView : Node2D
     /// </summary>
     public void Sync(ShownGrid shown)
     {
-        bool blank = !_drawn;
-        var dirty = ChangedCells(shown);
-        foreach (int cell in dirty) DrawCell(cell, blank);
-        if (!_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
+        int version = _grid.Version;
+        var changes = _drawn.Follow(_grid, shown);
+        // The first drawing: every cell with anything in it changed, the empty ones beside them need nothing, and nothing moved.
+        if (_blank)
+            foreach (var change in changes) DrawCell(change.Cell, blank: true);
+        else
+        {
+            foreach (var change in changes) Hear(change);
+            foreach (int cell in _drawn.Stale(changes)) DrawCell(cell, blank: false);
+        }
+        _blank = false;
+        if (version != _machinesVersion && !_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
+        _machinesVersion = version;
     }
 
-    /// <summary>The cells whose drawing is stale, bringing what was drawn up to date: each changed cell and its neighbours.</summary>
-    private List<int> ChangedCells(ShownGrid shown)
-    {
-        int w = _grid.Width, size = w * _grid.Height;
-        var dirty = new List<int>();
-        if (!_drawn)
-        {
-            _drawn = true;
-            _structure = (shown.Structure ?? _grid.StructureLayer).ToArray();
-            _material = _grid.MaterialLayer.ToArray();
-            _conduit = (shown.Conduit ?? _grid.ConduitLayer).ToArray();
-            _backs = _grid.BackLayer.ToArray();
-            _backMaterial = _grid.BackMaterialLayer.ToArray();
-            for (int c = 0; c < size; c++) dirty.Add(c);
-            return dirty;
-        }
-        ReadOnlySpan<int> s = shown.Structure ?? _grid.StructureLayer, m = _grid.MaterialLayer, cd = shown.Conduit ?? _grid.ConduitLayer,
-            b = _grid.BackLayer, bm = _grid.BackMaterialLayer;
-        if (s.SequenceEqual(_structure) && m.SequenceEqual(_material) && cd.SequenceEqual(_conduit)
-            && b.SequenceEqual(_backs) && bm.SequenceEqual(_backMaterial))
-            return dirty;
-        var marked = new bool[size];
-        void Mark(int c)
-        {
-            if (c < 0 || c >= size || marked[c]) return;
-            marked[c] = true;
-            dirty.Add(c);
-        }
-        for (int c = 0; c < size; c++)
-        {
-            if (s[c] == _structure[c] && m[c] == _material[c] && cd[c] == _conduit[c] && b[c] == _backs[c] && bm[c] == _backMaterial[c])
-                continue;
-            Hear(c, w, s[c], cd[c]);
-            (_structure[c], _material[c], _conduit[c], _backs[c], _backMaterial[c]) = (s[c], m[c], cd[c], b[c], bm[c]);
-            int x = c % w;
-            Mark(c);
-            Mark(c - w);
-            Mark(c + w);
-            if (x > 0) Mark(c - 1);
-            if (x < w - 1) Mark(c + 1);
-        }
-        return dirty;
-    }
+    /// <summary>The grid's version when its machines were last compared: they move it as every layer does.</summary>
+    private int _machinesVersion = -1;
 
     /// <summary>
-    /// A door or a valve at <paramref name="cell"/> that moved, heard there: once a door, at its top cell,
-    /// since the cells under it moved with it (the one above was brought up to date already).
+    /// A door or a valve that moved, heard there: once a door, at its top cell, since the cells under it
+    /// moved with it.
     /// </summary>
-    private void Hear(int cell, int w, int structure, int conduit)
+    private void Hear(DrawnLayers.Change change)
     {
         static bool Door(int s) => s is Structure.DoorClosed or Structure.DoorOpen;
+        int cell = change.Cell, w = _grid.Width, structure = _drawn.Structure[cell], conduit = _drawn.Conduit[cell];
         var at = new Vector2((cell % w + 0.5f) * Cell, (cell / w + 0.5f) * Cell);
-        if (Door(structure) && Door(_structure[cell]) && structure != _structure[cell] && !(cell >= w && Door(_structure[cell - w])))
+        if (Door(structure) && Door(change.Structure) && structure != change.Structure && !(cell >= w && Door(_drawn.Structure[cell - w])))
             (structure == Structure.DoorOpen ? _opens : _closes).PlayAt(at);
-        if (conduit is Conduit.ValveClosed or Conduit.ValveOpen && _conduit[cell] is Conduit.ValveClosed or Conduit.ValveOpen && conduit != _conduit[cell])
+        if (conduit is Conduit.ValveClosed or Conduit.ValveOpen && change.Conduit is Conduit.ValveClosed or Conduit.ValveOpen && conduit != change.Conduit)
             _turns.PlayAt(at);
     }
 
@@ -170,13 +141,13 @@ public partial class GridView : Node2D
         if (!blank)
             foreach (var layer in _cellLayers) layer.EraseCell(at);
 
-        if (_backs[cell] == Back.Wall) DrawBack(at, _backMaterial[cell]);
+        if (_drawn.Back[cell] == Back.Wall) DrawBack(at, _drawn.BackMaterial[cell]);
 
-        int conduit = _conduit[cell];
+        int conduit = _drawn.Conduit[cell];
         if (conduit != Conduit.None)
         {
             // A pipe reaches toward every neighbouring conduit, so runs read as lines.
-            int linked = SidesOf(cell, _conduit, c => c != Conduit.None);
+            int linked = SidesOf(cell, _drawn.Conduit, c => c != Conduit.None);
             Put(_pipes, at, PipeNames[linked]);
             if (conduit is Conduit.ValveOpen or Conduit.ValveClosed)
             {
@@ -184,13 +155,13 @@ public partial class GridView : Node2D
             }
         }
 
-        switch (_structure[cell])
+        switch (_drawn.Structure[cell])
         {
             case Structure.Wall:
                 {
-                    var (wall, edges) = WallNamesOf(_material[cell]);
+                    var (wall, edges) = WallNamesOf(_drawn.Material[cell]);
                     _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
-                    int open = ~SidesOf(cell, _structure, s => s == Structure.Wall) & 0b1111;
+                    int open = ~SidesOf(cell, _drawn.Structure, s => s == Structure.Wall) & 0b1111;
                     if (open != 0)
                         Put(_edges, at, edges[open]);
                     break;
@@ -204,8 +175,8 @@ public partial class GridView : Node2D
             case Structure.DoorClosed or Structure.DoorOpen:
                 {
                     // A door several cells tall is one door: its frame and window at the top, its stripes at the bottom.
-                    int linked = SidesOf(cell, _structure, s => s is Structure.DoorClosed or Structure.DoorOpen) & (Up | Down);
-                    var looks = _structure[cell] == Structure.DoorClosed ? ClosedDoorNames : OpenDoorNames;
+                    int linked = SidesOf(cell, _drawn.Structure, s => s is Structure.DoorClosed or Structure.DoorOpen) & (Up | Down);
+                    var looks = _drawn.Structure[cell] == Structure.DoorClosed ? ClosedDoorNames : OpenDoorNames;
                     Put(_doors, at, looks[linked]);
                     break;
                 }

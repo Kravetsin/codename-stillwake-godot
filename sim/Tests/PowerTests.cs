@@ -378,8 +378,10 @@ public class PowerTests
     {
         var w = new Scenario(Registry.Wreck);
         int width = w.Layout.Width;
+        var (x, y) = Layout.OffsetInWorld(Registry.WreckMap.Width, Registry.WreckMap.Height);
+        int At(int cx, int cy) => (cy + y) * width + cx + x;
         var n = Assert.Single(w.M.Power.Networks);
-        Assert.Equal(new[] { 17 * width + 50, 19 * width + 50, 21 * width + 46 }, n.Nodes);
+        Assert.Equal(new[] { At(50, 17), At(50, 19), At(46, 21) }, n.Nodes);
         Assert.Equal((5, 5, 1000), (n.Supply, n.Demand, n.Satisfaction));
     }
 }

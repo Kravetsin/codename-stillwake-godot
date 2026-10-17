@@ -38,7 +38,8 @@ namespace Stillwake.Game;
 /// crates and catches debris, the left button held works plans; the camera follows it; its items (Tab,
 /// 1–9, the wheel, Q) and the lifepod's Fabricator beside them (E at the pod), the plan (B), the game menu (Esc: settings, save,
 /// load, quit) and the dev panel (`).
-/// Dev arguments after <c>--</c>: <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
+/// Dev arguments after <c>--</c>, played on the wreck as drawn (<see cref="Registry.WreckMap"/>) unless they say otherwise: <c>--world</c> a new
+/// world as the title makes one, the wreck in the middle of the big world, kept nowhere; <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
 /// large, its tiles over <c>--built WxH</c> of it from the top-left, all of it by default), <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--aside</c> steps the hero
@@ -78,10 +79,12 @@ public partial class Main : Node2D, ITogether
     private bool _cheat;
     private Action _poll = () => { };
     private readonly List<int> _doors = [];
+    private Command? _toggled;
     private int _heroes, _start;
     private double _worstSyncMs;
     private string? _gridKey;
-    private Layout _layout = Registry.Wreck;
+    /// <summary>The map a dev run plays: the wreck as drawn, small and with no zone, its cells those the demos and scripts name.</summary>
+    private Layout _layout = Registry.WreckMap;
     private HeroView? _hero;
     private ItemsView? _items;
     private FabricatorPanel? _fabricator;
@@ -130,6 +133,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon") || Has("--grapple"))
             AddChild(new WreckDemo(_debris, _hands.Ui, all: Has("--wrecks"), harpoon: Has("--harpoon"), grapple: Has("--grapple")));
         AddChild(_camera = new ShipCamera());
+        if (Has("--world")) _layout = Registry.Wreck;
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         if (Has("--testbed") || Has("--jetpack")) _layout = Testbed.Map;
@@ -728,6 +732,9 @@ public partial class Main : Node2D, ITogether
         if (Has("--auto")) Auto(client, before);
         if (Has("--doors") && client.World.Tick != before)
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
+        // --toggle: the first doorway toggled every tick, so one is always in flight, as at a busy airlock.
+        if (Has("--toggle") && client.World.Tick != before && (_toggled ??= Autopilot.At(20, _m.Grid).FirstOrDefault()) is { } toggle)
+            client.Send(toggle);
         ShowWorld();
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();

@@ -116,22 +116,137 @@ public class GridTests
             if (grid.MachineAt(cell) != all.FirstOrDefault(m => grid.Footprint(m.Kind, m.Cell)!.Contains(cell))) return false;
         return ((GridState)grid.Slice).ById.Count == all.Count;
     }
+
+    // The build zone (0048).
+
+    /// <summary>The zone of <see cref="Zoned"/>'s 10×6 map of space: columns 2 to 7, rows 1 to 4.</summary>
+    private static readonly Box SmallZone = new(2, 1, 7, 4);
+
+    private static Scenario Zoned() =>
+        new(Layout.Parse(Enumerable.Repeat(new string(' ', 10), 6).ToArray()) with { Zone = SmallZone });
+
+    private static readonly Placement[] EveryLayer = [Placement.Wall(), new("conduit", "pipe"), Placement.BackWall()];
+
+    [Fact]
+    public void RefusesAWallAPipeOrABackWallJustOutsideTheZoneOnEverySideAndKeepsItsZoneAcrossALoad()
+    {
+        var w = Zoned();
+        foreach (var (x, y) in new[] { (1, 2), (8, 2), (4, 0), (4, 5), (1, 0), (8, 5) })
+            foreach (var p in EveryLayer)
+                w.Do(new Place(w.At(x, y), p));
+        w.Run();
+        Assert.Equal(Enumerable.Repeat("grid.outsideZone", 18), w.Refusals.Select(r => r.Reason));
+        Assert.Equal(Box.None, w.M.Grid.Built);
+        w.Reload();
+        Assert.Equal(SmallZone, w.M.Grid.Zone);
+        Assert.Equal("grid.outsideZone", w.M.Grid.PlacementProblem(w.At(1, 2), Placement.Wall()));
+    }
+
+    [Fact]
+    public void BuildsEveryLayerOnTheZonesEdgeCells()
+    {
+        var w = Zoned();
+        foreach (var (x, y) in new[] { (2, 1), (7, 1), (2, 4), (7, 4) })
+            foreach (var p in EveryLayer)
+                w.Do(new Place(w.At(x, y), p));
+        w.Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(SmallZone, w.M.Grid.Built);
+    }
+
+    [Fact]
+    public void RefusesAMachineWhoseFootprintStraddlesTheZonesEdgeAndBuildsOneJustInside()
+    {
+        // A furnace is 2×2: its top-left at (6, 3) covers the zone's last two columns and rows.
+        var w = Zoned();
+        foreach (var (x, y) in new[] { (7, 3), (6, 4), (1, 1), (2, 0), (7, 4) })
+            w.Do(new Place(w.At(x, y), new Placement("machine", "furnace")));
+        w.Run();
+        Assert.Equal(Enumerable.Repeat("grid.outsideZone", 5), w.Refusals.Select(r => r.Reason));
+        w.Do(new Place(w.At(6, 3), new Placement("machine", "furnace"))).Run();
+        Assert.Equal(5, w.Refusals.Count);
+        Assert.Equal(w.At(6, 3), Assert.Single(w.M.Grid.Machines).Cell);
+    }
+
+    [Fact]
+    public void TakesTheWholeMapAsItsZoneWhenTheMapSetsNone()
+    {
+        var w = new Scenario(Layout.Parse(["   ", "   "]));
+        Assert.Equal(new Box(0, 0, 2, 1), w.M.Grid.Zone);
+        w.Do(new Place(w.At(0, 0), Placement.Wall())).Do(new Place(w.At(2, 1), Placement.BackWall())).Run();
+        Assert.Empty(w.Refusals);
+    }
+
+    /// <summary>
+    /// Whatever every module's commands and builds anywhere on the grid, and off it, ask for, nothing is
+    /// ever built outside the zone: what is built lies within it after every tick.
+    /// </summary>
+    [Property(MaxTest = 40)]
+    public Property BuildsNothingOutsideTheZoneWhateverIsAsked()
+    {
+        var placements = new[] { Placement.Wall(), new Placement("structure", "door"), new Placement("conduit", "pipe"), Placement.BackWall() }
+            .Concat(Kinds.Select(k => new Placement("machine", k))).ToArray();
+        var gen =
+            from width in Gen.Choose(3, 24)
+            from height in Gen.Choose(3, 14)
+            from left in Gen.Choose(0, width - 1)
+            from top in Gen.Choose(0, height - 1)
+            from right in Gen.Choose(left, width - 1)
+            from bottom in Gen.Choose(top, height - 1)
+            from seed in Gen.Choose(1, 100_000)
+            from ticks in Gen.Choose(20, 200)
+            select (width, height, zone: new Box(left, top, right, bottom), seed, ticks);
+        return Prop.ForAll(gen.ToArbitrary(), t =>
+        {
+            var layout = Layout.Parse(Enumerable.Repeat(new string(' ', t.width), t.height).ToArray()) with { Zone = t.zone };
+            var w = new Scenario(layout, (uint)t.seed);
+            var rng = new Rng(new RngState { S = (uint)t.seed });
+            for (int i = 0; i < t.ticks; i++)
+            {
+                foreach (var c in ModulesTests.RandomCommands(w.M, rng)) w.Do(c);
+                int cell = (int)rng.Below((uint)(t.width * t.height + 2)) - 1;
+                w.Do(new Place(cell, placements[rng.Below((uint)placements.Length)])).Run();
+                var built = w.M.Grid.Built;
+                if (!built.IsEmpty && !(t.zone.Contains(built.Left, built.Top) && t.zone.Contains(built.Right, built.Bottom)))
+                    return false.Label($"tick {i}: built {built} outside the zone {t.zone}");
+            }
+            return true.ToProperty();
+        });
+    }
 }
 
 /// <summary>From grid.test.ts: "toggles a client has in flight", folded by <c>AfterToggles</c> (0014).</summary>
 public class GridAfterTogglesTests
 {
+    /// <summary><paramref name="layer"/> with the cells <c>AfterToggles</c> listed laid over it.</summary>
+    private static int[] Over(ReadOnlySpan<int> layer, IReadOnlyDictionary<int, int> cells)
+    {
+        int[] shown = layer.ToArray();
+        foreach (var (cell, code) in cells) shown[cell] = code;
+        return shown;
+    }
+
     [Fact]
     public void ShowTheLayersAsTheirCommandsWouldLeaveThemSkippingWhatTheyWouldRefuse()
     {
         var w = new Scenario("#D#v\n#D#-");
         Command[] toggles = [new ToggleDoor(5), new ToggleValve(3), new ToggleDoor(0), new ToggleValve(7)];
         var (structure, conduit) = w.M.Grid.AfterToggles(toggles);
+        int[] shownStructure = Over(w.M.Grid.StructureLayer, structure), shownConduit = Over(w.M.Grid.ConduitLayer, conduit);
         foreach (var t in toggles) w.Do(t);
         w.Run();
         Assert.Equal(new[] { "grid.noDoor", "grid.noValve" }, w.Refusals.Select(r => r.Reason));
-        Assert.Equal(w.M.Grid.StructureLayer.ToArray(), structure);
-        Assert.Equal(w.M.Grid.ConduitLayer.ToArray(), conduit);
+        Assert.Equal(w.M.Grid.StructureLayer.ToArray(), shownStructure);
+        Assert.Equal(w.M.Grid.ConduitLayer.ToArray(), shownConduit);
+    }
+
+    [Fact]
+    public void ListOnlyTheCellsTheToggledDoorwaysAndValvesCover()
+    {
+        var w = new Scenario("#D#v\n#D#-\n#.#.");
+        var (structure, conduit) = w.M.Grid.AfterToggles([new ToggleDoor(5), new ToggleValve(3), new ToggleDoor(0)]);
+        Assert.Equal(new[] { 1, 5 }, structure.Keys.Order());
+        Assert.Equal(new[] { 3 }, conduit.Keys);
     }
 
     [Fact]

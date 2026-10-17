@@ -44,7 +44,7 @@ public partial class AirView : Node2D
     private Image? _image;
     private ImageTexture? _texture;
     /// <summary>The cells the texture covers.</summary>
-    private Stillwake.Sim.Grid.Box _shown;
+    private Stillwake.Sim.Box _shown;
     /// <summary>The rooms and their version the pulse was laid out for, and the rooms draining then.</summary>
     private (IRoomsQueries? Rooms, int Version) _losingFor;
     private HashSet<int> _losingRooms = [];
@@ -251,7 +251,7 @@ public partial class AirView : Node2D
     /// Rooms' cells in the colour <paramref name="colourOf"/> gives each cell of a room, none where it gives
     /// none: a rectangle per run of one colour along a row. Only <paramref name="built"/> holds rooms.
     /// </summary>
-    private static List<(Rect2, Color)> Runs(ReadOnlySpan<int> roomOf, int width, Stillwake.Sim.Grid.Box built, Func<int, int, Color?> colourOf)
+    private static List<(Rect2, Color)> Runs(ReadOnlySpan<int> roomOf, int width, Stillwake.Sim.Box built, Func<int, int, Color?> colourOf)
     {
         var runs = new List<(Rect2, Color)>();
         Color? ColourAt(ReadOnlySpan<int> rooms, int cell) => rooms[cell] >= 0 ? colourOf(cell, rooms[cell]) : null;

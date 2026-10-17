@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
+using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using L = Stillwake.Game.Light;
 
@@ -50,9 +52,12 @@ public partial class LightView : Node2D
     private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow)> _shown = new();
     private readonly List<(Machine Machine, Vector2 At, Sprite2D Glow)> _fires = new();
     private readonly List<LightSource> _main = new(), _spots = new();
-    private int[] _structure = [], _back = [];
+    /// <summary>The structure and back walls as last looked at: empty past what is built, as the grid's are.</summary>
+    private readonly int[] _structure, _back;
     private Machine[] _machines = [];
     private bool _drawn;
+    private int _version;
+    private Box _looked = Box.None;
     private double _timeMs;
 
     /// <summary>
@@ -77,25 +82,32 @@ public partial class LightView : Node2D
     public LightView(IGridQueries grid)
     {
         _grid = grid;
+        (_structure, _back) = (new int[grid.Width * grid.Height], new int[grid.Width * grid.Height]);
         AddChild(new CanvasModulate { Color = new Color(L.Ambient.R, L.Ambient.G, L.Ambient.B) });
         AddChild(_lightmap);
         AddChild(_starlight);
         AddChild(_lamps);
     }
 
-    /// <summary>Brings what stops light, starlight and lamps up to the grid: called after each tick, cheap when nothing changed.</summary>
+    /// <summary>
+    /// Brings what stops light, starlight and lamps up to the grid: called after each tick, nothing done
+    /// while the grid's version stands, and compared only within what is built now and was at the last look.
+    /// </summary>
     public void Sync()
     {
-        bool walls = !_drawn || !_grid.StructureLayer.SequenceEqual(_structure);
-        bool backs = !_drawn || !_grid.BackLayer.SequenceEqual(_back);
+        if (_drawn && _grid.Version == _version) return;
+        var box = _looked.Union(_grid.Built);
+        int w = _grid.Width;
+        bool walls = !_drawn || !BuiltRows.Same(_grid.StructureLayer, _structure, w, box);
+        bool backs = !_drawn || !BuiltRows.Same(_grid.BackLayer, _back, w, box);
         bool machines = !_drawn || !_machines.SequenceEqual(_grid.Machines);
-        _drawn = true;
+        (_drawn, _version, _looked) = (true, _grid.Version, _grid.Built);
         if (walls)
         {
-            _structure = _grid.StructureLayer.ToArray();
-            _lightmap.Occupy(_grid.StructureLayer, _grid.Width, DoorPanel);
+            BuiltRows.Copy(_grid.StructureLayer, _structure, w, box);
+            _lightmap.Occupy(_grid.StructureLayer, w, _grid.Built, DoorPanel);
         }
-        if (backs) _back = _grid.BackLayer.ToArray();
+        if (backs) BuiltRows.Copy(_grid.BackLayer, _back, w, box);
         if (machines)
         {
             _machines = _grid.Machines.ToArray();

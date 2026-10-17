@@ -23,22 +23,6 @@ public static class Back
 
 public sealed record Machine(int Id, string Kind, int Cell);
 
-/// <summary>A rectangle of cells, its edges included; <see cref="None"/> holds none.</summary>
-public readonly record struct Box(int Left, int Top, int Right, int Bottom)
-{
-    public static readonly Box None = new(0, 0, -1, -1);
-    public bool IsEmpty => Right < Left || Bottom < Top;
-    public int Width => IsEmpty ? 0 : Right - Left + 1;
-    public int Height => IsEmpty ? 0 : Bottom - Top + 1;
-    public bool Contains(int x, int y) => x >= Left && x <= Right && y >= Top && y <= Bottom;
-
-    /// <summary>The smallest box holding both.</summary>
-    public Box Union(Box other) =>
-        IsEmpty ? other
-        : other.IsEmpty ? this
-        : new(Math.Min(Left, other.Left), Math.Min(Top, other.Top), Math.Max(Right, other.Right), Math.Max(Bottom, other.Bottom));
-}
-
 /// <summary>What may be put in a cell: a layer, a kind, and a material for walls and back walls.</summary>
 public sealed record Placement(string Layer, string Kind, string? Material = null)
 {
@@ -54,6 +38,8 @@ public sealed class GridState
 {
     [JsonInclude] internal int Width { get; set; }
     [JsonInclude] internal int Height { get; set; }
+    /// <summary>Where anything may be built (0048): the map's zone, or the whole grid.</summary>
+    [JsonInclude] internal Box Zone { get; set; }
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Structure { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Material { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Conduit { get; set; } = [];
@@ -89,6 +75,8 @@ public interface IGridQueries
     /// when nothing is: every cell outside it is empty space. Kept tight by every change, never saved.
     /// </summary>
     Box Built { get; }
+    /// <summary>The build zone (0048): nothing is placed outside it. The whole grid for a map that sets none.</summary>
+    Box Zone { get; }
     ReadOnlySpan<int> StructureLayer { get; }
     /// <summary>Each cell's wall material code (<c>Materials</c>), 0 where no wall stands.</summary>
     ReadOnlySpan<int> MaterialLayer { get; }
@@ -116,12 +104,12 @@ public interface IGridQueries
     IReadOnlyList<int>? Footprint(string kind, int cell);
     string? PlacementProblem(int cell, Placement placement);
     /// <summary>
-    /// The structure and conduit layers as they would be after the <see cref="ToggleDoor"/>s and
-    /// <see cref="ToggleValve"/>s among <paramref name="toggles"/>, in order, each as its command would
-    /// apply it and skipped where it would be refused: what a client shows of its own toggles before
-    /// their tick runs (0014). Copies; the world is untouched.
+    /// The structure and conduit codes of the cells the <see cref="ToggleDoor"/>s and <see cref="ToggleValve"/>s
+    /// among <paramref name="toggles"/> would change, in order, each as its command would apply it and skipped
+    /// where it would be refused: what a client shows of its own toggles before their tick runs (0014). Every
+    /// other cell is as the world has it; a cell toggled back is listed at its own code. The world is untouched.
     /// </summary>
-    (int[] Structure, int[] Conduit) AfterToggles(IReadOnlyList<Command> toggles);
+    (IReadOnlyDictionary<int, int> Structure, IReadOnlyDictionary<int, int> Conduit) AfterToggles(IReadOnlyList<Command> toggles);
 }
 
 /// <summary>How a module that depends on the grid may change it.</summary>
@@ -141,10 +129,12 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
 
     public GridModule()
     {
+        _structureAt = c => State.Structure[c];
+        _setStructure = (c, code) => State.Structure[c] = code;
         Handles<ToggleDoor>(c => IsDoor(State.Structure, c.Cell) ? null : "grid.noDoor", c =>
         {
             State.Version++;
-            ToggleDoorAt(State.Structure, c.Cell);
+            ToggleDoorAt(c.Cell, _structureAt, _setStructure);
         });
         Handles<ToggleValve>(c => IsValve(State.Conduit, c.Cell) ? null : "grid.noValve", c =>
         {
@@ -160,6 +150,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         {
             Width = layout.Width,
             Height = layout.Height,
+            Zone = layout.Zone ?? new Box(0, 0, layout.Width - 1, layout.Height - 1),
             Structure = new int[size],
             Material = new int[size],
             Conduit = new int[size],
@@ -207,10 +198,14 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         return new ToggleValve(Pick(CellsWith(State.Conduit, Conduit.ValveOpen, Conduit.ValveClosed))) { From = from };
     }
 
-    private static List<int> CellsWith(int[] codes, int a, int b)
+    /// <summary>The cells holding <paramref name="a"/> or <paramref name="b"/>, in reading order: within <see cref="Built"/>, where anything is.</summary>
+    private List<int> CellsWith(int[] codes, int a, int b)
     {
         var cells = new List<int>();
-        for (int c = 0; c < codes.Length; c++) if (codes[c] == a || codes[c] == b) cells.Add(c);
+        var box = State.Built;
+        for (int y = box.Top; y <= box.Bottom; y++)
+            for (int c = y * State.Width + box.Left; c <= y * State.Width + box.Right; c++)
+                if (codes[c] == a || codes[c] == b) cells.Add(c);
         return cells;
     }
 
@@ -296,6 +291,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public int Height => State.Height;
     public int Version => State.Version;
     public Box Built => State.Built;
+    public Box Zone => State.Zone;
     public ReadOnlySpan<int> StructureLayer => State.Structure;
     public ReadOnlySpan<int> MaterialLayer => State.Material;
     public ReadOnlySpan<int> ConduitLayer => State.Conduit;
@@ -338,6 +334,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     }
 
     private bool InBounds(int cell) => cell >= 0 && cell < State.Width * State.Height;
+    private bool InZone(int cell) => State.Zone.Contains(cell % State.Width, cell / State.Width);
     private bool IsDoor(int[] structure, int cell) => InBounds(cell) && structure[cell] is Structure.DoorClosed or Structure.DoorOpen;
     private bool IsValve(int[] conduit, int cell) => InBounds(cell) && conduit[cell] is Conduit.ValveOpen or Conduit.ValveClosed;
 
@@ -353,34 +350,46 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         return cells;
     }
 
-    public (int[] Structure, int[] Conduit) AfterToggles(IReadOnlyList<Command> toggles)
+    public (IReadOnlyDictionary<int, int> Structure, IReadOnlyDictionary<int, int> Conduit) AfterToggles(IReadOnlyList<Command> toggles)
     {
-        int[] structure = [.. State.Structure], conduit = [.. State.Conduit];
+        // Only the toggled cells: copying the layers cost a big world 16 MB a tick while a toggle was in flight.
+        var structure = new Dictionary<int, int>();
+        var conduit = new Dictionary<int, int>();
+        int StructureAt(int c) => structure.TryGetValue(c, out int code) ? code : State.Structure[c];
         foreach (var t in toggles)
         {
-            if (t is ToggleDoor door && IsDoor(structure, door.Cell)) ToggleDoorAt(structure, door.Cell);
-            if (t is ToggleValve valve && IsValve(conduit, valve.Cell)) ToggleValveAt(conduit, valve.Cell);
+            if (t is ToggleDoor door && InBounds(door.Cell) && StructureAt(door.Cell) is Structure.DoorClosed or Structure.DoorOpen)
+                ToggleDoorAt(door.Cell, StructureAt, (c, code) => structure[c] = code);
+            if (t is ToggleValve valve && InBounds(valve.Cell))
+            {
+                int code = conduit.TryGetValue(valve.Cell, out int shown) ? shown : State.Conduit[valve.Cell];
+                if (code is Conduit.ValveOpen or Conduit.ValveClosed) conduit[valve.Cell] = Toggled(code);
+            }
         }
         return (structure, conduit);
     }
 
-    private static void ToggleValveAt(int[] conduit, int cell) =>
-        conduit[cell] = conduit[cell] == Conduit.ValveOpen ? Conduit.ValveClosed : Conduit.ValveOpen;
+    private static void ToggleValveAt(int[] conduit, int cell) => conduit[cell] = Toggled(conduit[cell]);
 
-    /// <summary>A doorway is every door cell joined to the clicked one in <paramref name="structure"/>: opened or closed as one.</summary>
-    private void ToggleDoorAt(int[] structure, int cell)
+    private static int Toggled(int valve) => valve == Conduit.ValveOpen ? Conduit.ValveClosed : Conduit.ValveOpen;
+
+    /// <summary>
+    /// A doorway is every door cell joined to the clicked one, as <paramref name="codeAt"/> reads them: opened or
+    /// closed as one, each cell given its new code through <paramref name="set"/>.
+    /// </summary>
+    private void ToggleDoorAt(int cell, Func<int, int> codeAt, Action<int, int> set)
     {
-        int to = structure[cell] == Structure.DoorOpen ? Structure.DoorClosed : Structure.DoorOpen;
-        if (_inDoorway.Length != structure.Length) _inDoorway = new bool[structure.Length];
-        Visit(structure, cell);
+        int to = codeAt(cell) == Structure.DoorOpen ? Structure.DoorClosed : Structure.DoorOpen;
+        if (_inDoorway.Length != State.Structure.Length) _inDoorway = new bool[State.Structure.Length];
+        Visit(codeAt, cell);
         while (_todo.Count > 0)
         {
             int at = _todo.Pop(), x = at % State.Width;
-            structure[at] = to;
-            Visit(structure, at - State.Width);
-            Visit(structure, at + State.Width);
-            if (x > 0) Visit(structure, at - 1);
-            if (x < State.Width - 1) Visit(structure, at + 1);
+            set(at, to);
+            Visit(codeAt, at - State.Width);
+            Visit(codeAt, at + State.Width);
+            if (x > 0) Visit(codeAt, at - 1);
+            if (x < State.Width - 1) Visit(codeAt, at + 1);
         }
         foreach (int c in _visited) _inDoorway[c] = false;
         _visited.Clear();
@@ -390,10 +399,13 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     private bool[] _inDoorway = [];
     private readonly Stack<int> _todo = new();
     private readonly List<int> _visited = [];
+    /// <summary>The live structure layer read and written, made once so a door toggle allocates nothing.</summary>
+    private readonly Func<int, int> _structureAt;
+    private readonly Action<int, int> _setStructure;
 
-    private void Visit(int[] structure, int cell)
+    private void Visit(Func<int, int> codeAt, int cell)
     {
-        if (!InBounds(cell) || _inDoorway[cell] || !IsDoor(structure, cell)) return;
+        if (!InBounds(cell) || _inDoorway[cell] || codeAt(cell) is not (Structure.DoorClosed or Structure.DoorOpen)) return;
         _inDoorway[cell] = true;
         _visited.Add(cell);
         _todo.Push(cell);
@@ -402,6 +414,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public string? PlacementProblem(int cell, Placement p)
     {
         if (!InBounds(cell)) return "grid.outOfBounds";
+        if (!InZone(cell)) return "grid.outsideZone";
         switch (p.Layer)
         {
             case "structure":
@@ -418,6 +431,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
                 if (!Content.Machines.TryGet(p.Kind, out _)) return "grid.noSuchMachine";
                 var cells = Footprint(p.Kind, cell);
                 if (cells == null) return "grid.outOfBounds";
+                if (!cells.All(InZone)) return "grid.outsideZone";
                 if (cells.Any(c => State.Structure[c] != Structure.Empty)) return "grid.blocked";
                 if (cells.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
                 return null;

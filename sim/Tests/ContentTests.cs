@@ -347,6 +347,18 @@ public class ContentTests
         Assert.True(right + DebrisSpec.Lead < Wreck.Rows.Max(row => row.Length));
     }
 
+    [Fact]
+    public void CentresTheBuildZoneInTheWorldExactlyWithRoomForTheWreckInIt()
+    {
+        var (world, zone) = ((Content.World.Width, Content.World.Height), (Content.World.ZoneWidth, Content.World.ZoneHeight));
+        Assert.InRange(zone.ZoneWidth, 1, world.Width);
+        Assert.InRange(zone.ZoneHeight, 1, world.Height);
+        // An even difference, so the zone and the wreck sit in the very middle, not a cell off it.
+        int wreckWidth = Wreck.Rows.Max(row => row.Length);
+        Assert.All(new[] { world.Width - zone.ZoneWidth, world.Height - zone.ZoneHeight, world.Width - wreckWidth, world.Height - Wreck.Rows.Count }, d => Assert.Equal(0, d % 2));
+        Assert.True(wreckWidth <= zone.ZoneWidth && Wreck.Rows.Count <= zone.ZoneHeight);
+    }
+
     // Builds
 
     [Fact]

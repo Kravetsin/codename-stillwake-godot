@@ -218,18 +218,22 @@ public sealed partial class DebrisModule : Module<DebrisState>
         s.NextId += 1;
     }
 
-    /// <summary>The columns and rows the hull spans: every cell with a structure in it. None for no hull.</summary>
+    /// <summary>
+    /// The columns and rows the hull spans: every cell with a structure in it. None for no hull. Walked
+    /// within the grid's <c>Built</c>, past which nothing stands, so it costs the ship and not the world.
+    /// </summary>
     private (int Left, int Right, int Top, int Bottom)? HullOf()
     {
         var structure = _grid.StructureLayer;
         int width = _grid.Width;
+        var built = _grid.Built;
         (int Left, int Right, int Top, int Bottom)? hull = null;
-        for (int cell = 0; cell < structure.Length; cell++)
-        {
-            if (structure[cell] == Structure.Empty) continue;
-            int x = cell % width, y = cell / width;
-            hull = hull is { } h ? (Math.Min(h.Left, x), Math.Max(h.Right, x), h.Top, y) : (x, x, y, y);
-        }
+        for (int y = built.Top; y <= built.Bottom; y++)
+            for (int x = built.Left; x <= built.Right; x++)
+            {
+                if (structure[y * width + x] == Structure.Empty) continue;
+                hull = hull is { } h ? (Math.Min(h.Left, x), Math.Max(h.Right, x), h.Top, y) : (x, x, y, y);
+            }
         return hull;
     }
 
