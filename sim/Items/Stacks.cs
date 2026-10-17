@@ -25,9 +25,30 @@ internal static class Stacks
     public static IReadOnlyList<Stack?> InventoryOf(ItemsState state, int peer) =>
         state.Inventories.Find(h => h.Id == peer)?.Slots ?? NoInventory;
 
+    /// <summary>All-empty slots by their count, shared: read-only, as every slots a query gives.</summary>
+    private static readonly Stack?[][] NoneHeld =
+        [.. Enumerable.Range(0, Machines.All.Max(m => m.Slots ?? 0) + 1).Select(n => new Stack?[n])];
+
     /// <summary>What machine <paramref name="id"/>, of <paramref name="slots"/> slots, holds: all empty when it holds nothing.</summary>
-    public static IReadOnlyList<Stack?> CrateOf(ItemsState state, int id, int slots) =>
-        state.Crates.Find(h => h.Id == id)?.Slots ?? new Stack?[slots];
+    public static IReadOnlyList<Stack?> CrateOf(ItemsState state, int id, int slots)
+    {
+        int at = IndexOf(state.Crates, id);
+        return at >= 0 ? state.Crates[at].Slots : NoneHeld[slots];
+    }
+
+    /// <summary>Where holder <paramref name="id"/> is in <paramref name="held"/>, a list in id order; the complement of where it would go when absent.</summary>
+    private static int IndexOf(List<Held> held, int id)
+    {
+        int lo = 0, hi = held.Count - 1;
+        while (lo <= hi)
+        {
+            int mid = lo + ((hi - lo) >> 1);
+            if (held[mid].Id == id) return mid;
+            if (held[mid].Id < id) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return ~lo;
+    }
 
     /// <summary>Replaces <paramref name="peer"/>'s inventory, keeping the inventories in peer order.</summary>
     public static void SetInventory(ItemsState state, int peer, Stack?[] slots)
@@ -40,14 +61,14 @@ internal static class Stacks
     /// <summary>Replaces what machine <paramref name="id"/> holds, keeping them in id order and none that hold nothing.</summary>
     public static void SetCrate(ItemsState state, int id, Stack?[] slots)
     {
-        int at = state.Crates.FindIndex(h => h.Id >= id);
+        int at = IndexOf(state.Crates, id);
         bool holds = slots.Any(s => s != null);
-        if (at >= 0 && state.Crates[at].Id == id)
+        if (at >= 0)
         {
             if (holds) state.Crates[at].Slots = slots;
             else state.Crates.RemoveAt(at);
         }
-        else if (holds) state.Crates.Insert(at < 0 ? state.Crates.Count : at, new Held { Id = id, Slots = slots });
+        else if (holds) state.Crates.Insert(~at, new Held { Id = id, Slots = slots });
     }
 
     private static Stack?[] Copy(IReadOnlyList<Stack?> slots) => [.. slots];

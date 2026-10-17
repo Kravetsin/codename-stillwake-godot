@@ -56,7 +56,7 @@ public sealed partial class CraftingModule : Module<CraftingState>
     public int Progress(int machine) => QueueOf(machine)?.Progress ?? 0;
 
     /// <summary>Whether machine <paramref name="machine"/> crafts: the lifepod, while it is the only crafting machine.</summary>
-    public bool Crafts(int machine) => _grid.Machines.FirstOrDefault(m => m.Id == machine)?.Kind == Pod;
+    public bool Crafts(int machine) => _grid.MachineById(machine)?.Kind == Pod;
 
     // Commands.
 

@@ -4,7 +4,7 @@ Smelting ([0023](../../docs/decisions/0023-a-furnace-burns-fuel.md)): a furnace 
 its room's air, and turns the salvage in its input into what it yields. The way caught debris becomes
 materials. Ported from `packages/sim/src/modules/furnace`; its rules hold here unchanged.
 
-- **Depends on:** `Grid` (`IGridQueries`: which machines are furnaces, their cells), `Items`
+- **Depends on:** `Grid` (`IGridQueries`: which machines are furnaces, `MachinesOf`, and their cells), `Items`
   (`IItemsQueries`: their slots, `CanSmelt`; `IItemsOps`: `Smelt` and `Consume`), `Atmosphere`
   (`IAtmosphereQueries`: `AiredAt`; `IAtmosphereOps`: `Breathe`, the air their fire breathes).
 - **State** (`FurnaceState`, members internal): `Fires` — each furnace burning or part-way through an

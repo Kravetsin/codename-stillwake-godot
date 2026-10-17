@@ -307,7 +307,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary>What machine <paramref name="id"/> is, when it holds items: a crate, a furnace.</summary>
     private MachineSpec? HolderOf(int id)
     {
-        var machine = _grid.Machines.FirstOrDefault(m => m.Id == id);
+        var machine = _grid.MachineById(id);
         return machine != null && Machines.TryGet(machine.Kind, out var spec) && spec.Slots != null ? spec : null;
     }
 

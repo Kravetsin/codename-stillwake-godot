@@ -43,10 +43,15 @@ public sealed class GridState
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Conduit { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Back { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] BackMaterial { get; set; } = [];
+    /// <summary>Every machine, in id order: ids only grow, and a new one goes last.</summary>
     [JsonInclude] internal List<Machine> Machines { get; set; } = [];
     [JsonInclude] internal int NextMachineId { get; set; } = 1;
     /// <summary>Derived: the id of the machine covering each cell, 0 for none.</summary>
     [JsonIgnore] internal int[] Occupancy { get; set; } = [];
+    /// <summary>Derived: every machine by its id; only looked up.</summary>
+    [JsonIgnore] internal Dictionary<int, Machine> ById { get; set; } = new();
+    /// <summary>Derived: the machines of each kind, in id order; only looked up.</summary>
+    [JsonIgnore] internal Dictionary<string, List<Machine>> ByKind { get; set; } = new(StringComparer.Ordinal);
     /// <summary>Derived: bumped on every change to a layer or a machine; 0 again after a load.</summary>
     [JsonIgnore] internal int Version { get; set; }
 }
@@ -76,7 +81,12 @@ public interface IGridQueries
     /// <summary>The conduit code at <paramref name="cell"/>: <see cref="Conduit.None"/> off the grid.</summary>
     int ConduitAt(int cell);
     Machine? MachineAt(int cell);
+    /// <summary>Machine <paramref name="id"/>; null for none, or one taken apart.</summary>
+    Machine? MachineById(int id);
+    /// <summary>Every machine, in id order.</summary>
     IReadOnlyList<Machine> Machines { get; }
+    /// <summary>The machines of <paramref name="kind"/>, in id order: what a system walks that works one kind.</summary>
+    IReadOnlyList<Machine> MachinesOf(string kind);
     /// <summary>The cells where conduits meet machine <paramref name="m"/>, in the order its kind lists its ports.</summary>
     IReadOnlyList<int> PortsOf(Machine m);
     /// <summary>The cells a machine of <paramref name="kind"/> covers with its top-left at <paramref name="cell"/>; null when it is no machine or does not fit on the grid.</summary>
@@ -184,9 +194,37 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public override void Rebuild()
     {
         State.Occupancy = new int[State.Width * State.Height];
+        State.ById = new Dictionary<int, Machine>(State.Machines.Count);
+        State.ByKind = new Dictionary<string, List<Machine>>(StringComparer.Ordinal);
         foreach (var m in State.Machines)
+        {
             foreach (int c in Footprint(m.Kind, m.Cell) ?? [])
                 State.Occupancy[c] = m.Id;
+            Listed(m);
+        }
+    }
+
+    /// <summary>Puts <paramref name="m"/> into the derived lookups; it is the highest id yet, so its kind's list stays in id order.</summary>
+    private void Listed(Machine m)
+    {
+        State.ById.Add(m.Id, m);
+        if (State.ByKind.TryGetValue(m.Kind, out var kind)) kind.Add(m);
+        else State.ByKind[m.Kind] = [m];
+    }
+
+    /// <summary>Where machine <paramref name="id"/> is in <paramref name="machines"/>, a list in id order; the complement of where it would go when absent.</summary>
+    private static int IndexOf(List<Machine> machines, int id)
+    {
+        int lo = 0, hi = machines.Count - 1;
+        while (lo <= hi)
+        {
+            int mid = lo + ((hi - lo) >> 1);
+            int at = machines[mid].Id;
+            if (at == id) return mid;
+            if (at < id) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return ~lo;
     }
 
     public int Width => State.Width;
@@ -198,6 +236,13 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public ReadOnlySpan<int> BackLayer => State.Back;
     public ReadOnlySpan<int> BackMaterialLayer => State.BackMaterial;
     public IReadOnlyList<Machine> Machines => State.Machines;
+    public Machine? MachineById(int id) => State.ById.GetValueOrDefault(id);
+
+    public IReadOnlyList<Machine> MachinesOf(string kind) =>
+        State.ByKind.TryGetValue(kind, out var machines) ? machines : NoMachines;
+
+    private static readonly Machine[] NoMachines = [];
+
     public int StructureAt(int cell) => InBounds(cell) ? State.Structure[cell] : Structure.Empty;
     public int ConduitAt(int cell) => InBounds(cell) ? State.Conduit[cell] : Conduit.None;
 
@@ -217,7 +262,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public Machine? MachineAt(int cell)
     {
         int id = InBounds(cell) ? State.Occupancy[cell] : 0;
-        return id == 0 ? null : State.Machines.Find(m => m.Id == id);
+        return id == 0 ? null : State.ById[id];
     }
 
     public IReadOnlyList<int> PortsOf(Machine m)
@@ -260,20 +305,32 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     private void ToggleDoorAt(int[] structure, int cell)
     {
         int to = structure[cell] == Structure.DoorOpen ? Structure.DoorClosed : Structure.DoorOpen;
-        var todo = new Stack<int>([cell]);
-        var found = new bool[structure.Length];
-        found[cell] = true;
-        while (todo.Count > 0)
+        if (_inDoorway.Length != structure.Length) _inDoorway = new bool[structure.Length];
+        Visit(structure, cell);
+        while (_todo.Count > 0)
         {
-            int at = todo.Pop(), x = at % State.Width;
+            int at = _todo.Pop(), x = at % State.Width;
             structure[at] = to;
-            foreach (int n in (int[])[at - State.Width, at + State.Width, x > 0 ? at - 1 : -1, x < State.Width - 1 ? at + 1 : -1])
-            {
-                if (!InBounds(n) || found[n] || !IsDoor(structure, n)) continue;
-                found[n] = true;
-                todo.Push(n);
-            }
+            Visit(structure, at - State.Width);
+            Visit(structure, at + State.Width);
+            if (x > 0) Visit(structure, at - 1);
+            if (x < State.Width - 1) Visit(structure, at + 1);
         }
+        foreach (int c in _visited) _inDoorway[c] = false;
+        _visited.Clear();
+    }
+
+    /// <summary>Scratch for <see cref="ToggleDoorAt"/>, a flag a cell, all false between calls; and its cells to visit and visited.</summary>
+    private bool[] _inDoorway = [];
+    private readonly Stack<int> _todo = new();
+    private readonly List<int> _visited = [];
+
+    private void Visit(int[] structure, int cell)
+    {
+        if (!InBounds(cell) || _inDoorway[cell] || !IsDoor(structure, cell)) return;
+        _inDoorway[cell] = true;
+        _visited.Add(cell);
+        _todo.Push(cell);
     }
 
     public string? PlacementProblem(int cell, Placement p)
@@ -328,9 +385,10 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
                 State.BackMaterial[cell] = Materials.Get(p.Material!).Code;
                 return;
             case "machine":
-                int id = State.NextMachineId++;
-                State.Machines.Add(new Machine(id, p.Kind, cell));
-                foreach (int c in Footprint(p.Kind, cell)!) State.Occupancy[c] = id;
+                var added = new Machine(State.NextMachineId++, p.Kind, cell);
+                State.Machines.Add(added);
+                Listed(added);
+                foreach (int c in Footprint(p.Kind, cell)!) State.Occupancy[c] = added.Id;
                 return;
         }
     }
@@ -345,10 +403,10 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
             case "conduit": State.Conduit[cell] = Conduit.None; return;
             case "back": State.Back[cell] = Back.None; State.BackMaterial[cell] = 0; return;
             case "machine":
-                int at = State.Machines.FindIndex(m => m.Id == State.Occupancy[cell]);
-                if (at < 0) return;
-                var removed = State.Machines[at];
-                State.Machines.RemoveAt(at);
+                if (!State.ById.Remove(State.Occupancy[cell], out var removed)) return;
+                State.Machines.RemoveAt(IndexOf(State.Machines, removed.Id));
+                var kind = State.ByKind[removed.Kind];
+                kind.RemoveAt(IndexOf(kind, removed.Id));
                 foreach (int c in Footprint(removed.Kind, removed.Cell) ?? []) State.Occupancy[c] = 0;
                 return;
         }

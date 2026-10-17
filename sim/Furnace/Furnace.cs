@@ -54,13 +54,13 @@ public sealed class FurnaceModule : Module<FurnaceState>
     /// <summary>Furnace <paramref name="id"/> as its panel shows it.</summary>
     public Smelting At(int id)
     {
-        var fire = State.Fires.Find(f => f.Furnace == id);
+        var fire = FireOf(id);
         bool burning = (fire?.Fuel ?? 0) > 0;
         var slots = _items.Crate(id);
         var input = SlotItem(slots, 0);
         int? work = input == null ? null : Content.Items.Get(input).SmeltTicks;
         if (input == null || work == null) return new Smelting(burning);
-        var machine = _grid.Machines.FirstOrDefault(m => m.Id == id);
+        var machine = _grid.MachineById(id);
         bool aired = machine != null && AiredCell(machine) >= 0;
         var fuel = SlotItem(slots, Content.Furnace.FuelSlot) is { } f ? Content.Items.Get(f).BurnTicks : null;
         string? problem = !_items.CanSmelt(id) ? "furnace.full"
@@ -73,21 +73,44 @@ public sealed class FurnaceModule : Module<FurnaceState>
 
     private static string? SlotItem(IReadOnlyList<Stack?> slots, int slot) => slot < slots.Count ? slots[slot]?.Item : null;
 
-    /// <summary>The first cell of machine <paramref name="m"/> with air in it, or -1: where its fire breathes.</summary>
+    /// <summary>Furnace <paramref name="id"/>'s fire, or null.</summary>
+    private Fire? FireOf(int id)
+    {
+        var fires = State.Fires;
+        int lo = 0, hi = fires.Count - 1;
+        while (lo <= hi)
+        {
+            int mid = lo + ((hi - lo) >> 1);
+            if (fires[mid].Furnace == id) return fires[mid];
+            if (fires[mid].Furnace < id) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return null;
+    }
+
+    /// <summary>The first cell of machine <paramref name="m"/> with air in it, in reading order, or -1: where its fire breathes.</summary>
     private int AiredCell(Machine m)
     {
-        foreach (int c in _grid.Footprint(m.Kind, m.Cell) ?? [])
-            if (_air.AiredAt(c)) return c;
+        var spec = Content.Machines.Get(m.Kind);
+        for (int dy = 0; dy < spec.Height; dy++)
+            for (int dx = 0; dx < spec.Width; dx++)
+            {
+                int c = m.Cell + dy * _grid.Width + dx;
+                if (_air.AiredAt(c)) return c;
+            }
         return -1;
     }
 
     private void Burn()
     {
         var kept = new List<Fire>();
-        foreach (var m in _grid.Machines)
+        var fires = State.Fires;
+        int next = 0;
+        foreach (var m in _grid.MachinesOf("furnace"))
         {
-            if (m.Kind != "furnace") continue;
-            var was = State.Fires.Find(f => f.Furnace == m.Id);
+            // Fires and furnaces are both in id order: one pass finds each furnace's.
+            while (next < fires.Count && fires[next].Furnace < m.Id) next++;
+            var was = next < fires.Count && fires[next].Furnace == m.Id ? fires[next] : null;
             int fuel = was?.Fuel ?? 0;
             var slots = _items.Crate(m.Id);
             var input = SlotItem(slots, 0);
