@@ -2,8 +2,15 @@ using System.Text.Json.Serialization;
 
 namespace Stillwake.Sim.Items;
 
-/// <summary>Some of one item in a slot: <c>Count</c> from 1 to the item's stack limit.</summary>
-public sealed record Stack(string Item, int Count);
+/// <summary>
+/// Some of one item in a slot: <c>Count</c> from 1 to the item's stack limit. What one item of it holds of its
+/// own, <c>Charge</c> (a battery's, from 0 to its <c>Capacity</c>), is on the stack, only on items of a stack of
+/// one; zero for anything else, and unwritten in a save while zero. A copy made with <c>with</c> keeps it.
+/// </summary>
+public sealed record Stack(
+    string Item,
+    int Count,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Charge = 0);
 
 /// <summary>Where a stack is: a slot of machine <c>Crate</c>, or of the sender's own inventory when there is none.</summary>
 public sealed record Place(int Slot, int? Crate = null);
@@ -24,6 +31,8 @@ public sealed class FloorStack
     [JsonInclude] public string Item { get; internal set; } = "";
     /// <summary>From 1 to the item's stack limit.</summary>
     [JsonInclude] public int Count { get; internal set; }
+    /// <summary>What its one item holds of its own, as <see cref="Stack.Charge"/>: kept from the slot it was dropped from to the one it is picked into.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Charge { get; internal set; }
     /// <summary>The cell it is in, kept with its position.</summary>
     [JsonInclude] public int Cell { get; internal set; }
     /// <summary>Its bottom middle, and its speed, in thousandths of a cell and per tick.</summary>
@@ -34,6 +43,9 @@ public sealed class FloorStack
     /// <summary>The peer that dropped it (or <see cref="Nobody"/>), and on which of the module's ticks: its own may not take it back at once.</summary>
     [JsonInclude] public int By { get; internal set; }
     [JsonInclude] public int At { get; internal set; }
+
+    /// <summary>What it holds as a slot would hold it, every value of its own with it.</summary>
+    internal Stack AsStack() => new(Item, Count, Charge);
 }
 
 /// <summary>A peer's inventory, or what a machine holds: the slots, each a stack or null.</summary>

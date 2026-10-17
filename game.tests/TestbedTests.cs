@@ -39,6 +39,8 @@ public class TestbedTests
         Assert.Contains(crate, stack => stack is { Item: "harpoon" });
         Assert.Contains(crate, stack => stack is { Item: "jetpack" });
         Assert.Contains(crate, stack => stack is { Item: "canister" });
+        // A battery of each kind: the crate's empty one, as every carried item at its stack, and one charged full.
+        Assert.Contains(new Stack("battery", 1, Spec.Charge.Battery), crate);
     }
 
     [Fact]
@@ -53,5 +55,9 @@ public class TestbedTests
         Assert.All(m.Rooms.All, room => Assert.Equal(room.Id == airlock ? RoomStatus.Vacuum : RoomStatus.Aired, m.Atmosphere.StatusOf(room.Id)));
         Assert.All(m.Grid.Machines.Where(x => Spec.Machines.Get(x.Kind).Draws != null), x => Assert.Equal(1000, m.Power.Satisfaction(x.Id)));
         Assert.Equal(new Analyzing(Testbed.Analysing, 2000, Spec.Research.Ticks * 1000, null), m.Research.At(IdOf(m, "analyzer")));
+        int charger = IdOf(m, "charger");
+        Assert.True(m.Power.Charges(charger));
+        // Charged one tick: the generator lights on the first, its power reaches the station on the second.
+        Assert.Equal(new Stack("battery", 1, Spec.Charge.Battery / 1000 * Testbed.Charging + Spec.Machines.Get("charger").Draws!.Value * Spec.Charge.Scale), m.Items.Crate(charger)[0]);
     }
 }

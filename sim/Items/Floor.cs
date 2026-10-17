@@ -28,22 +28,23 @@ internal static class FloorRules
     private static (int X, int Y) BottomMiddle(int cell, int width) => (cell % width * Unit + Unit / 2, (cell / width + 1) * Unit);
 
     /// <summary>
-    /// Lays <paramref name="count"/> of <paramref name="item"/> on cell <paramref name="cell"/>, dropped by
-    /// peer <paramref name="by"/> and thrown at <paramref name="vx"/>: as new stacks of at most the stack
-    /// limit each, from the cell's bottom middle, rising a little as they go.
+    /// Lays <paramref name="stack"/> on cell <paramref name="cell"/>, dropped by peer <paramref name="by"/>
+    /// and thrown at <paramref name="vx"/>: as new stacks of at most the stack limit each, every one holding
+    /// what its item holds of its own, from the cell's bottom middle, rising a little as they go.
     /// </summary>
-    public static void LayDown(ItemsState state, string item, int count, int cell, int vx, int width, int by)
+    public static void LayDown(ItemsState state, Stack stack, int cell, int vx, int width, int by)
     {
         var (x, y) = BottomMiddle(cell, width);
-        int limit = Content.Items.Get(item).Stack;
-        for (int left = count; left > 0;)
+        int limit = Content.Items.Get(stack.Item).Stack;
+        for (int left = stack.Count; left > 0;)
         {
             int n = Math.Min(left, limit);
             state.Floor.Add(new FloorStack
             {
                 Id = state.NextFloorId++,
-                Item = item,
+                Item = stack.Item,
                 Count = n,
+                Charge = stack.Charge,
                 Cell = cell,
                 X = x,
                 Y = y,
@@ -163,7 +164,7 @@ internal static class FloorRules
             foreach (var into in kept)
             {
                 if (!resting || into.Cell != s.Cell || into.Item != s.Item) continue;
-                if (into.Vx != 0 || into.Vy != 0) continue;
+                if (into.Vx != 0 || into.Vy != 0 || !Stacks.Alike(into.AsStack(), s.AsStack())) continue;
                 int n = Math.Min(s.Count, Content.Items.Get(s.Item).Stack - into.Count);
                 into.Count += n;
                 s.Count -= n;

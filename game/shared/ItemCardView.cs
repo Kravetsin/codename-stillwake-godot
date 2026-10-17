@@ -36,6 +36,11 @@ public static class ItemCardView
     private static readonly LabelSettings EnoughText = Style.Text(Style.Mono, 12, Style.Green400);
     private static readonly LabelSettings ShortText = Style.Text(Style.Mono, 12, Style.Red300);
     private static readonly LabelSettings FromText = Style.Text(Style.Mono, 10, Style.Slate500);
+    /// <summary>Charge's green: the meter's words and its bar (the charge mockup).</summary>
+    public static readonly Color Green = new(Charges.Green);
+    private static readonly LabelSettings ChargeText = Style.Text(BoldMono, 10, Green);
+    private static readonly LabelSettings StoredText = Style.Text(Style.Mono, 10, Style.Slate300);
+    private static readonly LabelSettings DrawText = Style.Text(BoldMono, 12, Style.Amber400);
 
     /// <summary>The card of <paramref name="card"/>, sized to its content.</summary>
     public static Control Build(ItemCard card)
@@ -47,6 +52,7 @@ public static class ItemCardView
         (edge.ShadowColor, edge.ShadowSize, edge.ShadowOffset) = (new Color(0, 0, 0, 0.45f), 7, new Vector2(0, 4));
         var ring = Style.Box(Style.Slate950 with { A = 0.95f }, Ring, padding: 1, radius: 0);
         var column = Column(0, Head(card));
+        if (card.Charge is { } charge) column.AddChild(Meter(charge));
         if (card.Tiles is { } tiles) column.AddChild(Tiles(tiles));
         if (Body(card) is { } body) column.AddChild(body);
         if (card.Unknown) column.AddChild(UnknownBand());
@@ -67,11 +73,71 @@ public static class ItemCardView
         var frameBox = Style.Box(Style.Slate900, Style.Slate700, radius: 3);
         frameBox.SetBorderWidthAll(2);
         frameBox.SetContentMarginAll(2);
-        var frame = Boxed(frameBox, Icon(card.Item, 40));
+        var frame = Boxed(frameBox, Icon(card.Picture, 40));
         frame.CustomMinimumSize = new Vector2(52, 52);
         frame.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
         var name = Text(card.Name, NameText);
         return Boxed(box, Column(2, frame, Spacer(4), name, Text(card.Kind, card.Tool ? ToolKindText : KindText)));
+    }
+
+    /// <summary>
+    /// The charge mockup's meter, <c>border-t-2 border-slate-800 px-2.5 py-2 gap-1</c>: "CHARGE" and, in green,
+    /// the percent of full; under them an 8 px bar of what it holds, and a bolt with what it holds and holds
+    /// full in the units machines draw in. How long a tool would run on it is never said.
+    /// </summary>
+    private static Control Meter(ChargeMeter charge)
+    {
+        var box = new StyleBoxFlat
+        {
+            BgColor = Colors.Transparent,
+            BorderColor = Style.Slate800,
+            BorderWidthTop = 2,
+            ContentMarginLeft = Pad,
+            ContentMarginRight = Pad,
+            ContentMarginTop = 8,
+            ContentMarginBottom = 8,
+        };
+        var top = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        var name = Text(T("card.charge").ToUpperInvariant(), CraftText);
+        name.HorizontalAlignment = HorizontalAlignment.Left;
+        name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        top.AddChild(name);
+        top.AddChild(Text(T("card.percent", ("n", charge.Percent)), ChargeText));
+        var held = Powered(T("card.stored", ("n", charge.Stored), ("all", charge.Capacity)), StoredText);
+        held.Alignment = BoxContainer.AlignmentMode.End;
+        return Boxed(box, Column(4, top, Gauge(charge.Share, 8), held));
+    }
+
+    /// <summary>The power bolt before <paramref name="words"/>: a quantity in the units machines draw in.</summary>
+    private static HBoxContainer Powered(string words, LabelSettings settings)
+    {
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 4);
+        row.AddChild(new TextureRect
+        {
+            Texture = AsciiArt.Bolt(false),
+            CustomMinimumSize = new Vector2(7, 9),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        });
+        row.AddChild(Text(words, settings));
+        return row;
+    }
+
+    /// <summary>A bar <paramref name="height"/> px tall, <c>bg-[#0b1220] border border-slate-700</c>, filled in charge's green to <paramref name="share"/>.</summary>
+    public static Control Gauge(float share, int height)
+    {
+        var track = new Panel { CustomMinimumSize = new Vector2(0, height), MouseFilter = Control.MouseFilterEnum.Ignore };
+        track.AddThemeStyleboxOverride("panel", Style.Box(new Color("0b1220"), Style.Slate700, radius: 2));
+        var fill = new ColorRect { Color = Green, MouseFilter = Control.MouseFilterEnum.Ignore };
+        track.AddChild(fill);
+        fill.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        (fill.OffsetLeft, fill.OffsetTop, fill.OffsetBottom) = (1, 1, -1);
+        fill.AnchorRight = Mathf.Clamp(share, 0, 1);
+        fill.OffsetRight = share >= 1 ? -1 : 0;
+        return track;
     }
 
     /// <summary><c>grid-cols-3 border-y-2 border-slate-800</c>, each tile after the first ruled on its left, the first in amber.</summary>
@@ -110,7 +176,7 @@ public static class ItemCardView
     /// </summary>
     private static Control? Body(ItemCard card)
     {
-        if (!card.Tool && card.Uses.Count == 0 && card.Use == null) return null;
+        if (!card.Tool && card.Uses.Count == 0 && card.Use == null && card.Draw == null) return null;
         // Under the tiles their rule is enough; under the head, a rule of its own.
         var box = new StyleBoxFlat
         {
@@ -123,6 +189,13 @@ public static class ItemCardView
             ContentMarginBottom = 8,
         };
         var column = Column(card.Tool ? 7 : 5);
+        // An electric tool's draw, as a machine shows its own: a bolt and the power it draws while it works.
+        if (card.Draw is int draw)
+        {
+            var drawn = Powered(draw.ToString(System.Globalization.CultureInfo.InvariantCulture), DrawText);
+            drawn.Alignment = BoxContainer.AlignmentMode.Center;
+            column.AddChild(drawn);
+        }
         if (card.Effects.Count > 0)
         {
             var effects = Chips();

@@ -10,7 +10,7 @@ mode, the world setting in which nothing is ever taken
   the floor up; `Rooms` (`IRoomsQueries`), for where space is and which open cells are in a room.
 - **State:** `Inventories` — those changed at least once, by peer id in id order; `Crates` — the
   machines holding something, by machine id in id order; `Creative`; `Floor` — stacks lying about
-  (`FloorStack`: id, item, count, cell, x, y, vx, vy, by, at) in id order, with `NextFloorId`;
+  (`FloorStack`: id, item, count, charge, cell, x, y, vx, vy, by, at) in id order, with `NextFloorId`;
   `Ticks`, the module's own clock. All saved, as sorted lists; nothing is derived.
 - **Files:** `Stacks.cs` — the rules below, on slots; `Floor.cs` — stacks on the floor; `Items.cs` —
   the module, its commands and interfaces; `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
@@ -22,14 +22,23 @@ mode, the world setting in which nothing is ever taken
   `Inventory.Equipment` (head, back, three on the belt), `Inventory.Total` in all
   ([0047](../../docs/decisions/0047-equipment-the-jetpack-and-the-slower-swim.md)); a machine holding items
   has its `Slots` in `Machines`. Each slot is a
-  `Stack` (`Item`, `Count` from 1 to the item's `Stack` limit in `Items`) or null. Items are known by
+  `Stack` (`Item`, `Count` from 1 to the item's `Stack` limit in `Items`, and `Charge`) or null. Items are known by
   their id; every material is one, the salvage items, with `Yields`, are what caught debris
   becomes, and the parts (wire, plate, gear, tube, and of them the rotor, frame and coil) are crafted by
   `Crafting` into the lifepod's outputs;
   circuits are salvaged only, from cable racks (`Debris`). Containers and wreckage are items too, a
   stack of one, never carried but in creative mode and the testbed's crate. The inventory's first row is the hotbar.
+- **What one item holds of its own** (0053) is on its stack: `Charge`, a battery's, from 0 to its item's
+  `Capacity`, in the units machines draw power in (power-ticks, stored in thousandths: `Content.Charge`), only on items of a stack of one that have one, 0 on anything else. Every copy of a stack is
+  made with `with`, so it goes wherever the stack goes: a move, a swap, a crate, a drop and its pick-up
+  (`FloorStack.Charge`, `AsStack`). Stacks merge, onto a slot or on the floor, only when alike
+  (`Stacks.Alike`: one item, one charge); a whole stack moved onto one not alike swaps with it, so two
+  batteries swap. Stacks made from a cost, given, crafted or refunded, hold none: a crafted battery is
+  empty. No cost names an item with a capacity (`ContentTests`), so paying never destroys charge. Saved
+  only where it is not 0. A later per-item value (a tool's wear) is one more such field, copied, compared
+  in `Alike` and carried by the floor alike.
 - **Equipment.** An equipment slot holds only an item whose `Equip` in `Items` is its kind: the jetpack on
-  the back. A move that would leave anything else in one, put there or swapped in from either side, is
+  the back, batteries on the belt. A move that would leave anything else in one, put there or swapped in from either side, is
   refused with `items.notEquipment` (`Stacks.Misfit`).
 - **Giving** puts each item onto the stacks of that item in slot order, up to their limit, then into
   the empty slots in slot order, an inventory's own slots only, never its equipment. It gives all of a
@@ -38,13 +47,20 @@ mode, the world setting in which nothing is ever taken
   to empty; what is worn is never taken nor counted (`Totals`). It takes all of a cost or none of it.
 - **Moving** takes up to `Count` from the `Src` slot to `Dst`, within the sender's inventory, between
   it and a crate, or between crates: the lesser of `Count`, what `Src` holds and what fits.
-  - Onto an empty slot or a stack of the same item, as much as fits there.
-  - A whole stack onto another item swaps the two; part of one is refused.
+  - Onto an empty slot or a stack alike (`Stacks.Alike`), as much as fits there.
+  - A whole stack onto one not alike, another item or a battery holding other charge, swaps the two;
+    part of one is refused.
   - With no slot in `Dst`, that side as a whole: the item's stacks there in slot order, then its
     empty slots, as much as fits; an inventory's own slots only. Within one side a move names its slot.
   - A machine with `Inputs` (a furnace) takes items only into its first `Inputs` slots, refusing the
     rest with `items.takeOnly`; a move into it naming no slot goes into the first. One with no inputs
     (the lifepod) takes nothing in, refused with `items.takeOnly` whichever slot is named.
+  - A charging station (a machine with `Charges` set) holds only items with a `Capacity`: a move that would
+    leave anything else in it, put or swapped in, is refused with `items.notBattery` (`Stacks.Unfit`).
+- **Charge** is filled at a charging station by `Power`, through `Charge(id, amount)`, never past full,
+  and spent from the belt by an electric tool through `Drain(peer, amount)`, `amount` in power-ticks (a
+  tool's `Draw` for a tick): the first battery on the belt, in slot order, holding at least that pays it whole, so the belt drains left to right; false
+  when none can. In creative mode nothing is taken and it answers true.
 - A change of nothing (a cost of zeros) changes nothing and stores no inventory; a machine emptied
   loses its entry.
 - In creative mode nothing is taken; giving still gives: what is taken apart is still there.
@@ -62,7 +78,7 @@ mode, the world setting in which nothing is ever taken
   `Floor.SpaceDrift` with everything outside the moving ship; inside the ship it falls by
   `Floor.Gravity` up to `Floor.MaxFall`, stops against what is built or the grid's edge, and on what
   it lands slides to a stop by `Floor.Friction`. One past the grid's edge is gone: thrown away into
-  space. Then stacks of one item at rest in one cell merge into the oldest, up to the stack limit.
+  space. Then stacks alike at rest in one cell merge into the oldest, up to the stack limit.
   Positions divide by a cell rounding down, left of and above the grid too.
 - **Picking up** gives as much of a stack as fits into the picker's own slots and leaves the rest.
   The peer that dropped a stack may not take it back for `Floor.OwnPickupDelay` ticks; anyone else
@@ -77,7 +93,8 @@ counted twice.
 - **Queries** (`IItemsQueries`): `Inventory(peer)` and `Crate(id)` — their slots, live and
   read-only, an inventory's equipment after its own; `Creative`; `Totals(peer)` — how much of each item the
   peer carries in its own slots, in the order first found; `Equipped(peer, item)` — whether it wears that
-  item in an equipment slot (crew reads the jetpack so); `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
+  item in an equipment slot (crew reads the jetpack so); `BeltCharge(peer)` — what the batteries on its belt
+  hold, summed, and what they would hold full: the energy bar; `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
   mode; `FullFor(peer, cost)` — `items.full` when `cost` does not fit, creative mode or not. A caller
   refuses with these keys. `AfterMoves(peer, moves)` — copies of the peer's inventory and of the
   machines the `Move`s and `Drop`s touch, as the commands would leave them, refused ones skipped: what
@@ -96,19 +113,24 @@ counted twice.
   throws. `GiveOrDrop(peer, cost, cell)` — gives what fits; the rest falls on `cell`, dropped by that
   peer. `DropAt(peer, cost, cell)` — lets all of `cost` fall on `cell`, still, dropped by that peer:
   what a cancelled blueprint held; or by `FloorStack.Nobody`, for anyone to pick up at once: what a
-  broken wreck held.
+  broken wreck held. `Charge(id, amount)` — adds up to
+  `amount` of charge, stored in thousandths of a power-tick, to what machine `id`'s first slot holds, never past its capacity: `Power`'s
+  charging station; it throws for a slot holding nothing with a capacity. `Drain(peer, amount)` — takes
+  `amount` power-ticks from the first belt battery that holds that much, as above; no caller yet (the
+  first electric tool is next), tested on its own.
 - **Commands:** `SetCreative(On)`, from the dev panel, with no refusals.
   `Move(Src, Dst, Count)` — `Src` a `Place(Slot, Crate?)`, `Dst` a `Target(Slot?, Crate?)`, no crate
   meaning the sender's inventory; refused with `items.noCrate` (a side names no machine holding
   items), `items.noSlot` (a slot out of range, `Src` itself, or no slot within one side),
   `items.takeOnly` (a slot of a machine's past its inputs), `items.notEquipment` (an equipment slot left
-  holding what is not worn there), `items.empty` (nothing in `Src`, or
+  holding what is not worn there), `items.notBattery` (a charging station left holding what holds no charge), `items.empty` (nothing in `Src`, or
   `Count` below 1) or `items.full` (nothing fits at `Dst`, or part of a stack onto another item).
   `Drop(Src, Count, Cell, Facing)` — throws up to `Count` from a slot from `Cell`, the sender's as its
   client reports it; refused with `items.noCrate`, `items.noSlot`, `items.empty` or `items.noCell`.
   `PickUp(Id)` — refused with `items.gone`, `items.tooSoon` or `items.full` (none of it fits).
 
-Tests put items into an inventory with `GiveItems`, onto a hero with `Wear` and into a machine with `FillCrate`, from
+Tests put items into an inventory with `GiveItems`, onto a hero with `Wear`, into a machine with `FillCrate` and a
+stack holding charge into any slot with `Put`, from
 `sim/Tests/ItemsTesting.cs`.
 
 ## Invariants
@@ -118,6 +140,8 @@ Tests put items into an inventory with `GiveItems`, onto a hero with `Wear` and 
 - A take or a give changes the peer's totals by exactly the cost, or not at all; a move, a drop and
   a pick-up change no total across inventories, machines and the floor.
 - Every stack on the floor holds from 1 to its item's limit.
+- Charge is between 0 and the item's capacity, and only on items with one, a stack of one; moves, drops
+  and pick-ups keep every item's total and the total charge (`ChargeTests`, FsCheck).
 - A machine has an entry only while it holds something; `building` takes a crate apart only empty.
 
 ## Deliberately not handled
@@ -131,6 +155,9 @@ Tests put items into an inventory with `GiveItems`, onto a hero with `Wear` and 
   into space and drifts away: what was delivered to or refunded at a wall standing out in space.
 - A stale pick at a shared crate moves whatever is in the slot by the time it applies.
 - Who may switch creative mode: anyone; it is a dev panel switch among friends.
+- A battery's charge never leaks, in a crate, on the floor or on a belt: only a tool spends it.
+- `Drain` in creative mode answers true with no battery worn: nothing is ever taken there, and refusing
+  a tool for want of a battery would be the only payment creative mode still asks for.
 - The desync fuzz never fills an inventory with refunds, so `items.full` from building is proven by
   scenarios; moves draw it.
 

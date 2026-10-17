@@ -46,6 +46,11 @@ public interface IPowerQueries
     bool Cabled(int node);
     /// <summary>The share of its draw machine <paramref name="machineId"/> gets, in thousandths; 0 off every network.</summary>
     int Satisfaction(int machineId);
+    /// <summary>
+    /// Whether charging station <paramref name="machineId"/> fills what it holds this tick: an item short of its
+    /// capacity, on a network that gives it power. What its light and its panel's bolt show.
+    /// </summary>
+    bool Charges(int machineId);
     /// <summary>Why peer <paramref name="peer"/>'s <see cref="Lay"/> from <paramref name="a"/> to <paramref name="b"/> would be refused: what the cable ghost shows.</summary>
     string? LayProblem(int peer, int a, int b);
     /// <summary>Why a <see cref="Move"/> from node <paramref name="from"/> to cell <paramref name="to"/> would be refused: what a dragged end shows.</summary>
@@ -87,6 +92,8 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         Handles<Lay>(c => LayProblem(c.From, c.A, c.B), ApplyLay);
         Handles<Move>(c => MoveProblem(c.Node, c.To, c.Cable), ApplyMove);
         Handles<Cut>(CutProblem, ApplyCut);
+        // After derivation, at this tick's satisfaction: a charging station fills what it holds.
+        System(Phase.Simulation, Charge);
         // Every tick: a wall built or broken moves a panel in or out of space, a machine comes or goes.
         System(Phase.Derivation, () =>
         {
@@ -132,10 +139,38 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     /// <summary>
     /// Whether a user draws now: one that works on what is put in it only while its first slot holds
-    /// something, and none told to rest.
+    /// something, a charging station only while that is short of full, and none told to rest.
     /// </summary>
-    private bool Drawing(Machine m) =>
-        (Spec(m).Slots == null || _items.Crate(m.Id)[0] != null) && !IsResting(m.Id);
+    private bool Drawing(Machine m)
+    {
+        if (IsResting(m.Id)) return false;
+        var spec = Spec(m);
+        if (spec.Slots == null) return true;
+        return _items.Crate(m.Id)[0] is { } held && (!spec.Charges || Short(held));
+    }
+
+    /// <summary>Whether <paramref name="held"/> holds less charge than it can: a battery not yet full.</summary>
+    private static bool Short(Stack held) => Content.Items.Get(held.Item).Capacity is int full && held.Charge < full;
+
+    /// <summary>The kinds of machine that charge what they hold.</summary>
+    private static readonly string[] Chargers = [.. Content.Machines.All.Where(s => s.Charges).Select(s => s.Kind)];
+
+    /// <summary>
+    /// Each charging station, in id order, puts what it draws into what it holds: its <c>Draws</c> in
+    /// power-ticks times its satisfaction, stored scaled (<c>Charge.Scale</c>), rounded down, never past
+    /// full. Drawing 3, it fills a battery of 1800 in 600 ticks at full power, twice that at half.
+    /// </summary>
+    private void Charge()
+    {
+        foreach (var kind in Chargers)
+            foreach (var m in _grid.MachinesOf(kind))
+            {
+                if (!Charges(m.Id)) continue;
+                // Both are never negative, so integer division is the floor.
+                int amount = (Spec(m).Draws ?? 0) * Content.Charge.Scale * Satisfaction(m.Id) / 1000;
+                if (amount > 0) _itemsOps.Charge(m.Id, amount);
+            }
+    }
 
     private bool IsResting(int machineId) => State.Resting.BinarySearch(machineId) >= 0;
 
@@ -147,6 +182,9 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     public PowerNetwork? NetworkOf(int node) => State.Networks.Find(n => n.Nodes.Contains(node));
     public bool Cabled(int node) => State.Cables.Exists(c => c.A == node || c.B == node);
     public int Satisfaction(int machineId) => State.Satisfaction.TryGetValue(machineId, out int s) ? s : 0;
+
+    public bool Charges(int machineId) =>
+        _grid.MachineById(machineId) is { } m && Spec(m).Charges && Drawing(m) && Satisfaction(machineId) > 0;
 
     public string? LayProblem(int peer, int a, int b)
     {

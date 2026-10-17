@@ -3,8 +3,9 @@
 This machine's items, ported from `apps/game/src/features/items/` and the item parts of
 `features/crew/` (`pickup.ts`, `pickup-popups.ts`) (G-08). It reads the sim through `IItemsQueries`,
 `IGridQueries`, `IRoomsQueries` and `IResearchQueries`, handed in every frame from the current
-registry, and the furnace module's `At` for a furnace or a burner generator (`InventoryPanel.Furnace`),
-and changes it only by sending `Move`,
+registry, the furnace module's `At` for a furnace or a burner generator (`InventoryPanel.Furnace`)
+and the power module's `Charges` for a charging station (`InventoryPanel.Charger`), and changes it only
+by sending `Move`,
 `Drop` and `PickUp`.
 
 ## Files
@@ -20,16 +21,22 @@ and changes it only by sending `Move`,
 | `SlotBox.cs`       | one slot: icon, count, chosen, picked, hovered, the violet "?" of an item not analysed; an equipment slot's looks        | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
-| `InventoryPanel.cs`| the hotbar, the inventory and its equipment by the body, the open crate, furnace, burner generator or analyzer, the stack in hand | yes   |
+| `InventoryPanel.cs`| the hotbar, the inventory and its equipment by the body, the open crate, furnace, burner generator, analyzer or charging station, the stack in hand | yes   |
+| `EnergyBar.cs`     | the energy bar right of the suit's, while an electric tool is held (0053)                      | yes   |
 | `FloorLayer.cs`    | stacks on the floor, rimmed, bobbing at rest, side by side when still, gliding between ticks, turning in space (`floor-layer.ts`) | yes |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head                                                     | yes   |
 | `ItemsView.cs`     | the feature: pick-ups, the layers and the panel                                              | yes   |
 | `ItemsDemo.cs`     | `-- --items`: a room with a crate, a furnace and an analyzer, and a script for recordings    | yes   |
 
+What it shows of charge, a slot's bar, the empty battery's picture, the card's meter, the station's words and
+the energy bar, is worked out in `game/shared/Charges.cs` (no Godot), shared with the power feature's
+`ChargerLights`.
+
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
 one for one: `click.test.ts` (`ClickTests`), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
 (`PickUpTests`), a test for the fold of own moves (`CrateTests`), one for the analyzer's panel
-(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the equipment's glow (`EquipmentTests`) and one for an item's card (`ItemCardTests`). Opening a crate is aimed
+(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`) and one for charge
+on screen (`ChargesTests`). Opening a crate is aimed
 as everything E works is, in the crew feature (`AimTests`).
 
 ## Guarantees
@@ -78,6 +85,22 @@ as everything E works is, in the crew feature (`AimTests`).
   in content's order, four at most and "+N" for the rest; nothing when it goes into nothing; and its key
   where it has one (`item.<id>.key`): a canister "RMB breathe", the jetpack "Shift thrust in space". The
   screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.
+- **Charge** (0053): a slot holding a battery draws a thin bar along its icon's foot, no numbers: green,
+  amber under a quarter of full, an empty track at none (`Charges.BarOf`); an empty battery shows its own
+  picture (`battery_empty`, `Charges.Picture`), in a slot, in the hand, on its card and on the floor. Its
+  card adds a CHARGE meter under the head: the percent of full, a bar, and a bolt with what it holds of
+  full in power-ticks, the units machines draw in (`⚡ 1170 / 1800`), both rounded down (`Charges.MeterOf`).
+  No time is shown: a battery is a store for any tool, and how long one lasts is felt, not spelled out.
+  An electric tool's card shows its `Draw` as a machine shows its own: a bolt and the number.
+- **A charging station's panel** (the station mockup): its name and a bolt with what it draws, lit while
+  it charges (`IPowerQueries.Charges`), dark at 0 otherwise; its slot beside a bar of what the battery
+  holds, and under it "empty", "full", "charging" or "no power" (`Charges.StationState`). The sim refuses
+  anything but a battery there (`items.notBattery`).
+- **The energy bar** (`EnergyBar`, a layer of its own made by `Main`), right of the suit's gauge, shows the
+  charge of the batteries on the belt (`IItemsQueries.BeltCharge`) of what they hold full, only while the
+  free hand holds an electric item (`Ui.Wielded`, an item with a `Draw`), in the colour of that item's energy
+  (`Charges.ColourOf`: charge's green); hidden otherwise. Read four times a second. No item is electric
+  yet; `-- --electric=fireAxe` counts one as electric in a dev run, so the bar can be seen.
 - A furnace's panel is its input over its fuel, the fire between them, its bar and its outputs; a
   burner generator's its fire over its fuel slot, and beside them a bolt with the power it makes
   (its `Makes`), lit while it burns and dimmed while cold. Both say why they stand still under them

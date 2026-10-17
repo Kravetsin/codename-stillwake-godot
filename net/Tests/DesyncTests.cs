@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
@@ -150,6 +151,66 @@ public class DesyncTests
         // Breathing ran both ways: a suit refilled from room air, and a hero passed out and woke.
         Assert.True(refilled);
         Assert.True(woke);
+    }
+
+    [Fact]
+    public void KeepsEveryClientInSyncWhileBatteriesChargeAndMoveBetweenBeltsAndAStation()
+    {
+        // A panel out in space cabled to a charging station by the lifepod, each peer carrying batteries of
+        // every charge. The fuzz moves them onto belts, into the station, into crates and onto the floor, and
+        // cuts the cables; the first client keeps the station cabled and, when it stands empty, fills it.
+        var layout = Layout.Parse(
+            ["PPP          ", "             ", "#############", "#.OOO.C.....#", "#.OOO.C.....#", "#.OOO.......#", "#############"],
+            null,
+            [((0, 0), (6, 3))]);
+        int full = Content.Items.Get("battery").Capacity!.Value;
+        string Stocked(string save)
+        {
+            var root = JsonNode.Parse(save)!;
+            var inventories = new JsonArray();
+            for (int peer = 0; peer < 3; peer++)
+            {
+                var slots = new JsonArray();
+                for (int i = 0; i < Content.Inventory.Total; i++)
+                    slots.Add(i < 3 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = full / 2 * i } : null);
+                inventories.Add(new JsonObject { ["id"] = peer, ["slots"] = slots });
+            }
+            root["slices"]!["items"]!["inventories"] = inventories;
+            return root.ToJsonString();
+        }
+        var game = new Definition(() => new Registry().All, Stocked);
+        int rose = 0, worn = 0, inStation = 0, last = -1;
+        var run = Desync.Fuzz(game, 11, layout: layout, ticks: 1500, tamper: (tick, clients) =>
+        {
+            var first = clients[0];
+            var grid = game.Module<GridModule>(first.World);
+            var items = game.Module<ItemsModule>(first.World);
+            int station = grid.MachinesOf("charger")[0].Id;
+            // The power fuzz cuts and moves cables: the station's laid again often, free in creative mode.
+            if (tick % 20 == 10)
+            {
+                first.Send(new SetCreative(true));
+                first.Send(new Sim.Power.Lay(grid.MachinesOf("solarPanel")[0].Cell, grid.MachinesOf("charger")[0].Cell));
+            }
+            // And an empty station gets a battery short of full from the first client, wherever it carries one.
+            var own = items.Inventory(first.Id);
+            int carried = own.ToList().FindIndex(s => s is { Item: "battery" } b && b.Charge < full);
+            if (tick % 100 == 50 && items.Crate(station)[0] == null && carried >= 0)
+                first.Send(new Move(new Place(carried), new Target(0, station), 1));
+            if (items.Crate(station)[0] is { Charge: var charge })
+            {
+                inStation++;
+                if (last >= 0 && charge > last) rose++;
+                last = charge;
+            }
+            else last = -1;
+            foreach (var client in clients)
+                if (items.BeltCharge(client.Id).Capacity > 0) worn++;
+        });
+        Assert.Null(run.Desync);
+        Assert.True(inStation > 100, $"a battery stood in the station on {inStation} ticks");
+        Assert.True(rose > 50, $"a battery charged on {rose} ticks");
+        Assert.True(worn > 100, $"a battery was worn on {worn} ticks");
     }
 
     // The harness itself.

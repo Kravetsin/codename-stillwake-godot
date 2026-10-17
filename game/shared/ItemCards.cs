@@ -25,7 +25,9 @@ public static class ItemCards
     public static bool IsTool(string item) => item == Spec.Axe.Item || item == Spec.Harpoon.Item;
 
     /// <summary>The card of <paramref name="item"/>; <paramref name="unknown"/> while not analysed.</summary>
-    public static ItemCard Of(string item, bool unknown)
+    public static ItemCard Of(string item, bool unknown) => Card(item, unknown) with { Draw = Spec.Items.Get(item).Draw };
+
+    private static ItemCard Card(string item, bool unknown)
     {
         string name = T($"item.{item}"), kind = T($"item.{item}.kind");
         // Anything used by a key of its own says so: a canister breathed, a jetpack worn (0047).

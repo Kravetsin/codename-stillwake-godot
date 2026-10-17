@@ -62,6 +62,7 @@
     <Compile Include="../game/shared/Tip.cs" Link="Game/Shared/Tip.cs" />
     <Compile Include="../game/shared/ItemCard.cs" Link="Game/Shared/ItemCard.cs" />
     <Compile Include="../game/shared/ItemCards.cs" Link="Game/Shared/ItemCards.cs" />
+    <Compile Include="../game/shared/Charges.cs" Link="Game/Shared/Charges.cs" />
     <Compile Include="../game/shared/Escape.cs" Link="Game/Shared/Escape.cs" />
     <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />
     <Compile Include="../game/features/building/PlanHand.cs" Link="Game/Building/PlanHand.cs" />

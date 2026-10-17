@@ -35,6 +35,7 @@ public static class Prompts
                 "furnace" => "use.openFurnace",
                 "burnerGenerator" => "use.openGenerator",
                 "analyzer" => "use.openAnalyzer",
+                "charger" => "use.openCharger",
                 "lifepod" => "use.openFabricator",
                 _ => "use.openCrate",
             }, null);

@@ -18,7 +18,8 @@ namespace Stillwake.Game.Features.Items;
 /// <summary>
 /// The hotbar, always in the top-left corner; and with Tab, or E on a crate, the rest of the inventory
 /// and the crate beside it (Inventory.tsx): a crate's slots, a furnace's input over its fuel and its
-/// outputs, a burner generator's fuel and what it makes, an analyzer's own panel (<see cref="AnalyzerPanel"/>); the lifepod's is the crafting feature's. Stacks move by clicks (<see cref="Clicks.On"/>),
+/// outputs, a burner generator's fuel and what it makes, an analyzer's own panel (<see cref="AnalyzerPanel"/>), a
+/// charging station's slot, bar and bolt (0053); the lifepod's is the crafting feature's. Stacks move by clicks (<see cref="Clicks.On"/>),
 /// or dragged from one slot to another; Tab or Esc closes both. 1–9 and the wheel over the world choose a
 /// hotbar slot, Q throws its stack. A stack's name, and whether it waits for an analyzer, show in the one
 /// tooltip; an item not analysed has a violet "?" in its slot's corner, and in the hand. Right of the grid,
@@ -49,6 +50,9 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>A burner generator's output: a bolt and the power it makes, lit while it burns.</summary>
     private TextureRect? _bolt;
     private Label? _makes;
+    /// <summary>A charging station's: the bar of what its battery holds, and what it does now in words.</summary>
+    private ColorRect? _charged;
+    private Label? _station;
     private AnalyzerPanel? _analyzer;
     /// <summary>The slots and the analyzer's pictures, each saying what it holds in the one tooltip.</summary>
     private readonly TipSpots _tipSpots;
@@ -89,6 +93,9 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>What a furnace or a burner generator is doing, by machine id: the furnace module's <c>At</c>.</summary>
     public Func<int, Smelting>? Furnace { get; set; }
+
+    /// <summary>Whether a charging station fills what it holds now, by machine id: the power module's <c>Charges</c>.</summary>
+    public Func<int, bool>? Charger { get; set; }
 
     /// <summary>The hotbar slot chosen, with 1–9 or the wheel.</summary>
     public int Chosen => _chosen;
@@ -251,7 +258,7 @@ public partial class InventoryPanel : CanvasLayer
     {
         var box = new SlotBox(place);
         box.Pressed += ClickAt;
-        _tipSpots.Add(box, () => _reading?.At(box.Place) is { } stack ? _reading.TipOf(stack.Item) : null);
+        _tipSpots.Add(box, () => _reading?.At(box.Place) is { } stack ? _reading.TipOf(stack) : null);
         _slots.Add(box);
         return box;
     }
@@ -268,6 +275,7 @@ public partial class InventoryPanel : CanvasLayer
             _shown.RemoveChild(_cratePanel);
             _cratePanel.QueueFree();
             (_cratePanel, _progress, _problem, _analyzer, _bolt, _makes) = (null, null, null, null, null, null);
+            (_charged, _station) = (null, null);
         }
         if (want is not var (crate, kind)) return;
         // The lifepod's Fabricator docks beside the inventory, the crafting feature's own panel.
@@ -277,6 +285,7 @@ public partial class InventoryPanel : CanvasLayer
             "furnace" => FurnacePanel(crate),
             "burnerGenerator" => GeneratorPanel(crate),
             "analyzer" => _analyzer = new AnalyzerPanel(Box(new Place(0, crate)), _tipSpots),
+            "charger" => ChargerPanel(crate),
             _ => Style.Panel(Style.Amber700 with { A = 0.7f },
                 Grid(Enumerable.Range(0, MachineSpecs.Get(kind).Slots ?? 0).Select(i => new Place(i, crate)))),
         };
@@ -326,6 +335,43 @@ public partial class InventoryPanel : CanvasLayer
             SizeFlagsVertical = Control.SizeFlags.ShrinkEnd,
         });
         return WithProblem(Style.Orange700, line);
+    }
+
+    /// <summary>
+    /// A charging station's, as the station mockup: its name and a bolt with what it draws, lit while it
+    /// charges; its slot beside a bar of what the battery holds, and under the bar what it does now.
+    /// </summary>
+    private Control ChargerPanel(int crate)
+    {
+        var column = Style.Gap(new VBoxContainer { CustomMinimumSize = new Vector2(196, 0) }, 8);
+        var head = Style.Gap(new HBoxContainer(), 4);
+        var name = new Label { Text = T("tool.charger"), LabelSettings = Style.Text(Style.Bold, 14, Style.Slate100), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        head.AddChild(name);
+        head.AddChild(_bolt = new TextureRect
+        {
+            Texture = AsciiArt.Bolt(false),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            CustomMinimumSize = new Vector2(10, 13),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        });
+        head.AddChild(_makes = new Label { LabelSettings = Style.Text(Style.Mono, 12, Style.Amber400), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter });
+        column.AddChild(head);
+        var bay = Style.Gap(new HBoxContainer(), 10);
+        bay.AddChild(Box(new Place(0, crate)));
+        var right = Style.Gap(new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Alignment = BoxContainer.AlignmentMode.Center }, 4);
+        var track = new Panel { CustomMinimumSize = new Vector2(0, 10), MouseFilter = Control.MouseFilterEnum.Ignore };
+        track.AddThemeStyleboxOverride("panel", Style.Box(new Color("0b1220"), Style.Slate700, radius: 2));
+        track.AddChild(_charged = new ColorRect { Color = ItemCardView.Green, MouseFilter = Control.MouseFilterEnum.Ignore });
+        _charged.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        (_charged.OffsetLeft, _charged.OffsetTop, _charged.OffsetRight, _charged.OffsetBottom) = (1, 1, 0, -1);
+        right.AddChild(track);
+        right.AddChild(_station = new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Slate400) });
+        bay.AddChild(right);
+        column.AddChild(bay);
+        return Style.Panel(ItemCardView.Green with { A = 0.35f }, column);
     }
 
     /// <summary>The square between a fire's slots: orange while it burns.</summary>
@@ -507,12 +553,27 @@ public partial class InventoryPanel : CanvasLayer
         _held.Visible = held != null;
         if (held is { } h)
         {
-            var item = reading.At(h.Place)!.Item;
-            _heldIcon.Texture = ItemIcons.Icon(item);
+            var stack = reading.At(h.Place)!;
+            var item = stack.Item;
+            _heldIcon.Texture = ItemIcons.Icon(Charges.Picture(item, stack.Charge));
             _heldMark.Visible = reading.Unknown(item);
             _heldCount.Text = h.Count > 1 ? h.Count.ToString() : "";
         }
         ShowMachine(reading);
+    }
+
+    /// <summary>The open charging station's bar, what it does in words, and its bolt lit with what it draws while it charges.</summary>
+    private void ShowCharger(Stack? held, bool charging)
+    {
+        if (_charged == null || _station == null || _bolt == null || _makes == null) return;
+        float share = held == null ? 0 : Charges.Share(held);
+        _charged.AnchorRight = share;
+        _charged.OffsetRight = share >= 1 ? -1 : 0;
+        _charged.Visible = share > 0;
+        _station.Text = T(Charges.StationState(held, charging));
+        _bolt.Modulate = charging ? Colors.White : Dark;
+        _makes.Text = (charging ? MachineSpecs.Get("charger").Draws ?? 0 : 0).ToString();
+        _makes.Modulate = charging ? Colors.White : Dark;
     }
 
     /// <summary>
@@ -522,6 +583,7 @@ public partial class InventoryPanel : CanvasLayer
     private void ShowMachine(Reading reading)
     {
         if (reading.Lessons != null) _analyzer?.Show(reading.Lessons);
+        if (reading.Kind == "charger" && Crate is int station) ShowCharger(reading.At(new Place(0, station)), Charger?.Invoke(station) == true);
         if (_problem == null || reading.Kind is not ("furnace" or "burnerGenerator")) return;
         var at = Crate is int id ? Furnace?.Invoke(id) : null;
         bool burning = at?.Burning == true;

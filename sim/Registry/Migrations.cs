@@ -112,6 +112,9 @@ public static class Migrations
             }
             return save;
         },
+        // 11 → 12: a stack may hold charge (0053), written only when it holds some: no save before held any, so
+        // nothing changes but the format, which keeps an older build from loading a battery and losing its charge.
+        save => save,
     ];
 
     /// <summary>

@@ -40,6 +40,17 @@ public static class ItemsTesting
         return w;
     }
 
+    /// <summary>Puts <paramref name="stack"/> in slot <paramref name="slot"/> of <paramref name="peer"/>'s inventory, or of machine <paramref name="crate"/>: a battery holding some charge.</summary>
+    public static Scenario Put(this Scenario w, int slot, Stack stack, int peer = 0, int? crate = null)
+    {
+        var state = StateOf(w);
+        var slots = (crate is int id ? w.M.Items.Crate(id) : Stacks.InventoryOf(state, peer)).ToArray();
+        slots[slot] = stack;
+        if (crate is int c) Stacks.SetCrate(state, c, slots);
+        else Stacks.SetInventory(state, peer, slots);
+        return w;
+    }
+
     /// <summary>The peers with an inventory kept, and the machines with an entry, in the order the slice keeps them.</summary>
     public static (int[] Inventories, int[] Crates) Stored(this Scenario w)
     {

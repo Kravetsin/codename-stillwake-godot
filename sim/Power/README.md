@@ -5,10 +5,11 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
 `packages/sim/src/modules/power`; its rules hold here unchanged.
 
 - **Depends on:** `grid` (machines and what is built, to find nodes), `rooms` (whether a panel stands
-  in space), `items` (what a cable costs: `IItemsQueries`, `IItemsOps`).
+  in space), `items` (what a cable costs, what a charging station holds: `IItemsQueries`, `IItemsOps`).
 - **State** (`PowerState`, members internal): `Cables` — every cable as the cells of its two nodes,
   the lower first, and whether it was paid for, ordered by its ends; `Resting` — the machines told to
-  rest, by id, sorted: they draw and make nothing. Saved. Derived: `Networks` — what the cables join, in id order, each with its
+  rest, by id, sorted: they draw and make nothing. Saved; a battery's charge is the item's, saved by
+  `items`. Derived: `Networks` — what the cables join, in id order, each with its
   nodes, supply, demand and satisfaction; `Satisfaction` — each cabled user's, by machine id, only
   looked up. Both found again every tick, in the derivation phase, from the cables: the machines on
   them are those at their ends (`MachineAt`), so a tick costs what is cabled, not the ship's machines.
@@ -32,10 +33,18 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   only under the stars: every cell of it in space with no back wall behind it (a solar panel in a
   room, or before a back wall, is in the shade; 0043); its demand, what the machines on it that draw power draw, one working on
   what is put in it (an analyzer, with `Slots`) only while its first slot holds something, and none
-  told to rest by the module it works for (`Rest`); a machine taken apart rests no more. Its
+  told to rest by the module it works for (`Rest`), and a charging station only while what it holds
+  is short of its capacity; a machine taken apart rests no more. Its
   satisfaction is `floor(1000 × supply / demand)`, at most 1000, and 1000 with no demand: every user
   on it works at that share, slowed alike. A resting user is still on its network and gets its share.
   A powered machine with no cable is on no network: it makes nothing and gets nothing.
+- **A charging station** (a machine with `Charges` in `Content.Machines`, 0053) puts what it draws into
+  what its slot holds: each tick, in the simulation phase after the networks are found, in machine id
+  order, its `Draws` in power-ticks × its satisfaction / 1000, stored in thousandths
+  (`Content.Charge.Scale`), rounded down, through `IItemsOps.Charge`, never past full. The charger draws
+  3 and fills a battery of 1800 in 600 ticks at full power, 1200 at half. Empty or full it
+  draws nothing, so it takes nothing from the network. Power owns this rather than items or a module of
+  its own: it already knows each machine's satisfaction and depends on items.
 - A map lays its cables from `Layout.Cables`, each end resolved to its node; a cable that ends on no
   node does not load (`FormatException`). They count as paid. The wreck's come from
   `Content.Wreck.Cables` through `Registry.Wreck`.
@@ -46,7 +55,9 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   ends on, or null; `NetworkOf(node)`; `Cabled(node)` — whether a cable ends there, so `building`
   refuses to take a machine apart; `Satisfaction(machineId)` — in thousandths, 0 off every network;
   `LayProblem(peer, a, b)` — why that peer's `Lay` would be refused, for the cable ghost;
-  `MoveProblem(from, to, cable?)` — why that `Move` would be refused, for a dragged end.
+  `MoveProblem(from, to, cable?)` — why that `Move` would be refused, for a dragged end;
+  `Charges(machineId)` — whether that charging station fills what it holds this tick (short of full, on a
+  network giving it power): its light and its panel's bolt.
 - **Operations** (`IPowerOps`): `Rest(machineId, resting)` — the machine draws or makes nothing from
   the next derivation on, or works again: `research` rests an analyzer with nothing to learn, from its
   simulation system, so it shows from the next tick; `furnace` a burner generator whose fire is out,

@@ -73,6 +73,7 @@ public partial class Main : Node2D, ITogether
     private LightView? _light;
     private FurnaceView? _furnace;
     private AnalyzerScreens? _screens;
+    private Features.Power.ChargerLights? _chargers;
     private ShipCamera _camera = null!;
     private Stars _stars = null!;
     private string[] _args = [];
@@ -137,7 +138,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--world") || Has("--fly")) _layout = Registry.Wreck;
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
-        if (Has("--testbed") || Has("--jetpack")) _layout = Testbed.Map;
+        if (Has("--testbed") || Has("--jetpack") || Has("--charge")) _layout = Testbed.Map;
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) _layout = WreckDemo.Map;
         if (Has("--grapple")) _layout = WreckDemo.Hall;
         // The dev worlds are looked at, not walked: the camera moves by hand there.
@@ -149,10 +150,15 @@ public partial class Main : Node2D, ITogether
             if (_args.FirstOrDefault(a => a.StartsWith("--edge=")) is { } edge)
                 _hero.Start = m => m.Grid.Height / 2 * m.Grid.Width + Math.Max(0, m.Grid.Zone.Left - Content.Field.Margin - int.Parse(edge[7..]));
             else if (Has("--fly")) _hero.Start = FarDemo.StartOf;
+            else if (Has("--charge")) _hero.Start = ChargeDemo.StartOf;
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))));
             // Its own layer, above the world: read from whatever registry the session runs now.
             AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None)));
+            // --electric=fireAxe: that item counts as electric, so the energy bar shows before any tool is (0053).
+            var electric = _args.FirstOrDefault(a => a.StartsWith("--electric="))?[11..];
+            Func<string, bool>? isElectric = electric == null ? null : item => item == electric || Content.Items.Get(item).Draw != null;
+            AddChild(new EnergyBar(() => _session is Session s ? Charges.EnergyOf(_hands.Ui.Wielded.Get(), _m.Items.BeltCharge(s.Client.Id), isElectric) : null));
             AddChild(new Frost(() => _session != null && _hero is { Placed: true } h ? Report.Cold(_m.Crew, h.Current.BodyCell(_m.Grid.Width)) : 0));
             _camera.DevControls = false;
         }
@@ -190,6 +196,7 @@ public partial class Main : Node2D, ITogether
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
+        if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
         if (Has("--fly")) AddChild(new FarDemo(_debris, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null, () => _fabricator));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
@@ -224,7 +231,7 @@ public partial class Main : Node2D, ITogether
         var layout = Has("--perf") ? PerfLayout() : _layout;
         var world = Has("--gallery") ? DevWorlds.Gallery(modules)
             : Has("--furnace") ? FurnaceDemo.Create(modules)
-            : Has("--testbed") || Has("--jetpack") ? Testbed.Create(modules)
+            : Has("--testbed") || Has("--jetpack") || Has("--charge") ? Testbed.Create(modules)
             : World.Create(1, layout, modules);
         if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
@@ -232,6 +239,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--grapple")) world = WreckDemo.SeedGrapple(world, Modules);
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
         if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);
+        if (Has("--charge")) world = ChargeDemo.Seed(world, Modules);
         if (Has("--fly")) world = FarDemo.Seed(world, _m, Modules, int.Parse(_args.FirstOrDefault(a => a.StartsWith("--far="))?[6..] ?? "0"));
         PlayDev(world, Has("--gallery") ? null : layout);
     }
@@ -672,9 +680,11 @@ public partial class Main : Node2D, ITogether
         _light?.QueueFree();
         _furnace?.QueueFree();
         _screens?.QueueFree();
+        _chargers?.QueueFree();
         _pods?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
         AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
+        AddChild(_chargers = new Features.Power.ChargerLights(_m.Grid, _m.Items, _m.Power));
         AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
         var power = _m.Power;
         // The fires before the light: each frame a fire picks its picture, then its light follows it.
@@ -754,6 +764,7 @@ public partial class Main : Node2D, ITogether
         SyncGrid(client);
         _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
+        if (_items != null) _items.Panel.Charger = _m.Power.Charges;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");

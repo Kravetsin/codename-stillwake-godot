@@ -74,17 +74,24 @@ internal static class Stacks
     private static Stack?[] Copy(IReadOnlyList<Stack?> slots) => [.. slots];
 
     /// <summary>
-    /// Adds <paramref name="count"/> of <paramref name="item"/> to the first <paramref name="usable"/> of
-    /// <paramref name="slots"/> in place: onto its stacks in slot order, then into empty slots. What did not fit.
+    /// Whether two stacks are of one item and hold alike of their own (<see cref="Stack.Charge"/>): only those
+    /// merge, onto a slot or on the floor; a move of one onto the other otherwise swaps them.
     /// </summary>
-    private static int Fill(Stack?[] slots, string item, int count, int usable)
+    public static bool Alike(Stack a, Stack b) => a.Item == b.Item && a.Charge == b.Charge;
+
+    /// <summary>
+    /// Adds <paramref name="count"/> of <paramref name="like"/>, its own count aside, to the first
+    /// <paramref name="usable"/> of <paramref name="slots"/> in place: onto the stacks alike in slot order, then
+    /// into empty slots, each a copy of it, so what its item holds of its own goes with it. What did not fit.
+    /// </summary>
+    private static int Fill(Stack?[] slots, Stack like, int count, int usable)
     {
-        int limit = Content.Items.Get(item).Stack;
+        int limit = Content.Items.Get(like.Item).Stack;
         int left = count, end = Math.Min(usable, slots.Length);
         for (int i = 0; i < end && left > 0; i++)
         {
             var s = slots[i];
-            if (s == null || s.Item != item || s.Count >= limit) continue;
+            if (s == null || !Alike(s, like) || s.Count >= limit) continue;
             int n = Math.Min(left, limit - s.Count);
             slots[i] = s with { Count = s.Count + n };
             left -= n;
@@ -93,7 +100,7 @@ internal static class Stacks
         {
             if (slots[i] != null) continue;
             int n = Math.Min(left, limit);
-            slots[i] = new Stack(item, n);
+            slots[i] = like with { Count = n };
             left -= n;
         }
         return left;
@@ -109,7 +116,7 @@ internal static class Stacks
     {
         var into = Copy(slots);
         foreach (var (item, amount) in Entries(cost))
-            if (Fill(into, item, amount, usable ?? into.Length) > 0) return null;
+            if (Fill(into, new Stack(item, amount), amount, usable ?? into.Length) > 0) return null;
         return into;
     }
 
@@ -124,9 +131,20 @@ internal static class Stacks
         var left = new List<(string, int)>();
         foreach (var (item, amount) in Entries(cost))
         {
-            int over = Fill(into, item, amount, usable ?? into.Length);
+            int over = Fill(into, new Stack(item, amount), amount, usable ?? into.Length);
             if (over > 0) left.Add((item, over));
         }
+        return (into, left);
+    }
+
+    /// <summary>
+    /// <paramref name="slots"/> with as much of <paramref name="stack"/> added as fits, as <see cref="Placed"/>
+    /// adds a cost but each copy keeping what its item holds of its own, and how many did not fit: a pick-up.
+    /// </summary>
+    public static (Stack?[] Slots, int Left) PlacedSome(IReadOnlyList<Stack?> slots, Stack stack, int? usable = null)
+    {
+        var into = Copy(slots);
+        int left = Fill(into, stack, stack.Count, usable ?? into.Length);
         return (into, left);
     }
 
@@ -189,7 +207,7 @@ internal static class Stacks
         int kept = s.Count;
         if (dst.Slot is not int slot)
         {
-            int left = Fill(to, s.Item, n, usable ?? to.Length);
+            int left = Fill(to, s, n, usable ?? to.Length);
             if (left == n) return "items.full";
             kept -= n - left;
         }
@@ -201,7 +219,7 @@ internal static class Stacks
                 to[slot] = s with { Count = n };
                 kept -= n;
             }
-            else if (d.Item == s.Item)
+            else if (Alike(d, s))
             {
                 int k = Math.Min(n, Content.Items.Get(d.Item).Stack - d.Count);
                 if (k == 0) return "items.full";
@@ -229,6 +247,19 @@ internal static class Stacks
         for (int i = 0; i < Inventory.Equipment.Count; i++)
             if (inventory[Inventory.Slots + i] is { } s && Content.Items.Get(s.Item).Equip != Inventory.Equipment[i])
                 return "items.notEquipment";
+        return null;
+    }
+
+    /// <summary>
+    /// <c>items.notBattery</c> when a slot of a machine of <paramref name="spec"/>, its slots
+    /// <paramref name="slots"/>, holds what it does not take: a charging station takes only items with a
+    /// <c>Capacity</c>. Null when each holds what it may.
+    /// </summary>
+    public static string? Unfit(MachineSpec spec, IReadOnlyList<Stack?> slots)
+    {
+        if (!spec.Charges) return null;
+        foreach (var s in slots)
+            if (s != null && Content.Items.Get(s.Item).Capacity == null) return "items.notBattery";
         return null;
     }
 }
