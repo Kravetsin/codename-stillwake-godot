@@ -203,7 +203,7 @@ public class MigrationsTests
             // The wreck's 192×96 grid, centred in the world's 2048×1024.
             Assert.Equal((928, 464), AssertMovedIntoTheWorld(before, after));
             var m = new Registry();
-            World.Load(after.ToJsonString(), m.All);
+            World.Load(Migrations.Upgrade(after.ToJsonString()), m.All);
             Assert.Equal(RoomsOf(before).Select(r => ((r.Id / 192 + 464) * 2048 + r.Id % 192 + 928, r.Volume)), RoomsOf(m));
             Assert.Equal(before["slices"]!["atmosphere"]!["aired"]!.AsArray().Count, m.Atmosphere.AiredCells.Count);
         }
@@ -238,7 +238,7 @@ public class MigrationsTests
             var after = UpgradedTo(before.ToJsonString(), 10);
             var (ox, oy) = AssertMovedIntoTheWorld(before, after);
             var loaded = new Registry();
-            World.Load(after.ToJsonString(), loaded.All);
+            World.Load(Migrations.Upgrade(after.ToJsonString()), loaded.All);
             Assert.Equal(RoomsOf(before).Select(r => ((r.Id / layout.Width + oy) * Content.World.Width + r.Id % layout.Width + ox, r.Volume)), RoomsOf(loaded));
             Assert.Equal(m.Atmosphere.AiredCells.Count, loaded.Atmosphere.AiredCells.Count);
         });

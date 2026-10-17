@@ -137,6 +137,55 @@ public class BudgetTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// The wreck's big world with 600 pieces of the far field out round four heroes far apart (0052), under
+    /// its cap so its beat runs every tick: every tick drifts them all and tests each against every hero's
+    /// boxes, and counts each hero's share, so the tick grows with pieces times heroes.
+    /// </summary>
+    [Fact]
+    public void KeepsATickWithSixHundredPiecesRoundFourHeroesUnderBudget()
+    {
+        const int Out = 600;
+        var around = (Content.AroundHeroes)Content.Debris.Far.Anchor;
+        Assert.True(Out < Content.Debris.Far.Max);
+        (int X, int Y)[] heroes = [(500, 250), (1550, 250), (500, 800), (1550, 800)];
+        Scenario HeroesOut()
+        {
+            var w = new Scenario(Registry.Wreck);
+            for (int i = 0; i < heroes.Length; i++) w.Do(new Sim.Crew.Enter(heroes[i].Y * w.M.Grid.Width + heroes[i].X) { From = i });
+            return w.Run();
+        }
+        var bare = new Scenario(Registry.Wreck).Run();
+        var w = HeroesOut();
+        var debris = (Sim.Debris.DebrisState)w.M.Debris.Slice;
+        var rng = new Rng(new RngState { S = 51 });
+        for (int i = 0; i < Out; i++)
+        {
+            var (hx, hy) = heroes[i % heroes.Length];
+            int x = (hx - around.Keep.X + (int)rng.Below((uint)(2 * around.Keep.X + 1))) * 1000 + 500, y = (hy - around.Keep.Y + (int)rng.Below((uint)(2 * around.Keep.Y + 1))) * 1000 + 500;
+            debris.Pieces.Add(new Sim.Debris.Piece
+            {
+                Id = debris.NextId++,
+                Zone = Content.Debris.Far.Id,
+                Item = "scrapChunk",
+                X = x,
+                Y = y,
+                Speed = 30 + (int)rng.Below(26),
+                Start = x,
+                End = 0,
+                SeenAt = debris.Clock,
+            });
+        }
+        Time(bare.World, 50, _ => []);
+        Time(w.World, 50, _ => []);
+        var without = Time(bare.World, 300, _ => []);
+        var with = Time(w.World, 300, _ => []);
+        output.WriteLine($"the wreck's world, no hero out: {without.Mean:F3} ms mean, {without.Max:F3} ms max");
+        output.WriteLine($"with {Out} pieces round them ({w.M.Debris.Pieces.Count} out after): {with.Mean:F3} ms mean, {with.Max:F3} ms max");
+        Assert.True(w.M.Debris.Pieces.Count >= Out, "the pieces were let go");
+        Assert.True(with.Mean < 10, "a tick is far over its budget");
+    }
+
+    /// <summary>
     /// A thousand furnaces and a thousand analyzers at work, in aired rooms of their own: each finds its
     /// machine, slots and records at once, so the tick grows with the machines, not with their square.
     /// </summary>

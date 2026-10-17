@@ -230,6 +230,41 @@ public class ContentTests
     }
 
     [Fact]
+    public void DebrisZonesSpawnOnWholeBeatsUnderTheirCapsTiersInOrderOfDistanceTheFarFieldsBoxesNested()
+    {
+        var zones = DebrisSpec.Zones;
+        Assert.Equal(zones.Count, zones.Select(z => z.Id).Distinct().Count());
+        // The stream first: a world with no hero out draws as it did before zones.
+        Assert.Same(DebrisSpec.Ship, zones[0]);
+        Assert.Contains(DebrisSpec.Far, zones);
+        foreach (var zone in zones)
+        {
+            Assert.True(zone.Every > 0 && zone.Max > 0 && zone.Jitter >= 0 && zone.Jitter < zone.Every, zone.Id);
+            Assert.True(zone.DriftMin > 0 && zone.DriftMin <= zone.DriftMax && zone.DriftMax < 1000, zone.Id);
+            Assert.NotEmpty(zone.Tiers);
+            Assert.Equal(0, zone.Tiers[0].From);
+            for (int i = 1; i < zone.Tiers.Count; i++) Assert.True(zone.Tiers[i].From > zone.Tiers[i - 1].From, zone.Id);
+            foreach (var tier in zone.Tiers)
+            {
+                Assert.Equal(tier.Kinds.Count, tier.Kinds.Select(k => k.Item).Distinct().Count());
+                foreach (var (item, weight) in tier.Kinds)
+                {
+                    Assert.True(weight > 0, $"{zone.Id}: {item}");
+                    Assert.True(Loot.Of(item) != null || Content.Items.Get(item).Yields != null, $"{zone.Id}: {item}");
+                }
+            }
+        }
+        var around = (AroundHeroes)DebrisSpec.Far.Anchor;
+        bool Inside(HalfBox a, HalfBox b) => a.X < b.X && a.Y < b.Y;
+        // The ring outside what the farthest zoom shows, inside the keep box, inside the hard box.
+        Assert.True(Inside(around.View, around.RingFrom) && around.RingFrom.X <= around.RingTo.X && around.RingFrom.Y <= around.RingTo.Y);
+        Assert.True(Inside(around.RingTo, around.Keep) && Inside(around.Keep, around.Hard));
+        Assert.True(around.PerHero > 0 && around.Linger > 0);
+        // Room for four heroes' shares apart, the co-op the game is made for, before the cap holds any back.
+        Assert.True(DebrisSpec.Far.Max >= 4 * around.PerHero);
+    }
+
+    [Fact]
     public void SalvageOpensContainersIntoWholeCountsOfRealItemsAOneInRollAboveOne()
     {
         foreach (var (container, loot) in Loot.All)

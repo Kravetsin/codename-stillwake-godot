@@ -134,7 +134,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon") || Has("--grapple"))
             AddChild(new WreckDemo(_debris, _hands.Ui, all: Has("--wrecks"), harpoon: Has("--harpoon"), grapple: Has("--grapple")));
         AddChild(_camera = new ShipCamera());
-        if (Has("--world")) _layout = Registry.Wreck;
+        if (Has("--world") || Has("--fly")) _layout = Registry.Wreck;
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         if (Has("--testbed") || Has("--jetpack")) _layout = Testbed.Map;
@@ -143,11 +143,12 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
+            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
             if (_args.FirstOrDefault(a => a.StartsWith("--edge=")) is { } edge)
                 _hero.Start = m => m.Grid.Height / 2 * m.Grid.Width + Math.Max(0, m.Grid.Zone.Left - Content.Field.Margin - int.Parse(edge[7..]));
+            else if (Has("--fly")) _hero.Start = FarDemo.StartOf;
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))));
             // Its own layer, above the world: read from whatever registry the session runs now.
@@ -189,6 +190,7 @@ public partial class Main : Node2D, ITogether
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
+        if (Has("--fly")) AddChild(new FarDemo(_debris, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null, () => _fabricator));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
@@ -230,6 +232,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--grapple")) world = WreckDemo.SeedGrapple(world, Modules);
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
         if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);
+        if (Has("--fly")) world = FarDemo.Seed(world, _m, Modules, int.Parse(_args.FirstOrDefault(a => a.StartsWith("--far="))?[6..] ?? "0"));
         PlayDev(world, Has("--gallery") ? null : layout);
     }
 
@@ -754,7 +757,7 @@ public partial class Main : Node2D, ITogether
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, SpotOf(_hero), session.Progress, delta * 1000);
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
-        _debris.Frame(client, _m.Debris, session.Progress, delta * 1000);
+        _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
         _frameLog?.Mark("debris");
         ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");

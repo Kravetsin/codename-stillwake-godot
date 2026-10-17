@@ -144,6 +144,25 @@ public sealed class HeroAutopilot
     }
 
     /// <summary>
+    /// <c>-- --fly</c> (<c>FarDemo</c>): floating out past the stream with a jetpack worn, it waits while
+    /// the far field spawns round it, then flies right, up and back left through it, waiting between.
+    /// </summary>
+    public static HeroAutopilot Fly()
+    {
+        var thrust = new HeroInput(0, 0, false, Sprint: true);
+        return new HeroAutopilot(
+        [
+            Wait(60 * 25),
+            Hold(thrust with { X = 1 }, 60 * 4),
+            Wait(60 * 8),
+            Hold(thrust with { X = 1, Y = -1 }, 60 * 3),
+            Wait(60 * 8),
+            Hold(thrust with { X = -1 }, 60 * 6),
+            Wait(60 * 30),
+        ]);
+    }
+
+    /// <summary>
     /// <c>-- --aside</c>: a few steps left of the spawn, then still, so a window recording another peer's
     /// hero at the spawn does not draw its own over it.
     /// </summary>

@@ -125,6 +125,7 @@ public partial class WreckDemo : CanvasLayer
             pieces.Add(new JsonObject
             {
                 ["id"] = id,
+                ["zone"] = Spec.Debris.Ship.Id,
                 ["item"] = item,
                 ["x"] = (int)((sx + right) * 1000),
                 ["y"] = (sy + below) * 1000 + 500,

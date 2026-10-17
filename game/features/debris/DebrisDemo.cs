@@ -53,6 +53,7 @@ public partial class DebrisDemo : CanvasLayer
             pieces.Add(new JsonObject
             {
                 ["id"] = i + 1,
+                ["zone"] = Stillwake.Content.Debris.Ship.Id,
                 ["item"] = item,
                 ["x"] = (int)(x * 1000),
                 ["y"] = row * 1000 + 500,

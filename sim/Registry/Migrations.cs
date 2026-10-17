@@ -94,6 +94,24 @@ public static class Migrations
         },
         // 9 → 10: the world grows to Content.World's size, a build zone in its middle (0048).
         IntoWorld,
+        // 10 → 11: debris spawns by zones (0052): every piece out is the stream's, never seen by a hero yet,
+        // and the stream's beat is its own; the far field's is given on the first tick. Like every step, it
+        // leaves what is already of the new shape as it is: tests relabel a new save as an old one.
+        save =>
+        {
+            var debris = save["slices"]!["debris"]!.AsObject();
+            foreach (var piece in debris["pieces"]!.AsArray())
+            {
+                piece!["zone"] ??= Content.Debris.Ship.Id;
+                piece["seenAt"] ??= 0;
+            }
+            if (debris["nextSpawn"] is { } next)
+            {
+                debris.Remove("nextSpawn");
+                debris["beats"] = new JsonArray(new JsonObject { ["zone"] = Content.Debris.Ship.Id, ["next"] = (int)next });
+            }
+            return save;
+        },
     ];
 
     /// <summary>
