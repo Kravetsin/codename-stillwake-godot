@@ -120,7 +120,8 @@ public class BudgetTests(ITestOutputHelper output)
         Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(wall));
         output.WriteLine($"{width}×{height}, the reference ship {margin} cells in: rooms {w.M.Rooms.All.Count}");
         output.WriteLine($"tick breaching and mending a hull wall: {breaching.Mean:F3} ms mean, {breaching.Max:F3} ms max");
-        Assert.True(breaching.Mean < 15, "a breach costs the world, not the ship");
+        // Loose for CI's shared runners (17 ms seen there, 3 ms locally); the whole-world flood took 105 ms locally.
+        Assert.True(breaching.Mean < 40, "a breach costs the world, not the ship");
     }
 
     /// <summary>

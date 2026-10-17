@@ -79,6 +79,7 @@ public partial class Main : Node2D, ITogether
     private bool _cheat;
     private Action _poll = () => { };
     private readonly List<int> _doors = [];
+    private Command? _toggled;
     private int _heroes, _start;
     private double _worstSyncMs;
     private string? _gridKey;
@@ -731,6 +732,9 @@ public partial class Main : Node2D, ITogether
         if (Has("--auto")) Auto(client, before);
         if (Has("--doors") && client.World.Tick != before)
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
+        // --toggle: the first doorway toggled every tick, so one is always in flight, as at a busy airlock.
+        if (Has("--toggle") && client.World.Tick != before && (_toggled ??= Autopilot.At(20, _m.Grid).FirstOrDefault()) is { } toggle)
+            client.Send(toggle);
         ShowWorld();
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();

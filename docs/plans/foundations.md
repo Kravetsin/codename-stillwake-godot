@@ -128,6 +128,31 @@ screen keeps what scrolls into view as it would have been.
 - Slice (b): the position report cadence, the oxygen drain past the zone, the vignette.
 - Slice (c): the build-mode zone frame.
 
+**Slice 0 — the client costs what is built ✅.** Nothing of the client walks the whole grid on a
+regular path any more. The grid view and the light look again only when the grid's `Version` moved,
+and then compare their copies only within what is built now and was at their last look
+(`game/shared/BuiltRows.cs`); the first drawing draws only cells with something in them. `AfterToggles`
+answers just the toggled cells, so a toggle in flight no longer copies two layers (16 MB on 2048×1024)
+a tick. Starlight is worked out over `Built` and 4 cells round it and the occupancy texture covers
+`Built`, both placed by their corner; past them every cell is open, which is what the edge shows. The
+pipes overlay looks for valves within `Built`. `BuiltBoundsTests` holds the bounded starlight and
+grid compare to the whole-grid ones over random ships and edits; movie frames of the gallery and four
+perf views (a toggled door, the ship's edge, whole worlds) are byte for byte the same, and the wreck's
+differ in one pixel by one step (the starlight texture's float placement, `features/light`). The perf
+world, debug build, whole world on screen, 20 s of the frame log (avg / max ms; frames over 16.7 ms;
+section max ms), and `--toggle` (new: the first doorway toggled every tick, one always in flight):
+
+| World, built | Load, first sync | Frames | grid / light max | `--toggle`: frame avg, over 16.7 ms; light / grid avg |
+| --- | --- | --- | --- | --- |
+| 2048×1024, 192×96 | 2.2 s, 146 → 2.2 s, 17 ms | 0.42 / 18.4, 1 → 0.39 / 15.8, 0 | 2.3 / 1.2 → 0.03 / 0.03 | 150 ms, every frame; 129 / 18.6 → 0.41 ms, 1 of 46,656; 0.014 / 0.004 |
+| 2048×1024, 256×128 | 2.3 s, 142 → 2.1 s, 27 ms | 0.47 / 18.6, 1 → 0.44 / 15.5, 0 | 3.6 / 1.4 → 0.07 / 0.04 | 150 ms, every frame; 129 / 18.9 → 0.48 ms, 1 of 40,345; 0.026 / 0.005 |
+| 1024×512, all of it | 4.0 s, ~340 → 4.1 s, ~360 ms | 20.9 / 45, all → 20.5 / 44, all | 0.9 / 0.7 → 0.04 / 0.01 | 69 ms → 68 ms; 34 / 5.1 → 36 / 1.0 |
+
+The fully built world is drawn whole at zoom 0.1 and bound by rendering (18 ms of render CPU), and its
+`Built` is the world, so only the grid's toggle cost moved; its starlight is still swept whole on every
+change (35 ms). The single 15–19 ms frame of every run, before and after alike, is spent in the
+debris and sim sections, not in what this slice touched.
+
 ## Not in this plan
 
 - **The welcome and resync in pieces.** Only Steam caps a message (512 KB). ENet and the relay take
