@@ -105,11 +105,12 @@ public static class ItemCardView
 
     /// <summary>
     /// <c>px-2.5 pt-[7px] pb-2 gap-1.5</c>, a pixel more where Godot sets text tighter, centred: a tool's
-    /// effects, what it works on and its hint; anything else's "Goes into" and its chips. Null for nothing to say.
+    /// effects, what it works on and its hint; anything else's "Goes into" and its chips, and its key where it
+    /// has one (a canister breathed, a jetpack worn). Null for nothing to say.
     /// </summary>
     private static Control? Body(ItemCard card)
     {
-        if (!card.Tool && card.Uses.Count == 0) return null;
+        if (!card.Tool && card.Uses.Count == 0 && card.Use == null) return null;
         // Under the tiles their rule is enough; under the head, a rule of its own.
         var box = new StyleBoxFlat
         {
@@ -133,10 +134,13 @@ public static class ItemCardView
             column.AddChild(effects);
             foreach (var effect in card.Effects) column.AddChild(EffectLine(effect));
         }
-        if (!card.Tool) column.AddChild(Text(T("card.goesInto").ToUpperInvariant(), SmallText));
-        var uses = Chips();
-        foreach (var use in card.Uses) uses.AddChild(Chip(use, UseText, Style.Slate800, Style.Slate700));
-        column.AddChild(uses);
+        if (card.Uses.Count > 0)
+        {
+            if (!card.Tool) column.AddChild(Text(T("card.goesInto").ToUpperInvariant(), SmallText));
+            var uses = Chips();
+            foreach (var use in card.Uses) uses.AddChild(Chip(use, UseText, Style.Slate800, Style.Slate700));
+            column.AddChild(uses);
+        }
         if (card.Use is { } how) column.AddChild(Keys([how]));
         return Boxed(box, column);
     }

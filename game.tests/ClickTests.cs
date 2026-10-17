@@ -32,6 +32,17 @@ public class ClickTests
     }
 
     [Fact]
+    public void BreatheACanisterOfTheHerosOwnWithTheRightButtonNothingPicked()
+    {
+        var canisters = new Stack("canister", 3);
+        Assert.Equal(new Clicked(null, Breathes: true), Clicks.On(null, Click(Inv(4), canisters, right: true)));
+        // In a crate, half of them as any stack; with a stack picked, one of it put down there.
+        Assert.Equal(new Clicked(new Picked(Box(1), 2)), Clicks.On(null, Click(Box(1), canisters, right: true)));
+        var picked = new Picked(Inv(0), 2);
+        Assert.Equal(new Clicked(new Picked(Inv(0), 1), MoveOf(Inv(0), Inv(4), 1)), Clicks.On(picked, Click(Inv(4), canisters, right: true)));
+    }
+
+    [Fact]
     public void PutOneOfAPickedStackWithTheRightButtonKeepingTheRestPicked()
     {
         var picked = new Picked(Inv(0), 2);

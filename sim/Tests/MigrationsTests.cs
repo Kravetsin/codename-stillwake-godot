@@ -92,7 +92,7 @@ public class MigrationsTests
     }
 
     [Fact]
-    public void GivesEveryInventoryOfAFormat8SaveItsEquipmentEmpty()
+    public void GivesEveryInventoryOfAFormat8SaveItsEquipmentEmptyAndNoHeroAThrust()
     {
         string old = File.ReadAllText(Fixture(8));
         var before = System.Text.Json.Nodes.JsonNode.Parse(old)!["slices"]!["items"]!["inventories"]!.AsArray();
@@ -110,6 +110,7 @@ public class MigrationsTests
                 Assert.Equal((string?)held["slots"]![i]?["item"], slots[i]?.Item);
             Assert.All(slots.Skip(Content.Inventory.Slots), Assert.Null);
         }
+        Assert.All(m.Crew.Heroes, hero => Assert.Equal((false, 0), (hero.Thrusting, hero.ThrustTicks)));
     }
 
     [Fact]

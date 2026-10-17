@@ -1,5 +1,6 @@
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
 
 namespace Stillwake.Sim.Crew;
 
@@ -18,8 +19,17 @@ public sealed record Leave : Command;
 /// <summary>The sender's hero puts on suit colour <c>Colour</c>, if no other hero wears it.</summary>
 public sealed record PickColour(int Colour) : Command;
 
-/// <summary>The sender's hero starts running or swimming fast (<c>On</c>), or stops: sent when it changes.</summary>
+/// <summary>The sender's hero starts running (<c>On</c>), or stops: sent when it changes.</summary>
 public sealed record Exert(bool On) : Command;
+
+/// <summary>
+/// The sender's hero starts thrusting with its jetpack (<c>On</c>), or stops: sent while its client's
+/// thrust differs from the sim's, as <see cref="Exert"/> is.
+/// </summary>
+public sealed record Thrust(bool On) : Command;
+
+/// <summary>The sender's hero breathes a canister it carries into its suit.</summary>
+public sealed record Refill : Command;
 
 /// <summary>What any module or the client may read of the heroes.</summary>
 public interface ICrewQueries
@@ -44,10 +54,16 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
     public override string Id => "crew";
 
     private readonly IGridQueries _grid;
+    private readonly IItemsQueries _items;
+    private readonly IItemsOps _itemsOps;
 
-    public CrewModule(IAtmosphereOps atmosphere, IGridQueries grid)
+    private static readonly IReadOnlyList<(string Item, int Count)> Canister = [(Content.Crew.Canister, 1)];
+
+    public CrewModule(IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps)
     {
         _grid = grid;
+        _items = items;
+        _itemsOps = itemsOps;
         Handles<Enter>(_ => null, c =>
         {
             var hero = HeroOf(c.From);
@@ -64,6 +80,13 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
             c => State.Heroes.RemoveAll(h => h.Id == c.From));
         Handles<PickColour>(c => ColourProblem(c.From, c.Colour), c => HeroOf(c.From)!.Colour = c.Colour);
         Handles<Exert>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.Exerting = c.On);
+        Handles<Thrust>(ThrustProblem, c => HeroOf(c.From)!.Thrusting = c.On);
+        Handles<Refill>(c => RefillProblem(c.From), c =>
+        {
+            _itemsOps.Take(c.From, Canister);
+            var hero = HeroOf(c.From)!;
+            hero.Suit = Math.Min(Content.Crew.Suit, hero.Suit + Content.Crew.CanisterRefill);
+        });
         // After atmosphere in the simulation phase, so a breath reads this tick's air.
         System(Phase.Simulation, () =>
         {
@@ -73,6 +96,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
             {
                 if (hero.Out > 0)
                 {
+                    // A thrust sent before passing out lands on a hero already out: it thrusts nothing.
+                    hero.Thrusting = false;
                     hero.Out -= 1;
                     if (hero.Out == 0)
                     {
@@ -81,6 +106,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                     }
                     continue;
                 }
+                Thrusts(hero);
                 if (!breath) continue;
                 // The pod's air first, for the breath and the suit alike; then one draw from the room for
                 // what is left of both, the room's refill as before. What the air falls short of the breath the suit pays.
@@ -94,9 +120,47 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                 {
                     hero.Out = Content.Crew.PassOut;
                     hero.Exerting = false;
+                    hero.Thrusting = false;
                 }
             }
         });
+    }
+
+    /// <summary>
+    /// A conscious hero thrusting pays its suit a unit every <c>Jetpack.TicksPerUnit</c> ticks of thrust,
+    /// the ticks short of a unit kept for the next burst; never below nothing. One that no longer wears a
+    /// jetpack stops thrusting.
+    /// </summary>
+    private void Thrusts(Hero hero)
+    {
+        if (!hero.Thrusting) return;
+        if (!_items.Equipped(hero.Id, Content.Jetpack.Item))
+        {
+            hero.Thrusting = false;
+            return;
+        }
+        hero.ThrustTicks += 1;
+        if (hero.ThrustTicks < Content.Jetpack.TicksPerUnit) return;
+        hero.ThrustTicks = 0;
+        hero.Suit = Math.Max(0, hero.Suit - 1);
+    }
+
+    private string? ThrustProblem(Thrust c)
+    {
+        if (HeroOf(c.From) == null) return "crew.noHero";
+        return c.On && !_items.Equipped(c.From, Content.Jetpack.Item) ? "crew.noJetpack" : null;
+    }
+
+    /// <summary>
+    /// Why hero <paramref name="peer"/> could not breathe a canister into its suit now: none, a suit already
+    /// full, or no canister carried (<c>items.notEnough</c>, never in creative mode); null when it could.
+    /// </summary>
+    public string? RefillProblem(int peer)
+    {
+        var hero = HeroOf(peer);
+        if (hero == null) return "crew.noHero";
+        if (hero.Suit >= Content.Crew.Suit) return "crew.suitFull";
+        return _items.ShortOf(peer, Canister);
     }
 
     /// <summary>The map's first lifepod makes heroes at its hatch; a map without one wakes them at its first S.</summary>

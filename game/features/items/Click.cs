@@ -1,4 +1,5 @@
 using Stillwake.Sim.Items;
+using CrewSpec = Stillwake.Content.Crew;
 using ItemSpecs = Stillwake.Content.Items;
 
 namespace Stillwake.Game.Features.Items;
@@ -10,8 +11,8 @@ public readonly record struct Picked(Place Place, int Count);
 /// <param name="FuelSlot">The slot the open crate burns fuel in, when it is a furnace.</param>
 public sealed record SlotClick(Place Place, Stack? Stack, bool Right, bool Shift, int? Crate, int? FuelSlot = null);
 
-/// <summary>What a click leaves picked, and the move it sends, if any.</summary>
-public readonly record struct Clicked(Picked? Picked, Move? Command = null);
+/// <summary>What a click leaves picked, the move it sends, if any, and whether it breathes a canister (0047).</summary>
+public readonly record struct Clicked(Picked? Picked, Move? Command = null, bool Breathes = false);
 
 /// <summary>The rules of clicks on slots (apps/game/src/features/items/click.ts).</summary>
 public static class Clicks
@@ -20,7 +21,8 @@ public static class Clicks
     /// Terraria's way: a left click picks a whole stack and puts it on the next slot clicked, which swaps
     /// it with another item there; a right click picks half, rounded up, or with a stack picked puts one
     /// of it; a shift-click sends a stack to the other side of an open crate, a fuel into a furnace's
-    /// fuel slot. A click on the picked slot puts it back.
+    /// fuel slot. A click on the picked slot puts it back. A right click on a canister of the hero's own,
+    /// nothing picked, breathes it into the suit (0047) rather than picking half.
     /// </summary>
     public static Clicked On(Picked? picked, SlotClick click)
     {
@@ -41,6 +43,7 @@ public static class Clicks
                 int left = p.Count - 1;
                 return new Clicked(left > 0 ? p with { Count = left } : null, new Move(p.Place, place, 1));
             }
+            if (picked == null && place.Crate == null && stack?.Item == CrewSpec.Canister) return new Clicked(null, Breathes: true);
             return new Clicked(stack != null ? new Picked(place, (stack.Count + 1) / 2) : null);
         }
         if (picked is not { } held) return new Clicked(stack != null ? new Picked(place, stack.Count) : null);

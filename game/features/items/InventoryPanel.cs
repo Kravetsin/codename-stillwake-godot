@@ -23,7 +23,7 @@ namespace Stillwake.Game.Features.Items;
 /// hotbar slot, Q throws its stack. A stack's name, and whether it waits for an analyzer, show in the one
 /// tooltip; an item not analysed has a violet "?" in its slot's corner, and in the hand. Right of the grid,
 /// the equipment by the body (0047): a stack carried lights the slots that would wear it and dims the
-/// rest.
+/// rest; a right click on a canister of the hero's own breathes it (<see cref="Ui.Breathe"/>).
 /// </summary>
 public partial class InventoryPanel : CanvasLayer
 {
@@ -466,6 +466,7 @@ public partial class InventoryPanel : CanvasLayer
         int? fuelSlot = _reading.Kind is string kind && MachineSpecs.TryGet(kind, out var spec) ? spec.FuelSlot : null;
         var result = Clicks.On(Held, new SlotClick(place, _reading.At(place), right, shift, Crate, fuelSlot));
         _picked = result.Picked;
+        if (result.Breathes) _ui.Breathe();
         if (result.Command != null) Send(result.Command);
         else Refresh();
     }

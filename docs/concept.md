@@ -54,7 +54,9 @@ A living document: what is decided about the game and what is still open. Techni
   shares, paid when queued, made one at a time into its outputs. Most builds cost parts, so the
   furnace feeds the Fabricator before it feeds the hull. Machines for parts the player builds,
   powered, faster and with longer queues, come later.
-- **Spacewalks:** on a tether from the hull at first; a jetpack later frees the hero from it.
+- **Spacewalks:** on a tether from the hull at first, swimming slowly; an oxygen jetpack worn on the back
+  frees the hero from it, its thrust paid in the suit's air, and canisters breathed refill the suit
+  ([0047](decisions/0047-equipment-the-jetpack-and-the-slower-swim.md)).
 - **Catching:** by hand on the tether, within reach; farther out, a hand harpoon made at the Fabricator
   shoots a rod on a line into a piece, small or a wreck, and a second click reels it in to just before
   the gun, to catch with E or chop with the axe; it fires again 5 s after its shot

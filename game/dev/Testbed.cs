@@ -21,11 +21,12 @@ public static class Testbed
     /// Room one holds the lifepod and the air: a tank with a canister and a generator piped to a vent
     /// in each room; room two the furnace, the crate, the analyzer and the burner generator; then the
     /// airlock, no vent in it. Two panels on the roof, every user cabled to the nearer, but room two's
-    /// right lamp, cabled to the generator, and the airlock's, cabled to that lamp.
+    /// right lamp, cabled to the generator, and the airlock's, cabled to that lamp. Sixty cells of space past
+    /// the airlock, room for a jetpack to fly.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
-            new string(' ', 52),
+            new string(' ', 96),
             "",
             "       PPP         PPP",
             "  ###################################",

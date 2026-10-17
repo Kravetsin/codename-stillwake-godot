@@ -85,6 +85,12 @@ public static class Sound
     public static readonly Cue Drum = new(["res://audio/crew/harpoon-reel-1.ogg"], -10, Loops: true);
     public static readonly Cue Ready = new(Shots("crew/harpoon-ready", 1), -10);
 
+    /// <summary>
+    /// A canister breathed into the suit (0047), heard through it: a short hiss of air, a placeholder cut from
+    /// <see cref="Hiss"/> until a sound is picked.
+    /// </summary>
+    public static readonly Cue Breathe = new(["res://audio/crew/breathe-1.ogg"], -8);
+
     /// <summary>The title's music (0035), on the Music bus, faded in with the title and out on leaving it.</summary>
     public static readonly Cue Title = new(["res://audio/music/title-1.ogg"], -2, Loops: true);
 
@@ -100,7 +106,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, Break, Shot, Drum, Ready];
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, Break, Shot, Drum, Ready, Breathe];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;

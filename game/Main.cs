@@ -42,7 +42,8 @@ namespace Stillwake.Game;
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
-/// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>), <c>--items</c> a room with a crate, a furnace and an
+/// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>), <c>--jetpack</c> it with a
+/// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>),
@@ -130,13 +131,13 @@ public partial class Main : Node2D, ITogether
         AddChild(_camera = new ShipCamera());
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
-        if (Has("--testbed")) _layout = Testbed.Map;
+        if (Has("--testbed") || Has("--jetpack")) _layout = Testbed.Map;
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) _layout = WreckDemo.Map;
         if (Has("--grapple")) _layout = WreckDemo.Hall;
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--aside") ? HeroAutopilot.Aside() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
+            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))));
@@ -177,6 +178,7 @@ public partial class Main : Node2D, ITogether
         // Playing together, how long an action takes to happen: sent, stamped by the host, run here.
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
+        if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
         if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null, () => _fabricator));
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
@@ -201,13 +203,14 @@ public partial class Main : Node2D, ITogether
         var layout = Has("--perf") ? DevWorlds.Perf() : _layout;
         var world = Has("--gallery") ? DevWorlds.Gallery(modules)
             : Has("--furnace") ? FurnaceDemo.Create(modules)
-            : Has("--testbed") ? Testbed.Create(modules)
+            : Has("--testbed") || Has("--jetpack") ? Testbed.Create(modules)
             : World.Create(1, layout, modules);
         if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) world = WreckDemo.Seed(world, Modules, all: Has("--wrecks"), harpoon: Has("--harpoon"));
         if (Has("--grapple")) world = WreckDemo.SeedGrapple(world, Modules);
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
+        if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);
         PlayDev(world, Has("--gallery") ? null : layout);
     }
 

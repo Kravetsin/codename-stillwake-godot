@@ -1,6 +1,7 @@
 using Stillwake.Game.Features.Crew;
 using Xunit;
 using static Stillwake.Game.Features.Crew.Poses;
+using Spec = Stillwake.Content.Hero;
 
 namespace Stillwake.Game.Tests;
 
@@ -199,17 +200,17 @@ public class PoseTests
     [Fact]
     public void LeansIntoASwimAlongTheFloorInSpaceUprightRising()
     {
-        Close(Adrift.Lean, LimbsOf(Pose.Float, Standing with { Vx = 80 }, At(1)).Tilt);
-        Close(0, LimbsOf(Pose.Float, Standing with { Vy = -80 }, At(1)).Tilt);
-        Close(Adrift.Lean + Adrift.Tuck, LimbsOf(Pose.Float, Standing with { Vx = 80, Vy = 80 }, At(1)).Tilt);
+        Close(Adrift.Lean, LimbsOf(Pose.Float, Standing with { Vx = Spec.Swim }, At(1)).Tilt);
+        Close(0, LimbsOf(Pose.Float, Standing with { Vy = -Spec.Swim }, At(1)).Tilt);
+        Close(Adrift.Lean + Adrift.Tuck, LimbsOf(Pose.Float, Standing with { Vx = Spec.Swim, Vy = Spec.Swim }, At(1)).Tilt);
     }
 
     [Fact]
     public void LeansFurtherSwimmingFastTowardTheWayItSwimsWhicheverWayItFaces()
     {
-        Close(Adrift.LeanFast, LimbsOf(Pose.Float, Standing with { Vx = 160 }, At(0)).Tilt);
-        Close(Adrift.Lean, LimbsOf(Pose.Float, Standing with { Vx = -80, Facing = -1 }, At(0)).Tilt);
-        Close(-Adrift.Lean, LimbsOf(Pose.Float, Standing with { Vx = -80 }, At(0)).Tilt);
+        Close(Adrift.LeanFast, LimbsOf(Pose.Float, Standing with { Vx = 2 * Spec.Swim }, At(0)).Tilt);
+        Close(Adrift.Lean, LimbsOf(Pose.Float, Standing with { Vx = -Spec.Swim, Facing = -1 }, At(0)).Tilt);
+        Close(-Adrift.Lean, LimbsOf(Pose.Float, Standing with { Vx = -Spec.Swim }, At(0)).Tilt);
     }
 
     [Fact]

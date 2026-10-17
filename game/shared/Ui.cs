@@ -165,4 +165,12 @@ public sealed class Ui
     public event Action<IReadOnlyList<int>>? Planned;
 
     public void Plan(IReadOnlyList<int> cells) => Planned?.Invoke(cells);
+
+    /// <summary>
+    /// This player asked to breathe a canister into the suit (0047): <c>items</c> says so on a right click on
+    /// one in the inventory; <c>crew</c> sends it, as it does for one in hand, and the hiss is heard.
+    /// </summary>
+    public event Action? Breathed;
+
+    public void Breathe() => Breathed?.Invoke();
 }

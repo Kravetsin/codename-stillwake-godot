@@ -18,7 +18,7 @@ public sealed class Buttons
     public const int Left = 1, Right = 2, Middle = 4;
 
     private List<ButtonEvent> _left = [], _middle = [];
-    private bool _leftDown, _rightDown, _middleDown, _ours, _clicked;
+    private bool _leftDown, _rightDown, _middleDown, _ours, _clicked, _rightClicked;
 
     /// <summary>
     /// One pointer event: <paramref name="pressedOnWorld"/> when it is a press that reached the world
@@ -35,7 +35,9 @@ public sealed class Buttons
             _left.Add(new ButtonEvent(left, at));
             if (left) _clicked = true;
         }
-        _rightDown = (held & Right) != 0;
+        bool right = (held & Right) != 0;
+        if (right && !_rightDown) _rightClicked = true;
+        _rightDown = right;
         bool middle = (held & Middle) != 0;
         if (middle != _middleDown)
         {
@@ -59,6 +61,14 @@ public sealed class Buttons
     {
         bool clicked = _clicked;
         _clicked = false;
+        return clicked;
+    }
+
+    /// <summary>Whether the right button was pressed on the world since the last call: a canister in hand is breathed (0047).</summary>
+    public bool TakeRightClick()
+    {
+        bool clicked = _rightClicked;
+        _rightClicked = false;
         return clicked;
     }
 

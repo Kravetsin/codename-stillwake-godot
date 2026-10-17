@@ -82,7 +82,7 @@ public class ItemCardTests
         Assert.Equal(("Gear", "Part"), (gear.Name, gear.Kind));
         // The crafts first, then the blueprints in content's order: the rotor, then the door and the valve.
         Assert.Equal(["Rotor", "Door", "Valve"], gear.Uses);
-        Assert.Equal(["Rotor", "Coil", "Harpoon", "Generator", "+3"], ItemCards.Of("wire", false).Uses);
+        Assert.Equal(["Rotor", "Coil", "Harpoon", "Oxygen jetpack", "+4"], ItemCards.Of("wire", false).Uses);
         Assert.Equal(("Iron", "Material"), (ItemCards.Of("iron", false).Name, ItemCards.Of("iron", false).Kind));
         Assert.Equal("Salvage", ItemCards.Of("scrapChunk", false).Kind);
     }
@@ -100,10 +100,23 @@ public class ItemCardTests
     }
 
     [Fact]
+    public void SayHowACanisterIsBreathedAndAJetpackWornThoughNeitherIsATool()
+    {
+        var canister = ItemCards.Of("canister", false);
+        Assert.False(canister.Tool);
+        Assert.Equal(new CardKey("RMB", "breathe"), canister.Use);
+        Assert.Equal(["Oxygen jetpack"], canister.Uses);
+        var jetpack = ItemCards.Of("jetpack", false);
+        Assert.False(jetpack.Tool);
+        Assert.Equal("Shift", jetpack.Use?.Key);
+        Assert.Null(ItemCards.Of("scrap", false).Use);
+    }
+
+    [Fact]
     public void SayNothingOfWhatAnItemGoesIntoWhenItGoesIntoNothing()
     {
-        Assert.Empty(ItemCards.Of("canister", false).Uses);
         Assert.Empty(ItemCards.Of("supplyPod", false).Uses);
+        Assert.Empty(ItemCards.Of("jetpack", false).Uses);
     }
 
     [Fact]

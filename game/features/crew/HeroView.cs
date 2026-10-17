@@ -25,7 +25,9 @@ namespace Stillwake.Game.Features.Crew;
 /// <c>Work</c> for every tick released; with the fire axe wielded, clicked or held it swings toward the pointer, hitting the wrecks its blade meets (0039);
 /// with the harpoon the arm aims it at the pointer, a click fires its rod on a line and the next reels in the piece it
 /// stuck in, or pulls the hero to the wall, floor or door it stuck in, to hang there (<see cref="HarpoonShot"/>, 0044); every other hero's line to a piece the sim says it reels is drawn. With an empty hand, what E would work is outlined along its own
-/// pictures (<see cref="AimOutline"/>), and a prompt says what E does.
+/// pictures (<see cref="AimOutline"/>), and a prompt says what E does. With a jetpack worn (0047) the hero ties no
+/// tether, and Shift in space thrusts on the suit's air, the sim told by <c>Thrust</c> and every thrusting hero
+/// blowing a plume; a right click with a canister in hand, or on one in the inventory, breathes it.
 /// </summary>
 public partial class HeroView : Node2D
 {
@@ -123,6 +125,17 @@ public partial class HeroView : Node2D
     private Ship? _ship;
     /// <summary>Whether the player jumped or held a movement key in this frame's steps: a hanging hero lets go.</summary>
     private bool _letsGo;
+    /// <summary>Which way the jetpack thrust in this frame's last step, a unit vector in thousandths; none while it does not (0047).</summary>
+    private Point? _thrust;
+    /// <summary>Each thrusting hero's time toward its next puff of plume, by peer.</summary>
+    private readonly Dictionary<int, double> _plumes = new();
+    /// <summary>A puff of plume this often while a jetpack thrusts, a few at most in one frame.</summary>
+    private const double PlumeEveryMs = 15;
+    private const int PlumeMost = 6;
+    /// <summary>Whether the player asked to breathe a canister, from the inventory, since the last frame.</summary>
+    private bool _breathe;
+    // A canister breathed is heard through the suit.
+    private readonly AudioStreamPlayer _breathes = Cues.Player(S.Breathe, S.Suit);
 
     /// <param name="ui">What the hand holds, the crate open and the piece aimed at, shared with the other features.</param>
     /// <param name="mouse">The pointer and the left button as the world reads them.</param>
@@ -136,6 +149,7 @@ public partial class HeroView : Node2D
             _figure.Beam(cells.Select(c => Pixels(Middle(c))).ToList());
             (_beamAt, _beamLeftMs) = (Middle(cells[0]), Figure.BeamMs);
         };
+        _ui.Breathed += () => _breathe = true;
         _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
@@ -152,7 +166,7 @@ public partial class HeroView : Node2D
         _rod.Offset = -new Vector2((float)RodLook.Eye.X, (float)RodLook.Eye.Y);
         Lit.Set(_rod);
         AddChild(_rod);
-        foreach (var player in new Node[] { _shot, _drum, _ready, _bite }) AddChild(player);
+        foreach (var player in new Node[] { _shot, _drum, _ready, _bite, _breathes }) AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
         _harpoonWorld = new HarpoonWorld(
@@ -216,7 +230,11 @@ public partial class HeroView : Node2D
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
         var shown = Predicted.Grid(client, grid);
         var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell));
-        bool passedOut = (m.Crew.HeroOf(client.Id)?.Out ?? 0) > 0;
+        var known = m.Crew.HeroOf(client.Id);
+        bool passedOut = (known?.Out ?? 0) > 0;
+        // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
+        bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);
+        bool canThrust = !passedOut && jetpack && known is { Suit: > 0 };
         // Waking from passing out, the sim has put the hero at the spawn: so does the client.
         if (!_placed || (_wasOut && !passedOut))
         {
@@ -227,7 +245,9 @@ public partial class HeroView : Node2D
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
         var pointed = Pointer();
         int? face = Poses.FaceOf(pointed, _current);
-        for (int due = _clock.Advance(elapsedMs); due > 0; due--)
+        int steps = _clock.Advance(elapsedMs);
+        if (steps > 0) _thrust = null;
+        for (int due = steps; due > 0; due--)
         {
             // Passed out, the hero takes no orders and only falls; keys pressed meanwhile are spent.
             var taken = _autopilot?.Next(_current) ?? Take();
@@ -238,7 +258,15 @@ public partial class HeroView : Node2D
             // Pulled by the grapple or hanging from it, the line moves the hero, not the keys; pulled, it faces the hook.
             var pull = passedOut ? null : _harpoon.PullTo;
             int? faces = _harpoon.Rod == Rod.Pulling ? (_harpoon.Tip.X < _current.X ? -1 : 1) : swinging ? _swingFace : face;
-            var input = passedOut ? new HeroInput(0, 0, false) : taken with { Face = faces, Swings = swinging || _aimsGun, Pull = pull };
+            // Shift in space with a jetpack thrusts where the keys point, or with none toward the pointer.
+            bool afloat = ship.Space(_current.BodyCell(ship.Width));
+            var thrust = canThrust && afloat && taken.Sprint && pull == null
+                ? Hero.ThrustToward(taken.X, taken.Y, _current.Middle, pointed)
+                : null;
+            if (thrust != null) _thrust = thrust;
+            var input = passedOut
+                ? new HeroInput(0, 0, false, Jetpack: jetpack)
+                : taken with { Face = faces, Swings = swinging || _aimsGun, Pull = pull, Jetpack = jetpack, Thrust = thrust };
             (_previous, _current) = (_current, _current.Step(input, ship));
             _steps++;
         }
@@ -246,6 +274,10 @@ public partial class HeroView : Node2D
         if (Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current) is { } report) client.Send(report);
         bool exerting = !passedOut && Report.Exerting(_current, ship.Space(_current.BodyCell(grid.Width)));
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
+        // Off as Shift is let go, aboard, the jetpack taken off or the suit empty: the sim stops venting it.
+        if (Report.ThrustOf(m.Crew, client.Id, _thrust != null) is { } thrusts) client.Send(thrusts);
+        if (_breathe && !passedOut) Breathe(client, m);
+        _breathe = false;
 
         // Others' heroes in, this one out once its hands are known: through the host, never through the simulation.
         bool holdsPlan = HoldsPlan && !passedOut;
@@ -260,7 +292,7 @@ public partial class HeroView : Node2D
                 var last = _heardChops.GetValueOrDefault(message.From).Last;
                 _heardChops[message.From] = (sent.Seen.Wields == Content.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
             }
-        ShowOthers(ship, m.Crew, m.Debris.Pieces, elapsedMs);
+        ShowOthers(ship, m, elapsedMs);
 
         double between = _clock.Progress;
         double x = _previous.X + (_current.X - _previous.X) * between;
@@ -278,7 +310,10 @@ public partial class HeroView : Node2D
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         _figure.Wear(Suits.Of(m.Crew, client.Id));
+        _figure.Jetpack = jetpack;
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
+        // Its own thrust shows at once (0014); others' as the sim says.
+        Plume(client.Id, _figure, _thrust is { } own ? (own.X, own.Y) : null, inSpace, elapsedMs);
         ShowHarpoon(elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         // Stamped with its step's time, so others place it by when it was there, not when it came.
@@ -323,6 +358,10 @@ public partial class HeroView : Node2D
         if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister)) _act.Play(Floats);
         // Held on a plan it can work, the hero turns its screwdriver at it.
         bool working = !passedOut && _mouse.Buttons.HoldsRight && aim is { InReach: true, Work.Problem: null };
+        // A right click with a canister in hand breathes it (0047), unless it works a plan.
+        bool rightClicked = _mouse.Buttons.TakeRightClick();
+        if (rightClicked && acts && _ui.Wielded.Get() == Content.Crew.Canister && aim is not { InReach: true, Work.Problem: null })
+            Breathe(client, m);
         // The axe: a swing begun toward the pointer plays through and, as it strikes, hits every wreck its
         // blade meets, let go or not; put away, it stops unstruck. A wreck's chop is heard where it takes the hit (DebrisView).
         bool grabbed = grab && uses.Commands.Any(c => c is Sim.Debris.Grab);
@@ -417,8 +456,10 @@ public partial class HeroView : Node2D
     /// hands wielding and working as sent, the axe swung once for each swing sent (<see cref="AxeSwing.Follow"/>);
     /// those gone, hidden.
     /// </summary>
-    private void ShowOthers(Ship ship, ICrewQueries crew, IReadOnlyList<Piece> pieces, double elapsedMs)
+    private void ShowOthers(Ship ship, Registry m, double elapsedMs)
     {
+        var crew = m.Crew;
+        var pieces = m.Debris.Pieces;
         var others = _remote.At(_clockMs);
         foreach (var (id, shown) in _shownOthers)
             if (!others.Any(o => o.Id == id))
@@ -447,12 +488,48 @@ public partial class HeroView : Node2D
             var reeled = ReeledBy(pieces, id);
             // Its rod is out while the sim reels a piece by it; its shots, flights and hooks are not sent.
             shown.Figure.Loaded = reeled == null;
-            shown.Figure.Show(hero, Poses.PoseOf(hero, ship.Space(hero.BodyCell(ship.Width)), out_), out_ ? 0 : seen.Look ?? 0,
+            shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
+            bool afloat = ship.Space(hero.BodyCell(ship.Width));
+            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
+            // Its thrust is not sent: the plume blows against the way it moves, down while it is still.
+            Plume(id, shown.Figure, crew.HeroOf(id)?.Thrusting == true ? (hero.Vx, hero.Vy) : null, afloat, elapsedMs);
             ReelLine(id, shown.Figure.Muzzle, reeled, elapsedMs);
             (shown.Tether, shown.Busy) = (Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs), seen.Busy);
         }
         Others = others.Select(o => o.Seen.Hero).ToList();
+    }
+
+    /// <summary>
+    /// A jetpack's plume (0047): while a hero thrusts toward <paramref name="toward"/>, puffs of grey air from
+    /// its figure's nozzle, the harpoon's puff (<see cref="Effect.Puff"/>), blown the other way, down with no way.
+    /// </summary>
+    private void Plume(int peer, Figure figure, (double X, double Y)? toward, bool inSpace, double elapsedMs)
+    {
+        if (toward is not var (tx, ty) || figure.Nozzle is not { } at)
+        {
+            _plumes.Remove(peer);
+            return;
+        }
+        double carry = _plumes.GetValueOrDefault(peer) + elapsedMs;
+        int puffs = (int)(carry / PlumeEveryMs);
+        _plumes[peer] = carry - puffs * PlumeEveryMs;
+        if (puffs == 0) return;
+        double heading = tx == 0 && ty == 0 ? Math.PI / 2 : Math.Atan2(-ty, -tx);
+        Particles.Shared.Emit(inSpace ? Effect.PuffInSpace : Effect.Puff, at.X, at.Y, Math.Min(puffs, PlumeMost), heading, inSpace);
+    }
+
+    /// <summary>
+    /// Breathes a canister into the suit (0047): sent, the hiss heard, when the sim would take it now and
+    /// none is in flight; a full suit or no canister does nothing.
+    /// </summary>
+    private void Breathe(Client client, Registry m)
+    {
+        foreach (var c in client.InFlight)
+            if (c is Refill) return;
+        if (m.Crew.RefillProblem(client.Id) != null) return;
+        client.Send(new Refill());
+        _breathes.Play();
     }
 
     /// <summary>The first piece the sim says peer <paramref name="peer"/>'s harpoon reels; none while it reels none.</summary>

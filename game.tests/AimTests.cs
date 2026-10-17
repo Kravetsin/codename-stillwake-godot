@@ -176,13 +176,13 @@ public class AimTests
         var h = Run(Hero.At(ShipNow(), HeroTests.Spawn), HeroTests.Left, 120);
         Assert.Equal(46 * Unit + Spec.Hero.Width / 2, h.X);
         Use(h, 45, 22);
-        h = Run(h, HeroTests.Left, 300);
+        h = Run(h, HeroTests.Left, 900);
         // Into room B, torn open to space, and out past its torn edge as far as the tether lets the hero.
         // The tether cuts a move back to its length rounded toward its anchor: within a thousandth of a cell.
         Assert.InRange(h.X, HeroTests.TornEdge - Spec.Hero.Tether, HeroTests.TornEdge - Spec.Hero.Tether + 1);
 
         // Back the other way, the airlock's inner doorway stops the hero, until opened.
-        h = Run(h, HeroTests.Right, 400);
+        h = Run(h, HeroTests.Right, 1200);
         Assert.Equal(54 * Unit - Spec.Hero.Width / 2, h.X);
         Use(h, 54, 22);
         h = Run(h, HeroTests.Right, 60);
@@ -200,7 +200,7 @@ public class AimTests
         if (Aiming.AimAt(m, 0, h, Centre(45, 22))?.Press is { } press) client.Send(press.Command);
         // Sent, not released: the world still has the doorway shut.
         Assert.NotEqual(m.Grid.StructureLayer.ToArray(), Predicted.Grid(client, m.Grid).Structure);
-        for (int i = 0; i < 300; i++) h = h.Step(HeroTests.Left, ShipNow());
+        for (int i = 0; i < 900; i++) h = h.Step(HeroTests.Left, ShipNow());
         // Into room B, torn open to space, and out past its torn edge as far as the tether lets the hero.
         // The tether cuts a move back to its length rounded toward its anchor: within a thousandth of a cell.
         Assert.InRange(h.X, HeroTests.TornEdge - Spec.Hero.Tether, HeroTests.TornEdge - Spec.Hero.Tether + 1);

@@ -3,13 +3,14 @@
 This machine's hero and the others', ported from `apps/game/src/features/crew/` (G-07). Heroes are
 client-authoritative (0002): the controller runs here, outside the sim, against the ship's cells, and
 nothing it does is a command but what E presses, the room it reports entering (`crew`'s `Enter`) and
-the suit colour picked (`PickColour`). Other heroes come through the host beside the simulation.
+the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canister breathed
+(`Refill`). Other heroes come through the host beside the simulation.
 
 ## Files
 
 | File               | Holds                                                                                   | Godot |
 | ------------------ | --------------------------------------------------------------------------------------- | ----- |
-| `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship`, `Point`; one `Step` at 60 a second | no    |
+| `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship`, `Point`; one `Step` at 60 a second; the jetpack's flight (`Flown`, `ThrustToward`, 0047) | no    |
 | `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`); the fist and an item held in it (`FistOf`, `HeldAt`, 0040) | no    |
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`); `Jumped` and `Landed`, when the boots are heard pushing off and coming down | no    |
 | `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039) | no    |
@@ -25,8 +26,8 @@ the suit colour picked (`PickColour`). Other heroes come through the host beside
 | `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`) | yes |
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
 | `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway, a valve's wheel, a plan's own pictures | yes |
-| `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder                             | no    |
-| `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`)          | no    |
+| `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`)                             | no    |
+| `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`); `ExertOf` and `ThrustOf`, what it breathes and vents          | no    |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads          | no    |
 | `SuitGauge.cs`     | the suit bar, red edges when low, the dark when passed out (`SuitGauge.tsx`)              | yes   |
 | `SuitColours.cs`   | the suit colours, a row in the game menu's settings: the one worn ringed, those taken dimmed, the rest a click away (`SuitColours.tsx`) | yes |
@@ -35,7 +36,7 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 `game/Content/Light.cs`), where their TypeScript tests are ported one for one: `hero.test.ts`,
 `pose.test.ts`, `rig.test.ts`, `tether.test.ts`, `report.test.ts`, `danger.test.ts`, `remote.test.ts`,
 `suits.test.ts`, `prompt.test.ts` (`PromptTests`) and `aim.test.ts` (`AimTests`, the harpoon rod's contact
-too); `AxeSwingTests` and `HarpoonTests` have no TypeScript original.
+too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript original.
 
 ## Guarantees
 
@@ -43,7 +44,8 @@ too); `AxeSwingTests` and `HarpoonTests` have no TypeScript original.
   controller stepping every 1000/60 ms through `Stillwake.Net.Clock` whatever the frame rate; the
   hero is drawn between its last two steps.
 - A step never ends inside a wall, a closed door or past the grid's edge, and out in space the body's
-  middle never gets farther than `Hero.Tether` from where the tether is tied (both FsCheck properties).
+  middle never gets farther than `Hero.Tether` from where the tether is tied, with no jetpack worn (both
+  FsCheck properties).
 - The hero walks against doors as this peer shows them (`Shared.Predicted.Grid`, 0014): its own
   toggles in flight already made, so it walks through a door opened on the frame E was pressed.
 - Floats only in drawing: the rig, the poses, the tether's rope, others' heroes between samples.
@@ -104,6 +106,30 @@ too); `AxeSwingTests` and `HarpoonTests` have no TypeScript original.
   ones.
 - The camera is a plain `Camera2D` that `HeroView.Frame` centres on the body's middle; the world's
   camera from G-06 (`ShipCamera.Follow`) takes its place when the two land together.
+
+## The jetpack and the swim (0047)
+
+- In space the hero swims at `Hero.Swim`, 30 thousandths of a cell a step (about 1.8 cells a second), on its
+  tether; Shift there does not swim faster. Aboard, walking and running are as they were, and only running
+  exerts (`Report.Exerting`).
+- **With a jetpack worn** (`IItemsQueries.Equipped`, the sim's inventory, `HeroInput.Jetpack`) the hero ties
+  no tether and keeps its speed in space (`Hero.Flown`): Shift held, awake, with air in the suit, thrusts
+  toward the movement keys or, with none held, toward the pointer (`Hero.ThrustToward`), gaining
+  `Jetpack.Accel` a step up to `Jetpack.Top`; without thrust it slows by `Jetpack.Drag` a step toward what
+  the keys swim. A fall carried out into space is cut to `Jetpack.Top`; walls and the grid's edge stop it as
+  they stop anything, and what they stop it loses. Taken off out there, the hero swims on with no tether.
+- Every frame the client sends `Thrust` while its own thrust (any step of the frame) differs from the sim's
+  (`Report.ThrustOf`), as it does `Exert`: on with the first thrusting step, off on Shift let go, aboard,
+  the jetpack taken off, the suit empty or passed out.
+- **The plume:** puffs of grey air (`Effect.Puff`, `PuffInSpace` out there) every `HeroView.PlumeEveryMs`
+  from the jetpack's nozzle as the figure draws it (`Figure.Nozzle`), against the thrust for this hero, at
+  once (0014); for others while the sim says they thrust (`Hero.Thrusting`), against the way they move, down
+  while still. The figure wears the jetpack over its air pack (`Figure.Jetpack`, `art/hero_jetpack.png`, a
+  placeholder) whenever the sim has one on that hero's back.
+- **A canister breathed:** a right click over the world with a canister in hand (the hand free, awake, no
+  plan worked under the pointer; `Buttons.TakeRightClick`), or `Ui.Breathe` from a right click on one in the
+  inventory, sends `Refill` when the sim would take it now (`CrewModule.RefillProblem`) and none is in
+  flight, and plays the hiss through the suit (`Sound.Breathe`, a placeholder).
 
 ## The crew module
 
