@@ -42,6 +42,8 @@
     <Compile Include="../game/features/crew/Remote.cs" Link="Game/Crew/Remote.cs" />
     <Compile Include="../game/features/crew/Suits.cs" Link="Game/Crew/Suits.cs" />
     <Compile Include="../game/render/Rope.cs" Link="Game/Render/Rope.cs" />
+    <Compile Include="../game/render/Scatter.cs" Link="Game/Render/Scatter.cs" />
+    <Compile Include="../game/Content/Backdrop.cs" Link="Game/Content/Backdrop.cs" />
     <Compile Include="../game/features/items/Click.cs" Link="Game/Items/Click.cs" />
     <Compile Include="../game/features/items/Hotbar.cs" Link="Game/Items/Hotbar.cs" />
     <Compile Include="../game/features/items/Equipment.cs" Link="Game/Items/Equipment.cs" />

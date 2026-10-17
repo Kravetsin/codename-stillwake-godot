@@ -27,7 +27,8 @@ with the fire axe is the hands too, which send `Hit` (0034).
   the last hit removes the wreck on its tick, so its damage never rises in view and no chop plays for it. Every peer sees the
   same, from the world; only the striker hears it. Own is a `Hit` of this peer's seen in flight one frame and gone the next (`OwnHits`), read after the hero sends this frame's hits, so none runs unseen. The stars behind it are
   `render/Stars.cs`: a filtered tile placed once the camera has followed the hero, so they glide by
-  fractions of a pixel a frame as the TypeScript tile did, never holding still and jumping a pixel.
+  fractions of a pixel a frame as the TypeScript tile did, never holding still and jumping a pixel; far
+  wrecks and dust lie between them and the world (`render/README.md`).
 - **Aimed:** the piece the crew sets in `Ui.AimedPiece` — out in space, within reach (with the axe, the
   first wreck its blade would touch, 0039), the hand free —
   is outlined along its own picture as it tumbles, a screen pixel wide whatever the zoom

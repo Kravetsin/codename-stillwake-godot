@@ -74,6 +74,7 @@ public partial class Main : Node2D, ITogether
     private FurnaceView? _furnace;
     private AnalyzerScreens? _screens;
     private ShipCamera _camera = null!;
+    private Stars _stars = null!;
     private string[] _args = [];
     private string _role = "alone";
     private bool _cheat;
@@ -127,7 +128,7 @@ public partial class Main : Node2D, ITogether
         _hands = new Hands();
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
-        AddChild(new Stars());
+        AddChild(_stars = new Stars());
         AddChild(_debris);
         if (Has("--debris")) AddChild(new DebrisDemo(_debris, _hands.Ui));
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon") || Has("--grapple"))
@@ -725,6 +726,7 @@ public partial class Main : Node2D, ITogether
             // A determinism bug: the host has already mended the world, so the report is all that is left.
             _saves.Write(Saves.Desync, System.Text.Json.JsonSerializer.Serialize(report, Indented));
         }
+        _stars.Seconds = (client.World.Tick + session.Progress) / World.TicksPerSecond;
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
         if (_worldId != null && _role != "guest" && client.World.Tick - _lastSaveTick >= AutosaveTicks) SaveNow();
         var heard = client.TakeHeroes();
