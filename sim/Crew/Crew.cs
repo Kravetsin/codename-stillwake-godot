@@ -6,7 +6,8 @@ namespace Stillwake.Sim.Crew;
 
 /// <summary>
 /// The sender's hero is at <c>Cell</c>: sent when the hero enters another room as its client sees it,
-/// and first of all when it wakes, which brings it in with a full suit.
+/// and first of all when it wakes, which brings it in with a full suit; and as its report, at most every
+/// <c>Crew.ReportEvery</c> ticks while its body is in another cell than the sim's (0050).
 /// </summary>
 public sealed record Enter(int Cell) : Command;
 
@@ -38,6 +39,12 @@ public interface ICrewQueries
     int Spawn { get; }
     /// <summary>Whether a hero in <paramref name="cell"/> draws the lifepod's air into its suit: within <c>Crew.PodReach</c> of it.</summary>
     bool ByPod(int cell);
+    /// <summary>
+    /// What the cold takes from a suit a breath in <paramref name="cell"/>: nothing inside the field, the
+    /// build zone grown by <c>Field.Margin</c>; past it more the deeper out, up to <c>Field.EdgeCost</c>
+    /// at the world's edge and off the grid (0050).
+    /// </summary>
+    int EdgeCost(int cell);
     /// <summary>Hero <paramref name="id"/>, played by that peer; null while the sim has none (TypeScript's <c>hero</c>).</summary>
     Hero? HeroOf(int id);
     /// <summary>Every hero, in id order: live and read-only, for counting who breathes where.</summary>
@@ -109,14 +116,16 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                 Thrusts(hero);
                 if (!breath) continue;
                 // The pod's air first, for the breath and the suit alike; then one draw from the room for
-                // what is left of both, the room's refill as before. What the air falls short of the breath the suit pays.
+                // what is left of both, the room's refill as before. What the air falls short of the breath the
+                // suit pays, and the cold past the field after that, the suit alone.
                 int breathes = hero.Exerting ? Content.Crew.Exerted : 1;
                 int lack = Content.Crew.Suit - hero.Suit;
                 int pod = ByPod(hero.Cell) ? Math.Min(Content.Crew.PodRefill, breathes + lack) : 0;
                 int want = Math.Min(breathes + Math.Min(Content.Crew.Refill, lack), breathes + lack - pod);
                 int taken = want > 0 ? atmosphere.Breathe(hero.Cell, want) : 0;
-                hero.Suit = Math.Max(0, hero.Suit + pod + taken - breathes);
-                if (hero.Suit == 0 && pod + taken < breathes)
+                int cold = EdgeCost(hero.Cell);
+                hero.Suit = Math.Max(0, hero.Suit + pod + taken - breathes - cold);
+                if (hero.Suit == 0 && (pod + taken < breathes || cold > 0))
                 {
                     hero.Out = Content.Crew.PassOut;
                     hero.Exerting = false;
@@ -185,6 +194,31 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
         int dy = Math.Max(0, Math.Max(top - y, y - (top + spec.Height - 1)));
         return Math.Max(dx, dy) <= Content.Crew.PodReach;
     }
+
+    /// <summary>
+    /// How deep past the field <paramref name="cell"/> is, in thousandths of the way to the world's edge, by
+    /// the deeper axis (a box, no root); squared and scaled to <c>Field.EdgeCost</c>, rounded up so a cell
+    /// just past the line costs a unit. A world whose field reaches past the grid, as every test map's, costs nothing on it.
+    /// </summary>
+    public int EdgeCost(int cell)
+    {
+        int width = _grid.Width, height = _grid.Height;
+        if (cell < 0 || cell >= width * height) return Content.Field.EdgeCost;
+        var zone = _grid.Zone;
+        int margin = Content.Field.Margin;
+        int left = zone.Left - margin, right = zone.Right + margin, top = zone.Top - margin, bottom = zone.Bottom + margin;
+        int x = cell % width, y = cell / width;
+        int depth = Math.Min(1000, Math.Max(
+            Math.Max(Depth(left - x, left), Depth(x - right, width - 1 - right)),
+            Math.Max(Depth(top - y, top), Depth(y - bottom, height - 1 - bottom))));
+        return (Content.Field.EdgeCost * depth * depth + 999_999) / 1_000_000;
+    }
+
+    /// <summary>
+    /// <paramref name="beyond"/> cells past the field of the <paramref name="span"/> from it to the grid's
+    /// edge, in thousandths, rounded down; none inside. A cell on the grid is never past its edge, so the span holds it.
+    /// </summary>
+    private static int Depth(int beyond, int span) => beyond <= 0 ? 0 : beyond * 1000 / span;
 
     /// <summary>
     /// The colour a hero coming in wears: the first no hero wears, or with every one worn, the one worn

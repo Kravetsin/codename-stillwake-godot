@@ -7,7 +7,11 @@ public sealed class Hero
 {
     /// <summary>The peer that plays it (TypeScript's <c>hero</c>).</summary>
     [JsonInclude] public int Id { get; internal set; }
-    /// <summary>The cell its body is in, as its client last said.</summary>
+    /// <summary>
+    /// The cell its body is in as its client last reported it (<see cref="Enter"/>): on entering another room,
+    /// and else at most every <c>Crew.ReportEvery</c> ticks while it moves, so up to a second and a round trip
+    /// behind the body. What it breathes, and what anything else reading where heroes are reads.
+    /// </summary>
     [JsonInclude] public int Cell { get; internal set; }
     /// <summary>The oxygen its suit holds, from nothing to <c>Crew.Suit</c>.</summary>
     [JsonInclude] public int Suit { get; internal set; }

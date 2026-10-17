@@ -27,7 +27,8 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
 | `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway, a valve's wheel, a plan's own pictures | yes |
 | `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`)                             | no    |
-| `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`); `ExertOf` and `ThrustOf`, what it breathes and vents          | no    |
+| `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`), on a room's change and as its report every `Crew.ReportEvery` ticks (0050); `ExertOf` and `ThrustOf`, what it breathes and vents; `Cold`, how hard the cold bites at a cell | no    |
+| `Frost.cs`         | the frost past the field: one full-screen shader quad over the world, under the HUD (0050) | yes   |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads          | no    |
 | `SuitGauge.cs`     | the suit bar, red edges when low, the dark when passed out (`SuitGauge.tsx`)              | yes   |
 | `SuitColours.cs`   | the suit colours, a row in the game menu's settings: the one worn ringed, those taken dimmed, the rest a click away (`SuitColours.tsx`) | yes |
@@ -137,13 +138,29 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
   again there when its `Out` runs down; passed out it takes no orders, its E does nothing, and it falls and lies (`PoseOf`).
 - Every frame, after the steps, it sends `Report.Of`'s `Enter` when the sim has no hero for this peer,
   or holds it in another room or on the other side of the air's edge than its body: the same frames
-  `index.ts` sends `reportOf`'s.
+  `index.ts` sends `reportOf`'s. Besides, as the hero's report (0050), it sends one whenever the
+  sim holds the hero in another cell than its body's and `Crew.ReportEvery` ticks of the world have gone
+  since the last `Enter` it sent (`HeroView._reportedAt`); none while passed out, so a report landing
+  after it wakes cannot put it back out past the field.
 - `Danger.Read` counts the lifepod's air (`ICrewQueries.ByPod`) as room air: a low suit by the pod
   fills, so the gauge shows it filling and no danger.
 - `SuitGauge`, a layer of its own made by `Main`, and `SuitColours`, a row `Main` hands the game menu
   (`game/menu`), read the sim four times a second, the row only while shown.
 - The host passes `crew`'s `Leave` as the farewell of a peer whose link closes (`Main.Host`).
 - The tether's anchor is the controller's own (0007), sent with the hero.
+
+## The cold past the field (0050)
+
+- **The frost** (`Frost`, a layer of its own made by `Main`, `ScreenLayers.Frost`: over the world, under the
+  HUD): frost creeping in from the screen's edges, the corners first, its front ragged and the ice veined,
+  with a faint static over it changing every frame. Its strength is `Report.Cold` at the body's own cell,
+  the crew's `EdgeCost` over `Field.EdgeCost` eased out (2s − s²): 0 inside the field, a thin rim just past
+  the line, a band at half depth, most of the screen at the edge. Read four times a second and eased
+  toward over a second; hidden while 0, so inside the field it costs nothing. One `ColorRect` with a
+  shader: four octaves of value noise twice a pixel.
+- It reads the body's cell, the drain the reported one: the frost shows a second before the suit pays.
+- `--edge=N` (dev, with `--world`) starts the hero N cells past the field's left line on the world's middle
+  row, to see the cold at a depth.
 
 ## The hands
 
