@@ -23,18 +23,21 @@ were boxed rather than outlined, and the ghost at 70% was faint in a lit room an
   the item's icon, in green, as the sim refunds it (`BuildingModule.RefundOf`).
 - **Plans are more opaque:** 88% (back walls 65%), against 70% and 45%. The real part of a half-built plan
   is lit and coloured; the ghost stays pale and unlit, so the two still read apart.
-- **The dashes follow the silhouette:** the ring of pixels just outside the opaque pixels of what is
-  drawn, a world pixel wide, 3 on in 5, marching clockwise. A group's shapes join, the sides they share
-  dropped: a row of walls is one outline. Holes smaller than a cell (a ladder's rungs, a grille) are part
-  of the silhouette; a room walled round is outlined inside too.
+- **The dashes follow the silhouette:** a strip just outside the opaque pixels of what is drawn, as
+  wide as the aim's outline: a screen pixel at 1080 lines whatever the zoom, not a world pixel (2 screen
+  pixels at zoom 2, too heavy beside it; changed after the co-op playtest of 2026-10-18). Dashes 3 line
+  widths on in 5, marching 5 line widths a second clockwise, so they keep their proportions to the line.
+  A group's shapes join, the sides they share dropped: a row of walls is one outline. Holes smaller than a
+  cell (a ladder's rungs, a grille) are part of the silhouette; a room walled round is outlined inside too.
 - **Found on the CPU, per picture, and kept.** Masks come from each picture's own image, never from the
   ship's atlas, which packs pictures with no padding. A shader outline over the atlas would sample
   neighbouring regions; bounds of each region passed to a shader would take an instance uniform or a node a
   plan, which 0063 keeps out; and neither could drop the sides a group shares. Pre-baked outline masks per
   tile would still need the merging. So: rims per picture and way of laying it, cached; merged and traced
   per group when plans change; machines the same way, one method for all.
-- **Drawn as one mesh a layer,** each pixel carrying its place round its loop; a shader marches the dashes
-  with the time. No CPU work a frame, one draw for all plans' dashes.
+- **Drawn as one mesh a layer,** a quad a side, each pixel carrying its place round its loop; a shader marches
+  the dashes with the time. Built again only when the zoom or the screen's height changes, so the strip stays
+  a whole number of screen pixels wide and crisp; one draw for all plans' dashes.
 
 ## Consequences
 

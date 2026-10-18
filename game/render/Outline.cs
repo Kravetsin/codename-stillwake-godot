@@ -11,20 +11,26 @@ namespace Stillwake.Game.Render;
 /// </summary>
 public partial class Outline : CanvasGroup
 {
+    /// <summary>The lines of the screen a pixel of the line's width stands for: 1 pixel at 1080 lines, 2 at 2160.</summary>
+    public const int LinesPerPixel = 1080;
+
+    /// <summary>How wide the line is, in screen pixels, on a screen <paramref name="lines"/> high: never under one.</summary>
+    public static int Width(float lines) => Mathf.Max(1, Mathf.RoundToInt(lines / LinesPerPixel));
+
     // The masks are drawn into the group's own buffer; a pixel clear there with one drawn within the
-    // line's width round it takes that one's colour. A screen pixel wide per 1080 lines of the screen.
+    // line's width round it takes that one's colour.
     private static readonly ShaderMaterial Ring = new()
     {
         Shader = new Shader
         {
-            Code = """
+            Code = $$"""
                 shader_type canvas_item;
                 render_mode unshaded;
                 uniform sampler2D masks : hint_screen_texture, repeat_disable, filter_nearest;
 
                 void fragment() {
                     vec4 here = textureLod(masks, SCREEN_UV, 0.0);
-                    int width = int(max(1.0, round(1.0 / (SCREEN_PIXEL_SIZE.y * 1080.0))));
+                    int width = int(max(1.0, round(1.0 / (SCREEN_PIXEL_SIZE.y * {{LinesPerPixel}}.0))));
                     vec4 near = vec4(0.0);
                     for (int i = 1; i <= width; i++)
                         for (int dx = -1; dx <= 1; dx++)

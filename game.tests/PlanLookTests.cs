@@ -71,16 +71,36 @@ public class PlanLookTests
     }
 
     [Fact]
-    public void ACellOfWallIsRingedJustOutsideItsSilhouetteClockwiseCornersAndAll()
+    public void ACellOfWallIsOutlinedAlongItsSidesClockwiseEachToldItsCorner()
     {
-        // 2 * (16 + 16) + 4 pixels round, each side's run taking the corner after it, the dashes counted on round it.
+        // Four sides of 16 from the top-left, every corner convex, counted on round it.
         Assert.Equal(
-            [new OutlineRun(0, -1, 17, 1, 0, 0), new OutlineRun(16, 0, 17, 0, 1, 17), new OutlineRun(15, 16, 17, -1, 0, 34), new OutlineRun(-1, 15, 17, 0, -1, 51)],
+            [new OutlineRun(0, 0, 16, 1, 0, 0, true), new OutlineRun(16, 0, 16, 0, 1, 16, true), new OutlineRun(16, 16, 16, -1, 0, 32, true), new OutlineRun(0, 16, 16, 0, -1, 48, true)],
             PlanOutline.Runs(PlanOutline.Merge([(0, 0, Square)]), Cell * Cell));
-        // A notch in the side: round its concave corners each run starts where the one before it ended, counted on.
+        // A notch in the side: every side kept, a pixel long too; round its concave corners each starts where the one before ended.
         var notched = PlanOutline.Runs(PlanOutline.Merge([(0, 0, RimOf("###", "#..", "###"))]), 99);
+        Assert.Equal(8, notched.Count);
         for (int i = 1; i < notched.Count; i++) Assert.Equal(notched[i - 1].Along + notched[i - 1].Length, notched[i].Along);
-        Assert.Contains(new OutlineRun(1, 1, 3, 1, 0, 7), notched);
+        Assert.Contains(new OutlineRun(3, 1, 2, -1, 0, 4, false), notched);
+        Assert.Contains(new OutlineRun(1, 1, 1, 0, 1, 6, false), notched);
+        Assert.Contains(new OutlineRun(1, 2, 2, 1, 0, 7, true), notched);
+    }
+
+    [Fact]
+    public void TheDashesAreAStripAsWideAsTheLineOutsideEachSideFillingConvexCornersAndCountedOnRoundThem()
+    {
+        // At zoom 2, a line a screen pixel wide is half a world pixel: a strip on each side's left, outside the cell.
+        var strips = PlanOutline.Strips(PlanOutline.Runs(PlanOutline.Merge([(0, 0, Square)]), Cell * Cell), 0.5);
+        Assert.Equal(
+            [new DashStrip(0, 0, 1, 0, 16.5, 0.5, 0), new DashStrip(16, 0, 0, 1, 16.5, 0.5, 16.5), new DashStrip(16, 16, -1, 0, 16.5, 0.5, 33), new DashStrip(0, 16, 0, -1, 16.5, 0.5, 49.5)],
+            strips);
+        // Round a concave corner a strip is not lengthened: the next starts where it meets it. A second loop counts afresh.
+        var notched = PlanOutline.Strips(PlanOutline.Runs(PlanOutline.Merge([(0, 0, RimOf("###", "#..", "###"))]), 99), 0.25);
+        Assert.Contains(new DashStrip(3, 1, -1, 0, 2, 0.25, 4.5), notched);
+        Assert.Contains(new DashStrip(1, 1, 0, 1, 1, 0.25, 6.5), notched);
+        var two = PlanOutline.Strips(PlanOutline.Runs(PlanOutline.Merge([(0, 0, RimOf("#.", ".#"))]), 99), 0.5);
+        Assert.Equal(2, two.Count(s => s.Along == 0));
+        Assert.Equal(3 + 1.5, two.Max(s => s.Along));
     }
 
     [Fact]
@@ -88,7 +108,7 @@ public class PlanLookTests
     {
         var row = PlanOutline.Of([("wall", 16, 0, Square), ("wall", 32, 0, Square), ("wall", 48, 0, Square)], Cell * Cell);
         Assert.Equal(
-            [new OutlineRun(16, -1, 49, 1, 0, 0), new OutlineRun(64, 0, 17, 0, 1, 49), new OutlineRun(63, 16, 49, -1, 0, 66), new OutlineRun(15, 15, 17, 0, -1, 115)],
+            [new OutlineRun(16, 0, 48, 1, 0, 0, true), new OutlineRun(64, 0, 16, 0, 1, 48, true), new OutlineRun(64, 16, 48, -1, 0, 64, true), new OutlineRun(16, 16, 16, 0, -1, 112, true)],
             row);
         // Two machines side by side, each its own outline; a wall beside a door, too.
         Assert.Equal(8, PlanOutline.Of([("machine1", 0, 0, Square), ("machine2", 16, 0, Square)], Cell * Cell).Count);
@@ -103,7 +123,8 @@ public class PlanLookTests
     {
         // A ladder's gaps between its rungs: only the outside is outlined.
         var ladder = PlanOutline.Runs(PlanOutline.Merge([(0, 0, RimOf("#..#", "####", "#..#", "#..#", "####", "#..#"))]), Cell * Cell);
-        Assert.All(ladder, r => Assert.False(r.X is 1 or 2 && r.Y is > 0 and < 5));
+        Assert.DoesNotContain(ladder, r => r.X is >= 1 and <= 3 && r.Y is >= 2 and <= 4);
+        Assert.Contains(PlanOutline.Runs(PlanOutline.Merge([(0, 0, RimOf("#..#", "####", "#..#", "#..#", "####", "#..#"))]), 0), r => r.X is >= 1 and <= 3 && r.Y is >= 2 and <= 4);
         // Eight walls round an empty cell: the ring outside and the one inside the room.
         var walls = new List<(string, int, int, IReadOnlyList<Rim>)>();
         for (int y = 0; y < 3; y++)
@@ -111,8 +132,8 @@ public class PlanLookTests
                 if (x != 1 || y != 1) walls.Add(("wall", x * Cell, y * Cell, Square));
         var room = PlanOutline.Of(walls, Cell * Cell);
         Assert.Equal(8, room.Count);
-        Assert.Equal(2 * (48 + 48) + 4 + 2 * (16 + 16) - 4, room.Sum(r => r.Length));
-        Assert.Equal(4, room.Count(r => r.X is >= 16 and < 32 && r.Y is >= 16 and < 32));
+        Assert.Equal(4 * 48 + 4 * 16, room.Sum(r => r.Length));
+        Assert.Equal(4, room.Count(r => r.X is >= 16 and <= 32 && r.Y is >= 16 and <= 32));
     }
 
     [Fact]

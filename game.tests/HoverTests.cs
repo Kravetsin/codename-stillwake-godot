@@ -103,14 +103,31 @@ public class HoverTests
     [Fact]
     public void ItFliesEightPixelsOverItsCellButTwoUnderASolidOne()
     {
-        Assert.Equal(8, Hover.Lift(false, M));
-        Assert.Equal(2, Hover.Lift(true, M));
+        Assert.Equal(8, Hover.Lift(Structure.Empty, Structure.Empty, M));
+        Assert.Equal(2, Hover.Lift(Structure.Empty, Structure.Wall, M));
+        Assert.Equal(2, Hover.Lift(Structure.Empty, Structure.Floor, M));
+        // Under a closed hatch from outside it, the hatch is a ceiling.
+        Assert.Equal(2, Hover.Lift(Structure.Empty, Structure.DoorClosed, M));
         Assert.True(Hover.Solid(Structure.Wall));
         Assert.True(Hover.Solid(Structure.Floor));
         Assert.True(Hover.Solid(Structure.DoorClosed));
         Assert.False(Hover.Solid(Structure.Empty));
         Assert.False(Hover.Solid(Structure.DoorOpen));
         Assert.False(Hover.Solid(Structure.Ladder));
+    }
+
+    [Fact]
+    public void ThroughAClosedDoorItFliesAtItsHeightDippingOnlyUnderTheWallOverIt()
+    {
+        // A column across a doorway three cells tall: the wall over it, the door, the floor under it.
+        int[] column = [Structure.Wall, Structure.DoorClosed, Structure.DoorClosed, Structure.DoorClosed, Structure.Floor];
+        double LiftAt(int row) => Hover.Lift(column[row], column[row - 1], M);
+        Assert.Equal(2, LiftAt(1));
+        Assert.Equal(8, LiftAt(2));
+        Assert.Equal(8, LiftAt(3));
+        // The same open, and beside it in the room, the same height.
+        Assert.Equal(8, Hover.Lift(Structure.DoorOpen, Structure.DoorOpen, M));
+        Assert.Equal(8, Hover.Lift(Structure.Empty, Structure.Empty, M));
     }
 
     [Fact]
