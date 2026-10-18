@@ -70,8 +70,8 @@ free back slot: it stands behind anything, and in space.
   problem here throws; `Clear(cell, layer)` — for machines, removes the whole machine covering the
   cell. Only in commands or construction: modules reading the grid in derivation trust that nothing
   changes it after.
-- **Commands:** `ToggleDoor(cell)` — opens or closes the whole doorway, every door cell 4-connected
-  to `cell` taking the opposite of its state; refused with `grid.noDoor`. `ToggleValve(cell)`,
+- **Commands:** `ToggleDoor(cell)` — opens or closes the whole doorway, the straight run of door cells
+  `cell` is in (`Doorways`, 0067), each taking the opposite of its state; refused with `grid.noDoor`. `ToggleValve(cell)`,
   refused with `grid.noValve`.
 - **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.outsideZone` (the cell, or any cell of a
   machine's footprint, outside the zone), `grid.occupied`, `grid.machineInTheWay`,
@@ -100,6 +100,9 @@ hull walls included. A map's machines take ids 1, 2, … by their top-left cells
 - `Built` is the smallest box holding every cell with a structure, conduit, back wall or machine, as
   a scan of them all finds it, after any change and after a load; `Box.None` when there is none.
 - Stored codes are part of the save format: never renumber them.
+- A doorway is one straight run, its shape derived, never stored (`Doorways`, 0067): a door cell with a
+  door cell above or below stands in a door, joined up and down; every other lies in a hatch, joined to
+  the hatch cells either side. The client draws, hears and lights doorways by the same joins.
 
 ## Deliberately not handled
 
@@ -107,7 +110,7 @@ hull walls included. A map's machines take ids 1, 2, … by their top-left cells
   `Content.World` changes.
 - Taking apart what stands outside the zone is allowed: only a map could put it there.
 - Machines need no floor under them.
-- Doorways have no shape: any run of door cells is one.
+- Door kinds: one with rules of its own (an airlock, a blast door) would need a layer here (0067).
 - The log holds the last 65,536 writes (`ChangeLog.DefaultCapacity`), a ring: a door, a breach or a
   hero's build writes a handful, so the sim's readers, which look every tick, and the client's, which
   look every frame or a few times a second, never come near it. A tick that writes more (no player

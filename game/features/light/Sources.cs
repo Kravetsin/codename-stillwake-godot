@@ -16,31 +16,39 @@ public readonly record struct LightSource(double X, double Y, (float R, float G,
 /// <summary>What the lightmap's shader reads: the walls and doors light stops at, and each light it draws.</summary>
 public static class Sources
 {
-    /// <summary>How the shader tells a cell: open, a closed door (its panel blocks), a wall.</summary>
-    public const byte Open = 0, Door = 128, Wall = 255;
+    /// <summary>How the shader tells a cell: open, a closed hatch (its panel across blocks), a closed door (its panel up and down blocks), a wall.</summary>
+    public const byte Open = 0, Hatch = 64, Door = 128, Wall = 255;
 
     /// <summary>Floats an instance takes in the multimesh: a 2D transform, a colour, custom data.</summary>
     public const int Stride = 16;
 
     /// <summary>
-    /// A byte a cell of <paramref name="box"/> of <paramref name="structure"/>, a grid <paramref name="width"/>
-    /// wide, row by row into <paramref name="cells"/>: what stops light there.
+    /// A byte a cell of <paramref name="box"/> of the structure <paramref name="structureAt"/> reads, a grid
+    /// <paramref name="width"/> wide and <paramref name="size"/> cells, row by row into <paramref name="cells"/>: what stops light there.
     /// </summary>
-    public static void Occupy(ReadOnlySpan<int> structure, int width, Box box, byte[] cells)
+    public static void Occupy(Func<int, int> structureAt, int width, int size, Box box, byte[] cells)
     {
         int i = 0;
         for (int y = box.Top; y <= box.Bottom; y++)
-            foreach (int code in structure.Slice(y * width + box.Left, box.Width))
-                cells[i++] = Of(code);
+        {
+            int cell = y * width + box.Left;
+            for (int end = cell + box.Width; cell < end; cell++) cells[i++] = Of(structureAt, width, size, cell);
+        }
     }
 
-    /// <summary>What stops light in a cell of structure <paramref name="code"/>.</summary>
-    public static byte Of(int code) => code switch
+    /// <summary>What stops light in <paramref name="cell"/>: a closed door's panel by the doorway's shape (0067).</summary>
+    public static byte Of(Func<int, int> structureAt, int width, int size, int cell)
     {
-        Structure.Wall => Wall,
-        Structure.DoorClosed => Door,
-        _ => Open,
-    };
+        switch (structureAt(cell))
+        {
+            case Structure.Wall:
+                return Wall;
+            case Structure.DoorClosed:
+                return Doorways.IsHatch(Doorways.LinksOf(cell, width, size, structureAt)) ? Hatch : Door;
+            default:
+                return Open;
+        }
+    }
 
     /// <summary>
     /// Packs each of <paramref name="lights"/> whose reach touches <paramref name="view"/> (pixels) into

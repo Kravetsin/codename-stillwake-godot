@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -58,18 +60,22 @@ public static class AimOutline
             outline.Add(PixelArt.Picture("power-socket"), corner + new Vector2(plug.X, plug.Y), 0, 1, colour);
     }
 
-    /// <summary>Every cell of the doorway <paramref name="cell"/> is in, each its door's picture joined above and below, as the grid draws it.</summary>
+    /// <summary>
+    /// Every cell of the doorway <paramref name="cell"/> is in, its straight run as the sim toggles it
+    /// (<see cref="Doorways"/>), each with its picture (<see cref="DoorShape"/>), as the grid draws it.
+    /// </summary>
     private static void Doorway(Outline outline, IGridQueries grid, ShownGrid shown, int cell, Color colour)
     {
         int width = grid.Width, size = width * grid.Height;
-        bool IsDoor(int c) => c >= 0 && c < size && shown.StructureAt(grid, c) is Structure.DoorClosed or Structure.DoorOpen;
-        int top = cell;
-        while (IsDoor(top - width)) top -= width;
-        for (int c = top; IsDoor(c); c += width)
+        int StructureAt(int c) => shown.StructureAt(grid, c);
+        var seen = new HashSet<int> { cell };
+        var next = new Stack<int>([cell]);
+        while (next.Count > 0)
         {
-            int linked = (IsDoor(c - width) ? Blueprint.Up : 0) | (IsDoor(c + width) ? Blueprint.Down : 0);
-            string look = shown.StructureAt(grid, c) == Structure.DoorClosed ? "closed" : "open";
-            outline.Add(PixelArt.Picture($"door_{look}_{linked}"), CornerOf(c, width), colour);
+            int c = next.Pop(), linked = Doorways.LinksOf(c, width, size, StructureAt);
+            outline.Add(PixelArt.Picture(DoorShape.Picture(shown.StructureAt(grid, c) == Structure.DoorClosed, linked)), CornerOf(c, width), colour);
+            foreach (var (side, n) in (ReadOnlySpan<(int, int)>)[(Doorways.Up, c - width), (Doorways.Right, c + 1), (Doorways.Down, c + width), (Doorways.Left, c - 1)])
+                if ((linked & side) != 0 && seen.Add(n)) next.Push(n);
         }
     }
 
@@ -96,7 +102,7 @@ public static class AimOutline
             return false;
         }
         var corner = CornerOf(plan.Cell, width);
-        foreach (var piece in BlueprintArt.PiecesOf(place, Blueprint.LinksOf(plan.Cell, width, Joins)))
+        foreach (var piece in BlueprintArt.PiecesOf(place, Blueprint.LinksOf(place, plan.Cell, width, width * m.Grid.Height, Joins)))
         {
             var picture = PixelArt.Picture(piece.Picture);
             if (piece.Cut)

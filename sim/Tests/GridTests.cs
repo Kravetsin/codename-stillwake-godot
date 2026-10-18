@@ -27,6 +27,49 @@ public class GridTests
         Assert.Null(w.M.Grid.BackAt(6));
     }
 
+    /// <summary>A hatch is a doorway lying in a deck (0067): toggled from any of its cells, it opens and shuts whole.</summary>
+    [Fact]
+    public void TogglesAHatchThreeWideWholeFromAnyOfItsCells()
+    {
+        var w = new Scenario("""
+            #######
+            #.....#
+            ##DDD##
+            #.....#
+            #######
+            """);
+        int[] Hatch() => [.. Enumerable.Range(2, 3).Select(x => w.M.Grid.StructureAt(w.At(x, 2)))];
+        w.Do(new ToggleDoor(w.At(3, 2))).Run();
+        Assert.Equal(new[] { Structure.DoorOpen, Structure.DoorOpen, Structure.DoorOpen }, Hatch());
+        w.Do(new ToggleDoor(w.At(4, 2))).Run();
+        Assert.Equal(new[] { Structure.DoorClosed, Structure.DoorClosed, Structure.DoorClosed }, Hatch());
+    }
+
+    /// <summary>
+    /// A doorway is one straight run (0067): where a door meets a hatch, the cell they share is the door's and the hatch
+    /// stops beside it, so each toggles alone; a door and a hatch touching only at a corner never were one.
+    /// </summary>
+    [Theory]
+    [InlineData("DDD.|..D.|..D.", 0, 0, "ddD.|..D.|..D.")]
+    [InlineData("DDD.|..D.|..D.", 2, 2, "DDd.|..d.|..d.")]
+    [InlineData("D..|DDD|D..", 1, 1, "D..|Ddd|D..")]
+    [InlineData("D..|DDD|D..", 0, 0, "d..|dDD|d..")]
+    [InlineData("DDDDD|..D..|..D..", 0, 0, "ddDDD|..D..|..D..")]
+    [InlineData("DDDDD|..D..|..D..", 2, 1, "DDdDD|..d..|..d..")]
+    [InlineData(".D.|DDD|.D.", 0, 1, ".D.|dDD|.D.")]
+    [InlineData(".D.|DDD|.D.", 1, 0, ".d.|DdD|.d.")]
+    [InlineData("D..|D..|.DD", 0, 0, "d..|d..|.DD")]
+    [InlineData("D..|D..|.DD", 1, 2, "D..|D..|.dd")]
+    public void TogglesOnlyTheStraightRunTheCellIsIn(string map, int x, int y, string after)
+    {
+        var w = new Scenario(map.Replace('|', '\n'));
+        w.Do(new ToggleDoor(w.At(x, y))).Run();
+        int width = map.IndexOf('|');
+        string Shown(int c) => w.M.Grid.StructureAt(c) switch { Structure.DoorClosed => "D", Structure.DoorOpen => "d", _ => "." };
+        var rows = Enumerable.Range(0, after.Split('|').Length).Select(r => string.Concat(Enumerable.Range(0, width).Select(c => Shown(r * width + c))));
+        Assert.Equal(after, string.Join("|", rows));
+    }
+
     private static readonly string[] Kinds = [.. Content.Machines.All.Select(m => m.Kind)];
 
     /// <summary>
