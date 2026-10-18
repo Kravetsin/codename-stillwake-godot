@@ -22,7 +22,7 @@ public partial class TankLooks : Node2D
     private static readonly (Vector2 At, Color Colour, float Strength)[] Lights =
     [
         // Empty: the red lamp above the glass.
-        (new Vector2(22, 10), new Color("e03030"), 0.25f),
+        (new Vector2(22, 10), new Color("e03030"), 0.12f),
         // The middle of the glass, brighter the more oxygen it shows.
         (new Vector2(16, 16), new Color("6fd3ff"), 0.18f),
         (new Vector2(16, 16), new Color("6fd3ff"), 0.24f),
