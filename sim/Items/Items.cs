@@ -61,7 +61,7 @@ public interface IItemsOps
     void TakeInputs(int id, IReadOnlyList<(string Item, int Count)> cost);
     IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
-    void Charge(int id, int amount);
+    void Charge(int id, int slot, int amount);
     bool Drain(int peer, int amount);
     void StopRunning(int peer);
     void LeaveBody(int peer, int cell);
@@ -388,17 +388,18 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     /// <summary>
-    /// Adds up to <paramref name="amount"/> of charge, stored scaled, to what machine <paramref name="id"/>'s first slot holds,
-    /// never past its <c>Capacity</c>: a charging station's tick. The caller checks it holds an item that has one.
+    /// Adds up to <paramref name="amount"/> of charge, stored scaled, to what slot <paramref name="slot"/> of machine
+    /// <paramref name="id"/> holds, never past its <c>Capacity</c>: a charging station's tick, a drone bay's share for one
+    /// drone. The caller checks it holds an item that has one.
     /// </summary>
-    public void Charge(int id, int amount)
+    public void Charge(int id, int slot, int amount)
     {
         if (amount < 0) throw new ArgumentException($"items.charge: {amount} is no charge");
         var slots = Crate(id);
-        if (slots.Count == 0 || slots[0] is not { } s || Content.Items.Get(s.Item).Capacity is not int full)
+        if (slot < 0 || slot >= slots.Count || slots[slot] is not { } s || Content.Items.Get(s.Item).Capacity is not int full)
             throw new InvalidOperationException("items.charge: nothing there holds charge");
         var charged = slots.ToArray();
-        charged[0] = s with { Charge = Math.Min(full, s.Charge + amount) };
+        charged[slot] = s with { Charge = Math.Min(full, s.Charge + amount) };
         Stacks.SetCrate(State, id, charged);
     }
 

@@ -48,7 +48,7 @@ public interface IPowerQueries
     int Satisfaction(int machineId);
     /// <summary>
     /// Whether charging station <paramref name="machineId"/> fills what it holds this tick: an item short of its
-    /// capacity, on a network that gives it power. What its light and its panel's bolt show.
+    /// capacity, on a network that gives it power. What its light and its panel's bolt show, a drone bay's too.
     /// </summary>
     bool Charges(int machineId);
     /// <summary>Why peer <paramref name="peer"/>'s <see cref="Lay"/> from <paramref name="a"/> to <paramref name="b"/> would be refused: what the cable ghost shows.</summary>
@@ -139,15 +139,20 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     /// <summary>
     /// Whether a user draws now: none told to rest; a station (<c>Content.Stations</c>) whenever crafting does not rest
-    /// it, whatever its inputs hold, for a queued one may have a paid unit to work; any other with slots (an analyzer,
-    /// a charging station) only while its first slot holds something, a charging station only while that is short of full.
+    /// it, whatever its inputs hold, for a queued one may have a paid unit to work; a charging station (the charger, a
+    /// drone bay) while any slot holds something short of full; any other with slots (an analyzer) while its first
+    /// slot holds something.
     /// </summary>
     private bool Drawing(Machine m)
     {
         if (IsResting(m.Id)) return false;
         var spec = Spec(m);
         if (spec.Slots == null || Content.Stations.TryGet(m.Kind, out _)) return true;
-        return _items.Crate(m.Id)[0] is { } held && (!spec.Charges || Short(held));
+        var slots = _items.Crate(m.Id);
+        if (!spec.Charges) return slots[0] != null;
+        foreach (var held in slots)
+            if (held != null && Short(held)) return true;
+        return false;
     }
 
     /// <summary>Whether <paramref name="held"/> holds less charge than it can: a battery not yet full.</summary>
@@ -157,9 +162,10 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     private static readonly string[] Chargers = [.. Content.Machines.All.Where(s => s.Charges).Select(s => s.Kind)];
 
     /// <summary>
-    /// Each charging station, in id order, puts what it draws into what it holds: its <c>Draws</c> in
-    /// power-ticks times its satisfaction, stored scaled (<c>Charge.Scale</c>), rounded down, never past
-    /// full. Drawing 3, it fills a battery of 1800 in 600 ticks at full power, twice that at half.
+    /// Each charging station, in id order, puts what it draws into what it holds short of full: its <c>Draws</c> in
+    /// power-ticks times its satisfaction, stored scaled (<c>Charge.Scale</c>), rounded down, shared evenly between
+    /// those slots, the rest of the division one each to the first in slot order, never past full. Drawing 3, the
+    /// charger fills a battery of 1800 in 600 ticks at full power, twice that at half; a bay shares its 4 between its drones.
     /// </summary>
     private void Charge()
     {
@@ -169,7 +175,17 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
                 if (!Charges(m.Id)) continue;
                 // Both are never negative, so integer division is the floor.
                 int amount = (Spec(m).Draws ?? 0) * Content.Charge.Scale * Satisfaction(m.Id) / 1000;
-                if (amount > 0) _itemsOps.Charge(m.Id, amount);
+                if (amount <= 0) continue;
+                var slots = _items.Crate(m.Id);
+                int shortOf = 0;
+                foreach (var held in slots)
+                    if (held != null && Short(held)) shortOf += 1;
+                int share = amount / shortOf, rest = amount % shortOf, nth = 0;
+                for (int slot = 0; slot < slots.Count; slot++)
+                {
+                    if (slots[slot] is not { } held || !Short(held)) continue;
+                    _itemsOps.Charge(m.Id, slot, share + (nth++ < rest ? 1 : 0));
+                }
             }
     }
 
