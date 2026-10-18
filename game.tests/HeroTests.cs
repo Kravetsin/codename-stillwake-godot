@@ -330,6 +330,73 @@ public class HeroTests
         Assert.Equal(5 * Unit - Half, Settle(ship, hero, Right).X);
     }
 
+    // Two decks, the floor between them cut one cell wide in column 4; room above to jump.
+    private const string HoleMap = """
+        #########
+        #.......#
+        #.......#
+        #.......#
+        #.......#
+        #.......#
+        #S......#
+        ####.####
+        #.......#
+        #.......#
+        #.......#
+        #########
+        """;
+
+    private const int Deck = 7 * Unit, Below = 11 * Unit;
+
+    // A step moves the hero further than the 50 thousandths a cell leaves beside its body, so walking
+    // used to step over a hole one cell wide or into it by where the hero started (playtest 1).
+    [Fact]
+    public void FallsIntoAHoleOneCellWideWalkedOntoFromEitherSideFromAnywhere()
+    {
+        var (ship, _) = Start(HoleMap);
+        var missed = new List<string>();
+        foreach (bool sprint in new[] { false, true })
+            for (int offset = 0; offset < Spec.Run; offset++)
+                foreach (var (from, keys) in new[] { (1600 + offset, Right), (7400 - offset, Left) })
+                {
+                    var walked = Until(ship, At(from, Deck), keys with { Sprint = sprint }, h => h.Y > Deck || h.X < 1600 || h.X > 7400);
+                    var landed = Settle(ship, walked, Still);
+                    if (landed.Y != Below || Column(landed) != 4) missed.Add($"from {from} {(sprint ? "running" : "walking")}");
+                }
+        Assert.True(missed.Count == 0, $"{missed.Count} of {4 * Spec.Run} missed: {string.Join(", ", missed.Take(8))}");
+    }
+
+    [Fact]
+    public void StandingOverAHoleOneCellWideWithDownSlidesInAndFalls()
+    {
+        var (ship, _) = Start(HoleMap);
+        foreach (int x in new[] { 4 * Unit + 10, 4 * Unit + Half - 1, 5 * Unit - Half + 1, 5 * Unit - 10 })
+        {
+            var over = At(x, Deck);
+            Assert.Equal(over, Settle(ship, over, Still));
+            var fallen = Settle(ship, over, Down);
+            Assert.Equal(Below, fallen.Y);
+            Assert.InRange(fallen.X, 4 * Unit + Half, 5 * Unit - Half);
+        }
+        // With the middle beside the hole, down does nothing.
+        var beside = At(4 * Unit - 10, Deck);
+        Assert.Equal(beside, Settle(ship, beside, Down));
+    }
+
+    [Fact]
+    public void JumpsOverAHoleOneCellWideAndWalksOverALadderTopInOne()
+    {
+        var (ship, _) = Start(HoleMap);
+        var jumped = Settle(ship, At(1600, Deck).Step(Jump with { X = 1 }, ship), Right);
+        Assert.Equal(Deck, jumped.Y);
+        Assert.Equal(8 * Unit - Half, jumped.X);
+
+        var laddered = ShipFrom(HoleMap.Replace("####.####", "####H####"));
+        var walked = Settle(laddered, At(1600, Deck), Right);
+        Assert.Equal(Deck, walked.Y);
+        Assert.Equal(8 * Unit - Half, walked.X);
+    }
+
     // A ladder four cells tall, its top in row 4, with room for the hero to stand above it.
     private const string LadderMap = """
         #######
