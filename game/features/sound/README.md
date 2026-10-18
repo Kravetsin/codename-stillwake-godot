@@ -1,6 +1,6 @@
 # sound (client): what is heard
 
-The first sound pass (ADR 0033), what is heard in space (0042), and machines heard at work (0059). Presentation only: nothing in
+The first sound pass (ADR 0033), what is heard in space (0042), machines heard at work (0059) and drones (0062). Presentation only: nothing in
 `sim/` or `net/` makes or knows of a sound; each peer plays what it sees.
 
 | File                           | Holds                                                                                          | Godot |
@@ -80,6 +80,17 @@ The first sound pass (ADR 0033), what is heard in space (0042), and machines hea
     positional loop faded in over `HumInS` while it charges and out over `HumOutS`, begun
     somewhere along its 4 s; and `Sound.ChargeFull` once as a battery charging there comes full
     (`Charges.CameFull`), not when one is put in full. The hum is a station's (0059).
+  - `logistics/LogisticsView.cs` — drones (0062), on World where they are, a station's reach, all quieter than a
+    station at work (−32 LUFS): each drone's rotors (`Sound.DroneWhir`, the audition's synth "Fan", −36 LUFS standing),
+    one positional loop a drone, begun somewhere along its 2 s, its motor (`MotorSound` with `Sound.DroneMotor`) spun up
+    over 0.5 s from 0.4 of its pitch as it lifts off and down over 0.7 s once it touches down or drops, its volume full
+    from two thirds of its spin. From the drone's drawn speed, 0 to 1 of a cruising drone's: its pitch 6% higher and its
+    volume 2 dB louder at full speed; a wobble of three slow sines (0.7, 1.9 and 4.3 Hz, shares 0.5, 0.3, 0.2, each
+    drone its own phases) sways its pitch ±12 cents and its volume ±0.5 dB; each drone is tuned within ±4% by its id,
+    so a few never hum in unison (`logistics/Whir.cs`). A thud (`Sound.DroneDock`, a soft impact and a latch 60 ms
+    after it, −33 LUFS) as a drone lifts off its pad and as it touches down on one, the same sound both ways, as the user
+    picked; a click (`Sound.DroneGrab`, a small plastic switch, −35 LUFS) as its clamp takes a stack and as it puts some
+    or all of it in (`Served.Gripped`). No warning for a low drone: its blinking amber lamp says it.
   - `crafting/StationSounds.cs` — each station at work (0059), on World at its middle, told every frame by
     `StationView` whether it works (`CraftingModule.Works`) and which step of its pictures it shows, each machine its
     own players. The Former: `Sound.FormerStroke` once each time its pictures pass the one its head comes down on (the

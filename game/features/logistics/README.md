@@ -13,12 +13,13 @@ and motion are the user's picks from "Drone Look Concepts": drone A (the steel q
 
 | File               | Holds                                                                                         | Godot |
 | ------------------ | --------------------------------------------------------------------------------------------- | ----- |
-| `Served.cs`        | the badge's look and tooltip keys; this peer's own `SetServed` in flight shown at once (0014); where a drone is between ticks; a bay's slots that came to hold a drone or stopped | no |
+| `Served.cs`        | the badge's look and tooltip keys; this peer's own `SetServed` in flight shown at once (0014); where a drone is between ticks; a bay's slots that came to hold a drone or stopped; whether a clamp worked | no |
 | `Hover.cs`         | a drone's motion as drawn: the spring after the sim, its lean, face, bob, rotors and swinging cargo; its lift; a landing | no |
+| `Whir.cs`          | a drone's rotors heard: its motor, and from it, its speed and its id, its loop's pitch and volume | no |
 | `ServedBadge.cs`   | a machine's drone badge, at the right of its frame's header: shows and toggles whether drones serve it | yes |
-| `LogisticsView.cs` | in the world: drones in flight with their cargo and their lamps' light, taking off and landing; docked drones, their pads' strips, charge lamps and light; a bay's beacon; a bay's zone | yes |
+| `LogisticsView.cs` | in the world: drones in flight with their cargo and their lamps' light, taking off and landing; docked drones, their pads' strips, charge lamps and light; a bay's beacon; a bay's zone; drones heard | yes |
 
-`Served.cs` and `Hover.cs` are compiled again into `game.tests/` (`ServedTests`, `HoverTests`). The testbed (`-- --testbed`) runs two drones from a
+`Served.cs`, `Hover.cs` and `Whir.cs` are compiled again into `game.tests/` (`ServedTests`, `HoverTests`, `DroneSoundTests`). The testbed (`-- --testbed`) runs two drones from a
 powered bay in room one through the closed door, keeping the furnace, the Former and the grow capsule going from the
 supply crate of twenty stacks of chunks by the pod, the farm's crate switched off, for ten minutes in air three
 generators keep (`TestbedTests`); `--open=droneBay` shows the bay's frame and zone
@@ -66,10 +67,15 @@ starts the hero in the middle of the room, and `--card=droneBay --pick` holds a 
   launched from a pad a drone is still landing on takes that drone over, never having touched down. One gone with no pad
   filled (dropped, or home to a full bay) is gone at once. A drone already in the air when the view starts (a load, a
   join) is met where it is.
+- **Heard** (`features/sound/README.md` has the numbers): each drone's rotors where it is drawn, a loop spun up as it
+  lifts off and down once it touches down or drops, higher and louder as it flies faster, wavering, each drone tuned
+  apart (`Whir`); a thud as it lifts off its pad and as it touches down; a click as its clamp takes a stack and as it
+  puts some or all of it in (`Served.Gripped`). All on World with a station's reach, quieter than a station at work.
 
 ## Deliberately not handled
 
-- No sound: drones, bays and the switch wait for the user's audition of candidates.
+- The bay and the badge's switch are silent; so is a drone flying home low: its amber lamp says it (the user picked no
+  warning). A clamp putting cargo down on the floor, its target gone, clicks as a delivery does.
 - A drone flies in front of the machines and heroes it passes, never behind; tilted, its pixels are turned, not redrawn.
 - A drone landing reads its pad from the slots alone: two drones of one bay docking the same tick take the two pads
   nearest each, in the order the view meets them.

@@ -54,4 +54,8 @@ public static class Served
             else if (was[i] && !now[i]) emptied.Add(i);
         }
     }
+
+    /// <summary>Whether a drone's clamp worked between two reads of its cargo: it took a stack, or put some or all of it in.</summary>
+    public static bool Gripped((string Item, int Count)? was, (string Item, int Count)? now) =>
+        was is not { } w ? now != null : now is not { } n || n.Item != w.Item || n.Count < w.Count;
 }

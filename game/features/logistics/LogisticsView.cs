@@ -10,6 +10,7 @@ using Stillwake.Sim.Items;
 using Stillwake.Sim.Logistics;
 using Stillwake.Sim.Power;
 using L = Stillwake.Game.DroneLook;
+using S = Stillwake.Game.Sound;
 using Tune = Stillwake.Content.Logistics;
 
 namespace Stillwake.Game.Features.Logistics;
@@ -19,7 +20,9 @@ namespace Stillwake.Game.Features.Logistics;
 /// spring, leaning, bobbing and swinging its cargo from its clamp (<see cref="Hover"/>), its eye and status lamp unlit
 /// over it; taking off from its pad and landing back on one. A bay's docked drones on its pads, each pad's charge lamps,
 /// its strip and light pulsing green while it charges, and the beacon on its top while it has power. A bay's zone
-/// outlined, dashed sky, while its frame is open or a bay's card is in hand, where it would stand.
+/// outlined, dashed sky, while its frame is open or a bay's card is in hand, where it would stand. Heard where they are:
+/// each drone's rotors while it flies (<see cref="Whir"/>), a thud as it lifts off its pad and as it touches down, and a
+/// click as its clamp takes a stack or puts it in.
 /// </summary>
 public partial class LogisticsView : Node2D
 {
@@ -53,11 +56,19 @@ public partial class LogisticsView : Node2D
     private readonly Node2D _zones = new() { ZIndex = Layers.Overlay, Material = Unlit };
     private readonly List<Glow> _padGlows = [], _lampGlows = [];
     private readonly List<Rect2> _outlined = [];
+    private readonly Heard2D _dock = Cues.Player2D(S.DroneDock, S.World, voices: 4), _grab = Cues.Player2D(S.DroneGrab, S.World, voices: 4);
 
-    /// <summary>A drone drawn: in the air while the sim flies it, then landing on <see cref="Slot"/> of its bay till it touches down.</summary>
-    private sealed class Flier(int id)
+    /// <summary>
+    /// A drone drawn: in the air while the sim flies it, then landing on <see cref="Slot"/> of its bay till it touches down;
+    /// then, <see cref="Down"/>, only heard, its motor running down.
+    /// </summary>
+    private sealed class Flier(int id, Heard2D loop)
     {
+        /// <summary>The id it was first drawn as: its bob, its rotors and its tuning stay its own when another launch takes it over.</summary>
+        public int Id { get; } = id;
         public Hover Hover { get; } = new(id);
+        public Heard2D Loop { get; } = loop;
+        public Whir Whir;
         public int Bay;
         /// <summary>The pad it takes off from, and the seconds left holding over it.</summary>
         public int From = -1;
@@ -65,8 +76,8 @@ public partial class LogisticsView : Node2D
         /// <summary>The pad it lands on, -1 while it flies; seconds into its landing.</summary>
         public int Slot = -1;
         public double Landed;
-        public bool Low, Seen;
-        public string? Cargo;
+        public bool Low, Seen, Down;
+        public (string Item, int Count)? Cargo;
     }
 
     /// <summary>A bay as read this frame: its corner, its slots, whether it has power and charges.</summary>
@@ -105,6 +116,8 @@ public partial class LogisticsView : Node2D
         _flying.Draw += DrawFlying;
         _eyes.Draw += DrawEyes;
         _zones.Draw += DrawZones;
+        AddChild(_dock);
+        AddChild(_grab);
     }
 
     public override void _Process(double delta)
@@ -167,8 +180,9 @@ public partial class LogisticsView : Node2D
     }
 
     /// <summary>
-    /// Every drone the sim flies followed on its spring, a new one taking off from the pad it left; one gone from the sim
-    /// into a pad of its bay landing there, one gone otherwise (dropped) gone at once.
+    /// Every drone the sim flies followed on its spring, a new one taking off from the pad it left, its clamp heard as its
+    /// cargo comes and goes; one gone from the sim into a pad of its bay landing there, one gone otherwise (dropped) no
+    /// longer drawn. Each heard till its motor has run down, then let go.
     /// </summary>
     private void Follow(double delta)
     {
@@ -178,7 +192,9 @@ public partial class LogisticsView : Node2D
         foreach (var d in _logistics.Drones)
         {
             if (!_fliers.TryGetValue(d.Id, out var f)) f = Launched(d);
-            (f.Seen, f.Low, f.Cargo) = (true, LogisticsModule.Low(d), d.Cargo?.Item);
+            (string, int)? cargo = d.Cargo is { } c ? (c.Item, c.Count) : null;
+            if (Served.Gripped(f.Cargo, cargo)) _grab.PlayAt(ToGlobal(At(f)));
+            (f.Seen, f.Low, f.Cargo) = (true, LogisticsModule.Low(d), cargo);
             if (f.Hold > 0 && _bays.TryGetValue(f.Bay, out var bay))
             {
                 f.Hold -= delta;
@@ -193,18 +209,49 @@ public partial class LogisticsView : Node2D
             f.Hover.Step(delta, x / Unit * Cell, y / Unit * Cell - Hover.Lift(solid, Look),
                 Math.Sign(toX - d.X) * Cruise, Math.Sign(toY - d.Y) * Cruise, 1, Cruise, Look);
         }
+        foreach (var f in _fliers.Values)
+            if (!f.Seen && !f.Down && (f.Slot < 0 ? !Lands(f) : !Landing(f, delta))) f.Down = true;
         _gone.Clear();
         foreach (var (id, f) in _fliers)
         {
-            if (f.Seen) continue;
-            if (f.Slot < 0 ? !Lands(f) : !Landing(f, delta)) _gone.Add(id);
+            Hear(f, delta);
+            if (f.Down && !f.Whir.Playing) _gone.Add(id);
         }
-        foreach (int id in _gone) _fliers.Remove(id);
+        foreach (int id in _gone)
+        {
+            _fliers[id].Loop.QueueFree();
+            _fliers.Remove(id);
+        }
+    }
+
+    private static Vector2 At(Flier f) => new((float)f.Hover.X, (float)f.Hover.Y);
+
+    /// <summary>Drone <paramref name="f"/>'s rotors heard where it is: its motor running while it is in the air, its loop's pitch and volume from it, its speed and its id.</summary>
+    private static void Hear(Flier f, double delta)
+    {
+        f.Whir.Step(!f.Down, delta);
+        var loop = f.Loop;
+        loop.Position = At(f);
+        // Begun somewhere along its loop, so two drones never whir in step.
+        if (f.Whir.Playing && !loop.Playing) loop.Play((float)(Random.Shared.NextDouble() * 2));
+        else if (!f.Whir.Playing && loop.Playing) loop.Stop();
+        double speed = f.Hover.Speed(Cruise);
+        loop.PitchScale = f.Whir.Pitch(f.Id, speed);
+        loop.OffsetDb = f.Whir.GainDb(f.Id, speed);
+    }
+
+    /// <summary>A new drawn drone, its rotors' loop with it.</summary>
+    private Flier New(int id, int bay)
+    {
+        var f = new Flier(id, Cues.Player2D(S.DroneWhir, S.World)) { Bay = bay };
+        AddChild(f.Loop);
+        return f;
     }
 
     /// <summary>
     /// A drone new to the sim's list: from the first frame on, one launched from the pad of its bay that stopped holding a
-    /// drone (taking over the one landing there, which never touched down); before it, one already in the air.
+    /// drone, with a thud as it lifts off (taking over the one landing there, which then never touched down, or the one
+    /// that touched down there, its motor still running down); before it, one already in the air.
     /// </summary>
     private Flier Launched(Drone d)
     {
@@ -217,17 +264,23 @@ public partial class LogisticsView : Node2D
                 if (!landing.Seen && landing.Bay == d.Bay && landing.Slot == slot)
                 {
                     _fliers.Remove(id);
-                    (landing.Slot, landing.Landed, landing.Hold) = (-1, 0, 0);
+                    bool landed = landing.Down;
+                    (landing.Slot, landing.Landed, landing.Down) = (-1, 0, false);
+                    (landing.Hold, landing.From) = landed ? (L.LaunchHoldS, slot) : (0, -1);
+                    if (landed) _dock.PlayAt(ToGlobal(PadCentre(bay.Corner, slot)));
                     return _fliers[d.Id] = landing;
                 }
-            var f = new Flier(d.Id) { Bay = d.Bay, Hold = L.LaunchHoldS, From = slot };
+            var f = New(d.Id, d.Bay);
+            (f.Hold, f.From) = (L.LaunchHoldS, slot);
             var pad = PadCentre(bay.Corner, slot);
             f.Hover.Place(pad.X, pad.Y);
+            _dock.PlayAt(ToGlobal(pad));
             return _fliers[d.Id] = f;
         }
-        var flier = new Flier(d.Id) { Bay = d.Bay };
+        var flier = New(d.Id, d.Bay);
         flier.Hover.Place(d.X / Unit * Cell, d.Y / Unit * Cell - Look.Lift);
         flier.Hover.Spin = 1;
+        flier.Cargo = d.Cargo is { } c ? (c.Item, c.Count) : null;
         return _fliers[d.Id] = flier;
     }
 
@@ -249,7 +302,10 @@ public partial class LogisticsView : Node2D
         return true;
     }
 
-    /// <summary>A landing drone moved on <paramref name="delta"/>: over its pad, then down onto it; whether it is still in the air.</summary>
+    /// <summary>
+    /// A landing drone moved on <paramref name="delta"/>: over its pad, then down onto it, touching down with a thud; whether
+    /// its pad still holds it.
+    /// </summary>
     private bool Landing(Flier f, double delta)
     {
         if (!_bays.TryGetValue(f.Bay, out var bay) || !bay.Docked[f.Slot]) return false;
@@ -257,14 +313,19 @@ public partial class LogisticsView : Node2D
         var (above, spinTo, down) = Hover.Landing(f.Landed);
         var pad = PadCentre(bay.Corner, f.Slot);
         f.Hover.Step(delta, pad.X, pad.Y - above, 0, 0, spinTo, Cruise, Look);
-        return !down;
+        if (down)
+        {
+            f.Down = true;
+            _dock.PlayAt(ToGlobal(pad));
+        }
+        return true;
     }
 
     /// <summary>Whether pad <paramref name="slot"/> of bay <paramref name="bay"/> has a drone landing on it, drawn in the air till it touches down.</summary>
     private bool LandingOn(int bay, int slot)
     {
         foreach (var f in _fliers.Values)
-            if (f.Bay == bay && f.Slot == slot && !f.Seen) return true;
+            if (f.Bay == bay && f.Slot == slot && !f.Seen && !f.Down) return true;
         return false;
     }
 
@@ -297,6 +358,7 @@ public partial class LogisticsView : Node2D
         int n = 0;
         foreach (var f in _fliers.Values)
         {
+            if (f.Down) continue;
             var (x, y) = f.Hover.Body(L.LampX - L.AnchorX, L.LampY - L.AnchorY, f.Hover.Bob(Cruise, Look));
             if (f.Low && Blink()) Light(_lampGlows, n++, new Vector2((float)x, (float)y), Amber * L.LowLight);
             else if (!f.Low && f.Hover.Spin > 0.5) Light(_lampGlows, n++, new Vector2((float)x, (float)y), Sky * L.WorkLight);
@@ -399,10 +461,11 @@ public partial class LogisticsView : Node2D
     {
         foreach (var f in _fliers.Values)
         {
+            if (f.Down) continue;
             Turn(_flying, f);
             _flying.DrawTextureRect(PixelArt.Lit(Fly[f.Hover.Frame]), FlyRect, false);
             _flying.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
-            if (f.Cargo is not { } item) continue;
+            if (f.Cargo is not var (item, _)) continue;
             double bob = f.Hover.Bob(Cruise, Look);
             var (cx, cy) = f.Hover.Body(0, L.Clamp, bob);
             var (x, y) = f.Hover.Cargo(bob);
@@ -420,6 +483,7 @@ public partial class LogisticsView : Node2D
     {
         foreach (var f in _fliers.Values)
         {
+            if (f.Down) continue;
             Turn(_eyes, f);
             _eyes.DrawTextureRect(PixelArt.Picture("drone_eye"), FlyRect, false);
             if (f.Low ? Blink() : f.Hover.Spin > 0.5)

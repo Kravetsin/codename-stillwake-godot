@@ -92,10 +92,17 @@ to set before anything moved. This version replaces it.
   fire machines, queued stations): a drone on sky while served and reached, dim and crossed while switched off, grey
   where no bay reaches; the one tooltip says which and what a click does. A bay's frame shows four drone slots, each
   slot's bar its drone's charge (green, amber under a quarter), and a bolt with what it draws, lit while it charges;
-  its pads light where drones dock; its zone is outlined, dashed sky, while its frame is open or a bay blueprint is in
-  hand. A flying drone is a small body with two rotors, drawn by code, its cargo's icon under it, smoothed between
-  ticks; one flying home low blinks an amber light that lights round it. No seconds anywhere. No sound yet: it waits
-  for the user's audition.
+  its zone is outlined, dashed sky, while its frame is open or a bay blueprint is in hand. No seconds anywhere.
+- **The look and the sound** (the user's picks, "Drone Look Concepts" and "Drone Sound Audition", 2026-10-18): the drone
+  is a steel quad, the bay a perch with four pads (`game/Content/DroneLook.cs`). A flying drone is its picture, lit
+  with relief, on a spring after the sim ("lively": it leans into its speed and acceleration, bobs, faces its way, and
+  its cargo swings from a clamp), 8 pixels over its cell's centre or 2 under a solid cell; it takes off from the pad it
+  left and lands on the one it docks in. Its lamp is sky while it works and blinks amber flying home low; a docked
+  drone shows its charge in four lamps by quarters, its pad's strip pulses green while it charges, and the perch's
+  beacon shines while the bay has power. Heard, all quieter than a station at work: one loop a drone, a fan's air whose
+  pitch and volume follow its motor and speed and waver, each drone tuned apart (−36 LUFS standing); the same soft thud
+  and latch as it lifts off and touches down (−33); a small switch's click as its clamp takes a stack or puts it in
+  (−35); no beep for a low drone. All client-side: the sim is unchanged, and each peer draws and plays what it sees.
 
 ## Rejected
 
