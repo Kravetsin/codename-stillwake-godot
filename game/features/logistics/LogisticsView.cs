@@ -205,8 +205,8 @@ public partial class LogisticsView : Node2D
             int toX = d.To % width * (int)Unit + (int)Unit / 2, toY = d.To / width * (int)Unit + (int)Unit / 2;
             var (x, y) = Served.Smoothed(d.X, d.Y, toX, toY, Tune.Speed, progress);
             int cell = (int)(y / Unit) * width + (int)(x / Unit);
-            bool solid = cell < width || Hover.Solid(_grid.StructureAt(cell - width));
-            f.Hover.Step(delta, x / Unit * Cell, y / Unit * Cell - Hover.Lift(solid, Look),
+            int above = cell < width ? Structure.Wall : _grid.StructureAt(cell - width);
+            f.Hover.Step(delta, x / Unit * Cell, y / Unit * Cell - Hover.Lift(_grid.StructureAt(cell), above, Look),
                 Math.Sign(toX - d.X) * Cruise, Math.Sign(toY - d.Y) * Cruise, 1, Cruise, Look);
         }
         foreach (var f in _fliers.Values)

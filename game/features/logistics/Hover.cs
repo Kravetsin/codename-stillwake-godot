@@ -112,8 +112,15 @@ public sealed class Hover
         return (cx + Math.Sin(Swing) * L.Tether, cy + Math.Cos(Swing) * L.Tether);
     }
 
-    /// <summary>How far over its cell's centre a drone flies: <c>Lift</c>, or <c>LiftUnder</c> under a solid cell, so it never pokes into a ceiling.</summary>
-    public static double Lift(bool solidAbove, L.Motion m) => solidAbove ? m.LiftUnder : m.Lift;
+    /// <summary>
+    /// How far over its cell's centre a drone flies, by the structure of its cell (<paramref name="here"/>) and of the one
+    /// above: <c>LiftUnder</c> under a solid cell, so it never pokes into a ceiling, else <c>Lift</c>. Inside a door, the
+    /// door's own cells above are no ceiling: it flies through at its height, and dips only under the wall over the door.
+    /// </summary>
+    public static double Lift(int here, int above, L.Motion m) =>
+        Solid(above) && !(IsDoor(here) && IsDoor(above)) ? m.LiftUnder : m.Lift;
+
+    private static bool IsDoor(int structure) => structure is Structure.DoorClosed or Structure.DoorOpen;
 
     /// <summary>Whether a cell of <paramref name="structure"/> is solid over a drone: a wall, a floor or a closed door; none above the grid's top.</summary>
     public static bool Solid(int structure) => structure is Structure.Wall or Structure.Floor or Structure.DoorClosed;

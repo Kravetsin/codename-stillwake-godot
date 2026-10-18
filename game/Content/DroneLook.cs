@@ -9,7 +9,7 @@ public static class DroneLook
 {
     /// <summary>
     /// How a flying drone follows the sim (its "rig"): <paramref name="Lift"/> pixels over its cell's centre, or
-    /// <paramref name="LiftUnder"/> under a solid cell; bobbing <paramref name="BobAmp"/> pixels every
+    /// <paramref name="LiftUnder"/> under a solid cell (not a door's own cells inside it); bobbing <paramref name="BobAmp"/> pixels every
     /// <paramref name="BobPeriod"/> seconds; leaning into its speed <paramref name="TiltCruise"/> degrees and into its
     /// acceleration up to <paramref name="TiltMax"/>; a spring of <paramref name="SpringHz"/> and
     /// <paramref name="Damping"/> on the sim's place and speed; its cargo swinging up to about <paramref name="Swing"/> degrees.
