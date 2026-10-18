@@ -106,8 +106,8 @@ public class CraftsTests
     [Fact]
     public void SaysAUnitsTimeAtThePodInSecondsToATenth()
     {
-        // The pod at a fifth of full speed: a wire 5 s, a plate 10, a rotor 15, a frame 20, the harpoon 30.
-        Assert.Equal(["5", "10", "15", "20", "30"], new[] { "wire", "plate", "rotor", "frame", "harpoon" }.Select(c => Crafts.Seconds(c, Fabricator)));
+        // The pod at a fifth of full speed: a wire 5 s, a plate 10, a rotor 15, a frame 20, the harpoon 25.
+        Assert.Equal(["5", "10", "15", "20", "25"], new[] { "wire", "plate", "rotor", "frame", "harpoon" }.Select(c => Crafts.Seconds(c, Fabricator)));
         Assert.All(Content.Crafts.All, c => Assert.InRange(
             double.Parse(Crafts.Seconds(c.Item, Fabricator), System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond,
             c.Ticks * 1000 / Fabricator.Speed - 1, c.Ticks * 1000 / Fabricator.Speed + 1));

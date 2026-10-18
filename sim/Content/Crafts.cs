@@ -21,8 +21,9 @@ public static class Crafts
         new("frame", [("plate", 2)], Ticks: 80),
         new("coil", [("wire", 3)], Ticks: 60),
         new("fireAxe", [("iron", 2), ("planks", 1)], Ticks: 60),
-        new("harpoon", [("planks", 1), ("frame", 1), ("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 120),
-        new("jetpack", [("frame", 1), ("tube", 2), ("canister", 1), ("wire", 2)], Ticks: 120),
+        // The harpoon of what the jetpack is made of, and less, so it opens first (0068).
+        new("harpoon", [("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 100),
+        new("jetpack", [("frame", 1), ("tube", 2), ("coil", 1), ("circuit", 1), ("canister", 1), ("wire", 2)], Ticks: 160),
         new("battery", [("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 60),
         new("drill", [("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1), ("circuit", 2)], Ticks: 160),
         // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.

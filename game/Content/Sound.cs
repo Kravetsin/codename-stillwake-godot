@@ -93,6 +93,21 @@ public static class Sound
     /// <summary>A furnace's or burner generator's fire crackling while it burns, a station's sound (<see cref="StationReach"/>).</summary>
     public static readonly Cue Fire = Looped("furnace/fire", -13, StationReach);
     /// <summary>
+    /// How loud a hand tool is while it works nothing, its idle: the drill's motor running free (<see cref="DrillWhir"/>) and
+    /// the axe's swing (<see cref="Swing"/>). Their files are levelled alike, a train of whir grains at their rate and each
+    /// swing at −23.4 LUFS momentary, so this one value raises or lowers every idle tool sound together.
+    /// </summary>
+    public const float ToolIdleDb = -8;
+
+    /// <summary>
+    /// This player's own axe swung (0068), every swing, a wreck hit or nothing: a staff's whoosh, one of four, its pitch
+    /// ±8%, on the Suit bus through the body as the chop is, so muffled the same in space. Each file's loudest moment lies
+    /// <see cref="SwingPeakS"/> in, and it plays so that moment falls in the middle of the downstroke.
+    /// </summary>
+    public static readonly Cue Swing = new(Shots("crew/axe-swing", 4), ToolIdleDb, Pitch: 0.08f);
+    public const double SwingPeakS = 0.065;
+
+    /// <summary>
     /// This player's own axe biting into a wreck (0034, 0042), heard where the wreck is: on the Suit bus,
     /// through the glove, as a wreck is only ever out in space; another hero's hit there is silent.
     /// </summary>
@@ -111,9 +126,9 @@ public static class Sound
     /// This player's drill's motor (0059), heard at its bit on the Suit bus whenever it spins, on a piece or at nothing: grains of
     /// a cordless drill running free, 150 ms each, <see cref="DrillWhirGrainsPerSecond"/> of them a second at full speed (fewer
     /// and lower as it spins up or down), overlapping, each its pitch within ±<see cref="DrillWhirPitch"/> of the motor's speed.
-    /// Never a long recording looped. 6 dB under the strikes, as the user chose it.
+    /// Never a long recording looped. 6 dB under the strikes, as the user chose it; at <see cref="ToolIdleDb"/>.
     /// </summary>
-    public static readonly Cue DrillWhir = new(Shots("debris/drill-whir", 3), -8, Pitch: 0, Heard: new(5, 20));
+    public static readonly Cue DrillWhir = new(Shots("debris/drill-whir", 3), ToolIdleDb, Pitch: 0, Heard: new(5, 20));
     public const float DrillWhirGrainsPerSecond = 9, DrillWhirPitch = 0.02f;
 
     /// <summary>
@@ -238,7 +253,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, DrillStrike, Break, Shot, Drum, Ready, Breathe, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab];
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, DrillStrike, Break, Shot, Drum, Ready, Breathe, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;
