@@ -61,7 +61,8 @@ public static class Items
         new("planks", 50, BurnTicks: 400),
         new("scrapChunk", 10, Yields: [("scrap", 4)], SmeltTicks: 60),
         new("hullPlate", 5, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100),
-        // Broken out of asteroids (0054); smelted into silicon at a furnace or the electric smelter.
+        // Broken out of asteroids (0054); smelted into silicon at a furnace or the electric smelter. Players see
+        // "Asteroid ore"; the id stays rock, so saves need no migration.
         new("rock", 10, Yields: [("silicon", 2)], SmeltTicks: 160),
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1),

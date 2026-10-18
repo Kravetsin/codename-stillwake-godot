@@ -43,7 +43,7 @@ A living document: what is decided about the game and what is still open. Techni
   yet has a violet "?" in its slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
   item in it goes into, opened or still closed; nothing pops up over the hero. Every electric thing
   is built of circuits, salvaged from the electronics racks that drift by, and later made at the circuit
-  assembler of silicon from asteroid rock and wire: the battery and the charging station a circuit each, the drill
+  assembler of silicon from asteroid ore and wire: the battery and the charging station a circuit each, the drill
   two. The solar panel is built of solar cells, silicon and glass (smelted on from silicon in the electric smelter)
   assembled with wire, so a first new panel takes the whole chain
   ([0024](decisions/0024-blueprints-are-learned-by-analysis.md),
@@ -67,7 +67,7 @@ A living document: what is decided about the game and what is still open. Techni
   ([0057](decisions/0057-stations-one-model-for-every-crafting-machine.md)).
 - **The farm** grows what the ship burns: seeds come from supply pods, one or two in every other pod, and from
   soil clods, earth torn from some ship's farm drifting by now and then with a sprout, broken into one to three
-  seeds and a little soil; soil is pressed at the Former of rock and planks; a grow capsule, a glass capsule on a base built of soil, glass, a frame,
+  seeds and a little soil; soil is pressed at the Former of asteroid ore and planks; a grow capsule, a glass capsule on a base built of soil, glass, a frame,
   a circuit and wire, grows a planted seed under its pink lamp on power in eight minutes, the plant rising through
   four pictures, into 4 biomass and none, one or two seeds, so the farm slowly eats its seeds and salvage refills
   them. Biomass smelts into biofuel at the furnace or the smelter, the fuel the engine will burn on the first jump
