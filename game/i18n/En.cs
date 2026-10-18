@@ -307,6 +307,8 @@ public static partial class En
         ["items.tooSoon"] = "Just dropped",
         ["items.empty"] = "Nothing there",
         ["items.noCrate"] = "There is no crate here",
+        ["items.notCrate"] = "Only a crate is sorted",
+        ["items.sort"] = "Sort",
         ["items.noSlot"] = "There is no such slot",
         ["items.notEquipment"] = "That is not worn there",
         ["items.notBattery"] = "Only a battery charges here",

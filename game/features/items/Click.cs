@@ -61,6 +61,12 @@ public static class Clicks
     }
 
     /// <summary>
+    /// <paramref name="picked"/> while its slot, holding <paramref name="now"/>, still holds the <paramref name="item"/> it was
+    /// picked as; emptied by a friend at a crate, or holding another item after a sort or a swap, it is let go.
+    /// </summary>
+    public static Picked? StillHeld(Picked? picked, string? item, Stack? now) => picked is { } p && now != null && now.Item == item ? p : null;
+
+    /// <summary>
     /// Where a shift-click sends a stack, or nowhere. Quick equip, as Terraria's: an item of the hero's own
     /// that is worn goes onto the first free equipment slot of its kind, or swaps with the first worn there;
     /// what is worn goes onto the first free own slot, the hotbar first. A battery goes into an open charging

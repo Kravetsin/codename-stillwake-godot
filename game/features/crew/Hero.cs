@@ -10,7 +10,8 @@ namespace Stillwake.Game.Features.Crew;
 public readonly record struct Point(int X, int Y);
 
 /// <summary>
-/// What the player holds during one step; <see cref="Y"/> is -1 for up. <see cref="Jump"/> is set once
+/// What the player holds during one step; <see cref="Y"/> is -1 for up, 1 for down: down a ladder, else into
+/// a hole one cell wide or through the floors stood on. <see cref="Jump"/> is set once
 /// per press. <see cref="Face"/> is the side the pointer is on, which the hero faces whichever way it
 /// walks; with none, it faces the way it walks; swimming, the way it swims. <see cref="Sprint"/>, Shift
 /// held, runs aboard; in space it only thrusts, with a jetpack worn. <see cref="Swings"/>, the axe
@@ -84,8 +85,8 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
 
     /// <summary>
     /// One controller step. Walls, closed doors and the grid's edges block; floors and the tops of
-    /// ladders hold the hero up but let them through from below; ladders are climbed while held. With
-    /// the body in space there is no gravity: the hero swims where the keys point and stops with them,
+    /// ladders hold the hero up but let them through from below, and down drops through floors; ladders are
+    /// climbed while held. With the body in space there is no gravity: the hero swims where the keys point and stops with them,
     /// on a tether that keeps the body's middle within <see cref="Spec.Tether"/> of where it left the ship;
     /// with a jetpack worn, untethered and flying on (<see cref="HeroInput.Jetpack"/>).
     /// </summary>
@@ -157,14 +158,24 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
             return Fall(ship, hero.X, hero.Y, input.X, input.Jump ? -Spec.Jump : 0, facing, input.Sprint);
         }
         int vy = input.Jump && Grounded(ship, hero.X, hero.Y) ? -Spec.Jump : hero.Vy;
-        return Fall(ship, hero.X, hero.Y, input.X, vy, facing, input.Sprint);
+        return Fall(ship, hero.X, hero.Y, input.X, vy, facing, input.Sprint, input.Y > 0 && !input.Jump);
     }
 
-    private static Hero Fall(Ship ship, int x, int y, int dir, int vy, int facing, bool sprint)
+    /// <summary>
+    /// A step under gravity. Standing, a walk stops where the body first fits a hole below it (<see cref="Caught"/>),
+    /// <paramref name="down"/> with no walk slides the body into the hole under its middle (<see cref="Slid"/>), and
+    /// <paramref name="down"/> on floors alone drops through them (<see cref="OnFloors"/>).
+    /// </summary>
+    private static Hero Fall(Ship ship, int x, int y, int dir, int vy, int facing, bool sprint, bool down = false)
     {
         int speed = Math.Min(vy + Spec.Gravity, Spec.MaxFall);
-        int nx = MoveX(ship, x, y, dir * (sprint ? Spec.Run : Spec.Walk));
-        int ny = MoveY(ship, nx, y, speed, false);
+        bool standing = vy >= 0 && Grounded(ship, x, y);
+        int nx = standing && dir == 0 && down ? Slid(ship, x, y) : MoveX(ship, x, y, dir * (sprint ? Spec.Run : Spec.Walk));
+        if (standing && dir != 0) nx = Caught(ship, x, nx, y);
+        // Feet a thousandth into the floor's row: a row the feet are in is never landed on (MoveY).
+        int ny = standing && down && OnFloors(ship, nx, y)
+            ? MoveY(ship, nx, y + 1, speed - 1, false)
+            : MoveY(ship, nx, y, speed, false);
         return new Hero(nx, ny, nx - x, ny - y == speed ? speed : 0, false, facing);
     }
 
@@ -248,6 +259,57 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     }
 
     private static bool Grounded(Ship ship, int x, int y) => MoveY(ship, x, y, 1, false) == y;
+
+    /// <summary>
+    /// Where a hero standing at <paramref name="y"/> and walking from <paramref name="x"/> to <paramref name="nx"/>
+    /// stops: at the first place on the way where its body fits over a hole below the feet, or
+    /// <paramref name="nx"/>. A step is longer than the 50 thousandths a cell leaves beside the body, so
+    /// unstopped a walk steps over a hole one cell wide or into it by where it began (playtest 1).
+    /// </summary>
+    private static int Caught(Ship ship, int x, int nx, int y)
+    {
+        int row = CellOf(y);
+        int dir = Math.Sign(nx - x);
+        for (int c = CellOf(x); c != CellOf(nx) + dir; c += dir)
+        {
+            if (!Open(ship, c, row)) continue;
+            int lo = c * Unit + Half, hi = (c + 1) * Unit - Half;
+            if (dir > 0 && x < lo && nx >= lo) return Math.Min(nx, hi);
+            if (dir < 0 && x > hi && nx <= hi) return Math.Max(nx, lo);
+        }
+        return nx;
+    }
+
+    /// <summary>
+    /// <paramref name="x"/> moved a walk's step at most toward where the body fits over the hole under its
+    /// middle, if there is one below the feet: down over a hole drops the hero in.
+    /// </summary>
+    private static int Slid(Ship ship, int x, int y)
+    {
+        int c = CellOf(x);
+        if (!Open(ship, c, CellOf(y))) return x;
+        int to = Math.Clamp(x, c * Unit + Half, (c + 1) * Unit - Half);
+        return MoveX(ship, x, y, Math.Clamp(to - x, -Spec.Walk, Spec.Walk));
+    }
+
+    /// <summary>
+    /// Whether what holds up a hero standing at (<paramref name="x"/>, <paramref name="y"/>) is floors only,
+    /// which down drops through: no wall, closed door or ladder top under any part of the feet.
+    /// </summary>
+    private static bool OnFloors(Ship ship, int x, int y)
+    {
+        int row = CellOf(y);
+        bool floor = false;
+        for (int c = CellOf(x - Half); c <= CellOf(x + Half - 1); c++)
+        {
+            if (Solid(ship, c, row) || Climbable(ship, c, row)) return false;
+            floor |= StructureAt(ship, c, row) == Structure.Floor;
+        }
+        return floor;
+    }
+
+    /// <summary>Whether a cell lets a hero fall into it from above: nothing in it blocks or holds.</summary>
+    private static bool Open(Ship ship, int x, int y) => !Solid(ship, x, y) && !Holds(ship, x, y, false);
 
     /// <summary>Whether the hero's column holds a ladder beside the body, or also just below the feet.</summary>
     private static bool TouchesLadder(Ship ship, int x, int y, bool belowFeet)

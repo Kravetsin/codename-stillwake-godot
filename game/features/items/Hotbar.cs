@@ -4,7 +4,7 @@ namespace Stillwake.Game.Features.Items;
 public static class Hotbar
 {
     /// <summary>Slots in a row: the inventory's first row is the hotbar, chosen with keys 1 to 9 or the wheel.</summary>
-    public const int Row = 9;
+    public const int Row = Content.Inventory.Hotbar;
 
     /// <summary>The digit in hotbar slot <paramref name="slot"/>'s corner: the key that chooses it, 1 for the first.</summary>
     public static string KeyOf(int slot) => (slot + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);

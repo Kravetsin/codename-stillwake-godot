@@ -88,7 +88,7 @@ public sealed record Reading(
     public static Reading Of(
         int peer, IReadOnlyList<Command> inFlight, IItemsQueries items, IGridQueries grid, IResearchQueries research, int? crate)
     {
-        var moves = inFlight.Where(c => c is Move or Drop).ToList();
+        var moves = inFlight.Where(c => c is Move or Drop or Sort).ToList();
         var shown = items.AfterMoves(peer, moves);
         IReadOnlyList<Stack?>? slots = null;
         string? kind = null;

@@ -6,7 +6,7 @@ This machine's items, ported from `apps/game/src/features/items/` and the item p
 registry, the debris module's `CaughtFrom` for what its own catches gave, the furnace module's `At` for a furnace or a burner generator (`InventoryPanel.Furnace`)
 and the power module's `Charges` for a charging station (`InventoryPanel.Charger`), and changes it only
 by sending `Move`,
-`Drop` and `PickUp`.
+`Drop`, `PickUp` and `Sort`.
 
 ## Files
 
@@ -15,10 +15,11 @@ by sending `Move`,
 | `Click.cs`         | the click rules (`click.ts`) and quick equip (0047): `Clicks.On`, `Picked`, `SlotClick`, `Clicked`| no    |
 | `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`); the digit each slot shows, the key that chooses it | no    |
 | `Equipment.cs`     | the equipment slots by kind, and which light up or dim while a stack is carried (`SlotGlow`, 0047) | no    |
-| `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s and `Drop`s in flight (0014); which items are marked unanalysed, or smelted, burnt or grown by the open machine (`MarkOf`), a stack's tip | no    |
+| `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s, `Drop`s and `Sort`s in flight (0014); which items are marked unanalysed, or smelted, burnt or grown by the open machine (`MarkOf`), a stack's tip | no    |
 | `Lessons.cs`       | an analyzer's panel: its stage, how far, what an analysed item goes into, each one's tip (0027) | no    |
 | `Reach.cs`         | `HeroSpot`; pick-ups (`pickup.ts`)                                                           | no    |
 | `OwnCatches.cs`    | what this peer's own grabs of debris put into its inventory, once each as they run            | no    |
+| `SortButton.cs`    | the sort button: a small square with three bars and an arrow down, drawn in code, lighter under the pointer (0008) | yes   |
 | `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, its corner's mark: the open station's flame or sprout, or the violet "?" of an item not analysed; an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
@@ -82,6 +83,11 @@ as everything E works is, in the crew feature (`AimTests`).
   its name (`tool.<kind>`) in bold and, for one on the power grid, a bolt and its power in the header, lit
   while it works and dark at 0 otherwise (a burner generator's is what it makes, lit while it burns, an
   analyzer's lit while it analyses); then its body, below.
+- **Sorting** (0008): a small sort button (`SortButton`, its tip "Sort") sits in the top-right corner of the bag's
+  panel, right of its grid, and in an open crate's frame header, left of the drone badge; only a crate has one. A click
+  sends `Sort` for the bag or that crate and shows it at once (`Reading`). It puts a picked stack back first: its
+  slot may hold another item after. A stack picked whose slot comes to hold another item, by a friend's sort or swap
+  at a shared crate, is let go as one emptied is (`Clicks.StillHeld`). No key sorts.
 - What the free hand holds (`Ui.Wielded`, 0034): the item in the chosen slot while the hand is free,
   else none, set on every refresh; the crew swings the fire axe and aims the harpoon by it.
 - Tab opens and closes the inventory; Esc closes it and the crate, and puts the plan away with them,

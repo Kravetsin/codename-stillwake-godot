@@ -8,7 +8,8 @@ public sealed partial class ItemsModule
     /// Mostly moves, from the sender's own inventory or a crate holding something, so most are taken;
     /// now and then from an empty slot, a slot out of range, a crate that is not there, or onto a full
     /// or other stack, or into an equipment slot that does not wear it, so every refusal is drawn too; now
-    /// and then a battery into a charging station or onto the belt (<see cref="ToStationOrBelt"/>).
+    /// and then a battery into a charging station or onto the belt (<see cref="ToStationOrBelt"/>), or a sort
+    /// of the bag or of a machine, a crate or not (<c>items.notCrate</c>) or none (<c>items.noCrate</c>).
     /// Creative mode switches now and then, mostly off; now and then a run of an electric tool (<see cref="RunOrStop"/>). Now and then a drop onto a cell, off the grid
     /// too, or a pick-up of a stack on the floor or of one long gone.
     /// </summary>
@@ -21,6 +22,8 @@ public sealed partial class ItemsModule
         int AnyCrate() => State.Crates.Count > 0 && rng.Below(4) != 0
             ? State.Crates[(int)rng.Below((uint)State.Crates.Count)].Id
             : (int)rng.Below(6);
+        // Now and then a sort: of the bag, or of a machine, mostly one holding something; refused for a furnace or none.
+        if (rng.Below(12) == 0) return new Sort(rng.Below(3) == 0 ? null : AnyCrate()) { From = from };
         int SlotIn(Stack?[]? slots, int size)
         {
             var filled = new List<int>();

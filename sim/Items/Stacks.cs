@@ -242,6 +242,44 @@ internal static class Stacks
     }
 
     /// <summary>
+    /// <paramref name="slots"/> with those from <paramref name="start"/> up to <paramref name="end"/> sorted (0008):
+    /// stacks alike (<see cref="Alike"/>) merged up to their limit, the full ones first, then laid from
+    /// <paramref name="start"/> in order of <see cref="ItemGroup"/>, item id (ordinal), charge, fullest first, and
+    /// count, largest first; empty slots after. Every item and every charge kept; the other slots untouched.
+    /// </summary>
+    public static Stack?[] Sorted(IReadOnlyList<Stack?> slots, int start, int end)
+    {
+        var merged = new List<(Stack Like, int Count)>();
+        for (int i = start; i < end; i++)
+        {
+            if (slots[i] is not { } s) continue;
+            int at = merged.FindIndex(m => Alike(m.Like, s));
+            if (at < 0) merged.Add((s, s.Count));
+            else merged[at] = (merged[at].Like, merged[at].Count + s.Count);
+        }
+        var stacks = new List<Stack>();
+        foreach (var (like, count) in merged)
+        {
+            int limit = Content.Items.Get(like.Item).Stack;
+            for (int left = count; left > 0; left -= limit) stacks.Add(like with { Count = Math.Min(left, limit) });
+        }
+        stacks.Sort(SortOrder);
+        var sorted = Copy(slots);
+        for (int i = start; i < end; i++) sorted[i] = i - start < stacks.Count ? stacks[i - start] : null;
+        return sorted;
+    }
+
+    /// <summary>A total order of stacks: only stacks equal in every field tie, and those are interchangeable.</summary>
+    private static int SortOrder(Stack a, Stack b)
+    {
+        int order = Content.Items.Get(a.Item).Group.CompareTo(Content.Items.Get(b.Item).Group);
+        if (order == 0) order = string.CompareOrdinal(a.Item, b.Item);
+        if (order == 0) order = b.Charge.CompareTo(a.Charge);
+        if (order == 0) order = b.Count.CompareTo(a.Count);
+        return order;
+    }
+
+    /// <summary>
     /// <c>items.notEquipment</c> when an equipment slot of <paramref name="inventory"/>, an inventory's
     /// slots, holds an item not worn in its kind of slot (<c>ItemSpec.Equip</c>); null when each holds its own.
     /// </summary>
