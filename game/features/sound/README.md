@@ -32,6 +32,10 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
   (6 → 24). Every station at work carries alike (`Sound.StationReach`, 2 → 10, 0059) and is about as loud as the
   next: about −32 LUFS at its loudest 400 ms within 2 cells, under a step, a door or any tool. Godot's own fall-off has no
   full-volume stretch, so `Heard2D` turns it off and sets the volume each frame; Godot still pans.
+- **Tool idle** (`Sound.ToolIdleDb`, −8 dB): the one volume of every tool sound made while it works nothing, the drill's
+  motor running free (`DrillWhir`) and the axe's swing (`Swing`). Their files are levelled alike, the whir's grains as a
+  train at their rate and each swing at −23.4 LUFS momentary, so turning this one value raises or lowers them together and
+  they stay matched; a new idle tool sound is levelled the same and played at it, never given a level of its own.
 - **Music** on the Music bus, each a loop at a share of its volume, stopped once silent: the title's
   track (0035) faded in over `Sound.MusicFadeS` while the title is shown and out once it is gone; the
   bed of space (`Sound.Space`, 0042) faded in over `SpaceInS` while the hero floats and out over
@@ -73,7 +77,11 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
     `Sound.DrillStrikesPerSecond` (18, a hammer drill's buzz, apart from the damage's 10 hits a second), the
     first at once, each its pitch scale within ±`DrillStrikePitch` (12%) and its volume within
     ±`DrillStrikeVolumeDb` (1.5 dB) (`StrikeTrain`); stopped, voices and all, the frame the drill stops or the hold
-    runs out. Its hits play no chop. And this player's jetpack (0047), on Suit, muffled out in space
+    runs out. Its hits play no chop.
+    This player's axe (0068), on Suit, every swing, a wreck hit or nothing: `Sound.Swing`, a staff's whoosh, one of four,
+    its pitch ±8%, begun at `AxeSwing.WhooshMs` so its loudest moment (`Sound.SwingPeakS` into each file) falls in the
+    middle of the downstroke, some 20 ms before the blade crosses the line; muffled in space as the chop is. Others' swings are
+    silent, as their chops are. And this player's jetpack (0047), on Suit, muffled out in space
     as all there is: `Sound.Thrust`, a loop, while it thrusts, played loud (+3 dB) so its hiss comes through the muffle
     about 6 dB under the bed of space (0059),
     risen over `ThrustAttackS` (40 ms) and fallen over `ThrustReleaseS` (140 ms), linear in amplitude
@@ -128,7 +136,7 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
 - Music in a world beyond the spacewalk; volume sliders (the bus names are their contract).
 - Reverb by room size, occlusion by walls, Doppler; one hiss however many breaches vent.
 - Silence by the room's air: only floating mutes the world (0033).
-- Other heroes' clicks and alarms; a sound for the swing itself; swim, passing out, plans placed
+- Other heroes' clicks, alarms and swings; swim, passing out, plans placed
   and finished, the analyzer and the pod, the inventory and the hand-drawn controls (`SlotBox`,
   hotbar): later passes.
 - A jump with its head against a ceiling at once has no speed to read and is silent; another's jump

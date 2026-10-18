@@ -67,6 +67,25 @@ public class AxeSwingTests
         Assert.All(played, p => Assert.NotNull(p.Phase));
     }
 
+    [Fact]
+    public void EverySwingWhooshesOnceItsLoudestInTheDownstrokeBeforeItHits()
+    {
+        // Held, and a click let go at once: every swing whooshes, whatever it meets, the hit or the sim never asked.
+        var held = Play(180, _ => true);
+        var whooshes = held.Where(p => p.Step.Whooshes).Select(p => p.At).ToList();
+        Assert.Equal(held.Count(p => p.Step.Begun), whooshes.Count);
+        Assert.Single(Play(60, at => at < Frame), p => p.Step.Whooshes);
+        Assert.InRange(whooshes[0], AxeSwing.WhooshMs - Frame, AxeSwing.WhooshMs + Frame);
+        // Its peak falls in the downstroke, before the blade crosses the line.
+        double peak = (AxeSwing.WhooshMs + Sound.SwingPeakS * 1000) / AxeSwing.Ms;
+        Assert.InRange(peak, AxeSwing.WindShare, AxeSwing.HitAt);
+        // Stopped before it, a swing makes none.
+        var swing = new AxeSwing();
+        swing.Advance(Frame, true);
+        swing.Stop();
+        Assert.False(swing.Advance(AxeSwing.MostPerFrameMs, false).Whooshes);
+    }
+
     [Theory]
     [InlineData(7)]
     [InlineData(33)]

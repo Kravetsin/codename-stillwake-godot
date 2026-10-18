@@ -31,3 +31,12 @@ jetpack's did not need a coil, so a jetpack came first, and once a hero flies, a
   it was given.
 - The harpoon has no plank stock in its recipe any more, though its picture keeps one.
 - A jetpack now needs electronics: flight comes after the circuit assembler.
+
+## Also from the playtest
+
+- **Rock is called asteroid ore** where players read it; its id stays `rock`, so saves need no migration.
+- **The axe's swing is heard,** every swing, a hit or a miss: a staff's whoosh (four CC0 recordings, the user's
+  pick), its pitch varied, its loudest moment in the middle of the downstroke, on the Suit bus as the chop is.
+- **Idle tool sounds share one volume,** `Sound.ToolIdleDb`: the drill running free and the axe's swing. Their files
+  are levelled to the same momentary loudness, so the one value moves them together and no cue gets a level picked
+  by hand.
