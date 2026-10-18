@@ -28,6 +28,8 @@ public static class Crafts
         // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.
         new("circuit", [("silicon", 1), ("wire", 2)], Ticks: 80),
         new("solarCell", [("silicon", 1), ("glass", 1), ("wire", 1)], Ticks: 100),
+        // Pressed at the Former only: a grow capsule's bed (0060).
+        new("soil", [("rock", 1), ("planks", 1)], Ticks: 60),
     ];
 
     private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);

@@ -10,6 +10,14 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="SmeltTicks">Ticks at full speed a fed station takes to smelt one; given with <paramref name="Yields"/>.</param>
 /// <param name="Heat">How hot a fed station must be to smelt it (<see cref="Station.Heat"/>): the furnace's 1, or the electric smelter's 2.</param>
+/// <param name="Process">
+/// What a fed station does to it, matched to the station's <see cref="Station.Process"/>: "smelt" (a furnace, the
+/// electric smelter) or "grow" (a grow capsule). At a station of another process it sits in the input, never worked.
+/// </param>
+/// <param name="Returns">
+/// Weights of how many of itself one gives back besides its yields when worked, entry n the weight of n: a crop's
+/// seeds. Drawn from the world's Rng as the work completes; its outputs must take the most. None for anything else.
+/// </param>
 /// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
 /// <param name="Equip">Equipment: the kind of a hero's equipment slot it is worn in, of <c>Inventory.Equipment</c>; none for anything else.</param>
 /// <param name="Capacity">
@@ -30,6 +38,8 @@ public sealed record ItemSpec(
     IReadOnlyList<(string Item, int Count)>? Yields = null,
     int? SmeltTicks = null,
     int Heat = 1,
+    string Process = "smelt",
+    IReadOnlyList<int>? Returns = null,
     int? BurnTicks = null,
     string? Equip = null,
     int? Capacity = null,
@@ -86,6 +96,14 @@ public static class Items
         new("circuit", 20),
         // Silicon, glass and wire, made at the circuit assembler: what a solar panel is built of.
         new("solarCell", 20),
+        // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on
+        // average, so the farm slowly eats seeds and supply pods refill it. Biomass smelts into biofuel.
+        new("seed", 10, Yields: [("biomass", 4)], SmeltTicks: 9600, Process: "grow", Returns: [35, 50, 15]),
+        // Pressed at the Former of rock and planks: what a grow capsule is built on.
+        new("soil", 20),
+        new("biomass", 20, Yields: [("biofuel", 1)], SmeltTicks: 160),
+        // The engine's fuel, to come; nothing burns it yet.
+        new("biofuel", 20),
         // Tools, made as parts are.
         new("fireAxe", 1, Gear: true),
         new("harpoon", 1, Gear: true),

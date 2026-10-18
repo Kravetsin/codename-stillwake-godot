@@ -79,8 +79,9 @@ public sealed class FurnaceModule : Module<FurnaceState>
         if (machine == null) return new Smelting(burning);
         bool smelter = machine.Kind == Smelter;
         var input = smelter ? SlotItem(_items.Crate(id), 0) : null;
-        int? ticks = input == null ? null : Content.Items.Get(input).SmeltTicks;
-        if (smelter && ticks == null) return new Smelting(burning);
+        // What a furnace does not smelt, a seed (0060), sits in its input as if it held nothing.
+        int? work = input == null ? null : _crafting.WorkOf(id);
+        if (smelter && work == null) return new Smelting(burning);
         bool aired = AiredCell(machine) >= 0;
         string? problem = smelter && _crafting.TooCold(id) ? "crafting.tooCold"
             : smelter && !_crafting.CanSmelt(id) ? "furnace.full"
@@ -88,7 +89,7 @@ public sealed class FurnaceModule : Module<FurnaceState>
             : !aired ? "furnace.noAir"
             : null;
         if (!smelter) return new Smelting(burning, Problem: problem);
-        return new Smelting(burning, input, _crafting.Progress(id), ticks!.Value * 1000, problem);
+        return new Smelting(burning, input, _crafting.Progress(id), work!.Value, problem);
     }
 
     private bool Burning(int id) => (FireOf(id)?.Fuel ?? 0) > 0;

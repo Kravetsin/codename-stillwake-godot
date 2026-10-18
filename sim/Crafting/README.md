@@ -6,16 +6,17 @@ assembler) makes crafts
 from a queue shared by the crew, paid when queued, one unit at a time into its outputs
 ([0028](../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)); a **fed** station (the
 furnace, the electric smelter) smelts what its input holds into that item's yields, where it is hot
-enough. A module of its own rather than part of `Items`: it asks `Research` what is known, and research
-depends on items.
+enough, and a grow capsule grows a seed into biomass the same way: each fed station has a process, "smelt" or
+"grow" ([0060](../../docs/decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md)). A module of its own
+rather than part of `Items`: it asks `Research` what is known, and research depends on items.
 
 - **Depends on:** `Grid` (`IGridQueries`: `Machines`, `MachineById`: which machines are stations),
   `Items` (`IItemsQueries`: `Crate`, `CanSmelt`, `ShortOf`, `FullFor`, `OutputFull`; `IItemsOps`: `Take`,
   `Give`, `Output`, `Smelt`), `Research` (`IResearchQueries.Knows`), `Power` (`IPowerQueries.Satisfaction`,
-  a powered station's share; `IPowerOps.Rest`, an idle one draws nothing).
+  a powered station's share; `IPowerOps.Rest`, an idle one draws nothing); the world's `Rng`, for a crop's seeds.
 - **Depended on by:** `Building` (`ICraftingQueries.Queue`: a station with crafts queued is not taken
-  apart), `Furnace` (`ICraftingQueries.CanSmelt`, `TooCold`, `Progress`: what lights a furnace's fire and
-  what its panel shows; `ICraftingOps.Heat`: a furnace's fire burns this tick).
+  apart), `Furnace` (`ICraftingQueries.CanSmelt`, `TooCold`, `WorkOf`, `Progress`: what lights a furnace's fire
+  and what its panel shows; `ICraftingOps.Heat`: a furnace's fire burns this tick).
 - **State** (`CraftingState`, members internal): `Queues` — each queued station's ever crafted at, in
   machine id order: `Machine`, `Next` (the id the next entry gets), `Progress` (work on the first entry's
   unit, in thousandths of a tick at full speed) and `Entries`, each an `Entry(Id, Recipe, Count, By)` in the
@@ -31,8 +32,8 @@ depends on items.
 ## Rules
 
 - **A station** is a machine with an entry in `Content.Stations`: its `Speed` in thousandths of full
-  speed, its `QueueMost`, its `Rows` (what a queued one makes, as its panel lays them out) and its `Heat`
-  (a fed one's; above 0 makes it fed). `StationOf` is the one place these are read, so a machine upgrade
+  speed, its `QueueMost`, its `Rows` (what a queued one makes, as its panel lays them out), its `Heat`
+  (a fed one's; above 0 makes it fed) and its `Process` (a fed one's, "smelt" or "grow"). `StationOf` is the one place these are read, so a machine upgrade
   folds in there. Its slots are its machine's (`MachineSpec.Slots`, `Inputs`), read by `Items`.
 - **Energy** is the machine's: one that `Draws` works at its network's satisfaction; one with a `FuelSlot`
   at full while its fire burns (`Heat`) and not at all while it is out; one with neither (the pod) at full.
@@ -72,20 +73,29 @@ depends on items.
     rest (`IPowerOps.Rest`, as research rests an analyzer), so it draws nothing from the next tick; told to
     work again on the tick it has work, it works at once at its network's share.
 - **A fed station:** its input slot is its queue. Each tick, work on another item than its input holds,
-  or none, is dropped; then, if its input holds an item with `Yields` whose `Heat` is at most the
-  station's and whose yields fit its outputs (`IItemsQueries.CanSmelt`), it adds its work, and at the
-  item's `SmeltTicks` × 1000 one of it becomes its yields (`IItemsOps.Smelt`). Work stopped — the fire out,
+  or none, is dropped; then, if its input holds an item with `Yields` of the station's `Process`, whose
+  `Heat` is at most the station's and whose yields fit its outputs (`IItemsQueries.CanSmelt`), it adds its
+  work, and at the item's `SmeltTicks` × 1000 one of it becomes its yields (`IItemsOps.Smelt`). An item of
+  another process sits in the input, never worked, the station resting: a seed in a furnace, rock in a capsule. Work stopped — the fire out,
   the outputs full, the power cut — is kept while the item stays. The furnace: speed 1000, heat 1; a scrap
   chunk smelts in 60 ticks of fire into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap, rock in 160
-  into 2 silicon.
+  into 2 silicon, biomass in 160 into a biofuel.
   - **The electric smelter** is the second fed station: 2×2, it draws 4 and works at speed 2000, twice the
     furnace, at heat 2; an input and three outputs, no fuel. It costs a frame, 2 coils, 4 plates and a
     circuit, so it opens once those four are analysed. Rock takes 4 s there at full power; silicon, which
     needs heat 2, smelts into glass in 3 s, there only. Like a queued station that draws, it rests while it
     has nothing it can smelt or no room for what it makes, drawing nothing from the next tick.
+  - **The grow capsule** is the third fed station, of process "grow" (0060): 2×3, it draws 2 and works at speed
+    1000, heat 1; an input and two outputs. It costs a frame, 2 glass, 4 soil, a circuit and 2 wire, so it opens
+    once those five are analysed. A seed grows in 9600 ticks, eight minutes, at a full share, slower short of
+    power; unpowered it pauses keeping its growth; it rests while it has nothing to grow or no room. It needs no air.
+    **A crop** uses its seed and gives 4 biomass and none, one or two seeds: the seed's `Returns` weights (35, 50,
+    15), drawn from the world's `Rng` as the crop completes, stations in machine id order (`Returned`), passed to
+    `IItemsOps.Smelt(id, back)`. An item without `Returns` draws nothing. It grows only with room in its outputs for
+    the yields and the most seeds it may give back, so no draw ever overflows a slot.
   - **Heat** is the station's `Heat`, read in `StationOf` alone, so a machine upgrade folds in there.
-    **Too cold:** an item with `Yields` hotter than the station is taken into its input (`Items` refuses
-    nothing for it) and kept there, never worked, a furnace never lit for it: `TooCold(machine)` says so,
+    **Too cold:** an item of its process with `Yields` hotter than the station is taken into its input (`Items`
+    refuses nothing for it) and kept there, never worked, a furnace never lit for it: `TooCold(machine)` says so,
     for the station's panel and its mark in the world. Replaced by what it can work, it works.
 - **A furnace smelts while its fire burns at the tick's start:** `Furnace` tells crafting in its
   construction phase, from the fire as the last tick left it. So a furnace starts smelting the tick after
@@ -97,16 +107,18 @@ depends on items.
 - **Queries** (`ICraftingQueries`): `StationOf(machine)` — its station as it works now, null for none;
   `Queue(machine)` — a queued station's entries, live and read-only, the first at work; `Progress(machine)`
   — work on its unit in thousandths of a tick, a queued one's first entry (its full work while that unit
-  waits for room), a fed one's input; `CanSmelt(machine)` — whether a fed station has what it can smelt;
-  `TooCold(machine)` — whether a fed station's input holds what smelts, but hotter than the station.
+  waits for room), a fed one's input; `CanSmelt(machine)` — whether a fed station has what it can work;
+  `TooCold(machine)` — whether a fed station's input holds what is of its process, but hotter than the station;
+  `WorkOf(machine)` — the work one of a fed station's input takes there, in thousandths of a tick, null for
+  nothing of its process: what its bar and a capsule's plant are measured against.
   On the module only, for the client: `Works(machine)` — whether a station works now with a share of its
   energy, a queued one on a unit not done, a fed one on what it can smelt: what its picture's motion, its
   screen and its bolt show. A furnace's fire reaches crafting only within a tick, so between ticks a
   furnace reads as not working here; its fire is the furnace module's to show.
 - **Operations** (`ICraftingOps`): `Heat(machine)` — that fed station's fire burns this tick.
 - **Commands:** `Craft(Machine, Recipe, Count)`, `Cancel(Machine, Entry)`.
-- **Fuzz:** mostly at the map's stations, queued and fed alike (a fed one, the furnace or the smelter,
-  refuses both as not here), now and then at another machine or an id that is none (no station); crafts of every recipe and of an item
+- **Fuzz:** mostly at the map's stations, queued and fed alike (a fed one, the furnace, the smelter or the grow
+  capsule, refuses both as not here), now and then at another machine or an id that is none (no station); crafts of every recipe and of an item
   no craft makes, one to nine units, refused as unknown, not here, unpaid or full, paid mostly in creative
   mode, which the items fuzz switches on now and then; cancels of the station's entries, of finished ids
   and of ids never given.
@@ -115,9 +127,10 @@ depends on items.
 
 - A queue never holds more than its station's `QueueMost` entries; its first entry's progress stays
   below its work but while its unit waits for room; ids within a queue only grow.
-- Items are conserved across both feeds: what a craft took comes back as its units in the outputs or a
-  cancel's refund, whoever cancels, and a smelt turns one item into its yields and nothing else
-  (`CraftingTests`, `StationsTests`, counting every item by the salvage it is made of).
+- Items are conserved across both feeds and both processes: what a craft took comes back as its units in the
+  outputs or a cancel's refund, whoever cancels, a smelt turns one item into its yields and nothing else, and a
+  crop turns a seed into its yields and none, one or two seeds (`CraftingTests`, `StationsTests`, counting every
+  item by the salvage it is made of, seeds apart).
 - Every item is reachable from the wreck: salvage, or made at a reachable station from reachable items
   (`ContentTests`).
 
@@ -136,3 +149,6 @@ depends on items.
 - Nothing stops a too-hot item going into a cold station: the player sees the station cold and moves it
   (the user's decision, 0057). Only one item is too hot for anything yet, silicon for the furnace.
 - No machine upgrades: heat and speed are content's alone until modules come.
+- A seed in a furnace, or rock in a capsule, is taken in and does nothing: no refusal, no mark; the player moves
+  it. Only two processes yet, each item of one.
+- A crop is not grown under the stars without power: the capsule is powered only for now (the user's decision).

@@ -126,8 +126,10 @@ counted twice.
   a client shows of its own moves before their tick runs. `Floor` — the stacks on the floor, live and
   read-only; `PickUpProblem(peer, id)` — the refusal that peer's `PickUp` would get;
   `PickUpAmount(peer, id)` — how much of it would fit.
-- **Furnaces:** `CanSmelt(id)` — whether its input holds salvage whose `Yields` fit its outputs;
-  the operation `Smelt(id)` turns one of it into them, the caller checking `CanSmelt` first;
+- **Fed stations:** `CanSmelt(id)` — whether its input holds what has `Yields` that fit its outputs, with the
+  most of itself it may give back (`ItemSpec.Returns`: a crop's two seeds); the operation `Smelt(id, back)` turns
+  one of it into them and `back` of itself, a crop's seeds, the caller checking `CanSmelt` first and drawing
+  `back` (0060);
   `Consume(id, slot)` uses up one of what a slot holds, a fuel as a fire is lit.
 - **Crafting machines:** `OutputFull(id, cost)` — `items.full` when `cost` does not fit into the
   machine's outputs, its slots past its inputs; the operation `Output(id, cost)` puts it there, the

@@ -125,16 +125,45 @@ public class ContentTests
         Assert.True(x >= 0 && x < pod.Width && y >= 0 && y < pod.Height);
     }
 
+    /// <summary>
+    /// Every fed station's outputs take what any one item of its process makes, with the most of itself it may give
+    /// back: a grow capsule's two, biomass and a seed's stack (0060).
+    /// </summary>
     [Fact]
-    public void ItemsSmeltAtEveryFedStationWhoseOutputsTakeAnyOneItemsYields()
+    public void ItemsSmeltAtEveryFedStationOfTheirProcessWhoseOutputsTakeAnyOneItemsYieldsAndReturns()
     {
         foreach (var station in Stations.All.Where(s => s.Fed))
         {
             var spec = Machines.Get(station.Machine);
             int outputs = spec.Slots!.Value - spec.Inputs!.Value;
-            foreach (var item in Content.Items.All)
-                if (item.Yields != null) Assert.True(SlotsFor(item.Yields) <= outputs, $"{station.Machine}: {item.Id}");
+            foreach (var item in Content.Items.All.Where(i => i.Yields != null && i.Process == station.Process))
+            {
+                IReadOnlyList<(string Item, int Count)> made = item.Returns is { } back ? [.. item.Yields!, (item.Id, back.Count - 1)] : item.Yields!;
+                Assert.True(SlotsFor(made) <= outputs, $"{station.Machine}: {item.Id}");
+            }
         }
+    }
+
+    /// <summary>
+    /// Two processes, each with a station: smelt (the furnace, the smelter) and grow (the grow capsule); an item's is
+    /// one of them. Returns are weights, none negative, some above zero, only on what is worked (0060).
+    /// </summary>
+    [Fact]
+    public void EveryItemsProcessHasAFedStationAndItsReturnsAreWeightsOfWhatIsWorked()
+    {
+        var processes = Stations.All.Where(s => s.Fed).Select(s => s.Process).Distinct().Order(StringComparer.Ordinal);
+        Assert.Equal(["grow", "smelt"], processes);
+        Assert.All(Stations.All.Where(s => !s.Fed), s => Assert.Equal("smelt", s.Process));
+        foreach (var item in Content.Items.All)
+        {
+            Assert.Contains(item.Process, processes);
+            if (item.Returns is not { } weights) continue;
+            Assert.NotNull(item.Yields);
+            Assert.All(weights, w => Assert.True(w >= 0, item.Id));
+            Assert.True(weights.Sum() > 0, item.Id);
+        }
+        Assert.Equal(["seed"], Content.Items.All.Where(i => i.Process == "grow").Select(i => i.Id));
+        Assert.Equal(["growCapsule"], Stations.All.Where(s => s.Process == "grow").Select(s => s.Machine));
     }
 
     // The floor
@@ -202,7 +231,7 @@ public class ContentTests
     [Fact]
     public void SmeltingMakesWholeAmountsInWholeTicksOfItemsThatAreNotSalvageAndChainsOnlyUpInHeat()
     {
-        string[] refined = ["silicon", "glass"];
+        string[] refined = ["silicon", "glass", "biomass", "biofuel"];
         foreach (var spec in Content.Items.All)
         {
             Assert.True(spec.Yields != null == (spec.SmeltTicks != null), spec.Id);
@@ -211,7 +240,7 @@ public class ContentTests
             Assert.NotEmpty(spec.Yields);
             foreach (var (item, amount) in spec.Yields)
             {
-                // What the Yields type held in TypeScript, materials and canisters, and silicon and glass.
+                // What the Yields type held in TypeScript, materials and canisters, then silicon, glass, biomass and biofuel.
                 Assert.True(Materials.TryGet(item, out _) || item == "canister" || refined.Contains(item), item);
                 Assert.True(Content.Items.TryGet(item, out var yielded), item);
                 Assert.Null(Loot.Of(item));
@@ -223,7 +252,7 @@ public class ContentTests
         }
         // What is smelted from something and smelts on yields what smelts no more: a chain of two, no cycle.
         var chained = Content.Items.All.Where(i => i.Yields != null && Content.Items.All.Any(f => f.Yields?.Any(y => y.Item == i.Id) == true)).ToList();
-        Assert.Equal(["silicon"], chained.Select(i => i.Id));
+        Assert.Equal(["silicon", "biomass"], chained.Select(i => i.Id));
         Assert.All(chained, spec => Assert.All(spec.Yields!, y => Assert.Null(Content.Items.Get(y.Item).Yields)));
     }
 
@@ -706,14 +735,16 @@ public class ContentTests
 
     /// <summary>
     /// Every craft is made at some queued station; the pod keeps its twelve and its list stops growing, new crafts
-    /// going to machines (0057): the electronics, circuits and solar cells, to the circuit assembler alone.
+    /// going to machines (0057): the electronics, circuits and solar cells, to the circuit assembler alone, and soil to
+    /// the Former alone (0060).
     /// </summary>
     [Fact]
-    public void EveryCraftIsMadeSomewhereThePodAllButElectronicsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
+    public void EveryCraftIsMadeSomewhereThePodAllButElectronicsAndSoilAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
         string[] electronics = ["circuit", "solarCell"];
-        Assert.Equal(Crafts.All.Select(c => c.Item).Except(electronics).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, "soil"]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));
+        Assert.Equal(["former"], Stations.All.Where(s => s.Rows.Any(r => r.Contains("soil"))).Select(s => s.Machine));
         Assert.All(Crafts.All, c => Assert.Contains(Stations.All, s => s.Rows.Any(r => r.Contains(c.Item))));
         foreach (var station in Stations.All.Where(s => !s.Fed))
         {
@@ -779,7 +810,8 @@ public class ContentTests
     public void EveryItemACostNamesIsCaughtSmeltedOrCrafted()
     {
         var had = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var (item, _) in DebrisSpec.Kinds)
+        // Every zone's: rock, which soil costs, is broken out of the band's asteroids, not the ship's stream.
+        foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds))
         {
             had.Add(item);
             foreach (var entry in Loot.Of(item) ?? []) had.Add(entry.Item);
@@ -841,7 +873,7 @@ public class ContentTests
             foreach (var station in stations.Where(s => built.Contains(s.Machine)))
             {
                 var made = station.Fed
-                    ? Content.Items.All.Where(i => had.Contains(i.Id) && i.Yields != null && i.Heat <= station.Heat).SelectMany(i => i.Yields!).Select(y => y.Item)
+                    ? Content.Items.All.Where(i => had.Contains(i.Id) && i.Yields != null && i.Process == station.Process && i.Heat <= station.Heat).SelectMany(i => i.Yields!).Select(y => y.Item)
                     : station.Rows.SelectMany(r => r).Where(c => known.Contains(c) && Crafts.Get(c).Cost.All(p => had.Contains(p.Item)));
                 foreach (var item in made.ToList()) more |= had.Add(item);
             }
@@ -864,6 +896,27 @@ public class ContentTests
     {
         var (had, _) = Reachable(Stations.All);
         Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id)).ToArray());
+    }
+
+    /// <summary>
+    /// The farm walks from salvage (0060): seeds from supply pods, soil pressed at the Former, the grow capsule opened by
+    /// what its cost is made of, biomass grown in it and biofuel smelted from that. Without the capsule, neither biomass
+    /// nor biofuel; without the Former, no soil and no capsule.
+    /// </summary>
+    [Fact]
+    public void TheFarmIsReachableSeedsFromSalvageSoilAtTheFormerBiomassInTheCapsuleBiofuelSmelted()
+    {
+        var (had, known) = Reachable(Stations.All);
+        Assert.Contains("seed", had);
+        Assert.Contains(Loot.Of("supplyPod")!, e => e.Item == "seed");
+        foreach (var item in new[] { "seed", "soil", "biomass", "biofuel" }) Assert.Contains(item, had);
+        Assert.Contains("growCapsule", known);
+        var (noCapsule, _) = Reachable([.. Stations.All.Where(s => s.Machine != "growCapsule")]);
+        Assert.DoesNotContain("biomass", noCapsule);
+        Assert.DoesNotContain("biofuel", noCapsule);
+        var (noFormer, opened) = Reachable([.. Stations.All.Where(s => s.Machine != "former")]);
+        Assert.DoesNotContain("soil", noFormer);
+        Assert.DoesNotContain("growCapsule", opened);
     }
 
     /// <summary>Heat walks too: the furnace smelts rock into silicon, but glass is had only once the smelter is.</summary>

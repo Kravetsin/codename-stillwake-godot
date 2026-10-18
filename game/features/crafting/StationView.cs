@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Sim.Crafting;
@@ -39,7 +40,12 @@ public partial class StationView : Node2D
         ["smelter"] = new(3, 160, Glows: true, Lights: [new(11.5f, 18), new(19.5f, 18)], Light: new(1f, 0.5f, 0.18f), Levels: [0.5f, 0.6f, 0.55f]),
         // The screen's trace, green as it is, flickering a little as it runs.
         ["assembler"] = new(4, 140, Lights: [new(22, 7.5f)], Light: new("6fbf73"), Levels: [0.4f, 0.35f, 0.45f, 0.35f], Screen: true),
+        // The grow lamp under its cap, a steady pink while it grows (0060).
+        ["growCapsule"] = new(1, 1000, Glows: true, Lights: [new(16, 9)], Light: new(1f, 0.42f, 0.8f), Levels: [0.6f]),
     };
+
+    /// <summary>How many pictures a plant grows through, a quarter of its crop each (<c>art/{kind}_plant_*.png</c>).</summary>
+    private const int Stages = 4;
 
     /// <summary>Where a fed station shows it is too cold, in pixels of its picture: the furnace's mouth, the smelter's grate.</summary>
     private static readonly Dictionary<string, Vector2> ColdAt = new() { ["furnace"] = new(18, 21), ["smelter"] = new(16, 18) };
@@ -57,6 +63,9 @@ public partial class StationView : Node2D
     private readonly Dictionary<int, (Sprite2D Sprite, Sprite2D? Screen, Glow[] Glows)> _shown = new();
     private readonly HashSet<int> _working = new();
     private readonly List<int> _stopped = new();
+    /// <summary>The plants shown in grow capsules, by machine id, and those seen this frame.</summary>
+    private readonly Dictionary<int, Sprite2D> _plants = new();
+    private readonly HashSet<int> _planted = new();
     /// <summary>The fed stations too cold for their input now: where their mark goes, and its light.</summary>
     private readonly List<Vector2> _cold = [];
     private readonly List<Glow> _coldGlows = [];
@@ -73,19 +82,22 @@ public partial class StationView : Node2D
         _marks.Draw += DrawMarks;
     }
 
-    /// <summary>The stations shown at work and the marks of those too cold: what a recording checks.</summary>
+    /// <summary>The stations shown at work, the plants shown and the marks of those too cold: what a recording checks.</summary>
     public int Working => _shown.Count;
+    public int Plants => _plants.Count;
     public int TooCold => _cold.Count;
 
     public override void _Process(double delta)
     {
         _clock += delta * 1000;
         _working.Clear();
+        _planted.Clear();
         _cold.Clear();
         foreach (var m in _grid.Machines)
         {
             var corner = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * Cell;
             if (ColdAt.TryGetValue(m.Kind, out var cold) && _crafting.TooCold(m.Id)) _cold.Add(corner + cold);
+            ShowPlant(m.Id, m.Kind, corner);
             if (!Moving.TryGetValue(m.Kind, out var motion)) continue;
             bool works = _crafting.Works(m.Id);
             // Each machine a step apart from the next, so two never beat in step.
@@ -120,7 +132,33 @@ public partial class StationView : Node2D
             foreach (var glow in _shown[id].Glows) glow.QueueFree();
             _shown.Remove(id);
         }
+        foreach (var id in _plants.Keys.Where(id => !_planted.Contains(id)).ToList())
+        {
+            _plants[id].QueueFree();
+            _plants.Remove(id);
+        }
         ShowCold();
+    }
+
+    /// <summary>
+    /// What grows in a grow capsule (0060), lit as the machine is: whatever its input holds of its process, planted, at the
+    /// quarter of its crop it has grown to, working or paused; nothing for an empty capsule or one holding what it does
+    /// not grow.
+    /// </summary>
+    private void ShowPlant(int id, string kind, Vector2 corner)
+    {
+        if (!Content.Stations.TryGet(kind, out var station) || station.Process != "grow" || _crafting.WorkOf(id) is not int work) return;
+        _planted.Add(id);
+        if (!_plants.TryGetValue(id, out var plant))
+        {
+            plant = new Sprite2D { Centered = false, ZIndex = Layers.Sockets };
+            Lit.Set(plant);
+            AddChild(plant);
+            _plants[id] = plant;
+        }
+        plant.Position = corner;
+        int stage = (int)Math.Min(Stages - 1, (long)_crafting.Progress(id) * Stages / work);
+        plant.Texture = PixelArt.Picture($"{kind}_plant_{stage}");
     }
 
     /// <summary>A station's pictures at work over its own: lit as the machine is, or unlit when they glow; a screen's unlit over them; its lights.</summary>

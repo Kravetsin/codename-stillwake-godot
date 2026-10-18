@@ -52,7 +52,7 @@ public interface IItemsOps
 {
     IReadOnlyList<(string Item, int Count)> Take(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void Give(int peer, IReadOnlyList<(string Item, int Count)> cost);
-    void Smelt(int id);
+    void Smelt(int id, int back = 0);
     void Consume(int id, int slot);
     void Output(int id, IReadOnlyList<(string Item, int Count)> cost);
     void GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
@@ -120,7 +120,10 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary>What machine <paramref name="id"/> holds, slot by slot: a crate, a furnace; none for a machine holding no items.</summary>
     public IReadOnlyList<Stack?> Crate(int id) => Stacks.CrateOf(State, id, HolderOf(id)?.Slots ?? 0);
 
-    /// <summary>Whether furnace <paramref name="id"/> has salvage in its input whose yields fit its outputs.</summary>
+    /// <summary>
+    /// Whether fed station <paramref name="id"/> has in its input what smelts or grows, its yields fitting its outputs
+    /// with the most of itself it may give back (<c>ItemSpec.Returns</c>).
+    /// </summary>
     public bool CanSmelt(int id) => HolderOf(id)?.Inputs is int inputs && Smelted(Crate(id), inputs) != null;
 
     public bool Creative => State.Creative;
@@ -283,12 +286,16 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Stacks.SetInventory(State, peer, more);
     }
 
-    /// <summary>Turns one of what furnace <paramref name="id"/> holds in its input into its yields, put into its outputs. The caller checks <see cref="CanSmelt"/> first.</summary>
-    public void Smelt(int id)
+    /// <summary>
+    /// Turns one of what fed station <paramref name="id"/> holds in its input into its yields and <paramref name="back"/>
+    /// of itself, a crop's seeds, put into its outputs. The caller checks <see cref="CanSmelt"/> first, and gives back
+    /// no more than the item's <c>Returns</c> allow.
+    /// </summary>
+    public void Smelt(int id, int back = 0)
     {
         int inputs = HolderOf(id)?.Inputs ?? 0;
         var slots = Crate(id);
-        var outputs = Smelted(slots, inputs);
+        var outputs = Smelted(slots, inputs, back);
         if (outputs == null || Stacks.TakenFrom(slots, 0, 1, out var left, out _) != null)
             throw new InvalidOperationException("items.smelt: nothing to smelt; check CanSmelt");
         Stacks.SetCrate(State, id, [.. left.Take(inputs), .. outputs]);
@@ -562,11 +569,18 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         ?? (src.Crate is int a ? Stacks.Unfit(HolderOf(a)!, after) : Stacks.Misfit(after))
         ?? (dst.Crate is int b ? Stacks.Unfit(HolderOf(b)!, into) : Stacks.Misfit(into));
 
-    /// <summary>A furnace's outputs after smelting one of its input, or null when its input holds no salvage or its yields do not fit.</summary>
-    private static Stack?[]? Smelted(IReadOnlyList<Stack?> slots, int inputs)
+    /// <summary>
+    /// A fed station's outputs after working one of its input: its yields and <paramref name="back"/> of itself placed,
+    /// by default the most its <c>Returns</c> allow; null when its input holds nothing worked or they do not fit.
+    /// </summary>
+    private static Stack?[]? Smelted(IReadOnlyList<Stack?> slots, int inputs, int? back = null)
     {
         if (slots.Count == 0 || slots[0] is not { } input) return null;
-        var yields = Content.Items.Get(input.Item).Yields;
-        return yields == null ? null : Stacks.Placed(slots.Skip(inputs).ToList(), yields);
+        var spec = Content.Items.Get(input.Item);
+        if (spec.Yields == null) return null;
+        // Fewer of it fit wherever more do, so room for the most is room for any draw.
+        int returned = back ?? (spec.Returns is { } weights ? weights.Count - 1 : 0);
+        IReadOnlyList<(string Item, int Count)> made = returned > 0 ? [.. spec.Yields, (input.Item, returned)] : spec.Yields;
+        return Stacks.Placed(slots.Skip(inputs).ToList(), made);
     }
 }
