@@ -1,6 +1,6 @@
 # 0047 — Equipment, the jetpack and the slower swim
 
-- Status: accepted; where the block sits superseded by [0058](0058-one-place-for-every-machine-window.md) (the screen's right edge)
+- Status: accepted; where the block sits superseded by [0058](0058-one-place-for-every-machine-window.md) (the screen's right edge); its recipe by [0068](0068-the-harpoon-before-the-jetpack.md)
 - Supersedes: of [0007](0007-spacewalks-and-airlocks.md), the tether for every hero in space (one wearing
   a jetpack has none); of the hero's controller, Shift swimming fast in space
 - Date: 2026-10-17

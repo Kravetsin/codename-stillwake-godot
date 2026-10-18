@@ -34,8 +34,8 @@ public class ItemCardTests
         Assert.Equal(ItemCards.Number(Spec.Harpoon.Range / 1000.0), tiles[0].Value);
         Assert.Equal($"{ItemCards.Number((double)Spec.Harpoon.CooldownTicks / World.TicksPerSecond)}s", tiles[1].Value);
         Assert.Equal($"{ItemCards.Number(Spec.Harpoon.ReelSpeed * World.TicksPerSecond / 1000.0)}/s", tiles[2].Value);
-        // As content stands: 12 cells, 100 ticks, 250 thousandths a tick of 20 a second.
-        Assert.Equal([new CardTile("12", "RANGE"), new CardTile("5s", "RELOAD"), new CardTile("5/s", "REEL")], tiles);
+        // As content stands: 20 cells, 100 ticks, 400 thousandths a tick of 20 a second.
+        Assert.Equal([new CardTile("20", "RANGE"), new CardTile("5s", "RELOAD"), new CardTile("8/s", "REEL")], tiles);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class ItemCardTests
             + Sim.Research.Blueprints.All.Count(b => b.Cost.Any(i => i.Item == "scrap"));
         Assert.Equal($"+{into - ItemCards.MostInto}", scrap[^1]);
         // Electronics need circuits: the crafts first, then the builds.
-        Assert.Equal(["Battery", "Drill", "Drone", "Solar panel", "+6"], ItemCards.Of("circuit", false).Uses);
+        Assert.Equal(["Oxygen jetpack", "Battery", "Drill", "Drone", "+7"], ItemCards.Of("circuit", false).Uses);
         // The farm (0060): soil goes into the grow capsule alone; a seed into nothing, it is planted.
         Assert.Equal(["Grow capsule"], ItemCards.Of("soil", false).Uses);
         Assert.Empty(ItemCards.Of("seed", false).Uses);
