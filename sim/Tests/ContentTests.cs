@@ -314,7 +314,7 @@ public class ContentTests
     }
 
     [Fact]
-    public void CircuitsComeSurelyFromCableRacksOneEachAndRarelyFromDerelictsAndTheSolarPanelTakesSeveral()
+    public void CircuitsComeSurelyFromCableRacksOneEachAndRarelyFromDerelictsBesidesTheAssembler()
     {
         var sources = Loot.All.Where(l => l.Entries.Any(e => e.Item == "circuit")).Select(l => l.Container);
         Assert.Equal(["cableRack", "engineBlock", "podCluster"], sources);
@@ -330,10 +330,11 @@ public class ContentTests
             long each = 1000L * (entry.Min + entry.Max) / 2 / entry.OneIn!.Value / Wreckage.HpOf(source)!.Value;
             Assert.True(each * 10 <= rack, $"{source}: {each} thousandths of a circuit a hit point, the rack's {rack}");
         }
-        Assert.False(Crafts.TryGet("circuit", out _));
+        // Made besides of silicon and wire, at the circuit assembler alone, which is built of one salvaged (0057).
+        Assert.Equal([("silicon", 1), ("wire", 2)], Crafts.Get("circuit").Cost);
+        Assert.Equal(["assembler"], Stations.All.Where(s => s.Rows.Any(r => r.Contains("circuit"))).Select(s => s.Machine));
+        Assert.Contains(("circuit", 1), Machines.Get("assembler").Cost);
         Assert.Null(Content.Items.Get("circuit").Yields);
-        int panel = Machines.Get("solarPanel").Cost.Single(c => c.Item == "circuit").Count;
-        Assert.True(panel > 1, $"the panel takes {panel}");
     }
 
     [Fact]
@@ -690,10 +691,17 @@ public class ContentTests
 
     // Crafts and stations
 
+    /// <summary>
+    /// Every craft is made at some queued station; the pod keeps its twelve and its list stops growing, new crafts
+    /// going to machines (0057): the electronics, circuits and solar cells, to the circuit assembler alone.
+    /// </summary>
     [Fact]
-    public void TheFabricatorMakesEveryCraftAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
+    public void EveryCraftIsMadeSomewhereThePodAllButElectronicsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        Assert.Equal(Crafts.All.Select(c => c.Item).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        string[] electronics = ["circuit", "solarCell"];
+        Assert.Equal(Crafts.All.Select(c => c.Item).Except(electronics).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));
+        Assert.All(Crafts.All, c => Assert.Contains(Stations.All, s => s.Rows.Any(r => r.Contains(c.Item))));
         foreach (var station in Stations.All.Where(s => !s.Fed))
         {
             var placed = station.Rows.SelectMany(row => row).ToList();
@@ -853,6 +861,27 @@ public class ContentTests
         Assert.Contains("silicon", had);
         Assert.DoesNotContain("glass", had);
         Assert.Contains("glass", Reachable(Stations.All).Items);
+    }
+
+    /// <summary>
+    /// The solar panel walks the whole chain (0057): rock smelted into silicon, silicon into glass at the smelter, both
+    /// with wire into solar cells at the circuit assembler, which salvaged circuits build. Without the assembler, or
+    /// the smelter, neither a cell nor a panel; circuits still come from salvage.
+    /// </summary>
+    [Fact]
+    public void SolarCellsAndTheSolarPanelAreReachableOnlyThroughTheAssemblerAndTheSmelter()
+    {
+        var (had, known) = Reachable(Stations.All);
+        Assert.Contains("solarCell", had);
+        Assert.Contains("solarPanel", known);
+        Assert.Contains(("solarCell", 4), Machines.Get("solarPanel").Cost);
+        foreach (var without in new[] { "assembler", "smelter" })
+        {
+            var (some, opened) = Reachable([.. Stations.All.Where(s => s.Machine != without)]);
+            Assert.DoesNotContain("solarCell", some);
+            Assert.DoesNotContain("solarPanel", opened);
+            Assert.Contains("circuit", some);
+        }
     }
 
     [Fact]

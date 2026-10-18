@@ -39,6 +39,7 @@ public static class Prompts
                 "lifepod" => "use.openFabricator",
                 "former" => "use.openFormer",
                 "smelter" => "use.openSmelter",
+                "assembler" => "use.openAssembler",
                 _ => "use.openCrate",
             }, null);
         if (aim.Press is not { } press) return null;

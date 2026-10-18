@@ -24,8 +24,8 @@ planned, a craft not known cannot be queued. Ported from `packages/sim/src/modul
   (`Blueprints.Of`); a machine built into the ship (`Fixed`: the lifepod) is no blueprint. A craft is named by the item it makes (`wire`, `Content.Crafts`). Cables are no
   blueprint and always known.
 - **The opening rule:** a blueprint or a craft is known when it is granted, or when every item of its
-  cost is analysed. Nothing is held back: the solar panel opens as the rest do, once scrap, iron and
-  a circuit, salvaged from cable racks, are analysed (0041). In creative mode everything is known.
+  cost is analysed. Nothing is held back: the solar panel opens as the rest do, once a frame, a solar
+  cell, wire and a circuit are analysed (0041, 0057). In creative mode everything is known.
 - A map's `Layout.Known` is what its world is granted; a map without one is granted every blueprint
   and craft. The wreck is granted `Content.Research.StartKnown`, through `Registry.Wreck`.
 - Each tick, in the simulation phase, in machine id order, an analyzer whose slot holds an item not

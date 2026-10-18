@@ -25,6 +25,9 @@ public static class Crafts
         new("jetpack", [("frame", 1), ("tube", 2), ("canister", 1), ("wire", 2)], Ticks: 120),
         new("battery", [("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 60),
         new("drill", [("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1), ("circuit", 2)], Ticks: 160),
+        // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.
+        new("circuit", [("silicon", 1), ("wire", 2)], Ticks: 80),
+        new("solarCell", [("silicon", 1), ("glass", 1), ("wire", 1)], Ticks: 100),
     ];
 
     private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);

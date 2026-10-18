@@ -83,8 +83,8 @@ public class LessonsTests
         Assert.Equal(expected, lessons.Recipes.Select(l => l.Recipe.Id));
         Assert.Contains("plate", expected);
         Assert.DoesNotContain("wire", expected);
-        // Granted and opened alike are open; the solar panel waits for scrap and circuits.
-        Assert.Equal(["solarPanel"], lessons.Recipes.Where(l => !l.Opened).Select(l => l.Recipe.Id));
+        // Granted and opened alike are open: since the solar panel is built of solar cells (0057), nothing iron goes into waits for more.
+        Assert.DoesNotContain(lessons.Recipes, l => !l.Opened);
         Assert.True(lessons.Recipes.Single(l => l.Recipe.Id == "crate").Opened);
     }
 
@@ -107,22 +107,22 @@ public class LessonsTests
         var lessons = Lessons.Of(w.M.Research, "iron", null);
         Assert.Equal(new Tip(T("item.plate"), new TipLine(T("research.opened"), Tone.Good)),
             lessons.Recipes.Single(l => l.Recipe.Id == "plate").Tip);
-        Assert.Equal(new Tip(T("tool.solarPanel"), new TipLine("Scrap not analysed", Tone.Unknown, "scrap"), new TipLine("Circuit not analysed", Tone.Unknown, "circuit")),
-            lessons.Recipes.Single(l => l.Recipe.Id == "solarPanel").Tip);
+        Analyse(w, analyzer, 1);
+        Assert.Equal(new Tip(T("tool.burnerGenerator"), new TipLine("Frame not analysed", Tone.Unknown, "frame"), new TipLine("Rotor not analysed", Tone.Unknown, "rotor"), new TipLine("Coil not analysed", Tone.Unknown, "coil")),
+            Lessons.Of(w.M.Research, "scrap", null).Recipes.Single(l => l.Recipe.Id == "burnerGenerator").Tip);
     }
 
     [Fact]
-    public void OpenTheSolarPanelOnceACircuitIsAnalysedToo()
+    public void OpenTheLampOnceItsWireIsAnalysedToo()
     {
         var (w, analyzer) = World();
-        w.Give(0, ("iron", 2), ("scrap", 1), ("circuit", 1));
-        Analyse(w, analyzer, 0);
+        w.Give(0, ("iron", 2), ("scrap", 1), ("wire", 1));
         Analyse(w, analyzer, 1);
-        var solar = Lessons.Of(w.M.Research, "iron", null).Recipes.Single(l => l.Recipe.Id == "solarPanel");
-        Assert.False(solar.Opened);
-        Assert.Equal([new TipLine("Circuit not analysed", Tone.Unknown, "circuit")], solar.Tip.Lines);
+        var lamp = Lessons.Of(w.M.Research, "scrap", null).Recipes.Single(l => l.Recipe.Id == "lamp");
+        Assert.False(lamp.Opened);
+        Assert.Equal([new TipLine("Wire not analysed", Tone.Unknown, "wire")], lamp.Tip.Lines);
         Analyse(w, analyzer, 2);
-        Assert.True(Lessons.Of(w.M.Research, "circuit", null).Recipes.Single(l => l.Recipe.Id == "solarPanel").Opened);
+        Assert.True(Lessons.Of(w.M.Research, "wire", null).Recipes.Single(l => l.Recipe.Id == "lamp").Opened);
     }
 
     [Fact]

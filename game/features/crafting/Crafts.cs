@@ -65,12 +65,28 @@ public static class Crafts
     public static Look LookOf(bool known, IReadOnlyList<CostLine> lines, bool creative) =>
         !known ? Look.Locked : lines.Any(l => Short(l, creative)) ? Look.Short : Look.Ready;
 
-    /// <summary>The first item a unit is short of that is itself crafted, where a click on a short recipe goes; null when only raw items are short.</summary>
-    public static string? MissingCraft(IReadOnlyList<CostLine> lines, bool creative) =>
-        lines.FirstOrDefault(l => Short(l, creative) && Content.Crafts.TryGet(l.Item, out _))?.Item;
+    /// <summary>Whether <paramref name="station"/> makes <paramref name="item"/>: it is in its rows.</summary>
+    public static bool Makes(Content.Station station, string item) => station.Rows.Any(r => r.Contains(item));
 
-    /// <summary>Whether <paramref name="item"/> is raw: no craft makes it, so its tip says where it comes from.</summary>
-    public static bool Raw(string item) => !Content.Crafts.TryGet(item, out _);
+    /// <summary>
+    /// The first item a unit is short of that <paramref name="station"/> makes itself, where a click on a short recipe goes
+    /// (its place in the same grid); null when what is short comes from elsewhere.
+    /// </summary>
+    public static string? MissingCraft(IReadOnlyList<CostLine> lines, bool creative, Content.Station station) =>
+        lines.FirstOrDefault(l => Short(l, creative) && Makes(station, l.Item))?.Item;
+
+    /// <summary>
+    /// Where <paramref name="item"/> comes from, for the tip of a recipe at <paramref name="station"/> short of it: null where
+    /// the station makes it itself; its own words for one salvaged or smelted, or made besides elsewhere
+    /// (<c>crafts.from.&lt;item&gt;</c>); else the stations that make it, by name.
+    /// </summary>
+    public static string? From(string item, Content.Station station)
+    {
+        if (Makes(station, item)) return null;
+        if (Table.ContainsKey($"crafts.from.{item}")) return T($"crafts.from.{item}");
+        var makers = Content.Stations.All.Where(s => Makes(s, item)).Select(s => T($"station.{s.Machine}"));
+        return T("crafts.madeAt", ("stations", string.Join(", ", makers)));
+    }
 
     /// <summary>How many units a click queues.</summary>
     public static int CountFor(bool shift) => shift ? Many : 1;
@@ -93,11 +109,11 @@ public static class Crafts
         var rows = lines.Select(l =>
         {
             bool isShort = Short(l, creative);
-            return new CraftRow(l.Item, T($"item.{l.Item}"), l.Have, l.Need, isShort, isShort && Raw(l.Item) ? T($"crafts.from.{l.Item}") : null);
+            return new CraftRow(l.Item, T($"item.{l.Item}"), l.Have, l.Need, isShort, isShort ? From(l.Item, station) : null);
         }).ToList();
         IReadOnlyList<CardKey> keys = !rows.Any(r => r.Short)
             ? [new(T("key.lmb"), T("card.craftIt")), new(T("key.shift"), T("card.many", ("n", Many)))]
-            : MissingCraft(lines, creative) != null ? [new(T("key.lmb"), T("card.goTo"))] : [];
+            : MissingCraft(lines, creative, station) != null ? [new(T("key.lmb"), T("card.goTo"))] : [];
         return new StationBlock(T("time.seconds", ("n", Seconds(craft, station))), rows, keys);
     }
 

@@ -122,22 +122,41 @@ public class ResearchTests
         Assert.True(w.M.Research.Knows(generator));
     }
 
+    /// <summary>The circuit assembler (0057): a frame, a rotor, glass, wire and a circuit; and its circuit craft, silicon and wire.</summary>
     [Fact]
-    public void OpensTheSolarPanelOnceItsCircuitsAndMaterialsAreAnalysedAndBuildsItOfThem()
+    public void OpensTheCircuitAssemblerOnceFrameRotorGlassWireAndCircuitAreAnalysedAndCircuitsOfSiliconAndWire()
     {
         var (w, id) = SetUp();
+        w.GiveItems(0, ("frame", 1), ("rotor", 1), ("glass", 1), ("circuit", 1), ("silicon", 1));
+        var assembler = new Placement("machine", "assembler");
+        Assert.Equal(["frame", "rotor", "glass", "wire", "circuit"], RecipeOf(w, "assembler").Unanalysed);
+        foreach (var item in new[] { "frame", "rotor", "glass", "wire" }) Analyse(w, id, item);
+        Assert.Equal(["circuit"], RecipeOf(w, "assembler").Unanalysed);
+        Assert.False(w.M.Research.Knows(assembler));
+        Assert.Equal(["silicon"], RecipeOf(w, "circuit").Unanalysed);
+        Analyse(w, id, "circuit");
+        Assert.True(w.M.Research.Knows(assembler));
+        Assert.False(w.M.Research.Knows("circuit"));
+        Analyse(w, id, "silicon");
+        Assert.True(w.M.Research.Knows("circuit"));
+    }
+
+    [Fact]
+    public void OpensTheSolarPanelOnceItsCellsAndPartsAreAnalysedAndBuildsItOfThem()
+    {
+        // Held back by nothing (0041): a frame, solar cells, wire and a circuit, analysed as any blueprint is (0057).
+        var (w, id) = SetUp();
         var panel = new Placement("machine", "solarPanel");
-        var cost = Content.Machines.Get("solarPanel").Cost;
-        w.GiveItems(0, ("circuit", cost.Single(c => c.Item == "circuit").Count));
-        Analyse(w, id, "scrap");
-        Analyse(w, id, "iron");
+        Assert.Equal([("frame", 1), ("solarCell", 4), ("wire", 2), ("circuit", 1)], Content.Machines.Get("solarPanel").Cost);
+        w.GiveItems(0, ("frame", 1), ("solarCell", 4), ("circuit", 1));
+        Assert.Equal(["frame", "solarCell", "wire", "circuit"], RecipeOf(w, "solarPanel").Unanalysed);
+        foreach (var item in new[] { "frame", "solarCell", "wire" }) Analyse(w, id, item);
         Assert.Equal(["circuit"], RecipeOf(w, "solarPanel").Unanalysed);
         Assert.False(w.M.Research.Knows(panel));
         Analyse(w, id, "circuit");
         Assert.True(RecipeOf(w, "solarPanel").Known);
         Assert.True(w.M.Research.Knows(panel));
-        // Paid in full from what the hero carries, the analysed circuit taken back out among it.
-        w.GiveItems(0, ("scrap", 6), ("iron", 6));
+        // Paid in full from what the hero carries, the analysed items taken back out among it.
         w.Do(new PlacePlan(4, panel)).Run();
         Assert.Empty(w.Refusals);
         int plan = w.M.Building.Plans.Single().Id;
@@ -146,7 +165,8 @@ public class ResearchTests
         for (int t = 0; t < Content.Machines.Get("solarPanel").BuildTicks; t++) w.Do(new Work(plan)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal("solarPanel", w.M.Grid.MachineAt(4)?.Kind);
-        Assert.Equal(0, w.M.Items.Inventory(0).Sum(s => s?.Item == "circuit" ? s.Count : 0));
+        Assert.Equal(0, w.M.Items.Inventory(0).Sum(s => s?.Item is "circuit" or "solarCell" or "frame" ? s.Count : 0));
+        Assert.Equal(3, w.M.Items.Inventory(0).Sum(s => s?.Item == "wire" ? s.Count : 0));
     }
 
     [Fact]
