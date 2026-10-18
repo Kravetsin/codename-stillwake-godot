@@ -8,7 +8,8 @@ catching them, reeling them in by harpoon, and breaking wreckage and asteroids w
 [0041](../../docs/decisions/0041-wreckage-of-many-kinds-and-circuits.md),
 [0044](../../docs/decisions/0044-the-harpoon-reels-a-piece-to-a-point.md),
 [0052](../../docs/decisions/0052-debris-by-zones-around-every-hero.md),
-[0054](../../docs/decisions/0054-asteroids-and-the-drill.md), [0055](../../docs/decisions/0055-an-electric-tool-draws-while-it-runs.md)). Ported from
+[0054](../../docs/decisions/0054-asteroids-and-the-drill.md), [0055](../../docs/decisions/0055-an-electric-tool-draws-while-it-runs.md),
+[0060](../../docs/decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md)). Ported from
 `packages/sim/src/modules/debris`; its rules hold here unchanged, the harpoon and the zones new in the port.
 
 - **Depends on:** `Grid` (`IGridQueries`: its size, its `Version` and the hull's bounds), `Crew`
@@ -39,7 +40,7 @@ distance from the hull's box, `d = max(dx, 2·dy)` in cells past it (rows count 
 half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`).
 
 - **`ship`, the stream** (`ByHull(Margin, Lead)`): the stream past the ship, as before zones, its one
-  tier `Debris.Kinds`. Its **box** is the hull grown by `Lead` columns either way and `Margin` rows.
+  tier `Debris.Kinds`, the only zone with soil clods (0060). Its **box** is the hull grown by `Lead` columns either way and `Margin` rows.
 - **`far`, the far field** (`AroundHeroes`): round every hero out past every stream's box, from the
   cell its client last reported (`Hero.Cell`, about once a second, 0050). Three tiers, at 0, 128 and 256
   cells: small salvage near the ship, more and bigger wrecks, cable racks most of all, the farther out;
@@ -69,8 +70,9 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   order: a row among the hull's and `Margin` above and below; a kind by weight from its tier, walking
   its kinds in order; a speed from `DriftMin` to `DriftMax`. It starts in the middle of
   the cell `Lead` right of the hull and ends `Lead` left of it, both kept on the grid.
-  The first is due on clock `Debris.Every`. Of the weights' 45, 36 are small pieces and 9 wrecks:
-  a spawn every 10 s on average, a wreck one in five.
+  The first is due on clock `Debris.Every`. Of the weights' 137 (0041's three times over), 108 are small pieces,
+  27 wrecks and 2 soil clods: a spawn every 10 s on average, a wreck one in five, a clod one in 68, some 5 an
+  hour on the wreck, where a few spawns are lost at the cap (`SoilClodTests`).
 - **The band's beat** (`HullBand`): an asteroid spawns if fewer than `Max` of the band are out and there is a
   hull. Drawn in this order: a row of the band's `2 × (To − From + 1)`, those above the hull first, top down,
   then those below; a kind from its tier; a speed. A row off the grid spawns nothing, its draws taken all the
@@ -104,10 +106,12 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   fit floats at the hero's cell, on the floor of space (`IItemsOps.GiveOrDrop`). A wreck is refused
   with `debris.tooBig`.
 - **Wreckage** is a kind with hit points in `Wreckage`: a hull section (15), a cargo container (11),
-  a machine block (19), a cable rack (9), a tank cluster (7), a shield slab (31) (0034, 0041), an asteroid
+  a machine block (19), a cable rack (9), a tank cluster (7), a shield slab (31) (0034, 0041), a soil clod (8,
+  0060), an asteroid
   (120, 0054), a small (50), a large (200) and an ore-rich one (160), an engine block (180), a cargo hold (140) and a
   pod cluster (110) (0056). It drifts, spawns and is saved as any piece; each kind breaks into its own `Loot`, a cable rack always
-  into exactly one circuit, their sure source (an engine block or a pod cluster may hold one or two), an asteroid into
+  into exactly one circuit, their sure source (an engine block or a pod cluster may hold one or two), a soil clod
+  always into 1 to 3 seeds and 1 to 2 soil, the seed's second source beside supply pods, an asteroid into
   3 to 5 rock, the others by their size. Hit points alone say how
   hard a kind is: **every weapon breaks every kind** (0054). `Hit(Piece, Tool)` takes the weapon's
   `Weapons.Of(Tool).Damage` off them, adding it to the piece's `Damage`;
@@ -213,4 +217,4 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - The harpoon and `Reel` are new in the port; TypeScript has none. So are the zones and the far field
   (0052), with their own scenarios and invariant test in `DebrisZonesTests`, and the asteroid band and the
   weapons (0054), in `AsteroidTests`; the asteroid's kinds and the derelicts (0056) in `RichFindsTests`, a sortie's
-  finds measured in `DebrisDensityTests`.
+  finds measured in `DebrisDensityTests`; the soil clod (0060) in `SoilClodTests`.

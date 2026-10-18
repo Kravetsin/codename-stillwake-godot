@@ -17,6 +17,8 @@ public static class Wreckage
         ("cableRack", 9),
         ("tankCluster", 7),
         ("shieldSlab", 31),
+        // Loose earth, as frail as the frailest wrecks: between the tank cluster and the cable rack, four axe hits.
+        ("soilClod", 8),
         // Rock from the band round the ship (0054): 12 s of the drill, 30 s of the axe.
         ("asteroid", 120),
         // Its kinds (0056): the bigger, the harder and the more rock; the rich one, ore-dense, more rock for its size.

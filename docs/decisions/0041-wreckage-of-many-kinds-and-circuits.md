@@ -1,6 +1,7 @@
 # 0041 — Wreckage of many kinds, and circuits
 
-- Status: accepted; circuits from derelicts besides the rack, rarely, by [0056](0056-rich-finds-far-out.md)
+- Status: accepted; circuits from derelicts besides the rack, rarely, by [0056](0056-rich-finds-far-out.md); the
+  stream's weights three times over, the same odds, with the soil clod among them, by [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md)
 - Supersedes: of [0027](0027-what-is-analysed-opens-what-is-made-of-it.md), the `Locked` list (the
   solar panel held back until electronics exist); of [0034](0034-wreckage-and-the-axe.md), the hull
   section as the only wreck and "about one spawn in thirteen is a wreck"

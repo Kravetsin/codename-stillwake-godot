@@ -1,6 +1,7 @@
 # 0060 — The farm: a grow capsule is a fed station
 
-- Status: accepted; amends [0057](0057-stations-one-model-for-every-crafting-machine.md) with a fed station's process
+- Status: accepted; amends [0057](0057-stations-one-model-for-every-crafting-machine.md) with a fed station's process;
+  "nothing else gives seeds" amended below by the soil clod, a second source (2026-10-18)
 - Date: 2026-10-18
 - Design: "Stage 1 — wreck to radar, farm and first jump", slice 1, with the user's decisions of 2026-10-18
 
@@ -32,7 +33,17 @@ they could not do is tell a seed from rock: every fed station smelted whatever h
   puts the yields and the seeds back into the outputs at once.
 - **Room for the most:** a capsule grows only while its outputs take its yields and the most seeds it may give
   back (`IItemsQueries.CanSmelt`), so a crop never completes into a full slot whatever the draw.
-- **Seeds come from supply pods** (the user's decision): one or two in every other pod. Nothing else gives seeds.
+- **Seeds come from supply pods** (the user's decision): one or two in every other pod; at first nothing else gave seeds.
+- **And from soil clods** (amended 2026-10-18, the user's decision): a clod of earth torn from some ship's farm,
+  drifting with a sprout, `soilClod`, wreckage of 8 hit points, as frail as the stream's frailest (the tank cluster
+  7, the cable rack 9): four hits of the axe. Broken, it always gives 1 to 3 seeds and 1 to 2 soil. It drifts only in
+  the stream by the ship, where pods and the early wrecks come, rarely: the stream's weights go three times over
+  (as 0056 did the far field's, the same odds for the rest, one draw a spawn) and the clod takes 2 of their 137. The
+  stream spawns some 350 pieces an hour on the wreck (a beat of 160 to 240 ticks, 200 on average, 360 an hour, a
+  few lost at its cap of 20), so some 5 clods an hour, one every 12 minutes or so, 2 seeds and 1.5 soil each.
+  Pods stay the steady source: 9 of 137, three times as common, 0.75 seeds each on average. No new rule: a kind is
+  content (`Wreckage`, `Loot`, `Debris.Kinds`) and pictures, three of 32 × 32. When the ship can go to a place such
+  as a planet's rings, clods there are a weight in that place's zone tier. No save format change.
 - **Soil** is pressed at the Former of a rock and a plank in 60 ticks, a new row of its own; the pod's list stays
   closed (0057). **Biomass** smelts into biofuel, one for one, heat 1, 160 ticks, at the furnace or the smelter.
   **Biofuel** has no use yet: the engine (slice 3) and a biofuel generator (slice 5) will burn it.
@@ -62,5 +73,7 @@ they could not do is tell a seed from rock: every fed station smelted whatever h
 - A furnace takes a seed and a capsule rock without a word; the player sees nothing happen and moves it.
 - Every fed station's outputs must take its process's yields with their most returns (`ContentTests`).
 - No save format change: a smelt already keeps machine, item and progress; a station's process is content.
+- Soil comes from clods too, a little: 1 or 2 a clod where the capsule costs 4, so the Former stays its source
+  (`ContentTests`). Tests pinning exact kinds in the stream change once with its weights.
 - The testbed is six cells longer: a grow capsule growing seeds on the assembler's panel and a second crate of the
   farm's items, rock and planks, the first crate being full.

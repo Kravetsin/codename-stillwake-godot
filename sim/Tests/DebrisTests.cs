@@ -243,8 +243,8 @@ public class DebrisTests
     [Fact]
     public void DrawsEveryKindTheHeavierOnesMoreOften()
     {
-        // Short paths and no cap reached: about a thousand spawns, each a draw, the rarest some twenty times.
-        var kinds = Watch(new Scenario(Layout.Parse(["   #   "])), 200000).Select(p => p.Item).ToList();
+        // Short paths and no cap reached: about ten thousand spawns, each a draw, the rarest, the soil clod, some 150 times.
+        var kinds = Watch(new Scenario(Layout.Parse(["   #   "])), 2_000_000).Select(p => p.Item).ToList();
         var share = DebrisSpec.Kinds.Select(k => (k.Weight, Count: kinds.Count(item => item == k.Item))).ToList();
         Assert.All(share, s => Assert.True(s.Count > 0));
         foreach (var heavier in share)
