@@ -184,6 +184,15 @@ public static class Tools
     }
 
     /// <summary>
+    /// The sides of <paramref name="cell"/> that <paramref name="place"/>, planned or in hand there, joins when
+    /// drawn: what is <paramref name="planned"/> beside it and what is built, as the grid would draw it built — a
+    /// pipe reaching every conduit, a wall running on into every wall, a door into the door above or below.
+    /// </summary>
+    public static int LinksOf(Placement place, int cell, int width, System.Func<int, IEnumerable<Placement>> planned, IGridQueries grid) =>
+        !Render.Blueprint.Joins(place, place) ? 0 : Render.Blueprint.LinksOf(cell, width, c =>
+            planned(c).Any(o => Render.Blueprint.Joins(place, o)) || BuiltAt(c, place.Layer, grid) is { } built && Render.Blueprint.Joins(place, built));
+
+    /// <summary>
     /// The pipette's card for <paramref name="cell"/> under <paramref name="overlay"/>: under the power
     /// overlay the cable, on a node a cable ends at; else the card that places what is there, planned or
     /// built, in <see cref="LayersFor"/>, if its blueprint is known.

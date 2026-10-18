@@ -13,15 +13,15 @@ The plan, its menu and the hand at work (0022, 0030), ported from `apps/game/src
 | `PlanHand.cs`     | the card in hand and the plan out, kept in step with `Ui.Hand` and `Ui.OverlayOn` (`tools.ts`'s stores) | no    |
 | `Drag.cs`         | a drag's line of cells and what the card or removal would do in each (`drag.ts`)               | no    |
 | `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
-| `BuildingView.cs` | plans in blue as their own pictures, marks, bars, ghosts, the buttons, the pipette, plan work  | yes   |
+| `BuildingView.cs` | plans as pale ghosts in marching dashes, marks, bars, ghosts, the buttons, the pipette, plan work | yes |
 | `BuildMenu.cs`    | the menu shown while the plan is out: tabs, thumbnails, the card in hand, a card's words in the one tooltip; B (Esc: `game/menu`) | yes |
 
 Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, the words by the
 pointer; `Hands`: every view of this player's hands wired together, the building first to take the
 buttons; `PointerTip`), `game/i18n/En.cs` (the words), `game/render/` (`Buttons`/`WorldButtons`: the mouse
 as the world reads it; `BlueprintArt`/`PlanTiles`: the ship's own tiles for plans, ghosts and
-thumbnails; `Blueprint`: how planned pipes and doors join their neighbours, which the crew's aim outline
-draws too; `Sketch`). The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
+thumbnails; `Blueprint`: how planned pipes, doors and walls join their neighbours, which the crew's aim
+outline draws too; `PlanOutline`: the dashes round plans; `Sketch`). The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
 `drag.test.ts` and `near-grid.test.ts` are ported one for one; working a plan is the hero's hands
 (`features/crew`, `AimTests`).
 
@@ -47,7 +47,21 @@ draws too; `Sketch`). The plain files are compiled again into `game.tests/`, whe
   work bar says the rest.
 - Under the cards, the card in hand and one line of what the buttons do on the tab (`Tools.HintOf`); the
   menu's top is `Ui.MenuTop`, which the prompt for E keeps above.
-- Plans redraw only when the plans change; ghosts are tiles laid and erased each frame.
+- A plan is a ghost of what it builds (`PlanLook.Ghost`): its own picture greyed and lifted 60% toward white,
+  a little blue, so what was planned — a wall's or back wall's material too, for the other players — stays
+  plain to see; unlit, so it reads in the dark, and giving no light. Pipes, doors and walls join what is
+  planned and built beside them, as the grid draws them built, so a row of walls is one wall.
+- Round each group of plans — walls, back walls, ladders, doors, each row of floor along its strip, each
+  machine round its footprint — dashes a world pixel wide march clockwise, 5 pixels a second
+  (`PlanOutline`, worked out from the cells: the atlas has no room round its pictures to trace). A planned
+  machine has a "+" on its corner. Pipes and valves, lines themselves, are not outlined.
+- Planned back walls and their dashes are drawn just over the rooms' air (`Layers.PlanBacks`), under the
+  pipes, walls and machines built in front of them; the rest of a plan over the ship.
+- The ghost in hand is drawn the same way, tinted plainly green where the sim would take it, red where not.
+- Marks are projections of what they take out, in red, as before.
+- Plans redraw only when the plans or the grid change (`Version`: what is built beside a plan changes how
+  it joins); ghosts are tiles laid and erased each frame; the dashes are
+  painted again each frame while there are plans.
 - A removal's ghost is a box per cell edged a screen pixel wide at any zoom (a primitive line).
 - Work on a plan throws sparks, 0.3 a tick of work it goes on by (`Effect.Spark`), from its side facing
   the nearest hero within a little past the hands' reach and toward that hero (`Tools.SparksOf`, the
@@ -56,8 +70,9 @@ draws too; `Sketch`). The plain files are compiled again into `game.tests/`, whe
 
 ## Differences from the TypeScript
 
-- Plans and ghosts are `TileMapLayer`s on one shared atlas (`ShipTiles.Shared`), tinted as a whole; an
-  iron back wall planned is always the plain panel, never the grille.
+- Plans and ghosts are `TileMapLayer`s on one shared atlas (`ShipTiles.Shared`), drawn as a whole by one
+  shader; an iron back wall planned is always the plain panel, never the grille. The TypeScript game drew
+  plans as blue projections, each wall cell edged all round.
 - The refusal beside the pointer (`PointerTip`) is drawn on the screen at the world's point and size,
   so it reads as world text, 10 pixels of the world, but stays sharp at any zoom.
 - The menu's cost row shows item pictures from `art/items`; prices read the inventory every 250 ms.

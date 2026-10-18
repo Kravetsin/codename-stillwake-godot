@@ -24,12 +24,14 @@ public static class BlueprintArt
 
     /// <summary>
     /// The pictures <paramref name="placement"/> is drawn with, as the ship draws it built: <paramref name="linked"/>
-    /// are the sides a pipe reaches toward and a door joins on. A wall planned alone is outlined all round;
-    /// a machine is one picture from its corner.
+    /// are the sides a pipe reaches toward, a door joins on and a wall runs on into another wall: a wall is
+    /// edged on every other side, alone all round. A machine is one picture from its corner.
     /// </summary>
     public static IReadOnlyList<TilePiece> PiecesOf(Placement placement, int linked) => placement.Kind switch
     {
-        "wall" => [new(TileLayer.Walls, $"wall_{placement.Material}", Cut: true), new(TileLayer.Edges, $"wall-edge_{placement.Material}_{AllSides}")],
+        "wall" => (~linked & AllSides) is var open and > 0
+            ? [new(TileLayer.Walls, $"wall_{placement.Material}", Cut: true), new(TileLayer.Edges, $"wall-edge_{placement.Material}_{open}")]
+            : [new(TileLayer.Walls, $"wall_{placement.Material}", Cut: true)],
         "backWall" => [placement.Material == "scrap" ? new(TileLayer.Back, "back_scrap", Cut: true) : new(TileLayer.Back, $"back_{placement.Material}_plain")],
         "floor" or "ladder" => [new(TileLayer.Fixtures, placement.Kind)],
         "door" => [new(TileLayer.Doors, $"door_closed_{linked & (Up | Down)}")],
