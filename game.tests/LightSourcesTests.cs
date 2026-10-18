@@ -18,8 +18,19 @@ public class LightSourcesTests
         int[] structure = [Structure.Empty, Structure.Wall, Structure.DoorClosed, Structure.Empty, Structure.Empty, Structure.DoorOpen, Structure.Floor, Structure.Wall];
         var cells = new byte[6];
         // Two rows four wide, the box from the second column on: row by row, what is built only.
-        Sources.Occupy(structure, 4, new Box(1, 0, 3, 1), cells);
-        Assert.Equal(new[] { Sources.Wall, Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Wall }, cells);
+        Sources.Occupy(c => structure[c], 4, structure.Length, new Box(1, 0, 3, 1), cells);
+        // The closed door alone is a hatch (0067).
+        Assert.Equal(new[] { Sources.Wall, Sources.Hatch, Sources.Open, Sources.Open, Sources.Open, Sources.Wall }, cells);
+    }
+
+    [Fact]
+    public void TellsAClosedDoorsPanelFromAClosedHatchsByTheDoorwaysShape()
+    {
+        // A door two tall, shut over open, beside a hatch two wide.
+        int[] structure = [Structure.DoorClosed, Structure.Empty, Structure.DoorClosed, Structure.DoorClosed, Structure.DoorOpen, Structure.Empty, Structure.Empty, Structure.Empty];
+        var cells = new byte[8];
+        Sources.Occupy(c => structure[c], 4, structure.Length, new Box(0, 0, 3, 1), cells);
+        Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Hatch, Sources.Hatch, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
     }
 
     [Fact]

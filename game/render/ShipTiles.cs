@@ -43,6 +43,7 @@ public sealed class ShipTiles
             pictures.Add(Picture($"door_open_{linked}", Relief.Across));
             pictures.Add(Picture($"pipe_{linked}", Relief.None));
         }
+        foreach (var name in DoorShape.HatchPictures) pictures.Add(Picture(name, Relief.Down));
         pictures.Add(Picture("valve_open", Relief.None, centred: true));
         pictures.Add(Picture("valve_closed", Relief.None, centred: true));
         foreach (var kind in Machines.All.Select(m => m.Kind)) pictures.Add(Picture($"machine_{kind}", Relief.Round));
@@ -125,7 +126,7 @@ public sealed class ShipTiles
         var diffuse = PixelArt.Picture(name).GetImage();
         if (diffuse.IsCompressed()) diffuse.Decompress();
         diffuse.Convert(Image.Format.Rgba8);
-        var normal = relief == Relief.None ? Filled(diffuse.GetSize(), Flat) : PixelArt.VolumeMap(diffuse, across: relief == Relief.Across);
+        var normal = relief == Relief.None ? Filled(diffuse.GetSize(), Flat) : PixelArt.VolumeMap(diffuse, across: relief == Relief.Across, down: relief == Relief.Down);
         var whole = (diffuse.GetSize() + new Vector2I(Cell - 1, Cell - 1)) / Cell * Cell;
         if (whole == diffuse.GetSize()) return (name, diffuse, normal);
         var at = centred ? (whole - diffuse.GetSize()) / 2 : Vector2I.Zero;
@@ -138,8 +139,8 @@ public sealed class ShipTiles
         return (name, Padded(diffuse, Colors.Transparent), Padded(normal, Flat));
     }
 
-    /// <summary>How a picture stands out toward a light: flat, rolled from side to side, or domed.</summary>
-    private enum Relief { None, Across, Round }
+    /// <summary>How a picture stands out toward a light: flat, rolled from side to side (a door), from top to bottom (a hatch), or domed.</summary>
+    private enum Relief { None, Across, Down, Round }
 
     /// <summary>A normal facing straight out of the screen.</summary>
     private static readonly Color Flat = new(0.5f, 0.5f, 1f);

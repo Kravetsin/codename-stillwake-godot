@@ -423,22 +423,23 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     private static int Toggled(int valve) => valve == Conduit.ValveOpen ? Conduit.ValveClosed : Conduit.ValveOpen;
 
     /// <summary>
-    /// A doorway is every door cell joined to the clicked one, as <paramref name="codeAt"/> reads them: opened or
-    /// closed as one, each cell given its new code through <paramref name="set"/>.
+    /// A doorway is the straight run of door cells the clicked one is in (<see cref="Doorways"/>), as
+    /// <paramref name="codeAt"/> reads them: opened or closed as one, each cell given its new code through <paramref name="set"/>.
     /// </summary>
     private void ToggleDoorAt(int cell, Func<int, int> codeAt, Action<int, int> set)
     {
         int to = codeAt(cell) == Structure.DoorOpen ? Structure.DoorClosed : Structure.DoorOpen;
-        if (_inDoorway.Length != State.Structure.Length) _inDoorway = new bool[State.Structure.Length];
+        int w = State.Width, size = State.Structure.Length;
+        if (_inDoorway.Length != size) _inDoorway = new bool[size];
         Visit(codeAt, cell);
         while (_todo.Count > 0)
         {
-            int at = _todo.Pop(), x = at % State.Width;
+            int at = _todo.Pop(), links = Doorways.LinksOf(at, w, size, codeAt);
             set(at, to);
-            Visit(codeAt, at - State.Width);
-            Visit(codeAt, at + State.Width);
-            if (x > 0) Visit(codeAt, at - 1);
-            if (x < State.Width - 1) Visit(codeAt, at + 1);
+            if ((links & Doorways.Up) != 0) Visit(codeAt, at - w);
+            if ((links & Doorways.Down) != 0) Visit(codeAt, at + w);
+            if ((links & Doorways.Left) != 0) Visit(codeAt, at - 1);
+            if ((links & Doorways.Right) != 0) Visit(codeAt, at + 1);
         }
         foreach (int c in _visited) _inDoorway[c] = false;
         _visited.Clear();

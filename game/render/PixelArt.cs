@@ -36,10 +36,11 @@ public static class PixelArt
     /// <summary>
     /// A normal map of <paramref name="image"/>'s whole shape, not its detail: a gentle dome over the box
     /// its opaque pixels fill, or with <paramref name="across"/> a gentle roll from side to side only (a
-    /// door, drawn a cell at a time, would show each cell's dome). Lit, the side toward a light is
+    /// door, drawn a cell at a time, would show each cell's dome), with <paramref name="down"/> from top to
+    /// bottom only (a hatch, likewise). Lit, the side toward a light is
     /// brighter than the side away from it, and no rivet or seam casts a shadow.
     /// </summary>
-    public static Image VolumeMap(Image image, bool across = false)
+    public static Image VolumeMap(Image image, bool across = false, bool down = false)
     {
         // How far the edge of the shape leans out: past about half a seam reads as a hard rim.
         const float Lean = 0.55f;
@@ -51,7 +52,7 @@ public static class PixelArt
         for (int y = 0; y < h; y++)
             for (int x = 0; x < w; x++)
             {
-                float u = Mathf.Clamp((x + 0.5f - cx) / hw, -1, 1), v = across ? 0 : Mathf.Clamp((y + 0.5f - cy) / hh, -1, 1);
+                float u = down ? 0 : Mathf.Clamp((x + 0.5f - cx) / hw, -1, 1), v = across ? 0 : Mathf.Clamp((y + 0.5f - cy) / hh, -1, 1);
                 // Screen-wise the normal leans (u, v); Godot reads normal maps Y-up (OpenGL), so v is stored turned.
                 var n = new Vector3(u * Lean, -v * Lean, 1f).Normalized();
                 normal.SetPixel(x, y, new Color(n.X * 0.5f + 0.5f, n.Y * 0.5f + 0.5f, n.Z * 0.5f + 0.5f));

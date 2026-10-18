@@ -42,8 +42,10 @@ public partial class LightView : Node2D
     /// </summary>
     private const int FireReach = 8;
 
-    /// <summary>The columns of its cell a closed door's picture fills, in pixels: what of a door stops light.</summary>
-    private static readonly (int From, int To) DoorPanel = PanelOf(PixelArt.Picture("door_closed_0").GetImage());
+    /// <summary>The columns of its cell a closed door's picture fills and the rows a closed hatch's does, in pixels: what of them stops light.</summary>
+    private static readonly Lightmap.Panels DoorPanels = new(
+        PanelOf(PixelArt.Picture("door_closed_0").GetImage(), across: false),
+        PanelOf(PixelArt.Picture(DoorShape.Picture(closed: true, 0)).GetImage(), across: true));
 
     private readonly IGridQueries _grid;
     private readonly Lightmap _lightmap = new();
@@ -98,7 +100,7 @@ public partial class LightView : Node2D
         if (log == null)
         {
             // The first look, or the grid's log let go of what changed: everything laid out anew.
-            _lightmap.Occupy(_grid.StructureLayer, w, _grid.Built, DoorPanel);
+            _lightmap.Occupy(_grid.StructureAt, w, w * _grid.Height, _grid.Built, DoorPanels);
             _machines = _grid.Machines.ToArray();
             ShowLamps();
             _starlight.Show(_grid);
@@ -113,7 +115,7 @@ public partial class LightView : Node2D
             if ((change.Layers & (GridLayers.Structure | GridLayers.Back | GridLayers.Machine)) != 0) _lit.Add(change.Cell);
             machines |= (change.Layers & GridLayers.Machine) != 0;
         }
-        if (_walls.Count > 0) _lightmap.Follow(_grid.StructureLayer, w, _grid.Built, _walls, DoorPanel);
+        if (_walls.Count > 0) _lightmap.Follow(_grid.StructureAt, w, w * _grid.Height, _grid.Built, _walls, DoorPanels);
         if (machines)
         {
             _machines = _grid.Machines.ToArray();
@@ -208,10 +210,10 @@ public partial class LightView : Node2D
     };
 
     /// <summary>The columns of a cell a picture's opaque pixels span, from the first to past the last.</summary>
-    private static (int From, int To) PanelOf(Image picture)
+    private static (int From, int To) PanelOf(Image picture, bool across)
     {
         if (picture.IsCompressed()) picture.Decompress();
         var used = picture.GetUsedRect();
-        return (used.Position.X, used.End.X);
+        return across ? (used.Position.Y, used.End.Y) : (used.Position.X, used.End.X);
     }
 }

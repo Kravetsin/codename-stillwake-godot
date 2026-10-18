@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Stillwake.Game;
 
@@ -10,28 +11,19 @@ namespace Stillwake.Game;
 /// </summary>
 public static class DebrisLooks
 {
+    /// <summary>The name of each kind's pictures, <c>&lt;name&gt;_NN.png</c>; how many there are is the sim's (<c>Content.Looks</c>).</summary>
+    private static readonly (string Kind, string Look)[] Names =
+    [
+        ("scrapChunk", "scrap"), ("hullPlate", "hull"), ("cargoCrate", "crate"), ("supplyPod", "pod"),
+        ("hullSection", "section"), ("cargoContainer", "container"), ("machineBlock", "machine"), ("cableRack", "rack"),
+        ("tankCluster", "tanks"), ("shieldSlab", "slab"), ("soilClod", "soilclod"),
+        ("asteroid", "asteroid"), ("asteroidSmall", "smallrock"), ("asteroidLarge", "bigrock"), ("asteroidRich", "orerock"),
+        ("engineBlock", "engine"), ("cargoHold", "hold"), ("podCluster", "pods"),
+    ];
+
     /// <summary>The pictures of each kind of salvage that drifts: their name, and how many there are.</summary>
-    public static readonly IReadOnlyDictionary<string, (string Look, int Count)> Of = new Dictionary<string, (string, int)>
-    {
-        ["scrapChunk"] = ("scrap", 12),
-        ["hullPlate"] = ("hull", 12),
-        ["cargoCrate"] = ("crate", 8),
-        ["supplyPod"] = ("pod", 4),
-        ["hullSection"] = ("section", 1),
-        ["cargoContainer"] = ("container", 1),
-        ["machineBlock"] = ("machine", 1),
-        ["cableRack"] = ("rack", 1),
-        ["tankCluster"] = ("tanks", 1),
-        ["shieldSlab"] = ("slab", 1),
-        ["soilClod"] = ("soilclod", 3),
-        ["asteroid"] = ("asteroid", 6),
-        ["asteroidSmall"] = ("smallrock", 6),
-        ["asteroidLarge"] = ("bigrock", 6),
-        ["asteroidRich"] = ("orerock", 6),
-        ["engineBlock"] = ("engine", 4),
-        ["cargoHold"] = ("hold", 4),
-        ["podCluster"] = ("pods", 4),
-    };
+    public static readonly IReadOnlyDictionary<string, (string Look, int Count)> Of =
+        Names.ToDictionary(n => n.Kind, n => (n.Look, Content.Looks.CountOf(n.Kind)));
 
     /// <summary>
     /// Wreckage, aimed at by its whole picture rather than near its middle (0034): its picture's size in
@@ -56,7 +48,7 @@ public static class DebrisLooks
         ["podCluster"] = (64, 64),
     };
 
-    /// <summary>The picture piece <paramref name="id"/> of <paramref name="item"/> wears, or null to draw the item.</summary>
+    /// <summary>The picture piece <paramref name="id"/> of <paramref name="item"/> wears (<c>Content.Looks.Of</c>), or null to draw the item; a look's own, by its number from 0, too.</summary>
     public static string? PictureOf(string item, int id) =>
-        Of.TryGetValue(item, out var look) ? $"res://art/debris/{look.Look}_{id % look.Count + 1:00}.png" : null;
+        Of.TryGetValue(item, out var look) ? $"res://art/debris/{look.Look}_{Content.Looks.Of(item, id) + 1:00}.png" : null;
 }

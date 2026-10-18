@@ -197,7 +197,7 @@ public partial class BuildingView : Node2D
             int at = MarkedAt(grid, p);
             if (Tools.BuiltAt(at, layer, grid) is not { } built) continue;
             // Joined as the grid draws it, to what is built beside it, marked or not.
-            int joined = Blueprint.LinksOf(at, width, c => Tools.BuiltAt(c, layer, grid) is { } other && Blueprint.Joins(built, other));
+            int joined = Blueprint.LinksOf(built, at, width, width * grid.Height, c => Tools.BuiltAt(c, layer, grid) is { } other && Blueprint.Joins(built, other));
             if (MarkCutOf(grid, building, p, built) is { } cut) _marked.Lay(built, at, width, joined, cut);
             shapes.Add((p, built, at, joined));
         }

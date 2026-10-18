@@ -23,6 +23,15 @@ public static class Blueprint
         return sides;
     }
 
+    /// <summary>
+    /// The sides <paramref name="place"/> at <paramref name="cell"/> joins, of a grid <paramref name="width"/> wide and
+    /// <paramref name="size"/> cells, where <paramref name="joins"/> says its like stands: a door the straight run of its
+    /// doorway, as the sim toggles it (<see cref="Doorways.LinksOf"/>); anything else every side.
+    /// </summary>
+    public static int LinksOf(Placement place, int cell, int width, int size, Func<int, bool> joins) => place.Kind == "door"
+        ? Doorways.LinksOf(cell, width, size, c => joins(c) ? Structure.DoorClosed : Structure.Empty)
+        : LinksOf(cell, width, joins);
+
     /// <summary>Whether two placements join when drawn side by side: pipes and valves, doors, or walls of any material, as the grid draws them built.</summary>
     public static bool Joins(Placement a, Placement b) =>
         a.Layer == "conduit" ? b.Layer == "conduit" : a.Kind is "door" or "wall" && b.Kind == a.Kind;

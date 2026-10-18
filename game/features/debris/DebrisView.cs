@@ -248,8 +248,8 @@ public partial class DebrisView(Ui ui) : Node2D
     /// </summary>
     private static (Texture2D Texture, float Scale) PictureOf(string item, int id)
     {
-        if (!DebrisLooks.Of.TryGetValue(item, out var looks)) return (ItemIcons.Icon(item), ItemSize * Cell / ItemIcons.Pixels);
-        var key = (item, id % looks.Count);
+        if (!DebrisLooks.Of.ContainsKey(item)) return (ItemIcons.Icon(item), ItemSize * Cell / ItemIcons.Pixels);
+        var key = (item, Content.Looks.Of(item, id));
         if (!Textures.TryGetValue(key, out var texture)) Textures[key] = texture = GD.Load<Texture2D>(DebrisLooks.PictureOf(item, id));
         return (texture, 1);
     }

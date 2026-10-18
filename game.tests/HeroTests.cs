@@ -679,6 +679,42 @@ public class HeroTests
         Assert.Equal(5 * Unit, stuck.Y - Spec.Height);
     }
 
+    // A hatch three wide in a deck, a ladder under its middle (0067).
+    private static string HatchMap(char hatch) => $"""
+        #######
+        #.....#
+        #.....#
+        #.....#
+        ##{hatch}{hatch}{hatch}##
+        #..H..#
+        #..H..#
+        #..HS.#
+        #######
+        """;
+
+    [Fact]
+    public void DownOnAClosedHatchDoesNothingOverTheLadderOrBesideIt()
+    {
+        var (ship, _) = Start(HatchMap('D'));
+        foreach (int x in new[] { 2500, 3500, 4500 })
+        {
+            var stood = Settle(ship, At(x, 4 * Unit), Down);
+            Assert.Equal((4 * Unit, false), (stood.Y, stood.Climbing));
+        }
+    }
+
+    [Fact]
+    public void DownOnAnOpenHatchOverALadderClimbsDownAndBesideItTheHeroFalls()
+    {
+        var (ship, _) = Start(HatchMap('d'));
+        var top = At(3500, 4 * Unit);
+        Assert.Equal(4 * Unit, Settle(ship, top, Still).Y);
+        var grabbed = top.Step(Down, ship);
+        Assert.True(grabbed.Climbing);
+        Assert.Equal(8 * Unit, Settle(ship, grabbed, Down).Y);
+        Assert.Equal(8 * Unit, Settle(ship, At(2500, 4 * Unit), Still).Y);
+    }
+
     internal static readonly Layout Wreck = Registry.WreckMap;
     internal static readonly int Spawn = new TestWorld(Wreck).M.Crew.Spawn;
     /// <summary>The wreck with every door open, the airlock's two doorways among them.</summary>

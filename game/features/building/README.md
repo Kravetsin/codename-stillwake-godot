@@ -21,7 +21,7 @@ pointer; `Hands`: every view of this player's hands wired together, the building
 buttons; `PointerTip`), `game/i18n/En.cs` (the words), `game/render/` (`Buttons`/`WorldButtons`: the mouse
 as the world reads it; `BlueprintArt`/`PlanTiles`: the ship's own tiles for plans, ghosts and
 thumbnails; `PlanCut`/`BuiltParts`: where a plan being built turns real, and its real share drawn lit;
-`Blueprint`: how planned pipes, doors and walls join their neighbours, which the crew's aim
+`Blueprint`: how planned pipes, doors and walls join their neighbours (a planned door is drawn a door or a hatch by `DoorShape`, 0067), which the crew's aim
 outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`). The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
 `drag.test.ts` and `near-grid.test.ts` are ported one for one; working a plan is the hero's hands
 (`features/crew`, `AimTests`).
