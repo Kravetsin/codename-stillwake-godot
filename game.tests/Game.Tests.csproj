@@ -57,6 +57,7 @@
     <Compile Include="../game/features/debris/OwnHits.cs" Link="Game/Debris/OwnHits.cs" />
     <Compile Include="../game/features/sound/Hearing.cs" Link="Game/Sound/Hearing.cs" />
     <Compile Include="../game/features/sound/Strikes.cs" Link="Game/Sound/Strikes.cs" />
+    <Compile Include="../game/features/sound/Motors.cs" Link="Game/Sound/Motors.cs" />
     <Compile Include="../game/i18n/En.cs" Link="Game/I18n/En.cs" />
     <Compile Include="../game/render/Buttons.cs" Link="Game/Render/Buttons.cs" />
     <Compile Include="../game/render/CableShape.cs" Link="Game/Render/CableShape.cs" />

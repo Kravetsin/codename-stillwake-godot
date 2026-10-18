@@ -3,7 +3,8 @@
 - Status: accepted; supersedes of [0028](0028-the-lifepod-and-crafting-by-machine-only.md) "every craft
   is the pod's while it is the only station", and of [0023](0023-a-furnace-burns-fuel.md) and
   [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) that the `furnace` module smelts; of
-  [0041](0041-wreckage-of-many-kinds-and-circuits.md) that no craft makes a circuit and the solar panel's cost
+  [0041](0041-wreckage-of-many-kinds-and-circuits.md) that no craft makes a circuit and the solar panel's cost; the Former and the smelter heard at work by
+  [0059](0059-machines-heard-at-work.md)
 - Date: 2026-10-17
 - Design: "powered production stations" (approved), all four slices built
 
