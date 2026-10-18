@@ -10,7 +10,8 @@ namespace Stillwake.Game.Features.Items;
 /// One slot, <see cref="Slots.SizeOf"/> square (<c>SlotBox</c> in Inventory.tsx): tinted by what it holds, a
 /// tool amber and a worn item green (<see cref="SlotLooks"/>), edged near-white when chosen, faded while its
 /// stack is picked, its icon inset 4 px and its count in the corner; on the hotbar the key that chooses it in
-/// the top-left corner, and a violet "?" in the top-right while its item is not analysed.
+/// the top-left corner, and a violet "?" in the top-right while its item is not analysed. Empty, it may show a faint
+/// silhouette of what goes in it (<see cref="Ghost"/>).
 /// </summary>
 public partial class SlotBox : Panel
 {
@@ -35,6 +36,12 @@ public partial class SlotBox : Panel
 
     public Place Place { get; }
 
+    /// <summary>What goes in this slot, shown as a faint silhouette while it is empty: a grow capsule's seed (0060).</summary>
+    public string? Ghost { get; set; }
+
+    /// <summary>How much of its white a ghost shows.</summary>
+    private const float GhostAlpha = 0.16f;
+
     /// <summary>A press on this slot: the right button, shift held.</summary>
     public event Action<Place, bool, bool>? Pressed;
 
@@ -53,6 +60,14 @@ public partial class SlotBox : Panel
         LabelSettings = CountText,
         MouseFilter = MouseFilterEnum.Ignore,
     };
+    private readonly TextureRect _ghost = new()
+    {
+        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+        StretchMode = TextureRect.StretchModeEnum.Scale,
+        TextureFilter = TextureFilterEnum.Nearest,
+        MouseFilter = MouseFilterEnum.Ignore,
+        Modulate = new Color(1, 1, 1, GhostAlpha),
+    };
     private readonly Label _mark;
     /// <summary>A battery's charge, a thin bar along the icon's foot (0053): no numbers.</summary>
     private readonly ColorRect _track = new() { Color = new Color("0b1220"), MouseFilter = MouseFilterEnum.Ignore, Visible = false };
@@ -67,6 +82,8 @@ public partial class SlotBox : Panel
         Place = place;
         _size = size;
         CustomMinimumSize = new Vector2(size, size);
+        AddChild(_ghost);
+        _ghost.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, LayoutPresetMode.Minsize, Slots.Inset);
         AddChild(_icon);
         _icon.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, LayoutPresetMode.Minsize, Slots.Inset);
         if (key != null) AddChild(new Label { Text = key, LabelSettings = KeyText, Position = new Vector2(3, -1), MouseFilter = MouseFilterEnum.Ignore });
@@ -115,6 +132,7 @@ public partial class SlotBox : Panel
         };
         AddThemeStyleboxOverride("panel", box);
         _icon.Texture = stack == null ? null : ItemIcons.Icon(Charges.Picture(stack.Item, stack.Charge));
+        _ghost.Texture = stack == null && Ghost != null ? ItemIcons.Silhouette(Ghost) : null;
         ShowCharge(stack);
         _count.Text = stack is { Count: > 1 } ? stack.Count.ToString() : "";
         Modulate = picked ? new Color(1, 1, 1, 0.4f) : glow == SlotGlow.Refuses ? new Color(1, 1, 1, Refused) : Colors.White;

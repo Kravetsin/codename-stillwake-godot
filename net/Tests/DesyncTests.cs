@@ -224,13 +224,16 @@ public class DesyncTests
     public void KeepsEveryClientInSyncWhileEveryKindOfStationWorks()
     {
         // An aired room with the lifepod, a furnace, and a Former, an electric smelter and a circuit assembler cabled
-        // to a burner generator (0057), each peer carrying chunks, planks and rock. The fuzz crafts and cancels at every
-        // station; the first client, in creative mode, keeps the Former's and the assembler's queues going and the
-        // furnace, the smelter and the generator fed.
+        // to a burner generator, and a grow capsule to one of its own (0057, 0060), each peer carrying chunks, planks,
+        // rock and seeds. The fuzz crafts and cancels at every station; the first client, in creative mode, keeps the
+        // Former's and the assembler's queues going and the furnace, the smelter, the capsule and the generators fed.
+        // The capsule starts a hundred ticks of full power from its crop, so the seeds it gives back are drawn on every
+        // peer.
         var layout = Layout.Parse(
-            ["######################", "#.......OOO..........#", "#FF.TT..OOOMMBB.EE.YY#", "#FF.TTV.OOOMMBB.EE.YY#", "######################"],
+            ["############################", "#.......OOO..............gg#", "#FF.TT..OOOMMBB.EE.YY.BB.gg#", "#FF.TTV.OOOMMBB.EE.YY.BB.gg#", "############################"],
             ["", "", "    o", "    ---"],
-            [((13, 2), (11, 2)), ((13, 2), (16, 2)), ((13, 2), (19, 2))]);
+            [((13, 2), (11, 2)), ((13, 2), (16, 2)), ((13, 2), (19, 2)), ((22, 2), (25, 2))]);
+        int crop = Content.Items.Get("seed").SmeltTicks!.Value * 1000;
         string Stocked(string save)
         {
             var root = JsonNode.Parse(save)!;
@@ -241,22 +244,29 @@ public class DesyncTests
                 for (int i = 0; i < Content.Inventory.Total; i++)
                     slots.Add(i < 3 ? new JsonObject { ["item"] = "scrapChunk", ["count"] = 10 }
                         : i < 6 ? new JsonObject { ["item"] = "planks", ["count"] = 50 }
-                        : i < 9 ? new JsonObject { ["item"] = "rock", ["count"] = 10 } : null);
+                        : i < 9 ? new JsonObject { ["item"] = "rock", ["count"] = 10 }
+                        : i < 11 ? new JsonObject { ["item"] = "seed", ["count"] = 10 } : null);
                 inventories.Add(new JsonObject { ["id"] = peer, ["slots"] = slots });
             }
             root["slices"]!["items"]!["inventories"] = inventories;
+            int capsule = (int)root["slices"]!["grid"]!["machines"]!.AsArray().First(m => (string?)m!["kind"] == "growCapsule")!["id"]!;
+            var crates = root["slices"]!["items"]!["crates"]!.AsArray();
+            if (crates.Any(c => (int)c!["id"]! > capsule)) throw new InvalidOperationException("the capsule's entry goes last only if it has the highest id");
+            crates.Add(new JsonObject { ["id"] = capsule, ["slots"] = new JsonArray(new JsonObject { ["item"] = "seed", ["count"] = 10 }, null, null) });
+            root["slices"]!["crafting"]!["smelts"] = new JsonArray(new JsonObject { ["machine"] = capsule, ["item"] = "seed", ["progress"] = crop - 100 * 1000 });
             return root.ToJsonString();
         }
         var game = new Definition(() => new Registry().All, Stocked);
-        int formed = 0, smelted = 0, heated = 0, assembled = 0;
-        var run = Desync.Fuzz(game, 13, layout: layout, ticks: 1500, tamper: (tick, clients) =>
+        int formed = 0, smelted = 0, heated = 0, assembled = 0, grew = 0, harvested = 0;
+        var run = Desync.Fuzz(game, 14, layout: layout, ticks: 1500, tamper: (tick, clients) =>
         {
             var first = clients[0];
             var grid = game.Module<GridModule>(first.World);
             var crafting = game.Module<CraftingModule>(first.World);
             int former = grid.MachinesOf("former")[0].Id, furnace = grid.MachinesOf("furnace")[0].Id;
             int burner = grid.MachinesOf("burnerGenerator")[0].Id, smelter = grid.MachinesOf("smelter")[0].Id;
-            int assembler = grid.MachinesOf("assembler")[0].Id;
+            int assembler = grid.MachinesOf("assembler")[0].Id, capsule = grid.MachinesOf("growCapsule")[0].Id;
+            int second = grid.MachinesOf("burnerGenerator")[1].Id;
             if (tick % 20 == 10)
             {
                 first.Send(new SetCreative(true));
@@ -266,24 +276,31 @@ public class DesyncTests
                 first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(former)!.Cell));
                 first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(smelter)!.Cell));
                 first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(assembler)!.Cell));
+                first.Send(new Sim.Power.Lay(grid.MachineById(second)!.Cell, grid.MachineById(capsule)!.Cell));
             }
             var own = game.Module<ItemsModule>(first.World).Inventory(first.Id).ToList();
             int chunk = own.FindIndex(s => s is { Item: "scrapChunk" }), planks = own.FindIndex(s => s is { Item: "planks" });
-            int rock = own.FindIndex(s => s is { Item: "rock" });
+            int rock = own.FindIndex(s => s is { Item: "rock" }), seed = own.FindIndex(s => s is { Item: "seed" });
             if (tick % 50 == 25 && chunk >= 0) first.Send(new Move(new Place(chunk), new Target(0, furnace), 2));
             if (tick % 50 == 30 && planks >= 0) first.Send(new Move(new Place(planks), new Target(1, furnace), 1));
             if (tick % 50 == 35 && planks >= 0) first.Send(new Move(new Place(planks), new Target(0, burner), 1));
             if (tick % 50 == 40 && rock >= 0) first.Send(new Move(new Place(rock), new Target(0, smelter), 2));
+            if (tick % 50 == 20 && planks >= 0) first.Send(new Move(new Place(planks), new Target(0, second), 1));
+            if (tick % 50 == 45 && seed >= 0) first.Send(new Move(new Place(seed), new Target(0, capsule), 2));
             if (crafting.Works(former)) formed++;
             if (crafting.Progress(furnace) > 0) smelted++;
             if (crafting.Works(smelter)) heated++;
             if (crafting.Works(assembler)) assembled++;
+            if (crafting.Works(capsule)) grew++;
+            if (game.Module<ItemsModule>(first.World).Crate(capsule).Skip(1).Any(s => s is { Item: "biomass" })) harvested++;
         });
         Assert.Null(run.Desync);
         Assert.True(formed > 100, $"the Former worked on {formed} ticks");
         Assert.True(smelted > 30, $"the furnace smelted on {smelted} ticks");
         Assert.True(heated > 30, $"the smelter smelted on {heated} ticks");
         Assert.True(assembled > 100, $"the assembler worked on {assembled} ticks");
+        Assert.True(grew > 100, $"the capsule grew on {grew} ticks");
+        Assert.True(harvested > 0, "the capsule's crop never came in");
     }
 
     // The harness itself.

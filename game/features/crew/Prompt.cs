@@ -40,6 +40,7 @@ public static class Prompts
                 "former" => "use.openFormer",
                 "smelter" => "use.openSmelter",
                 "assembler" => "use.openAssembler",
+                "growCapsule" => "use.openGrowCapsule",
                 _ => "use.openCrate",
             }, null);
         if (aim.Press is not { } press) return null;

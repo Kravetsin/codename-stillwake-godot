@@ -4,7 +4,8 @@
   is the pod's while it is the only station", and of [0023](0023-a-furnace-burns-fuel.md) and
   [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) that the `furnace` module smelts; of
   [0041](0041-wreckage-of-many-kinds-and-circuits.md) that no craft makes a circuit and the solar panel's cost; the Former and the smelter heard at work by
-  [0059](0059-machines-heard-at-work.md)
+  [0059](0059-machines-heard-at-work.md); a fed station's process, the grow capsule, added by
+  [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md)
 - Date: 2026-10-17
 - Design: "powered production stations" (approved), all four slices built
 
@@ -124,6 +125,15 @@ rule and a panel; the smelter would copy the furnace's smelt rules without its f
 - **Its panel** is the queued stations' (the Fabricator's, the Former's), with its bolt and draw.
 - The testbed is three cells longer for an assembler making circuits on a fifth roof panel; the jetpack script's
   doors move with it. `--card=<id>` takes the plan out on a build card, its tooltip shown, for recordings.
+
+## A fed station's process (0060)
+
+- **A fed station works only what is of its process:** `Station.Process` and `ItemSpec.Process`, one string each,
+  "smelt" by default. The furnace and the smelter smelt; the grow capsule grows, a seed into biomass. What is of
+  another process sits in the input, never worked, as glass does; it is not too cold either. Heat still applies
+  within a process. The crusher and the reactor are its next users.
+- An item may give back some of itself as its work completes (`ItemSpec.Returns`, a crop's seeds), drawn from the
+  world's Rng; a station works it only with room for the most it may give back.
 
 ## Rejected
 

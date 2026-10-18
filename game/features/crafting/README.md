@@ -35,7 +35,11 @@ pixels between the bars, glowing, the heat running up them a winding a picture. 
 and its arm parked, a glass magnifier over a green board, a dark screen; `art/assembler_work_0..3.png`, the
 cabinet's inside with the arm dipping to the board and the rotor turned, lit, opaque over it; and
 `art/assembler_screen_0..3.png`, only the screen's green trace and the head's spark, drawn unlit. The solar cell's
-icon is `art/items/solarCell.png`.
+icon is `art/items/solarCell.png`. The grow capsule's (0060): `art/machine_growCapsule.png`, a glass dome on a
+plated base, a soil bed inside, a grow lamp under its cap, dark; `art/growCapsule_work_0.png`, only the lamp's lens
+lit pink, drawn unlit; and `art/growCapsule_plant_0..3.png`, the plant at each quarter of its crop, a sprout to a
+budding bush, with the glass's glints kept over it. The farm's icons are `art/items/seed.png`, `soil.png`,
+`biomass.png` and `biofuel.png`. The script that drew them is not kept: they are placeholders.
 
 ## Guarantees
 
@@ -88,6 +92,11 @@ icon is `art/items/solarCell.png`.
   and in step, its screen runs a green trace and a spark shows where the head touches the board, and the screen
   lights the room round it green (a `Glow`), flickering a little. Idle, full or without power the arm stays
   parked, the screen dark, no light. Silent until the user picks its sound.
+- **The grow capsule** in the world (0060): while it grows (`Works`) its lamp is lit pink, drawn unlit, and lights the
+  room round it pink (a `Glow`); idle, full or without power the lamp is dark and gives no light. Its plant shows
+  whatever of its process the input holds (`WorkOf`), at the quarter of its crop it has grown to (`Progress`), lit as
+  the machine is, working or paused; an empty capsule, or one holding rock, shows none. Silent: its sound waits for
+  the user's audition.
 - **Too cold** (0057): a fed station whose input holds what needs more heat than it has
   (`ICraftingQueries.TooCold`) shows a five-pixel star of ice where it would work it — the furnace's
   mouth, the smelter's grate — drawn unlit, pulsing slowly between a dim and a cold blue, lighting a
@@ -102,6 +111,7 @@ icon is `art/items/solarCell.png`.
 - A shift-click on a recipe ready for one unit but short of five is sent: the sim refuses it whole,
   as it would any unpaid lot, and nothing is pulsed.
 - The pod's glow lights nothing around it: it is drawn, not a lamp in the light field.
+- A plant does not sway or grow smoothly between its four pictures: a quarter of an eight-minute crop is two minutes.
 - The hero climbing out is the glow fading behind the hero standing at the hatch, not an animation of
   its own.
 - A queued entry keeps its line tip rather than its item's card: it is an order, whose and how many,

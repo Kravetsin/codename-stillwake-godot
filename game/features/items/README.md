@@ -21,7 +21,7 @@ by sending `Move`,
 | `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, the violet "?" of an item not analysed; an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
-| `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, burner generator, analyzer or charging station in the machine frame under the inventory, the stack in hand; all built again at another slot size | yes   |
+| `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, grow capsule, burner generator, analyzer or charging station in the machine frame under the inventory, the stack in hand; all built again at another slot size | yes   |
 | `EnergyBar.cs`     | the energy bar right of the suit's, while an electric tool is held (0053)                      | yes   |
 | `FloorLayer.cs`    | stacks on the floor, rimmed, bobbing at rest, side by side when still, gliding between ticks, turning in space (`floor-layer.ts`) | yes |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head                                                     | yes   |
@@ -132,7 +132,11 @@ as everything E works is, in the crew feature (`AimTests`).
 - An electric smelter's panel is the furnace's without the fuel (0057): its input over its mark, orange
   while it works, its bar and its three outputs; in its header a bolt with what it draws, lit while it works
   and dark at 0 otherwise, as the Former's; under it `furnace.full` when it has no room for what it makes. It
-  reads `CraftingModule` (`Works`, `Progress`, `TooCold`, `CanSmelt`), handed in by `Main`.
+  reads `CraftingModule` (`Works`, `Progress`, `WorkOf`, `TooCold`, `CanSmelt`), handed in by `Main`.
+- A grow capsule's panel is the smelter's (0060): its input over its mark, pink as its lamp while it grows, a green
+  bar and its two outputs, the bolt with what it draws. Its empty input shows a faint seed (`SlotBox.Ghost`: the one
+  item of its station's process). What a fed station does not work (rock in a capsule, a seed in a smelter) fills no
+  bar and says nothing.
 - **Too cold:** a furnace or a smelter whose input holds what needs more heat than it has turns the
   mark between its slots cold blue, with no line under the panel; over the mark the one tooltip says
   "Needs more heat · " and the first fed station hot enough, by name (`Reading.TooColdTip`).
