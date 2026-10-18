@@ -63,6 +63,28 @@ too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests` and `Bodie
 - A tether's rope steps 60 times a second and is drawn between its last two steps, as the hero is
   (`render/Rope.cs`'s `DrawnAt`).
 
+## Holes and floors
+
+The TypeScript had none of these rules; they came from playtest 1, where a hole one cell wide let one
+player down and not the other, and a floor could be jumped up through but not dropped through.
+
+- **A hole one cell wide is fallen into** (`Hero.Caught`): the body, 950 wide, fits a cell with 50
+  thousandths to spare, but a step walks 120 and runs 220, so a walk used to pass over that window or land
+  in it by where the hero happened to start, and tapping the keys only ever reached positions a step apart.
+  Now a step taken standing stops at the first place on its way where the body fits over a cell it can
+  fall into (nothing solid, no floor, no ladder top), and the hero falls in. A hole is crossed by jumping
+  it, as a wider one is. Wider holes and ledges are fallen off where they were, at the same place.
+- **Down over a hole slides in** (`Hero.Slid`): standing with the body's middle over such a cell and
+  nothing else pressed, down moves the hero up to a walk's step a frame toward where it fits, and it falls.
+  With the middle beside the hole, down does nothing. Not a narrower body: to never step past the window it
+  would have to be 780 wide, against Terraria's proportions (0005); the stop keeps the body and is exact.
+- **Down drops through floors** (`Hero.OnFloors`): standing on floors alone, down (S or the down arrow),
+  walking or not, steps the feet a thousandth into the floor's row, and a row the feet are in is never
+  landed on, so the hero falls through: no timer, nothing kept. Held, it drops through every floor it lands
+  on. A wall, closed door or ladder under any part of the feet holds it; jump wins over down; down by a
+  ladder grabs and climbs it as before, and a ladder that ends on a floor is climbed down onto it, not through
+  (step off the ladder, then drop). There is no crouch. Others see it by the positions sent, as any fall.
+
 ## Others' heroes
 
 - This hero is sent (`Client.SendHero`, a string net never reads: `SentHero.Encode`, JSON) every 50 ms
