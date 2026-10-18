@@ -504,10 +504,12 @@ public class ContentTests
         Assert.NotEmpty(holding);
         Assert.All(holding, i => Assert.Equal(1, i.Stack));
         Assert.All(holding, i => Assert.True(i.Capacity > 0, i.Id));
-        Assert.All(holding, i => Assert.Equal(Charge.Belt, i.Equip));
+        // Batteries are worn on the belt; a drone holds its own and flies on it (0062).
+        Assert.All(holding.Where(i => i.Id != Content.Logistics.Drone), i => Assert.Equal(Charge.Belt, i.Equip));
+        Assert.Contains(holding, i => i.Id == Content.Logistics.Drone);
         Assert.Contains(Inventory.Equipment, kind => kind == Charge.Belt);
         // Paying never takes what holds charge, so no charge is lost to a recipe, a build or a cable; but the drone, whose
-        // battery becomes its own: its charge is lost there until a drone holds charge (logistics, slice 3).
+        // battery becomes its own: made empty, as a crafted battery is, the battery's charge is lost there.
         var costs = Crafts.All.Where(c => c.Item != Content.Logistics.Drone).Select(c => c.Cost)
             .Concat(AllBuilds().Select(b => b.Cost))
             .Append(Content.Power.CableCost);
@@ -622,21 +624,26 @@ public class ContentTests
     public void BuildsComeApartFasterThanTheyGoUpByAWholeFactor() => Assert.True(Builds.DeconstructSpeedup > 1);
 
     /// <summary>
-    /// Drones (0062): every number positive and whole; a bay is a machine of slots that takes anything in, a drone an item
-    /// of a stack of one made at the assembler; a drone crosses at most a cell a tick; a requester crate's requests fit a row of
-    /// its grid.
+    /// Drones (0062): every number positive and whole; a bay is a charging station of slots on the power grid, a drone an
+    /// item of a stack of one holding charge, made at the assembler; a drone crosses at most a cell a tick, launches short
+    /// of full, and full covers any job its bay may find and the way home.
     /// </summary>
     [Fact]
-    public void ABayIsACrateOfSlotsADroneAStackOfOneAndEveryLogisticsNumberIsPositive()
+    public void ABayChargesItsSlotsADroneIsABatteryOfItsOwnAndEveryLogisticsNumberIsPositive()
     {
         AllPositive(typeof(Content.Logistics));
         var bay = Machines.Get(Content.Logistics.Bay);
-        Assert.True(bay.Slots > 0);
-        Assert.Equal((null, null, null, false), (bay.Inputs, bay.FuelSlot, bay.Draws, bay.Charges));
-        Assert.Equal(1, Content.Items.Get(Content.Logistics.Drone).Stack);
+        Assert.True(bay.Slots > 0 && bay.Draws > 0 && bay.Plug != null && bay.Charges);
+        Assert.Equal((null, null), (bay.Inputs, bay.FuelSlot));
+        var drone = Content.Items.Get(Content.Logistics.Drone);
+        Assert.Equal((1, Charge.Drone, null), (drone.Stack, drone.Capacity, drone.Draw));
         Assert.Contains(Stations.Get("assembler").Rows, row => row.Contains(Content.Logistics.Drone));
         Assert.InRange(Content.Logistics.Speed, 1, Cell);
-        Assert.InRange(Content.Logistics.RequestsMost, 1, Machines.Get("crate").Slots!.Value);
+        Assert.InRange(Content.Logistics.LaunchAt, 1, Charge.Drone - 1);
+        // Corner to corner of the zone three times, to the source, the target and home, and the two cells spared.
+        int ticks = (Cell + Content.Logistics.Speed - 1) / Content.Logistics.Speed;
+        int across = 4 * Content.Logistics.Reach + bay.Width + bay.Height - 2;
+        Assert.True(Charge.Drone >= (3 * across + 2) * ticks * Content.Logistics.Draw * Charge.Scale);
     }
 
     // Air

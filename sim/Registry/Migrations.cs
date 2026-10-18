@@ -150,8 +150,8 @@ public static class Migrations
     }
 
     /// <summary>
-    /// 16 → 17: the logistics slice (0062), empty, after every other: no crate has a role, nothing requests, no drone
-    /// flies; its clock is the world's. What the circuit assembler holds gains a fourth input, empty, after its three, so its outputs keep their
+    /// 16 → 17: the logistics slice (0062), empty, after every other: no machine switched off, no drone flies; its
+    /// clock is the world's. What the circuit assembler holds gains a fourth input, empty, after its three, so its outputs keep their
     /// stacks. A save already of the new shape is left as it is.
     /// </summary>
     public static JsonObject Drones(JsonObject save)
@@ -159,8 +159,7 @@ public static class Migrations
         var slices = save["slices"]!.AsObject();
         slices["logistics"] ??= new JsonObject
         {
-            ["roles"] = new JsonArray(),
-            ["requests"] = new JsonArray(),
+            ["off"] = new JsonArray(),
             ["drones"] = new JsonArray(),
             ["nextId"] = 1,
             ["ticks"] = (int)save["tick"]!,

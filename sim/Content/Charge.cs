@@ -17,6 +17,9 @@ public static class Charge
     /// <summary>What a battery holds full, stored: 1800 power-ticks, a draw of 3 for 600 ticks.</summary>
     public const int Battery = 1800 * Scale;
 
+    /// <summary>What a drone holds full, stored: 1800 power-ticks, its own battery's, flown at <c>Logistics.Draw</c> a tick (0062).</summary>
+    public const int Drone = 1800 * Scale;
+
     // Not a const: every constant of this table is a whole number (ContentTests).
     /// <summary>The kind of equipment slot whose batteries an electric tool drains, in slot order.</summary>
     public static readonly string Belt = "belt";

@@ -1,8 +1,8 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// Drone logistics (0062): a drone bay launches the drones docked in its slots to carry items from providers and
-/// storage to requesters, and what fed stations make to storage, flying through air and doors within its zone.
+/// Drone logistics (0062): a drone bay launches the drones docked in its slots to keep the machines in its zone going,
+/// refilling what their inputs hold and carrying what they make to crates, flying through air and doors.
 /// </summary>
 public static class Logistics
 {
@@ -15,8 +15,11 @@ public static class Logistics
     /// <summary>A bay looks for a job every this many ticks, bays spread by their ids; it launches one drone at most a look.</summary>
     public const int LookEvery = 10;
 
-    /// <summary>The most requests a requester crate holds: a row of its grid.</summary>
-    public const int RequestsMost = 9;
+    /// <summary>Power-ticks a drone draws from its own charge each tick it flies, as a machine draws (0053): not an item's <c>Draw</c>.</summary>
+    public const int Draw = 1;
+
+    /// <summary>A docked drone launches only holding at least this, stored: half of full, so one home low charges a while first.</summary>
+    public const int LaunchAt = Charge.Drone / 2;
 
     // Not consts: every constant of this table is a whole number (ContentTests).
     /// <summary>The machine that launches drones, and the item a drone is while it is not flying.</summary>

@@ -238,7 +238,7 @@ public class MigrationsTests
         World.Load(Migrations.Upgrade(old), m.All);
         Assert.Equal(was, m.Items.Crate(assembler));
         Assert.Empty(m.Logistics.Drones);
-        Assert.Empty(m.Logistics.RequestsOf(assembler));
+        Assert.True(m.Logistics.Served(assembler));
     }
 
     [Fact]

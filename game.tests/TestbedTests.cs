@@ -91,30 +91,42 @@ public class TestbedTests
     }
 
     [Fact]
-    public void ItsDronesCarryThroughTheClosedDoorFromTheStartTheFullCrateProvidingAndTheFurnaceAndFormerRequesting()
+    public void ItsTwoDronesServeTheFurnaceTheFormerAndTheCapsuleFromTheSupplyCrateTheFullCrateSwitchedOff()
     {
         var m = Built.Value;
-        int bay = IdOf(m, Spec.Logistics.Bay), furnace = IdOf(m, "furnace"), former = IdOf(m, "former");
-        Assert.Equal(Sim.Logistics.Role.Provider, m.Logistics.RoleOf(Crates(m)[0]));
-        Assert.Equal(Sim.Logistics.Role.Storage, m.Logistics.RoleOf(CrateAt(m, Testbed.Storage)));
-        Assert.Equal(Testbed.FurnaceWants, m.Logistics.RequestsOf(furnace).Select(r => (r.Item, r.Count)));
-        Assert.Equal(Testbed.FormerWants, m.Logistics.RequestsOf(former).Select(r => (r.Item, r.Count)));
-        // Room one, beside the pod: through the closed door from room two.
+        int bay = IdOf(m, Spec.Logistics.Bay), supply = CrateAt(m, Testbed.Supply);
+        Assert.False(m.Logistics.Served(Crates(m)[0]));
+        Assert.True(m.Logistics.Served(supply));
+        // Room one, beside the pod: through the closed door from room two, powered to charge its drones.
         Assert.True(m.Grid.MachineById(bay)!.Cell % Testbed.Map.Width < 17);
         Assert.Equal(Testbed.Drones, m.Items.Crate(bay).Count(s => s?.Item == Spec.Logistics.Drone) + m.Logistics.Drones.Count);
-        Assert.True(m.Logistics.InReach(furnace, "scrapChunk") && m.Logistics.InReach(former, "iron"));
+        Assert.Equal(1000, m.Power.Satisfaction(bay));
+        Assert.All((string[])["furnace", "former", "growCapsule", "smelter", "assembler"], kind => Assert.True(m.Logistics.Reached(IdOf(m, kind)), kind));
+        Assert.True(m.Logistics.Reached(supply));
     }
 
     [Fact]
-    public void ItsDronesPushWhatTheFurnaceAndTheSmelterMakeToTheStorageCrateWithinHalfAMinute()
+    public void ItsDronesKeepTheFurnaceTheFormerAndTheCapsuleGoingAndCarryWhatTheyMakeToTheSupplyCrateWithinAMinute()
     {
         var m = new Registry();
         var world = Testbed.Create(m.All);
-        int storage = CrateAt(m, Testbed.Storage);
-        Assert.All(m.Items.Crate(storage), Assert.Null);
-        for (int t = 0; t < 600; t++) world.Step([]);
-        var held = m.Items.Crate(storage).Where(s => s != null).Select(s => s!.Item).ToList();
+        int supply = CrateAt(m, Testbed.Supply), furnace = IdOf(m, "furnace"), former = IdOf(m, "former"), capsule = IdOf(m, "growCapsule");
+        bool chained = false;
+        var launched = new HashSet<int>();
+        for (int t = 0; t < 1200; t++)
+        {
+            world.Step([]);
+            foreach (var d in m.Logistics.Drones) launched.Add(d.Id);
+        }
+        int Held(int id, string item) => m.Items.HeldFor(id, item);
+        // Brought a stack each, or near it as they work.
+        Assert.True(Held(furnace, "planks") > 25 && Held(former, "iron") > 250 && Held(capsule, "seed") >= 5);
+        var held = m.Items.Crate(supply).Where(s => s != null).Select(s => s!.Item).ToList();
         Assert.Contains("scrap", held);
-        Assert.Contains("silicon", held);
+        Assert.Contains("plate", held);
+        // Two drones, many jobs, few launches: a drone takes its next job from where it is.
+        chained = launched.Count < 20;
+        Assert.True(chained, $"{launched.Count} launches");
+        Assert.Empty(m.Items.Floor);
     }
 }

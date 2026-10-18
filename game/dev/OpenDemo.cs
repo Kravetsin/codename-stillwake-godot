@@ -2,21 +2,17 @@ using System;
 using Godot;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
-using Stillwake.Sim.Logistics;
 
 namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// <c>-- --testbed --open=&lt;kind&gt;</c>: the hero starts just right of the testbed's machine of that kind
 /// and opens it a second in, with the inventory, as E would: for recording a machine at work and its panel (the
-/// Former, the circuit assembler, the lifepod's Fabricator, the furnace). With <c>--role=&lt;role&gt;</c> an opened crate
-/// is made that as it opens, a requester asking for <see cref="Requested"/> (0062).
+/// Former, the circuit assembler, the lifepod's Fabricator, the furnace, a crate and its drone badge, the drone bay).
 /// </summary>
-public partial class OpenDemo(Ui ui, string kind, Func<Registry> m, Role? role = null, Action<Command>? send = null) : Node
+public partial class OpenDemo(Ui ui, string kind, Func<Registry> m) : Node
 {
     private const double OpenAt = 1.0;
-    /// <summary>What a crate made a requester asks for: the full crate provides it, so drones bring it.</summary>
-    public static readonly Request Requested = new("circuit", 5);
     private double _t;
     private bool _opened;
 
@@ -36,13 +32,7 @@ public partial class OpenDemo(Ui ui, string kind, Func<Registry> m, Role? role =
         _t += delta;
         if (_opened || _t < OpenAt) return;
         _opened = true;
-        int id = Nth(m(), kind).Id;
-        if (role is { } r && send != null)
-        {
-            send(new SetRole(id, r));
-            if (r == Role.Requester) send(new SetRequests(id, [Requested]));
-        }
-        ui.OpenCrate.Set(id);
+        ui.OpenCrate.Set(Nth(m(), kind).Id);
     }
 
     private static Sim.Grid.Machine Nth(Registry m, string kind)

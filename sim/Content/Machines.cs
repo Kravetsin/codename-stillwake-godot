@@ -28,9 +28,9 @@ namespace Stillwake.Content;
 /// Meteors hit no machine at all.
 /// </param>
 /// <param name="Charges">
-/// A charging station: what it draws, scaled by its satisfaction, goes into what its first slot holds
-/// (<see cref="Charge"/>). Its slots take only items with a <c>Capacity</c>, and it draws only while one is
-/// short of full.
+/// A charging station: what it draws, scaled by its satisfaction, goes into what its slots hold short of full, shared
+/// between them (<see cref="Charge"/>): the charger's one, a drone bay's four. Its slots take only items with a
+/// <c>Capacity</c>, and it draws only while one is short of full.
 /// </param>
 public sealed record MachineSpec(
     string Kind,
@@ -76,8 +76,8 @@ public static class Machines
         // Grows what is planted in it on power (Stations), sealed under glass, needing no air: a seed in, biomass and seeds out. Rests idle.
         new("growCapsule", 2, 3, [], [("frame", 1), ("glass", 2), ("soil", 4), ("circuit", 1), ("wire", 2)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
-        // Launches the drones docked in its four slots to carry items within its zone (0062); a crate of four, no power yet.
-        new("droneBay", 2, 2, [], [("frame", 2), ("plate", 4), ("circuit", 2), ("wire", 2)], BuildTicks: 200, Slots: 4),
+        // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does.
+        new("droneBay", 2, 2, [], [("frame", 2), ("plate", 4), ("circuit", 2), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true),
         new("lifepod", 3, 3, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true),
     ];
 
