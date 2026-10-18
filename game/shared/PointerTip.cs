@@ -10,8 +10,8 @@ namespace Stillwake.Game.Shared;
 /// world beside it as the building and power layers wrote it; and the one tooltip, Terraria's: shown at
 /// once, following the pointer, a name in bold and lines in colour under it. It says what a panel says
 /// of what the pointer is on (<see cref="Ui.Tip"/>), else, over the world, what an overlay says of the
-/// cell (<see cref="Ui.WorldTip"/>), the first line naming it, or a blueprint's cost delivered against
-/// needed (<see cref="Ui.CostTip"/>). A tip with an item's card shows the card (<see cref="ItemCardView"/>)
+/// cell (<see cref="Ui.WorldTip"/>), the first line naming it, or a blueprint under it: what it builds,
+/// then what is carried against what it still needs (<see cref="Ui.CostTip"/>). A tip with an item's card shows the card (<see cref="ItemCardView"/>)
 /// in place of its lines. Text on demand, only while there is something to say.
 /// </summary>
 public partial class PointerTip : CanvasLayer
@@ -103,9 +103,7 @@ public partial class PointerTip : CanvasLayer
     {
         if (_ui.WorldTip.Get() is { Count: > 0 } world)
             return new Tip(world[0], world.Skip(1).Select(line => new TipLine(line)).ToList());
-        if (_ui.CostTip.Get() is { } cost)
-            return new Tip(null, cost.Select(c => new TipLine($"{c.Have}/{c.Need}", c.Have < c.Need ? Tone.Bad : Tone.Plain, c.Item)).ToList());
-        return null;
+        return _ui.CostTip.Get()?.Tip;
     }
 
     private void Fill(Tip tip)
@@ -123,36 +121,55 @@ public partial class PointerTip : CanvasLayer
             _panel.Size = _panel.GetCombinedMinimumSize();
             return;
         }
-        if (tip.Name != null) _lines.AddChild(Text(tip.Name, NameText));
+        if (tip.Picture is { } placement)
+        {
+            // What a blueprint builds, as its build card shows it, beside the card's name.
+            var head = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 7);
+            head.AddChild(Icon(BlueprintArt.Thumbnail(placement), Large));
+            if (tip.Name != null) head.AddChild(Text(tip.Name, NameText));
+            _lines.AddChild(head);
+        }
+        else if (tip.Name != null) _lines.AddChild(Text(tip.Name, NameText));
         foreach (var line in tip.Lines) _lines.AddChild(LineOf(line));
         _panel.Size = _panel.GetCombinedMinimumSize();
     }
 
-    /// <summary><c>flex items-center gap-[5px]</c> in mono 11: the item's icon, then the words, wrapped past the tip's widest.</summary>
+    /// <summary>An icon's side: a line's, and a large line's, twice the 16 pixels of an item's picture.</summary>
+    private const int Small = 14, Large = 32;
+
+    /// <summary>
+    /// <c>flex items-center gap-[5px]</c> in mono 11: the item's icon, then the words, wrapped past the tip's
+    /// widest; a large line's icon at 32 and its words in mono 14.
+    /// </summary>
     private static Control LineOf(TipLine line)
     {
-        var text = Text(line.Text, Style.Text(Style.Mono, 11, Of(line.Tone)));
-        float room = Widest - 2 * PadX - (line.Icon != null ? 19 : 0);
-        if (Style.Mono.GetStringSize(line.Text, fontSize: 11).X > room)
+        int size = line.Large ? 14 : 11, icon = line.Large ? Large : Small, gap = line.Large ? 7 : 5;
+        var text = Text(line.Text, Style.Text(Style.Mono, size, Of(line.Tone)));
+        float room = Widest - 2 * PadX - (line.Icon != null ? icon + gap : 0);
+        if (Style.Mono.GetStringSize(line.Text, fontSize: size).X > room)
         {
             text.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             text.CustomMinimumSize = new Vector2(room, 0);
         }
         if (line.Icon == null) return text;
-        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 5);
-        row.AddChild(new TextureRect
-        {
-            Texture = ItemIcons.Icon(line.Icon),
-            CustomMinimumSize = new Vector2(14, 14),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        });
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, gap);
+        var picture = Icon(ItemIcons.Icon(line.Icon), icon);
+        if (line.Faded) picture.Modulate = new Color(1, 1, 1, 0.4f);
+        row.AddChild(picture);
         row.AddChild(text);
         return row;
     }
+
+    private static TextureRect Icon(Texture2D texture, int size) => new()
+    {
+        Texture = texture,
+        CustomMinimumSize = new Vector2(size, size),
+        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+        SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        MouseFilter = Control.MouseFilterEnum.Ignore,
+    };
 
     private static Label Text(string text, LabelSettings settings) => new()
     {

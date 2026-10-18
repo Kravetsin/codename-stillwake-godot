@@ -11,7 +11,7 @@ public static class Blueprint
 
     /// <summary>
     /// The sides of <paramref name="cell"/> whose neighbour <paramref name="joins"/>, as bits: where a
-    /// planned pipe reaches and a planned door joins.
+    /// planned pipe reaches, a planned door joins and a planned wall runs on.
     /// </summary>
     public static int LinksOf(int cell, int width, Func<int, bool> joins)
     {
@@ -23,7 +23,7 @@ public static class Blueprint
         return sides;
     }
 
-    /// <summary>Whether two placements join when drawn side by side: pipes and valves, or doors.</summary>
+    /// <summary>Whether two placements join when drawn side by side: pipes and valves, doors, or walls of any material, as the grid draws them built.</summary>
     public static bool Joins(Placement a, Placement b) =>
-        a.Layer == "conduit" ? b.Layer == "conduit" : a.Kind == "door" && b.Kind == "door";
+        a.Layer == "conduit" ? b.Layer == "conduit" : a.Kind is "door" or "wall" && b.Kind == a.Kind;
 }

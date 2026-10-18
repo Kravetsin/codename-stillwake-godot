@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Shared;
 
@@ -68,6 +69,63 @@ public sealed record CostLine(string Item, int Have, int Need)
         }
         return lines;
     }
+
+    /// <summary>
+    /// What <paramref name="cost"/> still needs once <paramref name="delivered"/> is taken off it, item by item in
+    /// its order, against what is <paramref name="carried"/>; a row all delivered needs 0. A card's price is its
+    /// cost with nothing delivered, so the build menu and a blueprint under the pointer mean the same.
+    /// </summary>
+    public static List<CostLine> Lacking(
+        IReadOnlyList<(string Item, int Count)> cost,
+        IReadOnlyList<(string Item, int Count)> delivered,
+        IReadOnlyList<(string Item, int Count)> carried)
+    {
+        var lines = new List<CostLine>();
+        foreach (var (item, n) in cost)
+            if (n > 0) lines.Add(new CostLine(item, CountOf(carried, item), Math.Max(0, n - CountOf(delivered, item))));
+        return lines;
+    }
+
+    private static int CountOf(IReadOnlyList<(string Item, int Count)> stacks, string item)
+    {
+        int count = 0;
+        foreach (var (i, c) in stacks) if (i == item) count += c;
+        return count;
+    }
+
+    /// <summary>Whether nothing more is needed: a blueprint's row all delivered.</summary>
+    public bool Done => Need <= 0;
+
+    /// <summary>What the row says: what there is over what is still needed, "100/2"; a tick once nothing is.</summary>
+    public string Count => Done ? "✓" : $"{Have}/{Need}";
+
+    /// <summary>Green when what there is covers what is needed, red when not.</summary>
+    public Tone Tone => Have >= Need ? Tone.Good : Tone.Bad;
+}
+
+/// <summary>
+/// A blueprint's cost under the pointer: what it places and, row by row, what this player carries against
+/// what it still needs (<see cref="CostLine.Lacking"/>). Equal by what it says, so one set every frame redraws nothing.
+/// </summary>
+public sealed record PlanTip(Placement Placement, IReadOnlyList<CostLine> Lines)
+{
+    /// <summary>
+    /// The one tooltip's words: the build card's name over its picture (<see cref="Tip.Picture"/>), then a
+    /// row an item, its icon large and no name, an all-delivered row faded with a tick.
+    /// </summary>
+    public Tip Tip => new(ItemCards.NameOf(Placement.Kind, Placement),
+        Lines.Select(c => new TipLine(c.Count, c.Tone, c.Item, Large: true, Faded: c.Done)).ToList())
+    { Picture = Placement };
+
+    public bool Equals(PlanTip? other) => other is not null && Placement == other.Placement && Lines.SequenceEqual(other.Lines);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Placement);
+        foreach (var line in Lines) hash.Add(line);
+        return hash.ToHashCode();
+    }
 }
 
 /// <summary>
@@ -107,8 +165,14 @@ public sealed class Ui
     /// <summary>What an overlay says of the cell under the pointer, set by that overlay while it is on.</summary>
     public Store<IReadOnlyList<string>?> WorldTip { get; } = new(null);
 
-    /// <summary>A blueprint's cost under the pointer, set by <c>building</c>: delivered against needed.</summary>
-    public Store<IReadOnlyList<CostLine>?> CostTip { get; } = new(null);
+    /// <summary>A blueprint under the pointer while it still lacks something, set by <c>building</c>: what it is, carried against still needed.</summary>
+    public Store<PlanTip?> CostTip { get; } = new(null);
+
+    /// <summary>
+    /// What this player carries, item by item (<c>Items.Totals</c>): read by <c>Hands</c> on a timer, as a
+    /// panel reads. The build menu's prices and a blueprint's cost under the pointer weigh it alike.
+    /// </summary>
+    public IReadOnlyList<(string Item, int Count)> Carried { get; set; } = [];
 
     /// <summary>
     /// What a panel says of what the pointer is on, a slot, a card, a craft: set by the feature that owns
