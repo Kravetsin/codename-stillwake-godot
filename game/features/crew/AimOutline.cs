@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -58,18 +60,22 @@ public static class AimOutline
             outline.Add(PixelArt.Picture("power-socket"), corner + new Vector2(plug.X, plug.Y), 0, 1, colour);
     }
 
-    /// <summary>Every cell of the doorway <paramref name="cell"/> is in, each its door's picture joined above and below, as the grid draws it.</summary>
+    /// <summary>
+    /// Every cell of the doorway <paramref name="cell"/> is in, door cells joined on any side as the sim toggles them,
+    /// each with its picture by the doorway's shape (<see cref="DoorShape"/>), as the grid draws it.
+    /// </summary>
     private static void Doorway(Outline outline, IGridQueries grid, ShownGrid shown, int cell, Color colour)
     {
         int width = grid.Width, size = width * grid.Height;
         bool IsDoor(int c) => c >= 0 && c < size && shown.StructureAt(grid, c) is Structure.DoorClosed or Structure.DoorOpen;
-        int top = cell;
-        while (IsDoor(top - width)) top -= width;
-        for (int c = top; IsDoor(c); c += width)
+        var seen = new HashSet<int> { cell };
+        var next = new Stack<int>([cell]);
+        while (next.Count > 0)
         {
-            int linked = (IsDoor(c - width) ? Blueprint.Up : 0) | (IsDoor(c + width) ? Blueprint.Down : 0);
-            string look = shown.StructureAt(grid, c) == Structure.DoorClosed ? "closed" : "open";
-            outline.Add(PixelArt.Picture($"door_{look}_{linked}"), CornerOf(c, width), colour);
+            int c = next.Pop(), linked = Blueprint.LinksOf(c, width, IsDoor);
+            outline.Add(PixelArt.Picture(DoorShape.Picture(shown.StructureAt(grid, c) == Structure.DoorClosed, linked)), CornerOf(c, width), colour);
+            foreach (var (side, n) in (ReadOnlySpan<(int, int)>)[(Blueprint.Up, c - width), (Blueprint.Right, c + 1), (Blueprint.Down, c + width), (Blueprint.Left, c - 1)])
+                if ((linked & side) != 0 && seen.Add(n)) next.Push(n);
         }
     }
 

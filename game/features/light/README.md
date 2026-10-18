@@ -35,10 +35,12 @@ Numbers from `game/Content/Light.cs`.
   (`Sources.Pack`): its colour falling off by its keep a cell out to its reach as the TypeScript game
   spread it, each colour at most its most, times its strength. The quad's shader walks the cells from
   each texel to the light through an occupancy texture, a byte a cell of what is built (`Sources.Occupy`: wall, closed
-  door, open; a texel set again for each wall or door changed), and drops the texel if a wall or a closed
-  door's panel stands between: shadows to the pixel. The walls a texel is in are passed until the
-  line comes out of them, so a wall is lit on the faces light reaches; in a door's cell only a texel
-  on the panel itself passes it, down the door's cells till the line leaves the panel, so a door is
+  door, closed hatch, open, by the doorway's shape (0067); a texel set again for each wall or door changed,
+  and those above and below it), and drops the texel if a wall or a closed door's or hatch's panel stands
+  between: shadows to the pixel. A door's panel is the columns of `door_closed_0`, a hatch's the rows of
+  `hatch_closed_0`, read from the pictures. The walls a texel is in are passed until the
+  line comes out of them, so a wall is lit on the faces light reaches; in a door's or hatch's cell only
+  a texel on the panel itself passes it, along the doorway's cells till the line leaves the panel, so a door is
   lit whole and the back wall beside it stays dark to a light beyond it. A lamp (`Light.LampSize`) and a
   fire (`Light.FireSize`) have a width: seen from a texel the light is a line across that wide; its two
   ends are walked, and where they disagree — a shadow's edge — seven points between, the share seen
@@ -65,7 +67,7 @@ Numbers from `game/Content/Light.cs`.
   main map — scaled down together where they would pass whole in a colour, so a fire's orange over a
   lamp stays orange — plus the spots, together at most `Light.ParticleMost` by their brightest colour;
   a wall takes `Light.WallIn` of what reaches its face. A normal-mapped picture — a machine or a
-  socket domed over its shape, a door rolled side to side, walls flat (`PixelArt.VolumeMap`), so the
+  socket domed over its shape, a door rolled side to side, a hatch top to bottom, walls flat (`PixelArt.VolumeMap`), so the
   side toward a light is the brighter and no rivet casts a shadow — is shaded toward where the lamps' light comes from — up the main map's slope over
   half a cell each side, tilted 45° up — and the sum held at whole after it; where the light hardly
   changes the picture is shaded as facing it. Near a fire under a lamp the slope turns a little with

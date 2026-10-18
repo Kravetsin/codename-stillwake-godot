@@ -100,24 +100,25 @@ public partial class GridView : Node2D
     }
 
     /// <summary>
-    /// A door or a valve that moved, heard there: once a door, at its top cell, since the cells under it
-    /// moved with it.
+    /// A door or a valve that moved, heard there: once a doorway, at the cell it leads from
+    /// (<see cref="DoorShape.Leads"/>), since the rest of it moved with it.
     /// </summary>
     private void Hear(DrawnLayers.Change change)
     {
-        static bool Door(int s) => s is Structure.DoorClosed or Structure.DoorOpen;
         int cell = change.Cell, w = _grid.Width, structure = _drawn.Structure[cell], conduit = _drawn.Conduit[cell];
         var at = new Vector2((cell % w + 0.5f) * Cell, (cell / w + 0.5f) * Cell);
-        if (Door(structure) && Door(change.Structure) && structure != change.Structure && !(cell >= w && Door(_drawn.Structure[cell - w])))
+        if (IsDoor(structure) && IsDoor(change.Structure) && structure != change.Structure && DoorShape.Leads(SidesOf(cell, _drawn.Structure, IsDoor)))
             (structure == Structure.DoorOpen ? _opens : _closes).PlayAt(at);
         if (conduit is Conduit.ValveClosed or Conduit.ValveOpen && change.Conduit is Conduit.ValveClosed or Conduit.ValveOpen && conduit != change.Conduit)
             _turns.PlayAt(at);
     }
 
+    private static bool IsDoor(int s) => s is Structure.DoorClosed or Structure.DoorOpen;
+
     private string MaterialOf(int code) => _materials.GetValueOrDefault(code, Materials.DefaultHull);
 
     // The pictures' names made once, not a string a cell: a big ship draws half a million cells as it loads.
-    private static readonly string[] PipeNames = Names("pipe_"), ClosedDoorNames = Names("door_closed_"), OpenDoorNames = Names("door_open_");
+    private static readonly string[] PipeNames = Names("pipe_");
     private readonly Dictionary<int, (string Wall, string[] Edges)> _wallNames = new();
 
     private static string[] Names(string prefix) => Enumerable.Range(0, 16).Select(sides => $"{prefix}{sides}").ToArray();
@@ -182,10 +183,8 @@ public partial class GridView : Node2D
                 break;
             case Structure.DoorClosed or Structure.DoorOpen:
                 {
-                    // A door several cells tall is one door: its frame and window at the top, its stripes at the bottom.
-                    int linked = SidesOf(cell, _drawn.Structure, s => s is Structure.DoorClosed or Structure.DoorOpen) & (Up | Down);
-                    var looks = _drawn.Structure[cell] == Structure.DoorClosed ? ClosedDoorNames : OpenDoorNames;
-                    Put(_doors, at, looks[linked]);
+                    // A doorway is one door or hatch, by its shape (0067): its pictures joined where its cells meet.
+                    Put(_doors, at, DoorShape.Picture(_drawn.Structure[cell] == Structure.DoorClosed, SidesOf(cell, _drawn.Structure, IsDoor)));
                     break;
                 }
         }

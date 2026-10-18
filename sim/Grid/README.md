@@ -107,7 +107,8 @@ hull walls included. A map's machines take ids 1, 2, … by their top-left cells
   `Content.World` changes.
 - Taking apart what stands outside the zone is allowed: only a map could put it there.
 - Machines need no floor under them.
-- Doorways have no shape: any run of door cells is one.
+- Doorways have no shape here: any run of door cells is one, toggled whole. Whether one is a door or a
+  hatch is the client's drawing (0067); a door kind with rules of its own would need a layer here.
 - The log holds the last 65,536 writes (`ChangeLog.DefaultCapacity`), a ring: a door, a breach or a
   hero's build writes a handful, so the sim's readers, which look every tick, and the client's, which
   look every frame or a few times a second, never come near it. A tick that writes more (no player

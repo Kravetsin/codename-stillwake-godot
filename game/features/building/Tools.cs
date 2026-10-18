@@ -186,7 +186,7 @@ public static class Tools
     /// <summary>
     /// The sides of <paramref name="cell"/> that <paramref name="place"/>, planned or in hand there, joins when
     /// drawn: what is <paramref name="planned"/> beside it and what is built, as the grid would draw it built — a
-    /// pipe reaching every conduit, a wall running on into every wall, a door into the door above or below.
+    /// pipe reaching every conduit, a wall running on into every wall, a door into every door beside it.
     /// </summary>
     public static int LinksOf(Placement place, int cell, int width, System.Func<int, IEnumerable<Placement>> planned, IGridQueries grid) =>
         !Render.Blueprint.Joins(place, place) ? 0 : Render.Blueprint.LinksOf(cell, width, c =>

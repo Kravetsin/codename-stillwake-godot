@@ -11,7 +11,7 @@ namespace Stillwake.Game.Features.Light;
 /// All the light of lamps, fires and glows, composed on the GPU each frame into two maps over the view
 /// (0029): <see cref="Main"/> for lamps and fires, <see cref="Spots"/> for embers, sparks and the like,
 /// capped apart by <see cref="Lit"/>. Each light is one additive quad over its reach whose shader walks
-/// the cells from each texel to the light and drops the texel if a wall or a closed door's panel stands
+/// the cells from each texel to the light and drops the texel if a wall or a closed door's or hatch's panel stands
 /// between; a light with a size is seen from the texel as a line across that wide, and where its two
 /// ends disagree, in a shadow's edge, more points along it are walked and the share seen kept: soft
 /// edges where Godot's PCF gave them. A wall is lit on the faces the light reaches, and no limit on how many
@@ -31,11 +31,12 @@ public partial class Lightmap : Node
         Code = """
             shader_type canvas_item;
             render_mode unshaded, blend_add;
-            // A texel a cell: 0 open, half a closed door, whole a wall; over what is built, its first texel at cell origin.
+            // A texel a cell: 0 open, a quarter a closed hatch, half a closed door, whole a wall; over what is built, its first texel at cell origin.
             uniform sampler2D occupancy : filter_nearest, repeat_disable;
             uniform ivec2 origin = ivec2(0);
-            // The columns of its cell a closed door's panel fills, in pixels: from, to.
+            // The columns of its cell a closed door's panel fills, and the rows a closed hatch's does, in pixels: from, to.
             uniform vec2 panel = vec2(6.0, 10.0);
+            uniform vec2 hatch = vec2(6.0, 10.0);
             const float CELL = 16.0;
             varying vec2 world;
             varying flat vec2 centre;
@@ -50,18 +51,18 @@ public partial class Lightmap : Node
                 light = COLOR;
             }
 
-            // 2 a wall, 1 a closed door, 0 open, past what is built too.
+            // 2 a wall, 1 a closed door, 3 a closed hatch, 0 open, past what is built too.
             int kind(ivec2 c) {
                 c -= origin;
                 ivec2 size = textureSize(occupancy, 0);
                 if (c.x < 0 || c.y < 0 || c.x >= size.x || c.y >= size.y) return 0;
                 float v = texelFetch(occupancy, c, 0).r;
-                return v > 0.75 ? 2 : (v > 0.25 ? 1 : 0);
+                return v > 0.75 ? 2 : (v > 0.375 ? 1 : (v > 0.125 ? 3 : 0));
             }
 
-            // Whether a wall or a door's panel stands between a point and the light, cell by cell along
-            // the line. The walls the point is in are passed until the line comes out of them, so a wall
-            // is lit on its faces; so is the door panel it is on, down the door's cells, till the line
+            // Whether a wall or a door's or hatch's panel stands between a point and the light, cell by cell
+            // along the line. The walls the point is in are passed until the line comes out of them, so a wall
+            // is lit on its faces; so is the panel it is on, along the doorway's cells, till the line
             // leaves the panel. A point beside a panel in its cell is shadowed by it.
             bool shadowed(vec2 from, vec2 to) {
                 vec2 a = from / CELL, d = to / CELL - a;
@@ -78,14 +79,18 @@ public partial class Lightmap : Node
                     int k = kind(c);
                     if (k == 2) {
                         if (!leaving) return true;
-                    } else if (k == 1) {
-                        float x0 = (a.x + d.x * t0 - float(c.x)) * CELL, x1 = (a.x + d.x * t1 - float(c.x)) * CELL;
-                        bool on = x0 >= panel.x && x0 <= panel.y;
+                    } else if (k == 1 || k == 3) {
+                        // A door's panel spans columns, a hatch's rows: where the line is across that, in pixels.
+                        bool across = k == 3;
+                        vec2 span = across ? hatch : panel;
+                        float x0 = across ? (a.y + d.y * t0 - float(c.y)) * CELL : (a.x + d.x * t0 - float(c.x)) * CELL;
+                        float x1 = across ? (a.y + d.y * t1 - float(c.y)) * CELL : (a.x + d.x * t1 - float(c.x)) * CELL;
+                        bool on = x0 >= span.x && x0 <= span.y;
                         if (leaving && on) {
-                            leaving = x1 >= panel.x && x1 <= panel.y;
+                            leaving = x1 >= span.x && x1 <= span.y;
                         } else {
                             leaving = false;
-                            if (max(min(x0, x1), panel.x) < min(max(x0, x1), panel.y)) return true;
+                            if (max(min(x0, x1), span.x) < min(max(x0, x1), span.y)) return true;
                         }
                     } else {
                         leaving = false;
@@ -157,9 +162,9 @@ public partial class Lightmap : Node
 
     /// <summary>
     /// Where light stops, from the grid's structure a texel a cell over <paramref name="built"/>, what is
-    /// built: past it every cell is open. <paramref name="panel"/> the door panel's columns in pixels.
+    /// built: past it every cell is open. <paramref name="panels"/> the door panel's columns and the hatch panel's rows in pixels.
     /// </summary>
-    public void Occupy(ReadOnlySpan<int> structure, int width, Box built, (int From, int To) panel)
+    public void Occupy(ReadOnlySpan<int> structure, int width, Box built, Panels panels)
     {
         // Nothing built: one open texel, for a texture cannot be empty.
         if (built.IsEmpty) built = new Box(0, 0, 0, 0);
@@ -167,28 +172,35 @@ public partial class Lightmap : Node
         int w = built.Width, h = built.Height;
         if (_cells.Length != w * h) _cells = new byte[w * h];
         Sources.Occupy(structure, width, built, _cells);
-        Upload(built, panel);
+        Upload(built, panels);
     }
 
     /// <summary>
-    /// After the structure of <paramref name="changed"/> cells moved: their texels set again, or, when one lies
+    /// After the structure of <paramref name="changed"/> cells moved: their texels and those above and below, whose
+    /// doors may have turned hatches or back (0067), set again, or, when one lies
     /// past the texture, the whole of what is built laid out anew (<see cref="Occupy"/>). The texture may cover
     /// more than is built: past what is built every cell is open, inside the texture or past it alike.
     /// </summary>
-    public void Follow(ReadOnlySpan<int> structure, int width, Box built, IReadOnlyList<int> changed, (int From, int To) panel)
+    public void Follow(ReadOnlySpan<int> structure, int width, Box built, IReadOnlyList<int> changed, Panels panels)
     {
         var box = _occupied;
         foreach (int c in changed)
             if (_occupancy == null || !box.Contains(c % width, c / width))
             {
-                Occupy(structure, width, built, panel);
+                Occupy(structure, width, built, panels);
                 return;
             }
-        foreach (int c in changed) _cells[(c / width - box.Top) * box.Width + c % width - box.Left] = Sources.Of(structure[c]);
-        Upload(box, panel);
+        foreach (int changedCell in changed)
+            for (int c = changedCell - width; c <= changedCell + width; c += width)
+                if (c >= 0 && c < structure.Length && box.Contains(c % width, c / width))
+                    _cells[(c / width - box.Top) * box.Width + c % width - box.Left] = Sources.Of(structure, width, c);
+        Upload(box, panels);
     }
 
-    private void Upload(Box built, (int From, int To) panel)
+    /// <summary>What of a closed doorway stops light, in pixels of its cell: a door's panel's columns, a hatch's panel's rows.</summary>
+    public readonly record struct Panels((int From, int To) Door, (int From, int To) Hatch);
+
+    private void Upload(Box built, Panels panels)
     {
         int w = built.Width, h = built.Height;
         if (_occupancy != null && _occupancyTexture != null && _occupancy.GetWidth() == w && _occupancy.GetHeight() == h)
@@ -203,7 +215,8 @@ public partial class Lightmap : Node
             _material.SetShaderParameter("occupancy", _occupancyTexture);
         }
         _material.SetShaderParameter("origin", new Vector2I(built.Left, built.Top));
-        _material.SetShaderParameter("panel", new Vector2(panel.From, panel.To));
+        _material.SetShaderParameter("panel", new Vector2(panels.Door.From, panels.Door.To));
+        _material.SetShaderParameter("hatch", new Vector2(panels.Hatch.From, panels.Hatch.To));
     }
 
     /// <summary>Lays both maps over <paramref name="view"/> (world pixels) and draws <paramref name="main"/> and <paramref name="spots"/> into them.</summary>

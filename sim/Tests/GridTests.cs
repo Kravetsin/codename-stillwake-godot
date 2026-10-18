@@ -27,6 +27,24 @@ public class GridTests
         Assert.Null(w.M.Grid.BackAt(6));
     }
 
+    /// <summary>A hatch is a doorway lying in a deck (0067): toggled from any of its cells, it opens and shuts whole.</summary>
+    [Fact]
+    public void TogglesAHatchThreeWideWholeFromAnyOfItsCells()
+    {
+        var w = new Scenario("""
+            #######
+            #.....#
+            ##DDD##
+            #.....#
+            #######
+            """);
+        int[] Hatch() => [.. Enumerable.Range(2, 3).Select(x => w.M.Grid.StructureAt(w.At(x, 2)))];
+        w.Do(new ToggleDoor(w.At(3, 2))).Run();
+        Assert.Equal(new[] { Structure.DoorOpen, Structure.DoorOpen, Structure.DoorOpen }, Hatch());
+        w.Do(new ToggleDoor(w.At(4, 2))).Run();
+        Assert.Equal(new[] { Structure.DoorClosed, Structure.DoorClosed, Structure.DoorClosed }, Hatch());
+    }
+
     private static readonly string[] Kinds = [.. Content.Machines.All.Select(m => m.Kind)];
 
     /// <summary>

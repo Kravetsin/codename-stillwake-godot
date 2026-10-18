@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Stillwake.Game.Render;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 
@@ -12,12 +13,10 @@ public static class Autopilot
         if (tick != 20 && tick != 40) return [];
         var toggles = new List<Command>();
         var s = grid.StructureLayer;
+        int w = grid.Width;
+        bool IsDoor(int c) => c >= 0 && c < grid.StructureLayer.Length && grid.StructureLayer[c] is Structure.DoorClosed or Structure.DoorOpen;
         for (int cell = 0; cell < s.Length; cell++)
-        {
-            bool door = s[cell] is Structure.DoorClosed or Structure.DoorOpen;
-            bool below = cell >= grid.Width && s[cell - grid.Width] is Structure.DoorClosed or Structure.DoorOpen;
-            if (door && !below) toggles.Add(new ToggleDoor(cell));
-        }
+            if (IsDoor(cell) && DoorShape.Leads(Blueprint.LinksOf(cell, w, IsDoor))) toggles.Add(new ToggleDoor(cell));
         return toggles;
     }
 }

@@ -8,8 +8,11 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
 - **Draws:** a `TileMapLayer` per kind of picture, back to front: back walls (scrap cut from its
   picture, iron a panel with a grille in about one cell of seven), pipes reaching toward their
   neighbours, valves, walls cut from their material's picture, their edges on every side that faces no
-  wall, floors and ladders, doors (shut or slid open, joined to the door cells above and below),
+  wall, floors and ladders, doors and hatches (shut or slid open; a door cell joined to one above or below
+  is a door's, every other a hatch's, its pieces joined to either side: `render/DoorShape.cs`, 0067),
   machines over their footprints; a sprite per power socket.
+- **Heard:** a door or valve that moved, where it stands (0033); a doorway once, at its cell with no
+  door above it or to its left (`DoorShape.Leads`).
 - **Kept current:** `GridView.Sync(shown)` runs whenever the grid as this peer shows it changes
   (`game/shared/Predicted.cs`'s `Grid`, `predictedGrid` of `session/predicted.ts`): after a tick, and
   on the frame this peer sends a door or valve toggle, which shows at once, before its tick runs (0014). It
