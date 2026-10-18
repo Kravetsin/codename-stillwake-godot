@@ -114,7 +114,7 @@ public class AimTests
         // An iron wall planned for a hero carrying nothing.
         var w = new TestWorld(Hall(1));
         w.Step(new PlacePlan(Inside(0), IronWall));
-        Assert.Equal(new WorkAim(1, "items.notEnough", Delivers: true), Aiming.AimAt(w.M, 0, HeroOn(2, 1), Centre(1, 1))?.Work);
+        Assert.Equal(new WorkAim(1, "items.notEnough"), Aiming.AimAt(w.M, 0, HeroOn(2, 1), Centre(1, 1))?.Work);
     }
 
     [Fact]
@@ -129,15 +129,17 @@ public class AimTests
     }
 
     [Fact]
-    public void PassesOverABlueprintDeliveredToInThisHoldOfEToTheNextInItsCell()
+    public void KeepsWorkingABlueprintItHasPaidIntoNotPassingToTheNextInItsCell()
     {
         // A wall and a pipe through it, both planned in one cell, for a hero carrying scrap and tubes.
         var w = WithStore(Hall(1));
         w.Step(new PlacePlan(Inside(0), Placement.Wall("scrap")), new PlacePlan(Inside(0), new Placement("conduit", "pipe")));
         var hero = HeroOn(2, 1);
-        Assert.Equal(new WorkAim(1, null, Delivers: true), Aiming.AimAt(w.M, 0, hero, Centre(1, 1))?.Work);
-        var next = Aiming.AimAt(w.M, 0, hero, Centre(1, 1), new HashSet<int>(), new HashSet<int> { 1 });
-        Assert.Equal(new WorkAim(2, null, Delivers: true), next?.Work);
+        Assert.Equal(new WorkAim(1, null), Aiming.AimAt(w.M, 0, hero, Centre(1, 1))?.Work);
+        // Its first part paid and begun (0063): held on, the hands work the wall on.
+        w.Step(new Work(1));
+        Assert.Equal(1, w.M.Building.Parts(1)?.In);
+        Assert.Equal(new WorkAim(1, null), Aiming.AimAt(w.M, 0, hero, Centre(1, 1))?.Work);
     }
 
     [Fact]
@@ -225,7 +227,7 @@ public class AimTests
         var aim = Aiming.AimAt(Room.M, 0, HeroOn(2, row - 1), Centre(1, row));
         Assert.Equal(new Aim(crate.Cell + 1, true, Crate: crate.Id), aim);
         var opened = Aiming.UsesOf(aim, pressed: true, held: true, 3, -1);
-        Assert.Equal(((int?)crate.Id, (int?)null, -1), (opened.Open, opened.Served, opened.WorkedOnTick));
+        Assert.Equal(((int?)crate.Id, -1), (opened.Open, opened.WorkedOnTick));
         Assert.Empty(opened.Commands);
         Assert.Null(Aiming.UsesOf(aim, pressed: false, held: true, 3, -1).Open);
         var far = Aiming.AimAt(Room.M, 0, HeroOn(8, row - 7), Centre(1, row));
@@ -656,7 +658,6 @@ public class AimTests
     private static readonly ToggleDoor Door = new(3);
     private static readonly Aim OnDoor = new(3, true, new Use(Door, null));
     private static readonly Aim OnPlan = new(4, true, Work: new WorkAim(7, null));
-    private static readonly Aim ToPlan = OnPlan with { Work = new WorkAim(7, null, Delivers: true) };
     private static readonly Work WorkOn = new(7);
 
     [Fact]
@@ -667,15 +668,7 @@ public class AimTests
     }
 
     [Fact]
-    public void DeliversToABlueprintOnceNamingItSoTheSweepPassesItBy()
-    {
-        var uses = Aiming.UsesOf(ToPlan, pressed: false, held: true, 5, -1);
-        Assert.Equal([WorkOn], uses.Commands);
-        Assert.Equal(((int?)null, (int?)7, -1), (uses.Open, uses.Served, uses.WorkedOnTick));
-    }
-
-    [Fact]
-    public void SendsOneWorkForEveryTickReleasedWhileEIsHeldOnAPlanWithAllItNeeds()
+    public void SendsOneWorkForEveryTickReleasedWhileEIsHeldOnAPlan()
     {
         int worked = -1;
         var sent = new List<int>();

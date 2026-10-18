@@ -69,13 +69,14 @@ public sealed class ShipTiles
             normals.BlitRect(normal, new Rect2I(Vector2I.Zero, normal.GetSize()), at);
         }
 
+        Texture = new CanvasTexture
+        {
+            DiffuseTexture = ImageTexture.CreateFromImage(atlas),
+            NormalTexture = ImageTexture.CreateFromImage(normals),
+        };
         var source = new TileSetAtlasSource
         {
-            Texture = new CanvasTexture
-            {
-                DiffuseTexture = ImageTexture.CreateFromImage(atlas),
-                NormalTexture = ImageTexture.CreateFromImage(normals),
-            },
+            Texture = Texture,
             TextureRegionSize = new Vector2I(Cell, Cell),
         };
         Set.AddSource(source, 0);
@@ -98,8 +99,14 @@ public sealed class ShipTiles
     /// <summary>The source every tile is in.</summary>
     public const int Source = 0;
 
+    /// <summary>The atlas with its normal map, for pictures drawn from it a piece at a time (a plan being built).</summary>
+    public CanvasTexture Texture { get; }
+
     /// <summary>Where the whole picture <paramref name="name"/> is in the atlas.</summary>
     public Vector2I At(string name) => _placed[name].At;
+
+    /// <summary>How many cells the picture <paramref name="name"/> spans, across and down: what a tile of it covers from its cell.</summary>
+    public Vector2I SizeOf(string name) => _placed[name].Size;
 
     /// <summary>Which piece of the picture <paramref name="name"/>, laid over the world from its corner, lies on cell (x, y).</summary>
     public Vector2I CutAt(string name, int x, int y)

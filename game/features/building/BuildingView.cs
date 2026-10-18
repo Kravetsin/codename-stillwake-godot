@@ -15,7 +15,7 @@ namespace Stillwake.Game.Features.Building;
 
 /// <summary>
 /// Plans drawn over the ship as pale ghosts of their own pictures inside marching dashes, a "+" on each
-/// machine; marks as projections of what they take out in red (<see cref="PlanTiles"/>); and the hand at work
+/// machine, turning into the real thing a part at a time as they are built (0063); marks as projections of what they take out in red (<see cref="PlanTiles"/>); and the hand at work
 /// (features/building/index.ts, 0022, 0030): a card's ghost along a left drag, a removal's along a middle
 /// one in the open tab's layers, coloured by what the sim would say, with its reason by the pointer; a
 /// release sends the commands. Q picks a card. With no card out, no grid: space stays space. Work on a
@@ -35,13 +35,13 @@ public partial class BuildingView : Node2D
     private const double March = 5;
     private static readonly Color Mark = AsciiArt.Colour(0xe05555), Fits = AsciiArt.Colour(0x7fe08a), Refused = AsciiArt.Colour(0xe05555);
     private static readonly Color Bar = AsciiArt.Colour(0xf2f5fa), BarBack = AsciiArt.Colour(0x0b0f17), GridLine = AsciiArt.Colour(0x9fb4c8);
-    /// <summary>The bar of a blueprint still being delivered to: what it has, in the colour of materials.</summary>
-    private static readonly Color Delivered = AsciiArt.Colour(0xe8b04a);
 
     private readonly Ui _ui;
     private readonly PlanHand _hand;
+    /// <summary>What of the plans being built is real already, drawn and lit as the ship is.</summary>
+    private readonly BuiltParts _built = new(ShipTiles.Shared);
     // Planned back walls behind what is built in front of them; the rest over the ship.
-    private readonly PlanTiles _plans = new(PlanLook.Ghost, BackAlpha, backZ: Layers.PlanBacks) { ZIndex = Layers.Plans, Modulate = Plan };
+    private readonly PlanTiles _plans;
     /// <summary>What a mark takes out, its own picture again in red over it.</summary>
     private readonly PlanTiles _marked = new(PlanLook.Projection) { ZIndex = Layers.Plans, Modulate = Mark with { A = 0.7f } };
     // The ghost in hand as a plan is drawn, but plainly green or red.
@@ -52,7 +52,8 @@ public partial class BuildingView : Node2D
     private readonly Sketch _outline = new(Layers.PlanMarks), _backOutline = new(Layers.PlanBacks);
 
     private string _drawn = "";
-    private List<(Rect2 Box, float Share, bool Lacks)> _shownPlans = [];
+    /// <summary>Each mark being worked: its box and the share of its work done, for its bar.</summary>
+    private List<(Rect2 Box, float Share)> _shownMarks = [];
     private List<OutlineRun> _runs = [], _backRuns = [];
     private List<Rect2> _machines = [];
     /// <summary>Seconds the dashes have marched.</summary>
@@ -76,8 +77,9 @@ public partial class BuildingView : Node2D
     {
         _ui = ui;
         _hand = hand;
-        foreach (var node in (Node2D[])[_plans, _backOutline, _marked, _outline, _marks, _fits, _refused, _hands, _screwdriver]) AddChild(node);
-        _marks.Paint = PaintPlans;
+        _plans = new(PlanLook.Ghost, BackAlpha, backZ: Layers.PlanBacks, built: _built) { ZIndex = Layers.Plans, Modulate = Plan };
+        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _marks, _fits, _refused, _hands, _screwdriver]) AddChild(node);
+        _marks.Paint = PaintMarks;
         _hands.Paint = PaintHands;
         _outline.Paint = g => PaintOutline(g, _runs, _machines);
         _backOutline.Paint = g => PaintOutline(g, _backRuns, []);
@@ -160,14 +162,14 @@ public partial class BuildingView : Node2D
 
     /// <summary>
     /// The plans as ghosts of their own pictures, pipes, doors and walls joined to what is planned and built
-    /// beside them, back walls fainter and behind what is built; dashes round each group; marks as what they take out in red; and a bar along the bottom of each plan: a
-    /// blueprint's share delivered while it lacks something, in amber, then the work done, in white.
-    /// Redrawn only when the plans or the grid change.
+    /// beside them, back walls fainter and behind what is built; a blueprint being built real up to its cut, a
+    /// part an item put in (0063); dashes round each group; marks as what they take out in red, a bar along the
+    /// bottom of each being worked, white for the work done. Redrawn only when the plans or the grid change.
     /// </summary>
     private void DrawPlans(IGridQueries grid, BuildingModule building, IRoomsQueries rooms)
     {
         var plans = building.Plans;
-        // What was delivered and the work done are in the key, so bars grow as they go on; the grid's version,
+        // What was put in and the work done are in the key, so plans turn real and bars grow as they go on; the grid's version,
         // as what is built or taken down beside a plan changes how it joins.
         string key = grid.Version + "|" + string.Join(";", plans.Select(p => $"{p.Id}:{p.Cell}:{p.Place?.Kind}:{p.Clear}:{p.Progress}:{string.Join(",", p.Delivered)}"));
         if (key == _drawn) return;
@@ -185,7 +187,7 @@ public partial class BuildingView : Node2D
         foreach (var p in plans)
         {
             if (p.Place is not { } place) continue;
-            _plans.Lay(place, p.Cell, width, Tools.LinksOf(place, p.Cell, width, PlannedAt, grid));
+            _plans.Lay(place, p.Cell, width, Tools.LinksOf(place, p.Cell, width, PlannedAt, grid), CutOf(grid, building, p, place));
         }
         // Built pipes reach toward planned ones beside them, drawn as plans.
         var conduits = plans.Where(p => p.Place is { Layer: "conduit" }).Select(p => p.Cell).ToHashSet();
@@ -200,15 +202,8 @@ public partial class BuildingView : Node2D
             int joined = Blueprint.LinksOf(at, width, c => Tools.BuiltAt(c, layer, grid) is { } other && Blueprint.Joins(built, other));
             _marked.Lay(built, at, width, joined);
         }
-        _shownPlans = plans.Select(p =>
-        {
-            var box = BoxOf(CellsOf(grid, p), width);
-            bool lacks = p.Place != null && building.Lacking(p.Id).Count > 0;
-            float share = lacks
-                ? (float)p.Delivered.Sum(s => s.Count) / Math.Max(1, building.CostOf(p.Id)?.Sum(c => c.Count) ?? 1)
-                : (float)p.Progress / (building.TicksFor(p.Id) ?? 1);
-            return (box, share, lacks);
-        }).ToList();
+        _shownMarks = plans.Where(p => p.Clear != null && p.Progress > 0)
+            .Select(p => (BoxOf(CellsOf(grid, p), width), (float)p.Progress / (building.TicksFor(p.Id) ?? 1))).ToList();
         _marks.QueueRedraw();
         SparkWork(plans, grid, rooms);
         _worked = plans.ToDictionary(p => p.Id, p => p.Progress);
@@ -307,21 +302,34 @@ public partial class BuildingView : Node2D
         return new Rect2(x * Cell, y * Cell, (right - x + 1) * Cell, (bottom - y + 1) * Cell);
     }
 
-    private void PaintPlans(Sketch g)
+    /// <summary>A bar along the bottom of each mark being worked: the work done, in white. A blueprint shows its own by turning real.</summary>
+    private void PaintMarks(Sketch g)
     {
-        foreach (var (box, share, lacks) in _shownPlans)
+        foreach (var (box, share) in _shownMarks)
         {
-            if (share <= 0) continue;
             var bar = new Rect2(box.Position.X + 2, box.End.Y - 5, box.Size.X - 4, 3);
             g.DrawRect(bar, BarBack);
-            g.DrawRect(bar with { Size = new Vector2(bar.Size.X * Math.Min(1, share), 3) }, lacks ? Delivered : Bar);
+            g.DrawRect(bar with { Size = new Vector2(bar.Size.X * Math.Min(1, share), 3) }, Bar);
         }
     }
 
     /// <summary>
+    /// Where blueprint <paramref name="p"/> turns from real into plan: across its box, a step a part put in
+    /// (<see cref="BuildingModule.Parts"/>); none while nothing is.
+    /// </summary>
+    private static PlanCut? CutOf(IGridQueries grid, BuildingModule building, Sim.Building.Plan p, Placement place)
+    {
+        if (building.Parts(p.Id) is not ( > 0 and var built, var parts)) return null;
+        var box = BoxOf(CellsOf(grid, p), grid.Width);
+        var pixels = ((int)box.Position.X, (int)box.Position.Y, (int)box.Size.X, (int)box.Size.Y);
+        return PlanCut.Of(pixels, PlanCut.FromLeftFor(place.Layer, place.Kind), built, parts);
+    }
+
+    /// <summary>
     /// Beside the pointer (<see cref="Ui.CostTip"/>), what the blueprint at <paramref name="cell"/> builds and,
-    /// row by row, what this player carries against what it still needs, while it lacks something;
-    /// nothing anywhere else. Once all is delivered the work bar says the rest, so the tip goes.
+    /// row by row, what this player carries against what it still needs, counting down a part at a time as it
+    /// is paid, while it lacks something; nothing anywhere else. Once all is paid the plan, real all over, says
+    /// the rest, so the tip goes.
     /// </summary>
     private void ShowTray(int? cell, BuildingModule building)
     {

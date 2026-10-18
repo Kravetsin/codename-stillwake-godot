@@ -25,7 +25,7 @@ public static class Prompts
         if (aim.Work is { } work)
         {
             var plan = m.Building.Plans.FirstOrDefault(p => p.Id == work.Plan);
-            string action = plan?.Clear != null ? "use.takeApart" : work.Delivers ? "use.deliver" : "use.build";
+            string action = plan?.Clear != null ? "use.takeApart" : "use.build";
             return new Prompt(action, work.Problem);
         }
         // Named for what it opens: a furnace, a generator, an analyzer, the lifepod's Fabricator, else a crate.
