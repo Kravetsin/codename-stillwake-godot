@@ -94,8 +94,8 @@ as everything E works is, in the crew feature (`AimTests`).
   a violet "? Not analysed" band while unanalysed. A tool (the fire axe, the harpoon) is edged and its kind
   written in amber, and adds three tiles from content, the first in amber, one decimal at most
   (`CardTile`): the axe's damage a second, damage and seconds between hits (`Content.Axe`: damage over
-  `SwingTicks` / `TicksPerSecond`), its effects (`Axe.Effects`, none yet) as chips in their colours and
-  the wreckage it breaks (`Content.Wreckage`); the harpoon's range in cells, reload in seconds and reel
+  `SwingTicks` / `TicksPerSecond`), its effects (`Axe.Effects`, none yet) as chips in their colours, and no
+  list of what it breaks, since every weapon breaks anything with HP; the harpoon's range in cells, reload in seconds and reel
   speed in cells a second (`Content.Harpoon`), and "Debris" and "Wreckage"; then its key and hint. Any
   other item says under "Goes into" what has it in its cost: crafts, then blueprints, then the cable,
   in content's order, four at most and "+N" for the rest; nothing when it goes into nothing; and its key

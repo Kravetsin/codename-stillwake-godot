@@ -12,7 +12,7 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// An item's card, from content: its name and kind; a tool's tiles, effects and what it works on — a
-/// weapon's (the fire axe's, the drill's) damage a second, damage and seconds between hits, and the wreckage it breaks; the harpoon's
+/// weapon's (the fire axe's, the drill's) damage a second, damage and seconds between hits; the harpoon's
 /// range, reload and reel speed, and debris and wreckage; for anything else, the crafts, blueprints and
 /// cables whose cost has it. Its words from the i18n table.
 /// </summary>
@@ -45,7 +45,8 @@ public static class ItemCards
                 new CardTile(T("card.seconds", ("n", Number(every))), T("card.hit")),
             ],
             weapon.Effects.Select(e => new CardEffect(T($"effect.{e.Id}"), T($"effect.{e.Id}.about"), e.Colour, e.Ground)).ToList(),
-            Spec.Wreckage.All.Select(w => T($"item.{w.Item}")).ToList(),
+            // No list of what it breaks: every weapon breaks anything with HP (0054).
+            [],
             key, unknown);
     }
 
