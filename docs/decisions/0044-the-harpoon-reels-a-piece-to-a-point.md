@@ -1,6 +1,7 @@
 # 0044 — The harpoon reels a piece to a point
 
-- Status: accepted; its recipe superseded by [0046](0046-recipes-show-what-a-thing-is-made-of.md)
+- Status: accepted; its recipe superseded by [0046](0046-recipes-show-what-a-thing-is-made-of.md); what others see
+  of a shot, by [0065](0065-friends-see-the-harpoon.md)
 - Date: 2026-10-17
 
 ## Context
@@ -65,7 +66,7 @@ reeled piece must move there too, the same on every peer; the shot itself lives 
   the press that reels till the piece is in; and **a ready cue when the cooldown ends,** tied to the gun
   being ready rather than to the rod coming back, played only with a harpoon in hand. No sound of the line
   going taut.
-- **Others** see the gun hang in a friend's hand by `Seen.Wields`, and a taut line from its muzzle to any
+- **Others** (superseded by 0065) see the gun hang in a friend's hand by `Seen.Wields`, and a taut line from its muzzle to any
   piece the sim says it reels (`Reel.By`). Its shots, flights and hooks are not sent: nothing on the wire
   changes.
 
@@ -102,11 +103,11 @@ reeled piece must move there too, the same on every peer; the shot itself lives 
 - A piece reeled left of its path's end is gone on that tick, as a drifting one would be. A hero on the
   tether never gets that far left of the hull.
 - A friend's hooked rod is drawn about 0.15 cells late, from 20 Hz samples, once others see shots.
-- Others see a friend's line only while the sim reels: not its shot, its rod in flight, nor the piece it
+- (Superseded by 0065.) Others see a friend's line only while the sim reels: not its shot, its rod in flight, nor the piece it
   hooked; its gun hangs, unaimed, empty while it reels. Later, with a kind of work of its own.
 - A wreck reeled to `Stop` by its middle overlaps the gun, being three cells long: within the axe's reach.
 - A movement key held as the pull arrives lets go at once: the hero hangs only with the keys let go.
 - A jump that lets go is not a jump: the hanging hero has nothing under its feet, so it drops.
 - Hanging, the figure is in its falling pose, the gun aimed at the pointer again; friends see it hang
-  still in the air, with no line: they see lines only to pieces the sim reels.
+  still in the air, its line to the hook taut (0065).
 - The pull goes up through a floor from below, as a jump does.

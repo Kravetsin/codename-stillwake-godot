@@ -51,6 +51,12 @@ public static class Sound
     public static readonly Reach StationReach = new(2, 10);
 
     /// <summary>
+    /// How a hand tool's sound carries where it is placed: the axe's chop, and a friend's harpoon heard on World,
+    /// its shot, its drum and its rod biting (0065). Full within 5 cells, gone at 20.
+    /// </summary>
+    public static readonly Reach ToolReach = new(5, 20);
+
+    /// <summary>
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient, Music and Effects into Master; into
     /// Effects, World (every hero's steps, machines, air, doors: silenced while floating), Suit (what this
     /// player's hero itself touches: an action's sound, its own axe's chop and drill, a wreck its hit breaks, its harpoon, its
@@ -80,16 +86,17 @@ public static class Sound
     public static readonly Cue Act = new(Shots("hands/act", 1), -10);
     /// <summary>
     /// The action's sound while this player's hero floats in space (0042): a glove's low thump in place of the
-    /// click, which has almost nothing the muffle lets through; on the Suit bus, muffled as all there is.
+    /// click, which has almost nothing the muffle lets through; on the Suit bus, muffled as all there is. Placed on World
+    /// where a friend's harpoon rod bites a crate or pod (0065).
     /// </summary>
-    public static readonly Cue ActInSpace = new(Shots("hands/act-space", 1), -12);
+    public static readonly Cue ActInSpace = new(Shots("hands/act-space", 1), -12, Heard: ToolReach);
     /// <summary>A furnace's or burner generator's fire crackling while it burns, a station's sound (<see cref="StationReach"/>).</summary>
     public static readonly Cue Fire = Looped("furnace/fire", -13, StationReach);
     /// <summary>
     /// This player's own axe biting into a wreck (0034, 0042), heard where the wreck is: on the Suit bus,
     /// through the glove, as a wreck is only ever out in space; another hero's hit there is silent.
     /// </summary>
-    public static readonly Cue Chop = new(Shots("debris/chop", 3), -2, Pitch: 0.1f, Heard: new(5, 20));
+    public static readonly Cue Chop = new(Shots("debris/chop", 3), -2, Pitch: 0.1f, Heard: ToolReach);
     /// <summary>
     /// This player's own drill working on a wreck (0054), heard at its bit on the Suit bus as the chop is: a pickaxe on
     /// metal, a low heavy tuk, cut to 50 ms so <see cref="DrillStrikesPerSecond"/> of them buzz as a hammer drill does
@@ -203,9 +210,10 @@ public static class Sound
     /// whoosh (<see cref="Shot"/>); its drum winding the line in, a fishing reel, looped from the press that reels
     /// till the piece is in (<see cref="Drum"/>); and a bolt worked home as the hero's cooldown ends, ready to fire
     /// again (<see cref="Ready"/>). The rod biting plays <see cref="Chop"/>, or <see cref="ActInSpace"/> on a crate or pod.
+    /// A friend's harpoon plays the same, but Ready, on the World bus where it is (0065).
     /// </summary>
-    public static readonly Cue Shot = new(Shots("crew/harpoon-shot", 1), -6);
-    public static readonly Cue Drum = new(["res://audio/crew/harpoon-reel-1.ogg"], -10, Loops: true);
+    public static readonly Cue Shot = new(Shots("crew/harpoon-shot", 1), -6, Heard: ToolReach);
+    public static readonly Cue Drum = new(["res://audio/crew/harpoon-reel-1.ogg"], -10, Loops: true, Heard: ToolReach);
     public static readonly Cue Ready = new(Shots("crew/harpoon-ready", 1), -10);
 
     /// <summary>

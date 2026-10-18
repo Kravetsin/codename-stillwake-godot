@@ -386,4 +386,51 @@ public class RemoteTests
         for (int i = 0; i < 100 && !swing.Follow(Frame, heard).Begun; i++) { }
         Assert.Equal((2, Above), (swing.Count, swing.At));
     }
+
+    // Its harpoon's rod (0065): on the wire while out of the gun, sent at once as it changes.
+
+    [Fact]
+    public void GoThroughTheWireWithTheirRodOutAndLeaveItOutWhileInTheGun()
+    {
+        foreach (var rod in new RodSeen[] { new(Rod.Flying, new Point(300, -11_700)), new(Rod.Reeling, new Point(-500, 120), 7), new(Rod.Returning) })
+        {
+            var sent = new SentHero(new Seen(HeroAt(1200, 3400), Wields: "harpoon", Rod: rod), 1250);
+            Assert.Equal(sent, SentHero.Decode(sent.Encode()));
+        }
+        Assert.Contains("\"harpoon\":{\"rod\":\"hooked\",\"at\":{\"x\":6000,\"y\":0}}",
+            new SentHero(new Seen(HeroAt(1), Rod: new RodSeen(Rod.Hooked, new Point(6_000, 0))), 50).Encode());
+        Assert.DoesNotContain("\"harpoon\":", new SentHero(new Seen(HeroAt(1), Wields: "harpoon"), 50).Encode());
+    }
+
+    [Fact]
+    public void MakeNoHeroOfARodNoGunKnows()
+    {
+        string state = "{\"x\":1,\"y\":0,\"vx\":0,\"vy\":0,\"climbing\":false,\"facing\":1,\"plan\":false,\"harpoon\":{\"rod\":\"lasso\"}}";
+        Assert.Null(SentHero.Decode(state));
+    }
+
+    [Fact]
+    public void AreSentAtOnceAsTheirRodFiresSticksOrComesFreeThoughASendWentJustNow()
+    {
+        var sent = new List<SentHero>();
+        var sender = new HeroSender(sent.Add);
+        var hook = new RodSeen(Rod.Hooked, new Point(6_000, 0));
+        sender.Step(SendMs, new Seen(HeroAt(5), Wields: "harpoon"), 0);
+        sender.Step(Frame, new Seen(HeroAt(5), Wields: "harpoon", Rod: new RodSeen(Rod.Flying, new Point(12_000, 0))), Frame);
+        sender.Step(Frame, new Seen(HeroAt(6), Wields: "harpoon", Rod: hook), 2 * Frame);
+        // Moving with the rod as it was: no sooner than ever.
+        sender.Step(Frame, new Seen(HeroAt(7), Wields: "harpoon", Rod: hook), 3 * Frame);
+        Assert.Equal([null, Rod.Flying, Rod.Hooked], sent.Select(h => h.Seen.Rod?.Rod));
+    }
+
+    [Fact]
+    public void ShowTheRodOfTheSampleAtOrBeforeNeverBetweenTwo()
+    {
+        var heroes = new RemoteHeroes();
+        var flying = new RodSeen(Rod.Flying, new Point(12_000, 0));
+        heroes.Add(2, new SentHero(new Seen(HeroAt(0), Rod: flying)), 1000);
+        heroes.Add(2, new SentHero(new Seen(HeroAt(1000), Rod: new RodSeen(Rod.Hooked, new Point(6_000, 0)))), 1050);
+        Assert.Equal(flying, heroes.At(1000 + BehindMs + 25)[0].Seen.Rod);
+        Assert.Equal(Rod.Hooked, heroes.At(1050 + BehindMs)[0].Seen.Rod?.Rod);
+    }
 }
