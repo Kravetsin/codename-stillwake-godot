@@ -38,8 +38,9 @@ A living document: what is decided about the game and what is still open. Techni
 - **Blueprints are learned,** Grounded's way: a blueprint or a craft opens once every item of its
   cost is analysed in a powered analyzer, raw or made. The wreck knows only the furnace, the
   analyzer, the crate, scrap walls and the wire; smelting scrap, making wire, cabling the torn room's
-  analyzer and analysing iron is the first lesson. An item not analysed yet has a violet "?" in its
-  slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
+  analyzer and analysing iron is the first lesson. Only what goes into some cost is analysed; tools,
+  the jetpack and anything else that goes into nothing are known from the start. An item not analysed
+  yet has a violet "?" in its slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
   item in it goes into, opened or still closed; nothing pops up over the hero. Every electric thing
   is built of circuits, salvaged from the electronics racks that drift by, and later made at the circuit
   assembler of silicon from asteroid rock and wire: the battery and the charging station a circuit each, the drill

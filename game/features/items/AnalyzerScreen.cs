@@ -4,7 +4,8 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Items;
 
 /// <summary>
-/// The analyzer's screen in its panel, 64 by 40: dark while it is empty or has no power, green lines
+/// The analyzer's screen in its panel, 64 by 40: dark while it is empty, has no power or holds what there is
+/// nothing to learn from, green lines
 /// running down it while it works, a green check once what it holds is analysed.
 /// </summary>
 public partial class AnalyzerScreen : Control

@@ -27,8 +27,8 @@ public sealed record Reading(
         return slots != null && place.Slot >= 0 && place.Slot < slots.Count ? slots[place.Slot] : null;
     }
 
-    /// <summary>Whether a slot holding <paramref name="item"/> shows the violet "?": not analysed yet, and never in creative mode.</summary>
-    public bool Unknown(string item) => !Creative && !Analysed.Contains(item);
+    /// <summary>Whether a slot holding <paramref name="item"/> shows the violet "?": in some cost and not analysed yet, never in creative mode.</summary>
+    public bool Unknown(string item) => ItemCards.Unknown(item, Creative, Analysed);
 
     /// <summary>The one tooltip over a stack of <paramref name="item"/>: its card (<see cref="ItemCards"/>), the band while it is not analysed.</summary>
     public Tip TipOf(string item)

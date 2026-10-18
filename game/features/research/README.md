@@ -18,8 +18,9 @@ many blueprints opening at once a list would cover the screen.
 - `IResearchQueries.At` is read for every analyzer every 100 ms through the current registry
   (`Main.ShowWorld` makes the view again for a new one). Its screen shows lines of text running across
   it while it works, a green check once what it holds is analysed (`research.nothingNew`), and stays
-  dark when it is empty or unpowered. Drawn unlit, for a screen gives its own light; the lines run
-  every frame.
+  dark when it is unpowered. Empty on a powered network, or holding an item in no cost
+  (`research.nothingToLearn`, 0027 amended), a cursor blinks: there is nothing to analyse. Drawn
+  unlit, for a screen gives its own light; the lines run every frame.
 
 ## Differences from the TypeScript
 

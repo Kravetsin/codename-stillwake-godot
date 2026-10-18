@@ -8,8 +8,8 @@ using Stillwake.Sim.Research;
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// What each analyzer's screen says without a word: on a powered network with nothing in it, a cursor
-/// blinking, waiting for something to analyse; lines running across it while it works; a green check
+/// What each analyzer's screen says without a word: on a powered network with nothing in it, or only what
+/// there is nothing to learn from, a cursor blinking, waiting for something to analyse; lines running across it while it works; a green check
 /// once what it holds is analysed; dark with no power. Drawn unlit over the screen of its picture, and
 /// lighting the room round it a little in what it shows (a <see cref="Glow"/>), dark when it is.
 /// </summary>
@@ -85,7 +85,8 @@ public partial class AnalyzerScreens : Node2D
             if (m.Kind != "analyzer") continue;
             var corner = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * ShipCamera.Cell;
             var at = _research.At(m.Id);
-            var look = at == null ? (Powered(m) ? Look.Waiting : Look.Dark)
+            // Holding what is in no cost, it waits as an empty one does: there is nothing to analyse.
+            var look = at == null || at.Problem == "research.nothingToLearn" ? (Powered(m) ? Look.Waiting : Look.Dark)
                 : at.Problem == "research.unpowered" ? Look.Dark
                 : at.Problem == "research.nothingNew" ? Look.Done
                 : Look.Working;
