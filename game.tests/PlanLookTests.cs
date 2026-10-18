@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>How plans are drawn: walls joined as built ones are, and the dashes round each group of plans.</summary>
+/// <summary>How plans are drawn: walls joined as built ones are, the dashes along the silhouette of each group of plans, and the cut.</summary>
 public class PlanLookTests
 {
     private const int Cell = 16;
@@ -53,52 +53,86 @@ public class PlanLookTests
         Assert.Equal([(6, Blueprint.Left)], Tools.StubsOf(new HashSet<int> { 5 }, 4, c => c == 6));
     }
 
+    /// <summary>A mask from rows drawn with '#' for an opaque pixel.</summary>
+    private static List<Rim> RimOf(params string[] rows) =>
+        PlanOutline.RimOf((x, y) => rows[y][x] == '#', rows[0].Length, rows.Length);
+
+    private static readonly IReadOnlyList<Rim> Square = PlanOutline.RimOf((_, _) => true, Cell, Cell);
+
     [Fact]
-    public void OutlinesARowOfWallsAsOneBoxClockwiseAPixelInsideItsEdge()
+    public void ARimStepsClockwiseAlongEverySideOfAnOpaquePixelFacingAClearOneOrTheEdge()
     {
-        var runs = PlanOutline.Of([(1, "wall", Cell), (2, "wall", Cell), (3, "wall", Cell)], 8, Cell);
+        Assert.Equal([new Rim(1, 0, 1, 0), new Rim(2, 0, 0, 1), new Rim(2, 1, -1, 0), new Rim(1, 1, 0, -1)], RimOf(".#", ".."));
+        // Two pixels side by side: their common side is no rim.
+        Assert.Equal(6, RimOf("##").Count);
+        // A ladder's rails and rungs: every pixel's sides that face the gaps too.
+        Assert.Equal(7 * 4 - 6 * 2, RimOf("#.#", "###", "#.#").Count);
+        Assert.Equal(4 * Cell, Square.Count);
+    }
+
+    [Fact]
+    public void ACellOfWallIsRingedJustOutsideItsSilhouetteClockwiseCornersAndAll()
+    {
+        // 2 * (16 + 16) + 4 pixels round, each side's run taking the corner after it, the dashes counted on round it.
+        Assert.Equal(
+            [new OutlineRun(0, -1, 17, 1, 0, 0), new OutlineRun(16, 0, 17, 0, 1, 17), new OutlineRun(15, 16, 17, -1, 0, 34), new OutlineRun(-1, 15, 17, 0, -1, 51)],
+            PlanOutline.Runs(PlanOutline.Merge([(0, 0, Square)]), Cell * Cell));
+        // A notch in the side: round its concave corners each run starts where the one before it ended, counted on.
+        var notched = PlanOutline.Runs(PlanOutline.Merge([(0, 0, RimOf("###", "#..", "###"))]), 99);
+        for (int i = 1; i < notched.Count; i++) Assert.Equal(notched[i - 1].Along + notched[i - 1].Length, notched[i].Along);
+        Assert.Contains(new OutlineRun(1, 1, 3, 1, 0, 7), notched);
+    }
+
+    [Fact]
+    public void ARowOfWallsIsOneOutlineTheSidesTheyShareDroppedAndGroupsNeverJoin()
+    {
+        var row = PlanOutline.Of([("wall", 16, 0, Square), ("wall", 32, 0, Square), ("wall", 48, 0, Square)], Cell * Cell);
+        Assert.Equal(
+            [new OutlineRun(16, -1, 49, 1, 0, 0), new OutlineRun(64, 0, 17, 0, 1, 49), new OutlineRun(63, 16, 49, -1, 0, 66), new OutlineRun(15, 15, 17, 0, -1, 115)],
+            row);
+        // Two machines side by side, each its own outline; a wall beside a door, too.
+        Assert.Equal(8, PlanOutline.Of([("machine1", 0, 0, Square), ("machine2", 16, 0, Square)], Cell * Cell).Count);
+        Assert.Equal(8, PlanOutline.Of([("wall", 0, 0, Square), ("door", 16, 0, Square)], Cell * Cell).Count);
+        // Two floors side by side are one strip; one under them, a cell lower, is apart: their strips never touch.
+        var floor = RimOf("####", "####");
+        Assert.Equal(8, PlanOutline.Of([("floor", 0, 0, floor), ("floor", 4, 0, floor), ("floor", 0, 16, floor)], Cell * Cell).Count);
+    }
+
+    [Fact]
+    public void AHoleSmallerThanACellIsPartOfTheSilhouetteAndARoomWalledRoundIsOutlinedInsideToo()
+    {
+        // A ladder's gaps between its rungs: only the outside is outlined.
+        var ladder = PlanOutline.Runs(PlanOutline.Merge([(0, 0, RimOf("#..#", "####", "#..#", "#..#", "####", "#..#"))]), Cell * Cell);
+        Assert.All(ladder, r => Assert.False(r.X is 1 or 2 && r.Y is > 0 and < 5));
+        // Eight walls round an empty cell: the ring outside and the one inside the room.
+        var walls = new List<(string, int, int, IReadOnlyList<Rim>)>();
+        for (int y = 0; y < 3; y++)
+            for (int x = 0; x < 3; x++)
+                if (x != 1 || y != 1) walls.Add(("wall", x * Cell, y * Cell, Square));
+        var room = PlanOutline.Of(walls, Cell * Cell);
+        Assert.Equal(8, room.Count);
+        Assert.Equal(2 * (48 + 48) + 4 + 2 * (16 + 16) - 4, room.Sum(r => r.Length));
+        Assert.Equal(4, room.Count(r => r.X is >= 16 and < 32 && r.Y is >= 16 and < 32));
+    }
+
+    [Fact]
+    public void TwoPixelsTouchingOnlyAtACornerAreTwoLoops()
+    {
+        var runs = PlanOutline.Runs(PlanOutline.Merge([(0, 0, RimOf("#.", ".#"))]), 99);
         Assert.Equal(8, runs.Count);
-        Assert.Contains(new OutlineRun(16, 0, 16, 1, 0), runs);      // the top, rightward
-        Assert.Contains(new OutlineRun(63, 0, 16, 0, 1), runs);      // the right end, downward
-        Assert.Contains(new OutlineRun(63, 15, 16, -1, 0), runs);    // the bottom, leftward
-        Assert.Contains(new OutlineRun(16, 15, 16, 0, -1), runs);    // the left end, upward
-        Assert.DoesNotContain(runs, r => r.Dy != 0 && r.X is 31 or 32 or 47 or 48);
+        Assert.Equal(2, runs.Count(r => r.Along == 0));
     }
 
     [Fact]
-    public void FloorsJoinOnlySideBySideAlongTheirStripAndGroupsNeverJoinEachOther()
+    public void APlanBeingBuiltTurnsRealFromTheBottomAsItIsWorkedAndAFloorOrAConduitFromTheLeft()
     {
-        // Two floors side by side, a third under the first: two boxes, four pixels tall.
-        var floors = PlanOutline.Of([(0, "floor", 4), (1, "floor", 4), (8, "floor", 4)], 8, Cell);
-        Assert.Equal(6 + 4, floors.Count);
-        Assert.Contains(new OutlineRun(31, 3, 16, -1, 0), floors);
-        Assert.Contains(new OutlineRun(31, 0, 4, 0, 1), floors);
-        // Two machines side by side, each its own box; a cell at a row's end, not joined to the next row's start.
-        Assert.Equal(8, PlanOutline.Of([(0, "machine1", Cell), (1, "machine2", Cell)], 8, Cell).Count);
-        Assert.Equal(8, PlanOutline.Of([(7, "wall", Cell), (8, "wall", Cell)], 8, Cell).Count);
-    }
-
-    [Fact]
-    public void DashesMarchAlongEachRunsWayTheSameOnEveryRunOfALine()
-    {
-        Assert.Equal(new[] { (0, 0, 3, 1), (5, 0, 3, 1) }, Dashes(new OutlineRun(0, 0, 10, 1, 0), 0));
-        // Moved a pixel along: a rightward run's dashes step right.
-        Assert.Equal(new[] { (1, 0, 3, 1), (6, 0, 3, 1) }, Dashes(new OutlineRun(0, 0, 10, 1, 0), 1));
-        // A leftward run's step left.
-        Assert.Equal(new[] { (7, 9, 3, 1), (2, 9, 3, 1) }, Dashes(new OutlineRun(9, 9, 10, -1, 0), 1));
-        Assert.Equal(new[] { (4, 3, 1, 2) }, Dashes(new OutlineRun(4, 4, 3, 0, -1), 0));
-
-        static (int, int, int, int)[] Dashes(OutlineRun run, double offset) =>
-            PlanOutline.Dashes(run, offset, 3, 5).Select(d => (d.X, d.Y, d.W, d.H)).ToArray();
-    }
-
-    [Fact]
-    public void APlanBeingBuiltTurnsRealFromTheBottomAPartAStepAndAFloorOrAConduitFromTheLeft()
-    {
-        // A wall at cell (2, 3) of two parts, one put in: its bottom half real, its top half a plan.
+        // A wall at cell (2, 3) half worked: its bottom half real, its top half a plan.
         var wall = PlanCut.Of((2 * Cell, 3 * Cell, Cell, Cell), PlanCut.FromLeftFor("structure", "wall"), 1, 2);
         Assert.Equal(((32, 56, 16, 8), (32, 48, 16, 8)), wall.Split((32, 48, 16, 16)));
-        // Nothing put in leaves it all a plan; all of it, all real.
+        // A scrap wall of 13 ticks fills tick by tick, a row or two at a time, never back: no part reveals itself whole.
+        var rows = Enumerable.Range(0, 14).Select(t => Height(PlanCut.Of((0, 0, Cell, Cell), false, t, 13), 0)).ToArray();
+        Assert.Equal([0, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16], rows);
+        // No work leaves it all a plan; all of it, all real.
         Assert.Equal((0, 16), (Height(PlanCut.Of((0, 0, Cell, Cell), false, 0, 2), 0), Height(PlanCut.Of((0, 0, Cell, Cell), false, 2, 2), 0)));
         // A tank two cells square, 5 parts, 3 in: 32 * 3 / 5 = 19 rows real, rounded down, in the lower cell 16 and the upper 3.
         var tank = PlanCut.Of((0, 0, 2 * Cell, 2 * Cell), false, 3, 5);

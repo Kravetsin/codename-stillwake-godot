@@ -11,7 +11,8 @@ namespace Stillwake.Game.Shared;
 /// once, following the pointer, a name in bold and lines in colour under it. It says what a panel says
 /// of what the pointer is on (<see cref="Ui.Tip"/>), else, over the world, what an overlay says of the
 /// cell (<see cref="Ui.WorldTip"/>), the first line naming it, or a blueprint under it: what it builds,
-/// then what is carried against what it still needs (<see cref="Ui.CostTip"/>). A tip with an item's card shows the card (<see cref="ItemCardView"/>)
+/// then what is carried against what it still needs, or a mark: what it is, then what taking it down gives back
+/// (<see cref="Ui.CostTip"/>). A tip with an item's card shows the card (<see cref="ItemCardView"/>)
 /// in place of its lines. Text on demand, only while there is something to say.
 /// </summary>
 public partial class PointerTip : CanvasLayer
@@ -98,12 +99,12 @@ public partial class PointerTip : CanvasLayer
             Mathf.Max(Edge, Mathf.Min(at.Y, screen.Y - _panel.Size.Y - Edge)));
     }
 
-    /// <summary>An overlay's words, the first naming the cell; or else a blueprint's cost.</summary>
+    /// <summary>An overlay's words, the first naming the cell; or else a plan's: a blueprint's cost, a mark's refund.</summary>
     private Tip? OfWorld()
     {
         if (_ui.WorldTip.Get() is { Count: > 0 } world)
             return new Tip(world[0], world.Skip(1).Select(line => new TipLine(line)).ToList());
-        return _ui.CostTip.Get()?.Tip;
+        return _ui.CostTip.Get();
     }
 
     private void Fill(Tip tip)

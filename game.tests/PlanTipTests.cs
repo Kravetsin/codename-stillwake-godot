@@ -53,4 +53,18 @@ public class PlanTipTests
         Assert.NotEqual(Of(5), Of(4));
         Assert.NotEqual(Of(5).Tip, Of(5).Tip with { Picture = Placement.Wall("iron") });
     }
+
+    [Fact]
+    public void AMarksTipNamesWhatItTakesDownOverItsPictureThenWhatThatGivesBackInGreen()
+    {
+        var vent = new Placement("machine", "vent");
+        var tip = new MarkTip(vent, [("plate", 1), ("tube", 1)]).Tip;
+        Assert.Equal(T("tool.vent"), tip.Name);
+        Assert.Equal(vent, tip.Picture);
+        Assert.Equal([new TipLine("+1", Tone.Good, "plate", Large: true), new TipLine("+1", Tone.Good, "tube", Large: true)], tip.Lines);
+        // A wall of scrap: its material's cost, as many as it gives; nothing given, no row.
+        Assert.Equal([new TipLine("+2", Tone.Good, "scrap", Large: true)], new MarkTip(Placement.Wall(), [("scrap", 2), ("plate", 0)]).Tip.Lines);
+        Assert.Equal(new MarkTip(vent, [("plate", 1)]), new MarkTip(vent, [("plate", 1)]));
+        Assert.NotEqual(new MarkTip(vent, [("plate", 1)]), new MarkTip(vent, [("plate", 2)]));
+    }
 }

@@ -25,11 +25,14 @@ a plan that fills in as it is built shows its progress without a bar.
 - **Unchanged.** Creative mode is free. Cancelling a blueprint drops exactly what was put in where it
   stood. What was paid (`Delivered`) and the work done (`Progress`) were saved already: no save format
   change, and an older save's blueprint, paid in full or in part, works on.
-- **Seen.** The plan turns into the real thing a part at a time, a step an item: walls, back walls,
-  ladders, doors and machines from the bottom up; floors and conduits, thin, from the left. The real
-  share is drawn and lit as what is built is; the rest stays the unlit ghost in its dashes, which stay
-  round the whole plan until it is built. The cut stays at the parts paid while a part is worked, so
-  each step is an item seen going in. The delivery and work bars on blueprints go.
+- **Seen.** The plan turns into the real thing as it is worked: walls, back walls, ladders, doors and
+  machines from the bottom up; floors and conduits, thin, from the left. The real share is drawn and lit
+  as what is built is; the rest stays the unlit ghost in its dashes, which stay round the whole plan until
+  it is built. The cut follows the work done (`Progress / BuildTicks`), a row or a column of pixels at a
+  time: the first touch of a part pays its item, then the part fills smoothly under the screwdriver, and a
+  build stalled for want of an item sits at that part's boundary. Stepping a whole part at each payment was
+  tried first: it showed the part built before it was worked. The delivery and work bars on blueprints go.
+  A mark is taken down the same way in mirror, turning into its red ghost from the top ([0064](0064-plans-and-marks-are-drawn-alike.md)).
 - **Drawn** by splitting each picture at its cut into two regions of the ship's atlas: the real one in a
   lit canvas item per tile layer, the ghost in an unlit one; no node, material or instance uniform per
   plan (Godot's global buffer, which instance uniforms fill per item, is what `Lit` ran out of).

@@ -99,7 +99,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
 
     /// <summary>
     /// How many parts of blueprint <paramref name="id"/> are put in, of all its parts, one an item of its cost: those
-    /// paid for, or in creative mode those its work has begun. What the client draws built; null for a mark or no plan.
+    /// paid for, or in creative mode those its work has begun. Null for a mark or no plan.
     /// </summary>
     public (int In, int Of)? Parts(int id)
     {
@@ -109,7 +109,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
         return (Math.Min(parts, Math.Max(begun, PaidInto(plan))), parts);
     }
 
-    /// <summary>Ticks of work plan <paramref name="id"/> takes in all, for a mark's bar; null for no plan.</summary>
+    /// <summary>Ticks of work plan <paramref name="id"/> takes in all, how far a blueprint is drawn built by its work done; null for no plan.</summary>
     public int? TicksFor(int id) => State.Plans.Find(p => p.Id == id) is { } plan ? Costs.TicksFor(_grid, plan) : null;
 
     /// <summary>What placing <paramref name="placement"/> costs: a build menu card's price.</summary>
@@ -118,6 +118,13 @@ public sealed partial class BuildingModule : Module<BuildingState>
     /// <summary>What blueprint <paramref name="id"/> costs in all, for its tip; null for a mark or no plan.</summary>
     public Cost? CostOf(int id) =>
         State.Plans.Find(p => p.Id == id)?.Place is { } place ? Costs.BuildOf(place).Cost : null;
+
+    /// <summary>
+    /// What taking apart what mark <paramref name="id"/> names gives back, as its last tick of work refunds it: for its
+    /// tip. Null for a blueprint or no plan; empty once what it names is gone.
+    /// </summary>
+    public Cost? RefundOf(int id) =>
+        State.Plans.Find(p => p.Id == id) is { Clear: { } layer } plan ? Costs.BuiltAt(_grid, plan.Cell, layer)?.Cost ?? [] : null;
 
     // Commands.
 
@@ -179,7 +186,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
         }
         else if (Costs.BuiltAt(_grid, plan.Cell, plan.Clear!) is { } built)
         {
-            // What a mark names may be gone already, to a meteor: then there is nothing to refund.
+            // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
             _gridOps.Clear(plan.Cell, plan.Clear!);
             _itemsOps.GiveOrDrop(from, built.Cost, plan.Cell);
         }

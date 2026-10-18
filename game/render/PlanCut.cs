@@ -9,11 +9,12 @@ namespace Stillwake.Game.Render;
 public readonly record struct PlanCut(int Line, bool FromLeft)
 {
     /// <summary>
-    /// The cut of a plan over <paramref name="box"/> (x, y, w, h, in pixels) with <paramref name="built"/> of
-    /// <paramref name="parts"/> parts put in: a whole part a step, its share of the box rounded down to a pixel.
+    /// The cut of a plan over <paramref name="box"/> (x, y, w, h, in pixels) with <paramref name="done"/> of its
+    /// <paramref name="all"/> ticks of work done: that share of the box, rounded down to a pixel, so it moves a row
+    /// or a column of the art at a time.
     /// </summary>
-    public static PlanCut Of((int X, int Y, int W, int H) box, bool fromLeft, int built, int parts) =>
-        fromLeft ? new(box.X + box.W * built / parts, true) : new(box.Y + box.H - box.H * built / parts, false);
+    public static PlanCut Of((int X, int Y, int W, int H) box, bool fromLeft, int done, int all) =>
+        fromLeft ? new(box.X + box.W * done / all, true) : new(box.Y + box.H - box.H * done / all, false);
 
     /// <summary>Whether a placement of <paramref name="kind"/> on <paramref name="layer"/> turns real from the left, as floors and conduits do.</summary>
     public static bool FromLeftFor(string layer, string kind) => layer == "conduit" || kind == "floor";
