@@ -10,17 +10,24 @@ namespace Stillwake.Game.Render;
 public readonly record struct Rim(int X, int Y, int Dx, int Dy);
 
 /// <summary>
-/// A straight stretch of an outline, in pixels of the world: <see cref="Length"/> pixels from (X, Y), one step (Dx, Dy)
-/// at a time, the first of them <see cref="Along"/> pixels round its line, so the dashes march on round corners.
+/// A straight side of an outline, in pixels of the world: from the corner (X, Y) of the silhouette's rim,
+/// <see cref="Length"/> pixels one way (Dx, Dy), the silhouette on its right, <see cref="Along"/> pixels round its loop
+/// from the loop's first corner; <see cref="Convex"/> when the loop turns right at its end, round a corner's outside.
 /// </summary>
-public readonly record struct OutlineRun(int X, int Y, int Length, int Dx, int Dy, int Along);
+public readonly record struct OutlineRun(int X, int Y, int Length, int Dx, int Dy, int Along, bool Convex);
 
 /// <summary>
-/// The dashed line round each group of plans and marks (0064): the ring of pixels just outside the silhouette of
-/// their pictures, a world pixel wide, going clockwise round it so the dashes march. Each picture's rim is worked out
-/// from its alpha (<see cref="RimOf"/>); a group's rims are joined (<see cref="Merge"/>), a step two of its shapes share
-/// dropping out, so a row of walls is one outline; then traced into runs (<see cref="Runs"/>). Steps are kept as one
-/// number each while they are joined and traced.
+/// A side's dashes as a strip of the world: <see cref="Length"/> from (X, Y) one way (Dx, Dy), <see cref="Width"/> wide
+/// on its left, outside the silhouette, the strip's start <see cref="Along"/> round its loop.
+/// </summary>
+public readonly record struct DashStrip(double X, double Y, int Dx, int Dy, double Length, double Width, double Along);
+
+/// <summary>
+/// The dashed line round each group of plans and marks (0064): a strip just outside the silhouette of their pictures,
+/// as wide as the line is drawn (<see cref="Strips"/>), going clockwise round it so the dashes march. Each picture's
+/// rim is worked out from its alpha (<see cref="RimOf"/>); a group's rims are joined (<see cref="Merge"/>), a step two of
+/// its shapes share dropping out, so a row of walls is one outline; then traced into straight sides (<see cref="Runs"/>).
+/// Steps are kept as one number each while they are joined and traced.
 /// </summary>
 public static class PlanOutline
 {
@@ -70,9 +77,8 @@ public static class PlanOutline
     }
 
     /// <summary>
-    /// The ring of pixels just outside <paramref name="rims"/>, loop by loop from its top-left, as straight runs that
-    /// follow on round each loop: a convex corner's pixel is the run's before it, so the ring is closed. A hole of
-    /// fewer than <paramref name="smallestHole"/> pixels is not outlined: the gaps between a ladder's rungs, or a
+    /// The loops of <paramref name="rims"/>, each from its top-left, as the straight sides that follow on round it. A hole
+    /// of fewer than <paramref name="smallestHole"/> pixels is not outlined: the gaps between a ladder's rungs, or a
     /// grille's, are part of its silhouette; a room walled round is not.
     /// </summary>
     public static List<OutlineRun> Runs(IReadOnlyCollection<Rim> rims, int smallestHole)
@@ -139,7 +145,7 @@ public static class PlanOutline
             Sides(loop, sides);
             long area = Area(sides);
             if (area < 0 && -area < smallestHole) continue;
-            Ring(sides, runs);
+            Add(sides, runs);
         }
     }
 
@@ -201,29 +207,35 @@ public static class PlanOutline
         return twice / 2;
     }
 
-    /// <summary>
-    /// The pixels just outside each side of a loop, on its left, as a run: one longer where the loop turns right (the
-    /// corner's pixel), one shorter where it turns left (the next side's first).
-    /// </summary>
-    private static void Ring(List<(int X, int Y, int Way, int Length)> sides, List<OutlineRun> runs)
+    /// <summary>A loop's sides as runs, counted on round it, each told whether the loop turns right at its end.</summary>
+    private static void Add(List<(int X, int Y, int Way, int Length)> sides, List<OutlineRun> runs)
     {
         int along = 0;
         for (int i = 0; i < sides.Count; i++)
         {
             var s = sides[i];
-            int length = s.Length + (sides[(i + 1) % sides.Count].Way == ((s.Way + 1) & 3) ? 1 : -1);
             var (dx, dy) = Ways[s.Way];
-            // The pixel on the left of a side's first step.
-            var (x, y) = s.Way switch
-            {
-                0 => (s.X, s.Y - 1),
-                1 => (s.X, s.Y),
-                2 => (s.X - 1, s.Y),
-                _ => (s.X - 1, s.Y - 1),
-            };
-            if (length <= 0) continue;
-            runs.Add(new(x, y, length, dx, dy, along));
-            along += length;
+            runs.Add(new(s.X, s.Y, s.Length, dx, dy, along, sides[(i + 1) % sides.Count].Way == ((s.Way + 1) & 3)));
+            along += s.Length;
         }
+    }
+
+    /// <summary>
+    /// The strips <paramref name="width"/> pixels wide just outside <paramref name="runs"/>, a side's each, longer by
+    /// <paramref name="width"/> where its loop turns round a convex corner, so the corner is filled; round a concave one
+    /// the next strip starts where this one meets it. Counted on round each loop, the corners too, so the dashes run on.
+    /// </summary>
+    public static List<DashStrip> Strips(IReadOnlyList<OutlineRun> runs, double width)
+    {
+        var strips = new List<DashStrip>(runs.Count);
+        double corners = 0;
+        foreach (var run in runs)
+        {
+            // A loop's first side starts it.
+            if (run.Along == 0) corners = 0;
+            strips.Add(new(run.X, run.Y, run.Dx, run.Dy, run.Length + (run.Convex ? width : 0), width, run.Along + corners));
+            if (run.Convex) corners += width;
+        }
+        return strips;
     }
 }

@@ -4,14 +4,15 @@ using Godot;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// Dashes a world pixel wide marching along <see cref="OutlineRun"/>s, in the node's <see cref="CanvasItem.Modulate"/>:
-/// one mesh, a quad a run, built only when the runs change, each pixel carrying how far round its line it lies; the
-/// shader shows the dashes and moves them with the time, so marching costs no frame anything and hundreds of plans one
-/// draw. Unlit, so they read in the dark.
+/// Dashes marching along <see cref="OutlineRun"/>s, in the node's <see cref="CanvasItem.Modulate"/>, as wide as the aim's
+/// outline (<see cref="Outline.Width"/>) at any zoom: one mesh, a quad a side, each pixel carrying how far round its
+/// line it lies, in line widths; the shader shows the dashes and moves them with the time, so marching costs no frame
+/// anything and hundreds of plans one draw. Built when the runs change, and again when the zoom or the screen's height
+/// does. Unlit, so they read in the dark.
 /// </summary>
 public partial class MarchingDashes : MeshInstance2D
 {
-    /// <summary>A dash and its gap, in pixels of the world, and how many pixels a second they march round.</summary>
+    /// <summary>A dash and its gap, in line widths, and how many line widths a second they march round.</summary>
     private const int Dash = 3, Period = 5, March = 5;
 
     private static readonly ShaderMaterial Dashes = new()
@@ -23,13 +24,17 @@ public partial class MarchingDashes : MeshInstance2D
                 render_mode unshaded;
 
                 void fragment() {
-                    // UV.x: how far round its line the pixel lies, counted from the run's first pixel's near side.
+                    // UV.x: how far round its line the pixel lies, in line widths.
                     float along = floor(UV.x);
                     if (mod(along - floor(TIME * {{March}}.0), {{Period}}.0) >= {{Dash}}.0) discard;
                 }
                 """,
         },
     };
+
+    private IReadOnlyList<OutlineRun> _runs = [];
+    /// <summary>Screen pixels a world pixel and the line's width in them, as the mesh was built for; none before it is.</summary>
+    private (float Scale, int Width)? _built;
 
     public MarchingDashes(int z)
     {
@@ -40,34 +45,55 @@ public partial class MarchingDashes : MeshInstance2D
     /// <summary>Shows <paramref name="runs"/> from now on, in place of those shown before; nothing for none.</summary>
     public void Show(IReadOnlyList<OutlineRun> runs)
     {
-        var vertices = new List<Vector2>(runs.Count * 4);
-        var along = new List<Vector2>(runs.Count * 4);
-        var indices = new List<int>(runs.Count * 6);
-        foreach (var run in runs)
-        {
-            // The run's pixels as a box, and where along it the side its first pixel starts from lies.
-            int x0 = run.Dx < 0 ? run.X - run.Length + 1 : run.X, y0 = run.Dy < 0 ? run.Y - run.Length + 1 : run.Y;
-            int w = run.Dx != 0 ? run.Length : 1, h = run.Dy != 0 ? run.Length : 1;
-            int startX = run.Dx < 0 ? run.X + 1 : run.X, startY = run.Dy < 0 ? run.Y + 1 : run.Y;
-            float At(int x, int y) => run.Along + (run.Dx != 0 ? (x - startX) * run.Dx : (y - startY) * run.Dy);
-            int first = vertices.Count;
-            foreach (var (x, y) in ((int, int)[])[(x0, y0), (x0 + w, y0), (x0 + w, y0 + h), (x0, y0 + h)])
-            {
-                vertices.Add(new Vector2(x, y));
-                along.Add(new Vector2(At(x, y), 0));
-            }
-            indices.AddRange([first, first + 1, first + 2, first, first + 2, first + 3]);
-        }
-        if (vertices.Count == 0)
+        _runs = runs;
+        _built = null;
+        if (IsInsideTree()) Refresh();
+    }
+
+    public override void _Process(double delta) => Refresh();
+
+    /// <summary>The mesh built again if the runs, the zoom or the screen's height changed since it was.</summary>
+    private void Refresh()
+    {
+        var now = (GetScreenTransform().X.Length(), Outline.Width(GetViewportRect().Size.Y));
+        if (_built == now) return;
+        _built = now;
+        Build(now.Item1, now.Item2);
+    }
+
+    private void Build(float scale, int width)
+    {
+        if (_runs.Count == 0 || scale <= 0)
         {
             Mesh = null;
             return;
         }
+        var strips = PlanOutline.Strips(_runs, (double)width / scale);
+        var vertices = new Vector2[strips.Count * 4];
+        var along = new Vector2[strips.Count * 4];
+        var indices = new int[strips.Count * 6];
+        // World pixels to line widths along a line.
+        float widths = scale / width;
+        for (int i = 0; i < strips.Count; i++)
+        {
+            var s = strips[i];
+            var start = new Vector2((float)s.X, (float)s.Y);
+            var way = new Vector2(s.Dx, s.Dy);
+            // Outside the silhouette: the strip's left.
+            var outside = new Vector2(s.Dy, -s.Dx) * (float)s.Width;
+            var end = start + way * (float)s.Length;
+            float from = (float)s.Along * widths, to = (float)(s.Along + s.Length) * widths;
+            int v = i * 4;
+            (vertices[v], vertices[v + 1], vertices[v + 2], vertices[v + 3]) = (start, end, end + outside, start + outside);
+            (along[v], along[v + 1], along[v + 2], along[v + 3]) = (new(from, 0), new(to, 0), new(to, 0), new(from, 0));
+            int k = i * 6;
+            (indices[k], indices[k + 1], indices[k + 2], indices[k + 3], indices[k + 4], indices[k + 5]) = (v, v + 1, v + 2, v, v + 2, v + 3);
+        }
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
-        arrays[(int)Mesh.ArrayType.Vertex] = vertices.ToArray();
-        arrays[(int)Mesh.ArrayType.TexUV] = along.ToArray();
-        arrays[(int)Mesh.ArrayType.Index] = indices.ToArray();
+        arrays[(int)Mesh.ArrayType.Vertex] = vertices;
+        arrays[(int)Mesh.ArrayType.TexUV] = along;
+        arrays[(int)Mesh.ArrayType.Index] = indices;
         var mesh = new ArrayMesh();
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
         Mesh = mesh;

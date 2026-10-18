@@ -61,10 +61,10 @@ outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along
   the same drag, as `GridView` joins built ones; a built pipe beside it gets a stub toward it in its look
   (`Tools.StubsOf`), and a planned one beside a ghost the ghost's, so they meet with no half cell between.
   Stubs are drawn with the plan, over the machines a built pipe runs behind.
-- Round each group of plans — walls, back walls, ladders, doors, floors, each machine on its own — dashes a
-  world pixel wide march clockwise, 3 on in 5, 5 pixels a second, along the group's silhouette (0064): the ring
-  of pixels just outside the opaque pixels of its pictures, a convex corner's pixel taken, so a tank is outlined
-  round its legs and a ladder round its rails. A group's shapes join: the steps two of them share along a
+- Round each group of plans — walls, back walls, ladders, doors, floors, each machine on its own — dashes as
+  wide as the aim's outline (a screen pixel at 1080 lines, whatever the zoom) march clockwise, 3 line widths on in
+  5, 5 a second, along the group's silhouette (0064): a strip just outside the opaque pixels of its pictures,
+  a convex corner filled, so a tank is outlined round its legs and a ladder round its rails. A group's shapes join: the steps two of them share along a
   common side cancel, so a row of walls is one outline and two floors side by side one strip. A hole smaller
   than a cell is part of the silhouette (the gaps between a ladder's rungs, a vent's grille); a room walled
   round is outlined inside too. A planned machine has a "+" on its corner. Pipes and valves, lines themselves,
@@ -73,14 +73,14 @@ outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along
   from the ship's atlas — it packs pictures with no room round them, so a shader tracing alpha there would
   pick up the neighbours. `PlanShapes` keeps a mask a picture and, for each placement as it is laid (its joins,
   and which cell of a picture laid over the world it shows), the rim of its pieces' pixels together.
-  `PlanOutline` merges a group's rims, traces them into straight runs and counts each pixel's place round its
+  `PlanOutline` merges a group's rims, traces them into straight sides and counts each pixel's place round its
   loop. A shader outline was not used for machines either: one way for all, and only the CPU can drop the
   sides a group's shapes share; and bounds of each atlas region in a shader would take an instance uniform or a
   node a plan, which 0063 keeps out.
-- The dashes are a mesh (`MarchingDashes`): a quad a run, each pixel carrying in its UV how far round its line
-  it lies; the shader shows 3 pixels in 5 and moves them with the time. Built only when the plans or the
-  grid change, never for work done; marching costs no frame anything, and all plans are one draw (back walls
-  and marks one more each). Measured with 578 half-built walls (zoom 1, RTX 4060 Ti): 0.88 ms a frame,
+- The dashes are a mesh (`MarchingDashes`): a quad a side of the outline, each pixel carrying in its UV how far
+  round its line it lies, in line widths; the shader shows 3 in 5 and moves them with the time. Built only when
+  the plans or the grid change, never for work done, and when the zoom or the screen's height does; marching
+  costs no frame anything, and all plans are one draw (back walls and marks one more each). Measured with 578 half-built walls (zoom 1, RTX 4060 Ti): 0.88 ms a frame,
   render CPU 0.25 ms, 62 draws, against 1.64 ms, 0.31 ms and 62 for the cell boxes painted every frame
   before; a plan placed and cancelled by turns, each time every outline found again, costs 3 ms a time.
 - Planned back walls and their dashes are drawn just over the rooms' air (`Layers.PlanBacks`), under the
