@@ -154,7 +154,7 @@ public class MigrationsTests
         Assert.Contains("\"item\":\"scrapChunk\",\"progress\":", old);
         Assert.Equal(save, Migrations.Upgrade(old));
         var m = new Registry();
-        World.Load(Migrations.Upgrade(old), [.. m.All, new Builder(m.Grid, m.Grid)]);
+        World.Load(Migrations.Upgrade(old), [.. m.All, new Builder(m)]);
         Assert.Equal(was, (m.Furnace.At(hot), m.Furnace.At(cold)));
     }
 

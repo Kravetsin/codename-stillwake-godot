@@ -104,7 +104,7 @@ public class ModulesTests
         var layout = BudgetTests.Reference(38, 30, shipWidth: 32, shipHeight: 24, margin: 3);
         var rng = new Rng(new RngState { S = seed });
         var live = new Registry();
-        var world = World.Create(seed, layout, [.. live.All, new Builder(live.Grid, live.Grid)]);
+        var world = World.Create(seed, layout, [.. live.All, new Builder(live)]);
         int around = 0, grown = 0, shrunk = 0, behind = 0;
         for (int i = 0; i < 300; i++)
         {
@@ -114,7 +114,7 @@ public class ModulesTests
                 live.Atmosphere.StatusOf(live.Rooms.All[0].Id);
             }
             var loaded = new Registry();
-            var copy = World.Load(world.Save(), [.. loaded.All, new Builder(loaded.Grid, loaded.Grid)]);
+            var copy = World.Load(world.Save(), [.. loaded.All, new Builder(loaded)]);
             var commands = RandomCommands(live, rng);
             if (rng.Below(2) == 0) commands.Add(ShipEdit(live.Grid, rng, 3, 3, 32, 24));
             // Out in the space above the ship, so what is built grows and shrinks.
