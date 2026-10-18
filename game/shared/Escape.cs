@@ -11,7 +11,7 @@ public enum MenuPage
 /// <summary>What one press of Esc does.</summary>
 public enum EscapeDoes
 {
-    /// <summary>Closes the inventory and the crate open, and puts the plan away (0022).</summary>
+    /// <summary>Closes the inventory, the crate open and the Handbook, and puts the plan away (0022).</summary>
     PutAway,
     /// <summary>Opens the game menu.</summary>
     OpenMenu,
@@ -29,7 +29,7 @@ public enum EscapeDoes
 public static class Escape
 {
     /// <param name="page">The menu's page shown.</param>
-    /// <param name="busy">Whether the inventory or a crate is open, or the plan out.</param>
+    /// <param name="busy">Whether the inventory, a crate or the Handbook is open, or the plan out.</param>
     public static EscapeDoes Of(MenuPage page, bool busy) => page switch
     {
         MenuPage.Settings => EscapeDoes.Back,

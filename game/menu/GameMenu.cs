@@ -9,7 +9,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Menu;
 
 /// <summary>
-/// The game menu on Esc (0031): resume, save, settings (the suit's colour, the slots' size), save and exit to the title,
+/// The game menu on Esc (0031): resume, the Handbook (J, 0066), save, settings (the suit's colour, the slots' size), save and exit to the title,
 /// save and quit — a guest leaves and quits without saving — over a darkened screen, the world, when it
 /// was saved and the code while hosting at its foot. Only in a world: on the title, Esc does nothing. Esc is decided here for the whole game (<see cref="Escape"/>): it puts away what is open or
 /// in hand first and opens the menu only when nothing is. The world runs on behind it, alone too: in
@@ -20,7 +20,7 @@ public partial class GameMenu : CanvasLayer
 {
     private readonly Ui _ui;
     private readonly Func<bool> _busy, _inWorld, _owns;
-    private readonly Action _putAway;
+    private readonly Action _putAway, _handbook;
     private readonly Func<string> _save, _foot;
     private readonly VBoxContainer _main, _settings;
     private readonly Func<string?> _updateTo, _updating;
@@ -32,7 +32,8 @@ public partial class GameMenu : CanvasLayer
 
     /// <param name="ui">Where the menu says it is open, for the hero and the hands to stand still.</param>
     /// <param name="busy">Whether anything is open or in hand that Esc puts away first.</param>
-    /// <param name="putAway">Closes the inventory and its crate and puts the plan away.</param>
+    /// <param name="putAway">Closes the inventory and its crate and the Handbook, and puts the plan away.</param>
+    /// <param name="handbook">Opens the Handbook (0066): a line here says J does, for a player who has not found it.</param>
     /// <param name="suits">The suit colours' row, shown in the settings.</param>
     /// <param name="save">Saves the world, and says how it went as an i18n key.</param>
     /// <param name="inWorld">Whether a world is played: on the title the menu stays shut.</param>
@@ -44,10 +45,10 @@ public partial class GameMenu : CanvasLayer
     /// <param name="updateTo">A newer release's tag, once one is known to be out.</param>
     /// <param name="update">Fetches the newer release and restarts into it.</param>
     /// <param name="updating">How an update stands while it runs.</param>
-    public GameMenu(Ui ui, Func<bool> busy, Action putAway, Control suits, Func<string> save, Func<bool> inWorld, Func<bool> owns,
+    public GameMenu(Ui ui, Func<bool> busy, Action putAway, Action handbook, Control suits, Func<string> save, Func<bool> inWorld, Func<bool> owns,
         Action exitToTitle, Action quit, Func<string> foot, string version, Func<string?> updateTo, Action update, Func<string?> updating)
     {
-        (_ui, _busy, _putAway, _save, _inWorld, _owns, _foot) = (ui, busy, putAway, save, inWorld, owns, foot);
+        (_ui, _busy, _putAway, _handbook, _save, _inWorld, _owns, _foot) = (ui, busy, putAway, handbook, save, inWorld, owns, foot);
         (_updateTo, _updating) = (updateTo, updating);
         Layer = ScreenLayers.Menu;
         Visible = false;
@@ -70,6 +71,11 @@ public partial class GameMenu : CanvasLayer
         _main.AddChild(_updateLine = Line("", Style.Sky200, 11));
         _updateLine.Visible = false;
         _main.AddChild(Choice("menu.resume", () => Show(MenuPage.Closed)));
+        _main.AddChild(Choice("menu.handbook", () =>
+        {
+            Show(MenuPage.Closed);
+            _handbook();
+        }));
         _main.AddChild(_saveButton = Choice("menu.save", () => Say(Run(_save))));
         _main.AddChild(Choice("menu.settings", () => Show(MenuPage.Settings)));
         _main.AddChild(_exitButton = Choice("menu.saveExit", exitToTitle));

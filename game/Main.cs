@@ -12,6 +12,7 @@ using Stillwake.Game.Features.Dev;
 using Stillwake.Game.Features.Effects;
 using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Grid;
+using Stillwake.Game.Features.Handbook;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Features.Research;
@@ -36,7 +37,7 @@ namespace Stillwake.Game;
 /// <c>--host=name</c> and joining by <c>--join=name</c> (<see cref="Relay"/>); the world it plays drawn by the client's features after every
 /// tick, and the hero: A/D walk, W/S climb, Space jumps, E works doors and valves, loads tanks, opens
 /// crates and catches debris, the left button held works plans; the camera follows it; its items (Tab,
-/// 1–9, the wheel, Q) and the lifepod's Fabricator beside them (E at the pod), the plan (B), the game menu (Esc: settings, save,
+/// 1–9, the wheel, Q) and the lifepod's Fabricator beside them (E at the pod), the plan (B), the Handbook (J), the game menu (Esc: settings, save,
 /// load, quit) and the dev panel (`).
 /// Dev arguments after <c>--</c>, played on the wreck as drawn (<see cref="Registry.WreckMap"/>) unless they say otherwise: <c>--world</c> a new
 /// world as the title makes one, the wreck in the middle of the big world, kept nowhere; <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
@@ -48,7 +49,7 @@ namespace Stillwake.Game;
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
-/// the items room's inventory and the game menu (<see cref="MenuDemo"/>),
+/// the items room's inventory and the game menu (<see cref="MenuDemo"/>), <c>--handbook</c> the Handbook opened on a world that has found ten kinds (<see cref="HandbookDemo"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
@@ -210,14 +211,27 @@ public partial class Main : Node2D, ITogether
         else if (join != null) Join(join.Length > 7 ? join[7..] : "127.0.0.1", BadNetwork.From(_args), Relay());
         else Alone();
         AddChild(new DevPanel(() => _session, () => _m, () => _net));
-        var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
-        var menu = new GameMenu(_hands.Ui,
-            busy: () => (_items?.Panel.Shown ?? false) || _hands.Plan.PlanOut.Get(),
-            putAway: () =>
+        // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
+        var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _m.Debris : null);
+        var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), HandbookPage.SectionIcon, debrisPage)])
+        {
+            Opening = () =>
             {
                 _items?.Panel.Close();
                 _hands.Plan.PutPlanAway();
             },
+        };
+        AddChild(handbook);
+        var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
+        var menu = new GameMenu(_hands.Ui,
+            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || _hands.Plan.PlanOut.Get(),
+            putAway: () =>
+            {
+                _items?.Panel.Close();
+                handbook.Close();
+                _hands.Plan.PutPlanAway();
+            },
+            handbook: handbook.Open,
             suits, SaveWorld, inWorld: () => _session != null, owns: () => _role != "guest", exitToTitle: () => ExitToTitle(null), Quit, Foot,
             version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
             updating: () => _updater.Status);
@@ -226,6 +240,7 @@ public partial class Main : Node2D, ITogether
         // Playing together, how long an action takes to happen: sent, stamped by the host, run here.
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
+        if (Has("--handbook")) AddChild(new HandbookDemo(debrisPage));
         if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
         if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
         if (Opens is { } open) AddChild(new OpenDemo(_hands.Ui, open, () => _m, Arg("--open-at") is { } at ? double.Parse(at, System.Globalization.CultureInfo.InvariantCulture) : 1.0));
@@ -286,6 +301,7 @@ public partial class Main : Node2D, ITogether
         if (Arg("--bow") is { } bow) FarDemo.Bow = int.Parse(bow);
         if (Has("--fly")) world = FarDemo.Seed(world, _m, Modules, int.Parse(_args.FirstOrDefault(a => a.StartsWith("--far="))?[6..] ?? "0"));
         if (Has("--die")) world = DieDemo.Seed(world, Modules);
+        if (Has("--handbook")) world = HandbookDemo.Seed(world, Modules);
         PlayDev(world, Has("--gallery") ? null : layout);
     }
 

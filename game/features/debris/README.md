@@ -75,6 +75,23 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   the way; the pointer on it bare-handed (red), 2 chooses the axe, the left button held till it breaks,
   then the hero swims through the loot. `-- --wrecks` lines up one of every kind instead, and the
   hero swims to each in turn and chops it till it breaks, sweeping up the loot on its way.
+- **The Handbook's Debris section** (`HandbookPage`, 0066), shown in `features/handbook`'s window: every kind in
+  rows by where to look (`Content/Handbook.DebrisRows`: salvage, wrecks, asteroids, derelicts), 56 px slots, a kind
+  found in its first picture (`DebrisLooks`, whole pixels up to ×3, a derelict scaled down), one not found the same
+  picture black (`Modulate`), in a darker slot; "10/18" and a green bar over them. A click on a found kind shows its
+  entry beside them (the first found, in the rows' order, until one is chosen): its picture in a frame (whole pixels
+  up to ×4), its name, a crack and its hit points (`Wreckage.HpOf`), or the harpoon for one caught by hand, and its
+  loot slot by slot (`Loot.Of`, or the kind itself with no loot): an item seen with its range in the corner
+  ("8–12", none for exactly one), one not yet a black silhouette; a pie in the top-left corner of a slot with a
+  roll, its share one in `OneIn`. Words only in the one tooltip (`Finds`): a kind's name, hit points and how many
+  of its items have not dropped yet, "???" and its row's "where to look" for one not found; an item's name, range
+  and chance ("1 in 4", "Always"), "???" with its chance for one not seen. With nothing found, the entry says
+  what to do. Reads `DebrisModule.Found` every 250 ms while shown and builds again only when the record has
+  changed (a load or a resync brings another world's).
+- **Recording:** `-- --handbook` (`dev/HandbookDemo`): the wreck, ten kinds found through the save (a supply pod
+  with no seed out yet, a cargo container with no gear); J opens the Handbook, the container is chosen, the
+  pointer goes over its gear, its planks, a kind not found and the pod, the pod is chosen, then Esc closes it and
+  Esc opens the menu with its Handbook line.
 
 ## Files
 
@@ -88,9 +105,12 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
 | `AsteroidDemo.cs` | the world and the script of `--asteroid`                    | yes   |
 | `SortieDemo.cs` | the world and the script of `--sortie`                      | yes   |
 | `FarDemo.cs`    | the big world, a jetpack worn and the far field of `--fly` (`--manual` to fly it yourself) and `--far=N` | yes   |
+| `Finds.cs`      | the Handbook's debris: loot slots revealed item by item, ranges, chances, tally, tips | no    |
+| `HandbookPage.cs` | the Handbook's Debris section: the kinds' rows and the chosen kind's entry  | yes   |
 
 `Fading.cs` and `OwnHits.cs` are compiled again into `game.tests/` (`OwnHits` tested in `HearingTests`), where `fade.test.ts` and the debris test of
-`predicted.test.ts` are ported (`DebrisTests`); the debris tests of `aim.test.ts` are in `AimTests`.
+`predicted.test.ts` are ported (`DebrisTests`); the debris tests of `aim.test.ts` are in `AimTests`. `Finds.cs` and
+`Content/Handbook.cs` are too (`HandbookTests`: every kind that spawns in exactly one row).
 
 ## Deliberately not handled
 

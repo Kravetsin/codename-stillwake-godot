@@ -1,0 +1,91 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Stillwake.Game.Shared;
+using static Stillwake.Game.I18n.En;
+
+namespace Stillwake.Game.Features.Debris;
+
+/// <summary>
+/// One slot of a kind's loot in the Handbook (0066): an item, how many come at once and how often, and whether one
+/// has come out of the kind yet. Unseen, it shows only its chance; seen, its range in the corner too.
+/// </summary>
+public sealed record LootSlot(string Item, int Min, int Max, int? OneIn, bool Seen)
+{
+    /// <summary>How many come at once: "8–12", or one number when it is always the same.</summary>
+    public string Range => Min == Max ? $"{Min}" : $"{Min}–{Max}";
+
+    /// <summary>What the slot's corner says: its range once seen, nothing for exactly one, nothing while unseen.</summary>
+    public string Corner => !Seen || Max == 1 ? "" : Range;
+
+    /// <summary>"1 in 4", or "Always" for an entry with no roll.</summary>
+    public string Chance => OneIn is int n ? T("handbook.chance", ("n", n)) : T("handbook.always");
+
+    /// <summary>The one tooltip's words: the item, its range and its chance; unseen, "???", its chance and that none has come out yet.</summary>
+    public Tip Tip => Seen
+        ? new Tip(T($"item.{Item}"), new TipLine(Range), new TipLine(Chance, Tone.Good))
+        : new Tip(T("handbook.unknown"), new TipLine(Chance), new TipLine(T("handbook.notDropped"), Tone.Dim));
+}
+
+/// <summary>
+/// What the Handbook's debris section shows of the world's record (<c>DebrisModule.Found</c>, 0066): which kinds are
+/// found, each kind's loot slot by slot, revealed item by item, and what the one tooltip says of each.
+/// </summary>
+public static class Finds
+{
+    /// <summary>
+    /// The loot slots of <paramref name="kind"/>, one an entry of its <c>Loot</c> in order, or itself for a piece caught
+    /// as itself; each seen when <paramref name="seen"/>, the items seen come out of it, holds its item. None found: null.
+    /// </summary>
+    public static IReadOnlyList<LootSlot> SlotsOf(string kind, IReadOnlyCollection<string>? seen)
+    {
+        bool Seen(string item) => seen?.Contains(item) == true;
+        return Content.Loot.Of(kind) is { } loot
+            ? loot.Select(e => new LootSlot(e.Item, e.Min, e.Max, e.OneIn, Seen(e.Item))).ToList()
+            : [new LootSlot(kind, 1, 1, null, Seen(kind))];
+    }
+
+    /// <summary>How many of the Handbook's kinds are among <paramref name="found"/>, and how many there are: "10/18".</summary>
+    public static (int Found, int All) Tally(IReadOnlyCollection<string> found)
+    {
+        var kinds = Stillwake.Game.Handbook.DebrisRows.SelectMany(r => r.Kinds).ToList();
+        return (kinds.Count(found.Contains), kinds.Count);
+    }
+
+    /// <summary>The first kind found, in the rows' order: the one shown when none is chosen; null with none found.</summary>
+    public static string? FirstFound(IReadOnlyCollection<string> found) =>
+        Stillwake.Game.Handbook.DebrisRows.SelectMany(r => r.Kinds).FirstOrDefault(found.Contains);
+
+    /// <summary>
+    /// A kind's slot's words: found, its name, how it is had (its hit points, or caught by hand) and how many of its
+    /// items have not come out yet; not found, "???" and where to look, its row.
+    /// </summary>
+    public static Tip KindTip(string kind, IReadOnlyCollection<string>? seen)
+    {
+        if (seen == null)
+        {
+            var row = Stillwake.Game.Handbook.RowOf(kind);
+            return row == null ? new Tip(T("handbook.unknown")) : new Tip(T("handbook.unknown"), new TipLine(T($"handbook.row.{row.Id}"), Tone.Dim));
+        }
+        var lines = new List<TipLine> { new(Content.Wreckage.HpOf(kind) is int hp ? T("handbook.hp", ("hp", hp)) : T("handbook.byHand")) };
+        int missing = SlotsOf(kind, seen).Count(s => !s.Seen);
+        if (missing > 0) lines.Add(new TipLine(T("handbook.missing", ("n", missing)), Tone.Unknown));
+        return new Tip(T($"item.{kind}"), lines);
+    }
+
+    /// <summary>The words of an entry's hit points, or of a kind caught by hand.</summary>
+    public static Tip HowTip(string kind) => Content.Wreckage.HpOf(kind) is int hp
+        ? new Tip(T("handbook.hp", ("hp", hp)), new TipLine(T("handbook.anyWeapon"), Tone.Dim))
+        : new Tip(T("handbook.byHand"), new TipLine(T("handbook.byHarpoon"), Tone.Dim));
+
+    /// <summary>
+    /// How much a picture <paramref name="w"/> × <paramref name="h"/> is scaled to fit <paramref name="maxW"/> ×
+    /// <paramref name="maxH"/>: by a whole number up to <paramref name="most"/> when it fits at least once, so its pixels
+    /// stay square and a scrap chunk is not blown up to a blur of blocks; else down to fit, a big derelict in a small slot.
+    /// </summary>
+    public static float Fit(int w, int h, int maxW, int maxH, int most = 4)
+    {
+        float fit = Math.Min((float)maxW / w, (float)maxH / h);
+        return fit >= 1 ? Math.Min(most, MathF.Floor(fit)) : fit;
+    }
+}

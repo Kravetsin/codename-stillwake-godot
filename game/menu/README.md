@@ -23,9 +23,10 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 
 - **Esc, in one place** (`Shared.Escape`, read by `GameMenu._Input` before any other node): the menu
   shown takes it first, Settings going back to the menu's first page and that page closing it; else
-  Esc closes the inventory and its crate and puts the plan away (0022), all at once; only with
+  Esc closes the inventory and its crate and the Handbook and puts the plan away (0022), all at once; only with
   nothing open or in hand does it open the menu.
-- **Resume** closes it. **Settings** holds the suit's colour (`features/crew`'s `SuitColours`: the one
+- **Resume** closes it. **Handbook (J)** closes it and opens the Handbook (0066): the line says which key does,
+  for a player who has not found it. **Settings** holds the suit's colour (`features/crew`'s `SuitColours`: the one
   worn ringed, those others wear dimmed, a free one a click away sending `crew`'s `PickColour`,
   refused by the sim as before), the **slot size**, Normal (40 px) or Large (56 px), the one in use lit (`Ui.SlotScale`,
   0058: applied at once, kept on this machine in `user://settings.cfg` by `platform/Settings`), and **Open logs folder**.
