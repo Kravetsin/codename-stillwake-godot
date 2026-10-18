@@ -208,6 +208,9 @@ public static partial class En
         ["card.debris"] = "Debris",
         ["card.wreckage"] = "Wreckage",
         ["card.notAnalysed"] = "? Not analysed",
+        ["card.smeltsHere"] = "Smelts here",
+        ["card.burnsHere"] = "Burns here",
+        ["card.growsHere"] = "Grows here",
         ["card.goesInto"] = "Goes into",
         ["card.more"] = "+{n}",
         // What a battery holds, on its card: the share of full, and what it holds of full in power-ticks.
@@ -304,6 +307,8 @@ public static partial class En
         ["items.tooSoon"] = "Just dropped",
         ["items.empty"] = "Nothing there",
         ["items.noCrate"] = "There is no crate here",
+        ["items.notCrate"] = "Only a crate is sorted",
+        ["items.sort"] = "Sort",
         ["items.noSlot"] = "There is no such slot",
         ["items.notEquipment"] = "That is not worn there",
         ["items.notBattery"] = "Only a battery charges here",

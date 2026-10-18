@@ -12,7 +12,8 @@ namespace Stillwake.Game.Features.Debris;
 /// <c>-- --fly</c>: the big world (0048) with a jetpack worn and canisters carried, the hero starting out in
 /// space above the hull, past the stream's box, where the far field spawns round it (0052), and the
 /// autopilot's <c>HeroAutopilot.Fly</c> flying it through. <c>--far=N</c> puts N pieces of the far field
-/// out round the start at once, through the save, to measure the view with many out. While it runs a
+/// out round the start at once, through the save, to measure the view with many out; <c>--bow N</c> starts it N
+/// columns ahead of the bow instead, in the stream (<see cref="Bow"/>). While it runs a
 /// canister is breathed whenever the suit is low, and every 5 s the pieces out and the pictures drawn are printed.
 /// </summary>
 public partial class FarDemo(DebrisView view, Func<(Client Client, Registry M)?> world) : Node
@@ -21,8 +22,16 @@ public partial class FarDemo(DebrisView view, Func<(Client Client, Registry M)?>
     private const int Above = 30;
     private double _seconds, _printed, _breathed;
 
-    /// <summary>Where the hero starts: above the spawn, <see cref="Above"/> rows over the top of what is built.</summary>
-    public static int StartOf(Registry m) => Math.Max(0, m.Grid.Built.Top - Above) * m.Grid.Width + m.Crew.Spawn % m.Grid.Width;
+    /// <summary>
+    /// <c>--bow=N</c>: the hero starts N columns right of what is built, on its middle row, in the stream ahead of
+    /// the bow, to see where the stream comes in from (0052); null to start above the hull.
+    /// </summary>
+    public static int? Bow { get; set; }
+
+    /// <summary>Where the hero starts: above the spawn, <see cref="Above"/> rows over the top of what is built, or <see cref="Bow"/> ahead of it.</summary>
+    public static int StartOf(Registry m) => Bow is { } bow
+        ? (m.Grid.Built.Top + m.Grid.Built.Bottom) / 2 * m.Grid.Width + Math.Min(m.Grid.Width - 1, m.Grid.Built.Right + bow)
+        : Math.Max(0, m.Grid.Built.Top - Above) * m.Grid.Width + m.Crew.Spawn % m.Grid.Width;
 
     /// <summary>
     /// <paramref name="world"/>, read through <paramref name="m"/>, with a jetpack on peer 0's back and canisters in its first

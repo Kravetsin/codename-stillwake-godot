@@ -128,7 +128,8 @@ public sealed partial class DebrisModule
         }
         s.Clock += 1;
         FindHeroes();
-        // Moved, then gone past its end or, round the heroes, left behind by them all; the rest kept in order.
+        // Moved, then gone past its end where no hero sees it, or past the grid's edge, or, round the
+        // heroes, left behind by them all; the rest kept in order.
         var pieces = s.Pieces;
         int kept = 0;
         for (int i = 0; i < pieces.Count; i++)
@@ -136,7 +137,7 @@ public sealed partial class DebrisModule
             var piece = pieces[i];
             if (piece.Reel is { } reel) Pull(piece, reel);
             else piece.X -= piece.Speed;
-            if (piece.X < piece.End) continue;
+            if (piece.X < 0 || piece.X < piece.End && !InView(piece.X / Unit, piece.Y / Unit)) continue;
             if (ZoneOf(piece.Zone).Anchor is AroundHeroes around && !Kept(piece, around)) continue;
             pieces[kept++] = piece;
         }
@@ -219,7 +220,7 @@ public sealed partial class DebrisModule
 
     /// <summary>
     /// A piece by the hull, drawn by the world's Rng: its row, kind and speed, then, <paramref name="along"/>,
-    /// how far along its way it already is; otherwise at its start.
+    /// how far along its way it already is; otherwise at its start, pushed out of every hero's view (<see cref="Upstream"/>).
     /// </summary>
     private void SpawnByHull(DebrisZone zone, ByHull byHull, (int Left, int Right, int Top, int Bottom) hull, bool along)
     {
@@ -232,7 +233,8 @@ public sealed partial class DebrisModule
         int column = Math.Min(width - 1, right + byHull.Lead);
         var item = KindOf(zone, column, row, hull);
         int speed = zone.DriftMin + (int)Random.Below((uint)(zone.DriftMax - zone.DriftMin + 1));
-        int start = column * Unit + Unit / 2;
+        // Those a world begins with are out already, seen or not.
+        int start = (along ? column : Upstream(column, row)) * Unit + Unit / 2;
         int end = Math.Max(0, left - byHull.Lead) * Unit;
         s.Pieces.Add(new Piece
         {
@@ -251,7 +253,7 @@ public sealed partial class DebrisModule
     /// <summary>
     /// A piece in the band by the hull, drawn by the world's Rng: its row, of the band's above the hull and
     /// then below it, its kind and its speed; a row off the grid spawns nothing, its draws taken all the
-    /// same. It drifts from its lead right of the hull to as far left of it, as the stream does.
+    /// same. It drifts from its lead right of the hull, or past every hero's view, to as far left of it, as the stream does.
     /// </summary>
     private void SpawnInBand(DebrisZone zone, HullBand band, (int Left, int Right, int Top, int Bottom) hull)
     {
@@ -264,7 +266,7 @@ public sealed partial class DebrisModule
         var item = KindOf(zone, column, row, hull);
         int speed = zone.DriftMin + (int)Random.Below((uint)(zone.DriftMax - zone.DriftMin + 1));
         if (row < 0 || row >= height) return;
-        int start = column * Unit + Unit / 2;
+        int start = Upstream(column, row) * Unit + Unit / 2;
         s.Pieces.Add(new Piece
         {
             Id = s.NextId,
@@ -311,7 +313,7 @@ public sealed partial class DebrisModule
             int y = at.Y + (across ? offset : (side == 2 ? -depth : depth));
             var item = KindOf(zone, x, y, hull);
             int speed = zone.DriftMin + (int)Random.Below((uint)(zone.DriftMax - zone.DriftMin + 1));
-            if (x < 0 || x >= width || y < 0 || y >= height || InStream(x, y, hull) || InView(x, y, around)) continue;
+            if (x < 0 || x >= width || y < 0 || y >= height || InStream(x, y, hull) || InView(x, y)) continue;
             int start = x * Unit + Unit / 2;
             s.Pieces.Add(new Piece
             {
@@ -339,11 +341,33 @@ public sealed partial class DebrisModule
         return false;
     }
 
-    private bool InView(int x, int y, AroundHeroes around)
+    /// <summary>Whether some hero sees the cell (<paramref name="x"/>, <paramref name="y"/>) at the farthest zoom, round the cell it reported.</summary>
+    private bool InView(int x, int y)
     {
         foreach (var at in _heroes)
-            if (Within(x, y, at, around.View)) return true;
+            if (Within(x, y, at, Content.Debris.View)) return true;
         return false;
+    }
+
+    /// <summary>
+    /// The column a piece by the hull starts in on <paramref name="row"/>: <paramref name="column"/>, or
+    /// pushed right past every hero's view that holds it, so none sees it appear; kept on the grid. A push
+    /// may land in another hero's view: pushed on, each hero at most once, as the column only grows.
+    /// </summary>
+    private int Upstream(int column, int row)
+    {
+        var view = Content.Debris.View;
+        for (bool pushed = true; pushed;)
+        {
+            pushed = false;
+            foreach (var at in _heroes)
+                if (Within(column, row, at, view))
+                {
+                    column = at.X + view.X + 1;
+                    pushed = true;
+                }
+        }
+        return Math.Min(_grid.Width - 1, column);
     }
 
     /// <summary>

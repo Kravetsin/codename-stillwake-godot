@@ -283,6 +283,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--charge")) world = ChargeDemo.Seed(world, Modules);
         if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules);
         if (Has("--sortie")) world = SortieDemo.Seed(world, _m, Modules);
+        if (Arg("--bow") is { } bow) FarDemo.Bow = int.Parse(bow);
         if (Has("--fly")) world = FarDemo.Seed(world, _m, Modules, int.Parse(_args.FirstOrDefault(a => a.StartsWith("--far="))?[6..] ?? "0"));
         if (Has("--die")) world = DieDemo.Seed(world, Modules);
         PlayDev(world, Has("--gallery") ? null : layout);

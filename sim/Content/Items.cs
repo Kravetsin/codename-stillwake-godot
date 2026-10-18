@@ -32,6 +32,7 @@ namespace Stillwake.Content;
 /// What a hero keeps when it dies: its tools, what it wears and the batteries. Everything else it carries is
 /// left where it died, a body for anyone to pick up (0061).
 /// </param>
+/// <param name="Group">Where a sort puts it (0008): its group first, in <see cref="ItemGroup"/>'s order, then its id.</param>
 public sealed record ItemSpec(
     string Id,
     int Stack,
@@ -44,7 +45,21 @@ public sealed record ItemSpec(
     string? Equip = null,
     int? Capacity = null,
     int? Draw = null,
-    bool Gear = false);
+    bool Gear = false,
+    ItemGroup Group = ItemGroup.Material);
+
+/// <summary>The groups a sort orders a bag or a crate by (0008), in this order: tools first, the rest last.</summary>
+public enum ItemGroup
+{
+    Tool,
+    Wearable,
+    /// <summary>Materials, parts and what the farm grows: the default.</summary>
+    Material,
+    /// <summary>What caught debris becomes, smelted into materials.</summary>
+    Salvage,
+    /// <summary>Never carried but in creative mode: containers, wreckage, derelicts; and the drone, a bay's.</summary>
+    Other,
+}
 
 /// <summary>
 /// Everything a hero carries. Every material is an item by the same id; the salvage items are what
@@ -59,31 +74,31 @@ public static class Items
         new("iron", 500),
         new("canister", 5),
         new("planks", 50, BurnTicks: 400),
-        new("scrapChunk", 10, Yields: [("scrap", 4)], SmeltTicks: 60),
-        new("hullPlate", 5, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100),
+        new("scrapChunk", 10, Yields: [("scrap", 4)], SmeltTicks: 60, Group: ItemGroup.Salvage),
+        new("hullPlate", 5, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100, Group: ItemGroup.Salvage),
         // Broken out of asteroids (0054); smelted into silicon at a furnace or the electric smelter. Players see
         // "Asteroid ore"; the id stays rock, so saves need no migration.
-        new("rock", 10, Yields: [("silicon", 2)], SmeltTicks: 160),
+        new("rock", 10, Yields: [("silicon", 2)], SmeltTicks: 160, Group: ItemGroup.Salvage),
         // Containers: caught, they open into their loot (Loot), and are never carried.
-        new("supplyPod", 1),
-        new("cargoCrate", 1),
+        new("supplyPod", 1, Group: ItemGroup.Other),
+        new("cargoCrate", 1, Group: ItemGroup.Other),
         // Wreckage: broken by a weapon into its loot (Wreckage), and never carried either.
-        new("hullSection", 1),
-        new("cargoContainer", 1),
-        new("machineBlock", 1),
-        new("cableRack", 1),
-        new("tankCluster", 1),
-        new("shieldSlab", 1),
+        new("hullSection", 1, Group: ItemGroup.Other),
+        new("cargoContainer", 1, Group: ItemGroup.Other),
+        new("machineBlock", 1, Group: ItemGroup.Other),
+        new("cableRack", 1, Group: ItemGroup.Other),
+        new("tankCluster", 1, Group: ItemGroup.Other),
+        new("shieldSlab", 1, Group: ItemGroup.Other),
         // A clod of some ship's farm, drifting with a sprout: seeds and soil when broken.
-        new("soilClod", 1),
-        new("asteroid", 1),
-        new("asteroidSmall", 1),
-        new("asteroidLarge", 1),
-        new("asteroidRich", 1),
+        new("soilClod", 1, Group: ItemGroup.Other),
+        new("asteroid", 1, Group: ItemGroup.Other),
+        new("asteroidSmall", 1, Group: ItemGroup.Other),
+        new("asteroidLarge", 1, Group: ItemGroup.Other),
+        new("asteroidRich", 1, Group: ItemGroup.Other),
         // Derelicts, in the far field's outer tiers alone (0056): big, slow to break, rich in what wrecks give.
-        new("engineBlock", 1),
-        new("cargoHold", 1),
-        new("podCluster", 1),
+        new("engineBlock", 1, Group: ItemGroup.Other),
+        new("cargoHold", 1, Group: ItemGroup.Other),
+        new("podCluster", 1, Group: ItemGroup.Other),
         // Parts, made at the Fabricator (Crafts) of materials; then assemblies, of parts.
         new("wire", 100),
         new("plate", 100),
@@ -100,7 +115,7 @@ public static class Items
         // Silicon, glass and wire, made at the circuit assembler: what a solar panel is built of.
         new("solarCell", 20),
         // Made at the circuit assembler: docked in a drone bay it charges and flies items about (0062); a stack of one, a battery of its own.
-        new("drone", 1, Capacity: Charge.Drone),
+        new("drone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
         // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on
         // average, so the farm slowly eats seeds and supply pods refill it. Biomass smelts into biofuel.
         new("seed", 10, Yields: [("biomass", 4)], SmeltTicks: 9600, Process: "grow", Returns: [35, 50, 15]),
@@ -110,14 +125,14 @@ public static class Items
         // The engine's fuel, to come; nothing burns it yet.
         new("biofuel", 20),
         // Tools, made as parts are.
-        new("fireAxe", 1, Gear: true),
-        new("harpoon", 1, Gear: true),
+        new("fireAxe", 1, Gear: true, Group: ItemGroup.Tool),
+        new("harpoon", 1, Gear: true, Group: ItemGroup.Tool),
         // Electric: draws from the belt's batteries while it drills (0053, 0054).
-        new("drill", 1, Draw: 3, Gear: true),
+        new("drill", 1, Draw: 3, Gear: true, Group: ItemGroup.Tool),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
-        new("jetpack", 1, Equip: "back", Gear: true),
+        new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
-        new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true),
+        new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
     ];
 
     private static readonly Dictionary<string, ItemSpec> ById = All.ToDictionary(i => i.Id, StringComparer.Ordinal);
@@ -137,6 +152,9 @@ public static class Items
 public static class Inventory
 {
     public const int Slots = 36;
+
+    /// <summary>The first row of <see cref="Slots"/>, chosen with keys 1 to 9: a sort leaves it as it is (0008).</summary>
+    public const int Hotbar = 9;
 
     /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
     public static readonly IReadOnlyList<string> Equipment = ["head", "back", "belt", "belt", "belt"];

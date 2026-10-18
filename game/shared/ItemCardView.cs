@@ -9,7 +9,8 @@ namespace Stillwake.Game.Shared;
 /// An <see cref="ItemCard"/> in Control nodes, as the card mockup (the plaque): a 2 px slate edge round a
 /// dark ring, amber-ish for a tool; a head darkening downward with the icon large in a frame, the name and
 /// the kind; a tool's tiles, the first in amber; then chips and the hint, centred, or "Goes
-/// into" and its chips; a violet band while unknown; a station's block at the bottom.
+/// into" and its chips; what the open station does with it, by its slot's mark; a violet band while unknown; a
+/// station's block at the bottom.
 /// </summary>
 public static class ItemCardView
 {
@@ -29,6 +30,8 @@ public static class ItemCardView
     private static readonly LabelSettings HintText = Style.Text(Style.Mono, 11, Style.Slate500);
     private static readonly LabelSettings KeyText = Style.Text(BoldMono, 10, Style.Slate300);
     private static readonly LabelSettings UnknownText = Style.Text(Style.Mono, 11, Style.Violet400);
+    private static readonly LabelSettings FireText = Style.Text(Style.Mono, 11, Style.Orange400);
+    private static readonly LabelSettings GrowText = Style.Text(Style.Mono, 11, Style.Green400);
     private static readonly LabelSettings CraftText = Style.Text(new FontVariation { BaseFont = BoldMono, SpacingGlyph = 1 }, 10, Style.Slate400);
     private static readonly LabelSettings TimeText = Style.Text(Style.Mono, 10, Style.Slate300);
     private static readonly LabelSettings CostText = Style.Text(Style.Mono, 12, Style.Slate300);
@@ -55,6 +58,7 @@ public static class ItemCardView
         if (card.Charge is { } charge) column.AddChild(Meter(charge));
         if (card.Tiles is { } tiles) column.AddChild(Tiles(tiles));
         if (Body(card) is { } body) column.AddChild(body);
+        if (card.Here != SlotMark.None) column.AddChild(HereBand(card.Here));
         if (card.Unknown) column.AddChild(UnknownBand());
         if (card.Station is { } station) column.AddChild(Station(station));
         var outer = Boxed(edge, Boxed(ring, column));
@@ -284,6 +288,44 @@ public static class ItemCardView
         var words = Text(T("card.notAnalysed"), UnknownText);
         words.HorizontalAlignment = HorizontalAlignment.Left;
         return Boxed(box, words);
+    }
+
+    /// <summary>The picture of a slot's station mark: a flame for what a fire smelts or burns, a sprout for what is grown; none for the rest.</summary>
+    public static Texture2D? MarkPicture(SlotMark mark) => mark switch
+    {
+        SlotMark.Smelts or SlotMark.Burns => AsciiArt.Flame(),
+        SlotMark.Grows => AsciiArt.Sprout(),
+        _ => null,
+    };
+
+    /// <summary>What the open station does with the item, as the unknown band says its words: its slot's mark, then "Smelts here" or the like, in the mark's colour.</summary>
+    private static Control HereBand(SlotMark here)
+    {
+        var colour = here == SlotMark.Grows ? Style.Green400 : Style.Orange400;
+        var box = new StyleBoxFlat
+        {
+            BgColor = colour with { A = 0.12f },
+            BorderColor = colour with { A = 0.4f },
+            BorderWidthTop = 1,
+            ContentMarginLeft = Pad,
+            ContentMarginRight = Pad,
+            ContentMarginTop = 5,
+            ContentMarginBottom = 5,
+        };
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        row.AddChild(new TextureRect
+        {
+            Texture = MarkPicture(here),
+            CustomMinimumSize = new Vector2(14, 14),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        });
+        string key = here switch { SlotMark.Grows => "card.growsHere", SlotMark.Burns => "card.burnsHere", _ => "card.smeltsHere" };
+        row.AddChild(Text(T(key), here == SlotMark.Grows ? GrowText : FireText));
+        return Boxed(box, row);
     }
 
     /// <summary>

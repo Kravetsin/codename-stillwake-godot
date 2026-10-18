@@ -300,7 +300,7 @@ public class ContentTests
         var around = (AroundHeroes)DebrisSpec.Far.Anchor;
         bool Inside(HalfBox a, HalfBox b) => a.X < b.X && a.Y < b.Y;
         // The ring outside what the farthest zoom shows, inside the keep box, inside the hard box.
-        Assert.True(Inside(around.View, around.RingFrom) && around.RingFrom.X <= around.RingTo.X && around.RingFrom.Y <= around.RingTo.Y);
+        Assert.True(Inside(DebrisSpec.View, around.RingFrom) && around.RingFrom.X <= around.RingTo.X && around.RingFrom.Y <= around.RingTo.Y);
         Assert.True(Inside(around.RingTo, around.Keep) && Inside(around.Keep, around.Hard));
         Assert.True(around.PerHero > 0 && around.Linger > 0);
         // Room for four heroes' shares apart, the co-op the game is made for, before the cap holds any back.
@@ -494,6 +494,21 @@ public class ContentTests
         // Resources are not: dying costs what was gathered.
         Assert.All(new[] { "scrap", "iron", "canister", "planks", "rock", "circuit" }, id => Assert.False(Content.Items.Get(id).Gear));
         Assert.InRange(Content.Floor.BodyLasts, 60 * World.TicksPerSecond, 60 * 60 * World.TicksPerSecond);
+    }
+
+    [Fact]
+    public void EveryItemSortsInTheGroupItsOtherFieldsSayAndTheHotbarIsTheBagsFirstRow()
+    {
+        // Worn is a wearable; gear not worn is a tool: a new tool sorts with the tools without being told.
+        Assert.All(Content.Items.All, i => Assert.Equal(i.Equip != null, i.Group == ItemGroup.Wearable));
+        Assert.All(Content.Items.All, i => Assert.Equal(i.Gear && i.Equip == null, i.Group == ItemGroup.Tool));
+        // Salvage smelts into materials; what is never carried is caught or broken, a stack of one.
+        Assert.All(Content.Items.All.Where(i => i.Group == ItemGroup.Salvage), i => Assert.NotNull(i.Yields));
+        Assert.All(Content.Items.All.Where(i => i.Group == ItemGroup.Other), i => Assert.Equal(1, i.Stack));
+        Assert.Equal(ItemGroup.Salvage, Content.Items.Get("scrapChunk").Group);
+        Assert.Equal(ItemGroup.Material, Content.Items.Get("scrap").Group);
+        Assert.InRange(Inventory.Hotbar, 1, Inventory.Slots - 1);
+        Assert.Equal(0, Inventory.Slots % Inventory.Hotbar);
     }
 
     [Fact]

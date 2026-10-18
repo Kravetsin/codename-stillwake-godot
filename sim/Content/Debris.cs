@@ -5,12 +5,13 @@ namespace Stillwake.Content;
 /// own by its own anchor. Times are in ticks, positions and speeds in thousandths of a cell, distances
 /// in cells. The stream past the ship (<see cref="Ship"/>): a piece spawns <see cref="Every"/> ticks plus
 /// up to <see cref="Jitter"/> more after the last, while fewer than <see cref="Max"/> of its own are out:
-/// <see cref="Lead"/> cells right of the hull, past what the farthest zoom shows, in a row of the hull's
-/// own and <see cref="Margin"/> more above and below; it drifts left at a speed of its own between
-/// <see cref="DriftMin"/> and <see cref="DriftMax"/> a tick, and is gone <see cref="Lead"/> cells left of
-/// the hull. Its kind is drawn by weight from <see cref="Kinds"/>. The wreck's world begins with
-/// <see cref="AtStart"/> out, each already somewhere along its way, so a player waits for none. The far
-/// field (<see cref="Far"/>) spawns round every hero out past the stream.
+/// <see cref="Lead"/> cells right of the hull, or farther right past every hero's <see cref="View"/> that
+/// holds that point, in a row of the hull's own and <see cref="Margin"/> more above and below; it drifts
+/// left at a speed of its own between <see cref="DriftMin"/> and <see cref="DriftMax"/> a tick, and is gone
+/// <see cref="Lead"/> cells left of the hull once no hero sees it. Its kind is drawn by weight from
+/// <see cref="Kinds"/>. The wreck's world begins with <see cref="AtStart"/> out, each already somewhere
+/// along its way, so a player waits for none. The far field (<see cref="Far"/>) spawns round every hero
+/// out past the stream.
 /// </summary>
 public static class Debris
 {
@@ -22,6 +23,12 @@ public static class Debris
     public const int DriftMax = 55;
     public const int Margin = 12;
     public const int Lead = 64;
+
+    /// <summary>
+    /// What the farthest zoom shows round a hero's reported cell, in cells either way: 1920×1080 at zoom 1,
+    /// 16 pixels a cell. No zone spawns a piece in any hero's, nor takes one away in it but at the grid's edge.
+    /// </summary>
+    public static readonly HalfBox View = new(60, 34);
 
     /// <summary>
     /// How far from the pointer, in thousandths of a cell, a piece is still aimed at: a piece drifting by
@@ -66,7 +73,7 @@ public static class Debris
     /// rare fit in whole.
     /// </summary>
     public static readonly DebrisZone Far = new("far",
-        new AroundHeroes(PerHero: 110, RingFrom: new(61, 36), RingTo: new(64, 42), View: new(60, 34), Keep: new(68, 48), Hard: new(100, 64), Linger: 600),
+        new AroundHeroes(PerHero: 110, RingFrom: new(61, 36), RingTo: new(64, 42), Keep: new(68, 48), Hard: new(100, 64), Linger: 600),
         Every: 1, Jitter: 0, Max: 640, DriftMin, DriftMax,
         [
             new(0,
@@ -126,26 +133,28 @@ public abstract record ZoneAnchor;
 
 /// <summary>
 /// By the hull: in its rows and <paramref name="Margin"/> more above and below, from <paramref name="Lead"/>
-/// cells right of it to as far left of it. That box, the hull grown so, is the stream's.
+/// cells right of it to as far left of it. That box, the hull grown so, is the stream's. A piece starts
+/// farther right past every hero's <see cref="Debris.View"/> that holds its start, so none sees it appear.
 /// </summary>
 public sealed record ByHull(int Margin, int Lead) : ZoneAnchor;
 
 /// <summary>
 /// By the hull, in two bands with a gap: the rows <paramref name=From/> to <paramref name=To/> beyond
 /// its top row and as far below its bottom row, from <paramref name=Lead/> cells right of it to as far left
-/// of it (0054). Not a stream's box: the far field spawns in it as anywhere.
+/// of it (0054), starting farther right as the stream's pieces do. Not a stream's box: the far field
+/// spawns in it as anywhere.
 /// </summary>
 public sealed record HullBand(int From, int To, int Lead) : ZoneAnchor;
 
 /// <summary>
 /// Round every hero out past every stream's box, at the cell it last reported (0052): on a ring from
 /// half-box <paramref name="RingFrom"/> out to <paramref name="RingTo"/> round it, never in a stream's box
-/// nor in any hero's <paramref name="View"/> (the most the farthest zoom shows), while fewer than
+/// nor in any hero's <see cref="Debris.View"/>, while fewer than
 /// <paramref name="PerHero"/> of the zone are in its <paramref name="Keep"/> box. A piece out of every
 /// hero's keep box for <paramref name="Linger"/> ticks, or out of every <paramref name="Hard"/> box at
 /// all, is gone.
 /// </summary>
-public sealed record AroundHeroes(int PerHero, HalfBox RingFrom, HalfBox RingTo, HalfBox View, HalfBox Keep, HalfBox Hard, int Linger) : ZoneAnchor;
+public sealed record AroundHeroes(int PerHero, HalfBox RingFrom, HalfBox RingTo, HalfBox Keep, HalfBox Hard, int Linger) : ZoneAnchor;
 
 /// <summary>A box round a cell: <paramref name="X"/> cells either way across, <paramref name="Y"/> up and down.</summary>
 public sealed record HalfBox(int X, int Y);

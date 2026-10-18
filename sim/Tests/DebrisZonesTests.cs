@@ -68,7 +68,7 @@ public class DebrisZonesTests
         // Every one after it as well, on all four sides of the ring, never where the hero sees.
         var spawns = Spawns(w, 600).Where(s => s.Piece.Zone == DebrisSpec.Far.Id).ToList();
         Assert.True(spawns.Count > 20, $"{spawns.Count} far pieces");
-        Assert.All(spawns, s => Assert.True(OnRing(CellOf(s.Piece), (400, 150)) && !Within(CellOf(s.Piece), (400, 150), Around.View)));
+        Assert.All(spawns, s => Assert.True(OnRing(CellOf(s.Piece), (400, 150)) && !Within(CellOf(s.Piece), (400, 150), DebrisSpec.View)));
         Assert.All(new Func<(int X, int Y), bool>[] { c => c.X >= 400 + Around.RingFrom.X, c => c.X <= 400 - Around.RingFrom.X, c => c.Y <= 150 - Around.RingFrom.Y, c => c.Y >= 150 + Around.RingFrom.Y },
             side => Assert.Contains(spawns, s => side(CellOf(s.Piece))));
     }
@@ -92,9 +92,10 @@ public class DebrisZonesTests
     public void TakesNoDrawForTheFarFieldWhileEveryHeroIsInsideTheStreamsBox()
     {
         // 160×60 round a hull at columns 70 to 75 and rows 25 to 30; the box spans columns 6 to 139, rows 13 to 42.
+        // Both heroes in it, neither seeing where the stream starts (139) nor where it ends (6).
         var roomy = Open(160, 60, 70, 25, h: 6);
         var alone = new Scenario(roomy);
-        var near = new Scenario(roomy).Do(new Enter(20 * 160 + 130)).Do(new Enter(40 * 160 + 10) { From = 1 });
+        var near = new Scenario(roomy).Do(new Enter(20 * 160 + 70)).Do(new Enter(40 * 160 + 75) { From = 1 });
         var (a, b) = (Spawns(alone, 800), Spawns(near, 800));
         Assert.Empty(Far(near));
         Assert.True(a.Count > 3);
@@ -259,6 +260,53 @@ public class DebrisZonesTests
     }
 
     [Fact]
+    public void StartsAStreamPieceRightOfEveryHerosViewThatHoldsItsLeadAndDriftsItPastTheShip()
+    {
+        // The lead is column 169. One hero in the stream's box sees it, out to 210; a second, out past the box,
+        // sees 211, out to 320: the stream starts at 321, where neither sees a piece appear.
+        var w = With(Wide, (150, 151), (260, 140));
+        var spawns = Spawns(w, 800).Where(s => s.Piece.Zone == DebrisSpec.Ship.Id).ToList();
+        Assert.True(spawns.Count > 2, $"{spawns.Count} stream pieces");
+        Assert.All(spawns, s => Assert.Equal((321_500, 36_000), (s.Piece.Start, s.Piece.End)));
+        // Alone, no one sees the lead: the stream starts on it.
+        var alone = Spawns(new Scenario(Wide), 400).Where(s => s.Piece.Zone == DebrisSpec.Ship.Id);
+        Assert.All(alone, s => Assert.Equal(169_500, s.Piece.Start));
+        // A hero far ahead, not seeing the lead, moves nothing.
+        var ahead = Spawns(With(Wide, (300, 151)), 400).Where(s => s.Piece.Zone == DebrisSpec.Ship.Id);
+        Assert.All(ahead, s => Assert.Equal(169_500, s.Piece.Start));
+    }
+
+    [Fact]
+    public void TakesAStreamPiecePastItsEndOnlyOnceNoHeroSeesIt()
+    {
+        // The hull at columns 300 to 305: the stream ends at 236. A hero at 200, out past the box, sees from 140 to 260.
+        var map = Open(640, 320, 300, 150) with { DebrisAtStart = 1 };
+        var w = With(map, (200, 151)).Run();
+        var piece = Pieces(w).Single(p => p.Zone == DebrisSpec.Ship.Id);
+        Assert.Equal(236_000, piece.End);
+        w.Do(new Reel(piece.Id, 141_000, 151_500)).Run();
+        while (PieceOf(w, piece.Id)!.Reel != null) w.Run();
+        Assert.Empty(w.Refusals);
+        // Past its end and seen: it drifts on to the view's edge, and is gone the tick it leaves it.
+        int ticks = 0;
+        while (PieceOf(w, piece.Id) is { } now)
+        {
+            Assert.True(now.X / 1000 >= 140, $"at {now.X}, out of sight");
+            w.Run();
+            ticks++;
+        }
+        Assert.InRange(ticks, 1, 1000 / DebrisSpec.DriftMin + 1);
+        // Alone, it is gone as it passes its end.
+        var alone = new Scenario(map).Run();
+        var lone = Pieces(alone).Single();
+        int left = (lone.X - lone.End) / lone.Speed + 1;
+        alone.Run(left - 1);
+        Assert.NotNull(PieceOf(alone, lone.Id));
+        alone.Run();
+        Assert.Null(PieceOf(alone, lone.Id));
+    }
+
+    [Fact]
     public void DriftsAFarPieceToTheGridsLeftEdgeAndNoFurther()
     {
         // A hero by the left edge, above the stream's box: whatever it spawns stays in its keep box till the
@@ -386,7 +434,7 @@ public class DebrisZonesTests
     }
 
     [Property(MaxTest = 40)]
-    public Property KeepsEveryZoneUnderItsCapAndSpawnsTheFarFieldOnlyOnTheRingOfAHeroUnderItsShare()
+    public Property KeepsEveryZoneUnderItsCapOutOfEveryHerosViewAndTheFarFieldOnTheRingOfAHeroUnderItsShare()
     {
         var map = from w in Gen.Choose(60, 520)
                   from h in Gen.Choose(20, 260)
@@ -423,16 +471,21 @@ public class DebrisZonesTests
                 }
                 for (int t = 0; t < (s.Type == "wait" ? s.Ticks : 1); t++)
                 {
+                    // Where each piece will be after this tick's drift: nothing here reels.
+                    var moved = Pieces(w).Select(p => (p.Id, X: p.X - p.Speed, p.Y)).ToList();
                     w.Run();
-                    if (Broken(w, ref last) is { } broken) return false.Label(broken);
+                    if (Broken(w, ref last, moved) is { } broken) return false.Label(broken);
                 }
             }
             return true.ToProperty();
         });
     }
 
-    /// <summary>What breaks the zones' invariants after a tick, or null; <paramref name="last"/> is the newest id seen.</summary>
-    private static string? Broken(Scenario w, ref int last)
+    /// <summary>
+    /// What breaks the zones' invariants after a tick, or null; <paramref name="last"/> is the newest id seen,
+    /// <paramref name="moved"/> the pieces before the tick, where its drift took them.
+    /// </summary>
+    private static string? Broken(Scenario w, ref int last, IReadOnlyList<(int Id, int X, int Y)> moved)
     {
         var pieces = Pieces(w);
         int width = w.M.Grid.Width, height = w.M.Grid.Height, clock = Debris(w).Clock;
@@ -442,6 +495,17 @@ public class DebrisZonesTests
             if (n > zone.Max) return $"{n} pieces of {zone.Id}";
         }
         var heroes = w.M.Crew.Heroes.Where(h => h.Cell >= 0 && h.Cell < width * height).Select(h => (X: h.Cell % width, Y: h.Cell / width)).ToList();
+        bool Seen((int X, int Y) c) => heroes.Any(h => Within(c, h, DebrisSpec.View));
+        // No piece of any zone appears in a hero's farthest view, but one by the hull pushed to the grid's last column;
+        // none is taken away in one, but past the grid's left edge.
+        int newest = last;
+        foreach (var p in pieces.Where(p => p.Id > newest))
+            if (Seen(CellOf(p)) && !(p.Zone != DebrisSpec.Far.Id && p.Start / 1000 == width - 1))
+                return $"{p.Zone} piece {p.Id} appeared at {CellOf(p)}, in a hero's view";
+        var now = pieces.Select(p => p.Id).ToHashSet();
+        foreach (var (id, x, y) in moved)
+            if (!now.Contains(id) && x >= 0 && Seen((x / 1000, y / 1000)))
+                return $"piece {id} gone at {(x / 1000, y / 1000)}, in a hero's view";
         // Found only for a tick that spawned round the heroes: walking the grid is what the test costs.
         (int Left, int Right, int Top, int Bottom)? hull = null;
         bool found = false;
@@ -464,7 +528,7 @@ public class DebrisZonesTests
             if (p.X != p.Start || p.End != 0 || p.SeenAt != clock) return $"far piece {p.Id} not on its way";
             if (Hull() == null) return $"far piece {p.Id} with no hull";
             if (InStream(at)) return $"far piece {p.Id} at {at}, in the stream's box";
-            if (heroes.Any(h => Within(at, h, Around.View))) return $"far piece {p.Id} at {at}, in a hero's view";
+            if (heroes.Any(h => Within(at, h, DebrisSpec.View))) return $"far piece {p.Id} at {at}, in a hero's view";
             // Its hero out past the stream, on whose ring it is, held fewer than its share before this tick's spawns.
             bool owned = heroes.Any(h => !InStream(h) && OnRing(at, h)
                 && pieces.Count(q => q.Zone == DebrisSpec.Far.Id && q.Id <= before && Within(CellOf(q), h, Around.Keep)) < Around.PerHero);

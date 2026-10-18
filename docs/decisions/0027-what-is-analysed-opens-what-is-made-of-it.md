@@ -3,7 +3,8 @@
 - Status: accepted; supersedes the unlocks, the schematics and the "moment is shown" of
   [0024](0024-blueprints-are-learned-by-analysis.md); the `Locked` list superseded by
   [0041](0041-wreckage-of-many-kinds-and-circuits.md): the solar panel costs circuits and opens by the rule;
-  "every item is analysed alike" amended 2026-10-18: only what goes into some cost (below)
+  "every item is analysed alike" amended 2026-10-18: only what goes into some cost, and again: only what goes
+  into something not known from the start (below)
 - Date: 2026-10-14
 - Design: `docs/plans/crafting.md` (deleted once built)
 
@@ -71,3 +72,24 @@ can be made of it. Finished things are not analysed.
 Known from the start today: the fire axe, the harpoon, the drill, the jetpack, the drone, the seed,
 biomass and biofuel, and the containers, wreckage, asteroids and derelicts, which are never carried.
 The battery joined a cost with the drone (0062), and so waits for an analyzer again: the rule works it out.
+
+## Second amendment, 2026-10-18: only what goes into something still to open
+
+The first playtest caught a hull plate and a scrap chunk, saw the violet "?" on them, and spent two
+minutes analysing them, though the only thing they go into, the furnace, is open from the start. The
+analysis taught nothing.
+
+- **An item needs analysis only when it is in the cost of something not known from the start:** a
+  blueprint or a craft not in `Content.Research.StartKnown`; the cable, always known, counts as granted.
+  Still worked out from content (`Research.Analysable`), never listed.
+- **The opening rule reads only those items:** a blueprint or a craft is known when granted, or when every
+  item of its cost that needs analysis is analysed; a recipe's `Unanalysed` lists only those. In the
+  wreck's world nothing changes for what is not granted, since every item in its cost needs analysis.
+  A world granted less than the wreck (a test map's `Layout.Known`) opens from the start what costs only
+  items with nothing to learn: the rule follows the wreck's grants, not each world's.
+- **Creative mode is unchanged:** no "?" at all.
+
+Today this takes the scrap chunk and the hull plate out of analysis: they go into the furnace alone.
+Iron, scrap and planks stay: iron opens the plate and the gear, the wreck's first lesson; scrap the floor,
+the ladder and the lamp; planks the harpoon and soil. An old save's `Analysed` holding the chunk or the
+plate is harmless.
