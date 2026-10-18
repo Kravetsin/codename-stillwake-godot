@@ -3,7 +3,7 @@
 This machine's items, ported from `apps/game/src/features/items/` and the item parts of
 `features/crew/` (`pickup.ts`, `pickup-popups.ts`) (G-08). It reads the sim through `IItemsQueries`,
 `IGridQueries`, `IRoomsQueries` and `IResearchQueries`, handed in every frame from the current
-registry, the furnace module's `At` for a furnace or a burner generator (`InventoryPanel.Furnace`)
+registry, the debris module's `CaughtFrom` for what its own catches gave, the furnace module's `At` for a furnace or a burner generator (`InventoryPanel.Furnace`)
 and the power module's `Charges` for a charging station (`InventoryPanel.Charger`), and changes it only
 by sending `Move`,
 `Drop` and `PickUp`.
@@ -18,6 +18,7 @@ by sending `Move`,
 | `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s and `Drop`s in flight (0014); which items are marked unanalysed, a stack's tip | no    |
 | `Lessons.cs`       | an analyzer's panel: its stage, how far, what an analysed item goes into, each one's tip (0027) | no    |
 | `Reach.cs`         | `HeroSpot`; pick-ups (`pickup.ts`)                                                           | no    |
+| `OwnCatches.cs`    | what this peer's own grabs of debris put into its inventory, once each as they run            | no    |
 | `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, the violet "?" of an item not analysed; an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
@@ -35,7 +36,7 @@ the energy bar, is worked out in `game/shared/Charges.cs` (no Godot), shared wit
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
 one for one: `click.test.ts` (`ClickTests`, with quick equip), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
 (`PickUpTests`), a test for the fold of own moves (`CrateTests`), one for the analyzer's panel
-(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`), one for the slots' size, tint and setting (`SlotsTests`, of `game/shared/Slots.cs`) and one for charge
+(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`), one for own catches (`OwnCatchesTests`), one for the slots' size, tint and setting (`SlotsTests`, of `game/shared/Slots.cs`) and one for charge
 on screen (`ChargesTests`). Opening a crate is aimed
 as everything E works is, in the crew feature (`AimTests`).
 
@@ -153,11 +154,18 @@ as everything E works is, in the crew feature (`AimTests`).
 - A stack in a cell the hero's body overlaps is picked up unless the sim would refuse it or its
   pick-up is in flight, and vanishes from the floor at once. Passed out the hero picks nothing up, so it never
   takes back the body it has just left (0061); passing out also closes the inventory, letting go of the stack in hand.
+- **What a catch gave shows over the head too,** as a pick-up does: a supply pod, a crate, a scrap chunk caught by
+  hand (reeled in by the harpoon or not) goes straight into the inventory, its loot drawn as the grab runs, so the
+  client cannot say it at the press. An own `Grab` seen in flight one frame and gone the next has run
+  (`OwnCatches`, as `OwnHits` for hits); the debris module says what that piece's catch put into the inventory
+  (`CaughtFrom`), each item a line of `PickUpPopups`, stacked as pick-ups are and adding to a line of the same item.
+  Only this peer's own: a friend's grab never flew here. A refused grab shows nothing. What did not fit floats and
+  shows when it is picked up, never twice; a wreck broken by a hit floats all its loot, so it shows only as picked up.
 
 ## Main's hook
 
 `Main` makes an `ItemsView` beside the hero, with the hands' `Ui`, and calls `Frame(client, grid,
-rooms, items, research, spot, progress, ms)` every frame from `_m`, after the hero's frame; `HeroSpot`
+rooms, items, research, debris, spot, progress, ms)` every frame from `_m`, after the hero's frame, so its grabs are seen in flight; `HeroSpot`
 is the hero's feet, facing, body cell and whether it is passed out, so this feature never reads the crew feature
 itself.
 

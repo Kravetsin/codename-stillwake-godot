@@ -59,7 +59,7 @@ public interface IItemsOps
     void Consume(int id, int slot);
     void Output(int id, IReadOnlyList<(string Item, int Count)> cost);
     void TakeInputs(int id, IReadOnlyList<(string Item, int Count)> cost);
-    void GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
+    IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void Charge(int id, int amount);
     bool Drain(int peer, int amount);
@@ -360,13 +360,24 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Stacks.SetCrate(State, id, left);
     }
 
-    /// <summary>Gives <paramref name="peer"/> as much of <paramref name="cost"/> as fits; the rest falls on <paramref name="cell"/>, as if <paramref name="peer"/> dropped it.</summary>
-    public void GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
+    /// <summary>
+    /// Gives <paramref name="peer"/> as much of <paramref name="cost"/> as fits; the rest falls on <paramref name="cell"/>, as if
+    /// <paramref name="peer"/> dropped it. Returns what went into the inventory, by item in the order the cost first names it.
+    /// </summary>
+    public IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
-        if (Stacks.IsNothing(cost)) return;
+        if (Stacks.IsNothing(cost)) return [];
         var (slots, left) = Stacks.PlacedSome(Inventory(peer), cost, Own);
         Stacks.SetInventory(State, peer, slots);
         DropAt(peer, left, cell);
+        var given = new List<(string Item, int Count)>();
+        foreach (var (item, _) in cost)
+        {
+            if (given.Exists(g => g.Item == item)) continue;
+            int count = cost.Where(c => c.Item == item).Sum(c => c.Count) - left.Where(l => l.Item == item).Sum(l => l.Count);
+            if (count > 0) given.Add((item, count));
+        }
+        return given;
     }
 
     /// <summary>Lets <paramref name="cost"/> fall on cell <paramref name="cell"/> as if peer <paramref name="peer"/> dropped it there, still; <see cref="FloorStack.Nobody"/> for a stack anyone may take at once.</summary>

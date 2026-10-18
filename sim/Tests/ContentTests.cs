@@ -866,12 +866,13 @@ public class ContentTests
     /// zone's debris is or breaks into — or made at a reachable station from reachable items: crafted at a queued
     /// one that lays it out, smelted at a fed one hot enough. A station is reachable when it is built into the ship,
     /// or its blueprint is known and its cost reachable; under the opening rule (0027) a blueprint or craft is
-    /// known when granted or when every item of its cost is reachable, and so analysed.
+    /// known when granted or when every item of its cost is reachable, and so analysed. Debris of the kinds
+    /// <paramref name="never"/> is left out, as if it never drifted by.
     /// </summary>
-    private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations)
+    private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, params string[] never)
     {
         var had = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds))
+        foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Where(k => !never.Contains(k.Item)))
         {
             had.Add(item);
             foreach (var entry in Loot.Of(item) ?? []) had.Add(entry.Item);
@@ -920,24 +921,61 @@ public class ContentTests
     }
 
     /// <summary>
-    /// The farm walks from salvage (0060): seeds from supply pods, soil pressed at the Former, the grow capsule opened by
-    /// what its cost is made of, biomass grown in it and biofuel smelted from that. Without the capsule, neither biomass
-    /// nor biofuel; without the Former, no soil and no capsule.
+    /// The farm walks from salvage (0060): seeds from supply pods and soil clods, soil pressed at the Former or broken
+    /// out of clods, the grow capsule opened by what its cost is made of, biomass grown in it and biofuel smelted from
+    /// that. Without the capsule, neither biomass nor biofuel; without the Former, soil only from clods; without both,
+    /// no soil and no capsule.
     /// </summary>
     [Fact]
     public void TheFarmIsReachableSeedsFromSalvageSoilAtTheFormerBiomassInTheCapsuleBiofuelSmelted()
     {
         var (had, known) = Reachable(Stations.All);
         Assert.Contains("seed", had);
-        Assert.Contains(Loot.Of("supplyPod")!, e => e.Item == "seed");
         foreach (var item in new[] { "seed", "soil", "biomass", "biofuel" }) Assert.Contains(item, had);
         Assert.Contains("growCapsule", known);
         var (noCapsule, _) = Reachable([.. Stations.All.Where(s => s.Machine != "growCapsule")]);
         Assert.DoesNotContain("biomass", noCapsule);
         Assert.DoesNotContain("biofuel", noCapsule);
-        var (noFormer, opened) = Reachable([.. Stations.All.Where(s => s.Machine != "former")]);
-        Assert.DoesNotContain("soil", noFormer);
+        var noFormer = Stations.All.Where(s => s.Machine != "former").ToList();
+        Assert.Contains("soil", Reachable(noFormer).Items);
+        var (noSoil, opened) = Reachable(noFormer, "soilClod");
+        Assert.DoesNotContain("soil", noSoil);
         Assert.DoesNotContain("growCapsule", opened);
+    }
+
+    /// <summary>
+    /// Seeds have two sources, supply pods and soil clods: either alone still reaches them, and nothing else gives
+    /// them. A clod guarantees its seeds; a pod holds them one time in two.
+    /// </summary>
+    [Fact]
+    public void SeedsComeFromSupplyPodsAndSoilClodsEitherAloneReachingThem()
+    {
+        Assert.Equal(["supplyPod", "soilClod"], Loot.All.Where(l => l.Entries.Any(e => e.Item == "seed")).Select(l => l.Container));
+        Assert.Contains("seed", Reachable(Stations.All, "supplyPod").Items);
+        Assert.Contains("seed", Reachable(Stations.All, "soilClod").Items);
+        Assert.DoesNotContain("seed", Reachable(Stations.All, "supplyPod", "soilClod").Items);
+        Assert.Null(Loot.Of("soilClod")!.Single(e => e.Item == "seed").OneIn);
+        Assert.NotNull(Loot.Of("supplyPod")!.Single(e => e.Item == "seed").OneIn);
+    }
+
+    /// <summary>
+    /// The soil clod: wreckage about as frail as the stream's frailest, the tank cluster and the cable rack, so the axe
+    /// breaks it in a few hits; it breaks into 1 to 3 seeds and 1 to 2 soil, always, and nothing else; and it drifts
+    /// only in the stream by the ship, rarely: one spawn in 50 or more of it, beside the supply pods.
+    /// </summary>
+    [Fact]
+    public void TheSoilClodIsFrailWreckageOfTheStreamGivingSeedsAndALittleSoilAlways()
+    {
+        int hp = Wreckage.HpOf("soilClod")!.Value;
+        Assert.InRange(hp, Wreckage.HpOf("tankCluster")!.Value, Wreckage.HpOf("cableRack")!.Value);
+        Assert.InRange(hp / Weapons.Axe.Damage, 2, 5);
+        Assert.Equal([new LootEntry("seed", 1, 3), new LootEntry("soil", 1, 2)], Loot.Of("soilClod"));
+        Assert.Equal(1, Content.Items.Get("soilClod").Stack);
+        var zones = DebrisSpec.Zones.Where(z => z.Tiers.Any(t => t.Kinds.Any(k => k.Item == "soilClod"))).ToList();
+        Assert.Equal(new[] { DebrisSpec.Ship.Id }, zones.Select(z => z.Id));
+        int weight = DebrisSpec.Kinds.Single(k => k.Item == "soilClod").Weight, all = DebrisSpec.Kinds.Sum(k => k.Weight);
+        Assert.True(weight * 50 <= all, $"{weight} of {all}");
+        Assert.True(weight < DebrisSpec.Kinds.Single(k => k.Item == "supplyPod").Weight);
     }
 
     /// <summary>Heat walks too: the furnace smelts rock into silicon, but glass is had only once the smelter is.</summary>

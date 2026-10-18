@@ -285,7 +285,7 @@ public class FarmTests
         Assert.Equal(1, Held(w, former, "soil"));
     }
 
-    /// <summary>One supply pod in two holds seeds, one or two (0060): the farm's only source.</summary>
+    /// <summary>One supply pod in two holds seeds, one or two (0060); the soil clod is their only other source.</summary>
     [Fact]
     public void ASupplyPodHoldsOneOrTwoSeedsOneTimeInTwo()
     {
@@ -302,7 +302,7 @@ public class FarmTests
         }
         Assert.InRange(with, pods * 45 / 100, pods * 55 / 100);
         Assert.Equal([1, 2], counts.Order());
-        Assert.DoesNotContain(Content.Loot.All, l => l.Container != "supplyPod" && l.Entries.Any(e => e.Item == "seed"));
+        Assert.Equal(["supplyPod", "soilClod"], Content.Loot.All.Where(l => l.Entries.Any(e => e.Item == "seed")).Select(l => l.Container));
     }
 
     /// <summary>The fuzz draws crafts at the capsule, refused as not made there, and the items fuzz moves into and out of it.</summary>

@@ -151,7 +151,7 @@ counted twice.
   past what is there throws; it returns what it took, nothing in creative mode, so a caller refunds
   exactly that. `Give(peer, cost)` — the caller checks `FullFor` first, and giving past the room
   throws. `GiveOrDrop(peer, cost, cell)` — gives what fits; the rest falls on `cell`, dropped by that
-  peer. `DropAt(peer, cost, cell)` — lets all of `cost` fall on `cell`, still, dropped by that peer:
+  peer; it returns what it gave, by item: what a caught piece showed its catcher (`Debris`). `DropAt(peer, cost, cell)` — lets all of `cost` fall on `cell`, still, dropped by that peer:
   what a cancelled blueprint held; or by `FloorStack.Nobody`, for anyone to pick up at once: what a
   broken wreck held. `Charge(id, amount)` — adds up to
   `amount` of charge, stored in thousandths of a power-tick, to what machine `id`'s first slot holds, never past its capacity: `Power`'s

@@ -73,6 +73,8 @@ public static class Items
         new("cableRack", 1),
         new("tankCluster", 1),
         new("shieldSlab", 1),
+        // A clod of some ship's farm, drifting with a sprout: seeds and soil when broken.
+        new("soilClod", 1),
         new("asteroid", 1),
         new("asteroidSmall", 1),
         new("asteroidLarge", 1),

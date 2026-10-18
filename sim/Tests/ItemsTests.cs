@@ -513,8 +513,10 @@ public class ItemsTests
     public void GivesWhatFitsAndLetsTheRestFallStillWhereItWasGivenAsIfDroppedThere()
     {
         var w = new Scenario(".....\n=====").GiveItems(0, ("canister", (Inventory.Slots - 1) * StackOf("canister")));
-        w.M.Items.GiveOrDrop(0, [("scrap", StackOf("scrap") + 7), ("iron", 0)], w.At(2, 0));
+        var given = w.M.Items.GiveOrDrop(0, [("scrap", StackOf("scrap") + 7), ("iron", 0)], w.At(2, 0));
         Assert.Equal(StackOf("scrap"), Count(w, "scrap"));
+        // What it gave is what went into the inventory: none of nothing, and not what fell.
+        Assert.Equal([("scrap", StackOf("scrap"))], given);
         var lying = Assert.Single(w.M.Items.Floor);
         Assert.Equal(("scrap", 7, w.At(2, 0), 0, 0, 0), (lying.Item, lying.Count, lying.Cell, lying.Vx, lying.Vy, lying.By));
         // A stack of the limit at most each, and none of nothing.

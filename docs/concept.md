@@ -64,8 +64,9 @@ A living document: what is decided about the game and what is still open. Techni
   a machine has goes in, and the machine shows it is too cold, cold blue, rather than refusing it; then the
   circuit assembler, circuits of silicon and wire and solar cells of silicon, glass and wire
   ([0057](decisions/0057-stations-one-model-for-every-crafting-machine.md)).
-- **The farm** grows what the ship burns: seeds come from supply pods, one or two in every other pod; soil is
-  pressed at the Former of rock and planks; a grow capsule, a glass capsule on a base built of soil, glass, a frame,
+- **The farm** grows what the ship burns: seeds come from supply pods, one or two in every other pod, and from
+  soil clods, earth torn from some ship's farm drifting by now and then with a sprout, broken into one to three
+  seeds and a little soil; soil is pressed at the Former of rock and planks; a grow capsule, a glass capsule on a base built of soil, glass, a frame,
   a circuit and wire, grows a planted seed under its pink lamp on power in eight minutes, the plant rising through
   four pictures, into 4 biomass and none, one or two seeds, so the farm slowly eats its seeds and salvage refills
   them. Biomass smelts into biofuel at the furnace or the smelter, the fuel the engine will burn on the first jump
@@ -78,7 +79,7 @@ A living document: what is decided about the game and what is still open. Techni
   the gun, to catch with E or chop with the axe; it fires again 5 s after its shot
   ([0044](decisions/0044-the-harpoon-reels-a-piece-to-a-point.md)).
 - **Wreckage** drifts among the small debris, too big to catch: a hull section, a cargo container,
-  a machine block, an electronics rack, oxygen tanks and a shield slab, each broken with the fire axe
+  a machine block, an electronics rack, oxygen tanks, a shield slab and, rarely, a soil clod, each broken with the fire axe
   into what its picture shows it holds, floating where it was
   ([0034](decisions/0034-wreckage-and-the-axe.md), [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).
 - **Death** is a suit run dry: the hero wakes at the pod with its tools, its jetpack and its batteries, and
