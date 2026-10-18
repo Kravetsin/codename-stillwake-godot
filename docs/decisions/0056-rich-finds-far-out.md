@@ -1,6 +1,6 @@
 # 0056 — Rich finds far out
 
-- Status: accepted
+- Status: accepted; amended 2026-10-18: cable racks and derelict circuits cut far out, a moderate cut (below)
 - Date: 2026-10-17
 - Amends: [0052](0052-debris-by-zones-around-every-hero.md)'s tier weights (four times over, the same odds, the
   derelicts added) and [0054](0054-asteroids-and-the-drill.md)'s band of one kind; of
@@ -100,3 +100,30 @@ is only hit points (0054), so bigger finds are simply more hit points, and the w
 - The weapons' cards list every wreckage kind they break: thirteen now.
 - A derelict half over the hull, or reeled in by the harpoon, is judged by its middle cell as every wreck is (0034).
 - Exact draws in the far field's tiers are unchanged in number but not in kind: tests pinning kinds far out change once.
+
+## Amendment, 2026-10-18: found circuits a moderate bonus
+
+An economy audit with a greedy bot on the wreck world found circuits far out at 30 to 60 times the stream's
+rate: a flying hero meets 150 to 300 far-field spawns a minute, and past 256 one in 8 was a rack. The stage's
+some 32 circuits took 3 to 6 minutes of hunting 135 to 190 rows up, so asteroid silicon made into circuits at
+the assembler had little point. The cut is moderate on purpose: this is an automation game, and loot volume
+will grow with nets, magnets and shredders, so the lasting fix is demand (modules, the radar and the engine,
+recurring burns), not scarcity.
+
+- **Cable racks** in the far field's tiers: 8, 12, 20 → **4, 4, 5** (1 spawn in 43, 40 and 28), about the
+  stream's 3 in 137, which stays, so the first circuits still drift by. `ContentTests` holds every far tier's
+  share to at most twice the stream's. A rack still holds one circuit, always (0041).
+- **Derelicts:** the engine block's circuit 1 in 3 → **1 in 6**; the pod cluster's 1–2 in 2 → **1 in 3**.
+  A derelict holds one at most, a twentieth of the rack's for each hit point or fewer (`ContentTests`).
+  Derelicts are now 1 spawn in 79 past 128 and 1 in 28 past 256; a sortie 130 rows up sees 2.2 of them.
+- **Measured** (the bot hunting racks and derelicts only, 4 seeds × 10 minutes, circuits a minute, axe / drill):
+
+  | Band | before | now |
+  |---|---|---|
+  | near, 14–60 rows up | 2.65 / 2.67 | 0.85 / 1.20 |
+  | middle, 70–125 | 4.88 / 5.20 | 1.20 / 1.60 |
+  | upper, 135–190 | 5.33 / 9.60 | 1.38 / 2.88 |
+
+  The stage's 32 circuits now take the bot, an upper bound on a player, some 11 minutes of drilling or 23 of
+  the axe up high, against 3 to 6 before. The stream gives 10 an hour, as before.
+- **Not changed:** canisters. The far field's wire falls with the racks, its main source there.

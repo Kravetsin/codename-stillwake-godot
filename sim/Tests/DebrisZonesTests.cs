@@ -350,7 +350,7 @@ public class DebrisZonesTests
     [Fact]
     public void DrawsTheFarthestTiersKindsForAHeroFarOut()
     {
-        // Every point of its ring 700 cells and more from the hull: racks drift by more often than scrap there.
+        // Every point of its ring 700 cells and more from the hull: machine blocks drift by more often than scrap there.
         var kinds = new List<string>();
         for (uint seed = 1; seed <= 5; seed++)
         {
@@ -358,8 +358,8 @@ public class DebrisZonesTests
             kinds.AddRange(Spawns(w, 700).Where(s => s.Piece.Zone == DebrisSpec.Far.Id).Select(s => s.Piece.Item));
         }
         Assert.True(kinds.Count > 120, $"{kinds.Count} spawned");
-        int scrap = kinds.Count(k => k == "scrapChunk"), racks = kinds.Count(k => k == "cableRack");
-        Assert.True(racks > scrap, $"{racks} cable racks, {scrap} scrap chunks");
+        int scrap = kinds.Count(k => k == "scrapChunk"), blocks = kinds.Count(k => k == "machineBlock");
+        Assert.True(blocks > scrap, $"{blocks} machine blocks, {scrap} scrap chunks");
     }
 
     [Fact]

@@ -50,9 +50,10 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   tier `Debris.Kinds`, the only zone with soil clods (0060). Its **box** is the hull grown by `Lead` columns either way and `Margin` rows.
 - **`far`, the far field** (`AroundHeroes`): round every hero out past every stream's box, from the
   cell its client last reported (`Hero.Cell`, about once a second, 0050). Three tiers, at 0, 128 and 256
-  cells: small salvage near the ship, more and bigger wrecks, cable racks most of all, the farther out;
+  cells: small salvage near the ship, more and bigger wrecks the farther out, but cable racks about as rare a spawn
+  as in the stream (4, 4 and 5), so found circuits are a moderate bonus (0056, amended);
   past 128 the **derelicts** too, and past 256 big and rich rock ([0056](../../docs/decisions/0056-rich-finds-far-out.md)):
-  an engine block and a cargo hold one spawn in 83 past 128; with the pod cluster one in 31 past 256.
+  an engine block and a cargo hold one spawn in 79 past 128; with the pod cluster one in 28 past 256.
 - **`asteroids`, the asteroid band** (`HullBand(From, To, Lead)`, 0054): two bands of rows, 22 to 44 past the
   hull's top row and as far past its bottom row, beyond the tether's 12 cells; across, the stream's way, from
   `Lead` right of the hull to as far left of it. Two tiers of the asteroid's kinds (0056): small, middling and large
@@ -125,7 +126,7 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   0060), an asteroid
   (120, 0054), a small (50), a large (200) and an ore-rich one (160), an engine block (180), a cargo hold (140) and a
   pod cluster (110) (0056). It drifts, spawns and is saved as any piece; each kind breaks into its own `Loot`, a cable rack always
-  into exactly one circuit, their sure source (an engine block or a pod cluster may hold one or two), a soil clod
+  into exactly one circuit, their sure source (an engine block 1 in 6, a pod cluster 1 in 3, may hold one), a soil clod
   always into 1 to 3 seeds and 1 to 2 soil, the seed's second source beside supply pods, an asteroid into
   3 to 5 rock, the others by their size. Hit points alone say how
   hard a kind is: **every weapon breaks every kind** (0054). `Hit(Piece, Tool)` takes the weapon's

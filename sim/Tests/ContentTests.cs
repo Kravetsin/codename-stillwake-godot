@@ -348,16 +348,26 @@ public class ContentTests
         var sources = Loot.All.Where(l => l.Entries.Any(e => e.Item == "circuit")).Select(l => l.Container);
         Assert.Equal(["cableRack", "engineBlock", "podCluster"], sources);
         Assert.Equal(new LootEntry("circuit", 1, 1), Loot.Of("cableRack")!.Single(e => e.Item == "circuit"));
-        // A derelict's are a chance, two at most, and a tenth of the rack's or fewer for the hit points (0056):
-        // in thousandths of a circuit a hit point, the rack's 1 in 9.
+        // A derelict's are a chance, one at most, and a twentieth of the rack's or fewer for the hit points (0056,
+        // amended): in thousandths of a circuit a hit point, the rack's 1 in 9.
         long rack = 1000 / Wreckage.HpOf("cableRack")!.Value;
         foreach (var source in sources.Skip(1))
         {
             var entry = Loot.Of(source)!.Single(e => e.Item == "circuit");
             Assert.NotNull(entry.OneIn);
-            Assert.True(entry.Max <= 2, source);
+            Assert.Equal(1, entry.Max);
             long each = 1000L * (entry.Min + entry.Max) / 2 / entry.OneIn!.Value / Wreckage.HpOf(source)!.Value;
-            Assert.True(each * 10 <= rack, $"{source}: {each} thousandths of a circuit a hit point, the rack's {rack}");
+            Assert.True(each * 20 <= rack, $"{source}: {each} thousandths of a circuit a hit point, the rack's {rack}");
+        }
+        // Racks are at most twice as likely a spawn far out as in the stream (0056, amended): a flying hero meets
+        // far more spawns, so found circuits stay a bonus and the assembler's are the supply.
+        static (int Racks, int Of) Racks(IReadOnlyList<(string Item, int Weight)> kinds) =>
+            (kinds.Single(k => k.Item == "cableRack").Weight, kinds.Sum(k => k.Weight));
+        var stream = Racks(DebrisSpec.Kinds);
+        foreach (var tier in DebrisSpec.Far.Tiers)
+        {
+            var far = Racks(tier.Kinds);
+            Assert.True(far.Racks * stream.Of <= 2 * stream.Racks * far.Of, $"far tier {tier.From}: {far.Racks} racks of {far.Of}, the stream's {stream.Racks} of {stream.Of}");
         }
         // Made besides of silicon and wire, at the circuit assembler alone, which is built of one salvaged (0057).
         Assert.Equal([("silicon", 1), ("wire", 2)], Crafts.Get("circuit").Cost);
