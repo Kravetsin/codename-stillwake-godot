@@ -26,6 +26,11 @@ hero's stamina (`Exert`): what a jetpack burns.
 - **The block on screen** sits right of the inventory's grid while it is open (moved to the screen's right edge by 0058), laid out as the body (the
   mockup's "right, by the body"): head over back over belt, each row under its name, no silhouettes in an
   empty slot. While a stack is carried, the slots that would wear it are lit green and the rest dimmed.
+- **Quick equip, Terraria's:** with the inventory open, Shift and the left button on a worn kind of item of the
+  hero's own puts it on the first free slot of its kind, or swaps it with the first worn there; on what is worn,
+  takes it off onto the first free own slot, the hotbar first. It wins over sending to an open crate, but a
+  battery still goes into an open charging station. One `Move` each, client only; the sim refuses what no longer
+  fits.
 - **The jetpack:** `jetpack`, a stack of one, made at the lifepod of a frame, two tubes, a canister and two
   wire in 120 ticks, opened by analysis as every craft is (0027). Its art is a placeholder (two canisters
   strapped side by side; on the hero, a canister on the back) until it is picked.
