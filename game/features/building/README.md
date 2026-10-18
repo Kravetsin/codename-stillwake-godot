@@ -38,6 +38,13 @@ draws too; `Sketch`). The plain files are compiled again into `game.tests/`, whe
   pointer onto its tab, known cards only. A drag ends with the hand that began it.
 - The right button held on a plan is the hero's, whatever the hand holds (crew's `Aiming.UsesOf`): within
   its reach it delivers once per sweep or works one tick per tick released, at most five a frame.
+- A cost reads the same in the menu and under the pointer (`CostLine.Lacking`): what this player carries
+  over what is still needed — the cost less what was delivered — green when it covers it, red when not.
+  Both weigh `Ui.Carried`, read by `Hands` every 250 ms. A card's tooltip names its items; a blueprint's
+  (`Ui.CostTip`, a `PlanTip`) shows at its top the build card's picture and name, "Wall: iron", as the plan's
+  tinted look can hide what it is, then a row an item: its icon at 32 pixels and "100/2", no name; a row all
+  delivered faded with a tick. It shows only while the blueprint lacks something: once all is delivered the
+  work bar says the rest.
 - Under the cards, the card in hand and one line of what the buttons do on the tab (`Tools.HintOf`); the
   menu's top is `Ui.MenuTop`, which the prompt for E keeps above.
 - Plans redraw only when the plans change; ghosts are tiles laid and erased each frame.
@@ -54,3 +61,5 @@ draws too; `Sketch`). The plain files are compiled again into `game.tests/`, whe
 - The refusal beside the pointer (`PointerTip`) is drawn on the screen at the world's point and size,
   so it reads as world text, 10 pixels of the world, but stays sharp at any zoom.
 - The menu's cost row shows item pictures from `art/items`; prices read the inventory every 250 ms.
+- A blueprint's tip says what is carried over what is still needed, as the menu does, not what was
+  delivered over the whole cost.

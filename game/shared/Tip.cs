@@ -20,7 +20,9 @@ public enum Tone
 }
 
 /// <summary>A line under a tip's name: its words in their tone, after the icon of item <paramref name="Icon"/> when it names one.</summary>
-public sealed record TipLine(string Text, Tone Tone = Tone.Plain, string? Icon = null);
+/// <param name="Large">A cost row under a blueprint: the icon twice its size and the words larger, read at a glance.</param>
+/// <param name="Faded">The icon faded: a row with nothing left to do.</param>
+public sealed record TipLine(string Text, Tone Tone = Tone.Plain, string? Icon = null, bool Large = false, bool Faded = false);
 
 /// <summary>
 /// What the one tooltip says (<c>PointerTip</c>): a name in bold, then lines in colour. Equal by
@@ -34,14 +36,18 @@ public sealed record Tip(string? Name, IReadOnlyList<TipLine> Lines)
     /// <summary>An item's card, shown in place of the name and lines.</summary>
     public ItemCard? Card { get; init; }
 
+    /// <summary>What a placement looks like built, drawn before the name: a blueprint's, so its tinted look never hides what was planned.</summary>
+    public Stillwake.Sim.Grid.Placement? Picture { get; init; }
+
     public bool Equals(Tip? other) =>
-        other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines) && Equals(Card, other.Card);
+        other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines) && Equals(Card, other.Card) && Picture == other.Picture;
 
     public override int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(Name);
         hash.Add(Card);
+        hash.Add(Picture);
         foreach (var line in Lines) hash.Add(line);
         return hash.ToHashCode();
     }

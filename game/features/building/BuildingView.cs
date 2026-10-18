@@ -239,14 +239,17 @@ public partial class BuildingView : Node2D
     }
 
     /// <summary>
-    /// Beside the pointer (<see cref="Ui.CostTip"/>), what the blueprint at <paramref name="cell"/> has
-    /// against what it costs, while it still lacks something; nothing anywhere else.
+    /// Beside the pointer (<see cref="Ui.CostTip"/>), what the blueprint at <paramref name="cell"/> builds and,
+    /// row by row, what this player carries against what it still needs, while it lacks something;
+    /// nothing anywhere else. Once all is delivered the work bar says the rest, so the tip goes.
     /// </summary>
     private void ShowTray(int? cell, BuildingModule building)
     {
         var plan = cell is int c ? building.PlansAt(c).FirstOrDefault(p => p.Place != null && building.Lacking(p.Id).Count > 0) : null;
         var cost = plan != null ? building.CostOf(plan.Id) : null;
-        _ui.CostTip.SetLines(plan != null && cost != null ? CostLine.Of(cost, plan.Delivered.Select(s => (s.Item, s.Count)).ToList()) : null);
+        _ui.CostTip.Set(plan?.Place is { } place && cost != null
+            ? new PlanTip(place, CostLine.Lacking(cost, plan.Delivered.Select(s => (s.Item, s.Count)).ToList(), _ui.Carried))
+            : null);
     }
 
     /// <summary>The ghost of the card along a drag, or of a removal: its own pictures, green where the sim would take it and red where not.</summary>

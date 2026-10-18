@@ -20,9 +20,6 @@ namespace Stillwake.Game.Features.Building;
 /// </summary>
 public partial class BuildMenu : CanvasLayer
 {
-    /// <summary>The inventory's counts are read this often while the menu is open: a panel reads on a timer.</summary>
-    private const double RefreshMs = 250;
-
     private static readonly Color Slate900 = new("0f172a"), Slate800 = new("1e293b"),
         Slate700 = new("334155"), Slate600 = new("475569"), Slate500 = new("64748b"), Slate400 = new("94a3b8"),
         Slate300 = new("cbd5e1"), Slate100 = new("f1f5f9"), Sky500 = new("0ea5e9"), Sky700 = new("0369a1"),
@@ -37,10 +34,7 @@ public partial class BuildMenu : CanvasLayer
     private readonly HBoxContainer _tabs = new(), _held = new();
     private readonly HFlowContainer _cards = new();
     private Tool? _hovered;
-    private IReadOnlyList<(string Item, int Count)> _carried = [];
-    private double _sinceRead = RefreshMs;
     private string _shown = "";
-    private bool _wasOpen;
     private readonly Dictionary<Tool, Button> _buttons = new();
     /// <summary>The card under the pointer says what it is, costs and does in the one tooltip.</summary>
     private readonly TipSpots _tips;
@@ -148,8 +142,8 @@ public partial class BuildMenu : CanvasLayer
     /// <summary>Where the menu lies on the screen, open or as its closed chip: what the crew's markers keep out of.</summary>
     public Rect2 Covers => (_open.Visible ? _open : _closed).GetGlobalRect();
 
-    /// <summary>One frame: what the world knows and what peer <paramref name="peer"/> carries, read on a timer while open.</summary>
-    public void Frame(Registry m, int peer, double elapsedMs)
+    /// <summary>One frame: what the world knows; prices weigh what this player carries (<see cref="Ui.Carried"/>).</summary>
+    public void Frame(Registry m)
     {
         bool open = _hand.PlanOut.Get();
         _closed.Visible = !open;
@@ -158,19 +152,8 @@ public partial class BuildMenu : CanvasLayer
         if (!open)
         {
             _tips.Show(null);
-            _wasOpen = false;
             _hovered = null;
             return;
-        }
-        if (!_wasOpen)
-        {
-            _sinceRead = RefreshMs;
-            _wasOpen = true;
-        }
-        if ((_sinceRead += elapsedMs) >= RefreshMs)
-        {
-            _sinceRead = 0;
-            _carried = m.Items.Totals(peer);
         }
         var tabs = Tools.Tabs
             .Select(t => t with { Tools = t.Tools.Where(each => Tools.Known(each, m.Research)).ToList() })
@@ -251,8 +234,8 @@ public partial class BuildMenu : CanvasLayer
             _tips.Show(null);
             return;
         }
-        var lines = CostLine.Of(Tools.CostOf(tool, m.Building.CostFor), _carried)
-            .Select(c => new TipLine($"{c.Have}/{c.Need} {En.T($"item.{c.Item}")}", c.Have < c.Need ? Tone.Bad : Tone.Plain, c.Item))
+        var lines = CostLine.Lacking(Tools.CostOf(tool, m.Building.CostFor), [], _ui.Carried)
+            .Select(c => new TipLine($"{c.Count} {En.T($"item.{c.Item}")}", c.Tone, c.Item))
             .Append(new TipLine(En.T($"tool.{tool.Id}.about"), Tone.Dim));
         _tips.Show(new Tip(tool.Label, lines.ToList()));
     }
