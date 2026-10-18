@@ -78,6 +78,8 @@ public partial class InventoryPanel : CanvasLayer
     private (int Id, string Kind)? _built;
     private int _chosen;
     private Picked? _picked;
+    /// <summary>The item the picked slot held as it was picked: one that holds another now, sorted or swapped by anyone, lets it go.</summary>
+    private string? _pickedItem;
     private Place? _dragFrom, _hovered;
     private Vector2 _mouse;
 
@@ -131,8 +133,11 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>Whether the inventory or a crate is open: what Esc closes before it opens the menu.</summary>
     public bool Shown => _open || Crate != null;
 
-    /// <summary>A picked stack whose slot still holds it, while the panels are open: one emptied meanwhile, by another player at a crate, is dropped.</summary>
-    private Picked? Held => Shown && _picked is { } p && _reading?.At(p.Place) != null ? p : null;
+    /// <summary>
+    /// A picked stack whose slot still holds its item, while the panels are open: one emptied meanwhile by another player at
+    /// a crate, or holding another item after a sort, is let go.
+    /// </summary>
+    private Picked? Held => Shown && _picked is { } p ? Clicks.StillHeld(p, _pickedItem, _reading?.At(p.Place)) : null;
 
     public override void _Ready()
     {
@@ -162,7 +167,13 @@ public partial class InventoryPanel : CanvasLayer
 
         // The grid, and under it the machine open; the equipment at the screen's other edge (0058).
         var shown = Style.Gap(new VBoxContainer { Position = new Vector2(Slots.Margin, Slots.InventoryTop(size)) }, 8);
-        var grid = Style.Panel(Style.Slate700, Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
+        // The bag, its sort button in the top-right corner (0008).
+        var bag = Style.Gap(new HBoxContainer(), 4);
+        bag.AddChild(Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
+        var corner = new VBoxContainer();
+        corner.AddChild(Sorter(null));
+        bag.AddChild(corner);
+        var grid = Style.Panel(Style.Slate700, bag);
         grid.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
         shown.AddChild(_inventory = grid);
         _root.AddChild(_shown = shown);
@@ -332,6 +343,21 @@ public partial class InventoryPanel : CanvasLayer
         return box;
     }
 
+    /// <summary>A sort button for the bag, or with <paramref name="crate"/> for that crate; its tip says what it does.</summary>
+    private SortButton Sorter(int? crate)
+    {
+        var button = new SortButton(() => SortOf(crate));
+        _tipSpots.Add(button, () => new Tip(T("items.sort")));
+        return button;
+    }
+
+    /// <summary>Sorts the bag or the crate; a stack picked is put back first, as its slot may hold another after.</summary>
+    private void SortOf(int? crate)
+    {
+        (_picked, _dragFrom) = (null, null);
+        Send(new Sort(crate));
+    }
+
     /// <summary>A stack's tip; an empty bay slot says a drone docks there, an empty kept one what drones keep it full of (0062).</summary>
     private Tip? SlotTip(SlotBox box)
     {
@@ -362,6 +388,8 @@ public partial class InventoryPanel : CanvasLayer
         if (Content.Stations.TryGet(kind, out var station) && !station.Fed) return;
         var spec = MachineSpecs.Get(kind);
         _frame = new MachineFrame(T($"tool.{kind}"), kind == "burnerGenerator" ? spec.Makes : spec.Draws);
+        // A crate sorts, its button in the header beside the drone badge (0008).
+        if (kind == "crate") _frame.Head.AddChild(Sorter(crate));
         // Whether drones serve it, at the right of its header (0062).
         if (Served?.Invoke(crate) is { } served) _frame.Head.AddChild(served);
         _frame.Add(kind switch
@@ -622,7 +650,7 @@ public partial class InventoryPanel : CanvasLayer
         int inputs = _reading.Kind is string queued && Content.Stations.TryGet(queued, out var station) && !station.Fed ? spec?.Inputs ?? 0 : 0;
         var result = Clicks.On(Held, new SlotClick(
             place, _reading.At(place), right, shift, Crate, _reading.Inventory, spec?.FuelSlot, spec?.Charges == true, inputs, _reading.Crate));
-        _picked = result.Picked;
+        (_picked, _pickedItem) = (result.Picked, result.Picked is { } p ? _reading.At(p.Place)?.Item : null);
         if (result.Breathes) _ui.Breathe();
         if (result.Command != null) Send(result.Command);
         else Refresh();

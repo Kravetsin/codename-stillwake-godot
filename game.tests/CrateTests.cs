@@ -44,4 +44,22 @@ public class CrateTests
         Assert.Equal(new Stack("scrap", 360), m.Items.Inventory(0)[0]);
         Assert.All(m.Items.Crate(crate), Assert.Null);
     }
+
+    [Fact]
+    public void ShowsThisPeersOwnSortAtOnceAndTheNextClickActsOnTheSortedSlots()
+    {
+        var m = WithStore(out var world);
+        var crate = m.Grid.Machines.First(c => c.Kind == "crate").Id;
+        var (_, client) = LocalSession.Create(world);
+        // Into the bag, past the hotbar, in two half stacks; then the bag sorted: one stack at its first slot.
+        client.Send(new Move(new Place(0), new Target(Spec.Inventory.Hotbar + 5), 100));
+        client.Send(new Move(new Place(0), new Target(Spec.Inventory.Hotbar + 9), 100));
+        client.Send(new Sort());
+        var shown = Reading.Of(client.Id, client.InFlight, m.Items, m.Grid, m.Research, crate);
+        Assert.Equal(new Stack("scrap", 200), shown.At(new Place(Spec.Inventory.Hotbar)));
+        Assert.Null(shown.At(new Place(Spec.Inventory.Hotbar + 5)));
+        // The hotbar is not sorted: what is left there stays.
+        Assert.Equal(new Stack("scrap", 160), shown.At(new Place(0)));
+        Assert.Equal(new Stack("scrap", 360), m.Items.Inventory(0)[0]);
+    }
 }

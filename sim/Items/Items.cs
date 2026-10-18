@@ -22,6 +22,12 @@ public sealed record SetCreative(bool On) : Command;
 /// </summary>
 public sealed record Run(string Item, bool On) : Command;
 
+/// <summary>
+/// Sorts the sender's bag, its own slots past the hotbar, or with <c>Crate</c> every slot of that crate (0008):
+/// stacks alike merged, then laid from the first slot by group and id. The hotbar and the equipment stay as they are.
+/// </summary>
+public sealed record Sort(int? Crate = null) : Command;
+
 /// <summary>A peer's inventory and the machines some moves touch, as the moves would leave them.</summary>
 /// <param name="Crates">The machines the moves touched, in the order they were first touched.</param>
 public sealed record Shown(IReadOnlyList<Stack?> Inventory, IReadOnlyList<(int Crate, IReadOnlyList<Stack?> Slots)> Crates);
@@ -94,6 +100,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Handles<SetCreative>(_ => null, c => State.Creative = c.On);
         Handles<Move>(MoveProblem, ApplyMove);
         Handles<Run>(RunProblem, ApplyRun);
+        Handles<Sort>(SortProblem, ApplySort);
         // After derivation: falling reads the rooms, rebuilt by then.
         System(Phase.Simulation, () =>
         {
@@ -222,8 +229,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     /// <summary>
-    /// <paramref name="peer"/>'s inventory and the machines <paramref name="moves"/> touch — <see cref="Move"/>s
-    /// and <see cref="Drop"/>s — as they would be after them, in order, each as the command would apply it and
+    /// <paramref name="peer"/>'s inventory and the machines <paramref name="moves"/> touch — <see cref="Move"/>s,
+    /// <see cref="Drop"/>s and <see cref="Sort"/>s — as they would be after them, in order, each as the command would apply it and
     /// skipped where it would be refused: what a client shows of its own moves before their tick runs
     /// (0013). Copies; the world is untouched.
     /// </summary>
@@ -256,6 +263,9 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
                     if (Moved(from, to, same, mv.Src, dst, mv.Count, out var after, out var into) != null) break;
                     Show(mv.Src.Crate, after);
                     Show(mv.Dst.Crate, into);
+                    break;
+                case Sort so:
+                    if (SortProblem(so) == null) Show(so.Crate, Sorted(SlotsOf(new Target(Crate: so.Crate)), so.Crate));
                     break;
                 default:
                     throw new ArgumentException($"items.afterMoves: {m.GetType().Name} is no move");
@@ -499,6 +509,23 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         int at = State.Running.FindIndex(r => r.Peer > c.From);
         State.Running.Insert(at < 0 ? State.Running.Count : at, new Runner { Peer = c.From, Item = c.Item });
     }
+
+    /// <summary>
+    /// <c>items.noCrate</c> for a crate that names no machine holding items, <c>items.notCrate</c> for one holding
+    /// them that is not a crate: a machine's slots have their places. Reach is the client's, as for a move.
+    /// </summary>
+    private string? SortProblem(Sort c)
+    {
+        if (c.Crate is not int id) return null;
+        if (!IsCrate(id)) return "items.noCrate";
+        return _grid.MachineById(id)!.Kind == "crate" ? null : "items.notCrate";
+    }
+
+    private void ApplySort(Sort c) => SetSide(c.From, new Target(Crate: c.Crate), Sorted(SideOf(c.From, new Target(Crate: c.Crate)), c.Crate));
+
+    /// <summary><paramref name="slots"/> sorted as <see cref="Sort"/> sorts them: a crate's all, an inventory's own past the hotbar.</summary>
+    private static Stack?[] Sorted(IReadOnlyList<Stack?> slots, int? crate) =>
+        crate == null ? Stacks.Sorted(slots, Content.Inventory.Hotbar, Own) : Stacks.Sorted(slots, 0, slots.Count);
 
     private string? DropProblem(Drop c)
     {
