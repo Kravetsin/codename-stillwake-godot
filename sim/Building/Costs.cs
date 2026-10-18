@@ -67,6 +67,17 @@ internal static class Costs
         return BuiltAt(grid, plan.Cell, plan.Clear!) is { } built ? ApartTicks(built.BuildTicks) : 1;
     }
 
+    /// <summary>The parts a blueprint's work is split into, each paid with one item as it begins: as many as its cost has items.</summary>
+    public static int PartsOf(Cost cost) => cost.Sum(c => c.Count);
+
+    /// <summary>
+    /// How many of <paramref name="parts"/> parts of <paramref name="ticks"/> ticks of work have begun by the tick
+    /// at <paramref name="progress"/>, that tick counted. Part k begins at <c>ticks * k / parts</c>, rounded down,
+    /// so the first begins with the first tick; content gives every part a tick at least.
+    /// </summary>
+    public static int PartsBegun(int progress, int ticks, int parts) =>
+        parts == 0 ? 0 : Math.Min(parts, ((progress + 1) * parts + ticks - 1) / ticks);
+
     /// <summary>What a blueprint still lacks of <paramref name="cost"/>, <paramref name="delivered"/> so far: the items with some still due, in the cost's order.</summary>
     public static Cost Lacking(Cost cost, IReadOnlyList<Stack> delivered)
     {

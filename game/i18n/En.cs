@@ -328,7 +328,6 @@ public static partial class En
         ["atmosphere.noTank"] = "There is no tank here",
         ["atmosphere.tankFull"] = "The tank is full",
         ["items.creative"] = "creative",
-        ["use.deliver"] = "[Hold RMB] Bring what it needs",
         ["use.build"] = "[Hold RMB] Build",
         ["use.takeApart"] = "[Hold RMB] Take apart",
         ["use.openCrate"] = "[E] Open crate",

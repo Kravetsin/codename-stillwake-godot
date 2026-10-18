@@ -14,8 +14,8 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>Something E does: the command it sends, and why the sim would refuse it, if it would.</summary>
 public sealed record Use(Command Command, string? Problem);
 
-/// <summary>A plan the left button works on, why the sim would refuse it, and whether it still lacks something (delivers rather than builds).</summary>
-public sealed record WorkAim(int Plan, string? Problem, bool Delivers = false);
+/// <summary>A plan the left button works on, and why the sim would refuse it.</summary>
+public sealed record WorkAim(int Plan, string? Problem);
 
 /// <summary>
 /// The cell under the pointer and what the hands do there: the left button held works a plan; E toggles
@@ -26,10 +26,10 @@ public sealed record WorkAim(int Plan, string? Problem, bool Delivers = false);
 public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null);
 
 /// <summary>
-/// What the hands send this frame, the crate they open if any, the blueprint they delivered to if any,
-/// and the tick work was last sent on: -1 when none is under way.
+/// What the hands send this frame, the crate they open if any, and the tick work was last sent on: -1 when
+/// none is under way.
 /// </summary>
-public sealed record Uses(IReadOnlyList<Command> Commands, int? Open, int? Served, int WorkedOnTick);
+public sealed record Uses(IReadOnlyList<Command> Commands, int? Open, int WorkedOnTick);
 
 /// <summary>What the hands reach and work (apps/game/src/features/crew/aim.ts).</summary>
 public static class Aiming
@@ -185,7 +185,7 @@ public static class Aiming
     /// What the hero of peer <paramref name="peer"/> aims at with the pointer at <paramref name="point"/>,
     /// in cells; nothing off the grid. A plan in the cell is worked: of several, the oldest that can be
     /// worked, so one the hero cannot pay for does not block the mark beside it; when none can, the
-    /// oldest, to show why; none in <paramref name="served"/>, served in this hold already. E works what
+    /// oldest, to show why. E works what
     /// is under it all the same: a crate, a furnace or an analyzer, a tank, a door, a valve. With neither,
     /// a wreck whose picture is under the pointer, else the piece of debris nearest it within
     /// <c>Debris.AimRadius</c>, only while the hero is out in space, where it can catch one, and none in
@@ -198,7 +198,7 @@ public static class Aiming
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, IReadOnlySet<int>? served = null, bool axe = false, bool gun = false, bool drill = false)
+        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, bool drill = false)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -207,11 +207,8 @@ public static class Aiming
         bool inReach = Reaches(hero, cell, grid.Width);
 
         var plans = m.Building;
-        bool Delivers(int id) => plans.Lacking(id).Count > 0;
         var here = plans.PlansAt(cell)
-            // A sweep delivers to each blueprint once; one with all it needs is built while held on.
-            .Where(p => !(served?.Contains(p.Id) == true && Delivers(p.Id)))
-            .Select(p => new WorkAim(p.Id, plans.WorkProblem(p.Id, peer), Delivers(p.Id)))
+            .Select(p => new WorkAim(p.Id, plans.WorkProblem(p.Id, peer)))
             .ToList();
         var work = here.FirstOrDefault(w => w.Problem == null) ?? here.FirstOrDefault();
         var machine = grid.MachineAt(cell);
@@ -365,26 +362,23 @@ public static class Aiming
     /// <summary>
     /// What the hands do this frame: <paramref name="pressed"/> is E, or the left button on a piece of
     /// debris; <paramref name="held"/> the left button. A press within reach sends what is pressed, unless
-    /// the sim would refuse it. Held on a blueprint still lacking something, it delivers once: the caller
-    /// keeps the blueprints served in this hold and passes them to <see cref="AimAt"/>, so sweeping the
-    /// pointer delivers to each it passes. Held on a plan with all it needs, or a mark, it sends one
-    /// <see cref="Work"/> for every tick released since the last it sent for, so a peer drawing fewer
-    /// frames than the ticks it runs builds as fast as any other; a hold just begun sends one.
+    /// the sim would refuse it. Held on a plan, it sends one <see cref="Work"/> for every tick released since
+    /// the last it sent for, so a peer drawing fewer frames than the ticks it runs builds as fast as any other;
+    /// a hold just begun sends one. A tick that begins a part of a blueprint pays its item (0063).
     /// <paramref name="tick"/> is the client's world tick.
     /// </summary>
     public static Uses UsesOf(Aim? aim, bool pressed, bool held, int tick, int workedOnTick)
     {
-        if (aim is not { InReach: true }) return new([], null, null, -1);
-        if (pressed && aim.Crate is int crate) return new([], crate, null, -1);
+        if (aim is not { InReach: true }) return new([], null, -1);
+        if (pressed && aim.Crate is int crate) return new([], crate, -1);
         var commands = new List<Command>();
         // A wreck is chopped by a swing of the axe (AxeSwing), never by a press.
         if (pressed && aim.Press is { Problem: null } press && press.Command is not Hit) commands.Add(press.Command);
-        if (aim.Work is not { Problem: null } work || !held) return new(commands, null, null, -1);
-        if (work.Delivers) return new([.. commands, new Work(work.Plan)], null, work.Plan, -1);
+        if (aim.Work is not { Problem: null } work || !held) return new(commands, null, -1);
         // A hold just begun sends one; so does a load that took the world's tick back.
         bool fresh = workedOnTick < 0 || tick < workedOnTick;
         int due = fresh ? 1 : Math.Min(tick - workedOnTick, MaxWorkPerFrame);
         for (int i = 0; i < due; i++) commands.Add(new Work(work.Plan));
-        return new(commands, null, null, due > 0 ? tick : workedOnTick);
+        return new(commands, null, due > 0 ? tick : workedOnTick);
     }
 }

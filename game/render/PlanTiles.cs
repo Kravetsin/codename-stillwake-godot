@@ -25,12 +25,19 @@ public enum PlanLook
 /// The ship's tile layers again, for what is not built yet: plans and ghosts are laid here, each picture
 /// on the layer the grid would draw it on, all drawn together in one <see cref="PlanLook"/> coloured by
 /// <see cref="CanvasItem.Modulate"/>. Unlit, so a plan reads in the dark and gives no light. <see cref="Begin"/>
-/// erases only the cells laid since the last one.
+/// erases only the cells laid since the last one. A plan being built is laid cut (<see cref="PlanCut"/>): its ghost
+/// only beyond the line, drawn here a region of the atlas at a time beside each layer, the rest real in
+/// <see cref="BuiltParts"/>.
 /// </summary>
 public partial class PlanTiles : Node2D
 {
     private readonly TileMapLayer[] _layers = new TileMapLayer[8];
     private readonly List<(TileLayer Layer, Vector2I At)> _laid = [];
+    /// <summary>The ghosts of plans being built, beyond their cuts: a region of the atlas each, a canvas item a layer over its tiles.</summary>
+    private readonly Sketch[] _cut = new Sketch[8];
+    private readonly List<(Rect2 Rect, Rect2 Source)>[] _cutPieces = new List<(Rect2, Rect2)>[8];
+    private readonly BuiltParts? _built;
+    private const int Cell = ShipCamera.Cell;
     private readonly ShipTiles _tiles = ShipTiles.Shared;
 
     private static readonly Shader Ghost = new()
@@ -79,23 +86,30 @@ public partial class PlanTiles : Node2D
     /// <param name="look">A plan's or a ghost's, or a mark's.</param>
     /// <param name="backAlpha">How strongly a back wall shows against the rest: fainter, as it is behind.</param>
     /// <param name="tint">How much of the node's colour a <see cref="PlanLook.Ghost"/> takes on.</param>
+    /// <param name="built">Where the real share of a plan laid cut is drawn.</param>
     /// <param name="backZ">
     /// Where back walls are drawn in the world, if not with the rest: a plan's just over the rooms' air,
     /// under what is built in front of them.
     /// </param>
-    public PlanTiles(PlanLook look, float backAlpha = 1, float tint = 0.3f, int? backZ = null)
+    public PlanTiles(PlanLook look, float backAlpha = 1, float tint = 0.3f, int? backZ = null, BuiltParts? built = null)
     {
+        _built = built;
         var unlit = new ShaderMaterial { Shader = look == PlanLook.Ghost ? Ghost : Projection };
         if (look == PlanLook.Ghost) unlit.SetShaderParameter("tint", tint);
         for (int i = 0; i < _layers.Length; i++)
         {
             _layers[i] = new TileMapLayer { TileSet = _tiles.Set, Material = unlit };
-            if (i == (int)TileLayer.Back)
+            var pieces = _cutPieces[i] = [];
+            _cut[i] = new Sketch(0, lit: true) { Material = unlit, Paint = g => DrawCut(g, pieces) };
+            foreach (CanvasItem item in (CanvasItem[])[_layers[i], _cut[i]])
             {
-                _layers[i].Modulate = new Color(1, 1, 1, backAlpha);
-                if (backZ is int z) (_layers[i].ZAsRelative, _layers[i].ZIndex) = (false, z);
+                if (i == (int)TileLayer.Back)
+                {
+                    item.Modulate = new Color(1, 1, 1, backAlpha);
+                    if (backZ is int z) (item.ZAsRelative, item.ZIndex) = (false, z);
+                }
+                AddChild(item);
             }
-            AddChild(_layers[i]);
         }
     }
 
@@ -104,17 +118,50 @@ public partial class PlanTiles : Node2D
     {
         foreach (var (layer, at) in _laid) _layers[(int)layer].EraseCell(at);
         _laid.Clear();
+        for (int i = 0; i < _cutPieces.Length; i++)
+        {
+            if (_cutPieces[i].Count == 0) continue;
+            _cutPieces[i].Clear();
+            _cut[i].QueueRedraw();
+        }
+        _built?.Begin();
     }
 
-    /// <summary>Lays <paramref name="placement"/> at <paramref name="cell"/>, joined on the sides in <paramref name="linked"/>.</summary>
-    public void Lay(Placement placement, int cell, int width, int linked)
+    /// <summary>
+    /// Lays <paramref name="placement"/> at <paramref name="cell"/>, joined on the sides in <paramref name="linked"/>;
+    /// with a <paramref name="cut"/>, only its ghost beyond the line, the rest real in the <see cref="BuiltParts"/>.
+    /// </summary>
+    public void Lay(Placement placement, int cell, int width, int linked, PlanCut? cut = null)
     {
         var at = new Vector2I(cell % width, cell / width);
         foreach (var piece in BlueprintArt.PiecesOf(placement, linked))
         {
             var tile = piece.Cut ? _tiles.CutAt(piece.Picture, at.X, at.Y) : _tiles.At(piece.Picture);
-            Put(piece.Layer, at, tile);
+            if (cut is not { } line)
+            {
+                Put(piece.Layer, at, tile);
+                continue;
+            }
+            // A tile covers its picture from the cell, whole cells of it: one cut from a picture over the world, one.
+            var size = (piece.Cut ? Vector2I.One : _tiles.SizeOf(piece.Picture)) * Cell;
+            var (real, plan) = line.Split((at.X * Cell, at.Y * Cell, size.X, size.Y));
+            Region(plan, at, tile, (rect, source) => _cutPieces[(int)piece.Layer].Add((rect, source)));
+            Region(real, at, tile, (rect, source) => _built?.Add(piece.Layer, rect, source));
+            _cut[(int)piece.Layer].QueueRedraw();
         }
+    }
+
+    /// <summary>The atlas region under <paramref name="part"/> of the tile at <paramref name="tile"/> laid at cell <paramref name="at"/>, handed to <paramref name="to"/> with where it goes; nothing for an empty part.</summary>
+    private static void Region((int X, int Y, int W, int H) part, Vector2I at, Vector2I tile, System.Action<Rect2, Rect2> to)
+    {
+        if (part.W <= 0 || part.H <= 0) return;
+        var rect = new Rect2(part.X, part.Y, part.W, part.H);
+        to(rect, new Rect2((Vector2)(tile * Cell) + rect.Position - (Vector2)(at * Cell), rect.Size));
+    }
+
+    private void DrawCut(Sketch g, List<(Rect2 Rect, Rect2 Source)> pieces)
+    {
+        foreach (var (rect, source) in pieces) g.DrawTextureRectRegion(_tiles.Texture, rect, source);
     }
 
     /// <summary>

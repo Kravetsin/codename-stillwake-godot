@@ -127,8 +127,10 @@ A living document: what is decided about the game and what is still open. Techni
   connect to conduits. Materials differ in strength against meteors, air leaks and cost. Overlays
   show air, pipes and power. The hands do one thing at a time: with the plan taken out (B) the
   player lays blueprints and marks what to take apart; with it put away, the left button held
-  delivers to them and builds them by hand. Crafted tools will build faster than bare hands; drones
-  come later.
+  builds them by hand, putting in an item from the hero's pockets as each part of the work begins,
+  and the pale plan turns into the real thing a part at a time, bottom up, a floor or a pipe from the
+  left ([0063](decisions/0063-blueprints-are-paid-a-part-at-a-time.md)). Run out and the work stops
+  where it is. Crafted tools will build faster than bare hands; drones come later.
 - **The screen speaks without words.** What is always on screen shows the ship's state by colour
   and motion: a room losing air pulses red, pipes carrying oxygen glow, a low suit reddens the
   screen's edges, air escaping through the hull is seen leaving. Text is on demand, in overlays and by

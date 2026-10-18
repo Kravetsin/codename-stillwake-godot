@@ -1,10 +1,10 @@
 # Building
 
 Plans, and the work that turns them into the ship. A plan is a blueprint, which puts something in a
-cell (a wall, a pipe, a tank) once what it costs has been delivered to it and heroes have worked on
-it, or a mark on what a layer of a cell holds, taken out by heroes' work. Both complete through
+cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a part as they go
+(ADR 0063), or a mark on what a layer of a cell holds, taken out by heroes' work. Both complete through
 `Grid`'s operations, paid from and refunded to the inventories in `Items`. Ported from
-`packages/sim/src/modules/building`; its rules hold here unchanged.
+`packages/sim/src/modules/building`; its rules hold here but for the payment a part at a time.
 
 - **Depends on:** `Grid` (`IGridQueries`, `IGridOps`) and `Items` (`IItemsQueries`, `IItemsOps`);
   `Power` (`IPowerQueries.Cabled`), to keep a cabled machine standing; `Research`
@@ -12,11 +12,13 @@ it, or a mark on what a layer of a cell holds, taken out by heroes' work. Both c
   (`ICraftingQueries.Queue`), to keep a station with crafts queued standing (0057).
 - **State** (`BuildingState`, members internal): `Plans` in the order they were made, each a `Plan`
   with its `Progress` in ticks of work — a blueprint (`Place` set) with what was `Delivered` to it so
-  far, as `Stack`s in the order first given, or a mark (`Clear`, the layer, set); `NextPlanId`. All
-  saved; nothing is derived.
+  far, an item a part begun, as `Stack`s in the order first given, or a mark (`Clear`, the layer, set);
+  `NextPlanId`. All saved; nothing is derived. Paying a part at a time needed no new field: what was paid
+  and the work done were saved already, and an older save's blueprint, paid in full or in part before any
+  work, works on.
 - **Files:** `Rules.cs` — which plans may be made and worked; `Costs.cs` — what things cost, from
-  content, and what a blueprint still lacks; `Building.cs` — the module, its commands and queries;
-  `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
+  content, what a blueprint still lacks and the parts its work is paid in; `Building.cs` — the module, its
+  commands and queries; `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
 
 ## Rules
 
@@ -33,22 +35,25 @@ it, or a mark on what a layer of a cell holds, taken out by heroes' work. Both c
   ends on, only with its cables cut, refused with `building.cabled`. Both are checked again when the
   mark is worked. A machine's mark is kept at the machine's top-left, whichever of its cells was
   marked. A marked thing is still built, so the grid refuses a plan for that slot until it is gone.
-- **`Work` is the left button held on a plan.**
-  - On a blueprint still lacking something it takes from the sender, item by item, the lesser of
-    what the blueprint lacks and what the sender carries, and adds it to `Delivered`; no work is
-    done. Refused with `items.notEnough` when the sender carries none of what is lacking. Several
-    heroes may deliver to one, each paying only what is still lacking. The client sends one per
-    blueprint per hold of E, so sweeping the pointer delivers to every blueprint it passes.
-  - On a blueprint with all it costs, or on a mark, it is one tick of one hero's work, sent every
-    tick the player holds E on it within reach. Two heroes on one plan work it twice as fast, and
-    work stopped keeps its progress. The tick that reaches its ticks completes it: a blueprint
-    takes its build's `BuildTicks` (`Materials` for walls and back walls, `Builds`, `Machines`) and is
-    built; a mark takes those of what it names divided by `Builds.DeconstructSpeedup`, rounded up, and
-    takes it apart, refunding its whole cost to the sender, what does not fit falling on the floor at
-    it (`IItemsOps.GiveOrDrop`).
+- **`Work` is the left button held on a plan:** one tick of one hero's work, sent every tick the player
+  holds E on it within reach. Two heroes on one plan work it twice as fast, and work stopped keeps its
+  progress. The tick that reaches its ticks completes it: a blueprint takes its build's `BuildTicks`
+  (`Materials` for walls and back walls, `Builds`, `Machines`) and is built; a mark takes those of what
+  it names divided by `Builds.DeconstructSpeedup`, rounded up, and takes it apart, refunding its whole
+  cost to the sender, what does not fit falling on the floor at it (`IItemsOps.GiveOrDrop`).
+- **A blueprint is paid a part at a time** (ADR 0063). Its work is split into as many parts as its cost
+  has items: a scrap wall's 2, a vent's 2 (a plate, a tube), a tank's 5. Part k of N begins at tick
+  `BuildTicks * k / N`, rounded down, so the first begins with the first tick and a scrap wall's 13
+  ticks split 6 and 7; content gives every part a tick at least (`ContentTests`).
+  - The tick that begins a part not paid for yet first takes one item from the sender into
+    `Delivered`: the first item in the cost's order that the blueprint still lacks and the sender
+    carries. So a vent is paid its plate, then its tube; a hero carrying only the tube pays it first.
+  - A hero carrying none of what is still lacking is refused there with `items.notEnough`, the work
+    stopping at the part's start and what was put in staying. Within a part paid for, anyone works on,
+    carrying nothing. Each hero pays from their own inventory, whoever reaches the part.
   - In creative mode a blueprint lacks nothing: it is worked as it is, taking nothing.
-- **Cancelling** a blueprint lets what was delivered fall on the floor at it, dropped by whoever
-  cancels (`IItemsOps.DropAt`); cancelling a mark drops nothing.
+- **Cancelling** a blueprint, however far it was built, lets exactly what was put in fall on the floor at
+  it, dropped by whoever cancels (`IItemsOps.DropAt`); cancelling a mark drops nothing.
 - What a thing costs and takes: its material's for a wall or a back wall (`Materials`: scrap for
   scrap, plates for iron), `Builds` and `Machines` otherwise.
 - Anyone may cancel or work on any plan.
@@ -66,8 +71,10 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   from a cell next, of the layers given or all (a machine, then a conduit, then the structure, then
   the back wall, passing over what is marked already; when all is marked, the top one) and where its
   mark is kept, as `(Layer, Cell)`, null for nothing there; `WorkProblem(planId, peer)` — the refusal
-  that peer's `Work` would get; `Lacking(planId)` — what a blueprint still lacks before work may
-  begin; `TicksFor(planId)` — the ticks a plan takes in all, null for no plan; `CostOf(planId)` —
+  that peer's `Work` would get; `Lacking(planId)` — what a blueprint still lacks of its cost, nothing in
+  creative mode; `Parts(planId)` — `(In, Of)`: the parts of a blueprint put in, of all its parts, those paid
+  for or, in creative mode, those its work began, what the client draws built, null for a mark or no plan;
+  `TicksFor(planId)` — the ticks a plan takes in all, null for no plan; `CostOf(planId)` —
   what a blueprint costs in all, null for a mark or no plan; `CostFor(placement)` — what placing it
   costs, for the build menu.
 - **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.unknown`,
@@ -85,7 +92,8 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 
 - No two plans share a slot of a cell; no two marks share a thing.
 - Plan ids only grow and are never reused.
-- A blueprint's `Delivered` never exceeds its cost, and it is worked only with all of it delivered.
+- A blueprint's `Delivered` never exceeds its cost, and, but in creative mode, its work never passes the
+  end of the parts paid for: with k of N parts paid, `Progress <= BuildTicks * k / N`.
 - A plan's progress stays below its ticks: the tick that reaches them completes it.
 - Items are conserved across inventories, the floor, blueprints and what is built, but for what
   drifts off the grid from space (Items' floor rules): a delivery cancelled, or a refund that does not
@@ -101,11 +109,17 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 - No reach is checked in the sim: the client sends E only on plans within its hero's reach.
 - A blueprint finished on the cell its hero stands in puts the hero inside what was built.
 - Taking apart what is built needs no knowledge of it (ADR 0024): its refund is its cost.
+- A blueprint part built is nothing in the grid until its last tick: a half-built wall holds no air,
+  blocks no light and stops no one (accepted, 0063).
+- Creative mode, a dev panel switch, turned off on a blueprint worked past what was paid: each tick
+  after pays an item until the parts paid catch up with the work; no rule makes up the difference.
 
 ## Differences from TypeScript
 
 - `problem(cell, action)` is two overloads, `Problem(cell, placement)` and `Problem(cell, layer)`;
   a plan is one record with `Place` or `Clear` set, where TypeScript has a union.
 - `Delivered` is a list of `Stack`s, where TypeScript has an object; a cost is a list of pairs.
+- A blueprint is paid an item a part as it is worked (0063); TypeScript took all it lacked on the first
+  press, before any work.
 - `Deconstruct` is a record with a constructor, not a positional one: a positional record would
   generate a `Deconstruct` method, which the type's own name forbids.

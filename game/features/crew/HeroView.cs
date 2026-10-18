@@ -93,8 +93,6 @@ public partial class HeroView : Node2D
     /// <summary>The world tick the last <c>Enter</c> went out on: the report waits <c>Crew.ReportEvery</c> after it (0050).</summary>
     private int _reportedAt = -Content.Crew.ReportEvery;
     private double _clockMs;
-    /// <summary>The blueprints delivered to in this hold of the left button: a sweep delivers to each it passes once.</summary>
-    private readonly HashSet<int> _served = [];
     private int _workedOnTick = -1;
     /// <summary>
     /// This hero's axe swinging, and the side it faces while it does, toward the swing's point as it began
@@ -379,11 +377,10 @@ public partial class HeroView : Node2D
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, Pose pose,
         double elapsedMs, bool handFree)
     {
-        if (!_mouse.Buttons.HoldsRight) _served.Clear();
         bool axe = handFree && _ui.Wielded.Get() == Content.Weapons.Axe.Item;
         bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
         bool drill = handFree && _ui.Wielded.Get() == Content.Weapons.Drill.Item;
-        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), _served, axe, gun, drill) : null;
+        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill) : null;
         var prompt = passedOut ? null : Prompts.Of(m, aim, shown);
         TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
@@ -399,7 +396,6 @@ public partial class HeroView : Node2D
         bool acts = !passedOut && handFree;
         var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, !passedOut && _mouse.Buttons.HoldsRight, client.World.Tick, _workedOnTick);
         _workedOnTick = uses.WorkedOnTick;
-        if (uses.Served is int served) _served.Add(served);
         foreach (var command in uses.Commands) client.Send(command);
         if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister)) _act.Play(Floats);
         // Held on a plan it can work, the hero turns its screwdriver at it.

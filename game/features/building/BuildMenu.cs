@@ -13,7 +13,7 @@ namespace Stillwake.Game.Features.Building;
 /// while it is out: the build menu's tabs of what can be built — each tab the mode, its overlay showing
 /// while it is open — each card a picture of what it builds, its name, cost and use in the one tooltip
 /// by the pointer, so a card is swapped for another at a click. A plan costs nothing until it is
-/// delivered to, so a card the player carries too little for is as bright as any. It opens on the tab
+/// worked, an item a part (0063), so a card the player carries too little for is as bright as any. It opens on the tab
 /// it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B or Esc
 /// puts the plan away; with it away, the key that takes it out. Q picks the card under the pointer.
 /// Only what the world knows is shown (0024): a tab with nothing known, not at all, nor its mode.

@@ -617,6 +617,8 @@ public class ContentTests
                 Assert.True(amount > 0, item);
             }
             Assert.True(buildTicks > 0);
+            // A tick of work at least for each item, so every part a build is paid in has a tick (0063).
+            Assert.True(buildTicks >= cost.Sum(c => c.Count), $"{buildTicks} ticks for {cost.Sum(c => c.Count)} items");
         }
     }
 

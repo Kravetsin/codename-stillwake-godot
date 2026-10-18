@@ -91,4 +91,25 @@ public class PlanLookTests
         static (int, int, int, int)[] Dashes(OutlineRun run, double offset) =>
             PlanOutline.Dashes(run, offset, 3, 5).Select(d => (d.X, d.Y, d.W, d.H)).ToArray();
     }
+
+    [Fact]
+    public void APlanBeingBuiltTurnsRealFromTheBottomAPartAStepAndAFloorOrAConduitFromTheLeft()
+    {
+        // A wall at cell (2, 3) of two parts, one put in: its bottom half real, its top half a plan.
+        var wall = PlanCut.Of((2 * Cell, 3 * Cell, Cell, Cell), PlanCut.FromLeftFor("structure", "wall"), 1, 2);
+        Assert.Equal(((32, 56, 16, 8), (32, 48, 16, 8)), wall.Split((32, 48, 16, 16)));
+        // Nothing put in leaves it all a plan; all of it, all real.
+        Assert.Equal((0, 16), (Height(PlanCut.Of((0, 0, Cell, Cell), false, 0, 2), 0), Height(PlanCut.Of((0, 0, Cell, Cell), false, 2, 2), 0)));
+        // A tank two cells square, 5 parts, 3 in: 32 * 3 / 5 = 19 rows real, rounded down, in the lower cell 16 and the upper 3.
+        var tank = PlanCut.Of((0, 0, 2 * Cell, 2 * Cell), false, 3, 5);
+        Assert.Equal(19, Height(tank, 0) + Height(tank, Cell));
+        Assert.Equal((3, 16), (Height(tank, 0), Height(tank, Cell)));
+        // A floor and a valve, half in, real on their left.
+        Assert.True(PlanCut.FromLeftFor("structure", "floor") && PlanCut.FromLeftFor("conduit", "valve"));
+        Assert.False(PlanCut.FromLeftFor("back", "backWall") || PlanCut.FromLeftFor("machine", "vent"));
+        var floor = PlanCut.Of((Cell, 0, Cell, Cell), true, 1, 2);
+        Assert.Equal(((16, 0, 8, 4), (24, 0, 8, 4)), floor.Split((16, 0, 16, 4)));
+
+        static int Height(PlanCut cut, int y) => cut.Split((0, y, 2 * Cell, Cell)).Real.H;
+    }
 }

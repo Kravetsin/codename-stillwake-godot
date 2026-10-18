@@ -28,8 +28,8 @@ public sealed record Deconstruct : Command
 public sealed record CancelPlan(int Id) : Command;
 
 /// <summary>
-/// E on plan <c>Plan</c>: a delivery to a blueprint still lacking something, otherwise one tick of a
-/// hero's work, sent every tick the player holds E on it within reach.
+/// E on plan <c>Plan</c>: one tick of a hero's work, sent every tick the player holds E on it within reach.
+/// A tick that begins a part of a blueprint's work first takes that part's item from the hero (ADR 0063).
 /// </summary>
 public sealed record Work(int Plan) : Command;
 
@@ -94,16 +94,28 @@ public sealed partial class BuildingModule : Module<BuildingState>
     /// <summary>Why peer <paramref name="peer"/>'s work on plan <paramref name="id"/> would be refused: what the client shows first.</summary>
     public string? WorkProblem(int id, int peer) => WorkProblemOf(id, peer);
 
-    /// <summary>What blueprint <paramref name="id"/> still lacks before work on it may begin: none for a mark or no plan.</summary>
+    /// <summary>What blueprint <paramref name="id"/> still lacks of its cost, paid an item a part as it is worked: none for a mark or no plan, nor in creative mode.</summary>
     public Cost Lacking(int id) => State.Plans.Find(p => p.Id == id) is { } plan ? LackOf(plan) : [];
 
-    /// <summary>Ticks of work plan <paramref name="id"/> takes in all, for its bar; null for no plan.</summary>
+    /// <summary>
+    /// How many parts of blueprint <paramref name="id"/> are put in, of all its parts, one an item of its cost: those
+    /// paid for, or in creative mode those its work has begun. What the client draws built; null for a mark or no plan.
+    /// </summary>
+    public (int In, int Of)? Parts(int id)
+    {
+        if (State.Plans.Find(p => p.Id == id) is not { Place: { } place } plan) return null;
+        // The parts the work so far has begun: the last tick worked is the one before Progress.
+        var (begun, parts) = plan.Progress > 0 ? PartsAt(place, plan.Progress - 1) : (0, PartsAt(place, 0).Parts);
+        return (Math.Min(parts, Math.Max(begun, PaidInto(plan))), parts);
+    }
+
+    /// <summary>Ticks of work plan <paramref name="id"/> takes in all, for a mark's bar; null for no plan.</summary>
     public int? TicksFor(int id) => State.Plans.Find(p => p.Id == id) is { } plan ? Costs.TicksFor(_grid, plan) : null;
 
     /// <summary>What placing <paramref name="placement"/> costs: a build menu card's price.</summary>
     public Cost CostFor(Placement placement) => Costs.BuildOf(placement).Cost;
 
-    /// <summary>What blueprint <paramref name="id"/> costs in all, for its tray and bar; null for a mark or no plan.</summary>
+    /// <summary>What blueprint <paramref name="id"/> costs in all, for its tip; null for a mark or no plan.</summary>
     public Cost? CostOf(int id) =>
         State.Plans.Find(p => p.Id == id)?.Place is { } place ? Costs.BuildOf(place).Cost : null;
 
@@ -130,30 +142,24 @@ public sealed partial class BuildingModule : Module<BuildingState>
     }
 
     /// <summary>
-    /// A blueprint still lacking something takes from the sender, item by item, the lesser of what it
-    /// lacks and what the sender carries. Otherwise it is one tick of a hero's work: the last builds the
-    /// blueprint or takes apart what the mark names.
+    /// One tick of a hero's work: one that begins a part of a blueprint not paid for yet first takes an item
+    /// from the sender for it (<see cref="PaymentOf"/>). The last tick builds the blueprint or takes apart what
+    /// the mark names.
     /// </summary>
     private void ApplyWork(Work c)
     {
         int at = State.Plans.FindIndex(p => p.Id == c.Plan);
         var plan = State.Plans[at];
-        var due = LackOf(plan);
-        if (plan.Place != null && due.Count > 0)
+        if (Owes(plan))
         {
-            var carried = _items.Totals(c.From);
+            // Validation found something to pay with.
+            string item = PaymentOf(plan, c.From)!;
+            _itemsOps.Take(c.From, [(item, 1)]);
             var delivered = plan.Delivered.ToList();
-            foreach (var (item, n) in due)
-            {
-                int given = Math.Min(n, carried.FirstOrDefault(s => s.Item == item).Count);
-                if (given == 0) continue;
-                _itemsOps.Take(c.From, [(item, given)]);
-                int had = delivered.FindIndex(s => s.Item == item);
-                if (had < 0) delivered.Add(new Stack(item, given));
-                else delivered[had] = new Stack(item, delivered[had].Count + given);
-            }
-            State.Plans[at] = plan with { Delivered = delivered };
-            return;
+            int had = delivered.FindIndex(s => s.Item == item);
+            if (had < 0) delivered.Add(new Stack(item, 1));
+            else delivered[had] = new Stack(item, delivered[had].Count + 1);
+            plan = plan with { Delivered = delivered };
         }
         var worked = plan with { Progress = plan.Progress + 1 };
         State.Plans[at] = worked;
