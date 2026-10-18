@@ -184,6 +184,35 @@ public static class Tools
     }
 
     /// <summary>
+    /// The sides of <paramref name="cell"/> that <paramref name="place"/>, planned or in hand there, joins when
+    /// drawn: what is <paramref name="planned"/> beside it and what is built, as the grid would draw it built — a
+    /// pipe reaching every conduit, a wall running on into every wall, a door into the door above or below.
+    /// </summary>
+    public static int LinksOf(Placement place, int cell, int width, System.Func<int, IEnumerable<Placement>> planned, IGridQueries grid) =>
+        !Render.Blueprint.Joins(place, place) ? 0 : Render.Blueprint.LinksOf(cell, width, c =>
+            planned(c).Any(o => Render.Blueprint.Joins(place, o)) || BuiltAt(c, place.Layer, grid) is { } built && Render.Blueprint.Joins(place, built));
+
+    /// <summary>
+    /// The pipes and valves beside <paramref name="conduits"/>, the cells of planned ones or a ghost's, that
+    /// <paramref name="reach"/> them — built ones for a plan; built or planned for a ghost — each with the sides
+    /// toward them: drawn as the plan or ghost is, so they meet with no half cell between.
+    /// </summary>
+    public static List<(int Cell, int Sides)> StubsOf(IReadOnlySet<int> conduits, int width, System.Func<int, bool> reach)
+    {
+        var stubs = new List<(int Cell, int Sides)>();
+        var seen = new HashSet<int>();
+        foreach (int c in conduits)
+            foreach (int n in (int[])[c - width, c + 1, c + width, c - 1])
+            {
+                if (conduits.Contains(n) || !seen.Add(n) || !reach(n)) continue;
+                // Measured from the cell reached, so a row's end never reaches round to the next row.
+                int sides = Render.Blueprint.LinksOf(n, width, conduits.Contains);
+                if (sides != 0) stubs.Add((n, sides));
+            }
+        return stubs;
+    }
+
+    /// <summary>
     /// The pipette's card for <paramref name="cell"/> under <paramref name="overlay"/>: under the power
     /// overlay the cable, on a node a cable ends at; else the card that places what is there, planned or
     /// built, in <see cref="LayersFor"/>, if its blueprint is known.

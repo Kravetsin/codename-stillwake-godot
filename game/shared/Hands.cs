@@ -35,6 +35,9 @@ public partial class Hands : Node2D
     /// <summary>Whether the middle drag under way began on a cable: its release goes where its press went.</summary>
     private bool _cutting;
     private string? _overlayWas;
+    /// <summary>What this player carries is read this often into <see cref="Ui.Carried"/>: a panel reads on a timer.</summary>
+    private const double CarriedEveryMs = 250;
+    private double _sinceCarried = CarriedEveryMs;
 
     public Hands()
     {
@@ -56,6 +59,11 @@ public partial class Hands : Node2D
     {
         // Behind the open menu the hands point at nothing: no ghost, no tip, no work.
         var pointer = Ui.MenuOpen.Get() ? null : Mouse.Pointer();
+        if ((_sinceCarried += elapsedMs) >= CarriedEveryMs)
+        {
+            _sinceCarried = 0;
+            Ui.Carried = m.Items.Totals(client.Id);
+        }
         var buttons = Mouse.Buttons;
         // An overlay says what the pointer is on only while it shows; switched, it says nothing.
         string? overlay = Ui.OverlayOn;
@@ -73,7 +81,7 @@ public partial class Hands : Node2D
         _pipes.Visible = overlay == PipesOverlay.Id;
         if (_pipes.Visible) _pipes.Frame(client, m, elapsedMs);
         _air.Frame(client, m, pointer, elapsedMs);
-        Menu.Frame(m, client.Id, elapsedMs);
+        Menu.Frame(m);
         _tip.Frame(pointer);
     }
 }

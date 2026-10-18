@@ -79,6 +79,7 @@
     <Compile Include="../game/features/building/Drag.cs" Link="Game/Building/Drag.cs" />
     <Compile Include="../game/features/building/NearGrid.cs" Link="Game/Building/NearGrid.cs" />
     <Compile Include="../game/render/Blueprint.cs" Link="Game/Render/Blueprint.cs" />
+    <Compile Include="../game/render/PlanOutline.cs" Link="Game/Render/PlanOutline.cs" />
     <Compile Include="../game/features/crew/Prompt.cs" Link="Game/Crew/Prompt.cs" />
     <Compile Include="../game/shared/Predicted.cs" Link="Game/Shared/Predicted.cs" />
     <Compile Include="../game/features/power/Wiring.cs" Link="Game/Power/Wiring.cs" />

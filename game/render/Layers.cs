@@ -17,6 +17,9 @@ public static class Layers
     /// <summary>The air in the rooms and the lifepod's reach, over the back walls, behind all that stands in them (atmosphere).</summary>
     public const int Air = -9;
 
+    /// <summary>A planned back wall and its outline, just over the air, under all that is built in front of it (building).</summary>
+    public const int PlanBacks = -8;
+
     // The ship's structure and machines (grid), a socket on each powered machine.
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
 
