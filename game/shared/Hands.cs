@@ -25,6 +25,7 @@ public partial class Hands : Node2D
     public PlanHand Plan { get; }
     public WorldButtons Mouse { get; } = new();
     public BuildMenu Menu { get; }
+    public OverlayBar Overlays { get; }
 
     private readonly BuildingView _building;
     private readonly PowerView _power;
@@ -43,7 +44,8 @@ public partial class Hands : Node2D
         _air = new AirView(Ui);
         Menu = new BuildMenu(Plan, Ui);
         _tip = new PointerTip(Ui);
-        foreach (var node in (Node[])[Mouse, _air, _power, _pipes, _building, Menu, new OverlayBar(Ui), _tip]) AddChild(node);
+        Overlays = new OverlayBar(Ui);
+        foreach (var node in (Node[])[Mouse, _air, _power, _pipes, _building, Menu, Overlays, _tip]) AddChild(node);
     }
 
     /// <summary>

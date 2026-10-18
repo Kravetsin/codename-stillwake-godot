@@ -145,6 +145,9 @@ public partial class BuildMenu : CanvasLayer
         GetViewport().SetInputAsHandled();
     }
 
+    /// <summary>Where the menu lies on the screen, open or as its closed chip: what the crew's markers keep out of.</summary>
+    public Rect2 Covers => (_open.Visible ? _open : _closed).GetGlobalRect();
+
     /// <summary>One frame: what the world knows and what peer <paramref name="peer"/> carries, read on a timer while open.</summary>
     public void Frame(Registry m, int peer, double elapsedMs)
     {
