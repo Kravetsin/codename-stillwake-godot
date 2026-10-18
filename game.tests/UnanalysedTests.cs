@@ -27,9 +27,11 @@ public class UnanalysedTests
             Assert.False(With(false).Unknown(item), item);
             Assert.False(With(false).TipOf(item).Card!.Unknown, item);
         });
-        // In a cost: the canister in the jetpack's, planks in the crate's.
+        // In a cost: the canister in the jetpack's, planks in the harpoon's.
         Assert.True(With(false).Unknown("canister"));
         Assert.True(With(false).Unknown("planks"));
+        // Amended again: the furnace's salvage goes into the furnace alone, open from the start.
+        Assert.All(["scrapChunk", "hullPlate"], item => Assert.False(With(false).Unknown(item), item));
     }
 
     [Fact]
