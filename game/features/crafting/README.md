@@ -62,7 +62,9 @@ budding bush, with the glass's glints kept over it. The farm's icons are `art/it
 - On the right, inputs, queue, outputs (the logistics mockup). "Inputs", at a station that has them: its input
   slots, drawn and worked by the items feature (`InventoryPanel.Lend`) as any machine's, so a stack goes in and out
   by its clicks, the hand, drags and shift-clicks; laid out again only for another station or slot size. A
-  shift-click from the inventory goes onto its own kind there, else the first empty input (`Clicks`).
+  shift-click from the inventory goes onto its own kind there, else the first empty input (`Clicks`). The header
+  carries the logistics feature's drone badge (`FabricatorPanel.Served`, wired by `Main`, 0062): drones bring a head
+  entry fed from the inputs what it needs.
 - "Queue · shared": the station's `QueueMost` slots, each entry its item and units left, a mark in
   the top-left corner in its orderer's suit colour, the one at work filling its slot from the bottom,
   full while its unit waits for room. One fed from the inputs has a small blue inlet in its top-right corner, and

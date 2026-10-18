@@ -38,20 +38,23 @@ public static class Layers
     // The crew: what E would work outlined, every tether, others' heroes, then this machine's.
     public const int Aim = 11, Tethers = 12, OtherHeroes = 13, Hero = 14;
 
+    /// <summary>Drones flying with what they carry, over the heroes they pass (logistics, 0062).</summary>
+    public const int Drones = 15;
+
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
-    public const int Glows = 15;
+    public const int Glows = 16;
 
     /// <summary>A venting room's pulse, then the tanks' gauges (atmosphere).</summary>
-    public const int Pulse = 16, Gauges = 17;
+    public const int Pulse = 17, Gauges = 18;
 
     // The plan (building): blueprints, their marks and bars, the ghost of a drag, the hands at work.
-    public const int Plans = 18, PlanMarks = 19, PlanGhost = 20, PlanHands = 21;
+    public const int Plans = 19, PlanMarks = 20, PlanGhost = 21, PlanHands = 22;
 
     /// <summary>Dust, sparks, embers and air over everything in the world, plans included (effects).</summary>
-    public const int Effects = 22;
+    public const int Effects = 23;
 
     // An overlay over the whole world (air, pipes, power), what it marks, and the cable dragged in it.
-    public const int Overlay = 23, OverlayMarks = 24, OverlayHands = 25;
+    public const int Overlay = 24, OverlayMarks = 25, OverlayHands = 26;
 }
 
 /// <summary>

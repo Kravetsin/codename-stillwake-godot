@@ -128,8 +128,8 @@ public partial class ChargerLights : Node2D
         }
     }
 
-    /// <summary>The kinds of machine that charge what they hold.</summary>
-    private static readonly string[] Kinds = [.. Content.Machines.All.Where(s => s.Charges).Select(s => s.Kind)];
+    /// <summary>The kinds of machine that charge what they hold, but a drone bay: its pads show its drones (logistics).</summary>
+    private static readonly string[] Kinds = [.. Content.Machines.All.Where(s => s.Charges && s.Kind != Content.Logistics.Bay).Select(s => s.Kind)];
 
     /// <summary>Whether a network with something making power reaches the station: a full one draws nothing, so its share says nothing.</summary>
     private bool Powered(Machine m) => _power.NodeAt(m.Cell) is int node && _power.NetworkOf(node) is { Supply: > 0 };

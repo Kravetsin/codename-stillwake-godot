@@ -8,6 +8,7 @@ using Stillwake.Sim.Furnace;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Logistics;
 using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
@@ -35,6 +36,7 @@ public sealed class Registry
     public HazardsModule Hazards { get; }
     public DebrisModule Debris { get; }
     public FurnaceModule Furnace { get; }
+    public LogisticsModule Logistics { get; }
 
     /// <summary>In run order.</summary>
     public IReadOnlyList<Module> All { get; }
@@ -54,7 +56,8 @@ public sealed class Registry
         Hazards = new HazardsModule(Grid, Grid);
         Debris = new DebrisModule(Grid, Crew, Rooms, Items, Items);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Crafting, Crafting);
-        All = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace];
+        Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting);
+        All = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics];
     }
 
     /// <summary>

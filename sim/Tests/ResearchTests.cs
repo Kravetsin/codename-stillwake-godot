@@ -288,8 +288,9 @@ public class ResearchTests
                 Assert.Equal(("research.nothingToLearn", 0), (at?.Problem, Demand(w)));
             }
         });
-        // Tools and what is worn are known from the start; the canister is in the jetpack's cost.
-        Assert.All(["fireAxe", "harpoon", "drill", "jetpack", "battery"], item => Assert.False(Analysable.NeedsAnalysis(item), item));
+        // Tools and what is worn are known from the start; the canister is in the jetpack's cost, the battery in the drone's.
+        Assert.All(["fireAxe", "harpoon", "drill", "jetpack", "drone"], item => Assert.False(Analysable.NeedsAnalysis(item), item));
+        Assert.True(Analysable.NeedsAnalysis("battery"));
         Assert.True(Analysable.NeedsAnalysis("canister"));
     }
 

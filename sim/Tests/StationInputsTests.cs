@@ -37,10 +37,10 @@ public class StationInputsTests
     private static Scenario Feed(Scenario w, int count) => w.Do(new Move(new Slot(0), new Target(null, Former(w)), count)).Run();
 
     [Fact]
-    public void TheFormerTakesTwoInputsAndTheAssemblerThreeBeforeTheirThreeOutputsThePodNone()
+    public void TheFormerTakesTwoInputsAndTheAssemblerFourBeforeTheirThreeOutputsThePodNone()
     {
         Assert.Equal((2, 5), (Machines.Get("former").Inputs, Machines.Get("former").Slots));
-        Assert.Equal((3, 6), (Machines.Get("assembler").Inputs, Machines.Get("assembler").Slots));
+        Assert.Equal((4, 7), (Machines.Get("assembler").Inputs, Machines.Get("assembler").Slots));
         Assert.Equal((0, 3), (Machines.Get("lifepod").Inputs, Machines.Get("lifepod").Slots));
     }
 

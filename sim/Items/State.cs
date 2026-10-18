@@ -71,6 +71,9 @@ internal sealed class Runner
     public string Item { get; set; } = "";
 }
 
+/// <summary>The item an input slot of a fed station or a fire remembers (0062): what drones keep it full of, held or not.</summary>
+public sealed record Kept(int Machine, int Slot, string Item);
+
 /// <summary>The items' slice. Public so modules can be typed by it; its members internal.</summary>
 public sealed class ItemsState
 {
@@ -87,4 +90,6 @@ public sealed class ItemsState
     [JsonInclude] internal List<Runner> Running { get; set; } = [];
     /// <summary>Ticks since the world began, counted here: the module's own clock.</summary>
     [JsonInclude] internal int Ticks { get; set; }
+    /// <summary>What input slots remember, by machine and slot, in that order: the last item put in, until taken out by hand.</summary>
+    [JsonInclude] internal List<Kept> Kept { get; set; } = [];
 }

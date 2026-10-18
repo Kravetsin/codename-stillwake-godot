@@ -52,13 +52,15 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
     rotor), not tools. It costs 2 frames, a rotor, 2 gears and a circuit, so it opens once those four are
     analysed (0027). A plate takes 2 s at full power, about 2.8 s at 70%. Idle, it rests and draws nothing.
   - **The circuit assembler** makes the electronics: 2×2, it draws 2 and works at speed 1000, a queue of eight;
-    a circuit of a silicon and 2 wire in 80 ticks, a solar cell of a silicon, a glass and a wire in 100. It
+    a circuit of a silicon and 2 wire in 80 ticks, a solar cell of a silicon, a glass and a wire in 100, and on a
+    row of its own a drone of a rotor, 2 plates, a circuit and a battery in 160 (0062; a drone holds charge of its own,
+    made empty, and the battery's is lost there). It
     costs a frame, a rotor, a glass, 2 wire and a circuit, salvaged, so it opens once those five are analysed.
     Idle, it rests as the Former does. The pod and the Former make neither; the pod's list stops growing
     (0057).
-  - **Inputs** (0057): the Former has 2 input slots and the assembler 3, before their 3 outputs: as many as the
-    most distinct items any of their crafts needs (a rotor's gear and wire; a solar cell's silicon, glass and wire,
-    `ContentTests`). The pod has none, paid by hand by design. Items go in by hand as into any machine with inputs
+  - **Inputs** (0057): the Former has 2 input slots and the assembler 4, before their 3 outputs: as many as the
+    most distinct items any of their crafts needs (a rotor's gear and wire; a drone's rotor, plates, circuit and battery,
+    `ContentTests`; the assembler had 3, a solar cell's, until the drone, 0062). The pod has none, paid by hand by design. Items go in by hand as into any machine with inputs
     (`Items`: a move naming no slot into the first; the outputs only taken from).
   - `Craft(Machine, Recipe, Count, FromInputs)`, **paid** (the default), takes the cost of all `Count` units from the
     sender at once (nothing in creative mode); **fed from the inputs** it takes nothing and is never refused as
@@ -179,4 +181,5 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
 - What a cancelled entry fed from the inputs left in them stays there, crowding the next entry's items if they
   differ: the player takes it out by hand.
 - The pod takes no inputs: a craft from them there is refused (`crafting.noInputs`) rather than left waiting.
-- No requests yet: the inputs fill by hand until drones come (logistics, slice 2).
+- Drones are `Logistics`': they bring a head entry fed from the inputs what it needs, read through `Queue` and
+  `Progress` (0062); crafting knows nothing of them.

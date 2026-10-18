@@ -20,8 +20,10 @@ public class TestbedTests
 
     private static int IdOf(Registry m, string kind) => m.Grid.Machines.Single(x => x.Kind == kind).Id;
 
-    /// <summary>The crates, in id order: the first with everything, the second the farm's.</summary>
-    private static int[] Crates(Registry m) => [.. m.Grid.MachinesOf("crate").Select(x => x.Id).Order()];
+    /// <summary>The crate with everything and the farm's, by their cells on the map.</summary>
+    private static int[] Crates(Registry m) => [CrateAt(m, Testbed.Full), CrateAt(m, Testbed.FarmAt)];
+
+    private static int CrateAt(Registry m, (int X, int Y) cell) => m.Grid.MachineAt(cell.Y * Testbed.Map.Width + cell.X)!.Id;
 
     [Fact]
     public void DrawsEveryKindOfMachine()
@@ -70,7 +72,7 @@ public class TestbedTests
         Assert.Equal(Spec.Stations.Get("former").Speed, m.Crafting.Progress(former));
         // Endless plates fed from its inputs: the first took its iron as it began, creative mode or not.
         Assert.True(m.Crafting.Queue(former).Single() is { Recipe: "plate", FromInputs: true, Endless: true });
-        Assert.Equal(new Stack(Testbed.Pressing, Spec.Items.Get(Testbed.Pressing).Stack - 2), m.Items.Crate(former)[0]);
+        Assert.Equal(new Stack(Testbed.Pressing, Testbed.Pressed - 2), m.Items.Crate(former)[0]);
         // The smelter at work on both ticks, its own panel on the roof feeding it.
         int smelter = IdOf(m, "smelter");
         Assert.True(m.Crafting.Works(smelter));
@@ -86,5 +88,57 @@ public class TestbedTests
         Assert.True(m.Crafting.Works(capsule));
         Assert.Equal(2 * Spec.Stations.Get("growCapsule").Speed, m.Crafting.Progress(capsule));
         Assert.Equal(new Stack("seed", Testbed.Planted), m.Items.Crate(capsule)[0]);
+    }
+
+    [Fact]
+    public void ItsTwoDronesServeTheFurnaceTheFormerAndTheCapsuleFromTheSupplyCrateTheFarmCrateSwitchedOff()
+    {
+        var m = Built.Value;
+        int bay = IdOf(m, Spec.Logistics.Bay), supply = CrateAt(m, Testbed.Supply);
+        Assert.False(m.Logistics.Served(Crates(m)[1]));
+        Assert.True(m.Logistics.Served(supply) && m.Logistics.Served(Crates(m)[0]));
+        // Room one, beside the pod: through the closed door from room two, powered to charge its drones.
+        Assert.True(m.Grid.MachineById(bay)!.Cell % Testbed.Map.Width < 17);
+        Assert.Equal(Testbed.Drones, m.Items.Crate(bay).Count(s => s?.Item == Spec.Logistics.Drone) + m.Logistics.Drones.Count);
+        Assert.Equal(1000, m.Power.Satisfaction(bay));
+        Assert.All((string[])["furnace", "former", "growCapsule", "smelter", "assembler"], kind => Assert.True(m.Logistics.Reached(IdOf(m, kind)), kind));
+        Assert.True(m.Logistics.Reached(supply));
+    }
+
+    [Fact]
+    public void ItsDronesKeepTheFurnaceTheFormerAndTheCapsuleGoingForTenMinutesInAirThatHolds()
+    {
+        var m = new Registry();
+        var world = Testbed.Create(m.All);
+        int furnace = IdOf(m, "furnace"), former = IdOf(m, "former"), capsule = IdOf(m, "growCapsule");
+        int[] crates = [CrateAt(m, Testbed.Supply), Crates(m)[0]];
+        var launched = new HashSet<int>();
+        int empty = 0, longest = 0;
+        for (int t = 0; t < 10 * 60 * World.TicksPerSecond; t++)
+        {
+            world.Step([]);
+            foreach (var d in m.Logistics.Drones) launched.Add(d.Id);
+            empty = m.Items.Crate(furnace)[0] == null ? empty + 1 : 0;
+            longest = Math.Max(longest, empty);
+            if (t == 1200)
+            {
+                // Within a minute: a stack brought each, or near it as they work, and what they made in a crate.
+                Assert.True(m.Items.HeldFor(furnace, "planks") > 25 && m.Items.HeldFor(former, "iron") > 250 && m.Items.HeldFor(capsule, "seed") >= 5);
+                var held = crates.SelectMany(c => m.Items.Crate(c)).Where(s => s != null).Select(s => s!.Item).ToList();
+                Assert.Contains("scrap", held);
+                Assert.Contains("plate", held);
+            }
+        }
+        // The furnace fed the whole ten minutes: its input empty only while both drones charge, never half a minute, and
+        // most of what the supply crate held smelted.
+        Assert.True(longest < 30 * World.TicksPerSecond, $"the furnace stood empty {longest} ticks");
+        int left = m.Items.Crate(crates[0]).Sum(s => s?.Item == "scrapChunk" ? s.Count : 0);
+        Assert.True(Testbed.Supplies.Where(s => s.Item == "scrapChunk").Sum(s => s.Count) - left >= 120, $"{left} chunks left");
+        // The air held: every room but the airlock aired.
+        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 6 + 46);
+        Assert.All(m.Rooms.All.Where(r => r.Id != airlock), r => Assert.Equal(RoomStatus.Aired, m.Atmosphere.StatusOf(r.Id)));
+        // Two drones, many jobs, few launches: a drone takes its next job from where it is.
+        Assert.True(launched.Count < 60, $"{launched.Count} launches");
+        Assert.True(m.Items.Floor.Count == 0, string.Join(", ", m.Items.Floor.Select(f => $"{f.Item} {f.Count} at ({f.Cell % Testbed.Map.Width},{f.Cell / Testbed.Map.Width})")));
     }
 }

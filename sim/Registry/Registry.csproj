@@ -13,5 +13,6 @@
     <ProjectReference Include="../Furnace/Furnace.csproj" />
     <ProjectReference Include="../Crew/Crew.csproj" />
     <ProjectReference Include="../Debris/Debris.csproj" />
+    <ProjectReference Include="../Logistics/Logistics.csproj" />
   </ItemGroup>
 </Project>

@@ -11,7 +11,7 @@ mode, the world setting in which nothing is ever taken
 - **State:** `Inventories` — those changed at least once, by peer id in id order; `Crates` — the
   machines holding something, by machine id in id order; `Creative`; `Floor` — stacks lying about
   (`FloorStack`: id, item, count, charge, cell, x, y, vx, vy, by, at, and the `Body` it is part of, if any) in id order, with `NextFloorId`;
-  `Ticks`, the module's own clock; `Running` — the electric tools heroes run (`Runner`: peer, item), at most one a
+  `Ticks`, the module's own clock; `Kept` — what input slots remember (`Kept(Machine, Slot, Item)`), by machine and slot, sorted (0062); `Running` — the electric tools heroes run (`Runner`: peer, item), at most one a
   peer, in peer order (0055). All saved, as sorted lists; nothing is derived.
 - **Files:** `Stacks.cs` — the rules below, on slots; `Floor.cs` — stacks on the floor; `Items.cs` —
   the module, its commands and interfaces; `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
@@ -61,7 +61,7 @@ mode, the world setting in which nothing is ever taken
     with no inputs (the lifepod) takes nothing in, refused with `items.takeOnly` whichever slot is named.
   - A charging station (a machine with `Charges` set) holds only items with a `Capacity`: a move that would
     leave anything else in it, put or swapped in, is refused with `items.notBattery` (`Stacks.Unfit`).
-- **Charge** is filled at a charging station by `Power`, through `Charge(id, amount)`, never past full,
+- **Charge** is filled at a charging station (the charger, a drone bay) by `Power`, through `Charge(id, slot, amount)`, never past full,
   and spent from the belt by an electric tool through `Drain(peer, amount)`, `amount` in power-ticks (a
   running tool's `Draw` for a tick, the drill's 3, 0055): the first battery on the belt, in slot order, holding at least that pays it whole, so the belt drains left to right; false
   when none can. In creative mode nothing is taken and it answers true.
@@ -131,6 +131,21 @@ counted twice.
   one of it into them and `back` of itself, a crop's seeds, the caller checking `CanSmelt` first and drawing
   `back` (0060);
   `Consume(id, slot)` uses up one of what a slot holds, a fuel as a fire is lit.
+- **What an input remembers** (0062): each input slot of a fed station or of a machine with a fire (its fuel slot too)
+  remembers the item last in it, through every write of the machine's slots (`SetMachine`): what it holds now, or,
+  emptied by that write, what it held, so a slot burnt, smelted or grown down to nothing remembers its item. A `Move` or
+  `Drop` that takes all of a slot out, a hand's, makes it forget. `KeptAt(id, slot)` — the item, or null: what drones
+  refill (`Logistics`). Kept for a machine taken apart, never read: ids are never reused.
+- **Machine to machine,** for drones (`Logistics`, [0062](../../docs/decisions/0062-drones-keep-machines-going.md)), no
+  hero's inventory in between: `HeldFor(id, item)` — what a machine holds of an item where a delivery of it goes;
+  `RoomFor(id, stack)` — how many of a stack would go in; the operations `TakeFrom(id, slot, count)` — up to `count` from
+  any slot, outputs too, the stack taken with all it holds of its own, null for an empty slot; `PutIn(id, stack)` — as
+  much as fits, as a whole, onto stacks alike in slot order and then into empty slots, returning how many did not fit;
+  `LayDown(stack, cell)` — a stack on the floor, still, by `FloorStack.Nobody`, its charge with it. **Where a delivery
+  goes:** a fuel (`BurnTicks`) only into a machine's `FuelSlot`; anything else into its inputs but the fuel slot, so a
+  furnace's fuel and what it smelts never mix; a machine with no `Inputs` given (a crate) all its slots;
+  a charging station (the charger, a drone bay) nothing without a capacity: a bay takes drones, and batteries, to charge. In creative mode too: these only move what is there. Moves by hand
+  keep their own rules (`Move`: a slot named, or the first input).
 - **Crafting machines:** `OutputFull(id, cost)` — `items.full` when `cost` does not fit into the
   machine's outputs, its slots past its inputs; the operation `Output(id, cost)` puts it there, the
   caller checking `OutputFull` first: what `Crafting` makes. `InputsLack(id, cost)` — what of `cost` the machine's
@@ -143,9 +158,9 @@ counted twice.
   throws. `GiveOrDrop(peer, cost, cell)` — gives what fits; the rest falls on `cell`, dropped by that
   peer; it returns what it gave, by item: what a caught piece showed its catcher (`Debris`). `DropAt(peer, cost, cell)` — lets all of `cost` fall on `cell`, still, dropped by that peer:
   what a cancelled blueprint held; or by `FloorStack.Nobody`, for anyone to pick up at once: what a
-  broken wreck held. `Charge(id, amount)` — adds up to
-  `amount` of charge, stored in thousandths of a power-tick, to what machine `id`'s first slot holds, never past its capacity: `Power`'s
-  charging station; it throws for a slot holding nothing with a capacity. `Drain(peer, amount)` — takes
+  broken wreck held. `Charge(id, slot, amount)` — adds up to
+  `amount` of charge, stored in thousandths of a power-tick, to what slot `slot` of machine `id` holds, never past its capacity: `Power`'s
+  charging stations, a share for each slot short of full; it throws for a slot holding nothing with a capacity. `Drain(peer, amount)` — takes
   `amount` power-ticks from the first belt battery that holds that much, as above: a run's tick. `StopRunning(peer)` —
   stops whatever that peer's hero runs: `Crew`, as the hero passes out or leaves. `LeaveBody(peer, cell)` — leaves
   that peer's body on `cell`, as above: `Crew`, as its hero passes out; the caller passes a cell on the grid.

@@ -34,7 +34,7 @@ planned, a craft not known cannot be queued. Ported from `packages/sim/src/modul
   analysed alike, whether it opens anything yet or not.
 - **What needs analysis** (`Analysable`, 0027 amended): an item in some cost, a blueprint's, a
   craft's or the cable's, worked out from content, never listed. Any other item (the tools, the jetpack,
-  the battery, the seed, biomass, biofuel) is known from the start: an analyzer holding one does no
+  the drone, the seed, biomass, biofuel) is known from the start: an analyzer holding one does no
   work and says `research.nothingToLearn`. Made items in a cost (wire, a frame) stay analysable.
 - An empty slot, or one holding what needs no analysis or is analysed already, drops the work done;
   so does taking it out. Such an analyzer rests (`IPowerOps.Rest`), drawing no power from the next

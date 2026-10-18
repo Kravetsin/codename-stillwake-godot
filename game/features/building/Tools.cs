@@ -106,7 +106,7 @@ public static class Tools
             Place("assembler", new Placement("machine", "assembler")),
             Place("growCapsule", new Placement("machine", "growCapsule")),
         ]),
-        new("storage", [Place("crate", new Placement("machine", "crate"))]),
+        new("storage", [Place("crate", new Placement("machine", "crate")), Place("droneBay", new Placement("machine", "droneBay"))]),
     ];
 
     /// <summary>Every card, tab by tab.</summary>

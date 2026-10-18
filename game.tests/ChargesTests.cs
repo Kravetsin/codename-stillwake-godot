@@ -36,6 +36,10 @@ public class ChargesTests
         Assert.Equal("battery_empty", Charges.Picture(Battery, 0));
         Assert.Equal(Battery, Charges.Picture(Battery, 1));
         Assert.Equal("scrap", Charges.Picture("scrap", 0));
+        Assert.Equal("drone_empty", Charges.Picture(Spec.Logistics.Drone, 0));
+        // Every item that holds charge has its empty picture drawn.
+        string items = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "items");
+        Assert.All(Spec.Items.All.Where(i => i.Capacity != null), i => Assert.True(File.Exists(Path.Combine(items, $"{i.Id}_empty.png")), i.Id));
     }
 
     [Fact]

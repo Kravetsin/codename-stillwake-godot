@@ -19,7 +19,7 @@ once, and smelting has moved to `Crafting`.
   derived. Format 8 renamed a fire's `furnace` to `machine`; format 14 moved its `item` and `progress`
   to `Crafting`'s smelts and dropped the fires kept only for them.
 - **Files:** `Furnace.cs` — the module, its state and records.
-- **Runs** last in `Registry.All`, as in TypeScript's `MODULES`.
+- **Runs** after `Debris` and before `Logistics` in `Registry.All`, last of the modules TypeScript had.
 
 ## Rules
 
