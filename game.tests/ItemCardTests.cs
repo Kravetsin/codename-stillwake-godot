@@ -138,11 +138,11 @@ public class ItemCardTests
     [Fact]
     public void GiveEveryStackACardWithTheBandOnlyWhileNotAnalysedAndNeverInCreativeMode()
     {
-        Assert.True(With(false).TipOf("fireAxe").Card!.Unknown);
-        Assert.False(With(false, "fireAxe").TipOf("fireAxe").Card!.Unknown);
-        Assert.False(With(true).TipOf("fireAxe").Card!.Unknown);
         Assert.True(With(false).TipOf("iron").Card!.Unknown);
         Assert.False(With(false, "iron").TipOf("iron").Card!.Unknown);
+        Assert.False(With(true).TipOf("iron").Card!.Unknown);
+        // The fire axe goes into nothing: known from the start, never banded.
+        Assert.False(With(false).TipOf("fireAxe").Card!.Unknown);
         Assert.Equal("Iron", With(false).TipOf("iron").Name);
         Assert.Equal("? Not analysed", T("card.notAnalysed"));
     }
@@ -179,7 +179,7 @@ public class ItemCardTests
     [Fact]
     public void TellTipsWithCardsApartByWhatTheCardsSay()
     {
-        Tip Of(bool unknown) => With(!unknown).TipOf("fireAxe");
+        Tip Of(bool unknown) => new("Fire axe") { Card = ItemCards.Of("fireAxe", unknown) };
         Assert.Equal(Of(true), Of(true));
         Assert.Equal(Of(true).GetHashCode(), Of(true).GetHashCode());
         Assert.NotEqual(Of(true), Of(false));

@@ -2,7 +2,8 @@
 
 - Status: accepted; supersedes the unlocks, the schematics and the "moment is shown" of
   [0024](0024-blueprints-are-learned-by-analysis.md); the `Locked` list superseded by
-  [0041](0041-wreckage-of-many-kinds-and-circuits.md): the solar panel costs circuits and opens by the rule
+  [0041](0041-wreckage-of-many-kinds-and-circuits.md): the solar panel costs circuits and opens by the rule;
+  "every item is analysed alike" amended 2026-10-18: only what goes into some cost (below)
 - Date: 2026-10-14
 - Design: `docs/plans/crafting.md` (deleted once built)
 
@@ -20,7 +21,8 @@ or later automate between the furnace and the hull.
   holds what analysis cannot open yet (the solar panel, until electronics exist).
 - **Parts are crafted by hand** — wire of scrap, plates and gears of iron, a rotor of a gear and wire —
   and most builds cost parts. Each part opens as its materials are analysed; each build as its parts
-  are. Every item is analysed alike, raw or made, whether it opens anything yet or not.
+  are. Every item in some cost is analysed alike, raw or made, whether it opens anything yet or not
+  (amended: see the end).
 - **Research stores what is analysed,** sorted, and what was granted; what is known is worked out from
   costs when asked. A map grants `Layout.Known`, now naming crafts too; one that names nothing grants
   everything. The wreck grants the furnace, the analyzer, the crate, the scrap walls and the wire.
@@ -48,3 +50,23 @@ or later automate between the furnace and the hull.
   power or air.
 - The burner generator of the design's second task is the first build that needs a rotor and opens by
   this rule alone.
+
+## Amendment, 2026-10-18: only what goes into something is analysed
+
+Tools, the jetpack, the battery and the like showed the violet "?" and went into the analyzer, which
+then opened nothing. In Grounded the analyzer is for resources: what goes into recipes, to learn what
+can be made of it. Finished things are not analysed.
+
+- **An item needs analysis only when it is in some cost:** a blueprint's, a craft's or the cable's.
+  Worked out from content (`Research.Analysable`), never listed: an item that later joins a cost, the
+  engine's biofuel say, needs analysis from then on.
+- **Every other item is known from the start:** no "?" on it, no band on its card. An analyzer holding
+  one rests, draws no power and says why (`research.nothingToLearn`); its screen waits as an empty
+  one's does.
+- **Made items stay analysable** when they are in a cost (wire, plates, frames, circuits): analysing
+  one still says what it goes into.
+- Nothing saved changes: `Analysed` keeps what it holds, and an old save naming a tool there is
+  harmless. A recipe's `Unanalysed` is unaffected, since what is in a cost always needs analysis.
+
+Known from the start today: the fire axe, the harpoon, the drill, the jetpack, the battery, the seed,
+biomass and biofuel, and the containers, wreckage, asteroids and derelicts, which are never carried.

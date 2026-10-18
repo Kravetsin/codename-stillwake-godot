@@ -46,7 +46,7 @@ public class ResearchTests
     private static (Scenario W, int Id) SetUp(Layout? layout = null)
     {
         var w = new Scenario(layout ?? StartMap())
-            .GiveItems(0, ("iron", 5), ("scrap", 5), ("plate", 5), ("gear", 5), ("wire", 5), ("planks", 5));
+            .GiveItems(0, ("iron", 5), ("scrap", 5), ("plate", 5), ("gear", 5), ("wire", 5), ("planks", 5), ("fireAxe", 1));
         return (w, w.M.Grid.MachineAt(Analyzer)?.Id ?? 0);
     }
 
@@ -235,6 +235,64 @@ public class ResearchTests
         Assert.Equal(2, Demand(w));
     }
 
+    /// <summary>0027 amended: an analyzer is for what goes into something; a tool goes into nothing.</summary>
+    [Fact]
+    public void RestsOnAToolInNoCostSayingThereIsNothingToLearnAndThenAnalysesWhatIsInOne()
+    {
+        var (w, id) = SetUp();
+        Put(w, id, "fireAxe");
+        w.Run(2 * Ticks);
+        Assert.Equal(new Analyzing("fireAxe", 0, Work, "research.nothingToLearn"), w.M.Research.At(id));
+        Assert.Equal(0, Demand(w));
+        Assert.Empty(Analysed(w));
+        Assert.Equal(new Stack("fireAxe", 1), w.M.Items.Crate(id)[0]);
+        TakeOut(w, id);
+        Put(w, id, "planks").Run();
+        Assert.Equal(2, Demand(w));
+        w.Run(Ticks - 2);
+        Assert.Equal(["planks"], Analysed(w));
+    }
+
+    /// <summary>
+    /// Every item either goes into some cost — a blueprint's, a craft's, the cable's — and an analyzer works
+    /// on it, or goes into none and the analyzer rests on it saying so: no third case.
+    /// </summary>
+    [Fact]
+    public void AnalysesEveryItemInSomeCostAndRestsOnEveryOtherSayingThereIsNothingToLearn()
+    {
+        // Straight from content, beside Analysable's own reading of it.
+        var inACost = Content.Crafts.All.SelectMany(c => c.Cost)
+            .Concat(Content.Builds.All.SelectMany(b => b.Cost))
+            .Concat(Content.Materials.All.SelectMany(m => m.Cost))
+            .Concat(Content.Machines.All.SelectMany(m => m.Cost))
+            .Concat(Content.Power.CableCost)
+            .Select(c => c.Item).ToHashSet(StringComparer.Ordinal);
+        Assert.Equal(Sorted(inACost), Analysable.All);
+        // What a recipe waits for is always something an analyzer can learn.
+        var (fresh, _) = SetUp();
+        Assert.All(fresh.M.Research.Recipes().SelectMany(r => r.Unanalysed), item => Assert.True(Analysable.NeedsAnalysis(item), item));
+        Assert.All(Content.Items.All.Select(i => i.Id), item =>
+        {
+            var w = new Scenario(StartMap()).GiveItems(0, (item, 1));
+            int id = w.M.Grid.MachineAt(Analyzer)?.Id ?? 0;
+            Put(w, id, item).Run();
+            var at = w.M.Research.At(id);
+            if (inACost.Contains(item))
+            {
+                Assert.True(Analysable.NeedsAnalysis(item), item);
+                Assert.Equal(((string?)null, 2), (at?.Problem, Demand(w)));
+            }
+            else
+            {
+                Assert.False(Analysable.NeedsAnalysis(item), item);
+                Assert.Equal(("research.nothingToLearn", 0), (at?.Problem, Demand(w)));
+            }
+        });
+        // Tools and what is worn are known from the start; the canister is in the jetpack's cost.
+        Assert.All(["fireAxe", "harpoon", "drill", "jetpack", "battery"], item => Assert.False(Analysable.NeedsAnalysis(item), item));
+        Assert.True(Analysable.NeedsAnalysis("canister"));
+    }
+
     [Fact]
     public void StallsUnpoweredSayingSoAndWorksProportionallySlowerShortOfPower()
     {
@@ -341,7 +399,7 @@ public class ResearchTests
     {
         var items = Content.Items.All.Select(i => i.Id).ToList();
         var step = Gen.OneOf(
-            Gen.Elements("iron", "scrap", "plate", "gear", "wire", "planks").Select(item => new Step(item, false, 0)),
+            Gen.Elements("iron", "scrap", "plate", "gear", "wire", "planks", "fireAxe").Select(item => new Step(item, false, 0)),
             Gen.Constant(new Step(null, true, 0)),
             Gen.Choose(1, 2 * Ticks).Select(n => new Step(null, false, n)));
         var steps = from n in Gen.Choose(0, 25) from s in step.ArrayOf(n) select s;
@@ -357,7 +415,7 @@ public class ResearchTests
                 else w.Run(s.Run);
                 var now = Analysed(w).ToArray();
                 if (!before.All(now.Contains)) return false;
-                if (!now.All(items.Contains)) return false;
+                if (!now.All(items.Contains) || !now.All(Analysable.NeedsAnalysis)) return false;
                 if (now.Distinct().Count() != now.Length) return false;
                 if (!Sorted(now).SequenceEqual(now)) return false;
                 before = now;

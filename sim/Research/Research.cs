@@ -10,8 +10,8 @@ public sealed record Analysis(int Analyzer, int Progress);
 
 /// <summary>
 /// An analyzer as its panel shows it: what its slot holds, how far it is, out of how much work, and why
-/// it stands still if it does: <c>research.unpowered</c>, or <c>research.nothingNew</c> once what it
-/// holds is analysed.
+/// it stands still if it does: <c>research.unpowered</c>; <c>research.nothingNew</c> once what it
+/// holds is analysed; <c>research.nothingToLearn</c> for an item in no cost (<see cref="Analysable"/>).
 /// </summary>
 public sealed record Analyzing(string Item, int Progress, int Work, string? Problem);
 
@@ -118,7 +118,8 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         var item = ItemIn(id);
         if (item == null) return null;
         int progress = ProgressOf(id);
-        string? problem = IsAnalysed(item) ? "research.nothingNew"
+        string? problem = !Analysable.NeedsAnalysis(item) ? "research.nothingToLearn"
+            : IsAnalysed(item) ? "research.nothingNew"
             : _power.Satisfaction(id) == 0 ? "research.unpowered"
             : null;
         return new Analyzing(item, progress, Work, problem);
@@ -162,8 +163,8 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         foreach (var m in _grid.MachinesOf("analyzer"))
         {
             var item = ItemIn(m.Id);
-            bool works = item != null && !IsAnalysed(item);
-            // Empty, or what it holds analysed: what was done is dropped, and no power drawn.
+            bool works = item != null && Analysable.NeedsAnalysis(item) && !IsAnalysed(item);
+            // Empty, holding what is in no cost or what is analysed: what was done is dropped, no power drawn.
             _powerOps.Rest(m.Id, !works);
             if (!works) continue;
             // Analyses and analyzers are both in id order: one pass finds each analyzer's.

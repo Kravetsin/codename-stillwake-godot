@@ -18,6 +18,20 @@ public class UnanalysedTests
         Assert.False(With(true).Unknown("iron"));
     }
 
+    /// <summary>0027 amended: only what goes into some cost waits for an analyzer; the rest is known from the start.</summary>
+    [Fact]
+    public void MarkNoItemInNoCostAndBandNoCardOfOne()
+    {
+        Assert.All(["fireAxe", "harpoon", "drill", "jetpack", "battery", "biofuel"], item =>
+        {
+            Assert.False(With(false).Unknown(item), item);
+            Assert.False(With(false).TipOf(item).Card!.Unknown, item);
+        });
+        // In a cost: the canister in the jetpack's, planks in the crate's.
+        Assert.True(With(false).Unknown("canister"));
+        Assert.True(With(false).Unknown("planks"));
+    }
+
     [Fact]
     public void TipAStackByItsCardWithTheVioletBandUntilItIsAnalysed()
     {

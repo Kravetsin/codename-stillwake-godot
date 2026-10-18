@@ -9,7 +9,8 @@ namespace Stillwake.Game.Features.Items;
 /// An analyzer's panel's body (0027), in the machine frame: only about the item in its slot, the slot and its screen; empty, a hint;
 /// at work, a bar and how far it is in violet; done, in green, what that item goes into and under it
 /// every one, opened with a green edge, still closed greyed out, each saying in the one tooltip what it
-/// still waits for. Without power the screen is dark and the panel says so.
+/// still waits for. Without power the screen is dark and the panel says so; holding an item in no cost, it
+/// stays dark and says there is nothing to learn.
 /// </summary>
 public partial class AnalyzerPanel : VBoxContainer
 {
@@ -77,11 +78,14 @@ public partial class AnalyzerPanel : VBoxContainer
         _hint.Visible = stage == Stage.Empty;
         _bar.Visible = stage is Stage.Working or Stage.Unpowered;
         _bar.Value = lessons.Percent / 100.0;
-        _state.Visible = stage is Stage.Working or Stage.Done;
-        _state.LabelSettings = stage == Stage.Done ? Done : Working;
-        _state.Text = stage == Stage.Done
-            ? T("research.goesInto", ("item", T($"item.{lessons.Item}")))
-            : T("research.working", ("n", lessons.Percent));
+        _state.Visible = stage is Stage.Working or Stage.Done or Stage.NothingToLearn;
+        _state.LabelSettings = stage switch { Stage.Done => Done, Stage.NothingToLearn => Hint, _ => Working };
+        _state.Text = stage switch
+        {
+            Stage.Done => T("research.goesInto", ("item", T($"item.{lessons.Item}"))),
+            Stage.NothingToLearn => T("research.nothingToLearn", ("item", T($"item.{lessons.Item}"))),
+            _ => T("research.working", ("n", lessons.Percent)),
+        };
         _problem.Visible = stage == Stage.Unpowered;
         _problem.Text = T("research.unpowered");
         if (lessons.Key == _shown) return;

@@ -276,6 +276,7 @@ public static partial class En
         ["crafts.from.rock"] = "break asteroids",
         ["crafts.madeAt"] = "made at: {stations}",
         ["research.nothingNew"] = "Analysed",
+        ["research.nothingToLearn"] = "Nothing to learn · {item} goes into nothing",
         ["research.opened"] = "Opened",
         ["research.empty"] = "Put in an item to learn it",
         ["research.working"] = "Analysing… {n}%",
