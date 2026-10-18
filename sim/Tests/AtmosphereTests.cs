@@ -358,7 +358,7 @@ public class AtmosphereReadingTests
         int aired = w.M.Atmosphere.AiredCells.Count;
 
         var r = new Registry();
-        var loaded = World.Load(w.World.Save(), [.. r.All, new Builder(r.Grid, r.Grid), new Breather(r.Atmosphere)]);
+        var loaded = World.Load(w.World.Save(), [.. r.All, new Builder(r), new Breather(r.Atmosphere)]);
         Command[] commands = [new LoadCanister(tank) { From = 0 }, new BreatheNow(cell, 5)];
         w.World.Step(commands);
         loaded.Step(commands);

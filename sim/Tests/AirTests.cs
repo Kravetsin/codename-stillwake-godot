@@ -529,7 +529,7 @@ public class AirTests
                 w.Run(ticks);
                 if (!FreshOrders(w)) return false.Label($"orders after {cell}");
                 var m = new Registry();
-                var loaded = World.Load(w.World.Save(), [.. m.All, new Builder(m.Grid, m.Grid)]);
+                var loaded = World.Load(w.World.Save(), [.. m.All, new Builder(m)]);
                 if (!m.Atmosphere.RoomsAir().SequenceEqual(w.M.Atmosphere.RoomsAir())) return false.Label($"rooms' air after {cell}");
                 loaded.Step([]);
                 w.World.Step([]);
@@ -603,7 +603,7 @@ public class AirTests
             }
             // Loaded between beats, a world plays on exactly as the one that never stopped.
             var m = new Registry();
-            var loaded = World.Load(w.World.Save(), [.. m.All, new Builder(m.Grid, m.Grid)]);
+            var loaded = World.Load(w.World.Save(), [.. m.All, new Builder(m)]);
             for (int i = 0; i < Air.TicksPerCell * 3 + 1; i++)
             {
                 if (loaded.Hash() != w.World.Hash()) return false.Label($"hashes differ {i} ticks after the load");

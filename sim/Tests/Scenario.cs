@@ -1,3 +1,4 @@
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 
 namespace Stillwake.Sim.Tests;
@@ -5,16 +6,35 @@ namespace Stillwake.Sim.Tests;
 public sealed record Place(int Cell, Placement Placement) : Command;
 public sealed record ClearAt(int Cell, string Layer) : Command;
 
-/// <summary>Builds and clears at once, for tests: what building does through a hero's work.</summary>
+/// <summary>
+/// Builds and clears at once, for tests: what building does through a hero's work. With building in
+/// the world it builds nowhere a blueprint claims, as no build can: the blueprint's work would throw.
+/// </summary>
 public sealed class Builder : Module<Builder.Nothing>
 {
     public sealed class Nothing;
     public override string Id => "builder";
 
-    public Builder(IGridQueries grid, IGridOps ops)
+    public Builder(IGridQueries grid, IGridOps ops, BuildingModule? building = null)
     {
-        Handles<Place>(c => grid.PlacementProblem(c.Cell, c.Placement), c => ops.Place(c.Cell, c.Placement));
+        Handles<Place>(c => grid.PlacementProblem(c.Cell, c.Placement) ?? Claimed(grid, building, c), c => ops.Place(c.Cell, c.Placement));
         Handles<ClearAt>(_ => null, c => ops.Clear(c.Cell, c.Layer));
+    }
+
+    /// <summary>A builder for the world of <paramref name="m"/>, respecting its blueprints.</summary>
+    public Builder(Registry m) : this(m.Grid, m.Grid, m.Building) { }
+
+    /// <summary>Structure and machines share one slot; a conduit and a back wall each have their own (building's rule).</summary>
+    private static string SlotOf(string layer) => layer is "conduit" or "back" ? layer : "solid";
+
+    /// <summary><c>building.planned</c> when a blueprint claims the slot of a cell <paramref name="c"/> would fill.</summary>
+    private static string? Claimed(IGridQueries grid, BuildingModule? building, Place c)
+    {
+        if (building == null) return null;
+        var cells = c.Placement.Layer == "machine" ? grid.Footprint(c.Placement.Kind, c.Cell) ?? [c.Cell] : [c.Cell];
+        string slot = SlotOf(c.Placement.Layer);
+        bool claimed = cells.Any(cell => building.PlansAt(cell).Any(p => p.Place is { } other && SlotOf(other.Layer) == slot));
+        return claimed ? "building.planned" : null;
     }
 
     protected override Nothing Init(Layout layout) => new();
@@ -48,7 +68,7 @@ public sealed class Scenario
     public IReadOnlyList<Module> Modules()
     {
         M = new Registry();
-        return [.. M.All, new Builder(M.Grid, M.Grid), .. _with?.Invoke(M) ?? []];
+        return [.. M.All, new Builder(M), .. _with?.Invoke(M) ?? []];
     }
 
     public int At(int x, int y) => y * Layout.Width + x;

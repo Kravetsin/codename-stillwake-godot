@@ -146,6 +146,31 @@ public class BuildingTests
             PlansOf(w));
     }
 
+    /// <summary>
+    /// Plans claim their slots, so only another plan's build could fill one, and a plan refuses that:
+    /// the tests' instant builds, standing in for builds, claim nothing planned either. A lamp built at
+    /// once on a floor's blueprint left the floor's last tick of work throwing (GridTests' zone walk).
+    /// </summary>
+    [Fact]
+    public void TestBuildsAtOnceFillNoSlotABlueprintClaimsSoItsWorkStillBuildsIt()
+    {
+        var floor = new Placement("structure", "floor");
+        var w = new Scenario(Open)
+            .Do(new Items.SetCreative(true))
+            .Do(new PlacePlan(At(1, 1), floor))
+            .Do(new PlacePlan(At(3, 1), Tank))
+            .Run()
+            .Do(new Place(At(1, 1), new Placement("machine", "lamp")))
+            .Do(new Place(At(4, 2), Wall))
+            .Do(new Place(At(1, 1), Pipe))
+            .Run();
+        Assert.Equal(["building.planned", "building.planned"], Reasons(w));
+        Assert.Empty(w.M.Grid.Machines);
+        Assert.Equal(Conduit.Pipe, w.M.Grid.ConduitAt(At(1, 1)));
+        for (int i = 0; i < Builds.Get("floor").BuildTicks; i++) w.Do(new Work(1)).Run();
+        Assert.Equal(Structure.Floor, w.M.Grid.StructureAt(At(1, 1)));
+    }
+
     [Fact]
     public void PlansABackWallBehindAPlannedWallAndInSpaceButNotWhereOneStandsOrIsPlanned()
     {
