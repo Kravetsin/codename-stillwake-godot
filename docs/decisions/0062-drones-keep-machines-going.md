@@ -29,8 +29,13 @@ to set before anything moved. This version replaces it.
   - **A queued station** (the Former, the assembler) wants what its **head entry** needs when that entry is fed from
     its inputs: the cost of its units not begun, at most a stack of each item, short when under half that or under
     one unit's. A paid head entry wants nothing; so does what its inputs hold but the entry does not use.
-  - **An empty input is left alone.** So silicon never ends up in a furnace by itself, and a machine the player
-    has not started stays as it is.
+  - **An input remembers its item** (`Items`' `Kept`, by machine and slot, sorted, saved): the last item put in
+    it, by a hand or a drone, and kept through the slot being burnt, smelted or grown down to nothing. Drones refill a
+    remembered slot as one holding its item, empty included, so a furnace whose chunks ran out is fed again as soon as a
+    crate has some. Only a hand taking all of it out (a `Move` or a `Drop` that empties the slot) makes it forget.
+    Items owns it: it sees every write of a slot and tells a hand from a fire; logistics only reads it (`KeptAt`).
+  - **An input that remembers nothing is left alone.** So silicon never ends up in a furnace by itself, and a machine
+    the player has not started stays as it is.
   - **Outputs** (every machine's slots past its inputs, the pod's and queued stations' too) are carried to a crate:
     one already holding the item first, then the nearest with room, then the lowest id.
   - **Sources** are crates and machines' outputs. Crates are plain storage: no roles, no lamps.
@@ -41,7 +46,8 @@ to set before anything moved. This version replaces it.
 - **Matching,** from where a drone is (a bay, or a drone free in the air): every refill and every output a crate has
   room for, the one whose source is nearest by Manhattan distance, then the lowest source id and slot, a refill before
   an output, then the lowest target id. A drone carries a whole stack: the least of what is wanted, the source's
-  stack and the room at the target; an output, all there is when it arrives up to the crate's room.
+  stack and the room at the target; an output, all there is when it arrives up to the crate's room. What does not
+  fit at a target goes on to a crate with room, by the same choice as an output; with none it lies there.
 - **A drone bay** is a machine of four slots and a charging station; docked drones are items in its slots (a drone, a
   stack of one, made at the assembler). A bay looks every `LookEvery` ticks, spread by its id, and launches one drone at
   most a look: its first holding `LaunchAt`. Its **zone** is the square of cells within `Reach` of its footprint; one
@@ -55,7 +61,8 @@ to set before anything moved. This version replaces it.
   of a charging station** short of full, sharing what it draws between them, the rest of the division one each to the
   first in slot order: the charger's one slot is charged as before. A drone launches holding at least `LaunchAt`, half
   of full. Before a job it checks that its charge covers `Draw` × the Manhattan length from where it is to the source,
-  on to the target and home, and two cells; if not, it flies home marked low. In flight, at each cell centre, one
+  on to the target and home, each leg from a machine counted from its farthest cell, and two cells; if not, it flies
+  home marked low. In flight, at each cell centre, one
   breadth-first search finds both its next step and the way home; on a job, holding no more than the way home and two
   cells, it turns home marked low. Moving a cell costs at most what its way home shrinks by plus one cell, so it gets
   home: **no drone goes flat in the air** while nothing lengthens its way. One that cannot pay a tick (a wall built
@@ -67,7 +74,7 @@ to set before anything moved. This version replaces it.
   drops where it is, itself and its cargo as floor stacks.
 - **At the source** it takes what is there up to its job, less if a hero took some. **At the target** it puts in what
   fits — a fuel into the fuel slot, anything else into the inputs but the fuel slot, a crate across its slots — and lays
-  the rest on the floor there. **Home,** it docks in a free slot of its bay and lays any cargo it brought back beside it,
+  the rest on to a crate with room, or on the floor there with none. **Home,** it docks in a free slot of its bay and lays any cargo it brought back beside it,
   or lies down where it is with no slot free.
 - **Items gains machine-to-machine operations** for this: `TakeFrom(id, slot, count)`, `PutIn(id, stack)`,
   `LayDown(stack, cell)`, and the queries `HeldFor` and `RoomFor`; and `Charge(id, slot, amount)` names its slot. Moves
@@ -79,7 +86,9 @@ to set before anything moved. This version replaces it.
   charge, as a crafted battery does not; the battery in its cost loses its charge there.
 - **Format 17** (unreleased, so its contents changed with this version): the logistics slice (`off`, `drones`,
   `nextId`, `ticks`), empty, its clock the world's tick; the assembler's fourth input, empty, after its three.
-- **The client:** a drone badge at the right of every frame header where drones have work (crates, fed stations,
+- **The client:** an input that remembers its item shows a small sky dot in its corner while drones serve the
+  machine, and, empty, a faint ghost of the item; its tooltip says "Drones keep this full: X", and "none in reach" when
+  no crate or output a bay reaches holds it (`Supplied`). A drone badge at the right of every frame header where drones have work (crates, fed stations,
   fire machines, queued stations): a drone on sky while served and reached, dim and crossed while switched off, grey
   where no bay reaches; the one tooltip says which and what a click does. A bay's frame shows four drone slots, each
   slot's bar its drone's charge (green, amber under a quarter), and a bolt with what it draws, lit while it charges;
@@ -90,6 +99,10 @@ to set before anything moved. This version replaces it.
 
 ## Rejected
 
+- **Forgetting an input's item when it runs dry,** this version's first build: a furnace burnt down while its supply
+  crate was empty was never fed again, even once the crate was filled.
+- **A right-click on a remembered empty slot to forget it:** a command, a refusal and a fuzz case for what taking the
+  stack out, or switching the machine off, already does.
 - **Requests and crate roles (Factorio's supply and demand),** this decision's first version: too much to set
   before anything moved. What a slot holds says what to bring; the switch says what to leave alone.
 - **Drones home after every job:** a round trip per delivery, and the lowest ids first when drones were scarce.
@@ -104,12 +117,16 @@ to set before anything moved. This version replaces it.
 ## Consequences
 
 - With refills at half a stack and whole stacks carried, trips are few: in the testbed two drones keep a furnace, the
-  Former and a grow capsule going and carry what five machines make, launching five times in five minutes.
+  Former and a grow capsule going for ten minutes and carry what five machines make, most jobs chained in the air.
 - A drone home low waits docked until it holds `LaunchAt`: with no power at its bay it never flies again.
 - An output is carried off as soon as there is some and a drone is free; while drones are busy it gathers, so
   carries grow by themselves.
-- An input emptied (its supply run out) is left alone even once the crate is filled again: the player puts one in.
-- Leftovers lie at the target; cargo a drone turned home with lies at its bay; a full set of crates leaves outputs
-  where they are.
+- A furnace whose supply runs out waits, its slot remembering its chunks, and burns again once a crate has some.
+- With two drones and one bay drawing 4, charge is what limits them: both home together charge a while, and a furnace
+  may stand empty for some seconds between deliveries.
+- Cargo a drone turned home with lies at its bay; leftovers with no crate to take them lie at the target; a full set
+  of crates leaves outputs where they are.
+- The testbed's two rooms leak more than one oxygen generator makes: on main room two runs dry in about three
+  minutes. The testbed now has three generators.
 - A bay with docked drones cannot be taken apart, as no machine holding items can.
 - Drones carry through closed doors and never let air through: an airless airlock between rooms stops them.

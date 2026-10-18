@@ -48,6 +48,7 @@ public interface IItemsQueries
     string? Running(int peer);
     int HeldFor(int id, string item);
     int RoomFor(int id, Stack stack);
+    string? KeptAt(int id, int slot);
 }
 
 /// <summary>How a module that depends on the items may change them.</summary>
@@ -123,6 +124,12 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary><paramref name="peer"/>'s slots in order, each a stack or null; live and read-only.</summary>
     public IReadOnlyList<Stack?> Inventory(int peer) => Stacks.InventoryOf(State, peer);
+
+    /// <summary>
+    /// The item slot <paramref name="slot"/> of machine <paramref name="id"/> remembers, held or burnt down to nothing:
+    /// the last put in an input of a fed station or a fire, until a hand takes it all out (0062); null for none.
+    /// </summary>
+    public string? KeptAt(int id, int slot) => KeptIndex(id, slot) is int at and >= 0 ? State.Kept[at].Item : null;
 
     /// <summary>What machine <paramref name="id"/> holds, slot by slot: a crate, a furnace; none for a machine holding no items.</summary>
     public IReadOnlyList<Stack?> Crate(int id) => Stacks.CrateOf(State, id, HolderOf(id)?.Slots ?? 0);
@@ -329,7 +336,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         var outputs = Smelted(slots, inputs, back);
         if (outputs == null || Stacks.TakenFrom(slots, 0, 1, out var left, out _) != null)
             throw new InvalidOperationException("items.smelt: nothing to smelt; check CanSmelt");
-        Stacks.SetCrate(State, id, [.. left.Take(inputs), .. outputs]);
+        SetMachine(id, [.. left.Take(inputs), .. outputs]);
     }
 
     /// <summary>Uses up one of what slot <paramref name="slot"/> of machine <paramref name="id"/> holds: fuel burnt. The caller checks it holds one.</summary>
@@ -337,7 +344,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         if (Stacks.TakenFrom(Crate(id), slot, 1, out var left, out _) != null)
             throw new InvalidOperationException("items.consume: nothing there");
-        Stacks.SetCrate(State, id, left);
+        SetMachine(id, left);
     }
 
     /// <summary>Puts <paramref name="cost"/> into machine <paramref name="id"/>'s outputs: what it made. The caller checks <see cref="OutputFull"/> first.</summary>
@@ -345,7 +352,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         if (Stacks.IsNothing(cost)) return;
         var slots = Outputs(id, cost) ?? throw new InvalidOperationException("items.output: no room; check OutputFull first");
-        Stacks.SetCrate(State, id, slots);
+        SetMachine(id, slots);
     }
 
     /// <summary>
@@ -357,7 +364,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         if (Stacks.IsNothing(cost)) return;
         var left = Stacks.Taken(Crate(id), cost, InputsOf(id), firstFirst: true)
             ?? throw new InvalidOperationException("items.takeInputs: not there; check InputsLack first");
-        Stacks.SetCrate(State, id, left);
+        SetMachine(id, left);
     }
 
     /// <summary>
@@ -400,7 +407,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
             throw new InvalidOperationException("items.charge: nothing there holds charge");
         var charged = slots.ToArray();
         charged[slot] = s with { Charge = Math.Min(full, s.Charge + amount) };
-        Stacks.SetCrate(State, id, charged);
+        SetMachine(id, charged);
     }
 
     /// <summary>
@@ -506,6 +513,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         if (Stacks.TakenFrom(SideOf(c.From, c.Src), c.Src.Slot, c.Count, out var left, out var taken) != null)
             throw new InvalidOperationException("items.drop: refused in apply");
         SetSide(c.From, c.Src, left);
+        ForgetEmptied(c.Src);
         FloorRules.LayDown(State, taken, c.Cell, Math.Sign(c.Facing) * Content.Floor.ThrowSpeed, _grid.Width, c.From);
     }
 
@@ -532,9 +540,68 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Moved(from, to, same, c.Src, dst, c.Count, out var after, out var into);
         SetSide(c.From, c.Src, after);
         SetSide(c.From, dst, into);
+        ForgetEmptied(c.Src);
     }
 
     // Helpers.
+
+    /// <summary>
+    /// Writes machine <paramref name="id"/>'s slots, every write of a machine's: each input slot that remembers (a fed
+    /// station's, a fire's, <see cref="Remembers"/>) remembers what it holds now, or, emptied, what it held, so a slot
+    /// burnt or smelted down to nothing still remembers its item (0062). Only a hand taking it out forgets.
+    /// </summary>
+    private void SetMachine(int id, Stack?[] slots)
+    {
+        if (Remembers(id) is int inputs)
+        {
+            var was = Crate(id);
+            for (int slot = 0; slot < inputs && slot < slots.Length; slot++)
+                if ((slots[slot] ?? was[slot])?.Item is { } item) Remember(id, slot, item);
+        }
+        Stacks.SetCrate(State, id, slots);
+    }
+
+    /// <summary>How many of machine <paramref name="id"/>'s first slots remember their item: a fed station's or a fire's inputs, its fuel slot too; null for any other.</summary>
+    private int? Remembers(int id)
+    {
+        if (_grid.MachineById(id) is not { } m || !Machines.TryGet(m.Kind, out var spec) || spec.Slots is not int all) return null;
+        bool fed = Content.Stations.TryGet(m.Kind, out var station) && station.Fed;
+        return fed || spec.FuelSlot != null ? spec.Inputs ?? all : null;
+    }
+
+    private void Remember(int id, int slot, string item)
+    {
+        int at = KeptIndex(id, slot);
+        if (at >= 0)
+        {
+            if (State.Kept[at].Item != item) State.Kept[at] = new Kept(id, slot, item);
+        }
+        else State.Kept.Insert(~at, new Kept(id, slot, item));
+    }
+
+    /// <summary>A slot a hand has just taken everything out of forgets its item: <c>Move</c> and <c>Drop</c> from it.</summary>
+    private void ForgetEmptied(Place src)
+    {
+        if (src.Crate is not int id || Crate(id) is var slots && src.Slot < slots.Count && slots[src.Slot] != null) return;
+        int at = KeptIndex(id, src.Slot);
+        if (at >= 0) State.Kept.RemoveAt(at);
+    }
+
+    /// <summary>Where machine <paramref name="id"/>'s slot <paramref name="slot"/> is in <c>Kept</c>, or the complement of where it would go.</summary>
+    private int KeptIndex(int id, int slot)
+    {
+        int lo = 0, hi = State.Kept.Count - 1;
+        while (lo <= hi)
+        {
+            int mid = (lo + hi) / 2;
+            var k = State.Kept[mid];
+            int order = k.Machine != id ? k.Machine.CompareTo(id) : k.Slot.CompareTo(slot);
+            if (order == 0) return mid;
+            if (order < 0) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return ~lo;
+    }
 
     /// <summary>What machine <paramref name="id"/> is, when it holds items: a crate, a furnace.</summary>
     private MachineSpec? HolderOf(int id)
@@ -565,7 +632,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// <summary>Writes one side of a move back.</summary>
     private void SetSide(int peer, Target side, Stack?[] slots)
     {
-        if (side.Crate is int id) Stacks.SetCrate(State, id, slots);
+        if (side.Crate is int id) SetMachine(id, slots);
         else Stacks.SetInventory(State, peer, slots);
     }
 

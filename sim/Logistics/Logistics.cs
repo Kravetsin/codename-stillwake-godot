@@ -65,6 +65,28 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
         return false;
     }
 
+    /// <summary>
+    /// Whether drones could bring <paramref name="item"/> to machine <paramref name="machine"/>: a bay reaches it, and a
+    /// served crate or output in that bay's reach holds some, taken or not. What a remembered slot's tooltip says.
+    /// </summary>
+    public bool Supplied(int machine, string item)
+    {
+        if (_grid.MachineById(machine) is not { } target) return false;
+        foreach (var bay in _grid.MachinesOf(Tune.Bay))
+        {
+            if (!Flood(bay) || !InFlood(target)) continue;
+            foreach (var m in _grid.Machines)
+            {
+                int? first = m.Kind == "crate" ? 0 : OutputsOf(m);
+                if (m.Id == machine || first is not int start || !Served(m.Id) || !InFlood(m)) continue;
+                var slots = _items.Crate(m.Id);
+                for (int slot = start; slot < slots.Count; slot++)
+                    if (slots[slot]?.Item == item) return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>The drones in flight, in id order; live and read-only.</summary>
     public IReadOnlyList<Drone> Drones => State.Drones;
 

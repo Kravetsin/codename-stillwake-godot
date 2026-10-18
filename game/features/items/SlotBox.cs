@@ -42,6 +42,16 @@ public partial class SlotBox : Panel
     /// <summary>How much of its white a ghost shows.</summary>
     private const float GhostAlpha = 0.16f;
 
+    /// <summary>
+    /// The item drones keep this input full of (0062): a small sky dot in its top-left corner, and while it is empty a
+    /// faint ghost of the item. Null for a slot drones keep nothing in.
+    /// </summary>
+    public string? Kept { get; set; }
+
+    /// <summary>How much of a kept item's own picture its ghost shows.</summary>
+    private const float KeptAlpha = 0.32f;
+    private static readonly Color KeptDot = Style.Sky400;
+
     /// <summary>A press on this slot: the right button, shift held.</summary>
     public event Action<Place, bool, bool>? Pressed;
 
@@ -72,6 +82,7 @@ public partial class SlotBox : Panel
     /// <summary>A battery's charge, a thin bar along the icon's foot (0053): no numbers.</summary>
     private readonly ColorRect _track = new() { Color = new Color("0b1220"), MouseFilter = MouseFilterEnum.Ignore, Visible = false };
     private readonly ColorRect _fill = new() { MouseFilter = MouseFilterEnum.Ignore };
+    private readonly Panel _kept = new() { MouseFilter = MouseFilterEnum.Ignore, Visible = false, Position = new Vector2(3, 3), Size = new Vector2(6, 6) };
 
     public SlotBox() : this(new Place(0), Slots.SizeOf(SlotScale.Normal)) { }
 
@@ -88,6 +99,10 @@ public partial class SlotBox : Panel
         _icon.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, LayoutPresetMode.Minsize, Slots.Inset);
         if (key != null) AddChild(new Label { Text = key, LabelSettings = KeyText, Position = new Vector2(3, -1), MouseFilter = MouseFilterEnum.Ignore });
         AddChild(_mark = Mark(size));
+        var dot = new StyleBoxFlat { BgColor = KeptDot, ShadowColor = KeptDot with { A = 0.6f }, ShadowSize = 3 };
+        dot.SetCornerRadiusAll(3);
+        _kept.AddThemeStyleboxOverride("panel", dot);
+        AddChild(_kept);
         AddChild(_track);
         // The charge mockup's 3 px bar, inset along the foot: 4 px from the sides, 3 from its bottom.
         _track.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide);
@@ -132,7 +147,9 @@ public partial class SlotBox : Panel
         };
         AddThemeStyleboxOverride("panel", box);
         _icon.Texture = stack == null ? null : ItemIcons.Icon(Charges.Picture(stack.Item, stack.Charge));
-        _ghost.Texture = stack == null && Ghost != null ? ItemIcons.Silhouette(Ghost) : null;
+        _ghost.Texture = stack != null ? null : Kept != null ? ItemIcons.Icon(Kept) : Ghost != null ? ItemIcons.Silhouette(Ghost) : null;
+        _ghost.Modulate = new Color(1, 1, 1, Kept != null ? KeptAlpha : GhostAlpha);
+        _kept.Visible = Kept != null;
         ShowCharge(stack);
         _count.Text = stack is { Count: > 1 } ? stack.Count.ToString() : "";
         Modulate = picked ? new Color(1, 1, 1, 0.4f) : glow == SlotGlow.Refuses ? new Color(1, 1, 1, Refused) : Colors.White;

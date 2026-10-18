@@ -168,6 +168,8 @@ public partial class Main : Node2D, ITogether
             void SendNow(Command c) => (_session as Session)?.Client.Send(c);
             Control? BadgeOf(int machine) => _m.Logistics.Servable(machine) ? new Features.Logistics.ServedBadge(machine, Drones, SendNow, _hands.Ui.Tip) : null;
             _items.Panel.Served = BadgeOf;
+            _items.Panel.Kept = p => p.Crate is int id && _m.Logistics.Served(id) ? _m.Items.KeptAt(id, p.Slot) : null;
+            _items.Panel.Supplied = (id, item) => _m.Logistics.Supplied(id, item);
             _fabricator.Served = BadgeOf;
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None), _hands.Ui);

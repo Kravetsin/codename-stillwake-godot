@@ -64,9 +64,10 @@ public sealed partial class LogisticsModule
 
     /// <summary>
     /// What machine <paramref name="t"/> wants brought now, into <see cref="_wants"/>, each item once. An input or fuel
-    /// slot holding an item wants it kept at a stack: short when what it holds and what drones bring is under half. A
+    /// slot holding an item, or remembering one it burnt down to nothing (<c>KeptAt</c>), wants it kept at a stack: short
+    /// when what it holds and what drones bring is under half. A
     /// queued station's head entry fed from its inputs wants its units' cost, at most a stack of each: short under half
-    /// that, or under one unit's. An empty input, or a head entry paid, wants nothing.
+    /// that, or under one unit's. An empty input remembering nothing, or a head entry paid, wants nothing.
     /// </summary>
     private void Wants(Machine t)
     {
@@ -85,7 +86,7 @@ public sealed partial class LogisticsModule
         var slots = _items.Crate(t.Id);
         int inputs = Machines.Get(t.Kind).Inputs ?? slots.Count;
         for (int i = 0; i < inputs; i++)
-            if (slots[i] is { } held) Short(t, held.Item, Content.Items.Get(held.Item).Stack, 1);
+            if ((slots[i]?.Item ?? _items.KeptAt(t.Id, i)) is { } item) Short(t, item, Content.Items.Get(item).Stack, 1);
     }
 
     /// <summary>Adds <paramref name="item"/> to what <paramref name="t"/> wants, once, when what it holds and what drones bring is under half <paramref name="keep"/> or one <paramref name="unit"/>.</summary>
@@ -175,12 +176,18 @@ public sealed partial class LogisticsModule
 
     /// <summary>
     /// Whether <paramref name="charge"/> covers <paramref name="job"/> from <paramref name="from"/> and the way home after:
-    /// the Manhattan lengths from there to the source, on to the target and home to the bay, and <see cref="Spare"/>.
-    /// Paths may be longer: in flight a drone turns home with what it has left (<c>Fly</c>).
+    /// the Manhattan lengths from there to the source's top-left, on to the target's and home to the bay's, each leg from
+    /// a machine plus the most a cell of it lies from its top-left (a drone arrives at any of its cells), and
+    /// <see cref="Spare"/>. Paths round walls may be longer: in flight a drone turns home with what it has left (<c>Fly</c>).
     /// </summary>
     private bool Affords(int charge, int from, Job job, Machine bay)
     {
-        int source = _grid.MachineById(job.Source)!.Cell, target = _grid.MachineById(job.Target)!.Cell;
-        return charge >= Cost(bay, Distance(from, source) + Distance(source, target) + Distance(target, bay.Cell) + Spare);
+        Machine source = _grid.MachineById(job.Source)!, target = _grid.MachineById(job.Target)!;
+        int cells = Distance(from, source.Cell) + Distance(source.Cell, target.Cell) + Across(source)
+            + Distance(target.Cell, bay.Cell) + Across(target) + Spare;
+        return charge >= Cost(bay, cells);
     }
+
+    /// <summary>How far the farthest cell of machine <paramref name="m"/> lies from its top-left: its width and height less one each.</summary>
+    private static int Across(Machine m) => Machines.Get(m.Kind) is var spec ? spec.Width + spec.Height - 2 : 0;
 }

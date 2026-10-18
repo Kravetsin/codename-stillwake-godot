@@ -91,12 +91,12 @@ public class TestbedTests
     }
 
     [Fact]
-    public void ItsTwoDronesServeTheFurnaceTheFormerAndTheCapsuleFromTheSupplyCrateTheFullCrateSwitchedOff()
+    public void ItsTwoDronesServeTheFurnaceTheFormerAndTheCapsuleFromTheSupplyCrateTheFarmCrateSwitchedOff()
     {
         var m = Built.Value;
         int bay = IdOf(m, Spec.Logistics.Bay), supply = CrateAt(m, Testbed.Supply);
-        Assert.False(m.Logistics.Served(Crates(m)[0]));
-        Assert.True(m.Logistics.Served(supply));
+        Assert.False(m.Logistics.Served(Crates(m)[1]));
+        Assert.True(m.Logistics.Served(supply) && m.Logistics.Served(Crates(m)[0]));
         // Room one, beside the pod: through the closed door from room two, powered to charge its drones.
         Assert.True(m.Grid.MachineById(bay)!.Cell % Testbed.Map.Width < 17);
         Assert.Equal(Testbed.Drones, m.Items.Crate(bay).Count(s => s?.Item == Spec.Logistics.Drone) + m.Logistics.Drones.Count);
@@ -106,27 +106,39 @@ public class TestbedTests
     }
 
     [Fact]
-    public void ItsDronesKeepTheFurnaceTheFormerAndTheCapsuleGoingAndCarryWhatTheyMakeToTheSupplyCrateWithinAMinute()
+    public void ItsDronesKeepTheFurnaceTheFormerAndTheCapsuleGoingForTenMinutesInAirThatHolds()
     {
         var m = new Registry();
         var world = Testbed.Create(m.All);
-        int supply = CrateAt(m, Testbed.Supply), furnace = IdOf(m, "furnace"), former = IdOf(m, "former"), capsule = IdOf(m, "growCapsule");
-        bool chained = false;
+        int furnace = IdOf(m, "furnace"), former = IdOf(m, "former"), capsule = IdOf(m, "growCapsule");
+        int[] crates = [CrateAt(m, Testbed.Supply), Crates(m)[0]];
         var launched = new HashSet<int>();
-        for (int t = 0; t < 1200; t++)
+        int empty = 0, longest = 0;
+        for (int t = 0; t < 10 * 60 * World.TicksPerSecond; t++)
         {
             world.Step([]);
             foreach (var d in m.Logistics.Drones) launched.Add(d.Id);
+            empty = m.Items.Crate(furnace)[0] == null ? empty + 1 : 0;
+            longest = Math.Max(longest, empty);
+            if (t == 1200)
+            {
+                // Within a minute: a stack brought each, or near it as they work, and what they made in a crate.
+                Assert.True(m.Items.HeldFor(furnace, "planks") > 25 && m.Items.HeldFor(former, "iron") > 250 && m.Items.HeldFor(capsule, "seed") >= 5);
+                var held = crates.SelectMany(c => m.Items.Crate(c)).Where(s => s != null).Select(s => s!.Item).ToList();
+                Assert.Contains("scrap", held);
+                Assert.Contains("plate", held);
+            }
         }
-        int Held(int id, string item) => m.Items.HeldFor(id, item);
-        // Brought a stack each, or near it as they work.
-        Assert.True(Held(furnace, "planks") > 25 && Held(former, "iron") > 250 && Held(capsule, "seed") >= 5);
-        var held = m.Items.Crate(supply).Where(s => s != null).Select(s => s!.Item).ToList();
-        Assert.Contains("scrap", held);
-        Assert.Contains("plate", held);
+        // The furnace fed the whole ten minutes: its input empty only while both drones charge, never half a minute, and
+        // most of what the supply crate held smelted.
+        Assert.True(longest < 30 * World.TicksPerSecond, $"the furnace stood empty {longest} ticks");
+        int left = m.Items.Crate(crates[0]).Sum(s => s?.Item == "scrapChunk" ? s.Count : 0);
+        Assert.True(Testbed.Supplies.Where(s => s.Item == "scrapChunk").Sum(s => s.Count) - left >= 120, $"{left} chunks left");
+        // The air held: every room but the airlock aired.
+        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 6 + 46);
+        Assert.All(m.Rooms.All.Where(r => r.Id != airlock), r => Assert.Equal(RoomStatus.Aired, m.Atmosphere.StatusOf(r.Id)));
         // Two drones, many jobs, few launches: a drone takes its next job from where it is.
-        chained = launched.Count < 20;
-        Assert.True(chained, $"{launched.Count} launches");
-        Assert.Empty(m.Items.Floor);
+        Assert.True(launched.Count < 60, $"{launched.Count} launches");
+        Assert.True(m.Items.Floor.Count == 0, string.Join(", ", m.Items.Floor.Select(f => $"{f.Item} {f.Count} at ({f.Cell % Testbed.Map.Width},{f.Cell / Testbed.Map.Width})")));
     }
 }

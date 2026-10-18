@@ -258,6 +258,8 @@ public static partial class En
         ["logistics.switchOff"] = "click: drones leave it alone",
         ["logistics.switchOn"] = "click: let drones serve it",
         ["logistics.drone"] = "put a drone here to fly",
+        ["logistics.kept"] = "Drones keep this full: {item}",
+        ["logistics.noneInReach"] = "none in reach",
         ["crafts.queue"] = "Queue",
         ["station.lifepod"] = "Fabricator",
         ["station.former"] = "Former",

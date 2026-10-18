@@ -169,8 +169,8 @@ public sealed partial class LogisticsModule
 
     /// <summary>
     /// Drone <paramref name="d"/> in its goal. At its source it takes what is there up to its job, nothing if the slot
-    /// holds another item now, and with nothing looks for the next job; at its target it puts in what fits, lays the rest
-    /// down there and looks for the next job; home, it docks in a free slot of its bay, or lies down where it is with
+    /// holds another item now, and with nothing looks for the next job; at its target it puts in what fits, carries the
+    /// rest on to a crate with room (<c>Storage</c>) or with none lays it down there, and looks for the next job; home, it docks in a free slot of its bay, or lies down where it is with
     /// none, and lays down any cargo it turned home with. Whether it still flies.
     /// </summary>
     private bool Arrive(Drone d, Machine goal, Machine bay)
@@ -187,7 +187,17 @@ public sealed partial class LogisticsModule
                 return true;
             case Leg.Target:
                 int left = _itemsOps.PutIn(goal.Id, d.Cargo!);
-                if (left > 0) _itemsOps.LayDown(d.Cargo! with { Count = left }, d.Cell);
+                if (left > 0)
+                {
+                    // What did not fit goes on to a crate with room, else lies here.
+                    var rest = d.Cargo! with { Count = left };
+                    if (Flood(d.Cell, ZoneBox(bay)) && Storage(goal.Id, rest) is { } to && to.Crate != goal.Id)
+                    {
+                        (d.Cargo, d.Target) = (rest, to.Crate);
+                        return true;
+                    }
+                    _itemsOps.LayDown(rest, d.Cell);
+                }
                 d.Cargo = null;
                 Next(d, bay);
                 return true;

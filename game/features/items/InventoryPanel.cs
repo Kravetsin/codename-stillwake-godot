@@ -119,6 +119,12 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>A machine's drone badge (0062), the logistics feature's, put at the right of its frame's header; null where drones have no work. Set by <c>Main</c>.</summary>
     public Func<int, Control?>? Served { get; set; }
 
+    /// <summary>The item drones keep a machine's slot full of, while drones serve it (0062); null for none. Set by <c>Main</c>.</summary>
+    public Func<Place, string?>? Kept { get; set; }
+
+    /// <summary>Whether something in a bay's reach holds that item for that machine: a kept slot's tooltip (0062). Set by <c>Main</c>.</summary>
+    public Func<int, string, bool>? Supplied { get; set; }
+
     /// <summary>The hotbar slot chosen, with 1–9 or the wheel.</summary>
     public int Chosen => _chosen;
 
@@ -326,9 +332,17 @@ public partial class InventoryPanel : CanvasLayer
         return box;
     }
 
-    /// <summary>A stack's tip; an empty bay slot says a drone docks there (0062).</summary>
-    private Tip? SlotTip(SlotBox box) => _reading?.At(box.Place) is { } stack ? _reading.TipOf(stack)
-        : box.Ghost == Content.Logistics.Drone ? new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)) : null;
+    /// <summary>A stack's tip; an empty bay slot says a drone docks there, an empty kept one what drones keep it full of (0062).</summary>
+    private Tip? SlotTip(SlotBox box)
+    {
+        if (_reading?.At(box.Place) is { } stack) return _reading.TipOf(stack);
+        if (box.Kept is { } kept && box.Place.Crate is int id)
+        {
+            var name = T("logistics.kept", ("item", T($"item.{kept}")));
+            return Supplied?.Invoke(id, kept) == false ? new Tip(name, new TipLine(T("logistics.noneInReach"), Tone.Bad)) : new Tip(name);
+        }
+        return box.Ghost == Content.Logistics.Drone ? new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)) : null;
+    }
 
     /// <summary>The open crate's panel, made anew for each crate: a crate's grid, a furnace's or an analyzer's own, in the machine frame.</summary>
     private void BuildCrate()
@@ -646,6 +660,7 @@ public partial class InventoryPanel : CanvasLayer
         {
             var p = box.Place;
             var stack = reading.At(p);
+            box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,
                 stack != null && reading.Unknown(stack.Item), Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null);
         }

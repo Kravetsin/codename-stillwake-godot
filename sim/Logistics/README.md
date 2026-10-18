@@ -6,7 +6,7 @@ its inputs gets what it needs, and what machines make goes to crates; drones fly
 job from where they are, and fly home with no work left or their charge low. A machine switched off is left alone.
 
 - **Depends on:** `Grid` (`IGridQueries`: machines, their kinds and cells, door cells), `Atmosphere`
-  (`IAtmosphereQueries.AiredAt`: where drones may fly), `Items` (`IItemsQueries`: `Crate`, `HeldFor`, `RoomFor`;
+  (`IAtmosphereQueries.AiredAt`: where drones may fly), `Items` (`IItemsQueries`: `Crate`, `HeldFor`, `RoomFor`, `KeptAt`;
   `IItemsOps`: `TakeFrom`, `PutIn`, `LayDown`), `Crafting` (`ICraftingQueries.Queue`, `Progress`: a queued station's
   head entry and whether its unit has begun). Stations and machines are read from `Content`.
 - **State** (`LogisticsState`, members internal): `Off` — the machines switched off, by id, sorted; `Drones` — every
@@ -24,12 +24,13 @@ job from where they are, and fly home with no work left or their charge low. A m
 
 - **What is wanted** (`Wants`), of a served machine in the flood:
   - a fed station (the furnace, the smelter, the grow capsule) or one with a fire (the burner generator): each item its
-    inputs hold, its fuel slot included, once, kept at its stack: wanted when what it holds where a delivery goes
+    inputs hold, its fuel slot included, or remember (`IItemsQueries.KeptAt`) burnt down to nothing, once, kept at its
+    stack: wanted when what it holds where a delivery goes
     (`HeldFor`) and what drones bring is under half that, the rest of a stack;
   - a queued station with inputs (the Former, the assembler): when its head entry is fed from its inputs, each item of
     its craft's cost × its units not begun (endless: no end), at most a stack: wanted under half that or under one
     unit's cost. A paid head entry, or none, wants nothing;
-  - an empty input wants nothing. Crates, bays, the analyzer and the charging station want nothing.
+  - an empty input remembering nothing wants nothing. Crates, bays, the analyzer and the charging station want nothing.
 - **What may be taken** (offers): every stack in a served crate in the flood, and every stack in a served machine's
   outputs (its slots past its inputs, the pod's and queued stations' too), that no drone is on its way to take.
 - **A job,** from where a drone is: each wanted item from an offer of it in another machine, carrying the least of
@@ -39,7 +40,8 @@ job from where they are, and fly home with no work left or their charge low. A m
   distance between the drone's cell and the source's top-left, then the lowest source id, then slot, a refill before
   an output, then the lowest target id.
 - **What a job costs** (`Affords`): `Draw` × ticks a cell × the Manhattan lengths from where the drone is to the source,
-  on to the target and home to the bay's top-left, and `Spare` (2) cells; its charge must hold at least that.
+  on to the target and home to the bay's top-left, the legs from the source and the target each with the width and
+  height of its machine less two (a drone arrives at any of its cells), and `Spare` (2) cells; its charge must hold at least that.
 - **A bay** (`droneBay`, 2×2, four slots, a charging station drawing 4) looks when `(Ticks + id) % LookEvery == 0`,
   bays in id order, each tick after the drones have flown. Its first slot holding a drone charged to `LaunchAt` floods
   its zone — the cells within `Reach` of its footprint — breadth first from its passable cells through passable cells
@@ -54,7 +56,8 @@ job from where they are, and fly home with no work left or their charge low. A m
   way to its goal, it flies home with its cargo; holding less than the way home and `Spare` cells, it flies home
   marked `Low`. A cell ahead no longer passable turns it back to the centre it left. A bay gone drops its drones.
 - **Arriving:** at its source it takes what the slot holds of its item up to its job, any of it, and with none looks
-  for the next job; at its target it puts in what fits and lays the rest down there, then looks for the next job; a
+  for the next job; at its target it puts in what fits and carries the rest on to a crate with room (`Storage`, as for an output), or
+  with none lays it down there, then looks for the next job; a
   target taken apart has its cargo laid where the drone is. Home, it docks in its bay's first free slot (or lies down
   where it is with none) and lays any cargo it brought back where it is.
 - **Dropping** lays the drone's stack, its charge with it, and its cargo where it is, still, for anyone to pick up.
@@ -65,7 +68,8 @@ job from where they are, and fly home with no work left or their charge low. A m
 ## API
 
 - **Queries:** `Served(machine)` — not switched off; `Servable(machine)` — whether drones ever work a machine of its
-  kind, served or not: where the badge shows; `Reached(machine)` — whether some bay's flood reaches it; `Drones` — live
+  kind, served or not: where the badge shows; `Reached(machine)` — whether some bay's flood reaches it; `Supplied(machine, item)` — whether a served crate or output in
+  the reach of a bay that reaches it holds some, taken or not: a remembered slot's tooltip; `Drones` — live
   and read-only, for drawing; `Low(drone)` — flying home marked low; `ZoneOf(bay)` — its zone box, null for no bay.
 - **Commands:** `SetServed(Machine, On)`.
 - **Fuzz:** the switch mostly at the map's machines, on or off, now and then at a bay or at an id that is none.
@@ -81,15 +85,16 @@ job from where they are, and fly home with no work left or their charge low. A m
 
 ## Deliberately not handled
 
-- An input emptied is left alone even once its supply is back: nothing remembers what it held. The player puts one in.
+- An input forgets its item only when a hand takes all of it out; there is no other way to forget, but switching the
+  machine off.
 - An output is carried off as soon as a drone is free, a stack of four scrap as soon as of four hundred: while drones
   are busy outputs gather, so carries grow by themselves.
 - The pod's outputs go to crates like any machine's; switch the pod off to keep what it makes at hand.
 - Distance is Manhattan between top-left cells, not path length; a job's cost is checked against Manhattan lengths,
   and the turn home in flight covers what a detour adds.
 - A wall built across a drone's way home after it set out can leave it short: it drops when it cannot pay a tick.
-- Room at the target is read as the job is found: two drones bound for one crate may bring more than fits, and the
-  rest lies there; cargo a drone turned home with lies at its bay. Neither is taken back to a crate.
+- Room at the target is read as the job is found: two drones bound for one crate may bring more than fits; the rest
+  goes on to another crate, and lies there only with none. Cargo a drone turned home with lies at its bay.
 - A drone checks the air only at cell centres: one may fly half a cell into a cell vented that tick before turning.
 - A wall built on the cell a drone stands in drops it there; its stacks are pushed out as any floor stack is.
 - `Off` keeps a machine taken apart: ids are never reused, and it is never read.

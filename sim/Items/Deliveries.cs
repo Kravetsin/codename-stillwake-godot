@@ -32,7 +32,7 @@ public sealed partial class ItemsModule
     {
         var slots = Crate(id);
         if (slot < 0 || slot >= slots.Count || Stacks.TakenFrom(slots, slot, count, out var left, out var taken) != null) return null;
-        Stacks.SetCrate(State, id, left);
+        SetMachine(id, left);
         return taken;
     }
 
@@ -44,7 +44,7 @@ public sealed partial class ItemsModule
     {
         if (HolderOf(id) is not { } spec) return stack.Count;
         int left = Filled(spec, Crate(id), stack, out var slots);
-        Stacks.SetCrate(State, id, slots);
+        SetMachine(id, slots);
         return left;
     }
 

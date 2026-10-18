@@ -396,6 +396,86 @@ public class LogisticsTests
         Assert.Equal([13340, 13330, 13330, 0], gained);
     }
 
+    // What an input remembers.
+
+    /// <summary>
+    /// A furnace lit on twenty planks with a chunk in, put there as a save holds it (no move remembered it), and no chunks
+    /// anywhere else: it smelts it to nothing.
+    /// </summary>
+    private static Scenario BurntDown()
+    {
+        var w = TwoRooms().Put(0, new Stack("scrapChunk", 1), crate: Furnace).Put(Fuel, new Stack("planks", 20), crate: Furnace);
+        Assert.True(RunUntil(w, () => w.M.Items.Crate(Furnace)[0] == null, 600));
+        return w;
+    }
+
+    [Fact]
+    public void AnInputBurntToNothingRemembersItsItemAndIsRefilledOnceACrateHasIt()
+    {
+        var w = BurntDown();
+        Assert.Equal("scrapChunk", w.M.Items.KeptAt(Furnace, 0));
+        Assert.Equal("planks", w.M.Items.KeptAt(Furnace, Fuel));
+        Assert.False(w.M.Logistics.Supplied(Furnace, "scrapChunk"));
+        // Its scrap is carried off; no chunk is anywhere to bring.
+        for (int i = 0; i < 200; i++) Assert.DoesNotContain(w.Run().M.Logistics.Drones, d => d.Item == "scrapChunk");
+        // Chunks in the crate: drones bring a stack to the empty slot that remembers them.
+        w.FillCrate(Left, ("scrapChunk", 10));
+        Assert.True(w.M.Logistics.Supplied(Furnace, "scrapChunk"));
+        Assert.True(RunUntil(w, () => Held(w, Furnace, 0, "scrapChunk") == 10, 600));
+        Assert.Equal(0, Count(w.M.Items.Crate(Left), "scrapChunk"));
+    }
+
+    [Fact]
+    public void AnInputEmptiedByTheWriteThatTakesItsOnlyItemStillRemembersIt()
+    {
+        // A smelter writes its slots only as a smelt completes: its one rock gone, nothing wrote it there before.
+        string[] rows = [.. Pressing.Select(r => r.Replace("MM", "EE"))];
+        var w = Aired(rows, PressingUnder, cables: [((0, 0), (14, 4))]);
+        int smelter = w.M.Grid.MachinesOf("smelter").Single().Id;
+        w.Put(0, new Stack("rock", 1), crate: smelter);
+        Assert.True(RunUntil(w, () => w.M.Items.Crate(smelter)[0] == null, 600));
+        Assert.Equal("rock", w.M.Items.KeptAt(smelter, 0));
+    }
+
+    [Fact]
+    public void AHandTakingAllOfAnInputOutMakesItForgetAndDronesLeaveItAloneButPartOfItDoesNot()
+    {
+        // Taken out whole by a move: forgotten, and the crate's chunks stay where they are.
+        var w = TwoRooms().FillCrate(Left, ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 4), crate: Furnace);
+        w.Do(new Move(new Slot(0, Furnace), new Target(), 1)).Run();
+        Assert.Equal("scrapChunk", w.M.Items.KeptAt(Furnace, 0));
+        w.Do(new Move(new Slot(0, Furnace), new Target(), 3)).Run();
+        Assert.Null(w.M.Items.KeptAt(Furnace, 0));
+        for (int i = 0; i < 300; i++) Assert.Empty(w.Run().M.Logistics.Drones);
+        Assert.Equal(10, Count(w.M.Items.Crate(Left), "scrapChunk"));
+
+        // Thrown out whole: the same.
+        var v = TwoRooms().FillCrate(Left, ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 4), crate: Furnace);
+        v.Do(new Drop(new Slot(0, Furnace), 4, 14 + 3 * 24, 1)).Run();
+        Assert.Null(v.M.Items.KeptAt(Furnace, 0));
+        for (int i = 0; i < 300; i++) Assert.Empty(v.Run().M.Logistics.Drones);
+
+        // Burnt down, it is not forgotten: only a hand forgets.
+        var u = BurntDown();
+        u.Do(new Move(new Slot(Fuel, Furnace), new Target(), 1)).Run();
+        Assert.Equal(("scrapChunk", "planks"), (u.M.Items.KeptAt(Furnace, 0), u.M.Items.KeptAt(Furnace, Fuel)));
+    }
+
+    [Fact]
+    public void WhatAnInputRemembersIsSavedAndLoaded()
+    {
+        var w = BurntDown();
+        var m = new Registry();
+        var copy = World.Load(w.World.Save(), [.. m.All, new Builder(m)]);
+        Assert.Equal(w.World.Hash(), copy.Hash());
+        Assert.Equal("scrapChunk", m.Items.KeptAt(Furnace, 0));
+        // Loaded, it is refilled as before.
+        var items = (ItemsState)m.Items.Slice;
+        Stacks.SetCrate(items, Left, [new Stack("scrapChunk", 10), .. Enumerable.Repeat<Stack?>(null, 26)]);
+        for (int i = 0; i < 600 && m.Items.Crate(Left).Any(s => s != null); i++) copy.Step([]);
+        Assert.All(m.Items.Crate(Left), Assert.Null);
+    }
+
     // Flying.
 
     [Fact]
@@ -501,18 +581,26 @@ public class LogisticsTests
     }
 
     [Fact]
-    public void ATargetFilledByHandGetsWhatFitsAndTheRestLiesOnTheFloorAtTheTarget()
+    public void ATargetFilledByHandGetsWhatFitsTheRestGoingOnToACrateWithRoomOrWithNoneOnTheFloorThere()
     {
+        // Seven put in by hand while the eight are on their way: one fits, and the seven go back on to the crate still
+        // holding chunks, though the other is nearer.
         var w = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 2), crate: Furnace).GiveItems(0, ("scrapChunk", 7));
         Assert.True(RunUntil(w, () => w.M.Logistics.Drones.SingleOrDefault()?.Cargo != null, 400));
-        // Seven put in by hand while the eight are on their way: one fits.
         w.Do(new Move(new Slot(0), new Target(0, Furnace), 7)).Run();
         Assert.True(RunUntil(w, () => w.M.Logistics.Drones.Count == 0, 400));
-        Assert.Equal(10, w.M.Items.HeldFor(Furnace, "scrapChunk"));
-        var left = w.M.Items.Floor.Single(s => s.Item == "scrapChunk");
+        Assert.Equal((10, 9, 0), (w.M.Items.HeldFor(Furnace, "scrapChunk"), Count(w.M.Items.Crate(Left), "scrapChunk"), Count(w.M.Items.Crate(Right), "scrapChunk")));
+        Assert.Empty(w.M.Items.Floor);
+        Assert.Equal(1, Docked(w, Bay));
+
+        // Every crate switched off: no crate takes them, so they lie at the target.
+        var v = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 2), crate: Furnace).GiveItems(0, ("scrapChunk", 7));
+        Assert.True(RunUntil(v, () => v.M.Logistics.Drones.SingleOrDefault()?.Cargo != null, 400));
+        v.Do(new Move(new Slot(0), new Target(0, Furnace), 7)).Do(new SetServed(Left, false)).Do(new SetServed(Right, false)).Run();
+        Assert.True(RunUntil(v, () => v.M.Logistics.Drones.Count == 0, 400));
+        var left = v.M.Items.Floor.Single(s => s.Item == "scrapChunk");
         Assert.Equal(7, left.Count);
         Assert.True(left.Cell % 24 is 14 or 15, $"lying at {left.Cell % 24}");
-        Assert.Equal(1, Docked(w, Bay));
     }
 
     [Fact]

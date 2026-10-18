@@ -17,8 +17,9 @@ slots, their charge bars and its frame's bolt are the items feature's. The mocku
 
 `Served.cs` is compiled again into `game.tests/` (`ServedTests`). The testbed (`-- --testbed`) runs two drones from a
 powered bay in room one through the closed door, keeping the furnace, the Former and the grow capsule going from the
-supply crate by the pod, the full crate switched off (`TestbedTests`); `--open=droneBay` shows the bay's frame and zone
-(`--open-at 130` once a drone is home charging), `--open=crate@1` the full crate's crossed badge, `--near=furnace`
+supply crate of twenty stacks of chunks by the pod, the farm's crate switched off, for ten minutes in air three
+generators keep (`TestbedTests`); `--open=droneBay` shows the bay's frame and zone
+(`--open-at 130` once a drone is home charging), `--open=crate@2` the farm crate's crossed badge, `--near=furnace`
 starts the hero in the middle of the room, and `--card=droneBay --pick` holds a bay's blueprint over the ship.
 
 ## Guarantees
@@ -30,6 +31,10 @@ starts the hero in the middle of the room, and `--card=droneBay --pick` holds a 
   says the state ("Drones keep this going", "Drones leave this alone", "No drone bay reaches this", and both when
   switched off out of reach) and what a click does. Read every 100 ms and at once after its own command, showing its
   own switch in flight before its tick.
+- **A remembered input** (`IItemsQueries.KeptAt`, while drones serve the machine; `InventoryPanel.Kept`, set by
+  `Main`): a small sky dot in its top-left corner, lit a little; empty, a faint ghost of the item's own picture. Its
+  tooltip, empty, says "Drones keep this full: X", and "none in reach" in red when no crate or output a bay reaches holds
+  it (`Supplied`, `InventoryPanel.Supplied`). The slot box draws both (`SlotBox.Kept`).
 - **The bay:** its frame shows four slots, each a drone's faint silhouette while empty, its tooltip "put a drone here
   to fly"; a docked drone's slot draws its charge bar as a battery's does (green, amber under a quarter); the header's
   bolt shows what it draws, lit while it charges a drone (`Power.Charges`). Its pads in the world light sky where

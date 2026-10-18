@@ -11,7 +11,7 @@ mode, the world setting in which nothing is ever taken
 - **State:** `Inventories` — those changed at least once, by peer id in id order; `Crates` — the
   machines holding something, by machine id in id order; `Creative`; `Floor` — stacks lying about
   (`FloorStack`: id, item, count, charge, cell, x, y, vx, vy, by, at, and the `Body` it is part of, if any) in id order, with `NextFloorId`;
-  `Ticks`, the module's own clock; `Running` — the electric tools heroes run (`Runner`: peer, item), at most one a
+  `Ticks`, the module's own clock; `Kept` — what input slots remember (`Kept(Machine, Slot, Item)`), by machine and slot, sorted (0062); `Running` — the electric tools heroes run (`Runner`: peer, item), at most one a
   peer, in peer order (0055). All saved, as sorted lists; nothing is derived.
 - **Files:** `Stacks.cs` — the rules below, on slots; `Floor.cs` — stacks on the floor; `Items.cs` —
   the module, its commands and interfaces; `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
@@ -131,6 +131,11 @@ counted twice.
   one of it into them and `back` of itself, a crop's seeds, the caller checking `CanSmelt` first and drawing
   `back` (0060);
   `Consume(id, slot)` uses up one of what a slot holds, a fuel as a fire is lit.
+- **What an input remembers** (0062): each input slot of a fed station or of a machine with a fire (its fuel slot too)
+  remembers the item last in it, through every write of the machine's slots (`SetMachine`): what it holds now, or,
+  emptied by that write, what it held, so a slot burnt, smelted or grown down to nothing remembers its item. A `Move` or
+  `Drop` that takes all of a slot out, a hand's, makes it forget. `KeptAt(id, slot)` — the item, or null: what drones
+  refill (`Logistics`). Kept for a machine taken apart, never read: ids are never reused.
 - **Machine to machine,** for drones (`Logistics`, [0062](../../docs/decisions/0062-drones-keep-machines-going.md)), no
   hero's inventory in between: `HeldFor(id, item)` — what a machine holds of an item where a delivery of it goes;
   `RoomFor(id, stack)` — how many of a stack would go in; the operations `TakeFrom(id, slot, count)` — up to `count` from

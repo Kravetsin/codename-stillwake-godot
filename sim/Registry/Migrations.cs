@@ -128,7 +128,7 @@ public static class Migrations
         save => save,
         // 15 → 16: the Former and the assembler take inputs (0057); their entries, saved without a feed, load as paid.
         StationInputs,
-        // 16 → 17: drones (0062): the logistics slice, empty, and the assembler's fourth input, for a drone's four parts.
+        // 16 → 17: drones (0062): the logistics slice, empty, what inputs remember, none, and the assembler's fourth input, for a drone's four parts.
         Drones,
     ];
 
@@ -151,7 +151,7 @@ public static class Migrations
 
     /// <summary>
     /// 16 → 17: the logistics slice (0062), empty, after every other: no machine switched off, no drone flies; its
-    /// clock is the world's. What the circuit assembler holds gains a fourth input, empty, after its three, so its outputs keep their
+    /// clock is the world's. No input remembers an item yet (items' <c>kept</c>): one does once something is put in or burnt. What the circuit assembler holds gains a fourth input, empty, after its three, so its outputs keep their
     /// stacks. A save already of the new shape is left as it is.
     /// </summary>
     public static JsonObject Drones(JsonObject save)
@@ -164,6 +164,7 @@ public static class Migrations
             ["nextId"] = 1,
             ["ticks"] = (int)save["tick"]!,
         };
+        slices["items"]!.AsObject()["kept"] ??= new JsonArray();
         var assemblers = slices["grid"]!["machines"]!.AsArray().Where(m => (string)m!["kind"]! == "assembler").Select(m => (int)m!["id"]!).ToList();
         foreach (var held in slices["items"]!["crates"]!.AsArray())
         {
