@@ -39,6 +39,21 @@ public class PlanLookTests
     }
 
     [Fact]
+    public void ABuiltPipeBesidePlannedOnesReachesTowardThemButNeverRoundARowsEnd()
+    {
+        var grid = new TestWorld("""
+            .-.-
+            ....
+            """).M.Grid;
+        bool Built(int c) => grid.ConduitAt(c) != Conduit.None;
+        Assert.Equal([(1, Blueprint.Right | Blueprint.Down), (3, Blueprint.Left)], Tools.StubsOf(new HashSet<int> { 2, 5 }, 4, Built).OrderBy(s => s.Cell));
+        // Cell 4 starts the row under the pipe at 3, which ends its own: no stub.
+        Assert.Empty(Tools.StubsOf(new HashSet<int> { 4 }, 4, Built));
+        // What reaches is the caller's to say: a ghost's reach takes planned pipes too.
+        Assert.Equal([(6, Blueprint.Left)], Tools.StubsOf(new HashSet<int> { 5 }, 4, c => c == 6));
+    }
+
+    [Fact]
     public void OutlinesARowOfWallsAsOneBoxClockwiseAPixelInsideItsEdge()
     {
         var runs = PlanOutline.Of([(1, "wall", Cell), (2, "wall", Cell), (3, "wall", Cell)], 8, Cell);

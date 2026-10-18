@@ -187,6 +187,9 @@ public partial class BuildingView : Node2D
             if (p.Place is not { } place) continue;
             _plans.Lay(place, p.Cell, width, Tools.LinksOf(place, p.Cell, width, PlannedAt, grid));
         }
+        // Built pipes reach toward planned ones beside them, drawn as plans.
+        var conduits = plans.Where(p => p.Place is { Layer: "conduit" }).Select(p => p.Cell).ToHashSet();
+        foreach (var (cell, sides) in Tools.StubsOf(conduits, width, c => grid.ConduitAt(c) != Conduit.None)) _plans.Stub(cell, width, sides);
         Outline(plans, grid);
         _marked.Begin();
         foreach (var p in plans)
@@ -345,13 +348,20 @@ public partial class BuildingView : Node2D
         var verdicts = Drag.Judge(act, Drag.LineOf(width, act, _drag?.From ?? end, end), building);
         if (act is PlaceTool place)
         {
+            // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.
             var cells = verdicts.Select(v => v.Cell).ToHashSet();
-            bool together = Blueprint.Joins(place.Placement, place.Placement);
+            IEnumerable<Placement> Beside(int c) =>
+                building.PlansAt(c).Select(o => o.Place).OfType<Placement>().Concat(cells.Contains(c) ? [place.Placement] : []);
             foreach (var v in verdicts)
-            {
-                int linked = together ? Blueprint.LinksOf(v.Cell, width, cells.Contains) : 0;
-                (v.Problem != null ? _refused : _fits).Lay(place.Placement, v.Cell, width, linked);
-            }
+                (v.Problem != null ? _refused : _fits).Lay(place.Placement, v.Cell, width, Tools.LinksOf(place.Placement, v.Cell, width, Beside, grid));
+            // Built and planned pipes beside it reach toward it, in its colour.
+            bool Conduit(int c) => grid.ConduitAt(c) != Sim.Grid.Conduit.None || building.PlansAt(c).Any(o => o.Place is { Layer: "conduit" });
+            if (place.Placement.Layer == "conduit")
+                foreach (var refused in (bool[])[false, true])
+                {
+                    var those = verdicts.Where(v => v.Problem != null == refused).Select(v => v.Cell).ToHashSet();
+                    foreach (var (cell, sides) in Tools.StubsOf(those, width, Conduit)) (refused ? _refused : _fits).Stub(cell, width, sides);
+                }
         }
         else _removing = verdicts.Select(v => (v.Cell, v.Problem != null)).ToList();
         _ui.Reason.Set(verdicts.FirstOrDefault(v => v.Problem != null)?.Problem);

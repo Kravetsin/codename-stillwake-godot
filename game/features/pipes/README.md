@@ -16,4 +16,7 @@ P brings every pipe network out of the dimmed ship in a colour of its own, porte
   looked at. A grid not seen before, or one whose log no longer reaches back, is looked at within its
   `Built` only, where every conduit is: a big world of space costs nothing. `BuiltBoundsTests` holds
   them to a whole look.
-- Out of the overlay the grid draws the pipes (`features/grid`).
+- Out of the overlay the grid draws the pipes (`features/grid`). Planned pipes are the building's: they
+  join every conduit beside them, built, planned or in the same drag, as built ones do, with a stub on a
+  built neighbour (`features/building`). The overlay draws only what is built; colouring plans by the
+  network they will join waits on a decision.

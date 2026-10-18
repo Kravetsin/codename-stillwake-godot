@@ -9,7 +9,7 @@ The plan, its menu and the hand at work (0022, 0030), ported from `apps/game/src
 
 | File              | Holds                                                                                          | Godot |
 | ----------------- | ---------------------------------------------------------------------------------------------- | ----- |
-| `Tools.cs`        | the cards and tabs, `CostOf`, `OverlayFor`, `TabFor`, `LayersFor`, `Known`, the pipette's `CardAt` (`tools.ts`) | no    |
+| `Tools.cs`        | the cards and tabs, `CostOf`, `OverlayFor`, `TabFor`, `LayersFor`, `Known`, the pipette's `CardAt` (`tools.ts`); how a plan joins what is beside it, `LinksOf`, `StubsOf` | no    |
 | `PlanHand.cs`     | the card in hand and the plan out, kept in step with `Ui.Hand` and `Ui.OverlayOn` (`tools.ts`'s stores) | no    |
 | `Drag.cs`         | a drag's line of cells and what the card or removal would do in each (`drag.ts`)               | no    |
 | `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
@@ -51,6 +51,10 @@ outline draws too; `PlanOutline`: the dashes round plans; `Sketch`). The plain f
   a little blue, so what was planned — a wall's or back wall's material too, for the other players — stays
   plain to see; unlit, so it reads in the dark, and giving no light. Pipes, doors and walls join what is
   planned and built beside them, as the grid draws them built, so a row of walls is one wall.
+- A planned pipe or valve, and one in hand, reaches toward every conduit beside it, built, planned or in
+  the same drag, as `GridView` joins built ones; a built pipe beside it gets a stub toward it in its look
+  (`Tools.StubsOf`), and a planned one beside a ghost the ghost's, so they meet with no half cell between.
+  Stubs are drawn with the plan, over the machines a built pipe runs behind.
 - Round each group of plans — walls, back walls, ladders, doors, each row of floor along its strip, each
   machine round its footprint — dashes a world pixel wide march clockwise, 5 pixels a second
   (`PlanOutline`, worked out from the cells: the atlas has no room round its pictures to trace). A planned
