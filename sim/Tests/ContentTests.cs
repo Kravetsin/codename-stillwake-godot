@@ -300,7 +300,7 @@ public class ContentTests
         var around = (AroundHeroes)DebrisSpec.Far.Anchor;
         bool Inside(HalfBox a, HalfBox b) => a.X < b.X && a.Y < b.Y;
         // The ring outside what the farthest zoom shows, inside the keep box, inside the hard box.
-        Assert.True(Inside(around.View, around.RingFrom) && around.RingFrom.X <= around.RingTo.X && around.RingFrom.Y <= around.RingTo.Y);
+        Assert.True(Inside(DebrisSpec.View, around.RingFrom) && around.RingFrom.X <= around.RingTo.X && around.RingFrom.Y <= around.RingTo.Y);
         Assert.True(Inside(around.RingTo, around.Keep) && Inside(around.Keep, around.Hard));
         Assert.True(around.PerHero > 0 && around.Linger > 0);
         // Room for four heroes' shares apart, the co-op the game is made for, before the cap holds any back.

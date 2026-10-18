@@ -31,7 +31,8 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   settling over 220 ms, throws sparks from the struck side (3 for the drill's hits, ten a second, 8 for others) and, if the hit was this player's own, plays `Sound.Chop` there, but for the drill's hits (`OwnHits.ToolOn`), whose strikes the crew plays as it works, apart from them (on the Suit
   bus, dulled while floating: wrecks are chopped in space, where only what the hero touches is heard, 0042). A wreck gone with hits in it before
   the end of its path was broken (`Fading.Broken`, counting the ticks run since it was last seen, so one
-  drifting off its end only fades, a stall between frames or not): a burst of dust and sparks (half as much again for a derelict's big picture) and
+  drifting off its end only fades, a stall between frames or not; one broken past its end, kept there by a
+  hero's view (0052), fades too, its loot falling all the same): a burst of dust and sparks (half as much again for a derelict's big picture) and
   `Sound.Break` if its own hit broke it, louder and heard farther than a chop, on the Suit bus too. It takes the last chop's place:
   the last hit removes the wreck on its tick, so its damage never rises in view and no chop plays for it. Every peer sees the
   same, from the world; only the striker hears it. Own is a `Hit` of this peer's seen in flight one frame and gone the next (`OwnHits`), read after the hero sends this frame's hits, so none runs unseen. The stars behind it are
