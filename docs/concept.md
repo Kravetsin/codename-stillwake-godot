@@ -55,8 +55,8 @@ A living document: what is decided about the game and what is still open. Techni
   the room gets none ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
   tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
-  recipe shows what a thing is made of: the harpoon is a frame, a tube, a coil, wire and a plank stock
-  ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md)). The first machine is the pod's
+  recipe shows what a thing is made of: the harpoon is a tube, a coil and its line of wire
+  ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md), [0068](decisions/0068-the-harpoon-before-the-jetpack.md)). The first machine is the pod's
   Fabricator, opened with E under the inventory, where every machine opens ([0058](decisions/0058-one-place-for-every-machine-window.md)): no power, a fifth of full speed, a queue the crew
   shares, paid when queued, made one at a time into its outputs. Most builds cost parts, so the
   furnace feeds the Fabricator before it feeds the hull. Machines for parts the player builds are
@@ -76,7 +76,7 @@ A living document: what is decided about the game and what is still open. Techni
   frees the hero from it, its thrust paid in the suit's air, and canisters breathed refill the suit
   ([0047](decisions/0047-equipment-the-jetpack-and-the-slower-swim.md)).
 - **Catching:** by hand on the tether, within reach; farther out, a hand harpoon made at the Fabricator
-  shoots a rod on a line into a piece, small or a wreck, and a second click reels it in to just before
+  shoots a rod on a line up to 20 cells into a piece, small or a wreck, and a second click reels it in to just before
   the gun, to catch with E or chop with the axe; it fires again 5 s after its shot
   ([0044](decisions/0044-the-harpoon-reels-a-piece-to-a-point.md)).
 - **Wreckage** drifts among the small debris, too big to catch: a hull section, a cargo container,

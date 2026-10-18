@@ -85,7 +85,7 @@ public class RemoteRodTests
     {
         var rod = new RemoteRod();
         Step(rod, 10, Flying);
-        Run(rod, 400, Flying);
+        Run(rod, Spec.Range / Flies, Flying);
         var back = new RodSeen(Rod.Returning);
         Step(rod, 100, back);
         Assert.Equal((Rod.Returning, 1_000 + Spec.Range - 100 * Returns), (rod.Rod, rod.Tip.X));

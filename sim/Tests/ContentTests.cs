@@ -561,7 +561,7 @@ public class ContentTests
         Assert.True(Content.Items.TryGet(Harpoon.Item, out var harpoon));
         Assert.Equal(1, harpoon!.Stack);
         Assert.True(Crafts.TryGet(Harpoon.Item, out var craft));
-        Assert.Equal([("planks", 1), ("frame", 1), ("tube", 1), ("coil", 1), ("wire", 4)], craft!.Cost);
+        Assert.Equal([("tube", 1), ("coil", 1), ("wire", 4)], craft!.Cost);
         Assert.DoesNotContain(Harpoon.Item, Content.Research.StartKnown);
     }
 

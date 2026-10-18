@@ -88,8 +88,8 @@ public class HarpoonTests
         shot.Step(10, true, Out(), world.World);
         shot.Step(100, false, Out(), world.World);
         Assert.Equal(100 * Flies, shot.Tip.X, 6);
-        // 12 cells at 40 a second: 300 ms out; then back at 80 a second.
-        Run(shot, 200, world);
+        // 20 cells at 40 a second: 500 ms out; then back at 80 a second.
+        Run(shot, Spec.Range / Flies - 100, world);
         Assert.Equal((Rod.Returning, (double)Spec.Range), (shot.Rod, shot.Tip.X));
         Run(shot, Spec.Range / Returns - 20, world);
         Assert.Equal(Rod.Returning, shot.Rod);
@@ -105,7 +105,7 @@ public class HarpoonTests
         shot.Step(10, true, Out(), world.World);
         Assert.False(shot.Step(10, true, Out(), world.World).Fired);
         Assert.Equal(Rod.Flying, shot.Rod);
-        Run(shot, 300, world);
+        Run(shot, Spec.Range / Flies, world);
         Assert.Equal(Rod.Returning, shot.Rod);
         Assert.Equal(default, shot.Step(10, true, Out(), world.World));
         Run(shot, 300, world);

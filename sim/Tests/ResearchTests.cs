@@ -293,6 +293,28 @@ public class ResearchTests
     }
 
     [Fact]
+    public void TheHarpoonOpensBeforeTheJetpack()
+    {
+        // Its cost is within the jetpack's, and neither is granted: in any order of analysis the harpoon opens first or with it (0068).
+        var harpoon = Content.Crafts.Get("harpoon").Cost.Select(c => c.Item).ToHashSet();
+        var jetpack = Content.Crafts.Get("jetpack").Cost.Select(c => c.Item).ToHashSet();
+        Assert.ProperSubset(jetpack, harpoon);
+        Assert.DoesNotContain("harpoon", Content.Research.StartKnown);
+        Assert.DoesNotContain("jetpack", Content.Research.StartKnown);
+        // From the wreck's start: iron and wire open the tube and the coil, and those two the harpoon; the jetpack waits on more.
+        var (w, id) = SetUp();
+        w.GiveItems(0, ("tube", 1), ("coil", 1));
+        Analyse(w, id, "iron");
+        Analyse(w, id, "wire");
+        Assert.True(w.M.Research.Knows("tube") && w.M.Research.Knows("coil"));
+        Analyse(w, id, "tube");
+        Analyse(w, id, "coil");
+        Assert.True(w.M.Research.Knows("harpoon"));
+        Assert.False(w.M.Research.Knows("jetpack"));
+        Assert.Equal(["frame", "circuit", "canister"], RecipeOf(w, "jetpack").Unanalysed);
+    }
+
+    [Fact]
     public void StallsUnpoweredSayingSoAndWorksProportionallySlowerShortOfPower()
     {
         var (w, id) = SetUp();
