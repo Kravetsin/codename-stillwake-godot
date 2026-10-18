@@ -175,12 +175,10 @@ public class ResearchTests
         Analyse(w, id, "circuit");
         Assert.True(RecipeOf(w, "solarPanel").Known);
         Assert.True(w.M.Research.Knows(panel));
-        // Paid in full from what the hero carries, the analysed items taken back out among it.
+        // Paid an item a part from what the hero carries, the analysed items taken back out among it.
         w.Do(new PlacePlan(4, panel)).Run();
         Assert.Empty(w.Refusals);
         int plan = w.M.Building.Plans.Single().Id;
-        w.Do(new Work(plan)).Run();
-        Assert.Empty(w.M.Building.Lacking(plan));
         for (int t = 0; t < Content.Machines.Get("solarPanel").BuildTicks; t++) w.Do(new Work(plan)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal("solarPanel", w.M.Grid.MachineAt(4)?.Kind);

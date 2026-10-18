@@ -6,7 +6,7 @@ namespace Stillwake.Sim.Building;
 
 /// <summary>
 /// A plan, with the ticks of work done on it: a blueprint, to <c>Place</c> something, with what was
-/// <c>Delivered</c> to it so far, worked on only once that is all it costs; or a mark, to <c>Clear</c>
+/// <c>Delivered</c> to it so far, an item for each part of its work begun (ADR 0063); or a mark, to <c>Clear</c>
 /// what a layer of a cell holds. A machine's is kept at its top-left cell, whichever cell it was
 /// marked from. Exactly one of <c>Place</c> and <c>Clear</c> is set.
 /// </summary>

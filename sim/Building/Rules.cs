@@ -103,25 +103,55 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// What blueprint <paramref name="plan"/> still lacks before work on it may begin; nothing in
-    /// creative mode, where it is built as it is, nor for a mark.
+    /// What blueprint <paramref name="plan"/> still lacks of its cost, in the cost's order; nothing in creative
+    /// mode, where it is built as it is, nor for a mark.
     /// </summary>
     private Cost LackOf(Plan plan) =>
         plan.Place is { } place && !_items.Creative ? Costs.Lacking(Costs.BuildOf(place).Cost, plan.Delivered) : [];
 
     /// <summary>
-    /// Why E on plan <paramref name="id"/> by peer <paramref name="peer"/> is refused: the plan is gone;
-    /// it is a blueprint still lacking something and the hero carries none of it; or it is a mark on a
-    /// crate that holds something or a machine a cable ends on.
+    /// The parts of the work on a blueprint for <paramref name="place"/> begun by the tick at <paramref name="progress"/>,
+    /// that tick counted, and all its parts: one an item of its cost (ADR 0063).
+    /// </summary>
+    private static (int Begun, int Parts) PartsAt(Placement place, int progress)
+    {
+        var build = Costs.BuildOf(place);
+        int parts = Costs.PartsOf(build.Cost);
+        return (Costs.PartsBegun(progress, build.BuildTicks, parts), parts);
+    }
+
+    /// <summary>The items paid into blueprint <paramref name="plan"/>: one a part begun.</summary>
+    private static int PaidInto(Plan plan) => plan.Delivered.Sum(s => s.Count);
+
+    /// <summary>
+    /// Whether the next tick of work on <paramref name="plan"/> begins a part not paid for yet, so its worker
+    /// pays an item first; never in creative mode, nor for a mark.
+    /// </summary>
+    private bool Owes(Plan plan) =>
+        plan.Place is { } place && !_items.Creative && PaidInto(plan) < PartsAt(place, plan.Progress).Begun;
+
+    /// <summary>
+    /// What peer <paramref name="peer"/> pays for the part of <paramref name="plan"/> that begins next: the first
+    /// item in the cost's order that the plan still lacks and the hero carries; null when it carries none.
+    /// </summary>
+    private string? PaymentOf(Plan plan, int peer)
+    {
+        var carried = _items.Totals(peer);
+        foreach (var (item, _) in LackOf(plan))
+            if (carried.Any(c => c.Item == item && c.Count > 0)) return item;
+        return null;
+    }
+
+    /// <summary>
+    /// Why E on plan <paramref name="id"/> by peer <paramref name="peer"/> is refused: the plan is gone; it is a
+    /// blueprint whose next part is not paid for and the hero carries nothing it still lacks; or it is a mark on
+    /// a crate that holds something or a machine a cable ends on.
     /// </summary>
     private string? WorkProblemOf(int id, int peer)
     {
         var plan = State.Plans.Find(p => p.Id == id);
         if (plan == null) return "building.noPlan";
         if (plan.Clear is { } layer) return InUse(plan.Cell, layer);
-        var due = LackOf(plan);
-        if (due.Count == 0) return null;
-        var carried = _items.Totals(peer);
-        return due.Any(d => carried.Any(c => c.Item == d.Item && c.Count > 0)) ? null : "items.notEnough";
+        return Owes(plan) && PaymentOf(plan, peer) == null ? "items.notEnough" : null;
     }
 }
