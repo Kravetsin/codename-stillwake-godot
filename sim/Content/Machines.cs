@@ -55,7 +55,7 @@ public static class Machines
     [
         new("tank", 2, 2, [(0, 1)], [("plate", 4), ("tube", 1)], BuildTicks: 160),
         new("generator", 2, 2, [(0, 1)], [("frame", 1), ("rotor", 1), ("tube", 1), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (16, 5)),
-        new("solarPanel", 3, 1, [], [("scrap", 6), ("iron", 6), ("circuit", 3)], BuildTicks: 160, Makes: 5, Plug: (24, 14)),
+        new("solarPanel", 3, 1, [], [("frame", 1), ("solarCell", 4), ("wire", 2), ("circuit", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14)),
         new("vent", 1, 1, [(0, 0)], [("plate", 1), ("tube", 1)], BuildTicks: 60),
         new("lamp", 1, 1, [], [("wire", 2), ("scrap", 1)], BuildTicks: 60, Draws: 1, Plug: (11, 1)),
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
@@ -71,6 +71,8 @@ public static class Machines
         new("former", 2, 2, [], [("frame", 2), ("rotor", 1), ("gear", 2), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 3, Inputs: 0),
         // Smelts on power, twice the furnace's speed and hotter (Stations): its input, then three outputs. Rests idle.
         new("smelter", 2, 2, [], [("frame", 1), ("coil", 2), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 4, Plug: (4, 17), Slots: 4, Inputs: 1),
+        // Assembles electronics at full speed while it draws (Stations); its slots are what it made. Rests idle.
+        new("assembler", 2, 2, [], [("frame", 1), ("rotor", 1), ("glass", 1), ("wire", 2), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (4, 25), Slots: 3, Inputs: 0),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made.
         new("lifepod", 3, 3, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true),
     ];

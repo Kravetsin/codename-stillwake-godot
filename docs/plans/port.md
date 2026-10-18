@@ -8,7 +8,10 @@ difference goes into the module's README.
 
 **Done when** a player cannot tell the two builds apart, but for the light: the start in the wreck,
 salvage, the furnace, building, cables, air, the analyzer, co-op over the network. Then crafting
-([crafting.md](crafting.md)) is built here.
+is built here (built: [0027](../decisions/0027-what-is-analysed-opens-what-is-made-of-it.md),
+[0028](../decisions/0028-the-lifepod-and-crafting-by-machine-only.md),
+[0045](../decisions/0045-a-burner-generator-shares-the-furnaces-fire.md),
+[0057](../decisions/0057-stations-one-model-for-every-crafting-machine.md)).
 
 Order: every task leaves `dotnet build` and `dotnet test` green and the game running.
 

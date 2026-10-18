@@ -8,7 +8,7 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// <c>-- --testbed --open=&lt;kind&gt;</c>: the hero starts just right of the testbed's machine of that kind
 /// and opens it a second in, with the inventory, as E would: for recording a machine at work and its panel (the
-/// Former, the lifepod's Fabricator, the furnace).
+/// Former, the circuit assembler, the lifepod's Fabricator, the furnace).
 /// </summary>
 public partial class OpenDemo(Ui ui, string kind, Func<Registry> m) : Node
 {

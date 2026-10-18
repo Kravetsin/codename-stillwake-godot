@@ -20,6 +20,7 @@ public class CraftsTests
         """;
     private const int Pod = 1;
     private static readonly Content.Station Fabricator = Content.Stations.Get("lifepod");
+    private static readonly Content.Station Assembler = Content.Stations.Get("assembler");
 
     private static TestWorld Start() => new(Layout.Parse(Room) with { Known = Content.Research.StartKnown });
 
@@ -31,7 +32,9 @@ public class CraftsTests
     {
         Assert.Equal(4, Crafts.Columns);
         Assert.Equal(["plate", "gear", "tube", "frame", "wire", "coil", "rotor", null, "fireAxe", "harpoon", "drill", null, "jetpack", "battery", null, null], Crafts.Places(Fabricator));
-        Assert.Equal(Content.Crafts.All.Count, Crafts.Places(Fabricator).Count(p => p != null));
+        // The pod keeps its twelve; new crafts go to machines (0057).
+        Assert.Equal(Content.Crafts.All.Count - 2, Crafts.Places(Fabricator).Count(p => p != null));
+        Assert.Equal(["circuit", "solarCell", null, null, null, null, null, null], Crafts.Places(Assembler));
     }
 
     [Fact]
@@ -63,20 +66,40 @@ public class CraftsTests
     }
 
     [Fact]
-    public void GoesToTheFirstCraftedItemAShortRecipeLacksAndNowhereForARawOne()
+    public void GoesToTheFirstItemAShortRecipeLacksThatItsStationMakesAndNowhereForOneMadeElsewhere()
     {
-        Assert.Equal("gear", Crafts.MissingCraft(Crafts.Lines("rotor", []), creative: false));
-        Assert.Equal("wire", Crafts.MissingCraft(Crafts.Lines("rotor", [("gear", 1), ("wire", 1)]), creative: false));
-        Assert.Null(Crafts.MissingCraft(Crafts.Lines("plate", [("iron", 1)]), creative: false));
-        Assert.Null(Crafts.MissingCraft(Crafts.Lines("rotor", []), creative: true));
+        Assert.Equal("gear", Crafts.MissingCraft(Crafts.Lines("rotor", []), creative: false, Fabricator));
+        Assert.Equal("wire", Crafts.MissingCraft(Crafts.Lines("rotor", [("gear", 1), ("wire", 1)]), creative: false, Fabricator));
+        Assert.Null(Crafts.MissingCraft(Crafts.Lines("plate", [("iron", 1)]), creative: false, Fabricator));
+        Assert.Null(Crafts.MissingCraft(Crafts.Lines("rotor", []), creative: true, Fabricator));
+        // The assembler makes no wire, and the pod no circuits: a click there would find nothing to go to.
+        Assert.Null(Crafts.MissingCraft(Crafts.Lines("circuit", [("silicon", 1)]), creative: false, Assembler));
+        Assert.Null(Crafts.MissingCraft(Crafts.Lines("battery", [("plate", 1), ("coil", 1), ("wire", 2)]), creative: false, Fabricator));
     }
 
+    /// <summary>
+    /// Every item a queued station's recipe costs says, short, where it comes from, unless that station makes it: in its own
+    /// words when salvaged or smelted, or by the stations that make it (wire at the assembler: the Fabricator, the Former).
+    /// </summary>
     [Fact]
-    public void SaysWhereEveryRawItemARecipeCostsComesFrom()
+    public void SaysWhereEveryItemARecipeCostsComesFromWhenItsStationDoesNotMakeIt()
     {
-        var raw = Content.Crafts.All.SelectMany(c => c.Cost).Select(c => c.Item).Where(Crafts.Raw).Distinct().ToList();
-        Assert.Contains("scrap", raw);
-        Assert.All(raw, item => Assert.True(Table.ContainsKey($"crafts.from.{item}"), item));
+        foreach (var station in Content.Stations.All.Where(s => !s.Fed))
+            foreach (var item in station.Rows.SelectMany(r => r).SelectMany(c => Content.Crafts.Get(c).Cost).Select(c => c.Item).Distinct())
+            {
+                if (Crafts.Makes(station, item)) Assert.Null(Crafts.From(item, station));
+                else Assert.False(string.IsNullOrEmpty(Crafts.From(item, station)), $"{station.Machine}: {item}");
+            }
+        Assert.Equal(T("crafts.from.scrap"), Crafts.From("scrap", Fabricator));
+        Assert.Equal("made at: Fabricator, Former", Crafts.From("wire", Assembler));
+        Assert.Equal("the circuit assembler, or break cable racks or derelicts", Crafts.From("circuit", Fabricator));
+        Assert.Null(Crafts.From("wire", Fabricator));
+        // An item salvaged, smelted or made besides elsewhere has its own words; one only crafted has none, its stations named.
+        foreach (var key in Table.Keys.Where(k => k.StartsWith("crafts.from.", StringComparison.Ordinal)))
+        {
+            string item = key["crafts.from.".Length..];
+            Assert.True(!Content.Crafts.TryGet(item, out _) || Content.Loot.All.Any(l => l.Entries.Any(e => e.Item == item)), item);
+        }
     }
 
     [Fact]

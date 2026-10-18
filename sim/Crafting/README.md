@@ -1,7 +1,8 @@
 # Crafting
 
 Stations ([0057](../../docs/decisions/0057-stations-one-model-for-every-crafting-machine.md)): every
-crafting machine on one model. A **queued** station (the lifepod's Fabricator, the Former) makes crafts
+crafting machine on one model. A **queued** station (the lifepod's Fabricator, the Former, the circuit
+assembler) makes crafts
 from a queue shared by the crew, paid when queued, one unit at a time into its outputs
 ([0028](../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)); a **fed** station (the
 furnace, the electric smelter) smelts what its input holds into that item's yields, where it is hot
@@ -40,13 +41,18 @@ depends on items.
 - **A queued station:** a craft is named by the item it makes and costs, a unit, what `Content.Crafts`
   says; a unit takes its `Ticks` × 1000 of work. Crafts come in layers: parts of materials (wire, plate,
   gear, tube), components of parts (rotor, frame, coil), and products, tools as builds, of either (0046).
-  Electronics need circuits besides, salvaged from cable racks until silicon makes them.
+  Electronics need circuits besides, salvaged from cable racks and derelicts, or made at the circuit assembler.
   - The pod is the most basic bench, slow on purpose (speed 200, a fifth): a wire takes 5 s there, a plate
     10, a rotor 15, a frame 20, the harpoon 30, while the hero is out salvaging. It needs no power and no air.
   - **The Former** is the first powered station: 2×2, it draws 3 and works at speed 1000, five times the
     pod, with a queue of eight; it makes the parts and components (wire, plate, gear, tube, frame, coil,
     rotor), not tools. It costs 2 frames, a rotor, 2 gears and a circuit, so it opens once those four are
     analysed (0027). A plate takes 2 s at full power, about 2.8 s at 70%. Idle, it rests and draws nothing.
+  - **The circuit assembler** makes the electronics: 2×2, it draws 2 and works at speed 1000, a queue of eight;
+    a circuit of a silicon and 2 wire in 80 ticks, a solar cell of a silicon, a glass and a wire in 100. It
+    costs a frame, a rotor, a glass, 2 wire and a circuit, salvaged, so it opens once those five are analysed.
+    Idle, it rests as the Former does. The pod and the Former make neither; the pod's list stops growing
+    (0057).
   - `Craft(Machine, Recipe, Count)` takes the cost of all `Count` units from the sender at once (nothing in
     creative mode) and adds an entry, by the sender, at the end of that station's queue, with the queue's
     next id. Refused with `crafting.noStation` (no station by that id), `crafting.unknown` (no craft makes

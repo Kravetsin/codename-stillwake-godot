@@ -2,9 +2,10 @@
 
 - Status: accepted; supersedes of [0028](0028-the-lifepod-and-crafting-by-machine-only.md) "every craft
   is the pod's while it is the only station", and of [0023](0023-a-furnace-burns-fuel.md) and
-  [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) that the `furnace` module smelts
+  [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) that the `furnace` module smelts; of
+  [0041](0041-wreckage-of-many-kinds-and-circuits.md) that no craft makes a circuit and the solar panel's cost
 - Date: 2026-10-17
-- Design: "powered production stations" (approved), slices 1 to 3 of 4
+- Design: "powered production stations" (approved), all four slices built
 
 ## Context
 
@@ -94,6 +95,35 @@ rule and a panel; the smelter would copy the furnace's smelt rules without its f
 - The testbed has one in room two, smelting rock, on a fourth roof panel of its own; the ship is three
   cells longer for it.
 
+## The circuit assembler, circuits, solar cells and the solar panel (slice 4)
+
+- **A third queued station,** the electronics bench: 2×2, draws 2, speed 1000, a queue of eight; it rests while
+  idle or while its unit waits for room, as the Former does. It makes two crafts, in one row: a **circuit** of a
+  silicon and 2 wire in 80 ticks (4 s), and a **solar cell**, a new part, of a silicon, a glass and a wire in 100
+  (5 s). It costs a frame, a rotor, a glass, 2 wire and a circuit, so it opens once those five are analysed; the
+  circuit craft once silicon and wire are. The pod and the Former make neither, refusing them `crafting.notHere`.
+- **Circuits have two sources:** salvage still (cable racks, surely; derelicts, rarely; 0041, 0056), and the
+  assembler, which needs one salvaged circuit to be built. Electronics are now a chain: rock smelted into silicon,
+  silicon into glass at the smelter, both with wire into cells at the assembler.
+- **The solar panel is built of solar cells:** a frame, 4 solar cells, 2 wire and a circuit, in place of 6 scrap,
+  6 iron and 3 circuits. Nothing held it back since 0041; it opens, as every blueprint, once its cost is
+  analysed, so now only once the assembler and the smelter have been reached (`ContentTests`). What it does
+  is unchanged: power only under the stars (0043).
+- **Where a short item comes from,** in a recipe's tooltip, is the station's to say: the assembler is the first
+  station whose recipes need what another station makes (wire). A short item the station makes itself is where
+  a click goes, as before; any other says where it comes from: its own words when it is salvaged, smelted or
+  made besides elsewhere (`crafts.from.<item>`: silicon, glass, and the circuit, "the circuit assembler, or break
+  cable racks or derelicts"), else the stations that make it, by name ("made at: Fabricator, Former").
+- **Art:** a placeholder matching its recipe: a frame bench on two legs, two spools of wire on the shelf under
+  it, a cabinet over it with a rotor joint on the left carrying a two-length arm with a soldering head, a glass
+  magnifier on a stalk over a green board, and a small screen. While it works (`Works`) the arm dips to the board
+  pad by pad and the rotor turns, four pictures lit as the machine is; the screen runs a green trace and a spark
+  shows where the head touches, four pictures in step drawn unlit, and the screen lights the room green. Idle the
+  arm is parked, the screen dark, no light. No sound: it waits for the user's audition.
+- **Its panel** is the queued stations' (the Fabricator's, the Former's), with its bolt and draw.
+- The testbed is three cells longer for an assembler making circuits on a fifth roof panel; the jetpack script's
+  doors move with it. `--card=<id>` takes the plan out on a build card, its tooltip shown, for recordings.
+
 ## Rejected
 
 - **The furnace keeps its smelting, the smelter its own:** two copies of one rule, and upgrades would
@@ -116,3 +146,7 @@ rule and a panel; the smelter would copy the furnace's smelt rules without its f
 - A fire's first tick is lost to smelting: about one in sixty of a chunk's work, once per fire lit.
 - New machines that make things are a machine spec, a station entry, art and a panel: no module.
 - Building depends on crafting, and furnace on crafting; crafting depends on power.
+- The assembler was content, art and a line in each client table, proving the point: no sim code changed.
+- A first solar panel now takes the whole chain (asteroid rock, the smelter, the assembler) and a circuit; the
+  wreck's panel and burner generators carry a ship until then.
+- No save format change: the new machine, craft and item are ids, and a panel built of the old cost is a panel.

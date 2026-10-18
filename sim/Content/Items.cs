@@ -77,8 +77,10 @@ public static class Items
         // Smelted from rock, and smelted on into glass only where it is hot enough: the electric smelter (0057).
         new("silicon", 100, Yields: [("glass", 1)], SmeltTicks: 120, Heat: 2),
         new("glass", 50),
-        // A part no craft makes: salvaged from cable racks alone (Loot).
+        // Salvaged from cable racks and derelicts (Loot), and made at the circuit assembler of silicon and wire (0057).
         new("circuit", 20),
+        // Silicon, glass and wire, made at the circuit assembler: what a solar panel is built of.
+        new("solarCell", 20),
         // Tools, made as parts are.
         new("fireAxe", 1),
         new("harpoon", 1),

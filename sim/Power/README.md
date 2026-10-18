@@ -33,7 +33,7 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   only under the stars: every cell of it in space with no back wall behind it (a solar panel in a
   room, or before a back wall, is in the shade; 0043); its demand, what the machines on it that draw power draw, one working on
   what is put in it (an analyzer or the electric smelter, with `Slots` taking items in) only while its first slot holds something,
-  one whose slots only give out (`Inputs` 0: the Former) whenever it is not resting, and none
+  one whose slots only give out (`Inputs` 0: the Former, the circuit assembler) whenever it is not resting, and none
   told to rest by the module it works for (`Rest`), and a charging station only while what it holds
   is short of its capacity; a machine taken apart rests no more. Its
   satisfaction is `floor(1000 × supply / demand)`, at most 1000, and 1000 with no demand: every user

@@ -40,10 +40,11 @@ A living document: what is decided about the game and what is still open. Techni
   analyzer, the crate, scrap walls and the wire; smelting scrap, making wire, cabling the torn room's
   analyzer and analysing iron is the first lesson. An item not analysed yet has a violet "?" in its
   slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
-  item in it goes into, opened or still closed; nothing pops up over the hero. The solar panel is
-  built of circuits, salvaged only from the electronics racks that drift by, and so is every electric thing:
-  the battery and the charging station a circuit each, the drill two (silicon from asteroids will make them later:
-  rock smelts into silicon, and silicon into glass in the electric smelter)
+  item in it goes into, opened or still closed; nothing pops up over the hero. Every electric thing
+  is built of circuits, salvaged from the electronics racks that drift by, and later made at the circuit
+  assembler of silicon from asteroid rock and wire: the battery and the charging station a circuit each, the drill
+  two. The solar panel is built of solar cells, silicon and glass (smelted on from silicon in the electric smelter)
+  assembled with wire, so a first new panel takes the whole chain
   ([0024](decisions/0024-blueprints-are-learned-by-analysis.md),
   [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md),
   [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).
@@ -60,8 +61,9 @@ A living document: what is decided about the game and what is still open. Techni
   furnace feeds the Fabricator before it feeds the hull. Machines for parts the player builds are
   powered, faster and with longer queues: the Former first, presses for the parts at five times the
   pod's speed; then the electric smelter, twice the furnace's speed and hotter: what needs more heat than
-  a machine has goes in, and the machine shows it is too cold, cold blue, rather than refusing it. A
-  circuit assembler comes next ([0057](decisions/0057-stations-one-model-for-every-crafting-machine.md)).
+  a machine has goes in, and the machine shows it is too cold, cold blue, rather than refusing it; then the
+  circuit assembler, circuits of silicon and wire and solar cells of silicon, glass and wire
+  ([0057](decisions/0057-stations-one-model-for-every-crafting-machine.md)).
 - **Spacewalks:** on a tether from the hull at first, swimming slowly; an oxygen jetpack worn on the back
   frees the hero from it, its thrust paid in the suit's air, and canisters breathed refill the suit
   ([0047](decisions/0047-equipment-the-jetpack-and-the-slower-swim.md)).

@@ -272,7 +272,7 @@ public partial class FabricatorPanel : CanvasLayer
                 case Look.Ready:
                     Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed)));
                     break;
-                case Look.Short when Crafts.MissingCraft(Crafts.Lines(craft, _carried), _creative) is { } missing:
+                case Look.Short when Crafts.MissingCraft(Crafts.Lines(craft, _carried), _creative, station) is { } missing:
                     _pulse = (missing, 0);
                     break;
             }

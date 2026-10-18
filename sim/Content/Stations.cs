@@ -37,6 +37,8 @@ public static class Stations
         new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor"]]),
         // Smelts as the furnace does, twice as fast on power, and hot enough for what the furnace cannot: silicon into glass.
         new("smelter", Speed: 2000, QueueMost: 0, Rows: [], Heat: 2),
+        // The electronics bench: circuits and solar cells, at full speed on power, a queue of eight.
+        new("assembler", Speed: 1000, QueueMost: 8, Rows: [["circuit", "solarCell"]]),
     ];
 
     /// <summary>The most crafts a row holds: a panel's columns.</summary>

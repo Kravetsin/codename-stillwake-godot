@@ -223,14 +223,14 @@ public class DesyncTests
     [Fact]
     public void KeepsEveryClientInSyncWhileEveryKindOfStationWorks()
     {
-        // An aired room with the lifepod, a furnace, and a Former and an electric smelter cabled to a burner
-        // generator (0057), each peer carrying chunks, planks and rock. The fuzz crafts and cancels at every
-        // station; the first client, in creative mode, keeps the Former's queue going and the furnace, the
-        // smelter and the generator fed.
+        // An aired room with the lifepod, a furnace, and a Former, an electric smelter and a circuit assembler cabled
+        // to a burner generator (0057), each peer carrying chunks, planks and rock. The fuzz crafts and cancels at every
+        // station; the first client, in creative mode, keeps the Former's and the assembler's queues going and the
+        // furnace, the smelter and the generator fed.
         var layout = Layout.Parse(
-            ["###################", "#.......OOO.......#", "#FF.TT..OOOMMBB.EE#", "#FF.TTV.OOOMMBB.EE#", "###################"],
+            ["######################", "#.......OOO..........#", "#FF.TT..OOOMMBB.EE.YY#", "#FF.TTV.OOOMMBB.EE.YY#", "######################"],
             ["", "", "    o", "    ---"],
-            [((13, 2), (11, 2)), ((13, 2), (16, 2))]);
+            [((13, 2), (11, 2)), ((13, 2), (16, 2)), ((13, 2), (19, 2))]);
         string Stocked(string save)
         {
             var root = JsonNode.Parse(save)!;
@@ -248,7 +248,7 @@ public class DesyncTests
             return root.ToJsonString();
         }
         var game = new Definition(() => new Registry().All, Stocked);
-        int formed = 0, smelted = 0, heated = 0;
+        int formed = 0, smelted = 0, heated = 0, assembled = 0;
         var run = Desync.Fuzz(game, 13, layout: layout, ticks: 1500, tamper: (tick, clients) =>
         {
             var first = clients[0];
@@ -256,13 +256,16 @@ public class DesyncTests
             var crafting = game.Module<CraftingModule>(first.World);
             int former = grid.MachinesOf("former")[0].Id, furnace = grid.MachinesOf("furnace")[0].Id;
             int burner = grid.MachinesOf("burnerGenerator")[0].Id, smelter = grid.MachinesOf("smelter")[0].Id;
+            int assembler = grid.MachinesOf("assembler")[0].Id;
             if (tick % 20 == 10)
             {
                 first.Send(new SetCreative(true));
                 first.Send(new Craft(former, "plate", 3));
+                first.Send(new Craft(assembler, tick % 40 == 10 ? "circuit" : "solarCell", 2));
                 // The power fuzz cuts and moves cables: the Former's laid again, free in creative mode.
                 first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(former)!.Cell));
                 first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(smelter)!.Cell));
+                first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(assembler)!.Cell));
             }
             var own = game.Module<ItemsModule>(first.World).Inventory(first.Id).ToList();
             int chunk = own.FindIndex(s => s is { Item: "scrapChunk" }), planks = own.FindIndex(s => s is { Item: "planks" });
@@ -274,11 +277,13 @@ public class DesyncTests
             if (crafting.Works(former)) formed++;
             if (crafting.Progress(furnace) > 0) smelted++;
             if (crafting.Works(smelter)) heated++;
+            if (crafting.Works(assembler)) assembled++;
         });
         Assert.Null(run.Desync);
         Assert.True(formed > 100, $"the Former worked on {formed} ticks");
         Assert.True(smelted > 30, $"the furnace smelted on {smelted} ticks");
         Assert.True(heated > 30, $"the smelter smelted on {heated} ticks");
+        Assert.True(assembled > 100, $"the assembler worked on {assembled} ticks");
     }
 
     // The harness itself.

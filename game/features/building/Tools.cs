@@ -103,6 +103,7 @@ public static class Tools
             Place("analyzer", new Placement("machine", "analyzer")),
             Place("former", new Placement("machine", "former")),
             Place("smelter", new Placement("machine", "smelter")),
+            Place("assembler", new Placement("machine", "assembler")),
         ]),
         new("storage", [Place("crate", new Placement("machine", "crate"))]),
     ];

@@ -84,7 +84,7 @@ public class ItemCardTests
         Assert.Equal(("Gear", "Part"), (gear.Name, gear.Kind));
         // The crafts first, then the blueprints in content's order: the rotor, then the door, the valve and the Former.
         Assert.Equal(["Rotor", "Drill", "Door", "Valve", "+1"], gear.Uses);
-        Assert.Equal(["Rotor", "Coil", "Harpoon", "Oxygen jetpack", "+6"], ItemCards.Of("wire", false).Uses);
+        Assert.Equal(["Rotor", "Coil", "Harpoon", "Oxygen jetpack", "+10"], ItemCards.Of("wire", false).Uses);
         Assert.Equal(("Iron", "Material"), (ItemCards.Of("iron", false).Name, ItemCards.Of("iron", false).Kind));
         Assert.Equal("Salvage", ItemCards.Of("scrapChunk", false).Kind);
     }
@@ -99,7 +99,10 @@ public class ItemCardTests
             + Sim.Research.Blueprints.All.Count(b => b.Cost.Any(i => i.Item == "scrap"));
         Assert.Equal($"+{into - ItemCards.MostInto}", scrap[^1]);
         // Electronics need circuits: the crafts first, then the builds.
-        Assert.Equal(["Battery", "Drill", "Solar panel", "Charging station", "+2"], ItemCards.Of("circuit", false).Uses);
+        Assert.Equal(["Battery", "Drill", "Solar panel", "Charging station", "+3"], ItemCards.Of("circuit", false).Uses);
+        // A solar cell goes into the solar panel alone; its card names the part kind.
+        Assert.Equal(("Solar cell", "Part"), (ItemCards.Of("solarCell", false).Name, ItemCards.Of("solarCell", false).Kind));
+        Assert.Equal(["Solar panel"], ItemCards.Of("solarCell", false).Uses);
     }
 
     [Fact]

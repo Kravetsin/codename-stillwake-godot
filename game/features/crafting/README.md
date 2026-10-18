@@ -1,4 +1,4 @@
-# crafting (client): the lifepod's Fabricator, the Former, every station at work
+# crafting (client): the lifepod's Fabricator, the Former, the circuit assembler, every station at work
 
 Making parts by machine only ([0028](../../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)),
 the client of `sim/Crafting`. It reads `Registry.Crafting` (`Queue`, `Progress`, `StationOf`),
@@ -12,10 +12,10 @@ mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 
 | File                  | Holds                                                                                   | Godot |
 | --------------------- | --------------------------------------------------------------------------------------- | ----- |
-| `Crafts.cs`           | a recipe's fixed place, how its slot looks, where a click on a short one goes, its block on the card, the bar, what a station is doing | no |
+| `Crafts.cs`           | a recipe's fixed place, how its slot looks, where a click on a short one goes, where a short item comes from, its block on the card, the bar, what a station is doing | no |
 | `FabricatorPanel.cs`  | any queued station's panel under the inventory, in the machine frame: header, bolt and screen; recipes on the left, the shared queue and outputs on the right | yes |
 | `FabricatorScreen.cs` | the panel's small screen: lines running while it works, READY idle, dark with no power | yes   |
-| `StationView.cs`      | over a station's picture: the Former's flywheel, gears and press head moving, the smelter's coils glowing and lighting the room, while it works; a cold-blue mark on a fed station too cold for its input | yes |
+| `StationView.cs`      | over a station's picture: the Former's flywheel, gears and press head moving, the smelter's coils glowing and lighting the room, the assembler's arm dipping and its screen lighting the room green, while it works; a cold-blue mark on a fed station too cold for its input | yes |
 | `PodView.cs`          | over the pod's picture: its screen, its tray, its glass glowing while a hero is made    | yes   |
 | `PodDemo.cs`          | `-- --pod`: the wreck's pod opened and crafting, the axe's and the rotor's cards shown, for recordings | yes |
 
@@ -29,7 +29,12 @@ and `art/former_work_0..3.png`, the moving parts in four steps, each the machine
 it covers. The electric smelter's too (0057): `art/machine_smelter.png`, a plated box on a frame, two copper coils
 cold behind a grate, a small control board and two insulators, and `art/smelter_work_0..2.png`, only the coils'
 pixels between the bars, glowing, the heat running up them a winding a picture. `-- --testbed --open=former` (or
-`smelter`, `lifepod`, `furnace`) opens a machine for a recording.
+`smelter`, `assembler`, `lifepod`, `furnace`) opens a machine for a recording. The circuit assembler's too (0057):
+`art/machine_assembler.png`, a frame bench with two spools of wire under it, a cabinet over it with a rotor joint
+and its arm parked, a glass magnifier over a green board, a dark screen; `art/assembler_work_0..3.png`, the
+cabinet's inside with the arm dipping to the board and the rotor turned, lit, opaque over it; and
+`art/assembler_screen_0..3.png`, only the screen's green trace and the head's spark, drawn unlit. The solar cell's
+icon is `art/items/solarCell.png`.
 
 ## Guarantees
 
@@ -42,7 +47,7 @@ pixels between the bars, glowing, the heat running up them a winding a picture. 
   "Recipes", how many are opened; every recipe in its place from content, four a row, two rows at
   least, empty places dim. One not known yet is a dark silhouette; one known but short of an item for
   a unit is dimmed and grey; in creative mode every one is known and ready. A click on a ready one queues one, a shift-click five, refused whole by the sim
-  when unpaid; a click on a short one pulses the first item it lacks that is itself crafted, amber,
+  when unpaid; a click on a short one pulses the first item it lacks that this station makes itself (`Crafts.MissingCraft`), amber,
   twice; a silhouette does nothing. A tool's recipe (the fire axe) is tinted amber, a worn item's (the jetpack, the battery) green,
   each edged in its colour, full under the pointer, as their slots are everywhere (`Shared.SlotLooks`); a silhouette is not. Every slot is `Ui.Slot` wide, built again when the slot size changes.
 - No status line: the screen says whether it works, the queue's slot filling and full says the rest,
@@ -55,8 +60,10 @@ pixels between the bars, glowing, the heat running up them a winding a picture. 
 - The one tooltip (`Shared.PointerTip`), found by a hit test (`TipSpots`): over a recipe, its item's
   card, as a stack's (`Shared.ItemCards`), with the craft block the station adds at its bottom
   (`Crafts.Block`): "Craft" and a unit's seconds at the station's speed; a row per item a unit takes, its
-  icon, name, how many are carried in dim brackets and ×N, green when enough, red when short; for a raw
-  item short, where it comes from (`crafts.from.<item>`); then the keys: LMB craft · Shift ×5 when a
+  icon, name, how many are carried in dim brackets and ×N, green when enough, red when short; for an item
+  short that this station does not make, where it comes from (`Crafts.From`): its own words when it is salvaged,
+  smelted or made besides elsewhere (`crafts.from.<item>`), else the stations that make it ("made at: Fabricator,
+  Former", wire at the assembler); then the keys: LMB craft · Shift ×5 when a
   unit is carried, LMB go to what is missing when a click goes somewhere, none else. A silhouette says
   "???" and, in violet, that analysing what it is made of opens it. An output: its item's card with
   LMB take. A queued entry: its item and units, whose it is and that a click cancels it.
@@ -73,6 +80,11 @@ pixels between the bars, glowing, the heat running up them a winding a picture. 
   it in a hot orange (a `Glow`), a little brighter as the heat passes; idle, full or without power they
   stand dull copper and give no light. Silent: the furnace's crackle is a fire's, and its own sound waits
   for the user's audition.
+- **The circuit assembler** in the world: while it works (`Works`) its arm dips to the board under the glass
+  pad by pad and its rotor joint turns, four pictures lit as the machine is, 140 ms each; over them, drawn unlit
+  and in step, its screen runs a green trace and a spark shows where the head touches the board, and the screen
+  lights the room round it green (a `Glow`), flickering a little. Idle, full or without power the arm stays
+  parked, the screen dark, no light. Silent until the user picks its sound.
 - **Too cold** (0057): a fed station whose input holds what needs more heat than it has
   (`ICraftingQueries.TooCold`) shows a five-pixel star of ice where it would work it — the furnace's
   mouth, the smelter's grate — drawn unlit, pulsing slowly between a dim and a cold blue, lighting a
