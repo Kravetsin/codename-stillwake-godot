@@ -752,13 +752,14 @@ public class AimTests
     public void MeetsAPieceWhereItIsDrawnBetweenTicksReeledOrDrifting()
     {
         var (w, _) = Field(("scrapChunk", 10_000, 7_500));
-        // Reeled 4000 to the left: 16 ticks at 250, one of them run with the reel.
+        // Reeled 4000 to the left: 10 ticks at 400, one of them run with the reel.
+        const int Reels = Stillwake.Content.Harpoon.ReelSpeed;
         w.Step(new Reel(1, 6_000, 7_500));
         var piece = w.M.Debris.Pieces.Single();
-        Assert.Equal((9_750, 15), (piece.X, piece.Reel!.Left));
-        Assert.Equal((9_625.0, 7_500.0), PieceDrawn.At(piece, 0.5));
-        // Its box drawn halfway reaches 125 further left than at the tick: a rod passing there meets it then only.
-        const int Edge = 9_625 - SmallBox + 50;
+        Assert.Equal((10_000 - Reels, 4_000 / Reels - 1), (piece.X, piece.Reel!.Left));
+        Assert.Equal((10_000 - Reels * 1.5, 7_500.0), PieceDrawn.At(piece, 0.5));
+        // Its box drawn halfway reaches half a tick's reel further left than at the tick: a rod passing there meets it then only.
+        const int Edge = 10_000 - Reels * 3 / 2 - SmallBox + 50;
         Assert.Equal(1, Aiming.Hooks(w.M, 0, (Edge, 0), (Edge, 10_000), 0.5)?.Piece);
         Assert.Null(Aiming.Hooks(w.M, 0, (Edge, 0), (Edge, 10_000), 0));
     }

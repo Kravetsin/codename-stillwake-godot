@@ -219,6 +219,16 @@ public class MachineSoundTests
     }
 
     [Fact]
+    public void IdleToolSoundsShareOneVolume()
+    {
+        // The drill running free and the axe's swing, their files levelled alike: one knob turns both.
+        Assert.All(new[] { Sound.DrillWhir, Sound.Swing }, cue => Assert.Equal(Sound.ToolIdleDb, cue.VolumeDb));
+        // The swing a one-shot of four files, varied in pitch every time, a hit or a miss.
+        Assert.Equal((4, false), (Sound.Swing.Files.Count, Sound.Swing.Loops));
+        Assert.True(Sound.Swing.Pitch > 0);
+    }
+
+    [Fact]
     public void FloatingTheSuitIsRaisedAFewDecibelsAndAboardItIsAsItWas()
     {
         Assert.Equal(0, Hearing.At(0).SuitDb);

@@ -139,6 +139,8 @@ public partial class HeroView : Node2D
     // The gun is this hero's own, heard through the suit (0042): the shot, the drum while it reels, ready again.
     private readonly AudioStreamPlayer _shot = Cues.Player(S.Shot, S.Suit), _drum = Cues.Player(S.Drum, S.Suit),
         _ready = Cues.Player(S.Ready, S.Suit);
+    /// <summary>This hero's axe swung, every swing, through the suit as its chop is (0068); others' swings are silent, as their chops.</summary>
+    private readonly AudioStreamPlayer _swingSound = Cues.Player(S.Swing, S.Suit, voices: 2);
     /// <summary>The rod biting into metal, where it struck; a crate or a pod thumps as a glove does.</summary>
     private readonly Heard2D _bite = Cues.Player2D(S.Chop, S.Suit, voices: 2);
     // Others' guns are heard on World, where they are, as their steps are: through the air, gone while this hero floats (0065).
@@ -191,7 +193,7 @@ public partial class HeroView : Node2D
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.
         AddChild(_lines);
         _rod = NewRod();
-        foreach (var player in new Node[] { _shot, _drum, _ready, _bite, _breathes, _strike, _whir, _thrustLoop, _othersShot, _othersBite, _othersThump })
+        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _strike, _whir, _thrustLoop, _othersShot, _othersBite, _othersThump })
             AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
@@ -440,6 +442,7 @@ public partial class HeroView : Node2D
             _swingFace = Poses.FaceOf(pointer, _current) ?? _current.Facing;
             _current = _current with { Facing = _swingFace };
         }
+        if (swung.Whooshes) _swingSound.Play();
         if (swung.Hits)
             foreach (var hit in Aiming.HitsOf(m, client.Id, _current, _swing.At)) client.Send(hit);
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing

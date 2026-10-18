@@ -2,8 +2,11 @@ using System;
 
 namespace Stillwake.Game.Features.Crew;
 
-/// <summary>What one frame of <see cref="AxeSwing.Advance"/> did: whether a swing began, and whether its blade struck, when what it touches is hit.</summary>
-public readonly record struct SwingStep(bool Begun, bool Hits);
+/// <summary>
+/// What one frame of <see cref="AxeSwing.Advance"/> did: whether a swing began, whether its blade struck, when what it touches
+/// is hit, and whether its whoosh is due (<see cref="AxeSwing.WhooshMs"/>).
+/// </summary>
+public readonly record struct SwingStep(bool Begun, bool Hits, bool Whooshes = false);
 
 /// <summary>
 /// The fire axe's swings (0034, 0038, 0039, 0040): one clock for the blade and the hit. A swing, once begun, is
@@ -34,8 +37,11 @@ public struct AxeSwing
     /// </summary>
     public const double MostPerFrameMs = 100;
 
+    /// <summary>When in a swing its whoosh begins: its loudest moment (<c>Sound.SwingPeakS</c> in) in the middle of the downstroke.</summary>
+    public static readonly double WhooshMs = (WindShare + StrikeShare / 2) * Ms - Stillwake.Game.Sound.SwingPeakS * 1000;
+
     private double? _ms;
-    private bool _struck;
+    private bool _struck, _whooshed;
     /// <summary>Following another's hero, the last of its swings shown.</summary>
     private int? _followed;
 
@@ -58,25 +64,26 @@ public struct AxeSwing
     /// </summary>
     public SwingStep Advance(double elapsedMs, bool wanted, Point at = default)
     {
-        bool begun = false, hits = false;
+        bool begun = false, hits = false, whooshes = false;
         double ms;
         if (_ms is double playing) ms = playing + Math.Min(elapsedMs, MostPerFrameMs);
         else if (wanted) (ms, begun) = (0, Begin(at));
         else return default;
+        if (!_whooshed && ms >= WhooshMs) whooshes = _whooshed = true;
         if (!_struck && ms >= HitAt * Ms) hits = _struck = true;
         if (ms >= Ms)
         {
             if (!wanted)
             {
                 _ms = null;
-                return new(begun, hits);
+                return new(begun, hits, whooshes);
             }
             // Held, the next begins where this one ended, so the rhythm keeps the axe's pace exactly.
             ms -= Ms;
             begun = Begin(at);
         }
         _ms = ms;
-        return new(begun, hits);
+        return new(begun, hits, whooshes);
     }
 
     /// <summary>
@@ -99,7 +106,7 @@ public struct AxeSwing
     {
         Count++;
         At = at;
-        _struck = false;
+        _struck = _whooshed = false;
         return true;
     }
 

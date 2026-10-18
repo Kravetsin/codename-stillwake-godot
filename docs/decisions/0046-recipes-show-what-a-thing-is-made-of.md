@@ -1,6 +1,6 @@
 # 0046 — Recipes show what a thing is made of
 
-- Status: accepted
+- Status: accepted; the harpoon's recipe superseded by [0068](0068-the-harpoon-before-the-jetpack.md)
 - Supersedes: of [0028](0028-the-lifepod-and-crafting-by-machine-only.md), the pod's half speed; of
   [0034](0034-wreckage-and-the-axe.md), the axe's 6 scrap; of
   [0044](0044-the-harpoon-reels-a-piece-to-a-point.md), the harpoon's recipe; of
