@@ -67,6 +67,12 @@ public sealed class FoundKind
 
     /// <summary>The items seen come out of it, each once, in the order first seen; live and read-only.</summary>
     [JsonIgnore] public IReadOnlyList<string> Items => Seen;
+
+    /// <summary>The looks caught or broken (<c>Content.Looks</c>, from 0), each once, in the order first seen.</summary>
+    [JsonInclude, JsonPropertyName("looks")] internal List<int> SeenLooks { get; set; } = [];
+
+    /// <summary>The looks caught or broken, each once, in the order first seen; live and read-only.</summary>
+    [JsonIgnore] public IReadOnlyList<int> Looks => SeenLooks;
 }
 
 /// <summary>

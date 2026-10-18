@@ -27,7 +27,8 @@ catching them, reeling them in by harpoon, and breaking wreckage and asteroids w
   never reused; `Clock`, ticks run; `Beats`, each zone's `Beat { Zone, Next }`, the clock its next piece is due at;
   `AtStart`, the pieces the first tick puts out; `Found`, the Handbook's record
   ([0066](../../docs/decisions/0066-the-handbook.md)): every kind found, in the order first found, each a `FoundKind`
-  (public, with internal setters) `{ Kind, Items }`, the items seen come out of it, each once, in the order first seen.
+  (public, with internal setters) `{ Kind, Items, Looks }`, the items seen come out of it and the looks caught or
+  broken, each once, in the order first seen.
   All saved. **Not saved, never hashed:** the last 32 catches, each
   piece and what it gave, written by `Grab` and read by nothing in the sim, only by the client (`CaughtFrom`); forgotten
   on a create or a load. **Derived:** the hull's bounds, followed by the
@@ -147,8 +148,10 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   wreck record its kind in `Found`, appended the first time, and every item `LootOf` drew for it, appended to that
   kind's `Items` the first time each is seen, in the order drawn: the same roll that gives the loot, no second one,
   and what floats off a full inventory too, as it was seen. A small piece caught as itself (a scrap chunk, a hull
-  plate) records itself. Nothing else records: a hit that does not break, a reel, a refused command, a floor stack
-  picked up. One record for the world, whoever caught or broke it; never sorted, never shrunk.
+  plate) records itself. The look the piece wore, `Content.Looks.Of(kind, id)` (its id round its kind's looks, 0
+  for a kind with one; the one function the client draws it by), is appended to the kind's `Looks` the first time.
+  Nothing else records: a hit that does not break, a reel, a refused command, a floor stack picked up. One record
+  for the world, whoever caught or broke it; never sorted, never shrunk.
 - **The harpoon** (0044): `Reel(Piece, ToX, ToY)` reels a piece, small or a wreck, to a point in
   thousandths of a cell, the client's word: `Harpoon.Stop` before the gun. Applying it clamps the point
   to the grid and sets the piece's `Reel` to `{ By = sender, ToX, ToY, Left }`, `Left` the ticks its
@@ -199,8 +202,8 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - A reel's point is on the grid and its `Left` above zero.
 - A wreck's `Damage` is below its hit points; a piece caught by hand has none.
 - `Found` only grows: no kind leaves it, nor an item a kind's `Items`, and none moves. Each kind is in it once and
-  can spawn in some zone; each item once, among its kind's loot, or the kind itself when it has none
-  (`DebrisFoundTests`).
+  can spawn in some zone; each item once, among its kind's loot, or the kind itself when it has none; each kind has
+  at least one look, each once and below its `Content.Looks.CountOf` (`DebrisFoundTests`).
 
 ## Deliberately not handled
 

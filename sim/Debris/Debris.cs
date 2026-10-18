@@ -174,7 +174,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         var hero = _crew.HeroOf(c.From) ?? throw new InvalidOperationException("debris.grab: applied with no hero");
         var loot = LootOf(piece.Item, Random);
         // From the roll, not from what went in: what floats off a full inventory was seen all the same.
-        Record(piece.Item, loot);
+        Record(piece, loot);
         var gave = _items.GiveOrDrop(c.From, loot, hero.Cell);
         if (_caught.Count == CaughtKept) _caught.RemoveAt(0);
         _caught.Add((piece.Id, gave));
@@ -190,19 +190,23 @@ public sealed partial class DebrisModule : Module<DebrisState>
         if (piece.Damage < hp) return;
         State.Pieces.RemoveAt(at);
         var loot = LootOf(piece.Item, Random);
-        Record(piece.Item, loot);
+        Record(piece, loot);
         // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
         _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
     }
 
     /// <summary>
-    /// Notes <paramref name="kind"/> as found, and every item of <paramref name="loot"/> as seen come out of it
-    /// (0066): each appended the first time, in the order given; the world's one record, whoever caught or broke it.
+    /// Notes <paramref name="piece"/>'s kind as found, the look it wore (<c>Content.Looks</c>) as seen, and every item of
+    /// <paramref name="loot"/> as seen come out of it (0066): each appended the first time, in the order given; the
+    /// world's one record, whoever caught or broke it.
     /// </summary>
-    private void Record(string kind, IReadOnlyList<(string Item, int Count)> loot)
+    private void Record(Piece piece, IReadOnlyList<(string Item, int Count)> loot)
     {
+        string kind = piece.Item;
         var found = State.Found.Find(f => f.Kind == kind);
         if (found == null) State.Found.Add(found = new FoundKind { Kind = kind });
+        int look = Content.Looks.Of(kind, piece.Id);
+        if (!found.SeenLooks.Contains(look)) found.SeenLooks.Add(look);
         foreach (var (item, _) in loot)
             if (!found.Seen.Contains(item)) found.Seen.Add(item);
     }

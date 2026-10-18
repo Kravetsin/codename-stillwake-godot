@@ -77,22 +77,27 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   hero swims to each in turn and chops it till it breaks, sweeping up the loot on its way.
 - **The Handbook's Debris section** (`HandbookPage`, 0066), shown in `features/handbook`'s window: every kind in
   rows by where to look (`Content/Handbook.DebrisRows`: salvage, wrecks, asteroids, derelicts), 56 px slots, a kind
-  found in its first picture (`DebrisLooks`, whole pixels up to ×3, a derelict scaled down), one not found the same
-  picture black (`Modulate`), in a darker slot; "10/18" and a green bar over them. A click on a found kind shows its
-  entry beside them (the first found, in the rows' order, until one is chosen): its picture in a frame (whole pixels
-  up to ×4), its name, a crack and its hit points (`Wreckage.HpOf`), or the harpoon for one caught by hand, and its
-  loot slot by slot (`Loot.Of`, or the kind itself with no loot): an item seen with its range in the corner
-  ("8–12", none for exactly one), one not yet a black silhouette; a pie in the top-left corner of a slot with a
-  roll, its share one in `OneIn`. Words only in the one tooltip (`Finds`): a kind's name, hit points and how many
-  of its items have not dropped yet, "???" and its row's "where to look" for one not found; an item's name, range
-  and chance ("1 in 4", "Always"), "???" with its chance for one not seen. With nothing found, the entry says
-  what to do. Reads `DebrisModule.Found` every 250 ms while shown and builds again only when the record has
-  changed (a load or a resync brings another world's).
-- **Recording:** `-- --handbook` (`dev/HandbookDemo`): the wreck, ten kinds found through the save (a supply pod
-  with no seed out yet, a cargo container with no gear); J opens the Handbook, the container is chosen, the
-  pointer goes over its gear, its planks, a kind not found and the pod, the pod is chosen, then Esc closes it and
-  Esc opens the menu with its Handbook line.
-
+  found in the first of its looks found (`DebrisLooks`, whole pixels up to ×3, a derelict scaled down), one not
+  found its first look black (`Modulate`), in a darker slot. Over them the looks found of all there are, "23/81",
+  and a green bar: every look is one to collect, and the kinds found already show in the rows; the tooltip says
+  both, "Kinds 10/18", "Looks 23/81". A click on a found kind shows its entry beside them (the first found, in the
+  rows' order, until one is chosen): the look shown big in a frame (whole pixels up to ×4), the first found until
+  another is clicked; under it a strip of every look of the kind, 24 px thumbnails, those not found black, the one
+  shown edged, a click on a found one showing it big, and "2/5" at its end (no strip, its height kept, for a kind
+  of one look); its name, a crack and its hit points (`Wreckage.HpOf`), or "Caught by hand"; and its loot slot by
+  slot (`Loot.Of`, or the kind itself with no loot): an item seen with its range in the corner ("8–12", none for
+  exactly one), one not yet a black silhouette; a pie in the top-left corner of a slot with a roll, its share one
+  in `OneIn`. Words only in the one tooltip (`Finds`): a kind's name, hit points, looks found and how many of its
+  items have not dropped yet, "???" and its row's "where to look" for one not found; a look's "Look 3 of 5", or
+  "???"; an item's name, range and chance ("1 in 4", "Always"), "???" with its chance for one not seen. With
+  nothing found, the entry says what to do. Reads `DebrisModule.Found` every 250 ms while shown and builds again
+  only when the record has changed (a load or a resync brings another world's). Which look a piece wears is the
+  sim's `Content.Looks.Of(kind, id)`, the one function the pieces are drawn by and the record is written by.
+- **Recording:** `-- --handbook` (`dev/HandbookDemo`): the wreck, ten kinds found through the save, some of their
+  looks (a supply pod with no seed out yet, a cargo container with no gear); J opens the Handbook, the container is
+  chosen, the pointer goes over its gear, its planks, a kind not found and the pod, the pod is chosen; then the
+  crate, a look of it not found pointed at, another found clicked big, the counter, the scrap chunk's twelve looks;
+  then Esc closes it and Esc opens the menu with its Handbook line.
 ## Files
 
 | File            | Holds                                                         | Godot |

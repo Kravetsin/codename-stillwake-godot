@@ -67,7 +67,7 @@ public class HandbookTests
         Assert.Equal(new Tip("???", new TipLine("Far out from the ship", Tone.Dim)), Finds.KindTip("engineBlock", null));
         Assert.Equal(new Tip("Cargo container", new TipLine("Hit points 11"), new TipLine("1 not dropped yet", Tone.Unknown)),
             Finds.KindTip("cargoContainer", ["planks", "scrapChunk", "wire"]));
-        Assert.Equal(new Tip("Cargo crate", new TipLine("Caught by hand")), Finds.KindTip("cargoCrate", ["planks"]));
+        Assert.Equal(new Tip("Cargo crate", new TipLine("Caught by hand"), new TipLine("Looks 1/8")), Finds.KindTip("cargoCrate", ["planks"], [3]));
         Assert.Equal("Caught by hand", Finds.HowTip("supplyPod").Name);
         Assert.Equal("Hit points 200", Finds.HowTip("asteroidLarge").Name);
     }
@@ -80,6 +80,44 @@ public class HandbookTests
         Assert.Null(Finds.FirstFound([]));
         // In the rows' order, not the order found.
         Assert.Equal("cargoCrate", Finds.FirstFound(["asteroid", "cargoCrate"]));
+    }
+
+    [Fact]
+    public void ShowsEveryLookOfAKindInItsStripOnlyThoseFoundRevealedAndCountsThem()
+    {
+        var looks = Finds.LooksOf("supplyPod", [2, 0]);
+        Assert.Equal([0, 1, 2, 3], looks.Select(l => l.Look));
+        Assert.Equal([true, false, true, false], looks.Select(l => l.Seen));
+        Assert.Equal("2/4", Finds.LookCount(looks));
+        Assert.Equal("0/8", Finds.LookCount(Finds.LooksOf("cargoCrate", null)));
+        // A kind of one look, a wreck drawn once: one, in the strip that is not shown.
+        Assert.Single(Finds.LooksOf("cargoContainer", [0]));
+        Assert.Equal(new Tip("Look 3 of 4"), looks[2].Tip);
+        Assert.Equal(new Tip("???", new TipLine("None like it caught or broken yet", Tone.Dim)), looks[1].Tip);
+    }
+
+    [Fact]
+    public void ShowsBigTheLookClickedOnceFoundElseTheFirstFound()
+    {
+        Assert.Equal(2, Finds.ShownLook([2, 0], null));
+        Assert.Equal(0, Finds.ShownLook([2, 0], 0));
+        // One not found shows nothing new: the first found stays.
+        Assert.Equal(2, Finds.ShownLook([2, 0], 3));
+        Assert.Equal(0, Finds.ShownLook(null, null));
+    }
+
+    [Fact]
+    public void CountsTheLooksFoundOfAllThereAreAndSaysBothCountsInItsTip()
+    {
+        int all = Spawned.Sum(Content.Looks.CountOf);
+        Assert.Equal(81, all);
+        Assert.Equal((0, all), Finds.LookTally(new Dictionary<string, int[]>()));
+        var looks = new Dictionary<string, int[]> { ["cargoCrate"] = [2, 0, 5], ["hullSection"] = [0], ["planks"] = [0] };
+        Assert.Equal((4, all), Finds.LookTally(looks));
+        Assert.Equal(new Tip("Found in this world", new TipLine("Kinds 2/18"), new TipLine($"Looks 4/{all}")),
+            Finds.TallyTip(Finds.Tally(looks.Keys), Finds.LookTally(looks)));
+        Assert.Contains(new TipLine("Looks 3/8"), Finds.KindTip("cargoCrate", ["planks"], [2, 0, 5]).Lines);
+        Assert.DoesNotContain(Finds.KindTip("hullSection", ["hullPlate"], [0]).Lines, l => l.Text.StartsWith("Looks"));
     }
 
     [Fact]

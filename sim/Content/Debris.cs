@@ -159,6 +159,34 @@ public sealed record AroundHeroes(int PerHero, HalfBox RingFrom, HalfBox RingTo,
 /// <summary>A box round a cell: <paramref name="X"/> cells either way across, <paramref name="Y"/> up and down.</summary>
 public sealed record HalfBox(int X, int Y);
 
+/// <summary>
+/// How many looks each kind of debris has, its pictures under the client's <c>art/debris</c>, and the one a piece wears:
+/// picked by its id, so every peer draws a piece alike and the Handbook records the look seen (0066). A kind not
+/// listed has one look, its item's picture.
+/// </summary>
+public static class Looks
+{
+    public static readonly IReadOnlyList<(string Kind, int Count)> All =
+    [
+        ("scrapChunk", 12), ("hullPlate", 12), ("cargoCrate", 8), ("supplyPod", 4),
+        ("hullSection", 1), ("cargoContainer", 1), ("machineBlock", 1), ("cableRack", 1), ("tankCluster", 1), ("shieldSlab", 1),
+        ("soilClod", 3),
+        ("asteroid", 6), ("asteroidSmall", 6), ("asteroidLarge", 6), ("asteroidRich", 6),
+        ("engineBlock", 4), ("cargoHold", 4), ("podCluster", 4),
+    ];
+
+    /// <summary>How many looks <paramref name="kind"/> has: one for a kind with no pictures of its own.</summary>
+    public static int CountOf(string kind)
+    {
+        for (int i = 0; i < All.Count; i++)
+            if (All[i].Kind == kind) return All[i].Count;
+        return 1;
+    }
+
+    /// <summary>The look piece <paramref name="piece"/> of <paramref name="kind"/> wears, from 0: its id round its kind's looks.</summary>
+    public static int Of(string kind, int piece) => piece % CountOf(kind);
+}
+
 /// <summary>One kind of thing a container holds: between <paramref name="Min"/> and <paramref name="Max"/> of <paramref name="Item"/>, in one of <paramref name="OneIn"/> of them.</summary>
 public sealed record LootEntry(string Item, int Min, int Max, int? OneIn = null);
 

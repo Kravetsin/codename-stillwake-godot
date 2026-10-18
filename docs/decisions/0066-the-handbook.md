@@ -18,15 +18,19 @@ silhouettes (not hidden); one journal for the world (not one per player).
 ## Decision
 
 - **Debris owns the record.** `DebrisState.Found`: every kind found, in the order first found, each a `FoundKind
-  { Kind, Items }`, the items seen come out of it in the order first seen. Appended only, never sorted: the client
+  { Kind, Items, Looks }`, the items seen come out of it and the looks caught or broken, in the order first seen. Appended only, never sorted: the client
   orders it by `Handbook.DebrisRows` and `Loot.Of`. Saved and hashed; a guest gets it in the welcome. A module of
   its own would have had debris call it from inside its handlers to write a list nothing in the sim reads.
 - **When it is written.** On a `Grab` that applies (by hand, or a piece reeled in by harpoon and caught) and on the
   `Hit` that breaks a wreck, after its early return: the kind, and every item that catch's or break's `LootOf` drew,
   kept in a local and given both to the inventory or floor and to the record. Not from what the inventory took: what
-  floats off a full inventory was seen too. A scrap chunk or a hull plate, with no `Loot.Of`, records itself. Nothing
+  floats off a full inventory was seen too. A scrap chunk or a hull plate, with no `Loot.Of`, records itself. The look the piece wore is recorded too. Nothing
   on a hit that does not break, a reel, a refused command or a floor stack picked up. No new command, refusal, event
   or Rng draw.
+- **Looks are the sim's.** A kind drifts in several pictures (twelve scrap chunks, eight crates), and a player must
+  know the very one they caught. Which a piece wears was the client's, its id round its pictures; it moves to
+  `sim/Content`: `Looks.CountOf(kind)` and `Looks.Of(kind, id)`, the one function the client draws pieces by and
+  debris records looks by. The client keeps only the pictures' file names (`DebrisLooks`).
 - **Save format 18.** The step writes `debris.found = []`: nothing in an older save says what an item came out of.
 - **Presentation is the client's.** `game/Content/Handbook.DebrisRows`: four rows by where to look (salvage and
   wrecks by the ship, the asteroid band, derelicts far out), every kind that spawns in exactly one, beside
@@ -36,9 +40,11 @@ silhouettes (not hidden); one journal for the world (not one per player).
   close it. Opening it puts away the inventory, the machine under it and the plan and frees the hand, wired in `Main`
   (`Opening`, and the menu's `busy` and `putAway`), so no feature reaches into another.
 - **The Debris section** (`features/debris`, `HandbookPage`): the kinds in their rows, a found one in its picture,
-  the rest the same picture black (`Modulate`), and "found/all"; the chosen kind's picture, name, hit points or the
-  harpoon, and its loot as slots: range in the corner once seen, a pie of its chance, an item not seen yet a black
+  the rest black (`Modulate`); the chosen kind's look big, a strip of all its looks (those not found black, a click on
+  a found one showing it big) with "2/5", its name, hit points or "Caught by hand", and its loot as slots: range in the corner once seen, a pie of its chance, an item not seen yet a black
   silhouette with its pie. Names, "???" and "1 in 4" are said only in the one pointer tooltip.
+- **The counter counts looks** found of all there are ("23/81"), not kinds: every look is one to collect and fills
+  the journal, while the kinds found already show in the rows as pictures against silhouettes. Its tooltip says both.
 - **Found by the menu.** The game menu's "Handbook (J)" line opens it, so a player who never pressed J learns it.
 
 ## Consequences
