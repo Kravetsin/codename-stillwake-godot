@@ -33,6 +33,7 @@ Format 16 gave the Former and the circuit assembler their input slots (0057): wh
 empty, in front, so what it made stays in its outputs; a machine already of its new size is left as it is.
 Entries saved before have no feed and load as paid.
 
-Format 17 brought drones (0062): an empty `logistics` slice, last, its clock the save's tick; and the circuit
+Format 17 brought drones (0062): an empty `logistics` slice (no machine switched off, no drone flying), last, its
+clock the save's tick; and the circuit
 assembler's fourth input, empty, after its three, so its outputs keep their stacks (an assembler of seven slots, as
 format 16's step now pads one from before, is left as it is).

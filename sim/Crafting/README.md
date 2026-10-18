@@ -53,8 +53,8 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
     analysed (0027). A plate takes 2 s at full power, about 2.8 s at 70%. Idle, it rests and draws nothing.
   - **The circuit assembler** makes the electronics: 2×2, it draws 2 and works at speed 1000, a queue of eight;
     a circuit of a silicon and 2 wire in 80 ticks, a solar cell of a silicon, a glass and a wire in 100, and on a
-    row of its own a drone of a rotor, 2 plates, a circuit and a battery in 160 (0062; the battery's charge is lost
-    until drones hold charge). It
+    row of its own a drone of a rotor, 2 plates, a circuit and a battery in 160 (0062; a drone holds charge of its own,
+    made empty, and the battery's is lost there). It
     costs a frame, a rotor, a glass, 2 wire and a circuit, salvaged, so it opens once those five are analysed.
     Idle, it rests as the Former does. The pod and the Former make neither; the pod's list stops growing
     (0057).
@@ -181,4 +181,5 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
 - What a cancelled entry fed from the inputs left in them stays there, crowding the next entry's items if they
   differ: the player takes it out by hand.
 - The pod takes no inputs: a craft from them there is refused (`crafting.noInputs`) rather than left waiting.
-- Requests are `Logistics`': drones fill the inputs the player asks for (0062); crafting knows nothing of them.
+- Drones are `Logistics`': they bring a head entry fed from the inputs what it needs, read through `Queue` and
+  `Progress` (0062); crafting knows nothing of them.

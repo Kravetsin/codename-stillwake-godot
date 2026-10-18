@@ -168,7 +168,7 @@ Design: "drone logistics" (approved, with its cuts), slice 1; mockup "Drone Logi
   endless one a blue ∞ for its count; a first entry waiting is dimmed. A click still cancels any entry; a
   right-click on one fed from the inputs switches ∞, so the click everyone knows keeps its meaning. Tips say "from
   the inputs", "repeats", "waiting for: X".
-- **Not yet:** requests on the inputs and drones that fill them come with the logistics module (slice 2).
+- **Not yet:** drones that fill the inputs come with the logistics module (0062).
 
 ## Rejected
 

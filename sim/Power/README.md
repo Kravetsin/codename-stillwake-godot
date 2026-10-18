@@ -34,16 +34,18 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   room, or before a back wall, is in the shade; 0043); its demand, what the machines on it that draw power draw: a station (`Content.Stations`: the
   Former, the circuit assembler, the electric smelter, a grow capsule) whenever crafting does not rest it, whatever
   its slots hold, for a queued one may work a paid unit with its inputs empty; an analyzer only while its slot holds
-  something, a charging station only while what it holds is short of its capacity; and none told to rest by the
+  something, a charging station (the charger, a drone bay) only while something it holds is short of its capacity; and none told to rest by the
   module it works for (`Rest`); a machine taken apart rests no more. Its
   satisfaction is `floor(1000 × supply / demand)`, at most 1000, and 1000 with no demand: every user
   on it works at that share, slowed alike. A resting user is still on its network and gets its share.
   A powered machine with no cable is on no network: it makes nothing and gets nothing.
 - **A charging station** (a machine with `Charges` in `Content.Machines`, 0053) puts what it draws into
-  what its slot holds: each tick, in the simulation phase after the networks are found, in machine id
+  what its slots hold short of full: each tick, in the simulation phase after the networks are found, in machine id
   order, its `Draws` in power-ticks × its satisfaction / 1000, stored in thousandths
-  (`Content.Charge.Scale`), rounded down, through `IItemsOps.Charge`, never past full. The charger draws
-  3 and fills a battery of 1800 in 600 ticks at full power, 1200 at half. Empty or full it
+  (`Content.Charge.Scale`), rounded down, shared evenly between those slots, the rest of the division one each to the
+  first in slot order, through `IItemsOps.Charge(id, slot, amount)`, never past full. The charger draws
+  3 and fills a battery of 1800 in 600 ticks at full power, 1200 at half; a drone bay draws 4 and shares it between its
+  docked drones (0062). Empty or full it
   draws nothing, so it takes nothing from the network. Power owns this rather than items or a module of
   its own: it already knows each machine's satisfaction and depends on items.
 - A map lays its cables from `Layout.Cables`, each end resolved to its node; a cable that ends on no
