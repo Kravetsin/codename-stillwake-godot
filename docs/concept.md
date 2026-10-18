@@ -42,7 +42,7 @@ A living document: what is decided about the game and what is still open. Techni
   the jetpack and anything else that goes into nothing are known from the start. An item not analysed
   yet has a violet "?" in its slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
   item in it goes into, opened or still closed; nothing pops up over the hero. Every electric thing
-  is built of circuits: the first few salvaged from the rare electronics racks that drift by, the rest made at the circuit
+  is built of circuits: some salvaged from the electronics racks that drift by, most made at the circuit
   assembler of silicon from asteroid ore and wire: the battery and the charging station a circuit each, the drill
   two. The solar panel is built of solar cells, silicon and glass (smelted on from silicon in the electric smelter)
   assembled with wire, so a first new panel takes the whole chain

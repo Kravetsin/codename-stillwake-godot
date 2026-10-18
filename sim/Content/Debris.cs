@@ -68,10 +68,10 @@ public static class Debris
     /// pieces left out of the small keep box go soon, at the hard box. 640 in all: four heroes' shares and
     /// what lingers. No jitter, so a world with no hero out takes no draw for it. Small salvage near the
     /// ship; the farther out, the more and the bigger the wrecks. Out past 128 the derelicts (0056), one spawn
-    /// in some 80, and past 256 one in 27, with big and rich rock: a sortie's prize, one or two a sortie
-    /// (<c>DebrisDensityTests</c>). Cable racks are rarer a spawn than in the stream, 2 in 135 to 172: a flying
-    /// hero meets 150 to 300 spawns a minute, so found circuits stay a bonus and the assembler makes the rest
-    /// (0056, amended). The weights are 0052's four times over, so the rare fit in whole.
+    /// in some 80, and past 256 one in 28, with big and rich rock: a sortie's prize, one or two a sortie
+    /// (<c>DebrisDensityTests</c>). Cable racks are about as rare a spawn as in the stream, 1 in 28 to 43, since a
+    /// flying hero meets 150 to 300 spawns a minute: found circuits are a moderate bonus and the assembler makes
+    /// most (0056, amended). The weights are 0052's four times over, so the rare fit in whole.
     /// </summary>
     public static readonly DebrisZone Far = new("far",
         new AroundHeroes(PerHero: 110, RingFrom: new(61, 36), RingTo: new(64, 42), Keep: new(68, 48), Hard: new(100, 64), Linger: 600),
@@ -80,18 +80,18 @@ public static class Debris
             new(0,
             [
                 ("scrapChunk", 48), ("hullPlate", 32), ("cargoCrate", 24), ("supplyPod", 16), ("hullSection", 16),
-                ("cargoContainer", 12), ("machineBlock", 8), ("cableRack", 2), ("tankCluster", 8), ("shieldSlab", 4),
+                ("cargoContainer", 12), ("machineBlock", 8), ("cableRack", 4), ("tankCluster", 8), ("shieldSlab", 4),
             ]),
             new(128,
             [
                 ("scrapChunk", 24), ("hullPlate", 24), ("cargoCrate", 20), ("supplyPod", 20), ("hullSection", 16),
-                ("cargoContainer", 16), ("machineBlock", 12), ("cableRack", 2), ("tankCluster", 12), ("shieldSlab", 8),
+                ("cargoContainer", 16), ("machineBlock", 12), ("cableRack", 4), ("tankCluster", 12), ("shieldSlab", 8),
                 ("engineBlock", 1), ("cargoHold", 1),
             ]),
             new(256,
             [
                 ("scrapChunk", 8), ("hullPlate", 12), ("cargoCrate", 12), ("supplyPod", 20), ("hullSection", 12),
-                ("cargoContainer", 16), ("machineBlock", 16), ("cableRack", 2), ("tankCluster", 16), ("shieldSlab", 12),
+                ("cargoContainer", 16), ("machineBlock", 16), ("cableRack", 5), ("tankCluster", 16), ("shieldSlab", 12),
                 ("engineBlock", 2), ("cargoHold", 1), ("podCluster", 2), ("asteroidLarge", 2), ("asteroidRich", 2),
             ]),
         ]);
@@ -208,8 +208,8 @@ public static class Loot
             new("scrapChunk", 1, 2),
             new("rotor", 1, 1, OneIn: 4),
         ]),
-        // Circuits' one sure source: one a rack, always; racks are rare everywhere and derelicts seldom hold one
-        // (0056, amended), so the assembler makes the most.
+        // Circuits' one sure source: one a rack, always; racks are about as rare far out as in the stream and
+        // derelicts seldom hold one (0056, amended), so the assembler makes the most.
         ("cableRack",
         [
             new("wire", 6, 10),

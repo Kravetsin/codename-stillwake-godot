@@ -45,10 +45,10 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   tier `Debris.Kinds`, the only zone with soil clods (0060). Its **box** is the hull grown by `Lead` columns either way and `Margin` rows.
 - **`far`, the far field** (`AroundHeroes`): round every hero out past every stream's box, from the
   cell its client last reported (`Hero.Cell`, about once a second, 0050). Three tiers, at 0, 128 and 256
-  cells: small salvage near the ship, more and bigger wrecks the farther out, but cable racks rarer a spawn than
-  in the stream, 2 a tier, so found circuits stay a bonus (0056, amended);
+  cells: small salvage near the ship, more and bigger wrecks the farther out, but cable racks about as rare a spawn
+  as in the stream (4, 4 and 5), so found circuits are a moderate bonus (0056, amended);
   past 128 the **derelicts** too, and past 256 big and rich rock ([0056](../../docs/decisions/0056-rich-finds-far-out.md)):
-  an engine block and a cargo hold one spawn in 78 past 128; with the pod cluster one in 27 past 256.
+  an engine block and a cargo hold one spawn in 79 past 128; with the pod cluster one in 28 past 256.
 - **`asteroids`, the asteroid band** (`HullBand(From, To, Lead)`, 0054): two bands of rows, 22 to 44 past the
   hull's top row and as far past its bottom row, beyond the tether's 12 cells; across, the stream's way, from
   `Lead` right of the hull to as far left of it. Two tiers of the asteroid's kinds (0056): small, middling and large

@@ -359,15 +359,15 @@ public class ContentTests
             long each = 1000L * (entry.Min + entry.Max) / 2 / entry.OneIn!.Value / Wreckage.HpOf(source)!.Value;
             Assert.True(each * 20 <= rack, $"{source}: {each} thousandths of a circuit a hit point, the rack's {rack}");
         }
-        // Racks are no likelier a spawn far out than in the stream (0056, amended): a flying hero meets far more
-        // spawns, so found circuits stay a bonus and the assembler's are the supply.
+        // Racks are at most twice as likely a spawn far out as in the stream (0056, amended): a flying hero meets
+        // far more spawns, so found circuits stay a bonus and the assembler's are the supply.
         static (int Racks, int Of) Racks(IReadOnlyList<(string Item, int Weight)> kinds) =>
             (kinds.Single(k => k.Item == "cableRack").Weight, kinds.Sum(k => k.Weight));
         var stream = Racks(DebrisSpec.Kinds);
         foreach (var tier in DebrisSpec.Far.Tiers)
         {
             var far = Racks(tier.Kinds);
-            Assert.True(far.Racks * stream.Of <= stream.Racks * far.Of, $"far tier {tier.From}: {far.Racks} racks of {far.Of}, the stream's {stream.Racks} of {stream.Of}");
+            Assert.True(far.Racks * stream.Of <= 2 * stream.Racks * far.Of, $"far tier {tier.From}: {far.Racks} racks of {far.Of}, the stream's {stream.Racks} of {stream.Of}");
         }
         // Made besides of silicon and wire, at the circuit assembler alone, which is built of one salvaged (0057).
         Assert.Equal([("silicon", 1), ("wire", 2)], Crafts.Get("circuit").Cost);
