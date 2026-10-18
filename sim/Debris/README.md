@@ -97,7 +97,7 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   none and begin empty.
 - Pieces pass through the hull and each other: nothing collides.
 - `Grab(Piece)` puts the piece into the sender's inventory as one of its salvage item, or, a
-  container (`Loot`: a cargo crate, a supply pod), as what it opens into, drawn entry by entry by
+  container (`Loot`: a cargo crate, a supply pod, every other one with one or two seeds, 0060), as what it opens into, drawn entry by entry by
   the world's `Rng` as the grab applies (`LootOf`): the one-in roll, then the count. Refused with
   `debris.gone` (no such piece out), `debris.notOutside` (the sender's hero, at the cell its client
   last reported, or the piece's middle is not in space). A full inventory is no reason: what does not

@@ -19,7 +19,7 @@ namespace Stillwake.Game.Features.Items;
 /// <summary>
 /// The hotbar, always in the top-left corner, each slot's key in its corner; and with Tab, or E on a crate, the
 /// rest of the inventory, the open machine under it in the one frame (0058, <see cref="MachineFrame"/>): a crate's
-/// slots, a furnace's input over its fuel and its outputs, an electric smelter's input and outputs, a burner
+/// slots, a furnace's input over its fuel and its outputs, an electric smelter's or a grow capsule's input and outputs, a burner
 /// generator's fuel, an analyzer's own body (<see cref="AnalyzerPanel"/>), a charging station's slot and bar
 /// (0053), each named, a powered one with its bolt; a queued station's is the crafting feature's, docked in the
 /// same place. Stacks move by clicks (<see cref="Clicks.On"/>), or dragged from one slot to another; Tab or Esc
@@ -37,6 +37,8 @@ public partial class InventoryPanel : CanvasLayer
 
     private static readonly StyleBoxFlat FireOut = Style.Box(Style.Slate700, Style.Slate700, 0, 5);
     private static readonly StyleBoxFlat FireOn = Style.Box(Style.Orange400, Style.Orange400, 0, 5);
+    /// <summary>A grow capsule's mark while it grows: its lamp's pink (0060).</summary>
+    private static readonly StyleBoxFlat LampOn = Style.Box(Style.Pink400, Style.Pink400, 0, 5);
     /// <summary>A fed station too cold for what its input holds: its mark cold blue (0057).</summary>
     private static readonly StyleBoxFlat Cold = Style.Box(Style.Sky400, Style.Sky400, 0, 5);
     private static readonly LabelSettings Trouble = Style.Text(Style.Bold, 10, Style.Red300);
@@ -106,7 +108,7 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>What a furnace or a burner generator is doing, by machine id: the furnace module's <c>At</c>.</summary>
     public Func<int, Smelting>? Furnace { get; set; }
 
-    /// <summary>The stations, for an electric smelter's panel: how far its work is, whether it works, whether it is too cold.</summary>
+    /// <summary>The stations, for an electric smelter's or a grow capsule's panel: how far its work is, whether it works, whether it is too cold.</summary>
     public CraftingModule? Crafting { get; set; }
 
     /// <summary>Whether a charging station fills what it holds now, by machine id: the power module's <c>Charges</c>.</summary>
@@ -321,7 +323,7 @@ public partial class InventoryPanel : CanvasLayer
         {
             "furnace" => FurnaceBody(crate),
             "burnerGenerator" => GeneratorBody(crate),
-            "smelter" => SmelterBody(crate),
+            "smelter" or "growCapsule" => FedBody(crate, kind),
             "analyzer" => _analyzer = new AnalyzerPanel(Box(new Place(0, crate)), _tipSpots, _ui.Slot),
             "charger" => ChargerBody(crate),
             _ => Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
@@ -346,18 +348,26 @@ public partial class InventoryPanel : CanvasLayer
         return WithProblem(line);
     }
 
-    /// <summary>The furnace's, without the fuel: its input over its coils' mark, glowing while it works, its bar and its outputs.</summary>
-    private Control SmelterBody(int crate)
+    /// <summary>
+    /// A fed station on power, the furnace's without the fuel: its input over its mark, lit while it works, its bar and its
+    /// outputs. The electric smelter's mark and bar are a fire's orange; a grow capsule's mark is its lamp's pink, its bar
+    /// green, and its empty input shows the seed it takes (0060): the one item of its process.
+    /// </summary>
+    private Control FedBody(int crate, string kind)
     {
         var column = Style.Gap(new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
-        var spec = MachineSpecs.Get("smelter");
-        column.AddChild(Box(new Place(0, crate)));
+        var spec = MachineSpecs.Get(kind);
+        var process = Content.Stations.Get(kind).Process;
+        var input = Box(new Place(0, crate));
+        var takes = Content.Items.All.Where(i => i.Yields != null && i.Process == process).ToList();
+        if (takes.Count == 1) input.Ghost = takes[0].Id;
+        column.AddChild(input);
         column.AddChild(_fire = HeatMark());
         var outputs = Style.Gap(new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter }, Slots.Gap);
         for (int i = spec.Inputs!.Value; i < spec.Slots; i++) outputs.AddChild(Box(new Place(i, crate)));
         var line = Style.Gap(new HBoxContainer(), 8);
         line.AddChild(column);
-        line.AddChild(_progress = Style.Bar(Style.Orange400, 56));
+        line.AddChild(_progress = Style.Bar(process == "grow" ? Style.Green400 : Style.Orange400, 56));
         line.AddChild(outputs);
         return WithProblem(line);
     }
@@ -618,7 +628,7 @@ public partial class InventoryPanel : CanvasLayer
             _frame?.Light(_analyzer.Works);
         }
         if (reading.Kind == "charger" && Crate is int station) ShowCharger(reading.At(new Place(0, station)), Charger?.Invoke(station) == true);
-        if (reading.Kind == "smelter" && Crate is int smelter) ShowSmelter(reading, smelter);
+        if (reading.Kind is "smelter" or "growCapsule" && Crate is int fed) ShowFed(reading, fed);
         if (_problem == null || reading.Kind is not ("furnace" or "burnerGenerator")) return;
         var at = Crate is int id ? Furnace?.Invoke(id) : null;
         bool burning = at?.Burning == true;
@@ -632,20 +642,22 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>
-    /// The open smelter's: its coils' mark glowing while it works and cold blue while it is too cold, its bar, the
-    /// frame's bolt lit while it works, and under it when it has no room for what it makes.
+    /// The open smelter's or grow capsule's: its mark lit while it works (the coils' orange, the lamp's pink) and cold
+    /// blue while it is too cold, its bar, the frame's bolt lit while it works, and under it when it has no room for
+    /// what it makes. What it does not work (rock in a capsule, a seed in a smelter) fills no bar and says nothing.
     /// </summary>
-    private void ShowSmelter(Reading reading, int id)
+    private void ShowFed(Reading reading, int id)
     {
         if (Crafting is not { } crafting || _problem == null || _progress == null) return;
         var input = reading.At(new Place(0, id))?.Item;
         bool works = crafting.Works(id);
         _tooCold = input != null && crafting.TooCold(id) ? input : null;
-        _fire.AddThemeStyleboxOverride("panel", _tooCold != null ? Cold : works ? FireOn : FireOut);
-        int? ticks = input == null ? null : Content.Items.Get(input).SmeltTicks;
-        _progress.Value = ticks is int t ? (double)crafting.Progress(id) / (t * 1000) : 0;
+        var on = Content.Stations.Get(reading.Kind!).Process == "grow" ? LampOn : FireOn;
+        _fire.AddThemeStyleboxOverride("panel", _tooCold != null ? Cold : works ? on : FireOut);
+        int? work = crafting.WorkOf(id);
+        _progress.Value = work is int w ? (double)crafting.Progress(id) / w : 0;
         _frame?.Light(works);
-        bool full = ticks != null && _tooCold == null && !crafting.CanSmelt(id);
+        bool full = work != null && _tooCold == null && !crafting.CanSmelt(id);
         _problem.Text = full ? T("furnace.full") : "";
         _problem.Visible = full;
     }

@@ -7,7 +7,7 @@ Numbers from `game/Content/Light.cs`.
 - **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors stop light), `BackLayer`,
   `Machines` (lamps, fires; machines dim starlight), `MachineAt`, `Width`/`Height`, `Version`,
   `ChangedSince` and `Built`; `Particles.Shared` (what glows); every `render/Glow` in the tree (a
-  planner's screen, a charging station's light, a smelter's coils, a station's cold mark).
+  planner's screen, a charging station's light, a smelter's coils, a grow capsule's lamp, a station's cold mark).
 - **Costs the cells changed, not the ship or the world** (F-7, 0051). `LightView.Sync` after a tick
   does nothing while the grid's `Version` stands; when it moved, the grid's log names the cells changed
   since its last look. A cell whose structure changed has its texel of the occupancy texture set again

@@ -141,6 +141,25 @@ public class ResearchTests
         Assert.True(w.M.Research.Knows("circuit"));
     }
 
+    /// <summary>The grow capsule (0060): a frame, glass, soil, a circuit and wire; and soil's craft, rock and planks.</summary>
+    [Fact]
+    public void OpensTheGrowCapsuleOnceFrameGlassSoilCircuitAndWireAreAnalysedAndSoilOfRockAndPlanks()
+    {
+        var (w, id) = SetUp();
+        w.GiveItems(0, ("frame", 1), ("glass", 1), ("soil", 1), ("circuit", 1), ("rock", 1));
+        var capsule = new Placement("machine", "growCapsule");
+        Assert.Equal(["frame", "glass", "soil", "circuit", "wire"], RecipeOf(w, "growCapsule").Unanalysed);
+        foreach (var item in new[] { "frame", "glass", "circuit", "wire" }) Analyse(w, id, item);
+        Assert.Equal(["soil"], RecipeOf(w, "growCapsule").Unanalysed);
+        Assert.False(w.M.Research.Knows(capsule));
+        Analyse(w, id, "soil");
+        Assert.True(w.M.Research.Knows(capsule));
+        Assert.Equal(["rock", "planks"], RecipeOf(w, "soil").Unanalysed);
+        Analyse(w, id, "rock");
+        Analyse(w, id, "planks");
+        Assert.True(w.M.Research.Knows("soil"));
+    }
+
     [Fact]
     public void OpensTheSolarPanelOnceItsCellsAndPartsAreAnalysedAndBuildsItOfThem()
     {

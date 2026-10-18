@@ -20,6 +20,9 @@ public class TestbedTests
 
     private static int IdOf(Registry m, string kind) => m.Grid.Machines.Single(x => x.Kind == kind).Id;
 
+    /// <summary>The crates, in id order: the first with everything, the second the farm's.</summary>
+    private static int[] Crates(Registry m) => [.. m.Grid.MachinesOf("crate").Select(x => x.Id).Order()];
+
     [Fact]
     public void DrawsEveryKindOfMachine()
     {
@@ -28,12 +31,14 @@ public class TestbedTests
     }
 
     [Fact]
-    public void ItsCrateHoldsAFullStackOfEveryItemAHeroCanCarryAndNoWreckage()
+    public void ItsCratesHoldAFullStackOfEveryItemAHeroCanCarryAndNoWreckageTheFarmsInASecond()
     {
-        Assert.True(Testbed.Carried.Count() <= Spec.Machines.Get("crate").Slots);
+        Assert.True(Testbed.Carried.Count(i => !Testbed.Farm.Contains(i.Id)) < Spec.Machines.Get("crate").Slots);
         var m = Built.Value;
-        var crate = m.Items.Crate(IdOf(m, "crate"));
-        Assert.All(Testbed.Carried, item => Assert.Contains(new Stack(item.Id, item.Stack), crate));
+        var crate = m.Items.Crate(Crates(m)[0]);
+        var farm = m.Items.Crate(Crates(m)[1]);
+        Assert.All(Testbed.Carried, item => Assert.Contains(new Stack(item.Id, item.Stack), Testbed.Farm.Contains(item.Id) ? farm : crate));
+        Assert.Equal(Testbed.FarmCrate.Select(i => new Stack(i, Spec.Items.Get(i).Stack)), farm.Where(s => s != null));
         Assert.DoesNotContain(crate, stack => stack is { } s && Spec.Wreckage.HpOf(s.Item) != null);
         Assert.Contains(crate, stack => stack is { Item: "circuit" });
         Assert.Contains(crate, stack => stack is { Item: "harpoon" });
@@ -50,7 +55,7 @@ public class TestbedTests
         Assert.True(m.Items.Creative);
         Assert.True(m.Furnace.At(IdOf(m, "furnace")).Burning);
         Assert.True(m.Furnace.At(IdOf(m, "burnerGenerator")).Burning);
-        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 6 + 40);
+        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 6 + 46);
         Assert.NotNull(airlock);
         Assert.All(m.Rooms.All, room => Assert.Equal(room.Id == airlock ? RoomStatus.Vacuum : RoomStatus.Aired, m.Atmosphere.StatusOf(room.Id)));
         Assert.All(m.Grid.Machines.Where(x => Spec.Machines.Get(x.Kind).Draws != null), x => Assert.Equal(1000, m.Power.Satisfaction(x.Id)));
@@ -74,5 +79,10 @@ public class TestbedTests
         Assert.True(m.Crafting.Works(assembler));
         Assert.Equal(2 * Spec.Stations.Get("assembler").Speed, m.Crafting.Progress(assembler));
         Assert.Equal(new[] { ("circuit", Testbed.Assembling) }, m.Crafting.Queue(assembler).Select(e => (e.Recipe, e.Count)));
+        // The grow capsule growing on both ticks, on the assembler's panel, its seeds planted.
+        int capsule = IdOf(m, "growCapsule");
+        Assert.True(m.Crafting.Works(capsule));
+        Assert.Equal(2 * Spec.Stations.Get("growCapsule").Speed, m.Crafting.Progress(capsule));
+        Assert.Equal(new Stack("seed", Testbed.Planted), m.Items.Crate(capsule)[0]);
     }
 }

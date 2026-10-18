@@ -160,10 +160,12 @@ public static class Loot
         [
             new("planks", 3, 6),
         ]),
+        // The farm's seeds come from supply pods alone (0060): one or two in every other pod.
         ("supplyPod",
         [
             new("canister", 1, 1),
             new("scrap", 6, 6),
+            new("seed", 1, 2, OneIn: 2),
         ]),
         // Wreckage breaks into what it was made of (Wreckage).
         ("hullSection",

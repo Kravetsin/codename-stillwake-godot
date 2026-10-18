@@ -26,13 +26,19 @@ public interface ICraftingQueries
     /// </summary>
     int Progress(int machine);
     /// <summary>
-    /// Whether fed station <paramref name="machine"/> has what it can smelt: an item that smelts in its input, at
+    /// Whether fed station <paramref name="machine"/> has what it can work: an item of its process in its input, at
     /// most as hot as it is, its yields fitting its outputs. What lights a furnace's fire.
     /// </summary>
     bool CanSmelt(int machine);
     /// <summary>
-    /// Whether fed station <paramref name="machine"/>'s input holds what smelts, but hotter than it is: taken in,
-    /// never worked, kept (0057). What its panel and its mark in the world say.
+    /// The work one of what fed station <paramref name="machine"/>'s input holds takes there, in thousandths of a tick
+    /// at full speed, hot enough or not; null when it holds nothing, or nothing of the station's process. What its
+    /// panel's bar and a plant's growth are measured against.
+    /// </summary>
+    int? WorkOf(int machine);
+    /// <summary>
+    /// Whether fed station <paramref name="machine"/>'s input holds what is of its process, but hotter than it is: taken
+    /// in, never worked, kept (0057). What its panel and its mark in the world say.
     /// </summary>
     bool TooCold(int machine);
 }
@@ -99,7 +105,11 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
 
     public bool TooCold(int machine) =>
         _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: true } station && InputOf(machine) is { } input
-        && Content.Items.Get(input) is { Yields: not null } spec && spec.Heat > station.Heat;
+        && Worked(station, input) is { } spec && spec.Heat > station.Heat;
+
+    public int? WorkOf(int machine) =>
+        _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: true } station && InputOf(machine) is { } input
+        && Worked(station, input) is { } spec ? spec.SmeltTicks!.Value * 1000 : null;
 
     /// <summary>
     /// Whether station <paramref name="machine"/> works now with a share of its energy: a queued one on a unit not
@@ -212,8 +222,9 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
 
     /// <summary>
     /// A fed station a tick on from <paramref name="was"/>: work on another item, or none, begins again; with
-    /// what it can smelt and its energy, it works a tick, and at the item's work turns one of it into its yields
-    /// (<c>IItemsOps.Smelt</c>). Null when nothing is part-way.
+    /// what it can work and its energy, it works a tick, and at the item's work turns one of it into its yields
+    /// (<c>IItemsOps.Smelt</c>), a crop giving back the seeds the world's Rng draws (<see cref="Returned"/>).
+    /// Null when nothing is part-way.
     /// </summary>
     private Smelt? Smelt(Machine m, Station station, Smelt? was)
     {
@@ -224,9 +235,26 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         int gain = works ? Gain(m, station) : 0;
         if (gain == 0) return kept;
         int progress = (kept?.Progress ?? 0) + gain;
-        if (progress < Content.Items.Get(input!).SmeltTicks!.Value * 1000) return new Smelt(m.Id, input!, progress);
-        _itemsOps.Smelt(m.Id);
+        var spec = Content.Items.Get(input!);
+        if (progress < spec.SmeltTicks!.Value * 1000) return new Smelt(m.Id, input!, progress);
+        _itemsOps.Smelt(m.Id, Returned(spec));
         return null;
+    }
+
+    /// <summary>
+    /// How many of <paramref name="spec"/> one gives back as its work completes: drawn from the world's Rng by its
+    /// <c>Returns</c> weights, stations in machine id order; none, and no draw, for an item without them.
+    /// </summary>
+    private int Returned(ItemSpec spec)
+    {
+        if (spec.Returns is not { } weights) return 0;
+        int roll = (int)Random.Below((ulong)weights.Sum());
+        for (int n = 0; n < weights.Count; n++)
+        {
+            if (roll < weights[n]) return n;
+            roll -= weights[n];
+        }
+        throw new InvalidOperationException($"crafting: a roll past {spec.Id}'s returns");
     }
 
     // Helpers.
@@ -266,9 +294,13 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         if (Content.Machines.Get(m.Kind).Draws != null) _powerOps.Rest(m.Id, idle);
     }
 
-    /// <summary>Whether fed <paramref name="station"/> <paramref name="m"/> can smelt <paramref name="input"/>: it smelts, hot enough there, its yields fitting.</summary>
+    /// <summary>Whether fed <paramref name="station"/> <paramref name="m"/> can work <paramref name="input"/>: of its process, hot enough there, its yields fitting.</summary>
     private bool CanSmelt(Machine m, Station station, string input) =>
-        Content.Items.Get(input) is { Yields: not null } spec && spec.Heat <= station.Heat && _items.CanSmelt(m.Id);
+        Worked(station, input) is { } spec && spec.Heat <= station.Heat && _items.CanSmelt(m.Id);
+
+    /// <summary><paramref name="input"/>'s spec when fed <paramref name="station"/> works such things: it has yields, of the station's process (0060).</summary>
+    private static ItemSpec? Worked(Station station, string input) =>
+        Content.Items.Get(input) is { Yields: not null } spec && spec.Process == station.Process ? spec : null;
 
     /// <summary>What machine <paramref name="machine"/>'s first slot holds: a fed station's input.</summary>
     private string? InputOf(int machine)
