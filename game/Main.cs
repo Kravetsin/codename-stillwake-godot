@@ -736,7 +736,7 @@ public partial class Main : Node2D, ITogether
         AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
         AddChild(_stations = new StationView(_m.Grid, _m.Crafting));
         var ui = _hands.Ui;
-        AddChild(_drones = new Features.Logistics.LogisticsView(_m.Grid, _m.Items, _m.Logistics, () => (_session as Session)?.Progress ?? 0,
+        AddChild(_drones = new Features.Logistics.LogisticsView(_m.Grid, _m.Items, _m.Power, _m.Logistics, () => (_session as Session)?.Progress ?? 0,
             () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open)?.Kind == Content.Logistics.Bay ? open : null,
             () => ui.Hand.Get() == Holding.Card && _hands.Plan.Selected.Get() is Features.Building.PlaceTool { Placement.Kind: var kind } && kind == Content.Logistics.Bay ? _hands.Mouse.Pointer() : null));
         var power = _m.Power;

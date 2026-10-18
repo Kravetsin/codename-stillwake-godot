@@ -41,4 +41,17 @@ public static class Served
         double go = Math.Min(left, speed * Math.Clamp(progress, 0, 1));
         return (x + Math.Sign(toX - x) * go, y + Math.Sign(toY - y) * go);
     }
+
+    /// <summary>
+    /// A bay's slots that came to hold a drone since the last read (<paramref name="filled"/>, one docked) and those
+    /// that stopped (<paramref name="emptied"/>, one launched), from which slots held one then and now.
+    /// </summary>
+    public static void Changed(IReadOnlyList<bool> was, IReadOnlyList<bool> now, List<int> filled, List<int> emptied)
+    {
+        for (int i = 0; i < Math.Min(was.Count, now.Count); i++)
+        {
+            if (now[i] && !was[i]) filled.Add(i);
+            else if (was[i] && !now[i]) emptied.Add(i);
+        }
+    }
 }

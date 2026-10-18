@@ -1,21 +1,24 @@
 # logistics (client): the drone badge and drones on screen
 
 Drones ([0062](../../../docs/decisions/0062-drones-keep-machines-going.md)), the client of `sim/Logistics`.
-It reads `LogisticsModule` (`Served`, `Servable`, `Reached`, `Drones`, `Low`, `ZoneOf`), `IItemsQueries` (`Crate`)
-and `IGridQueries` (`MachinesOf`, `MachineById`), and changes the sim only by sending `SetServed`. Its badge lives in
+It reads `LogisticsModule` (`Served`, `Servable`, `Reached`, `Drones`, `Low`, `ZoneOf`), `IItemsQueries` (`Crate`),
+`IGridQueries` (`MachinesOf`, `MachineById`, `StructureAt`) and `IPowerQueries` (`NodeAt`, `NetworkOf`, `Charges`), and changes the sim only by sending `SetServed`. Its badge lives in
 other features' frames, wired by `Main`: in the header of every machine frame the items feature opens
 (`InventoryPanel.Served`) and of a queued station's (`FabricatorPanel.Served`), where drones have work. The bay's four
-slots, their charge bars and its frame's bolt are the items feature's. The mockup it follows: "Drones Keep It Going".
+slots, their charge bars and its frame's bolt are the items feature's. The mockup it follows: "Drones Keep It Going"; the look
+and motion are the user's picks from "Drone Look Concepts": drone A (the steel quad), bay C (the perch), motion "lively"
+(`game/Content/DroneLook.cs`).
 
 ## Files
 
 | File               | Holds                                                                                         | Godot |
 | ------------------ | --------------------------------------------------------------------------------------------- | ----- |
-| `Served.cs`        | the badge's look and tooltip keys; this peer's own `SetServed` in flight shown at once (0014); where a drone is drawn between ticks | no |
+| `Served.cs`        | the badge's look and tooltip keys; this peer's own `SetServed` in flight shown at once (0014); where a drone is between ticks; a bay's slots that came to hold a drone or stopped | no |
+| `Hover.cs`         | a drone's motion as drawn: the spring after the sim, its lean, face, bob, rotors and swinging cargo; its lift; a landing | no |
 | `ServedBadge.cs`   | a machine's drone badge, at the right of its frame's header: shows and toggles whether drones serve it | yes |
-| `LogisticsView.cs` | in the world: drones in flight with their cargo and a low one's amber light, the bays' pads with their light, a bay's zone | yes |
+| `LogisticsView.cs` | in the world: drones in flight with their cargo and their lamps' light, taking off and landing; docked drones, their pads' strips, charge lamps and light; a bay's beacon; a bay's zone | yes |
 
-`Served.cs` is compiled again into `game.tests/` (`ServedTests`). The testbed (`-- --testbed`) runs two drones from a
+`Served.cs` and `Hover.cs` are compiled again into `game.tests/` (`ServedTests`, `HoverTests`). The testbed (`-- --testbed`) runs two drones from a
 powered bay in room one through the closed door, keeping the furnace, the Former and the grow capsule going from the
 supply crate of twenty stacks of chunks by the pod, the farm's crate switched off, for ten minutes in air three
 generators keep (`TestbedTests`); `--open=droneBay` shows the bay's frame and zone
@@ -37,19 +40,39 @@ starts the hero in the middle of the room, and `--card=droneBay --pick` holds a 
   it (`Supplied`, `InventoryPanel.Supplied`). The slot box draws both (`SlotBox.Kept`).
 - **The bay:** its frame shows four slots, each a drone's faint silhouette while empty, its tooltip "put a drone here
   to fly"; a docked drone's slot draws its charge bar as a battery's does (green, amber under a quarter); the header's
-  bolt shows what it draws, lit while it charges a drone (`Power.Charges`). Its pads in the world light sky where
-  drones are docked, each with a little light. Its zone, the sim's `ZoneOf`, is outlined dashed sky over a faint fill
-  while its frame is open; with a bay's card in hand every bay's zone is outlined and the one the card would make under
-  the pointer, clipped at the grid as the sim's. A drone with no charge shows `drone_empty`, its lens dark.
-- **Drones in flight:** each a small body drawn by code, its lens, two arms and rotors whose blades beat wide and
-  narrow, out of step between drones; its cargo's icon hangs under it. Drawn where it is between ticks, carried on
-  toward its next centre at the sim's speed and never past it (`Served.Smoothed`), so it moves on every frame; lit by
-  the room's lights. One flying home low (`Low`) blinks a small amber light on its back, unlit so it reads in the dark,
-  lighting round it a little. Read every frame from the live list; pads every 100 ms. No numbers and no seconds.
+  bolt shows what it draws, lit while it charges a drone (`Power.Charges`). In the world the bay is the perch
+  (`machine_droneBay.png`): a docked drone sits folded on its pad (`drone_dock`, lit as machines are), its eye unlit over
+  it unless it is flat. Under each, unlit: its four charge lamps on the shelf's edge by quarters of its charge, the next
+  blinking in while it charges, one amber under a quarter (`Charges.Share`); while the bay has power (a network that
+  makes some) its strip (`droneBay_pad`), pulsing 0.8 times a second while it charges and steady once full, and a little
+  light round it, green, amber under a quarter. The beacon on the perch's top shines sky while the bay has power,
+  lighting round it a little. Slots are read every frame. Its zone, the sim's `ZoneOf`, is outlined dashed sky over a
+  faint fill while its frame is open; with a bay's card in hand every bay's zone is outlined and the one the card would
+  make under the pointer, clipped at the grid as the sim's. A drone with no charge shows `drone_empty`, its lens dark.
+- **Drones in flight:** each its picture (`drone_fly_0..3`, the rotors' four frames), lit with its normal map so the side
+  toward a lamp is brighter (`PixelArt.Lit`), its eye and status lamp unlit over it, turned with it. It follows a target
+  on a spring (`Hover`, `DroneLook.Lively`: 3.2 Hz, damping 0.5, stepped at 240 Hz): where the sim has it between ticks
+  (`Served.Smoothed`) and its speed, so it eases off and in, springs a little past a stop and rounds a corner. The
+  target flies 8 pixels over the cell's centre, or 2 under a wall, floor or closed door above, so it never pokes into a
+  ceiling. It leans into its speed (9 degrees cruising) and its acceleration (at most 20), faces the way it flies, bobs
+  1.5 pixels every 1.1 s (half at speed), its rotors turning with its spin. Its cargo hangs from the clamp under its body
+  on a short tether, upright, its jaws over the stack's corners, swinging as a pendulum the drone's acceleration pushes
+  back. Its lamp shines sky while its rotors run and lights round it a little; flying home low (`Low`) it blinks amber
+  instead, lighting more. Read every frame from the live list. No numbers and no seconds.
+- **Taking off and landing** (`Served.Changed`, every frame): a drone new to the sim's list rises from the pad of its bay
+  that just stopped holding a drone, holding a pixel over it for 0.22 s as its rotors spin up, then follows the sim. One
+  gone from the list lands on the pad of its bay that just came to hold a drone, the nearest: over it 4 pixels up for
+  0.55 s, then down onto it over 0.45 s as its rotors stop; the pad shows no docked drone till it touches down. One
+  launched from a pad a drone is still landing on takes that drone over, never having touched down. One gone with no pad
+  filled (dropped, or home to a full bay) is gone at once. A drone already in the air when the view starts (a load, a
+  join) is met where it is.
 
 ## Deliberately not handled
 
 - No sound: drones, bays and the switch wait for the user's audition of candidates.
+- A drone flies in front of the machines and heroes it passes, never behind; tilted, its pixels are turned, not redrawn.
+- A drone landing reads its pad from the slots alone: two drones of one bay docking the same tick take the two pads
+  nearest each, in the order the view meets them.
 - The badge on a machine with nothing drones would do yet (a furnace with every slot empty) still reads lit: it says
   drones would serve it, not that they are.
 - `Reached` floods every bay's zone each time the badge reads, ten times a second for the one frame open: cheap at a
