@@ -31,11 +31,11 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   machines on it that make power make, none told to rest: one that burns fuel (with a `FuelSlot`: the
   burner generator, which `furnace` rests while its fire is out; 0045) wherever it stands, any other
   only under the stars: every cell of it in space with no back wall behind it (a solar panel in a
-  room, or before a back wall, is in the shade; 0043); its demand, what the machines on it that draw power draw, one working on
-  what is put in it (an analyzer, the electric smelter or a grow capsule, with `Slots` taking items in) only while its first slot holds something,
-  one whose slots only give out (`Inputs` 0: the Former, the circuit assembler) whenever it is not resting, and none
-  told to rest by the module it works for (`Rest`), and a charging station only while what it holds
-  is short of its capacity; a machine taken apart rests no more. Its
+  room, or before a back wall, is in the shade; 0043); its demand, what the machines on it that draw power draw: a station (`Content.Stations`: the
+  Former, the circuit assembler, the electric smelter, a grow capsule) whenever crafting does not rest it, whatever
+  its slots hold, for a queued one may work a paid unit with its inputs empty; an analyzer only while its slot holds
+  something, a charging station only while what it holds is short of its capacity; and none told to rest by the
+  module it works for (`Rest`); a machine taken apart rests no more. Its
   satisfaction is `floor(1000 × supply / demand)`, at most 1000, and 1000 with no demand: every user
   on it works at that share, slowed alike. A resting user is still on its network and gets its share.
   A powered machine with no cable is on no network: it makes nothing and gets nothing.
@@ -61,9 +61,10 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   network giving it power): its light and its panel's bolt.
 - **Operations** (`IPowerOps`): `Rest(machineId, resting)` — the machine draws or makes nothing from
   the next derivation on, or works again: `research` rests an analyzer with nothing to learn, and
-  `crafting` an idle station that draws (nothing queued, or a unit done waiting for room), from their
-  simulation systems, so it shows from the next tick; `furnace` a burner generator whose fire is out,
-  from its construction system, so it shows this tick. Resting a resting machine does nothing.
+  `crafting` an idle station that draws (nothing queued, a unit done waiting for room or one waiting for
+  its inputs; a fed one with nothing it can work), from their simulation systems, so it shows from the
+  next tick; `furnace` a burner generator whose fire is out, from its construction system, so it shows this tick.
+  Resting a resting machine does nothing.
 - **Commands:** `Lay(A, B)` — a cable between the nodes at those cells, paid from the sender
   (`Content.Power.CableCost`, nothing in creative mode: paid only if `Take` took something), refused
   with `power.noNode`, `power.sameNode`, `power.tooLong`, `power.twice` or `items.notEnough`;

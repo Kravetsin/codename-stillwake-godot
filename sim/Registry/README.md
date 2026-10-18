@@ -28,3 +28,7 @@ tick, dropped the fires kept only for it, and put crafting's slice before buildi
 
 Format 15 lets a floor stack carry a body tag (`body`: peer and tick died, 0061), written only when it has one: the
 step changes nothing but the format, and the stacks of older saves are no one's body.
+
+Format 16 gave the Former and the circuit assembler their input slots (0057): what each held gains its inputs,
+empty, in front, so what it made stays in its outputs; a machine already of its new size is left as it is.
+Entries saved before have no feed and load as paid.

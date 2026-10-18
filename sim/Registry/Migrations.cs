@@ -126,7 +126,26 @@ public static class Migrations
         // 14 → 15: a floor stack may be part of a body (0061), written only when it is: no save before held one, so
         // its stacks are no one's and nothing changes but the format, which keeps an older build from losing the tag.
         save => save,
+        // 15 → 16: the Former and the assembler take inputs (0057); their entries, saved without a feed, load as paid.
+        StationInputs,
     ];
+
+    /// <summary>
+    /// 15 → 16: what the Former and the circuit assembler hold gains their input slots, empty, in front, so what they
+    /// made stays in their outputs. A machine already of its new size is left as it is.
+    /// </summary>
+    public static JsonObject StationInputs(JsonObject save)
+    {
+        var slices = save["slices"]!;
+        var kinds = slices["grid"]!["machines"]!.AsArray().ToDictionary(m => (int)m!["id"]!, m => (string)m!["kind"]!);
+        foreach (var held in slices["items"]!["crates"]!.AsArray())
+        {
+            if (!kinds.TryGetValue((int)held!["id"]!, out var kind) || kind is not ("former" or "assembler")) continue;
+            var slots = held["slots"]!.AsArray();
+            while (slots.Count < Content.Machines.Get(kind).Slots) slots.Insert(0, null);
+        }
+        return save;
+    }
 
     /// <summary>
     /// 13 → 14: each fire's item and progress, in ticks, becomes crafting's smelt, in thousandths of a tick;

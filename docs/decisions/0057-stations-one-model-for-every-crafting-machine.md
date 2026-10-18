@@ -5,7 +5,8 @@
   [0045](0045-a-burner-generator-shares-the-furnaces-fire.md) that the `furnace` module smelts; of
   [0041](0041-wreckage-of-many-kinds-and-circuits.md) that no craft makes a circuit and the solar panel's cost; the Former and the smelter heard at work by
   [0059](0059-machines-heard-at-work.md); a fed station's process, the grow capsule, added by
-  [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md)
+  [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md); input slots for the Former and the assembler, and
+  entries fed from them, amended here (2026-10-18, drone logistics slice 1)
 - Date: 2026-10-17
 - Design: "powered production stations" (approved), all four slices built
 
@@ -55,7 +56,8 @@ rule and a panel; the smelter would copy the furnace's smelt rules without its f
 - It costs 2 frames, a rotor, 2 gears and a circuit, so it opens once those four are analysed (0027).
 - **It rests while idle:** nothing queued, or a unit done waiting for room. A machine whose slots only give
   out (`Inputs` 0) draws whenever its module does not rest it; the old rule, "while its first slot holds
-  something", is for machines that work on what is put in them.
+  something", is for machines that work on what is put in them. (Since its inputs, every station draws whenever
+  crafting does not rest it: see "Input slots" below.)
 - `CraftingModule.Works(machine)`: a unit at work, not done, with a share of energy. What the client shows
   without words: the Former's flywheel turns, its gears with it, its press head beats on the die; its
   panel's bolt is lit and its screen runs. Idle, full or without power it stands still, the bolt dark, the
@@ -135,6 +137,39 @@ rule and a panel; the smelter would copy the furnace's smelt rules without its f
 - An item may give back some of itself as its work completes (`ItemSpec.Returns`, a crop's seeds), drawn from the
   world's Rng; a station works it only with room for the most it may give back.
 
+## Input slots for queued stations (amended 2026-10-18)
+
+Design: "drone logistics" (approved, with its cuts), slice 1; mockup "Drone Logistics Windows".
+
+- **The Former has 2 input slots and the assembler 3**, before their 3 outputs: as many as the most distinct items
+  any of their crafts needs (`ContentTests`). **The pod stays manual,** `Inputs: 0`, by design: the content rule
+  names it as its one exception. Items go in by hand as into any machine with inputs; the outputs stay take-only.
+- **`Craft` gains `FromInputs`.** Paid, the default, is unchanged. Fed from the inputs, nothing is taken when it is
+  queued and it is never refused as unpaid; each unit takes its cost from the inputs, the first slot first, on its
+  first tick with work above 0, so a station without power takes nothing. Creative mode does not make it free, as
+  it does not a smelt. "Begun" is progress above 0: a cancel gives back only the unit begun; what the inputs hold
+  stays there. At the pod it is refused, `crafting.noInputs`.
+- **First in, first out:** a first entry fed from the inputs that lack its next unit's cost waits at progress 0, and
+  the whole queue behind it, a paid entry too. No skip rule: cancelling is the way out. Waiting, the station is idle
+  and rests. `CraftingModule.Lacks` says what it waits for.
+- **Endless (∞):** `SetEndless(Machine, Entry, On)`, refused for a paid entry (`crafting.paid`): a unit made leaves its
+  count as it is, so it repeats while its inputs last and waits when they run out; a cancel takes it off. A command
+  of its own rather than a flag on `Craft`: the player switches an entry already queued, so the command is needed
+  anyway, and a flag would be a second way to the same. Set, not toggled, so a click sent twice before its tick
+  sets it once.
+- **Power:** every station (`Content.Stations`) draws whenever crafting does not rest it; the first-slot rule stays
+  for the analyzer and the charger. Else a Former with empty inputs and a paid entry would work without counting
+  as demand. A fed station is rested on the tick its last item smelts, so its timing is as it was.
+- **Format 16** (after death's 15, 0061): what the Former and the assembler hold gains their inputs, empty, in
+  front, so their outputs keep their stacks; old entries load as paid.
+- **The panel:** inputs, queue, outputs on the right, still within 1280×720 at the large slot size. The input slots
+  are the items feature's, lent to the crafting panel, so they work as every machine's slots. A right-click on a
+  recipe queues it from the inputs (shift ×5). An entry fed from them shows a small blue inlet in its corner, an
+  endless one a blue ∞ for its count; a first entry waiting is dimmed. A click still cancels any entry; a
+  right-click on one fed from the inputs switches ∞, so the click everyone knows keeps its meaning. Tips say "from
+  the inputs", "repeats", "waiting for: X".
+- **Not yet:** requests on the inputs and drones that fill them come with the logistics module (slice 2).
+
 ## Rejected
 
 - **The furnace keeps its smelting, the smelter its own:** two copies of one rule, and upgrades would
@@ -149,6 +184,9 @@ rule and a panel; the smelter would copy the furnace's smelt rules without its f
   wants; the user chose to take it in and show the station cold.
 - **The too-cold reason as the furnace panel's red line:** it is not a fault to fix there but a pointer to
   another machine; the mark says it without words and the tooltip in words, on demand.
+- **A skip rule for a waiting head** (a paid entry passing drone-fed ones): two orders of work in one queue; FIFO
+  with cancel is what the player can read.
+- **A click toggling ∞ and a right-click cancelling:** the click that cancels today would change its meaning.
 - **A station's slots in its station entry:** `Items` reads every machine's slots, crates included; a
   second place would drift from the first.
 

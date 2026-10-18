@@ -72,6 +72,22 @@ public class ClickTests
     }
 
     [Fact]
+    public void SpreadWhatIsShiftClickedOverAnOpenQueuedStationsInputsOntoItsKindThenTheFirstEmpty()
+    {
+        // A Former's two inputs, then its three outputs: iron in the first, the second empty.
+        Stack?[] former = [new Stack("iron", 4), null, new Stack("plate", 9), null, null];
+        SlotClick Into(Stack stack, Stack?[] slots) => Click(Inv(1), stack, shift: true) with { Inputs = 2, CrateSlots = slots };
+        Assert.Equal(MoveOf(Inv(1), new Target(0, 7), 3), Clicks.On(null, Into(new Stack("iron", 3), former)).Command);
+        // Planks, a fuel, go into the Former's inputs as any item: it has no fuel slot.
+        Assert.Equal(MoveOf(Inv(1), new Target(1, 7), 2), Clicks.On(null, Into(new Stack("planks", 2), former)).Command);
+        // Both taken by other items: the sim's first slot, as a move naming none.
+        Stack?[] full = [new Stack("iron", 4), new Stack("gear", 1), null, null, null];
+        Assert.Equal(MoveOf(Inv(1), new Target(Crate: 7), 2), Clicks.On(null, Into(new Stack("wire", 2), full)).Command);
+        // A machine with no inputs to spread over keeps today's rule.
+        Assert.Equal(MoveOf(Inv(1), new Target(Crate: 7), 2), Clicks.On(null, Click(Inv(1), new Stack("planks", 2), shift: true)).Command);
+    }
+
+    [Fact]
     public void SendAFuelWithShiftIntoAnOpenFurnacesFuelSlotAndSalvageIntoItsInput()
     {
         var planks = new Stack("planks", 3);

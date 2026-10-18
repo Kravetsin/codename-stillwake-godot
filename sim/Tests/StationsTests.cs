@@ -112,7 +112,10 @@ public class StationsTests
         foreach (var m in w.M.Grid.Machines)
         {
             foreach (var s in w.M.Items.Crate(m.Id)) Add(s);
-            foreach (var e in w.M.Crafting.Queue(m.Id)) Raw(e.Recipe, e.Count, all);
+            // A paid entry's units are paid for; one fed from the inputs holds only its unit begun.
+            var queue = w.M.Crafting.Queue(m.Id);
+            for (int i = 0; i < queue.Count; i++)
+                Raw(queue[i].Recipe, !queue[i].FromInputs ? queue[i].Count : i == 0 && w.M.Crafting.Progress(m.Id) > 0 ? 1 : 0, all);
         }
         foreach (var s in w.M.Items.Floor) Add(new Stack(s.Item, s.Count));
         int planks = all.GetValueOrDefault("planks");
@@ -126,8 +129,8 @@ public class StationsTests
     private static readonly string[] Recipes = [.. Crafts.All.Select(c => c.Item)];
 
     /// <summary>
-    /// The invariants of both feeds and both processes: items are conserved — what a queued craft took comes back as
-    /// its units or a cancel's refund, a smelt turns an item into its yields and nothing else, planks only burning, one
+    /// The invariants of both feeds and both processes: items are conserved — what a queued craft took, paid when queued
+    /// or a unit at a time from the inputs, endless or not, comes back as its units or a cancel's refund, a smelt turns an item into its yields and nothing else, planks only burning, one
     /// a fire a tick at most, and a crop turns a seed into its yields and none, one or two seeds, one a capsule a tick
     /// at most (0060); and no station's queue ever holds more than its <c>QueueMost</c>. A step now and then ripens
     /// the capsule's crop to its last tick, as hours at work would, so crops complete within a run.
@@ -137,7 +140,7 @@ public class StationsTests
     {
         const int peers = 3;
         var step =
-            from kind in Gen.Frequency((5, Gen.Constant(0)), (2, Gen.Constant(1)), (3, Gen.Constant(2)), (3, Gen.Constant(3)), (2, Gen.Constant(4)))
+            from kind in Gen.Frequency((5, Gen.Constant(0)), (2, Gen.Constant(1)), (3, Gen.Constant(2)), (3, Gen.Constant(3)), (2, Gen.Constant(4)), (5, Gen.Constant(5)), (1, Gen.Constant(6)))
             from station in Gen.Choose(0, 9)
             from recipe in Gen.Frequency((3, Gen.Elements("wire", "gear", "plate", "tube")), (2, Gen.Elements("circuit", "solarCell")), (1, Gen.Elements(Recipes)))
             from count in Gen.Choose(1, 9)
@@ -145,20 +148,22 @@ public class StationsTests
             from peer in Gen.Choose(0, peers - 1)
             from ticks in Gen.Frequency((6, Gen.Choose(0, 3)), (1, Gen.Choose(10, 300)))
             select new Step(kind, station, recipe, count, slot, peer, ticks);
-        var steps = from n in Gen.Choose(0, 40) from s in step.ArrayOf(n) select s;
+        var steps = from n in Gen.Choose(0, 60) from s in step.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
         {
             var w = World();
             for (int peer = 0; peer < peers; peer++)
                 w.GiveItems(peer, ("scrap", 200), ("iron", 100), ("gear", 2), ("wire", 4), ("scrapChunk", 6), ("hullPlate", 3), ("planks", 3), ("rock", 2), ("silicon", 6), ("glass", 4), ("seed", 10), ("biomass", 4));
             var stations = StationsIn(w);
+            var fed = stations.Where(s => (Machines.Get(s.Station.Machine).Inputs ?? 0) > 0 && !s.Station.Fed).ToList();
             int capsules = stations.Count(s => s.Station.Process == "grow");
             // Each capsule planted from the start, so ripening brings crops in often.
             foreach (var (id, _) in stations.Where(s => s.Station.Process == "grow")) w.FillCrate(id, ("seed", 10));
             var (worth, planks) = Worth(w, peers);
             foreach (var s in all)
             {
-                var (id, station) = stations[s.Station % stations.Count];
+                // Crafts from the inputs go to the stations with inputs, of what they make, piling up behind a head waiting.
+                var (id, station) = s.Kind == 5 ? fed[s.Station % fed.Count] : stations[s.Station % stations.Count];
                 int slots = w.M.Items.Crate(id).Count;
                 if (s.Kind == 4)
                 {
@@ -168,6 +173,8 @@ public class StationsTests
                 w.Do(s.Kind switch
                 {
                     0 => new Craft(id, s.Recipe, s.Count) { From = s.Peer },
+                    5 => new Craft(id, station.Rows.SelectMany(r => r).ElementAt(s.Slot % station.Rows.Sum(r => r.Count)), s.Count, FromInputs: true) { From = s.Peer },
+                    6 => new SetEndless(id, s.Count, s.Slot % 3 != 0) { From = s.Peer },
                     1 => new Cancel(id, s.Count) { From = s.Peer },
                     // Planks into a fed station's fuel, anything else into its input; a queued one refuses it, taking nothing.
                     2 => new Move(new Slot(s.Slot), new Target(w.M.Items.Inventory(s.Peer)[s.Slot]?.Item == "planks" ? 1 : 0, id), s.Count) { From = s.Peer },
@@ -218,7 +225,7 @@ public class StationsTests
             // Creative mode now and then, as the items fuzz switches it: crafts paid for nothing fill the queues.
             if (i % 50 == 0) w.Do(new SetCreative(i % 100 == 0)).Run();
             if (w.M.Crafting.Fuzz(rng, i % 3) is not { } c) continue;
-            int machine = c switch { Craft k => k.Machine, Cancel k => k.Machine, _ => -1 };
+            int machine = c switch { Craft k => k.Machine, Cancel k => k.Machine, SetEndless k => k.Machine, _ => -1 };
             at[machine] = at.GetValueOrDefault(machine) + 1;
             int refused = w.Refusals.Count;
             w.Do(c).Run();
@@ -226,7 +233,7 @@ public class StationsTests
         }
         Assert.All(StationsIn(w), s => Assert.True(at.GetValueOrDefault(s.Id) > 100, $"{s.Station.Machine}: {at.GetValueOrDefault(s.Id)}"));
         var reasons = w.Refusals.Select(r => r.Reason).ToHashSet();
-        foreach (var why in new[] { "crafting.notHere", "crafting.noStation", "crafting.unknown", "crafting.full", "crafting.noEntry", "items.notEnough" })
+        foreach (var why in new[] { "crafting.notHere", "crafting.noStation", "crafting.unknown", "crafting.full", "crafting.noEntry", "items.notEnough", "crafting.noInputs", "crafting.paid" })
             Assert.Contains(why, reasons);
         string? KindOf(Command c) => c is Craft k ? w.M.Grid.MachineById(k.Machine)?.Kind : null;
         var notHere = w.Refusals.Where(r => r.Reason == "crafting.notHere").Select(r => r.Command).ToList();

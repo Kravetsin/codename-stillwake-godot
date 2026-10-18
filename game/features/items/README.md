@@ -143,7 +143,11 @@ as everything E works is, in the crew feature (`AimTests`).
 - Where the open inventory's grid ends on the screen, its left edge and bottom, is set every frame
   (`Ui.InventoryFoot`), null while it is closed: the crafting feature docks a queued station's panel
   (the Fabricator, the Former) there, where this feature opens every other machine, so a queued station
-  gets no crate panel here. A stack let go over any panel, another feature's too, is not thrown.
+  gets no crate panel here. Its input slots (the Former's two, the assembler's three) are this feature's all the
+  same, lent to the crafting feature's panel (`InventoryPanel.Lend`, wired by `Main`): clicked, dragged, tipped and
+  shown as any machine's, forgotten as they leave the tree. A shift-click from the inventory into a queued station
+  goes onto its own kind in the inputs, else the first empty input, else the first, as the sim puts a move naming
+  none (`Clicks`). A stack let go over any panel, another feature's too, is not thrown.
 - Stacks of different items still in one cell are drawn side by side, out in space too, where a
   broken wreck's loot floats off together; only aboard do they bob.
 - A stack in a cell the hero's body overlaps is picked up unless the sim would refuse it or its

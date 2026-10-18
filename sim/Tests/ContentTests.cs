@@ -756,9 +756,9 @@ public class ContentTests
     }
 
     /// <summary>
-    /// A queued station only gives out what it makes, with a queue; a fed one takes into its input and
-    /// smelts at some heat; each has one energy at most, a machine's, and works every unit and smelt in whole
-    /// ticks at full share.
+    /// A queued station makes from a queue, with inputs enough for the most distinct items any craft of its needs, but
+    /// the pod, paid by hand by design (0057); a fed one takes into its input and smelts at some heat; each has one
+    /// energy at most, a machine's, and works every unit and smelt in whole ticks at full share.
     /// </summary>
     [Fact]
     public void StationsAreMachinesQueuedOrFedEachWorkingInWholeTicks()
@@ -780,7 +780,9 @@ public class ContentTests
             else
             {
                 Assert.True(station.QueueMost > 0, station.Machine);
-                Assert.Equal(0, spec.Inputs);
+                int most = station.Rows.SelectMany(r => r).Max(craft => Crafts.Get(craft).Cost.Select(c => c.Item).Distinct().Count());
+                if (station.Machine == "lifepod") Assert.Equal(0, spec.Inputs);
+                else Assert.True(spec.Inputs >= most, $"{station.Machine}: {spec.Inputs} inputs, a craft of {most} items");
                 foreach (var craft in station.Rows.SelectMany(r => r)) Assert.Equal(0, Crafts.Get(craft).Ticks * 1000 % station.Speed);
             }
         }

@@ -160,7 +160,8 @@ public partial class Main : Node2D, ITogether
             else if (Has("--die")) _hero.Start = DieDemo.StartOf;
             else if (Opens is { } opened) _hero.Start = m => OpenDemo.StartOf(m, opened);
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
-            AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))));
+            // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
+            AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))) { Lend = _items.Panel.Lend });
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None), _hands.Ui);
             AddChild(gauge);

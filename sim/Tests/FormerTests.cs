@@ -98,13 +98,15 @@ public class FormerTests
         Assert.Equal(0, Demand(w));
 
         // Its outputs full of what nothing makes: a plate done waits there, the Former resting.
-        w.Do(new Move(new Slot(0, former), new Target(), 1)).Run();
-        w.FillCrate(former, ("canister", 3 * Content.Items.Get("canister").Stack));
+        // Past its inputs, which a paid craft leaves alone: filled too, for nothing is free to take.
+        int output = Machines.Get("former").Inputs!.Value;
+        w.Do(new Move(new Slot(output, former), new Target(), 1)).Run();
+        w.FillCrate(former, ("canister", Machines.Get("former").Slots!.Value * Content.Items.Get("canister").Stack));
         w.Do(new Craft(former, "plate", 1)).Run(Plate / 1000 + 2);
         Assert.Equal(Plate, w.M.Crafting.Progress(former));
         Assert.False(w.M.Crafting.Works(former));
         Assert.Equal(0, Demand(w));
-        w.Do(new Move(new Slot(0, former), new Target(), 999)).Run();
+        w.Do(new Move(new Slot(output, former), new Target(), 999)).Run();
         Assert.Equal(1, Made(w, "plate"));
     }
 

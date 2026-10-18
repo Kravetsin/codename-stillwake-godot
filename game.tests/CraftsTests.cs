@@ -132,4 +132,24 @@ public class CraftsTests
         Assert.Equal(Doing.Making, Crafts.DoingOf(w.M.Crafting.Queue(Pod), w.M.Crafting.Progress(Pod)));
         Assert.Equal(Doing.OutputFull, Crafts.DoingOf([new Entry(1, "wire", 1, 0)], work));
     }
+
+    [Fact]
+    public void SaysAFirstEntryWaitingForItsInputsIsWaitingNotWithoutPower()
+    {
+        IReadOnlyList<Entry> queue = [new Entry(1, "plate", 1, 0, FromInputs: true)];
+        Assert.Equal(Doing.Waiting, Crafts.DoingOf(queue, 0, works: false, waiting: true));
+        Assert.Equal(Doing.NoPower, Crafts.DoingOf(queue, 0, works: false));
+    }
+
+    [Fact]
+    public void OffersTheRightButtonFromTheInputsAtAStationWithInputsWhateverIsCarriedButNeverAtThePod()
+    {
+        var former = Content.Stations.Get("former");
+        CardKey Rmb = new(T("key.rmb"), T("card.fromInputs")), Shift = new(T("key.shift"), T("card.many", ("n", Crafts.Many))), Craft = new(T("key.lmb"), T("card.craftIt"));
+        Assert.Equal([Craft, Rmb, Shift], Crafts.Block("plate", former, [("iron", 2)], creative: false).Keys);
+        // Short of iron, the left button goes to nothing the Former makes; the right still queues from the inputs.
+        Assert.Equal([Rmb, Shift], Crafts.Block("plate", former, [], creative: false).Keys);
+        Assert.Equal([Craft, Shift], Crafts.Block("plate", Fabricator, [("iron", 2)], creative: false).Keys);
+        Assert.True(Crafts.HasInputs(former) && Crafts.HasInputs(Assembler) && !Crafts.HasInputs(Fabricator));
+    }
 }

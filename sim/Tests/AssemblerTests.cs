@@ -102,13 +102,15 @@ public class AssemblerTests
         Assert.False(w.M.Crafting.Works(assembler));
 
         // Its outputs full of what it does not make: a circuit done waits there, the assembler resting.
-        w.Do(new Move(new Slot(0, assembler), new Target(), 1)).Run();
-        w.FillCrate(assembler, ("canister", 3 * Content.Items.Get("canister").Stack));
+        // Past its inputs, which a paid craft leaves alone: filled too, for nothing is free to take.
+        int output = Machines.Get("assembler").Inputs!.Value;
+        w.Do(new Move(new Slot(output, assembler), new Target(), 1)).Run();
+        w.FillCrate(assembler, ("canister", Machines.Get("assembler").Slots!.Value * Content.Items.Get("canister").Stack));
         w.Do(new Craft(assembler, "circuit", 1)).Run(Circuit / 1000 + 2);
         Assert.Equal(Circuit, w.M.Crafting.Progress(assembler));
         Assert.False(w.M.Crafting.Works(assembler));
         Assert.Equal(0, Demand(w));
-        w.Do(new Move(new Slot(0, assembler), new Target(), 999)).Run();
+        w.Do(new Move(new Slot(output, assembler), new Target(), 999)).Run();
         Assert.Equal(1, Made(w, "circuit"));
     }
 

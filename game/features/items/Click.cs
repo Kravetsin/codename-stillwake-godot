@@ -14,9 +14,13 @@ public readonly record struct Picked(Place Place, int Count);
 /// <param name="Inventory">The hero's slots as shown, its equipment after its own: where a shift-click wears or takes off.</param>
 /// <param name="FuelSlot">The slot the open crate burns fuel in, when it is a furnace.</param>
 /// <param name="Charger">Whether the open crate is a charging station: a battery shift-clicked goes there to charge.</param>
+/// <param name="Inputs">
+/// The open machine's input slots a stack shift-clicked spreads over, its slots as shown in <paramref name="CrateSlots"/>:
+/// a queued station's (the Former's two, the assembler's three); 0 for any other, which takes it into its first slot.
+/// </param>
 public sealed record SlotClick(
     Place Place, Stack? Stack, bool Right, bool Shift, int? Crate, IReadOnlyList<Stack?> Inventory,
-    int? FuelSlot = null, bool Charger = false);
+    int? FuelSlot = null, bool Charger = false, int Inputs = 0, IReadOnlyList<Stack?>? CrateSlots = null);
 
 /// <summary>What a click leaves picked, the move it sends, if any, and whether it breathes a canister (0047).</summary>
 public readonly record struct Clicked(Picked? Picked, Move? Command = null, bool Breathes = false);
@@ -61,7 +65,8 @@ public static class Clicks
     /// that is worn goes onto the first free equipment slot of its kind, or swaps with the first worn there;
     /// what is worn goes onto the first free own slot, the hotbar first. A battery goes into an open charging
     /// station instead. Anything else, and anything in a crate, goes to the other side of an open crate, a
-    /// fuel into a furnace's fuel slot.
+    /// fuel into a furnace's fuel slot, and into a queued station's inputs onto its own kind there, else the first empty
+    /// one, else the first, as the sim puts a move naming none.
     /// </summary>
     private static Target? Shifted(SlotClick click, Stack stack)
     {
@@ -80,6 +85,23 @@ public static class Clicks
             return slot != null ? new Target(slot.Slot) : null;
         }
         if (click.Crate is not int crate) return null;
-        return own ? new Target(spec.BurnTicks != null ? click.FuelSlot : null, crate) : new Target();
+        if (!own) return new Target();
+        if (spec.BurnTicks != null && click.FuelSlot != null) return new Target(click.FuelSlot, crate);
+        return new Target(InputFor(click, stack), crate);
+    }
+
+    /// <summary>
+    /// The input slot of the open queued station <paramref name="stack"/> goes to: the first holding its kind with room,
+    /// else the first empty one; none, the sim's first slot, for a machine without several or with no room in them.
+    /// </summary>
+    private static int? InputFor(SlotClick click, Stack stack)
+    {
+        if (click.Inputs < 2 || click.CrateSlots is not { } slots) return null;
+        int limit = ItemSpecs.Get(stack.Item).Stack;
+        for (int i = 0; i < click.Inputs; i++)
+            if (slots[i] is { } s && s.Item == stack.Item && s.Charge == stack.Charge && s.Count < limit) return i;
+        for (int i = 0; i < click.Inputs; i++)
+            if (slots[i] == null) return i;
+        return null;
     }
 }

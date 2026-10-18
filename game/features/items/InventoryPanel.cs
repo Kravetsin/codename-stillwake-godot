@@ -44,6 +44,8 @@ public partial class InventoryPanel : CanvasLayer
     private static readonly LabelSettings Trouble = Style.Text(Style.Bold, 10, Style.Red300);
 
     private readonly List<SlotBox> _slots = [];
+    /// <summary>The slots lent to another feature's panel (<see cref="Lend"/>): theirs to take down, not this panel's.</summary>
+    private readonly List<SlotBox> _lent = [];
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     /// <summary>The stack carried, over every panel.</summary>
     private readonly CanvasLayer _over = new() { Layer = ScreenLayers.Tips };
@@ -189,8 +191,10 @@ public partial class InventoryPanel : CanvasLayer
             node.GetParent().RemoveChild(node);
             node.QueueFree();
         }
-        _slots.Clear();
+        // Lent slots are their panel's to build again: kept, with their tips, until they leave the tree.
+        _slots.RemoveAll(s => !_lent.Contains(s));
         _tipSpots.Clear();
+        foreach (var box in _lent) _tipSpots.Add(box, () => SlotTip(box));
         _tipSpots.Show(null);
         _built = null;
         (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _hovered) = (null, null, null, null, null, null, null, null);
@@ -296,10 +300,30 @@ public partial class InventoryPanel : CanvasLayer
     {
         var box = new SlotBox(place, _ui.Slot, key);
         box.Pressed += ClickAt;
-        _tipSpots.Add(box, () => _reading?.At(box.Place) is { } stack ? _reading.TipOf(stack) : null);
+        _tipSpots.Add(box, () => SlotTip(box));
         _slots.Add(box);
         return box;
     }
+
+    /// <summary>
+    /// A slot of the open machine for another feature's panel to lay out, drawn and worked here as any of this panel's:
+    /// clicks, the hand, drags, its tip. The crafting feature's queued station puts its inputs so (wired by <c>Main</c>).
+    /// Forgotten as it leaves the tree.
+    /// </summary>
+    public Control Lend(Place place)
+    {
+        var box = Box(place);
+        _lent.Add(box);
+        box.TreeExiting += () =>
+        {
+            _slots.Remove(box);
+            _lent.Remove(box);
+        };
+        Refresh();
+        return box;
+    }
+
+    private Tip? SlotTip(SlotBox box) => _reading?.At(box.Place) is { } stack ? _reading.TipOf(stack) : null;
 
     /// <summary>The open crate's panel, made anew for each crate: a crate's grid, a furnace's or an analyzer's own, in the machine frame.</summary>
     private void BuildCrate()
@@ -309,7 +333,7 @@ public partial class InventoryPanel : CanvasLayer
         _built = want;
         if (_frame != null)
         {
-            _slots.RemoveAll(s => s.Place.Crate != null);
+            _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
             (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold) = (null, null, null, null, null, null, null);
@@ -559,8 +583,10 @@ public partial class InventoryPanel : CanvasLayer
         }
         if (_reading == null) return;
         var spec = _reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
+        // A queued station's inputs share what is shift-clicked in, onto its kind first (the Former's, the assembler's).
+        int inputs = _reading.Kind is string queued && Content.Stations.TryGet(queued, out var station) && !station.Fed ? spec?.Inputs ?? 0 : 0;
         var result = Clicks.On(Held, new SlotClick(
-            place, _reading.At(place), right, shift, Crate, _reading.Inventory, spec?.FuelSlot, spec?.Charges == true));
+            place, _reading.At(place), right, shift, Crate, _reading.Inventory, spec?.FuelSlot, spec?.Charges == true, inputs, _reading.Crate));
         _picked = result.Picked;
         if (result.Breathes) _ui.Breathe();
         if (result.Command != null) Send(result.Command);

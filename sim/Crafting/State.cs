@@ -4,9 +4,14 @@ namespace Stillwake.Sim.Crafting;
 
 /// <summary>
 /// A craft queued: <c>Count</c> units of <c>Recipe</c>, the item made, left to make, the one at work
-/// included; <c>By</c> the peer that queued it, whose suit colour marks it.
+/// included; <c>By</c> the peer that queued it, whose suit colour marks it. <c>FromInputs</c>: paid by nothing
+/// when queued, each unit taking its cost from the station's inputs as it begins; <c>Endless</c>, only then:
+/// a unit made leaves the count as it was, so it repeats while the inputs last. Both saved only when set.
 /// </summary>
-public sealed record Entry(int Id, string Recipe, int Count, int By);
+public sealed record Entry(
+    int Id, string Recipe, int Count, int By,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool FromInputs = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Endless = false);
 
 /// <summary>
 /// A fed station part-way through what its input holds: <c>Item</c> the item work was done on, <c>Progress</c>

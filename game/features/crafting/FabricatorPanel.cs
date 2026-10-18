@@ -42,6 +42,11 @@ public partial class FabricatorPanel : CanvasLayer
     private static readonly LabelSettings HeadingText = Style.Text(Style.Bold, 11, Style.Slate400);
     private static readonly LabelSettings AsideText = Style.Text(Style.Sans, 11, Style.Slate500);
     private static readonly LabelSettings Count = Style.Text(Style.Mono, 10, Colors.White, shadow: true);
+    /// <summary>An entry fed from the inputs, and its endless sign: the inputs' blue (the mockup's requester colour).</summary>
+    private static readonly Color Inlet = Style.Sky400;
+    private static readonly LabelSettings EndlessText = Style.Text(Style.Bold, 11, Style.Sky400, shadow: true);
+    /// <summary>How much of itself a first entry waiting for its inputs shows.</summary>
+    private const float Waiting = 0.45f;
 
     /// <summary>A recipe short of items: its icon grey and faint.</summary>
     private static readonly ShaderMaterial Greyed = Shaded("""
@@ -62,7 +67,11 @@ public partial class FabricatorPanel : CanvasLayer
 
     private readonly Ui _ui;
     private readonly Func<int, Color> _suitOf;
-    private readonly GridContainer _recipes = Grid(), _queue = Grid(), _outputs = Grid();
+    private readonly GridContainer _recipes = Grid(), _inputs = Grid(), _queue = Grid(), _outputs = Grid();
+    /// <summary>The inputs' heading, shown only for a station that has inputs.</summary>
+    private Control _inputsHeading = null!;
+    /// <summary>The station and the slot size the input slots were lent for: built again only when either changes.</summary>
+    private (int Pod, int Slot)? _inputsFor;
     private readonly Label _opened = new() { LabelSettings = AsideText };
     private readonly FabricatorScreen _screen = new() { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
     /// <summary>The machine frame every machine opens in: the station's name, a powered one's bolt, and the screen in its header.</summary>
@@ -102,6 +111,12 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>A slot that answers the pointer, and the box it is drawn with when the pointer is elsewhere.</summary>
     private sealed record Cell(Panel Box, StyleBoxFlat Rest, StyleBoxFlat Hover, string? Craft);
 
+    /// <summary>
+    /// A slot of the open machine drawn and worked by the items feature as any of its own (its click rules, the hand,
+    /// drags, its tip): where the inputs go. Set by <c>Main</c>, which wires the two features.
+    /// </summary>
+    public Func<Place, Control>? Lend { get; set; }
+
     /// <summary>The queued station open under the inventory: the machine E opened, while it is one and the inventory is shown.</summary>
     private (int Id, Content.Station Station)? Open =>
         _ui.InventoryFoot.Get() != null && _ui.OpenCrate.Get() is int id && _crafting?.StationOf(id) is { Fed: false } station ? (id, station) : null;
@@ -127,6 +142,9 @@ public partial class FabricatorPanel : CanvasLayer
         left.AddChild(Heading(T("fabricator.recipes"), _opened));
         left.AddChild(_recipes);
         var right = Style.Gap(new VBoxContainer(), 6);
+        // Inputs, queue, outputs: what goes in, what is ordered, what came out (the logistics mockup).
+        right.AddChild(_inputsHeading = Heading(T("fabricator.inputs"), new Label()));
+        right.AddChild(_inputs);
         right.AddChild(Heading(T("crafts.queue"), new Label { Text = T("fabricator.shared"), LabelSettings = AsideText }));
         right.AddChild(_queue);
         right.AddChild(Heading(T("fabricator.output"), new Label()));
@@ -204,17 +222,19 @@ public partial class FabricatorPanel : CanvasLayer
         // The outputs as this peer's own takes in flight leave them, so a stack goes on the click (0014).
         var moves = _client.InFlight.Where(c => c is Move or Drop).ToList();
         var outputs = _items.AfterMoves(peer, moves).Crates.Where(c => c.Crate == pod).Select(c => c.Slots).FirstOrDefault() ?? _items.Crate(pod);
+        var lacks = _crafting.Lacks(pod);
         string key = $"{pod}|" + string.Join(",", Content.Crafts.All.Select(c => (int)LookOf(c.Item)))
-            + "|" + string.Join(";", queue.Select(e => $"{e.Id}:{e.Recipe}:{e.Count}:{e.By}"))
+            + "|" + string.Join(";", queue.Select(e => $"{e.Id}:{e.Recipe}:{e.Count}:{e.By}:{e.FromInputs}:{e.Endless}"))
+            + "|" + string.Join(";", lacks.Select(l => $"{l.Item}:{l.Count}"))
             + "|" + string.Join(";", outputs.Select(s => s == null ? "" : $"{s.Item}:{s.Count}"));
         if (key != _shownKey)
         {
             _shownKey = key;
-            Build(pod, station, queue, outputs);
+            Build(pod, station, queue, outputs, lacks);
         }
         if (_fill != null && queue.Count > 0) Fill(_fill, Crafts.Share(queue[0].Recipe, progress));
         bool works = _crafting.Works(pod);
-        _screen.Doing = Crafts.DoingOf(queue, progress, works);
+        _screen.Doing = Crafts.DoingOf(queue, progress, works, lacks.Count > 0);
         // A station that draws shows its bolt and what it draws, lit while it works and dark at 0 while it rests or has no power.
         _panel.Light(works);
     }
@@ -227,7 +247,7 @@ public partial class FabricatorPanel : CanvasLayer
         Read();
     }
 
-    private void Build(int pod, Content.Station station, IReadOnlyList<Entry> queue, IReadOnlyList<Stack?> outputs)
+    private void Build(int pod, Content.Station station, IReadOnlyList<Entry> queue, IReadOnlyList<Stack?> outputs, IReadOnlyList<(string Item, int Count)> lacks)
     {
         foreach (var box in (Container[])[_recipes, _queue, _outputs])
             foreach (var old in box.GetChildren())
@@ -245,11 +265,33 @@ public partial class FabricatorPanel : CanvasLayer
         foreach (var place in places) _recipes.AddChild(place is { } craft ? RecipeSlot(pod, station, craft) : EmptySlot());
         var crafts = places.OfType<string>().ToList();
         _opened.Text = T("crafts.opened", ("n", crafts.Count(_research!.Knows)), ("all", crafts.Count));
+        LendInputs(pod, station);
         for (int i = 0; i < station.QueueMost; i++)
-            _queue.AddChild(i < queue.Count ? EntrySlot(pod, queue[i], i == 0) : EmptySlot());
-        for (int i = 0; i < outputs.Count; i++)
+            _queue.AddChild(i < queue.Count ? EntrySlot(pod, queue[i], i == 0, i == 0 ? lacks : []) : EmptySlot());
+        for (int i = Inputs(station); i < outputs.Count; i++)
             _outputs.AddChild(outputs[i] is { } stack ? OutputSlot(pod, i, stack) : EmptySlot());
         _panel.ResetSize();
+    }
+
+    /// <summary>How many of <paramref name="station"/>'s first slots are its inputs: the Former's two, the assembler's three, none of the pod's.</summary>
+    private static int Inputs(Content.Station station) => Content.Machines.Get(station.Machine).Inputs ?? 0;
+
+    /// <summary>
+    /// The station's input slots, lent by the items feature (<see cref="Lend"/>), so a stack goes in and out by its
+    /// clicks as into any machine; laid out again only for another station or slot size, not on every read.
+    /// </summary>
+    private void LendInputs(int pod, Content.Station station)
+    {
+        int inputs = Inputs(station);
+        _inputsHeading.Visible = _inputs.Visible = inputs > 0;
+        if (_inputsFor == (pod, _slot)) return;
+        _inputsFor = (pod, _slot);
+        foreach (var old in _inputs.GetChildren())
+        {
+            _inputs.RemoveChild(old);
+            old.QueueFree();
+        }
+        for (int i = 0; i < inputs; i++) _inputs.AddChild(Lend?.Invoke(new Place(i, pod)) ?? EmptySlot());
     }
 
     /// <summary>A recipe in its place: as it looks now, its cost in the tip; a click queues it or goes to what it is short of.</summary>
@@ -267,9 +309,16 @@ public partial class FabricatorPanel : CanvasLayer
         _tips.Add(box, () => TipOf(craft, station));
         box.GuiInput += e =>
         {
-            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press) return;
+            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right } press) return;
             // Accepted first: what the press does rebuilds the slots, this one gone from the tree.
             box.AcceptEvent();
+            if (press.ButtonIndex == MouseButton.Right)
+            {
+                // From the inputs, whatever is carried: each unit takes its cost there as it begins.
+                if (Crafts.HasInputs(station) && LookOf(craft) != Look.Locked)
+                    Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed), FromInputs: true));
+                return;
+            }
             switch (LookOf(craft))
             {
                 case Look.Ready:
@@ -308,17 +357,29 @@ public partial class FabricatorPanel : CanvasLayer
 
     /// <summary>
     /// A queued craft: its item and how many are left, its orderer's suit colour in the corner, the one at
-    /// work filling its slot from the bottom up behind them. A click cancels it, its cost given to whoever cancels.
+    /// work filling its slot from the bottom up behind them. One fed from the inputs has a small blue inlet in the
+    /// other top corner, and repeating, a blue ∞ in place of its count; first and waiting for its inputs
+    /// (<paramref name="lacks"/>), it is dimmed. A click cancels it, what was paid given to whoever cancels; a right
+    /// click on one fed from the inputs makes it repeat, or stop.
     /// </summary>
-    private Panel EntrySlot(int pod, Entry entry, bool atWork)
+    private Panel EntrySlot(int pod, Entry entry, bool atWork, IReadOnlyList<(string Item, int Count)> lacks)
     {
         var box = Box();
         box.AddChild(Icon(entry.Recipe));
-        box.AddChild(CountOf(entry.Count));
+        box.AddChild(CountOf(entry.Endless ? 1 : entry.Count));
         var who = new Panel { Position = new Vector2(2, 2), Size = new Vector2(5, 5), MouseFilter = Control.MouseFilterEnum.Ignore };
         var colour = _suitOf(entry.By);
         who.AddThemeStyleboxOverride("panel", Style.Box(colour, colour, radius: 1));
         box.AddChild(who);
+        if (entry.FromInputs)
+        {
+            var inlet = new Panel { Position = new Vector2(_slot - 9, 2), Size = new Vector2(7, 7), MouseFilter = Control.MouseFilterEnum.Ignore };
+            inlet.AddThemeStyleboxOverride("panel", Style.Box(Inlet, new Color("0b1220"), radius: 2));
+            box.AddChild(inlet);
+        }
+        if (entry.Endless)
+            box.AddChild(new Label { Text = "∞", LabelSettings = EndlessText, Position = new Vector2(2, _slot - 18), MouseFilter = Control.MouseFilterEnum.Ignore });
+        if (lacks.Count > 0) box.Modulate = new Color(1, 1, 1, Waiting);
         if (atWork)
         {
             _fill = new ColorRect { Color = Style.Amber400 with { A = 0.35f }, MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -329,13 +390,21 @@ public partial class FabricatorPanel : CanvasLayer
         }
         Add(new Cell(box, Filled, FilledHover, null));
         string whose = T(entry.By == _client?.Id ? "fabricator.yours" : "fabricator.friends");
-        var tip = new Tip($"{T($"item.{entry.Recipe}")} ×{entry.Count}", new TipLine($"{whose} · {T("fabricator.cancel")}", Tone.Dim));
+        var lines = new List<TipLine>();
+        if (entry.FromInputs) lines.Add(new TipLine(entry.Endless ? $"{T("fabricator.fromInputs")} · {T("fabricator.repeats")}" : T("fabricator.fromInputs")));
+        if (lacks.Count > 0)
+            lines.Add(new TipLine(T("fabricator.waiting", ("items", string.Join(", ", lacks.Select(l => $"{T($"item.{l.Item}")} ×{l.Count}")))), Tone.Bad));
+        lines.Add(new TipLine($"{whose} · {T("fabricator.cancel")}", Tone.Dim));
+        if (entry.FromInputs) lines.Add(new TipLine(T(entry.Endless ? "fabricator.stopRepeating" : "fabricator.repeat"), Tone.Dim));
+        var tip = new Tip($"{T($"item.{entry.Recipe}")} {(entry.Endless ? "∞" : $"×{entry.Count}")}", lines);
         _tips.Add(box, () => tip);
         box.GuiInput += e =>
         {
-            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
+            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left or MouseButton.Right } press) return;
             box.AcceptEvent();
-            Send(new Cancel(pod, entry.Id));
+            // The left button cancels any entry, as before; the right makes one fed from the inputs repeat, or stop.
+            if (press.ButtonIndex == MouseButton.Left) Send(new Cancel(pod, entry.Id));
+            else if (entry.FromInputs) Send(new SetEndless(pod, entry.Id, !entry.Endless));
         };
         return box;
     }

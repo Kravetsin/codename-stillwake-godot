@@ -31,6 +31,8 @@ public enum Doing
     OutputFull,
     /// <summary>A unit at work with no power for it: its screen dark.</summary>
     NoPower,
+    /// <summary>A first entry fed from the inputs, waiting for them: idle, resting, READY on its screen.</summary>
+    Waiting,
 }
 
 /// <summary>What a queued station's panel shows, without Godot: where each recipe sits, how it looks, where a click on it goes, how far the unit at work is.</summary>
@@ -88,6 +90,9 @@ public static class Crafts
         return T("crafts.madeAt", ("stations", string.Join(", ", makers)));
     }
 
+    /// <summary>Whether <paramref name="station"/> takes items in, so a craft may be fed from its inputs: the Former and the assembler, not the pod.</summary>
+    public static bool HasInputs(Content.Station station) => (Content.Machines.Get(station.Machine).Inputs ?? 0) > 0;
+
     /// <summary>How many units a click queues.</summary>
     public static int CountFor(bool shift) => shift ? Many : 1;
 
@@ -101,7 +106,8 @@ public static class Crafts
     /// <summary>
     /// What a recipe adds to its item's card: "Craft" and a unit's seconds at <paramref name="station"/>; each item of its cost
     /// against what is <paramref name="carried"/>, where a short raw one comes from; and what a click does,
-    /// queue it (shift, <see cref="Many"/>) or go to what is missing.
+    /// queue it (shift, <see cref="Many"/>) or go to what is missing; at a station with inputs, the right button queues it
+    /// from them, whatever is carried.
     /// </summary>
     public static StationBlock Block(string craft, Content.Station station, IReadOnlyList<(string Item, int Count)> carried, bool creative)
     {
@@ -111,9 +117,11 @@ public static class Crafts
             bool isShort = Short(l, creative);
             return new CraftRow(l.Item, T($"item.{l.Item}"), l.Have, l.Need, isShort, isShort ? From(l.Item, station) : null);
         }).ToList();
-        IReadOnlyList<CardKey> keys = !rows.Any(r => r.Short)
-            ? [new(T("key.lmb"), T("card.craftIt")), new(T("key.shift"), T("card.many", ("n", Many)))]
-            : MissingCraft(lines, creative, station) != null ? [new(T("key.lmb"), T("card.goTo"))] : [];
+        var keys = new List<CardKey>();
+        if (!rows.Any(r => r.Short)) keys.Add(new(T("key.lmb"), T("card.craftIt")));
+        else if (MissingCraft(lines, creative, station) != null) keys.Add(new(T("key.lmb"), T("card.goTo")));
+        if (HasInputs(station)) keys.Add(new(T("key.rmb"), T("card.fromInputs")));
+        if (!rows.Any(r => r.Short) || HasInputs(station)) keys.Add(new(T("key.shift"), T("card.many", ("n", Many))));
         return new StationBlock(T("time.seconds", ("n", Seconds(craft, station))), rows, keys);
     }
 
@@ -123,10 +131,12 @@ public static class Crafts
 
     /// <summary>
     /// What a station with <paramref name="queue"/> and the first entry's <paramref name="progress"/> is doing;
-    /// <paramref name="works"/> whether the sim says it works now (<c>CraftingModule.Works</c>): false for a unit with no power.
+    /// <paramref name="works"/> whether the sim says it works now (<c>CraftingModule.Works</c>): false for a unit with no power;
+    /// <paramref name="waiting"/> whether its first entry waits for its inputs (<c>CraftingModule.Lacks</c>).
     /// </summary>
-    public static Doing DoingOf(IReadOnlyList<Entry> queue, int progress, bool works = true) =>
+    public static Doing DoingOf(IReadOnlyList<Entry> queue, int progress, bool works = true, bool waiting = false) =>
         queue.Count == 0 ? Doing.Ready
+        : waiting ? Doing.Waiting
         : progress >= WorkOf(queue[0].Recipe) ? Doing.OutputFull
         : works ? Doing.Making : Doing.NoPower;
 }

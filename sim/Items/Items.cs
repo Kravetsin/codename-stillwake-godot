@@ -37,6 +37,7 @@ public interface IItemsQueries
     string? ShortOf(int peer, IReadOnlyList<(string Item, int Count)> cost);
     string? FullFor(int peer, IReadOnlyList<(string Item, int Count)> cost);
     string? OutputFull(int id, IReadOnlyList<(string Item, int Count)> cost);
+    IReadOnlyList<(string Item, int Count)> InputsLack(int id, IReadOnlyList<(string Item, int Count)> cost);
     IReadOnlyList<FloorStack> Floor { get; }
     string? PickUpProblem(int peer, int id);
     int PickUpAmount(int peer, int id);
@@ -55,6 +56,7 @@ public interface IItemsOps
     void Smelt(int id, int back = 0);
     void Consume(int id, int slot);
     void Output(int id, IReadOnlyList<(string Item, int Count)> cost);
+    void TakeInputs(int id, IReadOnlyList<(string Item, int Count)> cost);
     void GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void Charge(int id, int amount);
@@ -161,6 +163,30 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// </summary>
     public string? OutputFull(int id, IReadOnlyList<(string Item, int Count)> cost) =>
         Outputs(id, cost) == null ? "items.full" : null;
+
+    /// <summary>
+    /// What of <paramref name="cost"/> machine <paramref name="id"/>'s inputs, its first <c>Inputs</c> slots, lack, item
+    /// by item in the order the cost names them; none when they hold it all: a queued station's unit fed from them.
+    /// </summary>
+    public IReadOnlyList<(string Item, int Count)> InputsLack(int id, IReadOnlyList<(string Item, int Count)> cost)
+    {
+        var slots = Crate(id);
+        int inputs = Math.Min(InputsOf(id), slots.Count);
+        var lack = new List<(string Item, int Count)>();
+        var asked = new List<(string Item, int Count)>();
+        foreach (var (item, need) in Stacks.Entries(cost))
+        {
+            int have = 0;
+            for (int i = 0; i < inputs; i++)
+                if (slots[i] is { } s && s.Item == item) have += s.Count;
+            // An item named twice is wanted twice: what an earlier naming asks for is not there for this one.
+            foreach (var (named, n) in asked)
+                if (named == item) have -= n;
+            asked.Add((item, need));
+            if (have < need) lack.Add((item, need - Math.Max(0, have)));
+        }
+        return lack;
+    }
 
     /// <summary>The stacks on the floor, in id order; live and read-only.</summary>
     public IReadOnlyList<FloorStack> Floor => State.Floor;
@@ -315,6 +341,18 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         if (Stacks.IsNothing(cost)) return;
         var slots = Outputs(id, cost) ?? throw new InvalidOperationException("items.output: no room; check OutputFull first");
         Stacks.SetCrate(State, id, slots);
+    }
+
+    /// <summary>
+    /// Takes <paramref name="cost"/> from machine <paramref name="id"/>'s inputs, each item from its first slot first: a
+    /// unit fed from them begun. In creative mode too, as a smelt takes its item. The caller checks <see cref="InputsLack"/> first.
+    /// </summary>
+    public void TakeInputs(int id, IReadOnlyList<(string Item, int Count)> cost)
+    {
+        if (Stacks.IsNothing(cost)) return;
+        var left = Stacks.Taken(Crate(id), cost, InputsOf(id), firstFirst: true)
+            ?? throw new InvalidOperationException("items.takeInputs: not there; check InputsLack first");
+        Stacks.SetCrate(State, id, left);
     }
 
     /// <summary>Gives <paramref name="peer"/> as much of <paramref name="cost"/> as fits; the rest falls on <paramref name="cell"/>, as if <paramref name="peer"/> dropped it.</summary>
@@ -489,6 +527,9 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     private bool IsCrate(int id) => HolderOf(id) != null;
+
+    /// <summary>How many of machine <paramref name="id"/>'s first slots take items in: all of a crate's, none of a machine holding none.</summary>
+    private int InputsOf(int id) => HolderOf(id) is { } spec ? spec.Inputs ?? spec.Slots ?? 0 : 0;
 
     /// <summary>Machine <paramref name="id"/>'s slots with <paramref name="cost"/> placed in its outputs, or null when it does not fit or holds no items.</summary>
     private Stack?[]? Outputs(int id, IReadOnlyList<(string Item, int Count)> cost)

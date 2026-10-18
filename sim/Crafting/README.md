@@ -3,7 +3,8 @@
 Stations ([0057](../../docs/decisions/0057-stations-one-model-for-every-crafting-machine.md)): every
 crafting machine on one model. A **queued** station (the lifepod's Fabricator, the Former, the circuit
 assembler) makes crafts
-from a queue shared by the crew, paid when queued, one unit at a time into its outputs
+from a queue shared by the crew, one unit at a time into its outputs, each entry paid when queued or, at the Former
+and the assembler, fed from their input slots a unit at a time
 ([0028](../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md)); a **fed** station (the
 furnace, the electric smelter) smelts what its input holds into that item's yields, where it is hot
 enough, and a grow capsule grows a seed into biomass the same way: each fed station has a process, "smelt" or
@@ -11,16 +12,17 @@ enough, and a grow capsule grows a seed into biomass the same way: each fed stat
 rather than part of `Items`: it asks `Research` what is known, and research depends on items.
 
 - **Depends on:** `Grid` (`IGridQueries`: `Machines`, `MachineById`: which machines are stations),
-  `Items` (`IItemsQueries`: `Crate`, `CanSmelt`, `ShortOf`, `FullFor`, `OutputFull`; `IItemsOps`: `Take`,
-  `Give`, `Output`, `Smelt`), `Research` (`IResearchQueries.Knows`), `Power` (`IPowerQueries.Satisfaction`,
+  `Items` (`IItemsQueries`: `Crate`, `CanSmelt`, `ShortOf`, `FullFor`, `OutputFull`, `InputsLack`; `IItemsOps`:
+  `Take`, `Give`, `Output`, `Smelt`, `TakeInputs`), `Research` (`IResearchQueries.Knows`), `Power` (`IPowerQueries.Satisfaction`,
   a powered station's share; `IPowerOps.Rest`, an idle one draws nothing); the world's `Rng`, for a crop's seeds.
 - **Depended on by:** `Building` (`ICraftingQueries.Queue`: a station with crafts queued is not taken
   apart), `Furnace` (`ICraftingQueries.CanSmelt`, `TooCold`, `WorkOf`, `Progress`: what lights a furnace's fire
   and what its panel shows; `ICraftingOps.Heat`: a furnace's fire burns this tick).
 - **State** (`CraftingState`, members internal): `Queues` — each queued station's ever crafted at, in
   machine id order: `Machine`, `Next` (the id the next entry gets), `Progress` (work on the first entry's
-  unit, in thousandths of a tick at full speed) and `Entries`, each an `Entry(Id, Recipe, Count, By)` in the
-  order queued, `Count` the units left, the one at work included, `By` the peer that queued it. A queue
+  unit, in thousandths of a tick at full speed) and `Entries`, each an `Entry(Id, Recipe, Count, By, FromInputs,
+  Endless)` in the order queued, `Count` the units left, the one at work included, `By` the peer that queued it,
+  `FromInputs` whether it is fed from the inputs, `Endless` whether it repeats; the last two saved only when set. A queue
   that empties is kept, so its ids keep counting. `Smelts` — each fed station part-way through what its
   input holds, `Smelt(Machine, Item, Progress)` in machine id order, its work in thousandths of a tick.
   Both saved. Derived: `Heated`, the fed stations whose fire burns this tick, told by `Furnace` in the
@@ -54,24 +56,40 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
     costs a frame, a rotor, a glass, 2 wire and a circuit, salvaged, so it opens once those five are analysed.
     Idle, it rests as the Former does. The pod and the Former make neither; the pod's list stops growing
     (0057).
-  - `Craft(Machine, Recipe, Count)` takes the cost of all `Count` units from the sender at once (nothing in
-    creative mode) and adds an entry, by the sender, at the end of that station's queue, with the queue's
-    next id. Refused with `crafting.noStation` (no station by that id), `crafting.unknown` (no craft makes
-    it, or it is not known), `crafting.notHere` (not in this station's rows, or the station is fed),
-    `crafting.full` (the queue holds the station's `QueueMost` entries, whoever queued them) or
-    `items.notEnough`; refused whole, nothing is queued.
+  - **Inputs** (0057): the Former has 2 input slots and the assembler 3, before their 3 outputs: as many as the
+    most distinct items any of their crafts needs (a rotor's gear and wire; a solar cell's silicon, glass and wire,
+    `ContentTests`). The pod has none, paid by hand by design. Items go in by hand as into any machine with inputs
+    (`Items`: a move naming no slot into the first; the outputs only taken from).
+  - `Craft(Machine, Recipe, Count, FromInputs)`, **paid** (the default), takes the cost of all `Count` units from the
+    sender at once (nothing in creative mode); **fed from the inputs** it takes nothing and is never refused as
+    unpaid. Either adds an entry, by the sender, at the end of that station's queue, with the queue's next id.
+    Refused with `crafting.noStation` (no station by that id), `crafting.unknown` (no craft makes it, or it is not
+    known), `crafting.notHere` (not in this station's rows, or the station is fed), `crafting.full` (the queue
+    holds the station's `QueueMost` entries, whoever queued them), `items.notEnough` (paid) or `crafting.noInputs`
+    (fed from the inputs at the pod); refused whole, nothing is queued.
   - `Cancel(Machine, Entry)` takes the entry of that id off the station's queue, whoever queued it, and
-    gives the sender the cost of its units left, the one at work included, as content prices them now.
-    Refused with `crafting.noStation`, `crafting.notHere` (a fed station has no queue),
-    `crafting.noEntry` (no such entry: never queued, or finished) or `items.full` (the refund does not
-    fit). The first entry cancelled, the next starts from nothing.
+    gives the sender what was paid for it and not made, as content prices it now: a paid one's units left, the one
+    at work included; one fed from the inputs, its unit begun (the first entry with progress above 0), else
+    nothing; what its inputs hold stays there. Refused with `crafting.noStation`, `crafting.notHere` (a fed station
+    has no queue), `crafting.noEntry` (no such entry: never queued, or finished) or `items.full` (the refund does
+    not fit). The first entry cancelled, the next starts from nothing.
+  - `SetEndless(Machine, Entry, On)` makes an entry fed from the inputs **endless** (∞), or not: a unit made leaves
+    its count as it is, so it repeats while its inputs last and waits when they run out; a cancel takes it off.
+    Set rather than toggled, so a click sent twice before its tick sets it once. Refused with
+    `crafting.noStation`, `crafting.notHere`, `crafting.noEntry` or `crafting.paid` (a paid entry: what it makes
+    is paid for).
   - Each tick the first entry adds its work, at most its craft's; at its work one unit goes into the
     station's outputs (`IItemsOps.Output`: its slots past its inputs, all three of the pod's) and the next
     starts. With no room there the unit waits, its progress at its work, until a slot is taken from. The
     queue runs whoever is near.
-  - **Idle** — nothing queued, or a unit done waiting for room — a station that draws power is told to
-    rest (`IPowerOps.Rest`, as research rests an analyzer), so it draws nothing from the next tick; told to
-    work again on the tick it has work, it works at once at its network's share.
+  - **A unit fed from the inputs** takes its cost from them (`IItemsOps.TakeInputs`), each item from the first
+    input slot first, on its first tick with work above 0, so a station without power takes nothing in; creative
+    mode does not make it free, as it does not a smelt. While its inputs lack the cost (`IItemsQueries.InputsLack`)
+    the entry **waits** at progress 0, and the whole queue waits behind it, a paid entry too: first in, first out,
+    no skipping; cancelling it is the way out. `Lacks(machine)` says what it waits for.
+  - **Idle** — nothing queued, a unit done waiting for room, or a first entry waiting for its inputs — a station
+    that draws power is told to rest (`IPowerOps.Rest`, as research rests an analyzer), so it draws nothing from
+    the next tick; told to work again on the tick it has work, it works at once at its network's share.
 - **A fed station:** its input slot is its queue. Each tick, work on another item than its input holds,
   or none, is dropped; then, if its input holds an item with `Yields` of the station's `Process`, whose
   `Heat` is at most the station's and whose yields fit its outputs (`IItemsQueries.CanSmelt`), it adds its
@@ -84,7 +102,8 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
     furnace, at heat 2; an input and three outputs, no fuel. It costs a frame, 2 coils, 4 plates and a
     circuit, so it opens once those four are analysed. Rock takes 4 s there at full power; silicon, which
     needs heat 2, smelts into glass in 3 s, there only. Like a queued station that draws, it rests while it
-    has nothing it can smelt or no room for what it makes, drawing nothing from the next tick.
+    has nothing it can smelt or no room for what it makes, drawing nothing from the next tick; told so on the tick
+    its last item smelts, as its empty input used to say it.
   - **The grow capsule** is the third fed station, of process "grow" (0060): 2×3, it draws 2 and works at speed
     1000, heat 1; an input and two outputs. It costs a frame, 2 glass, 4 soil, a circuit and 2 wire, so it opens
     once those five are analysed. A seed grows in 9600 ticks, eight minutes, at a full share, slower short of
@@ -112,23 +131,26 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
   `WorkOf(machine)` — the work one of a fed station's input takes there, in thousandths of a tick, null for
   nothing of its process: what its bar and a capsule's plant are measured against.
   On the module only, for the client: `Works(machine)` — whether a station works now with a share of its
-  energy, a queued one on a unit not done, a fed one on what it can smelt: what its picture's motion, its
-  screen and its bolt show. A furnace's fire reaches crafting only within a tick, so between ticks a
+  energy, a queued one on a unit not done and not waiting for its inputs, a fed one on what it can smelt: what its
+  picture's motion, its screen and its bolt show; `Lacks(machine)` — what a queued station's inputs lack for its
+  first entry's next unit while that entry, fed from them, waits: what dims it in the queue and its tip names. A furnace's fire reaches crafting only within a tick, so between ticks a
   furnace reads as not working here; its fire is the furnace module's to show.
 - **Operations** (`ICraftingOps`): `Heat(machine)` — that fed station's fire burns this tick.
-- **Commands:** `Craft(Machine, Recipe, Count)`, `Cancel(Machine, Entry)`.
+- **Commands:** `Craft(Machine, Recipe, Count, FromInputs)`, `Cancel(Machine, Entry)`, `SetEndless(Machine, Entry, On)`.
 - **Fuzz:** mostly at the map's stations, queued and fed alike (a fed one, the furnace, the smelter or the grow
-  capsule, refuses both as not here), now and then at another machine or an id that is none (no station); crafts of every recipe and of an item
-  no craft makes, one to nine units, refused as unknown, not here, unpaid or full, paid mostly in creative
-  mode, which the items fuzz switches on now and then; cancels of the station's entries, of finished ids
-  and of ids never given.
+  capsule, refuses them all as not here), now and then at another machine or an id that is none (no station);
+  crafts of every recipe and of an item no craft makes, one to nine units, paid or fed from the inputs, refused
+  as unknown, not here, unpaid, full or, at the pod, with no inputs, paid mostly in creative mode, which the items
+  fuzz switches on now and then; cancels and endless switches of the station's entries (a paid one refusing the
+  switch), of finished ids and of ids never given.
 
 ## Invariants
 
 - A queue never holds more than its station's `QueueMost` entries; its first entry's progress stays
   below its work but while its unit waits for room; ids within a queue only grow.
-- Items are conserved across both feeds and both processes: what a craft took comes back as its units in the
-  outputs or a cancel's refund, whoever cancels, a smelt turns one item into its yields and nothing else, and a
+- Items are conserved across both feeds, both kinds of entry and both processes: what a craft took, paid when
+  queued or a unit at a time from the inputs, endless or not, comes back as its units in the outputs or a cancel's
+  refund, whoever cancels, a smelt turns one item into its yields and nothing else, and a
   crop turns a seed into its yields and none, one or two seeds (`CraftingTests`, `StationsTests`, counting every
   item by the salvage it is made of, seeds apart).
 - Every item is reachable from the wreck: salvage, or made at a reachable station from reachable items
@@ -152,3 +174,9 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
 - A seed in a furnace, or rock in a capsule, is taken in and does nothing: no refusal, no mark; the player moves
   it. Only two processes yet, each item of one.
 - A crop is not grown under the stars without power: the capsule is powered only for now (the user's decision).
+- First in, first out: a first entry waiting for its inputs holds up a paid one behind it. No skip rule; the player
+  cancels it (the user's decision). An endless one at the head holds up the queue for good, likewise.
+- What a cancelled entry fed from the inputs left in them stays there, crowding the next entry's items if they
+  differ: the player takes it out by hand.
+- The pod takes no inputs: a craft from them there is refused (`crafting.noInputs`) rather than left waiting.
+- No requests yet: the inputs fill by hand until drones come (logistics, slice 2).
