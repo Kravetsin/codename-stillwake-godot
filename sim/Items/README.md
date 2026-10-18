@@ -96,7 +96,7 @@ mode, the world setting in which nothing is ever taken
 - **Picking up** gives as much of a stack as fits into the picker's own slots and leaves the rest.
   The peer that dropped a stack may not take it back for `Floor.OwnPickupDelay` ticks; anyone else
   may at once.
-- **Bodies** ([0060](../../docs/decisions/0060-death-leaves-a-body.md)). A hero that dies (`Crew` passes it out)
+- **Bodies** ([0061](../../docs/decisions/0061-death-leaves-a-body.md)). A hero that dies (`Crew` passes it out)
   leaves its body: `LeaveBody(peer, cell)` lets every stack in its own slots whose item is not `Gear` (the tools,
   the jetpack, the battery) fall on `cell`, still, in slot order, by `FloorStack.Nobody`, each tagged with one
   `Body(Peer, Died)`, `Died` the module's tick. Gear and everything worn stays (equipment slots hold only worn

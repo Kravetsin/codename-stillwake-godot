@@ -22,7 +22,7 @@ public sealed record Target(int? Slot = null, int? Crate = null)
 }
 
 /// <summary>
-/// What a hero left where it died (0060): the peer it was and the items module's tick it died on. Every floor
+/// What a hero left where it died (0061): the peer it was and the items module's tick it died on. Every floor
 /// stack it left carries one, alike, so the stacks of one death are one body and stacks of two never merge.
 /// </summary>
 public sealed record Body(int Peer, int Died);
@@ -49,7 +49,7 @@ public sealed class FloorStack
     /// <summary>The peer that dropped it (or <see cref="Nobody"/>), and on which of the module's ticks: its own may not take it back at once.</summary>
     [JsonInclude] public int By { get; internal set; }
     [JsonInclude] public int At { get; internal set; }
-    /// <summary>Whose body it is part of, when a hero left it where it died (0060); none for anything else, and unwritten in a save.</summary>
+    /// <summary>Whose body it is part of, when a hero left it where it died (0061); none for anything else, and unwritten in a save.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public Body? Body { get; internal set; }
 
     /// <summary>What it holds as a slot would hold it, every value of its own with it.</summary>

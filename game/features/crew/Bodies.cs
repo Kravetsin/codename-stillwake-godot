@@ -5,7 +5,7 @@ using Stillwake.Sim.Items;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// One body on the floor (0060): the stacks one death left, as the sim tags them, by the peer that died and the
+/// One body on the floor (0061): the stacks one death left, as the sim tags them, by the peer that died and the
 /// items' tick it died on, and where they lie together: the middle of their bottoms, in thousandths of a cell.
 /// </summary>
 public readonly record struct Pile(int Peer, int Died, double X, double Y);

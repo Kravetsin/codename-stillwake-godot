@@ -36,8 +36,8 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `SuitColours.cs`   | the suit colours, a row in the game menu's settings: the one worn ringed, those taken dimmed, the rest a click away (`SuitColours.tsx`) | yes |
 | `Markers.cs`       | the markers' list (`Marker`: target, colour, icon) and their geometry: on the screen or off, clamped to its edge, slid out of the HUD, turned toward the target, faded in | no |
 | `MarkerLayer.cs`   | the arrows at the screen's edge to home, to this player's body and to friends, drawn from `Markers`, the distance in the one tooltip | yes |
-| `Bodies.cs`        | `Pile`, `Bodies.Of` and `Latest`: the bodies on the floor read from its stacks' tags, this player's newest (0060) | no |
-| `BodyView.cs`      | each body drawn on its stacks: the figure lying limp in its suit, the beacon blinking and lighting round it (0060) | yes |
+| `Bodies.cs`        | `Pile`, `Bodies.Of` and `Latest`: the bodies on the floor read from its stacks' tags, this player's newest (0061) | no |
+| `BodyView.cs`      | each body drawn on its stacks: the figure lying limp in its suit, the beacon blinking and lighting round it (0061) | yes |
 
 The files without Godot are compiled a second time into `game.tests/` (linked, as `sim/Tests` links
 `game/Content/Light.cs`), where their TypeScript tests are ported one for one: `hero.test.ts`,
@@ -144,7 +144,7 @@ too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests` and `Bodie
 - `HeroView.Frame` reads the sim's `crew`: the hero is made at `Spawn`, the lifepod's hatch, and
   again there when its `Out` runs down; passed out it takes no orders, its E does nothing, and it falls and lies (`PoseOf`).
   Passing out it is moved to the cell the sim has it in, still, when that cell is on the grid: it dies there, and
-  lies where its body falls (0060).
+  lies where its body falls (0061).
 - Every frame, after the steps, it sends `Report.Of`'s `Enter` when the sim has no hero for this peer,
   or holds it in another room or on the other side of the air's edge than its body: the same frames
   `index.ts` sends `reportOf`'s. Besides, as the hero's report (0050), it sends one whenever the
@@ -182,7 +182,7 @@ edge while it is off the screen (`MarkerLayer`, a layer of its own made by `Main
   with the pod's silhouette (`art/machine_lifepod.png` drawn white, mipmapped). The sim keeps one spawn,
   the first pod's, so with several pods home is the one the hero is made at. Then each **friend** heard
   lately (`HeroView.Others`, now by peer) at its body's middle, in its suit's colour with a dot. Between them
-  **this player's body**, the newest it left (`Bodies.Latest`, 0060), half a cell above where its stacks lie, in
+  **this player's body**, the newest it left (`Bodies.Latest`, 0061), half a cell above where its stacks lie, in
   its suit's colour with a figure lying; none to older bodies, none to friends' bodies, none once it is picked
   up or gone.
 - **The look:** a dark badge ringed in its colour holding its icon, a notched chevron outside the ring toward
@@ -209,7 +209,7 @@ Deliberately not handled:
 - The energy bar is not kept out of: it lies farther in from the top and the left than a marker ever goes.
 - Friends have no names in the tip: the game has none to show yet.
 
-## Death and the body (0060)
+## Death and the body (0061)
 
 - Passing out is death: the sim leaves what the hero carried but its gear where it fell (`Items`' bodies). The
   hero lies limp in its suit at the sim's cell while out (above), its inventory closes and lets go of the stack

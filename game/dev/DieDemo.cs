@@ -7,7 +7,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --die</c>: a quick death to see the body it leaves (0060). The hero comes in out of the pod's reach in the
+/// <c>-- --die</c>: a quick death to see the body it leaves (0061). The hero comes in out of the pod's reach in the
 /// wreck's torn room, open to space, its suit all but empty, carrying resources and its gear; it passes out two
 /// breaths later and wakes at the pod with its gear, its body lying where it fell. With <c>--world --edge=N</c>
 /// it dies out past the field instead, far enough that the marker points at the body.

@@ -148,7 +148,7 @@ as everything E works is, in the crew feature (`AimTests`).
   broken wreck's loot floats off together; only aboard do they bob.
 - A stack in a cell the hero's body overlaps is picked up unless the sim would refuse it or its
   pick-up is in flight, and vanishes from the floor at once. Passed out the hero picks nothing up, so it never
-  takes back the body it has just left (0060); passing out also closes the inventory, letting go of the stack in hand.
+  takes back the body it has just left (0061); passing out also closes the inventory, letting go of the stack in hand.
 
 ## Main's hook
 

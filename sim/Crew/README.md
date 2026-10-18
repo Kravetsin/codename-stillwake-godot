@@ -9,7 +9,7 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   room has air and takes it); `Grid` (`IGridQueries.Width`, `Height` and `Zone`: where a cell is, for the pod's reach and the field); `Items`
   (`IItemsQueries.Equipped` and `ShortOf`, whether a hero wears a jetpack and carries a canister;
   `IItemsOps.Take`, the canister breathed; `IItemsOps.StopRunning`, an electric tool stopped as its hero passes out
-  or leaves, 0055; `IItemsOps.LeaveBody`, what a hero carried left where it died, 0060).
+  or leaves, 0055; `IItemsOps.LeaveBody`, what a hero carried left where it died, 0061).
 - **State** (`CrewState`, members internal): `Spawn` — the hatch of the map's first lifepod
   (`Content.Crew.PodHatch` from its top-left), else the map's first `S`, or cell 0 on a map with
   neither; `Pod` — that lifepod's top-left cell, null without one (it is `Fixed`: it never moves); `Clock` — ticks run, for the breath beat; `Heroes` — by peer id, in id order: cell,
@@ -64,7 +64,7 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   an absolute amount, so a bigger suit later still gets a canister's worth.
 - A suit at zero passes the hero out for `Crew.PassOut` ticks; then it is made again at the spawn,
   the pod's hatch, with a full suit.
-- **Passing out is death** ([0060](../../docs/decisions/0060-death-leaves-a-body.md)): the tick it passes out, crew
+- **Passing out is death** ([0061](../../docs/decisions/0061-death-leaves-a-body.md)): the tick it passes out, crew
   calls `IItemsOps.LeaveBody(peer, cell)` with the hero's cell, the last one its client reported, or the spawn when
   that cell is off the grid (a hero `Enter`ed there, which nothing validates). `Items` leaves there everything the
   hero carried but its gear, a body for anyone to pick up; the hero wakes with its gear. A future cause of death

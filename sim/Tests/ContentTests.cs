@@ -486,7 +486,7 @@ public class ContentTests
     [Fact]
     public void EverythingWornElectricOrAWeaponIsGearKeptInDeathAndBodiesLastAWhileButNotForever()
     {
-        // The harpoon is named by hand: it is no weapon, worn nor electric, and still a tool kept (0060).
+        // The harpoon is named by hand: it is no weapon, worn nor electric, and still a tool kept (0061).
         Assert.True(Content.Items.Get("harpoon").Gear);
         Assert.All(
             Content.Items.All.Where(i => i.Equip != null || i.Draw != null || Weapons.Of(i.Id) != null),

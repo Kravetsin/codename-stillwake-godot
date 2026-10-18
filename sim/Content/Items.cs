@@ -30,7 +30,7 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="Gear">
 /// What a hero keeps when it dies: its tools, what it wears and the batteries. Everything else it carries is
-/// left where it died, a body for anyone to pick up (0060).
+/// left where it died, a body for anyone to pick up (0061).
 /// </param>
 public sealed record ItemSpec(
     string Id,
@@ -178,7 +178,7 @@ public static class Floor
 
     /// <summary>
     /// How long what a hero left where it died lies before it is gone, wherever it is: ten minutes at 20
-    /// ticks a second (0060). Long enough to fly back for it; short enough that bodies never pile up.
+    /// ticks a second (0061). Long enough to fly back for it; short enough that bodies never pile up.
     /// </summary>
     public const int BodyLasts = 12_000;
 }

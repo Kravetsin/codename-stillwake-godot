@@ -6,7 +6,7 @@ using Enter = Stillwake.Sim.Crew.Enter;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The bodies on the floor as the client reads them (0060): each death's stacks together, and this player's newest.</summary>
+/// <summary>The bodies on the floor as the client reads them (0061): each death's stacks together, and this player's newest.</summary>
 public class BodiesTests
 {
     /// <summary>An airless sealed room, the spawn in it: a hero brought in dies there with what it carries.</summary>

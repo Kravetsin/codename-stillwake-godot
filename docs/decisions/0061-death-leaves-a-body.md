@@ -1,4 +1,4 @@
-# 0060 — Death leaves a body
+# 0061 — Death leaves a body
 
 - Status: accepted
 - Date: 2026-10-18

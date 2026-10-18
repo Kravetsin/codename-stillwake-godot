@@ -9,7 +9,7 @@ using FloorSpec = Stillwake.Content.Floor;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// What each hero left where it died (0060), drawn on its stacks (<see cref="Bodies"/>): its figure lying limp in
+/// What each hero left where it died (0061), drawn on its stacks (<see cref="Bodies"/>): its figure lying limp in
 /// its suit, on its back aboard and afloat alike, and a beacon on its chest blinking in the suit's
 /// colour, lighting what is round it (a <see cref="Glow"/>: glowing things give light). The hero's own sprites
 /// stand in for a picture of its own till one is picked. The newest body of a hero still passed out is not drawn:

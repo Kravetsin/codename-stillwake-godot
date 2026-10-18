@@ -55,7 +55,7 @@ public partial class HeroView : Node2D
     private readonly RemoteHeroes _remote = new();
     private readonly HeroSender _sender;
     private readonly Node2D _others = new() { ZIndex = Layers.OtherHeroes };
-    /// <summary>What heroes left where they died, lying on their stacks with a beacon blinking (0060).</summary>
+    /// <summary>What heroes left where they died, lying on their stacks with a beacon blinking (0061).</summary>
     private readonly BodyView _bodies = new();
     /// <summary>
     /// Another hero as drawn: its figure, its tether while it has one, what its hands were busy with last
@@ -274,7 +274,7 @@ public partial class HeroView : Node2D
             _previous = _current = Hero.At(ship, !_placed && Start != null ? Start(m) : m.Crew.Spawn);
             _placed = true;
         }
-        // Passing out it dies where the sim has it (0060), where its body falls: it lies there, not a report behind.
+        // Passing out it dies where the sim has it (0061), where its body falls: it lies there, not a report behind.
         else if (!_wasOut && passedOut && known!.Cell >= 0 && known.Cell < grid.Width * grid.Height)
             _previous = _current = Hero.At(ship, known.Cell);
         _wasOut = passedOut;

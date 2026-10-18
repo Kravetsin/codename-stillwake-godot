@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Death leaves a body (0060): what a hero carried, but its gear, lies where its suit ran dry.</summary>
+/// <summary>Death leaves a body (0061): what a hero carried, but its gear, lies where its suit ran dry.</summary>
 public class DeathTests
 {
     /// <summary>Space on the left, an airless sealed room on the right with the spawn in it; no zone, so no cold on the grid.</summary>

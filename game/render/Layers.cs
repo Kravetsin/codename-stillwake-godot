@@ -26,7 +26,7 @@ public static class Layers
     /// <summary>Grommets, pegs and plugs on the wall's face, then the bolts over machines short of power (power).</summary>
     public const int Fittings = 6, Bolts = 7;
 
-    /// <summary>What a hero left where it died, a limp figure under its stacks (crew, 0060).</summary>
+    /// <summary>What a hero left where it died, a limp figure under its stacks (crew, 0061).</summary>
     public const int Bodies = 8;
 
     /// <summary>Stacks on the floor, under the heroes walking over them (items).</summary>

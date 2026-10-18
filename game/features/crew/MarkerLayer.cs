@@ -12,7 +12,7 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// Arrows at the screen's edge to what this player may want to find again (<see cref="Markers"/>): home, the
 /// lifepod's hatch where a hero is made again, the body this player left last, and each friend in its suit's
-/// colour (0060). A chevron round a small
+/// colour (0061). A chevron round a small
 /// badge, turned toward its target, fading in once the target leaves the screen and gone the moment it is back;
 /// kept out of the HUD's panels, and sized by the slots' size. How far, in cells, only by the pointer.
 /// </summary>

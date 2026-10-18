@@ -85,7 +85,7 @@ A living document: what is decided about the game and what is still open. Techni
   everything else it carried lies where it fell, a body in its suit with a beacon blinking, pointed at from the
   screen's edge. Anyone may pick it up, as any stack; out in space it drifts with the rest and leaves the world
   at its edge, and wherever it is, it is gone ten minutes after the death
-  ([0060](decisions/0060-death-leaves-a-body.md)).
+  ([0061](decisions/0061-death-leaves-a-body.md)).
 - **Dangers:** yes — the game can hurt you. Which ones is open.
 - **Time runs only while the game runs.** Nothing happens offline and there is no offline progress,
   unlike the Factory in Tossit.

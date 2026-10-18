@@ -374,7 +374,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     public void StopRunning(int peer) => State.Running.RemoveAll(r => r.Peer == peer);
 
     /// <summary>
-    /// <paramref name="peer"/>'s hero died in <paramref name="cell"/> (0060): every stack in its own slots that is
+    /// <paramref name="peer"/>'s hero died in <paramref name="cell"/> (0061): every stack in its own slots that is
     /// not <c>Gear</c> falls there, still, in slot order, for anyone to pick up at once, each a part of one
     /// <see cref="Body"/> named by the peer and this tick. Gear and what is worn stay. Nothing in creative mode,
     /// where nothing is ever taken; nothing to leave leaves no body. The caller passes a cell on the grid.
