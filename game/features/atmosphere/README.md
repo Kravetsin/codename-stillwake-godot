@@ -1,7 +1,7 @@
 # atmosphere (client): the ship's air
 
 Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` (`RoomsAir`, `AiredCells`,
-`OxygenIn`), `sim/Rooms` (`RoomOfCells`, `RoomAt`, `RoomById`), `sim/Grid` (`Built`) and `sim/Crew` (`Heroes`).
+`OxygenIn`), `sim/Rooms` (`RoomOfCells`, `RoomAt`, `RoomById`), `sim/Grid` (`Built`, `MachinesOf`) and `sim/Crew` (`Heroes`).
 
 | File         | Holds                                                                                   | Godot |
 | ------------ | --------------------------------------------------------------------------------------- | ----- |
@@ -10,7 +10,8 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
 | `AirField.cs` | the overlay's cells eased toward the sim's, a venting room's flow toward its nearest opening, over what is built | no    |
 | `AirMotes.cs` | motes gliding in all air, swept out of a venting room; a few in the lifepod's reach | no    |
 | `AirLook.cs` | the shader, with O: the rooms' air dithered, grey dots where there is none, the pod's ragged aura | yes   |
-| `AirView.cs` | tank gauges, venting rooms pulsing red and their air streaming out, the motes; with O the air overlay | yes   |
+| `AirView.cs` | venting rooms pulsing red and their air streaming out, the motes; with O the air overlay | yes   |
+| `TankLooks.cs` | each tank's sight glass filled to its oxygen, and its light | yes   |
 
 - The overlay draws each room's air in an ordered dither, a pixel of the world at a time, drifting like a
   gas and lit at its front; a cell eases in and out over about 220 ms (`AirField.EaseMs`) and cells blend
@@ -32,5 +33,10 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
 - Air streams out of each opening of a room venting while it holds air or its vents still pour some
   in, toward the space beside it (every way through a missing back wall), 24 specks a second an
   opening and 160 a room at most, as `Effect.Air` particles (features/effects).
+- Each tank shows its oxygen up a sight glass in its picture, without a word: `art/tank_fill_{0..5}.png`
+  drawn unlit over `machine_tank.png`, frame 1 to 5 by fifths of `Air.TankCapacity` rounded up
+  (`shared/TankFill.cs`), so any oxygen shows the lowest step and only none shows the glass dark with
+  a red lamp lit. Each frame lights the room a little (a `Glow`): pale blue from the glass, brighter the
+  fuller, red from the lamp when empty. Read every 250 ms. Not animated: a tank changes slowly.
 - The forecast under the pointer counts the heroes awake in the room as breathing its air (`crew`).
 - `explain.test.ts`, `draining.test.ts` and `streams.test.ts` are ported.
