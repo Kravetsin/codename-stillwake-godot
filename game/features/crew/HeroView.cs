@@ -119,8 +119,13 @@ public partial class HeroView : Node2D
     private readonly Heard2D _strike = Cues.Player2D(S.DrillStrike, S.Suit, voices: 2);
     private StrikeTrain _strikes;
     private readonly Random _strikeSpread = new();
-    /// <summary>The jetpack's thrust, heard through the suit while this hero thrusts, its envelope eased in and out (0047).</summary>
-    private readonly AudioStreamPlayer _thrustLoop = Cues.Player(S.Thrust, S.Suit);
+    /// <summary>The drill's motor, heard at its bit through the suit while it spins: grains, fewer and lower as it spins up or down (0059).</summary>
+    private readonly Heard2D _whir = Cues.Player2D(S.DrillWhir, S.Suit, voices: 3);
+    private StrikeTrain _grains;
+    private MotorSound _drillMotor;
+    private TouchHold _onPiece;
+    /// <summary>The jetpack's thrust, the suit's air rushing out, heard in the helmet while this hero thrusts, its envelope eased in and out (0047, 0059).</summary>
+    private readonly AudioStreamPlayer _thrustLoop = Cues.Player(S.Thrust, S.Helmet);
     private LoopEnvelope _thrustSound;
     private readonly Sprite2D _rod = new() { Centered = false, Visible = false, ZIndex = Layers.Hero };
     /// <summary>Every harpoon's line, over the heroes, unlit as the tethers are.</summary>
@@ -150,8 +155,8 @@ public partial class HeroView : Node2D
     private const int PlumeMost = 6;
     /// <summary>Whether the player asked to breathe a canister, from the inventory, since the last frame.</summary>
     private bool _breathe;
-    // A canister breathed is heard through the suit.
-    private readonly AudioStreamPlayer _breathes = Cues.Player(S.Breathe, S.Suit);
+    // A canister breathed is heard in the helmet, as the suit's own air (0059).
+    private readonly AudioStreamPlayer _breathes = Cues.Player(S.Breathe, S.Helmet);
 
     /// <param name="ui">What the hand holds, the crate open and the piece aimed at, shared with the other features.</param>
     /// <param name="mouse">The pointer and the left button as the world reads them.</param>
@@ -182,7 +187,7 @@ public partial class HeroView : Node2D
         _rod.Offset = -new Vector2((float)RodLook.Eye.X, (float)RodLook.Eye.Y);
         Lit.Set(_rod);
         AddChild(_rod);
-        foreach (var player in new Node[] { _shot, _drum, _ready, _bite, _breathes, _strike, _thrustLoop }) AddChild(player);
+        foreach (var player in new Node[] { _shot, _drum, _ready, _bite, _breathes, _strike, _whir, _thrustLoop }) AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
         _harpoonWorld = new HarpoonWorld(
@@ -417,7 +422,7 @@ public partial class HeroView : Node2D
         _figure.Spinning = runs;
         // Heard while its bit is on a piece the sim would let it hit, whatever the hits' pace.
         bool works = runs && Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), Content.Weapons.Drill.Item).Count > 0;
-        HearDrill(works, elapsedMs);
+        HearDrill(runs, works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
         // Aimed aboard too, though it fires only out in space.
@@ -474,17 +479,30 @@ public partial class HeroView : Node2D
     }
 
     /// <summary>
-    /// The drill's strikes while it <paramref name="works"/> on a piece (0054): <c>Sound.DrillStrikesPerSecond</c>, each its
-    /// own pitch and volume, at its bit as last drawn; silent the moment it stops.
+    /// The drill heard at its bit as last drawn: its motor whenever it <paramref name="runs"/>, spun up and down with its picture
+    /// and loaded while on a piece (0059); and its strikes while it <paramref name="works"/> on a piece (0054),
+    /// <c>Sound.DrillStrikesPerSecond</c>, each its own pitch and volume, held on <c>Sound.DrillTouchHoldS</c> past the bit leaving
+    /// it, so grazing an edge keeps striking; silent the moment the drill stops.
     /// </summary>
-    private void HearDrill(bool works, double elapsedMs)
+    private void HearDrill(bool runs, bool works, double elapsedMs)
     {
-        int due = _strikes.Due(elapsedMs, works, S.DrillStrikesPerSecond);
-        if (!works && _strike.Playing) _strike.Stop();
+        double elapsedS = elapsedMs / 1000;
+        bool onPiece = runs && _onPiece.Step(works, elapsedS, S.DrillTouchHoldS);
+        var at = _figure.Muzzle ?? _figure.GlobalPosition;
+        _drillMotor.Step(runs, onPiece, elapsedS, S.DrillMotor);
+        double speed = _drillMotor.Speed(S.DrillMotor);
+        int grains = _grains.Due(elapsedMs, _drillMotor.Spin > 0, S.DrillWhirGrainsPerSecond * speed);
+        for (int i = 0; i < grains; i++)
+        {
+            var (spread, _) = StrikeTrain.Vary(_strikeSpread, S.DrillWhirPitch, 0);
+            _whir.PlayAt(at, (float)speed * spread, _drillMotor.GainDb(S.DrillMotor));
+        }
+        int due = _strikes.Due(elapsedMs, onPiece, S.DrillStrikesPerSecond);
+        if (!onPiece && _strike.Playing) _strike.Stop();
         for (int i = 0; i < due; i++)
         {
             var (pitch, offsetDb) = StrikeTrain.Vary(_strikeSpread, S.DrillStrikePitch, S.DrillStrikeVolumeDb);
-            _strike.PlayAt(_figure.Muzzle ?? _figure.GlobalPosition, pitch, offsetDb);
+            _strike.PlayAt(at, pitch, offsetDb);
         }
     }
 

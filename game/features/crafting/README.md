@@ -16,6 +16,7 @@ mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 | `FabricatorPanel.cs`  | any queued station's panel under the inventory, in the machine frame: header, bolt and screen; recipes on the left, the shared queue and outputs on the right | yes |
 | `FabricatorScreen.cs` | the panel's small screen: lines running while it works, READY idle, dark with no power | yes   |
 | `StationView.cs`      | over a station's picture: the Former's flywheel, gears and press head moving, the smelter's coils glowing and lighting the room, the assembler's arm dipping and its screen lighting the room green, while it works; a cold-blue mark on a fed station too cold for its input | yes |
+| `StationSounds.cs`    | a station heard at work where it stands (0059): the Former's strokes in step with its head and its motor, the smelter's hum and its melt's pops; told by `StationView` every frame | yes |
 | `PodView.cs`          | over the pod's picture: its screen, its tray, its glass glowing while a hero is made    | yes   |
 | `PodDemo.cs`          | `-- --pod`: the wreck's pod opened and crafting, the axe's and the rotor's cards shown, for recordings | yes |
 
@@ -74,12 +75,14 @@ icon is `art/items/solarCell.png`.
   and the glow fades over a second.
 - **The Former** in the world: its flywheel turns, its gears with it, and its press head beats on the
   die while it works (`CraftingModule.Works`: a unit at work with power), four pictures over its own;
-  idle, waiting full or without power it stands still. No sound of its own yet.
+  idle, waiting full or without power it stands still. Heard where it stands (0059): a press stroke each time its
+  head comes down (the third picture), over its motor spinning up, dipping at each stroke and running down after it
+  stops (`StationSounds`, the sound feature's README).
 - **The electric smelter** in the world: while it works (`Works`: what it can smelt, with power) its
   coils glow behind the grate, three pictures drawn unlit, 160 ms each, and each coil lights the room round
   it in a hot orange (a `Glow`), a little brighter as the heat passes; idle, full or without power they
-  stand dull copper and give no light. Silent: the furnace's crackle is a fire's, and its own sound waits
-  for the user's audition.
+  stand dull copper and give no light. Heard where it stands (0059): its coils' hum, risen and fallen, and its melt
+  popping at random moments while it works.
 - **The circuit assembler** in the world: while it works (`Works`) its arm dips to the board under the glass
   pad by pad and its rotor joint turns, four pictures lit as the machine is, 140 ms each; over them, drawn unlit
   and in step, its screen runs a green trace and a spark shows where the head touches the board, and the screen

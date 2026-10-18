@@ -7,7 +7,7 @@ namespace Stillwake.Game.Features.Sound;
 
 /// <summary>
 /// The hearing (ADR 0033, 0042): a click for every button; floating in space, the World bus's low-pass
-/// falling as it fades out, the Suit bus dulled to a thud, the Helmet bus left clear, and a quiet bed of
+/// falling as it fades out, the Suit bus dulled to a thud and raised, the Helmet bus left clear, and a quiet bed of
 /// music fading in; the title's music while the title is up. Reads whether this player's hero floats ten
 /// times a second and eases every frame.
 /// </summary>
@@ -22,7 +22,7 @@ public partial class SoundView : Node
     private Callable _onPressed;
     private AudioEffectLowPassFilter _worldLowPass = null!, _suitLowPass = null!;
     private AudioEffectLowShelfFilter _suitLows = null!;
-    private int _world;
+    private int _world, _suit;
     private bool _heard;
     private double _sinceRead = ReadS, _muffle;
 
@@ -42,9 +42,9 @@ public partial class SoundView : Node
     {
         _world = AudioServer.GetBusIndex(S.World);
         _worldLowPass = (AudioEffectLowPassFilter)AudioServer.GetBusEffect(_world, 0);
-        int suit = AudioServer.GetBusIndex(S.Suit);
-        _suitLowPass = (AudioEffectLowPassFilter)AudioServer.GetBusEffect(suit, 0);
-        _suitLows = (AudioEffectLowShelfFilter)AudioServer.GetBusEffect(suit, 1);
+        _suit = AudioServer.GetBusIndex(S.Suit);
+        _suitLowPass = (AudioEffectLowPassFilter)AudioServer.GetBusEffect(_suit, 0);
+        _suitLows = (AudioEffectLowShelfFilter)AudioServer.GetBusEffect(_suit, 1);
         // The AudioServer outlives a scene reload: the title must not stay dulled from a world left floating.
         Hear();
         _onPressed = new Callable(this, MethodName.Click);
@@ -82,7 +82,7 @@ public partial class SoundView : Node
         if (!loop.Playing) loop.Play();
     }
 
-    /// <summary>The World and Suit buses as dulled as the hearing is now (<see cref="Hearing.At"/>).</summary>
+    /// <summary>The World and Suit buses as dulled (and the Suit as raised) as the hearing is now (<see cref="Hearing.At"/>).</summary>
     private void Hear()
     {
         var mix = Hearing.At(_muffle);
@@ -90,6 +90,7 @@ public partial class SoundView : Node
         AudioServer.SetBusVolumeDb(_world, Mathf.LinearToDb((float)mix.WorldGain));
         _suitLowPass.CutoffHz = (float)mix.SuitHz;
         _suitLows.Gain = (float)mix.SuitLows;
+        AudioServer.SetBusVolumeDb(_suit, (float)mix.SuitDb);
     }
 
     private void Scan(Node node)
