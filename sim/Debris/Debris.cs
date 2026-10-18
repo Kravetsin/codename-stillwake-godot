@@ -69,6 +69,17 @@ public sealed partial class DebrisModule : Module<DebrisState>
     /// <summary>The pieces out, in spawn order; live and read-only.</summary>
     public IReadOnlyList<Piece> Pieces => State.Pieces;
 
+    /// <summary>
+    /// What catching piece <paramref name="id"/> put into its catcher's inventory, by item, or null when no catch of it
+    /// is among the last <see cref="CaughtKept"/>: for the client to show its own catch over its hero (none if all fell).
+    /// </summary>
+    public IReadOnlyList<(string Item, int Count)>? CaughtFrom(int id)
+    {
+        for (int i = _caught.Count - 1; i >= 0; i--)
+            if (_caught[i].Piece == id) return _caught[i].Gave;
+        return null;
+    }
+
     /// <summary>The first piece, in spawn order, whose middle is in <paramref name="cell"/>.</summary>
     public Piece? PieceAt(int cell) => State.Pieces.Find(p => CellOf(p.X, p.Y, _grid.Width) == cell);
 
@@ -155,7 +166,9 @@ public sealed partial class DebrisModule : Module<DebrisState>
         var piece = State.Pieces[at];
         State.Pieces.RemoveAt(at);
         var hero = _crew.HeroOf(c.From) ?? throw new InvalidOperationException("debris.grab: applied with no hero");
-        _items.GiveOrDrop(c.From, LootOf(piece.Item, Random), hero.Cell);
+        var gave = _items.GiveOrDrop(c.From, LootOf(piece.Item, Random), hero.Cell);
+        if (_caught.Count == CaughtKept) _caught.RemoveAt(0);
+        _caught.Add((piece.Id, gave));
     }
 
     private void Apply(Hit c)

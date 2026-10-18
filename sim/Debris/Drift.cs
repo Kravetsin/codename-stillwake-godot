@@ -16,8 +16,20 @@ public sealed partial class DebrisModule
     /// <summary>Where each hero on the grid is this tick, by its reported cell, in id order; refilled every tick.</summary>
     private readonly List<(int X, int Y)> _heroes = [];
 
-    /// <summary>The hull is found again after a create and a load: the grid's version starts over then.</summary>
-    public override void Rebuild() => _hullAt = int.MinValue;
+    /// <summary>How many of the last catches <see cref="_caught"/> keeps: far more than one frame of four heroes catches.</summary>
+    public const int CaughtKept = 32;
+    /// <summary>
+    /// The last catches, oldest first: each piece and what it put into the inventory. Never saved nor hashed, read by
+    /// nothing in the sim; only the client asks it (<see cref="CaughtFrom"/>), for its own grabs just run.
+    /// </summary>
+    private readonly List<(int Piece, IReadOnlyList<(string Item, int Count)> Gave)> _caught = [];
+
+    /// <summary>The hull is found again after a create and a load: the grid's version starts over then. The catches before are forgotten.</summary>
+    public override void Rebuild()
+    {
+        _hullAt = int.MinValue;
+        _caught.Clear();
+    }
 
     internal (int Left, int Right, int Top, int Bottom)? Hull()
     {

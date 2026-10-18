@@ -24,7 +24,9 @@ catching them, reeling them in by harpoon, and breaking wreckage and asteroids w
   `Reel` a harpoon pulling it (a `Reeling { By, ToX, ToY, Left }`: the peer, the point, the ticks still to go) or null,
   `SeenAt` the clock it was last in a hero's keep box (0 for the stream's); `NextId`,
   never reused; `Clock`, ticks run; `Beats`, each zone's `Beat { Zone, Next }`, the clock its next piece is due at;
-  `AtStart`, the pieces the first tick puts out. All saved. **Derived:** the hull's bounds, followed by the
+  `AtStart`, the pieces the first tick puts out. All saved. **Not saved, never hashed:** the last 32 catches, each
+  piece and what it gave, written by `Grab` and read by nothing in the sim, only by the client (`CaughtFrom`); forgotten
+  on a create or a load. **Derived:** the hull's bounds, followed by the
   grid's log (0051): grown over a structure come, and only when one on its edge goes, its edge lines looked
   at again (never saved; scanned whole after a create, a load, or when the log no longer reaches back).
 - **Files:** `Debris.cs` — the module, `Grab`, `Hit`, `Reel` and their rules; `Drift.cs` — the system:
@@ -145,7 +147,9 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - **Queries** (public members; no other module reads debris, so there is no query interface):
   `Pieces` — live and read-only; `PieceAt(cell)` — the first piece whose middle is in the cell;
   `GrabProblem(peer, piece)`, `HitProblem(peer, piece, tool)` and `ReelProblem(peer, piece)` — the refusal
-  that peer's `Grab`, `Hit` or `Reel` would get, for the client.
+  that peer's `Grab`, `Hit` or `Reel` would get, for the client; `CaughtFrom(piece)` — what catching that piece put
+  into its catcher's inventory (`IItemsOps.GiveOrDrop`'s answer, what floated left out), or null for no catch among the
+  last `CaughtKept` (32): the client's popups for its own catches (`features/items`, `OwnCatches`).
 - **Static:** `CellOf(x, y, width)` — the cell under a piece's middle; `LootOf(item, rng)` — what
   catching a piece of that item gives, merged by item in the order its entries first give it.
 - **Commands:** `Grab(Piece)`, `Hit(Piece, Tool)`, `Reel(Piece, ToX, ToY)`.
@@ -192,6 +196,8 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   passing cloud; thicker bands thin the field everywhere else (`DebrisDensityTests` bounds it).
 - Two grabs of one piece on one tick: the host's order decides, and the second is `debris.gone`; so
   for hits after the one that breaks a wreck.
+- What a catch gave is kept for the client outside the saved state, as an event would be: a grab that runs as a
+  world is loaded or a guest resynced shows no popup. Saving it would put a client's concern in every save and hash.
 - A wreck half over the hull is judged by its middle cell, as a small piece is: with its middle over
   the ship it cannot be hit, though its end sticks out into space. Accepted: it drifts on and out.
 - The weapon in hand, its pace (`Weapon.Pace`) and reach (its picture, 0040): the client's, among friends. A hit
