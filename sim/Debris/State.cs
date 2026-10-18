@@ -55,6 +55,21 @@ public sealed class Beat
 }
 
 /// <summary>
+/// A kind of debris some hero of the world has caught or broken (0066), and what has come out of it so far:
+/// the Handbook's record, one for the whole world. Read by others, changed by debris alone.
+/// </summary>
+public sealed class FoundKind
+{
+    /// <summary>The kind, by its item: a piece's <see cref="Piece.Item"/>.</summary>
+    [JsonInclude] public string Kind { get; internal set; } = "";
+    /// <summary>The items seen come out of it, each once, in the order first seen; the kind itself for a piece caught as itself.</summary>
+    [JsonInclude, JsonPropertyName("items")] internal List<string> Seen { get; set; } = [];
+
+    /// <summary>The items seen come out of it, each once, in the order first seen; live and read-only.</summary>
+    [JsonIgnore] public IReadOnlyList<string> Items => Seen;
+}
+
+/// <summary>
 /// The debris slice. Public so it can be named, its members internal: others read
 /// <see cref="DebrisModule.Pieces"/>.
 /// </summary>
@@ -70,4 +85,6 @@ public sealed class DebrisState
     [JsonInclude] internal List<Beat> Beats { get; set; } = [];
     /// <summary>Pieces put out at once on the first tick, the map's <c>Layout.DebrisAtStart</c>.</summary>
     [JsonInclude] internal int AtStart { get; set; }
+    /// <summary>Every kind found (0066), in the order first found: appended, never sorted nor taken away.</summary>
+    [JsonInclude] internal List<FoundKind> Found { get; set; } = [];
 }
