@@ -32,6 +32,9 @@ public partial class UsePrompt : CanvasLayer
         AddChild(_panel);
     }
 
+    /// <summary>Where the line lies on the screen while it shows: what the markers keep out of.</summary>
+    public Rect2? Covers => _panel.Visible ? _panel.GetGlobalRect() : null;
+
     /// <summary>The line's bottom, in pixels above the screen's, and its gap over the open build menu.</summary>
     private const float Bottom = 112, AboveMenu = 8;
 

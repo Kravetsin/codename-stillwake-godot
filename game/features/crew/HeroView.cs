@@ -55,6 +55,8 @@ public partial class HeroView : Node2D
     private readonly RemoteHeroes _remote = new();
     private readonly HeroSender _sender;
     private readonly Node2D _others = new() { ZIndex = Layers.OtherHeroes };
+    /// <summary>What heroes left where they died, lying on their stacks with a beacon blinking (0061).</summary>
+    private readonly BodyView _bodies = new();
     /// <summary>
     /// Another hero as drawn: its figure, its tether while it has one, what its hands were busy with last
     /// frame, and the swings of its axe as replayed here, each at the point sent with it.
@@ -176,6 +178,7 @@ public partial class HeroView : Node2D
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
         // Others behind this machine's hero, every tether behind them both (Layers).
         AddChild(_tethers);
+        AddChild(_bodies);
         AddChild(_others);
         AddChild(_figure);
         AddChild(_outline);
@@ -222,6 +225,12 @@ public partial class HeroView : Node2D
     /// <summary>Where a dev run places the hero first (<c>--edge</c>), not the crew's spawn; it wakes at the spawn as ever.</summary>
     public Func<Registry, int>? Start { get; set; }
 
+    /// <summary>Where the prompt for E lies on the screen while it shows: what the markers keep out of.</summary>
+    public Rect2? PromptCovers => _prompt.Covers;
+
+    /// <summary>Whether this machine's hero is passed out, as the sim said this frame: it picks nothing up and its inventory closes.</summary>
+    public bool PassedOut => _wasOut;
+
     /// <summary>Whether the hero stands in the world yet: until its first frame in a session, <see cref="Current"/> is nowhere.</summary>
     public bool Placed => _placed;
 
@@ -235,8 +244,8 @@ public partial class HeroView : Node2D
     private static (float X, float Y) Chest(Hero hero) =>
         ((float)(hero.X * Rig.Cell / Hero.Unit), (float)((hero.Y - Spec.Height / 2.0) * Rig.Cell / Hero.Unit));
 
-    /// <summary>Other heroes where they are drawn this frame: what sways the cables besides this one.</summary>
-    public IReadOnlyList<Hero> Others { get; private set; } = [];
+    /// <summary>Other heroes where they are drawn this frame, by peer: what sways the cables besides this one, what the markers point at.</summary>
+    public IReadOnlyList<(int Id, Hero Hero)> Others { get; private set; } = [];
 
     /// <summary>
     /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world <paramref name="m"/>
@@ -265,6 +274,9 @@ public partial class HeroView : Node2D
             _previous = _current = Hero.At(ship, !_placed && Start != null ? Start(m) : m.Crew.Spawn);
             _placed = true;
         }
+        // Passing out it dies where the sim has it (0061), where its body falls: it lies there, not a report behind.
+        else if (!_wasOut && passedOut && known!.Cell >= 0 && known.Cell < grid.Width * grid.Height)
+            _previous = _current = Hero.At(ship, known.Cell);
         _wasOut = passedOut;
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
         var pointed = Pointer();
@@ -325,6 +337,7 @@ public partial class HeroView : Node2D
                 _heardChops[message.From] = (sent.Seen.Wields == Content.Weapons.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
             }
         ShowOthers(ship, m, elapsedMs);
+        _bodies.Frame(m, progress, elapsedMs);
 
         double between = _clock.Progress;
         double x = _previous.X + (_current.X - _previous.X) * between;
@@ -334,7 +347,7 @@ public partial class HeroView : Node2D
         // Aimed after following, so the pointer is read where the camera now is.
         var pointer = Pointer();
         var drawn = _current with { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
-        _ui.Heroes = [Chest(drawn), .. Others.Select(Chest)];
+        _ui.Heroes = [Chest(drawn), .. Others.Select(o => Chest(o.Hero))];
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         var pose = Poses.PoseOf(drawn, inSpace, passedOut);
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
@@ -595,7 +608,7 @@ public partial class HeroView : Node2D
             ReelLine(id, shown.Figure.Muzzle, reeled, elapsedMs);
             (shown.Tether, shown.Busy) = (Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs), seen.Busy);
         }
-        Others = others.Select(o => o.Seen.Hero).ToList();
+        Others = others.Select(o => (o.Id, o.Seen.Hero)).ToList();
     }
 
     /// <summary>

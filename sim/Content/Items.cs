@@ -28,6 +28,10 @@ namespace Stillwake.Content;
 /// An electric tool: the power it draws every tick it runs, hitting or not, as a machine draws (<see cref="Charge"/>), from the
 /// belt's batteries. Held, the energy bar shows; its card shows the draw.
 /// </param>
+/// <param name="Gear">
+/// What a hero keeps when it dies: its tools, what it wears and the batteries. Everything else it carries is
+/// left where it died, a body for anyone to pick up (0061).
+/// </param>
 public sealed record ItemSpec(
     string Id,
     int Stack,
@@ -39,7 +43,8 @@ public sealed record ItemSpec(
     int? BurnTicks = null,
     string? Equip = null,
     int? Capacity = null,
-    int? Draw = null);
+    int? Draw = null,
+    bool Gear = false);
 
 /// <summary>
 /// Everything a hero carries. Every material is an item by the same id; the salvage items are what
@@ -100,14 +105,14 @@ public static class Items
         // The engine's fuel, to come; nothing burns it yet.
         new("biofuel", 20),
         // Tools, made as parts are.
-        new("fireAxe", 1),
-        new("harpoon", 1),
+        new("fireAxe", 1, Gear: true),
+        new("harpoon", 1, Gear: true),
         // Electric: draws from the belt's batteries while it drills (0053, 0054).
-        new("drill", 1, Draw: 3),
+        new("drill", 1, Draw: 3, Gear: true),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
-        new("jetpack", 1, Equip: "back"),
+        new("jetpack", 1, Equip: "back", Gear: true),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
-        new("battery", 1, Equip: "belt", Capacity: Charge.Battery),
+        new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true),
     ];
 
     private static readonly Dictionary<string, ItemSpec> ById = All.ToDictionary(i => i.Id, StringComparer.Ordinal);
@@ -170,4 +175,10 @@ public static class Floor
     /// past a wall's thickness and out of the middle of the largest machine.
     /// </summary>
     public const int PushReach = 3;
+
+    /// <summary>
+    /// How long what a hero left where it died lies before it is gone, wherever it is: ten minutes at 20
+    /// ticks a second (0061). Long enough to fly back for it; short enough that bodies never pile up.
+    /// </summary>
+    public const int BodyLasts = 12_000;
 }

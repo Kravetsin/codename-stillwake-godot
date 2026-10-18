@@ -530,6 +530,16 @@ public partial class InventoryPanel : CanvasLayer
         || (_body.Visible && _body.GetGlobalRect().HasPoint(at))
         || (_shown.Visible && _shown.GetChildren().OfType<Control>().Any(c => c.IsVisibleInTree() && c.GetGlobalRect().HasPoint(at)));
 
+    /// <summary>Where the hotbar, the open inventory with the machine under it and the equipment lie on the screen: what the crew's markers keep out of.</summary>
+    public IEnumerable<Rect2> Covers()
+    {
+        yield return _hotbar.GetGlobalRect();
+        if (_body.Visible) yield return _body.GetGlobalRect();
+        if (!_shown.Visible) yield break;
+        foreach (var panel in _shown.GetChildren().OfType<Control>())
+            if (panel.IsVisibleInTree()) yield return panel.GetGlobalRect();
+    }
+
     /// <summary>Throws a stack from the hero the way it faces.</summary>
     private void DropFrom(Place src, int count)
     {

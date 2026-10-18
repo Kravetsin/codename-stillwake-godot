@@ -124,6 +124,9 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>Whether the panel shows, and what its screen shows: what a recording checks.</summary>
     public (bool Shown, Doing Doing) Shown => (_panel.Visible, _screen.Doing);
 
+    /// <summary>Where the panel lies on the screen while it shows: what the crew's markers keep out of.</summary>
+    public Rect2? Covers => _panel.Visible ? _panel.GetGlobalRect() : null;
+
     /// <summary>The middle of recipe <paramref name="craft"/>'s slot on the screen while the panel shows: where a recording points.</summary>
     public Vector2? CenterOf(string craft) =>
         _cells.FirstOrDefault(c => c.Craft == craft && c.Box.IsVisibleInTree())?.Box.GetGlobalRect().GetCenter();

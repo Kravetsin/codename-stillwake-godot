@@ -62,6 +62,7 @@ public interface IItemsOps
     void Charge(int id, int amount);
     bool Drain(int peer, int amount);
     void StopRunning(int peer);
+    void LeaveBody(int peer, int cell);
 }
 
 /// <summary>
@@ -409,6 +410,29 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>Stops whatever <paramref name="peer"/>'s hero runs: crew's, as the hero passes out or leaves. Nothing while it runs nothing.</summary>
     public void StopRunning(int peer) => State.Running.RemoveAll(r => r.Peer == peer);
+
+    /// <summary>
+    /// <paramref name="peer"/>'s hero died in <paramref name="cell"/> (0061): every stack in its own slots that is
+    /// not <c>Gear</c> falls there, still, in slot order, for anyone to pick up at once, each a part of one
+    /// <see cref="Body"/> named by the peer and this tick. Gear and what is worn stay. Nothing in creative mode,
+    /// where nothing is ever taken; nothing to leave leaves no body. The caller passes a cell on the grid.
+    /// </summary>
+    public void LeaveBody(int peer, int cell)
+    {
+        if (State.Creative) return;
+        var slots = Inventory(peer).ToArray();
+        var left = new List<Stack>();
+        for (int i = 0; i < Own; i++)
+            if (slots[i] is { } s && !Content.Items.Get(s.Item).Gear)
+            {
+                left.Add(s);
+                slots[i] = null;
+            }
+        if (left.Count == 0) return;
+        Stacks.SetInventory(State, peer, slots);
+        var body = new Body(peer, State.Ticks);
+        foreach (var s in left) FloorRules.LayDown(State, s, cell, 0, _grid.Width, FloorStack.Nobody, body);
+    }
 
     /// <summary>Whether <paramref name="peer"/> carries <paramref name="item"/> in any slot, its equipment too.</summary>
     private bool Carries(int peer, string item)

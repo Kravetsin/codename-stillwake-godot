@@ -151,13 +151,15 @@ as everything E works is, in the crew feature (`AimTests`).
 - Stacks of different items still in one cell are drawn side by side, out in space too, where a
   broken wreck's loot floats off together; only aboard do they bob.
 - A stack in a cell the hero's body overlaps is picked up unless the sim would refuse it or its
-  pick-up is in flight, and vanishes from the floor at once.
+  pick-up is in flight, and vanishes from the floor at once. Passed out the hero picks nothing up, so it never
+  takes back the body it has just left (0061); passing out also closes the inventory, letting go of the stack in hand.
 
 ## Main's hook
 
 `Main` makes an `ItemsView` beside the hero, with the hands' `Ui`, and calls `Frame(client, grid,
 rooms, items, research, spot, progress, ms)` every frame from `_m`, after the hero's frame; `HeroSpot`
-is the hero's feet, facing and body cell, so this feature never reads the crew feature itself.
+is the hero's feet, facing, body cell and whether it is passed out, so this feature never reads the crew feature
+itself.
 
 ## Differences from the TypeScript
 
@@ -167,7 +169,7 @@ is the hero's feet, facing and body cell, so this feature never reads the crew f
 - The panels are Control nodes styled as the Tailwind classes were (`render/Style.cs`); the slot
   hover is a hit test, since Godot sends no enter events while a button is held.
 - The floor draws over the machines and under the heroes (`Layers.FloorItems`): a stack beside a
-  furnace shows, and a hero walks over it.
+  furnace shows, and a hero walks over it; over a body (`Layers.Bodies`), so what it left shows on it.
 
 ## Not ported yet
 
