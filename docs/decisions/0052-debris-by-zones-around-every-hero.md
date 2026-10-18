@@ -1,6 +1,6 @@
 # 0052 — Debris by zones, around every hero
 
-- Status: accepted; the asteroid band as a zone to come, and its weapon, settled by [0054](0054-asteroids-and-the-drill.md); its tier weights scaled four times and the derelicts added by [0056](0056-rich-finds-far-out.md); amended 2026-10-18: no zone spawns or removes a piece in a hero's view (below)
+- Status: accepted; the asteroid band as a zone to come, and its weapon, settled by [0054](0054-asteroids-and-the-drill.md); its tier weights scaled four times and the derelicts added by [0056](0056-rich-finds-far-out.md); amended 2026-10-18: no zone spawns or removes a piece in a hero's view (below); its cable rack weights cut to 2 a tier, below the stream's share, by 0056's amendment
 - Date: 2026-10-17
 - Supersedes: in [0009](0009-debris-around-the-ship.md), the stream as the only place debris spawns,
   and its rejection of spawning where players are, for the cells heroes report
