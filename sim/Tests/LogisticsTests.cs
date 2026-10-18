@@ -73,6 +73,13 @@ public class LogisticsTests
 
     private static Scenario PoweredRooms(int drones, int charge) => Aired(Powered, RoomsUnder, drones, [((0, 6), (1, 2))], charge);
 
+    /// <summary>Puts each of <paramref name="stacks"/> in its own slot of machine <paramref name="crate"/>, from the first, unmerged.</summary>
+    internal static Scenario Spread(Scenario w, int crate, params (string Item, int Count)[] stacks)
+    {
+        for (int i = 0; i < stacks.Length; i++) w.Put(i, new Stack(stacks[i].Item, stacks[i].Count), crate: crate);
+        return w;
+    }
+
     internal static int Count(IReadOnlyList<Stack?> slots, string item) => slots.Sum(s => s?.Item == item ? s.Count : 0);
     internal static int Docked(Scenario w, int bay) => Count(w.M.Items.Crate(bay), Tune.Drone);
     internal static int OnFloor(Scenario w, string item) => w.M.Items.Floor.Where(s => s.Item == item).Sum(s => s.Count);
@@ -147,6 +154,85 @@ public class LogisticsTests
         var w = TwoRooms(drones: 1).FillCrate(Left, ("planks", 50)).Put(Fuel, new Stack("planks", 10), crate: Furnace);
         Assert.True(RunUntil(w, () => w.M.Logistics.Drones.Count > 0, 20));
         Assert.Equal(40, w.M.Logistics.Drones.Single().Count);
+    }
+
+    // One trip takes from every slot of its item.
+
+    [Fact]
+    public void OneTripTakesFromEverySlotOfTheItemInTheCrateAndFillsTheFuelToAStack()
+    {
+        // Forty planks wanted, fifteen in each of three slots: one drone brings the forty, the last slots first.
+        var w = Spread(TwoRooms(drones: 1), Left, ("planks", 15), ("planks", 15), ("planks", 15)).Put(Fuel, new Stack("planks", 10), crate: Furnace);
+        Assert.True(RunUntil(w, () => w.M.Logistics.Drones.Count > 0, 20));
+        Assert.Equal(40, w.M.Logistics.Drones.Single().Count);
+        Assert.True(RunUntil(w, () => w.M.Logistics.Drones.Count == 0, 600));
+        Assert.Equal(50, w.M.Items.HeldFor(Furnace, "planks"));
+        Assert.Equal([5, 0, 0], w.M.Items.Crate(Left).Take(3).Select(s => s?.Count ?? 0));
+        Assert.Equal(1, Docked(w, Bay));
+        Assert.Empty(w.M.Items.Floor);
+    }
+
+    /// <summary>Two furnaces in one room with the bay and a crate, aired by a tank and a vent. Width 22.</summary>
+    private static readonly string[] TwoFurnaces =
+    [
+        "######################",
+        "#RR....FF...FF.......#",
+        "#RR....FF...FF.TT....#",
+        "#.KK...........TTV...#",
+        "######################",
+    ];
+
+    private static readonly string[] TwoFurnacesUnder = ["", "", "               o", "               ---"];
+
+    [Fact]
+    public void TwoDronesShareTheItemsOfOneCrateByCountNeverTakingTwiceNorOverfilling()
+    {
+        var w = Aired(TwoFurnaces, TwoFurnacesUnder);
+        int crate = w.M.Grid.MachinesOf("crate").Single().Id;
+        var furnaces = w.M.Grid.MachinesOf("furnace").Select(f => f.Id).ToArray();
+        // Fifty-five planks over three slots, each furnace wanting forty: the first gets its forty, the other the fifteen left.
+        Spread(w, crate, ("planks", 20), ("planks", 20), ("planks", 15));
+        foreach (int f in furnaces) w.Put(Fuel, new Stack("planks", 10), crate: f);
+        var counts = new List<int>();
+        for (int i = 0; i < 800; i++)
+        {
+            w.Run();
+            var going = w.M.Logistics.Drones.Where(d => d.Leg == Leg.Source).ToList();
+            Assert.True(going.Sum(d => d.Count) <= Count(w.M.Items.Crate(crate), "planks"), $"tick {i}: more spoken for than the crate holds");
+            foreach (var d in going)
+                if (!counts.Contains(d.Id * 1000 + d.Count)) counts.Add(d.Id * 1000 + d.Count);
+            foreach (int f in furnaces)
+            {
+                int coming = w.M.Logistics.Drones.Where(d => d.Target == f && d.Leg != Leg.Home).Sum(d => d.Cargo?.Count ?? d.Count);
+                Assert.True(w.M.Items.HeldFor(f, "planks") + coming <= 50, $"tick {i}: furnace {f} overfilled");
+            }
+        }
+        Assert.Equal([40, 15], counts.Select(c => c % 1000));
+        Assert.Equal((50, 25, 0), (w.M.Items.HeldFor(furnaces[0], "planks"), w.M.Items.HeldFor(furnaces[1], "planks"), Count(w.M.Items.Crate(crate), "planks")));
+        Assert.Empty(w.M.Items.Floor);
+        Assert.Equal(2, Docked(w, w.M.Grid.MachinesOf(Tune.Bay).Single().Id));
+    }
+
+    [Fact]
+    public void ACrateSortedOrPartlyEmptiedMidFlightGivesTheDroneWhatItHoldsOfItsItemThen()
+    {
+        // Sorted while the drone flies: its planks merged into one slot among others, it still takes its forty.
+        var w = Spread(TwoRooms(drones: 1), Left, ("planks", 15), ("iron", 5), ("planks", 15), ("scrapChunk", 3), ("planks", 15))
+            .Put(Fuel, new Stack("planks", 10), crate: Furnace);
+        Assert.True(RunUntil(w, () => w.M.Logistics.Drones.Count > 0, 20));
+        w.Do(new Sort(Left)).Run();
+        Assert.Equal(45, w.M.Items.Crate(Left).Single(s => s?.Item == "planks")!.Count);
+        Assert.True(RunUntil(w, () => w.M.Logistics.Drones.Count == 0, 600));
+        Assert.Equal((50, 5, 5, 3), (w.M.Items.HeldFor(Furnace, "planks"), Count(w.M.Items.Crate(Left), "planks"), Count(w.M.Items.Crate(Left), "iron"), Count(w.M.Items.Crate(Left), "scrapChunk")));
+
+        // A hand takes one of the three slots: the drone brings the thirty left, and the furnace, not short, gets no more.
+        var v = Spread(TwoRooms(drones: 1), Left, ("planks", 15), ("planks", 15), ("planks", 15)).Put(Fuel, new Stack("planks", 10), crate: Furnace);
+        Assert.True(RunUntil(v, () => v.M.Logistics.Drones.Count > 0, 20));
+        v.Do(new Move(new Slot(1, Left), new Target(), 15)).Run();
+        Assert.True(RunUntil(v, () => v.M.Logistics.Drones.Count == 0, 600));
+        v.Run(200);
+        Assert.Equal((40, 0, 15), (v.M.Items.HeldFor(Furnace, "planks"), Count(v.M.Items.Crate(Left), "planks"), Count(v.M.Items.Inventory(0), "planks")));
+        Assert.Empty(v.M.Items.Floor);
     }
 
     /// <summary>The main rooms with the furnace a Former, powered by a panel under the stars, and two crates on the right.</summary>

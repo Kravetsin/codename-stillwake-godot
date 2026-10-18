@@ -59,7 +59,7 @@ public sealed partial class LogisticsModule
     private static void Take(Drone d, Job job)
     {
         (d.Leg, d.Low) = (Leg.Source, false);
-        (d.Source, d.Slot, d.Target, d.Item, d.Count) = (job.Source, job.Slot, job.Target, job.Item, job.Count);
+        (d.Source, d.Target, d.Item, d.Count) = (job.Source, job.Target, job.Item, job.Count);
     }
 
     /// <summary>Launches the drone in slot <paramref name="slot"/> of <paramref name="bay"/> on <paramref name="job"/>, from the bay's first passable cell.</summary>
@@ -168,8 +168,8 @@ public sealed partial class LogisticsModule
     }
 
     /// <summary>
-    /// Drone <paramref name="d"/> in its goal. At its source it takes what is there up to its job, nothing if the slot
-    /// holds another item now, and with nothing looks for the next job; at its target it puts in what fits, carries the
+    /// Drone <paramref name="d"/> in its goal. At its source it takes what is there of its item up to its job, from every
+    /// slot (<see cref="TakeAll"/>), and with nothing looks for the next job; at its target it puts in what fits, carries the
     /// rest on to a crate with room (<c>Storage</c>) or with none lays it down there, and looks for the next job; home, it docks in a free slot of its bay, or lies down where it is with
     /// none, and lays down any cargo it turned home with. Whether it still flies.
     /// </summary>
@@ -178,9 +178,7 @@ public sealed partial class LogisticsModule
         switch (d.Leg)
         {
             case Leg.Source:
-                var taken = _items.Crate(goal.Id) is var slots && d.Slot < slots.Count && slots[d.Slot]?.Item == d.Item
-                    ? _itemsOps.TakeFrom(goal.Id, d.Slot, d.Count)
-                    : null;
+                var taken = TakeAll(goal, d.Item, d.Count);
                 d.Cargo = taken;
                 if (taken == null) Next(d, bay);
                 else d.Leg = Leg.Target;
@@ -207,6 +205,24 @@ public sealed partial class LogisticsModule
                 State.Drones.Remove(d);
                 return false;
         }
+    }
+
+    /// <summary>
+    /// Up to <paramref name="count"/> of <paramref name="item"/> taken from every slot machine <paramref name="source"/>
+    /// offers (<see cref="FirstOffered"/>) holding it, the last first as a hero pays, each stack alike the first taken:
+    /// one stack, wherever a hand or a sort has moved them since. Null for none there.
+    /// </summary>
+    private Stack? TakeAll(Machine source, string item, int count)
+    {
+        Stack? cargo = null;
+        if (FirstOffered(source) is not int start) return null;
+        for (int slot = _items.Crate(source.Id).Count - 1; slot >= start && (cargo?.Count ?? 0) < count; slot--)
+        {
+            if (_items.Crate(source.Id)[slot] is not { } s || s.Item != item || (cargo != null && s.Charge != cargo.Charge)) continue;
+            var taken = _itemsOps.TakeFrom(source.Id, slot, count - (cargo?.Count ?? 0))!;
+            cargo = cargo == null ? taken : cargo with { Count = cargo.Count + taken.Count };
+        }
+        return cargo;
     }
 
     /// <summary>Drone <paramref name="d"/> falls where it is, with its cargo, as stacks on the floor for anyone to pick up.</summary>

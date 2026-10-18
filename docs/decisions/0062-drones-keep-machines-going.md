@@ -105,6 +105,23 @@ to set before anything moved. This version replaces it.
   and latch as it lifts off and touches down (−33); a small switch's click as its clamp takes a stack or puts it in
   (−35); no beep for a low drone. All client-side: the sim is unchanged, and each peer draws and plays what it sees.
 
+## Amendment, 2026-10-19: a trip takes every slot of its item
+
+Played: a burner generator was refilled late and only to thirty-odd planks while its crate still held planks. A drone
+took from one crate slot, so with planks split over slots it brought that slot's count, and the generator, then at
+half a stack, was short no longer. The user's decision:
+
+- **A drone is sent for an item, not a slot.** What a source offers of an item is summed over its slots (a crate's
+  all, a machine's outputs); at the source the drone takes up to its job from every slot holding it, the last first,
+  each stack alike the first, as one stack. One trip tops a machine up to a stack when the crate holds that much.
+- **Reservations are by count:** what drones on their way to a crate will take of an item is held back from what it
+  offers, so two drones share one crate's planks and never go for the same ones. A machine's outputs of an item are
+  held whole while a drone is on its way to them, as a carry-off takes all there is when it arrives: one at a time, as
+  before. A crate sorted or emptied by hand mid-flight gives the drone what of its item it holds then.
+- Every other rule stands: the half-stack trigger, the nearest source, a refill before an output, what is in flight
+  counting against what is wanted, a crate holding the item first for an output. A drone's saved `slot` is dropped;
+  older saves load, the field ignored.
+
 ## Rejected
 
 - **Forgetting an input's item when it runs dry,** this version's first build: a furnace burnt down while its supply

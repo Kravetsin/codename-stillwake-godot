@@ -77,8 +77,7 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
             if (!Flood(bay) || !InFlood(target)) continue;
             foreach (var m in _grid.Machines)
             {
-                int? first = m.Kind == "crate" ? 0 : OutputsOf(m);
-                if (m.Id == machine || first is not int start || !Served(m.Id) || !InFlood(m)) continue;
+                if (m.Id == machine || FirstOffered(m) is not int start || !Served(m.Id) || !InFlood(m)) continue;
                 var slots = _items.Crate(m.Id);
                 for (int slot = start; slot < slots.Count; slot++)
                     if (slots[slot]?.Item == item) return true;
