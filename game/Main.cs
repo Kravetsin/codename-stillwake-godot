@@ -44,7 +44,7 @@ namespace Stillwake.Game;
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
-/// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, <see cref="OpenDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
+/// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
@@ -159,7 +159,7 @@ public partial class Main : Node2D, ITogether
             else if (Has("--sortie")) _hero.Start = SortieDemo.StartOf;
             else if (Has("--charge")) _hero.Start = ChargeDemo.StartOf;
             else if (Has("--die")) _hero.Start = DieDemo.StartOf;
-            else if (Opens is { } opened) _hero.Start = m => OpenDemo.StartOf(m, opened);
+            else if ((Opens ?? Near) is { } opened) _hero.Start = m => OpenDemo.StartOf(m, opened);
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))) { Lend = _items.Panel.Lend });
@@ -225,7 +225,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
         if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
-        if (Opens is { } open) AddChild(new OpenDemo(_hands.Ui, open, () => _m));
+        if (Opens is { } open) AddChild(new OpenDemo(_hands.Ui, open, () => _m, Arg("--open-at") is { } at ? double.Parse(at, System.Globalization.CultureInfo.InvariantCulture) : 1.0));
         if (_args.FirstOrDefault(a => a.StartsWith("--card=", StringComparison.Ordinal)) is { } card) AddChild(new CardDemo(_hands, card[7..], pick: Has("--pick")));
         if (Has("--asteroid") && !Has("--manual")) AddChild(new AsteroidDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--sortie") && !Has("--manual")) AddChild(new SortieDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
@@ -243,6 +243,9 @@ public partial class Main : Node2D, ITogether
 
     /// <summary><c>--open=&lt;kind&gt;</c>: the machine of that kind the hero opens at the start (<see cref="OpenDemo"/>).</summary>
     private string? Opens => _args.FirstOrDefault(a => a.StartsWith("--open=", StringComparison.Ordinal))?[7..];
+
+    /// <summary><c>--near=&lt;kind&gt;</c>: the machine of that kind the hero starts beside, opening nothing: for recording the room round it.</summary>
+    private string? Near => _args.FirstOrDefault(a => a.StartsWith("--near=", StringComparison.Ordinal))?[7..];
     private static (int, int) Size(string? text, (int, int) or) => text?.Split('x') is [var w, var h] ? (int.Parse(w), int.Parse(h)) : or;
 
     /// <summary>The reference world, at <c>--size</c> and built over <c>--built</c> of it.</summary>

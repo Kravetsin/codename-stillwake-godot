@@ -7,12 +7,11 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// <c>-- --testbed --open=&lt;kind&gt;</c>: the hero starts just right of the testbed's machine of that kind
-/// and opens it a second in, with the inventory, as E would: for recording a machine at work and its panel (the
+/// and opens it a second in (or <c>openAt</c> seconds), with the inventory, as E would: for recording a machine at work and its panel (the
 /// Former, the circuit assembler, the lifepod's Fabricator, the furnace, a crate and its drone badge, the drone bay).
 /// </summary>
-public partial class OpenDemo(Ui ui, string kind, Func<Registry> m) : Node
+public partial class OpenDemo(Ui ui, string kind, Func<Registry> m, double openAt = 1.0) : Node
 {
-    private const double OpenAt = 1.0;
     private double _t;
     private bool _opened;
 
@@ -30,7 +29,7 @@ public partial class OpenDemo(Ui ui, string kind, Func<Registry> m) : Node
     public override void _Process(double delta)
     {
         _t += delta;
-        if (_opened || _t < OpenAt) return;
+        if (_opened || _t < openAt) return;
         _opened = true;
         ui.OpenCrate.Set(Nth(m(), kind).Id);
     }
