@@ -32,6 +32,7 @@ a plan that fills in as it is built shows its progress without a bar.
   time: the first touch of a part pays its item, then the part fills smoothly under the screwdriver, and a
   build stalled for want of an item sits at that part's boundary. Stepping a whole part at each payment was
   tried first: it showed the part built before it was worked. The delivery and work bars on blueprints go.
+  A mark is taken down the same way in mirror, turning into its red ghost from the top ([0064](0064-plans-and-marks-are-drawn-alike.md)).
 - **Drawn** by splitting each picture at its cut into two regions of the ship's atlas: the real one in a
   lit canvas item per tile layer, the ghost in an unlit one; no node, material or instance uniform per
   plan (Godot's global buffer, which instance uniforms fill per item, is what `Lit` ran out of).
