@@ -203,6 +203,44 @@ public class MigrationsTests
         Assert.All(m.Crafting.Queue(former).Concat(m.Crafting.Queue(assembler)), e => Assert.False(e.FromInputs || e.Endless));
     }
 
+    /// <summary>The format <see cref="Migrations.Drones"/> upgrades a save into: the logistics slice and the assembler's fourth input.</summary>
+    private static readonly int DronesFormat = Migrations.Oldest + 1 + Migrations.Steps.ToList().IndexOf(Migrations.Drones);
+
+    [Fact]
+    public void GivesASaveAnEmptyLogisticsSliceAndTheAssemblerAFourthInputAfterItsThreeSoItsOutputsKeepTheirStacks()
+    {
+        // An assembler on a panel, having made a circuit, with silicon in its first input and wire in its third.
+        var w = new Scenario(Layout.Parse(["PPP     ", "        ", "########", "#YY....#", "#YY....#", "########"], null, [((0, 0), (1, 3))]))
+            .GiveItems(0, ("silicon", 3), ("wire", 6));
+        int assembler = w.M.Grid.MachinesOf("assembler").Single().Id;
+        w.Do(new Crafting.Craft(assembler, "circuit", 1)).Run(200);
+        w.Do(new Move(new Items.Place(0), new Target(0, assembler), 2)).Do(new Move(new Items.Place(1), new Target(2, assembler), 3)).Run();
+        // As a player's save holds it: no test builder.
+        var saved = JsonNode.Parse(w.World.Save())!.AsObject();
+        saved["slices"]!.AsObject().Remove("builder");
+        string save = saved.ToJsonString();
+        var was = w.M.Items.Crate(assembler).ToList();
+        Assert.Equal(new Stack("circuit", 1), was[Content.Machines.Get("assembler").Inputs!.Value]);
+
+        // As the format before kept it: three inputs, and no logistics.
+        var root = JsonNode.Parse(save)!.AsObject();
+        root["format"] = DronesFormat - 1;
+        root["slices"]!.AsObject().Remove("logistics");
+        foreach (var held in root["slices"]!["items"]!["crates"]!.AsArray())
+            if ((int)held!["id"]! == assembler)
+            {
+                Assert.Null(held["slots"]![3]);
+                held["slots"]!.AsArray().RemoveAt(3);
+            }
+        string old = root.ToJsonString();
+        Assert.Equal(save, Migrations.Upgrade(old));
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(old), m.All);
+        Assert.Equal(was, m.Items.Crate(assembler));
+        Assert.Empty(m.Logistics.Drones);
+        Assert.Empty(m.Logistics.RequestsOf(assembler));
+    }
+
     [Fact]
     public void GivesEveryInventoryOfAFormat8SaveItsEquipmentEmptyAndNoHeroAThrust()
     {

@@ -41,8 +41,8 @@ public static class Stations
         new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor"], ["soil"]]),
         // Smelts as the furnace does, twice as fast on power, and hot enough for what the furnace cannot: silicon into glass.
         new("smelter", Speed: 2000, QueueMost: 0, Rows: [], Heat: 2),
-        // The electronics bench: circuits and solar cells, at full speed on power, a queue of eight.
-        new("assembler", Speed: 1000, QueueMost: 8, Rows: [["circuit", "solarCell"]]),
+        // The electronics bench: circuits and solar cells, and drones of them, at full speed on power, a queue of eight.
+        new("assembler", Speed: 1000, QueueMost: 8, Rows: [["circuit", "solarCell"], ["drone"]]),
         // Grows what is planted in its input, on power (0060): a seed in 9600 ticks, eight minutes, at a full share.
         new("growCapsule", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "grow"),
     ];

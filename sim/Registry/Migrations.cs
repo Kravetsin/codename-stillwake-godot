@@ -128,6 +128,8 @@ public static class Migrations
         save => save,
         // 15 → 16: the Former and the assembler take inputs (0057); their entries, saved without a feed, load as paid.
         StationInputs,
+        // 16 → 17: drones (0062): the logistics slice, empty, and the assembler's fourth input, for a drone's four parts.
+        Drones,
     ];
 
     /// <summary>
@@ -143,6 +145,31 @@ public static class Migrations
             if (!kinds.TryGetValue((int)held!["id"]!, out var kind) || kind is not ("former" or "assembler")) continue;
             var slots = held["slots"]!.AsArray();
             while (slots.Count < Content.Machines.Get(kind).Slots) slots.Insert(0, null);
+        }
+        return save;
+    }
+
+    /// <summary>
+    /// 16 → 17: the logistics slice (0062), empty, after every other: no crate has a role, nothing requests, no drone
+    /// flies; its clock is the world's. What the circuit assembler holds gains a fourth input, empty, after its three, so its outputs keep their
+    /// stacks. A save already of the new shape is left as it is.
+    /// </summary>
+    public static JsonObject Drones(JsonObject save)
+    {
+        var slices = save["slices"]!.AsObject();
+        slices["logistics"] ??= new JsonObject
+        {
+            ["roles"] = new JsonArray(),
+            ["requests"] = new JsonArray(),
+            ["drones"] = new JsonArray(),
+            ["nextId"] = 1,
+            ["ticks"] = (int)save["tick"]!,
+        };
+        var assemblers = slices["grid"]!["machines"]!.AsArray().Where(m => (string)m!["kind"]! == "assembler").Select(m => (int)m!["id"]!).ToList();
+        foreach (var held in slices["items"]!["crates"]!.AsArray())
+        {
+            var slots = held!["slots"]!.AsArray();
+            if (assemblers.Contains((int)held["id"]!) && slots.Count == 6) slots.Insert(3, null);
         }
         return save;
     }

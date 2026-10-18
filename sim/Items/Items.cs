@@ -46,6 +46,8 @@ public interface IItemsQueries
     (int Charge, int Capacity) BeltCharge(int peer);
     bool CanDrain(int peer, int amount);
     string? Running(int peer);
+    int HeldFor(int id, string item);
+    int RoomFor(int id, Stack stack);
 }
 
 /// <summary>How a module that depends on the items may change them.</summary>
@@ -63,6 +65,9 @@ public interface IItemsOps
     bool Drain(int peer, int amount);
     void StopRunning(int peer);
     void LeaveBody(int peer, int cell);
+    Stack? TakeFrom(int id, int slot, int count);
+    int PutIn(int id, Stack stack);
+    void LayDown(Stack stack, int cell);
 }
 
 /// <summary>

@@ -506,8 +506,9 @@ public class ContentTests
         Assert.All(holding, i => Assert.True(i.Capacity > 0, i.Id));
         Assert.All(holding, i => Assert.Equal(Charge.Belt, i.Equip));
         Assert.Contains(Inventory.Equipment, kind => kind == Charge.Belt);
-        // Paying never takes what holds charge, so no charge is lost to a recipe, a build or a cable.
-        var costs = Crafts.All.Select(c => c.Cost)
+        // Paying never takes what holds charge, so no charge is lost to a recipe, a build or a cable; but the drone, whose
+        // battery becomes its own: its charge is lost there until a drone holds charge (logistics, slice 3).
+        var costs = Crafts.All.Where(c => c.Item != Content.Logistics.Drone).Select(c => c.Cost)
             .Concat(AllBuilds().Select(b => b.Cost))
             .Append(Content.Power.CableCost);
         Assert.All(costs, cost => Assert.DoesNotContain(cost, c => Content.Items.Get(c.Item).Capacity != null));
@@ -619,6 +620,24 @@ public class ContentTests
 
     [Fact]
     public void BuildsComeApartFasterThanTheyGoUpByAWholeFactor() => Assert.True(Builds.DeconstructSpeedup > 1);
+
+    /// <summary>
+    /// Drones (0062): every number positive and whole; a bay is a machine of slots that takes anything in, a drone an item
+    /// of a stack of one made at the assembler; a drone crosses at most a cell a tick; a requester crate's requests fit a row of
+    /// its grid.
+    /// </summary>
+    [Fact]
+    public void ABayIsACrateOfSlotsADroneAStackOfOneAndEveryLogisticsNumberIsPositive()
+    {
+        AllPositive(typeof(Content.Logistics));
+        var bay = Machines.Get(Content.Logistics.Bay);
+        Assert.True(bay.Slots > 0);
+        Assert.Equal((null, null, null, false), (bay.Inputs, bay.FuelSlot, bay.Draws, bay.Charges));
+        Assert.Equal(1, Content.Items.Get(Content.Logistics.Drone).Stack);
+        Assert.Contains(Stations.Get("assembler").Rows, row => row.Contains(Content.Logistics.Drone));
+        Assert.InRange(Content.Logistics.Speed, 1, Cell);
+        Assert.InRange(Content.Logistics.RequestsMost, 1, Machines.Get("crate").Slots!.Value);
+    }
 
     // Air
 
@@ -739,9 +758,9 @@ public class ContentTests
     /// the Former alone (0060).
     /// </summary>
     [Fact]
-    public void EveryCraftIsMadeSomewhereThePodAllButElectronicsAndSoilAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
+    public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesAndSoilAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell"];
+        string[] electronics = ["circuit", "solarCell", "drone"];
         Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, "soil"]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));
         Assert.Equal(["former"], Stations.All.Where(s => s.Rows.Any(r => r.Contains("soil"))).Select(s => s.Machine));

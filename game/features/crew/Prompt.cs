@@ -41,6 +41,7 @@ public static class Prompts
                 "smelter" => "use.openSmelter",
                 "assembler" => "use.openAssembler",
                 "growCapsule" => "use.openGrowCapsule",
+                "droneBay" => "use.openDroneBay",
                 _ => "use.openCrate",
             }, null);
         if (aim.Press is not { } press) return null;

@@ -12,8 +12,9 @@ namespace Stillwake.Game.Dev;
 /// build): every machine once, two rooms aired, an airlock out to space, every user powered, creative
 /// mode on, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
 /// generator lit, the analyzer at work, a battery charging, the Former pressing plates endlessly from the iron in its
-/// inputs, the electric smelter smelting rock, the circuit assembler making circuits, and a grow capsule growing seeds beside a crate of
-/// the farm's items, seeds, rock and planks.
+/// inputs, the electric smelter smelting rock, the circuit assembler making circuits, a grow capsule growing seeds beside a crate of
+/// the farm's items, seeds, rock and planks; and drones (0062): a bay of two in room one, the full crate a provider, a storage crate
+/// by the pod, the furnace and the Former requesting what they work, so drones carry through the closed door from the start.
 /// </summary>
 public static class Testbed
 {
@@ -27,7 +28,7 @@ public static class Testbed
     public static IEnumerable<string> FarmCrate => [.. Farm, "rock", "planks"];
 
     /// <summary>
-    /// Room one holds the lifepod, the crate and the air: a tank with a canister and a generator piped to a
+    /// Room one holds the lifepod, the crates, the drone bay and the air: a tank with a canister and a generator piped to a
     /// vent in each room; room two the furnace, the Former, the electric smelter, the circuit assembler, the grow
     /// capsule and the farm's crate, the analyzer, the charging station and the burner generator; then the airlock, no
     /// vent in it. Five panels on the roof: the first two feed the lamps and the oxygen generator, the third the analyzer
@@ -42,9 +43,9 @@ public static class Testbed
             "       PPP         PPP   PPP PPP PPP",
             "  ###############################################",
             "  #.......L......#....L.................L...#.L.#",
-            "  #.OOO..........D...............gg.........D...D",
-            "  #.OOO..TTGG....D...FF.MM.EE.YY.gg....AACBBD...D",
-            "  #.OOO..TTGGVKK.D.V.FF.MM.EE.YY.gg.KK.AACBBD...D",
+            "  #.OOO......RR..D...............gg.........D...D",
+            "  #.OOO..TTGGRR..D...FF.MM.EE.YY.gg....AACBBD...D",
+            "  #.OOOKKTTGGVKK.D.V.FF.MM.EE.YY.gg.KK.AACBBD...D",
             "  ###############################################",
         ],
         [
@@ -75,6 +76,21 @@ public static class Testbed
     /// <summary>What the Former's first input holds at the start: iron for its endless plates, fed from its inputs.</summary>
     public const string Pressing = "iron";
 
+    /// <summary>How much of it: a few plates' worth, so drones soon bring more (0062).</summary>
+    public const int Pressed = 6;
+
+    /// <summary>The crates by their top-left cells on the map: the full one, a provider; storage by the pod; the farm's.</summary>
+    public static readonly (int X, int Y) Full = (14, 7), Storage = (7, 7), FarmAt = (36, 7);
+
+    /// <summary>What drones bring: the furnace keeps chunks and planks, the Former iron (0062).</summary>
+    public static readonly IReadOnlyList<(string Item, int Count)> FurnaceWants = [("scrapChunk", 10), ("planks", 20)], FormerWants = [("iron", 20)];
+
+    /// <summary>What the furnace holds at the start: a chunk and a little fuel, so it burns at once and drones bring the rest.</summary>
+    public static readonly IReadOnlyList<(string Item, int Count)> FurnaceHolds = [("scrapChunk", 2), ("planks", 5)];
+
+    /// <summary>The drones docked in the bay at the start.</summary>
+    public const int Drones = 2;
+
     /// <summary>What the electric smelter holds at the start: rock, smelting into silicon.</summary>
     public const string Smelting = "rock";
 
@@ -89,9 +105,9 @@ public static class Testbed
     /// items put in through the save (no command makes items), loaded, and two ticks on: the furnace and
     /// the generator are lit on the first, the generator's power reaches its lamps and the Former on the
     /// second (it rests while cold), and the analyzer has nearly its whole work ahead. The Former has
-    /// a stack of <see cref="Pressing"/> in its inputs and an endless entry of plates fed from them, which creative mode
+    /// <see cref="Pressed"/> <see cref="Pressing"/> in its inputs and an endless entry of plates fed from them, which creative mode
     /// does not make free; the smelter a stack of rock; the assembler <see cref="Assembling"/> circuits queued; the grow capsule <see cref="Planted"/> seeds, the first growing from
-    /// nothing at the speed of play.
+    /// nothing at the speed of play. The full crate is made a provider and the requests set on the first tick (0062).
     /// </summary>
     public static World Create(IReadOnlyList<Module> modules)
     {
@@ -100,8 +116,7 @@ public static class Testbed
         var save = JsonNode.Parse(aired.Save())!;
         var machines = save["slices"]!["grid"]!["machines"]!.AsArray();
         int Id(string kind) => (int)machines.First(m => (string?)m!["kind"] == kind)!["id"]!;
-        // The farm's crate is the second, right of the first on the map.
-        int farmCrate = (int)machines.Where(m => (string?)m!["kind"] == "crate").Select(m => (int)m!["id"]!).Order().ElementAt(1);
+        int At((int X, int Y) cell) => (int)machines.First(m => (int)m!["cell"]! == cell.Y * Map.Width + cell.X)!["id"]!;
         static JsonObject Stack(string item, int count) => new() { ["item"] = item, ["count"] = count };
         static JsonObject Battery(int thousandths) =>
             new() { ["item"] = "battery", ["count"] = 1, ["charge"] = Charge.Battery / 1000 * thousandths };
@@ -115,19 +130,20 @@ public static class Testbed
         items["creative"] = true;
         var held = new List<JsonObject>
         {
-            new() { ["id"] = Id("crate"), ["slots"] = Slots("crate", [.. Carried.Where(i => !Farm.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
-            new() { ["id"] = farmCrate, ["slots"] = Slots("crate", [.. FarmCrate.Select(i => Stack(i, Items.Get(i).Stack))]) },
+            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !Farm.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
+            new() { ["id"] = At(FarmAt), ["slots"] = Slots("crate", [.. FarmCrate.Select(i => Stack(i, Items.Get(i).Stack))]) },
             new() { ["id"] = Id("growCapsule"), ["slots"] = Slots("growCapsule", [Stack("seed", Planted)]) },
             new()
             {
                 ["id"] = Id("furnace"),
-                ["slots"] = Slots("furnace", [Stack("scrapChunk", Items.Get("scrapChunk").Stack), Stack("planks", Items.Get("planks").Stack)]),
+                ["slots"] = Slots("furnace", [.. FurnaceHolds.Select(h => Stack(h.Item, h.Count))]),
             },
             new() { ["id"] = Id("analyzer"), ["slots"] = Slots("analyzer", [Stack(Analysing, 1)]) },
             new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
             new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },
-            new() { ["id"] = Id("former"), ["slots"] = Slots("former", [Stack(Pressing, Items.Get(Pressing).Stack)]) },
+            new() { ["id"] = Id("former"), ["slots"] = Slots("former", [Stack(Pressing, Pressed)]) },
+            new() { ["id"] = Id(Logistics.Bay), ["slots"] = Slots(Logistics.Bay, Enumerable.Range(0, Drones).Select(_ => Stack(Logistics.Drone, 1))) },
         };
         // The slice keeps its machines in id order; the lifepod's may hold something already.
         var crates = items["crates"]!.AsArray().Select(c => c!.DeepClone().AsObject()).Concat(held).OrderBy(c => (int)c["id"]!);
@@ -142,7 +158,9 @@ public static class Testbed
         save["slices"]!["crafting"]!["queues"] = new JsonArray([.. new[] { Queue("former", "plate", 1, endless: true), Queue("assembler", "circuit", Assembling) }
             .OrderBy(q => (int)q["machine"]!)]);
         var world = World.Load(save.ToJsonString(), modules);
-        world.Step([]);
+        static Sim.Logistics.SetRequests Wants(int machine, IReadOnlyList<(string Item, int Count)> wants) =>
+            new(machine, [.. wants.Select(w => new Sim.Logistics.Request(w.Item, w.Count))]);
+        world.Step([new Sim.Logistics.SetRole(At(Full), Sim.Logistics.Role.Provider), Wants(Id("furnace"), FurnaceWants), Wants(Id("former"), FormerWants)]);
         world.Step([]);
         return world;
     }

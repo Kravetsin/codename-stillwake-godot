@@ -20,8 +20,10 @@ public class TestbedTests
 
     private static int IdOf(Registry m, string kind) => m.Grid.Machines.Single(x => x.Kind == kind).Id;
 
-    /// <summary>The crates, in id order: the first with everything, the second the farm's.</summary>
-    private static int[] Crates(Registry m) => [.. m.Grid.MachinesOf("crate").Select(x => x.Id).Order()];
+    /// <summary>The crate with everything and the farm's, by their cells on the map.</summary>
+    private static int[] Crates(Registry m) => [CrateAt(m, Testbed.Full), CrateAt(m, Testbed.FarmAt)];
+
+    private static int CrateAt(Registry m, (int X, int Y) cell) => m.Grid.MachineAt(cell.Y * Testbed.Map.Width + cell.X)!.Id;
 
     [Fact]
     public void DrawsEveryKindOfMachine()
@@ -70,7 +72,7 @@ public class TestbedTests
         Assert.Equal(Spec.Stations.Get("former").Speed, m.Crafting.Progress(former));
         // Endless plates fed from its inputs: the first took its iron as it began, creative mode or not.
         Assert.True(m.Crafting.Queue(former).Single() is { Recipe: "plate", FromInputs: true, Endless: true });
-        Assert.Equal(new Stack(Testbed.Pressing, Spec.Items.Get(Testbed.Pressing).Stack - 2), m.Items.Crate(former)[0]);
+        Assert.Equal(new Stack(Testbed.Pressing, Testbed.Pressed - 2), m.Items.Crate(former)[0]);
         // The smelter at work on both ticks, its own panel on the roof feeding it.
         int smelter = IdOf(m, "smelter");
         Assert.True(m.Crafting.Works(smelter));
@@ -86,5 +88,20 @@ public class TestbedTests
         Assert.True(m.Crafting.Works(capsule));
         Assert.Equal(2 * Spec.Stations.Get("growCapsule").Speed, m.Crafting.Progress(capsule));
         Assert.Equal(new Stack("seed", Testbed.Planted), m.Items.Crate(capsule)[0]);
+    }
+
+    [Fact]
+    public void ItsDronesCarryThroughTheClosedDoorFromTheStartTheFullCrateProvidingAndTheFurnaceAndFormerRequesting()
+    {
+        var m = Built.Value;
+        int bay = IdOf(m, Spec.Logistics.Bay), furnace = IdOf(m, "furnace"), former = IdOf(m, "former");
+        Assert.Equal(Sim.Logistics.Role.Provider, m.Logistics.RoleOf(Crates(m)[0]));
+        Assert.Equal(Sim.Logistics.Role.Storage, m.Logistics.RoleOf(CrateAt(m, Testbed.Storage)));
+        Assert.Equal(Testbed.FurnaceWants, m.Logistics.RequestsOf(furnace).Select(r => (r.Item, r.Count)));
+        Assert.Equal(Testbed.FormerWants, m.Logistics.RequestsOf(former).Select(r => (r.Item, r.Count)));
+        // Room one, beside the pod: through the closed door from room two.
+        Assert.True(m.Grid.MachineById(bay)!.Cell % Testbed.Map.Width < 17);
+        Assert.Equal(Testbed.Drones, m.Items.Crate(bay).Count(s => s?.Item == Spec.Logistics.Drone) + m.Logistics.Drones.Count);
+        Assert.True(m.Logistics.InReach(furnace, "scrapChunk") && m.Logistics.InReach(former, "iron"));
     }
 }

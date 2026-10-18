@@ -30,6 +30,8 @@ public static class Crafts
         new("solarCell", [("silicon", 1), ("glass", 1), ("wire", 1)], Ticks: 100),
         // Pressed at the Former only: a grow capsule's bed (0060).
         new("soil", [("rock", 1), ("planks", 1)], Ticks: 60),
+        // At the circuit assembler: a drone, of a rotor, plates, a circuit and the battery it will run on (0062).
+        new("drone", [("rotor", 1), ("plate", 2), ("circuit", 1), ("battery", 1)], Ticks: 160),
     ];
 
     private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);

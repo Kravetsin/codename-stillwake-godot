@@ -131,6 +131,16 @@ counted twice.
   one of it into them and `back` of itself, a crop's seeds, the caller checking `CanSmelt` first and drawing
   `back` (0060);
   `Consume(id, slot)` uses up one of what a slot holds, a fuel as a fire is lit.
+- **Machine to machine,** for drones (`Logistics`, [0062](../../docs/decisions/0062-drones-carry-what-machines-request.md)), no
+  hero's inventory in between: `HeldFor(id, item)` — what a machine holds of an item where a delivery of it goes;
+  `RoomFor(id, stack)` — how many of a stack would go in; the operations `TakeFrom(id, slot, count)` — up to `count` from
+  any slot, outputs too, the stack taken with all it holds of its own, null for an empty slot; `PutIn(id, stack)` — as
+  much as fits, as a whole, onto stacks alike in slot order and then into empty slots, returning how many did not fit;
+  `LayDown(stack, cell)` — a stack on the floor, still, by `FloorStack.Nobody`, its charge with it. **Where a delivery
+  goes:** a fuel (`BurnTicks`) only into a machine's `FuelSlot`; anything else into its inputs but the fuel slot, so a
+  furnace's fuel and what it smelts never mix; a machine with no `Inputs` given (a crate, a drone bay) all its slots;
+  a charging station nothing without a capacity. In creative mode too: these only move what is there. Moves by hand
+  keep their own rules (`Move`: a slot named, or the first input).
 - **Crafting machines:** `OutputFull(id, cost)` — `items.full` when `cost` does not fit into the
   machine's outputs, its slots past its inputs; the operation `Output(id, cost)` puts it there, the
   caller checking `OutputFull` first: what `Crafting` makes. `InputsLack(id, cost)` — what of `cost` the machine's

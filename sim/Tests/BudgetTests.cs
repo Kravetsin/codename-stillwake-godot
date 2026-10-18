@@ -212,4 +212,65 @@ public class BudgetTests(ITestOutputHelper output)
         Assert.True(burning > 1000 && analysing > 1000, "the machines stand idle");
         Assert.True(ticks.Mean < 10, "a tick is far over its budget");
     }
+
+    /// <summary>
+    /// Drones (0062): four bays of four drones in one aired hall with 43 machines, providers and requesters along it and
+    /// furnaces asking for chunks and fuel, requests too big to meet, so drones fly the whole time: every bay floods its
+    /// zone each look, and every drone finds a path from each cell it enters.
+    /// </summary>
+    [Fact]
+    public void KeepsFourBaysOfFourDronesAmongFortyMachinesUnderBudget()
+    {
+        const int W = 72, H = 16;
+        var rows = Enumerable.Range(0, H).Select(y => (y == 0 || y == H - 1 ? new string('#', W) : "#" + new string('.', W - 2) + "#").ToCharArray()).ToArray();
+        var under = Enumerable.Range(0, H).Select(_ => new string(' ', W).ToCharArray()).ToArray();
+        void Stamp(char c, int x, int y, int w, int h)
+        {
+            for (int dy = 0; dy < h; dy++)
+                for (int dx = 0; dx < w; dx++) rows[y + dy][x + dx] = c;
+        }
+        foreach (int x in new[] { 6, 24, 42, 60 })
+        {
+            Stamp('R', x, 12, 2, 2);
+            Stamp('T', x + 4, 12, 2, 2);
+            Stamp('V', x + 7, 13, 1, 1);
+            under[12][x + 4] = 'o';
+            for (int px = x + 4; px <= x + 7; px++) under[13][px] = '-';
+        }
+        for (int k = 0; k < 17; k++) Stamp('K', 3 + 4 * k, 3, 2, 1);
+        for (int k = 0; k < 11; k++) Stamp('F', 4 + 6 * k, 7, 2, 2);
+        foreach (int x in new[] { 10, 30, 50 }) Stamp('K', x, 10, 2, 1);
+        var w = new Scenario(Layout.Parse([.. rows.Select(r => new string(r))], [.. under.Select(r => new string(r))]));
+        Assert.True(w.M.Grid.Machines.Count >= 40);
+        foreach (var bay in w.M.Grid.MachinesOf(Content.Logistics.Bay)) w.FillCrate(bay.Id, (Content.Logistics.Drone, 4));
+        var crates = w.M.Grid.MachinesOf("crate").Where(c => c.Cell / W == 3).ToList();
+        for (int k = 0; k < crates.Count; k++)
+        {
+            int id = crates[k].Id;
+            if (k % 2 == 0)
+            {
+                w.FillCrate(id, [.. Enumerable.Repeat(("iron", 500), 8), .. Enumerable.Repeat(("plate", 100), 8), .. Enumerable.Repeat(("scrapChunk", 10), 5), .. Enumerable.Repeat(("planks", 50), 5)]);
+                w.Do(new Logistics.SetRole(id, Logistics.Role.Provider));
+            }
+            else
+            {
+                w.Do(new Logistics.SetRole(id, Logistics.Role.Requester));
+                w.Do(new Logistics.SetRequests(id, [new("iron", 4000), new("plate", 800)]));
+            }
+        }
+        foreach (var f in w.M.Grid.MachinesOf("furnace")) w.Do(new Logistics.SetRequests(f.Id, [new("scrapChunk", 10), new("planks", 20)]));
+        // Aired, and the drones under way, before the timed ticks.
+        w.Run(600);
+        int flying = 0;
+        var ticks = Time(w.World, 600, i =>
+        {
+            flying += w.M.Logistics.Drones.Count;
+            return [];
+        });
+        output.WriteLine($"{w.M.Grid.Machines.Count} machines, {w.M.Logistics.Drones.Count} drones flying, {flying / 600.0:F1} on average");
+        output.WriteLine($"tick: {ticks.Mean:F3} ms mean, {ticks.Max:F3} ms max");
+        Assert.True(flying > 600 * 12, "the drones stand docked");
+        // Generous for CI's shared runners, which can be five times slower than a desk.
+        Assert.True(ticks.Mean < 10, "a tick is far over its budget");
+    }
 }
