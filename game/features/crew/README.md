@@ -23,7 +23,8 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Tether.cs`        | the tether as drawn, a reeled rope (`tether.ts`) on `game/render/Rope.cs` (`rope.ts`)   | no    |
 | `DrillPace.cs`     | when the drill hits, on the world's ticks: the tick it starts, then every `Pace` ticks while it runs, no burst after a stall (0054) | no    |
 | `Motor.cs`         | an electric tool in the hand (0055): what this client wants it to run (`Wanted`) and the `Run` sent while the sim differs (`RunOf`) | no    |
-| `Remote.cs`        | `Seen` with its hands (`Busy`, `Handwork`), `SentHero` (and its wire string), `RemoteHeroes`, `HeroSender` (`remote.ts`)     | no    |
+| `Remote.cs`        | `Seen` with its hands (`Busy`, `Handwork`) and its harpoon's rod (`RodSeen`), `SentHero` (and its wire string), `RemoteHeroes`, `HeroSender` (`remote.ts`)     | no    |
+| `RemoteRod.cs`     | another hero's harpoon played out here from the rod it sends: flight, hook, reel, way back, its cues and its gun loaded (0065) | no    |
 | `Suits.cs`         | the suit colours, `Suits.Of`, their shades and the colour the PNGs are drawn in (`suits.ts`, `art.ts`) | no |
 | `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`) | yes |
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
@@ -66,7 +67,18 @@ too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests` and `Bodie
 
 - This hero is sent (`Client.SendHero`, a string net never reads: `SentHero.Encode`, JSON) every 50 ms
   while it moves, turns its head, ties or lets go its tether, takes the plan or a tool out or its hands
-  begin or end work, and every second standing still, stamped with its controller step's time.
+  begin or end work, and every second standing still, stamped with its controller step's time; at once,
+  whatever the 50 ms, when its harpoon's rod changes state.
+- **Its harpoon (0065):** while the rod is out of the gun, `Seen.Rod` (`HarpoonShot.Seen`, `RodSeen`, JSON
+  `"harpoon"`, left out while in the gun): its state and one point that holds through it, the end of the range
+  flying, where it sticks from its piece's middle with the piece's id, where it sticks in the structure, none
+  on the way back. Each peer plays it out (`RemoteRod`) from the sample drawn: the rod flies from the gun drawn
+  here at `Harpoon.RodSpeed`, never past `Harpoon.Range`; stuck, it sits where sent, riding its piece as drawn
+  here; free, or its piece gone here, it snaps back at `Harpoon.ReturnSpeed`; in the gun at once when sent so.
+  Drawn as this hero's (`HeroView.DrawRod`: the rod, the line slack or taut, the puff at the shot), the gun
+  aimed at the rod and loaded 5 s after the shot seen. Heard on World where it is, at `Sound.ToolReach`: the
+  shot, the rod's bite (the chop, the glove's thump on a crate or pod), the drum at the gun while it reels or
+  pulls; no ready cue. About 50 bytes a send while the rod is out, none while it is in.
 - Its hands go with it (0037): the item it wields by id (`Seen.Wields`, `Ui.Wielded`, none passed out),
   and what they are busy with and where (`Seen.Busy`: `Work` the plan the screwdriver turns at, `Chop`
   the point the latest swing is aimed at while a swing plays, with the swings begun (`Busy.Swings`), `Beam` the first cell
@@ -81,15 +93,14 @@ too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests` and `Bodie
   sway the cables as this hero does (`HeroView.Others`).
 - Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe held and swinging
   toward its point, the screwdriver turning at the plan, a beam once to the cell sent (`Busy.BeamsAnew`), the harpoon
-  hanging, empty while the sim reels a piece by that hero (`Reel.By`), with a taut line from its muzzle
-  to the edge of that piece; its shots, flights and hooks are not sent (0044); the drill aimed at its point while it runs
+  hanging while its rod is in the gun and aimed at the rod while it is out; the drill aimed at its point while it runs
   (`Handwork.Drill`), else hanging, and spinning while the sim says that hero runs it (`IItemsQueries.Running`, 0055). Taken
   from the sample at or before the moment drawn, never between two; but the axe swings once for each
   swing number as it is heard, not 150 ms behind (`AxeSwing.Follow`, 0038), toward the point sent with
   that number, the last chop heard kept while its hands are idle (`Busy.Chopping`, 0039), so its blade
   meets the wreck as the hit lands: within a few hundredths of a second on a LAN and at 100 ms lag. The chop and
   the screwdriver are heard from the world, where the wreck takes damage (`DebrisView`) and the plan progresses
-  (`BuildingView`), once whoever works them; the figures play no tool sounds.
+  (`BuildingView`), once whoever works them; the figures play no tool sounds but the harpoon's (below).
 - `--aside` steps this hero off the spawn, so a recording of another peer's hero there sees it whole
   (`play.cmd --host --wreck` with `--join --aside` recorded; or `--host --aside` recorded with
   `--join --plan-demo --max-fps 20` beside it).
@@ -309,7 +320,7 @@ Deliberately not handled:
   metal or structure, the glove's thump on a crate or pod), the drum while reeling or pulled, a ready cue as the cooldown ends
   with a harpoon in hand. Each shot blows a puff of grey air from the muzzle, most along the barrel and one
   off either side (`HarpoonShot.Puff`, `Effect.Puff` on the shared particles): braked aboard in a third of a
-  second, wider and longer out in space; only this hero's own. The line and the rod are drawn over the heroes (`Layers.Hero`), the line
+  second, wider and longer out in space; and others' too, as their rods leave (0065). The line and the rod are drawn over the heroes (`Layers.Hero`), the line
   unlit as the tethers are.
 - **The drill (0054):** with `Ui.Wielded` the drill, the arm aims it as it aims the harpoon, the bit's line
   through the pointer (`HarpoonShot.ArmFor`), the hero facing it; the figure holds it as a pistol by the loop of frame

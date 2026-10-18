@@ -125,6 +125,24 @@ public sealed class HarpoonShot
     /// <summary>Whether the gun fires at the next press: the rod seated and the cooldown over. Drawn loaded.</summary>
     public bool Ready => Rod == Rod.Seated && _cooldownMs <= 0;
 
+    /// <summary>Whether a rod where <paramref name="rod"/> says draws its line wound taut: reeling, pulled, hanging or on the way back.</summary>
+    public static bool Taut(Rod rod) => rod is Rod.Reeling or Rod.Pulling or Rod.Hanging or Rod.Returning;
+
+    /// <summary>Whether the drum turns with a rod where <paramref name="rod"/> says: reeling a piece in or pulling the hero.</summary>
+    public static bool Drums(Rod rod) => rod is Rod.Reeling or Rod.Pulling;
+
+    /// <summary>The rod as others see it (0065): none in the gun; else its state and the one point that holds through it.</summary>
+    public RodSeen? Seen => Rod switch
+    {
+        Rod.Seated => null,
+        Rod.Flying => new RodSeen(Rod, Whole((_from.X + Heading.X * Spec.Range, _from.Y + Heading.Y * Spec.Range))),
+        Rod.Returning => new RodSeen(Rod),
+        _ when Piece is int piece => new RodSeen(Rod, Whole(_stuck), piece),
+        _ => new RodSeen(Rod, Whole(Tip)),
+    };
+
+    private static Point Whole((double X, double Y) at) => new((int)Math.Round(at.X), (int)Math.Round(at.Y));
+
     /// <summary>
     /// Moves the harpoon on by <paramref name="elapsedMs"/>: <paramref name="pressed"/> is a fresh press of the
     /// left button, never a hold.

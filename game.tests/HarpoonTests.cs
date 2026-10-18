@@ -485,4 +485,47 @@ public class HarpoonTests
         Assert.True(free.Drag < braked.Drag && free.LifeMs.To > braked.LifeMs.To && free.Spread > braked.Spread);
         Assert.InRange(braked.LifeMs.To, 300, 400);
     }
+
+    // As others see it (0065): one point a state, so the rod adds no sends of its own.
+
+    [Fact]
+    public void ShowsOthersNothingInTheGunAndInFlightTheEndOfTheRangeItFliesToward()
+    {
+        var (shot, world) = (new HarpoonShot(), new Pieces());
+        Assert.Null(shot.Seen);
+        shot.Step(10, true, new GunHold(true, (300, -200), (0, -2)), world.World);
+        var flying = shot.Seen;
+        Assert.Equal(new RodSeen(Rod.Flying, new Point(300, -200 - Spec.Range)), flying);
+        Run(shot, 100, world, new GunHold(true, (300, -200), (0, -2)));
+        Assert.Equal(flying, shot.Seen);
+    }
+
+    [Fact]
+    public void ShowsOthersARodInAPieceWhereItSticksFromItsMiddleHookedOrReeling()
+    {
+        var (shot, world) = Hooked();
+        var hooked = new RodSeen(Rod.Hooked, new Point(-500, 0), 1);
+        Assert.Equal(hooked, shot.Seen);
+        // The piece drifts: the rod rides it, and what others are told holds.
+        world.At[1] = (7_000, 300);
+        shot.Step(10, false, Out(), world.World);
+        Assert.Equal(hooked, shot.Seen);
+        shot.Step(10, true, Out(), world.World);
+        Assert.Equal(hooked with { Rod = Rod.Reeling }, shot.Seen);
+    }
+
+    [Fact]
+    public void ShowsOthersARodInTheStructureWhereItSticksAndNoPointOnTheWayBack()
+    {
+        var world = new Pieces { Wall = 6_000 };
+        var shot = new HarpoonShot();
+        shot.Step(10, true, Out(), world.World);
+        Run(shot, 200, world);
+        Assert.Equal(new RodSeen(Rod.Hooked, new Point(6_000, 0)), shot.Seen);
+        shot.Step(10, true, Out(middle: (0, 0)), world.World);
+        Assert.Equal(new RodSeen(Rod.Pulling, new Point(6_000, 0)), shot.Seen);
+        world.Holds = false;
+        shot.Step(10, false, Out(), world.World);
+        Assert.Equal(new RodSeen(Rod.Returning), shot.Seen);
+    }
 }

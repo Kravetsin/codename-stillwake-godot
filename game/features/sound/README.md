@@ -58,7 +58,10 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
     or the action's thump (`ActSound`) on a crate or pod; the drum (`Sound.Drum`, a loop) from the click
     that reels till the piece is in or the line comes free, never on a miss; and `Sound.Ready` as the
     hero's cooldown ends with a harpoon in hand, the gun ready, not the rod back. No sound of the line
-    going taut; others' harpoons are silent.
+    going taut. Others' harpoons (0065) on World where they are, at `Sound.ToolReach` (5 → 20 cells), as
+    their steps are, so silent while this hero floats: the shot at the gun, the bite where the rod sticks
+    (`Sound.Chop`, or `Sound.ActInSpace` on a crate or pod), the drum at the gun, one looped player a hero, while
+    it reels or pulls; no ready cue.
   - `crew/HeroView.cs` — this player's drill (0054, 0059), on Suit at its bit: its motor whenever it spins
     (`Sound.DrillWhir`), grains of a drill running free, never a looped recording: `DrillWhirGrainsPerSecond` (9) a
     second times the motor's speed, each its pitch ±`DrillWhirPitch` (2%) about that speed (`StrikeTrain`), the speed and

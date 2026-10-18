@@ -7,10 +7,19 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// A hero as others see it: its movement, the turn of its head toward its pointer, whether it holds the
-/// plan, the item it wields (an item's id, such as the fire axe's) and what its hands are busy with.
-/// Only drawn, never part of the world.
+/// plan, the item it wields (an item's id, such as the fire axe's), what its hands are busy with and its
+/// harpoon's rod while out of the gun. Only drawn, never part of the world.
 /// </summary>
-public readonly record struct Seen(Hero Hero, double? Look = null, bool HoldsPlan = false, string? Wields = null, Busy? Busy = null);
+public readonly record struct Seen(Hero Hero, double? Look = null, bool HoldsPlan = false, string? Wields = null, Busy? Busy = null, RodSeen? Rod = null);
+
+/// <summary>
+/// A hero's harpoon rod out of the gun, as others see it (<see cref="HarpoonShot.Seen"/>): where it is,
+/// <see cref="Rod"/>, and <see cref="At"/>, in thousandths of a cell, a point that holds for the whole state, so
+/// a rod adds no sends of its own: flying, the end of the range it flies toward; stuck in a <see cref="Piece"/>,
+/// where it sticks from the piece's middle; stuck in the structure, where it sticks; none on the way back.
+/// Others play it out from these (<see cref="RemoteRod"/>, 0065).
+/// </summary>
+public readonly record struct RodSeen(Rod Rod, Point? At = null, int? Piece = null);
 
 /// <summary>What a hero's hands work: a plan with the screwdriver (0030), a wreck with what they wield (0034), plans beamed in by the planner, the drill running aimed at a point (0054).</summary>
 public enum Handwork { Work, Chop, Beam, Drill }
@@ -49,13 +58,13 @@ public readonly record struct SentHero(Seen Seen, double? At = null)
     // Left out while null: a hero with idle, empty hands is written as before there were hands to send.
     private sealed record Wire(
         int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor, double? Look, bool Plan, double? At,
-        string? Wields = null, Busy? Busy = null);
+        string? Wields = null, Busy? Busy = null, RodSeen? Harpoon = null);
 
     /// <summary>What <c>Client.SendHero</c> carries: net never reads it.</summary>
     public string Encode()
     {
         var h = Seen.Hero;
-        return JsonSerializer.Serialize(new Wire(h.X, h.Y, h.Vx, h.Vy, h.Climbing, h.Facing, h.Anchor, Seen.Look, Seen.HoldsPlan, At, Seen.Wields, Seen.Busy), Options);
+        return JsonSerializer.Serialize(new Wire(h.X, h.Y, h.Vx, h.Vy, h.Climbing, h.Facing, h.Anchor, Seen.Look, Seen.HoldsPlan, At, Seen.Wields, Seen.Busy, Seen.Rod), Options);
     }
 
     /// <summary>A hero another peer sent, as <see cref="Encode"/> wrote it; none for what it did not write.</summary>
@@ -64,7 +73,7 @@ public readonly record struct SentHero(Seen Seen, double? At = null)
         try
         {
             if (JsonSerializer.Deserialize<Wire>(state, Options) is not { Facing: 1 or -1 } w) return null;
-            return new SentHero(new Seen(new Hero(w.X, w.Y, w.Vx, w.Vy, w.Climbing, w.Facing, w.Anchor), w.Look, w.Plan, w.Wields, w.Busy), w.At);
+            return new SentHero(new Seen(new Hero(w.X, w.Y, w.Vx, w.Vy, w.Climbing, w.Facing, w.Anchor), w.Look, w.Plan, w.Wields, w.Busy, w.Harpoon), w.At);
         }
         catch (JsonException)
         {
@@ -202,12 +211,14 @@ public sealed class HeroSender(Action<SentHero> send)
 
     /// <summary>
     /// Takes the real time passed, the hero now, and the time of the controller step it stands at, which
-    /// goes with it as its stamp.
+    /// goes with it as its stamp. Its harpoon's rod changing goes at once, so others play the rod out from
+    /// the moment it fired, stuck or came free (<see cref="RemoteRod"/>).
     /// </summary>
     public void Step(double elapsedMs, Seen seen, double at)
     {
         _sinceSent += elapsedMs;
-        if (_sinceSent < RemoteHeroes.SendMs) return;
+        bool rodNews = _sent is { } before && before.Rod != seen.Rod;
+        if (_sinceSent < RemoteHeroes.SendMs && !rodNews) return;
         bool moved = _sent is not { } was
             // Speed too: a hero that stops is sent standing, not left mid-stride until the beat. A
             // tether tied or let go, the plan or a tool taken out, work begun or ended: news even standing still.
