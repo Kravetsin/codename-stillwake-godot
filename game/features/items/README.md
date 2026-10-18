@@ -90,13 +90,16 @@ as everything E works is, in the crew feature (`AimTests`).
   panel shows it at once.
 - An analyzer's panel speaks only of the item in its slot (`Lessons`): empty, its slot, its dark
   screen and a hint; at work, running lines on the screen, a bar and "Analysing… N%" in violet; without
-  power, a dark screen and "No power"; done (the item analysed, at once for one analysed before), a
-  check on the screen and, under "Analysed · <item> goes into:" in green, every blueprint and craft
-  whose cost has that item, in rows that wrap: opened ones edged green, closed ones greyed out. Over
-  each, the one tooltip says "Opened", or each item of its cost not analysed yet, or that analysis
+  power, a dark screen and "No power"; holding an item in no cost (`Analysable`, 0027 amended), a dark
+  screen and "Nothing to learn · <item> goes into nothing" in grey, no bar, nothing listed; done (the
+  item analysed, at once for one analysed before), a check on the screen and, under "Analysed · <item>
+  goes into:" in green, every blueprint and craft whose cost has that item, in rows that wrap: opened
+  ones edged green, closed ones greyed out. Over each, the one tooltip says "Opened", or each item of its cost not analysed yet, or that analysis
   cannot open it yet. Its pictures are built again only when they change.
 - Every slot showing an item not analysed yet, the stack in hand too, has a violet "?" in its
-  top-right corner (the top-left is the hotbar's digit), never in creative mode.
+  top-right corner (the top-left is the hotbar's digit), never in creative mode. Only an item in some
+  cost waits for analysis (`ItemCards.Unknown`, from `Research.Analysable`): a tool, the jetpack, the
+  battery or biofuel never shows it, nor its card the band.
 - Every stack, in the inventory, the hotbar, a crate, a furnace or an analyzer, shows its card in the
   one tooltip (`Shared.PointerTip`) at once by the pointer (`Shared.ItemCards`, drawn by
   `Shared.ItemCardView`, the mockup's plaque): its icon large, its name and its kind (`item.<id>.kind`);

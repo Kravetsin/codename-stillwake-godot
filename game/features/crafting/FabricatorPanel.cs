@@ -354,7 +354,7 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>The card of <paramref name="item"/> with what this station adds, its band as a slot's "?".</summary>
     private Tip CardTip(string item, StationBlock station)
     {
-        bool unknown = !_creative && _research?.Analysed.Contains(item) != true;
+        bool unknown = ItemCards.Unknown(item, _creative, _research?.Analysed ?? []);
         var card = ItemCards.Of(item, unknown) with { Station = station };
         return new Tip(card.Name) { Card = card };
     }

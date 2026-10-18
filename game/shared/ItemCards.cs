@@ -24,6 +24,13 @@ public static class ItemCards
     /// <summary>Whether <paramref name="item"/> is a tool: a weapon (the fire axe, the drill) or the harpoon.</summary>
     public static bool IsTool(string item) => Spec.Weapons.Of(item) != null || item == Spec.Harpoon.Item;
 
+    /// <summary>
+    /// Whether <paramref name="item"/> shows the violet "?" and its card the band: it needs analysis, being in
+    /// some cost (<see cref="Analysable"/>), and is not among <paramref name="analysed"/>; never in creative mode.
+    /// </summary>
+    public static bool Unknown(string item, bool creative, IEnumerable<string> analysed) =>
+        !creative && Analysable.NeedsAnalysis(item) && !analysed.Contains(item);
+
     /// <summary>The card of <paramref name="item"/>; <paramref name="unknown"/> while not analysed.</summary>
     public static ItemCard Of(string item, bool unknown) => Card(item, unknown) with { Draw = Spec.Items.Get(item).Draw };
 

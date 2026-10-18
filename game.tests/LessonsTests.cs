@@ -39,6 +39,22 @@ public class LessonsTests
     }
 
     [Fact]
+    public void SayThereIsNothingToLearnFromAnItemInNoCostAtOnceAndListNothing()
+    {
+        var (w, analyzer) = World();
+        w.Give(0, ("jetpack", 1));
+        int slot = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "jetpack");
+        // Just put in, before its tick runs, as after it.
+        Assert.Equal(Stage.NothingToLearn, Lessons.Of(w.M.Research, "jetpack", null).Stage);
+        w.Step(new Move(new Place(slot), new Target(Crate: analyzer), 1));
+        for (int i = 0; i < Content.Research.Ticks; i++) w.Step();
+        var lessons = Shown(w, analyzer);
+        Assert.Equal((Stage.NothingToLearn, "jetpack", 0), (lessons.Stage, lessons.Item, lessons.Percent));
+        Assert.Empty(lessons.Recipes);
+        Assert.Equal("research.nothingToLearn", w.M.Research.At(analyzer)?.Problem);
+    }
+
+    [Fact]
     public void ShowAnItemJustPutInAtWorkFromNothingBeforeItsTickRuns()
     {
         var (w, _) = World();

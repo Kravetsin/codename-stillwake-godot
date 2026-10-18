@@ -6,8 +6,11 @@ using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Items;
 
-/// <summary>What an analyzer's panel says it is doing: empty, at work, without power, or done with what it holds.</summary>
-public enum Stage { Empty, Working, Unpowered, Done }
+/// <summary>
+/// What an analyzer's panel says it is doing: empty, at work, without power, done with what it holds, or
+/// resting on an item there is nothing to learn from, being in no cost.
+/// </summary>
+public enum Stage { Empty, Working, Unpowered, Done, NothingToLearn }
 
 /// <summary>A blueprint or craft the analysed item goes into: opened, or closed for the items of its cost not analysed yet.</summary>
 public sealed record Lesson(Recipe Recipe, bool Opened)
@@ -30,7 +33,7 @@ public sealed record Lesson(Recipe Recipe, bool Opened)
 /// <summary>
 /// What an analyzer's panel shows (0027): its stage, how far its work is, and once what it holds is
 /// analysed, every blueprint and craft whose cost has that item in it, opened or not. Nothing about
-/// any other item: an empty analyzer lists nothing.
+/// any other item: an empty analyzer lists nothing, nor one holding an item in no cost.
 /// </summary>
 /// <param name="Percent">How far the analysis is, rounded down; a hundred once done.</param>
 public sealed record Lessons(Stage Stage, string? Item, int Percent, IReadOnlyList<Lesson> Recipes)
@@ -43,6 +46,7 @@ public sealed record Lessons(Stage Stage, string? Item, int Percent, IReadOnlyLi
     public static Lessons Of(IResearchQueries research, string? item, Analyzing? at)
     {
         if (item == null) return new Lessons(Stage.Empty, null, 0, []);
+        if (!Analysable.NeedsAnalysis(item)) return new Lessons(Stage.NothingToLearn, item, 0, []);
         if (research.Analysed.Contains(item))
         {
             var recipes = research.Recipes()
