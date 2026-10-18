@@ -73,8 +73,8 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   mark is kept, as `(Layer, Cell)`, null for nothing there; `WorkProblem(planId, peer)` — the refusal
   that peer's `Work` would get; `Lacking(planId)` — what a blueprint still lacks of its cost, nothing in
   creative mode; `Parts(planId)` — `(In, Of)`: the parts of a blueprint put in, of all its parts, those paid
-  for or, in creative mode, those its work began, what the client draws built, null for a mark or no plan;
-  `TicksFor(planId)` — the ticks a plan takes in all, null for no plan; `CostOf(planId)` —
+  for or, in creative mode, those its work began, null for a mark or no plan;
+  `TicksFor(planId)` — the ticks a plan takes in all, against which the client draws a blueprint built as far as its `Progress`, null for no plan; `CostOf(planId)` —
   what a blueprint costs in all, null for a mark or no plan; `CostFor(placement)` — what placing it
   costs, for the build menu.
 - **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.unknown`,

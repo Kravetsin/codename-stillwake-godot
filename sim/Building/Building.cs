@@ -99,7 +99,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
 
     /// <summary>
     /// How many parts of blueprint <paramref name="id"/> are put in, of all its parts, one an item of its cost: those
-    /// paid for, or in creative mode those its work has begun. What the client draws built; null for a mark or no plan.
+    /// paid for, or in creative mode those its work has begun. Null for a mark or no plan.
     /// </summary>
     public (int In, int Of)? Parts(int id)
     {
@@ -109,7 +109,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
         return (Math.Min(parts, Math.Max(begun, PaidInto(plan))), parts);
     }
 
-    /// <summary>Ticks of work plan <paramref name="id"/> takes in all, for a mark's bar; null for no plan.</summary>
+    /// <summary>Ticks of work plan <paramref name="id"/> takes in all, how far a blueprint is drawn built by its work done; null for no plan.</summary>
     public int? TicksFor(int id) => State.Plans.Find(p => p.Id == id) is { } plan ? Costs.TicksFor(_grid, plan) : null;
 
     /// <summary>What placing <paramref name="placement"/> costs: a build menu card's price.</summary>

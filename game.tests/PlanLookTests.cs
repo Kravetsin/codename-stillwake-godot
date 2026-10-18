@@ -93,12 +93,15 @@ public class PlanLookTests
     }
 
     [Fact]
-    public void APlanBeingBuiltTurnsRealFromTheBottomAPartAStepAndAFloorOrAConduitFromTheLeft()
+    public void APlanBeingBuiltTurnsRealFromTheBottomAsItIsWorkedAndAFloorOrAConduitFromTheLeft()
     {
-        // A wall at cell (2, 3) of two parts, one put in: its bottom half real, its top half a plan.
+        // A wall at cell (2, 3) half worked: its bottom half real, its top half a plan.
         var wall = PlanCut.Of((2 * Cell, 3 * Cell, Cell, Cell), PlanCut.FromLeftFor("structure", "wall"), 1, 2);
         Assert.Equal(((32, 56, 16, 8), (32, 48, 16, 8)), wall.Split((32, 48, 16, 16)));
-        // Nothing put in leaves it all a plan; all of it, all real.
+        // A scrap wall of 13 ticks fills tick by tick, a row or two at a time, never back: no part reveals itself whole.
+        var rows = Enumerable.Range(0, 14).Select(t => Height(PlanCut.Of((0, 0, Cell, Cell), false, t, 13), 0)).ToArray();
+        Assert.Equal([0, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16], rows);
+        // No work leaves it all a plan; all of it, all real.
         Assert.Equal((0, 16), (Height(PlanCut.Of((0, 0, Cell, Cell), false, 0, 2), 0), Height(PlanCut.Of((0, 0, Cell, Cell), false, 2, 2), 0)));
         // A tank two cells square, 5 parts, 3 in: 32 * 3 / 5 = 19 rows real, rounded down, in the lower cell 16 and the upper 3.
         var tank = PlanCut.Of((0, 0, 2 * Cell, 2 * Cell), false, 3, 5);

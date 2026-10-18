@@ -314,15 +314,15 @@ public partial class BuildingView : Node2D
     }
 
     /// <summary>
-    /// Where blueprint <paramref name="p"/> turns from real into plan: across its box, a step a part put in
-    /// (<see cref="BuildingModule.Parts"/>); none while nothing is.
+    /// Where blueprint <paramref name="p"/> turns from real into plan: across its box as far as its work has gone, a
+    /// pixel at a time; none before any. Work stops where a part is not paid for, so a stalled build sits at its boundary.
     /// </summary>
     private static PlanCut? CutOf(IGridQueries grid, BuildingModule building, Sim.Building.Plan p, Placement place)
     {
-        if (building.Parts(p.Id) is not ( > 0 and var built, var parts)) return null;
+        if (p.Progress <= 0 || building.TicksFor(p.Id) is not { } ticks) return null;
         var box = BoxOf(CellsOf(grid, p), grid.Width);
         var pixels = ((int)box.Position.X, (int)box.Position.Y, (int)box.Size.X, (int)box.Size.Y);
-        return PlanCut.Of(pixels, PlanCut.FromLeftFor(place.Layer, place.Kind), built, parts);
+        return PlanCut.Of(pixels, PlanCut.FromLeftFor(place.Layer, place.Kind), p.Progress, ticks);
     }
 
     /// <summary>

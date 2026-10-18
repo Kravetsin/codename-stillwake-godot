@@ -64,14 +64,15 @@ outline draws too; `PlanOutline`: the dashes round plans; `Sketch`). The plain f
 - Planned back walls and their dashes are drawn just over the rooms' air (`Layers.PlanBacks`), under the
   pipes, walls and machines built in front of them; the rest of a plan over the ship.
 - The ghost in hand is drawn the same way, tinted plainly green where the sim would take it, red where not.
-- A blueprint being built turns into the real thing a part at a time (0063): walls, back walls, ladders,
-  doors and machines from the bottom up, floors and conduits from the left, the cut at `In / Of` of its box
-  (`BuildingModule.Parts`, rounded down to a pixel), so each step is one item put in. The cut stays at the
-  parts paid for while a part is worked, rather than creeping with each tick: a step the moment an item
-  leaves the hero's hands reads as that item going in, and where work stopped for want of one the line
-  sits exactly where it stopped; sparks and the screwdriver say the work goes on. No bar: the amber delivery
-  bar and the white work bar on blueprints are gone; the dashes stay round the whole plan until it is
-  built, and a machine keeps its "+".
+- A blueprint being built turns into the real thing as it is worked (0063): walls, back walls, ladders,
+  doors and machines from the bottom up, floors and conduits from the left, the cut at `Progress / TicksFor`
+  of its box, rounded down to a pixel, so it moves a row or a column of the art at a time. The first touch of
+  a part pays its item (the sim), then the part fills smoothly under the screwdriver; where work stopped for
+  want of an item the line sits exactly at that part's boundary, as the sim stops the work there. The cut
+  follows the ticks, not the frames between them: a tick is a pixel or two of a wall, a step too small to
+  smooth, and guessing ahead would overshoot a stalled part. No bar: the amber delivery bar and the white
+  work bar on blueprints are gone; the dashes stay round the whole plan until it is built, and a machine
+  keeps its "+".
 - The real share is drawn as the grid draws what is built: each piece of the picture at its layer of the
   ship (`Layers.BackWalls` … `Layers.Machines`, so heroes pass in front of it), lit by `Lit`, walls, edges
   and doors keeping `Light.WallIn`; the rest stays the unlit ghost over the ship. It is lit by what reaches
