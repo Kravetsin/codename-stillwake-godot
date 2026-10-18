@@ -15,7 +15,8 @@ namespace Stillwake.Game.Features.Crafting;
 /// room round it in its glow's colour; the circuit assembler's arm dips to its board under the glass, its rotor joint
 /// turning, while its screen runs green, drawn unlit over it (<c>art/{kind}_screen_*.png</c>, in step), lighting the
 /// room green. Idle, waiting full or without power, it stands still and dark. A fed station too cold for what its
-/// input holds shows a cold-blue mark where it would work it, pulsing, its own faint light.
+/// input holds shows a cold-blue mark where it would work it, pulsing, its own faint light. Heard where it stands as it works
+/// (<see cref="StationSounds"/>): the Former's strokes in step with its head, its motor; the smelter's hum and its melt.
 /// </summary>
 public partial class StationView : Node2D
 {
@@ -25,14 +26,15 @@ public partial class StationView : Node2D
     /// How a station shows it works: <paramref name="Frames"/> pictures, each shown <paramref name="StepMs"/>, lit as the
     /// machine is, or unlit when they are what <paramref name="Glows"/>; the lights it gives, where they stand in its
     /// picture, in <paramref name="Light"/>, as much of it as <paramref name="Levels"/> says a picture, each light a
-    /// picture apart; with <paramref name="Screen"/>, a screen's pictures drawn unlit over the moving parts, in step.
+    /// picture apart; with <paramref name="Screen"/>, a screen's pictures drawn unlit over the moving parts, in step; with
+    /// <paramref name="Down"/>, the picture its press head comes down on, where its stroke is heard.
     /// </summary>
-    private sealed record Motion(int Frames, double StepMs, bool Glows = false, Vector2[]? Lights = null, Color Light = default, float[]? Levels = null, bool Screen = false);
+    private sealed record Motion(int Frames, double StepMs, bool Glows = false, Vector2[]? Lights = null, Color Light = default, float[]? Levels = null, bool Screen = false, int? Down = null);
 
     /// <summary>The stations whose parts move or glow, by kind.</summary>
     private static readonly Dictionary<string, Motion> Moving = new()
     {
-        ["former"] = new(4, 110),
+        ["former"] = new(4, 110, Down: 2),
         // The coils' glow: a hot orange, a little brighter on each picture as the heat runs up them.
         ["smelter"] = new(3, 160, Glows: true, Lights: [new(11.5f, 18), new(19.5f, 18)], Light: new(1f, 0.5f, 0.18f), Levels: [0.5f, 0.6f, 0.55f]),
         // The screen's trace, green as it is, flickering a little as it runs.
@@ -59,6 +61,7 @@ public partial class StationView : Node2D
     private readonly List<Vector2> _cold = [];
     private readonly List<Glow> _coldGlows = [];
     private readonly Node2D _marks = new() { ZIndex = Layers.Screens, Material = Unlit };
+    private readonly StationSounds _sounds = new();
     private double _clock;
 
     public StationView(IGridQueries grid, CraftingModule crafting)
@@ -66,6 +69,7 @@ public partial class StationView : Node2D
         _grid = grid;
         _crafting = crafting;
         AddChild(_marks);
+        AddChild(_sounds);
         _marks.Draw += DrawMarks;
     }
 
@@ -82,12 +86,17 @@ public partial class StationView : Node2D
         {
             var corner = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * Cell;
             if (ColdAt.TryGetValue(m.Kind, out var cold) && _crafting.TooCold(m.Id)) _cold.Add(corner + cold);
-            if (!Moving.TryGetValue(m.Kind, out var motion) || !_crafting.Works(m.Id)) continue;
+            if (!Moving.TryGetValue(m.Kind, out var motion)) continue;
+            bool works = _crafting.Works(m.Id);
+            // Each machine a step apart from the next, so two never beat in step.
+            long step = (long)(_clock / motion.StepMs) + m.Id;
+            var middle = corner + PixelArt.Picture($"{m.Kind}_work_0").GetSize() / 2;
+            _sounds.Hear(m.Id, m.Kind, middle, works, step, motion.Frames, motion.Down, delta);
+            if (!works) continue;
             _working.Add(m.Id);
             if (!_shown.TryGetValue(m.Id, out var shown)) _shown[m.Id] = shown = Shown(motion);
             shown.Sprite.Position = corner;
-            // Each machine a step apart from the next, so two never beat in step.
-            int frame = ((int)(_clock / motion.StepMs) + m.Id) % motion.Frames;
+            int frame = (int)(step % motion.Frames);
             shown.Sprite.Texture = PixelArt.Picture($"{m.Kind}_work_{frame}");
             if (shown.Screen is { } screen)
             {
@@ -100,6 +109,7 @@ public partial class StationView : Node2D
                 shown.Glows[i].Colour = motion.Light * motion.Levels![(frame + i) % motion.Levels.Length];
             }
         }
+        _sounds.Forget();
         _stopped.Clear();
         foreach (var id in _shown.Keys)
             if (!_working.Contains(id)) _stopped.Add(id);

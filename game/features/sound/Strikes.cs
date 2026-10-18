@@ -63,3 +63,64 @@ public struct LoopEnvelope
     /// <summary>The envelope's gain in decibels on top of the cue's: none at full, very quiet near nothing.</summary>
     public readonly float GainDb => (float)(20 * Math.Log10(Math.Max(Share, Hearing.Faint)));
 }
+
+/// <summary>
+/// A one-shot struck in step with a picture (0059): the Former's stroke as its press head comes down. Its pictures go by in
+/// steps, picture <c>step % frames</c>; a stroke is due each time the steps since the last frame pass picture <c>down</c>,
+/// however many a slow frame skipped (one at most), and on the first frame it is shown on that picture.
+/// </summary>
+public struct FrameBeat
+{
+    private long _last;
+    private bool _on;
+
+    /// <summary>Whether the picture came to <paramref name="down"/> of <paramref name="frames"/> by step <paramref name="step"/>, while <paramref name="on"/>.</summary>
+    public bool Struck(bool on, long step, int frames, int down)
+    {
+        if (!on)
+        {
+            _on = false;
+            return false;
+        }
+        long from = _on ? _last + 1 : step;
+        (_last, _on) = (step, true);
+        if (step < from) return false;
+        long next = from + (((down - from) % frames) + frames) % frames;
+        return next <= step;
+    }
+}
+
+/// <summary>
+/// One-shots at random moments while something works, <c>rate</c> a second on average (0059): the smelter's melt bubbling. The
+/// gaps between them are drawn from <c>random</c> as a Poisson process's are, the first one too, so nothing plays the moment
+/// it starts; a stall owes at most <see cref="StrikeTrain.MostPerFrame"/>.
+/// </summary>
+public struct RandomTrain
+{
+    private double _wait;
+    private bool _on;
+
+    /// <summary>How many are due this frame of <paramref name="elapsedS"/> seconds, while <paramref name="on"/>.</summary>
+    public int Due(double elapsedS, bool on, double rate, Random random)
+    {
+        if (!on)
+        {
+            _on = false;
+            return 0;
+        }
+        if (!_on) (_wait, _on) = (Gap(rate, random), true);
+        _wait -= elapsedS;
+        int due = 0;
+        while (_wait <= 0 && due < StrikeTrain.MostPerFrame)
+        {
+            due++;
+            _wait += Gap(rate, random);
+        }
+        // Whatever is still owed after a stall is dropped, not played later.
+        if (_wait <= 0) _wait = Gap(rate, random);
+        return due;
+    }
+
+    /// <summary>A gap before the next, in seconds: exponential, <paramref name="rate"/> a second on average.</summary>
+    public static double Gap(double rate, Random random) => -Math.Log(1 - random.NextDouble()) / rate;
+}

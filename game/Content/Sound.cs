@@ -21,6 +21,15 @@ public static class Sound
     /// </summary>
     public sealed record Cue(IReadOnlyList<string> Files, float VolumeDb, float Pitch = 0.06f, bool Loops = false, Reach? Heard = null, float Tune = 1);
 
+    /// <summary>
+    /// A motor's sound (0059): a loop that spins up over <paramref name="SpinUpS"/> and down over <paramref name="SpinDownS"/>,
+    /// linearly, its pitch scale rising from <paramref name="Idle"/> at a standstill to 1 at speed and its volume with it,
+    /// full from <c>1/<paramref name="Swell"/></c> of its speed. Under load it sags: its pitch scale times 1 − <paramref name="Sag"/>
+    /// and its volume <paramref name="LoadedDb"/> more, the load eased in over a time constant of <paramref name="LoadInS"/> and
+    /// out over <paramref name="LoadOutS"/>; a blow (a press stroke) loads it at once.
+    /// </summary>
+    public sealed record Motor(double SpinUpS, double SpinDownS, double Idle, double Sag, double LoadInS, double LoadOutS, float LoadedDb = 0, double Swell = 1);
+
     /// <summary>How far a sound in the world carries, in cells: full volume up to <paramref name="Full"/>, none from <paramref name="Silent"/>.</summary>
     public sealed record Reach(float Full, float Silent)
     {
@@ -34,11 +43,19 @@ public static class Sound
     }
 
     /// <summary>
+    /// How every station's sound carries while it works (0059): the Former's, the smelter's, a furnace's or burner
+    /// generator's fire, a charging station's hum. All on the World bus, all as far: full within 2 cells, gone at 10. Their
+    /// volumes are set by ear and meter so each station at work is about as loud as the next, about −32 LUFS at its loudest
+    /// 400 ms within 2 cells as Godot mixes it: it tells that it works, under a door, a step or a tool.
+    /// </summary>
+    public static readonly Reach StationReach = new(2, 10);
+
+    /// <summary>
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient, Music and Effects into Master; into
     /// Effects, World (every hero's steps, machines, air, doors: silenced while floating), Suit (what this
-    /// player's hero itself touches: an action's sound, its own axe's chop and drill's strikes, a wreck its hit breaks, its harpoon, its jetpack; heard
-    /// through the body, dulled while floating) and Helmet (the suit's alarm, in the helmet's air: always
-    /// clear). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
+    /// player's hero itself touches: an action's sound, its own axe's chop and drill, a wreck its hit breaks, its harpoon, its
+    /// jetpack, a canister breathed; heard through the body, dulled while floating, a little louder there) and Helmet (the
+    /// suit's alarm, in the helmet's air: always clear). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
     /// hearing's (0033, 0042). Ambient waits for the first ambience: the ship's hum comes from its vents
     /// and fires, in the world.
     /// </summary>
@@ -65,8 +82,9 @@ public static class Sound
     /// The action's sound while this player's hero floats in space (0042): a glove's low thump in place of the
     /// click, which has almost nothing the muffle lets through; on the Suit bus, muffled as all there is.
     /// </summary>
-    public static readonly Cue ActInSpace = new(Shots("hands/act-space", 1), -6);
-    public static readonly Cue Fire = Looped("furnace/fire", -10, new(3, 12));
+    public static readonly Cue ActInSpace = new(Shots("hands/act-space", 1), -12);
+    /// <summary>A furnace's or burner generator's fire crackling while it burns, a station's sound (<see cref="StationReach"/>).</summary>
+    public static readonly Cue Fire = Looped("furnace/fire", -13, StationReach);
     /// <summary>
     /// This player's own axe biting into a wreck (0034, 0042), heard where the wreck is: on the Suit bus,
     /// through the glove, as a wreck is only ever out in space; another hero's hit there is silent.
@@ -83,19 +101,71 @@ public static class Sound
     public const float DrillStrikesPerSecond = 18, DrillStrikePitch = 0.12f, DrillStrikeVolumeDb = 1.5f;
 
     /// <summary>
+    /// This player's drill's motor (0059), heard at its bit on the Suit bus whenever it spins, on a piece or at nothing: grains of
+    /// a cordless drill running free, 150 ms each, <see cref="DrillWhirGrainsPerSecond"/> of them a second at full speed (fewer
+    /// and lower as it spins up or down), overlapping, each its pitch within ±<see cref="DrillWhirPitch"/> of the motor's speed.
+    /// Never a long recording looped. 6 dB under the strikes, as the user chose it.
+    /// </summary>
+    public static readonly Cue DrillWhir = new(Shots("debris/drill-whir", 3), -8, Pitch: 0, Heard: new(5, 20));
+    public const float DrillWhirGrainsPerSecond = 9, DrillWhirPitch = 0.02f;
+
+    /// <summary>
+    /// The drill's motor: spun up and down as its picture is (<see cref="HeldLook.SpinUpMs"/>), from 0.35 of its pitch; with its bit
+    /// on a piece it sags 8% and quietens 3 dB under the strikes, eased in over 60 ms and out over 150 ms.
+    /// </summary>
+    public static readonly Motor DrillMotor = new(HeldLook.SpinUpMs / 1000, HeldLook.SpinDownMs / 1000, Idle: 0.35, Sag: 0.08, LoadInS: 0.06, LoadOutS: 0.15, LoadedDb: -3, Swell: 1.5);
+
+    /// <summary>
+    /// How long the drill counts as on a piece after its bit last was, in seconds: grazing a piece's edge, where the bit is on and
+    /// off it from frame to frame, keeps striking rather than breaking into bursts.
+    /// </summary>
+    public const double DrillTouchHoldS = 0.1;
+
+    /// <summary>
+    /// The Former's press (0059), where it stands, on the World bus: a 10-ton punch press's stroke, once each time its head comes
+    /// down in its pictures (every 0.44 s at its 4 × 110 ms), each its pitch scale within ±<see cref="FormerStrokePitch"/> and its
+    /// volume within ±<see cref="FormerStrokeVolumeDb"/>. Soft, 3 dB over its motor, so it tells the press works without pounding.
+    /// </summary>
+    public static readonly Cue FormerStroke = new(Shots("crafting/former-stroke", 1), -15, Pitch: 0, Heard: StationReach);
+    public const float FormerStrokePitch = 0.15f, FormerStrokeVolumeDb = 1.5f;
+
+    /// <summary>
+    /// The Former's motor while it works: a flywheel's belt and bearing, swaying 2.25 times a second, once a stroke, 3 dB under the
+    /// strokes; spun up over 0.6 s from half its pitch, run down over 0.8 s, and dipping 3% at each stroke, back over 120 ms.
+    /// </summary>
+    public static readonly Cue FormerMotor = Looped("crafting/former-motor", -18, StationReach);
+    public static readonly Motor FormerSpin = new(0.6, 0.8, Idle: 0.5, Sag: 0.03, LoadInS: 0, LoadOutS: 0.12);
+
+    /// <summary>
+    /// The electric smelter's coils while it works (0059): a 100 Hz hum with a hiss of hot metal over it, risen over <see cref="SmelterHumInS"/> and fallen over <see cref="SmelterHumOutS"/>.
+    /// </summary>
+    public static readonly Cue SmelterHum = Looped("crafting/smelter-hum", -14, StationReach);
+    public const double SmelterHumInS = 0.3, SmelterHumOutS = 0.6;
+
+    /// <summary>
+    /// The melt bubbling in the smelter while it works: six low pops, played at random moments, <see cref="SmelterCracklesPerSecond"/>
+    /// a second on average, each its pitch within ±<see cref="SmelterCracklePitch"/> and its volume up to
+    /// <see cref="SmelterCrackleLowDb"/> under its cue's.
+    /// </summary>
+    public static readonly Cue SmelterCrackle = new(Shots("crafting/smelter-crackle", 6), -10, Pitch: 0, Heard: StationReach);
+    public const float SmelterCracklesPerSecond = 2, SmelterCracklePitch = 0.1f, SmelterCrackleLowDb = -10;
+
+    /// <summary>
     /// This player's jetpack thrusting (0047), through the suit: bright noise, high-passed at 700 Hz, low-passed at
     /// 4.8 kHz, its filters drifting ±150 cents, a 2 s loop rendered for Stillwake. It rises over
-    /// <see cref="ThrustAttackS"/> as the thrust begins and falls over <see cref="ThrustReleaseS"/> as it ends.
+    /// <see cref="ThrustAttackS"/> as the thrust begins and falls over <see cref="ThrustReleaseS"/> as it ends. It only ever
+    /// thrusts in space, where the Suit muffle takes most of a hiss: played loud (0059), it comes through dulled, about 6 dB
+    /// under the bed of space.
     /// </summary>
-    public static readonly Cue Thrust = new(["res://audio/crew/thrust-1.ogg"], -7, Loops: true);
+    public static readonly Cue Thrust = new(["res://audio/crew/thrust-1.ogg"], 3, Loops: true);
     public const double ThrustAttackS = 0.04, ThrustReleaseS = 0.14;
 
     /// <summary>
     /// A charging station's hum while it charges (0053): a warm 50 Hz with its harmonics under a 500 Hz low-pass,
-    /// swaying ±4% twice a second, a 4 s loop rendered for Stillwake; heard close, as quiet as a vent's hum. Faded in
+    /// swaying ±4% twice a second, a 4 s loop rendered for Stillwake; a station's sound (<see cref="StationReach"/>). Faded in
     /// over <see cref="HumInS"/> and out over <see cref="HumOutS"/>.
     /// </summary>
-    public static readonly Cue ChargerHum = Looped("power/charger-hum", -8, new(2, 8));
+    public static readonly Cue ChargerHum = Looped("power/charger-hum", -10, StationReach);
     public const double HumInS = 0.4, HumOutS = 0.5;
 
     /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>
@@ -128,13 +198,14 @@ public static class Sound
     /// <summary>
     /// The quiet bed that fills the silence of space (0042), on the Music bus: faded in over
     /// <see cref="SpaceInS"/> seconds as this player's hero leaves the ship, out over <see cref="SpaceOutS"/>
-    /// back aboard. A placeholder, the synthesised drone "Wreck", until the team's own track.
+    /// back aboard; 3 dB lower since 0059, under what the hero touches. A placeholder, the synthesised drone "Wreck", until the
+    /// team's own track.
     /// </summary>
-    public static readonly Cue Space = new(["res://audio/music/space-1.ogg"], -10, Loops: true);
+    public static readonly Cue Space = new(["res://audio/music/space-1.ogg"], -13, Loops: true);
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, DrillStrike, Break, Shot, Drum, Ready, Breathe, Thrust, ChargerHum, ChargeFull];
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Chop, DrillStrike, Break, Shot, Drum, Ready, Breathe, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;
@@ -144,9 +215,10 @@ public static class Sound
     /// <see cref="ClearHz"/> to <see cref="MuffledHz"/> as the bus fades out. What the hero touches, on the
     /// Suit bus, dulls over the same time to a thud through glove and helmet (0042): its low-pass falls to
     /// <see cref="SuitMuffledHz"/> and its lows below <see cref="SuitLowsHz"/> rise to <see cref="SuitLowsGain"/>
-    /// (Godot's shelf gain, the lows' amplitude times its square: 1.25 is about +4 dB).
+    /// (Godot's shelf gain, the lows' amplitude times its square: 1.25 is about +4 dB); and the bus rises <see cref="SuitFloatingDb"/>,
+    /// so what the hero touches stands out of the bed of space (0059).
     /// </summary>
-    public const float ClearHz = 20000, MuffledHz = 300, MuffleMs = 600, SuitMuffledHz = 900, SuitLowsHz = 300, SuitLowsGain = 1.25f;
+    public const float ClearHz = 20000, MuffledHz = 300, MuffleMs = 600, SuitMuffledHz = 900, SuitLowsHz = 300, SuitLowsGain = 1.25f, SuitFloatingDb = 6;
 
     private static string[] Shots(string cue, int count) =>
         Enumerable.Range(1, count).Select(n => $"res://audio/{cue}-{n}.wav").ToArray();

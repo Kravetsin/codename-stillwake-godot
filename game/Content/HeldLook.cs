@@ -41,6 +41,9 @@ public sealed record HeldLook(
         "res://art/hero_drill.png", (3, 10.5), 0, (25, 5.5), (32, 5.5), Aimed: true,
         Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.5, 4.5));
 
+    /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
+    public const double SpinUpMs = 120, SpinDownMs = 700;
+
     /// <summary>How <paramref name="item"/> looks in the hand; none for an item held as no picture.</summary>
     public static HeldLook? Of(string? item) =>
         item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill : null;
