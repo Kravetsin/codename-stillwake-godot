@@ -4,6 +4,7 @@ using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
+using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
@@ -14,13 +15,15 @@ namespace Stillwake.Game.Features.Items;
 /// <summary>
 /// The player's items (features/items): the hotbar always, the rest and an open crate on demand
 /// (<see cref="InventoryPanel"/>); the stacks lying on the floor (<see cref="FloorLayer"/>), picked up
-/// as the hero walks over them, saying so over its head. A crate, a furnace or an analyzer is opened by
+/// as the hero walks over them, saying so over its head, as it says what its own catches of debris gave
+/// (<see cref="OwnCatches"/>). A crate, a furnace or an analyzer is opened by
 /// the crew's E, through <see cref="Ui.OpenCrate"/>.
 /// </summary>
 public partial class ItemsView : Node2D
 {
     private readonly FloorLayer _floor = new();
     private readonly PickUpPopups _popups = new();
+    private readonly OwnCatches _catches = new();
     private readonly ActSound _pick = new();
 
     /// <summary>Where the hero stood last frame, and the grid read then: for scripted runs.</summary>
@@ -63,7 +66,7 @@ public partial class ItemsView : Node2D
     /// the world is between its last tick and the next.
     /// </summary>
     public void Frame(
-        Client client, IGridQueries grid, IRoomsQueries rooms, IItemsQueries items, IResearchQueries research,
+        Client client, IGridQueries grid, IRoomsQueries rooms, IItemsQueries items, IResearchQueries research, DebrisModule debris,
         HeroSpot? hero, double progress, double elapsedMs)
     {
         (Hero, Grid) = (hero, grid);
@@ -72,8 +75,11 @@ public partial class ItemsView : Node2D
         if (hero is { Out: true } && !_wasOut) Panel.Close();
         _wasOut = hero?.Out ?? false;
         // What the hero walks over, it picks up, saying so over its head at once; passed out, nothing.
+        // What its own catches just put into the inventory, over its head too: a grab's loot is drawn as it runs.
+        var caught = _catches.Read(client.InFlight, debris.CaughtFrom);
         if (hero is { } spot)
         {
+            foreach (var (item, count) in caught) _popups.Add(item, count);
             IReadOnlyList<int> walkedOver = spot.Out ? [] : Reach.PickUpsOf(items, grid.Width, client.Id, spot.X, spot.Y, taking);
             foreach (int id in walkedOver)
             {

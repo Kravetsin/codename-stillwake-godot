@@ -29,20 +29,25 @@ public static class Debris
     /// </summary>
     public const int AimRadius = 1500;
 
-    /// <summary>The stream's kinds by weight: its one tier.</summary>
+    /// <summary>
+    /// The stream's kinds by weight: its one tier. Three times 0041's, so the rare soil clod fits in whole numbers
+    /// with the same odds for the rest (as 0056 scaled the far field's).
+    /// </summary>
     public static readonly IReadOnlyList<(string Item, int Weight)> Kinds =
     [
-        ("scrapChunk", 18),
-        ("hullPlate", 9),
-        ("cargoCrate", 6),
-        ("supplyPod", 3),
-        // Wreckage (Wreckage): 9 of 45, one spawn in five, a wreck about every 50 s.
-        ("hullSection", 3),
-        ("cargoContainer", 2),
-        ("machineBlock", 1),
-        ("cableRack", 1),
-        ("tankCluster", 1),
-        ("shieldSlab", 1),
+        ("scrapChunk", 54),
+        ("hullPlate", 27),
+        ("cargoCrate", 18),
+        ("supplyPod", 9),
+        // Wreckage (Wreckage): 27 of 137, one spawn in five, a wreck about every 50 s.
+        ("hullSection", 9),
+        ("cargoContainer", 6),
+        ("machineBlock", 3),
+        ("cableRack", 3),
+        ("tankCluster", 3),
+        ("shieldSlab", 3),
+        // Seeds' second source beside supply pods (0060): 2 of 137 of some 350 spawns an hour, one every 12 minutes or so.
+        ("soilClod", 2),
     ];
 
     /// <summary>The stream past the ship, as it always was: by the hull, in one tier.</summary>
@@ -160,12 +165,18 @@ public static class Loot
         [
             new("planks", 3, 6),
         ]),
-        // The farm's seeds come from supply pods alone (0060): one or two in every other pod.
+        // The farm's seeds come from supply pods (0060): one or two in every other pod; and from soil clods.
         ("supplyPod",
         [
             new("canister", 1, 1),
             new("scrap", 6, 6),
             new("seed", 1, 2, OneIn: 2),
+        ]),
+        // A clod of some ship's farm, its sprout still in it: seeds always, and a little soil.
+        ("soilClod",
+        [
+            new("seed", 1, 3),
+            new("soil", 1, 2),
         ]),
         // Wreckage breaks into what it was made of (Wreckage).
         ("hullSection",

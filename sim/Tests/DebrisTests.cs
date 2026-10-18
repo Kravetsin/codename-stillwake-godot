@@ -243,8 +243,8 @@ public class DebrisTests
     [Fact]
     public void DrawsEveryKindTheHeavierOnesMoreOften()
     {
-        // Short paths and no cap reached: about a thousand spawns, each a draw, the rarest some twenty times.
-        var kinds = Watch(new Scenario(Layout.Parse(["   #   "])), 200000).Select(p => p.Item).ToList();
+        // Short paths and no cap reached: about ten thousand spawns, each a draw, the rarest, the soil clod, some 150 times.
+        var kinds = Watch(new Scenario(Layout.Parse(["   #   "])), 2_000_000).Select(p => p.Item).ToList();
         var share = DebrisSpec.Kinds.Select(k => (k.Weight, Count: kinds.Count(item => item == k.Item))).ToList();
         Assert.All(share, s => Assert.True(s.Count > 0));
         foreach (var heavier in share)
@@ -322,6 +322,55 @@ public class DebrisTests
         w.Do(new Grab(id) { From = 1 }).Run();
         Assert.Equal("debris.notOutside", Reasons(w)[^1]);
         Assert.Contains(Pieces(w), p => p.Id == id);
+    }
+
+    /// <summary>
+    /// A catch reports what it put into the inventory, by its piece, for its catcher's popups: a supply pod its
+    /// loot as the inventory gained it; a refused grab and a wreck broken into floating loot nothing; and once
+    /// the world is loaded again, nothing of before.
+    /// </summary>
+    [Fact]
+    public void ReportsWhatACatchPutIntoTheInventoryAndNothingForARefusalOrAWreckBroken()
+    {
+        var w = Spawned();
+        Pieces(w)[0].Item = "supplyPod";
+        int id = Pieces(w)[0].Id;
+        w.Do(new Grab(id) { From = 2 }).Run();
+        Assert.Null(w.M.Debris.CaughtFrom(id));
+        w.Do(new Enter(At(12, 1)) { From = 2 }).Do(new Grab(id) { From = 2 }).Run();
+        var gave = w.M.Debris.CaughtFrom(id);
+        Assert.NotNull(gave);
+        Assert.Equal(Held(w, 2).Select(s => (s.Item, s.Count)), gave);
+        Assert.Contains(("canister", 1), gave);
+        Assert.Null(w.M.Debris.CaughtFrom(id + 1));
+        // A wreck broken by a hit floats its loot, picked up as any floor stack: no catch.
+        w.Run(DebrisSpec.Every + DebrisSpec.Jitter);
+        var wreck = Pieces(w)[0];
+        wreck.Item = "tankCluster";
+        for (int i = 0; i < WreckageSpec.HpOf("tankCluster")!.Value; i++) w.Do(new Hit(wreck.Id, Weapons.Axe.Item) { From = 2 });
+        w.Run();
+        Assert.NotEmpty(w.M.Items.Floor);
+        Assert.Null(w.M.Debris.CaughtFrom(wreck.Id));
+        Assert.Null(w.Reload().M.Debris.CaughtFrom(id));
+    }
+
+    /// <summary>With no room, a catch reports only what fit: what floats is shown when it is picked up, never twice.</summary>
+    [Fact]
+    public void ReportsOnlyWhatFitAndNothingWhenAllOfACatchFloats()
+    {
+        var w = Spawned();
+        Pieces(w)[0].Item = "cargoCrate";
+        int id = Pieces(w)[0].Id;
+        int planks = ItemSpecs.Get("planks").Stack;
+        w.GiveItems(0, ("canister", (Inventory.Slots - 1) * ItemSpecs.Get("canister").Stack), ("planks", planks - 1));
+        w.Do(new Enter(At(12, 1))).Do(new Grab(id)).Run();
+        Assert.Equal([("planks", 1)], w.M.Debris.CaughtFrom(id));
+        Assert.Equal(planks, Count(w, "planks", 0));
+        Assert.NotEmpty(w.M.Items.Floor);
+        w.Run(DebrisSpec.Every + DebrisSpec.Jitter);
+        int next = Pieces(w)[0].Id;
+        w.Do(new Grab(next)).Run();
+        Assert.Equal([], w.M.Debris.CaughtFrom(next)!);
     }
 
     [Fact]
