@@ -10,10 +10,11 @@ namespace Stillwake.Game.Features.Items;
 /// <summary>
 /// Where this player's hero stands, as crew last moved it: its feet (<paramref name="X"/>,
 /// <paramref name="Y"/>) in thousandths of a cell, the way it faces, its body's cell and whether it floats
-/// out in space, where a pick-up is heard as the glove's thump. What a drop is thrown from, and what it
+/// out in space, where a pick-up is heard as the glove's thump; whether it is passed out, when it picks up
+/// nothing, so it never takes back the body it has just left (0060). What a drop is thrown from, and what it
 /// walks over and picks up.
 /// </summary>
-public sealed record HeroSpot(int X, int Y, int Facing, int Cell, bool Floats);
+public sealed record HeroSpot(int X, int Y, int Facing, int Cell, bool Floats, bool Out = false);
 
 /// <summary>What the hero picks up of items: stacks on the floor it walks over.</summary>
 public static class Reach

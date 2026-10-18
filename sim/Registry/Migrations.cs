@@ -123,6 +123,9 @@ public static class Migrations
         },
         // 13 → 14: stations (0057): a fire keeps only its fuel, and what a furnace was smelting moves to crafting.
         Stations,
+        // 14 → 15: a floor stack may be part of a body (0060), written only when it is: no save before held one, so
+        // its stacks are no one's and nothing changes but the format, which keeps an older build from losing the tag.
+        save => save,
     ];
 
     /// <summary>

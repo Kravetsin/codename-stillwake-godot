@@ -26,29 +26,32 @@ public static class Layers
     /// <summary>Grommets, pegs and plugs on the wall's face, then the bolts over machines short of power (power).</summary>
     public const int Fittings = 6, Bolts = 7;
 
+    /// <summary>What a hero left where it died, a limp figure under its stacks (crew, 0060).</summary>
+    public const int Bodies = 8;
+
     /// <summary>Stacks on the floor, under the heroes walking over them (items).</summary>
-    public const int FloorItems = 8;
+    public const int FloorItems = 9;
 
     /// <summary>Fire in a furnace's mouth, under a hero standing before it (furnace).</summary>
-    public const int Fire = 9;
+    public const int Fire = 10;
 
     // The crew: what E would work outlined, every tether, others' heroes, then this machine's.
-    public const int Aim = 10, Tethers = 11, OtherHeroes = 12, Hero = 13;
+    public const int Aim = 11, Tethers = 12, OtherHeroes = 13, Hero = 14;
 
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
-    public const int Glows = 14;
+    public const int Glows = 15;
 
     /// <summary>A venting room's pulse, then the tanks' gauges (atmosphere).</summary>
-    public const int Pulse = 15, Gauges = 16;
+    public const int Pulse = 16, Gauges = 17;
 
     // The plan (building): blueprints, their marks and bars, the ghost of a drag, the hands at work.
-    public const int Plans = 17, PlanMarks = 18, PlanGhost = 19, PlanHands = 20;
+    public const int Plans = 18, PlanMarks = 19, PlanGhost = 20, PlanHands = 21;
 
     /// <summary>Dust, sparks, embers and air over everything in the world, plans included (effects).</summary>
-    public const int Effects = 21;
+    public const int Effects = 22;
 
     // An overlay over the whole world (air, pipes, power), what it marks, and the cable dragged in it.
-    public const int Overlay = 22, OverlayMarks = 23, OverlayHands = 24;
+    public const int Overlay = 23, OverlayMarks = 24, OverlayHands = 25;
 }
 
 /// <summary>

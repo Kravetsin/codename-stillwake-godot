@@ -9,7 +9,7 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   room has air and takes it); `Grid` (`IGridQueries.Width`, `Height` and `Zone`: where a cell is, for the pod's reach and the field); `Items`
   (`IItemsQueries.Equipped` and `ShortOf`, whether a hero wears a jetpack and carries a canister;
   `IItemsOps.Take`, the canister breathed; `IItemsOps.StopRunning`, an electric tool stopped as its hero passes out
-  or leaves, 0055).
+  or leaves, 0055; `IItemsOps.LeaveBody`, what a hero carried left where it died, 0060).
 - **State** (`CrewState`, members internal): `Spawn` — the hatch of the map's first lifepod
   (`Content.Crew.PodHatch` from its top-left), else the map's first `S`, or cell 0 on a map with
   neither; `Pod` — that lifepod's top-left cell, null without one (it is `Fixed`: it never moves); `Clock` — ticks run, for the breath beat; `Heroes` — by peer id, in id order: cell,
@@ -63,7 +63,12 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   stack, and none in creative mode) and adds `Crew.CanisterRefill` units to its suit, up to `Crew.Suit`:
   an absolute amount, so a bigger suit later still gets a canister's worth.
 - A suit at zero passes the hero out for `Crew.PassOut` ticks; then it is made again at the spawn,
-  the pod's hatch, with a full suit. The client moves its hero there when the passing out ends. A
+  the pod's hatch, with a full suit.
+- **Passing out is death** ([0060](../../docs/decisions/0060-death-leaves-a-body.md)): the tick it passes out, crew
+  calls `IItemsOps.LeaveBody(peer, cell)` with the hero's cell, the last one its client reported, or the spawn when
+  that cell is off the grid (a hero `Enter`ed there, which nothing validates). `Items` leaves there everything the
+  hero carried but its gear, a body for anyone to pick up; the hero wakes with its gear. A future cause of death
+  (an enemy draining the suit) lands here too. The client moves its hero there when the passing out ends. A
   hero's first `Enter` is where its client placed it, the spawn.
 - **The cold past the field** ([0050](../../docs/decisions/0050-the-edge-is-made-of-oxygen.md)): the field is
   the grid's build zone grown by `Field.Margin` cells every way. `EdgeCost(cell)` is 0 inside it; past
@@ -113,6 +118,11 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
 
 ## Deliberately not handled
 
+- A `Move` or `Drop` sent just before passing out that lands in the 5 s out finds the hero's slots already emptied
+  by its death: it moves what is left there, gear, or is refused (`items.empty`); a pick-up landing then is taken.
+  Accepted: the client sends nothing while out, and one in flight is a round trip at most.
+- The body falls at the reported cell, up to a second and a round trip behind the hero; its client moves its
+  figure there as it passes out, so it lies where the body will be.
 - The sim trusts the client's flight: where a jetpack takes the hero, and that it thrusts only in space,
   as for every movement (0002). It pays the oxygen whatever the hero does with it.
 - The sim trusts the client's cell: heroes move on the client, and friends trust each other. The

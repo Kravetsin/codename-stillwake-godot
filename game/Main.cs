@@ -157,6 +157,7 @@ public partial class Main : Node2D, ITogether
             else if (Has("--fly") || Has("--asteroid")) _hero.Start = FarDemo.StartOf;
             else if (Has("--sortie")) _hero.Start = SortieDemo.StartOf;
             else if (Has("--charge")) _hero.Start = ChargeDemo.StartOf;
+            else if (Has("--die")) _hero.Start = DieDemo.StartOf;
             else if (Opens is { } opened) _hero.Start = m => OpenDemo.StartOf(m, opened);
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))));
@@ -178,7 +179,7 @@ public partial class Main : Node2D, ITogether
                 yield return overlays.Covers;
                 if (fabricator.Covers is { } crafts) yield return crafts;
             }
-            AddChild(new MarkerLayer(_hands.Ui, _camera, () => _session != null && _hero is { Placed: true } h ? (h, _m) : null, Hud));
+            AddChild(new MarkerLayer(_hands.Ui, _camera, () => _session is Session s && _hero is { Placed: true } h ? (h, _m, s.Client.Id) : null, Hud));
             _camera.DevControls = false;
         }
         AddChild(new EffectsView());
@@ -269,6 +270,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules);
         if (Has("--sortie")) world = SortieDemo.Seed(world, _m, Modules);
         if (Has("--fly")) world = FarDemo.Seed(world, _m, Modules, int.Parse(_args.FirstOrDefault(a => a.StartsWith("--far="))?[6..] ?? "0"));
+        if (Has("--die")) world = DieDemo.Seed(world, Modules);
         PlayDev(world, Has("--gallery") ? null : layout);
     }
 
@@ -810,7 +812,7 @@ public partial class Main : Node2D, ITogether
     {
         if (view == null) return null;
         var hero = view.Current;
-        return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(_m.Grid.Width), view.Floats);
+        return new HeroSpot(hero.X, hero.Y, hero.Facing, hero.BodyCell(_m.Grid.Width), view.Floats, view.PassedOut);
     }
 
     /// <summary>The plan, cables and overlays (<see cref="Hands"/>): the hero's body sways the cables.</summary>

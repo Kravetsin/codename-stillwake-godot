@@ -25,3 +25,6 @@ the fuzz reports, becomes -1.
 
 Format 14 moved what a furnace was smelting from its fire to crafting's `smelts` (0057), in thousandths of a
 tick, dropped the fires kept only for it, and put crafting's slice before building's, as the modules now run.
+
+Format 15 lets a floor stack carry a body tag (`body`: peer and tick died, 0060), written only when it has one: the
+step changes nothing but the format, and the stacks of older saves are no one's body.

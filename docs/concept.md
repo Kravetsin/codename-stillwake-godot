@@ -49,7 +49,7 @@ A living document: what is decided about the game and what is still open. Techni
   [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md),
   [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).
 - **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,
-  never taken apart. Heroes are made at its hatch, at the start and after passing out, with a full
+  never taken apart. Heroes are made at its hatch, at the start and after dying, with a full
   suit; standing by it, a suit slowly fills with the pod's own air, even in a ship open to space, and
   the room gets none ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
@@ -75,6 +75,11 @@ A living document: what is decided about the game and what is still open. Techni
   a machine block, an electronics rack, oxygen tanks and a shield slab, each broken with the fire axe
   into what its picture shows it holds, floating where it was
   ([0034](decisions/0034-wreckage-and-the-axe.md), [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).
+- **Death** is a suit run dry: the hero wakes at the pod with its tools, its jetpack and its batteries, and
+  everything else it carried lies where it fell, a body in its suit with a beacon blinking, pointed at from the
+  screen's edge. Anyone may pick it up, as any stack; out in space it drifts with the rest and leaves the world
+  at its edge, and wherever it is, it is gone ten minutes after the death
+  ([0060](decisions/0060-death-leaves-a-body.md)).
 - **Dangers:** yes — the game can hurt you. Which ones is open.
 - **Time runs only while the game runs.** Nothing happens offline and there is no offline progress,
   unlike the Factory in Tossit.

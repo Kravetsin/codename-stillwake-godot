@@ -455,6 +455,19 @@ public class ContentTests
     }
 
     [Fact]
+    public void EverythingWornElectricOrAWeaponIsGearKeptInDeathAndBodiesLastAWhileButNotForever()
+    {
+        // The harpoon is named by hand: it is no weapon, worn nor electric, and still a tool kept (0060).
+        Assert.True(Content.Items.Get("harpoon").Gear);
+        Assert.All(
+            Content.Items.All.Where(i => i.Equip != null || i.Draw != null || Weapons.Of(i.Id) != null),
+            i => Assert.True(i.Gear, $"{i.Id} is not gear"));
+        // Resources are not: dying costs what was gathered.
+        Assert.All(new[] { "scrap", "iron", "canister", "planks", "rock", "circuit" }, id => Assert.False(Content.Items.Get(id).Gear));
+        Assert.InRange(Content.Floor.BodyLasts, 60 * World.TicksPerSecond, 60 * 60 * World.TicksPerSecond);
+    }
+
+    [Fact]
     public void WhatHoldsChargeIsAStackOfOneNamedInNoCostAndAStationFillsItInWholeTicks()
     {
         AllPositive(typeof(Charge));

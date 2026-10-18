@@ -55,6 +55,8 @@ public partial class HeroView : Node2D
     private readonly RemoteHeroes _remote = new();
     private readonly HeroSender _sender;
     private readonly Node2D _others = new() { ZIndex = Layers.OtherHeroes };
+    /// <summary>What heroes left where they died, lying on their stacks with a beacon blinking (0060).</summary>
+    private readonly BodyView _bodies = new();
     /// <summary>
     /// Another hero as drawn: its figure, its tether while it has one, what its hands were busy with last
     /// frame, and the swings of its axe as replayed here, each at the point sent with it.
@@ -176,6 +178,7 @@ public partial class HeroView : Node2D
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
         // Others behind this machine's hero, every tether behind them both (Layers).
         AddChild(_tethers);
+        AddChild(_bodies);
         AddChild(_others);
         AddChild(_figure);
         AddChild(_outline);
@@ -225,6 +228,9 @@ public partial class HeroView : Node2D
     /// <summary>Where the prompt for E lies on the screen while it shows: what the markers keep out of.</summary>
     public Rect2? PromptCovers => _prompt.Covers;
 
+    /// <summary>Whether this machine's hero is passed out, as the sim said this frame: it picks nothing up and its inventory closes.</summary>
+    public bool PassedOut => _wasOut;
+
     /// <summary>Whether the hero stands in the world yet: until its first frame in a session, <see cref="Current"/> is nowhere.</summary>
     public bool Placed => _placed;
 
@@ -268,6 +274,9 @@ public partial class HeroView : Node2D
             _previous = _current = Hero.At(ship, !_placed && Start != null ? Start(m) : m.Crew.Spawn);
             _placed = true;
         }
+        // Passing out it dies where the sim has it (0060), where its body falls: it lies there, not a report behind.
+        else if (!_wasOut && passedOut && known!.Cell >= 0 && known.Cell < grid.Width * grid.Height)
+            _previous = _current = Hero.At(ship, known.Cell);
         _wasOut = passedOut;
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
         var pointed = Pointer();
@@ -328,6 +337,7 @@ public partial class HeroView : Node2D
                 _heardChops[message.From] = (sent.Seen.Wields == Content.Weapons.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
             }
         ShowOthers(ship, m, elapsedMs);
+        _bodies.Frame(m, progress, elapsedMs);
 
         double between = _clock.Progress;
         double x = _previous.X + (_current.X - _previous.X) * between;

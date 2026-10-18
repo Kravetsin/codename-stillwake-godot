@@ -10,7 +10,7 @@ mode, the world setting in which nothing is ever taken
   the floor up; `Rooms` (`IRoomsQueries`), for where space is and which open cells are in a room.
 - **State:** `Inventories` — those changed at least once, by peer id in id order; `Crates` — the
   machines holding something, by machine id in id order; `Creative`; `Floor` — stacks lying about
-  (`FloorStack`: id, item, count, charge, cell, x, y, vx, vy, by, at) in id order, with `NextFloorId`;
+  (`FloorStack`: id, item, count, charge, cell, x, y, vx, vy, by, at, and the `Body` it is part of, if any) in id order, with `NextFloorId`;
   `Ticks`, the module's own clock; `Running` — the electric tools heroes run (`Runner`: peer, item), at most one a
   peer, in peer order (0055). All saved, as sorted lists; nothing is derived.
 - **Files:** `Stacks.cs` — the rules below, on slots; `Floor.cs` — stacks on the floor; `Items.cs` —
@@ -96,6 +96,15 @@ mode, the world setting in which nothing is ever taken
 - **Picking up** gives as much of a stack as fits into the picker's own slots and leaves the rest.
   The peer that dropped a stack may not take it back for `Floor.OwnPickupDelay` ticks; anyone else
   may at once.
+- **Bodies** ([0060](../../docs/decisions/0060-death-leaves-a-body.md)). A hero that dies (`Crew` passes it out)
+  leaves its body: `LeaveBody(peer, cell)` lets every stack in its own slots whose item is not `Gear` (the tools,
+  the jetpack, the battery) fall on `cell`, still, in slot order, by `FloorStack.Nobody`, each tagged with one
+  `Body(Peer, Died)`, `Died` the module's tick. Gear and everything worn stays (equipment slots hold only worn
+  items, all gear). Creative mode, or nothing but gear, leaves no body. A body's stacks are floor stacks like any
+  other: anyone, its owner too, picks them up at once, as much as fits; they lie still inside the ship and drift
+  in space and leave the world at its edge. Each is gone `Floor.BodyLasts` ticks after its death (ten minutes),
+  wherever it is, before it moves that tick. Stacks merge only within one body or outside any, so two deaths
+  never become one body. A body is gone once its last stack is.
 
 ## API
 
@@ -133,7 +142,8 @@ counted twice.
   `amount` of charge, stored in thousandths of a power-tick, to what machine `id`'s first slot holds, never past its capacity: `Power`'s
   charging station; it throws for a slot holding nothing with a capacity. `Drain(peer, amount)` — takes
   `amount` power-ticks from the first belt battery that holds that much, as above: a run's tick. `StopRunning(peer)` —
-  stops whatever that peer's hero runs: `Crew`, as the hero passes out or leaves.
+  stops whatever that peer's hero runs: `Crew`, as the hero passes out or leaves. `LeaveBody(peer, cell)` — leaves
+  that peer's body on `cell`, as above: `Crew`, as its hero passes out; the caller passes a cell on the grid.
 - **Commands:** `SetCreative(On)`, from the dev panel, with no refusals.
   `Move(Src, Dst, Count)` — `Src` a `Place(Slot, Crate?)`, `Dst` a `Target(Slot?, Crate?)`, no crate
   meaning the sender's inventory; refused with `items.noCrate` (a side names no machine holding
@@ -163,9 +173,14 @@ stack holding charge into any slot with `Put`, from
 - A run draws exactly its `Draw` a tick it goes on, and one its belt cannot pay stops that tick, paying nothing;
   charge never goes below nothing; a peer runs only what it carries (`RunTests`, FsCheck).
 - A machine has an entry only while it holds something; `building` takes a crate apart only empty.
+- Death makes and loses nothing: what both heroes carry and what lies about changes only by what leaves, stacks in
+  space past the grid's edge and a body's at its limit; no body's stack is gear (`DeathTests`, FsCheck).
 
 ## Deliberately not handled
 
+- A body belongs to a peer id, as an inventory does, and lasts its ten minutes whoever is aboard; one whose
+  owner left is still anyone's to pick up.
+- A body inside a cell built over later is pushed out of it as any stack is.
 - Who owns items across sessions: an inventory belongs to a peer id, so after a load it goes to
   whoever joins in that slot, and a peer that rejoins mid-session starts under a new id.
 - Reach: the sim moves items between a hero and any crate; the client opens only crates within reach.

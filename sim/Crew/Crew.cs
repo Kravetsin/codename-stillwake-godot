@@ -137,6 +137,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                     hero.Exerting = false;
                     hero.Thrusting = false;
                     _itemsOps.StopRunning(hero.Id);
+                    // Passing out is death (0060): what it carried stays where it fell, off the grid at the spawn.
+                    bool onGrid = hero.Cell >= 0 && hero.Cell < _grid.Width * _grid.Height;
+                    _itemsOps.LeaveBody(hero.Id, onGrid ? hero.Cell : State.Spawn);
                 }
             }
         });
