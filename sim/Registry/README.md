@@ -37,3 +37,6 @@ Format 17 brought drones (0062): an empty `logistics` slice (no machine switched
 clock the save's tick; and the circuit
 assembler's fourth input, empty, after its three, so its outputs keep their stacks (an assembler of seven slots, as
 format 16's step now pads one from before, is left as it is).
+
+Format 18 brought the Handbook (0066): debris's `found`, empty, for nothing in an older save says which kind of
+debris an item came out of; one already there is left as it is.

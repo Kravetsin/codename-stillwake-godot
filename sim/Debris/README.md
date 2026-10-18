@@ -9,7 +9,8 @@ catching them, reeling them in by harpoon, and breaking wreckage and asteroids w
 [0044](../../docs/decisions/0044-the-harpoon-reels-a-piece-to-a-point.md),
 [0052](../../docs/decisions/0052-debris-by-zones-around-every-hero.md),
 [0054](../../docs/decisions/0054-asteroids-and-the-drill.md), [0055](../../docs/decisions/0055-an-electric-tool-draws-while-it-runs.md),
-[0060](../../docs/decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md)). Ported from
+[0060](../../docs/decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md),
+[0066](../../docs/decisions/0066-the-handbook.md)), and the record of every kind found. Ported from
 `packages/sim/src/modules/debris`; its rules hold here unchanged, the harpoon and the zones new in the port.
 
 - **Depends on:** `Grid` (`IGridQueries`: its size, its `Version` and the hull's bounds), `Crew`
@@ -24,7 +25,11 @@ catching them, reeling them in by harpoon, and breaking wreckage and asteroids w
   `Reel` a harpoon pulling it (a `Reeling { By, ToX, ToY, Left }`: the peer, the point, the ticks still to go) or null,
   `SeenAt` the clock it was last in a hero's keep box (0 for the stream's); `NextId`,
   never reused; `Clock`, ticks run; `Beats`, each zone's `Beat { Zone, Next }`, the clock its next piece is due at;
-  `AtStart`, the pieces the first tick puts out. All saved. **Not saved, never hashed:** the last 32 catches, each
+  `AtStart`, the pieces the first tick puts out; `Found`, the Handbook's record
+  ([0066](../../docs/decisions/0066-the-handbook.md)): every kind found, in the order first found, each a `FoundKind`
+  (public, with internal setters) `{ Kind, Items, Looks }`, the items seen come out of it and the looks caught or
+  broken, each once, in the order first seen.
+  All saved. **Not saved, never hashed:** the last 32 catches, each
   piece and what it gave, written by `Grab` and read by nothing in the sim, only by the client (`CaughtFrom`); forgotten
   on a create or a load. **Derived:** the hull's bounds, followed by the
   grid's log (0051): grown over a structure come, and only when one on its edge goes, its edge lines looked
@@ -139,6 +144,14 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   how far it reaches: the client's word, among friends (principle 6). The client sends one `Hit` for each
   wreck a swing's drawn blade touches (0039, 0040), so one swing may hit two wrecks; the drill one for each
   its bit touches every `Pace` ticks while it runs, after its `Run`.
+- **Found** (0066): a `Grab` that applies (by hand, or a piece reeled in and caught) and a `Hit` that breaks a
+  wreck record its kind in `Found`, appended the first time, and every item `LootOf` drew for it, appended to that
+  kind's `Items` the first time each is seen, in the order drawn: the same roll that gives the loot, no second one,
+  and what floats off a full inventory too, as it was seen. A small piece caught as itself (a scrap chunk, a hull
+  plate) records itself. The look the piece wore, `Content.Looks.Of(kind, id)` (its id round its kind's looks, 0
+  for a kind with one; the one function the client draws it by), is appended to the kind's `Looks` the first time.
+  Nothing else records: a hit that does not break, a reel, a refused command, a floor stack picked up. One record
+  for the world, whoever caught or broke it; never sorted, never shrunk.
 - **The harpoon** (0044): `Reel(Piece, ToX, ToY)` reels a piece, small or a wreck, to a point in
   thousandths of a cell, the client's word: `Harpoon.Stop` before the gun. Applying it clamps the point
   to the grid and sets the piece's `Reel` to `{ By = sender, ToX, ToY, Left }`, `Left` the ticks its
@@ -157,7 +170,8 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   `GrabProblem(peer, piece)`, `HitProblem(peer, piece, tool)` and `ReelProblem(peer, piece)` — the refusal
   that peer's `Grab`, `Hit` or `Reel` would get, for the client; `CaughtFrom(piece)` — what catching that piece put
   into its catcher's inventory (`IItemsOps.GiveOrDrop`'s answer, what floated left out), or null for no catch among the
-  last `CaughtKept` (32): the client's popups for its own catches (`features/items`, `OwnCatches`).
+  last `CaughtKept` (32): the client's popups for its own catches (`features/items`, `OwnCatches`); `Found` — every
+  kind found and what came out of it, live and read-only: the Handbook's (`features/debris`, `HandbookPage`).
 - **Static:** `CellOf(x, y, width)` — the cell under a piece's middle; `LootOf(item, rng)` — what
   catching a piece of that item gives, merged by item in the order its entries first give it.
 - **Commands:** `Grab(Piece)`, `Hit(Piece, Tool)`, `Reel(Piece, ToX, ToY)`.
@@ -187,6 +201,9 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   never in a stream's box; `SeenAt` is never past the clock, and 0 on the stream's.
 - A reel's point is on the grid and its `Left` above zero.
 - A wreck's `Damage` is below its hit points; a piece caught by hand has none.
+- `Found` only grows: no kind leaves it, nor an item a kind's `Items`, and none moves. Each kind is in it once and
+  can spawn in some zone; each item once, among its kind's loot, or the kind itself when it has none; each kind has
+  at least one look, each once and below its `Content.Looks.CountOf` (`DebrisFoundTests`).
 
 ## Deliberately not handled
 
@@ -215,6 +232,10 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   passing cloud; thicker bands thin the field everywhere else (`DebrisDensityTests` bounds it).
 - Two grabs of one piece on one tick: the host's order decides, and the second is `debris.gone`; so
   for hits after the one that breaks a wreck.
+- A world saved before the Handbook (format 17) begins with nothing found: nothing in a save says which kind an
+  item came out of. A hull plate picked up off the floor is not one caught: picking up records nothing. Two
+  catches of one kind on one tick are recorded in the host's order. Nothing says who found a kind: the record
+  is the world's, as what the analyzer learns is.
 - What a catch gave is kept for the client outside the saved state, as an event would be: a grab that runs as a
   world is loaded or a guest resynced shows no popup. Saving it would put a client's concern in every save and hash.
 - A wreck half over the hull is judged by its middle cell, as a small piece is: with its middle over
@@ -243,4 +264,5 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - The harpoon and `Reel` are new in the port; TypeScript has none. So are the zones and the far field
   (0052), with their own scenarios and invariant test in `DebrisZonesTests`, and the asteroid band and the
   weapons (0054), in `AsteroidTests`; the asteroid's kinds and the derelicts (0056) in `RichFindsTests`, a sortie's
-  finds measured in `DebrisDensityTests`; the soil clod (0060) in `SoilClodTests`.
+  finds measured in `DebrisDensityTests`; the soil clod (0060) in `SoilClodTests`; the Handbook's record (0066) in
+  `DebrisFoundTests`.

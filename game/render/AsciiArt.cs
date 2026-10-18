@@ -52,6 +52,33 @@ public static class AsciiArt
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['h'] = 0x7c8794, ['l'] = 0xc5ccd8 });
 
+    /// <summary>A book with a star on its cover: the Handbook's (0066), a placeholder till its picture is picked.</summary>
+    public static ImageTexture Book() => Texture("book",
+    [
+        "................",
+        "...KKKKKKKKKKK..",
+        "...KsscccccccK..",
+        "...Kssccccccce..",
+        "...Ksscccaccce..",
+        "...Kssccaaacce..",
+        "...Ksscaaaaace..",
+        "...Kssccaaacce..",
+        "...Ksscccaccce..",
+        "...Kssccccccce..",
+        "...Kssclllllce..",
+        "...Kssccccccce..",
+        "...Kssccccccce..",
+        "...KKppppppppe..",
+        "...K.ppppppppp..",
+        "................",
+    ],
+        new Dictionary<char, uint> { ['K'] = 0x0b0f17, ['c'] = 0x3f6f8a, ['s'] = 0x2c4e63, ['p'] = 0xe2e8f0, ['e'] = 0xcbd5e1, ['a'] = 0xf2b84b, ['l'] = 0x94b8cc });
+
+    /// <summary>A cracked square: a wreck's hit points, beside their number.</summary>
+    public static ImageTexture Crack() => Texture("crack",
+        ["eeeeeeeee", "e...w...e", "e..w....e", "e...ww..e", "e.....w.e", "e....w..e", "e...w...e", "e....w..e", "eeeeeeeee"],
+        new Dictionary<char, uint> { ['e'] = 0xcbd5e1, ['.'] = 0x1e293b, ['w'] = 0xf1f5f9 });
+
     /// <summary>A peg on a wall holding a cable's end: where one cable ends, or where two meet.</summary>
     public static ImageTexture Peg() => Texture("power-peg",
         ["..KK..", ".KhhK.", "KhllhK", "KhllhK", ".KhhK.", "..KK.."],

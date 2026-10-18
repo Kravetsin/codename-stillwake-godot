@@ -130,6 +130,12 @@ public static class Migrations
         StationInputs,
         // 16 → 17: drones (0062): the logistics slice, empty, what inputs remember, none, and the assembler's fourth input, for a drone's four parts.
         Drones,
+        // 17 → 18: the Handbook (0066): no kind of debris found yet, for nothing in a save says what an item came out of.
+        save =>
+        {
+            save["slices"]!["debris"]!.AsObject()["found"] ??= new JsonArray();
+            return save;
+        },
     ];
 
     /// <summary>

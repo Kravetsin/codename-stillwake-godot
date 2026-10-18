@@ -109,6 +109,8 @@
     <Compile Include="../game/dev/Testbed.cs" Link="Game/Dev/Testbed.cs" />
     <Compile Include="../game/Content/Sound.cs" Link="Game/Content/Sound.cs" />
     <Compile Include="../game/Content/DebrisLooks.cs" Link="Game/Content/DebrisLooks.cs" />
+    <Compile Include="../game/Content/Handbook.cs" Link="Game/Content/Handbook.cs" />
+    <Compile Include="../game/features/debris/Finds.cs" Link="Game/Debris/Finds.cs" />
     <Compile Include="../game/Content/HeldLook.cs" Link="Game/Content/HeldLook.cs" />
     <Compile Include="../game/features/dev-panel/CueNames.cs" Link="Game/Dev/CueNames.cs" />
   </ItemGroup>

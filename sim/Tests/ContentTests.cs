@@ -1039,6 +1039,18 @@ public class ContentTests
     // What TypeScript's types guaranteed, which C#'s strings do not.
 
     [Fact]
+    public void GivesEveryKindOfDebrisThatSpawnsItsLooksOnceAndAtLeastOne()
+    {
+        var spawned = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Select(k => k.Item).Distinct().ToList();
+        Assert.Equal(Looks.All.Count, Looks.All.Select(l => l.Kind).Distinct().Count());
+        Assert.All(Looks.All, l => Assert.True(l.Count > 0, l.Kind));
+        Assert.All(spawned, kind => Assert.Contains(kind, Looks.All.Select(l => l.Kind)));
+        // Every peer picks a piece's look alike, round its kind's looks.
+        Assert.Equal((1, 0, 7), (Looks.Of("cargoCrate", 1), Looks.Of("cargoCrate", 8), Looks.Of("cargoCrate", 15)));
+        Assert.Equal(0, Looks.Of("planks", 5));
+    }
+
+    [Fact]
     public void EveryMachineALegendCharacterDrawsIsAMachine()
     {
         foreach (var (c, _) in Legend.Map)

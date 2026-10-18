@@ -14,6 +14,8 @@ public class DebrisLooksTests
     [Fact]
     public void GivesEveryKindThatDriftsPicturesThatAreThere()
     {
+        // Named here for every kind the sim counts looks of (Content.Looks), and no other.
+        Assert.Equal(Content.Looks.All.Select(l => l.Kind).Order(StringComparer.Ordinal), DebrisLooks.Of.Keys.Order(StringComparer.Ordinal));
         foreach (var (item, _) in Content.Debris.Kinds)
         {
             Assert.True(DebrisLooks.Of.ContainsKey(item), $"{item} drifts with no pictures of its own");

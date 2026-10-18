@@ -79,6 +79,9 @@ public static class ScreenLayers
     /// <summary>The bottom of the screen: the build menu, the prompt for E, the overlays' bar.</summary>
     public const int Bars = 10;
 
+    /// <summary>The Handbook's window (0066), over the HUD and the bars, under the dev panel and the menu.</summary>
+    public const int Handbook = 11;
+
     /// <summary>The dev panel, then the game menu over it all.</summary>
     public const int Dev = 12, Menu = 20;
 

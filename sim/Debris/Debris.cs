@@ -80,6 +80,12 @@ public sealed partial class DebrisModule : Module<DebrisState>
         return null;
     }
 
+    /// <summary>
+    /// Every kind of debris found in this world (0066), in the order first found, each with the items seen come out
+    /// of it: what a <see cref="Grab"/> or a breaking <see cref="Hit"/> drew. Live and read-only: the Handbook's.
+    /// </summary>
+    public IReadOnlyList<FoundKind> Found => State.Found;
+
     /// <summary>The first piece, in spawn order, whose middle is in <paramref name="cell"/>.</summary>
     public Piece? PieceAt(int cell) => State.Pieces.Find(p => CellOf(p.X, p.Y, _grid.Width) == cell);
 
@@ -166,7 +172,10 @@ public sealed partial class DebrisModule : Module<DebrisState>
         var piece = State.Pieces[at];
         State.Pieces.RemoveAt(at);
         var hero = _crew.HeroOf(c.From) ?? throw new InvalidOperationException("debris.grab: applied with no hero");
-        var gave = _items.GiveOrDrop(c.From, LootOf(piece.Item, Random), hero.Cell);
+        var loot = LootOf(piece.Item, Random);
+        // From the roll, not from what went in: what floats off a full inventory was seen all the same.
+        Record(piece, loot);
+        var gave = _items.GiveOrDrop(c.From, loot, hero.Cell);
         if (_caught.Count == CaughtKept) _caught.RemoveAt(0);
         _caught.Add((piece.Id, gave));
     }
@@ -180,8 +189,26 @@ public sealed partial class DebrisModule : Module<DebrisState>
         piece.Damage += Content.Weapons.Of(c.Tool)!.Damage;
         if (piece.Damage < hp) return;
         State.Pieces.RemoveAt(at);
+        var loot = LootOf(piece.Item, Random);
+        Record(piece, loot);
         // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
-        _items.DropAt(FloorStack.Nobody, LootOf(piece.Item, Random), CellOf(piece.X, piece.Y, _grid.Width));
+        _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
+    }
+
+    /// <summary>
+    /// Notes <paramref name="piece"/>'s kind as found, the look it wore (<c>Content.Looks</c>) as seen, and every item of
+    /// <paramref name="loot"/> as seen come out of it (0066): each appended the first time, in the order given; the
+    /// world's one record, whoever caught or broke it.
+    /// </summary>
+    private void Record(Piece piece, IReadOnlyList<(string Item, int Count)> loot)
+    {
+        string kind = piece.Item;
+        var found = State.Found.Find(f => f.Kind == kind);
+        if (found == null) State.Found.Add(found = new FoundKind { Kind = kind });
+        int look = Content.Looks.Of(kind, piece.Id);
+        if (!found.SeenLooks.Contains(look)) found.SeenLooks.Add(look);
+        foreach (var (item, _) in loot)
+            if (!found.Seen.Contains(item)) found.Seen.Add(item);
     }
 
     private void Apply(Reel c)
