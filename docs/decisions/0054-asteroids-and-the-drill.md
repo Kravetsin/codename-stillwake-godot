@@ -44,7 +44,7 @@ so a second one needed a shape for every weapon to come (0049).
   off the grid spawns nothing, its draws taken. The band is no stream's box: the far field spawns in it too.
 - **The asteroid:** `asteroid`, wreckage 2 × 2 cells, **120 hit points**: 12 s of the drill, 30 s of the axe.
   It breaks into 3 to 5 **`rock`**, salvage, a stack of 10, smelted into silicon in the next slice; for now an
-  item with a kind and a name. Its pictures are placeholders: three grey rocks; `rock`'s icon is the one picked.
+  item with a kind and a name. Its pictures were placeholders at first, three grey rocks, drawn since (`features/debris/README.md`); `rock`'s icon is the one picked.
 - **The drill:** `drill`, a stack of one, `Draw` 3, made at the lifepod of a frame, a rotor, a coil, two gears
   and a tube in 160 ticks, opened by analysis. Held, the energy bar shows (0053). It is aimed as the harpoon
   is, the straight arm turning the bit's line through the pointer (`HeldLook.Drill`: its handle the grip, held

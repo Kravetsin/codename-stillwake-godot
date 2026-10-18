@@ -23,13 +23,13 @@ public static class DebrisLooks
         ["cableRack"] = ("rack", 1),
         ["tankCluster"] = ("tanks", 1),
         ["shieldSlab"] = ("slab", 1),
-        ["asteroid"] = ("asteroid", 3),
-        ["asteroidSmall"] = ("smallrock", 3),
-        ["asteroidLarge"] = ("bigrock", 3),
-        ["asteroidRich"] = ("orerock", 3),
-        ["engineBlock"] = ("engine", 2),
-        ["cargoHold"] = ("hold", 2),
-        ["podCluster"] = ("pods", 2),
+        ["asteroid"] = ("asteroid", 6),
+        ["asteroidSmall"] = ("smallrock", 6),
+        ["asteroidLarge"] = ("bigrock", 6),
+        ["asteroidRich"] = ("orerock", 6),
+        ["engineBlock"] = ("engine", 4),
+        ["cargoHold"] = ("hold", 4),
+        ["podCluster"] = ("pods", 4),
     };
 
     /// <summary>
