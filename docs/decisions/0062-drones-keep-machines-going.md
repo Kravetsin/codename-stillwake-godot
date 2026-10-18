@@ -121,6 +121,8 @@ half a stack, was short no longer. The user's decision:
 - Every other rule stands: the half-stack trigger, the nearest source, a refill before an output, what is in flight
   counting against what is wanted, a crate holding the item first for an output. A drone's saved `slot` is dropped;
   older saves load, the field ignored.
+- **Salvage stacks are bigger,** so a furnace holds more than a few trips' worth and crates split it less: a hull plate
+  5 → 20, a scrap chunk 10 → 50, asteroid ore (`rock`) 10 → 50. Saves need nothing: no saved stack is over the old limit.
 
 ## Rejected
 

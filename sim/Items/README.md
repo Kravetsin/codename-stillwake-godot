@@ -25,7 +25,7 @@ mode, the world setting in which nothing is ever taken
   has its `Slots` in `Machines`. Each slot is a
   `Stack` (`Item`, `Count` from 1 to the item's `Stack` limit in `Items`, and `Charge`) or null. Items are known by
   their id; every material is one, the salvage items, with `Yields`, are what caught debris
-  becomes, and the parts (wire, plate, gear, tube, and of them the rotor, frame and coil) are crafted by
+  becomes, in stacks of 20 (hull plates) and 50 (scrap chunks, asteroid ore) since 0062, and the parts (wire, plate, gear, tube, and of them the rotor, frame and coil) are crafted by
   `Crafting` into the lifepod's outputs;
   circuits are salvaged from cable racks and derelicts (`Debris`) or made at the circuit assembler of
   silicon and wire, and go into what is electric: the battery, the charging station, the drill, the

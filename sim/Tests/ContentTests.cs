@@ -424,7 +424,7 @@ public class ContentTests
         Assert.All(DebrisSpec.Asteroids.Tiers.SelectMany(t => t.Kinds), k => Assert.All(Loot.Of(k.Item)!, e => Assert.Equal("rock", e.Item)));
         Assert.Equal(120, Wreckage.HpOf("asteroid"));
         Assert.Equal([new LootEntry("rock", 3, 5)], Loot.Of("asteroid"));
-        Assert.Equal(10, Content.Items.Get("rock").Stack);
+        Assert.Equal(50, Content.Items.Get("rock").Stack);
     }
 
     [Fact]

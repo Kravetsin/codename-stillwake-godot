@@ -76,10 +76,10 @@ public class SortTests
     {
         var w = Store();
         int crate = CrateOf(w);
-        PutAll(w, [(26, new Stack("iron", 40)), (3, new Stack("scrapChunk", 4)), (10, new Stack("iron", 470)), (0, new Stack("planks", 9)), (5, new Stack("scrapChunk", 9))], crate: crate);
+        PutAll(w, [(26, new Stack("iron", 40)), (3, new Stack("scrapChunk", 40)), (10, new Stack("iron", 470)), (0, new Stack("planks", 9)), (5, new Stack("scrapChunk", 19))], crate: crate);
         w.Do(new Sort(crate)).Run();
         Assert.Empty(w.Refusals);
-        Stack?[] want = [new("iron", 500), new("iron", 10), new("planks", 9), new("scrapChunk", 10), new("scrapChunk", 3)];
+        Stack?[] want = [new("iron", 500), new("iron", 10), new("planks", 9), new("scrapChunk", 50), new("scrapChunk", 9)];
         Same([.. want, .. new Stack?[CrateSlots - want.Length]], w.M.Items.Crate(crate));
         // The sender's own bag is not touched by a crate's sort.
         Assert.Empty(w.Stored().Inventories);

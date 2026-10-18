@@ -95,20 +95,24 @@ public class LogisticsTests
 
     // What is wanted.
 
+    /// <summary>A stack of scrap chunks: what a furnace's input is kept at.</summary>
+    private static readonly int Chunks = Content.Items.Get("scrapChunk").Stack;
+
     [Fact]
     public void AnInputHoldingChunksIsRefilledToAStackFromACrateOnceUnderHalf()
     {
-        // Five of ten is not under half: nothing flies.
-        var w = TwoRooms().FillCrate(Left, ("scrapChunk", 10), ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 5), crate: Furnace);
+        // Half a stack is not under half: nothing flies.
+        var w = TwoRooms().FillCrate(Left, ("scrapChunk", 2 * Chunks)).Put(0, new Stack("scrapChunk", Chunks / 2), crate: Furnace);
         for (int i = 0; i < 300; i++) Assert.Empty(w.Run().M.Logistics.Drones);
-        Assert.Equal((5, 20), (Held(w, Furnace, 0, "scrapChunk"), Count(w.M.Items.Crate(Left), "scrapChunk")));
+        Assert.Equal((Chunks / 2, 2 * Chunks), (Held(w, Furnace, 0, "scrapChunk"), Count(w.M.Items.Crate(Left), "scrapChunk")));
 
-        // Four is: one drone brings the six that make a stack, and no fuel, the fuel slot being empty.
-        var v = TwoRooms().FillCrate(Left, ("scrapChunk", 10), ("scrapChunk", 10), ("planks", 50)).Put(0, new Stack("scrapChunk", 4), crate: Furnace);
+        // One less is: one drone brings what makes a stack, and no fuel, the fuel slot being empty.
+        int under = Chunks / 2 - 1;
+        var v = TwoRooms().FillCrate(Left, ("scrapChunk", 2 * Chunks), ("planks", 50)).Put(0, new Stack("scrapChunk", under), crate: Furnace);
         Assert.True(RunUntil(v, () => v.M.Logistics.Drones.Count > 0, 20));
-        Assert.Equal(6, v.M.Logistics.Drones.Single().Count);
+        Assert.Equal(Chunks - under, v.M.Logistics.Drones.Single().Count);
         Assert.True(RunUntil(v, () => v.M.Logistics.Drones.Count == 0));
-        Assert.Equal((10, 14, 0), (Held(v, Furnace, 0, "scrapChunk"), Count(v.M.Items.Crate(Left), "scrapChunk"), v.M.Items.HeldFor(Furnace, "planks")));
+        Assert.Equal((Chunks, Chunks + under, 0), (Held(v, Furnace, 0, "scrapChunk"), Count(v.M.Items.Crate(Left), "scrapChunk"), v.M.Items.HeldFor(Furnace, "planks")));
         Assert.Equal(2, Docked(v, Bay));
         Assert.Empty(v.Refusals);
     }
@@ -135,15 +139,19 @@ public class LogisticsTests
     [Fact]
     public void TwoDronesNeverBringMoreThanMakesAStack()
     {
-        var w = TwoRooms().FillCrate(Left, ("scrapChunk", 3), ("scrapChunk", 3), ("scrapChunk", 3)).Put(0, new Stack("scrapChunk", 1), crate: Furnace);
+        // A stack in each crate, split over two slots: the first drone brings all that is short, the second nothing.
+        var w = TwoRooms().Put(0, new Stack("scrapChunk", 1), crate: Furnace);
+        Spread(w, Left, ("scrapChunk", Chunks / 2), ("scrapChunk", Chunks / 2));
+        Spread(w, Right, ("scrapChunk", Chunks / 2), ("scrapChunk", Chunks / 2));
         for (int i = 0; i < 600; i++)
         {
             w.Run();
             int held = w.M.Items.HeldFor(Furnace, "scrapChunk");
             int coming = w.M.Logistics.Drones.Where(d => d.Target == Furnace && d.Leg != Leg.Home).Sum(d => d.Cargo?.Count ?? d.Count);
-            Assert.True(held + coming <= 10, $"tick {i}: {held} held and {coming} coming");
+            Assert.True(held + coming <= Chunks, $"tick {i}: {held} held and {coming} coming");
         }
-        Assert.Equal(10, w.M.Items.HeldFor(Furnace, "scrapChunk"));
+        Assert.Equal(Chunks, w.M.Items.HeldFor(Furnace, "scrapChunk"));
+        Assert.Equal(Chunks + 1, Count(w.M.Items.Crate(Left), "scrapChunk") + Count(w.M.Items.Crate(Right), "scrapChunk"));
         Assert.Equal(0, OnFloor(w, "scrapChunk"));
     }
 
@@ -338,7 +346,7 @@ public class LogisticsTests
     [Fact]
     public void AMachineSwitchedOffIsNeitherFedNorEmptiedNorTakenFromAndOneSwitchedOnAgainIs()
     {
-        var w = TwoRooms().FillCrate(Left, ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 1), crate: Furnace).Put(Output, new Stack("scrap", 8), crate: Furnace);
+        var w = TwoRooms().FillCrate(Left, ("scrapChunk", Chunks - 1)).Put(0, new Stack("scrapChunk", 1), crate: Furnace).Put(Output, new Stack("scrap", 8), crate: Furnace);
         w.Do(new SetServed(Furnace, false));
         for (int i = 0; i < 300; i++) Assert.Empty(w.Run().M.Logistics.Drones);
         Assert.False(w.M.Logistics.Served(Furnace));
@@ -348,11 +356,11 @@ public class LogisticsTests
         w.Do(new SetServed(Furnace, true)).Do(new SetServed(Left, false)).Run();
         Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Right), "scrap") == 8 && w.M.Logistics.Drones.Count == 0, 600));
         w.Run(200);
-        Assert.Equal((1, 10), (Held(w, Furnace, 0, "scrapChunk"), Count(w.M.Items.Crate(Left), "scrapChunk")));
+        Assert.Equal((1, Chunks - 1), (Held(w, Furnace, 0, "scrapChunk"), Count(w.M.Items.Crate(Left), "scrapChunk")));
 
         // The crate on again: its chunks are brought.
         w.Do(new SetServed(Left, true)).Run();
-        Assert.True(RunUntil(w, () => Held(w, Furnace, 0, "scrapChunk") == 10, 600));
+        Assert.True(RunUntil(w, () => Held(w, Furnace, 0, "scrapChunk") == Chunks, 600));
         Assert.Empty(w.Refusals);
     }
 
@@ -394,7 +402,7 @@ public class LogisticsTests
     public void ADroneTakesItsNextJobFromWhereItIsWithoutDockingAndFliesHomeWithNoneLeft()
     {
         // A chunk short at the furnace, and scrap in its outputs: one drone brings the chunks, then carries the scrap off.
-        var w = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 2), crate: Furnace).Put(Output, new Stack("scrap", 8), crate: Furnace);
+        var w = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", Chunks - 2)).Put(0, new Stack("scrapChunk", 2), crate: Furnace).Put(Output, new Stack("scrap", 8), crate: Furnace);
         Assert.True(RunUntil(w, () => w.M.Logistics.Drones.Count > 0, 20));
         var jobs = new List<(int Target, string Item)>();
         var launched = new HashSet<int>();
@@ -407,7 +415,7 @@ public class LogisticsTests
         Assert.Equal([(Furnace, "scrapChunk"), (Right, "scrap")], jobs);
         // Launched once: a drone gets a new id each launch.
         Assert.Single(launched);
-        Assert.Equal((10, 8, 1), (Held(w, Furnace, 0, "scrapChunk"), Count(w.M.Items.Crate(Right), "scrap"), Docked(w, Bay)));
+        Assert.Equal((Chunks, 8, 1), (Held(w, Furnace, 0, "scrapChunk"), Count(w.M.Items.Crate(Right), "scrap"), Docked(w, Bay)));
     }
 
     /// <summary>What a drone spends over <paramref name="cells"/> cells, stored: five ticks a cell at a power-tick a tick.</summary>
@@ -419,7 +427,7 @@ public class LogisticsTests
     /// </summary>
     private static Scenario Spent(Scenario w)
     {
-        w.FillCrate(Left, ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 2), crate: Furnace).Put(Output, new Stack("scrap", 8), crate: Furnace);
+        w.FillCrate(Left, ("scrapChunk", Chunks - 2)).Put(0, new Stack("scrapChunk", 2), crate: Furnace).Put(Output, new Stack("scrap", 8), crate: Furnace);
         Assert.True(RunUntil(w, () => w.M.Logistics.Drones.SingleOrDefault()?.Cargo != null, 200));
         var d = w.M.Logistics.Drones.Single();
         d.Stack = d.Stack with { Charge = Cells(31) };
@@ -437,7 +445,7 @@ public class LogisticsTests
             return w.M.Logistics.Drones.Count == 0;
         }, 800));
         Assert.True(low);
-        Assert.Equal((10, 8, 1), (Held(w, Furnace, 0, "scrapChunk"), Held(w, Furnace, Output, "scrap"), Docked(w, Bay)));
+        Assert.Equal((Chunks, 8, 1), (Held(w, Furnace, 0, "scrapChunk"), Held(w, Furnace, Output, "scrap"), Docked(w, Bay)));
         Assert.InRange(w.M.Items.Crate(Bay)[0]!.Charge, 1, Tune.LaunchAt - 1);
         // Short of what it launches on, and no power to charge it: it stays docked, though there is work.
         w.Run(400);
@@ -505,9 +513,9 @@ public class LogisticsTests
         // Its scrap is carried off; no chunk is anywhere to bring.
         for (int i = 0; i < 200; i++) Assert.DoesNotContain(w.Run().M.Logistics.Drones, d => d.Item == "scrapChunk");
         // Chunks in the crate: drones bring a stack to the empty slot that remembers them.
-        w.FillCrate(Left, ("scrapChunk", 10));
+        w.FillCrate(Left, ("scrapChunk", Chunks));
         Assert.True(w.M.Logistics.Supplied(Furnace, "scrapChunk"));
-        Assert.True(RunUntil(w, () => Held(w, Furnace, 0, "scrapChunk") == 10, 600));
+        Assert.True(RunUntil(w, () => Held(w, Furnace, 0, "scrapChunk") == Chunks, 600));
         Assert.Equal(0, Count(w.M.Items.Crate(Left), "scrapChunk"));
     }
 
@@ -567,7 +575,7 @@ public class LogisticsTests
     [Fact]
     public void ADronePassesAClosedDoorAndTheDoorStaysClosed()
     {
-        var w = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 3), crate: Furnace);
+        var w = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", Chunks - 3)).Put(0, new Stack("scrapChunk", 3), crate: Furnace);
         bool through = false;
         for (int i = 0; i < 400; i++)
         {
@@ -576,7 +584,7 @@ public class LogisticsTests
             through |= w.M.Logistics.Drones.Any(d => d.Cell % 24 == 10);
         }
         Assert.True(through);
-        Assert.Equal(10, w.M.Items.HeldFor(Furnace, "scrapChunk"));
+        Assert.Equal(Chunks, w.M.Items.HeldFor(Furnace, "scrapChunk"));
     }
 
     /// <summary>Wide: a bay on the left with a crate (2), a furnace (3) in its zone and a furnace (4) beyond it, and a second bay (5) on the right.</summary>
@@ -601,7 +609,7 @@ public class LogisticsTests
         int near = furnaces[0].Id, far = furnaces[1].Id;
         Assert.Null(w.M.Logistics.ZoneOf(crate));
         Assert.True(w.M.Logistics.ZoneOf(left) is { Right: 18 });
-        Dock(w, left, 2).FillCrate(crate, ("scrapChunk", 10), ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 2), crate: far);
+        Dock(w, left, 2).FillCrate(crate, ("scrapChunk", 2 * Chunks)).Put(0, new Stack("scrapChunk", 2), crate: far);
         // The far furnace is past the left bay's reach, and the right bay has no drones: nothing reaches it.
         for (int i = 0; i < 400; i++) Assert.Empty(w.Run().M.Logistics.Drones);
         Assert.Equal(2, w.M.Items.HeldFor(far, "scrapChunk"));
@@ -609,8 +617,8 @@ public class LogisticsTests
         // The near one is in both zones, both bays stocked: one delivery of what it lacks.
         Dock(w, right, 2).Put(0, new Stack("scrapChunk", 2), crate: near);
         w.Run(600);
-        Assert.Equal(10, w.M.Items.HeldFor(near, "scrapChunk"));
-        Assert.Equal(12, Count(w.M.Items.Crate(crate), "scrapChunk"));
+        Assert.Equal(Chunks, w.M.Items.HeldFor(near, "scrapChunk"));
+        Assert.Equal(Chunks + 2, Count(w.M.Items.Crate(crate), "scrapChunk"));
         Assert.Empty(w.M.Items.Floor);
         Assert.Equal((2, 2), (Docked(w, left), Docked(w, right)));
     }
@@ -669,18 +677,18 @@ public class LogisticsTests
     [Fact]
     public void ATargetFilledByHandGetsWhatFitsTheRestGoingOnToACrateWithRoomOrWithNoneOnTheFloorThere()
     {
-        // Seven put in by hand while the eight are on their way: one fits, and the seven go back on to the crate still
-        // holding chunks, though the other is nearer.
-        var w = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 2), crate: Furnace).GiveItems(0, ("scrapChunk", 7));
+        // Seven put in by hand while the rest of a stack is on its way: all but seven fit, and the seven go back on to the
+        // crate still holding chunks, though the other is nearer.
+        var w = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", Chunks)).Put(0, new Stack("scrapChunk", 2), crate: Furnace).GiveItems(0, ("scrapChunk", 7));
         Assert.True(RunUntil(w, () => w.M.Logistics.Drones.SingleOrDefault()?.Cargo != null, 400));
         w.Do(new Move(new Slot(0), new Target(0, Furnace), 7)).Run();
         Assert.True(RunUntil(w, () => w.M.Logistics.Drones.Count == 0, 400));
-        Assert.Equal((10, 9, 0), (w.M.Items.HeldFor(Furnace, "scrapChunk"), Count(w.M.Items.Crate(Left), "scrapChunk"), Count(w.M.Items.Crate(Right), "scrapChunk")));
+        Assert.Equal((Chunks, 9, 0), (w.M.Items.HeldFor(Furnace, "scrapChunk"), Count(w.M.Items.Crate(Left), "scrapChunk"), Count(w.M.Items.Crate(Right), "scrapChunk")));
         Assert.Empty(w.M.Items.Floor);
         Assert.Equal(1, Docked(w, Bay));
 
         // Every crate switched off: no crate takes them, so they lie at the target.
-        var v = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", 10)).Put(0, new Stack("scrapChunk", 2), crate: Furnace).GiveItems(0, ("scrapChunk", 7));
+        var v = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", Chunks)).Put(0, new Stack("scrapChunk", 2), crate: Furnace).GiveItems(0, ("scrapChunk", 7));
         Assert.True(RunUntil(v, () => v.M.Logistics.Drones.SingleOrDefault()?.Cargo != null, 400));
         v.Do(new Move(new Slot(0), new Target(0, Furnace), 7)).Do(new SetServed(Left, false)).Do(new SetServed(Right, false)).Run();
         Assert.True(RunUntil(v, () => v.M.Logistics.Drones.Count == 0, 400));
