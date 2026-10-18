@@ -71,6 +71,7 @@
     <Compile Include="../game/shared/ItemCard.cs" Link="Game/Shared/ItemCard.cs" />
     <Compile Include="../game/shared/ItemCards.cs" Link="Game/Shared/ItemCards.cs" />
     <Compile Include="../game/shared/Charges.cs" Link="Game/Shared/Charges.cs" />
+    <Compile Include="../game/shared/TankFill.cs" Link="Game/Shared/TankFill.cs" />
     <Compile Include="../game/shared/Escape.cs" Link="Game/Shared/Escape.cs" />
     <Compile Include="../game/shared/Slots.cs" Link="Game/Shared/Slots.cs" />
     <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />

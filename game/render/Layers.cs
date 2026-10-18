@@ -20,7 +20,7 @@ public static class Layers
     // The ship's structure and machines (grid), a socket on each powered machine.
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
 
-    /// <summary>An analyzer's screen, on its face beside its socket (research).</summary>
+    /// <summary>A screen or a lamp on a machine's face beside its socket: an analyzer's (research), a tank's sight glass (atmosphere).</summary>
     public const int Screens = Sockets;
 
     /// <summary>Grommets, pegs and plugs on the wall's face, then the bolts over machines short of power (power).</summary>
@@ -44,8 +44,8 @@ public static class Layers
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
     public const int Glows = 16;
 
-    /// <summary>A venting room's pulse, then the tanks' gauges (atmosphere).</summary>
-    public const int Pulse = 17, Gauges = 18;
+    /// <summary>A venting room's pulse (atmosphere).</summary>
+    public const int Pulse = 17;
 
     // The plan (building): blueprints, their marks and bars, the ghost of a drag, the hands at work.
     public const int Plans = 19, PlanMarks = 20, PlanGhost = 21, PlanHands = 22;

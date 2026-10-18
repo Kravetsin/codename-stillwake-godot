@@ -74,6 +74,7 @@ public partial class Main : Node2D, ITogether
     private FurnaceView? _furnace;
     private AnalyzerScreens? _screens;
     private Features.Power.ChargerLights? _chargers;
+    private Features.Atmosphere.TankLooks? _tanks;
     private ShipCamera _camera = null!;
     private Stars _stars = null!;
     private string[] _args = [];
@@ -724,12 +725,14 @@ public partial class Main : Node2D, ITogether
         _furnace?.QueueFree();
         _screens?.QueueFree();
         _chargers?.QueueFree();
+        _tanks?.QueueFree();
         _pods?.QueueFree();
         _stations?.QueueFree();
         _drones?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
         AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
         AddChild(_chargers = new Features.Power.ChargerLights(_m.Grid, _m.Items, _m.Power));
+        AddChild(_tanks = new Features.Atmosphere.TankLooks(_m.Grid, _m.Atmosphere));
         AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
         AddChild(_stations = new StationView(_m.Grid, _m.Crafting));
         var ui = _hands.Ui;

@@ -14,8 +14,8 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Atmosphere;
 
 /// <summary>
-/// The ship's air (features/atmosphere/index.ts, air-overlay.ts). Without a word: each tank's gauge up its
-/// right side, every room losing oxygen into space pulsing red, air streaming out through its openings
+/// The ship's air (features/atmosphere/index.ts, air-overlay.ts). Without a word: every room losing
+/// oxygen into space pulsing red (each tank's sight glass is <see cref="TankLooks"/>), air streaming out through its openings
 /// while it holds any (<see cref="AirStream"/>), faint motes gliding in all air (<see cref="AirMotes"/>).
 /// With O, the air overlay (<see cref="AirLook"/>): air dithered in the rooms, coming and going softly
 /// (<see cref="AirField"/>), red and running out while a room vents, grey dots where a room holds none,
@@ -31,14 +31,13 @@ public partial class AirView : Node2D
     private const double RefreshMs = 250;
     /// <summary>One pulse of a venting room, in milliseconds of real time.</summary>
     private const double PulseMs = 900;
-    private const int GaugeWidth = 6;
     /// <summary>Room motes show this much of themselves with the overlay off: there, but quiet.</summary>
     private const float QuietMotes = 0.45f;
     private static readonly Color Mote = AsciiArt.Colour(0xcfeaff), PodMote = AsciiArt.Colour(0xc8eeff);
-    private static readonly Color Pulse = AsciiArt.Colour(0xe03030), Track = AsciiArt.Colour(0x16212d), Oxygen = AsciiArt.Colour(0x6fd3ff);
+    private static readonly Color Pulse = AsciiArt.Colour(0xe03030);
 
     private readonly Ui _ui;
-    private readonly Sketch _pulse = new(Layers.Pulse), _gauges = new(Layers.Gauges), _specks = new(Layers.Effects);
+    private readonly Sketch _pulse = new(Layers.Pulse), _specks = new(Layers.Effects);
     private readonly Sprite2D _look = new() { Centered = false, ZIndex = Layers.Air, Scale = new Vector2(Cell, Cell), Material = new ShaderMaterial { Shader = AirLook.Shader } };
     private AirField? _field;
     private Image? _image;
@@ -53,7 +52,6 @@ public partial class AirView : Node2D
     /// <summary>The lifepod's reach in pixels: left, top, right, bottom; null without a pod.</summary>
     private (double X0, double Y0, double X1, double Y1)? _reach;
     private List<(Rect2 Box, Color Colour)> _losing = [];
-    private List<(Rect2 Track, Rect2 Level)> _tanks = [];
     private Dictionary<int, RoomAir> _byRoom = new();
     private double _since = RefreshMs, _clock;
     private List<AirStream> _streams = [];
@@ -67,17 +65,9 @@ public partial class AirView : Node2D
     public AirView(Ui ui)
     {
         _ui = ui;
-        foreach (var node in (Node2D[])[_look, _pulse, _gauges, _specks, _hiss, _hum]) AddChild(node);
+        foreach (var node in (Node2D[])[_look, _pulse, _specks, _hiss, _hum]) AddChild(node);
         _specks.Paint = PaintMotes;
         _pulse.Paint = g => { foreach (var (box, colour) in _losing) g.DrawRect(box, colour); };
-        _gauges.Paint = g =>
-        {
-            foreach (var (track, level) in _tanks)
-            {
-                g.DrawRect(track, Track);
-                if (level.Size.Y > 0) g.DrawRect(level, Oxygen);
-            }
-        };
     }
 
     private bool On => _ui.OverlayOn == Id;
@@ -202,16 +192,6 @@ public partial class AirView : Node2D
             _pulse.QueueRedraw();
         }
         Look(m, air, roomOf);
-
-        var tank = Machines.Get("tank");
-        float full = tank.Height * Cell - 8;
-        _tanks = m.Grid.Machines.Where(x => x.Kind == "tank").Select(x =>
-        {
-            float left = x.Cell % width * Cell + tank.Width * Cell - GaugeWidth - 4, top = x.Cell / width * Cell + 4;
-            float level = MathF.Round(full * m.Atmosphere.OxygenIn(x.Id) / Air.TankCapacity);
-            return (new Rect2(left, top, GaugeWidth, full), new Rect2(left, top + full - level, GaugeWidth, level));
-        }).ToList();
-        _gauges.QueueRedraw();
     }
 
     /// <summary>What the field, the motes and the pod's reach are drawn from, as the sim has it now.</summary>
