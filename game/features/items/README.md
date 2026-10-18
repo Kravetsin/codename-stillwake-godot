@@ -12,7 +12,7 @@ by sending `Move`,
 
 | File               | Holds                                                                                        | Godot |
 | ------------------ | -------------------------------------------------------------------------------------------- | ----- |
-| `Click.cs`         | the click rules (`click.ts`): `Clicks.On`, `Picked`, `SlotClick`, `Clicked`                  | no    |
+| `Click.cs`         | the click rules (`click.ts`) and quick equip (0047): `Clicks.On`, `Picked`, `SlotClick`, `Clicked`| no    |
 | `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`); the digit each slot shows, the key that chooses it | no    |
 | `Equipment.cs`     | the equipment slots by kind, and which light up or dim while a stack is carried (`SlotGlow`, 0047) | no    |
 | `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s and `Drop`s in flight (0014); which items are marked unanalysed, a stack's tip | no    |
@@ -33,7 +33,7 @@ the energy bar, is worked out in `game/shared/Charges.cs` (no Godot), shared wit
 `ChargerLights`.
 
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
-one for one: `click.test.ts` (`ClickTests`), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
+one for one: `click.test.ts` (`ClickTests`, with quick equip), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
 (`PickUpTests`), a test for the fold of own moves (`CrateTests`), one for the analyzer's panel
 (`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`), one for the slots' size, tint and setting (`SlotsTests`, of `game/shared/Slots.cs`) and one for charge
 on screen (`ChargesTests`). Opening a crate is aimed
@@ -47,6 +47,14 @@ as everything E works is, in the crew feature (`AimTests`).
   rounded up or puts one, but on a canister of the hero's own with none picked breathes it (`Ui.Breathe`, 0047), shift sends a stack across to the open crate (a fuel into the fuel slot of a
   furnace or a burner generator, its machine's `FuelSlot`), a click on the picked slot puts it back. A press begins a drag; let go over another slot it
   puts the stack there, over the world it throws it. Along the closed hotbar a drag moves a stack.
+- **Quick equip** (0047, Terraria's): shift on a worn kind of item (`ItemSpec.Equip`) in the hero's own slots, a
+  crate open or not, puts it on the first free equipment slot of its kind (the belt's first free of three), or with
+  none free swaps it with the first worn there, one `Move` either way; shift on what is worn takes it off onto the
+  first free own slot, the hotbar first, and does nothing when all are full. With a charging station open a battery
+  goes into it instead, worn or not. A wearable in a crate goes to the inventory as any stack does. The sim decides:
+  a refused move (the slot taken meanwhile, or a swap of two alike stacks of one) changes nothing. With the
+  inventory closed a shift-click on the hotbar only chooses, as any click: Shift is thrust and run there, and a
+  click while flying would swap what is worn.
 - One hand (0022, `Ui.Hand`): 1–9 and the wheel over the world choose a hotbar slot and free the hand,
   putting the plan away; Tab frees it too as it opens the inventory. Q throws the chosen slot's whole
   stack from the hero's cell the way it faces, and does nothing while a card is in hand. The chosen
@@ -94,8 +102,8 @@ as everything E works is, in the crew feature (`AimTests`).
   a violet "? Not analysed" band while unanalysed. A tool (the fire axe, the harpoon) is edged and its kind
   written in amber, and adds three tiles from content, the first in amber, one decimal at most
   (`CardTile`): the axe's damage a second, damage and seconds between hits (`Content.Axe`: damage over
-  `SwingTicks` / `TicksPerSecond`), its effects (`Axe.Effects`, none yet) as chips in their colours and
-  the wreckage it breaks (`Content.Wreckage`); the harpoon's range in cells, reload in seconds and reel
+  `SwingTicks` / `TicksPerSecond`), its effects (`Axe.Effects`, none yet) as chips in their colours, and no
+  list of what it breaks, since every weapon breaks anything with HP; the harpoon's range in cells, reload in seconds and reel
   speed in cells a second (`Content.Harpoon`), and "Debris" and "Wreckage"; then its key and hint. Any
   other item says under "Goes into" what has it in its cost: crafts, then blueprints, then the cable,
   in content's order, four at most and "+N" for the rest; nothing when it goes into nothing; and its key

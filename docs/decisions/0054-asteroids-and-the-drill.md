@@ -26,7 +26,7 @@ so a second one needed a shape for every weapon to come (0049).
 - **One shape for every weapon:** `Content.Weapons`, each a `Weapon(Item, Damage, Pace, Effects)`: the hit
   points a hit takes, and the ticks between hits while the button is held. The fire axe is 2 every 10 ticks
   (4 a second), the drill 1 every 2 (10 a second). `Weapons.Of(item)` is how the sim, the cards and the client
-  find one. The axe's card tiles (DPS, DMG, HIT) are every weapon's.
+  find one. The axe's card tiles (DPS, DMG, HIT) are every weapon's. The card lists no kinds it breaks: with no gate, such a list says nothing and only grows.
 - **`Hit(Piece, Tool)` says which weapon.** The damage comes from that weapon's content. Whether the sender
   holds it, how often it strikes and how far it reaches stay the client's word (0034, principle 6); a `Tool`
   that is no weapon is our bug and throws, as peers run one build.

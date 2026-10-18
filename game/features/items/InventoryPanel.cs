@@ -520,9 +520,9 @@ public partial class InventoryPanel : CanvasLayer
         if (Shown) return;
         // Along the hotbar with the inventory closed, where a press only chooses a slot: the stack is
         // lifted and put down in one go, as two clicks would with it open.
-        var lifted = Clicks.On(null, new SlotClick(from, _reading.At(from), false, false, Crate));
+        var lifted = Clicks.On(null, new SlotClick(from, _reading.At(from), false, false, Crate, _reading.Inventory));
         if (lifted.Picked == null) return;
-        var put = Clicks.On(lifted.Picked, new SlotClick(place, _reading.At(place), false, false, Crate));
+        var put = Clicks.On(lifted.Picked, new SlotClick(place, _reading.At(place), false, false, Crate, _reading.Inventory));
         if (put.Command == null) return;
         _chosen = place.Slot;
         Send(put.Command);
@@ -538,8 +538,9 @@ public partial class InventoryPanel : CanvasLayer
             return;
         }
         if (_reading == null) return;
-        int? fuelSlot = _reading.Kind is string kind && MachineSpecs.TryGet(kind, out var spec) ? spec.FuelSlot : null;
-        var result = Clicks.On(Held, new SlotClick(place, _reading.At(place), right, shift, Crate, fuelSlot));
+        var spec = _reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
+        var result = Clicks.On(Held, new SlotClick(
+            place, _reading.At(place), right, shift, Crate, _reading.Inventory, spec?.FuelSlot, spec?.Charges == true));
         _picked = result.Picked;
         if (result.Breathes) _ui.Breathe();
         if (result.Command != null) Send(result.Command);
