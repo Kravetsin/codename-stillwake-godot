@@ -1,6 +1,6 @@
 # 0052 — Debris by zones, around every hero
 
-- Status: accepted; the asteroid band as a zone to come, and its weapon, settled by [0054](0054-asteroids-and-the-drill.md); its tier weights scaled four times and the derelicts added by [0056](0056-rich-finds-far-out.md)
+- Status: accepted; the asteroid band as a zone to come, and its weapon, settled by [0054](0054-asteroids-and-the-drill.md); its tier weights scaled four times and the derelicts added by [0056](0056-rich-finds-far-out.md); amended 2026-10-18: no zone spawns or removes a piece in a hero's view (below)
 - Date: 2026-10-17
 - Supersedes: in [0009](0009-debris-around-the-ship.md), the stream as the only place debris spawns,
   and its rejection of spawning where players are, for the cells heroes report
@@ -110,3 +110,29 @@ stream.
   of every keep box for 30 s is gone with its damage; one last hero leaving takes the far field with it.
 - Scenario tests whose heroes stand out past the stream take the far field's draws, so expectations
   pinning exact draws there change once; those by the ship do not.
+
+## Amendment, 2026-10-18: nothing appears or vanishes in sight
+
+The first playtest flew right of the ship and saw the line the stream's pieces float out of; at the
+farthest zoom, pieces appeared on it. The stream started on its lead, 64 columns right of the hull, and
+the farthest view reaches 60: a hero five columns past the bow saw it, and inside the stream's box no far
+field covered for it. The asteroid band started on the same lead, and the stream's pieces vanished on its
+end, 64 columns left of the hull, for a hero past the stern.
+
+- **One view for every zone:** `Content.Debris.View`, 60 × 34 cells either way round a hero's reported
+  cell, what 1920×1080 shows at zoom 1; the far field's `View` moved there.
+- **A piece by the hull starts out of sight:** on its lead, or, where a hero's view holds the lead's cell
+  in its row, one column past that view's right edge, pushed on past any other view it lands in, kept on
+  the grid. Only a hero whose view holds the start moves it, so a hero far ahead does not stretch the
+  stream. The kind is drawn for the lead, so the band's tiers do not follow the heroes, and the draws are
+  the same as before: a world draws exactly as it did, only its starts move.
+- **A piece past its end stays while some hero sees it,** and is gone the tick none does; past the grid's
+  left edge, at once. The far field was already gone only out of every keep box, which holds the view.
+- **Limiting the zoom instead** (the playtest's fallback, a step less out) was not needed: no fixed lead
+  is past every view, as a hero can fly to any lead, so spawning had to follow the heroes.
+
+Consequences: the far field's density is unchanged (`DebrisDensityTests`). A stream pushed right has
+farther to drift, so while a hero hovers by its lead the cap of 20 thins it, by up to some two fifths
+for the wreck's hull; it drifts through the far field past the stream's box there. A stale reported cell
+or a window bigger than 1920×1080 may still see a piece appear at the screen's edge. A grid too narrow to
+push past a view starts the piece on its last column: test and dev maps only.

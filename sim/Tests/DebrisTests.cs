@@ -892,12 +892,15 @@ public class DebrisTests
         int stream = pieces.Count(p => p.Zone == DebrisSpec.Ship.Id);
         if (stream > DebrisSpec.Max) return $"{stream} pieces of the stream out";
         int width = w.M.Grid.Width, height = w.M.Grid.Height;
+        var heroes = w.M.Crew.Heroes.Where(h => h.Cell >= 0 && h.Cell < width * height).Select(h => (X: h.Cell % width, Y: h.Cell / width)).ToList();
+        bool Seen(int x, int y) => heroes.Any(h => Math.Abs(x - h.X) <= DebrisSpec.View.X && Math.Abs(y - h.Y) <= DebrisSpec.View.Y);
         for (int i = 0; i < pieces.Count; i++)
         {
             var p = pieces[i];
             if (i > 0 && p.Id <= pieces[i - 1].Id) return "ids out of spawn order";
             if (p.X < 0 || p.X >= width * 1000 || p.Y < 0 || p.Y >= height * 1000) return $"piece {p.Id} off the grid";
-            if (p.X < p.End || (p.X > p.Start && !reeled.Contains(p.Id))) return $"piece {p.Id} off its path";
+            // Past its end only while a hero sees it.
+            if ((p.X < p.End && !Seen(p.X / 1000, p.Y / 1000)) || (p.X > p.Start && !reeled.Contains(p.Id))) return $"piece {p.Id} off its path";
             if (p.Reel is { } reel && (reel.Left <= 0 || reel.ToX < 0 || reel.ToX >= width * 1000 || reel.ToY < 0 || reel.ToY >= height * 1000))
                 return $"piece {p.Id} reeled to ({reel.ToX}, {reel.ToY}) in {reel.Left} ticks";
             int hp = WreckageSpec.HpOf(p.Item) ?? 0;
@@ -912,7 +915,10 @@ public class DebrisTests
             int row = p.Y / 1000;
             if (row < Math.Max(0, top - DebrisSpec.Margin) || row > Math.Min(height - 1, bottom + DebrisSpec.Margin))
                 return $"piece {p.Id} in row {row}, out of the hull's band";
-            if (p.Start != Math.Min(width - 1, right + DebrisSpec.Lead) * 1000 + 500 || p.End != Math.Max(0, left - DebrisSpec.Lead) * 1000)
+            // On its lead, or farther right where no hero sees it start but at the grid's last column.
+            int lead = Math.Min(width - 1, right + DebrisSpec.Lead), start = p.Start / 1000;
+            bool onLead = Seen(lead, row) && lead < width - 1 ? start > lead && (!Seen(start, row) || start == width - 1) : start == lead;
+            if (!onLead || p.Start % 1000 != 500 || p.End != Math.Max(0, left - DebrisSpec.Lead) * 1000)
                 return $"piece {p.Id} not on its lead";
         }
         return null;

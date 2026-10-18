@@ -10,7 +10,8 @@ namespace Stillwake.Game.Features.Items;
 /// One slot, <see cref="Slots.SizeOf"/> square (<c>SlotBox</c> in Inventory.tsx): tinted by what it holds, a
 /// tool amber and a worn item green (<see cref="SlotLooks"/>), edged near-white when chosen, faded while its
 /// stack is picked, its icon inset 4 px and its count in the corner; on the hotbar the key that chooses it in
-/// the top-left corner, and a violet "?" in the top-right while its item is not analysed. Empty, it may show a faint
+/// the top-left corner, and in the top-right its mark (<see cref="SlotMark"/>): a small flame or sprout while the open
+/// station smelts, burns or grows its item, else a violet "?" while its item is not analysed. Empty, it may show a faint
 /// silhouette of what goes in it (<see cref="Ghost"/>).
 /// </summary>
 public partial class SlotBox : Panel
@@ -79,6 +80,8 @@ public partial class SlotBox : Panel
         Modulate = new Color(1, 1, 1, GhostAlpha),
     };
     private readonly Label _mark;
+    /// <summary>The open station's mark, a flame or a sprout, where the "?" sits and before it.</summary>
+    private readonly TextureRect _sign;
     /// <summary>A battery's charge, a thin bar along the icon's foot (0053): no numbers.</summary>
     private readonly ColorRect _track = new() { Color = new Color("0b1220"), MouseFilter = MouseFilterEnum.Ignore, Visible = false };
     private readonly ColorRect _fill = new() { MouseFilter = MouseFilterEnum.Ignore };
@@ -99,6 +102,7 @@ public partial class SlotBox : Panel
         _icon.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, LayoutPresetMode.Minsize, Slots.Inset);
         if (key != null) AddChild(new Label { Text = key, LabelSettings = KeyText, Position = new Vector2(3, -1), MouseFilter = MouseFilterEnum.Ignore });
         AddChild(_mark = Mark(size));
+        AddChild(_sign = Sign(size));
         var dot = new StyleBoxFlat { BgColor = KeptDot, ShadowColor = KeptDot with { A = 0.6f }, ShadowSize = 3 };
         dot.SetCornerRadiusAll(3);
         _kept.AddThemeStyleboxOverride("panel", dot);
@@ -125,6 +129,17 @@ public partial class SlotBox : Panel
         MouseFilter = MouseFilterEnum.Ignore,
     };
 
+    /// <summary>The open station's mark, its 7 px picture drawn twice its size, where the "?" sits in a slot <paramref name="size"/> wide.</summary>
+    private static TextureRect Sign(int size) => new()
+    {
+        Position = new Vector2(size - 16, 2),
+        Size = new Vector2(14, 14),
+        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+        StretchMode = TextureRect.StretchModeEnum.Scale,
+        TextureFilter = TextureFilterEnum.Nearest,
+        MouseFilter = MouseFilterEnum.Ignore,
+    };
+
     /// <summary>A slot lit green with a soft glow around and inside its edge: it would wear what is carried.</summary>
     private static StyleBoxFlat Lit()
     {
@@ -134,11 +149,12 @@ public partial class SlotBox : Panel
         return box;
     }
 
-    /// <param name="unknown">Whether its item is not analysed yet: the "?" shows.</param>
+    /// <param name="mark">Its corner's mark: the open station's flame or sprout, or the "?" of an item not analysed yet.</param>
     /// <param name="glow">An equipment slot's look while a stack is carried; null for any other slot.</param>
-    public void Show(Stack? stack, bool chosen, bool picked, bool hovered, bool unknown, SlotGlow? glow = null)
+    public void Show(Stack? stack, bool chosen, bool picked, bool hovered, SlotMark mark, SlotGlow? glow = null)
     {
-        _mark.Visible = stack != null && unknown;
+        _mark.Visible = stack != null && mark == SlotMark.Unknown;
+        _sign.Texture = stack != null ? ItemCardView.MarkPicture(mark) : null;
         var box = glow switch
         {
             null => SlotLooks.Of(stack == null ? SlotTint.Plain : Slots.TintOf(stack.Item), hovered, chosen),

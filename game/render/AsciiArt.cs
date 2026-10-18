@@ -37,6 +37,16 @@ public static class AsciiArt
         ["....KKK", "...KyyK", "..KyyK.", ".KyyKKK", "KyyyyyK", "KKKyyK.", "..KyyK.", ".KyyK..", ".KKK..."],
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['y'] = none ? 0xe05555u : 0xf0b44cu });
 
+    /// <summary>A small flame, outlined dark: a slot's mark for what the open fire smelts or burns.</summary>
+    public static ImageTexture Flame() => Texture("flame",
+        ["...K...", "..KoK..", ".KoooK.", "KooyooK", "KoyyyoK", "KoyyyoK", ".KKKKK."],
+        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['o'] = 0xf97316, ['y'] = 0xfcd34d });
+
+    /// <summary>A small sprout, outlined dark: a slot's mark for what the open grow capsule grows.</summary>
+    public static ImageTexture Sprout() => Texture("sprout",
+        ["KK...KK", "KgK.KgK", "KggKggK", ".KgGgK.", "..KGK..", "..KGK..", "..KKK.."],
+        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['g'] = 0x4ade80, ['G'] = 0x22c55e });
+
     /// <summary>A cable's plug, in a socket it is plugged into: the cable card's picture too.</summary>
     public static ImageTexture Plug() => Texture("power-plug",
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],

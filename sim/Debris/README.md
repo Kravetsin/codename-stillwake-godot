@@ -58,9 +58,12 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 ## Rules
 
 - In the simulation phase, every tick: the clock advances; every piece moves left by its speed, or,
-  reeled, toward its reel's point (below); one whose `X` is below its `End` is gone; and one of a zone
-  round the heroes is gone unless it stays (below). Then each zone in content order, the stream first,
-  on its beat.
+  reeled, toward its reel's point (below); one whose `X` is below its `End` is gone once no hero's view
+  holds it, and one past the grid's left edge at once; and one of a zone round the heroes is gone unless
+  it stays (below). Then each zone in content order, the stream first, on its beat.
+- **A hero's view** (`Debris.View`, 60 × 34 cells either way round its reported cell): what the farthest
+  zoom shows, 1920×1080 at zoom 1. No zone spawns a piece in any hero's view, nor takes one away in it
+  but at the grid's edge, so no one sees debris appear or vanish.
 - **A beat:** on the clock its `Beat.Next`, the next is due `Every` plus `Below(Jitter + 1)` ticks on;
   a zone with no jitter draws nothing for it, so a beat that spawns nothing takes nothing from the Rng.
   A zone with no beat, one added to content since the world was saved, is given one on its first tick,
@@ -71,14 +74,19 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   has moved. Drawn with the world's `Rng.Below`, in this
   order: a row among the hull's and `Margin` above and below; a kind by weight from its tier, walking
   its kinds in order; a speed from `DriftMin` to `DriftMax`. It starts in the middle of
-  the cell `Lead` right of the hull and ends `Lead` left of it, both kept on the grid.
+  the cell `Lead` right of the hull, its **lead**, and ends `Lead` left of it, both kept on the grid. Where
+  a hero's view holds the lead, the piece starts one column past that view's right edge instead, pushed on
+  past any other hero's view it lands in (`Upstream`; each hero once, the column only growing), kept on the
+  grid; so the stream comes in from past the right edge of every screen and drifts past the ship. A hero
+  whose view does not hold the start moves nothing, however far ahead. The kind is drawn for the lead.
   The first is due on clock `Debris.Every`. Of the weights' 137 (0041's three times over), 108 are small pieces,
   27 wrecks and 2 soil clods: a spawn every 10 s on average, a wreck one in five, a clod one in 68, some 5 an
   hour on the wreck, where a few spawns are lost at the cap (`SoilClodTests`).
 - **The band's beat** (`HullBand`): an asteroid spawns if fewer than `Max` of the band are out and there is a
   hull. Drawn in this order: a row of the band's `2 × (To − From + 1)`, those above the hull first, top down,
   then those below; a kind from its tier; a speed. A row off the grid spawns nothing, its draws taken all the
-  same. It starts and ends as the stream's pieces do, `Lead` right and left of the hull.
+  same. It starts and ends as the stream's pieces do, `Lead` right and left of the hull, its start pushed
+  out of every hero's view as theirs; its kind drawn for the lead.
 - **The far field's beat** (`AroundHeroes`), with a hull: for each hero on the grid in id order, while
   fewer than the zone's `Max` (640) are out — so at the cap lower ids spawn first — and skipping, with
   no draw, a hero whose reported cell is in a stream's box or that already has `PerHero` (110) of the
@@ -87,14 +95,14 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   and a depth across it (from `RingFrom` to `RingTo`: 61 to 64 columns, 36 to 42 rows, just past the
   farthest view, so what spawns on the right drifts into sight within a minute); then a kind
   from the tier the point's distance picks, and a speed. A point off the grid, in a stream's box or in
-  any hero's `View` (60 × 34, the farthest zoom) spawns nothing, its draws taken all the same. The
+  any hero's view spawns nothing, its draws taken all the same. The
   piece starts there, in its cell's middle, `Start` its `X`, `End` 0, so it drifts in from where it spawns, out of sight
   and is gone past the grid's left edge; `SeenAt` the clock. A beat every tick, no jitter.
 - **Despawn,** for a zone round the heroes only: a piece in some hero's `Keep` box is seen (`SeenAt` the
   clock) and stays; one outside every keep box stays while within some hero's `Hard` box (100 × 64)
   and seen less than `Linger` (600, 30 s) ago; else it is gone that tick: `Linger` after it was last
-  seen, or at once outside every hard box, or when the last hero leaves. The stream's pieces are never
-  gone by distance, only past their `End`.
+  seen, or at once outside every hard box, or when the last hero leaves. The keep box holds the view, so
+  none is gone in sight. The stream's pieces are never gone by distance, only past their `End`.
 - On the first tick a world begins with its map's `Layout.DebrisAtStart` pieces of the stream out (at most
   its `Max`), each drawn as a spawn is, then placed along its way, its `X` drawn evenly from its
   `End` to its `Start`. The wreck sets `Debris.AtStart`, so a player waits for none; test maps set
@@ -170,11 +178,13 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 ## Invariants
 
 - Piece ids grow in spawn order and are never reused; no more than its zone's `Max` of a zone are out.
-- Every piece is on the grid, at or right of its `End`, and left of its `Start` unless it was reeled;
-  each of the stream spawned in the band of the hull it spawned by, each asteroid in the asteroid band of
-  the hull it spawned by, on its lead (`AsteroidTests`).
+- Every piece is on the grid, at or right of its `End` unless a hero sees it, and left of its `Start` unless
+  it was reeled; each of the stream spawned in the band of the hull it spawned by, each asteroid in the
+  asteroid band of the hull it spawned by, on its lead or pushed past every view that held it (`AsteroidTests`).
+- No piece of any zone spawns in a hero's view, but one by the hull pushed to the grid's last column, nor
+  is gone in one, but past the grid's left edge (`DebrisZonesTests`); the world's first pieces aside.
 - A far piece spawns on the ring of a hero out past every stream's box that held fewer than `PerHero`,
-  never in a stream's box nor in any hero's view; `SeenAt` is never past the clock, and 0 on the stream's.
+  never in a stream's box; `SeenAt` is never past the clock, and 0 on the stream's.
 - A reel's point is on the grid and its `Left` above zero.
 - A wreck's `Damage` is below its hit points; a piece caught by hand has none.
 
@@ -183,7 +193,16 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - Reach: the sim lets a hero in space grab any piece in space; the client offers only those within
   reach, among friends.
 - A hero's reported cell is up to a second and a round trip behind its body (0050): a ring drawn round
-  a stale cell may spawn near the screen's edge for a hero flying fast; it shows at once, at full strength.
+  a stale cell, or a stream pushed past a stale view, may spawn near the screen's edge for a hero flying
+  fast; it shows at once, at full strength.
+- The view is a 1920×1080 screen's: a bigger window at the farthest zoom sees past it, and may see a piece
+  appear at its edge. A grid too narrow to push a start past a view, a test's or a dev map's, starts it in
+  its last column, in sight; the world's 2048 columns leave the ship's views far from its edges.
+- A stream pushed right has farther to drift and holds more pieces on its way, so while a hero hovers by
+  its lead the cap thins it, by up to some two fifths with the wreck's hull, a hero 60 columns ahead.
+  Accepted: it lasts only while the hero stays there, and a higher `Max` would thicken the stream for all.
+  Pushed past the stream's box, its pieces drift through the far field there, as the far field's drift
+  through the stream.
 - Heroes together share one far field's density; at the far field's cap lower ids spawn first; a point
   off the grid or in a stream's box wastes that hero's beat; the tiers move with the hull.
 - Far pieces drift through the stream's box without counting toward its cap. A half-chopped wreck left
@@ -210,7 +229,8 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   ask whether a harpoon is held nor where the gun is; a hook not yet reeled is never saved.
 - A diagonal reel is up to 41% faster than a straight one: the longer axis sets the time, with no
   square root. A reel goes on after its reeler leaves; reeled over the hull, a piece cannot be grabbed
-  (`debris.notOutside`) and drifts back out; reeled left of its `End`, it is gone that tick.
+  (`debris.notOutside`) and drifts back out; reeled left of its `End`, it is gone that tick, or once no hero
+  sees it.
 
 ## Differences from TypeScript
 

@@ -24,7 +24,8 @@ namespace Stillwake.Game.Features.Items;
 /// (0053), each named, a powered one with its bolt; a queued station's is the crafting feature's, docked in the
 /// same place. Stacks move by clicks (<see cref="Clicks.On"/>), or dragged from one slot to another; Tab or Esc
 /// closes both. 1–9 and the wheel over the world choose a hotbar slot, Q throws its stack. A stack's name, and
-/// whether it waits for an analyzer, show in the one tooltip; an item not analysed has a violet "?" in its
+/// whether it waits for an analyzer, show in the one tooltip; an item the open fed station or fire takes has its
+/// flame or sprout in its slot's corner (<see cref="Reading.MarkOf"/>), else one not analysed a violet "?" in its
 /// slot's corner, and in the hand. At the screen's right edge, the equipment by the body (0047, 0058) and the
 /// hands' tool: a stack carried lights the slots that would wear it and dims the rest; a right click on a
 /// canister of the hero's own breathes it (<see cref="Ui.Breathe"/>). Every slot is <see cref="Ui.Slot"/> wide,
@@ -361,7 +362,7 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>A stack's tip; an empty bay slot says a drone docks there, an empty kept one what drones keep it full of (0062).</summary>
     private Tip? SlotTip(SlotBox box)
     {
-        if (_reading?.At(box.Place) is { } stack) return _reading.TipOf(stack);
+        if (_reading?.At(box.Place) is { } stack) return box.Place.Crate == null ? _reading.HereTipOf(stack) : _reading.TipOf(stack);
         if (box.Kept is { } kept && box.Place.Crate is int id)
         {
             var name = T("logistics.kept", ("item", T($"item.{kept}")));
@@ -690,7 +691,8 @@ public partial class InventoryPanel : CanvasLayer
             var stack = reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,
-                stack != null && reading.Unknown(stack.Item), Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null);
+                stack == null ? SlotMark.None : p.Crate == null ? reading.MarkOf(stack.Item) : reading.Unknown(stack.Item) ? SlotMark.Unknown : SlotMark.None,
+                Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null);
         }
         _held.Visible = held != null;
         if (held is { } h)

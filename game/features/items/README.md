@@ -15,12 +15,12 @@ by sending `Move`,
 | `Click.cs`         | the click rules (`click.ts`) and quick equip (0047): `Clicks.On`, `Picked`, `SlotClick`, `Clicked`| no    |
 | `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`); the digit each slot shows, the key that chooses it | no    |
 | `Equipment.cs`     | the equipment slots by kind, and which light up or dim while a stack is carried (`SlotGlow`, 0047) | no    |
-| `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s, `Drop`s and `Sort`s in flight (0014); which items are marked unanalysed, a stack's tip | no    |
+| `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s, `Drop`s and `Sort`s in flight (0014); which items are marked unanalysed, or smelted, burnt or grown by the open machine (`MarkOf`), a stack's tip | no    |
 | `Lessons.cs`       | an analyzer's panel: its stage, how far, what an analysed item goes into, each one's tip (0027) | no    |
 | `Reach.cs`         | `HeroSpot`; pick-ups (`pickup.ts`)                                                           | no    |
 | `OwnCatches.cs`    | what this peer's own grabs of debris put into its inventory, once each as they run            | no    |
 | `SortButton.cs`    | the sort button: a small square with three bars and an arrow down, drawn in code, lighter under the pointer (0008) | yes   |
-| `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, the violet "?" of an item not analysed; an equipment slot's looks | yes   |
+| `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, its corner's mark: the open station's flame or sprout, or the violet "?" of an item not analysed; an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
 | `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, grow capsule, burner generator, analyzer, charging station or drone bay in the machine frame under the inventory, with the logistics feature's drone badge in the header where drones have work (`Served`, set by `Main`, 0062) and a bay's bolt lit while it charges (`Charger`), the stack in hand; all built again at another slot size | yes   |
@@ -37,7 +37,7 @@ the energy bar, is worked out in `game/shared/Charges.cs` (no Godot), shared wit
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
 one for one: `click.test.ts` (`ClickTests`, with quick equip), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
 (`PickUpTests`), a test for the fold of own moves (`CrateTests`), one for the analyzer's panel
-(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`), one for own catches (`OwnCatchesTests`), one for the slots' size, tint and setting (`SlotsTests`, of `game/shared/Slots.cs`) and one for charge
+(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the open station's marks (`SlotMarksTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`), one for own catches (`OwnCatchesTests`), one for the slots' size, tint and setting (`SlotsTests`, of `game/shared/Slots.cs`) and one for charge
 on screen (`ChargesTests`). Opening a crate is aimed
 as everything E works is, in the crew feature (`AimTests`).
 
@@ -106,6 +106,15 @@ as everything E works is, in the crew feature (`AimTests`).
   top-right corner (the top-left is the hotbar's digit), never in creative mode. Only an item in some
   cost waits for analysis (`ItemCards.Unknown`, from `Research.Analysable`): a tool, the jetpack, the
   battery or biofuel never shows it, nor its card the band.
+- **What the open machine takes** (playtest 1: a friend could not tell rock smelts): while a fed station's
+  window is open, every inventory, hotbar and equipment slot whose item it processes (`CraftingModule.Processes`:
+  of its process, no hotter than it) shows its mark where the "?" sits, and before the "?": a small orange
+  flame (`AsciiArt.Flame`, 7 px drawn at 14) for the furnace and the electric smelter, a small green sprout
+  (`AsciiArt.Sprout`) for the grow capsule. A machine with a fire (the furnace, the burner generator) marks its
+  fuel, what has `BurnTicks`, with the same flame: one sign for "this fire takes it", the tooltip telling the
+  two apart. An item too hot for the station (silicon at the furnace) gets no mark; the machine's own slots
+  none either. The card in the tooltip adds a line in the mark's colour, the mark before it: "Smelts here",
+  "Burns here" or "Grows here" (`ItemCard.Here`, `Reading.HereOf`). The stack in hand keeps only the "?".
 - Every stack, in the inventory, the hotbar, a crate, a furnace or an analyzer, shows its card in the
   one tooltip (`Shared.PointerTip`) at once by the pointer (`Shared.ItemCards`, drawn by
   `Shared.ItemCardView`, the mockup's plaque): its icon large, its name and its kind (`item.<id>.kind`);

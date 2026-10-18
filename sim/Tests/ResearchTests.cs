@@ -252,18 +252,19 @@ public class ResearchTests
     }
 
     /// <summary>
-    /// Every item either goes into some cost — a blueprint's, a craft's, the cable's — and an analyzer works
-    /// on it, or goes into none and the analyzer rests on it saying so: no third case.
+    /// Every item either goes into the cost of something not known from the start — a blueprint's or a craft's
+    /// — and an analyzer works on it, or goes into none and the analyzer rests on it saying so: no third case.
     /// </summary>
     [Fact]
-    public void AnalysesEveryItemInSomeCostAndRestsOnEveryOtherSayingThereIsNothingToLearn()
+    public void AnalysesEveryItemInTheCostOfSomethingNotKnownFromTheStartAndRestsOnEveryOtherSayingThereIsNothingToLearn()
     {
-        // Straight from content, beside Analysable's own reading of it.
-        var inACost = Content.Crafts.All.SelectMany(c => c.Cost)
-            .Concat(Content.Builds.All.SelectMany(b => b.Cost))
-            .Concat(Content.Materials.All.SelectMany(m => m.Cost))
-            .Concat(Content.Machines.All.SelectMany(m => m.Cost))
-            .Concat(Content.Power.CableCost)
+        // Straight from content, beside Analysable's own reading of it: the wreck's grants and the cable, always known, left out.
+        bool Granted(string id) => Content.Research.StartKnown.Contains(id);
+        var inACost = Content.Crafts.All.Where(c => !Granted(c.Item)).SelectMany(c => c.Cost)
+            .Concat(Content.Builds.All.Where(b => !Granted(b.Id)).SelectMany(b => b.Cost))
+            .Concat(Content.Materials.All.Where(m => !Granted("wall" + char.ToUpperInvariant(m.Id[0]) + m.Id[1..])).SelectMany(m => m.Cost))
+            .Concat(Content.Materials.All.Where(m => !Granted("backWall" + char.ToUpperInvariant(m.Id[0]) + m.Id[1..])).SelectMany(m => m.Cost))
+            .Concat(Content.Machines.All.Where(m => !m.Fixed && !Granted(m.Kind)).SelectMany(m => m.Cost))
             .Select(c => c.Item).ToHashSet(StringComparer.Ordinal);
         Assert.Equal(Sorted(inACost), Analysable.All);
         // What a recipe waits for is always something an analyzer can learn.
@@ -290,6 +291,25 @@ public class ResearchTests
         Assert.All(["fireAxe", "harpoon", "drill", "jetpack", "drone"], item => Assert.False(Analysable.NeedsAnalysis(item), item));
         Assert.True(Analysable.NeedsAnalysis("battery"));
         Assert.True(Analysable.NeedsAnalysis("canister"));
+        // The furnace's salvage only ever went into the furnace, known from the start: nothing to learn from it.
+        // Iron, the wreck's first lesson, opens the plate and the gear; scrap the floor, the ladder, the lamp.
+        Assert.All(["scrapChunk", "hullPlate"], item => Assert.False(Analysable.NeedsAnalysis(item), item));
+        Assert.All(["iron", "scrap", "planks", "plate", "wire"], item => Assert.True(Analysable.NeedsAnalysis(item), item));
+    }
+
+    [Fact]
+    public void OpensByTheItemsOfItsCostThatNeedAnalysisAndListsOnlyThoseAsUnanalysed()
+    {
+        // A world granted nothing: the furnace's cost holds nothing to learn, so it is open from the start.
+        var w = new Scenario(Map([]));
+        var furnace = RecipeOf(w, "furnace");
+        Assert.False(furnace.Granted);
+        Assert.Empty(furnace.Unanalysed);
+        Assert.True(furnace.Known && w.M.Research.Knows("furnace"));
+        // The wreck's grants: the crate's iron and planks still wait for the analyzer for what else they go into.
+        var start = new Scenario(StartMap());
+        Assert.Empty(RecipeOf(start, "furnace").Unanalysed);
+        Assert.Equal(["planks", "iron"], RecipeOf(start, "crate").Unanalysed);
     }
 
     [Fact]

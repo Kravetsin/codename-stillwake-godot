@@ -208,6 +208,18 @@ public class StationsTests
         state.Smelts.Sort((a, b) => a.Machine.CompareTo(b.Machine));
     }
 
+    [Fact]
+    public void ProcessesAtAFedStationWhatIsOfItsProcessAndNoHotterThanIt()
+    {
+        var (furnace, smelter, capsule) = (Stations.Get("furnace"), Stations.Get("smelter"), Stations.Get("growCapsule"));
+        Assert.True(CraftingModule.Processes(furnace, "rock") && CraftingModule.Processes(furnace, "hullPlate"));
+        // Silicon wants the smelter's heat; planks burn, but nothing is made of them; a seed is grown, never smelted.
+        Assert.False(CraftingModule.Processes(furnace, "silicon") || CraftingModule.Processes(furnace, "planks") || CraftingModule.Processes(furnace, "seed"));
+        Assert.True(CraftingModule.Processes(smelter, "silicon") && CraftingModule.Processes(smelter, "rock"));
+        Assert.True(CraftingModule.Processes(capsule, "seed"));
+        Assert.False(CraftingModule.Processes(capsule, "rock"));
+    }
+
     /// <summary>
     /// The fuzz draws crafts and cancels at every station, queued and fed, and at machines that are none: refused as
     /// not here (at the furnace, the smelter and the grow capsule, and of what the Former and the assembler do not
