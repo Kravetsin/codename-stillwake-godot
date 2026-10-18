@@ -9,15 +9,17 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   picture, iron a panel with a grille in about one cell of seven), pipes reaching toward their
   neighbours, valves, walls cut from their material's picture, their edges on every side that faces no
   wall, floors and ladders, doors and hatches (shut or slid open; a door cell joined to one above or below
-  is a door's, every other a hatch's, its pieces joined to either side: `render/DoorShape.cs`, 0067),
+  is a door's, every other a hatch's, joined as the sim's `Doorways` joins them, one straight run a doorway;
+  pictures by `render/DoorShape.cs`, 0067),
   machines over their footprints; a sprite per power socket.
-- **Heard:** a door or valve that moved, where it stands (0033); a doorway once, at its cell with no
-  door above it or to its left (`DoorShape.Leads`).
+- **Heard:** a door or valve that moved, where it stands (0033); a doorway once, at its cell joined
+  neither above nor to its left (`DoorShape.Leads`).
 - **Kept current:** `GridView.Sync(shown)` runs whenever the grid as this peer shows it changes
   (`game/shared/Predicted.cs`'s `Grid`, `predictedGrid` of `session/predicted.ts`): after a tick, and
   on the frame this peer sends a door or valve toggle, which shows at once, before its tick runs (0014). It
   brings what it drew (`DrawnLayers`, plain C#) up to the grid and redraws only the changed cells and
-  their four neighbours; machines are redrawn when the list changes. Nothing is rebuilt per frame.
+  their four neighbours, a door cell come or gone its corners too (a hatch beside the cell above or below it
+  joins anew); machines are redrawn when the list changes. Nothing is rebuilt per frame.
 - **Costs the cells changed, not the ship or the world** (F-7, 0051). When the grid's `Version` moved, the
   cells its log names since the last look (`ChangedSince`) are compared with what was drawn; machines
   are compared only when the log names a machine's cell. The first drawing, or a look the log no

@@ -1,4 +1,5 @@
 using Stillwake.Game.Render;
+using Stillwake.Sim.Grid;
 using Xunit;
 
 namespace Stillwake.Game.Tests;
@@ -8,21 +9,16 @@ public class DoorShapeTests
 {
     /// <summary>
     /// Each cell of <paramref name="rows"/> a door (<c>D</c> shut, <c>d</c> open) as the grid draws it, else <c>null</c>:
-    /// its picture, joined to the door cells on its four sides.
+    /// its picture, by the sides it joins its doorway on as the sim has them.
     /// </summary>
     private static string?[,] Drawn(params string[] rows)
     {
         int h = rows.Length, w = rows[0].Length;
-        bool IsDoor(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && rows[y][x] is 'D' or 'd';
+        int StructureAt(int c) => rows[c / w][c % w] switch { 'D' => Structure.DoorClosed, 'd' => Structure.DoorOpen, _ => Structure.Empty };
         var drawn = new string?[h, w];
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-            {
-                if (!IsDoor(x, y)) continue;
-                int linked = (IsDoor(x, y - 1) ? DoorShape.Up : 0) | (IsDoor(x + 1, y) ? DoorShape.Right : 0)
-                    | (IsDoor(x, y + 1) ? DoorShape.Down : 0) | (IsDoor(x - 1, y) ? DoorShape.Left : 0);
-                drawn[y, x] = DoorShape.Picture(rows[y][x] == 'D', linked);
-            }
+        for (int c = 0; c < w * h; c++)
+            if (Doorways.IsDoor(StructureAt(c)))
+                drawn[c / w, c % w] = DoorShape.Picture(StructureAt(c) == Structure.DoorClosed, Doorways.LinksOf(c, w, w * h, StructureAt));
         return drawn;
     }
 
@@ -58,6 +54,18 @@ public class DoorShapeTests
     }
 
     [Fact]
+    public void AHatchMeetingADoorEndsBesideItAndTheDoorTakesTheCellWhereTheyMeet()
+    {
+        // An L: a hatch three wide, a door hanging from its right end's cell, which is the door's top.
+        var l = Drawn("DDDD", "...D", "...D");
+        Assert.Equal(new[] { "hatch_closed_2", "hatch_closed_10", "hatch_closed_8", "door_closed_4" }, new[] { l[0, 0], l[0, 1], l[0, 2], l[0, 3] });
+        Assert.Equal(new[] { "door_closed_5", "door_closed_1" }, new[] { l[1, 3], l[2, 3] });
+        // A T: the hatch's two arms end either side of the door.
+        var t = Drawn("DDDDD", "..D..", "..D..");
+        Assert.Equal(new[] { "hatch_closed_2", "hatch_closed_8", "door_closed_4", "hatch_closed_2", "hatch_closed_8" }, new[] { t[0, 0], t[0, 1], t[0, 2], t[0, 3], t[0, 4] });
+    }
+
+    [Fact]
     public void ADeckTwoCellsThickDrawsItsHatchAsARowOfShortDoors()
     {
         var drawn = Drawn("DDD", "DDD");
@@ -68,12 +76,12 @@ public class DoorShapeTests
     [Fact]
     public void ADoorwayIsHeardFromItsTopCellAndAHatchFromItsLeftEnd()
     {
-        Assert.True(DoorShape.Leads(DoorShape.Down));
-        Assert.False(DoorShape.Leads(DoorShape.Up | DoorShape.Down));
-        Assert.False(DoorShape.Leads(DoorShape.Up));
-        Assert.True(DoorShape.Leads(DoorShape.Right));
-        Assert.False(DoorShape.Leads(DoorShape.Left | DoorShape.Right));
-        Assert.False(DoorShape.Leads(DoorShape.Left));
+        Assert.True(DoorShape.Leads(Doorways.Down));
+        Assert.False(DoorShape.Leads(Doorways.Up | Doorways.Down));
+        Assert.False(DoorShape.Leads(Doorways.Up));
+        Assert.True(DoorShape.Leads(Doorways.Right));
+        Assert.False(DoorShape.Leads(Doorways.Left | Doorways.Right));
+        Assert.False(DoorShape.Leads(Doorways.Left));
         Assert.True(DoorShape.Leads(0));
     }
 

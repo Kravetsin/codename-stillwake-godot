@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Stillwake.Game.Render;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 
@@ -24,36 +23,32 @@ public static class Sources
     public const int Stride = 16;
 
     /// <summary>
-    /// A byte a cell of <paramref name="box"/> of <paramref name="structure"/>, a grid <paramref name="width"/>
-    /// wide, row by row into <paramref name="cells"/>: what stops light there.
+    /// A byte a cell of <paramref name="box"/> of the structure <paramref name="structureAt"/> reads, a grid
+    /// <paramref name="width"/> wide and <paramref name="size"/> cells, row by row into <paramref name="cells"/>: what stops light there.
     /// </summary>
-    public static void Occupy(ReadOnlySpan<int> structure, int width, Box box, byte[] cells)
+    public static void Occupy(Func<int, int> structureAt, int width, int size, Box box, byte[] cells)
     {
         int i = 0;
         for (int y = box.Top; y <= box.Bottom; y++)
         {
             int cell = y * width + box.Left;
-            for (int end = cell + box.Width; cell < end; cell++) cells[i++] = Of(structure, width, cell);
+            for (int end = cell + box.Width; cell < end; cell++) cells[i++] = Of(structureAt, width, size, cell);
         }
     }
 
-    /// <summary>What stops light in <paramref name="cell"/> of <paramref name="structure"/>: a closed door's panel by the doorway's shape (0067).</summary>
-    public static byte Of(ReadOnlySpan<int> structure, int width, int cell)
+    /// <summary>What stops light in <paramref name="cell"/>: a closed door's panel by the doorway's shape (0067).</summary>
+    public static byte Of(Func<int, int> structureAt, int width, int size, int cell)
     {
-        switch (structure[cell])
+        switch (structureAt(cell))
         {
             case Structure.Wall:
                 return Wall;
             case Structure.DoorClosed:
-                int linked = (IsDoor(structure, cell - width) ? DoorShape.Up : 0) | (IsDoor(structure, cell + width) ? DoorShape.Down : 0);
-                return DoorShape.IsHatch(linked) ? Hatch : Door;
+                return Doorways.IsHatch(Doorways.LinksOf(cell, width, size, structureAt)) ? Hatch : Door;
             default:
                 return Open;
         }
     }
-
-    private static bool IsDoor(ReadOnlySpan<int> structure, int c) =>
-        c >= 0 && c < structure.Length && structure[c] is Structure.DoorClosed or Structure.DoorOpen;
 
     /// <summary>
     /// Packs each of <paramref name="lights"/> whose reach touches <paramref name="view"/> (pixels) into

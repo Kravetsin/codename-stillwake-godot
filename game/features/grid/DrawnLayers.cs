@@ -103,7 +103,10 @@ public sealed class DrawnLayers
         (Structure[c], Material[c], Conduit[c], Back[c], BackMaterial[c]) = (s, m, cd, b, bm);
     }
 
-    /// <summary>The cells whose drawing <paramref name="changes"/> made stale: each changed cell and its four neighbours.</summary>
+    /// <summary>
+    /// The cells whose drawing <paramref name="changes"/> made stale: each changed cell and its four neighbours; a door
+    /// cell come or gone, its four corners too, as a hatch beside a cell it made a door's ends there (0067).
+    /// </summary>
     public List<int> Stale(List<Change> changes)
     {
         int w = Width, size = Width * Height;
@@ -122,6 +125,12 @@ public sealed class DrawnLayers
             Mark(c + w);
             if (x > 0) Mark(c - 1);
             if (x < w - 1) Mark(c + 1);
+            if (Doorways.IsDoor(change.Structure) == Doorways.IsDoor(Structure[c])) continue;
+            foreach (int row in (ReadOnlySpan<int>)[c - w, c + w])
+            {
+                if (x > 0) Mark(row - 1);
+                if (x < w - 1) Mark(row + 1);
+            }
         }
         foreach (int c in stale) _marked[c] = false;
         return stale;

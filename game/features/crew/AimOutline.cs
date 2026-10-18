@@ -61,20 +61,20 @@ public static class AimOutline
     }
 
     /// <summary>
-    /// Every cell of the doorway <paramref name="cell"/> is in, door cells joined on any side as the sim toggles them,
-    /// each with its picture by the doorway's shape (<see cref="DoorShape"/>), as the grid draws it.
+    /// Every cell of the doorway <paramref name="cell"/> is in, its straight run as the sim toggles it
+    /// (<see cref="Doorways"/>), each with its picture (<see cref="DoorShape"/>), as the grid draws it.
     /// </summary>
     private static void Doorway(Outline outline, IGridQueries grid, ShownGrid shown, int cell, Color colour)
     {
         int width = grid.Width, size = width * grid.Height;
-        bool IsDoor(int c) => c >= 0 && c < size && shown.StructureAt(grid, c) is Structure.DoorClosed or Structure.DoorOpen;
+        int StructureAt(int c) => shown.StructureAt(grid, c);
         var seen = new HashSet<int> { cell };
         var next = new Stack<int>([cell]);
         while (next.Count > 0)
         {
-            int c = next.Pop(), linked = Blueprint.LinksOf(c, width, IsDoor);
+            int c = next.Pop(), linked = Doorways.LinksOf(c, width, size, StructureAt);
             outline.Add(PixelArt.Picture(DoorShape.Picture(shown.StructureAt(grid, c) == Structure.DoorClosed, linked)), CornerOf(c, width), colour);
-            foreach (var (side, n) in (ReadOnlySpan<(int, int)>)[(Blueprint.Up, c - width), (Blueprint.Right, c + 1), (Blueprint.Down, c + width), (Blueprint.Left, c - 1)])
+            foreach (var (side, n) in (ReadOnlySpan<(int, int)>)[(Doorways.Up, c - width), (Doorways.Right, c + 1), (Doorways.Down, c + width), (Doorways.Left, c - 1)])
                 if ((linked & side) != 0 && seen.Add(n)) next.Push(n);
         }
     }
@@ -102,7 +102,7 @@ public static class AimOutline
             return false;
         }
         var corner = CornerOf(plan.Cell, width);
-        foreach (var piece in BlueprintArt.PiecesOf(place, Blueprint.LinksOf(plan.Cell, width, Joins)))
+        foreach (var piece in BlueprintArt.PiecesOf(place, Blueprint.LinksOf(place, plan.Cell, width, width * m.Grid.Height, Joins)))
         {
             var picture = PixelArt.Picture(piece.Picture);
             if (piece.Cut)

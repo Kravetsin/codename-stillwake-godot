@@ -14,9 +14,8 @@ public static class Autopilot
         var toggles = new List<Command>();
         var s = grid.StructureLayer;
         int w = grid.Width;
-        bool IsDoor(int c) => c >= 0 && c < grid.StructureLayer.Length && grid.StructureLayer[c] is Structure.DoorClosed or Structure.DoorOpen;
         for (int cell = 0; cell < s.Length; cell++)
-            if (IsDoor(cell) && DoorShape.Leads(Blueprint.LinksOf(cell, w, IsDoor))) toggles.Add(new ToggleDoor(cell));
+            if (Doorways.IsDoor(s[cell]) && DoorShape.Leads(Doorways.LinksOf(cell, w, s.Length, grid.StructureAt))) toggles.Add(new ToggleDoor(cell));
         return toggles;
     }
 }

@@ -107,13 +107,18 @@ public partial class GridView : Node2D
     {
         int cell = change.Cell, w = _grid.Width, structure = _drawn.Structure[cell], conduit = _drawn.Conduit[cell];
         var at = new Vector2((cell % w + 0.5f) * Cell, (cell / w + 0.5f) * Cell);
-        if (IsDoor(structure) && IsDoor(change.Structure) && structure != change.Structure && DoorShape.Leads(SidesOf(cell, _drawn.Structure, IsDoor)))
+        if (IsDoor(structure) && IsDoor(change.Structure) && structure != change.Structure && DoorShape.Leads(DoorLinksOf(cell)))
             (structure == Structure.DoorOpen ? _opens : _closes).PlayAt(at);
         if (conduit is Conduit.ValveClosed or Conduit.ValveOpen && change.Conduit is Conduit.ValveClosed or Conduit.ValveOpen && conduit != change.Conduit)
             _turns.PlayAt(at);
     }
 
-    private static bool IsDoor(int s) => s is Structure.DoorClosed or Structure.DoorOpen;
+    private static bool IsDoor(int s) => Doorways.IsDoor(s);
+
+    /// <summary>The sides door cell <paramref name="cell"/> joins its doorway on, as drawn (<see cref="Doorways.LinksOf"/>).</summary>
+    private int DoorLinksOf(int cell) => Doorways.LinksOf(cell, _grid.Width, _drawn.Structure.Length, _drawnAt ??= c => _drawn.Structure[c]);
+
+    private Func<int, int>? _drawnAt;
 
     private string MaterialOf(int code) => _materials.GetValueOrDefault(code, Materials.DefaultHull);
 
@@ -184,7 +189,7 @@ public partial class GridView : Node2D
             case Structure.DoorClosed or Structure.DoorOpen:
                 {
                     // A doorway is one door or hatch, by its shape (0067): its pictures joined where its cells meet.
-                    Put(_doors, at, DoorShape.Picture(_drawn.Structure[cell] == Structure.DoorClosed, SidesOf(cell, _drawn.Structure, IsDoor)));
+                    Put(_doors, at, DoorShape.Picture(_drawn.Structure[cell] == Structure.DoorClosed, DoorLinksOf(cell)));
                     break;
                 }
         }
