@@ -30,9 +30,10 @@ internal static class FloorRules
     /// <summary>
     /// Lays <paramref name="stack"/> on cell <paramref name="cell"/>, dropped by peer <paramref name="by"/>
     /// and thrown at <paramref name="vx"/>: as new stacks of at most the stack limit each, every one holding
-    /// what its item holds of its own, from the cell's bottom middle, rising a little as they go.
+    /// what its item holds of its own, from the cell's bottom middle, rising a little as they go; each part of
+    /// <paramref name="body"/> when a hero left it where it died.
     /// </summary>
-    public static void LayDown(ItemsState state, Stack stack, int cell, int vx, int width, int by)
+    public static void LayDown(ItemsState state, Stack stack, int cell, int vx, int width, int by, Body? body = null)
     {
         var (x, y) = BottomMiddle(cell, width);
         int limit = Content.Items.Get(stack.Item).Stack;
@@ -52,6 +53,7 @@ internal static class FloorRules
                 Vy = vx == 0 ? 0 : -Tune.ThrowLift,
                 By = by,
                 At = state.Ticks,
+                Body = body,
             });
             left -= n;
         }
@@ -152,18 +154,21 @@ internal static class FloorRules
 
     /// <summary>
     /// A tick of the floor: each stack moves, in id order, and one that left the grid is gone for good:
-    /// thrown out into space. Then stacks of one item at rest in a cell merge into the oldest, up to its limit.
+    /// thrown out into space; so is a body's stack <see cref="Tune.BodyLasts"/> ticks after its death, wherever it
+    /// is. Then stacks of one item at rest in a cell merge into the oldest, up to its limit, only within one body
+    /// or outside any.
     /// </summary>
     public static void Settle(ItemsState state, IGridQueries grid, IRoomsQueries rooms)
     {
         var kept = new List<FloorStack>();
         foreach (var s in state.Floor)
         {
+            if (s.Body is { } body && state.Ticks - body.Died >= Tune.BodyLasts) continue;
             if (!Move(s, grid, rooms)) continue;
             bool resting = s.Vx == 0 && s.Vy == 0;
             foreach (var into in kept)
             {
-                if (!resting || into.Cell != s.Cell || into.Item != s.Item) continue;
+                if (!resting || into.Cell != s.Cell || into.Item != s.Item || into.Body != s.Body) continue;
                 if (into.Vx != 0 || into.Vy != 0 || !Stacks.Alike(into.AsStack(), s.AsStack())) continue;
                 int n = Math.Min(s.Count, Content.Items.Get(s.Item).Stack - into.Count);
                 into.Count += n;

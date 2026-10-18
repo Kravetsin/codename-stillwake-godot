@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
@@ -30,6 +31,7 @@ public partial class ItemsView : Node2D
     public InventoryPanel Panel { get; }
 
     private readonly bool _demo;
+    private bool _wasOut;
 
     /// <param name="ui">The hand, which the hotbar frees, and the crate open.</param>
     /// <param name="demo">Plays <see cref="ItemsDemo"/>'s script, for recordings.</param>
@@ -66,10 +68,14 @@ public partial class ItemsView : Node2D
     {
         (Hero, Grid) = (hero, grid);
         var taking = Reach.PickingUp(client.InFlight);
-        // What the hero walks over, it picks up, saying so over its head at once.
+        // Passing out closes the inventory and lets go of the stack in hand.
+        if (hero is { Out: true } && !_wasOut) Panel.Close();
+        _wasOut = hero?.Out ?? false;
+        // What the hero walks over, it picks up, saying so over its head at once; passed out, nothing.
         if (hero is { } spot)
         {
-            foreach (int id in Reach.PickUpsOf(items, grid.Width, client.Id, spot.X, spot.Y, taking))
+            IReadOnlyList<int> walkedOver = spot.Out ? [] : Reach.PickUpsOf(items, grid.Width, client.Id, spot.X, spot.Y, taking);
+            foreach (int id in walkedOver)
             {
                 var stack = items.Floor.First(s => s.Id == id);
                 _popups.Add(stack.Item, items.PickUpAmount(client.Id, id));

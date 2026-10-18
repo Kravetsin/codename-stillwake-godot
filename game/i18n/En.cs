@@ -295,6 +295,7 @@ public static partial class En
         ["crew.suitFull"] = "Your suit is full",
         ["markers.home"] = "Lifepod",
         ["markers.friend"] = "Crewmate",
+        ["markers.body"] = "Your body",
         ["markers.cells"] = "{cells} cells away",
         ["atmosphere.noTank"] = "There is no tank here",
         ["atmosphere.tankFull"] = "The tank is full",

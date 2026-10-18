@@ -4,16 +4,16 @@ using System.Linq;
 
 namespace Stillwake.Game.Features.Crew;
 
-/// <summary>What a marker's badge holds: the pod's silhouette for home, a dot in the suit's colour for a friend.</summary>
-public enum MarkerIcon { Home, Friend }
+/// <summary>What a marker's badge holds: the pod's silhouette for home, a figure lying for this player's body, a dot in the suit's colour for a friend.</summary>
+public enum MarkerIcon { Home, Body, Friend }
 
 /// <summary>
 /// A place this player may want to find again, pointed at from the screen's edge while it is off the screen:
-/// home, a friend; the body left behind joins the list with the death design, as one more entry.
+/// home, the body this player left last, a friend.
 /// </summary>
 /// <param name="X">Where it is, in cells of the world.</param>
 /// <param name="Colour">The chevron's and the icon's colour, 0xRRGGBB.</param>
-/// <param name="Peer">The friend's peer, which tells two friends' markers apart; none for home.</param>
+/// <param name="Peer">The friend's peer, which tells two friends' markers apart; none for home and the body.</param>
 public sealed record Marker(MarkerIcon Icon, double X, double Y, int Colour, int? Peer = null);
 
 /// <summary>A rectangle on the screen, in pixels: what a marker keeps out of, the HUD's panels.</summary>
@@ -38,12 +38,14 @@ public static class Markers
     public const double FadeInS = 0.25;
 
     /// <summary>
-    /// This player's markers: home at the crew's <paramref name="spawn"/> cell, where a hero is made again, then
-    /// each friend at its body's middle in its suit's colour, in the order given.
+    /// This player's markers: home at the crew's <paramref name="spawn"/> cell, where a hero is made again; then the
+    /// body it left last (<see cref="Bodies.Latest"/>), half a cell above where its stacks lie, in its suit's
+    /// colour, while there is one; then each friend at its body's middle in its suit's colour, in the order given.
     /// </summary>
-    public static List<Marker> Of(int spawn, int width, IReadOnlyList<(int Id, Hero Hero, int Colour)> friends)
+    public static List<Marker> Of(int spawn, int width, IReadOnlyList<(int Id, Hero Hero, int Colour)> friends, (Pile Pile, int Colour)? body = null)
     {
-        var list = new List<Marker>(friends.Count + 1) { new(MarkerIcon.Home, spawn % width + 0.5, spawn / width + 0.5, HomeColour) };
+        var list = new List<Marker>(friends.Count + 2) { new(MarkerIcon.Home, spawn % width + 0.5, spawn / width + 0.5, HomeColour) };
+        if (body is var (pile, suit)) list.Add(new Marker(MarkerIcon.Body, pile.X / Hero.Unit, pile.Y / Hero.Unit - 0.5, suit));
         foreach (var (id, hero, colour) in friends)
         {
             var middle = hero.Middle;

@@ -11,7 +11,8 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// Arrows at the screen's edge to what this player may want to find again (<see cref="Markers"/>): home, the
-/// lifepod's hatch where a hero is made again, and each friend in its suit's colour. A chevron round a small
+/// lifepod's hatch where a hero is made again, the body this player left last, and each friend in its suit's
+/// colour (0061). A chevron round a small
 /// badge, turned toward its target, fading in once the target leaves the screen and gone the moment it is back;
 /// kept out of the HUD's panels, and sized by the slots' size. How far, in cells, only by the pointer.
 /// </summary>
@@ -22,7 +23,7 @@ public partial class MarkerLayer : CanvasLayer
 
     private readonly Ui _ui;
     private readonly ShipCamera _camera;
-    private readonly Func<(HeroView Hero, Registry M)?> _read;
+    private readonly Func<(HeroView Hero, Registry M, int Peer)?> _read;
     private readonly Func<IEnumerable<Rect2>> _keepOut;
     private readonly TipSpots _tips;
     private readonly Dictionary<(MarkerIcon, int?), Badge> _badges = new();
@@ -33,9 +34,9 @@ public partial class MarkerLayer : CanvasLayer
 
     /// <param name="ui">The slots' size, the menu open and the one tooltip.</param>
     /// <param name="camera">Where the world is on the screen, read as the hero has just moved it this frame.</param>
-    /// <param name="read">This player's hero, placed, and the world it is in; none outside a session.</param>
+    /// <param name="read">This player's hero, placed, the world it is in and its peer; none outside a session.</param>
     /// <param name="keepOut">The HUD's panels on the screen this frame: no marker is drawn over them.</param>
-    public MarkerLayer(Ui ui, ShipCamera camera, Func<(HeroView Hero, Registry M)?> read, Func<IEnumerable<Rect2>> keepOut)
+    public MarkerLayer(Ui ui, ShipCamera camera, Func<(HeroView Hero, Registry M, int Peer)?> read, Func<IEnumerable<Rect2>> keepOut)
     {
         _ui = ui;
         _camera = camera;
@@ -66,12 +67,13 @@ public partial class MarkerLayer : CanvasLayer
     public override void _Process(double delta)
     {
         _seen.Clear();
-        if (_read() is var (hero, m))
+        if (_read() is var (hero, m, peer))
         {
             var friends = hero.Others.Select(o => (o.Id, o.Hero, Suits.Of(m.Crew, o.Id))).ToList();
-            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends), hero.Current.Middle, hero.PromptCovers, delta);
+            var body = Bodies.Latest(m.Items.Floor, peer) is { } pile ? (pile, Suits.Of(m.Crew, peer)) : ((Pile, int)?)null;
+            Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body), hero.Current.Middle, hero.PromptCovers, delta);
         }
-        // Gone with its target: a friend who left, or the world.
+        // Gone with its target: a friend who left, a body taken or gone, or the world.
         foreach (var key in _badges.Keys.Where(k => !_seen.Contains(k)).ToList())
         {
             _badges[key].QueueFree();
@@ -121,7 +123,7 @@ public partial class MarkerLayer : CanvasLayer
 
     /// <summary>What the pointer says over a marker: what it points at and how many cells away.</summary>
     private static Tip? TipOf(Badge badge) => badge.Marker is { } marker
-        ? new Tip(T(marker.Icon == MarkerIcon.Home ? "markers.home" : "markers.friend"), new TipLine(T("markers.cells", ("cells", badge.Cells)), Tone.Dim))
+        ? new Tip(T(marker.Icon switch { MarkerIcon.Home => "markers.home", MarkerIcon.Body => "markers.body", _ => "markers.friend" }), new TipLine(T("markers.cells", ("cells", badge.Cells)), Tone.Dim))
         : null;
 
     /// <summary>One marker: a dark badge ringed in its colour holding its icon, and a chevron outside the ring toward the target.</summary>
@@ -159,6 +161,13 @@ public partial class MarkerLayer : CanvasLayer
             {
                 float icon = 1.15f * r;
                 DrawTextureRect(pod, new Rect2(middle - Vector2.One * icon / 2, Vector2.One * icon), false, colour);
+            }
+            else if (marker.Icon == MarkerIcon.Body)
+            {
+                // A figure lying on its back, its head to the left: the body, at a glance.
+                DrawLine(middle + new Vector2(-0.25f, 0.18f) * r, middle + new Vector2(0.62f, 0.18f) * r, colour, 0.34f * r, antialiased: true);
+                DrawCircle(middle + new Vector2(-0.48f, 0.08f) * r, 0.24f * r, colour);
+                DrawCircle(middle + new Vector2(0.12f, -0.36f) * r, 0.13f * r, colour);
             }
             else DrawCircle(middle, 0.45f * r, colour);
         }
