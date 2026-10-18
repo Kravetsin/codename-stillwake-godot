@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
+using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
@@ -30,6 +31,24 @@ public sealed record Reading(
     /// <summary>Whether a slot holding <paramref name="item"/> shows the violet "?": in some cost and not analysed yet, never in creative mode.</summary>
     public bool Unknown(string item) => ItemCards.Unknown(item, Creative, Analysed);
 
+    /// <summary>
+    /// What the open machine does with <paramref name="item"/>: a fed station smelts or grows it, of its process and
+    /// hot enough (<see cref="CraftingModule.Processes"/>), or a machine with a fire burns it, a fuel; none for the
+    /// rest, an item too hot for the station too, and with no machine open.
+    /// </summary>
+    public SlotMark HereOf(string item)
+    {
+        if (Kind == null) return SlotMark.None;
+        if (Content.Stations.TryGet(Kind, out var station) && station.Fed && CraftingModule.Processes(station, item))
+            return station.Process == "grow" ? SlotMark.Grows : SlotMark.Smelts;
+        return Content.Machines.TryGet(Kind, out var machine) && machine.FuelSlot != null && Content.Items.Get(item).BurnTicks != null
+            ? SlotMark.Burns : SlotMark.None;
+    }
+
+    /// <summary>The mark in the corner of an inventory slot holding <paramref name="item"/>: the open machine's (<see cref="HereOf"/>), else the "?" while it is not analysed.</summary>
+    public SlotMark MarkOf(string item) =>
+        HereOf(item) is var here && here != SlotMark.None ? here : Unknown(item) ? SlotMark.Unknown : SlotMark.None;
+
     /// <summary>The one tooltip over a stack of <paramref name="item"/>: its card (<see cref="ItemCards"/>), the band while it is not analysed.</summary>
     public Tip TipOf(string item)
     {
@@ -53,6 +72,13 @@ public sealed record Reading(
     {
         var tip = TipOf(stack.Item);
         return tip with { Card = tip.Card! with { Charge = Charges.MeterOf(stack), Picture = Charges.Picture(stack.Item, stack.Charge) } };
+    }
+
+    /// <summary>The tooltip over <paramref name="stack"/> in an inventory slot: <see cref="TipOf(Stack)"/>, with what the open machine does with it (<see cref="HereOf"/>).</summary>
+    public Tip HereTipOf(Stack stack)
+    {
+        var tip = TipOf(stack);
+        return tip with { Card = tip.Card! with { Here = HereOf(stack.Item) } };
     }
 
     /// <summary>

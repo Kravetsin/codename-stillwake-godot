@@ -136,7 +136,9 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
   energy, a queued one on a unit not done and not waiting for its inputs, a fed one on what it can smelt: what its
   picture's motion, its screen and its bolt show; `Lacks(machine)` — what a queued station's inputs lack for its
   first entry's next unit while that entry, fed from them, waits: what dims it in the queue and its tip names. A furnace's fire reaches crafting only within a tick, so between ticks a
-  furnace reads as not working here; its fire is the furnace module's to show.
+  furnace reads as not working here; its fire is the furnace module's to show. Static: `Processes(station, item)` —
+  whether a fed station processes an item at all, room aside: of its process and no hotter than it; what the
+  client marks in the inventory while one is open, and what `CanSmelt` asks before room.
 - **Operations** (`ICraftingOps`): `Heat(machine)` — that fed station's fire burns this tick.
 - **Commands:** `Craft(Machine, Recipe, Count, FromInputs)`, `Cancel(Machine, Entry)`, `SetEndless(Machine, Entry, On)`.
 - **Fuzz:** mostly at the map's stations, queued and fed alike (a fed one, the furnace, the smelter or the grow

@@ -356,9 +356,16 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         if (Content.Machines.Get(m.Kind).Draws != null) _powerOps.Rest(m.Id, idle);
     }
 
-    /// <summary>Whether fed <paramref name="station"/> <paramref name="m"/> can work <paramref name="input"/>: of its process, hot enough there, its yields fitting.</summary>
+    /// <summary>Whether fed <paramref name="station"/> <paramref name="m"/> can work <paramref name="input"/>: it processes such things, its yields fitting.</summary>
     private bool CanSmelt(Machine m, Station station, string input) =>
-        Worked(station, input) is { } spec && spec.Heat <= station.Heat && _items.CanSmelt(m.Id);
+        Processes(station, input) && _items.CanSmelt(m.Id);
+
+    /// <summary>
+    /// Whether fed <paramref name="station"/> processes <paramref name="item"/> at all, room aside: it has yields, of
+    /// the station's process, and the station is hot enough for it. Static, from content: what the client marks in
+    /// the inventory while such a station is open.
+    /// </summary>
+    public static bool Processes(Station station, string item) => Worked(station, item) is { } spec && spec.Heat <= station.Heat;
 
     /// <summary><paramref name="input"/>'s spec when fed <paramref name="station"/> works such things: it has yields, of the station's process (0060).</summary>
     private static ItemSpec? Worked(Station station, string input) =>

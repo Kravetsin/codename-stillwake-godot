@@ -208,6 +208,9 @@ public static partial class En
         ["card.debris"] = "Debris",
         ["card.wreckage"] = "Wreckage",
         ["card.notAnalysed"] = "? Not analysed",
+        ["card.smeltsHere"] = "Smelts here",
+        ["card.burnsHere"] = "Burns here",
+        ["card.growsHere"] = "Grows here",
         ["card.goesInto"] = "Goes into",
         ["card.more"] = "+{n}",
         // What a battery holds, on its card: the share of full, and what it holds of full in power-ticks.
