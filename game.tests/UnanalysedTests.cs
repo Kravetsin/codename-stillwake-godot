@@ -22,7 +22,7 @@ public class UnanalysedTests
     [Fact]
     public void MarkNoItemInNoCostAndBandNoCardOfOne()
     {
-        Assert.All(["fireAxe", "harpoon", "drill", "jetpack", "battery", "biofuel"], item =>
+        Assert.All(["fireAxe", "harpoon", "drill", "jetpack", "drone", "biofuel"], item =>
         {
             Assert.False(With(false).Unknown(item), item);
             Assert.False(With(false).TipOf(item).Card!.Unknown, item);
