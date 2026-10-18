@@ -94,7 +94,10 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 
 ## Deliberately not handled
 
-- Plans left stale by a grid change: plans claim their slots, so nothing can fill one first.
+- Plans left stale by a grid change: plans claim their slots, so nothing can fill one first. Only
+  building's own work places anything in the grid (hazards only clear), so a blueprint finds its slot
+  as it left it, and completing one over something throws: our bug. The tests' instant `Builder`
+  (`sim/Tests/Scenario.cs`) refuses a planned slot too, with `building.planned`.
 - No reach is checked in the sim: the client sends E only on plans within its hero's reach.
 - A blueprint finished on the cell its hero stands in puts the hero inside what was built.
 - Taking apart what is built needs no knowledge of it (ADR 0024): its refund is its cost.
