@@ -43,6 +43,7 @@
     <Compile Include="../game/features/crew/Danger.cs" Link="Game/Crew/Danger.cs" />
     <Compile Include="../game/features/crew/Remote.cs" Link="Game/Crew/Remote.cs" />
     <Compile Include="../game/features/crew/Suits.cs" Link="Game/Crew/Suits.cs" />
+    <Compile Include="../game/features/crew/Markers.cs" Link="Game/Crew/Markers.cs" />
     <Compile Include="../game/render/Rope.cs" Link="Game/Render/Rope.cs" />
     <Compile Include="../game/render/Scatter.cs" Link="Game/Render/Scatter.cs" />
     <Compile Include="../game/Content/Backdrop.cs" Link="Game/Content/Backdrop.cs" />

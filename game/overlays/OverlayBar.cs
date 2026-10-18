@@ -34,6 +34,9 @@ public partial class OverlayBar : CanvasLayer
         AddChild(_chip);
     }
 
+    /// <summary>Where the chip lies on the screen: what the crew's markers keep out of.</summary>
+    public Rect2 Covers => _chip.GetGlobalRect();
+
     public override void _UnhandledInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.O }) return;

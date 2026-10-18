@@ -222,6 +222,9 @@ public partial class HeroView : Node2D
     /// <summary>Where a dev run places the hero first (<c>--edge</c>), not the crew's spawn; it wakes at the spawn as ever.</summary>
     public Func<Registry, int>? Start { get; set; }
 
+    /// <summary>Where the prompt for E lies on the screen while it shows: what the markers keep out of.</summary>
+    public Rect2? PromptCovers => _prompt.Covers;
+
     /// <summary>Whether the hero stands in the world yet: until its first frame in a session, <see cref="Current"/> is nowhere.</summary>
     public bool Placed => _placed;
 
@@ -235,8 +238,8 @@ public partial class HeroView : Node2D
     private static (float X, float Y) Chest(Hero hero) =>
         ((float)(hero.X * Rig.Cell / Hero.Unit), (float)((hero.Y - Spec.Height / 2.0) * Rig.Cell / Hero.Unit));
 
-    /// <summary>Other heroes where they are drawn this frame: what sways the cables besides this one.</summary>
-    public IReadOnlyList<Hero> Others { get; private set; } = [];
+    /// <summary>Other heroes where they are drawn this frame, by peer: what sways the cables besides this one, what the markers point at.</summary>
+    public IReadOnlyList<(int Id, Hero Hero)> Others { get; private set; } = [];
 
     /// <summary>
     /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world <paramref name="m"/>
@@ -334,7 +337,7 @@ public partial class HeroView : Node2D
         // Aimed after following, so the pointer is read where the camera now is.
         var pointer = Pointer();
         var drawn = _current with { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
-        _ui.Heroes = [Chest(drawn), .. Others.Select(Chest)];
+        _ui.Heroes = [Chest(drawn), .. Others.Select(o => Chest(o.Hero))];
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         var pose = Poses.PoseOf(drawn, inSpace, passedOut);
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
@@ -595,7 +598,7 @@ public partial class HeroView : Node2D
             ReelLine(id, shown.Figure.Muzzle, reeled, elapsedMs);
             (shown.Tether, shown.Busy) = (Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs), seen.Busy);
         }
-        Others = others.Select(o => o.Seen.Hero).ToList();
+        Others = others.Select(o => (o.Id, o.Seen.Hero)).ToList();
     }
 
     /// <summary>

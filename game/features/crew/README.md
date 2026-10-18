@@ -34,12 +34,14 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads          | no    |
 | `SuitGauge.cs`     | the suit bar under the hotbar, as low as the slot size puts it (0058), red edges when low, the dark when passed out (`SuitGauge.tsx`) | yes   |
 | `SuitColours.cs`   | the suit colours, a row in the game menu's settings: the one worn ringed, those taken dimmed, the rest a click away (`SuitColours.tsx`) | yes |
+| `Markers.cs`       | the markers' list (`Marker`: target, colour, icon) and their geometry: on the screen or off, clamped to its edge, slid out of the HUD, turned toward the target, faded in | no |
+| `MarkerLayer.cs`   | the arrows at the screen's edge to home and to friends, drawn from `Markers`, the distance in the one tooltip | yes |
 
 The files without Godot are compiled a second time into `game.tests/` (linked, as `sim/Tests` links
 `game/Content/Light.cs`), where their TypeScript tests are ported one for one: `hero.test.ts`,
 `pose.test.ts`, `rig.test.ts`, `tether.test.ts`, `report.test.ts`, `danger.test.ts`, `remote.test.ts`,
 `suits.test.ts`, `prompt.test.ts` (`PromptTests`) and `aim.test.ts` (`AimTests`, the harpoon rod's contact
-too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript original.
+too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests` and `MarkersTests` have no TypeScript original.
 
 ## Guarantees
 
@@ -165,6 +167,41 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
 - It reads the body's cell, the drain the reported one: the frost shows a second before the suit pays.
 - `--edge=N` (dev, with `--world`) starts the hero N cells past the field's left line on the world's middle
   row, to see the cold at a depth.
+
+## Markers: home and friends off the screen
+
+Space has no landmarks, so whatever this player may want to find again is pointed at from the screen's
+edge while it is off the screen (`MarkerLayer`, a layer of its own made by `Main`, `ScreenLayers.Hud`).
+
+- **One list** (`Markers.Of`): each `Marker` a target in cells, a colour and an icon. **Home** first: the
+  crew's `Spawn`, the lifepod's hatch where a hero is made again, in a pale white (`Markers.HomeColour`)
+  with the pod's silhouette (`art/machine_lifepod.png` drawn white, mipmapped). The sim keeps one spawn,
+  the first pod's, so with several pods home is the one the hero is made at. Then each **friend** heard
+  lately (`HeroView.Others`, now by peer) at its body's middle, in its suit's colour with a dot. The body
+  left behind joins with the death design as one more icon and entry; nothing else changes.
+- **The look:** a dark badge ringed in its colour holding its icon, a notched chevron outside the ring toward
+  the target. Its middle stays `Slots.Margin` plus its reach in from the edge, where the line from the
+  screen's middle to the target crosses (`Markers.Place`), turned toward the target from where it lands.
+  Its size follows the slots' size (Esc → Settings): ×1.4 at large.
+- **On the screen or off** (`Markers.OnScreen`, its edges counted on it): gone the moment the target is on
+  the screen, faded in over `Markers.FadeInS` once it leaves (`Markers.Fade`).
+- **Clear of the HUD:** slid along its edge to the nearest place clear of every panel grown by its reach:
+  the hotbar, the open inventory with the machine under it and the equipment (`InventoryPanel.Covers`),
+  the suit's gauge, the build menu or its chip (`BuildMenu.Covers`), the air chip (`OverlayBar.Covers`),
+  a station's panel (`FabricatorPanel.Covers`) and the prompt for E (`HeroView.PromptCovers`), as `Main`
+  hands them over.
+- **How far:** only by the pointer, the one tooltip (`TipSpots`): "Lifepod" or "Crewmate" and the cells
+  between this hero's middle and the target, rounded.
+- Placed every frame after the hero moves the camera, read from the camera's own position and zoom, so it
+  never lags a frame behind; nothing of it reaches the sim.
+
+Deliberately not handled:
+
+- A friend is pointed at only while heard (`RemoteHeroes`), as it is drawn; one silent for three seconds
+  loses its marker with its figure.
+- Two markers whose targets lie the same way overlap at the edge; friends are few and suits apart.
+- The energy bar is not kept out of: it lies farther in from the top and the left than a marker ever goes.
+- Friends have no names in the tip: the game has none to show yet.
 
 ## The hands
 

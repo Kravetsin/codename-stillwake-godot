@@ -161,12 +161,24 @@ public partial class Main : Node2D, ITogether
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))));
             // Its own layer, above the world: read from whatever registry the session runs now.
-            AddChild(new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None), _hands.Ui));
+            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None), _hands.Ui);
+            AddChild(gauge);
             // --electric=fireAxe: that item counts as electric, so the energy bar shows before any tool is (0053).
             var electric = _args.FirstOrDefault(a => a.StartsWith("--electric="))?[11..];
             Func<string, bool>? isElectric = electric == null ? null : item => item == electric || Content.Items.Get(item).Draw != null;
             AddChild(new EnergyBar(() => _session is Session s ? Charges.EnergyOf(_hands.Ui.Wielded.Get(), _m.Items.BeltCharge(s.Client.Id), isElectric) : null, _hands.Ui));
             AddChild(new Frost(() => _session != null && _hero is { Placed: true } h ? Report.Cold(_m.Crew, h.Current.BodyCell(_m.Grid.Width)) : 0));
+            // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
+            var (panel, fabricator, building, overlays) = (_items.Panel, _fabricator, _hands.Menu, _hands.Overlays);
+            IEnumerable<Rect2> Hud()
+            {
+                foreach (var covered in panel.Covers()) yield return covered;
+                yield return gauge.Covers;
+                yield return building.Covers;
+                yield return overlays.Covers;
+                if (fabricator.Covers is { } crafts) yield return crafts;
+            }
+            AddChild(new MarkerLayer(_hands.Ui, _camera, () => _session != null && _hero is { Placed: true } h ? (h, _m) : null, Hud));
             _camera.DevControls = false;
         }
         AddChild(new EffectsView());
@@ -808,7 +820,7 @@ public partial class Main : Node2D, ITogether
         if (_hero != null)
         {
             // Every hero sways the cables, this one and the others where they are drawn.
-            foreach (var other in _hero.Others) _bodies.Add(BodyOf(other));
+            foreach (var other in _hero.Others) _bodies.Add(BodyOf(other.Hero));
             _bodies.Add(BodyOf(_hero.Current));
         }
         _demo?.Frame(client, _m.Grid, Log);

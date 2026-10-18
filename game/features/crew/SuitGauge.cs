@@ -63,6 +63,9 @@ public partial class SuitGauge : CanvasLayer
         AddChild(_alarm);
     }
 
+    /// <summary>Where the bar lies on the screen: what the markers keep out of.</summary>
+    public Rect2 Covers => _bar.GetGlobalRect();
+
     public override void _Process(double delta)
     {
         _sinceRead += delta;
