@@ -497,6 +497,21 @@ public class ContentTests
     }
 
     [Fact]
+    public void EveryItemSortsInTheGroupItsOtherFieldsSayAndTheHotbarIsTheBagsFirstRow()
+    {
+        // Worn is a wearable; gear not worn is a tool: a new tool sorts with the tools without being told.
+        Assert.All(Content.Items.All, i => Assert.Equal(i.Equip != null, i.Group == ItemGroup.Wearable));
+        Assert.All(Content.Items.All, i => Assert.Equal(i.Gear && i.Equip == null, i.Group == ItemGroup.Tool));
+        // Salvage smelts into materials; what is never carried is caught or broken, a stack of one.
+        Assert.All(Content.Items.All.Where(i => i.Group == ItemGroup.Salvage), i => Assert.NotNull(i.Yields));
+        Assert.All(Content.Items.All.Where(i => i.Group == ItemGroup.Other), i => Assert.Equal(1, i.Stack));
+        Assert.Equal(ItemGroup.Salvage, Content.Items.Get("scrapChunk").Group);
+        Assert.Equal(ItemGroup.Material, Content.Items.Get("scrap").Group);
+        Assert.InRange(Inventory.Hotbar, 1, Inventory.Slots - 1);
+        Assert.Equal(0, Inventory.Slots % Inventory.Hotbar);
+    }
+
+    [Fact]
     public void WhatHoldsChargeIsAStackOfOneNamedInNoCostAndAStationFillsItInWholeTicks()
     {
         AllPositive(typeof(Charge));

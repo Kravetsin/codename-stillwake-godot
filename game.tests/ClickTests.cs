@@ -181,4 +181,14 @@ public class ClickTests
         Assert.Equal(MoveOf(Inv(1), new Target(Crate: 7), 6), Clicks.On(null, Click(Inv(1), Scrap(6), shift: true, inventory: Holding((Inv(1), Scrap(6))))).Command);
         Assert.Null(Clicks.On(null, Click(Inv(1), Scrap(6), shift: true, crate: null, inventory: Holding((Inv(1), Scrap(6))))).Command);
     }
+
+    [Fact]
+    public void APickedStackIsLetGoWhenItsSlotEmptiesOrHoldsAnotherItemAfterASort()
+    {
+        var held = new Picked(Box(3), 4);
+        Assert.Equal(held, Clicks.StillHeld(held, "scrap", Scrap(9)));
+        Assert.Null(Clicks.StillHeld(held, "scrap", null));
+        Assert.Null(Clicks.StillHeld(held, "scrap", new Stack("iron", 9)));
+        Assert.Null(Clicks.StillHeld(null, "scrap", Scrap(9)));
+    }
 }

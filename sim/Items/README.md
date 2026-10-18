@@ -61,6 +61,14 @@ mode, the world setting in which nothing is ever taken
     with no inputs (the lifepod) takes nothing in, refused with `items.takeOnly` whichever slot is named.
   - A charging station (a machine with `Charges` set) holds only items with a `Capacity`: a move that would
     leave anything else in it, put or swapped in, is refused with `items.notBattery` (`Stacks.Unfit`).
+- **Sorting** (0008, Terraria's): `Sort(Crate)` sorts the sender's bag, its own slots past the hotbar
+  (`Inventory.Hotbar`, the first row) up to its equipment, or with `Crate` every slot of a crate (`Machines` kind
+  `crate`). Stacks alike (`Stacks.Alike`: one item, one charge) merge up to their limit, the full ones first, so two
+  batteries holding other charge stay two; then they are laid from the first slot in order of the item's `Group`
+  (`ItemGroup`: tools, wearables, materials and parts, salvage, the rest), its id (ordinal), charge, fullest first, and
+  count, largest first; the empty slots after (`Stacks.Sorted`). The hotbar and the equipment stay as they are; every
+  item and every charge is kept. Only a crate sorts: a machine's slots have their places (inputs, fuel, outputs). Two
+  sorts of one crate in one tick apply in the host's order, the second finding it sorted. In creative mode too.
 - **Charge** is filled at a charging station (the charger, a drone bay) by `Power`, through `Charge(id, slot, amount)`, never past full,
   and spent from the belt by an electric tool through `Drain(peer, amount)`, `amount` in power-ticks (a
   running tool's `Draw` for a tick, the drill's 3, 0055): the first battery on the belt, in slot order, holding at least that pays it whole, so the belt drains left to right; false
@@ -122,7 +130,7 @@ counted twice.
   the client comparing its own run and drawing others' drills spinning; `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
   mode; `FullFor(peer, cost)` — `items.full` when `cost` does not fit, creative mode or not. A caller
   refuses with these keys. `AfterMoves(peer, moves)` — copies of the peer's inventory and of the
-  machines the `Move`s and `Drop`s touch, as the commands would leave them, refused ones skipped: what
+  machines the `Move`s, `Drop`s and `Sort`s touch, as the commands would leave them, refused ones skipped: what
   a client shows of its own moves before their tick runs. `Floor` — the stacks on the floor, live and
   read-only; `PickUpProblem(peer, id)` — the refusal that peer's `PickUp` would get;
   `PickUpAmount(peer, id)` — how much of it would fit.
@@ -174,6 +182,8 @@ counted twice.
   `Drop(Src, Count, Cell, Facing)` — throws up to `Count` from a slot from `Cell`, the sender's as its
   client reports it; refused with `items.noCrate`, `items.noSlot`, `items.empty` or `items.noCell`.
   `PickUp(Id)` — refused with `items.gone`, `items.tooSoon` or `items.full` (none of it fits).
+  `Sort(Crate?)` — no crate meaning the sender's bag; refused with `items.noCrate` (no machine holding items) or
+  `items.notCrate` (a machine holding items that is no crate: a furnace, a bay). Reach is the client's, as for a move.
   `Run(Item, On)` — refused with `items.notElectric` (the item has no `Draw`, on or off), and turning on with
   `items.notHeld` (the sender carries none) or `items.flat` (no belt battery holds a tick of its draw; never in
   creative mode). Off with nothing running is no refusal.
@@ -185,8 +195,10 @@ stack holding charge into any slot with `Put`, from
 
 - Every stack holds from 1 to its item's limit; every inventory and machine has its number of slots.
 - Every equipment slot holds only an item of its kind (`EquipmentTests`, FsCheck).
-- A take or a give changes the peer's totals by exactly the cost, or not at all; a move, a drop and
-  a pick-up change no total across inventories, machines and the floor.
+- A take or a give changes the peer's totals by exactly the cost, or not at all; a move, a drop, a
+  pick-up and a sort change no total across inventories, machines and the floor.
+- A sort keeps every item and charge, leaves the hotbar and the equipment as they are, lays the bag from its first
+  slot with no gaps, in order, at most one stack of a kind short of full, and a second sort changes nothing (`SortTests`, FsCheck).
 - Every stack on the floor holds from 1 to its item's limit.
 - Charge is between 0 and the item's capacity, and only on items with one, a stack of one; moves, drops
   and pick-ups keep every item's total and the total charge (`ChargeTests`, FsCheck).
@@ -209,6 +221,8 @@ stack holding charge into any slot with `Put`, from
 - A stack pushed out of a wall with space on both sides and no room within `Floor.PushReach` goes
   into space and drifts away: what was delivered to or refunded at a wall standing out in space.
 - A stale pick at a shared crate moves whatever is in the slot by the time it applies.
+- A drone on its way to take from a crate slot that a sort has since filled with another item takes what of its item
+  is there, or looks for its next job (`Logistics`), as after a move by hand.
 - Who may switch creative mode: anyone; it is a dev panel switch among friends.
 - A battery's charge never leaks, in a crate, on the floor or on a belt: only a tool spends it.
 - A `Run` landing on a hero already passed out pays one tick before `Crew` stops it: items run before crew in a
