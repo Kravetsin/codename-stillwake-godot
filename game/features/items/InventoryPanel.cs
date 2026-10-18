@@ -116,6 +116,18 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>Whether a charging station fills what it holds now, by machine id: the power module's <c>Charges</c>.</summary>
     public Func<int, bool>? Charger { get; set; }
 
+    /// <summary>
+    /// A machine's request slots (0062), the logistics feature's, for the machine of that id at that slot size: laid under a
+    /// fed station's or a burner generator's slots and over a crate's grid, where they show while it may hold requests. Set by <c>Main</c>.
+    /// </summary>
+    public Func<int, int, Control>? Requests { get; set; }
+
+    /// <summary>A crate's role toggle (0062), the logistics feature's, put in its frame's header. Set by <c>Main</c>.</summary>
+    public Func<int, Control>? Roles { get; set; }
+
+    /// <summary>The stack carried on the cursor, as many as are carried: what a click on a request slot asks for.</summary>
+    public Stack? Carried => Held is { } h && _reading?.At(h.Place) is { } stack ? stack with { Count = h.Count } : null;
+
     /// <summary>The hotbar slot chosen, with 1–9 or the wheel.</summary>
     public int Chosen => _chosen;
 
@@ -323,7 +335,9 @@ public partial class InventoryPanel : CanvasLayer
         return box;
     }
 
-    private Tip? SlotTip(SlotBox box) => _reading?.At(box.Place) is { } stack ? _reading.TipOf(stack) : null;
+    /// <summary>A stack's tip; an empty bay slot says a drone docks there (0062).</summary>
+    private Tip? SlotTip(SlotBox box) => _reading?.At(box.Place) is { } stack ? _reading.TipOf(stack)
+        : box.Ghost == Content.Logistics.Drone ? new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)) : null;
 
     /// <summary>The open crate's panel, made anew for each crate: a crate's grid, a furnace's or an analyzer's own, in the machine frame.</summary>
     private void BuildCrate()
@@ -343,6 +357,10 @@ public partial class InventoryPanel : CanvasLayer
         if (Content.Stations.TryGet(kind, out var station) && !station.Fed) return;
         var spec = MachineSpecs.Get(kind);
         _frame = new MachineFrame(T($"tool.{kind}"), kind == "burnerGenerator" ? spec.Makes : spec.Draws);
+        // A crate's role in its header; its requests over its grid, a station's under its slots (0062).
+        if (kind == "crate" && Roles?.Invoke(crate) is { } roles) _frame.Head.AddChild(roles);
+        var requests = Requests?.Invoke(crate, _ui.Slot);
+        if (kind == "crate" && requests != null) _frame.Add(requests);
         _frame.Add(kind switch
         {
             "furnace" => FurnaceBody(crate),
@@ -350,9 +368,24 @@ public partial class InventoryPanel : CanvasLayer
             "smelter" or "growCapsule" => FedBody(crate, kind),
             "analyzer" => _analyzer = new AnalyzerPanel(Box(new Place(0, crate)), _tipSpots, _ui.Slot),
             "charger" => ChargerBody(crate),
+            _ when kind == Content.Logistics.Bay => BayBody(crate, spec),
             _ => Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
         });
+        if (kind != "crate" && requests != null) _frame.Add(requests);
         _shown.AddChild(_frame);
+    }
+
+    /// <summary>A drone bay's four slots, each showing a faint drone while empty: drones dock there (0062). Their charge comes with power.</summary>
+    private Control BayBody(int crate, Content.MachineSpec spec)
+    {
+        var row = Style.Gap(new HBoxContainer(), Slots.Gap);
+        for (int i = 0; i < spec.Slots; i++)
+        {
+            var box = Box(new Place(i, crate));
+            box.Ghost = Content.Logistics.Drone;
+            row.AddChild(box);
+        }
+        return row;
     }
 
     /// <summary>Its input over its fuel, as Minecraft lays them, the fire between them; then how far its work is and its outputs.</summary>

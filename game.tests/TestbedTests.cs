@@ -104,4 +104,17 @@ public class TestbedTests
         Assert.Equal(Testbed.Drones, m.Items.Crate(bay).Count(s => s?.Item == Spec.Logistics.Drone) + m.Logistics.Drones.Count);
         Assert.True(m.Logistics.InReach(furnace, "scrapChunk") && m.Logistics.InReach(former, "iron"));
     }
+
+    [Fact]
+    public void ItsDronesPushWhatTheFurnaceAndTheSmelterMakeToTheStorageCrateWithinHalfAMinute()
+    {
+        var m = new Registry();
+        var world = Testbed.Create(m.All);
+        int storage = CrateAt(m, Testbed.Storage);
+        Assert.All(m.Items.Crate(storage), Assert.Null);
+        for (int t = 0; t < 600; t++) world.Step([]);
+        var held = m.Items.Crate(storage).Where(s => s != null).Select(s => s!.Item).ToList();
+        Assert.Contains("scrap", held);
+        Assert.Contains("silicon", held);
+    }
 }

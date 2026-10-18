@@ -78,6 +78,11 @@ the drones wanted now fly inside it, between machines, and what they carry is th
 ## Consequences
 
 - A furnace's planks are brought again as they burn: a request is what a machine keeps, not what it gets once.
+  A machine burning or pressing steadily is short again by the time a drone docks, so with few drones the
+  lowest-id requesters keep them busy one item at a time, and higher ids and pushes to storage wait: the testbed's
+  two drones never served a requester crate nor pushed anything, its four do both.
+- A drone moves a cell in five ticks and its bay looks every ten, so it docks on a look tick or five short of
+  one and, with demand left, flies again at once: docked drones are rarely seen until charge holds them.
 - Leftovers lie at the target; a full storage leaves fed stations' outputs where they are.
 - A bay with docked drones cannot be taken apart, as no crate holding items can.
 - Drones carry through closed doors and never let air through: an airless airlock between rooms stops them.

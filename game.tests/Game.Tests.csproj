@@ -56,6 +56,7 @@
     <Compile Include="../game/features/items/Reading.cs" Link="Game/Items/Reading.cs" />
     <Compile Include="../game/features/items/Lessons.cs" Link="Game/Items/Lessons.cs" />
     <Compile Include="../game/features/crafting/Crafts.cs" Link="Game/Crafting/Crafts.cs" />
+    <Compile Include="../game/features/logistics/Requests.cs" Link="Game/Logistics/Requests.cs" />
     <Compile Include="../game/features/debris/Fading.cs" Link="Game/Debris/Fading.cs" />
     <Compile Include="../game/features/debris/OwnHits.cs" Link="Game/Debris/OwnHits.cs" />
     <Compile Include="../game/features/sound/Hearing.cs" Link="Game/Sound/Hearing.cs" />

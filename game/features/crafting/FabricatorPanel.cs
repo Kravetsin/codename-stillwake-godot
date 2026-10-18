@@ -68,6 +68,8 @@ public partial class FabricatorPanel : CanvasLayer
     private readonly Ui _ui;
     private readonly Func<int, Color> _suitOf;
     private readonly GridContainer _recipes = Grid(), _inputs = Grid(), _queue = Grid(), _outputs = Grid();
+    /// <summary>Where the station's request slots go, under its inputs (0062).</summary>
+    private readonly VBoxContainer _requests = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     /// <summary>The inputs' heading, shown only for a station that has inputs.</summary>
     private Control _inputsHeading = null!;
     /// <summary>The station and the slot size the input slots were lent for: built again only when either changes.</summary>
@@ -117,6 +119,9 @@ public partial class FabricatorPanel : CanvasLayer
     /// </summary>
     public Func<Place, Control>? Lend { get; set; }
 
+    /// <summary>The station's request slots (0062), the logistics feature's, at that slot size: laid under its inputs. Set by <c>Main</c>.</summary>
+    public Func<int, int, Control>? Requests { get; set; }
+
     /// <summary>The queued station open under the inventory: the machine E opened, while it is one and the inventory is shown.</summary>
     private (int Id, Content.Station Station)? Open =>
         _ui.InventoryFoot.Get() != null && _ui.OpenCrate.Get() is int id && _crafting?.StationOf(id) is { Fed: false } station ? (id, station) : null;
@@ -145,6 +150,7 @@ public partial class FabricatorPanel : CanvasLayer
         // Inputs, queue, outputs: what goes in, what is ordered, what came out (the logistics mockup).
         right.AddChild(_inputsHeading = Heading(T("fabricator.inputs"), new Label()));
         right.AddChild(_inputs);
+        right.AddChild(_requests);
         right.AddChild(Heading(T("crafts.queue"), new Label { Text = T("fabricator.shared"), LabelSettings = AsideText }));
         right.AddChild(_queue);
         right.AddChild(Heading(T("fabricator.output"), new Label()));
@@ -283,7 +289,7 @@ public partial class FabricatorPanel : CanvasLayer
     private void LendInputs(int pod, Content.Station station)
     {
         int inputs = Inputs(station);
-        _inputsHeading.Visible = _inputs.Visible = inputs > 0;
+        _inputsHeading.Visible = _inputs.Visible = _requests.Visible = inputs > 0;
         if (_inputsFor == (pod, _slot)) return;
         _inputsFor = (pod, _slot);
         foreach (var old in _inputs.GetChildren())
@@ -292,6 +298,12 @@ public partial class FabricatorPanel : CanvasLayer
             old.QueueFree();
         }
         for (int i = 0; i < inputs; i++) _inputs.AddChild(Lend?.Invoke(new Place(i, pod)) ?? EmptySlot());
+        foreach (var old in _requests.GetChildren())
+        {
+            _requests.RemoveChild(old);
+            old.QueueFree();
+        }
+        if (inputs > 0 && Requests?.Invoke(pod, _slot) is { } requests) _requests.AddChild(requests);
     }
 
     /// <summary>A recipe in its place: as it looks now, its cost in the tip; a click queues it or goes to what it is short of.</summary>

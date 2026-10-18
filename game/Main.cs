@@ -44,7 +44,7 @@ namespace Stillwake.Game;
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
-/// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <see cref="OpenDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
+/// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>--role=&lt;role&gt;</c> making a crate that, <see cref="OpenDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
@@ -92,6 +92,7 @@ public partial class Main : Node2D, ITogether
     private FabricatorPanel? _fabricator;
     private PodView? _pods;
     private StationView? _stations;
+    private Features.Logistics.LogisticsView? _drones;
     private DebrisView _debris = null!;
     private Hands _hands = null!;
     private PlanDemo? _demo;
@@ -162,6 +163,14 @@ public partial class Main : Node2D, ITogether
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))) { Lend = _items.Panel.Lend });
+            // Request slots and crate roles are the logistics feature's, laid out in the items' and crafting panels (0062).
+            var panel0 = _items.Panel;
+            Features.Logistics.RequestWorld? Logistic() => _session is Session s ? new(_m.Logistics, _m.Items, s.Client.InFlight) : null;
+            void SendNow(Command c) => (_session as Session)?.Client.Send(c);
+            Control RequestsOf(int machine, int size) => new Features.Logistics.RequestRow(machine, size, Logistic, SendNow, () => panel0.Carried, _hands.Ui.Tip);
+            panel0.Requests = RequestsOf;
+            panel0.Roles = crate => new Features.Logistics.RoleToggle(crate, Logistic, SendNow, _hands.Ui.Tip);
+            _fabricator.Requests = RequestsOf;
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None), _hands.Ui);
             AddChild(gauge);
@@ -218,8 +227,9 @@ public partial class Main : Node2D, ITogether
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
         if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
-        if (Opens is { } open) AddChild(new OpenDemo(_hands.Ui, open, () => _m));
-        if (_args.FirstOrDefault(a => a.StartsWith("--card=", StringComparison.Ordinal)) is { } card) AddChild(new CardDemo(_hands, card[7..]));
+        if (Opens is { } open)
+            AddChild(new OpenDemo(_hands.Ui, open, () => _m, Enum.TryParse<Sim.Logistics.Role>(_args.FirstOrDefault(a => a.StartsWith("--role=", StringComparison.Ordinal))?[7..], true, out var role) ? role : null, c => (_session as Session)?.Client.Send(c)));
+        if (_args.FirstOrDefault(a => a.StartsWith("--card=", StringComparison.Ordinal)) is { } card) AddChild(new CardDemo(_hands, card[7..], pick: Has("--pick")));
         if (Has("--asteroid") && !Has("--manual")) AddChild(new AsteroidDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--sortie") && !Has("--manual")) AddChild(new SortieDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--fly")) AddChild(new FarDemo(_debris, () => _session is Session s ? (s.Client, _m) : null));
@@ -714,11 +724,16 @@ public partial class Main : Node2D, ITogether
         _chargers?.QueueFree();
         _pods?.QueueFree();
         _stations?.QueueFree();
+        _drones?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
         AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
         AddChild(_chargers = new Features.Power.ChargerLights(_m.Grid, _m.Items, _m.Power));
         AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
         AddChild(_stations = new StationView(_m.Grid, _m.Crafting));
+        var ui = _hands.Ui;
+        AddChild(_drones = new Features.Logistics.LogisticsView(_m.Grid, _m.Items, _m.Logistics, () => (_session as Session)?.Progress ?? 0,
+            () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open)?.Kind == Content.Logistics.Bay ? open : null,
+            () => ui.Hand.Get() == Holding.Card && _hands.Plan.Selected.Get() is Features.Building.PlaceTool { Placement.Kind: var kind } && kind == Content.Logistics.Bay ? _hands.Mouse.Pointer() : null));
         var power = _m.Power;
         // The fires before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);

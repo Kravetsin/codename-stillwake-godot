@@ -13,8 +13,9 @@ namespace Stillwake.Game.Dev;
 /// mode on, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
 /// generator lit, the analyzer at work, a battery charging, the Former pressing plates endlessly from the iron in its
 /// inputs, the electric smelter smelting rock, the circuit assembler making circuits, a grow capsule growing seeds beside a crate of
-/// the farm's items, seeds, rock and planks; and drones (0062): a bay of two in room one, the full crate a provider, a storage crate
-/// by the pod, the furnace and the Former requesting what they work, so drones carry through the closed door from the start.
+/// the farm's items, seeds, rock and planks; and drones (0062): a full bay of four in room one, the full crate a provider, a storage crate
+/// by the pod, the furnace and the Former requesting what they work, so drones carry through the closed door from the start
+/// and push what the furnace and the smelter make to storage.
 /// </summary>
 public static class Testbed
 {
@@ -88,8 +89,8 @@ public static class Testbed
     /// <summary>What the furnace holds at the start: a chunk and a little fuel, so it burns at once and drones bring the rest.</summary>
     public static readonly IReadOnlyList<(string Item, int Count)> FurnaceHolds = [("scrapChunk", 2), ("planks", 5)];
 
-    /// <summary>The drones docked in the bay at the start.</summary>
-    public const int Drones = 2;
+    /// <summary>The drones docked in the bay at the start: all four, or the furnace's and the Former's top-ups keep two busy and nothing reaches storage.</summary>
+    public const int Drones = 4;
 
     /// <summary>What the electric smelter holds at the start: rock, smelting into silicon.</summary>
     public const string Smelting = "rock";
