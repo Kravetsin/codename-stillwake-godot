@@ -397,6 +397,71 @@ public class HeroTests
         Assert.Equal(8 * Unit - Half, walked.X);
     }
 
+    // Two floors, one above the other, over the bottom of the room; room above to jump.
+    private const string FloorsMap = """
+        #######
+        #.....#
+        #.....#
+        #.....#
+        #.....#
+        #.....#
+        #..S..#
+        #=====#
+        #.....#
+        #.....#
+        #.....#
+        #=====#
+        #.....#
+        #.....#
+        #.....#
+        #######
+        """;
+
+    [Fact]
+    public void DropsThroughAFloorWithDownWalkingOrNot()
+    {
+        var (ship, hero) = Start(FloorsMap);
+        Assert.Equal(7 * Unit, Settle(ship, hero, Still).Y);
+        var dropped = Until(ship, hero, Down, h => h.Y > 7 * Unit);
+        Assert.Equal(hero.X, dropped.X);
+        Assert.Equal(11 * Unit, Settle(ship, dropped, Still).Y);
+        Assert.True(Until(ship, hero, Down with { X = 1 }, h => h.Y > 7 * Unit || h.X > 5 * Unit).Y > 7 * Unit);
+        // Held, down drops through every floor it lands on.
+        Assert.Equal(15 * Unit, Settle(ship, hero, Down).Y);
+    }
+
+    [Fact]
+    public void JumpsRatherThanDropsWithDownHeld()
+    {
+        var (ship, hero) = Start(FloorsMap);
+        Assert.Equal(-Spec.Jump + Spec.Gravity, hero.Step(Down with { Jump = true }, ship).Vy);
+    }
+
+    [Fact]
+    public void DownDropsThroughNoWallNorALadderTopEvenPartlyUnderTheFeet()
+    {
+        var (ship, _) = Start("""
+            ########
+            #......#
+            #......#
+            #......#
+            #==##H=#
+            #....H.#
+            #....H.#
+            #....H.#
+            ########
+            """);
+        // Half on the floor, half on the wall; then half on the floor, half on the ladder's top.
+        foreach (int x in new[] { 3 * Unit, 6 * Unit })
+        {
+            var standing = At(x, 4 * Unit);
+            Assert.Equal(4 * Unit, Settle(ship, standing, Down with { X = 0 }).Y);
+            Assert.Equal(4 * Unit, standing.Step(Down with { X = 1 }, ship).Y);
+        }
+        // Wholly on the floor, it drops.
+        Assert.Equal(8 * Unit, Settle(ship, At(1700, 4 * Unit), Down).Y);
+    }
+
     // A ladder four cells tall, its top in row 4, with room for the hero to stand above it.
     private const string LadderMap = """
         #######

@@ -65,8 +65,8 @@ too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests` and `Bodie
 
 ## Holes and floors
 
-The TypeScript had neither rule; both came from playtest 1, where a hole one cell wide let one player
-down and not the other.
+The TypeScript had none of these rules; they came from playtest 1, where a hole one cell wide let one
+player down and not the other, and a floor could be jumped up through but not dropped through.
 
 - **A hole one cell wide is fallen into** (`Hero.Caught`): the body, 950 wide, fits a cell with 50
   thousandths to spare, but a step walks 120 and runs 220, so a walk used to pass over that window or land
@@ -78,6 +78,12 @@ down and not the other.
   nothing else pressed, down moves the hero up to a walk's step a frame toward where it fits, and it falls.
   With the middle beside the hole, down does nothing. Not a narrower body: to never step past the window it
   would have to be 780 wide, against Terraria's proportions (0005); the stop keeps the body and is exact.
+- **Down drops through floors** (`Hero.OnFloors`): standing on floors alone, down (S or the down arrow),
+  walking or not, steps the feet a thousandth into the floor's row, and a row the feet are in is never
+  landed on, so the hero falls through: no timer, nothing kept. Held, it drops through every floor it lands
+  on. A wall, closed door or ladder under any part of the feet holds it; jump wins over down; down by a
+  ladder grabs and climbs it as before, and a ladder that ends on a floor is climbed down onto it, not through
+  (step off the ladder, then drop). There is no crouch. Others see it by the positions sent, as any fall.
 
 ## Others' heroes
 
