@@ -129,6 +129,31 @@ public sealed record PlanTip(Placement Placement, IReadOnlyList<CostLine> Lines)
 }
 
 /// <summary>
+/// A thing marked for taking down under the pointer: what it is and what taking it apart gives back, the sim's
+/// refund (`BuildingModule.RefundOf`). Equal by what it says, so one set every frame redraws nothing.
+/// </summary>
+public sealed record MarkTip(Placement Placement, IReadOnlyList<(string Item, int Count)> Refund)
+{
+    /// <summary>
+    /// The one tooltip's words: the build card's name over its picture (<see cref="Tip.Picture"/>), then a row an
+    /// item given back, its icon large and "+2" in green, as a blueprint's rows read.
+    /// </summary>
+    public Tip Tip => new(ItemCards.NameOf(Placement.Kind, Placement),
+        Refund.Where(r => r.Count > 0).Select(r => new TipLine($"+{r.Count}", Tone.Good, r.Item, Large: true)).ToList())
+    { Picture = Placement };
+
+    public bool Equals(MarkTip? other) => other is not null && Placement == other.Placement && Refund.SequenceEqual(other.Refund);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Placement);
+        foreach (var line in Refund) hash.Add(line);
+        return hash.ToHashCode();
+    }
+}
+
+/// <summary>
 /// What the features of this machine's player share (session/ui.ts), one of each for the one player at
 /// this keyboard: what the hand holds, which overlay is on, and the words beside the pointer.
 /// </summary>
@@ -165,8 +190,12 @@ public sealed class Ui
     /// <summary>What an overlay says of the cell under the pointer, set by that overlay while it is on.</summary>
     public Store<IReadOnlyList<string>?> WorldTip { get; } = new(null);
 
-    /// <summary>A blueprint under the pointer while it still lacks something, set by <c>building</c>: what it is, carried against still needed.</summary>
-    public Store<PlanTip?> CostTip { get; } = new(null);
+    /// <summary>
+    /// What a plan under the pointer says, set by <c>building</c>: a blueprint's while it still lacks something, what it
+    /// is and what is carried against what it still needs (<see cref="PlanTip"/>); a mark's, what it is and what taking
+    /// it down gives back (<see cref="MarkTip"/>).
+    /// </summary>
+    public Store<Tip?> CostTip { get; } = new(null);
 
     /// <summary>
     /// What this player carries, item by item (<c>Items.Totals</c>): read by <c>Hands</c> on a timer, as a
