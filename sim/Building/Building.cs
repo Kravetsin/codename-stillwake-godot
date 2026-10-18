@@ -119,6 +119,13 @@ public sealed partial class BuildingModule : Module<BuildingState>
     public Cost? CostOf(int id) =>
         State.Plans.Find(p => p.Id == id)?.Place is { } place ? Costs.BuildOf(place).Cost : null;
 
+    /// <summary>
+    /// What taking apart what mark <paramref name="id"/> names gives back, as its last tick of work refunds it: for its
+    /// tip. Null for a blueprint or no plan; empty once what it names is gone.
+    /// </summary>
+    public Cost? RefundOf(int id) =>
+        State.Plans.Find(p => p.Id == id) is { Clear: { } layer } plan ? Costs.BuiltAt(_grid, plan.Cell, layer)?.Cost ?? [] : null;
+
     // Commands.
 
     private void ApplyPlacePlan(PlacePlan c)
@@ -179,7 +186,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
         }
         else if (Costs.BuiltAt(_grid, plan.Cell, plan.Clear!) is { } built)
         {
-            // What a mark names may be gone already, to a meteor: then there is nothing to refund.
+            // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
             _gridOps.Clear(plan.Cell, plan.Clear!);
             _itemsOps.GiveOrDrop(from, built.Cost, plan.Cell);
         }

@@ -331,6 +331,22 @@ public class BuildingDeliveryTests
     }
 
     [Fact]
+    public void TellsWhatAMarkGivesBackWhichIsWhatTakingItApartRefunds()
+    {
+        var w = Stocked(Layout.Parse(["#########", "#TT.....#", "#TT.....#", "#########"]));
+        w.Do(new Deconstruct(At(2, 2), "machine")).Do(new Deconstruct(At(0, 1), "structure")).Run();
+        PlacePlan(w, At(4, 1), IronWall);
+        Assert.Equal<(string, int)>(Machines.Get("tank").Cost, w.M.Building.RefundOf(1)!);
+        Assert.Equal<(string, int)>(Scrap.Cost, w.M.Building.RefundOf(2)!);
+        // A blueprint gives nothing back when taken apart: it is cancelled. Nor does a plan that is not there.
+        Assert.Null(w.M.Building.RefundOf(3));
+        Assert.Null(w.M.Building.RefundOf(9));
+        int tubes = Count(w, "tube");
+        Hold(w, 1, Costs.ApartTicks(Machines.Get("tank").BuildTicks));
+        Assert.Equal(tubes + CostIn(Machines.Get("tank").Cost, "tube"), Count(w, "tube"));
+    }
+
+    [Fact]
     public void TakesAShareOfTheBuildTimeRoundedUpSoNothingComesApartInNoTime()
     {
         Assert.Equal(20, Costs.ApartTicks(2 * 20));
