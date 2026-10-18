@@ -68,6 +68,6 @@ can be made of it. Finished things are not analysed.
 - Nothing saved changes: `Analysed` keeps what it holds, and an old save naming a tool there is
   harmless. A recipe's `Unanalysed` is unaffected, since what is in a cost always needs analysis.
 
-Known from the start today: the fire axe, the harpoon, the drill, the jetpack, the battery, the seed,
+Known from the start today: the fire axe, the harpoon, the drill, the jetpack, the drone, the seed,
 biomass and biofuel, and the containers, wreckage, asteroids and derelicts, which are never carried.
 The battery joined a cost with the drone (0062), and so waits for an analyzer again: the rule works it out.
