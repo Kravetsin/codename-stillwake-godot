@@ -68,7 +68,9 @@ public class TestbedTests
         int former = IdOf(m, "former");
         Assert.True(m.Crafting.Works(former));
         Assert.Equal(Spec.Stations.Get("former").Speed, m.Crafting.Progress(former));
-        Assert.Equal(Testbed.Pressing, m.Crafting.Queue(former).Single().Count);
+        // Endless plates fed from its inputs: the first took its iron as it began, creative mode or not.
+        Assert.True(m.Crafting.Queue(former).Single() is { Recipe: "plate", FromInputs: true, Endless: true });
+        Assert.Equal(new Stack(Testbed.Pressing, Spec.Items.Get(Testbed.Pressing).Stack - 2), m.Items.Crate(former)[0]);
         // The smelter at work on both ticks, its own panel on the roof feeding it.
         int smelter = IdOf(m, "smelter");
         Assert.True(m.Crafting.Works(smelter));

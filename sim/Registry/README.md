@@ -25,3 +25,8 @@ the fuzz reports, becomes -1.
 
 Format 14 moved what a furnace was smelting from its fire to crafting's `smelts` (0057), in thousandths of a
 tick, dropped the fires kept only for it, and put crafting's slice before building's, as the modules now run.
+
+Format 15 is death's (0061), a tag on floor stacks no older save holds, so its step changes nothing. Format 16 gave
+the Former and the circuit assembler their input slots (0057): what each held gains its inputs, empty, in front,
+so what it made stays in its outputs; a machine already of its new size is left as it is. Entries saved before
+have no feed and load as paid.

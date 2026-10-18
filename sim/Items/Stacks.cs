@@ -166,17 +166,20 @@ internal static class Stacks
 
     /// <summary>
     /// <paramref name="slots"/> with <paramref name="cost"/> taken out, or null when they hold too little.
-    /// Taken from the last slots first, so the first row, the hotbar, is the last to empty; only from the first
+    /// Taken from the last slots first, so the first row, the hotbar, is the last to empty, or with
+    /// <paramref name="firstFirst"/> from the first, as a machine takes from its inputs; only from the first
     /// <paramref name="usable"/> slots, as <see cref="Placed"/> gives.
     /// </summary>
-    public static Stack?[]? Taken(IReadOnlyList<Stack?> slots, IReadOnlyList<(string Item, int Count)> cost, int? usable = null)
+    public static Stack?[]? Taken(IReadOnlyList<Stack?> slots, IReadOnlyList<(string Item, int Count)> cost, int? usable = null, bool firstFirst = false)
     {
         var from = Copy(slots);
+        int end = Math.Min(usable ?? from.Length, from.Length);
         foreach (var (item, amount) in Entries(cost))
         {
             int left = amount;
-            for (int i = Math.Min(usable ?? from.Length, from.Length) - 1; i >= 0 && left > 0; i--)
+            for (int k = 0; k < end && left > 0; k++)
             {
+                int i = firstFirst ? k : end - 1 - k;
                 var s = from[i];
                 if (s == null || s.Item != item) continue;
                 int n = Math.Min(left, s.Count);

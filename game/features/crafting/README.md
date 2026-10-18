@@ -4,7 +4,8 @@ Making parts by machine only ([0028](../../../docs/decisions/0028-the-lifepod-an
 the client of `sim/Crafting`. It reads `Registry.Crafting` (`Queue`, `Progress`, `StationOf`),
 `IResearchQueries` (`Knows`), `IItemsQueries` (`Totals`, `Creative`, `Crate`, `AfterMoves`),
 `IGridQueries` (`Machines`) and `ICrewQueries` (`Heroes`, `Spawn`), and changes the sim only by
-sending `Craft`, `Cancel` and `Move`. Where each recipe sits is content: the station's `Rows` in
+sending `Craft`, `Cancel`, `SetEndless` and `Move`; a queued station's input slots are the items feature's
+(`InventoryPanel.Lend`, wired by `Main`), laid out here. Where each recipe sits is content: the station's `Rows` in
 `Content.Stations`; the panel serves every queued station (0057), the pod's Fabricator first. The
 mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 
@@ -53,13 +54,21 @@ budding bush, with the glass's glints kept over it. The farm's icons are `art/it
   least, empty places dim. One not known yet is a dark silhouette; one known but short of an item for
   a unit is dimmed and grey; in creative mode every one is known and ready. A click on a ready one queues one, a shift-click five, refused whole by the sim
   when unpaid; a click on a short one pulses the first item it lacks that this station makes itself (`Crafts.MissingCraft`), amber,
-  twice; a silhouette does nothing. A tool's recipe (the fire axe) is tinted amber, a worn item's (the jetpack, the battery) green,
+  twice; a silhouette does nothing. At a station with inputs (the Former, the assembler; not the pod) a right-click on
+  a known recipe queues it **from the inputs** (shift ×5), whatever is carried. A tool's recipe (the fire axe) is tinted amber, a worn item's (the jetpack, the battery) green,
   each edged in its colour, full under the pointer, as their slots are everywhere (`Shared.SlotLooks`); a silhouette is not. Every slot is `Ui.Slot` wide, built again when the slot size changes.
 - No status line: the screen says whether it works, the queue's slot filling and full says the rest,
   and the outputs show what can be taken.
-- On the right, "Queue · shared": the station's `QueueMost` slots, each entry its item and units left, a mark in
+- On the right, inputs, queue, outputs (the logistics mockup). "Inputs", at a station that has them: its input
+  slots, drawn and worked by the items feature (`InventoryPanel.Lend`) as any machine's, so a stack goes in and out
+  by its clicks, the hand, drags and shift-clicks; laid out again only for another station or slot size. A
+  shift-click from the inventory goes onto its own kind there, else the first empty input (`Clicks`).
+- "Queue · shared": the station's `QueueMost` slots, each entry its item and units left, a mark in
   the top-left corner in its orderer's suit colour, the one at work filling its slot from the bottom,
-  full while its unit waits for room. A click cancels it; its cost goes to whoever cancels.
+  full while its unit waits for room. One fed from the inputs has a small blue inlet in its top-right corner, and
+  endless, a blue ∞ in place of its count; a first entry waiting for its inputs (`CraftingModule.Lacks`) is dimmed,
+  and the screen shows READY. A click cancels any entry, what was paid going to whoever cancels; a right-click on
+  one fed from the inputs makes it repeat, or stop (`SetEndless`), so the click that cancels stays what it was.
 - "Output": the station's slots; a click takes a stack into the inventory as a whole (`Move` to the
   inventory), shown at once as the inventory's own moves are (0014).
 - The one tooltip (`Shared.PointerTip`), found by a hit test (`TipSpots`): over a recipe, its item's
@@ -68,10 +77,12 @@ budding bush, with the glass's glints kept over it. The farm's icons are `art/it
   icon, name, how many are carried in dim brackets and ×N, green when enough, red when short; for an item
   short that this station does not make, where it comes from (`Crafts.From`): its own words when it is salvaged,
   smelted or made besides elsewhere (`crafts.from.<item>`), else the stations that make it ("made at: Fabricator,
-  Former", wire at the assembler); then the keys: LMB craft · Shift ×5 when a
-  unit is carried, LMB go to what is missing when a click goes somewhere, none else. A silhouette says
+  Former", wire at the assembler); then the keys: LMB craft when a unit is carried, LMB go to what is missing when
+  a click goes somewhere; RMB craft from the inputs at a station with inputs; Shift ×5 with either craft. A silhouette says
   "???" and, in violet, that analysing what it is made of opens it. An output: its item's card with
-  LMB take. A queued entry: its item and units, whose it is and that a click cancels it.
+  LMB take. A queued entry: its item and units (∞ endless); "from the inputs", "· repeats"; "waiting for: Iron ×2"
+  in red while it waits; whose it is and that a click cancels it; for one fed from the inputs, that a right-click
+  makes it repeat or stop.
 - **In the world**, over the pod's picture, unlit: its screen runs green while it works or waits full
   and shows a steady green READY light idle; a line in its tray while its outputs hold something.
   While a hero is passed out, being made, the glass glows from inside with a hero's shape, brighter as
@@ -116,3 +127,7 @@ budding bush, with the glass's glints kept over it. The farm's icons are `art/it
   its own.
 - A queued entry keeps its line tip rather than its item's card: it is an order, whose and how many,
   and a click on it cancels rather than uses the item.
+- A first entry waiting for its inputs is only dimmed, its lack named in its tip: no ghosts of what it lacks in the
+  inputs (cut from the logistics design).
+- At the large slot size the Former's panel, now a row taller for its inputs, ends some 24 px above the window's
+  foot at 1280×720: it fits, with little to spare.

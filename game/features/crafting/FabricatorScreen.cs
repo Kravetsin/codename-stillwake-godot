@@ -42,7 +42,7 @@ public partial class FabricatorScreen : Control
 
     public override void _Process(double delta)
     {
-        if (_doing is Doing.Ready or Doing.NoPower) return;
+        if (_doing is Doing.Ready or Doing.Waiting or Doing.NoPower) return;
         _clock = (_clock + delta) % Period;
         QueueRedraw();
     }
@@ -55,7 +55,7 @@ public partial class FabricatorScreen : Control
             DrawStyleBox(Idle, all);
             return;
         }
-        if (_doing == Doing.Ready)
+        if (_doing is Doing.Ready or Doing.Waiting)
         {
             DrawStyleBox(Idle, all);
             string ready = T("fabricator.screenReady");

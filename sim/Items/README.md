@@ -56,9 +56,9 @@ mode, the world setting in which nothing is ever taken
     part of one is refused.
   - With no slot in `Dst`, that side as a whole: the item's stacks there in slot order, then its
     empty slots, as much as fits; an inventory's own slots only. Within one side a move names its slot.
-  - A machine with `Inputs` (a furnace) takes items only into its first `Inputs` slots, refusing the
-    rest with `items.takeOnly`; a move into it naming no slot goes into the first. One with no inputs
-    (the lifepod) takes nothing in, refused with `items.takeOnly` whichever slot is named.
+  - A machine with `Inputs` (a furnace, the Former's two, the assembler's three) takes items only into its first
+    `Inputs` slots, refusing the rest with `items.takeOnly`; a move into it naming no slot goes into the first. One
+    with no inputs (the lifepod) takes nothing in, refused with `items.takeOnly` whichever slot is named.
   - A charging station (a machine with `Charges` set) holds only items with a `Capacity`: a move that would
     leave anything else in it, put or swapped in, is refused with `items.notBattery` (`Stacks.Unfit`).
 - **Charge** is filled at a charging station by `Power`, through `Charge(id, amount)`, never past full,
@@ -124,7 +124,10 @@ counted twice.
   `Consume(id, slot)` uses up one of what a slot holds, a fuel as a fire is lit.
 - **Crafting machines:** `OutputFull(id, cost)` — `items.full` when `cost` does not fit into the
   machine's outputs, its slots past its inputs; the operation `Output(id, cost)` puts it there, the
-  caller checking `OutputFull` first: what `Crafting` makes.
+  caller checking `OutputFull` first: what `Crafting` makes. `InputsLack(id, cost)` — what of `cost` the machine's
+  inputs lack, item by item, none when they hold it all; the operation `TakeInputs(id, cost)` takes it from them,
+  each item from the first input slot first, in creative mode too, the caller checking `InputsLack` first: a queued
+  station's unit fed from its inputs (0057).
 - **Operations** (`IItemsOps`): `Take(peer, cost)` — the caller checks `ShortOf` first, and taking
   past what is there throws; it returns what it took, nothing in creative mode, so a caller refunds
   exactly that. `Give(peer, cost)` — the caller checks `FullFor` first, and giving past the room

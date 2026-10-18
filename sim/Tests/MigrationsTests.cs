@@ -158,6 +158,51 @@ public class MigrationsTests
         Assert.Equal(was, (m.Furnace.At(hot), m.Furnace.At(cold)));
     }
 
+    /// <summary>The format <see cref="Migrations.StationInputs"/> upgrades a save into: the Former's and the assembler's inputs.</summary>
+    private static readonly int InputsFormat = Migrations.Oldest + 1 + Migrations.Steps.ToList().IndexOf(Migrations.StationInputs);
+
+    [Fact]
+    public void GivesTheFormerAndTheAssemblerTheirInputsEmptyInFrontSoWhatTheyMadeStaysInTheirOutputsAndEntriesLoadPaid()
+    {
+        // A Former and an assembler on a panel each, both having made something, each with a paid entry queued.
+        var w = new Scenario(Layout.Parse(
+                ["PPP PPP     ", "            ", "############", "#MM.YY.....#", "#MM.YY.....#", "############"], null,
+                [((0, 0), (1, 3)), ((4, 0), (4, 3))]))
+            .GiveItems(0, ("iron", 20), ("silicon", 4), ("wire", 10));
+        int former = w.M.Grid.MachinesOf("former").Single().Id, assembler = w.M.Grid.MachinesOf("assembler").Single().Id;
+        w.Do(new Crafting.Craft(former, "gear", 2)).Do(new Crafting.Craft(assembler, "circuit", 1)).Run(200);
+        w.Do(new Crafting.Craft(former, "plate", 3)).Do(new Crafting.Craft(assembler, "circuit", 2)).Run(5);
+        string save = w.World.Save();
+        var was = (w.M.Items.Crate(former).ToList(), w.M.Items.Crate(assembler).ToList(), w.M.Crafting.Queue(former).ToList(), w.M.Crafting.Queue(assembler).ToList());
+        Assert.Equal(new Stack("gear", 2), w.M.Items.Crate(former)[Content.Machines.Get("former").Inputs!.Value]);
+
+        // As the format before kept it: only the outputs, and entries with no feed.
+        var root = JsonNode.Parse(save)!.AsObject();
+        root["format"] = InputsFormat - 1;
+        foreach (var held in root["slices"]!["items"]!["crates"]!.AsArray())
+        {
+            int id = (int)held!["id"]!;
+            if (id != former && id != assembler) continue;
+            var slots = held["slots"]!.AsArray();
+            int inputs = Content.Machines.Get(id == former ? "former" : "assembler").Inputs!.Value;
+            for (int i = 0; i < inputs; i++)
+            {
+                Assert.Null(slots[0]);
+                slots.RemoveAt(0);
+            }
+        }
+        string old = root.ToJsonString();
+        Assert.DoesNotContain("fromInputs", old);
+        Assert.Equal(save, Migrations.Upgrade(old));
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(old), [.. m.All, new Builder(m)]);
+        Assert.Equal(was.Item1, m.Items.Crate(former));
+        Assert.Equal(was.Item2, m.Items.Crate(assembler));
+        Assert.Equal(was.Item3, m.Crafting.Queue(former));
+        Assert.Equal(was.Item4, m.Crafting.Queue(assembler));
+        Assert.All(m.Crafting.Queue(former).Concat(m.Crafting.Queue(assembler)), e => Assert.False(e.FromInputs || e.Endless));
+    }
+
     [Fact]
     public void GivesEveryInventoryOfAFormat8SaveItsEquipmentEmptyAndNoHeroAThrust()
     {

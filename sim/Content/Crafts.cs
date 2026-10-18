@@ -4,7 +4,7 @@ namespace Stillwake.Content;
 
 /// <summary>A part a queued station makes, one unit at a time: what one unit costs and how long it takes.</summary>
 /// <param name="Item">The item made, one a unit; the craft is named by it.</param>
-/// <param name="Cost">Whole units of items one unit takes, all of a queued craft's taken when it is queued.</param>
+/// <param name="Cost">Whole units of items one unit takes: all of a paid craft's taken when it is queued, one fed from a station's inputs a unit's as it begins.</param>
 /// <param name="Ticks">Ticks one unit takes at full speed, 20 to a second.</param>
 public sealed record Craft(string Item, IReadOnlyList<(string Item, int Count)> Cost, int Ticks);
 

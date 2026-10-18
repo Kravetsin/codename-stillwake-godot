@@ -7,11 +7,23 @@ using Cost = System.Collections.Generic.IReadOnlyList<(string Item, int Count)>;
 
 namespace Stillwake.Sim.Crafting;
 
-/// <summary>Queues <c>Count</c> units of the craft making <c>Recipe</c> at station <c>Machine</c>, all their cost paid by the sender at once.</summary>
-public sealed record Craft(int Machine, string Recipe, int Count) : Command;
+/// <summary>
+/// Queues <c>Count</c> units of the craft making <c>Recipe</c> at station <c>Machine</c>: paid by the sender at once,
+/// or with <c>FromInputs</c> paid by nothing, each unit taking its cost from the station's inputs as it begins.
+/// </summary>
+public sealed record Craft(int Machine, string Recipe, int Count, bool FromInputs = false) : Command;
 
-/// <summary>Takes entry <c>Entry</c> off station <c>Machine</c>'s queue, giving the sender what its units left cost, the one at work included.</summary>
+/// <summary>
+/// Takes entry <c>Entry</c> off station <c>Machine</c>'s queue, giving the sender what was paid for it and not made: a
+/// paid one's units left, the one at work included; one fed from the inputs, the cost of its unit begun, if any.
+/// </summary>
 public sealed record Cancel(int Machine, int Entry) : Command;
+
+/// <summary>
+/// Makes entry <c>Entry</c> of station <c>Machine</c>'s queue, one fed from the inputs, repeat while they last
+/// (<c>On</c>), or count down again. Set, not toggled: a click sent twice before its tick sets it once.
+/// </summary>
+public sealed record SetEndless(int Machine, int Entry, bool On) : Command;
 
 /// <summary>What any module may read of the crafting. Lists are live: a reader never writes them.</summary>
 public interface ICraftingQueries
@@ -52,8 +64,8 @@ public interface ICraftingOps
 
 /// <summary>
 /// Stations (0057): every crafting machine on one model, its work counted in thousandths of a tick at its
-/// speed times the share of its energy it gets. A queued station is paid when a craft is queued and makes it
-/// one unit at a time into its outputs (0028); a fed one smelts what its input holds into that item's yields.
+/// speed times the share of its energy it gets. A queued station makes a craft one unit at a time into its outputs
+/// (0028), paid when queued or each unit fed from its inputs as it begins; a fed one smelts what its input holds into that item's yields.
 /// A module of its own, not part of <c>Items</c>: it asks <c>Research</c> what is known, and research depends
 /// on items.
 /// </summary>
@@ -82,6 +94,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         _powerOps = powerOps;
         Handles<Craft>(CraftProblem, ApplyCraft);
         Handles<Cancel>(CancelProblem, ApplyCancel);
+        Handles<SetEndless>(EndlessProblem, ApplyEndless);
         // After power's derivation: a powered station works at this tick's satisfaction.
         System(Phase.Simulation, Work);
     }
@@ -121,9 +134,15 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     {
         if (_grid.MachineById(machine) is not { } m || StationOf(m) is not { } station) return false;
         if (station.Fed) return InputOf(machine) is { } input && CanSmelt(m, station, input) && Gain(m, station) > 0;
-        return QueueOf(machine) is { Entries.Count: > 0 } queue
-            && queue.Progress < Content.Crafts.Get(queue.Entries[0].Recipe).Ticks * 1000 && Gain(m, station) > 0;
+        return QueueOf(machine) is { } queue && HasWork(m.Id, queue) && Gain(m, station) > 0;
     }
+
+    /// <summary>
+    /// What queued station <paramref name="machine"/>'s inputs lack for its first entry's next unit, while that entry is
+    /// fed from them and waits for it, the whole queue behind it; none otherwise. What dims the entry and its tip names.
+    /// </summary>
+    public IReadOnlyList<(string Item, int Count)> Lacks(int machine) =>
+        QueueOf(machine) is { } queue ? LacksOf(machine, queue) : [];
 
     // Operations.
 
@@ -137,14 +156,16 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         if (!Content.Crafts.TryGet(c.Recipe, out var craft) || !_research.Knows(c.Recipe)) return "crafting.unknown";
         if (!Makes(station, c.Recipe)) return "crafting.notHere";
         if (Queue(c.Machine).Count >= station.QueueMost) return "crafting.full";
-        return _items.ShortOf(c.From, Times(craft.Cost, c.Count));
+        if (!c.FromInputs) return _items.ShortOf(c.From, Times(craft.Cost, c.Count));
+        // The pod is paid by hand by design (0057): with no inputs, an entry fed from them would wait for ever.
+        return (Content.Machines.Get(station.Machine).Inputs ?? 0) == 0 ? "crafting.noInputs" : null;
     }
 
     private void ApplyCraft(Craft c)
     {
         var queue = QueueOf(c.Machine) ?? Added(c.Machine);
-        _itemsOps.Take(c.From, Times(Content.Crafts.Get(c.Recipe).Cost, c.Count));
-        queue.Entries.Add(new Entry(queue.Next, c.Recipe, c.Count, c.From));
+        if (!c.FromInputs) _itemsOps.Take(c.From, Times(Content.Crafts.Get(c.Recipe).Cost, c.Count));
+        queue.Entries.Add(new Entry(queue.Next, c.Recipe, c.Count, c.From, c.FromInputs));
         queue.Next += 1;
     }
 
@@ -152,21 +173,37 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     {
         if (StationOf(c.Machine) is not { } station) return "crafting.noStation";
         if (station.Fed) return "crafting.notHere";
-        return Queue(c.Machine).FirstOrDefault(e => e.Id == c.Entry) is { } entry
-            ? _items.FullFor(c.From, Refund(entry))
-            : "crafting.noEntry";
+        var queue = QueueOf(c.Machine);
+        int at = queue?.Entries.FindIndex(e => e.Id == c.Entry) ?? -1;
+        return at >= 0 ? _items.FullFor(c.From, Refund(queue!, at)) : "crafting.noEntry";
     }
 
     private void ApplyCancel(Cancel c)
     {
         var queue = QueueOf(c.Machine)!;
         int at = queue.Entries.FindIndex(e => e.Id == c.Entry);
-        var entry = queue.Entries[at];
+        var refund = Refund(queue, at);
         queue.Entries.RemoveAt(at);
         // The unit at work is given back with the rest: the next entry starts from nothing.
         if (at == 0) queue.Progress = 0;
         // To whoever cancels, not whoever paid: friends share a ship, and no record of who paid is kept.
-        _itemsOps.Give(c.From, Refund(entry));
+        _itemsOps.Give(c.From, refund);
+    }
+
+    private string? EndlessProblem(SetEndless c)
+    {
+        if (StationOf(c.Machine) is not { } station) return "crafting.noStation";
+        if (station.Fed) return "crafting.notHere";
+        if (Queue(c.Machine).FirstOrDefault(e => e.Id == c.Entry) is not { } entry) return "crafting.noEntry";
+        // A paid entry's units are paid for: repeating it would make what nobody paid for.
+        return entry.FromInputs ? null : "crafting.paid";
+    }
+
+    private void ApplyEndless(SetEndless c)
+    {
+        var queue = QueueOf(c.Machine)!;
+        int at = queue.Entries.FindIndex(e => e.Id == c.Entry);
+        queue.Entries[at] = queue.Entries[at] with { Endless = c.On };
     }
 
     // Systems.
@@ -194,8 +231,10 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     }
 
     /// <summary>
-    /// A queued station's first entry works a tick; a unit done goes into its outputs, or waits, done, for room
-    /// there. One that draws power rests while it has nothing to work on.
+    /// A queued station's first entry works a tick, one fed from the inputs taking its unit's cost from them on its
+    /// first tick with work; a unit done goes into its outputs, or waits, done, for room there. A unit fed from the
+    /// inputs that lack its cost waits at nothing done, and the whole queue behind it (FIFO). One that draws power
+    /// rests while it has nothing to work on.
     /// </summary>
     private void Make(Machine m, Station station)
     {
@@ -205,20 +244,41 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
             var first = queue.Entries[0];
             var craft = Content.Crafts.Get(first.Recipe);
             int work = craft.Ticks * 1000;
-            if (queue.Progress < work) queue.Progress = Math.Min(work, queue.Progress + Gain(m, station));
+            int gain = HasWork(m.Id, queue) ? Gain(m, station) : 0;
+            if (gain > 0)
+            {
+                // Begun only with work done, so a station without power takes nothing in.
+                if (first.FromInputs && queue.Progress == 0) _itemsOps.TakeInputs(m.Id, craft.Cost);
+                queue.Progress = Math.Min(work, queue.Progress + gain);
+            }
             Cost unit = [(craft.Item, 1)];
             if (queue.Progress >= work && _items.OutputFull(m.Id, unit) == null)
             {
                 _itemsOps.Output(m.Id, unit);
                 queue.Progress = 0;
-                if (first.Count > 1) queue.Entries[0] = first with { Count = first.Count - 1 };
-                else queue.Entries.RemoveAt(0);
+                // An endless entry keeps its count: it repeats while its inputs last.
+                if (!first.Endless && first.Count > 1) queue.Entries[0] = first with { Count = first.Count - 1 };
+                else if (!first.Endless) queue.Entries.RemoveAt(0);
             }
         }
-        // Idle: nothing queued, or a unit done waiting for room, which needs no power to go out.
-        bool works = queue is { Entries.Count: > 0 } && queue.Progress < Content.Crafts.Get(queue.Entries[0].Recipe).Ticks * 1000;
-        Rest(m, !works);
+        // Idle: nothing queued, a unit done waiting for room, which needs no power to go out, or one waiting for its inputs.
+        Rest(m, queue == null || !HasWork(m.Id, queue));
     }
+
+    /// <summary>
+    /// Whether <paramref name="queue"/>, station <paramref name="machine"/>'s, has work now: a first entry whose unit is
+    /// not done, and, fed from the inputs, begun or with its cost there.
+    /// </summary>
+    private bool HasWork(int machine, Queue queue) =>
+        queue.Entries.Count > 0
+        && queue.Progress < Content.Crafts.Get(queue.Entries[0].Recipe).Ticks * 1000
+        && LacksOf(machine, queue).Count == 0;
+
+    /// <summary>What the inputs of <paramref name="machine"/> lack for <paramref name="queue"/>'s first unit, fed from them and not begun; none otherwise.</summary>
+    private IReadOnlyList<(string Item, int Count)> LacksOf(int machine, Queue queue) =>
+        queue.Entries.Count > 0 && queue.Entries[0].FromInputs && queue.Progress == 0
+            ? _items.InputsLack(machine, Content.Crafts.Get(queue.Entries[0].Recipe).Cost)
+            : [];
 
     /// <summary>
     /// A fed station a tick on from <paramref name="was"/>: work on another item, or none, begins again; with
@@ -238,6 +298,8 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         var spec = Content.Items.Get(input!);
         if (progress < spec.SmeltTicks!.Value * 1000) return new Smelt(m.Id, input!, progress);
         _itemsOps.Smelt(m.Id, Returned(spec));
+        // Rested at once when that was its last: it draws nothing from the next tick, as it did by its empty input.
+        Rest(m, !(InputOf(m.Id) is { } next && CanSmelt(m, station, next)));
         return null;
     }
 
@@ -322,8 +384,17 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         return queue;
     }
 
-    /// <summary>What <paramref name="entry"/>'s units left cost, as content prices them now.</summary>
-    private static Cost Refund(Entry entry) => Times(Content.Crafts.Get(entry.Recipe).Cost, entry.Count);
+    /// <summary>
+    /// What entry <paramref name="at"/> of <paramref name="queue"/> paid and did not make, as content prices it now: a paid
+    /// one's units left, the one at work included; one fed from the inputs, its unit begun, if it is first and begun.
+    /// </summary>
+    private static Cost Refund(Queue queue, int at)
+    {
+        var entry = queue.Entries[at];
+        var cost = Content.Crafts.Get(entry.Recipe).Cost;
+        if (!entry.FromInputs) return Times(cost, entry.Count);
+        return at == 0 && queue.Progress > 0 ? cost : [];
+    }
 
     private static Cost Times(Cost cost, int count) => cost.Select(c => (c.Item, c.Count * count)).ToList();
 }
