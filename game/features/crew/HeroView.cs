@@ -124,8 +124,8 @@ public partial class HeroView : Node2D
     private StrikeTrain _grains;
     private MotorSound _drillMotor;
     private TouchHold _onPiece;
-    /// <summary>The jetpack's thrust, the suit's air rushing out, heard in the helmet while this hero thrusts, its envelope eased in and out (0047, 0059).</summary>
-    private readonly AudioStreamPlayer _thrustLoop = Cues.Player(S.Thrust, S.Helmet);
+    /// <summary>The jetpack's thrust, heard through the suit while this hero thrusts, muffled out in space as all there is, its envelope eased in and out (0047, 0059).</summary>
+    private readonly AudioStreamPlayer _thrustLoop = Cues.Player(S.Thrust, S.Suit);
     private LoopEnvelope _thrustSound;
     private readonly Sprite2D _rod = new() { Centered = false, Visible = false, ZIndex = Layers.Hero };
     /// <summary>Every harpoon's line, over the heroes, unlit as the tethers are.</summary>
@@ -155,8 +155,8 @@ public partial class HeroView : Node2D
     private const int PlumeMost = 6;
     /// <summary>Whether the player asked to breathe a canister, from the inventory, since the last frame.</summary>
     private bool _breathe;
-    // A canister breathed is heard in the helmet, as the suit's own air (0059).
-    private readonly AudioStreamPlayer _breathes = Cues.Player(S.Breathe, S.Helmet);
+    // A canister breathed is heard through the suit.
+    private readonly AudioStreamPlayer _breathes = Cues.Player(S.Breathe, S.Suit);
 
     /// <param name="ui">What the hand holds, the crate open and the piece aimed at, shared with the other features.</param>
     /// <param name="mouse">The pointer and the left button as the world reads them.</param>

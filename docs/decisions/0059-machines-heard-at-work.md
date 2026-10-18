@@ -5,8 +5,9 @@
 - Supersedes in part: of [0054](0054-asteroids-and-the-drill.md), the drill's strikes stopping the very frame
   its bit leaves a piece and the drill silent while it runs at nothing; of
   [0057](0057-stations-one-model-for-every-crafting-machine.md), the Former and the electric smelter silent;
-  of [0042](0042-what-is-heard-in-space.md), the jetpack and a breathed canister on the Suit bus, the Suit
-  bus as loud in space as aboard, and the bed of space 8 dB under the title's track
+  of [0033](0033-first-sound.md) and [0053](0053-charge-belongs-to-the-item.md), each station's sound carrying as
+  far as its own cue said; of [0042](0042-what-is-heard-in-space.md), the Suit bus as loud in space as aboard
+  and the bed of space 8 dB under the title's track
 - Audition: "Machine Sound Audition" (the user's picks, 2026-10-18)
 
 ## Context
@@ -20,8 +21,7 @@ strikes sat 9 to 13 dB under the bed.
 
 ## Decision
 
-- **Machines sound where they stand, while they work** (`CraftingModule.Works`, what their pictures show), on
-  the World bus, heard by reach as every machine is (0033): the Former's press strikes each time its head
+- **Machines sound where they stand, while they work** (`CraftingModule.Works`, what their pictures show): the Former's press strikes each time its head
   comes down in its pictures (the third of four, every 0.44 s), counted from the same steps the pictures are,
   so a slow frame still strikes once; over it its motor, a synthesised flywheel loop, spins up over 0.6 s
   from half its pitch, runs down over 0.8 s and dips 3% at each stroke. The smelter hums, risen over 0.3 s
@@ -35,17 +35,36 @@ strikes sat 9 to 13 dB under the bed.
   its pitch varied; the steady parts are synthesised loops, rendered offline from the audition's parameters
   (deterministic seeds, two periods rendered and the second kept, −23 dBFS RMS). One motor model serves the
   Former and the drill (`MotorSound`).
-- **Levels as auditioned:** the audition's 0 dB plays at −2 dB in the game, set by the one sound it shared
-  with the game, the drill's strike. So the Former's stroke is at −2, its motor and the smelter's hum 12 dB
-  under, the melt 8 dB under and the drill's motor 6 dB under its strikes.
-- **The suit's own air is heard in the helmet:** the jetpack's thrust and a canister breathed are the suit's
-  air moving, as the alarm is in its air (0042), so they go on the Helmet bus, never muffled. Floating, the
-  Suit bus rises 6 dB as it dulls, so what the hero touches stands out, and the bed of space plays 3 dB
-  lower. Measured as played: the thrust in space −53 → −25 LUFS, a breath −68 → −26 (momentary), a chop
-  −36 → −30, against the bed's −28 → −31 LUFS.
+- **Every station sounds alike: it tells that it works, no more.** One profile (`Sound.StationReach`) for
+  every sound a station makes at work — the Former's stroke and motor, the smelter's hum and melt, a furnace's
+  or burner generator's fire, a charging station's hum: the World bus, full within 2 cells, gone at 10, fading
+  as the square of the way left. Their volumes are set so each station at work peaks at about −32 LUFS
+  momentary (its loudest 400 ms, measured through Godot's mixer within 2 cells), a quiet background: under a
+  step (−29), a door (−23) and every tool. Measured, momentary / short-term (3 s) LUFS:
+
+  | Station | Before, 2 cells | Before, 6 cells | After, 2 cells | After, 6 cells |
+  | --- | --- | --- | --- | --- |
+  | Former (stroke + motor) | −20.4 / −22.3 | −23.7 / −25.7 | −32.6 / −34.1 | −44.7 / −46.2 |
+  | Electric smelter (hum + melt) | −32.0 / −34.2 | −40.0 / −43.0 | −32.0 / −34.1 | −44.0 / −46.3 |
+  | Furnace, burner generator (fire) | −28.9 / −30.3 | −35.9 / −37.3 | −31.9 / −33.3 | −44.0 / −45.3 |
+  | Charging station (hum) | −30.0 / −30.2 | −49.1 / −49.4 | −32.0 / −32.2 | −44.0 / −44.3 |
+
+  The Former's stroke is judged by its momentary loudness, not its average: it plays only 3 dB over its motor
+  (the audition had 12) and 13 dB under the audition's level, so the press is heard working, not pounding.
+  The smelter keeps the audition's balance (its hum 4 dB under its melt); the drill's motor, a tool, keeps
+  the audition's 6 dB under its strikes. The circuit assembler and the analyzer stay silent.
+- **The vacuum is never left:** everything the hero touches out in space stays dulled through the suit,
+  the jetpack too. Its hiss, mostly above what the muffle lets through, is played 10 dB louder at the source
+  (+3 dB), so dulled it is heard about 6 dB under the bed of space: −53 → −37 LUFS against the bed's
+  −28 → −31. Floating, the Suit bus rises 6 dB as it dulls, and the bed plays 3 dB lower, so what the hero
+  touches stands out; the glove's thump, which the rise made the loudest thing out there, plays 6 dB lower
+  to stay where it was (−26 LUFS momentary). A chop in space −36 → −30.
 
 ## Consequences
 
 - Others' drills stay silent, as before; a machine taken down mid-work stops at once, without running down.
-- The hums sit about 5 dB under a vent's; a vent beside a smelter covers much of its hum, not its pops.
-- The jetpack and a breath sound the same aboard and out; the jetpack only ever thrusts out.
+- A vent's hum (about −30 LUFS within 3 cells) is a little louder than any station: a room with both hears the
+  vent first. The vents are the ship breathing, not a station; left as they were.
+- A canister breathed is a hiss too, and in space it is still all but lost in the muffle (−62 LUFS): it is
+  breathed mostly aboard, where it plays clear; left for its own audition.
+- The jetpack played that loud would be the loudest thing aboard, but it never thrusts aboard.

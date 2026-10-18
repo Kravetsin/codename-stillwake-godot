@@ -202,12 +202,17 @@ public class MachineSoundTests
     }
 
     [Fact]
-    public void TheMachinesKeepTheBalanceTheUserChose()
+    public void EveryStationCarriesAlikeAndTheFormersStrokeNeverPounds()
     {
-        // Each 12 dB under the Former's stroke, the melt 8 dB, the drill's motor 6 dB under its strikes (the audition's levels).
-        Assert.Equal(-12, Sound.FormerMotor.VolumeDb - Sound.FormerStroke.VolumeDb);
-        Assert.Equal(-12, Sound.SmelterHum.VolumeDb - Sound.FormerStroke.VolumeDb);
-        Assert.Equal(-8, Sound.SmelterCrackle.VolumeDb - Sound.FormerStroke.VolumeDb);
+        // Every sound a station makes at work fades the same way, so a station sounds as loud as the next at any distance.
+        var stations = new[] { Sound.FormerStroke, Sound.FormerMotor, Sound.SmelterHum, Sound.SmelterCrackle, Sound.Fire, Sound.ChargerHum };
+        Assert.All(stations, cue => Assert.Same(Sound.StationReach, cue.Heard));
+        Assert.Equal(0.25f, Sound.StationReach.Share(6), 6);
+        // The stroke only a little over its motor, and quieter than a door or a step.
+        Assert.InRange(Sound.FormerStroke.VolumeDb - Sound.FormerMotor.VolumeDb, 0, 4);
+        Assert.True(Sound.FormerStroke.VolumeDb < Sound.DoorOpen.VolumeDb && Sound.FormerStroke.VolumeDb < Sound.Step.VolumeDb);
+        // The drill's motor 6 dB under its strikes as auditioned: the strike's file is 8 dB louder than the audition's cut of it.
+        Assert.Equal(-6, Sound.DrillWhir.VolumeDb - (Sound.DrillStrike.VolumeDb + 8));
         Assert.Equal((0.15f, 0.1f, 0.02f), (Sound.FormerStrokePitch, Sound.SmelterCracklePitch, Sound.DrillWhirPitch));
         Assert.True(Sound.FormerMotor.Loops && Sound.SmelterHum.Loops);
         Assert.False(Sound.DrillWhir.Loops || Sound.SmelterCrackle.Loops || Sound.FormerStroke.Loops);

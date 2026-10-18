@@ -133,7 +133,7 @@ too); `AxeSwingTests`, `HarpoonTests` and `JetpackTests` have no TypeScript orig
 - **A canister breathed:** a right click over the world with a canister in hand (the hand free, awake, no
   plan worked under the pointer; `Buttons.TakeRightClick`), or `Ui.Breathe` from a right click on one in the
   inventory, sends `Refill` when the sim would take it now (`CrewModule.RefillProblem`) and none is in
-  flight, and plays the hiss in the helmet, the suit's own air (`Sound.Breathe`, a placeholder; 0059).
+  flight, and plays the hiss through the suit (`Sound.Breathe`, a placeholder).
 
 ## The crew module
 

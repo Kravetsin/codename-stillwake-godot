@@ -43,11 +43,19 @@ public static class Sound
     }
 
     /// <summary>
+    /// How every station's sound carries while it works (0059): the Former's, the smelter's, a furnace's or burner
+    /// generator's fire, a charging station's hum. All on the World bus, all as far: full within 2 cells, gone at 10. Their
+    /// volumes are set by ear and meter so each station at work is about as loud as the next, about −32 LUFS at its loudest
+    /// 400 ms within 2 cells as Godot mixes it: it tells that it works, under a door, a step or a tool.
+    /// </summary>
+    public static readonly Reach StationReach = new(2, 10);
+
+    /// <summary>
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient, Music and Effects into Master; into
     /// Effects, World (every hero's steps, machines, air, doors: silenced while floating), Suit (what this
-    /// player's hero itself touches: an action's sound, its own axe's chop and drill, a wreck its hit breaks, its harpoon; heard
-    /// through the body, dulled while floating, a little louder there) and Helmet (the suit's own air, in the helmet: its alarm, its
-    /// jetpack's thrust and a canister breathed; always clear, 0059). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
+    /// player's hero itself touches: an action's sound, its own axe's chop and drill, a wreck its hit breaks, its harpoon, its
+    /// jetpack, a canister breathed; heard through the body, dulled while floating, a little louder there) and Helmet (the
+    /// suit's alarm, in the helmet's air: always clear). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
     /// hearing's (0033, 0042). Ambient waits for the first ambience: the ship's hum comes from its vents
     /// and fires, in the world.
     /// </summary>
@@ -74,8 +82,9 @@ public static class Sound
     /// The action's sound while this player's hero floats in space (0042): a glove's low thump in place of the
     /// click, which has almost nothing the muffle lets through; on the Suit bus, muffled as all there is.
     /// </summary>
-    public static readonly Cue ActInSpace = new(Shots("hands/act-space", 1), -6);
-    public static readonly Cue Fire = Looped("furnace/fire", -10, new(3, 12));
+    public static readonly Cue ActInSpace = new(Shots("hands/act-space", 1), -12);
+    /// <summary>A furnace's or burner generator's fire crackling while it burns, a station's sound (<see cref="StationReach"/>).</summary>
+    public static readonly Cue Fire = Looped("furnace/fire", -13, StationReach);
     /// <summary>
     /// This player's own axe biting into a wreck (0034, 0042), heard where the wreck is: on the Suit bus,
     /// through the glove, as a wreck is only ever out in space; another hero's hit there is silent.
@@ -115,23 +124,22 @@ public static class Sound
     /// <summary>
     /// The Former's press (0059), where it stands, on the World bus: a 10-ton punch press's stroke, once each time its head comes
     /// down in its pictures (every 0.44 s at its 4 × 110 ms), each its pitch scale within ±<see cref="FormerStrokePitch"/> and its
-    /// volume within ±<see cref="FormerStrokeVolumeDb"/>.
+    /// volume within ±<see cref="FormerStrokeVolumeDb"/>. Soft, 3 dB over its motor, so it tells the press works without pounding.
     /// </summary>
-    public static readonly Cue FormerStroke = new(Shots("crafting/former-stroke", 1), -2, Pitch: 0, Heard: new(4, 16));
+    public static readonly Cue FormerStroke = new(Shots("crafting/former-stroke", 1), -15, Pitch: 0, Heard: StationReach);
     public const float FormerStrokePitch = 0.15f, FormerStrokeVolumeDb = 1.5f;
 
     /// <summary>
-    /// The Former's motor while it works: a flywheel's belt and bearing, swaying 2.25 times a second, once a stroke, 12 dB under the
+    /// The Former's motor while it works: a flywheel's belt and bearing, swaying 2.25 times a second, once a stroke, 3 dB under the
     /// strokes; spun up over 0.6 s from half its pitch, run down over 0.8 s, and dipping 3% at each stroke, back over 120 ms.
     /// </summary>
-    public static readonly Cue FormerMotor = Looped("crafting/former-motor", -14, new(3, 10));
+    public static readonly Cue FormerMotor = Looped("crafting/former-motor", -18, StationReach);
     public static readonly Motor FormerSpin = new(0.6, 0.8, Idle: 0.5, Sag: 0.03, LoadInS: 0, LoadOutS: 0.12);
 
     /// <summary>
-    /// The electric smelter's coils while it works (0059): a 100 Hz hum with a hiss of hot metal over it, 12 dB under the Former's
-    /// strokes, risen over <see cref="SmelterHumInS"/> and fallen over <see cref="SmelterHumOutS"/>.
+    /// The electric smelter's coils while it works (0059): a 100 Hz hum with a hiss of hot metal over it, risen over <see cref="SmelterHumInS"/> and fallen over <see cref="SmelterHumOutS"/>.
     /// </summary>
-    public static readonly Cue SmelterHum = Looped("crafting/smelter-hum", -14, new(3, 10));
+    public static readonly Cue SmelterHum = Looped("crafting/smelter-hum", -14, StationReach);
     public const double SmelterHumInS = 0.3, SmelterHumOutS = 0.6;
 
     /// <summary>
@@ -139,23 +147,25 @@ public static class Sound
     /// a second on average, each its pitch within ±<see cref="SmelterCracklePitch"/> and its volume up to
     /// <see cref="SmelterCrackleLowDb"/> under its cue's.
     /// </summary>
-    public static readonly Cue SmelterCrackle = new(Shots("crafting/smelter-crackle", 6), -10, Pitch: 0, Heard: new(3, 12));
+    public static readonly Cue SmelterCrackle = new(Shots("crafting/smelter-crackle", 6), -10, Pitch: 0, Heard: StationReach);
     public const float SmelterCracklesPerSecond = 2, SmelterCracklePitch = 0.1f, SmelterCrackleLowDb = -10;
 
     /// <summary>
-    /// This player's jetpack thrusting (0047), the suit's own air rushing out, heard in the helmet (0059): bright noise, high-passed at 700 Hz, low-passed at
+    /// This player's jetpack thrusting (0047), through the suit: bright noise, high-passed at 700 Hz, low-passed at
     /// 4.8 kHz, its filters drifting ±150 cents, a 2 s loop rendered for Stillwake. It rises over
-    /// <see cref="ThrustAttackS"/> as the thrust begins and falls over <see cref="ThrustReleaseS"/> as it ends.
+    /// <see cref="ThrustAttackS"/> as the thrust begins and falls over <see cref="ThrustReleaseS"/> as it ends. It only ever
+    /// thrusts in space, where the Suit muffle takes most of a hiss: played loud (0059), it comes through dulled, about 6 dB
+    /// under the bed of space.
     /// </summary>
-    public static readonly Cue Thrust = new(["res://audio/crew/thrust-1.ogg"], -7, Loops: true);
+    public static readonly Cue Thrust = new(["res://audio/crew/thrust-1.ogg"], 3, Loops: true);
     public const double ThrustAttackS = 0.04, ThrustReleaseS = 0.14;
 
     /// <summary>
     /// A charging station's hum while it charges (0053): a warm 50 Hz with its harmonics under a 500 Hz low-pass,
-    /// swaying ±4% twice a second, a 4 s loop rendered for Stillwake; heard close, as quiet as a vent's hum. Faded in
+    /// swaying ±4% twice a second, a 4 s loop rendered for Stillwake; a station's sound (<see cref="StationReach"/>). Faded in
     /// over <see cref="HumInS"/> and out over <see cref="HumOutS"/>.
     /// </summary>
-    public static readonly Cue ChargerHum = Looped("power/charger-hum", -8, new(2, 8));
+    public static readonly Cue ChargerHum = Looped("power/charger-hum", -10, StationReach);
     public const double HumInS = 0.4, HumOutS = 0.5;
 
     /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>
@@ -174,7 +184,7 @@ public static class Sound
     public static readonly Cue Ready = new(Shots("crew/harpoon-ready", 1), -10);
 
     /// <summary>
-    /// A canister breathed into the suit (0047), heard in the helmet as the suit's air is (0059): a short hiss of air, a placeholder cut from
+    /// A canister breathed into the suit (0047), heard through it: a short hiss of air, a placeholder cut from
     /// <see cref="Hiss"/> until a sound is picked.
     /// </summary>
     public static readonly Cue Breathe = new(["res://audio/crew/breathe-1.ogg"], -8);

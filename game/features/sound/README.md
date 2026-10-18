@@ -23,13 +23,14 @@ The first sound pass (ADR 0033), what is heard in space (0042), and machines hea
   `MuffledHz` (in log space) as the bus fades out to silence; over the same time the Suit bus — what
   the hero itself touches — dulls to a thud: its low-pass (24 dB an octave) falls to `SuitMuffledHz`
   and its low shelf under `SuitLowsHz` rises to `SuitLowsGain`, and the bus rises `SuitFloatingDb` (6 dB, 0059), so
-  what the hero touches stands out of the bed. Helmet — the suit's own air: its alarm, its jetpack, a canister
-  breathed (0059) — is never touched.
+  what the hero touches stands out of the bed. Nothing touched leaves the muffle, the jetpack neither (0059).
+  Helmet, the alarm's, is never touched.
   The reverse back aboard. `Hearing.At` gives the settings, `SoundView` sets them.
 - **Reach:** a sound placed in the world carries as its cue's `Sound.Reach` says: full volume up to
   `Full` cells from the middle of the screen (the hero), then fading as the square of what is left of
-  the way to `Silent`, where it stops. A vent hums loud only close by (3 → 10), a fire crackles a
-  little further (3 → 12), doors and venting carry far (6 → 24). Godot's own fall-off has no
+  the way to `Silent`, where it stops. A vent hums loud only close by (3 → 10), doors and venting carry far
+  (6 → 24). Every station at work carries alike (`Sound.StationReach`, 2 → 10, 0059) and is about as loud as the
+  next: about −32 LUFS at its loudest 400 ms within 2 cells, under a step, a door or any tool. Godot's own fall-off has no
   full-volume stretch, so `Heard2D` turns it off and sets the volume each frame; Godot still pans.
 - **Music** on the Music bus, each a loop at a share of its volume, stopped once silent: the title's
   track (0035) faded in over `Sound.MusicFadeS` while the title is shown and out once it is gone; the
@@ -69,16 +70,16 @@ The first sound pass (ADR 0033), what is heard in space (0042), and machines hea
     `Sound.DrillStrikesPerSecond` (18, a hammer drill's buzz, apart from the damage's 10 hits a second), the
     first at once, each its pitch scale within ±`DrillStrikePitch` (12%) and its volume within
     ±`DrillStrikeVolumeDb` (1.5 dB) (`StrikeTrain`); stopped, voices and all, the frame the drill stops or the hold
-    runs out. Its hits play no chop. And this player's jetpack (0047), on Helmet, the suit's air rushing out (0059):
-    `Sound.Thrust`, a loop, while it thrusts,
+    runs out. Its hits play no chop. And this player's jetpack (0047), on Suit, muffled out in space
+    as all there is: `Sound.Thrust`, a loop, while it thrusts, played loud (+3 dB) so its hiss comes through the muffle
+    about 6 dB under the bed of space (0059),
     risen over `ThrustAttackS` (40 ms) and fallen over `ThrustReleaseS` (140 ms), linear in amplitude
-    (`LoopEnvelope`), then stopped; and a canister breathed (`Sound.Breathe`), on Helmet as well. Others' drills and
+    (`LoopEnvelope`), then stopped; and a canister breathed (`Sound.Breathe`), on Suit as well. Others' drills and
     jetpacks are silent.
   - `power/ChargerLights.cs` — each charging station, on World where it stands: `Sound.ChargerHum`, a
-    positional loop (2 → 8 cells) faded in over `HumInS` while it charges and out over `HumOutS`, begun
+    positional loop faded in over `HumInS` while it charges and out over `HumOutS`, begun
     somewhere along its 4 s; and `Sound.ChargeFull` once as a battery charging there comes full
-    (`Charges.CameFull`), not when one is put in full. The hum is set level with a vent's (about −33 LUFS
-    as played).
+    (`Charges.CameFull`), not when one is put in full. The hum is a station's (0059).
   - `crafting/StationSounds.cs` — each station at work (0059), on World at its middle, told every frame by
     `StationView` whether it works (`CraftingModule.Works`) and which step of its pictures it shows, each machine its
     own players. The Former: `Sound.FormerStroke` once each time its pictures pass the one its head comes down on (the
@@ -88,12 +89,12 @@ The first sound pass (ADR 0033), what is heard in space (0042), and machines hea
     each stroke and back over 120 ms. The electric smelter: `Sound.SmelterHum`, a loop risen over `SmelterHumInS` and
     fallen over `SmelterHumOutS` (`LoopEnvelope`), and its melt's pops (`Sound.SmelterCrackle`, six synthesised one-shots)
     at random moments, `SmelterCracklesPerSecond` (2) on average (`RandomTrain`), each ±`SmelterCracklePitch` (10%) and
-    up to `SmelterCrackleLowDb` (10 dB) quieter. Loops begin somewhere along themselves. The audition's levels hold: its
-    0 dB is −2 dB here, set by the drill's strike, the one sound it shared with the game.
+    up to `SmelterCrackleLowDb` (10 dB) quieter. Loops begin somewhere along themselves. Each station as loud as the
+    next; the Former's stroke only 3 dB over its motor, so it never pounds.
   - `grid/GridView.cs` — on World, where it stands: a door opening or closing (once, at its top cell)
     and a valve turned, found as the drawing catches up with the grid, so anyone's are heard and this
     player's own at once (0014).
-  - `furnace/FurnaceView.cs` — each burning furnace's crackle, a positional loop on its fire, begun at
+  - `furnace/FurnaceView.cs` — each burning furnace's or burner generator's crackle, a positional loop on its fire, a station's (0059), begun at
     a random point so two fires never crackle in step.
   - `crew/SuitGauge.cs` — on Helmet, the alarm every `Sound.AlarmEveryS` while the suit runs low; none
     passed out.
