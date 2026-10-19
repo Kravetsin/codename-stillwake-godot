@@ -124,16 +124,29 @@ public partial class GridView : Node2D
 
     // The pictures' names made once, not a string a cell: a big ship draws half a million cells as it loads.
     private static readonly string[] PipeNames = Names("pipe_");
-    private readonly Dictionary<int, (string Wall, string[] Edges)> _wallNames = new();
+    private readonly Dictionary<(int, int), (string Wall, string[] Edges)> _wallNames = new();
 
     private static string[] Names(string prefix) => Enumerable.Range(0, 16).Select(sides => $"{prefix}{sides}").ToArray();
 
-    /// <summary>A wall of material <paramref name="code"/>'s picture, and its edges' by the sides open.</summary>
-    private (string Wall, string[] Edges) WallNamesOf(int code)
+    /// <summary>A wall of material <paramref name="code"/> cut to <paramref name="shape"/>: its picture, and its edges' by the sides open.</summary>
+    private (string Wall, string[] Edges) WallNamesOf(int code, int shape)
     {
-        if (_wallNames.TryGetValue(code, out var names)) return names;
+        if (_wallNames.TryGetValue((code, shape), out var names)) return names;
         string material = MaterialOf(code);
-        return _wallNames[code] = ($"wall_{material}", Names($"wall-edge_{material}_"));
+        var edges = Enumerable.Range(0, 16).Select(open => ShipTiles.EdgeName(material, open, shape)).ToArray();
+        return _wallNames[(code, shape)] = (ShipTiles.WallName(material, shape), edges);
+    }
+
+    /// <summary>The sides of <paramref name="cell"/> a wall beside it closes: one whose own side facing it is whole (0069).</summary>
+    private int WalledSides(int cell)
+    {
+        int w = _grid.Width, x = cell % w, y = cell / w, sides = 0;
+        bool Closes(int n, int facing) => _drawn.Structure[n] == Structure.Wall && (Shape.ClosedSides(_drawn.Shape[n]) & facing) != 0;
+        if (y > 0 && Closes(cell - w, Down)) sides |= Up;
+        if (x < w - 1 && Closes(cell + 1, Left)) sides |= Right;
+        if (y < _grid.Height - 1 && Closes(cell + w, Up)) sides |= Down;
+        if (x > 0 && Closes(cell - 1, Right)) sides |= Left;
+        return sides;
     }
 
     /// <summary>The sides of <paramref name="cell"/> whose neighbour passes <paramref name="isOne"/>; past the grid's edge none does.</summary>
@@ -173,9 +186,11 @@ public partial class GridView : Node2D
         {
             case Structure.Wall:
                 {
-                    var (wall, edges) = WallNamesOf(_drawn.Material[cell]);
+                    int shape = _drawn.Shape[cell];
+                    var (wall, edges) = WallNamesOf(_drawn.Material[cell], shape);
                     _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
-                    int open = ~SidesOf(cell, _drawn.Structure, s => s == Structure.Wall) & 0b1111;
+                    // Edged where it faces no wall; a shape only on its whole sides, its diagonal edged in its picture.
+                    int open = ~WalledSides(cell) & Shape.ClosedSides(shape);
                     if (open != 0)
                         Put(_edges, at, edges[open]);
                     break;

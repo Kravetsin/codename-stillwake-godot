@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Content;
+using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Render;
 
@@ -34,6 +35,14 @@ public sealed class ShipTiles
             // Walls are no things standing in the light: flat.
             pictures.Add(Picture($"wall_{material}", Relief.None));
             for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", Relief.None));
+            // Walls cut to a shape (0069): the same pictures, each cell cut, the diagonal edged as an open side is.
+            foreach (int shape in Shape.Cut)
+            {
+                pictures.Add(Picture(WallName(material, shape), ShapeMasks.Cut(Art($"wall_{material}"), shape, Art($"wall-edge_{material}_1")), Relief.None));
+                for (int open = 1; open < 16; open++)
+                    if ((open & ~Shape.ClosedSides(shape)) == 0)
+                        pictures.Add(Picture(EdgeName(material, open, shape), ShapeMasks.Cut(Art($"wall-edge_{material}_{open}"), shape), Relief.None));
+            }
         }
         foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", "floor", "ladder"])
             pictures.Add(Picture(name, Relief.None));
@@ -121,11 +130,11 @@ public sealed class ShipTiles
     /// whole cells: from the top-left (a floor along the top of its cell) or round the middle
     /// (a valve's wheel, as ship-art.ts lays it).
     /// </summary>
-    private static (string, Image, Image) Picture(string name, Relief relief, bool centred = false)
+    private static (string, Image, Image) Picture(string name, Relief relief, bool centred = false) => Picture(name, Art(name), relief, centred);
+
+    /// <summary>The picture <paramref name="diffuse"/>, made here, as <paramref name="name"/>.</summary>
+    private static (string, Image, Image) Picture(string name, Image diffuse, Relief relief, bool centred = false)
     {
-        var diffuse = PixelArt.Picture(name).GetImage();
-        if (diffuse.IsCompressed()) diffuse.Decompress();
-        diffuse.Convert(Image.Format.Rgba8);
         var normal = relief == Relief.None ? Filled(diffuse.GetSize(), Flat) : PixelArt.VolumeMap(diffuse, across: relief == Relief.Across, down: relief == Relief.Down);
         var whole = (diffuse.GetSize() + new Vector2I(Cell - 1, Cell - 1)) / Cell * Cell;
         if (whole == diffuse.GetSize()) return (name, diffuse, normal);
@@ -138,6 +147,22 @@ public sealed class ShipTiles
         }
         return (name, Padded(diffuse, Colors.Transparent), Padded(normal, Flat));
     }
+
+    /// <summary>The picture <c>res://art/{name}.png</c> as pixels to work on.</summary>
+    private static Image Art(string name)
+    {
+        var image = PixelArt.Picture(name).GetImage();
+        if (image.IsCompressed()) image.Decompress();
+        image.Convert(Image.Format.Rgba8);
+        return image;
+    }
+
+    /// <summary>A wall of <paramref name="material"/>'s picture, cut to <paramref name="shape"/> (0069).</summary>
+    public static string WallName(string material, int shape) => shape == Shape.None ? $"wall_{material}" : $"wall_{material}_{shape}";
+
+    /// <summary>The edges of a wall of <paramref name="material"/> on its sides <paramref name="open"/>, cut to <paramref name="shape"/>: only its closed sides have one.</summary>
+    public static string EdgeName(string material, int open, int shape) =>
+        shape == Shape.None ? $"wall-edge_{material}_{open}" : $"wall-edge_{material}_{open}_{shape}";
 
     /// <summary>How a picture stands out toward a light: flat, rolled from side to side (a door), from top to bottom (a hatch), or domed.</summary>
     private enum Relief { None, Across, Down, Round }
