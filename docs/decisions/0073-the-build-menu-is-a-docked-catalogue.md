@@ -32,6 +32,27 @@ quick bar with the whole catalogue on a key. A was picked.
 - Picking a card leaves the menu open, as before; B toggles it; the tooltip by the pointer is the one tooltip (cost,
   carried against needed, use), found by where the mouse is each frame, so it follows a scroll under a still pointer.
 
+## Look: a rugged planning tablet
+
+The catalogue is the screen of a handheld tablet (the tablet-menu concepts; variant A, rugged industrial, picked). Its
+frame is pixel art at two screen pixels a pixel round the unchanged panel: a scuffed bezel with rubber corners, a worn
+warning stripe, screws, an ID plate, signal and battery pips, a status lamp and a stylus clipped on the right; the
+screen square and borderless, a recess shadow and a faint glare over it. The 9-slice (`art/tablet_frame.png`) holds
+the corners, the top and bottom strips and one rivet period of the sides, tiled rather than stretched, so the large
+slot's 862 px frame is as crisp as the normal one; the plate (centred) and the stylus (at the right) are laid over it.
+The screen stays where the panel was, the bezel running 8 px past the bottom edge, as held from below.
+
+- **B lifts it** from below the bottom edge in 130 ms, easing out, and puts it away in 100 ms, easing in; turned back
+  halfway it goes on from where it is (`TabletMotion`). It takes clicks from the start of its slide, and none from
+  the moment it is put away, though it shows while it slides down;
+  the closed chip ("[B] Build") shows once it is gone.
+- **The screen comes on gently**: its content fades in from 60 to 140 ms, never brighter than lit, the lamp turning
+  green with it. Taken out again within 1.5 s of being put away it is lit at once, so B pressed often never blinks.
+  The concept's power-on (a bright line, an overbright picture and a flicker) was dropped as hard on the eyes.
+- **Its light**: a faint wash of the screen's blue round the tablet and the status lamp's glow, both added over what is
+  under them and dimmed with the screen. In the world, the planner in the hero's hand already lights what is round
+  it in the same blue (`crew`'s `Figure`); the tablet on the screen is not a light of the lightmap.
+
 ## Deliberately not handled
 
 - Cards not analysed yet stay hidden (0024), not shown as "?": the mockup drew them, but nobody asked to change that.
@@ -39,3 +60,6 @@ quick bar with the whole catalogue on a key. A was picked.
 - Tabs past the strip's width are not wrapped or shrunk: today's five, and decor as a sixth, leave the search about
   180 px. A seventh may need shorter names or icons.
 - No recent or pinned cards (layout C's bar).
+- The frame's art keeps two screen pixels a pixel at both slot sizes and every resolution; the UI is not scaled for
+  4K, where the large slot is the setting to use.
+- The bezel takes the clicks and the wheel as the screen does, its rect's transparent strip beside the stylus too.
