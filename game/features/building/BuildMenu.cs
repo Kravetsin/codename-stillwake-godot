@@ -19,13 +19,53 @@ namespace Stillwake.Game.Features.Building;
 /// tab it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B or Esc puts the plan
 /// away; with it away, the key that takes it out. Q picks the card under the pointer; R turns the shape a hull wall's
 /// card plans walls in, Shift+R back, every wall card's picture showing it (0069). Only what the world knows is
-/// shown (0024): a tab with nothing known, not at all, nor its mode.
+/// shown (0024): a tab with nothing known, not at all, nor its mode. It is the screen of a rugged tablet (0073), which
+/// slides up from the bottom edge as the plan comes out and back down as it goes away.
 /// </summary>
 public partial class BuildMenu : CanvasLayer
 {
     private static readonly Color Sky500 = new("0ea5e9"), Sky950 = new("082f49");
     private static readonly Font Mono = Render.Style.Mono;
     private const int FontSize = 12;
+
+    /// <summary>
+    /// The tablet's art (tablet_frame.png, a 9-slice, the plate and the stylus over it), a pixel of it two of the screen:
+    /// the screen's top-left in it, and how much wider and taller it is than the screen, in its pixels.
+    /// </summary>
+    private const int ArtScale = 2, ScreenLeft = 9, ScreenTop = 16, ArtAround = 26;
+
+    /// <summary>Above the screen, the bezel's top edge, in screen pixels: what the prompt for E keeps above.</summary>
+    private const int BezelAbove = 8 * ArtScale;
+
+    /// <summary>The colour the screen lights what is round it with, and how strongly at the middle (the concept's).</summary>
+    private static readonly Color ScreenLight = new(70 / 255f, 150 / 255f, 230 / 255f, 0.2f), LedLight = new(74 / 255f, 222 / 255f, 128 / 255f, 0.55f);
+
+    private readonly TabletMotion _motion = new();
+    private readonly NinePatchRect _frame = new()
+    {
+        Texture = GD.Load<Texture2D>("res://art/tablet_frame.png"),
+        PatchMarginLeft = 74,
+        PatchMarginRight = 77,
+        PatchMarginTop = 21,
+        PatchMarginBottom = 14,
+        AxisStretchHorizontal = NinePatchRect.AxisStretchMode.Tile,
+        AxisStretchVertical = NinePatchRect.AxisStretchMode.Tile,
+        DrawCenter = false,
+        Scale = new Vector2(ArtScale, ArtScale),
+        ShowBehindParent = true,
+        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+        MouseFilter = Control.MouseFilterEnum.Stop,
+    };
+    private readonly TextureRect _plate = Art("res://art/tablet_plate.png"), _stylus = Art("res://art/tablet_stylus.png");
+    /// <summary>The status lamp dark, over the art's lit one, while the screen is off; its glow while it is on.</summary>
+    private readonly ColorRect _ledOff = new() { Color = new Color("1f3b2a"), Size = new Vector2(2, 2), MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly TextureRect _ledGlow = Glow(LedLight, 0), _wash = Glow(ScreenLight, 40f / 560);
+    /// <summary>The glass over the screen: the recess's shadow and a faint glare.</summary>
+    private readonly Control _glass = new() { MouseFilter = Control.MouseFilterEnum.Ignore, ClipContents = true };
+    /// <summary>How far below its dock the tablet is drawn now, in screen pixels.</summary>
+    private int _drop;
+    /// <summary>What the screen shows, faded in as it comes on.</summary>
+    private readonly Control[] _screen;
 
     private readonly PlanHand _hand;
     private readonly Ui _ui;
@@ -78,16 +118,21 @@ public partial class BuildMenu : CanvasLayer
         _closed.OffsetBottom = -Slots.Margin;
         _root.AddChild(_closed);
 
-        _open.AddThemeStyleboxOverride("panel", Render.Style.Box(Render.Style.Slate900 with { A = 0.95f }, Render.Style.Slate700));
+        // The tablet's screen: square, edged by the bezel's recess rather than a border of its own.
+        _open.AddThemeStyleboxOverride("panel", Render.Style.Box(Render.Style.Slate900, Render.Style.Slate900, radius: 0));
         _open.AnchorLeft = _open.AnchorRight = 0.5f;
         _open.AnchorTop = _open.AnchorBottom = 1;
-        // The wheel anywhere over the panel scrolls the cards; it never reaches the hotbar or the camera.
-        _open.GuiInput += e =>
-        {
-            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } wheel) return;
-            _top = Catalogue.Scrolled(_top, wheel.ButtonIndex == MouseButton.WheelDown ? 1 : -1, _list.Count);
-            _open.AcceptEvent();
-        };
+        // The wheel anywhere over the tablet scrolls the cards; it never reaches the hotbar or the camera.
+        _open.GuiInput += e => Scroll(e, _open);
+        _frame.GuiInput += e => Scroll(e, _frame);
+        // Behind the screen: its light on what is round it, then the tablet; over the bezel, the lamp's glow.
+        _wash.ShowBehindParent = true;
+        _open.Visible = false;
+        _open.AddChild(_wash);
+        _open.AddChild(_frame);
+        foreach (var part in (Control[])[_plate, _stylus, _ledOff]) _frame.AddChild(part);
+        _open.AddChild(_ledGlow);
+        _glass.Draw += DrawGlass;
         _grid.GuiInput += e =>
         {
             if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press) return;
@@ -122,7 +167,9 @@ public partial class BuildMenu : CanvasLayer
         _foot.AddChild(_heldPicture);
         _foot.AddChild(_heldName);
         _foot.AddChild(_hint);
-        foreach (var part in (Control[])[_tabs, _search, _grid, _track, _foot]) _open.AddChild(part);
+        _screen = [_tabs, _search, _grid, _track, _foot];
+        foreach (var part in _screen) _open.AddChild(part);
+        _open.AddChild(_glass);
 
         LayOut();
         ui.SlotScale.Subscribe(LayOut);
@@ -158,8 +205,20 @@ public partial class BuildMenu : CanvasLayer
         _at = new Catalogue(_ui.Slot);
         _open.OffsetLeft = -(_at.Width / 2);
         _open.OffsetRight = _at.Width - _at.Width / 2;
-        _open.OffsetTop = -Slots.Margin - _at.Height;
-        _open.OffsetBottom = -Slots.Margin;
+        Dock();
+        // The tablet round the screen, in its art's pixels; its stretches tile, so the large slot's frame is as crisp.
+        var art = new Vector2(_at.Width / ArtScale + ArtAround, _at.Height / ArtScale + ArtAround);
+        _frame.Position = new Vector2(-ScreenLeft * ArtScale, -ScreenTop * ArtScale);
+        _frame.Size = art;
+        _plate.Position = new Vector2(2 + ((int)art.X - 12 - 33) / 2, 9);
+        _stylus.Position = new Vector2(art.X - 13, 0);
+        _ledOff.Position = new Vector2(art.X - 43, 11);
+        _ledGlow.Size = new Vector2(18, 18);
+        _ledGlow.Position = new Vector2(_at.Width - 59, -17);
+        _wash.Size = new Vector2(1120, 470);
+        _wash.Position = new Vector2(_at.Width / 2, _at.Height / 2) - _wash.Size / 2;
+        _glass.Size = new Vector2(_at.Width, _at.Height);
+        _glass.QueueRedraw();
         _tabs.Position = new Vector2(Catalogue.Pad, Catalogue.Pad);
         _grid.Position = new Vector2(Catalogue.Pad, _at.GridTop);
         _grid.Size = new Vector2(_at.GridWidth, _at.GridHeight);
@@ -200,6 +259,93 @@ public partial class BuildMenu : CanvasLayer
         MouseFilter = Control.MouseFilterEnum.Ignore,
         SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
     };
+
+    private static TextureRect Art(string path) => new()
+    {
+        Texture = GD.Load<Texture2D>(path),
+        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+        MouseFilter = Control.MouseFilterEnum.Ignore,
+    };
+
+    /// <summary>A soft round light of <paramref name="colour"/>, its alpha whole out to <paramref name="core"/> of its radius, added to what is under it.</summary>
+    private static TextureRect Glow(Color colour, float core)
+    {
+        var gradient = new Gradient
+        {
+            Offsets = [0, core, 0.45f, 1],
+            Colors = [colour, colour, colour with { A = colour.A * 0.45f }, colour with { A = 0 }],
+        };
+        return new TextureRect
+        {
+            Texture = new GradientTexture2D
+            {
+                Gradient = gradient,
+                Fill = GradientTexture2D.FillEnum.Radial,
+                FillFrom = new Vector2(0.5f, 0.5f),
+                FillTo = new Vector2(1, 0.5f),
+                Width = 128,
+                Height = 128,
+            },
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            TextureFilter = CanvasItem.TextureFilterEnum.Linear,
+            Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add },
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+    }
+
+    /// <summary>The recess's shadow on the screen's top and left edges, and the glass's glare: faint, over whatever it shows.</summary>
+    private void DrawGlass()
+    {
+        float w = _glass.Size.X, h = _glass.Size.Y;
+        for (int y = 0; y < 6; y++) _glass.DrawRect(new Rect2(0, y, w, 1), Colors.Black with { A = 0.55f * (1 - (y + 0.5f) / 6) });
+        for (int x = 0; x < 4; x++) _glass.DrawRect(new Rect2(x, 6, 1, h - 6), Colors.Black with { A = 0.4f * (1 - (x + 0.5f) / 4) });
+        var glare = new Color(200 / 255f, 225 / 255f, 1);
+        _glass.DrawColoredPolygon([new(70, 0), new(190, 0), new(60, h), new(-60, h)], glare with { A = 0.035f });
+        _glass.DrawColoredPolygon([new(206, 0), new(222, 0), new(92, h), new(76, h)], glare with { A = 0.03f });
+    }
+
+    /// <summary>The wheel over the screen or its bezel scrolls the cards a row a notch.</summary>
+    private void Scroll(InputEvent e, Control over)
+    {
+        if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } wheel) return;
+        _top = Catalogue.Scrolled(_top, wheel.ButtonIndex == MouseButton.WheelDown ? 1 : -1, _list.Count);
+        over.AcceptEvent();
+    }
+
+    /// <summary>The screen at its dock, 12 px above the bottom edge, less how far the tablet has slid down.</summary>
+    private void Dock()
+    {
+        _open.OffsetTop = -Slots.Margin - _at.Height + _drop;
+        _open.OffsetBottom = -Slots.Margin + _drop;
+    }
+
+    /// <summary>
+    /// The tablet slid and its screen lit for this frame (<see cref="TabletMotion"/>). Put away, it takes no more input
+    /// at once, though it shows while it slides down; its chip shows once it is gone.
+    /// </summary>
+    public override void _Process(double delta)
+    {
+        bool open = _hand.PlanOut.Get();
+        if (!open && _search.HasFocus()) _search.ReleaseFocus();
+        _motion.Step(open, delta);
+        _open.Visible = _motion.Shown;
+        _closed.Visible = !open && !_motion.Shown;
+        var mouse = open ? Control.MouseBehaviorRecursiveEnum.Inherited : Control.MouseBehaviorRecursiveEnum.Disabled;
+        if (_open.MouseBehaviorRecursive != mouse) _open.MouseBehaviorRecursive = mouse;
+        // Below the edge it hides the stylus's tip too, and a few pixels more.
+        int drop = (int)Mathf.Round((1 - _motion.Up) * (Slots.Margin + _at.Height + ScreenTop * ArtScale + 4));
+        if (drop != _drop)
+        {
+            _drop = drop;
+            Dock();
+        }
+        float power = (float)_motion.Power;
+        foreach (var part in _screen) part.Modulate = Colors.White with { A = power };
+        _ledOff.Modulate = Colors.White with { A = 1 - power };
+        _ledGlow.Modulate = Colors.White with { A = power };
+        _wash.Modulate = Colors.White with { A = power * (float)_motion.Up };
+    }
 
     /// <summary>A card's picture: what it builds, as the ship draws it; the cable its plug.</summary>
     public static Texture2D ThumbOf(Tool tool) => tool is PlaceTool p ? BlueprintArt.Thumbnail(p.Placement) : AsciiArt.Plug();
@@ -260,15 +406,14 @@ public partial class BuildMenu : CanvasLayer
     }
 
     /// <summary>Where the menu lies on the screen, open or as its closed chip: what the crew's markers keep out of.</summary>
-    public Rect2 Covers => _open.Visible ? _open.GetGlobalRect() : _closed.GetGlobalRect();
+    public Rect2 Covers => _open.Visible ? _frame.GetGlobalRect() : _closed.GetGlobalRect();
 
     /// <summary>One frame: what the world knows; prices weigh what this player carries (<see cref="Ui.Carried"/>).</summary>
     public void Frame(Registry m)
     {
         bool open = _hand.PlanOut.Get();
-        _closed.Visible = !open;
-        _open.Visible = open;
-        _ui.MenuTop = open ? _open.GetGlobalRect().Position.Y : null;
+        // The bezel's top at its dock, wherever the tablet is in its slide.
+        _ui.MenuTop = open ? _open.GetGlobalRect().Position.Y - _drop - BezelAbove : null;
         if (!open)
         {
             _tips.Show(null);

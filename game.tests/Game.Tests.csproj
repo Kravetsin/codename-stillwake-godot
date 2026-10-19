@@ -84,6 +84,7 @@
     <Compile Include="../game/features/building/Drag.cs" Link="Game/Building/Drag.cs" />
     <Compile Include="../game/features/building/NearGrid.cs" Link="Game/Building/NearGrid.cs" />
     <Compile Include="../game/features/building/Catalogue.cs" Link="Game/Building/Catalogue.cs" />
+    <Compile Include="../game/features/building/TabletMotion.cs" Link="Game/Building/TabletMotion.cs" />
     <Compile Include="../game/render/Blueprint.cs" Link="Game/Render/Blueprint.cs" />
     <Compile Include="../game/render/DoorShape.cs" Link="Game/Render/DoorShape.cs" />
     <Compile Include="../game/render/PlanOutline.cs" Link="Game/Render/PlanOutline.cs" />
