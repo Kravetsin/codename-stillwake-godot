@@ -142,7 +142,7 @@ public class SlopeTests
     // A slope's closed side is a wall: ◢ from the right, ◣ from the left.
     [InlineData("#./...S.#", -1, 3 * Unit + Half)]
     [InlineData("#.S...\\.#", 1, 6 * Unit - Half)]
-    // A ceiling slope is whole to the hero for now, from either side.
+    // A ceiling slope on the floor, the head far above it, is a wall from either side.
     [InlineData("#.r...S.#", -1, 3 * Unit + Half)]
     [InlineData("#.S...7.#", 1, 6 * Unit - Half)]
     public void ASlopesClosedSideAndACeilingSlopeStopTheHeroLikeAWall(string floorRow, int dir, int stopsAt)
@@ -238,9 +238,89 @@ public class SlopeTests
         Assert.Equal(6 * Unit - Half, swum.X);
     }
 
+    // A room whose ceiling holds a ◤ and a ◥ two rows over the hero's head, the floor on row 6's top.
+    private const string Hung = """
+        #########
+        #.......#
+        #..r.7..#
+        #.......#
+        #.......#
+        #.......#
+        #########
+        """;
+
+    /// <summary>The highest the feet reach, jumping from standing at <paramref name="x"/> on <see cref="Hung"/>'s floor.</summary>
+    private static int JumpTop(Ship ship, int x)
+    {
+        var h = HeroTests.Settle(ship, new Hero(x, 6 * Unit, 0, 0, false, 1), Still);
+        int top = h.Y;
+        h = h.Step(Still with { Jump = true }, ship);
+        for (int i = 0; i < 200; i++, h = h.Step(Still, ship)) top = Math.Min(top, h.Y);
+        Assert.Equal(6 * Unit, h.Y);
+        return top;
+    }
+
+    [Theory]
+    // Under ◤'s open half, the box's top-left corner 425 into the cell: the diagonal is 575 down there.
+    [InlineData(3 * Unit + 900)]
+    // Under ◥'s, the top-right corner 574 in: the diagonal is 575 down there.
+    [InlineData(5 * Unit + 100)]
+    public void AJumpIntoACeilingSlopeFromItsOpenSideStopsWhereTheHeadMeetsTheDiagonal(int x)
+    {
+        var ship = HeroTests.ShipFrom(Hung);
+        Assert.Equal(2 * Unit + 575 + Spec.Height, JumpTop(ship, x));
+        // Under neither, the ceiling above stops it: row 0's bottom.
+        Assert.Equal(1 * Unit + Spec.Height, JumpTop(ship, 7 * Unit + 500));
+        // Nearer its closed side, ◤'s diagonal hangs lower: 975 down, 25 in.
+        Assert.Equal(2 * Unit + 975 + Spec.Height, JumpTop(ship, 3 * Unit + 500));
+    }
+
+    // A corridor three cells high, its top corners bevelled: ◤ at its left end, ◥ at its right.
+    private const string Corridor = """
+        ##########
+        #r......7#
+        #........#
+        #........#
+        ##########
+        """;
+
+    [Fact]
+    public void InACorridorThreeHighTheHeadGoesUnderASlopedCeilingTillItMeetsTheDiagonal()
+    {
+        var ship = HeroTests.ShipFrom(Corridor);
+        // The head is 375 into row 1: the diagonals there are 625 in from the corridor's ends, against a whole wall's 1000.
+        var start = Hero.At(ship, 3 * ship.Width + 4);
+        Assert.Equal(1 * Unit + 375, start.Y - Spec.Height);
+        var left = HeroTests.Settle(ship, start, Left);
+        Assert.Equal((1 * Unit + 625 + Half, 4 * Unit), (left.X, left.Y));
+        var right = HeroTests.Settle(ship, start, Right);
+        Assert.Equal((8 * Unit + 375 - Half, 4 * Unit), (right.X, right.Y));
+        // Walking or running, stopped there it stands under the slope and walks back out.
+        Assert.Equal(left.X, HeroTests.Settle(ship, start, Left with { Sprint = true }).X);
+        Assert.True(HeroTests.Settle(ship, left, Right).X > left.X);
+    }
+
+    // A run of ◤ along a corridor's ceiling: a saw of diagonals over the head.
+    private const string LowCeiling = """
+        ###########
+        #...rrr...#
+        #.........#
+        #.........#
+        ###########
+        """;
+
+    [Fact]
+    public void WalksUnderASlopedCeilingAsFarAsItsOpenHalfGivesTheHeadRoomFromEitherSide()
+    {
+        var ship = HeroTests.ShipFrom(LowCeiling);
+        // From the left a ◤'s closed side is a wall; from the right its open half takes the head 625 in.
+        Assert.Equal(4 * Unit - Half, HeroTests.Settle(ship, Hero.At(ship, 3 * ship.Width + 1), Right).X);
+        Assert.Equal(6 * Unit + 625 + Half, HeroTests.Settle(ship, Hero.At(ship, 3 * ship.Width + 9), Left).X);
+    }
+
     private static readonly char[] Cells = [' ', '.', '.', '#', '/', '/', '\\', '\\', 'r', '7', '=', 'H', 'D', 'd'];
 
-    /// <summary>What no part of the hero is ever in: a wall of any shape whole but a floor slope's open half, a closed door, past the edge.</summary>
+    /// <summary>What no part of the hero is ever in: a wall's solid, whole or a slope's half, a closed door, past the edge.</summary>
     private static bool InSolid(Ship ship, int x, int y)
     {
         int cx = (int)Math.Floor(x / (double)Unit), cy = (int)Math.Floor(y / (double)Unit);
@@ -248,7 +328,7 @@ public class SlopeTests
         int cell = cy * ship.Width + cx, structure = ship.StructureAt(cell), shape = ship.ShapeAt(cell);
         if (structure == Structure.DoorClosed) return true;
         if (structure != Structure.Wall) return false;
-        return !Shape.IsFloor(shape) || Shape.Solid(shape, x - cx * Unit, y - cy * Unit);
+        return Shape.Solid(shape, x - cx * Unit, y - cy * Unit);
     }
 
     /// <summary>
@@ -299,6 +379,6 @@ public class SlopeTests
                 if (InSolid(ship, x, y)) return true;
         for (int x = h.X - Half; x < h.X + Half; x += 25)
             if (InSolid(ship, x, h.Y - Half - 1)) return true;
-        return InSolid(ship, h.X + Half - 1, h.Y - Half - 1) || InSolid(ship, h.X - Half, h.Y - Spec.Height);
+        return InSolid(ship, h.X + Half - 1, h.Y - Half - 1) || InSolid(ship, h.X - Half, h.Y - Spec.Height) || InSolid(ship, h.X + Half - 1, h.Y - Spec.Height);
     }
 }

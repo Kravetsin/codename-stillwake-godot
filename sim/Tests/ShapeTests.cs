@@ -54,6 +54,18 @@ public class ShapeTests
     }
 
     [Fact]
+    public void ItsBottomIsTheFirstOpenThousandthUnderEachColumnOfACeilingSlope()
+    {
+        foreach (int shape in Shape.Cut.Append(Shape.None))
+            for (int fx = 0; fx < Unit; fx++)
+            {
+                int bottom = Enumerable.Range(0, Unit).LastOrDefault(fy => Shape.Solid(shape, fx, fy), -1) + 1;
+                Assert.Equal(Shape.IsCeiling(shape) ? bottom : Unit, Shape.BottomAt(shape, fx));
+                Assert.All(Enumerable.Range(0, bottom), fy => Assert.True(Shape.Solid(shape, fx, fy) || !Shape.IsCeiling(shape)));
+            }
+    }
+
+    [Fact]
     public void ARampOfSlopesRisesAThousandthAThousandthWithNoStepBetweenItsCellsOrOntoAPlateau()
     {
         // ◢ cells up and to the right, a whole wall after them: the ground across them, a thousandth at a time.
@@ -95,7 +107,7 @@ public class ShapeTests
         w.Do(new ClearAt(cell, "structure")).Run();
         Assert.Equal(Shape.None, w.M.Grid.ShapeAt(cell));
         Assert.Contains(new CellChange(cell, GridLayers.Structure | GridLayers.Material | GridLayers.Shape), w.M.Grid.ChangedSince(version)!);
-        // Built again, a wall is whole: shapes come from maps alone so far.
+        // Built again plain, a wall is whole: a shape comes with the placement.
         w.Do(new Place(cell, Placement.Wall())).Run();
         Assert.Equal((Structure.Wall, Shape.None), (w.M.Grid.StructureAt(cell), w.M.Grid.ShapeAt(cell)));
     }
@@ -130,7 +142,7 @@ public class ShapeTests
                 int cell = at % size;
                 w.Do(kind switch
                 {
-                    < 4 => new Place(cell, new Placement("structure", Kinds[kind], kind == 0 ? "scrap" : null)),
+                    < 4 => new Place(cell, new Placement("structure", Kinds[kind], kind == 0 ? "scrap" : null, Shape: at % 5)),
                     4 => new ClearAt(cell, "structure"),
                     5 => new ToggleDoor(cell),
                     _ => new ClearAt(cell, "back"),

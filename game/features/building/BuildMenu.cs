@@ -15,7 +15,8 @@ namespace Stillwake.Game.Features.Building;
 /// by the pointer, so a card is swapped for another at a click. A plan costs nothing until it is
 /// worked, an item a part (0063), so a card the player carries too little for is as bright as any. It opens on the tab
 /// it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B or Esc
-/// puts the plan away; with it away, the key that takes it out. Q picks the card under the pointer.
+/// puts the plan away; with it away, the key that takes it out. Q picks the card under the pointer; R turns the shape a
+/// hull wall's card plans walls in, Shift+R back, every wall card's picture showing it (0069).
 /// Only what the world knows is shown (0024): a tab with nothing known, not at all, nor its mode.
 /// </summary>
 public partial class BuildMenu : CanvasLayer
@@ -130,6 +131,9 @@ public partial class BuildMenu : CanvasLayer
                 _hand.Toggle();
                 break;
             // With a hand free Q drops the hotbar's item, taken before it gets here; with the menu open it picks.
+            // With a hull wall's card in hand, R turns the shape walls are planned in, Shift+R back (0069).
+            case Key.R when _hand.PlanOut.Get() && _hand.Turn(key.ShiftPressed ? -1 : 1):
+                break;
             case Key.Q when _hand.PlanOut.Get():
                 _hand.PickWanted = true;
                 break;
@@ -163,7 +167,7 @@ public partial class BuildMenu : CanvasLayer
         // A tab the world shows nothing on is never the mode: the one shown instead is.
         if (shownTab != null && shownTab.Id != _hand.Tab.Get()) _hand.Tab.Set(shownTab.Id);
         var tool = _hand.Selected.Get();
-        string key = $"{string.Join(",", tabs.Select(t => $"{t.Id}:{t.Tools.Count}"))}|{shownTab?.Id}|{tool?.Id}";
+        string key = $"{string.Join(",", tabs.Select(t => $"{t.Id}:{t.Tools.Count}"))}|{shownTab?.Id}|{tool?.Id}|{_hand.Shape.Get()}";
         if (key != _shown)
         {
             _shown = key;
@@ -194,7 +198,8 @@ public partial class BuildMenu : CanvasLayer
             bool held = each == tool;
             var card = new Button { CustomMinimumSize = new Vector2(48, 48), FocusMode = Control.FocusModeEnum.None };
             Style(card, held ? Sky950 : Slate800 with { A = 0.8f }, held ? Sky500 : Slate700, Slate300, padding: 4);
-            var thumb = Picture(ThumbOf(each), 36);
+            // A wall's card shows the shape walls are planned in.
+            var thumb = Picture(ThumbOf(Tools.Shaped(each, _hand.Shape.Get())!), 36);
             thumb.Size = new Vector2(36, 36);
             thumb.Position = new Vector2(6, 6);
             card.AddChild(thumb);
@@ -207,7 +212,7 @@ public partial class BuildMenu : CanvasLayer
         }
         if (tool != null)
         {
-            _held.AddChild(Picture(ThumbOf(tool), 20));
+            _held.AddChild(Picture(ThumbOf(Tools.Shaped(tool, _hand.Shape.Get())!), 20));
             _held.AddChild(Text(tool.Label, Slate100));
         }
         if (shownTab != null) _held.AddChild(Text(En.T(Tools.HintOf(shownTab.Id)), Slate500));

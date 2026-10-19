@@ -168,7 +168,7 @@ public sealed class StarField
         var light = _light;
         Array.Clear(kind, 0, n);
         Array.Clear(light, 0, n);
-        ReadOnlySpan<int> structure = grid.StructureLayer, back = grid.BackLayer;
+        ReadOnlySpan<int> structure = grid.StructureLayer, back = grid.BackLayer, shape = grid.ShapeLayer;
         if (machinesListed)
         {
             // A machine dims the light through every cell of its footprint; over the region, every machine is in it.
@@ -188,7 +188,8 @@ public sealed class StarField
                 int cell = gy * grid.Width + gx;
                 if (!machinesListed && inside && grid.MachineAt(cell) != null) kind[i] = Machine;
                 if (inside && structure[cell] is Structure.Wall or Structure.DoorClosed) kind[i] = Wall;
-                if (kind[i] != Wall && (!inside || back[cell] == Back.None)) light[i] = 1;
+                // The stars shine into a shaped wall's open half with no back wall behind it, a wall still for what crosses it (0069).
+                if ((kind[i] != Wall || inside && shape[cell] != Shape.None) && (!inside || back[cell] == Back.None)) light[i] = 1;
             }
         Spread(light, kind, w, h);
         var bytes = Texels;

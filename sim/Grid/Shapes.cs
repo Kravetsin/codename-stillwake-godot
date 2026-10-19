@@ -44,6 +44,20 @@ public static class Shape
         _ => 0,
     };
 
+    /// <summary>Whether the shape is a ceiling slope (◤ ◥): solid along its top, its diagonal a ceiling a head may rise to.</summary>
+    public static bool IsCeiling(int shape) => shape is TopLeft or TopRight;
+
+    /// <summary>
+    /// The first open thousandth down the column <paramref name="fx"/> under a wall of <paramref name="shape"/>: where a
+    /// head rising there stops, below the cell's top. <see cref="Unit"/> for a whole wall and the floor shapes.
+    /// </summary>
+    public static int BottomAt(int shape, int fx) => shape switch
+    {
+        TopLeft => Unit - fx,
+        TopRight => fx + 1,
+        _ => Unit,
+    };
+
     /// <summary>The sides a wall of <paramref name="shape"/> fills whole, as <see cref="Doorways"/> numbers sides: those that seal and stop like a wall's.</summary>
     public static int ClosedSides(int shape) => shape switch
     {

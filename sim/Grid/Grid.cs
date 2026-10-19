@@ -23,8 +23,11 @@ public static class Back
 
 public sealed record Machine(int Id, string Kind, int Cell);
 
-/// <summary>What may be put in a cell: a layer, a kind, and a material for walls and back walls.</summary>
-public sealed record Placement(string Layer, string Kind, string? Material = null)
+/// <summary>
+/// What may be put in a cell: a layer, a kind, a material for walls and back walls, and a wall's
+/// <see cref="Grid.Shape"/> code (0069), none for anything else.
+/// </summary>
+public sealed record Placement(string Layer, string Kind, string? Material = null, int Shape = 0)
 {
     public static Placement Wall(string material = "scrap") => new("structure", "wall", material);
     public static Placement BackWall(string material = "scrap") => new("back", "backWall", material);
@@ -482,6 +485,9 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
 
     public string? PlacementProblem(int cell, Placement p)
     {
+        // Only a hull wall is cut to a shape (0069): no floor, ladder, door, back wall, conduit or machine.
+        if (p.Shape != Shape.None && (p.Layer != "structure" || p.Kind != "wall" || Array.IndexOf(Shape.Cut, p.Shape) < 0))
+            return "grid.notShapeable";
         if (!InBounds(cell)) return "grid.outOfBounds";
         if (!InZone(cell)) return "grid.outsideZone";
         switch (p.Layer)
@@ -525,7 +531,11 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
                     "ladder" => Structure.Ladder,
                     _ => Structure.DoorClosed,
                 });
-                if (p.Kind == "wall") Set(State.Material, GridLayers.Material, cell, Materials.Get(p.Material!).Code);
+                if (p.Kind == "wall")
+                {
+                    Set(State.Material, GridLayers.Material, cell, Materials.Get(p.Material!).Code);
+                    Set(State.Shape, GridLayers.Shape, cell, p.Shape);
+                }
                 return;
             case "conduit":
                 Set(State.Conduit, GridLayers.Conduit, cell, p.Kind == "pipe" ? Conduit.Pipe : Conduit.ValveOpen);

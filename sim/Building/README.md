@@ -54,6 +54,9 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   - In creative mode a blueprint lacks nothing: it is worked as it is, taking nothing.
 - **Cancelling** a blueprint, however far it was built, lets exactly what was put in fall on the floor at
   it, dropped by whoever cancels (`IItemsOps.DropAt`); cancelling a mark drops nothing.
+- **A wall may be planned cut to a shape** (0069, part 2): the placement carries it (`Placement.Shape`), the grid
+  refuses one on anything but a wall (`grid.notShapeable`), and the wall is built cut to it. It costs, takes and gives
+  back what a whole wall of its material does. A wall's shape is changed by taking it apart and building it again.
 - What a thing costs and takes: its material's for a wall or a back wall (`Materials`: scrap for
   scrap, plates for iron), `Builds` and `Machines` otherwise.
 - Anyone may cancel or work on any plan.
@@ -83,7 +86,8 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   `building.fixed`, `building.planned`, `building.notEmpty` or `building.cabled`; `CancelPlan(Id)`, refused with
   `building.noPlan`; `Work(Plan)`, refused with `building.noPlan`, `items.notEnough`,
   `building.notEmpty` or `building.cabled`.
-- **Fuzz:** every command, refused ones too: placements of every kind mostly within 16 cells of
+- **Fuzz:** every command, refused ones too: placements of every kind, walls cut to every shape and a shape on
+  what may have none, mostly within 16 cells of
   what the grid has built, as players build, now and then at any cell of the grid or one off it, so
   the build zone's edge is drawn too; marks mostly within what is built (TypeScript draws from the
   wreck as drawn, which in the big world of 0048 would miss the ship); cancels of ids that are and
