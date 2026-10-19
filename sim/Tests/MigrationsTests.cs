@@ -387,6 +387,33 @@ public class MigrationsTests
         });
     }
 
+    /// <summary>The format <see cref="Migrations.Shapes"/> upgrades a save into: a wall's shape (0069).</summary>
+    private static readonly int ShapesFormat = Migrations.Oldest + 1 + Migrations.Steps.ToList().IndexOf(Migrations.Shapes);
+
+    [Fact]
+    public void GivesEveryWallOfASaveBeforeShapesNoneWhereASaveOfShapesKeepsThem()
+    {
+        // The fixture of the format before: every cell of its grid none, and it plays on.
+        var before = JsonNode.Parse(File.ReadAllText(Fixture(ShapesFormat - 1)))!;
+        Assert.Null(before["slices"]!["grid"]!["shape"]);
+        var upgraded = UpgradedTo(before.ToJsonString(), ShapesFormat);
+        var grid = upgraded["slices"]!["grid"]!.AsObject();
+        Assert.All(Runs.Cells(grid["shape"]!), code => Assert.Equal(Grid.Shape.None, code));
+        Assert.Equal((int)grid["width"]! * (int)grid["height"]!, Runs.Cells(grid["shape"]!).Length);
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(upgraded.ToJsonString()), m.All);
+        Assert.Equal(Grid.Shape.None, m.Grid.ShapeAt(m.Crew.Spawn));
+
+        // A save of this build, shapes taken out as the format before had none: upgraded, it is the save again, field for field.
+        string save = new Scenario("####\n#/.#\n####").World.Save();
+        var old = JsonNode.Parse(save)!.AsObject();
+        old["format"] = ShapesFormat - 1;
+        old["slices"]!["grid"]!.AsObject().Remove("shape");
+        string relabelled = save.Replace("\"shape\":[0,5,1,1,0,6]", "\"shape\":[0,12]", StringComparison.Ordinal);
+        Assert.NotEqual(save, relabelled);
+        Assert.Equal(relabelled, Migrations.Upgrade(old.ToJsonString()));
+    }
+
     [Fact]
     public void LeavesASaveOfThisFormatAsItIsAndOneTooOldForTheLoadToRefuse()
     {

@@ -45,6 +45,8 @@ public sealed class GridState
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Conduit { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Back { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] BackMaterial { get; set; } = [];
+    /// <summary>Each cell's <see cref="Grid.Shape"/> code (0069), not <see cref="Grid.Shape.None"/> only on a wall.</summary>
+    [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Shape { get; set; } = [];
     /// <summary>Every machine, in id order: ids only grow, and a new one goes last.</summary>
     [JsonInclude] internal List<Machine> Machines { get; set; } = [];
     [JsonInclude] internal int NextMachineId { get; set; } = 1;
@@ -94,7 +96,11 @@ public interface IGridQueries
     ReadOnlySpan<int> BackLayer { get; }
     /// <summary>Each cell's back wall material code, 0 where there is no back wall.</summary>
     ReadOnlySpan<int> BackMaterialLayer { get; }
+    /// <summary>Each cell's <see cref="Shape"/> code (0069): <see cref="Shape.None"/> on anything but a wall cut to a shape.</summary>
+    ReadOnlySpan<int> ShapeLayer { get; }
     int StructureAt(int cell);
+    /// <summary>The <see cref="Shape"/> of the wall at <paramref name="cell"/>: <see cref="Shape.None"/> for a whole wall, no wall, or off the grid.</summary>
+    int ShapeAt(int cell);
     /// <summary>What the wall at <paramref name="cell"/> is made of; null for no wall, or off the grid.</summary>
     Material? WallAt(int cell);
     /// <summary>What the back wall behind <paramref name="cell"/> is made of; null for none, or off the grid.</summary>
@@ -174,6 +180,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         GridLayers.Conduit => State.Conduit[cell],
         GridLayers.Back => State.Back[cell],
         GridLayers.BackMaterial => State.BackMaterial[cell],
+        GridLayers.Shape => State.Shape[cell],
         _ => State.Occupancy[cell],
     };
 
@@ -205,6 +212,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
             Conduit = new int[size],
             Back = new int[size],
             BackMaterial = new int[size],
+            Shape = new int[size],
         };
         int hull = Materials.Get(Materials.DefaultHull).Code;
         for (int cell = 0; cell < size; cell++)
@@ -213,9 +221,18 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
             // Every cell but space has a back wall of the default hull, hull walls included; a solar panel,
             // making power with no fire, is drawn under the stars, which it needs.
             if (c != ' ' && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null })) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = hull; }
+            s.Shape[cell] = c switch
+            {
+                '/' => Shape.BottomRight,
+                '\\' => Shape.BottomLeft,
+                'r' => Shape.TopLeft,
+                '7' => Shape.TopRight,
+                _ => Shape.None,
+            };
             s.Structure[cell] = c switch
             {
                 '#' => Structure.Wall,
+                _ when s.Shape[cell] != Shape.None => Structure.Wall,
                 '=' => Structure.Floor,
                 'H' => Structure.Ladder,
                 'D' => Structure.DoorClosed,
@@ -348,6 +365,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     public ReadOnlySpan<int> ConduitLayer => State.Conduit;
     public ReadOnlySpan<int> BackLayer => State.Back;
     public ReadOnlySpan<int> BackMaterialLayer => State.BackMaterial;
+    public ReadOnlySpan<int> ShapeLayer => State.Shape;
     public IReadOnlyList<Machine> Machines => State.Machines;
     public Machine? MachineById(int id) => State.ById.GetValueOrDefault(id);
 
@@ -358,6 +376,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
 
     public int StructureAt(int cell) => InBounds(cell) ? State.Structure[cell] : Structure.Empty;
     public int ConduitAt(int cell) => InBounds(cell) ? State.Conduit[cell] : Conduit.None;
+    public int ShapeAt(int cell) => InBounds(cell) ? State.Shape[cell] : Shape.None;
 
     public Material? WallAt(int cell) =>
         InBounds(cell) && State.Structure[cell] == Structure.Wall ? MaterialOf(State.Material[cell]) : null;
@@ -535,6 +554,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
             case "structure":
                 Set(State.Structure, GridLayers.Structure, cell, Structure.Empty);
                 Set(State.Material, GridLayers.Material, cell, 0);
+                Set(State.Shape, GridLayers.Shape, cell, Shape.None);
                 break;
             case "conduit": Set(State.Conduit, GridLayers.Conduit, cell, Conduit.None); break;
             case "back":

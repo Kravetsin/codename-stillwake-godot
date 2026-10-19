@@ -11,7 +11,7 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
   world's middle 1024×512 for a new world, the whole grid for a map that sets none (tests, dev maps).
 - **Cells:** numbered row by row from the top-left, `cell = y * width + x`.
 - **State** (`GridState`, members internal): the layers as `int[]` codes (`Structure`, `Conduit`,
-  `Back`, and the materials of walls and back walls), `Zone` (a `Box`), `Machines` (in id order), `NextMachineId`.
+  `Back`, the materials of walls and back walls, and walls' `Shape`s), `Zone` (a `Box`), `Machines` (in id order), `NextMachineId`.
   Derived, rebuilt after a load and kept current by every machine placed or cleared: `Occupancy`, the
   id of the machine covering each cell; `ById`, every machine by its id; `ByKind`, each kind's
   machines in id order; `Version`; `Built`, the smallest box (`Box`, edges included) holding
@@ -21,17 +21,34 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
   what the cell held before, empty after a load. A save
   holds each layer as runs, `[value, count, …]` (`Runs` in Core), so empty space costs a save and
   its hash nothing.
-- **Files:** `Grid.cs` — the module, its state, queries and operations; `ChangeLog.cs` — the log of
+- **Files:** `Grid.cs` — the module, its state, queries and operations; `Shapes.cs` — a wall's shape and its geometry (0069); `ChangeLog.cs` — the log of
   changed cells (0051).
 
 ## Layers
 
 | Layer     | Holds                                                                                     |
 | --------- | ----------------------------------------------------------------------------------------- |
-| structure | empty, hull wall (with a material), floor, ladder, door (open or closed)                  |
+| structure | empty, hull wall (with a material and a shape), floor, ladder, door (open or closed)      |
 | conduit   | none, pipe, valve (open or closed); runs through walls and under machines                 |
 | machine   | machines from `Data.Machines`, each covering its footprint                                |
 | back      | none, back wall (with a material): the wall behind a cell, closing a room behind (0020)   |
+
+## Shapes
+
+A wall has a shape ([0069](../../docs/decisions/0069-a-cell-has-a-shape.md)), its `Shape` code a layer of
+its own (`ShapeLayer`, `ShapeAt(cell)`): `None`, a whole wall, or the solid half-cell triangle in one corner,
+cut at 45° — ◢ `BottomRight`, ◣ `BottomLeft` (floor slopes), ◤ `TopLeft`, ◥ `TopRight` (ceiling slopes). A
+shaped wall is a wall in every other way — material, cost, refund, strength, leak — and to every module but
+`Items`' floor stacks it is a whole one: rooms, air, leaks, drones and light read it so, and its open half is
+no room's. Only maps draw shapes so far; `Place` builds walls whole.
+
+The geometry, in thousandths of a cell, x right and y down from the cell's top-left, integers only, is the
+sim's and the hero's (`Shapes.cs`): `Solid(shape, fx, fy)` — a point stands for the thousandth square below and
+right of it, solid when that square's middle is, so ◣ is ◢ in a mirror and ◤, ◥ are them upside down;
+`TopAt(shape, fx)` — the first solid thousandth down a column, where a floor slope's diagonal is (0 for a whole
+wall or a ceiling slope); `ClosedSides(shape)` — the sides it fills whole, as `Doorways` numbers sides;
+`IsFloor(shape)`. A ramp of ◢ rises a thousandth a thousandth, with no step between its cells or onto a
+plateau beside its top.
 
 Walls, floors, ladders and doors are one structure per cell. A machine needs every footprint cell free
 of structure and of other machines. Conduits need only a free conduit slot, and a back wall only a
@@ -43,7 +60,7 @@ free back slot: it stands behind anything, and in space.
   machine, by a command or an operation, never saved and 0 again after a load: a module deriving from
   the grid (`rooms`, `pipes`, `atmosphere`) looks again only when it moved; `ChangedSince(version)` —
   the cells whose layers differ now from what they held at that version, ascending, each with the
-  `GridLayers` that do (`Structure`, `Material`, `Conduit`, `Back`, `BackMaterial`, `Machine` — the
+  `GridLayers` that do (`Structure`, `Material`, `Conduit`, `Back`, `BackMaterial`, `Shape`, `Machine` — the
   machine covering the cell, by id): a cell changed and changed back is not named, and none while the
   version is current. Null when the log no longer reaches back to the version, or it is not one this
   grid has had (later than now; any version from before a load, which brings a new grid): the reader
@@ -54,7 +71,7 @@ free back slot: it stands behind anything, and in space.
   it, and a reader the log let go of looks again within it; `Zone` — the build zone, nothing placed
   outside it; every layer as codes, a
   cell each, live and read-only, as TypeScript's `layers()`: `StructureLayer`, `MaterialLayer` (a
-  wall's material, 0 for none), `ConduitLayer`, `BackLayer`, `BackMaterialLayer`; `StructureAt(cell)`, `ConduitAt(cell)`,
+  wall's material, 0 for none), `ConduitLayer`, `BackLayer`, `BackMaterialLayer`, `ShapeLayer`; `StructureAt(cell)`, `ConduitAt(cell)`, `ShapeAt(cell)` — `None` for no wall, a whole one or off the grid,
   `MachineAt(cell)`, `MachineById(id)` — null for none or one taken apart —, `Machines` — every
   machine in id order —, `MachinesOf(kind)` — one kind's, in id order, for the systems that work one
   kind (furnaces, analyzers, vents, tanks, generators) —, `PortsOf(machine)` — the cells where conduits meet it, from its
@@ -67,7 +84,7 @@ free back slot: it stands behind anything, and in space.
   (0014). Not copies of the layers: those were 16 MB a tick on a 2048×1024 world while a toggle was in
   flight.
 - **Operations** (`IGridOps`): `Place(cell, placement)` — the caller checks `PlacementProblem` first, a
-  problem here throws; `Clear(cell, layer)` — for machines, removes the whole machine covering the
+  problem here throws; walls are placed whole; `Clear(cell, layer)` — a wall's shape goes with it; for machines, removes the whole machine covering the
   cell. Only in commands or construction: modules reading the grid in derivation trust that nothing
   changes it after.
 - **Commands:** `ToggleDoor(cell)` — opens or closes the whole doorway, the straight run of door cells
@@ -81,7 +98,7 @@ free back slot: it stands behind anything, and in space.
 
 ## Maps
 
-`#` wall of `Data.DefaultHull`, `=` floor, `H` ladder, `D`/`d` door closed/open, `-` pipe, `v`/`x`
+`#` wall of `Data.DefaultHull`, `/` `\` `r` `7` one cut to ◢ ◣ ◤ ◥, `=` floor, `H` ladder, `D`/`d` door closed/open, `-` pipe, `v`/`x`
 valve open/closed, machines by `Data.MachineOf`. A machine is drawn as its whole footprint; a map that
 draws part of one does not load. Every character but a space has a back wall of the default hull,
 hull walls included. A map's machines take ids 1, 2, … by their top-left cells in reading order.
@@ -99,7 +116,8 @@ hull walls included. A map's machines take ids 1, 2, … by their top-left cells
 - Nothing is placed outside `Zone`: `Built` lies within it, unless the map drew something outside.
 - `Built` is the smallest box holding every cell with a structure, conduit, back wall or machine, as
   a scan of them all finds it, after any change and after a load; `Box.None` when there is none.
-- Stored codes are part of the save format: never renumber them.
+- Stored codes are part of the save format: never renumber them; shapes too.
+- A shape lies only on a wall: placed with one by a map, cleared with it (`ShapeTests`, over any building, taking apart and toggling).
 - A doorway is one straight run, its shape derived, never stored (`Doorways`, 0067): a door cell with a
   door cell above or below stands in a door, joined up and down; every other lies in a hatch, joined to
   the hatch cells either side. The client draws, hears and lights doorways by the same joins.

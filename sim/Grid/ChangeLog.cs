@@ -13,6 +13,8 @@ public enum GridLayers : byte
     BackMaterial = 16,
     /// <summary>The machine covering the cell: one came, went or took another's place.</summary>
     Machine = 32,
+    /// <summary>A wall's shape (0069).</summary>
+    Shape = 64,
 }
 
 /// <summary>A cell whose layers differ from what they were at a version, and which of them do.</summary>
