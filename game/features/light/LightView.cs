@@ -11,7 +11,7 @@ using L = Stillwake.Game.Light;
 namespace Stillwake.Game.Features.Light;
 
 /// <summary>
-/// Light without a word (0019, 0029): a dark ship, the ambient light of <see cref="L.Ambient"/> in
+/// Light without a word (0019, 0029, 0070): a dark ship, the ambient light of <see cref="L.Ambient"/> in
 /// every corner, lit by its lamps, its furnaces' and generators' fires and whatever glows — each drawn into the
 /// <see cref="Lightmap"/> with its shadows, falling off as the TypeScript game's did — and by starlight
 /// through the holes in its back walls. A lit lamp glows, and short of power it flickers; a furnace's
@@ -22,11 +22,9 @@ namespace Stillwake.Game.Features.Light;
 public partial class LightView : Node2D
 {
     private const int Cell = ShipCamera.Cell;
-    /// <summary>How far a lamp's light reaches, in cells.</summary>
-    private const int LampReach = 16;
-    /// <summary>A lit lamp's warm glow, and how far across it reaches, in cells.</summary>
+    /// <summary>A lit lamp's warm glow, how far across it reaches, in cells, and how opaque at full light: a faint halo.</summary>
     private static readonly Color GlowColour = new(0xffd9a0ff);
-    private const float GlowCells = 3;
+    private const float GlowCells = 1.75f, GlowAlpha = 0.4f;
     /// <summary>
     /// A burning fire's glow at its machine's mouth, how far across it reaches, in cells, and how opaque it
     /// is at the fire's full light: it shows the fire as the source of its light where a lamp already
@@ -38,7 +36,7 @@ public partial class LightView : Node2D
     private const int ParticleReach = 2, ScreenReach = 3;
     /// <summary>
     /// How far a furnace's fire reaches, in cells: falling off by <see cref="L.FireKeep"/> a cell, it gives
-    /// under a seventh of its light six cells off, where a lamp still gives near half of its own.
+    /// under a seventh of its light six cells off, where a lamp still gives a third of its own.
     /// </summary>
     private const int FireReach = 8;
 
@@ -174,8 +172,8 @@ public partial class LightView : Node2D
         {
             float shines = Flicker.BrightnessOf(LampShare(lamp), _timeMs, lamp.Id);
             glow.Visible = shines > 0;
-            glow.Modulate = GlowColour with { A = shines };
-            _main.Add(new LightSource(at.X, at.Y, L.Lamp, shines, LampReach, L.Air, L.LampMost, L.LampSize));
+            glow.Modulate = GlowColour with { A = shines * GlowAlpha };
+            _main.Add(new LightSource(at.X, at.Y, L.Lamp, shines, L.LampReach, L.LampKeep, L.LampMost, L.LampSize));
         }
         foreach (var (machine, at, glow) in _fires)
         {

@@ -21,7 +21,8 @@ open doors and an evenly shaded ship.
   faces light reaches. Lamps and fires have a width, so a shadow's edge is soft: rays to more points of
   the light are walked only where the two ends disagree.
 - The lit shader reads the lightmaps unshaded: ambient, the stars and the main map scaled together to
-  keep hue, the spots capped apart. Starlight stays the cell-by-cell sweeps of 0019.
+  keep hue, the spots capped apart. Starlight stays the cell-by-cell sweeps of 0019,
+  falling off within a few cells of where it comes in since [0070](0070-starlight-falls-off-where-it-comes-in.md).
 - Relief by normal maps comes from the main lightmap's slope: a picture is shaded toward where the light
   grows, one direction a point for all lights together.
 
