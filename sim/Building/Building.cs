@@ -7,7 +7,7 @@ using Cost = System.Collections.Generic.IReadOnlyList<(string Item, int Count)>;
 
 namespace Stillwake.Sim.Building;
 
-/// <summary>A blueprint for <c>Placement</c> at <c>Cell</c>: it costs nothing until delivered to.</summary>
+/// <summary>A blueprint for <c>Placement</c> at <c>Cell</c>, a wall's with its shape (0069): it costs nothing until delivered to.</summary>
 public sealed record PlacePlan(int Cell, Placement Placement) : Command;
 
 /// <summary>A mark on what <c>Layer</c> of <c>Cell</c> holds, for heroes' work to take apart.</summary>
