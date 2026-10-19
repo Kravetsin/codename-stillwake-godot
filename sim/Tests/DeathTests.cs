@@ -97,10 +97,11 @@ public class DeathTests
     }
 
     [Fact]
-    public void LeavesNoBodyInCreativeModeOrWithNothingButGear()
+    public void NeverDiesInCreativeModeAndLeavesNoBodyWithNothingButGear()
     {
-        var creative = Laden(Room()).Do(new SetCreative(true));
-        DieAt(creative, Inside);
+        var creative = Laden(Room()).Do(new SetCreative(true)).Do(new Enter(Inside) { From = 0 });
+        creative.Run(2 * Content.Crew.Suit * Content.Crew.BreathEvery);
+        Assert.Equal((0, Content.Crew.Suit), (HeroOf(creative).Out, HeroOf(creative).Suit));
         Assert.Empty(Floor(creative));
         Assert.Equal(30, Count(creative, 0, "scrap"));
 

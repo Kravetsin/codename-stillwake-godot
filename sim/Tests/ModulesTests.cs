@@ -74,7 +74,7 @@ public class ModulesTests
             return grid.BackLayer[cell] == Back.Wall ? new ClearAt(cell, "back") : new Place(cell, Placement.BackWall());
         int structure = grid.StructureAt(cell);
         if (structure == Structure.Empty) return new Place(cell, rng.Below(2) == 0 ? Placement.Wall() : new Placement("structure", "door"));
-        if (structure is Structure.DoorClosed or Structure.DoorOpen && rng.Below(2) == 0) return new ToggleDoor(cell);
+        if (structure is Structure.DoorClosed or Structure.DoorOpen && rng.Below(2) == 0) return new SetDoor(cell, structure == Structure.DoorClosed);
         return new ClearAt(cell, "structure");
     }
 
@@ -123,7 +123,7 @@ public class ModulesTests
             int door = live.Grid.StructureLayer.IndexOfAny(Structure.DoorClosed, Structure.DoorOpen);
             if (i % 100 == 60 && door >= 0)
             {
-                commands.AddRange(Enumerable.Repeat(new ToggleDoor(door), ChangeLog.DefaultCapacity + 1));
+                commands.AddRange(Enumerable.Range(0, ChangeLog.DefaultCapacity + 2).Select(k => new SetDoor(door, k % 2 == 0)));
                 // With a vent or a tank taken apart, which only the log would tell the air of.
                 var gone = live.Grid.MachinesOf(i % 200 == 60 ? "vent" : "tank");
                 if (gone.Count > 0) commands.Add(new ClearAt(gone[(int)rng.Below((uint)gone.Count)].Cell, "machine"));

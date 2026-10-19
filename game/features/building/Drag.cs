@@ -40,11 +40,13 @@ public static class Drag
 
     /// <summary>
     /// The cells a drag from <paramref name="from"/> to <paramref name="to"/> covers: a straight line along
-    /// the longer axis, horizontal on a tie. A machine goes only where the drag began.
+    /// the longer axis, horizontal on a tie. Walls and back walls fill the rectangle between its two corners
+    /// instead, row by row from where it began, so a room's worth is one drag. A machine goes only where the drag began.
     /// </summary>
     public static List<int> LineOf(int width, Act act, Spot from, Spot to)
     {
         if (act is PlaceTool { Placement.Layer: "machine" }) return [from.Y * width + from.X];
+        if (act is PlaceTool { Placement.Kind: "wall" or "backWall" }) return RectangleOf(width, from, to);
         bool across = Math.Abs(to.X - from.X) >= Math.Abs(to.Y - from.Y);
         int length = across ? Math.Abs(to.X - from.X) : Math.Abs(to.Y - from.Y);
         int step = Math.Sign(across ? to.X - from.X : to.Y - from.Y);
@@ -59,9 +61,51 @@ public static class Drag
     }
 
     /// <summary>
+    /// The cells a drag covers as <see cref="LineOf"/> lays them, but for a removal begun on a wall's or back wall's
+    /// blueprint, with nothing else planned there: that fills the rectangle between its corners as planning them does,
+    /// and takes off only those
+    /// (<see cref="Judge"/>).
+    /// </summary>
+    public static List<int> CellsOf(int width, Act act, Spot from, Spot to, BuildingModule building) =>
+        act is Remove && CancelsWalls(building, from.Y * width + from.X) ? RectangleOf(width, from, to) : LineOf(width, act, from, to);
+
+    /// <summary>Whether a removal begun at <paramref name="cell"/> cancels only walls' and back walls' blueprints: begun where nothing else is planned.</summary>
+    private static bool CancelsWalls(BuildingModule building, int cell) =>
+        building.PlansAt(cell) is { Count: > 0 } here && here.All(IsWallBlueprint);
+
+    private static bool IsWallBlueprint(Plan plan) => plan.Place is { Kind: "wall" or "backWall" };
+
+    /// <summary>
+    /// The most cells a wall rectangle spans each way: judged and drawn every frame of the drag, a whole
+    /// 256×128 grid of them took 54 ms, a 32×32 a few.
+    /// </summary>
+    public const int MostAcross = 32;
+
+    /// <summary>
+    /// Every cell from <paramref name="from"/> to <paramref name="to"/>, both corners in, a row at a time from
+    /// <paramref name="from"/>'s; the far corner kept within <see cref="MostAcross"/> of it each way.
+    /// </summary>
+    private static List<int> RectangleOf(int width, Spot from, Spot to)
+    {
+        to = new(Math.Clamp(to.X, from.X - MostAcross + 1, from.X + MostAcross - 1), Math.Clamp(to.Y, from.Y - MostAcross + 1, from.Y + MostAcross - 1));
+        int dx = Math.Sign(to.X - from.X), dy = Math.Sign(to.Y - from.Y);
+        var cells = new List<int>((Math.Abs(to.X - from.X) + 1) * (Math.Abs(to.Y - from.Y) + 1));
+        for (int y = from.Y; ; y += dy)
+        {
+            for (int x = from.X; ; x += dx)
+            {
+                cells.Add(y * width + x);
+                if (x == to.X) break;
+            }
+            if (y == to.Y) break;
+        }
+        return cells;
+    }
+
+    /// <summary>
     /// What <paramref name="act"/> would do in each of <paramref name="cells"/>, as the sim judges it now.
     /// Removing cancels plans if the drag begins on one, a mark included, and marks what is built in its
-    /// layers otherwise.
+    /// layers otherwise; begun where only walls and back walls are planned, it cancels only their blueprints.
     /// </summary>
     public static List<Verdict> Judge(Act act, IReadOnlyList<int> cells, BuildingModule building)
     {
@@ -69,6 +113,7 @@ public static class Drag
         var cancelled = new HashSet<int>();
         var marked = new HashSet<(string, int)>();
         bool cancels = cells.Count > 0 && building.PlansAt(cells[0]).Count > 0;
+        bool walls = cancels && CancelsWalls(building, cells[0]);
         var verdicts = new List<Verdict>();
         foreach (int cell in cells)
         {
@@ -82,7 +127,8 @@ public static class Drag
                     }
                 case Remove remove when cancels:
                     {
-                        var here = building.PlansAt(cell);
+                        // Begun on a wall's blueprint, a pipe or machine planned in the rectangle is let be.
+                        IReadOnlyList<Plan> here = walls ? building.PlansAt(cell).Where(IsWallBlueprint).ToList() : building.PlansAt(cell);
                         var ids = here.Select(p => p.Id).Where(id => !cancelled.Contains(id)).ToList();
                         foreach (int id in ids) cancelled.Add(id);
                         verdicts.Add(new Verdict(cell, here.Count > 0 ? null : "building.noPlan",

@@ -25,30 +25,15 @@ public class PromptTests
     private static Aim Press(int cell, Command command, string? problem = null) => new(cell, true, new Use(command, problem));
 
     [Fact]
-    public void SaysWhatAPressDoesByWhatIsThereAndHowItStands()
+    public void SaysWhatAPressDoesByWhatItWouldMakeOfIt()
     {
-        var doors = new[] { At(2, 1), At(4, 1) }.Select(cell => Prompts.Of(M, Press(cell, new ToggleDoor(cell)))?.Action);
+        var doors = new[] { false, true }.Select(open => Prompts.Of(M, Press(At(2, 1), new SetDoor(At(2, 1), open)))?.Action);
         Assert.Equal(["use.closeDoor", "use.openDoor"], doors);
-        var valves = new[] { At(6, 1), At(7, 1) }.Select(cell => Prompts.Of(M, Press(cell, new ToggleValve(cell)))?.Action);
+        var valves = new[] { false, true }.Select(open => Prompts.Of(M, Press(At(6, 1), new SetValve(At(6, 1), open)))?.Action);
         Assert.Equal(["use.closeValve", "use.openValve"], valves);
         Assert.Equal(new Prompt("use.loadCanister", "items.notEnough"), Prompts.Of(M, Press(3, new LoadCanister(1), "items.notEnough")));
         Assert.Equal("use.catch", Prompts.Of(M, Press(3, new Grab(1)))?.Action);
         Assert.Equal("use.openCrate", Prompts.Of(M, new Aim(3, true, Crate: 4))?.Action);
-    }
-
-    [Fact]
-    public void SaysWhatTheNextPressDoesToADoorOrValveWhoseOwnToggleIsInFlight()
-    {
-        var m = new Registry();
-        var client = new Client(World.Create(1, Layout.Parse("#########\n#.d.D.vx#\n#########"), m.All), new Fed(), 1);
-        client.Send(new ToggleDoor(At(2, 1)));
-        client.Send(new ToggleValve(At(7, 1)));
-        var shown = Predicted.Grid(client, m.Grid);
-        Assert.Equal("use.openDoor", Prompts.Of(m, Press(At(2, 1), new ToggleDoor(At(2, 1))), shown)?.Action);
-        Assert.Equal("use.closeValve", Prompts.Of(m, Press(At(7, 1), new ToggleValve(At(7, 1))), shown)?.Action);
-        // Doors and valves with nothing in flight read as they stand.
-        Assert.Equal("use.openDoor", Prompts.Of(m, Press(At(4, 1), new ToggleDoor(At(4, 1))), shown)?.Action);
-        Assert.Equal("use.closeValve", Prompts.Of(m, Press(At(6, 1), new ToggleValve(At(6, 1))), shown)?.Action);
     }
 
     [Fact]
@@ -63,7 +48,7 @@ public class PromptTests
     [Fact]
     public void OffersNothingOutOfReachOrWithNothingToDo()
     {
-        var door = new ToggleDoor(At(2, 1));
+        var door = new SetDoor(At(2, 1), false);
         Assert.Null(Prompts.Of(M, Press(At(2, 1), door) with { InReach = false }));
         Assert.Null(Prompts.Of(M, new Aim(3, true)));
         Assert.Null(Prompts.Of(M, null));

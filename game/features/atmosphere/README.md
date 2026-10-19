@@ -17,7 +17,9 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
   gas and lit at its front; a cell eases in and out over about 220 ms (`AirField.EaseMs`) and cells blend
   into each other within a room. A venting room's air goes red and runs toward its nearest opening; a
   room without air shows a sparse grid of grey dots. It lies over the back walls, behind all that stands
-  in the room. The room under the pointer is explained beside it. Surveyed every 250 ms.
+  in the room. The room under the pointer is explained beside it while air is the overlay. Surveyed every 250 ms.
+  Drawn under every build tab too, the Air tab's pipes and the Power tab's cables over it, which then keep the
+  pointer's tip (0072).
 - The field and its texture cover only what is built and a cell of space round it (the grid's
   `Built`), growing with it: past it nothing is in a room, and the shader is told where the texture
   lies (`origin`), so it draws exactly what a texture of the whole world would. A survey looks again

@@ -84,15 +84,15 @@ public class BudgetTests(ITestOutputHelper output)
         Time(world, 100, _ => []);
         var still = Time(world, 300, _ => []);
         Assert.True(m.Atmosphere.AiredCells.Count > 5000);
-        // A door toggled every tick: rooms found again, orders and leaks with them.
+        // A door opened and shut every tick: rooms found again, orders and leaks with them.
         var door = Enumerable.Range(0, width * height).First(c => m.Grid.StructureAt(c) == Structure.DoorClosed);
-        var toggling = Time(world, 300, _ => [new ToggleDoor(door)]);
+        var toggling = Time(world, 300, t => [new SetDoor(door, t % 2 == 0)]);
         // The same without atmosphere, for its share of the tick.
         var bare = new Registry();
         var without = World.Create(1, Reference(width, height), bare.All.Where(x => x != bare.Atmosphere).ToList());
         Time(without, 100, _ => []);
         var others = Time(without, 300, _ => []);
-        var othersToggling = Time(without, 300, _ => [new ToggleDoor(door)]);
+        var othersToggling = Time(without, 300, t => [new SetDoor(door, t % 2 == 0)]);
         output.WriteLine($"{width}×{height}: rooms {m.Rooms.All.Count}, aired cells {m.Atmosphere.AiredCells.Count}");
         output.WriteLine($"without atmosphere: {others.Mean:F3} ms mean, {othersToggling.Mean:F3} ms toggling a door");
         output.WriteLine($"tick: {still.Mean:F3} ms mean, {still.Max:F3} ms max");

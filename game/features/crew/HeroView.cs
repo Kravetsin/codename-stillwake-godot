@@ -405,8 +405,8 @@ public partial class HeroView : Node2D
         bool axe = handFree && _ui.Wielded.Get() == Content.Weapons.Axe.Item;
         bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
         bool drill = handFree && _ui.Wielded.Get() == Content.Weapons.Drill.Item;
-        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill) : null;
-        var prompt = passedOut ? null : Prompts.Of(m, aim, shown);
+        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown) : null;
+        var prompt = passedOut ? null : Prompts.Of(m, aim);
         TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
         _prompt.Place(_ui.MenuTop);

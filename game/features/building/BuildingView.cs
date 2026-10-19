@@ -103,7 +103,7 @@ public partial class BuildingView : Node2D
         void Send(Act act, Spot from, Spot to)
         {
             var planned = new List<int>();
-            foreach (var verdict in Drag.Judge(act, Drag.LineOf(width, act, from, to), building))
+            foreach (var verdict in Drag.Judge(act, Drag.CellsOf(width, act, from, to, building), building))
                 foreach (var c in verdict.Commands)
                 {
                     client.Send(c);
@@ -364,7 +364,7 @@ public partial class BuildingView : Node2D
         Act? act = Tools.Shaped(_drag?.Act ?? (tool as PlaceTool), _hand.Shape.Get());
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
         var end = Drag.SpotAt(width, height, p);
-        var verdicts = Drag.Judge(act, Drag.LineOf(width, act, _drag?.From ?? end, end), building);
+        var verdicts = Drag.Judge(act, Drag.CellsOf(width, act, _drag?.From ?? end, end, building), building);
         if (act is PlaceTool place)
         {
             // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.

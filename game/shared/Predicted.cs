@@ -22,10 +22,10 @@ public static class Predicted
     public static ShownGrid Grid(Client client, IGridQueries grid)
     {
         // Asked a few times a frame: with no toggle in flight, the tick's grid as last made, nothing built.
-        if (!Any<ToggleDoor, ToggleValve>(client.InFlight) && _quiet.World == client.World && _quiet.Tick == client.World.Tick
+        if (!Any<SetDoor, SetValve>(client.InFlight) && _quiet.World == client.World && _quiet.Tick == client.World.Tick
             && Made.TryGetValue(client.World, out var quiet) && quiet == _quiet.Shown)
             return quiet;
-        var toggles = client.InFlight.Where(c => c is ToggleDoor or ToggleValve).ToList();
+        var toggles = client.InFlight.Where(c => c is SetDoor or SetValve).ToList();
         string key = $"{client.World.Tick}:{string.Join(",", toggles.Select(Name))}";
         if (Made.TryGetValue(client.World, out var known) && known.Key == key) return known;
         ShownGrid shown;
@@ -53,8 +53,8 @@ public static class Predicted
 
     private static string Name(Command c) => c switch
     {
-        ToggleDoor d => $"door@{d.Cell}",
-        ToggleValve v => $"valve@{v.Cell}",
+        SetDoor d => $"door@{d.Cell}={d.Open}",
+        SetValve v => $"valve@{v.Cell}={v.Open}",
         _ => "",
     };
 

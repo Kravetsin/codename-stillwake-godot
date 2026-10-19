@@ -39,6 +39,8 @@ public partial class GridView : Node2D
     private readonly DrawnLayers _drawn;
     private Machine[] _drawnMachines = [];
     private bool _blank = true;
+    /// <summary>The door cells whose panels are sliding, redrawn a step at a time; the rest stand still.</summary>
+    private readonly DoorSlides _slides = new();
 
     public GridView(IGridQueries grid)
     {
@@ -80,12 +82,25 @@ public partial class GridView : Node2D
             foreach (var change in changes) DrawCell(change.Cell, blank: true);
         else
         {
-            foreach (var change in changes) Hear(change);
+            foreach (var change in changes)
+            {
+                Hear(change);
+                if (IsDoor(change.Structure) && IsDoor(_drawn.Structure[change.Cell]) && change.Structure != _drawn.Structure[change.Cell])
+                    _slides.Moved(change.Cell, _drawn.Structure[change.Cell] == Structure.DoorOpen);
+            }
             foreach (int cell in _drawn.Stale(changes)) DrawCell(cell, blank: false);
         }
         _blank = false;
         if (version != _machinesVersion && MachinesMoved() && !_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
         _machinesVersion = version;
+    }
+
+    /// <summary>Slides the panels of doors that moved on a step, redrawing only the cells whose step changed.</summary>
+    public override void _Process(double delta)
+    {
+        if (!_slides.Any) return;
+        foreach (int cell in _slides.Advance(delta))
+            if (IsDoor(_drawn.Structure[cell])) DrawDoor(cell);
     }
 
     /// <summary>The grid's version when its machines were last compared: the log since then says whether one came or went.</summary>
@@ -202,12 +217,31 @@ public partial class GridView : Node2D
                 Put(_fixtures, at, "ladder");
                 break;
             case Structure.DoorClosed or Structure.DoorOpen:
-                {
-                    // A doorway is one door or hatch, by its shape (0067): its pictures joined where its cells meet.
-                    Put(_doors, at, DoorShape.Picture(_drawn.Structure[cell] == Structure.DoorClosed, DoorLinksOf(cell)));
-                    break;
-                }
+                DrawDoor(cell);
+                break;
         }
+    }
+
+    /// <summary>
+    /// A door cell, shut, open or part way while its panel slides: a doorway is one door or hatch, by its shape (0067),
+    /// its pictures joined where its cells meet, its panel sliding as one across all of them.
+    /// </summary>
+    private void DrawDoor(int cell)
+    {
+        int links = DoorLinksOf(cell);
+        if (_slides.OpenOf(cell) is not double open)
+        {
+            Put(_doors, CellOf(cell), DoorShape.Picture(_drawn.Structure[cell] == Structure.DoorClosed, links));
+            return;
+        }
+        // Where the cell lies in its straight run, counted from the top or left end the panel slides into.
+        bool hatch = Doorways.IsHatch(links);
+        var (back, ahead, step) = hatch ? (Doorways.Left, Doorways.Right, 1) : (Doorways.Up, Doorways.Down, _grid.Width);
+        int index = 0, length = 1;
+        for (int c = cell; (DoorLinksOf(c) & back) != 0; c -= step) index++;
+        for (int c = cell; (DoorLinksOf(c) & ahead) != 0; c += step) length++;
+        length += index;
+        Put(_doors, CellOf(cell), DoorShape.Picture(hatch, index, length, (int)Math.Round(open * length * Cell)));
     }
 
     /// <summary>Lays the whole picture <paramref name="name"/> on cell <paramref name="at"/> of <paramref name="layer"/>.</summary>

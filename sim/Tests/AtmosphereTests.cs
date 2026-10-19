@@ -149,7 +149,7 @@ public class AtmosphereTests
             .Do(new LoadCanister(s.Tank))
             .Run();
         Assert.Equal(RoomStatus.Filling, w.M.Atmosphere.StatusOf(s.Room));
-        w.Do(new ToggleValve(At(1, 2))).Run();
+        w.Do(new SetValve(At(1, 2), false)).Run();
         Assert.Equal(RoomStatus.Vacuum, w.M.Atmosphere.StatusOf(s.Room));
     }
 

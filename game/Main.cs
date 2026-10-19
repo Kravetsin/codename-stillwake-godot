@@ -42,7 +42,7 @@ namespace Stillwake.Game;
 /// Dev arguments after <c>--</c>, played on the wreck as drawn (<see cref="Registry.WreckMap"/>) unless they say otherwise: <c>--world</c> a new
 /// world as the title makes one, the wreck in the middle of the big world, kept nowhere; <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
 /// large, its tiles over <c>--built WxH</c> of it from the top-left, all of it by default), <c>--gallery</c> every picture,
-/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> toggles doors for recordings,
+/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--hills</c> ground of slopes to walk (<see cref="HillsDemo"/>), <c>--slopes</c> walls cut to shapes planned with R, lit, and a corridor under a sloped ceiling (<see cref="SlopesDemo"/>), <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
@@ -826,9 +826,9 @@ public partial class Main : Node2D, ITogether
         if (Has("--auto")) Auto(client, before);
         if (Has("--doors") && client.World.Tick != before)
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
-        // --toggle: the first doorway toggled every tick, so one is always in flight, as at a busy airlock.
-        if (Has("--toggle") && client.World.Tick != before && (_toggled ??= Autopilot.At(20, _m.Grid).FirstOrDefault()) is { } toggle)
-            client.Send(toggle);
+        // --toggle: the first doorway opened and shut on alternate ticks, so one is always in flight, as at a busy airlock.
+        if (Has("--toggle") && client.World.Tick != before && (_toggled ??= Autopilot.At(20, _m.Grid).FirstOrDefault()) is SetDoor toggle)
+            client.Send(toggle with { Open = client.World.Tick % 2 == 0 });
         ShowWorld();
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
@@ -918,8 +918,8 @@ public partial class Main : Node2D, ITogether
         int at = _start + 30;
         if (before < at && client.World.Tick >= at && _doors.Count > 1)
         {
-            client.Send(new ToggleDoor(_doors[_role == "guest" ? 1 : 0]));
-            Log($"sent ToggleDoor({_doors[_role == "guest" ? 1 : 0]}) at tick {client.World.Tick}, {client.InFlight.Count} in flight");
+            client.Send(new SetDoor(_doors[_role == "guest" ? 1 : 0], true));
+            Log($"sent SetDoor({_doors[_role == "guest" ? 1 : 0]}) at tick {client.World.Tick}, {client.InFlight.Count} in flight");
         }
         if (client.World.Tick / 20 != before / 20) client.SendHero($"{{\"tick\":{client.World.Tick}}}");
     }

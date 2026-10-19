@@ -97,6 +97,7 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     /// </summary>
     public Hero Step(HeroInput input, Ship ship)
     {
+        if (ShutOut(ship, this) is Hero pushed) return pushed;
         var after = Move(this, input, ship);
         // A jetpack worn ties no tether: the hero flies free.
         return input.Jetpack ? after with { Anchor = null } : Tethered(this, after, ship);
@@ -142,6 +143,41 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
             break;
         }
         return after with { X = to.X, Y = to.Y, Vx = to.X - before.X, Vy = to.Y - before.Y, Anchor = anchor };
+    }
+
+    /// <summary>How far a door shut on the hero pushes it a step: a cell in the 200 ms a door takes to slide.</summary>
+    public const int PushStep = Unit / 12;
+
+    /// <summary>
+    /// The hero pushed a step out of a door or hatch shut on it, keys aside: a closed door in its box where it no longer
+    /// fits, by another peer or its own hand. Toward the nearest place it fits beside the doorway, on top of it or under
+    /// it, the way it faces first on a tie. Null when no closed door holds it, or none of those places fits (doors shut
+    /// on either side of it): it stays, as before.
+    /// </summary>
+    private static Hero? ShutOut(Ship ship, Hero hero)
+    {
+        if (Clear(ship, hero.X, hero.Y)) return null;
+        int left = int.MaxValue, right = int.MinValue, top = int.MaxValue, bottom = int.MinValue;
+        for (int c = CellOf(hero.X - Half); c <= CellOf(hero.X + Half - 1); c++)
+            for (int r = CellOf(hero.Y - Spec.Height); r <= CellOf(hero.Y - 1); r++)
+                if (StructureAt(ship, c, r) == Structure.DoorClosed)
+                    (left, right, top, bottom) = (Math.Min(left, c), Math.Max(right, c), Math.Min(top, r), Math.Max(bottom, r));
+        if (left == int.MaxValue) return null;
+        int x = hero.X, y = hero.Y, besideLeft = left * Unit - Half, besideRight = (right + 1) * Unit + Half;
+        (int X, int Y)[] outs = hero.Facing < 0
+            ? [(besideLeft, y), (besideRight, y), (x, top * Unit), (x, (bottom + 1) * Unit + Spec.Height)]
+            : [(besideRight, y), (besideLeft, y), (x, top * Unit), (x, (bottom + 1) * Unit + Spec.Height)];
+        (int X, int Y)? to = null;
+        int far = int.MaxValue;
+        foreach (var o in outs)
+        {
+            int d = Math.Abs(o.X - x) + Math.Abs(o.Y - y);
+            if (d < far && Clear(ship, o.X, o.Y)) (to, far) = (o, d);
+        }
+        if (to is not { } way) return null;
+        int nx = x + Math.Clamp(way.X - x, -PushStep, PushStep), ny = y + Math.Clamp(way.Y - y, -PushStep, PushStep);
+        // No speed up or down kept: lifted onto a hatch, the hero lands on it rather than hopping off it.
+        return new Hero(nx, ny, nx - x, 0, false, hero.Facing, hero.Anchor);
     }
 
     /// <summary>How far the grapple pulls the body a step: <c>Harpoon.PullSpeed</c> a tick, rounded to whole thousandths.</summary>

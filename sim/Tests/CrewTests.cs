@@ -27,7 +27,7 @@ public class CrewTests
     /// <summary>Room's leak a minute: twenty scrap hull cells and the scrap back walls behind its 21 cells.</summary>
     private static int Leak => (20 + 21) * Materials.Get("scrap").Leak;
 
-    /// <summary>A world from <see cref="Room"/> in creative mode, its vent piped to its tank, with <paramref name="canisters"/> loaded.</summary>
+    /// <summary>A world from <see cref="Room"/>, its vent piped to its tank in creative mode, with <paramref name="canisters"/> loaded.</summary>
     private static (Scenario W, int Tank, int Room) SetUp(int canisters = 0)
     {
         var w = new Scenario(Room).Do(new Items.SetCreative(true));
@@ -36,7 +36,8 @@ public class CrewTests
         w.Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
         for (int i = 0; i < canisters; i++) w.Do(new LoadCanister(tank));
-        w.Run();
+        // Off once built: in creative mode a suit never empties.
+        w.Do(new Items.SetCreative(false)).Run();
         int room = w.M.Rooms.RoomAt(At(4, 2)) ?? throw new InvalidOperationException("room");
         return (w, tank, room);
     }

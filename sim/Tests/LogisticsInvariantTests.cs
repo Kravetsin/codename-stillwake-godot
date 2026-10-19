@@ -102,7 +102,7 @@ public class LogisticsInvariantTests
             {
                 if (s.Type == "wall") w.Do(new Place(s.Cell, Placement.Wall()));
                 else if (s.Type == "clear") w.Do(new ClearAt(s.Cell, "structure"));
-                else if (s.Type == "door") w.Do(new ToggleDoor(s.Cell));
+                else if (s.Type == "door") w.Do(new SetDoor(s.Cell, w.M.Grid.StructureAt(s.Cell) == Structure.DoorClosed));
                 else if (s.Type is "on" or "off") w.Do(new SetServed(s.Cell, s.Type == "on"));
                 for (int t = 0; t < s.Ticks; t++)
                 {
@@ -168,7 +168,7 @@ public class LogisticsInvariantTests
             w.Do(new SetEndless(former, 1, true));
             for (int t = 0; t < 3000; t++)
             {
-                if (doors > 0 && t % 400 == 0) w.Do(new ToggleDoor(Door + 2 * Width));
+                if (doors > 0 && t % 400 == 0) w.Do(new SetDoor(Door + 2 * Width, w.M.Grid.StructureAt(Door + 2 * Width) == Structure.DoorClosed));
                 w.Run();
                 Assert.All(w.M.Logistics.Drones, d => Assert.True(d.Stack.Charge > 0, $"tick {t}: drone {d.Id} flat at cell {d.Cell}"));
                 Assert.Equal(0, LogisticsTests.OnFloor(w, Tune.Drone));

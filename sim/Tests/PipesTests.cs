@@ -64,11 +64,11 @@ public class PipesTests
     {
         var w = new Scenario("--v--");
         Assert.Equal(new[] { (0, 5) }, Summary(w));
-        w.Do(new ToggleValve(2)).Run();
+        w.Do(new SetValve(2, false)).Run();
         Assert.Equal(new[] { (0, 2), (3, 2) }, Summary(w));
         // A closed valve carries nothing, so it belongs to no network.
         Assert.Null(w.M.Pipes.NetworkAt(2));
-        w.Do(new ToggleValve(2)).Run();
+        w.Do(new SetValve(2, true)).Run();
         Assert.Equal(new[] { (0, 5) }, Summary(w));
     }
 
@@ -126,7 +126,7 @@ public class PipesTests
     {
         var w = new Scenario("-.D.-");
         var found = w.M.Pipes.Networks;
-        w.Run(20).Do(new ToggleDoor(2)).Run();
+        w.Run(20).Do(new SetDoor(2, true)).Run();
         Assert.Same(found, w.M.Pipes.Networks);
     }
 
@@ -153,7 +153,7 @@ public class PipesTests
             int size = t.width * t.height;
             foreach (int cell in t.toggles)
                 if (w.M.Grid.ConduitLayer[cell] is Conduit.ValveOpen or Conduit.ValveClosed)
-                    w.Do(new ToggleValve(cell)).Run();
+                    w.Do(new SetValve(cell, w.M.Grid.ConduitLayer[cell] == Conduit.ValveClosed)).Run();
 
             bool Carries(int c) => w.M.Grid.ConduitLayer[c] is Conduit.Pipe or Conduit.ValveOpen;
             var counts = new SortedDictionary<int, int>();

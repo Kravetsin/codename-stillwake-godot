@@ -27,7 +27,7 @@ public class CoreTests
     {
         var w = new Scenario(Map);
         var before = w.World.Hash();
-        w.Do(new ToggleDoor(w.At(2, 2))).Run();
+        w.Do(new SetDoor(w.At(2, 2), true)).Run();
         var refused = Assert.Single(w.Refusals);
         Assert.Equal("grid.noDoor", refused.Reason);
         Assert.NotEqual(before, w.World.Hash()); // the tick moved on
@@ -51,8 +51,8 @@ public class CoreTests
     {
         var a = new Scenario(Map);
         var b = new Scenario(Map);
-        a.Do(new ToggleDoor(a.At(4, 2))).Run(3);
-        b.Do(new ToggleDoor(b.At(4, 2))).Run(3);
+        a.Do(new SetDoor(a.At(4, 2), true)).Run(3);
+        b.Do(new SetDoor(b.At(4, 2), true)).Run(3);
         b.Reload();
         Assert.Equal(a.World.Save(), b.World.Save());
         a.Do(new Place(a.At(2, 3), Placement.Wall())).Run(5);
@@ -76,8 +76,8 @@ public class CoreTests
     public void CarriesCommandsOverTheWireByTheirNames()
     {
         var w = new Scenario(Map);
-        var text = w.World.Encode(new ToggleDoor(12) { From = 2 });
-        Assert.Equal("""{"type":"grid.toggleDoor","cell":12,"from":2}""", text);
-        Assert.Equal(new ToggleDoor(12) { From = 2 }, w.World.Decode(text));
+        var text = w.World.Encode(new SetDoor(12, true) { From = 2 });
+        Assert.Equal("""{"type":"grid.setDoor","cell":12,"open":true,"from":2}""", text);
+        Assert.Equal(new SetDoor(12, true) { From = 2 }, w.World.Decode(text));
     }
 }

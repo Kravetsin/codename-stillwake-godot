@@ -5,7 +5,7 @@ using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Dev;
 
-/// <summary>A script for recordings: every doorway toggled at tick 20 and again at tick 40, so shadows and doors are seen to follow.</summary>
+/// <summary>A script for recordings: every doorway opened at tick 20 and shut at tick 40, so shadows and doors are seen to follow.</summary>
 public static class Autopilot
 {
     public static IReadOnlyList<Command> At(int tick, IGridQueries grid)
@@ -15,7 +15,7 @@ public static class Autopilot
         var s = grid.StructureLayer;
         int w = grid.Width;
         for (int cell = 0; cell < s.Length; cell++)
-            if (Doorways.IsDoor(s[cell]) && DoorShape.Leads(Doorways.LinksOf(cell, w, s.Length, grid.StructureAt))) toggles.Add(new ToggleDoor(cell));
+            if (Doorways.IsDoor(s[cell]) && DoorShape.Leads(Doorways.LinksOf(cell, w, s.Length, grid.StructureAt))) toggles.Add(new SetDoor(cell, tick == 20));
         return toggles;
     }
 }

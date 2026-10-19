@@ -110,7 +110,7 @@ public class WreckTests
     {
         var w = new Scenario(Wreck);
         int pod = w.M.Grid.MachineAt(Pod)!.Id;
-        w.Do(new ToggleDoor(DoorToB)).Do(new Enter(w.M.Crew.Spawn) { From = 1 }).Run(10);
+        w.Do(new SetDoor(DoorToB, true)).Do(new Enter(w.M.Crew.Spawn) { From = 1 }).Run(10);
         Assert.Equal(0, AiredIn(w, A));
         w.Run(30 * CrewSpec.BreathEvery);
         Assert.Equal(CrewSpec.Suit, w.M.Crew.HeroOf(1)?.Suit);
@@ -243,7 +243,7 @@ public class WreckTests
     public void LosesAsAirWithinAFewTicksOnceTheDoorToTheBreachedRoomBOpens()
     {
         var w = AiredWreck();
-        w.Do(new ToggleDoor(DoorToB)).Run(7);
+        w.Do(new SetDoor(DoorToB, true)).Run(7);
         Assert.Equal(0, AiredIn(w, A));
     }
 
@@ -253,13 +253,13 @@ public class WreckTests
         var w = AiredWreck();
         var closet = new[] { 55, 56 }.SelectMany(x => new[] { 20, 21, 22 }.Select(y => At(x, y))).ToArray();
         // In: the inner doorway opened, the generator airs the closet too.
-        w.Do(new ToggleDoor(Inner)).Run();
+        w.Do(new SetDoor(Inner, true)).Run();
         for (int i = 0; i < 600 && AiredIn(w, closet) < closet.Length; i++) w.Run();
         Assert.Equal(closet.Length, AiredIn(w, closet));
         Assert.Equal(A.Length, AiredIn(w, A));
         // Out: the inner closed behind, the outer opened; the closet vents, A keeps its air.
-        w.Do(new ToggleDoor(Inner)).Run();
-        w.Do(new ToggleDoor(Outer)).Run(20);
+        w.Do(new SetDoor(Inner, false)).Run();
+        w.Do(new SetDoor(Outer, true)).Run(20);
         Assert.Equal(0, AiredIn(w, closet));
         Assert.Equal(A.Length, AiredIn(w, A));
         // With the outer doorway open and the inner closed, A stays whole.

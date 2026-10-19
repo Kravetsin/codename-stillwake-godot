@@ -53,7 +53,12 @@ too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests` and `Bodie
   hero is drawn between its last two steps.
 - A step never ends inside a wall, a closed door or past the grid's edge, and out in space the body's
   middle never gets farther than `Hero.Tether` from where the tether is tied, with no jetpack worn (both
-  FsCheck properties).
+  FsCheck properties). The one way in is a door shut on the hero, by anyone: then each step, keys aside,
+  pushes it `Hero.PushStep` (a cell in the 200 ms a door slides) toward the nearest place it fits beside
+  the doorway, on top of it or under it, the way it faces first on a tie: a hatch shut under its feet
+  lifts it onto it, one shut over its head drops it below (`ShutOutTests`). Its own client pushes it, as
+  every hero moves (0002), and its next report says where it went. With no such place (doors shut on
+  both sides of it, which no map makes) it stays.
 - The hero walks against doors as this peer shows them (`Shared.Predicted.Grid`, 0014): its own
   toggles in flight already made, so it walks through a door opened on the frame E was pressed.
 - Floats only in drawing: the rig, the poses, the tether's rope, others' heroes between samples.
@@ -413,8 +418,9 @@ Deliberately not handled:
   moment it stops.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
-- Door and valve prompts read them as shown (`Shared.Predicted.Grid`), as `promptOf`'s `shown` did:
-  with this peer's own toggle in flight, the next press undoes it.
+- A press on a door or valve is built from it as shown (`Shared.Predicted.Grid`, passed to `Aiming.AimAt`): it asks
+  for the other state (`SetDoor`/`SetValve`, 0071), so with this peer's own set in flight the next press undoes
+  it, and the prompt says what the press asks for, as `promptOf`'s `shown` did.
 
 ## Not ported yet
 

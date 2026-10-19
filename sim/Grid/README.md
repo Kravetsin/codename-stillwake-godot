@@ -80,8 +80,8 @@ free back slot: it stands behind anything, and in space.
   kind's port offsets —, `WallAt(cell)` and `BackAt(cell)` — the `Material` of the wall or back
   wall there, null for none —, `Footprint(kind, cell)` — the cells a machine of that kind would cover
   from that top-left, null when it is no machine or does not fit —, `PlacementProblem(cell, placement)`,
-  `AfterToggles(commands)` — the structure and conduit codes of just the cells the `ToggleDoor`s and
-  `ToggleValve`s among the commands would change, each as it would apply and skipped where refused,
+  `AfterToggles(commands)` — the structure and conduit codes of just the cells the `SetDoor`s and
+  `SetValve`s among the commands would change, each as it would apply and skipped where refused,
   every other cell as the world has it: what a client shows of its own toggles before their tick runs
   (0014). Not copies of the layers: those were 16 MB a tick on a 2048×1024 world while a toggle was in
   flight.
@@ -89,9 +89,10 @@ free back slot: it stands behind anything, and in space.
   problem here throws; a wall is placed cut to its placement's `Shape`; `Clear(cell, layer)` — a wall's shape goes with it; for machines, removes the whole machine covering the
   cell. Only in commands or construction: modules reading the grid in derivation trust that nothing
   changes it after.
-- **Commands:** `ToggleDoor(cell)` — opens or closes the whole doorway, the straight run of door cells
-  `cell` is in (`Doorways`, 0067), each taking the opposite of its state; refused with `grid.noDoor`. `ToggleValve(cell)`,
-  refused with `grid.noValve`.
+- **Commands:** `SetDoor(cell, open)` — opens or shuts the whole doorway, the straight run of door cells
+  `cell` is in (`Doorways`, 0067), every cell of it, a part-open one too; refused with `grid.noDoor`. `SetValve(cell, open)`,
+  refused with `grid.noValve`. Each says the state its sender saw it should take, not a flip (0071): a door or
+  valve already so is left alone, the grid's version too, so two peers opening one door at once leave it open.
 - **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.outsideZone` (the cell, or any cell of a
   machine's footprint, outside the zone), `grid.occupied`, `grid.machineInTheWay`,
   `grid.blocked`, `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.notShapeable` (a shape on anything but a wall, or

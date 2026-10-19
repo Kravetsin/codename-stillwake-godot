@@ -46,13 +46,29 @@ public class AimTests
     private static int At(int x, int y) => y * 8 + x;
 
     [Fact]
-    public void OffersToToggleADoorOrAValveUnderThePointer()
+    public void OffersToOpenOrShutADoorOrAValveUnderThePointer()
     {
         var m = new TestWorld(Corridor).M;
         var hero = HeroOn(2, 1);
-        Assert.Equal(new Aim(At(3, 1), true, new Use(new ToggleDoor(At(3, 1)), null)), Aiming.AimAt(m, 0, hero, Centre(3, 1)));
+        Assert.Equal(new Aim(At(3, 1), true, new Use(new SetDoor(At(3, 1), true), null)), Aiming.AimAt(m, 0, hero, Centre(3, 1)));
         Assert.Null(Aiming.AimAt(m, 0, hero, Centre(4, 1))?.Press);
-        Assert.Equal(new ToggleValve(At(5, 1)), Aiming.AimAt(m, 0, HeroOn(4, 1), Centre(5, 1))?.Press?.Command);
+        Assert.Equal(new SetValve(At(5, 1), false), Aiming.AimAt(m, 0, HeroOn(4, 1), Centre(5, 1))?.Press?.Command);
+    }
+
+    [Fact]
+    public void PressesADoorOrValveIntoTheOppositeOfHowThisPeerShowsItItsOwnSetsInFlightMade()
+    {
+        var m = new Registry();
+        var client = new Client(World.Create(1, Layout.Parse(Corridor), m.All), new Fed(), 1);
+        client.Send(new SetDoor(At(3, 1), true));
+        client.Send(new SetValve(At(5, 1), false));
+        var shown = Predicted.Grid(client, m.Grid);
+        var door = Aiming.AimAt(m, 0, HeroOn(2, 1), Centre(3, 1), shown: shown);
+        Assert.Equal(new SetDoor(At(3, 1), false), door?.Press?.Command);
+        Assert.Equal("use.closeDoor", Prompts.Of(m, door)?.Action);
+        Assert.Equal(new SetValve(At(5, 1), true), Aiming.AimAt(m, 0, HeroOn(4, 1), Centre(5, 1), shown: shown)?.Press?.Command);
+        // Without what this peer shows, as the world stands: its sets have not run yet.
+        Assert.Equal(new SetDoor(At(3, 1), true), Aiming.AimAt(m, 0, HeroOn(2, 1), Centre(3, 1))?.Press?.Command);
     }
 
     [Fact]
@@ -63,7 +79,7 @@ public class AimTests
         w.Step(new SetCreative(true), new PlacePlan(At(3, 1), new Placement("conduit", "valve")));
         while (w.M.Building.Plans.Count > 0) w.Step(new Work(1));
         Assert.True(w.M.Grid.ConduitAt(At(3, 1)) is Conduit.ValveOpen or Conduit.ValveClosed);
-        Assert.Equal(new ToggleDoor(At(3, 1)), Aiming.AimAt(w.M, 0, HeroOn(2, 1), Centre(3, 1))?.Press?.Command);
+        Assert.Equal(new SetDoor(At(3, 1), true), Aiming.AimAt(w.M, 0, HeroOn(2, 1), Centre(3, 1))?.Press?.Command);
     }
 
     [Fact]
@@ -104,7 +120,7 @@ public class AimTests
         var w = new TestWorld(Corridor);
         w.Step(new Deconstruct(At(3, 1), "structure"), new PlacePlan(At(3, 1), new Placement("conduit", "pipe")));
         Assert.Equal(
-            new Aim(At(3, 1), true, new Use(new ToggleDoor(At(3, 1)), null), new WorkAim(1, null)),
+            new Aim(At(3, 1), true, new Use(new SetDoor(At(3, 1), true), null), new WorkAim(1, null)),
             Aiming.AimAt(w.M, 0, HeroOn(2, 1), Centre(3, 1)));
     }
 
@@ -655,13 +671,13 @@ public class AimTests
 
     // What E sends.
 
-    private static readonly ToggleDoor Door = new(3);
+    private static readonly SetDoor Door = new(3, true);
     private static readonly Aim OnDoor = new(3, true, new Use(Door, null));
     private static readonly Aim OnPlan = new(4, true, Work: new WorkAim(7, null));
     private static readonly Work WorkOn = new(7);
 
     [Fact]
-    public void TogglesADoorOnceOnAPressAndNothingWhileEStaysHeld()
+    public void OpensADoorOnceOnAPressAndNothingWhileEStaysHeld()
     {
         Assert.Equal([Door], Aiming.UsesOf(OnDoor, pressed: true, held: true, 10, -1).Commands);
         Assert.Empty(Aiming.UsesOf(OnDoor, pressed: false, held: true, 11, -1).Commands);

@@ -16,10 +16,9 @@ public static class Prompts
 {
     /// <summary>
     /// What E would do at <paramref name="aim"/> within reach, in words; nothing out of reach or with
-    /// nothing to do. Doors and valves are as <paramref name="shown"/> (the world's without it): with
-    /// this peer's own toggles in flight, the next press undoes them.
+    /// nothing to do. A door or valve says what its press would make of it (<see cref="Aiming.AimAt"/>).
     /// </summary>
-    public static Prompt? Of(Registry m, Aim? aim, ShownGrid? shown = null)
+    public static Prompt? Of(Registry m, Aim? aim)
     {
         if (aim is not { InReach: true }) return null;
         if (aim.Work is { } work)
@@ -45,16 +44,13 @@ public static class Prompts
                 _ => "use.openCrate",
             }, null);
         if (aim.Press is not { } press) return null;
-        var grid = m.Grid;
-        int structure = shown?.StructureAt(grid, aim.Cell) ?? grid.StructureAt(aim.Cell);
-        int conduit = shown?.ConduitAt(grid, aim.Cell) ?? grid.ConduitAt(aim.Cell);
         return press.Command switch
         {
             LoadCanister => new Prompt("use.loadCanister", press.Problem),
             Grab => new Prompt("use.catch", press.Problem),
             Hit => new Prompt("use.chop", press.Problem),
-            ToggleDoor => new Prompt(structure == Structure.DoorOpen ? "use.closeDoor" : "use.openDoor", press.Problem),
-            ToggleValve => new Prompt(conduit == Conduit.ValveOpen ? "use.closeValve" : "use.openValve", press.Problem),
+            SetDoor d => new Prompt(d.Open ? "use.openDoor" : "use.closeDoor", press.Problem),
+            SetValve v => new Prompt(v.Open ? "use.openValve" : "use.closeValve", press.Problem),
             _ => throw new InvalidOperationException($"No prompt for {press.Command.GetType().Name}"),
         };
     }

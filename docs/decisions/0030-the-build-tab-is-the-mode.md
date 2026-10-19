@@ -1,6 +1,6 @@
 # 0030 — The build tab is the mode
 
-- Status: accepted
+- Status: accepted; air under the Air and Power tabs superseded by [0072](0072-air-shows-under-every-build-tab.md): it shows under every tab
 - Date: 2026-10-15
 - Supersedes in part: [0022](0022-one-hand.md) (overlays as filters, the mouse), [0021](0021-cables-by-hand-in-the-power-mode.md) (Shift to move)
 
