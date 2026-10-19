@@ -77,6 +77,35 @@ public class SlopeTests
         }
     }
 
+    /// <summary>
+    /// Up and down a 45° slope the hero keeps its speed across, as on the flat, so its pose never flickers between
+    /// walking and running (playtest of 0069: running uphill lost speed at every column and froze the legs).
+    /// </summary>
+    [Fact]
+    public void KeepsItsSpeedAndPoseEveryStepUpAndDownTheHillEitherWay()
+    {
+        var ship = HeroTests.ShipFrom(Hill);
+        foreach (bool run in new[] { false, true })
+            foreach (var (from, keys, wall) in new[] { (1 * Unit + Half, Right, 15 * Unit - Half), (15 * Unit - Half, Left, 1 * Unit + Half) })
+            {
+                var want = run ? Pose.Run : Pose.Walk;
+                int speed = run ? Spec.Run : Spec.Walk;
+                var h = new Hero(from, 9 * Unit, 0, 0, false, keys.X);
+                var seen = new List<string>();
+                for (int i = 0; i < 400; i++)
+                {
+                    var next = h.Step(keys with { Sprint = run }, ship);
+                    // The last step, flush against the room's far wall, is short.
+                    if (next.X == wall) break;
+                    var pose = Poses.PoseOf(next, false, false);
+                    if (pose != want || Math.Abs(next.Vx) != speed) seen.Add($"{pose} at x {next.X} vx {next.Vx}");
+                    h = next;
+                }
+                Assert.Empty(seen);
+                Assert.True(h.Step(keys with { Sprint = run }, ship).X == wall, $"never reached the far wall, stopped at {h}");
+            }
+    }
+
     [Fact]
     public void StandsOnTheHigherFootingButFollowsASlopeOffAPlateauRatherThanHangOnItsCorner()
     {

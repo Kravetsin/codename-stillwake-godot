@@ -196,10 +196,11 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
 
     /// <summary>
     /// A walk of <paramref name="dx"/> standing at (<paramref name="x"/>, <paramref name="y"/>), the feet kept on the
-    /// ground, in parts that end where the box's leading edge or its middle crosses into another column, so the ground
-    /// and the walls ahead are read where the feet are then (0069). After each part the feet step up onto a slope or a
-    /// ledge no more than half a width above them, the head permitting, and stick to ground that fell by no more than
-    /// the part walked, so a walk down a slope never leaves it. Walked off an edge, the rest is walked in the air.
+    /// ground, in parts that end as the box's leading edge reaches the end of its column or its middle crosses into
+    /// another, so the ground and the walls ahead are read where the feet are then (0069). After each part the feet
+    /// step up onto a slope or a ledge no more than half a width above them, the head permitting, and stick to ground
+    /// that fell by no more than the part walked: up and down a slope at its speed on the flat, never leaving it.
+    /// Walked off an edge, the rest is walked in the air; over a hole the body fits, the walk ends (<see cref="Caught"/>).
     /// </summary>
     private static (int X, int Y) Walk(Ship ship, int x, int y, int dx)
     {
@@ -207,12 +208,20 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         for (int left = Math.Abs(dx); left > 0;)
         {
             int edge = dir > 0 ? x + Half - 1 : x - Half;
-            int toEdge = dir > 0 ? (CellOf(edge) + 1) * Unit - edge : edge - CellOf(edge) * Unit + 1;
+            // The leading edge stops at its column's last thousandth, the feet lifted there, before it enters the next:
+            // a column's walls are judged against the feet where they are as the edge reaches it, or a run up a ramp
+            // would be stopped short at every column by the ledge it is about to step onto.
+            int inColumn = dir > 0 ? (CellOf(edge) + 1) * Unit - 1 - edge : edge - CellOf(edge) * Unit;
+            int toEdge = inColumn > 0 ? inColumn : 1;
             int toMiddle = dir > 0 ? (CellOf(x) + 1) * Unit - x : x - CellOf(x) * Unit + 1;
             int part = Math.Min(left, Math.Min(toEdge, toMiddle));
-            int nx = Caught(ship, x, MoveX(ship, x, y, dir * part, true, ledge: true), y);
+            int to = MoveX(ship, x, y, dir * part, true, ledge: true);
+            // Over a hole the body fits, the walk ends there and the hero falls in.
+            int? caught = Caught(ship, x, to, y);
+            int nx = caught ?? to;
             if (nx == x) break;
             int moved = Math.Abs(nx - x), ny;
+            bool stopped = moved < part || caught != null;
             if (Rise(ship, nx, y) is int top)
             {
                 if (y - top > Half || MoveY(ship, nx, y, top - y, false, true) != top) break;
@@ -220,11 +229,11 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
             }
             else if (Landing(ship, nx, y, moved + 1, false, true) is int ground) ny = ground;
             else if (!Clear(ship, nx, y)) break;
-            else return moved < part ? (nx, y) : Aloft(ship, nx, y, dir * (left - moved));
+            else return stopped ? (nx, y) : Aloft(ship, nx, y, dir * (left - moved));
             if (!Clear(ship, nx, ny)) break;
             (x, y) = (nx, ny);
             left -= moved;
-            if (moved < part) break;
+            if (stopped) break;
         }
         return (x, y);
     }
@@ -351,11 +360,11 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
 
     /// <summary>
     /// Where a hero standing at <paramref name="y"/> and walking from <paramref name="x"/> to <paramref name="nx"/>
-    /// stops: at the first place on the way where its body fits over a hole below the feet, or
-    /// <paramref name="nx"/>. A step is longer than the 50 thousandths a cell leaves beside the body, so
+    /// stops: at the first place on the way where its body fits over a hole below the feet, or null for none, the walk
+    /// going on to <paramref name="nx"/>. A step is longer than the 50 thousandths a cell leaves beside the body, so
     /// unstopped a walk steps over a hole one cell wide or into it by where it began (playtest 1).
     /// </summary>
-    private static int Caught(Ship ship, int x, int nx, int y)
+    private static int? Caught(Ship ship, int x, int nx, int y)
     {
         int row = CellOf(y);
         int dir = Math.Sign(nx - x);
@@ -366,7 +375,7 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
             if (dir > 0 && x < lo && nx >= lo) return Math.Min(nx, hi);
             if (dir < 0 && x > hi && nx <= hi) return Math.Max(nx, lo);
         }
-        return nx;
+        return null;
     }
 
     /// <summary>

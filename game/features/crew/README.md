@@ -96,10 +96,12 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   and caught as any, `Hero.Caught`). Mixed footing stands on the higher, but a corner no more than half a width
   above the ground under the middle gives way to it (`Hero.Landing`): off a plateau down a slope the feet follow
   the slope rather than hang on the corner and drop half a cell.
-- **Walking** (`Hero.Walk`) moves in parts that end where the box's leading edge or its middle crosses into another
-  column; after each the feet step up onto ground no more than half a width above them, the head permitting, and
-  stick to ground that fell by no more than the part walked. Up and down a ramp the hero stays grounded every
-  step, walking or running, with no jump and no hop.
+- **Walking** (`Hero.Walk`) moves in parts that end as the box's leading edge reaches its column's last thousandth
+  or its middle crosses into another column; after each the feet step up onto ground no more than half a width
+  above them, the head permitting, and stick to ground that fell by no more than the part walked. The next column's
+  walls are judged with the feet lifted to where they are as the edge reaches it, so a ramp never cuts a step short.
+  Up and down a ramp the hero stays grounded every step at its speed on the flat, walking or running, with no jump
+  and no hop; `Figure` keeps the stride going from walking to running and back.
 - **The low ledge rule:** walking, a wall whose top is no more than half a width above the feet does not stop the
   box. At 45° the leading edge meets the next column exactly half a width above the feet, so the equal case
   passes (`≤`); with `<` every ramp would stop at its top. Whole cells only ever sit at whole rows, so on flat
