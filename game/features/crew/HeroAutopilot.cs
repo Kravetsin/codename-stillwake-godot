@@ -195,6 +195,9 @@ public sealed class HeroAutopilot
         ]);
     }
 
+    /// <summary><c>--slopes</c>'s script: into the corridor's far corner, under its sloped ceiling, and stand there.</summary>
+    public static HeroAutopilot SlopesRun() => new([Wait(150), Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)), Wait(1)]);
+
     /// <summary>The <see cref="Gym"/>'s script.</summary>
     public static HeroAutopilot GymRun()
     {
