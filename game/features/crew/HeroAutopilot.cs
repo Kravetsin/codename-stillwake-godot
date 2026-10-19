@@ -168,6 +168,33 @@ public sealed class HeroAutopilot
     /// </summary>
     public static HeroAutopilot Aside() => new([Wait(20), Hold(new HeroInput(-1, 0, false), 25), Wait(1)]);
 
+    /// <summary>
+    /// <c>-- --hills --autopilot</c> (<c>HillsDemo</c>, 0069): over the first hill and back walking, then running right
+    /// over it, through the valley and up the long ramp, where it falls into the hole at its top, the high plateau's top
+    /// at row <paramref name="plateau"/>; it jumps out and runs on over the peak and off the lone ◢'s cliff to the lone
+    /// ◣'s closed side, and walks back to the ◢'s.
+    /// </summary>
+    public static HeroAutopilot HillsRun(int plateau)
+    {
+        var run = new HeroInput(1, 0, false, Sprint: true);
+        return new HeroAutopilot(
+        [
+            Wait(30),
+            Walk(1, h => Column(h) >= 17),
+            Walk(-1, h => Column(h) <= 3),
+            Wait(20),
+            Until(run, (h, p) => p.Stopped(h) || Column(h) == 30 && h.Y > plateau * Hero.Unit),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Wait(20),
+            Jump(),
+            Hold(new HeroInput(1, 0, false), 40),
+            Until(run, (h, p) => p.Stopped(h)),
+            Wait(30),
+            Until(new HeroInput(-1, 0, false), (h, p) => p.Stopped(h)),
+            Wait(60),
+        ]);
+    }
+
     /// <summary>The <see cref="Gym"/>'s script.</summary>
     public static HeroAutopilot GymRun()
     {
