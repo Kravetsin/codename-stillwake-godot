@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
@@ -194,11 +195,13 @@ public static class Aiming
     /// grabbed, but no wreck by the pointer is aimed at: the first a swing toward the pointer begun now
     /// would touch is (<see cref="Struck"/>), wherever the pointer is. With the <paramref name="drill"/>, the
     /// same, the first wreck its bit aimed at the pointer touches (<see cref="Touched"/>). With a <paramref name="gun"/>, the
-    /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked.
+    /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked. A door or valve is
+    /// opened or shut as <paramref name="shown"/> shows it (the world's without it): with this peer's own toggles in
+    /// flight, the next press undoes them, and a press says what its sender saw should become of it.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, bool drill = false)
+        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, bool drill = false, ShownGrid? shown = null)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -213,7 +216,7 @@ public static class Aiming
         var work = here.FirstOrDefault(w => w.Problem == null) ?? here.FirstOrDefault();
         var machine = grid.MachineAt(cell);
         int? crate = machine != null && HoldsItems(machine.Kind) ? machine.Id : null;
-        var press = crate == null ? PressOf(m, peer, cell) : null;
+        var press = crate == null ? PressOf(m, peer, cell, shown) : null;
         if (work != null || crate != null || press != null) return new Aim(cell, inReach, press, work, crate);
         var piece = PieceNear(m, hero, point, passOver);
         // Aimed at where the piece is, which may be a cell beside the pointer's.
@@ -350,12 +353,14 @@ public static class Aiming
         return nearest;
     }
 
-    private static Use? PressOf(Registry m, int peer, int cell)
+    private static Use? PressOf(Registry m, int peer, int cell, ShownGrid? shown)
     {
         var grid = m.Grid;
         if (grid.MachineAt(cell) is { Kind: "tank" } tank) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
-        if (grid.StructureAt(cell) is Structure.DoorClosed or Structure.DoorOpen) return new Use(new ToggleDoor(cell), null);
-        if (grid.ConduitAt(cell) is Conduit.ValveClosed or Conduit.ValveOpen) return new Use(new ToggleValve(cell), null);
+        int structure = shown?.StructureAt(grid, cell) ?? grid.StructureAt(cell);
+        int conduit = shown?.ConduitAt(grid, cell) ?? grid.ConduitAt(cell);
+        if (structure is Structure.DoorClosed or Structure.DoorOpen) return new Use(new SetDoor(cell, structure == Structure.DoorClosed), null);
+        if (conduit is Conduit.ValveClosed or Conduit.ValveOpen) return new Use(new SetValve(cell, conduit == Conduit.ValveClosed), null);
         return null;
     }
 

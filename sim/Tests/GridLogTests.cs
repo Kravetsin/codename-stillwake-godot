@@ -53,8 +53,8 @@ public class GridLogTests
         6 => new Place(cell, Placement.BackWall()),
         7 => new Place(cell, Placement.BackWall("iron")),
         8 => new Place(cell, new Placement("machine", Machines[cell % Machines.Length])),
-        9 => new ToggleDoor(cell),
-        10 => new ToggleValve(cell),
+        9 => new SetDoor(cell, grid.StructureAt(cell) != Structure.DoorOpen),
+        10 => new SetValve(cell, grid.ConduitAt(cell) != Conduit.ValveOpen),
         11 => new ClearAt(cell, "structure"),
         12 => new ClearAt(cell, "conduit"),
         13 => new ClearAt(cell, "back"),
@@ -118,7 +118,7 @@ public class GridLogTests
     {
         var w = new Scenario(Layout.Parse(["#D#  ", "#..V "]));
         int before = w.M.Grid.Version;
-        w.Do(new ToggleDoor(1)).Run().Do(new ToggleDoor(1)).Do(new Place(3, Placement.Wall("iron"))).Run();
+        w.Do(new SetDoor(1, true)).Run().Do(new SetDoor(1, false)).Do(new Place(3, Placement.Wall("iron"))).Run();
         Assert.Equal([new CellChange(3, GridLayers.Structure | GridLayers.Material)], w.M.Grid.ChangedSince(before));
         int built = w.M.Grid.Version;
         w.Do(new ClearAt(8, "machine")).Do(new Place(4, Placement.BackWall("iron"))).Do(new ClearAt(7, "machine")).Run();
@@ -130,7 +130,7 @@ public class GridLogTests
     public void KnowsNoVersionFromBeforeALoad()
     {
         var w = new Scenario("#D#\n#.#");
-        w.Do(new ToggleDoor(1)).Run().Do(new ToggleDoor(1)).Run();
+        w.Do(new SetDoor(1, true)).Run().Do(new SetDoor(1, false)).Run();
         int version = w.M.Grid.Version;
         Assert.Equal(2, version);
         w.Reload();

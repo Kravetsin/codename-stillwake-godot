@@ -104,6 +104,7 @@
     <Compile Include="../game/features/light/StarField.cs" Link="Game/Light/StarField.cs" />
     <Compile Include="../game/Content/Light.cs" Link="Game/Content/Light.cs" />
     <Compile Include="../game/features/grid/DrawnLayers.cs" Link="Game/Grid/DrawnLayers.cs" />
+    <Compile Include="../game/features/grid/DoorSlides.cs" Link="Game/Grid/DoorSlides.cs" />
     <Compile Include="../game/shared/BuiltRows.cs" Link="Game/Shared/BuiltRows.cs" />
     <Compile Include="../game/features/furnace/Flames.cs" Link="Game/Furnace/Flames.cs" />
     <Compile Include="../game/dev/Testbed.cs" Link="Game/Dev/Testbed.cs" />

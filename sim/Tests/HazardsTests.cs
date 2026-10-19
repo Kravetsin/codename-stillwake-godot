@@ -60,7 +60,7 @@ public class HazardsTests
     {
         var (w, tank, _) = Aired();
         w.Do(new MeteorHit(w.At(8, 2))).Run(2);
-        w.Do(new ToggleValve(w.At(1, 2))).Run();
+        w.Do(new SetValve(w.At(1, 2), false)).Run();
         int cut = w.M.Atmosphere.OxygenIn(tank);
         w.Run(10);
         Assert.Equal(cut, w.M.Atmosphere.OxygenIn(tank));

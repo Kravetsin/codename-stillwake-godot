@@ -53,6 +53,14 @@ public sealed class ShipTiles
             pictures.Add(Picture($"pipe_{linked}", Relief.None));
         }
         foreach (var name in DoorShape.HatchPictures) pictures.Add(Picture(name, Relief.Down));
+        // A door's panel part way open, as it slides (a door's relief rolls across it, a hatch's down).
+        foreach (var (name, closed, open, shift, hatch) in DoorShape.SlidPictures)
+        {
+            Image shut = Art(closed), opened = Art(open);
+            var slid = Image.CreateFromData(shut.GetWidth(), shut.GetHeight(), false, Image.Format.Rgba8,
+                DoorShape.Slid(shut.GetData(), opened.GetData(), shut.GetWidth(), shift, hatch));
+            pictures.Add(Picture(name, slid, hatch ? Relief.Down : Relief.Across));
+        }
         pictures.Add(Picture("valve_open", Relief.None, centred: true));
         pictures.Add(Picture("valve_closed", Relief.None, centred: true));
         foreach (var kind in Machines.All.Select(m => m.Kind)) pictures.Add(Picture($"machine_{kind}", Relief.Round));

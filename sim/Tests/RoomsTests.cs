@@ -50,7 +50,7 @@ public class RoomsTests
         for (int cell = 0; cell < all.Length; cell++) Assert.Equal(w.M.Rooms.RoomAt(cell) ?? RoomsModule.Solid, all[cell]);
         Assert.Equal(new[] { RoomsModule.Space, RoomsModule.Solid, w.At(2, 2), RoomsModule.Solid, w.At(5, 2) },
             new[] { all[0], all[w.At(1, 1)], all[w.At(3, 2)], all[w.At(4, 2)], all[w.At(6, 2)] });
-        w.Do(new ToggleDoor(w.At(4, 2))).Run();
+        w.Do(new SetDoor(w.At(4, 2), true)).Run();
         Assert.Equal(w.At(2, 2), w.M.Rooms.RoomOfCells[w.At(6, 2)]);
     }
 
@@ -65,9 +65,9 @@ public class RoomsTests
             .........
             """);
         Assert.Equal(new[] { (w.At(2, 2), 2), (w.At(5, 2), 2) }, Summary(w));
-        w.Do(new ToggleDoor(w.At(4, 2))).Run();
+        w.Do(new SetDoor(w.At(4, 2), true)).Run();
         Assert.Equal(new[] { (w.At(2, 2), 5) }, Summary(w));
-        w.Do(new ToggleDoor(w.At(4, 2))).Run();
+        w.Do(new SetDoor(w.At(4, 2), false)).Run();
         Assert.Equal(new[] { (w.At(2, 2), 2), (w.At(5, 2), 2) }, Summary(w));
     }
 
@@ -167,7 +167,7 @@ public class RoomsTests
             int size = t.width * t.height;
             foreach (int cell in t.toggles)
                 if (w.M.Grid.StructureAt(cell) is Structure.DoorClosed or Structure.DoorOpen)
-                    w.Do(new ToggleDoor(cell)).Run();
+                    w.Do(new SetDoor(cell, w.M.Grid.StructureAt(cell) == Structure.DoorClosed)).Run();
             foreach (int cell in t.backs)
                 w.Do(w.M.Grid.BackLayer[cell] == Back.Wall ? new ClearAt(cell, "back") : new Place(cell, Placement.BackWall())).Run();
 
@@ -305,7 +305,7 @@ public class RoomsTests
                 2 => new Placement("structure", "floor"),
                 _ => new Placement("structure", "ladder"),
             })];
-        if (structure is Structure.DoorClosed or Structure.DoorOpen && kind < 4) return [new ToggleDoor(cell)];
+        if (structure is Structure.DoorClosed or Structure.DoorOpen && kind < 4) return [new SetDoor(cell, structure == Structure.DoorClosed)];
         return [new ClearAt(cell, "structure")];
     }
 

@@ -408,8 +408,9 @@ Deliberately not handled:
   moment it stops.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
-- Door and valve prompts read them as shown (`Shared.Predicted.Grid`), as `promptOf`'s `shown` did:
-  with this peer's own toggle in flight, the next press undoes it.
+- A press on a door or valve is built from it as shown (`Shared.Predicted.Grid`, passed to `Aiming.AimAt`): it asks
+  for the other state (`SetDoor`/`SetValve`, 0070), so with this peer's own set in flight the next press undoes
+  it, and the prompt says what the press asks for, as `promptOf`'s `shown` did.
 
 ## Not ported yet
 

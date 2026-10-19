@@ -17,6 +17,11 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   machines over their footprints; a sprite per power socket.
 - **Heard:** a door or valve that moved, where it stands (0033); a doorway once, at its cell joined
   neither above nor to its left (`DoorShape.Leads`).
+- **Slid:** a door cell seen to open or shut slides its panel over 0.2 s (`DoorSlides`, plain C#, tested): a door's up
+  into its frame, a hatch's along into its jamb, every cell of a doorway at once, in `DoorShape.Steps` steps of two
+  pixels, each a picture made at start from the shut and open ones (`DoorShape.Slid`) and packed in the atlas, so a
+  slide is a tile swapped a step, never a node. Turned back part way, it slides back from where it is. Only the
+  look (0070): the sim moved the door at once, and air, rooms, feet and light follow the sim, not the slide.
 - **Kept current:** `GridView.Sync(shown)` runs whenever the grid as this peer shows it changes
   (`game/shared/Predicted.cs`'s `Grid`, `predictedGrid` of `session/predicted.ts`): after a tick, and
   on the frame this peer sends a door or valve toggle, which shows at once, before its tick runs (0014). It
