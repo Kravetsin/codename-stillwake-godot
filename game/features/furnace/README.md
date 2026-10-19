@@ -11,13 +11,20 @@ spinning; none of it while it is out, for want of fuel, air or room. Drawn only:
   — the furnace's (14, 17) (TypeScript's `FIRE_AT`), the generator's (4, 16), each mouth drawn with the
   furnace's grate to fit — unlit for it gives light, showing `art/fire_0..2.png` (exported from
   `features/furnace/art.ts`) in turn every 110 ms, never the same picture twice running.
-- **Embers:** 7 a second from the top of the fire in its mouth (5, 2 from the fire's corner, 3 px to
-  either side), owed between frames, emitted into `Particles.Shared` as `Effect.Ember` and drawn and
-  lit by the effects feature.
+- **Embers (0075):** 9 a second streak up from the top of the fire in its mouth (5, 2 from the fire's
+  corner, 3.5 px to either side) on curling paths (`Luminous.Ember`: drifting up, turned by noise,
+  flickering), white-hot at the head and cooling through amber to a dull red as they fade, each lighting
+  the wall a little; 7.2 motes of ash a second drift up with them (`Luminous.Ash`). Owed between frames,
+  emitted into `Glims.Shared`, drawn and lit by the effects feature.
 - **Crackle:** with each new picture its fire draws how brightly it burns (`Flames.Blaze`): from
-  `Flames.Low` to whole, held till the next picture, or one picture in ten a coal cracks: it flares
-  to `Flames.Crack` and throws up `Flames.CrackEmbers` embers at once. `BlazeOf(id)` answers it, 0
-  while out. The fire's sound, `Sound.Fire`, loops with each fire, begun somewhere along the loop.
+  `Flames.Low` to whole, or one picture in ten a coal cracks: it flares to `Flames.Crack`, throws 4 to 7
+  fast sparks that arc and fall, bouncing off the machine's floor (`Luminous.CrackSpark`), and glints once
+  over the mouth. The fire's glow and light breathe toward each picture's brightness, 0.18 of the way a
+  60 Hz frame (`Flames.Breathe`), rather than jump with it: `BlazeOf(id)` answers the glow, 0 while out.
+  The fire's sound, `Sound.Fire`, loops with each fire, begun somewhere along the loop.
+- **Heat shimmer (0075):** the air from 22 px over the machine down to its mouth (26 by 42 px round the
+  fire) wobbles as if seen through hot air (`render/Shimmer.cs`), 0.55 px at most at full glow, drawn under
+  the fire so the flames and embers stay still; a faint warm haze glows in it over the mouth.
 - **Flywheel:** over a burning generator's picture, lit as the machine is, `art/burner_wheel_0..3.png`
   in turn every 55 ms, each a twelfth of a turn on (its three spokes repeat every third): a turn and a
   half a second, each generator a picture off by its id. Out, the wheel at rest in its picture shows.
@@ -35,7 +42,7 @@ spinning; none of it while it is out, for want of fuel, air or room. Drawn only:
 | File             | Holds                                                         |
 | ---------------- | ------------------------------------------------------------- |
 | `FurnaceView.cs` | the layer: fires, flywheels, where embers come from and light |
-| `Flames.cs`      | how brightly a fire burns with each picture, and cracks       |
+| `Flames.cs`      | how brightly a fire burns with each picture, cracks, and how its glow breathes toward it |
 | `FurnaceDemo.cs` | the world of `--furnace`                                      |
 
 ## Art

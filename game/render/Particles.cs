@@ -5,24 +5,19 @@ namespace Stillwake.Game.Render;
 
 /// <summary>
 /// How one kind of particle looks and moves, in pixels of the world and milliseconds (render/particles.ts):
-/// a square of <see cref="Colour"/> that fades out over its life, with a soft glow around it if it has
-/// one, which also lights what is around (0019). <see cref="Spread"/> is the angle around its heading it
+/// a square of <see cref="Colour"/> that fades out over its life: dust, air and puffs, till they are drawn as the
+/// luminous effects are (0075). <see cref="Spread"/> is the angle around its heading it
 /// may leave at; <see cref="Gravity"/> pulls it down (up when negative) aboard and never in space;
 /// <see cref="Drag"/> is the share of its speed it loses a second. Colours are 0xRRGGBB.
 /// </summary>
 public sealed record Effect(
     int Colour, double Alpha, (double From, double To) Size, (double From, double To) LifeMs,
-    (double From, double To) Speed, double Spread, double Gravity, double Drag,
-    (int Colour, double Size)? Glow = null, bool Flicker = false)
+    (double From, double To) Speed, double Spread, double Gravity, double Drag)
 {
     // Every effect, by what makes it (EFFECTS). Headings are radians, screen-wise: 0 right, -π/2 up.
 
     /// <summary>Kicked up by a boot on the floor, settling again.</summary>
     public static readonly Effect Dust = new(0xd4dae2, 0.8, (1.5, 3), (450, 900), (14, 36), 1.2, 18, 2.5);
-    /// <summary>Flying off work on a plan, falling in an arc aboard.</summary>
-    public static readonly Effect Spark = new(0xfff3c4, 1, (1, 1.4), (250, 550), (40, 110), 2.2, 260, 1, Glow: (0xffa040, 6));
-    /// <summary>Rising from a furnace at work, drifting and flickering out.</summary>
-    public static readonly Effect Ember = new(0xffe0a0, 1, (1, 1.6), (1200, 2200), (6, 18), 0.9, -8, 0.4, Glow: (0xff7a20, 7), Flicker: true);
     /// <summary>Air streaming out of a room through its openings into space.</summary>
     public static readonly Effect Air = new(0xcfeaff, 0.7, (1.5, 2.5), (500, 1000), (40, 90), 0.8, 0, 0.5);
     /// <summary>The harpoon's puff of air from its muzzle as it fires (0044), aboard: braked by the air, gone in a third of a second.</summary>
@@ -40,16 +35,8 @@ public sealed class Particle
     public required double Gravity { get; init; }
     public required Effect Effect { get; init; }
 
-    /// <summary>How opaque it is now: fading out over its life, an ember flickering as it goes (alphaOf).</summary>
-    public double Alpha
-    {
-        get
-        {
-            double left = 1 - AgeMs / LifeMs;
-            double flicker = Effect.Flicker ? 0.65 + 0.35 * Math.Sin(AgeMs / 37 + LifeMs) : 1;
-            return Effect.Alpha * left * flicker;
-        }
-    }
+    /// <summary>How opaque it is now: fading out over its life (alphaOf).</summary>
+    public double Alpha => Effect.Alpha * (1 - AgeMs / LifeMs);
 }
 
 /// <summary>

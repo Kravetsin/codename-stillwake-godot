@@ -123,8 +123,30 @@ public partial class ShipCamera : Camera2D
         }
     }
 
+    /// <summary>
+    /// A hit's weight (0075): the view knocked along <paramref name="away"/> by a pixel of the world and back, over
+    /// <see cref="NudgeSteps"/>' 60 Hz frames, the other way each, smaller after the first two.
+    /// </summary>
+    public void Nudge(Vector2 away)
+    {
+        _nudgeMs = 0;
+        _nudgeWay = Mathf.Abs(away.X) >= Mathf.Abs(away.Y) ? new Vector2(Mathf.Sign(away.X), 0) : new Vector2(0, Mathf.Sign(away.Y));
+        if (_nudgeWay == Vector2.Zero) _nudgeWay = Vector2.Right;
+    }
+
+    /// <summary>How far the view is knocked on each 60 Hz frame of a nudge, in pixels of the world, along its way and back.</summary>
+    private static readonly float[] NudgeSteps = [0.75f, -0.75f, 0.4f, -0.4f];
+    private double _nudgeMs = double.MaxValue;
+    private Vector2 _nudgeWay;
+
     public override void _Process(double delta)
     {
+        if (_nudgeMs < NudgeSteps.Length * 1000.0 / 60)
+        {
+            Offset = _nudgeWay * NudgeSteps[(int)(_nudgeMs * 60 / 1000)];
+            _nudgeMs += delta * 1000;
+        }
+        else Offset = Vector2.Zero;
         if (!DevControls) return;
         var pan = Input.GetVector(Left, Right, Up, Down);
         Position += pan * PanSpeed * (float)delta / CurrentZoom;

@@ -50,6 +50,7 @@ namespace Stillwake.Game;
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>), <c>--handbook</c> the Handbook opened on a world that has found ten kinds (<see cref="HandbookDemo"/>),
+/// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
@@ -143,6 +144,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon") || Has("--grapple"))
             AddChild(new WreckDemo(_debris, _hands.Ui, all: Has("--wrecks"), harpoon: Has("--harpoon"), grapple: Has("--grapple")));
         AddChild(_camera = new ShipCamera());
+        _debris.Nudged += _camera.Nudge;
         if (Has("--world") || Has("--fly") || Has("--asteroid") || Has("--sortie")) _layout = Registry.Wreck;
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--hills")) _layout = HillsDemo.Map;
@@ -196,7 +198,8 @@ public partial class Main : Node2D, ITogether
             AddChild(new MarkerLayer(_hands.Ui, _camera, () => _session is Session s && _hero is { Placed: true } h ? (h, _m, s.Client.Id) : null, Hud));
             _camera.DevControls = false;
         }
-        AddChild(new EffectsView());
+        var effects = new EffectsView();
+        AddChild(effects);
         AddChild(_hands);
         if (Has("--plan-demo"))
         {
@@ -254,9 +257,10 @@ public partial class Main : Node2D, ITogether
         if (Has("--sortie") && !Has("--manual")) AddChild(new SortieDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--fly")) AddChild(new FarDemo(_debris, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null, () => _fabricator));
+        if (Has("--fx-bench")) AddChild(new FxBench());
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
-            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount}"));
+            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count}"));
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
@@ -735,6 +739,8 @@ public partial class Main : Node2D, ITogether
         _stopLink = null;
         _session = null;
         Particles.Shared.Clear();
+        Glims.Shared.Clear();
+        Flares.Shared.Clear();
         _next = why;
         // A reload takes the scene out of the tree at once: deferred, the frame that asked (a click, the host gone) ends whole.
         GetTree().CallDeferred(SceneTree.MethodName.ReloadCurrentScene);

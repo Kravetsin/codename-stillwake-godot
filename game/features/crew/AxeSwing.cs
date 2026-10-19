@@ -31,6 +31,22 @@ public struct AxeSwing
     /// <summary>The share of a swing at which the blade crosses the line to its point: when it strikes.</summary>
     public const double HitAt = WindShare + StrikeShare * Raised / (Raised + Through);
 
+    /// <summary>How long a swing that bit something is drawn held at the strike: three 60 Hz frames of weight (0075).</summary>
+    public const double StopMs = 3 * 1000.0 / 60;
+
+    /// <summary>
+    /// The share of a swing that bit something to draw at <paramref name="phase"/> (0075): its own up to the strike,
+    /// held there for <see cref="StopMs"/>, then the rest of it hurried to end with the swing, so the arm stops on
+    /// contact while the swing's clock, and every hit it times, runs on untouched.
+    /// </summary>
+    public static double Shown(double phase)
+    {
+        double stop = StopMs / Ms;
+        if (phase <= HitAt) return phase;
+        if (phase <= HitAt + stop) return HitAt;
+        return HitAt + (phase - HitAt - stop) * (1 - HitAt) / (1 - HitAt - stop);
+    }
+
     /// <summary>
     /// A frame longer than this counts as this long: a stall of the game never owes a burst of swings,
     /// and no frame passes two strikes.

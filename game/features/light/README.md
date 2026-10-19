@@ -6,7 +6,7 @@ Numbers from `game/Content/Light.cs`.
 
 - **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors stop light), `ShapeLayer` (a wall cut to a shape stops it with its solid half, 0069), `BackLayer`,
   `Machines` (lamps, fires; machines dim starlight), `MachineAt`, `Width`/`Height`, `Version`,
-  `ChangedSince` and `Built`; `Particles.Shared` (what glows); every `render/Glow` in the tree (a
+  `ChangedSince` and `Built`; `Glims.Shared` and `Flares.Shared` (what glows, 0075); every `render/Glow` in the tree (a
   planner's screen, a charging station's light, a smelter's coils, a grow capsule's lamp, a station's cold mark).
 - **Costs the cells changed, not the ship or the world** (F-7, 0051). `LightView.Sync` after a tick
   does nothing while the grid's `Version` stands; when it moved, the grid's log names the cells changed
@@ -59,11 +59,15 @@ Numbers from `game/Content/Light.cs`.
 - **Fire:** from where a furnace's or a burner generator's fire gives its light (`LightView.FireAt`, which
   `Main` answers from `FurnaceView.LightAt`: a furnace's bottom row's middle, low in a generator's mouth), `Light.Fire` keeping `Light.FireKeep` a cell
   out to `FireReach` (8) cells, as bright as `LightView.Fire` says (`FurnaceView.BlazeOf`: a new
-  brightness with each picture of the flames, past whole as a coal cracks), and a glow at the mouth.
+  brightness with each picture of the flames, which the glow breathes toward, past whole as a coal cracks: 0075), and a glow at the mouth.
   The furnace view runs before this one each frame, so the light follows the picture shown.
-- **Spots:** each glowing particle at `Light.Particle` of its glow's colour as it fades, keeping
-  `Light.ParticleKeep` a cell out to `ParticleReach` (2) cells: a bright point, not a wash, for the
-  fire lights the room round a furnace anyway; and each `Glow` at its colour, keeping
+- **Spots:** first each flash of `Flares.Shared` (0075: a hit's, a break's, a spark burst's flicker, a
+  molten spot), at its strength, keeping its own keep out to its own reach; then each luminous particle
+  that gives light (`Glims.Shared`, `Luminous.Light`) at `Light.Particle` times `Fx.ParticleLight` of its
+  colour on its ramp as it fades,
+  keeping `Light.ParticleKeep` a cell out to `ParticleReach` (2) cells: a bright point, not a wash, for the
+  fire lights the room round a furnace anyway; at most `Fx.MostLights` (48) of them together, so a big
+  break lights no more than a busy furnace room. Then each `Glow` at its colour, keeping
   `Light.ScreenKeep` out to `ScreenReach` (3).
 - **Starlight** (0070): `StarField` (plain C#, tested) works it out cell by cell. The stars shine in every
   open cell with no back wall and past the grid's edge, and into a wall cut to a shape with no back wall,

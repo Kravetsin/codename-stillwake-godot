@@ -444,7 +444,12 @@ public partial class HeroView : Node2D
         }
         if (swung.Whooshes) _swingSound.Play();
         if (swung.Hits)
-            foreach (var hit in Aiming.HitsOf(m, client.Id, _current, _swing.At)) client.Send(hit);
+        {
+            var hits = Aiming.HitsOf(m, client.Id, _current, _swing.At);
+            foreach (var hit in hits) client.Send(hit);
+            // A blade that bites is drawn stopped on contact a moment (0075).
+            if (hits.Count > 0) _figure.Bit();
+        }
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
         // its power every tick it runs (0055), and hits every wreck its bit touches each Pace ticks. Flat, it winds down.
         bool wieldsDrill = acts && drill && !working && Poses.HoldsIn(pose);

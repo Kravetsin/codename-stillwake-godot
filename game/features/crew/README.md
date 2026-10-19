@@ -14,7 +14,8 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`); the fist and an item held in it (`FistOf`, `HeldAt`, 0040) | no    |
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`); `Jumped` and `Landed`, when the boots are heard pushing off and coming down | no    |
 | `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039), what the drill's bit touches (`Touched`, 0054) | no    |
-| `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the strike, its point, this hero's and others'; the arm and the edge through it (`ArmAt`, `EdgeAt`, `Lead`) (0038, 0039, 0040) | no    |
+| `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the strike, its point, this hero's and others'; the arm and the edge through it (`ArmAt`, `EdgeAt`, `Lead`) (0038, 0039, 0040); a swing that bit drawn held on contact (`Shown`, 0075) | no    |
+| `SwingSmear.cs`    | the swipe of light an axe's downstroke leaves round the shoulder (0075) | yes   |
 | `SwingArm.cs`      | the front arm with the axe: straight through a swing, eased from rest into it, out of it and into the next (0040); the arm aiming the harpoon too | no    |
 | `HarpoonShot.cs`   | the hand harpoon (0044): the rod's flight, hook, reel and way back, the presses each state takes, the hero's cooldown, the point reeled to (`ReelOf`), the arm that aims the barrel (`ArmFor`) | no    |
 | `HarpoonLine.cs`   | the harpoon's line as drawn: the tether's space rope (`Tether.Space`), slack in flight and hooked, wound taut reeling | no    |
@@ -358,6 +359,13 @@ Deliberately not handled:
   by the haft, a third up it, square to the forearm, the hand drawn over it (`HeldLook.FireAxe`, 0040);
   swinging, the arm is straight and turns about the shoulder as one piece (`AxeSwing.ArmAt`), past the
   line to the point by `AxeSwing.Lead`, so the blade crosses it. Hanging, it keeps its pose's bent arm.
+  The downstroke leaves a swipe of light (0075, `SwingSmear`): a band round the shoulder from where the
+  stroke began to the blade's edge as drawn, at most 1.6 radians behind it, clear at its tail and brightest
+  at the blade, a thin white rim on its outer edge, added over the figure; after the stroke it shrinks onto
+  the blade and dies away within a few frames. Every hero's swings leave it. A swing of this player's that
+  bit a wreck (hits sent) is drawn stopped on contact for three 60 Hz frames (`AxeSwing.Shown`), the rest of
+  it hurried to end on time: the swing's clock, and every hit it times, run on untouched, the sim never
+  sees it. Others' heroes' swings are not held, for a peer is not told which bit.
   Where a swing begins, ends or follows another toward a new point, the arm drawn the frame before is
   kept as an offset that eases out over the wind-up's length, 175 ms (`SwingArm`): never a jump, and
   the swing's own arm by its downstroke. Others' figures go the same way, through `Figure.Show`, and

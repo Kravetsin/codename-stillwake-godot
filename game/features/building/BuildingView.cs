@@ -67,9 +67,14 @@ public partial class BuildingView : Node2D
     private (Act Act, bool Left, Spot From)? _drag;
     /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
     private Dictionary<int, int> _worked = [];
-    private double _owedSparks;
-    /// <summary>Sparks off a tick of work on a plan.</summary>
-    private const double SparksPerTick = 0.3;
+    private double _owedBursts;
+    /// <summary>Bursts of sparks off a tick of work on a plan (0075).</summary>
+    private const double BurstsPerTick = 0.42;
+    /// <summary>How far below a spark a floor is looked for, in cells: past it, sparks fall out of sight.</summary>
+    private const int FloorDepth = 6;
+    /// <summary>Each blueprint being built: its ticks of work in all, to tell one finished from one cancelled as it goes.</summary>
+    private readonly Dictionary<int, int> _ticks = [];
+    private readonly BuildGlow _glow = new();
     /// <summary>How far from a plan, in pixels, a hero still turns its sparks toward it: a little past the hands' reach.</summary>
     private const double SparkReach = (Stillwake.Content.Hero.Reach / 1000.0 + 2) * Cell;
     /// <summary>The screwdriver, moved to each plan as it sparks: a few ticks at once, from plans worked side by side.</summary>
@@ -80,7 +85,7 @@ public partial class BuildingView : Node2D
         _ui = ui;
         _hand = hand;
         _plans = new(BackAlpha, backZ: Layers.PlanBacks, built: _built) { ZIndex = Layers.Plans, Modulate = Plan };
-        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _markOutline, _taking, _takingOutline, _keptOutline, _cancelOutline, _badges, _fits, _refused, _hands, _screwdriver]) AddChild(node);
+        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _markOutline, _taking, _takingOutline, _keptOutline, _cancelOutline, _badges, _fits, _refused, _hands, _screwdriver, _glow]) AddChild(node);
         _badges.Paint = PaintBadges;
         _hands.Paint = PaintHands;
     }
@@ -190,7 +195,9 @@ public partial class BuildingView : Node2D
         {
             if (p.Place is not { } place) continue;
             int linked = Tools.LinksOf(place, p.Cell, width, PlannedAt, grid);
-            _plans.Lay(place, p.Cell, width, linked, CutOf(grid, building, p, place));
+            var cut = CutOf(grid, building, p, place);
+            _plans.Lay(place, p.Cell, width, linked, cut);
+            if (cut != null) _glow.Cut(p.Id, BoxOf(CellsOf(grid, p), width), cut);
             shapes.Add((p, place, p.Cell, linked));
         }
         // Built pipes reach toward planned ones beside them, drawn as plans.
@@ -213,26 +220,59 @@ public partial class BuildingView : Node2D
             Outline(shapes, grid);
         }
         SparkWork(plans, grid, rooms);
+        Finish(plans, building);
         _worked = plans.ToDictionary(p => p.Id, p => p.Progress);
     }
 
     /// <summary>
-    /// Sparks off every plan whose work went on since it was last seen, from its side facing the nearest
-    /// hero and toward it (<see cref="Tools.SparksOf"/>): falling aboard, drifting off in space.
+    /// Bursts of sparks off every plan whose work went on since it was last seen, from its side facing the nearest
+    /// hero and toward it (<see cref="Tools.SparksOf"/>): falling aboard and bouncing off the floor, drifting off in
+    /// space (<see cref="BuildGlow"/>).
     /// </summary>
     private void SparkWork(IReadOnlyList<Sim.Building.Plan> plans, IGridQueries grid, IRoomsQueries rooms)
     {
         foreach (var p in plans)
         {
             if (!_worked.TryGetValue(p.Id, out int was) || p.Progress <= was) continue;
-            _owedSparks += (p.Progress - was) * SparksPerTick;
-            int count = (int)Math.Floor(_owedSparks);
-            _owedSparks -= count;
-            if (count == 0) continue;
+            _owedBursts += (p.Progress - was) * BurstsPerTick * Fx.Count;
+            int bursts = (int)Math.Floor(_owedBursts);
+            _owedBursts -= bursts;
+            if (bursts == 0) continue;
             var box = BoxOf(CellsOf(grid, p), grid.Width);
             var (x, y, heading) = Tools.SparksOf((box.Position.X, box.Position.Y, box.Size.X, box.Size.Y), _ui.Heroes, SparkReach);
-            Particles.Shared.Emit(Effect.Spark, x, y, count, heading, rooms.RoomAt(p.Cell) == RoomsModule.Space);
-            _screwdriver.PlayAt(new Vector2((float)x, (float)y));
+            var tip = new Vector2((float)x, (float)y);
+            _glow.Sparked(p.Id, tip, heading, bursts, rooms.RoomAt(p.Cell) == RoomsModule.Space, FloorUnder(grid, tip));
+            _screwdriver.PlayAt(tip);
+        }
+    }
+
+    /// <summary>The top of the first wall or floor under <paramref name="at"/>, in pixels, within <see cref="FloorDepth"/> cells; none past it.</summary>
+    private static float? FloorUnder(IGridQueries grid, Vector2 at)
+    {
+        int x = (int)(at.X / Cell), y = (int)(at.Y / Cell);
+        if (x < 0 || x >= grid.Width) return null;
+        for (int row = y + 1; row <= y + FloorDepth && row < grid.Height; row++)
+            if (row >= 0 && grid.StructureAt(row * grid.Width + x) is Structure.Wall or Structure.Floor) return row * Cell;
+        return null;
+    }
+
+    /// <summary>
+    /// Blueprints gone since the plans were last seen: swept with light if they were all but built when last seen,
+    /// a hand's ticks of work short at most, rather than cancelled (<see cref="BuildGlow.Gone"/>).
+    /// </summary>
+    private void Finish(IReadOnlyList<Sim.Building.Plan> plans, BuildingModule building)
+    {
+        var now = new HashSet<int>();
+        foreach (var p in plans)
+        {
+            now.Add(p.Id);
+            if (p.Place != null && building.TicksFor(p.Id) is { } ticks) _ticks[p.Id] = ticks;
+        }
+        foreach (int id in _worked.Keys)
+        {
+            if (now.Contains(id)) continue;
+            bool built = _ticks.Remove(id, out int all) && all - _worked[id] <= Math.Max(10, all / 10);
+            _glow.Gone(id, built);
         }
     }
 

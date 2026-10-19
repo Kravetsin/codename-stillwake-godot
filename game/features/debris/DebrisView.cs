@@ -45,6 +45,8 @@ public partial class DebrisView(Ui ui) : Node2D
         public bool Wreck { get; } = wreck;
         public int Damage { get; set; }
         public double JoltMs { get; set; }
+        /// <summary>How brightly it still flares from its last hit, 1 at the hit.</summary>
+        public double Flash { get; set; }
         public Vector2 Away { get; set; }
         public int X { get; set; }
         public int Speed { get; set; }
@@ -117,7 +119,7 @@ public partial class DebrisView(Ui ui) : Node2D
             var gone = _shown[id];
             // Gone from the world, not only from the view: broken, or faded out at its end.
             if (!_out.Contains(id) && Fading.Broken(gone.Damage, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
-                Burst(gone.Picture.Position, _own.Ran(id), gone.Picture.Texture.GetSize());
+                Burst(gone.Picture, _own.Ran(id));
             gone.Picture.Visible = false;
             (gone.Wreck ? _wrecks : _small).Push(gone);
             _shown.Remove(id);
@@ -143,7 +145,9 @@ public partial class DebrisView(Ui ui) : Node2D
             jolt *= jolt;
             var picture = one.Picture;
             picture.Position = at + one.Away * (float)(JoltPixels * jolt);
-            picture.Modulate = Colors.White;
+            // A struck wreck flares, its picture brighter before the light falls on it, dying away smoothly.
+            one.Flash *= Math.Pow(FlashDecay, elapsedMs / FrameMs);
+            picture.Modulate = one.Flash > 0.02 ? Colors.White + FlashTint * (float)one.Flash : Colors.White;
             // A slow tumble, each piece its own way; a wreck rocks.
             double turn = one.Wreck
                 ? Rock * Math.Sin(_clockMs / RockMs * 2 * Math.PI + piece.Id)
@@ -169,7 +173,7 @@ public partial class DebrisView(Ui ui) : Node2D
         picture.Texture = texture;
         picture.Scale = Vector2.One * scale;
         picture.Visible = true;
-        (one.Damage, one.JoltMs, one.Away) = (piece.Damage, 0, Vector2.Zero);
+        (one.Damage, one.JoltMs, one.Away, one.Flash) = (piece.Damage, 0, Vector2.Zero, 0);
         if (wreck) ShowCracks(picture, piece);
         return one;
     }
@@ -200,26 +204,92 @@ public partial class DebrisView(Ui ui) : Node2D
         // Struck on the side facing the hero, sparks thrown back toward it.
         var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
         var side = at - away * Math.Min(size.X, size.Y) * 0.4f;
-        // The drill's hits come ten a second: fewer sparks each, and no chop: its strikes are heard as it works (HeroView).
+        // The drill's hits come ten a second: a few sparks each, and no chop: its strikes are heard as it works (HeroView).
         bool drilled = _own.ToolOn(piece.Id) == Content.Weapons.Drill.Item;
-        Particles.Shared.Emit(Effect.Spark, side.X, side.Y, drilled ? 3 : 8, (-away).Angle(), inSpace: true);
-        if (_own.Ran(piece.Id) && !drilled) _chop.PlayAt(side);
+        double back = (-away).Angle();
+        var glims = Glims.Shared;
+        if (drilled)
+        {
+            glims.Spray(Luminous.HitSpark, side.X, side.Y, DrillSparks, back, (-0.8, 0.8), (60, 175));
+            return;
+        }
+        // The axe's bite (0075): a glint, sparks sprayed back toward the hero, slow metal dust, three chips, a faint
+        // shock line, a flash on the wreck and round it; this player's own, the view nudged a pixel.
+        for (int i = 0; i < Math.Round(HitSparks * Fx.Count); i++)
+        {
+            double a = back + glims.Between(-1, 1) * glims.Between(0.2, 1), s = glims.Between(60, 175);
+            glims.Add(Luminous.HitSpark, side.X, side.Y, Math.Cos(a) * s, Math.Sin(a) * s);
+        }
+        for (int i = 0; i < Math.Round(HitDust * Fx.Count); i++)
+        {
+            double a = back + glims.Between(-1.8, 1.8), s = glims.Between(5, 26);
+            glims.Add(Luminous.HitDust, side.X, side.Y, Math.Cos(a) * s, Math.Sin(a) * s, size: glims.Between(0.4, 0.7));
+        }
+        glims.Spray(Luminous.Chip, side.X, side.Y, Chips, back, (-1.1, 1.1), (22, 40));
+        Flares.Shared.Glint(side.X, side.Y, 10, HitGlint);
+        Flares.Shared.Shock(side.X, side.Y, 2, 17, 11 * FrameMs, ShockColour, 0.35 * Fx.Glow);
+        Flares.Shared.Flash(side.X, side.Y, (255, 220, 170), HitFlash * Fx.Glow, 2, 0.45f, FlashDecay);
+        one.Flash = 1;
+        if (_own.Ran(piece.Id))
+        {
+            _chop.PlayAt(side);
+            Nudged?.Invoke(away);
+        }
     }
 
+    /// <summary>Sparks a drill's hit throws, an axe's, the dust it knocks off and the chips.</summary>
+    private const int DrillSparks = 3, HitSparks = 16, HitDust = 14, Chips = 3;
+    private const double FrameMs = 1000.0 / 60;
+    private static readonly (int, int, int) HitGlint = (255, 214, 150), ShockColour = (255, 236, 210);
+    /// <summary>How much brighter a struck wreck's picture flares, warm, as its flash dies away by <see cref="FlashDecay"/> a 60 Hz frame.</summary>
+    private static readonly Color FlashTint = new(0.16f, 0.14f, 0.12f, 0);
+    private const double FlashDecay = 0.84;
+    /// <summary>How strongly a hit and a break light what is round them at first: spots add over the room's light, so less than the page drew.</summary>
+    private const double HitFlash = 0.25, BreakFlash = 0.45;
+
+    /// <summary>This player's own axe bit a wreck, knocking it <c>away</c>: the view nudges (<see cref="ShipCamera.Nudge"/>).</summary>
+    public event Action<Vector2>? Nudged;
+
     /// <summary>
-    /// A wreck broken at <paramref name="at"/>: a puff of dust and sparks, and the break heard if this player's
-    /// own hit broke it (<paramref name="own"/>, 0042). The last hit removes the wreck on its tick, so its chop
-    /// never plays: the break, with an impact of its own, is the hit. A bigger picture (<paramref name="size"/>), a
-    /// derelict's, bursts with more, half as much again for the biggest.
+    /// A wreck broken at <paramref name="at"/> (0075): its picture cut into pieces flying apart with glowing torn edges
+    /// (<see cref="BreakView"/>), a big glint, sparks curling every way, fine dust, a slow cloud, a fast faint shock
+    /// ring and a flash of light dying away; the break heard if this player's own hit broke it (<paramref name="own"/>,
+    /// 0042). The last hit removes the wreck on its tick, so its chop never plays: the break, with an impact of its
+    /// own, is the hit. A bigger picture, a derelict's, bursts with more, twice as much for the biggest.
     /// </summary>
-    private void Burst(Vector2 at, bool own, Vector2 size)
+    private void Burst(Sprite2D picture, bool own)
     {
-        float big = Math.Clamp(size.Length() / 72f, 1f, 2f);
-        Particles.Shared.Emit(Effect.Dust, at.X, at.Y, (int)(24 * big), 0, inSpace: true);
-        Particles.Shared.Emit(Effect.Dust, at.X, at.Y, (int)(24 * big), Math.PI, inSpace: true);
-        Particles.Shared.Emit(Effect.Spark, at.X, at.Y, (int)(14 * big), -Math.PI / 2, inSpace: true);
+        var at = picture.Position;
+        var size = picture.Texture.GetSize() * picture.Scale;
+        float big = Math.Clamp(size.Length() / 26f, 1f, 2f);
+        AddChild(new BreakView(picture.Texture, at, picture.Rotation, picture.Scale.X));
+        var glims = Glims.Shared;
+        double spread = 3 * big;
+        for (int i = 0; i < Math.Round(BreakSparks * big * Fx.Count); i++)
+        {
+            double a = glims.Between(0, Math.Tau), s = glims.Between(40, 150);
+            glims.Add(Luminous.BreakSpark, at.X + glims.Between(-spread, spread), at.Y + glims.Between(-2, 2), Math.Cos(a) * s, Math.Sin(a) * s);
+        }
+        for (int i = 0; i < Math.Round(BreakDust * big * Fx.Count); i++)
+        {
+            double a = glims.Between(0, Math.Tau), s = glims.Between(4, 30);
+            glims.Add(Luminous.BreakDust, at.X + glims.Between(-2 * spread, 2 * spread), at.Y + glims.Between(-4, 4), Math.Cos(a) * s, Math.Sin(a) * s,
+                bright: glims.Between(0.55, 0.9), size: glims.Between(0.4, 0.75));
+        }
+        for (int i = 0; i < Vapour; i++)
+        {
+            double a = glims.Between(0, Math.Tau), s = glims.Between(4, 14);
+            glims.Add(Luminous.Vapour, at.X + Math.Cos(a) * 3 * big, at.Y + Math.Sin(a) * 2 * big, Math.Cos(a) * s, Math.Sin(a) * s,
+                size: glims.Between(3, 4.5) * big);
+        }
+        Flares.Shared.Glint(at.X, at.Y, 18 * Math.Sqrt(big), HitGlint);
+        Flares.Shared.Shock(at.X, at.Y, 4, 4 + 40 * big * Fx.Length, 14 * FrameMs, ShockColour, 0.4 * Fx.Glow, 0.32);
+        Flares.Shared.Flash(at.X, at.Y, (255, 226, 180), BreakFlash * Fx.Glow, 4, 0.45f, 0.9);
         if (own) _break.PlayAt(at);
     }
+
+    /// <summary>Sparks and dust a breaking wreck throws, the puffs of its cloud: a derelict's up to twice as many.</summary>
+    private const int BreakSparks = 26, BreakDust = 44, Vapour = 10;
 
     /// <summary>The chest of the hero nearest <paramref name="at"/>, as the crew drew them this frame: who most likely struck.</summary>
     private Vector2 NearestHero(Vector2 at)
