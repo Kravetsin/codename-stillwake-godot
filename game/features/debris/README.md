@@ -86,10 +86,11 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   shown edged, a click on a found one showing it big, and "2/5" at its end (no strip, its height kept, for a kind
   of one look); its name, a crack and its hit points (`Wreckage.HpOf`), or "Caught by hand"; and its loot slot by
   slot (`Loot.Of`, or the kind itself with no loot): an item seen with its range in the corner ("8–12", none for
-  exactly one), one not yet a black silhouette; a pie in the top-left corner of a slot with a roll, its share one
-  in `OneIn`. Words only in the one tooltip (`Finds`): a kind's name, hit points, looks found and how many of its
+  exactly one), one not yet a black silhouette; its chance as a percent in the top-left corner of a slot with a roll,
+  a hundred over `OneIn` rounded to the nearest ("33%", `LootSlot.Percent`, 0073). Words otherwise only in the one
+  tooltip (`Finds`): a kind's name, hit points, looks found and how many of its
   items have not dropped yet, "???" and its row's "where to look" for one not found; a look's "Look 3 of 5", or
-  "???"; an item's name, range and chance ("1 in 4", "Always"), "???" with its chance for one not seen. With
+  "???"; an item's name, range and chance ("25% (1 in 4)", "Always"), "???" with its chance for one not seen. With
   nothing found, the entry says what to do. Reads `DebrisModule.Found` every 250 ms while shown and builds again
   only when the record has changed (a load or a resync brings another world's). Which look a piece wears is the
   sim's `Content.Looks.Of(kind, id)`, the one function the pieces are drawn by and the record is written by.

@@ -43,14 +43,16 @@ public class HandbookTests
     }
 
     [Fact]
-    public void SaysARangeInTheCornerOnceSeenAndAChanceAsOneIn()
+    public void SaysARangeInTheCornerOnceSeenAndAChanceAsAPercentRoundedToTheNearest()
     {
         Assert.Equal("8–12", new LootSlot("planks", 8, 12, null, true).Corner);
         Assert.Equal("6", new LootSlot("scrap", 6, 6, null, true).Corner);
         Assert.Equal("", new LootSlot("canister", 1, 1, null, true).Corner);
         Assert.Equal("", new LootSlot("gear", 1, 2, 4, false).Corner);
         Assert.Equal("1–2", new LootSlot("gear", 1, 2, 4, false).Range);
-        Assert.Equal("1 in 4", new LootSlot("gear", 1, 2, 4, false).Chance);
+        Assert.Equal("25% (1 in 4)", new LootSlot("gear", 1, 2, 4, false).Chance);
+        Assert.Equal(["50%", "33%", "25%", "17%", "13%"], new[] { 2, 3, 4, 6, 8 }.Select(n => new LootSlot("gear", 1, 2, n, false).Percent));
+        Assert.Null(new LootSlot("planks", 8, 12, null, true).Percent);
         Assert.Equal("Always", new LootSlot("planks", 8, 12, null, true).Chance);
     }
 
@@ -58,7 +60,7 @@ public class HandbookTests
     public void NamesASeenItemInItsTipAndHidesAnUnseenOneBehindQuestionMarks()
     {
         Assert.Equal(new Tip("Planks", new TipLine("8–12"), new TipLine("Always", Tone.Good)), new LootSlot("planks", 8, 12, null, true).Tip);
-        Assert.Equal(new Tip("???", new TipLine("1 in 2"), new TipLine("Not dropped yet", Tone.Dim)), new LootSlot("seed", 1, 2, 2, false).Tip);
+        Assert.Equal(new Tip("???", new TipLine("50% (1 in 2)"), new TipLine("Not dropped yet", Tone.Dim)), new LootSlot("seed", 1, 2, 2, false).Tip);
     }
 
     [Fact]

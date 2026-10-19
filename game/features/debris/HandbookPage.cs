@@ -14,8 +14,8 @@ namespace Stillwake.Game.Features.Debris;
 /// look (<c>Handbook.DebrisRows</c>), those the world has found in the first look found, the rest black silhouettes,
 /// and how many looks are found of all there are; beside them the kind chosen: the look chosen big, a strip of all its
 /// looks (those not found black) with how many are found, its name, hit points or that it is caught by hand, and its
-/// loot slot by slot, each with its range in the corner and a pie of its chance, an item none has come out of yet a
-/// silhouette with its pie alone. Names, "???" and chances are in the one tooltip. Reads <c>DebrisModule.Found</c>
+/// loot slot by slot, each with its range in the corner and its chance as a percent, an item none has come out of yet a
+/// silhouette with its percent alone. Names, "???" and chances are in the one tooltip. Reads <c>DebrisModule.Found</c>
 /// on a timer while shown, and builds again only when the record changes.
 /// </summary>
 public partial class HandbookPage : VBoxContainer
@@ -36,7 +36,7 @@ public partial class HandbookPage : VBoxContainer
     private static readonly LabelSettings HowText = Style.Text(Style.Mono, 11, Style.Slate400);
     private static readonly LabelSettings CornerText = Style.Text(Style.Mono, 10, Colors.White, shadow: true);
     private static readonly LabelSettings EmptyText = Style.Text(Style.Sans, 12, Style.Slate400);
-    private static readonly Color PieGround = new("0b1220");
+    private static readonly Color TrackGround = new("0b1220");
 
     /// <summary>The section's icon in the Handbook's side list: a cargo crate as it drifts.</summary>
     public static Texture2D SectionIcon => GD.Load<Texture2D>(DebrisLooks.PictureOf("cargoCrate", 0));
@@ -102,7 +102,7 @@ public partial class HandbookPage : VBoxContainer
         var tally = _tallyBox = Style.Gap(new HBoxContainer { MouseFilter = MouseFilterEnum.Stop }, 8);
         tally.AddChild(_tally);
         var track = new Panel { CustomMinimumSize = new Vector2(64, 7), SizeFlagsVertical = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Ignore };
-        track.AddThemeStyleboxOverride("panel", Style.Box(PieGround, Style.Slate700, radius: 0));
+        track.AddThemeStyleboxOverride("panel", Style.Box(TrackGround, Style.Slate700, radius: 0));
         track.AddChild(_tallyFill);
         _tallyFill.SetAnchorsPreset(LayoutPreset.FullRect);
         (_tallyFill.OffsetLeft, _tallyFill.OffsetTop, _tallyFill.OffsetBottom) = (1, 1, -1);
@@ -351,7 +351,7 @@ public partial class HandbookPage : VBoxContainer
         return line;
     }
 
-    /// <summary>A loot slot: its item, a black silhouette till one has come out; its range in the corner, its chance as a pie.</summary>
+    /// <summary>A loot slot: its item, a black silhouette till one has come out; its range in the corner, its chance as a percent.</summary>
     private Panel LootSlotOf(LootSlot loot)
     {
         var slot = new Panel { CustomMinimumSize = new Vector2(LootSide, LootSide), MouseFilter = MouseFilterEnum.Stop };
@@ -361,7 +361,9 @@ public partial class HandbookPage : VBoxContainer
         icon.Position = new Vector2(Slots.Inset, Slots.Inset);
         icon.Modulate = loot.Seen ? Colors.White : Colors.Black;
         slot.AddChild(icon);
-        if (loot.OneIn is int oneIn) slot.AddChild(Pie(oneIn));
+        // The chance in words, not a pie, which read as a timer running down.
+        if (loot.Percent is { } percent)
+            slot.AddChild(new Label { Text = percent, LabelSettings = CornerText, Position = new Vector2(2, 0), MouseFilter = MouseFilterEnum.Ignore });
         var corner = new Label
         {
             Text = loot.Corner,
@@ -375,29 +377,6 @@ public partial class HandbookPage : VBoxContainer
         (corner.OffsetRight, corner.OffsetBottom) = (-2, 2);
         _tips.Add(slot, () => loot.Tip);
         return slot;
-    }
-
-    /// <summary>A pie in the slot's top-left corner, its share one in <paramref name="oneIn"/>, from twelve o'clock clockwise.</summary>
-    private static Control Pie(int oneIn)
-    {
-        var pie = new Control { Position = new Vector2(2, 2), Size = new Vector2(11, 11), MouseFilter = MouseFilterEnum.Ignore };
-        pie.Draw += () =>
-        {
-            var c = pie.Size / 2;
-            float r = c.X - 0.5f;
-            pie.DrawCircle(c, r, PieGround);
-            const int Steps = 24;
-            var wedge = new Vector2[Steps + 2];
-            wedge[0] = c;
-            for (int i = 0; i <= Steps; i++)
-            {
-                float a = -Mathf.Pi / 2 + Mathf.Tau / oneIn * i / Steps;
-                wedge[i + 1] = c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r;
-            }
-            pie.DrawColoredPolygon(wedge, Style.Slate300);
-            pie.DrawArc(c, r, 0, Mathf.Tau, 24, Style.Slate300, 1, true);
-        };
-        return pie;
     }
 
     private static TextureRect Icon(Texture2D texture, int size) => new()

@@ -462,7 +462,7 @@ public static partial class En
         ["handbook.byHand"] = "Caught by hand",
         ["handbook.byHarpoon"] = "or reeled in by a harpoon",
         ["handbook.missing"] = "{n} not dropped yet",
-        ["handbook.chance"] = "1 in {n}",
+        ["handbook.chance"] = "{p}% (1 in {n})",
         ["handbook.always"] = "Always",
         ["handbook.notDropped"] = "Not dropped yet",
         ["handbook.found"] = "Found in this world",
