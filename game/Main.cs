@@ -229,6 +229,8 @@ public partial class Main : Node2D, ITogether
             busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || _hands.Plan.PlanOut.Get(),
             putAway: () =>
             {
+                // A search in the build menu goes first, the menu staying open.
+                if (_hands.Menu.DropSearch()) return;
                 _items?.Panel.Close();
                 handbook.Close();
                 _hands.Plan.PutPlanAway();

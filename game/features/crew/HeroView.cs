@@ -795,8 +795,8 @@ public partial class HeroView : Node2D
     {
         static bool Held(Key a, Key b) => Input.IsPhysicalKeyPressed(a) || Input.IsPhysicalKeyPressed(b);
         static int Axis(bool minus, bool plus) => (plus ? 1 : 0) - (minus ? 1 : 0);
-        // Keys held as the game menu opened are not walked on behind it.
-        if (_ui.MenuOpen.Get())
+        // Keys held as the game menu opened are not walked on behind it, nor letters typed in a field (the build menu's search).
+        if (_ui.MenuOpen.Get() || GetViewport().GuiGetFocusOwner() is LineEdit)
         {
             _jump = false;
             return new HeroInput(0, 0, false);
