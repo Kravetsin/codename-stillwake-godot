@@ -136,6 +136,7 @@ public partial class Main : Node2D, ITogether
         var slots = _args.FirstOrDefault(a => a.StartsWith("--slots=", StringComparison.Ordinal));
         _hands.Ui.SlotScale.Set(slots != null ? Slots.ScaleNamed(slots[8..]) : Settings.SlotScale());
         if (slots == null) _hands.Ui.SlotScale.Subscribe(() => Settings.Keep(_hands.Ui.SlotScale.Get()));
+        Shimmer.Enabled = Settings.Shimmer();
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
         AddChild(_stars = new Stars());

@@ -41,10 +41,15 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
 - **Light (0019):** flashes first, then luminous particles that give light, as spots of the light feature (`LightView`), at most `Fx.MostLights` (48) together.
 - **Heat shimmer:** a `Shimmer` node per hot thing, under the flames and over what is behind them: the screen
   under its box sampled again, each row nudged sideways by two waves and noise rising through it, faded out
-  toward its edges; Godot copies the screen once a frame for all of them, on the first that reads it.
+  toward its edges, a texel with nothing drawn in it adding nothing, so it never darkens. The screen under each
+  box (and 4 px round it) is copied just before it by a `BackBufferCopy` of that rect: Godot's own copy is
+  taken once a frame and a canvas group drawn after it (the aim's outline, `render/Outline.cs`) leaves its own
+  buffer there, which a weld's shimmer over the outlined plan read as a black disc. The Esc menu's settings
+  switch it off (`Shimmer.Enabled`, kept in `user://settings.cfg`, on by default).
 - **Cost** (`-- --measure`, RTX 4060 Ti, 1920×1080): the testbed's furnace room 1.52 → 1.62 ms a frame,
   164 draw calls against 159; `-- --fx-bench` (eight fires with their shimmer, four plans worked, a wreck
-  broken every second: some 570 particles) 2.2 ms a frame, 0.63 ms of it this layer's CPU, 200 draw calls.
+  broken every second, and a plan welded hot under the aim's outline: some 600 particles) 2.4 ms a frame, 0.7 ms
+  of it this layer's CPU, 220 draw calls.
   Godot draws each polyline as a draw call with a fresh buffer of its own; drawn so, the bench took 5.7 ms.
 - At most 1600 luminous particles and 2000 old ones fly at once: a big breach thins out rather than costing frames.
 
@@ -54,7 +59,6 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
 
 - Slice 2 (0075): the jetpack's plume, boots' dust, the harpoon's puff and line, venting air, the drone, a
   door's slide, a lamp's glow, the pick-up popup and the drill's bolts are still drawn as before.
-- No setting turns the shimmer off: it costs one screen copy a frame and a fragment per pixel of its boxes.
 - Particles fly through walls: nothing but a floor an emitter names stops them.
 
 ## Differences from the TypeScript

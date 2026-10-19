@@ -7,7 +7,9 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// A busy scene of luminous effects for measuring them (<c>-- --fx-bench</c>, with <c>--measure</c>): round the
 /// camera's middle, <see cref="Fires"/> fires' embers, ash and cracking coals, each with its shimmer,
-/// <see cref="Sites"/> plans' spark bursts and a wreck's break every second, as the features throw them (0075).
+/// <see cref="Sites"/> plans' spark bursts and a wreck's break every second, as the features throw them (0075);
+/// and a plan welded on above the middle, hot, smoking and shimmering, with the aim's outline drawn meanwhile, as
+/// a hero working a plan has it: what once made the shimmer read the outline's buffer and draw a black disc.
 /// </summary>
 public partial class FxBench : Node2D
 {
@@ -15,11 +17,16 @@ public partial class FxBench : Node2D
     private readonly Random _random = new(1);
     private readonly Shimmer[] _shimmers = new Shimmer[Fires];
     private double _embers, _ash, _bursts, _breakMs, _crackMs;
+    private readonly Features.Building.BuildGlow _weld = new();
+    private readonly Outline _aim = new(Layers.Aim);
+    private double _weldMs;
 
     public FxBench()
     {
         ZIndex = Layers.Fire;
         for (int i = 0; i < Fires; i++) AddChild(_shimmers[i] = new Shimmer());
+        AddChild(_weld);
+        AddChild(_aim);
     }
 
     private double Between(double from, double to) => from + (to - from) * _random.NextDouble();
@@ -34,6 +41,11 @@ public partial class FxBench : Node2D
         _bursts += 0.42 * 20 * Sites * ms / 1000;
         _crackMs += ms;
         _breakMs += ms;
+        var weld = middle + new Vector2(30, -20);
+        for (_weldMs += ms; _weldMs >= 50; _weldMs -= 50) _weld.Sparked(1, weld, Math.PI, 1, false, middle.Y + 40);
+        _aim.Begin();
+        _aim.AddBox(new Rect2(weld + new Vector2(0, -8), new Vector2(16, 16)), Colors.White);
+        _aim.End();
         for (int i = 0; i < Fires; i++)
         {
             var at = middle + new Vector2(-200 + i * 50, 40);

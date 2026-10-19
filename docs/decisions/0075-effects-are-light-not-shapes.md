@@ -52,13 +52,15 @@ generator's, which shares it), a screwdriver's sparks on a plan, an axe's hit an
 - **Spots for light, capped.** A spark's light is a spot of the lightmap (0029); a break throws 26 sparks at once,
   whose spots summed would wash a wreck white, so their light is `Fx.ParticleLight` (0.3) of an old ember's and the
   flashes are weaker than the page drew (spots add over the room's light where the page's multiplied).
-- **Shimmer reads Godot's own screen copy**, one a frame for every shimmer, so it needs no viewport of its own.
+- **Each shimmer copies the screen under its own box** (a `BackBufferCopy` of that rect) just before it is drawn, and
+  shows only what was drawn there (its alpha), so it bends the scene and never darkens it. Godot's own copy is taken
+  once a frame, and a canvas group drawn after it — the aim's outline over a plan being welded — leaves its own buffer
+  there: the first build drew a black disc over the weld. The Esc menu's settings switch it off (on by default).
 
 ## Deliberately not done
 
 - Slice 2: the jetpack's plume, boots' dust, the harpoon's puff and line, venting air, the drone, a door's slide, a
   lamp's glow, the pick-up popup and the drill's bolts keep their look till then.
-- No setting turns the shimmer off: it is one screen copy and a few small boxes.
 - Particles pass through walls; only a floor the emitter names stops sparks.
 - Others' heroes' swings are not held on contact: a peer is not told which swing bit.
 - A plan's molten spot heats per plan, so a wall dragged cell by cell is worked cool, a cell at a time.

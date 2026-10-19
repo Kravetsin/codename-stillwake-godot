@@ -9,7 +9,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Menu;
 
 /// <summary>
-/// The game menu on Esc (0031): resume, the Handbook (J, 0066), save, settings (the suit's colour, the slots' size), save and exit to the title,
+/// The game menu on Esc (0031): resume, the Handbook (J, 0066), save, settings (the suit's colour, the slots' size, heat shimmer), save and exit to the title,
 /// save and quit — a guest leaves and quits without saving — over a darkened screen, the world, when it
 /// was saved and the code while hosting at its foot. Only in a world: on the title, Esc does nothing. Esc is decided here for the whole game (<see cref="Escape"/>): it puts away what is open or
 /// in hand first and opens the menu only when nothing is. The world runs on behind it, alone too: in
@@ -98,6 +98,23 @@ public partial class GameMenu : CanvasLayer
         _settings.AddChild(sizes);
         PaintSizes();
         _ui.SlotScale.Subscribe(PaintSizes);
+        // Heat shimmer (0075): on by default, kept on this machine.
+        _settings.AddChild(Line(T("menu.shimmer"), Style.Slate300, 12));
+        var shimmer = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 8);
+        foreach (var (on, key) in (ReadOnlySpan<(bool, string)>)[(true, "menu.on"), (false, "menu.off")])
+        {
+            var chosen = on;
+            var button = Style.Button(T(key), () =>
+            {
+                Shimmer.Enabled = chosen;
+                Settings.KeepShimmer(chosen);
+                PaintShimmer();
+            }, size: 13, padX: 14, padY: 5);
+            _buttons[key] = button;
+            shimmer.AddChild(button);
+        }
+        _settings.AddChild(shimmer);
+        PaintShimmer();
         _settings.AddChild(Choice("menu.logs", Logs.OpenFolder));
         _settings.AddChild(Choice("menu.back", () => Show(MenuPage.Main)));
         column.AddChild(_settings);
@@ -122,6 +139,14 @@ public partial class GameMenu : CanvasLayer
         bool large = _ui.SlotScale.Get() == SlotScale.Large;
         Style.Paint(_buttons["menu.slotsNormal"], large ? Style.Slate700 : Style.Sky700, large ? Style.Slate600 : Style.Sky700, 14, 5);
         Style.Paint(_buttons["menu.slotsLarge"], large ? Style.Sky700 : Style.Slate700, large ? Style.Sky700 : Style.Slate600, 14, 5);
+    }
+
+    /// <summary>Whether heat shimmers lit, the other as any button.</summary>
+    private void PaintShimmer()
+    {
+        bool on = Shimmer.Enabled;
+        Style.Paint(_buttons["menu.on"], on ? Style.Sky700 : Style.Slate700, on ? Style.Sky700 : Style.Slate600, 14, 5);
+        Style.Paint(_buttons["menu.off"], on ? Style.Slate700 : Style.Sky700, on ? Style.Slate600 : Style.Sky700, 14, 5);
     }
 
     private Button Choice(string key, Action pressed)
