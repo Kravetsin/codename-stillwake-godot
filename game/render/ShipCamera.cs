@@ -4,7 +4,7 @@ namespace Stillwake.Game.Render;
 
 /// <summary>
 /// The camera over the ship (render/camera.ts): it centres a world point, zooms in steps with
-/// <c>-</c> and <c>=</c> within <see cref="ZoomMin"/>..<see cref="ZoomMax"/>, and answers which cells
+/// <c>-</c> and <c>=</c> from the farthest, <see cref="Farthest"/> on any screen, to twice as near, and answers which cells
 /// are on screen and which cell the pointer is over. Until the hero is ported it is moved by hand: the
 /// arrow keys and a middle-button drag pan it, the wheel zooms.
 /// </summary>
@@ -13,11 +13,15 @@ public partial class ShipCamera : Camera2D
     /// <summary>Pixels per cell at zoom 1.</summary>
     public const int Cell = 16;
 
-    /// <summary>The zoom a game starts at: the hero about 84 px tall.</summary>
-    public const float StartZoom = 2;
+    /// <summary>
+    /// The most of the world a screen shows, in cells, at the farthest zoom, where a game starts: the same
+    /// for every player whatever their screen, as Terraria keeps it; a bigger screen draws it larger. Within
+    /// the debris' <c>Debris.View</c> both ways, so no piece appears or vanishes in sight (0052).
+    /// </summary>
+    public static readonly Vector2 Farthest = new(96, 54);
 
-    /// <summary>How far the player may zoom, Terraria's way: a little out, a little in. One key press is one step.</summary>
-    public const float ZoomMin = 1, ZoomMax = 2.5f, ZoomStepSize = 0.25f;
+    /// <summary>How near the player may zoom, as a multiple of the farthest, and one key press's step.</summary>
+    public const float LevelMax = 2, LevelStep = 0.2f;
 
     /// <summary>How far <see cref="Fit"/> may zoom out to frame a whole world in development.</summary>
     private const float FitMin = 0.1f;
@@ -29,18 +33,42 @@ public partial class ShipCamera : Camera2D
     public bool DevControls { get; set; } = true;
 
     private bool _dragging;
+    private float _level = 1;
+    // A zoom set outright, by a dev view or Fit, rather than the player's level.
+    private float? _fixed;
     // Made once: a string passed each frame would make a StringName each frame for the GC to finalize.
     private static readonly StringName Left = "ui_left", Right = "ui_right", Up = "ui_up", Down = "ui_down";
 
-    public ShipCamera() => SetZoom(StartZoom);
-
-    /// <summary>The zoom one step from <paramref name="zoom"/> toward <paramref name="direction"/> (±1), kept within bounds.</summary>
-    public static float ZoomStep(float zoom, int direction) =>
-        Mathf.Clamp(zoom + direction * ZoomStepSize, ZoomMin, ZoomMax);
+    /// <summary>The farthest zoom on a screen <paramref name="screen"/> pixels big: what shows at most <see cref="Farthest"/>.</summary>
+    public static float FarthestZoom(Vector2 screen) => Mathf.Max(screen.X / (Farthest.X * Cell), screen.Y / (Farthest.Y * Cell));
 
     public float CurrentZoom => Zoom.X;
 
-    public void SetZoom(float zoom) => Zoom = new Vector2(zoom, zoom);
+    /// <summary>Zooms to exactly <paramref name="zoom"/>, for dev views; the player's next step goes back to their level.</summary>
+    public void SetZoom(float zoom)
+    {
+        _fixed = zoom;
+        Zoom = new Vector2(zoom, zoom);
+    }
+
+    public override void _Ready()
+    {
+        Apply();
+        GetViewport().SizeChanged += Apply;
+    }
+
+    private void Step(int direction)
+    {
+        _fixed = null;
+        _level = Mathf.Clamp(_level + direction * LevelStep, 1, LevelMax);
+        Apply();
+    }
+
+    private void Apply()
+    {
+        float zoom = _fixed ?? FarthestZoom(GetViewportRect().Size) * _level;
+        Zoom = new Vector2(zoom, zoom);
+    }
 
     /// <summary>Centres a world point, in cells.</summary>
     public void Follow(Vector2 cells) => Position = cells * Cell;
@@ -51,7 +79,7 @@ public partial class ShipCamera : Camera2D
         const int margin = 2;
         var screen = GetViewportRect().Size;
         float w = (cells.Size.X + margin * 2) * Cell, h = (cells.Size.Y + margin * 2) * Cell;
-        SetZoom(Mathf.Clamp(Mathf.Min(screen.X / w, screen.Y / h), FitMin, ZoomMax));
+        SetZoom(Mathf.Clamp(Mathf.Min(screen.X / w, screen.Y / h), FitMin, FarthestZoom(screen) * LevelMax));
         Follow(cells.GetCenter());
     }
 
@@ -75,16 +103,16 @@ public partial class ShipCamera : Camera2D
                 Key.Equal or Key.KpAdd => 1,
                 _ => 0,
             };
-            if (direction != 0) SetZoom(ZoomStep(CurrentZoom, direction));
+            if (direction != 0) Step(direction);
         }
         if (!DevControls) return;
         switch (e)
         {
             case InputEventMouseButton { ButtonIndex: MouseButton.WheelUp, Pressed: true }:
-                SetZoom(ZoomStep(CurrentZoom, 1));
+                Step(1);
                 break;
             case InputEventMouseButton { ButtonIndex: MouseButton.WheelDown, Pressed: true }:
-                SetZoom(ZoomStep(CurrentZoom, -1));
+                Step(-1);
                 break;
             case InputEventMouseButton { ButtonIndex: MouseButton.Middle } button:
                 _dragging = button.Pressed;

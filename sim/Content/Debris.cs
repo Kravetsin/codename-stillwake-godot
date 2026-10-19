@@ -25,8 +25,8 @@ public static class Debris
     public const int Lead = 64;
 
     /// <summary>
-    /// What the farthest zoom shows round a hero's reported cell, in cells either way: 1920×1080 at zoom 1,
-    /// 16 pixels a cell. No zone spawns a piece in any hero's, nor takes one away in it but at the grid's edge.
+    /// A hero's view round their reported cell, in cells either way: more than the farthest zoom shows on any
+    /// screen (the client's 96×54 cells), with room for a report's lag. No zone spawns a piece in any hero's, nor takes one away in it but at the grid's edge.
     /// </summary>
     public static readonly HalfBox View = new(60, 34);
 
