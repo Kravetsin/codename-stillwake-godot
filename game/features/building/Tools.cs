@@ -65,7 +65,7 @@ public static class Tools
 
     /// <summary>A card for each material, its id and its text's key followed by the material's name.</summary>
     private static IEnumerable<Tool> OfEveryMaterial(string id, System.Func<string, Placement> placement) =>
-        Materials.All.Select(m => Place(
+        Materials.Buildable.Select(m => Place(
             id + char.ToUpperInvariant(m.Id[0]) + m.Id[1..],
             placement(m.Id),
             $"{En.T($"tool.{id}")}: {En.T($"material.{m.Id}")}"));

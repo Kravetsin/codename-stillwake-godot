@@ -37,6 +37,17 @@ public abstract class Module
     /// <summary>The world's random numbers: the only randomness a module may use.</summary>
     protected Rng Random => Rng;
 
+    /// <summary>
+    /// SPIKE (planet): <paramref name="module"/> made from <paramref name="layout"/> outside any world, its slice never
+    /// saved or hashed: derived state of the module that holds it (a site's ground, made from its seed).
+    /// </summary>
+    public static T Standalone<T>(T module, Layout layout) where T : Module
+    {
+        module.Create(layout);
+        module.Rebuild();
+        return module;
+    }
+
     /// <summary>Rebuilds derived state from the rest of the slice: after a create and after a load.</summary>
     public virtual void Rebuild() { }
 

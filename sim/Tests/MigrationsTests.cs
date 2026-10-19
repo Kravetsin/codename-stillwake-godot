@@ -226,6 +226,7 @@ public class MigrationsTests
         var root = JsonNode.Parse(save)!.AsObject();
         root["format"] = DronesFormat - 1;
         root["slices"]!.AsObject().Remove("logistics");
+        root["slices"]!.AsObject().Remove("site");
         foreach (var held in root["slices"]!["items"]!["crates"]!.AsArray())
             if ((int)held!["id"]! == assembler)
             {

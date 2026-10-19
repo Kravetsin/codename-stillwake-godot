@@ -17,8 +17,8 @@ public static class Blueprints
     /// <summary>Every blueprint there is, with what it places and costs: walls and back walls by material, builds, machines but those built into the ship (the lifepod).</summary>
     public static readonly IReadOnlyList<Blueprint> All =
     [
-        .. Content.Materials.All.Select(m => Of(Placement.Wall(m.Id), m.Cost)),
-        .. Content.Materials.All.Select(m => Of(Placement.BackWall(m.Id), m.Cost)),
+        .. Content.Materials.Buildable.Select(m => Of(Placement.Wall(m.Id), m.Cost)),
+        .. Content.Materials.Buildable.Select(m => Of(Placement.BackWall(m.Id), m.Cost)),
         .. Content.Builds.All.Select(b => Of(new Placement(b.Id is "pipe" or "valve" ? "conduit" : "structure", b.Id), b.Cost)),
         .. Content.Machines.All.Where(m => !m.Fixed).Select(m => Of(new Placement("machine", m.Kind), m.Cost)),
     ];

@@ -136,6 +136,12 @@ public static class Migrations
             save["slices"]!["debris"]!.AsObject()["found"] ??= new JsonArray();
             return save;
         },
+        // 18 → 19 (SPIKE, planet): no site made yet: an empty site slice, last.
+        save =>
+        {
+            save["slices"]!.AsObject()["site"] ??= new JsonObject { ["sites"] = new JsonArray(), ["nextDrop"] = 1 };
+            return save;
+        },
     ];
 
     /// <summary>

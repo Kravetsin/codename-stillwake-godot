@@ -132,6 +132,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         piece = at < 0 ? null : State.Pieces[at];
         if (piece == null) return "debris.gone";
         var hero = _crew.HeroOf(peer);
+        if (hero is { Site: not 0 }) return "debris.away";
         if (hero == null || !Outside(hero.Cell) || !Outside(CellOf(piece.X, piece.Y, _grid.Width))) return "debris.notOutside";
         return null;
     }

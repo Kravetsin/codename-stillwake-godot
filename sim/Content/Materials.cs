@@ -11,7 +11,8 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="Cost">Whole units of items one cell of it takes: scrap itself, iron as plates.</param>
 /// <param name="BuildTicks">Ticks of a hero's work to build one cell.</param>
-public sealed record Material(string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks);
+/// <param name="Natural">SPIKE (planet): ground a site is made of, dug and never built: no blueprint, no card.</param>
+public sealed record Material(string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, bool Natural = false);
 
 /// <summary>Hull materials, weakest first.</summary>
 public static class Materials
@@ -20,7 +21,13 @@ public static class Materials
     [
         new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 2)], BuildTicks: 13),
         new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 27),
+        // SPIKE (planet): the ground of a site, dug out into what it is made of.
+        new("soil", Code: 3, Strength: 2, Leak: 30, Cost: [("soil", 1)], BuildTicks: 20, Natural: true),
+        new("rock", Code: 4, Strength: 5, Leak: 24, Cost: [("rock", 1)], BuildTicks: 40, Natural: true),
     ];
+
+    /// <summary>The materials a player may build with: every one but the ground.</summary>
+    public static readonly IReadOnlyList<Material> Buildable = All.Where(m => !m.Natural).ToList();
 
     /// <summary>What a <c>#</c> on a map is built of.</summary>
     public const string DefaultHull = "scrap";

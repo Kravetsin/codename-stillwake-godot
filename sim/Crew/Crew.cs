@@ -51,12 +51,19 @@ public interface ICrewQueries
     IReadOnlyList<Hero> Heroes { get; }
 }
 
+/// <summary>SPIKE (planet): how the site module moves heroes between the ship and a site.</summary>
+public interface ICrewOps
+{
+    /// <summary>Puts hero <paramref name="peer"/> on site <paramref name="site"/> (0 the ship) at <paramref name="cell"/>, a cell of that site's ground.</summary>
+    void Send(int peer, int site, int cell);
+}
+
 /// <summary>
 /// Heroes inside the sim: where each one is, as its client says, and how it breathes — room air in a
 /// cell holding it, the suit anywhere else, passing out when the suit runs dry
 /// (packages/sim/src/modules/crew).
 /// </summary>
-public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
+public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewOps
 {
     public override string Id => "crew";
 
@@ -114,6 +121,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                     hero.Out -= 1;
                     if (hero.Out == 0)
                     {
+                        // SPIKE (planet): one who passed out on a site wakes aboard, at the pod.
+                        hero.Site = 0;
                         hero.Cell = State.Spawn;
                         hero.Suit = Content.Crew.Suit;
                     }
@@ -121,6 +130,20 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                 }
                 Thrusts(hero);
                 if (!breath) continue;
+                if (hero.Site != 0)
+                {
+                    // SPIKE (planet): no air on a site: the suit pays every breath. Passed out there it keeps what it
+                    // carries: a body on a site would need floor stacks of the site's.
+                    hero.Suit = Math.Max(0, hero.Suit - (hero.Exerting ? Content.Crew.Exerted : 1));
+                    if (hero.Suit == 0)
+                    {
+                        hero.Out = Content.Crew.PassOut;
+                        hero.Exerting = false;
+                        hero.Thrusting = false;
+                        _itemsOps.StopRunning(hero.Id);
+                    }
+                    continue;
+                }
                 // The pod's air first, for the breath and the suit alike; then one draw from the room for
                 // what is left of both, the room's refill as before. What the air falls short of the breath the
                 // suit pays, and the cold past the field after that, the suit alone.
@@ -252,6 +275,12 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
     // Queries.
 
     public int Spawn => State.Spawn;
+
+    public void Send(int peer, int site, int cell)
+    {
+        var hero = HeroOf(peer) ?? throw new InvalidOperationException($"crew.send: no hero {peer}");
+        (hero.Site, hero.Cell, hero.Thrusting, hero.Exerting) = (site, cell, false, false);
+    }
     public Hero? HeroOf(int id) => State.Heroes.Find(h => h.Id == id);
     public IReadOnlyList<Hero> Heroes => State.Heroes;
 }

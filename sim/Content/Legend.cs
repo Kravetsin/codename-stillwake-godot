@@ -35,6 +35,11 @@ public static class Legend
         ('R', "drone bay: draw its whole footprint"),
         ('O', "lifepod: draw its whole footprint; heroes are made at its hatch"),
         ('S', "where the hero wakes, on a map without a lifepod"),
+        // SPIKE (planet): the ground of a site.
+        ('%', "soil, ground of a site"),
+        ('&', "rock, ground of a site"),
+        ('*', "iron ore in the rock, ground of a site"),
+        (',', "a cave: open, rock behind it"),
     ];
 
     /// <summary>

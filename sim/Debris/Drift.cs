@@ -154,6 +154,8 @@ public sealed partial class DebrisModule
         var heroes = _crew.Heroes;
         for (int i = 0; i < heroes.Count; i++)
         {
+            // SPIKE (planet): a hero on a site is no hero of space round the ship.
+            if (heroes[i].Site != 0) continue;
             int cell = heroes[i].Cell;
             if (cell >= 0 && cell < cells) _heroes.Add((cell % width, cell / width));
         }

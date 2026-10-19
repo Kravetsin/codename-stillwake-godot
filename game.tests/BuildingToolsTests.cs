@@ -31,7 +31,7 @@ public class BuildingToolsTests
         var carded = Tools.Tabs.SelectMany(tab => tab.Tools.Select(What)).ToList();
         Assert.Equal(carded.Count, carded.Distinct().Count());
         Assert.All(Tools.Tabs, tab => Assert.NotEmpty(tab.Tools));
-        var expected = Materials.All.SelectMany(m => new[] { $"wall:{m.Id}", $"backWall:{m.Id}" })
+        var expected = Materials.Buildable.SelectMany(m => new[] { $"wall:{m.Id}", $"backWall:{m.Id}" })
             .Concat(Builds.All.Select(b => b.Id))
             .Concat(Machines.All.Where(m => !m.Fixed).Select(m => m.Kind))
             .Append("cable");

@@ -14,5 +14,6 @@
     <ProjectReference Include="../Crew/Crew.csproj" />
     <ProjectReference Include="../Debris/Debris.csproj" />
     <ProjectReference Include="../Logistics/Logistics.csproj" />
+    <ProjectReference Include="../Site/Site.csproj" />
   </ItemGroup>
 </Project>

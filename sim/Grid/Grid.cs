@@ -212,7 +212,13 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
             char c = layout.At(cell);
             // Every cell but space has a back wall of the default hull, hull walls included; a solar panel,
             // making power with no fire, is drawn under the stars, which it needs.
-            if (c != ' ' && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null })) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = hull; }
+            if (c != ' ' && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null })) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = Ground(c) ?? hull; }
+            if (Ground(c) is int ground)
+            {
+                // SPIKE (planet): the ground of a site, a wall of its material but for a cave, rock behind each.
+                if (c != ',') (s.Structure[cell], s.Material[cell]) = (Structure.Wall, ground);
+                continue;
+            }
             s.Structure[cell] = c switch
             {
                 '#' => Structure.Wall,
@@ -235,6 +241,15 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
         foreach (var (kind, cell) in layout.Machines()) s.Machines.Add(new Machine(s.NextMachineId++, kind, cell));
         return s;
     }
+
+    /// <summary>SPIKE (planet): the material code of a site's ground character, null for any other.</summary>
+    private static int? Ground(char c) => c switch
+    {
+        '%' => Materials.Get("soil").Code,
+        '&' or ',' => Materials.Get("rock").Code,
+        '*' => Materials.Get("iron").Code,
+        _ => null,
+    };
 
     /// <summary>A real door or valve most of the time, any cell (off the grid too) otherwise, so refusals are drawn.</summary>
     public override Command? Fuzz(Rng rng, int from)

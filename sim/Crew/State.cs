@@ -25,6 +25,8 @@ public sealed class Hero
     [JsonInclude] public bool Thrusting { get; internal set; }
     /// <summary>Ticks of thrust toward the next unit the suit pays, kept between bursts so short taps add up.</summary>
     [JsonInclude] public int ThrustTicks { get; internal set; }
+    /// <summary>SPIKE (planet): the site it is on, 0 aboard; away, <see cref="Cell"/> is a cell of that site's ground.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Site { get; internal set; }
 }
 
 /// <summary>
