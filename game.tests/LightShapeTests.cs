@@ -43,12 +43,12 @@ public class LightShapeTests
     {
         var backed = Starlight(Room, backed: true);
         var open = Starlight(Room, backed: false);
-        // Its face takes the stars whole, as a wall's face lit by them; backed, it is dark.
-        Assert.Equal((byte)(Math.Min(1, L.Star.R / L.WallIn) * 255), RedAt(open, 3, 2));
+        // Its face takes a lone hole's starlight, as a wall's face lit by it; backed, it is dark.
+        Assert.Equal((byte)(Math.Min(1, L.StarHole * L.Star.R / L.WallIn) * 255), RedAt(open, 3, 2));
         Assert.True(RedAt(backed, 3, 2) < RedAt(open, 3, 2) / 4, $"{RedAt(backed, 3, 2)}");
         // The room beside it keeps no more than what comes out of a wall, where a hole there would light it.
         var hole = Starlight(["#######", "#.....#", "#.....#", "#.....#", "#######"], backed: false);
-        Assert.InRange(RedAt(open, 2, 2), 0, (int)(L.WallOut * L.Air * L.Star.R * 255) + 1);
+        Assert.InRange(RedAt(open, 2, 2), 0, (int)(L.WallOut * L.StarKeep * L.Star.R * 255) + 1);
         Assert.True(RedAt(hole, 2, 2) > 4 * RedAt(open, 2, 2), $"{RedAt(hole, 2, 2)} against {RedAt(open, 2, 2)}");
         // Its alpha says a wall, so a picture in the open beside it blends it not.
         Assert.Equal(255, open.Texels[((2 - open.Region.Top) * open.Region.Width + 3 - open.Region.Left) * 4 + 3]);

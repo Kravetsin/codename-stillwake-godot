@@ -1,7 +1,7 @@
 # Light (client)
 
-Light without a word (0019, 0029): a dark ship lit by its lamps, its fires, whatever glows,
-and by the stars through the holes in its back walls. Drawn only: nothing of it reaches the sim.
+Light without a word (0019, 0029, 0070): a dim ship lit by its lamps, its fires, whatever glows,
+and by the stars, whole in open space and falling off within a few cells of a hole or an opening. Drawn only: nothing of it reaches the sim.
 Numbers from `game/Content/Light.cs`.
 
 - **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors stop light), `ShapeLayer` (a wall cut to a shape stops it with its solid half, 0069), `BackLayer`,
@@ -15,16 +15,19 @@ Numbers from `game/Content/Light.cs`.
   shader is told (`origin`). Past the texture every cell is open, so a texture that still covers what
   was built is drawn alike. Lamps are laid out again only when the log names a machine's cell. Starlight
   is worked out again only round the cells changed in structure, back wall or machine
-  (`StarField.Follow`): within `StarField.Reach` (45) cells of them, from what lies within twice that.
-  Every cell crossed keeps at most `Light.Air` of the light, so past 45 cells what crossed a changed
-  cell is under the faintest light a texel shows, and every texel there is as it was; and light from
-  past twice the reach is as faint where it is written. The texels are those working it all out gives,
+  (`StarField.Follow`): within `StarField.Reach` (12) cells and a sky's reach (`Light.StarSky`, 2) of
+  them, from what lies within `Reach` more. A change alters the sky of the cells within 2 of it; light
+  keeps at most the brightest way through cells of any kinds (into a wall `WallIn`, on `WallDeep` or
+  out `WallOut`, through the open `StarKeep`), so past 12 cells what crossed a changed cell, or came
+  from a changed sky, is under the faintest light a texel shows, and every texel there is as it was; and
+  light from past twice the reach is as faint where it is written. The texels are those working it all out gives,
   byte for byte (`BuiltBoundsTests`, over ships and halls where the light runs far). A first look, or
   one the log no longer reaches back to, lays everything out anew, as before (F-6 slice 0): starlight
   over `Built` and 4 cells of space round it, past which every cell is open stars at full, which is what
   the texel at the texture's edge holds, and `Lit` reads that edge texel for anything beyond. A door
   toggled every tick on a fully built 1024×512 world cost the light 35 ms a frame, starlight 33 ms a
-  change; now 0.9 and 1.5 ms (debug build), whatever the size of the ship.
+  change; now 0.9 and 1.5 ms (debug build), whatever the size of the ship. Since starlight falls off
+  (0070), a change costs it 0.2 ms; working it all out anew, 4.5 ms on 256×128 and 41 on 1024×512.
 - **No Godot lights.** Godot lights a drawn thing by at most 15 lights and drops the rest: a furnace's
   embers once pushed a lamp out and whole tile chunks went dark. All light is composed here instead,
   with no limit on how many lights touch a thing.
@@ -49,8 +52,9 @@ Numbers from `game/Content/Light.cs`.
   fire (`Light.FireSize`) have a width: seen from a texel the light is a line across that wide; its two
   ends are walked, and where they disagree — a shadow's edge — seven points between, the share seen
   kept. Edges are soft over as much as the light seen from them is wide, as Godot's PCF softened them.
-- **Lamps:** `Light.Lamp`, keeping `Light.Air` a cell, each colour at most `Light.LampMost`, out to
-  `LampReach` (16) cells, as bright as `LightView.LampShare` says — the power it gets, flickering when
+- **Lamps:** `Light.Lamp` (0.8, 0.64, 0.42), dim and warm, keeping `Light.LampKeep` (0.84) a cell, each
+  colour at most `Light.LampMost`, out to `Light.LampReach` (11) cells: a room lit to walk, its corners
+  dark, so a fire, a screen or a machine's glow reads in it; as bright as `LightView.LampShare` says — the power it gets, flickering when
   short (`Flicker`) — and an unlit additive glow.
 - **Fire:** from where a furnace's or a burner generator's fire gives its light (`LightView.FireAt`, which
   `Main` answers from `FurnaceView.LightAt`: a furnace's bottom row's middle, low in a generator's mouth), `Light.Fire` keeping `Light.FireKeep` a cell
@@ -61,10 +65,16 @@ Numbers from `game/Content/Light.cs`.
   `Light.ParticleKeep` a cell out to `ParticleReach` (2) cells: a bright point, not a wash, for the
   fire lights the room round a furnace anyway; and each `Glow` at its colour, keeping
   `Light.ScreenKeep` out to `ScreenReach` (3).
-- **Starlight:** `StarField` (plain C#, tested) works it out cell by cell as the TypeScript game did
-  (the stars in every open cell with no back wall and past the grid's edge, and into a wall cut to a shape with no
-  back wall, whose open half shows them, though it lets on no more than any wall, 0069; spread by row and column
-  sweeps), only when walls, doors, back walls or machines change, and then only round them; and
+- **Starlight** (0070): `StarField` (plain C#, tested) works it out cell by cell. The stars shine in every
+  open cell with no back wall and past the grid's edge, and into a wall cut to a shape with no back wall,
+  whose open half shows them, though it lets on no more than any wall (0069) — each as brightly as its sky
+  is open: of the 5×5 cells round it (`Light.StarSky` 2), itself among them, one the stars shine into, a
+  lone hole in a back wall, gives `Light.StarHole` (0.5) of them, `Light.StarFullSky` (12) or more the
+  whole, so open space is whole everywhere, beside a flat hull too, and a bigger hole is brighter. From there
+  row and column sweeps spread it, keeping `Light.StarKeep` (0.6) a cell, a machine's `Light.StarMachine`
+  (0.48): through a doorway or a tear the room takes 0.6, 0.36, 0.22… of the stars, round a hole half that,
+  and a few cells on it is dark — a hole adds a cold light near itself, not a lit room. Worked out only when
+  walls, doors, back walls or machines change, and then only round them; and
   `Starlight` hands it to `render/Lit.cs` as a texture of a texel a cell laid where that region lies,
   its alpha marking a wall's or closed door's cell; a picture blends it only with cells of its own side.
 - **`render/Lit.cs`** draws everything set with `Lit.Set`, unshaded, the lightmaps blended between
@@ -84,13 +94,16 @@ Numbers from `game/Content/Light.cs`.
   1.38 ms a frame at zoom 1 and 0.96 ms at zoom 2 with soft edges (0.62 and 0.50 sharp), against 1.61
   and 0.97 ms with Godot's lights. Walls cut to shapes (0069): 1.20–1.26 ms a frame before and 1.23–1.28 after at
   zoom 1 (`--view 128,64,1`), 0.78–0.79 both at zoom 2, three runs each — within the runs' spread; with five slopes in
-  every 8×8 room of it, 1.16 and 0.76.
+  every 8×8 room of it, 1.16 and 0.76. Dim lamps of 11 cells (0070), in a 1600×900 window: 1.73–1.82 ms a frame at
+  zoom 1 against 1.87–2.02 before, 0.91–0.96 at zoom 2 against 0.88–0.93.
 
 ## Deliberately not handled
 
 - Relief from more than one light is from their sum's slope: one direction a point, not each lamp's.
 - Light bending round corners and through doorways the way the TypeScript sweeps let it: lamps cast
-  straight shadows; only starlight keeps the sweeps. Nor does a closed door leak `Light.WallOut`.
+  straight shadows; only starlight keeps the sweeps, and it falls off too fast to bend far.
+- A cell's sky is counted in a square round it, not along lines of sight: how the hull round a hole is
+  shaped does not change its light, and a big hole is brighter than a lone one only by its count. Nor does a closed door leak `Light.WallOut`.
 - Heroes and machines cast no shadows.
 - Light follows the grid as the sim has it, not a door this peer has just toggled (0014).
 - The multimeshes carry a fixed huge `CustomAabb`: Godot culls one by the box its quads filled when
@@ -98,9 +111,9 @@ Numbers from `game/Content/Light.cs`.
   what is out of reach anyway.
 - Cost grows with the lights on screen times their reach squared; no light is cached between frames.
   A cache of each still light's shadows is the next step if a ship ever outgrows the budget.
-- A change's starlight is worked out over a square of about 181 cells across (four times the reach and
-  the cell), 1.5 ms in a debug build: the reach is what the faintest texel allows, not where the light
-  of this ship fades out. Changes far apart in one tick are worked out apart. The texture is uploaded
+- A change's starlight is worked out over a square of about 53 cells across (four times the reach, twice
+  the sky's and the cell), 0.2 ms in a debug build: the reach is what the faintest texel allows, not where
+  the light visibly fades out (3–4 cells). Changes far apart in one tick are worked out apart. The texture is uploaded
   whole after a change (2 MB on a fully built 1024×512), as Godot updates no part of one.
 - Starlight's texture moves with what is built, and the shader finds a texel by
   `(world − corner) / size × texels` in floats: at a texel's edge the rounding can fall the other way
