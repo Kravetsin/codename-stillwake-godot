@@ -86,28 +86,47 @@ public class DoorShapeTests
     }
 
     [Fact]
-    public void SlidesAPanelUpForADoorAndAlongForAHatchFromShutToOpen()
+    public void SlidesTheWholeDoorwaysPanelAsOneAcrossItsCells()
     {
-        // Four pixels down, one across: a frame (F) round a panel (P) in the open picture's hole (.).
+        // A door two cells tall, each cell four pixels down and one across: a frame (F) round one panel, A to G.
         byte[] Pixels(params char[] p) => p.SelectMany(c => c == '.' ? new byte[4] : new byte[] { (byte)c, 0, 0, 255 }).ToArray();
-        byte[] shut = Pixels('F', 'A', 'B', 'F'), open = Pixels('F', '.', '.', 'F');
-        Assert.Equal(shut, DoorShape.Slid(shut, open, 1, 0, hatch: false));
-        Assert.Equal(Pixels('F', 'B', '.', 'F'), DoorShape.Slid(shut, open, 1, 1, hatch: false));
-        Assert.Equal(open, DoorShape.Slid(shut, open, 1, 2, hatch: false));
-        // The same row lying down, a hatch: it slides toward its left end.
-        Assert.Equal(Pixels('F', 'B', '.', 'F'), DoorShape.Slid(shut, open, 4, 1, hatch: true));
+        byte[] topShut = Pixels('F', 'A', 'B', 'C'), topOpen = Pixels('F', '.', '.', '.');
+        byte[] bottomShut = Pixels('D', 'E', 'G', 'F'), bottomOpen = Pixels('.', '.', '.', 'F');
+        // Risen two pixels: the top cell shows the panel's middle, the bottom one its end, then the hole.
+        Assert.Equal(Pixels('F', 'C', 'D', 'E'), DoorShape.Slid(topShut, topOpen, topShut, topOpen, bottomShut, bottomOpen, 1, 2, hatch: false));
+        Assert.Equal(Pixels('G', '.', '.', 'F'), DoorShape.Slid(bottomShut, bottomOpen, bottomShut, bottomOpen, null, null, 1, 2, hatch: false));
+        // Risen a cell: the bottom cell's panel is over the top one, and the bottom one open.
+        Assert.Equal(Pixels('F', 'E', 'G', '.'), DoorShape.Slid(topShut, topOpen, bottomShut, bottomOpen, null, null, 1, 0, hatch: false));
+        // The same lying down, a hatch: it slides toward its left end.
+        Assert.Equal(Pixels('F', 'C', 'D', 'E'), DoorShape.Slid(topShut, topOpen, topShut, topOpen, bottomShut, bottomOpen, 4, 2, hatch: true));
     }
 
     [Fact]
-    public void NamesEveryStepOfASlideShutAndOpenAtItsEnds()
+    public void NamesEachCellOfASlidingDoorwayByThePanelOverIt()
     {
-        Assert.Equal("door_closed_5", DoorShape.Picture(0, Doorways.Up | Doorways.Down));
-        Assert.Equal("door_open_5", DoorShape.Picture(DoorShape.Steps, Doorways.Up | Doorways.Down));
-        Assert.Equal("hatch_slid3_10", DoorShape.Picture(3, Doorways.Left | Doorways.Right));
-        var slid = DoorShape.SlidPictures.ToList();
-        // Three shapes of door (alone, a door cell is a hatch) and four of hatch, seven pictures between shut and open each.
-        Assert.Equal(7 * (DoorShape.Steps - 1), slid.Select(s => s.Name).Distinct().Count());
-        Assert.Contains(("door_slid4_1", "door_closed_1", "door_open_1", 8, false), slid);
+        Assert.Equal("door_closed_4", DoorShape.Picture(false, 0, 3, 0));
+        Assert.Equal("door_open_1", DoorShape.Picture(false, 2, 3, 48));
+        Assert.Equal("door_slid_4_5_1_4", DoorShape.Picture(false, 0, 3, 20));
+        Assert.Equal("door_slid_4_5_1_4", DoorShape.Picture(false, 0, 3, 21));
+        Assert.Equal("door_open_5", DoorShape.Picture(false, 1, 3, 40));
+        Assert.Equal("door_slid_1_1_x_8", DoorShape.Picture(false, 2, 3, 8));
+        Assert.Equal("hatch_slid_2_10_8_2", DoorShape.Picture(true, 0, 3, 18));
+        Assert.Equal("hatch_slid_0_0_x_6", DoorShape.Picture(true, 0, 1, 6));
+    }
+
+    [Fact]
+    public void MakesEveryPictureASlideOfAnyLengthDraws()
+    {
+        var made = DoorShape.SlidPictures.Select(p => p.Name).ToHashSet();
+        foreach (bool hatch in new[] { false, true })
+            for (int length = hatch ? 1 : 2; length <= 7; length++)
+                for (int index = 0; index < length; index++)
+                    for (int shift = 0; shift <= length * 16; shift++)
+                    {
+                        string name = DoorShape.Picture(hatch, index, length, shift);
+                        Assert.True(made.Contains(name) || !name.Contains("_slid_"), $"{name}: {length} long, cell {index}, {shift} px");
+                    }
+        Assert.All(DoorShape.SlidPictures, p => Assert.Equal(p.NextClosed == null, p.NextOpen == null));
     }
 
     [Fact]

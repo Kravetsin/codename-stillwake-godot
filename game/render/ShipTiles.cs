@@ -54,12 +54,13 @@ public sealed class ShipTiles
         }
         foreach (var name in DoorShape.HatchPictures) pictures.Add(Picture(name, Relief.Down));
         // A door's panel part way open, as it slides (a door's relief rolls across it, a hatch's down).
-        foreach (var (name, closed, open, shift, hatch) in DoorShape.SlidPictures)
+        var pixels = new Dictionary<string, byte[]>();
+        byte[]? PixelsOf(string? name) => name == null ? null : pixels.TryGetValue(name, out var known) ? known : pixels[name] = Art(name).GetData();
+        foreach (var p in DoorShape.SlidPictures)
         {
-            Image shut = Art(closed), opened = Art(open);
-            var slid = Image.CreateFromData(shut.GetWidth(), shut.GetHeight(), false, Image.Format.Rgba8,
-                DoorShape.Slid(shut.GetData(), opened.GetData(), shut.GetWidth(), shift, hatch));
-            pictures.Add(Picture(name, slid, hatch ? Relief.Down : Relief.Across));
+            var slid = DoorShape.Slid(PixelsOf(p.Closed)!, PixelsOf(p.Open)!, PixelsOf(p.OverClosed)!, PixelsOf(p.OverOpen)!,
+                PixelsOf(p.NextClosed), PixelsOf(p.NextOpen), Cell, p.Shift, p.Hatch);
+            pictures.Add(Picture(p.Name, Image.CreateFromData(Cell, Cell, false, Image.Format.Rgba8, slid), p.Hatch ? Relief.Down : Relief.Across));
         }
         pictures.Add(Picture("valve_open", Relief.None, centred: true));
         pictures.Add(Picture("valve_closed", Relief.None, centred: true));

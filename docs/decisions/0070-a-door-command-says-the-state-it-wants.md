@@ -24,7 +24,7 @@ refuse a player who really means to shut a door just opened.
 - **Already as asked is no change:** the command is accepted and does nothing; the grid's version stays, so
   rooms, air and drawings are not redone. Not a refusal: the player got what they wanted, and there is
   nothing to tell them. A doorway part open (a door cell built beside an open one) is set whole.
-- **The slide is only the look:** the client slides a door's panel over 0.2 s (`features/grid`'s
+- **The slide is only the look:** the client slides a doorway's panel, one across its cells, over 0.2 s (`features/grid`'s
   `DoorSlides`), but the sim moved it at once; nothing waits on the slide or is locked by it.
 - Commands carry the new names on the wire (`grid.setDoor`, `grid.setValve`). Saves are untouched: a door
   is still one structure code.

@@ -1,22 +1,21 @@
 using System;
 using System.Collections.Generic;
-using Stillwake.Game.Render;
 
 namespace Stillwake.Game.Features.Grid;
 
 /// <summary>
-/// The door cells sliding open or shut, each taking <see cref="Seconds"/> from one end to the other: drawn a step of
-/// <see cref="DoorShape.Steps"/> at a time. Only the look: the sim moved the door at once. Plain C#, so it is tested.
+/// The door cells sliding open or shut, each taking <see cref="Seconds"/> from one end to the other; the cells of a
+/// doorway move together, so its panel slides as one. Only the look: the sim moved the door at once. Plain C#, so it is
+/// tested.
 /// </summary>
 public sealed class DoorSlides
 {
-    /// <summary>How long a panel takes to slide all the way.</summary>
+    /// <summary>How long a panel takes to slide all the way, whatever the doorway's length.</summary>
     public const double Seconds = 0.2;
 
     /// <summary>The cells still sliding: how far open each is now, from 0 to 1, and which way it goes.</summary>
     private readonly Dictionary<int, (double Open, bool Opening)> _moving = new();
     private readonly List<int> _cells = [];
-    private readonly List<int> _changed = [];
 
     /// <summary>Whether any cell is sliding: with none, <see cref="Advance"/> has nothing to do.</summary>
     public bool Any => _moving.Count > 0;
@@ -28,16 +27,15 @@ public sealed class DoorSlides
     public void Moved(int cell, bool open) =>
         _moving[cell] = (_moving.TryGetValue(cell, out var slide) ? slide.Open : open ? 0 : 1, open);
 
-    /// <summary>The step <paramref name="cell"/> is drawn at, 0 shut to <see cref="DoorShape.Steps"/> open; null at rest.</summary>
-    public int? StepOf(int cell) => _moving.TryGetValue(cell, out var slide) ? Step(slide.Open) : null;
+    /// <summary>How far open <paramref name="cell"/> is drawn, 0 shut to 1 open; null at rest.</summary>
+    public double? OpenOf(int cell) => _moving.TryGetValue(cell, out var slide) ? slide.Open : null;
 
     /// <summary>
-    /// Moves every slide on by <paramref name="seconds"/>; answers the cells whose step changed, those that came to rest
+    /// Moves every slide on by <paramref name="seconds"/>; answers the cells that were sliding, those that came to rest
     /// among them. Good until the next call.
     /// </summary>
     public IReadOnlyList<int> Advance(double seconds)
     {
-        _changed.Clear();
         _cells.Clear();
         _cells.AddRange(_moving.Keys);
         double by = seconds / Seconds;
@@ -47,10 +45,7 @@ public sealed class DoorSlides
             double now = opening ? Math.Min(1, open + by) : Math.Max(0, open - by);
             if (now == (opening ? 1 : 0)) _moving.Remove(cell);
             else _moving[cell] = (now, opening);
-            if (Step(now) != Step(open) || !_moving.ContainsKey(cell)) _changed.Add(cell);
         }
-        return _changed;
+        return _cells;
     }
-
-    private static int Step(double open) => (int)Math.Round(open * DoorShape.Steps);
 }
