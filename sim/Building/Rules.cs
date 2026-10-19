@@ -41,17 +41,16 @@ public sealed partial class BuildingModule
     private bool IsMarked(string layer, int cell) => State.Plans.Exists(p => p.Clear == layer && p.Cell == cell);
 
     /// <summary>
-    /// What deconstruction takes from a cell next, of <paramref name="layers"/>: a machine, then a
-    /// conduit, then the structure, then the back wall, passing over what is marked already, so a second
-    /// pass over a pipe in a wall marks the wall. When everything there is marked, the top one, which a
-    /// mark would refuse.
+    /// What deconstruction takes from a cell next, of <paramref name="layers"/> in their order (the pipes
+    /// overlay asks for a pipe before the machine under it), else a machine, then a conduit, then the
+    /// structure, then the back wall; passing over what is marked already, so a second pass over a pipe
+    /// in a wall marks the wall. When everything there is marked, the top one, which a mark would refuse.
     /// </summary>
     private (string Layer, int Cell)? NextToClear(int cell, IReadOnlyList<string>? layers)
     {
         (string Layer, int Cell)? top = null;
-        foreach (var layer in ClearOrder)
+        foreach (var layer in layers ?? ClearOrder)
         {
-            if (layers != null && !layers.Contains(layer)) continue;
             if (MarkedCell(cell, layer) is not int at) continue;
             if (!IsMarked(layer, at)) return (layer, at);
             top ??= (layer, at);

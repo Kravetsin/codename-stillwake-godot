@@ -323,13 +323,17 @@ public class BuildingTests
     }
 
     [Fact]
-    public void LooksOnlyInTheLayersAskedForInTheSameOrder()
+    public void LooksOnlyInTheLayersAskedForInTheirOrder()
     {
-        var w = new Scenario(Room).Do(new Place(Cell(0, 1), Pipe)).Run();
+        var w = new Scenario(Room).Do(new Place(Cell(0, 1), Pipe)).Do(new Place(Cell(1, 1), Pipe)).Run();
         (string, int)? Next(int c, params string[] layers) => w.M.Building.ClearAt(c, layers);
         // A pipe in a wall, with the wall behind.
         Assert.Equal(("structure", Cell(0, 1)), Next(Cell(0, 1), "structure", "back"));
-        Assert.Equal(("conduit", Cell(0, 1)), Next(Cell(0, 1), "back", "conduit"));
+        Assert.Equal(("back", Cell(0, 1)), Next(Cell(0, 1), "back", "conduit"));
+        // The pipes overlay asks for a pipe before the machine on it: a full crate or a tank on a pipe
+        // does not stand in the way of taking the pipe.
+        Assert.Equal(("conduit", Cell(1, 1)), Next(Cell(1, 1), "conduit", "machine"));
+        Assert.Equal(("machine", Cell(1, 1)), Next(Cell(1, 1), "machine", "conduit"));
         // A machine's cell, asked for its conduit only, has none.
         Assert.Null(Next(Cell(2, 2), "conduit"));
         w.Do(new Deconstruct(Cell(0, 1), "structure")).Run();
