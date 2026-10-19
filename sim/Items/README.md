@@ -7,7 +7,7 @@ mode, the world setting in which nothing is ever taken
 `packages/sim/src/modules/items`; its rules hold here unchanged.
 
 - **Depends on:** `Grid` (`IGridQueries`), for which machines hold items and what holds a stack on
-  the floor up; `Rooms` (`IRoomsQueries`), for where space is and which open cells are in a room.
+  the floor up, a slope's diagonal too (`ShapeAt`); `Rooms` (`IRoomsQueries`), for where space is and which open cells are in a room.
 - **State:** `Inventories` — those changed at least once, by peer id in id order; `Crates` — the
   machines holding something, by machine id in id order; `Creative`; `Floor` — stacks lying about
   (`FloorStack`: id, item, count, charge, cell, x, y, vx, vy, by, at, and the `Body` it is part of, if any) in id order, with `NextFloorId`;
@@ -101,6 +101,15 @@ mode, the world setting in which nothing is ever taken
   it lands slides to a stop by `Floor.Friction`. One past the grid's edge is gone: thrown away into
   space. Then stacks alike at rest in one cell merge into the oldest, up to the stack limit.
   Positions divide by a cell rounding down, left of and above the grid too.
+- **Slopes** ([0069](../../docs/decisions/0069-a-cell-has-a-shape.md)): a stack is a point, its bottom middle, and
+  a floor slope (◢ ◣, `Grid`'s `Shape`) holds it on its diagonal, not its cell. Inside means the point is in
+  something built: a whole cell, or the slope's solid half (`Shape.Solid`); in its open half a stack is not
+  pushed out. Falling, it lands on the diagonal at its x (`Shape.TopAt`); moving into a slope's solid half no
+  steeper than it moves (a rise no more than its speed across, a 45° slope taken by anything moving), it skids up
+  onto the diagonal, else stops as against a wall; resting on the diagonal it slides to a stop. When the wall
+  goes, so does its shape, and the stack falls. A ceiling slope (◤ ◥) is whole to a stack, and a slope's open
+  half is no room's, so a stack lying in one falls as aboard even out in space. Pushed out of something built,
+  a stack still goes to an open cell, never onto a slope's open half.
 - **Picking up** gives as much of a stack as fits into the picker's own slots and leaves the rest.
   The peer that dropped a stack may not take it back for `Floor.OwnPickupDelay` ticks; anyone else
   may at once.

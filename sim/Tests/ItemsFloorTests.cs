@@ -1,6 +1,7 @@
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Rooms;
 using Xunit;
@@ -280,5 +281,60 @@ public class ItemsFloorTests
                 foreach (var stack in Floor(w)) Assert.InRange(stack.Count, 1, Content.Items.Get(stack.Item).Stack);
             }
         });
+    }
+
+    // A ramp of two ◢ up to the right wall, a room above it.
+    private static readonly string[] Ramp = ["##########", "#........#", "#........#", "#....../##", "#...../###", "##########"];
+
+    private static Scenario Dropped(int x, int y, int facing = 0)
+    {
+        var w = new Scenario(Layout.Parse(Ramp)).GiveItems(0, ("scrap", 1));
+        return w.Do(new Drop(new Items.Place(0), 1, y * Ramp[0].Length + x, facing)).Run();
+    }
+
+    /// <summary>The ground under <paramref name="x"/> on <see cref="Ramp"/>: the floor, or a slope's diagonal there.</summary>
+    private static int RampGround(int x) => (x / Shape.Unit) switch
+    {
+        6 => 4 * Shape.Unit + Shape.TopAt(Shape.BottomRight, x % Shape.Unit),
+        7 => 3 * Shape.Unit + Shape.TopAt(Shape.BottomRight, x % Shape.Unit),
+        _ => 5 * Shape.Unit,
+    };
+
+    [Fact]
+    public void AStackFallingOnASlopeRestsOnItsDiagonalAtItsXAndStaysThere()
+    {
+        var w = Dropped(6, 3);
+        w.Run(40);
+        var s = Assert.Single(w.M.Items.Floor);
+        Assert.Equal((6500, 4 * Shape.Unit + 499, w.At(6, 4), 0, 0), (s.X, s.Y, s.Cell, s.Vx, s.Vy));
+        // Lying in the slope's cell, it is not pushed out of it.
+        w.Run(200);
+        Assert.Equal((6500, 4 * Shape.Unit + 499), (w.M.Items.Floor[0].X, w.M.Items.Floor[0].Y));
+    }
+
+    [Fact]
+    public void AStackThrownUpASlopeSkidsUpItAndComesToRestOnIt()
+    {
+        var rested = new List<int>();
+        foreach (int from in new[] { 3, 4, 5 })
+        {
+            var w = Dropped(from, 4, 1);
+            w.Run(120);
+            var s = Assert.Single(w.M.Items.Floor);
+            Assert.Equal((0, 0), (s.Vx, s.Vy));
+            Assert.Equal(RampGround(s.X), s.Y);
+            rested.Add(s.X);
+        }
+        Assert.Contains(rested, x => x / Shape.Unit >= 6);
+    }
+
+    [Fact]
+    public void AStackOnASlopeFallsWhenItsWallIsTakenApart()
+    {
+        var w = Dropped(6, 3);
+        w.Run(40);
+        w.Do(new ClearAt(w.At(6, 4), "structure")).Run(40);
+        var s = Assert.Single(w.M.Items.Floor);
+        Assert.Equal((6500, 5 * Shape.Unit, w.At(6, 4)), (s.X, s.Y, s.Cell));
     }
 }
