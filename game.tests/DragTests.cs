@@ -161,6 +161,32 @@ public class DragTests
     }
 
     [Fact]
+    public void BegunOnAWallsBlueprintCancelsWallsAndBackWallsAcrossTheRectangleAndLetsOtherPlansBe()
+    {
+        var w = Start();
+        // Wall 1 at 12, back wall 2 at 10, wall 3 at 19, pipe 4 at 18.
+        w.Step(Plan(12, Wall.Placement), Plan(10, Placement.BackWall()), Plan(19, Wall.Placement), Plan(18, new Placement("conduit", "pipe")));
+        var cells = Drag.CellsOf(7, Removal, new(5, 1), new(3, 2), w.M.Building);
+        Assert.Equal([12, 11, 10, 19, 18, 17], cells);
+        var verdicts = Drag.Judge(Removal, cells, w.M.Building);
+        Assert.Equal([null, "building.noPlan", null, null, "building.noPlan", "building.noPlan"], verdicts.Select(v => v.Problem));
+        Assert.Equal([new CancelPlan(1), new CancelPlan(2), new CancelPlan(3)], verdicts.SelectMany(v => v.Commands));
+    }
+
+    [Fact]
+    public void RemovesAlongALineBegunOnAnyOtherPlanOnAMarkOrOnWhatIsBuilt()
+    {
+        var w = Start();
+        w.Step(Plan(12, Wall.Placement), Plan(12, new Placement("conduit", "pipe")), Plan(18, new Placement("conduit", "pipe")),
+            new Deconstruct(0, "structure"));
+        // A wall's blueprint sharing its cell with a pipe's, a pipe's, a mark, what is built: each a line, as before.
+        foreach (var from in new Spot[] { new(5, 1), new(4, 2), new(0, 0), new(3, 1) })
+            Assert.Equal(Drag.LineOf(7, Removal, from, new(1, 2)), Drag.CellsOf(7, Removal, from, new(1, 2), w.M.Building));
+        // Placing, as LineOf lays it.
+        Assert.Equal(Drag.LineOf(7, Wall, new(5, 1), new(3, 2)), Drag.CellsOf(7, Wall, new(5, 1), new(3, 2), w.M.Building));
+    }
+
+    [Fact]
     public void BegunOnAMarkTakesTheMarkOffBegunOnWhatIsBuiltLeavesPlansBe()
     {
         var w = Start();

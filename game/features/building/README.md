@@ -48,7 +48,10 @@ outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still
   drawn a row at a time; aslant, it is a room's worth. Middle drags cancel plans when begun on one,
-  else mark what is built in the tab's layers (Air: pipes, valves, machines); Q picks the card under the
+  else mark what is built in the tab's layers (Air: pipes, valves, machines). Begun where only walls' and back
+  walls' blueprints are planned, a middle drag takes them off over the same rectangle (`Drag.CellsOf`), and only
+  them: a pipe or machine planned inside it stays. Begun on any other plan, a mark or what is built, it runs
+  along a line as before: a rectangle of marks on built walls was not asked for. Q picks the card under the
   pointer onto its tab, known cards only. A drag ends with the hand that began it.
 - The right button held on a plan is the hero's, whatever the hand holds (crew's `Aiming.UsesOf`): within
   its reach it works one tick per tick released, at most five a frame; the sim takes an item from the hero
