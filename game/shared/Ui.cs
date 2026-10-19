@@ -258,8 +258,8 @@ public sealed class Ui
     /// </summary>
     public Store<bool> MenuOpen { get; } = new(false);
 
-    /// <summary>Whether a stack is carried on the pointer: the tooltip moves to the pointer's other side, off its icon.</summary>
-    public Store<bool> Carrying { get; } = new(false);
+    /// <summary>How big the stack on the pointer is drawn, in pixels, 0 for none: the tooltip keeps clear of it.</summary>
+    public Store<float> OnPointer { get; } = new(0);
 
     /// <summary>
     /// This player just placed plans in these cells: <c>building</c> says so as it sends them, and

@@ -666,7 +666,12 @@ public partial class InventoryPanel : CanvasLayer
             _hovered = hovered;
             Refresh();
         }
-        _held.Position = _mouse + new Vector2(6, 6);
+        // A stack carried is the pointer: its icon centred on it, the arrow hidden while it is.
+        _held.Position = _mouse - _held.Size / 2;
+        bool carrying = _held.Visible && !_ui.MenuOpen.Get();
+        var mode = carrying ? Input.MouseModeEnum.Hidden : Input.MouseModeEnum.Visible;
+        if (Input.MouseMode != mode) Input.MouseMode = mode;
+        _ui.OnPointer.Set(carrying ? _held.Size.X : 0);
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
@@ -695,7 +700,6 @@ public partial class InventoryPanel : CanvasLayer
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null);
         }
         _held.Visible = held != null;
-        _ui.Carrying.Set(held != null);
         if (held is { } h)
         {
             var stack = reading.At(h.Place)!;
