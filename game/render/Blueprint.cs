@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Render;
@@ -21,6 +22,22 @@ public static class Blueprint
         if (joins(cell + width)) sides |= Down;
         if (col > 0 && joins(cell - 1)) sides |= Left;
         return sides;
+    }
+
+    /// <summary>
+    /// The arms of a pipe toward <paramref name="sides"/>, as rectangles (x, y, w, h) of a cell <paramref name="cell"/>
+    /// pixels square: from its <paramref name="joint"/> out to the cell's edge, as wide as the joint. A built pipe's stub
+    /// toward plans is drawn only there, its joint left to the grid, so the pipe still reads as built.
+    /// </summary>
+    public static List<(int X, int Y, int W, int H)> ArmsOf(int sides, (int X, int Y, int W, int H) joint, int cell)
+    {
+        var arms = new List<(int X, int Y, int W, int H)>();
+        int right = joint.X + joint.W, bottom = joint.Y + joint.H;
+        if ((sides & Up) != 0) arms.Add((joint.X, 0, joint.W, joint.Y));
+        if ((sides & Right) != 0) arms.Add((right, joint.Y, cell - right, joint.H));
+        if ((sides & Down) != 0) arms.Add((joint.X, bottom, joint.W, cell - bottom));
+        if ((sides & Left) != 0) arms.Add((0, joint.Y, joint.X, joint.H));
+        return arms;
     }
 
     /// <summary>
