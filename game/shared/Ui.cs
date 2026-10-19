@@ -258,6 +258,9 @@ public sealed class Ui
     /// </summary>
     public Store<bool> MenuOpen { get; } = new(false);
 
+    /// <summary>Whether a stack is carried on the pointer: the tooltip moves to the pointer's other side, off its icon.</summary>
+    public Store<bool> Carrying { get; } = new(false);
+
     /// <summary>
     /// This player just placed plans in these cells: <c>building</c> says so as it sends them, and
     /// <c>crew</c> has the hero aim the planner at them and beam them in. Told once a placing.

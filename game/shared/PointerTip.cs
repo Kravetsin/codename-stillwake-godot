@@ -91,9 +91,9 @@ public partial class PointerTip : CanvasLayer
         }
         _panel.Visible = tip != null;
         if (tip == null) return;
-        // Beside the pointer, kept inside the screen.
+        // Beside the pointer, kept inside the screen; up and to the left while a stack is carried below and right of it.
         var screen = GetViewport().GetVisibleRect().Size;
-        var at = toScreen * cell + FromPointer;
+        var at = _ui.Carrying.Get() ? toScreen * cell - FromPointer - _panel.Size : toScreen * cell + FromPointer;
         _panel.Position = new Vector2(
             Mathf.Max(Edge, Mathf.Min(at.X, screen.X - _panel.Size.X - Edge)),
             Mathf.Max(Edge, Mathf.Min(at.Y, screen.Y - _panel.Size.Y - Edge)));

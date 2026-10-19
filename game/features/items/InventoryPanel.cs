@@ -695,6 +695,7 @@ public partial class InventoryPanel : CanvasLayer
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null);
         }
         _held.Visible = held != null;
+        _ui.Carrying.Set(held != null);
         if (held is { } h)
         {
             var stack = reading.At(h.Place)!;
