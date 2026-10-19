@@ -124,10 +124,22 @@ public partial class PlanTiles : Node2D
 
     /// <summary>
     /// A built pipe's reach toward the plans beside it, on the sides in <paramref name="sides"/>, drawn as
-    /// they are: the half cell between them is not left empty.
+    /// they are: the half cell between them is not left empty. Its arms only: its joint stays the grid's, built.
     /// </summary>
-    public void Stub(int cell, int width, int sides) =>
-        Put(TileLayer.Pipes, new Vector2I(cell % width, cell / width), _tiles.At($"pipe_{sides}"));
+    public void Stub(int cell, int width, int sides)
+    {
+        var at = new Vector2I(cell % width, cell / width);
+        var tile = _tiles.At($"pipe_{sides}");
+        var pieces = _cutPieces[(int)TileLayer.Pipes];
+        foreach (var arm in Blueprint.ArmsOf(sides, Joint, Cell))
+            Region((at.X * Cell + arm.X, at.Y * Cell + arm.Y, arm.W, arm.H), at, tile, (rect, source) => pieces.Add((rect, source)));
+        _cut[(int)TileLayer.Pipes].QueueRedraw();
+    }
+
+    /// <summary>The joint in the middle of every pipe's picture: where a lone pipe is opaque.</summary>
+    private static (int X, int Y, int W, int H) Joint => _joint ??= JointOf(ShipTiles.ImageOf("pipe_0").GetUsedRect());
+    private static (int X, int Y, int W, int H)? _joint;
+    private static (int, int, int, int) JointOf(Rect2I r) => (r.Position.X, r.Position.Y, r.Size.X, r.Size.Y);
 
     private void Put(TileLayer layer, Vector2I at, Vector2I tile)
     {

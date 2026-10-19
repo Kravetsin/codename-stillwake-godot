@@ -78,7 +78,9 @@ outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along
 - A planned pipe or valve, and one in hand, reaches toward every conduit beside it, built, planned or in
   the same drag, as `GridView` joins built ones; a built pipe beside it gets a stub toward it in its look
   (`Tools.StubsOf`), and a planned one beside a ghost the ghost's, so they meet with no half cell between.
-  Stubs are drawn with the plan, over the machines a built pipe runs behind.
+  Stubs are drawn with the plan, over the machines a built pipe runs behind. A stub is the pipe's arms toward
+  the plans only (`Blueprint.ArmsOf`), never its joint: a built pipe ending at a plan drawn whole as a ghost
+  looked unbuilt, so a run half built could not be told from one not begun.
 - Round each group of plans — walls, back walls, ladders, doors, floors, each machine on its own — dashes as
   wide as the aim's outline (a screen pixel at 1080 lines, whatever the zoom) march clockwise, 3 line widths on in
   5, 5 a second, along the group's silhouette (0064): a strip just outside the opaque pixels of its pictures,

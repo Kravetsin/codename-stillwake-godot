@@ -53,6 +53,18 @@ public class PlanLookTests
         Assert.Equal([(6, Blueprint.Left)], Tools.StubsOf(new HashSet<int> { 5 }, 4, c => c == 6));
     }
 
+    [Fact]
+    public void ABuiltPipesStubIsItsArmsTowardThePlansOnlyLeavingItsJointToTheGrid()
+    {
+        // The joint of pipe_0, 6 pixels square in the cell's middle; a built pipe's joint drawn as a ghost made it look unbuilt.
+        var joint = (X: 5, Y: 5, W: 6, H: 6);
+        Assert.Equal([(5, 11, 6, 5)], Blueprint.ArmsOf(Blueprint.Down, joint, Cell));
+        Assert.Equal([(5, 0, 6, 5), (11, 5, 5, 6), (5, 11, 6, 5), (0, 5, 5, 6)], Blueprint.ArmsOf(15, joint, Cell));
+        Assert.Empty(Blueprint.ArmsOf(0, joint, Cell));
+        foreach (var arm in Blueprint.ArmsOf(15, joint, Cell))
+            Assert.False(arm.X < joint.X + joint.W && joint.X < arm.X + arm.W && arm.Y < joint.Y + joint.H && joint.Y < arm.Y + arm.H);
+    }
+
     /// <summary>A mask from rows drawn with '#' for an opaque pixel.</summary>
     private static List<Rim> RimOf(params string[] rows) =>
         PlanOutline.RimOf((x, y) => rows[y][x] == '#', rows[0].Length, rows.Length);
