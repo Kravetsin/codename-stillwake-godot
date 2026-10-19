@@ -42,7 +42,9 @@ outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along
   tab's hint names R. A wall's shape is changed by taking it apart and planning it again; there is no hammer.
 - The open tab is the mode (`PlanHand.Tab`): Air shows the pipes overlay, Power the cables. The overlay
   shown is never kept — `Tools.OverlayShown` from the plan out, the tab and `Ui.AirOn` on each read — so
-  with the menu closed it is air or nothing. The menu opens on the tab it closed on; a card picked opens
+  with the menu closed it is air or nothing. The air itself is drawn whenever O wants it, under every tab, the
+  tab's pipes or cables over it (0072); the overlay shown stays the tab's, for the buttons and the pointer's tip.
+  The menu opens on the tab it closed on; a card picked opens
   its tab; another tab lets the card go; a tab with nothing known is never the tab.
 - Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges

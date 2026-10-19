@@ -17,7 +17,7 @@ namespace Stillwake.Game.Features.Atmosphere;
 /// The ship's air (features/atmosphere/index.ts, air-overlay.ts). Without a word: every room losing
 /// oxygen into space pulsing red (each tank's sight glass is <see cref="TankLooks"/>), air streaming out through its openings
 /// while it holds any (<see cref="AirStream"/>), faint motes gliding in all air (<see cref="AirMotes"/>).
-/// With O, the air overlay (<see cref="AirLook"/>): air dithered in the rooms, coming and going softly
+/// With O, the air overlay (<see cref="AirLook"/>), in building too, under the pipes or cables of a tab: air dithered in the rooms, coming and going softly
 /// (<see cref="AirField"/>), red and running out while a room vents, grey dots where a room holds none,
 /// a ragged aura of the lifepod's air round it with motes in it; beside the pointer, what the sim says
 /// of that room's air (<see cref="Explain"/>). The nearest stream hisses: one, however many vent.
@@ -70,6 +70,10 @@ public partial class AirView : Node2D
         _pulse.Paint = g => { foreach (var (box, colour) in _losing) g.DrawRect(box, colour); };
     }
 
+    /// <summary>Whether the air overlay is drawn: wanted with O, under a build tab's own overlay too, which draws over it.</summary>
+    private bool Shown => _ui.AirOn.Get();
+
+    /// <summary>Whether it is the overlay that speaks for the pointer: under a tab with one of its own, that one does.</summary>
     private bool On => _ui.OverlayOn == Id;
 
     public void Frame(Client client, Registry m, (double X, double Y)? pointer, double elapsedMs)
@@ -97,7 +101,7 @@ public partial class AirView : Node2D
             _field.Ease(elapsedMs);
             if (_field.Write()) Upload(_field);
         }
-        ((ShaderMaterial)_look.Material).SetShaderParameter("overlay", On);
+        ((ShaderMaterial)_look.Material).SetShaderParameter("overlay", Shown);
         _motes.Step(elapsedMs, _field, m.Atmosphere.AiredCells, _fillingVents, _reach);
         _specks.QueueRedraw();
     }
@@ -122,11 +126,11 @@ public partial class AirView : Node2D
 
     private void PaintMotes(Sketch g)
     {
-        float quiet = On ? 1 : QuietMotes;
+        float quiet = Shown ? 1 : QuietMotes;
         foreach (var mote in _motes.Live)
         {
             // The pod's motes belong to its aura, drawn with the overlay only.
-            if (mote.Kind == MoteKind.Pod && !On) continue;
+            if (mote.Kind == MoteKind.Pod && !Shown) continue;
             var (colour, alpha, size) = mote.Kind == MoteKind.Room
                 ? (Mote, (mote.Big ? 0.5f : 0.8f) * quiet, mote.Big ? 2 : 1)
                 : (PodMote, 0.6f, 1);

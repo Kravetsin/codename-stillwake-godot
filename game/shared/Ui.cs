@@ -173,7 +173,10 @@ public sealed class Ui
     /// </summary>
     public Store<string?> Wielded { get; } = new(null);
 
-    /// <summary>Whether the air overlay is wanted: O switches it, outside building too, for air keeps the crew alive.</summary>
+    /// <summary>
+    /// Whether the air overlay is wanted, and so drawn: O switches it, outside building too, for air keeps the crew
+    /// alive, and under any build tab, a tab's own overlay drawn over it (<see cref="OverlayOn"/> stays the tab's).
+    /// </summary>
     public Store<bool> AirOn { get; } = new(false);
 
     /// <summary>
