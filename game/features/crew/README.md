@@ -89,7 +89,7 @@ player down and not the other, and a floor could be jumped up through but not dr
 
 The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-cell-has-a-shape.md)); the hero's
 `Ship` reads it beside the structure (`ShapeAt`, the grid's own), and the geometry is the sim's (`Shape.Solid`,
-`Shape.TopAt`, `Shape.ClosedSides`, integer thousandths).
+`Shape.TopAt`, `Shape.BottomAt`, `Shape.ClosedSides`, integer thousandths).
 
 - **Whole cells hold the whole box; a floor slope (◢ ◣) holds the middle of the feet** on its diagonal, and a
   slope beside the middle holds the box at its point nearest the middle (so a hole at a ramp's top is walked onto
@@ -110,15 +110,25 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   the box goes in and the feet climb. The box may overlap only its lowest half width — the uphill side of a slope,
   a ledge being stepped onto; a step, climb, swim or pull that would end with more of it in anything, or the feet
   in anything, is not made (`Hero.Clear`).
-- **Ceiling slopes** (◤ ◥) are whole walls to the hero for now; **swimming and pulled**, every shape is whole.
-  **Down on a slope** does nothing; down through floors and the one-cell-hole catch work as before.
+- **Ceiling slopes** (◤ ◥, part 2 of 0069): the head follows the diagonal (`Shape.BottomAt`). Rising — a jump, a
+  ladder — the box's top stops where it first meets a ceiling slope's diagonal, in the row the head is in too
+  (`Hero.MoveY`); through a ceiling slope's open side (◤'s right, ◥'s left) the box goes in under it till the head
+  meets the diagonal, in a column it is in already too (`Hero.MoveX`), so the hero stands and walks under a bevelled
+  corner as far as the open half gives the head room. The head never overlaps the solid half: the lowest half width
+  is still the only band that may overlap anything. A ceiling slope's top is whole to the feet, and its closed sides
+  stop the box like a wall. No slide along the diagonal: a head that meets it stops, as under a flat ceiling.
+  **Swimming and pulled**, every shape is whole. **Down on a slope** does nothing; down through floors and the
+  one-cell-hole catch work as before.
 - Tested in `SlopeTests`: a hill up and down grounded every step both ways, walking and running; mixed footing;
-  closed sides and ceiling slopes stopping the hero; climbing a slope from its open side; the hole at a ramp's
-  top from either side; a ladder at a ramp's foot; swimming into a slope; and a property that, on random ships
-  of walls, slopes, floors, ladders and doors, whatever the keys, the feet are never in anything solid and the
-  box never above its lowest half width.
+  closed sides and a ceiling slope on the floor stopping the hero; climbing a slope from its open side; the hole at a
+  ramp's top from either side; a ladder at a ramp's foot; swimming into a slope; a jump into a ceiling slope from its
+  open side stopping at the diagonal; a corridor three high with bevelled top corners, walked into either way, and a
+  run of ◤ along a ceiling; and a property that, on random ships of walls, slopes, floors, ladders and doors,
+  whatever the keys, nothing above the box's lowest half width or the feet is ever in a wall's solid, whole or a
+  slope's half, nor a closed door.
 - `-- --hills` is a room of slopes to walk (`game/dev/HillsDemo.cs`), aired and lit, stacks lying on its slopes;
-  with `--autopilot` the hero walks it (`HeroAutopilot.HillsRun`).
+  with `--autopilot` the hero walks it (`HeroAutopilot.HillsRun`). `-- --slopes` (`game/dev/SlopesDemo.cs`) has a
+  corridor three high with its far top corner cut; with `--autopilot` the hero walks in under it (`SlopesRun`).
 
 ## Others' heroes
 
