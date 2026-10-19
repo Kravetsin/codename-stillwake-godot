@@ -26,8 +26,8 @@ machine's glow hardly showed.
   same where it matters — light enters at the border and falls off inward — without making a border cell
   faint itself: the open space just outside a doorway or a tear would then show a dim stripe where open
   space must stay whole.
-- **Starter lamps dim and warm:** `Light.Lamp` (0.8, 0.64, 0.42), keeping `Light.LampKeep` (0.84) a cell
-  out to `Light.LampReach` (11), against (1.05, 0.91, 0.665), 0.88 and 16. Ambient (0.04, 0.045, 0.06),
+- **Starter lamps dim and warm:** `Light.Lamp` (0.8, 0.64, 0.42), keeping `Light.LampKeep` (0.74) a cell
+  out to `Light.LampReach` (8), against (1.05, 0.91, 0.665), 0.88 and 16. Ambient (0.04, 0.045, 0.06),
   from (0.05, 0.055, 0.07).
 
 ## Consequences

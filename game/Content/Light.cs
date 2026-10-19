@@ -48,8 +48,8 @@ public static class Light
     /// cells, so a room is lit to walk and its corners dark, and fires, screens and glows read in it.
     /// </summary>
     public static readonly (float R, float G, float B) Lamp = (0.8f, 0.64f, 0.42f);
-    public const float LampKeep = 0.84f;
-    public const int LampReach = 11;
+    public const float LampKeep = 0.74f;
+    public const int LampReach = 8;
     public const float LampMost = 1f;
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
     public const float FireKeep = 0.72f;

@@ -52,8 +52,8 @@ Numbers from `game/Content/Light.cs`.
   fire (`Light.FireSize`) have a width: seen from a texel the light is a line across that wide; its two
   ends are walked, and where they disagree — a shadow's edge — seven points between, the share seen
   kept. Edges are soft over as much as the light seen from them is wide, as Godot's PCF softened them.
-- **Lamps:** `Light.Lamp` (0.8, 0.64, 0.42), dim and warm, keeping `Light.LampKeep` (0.84) a cell, each
-  colour at most `Light.LampMost`, out to `Light.LampReach` (11) cells: a room lit to walk, its corners
+- **Lamps:** `Light.Lamp` (0.8, 0.64, 0.42), dim and warm, keeping `Light.LampKeep` (0.74) a cell, each
+  colour at most `Light.LampMost`, out to `Light.LampReach` (8) cells: a room lit to walk, its corners
   dark, so a fire, a screen or a machine's glow reads in it; as bright as `LightView.LampShare` says — the power it gets, flickering when
   short (`Flicker`) — and an unlit additive glow.
 - **Fire:** from where a furnace's or a burner generator's fire gives its light (`LightView.FireAt`, which
