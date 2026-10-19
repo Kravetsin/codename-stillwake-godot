@@ -86,6 +86,31 @@ public class DoorShapeTests
     }
 
     [Fact]
+    public void SlidesAPanelUpForADoorAndAlongForAHatchFromShutToOpen()
+    {
+        // Four pixels down, one across: a frame (F) round a panel (P) in the open picture's hole (.).
+        byte[] Pixels(params char[] p) => p.SelectMany(c => c == '.' ? new byte[4] : new byte[] { (byte)c, 0, 0, 255 }).ToArray();
+        byte[] shut = Pixels('F', 'A', 'B', 'F'), open = Pixels('F', '.', '.', 'F');
+        Assert.Equal(shut, DoorShape.Slid(shut, open, 1, 0, hatch: false));
+        Assert.Equal(Pixels('F', 'B', '.', 'F'), DoorShape.Slid(shut, open, 1, 1, hatch: false));
+        Assert.Equal(open, DoorShape.Slid(shut, open, 1, 2, hatch: false));
+        // The same row lying down, a hatch: it slides toward its left end.
+        Assert.Equal(Pixels('F', 'B', '.', 'F'), DoorShape.Slid(shut, open, 4, 1, hatch: true));
+    }
+
+    [Fact]
+    public void NamesEveryStepOfASlideShutAndOpenAtItsEnds()
+    {
+        Assert.Equal("door_closed_5", DoorShape.Picture(0, Doorways.Up | Doorways.Down));
+        Assert.Equal("door_open_5", DoorShape.Picture(DoorShape.Steps, Doorways.Up | Doorways.Down));
+        Assert.Equal("hatch_slid3_10", DoorShape.Picture(3, Doorways.Left | Doorways.Right));
+        var slid = DoorShape.SlidPictures.ToList();
+        // Three shapes of door (alone, a door cell is a hatch) and four of hatch, seven pictures between shut and open each.
+        Assert.Equal(7 * (DoorShape.Steps - 1), slid.Select(s => s.Name).Distinct().Count());
+        Assert.Contains(("door_slid4_1", "door_closed_1", "door_open_1", 8, false), slid);
+    }
+
+    [Fact]
     public void EveryHatchPictureIsInTheArtFolder()
     {
         string art = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art");

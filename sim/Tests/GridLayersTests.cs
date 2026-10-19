@@ -36,7 +36,7 @@ public class GridLayersTests
             .Do(new ClearAt(w.At(2, 0), "back"))
             .Do(new Place(w.At(2, 0), Placement.BackWall("iron")))
             .Do(new Place(w.At(2, 1), new Placement("conduit", "pipe")))
-            .Do(new ToggleDoor(w.At(1, 1)))
+            .Do(new SetDoor(w.At(1, 1), true))
             .Run();
         var g = w.M.Grid;
         Assert.Equal(iron, g.MaterialLayer[w.At(0, 0)]);

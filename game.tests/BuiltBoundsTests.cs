@@ -239,7 +239,7 @@ public class BuiltBoundsTests
         for (int i = rng.Next(1, 4); i > 0 && cells.Count > 0; i--)
         {
             int cell = cells[rng.Next(cells.Count)];
-            toggles.Add(rng.Next(2) == 0 ? new ToggleDoor(cell) : new ToggleValve(cell));
+            toggles.Add(rng.Next(2) == 0 ? new SetDoor(cell, rng.Next(2) == 0) : new SetValve(cell, rng.Next(2) == 0));
         }
         var (structure, conduit) = m.Grid.AfterToggles(toggles);
         return new ShownGrid($"{step}:toggles", structure, conduit);

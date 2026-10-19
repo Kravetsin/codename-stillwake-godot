@@ -276,7 +276,7 @@ public class AirTests
         var w = s.W;
         s.Fill(3);
         AirUp(w, s.Room);
-        w.Do(new ToggleValve(At(1, 2))).Do(new ClearAt(At(8, 2), "structure")).Run();
+        w.Do(new SetValve(At(1, 2), false)).Do(new ClearAt(At(8, 2), "structure")).Run();
         int cut = Oxygen(w, s.Tanks[0]);
         w.Run(5);
         Assert.Equal(RoomStatus.Venting, Status(w, s.Room));
@@ -342,7 +342,7 @@ public class AirTests
     {
         var (w, left, door, right) = TwoRooms(cut: true);
         var held = w.Air().Aired.ToList();
-        w.Do(new ToggleDoor(door)).Run();
+        w.Do(new SetDoor(door, true)).Run();
         int joined = w.M.Rooms.RoomAt(At15(4, 2))!.Value;
         Assert.Equal(left, joined);
         Assert.Equal(joined, w.M.Rooms.RoomAt(right));
@@ -355,7 +355,7 @@ public class AirTests
     public void FillsTheJoinedRoomThroughTheDoorwayTheCellsNearestTheVentFirst()
     {
         var (w, _, door, _) = TwoRooms();
-        w.Do(new ToggleDoor(door)).Run(3);
+        w.Do(new SetDoor(door, true)).Run(3);
         Assert.Contains(door, w.Air().Aired);
         Assert.Contains(At15(9, 2), w.Air().Aired);
         Assert.DoesNotContain(At15(10, 3), w.Air().Aired);
@@ -365,10 +365,10 @@ public class AirTests
     public void LeavesALittleAirWhereItIsWhenTheDoorShutsOnItNotWhereTheRoomWouldPutIt()
     {
         var (w, _, door, right) = TwoRooms();
-        w.Do(new ToggleDoor(door)).Run(3);
+        w.Do(new SetDoor(door, true)).Run(3);
         var inRight = w.Air().Aired.Where(c => c % 15 > 8).ToList();
         Assert.NotEmpty(inRight);
-        w.Do(new ToggleDoor(door)).Run();
+        w.Do(new SetDoor(door, false)).Run();
         int shut = w.M.Rooms.RoomAt(right)!.Value;
         Assert.Equal(inRight, AiredIn(w, shut));
         // Its order starts at its middle, yet the air stays where it came in.
@@ -381,10 +381,10 @@ public class AirTests
     public void FillsTheRestOfTheJoinedRoomShutThePartWithNoVentLeaksItsAirAway()
     {
         var (w, left, door, right) = TwoRooms();
-        w.Do(new ToggleDoor(door)).Run();
+        w.Do(new SetDoor(door, true)).Run();
         Assert.Equal(RoomStatus.Filling, Status(w, left));
         AirUp(w, left);
-        w.Do(new ToggleDoor(door)).Run();
+        w.Do(new SetDoor(door, false)).Run();
         int shut = w.M.Rooms.RoomAt(right)!.Value;
         int volume = w.M.Rooms.RoomById(shut)!.Volume;
         Assert.Equal(volume, AiredIn(w, shut).Count);
@@ -524,7 +524,7 @@ public class AirTests
             foreach (var (cell, ticks) in all)
             {
                 int structure = w.M.Grid.StructureAt(cell);
-                w.Do(structure is Structure.DoorClosed or Structure.DoorOpen ? new ToggleDoor(cell)
+                w.Do(structure is Structure.DoorClosed or Structure.DoorOpen ? new SetDoor(cell, structure == Structure.DoorClosed)
                     : structure == Structure.Empty ? new Place(cell, Wall) : new ClearAt(cell, "structure"));
                 w.Run(ticks);
                 if (!FreshOrders(w)) return false.Label($"orders after {cell}");
@@ -585,7 +585,7 @@ public class AirTests
                 switch (step.Type)
                 {
                     case "load": w.Do(new LoadCanister(tank)); break;
-                    case "valve": w.Do(new ToggleValve(At(1, 2))); break;
+                    case "valve": w.Do(new SetValve(At(1, 2), w.M.Grid.ConduitAt(At(1, 2)) == Conduit.ValveClosed)); break;
                     case "breach": w.Do(new ClearAt(step.Cell, "structure")); break;
                     case "breathe": w.Do(new Enter(step.Cell)); break;
                     case "vent":
@@ -661,7 +661,7 @@ public class AirTests
         var w = new Scenario(Two);
         // Shut, each room its hull and its own cells; the door's back wall touches no air.
         Assert.Equal(new int?[] { (17 + 21) * Scrap, (13 + 15) * Scrap }, new[] { LeakAt(w, At15(4, 2)), LeakAt(w, At15(10, 2)) });
-        w.Do(new ToggleDoor(At15(8, 2))).Run();
+        w.Do(new SetDoor(At15(8, 2), true)).Run();
         // Open, one room: both hulls, both rooms' cells and the doorway's.
         Assert.Equal((17 + 13 + 21 + 15 + 1) * Scrap, LeakAt(w, At15(4, 2)));
     }

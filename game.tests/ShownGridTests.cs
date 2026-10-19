@@ -46,19 +46,19 @@ public class ShownGridTests
     public void ShowsADoorToggleAtOnceTheWholeDoorwayWhileTheWorldWaitsForItsTick()
     {
         var g = new Guest();
-        g.Client.Send(new ToggleDoor(4));
+        g.Client.Send(new SetDoor(4, true));
         Assert.Equal(Open, Doorway(g.Shown, g.M.Grid));
         Assert.Equal(Shut, new[] { g.M.Grid.StructureAt(1), g.M.Grid.StructureAt(4) });
         Assert.Equal(Structure.DoorOpen, g.Shown.StructureAt(g.M.Grid, 1));
     }
 
     [Fact]
-    public void ShowsTwoTogglesInFlightUndoneAndOneTheSimWouldRefuseNotAtAll()
+    public void ShowsTheLastOfTwoSetsInFlightAndOneTheSimWouldRefuseNotAtAll()
     {
         var g = new Guest();
-        g.Client.Send(new ToggleDoor(1));
-        g.Client.Send(new ToggleDoor(4));
-        g.Client.Send(new ToggleDoor(7));
+        g.Client.Send(new SetDoor(1, true));
+        g.Client.Send(new SetDoor(4, false));
+        g.Client.Send(new SetDoor(7, true));
         Assert.Equal(Shut, Doorway(g.Shown, g.M.Grid));
         Assert.Equal(Structure.Empty, g.Shown.StructureAt(g.M.Grid, 7));
     }
@@ -67,9 +67,9 @@ public class ShownGridTests
     public void ShowsTheSameOnceTheTickRunsItWithNothingInFlight()
     {
         var g = new Guest();
-        g.Client.Send(new ToggleDoor(1));
+        g.Client.Send(new SetDoor(1, true));
         var before = g.Shown;
-        g.Run(new ToggleDoor(1));
+        g.Run(new SetDoor(1, true));
         Assert.Empty(g.Client.InFlight);
         Assert.Equal(Doorway(before, g.M.Grid), Doorway(g.Shown, g.M.Grid));
         Assert.NotEqual(before.Key, g.Shown.Key);
@@ -79,7 +79,7 @@ public class ShownGridTests
     public void IsMadeOnceForTheSameWorldAndTheSameToggles()
     {
         var g = new Guest();
-        g.Client.Send(new ToggleDoor(1));
+        g.Client.Send(new SetDoor(1, true));
         Assert.Same(g.Shown, g.Shown);
     }
 }

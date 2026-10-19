@@ -32,7 +32,7 @@ public class DebrisTests
     {
         var link = new Fed();
         var client = new Client(World.Create(1, Layout.Parse("#D#\n#D#\n..."), new Registry().All), link, 1);
-        Command[] sent = [new Grab(4), new ToggleDoor(1), new Grab(9)];
+        Command[] sent = [new Grab(4), new SetDoor(1, true), new Grab(9)];
         foreach (var c in sent) client.Send(c);
         Assert.Equal([4, 9], Predicted.Grabbing(client.InFlight).Order());
         link.Receive(new TickMessage(client.World.Tick, sent.Select(c => new Stamped(1, client.World.Encode(c))).ToList()));

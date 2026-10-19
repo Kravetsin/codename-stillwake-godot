@@ -132,7 +132,7 @@ public class ShapeTests
                 {
                     < 4 => new Place(cell, new Placement("structure", Kinds[kind], kind == 0 ? "scrap" : null)),
                     4 => new ClearAt(cell, "structure"),
-                    5 => new ToggleDoor(cell),
+                    5 => new SetDoor(cell, w.M.Grid.StructureAt(cell) == Structure.DoorClosed),
                     _ => new ClearAt(cell, "back"),
                 }).Run();
                 if (!Holds()) return false.Label($"after {kind} at {cell}");

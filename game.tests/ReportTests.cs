@@ -92,10 +92,10 @@ public class ReportTests
     {
         var s = TwoRooms();
         Tell(s, HeroIn(6, 4));
-        s.World.Step([new ToggleDoor(At(4, 3))]);
+        s.World.Step([new SetDoor(At(4, 3), true)]);
         // The open doorway makes one room: walking into the left part is no change of room.
         Tell(s, HeroIn(2, 4));
-        s.World.Step([new ToggleDoor(At(4, 3))]);
+        s.World.Step([new SetDoor(At(4, 3), false)]);
         // Shut, the left room is a room of its own again, with the id the joined room had.
         Assert.Equal(new Enter(At(2, 3)), ReportOf(s.M, HeroIn(2, 4)));
     }

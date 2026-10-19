@@ -27,9 +27,9 @@ public class GridTests
         Assert.Null(w.M.Grid.BackAt(6));
     }
 
-    /// <summary>A hatch is a doorway lying in a deck (0067): toggled from any of its cells, it opens and shuts whole.</summary>
+    /// <summary>A hatch is a doorway lying in a deck (0067): opened or shut from any of its cells, it moves whole.</summary>
     [Fact]
-    public void TogglesAHatchThreeWideWholeFromAnyOfItsCells()
+    public void OpensAndShutsAHatchThreeWideWholeFromAnyOfItsCells()
     {
         var w = new Scenario("""
             #######
@@ -39,15 +39,44 @@ public class GridTests
             #######
             """);
         int[] Hatch() => [.. Enumerable.Range(2, 3).Select(x => w.M.Grid.StructureAt(w.At(x, 2)))];
-        w.Do(new ToggleDoor(w.At(3, 2))).Run();
+        w.Do(new SetDoor(w.At(3, 2), true)).Run();
         Assert.Equal(new[] { Structure.DoorOpen, Structure.DoorOpen, Structure.DoorOpen }, Hatch());
-        w.Do(new ToggleDoor(w.At(4, 2))).Run();
+        w.Do(new SetDoor(w.At(4, 2), false)).Run();
         Assert.Equal(new[] { Structure.DoorClosed, Structure.DoorClosed, Structure.DoorClosed }, Hatch());
+    }
+
+    /// <summary>Two peers who both saw a door shut open it in one tick, or one a round trip after the other: it stays open.</summary>
+    [Fact]
+    public void LeavesADoorOpenWhenTwoPeersOpenItAtOnceOrOneLate()
+    {
+        var w = new Scenario("#D#\n#D#\n#.#");
+        int before = w.M.Grid.Version;
+        w.Do(new SetDoor(1, true) { From = 0 }).Do(new SetDoor(4, true) { From = 1 }).Run();
+        Assert.Equal((Structure.DoorOpen, Structure.DoorOpen), (w.M.Grid.StructureAt(1), w.M.Grid.StructureAt(4)));
+        Assert.Equal(before + 1, w.M.Grid.Version);
+        w.Run(3).Do(new SetDoor(1, true) { From = 1 }).Run();
+        Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(1));
+        Assert.Empty(w.Refusals);
+    }
+
+    /// <summary>A door or valve already as asked is left alone, the grid's version too; a doorway open in part opens whole.</summary>
+    [Fact]
+    public void LeavesADoorOrValveAlreadyAsAskedAloneAndOpensAMixedDoorwayWhole()
+    {
+        var w = new Scenario("#D#v\n###x\n#d#.\n#D#.");
+        int before = w.M.Grid.Version;
+        w.Do(new SetDoor(1, false)).Do(new SetValve(3, true)).Do(new SetValve(7, false)).Run();
+        Assert.Equal(before, w.M.Grid.Version);
+        Assert.Empty(w.Refusals);
+        w.Do(new SetDoor(13, true)).Run();
+        Assert.Equal((Structure.DoorOpen, Structure.DoorOpen), (w.M.Grid.StructureAt(9), w.M.Grid.StructureAt(13)));
+        w.Do(new SetValve(7, true)).Do(new SetValve(3, false)).Run();
+        Assert.Equal((Conduit.ValveClosed, Conduit.ValveOpen), (w.M.Grid.ConduitAt(3), w.M.Grid.ConduitAt(7)));
     }
 
     /// <summary>
     /// A doorway is one straight run (0067): where a door meets a hatch, the cell they share is the door's and the hatch
-    /// stops beside it, so each toggles alone; a door and a hatch touching only at a corner never were one.
+    /// stops beside it, so each opens alone; a door and a hatch touching only at a corner never were one.
     /// </summary>
     [Theory]
     [InlineData("DDD.|..D.|..D.", 0, 0, "ddD.|..D.|..D.")]
@@ -60,10 +89,10 @@ public class GridTests
     [InlineData(".D.|DDD|.D.", 1, 0, ".d.|DdD|.d.")]
     [InlineData("D..|D..|.DD", 0, 0, "d..|d..|.DD")]
     [InlineData("D..|D..|.DD", 1, 2, "D..|D..|.dd")]
-    public void TogglesOnlyTheStraightRunTheCellIsIn(string map, int x, int y, string after)
+    public void SetsOnlyTheStraightRunTheCellIsIn(string map, int x, int y, string after)
     {
         var w = new Scenario(map.Replace('|', '\n'));
-        w.Do(new ToggleDoor(w.At(x, y))).Run();
+        w.Do(new SetDoor(w.At(x, y), true)).Run();
         int width = map.IndexOf('|');
         string Shown(int c) => w.M.Grid.StructureAt(c) switch { Structure.DoorClosed => "D", Structure.DoorOpen => "d", _ => "." };
         var rows = Enumerable.Range(0, after.Split('|').Length).Select(r => string.Concat(Enumerable.Range(0, width).Select(c => Shown(r * width + c))));
@@ -273,7 +302,7 @@ public class GridAfterTogglesTests
     public void ShowTheLayersAsTheirCommandsWouldLeaveThemSkippingWhatTheyWouldRefuse()
     {
         var w = new Scenario("#D#v\n#D#-");
-        Command[] toggles = [new ToggleDoor(5), new ToggleValve(3), new ToggleDoor(0), new ToggleValve(7)];
+        Command[] toggles = [new SetDoor(5, true), new SetValve(3, false), new SetDoor(0, true), new SetValve(7, true)];
         var (structure, conduit) = w.M.Grid.AfterToggles(toggles);
         int[] shownStructure = Over(w.M.Grid.StructureLayer, structure), shownConduit = Over(w.M.Grid.ConduitLayer, conduit);
         foreach (var t in toggles) w.Do(t);
@@ -287,7 +316,7 @@ public class GridAfterTogglesTests
     public void ListOnlyTheCellsTheToggledDoorwaysAndValvesCover()
     {
         var w = new Scenario("#D#v\n#D#-\n#.#.");
-        var (structure, conduit) = w.M.Grid.AfterToggles([new ToggleDoor(5), new ToggleValve(3), new ToggleDoor(0)]);
+        var (structure, conduit) = w.M.Grid.AfterToggles([new SetDoor(5, true), new SetValve(3, false), new SetDoor(0, true)]);
         Assert.Equal(new[] { 1, 5 }, structure.Keys.Order());
         Assert.Equal(new[] { 3 }, conduit.Keys);
     }
@@ -298,8 +327,8 @@ public class GridAfterTogglesTests
         var w = new Scenario("#d#\n#D#");
         ulong hash = w.World.Hash();
         int[] live = w.M.Grid.StructureLayer.ToArray();
-        var (structure, _) = w.M.Grid.AfterToggles([new ToggleDoor(1), new ToggleDoor(4)]);
-        // A mixed doorway: the first closes it all, as its open cell, and the second opens it all.
+        var (structure, _) = w.M.Grid.AfterToggles([new SetDoor(1, false), new SetDoor(4, true)]);
+        // A mixed doorway: the first shuts it all, the second opens it all again.
         Assert.Equal(new[] { live[1], live[1] }, new[] { structure[1], structure[4] });
         Assert.Equal(hash, w.World.Hash());
         Assert.Equal(live, w.M.Grid.StructureLayer.ToArray());
