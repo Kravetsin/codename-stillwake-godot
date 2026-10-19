@@ -158,7 +158,11 @@ in the sim.
   `main` is protected: nothing lands without a PR and a green CI, no approval needed, so nobody waits
   on the other. Never push to `main`; keep branches short and merge `main` into them often. Small
   edits to the files every task touches (`game/Main.cs`, `game/i18n/En.cs`).
-- Before a push: `dotnet format Stillwake.sln` and `dotnet test Stillwake.sln`; CI fails on whitespace.
+- While working, test one project or filter (`dotnet test sim/Tests --filter Logistics`). Once, before the
+  commit: the full `dotnet test Stillwake.sln` and `dotnet format` on the changed files only (`--include`, seconds
+  instead of a whole-solution minute); CI fails on whitespace.
+- Match the ritual to the size: a new mechanic gets its ADR, a test proven to bite and screenshots; a number
+  change or a bug fix gets its test and a README line.
 - Releases only on request, only from a green `main`: `release.cmd` (docs/releasing.md).
 - A non-trivial feature: `design-author` → `design-reviewer` → a plan in `docs/plans/` → `/review-plan`
   → implementation → `/review-implementation` → human review.
@@ -172,7 +176,8 @@ in the sim.
 ```
 dotnet build Stillwake.sln                 # everything, analyzers included
 dotnet test Stillwake.sln                  # the sim's tests
-dotnet format Stillwake.sln --verify-no-changes
+dotnet format Stillwake.sln --include $(git diff --name-only origin/main -- "*.cs")   # what CI checks, changed files
+dotnet format Stillwake.sln --verify-no-changes                                      # all of it, ~45 s
 godot --path game                          # play; --headless --import once after new assets
 godot --path game --write-movie /tmp/f/shot.png --fixed-fps 20 --quit-after 100 -- --autopilot
 godot --headless --path game --export-release "Windows Desktop" ../build/windows/Stillwake.exe
