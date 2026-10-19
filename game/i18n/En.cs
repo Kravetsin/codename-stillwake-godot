@@ -19,6 +19,7 @@ public static partial class En
         ["grid.machineInTheWay"] = "A machine is in the way",
         ["grid.blocked"] = "Something is in the way",
         ["grid.noSuchMaterial"] = "No such material",
+        ["grid.notShapeable"] = "Only a wall can be sloped",
         ["grid.noSuchMachine"] = "No such machine",
         // Not in the TypeScript: its types kept a placement to the layers there are.
         ["grid.noSuchLayer"] = "No such layer",
@@ -63,6 +64,7 @@ public static partial class En
         ["gear.screwdriver"] = "Screwdriver",
         ["gear.screwdriver.about"] = "Hold RMB on a plan to build it. Always at hand; better tools will go in this slot.",
         ["hint.build"] = "Drag to plan · hold RMB builds · MMB removes · Q picks · B closes",
+        ["hint.structure"] = "Drag to plan · R slopes walls · hold RMB builds · MMB removes · Q picks · B closes",
         ["hint.air"] = "Drag to plan · hold RMB builds · MMB removes pipes and machines · Q picks · B closes",
         ["hint.power"] = "Drag a peg or plug to move it · Cable lays · MMB cuts · hold RMB builds · B closes",
         ["build.tab.structure"] = "Structure",

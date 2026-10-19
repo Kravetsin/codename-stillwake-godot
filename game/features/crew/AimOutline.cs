@@ -112,7 +112,7 @@ public static class AimOutline
         var corner = CornerOf(plan.Cell, width);
         foreach (var piece in BlueprintArt.PiecesOf(place, Blueprint.LinksOf(place, plan.Cell, width, width * m.Grid.Height, Joins)))
         {
-            var picture = PixelArt.Picture(piece.Picture);
+            var picture = ShipTiles.PictureOf(piece.Picture);
             if (piece.Cut)
             {
                 var size = picture.GetSize();

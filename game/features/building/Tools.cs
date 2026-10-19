@@ -134,6 +134,7 @@ public static class Tools
     {
         "air" => "hint.air",
         "power" => "hint.power",
+        "structure" => "hint.structure",
         _ => "hint.build",
     };
 
@@ -172,7 +173,7 @@ public static class Tools
             case "structure":
                 return grid.StructureAt(cell) switch
                 {
-                    Structure.Wall => Placement.Wall(grid.WallAt(cell)!.Id),
+                    Structure.Wall => Placement.Wall(grid.WallAt(cell)!.Id) with { Shape = grid.ShapeAt(cell) },
                     Structure.Floor => new Placement(layer, "floor"),
                     Structure.Ladder => new Placement(layer, "ladder"),
                     Structure.DoorClosed or Structure.DoorOpen => new Placement(layer, "door"),
@@ -188,9 +189,27 @@ public static class Tools
     /// drawn: what is <paramref name="planned"/> beside it and what is built, as the grid would draw it built — a
     /// pipe reaching every conduit, a wall running on into every wall, a door along its doorway's straight run.
     /// </summary>
-    public static int LinksOf(Placement place, int cell, int width, System.Func<int, IEnumerable<Placement>> planned, IGridQueries grid) =>
-        !Render.Blueprint.Joins(place, place) ? 0 : Render.Blueprint.LinksOf(place, cell, width, width * grid.Height, c =>
+    public static int LinksOf(Placement place, int cell, int width, System.Func<int, IEnumerable<Placement>> planned, IGridQueries grid)
+    {
+        if (!Render.Blueprint.Joins(place, place)) return 0;
+        // A wall runs on into a wall only where that one's facing side is whole (0069), planned or built.
+        if (place.Kind == "wall")
+            return Render.Blueprint.WallLinksOf(cell, width, width * grid.Height, c =>
+                planned(c).FirstOrDefault(o => o.Kind == "wall")?.Shape ?? (grid.StructureAt(c) == Structure.Wall ? grid.ShapeAt(c) : (int?)null));
+        return Render.Blueprint.LinksOf(place, cell, width, width * grid.Height, c =>
             planned(c).Any(o => Render.Blueprint.Joins(place, o)) || BuiltAt(c, place.Layer, grid) is { } built && Render.Blueprint.Joins(place, built));
+    }
+
+    /// <summary>
+    /// <paramref name="tool"/> as it places with walls cut to <paramref name="shape"/> (0069): a hull wall's card with
+    /// the shape, every other card as it is.
+    /// </summary>
+    public static T? Shaped<T>(T? tool, int shape) where T : Act =>
+        tool is PlaceTool { Placement.Kind: "wall" } p ? (T)(Act)(p with { Placement = p.Placement with { Shape = shape } }) : tool;
+
+    /// <summary>The shape of the wall the pipette picks at <paramref name="cell"/> under <paramref name="overlay"/>, planned or built: none for anything else.</summary>
+    public static int ShapePicked(int cell, string? overlay, IGridQueries grid, BuildingModule building) =>
+        PlacementAt(cell, LayersFor(overlay), grid, building)?.Shape ?? Shape.None;
 
     /// <summary>
     /// The pipes and valves beside <paramref name="conduits"/>, the cells of planned ones or a ghost's, that
