@@ -12,7 +12,7 @@ namespace Stillwake.Sim.Tests;
 public class GridLogTests
 {
     private static readonly GridLayers[] Layers =
-        [GridLayers.Structure, GridLayers.Material, GridLayers.Conduit, GridLayers.Back, GridLayers.BackMaterial, GridLayers.Machine];
+        [GridLayers.Structure, GridLayers.Material, GridLayers.Conduit, GridLayers.Back, GridLayers.BackMaterial, GridLayers.Machine, GridLayers.Shape];
 
     /// <summary>Every layer of every cell as it stands, a machine by its id.</summary>
     private static int[][] Snapshot(GridModule grid)
@@ -21,7 +21,7 @@ public class GridLogTests
         return
         [
             grid.StructureLayer.ToArray(), grid.MaterialLayer.ToArray(), grid.ConduitLayer.ToArray(), grid.BackLayer.ToArray(),
-            grid.BackMaterialLayer.ToArray(), [.. Enumerable.Range(0, size).Select(c => grid.MachineAt(c)?.Id ?? 0)],
+            grid.BackMaterialLayer.ToArray(), [.. Enumerable.Range(0, size).Select(c => grid.MachineAt(c)?.Id ?? 0)], grid.ShapeLayer.ToArray(),
         ];
     }
 
@@ -72,7 +72,7 @@ public class GridLogTests
         var gen =
             from width in Gen.Choose(1, 9)
             from height in Gen.Choose(1, 7)
-            from cells in Gen.Elements(' ', ' ', '.', '#', 'D', 'd', '-', 'v', 'x', 'V').ArrayOf(width * height)
+            from cells in Gen.Elements(' ', ' ', '.', '#', '/', '\\', 'r', '7', 'D', 'd', '-', 'v', 'x', 'V').ArrayOf(width * height)
             from capacity in Gen.Elements(1, 2, 4, 8, 32, 1 << 16)
             from edits in (from cell in Gen.Choose(0, 1 << 20) from kind in Gen.Choose(0, 15) select (cell, kind)).ListOf()
             select (rows: Enumerable.Range(0, height).Select(y => new string(cells, y * width, width)).ToArray(), capacity, edits: edits.Take(50).ToList());

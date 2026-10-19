@@ -136,7 +136,25 @@ public static class Migrations
             save["slices"]!["debris"]!.AsObject()["found"] ??= new JsonArray();
             return save;
         },
+        // 18 → 19: a wall has a shape (0069): every wall whole, as every one was.
+        Shapes,
     ];
+
+    /// <summary>18 → 19: the grid's shape layer, every cell <c>Shape.None</c>, after its back walls' materials, where a save of 19 keeps it.</summary>
+    public static JsonObject Shapes(JsonObject save)
+    {
+        var grid = save["slices"]!["grid"]!.AsObject();
+        if (grid.ContainsKey("shape")) return save;
+        int size = (int)grid["width"]! * (int)grid["height"]!;
+        var fields = grid.Select(p => (p.Key, Value: p.Value?.DeepClone())).ToList();
+        grid.Clear();
+        foreach (var (key, value) in fields)
+        {
+            grid[key] = value;
+            if (key == "backMaterial") grid["shape"] = Runs.Node(new int[size]);
+        }
+        return save;
+    }
 
     /// <summary>
     /// 15 → 16: what the Former and the circuit assembler hold gains their input slots, empty, in front, so what they

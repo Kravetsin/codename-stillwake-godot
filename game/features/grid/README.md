@@ -4,11 +4,14 @@ Draws the ship's cells and machines in pixel art, a pixel of art a pixel of the 
 cell (TypeScript `features/grid` and `render/ship-art.ts`).
 
 - **Reads:** `IGridQueries` only — `AfterToggles` through `Predicted.Grid`, `ChangedSince`, `StructureLayer`, `MaterialLayer`, `ConduitLayer`, `BackLayer`,
-  `BackMaterialLayer`, `Machines`, `Version`, `Built`; the machine's `Plug` from `Content.Machines` for its socket.
+  `BackMaterialLayer`, `ShapeLayer`, `Machines`, `Version`, `Built`; the machine's `Plug` from `Content.Machines` for its socket.
 - **Draws:** a `TileMapLayer` per kind of picture, back to front: back walls (scrap cut from its
   picture, iron a panel with a grille in about one cell of seven), pipes reaching toward their
   neighbours, valves, walls cut from their material's picture, their edges on every side that faces no
-  wall, floors and ladders, doors and hatches (shut or slid open; a door cell joined to one above or below
+  wall's whole side; a wall cut to a shape (0069) drawn from the same picture, each cell cut by its mask at load
+  (`render/ShapeMasks.cs`, `ShipTiles.WallName`), its diagonal edged in the material's own edge colours and its
+  edges on its whole sides only (`ShipTiles.EdgeName`); the light reads it as a whole wall for now,
+  floors and ladders, doors and hatches (shut or slid open; a door cell joined to one above or below
   is a door's, every other a hatch's, joined as the sim's `Doorways` joins them, one straight run a doorway;
   pictures by `render/DoorShape.cs`, 0067),
   machines over their footprints; a sprite per power socket.

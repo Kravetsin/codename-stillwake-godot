@@ -27,16 +27,21 @@ public readonly record struct HeroInput(
     bool Jetpack = false, Point? Thrust = null);
 
 /// <summary>
-/// The cells the hero moves against; which of them are space, where the hero floats; and which are the
-/// hull, where a tether is not yet needed: any cell with a structure or a back wall, aired or not.
+/// The cells the hero moves against and the shapes of their walls (0069); which of them are space, where the
+/// hero floats; and which are the hull, where a tether is not yet needed: any cell with a structure or a back
+/// wall, aired or not.
 /// </summary>
-public sealed class Ship(int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null)
+public sealed class Ship(
+    int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null, Func<int, int>? shapeAt = null)
 {
     public int Width => width;
     public int Height => height;
 
     /// <summary>The <see cref="Structure"/> code of a cell on the grid.</summary>
     public int StructureAt(int cell) => structureAt(cell);
+
+    /// <summary>The <see cref="Shape"/> of a cell's wall: none for a whole wall or no wall.</summary>
+    public int ShapeAt(int cell) => shapeAt?.Invoke(cell) ?? Shape.None;
 
     public bool Space(int cell) => space(cell);
 
@@ -48,7 +53,7 @@ public sealed class Ship(int width, int height, Func<int, int> structureAt, Func
     /// </summary>
     public static Ship Of(IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null) =>
         new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, cell => rooms.RoomAt(cell) == RoomsModule.Space,
-            cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null);
+            cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null, grid.ShapeAt);
 }
 
 /// <summary>
@@ -123,13 +128,13 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         var from = before.Middle;
         int byX = anchor.X + (int)Math.Truncate((double)(middle.X - anchor.X) * Spec.Tether / far) - from.X;
         int byY = anchor.Y + (int)Math.Truncate((double)(middle.Y - anchor.Y) * Spec.Tether / far) - from.Y;
-        int x = MoveX(ship, before.X, before.Y, byX);
+        int x = MoveX(ship, before.X, before.Y, byX, false);
         (int X, int Y) to = (before.X, before.Y);
         foreach (var t in new[]
         {
-            (x, MoveY(ship, x, before.Y, byY, false)),
+            (x, MoveY(ship, x, before.Y, byY, false, false)),
             (x, before.Y),
-            (before.X, MoveY(ship, before.X, before.Y, byY, false)),
+            (before.X, MoveY(ship, before.X, before.Y, byY, false, false)),
         })
         {
             if (!Within(t.Item1, t.Item2)) continue;
@@ -152,31 +157,122 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
             TouchesLadder(ship, hero.X, hero.Y, input.Y > 0);
         if (grab || hero.Climbing)
         {
-            // A ladder centres the hero on it; narrower than a cell, the hero touches nothing beside it.
-            if (input.X == 0 && !input.Jump) return Climb(ship, CellOf(hero.X) * Unit + Unit / 2, hero.Y, input.Y, facing);
+            // A ladder centres the hero on it; narrower than a cell, the hero touches nothing beside it but a slope's
+            // solid half, which it may not climb into: it stops on the ladder, or does not take it (0069).
+            if (input.X == 0 && !input.Jump)
+            {
+                var climbed = Climb(ship, CellOf(hero.X) * Unit + Unit / 2, hero.Y, input.Y, facing);
+                if (Clear(ship, climbed.X, climbed.Y)) return climbed;
+                if (hero.Climbing) return hero with { Vx = 0, Vy = 0, Facing = facing };
+            }
             // Walking or jumping lets go.
-            return Fall(ship, hero.X, hero.Y, input.X, input.Jump ? -Spec.Jump : 0, facing, input.Sprint);
+            else return Fall(ship, hero.X, hero.Y, input.X, input.Jump ? -Spec.Jump : 0, facing, input.Sprint);
         }
         int vy = input.Jump && Grounded(ship, hero.X, hero.Y) ? -Spec.Jump : hero.Vy;
         return Fall(ship, hero.X, hero.Y, input.X, vy, facing, input.Sprint, input.Y > 0 && !input.Jump);
     }
 
     /// <summary>
-    /// A step under gravity. Standing, a walk stops where the body first fits a hole below it (<see cref="Caught"/>),
-    /// <paramref name="down"/> with no walk slides the body into the hole under its middle (<see cref="Slid"/>), and
-    /// <paramref name="down"/> on floors alone drops through them (<see cref="OnFloors"/>).
+    /// A step under gravity. Standing, a walk follows the ground up and down slopes (<see cref="Walk"/>) and stops where
+    /// the body first fits a hole below it (<see cref="Caught"/>), <paramref name="down"/> with no walk slides the body
+    /// into the hole under its middle (<see cref="Slid"/>), and <paramref name="down"/> on floors alone drops through
+    /// them (<see cref="OnFloors"/>).
     /// </summary>
     private static Hero Fall(Ship ship, int x, int y, int dir, int vy, int facing, bool sprint, bool down = false)
     {
         int speed = Math.Min(vy + Spec.Gravity, Spec.MaxFall);
         bool standing = vy >= 0 && Grounded(ship, x, y);
-        int nx = standing && dir == 0 && down ? Slid(ship, x, y) : MoveX(ship, x, y, dir * (sprint ? Spec.Run : Spec.Walk));
-        if (standing && dir != 0) nx = Caught(ship, x, nx, y);
+        int step = dir * (sprint ? Spec.Run : Spec.Walk);
+        var (nx, wy) = standing && dir != 0 ? Walk(ship, x, y, step)
+            : standing && down ? (Slid(ship, x, y), y)
+            : Aloft(ship, x, y, step);
         // Feet a thousandth into the floor's row: a row the feet are in is never landed on (MoveY).
-        int ny = standing && down && OnFloors(ship, nx, y)
-            ? MoveY(ship, nx, y + 1, speed - 1, false)
-            : MoveY(ship, nx, y, speed, false);
-        return new Hero(nx, ny, nx - x, ny - y == speed ? speed : 0, false, facing);
+        int ny = standing && down && OnFloors(ship, nx, wy)
+            ? MoveY(ship, nx, wy + 1, speed - 1, false, true)
+            : MoveY(ship, nx, wy, speed, false, true);
+        if (!Clear(ship, nx, ny)) (nx, wy, ny) = Clear(ship, nx, wy) ? (nx, wy, wy) : (x, y, y);
+        return new Hero(nx, ny, nx - x, ny - wy == speed ? speed : 0, false, facing);
+    }
+
+    /// <summary>
+    /// A walk of <paramref name="dx"/> standing at (<paramref name="x"/>, <paramref name="y"/>), the feet kept on the
+    /// ground, in parts that end as the box's leading edge reaches the end of its column or its middle crosses into
+    /// another, so the ground and the walls ahead are read where the feet are then (0069). After each part the feet
+    /// step up onto a slope or a ledge no more than half a width above them, the head permitting, and stick to ground
+    /// that fell by no more than the part walked: up and down a slope at its speed on the flat, never leaving it.
+    /// Walked off an edge, the rest is walked in the air; over a hole the body fits, the walk ends (<see cref="Caught"/>).
+    /// </summary>
+    private static (int X, int Y) Walk(Ship ship, int x, int y, int dx)
+    {
+        int dir = Math.Sign(dx);
+        for (int left = Math.Abs(dx); left > 0;)
+        {
+            int edge = dir > 0 ? x + Half - 1 : x - Half;
+            // The leading edge stops at its column's last thousandth, the feet lifted there, before it enters the next:
+            // a column's walls are judged against the feet where they are as the edge reaches it, or a run up a ramp
+            // would be stopped short at every column by the ledge it is about to step onto.
+            int inColumn = dir > 0 ? (CellOf(edge) + 1) * Unit - 1 - edge : edge - CellOf(edge) * Unit;
+            int toEdge = inColumn > 0 ? inColumn : 1;
+            int toMiddle = dir > 0 ? (CellOf(x) + 1) * Unit - x : x - CellOf(x) * Unit + 1;
+            int part = Math.Min(left, Math.Min(toEdge, toMiddle));
+            int to = MoveX(ship, x, y, dir * part, true, ledge: true);
+            // Over a hole the body fits, the walk ends there and the hero falls in.
+            int? caught = Caught(ship, x, to, y);
+            int nx = caught ?? to;
+            if (nx == x) break;
+            int moved = Math.Abs(nx - x), ny;
+            bool stopped = moved < part || caught != null;
+            if (Rise(ship, nx, y) is int top)
+            {
+                if (y - top > Half || MoveY(ship, nx, y, top - y, false, true) != top) break;
+                ny = top;
+            }
+            else if (Landing(ship, nx, y, moved + 1, false, true) is int ground) ny = ground;
+            else if (!Clear(ship, nx, y)) break;
+            else return stopped ? (nx, y) : Aloft(ship, nx, y, dir * (left - moved));
+            if (!Clear(ship, nx, ny)) break;
+            (x, y) = (nx, ny);
+            left -= moved;
+            if (stopped) break;
+        }
+        return (x, y);
+    }
+
+    /// <summary>
+    /// A move of <paramref name="dx"/> off the ground: the box stopped by what is whole, the feet lifted onto a slope's
+    /// diagonal they moved into when no more than half a width below it and the head has room; else, or where the hero
+    /// would not fit (<see cref="Clear"/>), no move.
+    /// </summary>
+    private static (int X, int Y) Aloft(Ship ship, int x, int y, int dx)
+    {
+        if (dx == 0) return (x, y);
+        int nx = MoveX(ship, x, y, dx, true);
+        (int X, int Y) to = Rise(ship, nx, y) is not int top ? (nx, y)
+            : y - top <= Half && MoveY(ship, nx, y, top - y, false, true) == top ? (nx, top) : (x, y);
+        return Clear(ship, to.X, to.Y) ? to : (x, y);
+    }
+
+    /// <summary>
+    /// Where the feet at (<paramref name="x"/>, <paramref name="y"/>) would stand if they are inside something: the
+    /// first place above them in nothing, a slope's diagonal or a wall's top, out of a wall and up the slope on it;
+    /// null when they are in nothing.
+    /// </summary>
+    private static int? Rise(Ship ship, int x, int y)
+    {
+        int? top = null;
+        // Out of a wall's top the feet may still be in the slope on it: up again, never past a step.
+        for (int at = y; y - at <= Half && TopOver(ship, x, at) is int over; at = over) top = over;
+        return top;
+    }
+
+    /// <summary>The top of the solid the feet at (<paramref name="x"/>, <paramref name="y"/>) are in, or null.</summary>
+    private static int? TopOver(Ship ship, int x, int y)
+    {
+        int column = CellOf(x), row = CellOf(y - 1);
+        int slope = SlopeAt(ship, column, row);
+        if (slope != Shape.None)
+            return Shape.Solid(slope, x - column * Unit, y - 1 - row * Unit) ? row * Unit + Shape.TopAt(slope, x - column * Unit) : null;
+        return Whole(ship, column, row) ? row * Unit : null;
     }
 
     /// <summary>
@@ -189,8 +285,9 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         int dx = to.X - middle.X, dy = to.Y - middle.Y;
         double far = Distance(dx, dy);
         if (far > PullStep) (dx, dy) = ((int)Math.Round(dx / far * PullStep), (int)Math.Round(dy / far * PullStep));
-        int nx = MoveX(ship, hero.X, hero.Y, dx);
-        int ny = MoveY(ship, nx, hero.Y, dy, false);
+        int nx = MoveX(ship, hero.X, hero.Y, dx, false);
+        int ny = MoveY(ship, nx, hero.Y, dy, false, false);
+        if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
         return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing);
     }
 
@@ -201,8 +298,9 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     private static Hero Swim(Ship ship, Hero hero, HeroInput input, int facing)
     {
         var (vx, vy) = input.Jetpack ? Flown(hero.Vx, hero.Vy, input) : (input.X * Spec.Swim, input.Y * Spec.Swim);
-        int nx = MoveX(ship, hero.X, hero.Y, vx);
-        int ny = MoveY(ship, nx, hero.Y, vy, false);
+        int nx = MoveX(ship, hero.X, hero.Y, vx, false);
+        int ny = MoveY(ship, nx, hero.Y, vy, false, false);
+        if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
         return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing);
     }
 
@@ -248,7 +346,7 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
 
     private static Hero Climb(Ship ship, int x, int y, int dir, int facing)
     {
-        int ny = MoveY(ship, x, y, dir * Spec.Climb, true);
+        int ny = MoveY(ship, x, y, dir * Spec.Climb, true, true);
         int column = CellOf(x);
         int before = CellOf(y - 1);
         int after = CellOf(ny - 1);
@@ -258,15 +356,15 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         return new Hero(x, ny, 0, ny - y, TouchesLadder(ship, x, ny, false), facing);
     }
 
-    private static bool Grounded(Ship ship, int x, int y) => MoveY(ship, x, y, 1, false) == y;
+    private static bool Grounded(Ship ship, int x, int y) => MoveY(ship, x, y, 1, false, true) == y;
 
     /// <summary>
     /// Where a hero standing at <paramref name="y"/> and walking from <paramref name="x"/> to <paramref name="nx"/>
-    /// stops: at the first place on the way where its body fits over a hole below the feet, or
-    /// <paramref name="nx"/>. A step is longer than the 50 thousandths a cell leaves beside the body, so
+    /// stops: at the first place on the way where its body fits over a hole below the feet, or null for none, the walk
+    /// going on to <paramref name="nx"/>. A step is longer than the 50 thousandths a cell leaves beside the body, so
     /// unstopped a walk steps over a hole one cell wide or into it by where it began (playtest 1).
     /// </summary>
-    private static int Caught(Ship ship, int x, int nx, int y)
+    private static int? Caught(Ship ship, int x, int nx, int y)
     {
         int row = CellOf(y);
         int dir = Math.Sign(nx - x);
@@ -277,7 +375,7 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
             if (dir > 0 && x < lo && nx >= lo) return Math.Min(nx, hi);
             if (dir < 0 && x > hi && nx <= hi) return Math.Max(nx, lo);
         }
-        return nx;
+        return null;
     }
 
     /// <summary>
@@ -289,12 +387,12 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         int c = CellOf(x);
         if (!Open(ship, c, CellOf(y))) return x;
         int to = Math.Clamp(x, c * Unit + Half, (c + 1) * Unit - Half);
-        return MoveX(ship, x, y, Math.Clamp(to - x, -Spec.Walk, Spec.Walk));
+        return MoveX(ship, x, y, Math.Clamp(to - x, -Spec.Walk, Spec.Walk), true);
     }
 
     /// <summary>
     /// Whether what holds up a hero standing at (<paramref name="x"/>, <paramref name="y"/>) is floors only,
-    /// which down drops through: no wall, closed door or ladder top under any part of the feet.
+    /// which down drops through: no wall, slope, closed door or ladder top under any part of the feet.
     /// </summary>
     private static bool OnFloors(Ship ship, int x, int y)
     {
@@ -308,7 +406,7 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         return floor;
     }
 
-    /// <summary>Whether a cell lets a hero fall into it from above: nothing in it blocks or holds.</summary>
+    /// <summary>Whether a cell lets a hero fall into it from above: nothing in it blocks or holds; a slope holds.</summary>
     private static bool Open(Ship ship, int x, int y) => !Solid(ship, x, y) && !Holds(ship, x, y, false);
 
     /// <summary>Whether the hero's column holds a ladder beside the body, or also just below the feet.</summary>
@@ -321,58 +419,133 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         return false;
     }
 
-    /// <summary><paramref name="x"/> moved by <paramref name="dx"/>, stopped flush against the first blocking column the leading edge enters.</summary>
-    private static int MoveX(Ship ship, int x, int y, int dx)
+    /// <summary>
+    /// <paramref name="x"/> moved by <paramref name="dx"/>, stopped flush against the first blocking column the leading
+    /// edge enters. With <paramref name="slopes"/>, a floor slope blocks only through its closed side (◢ from the right,
+    /// ◣ from the left); through its open side the box goes in and the feet climb the diagonal. Else every wall is whole,
+    /// as swimming and pulled. With <paramref name="ledge"/>, walking, a wall whose top is no more than half a width
+    /// above the feet does not stop the box: at 45° the leading edge meets the next column exactly that far above the
+    /// feet, so the equal case passes, or every ramp would stop at its top (0069).
+    /// </summary>
+    private static int MoveX(Ship ship, int x, int y, int dx, bool slopes, bool ledge = false)
     {
         int top = CellOf(y - Spec.Height);
         int bottom = CellOf(y - 1);
-        bool Blocked(int column)
+        bool Blocked(int column, int side)
         {
             for (int row = top; row <= bottom; row++)
-                if (Solid(ship, column, row)) return true;
+            {
+                int slope = slopes ? SlopeAt(ship, column, row) : Shape.None;
+                bool stops = slope != Shape.None ? (Shape.ClosedSides(slope) & side) != 0 : Solid(ship, column, row);
+                if (stops && !(ledge && row * Unit >= y - Half)) return true;
+            }
             return false;
         }
+        int to = x + dx;
         if (dx > 0)
         {
             for (int c = CellOf(x + Half - 1) + 1; c <= CellOf(x + Half + dx - 1); c++)
-                if (Blocked(c)) return c * Unit - Half;
+                if (Blocked(c, Doorways.Left)) { to = c * Unit - Half; break; }
         }
         else if (dx < 0)
         {
             for (int c = CellOf(x - Half) - 1; c >= CellOf(x - Half + dx); c--)
-                if (Blocked(c)) return (c + 1) * Unit + Half;
+                if (Blocked(c, Doorways.Right)) { to = (c + 1) * Unit + Half; break; }
         }
-        return x + dx;
+        // Every shape whole, the feet still never move into a slope the box was let into by walking.
+        return slopes || to == x || Rise(ship, to, y) == null ? to : x;
     }
 
     /// <summary>
-    /// <paramref name="y"/> moved by <paramref name="dy"/>, stopped flush against the first blocking row
-    /// the leading edge enters. Going down, floors block too, and ladder tops unless the hero climbs down
-    /// through them. A row the feet were already in is never entered, which lets a hero through a floor
-    /// from below.
+    /// <paramref name="y"/> moved by <paramref name="dy"/>, stopped flush against the first blocking row the leading
+    /// edge enters, or going down where the feet land (<see cref="Landing"/>). Rising, every wall stops the head, a
+    /// slope's closed bottom too.
     /// </summary>
-    private static int MoveY(Ship ship, int x, int y, int dy, bool climbing)
+    private static int MoveY(Ship ship, int x, int y, int dy, bool climbing, bool slopes)
     {
-        int left = CellOf(x - Half);
-        int right = CellOf(x + Half - 1);
-        bool Blocked(int row, bool down)
+        if (dy > 0) return Landing(ship, x, y, dy, climbing, slopes) ?? y + dy;
+        if (dy < 0)
         {
-            for (int c = left; c <= right; c++)
-                if (Solid(ship, c, row) || (down && Holds(ship, c, row, climbing))) return true;
-            return false;
-        }
-        if (dy > 0)
-        {
-            for (int r = CellOf(y - 1) + 1; r <= CellOf(y + dy - 1); r++)
-                if (Blocked(r, true)) return r * Unit;
-        }
-        else if (dy < 0)
-        {
+            int left = CellOf(x - Half);
+            int right = CellOf(x + Half - 1);
             int top = y - Spec.Height;
             for (int r = CellOf(top) - 1; r >= CellOf(top + dy); r--)
-                if (Blocked(r, false)) return (r + 1) * Unit + Spec.Height;
+                for (int c = left; c <= right; c++)
+                    if (Solid(ship, c, r)) return (r + 1) * Unit + Spec.Height;
         }
         return y + dy;
+    }
+
+    /// <summary>
+    /// Where feet falling from <paramref name="y"/> by up to <paramref name="reach"/> first come to rest, or null. Each
+    /// column under the box holds them at its ground (<see cref="GroundIn"/>). Mixed footing stands on the higher, but
+    /// a corner no more than half a width above the ground under the middle gives way to it: down a slope off a plateau
+    /// the feet follow the slope rather than hang on the corner and drop (0069).
+    /// </summary>
+    private static int? Landing(Ship ship, int x, int y, int reach, bool climbing, bool slopes)
+    {
+        int middle = CellOf(x);
+        int? under = GroundIn(ship, middle, x, y, reach + Half, climbing, slopes);
+        int? best = under <= y + reach ? under : null;
+        for (int c = CellOf(x - Half); c <= CellOf(x + Half - 1); c++)
+        {
+            if (c == middle || GroundIn(ship, c, x, y, reach, climbing, slopes) is not int at) continue;
+            if (under is int u && at <= u && u - at <= Half) continue;
+            best = Math.Min(best ?? at, at);
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// The highest ground in <paramref name="column"/> for a hero whose middle is at <paramref name="x"/>, at or below
+    /// <paramref name="y"/> and no further than <paramref name="reach"/> below it; null for none. Whole cells, floors and
+    /// ladder tops hold the box's bottom. A slope holds the middle of the feet on its diagonal, and beside the middle
+    /// the box's bottom at its point nearest the middle and the box above its lowest half width at its highest point
+    /// under the box. A row the feet are in is never ground but for a slope's diagonal below them, which lets a hero up
+    /// through a floor from below. With <paramref name="slopes"/> off every shape is whole but a slope the feet are in.
+    /// </summary>
+    private static int? GroundIn(Ship ship, int column, int x, int y, int reach, bool climbing, bool slopes)
+    {
+        int left = column * Unit, middle = CellOf(x), feet = CellOf(y - 1);
+        int a = Math.Max(0, x - Half - left), b = Math.Min(Unit - 1, x + Half - 1 - left);
+        int near = column == middle ? x - left : column < middle ? b : a;
+        int? best = null;
+        void Take(int at)
+        {
+            if (at >= y && at <= y + reach) best = Math.Min(best ?? at, at);
+        }
+        for (int r = CellOf(y - Half - 1); r <= CellOf(y + reach); r++)
+        {
+            int slope = slopes || r == feet ? SlopeAt(ship, column, r) : Shape.None;
+            if (slope != Shape.None)
+            {
+                Take(r * Unit + Shape.TopAt(slope, near));
+                if (slopes && column != middle) Take(r * Unit + Math.Min(Shape.TopAt(slope, a), Shape.TopAt(slope, b)) + Half);
+            }
+            else if (Solid(ship, column, r) || Holds(ship, column, r, climbing)) Take(r * Unit);
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// Whether the hero fits at (<paramref name="x"/>, <paramref name="y"/>): the middle of its feet in nothing solid,
+    /// and its box above the lowest half width clear of every wall, closed door and slope's solid half. Only that lowest
+    /// band may overlap: the uphill side of a slope, a ledge stepped onto (0069). A move that would end otherwise is not made.
+    /// </summary>
+    private static bool Clear(Ship ship, int x, int y)
+    {
+        if (Rise(ship, x, y) != null) return false;
+        int band = y - Half;
+        for (int c = CellOf(x - Half); c <= CellOf(x + Half - 1); c++)
+        {
+            int a = Math.Max(0, x - Half - c * Unit), b = Math.Min(Unit - 1, x + Half - 1 - c * Unit);
+            for (int r = CellOf(y - Spec.Height); r <= CellOf(band - 1); r++)
+            {
+                int slope = SlopeAt(ship, c, r);
+                if (slope == Shape.None ? Solid(ship, c, r) : r * Unit + Math.Min(Shape.TopAt(slope, a), Shape.TopAt(slope, b)) < band) return false;
+            }
+        }
+        return true;
     }
 
     /// <summary>The cell a length in thousandths falls in, rounding down below zero too.</summary>
@@ -381,9 +554,20 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     private static int? StructureAt(Ship ship, int x, int y) =>
         x < 0 || y < 0 || x >= ship.Width || y >= ship.Height ? null : ship.StructureAt(y * ship.Width + x);
 
-    /// <summary>Walls, closed doors, and everything past the grid's edge.</summary>
+    /// <summary>Walls of any shape, closed doors, and everything past the grid's edge.</summary>
     private static bool Solid(Ship ship, int x, int y) =>
         StructureAt(ship, x, y) is null or Structure.Wall or Structure.DoorClosed;
+
+    /// <summary>What holds the whole box out: <see cref="Solid"/> but a floor slope. A ceiling slope is whole for now (0069).</summary>
+    private static bool Whole(Ship ship, int x, int y) => Solid(ship, x, y) && SlopeAt(ship, x, y) == Shape.None;
+
+    /// <summary>The floor slope (◢ ◣) a cell's wall is cut to, or <see cref="Shape.None"/>.</summary>
+    private static int SlopeAt(Ship ship, int x, int y)
+    {
+        if (StructureAt(ship, x, y) != Structure.Wall) return Shape.None;
+        int shape = ship.ShapeAt(y * ship.Width + x);
+        return Shape.IsFloor(shape) ? shape : Shape.None;
+    }
 
     /// <summary>Ladders, and an open door in line with one: a hatch the ladder climbs through.</summary>
     private static bool Climbable(Ship ship, int x, int y) => StructureAt(ship, x, y) switch

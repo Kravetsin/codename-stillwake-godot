@@ -46,10 +46,18 @@ public static class AimOutline
             outline.Add(valve, CornerOf(aim.Cell, width) + new Vector2(Cell, Cell) / 2, 0, 1, colour);
             return;
         }
-        outline.AddBox(new Rect2(CornerOf(aim.Cell, width), Cell, Cell), colour);
+        OneCell(outline, grid, aim.Cell, colour);
     }
 
     private static Vector2 CornerOf(int cell, int width) => new(cell % width * Cell, cell / width * Cell);
+
+    /// <summary>A cell's square; a wall cut to a shape, its solid half as the grid draws it (0069).</summary>
+    private static void OneCell(Outline outline, IGridQueries grid, int cell, Color colour)
+    {
+        var corner = CornerOf(cell, grid.Width);
+        if (grid.ShapeAt(cell) is var shape and not Shape.None) outline.Add(ShapeMasks.Texture(shape), corner, colour);
+        else outline.AddBox(new Rect2(corner, Cell, Cell), colour);
+    }
 
     /// <summary>A machine's picture from its corner, and its socket where power plugs in, as the grid draws them.</summary>
     private static void Machine(Outline outline, string kind, int cell, int width, Color colour)
@@ -86,7 +94,7 @@ public static class AimOutline
         if (plan.Place is not { } place)
         {
             if (plan.Clear == "machine" && m.Grid.MachineAt(plan.Cell) is { } built) Machine(outline, built.Kind, built.Cell, width, colour);
-            else outline.AddBox(new Rect2(CornerOf(plan.Cell, width), Cell, Cell), colour);
+            else OneCell(outline, m.Grid, plan.Cell, colour);
             return;
         }
         if (place.Layer == "machine")

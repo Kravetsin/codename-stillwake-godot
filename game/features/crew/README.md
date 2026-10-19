@@ -10,7 +10,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 
 | File               | Holds                                                                                   | Godot |
 | ------------------ | --------------------------------------------------------------------------------------- | ----- |
-| `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship`, `Point`; one `Step` at 60 a second; the jetpack's flight (`Flown`, `ThrustToward`, 0047) | no    |
+| `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship` (with its walls' shapes, 0069), `Point`; one `Step` at 60 a second, up and down slopes; the jetpack's flight (`Flown`, `ThrustToward`, 0047) | no    |
 | `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`); the fist and an item held in it (`FistOf`, `HeldAt`, 0040) | no    |
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`); `Jumped` and `Landed`, when the boots are heard pushing off and coming down | no    |
 | `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039), what the drill's bit touches (`Touched`, 0054) | no    |
@@ -29,7 +29,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`) | yes |
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
 | `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway (door or hatch, 0067), a valve's wheel, a plan's own pictures | yes |
-| `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`)                             | no    |
+| `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`); `HillsRun`, the walk over `-- --hills` | no    |
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`), on a room's change and as its report every `Crew.ReportEvery` ticks (0050); `ExertOf` and `ThrustOf`, what it breathes and vents; `Cold`, how hard the cold bites at a cell | no    |
 | `Frost.cs`         | the frost past the field: one full-screen shader quad over the world, under the HUD (0050) | yes   |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads          | no    |
@@ -85,6 +85,41 @@ player down and not the other, and a floor could be jumped up through but not dr
   ladder grabs and climbs it as before, and a ladder that ends on a floor is climbed down onto it, not through
   (step off the ladder, then drop). There is no crouch. Others see it by the positions sent, as any fall.
 
+## Slopes (0069)
+
+The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-cell-has-a-shape.md)); the hero's
+`Ship` reads it beside the structure (`ShapeAt`, the grid's own), and the geometry is the sim's (`Shape.Solid`,
+`Shape.TopAt`, `Shape.ClosedSides`, integer thousandths).
+
+- **Whole cells hold the whole box; a floor slope (◢ ◣) holds the middle of the feet** on its diagonal, and a
+  slope beside the middle holds the box at its point nearest the middle (so a hole at a ramp's top is walked onto
+  and caught as any, `Hero.Caught`). Mixed footing stands on the higher, but a corner no more than half a width
+  above the ground under the middle gives way to it (`Hero.Landing`): off a plateau down a slope the feet follow
+  the slope rather than hang on the corner and drop half a cell.
+- **Walking** (`Hero.Walk`) moves in parts that end as the box's leading edge reaches its column's last thousandth
+  or its middle crosses into another column; after each the feet step up onto ground no more than half a width
+  above them, the head permitting, and stick to ground that fell by no more than the part walked. The next column's
+  walls are judged with the feet lifted to where they are as the edge reaches it, so a ramp never cuts a step short.
+  Up and down a ramp the hero stays grounded every step at its speed on the flat, walking or running, with no jump
+  and no hop; `Figure` keeps the stride going from walking to running and back.
+- **The low ledge rule:** walking, a wall whose top is no more than half a width above the feet does not stop the
+  box. At 45° the leading edge meets the next column exactly half a width above the feet, so the equal case
+  passes (`≤`); with `<` every ramp would stop at its top. Whole cells only ever sit at whole rows, so on flat
+  ground nothing changes.
+- **A slope's closed sides** (◢'s right, ◣'s left, both bottoms) stop the box like a wall; through its open side
+  the box goes in and the feet climb. The box may overlap only its lowest half width — the uphill side of a slope,
+  a ledge being stepped onto; a step, climb, swim or pull that would end with more of it in anything, or the feet
+  in anything, is not made (`Hero.Clear`).
+- **Ceiling slopes** (◤ ◥) are whole walls to the hero for now; **swimming and pulled**, every shape is whole.
+  **Down on a slope** does nothing; down through floors and the one-cell-hole catch work as before.
+- Tested in `SlopeTests`: a hill up and down grounded every step both ways, walking and running; mixed footing;
+  closed sides and ceiling slopes stopping the hero; climbing a slope from its open side; the hole at a ramp's
+  top from either side; a ladder at a ramp's foot; swimming into a slope; and a property that, on random ships
+  of walls, slopes, floors, ladders and doors, whatever the keys, the feet are never in anything solid and the
+  box never above its lowest half width.
+- `-- --hills` is a room of slopes to walk (`game/dev/HillsDemo.cs`), aired and lit, stacks lying on its slopes;
+  with `--autopilot` the hero walks it (`HeroAutopilot.HillsRun`).
+
 ## Others' heroes
 
 - This hero is sent (`Client.SendHero`, a string net never reads: `SentHero.Encode`, JSON) every 50 ms
@@ -133,7 +168,7 @@ player down and not the other, and a floor could be jumped up through but not dr
 
 - The aim is outlined along the pictures of what E works, a screen pixel wide (`render/Outline.cs`), where
   the TypeScript boxed its cells two pixels of the world wide. A mark on a wall, back wall, floor, ladder,
-  pipe or door still outlines its cell. Traced once per aim: a door or plan added beside the one aimed at
+  pipe or door still outlines its cell, a wall cut to a shape its solid half (`render/ShapeMasks.cs`, 0069). Traced once per aim: a door or plan added beside the one aimed at
   shows in its outline when the pointer next moves to another cell.
 - The body's middle is `Height / 2` rounded down, 1312 above the feet, where the TypeScript has 1312.5:
   positions stay whole numbers. A tether cut back to its limit no longer leaves a half thousandth.

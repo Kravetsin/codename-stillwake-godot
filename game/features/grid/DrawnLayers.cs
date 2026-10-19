@@ -7,7 +7,7 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Features.Grid;
 
 /// <summary>
-/// The grid's five layers as <see cref="GridView"/> last drew them, this peer's toggles in flight made
+/// The grid's six layers as <see cref="GridView"/> last drew them, this peer's toggles in flight made
 /// (0014), and the cells that changed since. The grid is looked at again only when its version moved, and
 /// then only at the cells its log names (0051); the first time, or when the log let go of them, within what
 /// is built now and was at the last look (<see cref="BuiltRows"/>). The cells a toggle in flight shows
@@ -26,6 +26,8 @@ public sealed class DrawnLayers
     public int[] Conduit { get; }
     public int[] Back { get; }
     public int[] BackMaterial { get; }
+    /// <summary>Each wall's shape as drawn (0069).</summary>
+    public int[] Shape { get; }
 
     private Box _looked = Box.None;
     private int _version = -1;
@@ -38,7 +40,7 @@ public sealed class DrawnLayers
     {
         (Width, Height) = (width, height);
         int size = width * height;
-        (Structure, Material, Conduit, Back, BackMaterial) = (new int[size], new int[size], new int[size], new int[size], new int[size]);
+        (Structure, Material, Conduit, Back, BackMaterial, Shape) = (new int[size], new int[size], new int[size], new int[size], new int[size], new int[size]);
         _marked = new bool[size];
     }
 
@@ -51,18 +53,18 @@ public sealed class DrawnLayers
         var changes = new List<Change>();
         if (grid.Version != _version)
         {
-            ReadOnlySpan<int> s = grid.StructureLayer, m = grid.MaterialLayer, cd = grid.ConduitLayer, b = grid.BackLayer, bm = grid.BackMaterialLayer;
-            int[] ds = Structure, dm = Material, dcd = Conduit, db = Back, dbm = BackMaterial;
+            ReadOnlySpan<int> s = grid.StructureLayer, m = grid.MaterialLayer, cd = grid.ConduitLayer, b = grid.BackLayer, bm = grid.BackMaterialLayer, sh = grid.ShapeLayer;
+            int[] ds = Structure, dm = Material, dcd = Conduit, db = Back, dbm = BackMaterial, dsh = Shape;
             var apart = (shown.Structure, shown.Conduit);
             // The world's codes at a cell; one a toggle in flight shows apart is looked at below.
-            void Follow(int c, ReadOnlySpan<int> s, ReadOnlySpan<int> m, ReadOnlySpan<int> cd, ReadOnlySpan<int> b, ReadOnlySpan<int> bm)
+            void Follow(int c, ReadOnlySpan<int> s, ReadOnlySpan<int> m, ReadOnlySpan<int> cd, ReadOnlySpan<int> b, ReadOnlySpan<int> bm, ReadOnlySpan<int> sh)
             {
-                if ((s[c] != ds[c] || cd[c] != dcd[c] || m[c] != dm[c] || b[c] != db[c] || bm[c] != dbm[c])
+                if ((s[c] != ds[c] || cd[c] != dcd[c] || m[c] != dm[c] || b[c] != db[c] || bm[c] != dbm[c] || sh[c] != dsh[c])
                     && apart.Structure?.ContainsKey(c) != true && apart.Conduit?.ContainsKey(c) != true)
-                    Take(c, s[c], m[c], cd[c], b[c], bm[c], changes);
+                    Take(c, s[c], m[c], cd[c], b[c], bm[c], sh[c], changes);
             }
             if (grid.ChangedSince(_version) is { } log)
-                foreach (var change in log) Follow(change.Cell, s, m, cd, b, bm);
+                foreach (var change in log) Follow(change.Cell, s, m, cd, b, bm, sh);
             else
             {
                 // The first drawing, or the grid's log let go of what changed: every row of what is built, now and last time.
@@ -71,9 +73,9 @@ public sealed class DrawnLayers
                 for (int y = box.Top; y <= box.Bottom; y++)
                 {
                     if (BuiltRows.Same(s, ds, w, box, y) && BuiltRows.Same(cd, dcd, w, box, y) && BuiltRows.Same(m, dm, w, box, y)
-                        && BuiltRows.Same(b, db, w, box, y) && BuiltRows.Same(bm, dbm, w, box, y))
+                        && BuiltRows.Same(b, db, w, box, y) && BuiltRows.Same(bm, dbm, w, box, y) && BuiltRows.Same(sh, dsh, w, box, y))
                         continue;
-                    for (int c = y * w + box.Left, end = c + box.Width; c < end; c++) Follow(c, s, m, cd, b, bm);
+                    for (int c = y * w + box.Left, end = c + box.Width; c < end; c++) Follow(c, s, m, cd, b, bm, sh);
                 }
             }
             (_looked, _version) = (grid.Built, grid.Version);
@@ -92,15 +94,15 @@ public sealed class DrawnLayers
     private void Look(IGridQueries grid, ShownGrid shown, int c, List<Change> changes)
     {
         int s = shown.StructureAt(grid, c), cd = shown.ConduitAt(grid, c);
-        int m = grid.MaterialLayer[c], b = grid.BackLayer[c], bm = grid.BackMaterialLayer[c];
-        if (s == Structure[c] && cd == Conduit[c] && m == Material[c] && b == Back[c] && bm == BackMaterial[c]) return;
-        Take(c, s, m, cd, b, bm, changes);
+        int m = grid.MaterialLayer[c], b = grid.BackLayer[c], bm = grid.BackMaterialLayer[c], sh = grid.ShapeLayer[c];
+        if (s == Structure[c] && cd == Conduit[c] && m == Material[c] && b == Back[c] && bm == BackMaterial[c] && sh == Shape[c]) return;
+        Take(c, s, m, cd, b, bm, sh, changes);
     }
 
-    private void Take(int c, int s, int m, int cd, int b, int bm, List<Change> changes)
+    private void Take(int c, int s, int m, int cd, int b, int bm, int sh, List<Change> changes)
     {
         changes.Add(new Change(c, Structure[c], Conduit[c]));
-        (Structure[c], Material[c], Conduit[c], Back[c], BackMaterial[c]) = (s, m, cd, b, bm);
+        (Structure[c], Material[c], Conduit[c], Back[c], BackMaterial[c], Shape[c]) = (s, m, cd, b, bm, sh);
     }
 
     /// <summary>

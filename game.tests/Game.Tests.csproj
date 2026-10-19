@@ -107,6 +107,7 @@
     <Compile Include="../game/shared/BuiltRows.cs" Link="Game/Shared/BuiltRows.cs" />
     <Compile Include="../game/features/furnace/Flames.cs" Link="Game/Furnace/Flames.cs" />
     <Compile Include="../game/dev/Testbed.cs" Link="Game/Dev/Testbed.cs" />
+    <Compile Include="../game/dev/HillsDemo.cs" Link="Game/Dev/HillsDemo.cs" />
     <Compile Include="../game/Content/Sound.cs" Link="Game/Content/Sound.cs" />
     <Compile Include="../game/Content/DebrisLooks.cs" Link="Game/Content/DebrisLooks.cs" />
     <Compile Include="../game/Content/Handbook.cs" Link="Game/Content/Handbook.cs" />

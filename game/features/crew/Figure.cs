@@ -368,11 +368,15 @@ public partial class Figure : Node2D
     public void Show(Hero hero, Pose pose, double look, bool holdsPlan, double elapsedMs)
     {
         _timeMs += elapsedMs;
-        // Walking backwards, away from where it faces, the stride runs backwards too.
-        if (_last is var (lx, ly)) _travelled += ((double)(hero.X - lx) * hero.Facing + Math.Abs(hero.Y - ly)) / Hero.Unit;
+        // Walking backwards, away from where it faces, the stride runs backwards too. On the ground only the
+        // way along counts, so a slope keeps the stride of the flat; on a ladder only the way up or down.
+        if (_last is var (lx, ly))
+            _travelled += (pose == Pose.Climb ? Math.Abs(hero.Y - ly) : (double)(hero.X - lx) * hero.Facing) / Hero.Unit;
         _last = (hero.X, hero.Y);
-        // A new pose starts its stride afresh, its first foot down a quarter stride in.
-        if (pose != _wasPose) (_strideFrom, _step) = (_travelled, null);
+        // A new pose starts its stride afresh, its first foot down a quarter stride in; from walking to running or back
+        // the legs go on, or a speed flickering about the line between them would freeze them.
+        bool striding = pose is Pose.Walk or Pose.Run, strode = _wasPose is Pose.Walk or Pose.Run;
+        if (pose != _wasPose && !(striding && strode)) (_strideFrom, _step) = (_travelled, null);
         if (pose is Pose.Lie or Pose.Tumble && pose != _wasPose) (_outMs, _slump, _outTilt) = (0, Random.Shared.Next(), _shown?.Tilt ?? 0);
         _outMs += elapsedMs;
         // Where the feet are, in pixels of the world.
