@@ -14,7 +14,8 @@ and `Work`.
 | `Drag.cs`         | a drag's line of cells and what the card or removal would do in each (`drag.ts`)               | no    |
 | `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
 | `BuildingView.cs` | plans as ghosts in marching dashes along their silhouettes turning real as they are built, marks in red dashes turning into their red ghost as they are taken down, ghosts, the tips, the buttons, the pipette, plan work | yes |
-| `BuildMenu.cs`    | the menu shown while the plan is out: tabs, thumbnails, the card in hand, a card's words in the one tooltip; B (Esc: `game/menu`) | yes |
+| `Catalogue.cs`    | the menu's fixed frame (0073): its size by the slot size, the rows scrolled, the card under the pointer, the scrollbar's thumb | no    |
+| `BuildMenu.cs`    | the menu shown while the plan is out, docked at the bottom middle: tabs with counts, the search, the cards, the card in hand and the hint, a card's words in the one tooltip; B, / (Esc: `game/menu`) | yes |
 
 Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, the words by the
 pointer; `Hands`: every view of this player's hands wired together, the building first to take the
@@ -23,7 +24,7 @@ as the world reads it; `BlueprintArt`/`PlanTiles`: the ship's own tiles for plan
 thumbnails; `PlanCut`/`BuiltParts`: where a plan being built turns real, and its real share drawn lit;
 `Blueprint`: how planned pipes, doors and walls join their neighbours (a planned door is drawn a door or a hatch by `DoorShape`, 0067), which the crew's aim
 outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`). The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
-`drag.test.ts` and `near-grid.test.ts` are ported one for one, walls planned cut to a shape tested in `PlanShapeTests`; working a plan is the hero's hands
+`drag.test.ts` and `near-grid.test.ts` are ported one for one, walls planned cut to a shape tested in `PlanShapeTests`, the menu's frame in `CatalogueTests`; working a plan is the hero's hands
 (`features/crew`, `AimTests`).
 
 ## Guarantees
@@ -69,7 +70,19 @@ outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along
   item taking it apart gives back, its icon at 32 pixels and "+2" in green — the sim's refund
   (`BuildingModule.RefundOf`, what the mark's last tick gives). A blueprint lacking something under the
   pointer is told first.
-- Under the cards, the card in hand and one line of what the buttons do on the tab (`Tools.HintOf`); the
+- **The menu is a docked catalogue of fixed size** (0073): 638×204 px at the normal slot, 862×252 at the large, 12 px
+  above the bottom edge in the middle, whatever the tab, the search or the number of cards (`Catalogue`). Tabs with
+  their counts of known cards and the search field on top; 14 by 3 cards, the inventory's slots, the card in hand
+  edged sky blue; the wheel anywhere over the panel scrolls a row a notch (never the hotbar), a thin bar showing
+  where. A tab opens at its top row; a card taken by Q is scrolled into view. Picking a card leaves the menu open.
+- **The search** (/ or a click): every tab's known cards whose names hold the words (`Tools.Matching`), no tab lit
+  while it shows. The field takes every key while typed in, B and Q too, and the hero stands still (`HeroView`).
+  Enter or a click elsewhere ends the typing; Esc clears the words, the menu staying open (`BuildMenu.DropSearch`,
+  asked first by the game menu's Esc); a tab clicked or a card Q takes that the words miss ends it; put away, the
+  menu forgets it.
+- Under the cards, the card in hand and one line of what the buttons do on the tab (`Tools.HintOf`), at 11 px so it
+  fits beside the longest name; a longer one is cut with an ellipsis, never the frame widened. The card under the
+  pointer is found by where the mouse is each frame (`Catalogue.CardAt`), so its tooltip follows a scroll. The
   menu's top is `Ui.MenuTop`, which the prompt for E keeps above.
 - A plan is a ghost of what it builds (`PlanTiles`): its own picture greyed and lifted 60% toward white,
   a little blue, at 88% opacity (back walls 65%, as they are behind; 70% and 45% before 0064), so what was planned — a wall's or back wall's material too, for the other players — stays

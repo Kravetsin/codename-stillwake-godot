@@ -126,6 +126,13 @@ public static class Tools
     public static string? OverlayShown(bool planOut, string tab, bool airOn) =>
         planOut && Tabs.FirstOrDefault(t => t.Id == tab)?.Overlay is { } overlay ? overlay : airOn ? Air : null;
 
+    /// <summary>The cards among <paramref name="cards"/> whose names hold <paramref name="query"/>, case ignored, in their order: the menu's search, across every tab.</summary>
+    public static List<Tool> Matching(IEnumerable<Tool> cards, string query)
+    {
+        string words = query.Trim();
+        return cards.Where(each => each.Label.Contains(words, System.StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
     /// <summary>The tab a card is on.</summary>
     public static string TabOf(Tool tool) => Tabs.First(t => t.Tools.Contains(tool)).Id;
 
