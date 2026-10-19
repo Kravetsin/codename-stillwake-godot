@@ -258,6 +258,9 @@ public sealed class Ui
     /// </summary>
     public Store<bool> MenuOpen { get; } = new(false);
 
+    /// <summary>How big the stack on the pointer is drawn, in pixels, 0 for none: the tooltip keeps clear of it.</summary>
+    public Store<float> OnPointer { get; } = new(0);
+
     /// <summary>
     /// This player just placed plans in these cells: <c>building</c> says so as it sends them, and
     /// <c>crew</c> has the hero aim the planner at them and beam them in. Told once a placing.
