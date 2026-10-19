@@ -70,6 +70,9 @@ public partial class Main : Node2D, ITogether
     private Registry _m = null!;
     /// <summary>The registry the views draw: a load or a resync brings a new one.</summary>
     private Registry? _shown;
+    /// <summary>SPIKE (planet): the site the views draw, 0 the ship; and its ground while on one.</summary>
+    private int _shownSite;
+    private IGridQueries? _ground;
     private GridView? _grid;
     private LightView? _light;
     private FurnaceView? _furnace;
@@ -769,6 +772,8 @@ public partial class Main : Node2D, ITogether
         });
         MoveChild(_camera, -1);
         _shown = _m;
+        _shownSite = 0;
+        _ground = null;
         _gridKey = null;
         if (_session is Session s)
         {
@@ -778,6 +783,68 @@ public partial class Main : Node2D, ITogether
         }
         SyncLight();
     }
+
+    /// <summary>
+    /// SPIKE (planet): the views follow this player's hero between the ship and a site: on a site only the ground
+    /// and its light are drawn, every view of the ship's let go, made again on beaming back.
+    /// </summary>
+    private void ShowSite(Client client)
+    {
+        int site = _m.Crew.HeroOf(client.Id)?.Site ?? 0;
+        if (site == _shownSite) return;
+        if (site == 0)
+        {
+            long back = System.Diagnostics.Stopwatch.GetTimestamp();
+            _shown = null;
+            ShowWorld();
+            _hero?.Beamed(0, null, 0);
+            Log($"beamed up at tick {client.World.Tick}: the ship's views made again in {System.Diagnostics.Stopwatch.GetElapsedTime(back).TotalMilliseconds:F1} ms");
+            return;
+        }
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var ground = _m.Site.GroundOf(site)!;
+        foreach (var view in new Node?[] { _grid, _light, _furnace, _screens, _chargers, _tanks, _pods, _stations, _drones }) view?.QueueFree();
+        (_furnace, _screens, _chargers, _tanks, _pods, _stations, _drones) = (null, null, null, null, null, null, null);
+        AddChild(_grid = new GridView(ground));
+        AddChild(_light = new LightView(ground));
+        MoveChild(_camera, -1);
+        (_shownSite, _ground, _gridKey) = (site, ground, null);
+        _hero?.Beamed(site, ground, _m.Site.SpawnOf(site));
+        SyncGrid(client);
+        SyncLight();
+        Log($"beamed down to site {site} at tick {client.World.Tick}: views made and synced in {System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds:F1} ms");
+    }
+
+    /// <summary>
+    /// SPIKE: <c>--planet</c> beams the hero down a second in, and digs a shaft and a gallery beside where it lands,
+    /// a hit a tick; <c>--planet-up=SECONDS</c> beams it back; <c>--planet-zoom=Z</c> sets the camera's zoom.
+    /// </summary>
+    private void Planet(Client client, int before)
+    {
+        if (client.World.Tick == before) return;
+        var hero = _m.Crew.HeroOf(client.Id);
+        if (hero == null || client.InFlight.Count > 0) return;
+        if (_args.FirstOrDefault(a => a.StartsWith("--planet-zoom="))?[14..] is { } zoom) _camera.SetZoom(float.Parse(zoom, System.Globalization.CultureInfo.InvariantCulture));
+        int up = int.Parse(_args.FirstOrDefault(a => a.StartsWith("--planet-up="))?[12..] ?? "100000") * World.TicksPerSecond;
+        if (hero.Site == 0 && client.World.Tick >= World.TicksPerSecond && client.World.Tick < up) client.Send(new Sim.Site.Beam(1));
+        if (hero.Site == 0) return;
+        if (client.World.Tick >= up)
+        {
+            client.Send(new Sim.Site.Beam(0));
+            return;
+        }
+        var ground = _m.Site.GroundOf(hero.Site)!;
+        int w = ground.Width, spawn = _m.Site.SpawnOf(hero.Site), x0 = spawn % w, y0 = spawn / w;
+        _planetDig ??= [
+            .. Enumerable.Range(1, 16).SelectMany(dy => new[] { (y0 + dy) * w + x0 + 3, (y0 + dy) * w + x0 + 4 }),
+            .. Enumerable.Range(5, 26).SelectMany(dx => new[] { (y0 + 14) * w + x0 + dx, (y0 + 15) * w + x0 + dx, (y0 + 16) * w + x0 + dx }),
+        ];
+        int next = _planetDig.FindIndex(c => ground.WallAt(c) != null);
+        // Five hits a tick, for a recording: the sim does not check a weapon's pace (0034).
+        for (int i = 0; i < 5 && next >= 0; i++) client.Send(new Sim.Site.Dig(_planetDig[next], Content.Weapons.Axe.Item));
+    }
+
+    private List<int>? _planetDig;
 
     private void AimCamera(Layout? layout)
     {
@@ -825,6 +892,8 @@ public partial class Main : Node2D, ITogether
         if (Has("--toggle") && client.World.Tick != before && (_toggled ??= Autopilot.At(20, _m.Grid).FirstOrDefault()) is { } toggle)
             client.Send(toggle);
         ShowWorld();
+        ShowSite(client);
+        if (Has("--planet")) Planet(client, before);
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
         _frameLog?.Mark("light");
@@ -836,12 +905,13 @@ public partial class Main : Node2D, ITogether
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Panel.Charger = _m.Power.Charges;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
-        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, SpotOf(_hero), session.Progress, delta * 1000);
-        _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
+        if (_items != null && _ground == null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, SpotOf(_hero), session.Progress, delta * 1000);
+        if (_ground == null) _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
-        _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
+        _debris.Visible = _ground == null;
+        if (_ground == null) _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
         _frameLog?.Mark("debris");
-        ShowHands(client, delta * 1000);
+        if (_ground == null) ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");
     }
 
@@ -879,7 +949,7 @@ public partial class Main : Node2D, ITogether
     /// <summary>The grid as this peer shows it, redrawn when that changes: a tick, or a door or valve toggle of its own sent (0014).</summary>
     private void SyncGrid(Client client)
     {
-        var shown = Predicted.Grid(client, _m.Grid);
+        var shown = Predicted.Grid(client, _ground ?? _m.Grid);
         if (shown.Key == _gridKey) return;
         _gridKey = shown.Key;
         Measure(() => _grid?.Sync(shown));

@@ -201,6 +201,11 @@ public partial class GridView : Node2D
     /// <summary>Scrap cut from its picture; iron a panel, a grille in about one cell of seven.</summary>
     private void DrawBack(Vector2I at, int code)
     {
+        if (MaterialOf(code) is "soil" or "rock")
+        {
+            Put(_back, at, $"back_{MaterialOf(code)}");
+            return;
+        }
         if (MaterialOf(code) == "scrap")
         {
             _back.SetCell(at, ShipTiles.Source, _tiles.CutAt("back_scrap", at.X, at.Y));

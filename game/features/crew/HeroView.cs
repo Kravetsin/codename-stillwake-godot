@@ -248,6 +248,16 @@ public partial class HeroView : Node2D
     /// <summary>Where a dev run places the hero first (<c>--edge</c>), not the crew's spawn; it wakes at the spawn as ever.</summary>
     public Func<Registry, int>? Start { get; set; }
 
+    /// <summary>SPIKE (planet): the ground of the site the hero is on, walked under gravity; null aboard.</summary>
+    public Sim.Grid.IGridQueries? Ground { get; private set; }
+    private int _groundSpawn, _site;
+
+    /// <summary>SPIKE: the hero is now on <paramref name="site"/>'s <paramref name="ground"/> (null for the ship), put at <paramref name="spawn"/>.</summary>
+    public void Beamed(int site, Sim.Grid.IGridQueries? ground, int spawn)
+    {
+        (_site, Ground, _groundSpawn, _placed) = (site, ground, spawn, false);
+    }
+
     /// <summary>Where the prompt for E lies on the screen while it shows: what the markers keep out of.</summary>
     public Rect2? PromptCovers => _prompt.Covers;
 
@@ -281,11 +291,12 @@ public partial class HeroView : Node2D
     public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double progress, double elapsedMs)
     {
         (_m, _client, _progress) = (m, client, progress);
-        var grid = m.Grid;
+        var grid = Ground ?? m.Grid;
         _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
         var shown = Predicted.Grid(client, grid);
-        var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell));
+        // SPIKE (planet): on a site there is no space: gravity everywhere, nothing to float in.
+        var ship = _ship = Ground is { } g ? new Ship(g.Width, g.Height, g.StructureAt, _ => false) : Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell));
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
@@ -294,7 +305,7 @@ public partial class HeroView : Node2D
         // Waking from passing out, the sim has put the hero at the spawn: so does the client.
         if (!_placed || (_wasOut && !passedOut))
         {
-            _previous = _current = Hero.At(ship, !_placed && Start != null ? Start(m) : m.Crew.Spawn);
+            _previous = _current = Hero.At(ship, Ground != null ? _groundSpawn : !_placed && Start != null ? Start(m) : m.Crew.Spawn);
             _placed = true;
         }
         // Passing out it dies where the sim has it (0061), where its body falls: it lies there, not a report behind.
@@ -333,7 +344,10 @@ public partial class HeroView : Node2D
         // Passed out it reports no cell: one landing after it wakes at the pod would put it back out there.
         int tick = client.World.Tick;
         if (passedOut) _reportedAt = tick;
-        if (Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current, tick, _reportedAt) is { } report)
+        var report = Ground != null
+            ? (known != null && known.Cell != _current.BodyCell(grid.Width) && tick - _reportedAt >= Content.Crew.ReportEvery ? new Enter(_current.BodyCell(grid.Width)) : null)
+            : Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current, tick, _reportedAt);
+        if (report != null)
         {
             client.Send(report);
             _reportedAt = tick;
@@ -360,7 +374,7 @@ public partial class HeroView : Node2D
                 _heardChops[message.From] = (sent.Seen.Wields == Content.Weapons.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
             }
         ShowOthers(ship, m, elapsedMs);
-        _bodies.Frame(m, progress, elapsedMs);
+        if (Ground == null) _bodies.Frame(m, progress, elapsedMs);
 
         double between = _clock.Progress;
         double x = _previous.X + (_current.X - _previous.X) * between;
@@ -374,7 +388,7 @@ public partial class HeroView : Node2D
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         var pose = Poses.PoseOf(drawn, inSpace, passedOut);
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
-        UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
+        if (Ground == null) UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         _figure.Wear(Suits.Of(m.Crew, client.Id));
@@ -586,7 +600,8 @@ public partial class HeroView : Node2D
     private void ShowOthers(Ship ship, Registry m, double elapsedMs)
     {
         var crew = m.Crew;
-        var others = _remote.At(_clockMs);
+        // SPIKE (planet): only the heroes on the same site as this one.
+        var others = _remote.At(_clockMs).Where(o => (crew.HeroOf(o.Id)?.Site ?? 0) == _site).ToList();
         foreach (var (id, shown) in _shownOthers)
             if (!others.Any(o => o.Id == id))
             {

@@ -35,7 +35,7 @@ public sealed class ShipTiles
             pictures.Add(Picture($"wall_{material}", Relief.None));
             for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", Relief.None));
         }
-        foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", "floor", "ladder"])
+        foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", "back_soil", "back_rock", "floor", "ladder"])
             pictures.Add(Picture(name, Relief.None));
         for (int linked = 0; linked < 16; linked++)
         {
@@ -123,9 +123,12 @@ public sealed class ShipTiles
     /// </summary>
     private static (string, Image, Image) Picture(string name, Relief relief, bool centred = false)
     {
-        var diffuse = PixelArt.Picture(name).GetImage();
+        // SPIKE (planet): the ground has no art yet: a hull's picture, tinted.
+        var (source, tint) = Ground(name);
+        var diffuse = (Image)PixelArt.Picture(source).GetImage().Duplicate();
         if (diffuse.IsCompressed()) diffuse.Decompress();
         diffuse.Convert(Image.Format.Rgba8);
+        if (tint is { } t) Tint(diffuse, t);
         var normal = relief == Relief.None ? Filled(diffuse.GetSize(), Flat) : PixelArt.VolumeMap(diffuse, across: relief == Relief.Across, down: relief == Relief.Down);
         var whole = (diffuse.GetSize() + new Vector2I(Cell - 1, Cell - 1)) / Cell * Cell;
         if (whole == diffuse.GetSize()) return (name, diffuse, normal);
@@ -137,6 +140,27 @@ public sealed class ShipTiles
             return padded;
         }
         return (name, Padded(diffuse, Colors.Transparent), Padded(normal, Flat));
+    }
+
+    /// <summary>SPIKE (planet): the picture a ground's is tinted from, and its tint; any other picture as it is.</summary>
+    private static (string Source, Color? Tint) Ground(string name)
+    {
+        if (name == "back_soil") return ("back_iron_plain", new Color(0.30f, 0.20f, 0.13f));
+        if (name == "back_rock") return ("back_iron_plain", new Color(0.22f, 0.22f, 0.25f));
+        if (name.Contains("_soil")) return (name.Replace("_soil", "_scrap"), new Color(0.62f, 0.42f, 0.26f));
+        if (name.Contains("_rock")) return (name.Replace("_rock", "_iron"), new Color(0.52f, 0.52f, 0.56f));
+        return (name, null);
+    }
+
+    private static void Tint(Image image, Color tint)
+    {
+        for (int y = 0; y < image.GetHeight(); y++)
+            for (int x = 0; x < image.GetWidth(); x++)
+            {
+                var c = image.GetPixel(x, y);
+                float l = 0.35f + 0.9f * (0.3f * c.R + 0.59f * c.G + 0.11f * c.B);
+                image.SetPixel(x, y, new Color(Mathf.Min(1, tint.R * l), Mathf.Min(1, tint.G * l), Mathf.Min(1, tint.B * l), c.A));
+            }
     }
 
     /// <summary>How a picture stands out toward a light: flat, rolled from side to side (a door), from top to bottom (a hatch), or domed.</summary>
