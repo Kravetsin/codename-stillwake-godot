@@ -67,6 +67,14 @@ public static class Clicks
     public static Picked? StillHeld(Picked? picked, string? item, Stack? now) => picked is { } p && now != null && now.Item == item ? p : null;
 
     /// <summary>
+    /// What a drag along the closed hotbar carries on the pointer, as a picked stack shows there: begun at
+    /// <paramref name="from"/>, whose slot holds <paramref name="stack"/>, once the pointer has left it for another slot or
+    /// the world (<paramref name="over"/>, the slot under it now). Over its own slot it is still a click choosing it: nothing.
+    /// </summary>
+    public static Picked? Dragged(Place? from, Place? over, Stack? stack) =>
+        from is { } f && stack != null && over != f ? new Picked(f, stack.Count) : null;
+
+    /// <summary>
     /// Where a shift-click sends a stack, or nowhere. Quick equip, as Terraria's: an item of the hero's own
     /// that is worn goes onto the first free equipment slot of its kind, or swaps with the first worn there;
     /// what is worn goes onto the first free own slot, the hotbar first. A battery goes into an open charging

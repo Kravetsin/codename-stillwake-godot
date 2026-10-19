@@ -140,6 +140,9 @@ public partial class InventoryPanel : CanvasLayer
     /// </summary>
     private Picked? Held => Shown && _picked is { } p ? Clicks.StillHeld(p, _pickedItem, _reading?.At(p.Place)) : null;
 
+    /// <summary>What the pointer carries, drawn there: the stack held, or, with the panels closed, the one a drag along the hotbar moves.</summary>
+    private Picked? Carried => Held ?? (Shown || _dragFrom is not { } from ? null : Clicks.Dragged(from, _hovered, _reading?.At(from)));
+
     public override void _Ready()
     {
         Layer = ScreenLayers.Hud;
@@ -566,12 +569,16 @@ public partial class InventoryPanel : CanvasLayer
         if (e is InputEventMouseMotion motion) _mouse = motion.Position;
         if (e is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false } up) return;
         _mouse = up.Position;
+        // A drag along the closed hotbar carried its stack on the pointer: let go anywhere, it is gone from there.
+        bool dragged = Carried != null && Held == null;
         if (SlotUnder(_mouse) is { } place)
         {
             ReleaseAt(place);
+            if (dragged) Refresh();
             return;
         }
         _dragFrom = null;
+        if (dragged) Refresh();
         if (Held is { } inHand && !OverPanel(_mouse))
         {
             DropFrom(inHand.Place, inHand.Count);
@@ -687,7 +694,7 @@ public partial class InventoryPanel : CanvasLayer
         _shown.Visible = _body.Visible = Shown;
         _creative.Visible = reading.Creative;
         _ui.Wielded.Set(HandFree ? reading.Inventory[_chosen]?.Item : null);
-        var held = Held;
+        var held = Carried;
         // Carried, a stack lights the equipment slots that would wear it and dims the rest (0047).
         var carried = held is { } inHand ? reading.At(inHand.Place)?.Item : null;
         foreach (var box in _slots)

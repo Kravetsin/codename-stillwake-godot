@@ -191,4 +191,17 @@ public class ClickTests
         Assert.Null(Clicks.StillHeld(held, "scrap", new Stack("iron", 9)));
         Assert.Null(Clicks.StillHeld(null, "scrap", Scrap(9)));
     }
+
+    [Fact]
+    public void ADragAlongTheClosedHotbarCarriesItsStackOnThePointerOnceItLeavesItsSlot()
+    {
+        // Pressed on slot 2 and still over it: a click that chooses a slot, nothing carried.
+        Assert.Null(Clicks.Dragged(Inv(2), Inv(2), Scrap(6)));
+        // Over another slot, or over the world: the whole stack shows on the pointer.
+        Assert.Equal(new Picked(Inv(2), 6), Clicks.Dragged(Inv(2), Inv(5), Scrap(6)));
+        Assert.Equal(new Picked(Inv(2), 6), Clicks.Dragged(Inv(2), null, Scrap(6)));
+        // No drag, or one begun on an empty slot, carries nothing.
+        Assert.Null(Clicks.Dragged(null, Inv(5), Scrap(6)));
+        Assert.Null(Clicks.Dragged(Inv(2), Inv(5), null));
+    }
 }
