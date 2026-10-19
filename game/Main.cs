@@ -43,7 +43,7 @@ namespace Stillwake.Game;
 /// world as the title makes one, the wreck in the middle of the big world, kept nowhere; <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
 /// large, its tiles over <c>--built WxH</c> of it from the top-left, all of it by default), <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings,
-/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--hills</c> ground of slopes to walk (<see cref="HillsDemo"/>), <c>--aside</c> steps the hero
+/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--hills</c> ground of slopes to walk (<see cref="HillsDemo"/>), <c>--slopes</c> walls cut to shapes planned with R, lit, and a corridor under a sloped ceiling (<see cref="SlopesDemo"/>), <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
@@ -146,6 +146,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--world") || Has("--fly") || Has("--asteroid") || Has("--sortie")) _layout = Registry.Wreck;
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--hills")) _layout = HillsDemo.Map;
+        if (Has("--slopes")) _layout = SlopesDemo.Map;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         if (Has("--testbed") || Has("--jetpack") || Has("--charge")) _layout = Testbed.Map;
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) _layout = WreckDemo.Map;
@@ -153,7 +154,7 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : HeroAutopilot.Wreck();
+            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
             if (_args.FirstOrDefault(a => a.StartsWith("--edge=")) is { } edge)
@@ -246,6 +247,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
         if (Opens is { } open) AddChild(new OpenDemo(_hands.Ui, open, () => _m, Arg("--open-at") is { } at ? double.Parse(at, System.Globalization.CultureInfo.InvariantCulture) : 1.0));
         if (_args.FirstOrDefault(a => a.StartsWith("--card=", StringComparison.Ordinal)) is { } card) AddChild(new CardDemo(_hands, card[7..], pick: Has("--pick")));
+        if (Has("--slopes")) AddChild(new SlopesDemo(_hands));
         if (Has("--asteroid") && !Has("--manual")) AddChild(new AsteroidDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--sortie") && !Has("--manual")) AddChild(new SortieDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--fly")) AddChild(new FarDemo(_debris, () => _session is Session s ? (s.Client, _m) : null));
@@ -296,6 +298,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--grapple")) world = WreckDemo.SeedGrapple(world, Modules);
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
         if (Has("--hills")) world = HillsDemo.Seed(world, Modules);
+        if (Has("--slopes")) world = SlopesDemo.Seed(world, Modules);
         if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);
         if (Has("--charge")) world = ChargeDemo.Seed(world, Modules);
         if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules);

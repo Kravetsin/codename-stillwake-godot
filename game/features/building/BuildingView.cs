@@ -123,7 +123,7 @@ public partial class BuildingView : Node2D
                 return;
             }
             if (_drag is not { } under || under.Left != left) return;
-            Send(under.Act, under.From, Drag.SpotAt(width, height, button.At));
+            Send(Tools.Shaped(under.Act, _hand.Shape.Get())!, under.From, Drag.SpotAt(width, height, button.At));
             _drag = null;
         }
         // The left button is the card's, but on the power tab with no card to place, where it lays the
@@ -143,6 +143,8 @@ public partial class BuildingView : Node2D
             {
                 _hand.Tab.Set(Tools.TabOf(card));
                 _hand.Selected.Set(card);
+                // A wall is picked with its shape (0069).
+                if (card is PlaceTool { Placement.Kind: "wall" }) _hand.Shape.Set(Tools.ShapePicked(CellAt(at), overlay, grid, building));
             }
         }
 
@@ -197,7 +199,7 @@ public partial class BuildingView : Node2D
             int at = MarkedAt(grid, p);
             if (Tools.BuiltAt(at, layer, grid) is not { } built) continue;
             // Joined as the grid draws it, to what is built beside it, marked or not.
-            int joined = Blueprint.LinksOf(built, at, width, width * grid.Height, c => Tools.BuiltAt(c, layer, grid) is { } other && Blueprint.Joins(built, other));
+            int joined = Tools.LinksOf(built, at, width, _ => [], grid);
             if (MarkCutOf(grid, building, p, built) is { } cut) _marked.Lay(built, at, width, joined, cut);
             shapes.Add((p, built, at, joined));
         }
@@ -358,7 +360,8 @@ public partial class BuildingView : Node2D
         _removing = [];
         _ui.Reason.Set(null);
         if (tool is PlaceTool && pointer is { } near) _near = NearGrid.Around(near, width, height);
-        Act? act = _drag?.Act ?? (tool as PlaceTool);
+        // A wall's card places walls cut to the shape in hand, R turning it mid-drag too (0069).
+        Act? act = Tools.Shaped(_drag?.Act ?? (tool as PlaceTool), _hand.Shape.Get());
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
         var end = Drag.SpotAt(width, height, p);
         var verdicts = Drag.Judge(act, Drag.LineOf(width, act, _drag?.From ?? end, end), building);

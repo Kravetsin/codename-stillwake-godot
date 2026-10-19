@@ -39,15 +39,17 @@ A wall has a shape ([0069](../../docs/decisions/0069-a-cell-has-a-shape.md)), it
 its own (`ShapeLayer`, `ShapeAt(cell)`): `None`, a whole wall, or the solid half-cell triangle in one corner,
 cut at 45° — ◢ `BottomRight`, ◣ `BottomLeft` (floor slopes), ◤ `TopLeft`, ◥ `TopRight` (ceiling slopes). A
 shaped wall is a wall in every other way — material, cost, refund, strength, leak — and to every module but
-`Items`' floor stacks it is a whole one: rooms, air, leaks, drones and light read it so, and its open half is
-no room's. Only maps draw shapes so far; `Place` builds walls whole.
+`Items`' floor stacks, the hero and the client's light (0069, part 2) it is a whole one: rooms, air, leaks and drones read it so, and its open half is
+no room's. Maps draw shapes, and a `Placement`'s `Shape` builds one: a wall's only, anything else refused with
+`grid.notShapeable` (0069, part 2).
 
 The geometry, in thousandths of a cell, x right and y down from the cell's top-left, integers only, is the
 sim's and the hero's (`Shapes.cs`): `Solid(shape, fx, fy)` — a point stands for the thousandth square below and
 right of it, solid when that square's middle is, so ◣ is ◢ in a mirror and ◤, ◥ are them upside down;
 `TopAt(shape, fx)` — the first solid thousandth down a column, where a floor slope's diagonal is (0 for a whole
 wall or a ceiling slope); `ClosedSides(shape)` — the sides it fills whole, as `Doorways` numbers sides;
-`IsFloor(shape)`. A ramp of ◢ rises a thousandth a thousandth, with no step between its cells or onto a
+`BottomAt(shape, fx)` — the first open thousandth under a ceiling slope's column, where a head rising there stops
+(the cell's bottom, 1000, for a whole wall or a floor slope); `IsFloor(shape)`, `IsCeiling(shape)`. A ramp of ◢ rises a thousandth a thousandth, with no step between its cells or onto a
 plateau beside its top.
 
 Walls, floors, ladders and doors are one structure per cell. A machine needs every footprint cell free
@@ -84,16 +86,17 @@ free back slot: it stands behind anything, and in space.
   (0014). Not copies of the layers: those were 16 MB a tick on a 2048×1024 world while a toggle was in
   flight.
 - **Operations** (`IGridOps`): `Place(cell, placement)` — the caller checks `PlacementProblem` first, a
-  problem here throws; walls are placed whole; `Clear(cell, layer)` — a wall's shape goes with it; for machines, removes the whole machine covering the
+  problem here throws; a wall is placed cut to its placement's `Shape`; `Clear(cell, layer)` — a wall's shape goes with it; for machines, removes the whole machine covering the
   cell. Only in commands or construction: modules reading the grid in derivation trust that nothing
   changes it after.
 - **Commands:** `SetDoor(cell, open)` — opens or shuts the whole doorway, the straight run of door cells
   `cell` is in (`Doorways`, 0067), every cell of it, a part-open one too; refused with `grid.noDoor`. `SetValve(cell, open)`,
-  refused with `grid.noValve`. Each says the state its sender saw it should take, not a flip (0070): a door or
+  refused with `grid.noValve`. Each says the state its sender saw it should take, not a flip (0071): a door or
   valve already so is left alone, the grid's version too, so two peers opening one door at once leave it open.
 - **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.outsideZone` (the cell, or any cell of a
   machine's footprint, outside the zone), `grid.occupied`, `grid.machineInTheWay`,
-  `grid.blocked`, `grid.noSuchMaterial`, `grid.noSuchMachine`.
+  `grid.blocked`, `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.notShapeable` (a shape on anything but a wall, or
+  a code that is no shape; asked first).
 - TypeScript's `codes()`
   is the public `Structure`, `Conduit` and `Back` constants.
 
@@ -118,7 +121,7 @@ hull walls included. A map's machines take ids 1, 2, … by their top-left cells
 - `Built` is the smallest box holding every cell with a structure, conduit, back wall or machine, as
   a scan of them all finds it, after any change and after a load; `Box.None` when there is none.
 - Stored codes are part of the save format: never renumber them; shapes too.
-- A shape lies only on a wall: placed with one by a map, cleared with it (`ShapeTests`, over any building, taking apart and toggling).
+- A shape lies only on a wall: placed with one, by a map or a placement, cleared with it (`ShapeTests`, over any building, shaped or not, taking apart and toggling).
 - A doorway is one straight run, its shape derived, never stored (`Doorways`, 0067): a door cell with a
   door cell above or below stands in a door, joined up and down; every other lies in a hatch, joined to
   the hatch cells either side. The client draws, hears and lights doorways by the same joins.

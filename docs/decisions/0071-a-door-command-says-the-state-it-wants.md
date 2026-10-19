@@ -1,4 +1,4 @@
-# 0070 — A door command says the state it wants
+# 0071 — A door command says the state it wants
 
 - Status: accepted
 - Date: 2026-10-19

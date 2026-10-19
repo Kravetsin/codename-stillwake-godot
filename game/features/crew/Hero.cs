@@ -458,35 +458,54 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     /// <summary>
     /// <paramref name="x"/> moved by <paramref name="dx"/>, stopped flush against the first blocking column the leading
     /// edge enters. With <paramref name="slopes"/>, a floor slope blocks only through its closed side (◢ from the right,
-    /// ◣ from the left); through its open side the box goes in and the feet climb the diagonal. Else every wall is whole,
+    /// ◣ from the left); through its open side the box goes in and the feet climb the diagonal. A ceiling slope blocks
+    /// through its open side (◤ from the right, ◥ from the left) where the head meets its diagonal, so the box goes in
+    /// under it as far as the head has room. Else every wall is whole,
     /// as swimming and pulled. With <paramref name="ledge"/>, walking, a wall whose top is no more than half a width
     /// above the feet does not stop the box: at 45° the leading edge meets the next column exactly that far above the
     /// feet, so the equal case passes, or every ramp would stop at its top (0069).
     /// </summary>
     private static int MoveX(Ship ship, int x, int y, int dx, bool slopes, bool ledge = false)
     {
-        int top = CellOf(y - Spec.Height);
+        int head = y - Spec.Height;
+        int top = CellOf(head);
         int bottom = CellOf(y - 1);
-        bool Blocked(int column, int side)
+        // How far into column `column` the box comes through its side `side`, in thousandths from the column's left: the
+        // first solid one moving right, past the last moving left; null for nothing in the way. Through a ceiling slope's
+        // open side the box comes in till the head meets the diagonal (0069), in a column it is in already too.
+        int? Stop(int column, int side, bool entered)
         {
-            for (int row = top; row <= bottom; row++)
+            int whole = side == Doorways.Left ? 0 : Unit;
+            int? stop = null;
+            for (int row = top; row <= (entered ? top : bottom); row++)
             {
-                int slope = slopes ? SlopeAt(ship, column, row) : Shape.None;
-                bool stops = slope != Shape.None ? (Shape.ClosedSides(slope) & side) != 0 : Solid(ship, column, row);
-                if (stops && !(ledge && row * Unit >= y - Half)) return true;
+                int slope = slopes ? ShapeOf(ship, column, row) : Shape.None;
+                int at;
+                if (Shape.IsCeiling(slope) && (Shape.ClosedSides(slope) & side) == 0)
+                {
+                    int fy = Math.Max(0, head - row * Unit);
+                    // In a column it is in, only a head inside the cell meets a diagonal; a whole row of it would be overlapped.
+                    if (entered && fy == 0) continue;
+                    at = side == Doorways.Left ? fy : Unit - fy;
+                }
+                else if (entered) continue;
+                else if (slope != Shape.None ? (Shape.ClosedSides(slope) & side) != 0 : Solid(ship, column, row)) at = whole;
+                else continue;
+                if (ledge && row * Unit >= y - Half) continue;
+                stop = side == Doorways.Left ? Math.Min(stop ?? at, at) : Math.Max(stop ?? at, at);
             }
-            return false;
+            return stop;
         }
         int to = x + dx;
         if (dx > 0)
         {
-            for (int c = CellOf(x + Half - 1) + 1; c <= CellOf(x + Half + dx - 1); c++)
-                if (Blocked(c, Doorways.Left)) { to = c * Unit - Half; break; }
+            for (int c = CellOf(x + Half - 1); c <= CellOf(x + Half + dx - 1); c++)
+                if (Stop(c, Doorways.Left, c == CellOf(x + Half - 1)) is int s && c * Unit + s - Half < to) { to = Math.Max(x, c * Unit + s - Half); break; }
         }
         else if (dx < 0)
         {
-            for (int c = CellOf(x - Half) - 1; c >= CellOf(x - Half + dx); c--)
-                if (Blocked(c, Doorways.Right)) { to = (c + 1) * Unit + Half; break; }
+            for (int c = CellOf(x - Half); c >= CellOf(x - Half + dx); c--)
+                if (Stop(c, Doorways.Right, c == CellOf(x - Half)) is int s && c * Unit + s + Half > to) { to = Math.Min(x, c * Unit + s + Half); break; }
         }
         // Every shape whole, the feet still never move into a slope the box was let into by walking.
         return slopes || to == x || Rise(ship, to, y) == null ? to : x;
@@ -495,7 +514,8 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     /// <summary>
     /// <paramref name="y"/> moved by <paramref name="dy"/>, stopped flush against the first blocking row the leading
     /// edge enters, or going down where the feet land (<see cref="Landing"/>). Rising, every wall stops the head, a
-    /// slope's closed bottom too.
+    /// floor slope's closed bottom too; with <paramref name="slopes"/>, a ceiling slope's diagonal where it first meets
+    /// the box's top, in the row the head is in too (0069).
     /// </summary>
     private static int MoveY(Ship ship, int x, int y, int dy, bool climbing, bool slopes)
     {
@@ -505,9 +525,24 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
             int left = CellOf(x - Half);
             int right = CellOf(x + Half - 1);
             int top = y - Spec.Height;
-            for (int r = CellOf(top) - 1; r >= CellOf(top + dy); r--)
+            // With slopes, from the head's own row: under a ceiling slope it may be in its open half already (0069).
+            for (int r = CellOf(top) - (slopes ? 0 : 1); r >= CellOf(top + dy); r--)
+            {
+                int? low = null;
                 for (int c = left; c <= right; c++)
-                    if (Solid(ship, c, r)) return (r + 1) * Unit + Spec.Height;
+                {
+                    int ceiling = slopes ? ShapeOf(ship, c, r) : Shape.None;
+                    int? under = null;
+                    if (Shape.IsCeiling(ceiling))
+                    {
+                        int a = Math.Max(0, x - Half - c * Unit), b = Math.Min(Unit - 1, x + Half - 1 - c * Unit);
+                        under = r * Unit + Math.Max(Shape.BottomAt(ceiling, a), Shape.BottomAt(ceiling, b));
+                    }
+                    else if (r < CellOf(top) && Solid(ship, c, r)) under = (r + 1) * Unit;
+                    if (under is int u) low = Math.Max(low ?? u, u);
+                }
+                if (low is int l && top + dy < l) return Math.Min(y, l + Spec.Height);
+            }
         }
         return y + dy;
     }
@@ -577,8 +612,12 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
             int a = Math.Max(0, x - Half - c * Unit), b = Math.Min(Unit - 1, x + Half - 1 - c * Unit);
             for (int r = CellOf(y - Spec.Height); r <= CellOf(band - 1); r++)
             {
-                int slope = SlopeAt(ship, c, r);
-                if (slope == Shape.None ? Solid(ship, c, r) : r * Unit + Math.Min(Shape.TopAt(slope, a), Shape.TopAt(slope, b)) < band) return false;
+                int shape = ShapeOf(ship, c, r);
+                bool hits = shape == Shape.None ? Solid(ship, c, r)
+                    : Shape.IsFloor(shape) ? r * Unit + Math.Min(Shape.TopAt(shape, a), Shape.TopAt(shape, b)) < band
+                    // Under a ceiling slope the box's top stays below its diagonal.
+                    : Math.Max(0, y - Spec.Height - r * Unit) < Math.Max(Shape.BottomAt(shape, a), Shape.BottomAt(shape, b));
+                if (hits) return false;
             }
         }
         return true;
@@ -594,8 +633,12 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     private static bool Solid(Ship ship, int x, int y) =>
         StructureAt(ship, x, y) is null or Structure.Wall or Structure.DoorClosed;
 
-    /// <summary>What holds the whole box out: <see cref="Solid"/> but a floor slope. A ceiling slope is whole for now (0069).</summary>
+    /// <summary>What holds the feet out whole: <see cref="Solid"/> but a floor slope. A ceiling slope's top is whole: the feet stand on it (0069).</summary>
     private static bool Whole(Ship ship, int x, int y) => Solid(ship, x, y) && SlopeAt(ship, x, y) == Shape.None;
+
+    /// <summary>The shape a cell's wall is cut to, or <see cref="Shape.None"/> for a whole wall or none.</summary>
+    private static int ShapeOf(Ship ship, int x, int y) =>
+        StructureAt(ship, x, y) == Structure.Wall ? ship.ShapeAt(y * ship.Width + x) : Shape.None;
 
     /// <summary>The floor slope (◢ ◣) a cell's wall is cut to, or <see cref="Shape.None"/>.</summary>
     private static int SlopeAt(Ship ship, int x, int y)

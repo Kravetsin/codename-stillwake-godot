@@ -23,7 +23,7 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   picture by the cell's piece, the piece whose panel is over it and the one after, made at start from the shut and
   open pictures (`DoorShape.Slid`) and packed in the atlas, so a slide is tiles swapped, never a node; doorways
   longer than five cells repeat their middles' pictures. Turned back part way, it slides back from where it is.
-  Only the look (0070): the sim moved the door at once, and air, rooms, feet and light follow the sim.
+  Only the look (0071): the sim moved the door at once, and air, rooms, feet and light follow the sim.
 - **Kept current:** `GridView.Sync(shown)` runs whenever the grid as this peer shows it changes
   (`game/shared/Predicted.cs`'s `Grid`, `predictedGrid` of `session/predicted.ts`): after a tick, and
   on the frame this peer sends a door or valve toggle, which shows at once, before its tick runs (0014). It

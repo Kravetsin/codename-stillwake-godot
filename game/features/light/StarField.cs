@@ -8,18 +8,22 @@ using L = Stillwake.Game.Light;
 namespace Stillwake.Game.Features.Light;
 
 /// <summary>
-/// Starlight as the TypeScript game worked it out (0019), cell by cell: the stars shine in every open
-/// cell with no back wall and everywhere past the grid's edge, and spread from there in sweeps along
-/// every row and column, fading by what they cross. Worked out over <see cref="Region"/> only, what is
-/// built and <see cref="Margin"/> cells of space round it: past what is built every cell is open and
-/// holds the stars whole, the light of the region's edge, as it did over the whole world. After a change
-/// it is worked out again only around the cells changed (<see cref="Follow"/>), within <see cref="Reach"/>
-/// of them: past it, what a change does to the light rounds to nothing. Plain C#, so it is tested.
+/// Starlight cell by cell (0019, 0070): the stars shine in every open cell with no back wall and everywhere
+/// past the grid's edge, as brightly as the sky round the cell is open — whole in open space, faint in a
+/// lone hole in a back wall (<see cref="L.StarHole"/>) — and spread from there in sweeps along every row and
+/// column, keeping <see cref="L.StarKeep"/> a cell, so the light through a hole or a doorway falls off within
+/// a few cells. Worked out over <see cref="Region"/> only, what is built and <see cref="Margin"/> cells of
+/// space round it: past what is built every cell is open and holds the stars whole, the light of the
+/// region's edge, as it did over the whole world. After a change it is worked out again only around the
+/// cells changed (<see cref="Follow"/>), within <see cref="Reach"/> and the sky's reach of them: past it,
+/// what a change does to the light rounds to nothing. Plain C#, so it is tested.
 /// </summary>
 public sealed class StarField
 {
-    /// <summary>Cells of open space worked out round what is built, so its edge is lit as the space beyond it.</summary>
+    /// <summary>Cells of open space worked out round what is built, so its edge is lit as the space beyond it: its sky open whole.</summary>
     public const int Margin = 4;
+    /// <summary>How far round a cell its sky is counted: <see cref="L.StarSky"/>, within the margin.</summary>
+    private const int Sky = L.StarSky < Margin ? L.StarSky : Margin;
     private const byte Air = 0, Machine = 1, Wall = 2;
 
     /// <summary>The cells worked out, in the grid's cells, past its edge too.</summary>
@@ -32,6 +36,8 @@ public sealed class StarField
     public byte[] Texels { get; private set; } = [];
 
     private byte[] _kind = [];
+    /// <summary>Scratch: running sums of the cells round the box the stars shine into, to count each cell's sky.</summary>
+    private int[] _skySum = [];
     /// <summary>Each cell's share of the stars' light: the stars are the one colour it comes in.</summary>
     private float[] _light = [];
 
@@ -41,23 +47,41 @@ public sealed class StarField
     /// <summary>The share of light going on from a cell of one kind into the next, by <c>from × 3 + to</c>.</summary>
     private static readonly float[] Shares = SharesOf();
 
+    /// <summary>A cell's share of the stars' light by how many cells of its sky, itself among them, the stars shine into.</summary>
+    private static readonly float[] SkyLight = SkyLightOf();
+
     /// <summary>
     /// How many cells from a change its light may still show: past that, light that crossed the changed
-    /// cell keeps under <see cref="Faint"/> of itself, so every texel there rounds as it did. Every cell
-    /// crossed keeps at most the largest share; no texel shows light below <see cref="Faint"/>, a wall's
-    /// face, which shows light at its strongest, included. No reach when a share keeps it all.
+    /// cell keeps under <see cref="Faint"/> of itself, so every texel there rounds as it did. Light keeps
+    /// at most the brightest way through cells of any kinds, step by step; no texel shows light below
+    /// <see cref="Faint"/>, a wall's face, which shows light at its strongest, included. No reach when a
+    /// way keeps it all.
     /// </summary>
     public static readonly int Reach = ReachOf();
 
     private static int ReachOf()
     {
-        double keep = 0;
-        foreach (float share in Shares) keep = Math.Max(keep, share);
-        if (keep >= 1) return int.MaxValue;
         // A float a step keeps a ten-millionth more than the share at most; the margin covers it many times.
+        double[] best = [1, 1, 1];
         int reach = 0;
-        for (double light = 1; light >= Faint * 0.999; light *= keep) reach++;
+        while (Math.Max(best[0], Math.Max(best[1], best[2])) >= Faint * 0.999)
+        {
+            if (++reach > 10_000) return int.MaxValue;
+            var next = new double[3];
+            for (int from = 0; from < 3; from++)
+                for (int to = 0; to < 3; to++) next[to] = Math.Max(next[to], best[from] * Shares[from * 3 + to]);
+            best = next;
+        }
         return reach;
+    }
+
+    private static float[] SkyLightOf()
+    {
+        int most = (2 * Sky + 1) * (2 * Sky + 1);
+        var light = new float[most + 1];
+        for (int open = 1; open <= most; open++)
+            light[open] = L.StarHole + (1 - L.StarHole) * Math.Min(1f, (open - 1f) / Math.Max(1, L.StarFullSky - 1));
+        return light;
     }
 
     /// <summary>Works the starlight out anew for the grid as it stands, over what is built and the margin; with nothing built, over a little open space.</summary>
@@ -81,8 +105,8 @@ public sealed class StarField
     /// <summary>
     /// Brings the starlight up to the grid after <paramref name="cells"/> changed what stops or dims light or
     /// lets the stars in (structure, back walls, machines), and what is built with them: worked out again
-    /// only within <see cref="Reach"/> of them, from what lies within twice that, where all light that can
-    /// reach them starts. The texels are the same as <see cref="Work"/> gives.
+    /// only within <see cref="Reach"/> and the sky's reach of them, from what lies within <see cref="Reach"/>
+    /// more, where all light that can reach them starts. The texels are the same as <see cref="Work"/> gives.
     /// </summary>
     public void Follow(IGridQueries grid, IReadOnlyList<int> cells)
     {
@@ -93,9 +117,10 @@ public sealed class StarField
             return;
         }
         if (region != Region) Move(region);
-        // Changes near each other are worked out together: a box each, grown by each cell within twice the reach.
+        // A change alters the sky of cells within Sky of it, whose light shows within Reach of them; that light
+        // starts within Reach again. Changes near each other are worked out together: a box each, grown by each cell within that spread.
         var boxes = new List<Box>();
-        int w = grid.Width, spread = 2 * Reach;
+        int w = grid.Width, shows = Reach + Sky, spread = 2 * Reach + Sky;
         foreach (int cell in cells)
         {
             int x = cell % w, y = cell / w, near = -1;
@@ -116,7 +141,7 @@ public sealed class StarField
         }
         foreach (var b in boxes)
         {
-            var write = Within(Grown(b, Reach), region);
+            var write = Within(Grown(b, shows), region);
             if (!write.IsEmpty) Compute(grid, Within(Grown(b, spread), region), write, machinesListed: false);
         }
     }
@@ -168,7 +193,7 @@ public sealed class StarField
         var light = _light;
         Array.Clear(kind, 0, n);
         Array.Clear(light, 0, n);
-        ReadOnlySpan<int> structure = grid.StructureLayer, back = grid.BackLayer;
+        ReadOnlySpan<int> structure = grid.StructureLayer, back = grid.BackLayer, shape = grid.ShapeLayer;
         if (machinesListed)
         {
             // A machine dims the light through every cell of its footprint; over the region, every machine is in it.
@@ -180,6 +205,23 @@ public sealed class StarField
                         kind[(m.Cell / grid.Width + dy - box.Top) * w + m.Cell % grid.Width + dx - box.Left] = Machine;
             }
         }
+        // The sky: the cells the stars shine into, counted round each cell of the box from the grid itself, past the box too.
+        int sw = w + 2 * Sky + 1, sh = h + 2 * Sky + 1, gw = grid.Width, gh = grid.Height;
+        if (_skySum.Length < sw * sh) _skySum = new int[sw * sh];
+        var sum = _skySum;
+        Array.Clear(sum, 0, sw);
+        for (int y = 1; y < sh; y++)
+        {
+            int gy = y - 1 + box.Top - Sky, row = 0;
+            sum[y * sw] = 0;
+            for (int x = 1; x < sw; x++)
+            {
+                int gx = x - 1 + box.Left - Sky;
+                row += Starry(structure, back, shape, gw, gh, gx, gy) ? 1 : 0;
+                sum[y * sw + x] = sum[(y - 1) * sw + x] + row;
+            }
+        }
+        int side = 2 * Sky + 1;
         for (int y = 0; y < h; y++)
             for (int x = 0; x < w; x++)
             {
@@ -188,7 +230,11 @@ public sealed class StarField
                 int cell = gy * grid.Width + gx;
                 if (!machinesListed && inside && grid.MachineAt(cell) != null) kind[i] = Machine;
                 if (inside && structure[cell] is Structure.Wall or Structure.DoorClosed) kind[i] = Wall;
-                if (kind[i] != Wall && (!inside || back[cell] == Back.None)) light[i] = 1;
+                // Its own cell's count, from the sums: whether the stars shine into it.
+                int c = (y + Sky + 1) * sw + x + Sky + 1;
+                if (sum[c] - sum[c - 1] - sum[c - sw] + sum[c - sw - 1] == 0) continue;
+                int open = sum[(y + side) * sw + x + side] - sum[y * sw + x + side] - sum[(y + side) * sw + x] + sum[y * sw + x];
+                light[i] = SkyLight[open];
             }
         Spread(light, kind, w, h);
         var bytes = Texels;
@@ -198,6 +244,17 @@ public sealed class StarField
             int i = (y - box.Top) * w + write.Left - box.Left, at = ((y - region.Top) * region.Width + write.Left - region.Left) * 4;
             for (int x = write.Left; x <= write.Right; x++, i++, at += 4) Texel(bytes, at, light[i], kind[i]);
         }
+    }
+
+    /// <summary>
+    /// Whether the stars shine into a cell: an open one with no back wall, any past the grid's edge, and a shaped
+    /// wall's open half with no back wall behind it, a wall still for what crosses it (0069).
+    /// </summary>
+    private static bool Starry(ReadOnlySpan<int> structure, ReadOnlySpan<int> back, ReadOnlySpan<int> shape, int width, int height, int gx, int gy)
+    {
+        if (gx < 0 || gy < 0 || gx >= width || gy >= height) return true;
+        int cell = gy * width + gx;
+        return back[cell] == Back.None && (structure[cell] is not (Structure.Wall or Structure.DoorClosed) || shape[cell] != Shape.None);
     }
 
     private static readonly float StarR = L.Star.R, StarG = L.Star.G, StarB = L.Star.B;
@@ -215,7 +272,7 @@ public sealed class StarField
 
     private static float[] SharesOf()
     {
-        float[] into = [L.Air, L.Machine];
+        float[] into = [L.StarKeep, L.StarMachine];
         var shares = new float[9];
         for (int from = 0; from < 3; from++)
             for (int to = 0; to < 3; to++)

@@ -38,10 +38,10 @@ public sealed class ShipTiles
             // Walls cut to a shape (0069): the same pictures, each cell cut, the diagonal edged as an open side is.
             foreach (int shape in Shape.Cut)
             {
-                pictures.Add(Picture(WallName(material, shape), ShapeMasks.Cut(Art($"wall_{material}"), shape, Art($"wall-edge_{material}_1")), Relief.None));
+                pictures.Add(Picture(WallName(material, shape), Made(WallName(material, shape), ShapeMasks.Cut(Art($"wall_{material}"), shape, Art($"wall-edge_{material}_1"))), Relief.None));
                 for (int open = 1; open < 16; open++)
                     if ((open & ~Shape.ClosedSides(shape)) == 0)
-                        pictures.Add(Picture(EdgeName(material, open, shape), ShapeMasks.Cut(Art($"wall-edge_{material}_{open}"), shape), Relief.None));
+                        pictures.Add(Picture(EdgeName(material, open, shape), Made(EdgeName(material, open, shape), ShapeMasks.Cut(Art($"wall-edge_{material}_{open}"), shape)), Relief.None));
             }
         }
         foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", "floor", "ladder"])
@@ -155,6 +155,31 @@ public sealed class ShipTiles
             return padded;
         }
         return (name, Padded(diffuse, Colors.Transparent), Padded(normal, Flat));
+    }
+
+    /// <summary>The pictures made here rather than drawn (walls cut to a shape), by name, as pixels and as textures.</summary>
+    private static readonly Dictionary<string, Image> MadeImages = new();
+    private static readonly Dictionary<string, Texture2D> MadeTextures = new();
+
+    private static Image Made(string name, Image image) => MadeImages[name] = image;
+
+    /// <summary>
+    /// The picture <paramref name="name"/> of the atlas, before it was padded into it: one drawn
+    /// (<see cref="PixelArt.Picture"/>), or one made here, a wall cut to a shape (0069), for what draws a plan's pictures alone
+    /// (a thumbnail, a silhouette, the aim's outline).
+    /// </summary>
+    public static Texture2D PictureOf(string name)
+    {
+        if (MadeTextures.TryGetValue(name, out var made)) return made;
+        if (!MadeImages.ContainsKey(name) && _shared == null) _ = Shared;
+        return MadeImages.TryGetValue(name, out var image) ? MadeTextures[name] = ImageTexture.CreateFromImage(image) : PixelArt.Picture(name);
+    }
+
+    /// <summary><see cref="PictureOf"/> as pixels to work on, RGBA8.</summary>
+    public static Image ImageOf(string name)
+    {
+        if (!MadeImages.ContainsKey(name) && _shared == null) _ = Shared;
+        return MadeImages.TryGetValue(name, out var image) ? image : Art(name);
     }
 
     /// <summary>The picture <c>res://art/{name}.png</c> as pixels to work on.</summary>

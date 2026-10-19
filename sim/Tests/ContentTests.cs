@@ -738,14 +738,14 @@ public class ContentTests
     {
         Assert.True(Light.Margin >= 0);
         Assert.True(Light.Rounds >= 1);
-        foreach (float keep in (float[])[Light.Air, Light.Machine, Light.WallIn, Light.WallDeep, Light.WallOut])
+        foreach (float keep in (float[])[Light.StarKeep, Light.StarMachine, Light.WallIn, Light.WallDeep, Light.WallOut])
         {
             Assert.True(keep > 0);
             Assert.True(keep < 1);
         }
-        Assert.True(Light.Machine < Light.Air);
+        Assert.True(Light.StarMachine < Light.StarKeep);
         // Through a wall a cell thick, into the cell beyond: a tenth at most.
-        Assert.True(Light.WallIn * Light.WallOut * Light.Air < 0.1f);
+        Assert.True(Light.WallIn * Light.WallOut * Light.StarKeep < 0.1f);
     }
 
     [Fact]

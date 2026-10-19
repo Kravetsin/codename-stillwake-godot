@@ -25,13 +25,15 @@ public static class BlueprintArt
     /// <summary>
     /// The pictures <paramref name="placement"/> is drawn with, as the ship draws it built: <paramref name="linked"/>
     /// are the sides a pipe reaches toward, a door joins another door on and a wall runs on into another wall: a wall is
-    /// edged on every other side, alone all round. A machine is one picture from its corner.
+    /// edged on every other side, alone all round, a wall cut to a shape only on its whole sides (0069). A machine is one
+    /// picture from its corner.
     /// </summary>
     public static IReadOnlyList<TilePiece> PiecesOf(Placement placement, int linked) => placement.Kind switch
     {
-        "wall" => (~linked & AllSides) is var open and > 0
-            ? [new(TileLayer.Walls, $"wall_{placement.Material}", Cut: true), new(TileLayer.Edges, $"wall-edge_{placement.Material}_{open}")]
-            : [new(TileLayer.Walls, $"wall_{placement.Material}", Cut: true)],
+        "wall" => (~linked & AllSides & Shape.ClosedSides(placement.Shape)) is var open and > 0
+            ? [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!, placement.Shape), Cut: true),
+                new(TileLayer.Edges, ShipTiles.EdgeName(placement.Material!, open, placement.Shape))]
+            : [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!, placement.Shape), Cut: true)],
         "backWall" => [placement.Material == "scrap" ? new(TileLayer.Back, "back_scrap", Cut: true) : new(TileLayer.Back, $"back_{placement.Material}_plain")],
         "floor" or "ladder" => [new(TileLayer.Fixtures, placement.Kind)],
         // A planned door is shut, a door or a hatch by the doors it joins (0067).
@@ -43,7 +45,8 @@ public static class BlueprintArt
 
     /// <summary>
     /// What <paramref name="placement"/> builds, as one picture: a build menu card's. A pipe or a valve
-    /// reaches both ways; a door is a door whole, the shape it is known by; a picture cut over the world gives its first cell.
+    /// reaches both ways; a door is a door whole, the shape it is known by; a picture cut over the world gives its first
+    /// cell; a wall cut to a shape shows the cut.
     /// </summary>
     public static Texture2D Thumbnail(Placement placement)
     {
@@ -54,9 +57,7 @@ public static class BlueprintArt
         IReadOnlyList<TilePiece> pieces = placement.Kind == "door" ? [new(TileLayer.Doors, "door_closed_0")] : PiecesOf(placement, linked);
         foreach (var piece in pieces)
         {
-            var image = PixelArt.Picture(piece.Picture).GetImage();
-            if (image.IsCompressed()) image.Decompress();
-            image.Convert(Image.Format.Rgba8);
+            var image = ShipTiles.ImageOf(piece.Picture);
             if (piece.Cut) image = image.GetRegion(new Rect2I(0, 0, Cell, Cell));
             // A valve's wheel sits in the middle of its cell, as the grid lays it.
             var at = piece.Layer == TileLayer.Valves ? new Vector2I(Cell / 2 - image.GetWidth() / 2, Cell / 2 - image.GetHeight() / 2) : Vector2I.Zero;

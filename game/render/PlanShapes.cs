@@ -56,8 +56,7 @@ public static class PlanShapes
     private static (bool[] Mask, int Width, int Height) MaskOf(string picture)
     {
         if (Masks.TryGetValue(picture, out var kept)) return kept;
-        var image = PixelArt.Picture(picture).GetImage();
-        if (image.IsCompressed()) image.Decompress();
+        var image = ShipTiles.ImageOf(picture);
         int w = image.GetWidth(), h = image.GetHeight();
         var mask = new bool[w * h];
         for (int y = 0; y < h; y++)

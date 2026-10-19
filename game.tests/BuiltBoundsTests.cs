@@ -20,6 +20,7 @@ public class BuiltBoundsTests
         Placement.Wall(), Placement.Wall("iron"), Placement.BackWall(), Placement.BackWall("iron"),
         new("structure", "floor"), new("structure", "ladder"), new("structure", "door"),
         new("conduit", "pipe"), new("conduit", "valve"), new("machine", "lamp"), new("machine", "tank"),
+        Placement.Wall() with { Shape = Shape.BottomRight }, Placement.Wall("iron") with { Shape = Shape.TopLeft },
     ];
 
     private static readonly string[] Layers = ["structure", "conduit", "back", "machine"];
@@ -29,7 +30,7 @@ public class BuiltBoundsTests
     {
         var m = new Registry();
         int left = rng.Next(w - 3), top = rng.Next(h - 3), right = rng.Next(left + 2, w), bottom = rng.Next(top + 2, h);
-        // Now and then a wall cut to a shape (0069), which only a map draws so far.
+        // Now and then a wall cut to a shape (0069), as a map draws it; others are built, out in space with no back wall too.
         var rows = Enumerable.Range(0, h).Select(y => new string([.. Enumerable.Range(0, w).Select(x =>
             x >= left && x <= right && y >= top && y <= bottom && rng.Next(12) == 0 ? "/\\r7"[rng.Next(4)] : ' ')])).ToList();
         World.Create(1, Layout.Parse(rows), m.All);
