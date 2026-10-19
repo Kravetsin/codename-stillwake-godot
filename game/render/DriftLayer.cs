@@ -33,7 +33,7 @@ public abstract partial class DriftLayer : Node2D
     /// </summary>
     public void Follow(Vector2 camera, float zoom, Vector2 screen, double seconds)
     {
-        zoom = Mathf.Max(zoom, ShipCamera.ZoomMin);
+        zoom = Mathf.Max(zoom, ShipCamera.FarthestZoom(screen));
         var centre = Scatter.Centre(camera.X, camera.Y, _parallax, _drift, seconds);
         double w = screen.X / 2 / zoom + _reach, h = screen.Y / 2 / zoom + _reach;
         var need = Scatter.Tiles(centre.X - w, centre.Y - h, centre.X + w, centre.Y + h, _tile);

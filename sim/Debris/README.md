@@ -67,8 +67,8 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   reeled, toward its reel's point (below); one whose `X` is below its `End` is gone once no hero's view
   holds it, and one past the grid's left edge at once; and one of a zone round the heroes is gone unless
   it stays (below). Then each zone in content order, the stream first, on its beat.
-- **A hero's view** (`Debris.View`, 60 × 34 cells either way round its reported cell): what the farthest
-  zoom shows, 1920×1080 at zoom 1. No zone spawns a piece in any hero's view, nor takes one away in it
+- **A hero's view** (`Debris.View`, 60 × 34 cells either way round its reported cell): more than the
+  farthest zoom shows on any screen (96 × 54 cells, `ShipCamera.Farthest`). No zone spawns a piece in any hero's view, nor takes one away in it
   but at the grid's edge, so no one sees debris appear or vanish.
 - **A beat:** on the clock its `Beat.Next`, the next is due `Every` plus `Below(Jitter + 1)` ticks on;
   a zone with no jitter draws nothing for it, so a beat that spawns nothing takes nothing from the Rng.

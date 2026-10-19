@@ -26,7 +26,9 @@ tall, doors three tiles tall), so the ship takes them.
   do not change, and a doorway is three `D`s.
 - **Machines keep their footprints:** the tank stays 2 × 2, now a squat tank three quarters of the
   hero's height.
-- **The client draws a cell at 16 px** and starts at zoom 2.
+- **The client draws a cell at 16 px** and starts at zoom 2. *Amended 2026-10-19:* a game starts at the
+  farthest zoom, which shows at most 96 × 54 cells on any screen (a bigger screen draws them larger, as
+  Terraria keeps every player's view alike); the player may zoom in to twice that (`ShipCamera`).
 - **The reference world stays 256 × 128.** The largest ship is physically smaller; the tick budget
   holds without new work.
 
