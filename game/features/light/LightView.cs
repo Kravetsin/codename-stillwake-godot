@@ -22,9 +22,9 @@ namespace Stillwake.Game.Features.Light;
 public partial class LightView : Node2D
 {
     private const int Cell = ShipCamera.Cell;
-    /// <summary>A lit lamp's warm glow, and how far across it reaches, in cells.</summary>
+    /// <summary>A lit lamp's warm glow, how far across it reaches, in cells, and how opaque at full light: a faint halo.</summary>
     private static readonly Color GlowColour = new(0xffd9a0ff);
-    private const float GlowCells = 3;
+    private const float GlowCells = 1.75f, GlowAlpha = 0.4f;
     /// <summary>
     /// A burning fire's glow at its machine's mouth, how far across it reaches, in cells, and how opaque it
     /// is at the fire's full light: it shows the fire as the source of its light where a lamp already
@@ -172,7 +172,7 @@ public partial class LightView : Node2D
         {
             float shines = Flicker.BrightnessOf(LampShare(lamp), _timeMs, lamp.Id);
             glow.Visible = shines > 0;
-            glow.Modulate = GlowColour with { A = shines };
+            glow.Modulate = GlowColour with { A = shines * GlowAlpha };
             _main.Add(new LightSource(at.X, at.Y, L.Lamp, shines, L.LampReach, L.LampKeep, L.LampMost, L.LampSize));
         }
         foreach (var (machine, at, glow) in _fires)
