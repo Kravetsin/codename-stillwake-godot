@@ -1,6 +1,6 @@
 # 0066 — The Handbook
 
-- Status: accepted
+- Status: accepted; the chance pie superseded by [0073](0073-a-drop-chance-is-a-percent.md): a percent
 - Date: 2026-10-18
 
 ## Context

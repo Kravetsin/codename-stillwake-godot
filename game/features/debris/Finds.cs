@@ -18,8 +18,14 @@ public sealed record LootSlot(string Item, int Min, int Max, int? OneIn, bool Se
     /// <summary>What the slot's corner says: its range once seen, nothing for exactly one, nothing while unseen.</summary>
     public string Corner => !Seen || Max == 1 ? "" : Range;
 
-    /// <summary>"1 in 4", or "Always" for an entry with no roll.</summary>
-    public string Chance => OneIn is int n ? T("handbook.chance", ("n", n)) : T("handbook.always");
+    /// <summary>What the slot's top-left corner says of its roll: "25%", a hundred over one in n rounded to the nearest; none with no roll.</summary>
+    public string? Percent => OneIn is int n ? $"{PercentOf(n)}%" : null;
+
+    /// <summary>"25% (1 in 4)", or "Always" for an entry with no roll.</summary>
+    public string Chance => OneIn is int n ? T("handbook.chance", ("p", PercentOf(n)), ("n", n)) : T("handbook.always");
+
+    /// <summary>100 / <paramref name="oneIn"/>, a half rounded up: 1 in 3 is 33, 1 in 8 is 13.</summary>
+    private static int PercentOf(int oneIn) => (200 + oneIn) / (2 * oneIn);
 
     /// <summary>The one tooltip's words: the item, its range and its chance; unseen, "???", its chance and that none has come out yet.</summary>
     public Tip Tip => Seen
