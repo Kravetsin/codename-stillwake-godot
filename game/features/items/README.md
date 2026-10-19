@@ -24,11 +24,16 @@ by sending `Move`,
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
 | `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, grow capsule, burner generator, analyzer, charging station or drone bay in the machine frame under the inventory, with the logistics feature's drone badge in the header where drones have work (`Served`, set by `Main`, 0062) and a bay's bolt lit while it charges (`Charger`), the stack in hand; all built again at another slot size | yes   |
-| `EnergyBar.cs`     | the energy bar right of the suit's, while an electric tool is held (0053)                      | yes   |
+| `EnergyBar.cs`     | the energy bar right of the suit's, while an electric tool is held (0053), in its tab under the wrist computer's cuff (0074) | yes   |
 | `FloorLayer.cs`    | stacks on the floor, rimmed, bobbing at rest, side by side when still, gliding between ticks, turning in space (`floor-layer.ts`) | yes |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head                                                     | yes   |
 | `ItemsView.cs`     | the feature: pick-ups, the layers and the panel                                              | yes   |
 | `ItemsDemo.cs`     | `-- --items`: a room with a crate, a furnace and an analyzer, and a script for recordings    | yes   |
+
+The wrist computer's metal and screens (0074) are `game/shared/`'s: `WristPieces` (no Godot: each piece's 9-slice and
+where its window lies in it), `WristArt` (the art laid round a window, a screen drawn) and `WristScreen` (a panel
+that is a screen in its metal; `MachineFrame` is one), shared with the crew's suit gauge and the crafting feature's
+Fabricator; the screens come on by the build tablet's `TabletMotion`.
 
 What it shows of charge, a slot's bar, the empty battery's picture, the card's meter, the station's words and
 the energy bar, is worked out in `game/shared/Charges.cs` (no Godot), shared with the power feature's
@@ -37,8 +42,8 @@ the energy bar, is worked out in `game/shared/Charges.cs` (no Godot), shared wit
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
 one for one: `click.test.ts` (`ClickTests`, with quick equip), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
 (`PickUpTests`), a test for the fold of own moves (`CrateTests`), one for the analyzer's panel
-(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the open station's marks (`SlotMarksTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`), one for own catches (`OwnCatchesTests`), one for the slots' size, tint and setting (`SlotsTests`, of `game/shared/Slots.cs`) and one for charge
-on screen (`ChargesTests`). Opening a crate is aimed
+(`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the open station's marks (`SlotMarksTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`), one for own catches (`OwnCatchesTests`), one for the slots' size, tint and setting (`SlotsTests`, of `game/shared/Slots.cs`), one for charge
+on screen (`ChargesTests`) and one for the wrist computer's metal laid round the HUD at both slot sizes (`WristPiecesTests`). Opening a crate is aimed
 as everything E works is, in the crew feature (`AimTests`).
 
 ## Guarantees
@@ -79,6 +84,18 @@ as everything E works is, in the crew feature (`AimTests`).
   `Items.Equip`) are lit green with a glow and the others dimmed; the sim decides (`items.notEquipment`).
   Its last row, **Hands** (`equip.hands`), shows the screwdriver the right button works with: display-only
   (0030), nothing is put in it; its tooltip says what it does, no key is written on it.
+- **Look: a wrist computer** (0074). Every panel is a screen in the build tablet's scuffed metal, pixel art at two
+  screen pixels a pixel, 9-slices whose edges tile, so the large slot's frames are as crisp; the slots, their sizes and
+  places, digits, counts, marks, bars, the stack in hand and the tooltip are as they were, drawn on the screens.
+  Always on, the **cuff**: a thin rim round the hotbar, two small bumpers and a dim status light, no glow; under it the
+  suit's gauge in its tab and, while it shows, the energy bar in another, one seam between them. Open, the **forearm
+  display** round the bag (bumpers, a worn warning stripe, screws, signal pips and a lamp) and the **equipment's unit**
+  at the right edge, both lighting what is round them faintly in the screen's blue; under the bag, the open machine's
+  **module**, square on top where it meets the display, which squares its own bottom edge then: one dark seam
+  between, and the machine's screen greyer and greener than the hero's navy, so a crate's slots never read as the
+  bag's. Opened, the screens' content fades in as the tablet's screen comes on (from 60 to 140 ms, never brighter than
+  lit; at once within 1.5 s of closing); the metal shows at once, and closing is at once. The bezels take clicks: a
+  stack let go over them is not thrown.
 - **Every machine opens in one frame** (`Shared.MachineFrame`, 0058) under the inventory: the same panel,
   its name (`tool.<kind>`) in bold and, for one on the power grid, a bolt and its power in the header, lit
   while it works and dark at 0 otherwise (a burner generator's is what it makes, lit while it burns, an
@@ -192,8 +209,8 @@ itself.
 - Pick-ups and their popups lived in `crew` there; here `crew`'s hero only reports where it stands,
   and the items feature does the rest. The popups are drawn on the screen over the head, so the text
   stays sharp at any zoom.
-- The panels are Control nodes styled as the Tailwind classes were (`render/Style.cs`); the slot
-  hover is a hit test, since Godot sends no enter events while a button is held.
+- The panels are Control nodes styled as the Tailwind classes were (`render/Style.cs`), the panels' own boxes now
+  the wrist computer's screens and metal (0074); the slot hover is a hit test, since Godot sends no enter events while a button is held.
 - The floor draws over the machines and under the heroes (`Layers.FloorItems`): a stack beside a
   furnace shows, and a hero walks over it; over a body (`Layers.Bodies`), so what it left shows on it.
 
