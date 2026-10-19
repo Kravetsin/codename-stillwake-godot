@@ -34,7 +34,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`), on a room's change and as its report every `Crew.ReportEvery` ticks (0050); `ExertOf` and `ThrustOf`, what it breathes and vents; `Cold`, how hard the cold bites at a cell | no    |
 | `Frost.cs`         | the frost past the field: one full-screen shader quad over the world, under the HUD (0050) | yes   |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads          | no    |
-| `SuitGauge.cs`     | the suit bar under the hotbar, as low as the slot size puts it (0058), red edges when low, the dark when passed out (`SuitGauge.tsx`) | yes   |
+| `SuitGauge.cs`     | the suit bar under the hotbar, as low as the slot size puts it (0058), on a screen in its tab under the wrist computer's cuff (0074), red edges when low, the dark when passed out (`SuitGauge.tsx`) | yes   |
 | `SuitColours.cs`   | the suit colours, a row in the game menu's settings: the one worn ringed, those taken dimmed, the rest a click away (`SuitColours.tsx`) | yes |
 | `Markers.cs`       | the markers' list (`Marker`: target, colour, icon) and their geometry: on the screen or off, clamped to its edge, slid out of the HUD, turned toward the target, faded in | no |
 | `MarkerLayer.cs`   | the arrows at the screen's edge to home, to this player's body and to friends, drawn from `Markers`, the distance in the one tooltip | yes |

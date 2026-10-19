@@ -59,7 +59,7 @@ public partial class BuildMenu : CanvasLayer
     private readonly TextureRect _plate = Art("res://art/tablet_plate.png"), _stylus = Art("res://art/tablet_stylus.png");
     /// <summary>The status lamp dark, over the art's lit one, while the screen is off; its glow while it is on.</summary>
     private readonly ColorRect _ledOff = new() { Color = new Color("1f3b2a"), Size = new Vector2(2, 2), MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly TextureRect _ledGlow = Glow(LedLight, 0), _wash = Glow(ScreenLight, 40f / 560);
+    private readonly TextureRect _ledGlow = ScreenGlow.Of(LedLight, 0), _wash = ScreenGlow.Of(ScreenLight, 40f / 560);
     /// <summary>The glass over the screen: the recess's shadow and a faint glare.</summary>
     private readonly Control _glass = new() { MouseFilter = Control.MouseFilterEnum.Ignore, ClipContents = true };
     /// <summary>How far below its dock the tablet is drawn now, in screen pixels.</summary>
@@ -266,33 +266,6 @@ public partial class BuildMenu : CanvasLayer
         TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
         MouseFilter = Control.MouseFilterEnum.Ignore,
     };
-
-    /// <summary>A soft round light of <paramref name="colour"/>, its alpha whole out to <paramref name="core"/> of its radius, added to what is under it.</summary>
-    private static TextureRect Glow(Color colour, float core)
-    {
-        var gradient = new Gradient
-        {
-            Offsets = [0, core, 0.45f, 1],
-            Colors = [colour, colour, colour with { A = colour.A * 0.45f }, colour with { A = 0 }],
-        };
-        return new TextureRect
-        {
-            Texture = new GradientTexture2D
-            {
-                Gradient = gradient,
-                Fill = GradientTexture2D.FillEnum.Radial,
-                FillFrom = new Vector2(0.5f, 0.5f),
-                FillTo = new Vector2(1, 0.5f),
-                Width = 128,
-                Height = 128,
-            },
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.Scale,
-            TextureFilter = CanvasItem.TextureFilterEnum.Linear,
-            Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add },
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-    }
 
     /// <summary>The recess's shadow on the screen's top and left edges, and the glass's glare: faint, over whatever it shows.</summary>
     private void DrawGlass()

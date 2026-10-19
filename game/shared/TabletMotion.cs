@@ -1,6 +1,6 @@
 using System;
 
-namespace Stillwake.Game.Features.Building;
+namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// How far the build tablet has slid up from the bottom edge and how far its screen has come on, frame by frame

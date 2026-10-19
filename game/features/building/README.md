@@ -16,7 +16,6 @@ and `Work`.
 | `BuildingView.cs` | plans as ghosts in marching dashes along their silhouettes turning real as they are built, marks in red dashes turning into their red ghost as they are taken down, ghosts, the tips, the buttons, the pipette, plan work | yes |
 | `BuildGlow.cs`    | the light of work on plans (0075): spark bursts, glints, the molten spot with its smoke and shimmer, the cut's line, a finished plan's sweep | yes |
 | `Catalogue.cs`    | the menu's fixed frame (0073): its size by the slot size, the rows scrolled, the card under the pointer, the scrollbar's thumb | no    |
-| `TabletMotion.cs` | the tablet's slide up and down and its screen coming on, warm for 1.5 s after it is put away (0073) | no    |
 | `BuildMenu.cs`    | the menu shown while the plan is out, docked at the bottom middle, the screen of a rugged tablet: tabs with counts, the search, the cards, the card in hand and the hint, a card's words in the one tooltip; B, / (Esc: `game/menu`) | yes |
 
 Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, the words by the
@@ -25,7 +24,9 @@ buttons; `PointerTip`), `game/i18n/En.cs` (the words), `game/render/` (`Buttons`
 as the world reads it; `BlueprintArt`/`PlanTiles`: the ship's own tiles for plans, ghosts and
 thumbnails; `PlanCut`/`BuiltParts`: where a plan being built turns real, and its real share drawn lit;
 `Blueprint`: how planned pipes, doors and walls join their neighbours (a planned door is drawn a door or a hatch by `DoorShape`, 0067), which the crew's aim
-outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`). The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
+outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`), and the
+tablet's slide and its screen coming on (`TabletMotion`, warm for 1.5 s after it is put away, 0073), by which the wrist
+computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`), both in `game/shared/`. The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
 `drag.test.ts` and `near-grid.test.ts` are ported one for one, walls planned cut to a shape tested in `PlanShapeTests`, the menu's frame in `CatalogueTests`, its slide and screen in `TabletMotionTests`; working a plan is the hero's hands
 (`features/crew`, `AimTests`).
 
