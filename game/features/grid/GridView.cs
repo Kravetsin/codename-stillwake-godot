@@ -224,15 +224,24 @@ public partial class GridView : Node2D
 
     /// <summary>
     /// A door cell, shut, open or part way while its panel slides: a doorway is one door or hatch, by its shape (0067),
-    /// its pictures joined where its cells meet.
+    /// its pictures joined where its cells meet, its panel sliding as one across all of them.
     /// </summary>
     private void DrawDoor(int cell)
     {
         int links = DoorLinksOf(cell);
-        string picture = _slides.StepOf(cell) is int step
-            ? DoorShape.Picture(step, links)
-            : DoorShape.Picture(_drawn.Structure[cell] == Structure.DoorClosed, links);
-        Put(_doors, CellOf(cell), picture);
+        if (_slides.OpenOf(cell) is not double open)
+        {
+            Put(_doors, CellOf(cell), DoorShape.Picture(_drawn.Structure[cell] == Structure.DoorClosed, links));
+            return;
+        }
+        // Where the cell lies in its straight run, counted from the top or left end the panel slides into.
+        bool hatch = Doorways.IsHatch(links);
+        var (back, ahead, step) = hatch ? (Doorways.Left, Doorways.Right, 1) : (Doorways.Up, Doorways.Down, _grid.Width);
+        int index = 0, length = 1;
+        for (int c = cell; (DoorLinksOf(c) & back) != 0; c -= step) index++;
+        for (int c = cell; (DoorLinksOf(c) & ahead) != 0; c += step) length++;
+        length += index;
+        Put(_doors, CellOf(cell), DoorShape.Picture(hatch, index, length, (int)Math.Round(open * length * Cell)));
     }
 
     /// <summary>Lays the whole picture <paramref name="name"/> on cell <paramref name="at"/> of <paramref name="layer"/>.</summary>
