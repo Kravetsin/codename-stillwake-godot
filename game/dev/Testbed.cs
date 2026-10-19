@@ -88,7 +88,7 @@ public static class Testbed
     public static readonly (int X, int Y) Full = (14, 7), Supply = (7, 7), FarmAt = (36, 7);
 
     /// <summary>What the supply crate holds at the start: what keeps the furnace, the Former and the grow capsule going (0062).</summary>
-    public static readonly IReadOnlyList<(string Item, int Count)> Supplies = [.. Enumerable.Repeat(("scrapChunk", 10), 20), ("planks", 50), ("iron", 500), ("seed", 10)];
+    public static readonly IReadOnlyList<(string Item, int Count)> Supplies = [.. Enumerable.Repeat(("scrapChunk", 50), 4), ("planks", 50), ("iron", 500), ("seed", 10)];
 
     /// <summary>What the furnace holds at the start: a chunk and a little fuel, each under half a stack, so it burns at once and drones bring the rest.</summary>
     public static readonly IReadOnlyList<(string Item, int Count)> FurnaceHolds = [("scrapChunk", 2), ("planks", 5)];

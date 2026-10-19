@@ -11,10 +11,10 @@ job from where they are, and fly home with no work left or their charge low. A m
   head entry and whether its unit has begun). Stations and machines are read from `Content`.
 - **State** (`LogisticsState`, members internal): `Off` — the machines switched off, by id, sorted; `Drones` — every
   drone in flight (`Drone`: id, bay, its own `Stack` with its charge, `X`/`Y` in thousandths of a cell, `Cell` it last
-  reached the centre of, `To` it flies to, `Leg`, `Low`, and its job: `Source`, `Slot`, `Target`, `Item`, `Count`, with
-  its `Cargo`) in id order; `NextId`; `Ticks`, its own clock. All saved. Derived and never saved: reservations, read
-  from the drones in flight; the floods and paths, found when needed in scratch arrays sized to one zone box; the
-  lists one look fills.
+  reached the centre of, `To` it flies to, `Leg`, `Low`, and its job: `Source`, `Target`, `Item`, `Count`, with
+  its `Cargo`) in id order; `NextId`; `Ticks`, its own clock. All saved; a save from before a job took every slot has a
+  drone's `slot` too, ignored on load. Derived and never saved: reservations, read from the drones in flight; the floods
+  and paths, found when needed in scratch arrays sized to one zone box; the lists one look fills.
 - **Files:** `Logistics.cs` — the module, its command and queries; `Jobs.cs` — what is wanted, matching, and what a
   job costs in charge; `Flight.cs` — looking, launching, flying, the floods and paths; `State.cs` — its slice and types;
   `Fuzz.cs` — its fuzz generator.
@@ -31,14 +31,18 @@ job from where they are, and fly home with no work left or their charge low. A m
     its craft's cost × its units not begun (endless: no end), at most a stack: wanted under half that or under one
     unit's cost. A paid head entry, or none, wants nothing;
   - an empty input remembering nothing wants nothing. Crates, bays, the analyzer and the charging station want nothing.
-- **What may be taken** (offers): every stack in a served crate in the flood, and every stack in a served machine's
-  outputs (its slots past its inputs, the pod's and queued stations' too), that no drone is on its way to take.
+- **What may be taken** (offers), item by item: what every slot of a served crate in the flood holds of it, and what
+  every slot of a served machine's outputs (its slots past its inputs, the pod's and queued stations' too) holds of
+  it, summed over the slots, less what drones on their way there will take of it (**reservations**): at a crate the
+  sum of their counts, so two drones share one crate's planks by count; at a machine's outputs all of it, so its
+  outputs of an item are taken by one drone at a time, as a carry-off takes all there is.
 - **A job,** from where a drone is: each wanted item from an offer of it in another machine, carrying the least of
-  what is wanted, the stack and the room at the target (`RoomFor` a stack); and each output offered to a crate
+  what is wanted, the offer and the room at the target (`RoomFor` a stack): so one trip tops a machine up to a stack
+  when the crate holds that much, however its slots split it; and each output offered to a crate
   (`Storage`): a served one in the flood with room, one already holding the item first, then the nearest to the
   output's machine, then the lowest id, carrying up to that room. Of all of them, the source nearest by Manhattan
-  distance between the drone's cell and the source's top-left, then the lowest source id, then slot, a refill before
-  an output, then the lowest target id.
+  distance between the drone's cell and the source's top-left, then the lowest source id, then the first slot there
+  holding the item, a refill before an output, then the lowest target id.
 - **What a job costs** (`Affords`): `Draw` × ticks a cell × the Manhattan lengths from where the drone is to the source,
   on to the target and home to the bay's top-left, the legs from the source and the target each with the width and
   height of its machine less two (a drone arrives at any of its cells), and `Spare` (2) cells; its charge must hold at least that.
@@ -55,8 +59,9 @@ job from where they are, and fly home with no work left or their charge low. A m
   left, right, down, finds its first step to its goal and its distance home. No way home: it drops. On a job with no
   way to its goal, it flies home with its cargo; holding less than the way home and `Spare` cells, it flies home
   marked `Low`. A cell ahead no longer passable turns it back to the centre it left. A bay gone drops its drones.
-- **Arriving:** at its source it takes what the slot holds of its item up to its job, any of it, and with none looks
-  for the next job; at its target it puts in what fits and carries the rest on to a crate with room (`Storage`, as for an output), or
+- **Arriving:** at its source it takes what the slots it was offered (a crate's all, a machine's outputs) hold of its
+  item now, up to its job, the last slot first as a hero pays, each stack alike the first taken (one item, one charge),
+  so its cargo is one stack wherever a hand or a sort has moved them since; with none it looks for the next job; at its target it puts in what fits and carries the rest on to a crate with room (`Storage`, as for an output), or
   with none lays it down there, then looks for the next job; a
   target taken apart has its cargo laid where the drone is. Home, it docks in its bay's first free slot (or lies down
   where it is with none) and lays any cargo it brought back where it is.
@@ -77,8 +82,10 @@ job from where they are, and fly home with no work left or their charge low. A m
 ## Invariants
 
 - Items are kept, drones included, across machines, the floor, drones in flight and their cargo; each drone is once,
-  docked, flying or on the floor; no two drones go for one stack (`LogisticsInvariantTests`, FsCheck, with walls built
-  and taken down, the door worked and machines switched mid-flight).
+  docked, flying or on the floor; a crate holds all that drones on their way will take of an item from it, while nothing but
+  drones takes from it; a machine's outputs of an item have one drone on its way at most; nothing brings an input past a
+  stack (`LogisticsInvariantTests`, FsCheck, crate stock split over slots, with walls built and taken down, the door
+  worked and machines switched mid-flight).
 - No drone in flight ever holds no charge, and none drops, however far round walls its jobs take it, while nothing
   changes where drones may fly (`LogisticsInvariantTests`).
 - Saved, loaded and played on mid-flight, a world hashes the same (`LogisticsTests`).
@@ -97,6 +104,12 @@ job from where they are, and fly home with no work left or their charge low. A m
   goes on to another crate, and lies there only with none. Cargo a drone turned home with lies at its bay.
 - A drone checks the air only at cell centres: one may fly half a cell into a cell vented that tick before turning.
 - A wall built on the cell a drone stands in drops it there; its stacks are pushed out as any floor stack is.
+- A hand or a sort taking from a crate while drones are on their way leaves them less than they were sent for: the
+  first to arrive takes its count, the later ones what is left.
+- A machine's outputs of an item wait for the drone on its way to them, though another is free: outputs seldom fill
+  more than a slot an item, and a carry-off takes what has gathered by the time it arrives.
+- Stacks of one item holding other charge are not gathered into one cargo: only items of a stack of one hold charge,
+  and nothing wants more than one of them.
 - `Off` keeps a machine taken apart: ids are never reused, and it is never read.
 - No drones in vacuum, opening doors, colliding or flying outside the hull; reach is fixed.
 - A bay's zone is a square box, clipped at the grid's edge.

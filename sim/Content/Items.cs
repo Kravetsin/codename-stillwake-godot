@@ -74,11 +74,11 @@ public static class Items
         new("iron", 500),
         new("canister", 5),
         new("planks", 50, BurnTicks: 400),
-        new("scrapChunk", 10, Yields: [("scrap", 4)], SmeltTicks: 60, Group: ItemGroup.Salvage),
-        new("hullPlate", 5, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100, Group: ItemGroup.Salvage),
+        new("scrapChunk", 50, Yields: [("scrap", 4)], SmeltTicks: 60, Group: ItemGroup.Salvage),
+        new("hullPlate", 20, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100, Group: ItemGroup.Salvage),
         // Broken out of asteroids (0054); smelted into silicon at a furnace or the electric smelter. Players see
         // "Asteroid ore"; the id stays rock, so saves need no migration.
-        new("rock", 10, Yields: [("silicon", 2)], SmeltTicks: 160, Group: ItemGroup.Salvage),
+        new("rock", 50, Yields: [("silicon", 2)], SmeltTicks: 160, Group: ItemGroup.Salvage),
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1, Group: ItemGroup.Other),
         new("cargoCrate", 1, Group: ItemGroup.Other),

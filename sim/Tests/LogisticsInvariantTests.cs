@@ -88,13 +88,13 @@ public class LogisticsInvariantTests
     }
 
     [Property(MaxTest = 60)]
-    public Property ItemsAreKeptEachDroneIsOnceAndNoTwoGoForOneStack() =>
+    public Property ItemsAreKeptEachDroneIsOnceAndNothingIsSpokenForTwiceNorOverfilled() =>
         Prop.ForAll(Runs().ToArbitrary(), run =>
         {
             var w = LogisticsTests.TwoRooms(0);
             Dock(w, LogisticsTests.Bay, run.Charges);
-            if (run.Left.Length > 0) w.FillCrate(LogisticsTests.Left, run.Left);
-            if (run.Right.Length > 0) w.FillCrate(LogisticsTests.Right, run.Right);
+            LogisticsTests.Spread(w, LogisticsTests.Left, run.Left);
+            LogisticsTests.Spread(w, LogisticsTests.Right, run.Right);
             if (run.Input is { } input) w.Put(0, new Stack(input.Item, input.Count), crate: LogisticsTests.Furnace);
             for (int i = 0; i < run.Outputs.Length; i++) w.Put(2 + i, new Stack(run.Outputs[i].Item, run.Outputs[i].Count), crate: LogisticsTests.Furnace);
             var start = Totals(w);
@@ -111,8 +111,17 @@ public class LogisticsInvariantTests
                     Assert.Equal(run.Charges.Length, Drones(w, LogisticsTests.Bay));
                     var drones = w.M.Logistics.Drones;
                     Assert.Equal(drones.Count, drones.Select(d => d.Id).Distinct().Count());
-                    var going = drones.Where(d => d.Leg == Leg.Source).Select(d => (d.Source, d.Slot)).ToList();
-                    Assert.Equal(going.Count, going.Distinct().Count());
+                    // What drones go to take at a crate it holds; a machine's outputs of an item, one drone at a time.
+                    foreach (var g in drones.Where(d => d.Leg == Leg.Source).GroupBy(d => (d.Source, d.Item)))
+                        if (g.Key.Source is LogisticsTests.Left or LogisticsTests.Right)
+                            Assert.True(g.Sum(d => d.Count) <= LogisticsTests.Count(w.M.Items.Crate(g.Key.Source), g.Key.Item), $"{g.Key} spoken for twice");
+                        else Assert.Single(g);
+                    // Nothing brings an input past a stack.
+                    if (run.Input is { } kept)
+                    {
+                        int coming = drones.Where(d => d.Target == LogisticsTests.Furnace && d.Item == kept.Item && d.Leg != Leg.Home).Sum(d => d.Cargo?.Count ?? d.Count);
+                        Assert.True(w.M.Items.HeldFor(LogisticsTests.Furnace, kept.Item) + coming <= Content.Items.Get(kept.Item).Stack, $"{kept.Item} overfilled");
+                    }
                 }
             }
         });

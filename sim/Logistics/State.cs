@@ -8,7 +8,7 @@ public enum Leg { Source = 0, Target = 1, Home = 2 }
 
 /// <summary>
 /// A drone in flight, a sim entity (0062): the item it is while docked (<see cref="Stack"/>, its charge with it), its
-/// bay, where it is, and its job: <c>Count</c> of <c>Item</c> from slot <c>Slot</c> of machine <c>Source</c> to machine
+/// bay, where it is, and its job: <c>Count</c> of <c>Item</c> from machine <c>Source</c>, from every slot of it there, to machine
 /// <c>Target</c>, and the <see cref="Cargo"/> it carries. Nothing about its path is kept.
 /// </summary>
 public sealed class Drone
@@ -25,7 +25,6 @@ public sealed class Drone
     [JsonInclude] public int To { get; internal set; }
     [JsonInclude] public Leg Leg { get; internal set; }
     [JsonInclude] public int Source { get; internal set; }
-    [JsonInclude] public int Slot { get; internal set; }
     [JsonInclude] public int Target { get; internal set; }
     [JsonInclude] public string Item { get; internal set; } = "";
     [JsonInclude] public int Count { get; internal set; }

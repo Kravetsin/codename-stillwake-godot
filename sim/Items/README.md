@@ -25,7 +25,7 @@ mode, the world setting in which nothing is ever taken
   has its `Slots` in `Machines`. Each slot is a
   `Stack` (`Item`, `Count` from 1 to the item's `Stack` limit in `Items`, and `Charge`) or null. Items are known by
   their id; every material is one, the salvage items, with `Yields`, are what caught debris
-  becomes, and the parts (wire, plate, gear, tube, and of them the rotor, frame and coil) are crafted by
+  becomes, in stacks of 20 (hull plates) and 50 (scrap chunks, asteroid ore) since 0062, and the parts (wire, plate, gear, tube, and of them the rotor, frame and coil) are crafted by
   `Crafting` into the lifepod's outputs;
   circuits are salvaged from cable racks and derelicts (`Debris`) or made at the circuit assembler of
   silicon and wire, and go into what is electric: the battery, the charging station, the drill, the
@@ -221,8 +221,8 @@ stack holding charge into any slot with `Put`, from
 - A stack pushed out of a wall with space on both sides and no room within `Floor.PushReach` goes
   into space and drifts away: what was delivered to or refunded at a wall standing out in space.
 - A stale pick at a shared crate moves whatever is in the slot by the time it applies.
-- A drone on its way to take from a crate slot that a sort has since filled with another item takes what of its item
-  is there, or looks for its next job (`Logistics`), as after a move by hand.
+- A drone on its way to a crate that a sort has since rearranged takes what of its item is there, in whichever slots,
+  or with none looks for its next job (`Logistics`), as after a move by hand: it is sent for an item, not a slot.
 - Who may switch creative mode: anyone; it is a dev panel switch among friends.
 - A battery's charge never leaks, in a crate, on the floor or on a belt: only a tool spends it.
 - A `Run` landing on a hero already passed out pays one tick before `Crew` stops it: items run before crew in a

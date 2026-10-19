@@ -7,11 +7,15 @@ namespace Stillwake.Sim.Logistics;
 
 public sealed partial class LogisticsModule
 {
-    /// <summary>A job found: <c>Count</c> of <c>Item</c> from slot <c>Slot</c> of <c>Source</c> to <c>Target</c>.</summary>
-    private readonly record struct Job(int Source, int Slot, int Target, string Item, int Count);
+    /// <summary>A job found: <c>Count</c> of <c>Item</c> from <c>Source</c> to <c>Target</c>.</summary>
+    private readonly record struct Job(int Source, int Target, string Item, int Count);
 
-    /// <summary>A stack drones may take, as one look found it: in the flood, its machine served, no drone on its way to it.</summary>
-    private readonly record struct Offer(int Machine, int Slot, Stack Stack, int Distance, bool Output);
+    /// <summary>
+    /// What drones may take of one item at one machine, as one look found it: in the flood, its machine served, summed
+    /// over the slots offered (<see cref="FirstOffered"/>) less what drones on their way there will take. <c>First</c> is
+    /// the first slot's stack, <c>Slot</c> its slot: what orders offers of one machine.
+    /// </summary>
+    private readonly record struct Offer(int Machine, int Slot, Stack First, int Count, int Distance, bool Output);
 
     // Scratch for one look, never saved: what may be taken, and what one machine wants.
     private readonly List<Offer> _offers = [];
@@ -20,19 +24,31 @@ public sealed partial class LogisticsModule
     /// <summary>
     /// The job a drone at <paramref name="from"/> takes, within the last flood: of every refill a served machine wants
     /// and every output a crate has room for, the one whose source is nearest by Manhattan distance, then the lowest
-    /// source id and slot, a refill before an output carried off, then the lowest target id. Null for no work.
+    /// source id and the first slot of the item there, a refill before an output carried off, then the lowest target id.
+    /// Null for no work.
     /// </summary>
     private Job? FindJob(int from)
     {
         _offers.Clear();
         foreach (var m in _grid.Machines)
         {
-            int? first = m.Kind == "crate" ? 0 : OutputsOf(m);
-            if (first is not int start || !Served(m.Id) || !InFlood(m)) continue;
+            if (FirstOffered(m) is not int start || !Served(m.Id) || !InFlood(m)) continue;
             var slots = _items.Crate(m.Id);
-            int distance = Distance(from, m.Cell);
+            int distance = Distance(from, m.Cell), mine = _offers.Count;
             for (int slot = start; slot < slots.Count; slot++)
-                if (slots[slot] is { } stack && !Reserved(m.Id, slot)) _offers.Add(new Offer(m.Id, slot, stack, distance, m.Kind != "crate"));
+            {
+                if (slots[slot] is not { } stack) continue;
+                int at = mine;
+                while (at < _offers.Count && _offers[at].First.Item != stack.Item) at++;
+                if (at < _offers.Count) _offers[at] = _offers[at] with { Count = _offers[at].Count + stack.Count };
+                else _offers.Add(new Offer(m.Id, slot, stack, stack.Count, distance, m.Kind != "crate"));
+            }
+            for (int i = _offers.Count - 1; i >= mine; i--)
+            {
+                int left = _offers[i].Count - Spoken(m, _offers[i].First.Item);
+                if (left > 0) _offers[i] = _offers[i] with { Count = left };
+                else _offers.RemoveAt(i);
+            }
         }
         if (_offers.Count == 0) return null;
         Job? best = null;
@@ -41,7 +57,7 @@ public sealed partial class LogisticsModule
         {
             var mine = (o.Distance, o.Machine, o.Slot, push, target);
             if (best != null && mine.CompareTo(key) >= 0) return;
-            best = new Job(o.Machine, o.Slot, target, o.Stack.Item, count);
+            best = new Job(o.Machine, target, o.First.Item, count);
             key = mine;
         }
         foreach (var t in _grid.Machines)
@@ -53,13 +69,32 @@ public sealed partial class LogisticsModule
                 int room = _items.RoomFor(t.Id, new Stack(item, Content.Items.Get(item).Stack));
                 if (room == 0) continue;
                 foreach (var o in _offers)
-                    if (o.Stack.Item == item && o.Machine != t.Id)
-                        Consider(o, 0, t.Id, Math.Min(Math.Min(want, o.Stack.Count), room));
+                    if (o.First.Item == item && o.Machine != t.Id)
+                        Consider(o, 0, t.Id, Math.Min(Math.Min(want, o.Count), room));
             }
         }
         foreach (var o in _offers)
-            if (o.Output && Storage(o.Machine, o.Stack) is { } to) Consider(o, 1, to.Crate, to.Room);
+            if (o.Output && Storage(o.Machine, o.First) is { } to) Consider(o, 1, to.Crate, to.Room);
         return best;
+    }
+
+    /// <summary>The first slot drones take from at machine <paramref name="m"/>: a crate's first, a machine's first output; null for one with none.</summary>
+    private static int? FirstOffered(Machine m) => m.Kind == "crate" ? 0 : OutputsOf(m);
+
+    /// <summary>
+    /// What drones on their way to machine <paramref name="m"/> will take of <paramref name="item"/>: at a crate, the sum
+    /// of their counts; at a machine's outputs, all of it while one is on its way, as a carry-off takes all there is.
+    /// </summary>
+    private int Spoken(Machine m, string item)
+    {
+        int sum = 0;
+        foreach (var d in State.Drones)
+            if (d.Leg == Leg.Source && d.Source == m.Id && d.Item == item)
+            {
+                if (m.Kind != "crate") return int.MaxValue;
+                sum += d.Count;
+            }
+        return sum;
     }
 
     /// <summary>
@@ -140,14 +175,6 @@ public sealed partial class LogisticsModule
     {
         int w = _grid.Width;
         return Math.Abs(a % w - b % w) + Math.Abs(a / w - b / w);
-    }
-
-    /// <summary>Whether a drone is on its way to take what slot <paramref name="slot"/> of <paramref name="machine"/> holds.</summary>
-    private bool Reserved(int machine, int slot)
-    {
-        foreach (var d in State.Drones)
-            if (d.Leg == Leg.Source && d.Source == machine && d.Slot == slot) return true;
-        return false;
     }
 
     /// <summary>How much of <paramref name="item"/> drones are bringing to <paramref name="target"/>: their jobs on the way to the source, their cargo after.</summary>
