@@ -125,10 +125,16 @@ public class JetpackTests
     }
 
     [Fact]
-    public void NeedsNoCanisterInCreativeMode()
+    public void NeedsNoCanisterInCreativeModeWhereTheSuitIsFullAndStaysSo()
     {
         var w = Breathing(10, 0).Do(new SetCreative(true)).Do(new Refill { From = 0 }).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(10 + Content.Crew.CanisterRefill, HeroOf(w).Suit);
+        Assert.Equal(Content.Crew.Suit, HeroOf(w).Suit);
+        w.Do(new Exert(true) { From = 0 }).Run(Content.Crew.BreathEvery * 100);
+        Assert.Equal((Content.Crew.Suit, 0), (HeroOf(w).Suit, HeroOf(w).Out));
+        w.Do(new Refill { From = 0 }).Run();
+        Assert.Equal(["crew.suitFull"], Reasons(w));
+        w.Do(new SetCreative(false)).Run(Content.Crew.BreathEvery);
+        Assert.True(HeroOf(w).Suit < Content.Crew.Suit);
     }
 }

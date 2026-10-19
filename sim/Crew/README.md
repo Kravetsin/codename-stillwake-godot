@@ -7,7 +7,7 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
 
 - **Depends on:** `Atmosphere` (`IAtmosphereOps`: its `Breathe` operation decides whether a cell's
   room has air and takes it); `Grid` (`IGridQueries.Width`, `Height` and `Zone`: where a cell is, for the pod's reach and the field); `Items`
-  (`IItemsQueries.Equipped` and `ShortOf`, whether a hero wears a jetpack and carries a canister;
+  (`IItemsQueries.Equipped`, `ShortOf` and `Creative`, whether a hero wears a jetpack, carries a canister and needs air;
   `IItemsOps.Take`, the canister breathed; `IItemsOps.StopRunning`, an electric tool stopped as its hero passes out
   or leaves, 0055; `IItemsOps.LeaveBody`, what a hero carried left where it died, 0061).
 - **State** (`CrewState`, members internal): `Spawn` — the hatch of the map's first lifepod
@@ -79,6 +79,9 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   and the refill, the suit alone pays it for the reported cell, never below nothing; a suit emptied
   so (or by the breath) passes the hero out as ever. It adds to thrust, which the suit pays apart. On a
   map that sets no zone the field reaches past the grid, so no cell on it costs anything.
+- **Creative mode** (`Items`' dev panel switch): every tick a conscious hero's suit is full, whatever
+  breath, exertion, thrust or cold would take, so it never passes out; it takes nothing from the pod or
+  a room's air either. A hero already out when creative mode comes on wakes as ever.
 - The breaths run in the simulation phase, after `Atmosphere`'s (crew is registered right after it),
   so a breath reads this tick's air.
 

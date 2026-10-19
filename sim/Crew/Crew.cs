@@ -120,6 +120,12 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                     continue;
                 }
                 Thrusts(hero);
+                if (_items.Creative)
+                {
+                    // Creative mode: the suit is endless, and a hero takes no room's air.
+                    hero.Suit = Content.Crew.Suit;
+                    continue;
+                }
                 if (!breath) continue;
                 // The pod's air first, for the breath and the suit alike; then one draw from the room for
                 // what is left of both, the room's refill as before. What the air falls short of the breath the
