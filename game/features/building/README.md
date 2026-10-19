@@ -34,7 +34,10 @@ outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along
   shown is never kept — `Tools.OverlayShown` from the plan out, the tab and `Ui.AirOn` on each read — so
   with the menu closed it is air or nothing. The menu opens on the tab it closed on; a card picked opens
   its tab; another tab lets the card go; a tab with nothing known is never the tab.
-- Left drags place along a line (a machine where it began); middle drags cancel plans when begun on one,
+- Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
+  the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
+  and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still
+  drawn a row at a time; aslant, it is a room's worth. Middle drags cancel plans when begun on one,
   else mark what is built in the tab's layers (Air: pipes, valves, machines); Q picks the card under the
   pointer onto its tab, known cards only. A drag ends with the hand that began it.
 - The right button held on a plan is the hero's, whatever the hand holds (crew's `Aiming.UsesOf`): within

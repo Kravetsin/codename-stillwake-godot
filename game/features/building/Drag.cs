@@ -40,11 +40,13 @@ public static class Drag
 
     /// <summary>
     /// The cells a drag from <paramref name="from"/> to <paramref name="to"/> covers: a straight line along
-    /// the longer axis, horizontal on a tie. A machine goes only where the drag began.
+    /// the longer axis, horizontal on a tie. Walls and back walls fill the rectangle between its two corners
+    /// instead, row by row from where it began, so a room's worth is one drag. A machine goes only where the drag began.
     /// </summary>
     public static List<int> LineOf(int width, Act act, Spot from, Spot to)
     {
         if (act is PlaceTool { Placement.Layer: "machine" }) return [from.Y * width + from.X];
+        if (act is PlaceTool { Placement.Kind: "wall" or "backWall" }) return RectangleOf(width, from, to);
         bool across = Math.Abs(to.X - from.X) >= Math.Abs(to.Y - from.Y);
         int length = across ? Math.Abs(to.X - from.X) : Math.Abs(to.Y - from.Y);
         int step = Math.Sign(across ? to.X - from.X : to.Y - from.Y);
@@ -54,6 +56,33 @@ public static class Drag
             int x = across ? from.X + i * step : from.X;
             int y = across ? from.Y : from.Y + i * step;
             cells.Add(y * width + x);
+        }
+        return cells;
+    }
+
+    /// <summary>
+    /// The most cells a wall rectangle spans each way: judged and drawn every frame of the drag, a whole
+    /// 256×128 grid of them took 54 ms, a 32×32 a few.
+    /// </summary>
+    public const int MostAcross = 32;
+
+    /// <summary>
+    /// Every cell from <paramref name="from"/> to <paramref name="to"/>, both corners in, a row at a time from
+    /// <paramref name="from"/>'s; the far corner kept within <see cref="MostAcross"/> of it each way.
+    /// </summary>
+    private static List<int> RectangleOf(int width, Spot from, Spot to)
+    {
+        to = new(Math.Clamp(to.X, from.X - MostAcross + 1, from.X + MostAcross - 1), Math.Clamp(to.Y, from.Y - MostAcross + 1, from.Y + MostAcross - 1));
+        int dx = Math.Sign(to.X - from.X), dy = Math.Sign(to.Y - from.Y);
+        var cells = new List<int>((Math.Abs(to.X - from.X) + 1) * (Math.Abs(to.Y - from.Y) + 1));
+        for (int y = from.Y; ; y += dy)
+        {
+            for (int x = from.X; ; x += dx)
+            {
+                cells.Add(y * width + x);
+                if (x == to.X) break;
+            }
+            if (y == to.Y) break;
         }
         return cells;
     }
