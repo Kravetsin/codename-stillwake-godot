@@ -52,12 +52,16 @@ public partial class BuildingView : Node2D
     private readonly Sketch _badges = new(Layers.PlanMarks), _hands = new(Layers.PlanHands);
     /// <summary>The marching dashes round plans; round back walls, behind what is built; round marks, in red.</summary>
     private readonly MarchingDashes _outline = new(Layers.PlanMarks) { Modulate = Dashes }, _backOutline = new(Layers.PlanBacks) { Modulate = Dashes },
-        _markOutline = new(Layers.PlanMarks) { Modulate = Mark with { A = 0.95f } };
+        _markOutline = new(Layers.PlanMarks) { Modulate = Mark with { A = 0.95f } },
+        _takingOutline = new(Layers.PlanMarks) { Modulate = Mark with { A = 0.95f } },
+        _keptOutline = new(Layers.PlanMarks) { Modulate = Mark with { A = 0.4f } },
+        _cancelOutline = new(Layers.PlanMarks) { Modulate = AsciiArt.Colour(0xffc94d, 0.95f) };
+    /// <summary>What a middle drag would take, before it is let go: drawn as its marks will be, a red ghost in dashes.</summary>
+    private readonly PlanTiles _taking = new(tint: 0.6f) { ZIndex = Layers.PlanGhost, Modulate = Mark with { A = GhostAlpha } };
 
-    private string _drawn = "", _outlined = "";
+    private string _drawn = "", _outlined = "", _takingKey = "";
     private List<Rect2> _machines = [];
     private List<Edge> _near = [];
-    private List<(int Cell, bool Refused)> _removing = [];
     private int _width;
     /// <summary>The drag under way: what it does, the button that began it and the cell it began on.</summary>
     private (Act Act, bool Left, Spot From)? _drag;
@@ -76,7 +80,7 @@ public partial class BuildingView : Node2D
         _ui = ui;
         _hand = hand;
         _plans = new(BackAlpha, backZ: Layers.PlanBacks, built: _built) { ZIndex = Layers.Plans, Modulate = Plan };
-        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _markOutline, _badges, _fits, _refused, _hands, _screwdriver]) AddChild(node);
+        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _markOutline, _taking, _takingOutline, _keptOutline, _cancelOutline, _badges, _fits, _refused, _hands, _screwdriver]) AddChild(node);
         _badges.Paint = PaintBadges;
         _hands.Paint = PaintHands;
     }
@@ -353,11 +357,36 @@ public partial class BuildingView : Node2D
     /// <summary>The ghost of the card along a drag, or of a removal: its own pictures, green where the sim would take it and red where not.</summary>
     private void Ghost(Tool? tool, (double X, double Y)? pointer, bool onGrid, IGridQueries grid, BuildingModule building)
     {
-        int width = grid.Width, height = grid.Height;
         _fits.Begin();
         _refused.Begin();
+        _taking.Begin();
+        var taken = new List<(string, int, int, IReadOnlyList<Rim>)>();
+        var kept = new List<(string, int, int, IReadOnlyList<Rim>)>();
+        var cancelled = new List<(string, int, int, IReadOnlyList<Rim>)>();
+        var takenKey = new System.Text.StringBuilder();
+        try
+        {
+            GhostOf(tool, pointer, onGrid, grid, building, taken, kept, cancelled, takenKey);
+        }
+        finally
+        {
+            // The dashes are laid out again only when what the drag would take changes.
+            if (takenKey.ToString() != _takingKey)
+            {
+                _takingKey = takenKey.ToString();
+                _takingOutline.Show(PlanOutline.Of(taken, SmallestHole));
+                _keptOutline.Show(PlanOutline.Of(kept, SmallestHole));
+                _cancelOutline.Show(PlanOutline.Of(cancelled, SmallestHole));
+            }
+        }
+    }
+
+    private void GhostOf(Tool? tool, (double X, double Y)? pointer, bool onGrid, IGridQueries grid, BuildingModule building,
+        List<(string, int, int, IReadOnlyList<Rim>)> taken, List<(string, int, int, IReadOnlyList<Rim>)> kept,
+        List<(string, int, int, IReadOnlyList<Rim>)> cancelled, System.Text.StringBuilder takenKey)
+    {
+        int width = grid.Width, height = grid.Height;
         _near = [];
-        _removing = [];
         _ui.Reason.Set(null);
         if (tool is PlaceTool && pointer is { } near) _near = NearGrid.Around(near, width, height);
         // A wall's card places walls cut to the shape in hand, R turning it mid-drag too (0069).
@@ -382,7 +411,44 @@ public partial class BuildingView : Node2D
                     foreach (var (cell, sides) in Tools.StubsOf(those, width, Conduit)) (refused ? _refused : _fits).Stub(cell, width, sides);
                 }
         }
-        else _removing = verdicts.Select(v => (v.Cell, v.Problem != null)).ToList();
+        else
+        {
+            // What it would take, as its marks will look: each thing's red ghost and dashes round its silhouette.
+            // What it may not take (a crate not empty, a machine cabled), its silhouette dim, its reason by the pointer.
+            var layers = (act as Remove)?.Layers;
+            var seen = new HashSet<(string, int)>();
+            void Silhouette(string layer, int cell, bool takes)
+            {
+                int at = layer == "machine" && grid.MachineAt(cell) is { } machine ? machine.Cell : cell;
+                if (!seen.Add((layer, at)) || Tools.BuiltAt(at, layer, grid) is not { } built) return;
+                int joined = Tools.LinksOf(built, at, width, _ => [], grid);
+                if (takes) _taking.Lay(built, at, width, joined);
+                int x = at % width, y = at / width;
+                string group = layer == "machine" ? $"machine{at}" : layer is "back" or "conduit" ? layer : built.Kind;
+                (takes ? taken : kept).Add((group, x * Cell, y * Cell, PlanShapes.RimOf(built, x, y, joined)));
+                takenKey.Append(takes ? '+' : '-').Append(layer).Append(at).Append(',');
+            }
+            // A drag begun on plans cancels them: each plan or mark it would cancel, amber dashes round its silhouette.
+            void Cancelled(int cell, int id)
+            {
+                if (building.PlansAt(cell).FirstOrDefault(p => p.Id == id) is not { } plan) return;
+                int at = plan.Clear != null ? MarkedAt(grid, plan) : plan.Cell;
+                var shown = plan.Place ?? (plan.Clear is { } layer ? Tools.BuiltAt(at, layer, grid) : null);
+                if (shown is null || !seen.Add(("plan", plan.Id))) return;
+                int joined = Tools.LinksOf(shown, at, width, _ => [], grid);
+                int x = at % width, y = at / width;
+                cancelled.Add((shown.Layer == "machine" ? $"machine{at}" : shown.Layer is "back" or "conduit" ? shown.Layer : shown.Kind,
+                    x * Cell, y * Cell, PlanShapes.RimOf(shown, x, y, joined)));
+                takenKey.Append('x').Append(plan.Id).Append(',');
+            }
+            foreach (var v in verdicts)
+            {
+                foreach (var c in v.Commands)
+                    if (c is Sim.Building.Deconstruct d) Silhouette(d.Layer, d.Cell, takes: true);
+                    else if (c is CancelPlan cancel) Cancelled(v.Cell, cancel.Id);
+                if (v.Problem != null && building.ClearAt(v.Cell, layers) is { } next) Silhouette(next.Layer, next.Cell, takes: false);
+            }
+        }
         _ui.Reason.Set(verdicts.FirstOrDefault(v => v.Problem != null)?.Problem);
     }
 
@@ -390,13 +456,5 @@ public partial class BuildingView : Node2D
     {
         foreach (var e in _near)
             g.DrawLine(new Vector2(e.X1, e.Y1) * Cell, new Vector2(e.X2, e.Y2) * Cell, GridLine with { A = (float)e.Alpha }, 1);
-        foreach (var (cell, refused) in _removing)
-        {
-            var box = new Rect2(cell % _width * Cell, cell / _width * Cell, Cell, Cell);
-            var colour = refused ? Refused : Fits;
-            g.DrawRect(box, colour with { A = 0.3f });
-            // A screen pixel wide at any zoom: a primitive line.
-            g.DrawRect(box, colour, false);
-        }
     }
 }
