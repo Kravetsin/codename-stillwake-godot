@@ -100,11 +100,13 @@ public partial class SuitGauge : CanvasLayer
     private static double Toward(double from, double to, double step) =>
         from < to ? Math.Min(to, from + step) : Math.Max(to, from - step);
 
-    /// <summary>The bar under its label, drawn by hand: Tailwind's slate and sky, red pulsing in danger.</summary>
+    /// <summary>
+    /// The bar under its label, drawn by hand on a screen of the wrist computer, in its tab under the cuff (0074): Tailwind's
+    /// slate and sky, red pulsing in danger.
+    /// </summary>
     private sealed partial class Bar : Control
     {
-        private static readonly Color Back = new(new Color("0f172a"), 0.9f), Edge = new("334155"),
-            Text = new("94a3b8"), Track = new("334155"), Fill = new("38bdf8"), Alarm = new("ef4444");
+        private static readonly Color Text = new("94a3b8"), Track = new("334155"), Fill = new("38bdf8"), Alarm = new("ef4444");
 
         public float Share { get; set; } = 1;
         public bool InDanger { get; set; }
@@ -115,15 +117,16 @@ public partial class SuitGauge : CanvasLayer
             Position = new Vector2(Slots.Margin, 0);
             Size = new Vector2(224, 30);
             MouseFilter = MouseFilterEnum.Ignore;
+            var tab = WristArt.Frame(WristPieces.Gauge, MouseFilterEnum.Ignore);
+            AddChild(tab);
+            WristArt.Fit(tab, WristPieces.Gauge, Size);
         }
 
         public override void _Process(double delta) => _clock += delta;
 
         public override void _Draw()
         {
-            var box = new Rect2(Vector2.Zero, Size);
-            DrawRect(box, Back);
-            DrawRect(box, Edge, false, 1);
+            WristArt.DrawScreen(this, Size, WristArt.Screen, glare: false);
             var font = Style.Mono;
             DrawString(font, new Vector2(12, 20), "O₂", HorizontalAlignment.Left, -1, 12, Text);
             var track = new Rect2(40, 12, Size.X - 52, 6);

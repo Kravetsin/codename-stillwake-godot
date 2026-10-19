@@ -48,7 +48,7 @@ budding bush, with the glass's glints kept over it. The farm's icons are `art/it
   is shown, docked under its grid, level with its left edge, where every machine opens (`Ui.InventoryFoot`, 0058); gone when either
   closes. The items feature gives a queued station no crate panel of its own. It lays out that station:
   its name (`station.<kind>`), its rows, its queue size, its speed in the card's seconds.
-- In the machine frame (`Shared.MachineFrame`, 0058), its header: the station's name, for one that draws power its bolt and what it draws (lit while it
+- In the machine frame (`Shared.MachineFrame`, 0058; the wrist computer's module under the bag, 0074), its header: the station's name, for one that draws power its bolt and what it draws (lit while it
   works, dark at 0 while it rests or has no power), and its screen (dark while a unit has no power). On the left
   "Recipes", how many are opened; every recipe in its place from content, four a row, two rows at
   least, empty places dim. One not known yet is a dark silhouette; one known but short of an item for

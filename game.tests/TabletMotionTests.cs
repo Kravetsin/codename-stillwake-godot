@@ -1,4 +1,4 @@
-using Stillwake.Game.Features.Building;
+using Stillwake.Game.Shared;
 using Xunit;
 
 namespace Stillwake.Game.Tests;

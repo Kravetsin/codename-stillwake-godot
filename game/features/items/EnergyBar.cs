@@ -45,10 +45,10 @@ public partial class EnergyBar : CanvasLayer
         _bar.QueueRedraw();
     }
 
-    /// <summary>The bar drawn by hand as the suit's is, beside it: the slate box, a bolt, the track and its fill.</summary>
+    /// <summary>The bar drawn by hand as the suit's is, beside it, in its own tab under the cuff (0074): a bolt, the track and its fill.</summary>
     private sealed partial class Bar : Control
     {
-        private static readonly Color Back = new(new Color("0f172a"), 0.9f), Edge = new("334155"), Track = new("334155");
+        private static readonly Color Track = new("334155");
 
         public float Share { get; set; }
         public Color Fill { get; set; }
@@ -60,13 +60,15 @@ public partial class EnergyBar : CanvasLayer
             Size = new Vector2(150, 30);
             MouseFilter = MouseFilterEnum.Ignore;
             Visible = false;
+            // Drawn after the suit's, its tab covers the suit tab's right edge: one seam between the two screens.
+            var tab = WristArt.Frame(WristPieces.Gauge, MouseFilterEnum.Ignore);
+            AddChild(tab);
+            WristArt.Fit(tab, WristPieces.Gauge, Size);
         }
 
         public override void _Draw()
         {
-            var box = new Rect2(Vector2.Zero, Size);
-            DrawRect(box, Back);
-            DrawRect(box, Edge, false, 1);
+            WristArt.DrawScreen(this, Size, WristArt.Screen, glare: false);
             var bolt = AsciiArt.Bolt(false);
             DrawTextureRect(bolt, new Rect2(11, 6, 14, 18), false);
             var track = new Rect2(32, 12, Size.X - 44, 6);

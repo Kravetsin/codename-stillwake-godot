@@ -7,11 +7,11 @@ namespace Stillwake.Game.Shared;
 /// The one frame every machine's window opens in, under the inventory (0058): the same panel for a crate, a
 /// furnace, a smelter, a generator, an analyzer, a charging station and a queued station; a header with the
 /// machine's name in bold and, for one on the power grid, a bolt and its power, lit while it works and dark at
-/// 0 while it does not; under it the machine's own body. Used by the items feature and the crafting feature.
+/// 0 while it does not; under it the machine's own body. Used by the items feature and the crafting feature. It is the
+/// wrist computer's module under the forearm display (0074): its screen greyer and greener than the bag's, a seam between.
 /// </summary>
-public partial class MachineFrame : PanelContainer
+public partial class MachineFrame : WristScreen
 {
-    private static readonly StyleBoxFlat Frame = Style.Box(Style.Slate900 with { A = 0.9f }, Style.Slate700, 8);
     private static readonly LabelSettings NameText = Style.Text(Style.Bold, 13, Style.Slate100);
     /// <summary>A bolt with no power through it.</summary>
     private static readonly Color Unlit = new(0.35f, 0.35f, 0.4f);
@@ -33,11 +33,9 @@ public partial class MachineFrame : PanelContainer
 
     /// <param name="name">The machine's name, as the build menu calls it.</param>
     /// <param name="power">What it draws or makes while it works; null for a machine off the power grid: no bolt.</param>
-    public MachineFrame(string name, int? power)
+    public MachineFrame(string name, int? power) : base(WristPieces.Dock, WristArt.MachineScreen, 8)
     {
-        MouseFilter = MouseFilterEnum.Stop;
         SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
-        AddThemeStyleboxOverride("panel", Frame);
         Head = Style.Gap(new HBoxContainer(), 6);
         Head.AddChild(_name);
         Head.AddChild(_bolt);

@@ -29,7 +29,8 @@ namespace Stillwake.Game.Features.Items;
 /// slot's corner, and in the hand. At the screen's right edge, the equipment by the body (0047, 0058) and the
 /// hands' tool: a stack carried lights the slots that would wear it and dims the rest; a right click on a
 /// canister of the hero's own breathes it (<see cref="Ui.Breathe"/>). Every slot is <see cref="Ui.Slot"/> wide,
-/// and all of it is built again when that changes.
+/// and all of it is built again when that changes. It is the wrist computer (0074): the hotbar on the cuff, the bag on
+/// the forearm display with the machine's module under it, the equipment on its unit (<see cref="WristScreen"/>).
 /// </summary>
 public partial class InventoryPanel : CanvasLayer
 {
@@ -50,7 +51,11 @@ public partial class InventoryPanel : CanvasLayer
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     /// <summary>The stack carried, over every panel.</summary>
     private readonly CanvasLayer _over = new() { Layer = ScreenLayers.Tips };
-    private Control _hotbar = null!, _shown = null!, _inventory = null!, _body = null!, _held = null!, _fire = null!;
+    private Control _shown = null!, _held = null!, _fire = null!;
+    /// <summary>The wrist computer's screens (0074): the hotbar on the cuff, the bag on the forearm display, the equipment's unit.</summary>
+    private WristScreen _hotbar = null!, _inventory = null!, _body = null!;
+    /// <summary>How far the open screens have come on: their content fades in as the build tablet's does (0073).</summary>
+    private readonly TabletMotion _motion = new();
     /// <summary>The open machine's frame, under the inventory.</summary>
     private MachineFrame? _frame;
     private TextureRect _heldIcon = null!;
@@ -162,7 +167,8 @@ public partial class InventoryPanel : CanvasLayer
             VerticalAlignment = VerticalAlignment.Center,
             Visible = false,
         });
-        _hotbar = Style.Panel(Style.Slate700, top);
+        _hotbar = new WristScreen(WristPieces.Cuff, WristArt.Screen, 4);
+        _hotbar.AddChild(top);
         _hotbar.Position = new Vector2(Slots.Margin, Slots.Margin);
         _root.AddChild(_hotbar);
 
@@ -174,8 +180,8 @@ public partial class InventoryPanel : CanvasLayer
         var corner = new VBoxContainer();
         corner.AddChild(Sorter(null));
         bag.AddChild(corner);
-        var grid = Style.Panel(Style.Slate700, bag);
-        grid.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+        var grid = new WristScreen(WristPieces.Display, WristArt.Screen, 4, lit: true) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
+        grid.AddChild(bag);
         shown.AddChild(_inventory = grid);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
@@ -269,7 +275,7 @@ public partial class InventoryPanel : CanvasLayer
     /// over the back's over the belt's three, then the hands' tool, each row under its name; no silhouettes in
     /// empty slots.
     /// </summary>
-    private Control Body(int size)
+    private WristScreen Body(int size)
     {
         var column = Style.Gap(new VBoxContainer(), 2);
         foreach (var kind in Content.Inventory.Equipment.Distinct())
@@ -283,7 +289,8 @@ public partial class InventoryPanel : CanvasLayer
         var hands = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         hands.AddChild(ToolSlot(size));
         column.AddChild(hands);
-        var body = Style.Panel(Style.Slate700, column);
+        var body = new WristScreen(WristPieces.Body, WristArt.Screen, 4, lit: true);
+        body.AddChild(column);
         return body;
     }
 
@@ -588,20 +595,19 @@ public partial class InventoryPanel : CanvasLayer
         _slots.FirstOrDefault(s => s.IsVisibleInTree() && s.GetGlobalRect().HasPoint(at))?.Place;
 
     // Any panel under the pointer counts, another feature's too: a click on the crafts throws nothing.
-    private bool OverPanel(Vector2 at) =>
-        GetViewport().GuiGetHoveredControl() != null
-        || _hotbar.GetGlobalRect().HasPoint(at)
-        || (_body.Visible && _body.GetGlobalRect().HasPoint(at))
-        || (_shown.Visible && _shown.GetChildren().OfType<Control>().Any(c => c.IsVisibleInTree() && c.GetGlobalRect().HasPoint(at)));
+    private bool OverPanel(Vector2 at) => GetViewport().GuiGetHoveredControl() != null || Covers().Any(r => r.HasPoint(at));
 
-    /// <summary>Where the hotbar, the open inventory with the machine under it and the equipment lie on the screen: what the crew's markers keep out of.</summary>
+    /// <summary>
+    /// Where the hotbar, the open inventory with the machine under it and the equipment lie on the screen, their metal
+    /// round them: what the crew's markers keep out of.
+    /// </summary>
     public IEnumerable<Rect2> Covers()
     {
-        yield return _hotbar.GetGlobalRect();
-        if (_body.Visible) yield return _body.GetGlobalRect();
+        yield return _hotbar.Outer;
+        if (_body.Visible) yield return _body.Outer;
         if (!_shown.Visible) yield break;
         foreach (var panel in _shown.GetChildren().OfType<Control>())
-            if (panel.IsVisibleInTree()) yield return panel.GetGlobalRect();
+            if (panel.IsVisibleInTree()) yield return panel is WristScreen screen ? screen.Outer : panel.GetGlobalRect();
     }
 
     /// <summary>Throws a stack from the hero the way it faces.</summary>
@@ -672,6 +678,7 @@ public partial class InventoryPanel : CanvasLayer
         var mode = carrying ? Input.MouseModeEnum.Hidden : Input.MouseModeEnum.Visible;
         if (Input.MouseMode != mode) Input.MouseMode = mode;
         _ui.OnPointer.Set(carrying ? _held.Size.X : 0);
+        Power(delta);
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.
         _body.Position = new Vector2(_root.GetViewportRect().Size.X - Slots.Margin - _body.Size.X, Slots.InventoryTop(_ui.Slot));
         var grid = _inventory.GetGlobalRect();
@@ -709,6 +716,22 @@ public partial class InventoryPanel : CanvasLayer
             _heldCount.Text = h.Count > 1 ? h.Count.ToString() : "";
         }
         ShowMachine(reading);
+        // A machine open under the bag squares the display's bottom edge, where the machine's module meets it (0074).
+        _inventory.Piece = _built != null ? WristPieces.DisplayDocked : WristPieces.Display;
+        Power(0);
+    }
+
+    /// <summary>
+    /// The open screens' content faded in as the build tablet's screen comes on (<see cref="TabletMotion"/>, 0073), the
+    /// metal at once; opened again soon after it was closed, lit at once. Stepped as it opens too, so no frame shows it lit before.
+    /// </summary>
+    private void Power(double seconds)
+    {
+        _motion.Step(Shown, seconds);
+        float power = (float)_motion.Power;
+        _inventory.Lit(power);
+        _body.Lit(power);
+        _frame?.Lit(power);
     }
 
     /// <summary>The open charging station's bar, what it does in words, and its bolt lit with what it draws while it charges.</summary>
