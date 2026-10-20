@@ -866,7 +866,7 @@ public partial class Main : Node2D, ITogether
         // The fires before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);
         AddChild(_furnace = fires);
-        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules))
+        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules.Ground != null)
         {
             // --lit: every lamp at full power, to measure the light on the reference world.
             LampShare = Has("--lit") ? _ => 1f : lamp => power.Satisfaction(lamp.Id) / 1000f,
