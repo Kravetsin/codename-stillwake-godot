@@ -12,7 +12,7 @@ namespace Stillwake.Game.Dev;
 /// <c>-- --handbook</c>: the wreck, its world having found ten kinds of debris (a supply pod with no seeds out of it yet,
 /// a cargo container with no gear), and a script through the Handbook (0066): J opening it, the container chosen, the
 /// pointer on a silhouetted gear, on planks, on a kind not found, on the pod, then the pod chosen and its "caught by hand";
-/// the crate chosen, a look of it not found pointed at, another found shown big, the counter, the scrap chunk; Esc closing it, and again opening the menu with its Handbook line. Played through Godot's own input, for recordings
+/// the crate chosen, a look of it not found pointed at, another found shown big, the counter, the scrap chunk, the wheel down and up over it; Esc closing it, and again opening the menu with its Handbook line. Played through Godot's own input, for recordings
 /// with <c>--write-movie</c>; each step is printed with its time.
 /// </summary>
 public partial class HandbookDemo(HandbookPage page) : Node
@@ -66,6 +66,8 @@ public partial class HandbookDemo(HandbookPage page) : Node
             (9.6, "click its look 6", () => Click(page.CenterOfLook(5))),
             (10.4, "point at the counter", () => Point(page.CenterOfTally())),
             (11.2, "choose scrapChunk", () => Click(page.CenterOfKind("scrapChunk"))),
+            (11.5, "the wheel down over it, twice", () => Wheel(page.CenterOfKind("asteroid"), MouseButton.WheelDown, 2)),
+            (11.8, "and up once", () => Wheel(page.CenterOfKind("asteroid"), MouseButton.WheelUp, 1)),
             (12.0, "Esc closes it", () => Press(Key.Escape)),
             (12.6, "Esc opens the menu, its Handbook line", () => Press(Key.Escape)),
         ];
@@ -84,6 +86,15 @@ public partial class HandbookDemo(HandbookPage page) : Node
     {
         if (at is not { } p) return;
         Input.ParseInputEvent(new InputEventMouseMotion { Position = p, GlobalPosition = p });
+    }
+
+    private static void Wheel(Vector2? at, MouseButton button, int notches)
+    {
+        if (at is not { } p) return;
+        Point(p);
+        for (int i = 0; i < notches; i++)
+            foreach (bool down in (bool[])[true, false])
+                Input.ParseInputEvent(new InputEventMouseButton { Position = p, GlobalPosition = p, ButtonIndex = button, Pressed = down });
     }
 
     private static void Click(Vector2? at)

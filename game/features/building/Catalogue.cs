@@ -14,17 +14,9 @@ public readonly record struct Catalogue(int Slot)
     /// <summary>Cards in a row and rows shown at once: 42 before the grid scrolls.</summary>
     public const int Columns = 14, Rows = 3;
 
-    /// <summary>The panel's padding, and the space between its strips.</summary>
-    public const int Pad = 8;
-
-    /// <summary>The tab strip's height, and the search field's.</summary>
-    public const int TabHeight = 24;
-
-    /// <summary>The height of the line under the cards: the card in hand and the hint.</summary>
-    public const int FootHeight = 20;
-
-    /// <summary>The scrollbar's width, and the shortest its thumb gets.</summary>
-    public const int BarWidth = 6, ThumbLeast = 16;
+    /// <summary>The tablet's strips (<see cref="TabletLayout"/>): its padding, the tabs, the line under the cards, the scrollbar.</summary>
+    public const int Pad = TabletLayout.Pad, TabHeight = TabletLayout.TabHeight, FootHeight = TabletLayout.FootHeight,
+        BarWidth = TabletLayout.BarWidth, ThumbLeast = TabletLayout.ThumbLeast;
 
     /// <summary>From one card's left edge to the next's.</summary>
     public int Step => Slot + Slots.Gap;

@@ -26,62 +26,27 @@ public partial class BuildMenu : CanvasLayer
 {
     private static readonly Color Sky500 = new("0ea5e9"), Sky950 = new("082f49");
     private static readonly Font Mono = Render.Style.Mono;
-    private const int FontSize = 12;
+    private const int FontSize = Tablet.FontSize;
 
-    /// <summary>
-    /// The tablet's art (tablet_frame.png, a 9-slice, the plate and the stylus over it), a pixel of it two of the screen:
-    /// the screen's top-left in it, and how much wider and taller it is than the screen, in its pixels.
-    /// </summary>
-    private const int ArtScale = 2, ScreenLeft = 9, ScreenTop = 16, ArtAround = 26;
-
-    /// <summary>Above the screen, the bezel's top edge, in screen pixels: what the prompt for E keeps above.</summary>
-    private const int BezelAbove = 8 * ArtScale;
-
-    /// <summary>The colour the screen lights what is round it with, and how strongly at the middle (the concept's).</summary>
-    private static readonly Color ScreenLight = new(70 / 255f, 150 / 255f, 230 / 255f, 0.2f), LedLight = new(74 / 255f, 222 / 255f, 128 / 255f, 0.55f);
-
-    private readonly TabletMotion _motion = new();
-    private readonly NinePatchRect _frame = new()
-    {
-        Texture = GD.Load<Texture2D>("res://art/tablet_frame.png"),
-        PatchMarginLeft = 74,
-        PatchMarginRight = 77,
-        PatchMarginTop = 21,
-        PatchMarginBottom = 14,
-        AxisStretchHorizontal = NinePatchRect.AxisStretchMode.Tile,
-        AxisStretchVertical = NinePatchRect.AxisStretchMode.Tile,
-        DrawCenter = false,
-        Scale = new Vector2(ArtScale, ArtScale),
-        ShowBehindParent = true,
-        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-        MouseFilter = Control.MouseFilterEnum.Stop,
-    };
-    private readonly TextureRect _plate = Art("res://art/tablet_plate.png"), _stylus = Art("res://art/tablet_stylus.png");
-    /// <summary>The status lamp dark, over the art's lit one, while the screen is off; its glow while it is on.</summary>
-    private readonly ColorRect _ledOff = new() { Color = new Color("1f3b2a"), Size = new Vector2(2, 2), MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly TextureRect _ledGlow = ScreenGlow.Of(LedLight, 0), _wash = ScreenGlow.Of(ScreenLight, 40f / 560);
-    /// <summary>The glass over the screen: the recess's shadow and a faint glare.</summary>
-    private readonly Control _glass = new() { MouseFilter = Control.MouseFilterEnum.Ignore, ClipContents = true };
     /// <summary>How far below its dock the tablet is drawn now, in screen pixels.</summary>
     private int _drop;
-    /// <summary>What the screen shows, faded in as it comes on.</summary>
-    private readonly Control[] _screen;
 
     private readonly PlanHand _hand;
     private readonly Ui _ui;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly PanelContainer _closed;
-    private readonly Panel _open = new() { MouseFilter = Control.MouseFilterEnum.Stop };
+    /// <summary>The tablet, its screen the catalogue.</summary>
+    private readonly Tablet _open = new();
     private readonly Control _tabs = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly LineEdit _search = new() { ContextMenuEnabled = false, CaretBlink = true, MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly Control _lens = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly PanelContainer _slash;
     private readonly Control _grid = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Pass };
-    private readonly Label _none = Text(En.T("build.none"), Render.Style.Slate500);
-    private readonly Panel _track = new() { MouseFilter = Control.MouseFilterEnum.Ignore }, _thumb = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly Label _none = Tablet.Text(En.T("build.none"), Render.Style.Slate500);
+    private readonly (Panel Track, Panel Thumb) _bar = Tablet.ScrollBar();
     private readonly HBoxContainer _foot = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly TextureRect _heldPicture = Picture(20);
-    private readonly Label _heldName = Text("", Render.Style.Slate100), _hint = Text("", Render.Style.Slate500, 11);
+    private readonly Label _heldName = Tablet.Text("", Render.Style.Slate100), _hint = Tablet.Text("", Render.Style.Slate500, Tablet.HintSize);
     private readonly List<(Panel Box, TextureRect Picture)> _cards = [];
     private readonly List<(PanelContainer Box, string Id)> _tabBoxes = [];
 
@@ -110,7 +75,7 @@ public partial class BuildMenu : CanvasLayer
 
         _closed = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         _closed.AddThemeStyleboxOverride("panel", Render.Style.Box(Render.Style.Slate900 with { A = 0.9f }, Render.Style.Slate700, 4));
-        _closed.AddChild(Text(En.T("build.open"), Render.Style.Slate400));
+        _closed.AddChild(Tablet.Text(En.T("build.open"), Render.Style.Slate400));
         _closed.AnchorLeft = _closed.AnchorRight = 0.5f;
         _closed.AnchorTop = _closed.AnchorBottom = 1;
         _closed.GrowHorizontal = Control.GrowDirection.Both;
@@ -118,21 +83,11 @@ public partial class BuildMenu : CanvasLayer
         _closed.OffsetBottom = -Slots.Margin;
         _root.AddChild(_closed);
 
-        // The tablet's screen: square, edged by the bezel's recess rather than a border of its own.
-        _open.AddThemeStyleboxOverride("panel", Render.Style.Box(Render.Style.Slate900, Render.Style.Slate900, radius: 0));
         _open.AnchorLeft = _open.AnchorRight = 0.5f;
         _open.AnchorTop = _open.AnchorBottom = 1;
         // The wheel anywhere over the tablet scrolls the cards; it never reaches the hotbar or the camera.
         _open.GuiInput += e => Scroll(e, _open);
-        _frame.GuiInput += e => Scroll(e, _frame);
-        // Behind the screen: its light on what is round it, then the tablet; over the bezel, the lamp's glow.
-        _wash.ShowBehindParent = true;
-        _open.Visible = false;
-        _open.AddChild(_wash);
-        _open.AddChild(_frame);
-        foreach (var part in (Control[])[_plate, _stylus, _ledOff]) _frame.AddChild(part);
-        _open.AddChild(_ledGlow);
-        _glass.Draw += DrawGlass;
+        _open.Bezel.GuiInput += e => Scroll(e, _open.Bezel);
         _grid.GuiInput += e =>
         {
             if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press) return;
@@ -146,7 +101,7 @@ public partial class BuildMenu : CanvasLayer
         var keyBox = Render.Style.Box(Colors.Transparent, Render.Style.Slate700, radius: 3);
         (keyBox.ContentMarginLeft, keyBox.ContentMarginRight) = (4, 4);
         _slash.AddThemeStyleboxOverride("panel", keyBox);
-        _slash.AddChild(Text("/", Render.Style.Slate500, 11));
+        _slash.AddChild(Tablet.Text("/", Render.Style.Slate500, Tablet.HintSize));
         _lens.Draw += () =>
         {
             _lens.DrawArc(new Vector2(12, 11), 4, 0, Mathf.Tau, 16, Render.Style.Slate500, 1.5f, true);
@@ -157,9 +112,6 @@ public partial class BuildMenu : CanvasLayer
 
         _none.Position = new Vector2(4, 10);
         _grid.AddChild(_none);
-        _track.AddThemeStyleboxOverride("panel", Render.Style.Box(Render.Style.Slate800, Render.Style.Slate800, radius: 3));
-        _thumb.AddThemeStyleboxOverride("panel", Render.Style.Box(Render.Style.Slate600, Render.Style.Slate600, radius: 3));
-        _track.AddChild(_thumb);
         _foot.AddThemeConstantOverride("separation", 6);
         _hint.ClipText = true;
         _hint.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
@@ -167,9 +119,7 @@ public partial class BuildMenu : CanvasLayer
         _foot.AddChild(_heldPicture);
         _foot.AddChild(_heldName);
         _foot.AddChild(_hint);
-        _screen = [_tabs, _search, _grid, _track, _foot];
-        foreach (var part in _screen) _open.AddChild(part);
-        _open.AddChild(_glass);
+        foreach (var part in (Control[])[_tabs, _search, _grid, _bar.Track, _foot]) _open.OnScreen(part);
 
         LayOut();
         ui.SlotScale.Subscribe(LayOut);
@@ -206,24 +156,11 @@ public partial class BuildMenu : CanvasLayer
         _open.OffsetLeft = -(_at.Width / 2);
         _open.OffsetRight = _at.Width - _at.Width / 2;
         Dock();
-        // The tablet round the screen, in its art's pixels; its stretches tile, so the large slot's frame is as crisp.
-        var art = new Vector2(_at.Width / ArtScale + ArtAround, _at.Height / ArtScale + ArtAround);
-        _frame.Position = new Vector2(-ScreenLeft * ArtScale, -ScreenTop * ArtScale);
-        _frame.Size = art;
-        _plate.Position = new Vector2(2 + ((int)art.X - 12 - 33) / 2, 9);
-        _stylus.Position = new Vector2(art.X - 13, 0);
-        _ledOff.Position = new Vector2(art.X - 43, 11);
-        _ledGlow.Size = new Vector2(18, 18);
-        _ledGlow.Position = new Vector2(_at.Width - 59, -17);
-        _wash.Size = new Vector2(1120, 470);
-        _wash.Position = new Vector2(_at.Width / 2, _at.Height / 2) - _wash.Size / 2;
-        _glass.Size = new Vector2(_at.Width, _at.Height);
-        _glass.QueueRedraw();
         _tabs.Position = new Vector2(Catalogue.Pad, Catalogue.Pad);
         _grid.Position = new Vector2(Catalogue.Pad, _at.GridTop);
         _grid.Size = new Vector2(_at.GridWidth, _at.GridHeight);
-        _track.Position = new Vector2(_at.BarLeft, _at.GridTop);
-        _track.Size = new Vector2(Catalogue.BarWidth, _at.GridHeight);
+        _bar.Track.Position = new Vector2(_at.BarLeft, _at.GridTop);
+        _bar.Track.Size = new Vector2(Catalogue.BarWidth, _at.GridHeight);
         _foot.Position = new Vector2(Catalogue.Pad, _at.FootTop);
         _foot.Size = new Vector2(_at.Width - 2 * Catalogue.Pad, Catalogue.FootHeight);
         foreach (var (box, _) in _cards) box.QueueFree();
@@ -241,14 +178,6 @@ public partial class BuildMenu : CanvasLayer
         _tabsShown = _shown = "";
     }
 
-    private static Label Text(string text, Color colour, int size = FontSize) => new()
-    {
-        Text = text,
-        LabelSettings = new LabelSettings { Font = Mono, FontSize = size, FontColor = colour },
-        MouseFilter = Control.MouseFilterEnum.Ignore,
-        VerticalAlignment = VerticalAlignment.Center,
-    };
-
     private static TextureRect Picture(int size) => new()
     {
         CustomMinimumSize = new Vector2(size, size),
@@ -259,24 +188,6 @@ public partial class BuildMenu : CanvasLayer
         MouseFilter = Control.MouseFilterEnum.Ignore,
         SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
     };
-
-    private static TextureRect Art(string path) => new()
-    {
-        Texture = GD.Load<Texture2D>(path),
-        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-        MouseFilter = Control.MouseFilterEnum.Ignore,
-    };
-
-    /// <summary>The recess's shadow on the screen's top and left edges, and the glass's glare: faint, over whatever it shows.</summary>
-    private void DrawGlass()
-    {
-        float w = _glass.Size.X, h = _glass.Size.Y;
-        for (int y = 0; y < 6; y++) _glass.DrawRect(new Rect2(0, y, w, 1), Colors.Black with { A = 0.55f * (1 - (y + 0.5f) / 6) });
-        for (int x = 0; x < 4; x++) _glass.DrawRect(new Rect2(x, 6, 1, h - 6), Colors.Black with { A = 0.4f * (1 - (x + 0.5f) / 4) });
-        var glare = new Color(200 / 255f, 225 / 255f, 1);
-        _glass.DrawColoredPolygon([new(70, 0), new(190, 0), new(60, h), new(-60, h)], glare with { A = 0.035f });
-        _glass.DrawColoredPolygon([new(206, 0), new(222, 0), new(92, h), new(76, h)], glare with { A = 0.03f });
-    }
 
     /// <summary>The wheel over the screen or its bezel scrolls the cards a row a notch.</summary>
     private void Scroll(InputEvent e, Control over)
@@ -293,31 +204,19 @@ public partial class BuildMenu : CanvasLayer
         _open.OffsetBottom = -Slots.Margin + _drop;
     }
 
-    /// <summary>
-    /// The tablet slid and its screen lit for this frame (<see cref="TabletMotion"/>). Put away, it takes no more input
-    /// at once, though it shows while it slides down; its chip shows once it is gone.
-    /// </summary>
+    /// <summary>The tablet slid and its screen lit for this frame (<see cref="Tablet.Step"/>); its chip shows once it is gone.</summary>
     public override void _Process(double delta)
     {
         bool open = _hand.PlanOut.Get();
         if (!open && _search.HasFocus()) _search.ReleaseFocus();
-        _motion.Step(open, delta);
-        _open.Visible = _motion.Shown;
-        _closed.Visible = !open && !_motion.Shown;
-        var mouse = open ? Control.MouseBehaviorRecursiveEnum.Inherited : Control.MouseBehaviorRecursiveEnum.Disabled;
-        if (_open.MouseBehaviorRecursive != mouse) _open.MouseBehaviorRecursive = mouse;
-        // Below the edge it hides the stylus's tip too, and a few pixels more.
-        int drop = (int)Mathf.Round((1 - _motion.Up) * (Slots.Margin + _at.Height + ScreenTop * ArtScale + 4));
+        _open.Step(open, delta);
+        _closed.Visible = !open && !_open.Shown;
+        int drop = _open.Drop(GetViewport().GetVisibleRect().Size.Y - Slots.Margin - _at.Height);
         if (drop != _drop)
         {
             _drop = drop;
             Dock();
         }
-        float power = (float)_motion.Power;
-        foreach (var part in _screen) part.Modulate = Colors.White with { A = power };
-        _ledOff.Modulate = Colors.White with { A = 1 - power };
-        _ledGlow.Modulate = Colors.White with { A = power };
-        _wash.Modulate = Colors.White with { A = power * (float)_motion.Up };
     }
 
     /// <summary>A card's picture: what it builds, as the ship draws it; the cable its plug.</summary>
@@ -379,14 +278,14 @@ public partial class BuildMenu : CanvasLayer
     }
 
     /// <summary>Where the menu lies on the screen, open or as its closed chip: what the crew's markers keep out of.</summary>
-    public Rect2 Covers => _open.Visible ? _frame.GetGlobalRect() : _closed.GetGlobalRect();
+    public Rect2 Covers => _open.Visible ? _open.Covers : _closed.GetGlobalRect();
 
     /// <summary>One frame: what the world knows; prices weigh what this player carries (<see cref="Ui.Carried"/>).</summary>
     public void Frame(Registry m)
     {
         bool open = _hand.PlanOut.Get();
         // The bezel's top at its dock, wherever the tablet is in its slide.
-        _ui.MenuTop = open ? _open.GetGlobalRect().Position.Y - _drop - BezelAbove : null;
+        _ui.MenuTop = open ? _open.GetGlobalRect().Position.Y - _drop - TabletLayout.BezelAbove : null;
         if (!open)
         {
             _tips.Show(null);
@@ -459,14 +358,7 @@ public partial class BuildMenu : CanvasLayer
         foreach (var tab in tabs)
         {
             string name = En.T($"build.tab.{tab.Id}"), count = tab.Tools.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-            row.AddThemeConstantOverride("separation", 6);
-            row.AddChild(Text(name, Render.Style.Slate300));
-            row.AddChild(Text(count, Render.Style.Slate500));
-            var box = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Pass, Position = new Vector2(x, 0) };
-            box.AddChild(row);
-            float width = 6 + Mono.GetStringSize(name, fontSize: FontSize).X + 6 + Mono.GetStringSize(count, fontSize: FontSize).X + 6;
-            box.CustomMinimumSize = new Vector2(Mathf.Ceil(width), Catalogue.TabHeight);
+            var box = Tablet.Tab(name, count, x);
             string id = tab.Id;
             box.GuiInput += e =>
             {
@@ -496,13 +388,7 @@ public partial class BuildMenu : CanvasLayer
         {
             // While a search shows, no tab is lit: the cards are every tab's.
             bool on = query == "" && id == shownTab?.Id;
-            var style = Render.Style.Box(on ? Render.Style.Sky700 : id == _hoveredTab ? Render.Style.Slate700 : Render.Style.Slate800,
-                on ? Render.Style.Sky700 : Render.Style.Slate800);
-            (style.ContentMarginLeft, style.ContentMarginRight) = (6, 6);
-            box.AddThemeStyleboxOverride("panel", style);
-            var labels = box.GetChild(0).GetChildren().OfType<Label>().ToList();
-            labels[0].LabelSettings.FontColor = on ? Colors.White : Render.Style.Slate300;
-            labels[1].LabelSettings.FontColor = on ? Render.Style.Sky200 : Render.Style.Slate500;
+            Tablet.PaintTab(box, on, id == _hoveredTab);
         }
         _slash.Visible = _search.Text == "" && !_search.HasFocus();
         int shape = _hand.Shape.Get();
@@ -520,13 +406,7 @@ public partial class BuildMenu : CanvasLayer
             picture.Texture = ThumbOf(Tools.Shaped(card, shape)!);
         }
         _none.Visible = query != "" && _list.Count == 0;
-        var thumb = _at.Thumb(_top, _list.Count);
-        _thumb.Visible = thumb != null;
-        if (thumb is { } bar)
-        {
-            _thumb.Position = new Vector2(0, Mathf.Round(bar.Top));
-            _thumb.Size = new Vector2(Catalogue.BarWidth, Mathf.Round(bar.Length));
-        }
+        Tablet.PlaceThumb(_bar.Thumb, _at.Thumb(_top, _list.Count));
         _heldPicture.Visible = _heldName.Visible = tool != null;
         if (tool != null)
         {

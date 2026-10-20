@@ -1,6 +1,6 @@
 # 0066 — The Handbook
 
-- Status: accepted
+- Status: accepted; the window (the shell's look, its side list) superseded by [0081](0081-the-handbook-is-a-tablet.md)
 - Date: 2026-10-18
 
 ## Context

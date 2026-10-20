@@ -91,6 +91,8 @@
     <Compile Include="../game/features/building/NearGrid.cs" Link="Game/Building/NearGrid.cs" />
     <Compile Include="../game/features/building/Catalogue.cs" Link="Game/Building/Catalogue.cs" />
     <Compile Include="../game/shared/TabletMotion.cs" Link="Game/Shared/TabletMotion.cs" />
+    <Compile Include="../game/shared/TabletLayout.cs" Link="Game/Shared/TabletLayout.cs" />
+    <Compile Include="../game/shared/HandbookScreen.cs" Link="Game/Shared/HandbookScreen.cs" />
     <Compile Include="../game/render/Blueprint.cs" Link="Game/Render/Blueprint.cs" />
     <Compile Include="../game/render/DoorShape.cs" Link="Game/Render/DoorShape.cs" />
     <Compile Include="../game/render/PlanOutline.cs" Link="Game/Render/PlanOutline.cs" />

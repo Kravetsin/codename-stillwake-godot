@@ -6,52 +6,48 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Debris;
 using static Stillwake.Game.I18n.En;
+using Book = Stillwake.Game.Handbook;
 
 namespace Stillwake.Game.Features.Debris;
 
 /// <summary>
-/// The Handbook's debris section (0066), its body in the Handbook's window: every kind of debris in rows by where to
-/// look (<c>Handbook.DebrisRows</c>), those the world has found in the first look found, the rest black silhouettes,
-/// and how many looks are found of all there are; beside them the kind chosen: the look chosen big, a strip of all its
-/// looks (those not found black) with how many are found, its name, hit points or that it is caught by hand, and its
-/// loot slot by slot, each with its range in the corner and a pie of its chance, an item none has come out of yet a
-/// silhouette with its pie alone. Names, "???" and chances are in the one tooltip. Reads <c>DebrisModule.Found</c>
-/// on a timer while shown, and builds again only when the record changes.
+/// The Handbook's debris section (0066), its body on the Handbook's tablet (0081): every kind of debris in rows by
+/// where to look (<c>Handbook.DebrisRows</c>), those the world has found in the first look found, the rest black
+/// silhouettes, and, at the tab strip's right (<see cref="Tally"/>), how many looks are found of all there are; beside
+/// them the kind chosen: the look chosen big, a strip of all its looks (those not found black) with how many are found,
+/// its name, hit points or that it is caught by hand, and its loot slot by slot, each with its range in the corner and
+/// a pie of its chance, an item none has come out of yet a silhouette with its pie alone. Names, "???" and chances are in the one tooltip. Reads <c>DebrisModule.Found</c>
+/// on a timer while shown, and builds again only when the record changes. Its kinds and loot are as large as the
+/// slots (<see cref="HandbookScreen"/>), laid out again when their size is changed.
 /// </summary>
-public partial class HandbookPage : VBoxContainer
+public partial class HandbookPage : HBoxContainer
 {
     private const double RefreshMs = 250;
-    /// <summary>A kind's slot, the picture's room in it, a loot slot, and the entry's width and picture's height.</summary>
-    private const int KindSide = 56, KindRoom = 48, LootSide = 40, EntryWidth = 380, PictureHeight = 124;
-    /// <summary>A look's thumbnail in the strip, the picture's room in it, and the gap between them: twelve and a count fit across.</summary>
-    private const int ThumbSide = 24, ThumbRoom = 20, ThumbGap = 2;
 
     private static readonly StyleBoxFlat Unfound = Style.Box(Style.Slate800 with { A = 0.55f }, Style.Slate600 with { A = 0.6f }, radius: 3);
     private static readonly StyleBoxFlat EntryBox = Edged(Style.Slate950 with { A = 0.95f }, Style.Slate600);
     private static readonly StyleBoxFlat PictureBox = Edged(Style.Slate800 with { A = 0.45f }, Style.Slate700);
-    private static readonly LabelSettings HeadText = Style.Text(Style.Bold, 13, Style.Slate100);
     private static readonly LabelSettings TallyText = Style.Text(Style.Mono, 11, Style.Slate300);
-    private static readonly LabelSettings NameText = Style.Text(Style.Bold, 14, Style.Slate100);
+    private static readonly LabelSettings NameText = Style.Text(Style.Mono, 14, Style.Slate100);
     private static readonly LabelSettings HpText = Style.Text(Style.Mono, 12, Style.Slate100);
     private static readonly LabelSettings HowText = Style.Text(Style.Mono, 11, Style.Slate400);
     private static readonly LabelSettings CornerText = Style.Text(Style.Mono, 10, Colors.White, shadow: true);
-    private static readonly LabelSettings EmptyText = Style.Text(Style.Sans, 12, Style.Slate400);
+    private static readonly LabelSettings EmptyText = Style.Text(Style.Mono, 12, Style.Slate400);
     private static readonly Color PieGround = new("0b1220");
-
-    /// <summary>The section's icon in the Handbook's side list: a cargo crate as it drifts.</summary>
-    public static Texture2D SectionIcon => GD.Load<Texture2D>(DebrisLooks.PictureOf("cargoCrate", 0));
 
     private readonly Ui _ui;
     private readonly Func<DebrisModule?> _debris;
     private readonly TipSpots _tips;
     private readonly Label _tally = new() { LabelSettings = TallyText, VerticalAlignment = VerticalAlignment.Center };
     private readonly ColorRect _tallyFill = new() { Color = SlotLooks.Green, MouseFilter = MouseFilterEnum.Ignore };
-    private readonly PanelContainer _entry = new() { CustomMinimumSize = new Vector2(EntryWidth, 0), SizeFlagsVertical = SizeFlags.ShrinkBegin };
+    private readonly PanelContainer _entry = new() { CustomMinimumSize = new Vector2(Book.EntryWidth, 0), SizeFlagsVertical = SizeFlags.ShrinkBegin };
+    private readonly VBoxContainer _rows = Style.Gap(new VBoxContainer { SizeFlagsVertical = SizeFlags.ShrinkBegin }, Book.KindGap);
+    private HandbookScreen _at;
     private readonly List<(Panel Slot, TextureRect Picture, string Kind)> _kinds = [];
     /// <summary>The entry's loot slots by their item, its looks' thumbnails, and how its kind is had: for scripted runs.</summary>
     private readonly List<(Panel Slot, string Item)> _loot = [];
     private readonly List<(Panel Slot, int Look)> _thumbs = [];
-    private Control? _how, _tallyBox;
+    private Control? _how;
     /// <summary>The record as last read: each kind found and the items seen come out of it, and its looks found.</summary>
     private Dictionary<string, string[]> _found = new(StringComparer.Ordinal);
     private Dictionary<string, int[]> _looks = new(StringComparer.Ordinal);
@@ -67,20 +63,35 @@ public partial class HandbookPage : VBoxContainer
     {
         (_ui, _debris) = (ui, debris);
         _tips = new TipSpots(ui.Tip);
-        Style.Gap(this, 10);
-        AddChild(Head());
-        var body = Style.Gap(new HBoxContainer(), 20);
-        var rows = Style.Gap(new VBoxContainer(), 4);
-        foreach (var row in Stillwake.Game.Handbook.DebrisRows)
-        {
-            var line = Style.Gap(new HBoxContainer(), 4);
-            foreach (var kind in row.Kinds) line.AddChild(KindSlot(kind));
-            rows.AddChild(line);
-        }
-        body.AddChild(rows);
+        Style.Gap(this, Book.EntryGap);
+        Tally = MakeTally();
+        AddChild(_rows);
         _entry.AddThemeStyleboxOverride("panel", EntryBox);
-        body.AddChild(_entry);
-        AddChild(body);
+        AddChild(_entry);
+        LayOut();
+        ui.SlotScale.Subscribe(LayOut);
+    }
+
+    /// <summary>How many looks are found of all there are, for the tab strip's right while the section is shown.</summary>
+    public Control Tally { get; }
+
+    /// <summary>The kinds in their rows, as large as the slots now; the entry built again at their size.</summary>
+    private void LayOut()
+    {
+        _at = new HandbookScreen(_ui.Slot);
+        foreach (var child in _rows.GetChildren())
+        {
+            _rows.RemoveChild(child);
+            child.QueueFree();
+        }
+        _kinds.Clear();
+        foreach (var row in Book.DebrisRows)
+        {
+            var line = Style.Gap(new HBoxContainer(), Book.KindGap);
+            foreach (var kind in row.Kinds) line.AddChild(KindSlot(kind));
+            _rows.AddChild(line);
+        }
+        if (_read != null) Present();
     }
 
     /// <summary>A box with a 2 px edge, as an item's card: the entry and its picture's frame.</summary>
@@ -92,14 +103,12 @@ public partial class HandbookPage : VBoxContainer
     }
 
     /// <summary>
-    /// "Debris", and how many looks are found of all there are, "23/81" over a thin green bar: every look is one to
-    /// collect, and the kinds found show in the rows themselves; both counts in its tooltip.
+    /// How many looks are found of all there are, "23/81" beside a thin green bar: every look is one to collect, and the
+    /// kinds found show in the rows themselves; both counts in its tooltip.
     /// </summary>
-    private HBoxContainer Head()
+    private HBoxContainer MakeTally()
     {
-        var head = Style.Gap(new HBoxContainer(), 8);
-        head.AddChild(new Label { Text = T("handbook.debris"), LabelSettings = HeadText, SizeFlagsHorizontal = SizeFlags.ExpandFill });
-        var tally = _tallyBox = Style.Gap(new HBoxContainer { MouseFilter = MouseFilterEnum.Stop }, 8);
+        var tally = Style.Gap(new HBoxContainer { MouseFilter = MouseFilterEnum.Stop }, 8);
         tally.AddChild(_tally);
         var track = new Panel { CustomMinimumSize = new Vector2(64, 7), SizeFlagsVertical = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Ignore };
         track.AddThemeStyleboxOverride("panel", Style.Box(PieGround, Style.Slate700, radius: 0));
@@ -108,16 +117,15 @@ public partial class HandbookPage : VBoxContainer
         (_tallyFill.OffsetLeft, _tallyFill.OffsetTop, _tallyFill.OffsetBottom) = (1, 1, -1);
         tally.AddChild(track);
         _tips.Add(tally, () => Finds.TallyTip(Finds.Tally(_found.Keys), Finds.LookTally(_looks)));
-        head.AddChild(tally);
-        return head;
+        return tally;
     }
 
     /// <summary>A kind's slot: its first look found, whole pixels where it fits; chosen by a click once found.</summary>
     private Panel KindSlot(string kind)
     {
-        var slot = new Panel { CustomMinimumSize = new Vector2(KindSide, KindSide), MouseFilter = MouseFilterEnum.Stop };
+        var slot = new Panel { CustomMinimumSize = new Vector2(_at.KindSide, _at.KindSide), MouseFilter = MouseFilterEnum.Stop };
         var picture = Blank();
-        Fit(picture, PictureOf(kind, 0), KindSide, KindRoom);
+        Fit(picture, PictureOf(kind, 0), _at.KindSide, _at.KindRoom);
         slot.AddChild(picture);
         slot.GuiInput += e =>
         {
@@ -178,7 +186,7 @@ public partial class HandbookPage : VBoxContainer
     public Vector2? CenterOfLook(int look) => _thumbs.Find(l => l.Look == look).Slot?.GetGlobalRect().GetCenter();
 
     /// <summary>The middle of the counter on screen, for scripted runs.</summary>
-    public Vector2? CenterOfTally() => _tallyBox?.GetGlobalRect().GetCenter();
+    public Vector2? CenterOfTally() => Tally.GetGlobalRect().GetCenter();
 
     /// <summary>The middle of the entry's hit points, or its "caught by hand", on screen, for scripted runs.</summary>
     public Vector2? CenterOfHow() => _how?.GetGlobalRect().GetCenter();
@@ -243,7 +251,7 @@ public partial class HandbookPage : VBoxContainer
             slot.MouseDefaultCursorShape = found ? CursorShape.PointingHand : CursorShape.Arrow;
             picture.Modulate = found ? Colors.White : Colors.Black;
             var texture = PictureOf(kind, Finds.ShownLook(_looks.GetValueOrDefault(kind), null));
-            if (picture.Texture != texture) Fit(picture, texture, KindSide, KindRoom);
+            if (picture.Texture != texture) Fit(picture, texture, _at.KindSide, _at.KindRoom);
         }
     }
 
@@ -266,7 +274,7 @@ public partial class HandbookPage : VBoxContainer
                 LabelSettings = EmptyText,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                CustomMinimumSize = new Vector2(EntryWidth - 24, PictureHeight),
+                CustomMinimumSize = new Vector2(Book.EntryWidth - 24, Book.PictureHeight),
                 VerticalAlignment = VerticalAlignment.Center,
             });
             _entry.AddChild(margin);
@@ -274,11 +282,11 @@ public partial class HandbookPage : VBoxContainer
         }
         var column = Style.Gap(new VBoxContainer(), 0);
         var head = Style.Gap(new VBoxContainer(), 6);
-        var frame = new PanelContainer { CustomMinimumSize = new Vector2(0, PictureHeight), MouseFilter = MouseFilterEnum.Ignore };
+        var frame = new PanelContainer { CustomMinimumSize = new Vector2(0, Book.PictureHeight), MouseFilter = MouseFilterEnum.Ignore };
         frame.AddThemeStyleboxOverride("panel", PictureBox);
         var centre = new CenterContainer { MouseFilter = MouseFilterEnum.Ignore };
         int shown = Finds.ShownLook(_looks[kind], _look);
-        centre.AddChild(Picture(PictureOf(kind, shown), EntryWidth - 32, PictureHeight - 8));
+        centre.AddChild(Picture(PictureOf(kind, shown), Book.EntryWidth - 32, Book.PictureHeight - 8));
         frame.AddChild(centre);
         head.AddChild(frame);
         head.AddChild(Strip(kind, shown));
@@ -298,15 +306,15 @@ public partial class HandbookPage : VBoxContainer
     /// </summary>
     private Control Strip(string kind, int shown)
     {
-        var strip = Style.Gap(new HBoxContainer { CustomMinimumSize = new Vector2(0, ThumbSide) }, ThumbGap);
+        var strip = Style.Gap(new HBoxContainer { CustomMinimumSize = new Vector2(0, Book.ThumbSide) }, Book.ThumbGap);
         var looks = Finds.LooksOf(kind, _looks[kind]);
         if (looks.Count < 2) return strip;
         foreach (var look in looks)
         {
-            var thumb = new Panel { CustomMinimumSize = new Vector2(ThumbSide, ThumbSide), MouseFilter = MouseFilterEnum.Stop };
+            var thumb = new Panel { CustomMinimumSize = new Vector2(Book.ThumbSide, Book.ThumbSide), MouseFilter = MouseFilterEnum.Stop };
             thumb.AddThemeStyleboxOverride("panel", look.Seen ? SlotLooks.Of(SlotTint.Plain, false, look.Look == shown) : Unfound);
             var picture = Blank();
-            Fit(picture, PictureOf(kind, look.Look), ThumbSide, ThumbRoom);
+            Fit(picture, PictureOf(kind, look.Look), Book.ThumbSide, Book.ThumbRoom);
             picture.Modulate = look.Seen ? Colors.White : Colors.Black;
             thumb.AddChild(picture);
             if (look.Seen)
@@ -354,10 +362,10 @@ public partial class HandbookPage : VBoxContainer
     /// <summary>A loot slot: its item, a black silhouette till one has come out; its range in the corner, its chance as a pie.</summary>
     private Panel LootSlotOf(LootSlot loot)
     {
-        var slot = new Panel { CustomMinimumSize = new Vector2(LootSide, LootSide), MouseFilter = MouseFilterEnum.Stop };
+        var slot = new Panel { CustomMinimumSize = new Vector2(_at.Slot, _at.Slot), MouseFilter = MouseFilterEnum.Stop };
         slot.AddThemeStyleboxOverride("panel", loot.Seen ? SlotLooks.Of(Slots.TintOf(loot.Item), false, false) : Unfound);
         _loot.Add((slot, loot.Item));
-        var icon = Icon(ItemIcons.Icon(loot.Item), LootSide - 2 * Slots.Inset);
+        var icon = Icon(ItemIcons.Icon(loot.Item), _at.Slot - 2 * Slots.Inset);
         icon.Position = new Vector2(Slots.Inset, Slots.Inset);
         icon.Modulate = loot.Seen ? Colors.White : Colors.Black;
         slot.AddChild(icon);

@@ -75,11 +75,13 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   the way; the pointer on it bare-handed (red), 2 chooses the axe, the left button held till it breaks,
   then the hero swims through the loot. `-- --wrecks` lines up one of every kind instead, and the
   hero swims to each in turn and chops it till it breaks, sweeping up the loot on its way.
-- **The Handbook's Debris section** (`HandbookPage`, 0066), shown in `features/handbook`'s window: every kind in
-  rows by where to look (`Content/Handbook.DebrisRows`: salvage, wrecks, asteroids, derelicts), 56 px slots, a kind
+- **The Handbook's Debris section** (`HandbookPage`, 0066), shown on `features/handbook`'s tablet (0081): every kind
+  in rows by where to look (`Content/Handbook.DebrisRows`: salvage, wrecks, asteroids, derelicts), in slots 16 px
+  larger than an item slot (56 px, 72 at the large slot size; loot slots are item slots), laid out again when the
+  slot size changes (`HandbookScreen`), a kind
   found in the first of its looks found (`DebrisLooks`, whole pixels up to ×3, a derelict scaled down), one not
-  found its first look black (`Modulate`), in a darker slot. Over them the looks found of all there are, "23/81",
-  and a green bar: every look is one to collect, and the kinds found already show in the rows; the tooltip says
+  found its first look black (`Modulate`), in a darker slot. At the tab strip's right (`Tally`) the looks found of all there are,
+  "23/81", and a green bar: every look is one to collect, and the kinds found already show in the rows; the tooltip says
   both, "Kinds 10/18", "Looks 23/81". A click on a found kind shows its entry beside them (the first found, in the
   rows' order, until one is chosen): the look shown big in a frame (whole pixels up to ×4), the first found until
   another is clicked; under it a strip of every look of the kind, 24 px thumbnails, those not found black, the one
@@ -96,8 +98,8 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
 - **Recording:** `-- --handbook` (`dev/HandbookDemo`): the wreck, ten kinds found through the save, some of their
   looks (a supply pod with no seed out yet, a cargo container with no gear); J opens the Handbook, the container is
   chosen, the pointer goes over its gear, its planks, a kind not found and the pod, the pod is chosen; then the
-  crate, a look of it not found pointed at, another found clicked big, the counter, the scrap chunk's twelve looks;
-  then Esc closes it and Esc opens the menu with its Handbook line.
+  crate, a look of it not found pointed at, another found clicked big, the counter, the scrap chunk's twelve looks,
+  the wheel down and up over it (nothing to scroll while all fits); then Esc closes it and Esc opens the menu with its Handbook line.
 ## Files
 
 | File            | Holds                                                         | Godot |
