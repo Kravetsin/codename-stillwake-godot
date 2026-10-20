@@ -13,7 +13,9 @@ public class DigAimTests
     private static readonly string Axe = Spec.Weapons.Axe.Item, Drill = Spec.Weapons.Drill.Item;
 
     /// <summary>A shaft down through soil over stone, bedrock at its foot: a room, not space, so no wreck could be aimed at here.</summary>
-    private static TestWorld Shaft() => new(Layout.Parse("""
+    private static TestWorld Shaft() => new(ShaftLayout);
+
+    private static Layout ShaftLayout => Layout.Parse("""
         ################
         ###...##########
         ###...##########
@@ -27,7 +29,7 @@ public class DigAimTests
         ssssssssssssssss
         tttttttttttttttt
         bbbbbbbbbbbbbbbb
-        """));
+        """);
 
     private static int At(int x, int y) => y * 16 + x;
 
@@ -47,6 +49,15 @@ public class DigAimTests
         Assert.Equal(new Use(new Dig(At(5, 3), Drill), "items.flat"), Aiming.AimAt(m, 0, InShaft, Centre(5, 3), drill: Drill)?.Press);
         // Bare hands dig nothing.
         Assert.Null(Aiming.AimAt(m, 0, InShaft, Centre(4, 3))?.Press);
+    }
+
+    [Fact]
+    public void TheAxeAimsAtAPlantStandingInTheOpenToFellItAndAtNothingWhereNoneStands()
+    {
+        // A flower on the shaft's floor (0078).
+        var m = new TestWorld(ShaftLayout with { Flora = [(At(4, 2), "bellTeal")] }).M;
+        Assert.Equal(new Use(new Dig(At(4, 2), Axe), null), Aiming.AimAt(m, 0, InShaft, Centre(4, 2), axe: true)?.Press);
+        Assert.Null(Aiming.AimAt(Shaft().M, 0, InShaft, Centre(4, 2), axe: true)?.Press);
     }
 
     [Fact]

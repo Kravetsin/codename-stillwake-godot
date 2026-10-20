@@ -125,6 +125,14 @@ Numbers from `game/Content/Light.cs`.
   it dies a cell or two round a bend, but falls down an opening keeping `Light.GroundDownKeep` (0.8: the down sweep's shares,
   `StarField`'s `down`), so a shaft is lit six to eight cells down; and lamps and beams go into solid ground keeping
   `wall_keep` (0.35) a cell of the way through it from its face (`through` in the lightmap's shader), aboard too.
+- **Daylight soaks into the ground** (0078): going down from a wall cell into the wall under it, a planet's daylight keeps
+  `Light.GroundSoak` (0.72) a cell (`StarField`'s `soak`, the down sweep's wall-to-wall share), so the top few cells of
+  ground under the sun are lit, fading, as the "Stillwake" style shows them; sideways and up a wall still keeps
+  `WallDeep`, and out of a wall into a cave `WallOut`: caves stay dark. The sky's light is `Surfaces.TestStrip.Sky`, a soft
+  warm white (1.0, 0.97, 0.9).
+- **Plants glow** (0078): each glowing part of a plant near the view (`LightView.Glows`, answered by flora's
+  `FloraView.Lights`: a seed pod, a berry, a bell) lights round it as a small lamp, in its colour at
+  `FloraLooks.LightStrength`, keeping `LightKeep` (0.4) a cell out to `LightReach` (2) cells; at most three a plant.
 
 ## Deliberately not handled
 

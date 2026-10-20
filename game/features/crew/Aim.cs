@@ -229,8 +229,8 @@ public static class Aiming
         {
             // A swing begun now faces the pointer (Poses.FaceOf), and so does the stroke it is judged by; the drill always does.
             string tool = axe ? Spec.Weapons.Axe.Item : drill!;
-            // Natural ground under the pointer is dug where it is (0077), in a shaft or a cave as under the open sky.
-            if (grid.WallAt(cell) is { Natural: true })
+            // Natural ground under the pointer is dug where it is (0077), in a shaft or a cave as under the open sky; a plant felled (0078).
+            if (grid.WallAt(cell) is { Natural: true } || m.Building.PlantAt(cell) != null)
                 return new Aim(cell, inReach, new Use(new Dig(cell, tool), m.Building.DigProblem(peer, cell, tool)));
             var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
             var touched = axe ? Struck(m, toward, PointOf(point)) : Touched(m, toward, PointOf(point));
@@ -340,7 +340,7 @@ public static class Aiming
     /// </summary>
     public static Dig? DigAt(Registry m, int peer, Hero hero, Point at, string tool)
     {
-        if (CellAt(m.Grid, at) is not int cell || m.Grid.WallAt(cell) is not { Natural: true } || !Reaches(hero, cell, m.Grid.Width)) return null;
+        if (CellAt(m.Grid, at) is not int cell || m.Grid.WallAt(cell) is not { Natural: true } && m.Building.PlantAt(cell) == null || !Reaches(hero, cell, m.Grid.Width)) return null;
         return m.Building.DigProblem(peer, cell, tool) == null ? new Dig(cell, tool) : null;
     }
 

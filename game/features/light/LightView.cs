@@ -80,6 +80,9 @@ public partial class LightView : Node2D
     /// </summary>
     public Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> HeadLamps { get; set; } = () => [];
 
+    /// <summary>Where each glowing part of a plant near the view shines from this frame, in pixels of the world, and its colour (0078).</summary>
+    public Func<IReadOnlyList<(Vector2 At, Color Colour)>> Glows { get; set; } = () => [];
+
     /// <summary>The lights drawn into the lightmap the last frame.</summary>
     public int LightCount => _lightmap.Drawn;
     public int LampCount => _shown.Count;
@@ -204,6 +207,9 @@ public partial class LightView : Node2D
             _main.Add(new LightSource(at.X, at.Y, L.HeadLamp, 1, L.HeadLampReach, L.HeadLampKeep, L.LampMost, L.HeadLampSize, (toward.X, toward.Y)));
             _main.Add(new LightSource(at.X, at.Y, L.HeadLamp, L.HeadGlow, L.HeadGlowReach, L.HeadGlowKeep, L.LampMost));
         }
+        // A plant's glowing parts: a seed pod, a berry, a bell, a small pool of light round each.
+        foreach (var (at, colour) in Glows())
+            _main.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), 1, FloraLooks.LightReach, FloraLooks.LightKeep, 1));
         // Flashes first, the brightest moments; then the particles that give light, while the cap lasts (Fx.MostLights).
         foreach (var f in Flares.Shared.Flashes)
         {

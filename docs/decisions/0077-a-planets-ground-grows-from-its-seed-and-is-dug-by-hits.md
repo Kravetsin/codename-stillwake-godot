@@ -1,6 +1,6 @@
 # 0077 — A planet's ground grows from its seed and is dug by hits
 
-- Status: accepted; slices A–C built (D, art and sound, later)
+- Status: accepted; slices A–C built; the ground's art and its plants in 0078 (the lamp's art and the sounds later)
 - Date: 2026-10-20
 
 ## Context

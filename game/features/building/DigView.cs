@@ -23,7 +23,9 @@ public partial class DigView : Node2D
     private readonly Dictionary<int, (int Damage, Material Material)> _drawn = new();
     private readonly List<int> _gone = [];
 
-    private readonly Texture2D[] _stages = [Texture(0), Texture(1), Texture(2)];
+    /// <summary>The stages of cracks, three, for each shape a wall is cut to: a slope's only over its solid half (0078).</summary>
+    private const int Stages = 3;
+    private static readonly Dictionary<(int Stage, int Shape), Texture2D> Pictures = new();
     private static readonly Dictionary<string, (Luminous Chip, Luminous Dust, Luminous Cloud)> Looks = new();
 
     public DigView(IGridQueries grid, BuildingModule building)
@@ -34,7 +36,8 @@ public partial class DigView : Node2D
         Lit.Set(this, Stillwake.Game.Light.WallIn);
     }
 
-    private static Texture2D Texture(int stage) => ImageTexture.CreateFromImage(GroundArt.Crack(stage));
+    private static Texture2D Texture(int stage, int shape) =>
+        Pictures.TryGetValue((stage, shape), out var made) ? made : Pictures[(stage, shape)] = ImageTexture.CreateFromImage(GroundArt.Crack(stage, shape));
 
     public override void _Process(double delta)
     {
@@ -74,8 +77,8 @@ public partial class DigView : Node2D
         int w = _grid.Width;
         foreach (var (cell, (damage, material)) in _drawn)
         {
-            int stage = System.Math.Clamp(damage * _stages.Length / System.Math.Max(1, material.Strength), 0, _stages.Length - 1);
-            DrawTexture(_stages[stage], new Vector2(cell % w, cell / w) * Cell);
+            int stage = System.Math.Clamp(damage * Stages / System.Math.Max(1, material.Strength), 0, Stages - 1);
+            DrawTexture(Texture(stage, _grid.ShapeAt(cell)), new Vector2(cell % w, cell / w) * Cell);
         }
     }
 

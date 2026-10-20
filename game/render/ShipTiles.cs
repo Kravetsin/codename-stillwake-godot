@@ -30,13 +30,17 @@ public sealed class ShipTiles
     public ShipTiles()
     {
         var pictures = new List<(string Name, Image Diffuse, Image Normal)>();
-        // A planet's ground (0077) is made here, not drawn: its walls, their edges and its back walls, by name as drawn ones are.
+        // A planet's ground (0078): its walls and back walls drawn in art/planet, their edges made here; by name as the hull's are.
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
-            Made($"wall_{natural}", GroundArt.Wall(natural));
+            Made($"wall_{natural}", Art($"planet/wall_{natural}"));
             for (int open = 1; open < 16; open++) Made($"wall-edge_{natural}_{open}", GroundArt.Edge(natural, open));
-            Made(BackName(natural), GroundArt.Back(natural));
+            Made(BackName(natural), Art($"planet/back_{natural}"));
         }
+        // The moss over soil open to the sky, by its top's shape, its stems up into the cell above (0078): two cells tall.
+        foreach (int shape in GroundArt.GrassShapes)
+            for (int v = 0; v < GroundArt.GrassVariants; v++)
+                pictures.Add(Picture(GrassName(shape, v), Art($"planet/{GrassName(shape, v)}"), Relief.None));
         foreach (var material in Materials.All.Select(m => m.Id))
         {
             // Walls are no things standing in the light: flat.
@@ -202,6 +206,9 @@ public sealed class ShipTiles
 
     /// <summary>The back wall of a natural <paramref name="material"/> (0077), a tile cut a cell at a time as scrap's is.</summary>
     public static string BackName(string material) => $"back_{material}";
+
+    /// <summary>The moss on soil open to the sky with a top of <paramref name="shape"/>, variant <paramref name="variant"/>, laid from the cell above (0078).</summary>
+    public static string GrassName(int shape, int variant) => $"grass_{shape}_{variant}";
 
     /// <summary>A wall of <paramref name="material"/>'s picture, cut to <paramref name="shape"/> (0069).</summary>
     public static string WallName(string material, int shape) => shape == Shape.None ? $"wall_{material}" : $"wall_{material}_{shape}";

@@ -26,6 +26,9 @@ public static class Layers
 
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
 
+    /// <summary>What grows on a planet (flora, 0078): over the ground and its moss, behind the heroes; its glow with the lamps'.</summary>
+    public const int Flora = Fixtures;
+
     /// <summary>A screen or a lamp on a machine's face beside its socket: an analyzer's (research), a tank's sight glass (atmosphere).</summary>
     public const int Screens = Sockets;
 
