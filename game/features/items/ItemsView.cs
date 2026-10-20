@@ -100,7 +100,7 @@ public partial class ItemsView : Node2D
             _popups.Update(elapsedMs, spot.X, spot.Y);
             _flights.Update(new Vector2(spot.X, spot.Y - Content.Hero.Height * 0.6f) / 1000 * ShipCamera.Cell, elapsedMs);
         }
-        _floor.Update(items, rooms, Reach.PickingUp(client.InFlight), progress, elapsedMs);
+        _floor.Update(grid, items, rooms, Reach.PickingUp(client.InFlight), client.World.Tick, progress, elapsedMs);
         Panel.Frame(client, items, grid, research, hero, elapsedMs);
     }
 

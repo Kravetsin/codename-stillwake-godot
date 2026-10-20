@@ -43,7 +43,7 @@ namespace Stillwake.Game;
 /// world as the title makes one, the wreck in the middle of the big world, kept nowhere; <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
 /// large, its tiles over <c>--built WxH</c> of it from the top-left, all of it by default), <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings,
-/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--hills</c> ground of slopes to walk (<see cref="HillsDemo"/>), <c>--slopes</c> walls cut to shapes planned with R, lit, and a corridor under a sloped ceiling (<see cref="SlopesDemo"/>), <c>--aside</c> steps the hero
+/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--hills</c> ground of slopes to walk (<see cref="HillsDemo"/>), <c>--slopes</c> walls cut to shapes planned with R, lit, and a corridor under a sloped ceiling (<see cref="SlopesDemo"/>), <c>--floor</c> stacks falling through a machine onto a dark floor and a slope (<see cref="FloorDemo"/>), <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
@@ -154,6 +154,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--hills")) _layout = HillsDemo.Map;
         if (Has("--slopes")) _layout = SlopesDemo.Map;
+        if (Has("--floor")) _layout = FloorDemo.Map;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         if (Has("--testbed") || Has("--jetpack") || Has("--charge") || Has("--dust")) _layout = Testbed.Map;
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) _layout = WreckDemo.Map;
@@ -315,6 +316,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
         if (Has("--hills")) world = HillsDemo.Seed(world, Modules);
         if (Has("--slopes")) world = SlopesDemo.Seed(world, Modules);
+        if (Has("--floor")) world = FloorDemo.Seed(world, Modules);
         if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);
         if (Has("--charge")) world = ChargeDemo.Seed(world, Modules);
         if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules, Has("--arc-drill") ? Content.Weapons.ArcDrill.Item : null);

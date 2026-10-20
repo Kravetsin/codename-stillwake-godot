@@ -13,9 +13,12 @@ internal static class FloorRules
     /// <summary>Division rounding down, as Math.floor does, for positions left of or above the grid.</summary>
     private static int Down(int a, int b) => a >= 0 ? a / b : -((-a + b - 1) / b);
 
-    /// <summary>Built up: a wall, a floor, a closed door or a machine. A stack rests on one and is pushed out of one.</summary>
+    /// <summary>
+    /// Built up: a wall, a floor or a closed door. A stack rests on one and is pushed out of one. A machine is not:
+    /// a stack falls through it to the floor it stands on, where a hero finds it.
+    /// </summary>
     private static bool Built(IGridQueries grid, int cell) =>
-        grid.StructureAt(cell) is Structure.Wall or Structure.Floor or Structure.DoorClosed || grid.MachineAt(cell) != null;
+        grid.StructureAt(cell) is Structure.Wall or Structure.Floor or Structure.DoorClosed;
 
     /// <summary>Built, or past the grid's edge: what stops a stack inside the ship.</summary>
     private static bool Blocks(IGridQueries grid, int x, int y) =>

@@ -151,13 +151,43 @@ public class ItemsFloorTests
         Assert.Equal(CellOf(map, 3, 1), Floor(w)[0].Cell);
     }
 
+    /// <summary>A room with a grow capsule (2×3) standing on its floor, two rows of air above the capsule.</summary>
+    private static readonly string[] Capsule =
+        ["##########", "#........#", "#........#", "#..gg....#", "#..gg....#", "#..gg....#", "#========#", "##########"];
+
     [Fact]
-    public void PushesAStackInsideAMachineOutBesideItNotUpIntoTheHull()
+    public void AStackFallingOntoAMachineFallsThroughItOntoTheFloorBeneath()
+    {
+        // Let go still above the capsule, and thrown over it: both lie on the floor it stands on.
+        var w = DroppedInto(Capsule, (3, 1));
+        Drop(w.GiveItems(0, ("canister", 1)), Own(0), 1, CellOf(Capsule, 2, 2), 0, 1);
+        w.Run(80);
+        Assert.All(Floor(w), s => Assert.Equal((6 * 1000, 0, 0), (s.Y, s.Vx, s.Vy)));
+        Assert.Equal(CellOf(Capsule, 3, 5), Floor(w)[0].Cell);
+        Assert.Equal(5, Floor(w)[1].Cell / Capsule[0].Length);
+    }
+
+    [Fact]
+    public void LeavesAStackInsideAMachineWhereItIsToFallToTheFloorUnderIt()
     {
         string[] map = ["######", "#TT..#", "#TT..#", "######"];
         var w = DroppedInto(map, (2, 2), (1, 1));
         w.Run(40);
-        Assert.Equal([("scrap", 2, CellOf(map, 3, 2))], Lying(w));
+        Assert.Equal([("scrap", 1, CellOf(map, 2, 2)), ("scrap", 1, CellOf(map, 1, 2))], Lying(w));
+    }
+
+    [Fact]
+    public void AStackLeftOnAMachineByAnOlderSaveFallsOffItOnTheNextTick()
+    {
+        var w = DroppedInto(Capsule, (3, 1));
+        w.Run(80);
+        // Where the rule that machines hold stacks left it: on the capsule's top.
+        var s = Floor(w)[0];
+        (s.Y, s.Cell) = (3 * 1000, CellOf(Capsule, 3, 2));
+        w.Reload().Run();
+        Assert.True(Floor(w)[0].Vy > 0);
+        w.Run(40);
+        Assert.Equal((CellOf(Capsule, 3, 5), 6 * 1000), (Floor(w)[0].Cell, Floor(w)[0].Y));
     }
 
     [Fact]
