@@ -9,16 +9,19 @@ namespace Stillwake.Sim.Tests;
 /// </summary>
 public class ModulesTests
 {
-    /// <summary>Up to three random commands drawn from the modules' own fuzz generators.</summary>
-    internal static List<Command> RandomCommands(Registry modules, Rng rng)
+    /// <summary>
+    /// Up to three random commands drawn from the fuzz generators of the modules of each sender's surface, and now and
+    /// then the world's own (0076): surfaces opened, heroes moved between them.
+    /// </summary>
+    internal static List<Command> RandomCommands(World world, Rng rng)
     {
-        var fuzzable = modules.All.Where(m => m.Fuzzes).ToList();
         var commands = new List<Command>();
-        for (uint n = fuzzable.Count > 0 ? rng.Below(4) : 0; n > 0; n--)
+        for (uint n = rng.Below(4); n > 0; n--)
         {
-            var m = fuzzable[(int)rng.Below((uint)fuzzable.Count)];
             // Senders with gaps, so what a module keeps per sender is made out of order too.
-            var c = m.Fuzz(rng, (int)rng.Below(5));
+            int from = (int)rng.Below(5);
+            var fuzzable = world.ModulesOn(world.SurfaceOf(from)).Where(m => m.Fuzzes).ToList();
+            var c = rng.Below(40) == 0 || fuzzable.Count == 0 ? world.Fuzz(rng, from) : fuzzable[(int)rng.Below((uint)fuzzable.Count)].Fuzz(rng, from);
             if (c != null) commands.Add(c);
         }
         return commands;
@@ -33,13 +36,13 @@ public class ModulesTests
         var rng = new Rng(new RngState { S = seed });
         var played = new Registry();
         var world = World.Create(seed, Registry.Wreck, played.All);
-        for (int i = 0; i < 100; i++) world.Step(RandomCommands(played, rng));
+        for (int i = 0; i < 100; i++) world.Step(RandomCommands(world, rng));
 
         var loaded = World.Load(world.Save(), new Registry().All);
         Assert.Equal(world.Hash(), loaded.Hash());
         for (int i = 0; i < 100; i++)
         {
-            var commands = RandomCommands(played, rng);
+            var commands = RandomCommands(world, rng);
             world.Step(commands);
             loaded.Step(commands);
         }
@@ -59,7 +62,7 @@ public class ModulesTests
         for (int i = 0; i < 300; i++)
         {
             // Encoded and decoded, as the network carries them.
-            var commands = RandomCommands(a, rng);
+            var commands = RandomCommands(first, rng);
             first.Step(commands);
             second.Step(commands.Select(c => second.Decode(first.Encode(c))).ToList());
             Assert.Equal(first.Hash(), second.Hash());
@@ -115,7 +118,7 @@ public class ModulesTests
             }
             var loaded = new Registry();
             var copy = World.Load(world.Save(), [.. loaded.All, new Builder(loaded)]);
-            var commands = RandomCommands(live, rng);
+            var commands = RandomCommands(world, rng);
             if (rng.Below(2) == 0) commands.Add(ShipEdit(live.Grid, rng, 3, 3, 32, 24));
             // Out in the space above the ship, so what is built grows and shrinks.
             if (rng.Below(3) == 0) commands.AddRange(SpaceEdit(live.Grid, rng, 19, 0, 1, 3));

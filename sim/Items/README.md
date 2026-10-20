@@ -85,6 +85,11 @@ mode, the world setting in which nothing is ever taken
 - A change of nothing (a cost of zeros) changes nothing and stores no inventory; a machine emptied
   loses its entry.
 - In creative mode nothing is taken; giving still gives: what is taken apart is still there.
+- **Surfaces** (0076): a peer's own goes with its hero (`ICarries`): `Depart` takes its inventory, equipment and belt
+  with their charge, and the electric item it runs, off this surface, and `Arrive` puts them on the next, the run going
+  on there, its belt paying from that tick. Floor stacks, bodies and what machines hold stay. A seat's inventory and
+  run are on its surface only (`SurfacesTests`, FsCheck, which also counts every item across a transfer). Creative mode
+  is a surface's, copied to a surface opened from it (`Inherit`).
 - **The floor.** A stack let go lies about, at a position and a speed in thousandths of a cell. A
   drop throws it from the bottom middle of the sender's cell the way its hero faces, at
   `Floor.ThrowSpeed` and up at `Floor.ThrowLift`; one with no way to face (an overflow) is let go

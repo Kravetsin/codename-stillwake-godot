@@ -8,11 +8,14 @@ its own, as modules hold its state.
 ## Surfaces
 
 A world is made of surfaces ([0076](../../docs/decisions/0076-a-world-is-made-of-surfaces.md)), each a
-registry of its own. Surface 0, the ship, is the registry a world is made or loaded with, and so far the
-only one. The core routes each command to the registry of its sender's surface (`World.SurfaceOf`),
-refusing one stamped on a surface its sender has left `world.elsewhere` before any module sees it; it runs
-every surface each tick in id order. A save's `slices` are the ship's, as before surfaces: other surfaces
-will be saved under a key of their own.
+registry of its own. Surface 0, the ship, is the registry a world is made or loaded with; its `All` is an `IModules`
+whose `Another()` makes the registry of a new surface, sharing the ship's globals (`Players`, `Knowledge`), which only
+the ship lists, first. `Registry.On(world, surface)` is the registry a surface runs. The core routes each command to
+the registry of its sender's surface (`World.SurfaceOf`), refusing one stamped on a surface its sender has left
+`world.elsewhere`; it runs every surface each tick in id order. `world.open` opens a surface of a kind in
+`Content.Surfaces` and `world.transfer` moves the sender there, carrying what `ICarries` modules hold of it (crew's
+hero, items' inventory and run). A save's `slices` are the ship's; `surfaces` and `where` are written only when
+another surface exists.
 
 ## The wreck
 
@@ -49,3 +52,7 @@ format 16's step now pads one from before, is left as it is).
 
 Format 18 brought the Handbook (0066): debris's `found`, empty, for nothing in an older save says which kind of
 debris an item came out of; one already there is left as it is.
+
+Format 20 brought the world's globals (0076): `players` (each hero's suit colour, out of crew's heroes, in peer order)
+and `knowledge` (research's `granted` and `analysed`), the first two slices; a save already holding `players` is
+left as it is.

@@ -64,7 +64,6 @@ public partial class SortieDemo : CanvasLayer
             ["cell"] = start,
             ["suit"] = Spec.Crew.Suit,
             ["out"] = 0,
-            ["colour"] = 0,
             ["exerting"] = false,
             ["thrusting"] = false,
             ["thrustTicks"] = 0,

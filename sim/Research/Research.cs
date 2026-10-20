@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Power;
 
 namespace Stillwake.Sim.Research;
@@ -34,10 +35,6 @@ public sealed record Recipe(
 /// </summary>
 public sealed class ResearchState
 {
-    /// <summary>The blueprints and crafts granted from the start, by id, sorted ordinally.</summary>
-    [JsonInclude] internal List<string> Granted { get; set; } = [];
-    /// <summary>The items analysed, by id, each once, sorted ordinally.</summary>
-    [JsonInclude] internal List<string> Analysed { get; set; } = [];
     /// <summary>The analyzers at work, by machine id, in id order.</summary>
     [JsonInclude] internal List<Analysis> Analyses { get; set; } = [];
 }
@@ -75,15 +72,23 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     private static readonly Dictionary<string, IReadOnlyList<(string Item, int Count)>> CostOf =
         Every.ToDictionary(e => e.Id, e => e.Cost, StringComparer.Ordinal);
 
+    /// <summary>The id of every blueprint, then every craft: what a map with no <c>Layout.Known</c> is granted (<c>Knowledge</c>).</summary>
+    public static readonly IReadOnlyList<string> Ids = Every.Select(e => e.Id).ToList();
+
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
     private readonly IPowerQueries _power;
     private readonly IPowerOps _powerOps;
+    private readonly IKnowledgeQueries _knowledge;
+    private readonly IKnowledgeOps _knowledgeOps;
 
     public override string Id => "research";
 
-    public ResearchModule(IGridQueries grid, IItemsQueries items, IPowerQueries power, IPowerOps powerOps)
+    public ResearchModule(
+        IGridQueries grid, IItemsQueries items, IPowerQueries power, IPowerOps powerOps, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
     {
+        _knowledge = knowledge;
+        _knowledgeOps = knowledgeOps;
         _grid = grid;
         _items = items;
         _power = power;
@@ -92,12 +97,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         System(Phase.Simulation, Analyse);
     }
 
-    protected override ResearchState Init(Layout layout)
-    {
-        var granted = (layout.Known ?? Every.Select(e => e.Id).ToList()).Distinct().ToList();
-        granted.Sort(StringComparer.Ordinal);
-        return new ResearchState { Granted = granted };
-    }
+    protected override ResearchState Init(Layout layout) => new();
 
     // Queries.
 
@@ -106,7 +106,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     public bool Knows(string id) =>
         _items.Creative || (CostOf.TryGetValue(id, out var cost) && Known(id, cost));
 
-    public IReadOnlyList<string> Analysed => State.Analysed;
+    public IReadOnlyList<string> Analysed => _knowledge.Analysed;
 
     public IReadOnlyList<Recipe> Recipes() =>
         Every.Select(e => new Recipe(
@@ -125,9 +125,9 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         return new Analyzing(item, progress, Work, problem);
     }
 
-    private bool Granted(string id) => State.Granted.BinarySearch(id, StringComparer.Ordinal) >= 0;
+    private bool Granted(string id) => _knowledge.Granted(id);
 
-    private bool IsAnalysed(string item) => State.Analysed.BinarySearch(item, StringComparer.Ordinal) >= 0;
+    private bool IsAnalysed(string item) => _knowledge.IsAnalysed(item);
 
     /// <summary>The opening rule: granted, or every item of its cost analysed that needs analysis.</summary>
     private bool Known(string id, IReadOnlyList<(string Item, int Count)> cost) =>
@@ -177,8 +177,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
                 continue;
             }
             // Two analyzers finishing one item on one tick: the second finds it analysed above.
-            int at = State.Analysed.BinarySearch(item!, StringComparer.Ordinal);
-            State.Analysed.Insert(~at, item!);
+            _knowledgeOps.Learn(item!);
             _powerOps.Rest(m.Id, true);
         }
         State.Analyses = kept;

@@ -76,6 +76,12 @@ public partial class DevPanel : CanvasLayer
         buttons.AddChild(_creative = Style.Button("creative", ToggleCreative));
         buttons.AddChild(Style.Button("meteor", Meteor));
         column.AddChild(buttons);
+        // Surfaces (0076): the test strip opened, and this hero beamed between it and the ship.
+        var surfaces = Style.Gap(new HBoxContainer(), 8);
+        surfaces.AddChild(Style.Button("open strip", () => Send(new OpenSurface(Content.Surfaces.TestStrip.Id))));
+        surfaces.AddChild(Style.Button("to ship", () => Send(new Transfer(0))));
+        surfaces.AddChild(Style.Button("to strip", ToStrip));
+        column.AddChild(surfaces);
         column.AddChild(_status);
         Say("");
         // Shut at the start: open, the board takes a third of a 720-pixel screen.
@@ -116,6 +122,25 @@ public partial class DevPanel : CanvasLayer
         if (_session() is not Session s) return;
         // Read now, not from the last reading: two quick clicks must switch it back.
         s.Client.Send(new SetCreative(!_modules().Items.Creative));
+    }
+
+    private void Send(Command command)
+    {
+        if (_session() is Session s) s.Client.Send(command);
+    }
+
+    /// <summary>Beams this hero down to the strip opened last; says so when none is.</summary>
+    private void ToStrip()
+    {
+        if (_session() is not Session s) return;
+        var strip = s.Client.World.Surfaces.LastOrDefault(x => x.Kind == Content.Surfaces.TestStrip.Id);
+        if (strip == null)
+        {
+            Say("No strip open: open one first.");
+            return;
+        }
+        s.Client.Send(new Transfer(strip.Id));
+        Say("");
     }
 
     /// <summary>Hits a random wall of the outer hull, where a meteor would, if any is left.</summary>
@@ -160,6 +185,7 @@ public partial class DevPanel : CanvasLayer
         var lines = new List<(string, string)>
         {
             ("tick", client.World.Tick.ToString()),
+            ("surface", $"{client.World.SurfaceOf(client.Id)} of {client.World.Surfaces.Count}"),
             ("hash", client.LastHash is ulong hash ? hash.ToString("x16") : "…"),
         };
         if (s.RoundTrip.Last is double last) lines.Add(("act", $"{last:0} ms · median {s.RoundTrip.Median ?? 0:0} ms"));
@@ -173,7 +199,7 @@ public partial class DevPanel : CanvasLayer
         _speed.Text = s.Speed == 1 ? "×4" : "×1";
         bool creative = m.Items.Creative;
         Style.Paint(_creative, creative ? Style.Amber700 : Style.Slate700, creative ? Amber600 : Style.Slate600);
-        ShowSlices(client.World, m);
+        ShowSlices(client.World, client.World.SurfaceOf(client.Id), m);
     }
 
     private void ShowReadings(IReadOnlyList<(string Name, string Value)> lines)
@@ -194,11 +220,19 @@ public partial class DevPanel : CanvasLayer
     }
 
     /// <summary>Every module by its id, with its saved state as JSON only for those whose entry is open.</summary>
-    private void ShowSlices(World world, Registry m)
+    private void ShowSlices(World world, int surface, Registry m)
     {
         var ids = m.All.Select(module => module.Id).ToList();
         foreach (string id in ids.Where(id => !_entries.ContainsKey(id))) _entries[id] = Entry(id);
-        var slices = _expanded.Count > 0 ? JsonNode.Parse(world.Save())!["slices"] : null;
+        // The world's globals are listed with the ship's modules only.
+        foreach (var (id, entry) in _entries)
+        {
+            entry.Toggle.Visible = ids.Contains(id);
+            if (!entry.Toggle.Visible) entry.Box.Visible = false;
+        }
+        // The slices of the surface this hero is on: another's are saved under the world's surfaces (0076).
+        var root = _expanded.Count > 0 ? JsonNode.Parse(world.Save()) : null;
+        var slices = surface == 0 ? root?["slices"] : root?["surfaces"]?[surface - 1]?["slices"];
         foreach (string id in ids)
         {
             var (toggle, box, json) = _entries[id];

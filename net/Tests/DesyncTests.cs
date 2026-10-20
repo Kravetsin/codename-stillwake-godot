@@ -43,6 +43,27 @@ public class DesyncTests
         Assert.Equal(4, count);
     }
 
+    [Theory]
+    [InlineData(5u)]
+    [InlineData(6u)]
+    public void KeepsEveryClientAndAJoinerInSyncAsHeroesMoveBetweenSurfaces(uint seed)
+    {
+        // The host and three clients, a fourth joining once strips are open and heroes on them, the world's commands drawn
+        // often: every surface is in every hash, the joiner's welcome carries every one.
+        int surfaces = 0, away = 0, count = 0;
+        var run = Desync.Fuzz(Definition.Game(), seed, layout: Registry.Wreck, joinAt: 300, worldEvery: 8, tamper: (_, clients) =>
+        {
+            var world = clients[0].World;
+            surfaces = Math.Max(surfaces, world.Surfaces.Count);
+            away += clients.Count(c => world.SurfaceOf(c.Id) != 0);
+            count = clients.Count;
+        });
+        Assert.Null(run.Desync);
+        Assert.Equal(4, count);
+        Assert.True(surfaces >= 3, $"{surfaces} surfaces at most");
+        Assert.True(away > 100, $"a client off the ship on {away} ticks in all");
+    }
+
     [Fact]
     public void KeepsAJoinerInSyncWhileRoomsAreFoundAgainAroundDoorsFarFromSpace()
     {
@@ -69,7 +90,8 @@ public class DesyncTests
         var game = Definition.Game();
         var seen = new Dictionary<Client, int>();
         int around = 0, aired = 0;
-        var run = Desync.Fuzz(game, 7, layout: layout, joinAt: 150, ticks: 400, tamper: (_, clients) =>
+        // Tuned on a stream of modules' commands alone: the world's are drawn in KeepsEveryClientAndAJoinerInSyncAsHeroesMoveBetweenSurfaces.
+        var run = Desync.Fuzz(game, 7, layout: layout, joinAt: 150, ticks: 400, worldEvery: 0, tamper: (_, clients) =>
         {
             aired = Math.Max(aired, game.Module<AtmosphereModule>(clients[0].World).AiredCells.Count);
             foreach (var client in clients)
@@ -258,7 +280,8 @@ public class DesyncTests
         }
         var game = new Definition(() => new Registry().All, Stocked);
         int formed = 0, smelted = 0, heated = 0, assembled = 0, grew = 0, harvested = 0;
-        var run = Desync.Fuzz(game, 14, layout: layout, ticks: 1500, tamper: (tick, clients) =>
+        // Tuned on a stream of modules' commands alone, as above.
+        var run = Desync.Fuzz(game, 14, layout: layout, ticks: 1500, worldEvery: 0, tamper: (tick, clients) =>
         {
             var first = clients[0];
             var grid = game.Module<GridModule>(first.World);

@@ -8,9 +8,9 @@ planned, a craft not known cannot be queued. Ported from `packages/sim/src/modul
 
 - **Depends on:** `Grid` (`IGridQueries.MachinesOf`: which machines are analyzers), `Items` (`IItemsQueries`:
   what their slot holds, creative mode), `Power` (`IPowerQueries`: their satisfaction; `IPowerOps`:
-  `Rest`).
-- **State** (`ResearchState`, members internal): `Granted` — the blueprints and crafts known from the
-  start, by id, sorted ordinally; `Analysed` — the items analysed, by id, sorted ordinally; `Analyses`
+  `Rest`); `Knowledge` (`IKnowledgeQueries`, `IKnowledgeOps.Learn`: what the world was granted and has analysed,
+  the world's on every surface, 0076).
+- **State** (`ResearchState`, members internal): `Analyses`
   — each analyzer at work, `Analysis(Analyzer, Progress)` by machine id in id order, its work in
   thousandths of a tick at full power. Saved; nothing is derived. What is known is not stored: it is
   worked out from costs when asked, some 25 entries.
@@ -26,6 +26,9 @@ planned, a craft not known cannot be queued. Ported from `packages/sim/src/modul
 - **The opening rule:** a blueprint or a craft is known when it is granted, or when every item of its
   cost that needs analysis (below) is analysed. Nothing is held back: the solar panel opens as the rest do, once a frame, a solar
   cell, wire and a circuit are analysed (0041, 0057). In creative mode everything is known.
+- What is granted and analysed is kept by the world's `Knowledge` (0076), one for every surface: an item analysed on
+  a planet opens what it opens aboard. Research, one a surface, keeps what each of its analyzers is doing and reads the
+  rest; `IResearchQueries` is answered as before, so building and crafting ask it alone.
 - A map's `Layout.Known` is what its world is granted; a map without one is granted every blueprint
   and craft. The wreck is granted `Content.Research.StartKnown`, through `Registry.Wreck`.
 - Each tick, in the simulation phase, in machine id order, an analyzer whose slot holds an item that

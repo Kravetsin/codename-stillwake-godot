@@ -15,6 +15,7 @@ public sealed record DesyncRun(int Ticks, int Commands, int Refused, Found? Desy
 /// </summary>
 public static class Desync
 {
+    /// <param name="worldEvery">One command in this many is the world's own (0076), a surface opened or a hero moved; none at 0.</param>
     public static DesyncRun Fuzz(
         Definition definition,
         uint seed,
@@ -23,7 +24,8 @@ public static class Desync
         int checkEvery = 20,
         Layout? layout = null,
         int? joinAt = null,
-        Action<int, IReadOnlyList<Client>>? tamper = null)
+        Action<int, IReadOnlyList<Client>>? tamper = null,
+        int worldEvery = 40)
     {
         var made = definition.Make();
         int fuzzable = made.Count(m => m.Fuzzes);
@@ -72,8 +74,9 @@ public static class Desync
             for (uint n = fuzzable > 0 ? rng.Below(4) : 0; n > 0; n--)
             {
                 var sender = peers[(int)rng.Below((uint)peers.Count)];
-                var modules = definition.ModulesOf(sender.World).Where(m => m.Fuzzes).ToList();
-                var pick = modules[(int)rng.Below((uint)modules.Count)].Fuzz(rng, sender.Id);
+                // Now and then the world's own: a surface opened, a hero moved between them (0076).
+                var modules = definition.ModulesOf(sender.World, sender.Id).Where(m => m.Fuzzes).ToList();
+                var pick = worldEvery > 0 && rng.Below((uint)worldEvery) == 0 ? sender.World.Fuzz(rng, sender.Id) : modules[(int)rng.Below((uint)modules.Count)].Fuzz(rng, sender.Id);
                 if (pick == null) continue;
                 sender.Send(pick with { From = 0 });
                 commands += 1;

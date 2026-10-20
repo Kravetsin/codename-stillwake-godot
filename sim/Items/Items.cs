@@ -81,7 +81,7 @@ public interface IItemsOps
 /// Every stack of items: inventories, what machines hold, the floor, creative mode
 /// (packages/sim/src/modules/items). A cost is a list of items with whole amounts, as content writes them.
 /// </summary>
-public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IItemsOps
+public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IItemsOps, ICarries
 {
     private readonly IGridQueries _grid;
     private readonly IRoomsQueries _rooms;
@@ -126,6 +126,38 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     protected override ItemsState Init(Layout layout) => new();
+
+    /// <summary>A new surface keeps the creative mode of the one it was opened from: a dev setting of the world, kept per surface.</summary>
+    protected override void Inherit(Module from) => State.Creative = ((ItemsModule)from).Creative;
+
+    /// <summary>What a peer takes from surface to surface (0076): its slots, equipment and belt with their charge, and the electric item it runs.</summary>
+    private sealed record Carried(Stack?[]? Slots, string? Running);
+
+    /// <summary><paramref name="peer"/>'s inventory and its run, gone from this surface; null when it has neither here.</summary>
+    public object? Depart(int peer)
+    {
+        int at = State.Inventories.FindIndex(h => h.Id == peer);
+        var slots = at >= 0 ? State.Inventories[at].Slots : null;
+        if (at >= 0) State.Inventories.RemoveAt(at);
+        string? running = Running(peer);
+        StopRunning(peer);
+        return slots == null && running == null ? null : new Carried(slots, running);
+    }
+
+    /// <summary>Takes what <paramref name="peer"/> carried as it left: the tool it ran runs on here, its belt paying from this tick.</summary>
+    public void Arrive(int peer, object? carried, int? cell)
+    {
+        if (carried is not Carried c) return;
+        // A seat's inventory is on one surface only: one here already is our bug.
+        if (State.Inventories.Exists(h => h.Id == peer) || Running(peer) != null)
+            throw new InvalidOperationException($"items: peer {peer} arrives where its inventory is already");
+        if (c.Slots != null) Stacks.SetInventory(State, peer, c.Slots);
+        if (c.Running is { } item)
+        {
+            int at = State.Running.FindIndex(r => r.Peer > peer);
+            State.Running.Insert(at < 0 ? State.Running.Count : at, new Runner { Peer = peer, Item = item });
+        }
+    }
 
     // Queries.
 

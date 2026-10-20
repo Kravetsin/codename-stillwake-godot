@@ -1,6 +1,7 @@
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Players;
 
 namespace Stillwake.Sim.Crew;
 
@@ -12,12 +13,12 @@ namespace Stillwake.Sim.Crew;
 public sealed record Enter(int Cell) : Command;
 
 /// <summary>
-/// The sender's peer has left the session: its hero goes, and its colour with it. The host sends it on
-/// the peer's behalf, hearing it go.
+/// The sender's peer has left the session: its hero goes, and its colour with it; off the ship, what it carried
+/// waits aboard for its seat (0076). The host sends it on the peer's behalf, hearing it go.
 /// </summary>
 public sealed record Leave : Command;
 
-/// <summary>The sender's hero puts on suit colour <c>Colour</c>, if no other hero wears it.</summary>
+/// <summary>The sender's hero puts on suit colour <c>Colour</c>, if no other hero wears it, on any surface.</summary>
 public sealed record PickColour(int Colour) : Command;
 
 /// <summary>The sender's hero starts running (<c>On</c>), or stops: sent when it changes.</summary>
@@ -56,18 +57,23 @@ public interface ICrewQueries
 /// cell holding it, the suit anywhere else, passing out when the suit runs dry
 /// (packages/sim/src/modules/crew).
 /// </summary>
-public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
+public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICarries
 {
     public override string Id => "crew";
 
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
+    private readonly IPlayersQueries _players;
+    private readonly IPlayersOps _playersOps;
 
     private static readonly IReadOnlyList<(string Item, int Count)> Canister = [(Content.Crew.Canister, 1)];
 
-    public CrewModule(IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps)
+    public CrewModule(
+        IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IPlayersQueries players, IPlayersOps playersOps)
     {
+        _players = players;
+        _playersOps = playersOps;
         _grid = grid;
         _items = items;
         _itemsOps = itemsOps;
@@ -79,18 +85,21 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                 hero.Cell = c.Cell;
                 return;
             }
-            State.Heroes.Add(new Hero { Id = c.From, Cell = c.Cell, Suit = Content.Crew.Suit, Colour = FreeColour(State.Heroes) });
-            State.Heroes.Sort((a, b) => a.Id.CompareTo(b.Id));
+            Add(new Hero { Id = c.From, Cell = c.Cell, Suit = Content.Crew.Suit });
+            _playersOps.Dress(c.From);
         });
         Handles<Leave>(
             c => HeroOf(c.From) == null ? "crew.noHero" : null,
             c =>
             {
                 State.Heroes.RemoveAll(h => h.Id == c.From);
+                _playersOps.Undress(c.From);
                 // Its inventory stays for its seat; a tool it ran would drain the belt with no one at it.
                 _itemsOps.StopRunning(c.From);
+                // Its player comes back aboard, whatever surface it left from: its inventory waits there (0076).
+                if (Surfaces.Here != 0) Surfaces.Send(c.From, 0);
             });
-        Handles<PickColour>(c => ColourProblem(c.From, c.Colour), c => HeroOf(c.From)!.Colour = c.Colour);
+        Handles<PickColour>(c => ColourProblem(c.From, c.Colour), c => _playersOps.Wear(c.From, c.Colour));
         Handles<Exert>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.Exerting = c.On);
         Handles<Thrust>(ThrustProblem, c => HeroOf(c.From)!.Thrusting = c.On);
         Handles<Refill>(c => RefillProblem(c.From), c =>
@@ -116,6 +125,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
                     {
                         hero.Cell = State.Spawn;
                         hero.Suit = Content.Crew.Suit;
+                        // Off the ship a hero wakes aboard, at the pod; its body stays where it fell (0076).
+                        if (Surfaces.Here != 0) Surfaces.Send(hero.Id, 0);
                     }
                     continue;
                 }
@@ -236,22 +247,13 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
     /// </summary>
     private static int Depth(int beyond, int span) => beyond <= 0 ? 0 : beyond * 1000 / span;
 
-    /// <summary>
-    /// The colour a hero coming in wears: the first no hero wears, or with every one worn, the one worn
-    /// least, the first of those on a tie.
-    /// </summary>
-    private static int FreeColour(List<Hero> heroes)
-    {
-        var worn = new int[Content.Crew.Colours];
-        foreach (var h in heroes) worn[h.Colour] += 1;
-        return Array.IndexOf(worn, worn.Min());
-    }
-
     private string? ColourProblem(int peer, int colour)
     {
         if (HeroOf(peer) == null) return "crew.noHero";
         if (colour < 0 || colour >= Content.Crew.Colours) return "crew.noSuchColour";
-        if (State.Heroes.Exists(h => h.Id != peer && h.Colour == colour)) return "crew.colourTaken";
+        // Worn by a hero on any surface: they may meet.
+        foreach (var w in _players.Worn)
+            if (w.Peer != peer && w.Colour == colour) return "crew.colourTaken";
         return null;
     }
 
@@ -260,4 +262,33 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries
     public int Spawn => State.Spawn;
     public Hero? HeroOf(int id) => State.Heroes.Find(h => h.Id == id);
     public IReadOnlyList<Hero> Heroes => State.Heroes;
+
+    // Carried between surfaces (0076).
+
+    /// <summary>The hero of <paramref name="peer"/>, gone from this surface; null when it has none here.</summary>
+    public object? Depart(int peer)
+    {
+        var hero = HeroOf(peer);
+        if (hero != null) State.Heroes.Remove(hero);
+        return hero;
+    }
+
+    /// <summary>
+    /// Takes the hero <paramref name="carried"/> as it left, suit, breath and thrust, at <paramref name="cell"/> or the
+    /// spawn. A peer with no hero brings none: its client sends <see cref="Enter"/> as anywhere.
+    /// </summary>
+    public void Arrive(int peer, object? carried, int? cell)
+    {
+        if (carried is not Hero hero) return;
+        // A seat's hero is on one surface only: one here already is our bug.
+        if (HeroOf(peer) != null) throw new InvalidOperationException($"crew: peer {peer} arrives where its hero is already");
+        hero.Cell = cell ?? State.Spawn;
+        Add(hero);
+    }
+
+    private void Add(Hero hero)
+    {
+        State.Heroes.Add(hero);
+        State.Heroes.Sort((a, b) => a.Id.CompareTo(b.Id));
+    }
 }

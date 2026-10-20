@@ -275,9 +275,10 @@ public class GridTests
             var rng = new Rng(new RngState { S = (uint)t.seed });
             for (int i = 0; i < t.ticks; i++)
             {
-                foreach (var c in ModulesTests.RandomCommands(w.M, rng)) w.Do(c);
+                foreach (var c in ModulesTests.RandomCommands(w.World, rng)) w.Do(c);
                 int cell = (int)rng.Below((uint)(t.width * t.height + 2)) - 1;
-                w.Do(new Place(cell, placements[rng.Below((uint)placements.Length)])).Run();
+                // From a peer the random commands never move off the ship, where the test builder is.
+                w.Do(new Place(cell, placements[rng.Below((uint)placements.Length)]) { From = 5 }).Run();
                 var built = w.M.Grid.Built;
                 if (!built.IsEmpty && !(t.zone.Contains(built.Left, built.Top) && t.zone.Contains(built.Right, built.Bottom)))
                     return false.Label($"tick {i}: built {built} outside the zone {t.zone}");

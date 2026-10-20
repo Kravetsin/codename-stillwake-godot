@@ -141,6 +141,10 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 
 ## Others' heroes
 
+- **Another surface (0076):** moved by the sim to another surface, this hero stands where it arrived, the harpoon's
+  rod back in the gun; `Main` draws the registry of the surface it is on and puts away the open crate, the plan and the
+  effects.
+
 - This hero is sent (`Client.SendHero`, a string net never reads: `SentHero.Encode`, JSON) every 50 ms
   while it moves, turns its head, ties or lets go its tether, takes the plan or a tool out or its hands
   begin or end work, and every second standing still, stamped with its controller step's time; at once,
@@ -164,7 +168,7 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 - Each other hero is drawn 150 ms behind its newest sample, between the two around then, placed by the
   sender's stamps; it walks on 100 ms along its last speed when samples run out, then stands; a gap
   wider than three cells is a jump; one silent for three seconds is hidden with its tether.
-- Each in its suit (`Suits.Of`, the sim's `Hero.Colour`), posed by how it moves, lying while the sim
+- Only those on this hero's surface (`World.SurfaceOf`, 0076), each in its suit (`Suits.Of`, the world's `Players`), posed by how it moves, lying while the sim
   says it is out, its head turned as sent, the plan in its hands as sent; its tether drawn too. They
   sway the cables as this hero does (`HeroView.Others`).
 - Its hands as sent, by the same `HeroView.ShowHands` as this hero's: the axe held and swinging

@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><AssemblyName>Stillwake.Sim.Research</AssemblyName><RootNamespace>Stillwake.Sim.Research</RootNamespace></PropertyGroup>
-  <ItemGroup><ProjectReference Include="../Power/Power.csproj" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Power/Power.csproj" />
+    <ProjectReference Include="../Knowledge/Knowledge.csproj" />
+  </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="Stillwake.Sim.Tests" /></ItemGroup>
 </Project>

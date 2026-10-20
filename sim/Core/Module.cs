@@ -22,6 +22,42 @@ public abstract record Command
     public int? Surface { get; init; }
 }
 
+/// <summary>A world's surfaces as a module sees them (0076).</summary>
+public interface ISurfaces
+{
+    /// <summary>The surface this module runs on: 0 for the ship.</summary>
+    int Here { get; }
+
+    /// <summary>
+    /// Moves peer <paramref name="peer"/>'s hero and what it carries to <paramref name="surface"/>, at its spawn, once
+    /// every surface has run this tick, in the order asked: no module sees another surface change under it.
+    /// </summary>
+    void Send(int peer, int surface);
+}
+
+/// <summary>
+/// A module holding what is a peer's own, which goes with its hero from surface to surface (0076): crew's hero,
+/// items' inventory. Its twin on the surface left gives it up; this one takes it.
+/// </summary>
+public interface ICarries
+{
+    /// <summary>What <paramref name="peer"/> takes along, gone from here; null for nothing.</summary>
+    object? Depart(int peer);
+
+    /// <summary>Takes <paramref name="carried"/>, what the twin gave up, for <paramref name="peer"/> arriving at <paramref name="cell"/>, or the spawn with none.</summary>
+    void Arrive(int peer, object? carried, int? cell);
+}
+
+/// <summary>
+/// The modules of one surface in run order, which can make those of another surface of the same world (0076): a
+/// registry's. A world made of modules that cannot is the ship alone.
+/// </summary>
+public interface IModules : IReadOnlyList<Module>
+{
+    /// <summary>A fresh set for another surface, sharing whatever is the world's rather than a surface's.</summary>
+    IModules Another();
+}
+
 /// <summary>A command turned down on its tick: <c>Reason</c> is an i18n key the player reads.</summary>
 public sealed record Refused(Command Command, string Reason);
 
@@ -37,6 +73,7 @@ public abstract class Module
     internal readonly List<(Phase Phase, Action Run)> Systems = [];
     internal readonly List<(Type Type, string Name, Func<Command, string?> Validate, Action<Command> Apply)> Commands = [];
     internal Rng Rng = null!;
+    internal ISurfaces Where = null!;
 
     internal abstract object Slice { get; }
     internal abstract void Create(Layout layout);
@@ -45,8 +82,17 @@ public abstract class Module
     /// <summary>The world's random numbers: the only randomness a module may use.</summary>
     protected Rng Random => Rng;
 
+    /// <summary>The world's surfaces as a module sees them (0076): which one it runs on, and moving a peer to another.</summary>
+    protected ISurfaces Surfaces => Where;
+
     /// <summary>Rebuilds derived state from the rest of the slice: after a create and after a load.</summary>
     public virtual void Rebuild() { }
+
+    /// <summary>
+    /// Takes what a new surface keeps of the surface it was opened from, <paramref name="from"/> being this module's
+    /// twin there: after the create, before the rebuild. Creative mode is the one thing so far.
+    /// </summary>
+    protected internal virtual void Inherit(Module from) { }
 
     protected void System(Phase phase, Action run) => Systems.Add((phase, run));
 

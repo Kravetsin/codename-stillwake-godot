@@ -42,7 +42,6 @@ public static class DieDemo
             ["cell"] = spawn,
             ["suit"] = 2,
             ["out"] = 0,
-            ["colour"] = 0,
             ["exerting"] = false,
             ["thrusting"] = false,
             ["thrustTicks"] = 0,
