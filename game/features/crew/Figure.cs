@@ -321,6 +321,9 @@ public partial class Figure : Node2D
     /// <summary>The visor's middle as drawn, in pixels of the world, turning with the head: where a canister's air swirls in (0081).</summary>
     public Vector2 Visor => _helmet.ToGlobal(VisorOn);
 
+    /// <summary>Where the helmet turns, at the neck, in pixels of the world: inside the hero, so never in a wall.</summary>
+    public Vector2 HeadAt => _helmet.GlobalPosition;
+
     /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces.</summary>
     public Vector2 HeadLampToward => _helmet.GlobalTransform.X.Normalized();
 

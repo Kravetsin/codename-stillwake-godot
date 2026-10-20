@@ -118,7 +118,9 @@ Numbers from `game/Content/Light.cs`.
 - **Helmet lamps** (0077): a beam and a glow a lamp worn, from its bulb on the helmet (`LightView.HeadLamps`, answered by
   the crew's `HeroView.HeadLamps()`, where it is and the way the head looks): `Light.HeadLamp`, a warm (0.95, 0.82, 0.6)
   keeping `Light.HeadLampKeep` (0.8) a cell out to `Light.HeadLampReach` (9) within `Light.HeadLampHalfAngle` (30°) of
-  that way, faded over a soft edge, its bulb 3 px wide; and `Light.HeadGlow` (0.4) of it out to 2 cells all round. A beam
+  that way, faded over a soft edge, its bulb 3 px wide; and `Light.HeadGlow` (0.4) of it out to 2 cells all round, from halfway between the bulb and the
+  neck, inside the hero (`Sources.HeadLamp`): standing against a wall the bulb pokes into it, and a light in a wall lights
+  nothing in the open, so the beam then shines from there too. A beam
   is a `LightSource` with a `Toward`, packed with its most as 2 and its heading as a share of a turn, which the shader
   reads back (`beam_cos`, `beam_soft`): one dot product a texel. Free, as bright anywhere, aboard too.
 
@@ -126,7 +128,11 @@ Numbers from `game/Content/Light.cs`.
   ship keeps `Light.Ambient`), daylight keeps `Light.GroundKeep` (0.3) a cell of air in from the open (`StarField`'s keep), so
   it dies a cell or two round a bend, but falls down an opening keeping `Light.GroundDownKeep` (0.8: the down sweep's shares,
   `StarField`'s `down`), so a shaft is lit six to eight cells down; and lamps and beams go into solid ground keeping
-  `wall_keep` (0.35) a cell of the way through it from its face (`through` in the lightmap's shader), aboard too.
+  `wall_keep` (0.35) a cell of the way through it from its face (`through` in the lightmap's shader), aboard too. On a
+  planet's ground (`LightView`'s `ground`, `Lightmap.SoakThrough`, 0080) they go on out into the open past it, still keeping
+  `wall_keep` a cell of rock crossed: a shadow cast by rock fades in as the rock between thickens. Stopped dead, the lit rock
+  met the dark open beside it along the rock's face, a step a cell's edge long: caves lit by their growths read as boxes. Aboard,
+  walls stop light, so a lamp never lights the next room through one.
 - **Daylight soaks into the ground** (0079): going down from a wall cell into the wall under it, a planet's daylight keeps
   `Light.GroundSoak` (0.72) a cell (`StarField`'s `soak`, the down sweep's wall-to-wall share), so the top few cells of
   ground under the sun are lit, fading, as the "Stillwake" style shows them; sideways and up a wall still keeps

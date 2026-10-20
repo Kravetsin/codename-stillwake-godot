@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
+using L = Stillwake.Game.Light;
 
 namespace Stillwake.Game.Features.Light;
 
@@ -55,6 +56,38 @@ public static class Sources
             default:
                 return Open;
         }
+    }
+
+    /// <summary>
+    /// Whether the point (<paramref name="x"/>, <paramref name="y"/>), in pixels of the world, <paramref name="cell"/> pixels a
+    /// cell, lies where light stops: in a whole wall, a wall's solid half (0069) or a closed doorway. Past the grid it is open.
+    /// </summary>
+    public static bool Blocks(Func<int, int> structureAt, Func<int, int> shapeAt, int width, int height, int cell, double x, double y)
+    {
+        int cx = (int)Math.Floor(x / cell), cy = (int)Math.Floor(y / cell);
+        if (cx < 0 || cy < 0 || cx >= width || cy >= height) return false;
+        int at = cy * width + cx;
+        return structureAt(at) switch
+        {
+            Structure.Wall => Shape.Solid(shapeAt(at), (int)((x / cell - cx) * Shape.Unit), (int)((y / cell - cy) * Shape.Unit)),
+            Structure.DoorClosed => true,
+            _ => false,
+        };
+    }
+
+    /// <summary>
+    /// A helmet lamp's two lights (0077): its beam from the <paramref name="bulb"/> the way it points, and its glow round the
+    /// head from halfway between the bulb and the <paramref name="neck"/> — inside the hero, so never in a wall, for a light in
+    /// one lights nothing in the open, and the bulb pokes into a wall the hero stands against. The beam from there too then.
+    /// </summary>
+    public static (LightSource Beam, LightSource Glow) HeadLamp(
+        (double X, double Y) bulb, (double X, double Y) toward, (double X, double Y) neck, Func<double, double, bool> blocks)
+    {
+        var head = ((bulb.X + neck.X) / 2, (bulb.Y + neck.Y) / 2);
+        var beamAt = blocks(bulb.X, bulb.Y) ? head : bulb;
+        return (
+            new LightSource(beamAt.Item1, beamAt.Item2, L.HeadLamp, 1, L.HeadLampReach, L.HeadLampKeep, L.LampMost, L.HeadLampSize, toward),
+            new LightSource(head.Item1, head.Item2, L.HeadLamp, L.HeadGlow, L.HeadGlowReach, L.HeadGlowKeep, L.LampMost));
     }
 
     /// <summary>

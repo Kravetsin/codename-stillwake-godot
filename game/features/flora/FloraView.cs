@@ -5,6 +5,7 @@ using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
+using Spec = Stillwake.Content.Flora;
 
 namespace Stillwake.Game.Features.Flora;
 
@@ -82,21 +83,40 @@ public partial class FloraView : Node2D
         string name = $"planet/{plant.Kind}_{variant}";
         var texture = PixelArt.Picture(name);
         var size = texture.GetSize();
-        // Its foot in the middle of the picture's bottom row, Sink pixels under the top of the ground it grows from.
+        // Planted: its lowest drawn row Sink pixels under the top of the ground it grows from, the rows there not drawn.
         int x = plant.Cell % _grid.Width, y = plant.Cell / _grid.Width;
-        var corner = new Vector2(x * Cell + Cell / 2 - (int)size.X / 2, (y + 1) * Cell + look.Sink - (int)size.Y + 1);
-        var picture = new Sprite2D { Texture = texture, Centered = false, Position = corner, ZIndex = Layers.Flora };
+        var (top, bottom) = UsedRows(texture);
+        var (px, py, from, rows) = Planting.Picture(Spec.Anchor.Floor, x, y, Cell, (int)size.X, (int)size.Y, top, bottom, look.Sink);
+        var corner = new Vector2(px, py);
+        var picture = new Sprite2D
+        {
+            Texture = texture,
+            Centered = false,
+            Position = corner + new Vector2(0, from),
+            RegionEnabled = true,
+            RegionRect = new Rect2(0, from, size.X, rows),
+            ZIndex = Layers.Flora,
+        };
         Lit.Set(picture);
         AddChild(picture);
         Sprite2D? glow = null;
         var lights = Array.Empty<(Vector2, Color)>();
         if (Glows(name) is { } shine)
         {
-            glow = new Sprite2D { Texture = shine.Texture, Centered = false, Position = corner, ZIndex = Layers.Glows, Material = GlowMaterial };
+            glow = new Sprite2D { Texture = shine.Texture, Centered = false, Position = corner, ZIndex = Layers.Flora, Material = GlowMaterial };
             AddChild(glow);
             lights = shine.Points.Select(p => (corner + p.At, p.Colour)).ToArray();
         }
         _shown[plant.Cell] = (plant.Kind, picture, glow, lights);
+    }
+
+    /// <summary>The first and last rows of <paramref name="texture"/> with anything drawn in them.</summary>
+    private static (int Top, int Bottom) UsedRows(Texture2D texture)
+    {
+        var image = texture.GetImage();
+        if (image.IsCompressed()) image.Decompress();
+        var used = image.GetUsedRect();
+        return (used.Position.Y, used.End.Y - 1);
     }
 
     /// <summary>A felled plant's leaves, or a rock's chips, falling where it stood.</summary>

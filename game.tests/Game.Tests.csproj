@@ -35,6 +35,7 @@
     <Compile Include="../game/features/crew/Aim.cs" Link="Game/Crew/Aim.cs" />
     <Compile Include="../game/features/grid/Grass.cs" Link="Game/Grid/Grass.cs" />
     <Compile Include="../game/features/grid/ChunkReveal.cs" Link="Game/Grid/ChunkReveal.cs" />
+    <Compile Include="../game/render/GroundDetails.cs" Link="Game/Render/GroundDetails.cs" />
     <Compile Include="../game/features/crew/AxeSwing.cs" Link="Game/Crew/AxeSwing.cs" />
     <Compile Include="../game/features/crew/SwingArm.cs" Link="Game/Crew/SwingArm.cs" />
     <Compile Include="../game/features/crew/HarpoonShot.cs" Link="Game/Crew/HarpoonShot.cs" />
@@ -128,6 +129,7 @@
     <Compile Include="../game/Content/Sound.cs" Link="Game/Content/Sound.cs" />
     <Compile Include="../game/Content/DebrisLooks.cs" Link="Game/Content/DebrisLooks.cs" />
     <Compile Include="../game/Content/FloraLooks.cs" Link="Game/Content/FloraLooks.cs" />
+    <Compile Include="../game/features/flora/Planting.cs" Link="Game/Flora/Planting.cs" />
     <Compile Include="../game/Content/Handbook.cs" Link="Game/Content/Handbook.cs" />
     <Compile Include="../game/features/debris/Finds.cs" Link="Game/Debris/Finds.cs" />
     <Compile Include="../game/Content/HeldLook.cs" Link="Game/Content/HeldLook.cs" />

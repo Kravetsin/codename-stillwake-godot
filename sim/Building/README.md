@@ -91,14 +91,15 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   (`Terrain`), each standing in its cell over the soil it grows from and `Tall` cells up from it. A `Dig` on any of those
   cells, open (no structure), fells it at one hit, whatever the weapon, giving its kind's `Yields` to the sender (none yet:
   trees giving wood and seeds come there). A plant whose ground is gone — no wall under its cell, dug, taken apart, a
-  meteor — or whose cell holds something now is felled in derivation, the tick it happens, looked at only when the grid's
+  meteor, or a wall cut to a slope there — or whose cell holds something now is felled in derivation, the tick it happens, looked at only when the grid's
   version moved. A felled plant never grows back; only `Felled` is saved, so a planet's save grows by a number a plant.
 - **What grows in a planet's caves** (0080): the caves' kinds of `Content.Flora.Cave`, grown with the ground too, each holding on
   to something (`Flora.Anchor`): on a floor, standing in the open cell over the wall and `Tall` cells up; from a ceiling,
   hanging in the open cell under the wall and `Tall` cells down; in the rock, lying in a stone wall's own cell beside a cave
   (moss, mica, veins, fossils, a geode, the heat's cracks). One in open cells falls to a hit on any of them, as a plant does; one
   in the rock is not hit itself — a `Dig` there digs the stone, as on any wall — and goes the tick the stone breaks. Any whose
-  hold is gone (`HoldOf`: the wall under it, over it, or its own) is felled in derivation; looked at only round the cells the
+  hold is gone (`HoldOf`: the wall under it, over it, or its own), or one on a floor or a ceiling whose hold is cut to a
+  slope (they grow on whole walls only, never on slopes, as in Terraria), is felled in derivation; looked at only round the cells the
   grid's log names since the last look (`ChangedSince`), all of them when it names none (a first look, a load). They are many —
   some thirty-eight thousand on the first planet — and their cells go in `Felled` like a plant's.
 

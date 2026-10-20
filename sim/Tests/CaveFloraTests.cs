@@ -43,9 +43,8 @@ public class CaveFloraTests
                     break;
                 default:
                     int step = kind.On == Flora.Anchor.Floor ? -w : w;
-                    // On a floor a narrow one may stand on a slope; a wide one, and all from a ceiling, on whole walls.
-                    char hold = At(cell - step);
-                    if (hold != '#' && !(kind.On == Flora.Anchor.Floor && kind.Wide == 0 && hold is '/' or '\\')) return $"{where}: nothing holds it";
+                    // On whole walls only, never a slope.
+                    if (At(cell - step) != '#') return $"{where}: nothing whole holds it";
                     for (int dx = 1; dx <= kind.Wide; dx++)
                         if (At(cell - step + dx) != '#' || At(cell - step - dx) != '#' || At(cell + dx) != '.' || At(cell - dx) != '.')
                             return $"{where}: no room either side";
@@ -160,6 +159,20 @@ public class CaveFloraTests
         foreach (int cell in holds) w.Do(new Dig(cell, Weapons.Axe.Item));
         w.Run();
         Assert.Equal(["threadViolet"], Kinds(w));
+    }
+
+    [Fact]
+    public void AGrowthOnAFloorOrUnderACeilingCutToASlopeGoesAsIfDug()
+    {
+        // A glowcap over a floor slope at (2, 3), a stalactite under a whole ceiling at (5, 0), a glowcap on a whole floor at (4, 3).
+        var layout = Layout.Parse("""
+            ########
+            #......#
+            #......#
+            ##/#####
+            """) with { Flora = [(1 * 8 + 5, "stalactite"), (2 * 8 + 2, "glowcapTeal"), (2 * 8 + 4, "glowcapViolet")] };
+        var w = new Scenario(layout).Run();
+        Assert.Equal(["stalactite", "glowcapViolet"], Kinds(w));
     }
 
     [Fact]

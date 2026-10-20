@@ -278,19 +278,19 @@ public partial class HeroView : Node2D
 
     /// <summary>
     /// Where every helmet lamp worn on this surface shines from as drawn this frame, in the world's pixels, and the way it
-    /// points, where its head looks (0077): this hero's and each friend's shown, so a friend's beam lights a cave for
+    /// points, where its head looks, and the helmet's neck, inside the hero (0077): this hero's and each friend's shown, so a friend's beam lights a cave for
     /// everyone in it. What the light draws.
     /// </summary>
-    public IReadOnlyList<(Vector2 At, Vector2 Toward)> HeadLamps()
+    public IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)> HeadLamps()
     {
         _headLamps.Clear();
-        if (_figure.HeadLamp && _figure.Visible) _headLamps.Add((_figure.HeadLampAt, _figure.HeadLampToward));
+        if (_figure.HeadLamp && _figure.Visible) _headLamps.Add((_figure.HeadLampAt, _figure.HeadLampToward, _figure.HeadAt));
         foreach (var (_, shown) in _shownOthers)
-            if (shown.Figure.Visible && shown.Figure.HeadLamp) _headLamps.Add((shown.Figure.HeadLampAt, shown.Figure.HeadLampToward));
+            if (shown.Figure.Visible && shown.Figure.HeadLamp) _headLamps.Add((shown.Figure.HeadLampAt, shown.Figure.HeadLampToward, shown.Figure.HeadAt));
         return _headLamps;
     }
 
-    private readonly List<(Vector2 At, Vector2 Toward)> _headLamps = [];
+    private readonly List<(Vector2 At, Vector2 Toward, Vector2 Head)> _headLamps = [];
 
     /// <summary>
     /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world <paramref name="m"/>
