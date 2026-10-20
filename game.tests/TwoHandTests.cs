@@ -68,22 +68,42 @@ public class TwoHandTests
     [Fact]
     public void TurnsSoTheBitsLineRunsThroughThePointWithinTheClampAndStopsAtItBeyond()
     {
-        var look = HeldLook.Drill;
-        foreach (var (dx, dy) in new[] { (60.0, 8.0), (40.0, -10.0), (50.0, 20.0), (100.0, 0.0), (30.0, 8.0) })
-        {
-            double turn = TwoHand.AngleFor(look, dx, dy);
-            Assert.InRange(turn, -TwoHand.Up + 1e-6, TwoHand.Down - 1e-6);
-            var (from, to) = (TwoHand.At(look, turn, look.EdgeFrom), TwoHand.At(look, turn, look.EdgeTo));
-            // How far the point lies off the bit's line.
-            double ux = to.X - from.X, uy = to.Y - from.Y, off = ((dx - from.X) * uy - (dy - from.Y) * ux) / Math.Sqrt(ux * ux + uy * uy);
-            Close(0, off, 3);
-        }
+        // Every point from one cell to five round the shoulder, a degree apart: where the turn lands inside the clamp, the
+        // bit's line runs through it, the cells under the feet included.
+        int inside = 0, below = 0;
+        foreach (var look in Held)
+            for (int deg = -180; deg < 180; deg++)
+                for (double cells = 1; cells <= 5; cells += 0.5)
+                {
+                    double dx = Math.Cos(deg * Math.PI / 180) * cells * Rig.Cell, dy = Math.Sin(deg * Math.PI / 180) * cells * Rig.Cell;
+                    double turn = TwoHand.AngleFor(look, dx, dy);
+                    Assert.InRange(turn, -TwoHand.Up, TwoHand.Down);
+                    if (turn <= -TwoHand.Up + 1e-6 || turn >= TwoHand.Down - 1e-6) continue;
+                    var (from, to) = (TwoHand.At(look, turn, look.EdgeFrom), TwoHand.At(look, turn, look.EdgeTo));
+                    // How far the point lies off the bit's line.
+                    double ux = to.X - from.X, uy = to.Y - from.Y, off = ((dx - from.X) * uy - (dy - from.Y) * ux) / Math.Sqrt(ux * ux + uy * uy);
+                    Assert.True(Math.Abs(off) < 0.01, $"the bit misses ({dx:0.0}, {dy:0.0}) by {off:0.000} px turned {turn:0.00}");
+                    inside++;
+                    if (dy > Rig.Shoulder) below++;
+                }
+        Assert.True(inside > 2000 && below > 500, $"only {inside} points aimed at, {below} under the feet");
         // Straight up or down, or behind above and below, it turns only as far as the clamp lets it.
-        Assert.Equal(-TwoHand.Up, TwoHand.AngleFor(look, 0, -100));
-        Assert.Equal(TwoHand.Down, TwoHand.AngleFor(look, 0, 100));
-        Assert.Equal(-TwoHand.Up, TwoHand.AngleFor(look, -100, -5));
-        Assert.Equal(TwoHand.Down, TwoHand.AngleFor(look, -100, 30));
-        Assert.Equal((0.6, 0.6), (TwoHand.Up, TwoHand.Down));
+        var drill = HeldLook.Drill;
+        Assert.Equal(-TwoHand.Up, TwoHand.AngleFor(drill, 0, -100));
+        Assert.Equal(TwoHand.Down, TwoHand.AngleFor(drill, 0, 100));
+        Assert.Equal(-TwoHand.Up, TwoHand.AngleFor(drill, -100, -5));
+        Assert.Equal(TwoHand.Down, TwoHand.AngleFor(drill, -100, 30));
+        Close(55, TwoHand.Up * 180 / Math.PI, 6);
+        Close(85, TwoHand.Down * 180 / Math.PI, 6);
+    }
+
+    [Fact]
+    public void AimedAsFarDownAsItTurnsTheDrillStandsBeforeTheLegsItsPointAtTheFloor()
+    {
+        // The body stays upright: the pivot rises and comes out instead, the bit's point ahead of the shoulder at the feet.
+        var tip = TwoHand.At(HeldLook.Drill, TwoHand.Down, HeldLook.Drill.EdgeTo);
+        Assert.InRange(tip.X, Rig.W / 2, Rig.W / 2 + Rig.Cell);
+        Assert.InRange(tip.Y, Rig.Shoulder - 2, Rig.Shoulder + 4);
     }
 
     [Fact]
