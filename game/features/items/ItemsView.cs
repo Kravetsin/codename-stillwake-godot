@@ -16,8 +16,8 @@ namespace Stillwake.Game.Features.Items;
 /// The player's items (features/items): the hotbar always, the rest and an open crate on demand
 /// (<see cref="InventoryPanel"/>); the stacks lying on the floor (<see cref="FloorLayer"/>), picked up
 /// as the hero walks over them, saying so over its head, as it says what its own catches of debris gave
-/// (<see cref="OwnCatches"/>). A crate, a furnace or an analyzer is opened by
-/// the crew's E, through <see cref="Ui.OpenCrate"/>.
+/// (<see cref="OwnCatches"/>), each flying home to its chest on a ribbon of light (<see cref="PickUpFlights"/>).
+/// A crate, a furnace or an analyzer is opened by the crew's E, through <see cref="Ui.OpenCrate"/>.
 /// </summary>
 public partial class ItemsView : Node2D
 {
@@ -78,10 +78,16 @@ public partial class ItemsView : Node2D
         _wasOut = hero?.Out ?? false;
         // What the hero walks over, it picks up, saying so over its head at once; passed out, nothing.
         // What its own catches just put into the inventory, over its head too: a grab's loot is drawn as it runs.
-        var caught = _catches.Read(client.InFlight, debris.CaughtFrom);
+        var caught = _catches.Read(client.InFlight, debris.CaughtFrom, piece => DrawnAt(debris, piece, progress));
         if (hero is { } spot)
         {
-            foreach (var (item, count) in caught) _popups.Add(item, count);
+            // A catch's loot flies home from where the piece was, one icon after another (0075).
+            for (int i = 0; i < caught.Count; i++)
+            {
+                var (item, count, from) = caught[i];
+                _popups.Add(item, count);
+                if (from is var (fx, fy)) _flights.Fly(item, new Vector2((float)fx, (float)fy), i);
+            }
             IReadOnlyList<int> walkedOver = spot.Out ? [] : Reach.PickUpsOf(items, grid.Width, client.Id, spot.X, spot.Y, taking);
             foreach (int id in walkedOver)
             {
@@ -96,5 +102,18 @@ public partial class ItemsView : Node2D
         }
         _floor.Update(grid, items, rooms, Reach.PickingUp(client.InFlight), client.World.Tick, progress, elapsedMs);
         Panel.Frame(client, items, grid, research, hero, elapsedMs);
+    }
+
+    /// <summary>Where piece <paramref name="id"/> is drawn now, in pixels of the world; none once it is gone.</summary>
+    private static (double X, double Y)? DrawnAt(DebrisModule debris, int id, double progress)
+    {
+        var pieces = debris.Pieces;
+        for (int i = 0; i < pieces.Count; i++)
+        {
+            if (pieces[i].Id != id) continue;
+            var (x, y) = PieceDrawn.At(pieces[i], progress);
+            return (x / DebrisModule.Unit * ShipCamera.Cell, y / DebrisModule.Unit * ShipCamera.Cell);
+        }
+        return null;
     }
 }

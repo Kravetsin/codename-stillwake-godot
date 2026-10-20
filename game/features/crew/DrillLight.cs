@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 
@@ -7,19 +8,34 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// A drill's light (0054, 0075), one a figure. Where its bit bites a wreck, the axe's hit in small and without end: a
 /// steady spray of sparks thrown back off the bit, slow metal dust, now and then a tumbling chip, a small glint every
-/// so often and a warm light held there. The arc drill's coil besides, while it runs: short arcs crawling over it and
-/// now and then one leaping off it into the air, the electric spear's bolts (<see cref="Bolts"/>); the plain drill has none.
+/// so often and a warm light held there. The arc drill's coil besides, while it runs, as fine as a fire's embers (slice
+/// 3): hair-thin arcs flicking between its turns, sparks crawling along it and now and then leaping a little way off,
+/// micro-glints, a faint blue haze and light pulsing over it, all of it coming in bursts; the plain drill has none.
 /// </summary>
 public sealed class DrillLight
 {
     /// <summary>What a biting bit throws a second, times <see cref="Fx.Count"/>, and how often it glints.</summary>
     private const double SparksPerSecond = 26, DustPerSecond = 6, ChipsPerSecond = 1.5, GlintEveryMs = 240;
-    /// <summary>Arcs a second over a running arc drill's coil at full speed, crawling and leaping off it.</summary>
-    private const double CrawlsPerSecond = 9, LeapsPerSecond = 1.6;
-    private static readonly (int, int, int) Warm = (255, 200, 140), Glinted = (255, 214, 150);
+    /// <summary>
+    /// Over a running arc drill's coil a second at full speed, on average, times <see cref="Fx.Crackle"/>: fine arcs between
+    /// its turns, sparks set crawling along it, sparks leaping off it, micro-glints.
+    /// </summary>
+    private const double ArcsPerSecond = 33, CrawlsPerSecond = 10, LeapsPerSecond = 7, GlintsPerSecond = 3;
+    /// <summary>How often the coil's haze pulses, a second; how fast its bursts come and go, a period in ms.</summary>
+    private const double PulseHz = 2.6, BurstMs = 260;
+    private static readonly (int, int, int) Warm = (255, 200, 140), Glinted = (255, 214, 150), Spark = (205, 236, 255), Haze = (90, 170, 255);
+
+    /// <summary>A spark crawling along the coil, in pixels of the drill's picture: where it set off, which way, how fast, along which row.</summary>
+    private sealed class Crawl
+    {
+        public double Ms, LifeMs, X, Way, Speed, Y, Phase;
+    }
 
     private readonly Random _random = new();
-    private double _sparks, _dust, _chips, _sinceGlint = GlintEveryMs, _crawls, _leaps;
+    private readonly List<Crawl> _crawling = [];
+    private readonly object _coilLight = new();
+    private readonly (double X, double Y)[] _trail = new (double, double)[4];
+    private double _sparks, _dust, _chips, _sinceGlint = GlintEveryMs, _arcs, _crawls, _leaps, _glints, _clockMs;
 
     private double Between(double from, double to) => from + (to - from) * _random.NextDouble();
 
@@ -32,7 +48,8 @@ public sealed class DrillLight
     {
         if (bites && tip is { } at) Bite(at, barrel, elapsedMs);
         else _sinceGlint = GlintEveryMs;
-        if (look?.Coil is { } coil && spin > 0.3) Arcs(coil, spin, held, elapsedMs);
+        if (look?.Coil is { } coil && spin > 0.3) Coil(coil, spin, held, elapsedMs);
+        else _crawling.Clear();
     }
 
     /// <summary>Sparks thrown back off the bit and spread, dust, a chip now and then, a glint every so often, a warm light.</summary>
@@ -63,21 +80,87 @@ public sealed class DrillLight
         Flares.Shared.Hold(this, tip.X, tip.Y, Warm, 0.22 * Fx.Glow, 2, 0.45f, 0.7);
     }
 
-    /// <summary>The arc drill's coil, the box <paramref name="coil"/> of its picture: arcs crawling across it, now and then one leaping off.</summary>
-    private void Arcs((double X0, double Y0, double X1, double Y1) coil, double spin, Func<(double X, double Y), Vector2> held, double elapsedMs)
+    /// <summary>The arc drill's coil, the box <paramref name="coil"/> of its picture, crackling: its arcs, crawling and leaping sparks, glints and haze.</summary>
+    private void Coil((double X0, double Y0, double X1, double Y1) coil, double spin, Func<(double X, double Y), Vector2> held, double elapsedMs)
     {
-        double s = elapsedMs / 1000 * spin;
-        for (_crawls += CrawlsPerSecond * s; _crawls >= 1; _crawls--)
+        _clockMs += elapsedMs;
+        // Electricity comes in bursts: every rate swells and ebbs together on slow noise, from a third of itself to twice.
+        double burst = 0.3 + 1.7 * LuminousMath.Noise(_clockMs / BurstMs, 3.7);
+        double s = elapsedMs / 1000 * spin * Fx.Crackle * burst;
+        for (_arcs += ArcsPerSecond * s; _arcs >= 1; _arcs--)
         {
-            double x = Between(coil.X0, coil.X1 - 2), bulge = (_random.NextDouble() < 0.5 ? -1 : 1) * 0.45;
-            (double, double) from = (x, coil.Y0), to = (x + Between(1.5, 3.5), coil.Y1);
-            Bolts.Shared.Add(Ends(held, from, to, bulge), _random.Next(5, 11), 0.8, 0.4);
+            double x = Between(coil.X0, coil.X1 - 2), y, y1, bulge, bright;
+            if (_random.NextDouble() < 0.8)
+                // Arched over the stock's top, a pixel above the coil, from one turn to another and out into the dark.
+                (y, y1, bulge, bright) = (coil.Y0 - Between(0.8, 1.2), coil.Y0 - Between(0.8, 1.2), -Between(0.2, 0.45), Between(0.6, 1));
+            else
+                // Or flicked faintly between two turns across its face, which is bright already.
+                (y, y1, bulge, bright) = (Between(coil.Y0 + 0.3, coil.Y1 - 0.3), Between(coil.Y0 + 0.3, coil.Y1 - 0.3), Between(-0.35, 0.35), Between(0.3, 0.55));
+            (double, double) from = (x, y), to = (x + Between(1.4, 3), y1);
+            Bolts.Shared.Add(Ends(held, from, to, bulge), _random.Next(2, 5), bright, width: 0.3, fine: true);
         }
-        for (_leaps += LeapsPerSecond * s; _leaps >= 1; _leaps--)
+        for (_crawls += CrawlsPerSecond * s; _crawls >= 1; _crawls--)
+            _crawling.Add(new Crawl
+            {
+                LifeMs = Between(140, 280),
+                X = Between(coil.X0, coil.X1),
+                Way = _random.NextDouble() < 0.5 ? -1 : 1,
+                Speed = Between(28, 55),
+                // Along the stock's top, where they stand out against the dark: on the coil's bright face they would wash out.
+                Y = coil.Y0 - Between(0.7, 1.2),
+                Phase = Between(0, Math.Tau),
+            });
+        for (int i = _crawling.Count - 1; i >= 0; i--)
         {
-            double x = Between(coil.X0, coil.X1);
-            (double, double) from = (x, coil.Y0), to = (x + Between(-3, 3), coil.Y0 - Between(4, 8));
-            Bolts.Shared.Add(Ends(held, from, to, Between(-0.15, 0.15)), _random.Next(4, 7), 0.9, 0.6, branchy: true);
+            var c = _crawling[i];
+            c.Ms += elapsedMs;
+            double u = c.X + c.Way * c.Speed * c.Ms / 1000;
+            if (c.Ms < c.LifeMs && u >= coil.X0 && u <= coil.X1)
+            {
+                Crawled(c, held);
+                continue;
+            }
+            // Off the end of its run: now and then it leaps off where it got to.
+            if (_random.NextDouble() < 0.35) Leap(coil, Math.Clamp(u, coil.X0, coil.X1), held);
+            _crawling.RemoveAt(i);
+        }
+        for (_leaps += LeapsPerSecond * s; _leaps >= 1; _leaps--) Leap(coil, Between(coil.X0, coil.X1), held);
+        for (_glints += GlintsPerSecond * s; _glints >= 1; _glints--)
+        {
+            var at = held((Between(coil.X0, coil.X1), Between(coil.Y0, coil.Y1)));
+            Flares.Shared.Glint(at.X, at.Y, Between(1.6, 2.6), Spark, Between(-0.5, 0.5));
+        }
+        // The haze and its light pulse, a little brighter in a burst.
+        double pulse = 0.5 + 0.5 * Math.Sin(_clockMs / 1000 * Math.Tau * PulseHz), lit = spin * Fx.Glow * (0.75 + 0.25 * Math.Min(1, burst));
+        var middle = held(((coil.X0 + coil.X1) / 2, (coil.Y0 + coil.Y1) / 2));
+        Flares.Shared.Bloom(middle.X, middle.Y, 16, Haze, (0.14 + 0.16 * pulse) * lit * Between(0.85, 1));
+        Flares.Shared.Hold(_coilLight, middle.X, middle.Y, Haze, (0.06 + 0.05 * pulse) * lit, 2, 0.45f, 0.7);
+    }
+
+    /// <summary>A crawling spark this frame: a short stroke of light along the coil behind it, wavering across its row, flickering.</summary>
+    private void Crawled(Crawl c, Func<(double X, double Y), Vector2> held)
+    {
+        for (int k = 0; k < _trail.Length; k++)
+        {
+            double ms = Math.Max(0, c.Ms - k * 9);
+            var p = held((c.X + c.Way * c.Speed * ms / 1000, c.Y + 0.5 * Math.Sin(c.Phase + ms * 0.05)));
+            _trail[k] = (p.X, p.Y);
+        }
+        double fade = Math.Sqrt(1 - c.Ms / c.LifeMs);
+        Flares.Shared.Trail(_trail, Spark, 0.85, fade * Between(0.6, 1) * Fx.Glow, 0.3);
+    }
+
+    /// <summary>One or two sparks leaping off the coil's top or bottom at <paramref name="x"/> of its picture, out and a little aside.</summary>
+    private void Leap((double X0, double Y0, double X1, double Y1) coil, double x, Func<(double X, double Y), Vector2> held)
+    {
+        bool top = _random.NextDouble() < 0.6;
+        double edge = top ? coil.Y0 - 1 : coil.Y1;
+        var from = held((x, edge));
+        var outward = (held((x, edge + (top ? -1 : 1))) - from).Normalized();
+        for (int n = _random.Next(1, 3); n > 0; n--)
+        {
+            double a = Math.Atan2(outward.Y, outward.X) + Between(-0.8, 0.8), v = Between(30, 65);
+            Glims.Shared.Add(Luminous.ArcSpark, from.X, from.Y, Math.Cos(a) * v, Math.Sin(a) * v);
         }
     }
 

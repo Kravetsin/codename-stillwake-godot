@@ -12,7 +12,8 @@ namespace Stillwake.Game.Dev;
 /// a hero working a plan has it: what once made the shimmer read the outline's buffer and draw a black disc.
 /// Slice 2's too, through the features' own pieces: two jetpacks thrusting, a room venting through three openings,
 /// three drones flying to and fro, an electric smelter at work, an arc drill biting, its coil arcing, and a lamp at
-/// half its power catching and dying (its sparks and arcs only: no lamp is drawn).
+/// half its power catching and dying (its sparks and arcs only: no lamp is drawn). Slice 3's: a catch of five items every
+/// second and a half flying home one after another, those past the cap (<see cref="Fx.MostRibbons"/>) not at all.
 /// </summary>
 public partial class FxBench : Node2D
 {
@@ -30,7 +31,8 @@ public partial class FxBench : Node2D
     private readonly Features.Crafting.SmelterHeat _smelter = new();
     private readonly Features.Crew.DrillLight _drill = new();
     private readonly Features.Light.LampSparks _lamp = new();
-    private double _clock;
+    private readonly Features.Items.PickUpFlights _flights = new();
+    private double _clock, _catchMs;
 
     public FxBench()
     {
@@ -38,7 +40,7 @@ public partial class FxBench : Node2D
         for (int i = 0; i < Fires; i++) AddChild(_shimmers[i] = new Shimmer());
         AddChild(_weld);
         AddChild(_aim);
-        foreach (var n in (Node2D[])[.. _plumes, _vents, _drones, _smelter]) AddChild(n);
+        foreach (var n in (Node2D[])[.. _plumes, _vents, _drones, _smelter, _flights]) AddChild(n);
     }
 
     /// <summary>Slice 2's pieces round <paramref name="middle"/>, <paramref name="ms"/> on.</summary>
@@ -69,6 +71,13 @@ public partial class FxBench : Node2D
         var grip = middle + new Vector2(60, 90);
         _drill.Step(HeldLook.ArcDrill, 1, true, grip + new Vector2(29, -5), Vector2.Right,
             p => grip + new Vector2((float)(p.X - HeldLook.ArcDrill.Grip.X), (float)(p.Y - HeldLook.ArcDrill.Grip.Y)), ms);
+        var chest = middle + new Vector2(150, -40);
+        for (_catchMs += ms; _catchMs >= 1500; _catchMs -= 1500)
+        {
+            string[] loot = ["scrap", "seed", "canister", "planks", "iron"];
+            for (int i = 0; i < loot.Length; i++) _flights.Fly(loot[i], chest + new Vector2(40, -12), i);
+        }
+        _flights.Update(chest, ms);
     }
 
     private double Between(double from, double to) => from + (to - from) * _random.NextDouble();

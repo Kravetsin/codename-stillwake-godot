@@ -11,7 +11,7 @@ public delegate (double X0, double Y0, double X1, double Y1, double Bulge) BoltE
 /// rolled anew, alive <see cref="Life"/> of them. Its shape is kept along and across the line between its ends, a share
 /// of its length, so a held arc stays on ends that move: the drill swinging, a lamp's socket.
 /// </summary>
-public sealed class Bolt(BoltEnds ends, int life, double intensity, double width, bool branchy)
+public sealed class Bolt(BoltEnds ends, int life, double intensity, double width, bool branchy, bool fine = false)
 {
     public BoltEnds Ends { get; } = ends;
     /// <summary>Its life and age, in 60 Hz frames.</summary>
@@ -22,6 +22,11 @@ public sealed class Bolt(BoltEnds ends, int life, double intensity, double width
     /// <summary>How thick, 1 an arc's whole width (<see cref="Bolts.Rim"/>, <see cref="Bolts.Core"/>).</summary>
     public double Width { get; } = width;
     public bool Branchy { get; } = branchy;
+    /// <summary>
+    /// A fine arc (the arc drill's coil, slice 3): a hair of white-blue light at the screen's finest under a faint blue haze,
+    /// its shape rolled anew every frame, no glow along it and no light of its own, for what throws it lights the room itself.
+    /// </summary>
+    public bool Fine { get; } = fine;
     /// <summary>Its line, then each branch's, as (along, across) shares of its length; <see cref="Runs"/> says where each starts.</summary>
     internal readonly List<(double U, double V)> Shape = [];
     internal readonly List<int> Runs = [];
@@ -46,8 +51,9 @@ public sealed class Bolt(BoltEnds ends, int life, double intensity, double width
 /// <summary>
 /// The electric arcs in the world (0075, slice 2), the electric spear's look the user picked on the lightning page: a
 /// crooked line by midpoint displacement, now and then branching, each shape held two 60 Hz frames and rolled anew, a
-/// white core over a cyan rim, a glow along it and a cyan light while it lives. The arc drill's coil, a lamp short of
-/// power catching, an electric smelter's contacts make them; the effects layer draws them, the light feature lights them.
+/// white core over a cyan rim, a glow along it and a cyan light while it lives; or fine (<see cref="Bolt.Fine"/>). A lamp
+/// short of power catching, an electric smelter's contacts, the arc drill's coil (fine) make them; the effects layer draws
+/// them, the light feature lights them.
 /// Drawn only, each peer its own. <paramref name="random"/> draws from 0 to 1; tests pass their own.
 /// </summary>
 public sealed class Bolts(Func<double>? random = null)
@@ -61,6 +67,8 @@ public sealed class Bolts(Func<double>? random = null)
     /// <summary>The chance a fork grows at a point of a branchy arc, before the share each point gets.</summary>
     private const double Branching = 0.35;
     public static readonly (int R, int G, int B) CoreColour = (244, 254, 255), RimColour = (85, 214, 255), GlowColour = (70, 180, 255);
+    /// <summary>A fine arc's core and the haze either side of it (<see cref="Bolt.Fine"/>).</summary>
+    public static readonly (int R, int G, int B) FineCore = (222, 244, 255), FineHaze = (90, 170, 255);
 
     public static Bolts Shared { get; } = new();
 
@@ -71,10 +79,10 @@ public sealed class Bolts(Func<double>? random = null)
     public IReadOnlyList<Bolt> Live => _live;
 
     /// <summary>A new arc along <paramref name="ends"/> for <paramref name="life"/> 60 Hz frames, its shape rolled now; null past the limit.</summary>
-    public Bolt? Add(BoltEnds ends, int life, double intensity = 1, double width = 1, bool branchy = false)
+    public Bolt? Add(BoltEnds ends, int life, double intensity = 1, double width = 1, bool branchy = false, bool fine = false)
     {
         if (_live.Count >= Limit) return null;
-        var bolt = new Bolt(ends, Math.Max(1, life), intensity, width, branchy);
+        var bolt = new Bolt(ends, Math.Max(1, life), intensity, width, branchy, fine);
         Roll(bolt);
         _live.Add(bolt);
         return bolt;
@@ -97,7 +105,7 @@ public sealed class Bolts(Func<double>? random = null)
                     _live[i] = _live[^1];
                     _live.RemoveAt(_live.Count - 1);
                 }
-                else if (b.Age % Hold == 0) Roll(b);
+                else if (b.Fine || b.Age % Hold == 0) Roll(b);
             }
     }
 
@@ -113,7 +121,7 @@ public sealed class Bolts(Func<double>? random = null)
         b.Shape.Clear();
         b.Runs.Clear();
         b.Runs.Add(0);
-        Fold(b.Shape, (0, 0), (1, 0), length, bulge);
+        Fold(b.Shape, (0, 0), (1, 0), length, bulge, b.Fine);
         if (!b.Branchy || length <= 5) return;
         int last = b.Shape.Count - 1;
         for (int j = 1; j < last && b.Runs.Count < 4; j++)
@@ -122,7 +130,7 @@ public sealed class Bolts(Func<double>? random = null)
             var at = b.Shape[j];
             double turn = (_random() < 0.5 ? -1 : 1) * Between(0.35, 1), reach = Between(0.22, 0.57);
             b.Runs.Add(b.Shape.Count);
-            Fold(b.Shape, at, (at.U + Math.Cos(turn) * reach, at.V + Math.Sin(turn) * reach), length * reach, 0);
+            Fold(b.Shape, at, (at.U + Math.Cos(turn) * reach, at.V + Math.Sin(turn) * reach), length * reach, 0, false);
         }
     }
 
@@ -130,10 +138,11 @@ public sealed class Bolts(Func<double>? random = null)
     /// The line from <paramref name="a"/> to <paramref name="b"/> (shares of the arc's length) folded by midpoint displacement into
     /// <paramref name="into"/>: each fold a midpoint pushed aside up to <see cref="Stray"/> of its segment, the first by
     /// <paramref name="bulge"/> more; one fold for each doubling of its <paramref name="length"/> in pixels past 1.6, six at most.
+    /// A <paramref name="fine"/> arc is folded twice at least, four segments however short, and strays more than twice as far: jagged.
     /// </summary>
-    private void Fold(List<(double U, double V)> into, (double U, double V) a, (double U, double V) b, double length, double bulge)
+    private void Fold(List<(double U, double V)> into, (double U, double V) a, (double U, double V) b, double length, double bulge, bool fine)
     {
-        int levels = Math.Clamp((int)Math.Ceiling(Math.Log2(Math.Max(length, 2) / 1.6)), 1, 6);
+        int levels = Math.Clamp((int)Math.Ceiling(Math.Log2(Math.Max(length, 2) / 1.6)), fine ? 2 : 1, 6);
         Span<(double U, double V)> points = stackalloc (double, double)[65];
         Span<(double U, double V)> next = stackalloc (double, double)[65];
         points[0] = a;
@@ -149,7 +158,7 @@ public sealed class Bolts(Func<double>? random = null)
                 var (p, q) = (points[i], points[i + 1]);
                 double du = q.U - p.U, dv = q.V - p.V, segment = Math.Sqrt(du * du + dv * dv);
                 if (segment < 1e-9) segment = 1e-9;
-                double off = (_random() * 2 - 1) * Stray * segment * 0.55 + (level == 0 ? bulge * span : 0);
+                double off = (_random() * 2 - 1) * Stray * segment * (fine ? 1.4 : 0.55) + (level == 0 ? bulge * span : 0);
                 next[m++] = ((p.U + q.U) / 2 - dv / segment * off, (p.V + q.V) / 2 + du / segment * off);
                 next[m++] = q;
             }

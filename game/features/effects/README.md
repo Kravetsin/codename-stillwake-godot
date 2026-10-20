@@ -11,7 +11,7 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
 | --------------------------- | --------------------------------------------------------------------------------- | ----- |
 | `game/render/Luminous.cs`   | `Glimmer` (streak, mote, wisp, chip), `Luminous` (a look and its motion) and its presets, `Glim`, `Glims` and `Glims.Shared`, `LuminousMath` (ramps, brightness, noise, curl, a streak's points) | no |
 | `game/render/Flares.cs`     | `Glint`, `Shock` (round or flat along a floor), `Flash`, `Trail`, `Bloom` and `Flares.Shared`: the key moments' glints, shock lines and lights; lines of light and soft glows stamped for one frame | no |
-| `game/render/Bolts.cs`      | `Bolt`, `Bolts` and `Bolts.Shared`: electric arcs, folded by midpoint displacement, held two 60 Hz frames, on ends that move | no |
+| `game/render/Bolts.cs`      | `Bolt`, `Bolts` and `Bolts.Shared`: electric arcs, folded by midpoint displacement, held two 60 Hz frames (a fine one one), on ends that move | no |
 | `game/render/SoftDots.cs`   | the soft dot and puff pictures motes and wisps are drawn with | yes | no |
 | `game/render/Strokes.cs`    | every stroke of light in one multimesh, soft-edged at a screen pixel                | yes   |
 | `game/render/Shimmer.cs`    | heat shimmer over a box of the world, a screen-texture shader                      | yes   |
@@ -26,12 +26,12 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
 - **Emitted by (slice 2):** the hero's figure (`crew/Figure.cs`) — a running boot's motes and veil, a landing's grains,
   motes, veils and flat ring; the jetpack (`JetPlume`) — its core, streaks, motes, pool and shimmer; the harpoon
   (`RodLight`) — the shot's glint and gas, the rod's trail and wake, the bite, the bead, the zip home; a drill
-  (`DrillLight`) — the bit's sparks, dust, chips and glints, the arc drill's arcs; the air (`AirView`, `VentLight`) —
+  (`DrillLight`) — the bit's sparks, dust, chips and glints, the arc drill's fine arcs, crawling and leaping sparks and haze; the air (`AirView`, `VentLight`) —
   breaches' jets, condensation, shimmer and frost, wind lines, the red beat, fresh air from filling vents; a pod's
-  hatch (`PodView`) — vapour; drones (`DroneLight`) — rotor discs and glints, downwash, dust, the lamp's trail,
+  hatch (`PodView`) — vapour; drones (`DroneLight`) — rotor discs and glints, dust and veils spread along a floor close under them, the lamp's trail,
   shimmer, a pad's puff; doors (`DoorLight`) — the lit edge, the slot's motes, the seal's ring, glint, dust and hiss;
   lamps short of power (`LampSparks`) — glints, sparks, arcs, the ember; an electric smelter (`SmelterHeat`) — its
-  element's breath, shimmer and a rare arc; a pick-up (`PickUpFlights`) — the icon's ribbon, glint, ring and flash.
+  element's pulse, its fine crackle, rising flecks, shimmer and the contacts' arc; a pick-up off the floor or out of a catch (`PickUpFlights`) — the icon's ribbon, glint, ring and flash.
 - **Motion:** each look's gravity (aboard; none in space, chosen by the emitter), drag, a turn of its way by
   smooth value noise (`Spin`, keeping its speed) and a push along the noise's curl (`Turbulence`), a
   floor it may bounce off; a streak samples its path every 60th of a second whatever the frame rate, its
@@ -49,7 +49,8 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   thing (`Flares.Trail`, `Bloom`) and taken for drawing once a frame (`Flares.TakeFrame`): the layer runs after every
   feature (`ProcessPriority` 100), so what they stamp is drawn the frame they stamp it. Arcs (`Bolts`): a cyan rim
   then a white core, a glow at every other point, their shape kept along and across the line between their ends so a
-  held shape stays on ends that move.
+  held shape stays on ends that move. A fine arc (slice 3, the arc drill's coil) is a hair of white-blue light a streak's
+  width in a blue haze twice as wide, folded twice at least and jagged, rolled anew every frame, with no glow and no light.
 - **Light (0019):** flashes first, then arcs, then luminous particles that give light, as spots of the light feature (`LightView`), at most `Fx.MostLights` (48) together.
 - **Heat shimmer:** a `Shimmer` node per hot thing, under the flames and over what is behind them: the screen
   under its box sampled again, each row nudged sideways by two waves and noise rising through it, faded out
@@ -73,6 +74,8 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   particles: 603 fps (1.66 ms; 0.25 CPU, 0.19 GPU) before, 549 (1.82 ms; 0.25, 0.19) after, the layer 0.63 → 0.78 ms;
   `--testbed` 620 fps (1.61 ms; 0.24, 0.15) → 620 (1.61; 0.24, 0.15), 167 → 171 draw calls; the furnace room 605 → 625;
   `--testbed --fx-bench` 412 → 383 fps (2.61 ms) with all of it at once; `--jetpack` 593, `--asteroid --arc-drill` 927.
+  Slice 3 (three runs each, 1920×1080): `-- --fx-bench`, now with a catch of five flying home every 1.5 s, 518 → 527 fps
+  (1.93 ms; 0.26 CPU, 0.19 GPU), `--asteroid --arc-drill` 913 → 915 (1.09 ms), within noise.
 - At most 1600 luminous particles and 48 arcs at once: a big breach thins out rather than costing frames.
 
 The luminous arithmetic, trails, blooms, floor rings and arcs are tested in `LuminousTests`; the old squares and their

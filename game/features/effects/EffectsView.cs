@@ -183,7 +183,8 @@ public partial class EffectsView : Node2D
             if (gl.Strength > 0.01) Blob(_light, PixelArt.Glow, gl.X, gl.Y, gl.Radius * 1.2, ColourOf(gl.Colour, gl.Strength * 0.6));
         foreach (var bloom in Flares.Shared.Blooms)
             Blob(_light, PixelArt.Glow, bloom.X, bloom.Y, bloom.Size, ColourOf(bloom.Colour, bloom.Alpha * Fx.Glow), bloom.Squash);
-        foreach (var bolt in Bolts.Shared.Live) Glow(bolt);
+        foreach (var bolt in Bolts.Shared.Live)
+            if (!bolt.Fine) Glow(bolt);
         _spentMs += Stopwatch.GetElapsedTime(began).TotalMilliseconds;
     }
 
@@ -279,14 +280,22 @@ public partial class EffectsView : Node2D
             int n = bolt.PointsOf(line, x0, y0, x1, y1, _bolt);
             for (int i = 0; i < n; i++) _arc[i] = Screen(_bolt[i].X, _bolt[i].Y);
             float thin = line == 0 ? 1 : 0.6f;
-            Paint(n, ColourOf(Bolts.RimColour, a * 0.85), (float)(Bolts.Rim * bolt.Width * thin));
-            Paint(n, ColourOf(Bolts.CoreColour, a), (float)(Bolts.Core * bolt.Width * thin));
+            if (bolt.Fine)
+            {
+                // A hair of light, a streak's width, in a faint blue haze twice as wide.
+                float hair = Math.Max(Thinnest, (float)(Bolts.Core * bolt.Width * thin) * _zoom);
+                Paint(n, ColourOf(Bolts.FineHaze, a * 0.35), Core(Math.Max(Thinnest * 2.2f, hair * 2)));
+                Paint(n, ColourOf(Bolts.FineCore, a), Core(hair));
+                continue;
+            }
+            Paint(n, ColourOf(Bolts.RimColour, a * 0.85), Core(Math.Max(Thinnest, (float)(Bolts.Rim * bolt.Width * thin) * _zoom)));
+            Paint(n, ColourOf(Bolts.CoreColour, a), Core(Math.Max(Thinnest, (float)(Bolts.Core * bolt.Width * thin) * _zoom)));
         }
 
         void Paint(int n, Color colour, float width)
         {
             for (int i = 0; i < n; i++) _arcColours[i] = colour;
-            _strokes.Line(_arc.AsSpan(0, n), _arcColours.AsSpan(0, n), Core(Math.Max(Thinnest, width * _zoom)));
+            _strokes.Line(_arc.AsSpan(0, n), _arcColours.AsSpan(0, n), width);
         }
     }
 
