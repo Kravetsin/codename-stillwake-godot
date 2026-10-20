@@ -59,16 +59,16 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
 - **Pictures:** cut from the cave concept's own drawing code (`objects.js`: glowcaps, crystals, spikes, threads, roots,
   hanging caps, its geode, ammonite and ribs, ore veins, heat cracks, moss) by the export beside it, as the surface's were:
   each glowing pixel's bloom, tight, in `_glow`. Change the drawing code and export again; never edit the pictures.
-- **Light** (`CaveLooks`): each glowing kind's one light, from its glow's middle, in its colour — teal, violet, ice-blue,
-  amber, rose, ember, green near the surface — at its strength and keep out to its reach (5 cells for a cap or a crystal).
-  Moss, roots and heat cracks (`Halo`) are no lights: each, every one alike, adds a soft round halo of its colour, a white
-  disc falling off as the square of the way out (`Atlas.Halo`) tinted and `Reach` cells across in radius, over what is
-  round it, behind the heroes — as lights only some had one, the cap left others dark, and walls cut their glow square.
-  Always from the open (`Planting.Light`):
+- **Light** (`CaveLooks`): each glowing growth's one light, every piece of a kind alike, from its glow's middle, in its colour —
+  teal, violet, ice-blue, amber, rose, ember, green near the surface — at its strength and keep out to its reach (8 cells for a
+  cap or a crystal, 5 for moss, 4 for roots): the only light in a cave, so a cluster lights the walls, the floor and a hero
+  round it. Always from the open (`Planting.Light`):
   one on a floor or from a ceiling held `LightOff` (3 px) off its face, one in the rock from just past its open face nearest
   its glow — a light in a wall lit only the rock round it, cut off along the face, and one on a face cast its shadow along
   it in a hard line; and `CaveLooks.LightSize` (4 px) wide, so its shadows' edges are soft as a lamp's. Only those whose
-  reach touches the view, the nearest its middle first, at most `CaveLooks.MostLights` (56), go to the light (`LightView.Caves`).
+  reach touches the view, the nearest its middle first, at most `CaveLooks.MostLights` (384, over the 323 the densest view at the farthest zoom holds), go to the light
+  (`LightView.Caves`). Its glow picture fades to nothing over its last three pixels (`Atlas.Faded`): the export's blooms run
+  to their pictures' edges, a ceiling moss's whole, and drew each picture's box.
 - **Glints:** mica, veins, crystals and geodes sparkle where a helmet's beam falls on them, nothing between (walked a few
   pixels at a time through the grid's walls): a white point and a cross of its colour, twinkling, as bright as the beam is
   there. Mica draws nothing else.
