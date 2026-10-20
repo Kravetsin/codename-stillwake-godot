@@ -29,6 +29,9 @@ public static class Testbed
     /// <summary>What the farm's crate holds: a full stack of each of the farm's items, and of rock and planks for soil.</summary>
     public static IEnumerable<string> FarmCrate => [.. Farm, "rock", "planks"];
 
+    /// <summary>What is found and never made, the arc drill (0075): in the supply crate by the door, the first crate full.</summary>
+    public static IEnumerable<string> Found => Weapons.Found.Select(w => w.Item);
+
     /// <summary>
     /// Room one holds the lifepod, the crates, the drone bay and the air: a tank with a canister and a generator piped to a
     /// vent in each room; room two the furnace, the Former, the electric smelter, the circuit assembler, the grow
@@ -137,9 +140,9 @@ public static class Testbed
         items["creative"] = true;
         var held = new List<JsonObject>
         {
-            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !Farm.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
+            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !Farm.Contains(i.Id) && !Found.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
             new() { ["id"] = At(FarmAt), ["slots"] = Slots("crate", [.. FarmCrate.Select(i => Stack(i, Items.Get(i).Stack))]) },
-            new() { ["id"] = At(Supply), ["slots"] = Slots("crate", [.. Supplies.Select(s => Stack(s.Item, s.Count))]) },
+            new() { ["id"] = At(Supply), ["slots"] = Slots("crate", [.. Supplies.Select(s => Stack(s.Item, s.Count)), .. Found.Select(f => Stack(f, 1))]) },
             new() { ["id"] = Id("growCapsule"), ["slots"] = Slots("growCapsule", [Stack("seed", Planted)]) },
             new()
             {

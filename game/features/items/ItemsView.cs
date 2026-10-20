@@ -23,6 +23,7 @@ public partial class ItemsView : Node2D
 {
     private readonly FloorLayer _floor = new();
     private readonly PickUpPopups _popups = new();
+    private readonly PickUpFlights _flights = new();
     private readonly OwnCatches _catches = new();
     private readonly ActSound _pick = new();
 
@@ -49,6 +50,7 @@ public partial class ItemsView : Node2D
         // Over the machines, so a stack beside one shows, and under the heroes walking over it.
         ZIndex = Layers.FloorItems;
         AddChild(_floor);
+        AddChild(_flights);
         AddChild(_pick);
         var overWorld = new CanvasLayer { Layer = ScreenLayers.Hud };
         overWorld.AddChild(_popups);
@@ -85,10 +87,12 @@ public partial class ItemsView : Node2D
             {
                 var stack = items.Floor.First(s => s.Id == id);
                 _popups.Add(stack.Item, items.PickUpAmount(client.Id, id));
+                _flights.Fly(stack.Item, new Vector2(stack.X, stack.Y) / 1000 * ShipCamera.Cell - new Vector2(0, 0.4f * ShipCamera.Cell));
                 client.Send(new PickUp(id));
                 _pick.Play(spot.Floats);
             }
             _popups.Update(elapsedMs, spot.X, spot.Y);
+            _flights.Update(new Vector2(spot.X, spot.Y - Content.Hero.Height * 0.6f) / 1000 * ShipCamera.Cell, elapsedMs);
         }
         _floor.Update(items, rooms, Reach.PickingUp(client.InFlight), progress, elapsedMs);
         Panel.Frame(client, items, grid, research, hero, elapsedMs);

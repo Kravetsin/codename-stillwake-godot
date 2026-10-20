@@ -56,6 +56,8 @@ public partial class LogisticsView : Node2D
     private readonly Node2D _zones = new() { ZIndex = Layers.Overlay, Material = Unlit };
     private readonly List<Glow> _padGlows = [], _lampGlows = [];
     private readonly List<Rect2> _outlined = [];
+    /// <summary>The drones' light and wash (0075).</summary>
+    private readonly DroneLight _light = new();
     private readonly Heard2D _dock = Cues.Player2D(S.DroneDock, S.World, voices: 4), _grab = Cues.Player2D(S.DroneGrab, S.World, voices: 4);
 
     /// <summary>
@@ -107,6 +109,7 @@ public partial class LogisticsView : Node2D
         Lit.Set(_docks);
         Lit.Set(_flying);
         AddChild(_docks);
+        AddChild(_light);
         AddChild(_glowing);
         AddChild(_flying);
         AddChild(_eyes);
@@ -125,6 +128,7 @@ public partial class LogisticsView : Node2D
         _clock += delta;
         ReadBays();
         Follow(delta);
+        Wash(delta);
         _started = true;
         PadLights();
         LampLights();
@@ -226,6 +230,32 @@ public partial class LogisticsView : Node2D
 
     private static Vector2 At(Flier f) => new((float)f.Hover.X, (float)f.Hover.Y);
 
+    /// <summary>A drone set down on or lifted off <paramref name="pad"/>, a pad's middle: heard there, a puff of dust and a ring.</summary>
+    private void Thud(Vector2 pad)
+    {
+        _dock.PlayAt(ToGlobal(pad));
+        DroneLight.Touched(ToGlobal(pad));
+    }
+
+    /// <summary>Each drone in the air lit and washing the air under it (<see cref="DroneLight"/>), the floor under it found in the grid.</summary>
+    private void Wash(double delta)
+    {
+        _light.Begin();
+        foreach (var f in _fliers.Values)
+            if (!f.Down) _light.Drone(f.Id, f.Hover, f.Hover.Bob(Cruise, Look), FloorUnder(f.Hover.X, f.Hover.Y), delta * 1000);
+        _light.End();
+    }
+
+    /// <summary>The top of the first solid cell under (<paramref name="x"/>, <paramref name="y"/>), pixels, within four cells; none past them.</summary>
+    private double? FloorUnder(double x, double y)
+    {
+        int cx = (int)Math.Floor(x / Cell), cy = (int)Math.Floor(y / Cell);
+        if (cx < 0 || cx >= _grid.Width) return null;
+        for (int row = Math.Max(0, cy + 1); row <= cy + 4 && row < _grid.Height; row++)
+            if (Hover.Solid(_grid.StructureAt(row * _grid.Width + cx))) return row * Cell;
+        return null;
+    }
+
     /// <summary>Drone <paramref name="f"/>'s rotors heard where it is: its motor running while it is in the air, its loop's pitch and volume from it, its speed and its id.</summary>
     private static void Hear(Flier f, double delta)
     {
@@ -267,14 +297,14 @@ public partial class LogisticsView : Node2D
                     bool landed = landing.Down;
                     (landing.Slot, landing.Landed, landing.Down) = (-1, 0, false);
                     (landing.Hold, landing.From) = landed ? (L.LaunchHoldS, slot) : (0, -1);
-                    if (landed) _dock.PlayAt(ToGlobal(PadCentre(bay.Corner, slot)));
+                    if (landed) Thud(PadCentre(bay.Corner, slot));
                     return _fliers[d.Id] = landing;
                 }
             var f = New(d.Id, d.Bay);
             (f.Hold, f.From) = (L.LaunchHoldS, slot);
             var pad = PadCentre(bay.Corner, slot);
             f.Hover.Place(pad.X, pad.Y);
-            _dock.PlayAt(ToGlobal(pad));
+            Thud(pad);
             return _fliers[d.Id] = f;
         }
         var flier = New(d.Id, d.Bay);
@@ -316,7 +346,7 @@ public partial class LogisticsView : Node2D
         if (down)
         {
             f.Down = true;
-            _dock.PlayAt(ToGlobal(pad));
+            Thud(pad);
         }
         return true;
     }

@@ -107,16 +107,20 @@ public partial class Shimmer : Node2D
         }
     }
 
-    /// <summary>How far its rows wobble at most, in pixels of the world, times <see cref="Fx.Shimmer"/>; hidden at nothing or switched off.</summary>
+    /// <summary>How far its rows wobble at most, in pixels of the world, times <see cref="Fx.Shimmer"/>; hidden at nothing, off the screen or switched off.</summary>
     public float Amplitude
     {
         set
         {
             float a = value * (float)Fx.Shimmer;
-            Show(Enabled && a > 0.02f);
+            Show(Enabled && a > 0.02f && OnScreen());
             if (Visible) _material.SetShaderParameter("amplitude", a);
         }
     }
+
+    /// <summary>Whether its box shows on the screen: off it, it is hidden, and a screen with none shown takes no copy.</summary>
+    private bool OnScreen() =>
+        !IsInsideTree() || GetViewportRect().Intersects(GetGlobalTransformWithCanvas() * _box);
 
     /// <summary>How fast the wobble climbs through it, pixels a second.</summary>
     public float Rise

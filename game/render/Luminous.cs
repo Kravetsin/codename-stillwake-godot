@@ -104,6 +104,71 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>Trailing a piece of a broken wreck for its first half second.</summary>
     public static readonly Luminous ShardEmber = new(Glimmer.Streak, Spark, (300, 600))
     { Bright = 0.8, Drag = 1, Spin = 3, Stretch = 0.08, Width = 0.24, Halo = 2.5, Light = true };
+
+    // Slice 2 (0075): the hero, the harpoon, the air, the drones, the doors, the lamps.
+
+    private static readonly (int, int, int)[] Dust = [(214, 218, 228), (196, 200, 210)];
+
+    /// <summary>Hot thrust from a jetpack's nozzle: short streaks, white to blue, curling as they slow. Its light is the plume's own.</summary>
+    public static readonly Luminous Thrust = new(Glimmer.Streak, [(235, 248, 255), (120, 190, 255), (50, 90, 230)], (160, 340))
+    { Bright = 0.9, Fade = 1.4, Drag = 4.5, Spin = 5, NoiseScale = 0.12, Stretch = 0.05, Shortest = 0.6, Width = 0.3, Halo = 3 };
+    /// <summary>Blue sparkle swirling off a jetpack's plume.</summary>
+    public static readonly Luminous ThrustMote = new(Glimmer.Mote, [(180, 220, 255), (80, 120, 255)], (350, 800))
+    { Bright = 0.6, Drag = 2, Turbulence = 70, NoiseScale = 0.1, Size = 0.55 };
+    /// <summary>Fine dust a running boot lifts, settling on the floor it was given.</summary>
+    public static readonly Luminous BootDust = new(Glimmer.Mote, Dust, (600, 1300))
+    { Matter = true, Fade = 1, Gravity = 12, Drag = 2.4, Turbulence = 22, NoiseScale = 0.12, Bounce = 0 };
+    /// <summary>A thin veil of dust behind a step, drifting back and settling.</summary>
+    public static readonly Luminous DustVeil = new(Glimmer.Wisp, [(206, 210, 220)], (700, 1000))
+    { Matter = true, Drag = 1.6, Turbulence = 30, Size = 1.6, Grow = 2.6, Alpha = 0.2 };
+    /// <summary>Grains a landing throws skittering along the floor, smeared by their speed, slowing into motes.</summary>
+    public static readonly Luminous DustGrain = new(Glimmer.Streak, Dust, (380, 800))
+    { Matter = true, Bright = 0.85, Fade = 0.9, Gravity = 60, Drag = 3.2, Spin = 1.5, Stretch = 0.045, Shortest = 0.4, Width = 0.32, Hot = 0.2, Bounce = 0.2 };
+    /// <summary>The motes a landing lifts, slower and longer than a step's.</summary>
+    public static readonly Luminous LandDust = BootDust with { LifeMs = (900, 1700), Gravity = 8, Drag = 1.8, Turbulence = 26 };
+    /// <summary>Veils rolling outward from a landing and curling.</summary>
+    public static readonly Luminous LandVeil = new(Glimmer.Wisp, [(210, 214, 224)], (900, 1500))
+    { Matter = true, Drag = 1.5, Turbulence = 40, Spin = 1.5, NoiseScale = 0.07, Size = 2, Grow = 3.2, Alpha = 0.2 };
+    /// <summary>Cold gas jetting from the harpoon's muzzle as it fires: fine pale streaks breaking into curls.</summary>
+    public static readonly Luminous Gas = new(Glimmer.Streak, [(236, 244, 255), (190, 206, 230), (140, 156, 180)], (150, 320))
+    { Bright = 0.65, Drag = 6, Spin = 4, Stretch = 0.05, Width = 0.26 };
+    /// <summary>A shot's vapour, drifting and thinning out.</summary>
+    public static readonly Luminous ShotVapour = new(Glimmer.Wisp, [(210, 216, 228)], (500, 800))
+    { Matter = true, Drag = 2, Turbulence = 30, Size = 1.4, Grow = 2.6, Alpha = 0.12 };
+    /// <summary>Left in the flying rod's wake.</summary>
+    public static readonly Luminous Wake = new(Glimmer.Mote, [(255, 236, 200), (200, 180, 150)], (300, 700))
+    { Bright = 0.55, Drag = 1.5, Turbulence = 30, Size = 0.45 };
+    /// <summary>A short spray off the rod biting metal.</summary>
+    public static readonly Luminous BiteSpark = new(Glimmer.Streak, [(255, 250, 230), (255, 210, 130), (230, 120, 50)], (200, 450))
+    { Drag = 2, Spin = 3, Stretch = 0.045, Width = 0.26, Halo = 3, Light = true };
+    /// <summary>Air jetting out of a breach into space, fast and pale.</summary>
+    public static readonly Luminous Jet = new(Glimmer.Streak, [(236, 246, 255), (180, 214, 245)], (280, 560))
+    { Bright = 0.55, Drag = 0.8, Spin = 3, Stretch = 0.06, Width = 0.24 };
+    /// <summary>Condensation curling and thinning out of a breach into space.</summary>
+    public static readonly Luminous Condensation = new(Glimmer.Wisp, [(232, 240, 250)], (900, 1600))
+    { Matter = true, Drag = 1.1, Turbulence = 45, Spin = 1.5, NoiseScale = 0.07, Size = 1.8, Grow = 4, Alpha = 0.13 };
+    /// <summary>Fresh air breathed out of a vent filling its room, a faint veil drifting up and settling.</summary>
+    public static readonly Luminous FreshAir = new(Glimmer.Wisp, [(214, 236, 255)], (1600, 2600))
+    { Matter = true, Drag = 1.6, Turbulence = 14, Spin = 0.8, NoiseScale = 0.06, Size = 1.6, Grow = 2.6, Alpha = 0.07 };
+    /// <summary>Pushed down from a drone's rotors, tilting with it, curling as they slow.</summary>
+    public static readonly Luminous Downwash = new(Glimmer.Streak, [(226, 240, 255), (170, 200, 236)], (300, 650))
+    { Bright = 0.5, Drag = 1.8, Spin = 2.6, NoiseScale = 0.1, Stretch = 0.06, Shortest = 0.5, Width = 0.22, Hot = 0.3, Bounce = 0 };
+    /// <summary>Dust crept sideways where a drone's wash meets the floor, or where it sets down.</summary>
+    public static readonly Luminous WashDust = new(Glimmer.Mote, [(204, 208, 218)], (700, 1300))
+    { Matter = true, Bright = 0.6, Fade = 1, Gravity = 6, Drag = 1.8, Turbulence = 18, Bounce = 0 };
+    /// <summary>Shaken loose from a door's slot as it opens, drifting down.</summary>
+    public static readonly Luminous SlotDust = new(Glimmer.Mote, [(206, 210, 220)], (1200, 2200))
+    { Matter = true, Bright = 0.75, Fade = 0.8, Gravity = 9, Drag = 1.2, Turbulence = 14, NoiseScale = 0.12, Bounce = 0 };
+    /// <summary>Knocked out along the floor as a door shuts.</summary>
+    public static readonly Luminous SealDust = SlotDust with { LifeMs = (700, 1300), Bright = 0.7, Fade = 1, Gravity = 10, Drag = 2.4, Turbulence = 18, NoiseScale = 0.08 };
+    /// <summary>A pressure door's hiss as it shuts: vapour from its seal.</summary>
+    public static readonly Luminous SealHiss = new(Glimmer.Wisp, [(226, 234, 246)], (600, 1100))
+    { Matter = true, Drag = 2.2, Turbulence = 34, Spin = 1.5, Size = 1.2, Grow = 3.2, Alpha = 0.14 };
+    /// <summary>Off a drill's bit biting a wreck, the axe's sparks shorter and finer, without end; their light is one held at the bit.</summary>
+    public static readonly Luminous DrillSpark = HitSpark with { LifeMs = (180, 420), Width = 0.24, Halo = 2.5, Light = false };
+    /// <summary>Dropping from a lamp short of power as it catches, arcing down and bouncing once.</summary>
+    public static readonly Luminous LampSpark = new(Glimmer.Streak, Spark, (300, 700))
+    { Fade = 1.1, Gravity = 240, Drag = 1, Spin = 2, Stretch = 0.045, Shortest = 0.5, Width = 0.24, Halo = 3, Light = true, Bounce = 0.3 };
 }
 
 /// <summary>One luminous particle in flight.</summary>

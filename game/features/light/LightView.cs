@@ -49,7 +49,9 @@ public partial class LightView : Node2D
     private readonly Lightmap _lightmap = new();
     private readonly Starlight _starlight = new();
     private readonly Node2D _lamps = new();
-    private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow)> _shown = new();
+    private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow, double Floor)> _shown = new();
+    /// <summary>The sparks, glints, ember and arcs of lamps short of power (0075).</summary>
+    private readonly LampSparks _sparks = new();
     private readonly List<(Machine Machine, Vector2 At, Sprite2D Glow)> _fires = new();
     private readonly List<LightSource> _main = new(), _spots = new();
     private Machine[] _machines = [];
@@ -142,7 +144,7 @@ public partial class LightView : Node2D
                 Material = GlowMaterial,
             };
             _lamps.AddChild(glow);
-            _shown.Add((lamp, at, glow));
+            _shown.Add((lamp, at, glow, FloorUnder(lamp.Cell)));
         }
         _fires.Clear();
         foreach (var m in _machines)
@@ -168,13 +170,16 @@ public partial class LightView : Node2D
         _timeMs += delta * 1000;
         _main.Clear();
         _spots.Clear();
-        foreach (var (lamp, at, glow) in _shown)
+        _sparks.Begin();
+        foreach (var (lamp, at, glow, floor) in _shown)
         {
-            float shines = Flicker.BrightnessOf(LampShare(lamp), _timeMs, lamp.Id);
+            float share = LampShare(lamp), shines = Flicker.BrightnessOf(share, _timeMs, lamp.Id);
+            if (share > 0 && share < 1) _sparks.Lamp(lamp.Id, at, shines, floor, delta * 1000);
             glow.Visible = shines > 0;
             glow.Modulate = GlowColour with { A = shines * GlowAlpha };
             _main.Add(new LightSource(at.X, at.Y, L.Lamp, shines, L.LampReach, L.LampKeep, L.LampMost, L.LampSize));
         }
+        _sparks.End();
         foreach (var (machine, at, glow) in _fires)
         {
             float burns = Fire(machine);
@@ -188,6 +193,16 @@ public partial class LightView : Node2D
         {
             if (_spots.Count >= Fx.MostLights) break;
             _spots.Add(new LightSource(f.X, f.Y, Rgb(f.Colour), (float)f.Strength, f.Reach, f.Keep, 1));
+        }
+        // Each arc lights round its middle in its cyan, the light changing only as its shape does.
+        foreach (var bolt in Bolts.Shared.Live)
+        {
+            if (_spots.Count >= Fx.MostLights) break;
+            var (x0, y0, x1, y1, _) = bolt.Ends();
+            // A short arc lights less than a long one: a crawl over a coil barely, a leap to a wall the room round it.
+            double length = Math.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+            float strength = (float)(Fx.BoltLight * bolt.Intensity * Math.Min(1, length / 10 + 0.3) * Fx.Glow);
+            _spots.Add(new LightSource((float)(x0 + x1) / 2, (float)(y0 + y1) / 2, Rgb(Bolts.GlowColour), strength, ParticleReach + 1, L.ParticleKeep, 1));
         }
         foreach (var g in Glims.Shared.Live)
         {
@@ -206,6 +221,15 @@ public partial class LightView : Node2D
         // The view in pixels of the world, as the camera last laid it.
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
         _lightmap.Frame(view, _main, _spots);
+    }
+
+    /// <summary>The top of the first solid cell under <paramref name="cell"/>, in pixels, within ten; else six cells under it.</summary>
+    private double FloorUnder(int cell)
+    {
+        int w = _grid.Width, x = cell % w, y = cell / w;
+        for (int row = y + 1; row <= y + 10 && row < _grid.Height; row++)
+            if (_grid.StructureAt(row * w + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed) return row * Cell;
+        return (y + 7) * Cell;
     }
 
     private static (float R, float G, float B) Rgb((int R, int G, int B) c) => (c.R / 255f, c.G / 255f, c.B / 255f);

@@ -27,8 +27,11 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Remote.cs`        | `Seen` with its hands (`Busy`, `Handwork`) and its harpoon's rod (`RodSeen`), `SentHero` (and its wire string), `RemoteHeroes`, `HeroSender` (`remote.ts`)     | no    |
 | `RemoteRod.cs`     | another hero's harpoon played out here from the rod it sends: flight, hook, reel, way back, its cues and its gun loaded (0065) | no    |
 | `Suits.cs`         | the suit colours, `Suits.Of`, their shades and the colour the PNGs are drawn in (`suits.ts`, `art.ts`) | no |
-| `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`) | yes |
+| `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`; luminous, 0075: fine motes and a veil a running step, grains, motes, veils and a flat ring on landing) | yes |
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
+| `JetPlume.cs`      | a jetpack's plume (0075): its core of light, streaks, motes, pool of light, shimmer | yes |
+| `RodLight.cs`      | the harpoon's light (0075): the shot's glint and gas, the rod's trail and wake, the bite, the taut line's bead, the zip home | yes |
+| `DrillLight.cs`    | a drill's light (0075): the bit's sparks, dust, chips and glints where it bites, the arc drill's arcs on its coil | yes |
 | `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway (door or hatch, 0067), a valve's wheel, a plan's own pictures | yes |
 | `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`); `HillsRun`, the walk over `-- --hills` | no    |
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`), on a room's change and as its report every `Crew.ReportEvery` ticks (0050); `ExertOf` and `ThrustOf`, what it breathes and vents; `Cold`, how hard the cold bites at a cell | no    |
@@ -213,9 +216,11 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 - Every frame the client sends `Thrust` while its own thrust (any step of the frame) differs from the sim's
   (`Report.ThrustOf`), as it does `Exert`: on with the first thrusting step, off on Shift let go, aboard,
   the jetpack taken off, the suit empty or passed out.
-- **The plume:** puffs of grey air (`Effect.Puff`, `PuffInSpace` out there) every `HeroView.PlumeEveryMs`
-  from the jetpack's nozzle as the figure draws it (`Figure.Nozzle`), against the thrust for this hero, at
-  once (0014); for others while the sim says they thrust (`Hero.Thrusting`), against the way they move, down
+- **The plume** (`JetPlume`, 0075): a hot thruster's, from the jetpack's nozzle as the figure draws it
+  (`Figure.Nozzle`): a short tapered core of light, white at the nozzle and blue toward its tip, flickering in
+  length, drawn behind the heroes; 90 blue-white streaks and 24 blue motes a second blown the other way (`Luminous.Thrust`,
+  `ThrustMote`); a blue pool of light held at it (`Flares.Hold`); heat shimmer in it; a faint ring as it lights. Against
+  the thrust for this hero, at once (0014); for others while the sim says they thrust (`Hero.Thrusting`), against the way they move, down
   while still. The figure wears the jetpack over its air pack (`Figure.Jetpack`, `art/hero_jetpack.png`, a
   placeholder) whenever the sim has one on that hero's back.
 - **A canister breathed:** a right click over the world with a canister in hand (the hand free, awake, no
@@ -398,9 +403,11 @@ Deliberately not handled:
   piece within reach is still caught by E or a click while the rod is in the gun, and the piece reeled in
   is caught with E. Heard through the suit (0042): the shot, the rod biting where it struck (the chop on
   metal or structure, the glove's thump on a crate or pod), the drum while reeling or pulled, a ready cue as the cooldown ends
-  with a harpoon in hand. Each shot blows a puff of grey air from the muzzle, most along the barrel and one
-  off either side (`HarpoonShot.Puff`, `Effect.Puff` on the shared particles): braked aboard in a third of a
-  second, wider and longer out in space; and others' too, as their rods leave (0065). The line and the rod are drawn over the heroes (`Layers.Hero`), the line
+  with a harpoon in hand. The harpoon's light (`RodLight`, 0075), this hero's and others' alike (0065): each shot a
+  glint at the muzzle and a jet of cold gas, nine fine streaks along the barrel and two puffs of vapour (`HarpoonShot.Puff`);
+  the flying rod a thin warm trail of light behind it and motes in its wake; its bite on metal a glint, eight sparks
+  sprayed back and a faint ring (on a crate or pod the ring only); the line going taut, a bead of light running down
+  it to the gun; a reel over, a streak zipping home along the line, a glint, a ring and a flash at the hand. The line and the rod are drawn over the heroes (`Layers.Hero`), the line
   unlit as the tethers are.
 - **The drill (0054):** with `Ui.Wielded` the drill, the arm aims it as it aims the harpoon, the bit's line
   through the pointer (`HarpoonShot.ArmFor`), the hero facing it; the figure holds it as a pistol by the loop of frame
@@ -420,6 +427,16 @@ Deliberately not handled:
   "[Hold LMB] Break", red with "Batteries flat" (`debris.flat`) once the belt cannot pay. Flat, it winds down
   and sends nothing; aboard it spins and touches nothing. The energy bar shows while it is held (0053). Every
   weapon works on every wreck alike: the axe chops an asteroid as any wreck, the drill bores a hull section.
+  **The arc drill** (`arcDrill`, 0075) is the drill with arcs on its coil: held, run, aimed and heard alike
+  (`HeldLook.IsDrill`), its own `Weapons.ArcDrill` pace and damage (15 a second to the drill's 10), its picture the
+  drill's with the coil tinted (`art/hero_arc_drill*.png`, a placeholder). Found, never made: only the testbed's
+  supply crate and `-- --asteroid --arc-drill` hold one till planet ruins do.
+  **Its light** (`DrillLight`, 0075): where a running bit bites a wreck (this hero's: the sim would take its hit;
+  another's: its bit touches one), the axe's hit in small and without end, 26 short sparks a second thrown back off
+  the bit, slow dust, now and then a small tumbling chip, a small glint every quarter second and a warm light held
+  there; a wreck's hit by a drill throws nothing of its own (`DebrisView`). The arc drill's coil (`HeldLook.Coil`, the
+  copper wound round the stock) besides, while it spins: arcs crawling across it, nine a second at full spin, and
+  now and then one leaping off it (`Bolts`); the plain drill has none.
   Heard at its bit (0059, `features/sound`): its motor whenever it spins, grains of a drill running free, spun up
   and down with the bit's picture (`HeldLook.SpinUpMs`) and sagging on a piece; and while its bit works on a piece,
   held 0.1 s past a graze, 18 short strikes a second, each its own pitch and loudness (`StrikeTrain`), silent the

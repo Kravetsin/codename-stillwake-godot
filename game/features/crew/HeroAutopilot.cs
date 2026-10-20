@@ -144,6 +144,27 @@ public sealed class HeroAutopilot
     }
 
     /// <summary>
+    /// <c>-- --dust</c>: in the testbed, the hero sprints one way and back, jumps running and lands, then jumps on the spot:
+    /// its boots' dust and its landings (0075), for recordings.
+    /// </summary>
+    public static HeroAutopilot Dust()
+    {
+        var run = new HeroInput(-1, 0, false, Sprint: true);
+        return new HeroAutopilot(
+        [
+            Wait(30),
+            Hold(run, 24),
+            Hold(run with { Jump = true }, 1),
+            Hold(run, 30),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Jump(),
+            Wait(60),
+            Hold(run with { X = 1 }, 40),
+            Wait(60),
+        ]);
+    }
+
+    /// <summary>
     /// <c>-- --fly</c> (<c>FarDemo</c>): floating out past the stream with a jetpack worn, it waits while
     /// the far field spawns round it, then flies right, up and back left through it, waiting between.
     /// </summary>

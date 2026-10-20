@@ -137,6 +137,7 @@ public static partial class En
         ["item.fireAxe"] = "Fire axe",
         ["item.harpoon"] = "Harpoon",
         ["item.drill"] = "Drill",
+        ["item.arcDrill"] = "Arc drill",
         ["item.jetpack"] = "Oxygen jetpack",
         ["item.battery"] = "Battery",
         // An item's card: its kind under its name; a tool's key and how it is used, the tiles' labels.
@@ -186,6 +187,9 @@ public static partial class En
         ["item.drill.kind"] = "Tool · Drill",
         ["item.drill.key"] = "LMB",
         ["item.drill.hint"] = "hold against debris to drill it",
+        ["item.arcDrill.kind"] = "Tool · Drill",
+        ["item.arcDrill.key"] = "LMB",
+        ["item.arcDrill.hint"] = "hold against debris to drill it",
         ["item.harpoon.key"] = "LMB",
         ["item.harpoon.hint"] = "shoot in space, click again to reel in",
         ["item.jetpack.kind"] = "Equipment · Back",

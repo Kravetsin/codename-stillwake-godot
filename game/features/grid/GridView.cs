@@ -95,12 +95,32 @@ public partial class GridView : Node2D
         _machinesVersion = version;
     }
 
-    /// <summary>Slides the panels of doors that moved on a step, redrawing only the cells whose step changed.</summary>
+    /// <summary>
+    /// Slides the panels of doors that moved on a step, redrawing only the cells whose step changed; each doorway's slide
+    /// lit from its leading cell (<see cref="DoorLight"/>).
+    /// </summary>
     public override void _Process(double delta)
     {
         if (!_slides.Any) return;
         foreach (int cell in _slides.Advance(delta))
-            if (IsDoor(_drawn.Structure[cell])) DrawDoor(cell);
+        {
+            if (!IsDoor(_drawn.Structure[cell])) continue;
+            DrawDoor(cell);
+            Light(cell);
+        }
+    }
+
+    /// <summary>A doorway's slide in light, told once from the cell it leads from: its edge while it moves, the slot's or the seal's moment at rest.</summary>
+    private void Light(int cell)
+    {
+        int links = DoorLinksOf(cell);
+        if (!DoorShape.Leads(links)) return;
+        bool hatch = Doorways.IsHatch(links), opening = _drawn.Structure[cell] == Structure.DoorOpen;
+        int length = 1, step = hatch ? 1 : _grid.Width, ahead = hatch ? Doorways.Right : Doorways.Down;
+        for (int c = cell; (DoorLinksOf(c) & ahead) != 0; c += step) length++;
+        var corner = new Vector2(cell % _grid.Width, cell / _grid.Width) * Cell;
+        if (_slides.OpenOf(cell) is double open) DoorLight.Sliding(corner, length, hatch, DoorLight.Ease(open), opening ? open : 1 - open);
+        else DoorLight.Rested(corner, length, hatch, opening);
     }
 
     /// <summary>The grid's version when its machines were last compared: the log since then says whether one came or went.</summary>
@@ -241,7 +261,8 @@ public partial class GridView : Node2D
         for (int c = cell; (DoorLinksOf(c) & back) != 0; c -= step) index++;
         for (int c = cell; (DoorLinksOf(c) & ahead) != 0; c += step) length++;
         length += index;
-        Put(_doors, CellOf(cell), DoorShape.Picture(hatch, index, length, (int)Math.Round(open * length * Cell)));
+        // Eased (0075): slow off, quick through the middle, slow into its slot.
+        Put(_doors, CellOf(cell), DoorShape.Picture(hatch, index, length, (int)Math.Round(DoorLight.Ease(open) * length * Cell)));
     }
 
     /// <summary>Lays the whole picture <paramref name="name"/> on cell <paramref name="at"/> of <paramref name="layer"/>.</summary>

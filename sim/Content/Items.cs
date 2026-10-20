@@ -129,6 +129,8 @@ public static class Items
         new("harpoon", 1, Gear: true, Group: ItemGroup.Tool),
         // Electric: draws from the belt's batteries while it drills (0053, 0054).
         new("drill", 1, Draw: 3, Gear: true, Group: ItemGroup.Tool),
+        // The drill with arcs on its coil (0075): found, never made (Weapons.Found).
+        new("arcDrill", 1, Draw: 3, Gear: true, Group: ItemGroup.Tool),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.

@@ -147,7 +147,14 @@ public partial class PodView : Node2D
         if (!made) return;
         _afterglow = Afterglow;
         int hatch = _crew.Spawn;
-        Particles.Shared.Emit(Effect.Air, (hatch % _grid.Width + 0.5) * Cell, (hatch / _grid.Width + 0.6) * Cell, 10);
+        // The hatch breathes out: a few puffs of vapour rolling up and out (0075).
+        var glims = Glims.Shared;
+        double hx = (hatch % _grid.Width + 0.5) * Cell, hy = (hatch / _grid.Width + 0.6) * Cell;
+        for (int i = 0; i < 5; i++)
+        {
+            double a = -Math.PI / 2 + glims.Between(-1.1, 1.1), s = glims.Between(14, 34);
+            glims.Add(Luminous.SealHiss, hx + glims.Between(-3, 3), hy, Math.Cos(a) * s, Math.Sin(a) * s);
+        }
     }
 
     public override void _Draw()

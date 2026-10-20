@@ -101,7 +101,7 @@
     <Compile Include="../game/features/atmosphere/Streams.cs" Link="Game/Atmosphere/Streams.cs" />
     <Compile Include="../game/features/atmosphere/AirField.cs" Link="Game/Atmosphere/AirField.cs" />
     <Compile Include="../game/features/atmosphere/AirMotes.cs" Link="Game/Atmosphere/AirMotes.cs" />
-    <Compile Include="../game/render/Particles.cs" Link="Game/Render/Particles.cs" />
+    <Compile Include="../game/render/Bolts.cs" Link="Game/Render/Bolts.cs" />
     <Compile Include="../game/render/Luminous.cs" Link="Game/Render/Luminous.cs" />
     <Compile Include="../game/render/Flares.cs" Link="Game/Render/Flares.cs" />
     <Compile Include="../game/Content/Fx.cs" Link="Game/Content/Fx.cs" />

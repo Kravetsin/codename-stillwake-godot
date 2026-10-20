@@ -193,15 +193,15 @@ public static class Aiming
     /// <paramref name="passOver"/>: grabbed already, its grab still in flight. Bare-handed, a wreck is
     /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/>, a small piece is still
     /// grabbed, but no wreck by the pointer is aimed at: the first a swing toward the pointer begun now
-    /// would touch is (<see cref="Struck"/>), wherever the pointer is. With the <paramref name="drill"/>, the
-    /// same, the first wreck its bit aimed at the pointer touches (<see cref="Touched"/>). With a <paramref name="gun"/>, the
+    /// would touch is (<see cref="Struck"/>), wherever the pointer is. With a <paramref name="drill"/>, the plain or the arc
+    /// drill, by its item, the same, the first wreck its bit aimed at the pointer touches (<see cref="Touched"/>). With a <paramref name="gun"/>, the
     /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked. A door or valve is
     /// opened or shut as <paramref name="shown"/> shows it (the world's without it): with this peer's own toggles in
     /// flight, the next press undoes them, and a press says what its sender saw should become of it.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, bool drill = false, ShownGrid? shown = null)
+        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -225,11 +225,11 @@ public static class Aiming
             int at = DebrisModule.CellOf(piece.X, piece.Y, grid.Width);
             return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id)), Piece: piece.Id);
         }
-        if (axe || drill)
+        if (axe || drill != null)
         {
             // A swing begun now faces the pointer (Poses.FaceOf), and so does the stroke it is judged by; the drill always does.
             var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
-            string tool = axe ? Spec.Weapons.Axe.Item : Spec.Weapons.Drill.Item;
+            string tool = axe ? Spec.Weapons.Axe.Item : drill!;
             var touched = axe ? Struck(m, toward, PointOf(point)) : Touched(m, toward, PointOf(point));
             if (touched.FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
             return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true, new Use(new Hit(wreck.Id, tool), m.Debris.HitProblem(peer, wreck.Id, tool)), Piece: wreck.Id);

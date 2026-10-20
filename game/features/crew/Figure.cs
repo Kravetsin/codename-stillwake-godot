@@ -33,9 +33,9 @@ public partial class Figure : Node2D
     private const double LeanMs = 450, SwimBlendMs = 320;
     /// <summary>How far the air pack sticks out behind the middle: what a body lying on its back rests on.</summary>
     private const double Back = Rig.W * 0.62;
-    /// <summary>Specks of dust a boot kicks up stepping, and a landing at most to either side, by its fall (DUST).</summary>
-    private const int DustRun = 6, DustLandLeast = 4, DustLandMost = 12;
-    private const double DustLandPerSpeed = 1.0 / 40;
+    /// <summary>Motes of dust a boot kicks up running, and the grains a landing throws at least and at most to either side, by its fall (0075).</summary>
+    private const int DustRun = 5, DustLandLeast = 3, DustLandMost = 9;
+    private const double DustLandPerSpeed = 1.0 / 50;
 
     /// <summary>Each part's joint, the pixel it turns at, as art.ts draws it.</summary>
     private static readonly Dictionary<string, Vector2> Joints = new()
@@ -289,6 +289,12 @@ public partial class Figure : Node2D
     /// <summary>Whether the drill held runs (0054, 0055): its bit spins up and its lamp lights; stopped, the lamp goes out and the bit winds down.</summary>
     public bool Spinning { get; set; }
 
+    /// <summary>Whether the drill held bites a wreck now: its bit throws sparks there (<see cref="DrillLight"/>).</summary>
+    public bool Bites { get; set; }
+
+    private readonly DrillLight _drillLight = new();
+    private Func<(double X, double Y), Vector2>? _heldAt;
+
     /// <summary>How fast the bit turns, from still (0) to full (1), and how far through its frames the picture is, in frames.</summary>
     private double _spin, _spinFrame;
     /// <summary>The bit spins up and down as <see cref="HeldLook"/> says, its frames going by <see cref="SpinFps"/> a second at full speed.</summary>
@@ -319,6 +325,40 @@ public partial class Figure : Node2D
             beam.Points = [from, _beamTo[i]];
             beam.DefaultColor = BeamColour with { A = 0.85f * left * left };
         }
+    }
+
+    /// <summary>
+    /// A running boot's dust at (<paramref name="x"/>, <paramref name="y"/>), the floor (0075): fine motes kicked back
+    /// against the way it <paramref name="faces"/>, settling, and a thin veil drifting back; matter, lit by the room.
+    /// </summary>
+    private static void Kick(double x, double y, int faces)
+    {
+        var glims = Glims.Shared;
+        for (int i = 0; i < Math.Round(DustRun * Fx.Count); i++)
+            glims.Add(Luminous.BootDust, x + glims.Between(-1.5, 1.5), y - 0.4, faces * glims.Between(-24, 6), -glims.Between(4, 15), y,
+                glims.Between(0.5, 0.85), glims.Between(0.45, 0.8));
+        glims.Add(Luminous.DustVeil, x - faces, y - 1.5, -faces * glims.Between(6, 14), -glims.Between(1, 4));
+    }
+
+    /// <summary>
+    /// A landing's dust at the feet, (<paramref name="x"/>, <paramref name="y"/>) the floor (0075): to either side
+    /// <paramref name="grains"/> grains skittering out along the floor, slowing into motes, as many motes, two veils rolling
+    /// out and curling; and a faint flat ring racing out along the floor, the only light in it.
+    /// </summary>
+    private static void Land(double x, double y, int grains)
+    {
+        var glims = Glims.Shared;
+        foreach (int side in (ReadOnlySpan<int>)[-1, 1])
+        {
+            for (int i = 0; i < Math.Round(grains * Fx.Count); i++)
+                glims.Add(Luminous.DustGrain, x + side * glims.Between(1, 4), y - 0.5, side * glims.Between(30, 80), -glims.Between(2, 16), y);
+            for (int i = 0; i < Math.Round(grains * Fx.Count); i++)
+                glims.Add(Luminous.LandDust, x + side * glims.Between(0, 6), y - 0.6, side * glims.Between(5, 26), -glims.Between(3, 14), y,
+                    glims.Between(0.5, 0.8), glims.Between(0.45, 0.8));
+            for (int i = 0; i < 2; i++)
+                glims.Add(Luminous.LandVeil, x + side * (2 + i * 3), y - 1.4 - i * 0.6, side * glims.Between(12, 26), -glims.Between(1, 5));
+        }
+        Flares.Shared.Shock(x, y - 0.4, 3, 3 + 26 * Fx.Length, 10 * Glim.SampleMs, (236, 240, 248), 0.32 * Fx.Glow, 0.28, 0.16);
     }
 
     /// <summary>The figure in a suit of <paramref name="colour"/>, 0xRRGGBB: its pictures recoloured, when it changes.</summary>
@@ -397,8 +437,7 @@ public partial class Figure : Node2D
             _landingMs = Poses.Land.Ms;
             _landed();
             int puff = Math.Min(DustLandMost, Math.Max(DustLandLeast, (int)Math.Round(_fall * DustLandPerSpeed, MidpointRounding.AwayFromZero)));
-            Particles.Shared.Emit(Effect.Dust, feetX, feetY, puff, -0.35);
-            Particles.Shared.Emit(Effect.Dust, feetX, feetY, puff, Math.PI + 0.35);
+            Land(feetX, feetY, puff);
         }
         // A foot comes down at the end of each half stride, a quarter stride in: heard walking and running,
         // kicking up dust only running.
@@ -407,7 +446,7 @@ public partial class Figure : Node2D
         if (stepping != null && _step != null && stepping != _step)
         {
             _stepped();
-            if (pose == Pose.Run) Particles.Shared.Emit(Effect.Dust, feetX + hero.Facing * Rig.W * 0.3, feetY, DustRun);
+            if (pose == Pose.Run) Kick(feetX + hero.Facing * Rig.W * 0.3, feetY, hero.Facing);
         }
         _step = stepping;
         _landingMs = Math.Max(0, _landingMs - elapsedMs);
@@ -566,7 +605,11 @@ public partial class Figure : Node2D
         else _smear.Follow(null, null, false, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
+        _drillLight.Step(inHand && HeldLook.IsDrill(Wields) ? item : null, _spin, Bites && inHand, Muzzle, Barrel, _heldAt ??= HeldAt, elapsedMs);
     }
+
+    /// <summary>A point of the held item's picture in the world, as it is drawn now.</summary>
+    private Vector2 HeldAt((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
 }
 
 /// <summary>

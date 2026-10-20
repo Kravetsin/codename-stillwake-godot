@@ -16,7 +16,7 @@ namespace Stillwake.Game;
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
-    bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null)
+    bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, (double X0, double Y0, double X1, double Y1)? Coil = null)
 {
     /// <summary>
     /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
@@ -41,12 +41,27 @@ public sealed record HeldLook(
         "res://art/hero_drill.png", (3, 10.5), 0, (25, 5.5), (32, 5.5), Aimed: true,
         Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.5, 4.5));
 
+    /// <summary>
+    /// The arc drill (0075): the drill's picture, its coil tinted (a placeholder, <c>art/hero_arc_drill*.png</c>); while it runs,
+    /// arcs crawl over its <see cref="Coil"/>, the box of the stock it is wound round, and now and then leap off it.
+    /// </summary>
+    public static readonly HeldLook ArcDrill = Drill with
+    {
+        Picture = "res://art/hero_arc_drill.png",
+        Spin = ["res://art/hero_arc_drill_spin1.png", "res://art/hero_arc_drill_spin2.png", "res://art/hero_arc_drill_spin3.png"],
+        Coil = (3, 3.5, 11, 6.5),
+    };
+
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
     public const double SpinUpMs = 120, SpinDownMs = 700;
 
     /// <summary>How <paramref name="item"/> looks in the hand; none for an item held as no picture.</summary>
     public static HeldLook? Of(string? item) =>
-        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill : null;
+        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill
+        : item == Content.Weapons.ArcDrill.Item ? ArcDrill : null;
+
+    /// <summary>Whether <paramref name="item"/> is a drill, the plain or the arc drill: aimed, run on the belt, drilling what its bit touches.</summary>
+    public static bool IsDrill(string? item) => item == Content.Weapons.Drill.Item || item == Content.Weapons.ArcDrill.Item;
 }
 
 /// <summary>

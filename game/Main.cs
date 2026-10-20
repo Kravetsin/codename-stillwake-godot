@@ -48,7 +48,7 @@ namespace Stillwake.Game;
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
-/// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
+/// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand, <c>--arc-drill</c> with the arc drill), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>), <c>--handbook</c> the Handbook opened on a world that has found ten kinds (<see cref="HandbookDemo"/>),
 /// <c>--shimmer-demo</c> with <c>--testbed --near=furnace</c> aims at the furnace, plans, marks and welds over it (<see cref="ShimmerDemo"/>),
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
@@ -155,13 +155,13 @@ public partial class Main : Node2D, ITogether
         if (Has("--hills")) _layout = HillsDemo.Map;
         if (Has("--slopes")) _layout = SlopesDemo.Map;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
-        if (Has("--testbed") || Has("--jetpack") || Has("--charge")) _layout = Testbed.Map;
+        if (Has("--testbed") || Has("--jetpack") || Has("--charge") || Has("--dust")) _layout = Testbed.Map;
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) _layout = WreckDemo.Map;
         if (Has("--grapple")) _layout = WreckDemo.Hall;
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : HeroAutopilot.Wreck();
+            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
             if (_args.FirstOrDefault(a => a.StartsWith("--edge=")) is { } edge)
@@ -306,7 +306,7 @@ public partial class Main : Node2D, ITogether
         var layout = Has("--perf") ? PerfLayout() : _layout;
         var world = Has("--gallery") ? DevWorlds.Gallery(modules)
             : Has("--furnace") ? FurnaceDemo.Create(modules)
-            : Has("--testbed") || Has("--jetpack") || Has("--charge") ? Testbed.Create(modules)
+            : Has("--testbed") || Has("--jetpack") || Has("--charge") || Has("--dust") ? Testbed.Create(modules)
             : World.Create(1, layout, modules);
         if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
@@ -317,7 +317,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--slopes")) world = SlopesDemo.Seed(world, Modules);
         if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);
         if (Has("--charge")) world = ChargeDemo.Seed(world, Modules);
-        if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules);
+        if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules, Has("--arc-drill") ? Content.Weapons.ArcDrill.Item : null);
         if (Has("--sortie")) world = SortieDemo.Seed(world, _m, Modules);
         if (Arg("--bow") is { } bow) FarDemo.Bow = int.Parse(bow);
         if (Has("--fly")) world = FarDemo.Seed(world, _m, Modules, int.Parse(_args.FirstOrDefault(a => a.StartsWith("--far="))?[6..] ?? "0"));
@@ -748,7 +748,7 @@ public partial class Main : Node2D, ITogether
         _stopLink?.Invoke();
         _stopLink = null;
         _session = null;
-        Particles.Shared.Clear();
+        Bolts.Shared.Clear();
         Glims.Shared.Clear();
         Flares.Shared.Clear();
         _next = why;

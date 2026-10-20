@@ -6,16 +6,15 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Effects;
 
 /// <summary>
-/// Every particle the features emit (features/effects): the luminous ones of <see cref="Glims.Shared"/> and
-/// the glints and shock lines of <see cref="Flares.Shared"/> (0075), and the old squares of
-/// <see cref="Particles.Shared"/> still thrown as dust, air and puffs. Light is added over the world, drawn
-/// at the screen's resolution with soft edges — streaks along their own path, white at the head, glints, rings
-/// — and matter is lit by the room: motes, wisps and chips, each mote catching a little light of its own.
-/// Over everything in the world, plans included; moved on every frame.
+/// Every particle the features emit (features/effects): the luminous ones of <see cref="Glims.Shared"/>, the glints,
+/// shock lines, trails and blooms of <see cref="Flares.Shared"/> and the arcs of <see cref="Bolts.Shared"/> (0075).
+/// Light is added over the world, drawn at the screen's resolution with soft edges — streaks along their own path,
+/// white at the head, glints, rings, trails, arcs — and matter is lit by the room: motes, wisps, chips and grains,
+/// each catching a little light of its own. Over everything in the world, plans included; moved on every frame,
+/// after every feature, so what they stamped this frame is drawn this frame.
 /// </summary>
 public partial class EffectsView : Node2D
 {
-    private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
     private static readonly CanvasItemMaterial Added = new()
     {
         BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
@@ -24,8 +23,9 @@ public partial class EffectsView : Node2D
 
     /// <summary>A streak is at least this wide, and a glint's spikes and a ring, in screen pixels: thinner, it would flicker away.</summary>
     private const float Thinnest = 1.1f;
+    /// <summary>What a mote or a grain of matter gives as light of its own, of its brightness: else the dim room swallows it.</summary>
+    private const double MatterLight = 0.4;
 
-    private readonly Node2D _specks = new() { Material = Unlit };
     // Drawn a pixel of the screen a unit, so strokes are as fine as the screen allows, over the world's pixels.
     private readonly Node2D _matter = new() { TextureFilter = TextureFilterEnum.Linear },
         _light = new() { Material = Added, TextureFilter = TextureFilterEnum.Linear };
@@ -41,16 +41,17 @@ public partial class EffectsView : Node2D
     public EffectsView()
     {
         ZIndex = Layers.Effects;
+        // After the features: a trail or a bloom they stamp this frame is drawn this frame.
+        ProcessPriority = 100;
         Lit.Set(_matter);
-        foreach (var n in new Node2D[] { _specks, _matter, _light, _strokes }) AddChild(n);
-        _specks.Draw += DrawSpecks;
+        foreach (var n in new Node2D[] { _matter, _light, _strokes }) AddChild(n);
         _matter.Draw += DrawMatter;
         _light.Draw += DrawLight;
         for (int n = 0; n < _points.Length; n++) (_points[n], _colours[n]) = (new Vector2[n], new Color[n]);
     }
 
-    /// <summary>The particles flying, old and luminous: what a recording checks.</summary>
-    public static int Count => Particles.Shared.Live.Count + Glims.Shared.Live.Count;
+    /// <summary>The particles flying: what a recording checks.</summary>
+    public static int Count => Glims.Shared.Live.Count;
 
     /// <summary>The CPU time moving them and recording their drawing took a frame, on average since last asked, in ms: for <c>--measure</c>.</summary>
     public double TakeCostMs()
@@ -64,12 +65,12 @@ public partial class EffectsView : Node2D
     {
         _clock.Restart();
         double ms = delta * 1000;
-        Particles.Shared.Step(ms);
         Glims.Shared.Step(ms);
         Flares.Shared.Step(ms);
+        Flares.Shared.TakeFrame();
+        Bolts.Shared.Step(ms);
         _zoom = Math.Max(0.01f, GetViewport().GetCanvasTransform().X.Length());
         _matter.Scale = _light.Scale = Vector2.One / _zoom;
-        _specks.QueueRedraw();
         _matter.QueueRedraw();
         _light.QueueRedraw();
         Stroke();
@@ -77,8 +78,8 @@ public partial class EffectsView : Node2D
         _frames++;
     }
 
-    private static Color ColourOf(int rgb, double alpha) =>
-        new(((rgb >> 16) & 0xff) / 255f, ((rgb >> 8) & 0xff) / 255f, (rgb & 0xff) / 255f, (float)alpha);
+    private static Color ColourOf((int R, int G, int B) c, double alpha) =>
+        new(c.R / 255f, c.G / 255f, c.B / 255f, (float)Math.Clamp(alpha, 0, 1));
 
     private static Color ColourOf((double R, double G, double B) c, double alpha) =>
         new((float)(c.R / 255), (float)(c.G / 255), (float)(c.B / 255), (float)Math.Clamp(alpha, 0, 1));
@@ -88,25 +89,16 @@ public partial class EffectsView : Node2D
 
     private Vector2 Screen(double x, double y) => new((float)x * _zoom, (float)y * _zoom);
 
-    private void DrawSpecks()
-    {
-        foreach (var p in Particles.Shared.Live)
-        {
-            float s = (float)p.Size;
-            _specks.DrawRect(new Rect2((float)p.X - s / 2, (float)p.Y - s / 2, s, s), ColourOf(p.Effect.Colour, p.Alpha));
-        }
-    }
-
-    /// <summary>A soft disc <paramref name="size"/> pixels of the world across at a point of the world.</summary>
-    private void Blob(Node2D on, Texture2D texture, double x, double y, double size, Color colour)
+    /// <summary>A soft disc <paramref name="size"/> pixels of the world across at a point of the world, squashed to <paramref name="squash"/> of its height.</summary>
+    private void Blob(Node2D on, Texture2D texture, double x, double y, double size, Color colour, double squash = 1)
     {
         if (colour.A <= 0.004f) return;
-        float s = (float)size * _zoom;
+        float s = (float)size * _zoom, h = s * (float)squash;
         var at = Screen(x, y);
-        on.DrawTextureRect(texture, new Rect2(at.X - s / 2, at.Y - s / 2, s, s), false, colour);
+        on.DrawTextureRect(texture, new Rect2(at.X - s / 2, at.Y - h / 2, s, h), false, colour);
     }
 
-    /// <summary>Dust, smoke and chips, lit by the room as everything solid is.</summary>
+    /// <summary>Dust, smoke, chips and grains, lit by the room as everything solid is.</summary>
     private void DrawMatter()
     {
         long began = Stopwatch.GetTimestamp();
@@ -118,7 +110,11 @@ public partial class EffectsView : Node2D
             switch (g.Look.Kind)
             {
                 case Glimmer.Mote:
-                    Blob(_matter, Dot, g.X, g.Y, g.Size * 2, ColourOf(c, b));
+                    Blob(_matter, SoftDots.Dot, g.X, g.Y, g.Size * 2, ColourOf(c, b));
+                    break;
+                case Glimmer.Streak:
+                    // A grain: its head lit as a mote is; its smear along its way is its light (Stroke).
+                    Blob(_matter, SoftDots.Dot, g.X, g.Y, g.Look.Width * 3, ColourOf(c, b));
                     break;
                 case Glimmer.Wisp:
                     Wisp(g, c);
@@ -139,7 +135,7 @@ public partial class EffectsView : Node2D
         float r = (float)(g.Size * (1 + g.Look.Grow * (1 - (1 - q) * (1 - q)))) * _zoom;
         double v = Math.Sqrt(g.Vx * g.Vx + g.Vy * g.Vy), stretch = 1 + Math.Min(1.2, v * 0.025);
         _matter.DrawSetTransform(Screen(g.X, g.Y), (float)(Math.Atan2(g.Vy, g.Vx) + g.Seed * 0.02), new Vector2((float)stretch, (float)(1 / Math.Sqrt(stretch))));
-        _matter.DrawTextureRect(Soft, new Rect2(-r, -r, r * 2, r * 2), false, ColourOf(c, g.Look.Alpha * g.Bright * swell));
+        _matter.DrawTextureRect(SoftDots.Puff, new Rect2(-r, -r, r * 2, r * 2), false, ColourOf(c, g.Look.Alpha * g.Bright * swell));
     }
 
     private static readonly Vector2[] ChipShape = [new(-1, -0.6f), new(1.2f, -0.3f), new(0, 0.9f)];
@@ -148,15 +144,15 @@ public partial class EffectsView : Node2D
     private void Chip(Glim g, (double R, double G, double B) c)
     {
         double q = g.Age;
-        _matter.DrawSetTransform(Screen(g.X, g.Y), (float)g.Turn, Vector2.One * _zoom);
+        _matter.DrawSetTransform(Screen(g.X, g.Y), (float)g.Turn, Vector2.One * _zoom * (float)(g.Size / g.Look.Size));
         for (int i = 0; i < 3; i++) _chip[i] = ChipShape[i];
         _matter.DrawColoredPolygon(_chip, ColourOf(c, 1 - q * q));
     }
 
     /// <summary>
-    /// Everything that gives light, added over the world, in two batches: fine dots (glowing motes, dust catching
-    /// light), soft halos (streak heads, glints' blooms, chips flashing); the strokes over them are one multimesh
-    /// (<see cref="Stroke"/>).
+    /// Everything that gives light, added over the world, in two batches: fine dots (glowing motes, dust catching light),
+    /// soft glows (blooms, streak heads, glints' blooms, chips flashing, arcs' glow); the strokes over them are one
+    /// multimesh (<see cref="Stroke"/>).
     /// </summary>
     private void DrawLight()
     {
@@ -165,8 +161,8 @@ public partial class EffectsView : Node2D
         foreach (var g in live)
         {
             if (g.Look.Kind != Glimmer.Mote) continue;
-            double b = LuminousMath.Brightness(g) * (g.Look.Matter ? 0.4 : 1);
-            if (b > 0.006) Blob(_light, Dot, g.X, g.Y, g.Size * 2, ColourOf(LuminousMath.RampAt(g.Look.Ramp, g.Age), b));
+            double b = LuminousMath.Brightness(g) * (g.Look.Matter ? MatterLight : 1);
+            if (b > 0.006) Blob(_light, SoftDots.Dot, g.X, g.Y, g.Size * 2, ColourOf(LuminousMath.RampAt(g.Look.Ramp, g.Age), b));
         }
         foreach (var g in live)
         {
@@ -184,11 +180,29 @@ public partial class EffectsView : Node2D
             else Blob(_light, PixelArt.Glow, g.X, g.Y, g.Look.Halo, ColourOf(c, b * 0.25 * Fx.Glow));
         }
         foreach (var gl in Flares.Shared.Glints)
-            if (gl.Strength > 0.01) Blob(_light, PixelArt.Glow, gl.X, gl.Y, gl.Radius * 1.2, ColourOf((gl.Colour.R, gl.Colour.G, gl.Colour.B), gl.Strength * 0.6));
+            if (gl.Strength > 0.01) Blob(_light, PixelArt.Glow, gl.X, gl.Y, gl.Radius * 1.2, ColourOf(gl.Colour, gl.Strength * 0.6));
+        foreach (var bloom in Flares.Shared.Blooms)
+            Blob(_light, PixelArt.Glow, bloom.X, bloom.Y, bloom.Size, ColourOf(bloom.Colour, bloom.Alpha * Fx.Glow), bloom.Squash);
+        foreach (var bolt in Bolts.Shared.Live) Glow(bolt);
         _spentMs += Stopwatch.GetElapsedTime(began).TotalMilliseconds;
     }
 
-    /// <summary>Every stroke of light this frame into the one multimesh: streaks, shock rings, glints' spikes.</summary>
+    private readonly (double X, double Y)[] _bolt = new (double, double)[65];
+
+    /// <summary>An arc's glow, every other point of its lines, its branches dimmer.</summary>
+    private void Glow(Bolt bolt)
+    {
+        var (x0, y0, x1, y1, _) = bolt.Ends();
+        double size = 5 * bolt.Width * (0.7 + 0.3 * Math.Min(1, bolt.Intensity));
+        for (int line = 0; line < bolt.Lines; line++)
+        {
+            int n = bolt.PointsOf(line, x0, y0, x1, y1, _bolt);
+            var colour = ColourOf(Bolts.GlowColour, 0.22 * bolt.Intensity * (line == 0 ? 1 : 0.6) * Fx.Glow * 0.7);
+            for (int i = 0; i < n; i += 2) Blob(_light, PixelArt.Glow, _bolt[i].X, _bolt[i].Y, size * (line == 0 ? 1 : 0.7), colour);
+        }
+    }
+
+    /// <summary>Every stroke of light this frame into the one multimesh: streaks, trails, arcs, shock rings, glints' spikes.</summary>
     private void Stroke()
     {
         _strokes.Scale = Vector2.One / _zoom;
@@ -196,9 +210,12 @@ public partial class EffectsView : Node2D
         foreach (var g in Glims.Shared.Live)
         {
             if (g.Look.Kind != Glimmer.Streak) continue;
-            double b = LuminousMath.Brightness(g);
+            double b = LuminousMath.Brightness(g) * (g.Look.Matter ? MatterLight : 1);
             if (b > 0.006) Streak(g, LuminousMath.RampAt(g.Look.Ramp, g.Age), b);
         }
+        var trails = Flares.Shared.Trails;
+        for (int i = 0; i < trails.Count; i++) Trail(trails[i]);
+        foreach (var bolt in Bolts.Shared.Live) Arc(bolt);
         foreach (var s in Flares.Shared.Shocks)
             if (s.Alpha > 0.01) Ring(s);
         foreach (var gl in Flares.Shared.Glints)
@@ -212,40 +229,81 @@ public partial class EffectsView : Node2D
     /// <summary>A stroke's solid core from a width in screen pixels drawn whole: the feather either side makes up the rest.</summary>
     private static float Core(float width) => Math.Max(0.5f, width - 0.6f);
 
-    /// <summary>One stroke along a streak's path, as long as its speed says, white-hot at the head and gone at the tail.</summary>
-    private void Streak(Glim g, (double R, double G, double B) c, double b)
+    /// <summary>
+    /// A line of light through <paramref name="count"/> points of <see cref="_xs"/>, <see cref="_ys"/>: from a whitened head at
+    /// <paramref name="a"/>, through <paramref name="c"/> at seven tenths of it by three tenths along, to nothing.
+    /// </summary>
+    private void Line(int count, (double R, double G, double B) c, double hot, double a, double width)
     {
-        double length = LuminousMath.LengthOf(g);
-        int n = LuminousMath.StreakPoints(g, length, _xs, _ys);
-        if (n < 2) return;
-        var points = _points[n];
-        var colours = _colours[n];
-        double a = Math.Min(1, b * 1.25), along = 0, total = 0;
-        for (int i = 1; i < n; i++) total += Math.Sqrt((_xs[i] - _xs[i - 1]) * (_xs[i] - _xs[i - 1]) + (_ys[i] - _ys[i - 1]) * (_ys[i] - _ys[i - 1]));
-        var head = ColourOf(Whiter(c, g.Look.Hot), a);
-        for (int i = 0; i < n; i++)
+        if (count < 2) return;
+        var points = _points[count];
+        var colours = _colours[count];
+        double along = 0, total = 0;
+        for (int i = 1; i < count; i++) total += Math.Sqrt((_xs[i] - _xs[i - 1]) * (_xs[i] - _xs[i - 1]) + (_ys[i] - _ys[i - 1]) * (_ys[i] - _ys[i - 1]));
+        var head = ColourOf(Whiter(c, hot), a);
+        for (int i = 0; i < count; i++)
         {
             if (i > 0) along += Math.Sqrt((_xs[i] - _xs[i - 1]) * (_xs[i] - _xs[i - 1]) + (_ys[i] - _ys[i - 1]) * (_ys[i] - _ys[i - 1]));
             double s = total > 0 ? along / total : 0;
             points[i] = Screen(_xs[i], _ys[i]);
             colours[i] = s < 0.3 ? head.Lerp(ColourOf(c, a * 0.7), (float)(s / 0.3)) : ColourOf(c, a * 0.7 * (1 - (s - 0.3) / 0.7));
         }
-        _strokes.Line(points, colours, Core(Math.Max(Thinnest, (float)(g.Look.Width * 1.5) * _zoom)));
+        _strokes.Line(points, colours, Core(Math.Max(Thinnest, (float)width * _zoom)));
+    }
+
+    /// <summary>One stroke along a streak's path, as long as its speed says, white-hot at the head and gone at the tail.</summary>
+    private void Streak(Glim g, (double R, double G, double B) c, double b)
+    {
+        int n = LuminousMath.StreakPoints(g, LuminousMath.LengthOf(g), _xs, _ys);
+        Line(n, c, g.Look.Hot, Math.Min(1, b * 1.25), g.Look.Width * 1.5);
+    }
+
+    private void Trail(Trail t)
+    {
+        var points = Flares.Shared.TrailPoints;
+        int n = Math.Min(t.Count, _xs.Length);
+        for (int i = 0; i < n; i++) (_xs[i], _ys[i]) = points[t.From + i];
+        Line(n, (t.Colour.R, t.Colour.G, t.Colour.B), t.Hot, Math.Min(1, t.Alpha * Fx.Glow), t.Width);
+    }
+
+    private readonly Vector2[] _arc = new Vector2[65];
+    private readonly Color[] _arcColours = new Color[65];
+
+    /// <summary>An arc's rim, cyan, then its core, white, over it; its branches thinner.</summary>
+    private void Arc(Bolt bolt)
+    {
+        var (x0, y0, x1, y1, _) = bolt.Ends();
+        double a = Math.Clamp(bolt.Intensity, 0, 1);
+        for (int line = 0; line < bolt.Lines; line++)
+        {
+            int n = bolt.PointsOf(line, x0, y0, x1, y1, _bolt);
+            for (int i = 0; i < n; i++) _arc[i] = Screen(_bolt[i].X, _bolt[i].Y);
+            float thin = line == 0 ? 1 : 0.6f;
+            Paint(n, ColourOf(Bolts.RimColour, a * 0.85), (float)(Bolts.Rim * bolt.Width * thin));
+            Paint(n, ColourOf(Bolts.CoreColour, a), (float)(Bolts.Core * bolt.Width * thin));
+        }
+
+        void Paint(int n, Color colour, float width)
+        {
+            for (int i = 0; i < n; i++) _arcColours[i] = colour;
+            _strokes.Line(_arc.AsSpan(0, n), _arcColours.AsSpan(0, n), Core(Math.Max(Thinnest, width * _zoom)));
+        }
     }
 
     private const int RingSegments = 64;
     private readonly Vector2[] _ring = new Vector2[RingSegments + 1];
     private readonly Color[] _ringColours = new Color[RingSegments + 1];
 
-    /// <summary>A shock line: a faint ring, closed.</summary>
+    /// <summary>A shock line: a faint ring, closed, squashed flat along a floor.</summary>
     private void Ring(Shock s)
     {
         var centre = Screen(s.X, s.Y);
         float r = (float)s.Radius * _zoom;
         var colour = ColourOf(s.Colour, s.Alpha);
+        var squash = new Vector2(1, (float)s.Squash);
         for (int i = 0; i <= RingSegments; i++)
         {
-            _ring[i] = centre + Vector2.FromAngle(Mathf.Tau * i / RingSegments) * r;
+            _ring[i] = centre + Vector2.FromAngle(Mathf.Tau * i / RingSegments) * squash * r;
             _ringColours[i] = colour;
         }
         _strokes.Line(_ring, _ringColours, Core(Math.Max(Thinnest, (float)s.Width * _zoom)));
@@ -281,26 +339,5 @@ public partial class EffectsView : Node2D
             _spikeColours[i] = ColourOf(i == 2 ? hot : c, a * SpikeAlpha[i]);
         }
         _strokes.Line(_spike, _spikeColours, w);
-    }
-
-    /// <summary>A fine dot: a white core fading out, tinted.</summary>
-    private static readonly GradientTexture2D Dot = Radial([0f, 0.22f, 0.55f, 1f], [1f, 0.9f, 0.22f, 0f], 32);
-
-    /// <summary>A soft puff, for smoke and vapour.</summary>
-    private static readonly GradientTexture2D Soft = Radial([0f, 0.35f, 0.7f, 1f], [1f, 0.62f, 0.18f, 0f], 64);
-
-    private static GradientTexture2D Radial(float[] offsets, float[] alphas, int size)
-    {
-        var colours = new Color[alphas.Length];
-        for (int i = 0; i < alphas.Length; i++) colours[i] = new Color(1, 1, 1, alphas[i]);
-        return new GradientTexture2D
-        {
-            Width = size,
-            Height = size,
-            Fill = GradientTexture2D.FillEnum.Radial,
-            FillFrom = new Vector2(0.5f, 0.5f),
-            FillTo = new Vector2(1f, 0.5f),
-            Gradient = new Gradient { Offsets = offsets, Colors = colours },
-        };
     }
 }

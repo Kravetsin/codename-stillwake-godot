@@ -21,7 +21,19 @@ public static class Weapons
     /// <summary>The drill (0054): 1 a hit, a hit every 2 ticks, 10 a second, on the belt's batteries.</summary>
     public static readonly Weapon Drill = new("drill", Damage: 1, Pace: 2, Effects: []);
 
-    public static readonly IReadOnlyList<Weapon> All = [Axe, Drill];
+    /// <summary>
+    /// The arc drill (0075): the drill with arcs crawling on its coil, half as much damage a second again, 15: 3 a hit, a
+    /// hit every 4 ticks, drawing as the drill does. Never made: tech to be found in planet ruins (<see cref="Found"/>).
+    /// </summary>
+    public static readonly Weapon ArcDrill = new("arcDrill", Damage: 3, Pace: 4, Effects: []);
+
+    public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, ArcDrill];
+
+    /// <summary>
+    /// The weapons no station makes: found, not crafted; till the planet ruins they come from are in the game, only a dev
+    /// world (the testbed's crate, <c>--arc-drill</c>) holds one.
+    /// </summary>
+    public static readonly IReadOnlyList<Weapon> Found = [ArcDrill];
 
     /// <summary>The weapon that is <paramref name="item"/>, or null for an item that deals no damage.</summary>
     public static Weapon? Of(string? item)

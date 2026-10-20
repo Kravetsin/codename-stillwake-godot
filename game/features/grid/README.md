@@ -23,6 +23,11 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   picture by the cell's piece, the piece whose panel is over it and the one after, made at start from the shut and
   open pictures (`DoorShape.Slid`) and packed in the atlas, so a slide is tiles swapped, never a node; doorways
   longer than five cells repeat their middles' pictures. Turned back part way, it slides back from where it is.
+  Eased (0075): slow off, quick through the middle, slow into its slot (`DoorLight.Ease`), still two pixels a step.
+  In light, told once a doorway from its leading cell (`DoorLight`, 0075): while it slides, a thin line of light along the
+  panel's leading edge, brightest halfway; opened, a few fine motes shaken loose from the slot drifting down and a
+  small glint there; shut, a faint flat ring along the floor (a door's), a small glint at the seal, a little dust
+  sideways and a pressure door's hiss of vapour.
   Only the look (0071): the sim moved the door at once, and air, rooms, feet and light follow the sim.
 - **Kept current:** `GridView.Sync(shown)` runs whenever the grid as this peer shows it changes
   (`game/shared/Predicted.cs`'s `Grid`, `predictedGrid` of `session/predicted.ts`): after a tick, and

@@ -10,7 +10,8 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
 | `AirField.cs` | the overlay's cells eased toward the sim's, a venting room's flow toward its nearest opening, over what is built | no    |
 | `AirMotes.cs` | motes gliding in all air, swept out of a venting room; a few in the lifepod's reach | no    |
 | `AirLook.cs` | the shader, with O: the rooms' air dithered, grey dots where there is none, the pod's ragged aura | yes   |
-| `AirView.cs` | venting rooms pulsing red and their air streaming out, the motes; with O the air overlay | yes   |
+| `AirView.cs` | venting rooms lit red on the beat and their air streaming out, the motes, fresh air from filling vents; with O the air overlay | yes   |
+| `VentLight.cs` | the breaches in light (0075): jets, condensation, shimmer, frost | yes |
 | `TankLooks.cs` | each tank's sight glass filled to its oxygen, and its light | yes   |
 
 - The overlay draws each room's air in an ordered dither, a pixel of the world at a time, drifting like a
@@ -33,8 +34,14 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
   out of a filling room's vents to the edge of its air; swept out of a venting room. Each glides on a
   heading that turns a little at a time and is drawn to a fraction of a pixel, so none jitters.
 - Air streams out of each opening of a room venting while it holds air or its vents still pour some
-  in, toward the space beside it (every way through a missing back wall), 24 specks a second an
-  opening and 160 a room at most, as `Effect.Air` particles (features/effects).
+  in, toward the space beside it (every way through a missing back wall), luminous (`VentLight`, 0075): 24 fast pale
+  streaks a second an opening and 160 a room at most (`Luminous.Jet`), with condensation curling and thinning into
+  space (`Condensation`, four tenths as many); over the six nearest breaches the escaping air shimmers, and frost
+  on their edges against the wall twinkles. Only openings on the screen throw anything. Motes swept fast toward a
+  breach are drawn as thin wind lines, stretching as they speed up (`AirView.Winds`). The venting room is lit red
+  on the 900 ms beat, a light held at its middle (`Flares.Hold`), its cells only faintly painted over.
+- Air filling a room (0075): the motes are fine soft specks (`SoftDots.Dot`), and each filling vent on the screen
+  breathes a faint veil of fresh air now and then, drifting up and settling (`Luminous.FreshAir`, 1.6 a second).
 - Each tank shows its oxygen up a sight glass in its picture, without a word: `art/tank_fill_{0..5}.png`
   drawn unlit over `machine_tank.png`, frame 1 to 5 by fifths of `Air.TankCapacity` rounded up
   (`shared/TankFill.cs`), so any oxygen shows the lowest step and only none shows the glass dark with
