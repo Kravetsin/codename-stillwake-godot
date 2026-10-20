@@ -33,7 +33,7 @@ public partial class MachineFrame : WristScreen
 
     /// <param name="name">The machine's name, as the build menu calls it.</param>
     /// <param name="power">What it draws or makes while it works; null for a machine off the power grid: no bolt.</param>
-    public MachineFrame(string name, int? power) : base(WristPieces.Dock, WristArt.MachineScreen, 8)
+    public MachineFrame(string name, int? power) : base(WristPieces.Dock, WristArt.MachineScreen, 8, across: Slots.ScreenPadding)
     {
         SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
         Head = Style.Gap(new HBoxContainer(), 6);

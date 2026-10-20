@@ -28,13 +28,15 @@ public partial class WristScreen : PanelContainer
     /// <param name="screen">Its screen's colour.</param>
     /// <param name="padding">Between the screen's edge and what it shows, in screen pixels.</param>
     /// <param name="lit">Whether it lights what is round it, and its lamp glows.</param>
-    public WristScreen(WristPiece piece, Color screen, int padding, bool lit = false)
+    /// <param name="across">Its left and right padding, when not <paramref name="padding"/>.</param>
+    public WristScreen(WristPiece piece, Color screen, int padding, bool lit = false, int? across = null)
     {
         _piece = piece;
         _screen = screen;
         MouseFilter = MouseFilterEnum.Stop;
         var box = new StyleBoxEmpty();
         box.SetContentMarginAll(padding);
+        box.ContentMarginLeft = box.ContentMarginRight = across ?? padding;
         AddThemeStyleboxOverride("panel", box);
         if (lit)
         {

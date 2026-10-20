@@ -41,6 +41,9 @@ public static class Slots
     /// <summary>The screen's margin to the hotbar, the gauges, the inventory and the equipment.</summary>
     public const int Margin = 12;
 
+    /// <summary>Between a wrist screen's edge and the slots on it, at its sides: the hotbar's, the bag's, a machine's.</summary>
+    public const int ScreenPadding = 4;
+
     /// <summary>A slot's side in pixels.</summary>
     public static int SizeOf(SlotScale scale) => scale == SlotScale.Large ? 56 : 40;
 
@@ -57,7 +60,7 @@ public static class Slots
     /// The wrist's column (0081): the hotbar's screen, a slot and 4 px of padding round the row, and as wide the gauge row
     /// under it and the bag's screen. Only the bag's sort key and the energy readout stand out of it, on its right rail.
     /// </summary>
-    public static int Column(int slot) => Spec.Inventory.Hotbar * slot + (Spec.Inventory.Hotbar - 1) * Gap + 2 * 4;
+    public static int Column(int slot) => Spec.Inventory.Hotbar * slot + (Spec.Inventory.Hotbar - 1) * Gap + 2 * ScreenPadding;
 
     /// <summary>
     /// The gauge row's tabs, their screens' left edges and widths: the suit's and the energy's filling the column, a seam

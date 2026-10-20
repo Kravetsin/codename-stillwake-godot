@@ -415,7 +415,11 @@ public partial class InventoryPanel : CanvasLayer
         // A queued station (the lifepod's Fabricator, the Former) docks in the same place, the crafting feature's own panel.
         if (Content.Stations.TryGet(kind, out var station) && !station.Fed) return;
         var spec = MachineSpecs.Get(kind);
-        _frame = new MachineFrame(T($"tool.{kind}"), kind == "burnerGenerator" ? spec.Makes : spec.Draws);
+        _frame = new MachineFrame(T($"tool.{kind}"), kind == "burnerGenerator" ? spec.Makes : spec.Draws)
+        {
+            // As wide as the wrist's column, as the bag over it (0081).
+            CustomMinimumSize = new Vector2(Slots.Column(_ui.Slot), 0),
+        };
         // A crate sorts, its button in the header beside the drone badge (0008).
         if (kind == "crate") _frame.Head.AddChild(_crateKey = Sorter(crate));
         // Whether drones serve it, at the right of its header (0062).
