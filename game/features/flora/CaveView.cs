@@ -246,13 +246,8 @@ public partial class CaveView : Node2D
             }
             var colour = plant.Kind is "moss" or "roots" && band == 0 ? CaveLooks.ColdMoss : look.Light;
             // From the open, off the face of what holds it, a few pixels wide: a light in the rock lit only the rock, and a point on a face cast a hard shadow along it.
-            // Moss, roots and cracks, every one alike, a soft round halo: as lights, the cap left some dark and walls cut theirs square.
             if (colour is { } c && glowAt is { } middle && Planting.Light(kind.On, x, y, Cell, middle.X, middle.Y, FacesOpen(plant.Cell)) is { } shines)
-            {
-                float r = look.Reach * Cell;
-                if (look.Halo) patch.Shine.Tinted.Add((new Rect2((float)shines.X - r, (float)shines.Y - r, 2 * r, 2 * r), Atlas.Halo, new Color(c.R, c.G, c.B, look.Strength)));
-                else patch.Lights.Add(new LightSource(shines.X, shines.Y, c, look.Strength, look.Reach, look.Keep, 1, CaveLooks.LightSize));
-            }
+                patch.Lights.Add(new LightSource(shines.X, shines.Y, c, look.Strength, look.Reach, look.Keep, 1, CaveLooks.LightSize));
             // Mica and veins glint on the faces of their stone that are open, a pixel in.
             if (kind.On == Spec.Flora.Anchor.Rock && look.Glints > 0)
                 for (int i = 0; i < look.Glints; i++)
@@ -513,13 +508,9 @@ public partial class CaveView : Node2D
         public required Texture2D Texture { get; init; }
         public readonly List<(Rect2 At, Rect2 Of)> Items = [];
 
-        /// <summary>Pictures drawn after them in a colour of their own: halos.</summary>
-        public readonly List<(Rect2 At, Rect2 Of, Color Tint)> Tinted = [];
-
         public override void _Draw()
         {
             foreach (var (at, of) in Items) DrawTextureRectRegion(Texture, at, of);
-            foreach (var (at, of, tint) in Tinted) DrawTextureRectRegion(Texture, at, of, tint);
         }
     }
 
@@ -536,16 +527,12 @@ public partial class CaveView : Node2D
         /// <summary>Each picture's first and last rows with anything drawn in them: its top and its base.</summary>
         public static readonly Dictionary<string, (int Top, int Bottom)> Used = new();
 
-        /// <summary>A soft round halo, white, in the glows only: tinted and stretched as each moss, root or crack glows.</summary>
-        public static readonly Rect2 Halo;
-
         /// <summary>A pixel of each moss tone's band along each face, stretched along a run of it: its colour, its thickness.</summary>
         public static readonly Dictionary<(string Tone, Planting.Faces Face), Rect2> Band = new();
 
         static Atlas()
         {
             var names = Names().Select(n => (Name: n, Image: ImageOf(n))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
-            names.Add((HaloName, HaloImage()));
             int x = 0, y = 0, row = 0;
             foreach (var (name, image) in names)
             {
@@ -559,37 +546,15 @@ public partial class CaveView : Node2D
             {
                 var at = At[name];
                 var whole = new Rect2I(0, 0, (int)at.Size.X, (int)at.Size.Y);
-                if (name == HaloName)
-                {
-                    glows.BlitRect(image, whole, (Vector2I)at.Position);
-                    continue;
-                }
                 pictures.BlitRect(image, whole, (Vector2I)at.Position);
                 var used = image.GetUsedRect();
                 Used[name] = (used.Position.Y, used.End.Y - 1);
-                if (GlowOf(name) is { } glow) glows.BlitRect(Rgba(glow.Texture.GetImage()), whole, (Vector2I)at.Position);
+                if (GlowOf(name) is { } glow) glows.BlitRect(Faded(Rgba(glow.Texture.GetImage())), whole, (Vector2I)at.Position);
             }
             foreach (string tone in (string[])["moss", "mossGreen"])
                 foreach (var (face, name, line, thick) in MossBands)
                     Band[(tone, face)] = BandOf(names.Where(n => n.Name.StartsWith($"caves/{tone}_{name}_", StringComparison.Ordinal)).ToList(), face, line, thick);
-            Halo = At[HaloName];
             (Pictures, Glows) = (ImageTexture.CreateFromImage(pictures), ImageTexture.CreateFromImage(glows));
-        }
-
-        private const string HaloName = "halo";
-
-        /// <summary>A white disc 64 pixels across, its alpha falling off as the square of the way out, nothing at its rim.</summary>
-        private static Image HaloImage()
-        {
-            const int Size = 64;
-            var image = Image.CreateEmpty(Size, Size, false, Image.Format.Rgba8);
-            for (int y = 0; y < Size; y++)
-                for (int x = 0; x < Size; x++)
-                {
-                    float d = new Vector2(x + 0.5f - Size / 2f, y + 0.5f - Size / 2f).Length() / (Size / 2f), a = Math.Max(0, 1 - d);
-                    image.SetPixel(x, y, new Color(1, 1, 1, a * a));
-                }
-            return image;
         }
 
         /// <summary>
@@ -631,6 +596,25 @@ public partial class CaveView : Node2D
                     }
                     else yield return $"caves/{kind}_{v}";
                 }
+        }
+
+        /// <summary>How many pixels in from its picture's edge a glow fades out over: cut off at the edge, its bloom drew the picture's box.</summary>
+        private const int FadeIn = 3;
+
+        /// <summary><paramref name="glow"/> fading to nothing at its edges, over <see cref="FadeIn"/> pixels.</summary>
+        private static Image Faded(Image glow)
+        {
+            int w = glow.GetWidth(), h = glow.GetHeight();
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    int edge = Math.Min(Math.Min(x, w - 1 - x), Math.Min(y, h - 1 - y));
+                    if (edge >= FadeIn) continue;
+                    var c = glow.GetPixel(x, y);
+                    float keep = (edge + 0.5f) / FadeIn;
+                    glow.SetPixel(x, y, c with { A = c.A * keep * keep });
+                }
+            return glow;
         }
 
         private static Image ImageOf(string name) => Rgba(PixelArt.Picture(name).GetImage());

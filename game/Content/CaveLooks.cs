@@ -14,8 +14,7 @@ public static class CaveLooks
 {
     /// <summary>
     /// A kind's look: how many pictures; whether they are by band; the light it casts, if any — a colour, at a strength, keeping
-    /// <c>Keep</c> a cell out to <c>Reach</c> cells — from its glow's middle, or, with <c>Halo</c>, a soft round glow that far across
-    /// at its strength, drawn and lighting nothing; how many
+    /// <c>Keep</c> a cell out to <c>Reach</c> cells — from its glow's middle; how many
     /// glints sparkle in a beam on it and their colour.
     /// </summary>
     public sealed record Look(int Variants)
@@ -25,11 +24,6 @@ public static class CaveLooks
         public float Strength { get; init; } = 0.8f;
         public float Keep { get; init; } = 0.55f;
         public int Reach { get; init; } = 3;
-        /// <summary>
-        /// Whether it glows as a soft round halo drawn over what is round it rather than as a light of the light map: moss,
-        /// roots and the heat's cracks, so common that as lights the cap left some dark and their shadows cut their glow square.
-        /// </summary>
-        public bool Halo { get; init; }
         /// <summary>How far its base sinks under the ground's top edge, or its top up into a ceiling, in pixels: planted, not set on it.</summary>
         public int Sink { get; init; } = 2;
         public int Glints { get; init; }
@@ -42,37 +36,38 @@ public static class CaveLooks
 
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>
     {
-        ["glowcapTeal"] = new(3) { Light = Teal, Strength = 1f, Keep = 0.68f, Reach = 5 },
-        ["glowcapViolet"] = new(3) { Light = Violet, Strength = 1f, Keep = 0.68f, Reach = 5 },
-        ["crystalIce"] = new(3) { Light = Blue, Strength = 1f, Keep = 0.68f, Reach = 5, Glints = 2, GlintColour = (232, 248, 255) },
-        ["crystalAmber"] = new(3) { Light = Amber, Strength = 1f, Keep = 0.68f, Reach = 5, Glints = 2, GlintColour = (255, 242, 192) },
-        ["crystalRose"] = new(3) { Light = Rose, Strength = 0.9f, Keep = 0.66f, Reach = 5, Glints = 2, GlintColour = (255, 224, 220) },
-        ["crystalEmber"] = new(3) { Light = Ember, Strength = 1f, Keep = 0.66f, Reach = 5, Glints = 1, GlintColour = (255, 240, 176) },
+        ["glowcapTeal"] = new(3) { Light = Teal, Strength = 1.5f, Keep = 0.8f, Reach = 8 },
+        ["glowcapViolet"] = new(3) { Light = Violet, Strength = 1.5f, Keep = 0.8f, Reach = 8 },
+        ["crystalIce"] = new(3) { Light = Blue, Strength = 1.5f, Keep = 0.8f, Reach = 8, Glints = 2, GlintColour = (232, 248, 255) },
+        ["crystalAmber"] = new(3) { Light = Amber, Strength = 1.5f, Keep = 0.8f, Reach = 8, Glints = 2, GlintColour = (255, 242, 192) },
+        ["crystalRose"] = new(3) { Light = Rose, Strength = 1.35f, Keep = 0.8f, Reach = 8, Glints = 2, GlintColour = (255, 224, 220) },
+        ["crystalEmber"] = new(3) { Light = Ember, Strength = 1.5f, Keep = 0.8f, Reach = 8, Glints = 1, GlintColour = (255, 240, 176) },
         ["stalagmite"] = new(3) { ByBand = true, Sink = 1 },
         ["stalactite"] = new(3) { ByBand = true, Sink = 1 },
-        ["crystalIceHang"] = new(3) { Light = Blue, Strength = 0.95f, Keep = 0.66f, Reach = 5, Glints = 2, GlintColour = (232, 248, 255) },
-        ["crystalAmberHang"] = new(3) { Light = Amber, Strength = 0.95f, Keep = 0.66f, Reach = 5, Glints = 2, GlintColour = (255, 242, 192) },
-        ["hangcap"] = new(3) { Light = Violet, Strength = 0.85f, Keep = 0.62f, Reach = 4 },
-        ["threadViolet"] = new(3) { Light = Violet, Strength = 0.7f, Keep = 0.6f, Reach = 4 },
-        ["threadTeal"] = new(3) { Light = Teal, Strength = 0.7f, Keep = 0.6f, Reach = 4 },
-        ["roots"] = new(3) { Light = Green, Strength = 0.16f, Reach = 2, Halo = true },
-        ["moss"] = new(4) { Light = Teal, Strength = 0.15f, Reach = 3, Halo = true },
+        ["crystalIceHang"] = new(3) { Light = Blue, Strength = 1.4f, Keep = 0.78f, Reach = 8, Glints = 2, GlintColour = (232, 248, 255) },
+        ["crystalAmberHang"] = new(3) { Light = Amber, Strength = 1.4f, Keep = 0.78f, Reach = 8, Glints = 2, GlintColour = (255, 242, 192) },
+        ["hangcap"] = new(3) { Light = Violet, Strength = 1.3f, Keep = 0.76f, Reach = 7 },
+        ["threadViolet"] = new(3) { Light = Violet, Strength = 1.1f, Keep = 0.74f, Reach = 6 },
+        ["threadTeal"] = new(3) { Light = Teal, Strength = 1.1f, Keep = 0.74f, Reach = 6 },
+        ["roots"] = new(3) { Light = Green, Strength = 0.8f, Keep = 0.66f, Reach = 4 },
+        ["moss"] = new(4) { Light = Teal, Strength = 1f, Keep = 0.7f, Reach = 5 },
         ["mica"] = new(0) { Glints = 3 },
         ["veinIce"] = new(3) { Glints = 3, GlintColour = (232, 250, 255) },
         ["veinCopper"] = new(3) { Glints = 3, GlintColour = (255, 208, 138) },
         ["fossil"] = new(3),
-        ["geode"] = new(2) { Light = Violet, Strength = 0.9f, Keep = 0.62f, Reach = 4, Glints = 2, GlintColour = (240, 216, 255) },
-        ["heatCrack"] = new(4) { Light = Ember, Strength = 0.3f, Reach = 3, Halo = true },
+        ["geode"] = new(2) { Light = Violet, Strength = 1.4f, Keep = 0.78f, Reach = 7, Glints = 2, GlintColour = (240, 216, 255) },
+        ["heatCrack"] = new(4) { Light = Ember, Strength = 1.3f, Keep = 0.74f, Reach = 6 },
     };
 
     /// <summary>Moss in the cold band is the surface's green; deeper it is the garden's teal.</summary>
     public static readonly (float R, float G, float B) ColdMoss = Green;
 
     /// <summary>
-    /// The most cave lights shown at once, the nearest the view's middle: a hall full of glowing things costs the light no more
-    /// than a lit room of lamps.
+    /// The most cave lights shown at once, the nearest the view's middle: more than the 323 the densest view of the planet holds at
+    /// the farthest zoom with every glowing growth's reach round it (seed 3096446930), so two alike in view always light alike; past
+    /// it, zoomed out further in development only, those farthest from the middle go dark.
     /// </summary>
-    public const int MostLights = 56;
+    public const int MostLights = 384;
 
     /// <summary>
     /// How wide a growth's light is, in pixels: its shadows' edges soften over as much, as a lamp's do, not cut along a line from a

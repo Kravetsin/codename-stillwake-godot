@@ -91,9 +91,11 @@ public partial class LightView : Node2D
     public int LampCount => _shown.Count;
 
     /// <param name="sky">The light through the open sky of its surface, by <see cref="L.SkyOf"/> its kind: the stars' when not given.</param>
-    public LightView(IGridQueries grid, (float R, float G, float B)? sky = null)
+    /// <param name="ground">Whether it is a planet's ground, where light reaches past solid rock, fading (<see cref="Lightmap.SoakThrough"/>).</param>
+    public LightView(IGridQueries grid, (float R, float G, float B)? sky = null, bool ground = false)
     {
         _grid = grid;
+        _lightmap.SoakThrough = ground;
         _starlight = new Starlight(sky);
         // Under a planet's sky no ambient light: what no light reaches is black (0077).
         Lit.Ambient(sky == null ? L.Ambient : (0f, 0f, 0f));

@@ -128,7 +128,11 @@ Numbers from `game/Content/Light.cs`.
   ship keeps `Light.Ambient`), daylight keeps `Light.GroundKeep` (0.3) a cell of air in from the open (`StarField`'s keep), so
   it dies a cell or two round a bend, but falls down an opening keeping `Light.GroundDownKeep` (0.8: the down sweep's shares,
   `StarField`'s `down`), so a shaft is lit six to eight cells down; and lamps and beams go into solid ground keeping
-  `wall_keep` (0.35) a cell of the way through it from its face (`through` in the lightmap's shader), aboard too.
+  `wall_keep` (0.35) a cell of the way through it from its face (`through` in the lightmap's shader), aboard too. On a
+  planet's ground (`LightView`'s `ground`, `Lightmap.SoakThrough`, 0080) they go on out into the open past it, still keeping
+  `wall_keep` a cell of rock crossed: a shadow cast by rock fades in as the rock between thickens. Stopped dead, the lit rock
+  met the dark open beside it along the rock's face, a step a cell's edge long: caves lit by their growths read as boxes. Aboard,
+  walls stop light, so a lamp never lights the next room through one.
 - **Daylight soaks into the ground** (0079): going down from a wall cell into the wall under it, a planet's daylight keeps
   `Light.GroundSoak` (0.72) a cell (`StarField`'s `soak`, the down sweep's wall-to-wall share), so the top few cells of
   ground under the sun are lit, fading, as the "Stillwake" style shows them; sideways and up a wall still keeps

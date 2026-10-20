@@ -302,6 +302,9 @@ public partial class Main : Node2D, ITogether
 
     private bool Has(string flag) => _args.Contains(flag);
 
+    /// <summary><c>--arc-drill</c>, with <c>--asteroid</c>, <c>--planet</c> or <c>--ground</c>: the arc drill in the hero's hands at the start.</summary>
+    private string? ArcDrill => Has("--arc-drill") ? Content.Weapons.ArcDrill.Item : null;
+
     /// <summary><c>--open=&lt;kind&gt;</c>: the machine of that kind the hero opens at the start (<see cref="OpenDemo"/>).</summary>
     private string? Opens => _args.FirstOrDefault(a => a.StartsWith("--open=", StringComparison.Ordinal))?[7..];
 
@@ -342,7 +345,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--floor")) world = FloorDemo.Seed(world, Modules);
         if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);
         if (Has("--charge")) world = ChargeDemo.Seed(world, Modules);
-        if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules, Has("--arc-drill") ? Content.Weapons.ArcDrill.Item : null);
+        if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules, ArcDrill);
         if (Has("--sortie")) world = SortieDemo.Seed(world, _m, Modules);
         if (Arg("--bow") is { } bow) FarDemo.Bow = int.Parse(bow);
         if (Has("--fly")) world = FarDemo.Seed(world, _m, Modules, int.Parse(_args.FirstOrDefault(a => a.StartsWith("--far="))?[6..] ?? "0"));
@@ -350,13 +353,13 @@ public partial class Main : Node2D, ITogether
         if (Has("--handbook")) world = HandbookDemo.Seed(world, Modules);
         if (_args.FirstOrDefault(a => a.StartsWith("--ground=", StringComparison.Ordinal)) is { } ground)
         {
-            world = GroundDemo.Seed(world, Modules);
+            world = GroundDemo.Seed(world, Modules, ArcDrill);
             _ground = new GroundDemo(ground[9..]);
             if (ground[9..] is "drill" or "poses") AddChild(new GroundHands(_ground));
             else if (GroundDemo.Caves(ground[9..])) AddChild(new GroundHands(_ground, dig: false));
         }
         // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077).
-        else if (Has("--planet")) world = GroundDemo.Seed(world, Modules);
+        else if (Has("--planet")) world = GroundDemo.Seed(world, Modules, ArcDrill);
         PlayDev(world, Has("--gallery") ? null : layout);
     }
 
@@ -863,7 +866,7 @@ public partial class Main : Node2D, ITogether
         // The fires before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);
         AddChild(_furnace = fires);
-        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules))
+        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules.Ground != null)
         {
             // --lit: every lamp at full power, to measure the light on the reference world.
             LampShare = Has("--lit") ? _ => 1f : lamp => power.Satisfaction(lamp.Id) / 1000f,
