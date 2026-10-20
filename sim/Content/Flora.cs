@@ -66,8 +66,8 @@ public static class Flora
     /// or a natural wall beside a cave — the generator draws a number under 10000 and sets the kind whose chance there, in
     /// this list's order among those of that anchor, it falls in: <c>Chances</c> by depth band (<see cref="Bands"/>), scaled
     /// by the patch noise there (<see cref="PatchMost"/>), so they gather, and in a great hall by <see cref="Hall"/>. It needs
-    /// its <c>Tall</c> cells open and free, the cells <c>Wide</c> either side open over the same wall — a wide one only on whole
-    /// walls, a narrow one on a floor's slope too — and none of its kind nearer than <c>Apart</c> cells along the row; one on
+    /// its <c>Tall</c> cells open and free, the cells <c>Wide</c> either side open over the same wall, whole walls
+    /// all, never a slope (Terraria's rule) — and none of its kind nearer than <c>Apart</c> cells along the row; one on
     /// a floor or a ceiling, nothing of its anchor in the cell before it.
     /// </summary>
     /// <param name="Chances">In ten-thousandths of a slot, in each band, the coldest first.</param>

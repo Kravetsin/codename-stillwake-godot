@@ -28,8 +28,8 @@ light budget is a lit room of lamps. Glowcaps, crystals, geodes and ore veins wi
   the sim and the client alike. Each kind has a chance in each band (`Chances`, in ten-thousandths of a slot): ice crystals,
   roots and green moss in the cold band; the garden's teal and violet caps, threads and moss in the middle; amber and rose
   crystals and copper in the deep; ember crystals and heat cracks over the bedrock.
-- **Placement is a draw a slot,** in rows from the top: every open cave cell over a wall (a floor, whole, or a slope for a
-  narrow kind), every open cell under a whole wall (a ceiling) and every stone wall beside a cave cell (the rock) draws one
+- **Placement is a draw a slot,** in rows from the top: every open cave cell over a whole wall (a floor; never a slope, as
+  Terraria grows nothing on one, and a growth whose hold is later cut to one goes as if dug), every open cell under a whole wall (a ceiling) and every stone wall beside a cave cell (the rock) draws one
   number under 10000 and walks its anchor's kinds in order, their chances scaled by a smooth patch noise (a swell every 12
   cells, nothing to 220 %), so they gather in clusters and patches, and in a great hall by 700 % (a wall facing one too): halls
   are gardens, tunnels sparse. A kind keeps `Apart` cells from its own along the row, a floor's or a ceiling's growth one cell

@@ -207,7 +207,7 @@ public static class Terrain
 
     /// <summary>
     /// What grows in the caves (0080), row by row from the top, each row from the left: in every slot — an open cave cell over a
-    /// wall (a floor, whole or a slope), one under a whole wall (a ceiling), a stone wall beside a cave cell (rock) — one draw under 10000
+    /// whole wall (a floor), one under a whole wall (a ceiling), a stone wall beside a cave cell (rock) — one draw under 10000
     /// picks a kind of that anchor by its chance in the row's band, scaled by the patch noise there and in a great hall, set
     /// where it has room (<see cref="Content.Flora.CaveKind"/>). Only in the caves: an open cell under the sky is no slot, nor a
     /// wall beside only the sky.
@@ -238,7 +238,7 @@ public static class Terrain
                 int cell = y * w + x;
                 if (Open(x, y))
                 {
-                    if (rows[y + 1][x] is '#' or '/' or '\\') Try(Content.Flora.Anchor.Floor, x, y, cell);
+                    if (rows[y + 1][x] == '#') Try(Content.Flora.Anchor.Floor, x, y, cell);
                     if (rows[y - 1][x] == '#') Try(Content.Flora.Anchor.Ceiling, x, y, cell);
                 }
                 else if (rows[y][x] == '#' && codes[cell] == stone && (Open(x, y - 1) || Open(x, y + 1) || Open(x - 1, y) || Open(x + 1, y)))
@@ -274,9 +274,9 @@ public static class Terrain
             {
                 for (int i = 0, at = cell; i < kind.Tall; i++, at += step)
                     if (at < 0 || at >= w * h || rows[at / w][x] != '.' || taken[at]) return;
-                // A narrow growth may stand on a floor's slope, sunk to its middle; a wide one only on whole floors.
+                // Only on whole walls, never a slope, as Terraria's: no growth floats over a slope or stands in one.
                 for (int dx = -kind.Wide; dx <= kind.Wide; dx++)
-                    if (x + dx < 0 || x + dx >= w || !Open(x + dx, y) || rows[y + hold][x + dx] != '#' && (kind.Wide > 0 || dx != 0)) return;
+                    if (x + dx < 0 || x + dx >= w || !Open(x + dx, y) || rows[y + hold][x + dx] != '#') return;
                 for (int i = 0, at = cell; i < kind.Tall; i++, at += step) taken[at] = true;
             }
             into.Add((cell, kind.Id));
