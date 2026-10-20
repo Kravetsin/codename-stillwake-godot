@@ -171,7 +171,7 @@ public partial class EffectsView : Node2D
         }
         foreach (var g in live)
         {
-            if (g.Look.Matter && g.Look.Kind != Glimmer.Chip || g.Look.Halo <= 0 && g.Look.Kind != Glimmer.Chip) continue;
+            if (g.Look.Low || g.Look.Matter && g.Look.Kind != Glimmer.Chip || g.Look.Halo <= 0 && g.Look.Kind != Glimmer.Chip) continue;
             if (g.Look.Kind == Glimmer.Chip)
             {
                 // A face turned to the light flashes.
