@@ -581,7 +581,7 @@ public class AimTests
     private static int DrillReach()
     {
         var look = HeldLook.Drill;
-        var (_, tip) = AxeSwing.EdgeAt(look, HarpoonShot.ArmFor(look, 200, 0));
+        var tip = TwoHand.At(look, TwoHand.AngleFor(look, 200, 0), look.EdgeTo);
         return (int)(tip.X / Rig.Cell * Unit);
     }
 
@@ -590,8 +590,8 @@ public class AimTests
     {
         var shoulder = ShoulderOf(HeroOn(6, 7));
         int reach = DrillReach();
-        // An arm and the tube hammer's long bit, drawn: some two and a half cells.
-        Assert.InRange(reach, 2_300, 2_700);
+        // Held across the chest (0078), the tube hammer's long bit reaches some cell and a half from the shoulder.
+        Assert.InRange(reach, 1_500, 1_800);
         var far = shoulder with { X = shoulder.X + 5_000 };
         foreach (var kind in new[] { "asteroid", "hullSection" })
         {

@@ -135,6 +135,13 @@ public partial class Main : Node2D, ITogether
         _args = OS.GetCmdlineUserArgs();
         _playerKey = Profile.Key(_args);
         _cheat = Has("--cheat");
+        // --pose-sheet=<dir>: the hero's holds drawn alone and saved, nothing else made.
+        if (_args.FirstOrDefault(a => a.StartsWith("--pose-sheet=", StringComparison.Ordinal)) is { } sheet)
+        {
+            string item = _args.FirstOrDefault(a => a.StartsWith("--pose-item=", StringComparison.Ordinal))?[12..] ?? Content.Weapons.Drill.Item;
+            AddChild(new PoseSheet(sheet[13..], item));
+            return;
+        }
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
         // First of all at its layer, before every shimmer (0075).

@@ -18,6 +18,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `SwingSmear.cs`    | the swipe of light an axe's downstroke leaves round the shoulder (0075) | yes   |
 | `SwingArm.cs`      | the front arm with the axe: straight through a swing, eased from rest into it, out of it and into the next (0040); the arm aiming the harpoon too | no    |
 | `HarpoonShot.cs`   | the hand harpoon (0044): the rod's flight, hook, reel and way back, the presses each state takes, the hero's cooldown, the point reeled to (`ReelOf`), the arm that aims the barrel (`ArmFor`) | no    |
+| `TwoHand.cs`      | the two-handed hold (0078): an item with `HeldLook.Both` held as a rifle across the chest, turned at its pivot toward the aim within `Up` and `Down`, the near fist on its grip and the far one on its foregrip (`AngleFor`, `At`, `Arms`) | no    |
 | `HarpoonLine.cs`   | the harpoon's line as drawn: the tether's space rope (`Tether.Space`), slack in flight and hooked, wound taut reeling | no    |
 | `Prompt.cs`        | `Prompts.Of`: what E does at the aim, in words, and why the sim would refuse it (`prompt.ts`) | no    |
 | `UsePrompt.cs`     | the prompt at the bottom middle, red with the reason when refused (`CrewPanel.tsx`'s `UsePrompt`) | yes   |
@@ -420,10 +421,10 @@ Deliberately not handled:
   sprayed back and a faint ring (on a crate or pod the ring only); the line going taut, a bead of light running down
   it to the gun; a reel over, a streak zipping home along the line, a glint, a ring and a flash at the hand. The line and the rod are drawn over the heroes (`Layers.Hero`), the line
   unlit as the tethers are.
-- **The drill (0054):** with `Ui.Wielded` the drill, the arm aims it as it aims the harpoon, the bit's line
-  through the pointer (`HarpoonShot.ArmFor`), the hero facing it; the figure holds it as a pistol by the loop of frame
-  under its rear (`HeldLook.Drill`, `art/hero_drill.png`, the tube hammer picked by the user, its long bit the edge,
-  `Aimed`), so its reach is the drawn bit's: some two and a half cells from the shoulder. Held on the left button (not a hold begun
+- **The drill (0054):** with `Ui.Wielded` the drill, the hero facing the pointer, the figure holds it in both hands as a
+  rifle (0078, `TwoHand`): the near hand on the loop of frame under its rear, the far one on the foregrip under the front of
+  its motor (`HeldLook.Drill`, `art/hero_drill.png`, the tube hammer picked by the user, its long bit the edge, `Aimed`),
+  the bit's line through the pointer as far as the hold turns, so its reach is the drawn bit's: some cell and a half from the shoulder. Held on the left button (not a hold begun
   by a grab), it **runs** while the belt can pay a tick of its draw (`IItemsQueries.CanDrain` of its `Draw`, always
   in creative mode), aboard or at nothing too (`Motor.Wanted`, 0055): the client sends `Run(drill, On)` every frame
   till the sim runs it, and `Run(drill, Off)` every frame till it stops once let go, put away, passed out or flat
@@ -468,10 +469,20 @@ Deliberately not handled:
   shines from this frame and the way its head looks (`Figure.HeadLampToward`), which `Main` hands the light
   (`LightView.HeadLamps`): a beam that way.
 - **What is dug at stays readable** (0077): the dig target's outline is drawn over the hero and its tool (`Layers.Dug`),
-  and the drill, always full size, is held Terraria's way: the arm turns toward the pointer but rises no higher than `HarpoonShot.DrillRaise`
-  above straight ahead, and the drill turns in the fist the rest of the way (`HarpoonShot.DrillFor`, `TurnIn`), so the arm never crosses the helmet;
-  the drill and arc drill alike, and `Aim.Touched` traces the same bit. A landing's dust spreads along the floor only as far as it runs open
+  and the drill, always full size, is held two-handed across the chest (0078, below), close to the body, so it hides little of
+  the cells before the hero; the drill and arc drill alike, and `Aim.Touched` traces the same bit. A landing's dust spreads along the floor only as far as it runs open
   (`Figure.FloorRoom`, from `HeroView`), and dust along the floor is drawn behind the walls (`Luminous.Low`), so none shows through a shaft's walls.
+- **The two-handed hold** (0078, `TwoHand`): an item with `HeldLook.Both` (the drill and the arc drill now; two-handed weapons and
+  tools to come, as a harpoon gun or an electric spear) is held as a rifle, its mount (`TwoHands.Mount`, between the hands) on a pivot across the middle of the chest,
+  turned there so its edge's line runs through the pointer, but at most `TwoHand.Up` up and `Down` down (0.6 rad, about 34°
+  each), past which it points as far as it turns; the pivot moves forward aimed up and up aimed down (`PivotUp`,
+  `PivotDown`). Both arms reach for it (`Rig.Reach`): the near (front) fist on `HeldLook.Grip`, its elbow back as a
+  trigger arm's, the far (back) one on `TwoHands.Foregrip`, drawn behind the body and the item; neither ever crosses the
+  helmet nor lifts its elbow above the shoulder, which bounds the clamp, as the far arm's reach and the floor do. The
+  hands take the grips from the pose over 120 ms, the item's turn settling as a limb does. Standing, walking, climbing or
+  afloat alike; a friend's hero shows it aimed at the point it drills while it runs, else resting `TwoHand.Rest` down.
+  `Aim.Touched` traces the bit of the same hold, the body upright. `-- --pose-sheet=<dir>` (`game/dev/PoseSheet.cs`) draws
+  the hold eight ways round the shoulder, near and far, standing and on a ladder, facing either way, into PNGs and quits.
 - **Ladders** (0077): a jump off a ladder goes on with up held, not caught again while rising (`Hero.Move` grabs only falling or still); a side
   held in mid-air turns the hero on it, ready to jump that way, side then jump or jump then side; at its foot a
   walk steps off and a jump either way lets go; the hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder.

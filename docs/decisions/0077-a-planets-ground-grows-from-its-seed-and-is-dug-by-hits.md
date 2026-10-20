@@ -92,9 +92,9 @@ digging and a light to dig by come together.
   way (a `Toward` on the light source, read by the shader as a heading): one dot product a texel more. It works
   everywhere, aboard too. `--planet` starts with the axe, the drill and the lamp worn.
 - **What is dug at stays readable:** the dig target's outline and the cracks are drawn over the hero and its tool
-  (`Layers.Dug`). A drill is held Terraria's way, always full size: the arm turns toward the pointer but rises no higher
-  than a little above straight ahead (`HarpoonShot.DrillRaise`), and past that the drill turns in the fist, so the arm never
-  crosses the helmet; the drill and arc drill alike, and the bit's line runs through the pointer. The target may be partly
+  (`Layers.Dug`). A drill is held always full size, two-handed across the chest since
+  [0078](0078-two-handed-items-are-held-as-a-rifle.md), which replaced the one-handed hold first decided here; the bit's line
+  runs through the pointer. The target may be partly
   covered by the drill: its outline and cracks draw over it.
 - **Dust along the floor is drawn behind the walls** (`Luminous.Low`, `Layers.LowDust`, over the back walls): a landing's,
   a step's and a break's dust and veils, so a wall hides what spreads past it in a shaft; a landing's spreads only as far
