@@ -6,6 +6,8 @@
     <ProjectReference Include="../Pipes/Pipes.csproj" />
     <ProjectReference Include="../Items/Items.csproj" />
     <ProjectReference Include="../Power/Power.csproj" />
+    <ProjectReference Include="../Players/Players.csproj" />
+    <ProjectReference Include="../Knowledge/Knowledge.csproj" />
     <ProjectReference Include="../Research/Research.csproj" />
     <ProjectReference Include="../Building/Building.csproj" />
     <ProjectReference Include="../Crafting/Crafting.csproj" />

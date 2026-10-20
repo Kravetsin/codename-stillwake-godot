@@ -64,11 +64,27 @@ public sealed class Scenario
         World = World.Create(seed, layout, Modules());
     }
 
-    /// <summary>A fresh registry, the builder after it, then the scenario's own test modules.</summary>
+    /// <summary>
+    /// A fresh registry, the builder after it, then the scenario's own test modules: the ship's. Another surface opened gets
+    /// a registry alone (0076).
+    /// </summary>
     public IReadOnlyList<Module> Modules()
     {
         M = new Registry();
-        return [.. M.All, new Builder(M), .. _with?.Invoke(M) ?? []];
+        return new Ship(M.All, [.. M.All, new Builder(M), .. _with?.Invoke(M) ?? []]);
+    }
+
+    /// <summary>The registry surface <paramref name="surface"/> runs: <see cref="M"/> for the ship.</summary>
+    public Registry On(int surface) => surface == 0 ? M : Registry.On(World, surface);
+
+    /// <summary>The ship's modules, test ones with them, making other surfaces as its registry does.</summary>
+    private sealed class Ship(IModules registry, Module[] modules) : IModules
+    {
+        public Module this[int index] => modules[index];
+        public int Count => modules.Length;
+        public IModules Another() => registry.Another();
+        public IEnumerator<Module> GetEnumerator() => ((IEnumerable<Module>)modules).GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => modules.GetEnumerator();
     }
 
     public int At(int x, int y) => y * Layout.Width + x;
@@ -85,9 +101,12 @@ public sealed class Scenario
     }
 
     /// <summary>The world saved and loaded into fresh modules, which this scenario reads from then on.</summary>
-    public Scenario Reload()
+    public Scenario Reload() => Reload(World.Save());
+
+    /// <summary><paramref name="save"/> loaded into fresh modules, which this scenario reads from then on.</summary>
+    public Scenario Reload(string save)
     {
-        World = World.Load(World.Save(), Modules());
+        World = World.Load(save, Modules());
         return this;
     }
 }

@@ -8,8 +8,10 @@ using Stillwake.Sim.Furnace;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Logistics;
 using Stillwake.Sim.Pipes;
+using Stillwake.Sim.Players;
 using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
 using Stillwake.Sim.Rooms;
@@ -19,10 +21,16 @@ namespace Stillwake.Sim;
 /// <summary>
 /// Every module of one world, wired: each takes what it depends on through its constructor, and
 /// <see cref="All"/> lists them in run order, every module after its dependencies (MODULES in the
-/// TypeScript sim). A world gets a registry of its own: modules hold its state.
+/// TypeScript sim). A world gets a registry of its own: modules hold its state. Each surface of a world (0076) has a
+/// registry, sharing the world's globals, Players and Knowledge: the ship's lists them first in <see cref="All"/>, so the
+/// ship's slices save them; another surface's leaves them out.
 /// </summary>
 public sealed class Registry
 {
+    /// <summary>The world's, one for all its surfaces: suit colours.</summary>
+    public PlayersModule Players { get; }
+    /// <summary>The world's, one for all its surfaces: what is granted and analysed.</summary>
+    public KnowledgeModule Knowledge { get; }
     public GridModule Grid { get; }
     public RoomsModule Rooms { get; }
     public ItemsModule Items { get; }
@@ -38,26 +46,51 @@ public sealed class Registry
     public FurnaceModule Furnace { get; }
     public LogisticsModule Logistics { get; }
 
-    /// <summary>In run order.</summary>
-    public IReadOnlyList<Module> All { get; }
+    /// <summary>In run order: on the ship, the globals first.</summary>
+    public IModules All { get; }
 
-    public Registry()
+    /// <summary>The registry of the ship's surface, whose globals this one shares; itself on the ship.</summary>
+    private readonly Registry _ship;
+
+    /// <summary>A world's ship: its globals made here.</summary>
+    public Registry() : this(null) { }
+
+    private Registry(Registry? ship)
     {
+        _ship = ship ?? this;
+        Players = ship?.Players ?? new PlayersModule();
+        Knowledge = ship?.Knowledge ?? new KnowledgeModule(ResearchModule.Ids);
         Grid = new GridModule();
         Rooms = new RoomsModule(Grid);
         Items = new ItemsModule(Grid, Rooms);
         Power = new PowerModule(Grid, Rooms, Items, Items);
-        Research = new ResearchModule(Grid, Items, Power, Power);
+        Research = new ResearchModule(Grid, Items, Power, Power, Knowledge, Knowledge);
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Research, Crafting);
         Pipes = new PipesModule(Grid);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
-        Crew = new CrewModule(Atmosphere, Grid, Items, Items);
+        Crew = new CrewModule(Atmosphere, Grid, Items, Items, Players, Players);
         Hazards = new HazardsModule(Grid, Grid);
         Debris = new DebrisModule(Grid, Crew, Rooms, Items, Items);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Crafting, Crafting);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting);
-        All = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics];
+        Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics];
+        All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
+    }
+
+    /// <summary>The registry surface <paramref name="surface"/> of <paramref name="world"/> runs: the world must be made of registries.</summary>
+    public static Registry On(World world, int surface) =>
+        world.ModulesOn(surface) is Set set ? set.Owner : throw new InvalidOperationException("This world is not made of registries.");
+
+    /// <summary>A registry's modules, which make another surface's registry of the same world.</summary>
+    private sealed class Set(Registry owner, Module[] modules) : IModules
+    {
+        public Registry Owner => owner;
+        public Module this[int index] => modules[index];
+        public int Count => modules.Length;
+        public IModules Another() => new Registry(owner._ship).All;
+        public IEnumerator<Module> GetEnumerator() => ((IEnumerable<Module>)modules).GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => modules.GetEnumerator();
     }
 
     /// <summary>

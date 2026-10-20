@@ -45,12 +45,12 @@ public class CrewTests
     private static Hero? HeroOf(Scenario w, int id = 0) => w.M.Crew.HeroOf(id);
 
     /// <summary>A hero as TypeScript's <c>toEqual</c> compares it: every field.</summary>
-    private static (int Id, int Cell, int Suit, int Out, int Colour)? All(Hero? h) =>
-        h == null ? null : (h.Id, h.Cell, h.Suit, h.Out, h.Colour);
+    private static (int Id, int Cell, int Suit, int Out, int Colour)? All(Scenario w, Hero? h) =>
+        h == null ? null : (h.Id, h.Cell, h.Suit, h.Out, w.M.Players.ColourOf(h.Id) ?? -1);
 
     private static IReadOnlyList<int> Aired(Scenario w) => w.M.Atmosphere.AiredCells;
     private static int AirClock(Scenario w) => w.Air().Clock;
-    private static int[] Colours(Scenario w) => w.Crew().Heroes.Select(h => h.Colour).ToArray();
+    private static int[] Colours(Scenario w) => w.Crew().Heroes.Select(h => w.M.Players.ColourOf(h.Id) ?? -1).ToArray();
     private static Enter EnterAt(int cell, int from = 0) => new(cell) { From = from };
 
     /// <summary>Runs until room <paramref name="room"/> is aired.</summary>
@@ -76,7 +76,7 @@ public class CrewTests
     {
         var (w, _, _) = SetUp();
         w.Do(EnterAt(At(4, 1), 2)).Run();
-        Assert.Equal((2, At(4, 1), Content.Crew.Suit, 0, 0), All(HeroOf(w, 2)));
+        Assert.Equal((2, At(4, 1), Content.Crew.Suit, 0, 0), All(w, HeroOf(w, 2)));
         Breaths(w, 3);
         w.Do(EnterAt(At(6, 2), 2)).Run();
         Assert.Equal(At(6, 2), HeroOf(w, 2)?.Cell);
@@ -133,7 +133,7 @@ public class CrewTests
         w.Run(Content.Crew.PassOut - 1);
         Assert.Equal(1, HeroOf(w)?.Out);
         w.Run();
-        Assert.Equal((0, At(4, 1), Content.Crew.Suit, 0, 0), All(HeroOf(w)));
+        Assert.Equal((0, At(4, 1), Content.Crew.Suit, 0, 0), All(w, HeroOf(w)));
     }
 
     [Fact]
@@ -235,7 +235,7 @@ public class CrewTests
     {
         Assert.Equal(Hatch, new Scenario(PodRoom).M.Crew.Spawn);
         var w = new Scenario(PodRoom).Do(EnterAt(Hatch, 3)).Run();
-        Assert.Equal((3, Hatch, Content.Crew.Suit, 0, 0), All(HeroOf(w, 3)));
+        Assert.Equal((3, Hatch, Content.Crew.Suit, 0, 0), All(w, HeroOf(w, 3)));
     }
 
     [Fact]
@@ -291,7 +291,7 @@ public class CrewTests
         Breaths(w, Content.Crew.Suit);
         Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w)!.Suit, HeroOf(w)!.Out));
         w.Run(Content.Crew.PassOut);
-        Assert.Equal((0, Hatch, Content.Crew.Suit, 0, 0), All(HeroOf(w)));
+        Assert.Equal((0, Hatch, Content.Crew.Suit, 0, 0), All(w, HeroOf(w)));
         // Made at the pod, it breathes there in vacuum on a full suit.
         Breaths(w, 10);
         Assert.Equal(Content.Crew.Suit, HeroOf(w)?.Suit);
@@ -327,7 +327,7 @@ public class CrewTests
         Assert.Empty(w.Refusals);
         Breaths(w, 2);
         w.Do(EnterAt(At(6, 2), 0)).Run();
-        Assert.Equal(Content.Crew.Colours - 1, HeroOf(w)?.Colour);
+        Assert.Equal(Content.Crew.Colours - 1, w.M.Players.ColourOf(0));
     }
 
     [Fact]

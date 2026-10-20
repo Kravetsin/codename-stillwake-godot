@@ -109,6 +109,10 @@ public sealed class Definition(Func<IReadOnlyList<Module>> make, Func<string, st
 
     public IReadOnlyList<Module> ModulesOf(World world) => _modules[world];
 
+    /// <summary>The modules of the surface <paramref name="peer"/> is on in <paramref name="world"/>: those its commands go to (0076).</summary>
+    public IReadOnlyList<Module> ModulesOf(World world, int peer) =>
+        world.SurfaceOf(peer) is var surface and > 0 ? world.ModulesOn(surface) : ModulesOf(world);
+
     public T Module<T>(World world) where T : Module => ModulesOf(world).OfType<T>().Single();
 }
 

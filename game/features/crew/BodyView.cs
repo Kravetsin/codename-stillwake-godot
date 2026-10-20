@@ -70,12 +70,12 @@ public partial class BodyView : Node2D
             bool made = !_shown.TryGetValue(key, out var shown);
             if (made)
             {
-                shown = _shown[key] = new Shown(new Figure(Suits.Of(m.Crew, pile.Peer), own: false) { ZIndex = Layers.Bodies, ZAsRelative = false }, new Glow());
+                shown = _shown[key] = new Shown(new Figure(Suits.Of(m.Players, pile.Peer), own: false) { ZIndex = Layers.Bodies, ZAsRelative = false }, new Glow());
                 AddChild(shown.Figure);
                 AddChild(shown.Glow);
             }
             shown!.Seen = true;
-            int colour = Suits.Of(m.Crew, pile.Peer);
+            int colour = Suits.Of(m.Players, pile.Peer);
             var hero = new Hero((int)Math.Round(pile.X), (int)Math.Round(pile.Y), 0, 0, false, pile.Peer % 2 == 0 ? 1 : -1);
             shown.Figure.Wear(colour);
             // On its back aboard and afloat alike, found already lying: long past the fall.

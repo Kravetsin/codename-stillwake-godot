@@ -42,7 +42,8 @@ stamps each with the surface its peer is on (`Surface`, 0076), so one whose hero
   within 10–300 ms, eased at a tenth of the time passed, at most five ticks a frame (0015).
 - **Commands in flight:** `Client.InFlight` lists this peer's commands sent and not yet run. Each of
   its own in a released tick is the oldest in flight; one that is not throws. The game shows them at
-  once on top of the world (0014); `RoundTrip` times them, sent to run.
+  once on top of the world (0014); `RoundTrip` times them, sent to run. Those sent from a surface the peer has
+  left since (0076) are left out: they will be refused `world.elsewhere`, and their cells are another grid's.
 - **A channel** (`IChannel`) delivers in order, and keeps what arrives before a receiver is set until
   one is (`Inbox`). Two carry it: the loopback, and ENet in the game.
 
@@ -74,14 +75,16 @@ peer stamped with the sender, and keeps nothing. The game writes the hero there 
   admitted it hashes again, from the ticks the guest will report.
 - A peer that differs gets `resync`: peer 0's world on the host's next tick. The client takes it in
   order with the ticks, records a `DesyncReport` (each module that differs, up to ten paths in it,
-  and whether the rng drifted), and plays on from the host's world. Its older reports are not checked
+  and whether the rng drifted) — another surface's modules as `1:grid`, and `surfaces` or `where` when the surfaces or who
+  is on them differ —, and plays on from the host's world. Its older reports are not checked
   again. `Session.Desyncs` keeps the reports; the game prints them.
 
 ## Testing
 
 - `Desync.Fuzz` (`net/Tests/Desync.cs`) runs a host and three clients in one process on every
   module's `Fuzz`, clients updating out of step and a few ticks at a time, hashes compared every 20
-  ticks; `joinAt` adds a client joining mid-run. A resync counts as a desync. A module with commands
+  ticks; `joinAt` adds a client joining mid-run. Each command is drawn from the modules of its sender's surface, and one in
+  `worldEvery` (40) is the world's own, a strip opened or a hero moved (0076). A resync counts as a desync. A module with commands
   and no generator fails it. It runs on the registry's wreck and on the test modules `board` and `drift`.
 - `BadNetwork` delays a channel both ways, `Lag` plus up to `Jitter` ms, in order; tests drive it on
   their own `TestTiming`, the game on real timers with `--lag` and `--jitter`.

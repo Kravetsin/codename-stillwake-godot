@@ -28,11 +28,14 @@ public class EnTests
         var keys = Sources(sim)
             .SelectMany(file => refusal.Matches(File.ReadAllText(file)).Select(m => m.Groups[1].Value))
             .ToHashSet();
+        // The world's own commands are named alike on the wire: names, not refusals.
+        keys.ExceptWith(["world.open", "world.transfer"]);
         // Checked against keys known to exist, so a broken pattern cannot pass by finding nothing.
         Assert.Contains("grid.occupied", keys);
         Assert.Contains("items.full", keys);
         Assert.Contains("building.noPlan", keys);
         Assert.Contains("world.elsewhere", keys);
+        Assert.Contains("world.noSurface", keys);
         Assert.Empty(keys.Where(key => !Table.ContainsKey(key)).Order(StringComparer.Ordinal));
     }
 

@@ -7,11 +7,13 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   world's tick, the hash the client last sent, how long this peer's commands take from sent to run
   (`Session.RoundTrip`), and on the network where this machine stands (`Main`'s line: hosting and
   how many peers, or joined), what a guest holds queued and in reserve, and how many times it was
-  resynced. Every module by its id; an open entry shows its slice of the world's save as JSON, the
-  first 20 000 characters of it.
+  resynced; the surface this hero is on, of how many (0076). Every module of that surface by its id, the world's
+  globals with the ship's; an open entry shows its slice of the world's save as JSON, the first 20 000 characters of it.
 - **Controls:** the world's speed ×4 and back, creative mode (`items`' `SetCreative`, read at the
   click so two quick clicks switch it back), and a meteor on a random wall of the outer hull
-  (`hazards`' `MeteorHit`), or a line saying none is left.
+  (`hazards`' `MeteorHit`), or a line saying none is left. Surfaces (0076): `open strip` opens the test strip
+  (`world.open`), `to ship` and `to strip` beam this hero aboard or down to the strip opened last (`world.transfer`),
+  or say none is open.
 - **Sounds:** a board, shut at the start, with a button for every cue in `Sound.All`, so a new cue
   appears on it unasked. Cues have no names; each is called by its first file under `res://audio/`
   without its `-1` and extension (`crew/step`, `CueNames`), and its tune when it plays another's files

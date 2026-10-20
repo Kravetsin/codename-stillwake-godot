@@ -53,9 +53,19 @@ public sealed class Client
 
     /// <summary>
     /// The commands this peer sent that have not run yet, oldest first: what the game shows at once,
-    /// before the host's tick confirms or refuses it (0014). A command leaves when its tick runs.
+    /// before the host's tick confirms or refuses it (0014). A command leaves when its tick runs. Those sent from a
+    /// surface this peer has left since are not here: they will be refused, and their cells are another grid's (0076).
     /// </summary>
-    public IReadOnlyList<Command> InFlight => _inFlight;
+    public IReadOnlyList<Command> InFlight
+    {
+        get
+        {
+            int here = World.SurfaceOf(Id);
+            foreach (var c in _inFlight)
+                if (c.Surface is int sent && sent != here) return _inFlight.FindAll(f => f.Surface is not int s || s == here);
+            return _inFlight;
+        }
+    }
 
     /// <summary>How many released ticks wait to run; a resync waiting among them is not counted.</summary>
     public int Queued => _queued;

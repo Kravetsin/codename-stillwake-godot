@@ -24,7 +24,7 @@ public class MigrationsTests
         var m = new Registry();
         var world = World.Create(1, Registry.Wreck, m.All);
         var rng = new Rng(new RngState { S = 2026 });
-        for (int i = 0; i < 400; i++) world.Step(ModulesTests.RandomCommands(m, rng));
+        for (int i = 0; i < 400; i++) world.Step(ModulesTests.RandomCommands(world, rng));
         return world.Save();
     }
 
@@ -374,7 +374,7 @@ public class MigrationsTests
             var m = new Registry();
             var world = World.Create((uint)c.seed, layout, m.All);
             var rng = new Rng(new RngState { S = (uint)c.seed });
-            for (int i = 0; i < c.ticks; i++) world.Step(ModulesTests.RandomCommands(m, rng));
+            for (int i = 0; i < c.ticks; i++) world.Step(ModulesTests.RandomCommands(world, rng));
             var before = JsonNode.Parse(world.Save())!.AsObject();
             before["format"] = 9;
             before["slices"]!["grid"]!.AsObject().Remove("zone");
@@ -412,6 +412,34 @@ public class MigrationsTests
         string relabelled = save.Replace("\"shape\":[0,5,1,1,0,6]", "\"shape\":[0,12]", StringComparison.Ordinal);
         Assert.NotEqual(save, relabelled);
         Assert.Equal(relabelled, Migrations.Upgrade(old.ToJsonString()));
+    }
+
+    /// <summary>The format <see cref="Migrations.Globals"/> upgrades a save into: the world's globals (0076).</summary>
+    private static readonly int GlobalsFormat = Migrations.Oldest + 1 + Migrations.Steps.ToList().IndexOf(Migrations.Globals);
+
+    [Fact]
+    public void MovesSuitColoursAndWhatIsKnownIntoTheWorldsGlobalsFirstAndPlaysOn()
+    {
+        var before = JsonNode.Parse(File.ReadAllText(Fixture(GlobalsFormat - 1)))!;
+        var heroes = before["slices"]!["crew"]!["heroes"]!.AsArray().Select(h => ((int)h!["id"]!, (int)h["colour"]!)).ToList();
+        Assert.NotEmpty(heroes);
+        var after = UpgradedTo(before.ToJsonString(), GlobalsFormat);
+        var slices = after["slices"]!.AsObject();
+        Assert.Equal(["players", "knowledge", "grid"], slices.Select(p => p.Key).Take(3));
+        Assert.Equal(heroes, slices["players"]!["colours"]!.AsArray().Select(w => ((int)w!["peer"]!, (int)w["colour"]!)));
+        Assert.All(slices["crew"]!["heroes"]!.AsArray(), h => Assert.Null(h!["colour"]));
+        foreach (var list in new[] { "granted", "analysed" })
+        {
+            Assert.Equal(before["slices"]!["research"]![list]!.ToJsonString(), slices["knowledge"]![list]!.ToJsonString());
+            Assert.Null(slices["research"]![list]);
+        }
+        var m = new Registry();
+        var world = World.Load(Migrations.Upgrade(after.ToJsonString()), m.All);
+        Assert.Equal(heroes, m.Crew.Heroes.Select(h => (h.Id, m.Players.ColourOf(h.Id) ?? -1)));
+        Assert.Equal(before["slices"]!["research"]!["analysed"]!.AsArray().Select(n => (string)n!), m.Research.Analysed);
+        for (int i = 0; i < 100; i++) world.Step([]);
+        // Upgraded again, it is left as it is.
+        Assert.Equal(after.ToJsonString(), Migrations.Globals(after.DeepClone().AsObject()).ToJsonString());
     }
 
     [Fact]

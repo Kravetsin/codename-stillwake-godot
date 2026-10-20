@@ -54,6 +54,7 @@ namespace Stillwake.Game;
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
+/// <c>--planet</c> opens the test strip and beams the hero down to it (0076), with <c>--beam-back</c> back aboard two seconds in,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
 /// </summary>
@@ -69,7 +70,10 @@ public partial class Main : Node2D, ITogether
     private Action? _stopLink;
     private readonly Dictionary<long, int> _guests = new();
     private readonly Updater _updater = new(Updates.Of(Build));
+    /// <summary>The registry of the surface this player's hero is on (0076): what the views draw and the hands work.</summary>
     private Registry _m = null!;
+    /// <summary>The ship's registry, surface 0's, made with the world: a load or a resync brings a new one.</summary>
+    private Registry _ship = null!;
     /// <summary>The registry the views draw: a load or a resync brings a new one.</summary>
     private Registry? _shown;
     private GridView? _grid;
@@ -174,7 +178,7 @@ public partial class Main : Node2D, ITogether
             else if ((Opens ?? Near) is { } opened) _hero.Start = m => OpenDemo.StartOf(m, opened);
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
-            AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Crew, peer))) { Lend = _items.Panel.Lend });
+            AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend });
             // The drone badge is the logistics feature's, put in the items' and crafting panels' headers where drones have work (0062).
             Features.Logistics.DroneWorld? Drones() => _session is Session s ? new(_m.Logistics, s.Client.InFlight) : null;
             void SendNow(Command c) => (_session as Session)?.Client.Send(c);
@@ -228,7 +232,7 @@ public partial class Main : Node2D, ITogether
         else Alone();
         AddChild(new DevPanel(() => _session, () => _m, () => _net));
         // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
-        var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _m.Debris : null);
+        var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), HandbookPage.SectionIcon, debrisPage)])
         {
             Opening = () =>
@@ -297,7 +301,7 @@ public partial class Main : Node2D, ITogether
 
     private IReadOnlyList<Sim.Module> Modules()
     {
-        _m = new Registry();
+        _m = _ship = new Registry();
         return _m.All;
     }
 
@@ -342,6 +346,12 @@ public partial class Main : Node2D, ITogether
         _roster = Roster.Empty();
         var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
         _session = new Session(host, client);
+        // --planet: the strip opened and the hero beamed down to it at once (0076).
+        if (Has("--planet"))
+        {
+            client.Send(new OpenSurface(Content.Surfaces.TestStrip.Id));
+            client.Send(new Transfer(world.Surfaces.Count));
+        }
         ShowWorld();
         AimCamera(aimAt);
     }
@@ -535,8 +545,8 @@ public partial class Main : Node2D, ITogether
     private IReadOnlyList<int> SuitsAboard()
     {
         if (_session is not Session s) return [];
-        return _m.Crew.Heroes.OrderBy(h => h.Id == s.Client.Id ? 0 : 1).ThenBy(h => h.Id)
-            .Select(h => h.Colour >= 0 && h.Colour < Suits.All.Length ? Suits.All[h.Colour] : Suits.All[0]).ToList();
+        return _m.Players.Worn.OrderBy(w => w.Peer == s.Client.Id ? 0 : 1).ThenBy(w => w.Peer)
+            .Select(w => w.Colour >= 0 && w.Colour < Suits.All.Length ? Suits.All[w.Colour] : Suits.All[0]).ToList();
     }
 
     public void HostTogether(string password)
@@ -703,7 +713,7 @@ public partial class Main : Node2D, ITogether
             // The registry is swapped only once the save has loaded: a broken one leaves nothing half made.
             var m = new Registry();
             var world = World.Load(Migrations.Upgrade(save), m.All);
-            _m = m;
+            _m = _ship = m;
             Enter(world, id, Roster.Read(_index.ReadPlayers(id), _playerKey));
         }
         catch (Exception e) when (e is System.IO.IOException or System.Text.Json.JsonException or System.IO.InvalidDataException or KeyNotFoundException or InvalidOperationException)
@@ -730,8 +740,12 @@ public partial class Main : Node2D, ITogether
         int seat = roster.SeatOf(_playerKey);
         var (host, client) = LocalSession.Create(world, Build, seat);
         _session = new Session(host, client);
-        // Saved with friends aboard, the world still holds their heroes: they come back when their players do.
-        foreach (var hero in _m.Crew.Heroes.Where(h => h.Id != seat).ToList()) host.Release(hero.Id, client.World.Encode(new Sim.Crew.Leave()));
+        // Saved with friends aboard, the world still holds their heroes, on whichever surface: they come back when their
+        // players do, aboard (0076). This player comes back aboard too, at the pod.
+        foreach (var surface in world.Surfaces)
+            foreach (var hero in Registry.On(world, surface.Id).Crew.Heroes.Where(h => h.Id != seat).ToList())
+                host.Release(hero.Id, client.World.Encode(new Sim.Crew.Leave()));
+        if (world.SurfaceOf(seat) != 0) host.Release(seat, client.World.Encode(new Transfer(0)));
         (_worldId, _lastSaveTick, _savedAt, _saveProblem) = (id, world.Tick, DateTime.Now, null);
         SaveRoster();
         CloseTitle();
@@ -756,6 +770,26 @@ public partial class Main : Node2D, ITogether
         _next = why;
         // A reload takes the scene out of the tree at once: deferred, the frame that asked (a click, the host gone) ends whole.
         GetTree().CallDeferred(SceneTree.MethodName.ReloadCurrentScene);
+    }
+
+    /// <summary>
+    /// Draws the surface this player's hero is on (0076): once it is another, what was open or held of the last one is put
+    /// away — an open crate, the plan, the effects flying — and <see cref="ShowWorld"/> makes the views again.
+    /// </summary>
+    private void Follow(Client client)
+    {
+        int surface = client.World.SurfaceOf(client.Id);
+        var here = surface == 0 ? _ship : Registry.On(client.World, surface);
+        if (here == _m) return;
+        _m = here;
+        _items?.Panel.Close();
+        _hands.Ui.OpenCrate.Set(null);
+        _hands.Ui.AimedPiece.Set(null);
+        _hands.Plan.PutPlanAway();
+        Bolts.Shared.Clear();
+        Glims.Shared.Clear();
+        Flares.Shared.Clear();
+        Log($"on surface {surface} now");
     }
 
     /// <summary>The views drawing the current registry's world, made again when a load brings a new one.</summary>
@@ -838,6 +872,9 @@ public partial class Main : Node2D, ITogether
             // A determinism bug: the host has already mended the world, so the report is all that is left.
             _saves.Write(Saves.Desync, System.Text.Json.JsonSerializer.Serialize(report, Indented));
         }
+        // --beam-back, with --planet: back aboard two seconds in, to see the switch both ways.
+        if (Has("--beam-back") && before < 2 * World.TicksPerSecond && client.World.Tick >= 2 * World.TicksPerSecond) client.Send(new Transfer(0));
+        Follow(client);
         _stars.Seconds = (client.World.Tick + session.Progress) / World.TicksPerSecond;
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
         if (_worldId != null && _role != "guest" && client.World.Tick - _lastSaveTick >= AutosaveTicks) SaveNow();
@@ -925,9 +962,8 @@ public partial class Main : Node2D, ITogether
     private (int? Mine, IReadOnlySet<int> Taken) SuitsWorn()
     {
         if (_session is not Session s) return (null, new HashSet<int>());
-        var heroes = _m.Crew.Heroes;
-        return (heroes.FirstOrDefault(h => h.Id == s.Client.Id)?.Colour,
-            heroes.Where(h => h.Id != s.Client.Id).Select(h => h.Colour).ToHashSet());
+        var worn = _m.Players.Worn;
+        return (_m.Players.ColourOf(s.Client.Id), worn.Where(w => w.Peer != s.Client.Id).Select(w => w.Colour).ToHashSet());
     }
 
     /// <summary>Each peer opens a door 30 ticks into its session, host and guest each their own; both say where they are.</summary>

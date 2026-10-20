@@ -9,11 +9,12 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   room has air and takes it); `Grid` (`IGridQueries.Width`, `Height` and `Zone`: where a cell is, for the pod's reach and the field); `Items`
   (`IItemsQueries.Equipped`, `ShortOf` and `Creative`, whether a hero wears a jetpack, carries a canister and needs air;
   `IItemsOps.Take`, the canister breathed; `IItemsOps.StopRunning`, an electric tool stopped as its hero passes out
-  or leaves, 0055; `IItemsOps.LeaveBody`, what a hero carried left where it died, 0061).
+  or leaves, 0055; `IItemsOps.LeaveBody`, what a hero carried left where it died, 0061); `Players` (`IPlayersQueries.Worn`
+  and `IPlayersOps`: suit colours are the world's, 0076).
 - **State** (`CrewState`, members internal): `Spawn` — the hatch of the map's first lifepod
   (`Content.Crew.PodHatch` from its top-left), else the map's first `S`, or cell 0 on a map with
   neither; `Pod` — that lifepod's top-left cell, null without one (it is `Fixed`: it never moves); `Clock` — ticks run, for the breath beat; `Heroes` — by peer id, in id order: cell,
-  suit, ticks left passed out, suit colour, whether it exerts itself, whether it thrusts and its ticks of
+  suit, ticks left passed out, whether it exerts itself, whether it thrusts and its ticks of
   thrust toward the next unit (`Hero`, public with internal setters). All saved.
 - **Files:** `Crew.cs` — the module, its commands, `ICrewQueries` and the rules below; `State.cs` —
   its slice and `Hero`; `Fuzz.cs` — its fuzz generator.
@@ -38,12 +39,17 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   for both. Anything taken pays the breath and the rest tops up the suit; what falls short of the
   breath (a cell with no air, away from the pod) the suit pays. Room air is taken as `Atmosphere` says: paid by its tanks, or
   from the far edge of the room's air, so a room without supply runs out under its heroes.
-- **Suit colours** tell heroes apart: `Crew.Colours` of them. A hero coming in wears the first colour
-  no hero wears, or with all worn, the least worn (the first on a tie). `PickColour(Colour)` puts the
-  sender's hero into a colour no other hero wears.
+- **Suit colours** tell heroes apart: `Crew.Colours` of them, kept by the world's `Players` (0076), so two heroes on
+  two surfaces never wear one. A hero coming in wears the first colour no hero wears, or with all worn, the least worn
+  (the first on a tie) (`Players.Dress`). `PickColour(Colour)` puts the sender's hero into a colour no other hero
+  wears, on any surface.
 - `Leave` takes the sender's hero out, its colour freed: the host sends it on behalf of a peer it
   heard leave (`Host.Disconnect`'s farewell, which the game passes). Whatever electric tool it ran stops
-  (`StopRunning`): its inventory stays for its seat, and its belt would drain with no one at it.
+  (`StopRunning`): its inventory stays for its seat, and its belt would drain with no one at it. Off the ship, the
+  seat goes aboard with its inventory (`ISurfaces.Send`): its player comes back at the pod (0076).
+- **Surfaces** (0076): crew carries a hero from surface to surface (`ICarries`): `Depart` gives up its `Hero` record,
+  suit, breath, exertion and thrust as they are, and `Arrive` takes it at the cell given or the spawn. A hero coming
+  round off the ship wakes aboard: full suit, sent to the ship's spawn, its body left where it fell.
 - `Exert(On)` says the sender's hero runs, or has stopped (its client no longer sends it for a swim, 0047); its client sends it when
   that changes, judging by its speed. Exerting, a hero breathes `Crew.Exerted` units a breath rather
   than one, from room air or the suit alike: stamina is the air it costs. What the air falls short
@@ -89,7 +95,7 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
 
 - **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)` — whether a hero there draws the pod's air; `EdgeCost(cell)` — what the
   cold takes from a suit a breath there (the breath and the client's frost read it); `HeroOf(id)` (TypeScript's `hero`; a method cannot share
-  the `Hero` class's name) — the `Hero` with `Id`, `Cell`, `Suit`, `Out`, `Colour`, or null;
+  the `Hero` class's name) — the `Hero` with `Id`, `Cell`, `Suit`, `Out`, or null (its colour is `Players.ColourOf`);
   `Heroes` — all of them, in id order, live and read-only.
 - **Commands:** `Enter(Cell)`, with no refusals: a cell off the grid or in a wall is simply no air;
   `PickColour(Colour)`, refused with `crew.noHero`, `crew.noSuchColour` or `crew.colourTaken`;
@@ -111,7 +117,8 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
 - `EdgeCost` is 0 inside the field, never less farther out, never more than `Field.EdgeCost`
   (`FieldTests`, FsCheck).
 - Heroes are in id order, one per peer.
-- While no more heroes are aboard than there are colours, no two wear the same.
+- While no more heroes are in the world than there are colours, no two wear the same, on whichever surfaces.
+- A seat's hero is on its surface (`World.SurfaceOf`) and on no other (`SurfacesTests`, FsCheck).
 
 ## Differences from TypeScript
 

@@ -69,8 +69,8 @@ public partial class MarkerLayer : CanvasLayer
         _seen.Clear();
         if (_read() is var (hero, m, peer))
         {
-            var friends = hero.Others.Select(o => (o.Id, o.Hero, Suits.Of(m.Crew, o.Id))).ToList();
-            var body = Bodies.Latest(m.Items.Floor, peer) is { } pile ? (pile, Suits.Of(m.Crew, peer)) : ((Pile, int)?)null;
+            var friends = hero.Others.Select(o => (o.Id, o.Hero, Suits.Of(m.Players, o.Id))).ToList();
+            var body = Bodies.Latest(m.Items.Floor, peer) is { } pile ? (pile, Suits.Of(m.Players, peer)) : ((Pile, int)?)null;
             Show(Markers.Of(m.Crew.Spawn, m.Grid.Width, friends, body), hero.Current.Middle, hero.PromptCovers, delta);
         }
         // Gone with its target: a friend who left, a body taken or gone, or the world.

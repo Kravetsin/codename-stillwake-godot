@@ -138,7 +138,37 @@ public static class Migrations
         },
         // 18 → 19: a wall has a shape (0069): every wall whole, as every one was.
         Shapes,
+        // 19 → 20: the world's globals (0076): suit colours and what is known move out of crew and research.
+        Globals,
     ];
+
+    /// <summary>
+    /// 19 → 20: what is the player's rather than a surface's moves into the world's globals (0076), slices of their own
+    /// before every other, as their modules run first: each hero's suit colour from crew to <c>players</c>, in peer order, and
+    /// what was granted and analysed from research to <c>knowledge</c>. A save already of the new shape is left as it is.
+    /// </summary>
+    public static JsonObject Globals(JsonObject save)
+    {
+        var slices = save["slices"]!.AsObject();
+        if (slices.ContainsKey("players")) return save;
+        var colours = new JsonArray();
+        foreach (var hero in slices["crew"]!["heroes"]!.AsArray())
+        {
+            var o = hero!.AsObject();
+            colours.Add(new JsonObject { ["peer"] = (int)o["id"]!, ["colour"] = (int)o["colour"]! });
+            o.Remove("colour");
+        }
+        var research = slices["research"]!.AsObject();
+        var knowledge = new JsonObject { ["granted"] = research["granted"]!.DeepClone(), ["analysed"] = research["analysed"]!.DeepClone() };
+        research.Remove("granted");
+        research.Remove("analysed");
+        var rest = slices.Select(p => (p.Key, Value: p.Value?.DeepClone())).ToList();
+        slices.Clear();
+        slices["players"] = new JsonObject { ["colours"] = colours };
+        slices["knowledge"] = knowledge;
+        foreach (var (key, value) in rest) slices[key] = value;
+        return save;
+    }
 
     /// <summary>18 → 19: the grid's shape layer, every cell <c>Shape.None</c>, after its back walls' materials, where a save of 19 keeps it.</summary>
     public static JsonObject Shapes(JsonObject save)

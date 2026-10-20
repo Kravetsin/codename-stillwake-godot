@@ -27,7 +27,7 @@ public partial class PodDemo(Ui ui, Func<(Client Client, Registry M)?> world, Fu
         var slots = new JsonArray(new JsonObject { ["item"] = "scrap", ["count"] = 40 }, new JsonObject { ["item"] = "iron", ["count"] = 9 });
         while (slots.Count < Content.Inventory.Total) slots.Add(null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
-        root["slices"]!["research"]!["analysed"] = new JsonArray("gear", "wire");
+        root["slices"]!["knowledge"]!["analysed"] = new JsonArray("gear", "wire");
         return World.Load(root.ToJsonString(), modules());
     }
 

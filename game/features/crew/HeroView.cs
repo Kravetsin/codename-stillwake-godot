@@ -88,6 +88,8 @@ public partial class HeroView : Node2D
     private Client? _sendTo;
     private Hero _previous, _current;
     private bool _placed, _wasOut, _jump, _use;
+    /// <summary>The surface the hero was on last frame (0076): moved to another, it stands where the sim put it there.</summary>
+    private int _surface;
     private Tether? _tether;
     private readonly List<(double X, double Y)> _tetherPoints = [];
     /// <summary>
@@ -111,7 +113,7 @@ public partial class HeroView : Node2D
     /// The harpoon (0044): this hero's rod and the cooldown every harpoon it holds waits for, the line to the
     /// rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the pointer.
     /// </summary>
-    private readonly HarpoonShot _harpoon = new();
+    private HarpoonShot _harpoon = new();
     private readonly HarpoonWorld _harpoonWorld;
     private HarpoonLine? _line;
     private readonly RodLight _rodLight = new();
@@ -290,8 +292,16 @@ public partial class HeroView : Node2D
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
         bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);
         bool canThrust = !passedOut && jetpack && known is { Suit: > 0 };
-        // Waking from passing out, the sim has put the hero at the spawn: so does the client.
-        if (!_placed || (_wasOut && !passedOut))
+        int surface = client.World.SurfaceOf(client.Id);
+        bool moved = _placed && surface != _surface;
+        _surface = surface;
+        // Moved to another surface, the harpoon's rod is back in the gun: what it stuck in is another grid's (0076).
+        if (moved) _harpoon = new HarpoonShot();
+        // Waking from passing out, the sim has put the hero at the spawn: so does the client. Moved to another surface, it
+        // stands where it arrived.
+        if (moved && known != null)
+            _previous = _current = Hero.At(ship, known.Cell);
+        else if (!_placed || (_wasOut && !passedOut) || moved)
         {
             _previous = _current = Hero.At(ship, !_placed && Start != null ? Start(m) : m.Crew.Spawn);
             _placed = true;
@@ -376,7 +386,7 @@ public partial class HeroView : Node2D
         UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
-        _figure.Wear(Suits.Of(m.Crew, client.Id));
+        _figure.Wear(Suits.Of(m.Players, client.Id));
         _figure.Jetpack = jetpack;
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         // Its own thrust shows at once (0014); others' as the sim says.
@@ -595,7 +605,9 @@ public partial class HeroView : Node2D
     private void ShowOthers(Ship ship, Registry m, double elapsedMs)
     {
         var crew = m.Crew;
-        var others = _remote.At(_clockMs);
+        // Only the heroes on this hero's surface: the others stand on another grid (0076).
+        int here = _client!.World.SurfaceOf(_client.Id);
+        var others = _remote.At(_clockMs).Where(o => _client.World.SurfaceOf(o.Id) == here).ToList();
         foreach (var (id, shown) in _shownOthers)
             if (!others.Any(o => o.Id == id))
             {
@@ -610,13 +622,13 @@ public partial class HeroView : Node2D
             {
                 var drum = Cues.Player2D(S.Drum, S.World);
                 AddChild(drum);
-                shown = _shownOthers[id] = new Other(new Figure(Suits.Of(crew, id), own: false), NewRod(), drum);
+                shown = _shownOthers[id] = new Other(new Figure(Suits.Of(m.Players, id), own: false), NewRod(), drum);
                 _others.AddChild(shown.Figure);
             }
             var hero = seen.Hero;
             bool out_ = (crew.HeroOf(id)?.Out ?? 0) > 0;
             shown.Figure.Visible = true;
-            shown.Figure.Wear(Suits.Of(crew, id));
+            shown.Figure.Wear(Suits.Of(m.Players, id));
             var (axe, chop) = _heardChops.GetValueOrDefault(id);
             if (!axe) shown.Swing.Stop();
             shown.Swing.Follow(elapsedMs, axe ? chop : null);
