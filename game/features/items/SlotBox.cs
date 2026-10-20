@@ -182,6 +182,25 @@ public partial class SlotBox : Panel
         _fill.Size = new Vector2(Mathf.Max(1, Mathf.Round((_size - 8) * Charges.Share(stack!))), 3);
     }
 
+    /// <summary>Whether a stack shifted here still flies to it (<see cref="SlotFlights"/>): its icon and count hidden till it lands.</summary>
+    public void Awaiting(bool flying)
+    {
+        var shown = new Color(1, 1, 1, flying ? 0 : 1);
+        _icon.SelfModulate = shown;
+        _count.SelfModulate = shown;
+    }
+
+    private Tween? _shake;
+
+    /// <summary>A shift-click with nowhere to send its stack: the icon shakes side to side, a fifth of a second, and settles.</summary>
+    public void Shake()
+    {
+        _shake?.Kill();
+        _shake = CreateTween();
+        _shake.TweenMethod(Callable.From<float>(q =>
+            _icon.Position = new Vector2(Slots.Inset + 2.5f * Mathf.Sin(q * Mathf.Tau * 3) * (1 - q), Slots.Inset)), 0f, 1f, 0.22);
+    }
+
     /// <summary>The left button acts as it goes down, so a press can begin a drag; a click is a press let go.</summary>
     private void OnGuiInput(InputEvent e)
     {

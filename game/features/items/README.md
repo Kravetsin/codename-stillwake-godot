@@ -12,7 +12,7 @@ by sending `Move`,
 
 | File               | Holds                                                                                        | Godot |
 | ------------------ | -------------------------------------------------------------------------------------------- | ----- |
-| `Click.cs`         | the click rules (`click.ts`) and quick equip (0047): `Clicks.On`, `Picked`, `SlotClick`, `Clicked`| no    |
+| `Click.cs`         | the click rules (`click.ts`), quick equip (0047) and shift between the bag and the hotbar: `Clicks.On`, `Picked`, `SlotClick`, `Clicked`; where a shifted stack landed (`Clicks.Landed`) | no    |
 | `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`); the digit each slot shows, the key that chooses it | no    |
 | `Equipment.cs`     | the equipment slots by kind, and which light up or dim while a stack is carried (`SlotGlow`, 0047) | no    |
 | `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s, `Drop`s and `Sort`s in flight (0014); which items are marked unanalysed, or smelted, burnt or grown by the open machine (`MarkOf`), a stack's tip | no    |
@@ -27,6 +27,7 @@ by sending `Move`,
 | `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, grow capsule, burner generator, analyzer, charging station or drone bay in the machine frame under the inventory, with the logistics feature's drone badge in the header where drones have work (`Served`, set by `Main`, 0062) and a bay's bolt lit while it charges (`Charger`), the stack in hand; all built again at another slot size | yes   |
 | `EnergyBar.cs`     | the energy bar right of the suit's, while an electric tool is held (0053), in its tab under the wrist computer's cuff (0074) | yes   |
 | `FloorLayer.cs`    | stacks on the floor, unlit with a breathing rim, standing on their line and bobbing up from it, along a slope, side by side when still, gliding between the last two ticks, turning in space (`floor-layer.ts`) | yes |
+| `SlotFlights.cs`   | a stack sent across with shift flying from its slot to where it landed, on the HUD: its icon on a slight arc, a ribbon of light behind it, a pulse, a flash and a glint on the slot as it lands (0075) | yes   |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head, a soft shadow round it, a band of light sweeping across it once (0075) | yes   |
 | `ItemsView.cs`     | the feature: pick-ups, the layers and the panel                                              | yes   |
 | `ItemsDemo.cs`     | `-- --items`: a room with a crate, a furnace and an analyzer, and a script for recordings    | yes   |
@@ -41,7 +42,7 @@ the energy bar, is worked out in `game/shared/Charges.cs` (no Godot), shared wit
 `ChargerLights`.
 
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
-one for one: `click.test.ts` (`ClickTests`, with quick equip), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
+one for one: `click.test.ts` (`ClickTests`, with quick equip, shift between the bag and the hotbar and where a shifted stack landed), `hotbar.test.ts` (`HotbarTests`), `pickup.test.ts`
 (`PickUpTests`), a test for the fold of own moves (`CrateTests`), one for the analyzer's panel
 (`LessonsTests`), one for the "?" and a stack's tip (`UnanalysedTests`), one for the open station's marks (`SlotMarksTests`), one for the equipment's glow (`EquipmentTests`), one for an item's card (`ItemCardTests`), one for own catches (`OwnCatchesTests`), one for the slots' size, tint and setting (`SlotsTests`, of `game/shared/Slots.cs`), one for charge
 on screen (`ChargesTests`) and one for the wrist computer's metal laid round the HUD at both slot sizes (`WristPiecesTests`). Opening a crate is aimed
@@ -63,6 +64,21 @@ as everything E works is, in the crew feature (`AimTests`).
   a refused move (the slot taken meanwhile, or a swap of two alike stacks of one) changes nothing. With the
   inventory closed a shift-click on the hotbar only chooses, as any click: Shift is thrust and run there, and a
   click while flying would swap what is worn.
+- **Shift between the bag and the hotbar** (Minecraft's): with the inventory open and no machine open, shift on a
+  stack in the bag puts it on the hotbar, and on one on the hotbar puts it in the bag (`Clicks.Across`): onto the
+  first stack alike (one item, one charge) with room there, else the first empty slot, one `Move` naming that slot,
+  the sim moving what fits, so a stack only partly merged leaves the rest for the next shift. An open crate or
+  machine comes first (what is shifted goes to it, as above), and quick equip before both: a worn kind of item goes
+  to the equipment. With neither a stack alike with room nor an empty slot there, nothing is sent and the slot's
+  icon shakes, a fifth of a second.
+- **A shifted stack flies to where it went** (`SlotFlights`, in the style of the pick-up flight, 0075): every
+  shift-click that sends a `Move`, to a crate, a furnace's fuel or a station's input, onto the equipment, off it,
+  back to the bag or between the bag and the hotbar, flies the stack's icon from its slot to each slot it landed in, as
+  `Reading` shows the move at once (`Clicks.Landed`: the slots shown holding more of its item than before), never
+  waiting for the host: a quarter of a second on a slight arc, a little larger at its top, a thin ribbon of light behind
+  it, landing in a pulse round the slot, a brief flash in it and a glint. A slot that was empty shows its new stack as
+  the icon lands. A move `Reading` shows changing nothing (the sim would refuse it) flies nothing and shakes the slot.
+  Over every panel, under the stack carried; several landings one after another, `Fx.MostRibbons` at most.
 - One hand (0022, `Ui.Hand`): 1–9 and the wheel over the world choose a hotbar slot and free the hand,
   putting the plan away; Tab frees it too as it opens the inventory. Q throws the chosen slot's whole
   stack from the hero's cell the way it faces, and does nothing while a card is in hand. The chosen

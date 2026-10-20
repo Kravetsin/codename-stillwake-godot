@@ -105,8 +105,73 @@ public class ClickTests
     {
         Assert.Equal(new Clicked(null, MoveOf(Inv(1), new Target(Crate: 7), 6)), Clicks.On(null, Click(Inv(1), Scrap(6), shift: true)));
         Assert.Equal(MoveOf(Box(1), new Target(), 6), Clicks.On(null, Click(Box(1), Scrap(6), shift: true)).Command);
+        // Nothing shifted from an empty slot: a stack picked stays picked.
         var held = new Picked(Inv(9), 1);
-        Assert.Equal(new Clicked(held), Clicks.On(held, Click(Inv(1), Scrap(6), shift: true, crate: null)));
+        Assert.Equal(new Clicked(held), Clicks.On(held, Click(Inv(1), null, shift: true, crate: null)));
+    }
+
+    [Fact]
+    public void ShiftABagStackOntoTheHotbarsFirstFreeSlotWithNoMachineOpen()
+    {
+        var inventory = Holding((Inv(0), Scrap(4)), (Inv(1), new Stack("iron", 9)), (Inv(12), new Stack("planks", 7)));
+        Assert.Equal(
+            new Clicked(null, MoveOf(Inv(12), Inv(2), 7)),
+            Clicks.On(null, Click(Inv(12), new Stack("planks", 7), shift: true, crate: null, inventory: inventory)));
+    }
+
+    [Fact]
+    public void ShiftAHotbarStackIntoTheBagsFirstFreeSlotWithNoMachineOpen()
+    {
+        var inventory = Holding((Inv(3), Scrap(4)), (Inv(9), new Stack("iron", 9)), (Inv(10), new Stack("planks", 7)));
+        Assert.Equal(MoveOf(Inv(3), Inv(11), 4), Clicks.On(null, Click(Inv(3), Scrap(4), shift: true, crate: null, inventory: inventory)).Command);
+    }
+
+    [Fact]
+    public void ShiftBetweenBagAndHotbarOntoAStackAlikeWithRoomBeforeAnEmptySlot()
+    {
+        int limit = Spec.Items.Get("scrap").Stack;
+        // A full stack alike is passed over; one with room takes it, as far as it fits (the sim moves what fits).
+        var inventory = Holding((Inv(0), Scrap(limit)), (Inv(4), Scrap(10)), (Inv(20), Scrap(30)));
+        Assert.Equal(MoveOf(Inv(20), Inv(4), 30), Clicks.On(null, Click(Inv(20), Scrap(30), shift: true, crate: null, inventory: inventory)).Command);
+    }
+
+    [Fact]
+    public void AWornKindOfItemIsWornWithShiftRatherThanMovedBetweenBagAndHotbar()
+    {
+        var battery = new Stack("battery", 1);
+        Assert.Equal(MoveOf(Inv(0), Belt1, 1), Clicks.On(null, Click(Inv(0), battery, shift: true, crate: null, inventory: Holding((Inv(0), battery)))).Command);
+        Assert.Equal(MoveOf(Inv(14), Belt1, 1), Clicks.On(null, Click(Inv(14), battery, shift: true, crate: null, inventory: Holding((Inv(14), battery)))).Command);
+    }
+
+    [Fact]
+    public void ShiftWithAnOpenCrateSendsToItNotBetweenBagAndHotbar()
+    {
+        var inventory = Holding((Inv(12), new Stack("planks", 7)));
+        Assert.Equal(MoveOf(Inv(12), new Target(Crate: 7), 7), Clicks.On(null, Click(Inv(12), new Stack("planks", 7), shift: true, inventory: inventory)).Command);
+        Assert.Equal(MoveOf(Inv(2), new Target(Crate: 7), 7), Clicks.On(null, Click(Inv(2), new Stack("planks", 7), shift: true, inventory: Holding((Inv(2), new Stack("planks", 7))))).Command);
+    }
+
+    [Fact]
+    public void ShiftBetweenBagAndHotbarDoesNothingWithNoRoomThere()
+    {
+        var hotbarFull = Holding([.. Enumerable.Range(0, Hotbar.Row).Select(i => (Inv(i), new Stack("iron", 1))), (Inv(15), Scrap(5))]);
+        var held = new Picked(Inv(20), 1);
+        Assert.Equal(new Clicked(held), Clicks.On(held, Click(Inv(15), Scrap(5), shift: true, crate: null, inventory: hotbarFull)));
+        var bagFull = Holding([.. Enumerable.Range(Hotbar.Row, Spec.Inventory.Slots - Hotbar.Row).Select(i => (Inv(i), new Stack("iron", 1))), (Inv(0), Scrap(5))]);
+        Assert.Null(Clicks.On(null, Click(Inv(0), Scrap(5), shift: true, crate: null, inventory: bagFull)).Command);
+    }
+
+    [Fact]
+    public void AShiftedStackLandsWhereTheSlotsShowMoreOfItsItem()
+    {
+        var before = Holding((Inv(0), Scrap(4)), (Inv(12), Scrap(20)), (Inv(13), new Stack("iron", 2)));
+        var after = Holding((Inv(0), Scrap(24)), (Inv(13), new Stack("iron", 2)));
+        var shown = Enumerable.Range(0, Spec.Inventory.Slots).Select(Inv);
+        Assert.Equal(new[] { Inv(0) }, Clicks.Landed(Inv(12), "scrap", p => before[p.Slot], p => after[p.Slot], shown));
+        // Swapped onto another item, it lands where that one was; a move refused, as shown, lands nowhere.
+        var swapped = Holding((Inv(0), Scrap(4)), (Inv(12), new Stack("iron", 2)), (Inv(13), Scrap(20)));
+        Assert.Equal(new[] { Inv(13) }, Clicks.Landed(Inv(12), "scrap", p => before[p.Slot], p => swapped[p.Slot], shown));
+        Assert.Empty(Clicks.Landed(Inv(12), "scrap", p => before[p.Slot], p => before[p.Slot], shown));
     }
 
     [Fact]
@@ -179,7 +244,7 @@ public class ClickTests
     public void SendWhatIsNotWornWithShiftAsBeforeWithTheEquipmentFree()
     {
         Assert.Equal(MoveOf(Inv(1), new Target(Crate: 7), 6), Clicks.On(null, Click(Inv(1), Scrap(6), shift: true, inventory: Holding((Inv(1), Scrap(6))))).Command);
-        Assert.Null(Clicks.On(null, Click(Inv(1), Scrap(6), shift: true, crate: null, inventory: Holding((Inv(1), Scrap(6))))).Command);
+        Assert.Equal(MoveOf(Inv(1), Inv(Hotbar.Row), 6), Clicks.On(null, Click(Inv(1), Scrap(6), shift: true, crate: null, inventory: Holding((Inv(1), Scrap(6))))).Command);
     }
 
     [Fact]
