@@ -88,7 +88,7 @@ mode, the world setting in which nothing is ever taken
 - **The floor.** A stack let go lies about, at a position and a speed in thousandths of a cell. A
   drop throws it from the bottom middle of the sender's cell the way its hero faces, at
   `Floor.ThrowSpeed` and up at `Floor.ThrowLift`; one with no way to face (an overflow) is let go
-  still. Each tick, in id order: inside anything built (a wall, a floor, a closed door, a machine)
+  still. Each tick, in id order: inside anything built (a wall, a floor, a closed door)
   it is **pushed out**, still, to the bottom middle of an open cell found breadth-first from its
   cell over the four neighbours, through built cells only, up to `Floor.PushReach` steps: the
   nearest open cell in a room; with none in reach, the nearest open cell of any kind, which is
@@ -101,6 +101,11 @@ mode, the world setting in which nothing is ever taken
   it lands slides to a stop by `Floor.Friction`. One past the grid's edge is gone: thrown away into
   space. Then stacks alike at rest in one cell merge into the oldest, up to the stack limit.
   Positions divide by a cell rounding down, left of and above the grid too.
+- **Machines hold no stack.** A machine is not built to a stack: one falling onto it falls through to the floor it
+  stands on, one thrown at it flies on past, and one laid in its cells (a delivery, a refund, a drop in front of it)
+  is not pushed out but falls from there. So a stack ends where a hero walks, never on top of a station. Ladders
+  hold none either, as before. A stack an older save left on a machine's top falls off on the first tick after the
+  load, with no migration: a position is saved, never where it rests, and every tick reads the rule anew.
 - **Slopes** ([0069](../../docs/decisions/0069-a-cell-has-a-shape.md)): a stack is a point, its bottom middle, and
   a floor slope (◢ ◣, `Grid`'s `Shape`) holds it on its diagonal, not its cell. Inside means the point is in
   something built: a whole cell, or the slope's solid half (`Shape.Solid`); in its open half a stack is not
