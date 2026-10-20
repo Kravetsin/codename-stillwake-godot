@@ -217,7 +217,7 @@ public sealed class HeroAutopilot
     }
 
     /// <summary>
-    /// <c>--planet</c>'s script (0076): beamed down into the shelter at the cliff's foot, out of it, a jump onto the cliff
+    /// <c>--strip</c>'s script (0076): beamed down into the shelter at the cliff's foot, out of it, a jump onto the cliff
     /// five cells up that only a planet's lower gravity allows, over the hills and down the shaft into the dark cave, to
     /// its far wall.
     /// </summary>

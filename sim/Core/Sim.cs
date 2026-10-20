@@ -108,7 +108,7 @@ public sealed class World
             throw new InvalidDataException($"A save of format {format} cannot be loaded by format {SaveFormat}.");
         var rng = new RngState { S = root.GetProperty("rng").GetUInt32() };
         var world = new World(modules, rng, root.GetProperty("tick").GetInt32());
-        Restore(root.GetProperty("slices"), modules, world.Json);
+        Restore(root.GetProperty("slices"), modules, world.Json, null);
         if (root.TryGetProperty("surfaces", out var surfaces))
         {
             var ship = modules as IModules ?? throw new InvalidDataException("The save holds surfaces, and these modules cannot make any.");
@@ -118,7 +118,9 @@ public sealed class World
                 if (surface.Id != world._surfaces.Count) throw new InvalidDataException($"Surface {surface.Id} saved out of order.");
                 var more = ship.Another();
                 world._surfaces.Add(world.Attach(surface, more));
-                Restore(saved.GetProperty("slices"), more, world.Json);
+                // A grown surface saves what changed since its ground grew: grown again here, from its seed (0077).
+                var ground = Content.Surfaces.Get(surface.Kind).Ground is { } g ? Terrain.Generate(g, surface.Seed) : null;
+                Restore(saved.GetProperty("slices"), more, world.Json, ground);
             }
             foreach (var at in root.GetProperty("where").EnumerateArray())
                 world._where[at.GetProperty("peer").GetInt32()] = at.GetProperty("surface").GetInt32();
@@ -128,13 +130,13 @@ public sealed class World
         return world;
     }
 
-    private static void Restore(JsonElement saved, IReadOnlyList<Module> modules, JsonSerializerOptions json)
+    private static void Restore(JsonElement saved, IReadOnlyList<Module> modules, JsonSerializerOptions json, Layout? ground)
     {
         var names = saved.EnumerateObject().Select(p => p.Name).ToList();
         var ids = modules.Select(m => m.Id).ToList();
         if (!names.SequenceEqual(ids))
             throw new InvalidDataException($"The save holds [{string.Join(", ", names)}], not [{string.Join(", ", ids)}].");
-        foreach (var m in modules) m.Restore(saved.GetProperty(m.Id), json);
+        foreach (var m in modules) m.Restore(saved.GetProperty(m.Id), json, ground);
     }
 
     /// <summary>Applies the commands stamped for this tick, runs every phase on every surface, advances the tick.</summary>
@@ -175,7 +177,7 @@ public sealed class World
         var kind = Content.Surfaces.Get(c.Kind);
         var ship = _surfaces[0].Modules as IModules ?? throw new InvalidOperationException("This world cannot open surfaces.");
         uint seed = _rngOver.Below(1UL << 32);
-        var layout = Layout.Parse(kind.Rows);
+        var layout = kind.Ground is { } ground ? Terrain.Generate(ground, seed) : Layout.Parse(kind.Rows);
         var modules = ship.Another();
         var surface = Attach(new Surface(_surfaces.Count, kind.Id, seed), modules);
         foreach (var m in modules) m.Create(layout);
@@ -216,13 +218,13 @@ public sealed class World
 
     /// <summary>
     /// Draws a command of the world's own, as peer <paramref name="from"/> would send it, for the desync and save
-    /// suites: now and then a strip opened, while there are few, else a transfer, to a surface there is or the one
+    /// suites: now and then a strip or a small planet opened, while there are few, else a transfer, to a surface there is or the one
     /// past the last, so both refusals are drawn, at a cell or the spawn.
     /// </summary>
     public Command Fuzz(Rng rng, int from)
     {
         if (CanOpen && _surfaces.Count < FuzzedSurfaces && rng.Below(3) == 0)
-            return new OpenSurface(Content.Surfaces.TestStrip.Id) { From = from };
+            return new OpenSurface((rng.Below(2) == 0 ? Content.Surfaces.TestStrip : Content.Surfaces.SmallPlanet).Id) { From = from };
         int to = (int)rng.Below((uint)_surfaces.Count + 1);
         int? cell = rng.Below(3) == 0 ? (int)rng.Below(400) : null;
         return new Transfer(to, cell) { From = from };
@@ -304,7 +306,8 @@ public sealed class World
         foreach (var m in modules)
         {
             w.WritePropertyName(m.Id);
-            JsonSerializer.Serialize(w, m.Slice, m.Slice.GetType(), Json);
+            var slice = m.Saved;
+            JsonSerializer.Serialize(w, slice, slice.GetType(), Json);
         }
         w.WriteEndObject();
     }

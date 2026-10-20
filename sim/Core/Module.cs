@@ -79,8 +79,11 @@ public abstract class Module
     internal ISurfaces Where = null!;
 
     internal abstract object Slice { get; }
+    /// <summary>What saves and hashes hold of the slice: the slice, or less of it (<see cref="Module{TState}"/>).</summary>
+    internal abstract object Saved { get; }
     internal abstract void Create(Layout layout);
-    internal abstract void Restore(JsonElement saved, JsonSerializerOptions options);
+    /// <summary>The slice from a save; <paramref name="ground"/> what its surface grew from (0077), null for one drawn as its map.</summary>
+    internal abstract void Restore(JsonElement saved, JsonSerializerOptions options, Layout? ground);
 
     /// <summary>The world's random numbers: the only randomness a module may use.</summary>
     protected Rng Random => Rng;
@@ -125,7 +128,6 @@ public abstract class Module
             c => validate((T)c), c => apply((T)c)));
     }
 }
-
 /// <summary>A module with its slice of type <typeparamref name="TState"/>: what saves and hashes hold.</summary>
 public abstract class Module<TState> : Module where TState : class
 {
@@ -135,8 +137,18 @@ public abstract class Module<TState> : Module where TState : class
     protected abstract TState Init(Layout layout);
 
     internal override object Slice => State;
+    internal override object Saved => Save();
     internal override void Create(Layout layout) => State = Init(layout);
 
-    internal override void Restore(JsonElement saved, JsonSerializerOptions options) =>
-        State = saved.Deserialize<TState>(options) ?? throw new InvalidDataException($"No {Id} in the save.");
+    internal override void Restore(JsonElement saved, JsonSerializerOptions options, Layout? ground) =>
+        State = Load(saved, options, ground) ?? throw new InvalidDataException($"No {Id} in the save.");
+
+    /// <summary>
+    /// What a save and a hash hold of the slice: the slice itself, but for a module of a grown surface that saves only
+    /// what changed since its ground grew (0077: the grid's edits).
+    /// </summary>
+    protected virtual object Save() => State;
+
+    /// <summary>The slice from what <see cref="Save"/> wrote; <paramref name="ground"/> what its surface grew from (0077), null for a drawn one.</summary>
+    protected virtual TState? Load(JsonElement saved, JsonSerializerOptions options, Layout? ground) => saved.Deserialize<TState>(options);
 }

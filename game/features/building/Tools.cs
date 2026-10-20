@@ -63,9 +63,9 @@ public static class Tools
     private static PlaceTool Place(string id, Placement placement, string? label = null) =>
         new(id, placement, label ?? En.T($"tool.{id}"));
 
-    /// <summary>A card for each material, its id and its text's key followed by the material's name.</summary>
+    /// <summary>A card for each material a blueprint builds it of (0077: no bedrock, no natural back wall), its id and its text's key followed by the material's name.</summary>
     private static IEnumerable<Tool> OfEveryMaterial(string id, System.Func<string, Placement> placement) =>
-        Materials.All.Select(m => Place(
+        Materials.All.Where(m => Blueprints.Has(placement(m.Id))).Select(m => Place(
             id + char.ToUpperInvariant(m.Id[0]) + m.Id[1..],
             placement(m.Id),
             $"{En.T($"tool.{id}")}: {En.T($"material.{m.Id}")}"));

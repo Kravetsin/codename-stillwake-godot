@@ -52,6 +52,25 @@ public static class Legend
         ('o', "a canister's worth of oxygen in the tank drawn over it"),
     ];
 
+    /// <summary>
+    /// A map may come with a third, of what its walls and back walls are made of (0077): <c>.</c> or space for the default
+    /// hull, as every map before the planets; one of these for a natural material.
+    /// </summary>
+    public static readonly IReadOnlyList<(char Char, string Material)> Materials =
+    [
+        ('s', "soil"),
+        ('t', "stone"),
+        ('b', "bedrock"),
+    ];
+
+    /// <summary>The material a material map's <paramref name="c"/> names; null for the default hull, or a character none names.</summary>
+    public static string? MaterialOf(char c)
+    {
+        foreach (var (ch, material) in Materials)
+            if (ch == c) return material;
+        return null;
+    }
+
     /// <summary>Every character a map may hold.</summary>
     public static readonly string MapChars = string.Concat(Map.Select(e => e.Char));
 

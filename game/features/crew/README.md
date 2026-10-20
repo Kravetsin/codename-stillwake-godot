@@ -148,7 +148,7 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   `IRoomsQueries.Afloat` says, never on a planet, its open sky included, so no swim, tether, thrust or muffle there;
   and a fall gains the kind's gravity a step (`Ship.Gravity`, `Surfaces.Kind.Fall` of `Hero.Gravity`: 14 on the
   test strip, against 21 aboard), so a jump clears six cells where aboard it clears three (`PlanetHeroTests`).
-  `--planet --autopilot` plays the strip (`HeroAutopilot.PlanetRun`): out of the shelter, onto the cliff, down the
+  `--strip --autopilot` plays the strip (`HeroAutopilot.PlanetRun`): out of the shelter, onto the cliff, down the
   shaft into the cave.
 
 - This hero is sent (`Client.SendHero`, a string net never reads: `SentHero.Encode`, JSON) every 50 ms

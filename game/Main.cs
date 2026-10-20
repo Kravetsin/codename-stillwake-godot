@@ -54,8 +54,8 @@ namespace Stillwake.Game;
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
-/// <c>--planet</c> opens the test strip and beams the hero down to it (0076), with <c>--autopilot</c> played by a script
-/// (<see cref="HeroAutopilot.PlanetRun"/>), with <c>--beam-back</c> back aboard two seconds in,
+/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it (0077), <c>--strip</c> the test strip (0076),
+/// with <c>--autopilot</c> played by a script (<see cref="HeroAutopilot.PlanetRun"/>), with <c>--beam-back</c> back aboard two seconds in,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
 /// </summary>
@@ -167,7 +167,7 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--planet") ? HeroAutopilot.PlanetRun() : HeroAutopilot.Wreck();
+            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
             if (_args.FirstOrDefault(a => a.StartsWith("--edge=")) is { } edge)
@@ -347,10 +347,10 @@ public partial class Main : Node2D, ITogether
         _roster = Roster.Empty();
         var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
         _session = new Session(host, client);
-        // --planet: the strip opened and the hero beamed down to it at once (0076).
-        if (Has("--planet"))
+        // --planet: a planet opened and the hero beamed down to it at once (0077); --strip: the test strip (0076).
+        if (Has("--planet") || Has("--strip"))
         {
-            client.Send(new OpenSurface(Content.Surfaces.TestStrip.Id));
+            client.Send(new OpenSurface((Has("--strip") ? Content.Surfaces.TestStrip : Content.Surfaces.Planet).Id));
             client.Send(new Transfer(world.Surfaces.Count));
         }
         ShowWorld();
@@ -797,6 +797,7 @@ public partial class Main : Node2D, ITogether
     private void ShowWorld()
     {
         if (_shown == _m) return;
+        long made = System.Diagnostics.Stopwatch.GetTimestamp();
         _grid?.QueueFree();
         _light?.QueueFree();
         _furnace?.QueueFree();
@@ -833,6 +834,7 @@ public partial class Main : Node2D, ITogether
         _stars.Daylight = _m.Rules.Sky != null ? new Color(r * day, g * day, b * day) : null;
         MoveChild(_camera, -1);
         _shown = _m;
+        double views = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds;
         _gridKey = null;
         if (_session is Session s)
         {
@@ -840,7 +842,11 @@ public partial class Main : Node2D, ITogether
             // The first hash builds the serializer for every slice, some 10 ms: done while the world loads, not a second into play.
             s.Client.World.Hash();
         }
+        double grid = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds - views;
         SyncLight();
+        // What a first look at a world or a surface costs (0077: a planet is built in nearly every cell).
+        double all = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds;
+        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views:F0} views, {grid:F0} the grid drawn, {all - views - grid:F0} the light");
     }
 
     private void AimCamera(Layout? layout)
@@ -877,7 +883,7 @@ public partial class Main : Node2D, ITogether
             // A determinism bug: the host has already mended the world, so the report is all that is left.
             _saves.Write(Saves.Desync, System.Text.Json.JsonSerializer.Serialize(report, Indented));
         }
-        // --beam-back, with --planet: back aboard two seconds in, to see the switch both ways.
+        // --beam-back, with --planet or --strip: back aboard two seconds in, to see the switch both ways.
         if (Has("--beam-back") && before < 2 * World.TicksPerSecond && client.World.Tick >= 2 * World.TicksPerSecond) client.Send(new Transfer(0));
         Follow(client);
         _stars.Seconds = (client.World.Tick + session.Progress) / World.TicksPerSecond;

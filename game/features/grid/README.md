@@ -52,6 +52,11 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   normal map (`render/ShipTiles.cs`), so a layer's piece of the screen is one draw call. Walls, edges,
   doors, machines and sockets are lit with relief from their normal maps; back walls, pipes, floors
   and ladders flat (`render/Lit.cs`).
+- **A planet's ground** (0077): soil, stone and bedrock walls, their edges and back walls are made in code at start
+  (`render/GroundArt.cs`, colours and speckle in `Content/GroundLooks.cs`), placeholders till slice D's audition: an
+  8 × 4 cell tile speckled in the material's colour, cut a cell at a time as scrap's; edges by the open sides, a dark
+  line and inside it one lit on top and shaded elsewhere; a back wall the same tile darker and flatter. Slopes are cut
+  from them as from the hull's.
 
 ## Deliberately not handled
 

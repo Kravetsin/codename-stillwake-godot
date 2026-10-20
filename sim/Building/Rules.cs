@@ -92,7 +92,7 @@ public sealed partial class BuildingModule
     {
         if (place.Layer == "machine" && IsFixed(place.Kind)) return "building.fixed";
         if (!Rules.Allows(place.Kind)) return "building.notHere";
-        if (!_research.Knows(place)) return "building.unknown";
+        if (Unbuilt(place) || !_research.Knows(place)) return "building.unknown";
         var gridProblem = _grid.PlacementProblem(cell, place);
         if (gridProblem != null) return gridProblem;
         string slot = SlotOf(place.Layer);
@@ -101,6 +101,10 @@ public sealed partial class BuildingModule
             p.Place is { } other && SlotOf(other.Layer) == slot && Covers(p).Any(wanted.Contains));
         return taken ? "building.planned" : null;
     }
+
+    /// <summary>A wall or back wall of a material no blueprint builds (0077): of bedrock, or a natural back wall; creative mode too.</summary>
+    private static bool Unbuilt(Placement place) =>
+        place.Kind is "wall" or "backWall" && Materials.TryGet(place.Material ?? "", out _) && !Research.Blueprints.Has(place);
 
     /// <summary>
     /// What blueprint <paramref name="plan"/> still lacks of its cost, in the cost's order; nothing in creative

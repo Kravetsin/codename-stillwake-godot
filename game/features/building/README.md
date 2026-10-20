@@ -32,6 +32,9 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 
 ## Guarantees
 
+- **The cards follow the blueprints** (0077): a wall or back wall card for each material a blueprint builds it of
+  (`Blueprints.Has`): soil and stone walls besides the hull's, no bedrock, no natural back wall.
+
 - One thing in hand (`Holding`): free, the plan, a card or the cable. The plan put away takes the card;
   the hand freed elsewhere (a hotbar slot, the wheel) puts the plan away.
 - **R slopes walls** (0069, part 2). With a hull wall's card in hand — not a floor, ladder, door, back wall or

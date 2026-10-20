@@ -1,0 +1,115 @@
+namespace Stillwake.Content;
+
+/// <summary>
+/// How a planet's ground grows from its seed (0077), read by the core's <c>Terrain</c>: ranges, hills and cliffs of soil
+/// over stone, caves denser deeper, a few landmarks at places the seed chooses — chasms and great halls — and bedrock
+/// under it all and at its sides. Noise values run from 0 to 65535; a wave is how many cells one swell of noise spans.
+/// Rows count down from the top of the grid, depths down from a column's surface.
+/// </summary>
+public sealed record Ground(int Width, int Height)
+{
+    /// <summary>The surface's middle row: ranges and hills rise and sink round it.</summary>
+    public int Surface { get; init; }
+
+    /// <summary>
+    /// The ranges and valleys: one swell every <see cref="RangeWave"/> columns, lifting or sinking the surface up to
+    /// <see cref="RangeRise"/> rows, in steps of <see cref="CliffStep"/> rows, so their sides are terraces of cliffs.
+    /// </summary>
+    public int RangeWave { get; init; } = 384;
+    public int RangeRise { get; init; } = 44;
+    public int CliffStep { get; init; } = 5;
+
+    /// <summary>The hills on them: one swell every <see cref="HillWave"/> columns, up to <see cref="HillRise"/> rows either way.</summary>
+    public int HillWave { get; init; } = 64;
+    public int HillRise { get; init; } = 12;
+
+    /// <summary>The bumps on the hills: an octave finer and lower.</summary>
+    public int BumpWave { get; init; } = 12;
+    public int BumpRise { get; init; } = 2;
+
+    /// <summary>Soil over the stone: <see cref="SoilLeast"/> to <see cref="SoilMost"/> rows deep, swelling every <see cref="SoilWave"/> columns.</summary>
+    public int SoilLeast { get; init; } = 3;
+    public int SoilMost { get; init; } = 8;
+    public int SoilWave { get; init; } = 24;
+
+    /// <summary>
+    /// How deep under its surface a column's caves begin: under the soil and a few rows of stone, so a first shaft
+    /// finds one soon. Where the cave mouths' noise (every <see cref="MouthWave"/> columns) passes <see cref="MouthOver"/>,
+    /// caves come right up and a few open to the sky.
+    /// </summary>
+    public int CaveFrom { get; init; } = 12;
+    public int MouthWave { get; init; } = 40;
+    public int MouthOver { get; init; } = 44000;
+
+    /// <summary>
+    /// Tunnels: winding where the tunnels' noise is near its middle, within <see cref="TunnelTop"/> of it where caves
+    /// begin, widening to <see cref="TunnelBottom"/> at the bedrock. Its swells span <see cref="TunnelWave"/> columns
+    /// and <see cref="TunnelTall"/> rows, so tunnels run more along than down and a hero walks them.
+    /// </summary>
+    public int TunnelWave { get; init; } = 30;
+    public int TunnelTall { get; init; } = 18;
+    public int TunnelTop { get; init; } = 2200;
+    public int TunnelBottom { get; init; } = 4200;
+
+    /// <summary>
+    /// Caverns: open where the caverns' noise, swelling every <see cref="CavernWave"/> cells, passes <see cref="CavernTop"/>
+    /// where caves begin, falling to <see cref="CavernBottom"/> at the bedrock: more of them, and bigger, deeper down.
+    /// </summary>
+    public int CavernWave { get; init; } = 14;
+    public int CavernTop { get; init; } = 49000;
+    public int CavernBottom { get; init; } = 41500;
+
+    /// <summary>
+    /// Chasms, landmarks at columns the seed chooses: <see cref="Chasms"/> clefts up to <see cref="ChasmWide"/> cells
+    /// across, wandering as they go, open from the surface down <see cref="ChasmDeep"/> rows at most, half that at least.
+    /// </summary>
+    public int Chasms { get; init; } = 4;
+    public int ChasmWide { get; init; } = 12;
+    public int ChasmDeep { get; init; } = 260;
+
+    /// <summary>
+    /// Great halls, landmarks at places the seed chooses: <see cref="Halls"/> caverns up to <see cref="HallWide"/> cells
+    /// either side of their middle and <see cref="HallTall"/> above and below it, half that at least, their walls
+    /// ragged by the caverns' noise, from <see cref="HallFrom"/> rows under the surface down to the bedrock.
+    /// </summary>
+    public int Halls { get; init; } = 6;
+    public int HallWide { get; init; } = 72;
+    public int HallTall { get; init; } = 28;
+    public int HallFrom { get; init; } = 80;
+
+    /// <summary>The columns either side of the middle no landmark comes into: where heroes beam down.</summary>
+    public int Clear { get; init; } = 120;
+
+    /// <summary>The bedrock: the bottom rows, and a column at either side the whole height of the grid.</summary>
+    public int BedrockRows { get; init; } = 3;
+    public int BedrockSide { get; init; } = 1;
+
+    /// <summary>
+    /// The first planet's ground, 2048 × 768 cells: some minutes' walk across, its surface a fifth of the way down under
+    /// its sky, some six hundred rows of ground under that.
+    /// </summary>
+    public static readonly Ground Planet = new(2048, 768) { Surface = 160 };
+
+    /// <summary>
+    /// The same ground small, 64 × 48, for tests and the fuzz: low hills, caves a little nearer the surface, a chasm and a
+    /// hall of its size.
+    /// </summary>
+    public static readonly Ground Small = new(64, 48)
+    {
+        Surface = 14,
+        RangeWave = 48,
+        RangeRise = 4,
+        CliffStep = 2,
+        HillWave = 24,
+        HillRise = 3,
+        CaveFrom = 8,
+        Chasms = 1,
+        ChasmWide = 3,
+        ChasmDeep = 16,
+        Halls = 1,
+        HallWide = 6,
+        HallTall = 4,
+        HallFrom = 14,
+        Clear = 8,
+    };
+}

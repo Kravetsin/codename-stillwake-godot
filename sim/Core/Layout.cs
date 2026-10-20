@@ -7,12 +7,23 @@ namespace Stillwake.Sim;
 /// <param name="Known">The blueprints known at the start (ADR 0024); every one when not given.</param>
 /// <param name="DebrisAtStart">Pieces of debris already on their way past the ship when its world begins.</param>
 /// <param name="Zone">Where the crew may build (0048); the whole map when not given, as test maps leave it.</param>
+/// <param name="Materials">
+/// Each cell's material code (<c>Content.Materials</c>), for its wall and its back wall: what one character cannot say (0077).
+/// None given, every one is the default hull, as on every map before the planets; 0 is the open sky: no back wall, and a
+/// wall drawn there of the default hull.
+/// </param>
 public sealed record Layout(
     int Width, int Height, IReadOnlyList<string> Rows, IReadOnlyList<string>? Under = null,
     IReadOnlyList<(int A, int B)>? Cables = null, IReadOnlyList<string>? Known = null, int DebrisAtStart = 0,
-    Box? Zone = null)
+    Box? Zone = null, IReadOnlyList<int>? Materials = null)
 {
     public static readonly Layout Empty = new(0, 0, []);
+
+    /// <summary>
+    /// Grown from a seed (0077, <c>Terrain</c>), not drawn: its grid saves only the cells changed since, the ground grown again
+    /// from the seed when the save loads.
+    /// </summary>
+    public bool Grown { get; init; }
 
     /// <summary>The build zone of a world of <c>Content.World</c>'s size: <c>ZoneWidth</c> × <c>ZoneHeight</c> in its middle.</summary>
     public static Box WorldZone
@@ -45,6 +56,12 @@ public sealed record Layout(
             return padded;
         }
         int Moved(int cell) => (cell / Width + oy) * width + cell % Width + ox;
+        int[]? materials = null;
+        if (Materials != null)
+        {
+            materials = new int[width * height];
+            for (int cell = 0; cell < Materials.Count; cell++) materials[Moved(cell)] = Materials[cell];
+        }
         return this with
         {
             Width = width,
@@ -53,6 +70,7 @@ public sealed record Layout(
             Under = Under == null ? null : Padded(Under),
             Cables = Cables?.Select(c => (Moved(c.A), Moved(c.B))).ToArray(),
             Zone = WorldZone,
+            Materials = materials,
         };
     }
 
@@ -77,6 +95,26 @@ public sealed record Layout(
             .Select(y => (y < under.Count ? under[y] : "").PadRight(width)).ToArray();
         Check(below, Legend.UnderChars, " under");
         return new Layout(width, padded.Length, padded, below, ends);
+    }
+
+    /// <summary>
+    /// This map with the materials of its cells drawn beside it (0077), the same size, in <c>Legend.Materials</c>' characters and
+    /// trimmed as <see cref="Parse(string)"/> trims a map: how a test draws natural ground.
+    /// </summary>
+    public Layout WithMaterials(string map)
+    {
+        var rows = Trimmed(map);
+        var codes = new int[Width * Height];
+        Array.Fill(codes, Content.Materials.Get(Content.Materials.DefaultHull).Code);
+        for (int y = 0; y < Math.Min(rows.Length, Height); y++)
+            for (int x = 0; x < Math.Min(rows[y].Length, Width); x++)
+            {
+                char c = rows[y][x];
+                var id = Legend.MaterialOf(c);
+                if (id == null && c is not (' ' or '.')) throw new FormatException($"Material map cell ({x}, {y}): '{c}' is not in the legend.");
+                codes[y * Width + x] = Content.Materials.Get(id ?? Content.Materials.DefaultHull).Code;
+            }
+        return this with { Materials = codes };
     }
 
     private static void Check(string[] rows, string legend, string which)
@@ -118,7 +156,9 @@ public sealed record Layout(
         var found = new List<(string, int)>();
         for (int cell = 0; cell < Width * Height; cell++)
         {
-            char c = At(cell);
+            char c = Rows[cell / Width][cell % Width];
+            // Most cells of a map are no machine: ground, walls, space.
+            if (c is ' ' or '#' or '.') continue;
             var kind = Legend.MachineOf(c);
             if (kind == null || claimed[cell]) continue;
             var spec = Content.Machines.Get(kind);

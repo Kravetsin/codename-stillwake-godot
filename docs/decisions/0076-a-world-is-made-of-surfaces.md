@@ -58,7 +58,7 @@ saving, ids, and the client's views.
 | 2 | Globals with the second surface: Players and Knowledge, format 20 moving colours and research into them | built |
 | 3 | Surface 1 behind a dev flag (`--planet`, the dev panel): world commands to open a surface and move a hero between them (applied at command time), carrying hero and inventory, the client switching its views and filtering heroes and in-flight commands by surface, the fuzz drawing transfers | built, with 2 |
 | 4 | Planet rules from the kind: gravity for stacks and the hero, thin air outdoors, sky light, no debris zones, the build list (`building.notHere`) | built |
-| 5 | The ground generator and digging: its own design | later |
+| 5 | The ground generator and digging: its own design | built, 0077 |
 
 ## Deliberately not handled
 
@@ -119,4 +119,4 @@ saving, ids, and the client's views.
 
 - **A thin-air room:** a sealed room with no air on a planet is as thin as outside; vents fill it with real air.
 - **The sky's backdrop** is one flat colour: no gradient, sun, clouds or day and night.
-- **Natural blocks:** the strip's ground is hull wall, lit and taken apart as hull, until the generator slice.
+- **Natural blocks:** the strip's ground is hull wall, lit and taken apart as hull; a planet's grows from its seed (0077).

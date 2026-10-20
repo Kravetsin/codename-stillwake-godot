@@ -100,8 +100,8 @@ public class ItemCardTests
         Assert.Equal($"+{into - ItemCards.MostInto}", scrap[^1]);
         // Electronics need circuits: the crafts first, then the builds.
         Assert.Equal(["Oxygen jetpack", "Battery", "Drill", "Drone", "+7"], ItemCards.Of("circuit", false).Uses);
-        // The farm (0060): soil goes into the grow capsule alone; a seed into nothing, it is planted.
-        Assert.Equal(["Grow capsule"], ItemCards.Of("soil", false).Uses);
+        // The farm (0060): soil goes into a soil wall (0077) and the grow capsule; a seed into nothing, it is planted.
+        Assert.Equal(["Wall: soil", "Grow capsule"], ItemCards.Of("soil", false).Uses);
         Assert.Empty(ItemCards.Of("seed", false).Uses);
         Assert.Equal(("Seed", "Seed"), (ItemCards.Of("seed", false).Name, ItemCards.Of("seed", false).Kind));
         // A solar cell goes into the solar panel alone; its card names the part kind.

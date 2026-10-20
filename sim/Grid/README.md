@@ -107,6 +107,19 @@ valve open/closed, machines by `Data.MachineOf`. A machine is drawn as its whole
 draws part of one does not load. Every character but a space has a back wall of the default hull,
 hull walls included. A map's machines take ids 1, 2, … by their top-left cells in reading order.
 
+A map may come with its cells' materials (`Layout.Materials`, 0077): a planet's ground grown from its seed
+(`Terrain`), or a test's material map (`Layout.WithMaterials`, `Legend.Materials`: `s` soil, `t` stone, `b` bedrock).
+A wall and the back wall behind a cell are then of that cell's material; a code of 0 is open sky, with no back wall.
+Natural materials (`Material.Natural`) are walls like any other to the grid: what digs them is building's (0077).
+
+**A grown grid saves its edits** (0077, `Grown.cs`): on a layout grown from a seed (`Layout.Grown`), the grid notes what each
+cell held as grown on its first write (derived: `_base`, never saved) and a save holds, in place of its layers, a
+`GrownGrid`: its size, zone, machines, next machine id and `edits`, the cells that differ now from the ground as grown,
+ascending, each `cell, structure, material, conduit, back, backMaterial, shape`. Loading, it is handed the ground grown
+again from the surface's seed and lays the edits on it. A cell changed and changed back is no edit, so every peer saves
+and hashes the same edits whatever its history (`GrownSaveTests`). A drawn map (the ship, the strip, tests) saves every
+layer as runs, as ever.
+
 ## Invariants
 
 - Machines never overlap, and stand only on cells without structure.

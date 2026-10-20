@@ -11,9 +11,16 @@ public static class Surfaces
     /// <summary>A light's colour, each part in thousandths of whole, which it may pass.</summary>
     public sealed record Light(int R, int G, int B);
 
-    /// <summary>A kind of surface: its id, saved with each surface of it, and its ground drawn as a map in <see cref="Legend"/>'s characters.</summary>
+    /// <summary>
+    /// A kind of surface: its id, saved with each surface of it, and its ground drawn as a map in <see cref="Legend"/>'s
+    /// characters, or grown from each surface's seed by its <see cref="Ground"/>.
+    /// </summary>
     public sealed record Kind(string Id, IReadOnlyList<string> Rows)
     {
+        /// <summary>How its ground grows from a surface's seed (0077); null for one drawn as <c>Rows</c>.</summary>
+        public Ground? Ground { get; init; }
+
+
         /// <summary>
         /// Gravity everywhere on it, the open sky too, in thousandths of the ship's; null for the ship's own way: gravity
         /// aboard, afloat in space, where the jetpack flies.
@@ -52,7 +59,7 @@ public static class Surfaces
     public static readonly Kind Ship = new("ship", []);
 
     /// <summary>
-    /// Ground under open sky, a cliff, hills and a cave down a shaft with a ladder, drawn by hand till the generator: under
+    /// Ground under open sky, a cliff, hills and a cave down a shaft with a ladder, drawn by hand for tests and --strip: under
     /// the first planet's rules. Gravity two thirds of the ship's, so a hero jumps higher and farther; thin air, the suit
     /// paying one breath in five outside; warm daylight; no debris; ladders, floors, walls, back walls and doors built,
     /// no machines. Heroes beam down to its <c>S</c>, in a shelter at the cliff's foot.
@@ -66,8 +73,17 @@ public static class Surfaces
         Builds = ["wall", "backWall", "floor", "ladder", "door"],
     };
 
+    /// <summary>
+    /// The first planet (0077): ground grown from its seed, hills of soil over stone, caves denser deeper, bedrock under
+    /// it, under the strip's rules. Opened by <c>--planet</c> and the dev panel till the drop pod.
+    /// </summary>
+    public static readonly Kind Planet = TestStrip with { Id = "planet", Rows = [], Ground = Content.Ground.Planet };
+
+    /// <summary>The planet's ground grown small, for tests and the fuzz: the same generator, a fraction of the cells.</summary>
+    public static readonly Kind SmallPlanet = Planet with { Id = "smallPlanet", Ground = Content.Ground.Small };
+
     /// <summary>The kinds a world may open: every one but the ship.</summary>
-    public static readonly IReadOnlyList<Kind> All = [TestStrip];
+    public static readonly IReadOnlyList<Kind> All = [TestStrip, Planet, SmallPlanet];
 
     /// <summary>The kind named <paramref name="id"/>, the ship's too; one not here is our bug: peers run one build.</summary>
     public static Kind Get(string id) =>
