@@ -16,12 +16,16 @@ public static class Terrain
 
     /// <summary>Each noise and draw of a ground hashed apart from the others.</summary>
     private const uint Ranges = 1, Hills = 2, Bumps = 3, Soil = 4, Mouths = 5, Tunnels = 6, TunnelsFine = 7, Caverns = 8,
-        CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13, CaveRoll = 14, CavePatch = 17;
+        CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13, CaveRoll = 14, CavePatch = 17, MouthFade = 18;
 
-    public static Layout Generate(Ground g, uint seed) => Generate(g, seed, out _);
+    public static Layout Generate(Ground g, uint seed) => Generate(g, seed, out _, out _);
 
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
-    internal static Layout Generate(Ground g, uint seed, out bool[] hall)
+    internal static Layout Generate(Ground g, uint seed, out bool[] hall) => Generate(g, seed, out hall, out _);
+
+    /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
+    /// <param name="surface">Each column's surface, its first row of ground before caves and landmarks open it: for tests.</param>
+    internal static Layout Generate(Ground g, uint seed, out bool[] hall, out int[] surface)
     {
         int w = g.Width, h = g.Height, floor = h - g.BedrockRows;
         int soil = Materials.Get("soil").Code, stone = Materials.Get("stone").Code, bedrock = Materials.Get("bedrock").Code;
@@ -107,10 +111,16 @@ public static class Terrain
             }
 
         // Open ground with nothing solid above it, straight up to the sky — a cave's mouth, a chasm, a pit — is the open sky
-        // itself: no back wall, so it shows the sky as the land round it does. Under an overhang, and in caves, it keeps its.
+        // itself near the surface: no back wall, so it shows the sky as the land round it does, down to a few rows under the
+        // surface's line, ragged column by column. Deeper, a shaft keeps its back wall all the way down, as caves and ground
+        // under an overhang keep theirs: a hero falling down one sees the rock go by.
         for (int x = 0; x < w; x++)
-            for (int y = 0; y < h && kind[y * w + x] != 1; y++)
+        {
+            int fade = g.MouthFadeLeast + (int)((long)Lattice(seed, MouthFade, x, 0) * (g.MouthFadeMost - g.MouthFadeLeast + 1) / Whole);
+            for (int y = 0; y < h && y < top[x] + fade && kind[y * w + x] != 1; y++)
                 (kind[y * w + x], codes[y * w + x]) = (0, 0);
+        }
+        surface = top;
 
         var rows = new char[h][];
         for (int y = 0; y < h; y++)

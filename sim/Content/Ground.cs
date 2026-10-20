@@ -42,6 +42,14 @@ public sealed record Ground(int Width, int Height)
     public int MouthOver { get; init; } = 44000;
 
     /// <summary>
+    /// How far under a column's surface line open ground straight under the sky still shows the sky, with no back wall: from
+    /// <see cref="MouthFadeLeast"/> to <see cref="MouthFadeMost"/> rows by column, so a cave's mouth fades into rock raggedly.
+    /// Deeper, a shaft or a chasm keeps its back wall.
+    /// </summary>
+    public int MouthFadeLeast { get; init; } = 3;
+    public int MouthFadeMost { get; init; } = 6;
+
+    /// <summary>
     /// Tunnels: winding where the tunnels' noise is near its middle, within <see cref="TunnelTop"/> of it where caves
     /// begin, widening to <see cref="TunnelBottom"/> at the bedrock. Its swells span <see cref="TunnelWave"/> columns
     /// and <see cref="TunnelTall"/> rows, so tunnels run more along than down and a hero walks them.

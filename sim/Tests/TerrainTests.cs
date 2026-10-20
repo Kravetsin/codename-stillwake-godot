@@ -136,22 +136,49 @@ public class TerrainTests
     });
 
     [Property(MaxTest = 60)]
-    public Property OpenGroundStraightUnderTheSkyHasNoBackWallAndUnderAnOverhangKeepsIt() => Prop.ForAll(Seeds, seed =>
+    public Property OpenGroundStraightUnderTheSkyHasNoBackWallNearTheSurfaceAndDeeperOrUnderAnOverhangKeepsIt() => Prop.ForAll(Seeds, seed =>
     {
-        var l = Terrain.Generate(Small, seed);
+        var l = Terrain.Generate(Small, seed, out _, out var surface);
         for (int x = 0; x < l.Width; x++)
         {
-            // Down each column: open sky, with no material, till its first solid cell; open cells under that are caves.
+            // Down each column: open sky, with no material, till its first solid cell or a few rows under its surface's line,
+            // whichever comes first; every other open cell keeps its back wall, a shaft's deep down too.
             bool sky = true;
             for (int y = 0; y < l.Height; y++)
             {
                 char c = l.Rows[y][x];
-                if (c is '#' or '/' or '\\') sky = false;
-                else if (sky != (c is ' ' or 'S') || sky != (l.Materials![y * l.Width + x] == 0)) return false;
+                if (c is '#' or '/' or '\\')
+                {
+                    sky = false;
+                    continue;
+                }
+                bool open = c is ' ' or 'S', bare = l.Materials![y * l.Width + x] == 0;
+                if (open != bare) return false;
+                if (open && (!sky || y >= surface[x] + Small.MouthFadeMost)) return false;
+                if (!open && sky && y < surface[x] + Small.MouthFadeLeast) return false;
+                if (!open) sky = false;
             }
         }
         return true;
     });
+
+    [Fact]
+    public void AShaftKeepsItsBackWallAllTheWayDownUnderItsMouth()
+    {
+        // The first planet's chasms go down hundreds of rows straight under the sky: only their first few rows show it.
+        var l = Terrain.Generate(Planet, 1, out _, out var surface);
+        int deepest = 0;
+        for (int x = 0; x < l.Width; x++)
+        {
+            int y = 0;
+            while (y < l.Height && l.Rows[y][x] is ' ' or 'S') y++;
+            Assert.True(y <= surface[x] + Planet.MouthFadeMost, $"column {x}: sky down to row {y}, its surface at {surface[x]}");
+            int down = y;
+            while (down < l.Height && l.Rows[down][x] == '.') down++;
+            deepest = Math.Max(deepest, down - y);
+        }
+        Assert.True(deepest > 40, $"the deepest open run straight under the sky {deepest} rows, a back wall in each");
+    }
 
     [Fact]
     public void CavesAreDenserDeeperOnEverySeed()
