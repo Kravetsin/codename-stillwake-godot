@@ -14,7 +14,8 @@ public static class CaveLooks
 {
     /// <summary>
     /// A kind's look: how many pictures; whether they are by band; the light it casts, if any — a colour, at a strength, keeping
-    /// <c>Keep</c> a cell out to <c>Reach</c> cells — from <c>LightShare</c> percent of them, from its glow's middle; how many
+    /// <c>Keep</c> a cell out to <c>Reach</c> cells — from its glow's middle, or, with <c>Halo</c>, a soft round glow that far across
+    /// at its strength, drawn and lighting nothing; how many
     /// glints sparkle in a beam on it and their colour.
     /// </summary>
     public sealed record Look(int Variants)
@@ -24,7 +25,11 @@ public static class CaveLooks
         public float Strength { get; init; } = 0.8f;
         public float Keep { get; init; } = 0.55f;
         public int Reach { get; init; } = 3;
-        public int LightShare { get; init; } = 100;
+        /// <summary>
+        /// Whether it glows as a soft round halo drawn over what is round it rather than as a light of the light map: moss,
+        /// roots and the heat's cracks, so common that as lights the cap left some dark and their shadows cut their glow square.
+        /// </summary>
+        public bool Halo { get; init; }
         /// <summary>How far its base sinks under the ground's top edge, or its top up into a ceiling, in pixels: planted, not set on it.</summary>
         public int Sink { get; init; } = 2;
         public int Glints { get; init; }
@@ -50,14 +55,14 @@ public static class CaveLooks
         ["hangcap"] = new(3) { Light = Violet, Strength = 0.85f, Keep = 0.62f, Reach = 4 },
         ["threadViolet"] = new(3) { Light = Violet, Strength = 0.7f, Keep = 0.6f, Reach = 4 },
         ["threadTeal"] = new(3) { Light = Teal, Strength = 0.7f, Keep = 0.6f, Reach = 4 },
-        ["roots"] = new(3) { Light = Green, Strength = 0.35f, Keep = 0.4f, Reach = 2, LightShare = 50 },
-        ["moss"] = new(4) { Light = Teal, Strength = 0.5f, Keep = 0.55f, Reach = 3, LightShare = 30 },
+        ["roots"] = new(3) { Light = Green, Strength = 0.16f, Reach = 2, Halo = true },
+        ["moss"] = new(4) { Light = Teal, Strength = 0.15f, Reach = 3, Halo = true },
         ["mica"] = new(0) { Glints = 3 },
         ["veinIce"] = new(3) { Glints = 3, GlintColour = (232, 250, 255) },
         ["veinCopper"] = new(3) { Glints = 3, GlintColour = (255, 208, 138) },
         ["fossil"] = new(3),
         ["geode"] = new(2) { Light = Violet, Strength = 0.9f, Keep = 0.62f, Reach = 4, Glints = 2, GlintColour = (240, 216, 255) },
-        ["heatCrack"] = new(4) { Light = Ember, Strength = 0.85f, Keep = 0.62f, Reach = 4, LightShare = 40 },
+        ["heatCrack"] = new(4) { Light = Ember, Strength = 0.3f, Reach = 3, Halo = true },
     };
 
     /// <summary>Moss in the cold band is the surface's green; deeper it is the garden's teal.</summary>
