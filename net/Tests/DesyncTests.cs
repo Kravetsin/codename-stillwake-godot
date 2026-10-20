@@ -68,9 +68,10 @@ public class DesyncTests
     public void KeepsEveryClientInSyncDiggingTheGroundOfSmallPlanets()
     {
         // Small planets opened by the world's fuzz, heroes beamed down to them, their ground grown on every peer from one
-        // seed and dug there (0077): walls cracked, broken out, their soil and rock given or spilt, alike on every peer.
-        int planets = 0, cracked = 0, dug = 0;
-        var run = Desync.Fuzz(Definition.Game(), 12, layout: Registry.Wreck, ticks: 900, worldEvery: 6, tamper: (_, clients) =>
+        // seed and dug there (0077): walls cracked, broken out, their soil and rock given or spilt, plants felled (0078), alike on
+        // every peer.
+        int planets = 0, cracked = 0, dug = 0, felled = 0;
+        var run = Desync.Fuzz(Definition.Game(), 7, layout: Registry.Wreck, ticks: 900, worldEvery: 6, tamper: (_, clients) =>
         {
             var world = clients[0].World;
             foreach (var surface in world.Surfaces.Where(s => s.Kind == Content.Surfaces.SmallPlanet.Id))
@@ -80,11 +81,12 @@ public class DesyncTests
                 int got = m.Items.Floor.Where(s => s.Item is "soil" or "rock").Sum(s => s.Count)
                     + clients.Sum(c => m.Items.Totals(c.Id).Where(t => t.Item is "soil" or "rock").Sum(t => t.Count));
                 dug = Math.Max(dug, got);
+                felled = Math.Max(felled, Terrain.Generate(Content.Ground.Small, surface.Seed).Flora!.Count - m.Building.Plants.Count);
             }
             planets = Math.Max(planets, world.Surfaces.Count(s => s.Kind == Content.Surfaces.SmallPlanet.Id));
         });
         Assert.Null(run.Desync);
-        Assert.True(planets >= 1 && cracked >= 1 && dug >= 1, $"{planets} small planets, {cracked} cracks at most, {dug} soil and rock dug");
+        Assert.True(planets >= 1 && cracked >= 1 && dug >= 1 && felled >= 1, $"{planets} small planets, {cracked} cracks at most, {dug} soil and rock dug, {felled} plants felled");
     }
 
     [Fact]
