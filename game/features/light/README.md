@@ -31,7 +31,9 @@ Numbers from `game/Content/Light.cs`.
 - **No Godot lights.** Godot lights a drawn thing by at most 15 lights and drops the rest: a furnace's
   embers once pushed a lamp out and whole tile chunks went dark. All light is composed here instead,
   with no limit on how many lights touch a thing.
-- **Lightmap** (`Lightmap.cs`): two `SubViewport`s over the view and a margin of 4 cells, HDR, cleared
+- **Lightmap** (`Lightmap.cs`): two `SubViewport`s over the view and a margin of 4 cells, sized from the view's size alone with a
+  texel spare, so the camera moving never resizes them (a resize remakes both textures, some 4 ms; sized to where the view
+  fell on the pixels, they once changed by a texel nearly every frame of a run), HDR, cleared
   each frame, a texel a world pixel (more pixels a texel past 4096 texels across), laid with their
   `CanvasTransform` — no camera. *Main* takes lamps and fires, *Spots* embers, sparks and glows, which
   `Lit` caps apart. Each light whose reach touches the view is one additive quad of a multimesh

@@ -22,6 +22,8 @@ public partial class FloraView : Node2D
     private readonly BuildingModule _building;
     private readonly Dictionary<int, (string Kind, Sprite2D Picture, Sprite2D? Glow, (Vector2 At, Color Colour)[] Lights)> _shown = new();
     private readonly List<(Vector2 At, Color Colour)> _lights = [];
+    /// <summary>Scratch for <see cref="Motes"/>: the lights on screen.</summary>
+    private readonly List<(Vector2 At, Color Colour)> _lit = [];
     private readonly Queue<double> _motes = new();
     private double _seconds, _moteDue;
     private int _count = -1;
@@ -37,6 +39,7 @@ public partial class FloraView : Node2D
 
     public override void _Process(double delta)
     {
+        long started = Game.Dev.FrameLog.Begin();
         _seconds += delta;
         if (_building.Plants.Count != _count) Follow();
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
@@ -46,6 +49,7 @@ public partial class FloraView : Node2D
             if (lights.Length > 0 && near.Intersects(new Rect2(picture.Position, picture.Texture.GetSize())))
                 foreach (var light in lights) _lights.Add(light);
         Motes(view, delta);
+        Game.Dev.FrameLog.End("flora", started);
     }
 
     /// <summary>Brings the pictures up to the plants standing: a new one drawn, a felled one taken away in a fall of leaves.</summary>
@@ -111,7 +115,10 @@ public partial class FloraView : Node2D
     private void Motes(Rect2 view, double delta)
     {
         while (_motes.Count > 0 && _motes.Peek() <= _seconds) _motes.Dequeue();
-        var lit = _lights.Where(l => view.HasPoint(l.At)).ToList();
+        var lit = _lit;
+        lit.Clear();
+        foreach (var light in _lights)
+            if (view.HasPoint(light.At)) lit.Add(light);
         if (lit.Count == 0) return;
         var glims = Glims.Shared;
         _moteDue += delta * FloraLooks.MotesASecond;

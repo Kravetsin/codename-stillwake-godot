@@ -9,9 +9,9 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// Every frame's cost, for development (<c>-- --frames</c>): vsync off, the wall time from one frame's
 /// processing to the next (Godot's delta is smoothed) beside what <c>Main</c> spent where in it
-/// (<see cref="Mark"/>), the renderer's CPU and GPU time for the frame drawn in between, the collections
-/// the GC ran and the bytes the main thread allocated; on <see cref="Report"/>, a histogram, percentiles, the
-/// collections a minute and the worst frames with their causes, on stdout. It allocates nothing a frame,
+/// (<see cref="Mark"/>) and the views timed apart (<see cref="Begin"/>, <see cref="End"/>), the renderer's CPU and GPU time for the
+/// frame drawn in between, the collections the GC ran and its pauses, and the bytes the main thread allocated; on <see cref="Report"/>,
+/// a histogram, percentiles, the collections a minute and every frame over a 240 Hz budget with its causes, on stdout. It allocates nothing a frame,
 /// so what it counts is the game's.
 /// </summary>
 public partial class FrameLog : Node
@@ -25,9 +25,24 @@ public partial class FrameLog : Node
     private static readonly double[] Buckets = [Budget, 5, 6, 8, 12, 1000.0 / 60, 33, double.MaxValue];
 
     /// <summary>What <see cref="Mark"/> may be told: <c>Main</c>'s sections, in its order.</summary>
-    public static readonly string[] Sections = ["net", "sim", "light", "hero", "grid", "items", "debris", "hands"];
+    public static readonly string[] Sections = ["net", "sim", "light", "hero", "grid", "items", "debris", "hands", "reveal", "lightmap", "flora"];
 
-    private readonly double[] _ms = new double[Capacity], _render = new double[Capacity], _gpu = new double[Capacity];
+    /// <summary>The log of this run, if frames are logged: views timed apart from <c>Main</c> tell it through <see cref="End"/>.</summary>
+    public static FrameLog? Active { get; private set; }
+
+    /// <summary>A view's work starts: a timestamp for <see cref="End"/>, or 0 when frames are not logged.</summary>
+    public static long Begin() => Active == null ? 0 : Stopwatch.GetTimestamp();
+
+    /// <summary>The time since <paramref name="started"/> goes to <paramref name="section"/>, one of <see cref="Sections"/>.</summary>
+    public static void End(string section, long started)
+    {
+        if (Active is not { } log || started == 0) return;
+        int k = Array.IndexOf(Sections, section);
+        if (log._n < Capacity) log._sections[log._n * Sections.Length + k] += Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+    }
+
+    private readonly double[] _ms = new double[Capacity], _render = new double[Capacity], _gpu = new double[Capacity], _paused = new double[Capacity];
+    private TimeSpan _pausedSoFar;
     private readonly double[] _sections = new double[Capacity * Sections.Length];
     /// <summary>The bytes each section allocated, summed over every frame.</summary>
     private readonly long[] _sectionBytes = new long[Sections.Length];
@@ -48,6 +63,7 @@ public partial class FrameLog : Node
 
     public override void _Ready()
     {
+        Active = this;
         if (!_vsync)
         {
             DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
@@ -81,6 +97,9 @@ public partial class FrameLog : Node
         (_gen0[_n], _gen1[_n], _gen2[_n], _allocated[_n]) = (g0 - _g0, g1 - _g1, g2 - _g2, bytes - _bytes);
         _ms[_n] = _last == 0 ? 0 : Stopwatch.GetElapsedTime(_last, now).TotalMilliseconds;
         _render[_n] = RenderingServer.ViewportGetMeasuredRenderTimeCpu(vp) + RenderingServer.GetFrameSetupTimeCpu();
+        // The GC's own pauses: a background collection's stops are counted here, not as a new collection.
+        var paused = GC.GetTotalPauseDuration();
+        (_paused[_n], _pausedSoFar) = ((paused - _pausedSoFar).TotalMilliseconds, paused);
         _gpu[_n] = RenderingServer.ViewportGetMeasuredRenderTimeGpu(vp);
         (_g0, _g1, _g2, _bytes, _last) = (g0, g1, g2, bytes, now);
         if (_n == Warm) (_totalAtWarm, _secondsAtWarm) = (GC.GetTotalAllocatedBytes(), Time.GetTicksMsec() / 1000.0);
@@ -114,7 +133,7 @@ public partial class FrameLog : Node
                 + $"lowest {perSecond.Min()} fps, frames longer than two refreshes {ms.Count(m => m > 2000 / rate)}");
         }
         o.AppendLine($"FRAMES n={frames.Count} over {seconds:F1}s avg={ms.Average():F3}ms ({frames.Count / seconds:F0} fps) "
-            + $"p50={P(0.5):F3} p99={P(0.99):F3} p99.9={P(0.999):F3} max={ms[^1]:F3}ms");
+            + $"p50={P(0.5):F3} p95={P(0.95):F3} p99={P(0.99):F3} p99.9={P(0.999):F3} max={ms[^1]:F3}ms");
         double from = 0;
         foreach (double to in Buckets)
         {
@@ -127,10 +146,34 @@ public partial class FrameLog : Node
             + $"{frames.Sum(i => _allocated[i]) / seconds / 1024 / 1024:F2} MB a second, every thread {(GC.GetTotalAllocatedBytes() - _totalAtWarm) / (Time.GetTicksMsec() / 1000.0 - _secondsAtWarm) / 1024 / 1024:F2} MB a second; frames over {Budget:F2}ms: {ms.Count(m => m >= Budget)}");
         o.AppendLine("FRAMES sections avg/max ms, KB allocated a frame: " + string.Join(" ", Sections.Select((s, k) =>
             $"{s}={frames.Average(i => _sections[i * Sections.Length + k]):F3}/{frames.Max(i => _sections[i * Sections.Length + k]):F2}/{_sectionBytes[k] / 1024.0 / frames.Count:F2}KB")));
-        foreach (int i in frames.OrderByDescending(i => _ms[i]).Take(12))
-            o.AppendLine($"FRAMES worst #{i} {_ms[i],7:F2}ms render-cpu={_render[i]:F2} gpu={_gpu[i]:F2} gc={_gen0[i]}/{_gen1[i]}/{_gen2[i]} alloc={_allocated[i] / 1024}KB "
+        // Each frame over the budget put down to what took most of it: a section, the renderer, or the rest (Godot itself, other nodes).
+        var causes = frames.Where(i => _ms[i] >= Budget).Select(Cause).GroupBy(c => c).OrderByDescending(g => g.Count());
+        o.AppendLine("FRAMES over budget by cause: " + string.Join(" ", causes.Select(g => $"{g.Key}={g.Count()}")));
+        o.AppendLine($"FRAMES gc paused {GC.GetTotalPauseDuration().TotalMilliseconds:F0} ms over {GC.CollectionCount(0)} collections since the start");
+        var e = GC.GetGCMemoryInfo(GCKind.Ephemeral);
+        o.AppendLine($"FRAMES last ephemeral gc: gen{e.Generation} pause={e.PauseDurations[0].TotalMilliseconds:F2}ms promoted={e.PromotedBytes / 1024}KB heap={e.HeapSizeBytes / 1024 / 1024}MB pinned={e.PinnedObjectsCount} concurrent={e.Concurrent} gen0size={e.GenerationInfo[0].SizeBeforeBytes / 1024}KB gen1={e.GenerationInfo[1].SizeBeforeBytes / 1024}KB gen2={e.GenerationInfo[2].SizeAfterBytes / 1024 / 1024}MB loh={e.GenerationInfo[3].SizeAfterBytes / 1024 / 1024}MB server={System.Runtime.GCSettings.IsServerGC} mode={System.Runtime.GCSettings.LatencyMode}");
+        foreach (int i in frames.Where(i => _ms[i] >= Budget).Take(300))
+            o.AppendLine($"FRAMES over #{i} {_ms[i],7:F2}ms render-cpu={_render[i]:F2} rest={Rest(i):F2} gc-paused={_paused[i]:F2} gpu={_gpu[i]:F2} gc={_gen0[i]}/{_gen1[i]}/{_gen2[i]} alloc={_allocated[i] / 1024}KB "
                 + string.Join(" ", Sections.Select((s, k) => (s, v: _sections[i * Sections.Length + k])).Where(p => p.v >= 0.05)
                     .OrderByDescending(p => p.v).Select(p => $"{p.s}={p.v:F2}")));
         GD.Print(o.ToString().TrimEnd());
+    }
+
+    /// <summary>What of frame <paramref name="i"/> no section and not the renderer took: Godot's own work and the views not timed.</summary>
+    private double Rest(int i)
+    {
+        double timed = _render[i];
+        for (int k = 0; k < Sections.Length; k++) timed += _sections[i * Sections.Length + k];
+        return _ms[i] - timed;
+    }
+
+    /// <summary>What took most of frame <paramref name="i"/>: a section, <c>render</c>, <c>rest</c>, or <c>gc</c> when a collection ran in it.</summary>
+    private string Cause(int i)
+    {
+        if (_gen0[i] + _gen1[i] + _gen2[i] > 0 || _paused[i] >= 1) return "gc";
+        var (cause, most) = ("render", _render[i]);
+        for (int k = 0; k < Sections.Length; k++)
+            if (_sections[i * Sections.Length + k] > most) (cause, most) = (Sections[k], _sections[i * Sections.Length + k]);
+        return Rest(i) > most ? "rest" : cause;
     }
 }

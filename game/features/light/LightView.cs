@@ -183,6 +183,7 @@ public partial class LightView : Node2D
 
     public override void _Process(double delta)
     {
+        long started = Game.Dev.FrameLog.Begin();
         _timeMs += delta * 1000;
         _main.Clear();
         _spots.Clear();
@@ -213,7 +214,8 @@ public partial class LightView : Node2D
         // A plant's glowing parts: a seed pod, a berry, a bell, a small pool of light round each.
         foreach (var (at, colour) in Glows())
             _main.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), 1, FloraLooks.LightReach, FloraLooks.LightKeep, 1));
-        foreach (var light in Caves()) _main.Add(light);
+        var caves = Caves();
+        for (int i = 0; i < caves.Count; i++) _main.Add(caves[i]);
         // Flashes first, the brightest moments; then the particles that give light, while the cap lasts (Fx.MostLights).
         foreach (var f in Flares.Shared.Flashes)
         {
@@ -248,6 +250,7 @@ public partial class LightView : Node2D
         // The view in pixels of the world, as the camera last laid it.
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
         _lightmap.Frame(view, _main, _spots);
+        Game.Dev.FrameLog.End("lightmap", started);
     }
 
     /// <summary>The top of the first solid cell under <paramref name="cell"/>, in pixels, within ten; else six cells under it.</summary>

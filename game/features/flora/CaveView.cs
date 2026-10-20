@@ -139,25 +139,38 @@ public partial class CaveView : Node2D
     {
         if (!_shown.Remove(chunk, out var patch)) return;
         patch.QueueFree();
+        _range = default;
     }
 
-    /// <summary>The chunks within a chunk of the view drawn, those past three let go.</summary>
+    /// <summary>
+    /// The chunks within a chunk of the view drawn, those two past that let go: looked at only when the chunks in view change
+    /// or one was let go to be drawn again, so a still view costs nothing and allocates nothing.
+    /// </summary>
     private void Show(Rect2 view)
     {
         int c0 = Math.Max(0, (int)(view.Position.X / Cell / Chunk) - 1), c1 = Math.Min(_across - 1, (int)(view.End.X / Cell / Chunk) + 1);
         int r0 = Math.Max(0, (int)(view.Position.Y / Cell / Chunk) - 1), r1 = Math.Min((_grid.Height - 1) / Chunk, (int)(view.End.Y / Cell / Chunk) + 1);
+        if ((c0, c1, r0, r1) == _range) return;
+        _range = (c0, c1, r0, r1);
         for (int r = r0; r <= r1; r++)
             for (int c = c0; c <= c1; c++)
             {
                 int chunk = r * _across + c;
                 if (!_shown.ContainsKey(chunk) && _byChunk.TryGetValue(chunk, out var list) && list.Count > 0) AddChild(_shown[chunk] = Build(list));
             }
-        foreach (var (chunk, patch) in _shown.Where(s => Math.Abs(s.Key % _across - (c0 + c1) / 2) > (c1 - c0) / 2 + 3 || Math.Abs(s.Key / _across - (r0 + r1) / 2) > (r1 - r0) / 2 + 3).ToList())
+        _far.Clear();
+        foreach (int chunk in _shown.Keys)
+            if (chunk % _across < c0 - 2 || chunk % _across > c1 + 2 || chunk / _across < r0 - 2 || chunk / _across > r1 + 2) _far.Add(chunk);
+        foreach (int chunk in _far)
         {
-            patch.QueueFree();
+            _shown[chunk].QueueFree();
             _shown.Remove(chunk);
         }
     }
+
+    /// <summary>The chunks last looked at, their first and last columns and rows; and scratch for those let go.</summary>
+    private (int, int, int, int) _range;
+    private readonly List<int> _far = [];
 
     /// <summary>A chunk's growths as pictures, glows, lights, glints and what drifts from them.</summary>
     private Patch Build(List<Plant> plants)
@@ -275,8 +288,9 @@ public partial class CaveView : Node2D
             {
                 if (!view.HasPoint(at)) continue;
                 float best = 0;
-                foreach (var (from, toward) in lamps)
+                for (int i = 0; i < lamps.Count; i++)
                 {
+                    var (from, toward) = lamps[i];
                     var d = at - from;
                     float far = d.Length();
                     if (far > reach || far < 1) continue;
@@ -324,7 +338,7 @@ public partial class CaveView : Node2D
             var (what, at, colour) = _sources[(int)glims.Between(0, _sources.Count - 0.001)];
             Glim? made = what switch
             {
-                0 => glims.Add(CaveLooks.Spore with { Ramp = [(236, 255, 246), ((int)(colour.R * 255), (int)(colour.G * 255), (int)(colour.B * 255))] },
+                0 => glims.Add(SporeOf(colour),
                     at.X + glims.Between(-12, 12), at.Y + glims.Between(-8, 4), glims.Between(-3, 3), glims.Between(-5, -1), bright: glims.Between(0.4, 0.9)),
                 1 => glims.Add(CaveLooks.Drip, at.X, at.Y + 1, 0, 8),
                 _ => glims.Add(CaveLooks.Ember_, at.X + glims.Between(-6, 6), at.Y, glims.Between(-4, 4), glims.Between(-14, -5), bright: glims.Between(0.4, 0.8)),
@@ -334,6 +348,16 @@ public partial class CaveView : Node2D
     }
 
     private readonly List<(int What, Vector2 At, Color Colour)> _sources = [];
+
+    /// <summary>A spore in <paramref name="colour"/>, made once a colour rather than once a spore.</summary>
+    private static Luminous SporeOf(Color colour)
+    {
+        if (!Spores.TryGetValue(colour, out var look))
+            Spores[colour] = look = CaveLooks.Spore with { Ramp = [(236, 255, 246), ((int)(colour.R * 255), (int)(colour.G * 255), (int)(colour.B * 255))] };
+        return look;
+    }
+
+    private static readonly Dictionary<Color, Luminous> Spores = new();
 
     /// <summary>A felled growth's fall: a glowcap's puff of spores, a crystal's glinting shards, a spike's pebbles.</summary>
     private void Felled(Plant plant)

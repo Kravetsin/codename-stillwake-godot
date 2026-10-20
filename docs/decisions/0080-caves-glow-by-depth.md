@@ -56,9 +56,9 @@ On this machine (RTX 4060 Ti), 1280 × 720, `--ground=hall --measure` (the first
 
 | What | Cost |
 | ---- | ---- |
-| the hall at zoom 1 / 2 | 849 / 974 fps (911 / 899 with no cave growth drawn); render CPU 0.38 ms against 0.36; 82 draws against 75 |
-| the cave view's own work | 0.05–0.08 ms a frame |
-| cave lights at zoom 1 / 2 | 56 / 31 (the cap is 56) |
+| the hall at zoom 1 / 2 | 804–827 / 924–925 fps against 868–875 / 965–980 with no cave growth drawn; render CPU 0.39 ms against 0.37 at zoom 1; 82 draws against 75 |
+| the cave view's own work | 0.05–0.08 ms a frame, nothing allocated (`--frames --allocs`) |
+| cave lights at zoom 1 / 2 | 56 / 32 (the cap is 56) |
 | without the atlas | 772 draws, 630 fps at zoom 1 |
 | growing the first planet (Release) | ~84 ms, ~55 without the caves' growth |
 | the first planet's cave growth | 37 604 (seed 1): mica 12 391, moss 10 719, stalactites 2 699, … glowcaps 1 573, crystals 2 426, geodes 51 |
