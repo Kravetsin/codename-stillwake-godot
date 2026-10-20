@@ -137,12 +137,12 @@ public partial class DroneLight : Node2D
         for (s.Dust += DustPerSecond * rate; s.Dust >= 1; s.Dust--)
         {
             int side = _random.NextDouble() < 0.5 ? -1 : 1;
-            glims.Add(Luminous.WashDust, h.X + side * Between(1, 8), f - 0.4, side * Between(10, 26), -Between(0, 3), f, size: Between(0.7, 1.05));
+            glims.Add(Luminous.WashDust, h.X + side * Between(1, 6), f - 0.4, side * Between(28, 60), -Between(0, 4), f, size: Between(0.7, 1.05));
         }
         for (s.Veils += VeilsPerSecond * rate; s.Veils >= 1; s.Veils--)
         {
             int side = _random.NextDouble() < 0.5 ? -1 : 1;
-            glims.Add(Luminous.DustVeil, h.X + side * Between(1, 5), f - 1, side * Between(8, 16), -Between(0, 2), f, bright: 0.6);
+            glims.Add(Luminous.WashVeil, h.X + side * Between(1, 5), f - 1, side * Between(18, 32), -Between(0, 2), f, bright: 0.6);
         }
     }
 
