@@ -74,5 +74,5 @@ On this machine (RTX 4060 Ti), 1280 × 720, `--ground=hall --measure` (the first
   middle are left out.
 - **The bands are rows, not depth under each column:** a cave under a high range is a little colder than one under a valley
   at its depth. Roots alone follow the surface.
-- **No growth spreads, regrows or moves;** drips fade as they fall; glowcaps do not pulse.
+- **No growth spreads, regrows or moves;** glowcaps do not pulse.
 - **Growing the planet costs some 30 ms more** where it grows: as the surface opens and as its save loads.

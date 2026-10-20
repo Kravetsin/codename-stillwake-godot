@@ -69,7 +69,9 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
 - **Glints:** mica, veins, crystals and geodes sparkle where a helmet's beam falls on them, nothing between (walked a few
   pixels at a time through the grid's walls): a white point and a cross of its colour, twinkling, as bright as the beam is
   there. Mica draws nothing else.
-- **Drift** (0075's toolkit): spores up from glowcaps, drips from one stalactite in three, faint embers up from the heat's
+- **Drift** (0075's toolkit): spores up from glowcaps, drips from one stalactite in three —
+  each landing on the first solid under its tip, down a slope's diagonal, within `DripRows` (60) cells, and splashing there
+  in three flecks (`Planting.DripFloor`); none from a tip with no open cell under it —, faint embers up from the heat's
   cracks — `MotesASecond` (9) from the sources in view, at most `MostMotes` (48) alive, none off the screen.
 - **Tint** (`CaveTint.cs`): one band of colour per depth band, multiplied over all that is drawn under `Layers.Edges` in its
   rows — walls, edges, back walls — and nothing over it, so the growths and the light keep their colours: cool blue-grey,
@@ -85,4 +87,3 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
 - Moss grows only on whole stone, not on slopes or soil; on whichever of its faces are open now, so digging beside it
   shows more of it.
 - The light of a growth past the 56 nearest the view's middle is left out; in a hall seen whole some far ones go dark.
-- Drips do not land: they fall and fade.

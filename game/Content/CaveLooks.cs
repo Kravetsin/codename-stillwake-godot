@@ -95,9 +95,18 @@ public static class CaveLooks
     public static readonly Luminous Spore = new(Glimmer.Mote, [(236, 255, 246), (160, 236, 214)], (3000, 6000))
     { Bright = 0.75, Fade = 0.9, Gravity = -3, Drag = 0.5, Turbulence = 8, NoiseScale = 0.05, Size = 0.6 };
 
-    /// <summary>A drip: a short pale streak falling from a stalactite's tip to the floor, gone there.</summary>
-    public static readonly Luminous Drip = new(Glimmer.Streak, [(236, 250, 255), (180, 220, 245)], (1200, 1600))
+    /// <summary>
+    /// A drip: a short pale streak falling from a stalactite's tip to the first solid under it, within <see cref="DripRows"/>
+    /// cells, splashing there in <see cref="SplashDrops"/> <see cref="Splash"/>es; its life long enough to fall them all.
+    /// </summary>
+    public static readonly Luminous Drip = new(Glimmer.Streak, [(236, 250, 255), (180, 220, 245)], (2600, 2800))
     { Bright = 0.8, Fade = 0.2, Gravity = 420, Drag = 0, Width = 0.22, Stretch = 0.03, Shortest = 2, Longest = 6, Matter = true, Bounce = 0 };
+
+    public const int DripRows = 60, SplashDrops = 3;
+
+    /// <summary>A drop of a drip's splash: a fleck thrown up off where it landed, falling back.</summary>
+    public static readonly Luminous Splash = new(Glimmer.Streak, [(236, 250, 255), (180, 220, 245)], (180, 320))
+    { Bright = 0.7, Fade = 1, Gravity = 300, Drag = 0.5, Width = 0.2, Stretch = 0.03, Shortest = 0.8, Longest = 2.5, Matter = true, Bounce = 0 };
 
     /// <summary>A faint ember rising from the heat's cracks over the bedrock.</summary>
     public static readonly Luminous Ember_ = Luminous.Ember with { LifeMs = (2200, 4200), Gravity = -10, Drag = 0.9, Turbulence = 10, Bright = 0.7, Light = false };

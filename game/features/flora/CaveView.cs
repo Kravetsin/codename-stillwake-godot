@@ -81,6 +81,7 @@ public partial class CaveView : Node2D
         Glints(view);
         _sparkles.Time = _seconds;
         _sparkles.QueueRedraw();
+        Land();
         Motes(view, delta);
         _spentMs += System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
         _frames++;
@@ -228,7 +229,7 @@ public partial class CaveView : Node2D
                     var (top, bottom) = Atlas.Used[name];
                     var (px, py, from, rows) = Planting.Picture(kind.On, x, y, Cell, (int)size.X, (int)size.Y, top, bottom, look.Sink);
                     pictures.Add((name, new Vector2(px, py), from, rows));
-                    if (plant.Kind == "stalactite" && hash / 7 % CaveLooks.DripShare == 0) patch.Drips.Add(new Vector2(px + size.X / 2, py + bottom + 1));
+                    if (plant.Kind == "stalactite" && hash / 7 % CaveLooks.DripShare == 0) Drip(patch, new Vector2(px + size.X / 2, py + bottom + 1));
                 }
             }
             Vector2? glowAt = null;
@@ -359,27 +360,55 @@ public partial class CaveView : Node2D
         _sources.Clear();
         foreach (var patch in _shown.Values)
         {
-            foreach (var (at, colour) in patch.Spores) if (view.HasPoint(at)) _sources.Add((0, at, colour));
-            foreach (var at in patch.Drips) if (view.HasPoint(at)) _sources.Add((1, at, default));
-            foreach (var at in patch.Embers) if (view.HasPoint(at)) _sources.Add((2, at, default));
+            foreach (var (at, colour) in patch.Spores) if (view.HasPoint(at)) _sources.Add((0, at, colour, 0));
+            foreach (var (at, floor) in patch.Drips) if (view.HasPoint(at)) _sources.Add((1, at, default, floor));
+            foreach (var at in patch.Embers) if (view.HasPoint(at)) _sources.Add((2, at, default, 0));
         }
         var glims = Glims.Shared;
         for (; _moteDue >= 1; _moteDue--)
         {
             if (_sources.Count == 0 || _motes.Count >= CaveLooks.MostMotes) continue;
-            var (what, at, colour) = _sources[(int)glims.Between(0, _sources.Count - 0.001)];
+            var (what, at, colour, landsOn) = _sources[(int)glims.Between(0, _sources.Count - 0.001)];
             Glim? made = what switch
             {
                 0 => glims.Add(SporeOf(colour),
                     at.X + glims.Between(-12, 12), at.Y + glims.Between(-8, 4), glims.Between(-3, 3), glims.Between(-5, -1), bright: glims.Between(0.4, 0.9)),
-                1 => glims.Add(CaveLooks.Drip, at.X, at.Y + 1, 0, 8),
+                1 => glims.Add(CaveLooks.Drip, at.X, at.Y + 1, 0, 8, floor: landsOn),
                 _ => glims.Add(CaveLooks.Ember_, at.X + glims.Between(-6, 6), at.Y, glims.Between(-4, 4), glims.Between(-14, -5), bright: glims.Between(0.4, 0.8)),
             };
             if (made != null) _motes.Enqueue(_seconds + made.LifeMs / 1000);
+            if (made != null && what == 1) _falling.Add((made, landsOn));
         }
     }
 
-    private readonly List<(int What, Vector2 At, Color Colour)> _sources = [];
+    private readonly List<(int What, Vector2 At, Color Colour, float Floor)> _sources = [];
+
+    /// <summary>The drips falling, each with the row of pixels it lands on.</summary>
+    private readonly List<(Glim Drip, float Floor)> _falling = [];
+
+    /// <summary>A drip from the tip of a stalactite at <paramref name="tip"/>, landing on what is under it: none with nowhere to fall.</summary>
+    private void Drip(Patch patch, Vector2 tip)
+    {
+        if (Planting.DripFloor(_grid.StructureAt, _grid.ShapeAt, _grid.Width, _grid.Height, Cell, tip.X, tip.Y, CaveLooks.DripRows) is double floor)
+            patch.Drips.Add((tip, (float)floor));
+    }
+
+    /// <summary>Each drip that reached what it falls on splashes there and is gone: it never falls through the ground.</summary>
+    private void Land()
+    {
+        for (int i = _falling.Count - 1; i >= 0; i--)
+        {
+            var (drip, floor) = _falling[i];
+            if (drip.AgeMs < drip.LifeMs && drip.Y < floor - 0.01) continue;
+            if (drip.AgeMs < drip.LifeMs)
+            {
+                drip.AgeMs = drip.LifeMs;
+                Glims.Shared.Spray(CaveLooks.Splash, drip.X, floor - 0.5, CaveLooks.SplashDrops, -Math.PI / 2, (-1.1, 1.1), (14, 34), floor);
+            }
+            _falling[i] = _falling[^1];
+            _falling.RemoveAt(_falling.Count - 1);
+        }
+    }
 
     /// <summary>A spore in <paramref name="colour"/>, made once a colour rather than once a spore.</summary>
     private static Luminous SporeOf(Color colour)
@@ -463,7 +492,8 @@ public partial class CaveView : Node2D
         public readonly List<LightSource> Lights = [];
         public readonly List<(Vector2 At, Color Colour, int Own)> Glints = [];
         public readonly List<(Vector2 At, Color Colour)> Spores = [];
-        public readonly List<Vector2> Drips = [], Embers = [];
+        public readonly List<(Vector2 At, float Floor)> Drips = [];
+        public readonly List<Vector2> Embers = [];
 
         public Patch()
         {
