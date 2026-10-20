@@ -117,7 +117,7 @@ public class BuiltBoundsTests
 
     [Fact]
     public void StarlightWorksAChangeOutWithinAReachShortOfTheWholeRegion() =>
-        Assert.InRange(StarField.Reach, 1, 60);
+        Assert.InRange(new StarField().Reach, 1, 60);
 
     /// <summary>
     /// Starlight followed around the cells the grid's log names comes out byte for byte as worked out anew,
@@ -148,7 +148,7 @@ public class BuiltBoundsTests
                 whole.Work(m.Grid);
                 Assert.Equal(whole.Region, followed.Region);
                 Assert.True(whole.Texels.AsSpan().SequenceEqual(followed.Texels), $"world {world}, step {step}");
-                if (whole.Region.Width > 4 * StarField.Reach + 1) windowed++;
+                if (whole.Region.Width > 4 * new StarField().Reach + 1) windowed++;
             }
         }
         Assert.True(windowed > 50, $"{windowed} changes followed in a region wider than their window");

@@ -83,7 +83,8 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
                 if ((change.Layers & GridLayers.Back) != 0) back.Add(change.Cell);
             }
             if (structure.Count == 0 && back.Count == 0) return;
-            var changed = structure.Count == 0 ? Reopen(back) : Reflow(structure, back);
+            // On grown ground a back wall decides whether its cell is outside: found again as a change of structure is.
+            var changed = structure.Count == 0 && !Grown ? Reopen(back) : Reflow(Grown ? [.. structure, .. back] : structure, back);
             if (changed.Count > 0)
             {
                 State.Version++;
@@ -124,7 +125,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         Array.Fill(State.RoomOf, Space);
         // Past what is built every cell is empty, so space: flooded within it, as Find over the whole grid.
         var built = _grid.Built;
-        (var local, State.Rooms) = FindIn(_grid.Width, _grid.StructureLayer, _grid.BackLayer, built);
+        (var local, State.Rooms) = FindIn(_grid.Width, _grid.StructureLayer, _grid.BackLayer, built, _grid.BackMaterialLayer, Grown);
         for (int y = built.Top; y <= built.Bottom; y++)
             local.AsSpan((y - built.Top) * built.Width, built.Width).CopyTo(State.RoomOf.AsSpan(y * _grid.Width + built.Left));
         State.Version++;
@@ -149,6 +150,21 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
     }
 
     private static bool IsSolid(int structure) => structure is Structure.Wall or Structure.DoorClosed;
+
+    /// <summary>
+    /// Whether this surface's ground grew from a seed (0077): there an open cell under the sky, with no back wall, or before
+    /// natural ground, which holds no air, is outside, wherever it is, so caves are not rooms and a dig costs what is round it.
+    /// </summary>
+    private bool Grown => Rules.Ground != null;
+
+    private static readonly bool[] Natural = Enumerable.Range(0, Content.Materials.All.Max(m => m.Code) + 1)
+        .Select(code => Content.Materials.All.Any(m => m.Code == code && m.Natural)).ToArray();
+
+    /// <summary>Whether an open cell with this back wall is outside on grown ground: none, or a natural one.</summary>
+    private static bool IsPorous(int back, int material) => back != Back.Wall || material >= 0 && material < Natural.Length && Natural[material];
+
+    /// <summary>Whether <paramref name="c"/> is an open cell outside on grown ground (<see cref="IsPorous"/>).</summary>
+    private bool Porous(int c) => Grown && !IsSolid(_grid.StructureAt(c)) && IsPorous(_grid.BackLayer[c], _grid.BackMaterialLayer[c]);
 
     private static void Neighbours(int c, int width, int size, Span<int> into)
     {
@@ -182,14 +198,15 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
     /// from the border never through one; a room is a component of what is left, openings included.
     /// </summary>
     public static (int[] RoomOf, List<Room> Rooms) Find(int width, int height, ReadOnlySpan<int> structure, ReadOnlySpan<int> back) =>
-        FindIn(width, structure, back, new Box(0, 0, width - 1, height - 1));
+        FindIn(width, structure, back, new Box(0, 0, width - 1, height - 1), [], false);
 
     /// <summary>
     /// <see cref="Find"/> over <paramref name="region"/> alone, its cells numbered within it, row by row.
     /// Past its sides lies the grid's edge, or empty space, which a cell on a side sees as it sees the edge:
     /// outside beyond, nothing solid.
     /// </summary>
-    private static (int[] RoomOf, List<Room> Rooms) FindIn(int gridWidth, ReadOnlySpan<int> structure, ReadOnlySpan<int> back, Box region)
+    private static (int[] RoomOf, List<Room> Rooms) FindIn(
+        int gridWidth, ReadOnlySpan<int> structure, ReadOnlySpan<int> back, Box region, ReadOnlySpan<int> backMaterial, bool grown)
     {
         int width = region.Width, size = width * region.Height;
         int Cell(int c) => (region.Top + c / width) * gridWidth + region.Left + c % width;
@@ -204,6 +221,10 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
             bool down = c >= width && c + width < size && solid[c - width] && solid[c + width];
             opening[c] = structure[Cell(c)] == Structure.DoorOpen || across || down;
         }
+        // On grown ground an open cell under the sky or before natural ground is outside, wherever it is (0077).
+        var porous = new bool[size];
+        if (grown)
+            for (int c = 0; c < size; c++) porous[c] = !solid[c] && IsPorous(back[Cell(c)], backMaterial[Cell(c)]);
         Span<int> near = stackalloc int[4];
 
         var roomOf = new int[size];
@@ -214,13 +235,13 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         {
             int x = c % width;
             bool border = x == 0 || x == width - 1 || c < width || c >= size - width;
-            if (border && roomOf[c] == Unseen && !opening[c]) { roomOf[c] = Space; queue[tail++] = c; }
+            if (roomOf[c] == Unseen && (porous[c] || border && !opening[c])) { roomOf[c] = Space; queue[tail++] = c; }
         }
         for (int head = 0; head < tail; head++)
         {
             Neighbours(queue[head], width, size, near);
             foreach (int n in near)
-                if (n != Edge && roomOf[n] == Unseen && !opening[n]) { roomOf[n] = Space; queue[tail++] = n; }
+                if (n != Edge && roomOf[n] == Unseen && (!opening[n] || porous[n])) { roomOf[n] = Space; queue[tail++] = n; }
         }
 
         var rooms = new List<Room>();
@@ -343,7 +364,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         {
             if (roomOf[c] != Unseen || !Passes(structure, c)) continue;
             Neighbours(c, width, roomOf.Length, near);
-            bool outside = false;
+            bool outside = Porous(c);
             foreach (int n in near) outside |= n == Edge || roomOf[n] == Space;
             if (!outside) continue;
             roomOf[c] = Space;
@@ -453,7 +474,9 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
     /// <summary>Whether space passes <paramref name="c"/>: open, and no opening.</summary>
     private bool Passes(ReadOnlySpan<int> structure, int c)
     {
-        if (IsSolid(structure[c]) || structure[c] == Structure.DoorOpen) return false;
+        if (IsSolid(structure[c])) return false;
+        if (Porous(c)) return true;
+        if (structure[c] == Structure.DoorOpen) return false;
         int width = _grid.Width, size = structure.Length, x = c % width;
         bool across = x > 0 && x < width - 1 && IsSolid(structure[c - 1]) && IsSolid(structure[c + 1]);
         bool down = c >= width && c + width < size && IsSolid(structure[c - width]) && IsSolid(structure[c + width]);
@@ -479,7 +502,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         {
             int c = seen[head];
             Neighbours(c, width, size, near);
-            reaches = !built.Contains(c % width, c / width);
+            reaches = !built.Contains(c % width, c / width) || Porous(c);
             foreach (int n in near)
             {
                 if (n == Edge) reaches = true;

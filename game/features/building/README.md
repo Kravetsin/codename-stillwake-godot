@@ -17,6 +17,7 @@ and `Work`.
 | `BuildGlow.cs`    | the light of work on plans (0075): spark bursts, glints, the molten spot with its smoke and shimmer, the cut's line, a finished plan's sweep | yes |
 | `Catalogue.cs`    | the menu's fixed frame (0073): its size by the slot size, the rows scrolled, the card under the pointer, the scrollbar's thumb | no    |
 | `BuildMenu.cs`    | the menu shown while the plan is out, docked at the bottom middle, the screen of a rugged tablet: tabs with counts, the search, the cards, the card in hand and the hint, a card's words in the one tooltip; B, / (Esc: `game/menu`) | yes |
+| `DigView.cs`      | digging seen (0077): each crack in `Building.Cracks` drawn in three stages by its share of the wall's strength (`GroundArt.Crack`), chips in the material's colour (`GroundLooks`) falling from each hit, dust and a slow cloud on a break, all drawn behind the walls (`Luminous.Low`) so none crosses a shaft's; a friend's digs alike. It reads the short list each frame and redraws only when it changed | yes |
 
 Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, the words by the
 pointer; `Hands`: every view of this player's hands wired together, the building first to take the
@@ -31,6 +32,9 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 (`features/crew`, `AimTests`).
 
 ## Guarantees
+
+- **The cards follow the blueprints** (0077): a wall or back wall card for each material a blueprint builds it of
+  (`Blueprints.Has`): soil and stone walls besides the hull's, no bedrock, no natural back wall.
 
 - One thing in hand (`Holding`): free, the plan, a card or the cable. The plan put away takes the card;
   the hand freed elsewhere (a hotbar slot, the wheel) puts the plan away.

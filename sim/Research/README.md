@@ -21,7 +21,8 @@ planned, a craft not known cannot be queued. Ported from `packages/sim/src/modul
 
 - A blueprint is named as the build menu names its card: a wall or a back wall by kind and material
   (`wallIron`, `backWallScrap`), anything else by the grid's name for it (`floor`, `furnace`)
-  (`Blueprints.Of`); a machine built into the ship (`Fixed`: the lifepod) is no blueprint. A craft is named by the item it makes (`wire`, `Content.Crafts`). Cables are no
+  (`Blueprints.Of`); a machine built into the ship (`Fixed`: the lifepod) is no blueprint. Nor is a wall of bedrock or a back wall of
+  natural ground (0077, `Blueprints.Has`); soil and stone walls are, known once soil or rock is analysed. A craft is named by the item it makes (`wire`, `Content.Crafts`). Cables are no
   blueprint and always known.
 - **The opening rule:** a blueprint or a craft is known when it is granted, or when every item of its
   cost that needs analysis (below) is analysed. Nothing is held back: the solar panel opens as the rest do, once a frame, a solar

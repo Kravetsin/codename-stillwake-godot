@@ -76,11 +76,12 @@ public partial class DevPanel : CanvasLayer
         buttons.AddChild(_creative = Style.Button("creative", ToggleCreative));
         buttons.AddChild(Style.Button("meteor", Meteor));
         column.AddChild(buttons);
-        // Surfaces (0076): the test strip opened, and this hero beamed between it and the ship.
+        // Surfaces (0076): a planet (0077) or the test strip opened, and this hero beamed between the last opened and the ship.
         var surfaces = Style.Gap(new HBoxContainer(), 8);
+        surfaces.AddChild(Style.Button("open planet", () => Send(new OpenSurface(Content.Surfaces.Planet.Id))));
         surfaces.AddChild(Style.Button("open strip", () => Send(new OpenSurface(Content.Surfaces.TestStrip.Id))));
         surfaces.AddChild(Style.Button("to ship", () => Send(new Transfer(0))));
-        surfaces.AddChild(Style.Button("to strip", ToStrip));
+        surfaces.AddChild(Style.Button("down", ToLast));
         column.AddChild(surfaces);
         column.AddChild(_status);
         Say("");
@@ -129,14 +130,14 @@ public partial class DevPanel : CanvasLayer
         if (_session() is Session s) s.Client.Send(command);
     }
 
-    /// <summary>Beams this hero down to the strip opened last; says so when none is.</summary>
-    private void ToStrip()
+    /// <summary>Beams this hero down to the surface opened last, a planet or a strip; says so when none is.</summary>
+    private void ToLast()
     {
         if (_session() is not Session s) return;
-        var strip = s.Client.World.Surfaces.LastOrDefault(x => x.Kind == Content.Surfaces.TestStrip.Id);
+        var strip = s.Client.World.Surfaces.Skip(1).LastOrDefault();
         if (strip == null)
         {
-            Say("No strip open: open one first.");
+            Say("Nothing open: open a planet first.");
             return;
         }
         s.Client.Send(new Transfer(strip.Id));

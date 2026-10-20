@@ -30,6 +30,13 @@ public sealed class ShipTiles
     public ShipTiles()
     {
         var pictures = new List<(string Name, Image Diffuse, Image Normal)>();
+        // A planet's ground (0077) is made here, not drawn: its walls, their edges and its back walls, by name as drawn ones are.
+        foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
+        {
+            Made($"wall_{natural}", GroundArt.Wall(natural));
+            for (int open = 1; open < 16; open++) Made($"wall-edge_{natural}_{open}", GroundArt.Edge(natural, open));
+            Made(BackName(natural), GroundArt.Back(natural));
+        }
         foreach (var material in Materials.All.Select(m => m.Id))
         {
             // Walls are no things standing in the light: flat.
@@ -46,6 +53,7 @@ public sealed class ShipTiles
         }
         foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", "floor", "ladder"])
             pictures.Add(Picture(name, Relief.None));
+        foreach (var natural in Materials.All.Where(m => m.Natural)) pictures.Add(Picture(BackName(natural.Id), Relief.None));
         for (int linked = 0; linked < 16; linked++)
         {
             pictures.Add(Picture($"door_closed_{linked}", Relief.Across));
@@ -101,7 +109,7 @@ public sealed class ShipTiles
         Set.AddSource(source, 0);
         foreach (var (name, (at, size)) in _placed)
         {
-            bool cut = name.StartsWith("wall_") || name == "back_scrap";
+            bool cut = name.StartsWith("wall_") || name == "back_scrap" || name.StartsWith("back_") && MadeImages.ContainsKey(name);
             if (cut)
             {
                 for (int j = 0; j < size.Y; j++)
@@ -185,11 +193,15 @@ public sealed class ShipTiles
     /// <summary>The picture <c>res://art/{name}.png</c> as pixels to work on.</summary>
     private static Image Art(string name)
     {
+        if (MadeImages.TryGetValue(name, out var made)) return made;
         var image = PixelArt.Picture(name).GetImage();
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
         return image;
     }
+
+    /// <summary>The back wall of a natural <paramref name="material"/> (0077), a tile cut a cell at a time as scrap's is.</summary>
+    public static string BackName(string material) => $"back_{material}";
 
     /// <summary>A wall of <paramref name="material"/>'s picture, cut to <paramref name="shape"/> (0069).</summary>
     public static string WallName(string material, int shape) => shape == Shape.None ? $"wall_{material}" : $"wall_{material}_{shape}";

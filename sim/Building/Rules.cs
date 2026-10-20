@@ -79,6 +79,7 @@ public sealed partial class BuildingModule
     private string? MarkProblem(int cell, string layer)
     {
         if (MarkedCell(cell, layer) is not int at) return "building.nothingThere";
+        if (IsNatural(at, layer)) return "building.natural";
         if (layer == "machine" && _grid.MachineAt(at) is { } machine && IsFixed(machine.Kind)) return "building.fixed";
         if (IsMarked(layer, at)) return "building.planned";
         return InUse(at, layer);
@@ -92,7 +93,7 @@ public sealed partial class BuildingModule
     {
         if (place.Layer == "machine" && IsFixed(place.Kind)) return "building.fixed";
         if (!Rules.Allows(place.Kind)) return "building.notHere";
-        if (!_research.Knows(place)) return "building.unknown";
+        if (Unbuilt(place) || !_research.Knows(place)) return "building.unknown";
         var gridProblem = _grid.PlacementProblem(cell, place);
         if (gridProblem != null) return gridProblem;
         string slot = SlotOf(place.Layer);
@@ -101,6 +102,10 @@ public sealed partial class BuildingModule
             p.Place is { } other && SlotOf(other.Layer) == slot && Covers(p).Any(wanted.Contains));
         return taken ? "building.planned" : null;
     }
+
+    /// <summary>A wall or back wall of a material no blueprint builds (0077): of bedrock, or a natural back wall; creative mode too.</summary>
+    private static bool Unbuilt(Placement place) =>
+        place.Kind is "wall" or "backWall" && Materials.TryGet(place.Material ?? "", out _) && !Research.Blueprints.Has(place);
 
     /// <summary>
     /// What blueprint <paramref name="plan"/> still lacks of its cost, in the cost's order; nothing in creative
@@ -143,15 +148,29 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
+    /// Whether a hero's body is in <paramref name="cell"/>: the cell its client last reported (<c>Hero.Cell</c>, the body's middle),
+    /// or the one above or under it, a body being under three cells tall. Its other column, where it straddles two, is not asked.
+    /// </summary>
+    private bool HeroIn(int cell)
+    {
+        int w = _grid.Width;
+        foreach (var hero in _crew.Heroes)
+            if (cell == hero.Cell || cell == hero.Cell - w || cell == hero.Cell + w) return true;
+        return false;
+    }
+
+    /// <summary>
     /// Why E on plan <paramref name="id"/> by peer <paramref name="peer"/> is refused: the plan is gone; it is a
     /// blueprint whose next part is not paid for and the hero carries nothing it still lacks; or it is a mark on
-    /// a crate that holds something or a machine a cable ends on.
+    /// a crate that holds something or a machine a cable ends on; or it is a wall whose last tick would finish it on a hero.
     /// </summary>
     private string? WorkProblemOf(int id, int peer)
     {
         var plan = State.Plans.Find(p => p.Id == id);
         if (plan == null) return "building.noPlan";
         if (plan.Clear is { } layer) return InUse(plan.Cell, layer);
+        // A wall's last tick waits while a hero stands in its cell, so nobody walls themselves in (0077); it finishes once they step out.
+        if (plan.Place is { Kind: "wall" } && plan.Progress + 1 >= Costs.TicksFor(_grid, plan) && HeroIn(plan.Cell)) return "building.heroInside";
         return Owes(plan) && PaymentOf(plan, peer) == null ? "items.notEnough" : null;
     }
 }

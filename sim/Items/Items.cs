@@ -52,6 +52,7 @@ public interface IItemsQueries
     (int Charge, int Capacity) BeltCharge(int peer);
     bool CanDrain(int peer, int amount);
     string? Running(int peer);
+    string? WeaponProblem(int peer, string weapon, bool running);
     int HeldFor(int id, string item);
     int RoomFor(int id, Stack stack);
     string? KeptAt(int id, int slot);
@@ -473,6 +474,19 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>The electric item <paramref name="peer"/>'s hero runs, drawing from its belt every tick (0055); none while it runs none.</summary>
     public string? Running(int peer) => State.Running.Find(r => r.Peer == peer)?.Item;
+
+    /// <summary>
+    /// Why <paramref name="peer"/>'s hit with <paramref name="weapon"/> would be refused, the same for whatever it hits (0054):
+    /// <c>items.flat</c> for an electric weapon no battery on its belt can pay a tick of (never in creative mode), and with
+    /// <paramref name="running"/>, as a hit applies, <c>items.notRunning</c> for one its hero does not run (0055). The client asks
+    /// without: it sends its <c>Run</c> before the hit, in the same frame.
+    /// </summary>
+    public string? WeaponProblem(int peer, string weapon, bool running)
+    {
+        if (Content.Items.Get(weapon).Draw is not int draw) return null;
+        if (!CanDrain(peer, draw)) return "items.flat";
+        return running && Running(peer) != weapon ? "items.notRunning" : null;
+    }
 
     /// <summary>Stops whatever <paramref name="peer"/>'s hero runs: crew's, as the hero passes out or leaves. Nothing while it runs nothing.</summary>
     public void StopRunning(int peer) => State.Running.RemoveAll(r => r.Peer == peer);

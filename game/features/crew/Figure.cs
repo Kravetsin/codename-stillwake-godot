@@ -62,6 +62,22 @@ public partial class Figure : Node2D
 
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
     private readonly Node2D _body, _helmet;
+    private readonly Sprite2D _headLamp;
+
+    /// <summary>Where the helmet lamp sits on the helmet, from the neck it turns at, facing +x: on its brow, ahead of the visor.</summary>
+    private static readonly Vector2 HeadLampOn = new(4, -9);
+
+    /// <summary>The lamp's bulb, a few warm pixels, a placeholder till its art is picked: each figure's own, freed with it.</summary>
+    private readonly Texture2D _bulb = MakeBulb();
+
+    private static Texture2D MakeBulb()
+    {
+        var image = Image.CreateEmpty(3, 2, false, Image.Format.Rgba8);
+        image.Fill(new Color(1f, 0.9f, 0.62f));
+        image.SetPixel(0, 1, new Color(0.55f, 0.48f, 0.4f));
+        image.SetPixel(2, 1, new Color(0.55f, 0.48f, 0.4f));
+        return ImageTexture.CreateFromImage(image);
+    }
     /// <summary>The jetpack worn on the back over the air pack (0047), a placeholder picture till its art is picked.</summary>
     private readonly Sprite2D _jetpack;
     /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
@@ -172,6 +188,9 @@ public partial class Figure : Node2D
         // The helmet turns at the neck.
         _helmet = new Node2D { Position = new Vector2(0, (float)-Rig.Neck) };
         _helmet.AddChild(Part("helmet"));
+        // The helmet lamp's bulb on its brow (0077), drawn unlit: it is the light.
+        _headLamp = new Sprite2D { Texture = _bulb, Position = HeadLampOn, Visible = false, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
+        _helmet.AddChild(_headLamp);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
@@ -280,6 +299,19 @@ public partial class Figure : Node2D
         set => _jetpack.Visible = value;
     }
 
+    /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>
+    public bool HeadLamp
+    {
+        get => _headLamp.Visible;
+        set => _headLamp.Visible = value;
+    }
+
+    /// <summary>The helmet lamp's bulb as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
+    public Vector2 HeadLampAt => _headLamp.GlobalPosition;
+
+    /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces.</summary>
+    public Vector2 HeadLampToward => _helmet.GlobalTransform.X.Normalized();
+
     /// <summary>The worn jetpack's nozzle as drawn, in pixels of the world; none without one.</summary>
     public Vector2? Nozzle => _jetpack.Visible ? _jetpack.ToGlobal(NozzleAt) : null;
 
@@ -345,21 +377,35 @@ public partial class Figure : Node2D
     /// <paramref name="grains"/> grains skittering out along the floor, slowing into motes, as many motes, two veils rolling
     /// out and curling; and a faint flat ring racing out along the floor, the only light in it.
     /// </summary>
-    private static void Land(double x, double y, int grains)
+    private void Land(double x, double y, int grains)
     {
         var glims = Glims.Shared;
         foreach (int side in (ReadOnlySpan<int>)[-1, 1])
         {
+            // It spreads along the floor only as far as the floor runs open: in a shaft, hardly at all (0077).
+            double room = side < 0 ? FloorRoom.Left : FloorRoom.Right, spread = Math.Min(1, room / FloorSpread);
+            if (room < 2) continue;
             for (int i = 0; i < Math.Round(grains * Fx.Count); i++)
-                glims.Add(Luminous.DustGrain, x + side * glims.Between(1, 4), y - 0.5, side * glims.Between(30, 80), -glims.Between(2, 16), y);
+                glims.Add(Luminous.DustGrain, x + side * glims.Between(1, Math.Min(4, room)), y - 0.5, side * glims.Between(30, 80) * spread, -glims.Between(2, 16), y);
             for (int i = 0; i < Math.Round(grains * Fx.Count); i++)
-                glims.Add(Luminous.LandDust, x + side * glims.Between(0, 6), y - 0.6, side * glims.Between(5, 26), -glims.Between(3, 14), y,
+                glims.Add(Luminous.LandDust, x + side * glims.Between(0, Math.Min(6, room)), y - 0.6, side * glims.Between(5, 26) * spread, -glims.Between(3, 14), y,
                     glims.Between(0.5, 0.8), glims.Between(0.45, 0.8));
+            if (room < FloorSpread / 2) continue;
             for (int i = 0; i < 2; i++)
                 glims.Add(Luminous.LandVeil, x + side * (2 + i * 3), y - 1.4 - i * 0.6, side * glims.Between(12, 26), -glims.Between(1, 5));
         }
-        Flares.Shared.Shock(x, y - 0.4, 3, 3 + 26 * Fx.Length, 10 * Glim.SampleMs, (236, 240, 248), 0.32 * Fx.Glow, 0.28, 0.16);
+        double ring = Math.Min(3 + 26 * Fx.Length, Math.Min(FloorRoom.Left, FloorRoom.Right));
+        if (ring >= 6) Flares.Shared.Shock(x, y - 0.4, 3, ring, 10 * Glim.SampleMs, (236, 240, 248), 0.32 * Fx.Glow, 0.28, 0.16);
     }
+
+    /// <summary>How far, in pixels, a landing's dust needs the floor open to spread its whole way.</summary>
+    private const double FloorSpread = 40;
+
+    /// <summary>
+    /// How far the floor runs open from the feet to either side, in pixels of the world, till a wall: how far a landing's
+    /// dust spreads along it. Set by the crew each frame; unbounded till then.
+    /// </summary>
+    public (double Left, double Right) FloorRoom { get; set; } = (double.MaxValue, double.MaxValue);
 
     /// <summary>The figure in a suit of <paramref name="colour"/>, 0xRRGGBB: its pictures recoloured, when it changes.</summary>
     public void Wear(int colour)
@@ -458,7 +504,7 @@ public partial class Figure : Node2D
         var item = HeldLook.Of(Wields);
         bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding;
         bool chopping = _chop != null && item == HeldLook.FireAxe && inHand;
-        bool aiming = Aim != null && item?.Aimed == true && inHand;
+        bool aiming = Aim != null && item?.Aimed == true && inHand, drill = HeldLook.IsDrill(Wields);
         // The hands at work, whatever the pose (0030): afloat the paddling stops, the hero drifts calmly
         // upright, and the front arm reaches where the work is, in the body's own frame.
         bool acting = working || chopping || holding && _beamMs > 0;
@@ -529,10 +575,17 @@ public partial class Figure : Node2D
         else if (aiming && Aim is { } target && item != null)
         {
             // The gun: the arm straight, turned so the barrel's line, not the arm's, runs through the point; eased in as a swing is.
+            // A drill: the arm raised no higher than out in front, the drill turned in the fist the rest of the way.
             var (dx, dy) = FromShoulder(target);
-            swung = (HarpoonShot.ArmFor(item, dx, dy), 0);
+            swung = (drill ? HarpoonShot.DrillFor(item, dx, dy).Arm : HarpoonShot.ArmFor(item, dx, dy), 0);
         }
         frontArm = _swingArm.Next(frontArm, swung, elapsedMs);
+        double turned = 0;
+        if (drill && aiming && Aim is { } bit && item != null)
+        {
+            var (dx, dy) = FromShoulder(bit);
+            turned = HarpoonShot.TurnIn(item, frontArm, dx, dy);
+        }
         _frontArm.Bend(frontArm);
         _backArm.Bend(shown.BackArm);
         _frontLeg.Bend(shown.FrontLeg);
@@ -587,7 +640,7 @@ public partial class Figure : Node2D
             }
             _held.Offset = -new Vector2((float)item.Grip.X, (float)item.Grip.Y);
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
-            _held.Rotation = (float)Rig.HeldTurn(frontArm, item);
+            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item) + turned);
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
@@ -605,7 +658,7 @@ public partial class Figure : Node2D
         else _smear.Follow(null, null, false, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
-        _drillLight.Step(inHand && HeldLook.IsDrill(Wields) ? item : null, _spin, Bites && inHand, Muzzle, Barrel, _heldAt ??= HeldAt, elapsedMs);
+        _drillLight.Step(inHand && drill ? item : null, _spin, Bites && inHand, Muzzle, Barrel, _heldAt ??= HeldAt, elapsedMs);
     }
 
     /// <summary>A point of the held item's picture in the world, as it is drawn now.</summary>

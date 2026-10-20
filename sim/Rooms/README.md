@@ -15,7 +15,11 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
 - An open cell is an **opening** when it sits in a wall line: an open door, or a cell with walls or
   closed doors on both its left and right, or both above and below.
 - **Space** is a flood from the open cells on the grid's border through open cells that are not
-  openings. **Rooms** are the components of the open cells left, openings included.
+  openings. **On grown ground** (0077: a kind with a `Ground`) an open cell under the sky (no back wall) or before
+  natural ground (a natural back wall) is outside wherever it is, space flooding from it and through it as from the
+  border: natural ground holds no air, so caves are never rooms, and a dig is found again round itself rather than
+  through a cave network spanning the planet (which cost 100 ms a dig). A back wall changed there is found again as a
+  change of structure is. **Rooms** are the components of the open cells left, openings included.
 - A room's **id** is its smallest cell. Its **openings** are its cells touching space or the grid's
   edge, or with no back wall; its **hull** is the walls and closed doors next to it with space or the
   edge beyond. Both in cell order.

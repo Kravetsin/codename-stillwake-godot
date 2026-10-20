@@ -9,9 +9,12 @@ namespace Stillwake.Game.Features.Light;
 /// One light as the lightmap draws it, in pixels of the world: <see cref="Colour"/> falling off by
 /// <see cref="Keep"/> a cell out to <see cref="Reach"/> cells, each colour at most <see cref="Most"/>, then
 /// times <see cref="Strength"/> — a lamp's flicker, a fire's flame, an ember's fade; <see cref="Size"/>
-/// pixels across, which softens its shadows' edges, or a point at 0.
+/// pixels across, which softens its shadows' edges, or a point at 0. With <see cref="Toward"/>, a unit vector, a beam that
+/// way (0077: the helmet lamp), the lightmap's beam wide, its most whole.
 /// </summary>
-public readonly record struct LightSource(double X, double Y, (float R, float G, float B) Colour, float Strength, int Reach, float Keep, float Most, float Size = 0);
+public readonly record struct LightSource(
+    double X, double Y, (float R, float G, float B) Colour, float Strength, int Reach, float Keep, float Most, float Size = 0,
+    (double X, double Y)? Toward = null);
 
 /// <summary>What the lightmap's shader reads: the walls and doors light stops at, and each light it draws.</summary>
 public static class Sources
@@ -78,7 +81,9 @@ public static class Sources
             buffer[k + 6] = 0;
             buffer[k + 7] = (float)l.Y;
             (buffer[k + 8], buffer[k + 9], buffer[k + 10], buffer[k + 11]) = (l.Colour.R, l.Colour.G, l.Colour.B, l.Strength);
-            (buffer[k + 12], buffer[k + 13], buffer[k + 14], buffer[k + 15]) = (l.Reach, l.Keep, l.Most, l.Size);
+            // A beam's most is past 1: 2 and its heading as a share of a turn, which the shader reads back.
+            float most = l.Toward is { } t ? (float)(2 + (Math.Atan2(t.Y, t.X) / (2 * Math.PI) + 1) % 1) : l.Most;
+            (buffer[k + 12], buffer[k + 13], buffer[k + 14], buffer[k + 15]) = (l.Reach, l.Keep, most, l.Size);
         }
         return n;
     }

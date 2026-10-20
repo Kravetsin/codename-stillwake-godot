@@ -140,6 +140,18 @@ public static class Migrations
         Shapes,
         // 19 → 20: the world's globals (0076): suit colours and what is known move out of crew and research.
         Globals,
+        // 20 → 21: natural walls are dug (0077): no wall is cracked yet, aboard or on a surface.
+        save =>
+        {
+            save["slices"]!["building"]!.AsObject()["cracks"] ??= new JsonArray();
+            save["slices"]!["building"]!.AsObject()["clock"] ??= 0;
+            foreach (var surface in save["surfaces"]?.AsArray() ?? [])
+            {
+                surface!["slices"]!["building"]!.AsObject()["cracks"] ??= new JsonArray();
+                surface["slices"]!["building"]!.AsObject()["clock"] ??= 0;
+            }
+            return save;
+        },
     ];
 
     /// <summary>

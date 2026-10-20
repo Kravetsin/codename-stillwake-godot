@@ -228,8 +228,11 @@ public static class Aiming
         if (axe || drill != null)
         {
             // A swing begun now faces the pointer (Poses.FaceOf), and so does the stroke it is judged by; the drill always does.
-            var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
             string tool = axe ? Spec.Weapons.Axe.Item : drill!;
+            // Natural ground under the pointer is dug where it is (0077), in a shaft or a cave as under the open sky.
+            if (grid.WallAt(cell) is { Natural: true })
+                return new Aim(cell, inReach, new Use(new Dig(cell, tool), m.Building.DigProblem(peer, cell, tool)));
+            var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
             var touched = axe ? Struck(m, toward, PointOf(point)) : Touched(m, toward, PointOf(point));
             if (touched.FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
             return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true, new Use(new Hit(wreck.Id, tool), m.Debris.HitProblem(peer, wreck.Id, tool)), Piece: wreck.Id);
@@ -312,8 +315,8 @@ public static class Aiming
     /// <summary>
     /// The wrecks the bit of <paramref name="look"/>, the drill unless a test says, touches, held by
     /// <paramref name="hero"/> aimed at <paramref name="at"/>, in thousandths of a cell (0054), in spawn order;
-    /// none while the hero is aboard. The straight arm turns so the bit's line runs through the point
-    /// (<see cref="HarpoonShot.ArmFor"/>), from the shoulder of the body upright, turned the way the hero faces,
+    /// none while the hero is aboard. The straight arm turns, and the drill in the fist, so the bit's line runs
+    /// through the point (<see cref="HarpoonShot.DrillFor"/>), from the shoulder of the body upright, turned the way the hero faces,
     /// as the figure draws it; the bit, its edge, is tested against each wreck's aim box as the axe's blade is.
     /// </summary>
     public static List<Piece> Touched(Registry m, Hero hero, Point at, HeldLook? look = null)
@@ -322,12 +325,32 @@ public static class Aiming
         if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return touched;
         look ??= HeldLook.Drill;
         double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
-        double arm = HarpoonShot.ArmFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
-        var (a, b) = AxeSwing.EdgeAt(look, arm);
+        var (arm, turn) = HarpoonShot.DrillFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
+        var (a, b) = AxeSwing.EdgeAt(look, arm, turn);
         var bit = (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
         foreach (var p in m.Debris.Pieces)
             if (HalfOf(p.Item) is var (halfW, halfH) && Crosses(bit, p.X - halfW, p.Y - halfH, p.X + halfW, p.Y + halfH)) touched.Add(p);
         return touched;
+    }
+
+    /// <summary>
+    /// The dig a strike of <paramref name="tool"/> at <paramref name="at"/>, in thousandths of a cell, sends (0077): at the
+    /// natural wall of the cell there, within the hero's reach, as plans are reached; none where the sim would refuse it.
+    /// Wherever the hero stands, a shaft or a cave too: no swing nor bit is traced, the cell is the pointer's.
+    /// </summary>
+    public static Dig? DigAt(Registry m, int peer, Hero hero, Point at, string tool)
+    {
+        if (CellAt(m.Grid, at) is not int cell || m.Grid.WallAt(cell) is not { Natural: true } || !Reaches(hero, cell, m.Grid.Width)) return null;
+        return m.Building.DigProblem(peer, cell, tool) == null ? new Dig(cell, tool) : null;
+    }
+
+    /// <summary>Whether a bit at <paramref name="at"/>, in thousandths of a cell, is on ground it bites: a natural wall that breaks. A friend's drill's sparks.</summary>
+    public static bool Bites(Registry m, Point at) => CellAt(m.Grid, at) is int cell && m.Grid.WallAt(cell) is { Breaks: true };
+
+    private static int? CellAt(IGridQueries grid, Point at)
+    {
+        int x = (int)Math.Floor(at.X / (double)Hero.Unit), y = (int)Math.Floor(at.Y / (double)Hero.Unit);
+        return x < 0 || y < 0 || x >= grid.Width || y >= grid.Height ? null : y * grid.Width + x;
     }
 
     /// <summary>
@@ -377,8 +400,8 @@ public static class Aiming
         if (aim is not { InReach: true }) return new([], null, -1);
         if (pressed && aim.Crate is int crate) return new([], crate, -1);
         var commands = new List<Command>();
-        // A wreck is chopped by a swing of the axe (AxeSwing), never by a press.
-        if (pressed && aim.Press is { Problem: null } press && press.Command is not Hit) commands.Add(press.Command);
+        // A wreck is chopped by a swing of the axe (AxeSwing), never by a press; the ground dug so too (0077).
+        if (pressed && aim.Press is { Problem: null } press && press.Command is not (Hit or Dig)) commands.Add(press.Command);
         if (aim.Work is not { Problem: null } work || !held) return new(commands, null, -1);
         // A hold just begun sends one; so does a load that took the world's tick back.
         bool fresh = workedOnTick < 0 || tick < workedOnTick;

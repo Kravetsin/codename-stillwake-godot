@@ -148,7 +148,7 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   `IRoomsQueries.Afloat` says, never on a planet, its open sky included, so no swim, tether, thrust or muffle there;
   and a fall gains the kind's gravity a step (`Ship.Gravity`, `Surfaces.Kind.Fall` of `Hero.Gravity`: 14 on the
   test strip, against 21 aboard), so a jump clears six cells where aboard it clears three (`PlanetHeroTests`).
-  `--planet --autopilot` plays the strip (`HeroAutopilot.PlanetRun`): out of the shelter, onto the cliff, down the
+  `--strip --autopilot` plays the strip (`HeroAutopilot.PlanetRun`): out of the shelter, onto the cliff, down the
   shaft into the cave.
 
 - This hero is sent (`Client.SendHero`, a string net never reads: `SentHero.Encode`, JSON) every 50 ms
@@ -435,7 +435,7 @@ Deliberately not handled:
   ticks after (`DrillPace`) it sends a `Hit(Piece, "drill")` for each wreck its bit touches that the sim would
   take: the bit's segment, held as the figure draws it from the shoulder of the body upright, against each
   wreck's aim box (`Aiming.Touched`), out in space only. The aim marks the first such wreck with the axe's prompt,
-  "[Hold LMB] Break", red with "Batteries flat" (`debris.flat`) once the belt cannot pay. Flat, it winds down
+  "[Hold LMB] Break", red with "Batteries flat" (`items.flat`) once the belt cannot pay. Flat, it winds down
   and sends nothing; aboard it spins and touches nothing. The energy bar shows while it is held (0053). Every
   weapon works on every wreck alike: the axe chops an asteroid as any wreck, the drill bores a hull section.
   **The arc drill** (`arcDrill`, 0075) is the drill with arcs on its coil: held, run, aimed and heard alike
@@ -456,6 +456,25 @@ Deliberately not handled:
   and down with the bit's picture (`HeldLook.SpinUpMs`) and sagging on a piece; and while its bit works on a piece,
   held 0.1 s past a graze, 18 short strikes a second, each its own pitch and loudness (`StrikeTrain`), silent the
   moment it stops.
+- **Digging** (0077): with the axe or a drill held and natural ground under the pointer, in reach (`Aiming.Reaches`, as
+  plans are reached), the aim is that cell: "[Hold LMB] Dig", red with "Too hard" on bedrock or "Batteries flat", the
+  cell outlined (its slope's half for a slope). The axe's strike sends one `Dig` at the cell of its swing's point
+  (`Aiming.DigAt`) and bites, drawn stopped a moment as on a wreck; the drill sends one at its pace (`DrillPace`), its
+  works flag, sparks and strikes firing on ground as on a wreck, and a friend's bit on ground throws sparks too
+  (`Aiming.Bites`). Nothing traces the blade or the bit, which only find wrecks in open space: a shaft, a cave or the
+  strip's shelter dig alike. E digs nothing. What the dig looks like is building's (`DigView`). No sound of its own yet.
+- **The helmet lamp** (0077): worn on the head, its bulb shows on the helmet's brow (`Figure.HeadLamp`, a placeholder
+  of three warm pixels, drawn unlit), this hero's and every friend's shown; `HeroView.HeadLamps()` says where each
+  shines from this frame and the way its head looks (`Figure.HeadLampToward`), which `Main` hands the light
+  (`LightView.HeadLamps`): a beam that way.
+- **What is dug at stays readable** (0077): the dig target's outline is drawn over the hero and its tool (`Layers.Dug`),
+  and the drill, always full size, is held Terraria's way: the arm turns toward the pointer but rises no higher than `HarpoonShot.DrillRaise`
+  above straight ahead, and the drill turns in the fist the rest of the way (`HarpoonShot.DrillFor`, `TurnIn`), so the arm never crosses the helmet;
+  the drill and arc drill alike, and `Aim.Touched` traces the same bit. A landing's dust spreads along the floor only as far as it runs open
+  (`Figure.FloorRoom`, from `HeroView`), and dust along the floor is drawn behind the walls (`Luminous.Low`), so none shows through a shaft's walls.
+- **Ladders** (0077): a jump off a ladder goes on with up held, not caught again while rising (`Hero.Move` grabs only falling or still); a side
+  held in mid-air turns the hero on it, ready to jump that way, side then jump or jump then side; at its foot a
+  walk steps off and a jump either way lets go; the hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - A press on a door or valve is built from it as shown (`Shared.Predicted.Grid`, passed to `Aiming.AimAt`): it asks
@@ -465,4 +484,3 @@ Deliberately not handled:
 ## Not ported yet
 
 - `keys.test.ts`: the keys are Godot's input here, read in `HeroView`.
-- A helmet lamp: the TypeScript game has none.

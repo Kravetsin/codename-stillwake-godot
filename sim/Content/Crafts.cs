@@ -25,6 +25,8 @@ public static class Crafts
         new("harpoon", [("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 100),
         new("jetpack", [("frame", 1), ("tube", 2), ("coil", 1), ("circuit", 1), ("canister", 1), ("wire", 2)], Ticks: 160),
         new("battery", [("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 60),
+        // A plate bent into a band, wire, and silicon from rock for its glowing bulb: cheap, so it comes before the first cave (0077).
+        new("helmetLamp", [("plate", 1), ("wire", 2), ("silicon", 1)], Ticks: 60),
         new("drill", [("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1), ("circuit", 2)], Ticks: 160),
         // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.
         new("circuit", [("silicon", 1), ("wire", 2)], Ticks: 80),

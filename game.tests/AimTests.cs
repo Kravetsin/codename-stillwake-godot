@@ -613,9 +613,9 @@ public class AimTests
         var (w, hero) = Field(("asteroid", shoulder.X + DrillReach() - 60 + RockHalf, shoulder.Y));
         var at = ((double)shoulder.X / Unit + 5, (double)shoulder.Y / Unit);
         var aim = Aiming.AimAt(w.M, 0, hero, at, drill: Spec.Weapons.Drill.Item);
-        Assert.Equal(new Use(new Hit(1, Spec.Weapons.Drill.Item), "debris.flat"), aim?.Press);
+        Assert.Equal(new Use(new Hit(1, Spec.Weapons.Drill.Item), "items.flat"), aim?.Press);
         Assert.Equal(1, aim?.Piece);
-        Assert.Equal(new Prompt("use.chop", "debris.flat"), Prompts.Of(w.M, aim));
+        Assert.Equal(new Prompt("use.chop", "items.flat"), Prompts.Of(w.M, aim));
         Assert.Empty(Aiming.HitsOf(w.M, 0, Aiming.Touched(w.M, hero, Aiming.PointOf(at)), Spec.Weapons.Drill.Item));
         // In creative mode it needs no battery.
         w.Step(new SetCreative(true));

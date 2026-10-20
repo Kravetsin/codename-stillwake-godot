@@ -197,19 +197,22 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
-        bool grab = !hero.Climbing && input.Y != 0 && input.X == 0 && !input.Jump &&
+        // Not while rising: a jump off a ladder with up held goes on, not caught by the ladder it left.
+        bool grab = !hero.Climbing && hero.Vy >= 0 && input.Y != 0 && input.X == 0 && !input.Jump &&
             TouchesLadder(ship, hero.X, hero.Y, input.Y > 0);
         if (grab || hero.Climbing)
         {
             // A ladder centres the hero on it; narrower than a cell, the hero touches nothing beside it but a slope's
-            // solid half, which it may not climb into: it stops on the ladder, or does not take it (0069).
-            if (input.X == 0 && !input.Jump)
+            // solid half, which it may not climb into: it stops on the ladder, or does not take it (0069). A side held
+            // in mid-air only turns the hero on it, so a jump that follows goes that way (0077); on the ground it walks off.
+            bool holds = !input.Jump && (input.X == 0 || hero.Climbing && !Grounded(ship, hero.X, hero.Y));
+            if (holds)
             {
                 var climbed = Climb(ship, CellOf(hero.X) * Unit + Unit / 2, hero.Y, input.Y, facing);
                 if (Clear(ship, climbed.X, climbed.Y)) return climbed;
                 if (hero.Climbing) return hero with { Vx = 0, Vy = 0, Facing = facing };
             }
-            // Walking or jumping lets go.
+            // Jumping, either side or straight up, or walking off at the foot lets go.
             else return Fall(ship, hero.X, hero.Y, input.X, input.Jump ? -Spec.Jump : 0, facing, input.Sprint);
         }
         int vy = input.Jump && Grounded(ship, hero.X, hero.Y) ? -Spec.Jump : hero.Vy;

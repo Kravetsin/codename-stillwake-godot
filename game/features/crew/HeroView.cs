@@ -272,6 +272,22 @@ public partial class HeroView : Node2D
     public IReadOnlyList<(int Id, Hero Hero)> Others { get; private set; } = [];
 
     /// <summary>
+    /// Where every helmet lamp worn on this surface shines from as drawn this frame, in the world's pixels, and the way it
+    /// points, where its head looks (0077): this hero's and each friend's shown, so a friend's beam lights a cave for
+    /// everyone in it. What the light draws.
+    /// </summary>
+    public IReadOnlyList<(Vector2 At, Vector2 Toward)> HeadLamps()
+    {
+        _headLamps.Clear();
+        if (_figure.HeadLamp && _figure.Visible) _headLamps.Add((_figure.HeadLampAt, _figure.HeadLampToward));
+        foreach (var (_, shown) in _shownOthers)
+            if (shown.Figure.Visible && shown.Figure.HeadLamp) _headLamps.Add((shown.Figure.HeadLampAt, shown.Figure.HeadLampToward));
+        return _headLamps;
+    }
+
+    private readonly List<(Vector2 At, Vector2 Toward)> _headLamps = [];
+
+    /// <summary>
     /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world <paramref name="m"/>
     /// and draws it, the camera centred on it, and tells the sim where it is when that matters to its
     /// breathing (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming
@@ -388,6 +404,8 @@ public partial class HeroView : Node2D
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         _figure.Wear(Suits.Of(m.Players, client.Id));
         _figure.Jetpack = jetpack;
+        _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
+        _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         // Its own thrust shows at once (0014); others' as the sim says.
         Plume(client.Id, _figure, _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
@@ -456,8 +474,11 @@ public partial class HeroView : Node2D
         {
             var hits = Aiming.HitsOf(m, client.Id, _current, _swing.At);
             foreach (var hit in hits) client.Send(hit);
+            // The ground under the swing's point is dug as it strikes, in reach (0077).
+            var dig = Aiming.DigAt(m, client.Id, _current, _swing.At, Content.Weapons.Axe.Item);
+            if (dig != null) client.Send(dig);
             // A blade that bites is drawn stopped on contact a moment (0075).
-            if (hits.Count > 0) _figure.Bit();
+            if (hits.Count > 0 || dig != null) _figure.Bit();
         }
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
         // its power every tick it runs (0055), and hits every wreck its bit touches each Pace ticks. Flat, it winds down.
@@ -470,7 +491,8 @@ public partial class HeroView : Node2D
         Drill(client, m, runs ? pointer : null, drill);
         _figure.Spinning = runs;
         // Heard while its bit is on a piece the sim would let it hit, whatever the hits' pace; its bit throws sparks there.
-        bool works = runs && Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0;
+        bool works = runs && (Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0
+            || Aiming.DigAt(m, client.Id, _current, Aiming.PointOf(pointer!.Value), running!) != null);
         _figure.Bites = works;
         HearDrill(runs, works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
@@ -525,8 +547,9 @@ public partial class HeroView : Node2D
     private void Drill(Client client, Registry m, (double X, double Y)? pointer, string? drill)
     {
         if (!_drillPace.Due(client.World.Tick, pointer != null && drill != null, Content.Weapons.Of(drill)?.Pace ?? 1)) return;
-        var touched = Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value));
-        foreach (var hit in Aiming.HitsOf(m, client.Id, touched, drill!)) client.Send(hit);
+        var at = Aiming.PointOf(pointer!.Value);
+        foreach (var hit in Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, at), drill!)) client.Send(hit);
+        if (Aiming.DigAt(m, client.Id, _current, at, drill!) is { } dig) client.Send(dig);
     }
 
     /// <summary>
@@ -577,6 +600,27 @@ public partial class HeroView : Node2D
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
     }
 
+    /// <summary>
+    /// How far the floor runs open from <paramref name="hero"/>'s feet to either side, in pixels of the world, looking four
+    /// cells along its lowest row: a landing's dust spreads no further, so none passes the walls of a shaft (0077).
+    /// </summary>
+    private static (double Left, double Right) FloorRoom(Sim.Grid.IGridQueries grid, Hero hero)
+    {
+        int w = grid.Width, cx = hero.X / Hero.Unit, row = (hero.Y - 1) / Hero.Unit;
+        double Room(int dir)
+        {
+            for (int i = 1; i <= 4; i++)
+            {
+                int x = cx + dir * i;
+                if (x < 0 || x >= w || row < 0 || row >= grid.Height) break;
+                if (grid.StructureAt(row * w + x) is Sim.Grid.Structure.Wall or Sim.Grid.Structure.DoorClosed)
+                    return (dir > 0 ? x * Hero.Unit - hero.X : hero.X - (x + 1) * Hero.Unit) * Rig.Cell / Hero.Unit;
+            }
+            return double.MaxValue;
+        }
+        return (Room(-1), Room(1));
+    }
+
     /// <summary>The middle of <paramref name="cell"/>, in thousandths of a cell.</summary>
     private Point Middle(int cell) => new(cell % _width * Hero.Unit + Hero.Unit / 2, cell / _width * Hero.Unit + Hero.Unit / 2);
 
@@ -592,6 +636,8 @@ public partial class HeroView : Node2D
             : ((int, int?, bool, int, int, int?)?)null;
         if (traced == _traced) return;
         _traced = traced;
+        // Ground dug at is outlined over the hero and its tool, which may stand in front of it (0077).
+        _outline.ZIndex = aim?.Press?.Command is Sim.Building.Dig ? Layers.Dug : Layers.Aim;
         _outline.Begin();
         if (aim != null) AimOutline.Trace(_outline, m, aim, shown, refuse ? AimRefused : AimReady);
         _outline.End();
@@ -639,10 +685,12 @@ public partial class HeroView : Node2D
             shown.Figure.Aim = seen.Busy is { Work: Handwork.Drill, At: var drilled } ? Pixels(drilled) : rodAim is { } aimed ? Pixels(aimed) : null;
             shown.Figure.Spinning = HeldLook.IsDrill(m.Items.Running(id));
             // Its bit throws sparks while it runs on a wreck: on one its bit touches, as this hero's own.
-            shown.Figure.Bites = shown.Figure.Spinning && seen.Busy is { Work: Handwork.Drill, At: var bit } && Aiming.Touched(m, hero, bit).Count > 0;
+            shown.Figure.Bites = shown.Figure.Spinning && seen.Busy is { Work: Handwork.Drill, At: var bit } && (Aiming.Touched(m, hero, bit).Count > 0 || Aiming.Bites(m, bit));
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Loaded = shown.Rod.Loaded;
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
+            shown.Figure.HeadLamp = m.Items.Equipped(id, Content.HelmetLamp.Item);
+            shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
             shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);

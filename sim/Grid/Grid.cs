@@ -147,7 +147,7 @@ public sealed record SetDoor(int Cell, bool Open) : Command;
 public sealed record SetValve(int Cell, bool Open) : Command;
 
 /// <summary>The ship's cells in layers (packages/sim/src/modules/grid).</summary>
-public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
+public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridOps
 {
     public override string Id => "grid";
 
@@ -181,6 +181,7 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
     {
         int old = layer[cell];
         if (old == value) return;
+        if (_grown && which != GridLayers.Machine) Touch(cell);
         State.Log.Add(State.Version, cell, which, old);
         layer[cell] = value;
     }
@@ -214,6 +215,8 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
 
     protected override GridState Init(Layout layout)
     {
+        (_grown, _touched) = (layout.Grown, []);
+        _base.Clear();
         int size = layout.Width * layout.Height;
         var s = new GridState
         {
@@ -228,39 +231,43 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
             Shape = new int[size],
         };
         int hull = Materials.Get(Materials.DefaultHull).Code;
-        for (int cell = 0; cell < size; cell++)
-        {
-            char c = layout.At(cell);
-            // Every cell but space has a back wall of the default hull, hull walls included; a solar panel,
-            // making power with no fire, is drawn under the stars, which it needs.
-            if (c != ' ' && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null })) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = hull; }
-            s.Shape[cell] = c switch
+        var drawn = layout.Materials;
+        for (int cell = 0, y = 0; y < layout.Height; y++)
+            for (int x = 0; x < layout.Width; x++, cell++)
             {
-                '/' => Shape.BottomRight,
-                '\\' => Shape.BottomLeft,
-                'r' => Shape.TopLeft,
-                '7' => Shape.TopRight,
-                _ => Shape.None,
-            };
-            s.Structure[cell] = c switch
-            {
-                '#' => Structure.Wall,
-                _ when s.Shape[cell] != Shape.None => Structure.Wall,
-                '=' => Structure.Floor,
-                'H' => Structure.Ladder,
-                'D' => Structure.DoorClosed,
-                'd' => Structure.DoorOpen,
-                _ => Structure.Empty,
-            };
-            if (s.Structure[cell] == Structure.Wall) s.Material[cell] = hull;
-            s.Conduit[cell] = c switch
-            {
-                '-' => Conduit.Pipe,
-                'v' => Conduit.ValveOpen,
-                'x' => Conduit.ValveClosed,
-                _ => Conduit.None,
-            };
-        }
+                char c = layout.Rows[y][x];
+                // A wall and its back wall of the material the map draws there (0077), else of the default hull.
+                int material = drawn != null && drawn[cell] != 0 ? Math.Abs(drawn[cell]) : hull;
+                // Every cell but space has a back wall of the default hull, hull walls included; a solar panel,
+                // making power with no fire, is drawn under the stars, which it needs; a planet's sky has none (0077).
+                if (c != ' ' && (drawn == null || drawn[cell] > 0) && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null })) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = material; }
+                s.Shape[cell] = c switch
+                {
+                    '/' => Shape.BottomRight,
+                    '\\' => Shape.BottomLeft,
+                    'r' => Shape.TopLeft,
+                    '7' => Shape.TopRight,
+                    _ => Shape.None,
+                };
+                s.Structure[cell] = c switch
+                {
+                    '#' => Structure.Wall,
+                    _ when s.Shape[cell] != Shape.None => Structure.Wall,
+                    '=' => Structure.Floor,
+                    'H' => Structure.Ladder,
+                    'D' => Structure.DoorClosed,
+                    'd' => Structure.DoorOpen,
+                    _ => Structure.Empty,
+                };
+                if (s.Structure[cell] == Structure.Wall) s.Material[cell] = material;
+                s.Conduit[cell] = c switch
+                {
+                    '-' => Conduit.Pipe,
+                    'v' => Conduit.ValveOpen,
+                    'x' => Conduit.ValveClosed,
+                    _ => Conduit.None,
+                };
+            }
         foreach (int cell in layout.CellsOf('-', under: true)) s.Conduit[cell] = Conduit.Pipe;
         foreach (var (kind, cell) in layout.Machines()) s.Machines.Add(new Machine(s.NextMachineId++, kind, cell));
         return s;
@@ -299,9 +306,13 @@ public sealed class GridModule : Module<GridState>, IGridQueries, IGridOps
                 State.Occupancy[c] = m.Id;
             Listed(m);
         }
-        State.Built = Box.None;
-        for (int c = 0; c < State.Occupancy.Length; c++)
-            if (IsBuilt(c)) Grow(c);
+        // Found in one sweep, row by row: a grown planet is built in nearly every cell.
+        int left = State.Width, right = -1, top = State.Height, bottom = -1;
+        for (int y = 0, c = 0; y < State.Height; y++)
+            for (int x = 0; x < State.Width; x++, c++)
+                if (IsBuilt(c))
+                    (left, right, top, bottom) = (Math.Min(left, x), Math.Max(right, x), Math.Min(top, y), y);
+        State.Built = right < 0 ? Box.None : new Box(left, top, right, bottom);
         State.Log = new ChangeLog(LogCapacity, State.Version);
         _asked = (-1, -1, null);
     }

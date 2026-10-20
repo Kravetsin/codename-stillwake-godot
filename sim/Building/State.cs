@@ -21,6 +21,12 @@ public sealed record Plan(int Id, int Cell, int Progress, Placement? Place, stri
 }
 
 /// <summary>
+/// A natural wall at <c>Cell</c> dug part way (0077): <c>Damage</c> of its <c>Strength</c> taken by weapons' hits, the last on
+/// tick <c>At</c> of the building's clock; <c>Builds.CrackHeals</c> ticks after it, healed.
+/// </summary>
+public sealed record Crack(int Cell, int Damage, int At);
+
+/// <summary>
 /// The building slice. Public so modules can be typed by it, its members internal: others read it
 /// through <see cref="BuildingModule"/>'s queries.
 /// </summary>
@@ -29,4 +35,8 @@ public sealed class BuildingState
     /// <summary>The plans in the order they were made.</summary>
     [JsonInclude] internal List<Plan> Plans { get; set; } = [];
     [JsonInclude] internal int NextPlanId { get; set; } = 1;
+    /// <summary>The natural walls dug part way, by cell, ascending (0077): each below its material's strength.</summary>
+    [JsonInclude] internal List<Crack> Cracks { get; set; } = [];
+    /// <summary>Ticks run: when a crack was last hit, for it to heal (0077).</summary>
+    [JsonInclude] internal int Clock { get; set; }
 }

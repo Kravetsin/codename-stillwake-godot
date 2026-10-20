@@ -21,6 +21,9 @@ public static class Layers
     public const int PlanBacks = -8;
 
     // The ship's structure and machines (grid), a socket on each powered machine.
+    /// <summary>Dust along the floor (<c>Luminous.Low</c>, 0077): over the back walls, behind the walls, which hide it.</summary>
+    public const int LowDust = -3;
+
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
 
     /// <summary>A screen or a lamp on a machine's face beside its socket: an analyzer's (research), a tank's sight glass (atmosphere).</summary>
@@ -49,6 +52,12 @@ public static class Layers
 
     /// <summary>Drones flying with what they carry, over the heroes they pass (logistics, 0062).</summary>
     public const int Drones = 15;
+
+    /// <summary>
+    /// The ground a hero digs at (0077): its cracks and the aim's outline round it, over every hero and the tool in its hands,
+    /// so a drill held close never hides what it bites.
+    /// </summary>
+    public const int Dug = 15;
 
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
     public const int Glows = 16;

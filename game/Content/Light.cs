@@ -34,6 +34,17 @@ public static class Light
     /// hole or a doorway it falls off within a few cells, and only open space is lit by the stars whole.
     /// </summary>
     public const float StarKeep = 0.6f, StarMachine = 0.48f;
+
+    /// <summary>
+    /// Under a planet's sky (0077), what daylight keeps crossing a cell of air in from the open: it dies a cell or two into a
+    /// cave mouth or a shaft, so tunnels ahead are black but for what lamps, fires and glows light; and no ambient light
+    /// there (<see cref="Ambient"/> is the ship's alone), so unlit ground is black too.
+    /// </summary>
+    public const float GroundKeep = 0.3f;
+
+    /// <summary>Under a planet's sky, what daylight keeps falling a cell down through air: down a shaft or a cave mouth it lights
+    /// some six to eight cells, fading, while round a bend it dies within one or two (<see cref="GroundKeep"/>).</summary>
+    public const float GroundDownKeep = 0.8f;
     /// <summary>
     /// The stars' light in a lone hole in a back wall, against whole in open space: a cell's sky is the cells
     /// within <see cref="StarSky"/> of it, and with <see cref="StarFullSky"/> of them open to the stars, itself
@@ -81,5 +92,17 @@ public static class Light
     /// the light seen from it is wide, sharp by what casts it, wider further off. Glows are points.
     /// </summary>
     public const float LampSize = 6f, FireSize = 10f;
+
+    /// <summary>
+    /// The helmet lamp (0077): a beam of warm light the way the head looks, <see cref="HeadLampHalfAngle"/> either side of
+    /// it (60° across), keeping <see cref="HeadLampKeep"/> a cell out to <see cref="HeadLampReach"/> cells, its bulb small;
+    /// and a faint glow round the head, <see cref="HeadGlow"/> of it out to <see cref="HeadGlowReach"/> cells, so the wearer
+    /// is never pitch black behind it.
+    /// </summary>
+    public static readonly (float R, float G, float B) HeadLamp = (0.95f, 0.82f, 0.6f);
+    public const float HeadLampKeep = 0.8f, HeadLampSize = 3f, HeadLampHalfAngle = 0.5236f;
+    public const int HeadLampReach = 9;
+    public const float HeadGlow = 0.4f, HeadGlowKeep = 0.5f;
+    public const int HeadGlowReach = 2;
     public static readonly (float R, float G, float B) Ambient = (0.04f, 0.045f, 0.06f);
 }

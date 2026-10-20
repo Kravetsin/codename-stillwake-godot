@@ -113,6 +113,19 @@ Numbers from `game/Content/Light.cs`.
   every 8×8 room of it, 1.16 and 0.76. Dim lamps of 11 cells (0070), in a 1600×900 window: 1.73–1.82 ms a frame at
   zoom 1 against 1.87–2.02 before, 0.91–0.96 at zoom 2 against 0.88–0.93.
 
+- **Helmet lamps** (0077): a beam and a glow a lamp worn, from its bulb on the helmet (`LightView.HeadLamps`, answered by
+  the crew's `HeroView.HeadLamps()`, where it is and the way the head looks): `Light.HeadLamp`, a warm (0.95, 0.82, 0.6)
+  keeping `Light.HeadLampKeep` (0.8) a cell out to `Light.HeadLampReach` (9) within `Light.HeadLampHalfAngle` (30°) of
+  that way, faded over a soft edge, its bulb 3 px wide; and `Light.HeadGlow` (0.4) of it out to 2 cells all round. A beam
+  is a `LightSource` with a `Toward`, packed with its most as 2 and its heading as a share of a turn, which the shader
+  reads back (`beam_cos`, `beam_soft`): one dot product a texel. Free, as bright anywhere, aboard too.
+
+- **Underground on a planet is black** (0077): no ambient light there (`Lit.Ambient`, set by `LightView` from its sky; the
+  ship keeps `Light.Ambient`), daylight keeps `Light.GroundKeep` (0.3) a cell of air in from the open (`StarField`'s keep), so
+  it dies a cell or two round a bend, but falls down an opening keeping `Light.GroundDownKeep` (0.8: the down sweep's shares,
+  `StarField`'s `down`), so a shaft is lit six to eight cells down; and lamps and beams go into solid ground keeping
+  `wall_keep` (0.35) a cell of the way through it from its face (`through` in the lightmap's shader), aboard too.
+
 ## Deliberately not handled
 
 - Relief from more than one light is from their sum's slope: one direction a point, not each lamp's.

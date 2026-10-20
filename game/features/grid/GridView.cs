@@ -271,9 +271,10 @@ public partial class GridView : Node2D
     /// <summary>Scrap cut from its picture; iron a panel, a grille in about one cell of seven.</summary>
     private void DrawBack(Vector2I at, int code)
     {
-        if (MaterialOf(code) == "scrap")
+        string material = MaterialOf(code);
+        if (material == "scrap" || Materials.Get(material).Natural)
         {
-            _back.SetCell(at, ShipTiles.Source, _tiles.CutAt("back_scrap", at.X, at.Y));
+            _back.SetCell(at, ShipTiles.Source, _tiles.CutAt(material == "scrap" ? "back_scrap" : ShipTiles.BackName(material), at.X, at.Y));
             return;
         }
         bool grille = HashOf((at.Y << 16) | at.X) % 7 == 0;

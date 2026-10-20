@@ -28,7 +28,7 @@ public class ContentTests
 
     private static IEnumerable<(IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks)> AllBuilds() =>
         Builds.All.Select(b => (b.Cost, b.BuildTicks)).Concat(Machines.All.Where(m => !m.Fixed).Select(m => (m.Cost, m.BuildTicks)))
-            .Concat(Materials.All.Select(m => (m.Cost, m.BuildTicks)));
+            .Concat(Materials.All.Where(m => m.Built).Select(m => (m.Cost, m.BuildTicks)));
 
     // Materials
 
@@ -44,8 +44,24 @@ public class ContentTests
     public void MaterialsHavePositiveWholeNumberStats()
     {
         foreach (var m in Materials.All)
-            foreach (int value in (int[])[m.Strength, m.Leak, m.BuildTicks])
-                Assert.True(value > 0, m.Id);
+        {
+            Assert.True(m.Leak > 0, m.Id);
+            // Bedrock alone breaks never and is never built (0077).
+            Assert.True(m.Strength > 0 || m.Id == "bedrock", m.Id);
+            Assert.True(m.BuildTicks > 0 == m.Built, m.Id);
+        }
+    }
+
+    [Fact]
+    public void NaturalGroundBreaksInMoreThanOneHitOfAnyWeaponAndYieldsWhatBuildsIt()
+    {
+        // A wall breaking in one hit would show no crack before its dust; what a dig gives is what a plan of it costs.
+        foreach (var m in Materials.All.Where(m => m.Breaks))
+        {
+            Assert.All(Weapons.All, w => Assert.True(w.Damage < m.Strength, $"{w.Item} on {m.Id}"));
+            Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
+        }
+        Assert.Equal(["soil", "stone", "bedrock"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
     }
 
     // Machines
@@ -93,10 +109,11 @@ public class ContentTests
     // Items
 
     [Fact]
-    public void ItemsStackWholeNumbersAndEveryMaterialIsOne()
+    public void ItemsStackWholeNumbersAndEveryHullMaterialIsOne()
     {
         foreach (var item in Content.Items.All) Assert.True(item.Stack > 0, item.Id);
-        foreach (var material in Materials.All) Assert.Contains(material.Id, Content.Items.All.Select(i => i.Id));
+        // Natural ground (0077) is dug into what it costs: soil, and stone into rock.
+        foreach (var material in Materials.All.Where(m => !m.Natural)) Assert.Contains(material.Id, Content.Items.All.Select(i => i.Id));
     }
 
     [Fact]

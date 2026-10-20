@@ -36,6 +36,8 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   smooth value noise (`Spin`, keeping its speed) and a push along the noise's curl (`Turbulence`), a
   floor it may bounce off; a streak samples its path every 60th of a second whatever the frame rate, its
   last 24 points, and is drawn back along them as far as its speed times its `Stretch` says.
+- **Dust along the floor** (`Luminous.Low`: a step's and a landing's motes, grains and veils, a dig's break dust and cloud, 0077) is
+  drawn apart, over the back walls and behind the walls (`Layers.LowDust`), giving no light of its own, so a wall hides it.
 - **Drawn** over everything in the world, plans included (`Layers.Effects`), under an overlay, a pixel of
   the screen a unit so strokes are as fine as the screen allows over the world's pixels: matter lit by the
   room (`Lit`) — motes, wisps swelling and stretched along their way, chips tumbling; then light added —

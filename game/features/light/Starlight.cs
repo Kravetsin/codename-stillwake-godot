@@ -3,6 +3,7 @@ using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
+using L = Stillwake.Game.Light;
 
 namespace Stillwake.Game.Features.Light;
 
@@ -24,7 +25,7 @@ public partial class Starlight : Node
     private Box _shown = Box.None;
 
     /// <param name="sky">The light through the open sky: the stars', or a planet's daylight (0076).</param>
-    public Starlight((float R, float G, float B)? sky = null) => _field = new StarField(sky);
+    public Starlight((float R, float G, float B)? sky = null) => _field = sky == null ? new StarField() : new StarField(sky, L.GroundKeep, L.GroundDownKeep);
 
     /// <summary>Works the starlight out anew for the grid as it stands.</summary>
     public void Show(IGridQueries grid)

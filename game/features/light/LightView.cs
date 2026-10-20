@@ -74,6 +74,12 @@ public partial class LightView : Node2D
     /// <summary>Where a machine of a kind gives its fire's light, in pixels from its top left; null for one with no fire.</summary>
     public Func<string, Vector2?> FireAt { get; set; } = _ => null;
 
+    /// <summary>
+    /// Where each helmet lamp worn on this surface shines from this frame, in pixels of the world, and the way it points, a
+    /// unit vector (0077): none till the crew answers it.
+    /// </summary>
+    public Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> HeadLamps { get; set; } = () => [];
+
     /// <summary>The lights drawn into the lightmap the last frame.</summary>
     public int LightCount => _lightmap.Drawn;
     public int LampCount => _shown.Count;
@@ -83,6 +89,8 @@ public partial class LightView : Node2D
     {
         _grid = grid;
         _starlight = new Starlight(sky);
+        // Under a planet's sky no ambient light: what no light reaches is black (0077).
+        Lit.Ambient(sky == null ? L.Ambient : (0f, 0f, 0f));
         AddChild(new CanvasModulate { Color = new Color(L.Ambient.R, L.Ambient.G, L.Ambient.B) });
         AddChild(_lightmap);
         AddChild(_starlight);
@@ -189,6 +197,12 @@ public partial class LightView : Node2D
             if (burns <= 0) continue;
             glow.Modulate = FireGlowColour with { A = Math.Min(1, FireGlowAlpha * burns) };
             _main.Add(new LightSource(at.X, at.Y, L.Fire, burns, FireReach, L.FireKeep, 1, L.FireSize));
+        }
+        // A helmet lamp: its beam the way the head looks, and a faint glow round the head.
+        foreach (var (at, toward) in HeadLamps())
+        {
+            _main.Add(new LightSource(at.X, at.Y, L.HeadLamp, 1, L.HeadLampReach, L.HeadLampKeep, L.LampMost, L.HeadLampSize, (toward.X, toward.Y)));
+            _main.Add(new LightSource(at.X, at.Y, L.HeadLamp, L.HeadGlow, L.HeadGlowReach, L.HeadGlowKeep, L.LampMost));
         }
         // Flashes first, the brightest moments; then the particles that give light, while the cap lasts (Fx.MostLights).
         foreach (var f in Flares.Shared.Flashes)

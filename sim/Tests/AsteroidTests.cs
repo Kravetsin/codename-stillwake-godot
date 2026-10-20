@@ -197,14 +197,14 @@ public class AsteroidTests
     {
         var w = Facing("asteroid", Full);
         w.Do(new Hit(1, Drill)).Run();
-        Assert.Equal(["debris.notRunning"], Reasons(w));
+        Assert.Equal(["items.notRunning"], Reasons(w));
         Assert.Equal(0, Pieces(w)[0].Damage);
         // The client sends its run before the frame's hits: the host applies them in that order, on one tick.
         w.Do(new Run(Drill, true)).Do(new Hit(1, Drill)).Run();
         Assert.Single(w.Refusals);
         Assert.Equal(Weapons.Drill.Damage, Pieces(w)[0].Damage);
         w.Do(new Run(Drill, false)).Do(new Hit(1, Drill)).Run();
-        Assert.Equal(["debris.notRunning", "debris.notRunning"], Reasons(w));
+        Assert.Equal(["items.notRunning", "items.notRunning"], Reasons(w));
         // What the client asks before it sends says nothing of the run, so the first hit goes with the run.
         Assert.Null(w.M.Debris.HitProblem(0, 1, Drill));
     }
@@ -231,10 +231,10 @@ public class AsteroidTests
         Assert.Equal(600, Full / S / Draw);
         Hits(w, 1, Drill).Run(600);
         Assert.Equal(Battery(0), w.M.Items.Inventory(0)[Belt]);
-        Assert.Equal("debris.flat", w.M.Debris.HitProblem(0, 1, Drill));
+        Assert.Equal("items.flat", w.M.Debris.HitProblem(0, 1, Drill));
         w.Do(new Hit(1, Drill)).Run();
         Assert.Null(w.M.Items.Running(0));
-        Assert.Equal(["debris.flat"], Reasons(w));
+        Assert.Equal(["items.flat"], Reasons(w));
         Assert.Equal(Weapons.Drill.Damage, Pieces(w)[0].Damage);
         // The axe needs no battery.
         Assert.Null(w.M.Debris.HitProblem(0, 1, Axe));
@@ -248,8 +248,8 @@ public class AsteroidTests
         var bare = Facing("hullSection");
         Hits(bare, 1, Drill).Run();
         // The run is refused flat, and so is its hit: the belt's want says more than the run's.
-        Assert.Equal(["items.flat", "debris.flat"], Reasons(w));
-        Assert.Equal(["items.flat", "debris.flat"], Reasons(bare));
+        Assert.Equal(["items.flat", "items.flat"], Reasons(w));
+        Assert.Equal(["items.flat", "items.flat"], Reasons(bare));
         Assert.Equal(0, Pieces(w)[0].Damage);
         Assert.Equal(Battery(Full), w.M.Items.Inventory(0)[5]);
         Assert.Equal(Battery(Draw * S - 1), w.M.Items.Inventory(0)[Belt]);
@@ -261,7 +261,7 @@ public class AsteroidTests
         var w = Facing("asteroid", Full);
         Hits(w, 1, Drill).Run();
         w.Do(new Move(new Items.Place(Belt), new Target(5), 1)).Do(new Hit(1, Drill)).Run();
-        Assert.Equal(["debris.flat"], Reasons(w));
+        Assert.Equal(["items.flat"], Reasons(w));
         Assert.Null(w.M.Items.Running(0));
     }
 

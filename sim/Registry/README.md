@@ -56,3 +56,7 @@ debris an item came out of; one already there is left as it is.
 Format 20 brought the world's globals (0076): `players` (each hero's suit colour, out of crew's heroes, in peer order)
 and `knowledge` (research's `granted` and `analysed`), the first two slices; a save already holding `players` is
 left as it is.
+
+Format 21 brought digging (0077): building's `cracks`, empty, the ship's and every surface's, and a grown surface's grid saved as
+its seed's edits (`GrownGrid`; no older save holds a grown surface); a `cracks` already there is left
+as it is.
