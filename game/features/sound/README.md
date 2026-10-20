@@ -18,7 +18,7 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
 
 - **Owns:** the hearing. `Main` adds `SoundView` first, asking it whether this player's placed hero
   floats out in space (`HeroView.Floats`). The title, a world with no hero yet and the dev worlds
-  never float.
+  never float. Nor does a planet (0076): its open air carries sound as a room's does.
 - **Floating (0042):** over `Sound.MuffleMs` the World bus's low-pass eases from `ClearHz` to
   `MuffledHz` (in log space) as the bus fades out to silence; over the same time the Suit bus — what
   the hero itself touches — dulls to a thud: its low-pass (24 dB an octave) falls to `SuitMuffledHz`

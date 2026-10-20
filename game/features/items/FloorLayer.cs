@@ -99,7 +99,7 @@ public partial class FloorLayer : Node2D
             }
             else if (one.Tick != tick)
                 (one.Tick, one.FromX, one.FromY, one.ToX, one.ToY) = (tick, one.ToX, one.ToY, s.X, s.Y);
-            bool inSpace = rooms.RoomAt(s.Cell) == RoomsModule.Space;
+            bool inSpace = rooms.Afloat(s.Cell);
             // Between the last two ticks' positions, both the sim's: never past them into a floor or a wall.
             double x = one.FromX + (one.ToX - one.FromX) * progress;
             double y = one.FromY + (one.ToY - one.FromY) * progress;

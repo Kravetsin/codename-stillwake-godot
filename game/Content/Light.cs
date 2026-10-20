@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace Stillwake.Game;
 
 /// <summary>
@@ -43,6 +45,20 @@ public static class Light
     public const float WallDeep = 0.3f;
     public const float WallOut = 0.06f;
     public static readonly (float R, float G, float B) Star = (0.62f, 0.66f, 0.8f);
+
+    /// <summary>
+    /// What shines through the open sky of a surface of <paramref name="kind"/> (0076): its sky's light, a planet's
+    /// daylight, from content's thousandths; the <see cref="Star"/>s where it names none, as aboard.
+    /// </summary>
+    public static (float R, float G, float B) SkyOf(Stillwake.Content.Surfaces.Kind kind) =>
+        kind.Sky is { } sky ? (sky.R / 1000f, sky.G / 1000f, sky.B / 1000f) : Star;
+
+    /// <summary>How bright a planet's sky is drawn behind its ground, of the light it gives: the day behind, not a glare.</summary>
+    public const float SkyBackdrop = 0.45f;
+
+    /// <summary>The brightest colour any sky shines in, the stars' among them: what the faintest texel of starlight is judged by.</summary>
+    public static readonly float BrightestSky = Stillwake.Content.Surfaces.All.Select(SkyOf).Append(Star)
+        .Max(c => System.Math.Max(c.R, System.Math.Max(c.G, c.B)));
     /// <summary>
     /// A starter lamp: dim and warm, keeping <see cref="LampKeep"/> a cell out to <see cref="LampReach"/>
     /// cells, so a room is lit to walk and its corners dark, and fires, screens and glows read in it.

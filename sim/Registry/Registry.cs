@@ -46,6 +46,9 @@ public sealed class Registry
     public FurnaceModule Furnace { get; }
     public LogisticsModule Logistics { get; }
 
+    /// <summary>The rules of the kind of surface this registry runs (0076): what the client draws and allows by.</summary>
+    public Surfaces.Kind Rules => Grid.Rules;
+
     /// <summary>In run order: on the ship, the globals first.</summary>
     public IModules All { get; }
 

@@ -216,6 +216,22 @@ public sealed class HeroAutopilot
         ]);
     }
 
+    /// <summary>
+    /// <c>--planet</c>'s script (0076): beamed down into the shelter at the cliff's foot, out of it, a jump onto the cliff
+    /// five cells up that only a planet's lower gravity allows, over the hills and down the shaft into the dark cave, to
+    /// its far wall.
+    /// </summary>
+    public static HeroAutopilot PlanetRun() => new(
+    [
+        Wait(90),
+        Walk(-1, h => Column(h) <= 27),
+        Jump(1),
+        Hold(new HeroInput(1, 0, false), 90),
+        Walk(1, h => Column(h) >= 71),
+        Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)),
+        Wait(120),
+    ]);
+
     /// <summary><c>--slopes</c>'s script: into the corridor's far corner, under its sloped ceiling, and stand there.</summary>
     public static HeroAutopilot SlopesRun() => new([Wait(150), Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)), Wait(1)]);
 

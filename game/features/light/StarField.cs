@@ -26,6 +26,12 @@ public sealed class StarField
     private const int Sky = L.StarSky < Margin ? L.StarSky : Margin;
     private const byte Air = 0, Machine = 1, Wall = 2;
 
+    /// <summary>The colour of the light through the open sky: the stars', or a planet's daylight (0076).</summary>
+    private readonly (float R, float G, float B) _sky;
+
+    /// <param name="sky">The light through the open sky, by <see cref="L.SkyOf"/> its surface's kind; the stars' when not given.</param>
+    public StarField((float R, float G, float B)? sky = null) => _sky = sky ?? L.Star;
+
     /// <summary>The cells worked out, in the grid's cells, past its edge too.</summary>
     public Box Region { get; private set; } = Box.None;
 
@@ -42,7 +48,7 @@ public sealed class StarField
     private float[] _light = [];
 
     /// <summary>Light this faint, or fainter, is 0 in every byte of a texel; a hundredth under, against rounding.</summary>
-    private static readonly double Faint = 0.99 * Math.Min(1, L.WallIn) / (Math.Max(L.Star.R, Math.Max(L.Star.G, L.Star.B)) * 255);
+    private static readonly double Faint = 0.99 * Math.Min(1, L.WallIn) / (L.BrightestSky * 255);
 
     /// <summary>The share of light going on from a cell of one kind into the next, by <c>from × 3 + to</c>.</summary>
     private static readonly float[] Shares = SharesOf();
@@ -174,7 +180,7 @@ public sealed class StarField
     }
 
     /// <summary>An open cell's texel with the stars whole in it.</summary>
-    private static byte[] OpenTexel()
+    private byte[] OpenTexel()
     {
         var bytes = new byte[4];
         Texel(bytes, 0, 1, Air);
@@ -257,15 +263,14 @@ public sealed class StarField
         return back[cell] == Back.None && (structure[cell] is not (Structure.Wall or Structure.DoorClosed) || shape[cell] != Shape.None);
     }
 
-    private static readonly float StarR = L.Star.R, StarG = L.Star.G, StarB = L.Star.B;
-
-    private static void Texel(byte[] bytes, int at, float light, byte kind)
+    private void Texel(byte[] bytes, int at, float light, byte kind)
     {
+        var (starR, starG, starB) = _sky;
         // Walls are drawn taking WallIn of the light on their face, so a wall cell holds its face's light.
         float face = kind == Wall ? light / L.WallIn : light;
-        bytes[at] = (byte)(Math.Min(1, StarR * face) * 255);
-        bytes[at + 1] = (byte)(Math.Min(1, StarG * face) * 255);
-        bytes[at + 2] = (byte)(Math.Min(1, StarB * face) * 255);
+        bytes[at] = (byte)(Math.Min(1, starR * face) * 255);
+        bytes[at + 1] = (byte)(Math.Min(1, starG * face) * 255);
+        bytes[at + 2] = (byte)(Math.Min(1, starB * face) * 255);
         // Its alpha says whether it is a wall's, so the shader blends it only with its own side.
         bytes[at + 3] = kind == Wall ? (byte)255 : (byte)0;
     }

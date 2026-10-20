@@ -85,12 +85,13 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// Why <paramref name="place"/> cannot be planned at <paramref name="cell"/>: a machine built into the ship, a blueprint not known
-    /// (ADR 0024), what the grid says, then a plan already claiming its slot in a cell it covers.
+    /// Why <paramref name="place"/> cannot be planned at <paramref name="cell"/>: a machine built into the ship, one its surface's kind
+    /// does not allow (0076), a blueprint not known (ADR 0024), what the grid says, then a plan already claiming its slot in a cell it covers.
     /// </summary>
     private string? PlaceProblem(int cell, Placement place)
     {
         if (place.Layer == "machine" && IsFixed(place.Kind)) return "building.fixed";
+        if (!Rules.Allows(place.Kind)) return "building.notHere";
         if (!_research.Knows(place)) return "building.unknown";
         var gridProblem = _grid.PlacementProblem(cell, place);
         if (gridProblem != null) return gridProblem;

@@ -100,9 +100,10 @@ mode, the world setting in which nothing is ever taken
   space; ties in both by the lowest cell index (up, then left, then right, then down). So a stack
   comes out into the room even where space is nearer. With nothing open in reach (deep in a block
   of walls) it rises a cell instead, and stops, and is pushed out once in reach; in the top row it
-  stays. In space it flies on, nothing slowing it, and drifts back
-  `Floor.SpaceDrift` with everything outside the moving ship; inside the ship it falls by
-  `Floor.Gravity` up to `Floor.MaxFall`, stops against what is built or the grid's edge, and on what
+  stays. Afloat in space (`IRoomsQueries.Afloat`) it flies on, nothing slowing it, and drifts back
+  `Floor.SpaceDrift` with everything outside the moving ship; elsewhere — inside the ship, and everywhere on a planet,
+  its open sky too (0076) — it falls by `Floor.Gravity` scaled by its surface's kind (`Surfaces.Kind.Fall`: two thirds
+  on the test strip, rounded down) up to `Floor.MaxFall`, stops against what is built or the grid's edge, and on what
   it lands slides to a stop by `Floor.Friction`. One past the grid's edge is gone: thrown away into
   space. Then stacks alike at rest in one cell merge into the oldest, up to the stack limit.
   Positions divide by a cell rounding down, left of and above the grid too.

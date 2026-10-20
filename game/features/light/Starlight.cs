@@ -17,11 +17,14 @@ public partial class Starlight : Node
 {
     private const int Cell = ShipCamera.Cell;
 
-    private readonly StarField _field = new();
+    private readonly StarField _field;
     private Image? _image;
     private ImageTexture? _texture;
     /// <summary>Where <see cref="Lit"/> was last told the texture lies, in cells.</summary>
     private Box _shown = Box.None;
+
+    /// <param name="sky">The light through the open sky: the stars', or a planet's daylight (0076).</param>
+    public Starlight((float R, float G, float B)? sky = null) => _field = new StarField(sky);
 
     /// <summary>Works the starlight out anew for the grid as it stands.</summary>
     public void Show(IGridQueries grid)

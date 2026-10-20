@@ -67,6 +67,9 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   reeled, toward its reel's point (below); one whose `X` is below its `End` is gone once no hero's view
   holds it, and one past the grid's left edge at once; and one of a zone round the heroes is gone unless
   it stays (below). Then each zone in content order, the stream first, on its beat.
+- **No zone on a planet** (0076): on a surface whose kind has no debris (`Surfaces.Kind.Debris` false, the test strip)
+  no zone beats and the world's first pieces are not put out: nothing spawns, nothing is drawn from the Rng. Each
+  surface's debris drifts round its own heroes only, so a hero on a planet has none of the ship's round it.
 - **A hero's view** (`Debris.View`, 60 × 34 cells either way round its reported cell): more than the
   farthest zoom shows on any screen (96 × 54 cells, `ShipCamera.Farthest`). No zone spawns a piece in any hero's view, nor takes one away in it
   but at the grid's edge, so no one sees debris appear or vanish.

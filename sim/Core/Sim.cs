@@ -230,7 +230,7 @@ public sealed class World
 
     private Running Attach(Surface surface, IReadOnlyList<Module> modules)
     {
-        var where = new Where(this, surface.Id);
+        var where = new Where(this, surface.Id, Content.Surfaces.Get(surface.Kind));
         foreach (var m in modules)
         {
             m.Rng = _rngOver;
@@ -326,9 +326,10 @@ public sealed class World
     }
 
     /// <summary>The surfaces as the modules of surface <c>here</c> see them.</summary>
-    private sealed class Where(World world, int here) : ISurfaces
+    private sealed class Where(World world, int here, Content.Surfaces.Kind kind) : ISurfaces
     {
         public int Here => here;
+        public Content.Surfaces.Kind Kind => kind;
 
         public void Send(int peer, int surface)
         {

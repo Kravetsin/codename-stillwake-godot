@@ -157,6 +157,9 @@ public static class Tools
     public static bool Known(Tool tool, IResearchQueries research) =>
         tool is not PlaceTool p || research.Knows(p.Placement);
 
+    /// <summary>Whether <paramref name="tool"/> builds what the kind of surface it is on allows (0076): the cable as <c>cable</c>.</summary>
+    public static bool Allowed(Tool tool, Surfaces.Kind rules) => rules.Allows(tool is PlaceTool p ? p.Placement.Kind : "cable");
+
     /// <summary>What is placed at <paramref name="cell"/> in <paramref name="layers"/>: a plan first, then what is built, in their order.</summary>
     private static Placement? PlacementAt(int cell, IReadOnlyList<string> layers, IGridQueries grid, BuildingModule building)
     {
@@ -250,7 +253,7 @@ public static class Tools
         if (PlacementAt(cell, LayersFor(overlay), grid, building) is not { } placed) return null;
         var card = All.OfType<PlaceTool>().FirstOrDefault(each =>
             each.Placement.Layer == placed.Layer && each.Placement.Kind == placed.Kind && each.Placement.Material == placed.Material);
-        // What is not known is not picked: it could not be planned.
-        return card != null && Known(card, research) ? card : null;
+        // What is not known, or not built here, is not picked: it could not be planned.
+        return card != null && Known(card, research) && Allowed(card, building.Rules) ? card : null;
     }
 }

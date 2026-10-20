@@ -286,7 +286,7 @@ public partial class HeroView : Node2D
         _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
         var shown = Predicted.Grid(client, grid);
-        var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell));
+        var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
