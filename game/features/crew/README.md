@@ -39,7 +39,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads, room air included | no    |
 | `AirCues.cs`       | the moments air comes back, each once (0081): breathing room air again, the danger letting go | no    |
 | `CanistersSeen.cs` | a friend's canister read off its suit jumping more than air can add in a breath (0081) | no    |
-| `AirSwirl.cs`      | air round a hero (0081): a canister's streaks, motes and wisps spiralling in to the visor, a breath of room air's motes off it | yes |
+| `AirSwirl.cs`      | air round a hero (0081): a canister's vortex rising round the body from the feet, a breath of room air's motes off the visor | yes |
 | `SuitGauge.cs`     | the suit gauge under the hotbar, as low as the slot size puts it (0058), on a screen in its tab under the wrist computer's cuff (0074): the canister and fifteen cells, red and pulsing when low, moving smoothly, a hit flashing and draining (0081); a canister's surge, a wave on breathing again with a soft inhale, red edges when low letting go in a pale flash (0081), the dark when passed out (`SuitGauge.tsx`) | yes   |
 | `SuitColours.cs`   | the suit colours, a row in the game menu's settings: the one worn ringed, those taken dimmed, the rest a click away (`SuitColours.tsx`) | yes |
 | `Markers.cs`       | the markers' list (`Marker`: target, colour, icon) and their geometry: on the screen or off, clamped to its edge, slid out of the HUD, turned toward the target, faded in | no |
@@ -240,12 +240,14 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 - **A canister breathed:** a right click over the world with a canister in hand (the hand free, awake, no
   plan worked under the pointer; `Buttons.TakeRightClick`), or `Ui.Breathe` from a right click on one in the
   inventory, sends `Refill` when the sim would take it now (`CrewModule.RefillProblem`) and none is in
-  flight (`Report.RefillOf`). Only then is it felt (0081): air filling the suit, heard through it (`Sound.AirFill`, a
-  synthesised placeholder), its air swirling in to the visor (`AirSwirl`: fine streaks, motes and pale wisps on a
-  closing spiral, 0.6 to 0.9 s, `Fx.Swirl*`), and `Ui.Refilled`: the items feature pulses the slot, the suit gauge
+  flight (`Report.RefillOf`). Only then is it felt (0081): the UI's click (`Ui.Click`); air filling the suit, heard in
+  the helmet (`Sound.AirFill`, a synthesised placeholder); a vortex of air round the whole body (`AirSwirl.Vortex`: a
+  faint flat ring at the feet, then fine streaks and motes spiralling up round it to above the head, fading out there,
+  about a second, all light so it reads in the dark, a faint pale light on the body, `Fx.Vortex*`); and
+  `Ui.Refilled`: the items feature pulses the slot, the suit gauge
   surges (a sky wash, a white sweep along the lit cells, motes rising thick, `WristLook.Surge*`). A friend's canister
-  is seen in its suit jumping by more than a breath of room air and the pod's can add (`CanistersSeen`): the swirl at its
-  visor and the hiss on World where it is. A canister into a friend's suit within 5 units of full shows nothing there.
+  is seen in its suit jumping by more than a breath of room air and the pod's can add (`CanistersSeen`): the vortex round
+  it and the hiss on World where it is. A canister into a friend's suit within 5 units of full shows nothing there.
 - **Air coming back** (`AirCues`, read with the gauge four times a second): coming out of thin air or vacuum into room
   air or the pod's with a suit to refill, one soft wave across the cells (`WristGauge.Wave`), a soft inhale in the
   helmet (`Sound.Inhale`) and a few pale motes off the visor (`SuitGauge.BreathesAgain`, wired by `Main` to

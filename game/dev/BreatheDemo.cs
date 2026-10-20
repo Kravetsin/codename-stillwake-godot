@@ -13,8 +13,9 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// <c>-- --breathe</c>: air coming back, for recording (0081). The hero stands in the wreck's torn room, open to space, its
 /// suit low and the red edges showing, canisters on the hotbar. The script opens the inventory and breathes one with a
-/// right click (the slot's pulse, the gauge's surge, the swirl, the danger letting go), closes it, opens the door to the
-/// pod's room and walks in to the pod, breathing its air again (the wave, the puff at the visor). <c>--breathe-air</c>
+/// right click (the slot's pulse, the gauge's surge, the vortex, the danger letting go), closes it, opens the door to the
+/// pod's room and walks in to the pod, breathing its air again (the wave, the puff at the visor), and breathes another
+/// from the hand there, in the lit room. <c>--breathe-air</c>
 /// starts lower and only walks in: the danger lets go by room air.
 /// </summary>
 public partial class BreatheDemo : Control
@@ -76,6 +77,11 @@ public partial class BreatheDemo : Control
         At(t + 1.6, () => Aim(Hatch().X - 7, Hatch().Y - 1));
         At(t + 1.9, () => Press(Key.E));
         At(t + 2.5, () => Walk(Key.D, x => x >= Hatch().X - 2));
+        if (!canister) return;
+        // In the lit room, another canister from the hand: the hotbar's slot chosen, a right click over the world.
+        At(t + 5.0, () => Press(Key.Key2));
+        At(t + 5.1, () => (_follow, _target) = (null, new Vector2(1000, 300)));
+        At(t + 5.6, () => Click(MouseButton.Right));
     }
 
     private (int X, int Y) Hatch()
@@ -123,7 +129,15 @@ public partial class BreatheDemo : Control
     private void Click(MouseButton button)
     {
         foreach (bool pressed in new[] { true, false })
-            Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = button, Pressed = pressed, Position = _pos, GlobalPosition = _pos });
+            Input.ParseInputEvent(new InputEventMouseButton
+            {
+                ButtonIndex = button,
+                Pressed = pressed,
+                // The world reads which buttons are down from the mask.
+                ButtonMask = pressed ? (button == MouseButton.Right ? MouseButtonMask.Right : MouseButtonMask.Left) : 0,
+                Position = _pos,
+                GlobalPosition = _pos,
+            });
     }
 
     private static void Press(Key key)

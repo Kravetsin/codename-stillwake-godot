@@ -8,7 +8,8 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// A gauge in its tab under the wrist computer's cuff (0074, 0081): the screen, the game's picture of what it measures,
-/// and a row of cells lit as far as <see cref="Motion"/> shows. Low, the cells take the low colour and pulse, the last
+/// and a row of cells lit as far as <see cref="Motion"/> shows, the cell at the edge lit pixel by pixel, so the gauge flows
+/// rather than ticks, a soft bright edge leading it while it moves. Low, the cells take the low colour and pulse, the last
 /// one blinking faster; after a hit the lost cells flash white and drain; refilling, light runs along the lit cells and
 /// motes rise off them; a canister breathed surges (<see cref="Surge"/>), air breathed again sends a wave across (<see cref="Wave"/>).
 /// The crew's suit gauge; it reads the sim on its own timer and hands the share here.
@@ -23,7 +24,7 @@ public partial class WristGauge : Control
     private readonly int _meterLeft, _count;
     private readonly Color _colour, _lowColour;
     private IReadOnlyList<(int X, int Width)> _cells = [];
-    private double _clock, _surge, _wave = -1;
+    private double _clock, _surge, _wave = -1, _shownFill, _moving;
 
     /// <param name="icon">What it measures: the canister, the bolt.</param>
     /// <param name="iconAt">Where the picture is drawn in the tab.</param>
@@ -67,6 +68,9 @@ public partial class WristGauge : Control
         _surge = Math.Max(0, _surge - delta);
         if (_wave >= 0) _wave = _wave + delta < Look.WaveS ? _wave + delta : -1;
         Motion.Step(delta);
+        // The leading edge glows while the fill moves, either way, and fades once it rests.
+        _moving = Math.Abs(Motion.Fill - _shownFill) > 1e-6 ? 1 : Math.Max(0, _moving - delta / Look.EdgeFadeS);
+        _shownFill = Motion.Fill;
         QueueRedraw();
     }
 
@@ -102,22 +106,34 @@ public partial class WristGauge : Control
             float lit = (float)Math.Clamp((m.Fill - from) * _count, 0, 1), lost = (float)Math.Clamp((m.Trail - from) * _count, 0, 1);
             DrawRect(cell, Off with { A = Bright });
             DrawRect(cell with { Size = new Vector2(cw, 1) }, OffTop with { A = Bright });
+            // The lit part from the cell's left, whole pixels and the next one as bright as the share of it lit.
+            float litWidth = cw * lit;
+            int whole = (int)litWidth;
+            float part = litWidth - whole;
             if (lit > 0)
             {
-                float a = (lit >= 1 ? 1 : 0.2f + 0.45f * lit) * pulse * Bright;
+                float a = pulse * Bright;
                 if (Low && i == lastLit) a *= 0.3f + 0.7f * (0.5f + 0.5f * Mathf.Cos(t * Mathf.Pi * 3));
-                if (lit >= 1)
+                var shown = cell with { Size = new Vector2(Math.Max(1, (float)Math.Ceiling(litWidth)), Look.CellHeight) };
+                DrawRect(shown.Grow(2), colour with { A = 0.08f * a });
+                DrawRect(shown.Grow(1), colour with { A = 0.18f * a });
+                if (whole > 0)
                 {
-                    DrawRect(cell.Grow(2), colour with { A = 0.08f * pulse * Bright });
-                    DrawRect(cell.Grow(1), colour with { A = 0.18f * pulse * Bright });
+                    DrawRect(cell with { Size = new Vector2(whole, Look.CellHeight) }, colour with { A = a });
+                    DrawRect(cell with { Size = new Vector2(whole, 1) }, Lit(colour) with { A = 0.6f * a });
                 }
-                DrawRect(cell, colour with { A = a });
-                DrawRect(cell with { Size = new Vector2(cw, 1) }, Lit(colour) with { A = 0.6f * a });
-                if (i == sweep || i == sweep - 1) DrawRect(cell, Colors.White with { A = i == sweep ? 0.45f : 0.18f });
-                if (m.Gain > 0 && i == lastLit && lit < 1) DrawRect(cell, Colors.White with { A = 0.5f * (float)m.Gain });
+                if (part > 0.02f) DrawRect(new Rect2(cell.Position.X + whole, Look.CellTop, 1, Look.CellHeight), colour with { A = a * part });
+                if (i == sweep || i == sweep - 1) DrawRect(cell with { Size = new Vector2(litWidth, Look.CellHeight) }, Colors.White with { A = i == sweep ? 0.45f : 0.18f });
+            }
+            // The leading edge while the fill moves: a bright pixel's line at the fill, a soft glow either side.
+            if (_moving > 0 && i == Math.Max(0, lastLit) && lit > 0)
+            {
+                float edge = (float)_moving * Bright, x = cell.Position.X + litWidth;
+                DrawRect(new Rect2(x - 3, Look.CellTop - 1, 5, Look.CellHeight + 2), Lit(colour) with { A = 0.22f * edge });
+                DrawRect(new Rect2(x - 1, Look.CellTop, 1, Look.CellHeight), Colors.White with { A = 0.85f * edge });
             }
             if (lit > 0 && (i == surgeAt || i == surgeAt - 1 || i == surgeAt - 2))
-                DrawRect(cell, Colors.White.Lerp(_colour, (surgeAt - i) * 0.35f) with { A = (i == surgeAt ? 0.75f : 0.4f / (surgeAt - i)) * surge });
+                DrawRect(cell with { Size = new Vector2(litWidth, Look.CellHeight) }, Colors.White.Lerp(_colour, (surgeAt - i) * 0.35f) with { A = (i == surgeAt ? 0.75f : 0.4f / (surgeAt - i)) * surge });
             if (!double.IsNaN(wave))
             {
                 double d = (i - wave) / Look.WaveBand;
@@ -129,8 +145,9 @@ public partial class WristGauge : Control
                 }
             }
             if (lost <= lit) continue;
+            // The lost part after a hit, from the fill to the trail's edge, as finely as the fill.
             var chip = m.Flash > 0 ? Colors.White with { A = 0.5f + 0.5f * (float)m.Flash } : Lit(colour) with { A = 0.55f };
-            DrawRect(cell, chip with { A = chip.A * Math.Min(1, lost - lit) });
+            DrawRect(new Rect2(cell.Position.X + litWidth, Look.CellTop, cw * (lost - lit), Look.CellHeight), chip);
         }
         if (_cells.Count == 0) return;
         int meter = _cells[^1].X + _cells[^1].Width;

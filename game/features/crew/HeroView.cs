@@ -164,10 +164,10 @@ public partial class HeroView : Node2D
     private readonly Dictionary<int, JetPlume> _plumes = new();
     /// <summary>Whether the player asked to breathe a canister, from the inventory, since the last frame.</summary>
     private bool _breathe;
-    // A canister breathed is heard through the suit; a friend's on World, where it is.
-    private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Suit);
+    // A canister breathed is heard in the helmet, never muffled; a friend's on World, where it is.
+    private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet);
     private readonly Heard2D _othersBreathe = Cues.Player2D(S.AirFill, S.World, voices: 2);
-    /// <summary>Air coming back round the heroes: a canister's swirl, a breath of room air at the visor (0081).</summary>
+    /// <summary>Air coming back round the heroes: a canister's vortex, a breath of room air at the visor (0081).</summary>
     private readonly AirSwirl _air = new();
     /// <summary>Which friend breathed a canister, read off its suit (0081).</summary>
     private readonly CanistersSeen _canisters = new();
@@ -699,11 +699,11 @@ public partial class HeroView : Node2D
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
             shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
-            // A friend's canister: its air swirls in to its visor, heard where it is (0081).
+            // A friend's canister: its air rises round it, heard where it is (0081).
             if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Suit, breathing.Out))
             {
                 var figure = shown.Figure;
-                _air.Swirl(() => figure.Visor);
+                _air.Vortex(() => figure.Stance);
                 _othersBreathe.PlayAt(figure.Visor);
             }
             // Its thrust is not sent: the plume blows against the way it moves, down while it is still.
@@ -738,7 +738,8 @@ public partial class HeroView : Node2D
         if (Report.RefillOf(m.Crew.RefillProblem(client.Id), client.InFlight) is not { } refill) return;
         client.Send(refill);
         _breathes.Play();
-        _air.Swirl(() => _figure.Visor);
+        _ui.Click();
+        _air.Vortex(() => _figure.Stance);
         _ui.Refill();
     }
 

@@ -198,6 +198,10 @@ as everything E works is, in the crew feature (`AimTests`).
   into the bag and back at its end, for recordings.
 - **A canister breathed** from the inventory (a right click on it) or from the hand pulses its slot as a shifted stack's
   landing does, longer and wider (`SlotFlights.Pulse`), when the crew sends the refill (`Ui.Refilled`, 0081).
+- **Every inventory action clicks** (`Ui.Click`, the UI's own click, 0081): a stack picked (a drag's start), put, swapped,
+  split, equipped or taken off, sent across with shift (on launch, as the move is made), dropped over the world or with
+  Q; a hotbar slot chosen by a click, a drag along it let go, or a number key; a sort key. Not the wheel, which would
+  tick through every slot it passes; a canister breathed clicks from the crew, as it is sent. A click on nothing does nothing.
 - A furnace's panel is its input over its fuel, the fire between them, its bar and its outputs; a
   burner generator's its fire over its fuel slot, and in its header a bolt with the power it makes
   (its `Makes`), lit while it burns and dark at 0 while cold. Both say why they stand still under them

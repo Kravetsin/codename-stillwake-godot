@@ -25,7 +25,8 @@ sort key stands out of the column, and asked for refilling oxygen to be felt: a 
   stands on the column's right rail, one seam out. Every frame's metal spans the same pixels as the hotbar's cuff
   (checked at x 6 to 417 at the normal slot), though the display's bright rim lies a pixel pair further in on its right.
 - **A segmented gauge** (`WristGauge`): the suit's fifteen cells, three suit units each, after the canister. Lit cells
-  glow; a partly filled cell is dim. Low, they turn red, pulsing as the gauge pulsed before, the last lit cell
+  glow; the cell at the edge is lit pixel by pixel from its left, the next pixel as bright as the share of it, so the
+  gauge flows rather than ticks, a soft bright edge leading it while it moves, rising or falling. Low, they turn red, pulsing as the gauge pulsed before, the last lit cell
   blinking faster. The danger vignette, the dark of
   passing out and the alarm stay as they were; the energy gauge is added under them, so they cover it as the rest of
   the HUD.
@@ -40,9 +41,12 @@ sort key stands out of the column, and asked for refilling oxygen to be felt: a 
   down as it drains.
 - **Air coming back is felt.** A canister breathed (sent once, `Report.RefillOf`): its slot pulses as a shifted
   stack's landing, longer; the suit gauge surges, a sky wash, a white sweep along the lit cells and motes rising thick;
-  fine velocity-stretched streaks, motes and pale wisps spiral in to the visor over 0.6 to 0.9 s (`AirSwirl`, the
-  luminous toolkit of 0075); air filling the suit is heard (`Sound.AirFill`). A friend's canister, seen in its suit
-  jumping more than a breath of air can add (`CanistersSeen`), swirls at its visor and is heard where it is. Coming
+  a vortex of air rises round the whole body, as Valheim's but pale cyan: a faint flat ring at the feet, then fine
+  velocity-stretched streaks and motes spiralling up from the feet to above the head, fading out there, about a second,
+  all light added over the world so it reads in the dark of space (`AirSwirl`, the luminous toolkit of 0075; a first
+  swirl in to the visor was not liked); the UI's click and air filling the suit are heard (`Sound.AirFill`, in the
+  helmet so floating never muffles it). A friend's canister, seen in its suit jumping more than a breath of air can add
+  (`CanistersSeen`), raises its vortex and is heard where it is. Every inventory action clicks, once a frame at most. Coming
   out of thin air or vacuum into room air with a suit to refill (`AirCues`): one soft cyan wave across the cells, a
   few pale motes off the visor and a soft inhale in the helmet (`Sound.Inhale`), once an entry, never again within
   four seconds. A low suit leaving danger without passing out lets the red edges go in 0.15 s to a pale cyan edge that
@@ -61,7 +65,7 @@ sort key stands out of the column, and asked for refilling oxygen to be felt: a 
 - **A friend's canister into a suit within 5 units of full shows nothing** on other screens: nothing tells a client a
   friend sent `Refill`, and so small a jump is a breath of room air and the pod's together. The sim has no events.
 - **The item card covers the gauge** while the pointer stays on the canister just breathed from the inventory: the
-  slot's pulse and the swirl show it, and the gauge shows it once the pointer moves. The one tooltip stays as it is.
+  slot's pulse and the vortex show it, and the gauge shows it once the pointer moves. The one tooltip stays as it is.
 
 - **The hit threshold is 5 %, not the 4 % asked for.** A running hero out of air breathes 2 of the suit's 45 units a
   breath, 4.4 %: at 4 % every running breath would flash. 5 % keeps breathing a slow drain.

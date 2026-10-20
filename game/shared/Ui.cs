@@ -287,4 +287,12 @@ public sealed class Ui
     public event Action? Refilled;
 
     public void Refill() => Refilled?.Invoke();
+
+    /// <summary>
+    /// The UI's click asked for (0081): an inventory action (a stack picked, put, swapped, split, sent across, dropped, a
+    /// hotbar slot chosen, a sort), a canister breathed. The sound feature plays it, once a frame at most.
+    /// </summary>
+    public event Action? Clicked;
+
+    public void Click() => Clicked?.Invoke();
 }

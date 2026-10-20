@@ -385,6 +385,7 @@ public partial class InventoryPanel : CanvasLayer
     /// </summary>
     private void SortOf(int? crate)
     {
+        _ui.Click();
         (_picked, _dragFrom) = (null, null);
         Send(new Sort(crate));
         if (crate == null)
@@ -574,12 +575,18 @@ public partial class InventoryPanel : CanvasLayer
                     break;
                 case >= Key.Key1 and <= Key.Key9:
                     _ui.Hand.Set(Holding.Free);
-                    _chosen = Hotbar.SlotOfDigit((int)(key.PhysicalKeycode - Key.Key0))!.Value;
+                    int digit = Hotbar.SlotOfDigit((int)(key.PhysicalKeycode - Key.Key0))!.Value;
+                    if (digit != _chosen) _ui.Click();
+                    _chosen = digit;
                     break;
                 case Key.Q:
                     // A card in hand, not the chosen slot: Q drops nothing it does not show.
                     if (!HandFree) return;
-                    if (_reading?.Inventory[_chosen] is { } stack) DropFrom(new Place(_chosen), stack.Count);
+                    if (_reading?.Inventory[_chosen] is { } stack)
+                    {
+                        _ui.Click();
+                        DropFrom(new Place(_chosen), stack.Count);
+                    }
                     break;
                 default:
                     return;
@@ -614,6 +621,7 @@ public partial class InventoryPanel : CanvasLayer
         _dragFrom = null;
         if (Held is { } inHand && !OverPanel(_mouse))
         {
+            _ui.Click();
             DropFrom(inHand.Place, inHand.Count);
             _picked = null;
             Refresh();
@@ -671,6 +679,8 @@ public partial class InventoryPanel : CanvasLayer
         // it is let go over, as Terraria does: nothing is moved where the player cannot see it carried.
         if (!Shown && place.Crate == null && place.Slot < Hotbar.Row)
         {
+            // A drag along the hotbar clicks as it is let go, on the slot it chose.
+            _ui.Click();
             _chosen = place.Slot;
             Refresh();
         }
@@ -681,7 +691,11 @@ public partial class InventoryPanel : CanvasLayer
         if (!right && !shift) _dragFrom = Held != null ? null : place;
         if (!Shown)
         {
-            if (place.Crate == null && place.Slot < Hotbar.Row) _chosen = place.Slot;
+            if (place.Crate == null && place.Slot < Hotbar.Row)
+            {
+                _ui.Click();
+                _chosen = place.Slot;
+            }
             Refresh();
             return;
         }
@@ -690,7 +704,8 @@ public partial class InventoryPanel : CanvasLayer
         // A queued station's inputs share what is shift-clicked in, onto its kind first (the Former's, the assembler's).
         int inputs = _reading.Kind is string queued && Content.Stations.TryGet(queued, out var station) && !station.Fed ? spec?.Inputs ?? 0 : 0;
         var before = _reading;
-        var result = Clicks.On(Held, new SlotClick(
+        var held = Held;
+        var result = Clicks.On(held, new SlotClick(
             place, _reading.At(place), right, shift, Crate, _reading.Inventory, spec?.FuelSlot, spec?.Charges == true, inputs, _reading.Crate));
         (_picked, _pickedItem) = (result.Picked, result.Picked is { } p ? _reading.At(p.Place)?.Item : null);
         if (result.Breathes)
@@ -698,6 +713,8 @@ public partial class InventoryPanel : CanvasLayer
             _breathedFrom = (place, Engine.GetProcessFrames());
             _ui.Breathe();
         }
+        // Every action clicks as it is made, a shift's on launch; a canister's when the crew breathes it.
+        if (!result.Breathes && (result.Command != null || result.Picked != held)) _ui.Click();
         bool shifted = shift && !right && before.At(place) != null;
         if (result.Command != null)
         {

@@ -29,16 +29,18 @@ public static class Fx
     public const double Crackle = 1;
 
     /// <summary>
-    /// A canister's air swirling into the helmet (0081): streaks, motes and translucent wisps, times <see cref="Count"/>,
-    /// thrown over <see cref="SwirlEmitMs"/> on a ring <see cref="SwirlFrom"/> to <see cref="SwirlTo"/> pixels round the
-    /// visor, squashed to <see cref="SwirlSquash"/> of its height, each spiralling in by <see cref="SwirlTurns"/> of a turn
-    /// to the visor over its life; all of it in about 0.9 s.
+    /// A canister's air rising round the whole body (0081), about a second: a faint flat ring at the feet, <see cref="VortexRing"/>
+    /// pixels across at its widest and squashed to <see cref="VortexRingSquash"/>; streaks and motes, times <see cref="Count"/>,
+    /// thrown over <see cref="VortexEmitMs"/> from the feet up to <see cref="VortexStartShare"/> of the body, each spiralling
+    /// <see cref="VortexTurns"/> times round it, <see cref="VortexRadius"/> pixels out and <see cref="VortexTilt"/> up and down,
+    /// to <see cref="VortexAbove"/> pixels over the head, where it fades out; a pale light round the body of <see cref="VortexLight"/>.
     /// </summary>
-    public const int SwirlStreaks = 16, SwirlMotes = 22, SwirlWisps = 4;
-    public const double SwirlEmitMs = 300, SwirlFrom = 9, SwirlTo = 17, SwirlTurns = 1.1, SwirlSquash = 0.8;
+    public const int VortexStreaks = 28, VortexMotes = 30;
+    public const double VortexEmitMs = 450, VortexStartShare = 0.3, VortexTurns = 1.5, VortexRadius = 11, VortexTilt = 2.5, VortexAbove = 12;
+    public const double VortexRing = 16, VortexRingSquash = 0.3, VortexLight = 0.22;
 
-    /// <summary>How fast a swirl's middle follows the visor, a share a second as a rate: a head turned eases it over, never jerks it.</summary>
-    public const double SwirlFollow = 20;
+    /// <summary>How fast a vortex follows the body, a rate a second: a turn or a step eases it over, never jerks it.</summary>
+    public const double VortexFollow = 20;
 
     /// <summary>Breathing room air again: a few pale motes puffed off the visor, drifting at up to this many pixels a second.</summary>
     public const int VisorMotes = 4;

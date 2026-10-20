@@ -152,10 +152,13 @@ public partial class Main : Node2D, ITogether
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());
         // Before everything else, so every button made after it clicks.
-        AddChild(new SoundView(Floats, () => _title != null));
+        var sound = new SoundView(Floats, () => _title != null);
+        AddChild(sound);
 
         // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
         _hands = new Hands();
+        // What the hands do in the inventory clicks as the buttons do (0081).
+        _hands.Ui.Clicked += sound.Click;
         // The slots' size kept on this machine (0058); --slots=large shows the other for a recording, keeping nothing then.
         var slots = _args.FirstOrDefault(a => a.StartsWith("--slots=", StringComparison.Ordinal));
         _hands.Ui.SlotScale.Set(slots != null ? Slots.ScaleNamed(slots[8..]) : Settings.SlotScale());

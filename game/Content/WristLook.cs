@@ -49,6 +49,9 @@ public static class WristLook
     /// <summary>The refill's light (a sweep along the cells, the head bright) stays this long after the value stops rising.</summary>
     public const double GainS = 0.45;
 
+    /// <summary>The fill's bright leading edge fades this long after the fill stops moving, rising or falling.</summary>
+    public const double EdgeFadeS = 0.3;
+
     /// <summary>
     /// A canister breathed (0047): the oxygen gauge's surge, stronger than a slow refill's light, for this long from the
     /// click: a sky wash over the tab, a white sweep across every cell this many cells a second, and more motes rising higher.
