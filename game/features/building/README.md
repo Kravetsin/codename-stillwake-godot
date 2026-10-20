@@ -14,6 +14,7 @@ and `Work`.
 | `Drag.cs`         | a drag's line of cells and what the card or removal would do in each (`drag.ts`)               | no    |
 | `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
 | `BuildingView.cs` | plans as ghosts in marching dashes along their silhouettes turning real as they are built, marks in red dashes turning into their red ghost as they are taken down, ghosts, the tips, the buttons, the pipette, plan work | yes |
+| `BuildGlow.cs`    | the light of work on plans (0075): spark bursts, glints, the molten spot with its smoke and shimmer, the cut's line, a finished plan's sweep | yes |
 | `Catalogue.cs`    | the menu's fixed frame (0073): its size by the slot size, the rows scrolled, the card under the pointer, the scrollbar's thumb | no    |
 | `BuildMenu.cs`    | the menu shown while the plan is out, docked at the bottom middle, the screen of a rugged tablet: tabs with counts, the search, the cards, the card in hand and the hint, a card's words in the one tooltip; B, / (Esc: `game/menu`) | yes |
 
@@ -155,10 +156,18 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - Plans redraw only when the plans or the grid change (`Version`: what is built beside a plan changes how
   it joins); ghosts are tiles laid and erased each frame.
 - A removal's ghost is a box per cell edged a screen pixel wide at any zoom (a primitive line).
-- Work on a plan throws sparks, 0.3 a tick of work it goes on by (`Effect.Spark`), from its side facing
-  the nearest hero within a little past the hands' reach and toward that hero (`Tools.SparksOf`, the
-  heroes from `Ui.Heroes`, set by `crew`); with none near, from its middle, upward. Whoever works it,
-  every peer sees the same side: the nearest hero, not the one working, which the sim does not tell.
+- Work on a plan throws bursts of sparks (0075, `BuildGlow`), 0.42 a tick of work it goes on by, three
+  streaks each fanned down-biased from its side facing the nearest hero within a little past the hands'
+  reach and toward that hero (`Tools.SparksOf`, the heroes from `Ui.Heroes`, set by `crew`); with none
+  near, from its middle, upward. Aboard they fall and bounce once off the first wall or floor under them
+  (six cells at most), in space they drift. Each burst glints at the tip and flickers a light there. The
+  tip glows as a molten spot, hotter the longer its plan is worked (0.006 a 60 Hz frame, cooling 0.012
+  once no burst came for 250 ms), lighting round it, faint smoke rising and the air over it shimmering
+  (`render/Shimmer.cs`). The cut where a blueprint turns real (0063) is a thin line of sky light bleeding
+  5 px into what is built, motes rising off it while it is worked; a blueprint gone while all but built
+  (at most a tenth of its work, or 10 ticks, short when last seen) is swept by a band of light the way it
+  was built, its corner glinting and motes thrown off its edge. Whoever works it, every peer sees the
+  same side: the nearest hero, not the one working, which the sim does not tell.
 
 ## Differences from the TypeScript
 

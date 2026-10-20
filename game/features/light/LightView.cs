@@ -183,11 +183,19 @@ public partial class LightView : Node2D
             glow.Modulate = FireGlowColour with { A = Math.Min(1, FireGlowAlpha * burns) };
             _main.Add(new LightSource(at.X, at.Y, L.Fire, burns, FireReach, L.FireKeep, 1, L.FireSize));
         }
-        foreach (var p in Particles.Shared.Live)
+        // Flashes first, the brightest moments; then the particles that give light, while the cap lasts (Fx.MostLights).
+        foreach (var f in Flares.Shared.Flashes)
         {
-            if (p.Effect.Glow is not var (colour, _)) continue;
-            var rgb = (((colour >> 16) & 0xff) / 255f, ((colour >> 8) & 0xff) / 255f, (colour & 0xff) / 255f);
-            _spots.Add(new LightSource(p.X, p.Y, rgb, (float)(L.Particle * p.Alpha), ParticleReach, L.ParticleKeep, 1));
+            if (_spots.Count >= Fx.MostLights) break;
+            _spots.Add(new LightSource(f.X, f.Y, Rgb(f.Colour), (float)f.Strength, f.Reach, f.Keep, 1));
+        }
+        foreach (var g in Glims.Shared.Live)
+        {
+            if (_spots.Count >= Fx.MostLights) break;
+            if (!g.Look.Light) continue;
+            var c = LuminousMath.RampAt(g.Look.Ramp, g.Age);
+            float strength = L.Particle * Fx.ParticleLight * (float)(LuminousMath.Brightness(g) * Fx.Glow);
+            _spots.Add(new LightSource(g.X, g.Y, ((float)c.R / 255, (float)c.G / 255, (float)c.B / 255), strength, ParticleReach, L.ParticleKeep, 1));
         }
         foreach (var g in Glow.All)
         {
@@ -199,6 +207,8 @@ public partial class LightView : Node2D
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
         _lightmap.Frame(view, _main, _spots);
     }
+
+    private static (float R, float G, float B) Rgb((int R, int G, int B) c) => (c.R / 255f, c.G / 255f, c.B / 255f);
 
     /// <summary>A glow's: added over what lies under it, unlit, for it gives light.</summary>
     private static readonly CanvasItemMaterial GlowMaterial = new()

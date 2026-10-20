@@ -31,9 +31,22 @@ public class FlamesTests
     }
 
     [Fact]
-    public void AFireJumpsFromOnePictureToTheNext()
+    public void APictureBurnsVisiblyApartFromTheNext()
     {
-        // Two pictures a hundredth of the roll apart burn visibly apart: nothing fades between them.
+        // Two pictures a tenth of the roll apart burn visibly apart: the glow has somewhere to breathe to.
         Assert.True(Flames.Blaze(0.5) - Flames.Blaze(0.4) > 0.04f);
+    }
+
+    [Fact]
+    public void AFireGlowBreathesTowardItsPictureAlikeAtAnyFrameRate()
+    {
+        // A sixtieth of a second goes the breath's share of the way; a frame no time, nowhere.
+        Assert.Equal(0.5f + 0.5f * (float)Flames.BreathPerFrame, Flames.Breathe(0.5f, 1, 1000.0 / 60), 4);
+        Assert.Equal(0.5f, Flames.Breathe(0.5f, 1, 0), 4);
+        // Two half frames end where one whole does: the same at 120 Hz as at 60.
+        float halves = Flames.Breathe(Flames.Breathe(0.55f, 1.5f, 1000.0 / 120), 1.5f, 1000.0 / 120);
+        Assert.Equal(Flames.Breathe(0.55f, 1.5f, 1000.0 / 60), halves, 4);
+        // Never past it, and there within a second.
+        Assert.True(Flames.Breathe(0.55f, 1, 1000) is > 0.999f and <= 1);
     }
 }

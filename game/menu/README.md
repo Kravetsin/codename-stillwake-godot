@@ -29,7 +29,8 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   for a player who has not found it. **Settings** holds the suit's colour (`features/crew`'s `SuitColours`: the one
   worn ringed, those others wear dimmed, a free one a click away sending `crew`'s `PickColour`,
   refused by the sim as before), the **slot size**, Normal (40 px) or Large (56 px), the one in use lit (`Ui.SlotScale`,
-  0058: applied at once, kept on this machine in `user://settings.cfg` by `platform/Settings`), and **Open logs folder**.
+  0058: applied at once, kept on this machine in `user://settings.cfg` by `platform/Settings`), **heat shimmer**
+  On or Off (0075, `Shimmer.Enabled`, on by default, kept there too), and **Open logs folder**.
   **Save** writes the world to its folder, the save before kept as its
   backup. **Save & exit to title** saves, leaves (a host's guests let go) and reloads the scene to the
   title; **Save & quit** quits, as the window's close would. A guest keeps nothing: **Leave to title**

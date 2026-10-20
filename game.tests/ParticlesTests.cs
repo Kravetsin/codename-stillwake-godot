@@ -38,8 +38,9 @@ public class ParticlesTests
     public void FallAboardAndDriftStraightInSpace()
     {
         var p = Middle(10);
-        p.Emit(Effect.Spark, 0, 0, 1, 0);
-        p.Emit(Effect.Spark, 0, 0, 1, 0, inSpace: true);
+        var spark = new Effect(0xfff3c4, 1, (1, 1), (550, 550), (75, 75), 0, 260, 1);
+        p.Emit(spark, 0, 0, 1, 0);
+        p.Emit(spark, 0, 0, 1, 0, inSpace: true);
         p.Step(200);
         Assert.True(p.Live[0].Y > 1);
         Assert.Equal(0, p.Live[1].Y, 2);
@@ -49,7 +50,7 @@ public class ParticlesTests
     public void LetEmbersRiseAsGravityBelowZero()
     {
         var p = Middle(10);
-        p.Emit(Effect.Ember, 0, 0, 1, 0);
+        p.Emit(Effect.Dust with { Gravity = -8, Drag = 0.4 }, 0, 0, 1, 0);
         p.Step(500);
         Assert.True(p.Live[0].Vy < 0);
     }

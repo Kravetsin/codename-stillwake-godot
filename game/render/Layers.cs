@@ -38,6 +38,12 @@ public static class Layers
     /// <summary>Fire in a furnace's mouth, under a hero standing before it (furnace).</summary>
     public const int Fire = 10;
 
+    /// <summary>
+    /// Heat shimmer (0075), with the fire: one copy of the screen, then every shimmer, then the flames. After the
+    /// world, before the aim's outline, the plans and every mark, which it must never copy.
+    /// </summary>
+    public const int Shimmer = Fire;
+
     // The crew: what E would work outlined, every tether, others' heroes, then this machine's.
     public const int Aim = 11, Tethers = 12, OtherHeroes = 13, Hero = 14;
 

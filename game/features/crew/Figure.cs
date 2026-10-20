@@ -121,6 +121,11 @@ public partial class Figure : Node2D
     private (Vector2 At, double Phase)? _chop;
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
     private SwingArm _swingArm;
+    /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
+    private readonly SwingSmear _smear = new();
+    /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
+    private bool _bit;
+    private double _lastPhase;
     /// <summary>The node the body's parts hang from: where a shoulder is, the arms' own frame.</summary>
     private readonly Node2D _frame;
     private Vector2? _workAt;
@@ -206,7 +211,8 @@ public partial class Figure : Node2D
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm }) parts.AddChild(n);
+        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) parts.AddChild(n);
+        _smear.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
         Wear(colour);
     }
@@ -257,6 +263,9 @@ public partial class Figure : Node2D
     /// the world, as far through the swing as its phase says; null between swings.
     /// </summary>
     public void Chop((Vector2 At, double Phase)? swing) => _chop = swing;
+
+    /// <summary>The swing playing bit something: its arm is drawn stopped on contact for a moment (0075), the sim untouched.</summary>
+    public void Bit() => _bit = true;
 
     /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
     public string? Wields { get; set; }
@@ -473,7 +482,10 @@ public partial class Figure : Node2D
             // Toward the point, from the shoulder: raised back over it, then brought down till the blade,
             // not the hand, crosses the line to it (0040).
             var (dx, dy) = FromShoulder(wreck);
-            swung = (Math.Atan2(dy, dx) + AxeLead + AxeSwing.Lift(phase), phase);
+            if (phase < _lastPhase) _bit = false;
+            _lastPhase = phase;
+            double drawn = _bit ? AxeSwing.Shown(phase) : phase;
+            swung = (Math.Atan2(dy, dx) + AxeLead + AxeSwing.Lift(drawn), drawn);
         }
         else if (aiming && Aim is { } target && item != null)
         {
@@ -544,6 +556,14 @@ public partial class Figure : Node2D
                 Barrel = (Muzzle.Value - At(item.EdgeFrom)).Normalized();
             }
         }
+        // The axe's downstroke leaves its swipe of light, from the blade as drawn.
+        bool striking = chopping && swung is { Phase: var p } && p > AxeSwing.WindShare && p <= AxeSwing.WindShare + AxeSwing.StrikeShare;
+        if (striking && item != null)
+        {
+            var (back, edge) = (Rig.HeldAt(frontArm, item, item.EdgeFrom), Rig.HeldAt(frontArm, item, item.EdgeTo));
+            _smear.Follow(new Vector2((float)back.X, (float)back.Y), new Vector2((float)edge.X, (float)edge.Y), true, elapsedMs);
+        }
+        else _smear.Follow(null, null, false, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
     }
