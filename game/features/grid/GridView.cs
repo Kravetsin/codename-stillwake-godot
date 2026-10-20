@@ -29,7 +29,7 @@ public partial class GridView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = new();
-    private readonly TileMapLayer _back, _pipes, _valves, _walls, _edges, _grass, _fixtures, _doors, _machines;
+    private readonly TileMapLayer _back, _pipes, _valves, _walls, _details, _edges, _tops, _topsFront, _fixtures, _doors, _machines;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
     private readonly TileMapLayer[] _cellLayers;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
@@ -49,18 +49,22 @@ public partial class GridView : Node2D
         _drawn = new DrawnLayers(grid.Width, grid.Height);
         _reveal = new ChunkReveal(grid.Width, grid.Height);
         _drawRow = DrawRow;
+        _groundAt = GroundAt;
         // Walls and doors take the share of light a wall keeps of what reaches its face; the rest all of it.
         _back = Layer(Layers.BackWalls);
         _pipes = Layer(Layers.Pipes);
         _valves = Layer(Layers.Valves);
         _walls = Layer(Layers.Walls, L.WallIn);
+        // A planet's pebbles and roots over its ground, under its edges: added after the walls, before them (0081).
+        _details = Layer(Layers.Walls, L.WallIn);
         _edges = Layer(Layers.Edges, L.WallIn);
-        // Moss over its soil, lit as the open air its top faces; over the edges, as added after them.
-        _grass = Layer(Layers.Edges);
+        // The living edge over its ground, lit as the open air its top faces; over the edges, as added after them; its tufts before the heroes.
+        _tops = Layer(Layers.Edges);
+        _topsFront = Layer(Layers.GroundFront);
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
-        _cellLayers = [_back, _pipes, _valves, _walls, _edges, _fixtures, _doors];
+        _cellLayers = [_back, _pipes, _valves, _walls, _details, _edges, _fixtures, _doors];
         AddChild(_sockets);
         foreach (var player in (Node[])[_opens, _closes, _turns]) AddChild(player);
     }
@@ -93,6 +97,10 @@ public partial class GridView : Node2D
             }
             foreach (int cell in _drawn.Stale(changes))
                 if (_reveal.Drawn(cell)) DrawCell(cell, blank: false);
+            // A feature over several cells hangs on every cell of its block: one dug, the rest of it goes too.
+            foreach (var change in changes)
+                if (_blocks.Add(BlockOf(change.Cell))) DrawDetails(change.Cell);
+            _blocks.Clear();
         }
         _blank = false;
         if (version != _machinesVersion && MachinesMoved() && !_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
@@ -241,8 +249,12 @@ public partial class GridView : Node2D
         if (!blank)
         {
             foreach (var layer in _cellLayers) layer.EraseCell(at);
-            // Moss is laid from the cell above its soil, and only this cell's drawing lays it there.
-            if (y > 0) _grass.EraseCell(new Vector2I(x, y - 1));
+            // The living edge is laid from the cell above its ground, and only this cell's drawing lays it there.
+            if (y > 0)
+            {
+                _tops.EraseCell(new Vector2I(x, y - 1));
+                _topsFront.EraseCell(new Vector2I(x, y - 1));
+            }
         }
 
         if (_drawn.Back[cell] == Back.Wall) DrawBack(at, _drawn.BackMaterial[cell]);
@@ -270,7 +282,8 @@ public partial class GridView : Node2D
                     int open = ~WalledSides(cell) & Shape.ClosedSides(shape);
                     if (open != 0)
                         Put(_edges, at, edges[open]);
-                    DrawGrass(cell);
+                    DrawDetail(cell);
+                    DrawTop(cell);
                     break;
                 }
             case Structure.Floor:
@@ -287,13 +300,51 @@ public partial class GridView : Node2D
 
     private static readonly int SoilCode = Materials.Get("soil").Code;
 
-    /// <summary>Moss on the wall at <paramref name="cell"/> where it grows (<see cref="Grass"/>), laid from the cell above, its stems up into it.</summary>
-    private void DrawGrass(int cell)
+    /// <summary>The living edge on the wall at <paramref name="cell"/> where it shows (<see cref="Grass.Edged"/>), laid from the cell above, up into it.</summary>
+    private void DrawTop(int cell)
     {
-        int above = cell - _grid.Width;
-        if (above < 0 || !Grass.Grows(_drawn.Structure[cell], _drawn.Material[cell], _drawn.Shape[cell], _drawn.Structure[above], _drawn.Back[above], SoilCode))
+        int above = cell - _grid.Width, material = _drawn.Material[cell], shape = _drawn.Shape[cell];
+        if (above < 0 || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), shape, _drawn.Structure[above], _drawn.Back[above], SoilCode))
             return;
-        Put(_grass, CellOf(above), GrassNameOf(_drawn.Shape[cell], Grass.VariantOf(cell, GroundArt.GrassVariants)));
+        var (back, front) = TopNamesOf(material, shape, Grass.VariantOf(cell, GroundArt.TopVariants(shape)));
+        Put(_tops, CellOf(above), back);
+        if (front != null) Put(_topsFront, CellOf(above), front);
+    }
+
+    /// <summary>The detail <paramref name="cell"/> shows over its ground (<see cref="GroundDetails"/>), if any.</summary>
+    private void DrawDetail(int cell)
+    {
+        int x = cell % _grid.Width, y = cell / _grid.Width;
+        var detail = GroundDetails.At(x, y, _groundAt);
+        if (detail.Picture >= 0) _details.SetCell(new Vector2I(x, y), ShipTiles.Source, _tiles.CutAt(DetailNameOf(_drawn.Material[cell], detail.Picture), detail.Dx, detail.Dy));
+    }
+
+    /// <summary>Draws the details of the drawn cells of <paramref name="cell"/>'s block anew, which its own change may have changed.</summary>
+    private void DrawDetails(int cell)
+    {
+        int w = _grid.Width, x0 = cell % w / GroundDetails.Block * GroundDetails.Block, y0 = cell / w / GroundDetails.Block * GroundDetails.Block;
+        for (int y = y0; y < Math.Min(y0 + GroundDetails.Block, _grid.Height); y++)
+            for (int x = x0; x < Math.Min(x0 + GroundDetails.Block, w); x++)
+            {
+                int c = y * w + x;
+                if (!_reveal.Drawn(c)) continue;
+                _details.EraseCell(new Vector2I(x, y));
+                DrawDetail(c);
+            }
+    }
+
+    private readonly Func<int, int, int> _groundAt;
+    /// <summary>Scratch for <see cref="Sync"/>: the blocks of details drawn anew, each once.</summary>
+    private readonly HashSet<int> _blocks = [];
+
+    private int BlockOf(int cell) => cell / _grid.Width / GroundDetails.Block * (_grid.Width / GroundDetails.Block + 1) + cell % _grid.Width / GroundDetails.Block;
+
+    /// <summary>The material of the whole wall of natural ground at (<paramref name="x"/>, <paramref name="y"/>) as drawn; -1 for any other cell or past the grid.</summary>
+    private int GroundAt(int x, int y)
+    {
+        if (x < 0 || y < 0 || x >= _grid.Width || y >= _grid.Height) return -1;
+        int cell = y * _grid.Width + x, material = _drawn.Material[cell];
+        return _drawn.Structure[cell] == Structure.Wall && _drawn.Shape[cell] == Shape.None && IsNatural(material) ? material : -1;
     }
 
     /// <summary>
@@ -336,7 +387,9 @@ public partial class GridView : Node2D
 
     // Names made once, not a string a cell: a planet's ground is back wall and moss over nearly every column.
     private readonly Dictionary<int, string?> _backCuts = new();
-    private readonly Dictionary<(int, int), string> _grassNames = new();
+    private readonly Dictionary<(int, int, int), (string Back, string? Front)> _topNames = new();
+    private readonly Dictionary<(int, int), string> _detailNames = new();
+    private readonly Dictionary<int, bool> _natural = new();
 
     /// <summary>The picture a back wall of material <paramref name="code"/> is cut from over the world; null for iron's panels.</summary>
     private string? BackCutOf(int code)
@@ -346,10 +399,23 @@ public partial class GridView : Node2D
         return _backCuts[code] = material == "scrap" ? "back_scrap" : Materials.Get(material).Natural ? ShipTiles.BackName(material) : null;
     }
 
-    private string GrassNameOf(int shape, int variant)
+    private (string Back, string? Front) TopNamesOf(int code, int shape, int variant)
     {
-        if (!_grassNames.TryGetValue((shape, variant), out var name)) _grassNames[(shape, variant)] = name = ShipTiles.GrassName(shape, variant);
+        if (_topNames.TryGetValue((code, shape, variant), out var names)) return names;
+        string material = MaterialOf(code), front = ShipTiles.TopName(material, shape, variant, front: true);
+        return _topNames[(code, shape, variant)] = (ShipTiles.TopName(material, shape, variant, front: false), _tiles.Has(front) ? front : null);
+    }
+
+    private string DetailNameOf(int code, int picture)
+    {
+        if (!_detailNames.TryGetValue((code, picture), out var name)) _detailNames[(code, picture)] = name = ShipTiles.DetailName(MaterialOf(code), picture);
         return name;
+    }
+
+    private bool IsNatural(int code)
+    {
+        if (!_natural.TryGetValue(code, out bool natural)) _natural[code] = natural = Materials.Get(MaterialOf(code)).Natural;
+        return natural;
     }
 
     /// <summary>A number for <paramref name="cell"/> that looks random, the same every time (hashOf in ship-art.ts).</summary>

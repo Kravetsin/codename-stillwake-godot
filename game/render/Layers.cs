@@ -62,6 +62,12 @@ public static class Layers
     /// </summary>
     public const int Dug = 15;
 
+    /// <summary>
+    /// The tufts and chips of a planet's living edge laid before the heroes' feet (0081), thin enough that boots stand on the ground,
+    /// not in it; with the cracks, which lie in the cell below.
+    /// </summary>
+    public const int GroundFront = 15;
+
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
     public const int Glows = 16;
 

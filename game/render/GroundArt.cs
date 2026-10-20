@@ -6,17 +6,23 @@ namespace Stillwake.Game.Render;
 /// <summary>
 /// The pictures of a planet's natural ground made here rather than drawn (0077, 0079): the edges of a cell by its open sides,
 /// in its material's lines (<see cref="GroundLooks"/>), and the cracks a dig leaves, cut to the cell's shape. Its walls, back
-/// walls and moss are drawn, in <c>art/planet</c>. Every pixel is a hash of where it is: the same on every machine and run.
+/// walls, details and living edges are drawn, in <c>art/planet</c>. Every pixel is a hash of where it is: the same on every machine and run.
 /// </summary>
 public static class GroundArt
 {
     private const int Cell = ShipCamera.Cell;
 
-    /// <summary>The tops moss is drawn for (<c>art/planet/grass_{shape}_{variant}</c>): whole, and the two floor slopes.</summary>
-    public static readonly int[] GrassShapes = [Shape.None, Shape.BottomRight, Shape.BottomLeft];
+    /// <summary>
+    /// The tops a living edge is drawn for (<c>art/planet/top_{material}</c>, 0081): whole, and the two floor slopes. Its pictures
+    /// are a cell wide and two tall, laid from the cell above; the sheet's top row drawn behind the heroes, its bottom row before them.
+    /// </summary>
+    public static readonly int[] TopShapes = [Shape.None, Shape.BottomRight, Shape.BottomLeft];
 
-    /// <summary>How many pictures of moss there are for each top, a cell showing one by a hash of where it is.</summary>
-    public const int GrassVariants = 4;
+    /// <summary>How many pictures of the living edge a top of <paramref name="shape"/> has, a cell showing one by a hash of where it is.</summary>
+    public static int TopVariants(int shape) => shape == Shape.None ? 4 : 2;
+
+    /// <summary>The column of the sheet holding variant <paramref name="variant"/> of a top of <paramref name="shape"/>: four flat, two ◢, two ◣.</summary>
+    public static int TopColumn(int shape, int variant) => shape switch { Shape.BottomRight => 4 + variant, Shape.BottomLeft => 6 + variant, _ => variant };
 
     /// <summary>
     /// The edges of a cell of <paramref name="material"/> on its sides <paramref name="open"/> (up 1, right 2, down 4, left 8):
