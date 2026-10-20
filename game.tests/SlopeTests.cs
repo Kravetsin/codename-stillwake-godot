@@ -78,11 +78,12 @@ public class SlopeTests
     }
 
     /// <summary>
-    /// Up and down a 45° slope the hero keeps its speed across, as on the flat, so its pose never flickers between
-    /// walking and running (playtest of 0069: running uphill lost speed at every column and froze the legs).
+    /// Up and down a 45° slope the hero keeps a steady speed, its share of the flat's (Uphill, Downhill), and the flat's
+    /// on the flat, so its pose never flickers between walking and running (playtest of 0069: running uphill lost speed at
+    /// every column and froze the legs).
     /// </summary>
     [Fact]
-    public void KeepsItsSpeedAndPoseEveryStepUpAndDownTheHillEitherWay()
+    public void KeepsASteadySpeedAndPoseEveryStepUpAndDownTheHillEitherWay()
     {
         var ship = HeroTests.ShipFrom(Hill);
         foreach (bool run in new[] { false, true })
@@ -98,12 +99,30 @@ public class SlopeTests
                     // The last step, flush against the room's far wall, is short.
                     if (next.X == wall) break;
                     var pose = Poses.PoseOf(next, false, false);
-                    if (pose != want || Math.Abs(next.Vx) != speed) seen.Add($"{pose} at x {next.X} vx {next.Vx}");
+                    // On the flat the flat's speed, on the diagonal its share; a step that reaches a corner, between them.
+                    int rise = next.Y - h.Y, across = Math.Abs(next.Vx);
+                    int slowed = speed * (rise < 0 ? Spec.Uphill : Spec.Downhill) / 1000;
+                    bool steady = rise == 0 ? across == speed : across >= slowed && across <= speed;
+                    if (pose != want || !steady) seen.Add($"{pose} at x {next.X} vx {next.Vx} rise {rise}");
                     h = next;
                 }
                 Assert.Empty(seen);
                 Assert.True(h.Step(keys with { Sprint = run }, ship).X == wall, $"never reached the far wall, stopped at {h}");
             }
+    }
+
+    [Fact]
+    public void WalksAndRunsUpA45DegreeSlopeSlowerThanDownItAndDownItSlowerThanOnTheFlat()
+    {
+        var ship = HeroTests.ShipFrom(Hill);
+        var onRamp = new Hero(6500, 7 * Unit + 499, 0, 0, false, 1);
+        foreach (bool run in new[] { false, true })
+        {
+            int speed = run ? Spec.Run : Spec.Walk;
+            Assert.Equal(speed * Spec.Uphill / 1000, onRamp.Step(Right with { Sprint = run }, ship).Vx);
+            Assert.Equal(-speed * Spec.Downhill / 1000, onRamp.Step(Left with { Sprint = run }, ship).Vx);
+            Assert.Equal(speed, Hero.At(ship, 8 * ship.Width + 2).Step(Right with { Sprint = run }, ship).Vx);
+        }
     }
 
     [Fact]

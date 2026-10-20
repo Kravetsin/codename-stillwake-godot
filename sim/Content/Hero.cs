@@ -25,4 +25,10 @@ public static class Hero
     public const int Reach = 6000;
     public const int Tether = 12000;
     public const int Swim = 30;
+
+    /// <summary>
+    /// The share of its speed, in thousandths, the hero keeps walking or running up a 45° slope (<see cref="Uphill"/>) and
+    /// down one (<see cref="Downhill"/>), less as the ground is less steep: a climb reads as harder than the flat.
+    /// </summary>
+    public const int Uphill = 800, Downhill = 900;
 }

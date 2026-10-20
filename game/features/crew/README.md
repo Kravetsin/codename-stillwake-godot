@@ -110,8 +110,8 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   or its middle crosses into another column; after each the feet step up onto ground no more than half a width
   above them, the head permitting, and stick to ground that fell by no more than the part walked. The next column's
   walls are judged with the feet lifted to where they are as the edge reaches it, so a ramp never cuts a step short.
-  Up and down a ramp the hero stays grounded every step at its speed on the flat, walking or running, with no jump
-  and no hop; `Figure` keeps the stride going from walking to running and back.
+  Up and down a ramp the hero stays grounded every step at a steady speed (slowed on slopes, see Feet on slopes),
+  walking or running, with no jump and no hop; `Figure` keeps the stride going from walking to running and back.
 - **The low ledge rule:** walking, a wall whose top is no more than half a width above the feet does not stop the
   box. At 45° the leading edge meets the next column exactly half a width above the feet, so the equal case
   passes (`≤`); with `<` every ramp would stop at its top. Whole cells only ever sit at whole rows, so on flat
@@ -143,22 +143,26 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 ## Feet on slopes
 
 - **A pass over the pose** (`Footing`, client only, every hero's figure): standing, walking or running on the ground,
-  never in the air, on a ladder or afloat. Each foot keeps the pose's place along the ground and its height above it,
-  and stands on the ground under it as the client's grid has it (`Hero.GroundAt`: up out of a slope or a wall's top,
-  or down onto one, within `FootLook.Reach`; past it, a wall's face or a drop past an edge, the foot keeps the pose's
-  height). Its boot, the bottom of `hero_shin.png` drawn apart and turned at the ankle, lies flush on a 45° slope while
-  it stands there, and turns from it no further than its toe and heel clear the ground as it lifts.
-- **The hips drop**, eased by `FootLook.Ease` a 60th of a second, just enough for the lower foot to reach, at most
-  `FootLook.MostDrop`, and never so far that a knee folds past `Footing.Fold` of its reach: a lifted foot comes down
-  toward the ground first, and past that the lower foot hangs short. Legs are solved hip to ankle, knee forward.
-- **Steps shorten on steep ground** by up to `FootLook.Squeeze` and come quicker by as much, so a planted foot keeps
-  pace with the ground: at 45° the flat's stride would fold the uphill knee shut.
-- **On the flat nothing changes**: the pose's own legs, the shin drawn whole. Not handled: a foot over a drop deeper
-  than `FootLook.Reach` keeps the hero's height rather than dangling; boots' toes may dip into a flat floor at a
-  stride's ends, as they always have.
-- Tested in `FootingTests`. `-- --feet-sheet=<dir>` saves a contact sheet of walks, runs and stands over a ramp, stairs
-  of slopes and a cliff (`game/dev/FeetSheet.cs`); `-- --hills --autopilot --feet` walks the hills for it
-  (`HeroAutopilot.FeetRun`): up, still on a slope both ways, backwards up and down, and a run.
+  never in the air, on a ladder or afloat. Blended in by how steep the ground under the hero is (eased), so on the flat
+  the pose's own legs stay, bit for bit; on uneven flat ground (a ledge) each foot is only set on the ground under it.
+- **On a slope, the ground pick page's walker:** each foot a short stride (`FootLook.Stride`, 10 px) about the middle,
+  the stride running two radians a stride's length, lifted `Lift` as it swings, over the ground under it
+  (`Hero.GroundAt`, within `Reach`). `Figure` runs the pose's own stride as fast on a slope, so arms and legs keep step.
+  The hips drop, eased by `Ease`, just enough for a foot that is down to reach, but never so far that a knee folds past
+  `Fold` of its reach: the lower foot then touches with its toe or heel (its boot sheared up to `Tip` steeper).
+  Each leg reaches hip to ankle, knee forward.
+- **The boot** is the bottom of `hero_shin.png`, drawn apart from the shin on a slope and sheared upright to it rather
+  than turned: each column shifts with the slope, so its sole lies on the ground in pixel steps, the column under the ankle
+  stays put and nothing turns up past the shin. Not in the ground, ever; the thigh is drawn over it, so the knee shows.
+- **Slower on slopes** (`Hero.Sloped`): the controller walks and runs up a 45° slope at `Content.Hero.Uphill` (0.8)
+  of the flat's speed and down one at `Downhill` (0.9), less slowed as it is less steep; the stride follows the speed.
+- **Not handled:** at 45° a boot along the slope rises toward its knee as fast as the lower shin is long, so on the
+  steepest steps a boot's top tucks under the knee; a hand-drawn sloped boot would avoid it. A foot over a drop deeper than
+  `Reach` keeps the hero's level rather than dangling. On the flat, boots' toes dip into the floor at a stride's ends, as
+  they always have.
+- Tested in `FootingTests` (and the slope speeds in `SlopeTests`). `-- --feet-sheet=<dir>` saves a contact sheet of
+  walks, runs and stands over a ramp, stairs of slopes and a cliff (`game/dev/FeetSheet.cs`); `-- --hills --autopilot
+  --feet` walks the hills for it (`HeroAutopilot.FeetRun`).
 
 ## Others' heroes
 

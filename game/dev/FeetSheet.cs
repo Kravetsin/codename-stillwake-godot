@@ -15,7 +15,7 @@ namespace Stillwake.Game.Dev;
 /// </summary>
 public partial class FeetSheet(string dir) : Node
 {
-    private const int TileCells = 4, Zoom = 4, Columns = 10;
+    private const int TileCells = 4, Zoom = 6, Columns = 10;
     private const int Tile = TileCells * (int)Rig.Cell * Zoom;
 
     // Flat, a ramp up three (/ is ◢), a plateau, down three (\ is ◣), flat, stairs of slopes up to a plateau, a cliff.
@@ -42,17 +42,18 @@ public partial class FeetSheet(string dir) : Node
 
     private static readonly Strip[] Strips =
     [
-        // Walking up the ramp and over, then back down it facing left.
-        new([(4.5, 1)], new HeroInput(1, 0, false, Face: 1), 5, Columns),
-        new([(14.5, -1)], new HeroInput(-1, 0, false, Face: -1), 5, Columns),
-        // Walking backwards: up the ramp facing left, down it facing right.
-        new([(4.5, -1)], new HeroInput(1, 0, false, Face: -1), 5, Columns),
-        new([(10.5, 1)], new HeroInput(-1, 0, false, Face: 1), 5, Columns),
+        // Walking up and down the ramp facing right, then facing left; a tile every three steps, about the page's four pixels.
+        new([(6.2, 1)], new HeroInput(1, 0, false, Face: 1), 3, Columns),
+        new([(11.2, 1)], new HeroInput(1, 0, false, Face: 1), 3, Columns),
+        new([(15.0, -1)], new HeroInput(-1, 0, false, Face: -1), 3, Columns),
+        new([(9.8, -1)], new HeroInput(-1, 0, false, Face: -1), 3, Columns),
+        // Walking backwards up the ramp, facing down it.
+        new([(6.2, -1)], new HeroInput(1, 0, false, Face: -1), 3, Columns),
         // Running up and down.
-        new([(3.5, 1)], new HeroInput(1, 0, false, Face: 1, Sprint: true), 3, Columns),
-        new([(15.5, -1)], new HeroInput(-1, 0, false, Face: -1, Sprint: true), 3, Columns),
+        new([(5.8, 1)], new HeroInput(1, 0, false, Face: 1, Sprint: true), 2, Columns),
+        new([(10.6, 1)], new HeroInput(1, 0, false, Face: 1, Sprint: true), 2, Columns),
         // Up the stairs of slopes and off the cliff's edge.
-        new([(16.5, 1)], new HeroInput(1, 0, false, Face: 1), 6, Columns),
+        new([(17.5, 1)], new HeroInput(1, 0, false, Face: 1), 5, Columns),
         // Standing: on the ramp both ways, at its foot, its top's corner, on the stairs, at the cliff's edge.
         new([(7.5, 1), (7.5, -1), (6.2, 1), (8.9, 1), (12.1, -1), (20.5, 1), (21.5, -1), (29.9, 1), (30.1, -1), (2.5, 1)], new HeroInput(0, 0, false), 45, 1),
     ];

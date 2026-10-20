@@ -259,7 +259,7 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         int speed = Math.Min(vy + ship.Gravity, Spec.MaxFall);
         bool standing = vy >= 0 && Grounded(ship, x, y);
         int step = dir * (sprint ? Spec.Run : Spec.Walk);
-        var (nx, wy) = standing && dir != 0 ? Walk(ship, x, y, step)
+        var (nx, wy) = standing && dir != 0 ? Sloped(ship, x, y, step)
             : standing && down ? (Slid(ship, x, y), y)
             : Aloft(ship, x, y, step);
         // Feet a thousandth into the floor's row: a row the feet are in is never landed on (MoveY).
@@ -271,11 +271,24 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     }
 
     /// <summary>
+    /// A walk of <paramref name="dx"/> on the ground, slowed on a slope: walked once to see how steep the way is, then at
+    /// <see cref="Spec.Uphill"/> or <see cref="Spec.Downhill"/> of the speed at 45°, less slowed as it is less steep.
+    /// </summary>
+    private static (int X, int Y) Sloped(Ship ship, int x, int y, int dx)
+    {
+        var (nx, ny) = Walk(ship, x, y, dx);
+        int across = Math.Abs(nx - x), rise = ny - y;
+        if (across == 0 || rise == 0) return (nx, ny);
+        int kept = Unit - (Unit - (rise < 0 ? Spec.Uphill : Spec.Downhill)) * Math.Min(Math.Abs(rise), across) / across;
+        return Walk(ship, x, y, dx * kept / Unit);
+    }
+
+    /// <summary>
     /// A walk of <paramref name="dx"/> standing at (<paramref name="x"/>, <paramref name="y"/>), the feet kept on the
     /// ground, in parts that end as the box's leading edge reaches the end of its column or its middle crosses into
     /// another, so the ground and the walls ahead are read where the feet are then (0069). After each part the feet
     /// step up onto a slope or a ledge no more than half a width above them, the head permitting, and stick to ground
-    /// that fell by no more than the part walked: up and down a slope at its speed on the flat, never leaving it.
+    /// that fell by no more than the part walked: up and down a slope at the speed it is given (<see cref="Sloped"/>), never leaving it.
     /// Walked off an edge, the rest is walked in the air; over a hole the body fits, the walk ends (<see cref="Caught"/>).
     /// </summary>
     private static (int X, int Y) Walk(Ship ship, int x, int y, int dx)
