@@ -76,6 +76,28 @@ public class ContentTests
     }
 
     [Fact]
+    public void CaveKindsHaveIdsOfTheirOwnAChanceInEveryBandAndRoomInTheirDraw()
+    {
+        // One id among the surface's and the caves' (0080): a felled cell names no kind, but the client draws by id.
+        var ids = Flora.All.Select(k => k.Id).Concat(Flora.Cave.Select(k => k.Id)).ToList();
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+        Assert.Equal(Flora.Bands.Order(), Flora.Bands);
+        Assert.All(Flora.Cave, k =>
+        {
+            Assert.Equal(Flora.Bands.Count + 1, k.Chances.Count);
+            Assert.True(k.Tall >= 1 && k.Wide >= 0 && k.Apart >= 1 && k.Chances.All(c => c >= 0) && k.Chances.Any(c => c > 0), k.Id);
+            // What lies in the rock lies in its own cell.
+            if (k.On == Flora.Anchor.Rock) Assert.True(k.Tall == 1 && k.Wide == 0, k.Id);
+            else Assert.False(k.Floors, k.Id);
+        });
+        // A slot draws under 10000 and walks its anchor's chances; at their most, in a hall's dense patch, they may pass it,
+        // which only crowds out the last of them: the commonest, listed last.
+        foreach (var on in Enum.GetValues<Flora.Anchor>())
+            for (int band = 0; band <= Flora.Bands.Count; band++)
+                Assert.InRange(Flora.Cave.Where(k => k.On == on).Sum(k => k.Chances[band]), 0, 10000);
+    }
+
+    [Fact]
     public void MachinesHaveAFootprintOfAtLeastOneCellAndPortsInsideIt()
     {
         foreach (var m in Machines.All)

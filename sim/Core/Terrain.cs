@@ -16,9 +16,12 @@ public static class Terrain
 
     /// <summary>Each noise and draw of a ground hashed apart from the others.</summary>
     private const uint Ranges = 1, Hills = 2, Bumps = 3, Soil = 4, Mouths = 5, Tunnels = 6, TunnelsFine = 7, Caverns = 8,
-        CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13;
+        CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13, CaveRoll = 14, CavePatch = 17;
 
-    public static Layout Generate(Ground g, uint seed)
+    public static Layout Generate(Ground g, uint seed) => Generate(g, seed, out _);
+
+    /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
+    internal static Layout Generate(Ground g, uint seed, out bool[] hall)
     {
         int w = g.Width, h = g.Height, floor = h - g.BedrockRows;
         int soil = Materials.Get("soil").Code, stone = Materials.Get("stone").Code, bedrock = Materials.Get("bedrock").Code;
@@ -85,7 +88,8 @@ public static class Terrain
                 if (Math.Abs(tunnel - Whole / 2) < width || cavern > mark) kind[cell] = 2;
             }
         }
-        Landmarks(g, seed, top, kind, caverns);
+        hall = new bool[w * h];
+        Landmarks(g, seed, top, kind, caverns, hall);
         // No spikes: a bump one or two cells wide standing up alone, open above, would be cut to a lone ◢◣ peak or left a
         // post; it is taken away, so the ground under it is the top, row by row down, and hills stay walkable.
         for (int y = 1; y < h; y++)
@@ -128,7 +132,11 @@ public static class Terrain
                 if (kind[cell - w] == 0) codes[cell] = -codes[cell];
             }
         var spawn = SpawnOf(rows, w, h);
-        var flora = Flora(g, seed, rows, codes, soil, spawn % w);
+        var surfaceTop = TopsOf(rows, w, h);
+        var flora = Flora(g, seed, rows, codes, soil, spawn % w, surfaceTop);
+        CaveFlora(g, seed, rows, codes, hall, surfaceTop, flora);
+        // Found column by column and row by row; kept by cell, as every list of cells is.
+        flora.Sort((a, b) => a.Item1.CompareTo(b.Item1));
         rows[spawn / w][spawn % w] = 'S';
         return new Layout(w, h, [.. rows.Select(r => new string(r))], Materials: codes) { Grown = true, Flora = flora };
     }
@@ -139,16 +147,9 @@ public static class Terrain
     /// its own, no ground higher across its crown, the last of its kind far enough, the last plant's level ground not
     /// shared — and nowhere within two columns of the spawn. A column's top is its first solid cell, so nothing grows in a cave.
     /// </summary>
-    private static List<(int Cell, string Kind)> Flora(Ground g, uint seed, char[][] rows, int[] codes, int soil, int spawnX)
+    private static List<(int Cell, string Kind)> Flora(Ground g, uint seed, char[][] rows, int[] codes, int soil, int spawnX, int[] top)
     {
         int w = g.Width, h = g.Height;
-        var top = new int[w];
-        for (int x = 0; x < w; x++)
-        {
-            int y = 0;
-            while (y < h && rows[y][x] == ' ') y++;
-            top[x] = y;
-        }
         bool Soil(int x, int y) => y < h && rows[y][x] == '#' && codes[y * w + x] == soil;
         var kinds = Content.Flora.All;
         var last = new int[kinds.Count];
@@ -175,9 +176,112 @@ public static class Terrain
             flora.Add(((y - 1) * w + x, kind.Id));
             (last[k], lastX, lastLevel) = (x, x, kind.Level);
         }
-        // Found column by column; kept by cell, row by row, as every list of cells is.
-        flora.Sort((a, b) => a.Item1.CompareTo(b.Item1));
         return flora;
+    }
+
+    /// <summary>Each column's top: its first row of ground, open or not, under the sky.</summary>
+    private static int[] TopsOf(char[][] rows, int w, int h)
+    {
+        var top = new int[w];
+        for (int x = 0; x < w; x++)
+        {
+            int y = 0;
+            while (y < h && rows[y][x] == ' ') y++;
+            top[x] = y;
+        }
+        return top;
+    }
+
+    /// <summary>
+    /// The depth band of row <paramref name="row"/> of ground <paramref name="g"/> (0080): 0, the coldest, near and above the
+    /// surface's middle, to the last over the bedrock, by <see cref="Content.Flora.Bands"/>' thousandths of the way down.
+    /// </summary>
+    public static int BandOf(Ground g, int row)
+    {
+        int span = Math.Max(1, g.Height - g.BedrockRows - g.Surface);
+        long down = (long)(row - g.Surface) * 1000 / span;
+        int band = 0;
+        while (band < Content.Flora.Bands.Count && down >= Content.Flora.Bands[band]) band++;
+        return band;
+    }
+
+    /// <summary>
+    /// What grows in the caves (0080), row by row from the top, each row from the left: in every slot — an open cave cell over a
+    /// wall (a floor, whole or a slope), one under a whole wall (a ceiling), a stone wall beside a cave cell (rock) — one draw under 10000
+    /// picks a kind of that anchor by its chance in the row's band, scaled by the patch noise there and in a great hall, set
+    /// where it has room (<see cref="Content.Flora.CaveKind"/>). Only in the caves: an open cell under the sky is no slot, nor a
+    /// wall beside only the sky.
+    /// </summary>
+    private static void CaveFlora(Ground g, uint seed, char[][] rows, int[] codes, bool[] hall, int[] top, List<(int, string)> into)
+    {
+        int w = g.Width, h = g.Height, floor = h - g.BedrockRows, stone = Materials.Get("stone").Code;
+        var kinds = Content.Flora.Cave;
+        var bands = new int[h];
+        for (int y = 0; y < h; y++) bands[y] = BandOf(g, y);
+        // Each anchor's kinds, in the list's order, and each kind's chance by band: looked up a slot at a time.
+        var byAnchor = new int[3][];
+        for (int on = 0; on < 3; on++) byAnchor[on] = Enumerable.Range(0, kinds.Count).Where(k => (int)kinds[k].Holds == on).ToArray();
+        var chances = kinds.Select(k => k.Chances.ToArray()).ToArray();
+        var last = new int[kinds.Count];
+        var lastOn = new int[3];
+        var taken = new bool[w * h];
+        var patches = new Field(seed, CavePatch, Content.Flora.PatchWave, Content.Flora.PatchWave, w);
+        var patch = new int[w];
+        bool Open(int x, int y) => rows[y][x] == '.';
+        for (int y = 1; y < floor; y++)
+        {
+            Array.Fill(last, int.MinValue / 2);
+            Array.Fill(lastOn, int.MinValue / 2);
+            patches.Row(y, patch);
+            for (int x = g.BedrockSide; x < w - g.BedrockSide; x++)
+            {
+                int cell = y * w + x;
+                if (Open(x, y))
+                {
+                    if (rows[y + 1][x] is '#' or '/' or '\\') Try(Content.Flora.Anchor.Floor, x, y, cell);
+                    if (rows[y - 1][x] == '#') Try(Content.Flora.Anchor.Ceiling, x, y, cell);
+                }
+                else if (rows[y][x] == '#' && codes[cell] == stone && (Open(x, y - 1) || Open(x, y + 1) || Open(x - 1, y) || Open(x + 1, y)))
+                    Try(Content.Flora.Anchor.Rock, x, y, cell);
+            }
+        }
+
+        void Try(Content.Flora.Anchor on, int x, int y, int cell)
+        {
+            if (taken[cell]) return;
+            int band = bands[y], roll = (int)((long)Lattice(seed, CaveRoll + (uint)on, x, y) * 10000 / Whole);
+            // Percent of the chances here: the patch noise's share of its most, times a hall's — a wall's when it faces one.
+            bool inHall = hall[cell] || on == Content.Flora.Anchor.Rock && (hall[cell - w] || hall[cell + w] || hall[cell - 1] || hall[cell + 1]);
+            long scale = (long)patch[x] * Content.Flora.PatchMost / Whole * (inHall ? Content.Flora.Hall : 100);
+            long from = 0;
+            int k = -1;
+            foreach (int each in byAnchor[(int)on])
+            {
+                from += chances[each][band] * scale / 10000;
+                if (roll < from)
+                {
+                    k = each;
+                    break;
+                }
+            }
+            if (k < 0) return;
+            var kind = kinds[k];
+            if (x - last[k] < kind.Apart || (on != Content.Flora.Anchor.Rock && x - lastOn[(int)on] <= 1)) return;
+            if (kind.Shallow is int shallow && y - top[x] > shallow) return;
+            if (kind.Floors && !Open(x, y - 1)) return;
+            int step = on == Content.Flora.Anchor.Ceiling ? w : -w, hold = on == Content.Flora.Anchor.Ceiling ? -1 : 1;
+            if (on != Content.Flora.Anchor.Rock)
+            {
+                for (int i = 0, at = cell; i < kind.Tall; i++, at += step)
+                    if (at < 0 || at >= w * h || rows[at / w][x] != '.' || taken[at]) return;
+                // A narrow growth may stand on a floor's slope, sunk to its middle; a wide one only on whole floors.
+                for (int dx = -kind.Wide; dx <= kind.Wide; dx++)
+                    if (x + dx < 0 || x + dx >= w || !Open(x + dx, y) || rows[y + hold][x + dx] != '#' && (kind.Wide > 0 || dx != 0)) return;
+                for (int i = 0, at = cell; i < kind.Tall; i++, at += step) taken[at] = true;
+            }
+            into.Add((cell, kind.Id));
+            (last[k], lastOn[(int)on]) = (x, x);
+        }
     }
 
     /// <summary>Whether <paramref name="cell"/> is soil or stone with the open above it: the top of the ground there.</summary>
@@ -187,7 +291,8 @@ public static class Terrain
     /// The landmarks, at places the seed chooses, none within <see cref="Ground.Clear"/> of the middle: chasms cut from the
     /// surface down, wandering a little, and great halls with ragged walls. Both are open ground, back-walled, as caves are.
     /// </summary>
-    private static void Landmarks(Ground g, uint seed, int[] top, byte[] kind, Field ragged)
+    /// <param name="hall">Set for every cell a great hall opens: where the caves' growth is densest (0080).</param>
+    private static void Landmarks(Ground g, uint seed, int[] top, byte[] kind, Field ragged, bool[] hall)
     {
         int w = g.Width, h = g.Height, floor = h - g.BedrockRows;
         for (int k = 0; k < g.Chasms; k++)
@@ -224,7 +329,7 @@ public static class Terrain
                     long dx = x - hx, dy = y - hy;
                     // Inside the ellipse stretched by the noise, from three quarters of it to five quarters.
                     long within = rx2 * ry2 * (3 * Whole / 4 + row[x] / 2) / Whole;
-                    if (dx * dx * ry2 + dy * dy * rx2 <= within && y >= top[x]) kind[y * w + x] = 2;
+                    if (dx * dx * ry2 + dy * dy * rx2 <= within && y >= top[x]) (kind[y * w + x], hall[y * w + x]) = (2, true);
                 }
             }
         }

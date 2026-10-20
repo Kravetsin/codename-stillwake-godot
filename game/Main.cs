@@ -54,7 +54,7 @@ namespace Stillwake.Game;
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
-/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree or <c>--ground=slope</c> cracking slopes (0079), <c>--ground=cave</c> or <c>--ground=shaft</c>
+/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree or <c>--ground=slope</c> cracking slopes (0079), <c>--ground=band0</c>…<c>band3</c> in a cave of a depth band or <c>--ground=hall</c> in a great hall, looking at its growth (0080), <c>--ground=cave</c> or <c>--ground=shaft</c>
 /// down into a cave with the helmet lamp or digging a shaft (<see cref="GroundDemo"/>), <c>--strip</c> the test strip (0076),
 /// with <c>--autopilot</c> played by a script (<see cref="HeroAutopilot.PlanetRun"/>), with <c>--beam-back</c> back aboard two seconds in,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
@@ -81,6 +81,8 @@ public partial class Main : Node2D, ITogether
     private GridView? _grid;
     private Features.Building.DigView? _digs;
     private Features.Flora.FloraView? _flora;
+    private Features.Flora.CaveView? _caves;
+    private Features.Flora.CaveTint? _caveTint;
     private LightView? _light;
     private FurnaceView? _furnace;
     private AnalyzerScreens? _screens;
@@ -287,7 +289,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--fx-bench")) AddChild(new FxBench());
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--measure"))
-            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count}"));
+            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count} cave-lights={_caves?.Lights.Count} glints={_caves?.Glinting} caves={_caves?.TakeCostMs():F3}ms"));
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
@@ -346,6 +348,7 @@ public partial class Main : Node2D, ITogether
             world = GroundDemo.Seed(world, Modules);
             _ground = new GroundDemo(ground[9..]);
             if (ground[9..] is "drill" or "poses") AddChild(new GroundHands(_ground));
+            else if (GroundDemo.Caves(ground[9..])) AddChild(new GroundHands(_ground, dig: false));
         }
         // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077).
         else if (Has("--planet")) world = GroundDemo.Seed(world, Modules);
@@ -820,6 +823,9 @@ public partial class Main : Node2D, ITogether
         _grid?.QueueFree();
         _digs?.QueueFree();
         _flora?.QueueFree();
+        _caves?.QueueFree();
+        _caveTint?.QueueFree();
+        (_caves, _caveTint) = (null, null);
         _light?.QueueFree();
         _furnace?.QueueFree();
         _screens?.QueueFree();
@@ -832,6 +838,13 @@ public partial class Main : Node2D, ITogether
         AddChild(_digs = new Features.Building.DigView(_m.Grid, _m.Building));
         var flora = new Features.Flora.FloraView(_m.Grid, _m.Building);
         AddChild(_flora = flora);
+        // A planet's caves: their growth, and their stone tinted by depth (0080).
+        if (_m.Rules.Ground is { } ground)
+        {
+            AddChild(_caveTint = new Features.Flora.CaveTint(ground));
+            AddChild(_caves = new Features.Flora.CaveView(_m.Grid, _m.Building, ground, () => _hero?.HeadLamps() ?? []));
+        }
+        var caves = _caves;
         AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
         AddChild(_chargers = new Features.Power.ChargerLights(_m.Grid, _m.Items, _m.Power));
         AddChild(_tanks = new Features.Atmosphere.TankLooks(_m.Grid, _m.Atmosphere));
@@ -853,6 +866,7 @@ public partial class Main : Node2D, ITogether
             FireAt = FurnaceView.LightAt,
             HeadLamps = () => _hero?.HeadLamps() ?? [],
             Glows = () => flora.Lights,
+            Caves = () => caves?.Lights ?? [],
         });
         // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
         _stars.Ground = _m.Rules.Sky != null ? (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell : null;

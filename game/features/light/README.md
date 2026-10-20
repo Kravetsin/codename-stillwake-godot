@@ -133,6 +133,10 @@ Numbers from `game/Content/Light.cs`.
 - **Plants glow** (0079): each glowing part of a plant near the view (`LightView.Glows`, answered by flora's
   `FloraView.Lights`: a seed pod, a berry, a bell) lights round it as a small lamp, in its colour at
   `FloraLooks.LightStrength`, keeping `LightKeep` (0.4) a cell out to `LightReach` (2) cells; at most three a plant.
+- **Caves glow** (0080): each glowing growth of a cave near the view (`LightView.Caves`, answered by flora's `CaveView.Lights`:
+  a glowcap, a crystal, threads, moss, a heat crack) is a lamp of its own on the main map, its colour, strength, keep and
+  reach its kind's (`CaveLooks`), at most `CaveLooks.MostLights` (56) of them, the nearest the view's middle: a cave is not
+  uniformly black, and a hall full of them costs the light what a lit room of lamps does.
 
 ## Deliberately not handled
 

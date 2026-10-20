@@ -27,6 +27,14 @@ public sealed partial class BuildingModule
     /// Draws every command, refused ones included: off the grid, on nothing, twice on one thing, E on a
     /// plan that is gone or a blueprint the hero has nothing for, a dig at hull, bedrock or nothing, or with a drill not running.
     /// </summary>
+    /// <summary>A standing plant drawn at random, drawn again up to three times while it lies in rock (0080).</summary>
+    private Plant FuzzPlant(Func<int, int> below)
+    {
+        var plant = _plants[below(_plants.Count)];
+        for (int i = 0; i < 3 && Kinds[plant.Kind].On == Flora.Anchor.Rock; i++) plant = _plants[below(_plants.Count)];
+        return plant;
+    }
+
     public override Command? Fuzz(Rng rng, int from)
     {
         int Below(int n) => (int)rng.Below((ulong)n);
@@ -48,9 +56,9 @@ public sealed partial class BuildingModule
         {
             case 5:
                 {
-                    // Mostly on a crack, so walls break within a run; else anywhere, mostly on the ground a planet is made of.
-                    // Now and then on a plant (0079), so they are felled, and under one, so their ground goes.
-                    int cell = _plants.Count > 0 && Below(8) == 0 ? _plants[Below(_plants.Count)].Cell + (Below(2) == 0 ? 0 : _grid.Width)
+                    // A quarter of the time on a plant, one in an open cell sought, or what holds it (0079, 0080), so they fall; else
+                    // mostly on a crack, so walls break within a run, or anywhere, mostly on the ground a planet is made of.
+                    int cell = _plants.Count > 0 && Below(4) == 0 ? (FuzzPlant(Below) is var p && Below(2) == 0 ? p.Cell : HoldOf(p))
                         : State.Cracks.Count > 0 && Below(2) == 0 ? State.Cracks[Below(State.Cracks.Count)].Cell : Cell();
                     return new Dig(cell, Weapons.All[Below(Weapons.All.Count)].Item) { From = from };
                 }
