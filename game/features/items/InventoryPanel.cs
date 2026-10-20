@@ -51,6 +51,9 @@ public partial class InventoryPanel : CanvasLayer
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     /// <summary>The stack carried, over every panel.</summary>
     private readonly CanvasLayer _over = new() { Layer = ScreenLayers.Tips };
+    /// <summary>Stacks sent across with shift flying to where they went, over every panel and under the stack carried.</summary>
+    private readonly SlotFlights _flights = new();
+    private bool _flown;
     private Control _shown = null!, _held = null!, _fire = null!;
     /// <summary>The wrist computer's screens (0074): the hotbar on the cuff, the bag on the forearm display, the equipment's unit.</summary>
     private WristScreen _hotbar = null!, _inventory = null!, _body = null!;
@@ -149,6 +152,9 @@ public partial class InventoryPanel : CanvasLayer
     {
         Layer = ScreenLayers.Hud;
         AddChild(_root);
+        var flying = new CanvasLayer { Layer = ScreenLayers.Tips };
+        flying.AddChild(_flights);
+        AddChild(flying);
         AddChild(_over);
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         Build();
@@ -631,15 +637,13 @@ public partial class InventoryPanel : CanvasLayer
             ClickAt(place, false, false);
             return;
         }
-        if (Shown) return;
-        // Along the hotbar with the inventory closed, where a press only chooses a slot: the stack is
-        // lifted and put down in one go, as two clicks would with it open.
-        var lifted = Clicks.On(null, new SlotClick(from, _reading.At(from), false, false, Crate, _reading.Inventory));
-        if (lifted.Picked == null) return;
-        var put = Clicks.On(lifted.Picked, new SlotClick(place, _reading.At(place), false, false, Crate, _reading.Inventory));
-        if (put.Command == null) return;
-        _chosen = place.Slot;
-        Send(put.Command);
+        // With the inventory closed a press only chooses a slot, and a drag along the hotbar chooses the slot
+        // it is let go over, as Terraria does: nothing is moved where the player cannot see it carried.
+        if (!Shown && place.Crate == null && place.Slot < Hotbar.Row)
+        {
+            _chosen = place.Slot;
+            Refresh();
+        }
     }
 
     private void ClickAt(Place place, bool right, bool shift)
@@ -655,12 +659,39 @@ public partial class InventoryPanel : CanvasLayer
         var spec = _reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
         // A queued station's inputs share what is shift-clicked in, onto its kind first (the Former's, the assembler's).
         int inputs = _reading.Kind is string queued && Content.Stations.TryGet(queued, out var station) && !station.Fed ? spec?.Inputs ?? 0 : 0;
+        var before = _reading;
         var result = Clicks.On(Held, new SlotClick(
             place, _reading.At(place), right, shift, Crate, _reading.Inventory, spec?.FuelSlot, spec?.Charges == true, inputs, _reading.Crate));
         (_picked, _pickedItem) = (result.Picked, result.Picked is { } p ? _reading.At(p.Place)?.Item : null);
         if (result.Breathes) _ui.Breathe();
-        if (result.Command != null) Send(result.Command);
-        else Refresh();
+        bool shifted = shift && !right && before.At(place) != null;
+        if (result.Command != null)
+        {
+            Send(result.Command);
+            if (shifted) Fly(before, result.Command);
+        }
+        else
+        {
+            if (shifted) BoxAt(place)?.Shake();
+            Refresh();
+        }
+    }
+
+    private SlotBox? BoxAt(Place place) => _slots.FirstOrDefault(s => s.Place == place && s.IsVisibleInTree());
+
+    /// <summary>
+    /// A stack sent across with shift flying from its slot to each it landed in, as the slots show it now, the move made
+    /// at once (0014); a move the sim would refuse lands nowhere, and its slot shakes.
+    /// </summary>
+    private void Fly(Reading before, Move move)
+    {
+        if (_reading is not { } after || before.At(move.Src) is not { } stack || BoxAt(move.Src) is not { } src) return;
+        var shown = _slots.Where(s => s.IsVisibleInTree()).Select(s => s.Place).ToList();
+        var landed = Clicks.Landed(move.Src, stack.Item, before.At, after.At, shown).ToList();
+        if (landed.Count == 0) src.Shake();
+        var icon = ItemIcons.Icon(Charges.Picture(stack.Item, stack.Charge));
+        for (int i = 0; i < landed.Count; i++)
+            if (BoxAt(landed[i]) is { } to) _flights.Fly(icon, src.GetGlobalRect().GetCenter(), to.GetGlobalRect(), landed[i], before.At(landed[i]) == null, i);
     }
 
     public override void _Process(double delta)
@@ -670,7 +701,15 @@ public partial class InventoryPanel : CanvasLayer
         if (hovered != _hovered)
         {
             _hovered = hovered;
+            // Closed, a drag along the hotbar chooses each slot it passes over.
+            if (!Shown && _dragFrom != null && hovered is { Crate: null } h && h.Slot < Hotbar.Row) _chosen = h.Slot;
             Refresh();
+        }
+        // A slot a shifted stack flies into, empty before, shows it only as it lands.
+        if (_flights.Busy || _flown)
+        {
+            foreach (var box in _slots) box.Awaiting(_flights.Awaits(box.Place));
+            _flown = _flights.Busy;
         }
         // A stack carried is the pointer: its icon centred on it, the arrow hidden while it is.
         _held.Position = _mouse - _held.Size / 2;

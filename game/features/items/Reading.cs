@@ -74,11 +74,17 @@ public sealed record Reading(
         return tip with { Card = tip.Card! with { Charge = Charges.MeterOf(stack), Picture = Charges.Picture(stack.Item, stack.Charge) } };
     }
 
-    /// <summary>The tooltip over <paramref name="stack"/> in an inventory slot: <see cref="TipOf(Stack)"/>, with what the open machine does with it (<see cref="HereOf"/>).</summary>
+    /// <summary>
+    /// The tooltip over <paramref name="stack"/> in an inventory slot: <see cref="TipOf(Stack)"/>, with what the open machine
+    /// does with it (<see cref="HereOf"/>) and, a fed station, what it makes of it there (<see cref="ItemCards.OutputAt"/>).
+    /// </summary>
     public Tip HereTipOf(Stack stack)
     {
         var tip = TipOf(stack);
-        return tip with { Card = tip.Card! with { Here = HereOf(stack.Item) } };
+        var here = HereOf(stack.Item);
+        var output = here is SlotMark.Smelts or SlotMark.Grows && Content.Stations.TryGet(Kind!, out var station)
+            ? ItemCards.OutputAt(stack.Item, station) : null;
+        return tip with { Card = tip.Card! with { Here = here, Output = output } };
     }
 
     /// <summary>

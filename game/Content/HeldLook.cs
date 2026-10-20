@@ -59,6 +59,12 @@ public sealed record HeldLook(
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
     public const double SpinUpMs = 120, SpinDownMs = 700;
 
+    /// <summary>How many of its frames a spinning picture goes through a second at full speed, the picture itself among them.</summary>
+    public const double SpinFps = 18;
+
+    /// <summary>The colour of a running item's <see cref="Lamp"/>, "rrggbb": in the hand and on its card.</summary>
+    public const string LampColour = "9dff8a";
+
     /// <summary>How <paramref name="item"/> looks in the hand; none for an item held as no picture.</summary>
     public static HeldLook? Of(string? item) =>
         item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill

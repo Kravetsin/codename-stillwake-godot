@@ -338,12 +338,10 @@ public partial class Figure : Node2D
 
     /// <summary>How fast the bit turns, from still (0) to full (1), and how far through its frames the picture is, in frames.</summary>
     private double _spin, _spinFrame;
-    /// <summary>The bit spins up and down as <see cref="HeldLook"/> says, its frames going by <see cref="SpinFps"/> a second at full speed.</summary>
-    private const double SpinFps = 18;
     /// <summary>The held item's lamp, lit while it runs: its pixel drawn unlit, so it shows in the dark, and the little light it gives.</summary>
     private readonly ColorRect _lamp = new() { Size = Vector2.One, Color = LampColour, Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
     private readonly Glow _lampGlow = new() { Visible = false };
-    private static readonly Color LampColour = new("9dff8a");
+    private static readonly Color LampColour = new(HeldLook.LampColour);
     private const float LampLight = 0.25f;
 
     /// <summary>The held harpoon's muzzle, or the drill's point, as drawn this frame, in pixels of the world; none while neither is shown.</summary>
@@ -646,7 +644,7 @@ public partial class Figure : Node2D
             _spin = Spinning ? Math.Min(1, _spin + elapsedMs / HeldLook.SpinUpMs) : Math.Max(0, _spin - elapsedMs / HeldLook.SpinDownMs);
             // Through the picture and its spin frames in turn; still, it stops on the picture.
             int frames = 1 + (item.Spin?.Count ?? 0);
-            _spinFrame = _spin > 0 ? (_spinFrame + _spin * SpinFps * elapsedMs / 1000) % frames : 0;
+            _spinFrame = _spin > 0 ? (_spinFrame + _spin * HeldLook.SpinFps * elapsedMs / 1000) % frames : 0;
             int frame = (int)_spinFrame;
             _held.Texture = Picture(item.Loaded != null && Loaded ? item.Loaded
                 : frame > 0 ? item.Spin![frame - 1]

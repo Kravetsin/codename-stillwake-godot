@@ -32,7 +32,6 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
 | `JetPlume.cs`      | a jetpack's plume (0075): its core of light, streaks, motes, pool of light, shimmer | yes |
 | `RodLight.cs`      | the harpoon's light (0075): the shot's glint and gas, the rod's trail and wake, the bite, the taut line's bead, the zip home | yes |
-| `DrillLight.cs`    | a drill's light (0075): the bit's sparks, dust, chips and glints where it bites, the arc drill's fine arcs, crawling and leaping sparks, glints and haze on its coil | yes |
 | `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway (door or hatch, 0067), a valve's wheel, a plan's own pictures | yes |
 | `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`); `HillsRun`, the walk over `-- --hills` | no    |
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`), on a room's change and as its report every `Crew.ReportEvery` ticks (0050); `ExertOf` and `ThrustOf`, what it breathes and vents; `Cold`, how hard the cold bites at a cell | no    |
@@ -443,7 +442,7 @@ Deliberately not handled:
   (`HeldLook.IsDrill`), its own `Weapons.ArcDrill` pace and damage (15 a second to the drill's 10), its picture the
   drill's with the coil tinted (`art/hero_arc_drill*.png`, a placeholder). Found, never made: only the testbed's
   supply crate and `-- --asteroid --arc-drill` hold one till planet ruins do.
-  **Its light** (`DrillLight`, 0075): where a running bit bites a wreck (this hero's: the sim would take its hit;
+  **Its light** (`render/DrillLight`, 0075, shared with the drill's item card, which throws it into particles of its own): where a running bit bites a wreck (this hero's: the sim would take its hit;
   another's: its bit touches one), the axe's hit in small and without end, 26 short sparks a second thrown back off
   the bit, slow dust, now and then a small tumbling chip, a small glint every quarter second and a warm light held
   there; a wreck's hit by a drill throws nothing of its own (`DebrisView`). The arc drill's coil (`HeldLook.Coil`, the

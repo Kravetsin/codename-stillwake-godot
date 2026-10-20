@@ -40,16 +40,40 @@ public partial class EffectsView : Node2D
     private double _spentMs;
     private int _frames;
 
-    public EffectsView()
+    private readonly Glims _glims;
+    private readonly Flares _flares;
+    private readonly Bolts _bolts;
+    private readonly bool _matterDrawn;
+
+    /// <summary>The world's particles, over everything in it.</summary>
+    public EffectsView() : this(Glims.Shared, Flares.Shared, Bolts.Shared, matter: true) => ZIndex = Layers.Effects;
+
+    /// <summary>
+    /// Particles of their own sets, drawn wherever it is put: an item card's picture (<c>ToolPicture</c>). Without
+    /// <paramref name="matter"/> only light is drawn: dust and chips need a room's light, which a card has not.
+    /// </summary>
+    public EffectsView(Glims glims, Flares flares, Bolts bolts, bool matter)
     {
-        ZIndex = Layers.Effects;
+        (_glims, _flares, _bolts, _matterDrawn) = (glims, flares, bolts, matter);
         // After the features: a trail or a bloom they stamp this frame is drawn this frame.
         ProcessPriority = 100;
-        Lit.Set(_matter);
-        Lit.Set(_lowMatter);
-        foreach (var n in new Node2D[] { _lowMatter, _matter, _light, _strokes }) AddChild(n);
-        _matter.Draw += () => DrawMatter(_matter, low: false);
-        _lowMatter.Draw += () => DrawMatter(_lowMatter, low: true);
+        if (matter)
+        {
+            Lit.Set(_matter);
+            Lit.Set(_lowMatter);
+            AddChild(_lowMatter);
+            AddChild(_matter);
+            _matter.Draw += () => DrawMatter(_matter, low: false);
+            _lowMatter.Draw += () => DrawMatter(_lowMatter, low: true);
+        }
+        else
+        {
+            // Never put in the tree, so never freed with it.
+            _matter.Free();
+            _lowMatter.Free();
+        }
+        AddChild(_light);
+        AddChild(_strokes);
         _light.Draw += DrawLight;
         for (int n = 0; n < _points.Length; n++) (_points[n], _colours[n]) = (new Vector2[n], new Color[n]);
     }
@@ -69,14 +93,19 @@ public partial class EffectsView : Node2D
     {
         _clock.Restart();
         double ms = delta * 1000;
-        Glims.Shared.Step(ms);
-        Flares.Shared.Step(ms);
-        Flares.Shared.TakeFrame();
-        Bolts.Shared.Step(ms);
-        _zoom = Math.Max(0.01f, GetViewport().GetCanvasTransform().X.Length());
-        _matter.Scale = _lowMatter.Scale = _light.Scale = Vector2.One / _zoom;
-        _lowMatter.QueueRedraw();
-        _matter.QueueRedraw();
+        _glims.Step(ms);
+        _flares.Step(ms);
+        _flares.TakeFrame();
+        _bolts.Step(ms);
+        // A pixel of the world on the screen here: the camera's zoom in the world, the picture's scale on a card.
+        _zoom = Math.Max(0.01f, GetGlobalTransformWithCanvas().X.Length());
+        _light.Scale = Vector2.One / _zoom;
+        if (_matterDrawn)
+        {
+            _matter.Scale = _lowMatter.Scale = _light.Scale;
+            _lowMatter.QueueRedraw();
+            _matter.QueueRedraw();
+        }
         _light.QueueRedraw();
         Stroke();
         _spentMs += _clock.Elapsed.TotalMilliseconds;
@@ -107,7 +136,7 @@ public partial class EffectsView : Node2D
     private void DrawMatter(Node2D on, bool low)
     {
         long began = Stopwatch.GetTimestamp();
-        foreach (var g in Glims.Shared.Live)
+        foreach (var g in _glims.Live)
         {
             if (!g.Look.Matter || g.Look.Low != low) continue;
             double b = LuminousMath.Brightness(g);
@@ -162,7 +191,7 @@ public partial class EffectsView : Node2D
     private void DrawLight()
     {
         long began = Stopwatch.GetTimestamp();
-        var live = Glims.Shared.Live;
+        var live = _glims.Live;
         foreach (var g in live)
         {
             if (g.Look.Kind != Glimmer.Mote || g.Look.Low) continue;
@@ -184,11 +213,11 @@ public partial class EffectsView : Node2D
             if (g.Look.Kind == Glimmer.Streak) Blob(_light, PixelArt.Glow, g.X, g.Y, g.Look.Halo * 1.2, ColourOf(c, b * 0.45 * Fx.Glow));
             else Blob(_light, PixelArt.Glow, g.X, g.Y, g.Look.Halo, ColourOf(c, b * 0.25 * Fx.Glow));
         }
-        foreach (var gl in Flares.Shared.Glints)
+        foreach (var gl in _flares.Glints)
             if (gl.Strength > 0.01) Blob(_light, PixelArt.Glow, gl.X, gl.Y, gl.Radius * 1.2, ColourOf(gl.Colour, gl.Strength * 0.6));
-        foreach (var bloom in Flares.Shared.Blooms)
+        foreach (var bloom in _flares.Blooms)
             Blob(_light, PixelArt.Glow, bloom.X, bloom.Y, bloom.Size, ColourOf(bloom.Colour, bloom.Alpha * Fx.Glow), bloom.Squash);
-        foreach (var bolt in Bolts.Shared.Live)
+        foreach (var bolt in _bolts.Live)
             if (!bolt.Fine) Glow(bolt);
         _spentMs += Stopwatch.GetElapsedTime(began).TotalMilliseconds;
     }
@@ -213,18 +242,18 @@ public partial class EffectsView : Node2D
     {
         _strokes.Scale = Vector2.One / _zoom;
         _strokes.Begin();
-        foreach (var g in Glims.Shared.Live)
+        foreach (var g in _glims.Live)
         {
             if (g.Look.Kind != Glimmer.Streak || g.Look.Low) continue;
             double b = LuminousMath.Brightness(g) * (g.Look.Matter ? MatterLight : 1);
             if (b > 0.006) Streak(g, LuminousMath.RampAt(g.Look.Ramp, g.Age), b);
         }
-        var trails = Flares.Shared.Trails;
+        var trails = _flares.Trails;
         for (int i = 0; i < trails.Count; i++) Trail(trails[i]);
-        foreach (var bolt in Bolts.Shared.Live) Arc(bolt);
-        foreach (var s in Flares.Shared.Shocks)
+        foreach (var bolt in _bolts.Live) Arc(bolt);
+        foreach (var s in _flares.Shocks)
             if (s.Alpha > 0.01) Ring(s);
-        foreach (var gl in Flares.Shared.Glints)
+        foreach (var gl in _flares.Glints)
         {
             Glint(gl);
             gl.Drawn = true;
@@ -266,7 +295,7 @@ public partial class EffectsView : Node2D
 
     private void Trail(Trail t)
     {
-        var points = Flares.Shared.TrailPoints;
+        var points = _flares.TrailPoints;
         int n = Math.Min(t.Count, _xs.Length);
         for (int i = 0; i < n; i++) (_xs[i], _ys[i]) = points[t.From + i];
         Line(n, (t.Colour.R, t.Colour.G, t.Colour.B), t.Hot, Math.Min(1, t.Alpha * Fx.Glow), t.Width);
