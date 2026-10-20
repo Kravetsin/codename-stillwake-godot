@@ -10,18 +10,21 @@ namespace Stillwake.Game;
 /// </summary>
 public static class FloraLooks
 {
-    /// <summary>A kind's pictures: how many, and how many pixels of each lie under the ground line, its foot sunk in.</summary>
+    /// <summary>
+    /// A kind's pictures: how many, and how many pixels the lowest drawn row of each sinks under the ground's top edge, the rows
+    /// there cut off: planted in the ground, not set on it.
+    /// </summary>
     public sealed record Look(int Variants, int Sink);
 
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>
     {
         ["acacia"] = new(3, 2),
-        ["bush"] = new(2, 1),
+        ["bush"] = new(2, 2),
         ["rock"] = new(2, 2),
-        ["bellTeal"] = new(2, 0),
-        ["bellViolet"] = new(2, 0),
-        ["bellAmber"] = new(2, 0),
-        ["tuft"] = new(3, 0),
+        ["bellTeal"] = new(2, 1),
+        ["bellViolet"] = new(2, 1),
+        ["bellAmber"] = new(2, 1),
+        ["tuft"] = new(3, 1),
     };
 
     /// <summary>

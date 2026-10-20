@@ -339,6 +339,9 @@ public partial class Figure : Node2D
     /// <summary>The helmet lamp's bulb as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
     public Vector2 HeadLampAt => _headLamp.GlobalPosition;
 
+    /// <summary>Where the helmet turns, at the neck, in pixels of the world: inside the hero, so never in a wall.</summary>
+    public Vector2 HeadAt => _helmet.GlobalPosition;
+
     /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces.</summary>
     public Vector2 HeadLampToward => _helmet.GlobalTransform.X.Normalized();
 

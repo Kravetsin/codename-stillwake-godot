@@ -36,16 +36,20 @@ public sealed class GroundDemo(string mode)
     /// <summary>The cells to dig, in turn; the first not yet broken is hit.</summary>
     private readonly List<int> _cells = [];
 
-    /// <summary>The world with peer 0 carrying the axe and the drill, a full battery on its belt and the helmet lamp on its head.</summary>
-    public static World Seed(World world, Func<IReadOnlyList<Module>> modules)
+    /// <summary>
+    /// The world with peer 0 carrying the axe and the drill, a full battery on its belt and the helmet lamp on its head; with
+    /// <paramref name="drill"/> (<c>--arc-drill</c>), that drill in the first slot, held, and the axe in the third, to dig down fast.
+    /// </summary>
+    public static World Seed(World world, Func<IReadOnlyList<Module>> modules, string? drill = null)
     {
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
         var slots = new JsonArray();
         int head = Spec.Inventory.Slots, belt = Spec.Inventory.Slots + 2;
         for (int i = 0; i < Spec.Inventory.Total; i++)
-            slots.Add(i == 0 ? Stack(Spec.Weapons.Axe.Item)
+            slots.Add(i == 0 ? Stack(drill ?? Spec.Weapons.Axe.Item)
                 : i == 1 ? Stack(Spec.Weapons.Drill.Item)
+                : i == 2 && drill != null ? Stack(Spec.Weapons.Axe.Item)
                 : i == head ? Stack(Spec.HelmetLamp.Item)
                 : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);

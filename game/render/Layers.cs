@@ -26,7 +26,7 @@ public static class Layers
 
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
 
-    /// <summary>What grows on a planet (flora, 0079): over the ground and its moss, behind the heroes; its glow with the lamps'.</summary>
+    /// <summary>What grows on a planet (flora, 0079, 0080): over the ground and its moss, behind the heroes, its glows and glints too.</summary>
     public const int Flora = Fixtures;
 
     /// <summary>A screen or a lamp on a machine's face beside its socket: an analyzer's (research), a tank's sight glass (atmosphere).</summary>
@@ -61,6 +61,12 @@ public static class Layers
     /// so a drill held close never hides what it bites.
     /// </summary>
     public const int Dug = 15;
+
+    /// <summary>
+    /// The tufts and chips of a planet's living edge laid before the heroes' feet (0082), thin enough that boots stand on the ground,
+    /// not in it; with the cracks, which lie in the cell below.
+    /// </summary>
+    public const int GroundFront = 15;
 
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
     public const int Glows = 16;
