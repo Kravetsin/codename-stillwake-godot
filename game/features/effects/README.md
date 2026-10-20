@@ -74,8 +74,8 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   particles: 603 fps (1.66 ms; 0.25 CPU, 0.19 GPU) before, 549 (1.82 ms; 0.25, 0.19) after, the layer 0.63 → 0.78 ms;
   `--testbed` 620 fps (1.61 ms; 0.24, 0.15) → 620 (1.61; 0.24, 0.15), 167 → 171 draw calls; the furnace room 605 → 625;
   `--testbed --fx-bench` 412 → 383 fps (2.61 ms) with all of it at once; `--jetpack` 593, `--asteroid --arc-drill` 927.
-  Slice 3 (three runs each, 1920×1080): `-- --fx-bench`, now with a catch of five flying home every 1.5 s, 518 → 522 fps
-  (1.93 ms; 0.26 CPU, 0.19 GPU), the layer 0.81 → 0.82 ms; `--asteroid --arc-drill` 913 → 902 (1.11 ms), within noise.
+  Slice 3 (three runs each, 1920×1080): `-- --fx-bench`, now with a catch of five flying home every 1.5 s, 518 → 527 fps
+  (1.93 ms; 0.26 CPU, 0.19 GPU), `--asteroid --arc-drill` 913 → 915 (1.09 ms), within noise.
 - At most 1600 luminous particles and 48 arcs at once: a big breach thins out rather than costing frames.
 
 The luminous arithmetic, trails, blooms, floor rings and arcs are tested in `LuminousTests`; the old squares and their

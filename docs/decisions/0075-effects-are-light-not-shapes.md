@@ -122,7 +122,7 @@ calls) and a bench of all of it at once, some 830 particles and eleven shimmers,
   as a pick-up off the floor does, from where the piece was when its grab set off (`OwnCatches`), with its popup's light
   sweep; a catch's items set off three 60 Hz frames apart, each arc a little higher, only the first landing with the ring
   and flash, at most `Fx.MostRibbons` (4) flying at once. Measured as before, nothing moved past noise (`--fx-bench` 518 →
-  522 fps with a catch of five every 1.5 s added to it, `--asteroid --arc-drill` 913 → 902).
+  527 fps with a catch of five every 1.5 s added to it, `--asteroid --arc-drill` 913 → 915).
 
 ## Deliberately not done
 
