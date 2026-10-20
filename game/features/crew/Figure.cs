@@ -60,7 +60,22 @@ public partial class Figure : Node2D
         }
     }
 
+    /// <summary>
+    /// A leg's boot, drawn apart from its shin only while it turns along a slope (<see cref="Footing"/>): the bottom of
+    /// <c>hero_shin.png</c> from the top of the boot down, turning at the ankle; on the flat the shin is drawn whole.
+    /// </summary>
+    private sealed record Boot(Sprite2D Shin, Sprite2D Sole)
+    {
+        public void Turn(double by)
+        {
+            Shin.RegionEnabled = Sole.Visible = by != 0;
+            Sole.Rotation = (float)by;
+        }
+    }
+
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
+    private readonly Boot _frontBoot, _backBoot;
+    private readonly Footing _footing = new();
     private readonly Node2D _body, _helmet;
     private readonly Sprite2D _headLamp;
 
@@ -174,8 +189,10 @@ public partial class Figure : Node2D
         _landed = Voice(S.Land, own);
         _jumped = Voice(S.Jump, own);
         _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
+        _backBoot = MakeBoot(_backLeg, far: true);
         _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
         _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
+        _frontBoot = MakeBoot(_frontLeg, far: false);
         _frontArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: false, out var frontArm);
         backLeg.Position = new Vector2((float)-Rig.HipApart, (float)-Rig.Hip);
         frontLeg.Position = new Vector2((float)Rig.HipApart, (float)-Rig.Hip);
@@ -411,6 +428,12 @@ public partial class Figure : Node2D
     /// </summary>
     public (double Left, double Right) FloorRoom { get; set; } = (double.MaxValue, double.MaxValue);
 
+    /// <summary>
+    /// The cells the hero stands among, as the client has them: standing, walking or running on them, its feet are planted on
+    /// the ground under each (<see cref="Footing"/>). None for a figure with no ground to read, its feet where the pose puts them.
+    /// </summary>
+    public Ship? Ground { get; set; }
+
     /// <summary>The figure in a suit of <paramref name="colour"/>, 0xRRGGBB: its pictures recoloured, when it changes.</summary>
     public void Wear(int colour)
     {
@@ -443,6 +466,24 @@ public partial class Figure : Node2D
         return new Limb(view, bend);
     }
 
+    /// <summary>
+    /// The boot of a leg made by <see cref="MakeLimb"/>, turning at the ankle, <see cref="Footing.Ankle"/> above the sole:
+    /// the shin's picture from that row down, the shin itself drawn only above it while the boot turns.
+    /// </summary>
+    private Boot MakeBoot(Limb leg, bool far)
+    {
+        var shin = (Sprite2D)leg.Lower.GetChild(0);
+        var joint = Joints["shin"];
+        var size = GD.Load<Texture2D>("res://art/hero_shin.png").GetSize();
+        float ankle = (float)(Rig.Leg.Lower - Footing.Ankle), row = joint.Y + ankle;
+        shin.RegionRect = new Rect2(0, 0, size.X, row);
+        var sole = Part("shin", far);
+        (sole.RegionEnabled, sole.RegionRect, sole.Visible) = (true, new Rect2(0, row, size.X, size.Y - row), false);
+        (sole.Position, sole.Offset) = (new Vector2(0, ankle), new Vector2(-joint.X, 0));
+        leg.Lower.AddChild(sole);
+        return new Boot(shin, sole);
+    }
+
     /// <summary><paramref name="from"/> moved toward <paramref name="to"/> over <paramref name="elapsedMs"/>, settling in about <paramref name="within"/> ms.</summary>
     private static double Settle(double from, double to, double elapsedMs, double within = SettleMs) =>
         from + (to - from) * Math.Min(1, elapsedMs / within);
@@ -472,9 +513,10 @@ public partial class Figure : Node2D
     {
         _timeMs += elapsedMs;
         // Walking backwards, away from where it faces, the stride runs backwards too. On the ground only the
-        // way along counts, so a slope keeps the stride of the flat; on a ladder only the way up or down.
+        // way along counts, so a slope keeps the stride of the flat; on a ladder only the way up or down. Shorter steps on
+        // steep ground come quicker, so a planted foot keeps pace with it.
         if (_last is var (lx, ly))
-            _travelled += (pose == Pose.Climb ? Math.Abs(hero.Y - ly) : (double)(hero.X - lx) * hero.Facing) / Hero.Unit;
+            _travelled += (pose == Pose.Climb ? Math.Abs(hero.Y - ly) : (double)(hero.X - lx) * hero.Facing / _footing.Squeeze) / Hero.Unit;
         _last = (hero.X, hero.Y);
         // A new pose starts its stride afresh, its first foot down a quarter stride in; from walking to running or back
         // the legs go on, or a speed flickering about the line between them would freeze them.
@@ -532,11 +574,13 @@ public partial class Figure : Node2D
             Settle(from.Lift, to.Lift, elapsedMs),
             to.Lying);
         _shown = shown;
+        // On the ground, each foot on the ground under it and the hips dropped for the lower one to reach.
+        var stance = _footing.Place(shown, pose is Pose.Stand or Pose.Walk or Pose.Run ? Ground : null, hero, elapsedMs);
         // The body placed first: what the hands reach for is found in its own frame, turned and lifted.
         _body.Rotation = (float)shown.Tilt;
         double c = Math.Abs(Math.Cos(shown.Tilt)), s = Math.Abs(Math.Sin(shown.Tilt));
         // Lying down, the middle sinks as the body turns, so it comes to rest on the floor.
-        _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
+        _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift + stance.Drop));
         Position = new Vector2((float)feetX, (float)feetY);
         Scale = new Vector2(hero.Facing, 1);
         // Placing plans, the planner thrusts at them: out fast, back slower.
@@ -604,8 +648,10 @@ public partial class Figure : Node2D
         else _grasp = 0;
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
-        _frontLeg.Bend(shown.FrontLeg);
-        _backLeg.Bend(shown.BackLeg);
+        _frontLeg.Bend(stance.FrontLeg);
+        _backLeg.Bend(stance.BackLeg);
+        _frontBoot.Turn(stance.FrontBoot);
+        _backBoot.Turn(stance.BackBoot);
         bool awake = pose is not (Pose.Lie or Pose.Tumble);
         _head = Settle(_head, awake ? look : 0, elapsedMs, HeadSettleMs);
         _helmet.Rotation = (float)_head;

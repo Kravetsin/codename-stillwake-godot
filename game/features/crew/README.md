@@ -12,6 +12,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | ------------------ | --------------------------------------------------------------------------------------- | ----- |
 | `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship` (with its walls' shapes, 0069), `Point`; one `Step` at 60 a second, up and down slopes; the jetpack's flight (`Flown`, `ThrustToward`, 0047) | no    |
 | `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`); the fist and an item held in it (`FistOf`, `HeldAt`, 0040) | no    |
+| `Footing.cs`       | feet planted on uneven ground, a pass over the pose (`Footing`, `Stance`, `Underfoot`): each foot on the ground under it, its boot along the slope, the hips dropped and eased, the legs solved again; tunables in `game/Content/FootLook.cs` | no    |
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`); `Jumped` and `Landed`, when the boots are heard pushing off and coming down | no    |
 | `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039), what the drill's bit touches (`Touched`, 0054) | no    |
 | `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the strike, its point, this hero's and others'; the arm and the edge through it (`ArmAt`, `EdgeAt`, `Lead`) (0038, 0039, 0040); a swing that bit drawn held on contact (`Shown`, 0075) | no    |
@@ -138,6 +139,26 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 - `-- --hills` is a room of slopes to walk (`game/dev/HillsDemo.cs`), aired and lit, stacks lying on its slopes;
   with `--autopilot` the hero walks it (`HeroAutopilot.HillsRun`). `-- --slopes` (`game/dev/SlopesDemo.cs`) has a
   corridor three high with its far top corner cut; with `--autopilot` the hero walks in under it (`SlopesRun`).
+
+## Feet on slopes
+
+- **A pass over the pose** (`Footing`, client only, every hero's figure): standing, walking or running on the ground,
+  never in the air, on a ladder or afloat. Each foot keeps the pose's place along the ground and its height above it,
+  and stands on the ground under it as the client's grid has it (`Hero.GroundAt`: up out of a slope or a wall's top,
+  or down onto one, within `FootLook.Reach`; past it, a wall's face or a drop past an edge, the foot keeps the pose's
+  height). Its boot, the bottom of `hero_shin.png` drawn apart and turned at the ankle, lies flush on a 45° slope while
+  it stands there, and turns from it no further than its toe and heel clear the ground as it lifts.
+- **The hips drop**, eased by `FootLook.Ease` a 60th of a second, just enough for the lower foot to reach, at most
+  `FootLook.MostDrop`, and never so far that a knee folds past `Footing.Fold` of its reach: a lifted foot comes down
+  toward the ground first, and past that the lower foot hangs short. Legs are solved hip to ankle, knee forward.
+- **Steps shorten on steep ground** by up to `FootLook.Squeeze` and come quicker by as much, so a planted foot keeps
+  pace with the ground: at 45° the flat's stride would fold the uphill knee shut.
+- **On the flat nothing changes**: the pose's own legs, the shin drawn whole. Not handled: a foot over a drop deeper
+  than `FootLook.Reach` keeps the hero's height rather than dangling; boots' toes may dip into a flat floor at a
+  stride's ends, as they always have.
+- Tested in `FootingTests`. `-- --feet-sheet=<dir>` saves a contact sheet of walks, runs and stands over a ramp, stairs
+  of slopes and a cliff (`game/dev/FeetSheet.cs`); `-- --hills --autopilot --feet` walks the hills for it
+  (`HeroAutopilot.FeetRun`): up, still on a slope both ways, backwards up and down, and a run.
 
 ## Others' heroes
 

@@ -90,6 +90,35 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     public static Hero At(Ship ship, int cell) =>
         new(cell % ship.Width * Unit + Unit / 2, (cell / ship.Width + 1) * Unit, 0, 0, false, 1);
 
+    /// <summary>
+    /// The ground a single point stands on, for a foot drawn there (<see cref="Footing"/>): from (<paramref name="x"/>,
+    /// <paramref name="y"/>) up out of whatever it is in, a slope's diagonal or a wall's top, by no more than
+    /// <paramref name="up"/>; else down to the first ground, floors and ladder tops too, by no more than
+    /// <paramref name="down"/>. Null with none in reach: a wall's face, or a drop past an edge.
+    /// </summary>
+    public static int? GroundAt(Ship ship, int x, int y, int up, int down)
+    {
+        if (TopOver(ship, x, y) != null)
+        {
+            int at = y;
+            while (TopOver(ship, x, at) is int over)
+            {
+                if (y - over > up) return null;
+                at = over;
+            }
+            return at;
+        }
+        int column = CellOf(x);
+        for (int r = CellOf(y); r <= CellOf(y + down); r++)
+        {
+            int slope = SlopeAt(ship, column, r);
+            int? top = slope != Shape.None ? r * Unit + Shape.TopAt(slope, x - column * Unit)
+                : Solid(ship, column, r) || Holds(ship, column, r, false) ? r * Unit : null;
+            if (top >= y) return top <= y + down ? top : null;
+        }
+        return null;
+    }
+
     /// <summary>The cell the hero's body is in: the one under the middle of its box.</summary>
     public int BodyCell(int width) => CellOf(Y - MiddleUp) * width + CellOf(X);
 

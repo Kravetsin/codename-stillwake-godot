@@ -147,6 +147,12 @@ public partial class Main : Node2D, ITogether
             AddChild(new PoseSheet(sheet[13..], item));
             return;
         }
+        // --feet-sheet=<dir>: the hero's feet on slopes drawn alone and saved.
+        if (_args.FirstOrDefault(a => a.StartsWith("--feet-sheet=", StringComparison.Ordinal)) is { } feet)
+        {
+            AddChild(new FeetSheet(feet[13..]));
+            return;
+        }
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
         // First of all at its layer, before every shimmer (0075).
@@ -182,7 +188,7 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
+            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") && Has("--feet") ? HeroAutopilot.FeetRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
             if (_args.FirstOrDefault(a => a.StartsWith("--edge=")) is { } edge)
