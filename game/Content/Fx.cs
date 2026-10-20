@@ -21,4 +21,13 @@ public static class Fx
 
     /// <summary>An electric arc's light at its whole brightness (<c>Bolts</c>): a cyan pool round it while it lives.</summary>
     public const float BoltLight = 0.22f;
+
+    /// <summary>
+    /// How lively a running arc drill's coil is (slice 3), 1 as picked: its fine arcs, crawling sparks, leaps and glints a
+    /// second are times this; its haze pulses as it is.
+    /// </summary>
+    public const double Crackle = 1;
+
+    /// <summary>The most picked-up icons flying home to the hero on their ribbons of light at once (slice 3): past it a stack shows in the popup alone.</summary>
+    public const int MostRibbons = 4;
 }

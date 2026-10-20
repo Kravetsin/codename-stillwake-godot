@@ -198,6 +198,7 @@ public partial class LightView : Node2D
         foreach (var bolt in Bolts.Shared.Live)
         {
             if (_spots.Count >= Fx.MostLights) break;
+            if (bolt.Fine) continue;
             var (x0, y0, x1, y1, _) = bolt.Ends();
             // A short arc lights less than a long one: a crawl over a coil barely, a leap to a wall the room round it.
             double length = Math.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));

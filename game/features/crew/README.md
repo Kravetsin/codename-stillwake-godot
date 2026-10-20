@@ -31,7 +31,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
 | `JetPlume.cs`      | a jetpack's plume (0075): its core of light, streaks, motes, pool of light, shimmer | yes |
 | `RodLight.cs`      | the harpoon's light (0075): the shot's glint and gas, the rod's trail and wake, the bite, the taut line's bead, the zip home | yes |
-| `DrillLight.cs`    | a drill's light (0075): the bit's sparks, dust, chips and glints where it bites, the arc drill's arcs on its coil | yes |
+| `DrillLight.cs`    | a drill's light (0075): the bit's sparks, dust, chips and glints where it bites, the arc drill's fine arcs, crawling and leaping sparks, glints and haze on its coil | yes |
 | `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway (door or hatch, 0067), a valve's wheel, a plan's own pictures | yes |
 | `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`); `HillsRun`, the walk over `-- --hills` | no    |
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`), on a room's change and as its report every `Crew.ReportEvery` ticks (0050); `ExertOf` and `ThrustOf`, what it breathes and vents; `Cold`, how hard the cold bites at a cell | no    |
@@ -435,8 +435,12 @@ Deliberately not handled:
   another's: its bit touches one), the axe's hit in small and without end, 26 short sparks a second thrown back off
   the bit, slow dust, now and then a small tumbling chip, a small glint every quarter second and a warm light held
   there; a wreck's hit by a drill throws nothing of its own (`DebrisView`). The arc drill's coil (`HeldLook.Coil`, the
-  copper wound round the stock) besides, while it spins: arcs crawling across it, nine a second at full spin, and
-  now and then one leaping off it (`Bolts`); the plain drill has none.
+  copper wound round the stock) besides, while it spins, as fine as a fire's embers (slice 3): hair-thin fine arcs
+  (`Bolts`, `fine`), most arched over the stock's top into the dark from one turn to another, a few faint across its
+  bright face, 22 a second at full spin; sparks crawling along its top (a short stroke of light, `Flares.Trail`), 7 a
+  second, now and then leaping off where they end; 4 leaps a second of one or two tiny blue streaks (`Luminous.ArcSpark`);
+  2 micro-glints a second; a faint blue haze and light over it pulsing at 2.6 Hz. Every rate swells and ebbs together on
+  slow noise, bursts from a third of itself to twice, and is times `Fx.Crackle`; the plain drill has none.
   Heard at its bit (0059, `features/sound`): its motor whenever it spins, grains of a drill running free, spun up
   and down with the bit's picture (`HeldLook.SpinUpMs`) and sagging on a piece; and while its bit works on a piece,
   held 0.1 s past a graze, 18 short strikes a second, each its own pitch and loudness (`StrikeTrain`), silent the

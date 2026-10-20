@@ -259,6 +259,24 @@ public class LuminousTests
     }
 
     [Fact]
+    public void AFineArcIsFourSegmentsHoweverShortAndRolledAnewEveryFrame()
+    {
+        int calls = 0;
+        var bolts = new Bolts(() => (calls++ * 0.37) % 1);
+        var fine = bolts.Add(() => (0, 0, 2, 0, -0.3), 6, fine: true)!;
+        var plain = bolts.Add(() => (0, 0, 2, 0, -0.3), 6)!;
+        var points = new (double X, double Y)[65];
+        // Two pixels long: a plain arc is folded once, a fine one twice.
+        Assert.Equal(3, plain.PointsOf(0, 0, 0, 2, 0, points));
+        int n = fine.PointsOf(0, 0, 0, 2, 0, points);
+        Assert.Equal(5, n);
+        var held = points.Take(n).ToArray();
+        bolts.Step(Frame);
+        fine.PointsOf(0, 0, 0, 2, 0, points);
+        Assert.NotEqual(held, points.Take(n));
+    }
+
+    [Fact]
     public void ArcsPastTheLimitAreNotMadeAndAStallRollsAFewFramesNotAllOfIt()
     {
         var bolts = new Bolts(() => 0.5);

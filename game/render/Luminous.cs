@@ -169,6 +169,15 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>Dropping from a lamp short of power as it catches, arcing down and bouncing once.</summary>
     public static readonly Luminous LampSpark = new(Glimmer.Streak, Spark, (300, 700))
     { Fade = 1.1, Gravity = 240, Drag = 1, Spin = 2, Stretch = 0.045, Shortest = 0.5, Width = 0.24, Halo = 3, Light = true, Bounce = 0.3 };
+
+    // Slice 3 (0075): the arc drill's coil, as fine as the furnace's embers.
+
+    /// <summary>
+    /// Leaping a short way off the arc drill's coil: a tiny streak of white-blue light jittering as it goes, stopped within
+    /// a few pixels, gone in a blink. No light of its own: the coil's pulse lights the room.
+    /// </summary>
+    public static readonly Luminous ArcSpark = new(Glimmer.Streak, [(240, 252, 255), (150, 215, 255), (70, 130, 255)], (110, 240))
+    { Fade = 1.3, Drag = 6, Spin = 9, NoiseScale = 0.35, Stretch = 0.05, Shortest = 0.7, Longest = 4, Width = 0.22, Hot = 0.8, Halo = 1.6 };
 }
 
 /// <summary>One luminous particle in flight.</summary>
