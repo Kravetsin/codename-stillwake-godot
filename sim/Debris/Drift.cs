@@ -121,7 +121,7 @@ public sealed partial class DebrisModule
     {
         var s = State;
         // A world begins with pieces already on their way, as if the ship had drifted a while.
-        if (s.Clock == 0 && s.AtStart > 0 && Hull() is { } first)
+        if (s.Clock == 0 && s.AtStart > 0 && Rules.Debris && Hull() is { } first)
         {
             var ship = Content.Debris.Ship;
             for (int i = 0; i < Math.Min(s.AtStart, ship.Max); i++) SpawnByHull(ship, (ByHull)ship.Anchor, first, along: true);
@@ -142,6 +142,8 @@ public sealed partial class DebrisModule
             pieces[kept++] = piece;
         }
         pieces.RemoveRange(kept, pieces.Count - kept);
+        // A planet has no debris drifting by (0076): no zone beats there.
+        if (!Rules.Debris) return;
         var zones = Content.Debris.Zones;
         for (int i = 0; i < zones.Count; i++) Beat(zones[i]);
     }

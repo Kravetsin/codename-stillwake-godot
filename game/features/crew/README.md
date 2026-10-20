@@ -144,6 +144,12 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 - **Another surface (0076):** moved by the sim to another surface, this hero stands where it arrived, the harpoon's
   rod back in the gun; `Main` draws the registry of the surface it is on and puts away the open crate, the plan and the
   effects.
+- **A planet's rules (0076):** `Ship.Of` takes the kind of the surface (`Registry.Rules`): the hero floats only where
+  `IRoomsQueries.Afloat` says, never on a planet, its open sky included, so no swim, tether, thrust or muffle there;
+  and a fall gains the kind's gravity a step (`Ship.Gravity`, `Surfaces.Kind.Fall` of `Hero.Gravity`: 14 on the
+  test strip, against 21 aboard), so a jump clears six cells where aboard it clears three (`PlanetHeroTests`).
+  `--planet --autopilot` plays the strip (`HeroAutopilot.PlanetRun`): out of the shelter, onto the cliff, down the
+  shaft into the cave.
 
 - This hero is sent (`Client.SendHero`, a string net never reads: `SentHero.Encode`, JSON) every 50 ms
   while it moves, turns its head, ties or lets go its tether, takes the plan or a tool out or its hands
@@ -217,6 +223,7 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   `Jetpack.Accel` a step up to `Jetpack.Top`; without thrust it slows by `Jetpack.Drag` a step toward what
   the keys swim. A fall carried out into space is cut to `Jetpack.Top`; walls and the grid's edge stop it as
   they stop anything, and what they stop it loses. Taken off out there, the hero swims on with no tether.
+- **On a planet** nothing floats, so the jetpack thrusts nothing and draws nothing (0076); its card says so.
 - Every frame the client sends `Thrust` while its own thrust (any step of the frame) differs from the sim's
   (`Report.ThrustOf`), as it does `Exert`: on with the first thrusting step, off on Shift let go, aboard,
   the jetpack taken off, the suit empty or passed out.

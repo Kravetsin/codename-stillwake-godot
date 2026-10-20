@@ -54,7 +54,8 @@ namespace Stillwake.Game;
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
-/// <c>--planet</c> opens the test strip and beams the hero down to it (0076), with <c>--beam-back</c> back aboard two seconds in,
+/// <c>--planet</c> opens the test strip and beams the hero down to it (0076), with <c>--autopilot</c> played by a script
+/// (<see cref="HeroAutopilot.PlanetRun"/>), with <c>--beam-back</c> back aboard two seconds in,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
 /// </summary>
@@ -166,7 +167,7 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : HeroAutopilot.Wreck();
+            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--planet") ? HeroAutopilot.PlanetRun() : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
             if (_args.FirstOrDefault(a => a.StartsWith("--edge=")) is { } edge)
@@ -819,13 +820,17 @@ public partial class Main : Node2D, ITogether
         // The fires before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);
         AddChild(_furnace = fires);
-        AddChild(_light = new LightView(_m.Grid)
+        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules))
         {
             // --lit: every lamp at full power, to measure the light on the reference world.
             LampShare = Has("--lit") ? _ => 1f : lamp => power.Satisfaction(lamp.Id) / 1000f,
             Fire = m => fires.BlazeOf(m.Id),
             FireAt = FurnaceView.LightAt,
         });
+        // A planet's sky behind its ground, space aboard (0076).
+        var (r, g, b) = Game.Light.SkyOf(_m.Rules);
+        float day = Game.Light.SkyBackdrop;
+        _stars.Daylight = _m.Rules.Sky != null ? new Color(r * day, g * day, b * day) : null;
         MoveChild(_camera, -1);
         _shown = _m;
         _gridKey = null;

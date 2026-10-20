@@ -25,6 +25,11 @@ public interface IRoomsQueries
 {
     /// <summary>The room <paramref name="cell"/> is in, <see cref="RoomsModule.Space"/>, or null for a solid cell or one off the grid.</summary>
     int? RoomAt(int cell);
+    /// <summary>
+    /// Whether something in <paramref name="cell"/> floats: in space on a surface whose kind lets things float there,
+    /// the ship's; never on a planet, where gravity holds everywhere (0076).
+    /// </summary>
+    bool Afloat(int cell);
     Room? RoomById(int id);
     /// <summary>Every room, in id order.</summary>
     IReadOnlyList<Room> All { get; }
@@ -95,6 +100,8 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         if (cell < 0 || cell >= State.RoomOf.Length || State.RoomOf[cell] == Solid) return null;
         return State.RoomOf[cell];
     }
+
+    public bool Afloat(int cell) => Rules.Floats && RoomAt(cell) == Space;
 
 
     public Room? RoomById(int id)

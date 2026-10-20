@@ -21,6 +21,8 @@ public partial class Stars : CanvasLayer
     private static readonly Color Star = new(223 / 255f, 232 / 255f, 245 / 255f);
 
     private readonly Sprite2D _sky;
+    /// <summary>A planet's sky behind its ground, drawn over the screen in place of space (0076).</summary>
+    private readonly ColorRect _day = new() { Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly FarWrecks _wrecks = new();
     private readonly Dust _dust = new();
     private float _stream;
@@ -50,9 +52,25 @@ public partial class Stars : CanvasLayer
             // The project draws nearest: a star would hold still and jump a whole pixel every few frames.
             TextureFilter = CanvasItem.TextureFilterEnum.Linear,
         };
+        AddChild(_day);
         AddChild(_sky);
         AddChild(_wrecks);
         AddChild(_dust);
+    }
+
+    /// <summary>
+    /// A planet's sky in this colour behind everything, space and what drifts in it hidden; null for space, as aboard
+    /// (0076).
+    /// </summary>
+    public Color? Daylight
+    {
+        get => _day.Visible ? _day.Color : null;
+        set
+        {
+            _day.Visible = value != null;
+            if (value is { } colour) _day.Color = colour;
+            _sky.Visible = _wrecks.Visible = _dust.Visible = value == null;
+        }
     }
 
     /// <summary>The world's time, in seconds of ticks, that the far wrecks and the dust have drifted by: every peer's alike.</summary>
@@ -67,6 +85,7 @@ public partial class Stars : CanvasLayer
         var centre = camera?.GetScreenCenterPosition() ?? Vector2.Zero;
         float zoom = camera?.Zoom.X ?? 1;
         _sky.RegionRect = new Rect2(centre * zoom * Parallax + new Vector2(_stream, 0), screen);
+        _day.Size = screen;
         _wrecks.Follow(centre, zoom, screen, Seconds);
         _dust.Follow(centre, zoom, screen, Seconds);
     }

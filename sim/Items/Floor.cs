@@ -125,12 +125,12 @@ internal static class FloorRules
 
     /// <summary>
     /// A tick of one stack. Inside something built it is pushed out, still, into the cell
-    /// <see cref="PushedTo"/> finds, or rises a cell with nothing open in reach. In space it flies on as
-    /// it was thrown, and with everything outside it drifts back past the moving ship. Inside the ship it
-    /// falls, stops against what is built, and slides to a stop on what it lands on. Whether it is
+    /// <see cref="PushedTo"/> finds, or rises a cell with nothing open in reach. Afloat in space it flies on as
+    /// it was thrown, and with everything outside it drifts back past the moving ship. Elsewhere it falls by
+    /// <paramref name="gravity"/> a tick, its surface's (0076), stops against what is built, and slides to a stop on what it lands on. Whether it is
     /// still on the grid: past the edge it is gone.
     /// </summary>
-    private static bool Move(FloorStack s, IGridQueries grid, IRoomsQueries rooms)
+    private static bool Move(FloorStack s, IGridQueries grid, IRoomsQueries rooms, int gravity)
     {
         int width = grid.Width, height = grid.Height;
         int row = Down(s.Y - 1, Unit);
@@ -141,14 +141,14 @@ internal static class FloorRules
             s.Vx = 0;
             s.Vy = 0;
         }
-        else if (rooms.RoomAt(s.Cell) == RoomsModule.Space)
+        else if (rooms.Afloat(s.Cell))
         {
             s.X += s.Vx - Tune.SpaceDrift;
             s.Y += s.Vy;
         }
         else
         {
-            s.Vy = Math.Min(s.Vy + Tune.Gravity, Tune.MaxFall);
+            s.Vy = Math.Min(s.Vy + gravity, Tune.MaxFall);
             int nx = s.X + s.Vx;
             if (!InSolid(grid, nx, s.Y - 1)) s.X = nx;
             // Into a slope's diagonal no steeper than it moves, it skids up onto it; else it stops.
@@ -196,13 +196,13 @@ internal static class FloorRules
     /// is. Then stacks of one item at rest in a cell merge into the oldest, up to its limit, only within one body
     /// or outside any.
     /// </summary>
-    public static void Settle(ItemsState state, IGridQueries grid, IRoomsQueries rooms)
+    public static void Settle(ItemsState state, IGridQueries grid, IRoomsQueries rooms, int gravity)
     {
         var kept = new List<FloorStack>();
         foreach (var s in state.Floor)
         {
             if (s.Body is { } body && state.Ticks - body.Died >= Tune.BodyLasts) continue;
-            if (!Move(s, grid, rooms)) continue;
+            if (!Move(s, grid, rooms, gravity)) continue;
             bool resting = s.Vx == 0 && s.Vy == 0;
             foreach (var into in kept)
             {

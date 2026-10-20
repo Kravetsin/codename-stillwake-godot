@@ -396,7 +396,7 @@ public partial class BuildMenu : CanvasLayer
             return;
         }
         var tabs = Tools.Tabs
-            .Select(t => t with { Tools = t.Tools.Where(each => Tools.Known(each, m.Research)).ToList() })
+            .Select(t => t with { Tools = t.Tools.Where(each => Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
             .Where(t => t.Tools.Count > 0)
             .ToList();
         var shownTab = tabs.FirstOrDefault(t => t.Id == _hand.Tab.Get()) ?? tabs.FirstOrDefault();

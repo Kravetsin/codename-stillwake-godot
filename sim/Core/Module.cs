@@ -28,6 +28,9 @@ public interface ISurfaces
     /// <summary>The surface this module runs on: 0 for the ship.</summary>
     int Here { get; }
 
+    /// <summary>The rules of the kind of surface this module runs on: gravity, air, sky, debris, what may be built.</summary>
+    Content.Surfaces.Kind Kind { get; }
+
     /// <summary>
     /// Moves peer <paramref name="peer"/>'s hero and what it carries to <paramref name="surface"/>, at its spawn, once
     /// every surface has run this tick, in the order asked: no module sees another surface change under it.
@@ -84,6 +87,9 @@ public abstract class Module
 
     /// <summary>The world's surfaces as a module sees them (0076): which one it runs on, and moving a peer to another.</summary>
     protected ISurfaces Surfaces => Where;
+
+    /// <summary>The rules of the kind of surface this module runs on (0076): the ship's until it is part of a world.</summary>
+    public Content.Surfaces.Kind Rules => Where?.Kind ?? Content.Surfaces.Ship;
 
     /// <summary>Rebuilds derived state from the rest of the slice: after a create and after a load.</summary>
     public virtual void Rebuild() { }

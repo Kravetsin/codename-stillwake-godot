@@ -87,6 +87,12 @@ Numbers from `game/Content/Light.cs`.
   walls, doors, back walls or machines change, and then only round them; and
   `Starlight` hands it to `render/Lit.cs` as a texture of a texel a cell laid where that region lies,
   its alpha marking a wall's or closed door's cell; a picture blends it only with cells of its own side.
+- **A planet's sky** (0076): the light through the open sky is its surface kind's (`Light.SkyOf`, from
+  `Surfaces.Kind.Sky`: the test strip's a warm daylight, 0.95, 0.90, 0.80), worked out and spread as starlight is, so
+  a cave of back-walled ground is dark a few cells in; the stars' where the kind names none. `Main` hands it to
+  `LightView`. The faintest texel is judged by the brightest sky there is (`Light.BrightestSky`), so a change's reach
+  covers every kind. Behind the ground `render/Stars` draws the sky in place of space, at `Light.SkyBackdrop` of its
+  light, the stars, far wrecks and dust hidden (`Stars.Daylight`).
 - **`render/Lit.cs`** draws everything set with `Lit.Set`, unshaded, the lightmaps blended between
   texels so a shadow's edge does not step at the world's pixels on screen: ambient, plus the stars and the
   main map — scaled down together where they would pass whole in a colour, so a fire's orange over a

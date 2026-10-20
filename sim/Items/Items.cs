@@ -106,7 +106,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         {
             State.Ticks += 1;
             Runs();
-            FloorRules.Settle(State, _grid, _rooms);
+            FloorRules.Settle(State, _grid, _rooms, Rules.Fall(Content.Floor.Gravity));
         });
     }
 

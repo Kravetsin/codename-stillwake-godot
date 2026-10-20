@@ -1,6 +1,6 @@
 # 0076 — A world is made of surfaces
 
-- Status: accepted; slices 1–3 built (the second as one change with the third), slice 4 planned
+- Status: accepted; slices 1–4 built (the second as one change with the third)
 - Date: 2026-10-20
 
 ## Context
@@ -57,7 +57,7 @@ saving, ids, and the client's views.
 | 1 | Surfaces in the core: the ship as surface 0, `SurfaceOf`, a handler table per surface, the client's stamp, `world.elsewhere`; no change to saves or the game | built |
 | 2 | Globals with the second surface: Players and Knowledge, format 20 moving colours and research into them | built |
 | 3 | Surface 1 behind a dev flag (`--planet`, the dev panel): world commands to open a surface and move a hero between them (applied at command time), carrying hero and inventory, the client switching its views and filtering heroes and in-flight commands by surface, the fuzz drawing transfers | built, with 2 |
-| 4 | Planet rules from the kind: gravity for stacks and the hero, thin air outdoors, sky light, no debris zones, the build list (`building.notHere`) | planned |
+| 4 | Planet rules from the kind: gravity for stacks and the hero, thin air outdoors, sky light, no debris zones, the build list (`building.notHere`) | built |
 | 5 | The ground generator and digging: its own design | later |
 
 ## Deliberately not handled
@@ -76,8 +76,8 @@ saving, ids, and the client's views.
 
 ## Slices 2 and 3 as built
 
-- The strip (`Content.Surfaces.TestStrip`) is a hand-drawn ASCII map: a long floor, steps, a back-wall band, sky
-  above. Its rules are the ship's until slice 4: heroes float in its sky as they would in space, debris streams by.
+- The strip (`Content.Surfaces.TestStrip`) is a hand-drawn ASCII map, drawn in code: ground under open sky, a cliff, hills,
+  a cave down a laddered shaft, and a shelter at the cliff's foot that heroes beam down into. Its rules are slice 4's.
 - Globals are modules of the ship's registry, listed first, saved first in its `slices`; another surface's registry
   shares the same instances and leaves them out of its own list. Crew keeps `PickColour`, validated against every
   colour worn (`Players.Worn`); research keeps what each analyzer is doing and asks Knowledge what is known.
@@ -85,3 +85,38 @@ saving, ids, and the client's views.
 - The client's registry is the one of the surface its hero is on; on a switch it puts away the open crate, the plan
   and the effects, seats the harpoon's rod, and makes its views again. `Client.InFlight` leaves out what was sent
   from a surface the peer has left; other heroes are drawn only when on the same surface.
+
+## Slice 4 as built: a kind's rules
+
+- **A kind names its rules in content** (`Content.Surfaces.Kind`), read by the modules and the client of a surface of
+  it and never saved: the ship is a kind too (`Surfaces.Ship`, every rule as it always was). A module reads its
+  surface's through `Module.Rules` (`ISurfaces.Kind`), the client through `Registry.Rules`.
+- **Gravity** (`Gravity`, thousandths of the ship's; null for the ship's way, gravity aboard and afloat in space):
+  everywhere on a planet, its open sky too, nothing floats (`IRoomsQueries.Afloat`, which stacks, bodies, sparks
+  and the hero controller read where they read space before). What a fall gains a step is the ship's scaled, rounded
+  down, at least 1 (`Kind.Fall`). The strip's is 700: stacks gain 21 a tick rather than 30, the hero 14 a step
+  rather than 21, so a jump clears six cells where aboard it clears three, and lasts half as long again.
+- **The jetpack lifts nothing where nothing floats:** the client never thrusts there, and the sim stops a thrust a
+  hero carries down, venting nothing (`Crew`). Its card says so.
+- **Thin air** (`ThinAir`, an every; null for vacuum): where the air a hero breathes falls short of the breath —
+  outside, or in a sealed room with no air in it, which holds the planet's thin air as much as any — its suit pays
+  one breath in that many, a paying breath in full, exertion included. The strip's is 5: a full suit lasts some
+  four minutes outside rather than 45 s. Rooms and vents work as aboard, so an aired room costs nothing.
+- **Sky light** (`Sky`, thousandths of whole per colour; null for the stars): what shines through every open cell
+  with no back wall, falling off into back-walled cells as starlight does (0070), so a cave is dark a few cells in;
+  behind the ground the client draws the sky at `Light.SkyBackdrop` of it in place of space. The strip's is a warm
+  daylight (0.95, 0.90, 0.80), to be tuned by eye.
+- **No debris** (`Debris` false): no zone beats on a planet. The ship's debris drifts round the ship's heroes only.
+- **The build list** (`Builds`, placement kinds; null for every one): a blueprint for anything else is refused
+  `building.notHere`, before what is known is asked, and the build menu shows only the cards the kind allows (the
+  cable as `cable`). The strip allows hull walls, back walls, floors, ladders and doors: no machines, pipes or cables.
+- **No cold at the edge:** a planet's grid sets no build zone, so its field reaches past the grid (0050) and no cell
+  on it costs anything.
+- **Sound:** what decides the muffle is whether the hero floats (`HeroView.Floats`): never on a planet, so its open
+  air carries sound as a room's does.
+
+### Deliberately not handled (slice 4)
+
+- **A thin-air room:** a sealed room with no air on a planet is as thin as outside; vents fill it with real air.
+- **The sky's backdrop** is one flat colour: no gradient, sun, clouds or day and night.
+- **Natural blocks:** the strip's ground is hull wall, lit and taken apart as hull, until the generator slice.

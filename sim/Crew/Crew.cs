@@ -147,8 +147,11 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICarri
                 int want = Math.Min(breathes + Math.Min(Content.Crew.Refill, lack), breathes + lack - pod);
                 int taken = want > 0 ? atmosphere.Breathe(hero.Cell, want) : 0;
                 int cold = EdgeCost(hero.Cell);
-                hero.Suit = Math.Max(0, hero.Suit + pod + taken - breathes - cold);
-                if (hero.Suit == 0 && (pod + taken < breathes || cold > 0))
+                int net = pod + taken - breathes;
+                // Thin air (0076): what the air falls short of the breath, the suit pays one breath in ThinAir.
+                if (net < 0 && Rules.ThinAir is int every && State.Clock / Content.Crew.BreathEvery % every != 0) net = 0;
+                hero.Suit = Math.Max(0, hero.Suit + net - cold);
+                if (hero.Suit == 0 && (net < 0 || cold > 0))
                 {
                     hero.Out = Content.Crew.PassOut;
                     hero.Exerting = false;
@@ -165,12 +168,13 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICarri
     /// <summary>
     /// A conscious hero thrusting pays its suit a unit every <c>Jetpack.TicksPerUnit</c> ticks of thrust,
     /// the ticks short of a unit kept for the next burst; never below nothing. One that no longer wears a
-    /// jetpack stops thrusting.
+    /// jetpack, or stands where nothing floats, stops thrusting.
     /// </summary>
     private void Thrusts(Hero hero)
     {
         if (!hero.Thrusting) return;
-        if (!_items.Equipped(hero.Id, Content.Jetpack.Item))
+        // Under gravity everywhere the jetpack, an air-thrust suit for space, lifts nothing and vents nothing (0076).
+        if (!Rules.Floats || !_items.Equipped(hero.Id, Content.Jetpack.Item))
         {
             hero.Thrusting = false;
             return;

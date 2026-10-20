@@ -50,6 +50,9 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   tab's pipes or cables over it (0072); the overlay shown stays the tab's, for the buttons and the pointer's tip.
   The menu opens on the tab it closed on; a card picked opens
   its tab; another tab lets the card go; a tab with nothing known is never the tab.
+- **A surface's build list** (0076): only the cards the kind of the hero's surface allows are shown
+  (`Tools.Allowed`, by `Registry.Rules`; the cable as `cable`), nor picked by Q: on the test strip, the structure tab
+  alone, without pipes, machines or cables. A plan for anything else the sim refuses `building.notHere`.
 - Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still

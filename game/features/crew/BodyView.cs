@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Sim;
-using Stillwake.Sim.Rooms;
 using FloorSpec = Stillwake.Content.Floor;
 
 namespace Stillwake.Game.Features.Crew;
@@ -55,7 +54,7 @@ public partial class BodyView : Node2D
         var rooms = m.Rooms;
         Bodies.Of(m.Items.Floor, _piles, s =>
         {
-            bool space = rooms.RoomAt(s.Cell) == RoomsModule.Space;
+            bool space = rooms.Afloat(s.Cell);
             int drift = space ? FloorSpec.SpaceDrift : 0;
             return (s.X + (s.Vx - drift) * progress, s.Y + (space || s.Vy != 0 ? s.Vy * progress : 0));
         });

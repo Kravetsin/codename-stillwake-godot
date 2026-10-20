@@ -47,7 +47,7 @@ public partial class LightView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly Lightmap _lightmap = new();
-    private readonly Starlight _starlight = new();
+    private readonly Starlight _starlight;
     private readonly Node2D _lamps = new();
     private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow, double Floor)> _shown = new();
     /// <summary>The sparks, glints, ember and arcs of lamps short of power (0075).</summary>
@@ -78,9 +78,11 @@ public partial class LightView : Node2D
     public int LightCount => _lightmap.Drawn;
     public int LampCount => _shown.Count;
 
-    public LightView(IGridQueries grid)
+    /// <param name="sky">The light through the open sky of its surface, by <see cref="L.SkyOf"/> its kind: the stars' when not given.</param>
+    public LightView(IGridQueries grid, (float R, float G, float B)? sky = null)
     {
         _grid = grid;
+        _starlight = new Starlight(sky);
         AddChild(new CanvasModulate { Color = new Color(L.Ambient.R, L.Ambient.G, L.Ambient.B) });
         AddChild(_lightmap);
         AddChild(_starlight);

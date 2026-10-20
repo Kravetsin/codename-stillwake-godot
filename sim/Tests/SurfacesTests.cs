@@ -131,7 +131,7 @@ public class SurfacesTests
         Assert.NotEqual(0u, strip.Seed);
         var m = w.On(1);
         Assert.Equal(StripWidth, m.Grid.Width);
-        Assert.Equal(27 * StripWidth + 14, m.Crew.Spawn);
+        Assert.Equal(29 * StripWidth + 30, m.Crew.Spawn);
         // Its own modules, the world's globals shared.
         Assert.NotSame(w.M.Grid, m.Grid);
         Assert.Same(w.M.Players, m.Players);
@@ -234,11 +234,11 @@ public class SurfacesTests
         var w = Opened().GiveItems(0, ("scrap", 9), (Content.Weapons.Axe.Item, 1));
         w.Do(new Transfer(1)).Run();
         var m = w.On(1);
-        // Up in the sky, its suit all but empty: the next breath passes it out.
+        // Up in the sky, its suit all but empty: the next breath its thin air makes it pay passes it out.
         int sky = 5 * StripWidth + 14;
         w.Do(new Enter(sky) { Surface = 1 }).Run();
         m.Crew.HeroOf(0)!.Suit = 1;
-        w.Run(Content.Crew.BreathEvery);
+        w.Run(Content.Surfaces.TestStrip.ThinAir!.Value * Content.Crew.BreathEvery);
         Assert.True(m.Crew.HeroOf(0)!.Out > 0);
         var body = Assert.Single(m.Items.Floor);
         Assert.Equal(("scrap", 9, 0), (body.Item, body.Count, body.Body!.Peer));

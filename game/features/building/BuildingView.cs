@@ -241,7 +241,7 @@ public partial class BuildingView : Node2D
             var box = BoxOf(CellsOf(grid, p), grid.Width);
             var (x, y, heading) = Tools.SparksOf((box.Position.X, box.Position.Y, box.Size.X, box.Size.Y), _ui.Heroes, SparkReach);
             var tip = new Vector2((float)x, (float)y);
-            _glow.Sparked(p.Id, tip, heading, bursts, rooms.RoomAt(p.Cell) == RoomsModule.Space, FloorUnder(grid, tip));
+            _glow.Sparked(p.Id, tip, heading, bursts, rooms.Afloat(p.Cell), FloorUnder(grid, tip));
             _screwdriver.PlayAt(tip);
         }
     }

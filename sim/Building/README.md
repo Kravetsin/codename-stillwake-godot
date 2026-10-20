@@ -22,6 +22,10 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 
 ## Rules
 
+- **A surface's build list** (0076): a blueprint for a placement its surface's kind does not allow
+  (`Surfaces.Kind.Builds`, by the placement's kind: `wall`, `ladder`, `furnace`) is refused `building.notHere`, after
+  `building.fixed` and before anything else, creative mode or not. The ship allows every one; the test strip hull
+  walls, back walls, floors, ladders and doors. Marks and work are not asked: nothing else can be built there.
 - A blueprint is checked against what is known first (`building.unknown`, but in creative mode), then
   against the grid (`IGridQueries.PlacementProblem`, whose keys pass through unchanged), then against
   the other plans: in each cell, structure and machines share one solid slot, and a conduit and a
@@ -81,7 +85,7 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   what a blueprint costs in all, null for a mark or no plan; `RefundOf(planId)` — what taking apart what a mark
   names gives back, the same `Costs.BuiltAt` its last tick refunds, for its tip: null for a blueprint or no plan; `CostFor(placement)` — what placing it
   costs, for the build menu.
-- **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.unknown`,
+- **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.notHere`, `building.unknown`,
   grid's keys or `building.planned`; `Deconstruct(Cell, Layer)`, refused with `building.nothingThere`,
   `building.fixed`, `building.planned`, `building.notEmpty` or `building.cabled`; `CancelPlan(Id)`, refused with
   `building.noPlan`; `Work(Plan)`, refused with `building.noPlan`, `items.notEnough`,

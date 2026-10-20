@@ -29,11 +29,16 @@ public readonly record struct HeroInput(
 /// <summary>
 /// The cells the hero moves against and the shapes of their walls (0069); which of them are space, where the
 /// hero floats; and which are the hull, where a tether is not yet needed: any cell with a structure or a back
-/// wall, aired or not.
+/// wall, aired or not. <paramref name="gravity"/> is what a fall gains a step, the ship's unless its surface's
+/// kind scales it (0076): a planet's lower one, where nothing floats, lets the hero jump higher and farther.
 /// </summary>
 public sealed class Ship(
-    int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null, Func<int, int>? shapeAt = null)
+    int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null, Func<int, int>? shapeAt = null,
+    int gravity = Spec.Gravity)
 {
+    /// <summary>What a fall gains a step, in thousandths of a cell a step.</summary>
+    public int Gravity => gravity;
+
     public int Width => width;
     public int Height => height;
 
@@ -49,11 +54,14 @@ public sealed class Ship(
 
     /// <summary>
     /// The ship as the sim's grid and rooms see it now, its cells' structure as <paramref name="structureAt"/>
-    /// gives it when given: doors as this peer shows them, its own toggles in flight made (0014).
+    /// gives it when given: doors as this peer shows them, its own toggles in flight made (0014). Under the rules of
+    /// its surface's kind, <paramref name="rules"/>, the ship's when none: the hero floats only where the rooms say
+    /// something does, never on a planet, and falls by the kind's gravity (0076).
     /// </summary>
-    public static Ship Of(IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null) =>
-        new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, cell => rooms.RoomAt(cell) == RoomsModule.Space,
-            cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null, grid.ShapeAt);
+    public static Ship Of(IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null, Stillwake.Content.Surfaces.Kind? rules = null) =>
+        new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, rooms.Afloat,
+            cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null, grid.ShapeAt,
+            (rules ?? Stillwake.Content.Surfaces.Ship).Fall(Spec.Gravity));
 }
 
 /// <summary>
@@ -216,7 +224,7 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
     /// </summary>
     private static Hero Fall(Ship ship, int x, int y, int dir, int vy, int facing, bool sprint, bool down = false)
     {
-        int speed = Math.Min(vy + Spec.Gravity, Spec.MaxFall);
+        int speed = Math.Min(vy + ship.Gravity, Spec.MaxFall);
         bool standing = vy >= 0 && Grounded(ship, x, y);
         int step = dir * (sprint ? Spec.Run : Spec.Walk);
         var (nx, wy) = standing && dir != 0 ? Walk(ship, x, y, step)

@@ -39,6 +39,10 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   for both. Anything taken pays the breath and the rest tops up the suit; what falls short of the
   breath (a cell with no air, away from the pod) the suit pays. Room air is taken as `Atmosphere` says: paid by its tanks, or
   from the far edge of the room's air, so a room without supply runs out under its heroes.
+- **Thin air** (0076): on a surface whose kind has thin air (`Surfaces.Kind.ThinAir`, the test strip's 5), what the air
+  falls short of the breath — outside, or in a sealed room holding no air — the suit pays only on one breath in that
+  many (the breath whose count since the surface opened, `Clock / BreathEvery`, divides by it), and then in full,
+  exertion included; on the others it pays nothing. Air taken from a room or the pod works as aboard.
 - **Suit colours** tell heroes apart: `Crew.Colours` of them, kept by the world's `Players` (0076), so two heroes on
   two surfaces never wear one. A hero coming in wears the first colour no hero wears, or with all worn, the least worn
   (the first on a tie) (`Players.Dress`). `PickColour(Colour)` puts the sender's hero into a colour no other hero
@@ -59,8 +63,9 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   its own thrust differs from the sim's. Every tick, before the breath, a conscious hero thrusting with a
   jetpack worn (`Equipped`) counts a tick of thrust (`ThrustTicks`); every `Jetpack.TicksPerUnit` of them
   its suit pays a unit, never below nothing, the ticks short of a unit kept between bursts so taps add
-  up. One no longer wearing a jetpack stops thrusting; passing out stops it too, and a thrust landing on a
-  hero out is cleared the same tick. The flight itself is the client's.
+  up. One no longer wearing a jetpack stops thrusting, as does one on a surface where nothing floats (a planet,
+  0076: the jetpack, an air-thrust suit for space, lifts nothing under gravity and vents nothing); passing out stops
+  it too, and a thrust landing on a hero out is cleared the same tick. The flight itself is the client's.
 - **Electric tools** ([0055](../../docs/decisions/0055-an-electric-tool-draws-while-it-runs.md)): a run belongs to
   `Items`, which owns charge; crew only stops it (`StopRunning`) as a hero passes out and every tick it stays out, so
   a `Run` landing on a hero out is stopped on its first tick. `Items` draws before crew in a tick, so that tick is
@@ -84,7 +89,8 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   way, 45 at the edge; a cell off the grid costs `Field.EdgeCost`. At every breath, after the breath
   and the refill, the suit alone pays it for the reported cell, never below nothing; a suit emptied
   so (or by the breath) passes the hero out as ever. It adds to thrust, which the suit pays apart. On a
-  map that sets no zone the field reaches past the grid, so no cell on it costs anything.
+  map that sets no zone the field reaches past the grid, so no cell on it costs anything. A planet's grid sets none (0076):
+  its whole grid is its field.
 - **Creative mode** (`Items`' dev panel switch): every tick a conscious hero's suit is full, whatever
   breath, exertion, thrust or cold would take, so it never passes out; it takes nothing from the pod or
   a room's air either. A hero already out when creative mode comes on wakes as ever.
