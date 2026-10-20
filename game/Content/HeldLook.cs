@@ -12,11 +12,14 @@ namespace Stillwake.Game;
 /// <see cref="Loaded"/> picture, the same size up and left, shows the rod in the barrel while it is ready.
 /// An <see cref="Aimed"/> item is pointed, not swung: the straight arm turns so its edge's line runs through
 /// the pointer. One that spins cycles its picture through <see cref="Spin"/>, each the same size, while it runs,
-/// and stops on its picture; its <see cref="Lamp"/>, a pixel's middle, lights while it runs.
+/// and stops on its picture; its <see cref="Lamp"/>, a pixel's middle, lights while it runs. One held in
+/// <see cref="Both"/> hands is held as a rifle is (<c>TwoHand</c>, 0078): <see cref="Grip"/> in the near hand, its
+/// foregrip in the far one, <see cref="Hold"/> unused.
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
-    bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, (double X0, double Y0, double X1, double Y1)? Coil = null)
+    bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, (double X0, double Y0, double X1, double Y1)? Coil = null,
+    TwoHands? Both = null)
 {
     /// <summary>
     /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
@@ -32,14 +35,15 @@ public sealed record HeldLook(
         "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true);
 
     /// <summary>
-    /// The drill, <c>art/hero_drill.png</c> (0054): the tube hammer, a motor in a length of tube, gripped by the frame
-    /// bent into a loop under its rear, held as a pistol is, aimed at the pointer; the edge its long bit, from the
-    /// chuck to the point, which is what drills. Running, the bit turns through three frames and the lamp on its
-    /// rear cap lights.
+    /// The drill, <c>art/hero_drill.png</c> (0054): the tube hammer, a motor in a length of tube, held as a rifle is
+    /// (0078), the near hand on the frame bent into a loop under its rear, the far one on the stub of a foregrip under
+    /// the front of the motor, aimed at the pointer; the edge its long bit, from the chuck to the point, which is what
+    /// drills. Running, the bit turns through three frames and the lamp on its rear cap lights.
     /// </summary>
     public static readonly HeldLook Drill = new(
         "res://art/hero_drill.png", (3, 10.5), 0, (25, 5.5), (32, 5.5), Aimed: true,
-        Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.5, 4.5));
+        Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.5, 4.5),
+        Both: new TwoHands((12, 10.5), (7.5, 10.5)));
 
     /// <summary>
     /// The arc drill (0075): the drill's picture, its coil tinted (a placeholder, <c>art/hero_arc_drill*.png</c>); while it runs,
@@ -63,6 +67,13 @@ public sealed record HeldLook(
     /// <summary>Whether <paramref name="item"/> is a drill, the plain or the arc drill: aimed, run on the belt, drilling what its bit touches.</summary>
     public static bool IsDrill(string? item) => item == Content.Weapons.Drill.Item || item == Content.Weapons.ArcDrill.Item;
 }
+
+/// <summary>
+/// How an item held in both hands sits in them (0078), in pixels of its picture: where the far hand closes
+/// (<see cref="Foregrip"/>), the near one closing on its <see cref="HeldLook.Grip"/>; and the pixel that rests on the
+/// body's hold point and turns there as it aims (<see cref="Mount"/>), between the two hands.
+/// </summary>
+public sealed record TwoHands((double X, double Y) Foregrip, (double X, double Y) Mount);
 
 /// <summary>
 /// The harpoon's rod as it flies, <c>art/hero_harpoon_rod.png</c>, its point along +x: where the line ties
