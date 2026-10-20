@@ -204,15 +204,11 @@ public partial class DebrisView(Ui ui) : Node2D
         // Struck on the side facing the hero, sparks thrown back toward it.
         var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
         var side = at - away * Math.Min(size.X, size.Y) * 0.4f;
-        // The drill's hits come ten a second: a few sparks each, and no chop: its strikes are heard as it works (HeroView).
-        bool drilled = _own.ToolOn(piece.Id) == Content.Weapons.Drill.Item;
+        // A drill's hits come ten or more a second: no chop, its strikes are heard as it works (HeroView), and its bit throws
+        // its own sparks where it bites (crew's DrillLight).
+        if (HeldLook.IsDrill(_own.ToolOn(piece.Id))) return;
         double back = (-away).Angle();
         var glims = Glims.Shared;
-        if (drilled)
-        {
-            glims.Spray(Luminous.HitSpark, side.X, side.Y, DrillSparks, back, (-0.8, 0.8), (60, 175));
-            return;
-        }
         // The axe's bite (0075): a glint, sparks sprayed back toward the hero, slow metal dust, three chips, a faint
         // shock line, a flash on the wreck and round it; this player's own, the view nudged a pixel.
         for (int i = 0; i < Math.Round(HitSparks * Fx.Count); i++)
@@ -237,8 +233,8 @@ public partial class DebrisView(Ui ui) : Node2D
         }
     }
 
-    /// <summary>Sparks a drill's hit throws, an axe's, the dust it knocks off and the chips.</summary>
-    private const int DrillSparks = 3, HitSparks = 16, HitDust = 14, Chips = 3;
+    /// <summary>Sparks an axe's hit throws, the dust it knocks off and the chips.</summary>
+    private const int HitSparks = 16, HitDust = 14, Chips = 3;
     private const double FrameMs = 1000.0 / 60;
     private static readonly (int, int, int) HitGlint = (255, 214, 150), ShockColour = (255, 236, 210);
     /// <summary>How much brighter a struck wreck's picture flares, warm, as its flash dies away by <see cref="FlashDecay"/> a 60 Hz frame.</summary>

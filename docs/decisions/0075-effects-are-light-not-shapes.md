@@ -40,7 +40,7 @@ generator's, which shares it), a screwdriver's sparks on a plan, an axe's hit an
 | `Fx` (`Content/Fx.cs`) | the page's sliders as knobs, all 1: length, count, turbulence, glow, glint hold (frames), shimmer; the lights' cap |
 
 `EffectsView` steps and draws all of it; `LightView` lights flashes first, then glowing particles, at most
-`Fx.MostLights` (48) together. The old `Particles` stays for dust, air and puffs until slice 2.
+`Fx.MostLights` (48) together. The old `Particles` stayed for dust, air and puffs until slice 2, which removed it.
 
 ## Why these choices
 
@@ -58,10 +58,51 @@ generator's, which shares it), a screwdriver's sparks on a plan, an axe's hit an
   were tried first: the aim's outline is a canvas group sharing the same buffer, and they showed a black disc over a
   weld and a green ghost of a furnace aimed at. The Esc menu's settings switch it off (on by default).
 
+## Slice 2
+
+The rest of the game's effects in the same style, variant B of the second review page, kept restrained after the
+user's note on slice 1's fire ("it was fountaining"):
+
+- **The jetpack** is a hot thruster (`JetPlume`): a short tapered core of light, white to blue, flickering in length and
+  drawn behind the heroes; hot streaks and blue motes; a blue pool of light that moves with the hero; shimmer in the plume.
+- **Boots' dust** is matter: fine motes and a veil a running step; on landing, grains skittering out, motes, veils and
+  one faint flat ring racing along the floor, its only light.
+- **The harpoon** (`RodLight`): a muzzle glint and a jet of cold gas; a thin trail behind the rod and motes in its wake; a
+  glint, sparks and a ring where it bites metal; a bead of light down the line as it goes taut; a reel over, a streak
+  zipping home to the hand.
+- **Air**: venting is a jet of streaks and curling condensation out of each breach (`VentLight`), shimmer and twinkling
+  frost on the nearest six, motes swept toward it as wind lines, the room lit red on the beat by a light rather than
+  painted over. Filling, the motes are fine soft specks and each vent breathes a faint veil now and then.
+- **Drones** (`DroneLight`): a disc of light over each rotor with a glint running round its rim, downwash streaks stopped
+  by the floor and the dust they creep, the lamp's trail, shimmer under the nearest three, a puff and ring at the pad.
+- **Doors** slide eased; their leading edge lit while they move, the slot's motes on opening, a floor ring, a glint, dust
+  and a hiss of vapour on shutting (`DoorLight`).
+- **A lamp short of power** keeps its flicker's timing (`LampSparks`): a small warm glint as it catches, a few sparks more
+  often than not, half the time an arc or two at its socket, an ember while dark. Nothing flashes the room white.
+- **The pick-up** (`PickUpFlights`): the icon flies home to the chest on a ribbon of light and lands in a glint and a
+  ring; the popup has a soft shadow and a band of light sweeps across it once.
+- **The electric smelter** (`SmelterHeat`): its element breathing in its window, a faint shimmer over it, a rare blue arc
+  at its contacts.
+- **The drill**: where its bit bites, the axe's hit in small and without end (`DrillLight`); the electric spear's bolts
+  moved from the bit to the coil on the stock, and made an upgrade: the plain drill has none, the **arc drill** has
+  them. The arc drill is a weapon of its own, 3 a hit every 4 ticks, 15 damage a second to the drill's 10 (half as much
+  again, damage a second being all that sets weapons apart, 0054), drawing as the drill does. It is never made: it is
+  tech to be found in planet ruins (`Weapons.Found`), and till then only the testbed's supply crate and
+  `--asteroid --arc-drill` hold one. Its art is the drill's with the coil tinted, a placeholder.
+
+New pieces of the toolkit, each with several callers: `Bolts` (the arc drill's coil, a lamp short of power, the
+smelter's contacts) — arcs by midpoint displacement, a shape held two 60 Hz frames, kept along and across the line
+between its ends so a held arc stays on ends that move, lit in cyan by the light feature less the shorter it is;
+`Flares.Trail` and `Flares.Bloom` (the rod, the ribbon, the lamp's trail, a door's edge, rotor discs, a smelter's breath,
+an ember) — lines and glows stamped for one frame and drawn in the same multimesh and batch, the layer now running
+after every feature; a squashed `Shock` for rings along a floor; `SoftDots`. Shimmers off the screen are hidden, so
+they take no screen copy. Measured on the same machine at 1920×1080, the testbed holds 620 fps (167 → 171 draw
+calls) and a bench of all of it at once, some 830 particles and eleven shimmers, 383.
+
 ## Deliberately not done
 
-- Slice 2: the jetpack's plume, boots' dust, the harpoon's puff and line, venting air, the drone, a door's slide, a
-  lamp's glow, the pick-up popup and the drill's bolts keep their look till then.
+- The arc drill is not made anywhere and no planet ruin exists yet; its art is a placeholder.
+- Another hero's drill hit on a wreck still shows as an axe's at the wreck: a peer is not told which tool hit.
 - Particles pass through walls; only a floor the emitter names stops sparks.
 - Others' heroes' swings are not held on contact: a peer is not told which swing bit.
 - A plan's molten spot heats per plan, so a wall dragged cell by cell is worked cool, a cell at a time.

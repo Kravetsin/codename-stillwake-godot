@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Render;
 using Xunit;
@@ -206,5 +207,73 @@ public class LuminousTests
             Assert.True(shown - last < 0.01);
             last = shown;
         }
+    }
+
+    [Fact]
+    public void ATrailOrABloomStampedIsDrawnTheFrameItWasStampedForAndGoneTheNext()
+    {
+        var flares = new Flares();
+        flares.Trail([(0, 0), (4, 0), (8, 2)], (255, 255, 255), 0.5, 0.8, 0.3);
+        flares.Trail(0, 0, 1, 1, (255, 255, 255), 0.5, 0.003, 0.3);
+        flares.Bloom(1, 2, 6, (255, 200, 140), 0.5, 0.3);
+        Assert.Empty(flares.Trails);
+        flares.TakeFrame();
+        // The faint one is nothing; the other's points in order, head first.
+        var trail = Assert.Single(flares.Trails);
+        Assert.Equal([(0d, 0d), (4d, 0d), (8d, 2d)], flares.TrailPoints.Skip(trail.From).Take(trail.Count));
+        Assert.Equal(new Bloom(1, 2, 6, (255, 200, 140), 0.5, 0.3), Assert.Single(flares.Blooms));
+        flares.TakeFrame();
+        Assert.Empty(flares.Trails);
+        Assert.Empty(flares.TrailPoints);
+        Assert.Empty(flares.Blooms);
+    }
+
+    [Fact]
+    public void AnArcRunsEndToEndHoldsItsShapeTwoFramesFollowsItsEndsAndIsGoneAfterItsLife()
+    {
+        int calls = 0;
+        var bolts = new Bolts(() => (calls++ * 0.37) % 1);
+        double x1 = 20;
+        var bolt = bolts.Add(() => (0, 0, x1, 0, 0.2), 6)!;
+        var points = new (double X, double Y)[65];
+        int n = bolt.PointsOf(0, 0, 0, x1, 0, points);
+        // Folded by its length: 20 pixels, four folds, seventeen points from end to end.
+        Assert.Equal(17, n);
+        Assert.Equal((0d, 0d), points[0]);
+        Assert.Equal((20d, 0d), points[n - 1]);
+        Assert.Contains(points.Take(n), p => Math.Abs(p.Y) > 0.5);
+        var held = points.Take(n).ToArray();
+        bolts.Step(Frame);
+        bolt.PointsOf(0, 0, 0, x1, 0, points);
+        Assert.Equal(held, points.Take(n));
+        // Its ends moved, the held shape moves with them; rolled on the second frame, a new one.
+        bolt.PointsOf(0, 10, 10, 10 + x1, 10, points);
+        Assert.Equal(held.Select(p => (p.X + 10, p.Y + 10)), points.Take(n));
+        bolts.Step(Frame);
+        bolt.PointsOf(0, 0, 0, x1, 0, points);
+        Assert.NotEqual(held, points.Take(n));
+        for (int i = 0; i < 3; i++) bolts.Step(Frame);
+        Assert.Single(bolts.Live);
+        bolts.Step(Frame);
+        Assert.Empty(bolts.Live);
+    }
+
+    [Fact]
+    public void ArcsPastTheLimitAreNotMadeAndAStallRollsAFewFramesNotAllOfIt()
+    {
+        var bolts = new Bolts(() => 0.5);
+        for (int i = 0; i < Bolts.Limit; i++) Assert.NotNull(bolts.Add(() => (0, 0, 5, 0, 0), 100));
+        Assert.Null(bolts.Add(() => (0, 0, 5, 0, 0), 100));
+        bolts.Step(10_000);
+        Assert.All(bolts.Live, b => Assert.Equal(6, b.Age));
+    }
+
+    [Fact]
+    public void AFloorRingIsSquashedFlatAndAnyOtherIsRound()
+    {
+        var flares = new Flares();
+        flares.Shock(0, 0, 2, 10, 100, (255, 255, 255), 0.3);
+        flares.Shock(0, 0, 2, 10, 100, (255, 255, 255), 0.3, squash: 0.16);
+        Assert.Equal([1, 0.16], flares.Shocks.Select(s => s.Squash));
     }
 }

@@ -17,6 +17,7 @@ mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 | `FabricatorPanel.cs`  | any queued station's panel under the inventory, in the machine frame: header, bolt and screen; recipes on the left, the shared queue and outputs on the right | yes |
 | `FabricatorScreen.cs` | the panel's small screen: lines running while it works, READY idle, dark with no power | yes   |
 | `StationView.cs`      | over a station's picture: the Former's flywheel, gears and press head moving, the smelter's coils glowing and lighting the room, the assembler's arm dipping and its screen lighting the room green, while it works; a cold-blue mark on a fed station too cold for its input | yes |
+| `SmelterHeat.cs`      | an electric smelter at work in light (0075): its element breathing in its window, a faint shimmer over it, a rare blue arc at its contacts | yes |
 | `StationSounds.cs`    | a station heard at work where it stands (0059): the Former's strokes in step with its head and its motor, the smelter's hum and its melt's pops; told by `StationView` every frame | yes |
 | `PodView.cs`          | over the pod's picture: its screen, its tray, its glass glowing while a hero is made    | yes   |
 | `PodDemo.cs`          | `-- --pod`: the wreck's pod opened and crafting, the axe's and the rotor's cards shown, for recordings | yes |

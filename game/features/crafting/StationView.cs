@@ -71,6 +71,9 @@ public partial class StationView : Node2D
     private readonly List<Glow> _coldGlows = [];
     private readonly Node2D _marks = new() { ZIndex = Layers.Screens, Material = Unlit };
     private readonly StationSounds _sounds = new();
+    /// <summary>Each electric smelter's heat, by machine id, and those seen this frame.</summary>
+    private readonly Dictionary<int, SmelterHeat> _heat = new();
+    private readonly HashSet<int> _heated = new();
     private double _clock;
 
     public StationView(IGridQueries grid, CraftingModule crafting)
@@ -100,6 +103,7 @@ public partial class StationView : Node2D
             ShowPlant(m.Id, m.Kind, corner);
             if (!Moving.TryGetValue(m.Kind, out var motion)) continue;
             bool works = _crafting.Works(m.Id);
+            if (m.Kind == "smelter") Heat(m.Id, corner, works, delta);
             // Each machine a step apart from the next, so two never beat in step.
             long step = (long)(_clock / motion.StepMs) + m.Id;
             var middle = corner + PixelArt.Picture($"{m.Kind}_work_0").GetSize() / 2;
@@ -122,6 +126,12 @@ public partial class StationView : Node2D
             }
         }
         _sounds.Forget();
+        foreach (var id in _heat.Keys.Where(id => !_heated.Contains(id)).ToList())
+        {
+            _heat[id].QueueFree();
+            _heat.Remove(id);
+        }
+        _heated.Clear();
         _stopped.Clear();
         foreach (var id in _shown.Keys)
             if (!_working.Contains(id)) _stopped.Add(id);
@@ -138,6 +148,18 @@ public partial class StationView : Node2D
             _plants.Remove(id);
         }
         ShowCold();
+    }
+
+    /// <summary>An electric smelter's heat in light (<see cref="SmelterHeat"/>, 0075), made the first time it is seen.</summary>
+    private void Heat(int id, Vector2 corner, bool works, double delta)
+    {
+        _heated.Add(id);
+        if (!_heat.TryGetValue(id, out var heat))
+        {
+            if (!works) return;
+            AddChild(_heat[id] = heat = new SmelterHeat());
+        }
+        heat.Step(corner, works, delta * 1000);
     }
 
     /// <summary>

@@ -10,11 +10,12 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
 | File                        | Holds                                                                             | Godot |
 | --------------------------- | --------------------------------------------------------------------------------- | ----- |
 | `game/render/Luminous.cs`   | `Glimmer` (streak, mote, wisp, chip), `Luminous` (a look and its motion) and its presets, `Glim`, `Glims` and `Glims.Shared`, `LuminousMath` (ramps, brightness, noise, curl, a streak's points) | no |
-| `game/render/Flares.cs`     | `Glint`, `Shock`, `Flash` and `Flares.Shared`: the key moments' glints, shock lines and lights | no |
+| `game/render/Flares.cs`     | `Glint`, `Shock` (round or flat along a floor), `Flash`, `Trail`, `Bloom` and `Flares.Shared`: the key moments' glints, shock lines and lights; lines of light and soft glows stamped for one frame | no |
+| `game/render/Bolts.cs`      | `Bolt`, `Bolts` and `Bolts.Shared`: electric arcs, folded by midpoint displacement, held two 60 Hz frames, on ends that move | no |
+| `game/render/SoftDots.cs`   | the soft dot and puff pictures motes and wisps are drawn with | yes | no |
 | `game/render/Strokes.cs`    | every stroke of light in one multimesh, soft-edged at a screen pixel                | yes   |
 | `game/render/Shimmer.cs`    | heat shimmer over a box of the world, a screen-texture shader                      | yes   |
 | `game/Content/Fx.cs`        | the knobs: length, count, turbulence, glow, glint hold, shimmer; the lights' cap    | no    |
-| `game/render/Particles.cs`  | the old squares, `Effect` and its presets, `Particles.Shared`: dust, air, puffs till slice 2 | no |
 | `EffectsView.cs`            | the layer: steps all of it each frame and draws it                                | yes   |
 
 - **Emitted by (luminous):** the furnace (`FurnaceView`) — embers, ash, a cracking coal's sparks and glint,
@@ -22,9 +23,15 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   glints, smoke off its molten spot, motes off a plan's cut and round a finished plan; the debris
   (`DebrisView`) — an axe's hit sparks, dust, chips, glint, shock line and flash, a drill's few sparks, a
   break's sparks, dust, cloud, glint, ring and flash, and a broken piece's embers (`BreakView`).
-- **Emitted by (old squares):** the hero's figure (`crew/Figure.cs`) — dust from a boot each half stride
-  and from a landing; the air (`AirView`) and a pod's hatch (`PodView`) — air; the harpoon and the jetpack
-  (`HeroView`) — puffs.
+- **Emitted by (slice 2):** the hero's figure (`crew/Figure.cs`) — a running boot's motes and veil, a landing's grains,
+  motes, veils and flat ring; the jetpack (`JetPlume`) — its core, streaks, motes, pool and shimmer; the harpoon
+  (`RodLight`) — the shot's glint and gas, the rod's trail and wake, the bite, the bead, the zip home; a drill
+  (`DrillLight`) — the bit's sparks, dust, chips and glints, the arc drill's arcs; the air (`AirView`, `VentLight`) —
+  breaches' jets, condensation, shimmer and frost, wind lines, the red beat, fresh air from filling vents; a pod's
+  hatch (`PodView`) — vapour; drones (`DroneLight`) — rotor discs and glints, downwash, dust, the lamp's trail,
+  shimmer, a pad's puff; doors (`DoorLight`) — the lit edge, the slot's motes, the seal's ring, glint, dust and hiss;
+  lamps short of power (`LampSparks`) — glints, sparks, arcs, the ember; an electric smelter (`SmelterHeat`) — its
+  element's breath, shimmer and a rare arc; a pick-up (`PickUpFlights`) — the icon's ribbon, glint, ring and flash.
 - **Motion:** each look's gravity (aboard; none in space, chosen by the emitter), drag, a turn of its way by
   smooth value noise (`Spin`, keeping its speed) and a push along the noise's curl (`Turbulence`), a
   floor it may bounce off; a streak samples its path every 60th of a second whatever the frame rate, its
@@ -36,9 +43,14 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   light of its own; then every stroke at once in one multimesh (`Strokes`): streaks from a whitened head
   through their colour to nothing at the tail, shock rings, glints' spikes (a long one across, a shorter one
   up and down, faint diagonals, each clear at its ends), all soft over the last screen pixel either side and
-  at least 1.1 px across. A glint is whole on its first 60 Hz frame and gone after `Fx.GlintHold`, drawn at
-  least once at any frame rate. The old squares as before: a square of the effect's colour, unlit.
-- **Light (0019):** flashes first, then luminous particles that give light, as spots of the light feature (`LightView`), at most `Fx.MostLights` (48) together.
+  at least 1.1 px across; trails and arcs in the same multimesh. A glint is whole on its first 60 Hz frame and gone after
+  `Fx.GlintHold`, drawn at least once at any frame rate. A grain of matter (a streak that is `Matter`) is lit at its head as
+  a mote, its smear along its way light at 0.4. Trails and blooms are stamped for one frame by what follows a moving
+  thing (`Flares.Trail`, `Bloom`) and taken for drawing once a frame (`Flares.TakeFrame`): the layer runs after every
+  feature (`ProcessPriority` 100), so what they stamp is drawn the frame they stamp it. Arcs (`Bolts`): a cyan rim
+  then a white core, a glow at every other point, their shape kept along and across the line between their ends so a
+  held shape stays on ends that move.
+- **Light (0019):** flashes first, then arcs, then luminous particles that give light, as spots of the light feature (`LightView`), at most `Fx.MostLights` (48) together.
 - **Heat shimmer:** a `Shimmer` node per hot thing, under the flames and over what is behind them: the screen
   under its box sampled again, each row nudged sideways by two waves and noise rising through it, faded out
   toward its edges, a texel with nothing drawn in it adding nothing, so it never darkens. Every shimmer is drawn at
@@ -49,21 +61,30 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   canvas group sharing that buffer, and a shimmer drawn after it, or reading past its copied rect, showed its
   masks (a black disc over a weld, a green ghost of the furnace aimed at). `-- --testbed --near=furnace
   --shimmer-demo` records those cases (`dev/ShimmerDemo.cs`). The Esc menu's settings
-  switch it off (`Shimmer.Enabled`, kept in `user://settings.cfg`, on by default).
+  switch it off (`Shimmer.Enabled`, kept in `user://settings.cfg`, on by default). A shimmer whose box is off the
+  screen is hidden, so a screen with none on it takes no copy. Slice 2 caps them: six breaches, three drones.
 - **Cost** (`-- --measure`, RTX 4060 Ti, 1920×1080): the testbed's furnace room 1.52 → 1.62 ms a frame,
   164 draw calls against 159; `-- --fx-bench` (eight fires with their shimmer, four plans worked, a wreck
   broken every second, and a plan welded hot under the aim's outline: some 600 particles) 2.4 ms a frame, 0.7 ms
   of it this layer's CPU, 220 draw calls.
   Godot draws each polyline as a draw call with a fresh buffer of its own; drawn so, the bench took 5.7 ms.
-- At most 1600 luminous particles and 2000 old ones fly at once: a big breach thins out rather than costing frames.
+  Slice 2 (the same machine, `PerfReadout`'s fps and frame, render CPU and GPU): `-- --fx-bench`, now with two jetpacks,
+  a breach of three openings, three drones, a smelter, an arc drill biting and a lamp at half power, some 770
+  particles: 603 fps (1.66 ms; 0.25 CPU, 0.19 GPU) before, 549 (1.82 ms; 0.25, 0.19) after, the layer 0.63 → 0.78 ms;
+  `--testbed` 620 fps (1.61 ms; 0.24, 0.15) → 620 (1.61; 0.24, 0.15), 167 → 171 draw calls; the furnace room 605 → 625;
+  `--testbed --fx-bench` 412 → 383 fps (2.61 ms) with all of it at once; `--jetpack` 593, `--asteroid --arc-drill` 927.
+- At most 1600 luminous particles and 48 arcs at once: a big breach thins out rather than costing frames.
 
-`particles.test.ts` is ported (`ParticlesTests`); the luminous arithmetic is tested in `LuminousTests`.
+The luminous arithmetic, trails, blooms, floor rings and arcs are tested in `LuminousTests`; the old squares and their
+`ParticlesTests` are gone, every effect now luminous.
 
 ## Deliberately not handled
 
-- Slice 2 (0075): the jetpack's plume, boots' dust, the harpoon's puff and line, venting air, the drone, a
-  door's slide, a lamp's glow, the pick-up popup and the drill's bolts are still drawn as before.
 - Particles fly through walls: nothing but a floor an emitter names stops them.
+- Another hero's drill hit on a wreck is drawn as an axe's at the wreck (a peer is not told which tool hit), on top of
+  the sparks its bit throws; this hero's own throws nothing at the wreck.
+- A door's hiss of vapour comes as the panel meets the seal, the shut sound at the start of the slide.
+- A breach let out through a missing back wall (no way out) jets every way and neither shimmers nor frosts.
 
 ## Differences from the TypeScript
 

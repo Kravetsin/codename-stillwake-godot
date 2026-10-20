@@ -15,8 +15,9 @@ namespace Stillwake.Game.Features.Atmosphere;
 
 /// <summary>
 /// The ship's air (features/atmosphere/index.ts, air-overlay.ts). Without a word: every room losing
-/// oxygen into space pulsing red (each tank's sight glass is <see cref="TankLooks"/>), air streaming out through its openings
-/// while it holds any (<see cref="AirStream"/>), faint motes gliding in all air (<see cref="AirMotes"/>).
+/// oxygen into space lit red on the beat (each tank's sight glass is <see cref="TankLooks"/>), air streaming out through its openings
+/// while it holds any, in light (<see cref="AirStream"/>, <see cref="VentLight"/>, 0075), faint soft motes gliding in all air
+/// (<see cref="AirMotes"/>), swept toward a breach as wind lines, and fresh air breathed out of filling vents.
 /// With O, the air overlay (<see cref="AirLook"/>), in building too, under the pipes or cables of a tab: air dithered in the rooms, coming and going softly
 /// (<see cref="AirField"/>), red and running out while a room vents, grey dots where a room holds none,
 /// a ragged aura of the lifepod's air round it with motes in it; beside the pointer, what the sim says
@@ -55,8 +56,15 @@ public partial class AirView : Node2D
     private Dictionary<int, RoomAir> _byRoom = new();
     private double _since = RefreshMs, _clock;
     private List<AirStream> _streams = [];
-    /// <summary>Particles owed to each stream, carried over between frames.</summary>
-    private double[] _owed = [];
+    /// <summary>The breaches' jets, condensation, shimmer and frost (0075).</summary>
+    private readonly VentLight _vents = new();
+    /// <summary>Each venting room's red light: its id, its middle in pixels, how far it reaches in cells.</summary>
+    private List<(int Room, Vector2 At, int Reach)> _alarms = [];
+    private static readonly object Alarm = new();
+    private static readonly (int, int, int) AlarmLight = (255, 50, 44);
+    /// <summary>Fresh air owed to each filling vent on the screen, a faint veil now and then.</summary>
+    private double _breaths;
+    private const double BreathsPerSecond = 1.6;
     private readonly Random _random = new();
     private readonly AudioStreamPlayer2D _hiss = Cues.Player2D(S.Hiss, S.World), _hum = Cues.Player2D(S.VentHum, S.World);
     /// <summary>Vents with oxygen behind them, in pixels: the ship's hum comes from them.</summary>
@@ -65,7 +73,8 @@ public partial class AirView : Node2D
     public AirView(Ui ui)
     {
         _ui = ui;
-        foreach (var node in (Node2D[])[_look, _pulse, _specks, _hiss, _hum]) AddChild(node);
+        foreach (var node in (Node2D[])[_look, _pulse, _specks, _vents, _hiss, _hum]) AddChild(node);
+        _specks.TextureFilter = TextureFilterEnum.Linear;
         _specks.Paint = PaintMotes;
         _pulse.Paint = g => { foreach (var (box, colour) in _losing) g.DrawRect(box, colour); };
     }
@@ -79,8 +88,13 @@ public partial class AirView : Node2D
     public void Frame(Client client, Registry m, (double X, double Y)? pointer, double elapsedMs)
     {
         _clock += elapsedMs;
-        _pulse.Modulate = new Color(1, 1, 1, (float)(0.15 + 0.3 * (0.5 + 0.5 * Math.Sin(_clock / PulseMs * 2 * Math.PI))));
-        Stream(elapsedMs);
+        double pulse = 0.5 + 0.5 * Math.Sin(_clock / PulseMs * 2 * Math.PI);
+        // The alarm is light (0075): each venting room lit red on the beat, its cells only faintly painted over.
+        _pulse.Modulate = new Color(1, 1, 1, (float)(0.06 + 0.12 * pulse));
+        foreach (var (room, at, reach) in _alarms)
+            Flares.Shared.Hold((Alarm, room), at.X, at.Y, AlarmLight, (0.12 + 0.3 * pulse) * Fx.Glow, reach, 0.75f, 0.6);
+        _vents.Step(_streams, elapsedMs);
+        Breathe(elapsedMs);
         Nearest(_hiss, _streams.Select(s => new Vector2((float)s.X, (float)s.Y) * Cell));
         Nearest(_hum, _blowing);
         if ((_since += elapsedMs) >= RefreshMs)
@@ -103,6 +117,7 @@ public partial class AirView : Node2D
         }
         ((ShaderMaterial)_look.Material).SetShaderParameter("overlay", Shown);
         _motes.Step(elapsedMs, _field, m.Atmosphere.AiredCells, _fillingVents, _reach);
+        Winds();
         _specks.QueueRedraw();
     }
 
@@ -124,6 +139,43 @@ public partial class AirView : Node2D
         _texture!.Update(_image);
     }
 
+    /// <summary>
+    /// Motes swept fast toward a breach drawn as thin pale wind lines (0075), stretching as they speed up: a trail back along
+    /// their way, as long as their speed says.
+    /// </summary>
+    private void Winds()
+    {
+        foreach (var mote in _motes.Live)
+        {
+            if (mote.Kind != MoteKind.Room) continue;
+            double speed = Math.Sqrt(mote.Vx * mote.Vx + mote.Vy * mote.Vy);
+            if (speed < WindFrom) continue;
+            double length = Math.Min(14, speed * 0.075 * Fx.Length) / speed, a = 0.42 * Math.Min(1, (speed - WindFrom) / WindFrom) * Math.Max(0, mote.Alpha);
+            Flares.Shared.Trail(mote.X, mote.Y, mote.X - mote.Vx * length, mote.Y - mote.Vy * length, Wind, 0.4, a, 0.22);
+        }
+    }
+
+    /// <summary>A mote this fast, pixels a second, is drawn as a wind line, full past twice it.</summary>
+    private const double WindFrom = 30;
+    private static readonly (int, int, int) Wind = (228, 242, 255);
+
+    /// <summary>
+    /// Each filling vent on the screen breathes a faint veil of fresh air now and then (0075), drifting up into its room
+    /// and settling, as its motes are blown out of it.
+    /// </summary>
+    private void Breathe(double elapsedMs)
+    {
+        if (_fillingVents.Count == 0) return;
+        var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();
+        var glims = Glims.Shared;
+        for (_breaths += BreathsPerSecond * Fx.Count * elapsedMs / 1000; _breaths >= 1; _breaths--)
+            foreach (var (x, y) in _fillingVents)
+            {
+                if (!view.HasPoint(new Vector2((float)x, (float)y))) continue;
+                glims.Add(Luminous.FreshAir, x + glims.Between(-4, 4), y - 2, glims.Between(-6, 6), -glims.Between(8, 18), size: glims.Between(1.2, 2));
+            }
+    }
+
     private void PaintMotes(Sketch g)
     {
         float quiet = Shown ? 1 : QuietMotes;
@@ -131,27 +183,12 @@ public partial class AirView : Node2D
         {
             // The pod's motes belong to its aura, drawn with the overlay only.
             if (mote.Kind == MoteKind.Pod && !Shown) continue;
+            // A fine soft speck (0075), where it is to a fraction of a pixel, so a slow one glides.
             var (colour, alpha, size) = mote.Kind == MoteKind.Room
-                ? (Mote, (mote.Big ? 0.5f : 0.8f) * quiet, mote.Big ? 2 : 1)
-                : (PodMote, 0.6f, 1);
-            // Where it is to a fraction of a pixel: rounded to whole ones, a slow mote steps.
-            g.DrawRect(new Rect2((float)mote.X, (float)mote.Y, size, size), colour with { A = alpha * (float)Math.Max(0, mote.Alpha) });
-        }
-    }
-
-    /// <summary>Air streaming out of every venting room's openings, the particles owed carried over between frames.</summary>
-    private void Stream(double elapsedMs)
-    {
-        for (int i = 0; i < _streams.Count; i++)
-        {
-            var stream = _streams[i];
-            double due = _owed[i] + stream.PerSecond * elapsedMs / 1000;
-            int count = (int)Math.Floor(due);
-            _owed[i] = due - count;
-            if (count == 0) continue;
-            // Anywhere across the opening; through a missing back wall, out every way.
-            double x = (stream.X + _random.NextDouble() - 0.5) * Cell, y = (stream.Y + _random.NextDouble() - 0.5) * Cell;
-            Particles.Shared.Emit(Effect.Air, x, y, count, stream.Heading ?? _random.NextDouble() * 2 * Math.PI, inSpace: true);
+                ? (Mote, (mote.Big ? 0.4f : 0.65f) * quiet, mote.Big ? 2.6f : 1.6f)
+                : (PodMote, 0.55f, 1.6f);
+            g.DrawTextureRect(SoftDots.Dot, new Rect2((float)mote.X - size / 2, (float)mote.Y - size / 2, size, size), false,
+                colour with { A = alpha * (float)Math.Max(0, mote.Alpha) });
         }
     }
 
@@ -186,13 +223,13 @@ public partial class AirView : Node2D
         if (!next.SequenceEqual(_streams))
         {
             _streams = next;
-            _owed = new double[next.Count];
         }
         // Laid out again only when the rooms or those draining changed.
         if (_losingFor != (m.Rooms, m.Rooms.Version) || !losing.SetEquals(_losingRooms))
         {
             (_losingFor, _losingRooms) = ((m.Rooms, m.Rooms.Version), losing);
             _losing = Runs(roomOf, width, m.Grid.Built, (_, room) => losing.Contains(room) ? Pulse : null);
+            _alarms = Middles(roomOf, width, m.Grid.Built, losing);
             _pulse.QueueRedraw();
         }
         Look(m, air, roomOf);
@@ -249,6 +286,28 @@ public partial class AirView : Node2D
                 start = end;
             }
         return runs;
+    }
+
+    /// <summary>
+    /// The middle of each of <paramref name="rooms"/>, in pixels, and how far its light reaches to fill it, in cells: about the
+    /// side of a square of its size, three to eight. Only <paramref name="built"/> holds rooms.
+    /// </summary>
+    private static List<(int Room, Vector2 At, int Reach)> Middles(ReadOnlySpan<int> roomOf, int width, Stillwake.Sim.Box built, HashSet<int> rooms)
+    {
+        var sums = new Dictionary<int, (double X, double Y, int N)>();
+        for (int y = built.Top; y <= built.Bottom; y++)
+            for (int x = built.Left; x <= built.Right; x++)
+            {
+                int room = roomOf[y * width + x];
+                if (!rooms.Contains(room)) continue;
+                var (sx, sy, n) = sums.GetValueOrDefault(room);
+                sums[room] = (sx + x + 0.5, sy + y + 0.5, n + 1);
+            }
+        var middles = new List<(int, Vector2, int)>();
+        foreach (int room in rooms.Order())
+            if (sums.TryGetValue(room, out var s))
+                middles.Add((room, new Vector2((float)(s.X / s.N), (float)(s.Y / s.N)) * Cell, Math.Clamp((int)Math.Ceiling(Math.Sqrt(s.N)), 3, 8)));
+        return middles;
     }
 
     /// <summary>Beside the pointer, what the sim says of the air of the room under it.</summary>

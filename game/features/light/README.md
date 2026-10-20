@@ -55,14 +55,19 @@ Numbers from `game/Content/Light.cs`.
 - **Lamps:** `Light.Lamp` (0.8, 0.64, 0.42), dim and warm, keeping `Light.LampKeep` (0.74) a cell, each
   colour at most `Light.LampMost`, out to `Light.LampReach` (8) cells: a room lit to walk, its corners
   dark, so a fire, a screen or a machine's glow reads in it; as bright as `LightView.LampShare` says — the power it gets, flickering when
-  short (`Flicker`) — and an unlit additive glow.
+  short (`Flicker`) — and an unlit additive glow. Short of power, in light too (`LampSparks`, 0075), the flicker's timing and
+  fades kept: each time it catches, a small warm glint, more often than not a few sparks dropping to the floor under it
+  and bouncing once, half the time an arc or two at its socket; rarely an arc while lit; while dark a dull ember in
+  the filament cooling over a second. Nothing flashes the room white.
 - **Fire:** from where a furnace's or a burner generator's fire gives its light (`LightView.FireAt`, which
   `Main` answers from `FurnaceView.LightAt`: a furnace's bottom row's middle, low in a generator's mouth), `Light.Fire` keeping `Light.FireKeep` a cell
   out to `FireReach` (8) cells, as bright as `LightView.Fire` says (`FurnaceView.BlazeOf`: a new
   brightness with each picture of the flames, which the glow breathes toward, past whole as a coal cracks: 0075), and a glow at the mouth.
   The furnace view runs before this one each frame, so the light follows the picture shown.
 - **Spots:** first each flash of `Flares.Shared` (0075: a hit's, a break's, a spark burst's flicker, a
-  molten spot), at its strength, keeping its own keep out to its own reach; then each luminous particle
+  molten spot, a jetpack's pool, a venting room's red beat), at its strength, keeping its own keep out to its own reach;
+  then each electric arc (`Bolts.Shared`) at its middle in cyan, `Fx.BoltLight` of its brightness, less for a short one
+  (a crawl over a coil barely, a leap the room round it); then each luminous particle
   that gives light (`Glims.Shared`, `Luminous.Light`) at `Light.Particle` times `Fx.ParticleLight` of its
   colour on its ramp as it fades,
   keeping `Light.ParticleKeep` a cell out to `ParticleReach` (2) cells: a bright point, not a wash, for the

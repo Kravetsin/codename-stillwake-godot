@@ -31,16 +31,16 @@ public partial class AsteroidDemo : CanvasLayer
 
     /// <summary>
     /// <paramref name="world"/>, read through <paramref name="m"/>: peer 0 out at <see cref="FarDemo.StartOf"/> with the
-    /// drill, the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
+    /// <paramref name="drill"/> (the plain one unless said: <c>--arc-drill</c> the arc drill), the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
     /// </summary>
-    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules)
+    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, string? drill = null)
     {
         var root = JsonNode.Parse(world.Save())!;
         int belt = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Charge.Belt);
         int back = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf("back");
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
-            slots.Add(i == 0 ? new JsonObject { ["item"] = Spec.Weapons.Drill.Item, ["count"] = 1 }
+            slots.Add(i == 0 ? new JsonObject { ["item"] = drill ?? Spec.Weapons.Drill.Item, ["count"] = 1 }
                 : i == 1 ? new JsonObject { ["item"] = Spec.Weapons.Axe.Item, ["count"] = 1 }
                 : i == 9 ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 5 }
                 : i == back ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }

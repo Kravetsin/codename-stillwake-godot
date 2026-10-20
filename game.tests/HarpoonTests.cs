@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Render;
 using Stillwake.Sim.Debris;
 using Xunit;
 using Spec = Stillwake.Content.Harpoon;
@@ -471,19 +472,16 @@ public class HarpoonTests
     }
 
     [Fact]
-    public void PuffsAirMostlyAlongTheBarrelAFewSidewaysFreerInSpace()
+    public void PuffsAJetOfColdGasAlongTheBarrelAndALittleVapourWiderSlowerAndLit()
     {
-        var aboard = HarpoonShot.Puff((0, -2), inSpace: false);
-        Assert.All(aboard, b => Assert.Equal(Stillwake.Game.Render.Effect.Puff, b.Effect));
-        var (_, most, along) = aboard.MaxBy(b => b.Count);
-        Assert.Equal(-Math.PI / 2, along, 6);
-        Assert.True(most > aboard.Where(b => b.Heading != along).Sum(b => b.Count));
-        Assert.All(aboard.Where(b => b.Heading != along), b => Assert.Equal(Math.PI / 2, Math.Abs(b.Heading - along), 6));
-        var space = HarpoonShot.Puff((0, -2), inSpace: true);
-        Assert.All(space, b => Assert.Equal(Stillwake.Game.Render.Effect.PuffInSpace, b.Effect));
-        var (free, braked) = (Stillwake.Game.Render.Effect.PuffInSpace, Stillwake.Game.Render.Effect.Puff);
-        Assert.True(free.Drag < braked.Drag && free.LifeMs.To > braked.LifeMs.To && free.Spread > braked.Spread);
-        Assert.InRange(braked.LifeMs.To, 300, 400);
+        var puff = HarpoonShot.Puff((0, -2));
+        var (gas, vapour) = (puff[0], puff[1]);
+        Assert.All(puff, b => Assert.Equal(-Math.PI / 2, b.Heading, 6));
+        Assert.True(gas.Count > vapour.Count);
+        Assert.True(vapour.Spread > gas.Spread && vapour.Speed.To < gas.Speed.From);
+        // Gas glows faintly as light; the vapour is matter, lit by what is round it.
+        Assert.Equal((Glimmer.Streak, false), (gas.Look.Kind, gas.Look.Matter));
+        Assert.Equal((Glimmer.Wisp, true), (vapour.Look.Kind, vapour.Look.Matter));
     }
 
     // As others see it (0065): one point a state, so the rod adds no sends of its own.

@@ -71,6 +71,7 @@ public partial class HeroView : Node2D
         public readonly RemoteRod Rod = new();
         public HarpoonLine? Line;
         public readonly Sprite2D RodPicture = rod;
+        public readonly RodLight Light = new();
         public readonly Heard2D Drum = drum;
     }
 
@@ -113,6 +114,7 @@ public partial class HeroView : Node2D
     private readonly HarpoonShot _harpoon = new();
     private readonly HarpoonWorld _harpoonWorld;
     private HarpoonLine? _line;
+    private readonly RodLight _rodLight = new();
     private bool _aimsGun;
     /// <summary>
     /// The drill (0054): whether the arm aims it at the pointer, so the hero keeps facing it, and the world tick
@@ -156,11 +158,8 @@ public partial class HeroView : Node2D
     private bool _letsGo;
     /// <summary>Which way the jetpack thrust in this frame's last step, a unit vector in thousandths; none while it does not (0047).</summary>
     private Point? _thrust;
-    /// <summary>Each thrusting hero's time toward its next puff of plume, by peer.</summary>
-    private readonly Dictionary<int, double> _plumes = new();
-    /// <summary>A puff of plume this often while a jetpack thrusts, a few at most in one frame.</summary>
-    private const double PlumeEveryMs = 15;
-    private const int PlumeMost = 6;
+    /// <summary>Each hero's jetpack plume, by peer, made the first time it shows (0075).</summary>
+    private readonly Dictionary<int, JetPlume> _plumes = new();
     /// <summary>Whether the player asked to breathe a canister, from the inventory, since the last frame.</summary>
     private bool _breathe;
     // A canister breathed is heard through the suit.
@@ -381,7 +380,7 @@ public partial class HeroView : Node2D
         _figure.Jetpack = jetpack;
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         // Its own thrust shows at once (0014); others' as the sim says.
-        Plume(client.Id, _figure, _thrust is { } own ? (own.X, own.Y) : null, inSpace, elapsedMs);
+        Plume(client.Id, _figure, _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
         ShowHarpoon(elapsedMs);
         _tether = Tie(_tether, 0, _current.Anchor, Tether.ClipOf(x, y), elapsedMs);
         // Stamped with its step's time, so others place it by when it was there, not when it came.
@@ -404,7 +403,7 @@ public partial class HeroView : Node2D
     {
         bool axe = handFree && _ui.Wielded.Get() == Content.Weapons.Axe.Item;
         bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
-        bool drill = handFree && _ui.Wielded.Get() == Content.Weapons.Drill.Item;
+        string? drill = handFree && HeldLook.IsDrill(_ui.Wielded.Get()) ? _ui.Wielded.Get() : null;
         var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown) : null;
         var prompt = passedOut ? null : Prompts.Of(m, aim);
         TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
@@ -452,16 +451,17 @@ public partial class HeroView : Node2D
         }
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
         // its power every tick it runs (0055), and hits every wreck its bit touches each Pace ticks. Flat, it winds down.
-        bool wieldsDrill = acts && drill && !working && Poses.HoldsIn(pose);
+        bool wieldsDrill = acts && drill != null && !working && Poses.HoldsIn(pose);
         _aimsDrill = wieldsDrill && pointer != null;
-        var running = Motor.Wanted(m.Items, client.Id, _aimsDrill ? Content.Weapons.Drill.Item : null, _mouse.Buttons.HoldsLeft, _grabHeld);
+        var running = Motor.Wanted(m.Items, client.Id, _aimsDrill ? drill : null, _mouse.Buttons.HoldsLeft, _grabHeld);
         // Sent before this frame's hits, so the host applies the run first: a hit of the drill needs it.
         if (Motor.RunOf(m.Items, client.Id, running) is { } run) client.Send(run);
         bool runs = running != null;
-        Drill(client, m, runs ? pointer : null);
+        Drill(client, m, runs ? pointer : null, drill);
         _figure.Spinning = runs;
-        // Heard while its bit is on a piece the sim would let it hit, whatever the hits' pace.
-        bool works = runs && Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), Content.Weapons.Drill.Item).Count > 0;
+        // Heard while its bit is on a piece the sim would let it hit, whatever the hits' pace; its bit throws sparks there.
+        bool works = runs && Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0;
+        _figure.Bites = works;
         HearDrill(runs, works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
@@ -475,11 +475,15 @@ public partial class HeroView : Node2D
         if (shot.Fired)
         {
             _shot.Play();
-            Puff(_figure, Floats);
+            Puff(_figure);
         }
         if (shot.Hooked is int hooked) Bite(hooked);
         // The rod biting into the ship's structure rings as metal does.
-        if (shot.Gripped) _bite.PlayAt(Pixels(_harpoon.Tip));
+        if (shot.Gripped)
+        {
+            _bite.PlayAt(Pixels(_harpoon.Tip));
+            RodLight.Bit(Pixels(_harpoon.Tip), Unit(_harpoon.Heading), metal: true);
+        }
         if (shot.Reel is { } reel) client.Send(reel);
         if (shot.Ready) _ready.Play();
         // The drum turns from the press that reels till the piece is in, or while it pulls the hero, till the line comes free.
@@ -508,11 +512,11 @@ public partial class HeroView : Node2D
     /// The drill running at <paramref name="pointer"/>, in cells, or not at all with none: when its pace says (<see cref="DrillPace"/>),
     /// a hit for each wreck its bit touches that the sim would take.
     /// </summary>
-    private void Drill(Client client, Registry m, (double X, double Y)? pointer)
+    private void Drill(Client client, Registry m, (double X, double Y)? pointer, string? drill)
     {
-        if (!_drillPace.Due(client.World.Tick, pointer != null, Content.Weapons.Drill.Pace)) return;
+        if (!_drillPace.Due(client.World.Tick, pointer != null && drill != null, Content.Weapons.Of(drill)?.Pace ?? 1)) return;
         var touched = Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value));
-        foreach (var hit in Aiming.HitsOf(m, client.Id, touched, Content.Weapons.Drill.Item)) client.Send(hit);
+        foreach (var hit in Aiming.HitsOf(m, client.Id, touched, drill!)) client.Send(hit);
     }
 
     /// <summary>
@@ -621,7 +625,9 @@ public partial class HeroView : Node2D
             // either hangs; the drill spins while the sim says it runs.
             var rodAim = shown.Rod.AimAt(seen.Rod, PieceDrawnAt);
             shown.Figure.Aim = seen.Busy is { Work: Handwork.Drill, At: var drilled } ? Pixels(drilled) : rodAim is { } aimed ? Pixels(aimed) : null;
-            shown.Figure.Spinning = m.Items.Running(id) == Content.Weapons.Drill.Item;
+            shown.Figure.Spinning = HeldLook.IsDrill(m.Items.Running(id));
+            // Its bit throws sparks while it runs on a wreck: on one its bit touches, as this hero's own.
+            shown.Figure.Bites = shown.Figure.Spinning && seen.Busy is { Work: Handwork.Drill, At: var bit } && Aiming.Touched(m, hero, bit).Count > 0;
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Loaded = shown.Rod.Loaded;
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
@@ -629,7 +635,7 @@ public partial class HeroView : Node2D
             shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
             // Its thrust is not sent: the plume blows against the way it moves, down while it is still.
-            Plume(id, shown.Figure, crew.HeroOf(id)?.Thrusting == true ? (hero.Vx, hero.Vy) : null, afloat, elapsedMs);
+            Plume(id, shown.Figure, crew.HeroOf(id)?.Thrusting == true ? (hero.Vx, hero.Vy) : null, elapsedMs);
             ShowRod(id, shown, seen.Rod, afloat, elapsedMs);
             (shown.Tether, shown.Busy) = (Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs), seen.Busy);
         }
@@ -637,22 +643,17 @@ public partial class HeroView : Node2D
     }
 
     /// <summary>
-    /// A jetpack's plume (0047): while a hero thrusts toward <paramref name="toward"/>, puffs of grey air from
-    /// its figure's nozzle, the harpoon's puff (<see cref="Effect.Puff"/>), blown the other way, down with no way.
+    /// A jetpack's plume (0047, 0075): while a hero thrusts toward <paramref name="toward"/>, its <see cref="JetPlume"/> from
+    /// its figure's nozzle, blown the other way, down with no way; stopped, it dies back.
     /// </summary>
-    private void Plume(int peer, Figure figure, (double X, double Y)? toward, bool inSpace, double elapsedMs)
+    private void Plume(int peer, Figure figure, (double X, double Y)? toward, double elapsedMs)
     {
-        if (toward is not var (tx, ty) || figure.Nozzle is not { } at)
+        if (!_plumes.TryGetValue(peer, out var plume))
         {
-            _plumes.Remove(peer);
-            return;
+            if (toward == null) return;
+            AddChild(_plumes[peer] = plume = new JetPlume());
         }
-        double carry = _plumes.GetValueOrDefault(peer) + elapsedMs;
-        int puffs = (int)(carry / PlumeEveryMs);
-        _plumes[peer] = carry - puffs * PlumeEveryMs;
-        if (puffs == 0) return;
-        double heading = tx == 0 && ty == 0 ? Math.PI / 2 : Math.Atan2(-ty, -tx);
-        Particles.Shared.Emit(inSpace ? Effect.PuffInSpace : Effect.Puff, at.X, at.Y, Math.Min(puffs, PlumeMost), heading, inSpace);
+        plume.Step(figure.Nozzle, toward, elapsedMs);
     }
 
     /// <summary>
@@ -682,12 +683,14 @@ public partial class HeroView : Node2D
         if (cues.Fired && figure.Muzzle is { } gun)
         {
             _othersShot.PlayAt(gun);
-            Puff(figure, afloat);
+            Puff(figure);
         }
         if (cues.Bit)
         {
-            if (rod.Piece is int id && PieceOf(id) is { } piece && Thumps(piece)) _othersThump.PlayAt(Pixels(rod.Tip));
+            bool thumps = rod.Piece is int id && PieceOf(id) is { } piece && Thumps(piece);
+            if (thumps) _othersThump.PlayAt(Pixels(rod.Tip));
             else _othersBite.PlayAt(Pixels(rod.Tip));
+            RodLight.Bit(Pixels(rod.Tip), Unit(rod.Heading), !thumps);
         }
         bool drums = rod.Drums && figure.Muzzle != null;
         if (drums) shown.Drum.GlobalPosition = figure.Muzzle!.Value;
@@ -696,7 +699,7 @@ public partial class HeroView : Node2D
             if (drums) shown.Drum.Play();
             else shown.Drum.Stop();
         }
-        DrawRod(rod.Rod, rod.Tip, rod.Heading, figure.Muzzle, ref shown.Line, shown.RodPicture, peer, elapsedMs);
+        DrawRod(rod.Rod, rod.Tip, rod.Heading, figure.Muzzle, ref shown.Line, shown.RodPicture, shown.Light, peer, elapsedMs);
     }
 
     /// <summary>A point in thousandths of a cell, in the world's pixels.</summary>
@@ -710,7 +713,7 @@ public partial class HeroView : Node2D
 
     /// <summary>This hero's rod and line as the harpoon has them this frame, from the muzzle the figure was just drawn with.</summary>
     private void ShowHarpoon(double elapsedMs) =>
-        DrawRod(_harpoon.Rod, _harpoon.Tip, _harpoon.Heading, _figure.Muzzle, ref _line, _rod, 0, elapsedMs);
+        DrawRod(_harpoon.Rod, _harpoon.Tip, _harpoon.Heading, _figure.Muzzle, ref _line, _rod, _rodLight, 0, elapsedMs);
 
     /// <summary>
     /// A rod and its line where <paramref name="rod"/> says, its point at <paramref name="tip"/>, from a gun's
@@ -719,11 +722,12 @@ public partial class HeroView : Node2D
     /// hanging and winding back. Nothing while the rod is in the gun. This hero's and the others' alike.
     /// </summary>
     private static void DrawRod(Rod rod, (double X, double Y) tip, (double X, double Y) heading, Vector2? muzzle,
-        ref HarpoonLine? line, Sprite2D picture, int seed, double elapsedMs)
+        ref HarpoonLine? line, Sprite2D picture, RodLight light, int seed, double elapsedMs)
     {
         if (rod == Rod.Seated || muzzle is not { } at)
         {
             (line, picture.Visible) = (null, false);
+            light.Step(rod, default, default, default, null, elapsedMs);
             return;
         }
         var gun = Thousandths(at);
@@ -737,7 +741,11 @@ public partial class HeroView : Node2D
         picture.Visible = true;
         picture.Position = Pixels(eye);
         picture.Rotation = (float)Math.Atan2(pointing.Y, pointing.X);
+        light.Step(rod, Pixels(tip), Unit(pointing), Pixels(eye), at, elapsedMs);
     }
+
+    /// <summary>A way, any length, as a unit vector of the world; none for none.</summary>
+    private static Vector2 Unit((double X, double Y) way) => new Vector2((float)way.X, (float)way.Y).Normalized();
 
     /// <summary>
     /// The rod biting into piece <paramref name="id"/> as it sticks (0042): metal, a wreck or salvage, heard as an
@@ -748,17 +756,16 @@ public partial class HeroView : Node2D
         if (PieceOf(id) is not { } piece) return;
         if (Thumps(piece)) _act.Play(Floats);
         else _bite.PlayAt(Pixels(_harpoon.Tip));
+        RodLight.Bit(Pixels(_harpoon.Tip), Unit(_harpoon.Heading), !Thumps(piece));
     }
 
     /// <summary>Whether a rod biting into <paramref name="piece"/> thumps as a glove does, a crate or a pod, rather than ringing as metal.</summary>
     private static bool Thumps(Piece piece) => Content.Loot.Of(piece.Item) != null && Content.Wreckage.HpOf(piece.Item) == null;
 
-    /// <summary>The spring's breath leaving <paramref name="figure"/>'s muzzle with the rod, along its barrel.</summary>
-    private static void Puff(Figure figure, bool inSpace)
+    /// <summary>The spring's breath leaving <paramref name="figure"/>'s muzzle with the rod, along its barrel, and its glint.</summary>
+    private static void Puff(Figure figure)
     {
-        if (figure.Muzzle is not { } at) return;
-        foreach (var (effect, count, heading) in HarpoonShot.Puff((figure.Barrel.X, figure.Barrel.Y), inSpace))
-            Particles.Shared.Emit(effect, at.X, at.Y, count, heading, inSpace);
+        if (figure.Muzzle is { } at) RodLight.Fired(at, figure.Barrel);
     }
 
     private void PaintLines(Sketch g)

@@ -388,20 +388,25 @@ public class ContentTests
     }
 
     [Fact]
-    public void EveryWeaponIsAToolOfOneCraftedHitsInWholeUnitsAndTheDrillOutdamagesTheAxeOnTheBelt()
+    public void EveryWeaponIsAToolOfOneCraftedOrFoundHitsInWholeUnitsAndTheDrillsOutdamageTheAxeOnTheBelt()
     {
         Assert.Equal(Weapons.All.Count, Weapons.All.Select(w => w.Item).Distinct().Count());
         foreach (var weapon in Weapons.All)
         {
             Assert.True(weapon.Damage > 0 && weapon.Pace > 0, weapon.Item);
             Assert.Equal(1, Content.Items.Get(weapon.Item).Stack);
-            Assert.True(Crafts.TryGet(weapon.Item, out _), weapon.Item);
+            // Made at a station, or found and never made.
+            Assert.Equal(!Weapons.Found.Contains(weapon), Crafts.TryGet(weapon.Item, out _));
             Assert.Same(weapon, Weapons.Of(weapon.Item));
         }
         Assert.Null(Weapons.Of(Harpoon.Item));
         // Damage a second is all that sets them apart (0054): the drill 10, the axe 4.
         Assert.Equal(10, Weapons.Drill.Damage * 20 / Weapons.Drill.Pace);
         Assert.Equal(4, Weapons.Axe.Damage * 20 / Weapons.Axe.Pace);
+        // The arc drill (0075): half as much again as the drill, 15, drawing the same; found, so no station makes it.
+        Assert.Equal(15, Weapons.ArcDrill.Damage * 20 / Weapons.ArcDrill.Pace);
+        Assert.Equal(Content.Items.Get(Weapons.Drill.Item).Draw, Content.Items.Get(Weapons.ArcDrill.Item).Draw);
+        Assert.Equal([Weapons.ArcDrill], Weapons.Found);
         // Electric: it draws every tick it runs (0055), so a full battery runs it 600 ticks, 30 s.
         int draw = Content.Items.Get(Weapons.Drill.Item).Draw!.Value;
         Assert.Equal(3, draw);
@@ -946,12 +951,14 @@ public class ContentTests
         Assert.Equal([], recipes.Where(id => !known.Contains(id)).ToArray());
     }
 
-    /// <summary>The invariant: every item there is can be had from the wreck, caught or made at a station reachable.</summary>
+    /// <summary>The invariant: every item there is can be had from the wreck, caught or made at a station reachable; but what is found elsewhere.</summary>
     [Fact]
-    public void EveryItemIsReachableFromTheWreck()
+    public void EveryItemIsReachableFromTheWreckButWhatIsFoundElsewhere()
     {
         var (had, _) = Reachable(Stations.All);
-        Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id)).ToArray());
+        var found = Weapons.Found.Select(w => w.Item).ToHashSet();
+        Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id) && !found.Contains(id)).ToArray());
+        Assert.All(found, id => Assert.DoesNotContain(id, had));
     }
 
     /// <summary>

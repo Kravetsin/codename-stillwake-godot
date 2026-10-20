@@ -10,6 +10,9 @@ namespace Stillwake.Game.Dev;
 /// <see cref="Sites"/> plans' spark bursts and a wreck's break every second, as the features throw them (0075);
 /// and a plan welded on above the middle, hot, smoking and shimmering, with the aim's outline drawn meanwhile, as
 /// a hero working a plan has it: what once made the shimmer read the outline's buffer and draw a black disc.
+/// Slice 2's too, through the features' own pieces: two jetpacks thrusting, a room venting through three openings,
+/// three drones flying to and fro, an electric smelter at work, an arc drill biting, its coil arcing, and a lamp at
+/// half its power catching and dying (its sparks and arcs only: no lamp is drawn).
 /// </summary>
 public partial class FxBench : Node2D
 {
@@ -20,6 +23,14 @@ public partial class FxBench : Node2D
     private readonly Features.Building.BuildGlow _weld = new();
     private readonly Outline _aim = new(Layers.Aim) { ZAsRelative = false };
     private double _weldMs;
+    private readonly Features.Crew.JetPlume[] _plumes = [new(), new()];
+    private readonly Features.Atmosphere.VentLight _vents = new();
+    private readonly Features.Logistics.DroneLight _drones = new();
+    private readonly Features.Logistics.Hover[] _hovers = [new(1), new(2), new(3)];
+    private readonly Features.Crafting.SmelterHeat _smelter = new();
+    private readonly Features.Crew.DrillLight _drill = new();
+    private readonly Features.Light.LampSparks _lamp = new();
+    private double _clock;
 
     public FxBench()
     {
@@ -27,6 +38,37 @@ public partial class FxBench : Node2D
         for (int i = 0; i < Fires; i++) AddChild(_shimmers[i] = new Shimmer());
         AddChild(_weld);
         AddChild(_aim);
+        foreach (var n in (Node2D[])[.. _plumes, _vents, _drones, _smelter]) AddChild(n);
+    }
+
+    /// <summary>Slice 2's pieces round <paramref name="middle"/>, <paramref name="ms"/> on.</summary>
+    private void Slice2(Vector2 middle, double ms)
+    {
+        _clock += ms / 1000;
+        for (int i = 0; i < _plumes.Length; i++)
+        {
+            double a = _clock * 0.7 + i * Math.PI;
+            _plumes[i].Step(middle + new Vector2(-150 + i * 300, -70), (Math.Cos(a), Math.Sin(a)), ms);
+        }
+        var vent = (middle + new Vector2(170, 10)) / ShipCamera.Cell;
+        _vents.Step([new(vent.X, vent.Y, 0, 24), new(vent.X, vent.Y + 1, 0, 24), new(vent.X, vent.Y + 2, 0, 24)], ms);
+        _drones.Begin();
+        for (int i = 0; i < _hovers.Length; i++)
+        {
+            var h = _hovers[i];
+            double tx = middle.X - 100 + 100 * i + 40 * Math.Sin(_clock * 0.9 + i), ty = middle.Y + 60;
+            if (h.Spin == 0) h.Place(tx, ty);
+            h.Step(ms / 1000, tx, ty, 36 * Math.Cos(_clock * 0.9 + i), 0, 1, 40, DroneLook.Lively);
+            _drones.Drone(i, h, h.Bob(40, DroneLook.Lively), ty + 20, ms);
+        }
+        _drones.End();
+        _smelter.Step(middle + new Vector2(-60, 90), true, ms);
+        _lamp.Begin();
+        _lamp.Lamp(1, middle + new Vector2(0, -100), Features.Light.Flicker.BrightnessOf(0.5f, _clock * 1000, 7), middle.Y - 40, ms);
+        _lamp.End();
+        var grip = middle + new Vector2(60, 90);
+        _drill.Step(HeldLook.ArcDrill, 1, true, grip + new Vector2(29, -5), Vector2.Right,
+            p => grip + new Vector2((float)(p.X - HeldLook.ArcDrill.Grip.X), (float)(p.Y - HeldLook.ArcDrill.Grip.Y)), ms);
     }
 
     private double Between(double from, double to) => from + (to - from) * _random.NextDouble();
@@ -35,6 +77,7 @@ public partial class FxBench : Node2D
     {
         double ms = delta * 1000;
         var middle = GetViewport().GetCamera2D()?.GetScreenCenterPosition() ?? Vector2.Zero;
+        Slice2(middle, ms);
         var glims = Glims.Shared;
         _embers += 9 * Fires * ms / 1000;
         _ash += 7.2 * Fires * ms / 1000;

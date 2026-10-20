@@ -18,4 +18,7 @@ public static class Fx
 
     /// <summary>A glowing particle's light, as a share of <see cref="Light.Particle"/> at its brightness.</summary>
     public const float ParticleLight = 0.3f;
+
+    /// <summary>An electric arc's light at its whole brightness (<c>Bolts</c>): a cyan pool round it while it lives.</summary>
+    public const float BoltLight = 0.22f;
 }

@@ -291,14 +291,16 @@ public sealed class HarpoonShot
     }
 
     /// <summary>
-    /// The puff of air a shot blows from the muzzle (0044), as bursts of particles: most along the barrel,
-    /// pointing <paramref name="barrel"/>, one off either side; braked aboard, freer out in space.
+    /// The cold gas a shot blows from the muzzle (0044, 0075), as bursts of luminous particles: a jet of fine streaks
+    /// along the barrel, pointing <paramref name="barrel"/>, and a little vapour spreading wider and slower a little
+    /// ahead. Each burst: its look, how many, its heading and how far either way of it, its speed, how far ahead of the
+    /// muzzle, in pixels.
     /// </summary>
-    public static IReadOnlyList<(Effect Effect, int Count, double Heading)> Puff((double X, double Y) barrel, bool inSpace)
+    public static IReadOnlyList<(Luminous Look, int Count, double Heading, double Spread, (double From, double To) Speed, float Ahead)> Puff(
+        (double X, double Y) barrel)
     {
-        var effect = inSpace ? Effect.PuffInSpace : Effect.Puff;
         double along = Math.Atan2(barrel.Y, barrel.X);
-        return [(effect, 7, along), (effect, 1, along - Math.PI / 2), (effect, 1, along + Math.PI / 2)];
+        return [(Luminous.Gas, 9, along, 0.45, (60, 160), 0), (Luminous.ShotVapour, 2, along, 0.6, (10, 22), 2)];
     }
 
     /// <summary>
