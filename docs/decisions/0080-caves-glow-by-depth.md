@@ -28,8 +28,8 @@ light budget is a lit room of lamps. Glowcaps, crystals, geodes and ore veins wi
   the sim and the client alike. Each kind has a chance in each band (`Chances`, in ten-thousandths of a slot): ice crystals,
   roots and green moss in the cold band; the garden's teal and violet caps, threads and moss in the middle; amber and rose
   crystals and copper in the deep; ember crystals and heat cracks over the bedrock.
-- **Placement is a draw a slot,** in rows from the top: every open cave cell over a wall (a floor, whole, or a slope for a
-  narrow kind), every open cell under a whole wall (a ceiling) and every stone wall beside a cave cell (the rock) draws one
+- **Placement is a draw a slot,** in rows from the top: every open cave cell over a whole wall (a floor; never a slope, as
+  Terraria grows nothing on one, and a growth whose hold is later cut to one goes as if dug), every open cell under a whole wall (a ceiling) and every stone wall beside a cave cell (the rock) draws one
   number under 10000 and walks its anchor's kinds in order, their chances scaled by a smooth patch noise (a swell every 12
   cells, nothing to 220 %), so they gather in clusters and patches, and in a great hall by 700 % (a wall facing one too): halls
   are gardens, tunnels sparse. A kind keeps `Apart` cells from its own along the row, a floor's or a ceiling's growth one cell
@@ -42,8 +42,12 @@ light budget is a lit room of lamps. Glowcaps, crystals, geodes and ore veins wi
 - **The client draws by chunks** (`features/flora/CaveView`): 32 × 32 cells, two canvas items each — pictures lit, glows
   added — from one atlas of every cave picture packed at the first look, near the view only. The pictures are cut from the
   concept's own drawing code by an export, as the surface's were (0079).
-- **Light:** each glowing growth is one small lamp of its kind's colour and reach (5 cells for a cap or a crystal), through
-  the light feature's existing sources (`LightView.Caves`); at most 56, the nearest the view's middle.
+- **Light:** each glowing growth is one small lamp of its kind's colour and reach (8 cells for a cap or a crystal, 5 for moss),
+  through the light feature's existing sources (`LightView.Caves`), every piece of a kind alike; at most 384, the nearest the
+  view's middle, more than any view at the farthest zoom holds. Under the ground light goes on past rock into the open, keeping
+  0.35 a cell of rock crossed, so the shadows rock casts fade in (amended after the caves' playtest: moss lit from three
+  pieces in ten and a cap of 56 left like pieces unlike, light too faint beside each growth's own glow showed that glow's box,
+  and light stopped at a rock's face cut the lit rock off square against the dark open beside it).
 - **Mica, veins, crystals and geodes glint** where a helmet's beam falls on them with nothing between; spores, drips and faint
   embers drift from what is in view (0075's toolkit), at most 48 alive.
 - **The stone is tinted by band:** a multiplied quad a band over what is drawn under the walls' edges — cool blue-grey, as it
@@ -74,5 +78,5 @@ On this machine (RTX 4060 Ti), 1280 × 720, `--ground=hall --measure` (the first
   middle are left out.
 - **The bands are rows, not depth under each column:** a cave under a high range is a little colder than one under a valley
   at its depth. Roots alone follow the surface.
-- **No growth spreads, regrows or moves;** drips fade as they fall; glowcaps do not pulse.
+- **No growth spreads, regrows or moves;** glowcaps do not pulse.
 - **Growing the planet costs some 30 ms more** where it grows: as the surface opens and as its save loads.

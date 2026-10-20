@@ -57,4 +57,34 @@ public class LightSourcesTests
         Assert.True(buffer.Length >= 300 * Sources.Stride);
         Assert.Equal(0, buffer.Length % Sources.Stride);
     }
+
+    /// <summary>Three cells across: open, a wall, a floor slope ◢ (solid bottom right).</summary>
+    private static bool Blocks(double x, double y) =>
+        Sources.Blocks(c => c == 0 ? Structure.Empty : Structure.Wall, c => c == 2 ? Shape.BottomRight : Shape.None, 3, 1, Cell, x, y);
+
+    [Fact]
+    public void TellsAPointInAWallsSolidFromOneInTheOpen()
+    {
+        Assert.False(Blocks(8, 8));
+        Assert.True(Blocks(24, 8));
+        Assert.False(Blocks(36, 4));
+        Assert.True(Blocks(44, 12));
+        Assert.False(Blocks(60, 8));
+    }
+
+    [Fact]
+    public void AHelmetLampsGlowShinesFromInsideTheHeroAndItsBeamFromThereWhenTheBulbIsInAWall()
+    {
+        // Standing against the wall, the neck in the open cell, the bulb poking 2 px into the wall.
+        var (beam, glow) = Sources.HeadLamp((18, 6), (1, 0), (12, 10), Blocks);
+        Assert.False(Blocks(glow.X, glow.Y));
+        Assert.False(Blocks(beam.X, beam.Y));
+        Assert.Equal((glow.X, glow.Y), (beam.X, beam.Y));
+        Assert.Equal((1.0, 0.0), beam.Toward);
+        Assert.Null(glow.Toward);
+        // A step back, the bulb in the open: the beam from the bulb, the glow still from the head.
+        (beam, glow) = Sources.HeadLamp((12, 6), (1, 0), (6, 10), Blocks);
+        Assert.Equal((12.0, 6.0), (beam.X, beam.Y));
+        Assert.Equal((9.0, 8.0), (glow.X, glow.Y));
+    }
 }

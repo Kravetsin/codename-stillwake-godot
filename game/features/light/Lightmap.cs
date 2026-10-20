@@ -43,6 +43,9 @@ public partial class Lightmap : Node
             uniform float beam_soft = 0.08;
             // What light keeps of itself a cell of the way into solid ground (0077): it fades within two or three cells.
             uniform float wall_keep = 0.35;
+            // Under a planet (0080): light reaches the open behind solid ground too, keeping wall_keep a cell of it, so a shadow cast by
+            // rock fades in as the rock between thickens rather than starting along the rock's face. Aboard, a wall stops it.
+            uniform bool soak_through = false;
             const float CELL = 16.0;
             varying vec2 world;
             varying flat vec2 centre;
@@ -92,7 +95,7 @@ public partial class Lightmap : Node
                     float t1 = min(min(next.x, next.y), 1.0);
                     int k = kind(c);
                     if (k == 2) {
-                        if (!leaving) return 0.0;
+                        if (!leaving && !soak_through) return 0.0;
                         inside += (t1 - t0) * span_cells;
                     } else if (k >= 4) {
                         // A wall cut to a shape: its solid half as a wall, passed till the line comes out of it, its open
@@ -103,7 +106,10 @@ public partial class Lightmap : Node
                             inside += (t1 - t0) * span_cells * (in1 ? 1.0 : 0.5);
                         } else {
                             leaving = false;
-                            if (in0 || in1) return 0.0;
+                            if (in0 || in1) {
+                                if (!soak_through) return 0.0;
+                                inside += (t1 - t0) * span_cells * (in0 && in1 ? 1.0 : 0.5);
+                            }
                         }
                     } else if (k == 1 || k == 3) {
                         // A door's panel spans columns, a hatch's rows: where the line is across that, in pixels.
@@ -194,6 +200,12 @@ public partial class Lightmap : Node
         }
         Lit.ShowLightmaps(_main.GetTexture(), _spots.GetTexture());
     }
+
+    /// <summary>
+    /// Whether light reaches the open past solid ground, keeping <c>wall_keep</c> a cell of rock between (a planet's, 0080): a
+    /// shadow cast by rock fades in, not along the rock's face; aboard, walls stop it.
+    /// </summary>
+    public bool SoakThrough { set => _material.SetShaderParameter("soak_through", value); }
 
     /// <summary>The lights drawn the last frame, both maps together: what the dev readout shows.</summary>
     public int Drawn { get; private set; }
