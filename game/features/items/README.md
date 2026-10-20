@@ -20,22 +20,25 @@ by sending `Move`,
 | `Reach.cs`         | `HeroSpot`; pick-ups (`pickup.ts`)                                                           | no    |
 | `OwnCatches.cs`    | what this peer's own grabs of debris put into its inventory, once each as they run, and where each piece was | no    |
 | `PickUpFlights.cs` | a stack picked up flying home (0075), off the floor or out of a catch: its icon on an arc to the chest, a ribbon of light behind it, a glint, a ring and a flash as it lands; a catch's one after another, `Fx.MostRibbons` at once | yes |
-| `SortButton.cs`    | the sort button: a small square with three bars and an arrow down, drawn in code, lighter under the pointer (0008) | yes   |
+| `SortButton.cs`    | the sort key (0008, 0081): a wrist key whose face shows three bars and an arrow down, drawn in code, lit sky under the pointer, white while held, glowing a moment after | yes   |
+| `SortSweep.cs`     | a sort's light: a bright line crossing the sorted grid, a band of sky behind it (0081) | yes   |
 | `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, its corner's mark: the open station's flame or sprout, or the violet "?" of an item not analysed; an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
 | `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, grow capsule, burner generator, analyzer, charging station or drone bay in the machine frame under the inventory, with the logistics feature's drone badge in the header where drones have work (`Served`, set by `Main`, 0062) and a bay's bolt lit while it charges (`Charger`), the stack in hand; all built again at another slot size | yes   |
-| `EnergyBar.cs`     | the energy bar right of the suit's, while an electric tool is held (0053), in its tab under the wrist computer's cuff (0074) | yes   |
+| `EnergyBar.cs`     | the energy gauge right of the suit's, always shown, four cells a belt battery, and its readout in power units on the column's rail (0053, 0081), in tabs under the wrist computer's cuff (0074) | yes   |
 | `FloorLayer.cs`    | stacks on the floor, unlit with a breathing rim, standing on their line and bobbing up from it, along a slope, side by side when still, gliding between the last two ticks, turning in space (`floor-layer.ts`) | yes |
 | `SlotFlights.cs`   | a stack sent across with shift flying from its slot to where it landed, on the HUD: its icon on a slight arc, a ribbon of light behind it, a pulse, a flash and a glint on the slot as it lands (0075) | yes   |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head, a soft shadow round it, a band of light sweeping across it once (0075) | yes   |
 | `ItemsView.cs`     | the feature: pick-ups, the layers and the panel                                              | yes   |
-| `ItemsDemo.cs`     | `-- --items`: a room with a crate, a furnace and an analyzer, and a script for recordings    | yes   |
+| `ItemsDemo.cs`     | `-- --items`: a room with a crate, a furnace and an analyzer, and a script for recordings, the sort keys pressed at its end | yes   |
 
 The wrist computer's metal and screens (0074) are `game/shared/`'s: `WristPieces` (no Godot: each piece's 9-slice and
 where its window lies in it), `WristArt` (the art laid round a window, a screen drawn) and `WristScreen` (a panel
-that is a screen in its metal; `MachineFrame` is one), shared with the crew's suit gauge and the crafting feature's
-Fabricator; the screens come on by the build tablet's `TabletMotion`.
+that is a screen in its metal, hardware mounted on it; `MachineFrame` is one), shared with the crew's suit gauge and the crafting feature's
+Fabricator; the screens come on by the build tablet's `TabletMotion`. Its keys (`WristKey`, the sort keys and the drone
+badge) and its gauges (`WristGauge`, moved by `GaugeMotion`, laid out by `Slots.GaugeRowOf` and `MeterCells`) are
+shared too (0081); their numbers are `WristLook`'s.
 
 What it shows of charge, a slot's bar, the empty battery's picture, the card's meter, the station's words and
 the energy bar, is worked out in `game/shared/Charges.cs` (no Godot), shared with the power feature's
@@ -117,9 +120,11 @@ as everything E works is, in the crew feature (`AimTests`).
   its name (`tool.<kind>`) in bold and, for one on the power grid, a bolt and its power in the header, lit
   while it works and dark at 0 otherwise (a burner generator's is what it makes, lit while it burns, an
   analyzer's lit while it analyses); then its body, below.
-- **Sorting** (0008): a small sort button (`SortButton`, its tip "Sort") sits in the top-right corner of the bag's
-  panel, right of its grid, and in an open crate's frame header, left of the drone badge; only a crate has one. A click
-  sends `Sort` for the bag or that crate and shows it at once (`Reading`). It puts a picked stack back first: its
+- **Sorting** (0008, 0081): a sort key (`SortButton`, its tip "Sort"), a hardware key of the wrist's metal, stands on
+  the bag display's right edge, outside the screen, level with its first row, so the bag is as wide as the hotbar; an
+  open crate's square one sits in its frame header, left of the drone badge; only a crate has one. A press sends `Sort`
+  for the bag or that crate and shows it at once (`Reading`): light crosses the sorted grid (`SortSweep`) and, for
+  the bag, the display's lamp flares. It puts a picked stack back first: its
   slot may hold another item after. A stack picked whose slot comes to hold another item, by a friend's sort or swap
   at a shared crate, is let go as one emptied is (`Clicks.StillHeld`). No key sorts.
 - What the free hand holds (`Ui.Wielded`, 0034): the item in the chosen slot while the hand is free,
@@ -183,11 +188,15 @@ as everything E works is, in the crew feature (`AimTests`).
   draws, lit while it charges (`IPowerQueries.Charges`), dark at 0 otherwise; its slot beside a bar of what the battery
   holds, and under it "empty", "full", "charging" or "no power" (`Charges.StationState`). The sim refuses
   anything but a battery there (`items.notBattery`).
-- **The energy bar** (`EnergyBar`, a layer of its own made by `Main`), right of the suit's gauge, shows the
-  charge of the batteries on the belt (`IItemsQueries.BeltCharge`) of what they hold full, only while the
-  free hand holds an electric item (`Ui.Wielded`, an item with a `Draw`), in the colour of that item's energy
-  (`Charges.ColourOf`: charge's green); hidden otherwise. Read four times a second. No item is electric
-  yet; `-- --electric=fireAxe` counts one as electric in a dev run, so the bar can be seen.
+- **The energy gauge** (`EnergyBar`, a layer of its own made by `Main`, 0081), right of the suit's gauge, shows the
+  charge of the batteries on the belt (`IItemsQueries.BeltCharge`, `Charges.BeltOf`) always, whatever is held, so the
+  gauge row is always as wide as the hotbar: the bolt, then four cells for each battery the belt can wear, a wider gap
+  between batteries, lit as far as a belt of full batteries is charged; charge's green, amber and pulsing under a
+  quarter of what the worn batteries hold full (as a slot's bar), dim with none worn. Its readout, on the column's
+  right rail, gives the same charge in whole power units grouped by thin spaces ("4 300"), never seconds (0053).
+  Read four times a second; the cells and the number move smoothly between reads, a hit flashing and draining
+  (`GaugeMotion`), the number counting the lost part as it drains. `-- --charge` moves a belt battery into the bag
+  and back at its end, for recordings.
 - A furnace's panel is its input over its fuel, the fire between them, its bar and its outputs; a
   burner generator's its fire over its fuel slot, and in its header a bolt with the power it makes
   (its `Makes`), lit while it burns and dark at 0 while cold. Both say why they stand still under them

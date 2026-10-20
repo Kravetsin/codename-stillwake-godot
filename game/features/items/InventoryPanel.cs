@@ -61,6 +61,12 @@ public partial class InventoryPanel : CanvasLayer
     private readonly TabletMotion _motion = new();
     /// <summary>The open machine's frame, under the inventory.</summary>
     private MachineFrame? _frame;
+    /// <summary>The bag's grid and the open crate's, which a sort's light crosses (<see cref="SortSweep"/>, 0081).</summary>
+    private GridContainer _bag = null!;
+    private GridContainer? _crateGrid;
+    private SortButton _bagKey = null!;
+    private SortButton? _crateKey;
+    private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!, _heldMark = null!;
     private ProgressBar? _progress;
@@ -180,19 +186,17 @@ public partial class InventoryPanel : CanvasLayer
 
         // The grid, and under it the machine open; the equipment at the screen's other edge (0058).
         var shown = Style.Gap(new VBoxContainer { Position = new Vector2(Slots.Margin, Slots.InventoryTop(size)) }, 8);
-        // The bag, its sort button in the top-right corner (0008).
-        var bag = Style.Gap(new HBoxContainer(), 4);
-        bag.AddChild(Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
-        var corner = new VBoxContainer();
-        corner.AddChild(Sorter(null));
-        bag.AddChild(corner);
+        // The bag, as wide as the hotbar; its sort key on the display's right edge, outside the screen (0008, 0081).
         var grid = new WristScreen(WristPieces.Display, WristArt.Screen, 4, lit: true) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
-        grid.AddChild(bag);
+        grid.AddChild(_bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
+        grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
         shown.AddChild(_inventory = grid);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
         _root.AddChild(_body = Body(size));
         _body.Visible = false;
+        // Last: a sort's light crosses over the slots.
+        _root.AddChild(_sweep = new SortSweep());
 
         _held = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Size = new Vector2(size, size), Visible = false };
         _held.AddChild(_heldIcon = new TextureRect
@@ -230,7 +234,7 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var box in _lent) _tipSpots.Add(box, () => SlotTip(box));
         _tipSpots.Show(null);
         _built = null;
-        (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _hovered) = (null, null, null, null, null, null, null, null);
+        (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null, null);
     }
 
     /// <summary>
@@ -357,19 +361,29 @@ public partial class InventoryPanel : CanvasLayer
         return box;
     }
 
-    /// <summary>A sort button for the bag, or with <paramref name="crate"/> for that crate; its tip says what it does.</summary>
+    /// <summary>The bag's tall sort key, or with <paramref name="crate"/> that crate's square one in its header; its tip says what it does.</summary>
     private SortButton Sorter(int? crate)
     {
-        var button = new SortButton(() => SortOf(crate));
+        var size = crate == null ? new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight) : new Vector2(WristLook.KeycapSide, WristLook.KeycapSide);
+        var button = new SortButton(size, () => SortOf(crate));
         _tipSpots.Add(button, () => new Tip(T("items.sort")));
         return button;
     }
 
-    /// <summary>Sorts the bag or the crate; a stack picked is put back first, as its slot may hold another after.</summary>
+    /// <summary>
+    /// Sorts the bag or the crate, light crossing its grid and, for the bag, the display's lamp flaring; a stack picked is
+    /// put back first, as its slot may hold another after.
+    /// </summary>
     private void SortOf(int? crate)
     {
         (_picked, _dragFrom) = (null, null);
         Send(new Sort(crate));
+        if (crate == null)
+        {
+            _sweep.Run(_bag);
+            _inventory.Blink();
+        }
+        else if (_crateGrid != null) _sweep.Run(_crateGrid);
     }
 
     /// <summary>A stack's tip; an empty bay slot says a drone docks there, an empty kept one what drones keep it full of (0062).</summary>
@@ -395,7 +409,7 @@ public partial class InventoryPanel : CanvasLayer
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold) = (null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null);
         }
         if (want is not var (crate, kind)) return;
         // A queued station (the lifepod's Fabricator, the Former) docks in the same place, the crafting feature's own panel.
@@ -403,7 +417,7 @@ public partial class InventoryPanel : CanvasLayer
         var spec = MachineSpecs.Get(kind);
         _frame = new MachineFrame(T($"tool.{kind}"), kind == "burnerGenerator" ? spec.Makes : spec.Draws);
         // A crate sorts, its button in the header beside the drone badge (0008).
-        if (kind == "crate") _frame.Head.AddChild(Sorter(crate));
+        if (kind == "crate") _frame.Head.AddChild(_crateKey = Sorter(crate));
         // Whether drones serve it, at the right of its header (0062).
         if (Served?.Invoke(crate) is { } served) _frame.Head.AddChild(served);
         _frame.Add(kind switch
@@ -414,7 +428,7 @@ public partial class InventoryPanel : CanvasLayer
             "analyzer" => _analyzer = new AnalyzerPanel(Box(new Place(0, crate)), _tipSpots, _ui.Slot),
             "charger" => ChargerBody(crate),
             _ when kind == Content.Logistics.Bay => BayBody(crate, spec),
-            _ => Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
+            _ => _crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
         });
         _shown.AddChild(_frame);
     }
@@ -592,6 +606,9 @@ public partial class InventoryPanel : CanvasLayer
             Refresh();
         }
     }
+
+    /// <summary>The middle of the bag's sort key, or of the open crate's; null with none shown: for scripted runs.</summary>
+    public Vector2? SortKeyAt(bool crate) => (crate ? _crateKey : _bagKey) is { } key && key.IsVisibleInTree() ? key.GetGlobalRect().GetCenter() : null;
 
     /// <summary>The middle of the slot at <paramref name="place"/> on screen, for scripted runs.</summary>
     public Vector2 CenterOf(Place place) => _slots.First(s => s.Place == place).GetGlobalRect().GetCenter();

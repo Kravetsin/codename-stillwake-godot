@@ -1,4 +1,7 @@
 using System;
+using System.Globalization;
+using System.Linq;
+using System.Text;
 using Stillwake.Sim.Items;
 using Spec = Stillwake.Content;
 
@@ -18,8 +21,12 @@ public enum ChargeBar
 /// </summary>
 public sealed record ChargeMeter(int Percent, int Stored, int Capacity, float Share);
 
-/// <summary>The energy bar by the suit's: what the belt's batteries hold of full, in the colour of the energy what is held runs on.</summary>
-public sealed record Energy(float Share, string Colour);
+/// <summary>
+/// The energy gauge by the suit's (0081): what the belt's batteries hold, as a <paramref name="Share"/> of a belt full of
+/// full batteries and in whole power <paramref name="Units"/>; <paramref name="Low"/> under a quarter of what those worn
+/// hold full, as a slot's bar is; <paramref name="Worn"/> while any battery is on the belt.
+/// </summary>
+public sealed record Belt(double Share, int Units, bool Low, bool Worn);
 
 /// <summary>
 /// What the client shows of charge (0053), from the stacks the sim keeps and content: a slot's bar, the
@@ -77,19 +84,35 @@ public static class Charges
         : charging ? "charger.charging"
         : "charger.noPower";
 
-    /// <summary>The colour of the energy <paramref name="item"/> runs on, held: charge's green for an electric tool; null for one that runs on none.</summary>
-    public static string? ColourOf(string item, Func<string, bool>? electric = null) =>
-        (electric ?? (i => Spec.Items.Get(i).Draw != null))(item) ? Green : null;
+    /// <summary>How many batteries the belt wears at most: the energy gauge has a group of cells for each.</summary>
+    public static readonly int BeltSlots = Spec.Inventory.Equipment.Count(e => e == Spec.Charge.Belt);
 
     /// <summary>
-    /// The energy bar while <paramref name="held"/> runs on energy, null otherwise: the belt's charge,
-    /// <paramref name="belt"/> as <c>BeltCharge</c> sums it, of what it holds full; empty with no battery worn.
-    /// <paramref name="electric"/> says what is electric, what has a <c>Draw</c> in content when not given.
+    /// The energy gauge from the belt's charge and what its batteries hold full, <paramref name="belt"/> as
+    /// <c>BeltCharge</c> sums it. Shown always, whatever is held, so the gauge row never changes width.
     /// </summary>
-    public static Energy? EnergyOf(string? held, (int Charge, int Capacity) belt, Func<string, bool>? electric = null)
+    public static Belt BeltOf((int Charge, int Capacity) belt)
     {
-        if (held == null || ColourOf(held, electric) is not { } colour) return null;
-        float share = belt.Capacity > 0 ? Math.Clamp((float)belt.Charge / belt.Capacity, 0, 1) : 0;
-        return new Energy(share, colour);
+        int charge = Math.Max(0, belt.Charge);
+        double share = (double)charge / ((long)BeltSlots * Spec.Charge.Battery);
+        bool worn = belt.Capacity > 0;
+        // Units rounded down, as the card's meter: never more than is there.
+        return new Belt(Math.Clamp(share, 0, 1), charge / Spec.Charge.Scale, worn && BarOf(charge, belt.Capacity) != ChargeBar.Good, worn);
+    }
+
+    /// <summary>The thin space between each three digits of the energy readout: <c>4 300</c>.</summary>
+    public const char Thin = ' ';
+
+    /// <summary><paramref name="units"/> with its thousands set apart by a <see cref="Thin"/> space; never negative.</summary>
+    public static string Grouped(int units)
+    {
+        var digits = Math.Max(0, units).ToString(CultureInfo.InvariantCulture);
+        var grouped = new StringBuilder();
+        for (int i = 0; i < digits.Length; i++)
+        {
+            if (i > 0 && (digits.Length - i) % 3 == 0) grouped.Append(Thin);
+            grouped.Append(digits[i]);
+        }
+        return grouped.ToString();
     }
 }

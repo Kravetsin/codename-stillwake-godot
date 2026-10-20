@@ -203,13 +203,13 @@ public partial class Main : Node2D, ITogether
             _items.Panel.Kept = p => p.Crate is int id && _m.Logistics.Served(id) ? _m.Items.KeptAt(id, p.Slot) : null;
             _items.Panel.Supplied = (id, item) => _m.Logistics.Supplied(id, item);
             _fabricator.Served = BadgeOf;
+            // The belt's energy beside the suit's, whatever is held, so the gauge row never changes width (0081). Before the
+            // suit's gauge, so the red edges and the dark of passing out cover it as they cover the rest of the HUD.
+            var energy = new EnergyBar(() => _session is Session s ? Charges.BeltOf(_m.Items.BeltCharge(s.Client.Id)) : null, _hands.Ui);
+            AddChild(energy);
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None), _hands.Ui);
             AddChild(gauge);
-            // --electric=fireAxe: that item counts as electric, so the energy bar shows before any tool is (0053).
-            var electric = _args.FirstOrDefault(a => a.StartsWith("--electric="))?[11..];
-            Func<string, bool>? isElectric = electric == null ? null : item => item == electric || Content.Items.Get(item).Draw != null;
-            AddChild(new EnergyBar(() => _session is Session s ? Charges.EnergyOf(_hands.Ui.Wielded.Get(), _m.Items.BeltCharge(s.Client.Id), isElectric) : null, _hands.Ui));
             AddChild(new Frost(() => _session != null && _hero is { Placed: true } h ? Report.Cold(_m.Crew, h.Current.BodyCell(_m.Grid.Width)) : 0));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
             var (panel, fabricator, building, overlays) = (_items.Panel, _fabricator, _hands.Menu, _hands.Overlays);
@@ -217,6 +217,7 @@ public partial class Main : Node2D, ITogether
             {
                 foreach (var covered in panel.Covers()) yield return covered;
                 yield return gauge.Covers;
+                yield return energy.Covers;
                 yield return building.Covers;
                 yield return overlays.Covers;
                 if (fabricator.Covers is { } crafts) yield return crafts;

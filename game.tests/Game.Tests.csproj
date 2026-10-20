@@ -84,6 +84,9 @@
     <Compile Include="../game/shared/TankFill.cs" Link="Game/Shared/TankFill.cs" />
     <Compile Include="../game/shared/Escape.cs" Link="Game/Shared/Escape.cs" />
     <Compile Include="../game/shared/Slots.cs" Link="Game/Shared/Slots.cs" />
+    <Compile Include="../game/shared/GaugeMotion.cs" Link="Game/Shared/GaugeMotion.cs" />
+    <Compile Include="../game/shared/MeterCells.cs" Link="Game/Shared/MeterCells.cs" />
+    <Compile Include="../game/Content/WristLook.cs" Link="Game/Content/WristLook.cs" />
     <Compile Include="../game/shared/WristPieces.cs" Link="Game/Shared/WristPieces.cs" />
     <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />
     <Compile Include="../game/features/building/PlanHand.cs" Link="Game/Building/PlanHand.cs" />
