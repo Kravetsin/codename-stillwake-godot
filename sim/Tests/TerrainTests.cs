@@ -61,23 +61,40 @@ public class TerrainTests
     }
 
     [Property(MaxTest = 60)]
-    public Property SoilLiesOverStoneInABandThreeToEightDeepAndTheSkyHasNoMaterial() => Prop.ForAll(Seeds, seed =>
+    public Property SoilLiesOverStoneAtMostEightDeepAndTheSkyHasNoMaterial() => Prop.ForAll(Seeds, seed =>
     {
         var l = Terrain.Generate(Small, seed);
-        int thin = 0;
         for (int x = 1; x < l.Width - 1; x++)
         {
-            int top = Enumerable.Range(0, l.Height).First(y => l.Materials![y * l.Width + x] != 0);
-            int soil = Enumerable.Range(top, l.Height - top).TakeWhile(y => Math.Abs(l.Materials![y * l.Width + x]) == Code("soil")).Count();
-            // Thinner only where a bump or a post that would have been a spike was taken off the top: a few columns.
+            int top = TopOf(l, x), soil = SoilAt(l, x, top);
             if (soil > Small.SoilMost) return false;
-            if (soil < Small.SoilLeast) thin++;
             // Stone from there to the bedrock, open or not; nothing but sky above.
             if (Enumerable.Range(top + soil, l.Height - Small.BedrockRows - top - soil).Any(y => Math.Abs(l.Materials![y * l.Width + x]) != Code("stone"))) return false;
-            if (Enumerable.Range(0, top).Any(y => l.Rows[y][x] is not (' ' or 'S'))) return false;
+            // Above it, the sky, or a cave under an overhang of another column's: open, and of no material but in a cave.
+            if (Enumerable.Range(0, top).Any(y => l.Rows[y][x] is not (' ' or 'S' or '.') || l.Rows[y][x] != '.' && l.Materials![y * l.Width + x] != 0)) return false;
         }
-        return thin * 10 <= l.Width;
+        return true;
     });
+
+    [Fact]
+    public void TheSoilBandIsAtLeastThreeDeepNearlyEverywhere()
+    {
+        // Thinner where a spike was taken off the top or the ground carved open to the sky (a mouth, a chasm, a pit): on a
+        // planet a few columns in a hundred. A tiny ground may be half chasm, so this is measured on planets.
+        foreach (uint seed in Enumerable.Range(1, 6).Select(s => (uint)s))
+        {
+            var l = Terrain.Generate(Planet, seed);
+            int thin = Enumerable.Range(1, l.Width - 2).Count(x => SoilAt(l, x, TopOf(l, x)) < Planet.SoilLeast);
+            Assert.True(thin * 10 <= l.Width, $"seed {seed}: {thin} thin columns");
+        }
+    }
+
+    /// <summary>The top of the ground in column <paramref name="x"/>: its first solid cell; stone where it was carved open to the sky.</summary>
+    private static int TopOf(Layout l, int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[y][x] is '#' or '/' or '\\');
+
+    /// <summary>How deep the soil runs in column <paramref name="x"/> from <paramref name="top"/> down.</summary>
+    private static int SoilAt(Layout l, int x, int top) =>
+        Enumerable.Range(top, l.Height - top).TakeWhile(y => Math.Abs(l.Materials![y * l.Width + x]) == Code("soil")).Count();
 
     [Property(MaxTest = 60)]
     public Property ASlopeIsAWallOpenAboveWithOneSideOpenAndRisesTowardTheOther() => Prop.ForAll(Seeds, seed =>
@@ -118,6 +135,24 @@ public class TerrainTests
         return true;
     });
 
+    [Property(MaxTest = 60)]
+    public Property OpenGroundStraightUnderTheSkyHasNoBackWallAndUnderAnOverhangKeepsIt() => Prop.ForAll(Seeds, seed =>
+    {
+        var l = Terrain.Generate(Small, seed);
+        for (int x = 0; x < l.Width; x++)
+        {
+            // Down each column: open sky, with no material, till its first solid cell; open cells under that are caves.
+            bool sky = true;
+            for (int y = 0; y < l.Height; y++)
+            {
+                char c = l.Rows[y][x];
+                if (c is '#' or '/' or '\\') sky = false;
+                else if (sky != (c is ' ' or 'S') || sky != (l.Materials![y * l.Width + x] == 0)) return false;
+            }
+        }
+        return true;
+    });
+
     [Fact]
     public void CavesAreDenserDeeperOnEverySeed()
     {
@@ -142,7 +177,7 @@ public class TerrainTests
             int near = Enumerable.Range(Planet.Surface, 2 * Planet.CaveFrom).Sum(y => l.Rows[y].Count(c => c == '.'));
             Assert.True(near > 100, $"seed {seed}: {near} cave cells near the surface");
             // A cave breaking the surface: open under the open sky.
-            if (Enumerable.Range(l.Width, l.Width * (l.Height - 1)).Any(c => l.At(c) == '.' && l.At(c - l.Width) == ' ')) mouths++;
+            if (Enumerable.Range(l.Width, l.Width * (l.Height - 2)).Any(c => l.At(c) == '.' && (l.At(c - l.Width) == ' ' || l.At(c - 1) == ' ' || l.At(c + 1) == ' '))) mouths++;
         }
         Assert.True(mouths >= 6, $"{mouths} of 12 planets with a cave open to the sky");
     }
@@ -154,9 +189,10 @@ public class TerrainTests
         {
             var l = Terrain.Generate(Planet, seed);
             int w = l.Width, middle = w / 2;
-            int TopOf(int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[y][x] is not (' ' or 'S'));
-            // A chasm: a column open nine cells in ten from its surface down half a chasm's greatest depth.
-            var chasms = Enumerable.Range(1, w - 2).Where(x => Enumerable.Range(TopOf(x), Planet.ChasmDeep / 2).Count(y => l.Rows[y][x] == '.') * 10 >= Planet.ChasmDeep / 2 * 9).ToList();
+            int TopOf(int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[Math.Clamp(y, 0, l.Height - 1)][Math.Clamp(x, 1, w - 2)] is '#' or '/' or '\\');
+            // A chasm: a column open nine cells in ten from the land beside it down half a chasm's greatest depth.
+            int LandBy(int x) => Math.Min(TopOf(x - 20), TopOf(x + 20));
+            var chasms = Enumerable.Range(1, w - 2).Where(x => Enumerable.Range(LandBy(x), Planet.ChasmDeep / 2).Count(y => l.Rows[y][x] is ' ' or '.') * 10 >= Planet.ChasmDeep / 2 * 9).ToList();
             Assert.NotEmpty(chasms);
             Assert.All(chasms, x => Assert.True(Math.Abs(x - middle) > Planet.Clear, $"seed {seed}: a chasm at {x}"));
             Assert.True(chasms.Max() - chasms.Min() > w / 2, $"seed {seed}: chasms only from {chasms.Min()} to {chasms.Max()}");

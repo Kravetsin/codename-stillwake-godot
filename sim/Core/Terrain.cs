@@ -102,6 +102,12 @@ public static class Terrain
                 }
             }
 
+        // Open ground with nothing solid above it, straight up to the sky — a cave's mouth, a chasm, a pit — is the open sky
+        // itself: no back wall, so it shows the sky as the land round it does. Under an overhang, and in caves, it keeps its.
+        for (int x = 0; x < w; x++)
+            for (int y = 0; y < h && kind[y * w + x] != 1; y++)
+                (kind[y * w + x], codes[y * w + x]) = (0, 0);
+
         var rows = new char[h][];
         for (int y = 0; y < h; y++)
         {
