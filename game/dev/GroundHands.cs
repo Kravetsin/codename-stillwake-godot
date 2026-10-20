@@ -22,7 +22,7 @@ public partial class GroundHands(GroundDemo demo) : Node
             return;
         }
         _since += delta;
-        var at = GetViewport().GetCanvasTransform() * (new Vector2(x + 0.5f, y + 0.5f) * ShipCamera.Cell);
+        var at = GetViewport().GetCanvasTransform() * (new Vector2((float)x, (float)y) * ShipCamera.Cell);
         Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at, ButtonMask = _holding ? MouseButtonMask.Left : 0 });
         if (!_drawn && _since > 0.3)
         {

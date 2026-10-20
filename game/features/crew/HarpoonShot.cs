@@ -307,15 +307,45 @@ public sealed class HarpoonShot
     /// The arm's angle from straight ahead of the shoulder, down positive, that puts the line of
     /// <paramref name="look"/>'s barrel through a point (<paramref name="dx"/>, <paramref name="dy"/>) pixels
     /// from the shoulder: the arm straight, the gun held as the figure draws it (<see cref="AxeSwing.EdgeAt"/>).
-    /// A point nearer than the barrel's line is aimed at straight.
+    /// A point nearer than the barrel's line is aimed at straight. Turned about <paramref name="pivot"/> instead, where it is
+    /// with the arm straight ahead, the point is from there.
     /// </summary>
-    public static double ArmFor(HeldLook look, double dx, double dy)
+    public static double ArmFor(HeldLook look, double dx, double dy, Vec pivot = default)
     {
         var (from, to) = AxeSwing.EdgeAt(look, 0);
+        (from, to) = (new Vec(from.X - pivot.X, from.Y - pivot.Y), new Vec(to.X - pivot.X, to.Y - pivot.Y));
         double ux = to.X - from.X, uy = to.Y - from.Y, length = Math.Sqrt(ux * ux + uy * uy);
         // The barrel's turn from the arm, and how far its line passes beside the shoulder: both fixed as the arm turns.
         double turn = Math.Atan2(uy, ux), beside = (ux * to.Y - uy * to.X) / length, far = Math.Sqrt(dx * dx + dy * dy);
         return Math.Atan2(dy, dx) - turn - (far > Math.Abs(beside) ? Math.Asin(beside / far) : 0);
+    }
+
+    /// <summary>
+    /// How far above straight ahead a drill's arm rises, at most, in radians (0077): past it the drill turns in the fist
+    /// instead, so held up the arm stays out in front and never crosses the helmet.
+    /// </summary>
+    public const double DrillRaise = 0.15;
+
+    /// <summary>
+    /// A drill held toward a point (<paramref name="dx"/>, <paramref name="dy"/>) pixels from the shoulder, Terraria's way:
+    /// the arm straight, turned toward it but never raised past <see cref="DrillRaise"/>, and the drill turned in the fist
+    /// by <c>Turn</c>, clockwise past the forearm's line, so its bit's line runs through the point.
+    /// </summary>
+    public static (double Arm, double Turn) DrillFor(HeldLook look, double dx, double dy)
+    {
+        double arm = Math.Max(ArmFor(look, dx, dy), -DrillRaise);
+        return (arm, TurnIn(look, AxeSwing.ArmAt(arm), dx, dy));
+    }
+
+    /// <summary>
+    /// The turn of <paramref name="look"/> in the fist of an arm bent as <paramref name="arm"/>, clockwise past the forearm's
+    /// line, that puts its bit's line through (<paramref name="dx"/>, <paramref name="dy"/>) pixels from the shoulder.
+    /// </summary>
+    public static double TurnIn(HeldLook look, Bend arm, double dx, double dy)
+    {
+        var fist = Rig.FistOf(arm);
+        double forearm = Math.PI / 2 - arm.Upper - arm.Lower;
+        return ArmFor(look, dx - fist.X, dy - fist.Y, Rig.FistOf(AxeSwing.ArmAt(0))) - forearm;
     }
 
     private static double Distance((double X, double Y) a, (double X, double Y) b) =>

@@ -468,8 +468,9 @@ Deliberately not handled:
   shines from this frame and the way its head looks (`Figure.HeadLampToward`), which `Main` hands the light
   (`LightView.HeadLamps`): a beam that way.
 - **What is dug at stays readable** (0077): the dig target's outline is drawn over the hero and its tool (`Layers.Dug`),
-  and a drill aimed close ahead keeps its size, pulled back along its aim with the arm (`Figure.PulledBack`), its bit's tip
-  a pixel short of the target cell, never inside it, by at most 14 px. A landing's dust spreads along the floor only as far as it runs open
+  and the drill, always full size, is held Terraria's way: the arm turns toward the pointer but rises no higher than `HarpoonShot.DrillRaise`
+  above straight ahead, and the drill turns in the fist the rest of the way (`HarpoonShot.DrillFor`, `TurnIn`), so the arm never crosses the helmet;
+  the drill and arc drill alike, and `Aim.Touched` traces the same bit. A landing's dust spreads along the floor only as far as it runs open
   (`Figure.FloorRoom`, from `HeroView`), and dust along the floor is drawn behind the walls (`Luminous.Low`), so none shows through a shaft's walls.
 - **Ladders** (0077): a jump off a ladder goes on with up held, not caught again while rising (`Hero.Move` grabs only falling or still); a side
   held in mid-air turns the hero on it, ready to jump that way, side then jump or jump then side; at its foot a

@@ -41,7 +41,8 @@ digging and a light to dig by come together.
     one or two cells wide standing alone in the open, which would be a lone ◢◣ peak or a post, is taken away first, so
     the ground under it is the top and hills stay walkable.
   - *Back walls* of each cell's own material from the surface down, caves included, so the sky's light falls off into
-    them (0070) and a cave is dark a few cells in.
+    them (0070) and a cave is dark a few cells in. An open cell with nothing solid straight above it — a cave's mouth, a
+    chasm, a pit — is the open sky and has none, so no back wall sticks up out of the ground; under an overhang it keeps its.
   - *Spawn:* the flat column nearest the middle, on whole ground, open above.
 - **The first planet** (`Surfaces.Planet`, `--planet` and the dev panel) is **2048 × 768** cells under the strip's rules,
   the ship's world's size class, its surface some 160 rows down: a walk across is over four minutes. A smaller one
@@ -91,11 +92,14 @@ digging and a light to dig by come together.
   way (a `Toward` on the light source, read by the shader as a heading): one dot product a texel more. It works
   everywhere, aboard too. `--planet` starts with the axe, the drill and the lamp worn.
 - **What is dug at stays readable:** the dig target's outline and the cracks are drawn over the hero and its tool
-  (`Layers.Dug`), the chips over everything already; a drill aimed close ahead keeps its size and is pulled back along
-  its aim with the arm holding it, so its bit's tip rests a pixel short of the target cell, never inside it (at most 14 px).
+  (`Layers.Dug`). A drill is held Terraria's way, always full size: the arm turns toward the pointer but rises no higher
+  than a little above straight ahead (`HarpoonShot.DrillRaise`), and past that the drill turns in the fist, so the arm never
+  crosses the helmet; the drill and arc drill alike, and the bit's line runs through the pointer. The target may be partly
+  covered by the drill: its outline and cracks draw over it.
 - **Dust along the floor is drawn behind the walls** (`Luminous.Low`, `Layers.LowDust`, over the back walls): a landing's,
   a step's and a break's dust and veils, so a wall hides what spreads past it in a shaft; a landing's spreads only as far
-  as the floor runs open besides (`Figure.FloorRoom`). Chips stay over everything.
+  as the floor runs open besides (`Figure.FloorRoom`). A dig's chips too: they bounce and skitter along the floor, so a
+  shaft's walls hide them.
 - **Underground is black, as in Terraria.** On a planet there is no ambient light (`Lit.Ambient`: the ship keeps its own),
   daylight crossing a cell of air sideways or up keeps `Light.GroundKeep` (0.3) of itself, so it dies a cell or two round a
   bend, and falling down keeps `Light.GroundDownKeep` (0.8), so a shaft or a cave mouth open above is lit six to eight

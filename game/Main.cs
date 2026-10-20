@@ -337,7 +337,7 @@ public partial class Main : Node2D, ITogether
         {
             world = GroundDemo.Seed(world, Modules);
             _ground = new GroundDemo(ground[9..]);
-            if (ground[9..] == "drill") AddChild(new GroundHands(_ground));
+            if (ground[9..] is "drill" or "poses") AddChild(new GroundHands(_ground));
         }
         // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077).
         else if (Has("--planet")) world = GroundDemo.Seed(world, Modules);

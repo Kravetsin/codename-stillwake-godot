@@ -134,12 +134,13 @@ public struct AxeSwing
 
     /// <summary>
     /// Where the ends of <paramref name="look"/>'s edge are, in pixels from the shoulder, swung with the
-    /// arm at <paramref name="angle"/> (<see cref="ArmAt"/>), held as the figure draws it (0040).
+    /// arm at <paramref name="angle"/> (<see cref="ArmAt"/>), held as the figure draws it (0040), turned
+    /// <paramref name="turned"/> more in the fist.
     /// </summary>
-    public static (Vec From, Vec To) EdgeAt(HeldLook look, double angle)
+    public static (Vec From, Vec To) EdgeAt(HeldLook look, double angle, double turned = 0)
     {
         var arm = ArmAt(angle);
-        return (Rig.HeldAt(arm, look, look.EdgeFrom), Rig.HeldAt(arm, look, look.EdgeTo));
+        return (Rig.HeldAt(arm, look, look.EdgeFrom, turned), Rig.HeldAt(arm, look, look.EdgeTo, turned));
     }
 
     /// <summary>

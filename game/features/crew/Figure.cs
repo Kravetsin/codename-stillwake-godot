@@ -61,9 +61,6 @@ public partial class Figure : Node2D
     }
 
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
-    /// <summary>The front arm's root at the shoulder, pulled back with a drill held close (<see cref="PulledBack"/>).</summary>
-    private readonly Node2D _frontArmRoot;
-    private static readonly Vector2 ArmRoot = new(0, (float)-Rig.Shoulder);
     private readonly Node2D _body, _helmet;
     private readonly Sprite2D _headLamp;
 
@@ -174,10 +171,9 @@ public partial class Figure : Node2D
         _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
         _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
         _frontArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: false, out var frontArm);
-        _frontArmRoot = frontArm;
         backLeg.Position = new Vector2((float)-Rig.HipApart, (float)-Rig.Hip);
         frontLeg.Position = new Vector2((float)Rig.HipApart, (float)-Rig.Hip);
-        backArm.Position = frontArm.Position = ArmRoot;
+        backArm.Position = frontArm.Position = new Vector2(0, (float)-Rig.Shoulder);
         var torso = new Node2D();
         var pack = Part("pack");
         pack.Position = new Vector2((float)-Back, (float)(-Rig.Shoulder - Rig.H * 0.02));
@@ -508,7 +504,7 @@ public partial class Figure : Node2D
         var item = HeldLook.Of(Wields);
         bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding;
         bool chopping = _chop != null && item == HeldLook.FireAxe && inHand;
-        bool aiming = Aim != null && item?.Aimed == true && inHand;
+        bool aiming = Aim != null && item?.Aimed == true && inHand, drill = HeldLook.IsDrill(Wields);
         // The hands at work, whatever the pose (0030): afloat the paddling stops, the hero drifts calmly
         // upright, and the front arm reaches where the work is, in the body's own frame.
         bool acting = working || chopping || holding && _beamMs > 0;
@@ -579,10 +575,17 @@ public partial class Figure : Node2D
         else if (aiming && Aim is { } target && item != null)
         {
             // The gun: the arm straight, turned so the barrel's line, not the arm's, runs through the point; eased in as a swing is.
+            // A drill: the arm raised no higher than out in front, the drill turned in the fist the rest of the way.
             var (dx, dy) = FromShoulder(target);
-            swung = (HarpoonShot.ArmFor(item, dx, dy), 0);
+            swung = (drill ? HarpoonShot.DrillFor(item, dx, dy).Arm : HarpoonShot.ArmFor(item, dx, dy), 0);
         }
         frontArm = _swingArm.Next(frontArm, swung, elapsedMs);
+        double turned = 0;
+        if (drill && aiming && Aim is { } bit && item != null)
+        {
+            var (dx, dy) = FromShoulder(bit);
+            turned = HarpoonShot.TurnIn(item, frontArm, dx, dy);
+        }
         _frontArm.Bend(frontArm);
         _backArm.Bend(shown.BackArm);
         _frontLeg.Bend(shown.FrontLeg);
@@ -615,7 +618,6 @@ public partial class Figure : Node2D
         // The item in the front fist, held by its grip at its angle to the forearm (0040): swung, aimed or
         // hanging, the hand closed round its haft or stock.
         _held.Visible = inHand;
-        _frontArmRoot.Position = ArmRoot;
         Muzzle = null;
         if (inHand && item != null)
         {
@@ -638,10 +640,7 @@ public partial class Figure : Node2D
             }
             _held.Offset = -new Vector2((float)item.Grip.X, (float)item.Grip.Y);
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
-            _held.Rotation = (float)Rig.HeldTurn(frontArm, item);
-            var back = PulledBack(item, aiming);
-            _held.Position += back;
-            _frontArmRoot.Position = ArmRoot + back;
+            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item) + turned);
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
@@ -659,47 +658,7 @@ public partial class Figure : Node2D
         else _smear.Follow(null, null, false, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
-        _drillLight.Step(inHand && HeldLook.IsDrill(Wields) ? item : null, _spin, Bites && inHand, Muzzle, Barrel, _heldAt ??= HeldAt, elapsedMs);
-    }
-
-    /// <summary>
-    /// How far a drill aimed at a point close ahead is drawn pulled back along its aim, with the arm holding it, in the
-    /// parts' own pixels (0077): so its bit's tip rests a pixel short of the cell the point is in, never inside it, as
-    /// held closer to the body; at most <see cref="MostBack"/>. Nothing for anything else, or a cell further than its bit.
-    /// </summary>
-    private Vector2 PulledBack(HeldLook item, bool aiming)
-    {
-        if (!aiming || Aim is not { } target || !HeldLook.IsDrill(Wields) || _held.GetParent() is not Node2D parts) return Vector2.Zero;
-        Vector2 from = HeldAt(item.EdgeFrom), tip = HeldAt(item.EdgeTo);
-        var way = tip - from;
-        float length = way.Length();
-        if (length <= 0) return Vector2.Zero;
-        way /= length;
-        var corner = (target / ShipCamera.Cell).Floor() * ShipCamera.Cell;
-        if (Entered(from, way, corner, corner + Vector2.One * ShipCamera.Cell) is not float enter) return Vector2.Zero;
-        float over = Math.Min(length + 1 - enter, MostBack);
-        return over <= 0 ? Vector2.Zero : parts.GlobalTransform.BasisXformInv(-way * over);
-    }
-
-    /// <summary>The most a drill is pulled back, in pixels: past it, it would go into the body.</summary>
-    private const float MostBack = 14;
-
-    /// <summary>How far along a ray from <paramref name="from"/> the way <paramref name="way"/> it enters the box, 0 from inside; none when it misses.</summary>
-    private static float? Entered(Vector2 from, Vector2 way, Vector2 low, Vector2 high)
-    {
-        float enter = 0, leave = float.MaxValue;
-        for (int axis = 0; axis < 2; axis++)
-        {
-            float o = from[axis], d = way[axis], lo = low[axis], hi = high[axis];
-            if (Math.Abs(d) < 1e-6f)
-            {
-                if (o < lo || o > hi) return null;
-                continue;
-            }
-            float a = (lo - o) / d, b = (hi - o) / d;
-            (enter, leave) = (Math.Max(enter, Math.Min(a, b)), Math.Min(leave, Math.Max(a, b)));
-        }
-        return enter <= leave ? enter : null;
+        _drillLight.Step(inHand && drill ? item : null, _spin, Bites && inHand, Muzzle, Barrel, _heldAt ??= HeldAt, elapsedMs);
     }
 
     /// <summary>A point of the held item's picture in the world, as it is drawn now.</summary>
