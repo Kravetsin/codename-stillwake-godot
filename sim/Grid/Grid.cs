@@ -237,10 +237,10 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
             {
                 char c = layout.Rows[y][x];
                 // A wall and its back wall of the material the map draws there (0077), else of the default hull.
-                int material = drawn != null && drawn[cell] != 0 ? drawn[cell] : hull;
+                int material = drawn != null && drawn[cell] != 0 ? Math.Abs(drawn[cell]) : hull;
                 // Every cell but space has a back wall of the default hull, hull walls included; a solar panel,
                 // making power with no fire, is drawn under the stars, which it needs; a planet's sky has none (0077).
-                if (c != ' ' && (drawn == null || drawn[cell] != 0) && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null })) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = material; }
+                if (c != ' ' && (drawn == null || drawn[cell] > 0) && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null })) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = material; }
                 s.Shape[cell] = c switch
                 {
                     '/' => Shape.BottomRight,

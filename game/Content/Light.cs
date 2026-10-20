@@ -83,11 +83,15 @@ public static class Light
     public const float LampSize = 6f, FireSize = 10f;
 
     /// <summary>
-    /// The helmet lamp (0077): a soft warm light round the wearer's head, falling off faster than a lamp's, out to
-    /// <see cref="HeadLampReach"/> cells: enough to dig by in a cave, never a room lit whole. Its bulb is small.
+    /// The helmet lamp (0077): a beam of warm light the way the head looks, <see cref="HeadLampHalfAngle"/> either side of
+    /// it (60° across), keeping <see cref="HeadLampKeep"/> a cell out to <see cref="HeadLampReach"/> cells, its bulb small;
+    /// and a faint glow round the head, <see cref="HeadGlow"/> of it out to <see cref="HeadGlowReach"/> cells, so the wearer
+    /// is never pitch black behind it.
     /// </summary>
     public static readonly (float R, float G, float B) HeadLamp = (0.95f, 0.82f, 0.6f);
-    public const float HeadLampKeep = 0.7f, HeadLampSize = 3f;
-    public const int HeadLampReach = 6;
+    public const float HeadLampKeep = 0.8f, HeadLampSize = 3f, HeadLampHalfAngle = 0.5236f;
+    public const int HeadLampReach = 9;
+    public const float HeadGlow = 0.4f, HeadGlowKeep = 0.5f;
+    public const int HeadGlowReach = 2;
     public static readonly (float R, float G, float B) Ambient = (0.04f, 0.045f, 0.06f);
 }

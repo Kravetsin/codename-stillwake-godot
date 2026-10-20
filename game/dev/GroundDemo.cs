@@ -10,10 +10,11 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --ground=cave</c> or <c>--ground=shaft</c> (0077): a planet opened, its hero carrying the axe and the drill with the
+/// <c>-- --ground=cave</c>, <c>--ground=drill</c> or <c>--ground=shaft</c> (0077): a planet opened, its hero carrying the axe and the drill with the
 /// helmet lamp worn, for recording the ground and digging. <c>cave</c> beams the hero down into the cave nearest under the
 /// spawn, deep in the dark, and digs a tunnel into the stone beside its head, by the lamp's light; <c>shaft</c> beams it to
-/// the spawn and digs a shaft down under its feet, so it drops in as it goes. An axe hit every <see cref="Pace"/> ticks,
+/// the spawn and digs a shaft down under its feet, so it drops in as it goes; <c>drill</c> digs the tunnel with the drill in the
+/// hero's hands, aimed by <see cref="GroundHands"/> as a mouse would. An axe hit every <see cref="Pace"/> ticks,
 /// sent as a strike sends them: cracks, chips, dust, and the sky falling into the shaft.
 /// </summary>
 public sealed class GroundDemo(string mode)
@@ -61,19 +62,30 @@ public sealed class GroundDemo(string mode)
             _planet = world.Surfaces.Count - 1;
             var m = Registry.On(world, _planet.Value);
             int w = m.Grid.Width;
-            int at = mode == "cave" ? CaveUnder(m) ?? m.Crew.Spawn : m.Crew.Spawn;
+            bool tunnel = mode is "cave" or "drill";
+            int at = tunnel ? CaveUnder(m) ?? m.Crew.Spawn : m.Crew.Spawn;
             // The shaft under the feet; the tunnel at head height the way the hero faces, right.
-            for (int i = 1; i <= (mode == "cave" ? Along : Depth); i++) _cells.Add(mode == "cave" ? at - w + i : at + i * w);
+            for (int i = 1; i <= (tunnel ? Along : Depth); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
             client.Send(new Transfer(_planet.Value, at));
             log($"ground demo: beamed down to ({at % w}, {at / w})");
             return;
         }
-        if (world.SurfaceOf(client.Id) != _planet || world.Tick - _hits < Pace) return;
-        _hits = world.Tick;
+        if (world.SurfaceOf(client.Id) != _planet) return;
         var here = Registry.On(world, _planet.Value);
         int next = _cells.FindIndex(c => here.Grid.WallAt(c) is { Breaks: true });
+        // drill: the hands dig, aimed at the cell by GroundHands; the others send an axe's hits as a strike would.
+        if (mode == "drill")
+        {
+            Target = next >= 0 ? (_cells[next] % here.Grid.Width, _cells[next] / here.Grid.Width) : null;
+            return;
+        }
+        if (world.Tick - _hits < Pace) return;
+        _hits = world.Tick;
         if (next >= 0) client.Send(new Dig(_cells[next], Spec.Weapons.Axe.Item));
     }
+
+    /// <summary>With <c>drill</c>, the cell the hands aim the drill at, by column and row: the tunnel's next not dug yet.</summary>
+    public (int X, int Y)? Target { get; private set; }
 
     /// <summary>The open cell nearest under the spawn, at least twenty rows down, standing on ground with room above: in a cave.</summary>
     private static int? CaveUnder(Registry m)

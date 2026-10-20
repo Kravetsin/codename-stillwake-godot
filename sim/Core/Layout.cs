@@ -10,7 +10,7 @@ namespace Stillwake.Sim;
 /// <param name="Materials">
 /// Each cell's material code (<c>Content.Materials</c>), for its wall and its back wall: what one character cannot say (0077).
 /// None given, every one is the default hull, as on every map before the planets; 0 is the open sky: no back wall, and a
-/// wall drawn there of the default hull.
+/// wall drawn there of the default hull. A negative code is the material without its back wall: a slope under the sky.
 /// </param>
 public sealed record Layout(
     int Width, int Height, IReadOnlyList<string> Rows, IReadOnlyList<string>? Under = null,

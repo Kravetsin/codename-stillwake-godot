@@ -4,6 +4,7 @@ using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
+using L = Stillwake.Game.Light;
 
 namespace Stillwake.Game.Features.Light;
 
@@ -37,6 +38,9 @@ public partial class Lightmap : Node
             // The columns of its cell a closed door's panel fills, and the rows a closed hatch's does, in pixels: from, to.
             uniform vec2 panel = vec2(6.0, 10.0);
             uniform vec2 hatch = vec2(6.0, 10.0);
+            // A beam's half width, as the cosine of its half angle, and the soft edge either side of it (0077: the helmet lamp).
+            uniform float beam_cos = 0.866;
+            uniform float beam_soft = 0.08;
             const float CELL = 16.0;
             varying vec2 world;
             varying flat vec2 centre;
@@ -130,6 +134,16 @@ public partial class Lightmap : Node
                 if (dist >= reach) discard;
                 // As the TypeScript game spread light: keep a cell, faded out over the last cells.
                 float fall = pow(shape.y, dist) * clamp((reach - dist) / min(4.0, reach / 2.0), 0.0, 1.0);
+                // Most past 1 marks a beam: 2 and its heading as a share of a turn, its most whole. Off its way, it fades out.
+                float most = shape.z;
+                if (most > 1.5) {
+                    float heading = (most - 2.0) * 6.2831853;
+                    vec2 to = world - centre;
+                    float far = length(to);
+                    float along = far > 0.5 ? dot(to / far, vec2(cos(heading), sin(heading))) : 1.0;
+                    fall *= smoothstep(beam_cos - beam_soft, beam_cos + beam_soft, along);
+                    most = 1.0;
+                }
                 if (fall <= 0.0) discard;
                 // The light seen from here: a line across the way to it, size wide; its ends first.
                 vec2 across = normalize(vec2(centre.y - world.y, world.x - centre.x) + vec2(1e-6, 0.0)) * shape.w * 0.5;
@@ -147,7 +161,7 @@ public partial class Lightmap : Node
                     }
                 }
                 if (seen <= 0.0) discard;
-                COLOR = vec4(min(vec3(shape.z), light.rgb * fall) * light.a * seen, 1.0);
+                COLOR = vec4(min(vec3(most), light.rgb * fall) * light.a * seen, 1.0);
             }
             """,
     };
@@ -232,6 +246,7 @@ public partial class Lightmap : Node
         _material.SetShaderParameter("origin", new Vector2I(built.Left, built.Top));
         _material.SetShaderParameter("panel", new Vector2(panels.Door.From, panels.Door.To));
         _material.SetShaderParameter("hatch", new Vector2(panels.Hatch.From, panels.Hatch.To));
+        _material.SetShaderParameter("beam_cos", (float)Math.Cos(L.HeadLampHalfAngle));
     }
 
     /// <summary>Lays both maps over <paramref name="view"/> (world pixels) and draws <paramref name="main"/> and <paramref name="spots"/> into them.</summary>

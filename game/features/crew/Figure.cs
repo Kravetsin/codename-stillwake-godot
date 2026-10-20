@@ -309,6 +309,9 @@ public partial class Figure : Node2D
     /// <summary>The helmet lamp's bulb as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
     public Vector2 HeadLampAt => _headLamp.GlobalPosition;
 
+    /// <summary>The way the helmet lamp points, a unit vector in the world: where the head looks, turned the way the hero faces.</summary>
+    public Vector2 HeadLampToward => _helmet.GlobalTransform.X.Normalized();
+
     /// <summary>The worn jetpack's nozzle as drawn, in pixels of the world; none without one.</summary>
     public Vector2? Nozzle => _jetpack.Visible ? _jetpack.ToGlobal(NozzleAt) : null;
 
@@ -374,21 +377,35 @@ public partial class Figure : Node2D
     /// <paramref name="grains"/> grains skittering out along the floor, slowing into motes, as many motes, two veils rolling
     /// out and curling; and a faint flat ring racing out along the floor, the only light in it.
     /// </summary>
-    private static void Land(double x, double y, int grains)
+    private void Land(double x, double y, int grains)
     {
         var glims = Glims.Shared;
         foreach (int side in (ReadOnlySpan<int>)[-1, 1])
         {
+            // It spreads along the floor only as far as the floor runs open: in a shaft, hardly at all (0077).
+            double room = side < 0 ? FloorRoom.Left : FloorRoom.Right, spread = Math.Min(1, room / FloorSpread);
+            if (room < 2) continue;
             for (int i = 0; i < Math.Round(grains * Fx.Count); i++)
-                glims.Add(Luminous.DustGrain, x + side * glims.Between(1, 4), y - 0.5, side * glims.Between(30, 80), -glims.Between(2, 16), y);
+                glims.Add(Luminous.DustGrain, x + side * glims.Between(1, Math.Min(4, room)), y - 0.5, side * glims.Between(30, 80) * spread, -glims.Between(2, 16), y);
             for (int i = 0; i < Math.Round(grains * Fx.Count); i++)
-                glims.Add(Luminous.LandDust, x + side * glims.Between(0, 6), y - 0.6, side * glims.Between(5, 26), -glims.Between(3, 14), y,
+                glims.Add(Luminous.LandDust, x + side * glims.Between(0, Math.Min(6, room)), y - 0.6, side * glims.Between(5, 26) * spread, -glims.Between(3, 14), y,
                     glims.Between(0.5, 0.8), glims.Between(0.45, 0.8));
+            if (room < FloorSpread / 2) continue;
             for (int i = 0; i < 2; i++)
                 glims.Add(Luminous.LandVeil, x + side * (2 + i * 3), y - 1.4 - i * 0.6, side * glims.Between(12, 26), -glims.Between(1, 5));
         }
-        Flares.Shared.Shock(x, y - 0.4, 3, 3 + 26 * Fx.Length, 10 * Glim.SampleMs, (236, 240, 248), 0.32 * Fx.Glow, 0.28, 0.16);
+        double ring = Math.Min(3 + 26 * Fx.Length, Math.Min(FloorRoom.Left, FloorRoom.Right));
+        if (ring >= 6) Flares.Shared.Shock(x, y - 0.4, 3, ring, 10 * Glim.SampleMs, (236, 240, 248), 0.32 * Fx.Glow, 0.28, 0.16);
     }
+
+    /// <summary>How far, in pixels, a landing's dust needs the floor open to spread its whole way.</summary>
+    private const double FloorSpread = 40;
+
+    /// <summary>
+    /// How far the floor runs open from the feet to either side, in pixels of the world, till a wall: how far a landing's
+    /// dust spreads along it. Set by the crew each frame; unbounded till then.
+    /// </summary>
+    public (double Left, double Right) FloorRoom { get; set; } = (double.MaxValue, double.MaxValue);
 
     /// <summary>The figure in a suit of <paramref name="colour"/>, 0xRRGGBB: its pictures recoloured, when it changes.</summary>
     public void Wear(int colour)
@@ -617,6 +634,7 @@ public partial class Figure : Node2D
             _held.Offset = -new Vector2((float)item.Grip.X, (float)item.Grip.Y);
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
             _held.Rotation = (float)Rig.HeldTurn(frontArm, item);
+            _held.Scale = new Vector2(Shortened(item, aiming), 1);
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
@@ -636,6 +654,22 @@ public partial class Figure : Node2D
         ShowBeams(holding);
         _drillLight.Step(inHand && HeldLook.IsDrill(Wields) ? item : null, _spin, Bites && inHand, Muzzle, Barrel, _heldAt ??= HeldAt, elapsedMs);
     }
+
+    /// <summary>
+    /// How long a drill aimed at a point close ahead is drawn, a share of its length (0077): its bit stopping <see cref="Shy"/>
+    /// short of the point, never under <see cref="Shortest"/>, as if pointed half toward the eye, so the cell it bites stays
+    /// in sight. Whole for anything else, and for a point further than its bit reaches.
+    /// </summary>
+    private float Shortened(HeldLook item, bool aiming)
+    {
+        if (!aiming || Aim is not { } target || !HeldLook.IsDrill(Wields)) return 1;
+        double tip = Math.Sqrt((item.EdgeTo.X - item.Grip.X) * (item.EdgeTo.X - item.Grip.X) + (item.EdgeTo.Y - item.Grip.Y) * (item.EdgeTo.Y - item.Grip.Y));
+        double room = (target - _held.GlobalPosition).Length() - Shy;
+        return tip <= 0 ? 1 : (float)Math.Clamp(room / tip, Shortest, 1);
+    }
+
+    /// <summary>How far short of what it aims at a drill's bit is drawn, in pixels, and the shortest it is drawn.</summary>
+    private const double Shy = 7, Shortest = 0.45;
 
     /// <summary>A point of the held item's picture in the world, as it is drawn now.</summary>
     private Vector2 HeldAt((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);

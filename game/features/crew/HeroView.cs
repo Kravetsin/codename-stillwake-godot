@@ -272,19 +272,20 @@ public partial class HeroView : Node2D
     public IReadOnlyList<(int Id, Hero Hero)> Others { get; private set; } = [];
 
     /// <summary>
-    /// Where every helmet lamp worn on this surface shines from as drawn this frame, in the world's pixels (0077): this
-    /// hero's and each friend's shown, so a friend's lamp lights a cave for everyone in it. What the light draws.
+    /// Where every helmet lamp worn on this surface shines from as drawn this frame, in the world's pixels, and the way it
+    /// points, where its head looks (0077): this hero's and each friend's shown, so a friend's beam lights a cave for
+    /// everyone in it. What the light draws.
     /// </summary>
-    public IReadOnlyList<Vector2> HeadLamps()
+    public IReadOnlyList<(Vector2 At, Vector2 Toward)> HeadLamps()
     {
         _headLamps.Clear();
-        if (_figure.HeadLamp && _figure.Visible) _headLamps.Add(_figure.HeadLampAt);
+        if (_figure.HeadLamp && _figure.Visible) _headLamps.Add((_figure.HeadLampAt, _figure.HeadLampToward));
         foreach (var (_, shown) in _shownOthers)
-            if (shown.Figure.Visible && shown.Figure.HeadLamp) _headLamps.Add(shown.Figure.HeadLampAt);
+            if (shown.Figure.Visible && shown.Figure.HeadLamp) _headLamps.Add((shown.Figure.HeadLampAt, shown.Figure.HeadLampToward));
         return _headLamps;
     }
 
-    private readonly List<Vector2> _headLamps = [];
+    private readonly List<(Vector2 At, Vector2 Toward)> _headLamps = [];
 
     /// <summary>
     /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world <paramref name="m"/>
@@ -404,6 +405,7 @@ public partial class HeroView : Node2D
         _figure.Wear(Suits.Of(m.Players, client.Id));
         _figure.Jetpack = jetpack;
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
+        _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         // Its own thrust shows at once (0014); others' as the sim says.
         Plume(client.Id, _figure, _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
@@ -598,6 +600,27 @@ public partial class HeroView : Node2D
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
     }
 
+    /// <summary>
+    /// How far the floor runs open from <paramref name="hero"/>'s feet to either side, in pixels of the world, looking four
+    /// cells along its lowest row: a landing's dust spreads no further, so none passes the walls of a shaft (0077).
+    /// </summary>
+    private static (double Left, double Right) FloorRoom(Sim.Grid.IGridQueries grid, Hero hero)
+    {
+        int w = grid.Width, cx = hero.X / Hero.Unit, row = (hero.Y - 1) / Hero.Unit;
+        double Room(int dir)
+        {
+            for (int i = 1; i <= 4; i++)
+            {
+                int x = cx + dir * i;
+                if (x < 0 || x >= w || row < 0 || row >= grid.Height) break;
+                if (grid.StructureAt(row * w + x) is Sim.Grid.Structure.Wall or Sim.Grid.Structure.DoorClosed)
+                    return (dir > 0 ? x * Hero.Unit - hero.X : hero.X - (x + 1) * Hero.Unit) * Rig.Cell / Hero.Unit;
+            }
+            return double.MaxValue;
+        }
+        return (Room(-1), Room(1));
+    }
+
     /// <summary>The middle of <paramref name="cell"/>, in thousandths of a cell.</summary>
     private Point Middle(int cell) => new(cell % _width * Hero.Unit + Hero.Unit / 2, cell / _width * Hero.Unit + Hero.Unit / 2);
 
@@ -613,6 +636,8 @@ public partial class HeroView : Node2D
             : ((int, int?, bool, int, int, int?)?)null;
         if (traced == _traced) return;
         _traced = traced;
+        // Ground dug at is outlined over the hero and its tool, which may stand in front of it (0077).
+        _outline.ZIndex = aim?.Press?.Command is Sim.Building.Dig ? Layers.Dug : Layers.Aim;
         _outline.Begin();
         if (aim != null) AimOutline.Trace(_outline, m, aim, shown, refuse ? AimRefused : AimReady);
         _outline.End();
@@ -665,6 +690,7 @@ public partial class HeroView : Node2D
             shown.Figure.Loaded = shown.Rod.Loaded;
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
             shown.Figure.HeadLamp = m.Items.Equipped(id, Content.HelmetLamp.Item);
+            shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
             shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);

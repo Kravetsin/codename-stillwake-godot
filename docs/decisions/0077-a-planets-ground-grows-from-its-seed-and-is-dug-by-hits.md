@@ -36,7 +36,10 @@ digging and a light to dig by come together.
     from 80 rows under the surface to the bedrock. Walking across takes minutes; there is something to find.
   - *Bedrock:* the bottom 3 rows and a 1-wide column at each side, the whole height.
   - *Slopes:* a soil or stone cell open above with one side open and the other solid is cut to ◢ or ◣ (0069), rising
-    toward the solid side; the surface and cave floors alike.
+    toward the solid side; the surface and cave floors alike. A slope under the open sky has no back wall, so its open
+    half shows the sky (a negative material code in `Layout.Materials`); one in a cave keeps its, dark. No spikes: a bump
+    one or two cells wide standing alone in the open, which would be a lone ◢◣ peak or a post, is taken away first, so
+    the ground under it is the top and hills stay walkable.
   - *Back walls* of each cell's own material from the surface down, caves included, so the sky's light falls off into
     them (0070) and a cave is dark a few cells in.
   - *Spawn:* the flat column nearest the middle, on whole ground, open above.
@@ -81,9 +84,17 @@ digging and a light to dig by come together.
   colour fly from each hit and fall, dust and a slow cloud on a break; a friend's digs show alike, read from `Cracks`.
   The ground's pictures are made in code (`GroundArt`, colours in `GroundLooks`) till slice D's audition.
 - **The helmet lamp** (`helmetLamp`): worn in the head slot (0047), crafted at the lifepod of a plate, two wire and a
-  silicon; free, drawing no power, so a hero lost underground is never left in the dark. Worn, a soft warm light
-  shines from a bulb on the helmet's brow (`Light.HeadLamp`, 6 cells), a lamp source of the lightmap following the
-  head, for this hero and every friend shown on the surface. It works everywhere, aboard too.
+  silicon; free, drawing no power, so a hero lost underground is never left in the dark. Worn, a bulb on the helmet's
+  brow casts a **beam** the way the head looks (toward the pointer, as the head turns), 60° across, 9 cells out
+  (`Light.HeadLamp`), and a faint glow of 2 cells round the head, so the wearer is never black behind it; for this hero
+  and every friend shown, so friends see each other's beams. The lightmap draws a beam as any lamp, faded out off its
+  way (a `Toward` on the light source, read by the shader as a heading): one dot product a texel more. It works
+  everywhere, aboard too. `--planet` starts with the axe, the drill and the lamp worn.
+- **What is dug at stays readable:** the dig target's outline and the cracks are drawn over the hero and its tool
+  (`Layers.Dug`), the chips over everything already; a drill aimed close ahead is drawn foreshortened, its bit stopping
+  short of the cell (no shorter than 45 % of its length), as if pointed half toward the eye.
+- **A landing's dust spreads along the floor only as far as the floor runs open** (`Figure.FloorRoom`), so digging down a
+  1-wide shaft, the hero dropping a cell at each break, throws none through its walls.
 - **Save format 21:** Building's `cracks`, empty in every older save, the ship's and every surface's; a grown surface's grid
   as its edits (no older save holds one).
 

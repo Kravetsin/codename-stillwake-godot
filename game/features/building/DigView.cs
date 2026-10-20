@@ -30,7 +30,7 @@ public partial class DigView : Node2D
     {
         _grid = grid;
         _building = building;
-        ZIndex = Layers.Edges;
+        ZIndex = Layers.Dug;
         Lit.Set(this, Stillwake.Game.Light.WallIn);
     }
 

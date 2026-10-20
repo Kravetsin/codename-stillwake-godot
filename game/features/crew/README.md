@@ -465,7 +465,12 @@ Deliberately not handled:
   strip's shelter dig alike. E digs nothing. What the dig looks like is building's (`DigView`). No sound of its own yet.
 - **The helmet lamp** (0077): worn on the head, its bulb shows on the helmet's brow (`Figure.HeadLamp`, a placeholder
   of three warm pixels, drawn unlit), this hero's and every friend's shown; `HeroView.HeadLamps()` says where each
-  shines from this frame, which `Main` hands the light (`LightView.HeadLamps`).
+  shines from this frame and the way its head looks (`Figure.HeadLampToward`), which `Main` hands the light
+  (`LightView.HeadLamps`): a beam that way.
+- **What is dug at stays readable** (0077): the dig target's outline is drawn over the hero and its tool (`Layers.Dug`),
+  and a drill aimed close ahead is drawn foreshortened (`Figure.Shortened`), its bit stopping 7 px short of the point, no
+  shorter than 45 % of its length. A landing's dust spreads along the floor only as far as it runs open
+  (`Figure.FloorRoom`, from `HeroView`), so none passes the walls of a shaft.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - A press on a door or valve is built from it as shown (`Shared.Predicted.Grid`, passed to `Aiming.AimAt`): it asks

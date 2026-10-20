@@ -113,10 +113,12 @@ Numbers from `game/Content/Light.cs`.
   every 8×8 room of it, 1.16 and 0.76. Dim lamps of 11 cells (0070), in a 1600×900 window: 1.73–1.82 ms a frame at
   zoom 1 against 1.87–2.02 before, 0.91–0.96 at zoom 2 against 0.88–0.93.
 
-- **Helmet lamps** (0077): one main light a lamp worn, from its bulb on the helmet (`LightView.HeadLamps`, answered by
-  the crew's `HeroView.HeadLamps()`): `Light.HeadLamp`, a warm (0.95, 0.82, 0.6) keeping `Light.HeadLampKeep` (0.7) a cell
-  out to `Light.HeadLampReach` (6), its bulb `Light.HeadLampSize` (3 px) wide: enough to dig by in a cave, with shadows
-  as any lamp's; free, as bright as it is anywhere, aboard too.
+- **Helmet lamps** (0077): a beam and a glow a lamp worn, from its bulb on the helmet (`LightView.HeadLamps`, answered by
+  the crew's `HeroView.HeadLamps()`, where it is and the way the head looks): `Light.HeadLamp`, a warm (0.95, 0.82, 0.6)
+  keeping `Light.HeadLampKeep` (0.8) a cell out to `Light.HeadLampReach` (9) within `Light.HeadLampHalfAngle` (30°) of
+  that way, faded over a soft edge, its bulb 3 px wide; and `Light.HeadGlow` (0.4) of it out to 2 cells all round. A beam
+  is a `LightSource` with a `Toward`, packed with its most as 2 and its heading as a share of a turn, which the shader
+  reads back (`beam_cos`, `beam_soft`): one dot product a texel. Free, as bright anywhere, aboard too.
 
 ## Deliberately not handled
 

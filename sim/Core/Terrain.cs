@@ -86,6 +86,21 @@ public static class Terrain
             }
         }
         Landmarks(g, seed, top, kind, caverns);
+        // No spikes: a bump one or two cells wide standing up alone, open above, would be cut to a lone ◢◣ peak or left a
+        // post; it is taken away, so the ground under it is the top, row by row down, and hills stay walkable.
+        for (int y = 1; y < h; y++)
+            for (int x = 1; x < w - 1; x++)
+            {
+                int cell = y * w + x;
+                if (!Bump(kind, codes, bedrock, cell, w) || kind[cell - 1] == 1) continue;
+                int across = kind[cell + 1] != 1 ? 1 : x + 2 < w && kind[cell + 2] != 1 && Bump(kind, codes, bedrock, cell + 1, w) ? 2 : 0;
+                for (int i = 0; i < across; i++)
+                {
+                    int at = cell + i;
+                    bool sky = kind[at - w] == 0;
+                    (kind[at], codes[at]) = (sky ? (byte)0 : (byte)2, sky ? 0 : codes[at]);
+                }
+            }
 
         var rows = new char[h][];
         for (int y = 0; y < h; y++)
@@ -102,11 +117,17 @@ public static class Terrain
                 bool left = kind[cell - 1] == 1, right = kind[cell + 1] == 1;
                 if (right && !left) rows[y][x] = '/';
                 else if (left && !right) rows[y][x] = '\\';
+                else continue;
+                // A slope under the open sky has no back wall: its open half shows the sky. One in a cave keeps it, dark.
+                if (kind[cell - w] == 0) codes[cell] = -codes[cell];
             }
         var spawn = SpawnOf(rows, w, h);
         rows[spawn / w][spawn % w] = 'S';
         return new Layout(w, h, [.. rows.Select(r => new string(r))], Materials: codes) { Grown = true };
     }
+
+    /// <summary>Whether <paramref name="cell"/> is soil or stone with the open above it: the top of the ground there.</summary>
+    private static bool Bump(byte[] kind, int[] codes, int bedrock, int cell, int w) => kind[cell] == 1 && codes[cell] != bedrock && kind[cell - w] != 1;
 
     /// <summary>
     /// The landmarks, at places the seed chooses, none within <see cref="Ground.Clear"/> of the middle: chasms cut from the

@@ -50,6 +50,12 @@ public static class Layers
     /// <summary>Drones flying with what they carry, over the heroes they pass (logistics, 0062).</summary>
     public const int Drones = 15;
 
+    /// <summary>
+    /// The ground a hero digs at (0077): its cracks and the aim's outline round it, over every hero and the tool in its hands,
+    /// so a drill held close never hides what it bites.
+    /// </summary>
+    public const int Dug = 15;
+
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
     public const int Glows = 16;
 

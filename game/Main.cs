@@ -54,7 +54,7 @@ namespace Stillwake.Game;
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
-/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it (0077), <c>--ground=cave</c> or <c>--ground=shaft</c>
+/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), <c>--ground=cave</c> or <c>--ground=shaft</c>
 /// down into a cave with the helmet lamp or digging a shaft (<see cref="GroundDemo"/>), <c>--strip</c> the test strip (0076),
 /// with <c>--autopilot</c> played by a script (<see cref="HeroAutopilot.PlanetRun"/>), with <c>--beam-back</c> back aboard two seconds in,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
@@ -337,7 +337,10 @@ public partial class Main : Node2D, ITogether
         {
             world = GroundDemo.Seed(world, Modules);
             _ground = new GroundDemo(ground[9..]);
+            if (ground[9..] == "drill") AddChild(new GroundHands(_ground));
         }
+        // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077).
+        else if (Has("--planet")) world = GroundDemo.Seed(world, Modules);
         PlayDev(world, Has("--gallery") ? null : layout);
     }
 

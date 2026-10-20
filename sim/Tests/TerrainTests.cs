@@ -64,16 +64,19 @@ public class TerrainTests
     public Property SoilLiesOverStoneInABandThreeToEightDeepAndTheSkyHasNoMaterial() => Prop.ForAll(Seeds, seed =>
     {
         var l = Terrain.Generate(Small, seed);
+        int thin = 0;
         for (int x = 1; x < l.Width - 1; x++)
         {
             int top = Enumerable.Range(0, l.Height).First(y => l.Materials![y * l.Width + x] != 0);
-            int soil = Enumerable.Range(top, l.Height - top).TakeWhile(y => l.Materials![y * l.Width + x] == Code("soil")).Count();
-            if (soil < Small.SoilLeast || soil > Small.SoilMost) return false;
+            int soil = Enumerable.Range(top, l.Height - top).TakeWhile(y => Math.Abs(l.Materials![y * l.Width + x]) == Code("soil")).Count();
+            // Thinner only where a bump or a post that would have been a spike was taken off the top: a few columns.
+            if (soil > Small.SoilMost) return false;
+            if (soil < Small.SoilLeast) thin++;
             // Stone from there to the bedrock, open or not; nothing but sky above.
-            if (Enumerable.Range(top + soil, l.Height - Small.BedrockRows - top - soil).Any(y => l.Materials![y * l.Width + x] != Code("stone"))) return false;
+            if (Enumerable.Range(top + soil, l.Height - Small.BedrockRows - top - soil).Any(y => Math.Abs(l.Materials![y * l.Width + x]) != Code("stone"))) return false;
             if (Enumerable.Range(0, top).Any(y => l.Rows[y][x] is not (' ' or 'S'))) return false;
         }
-        return true;
+        return thin * 10 <= l.Width;
     });
 
     [Property(MaxTest = 60)]
@@ -93,6 +96,24 @@ public class TerrainTests
                 bool left = Solid(x - 1, y), right = Solid(x + 1, y);
                 char want = right && !left ? '/' : left && !right ? '\\' : '#';
                 if (c != want) return false;
+            }
+        return true;
+    });
+
+    [Property(MaxTest = 60)]
+    public Property NoSpikeStandsUpAndASlopeUnderTheSkyHasNoBackWallWhereOneInACaveKeepsIt() => Prop.ForAll(Seeds, seed =>
+    {
+        var l = Terrain.Generate(Small, seed);
+        static bool Open(char c) => c is ' ' or '.' or 'S';
+        for (int y = 1; y < l.Height; y++)
+            for (int x = 1; x < l.Width - 1; x++)
+            {
+                char c = l.Rows[y][x], above = l.Rows[y - 1][x];
+                int code = l.Materials![y * l.Width + x];
+                // No ◢◣ peak, and no post a cell wide standing in the open.
+                if (c == '/' && l.Rows[y][x + 1] == '\\') return false;
+                if (c == '#' && Open(above) && Open(l.Rows[y][x - 1]) && Open(l.Rows[y][x + 1]) && code != Code("bedrock")) return false;
+                if (c is '/' or '\\' && code < 0 != (above == ' ')) return false;
             }
         return true;
     });
@@ -162,8 +183,8 @@ public class TerrainTests
         for (int cell = 0; cell < l.Width * l.Height; cell++)
         {
             int code = l.Materials![cell];
-            Assert.Equal(code == 0 ? null : Materials.All.Single(m => m.Code == code), grid.BackAt(cell));
-            if (l.At(cell) is '#' or '/' or '\\') Assert.Equal(code, Materials.All.Single(m => m.Id == grid.WallAt(cell)!.Id).Code);
+            Assert.Equal(code <= 0 ? null : Materials.All.Single(m => m.Code == code), grid.BackAt(cell));
+            if (l.At(cell) is '#' or '/' or '\\') Assert.Equal(Math.Abs(code), Materials.All.Single(m => m.Id == grid.WallAt(cell)!.Id).Code);
         }
         Assert.Contains(Enumerable.Range(0, l.Width * l.Height), c => grid.ShapeAt(c) == Shape.BottomRight);
     }
