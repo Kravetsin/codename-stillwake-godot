@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The pictures over a planet's ground (0081): singles in some whole cells, features only over whole cells of one material.</summary>
+/// <summary>The pictures over a planet's ground (0082): singles in some whole cells, features only over whole cells of one material.</summary>
 public class GroundDetailsTests
 {
     private const int Size = 64, Soil = 3, Stone = 4;

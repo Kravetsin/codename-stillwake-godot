@@ -55,7 +55,7 @@ public partial class GridView : Node2D
         _pipes = Layer(Layers.Pipes);
         _valves = Layer(Layers.Valves);
         _walls = Layer(Layers.Walls, L.WallIn);
-        // A planet's pebbles and roots over its ground, under its edges: added after the walls, before them (0081).
+        // A planet's pebbles and roots over its ground, under its edges: added after the walls, before them (0082).
         _details = Layer(Layers.Walls, L.WallIn);
         _edges = Layer(Layers.Edges, L.WallIn);
         // The living edge over its ground, lit as the open air its top faces; over the edges, as added after them; its tufts before the heroes.

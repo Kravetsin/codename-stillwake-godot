@@ -3,7 +3,7 @@ using System;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// The pictures laid over a planet's ground (0081), a rule of drawing, never the sim's: a pebble, a root or a crack in about
+/// The pictures laid over a planet's ground (0082), a rule of drawing, never the sim's: a pebble, a root or a crack in about
 /// <see cref="SinglePercent"/> of its whole cells, and now and then a boulder or a vein over several. A feature lies inside a
 /// block of <see cref="Block"/> cells square, so what a cell shows hangs on its own block only, and only where every cell it
 /// covers is a whole wall of one natural material. A hash of where it is: the same on every machine and run.

@@ -1,4 +1,4 @@
-# 0081 — The ground's chipped look: details over it and a living edge on top
+# 0082 — The ground's chipped look: details over it and a living edge on top
 
 - Status: accepted; supersedes 0079's moss tops
 - Date: 2026-10-20

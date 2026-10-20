@@ -1,6 +1,6 @@
 # 0079 — A planet's surface has its look, and grows plants from its seed
 
-- Status: accepted; its tiles and moss tops superseded by [0081](0081-the-grounds-chipped-look-details-and-living-edge.md)
+- Status: accepted; its tiles and moss tops superseded by [0082](0082-the-grounds-chipped-look-details-and-living-edge.md)
 - Date: 2026-10-20
 
 ## Context

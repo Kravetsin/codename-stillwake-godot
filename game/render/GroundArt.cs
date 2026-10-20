@@ -13,7 +13,7 @@ public static class GroundArt
     private const int Cell = ShipCamera.Cell;
 
     /// <summary>
-    /// The tops a living edge is drawn for (<c>art/planet/top_{material}</c>, 0081): whole, and the two floor slopes. Its pictures
+    /// The tops a living edge is drawn for (<c>art/planet/top_{material}</c>, 0082): whole, and the two floor slopes. Its pictures
     /// are a cell wide and two tall, laid from the cell above; the sheet's top row drawn behind the heroes, its bottom row before them.
     /// </summary>
     public static readonly int[] TopShapes = [Shape.None, Shape.BottomRight, Shape.BottomLeft];

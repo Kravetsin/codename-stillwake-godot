@@ -3,7 +3,7 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Features.Grid;
 
 /// <summary>
-/// Where a planet's ground shows its living edge (0079, 0081), a rule of drawing, never the sim's: moss on a wall of soil, whole or a
+/// Where a planet's ground shows its living edge (0079, 0082), a rule of drawing, never the sim's: moss on a wall of soil, whole or a
 /// floor slope, with open sky straight above it — an empty cell with no back wall; dug out, built over or roofed, it is bare soil.
 /// Stone and bedrock show their chips under any empty cell, a cave's floor and a dug hole's too.
 /// </summary>

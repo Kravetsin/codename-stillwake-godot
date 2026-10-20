@@ -39,7 +39,7 @@ public sealed class ShipTiles
         }
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
-            // Its living edge by its top's shape, up into the cell above (0081): two cells tall, behind the heroes and before them.
+            // Its living edge by its top's shape, up into the cell above (0082): two cells tall, behind the heroes and before them.
             var tops = Art($"planet/top_{natural}");
             foreach (int shape in GroundArt.TopShapes)
                 for (int v = 0; v < GroundArt.TopVariants(shape); v++)
@@ -227,7 +227,7 @@ public sealed class ShipTiles
 
     /// <summary>
     /// The living edge of a natural <paramref name="material"/> with a top of <paramref name="shape"/>, variant <paramref name="variant"/>,
-    /// laid from the cell above (0081): the row behind the heroes, or the one <paramref name="front"/> of them.
+    /// laid from the cell above (0082): the row behind the heroes, or the one <paramref name="front"/> of them.
     /// </summary>
     public static string TopName(string material, int shape, int variant, bool front) => $"top_{material}_{shape}_{variant}_{(front ? "front" : "back")}";
 
