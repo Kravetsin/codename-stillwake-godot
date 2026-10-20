@@ -31,15 +31,16 @@ released under CC0.
 | `crafting/smelter-crackle-4.wav` | generated for Stillwake: pop 4 of six, white noise (mulberry32 seed 4103) decaying over 15–40 ms through a band-pass at 300–900 Hz, Q 5 (seed 41 draws each pop's length and band); the six levelled together so two a second have −23 dBFS RMS (the audition's "Molten bubbling") | Stillwake team | CC0 |
 | `crafting/smelter-crackle-5.wav` | generated for Stillwake: pop 5 of six, white noise (mulberry32 seed 4104) decaying over 15–40 ms through a band-pass at 300–900 Hz, Q 5 (seed 41 draws each pop's length and band); the six levelled together so two a second have −23 dBFS RMS (the audition's "Molten bubbling") | Stillwake team | CC0 |
 | `crafting/smelter-crackle-6.wav` | generated for Stillwake: pop 6 of six, white noise (mulberry32 seed 4105) decaying over 15–40 ms through a band-pass at 300–900 Hz, Q 5 (seed 41 draws each pop's length and band); the six levelled together so two a second have −23 dBFS RMS (the audition's "Molten bubbling") | Stillwake team | CC0 |
+| `crew/air-fill-1.wav` | generated for Stillwake: white noise (mulberry32 seed 47) through two band-passes, Q 1.1, their centre rising from 2.6 to 4.8 kHz, 0.55 s: in over 50 ms, held, falling away over the last 38 %, to −3 dBFS peak (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |
 | `crew/axe-swing-1.wav` | Freesound, "Swinging staff whoosh (strong) 04.wav", https://freesound.org/people/Nightflame/sounds/422513/ | Nightflame | CC0 |
 | `crew/axe-swing-2.wav` | Freesound, "Swinging staff whoosh (strong) 06.wav", https://freesound.org/people/Nightflame/sounds/422511/ | Nightflame | CC0 |
 | `crew/axe-swing-3.wav` | Freesound, "Swinging staff whoosh (strong) 01.wav", https://freesound.org/people/Nightflame/sounds/422506/ | Nightflame | CC0 |
 | `crew/axe-swing-4.wav` | Freesound, "Swinging staff whoosh (strong) 03.wav", https://freesound.org/people/Nightflame/sounds/422508/ | Nightflame | CC0 |
-| `crew/breathe-1.ogg` | the first 0.7 s of `atmosphere/hiss-1.ogg`, faded out (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/harpoon-ready-1.wav` | Freesound, ".22 Bolt Action Long Rifle Rechambering" (0.95 s from its start), https://freesound.org/people/AlexCoover/sounds/706404/ | AlexCoover | CC0 |
 | `crew/harpoon-reel-1.ogg` | Freesound, "reeling.wav" (2.45 s, looped), https://freesound.org/people/BranndyBottle/sounds/464701/ | BranndyBottle | CC0 |
 | `crew/harpoon-shot-1.wav` | Freesound, "Dart/Arrow Trap." (0.85 s from its attack), https://freesound.org/people/jacobo1304/sounds/866990/ | jacobo1304 | CC0 |
+| `crew/inhale-1.wav` | generated for Stillwake: white noise (mulberry32 seed 81) through two band-passes, Q 0.9, their centre rising from 0.9 to 1.7 kHz, 0.5 s under a sine swell, to −3 dBFS peak (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/jump-1.wav` | Freesound, "Jump_Metal_3.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421139/ | GiocoSound | CC0 |
 | `crew/jump-2.wav` | Freesound, "Jump_Metal_1.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421141/ | GiocoSound | CC0 |
 | `crew/jump-3.wav` | Freesound, "Jump_Metal_4.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421142/ | GiocoSound | CC0 |

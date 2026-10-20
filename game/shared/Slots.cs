@@ -2,6 +2,9 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Shared;
 
+/// <summary>The gauge row's tabs (0081): where each screen's left edge lies and how wide it is, in screen pixels.</summary>
+public readonly record struct GaugeRow(int SuitX, int SuitWidth, int EnergyX, int EnergyWidth);
+
 /// <summary>How large every item slot is drawn: a setting of this machine's player (Esc → Settings).</summary>
 public enum SlotScale
 {
@@ -37,6 +40,9 @@ public static class Slots
     /// <summary>The screen's margin to the hotbar, the gauges, the inventory and the equipment.</summary>
     public const int Margin = 12;
 
+    /// <summary>Between a wrist screen's edge and the slots on it, at its sides: the hotbar's, the bag's, a machine's.</summary>
+    public const int ScreenPadding = 4;
+
     /// <summary>A slot's side in pixels.</summary>
     public static int SizeOf(SlotScale scale) => scale == SlotScale.Large ? 56 : 40;
 
@@ -48,6 +54,22 @@ public static class Slots
 
     /// <summary>The top of the open inventory's grid and of the equipment: under the 30 px gauges with 18 px between.</summary>
     public static float InventoryTop(int slot) => GaugeTop(slot) + 30 + 18;
+
+    /// <summary>
+    /// The wrist's column (0081): the hotbar's screen, a slot and 4 px of padding round the row, and as wide the gauge row
+    /// under it and the bag's screen. Only the bag's sort key stands out of it, on its right rail.
+    /// </summary>
+    public static int Column(int slot) => Spec.Inventory.Hotbar * slot + (Spec.Inventory.Hotbar - 1) * Gap + 2 * ScreenPadding;
+
+    /// <summary>
+    /// The gauge row's tabs, their screens' left edges and widths, filling the column a seam apart: the energy's at its
+    /// right end, as wide as its bolt and number need, the suit's the rest. Widths are even, so the 2 px art keeps its grid.
+    /// </summary>
+    public static GaugeRow GaugeRowOf(int slot)
+    {
+        int suit = Column(slot) - WristLook.TabGap - WristLook.EnergyWidth;
+        return new GaugeRow(Margin, suit, Margin + suit + WristLook.TabGap, WristLook.EnergyWidth);
+    }
 
     /// <summary>How a slot holding <paramref name="item"/> is tinted.</summary>
     public static SlotTint TintOf(string item) =>

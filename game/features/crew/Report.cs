@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crew;
@@ -62,4 +63,16 @@ public static class Report
     /// </summary>
     public static Command? ThrustOf(ICrewQueries crew, int id, bool thrusting) =>
         crew.HeroOf(id) is { } known && known.Thrusting != thrusting ? new Thrust(thrusting) : null;
+
+    /// <summary>
+    /// <c>Refill</c> when the player asks to breathe a canister and the sim would take it now (<paramref name="problem"/>,
+    /// <c>RefillProblem</c>'s, is null) with none in <paramref name="inFlight"/>; null otherwise. What is sent is what is
+    /// shown and heard, so a second click before the first lands breathes nothing and shows nothing (0047).
+    /// </summary>
+    public static Refill? RefillOf(string? problem, IReadOnlyList<Command> inFlight)
+    {
+        foreach (var c in inFlight)
+            if (c is Refill) return null;
+        return problem == null ? new Refill() : null;
+    }
 }

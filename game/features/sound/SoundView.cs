@@ -24,6 +24,7 @@ public partial class SoundView : Node
     private AudioEffectLowShelfFilter _suitLows = null!;
     private int _world, _suit;
     private bool _heard;
+    private ulong _clickedOn = ulong.MaxValue;
     private double _sinceRead = ReadS, _muffle;
 
     /// <param name="floats">Whether this player's placed hero floats out in space: the world falls silent and the bed of space plays.</param>
@@ -106,5 +107,15 @@ public partial class SoundView : Node
             button.Connect(BaseButton.SignalName.Pressed, _onPressed);
     }
 
-    private void Click() => _click.Play();
+    /// <summary>
+    /// The UI's click: a button pressed, and every inventory action and a canister breathed (<see cref="Ui.Clicked"/>,
+    /// 0081). Once a frame at most, however many ask; its pitch varies by the cue's ±6 %.
+    /// </summary>
+    public void Click()
+    {
+        ulong frame = Engine.GetProcessFrames();
+        if (frame == _clickedOn) return;
+        _clickedOn = frame;
+        _click.Play();
+    }
 }

@@ -58,7 +58,7 @@ hero's stamina (`Exert`): what a jetpack burns.
   suit, `items.notEnough` with no canister (never in creative mode, where none is taken), `crew.noHero`.
   An absolute amount, not a share, so a bigger suit later does not cheapen a canister. The client asks the
   sim first (`RefillProblem`) and sends nothing it would refuse, and none while one is in flight; the
-  hiss (`Sound.Breathe`, a placeholder cut from the room's hiss) plays as it is sent. The canister's card
+  hiss (`Sound.AirFill` since 0081, a placeholder) plays as it is sent. The canister's card
   says "RMB breathe"; the jetpack's "Shift thrust in space".
 - **Format 9.** Its step pads every inventory with the five equipment slots, empty, and gives every
   hero no thrust.

@@ -164,8 +164,13 @@ public partial class HeroView : Node2D
     private readonly Dictionary<int, JetPlume> _plumes = new();
     /// <summary>Whether the player asked to breathe a canister, from the inventory, since the last frame.</summary>
     private bool _breathe;
-    // A canister breathed is heard through the suit.
-    private readonly AudioStreamPlayer _breathes = Cues.Player(S.Breathe, S.Suit);
+    // A canister breathed is heard in the helmet, never muffled; a friend's on World, where it is.
+    private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet);
+    private readonly Heard2D _othersBreathe = Cues.Player2D(S.AirFill, S.World, voices: 2);
+    /// <summary>Air coming back round the heroes: a canister's vortex, a breath of room air at the visor (0081).</summary>
+    private readonly AirSwirl _air = new();
+    /// <summary>Which friend breathed a canister, read off its suit (0081).</summary>
+    private readonly CanistersSeen _canisters = new();
 
     /// <param name="ui">What the hand holds, the crate open and the piece aimed at, shared with the other features.</param>
     /// <param name="mouse">The pointer and the left button as the world reads them.</param>
@@ -194,7 +199,7 @@ public partial class HeroView : Node2D
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.
         AddChild(_lines);
         _rod = NewRod();
-        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _strike, _whir, _thrustLoop, _othersShot, _othersBite, _othersThump })
+        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _strike, _whir, _thrustLoop, _othersShot, _othersBite, _othersThump, _othersBreathe, _air })
             AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
@@ -694,11 +699,19 @@ public partial class HeroView : Node2D
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
             shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
+            // A friend's canister: its air rises round it, heard where it is (0081).
+            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Suit, breathing.Out))
+            {
+                var figure = shown.Figure;
+                _air.Vortex(() => figure.Stance);
+                _othersBreathe.PlayAt(figure.Visor);
+            }
             // Its thrust is not sent: the plume blows against the way it moves, down while it is still.
             Plume(id, shown.Figure, crew.HeroOf(id)?.Thrusting == true ? (hero.Vx, hero.Vy) : null, elapsedMs);
             ShowRod(id, shown, seen.Rod, afloat, elapsedMs);
             (shown.Tether, shown.Busy) = (Tie(shown.Tether, id, hero.Anchor, Tether.ClipOf(hero.X, hero.Y), elapsedMs), seen.Busy);
         }
+        _canisters.Sweep();
         Others = others.Select(o => (o.Id, o.Seen.Hero)).ToList();
     }
 
@@ -722,12 +735,16 @@ public partial class HeroView : Node2D
     /// </summary>
     private void Breathe(Client client, Registry m)
     {
-        foreach (var c in client.InFlight)
-            if (c is Refill) return;
-        if (m.Crew.RefillProblem(client.Id) != null) return;
-        client.Send(new Refill());
+        if (Report.RefillOf(m.Crew.RefillProblem(client.Id), client.InFlight) is not { } refill) return;
+        client.Send(refill);
         _breathes.Play();
+        _ui.Click();
+        _air.Vortex(() => _figure.Stance);
+        _ui.Refill();
     }
+
+    /// <summary>This player's hero breathes room air again: a few pale motes off its visor (0081).</summary>
+    public void BreathesAgain() => _air.Puff(_figure.Visor);
 
     /// <summary>
     /// Another hero's harpoon as it sends it (<see cref="RemoteRod"/>, 0065), from its gun's muzzle as just drawn:
