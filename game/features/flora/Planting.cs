@@ -76,6 +76,25 @@ public static class Planting
     }
 
     /// <summary>
+    /// The band along <paramref name="face"/> of moss in cell (<paramref name="x"/>, <paramref name="y"/>), drawn the whole
+    /// edge of its cell, <paramref name="thick"/> pixels, where a run of it goes on <paramref name="before"/> or
+    /// <paramref name="after"/> it along that face: a run joins, rather than repeating a piece with its ends. Null for a lone
+    /// piece, which keeps its own ends.
+    /// </summary>
+    public static (int X, int Y, int W, int H)? Strip(Faces face, int x, int y, int cell, int thick, bool before, bool after)
+    {
+        if (!before && !after) return null;
+        int left = x * cell, top = y * cell;
+        return face switch
+        {
+            Faces.Up => (left, top, cell, thick),
+            Faces.Down => (left, top + cell - 1, cell, thick),
+            Faces.Left => (left, top, thick, cell),
+            _ => (left + cell - 1, top, thick, cell),
+        };
+    }
+
+    /// <summary>
     /// The row of pixels a drip falling from (<paramref name="x"/>, <paramref name="y"/>) lands on: the top of the first wall,
     /// closed door or floor under it, down a slope's diagonal where it is cut to one, within <paramref name="rows"/> cells;
     /// null for none, or for one under the drip's very tip, where there is no open cell for it to fall through.

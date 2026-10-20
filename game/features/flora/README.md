@@ -50,7 +50,11 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
   as far up into the wall over it; neither ever on a slope (0080); one in
   the rock is 24 × 24 round its cell. A picture is `{kind}_{variant}`, the variant a hash of the cell; a stalactite's and a
   stalagmite's `{kind}_{band}_{variant}`, in its band's stone; moss one picture a face of its stone open now — `top` tufts,
-  `bottom` strands, `left`, `right` a film — green in the cold band (`mossGreen`), teal deeper. A felled growth's chunk is
+  `bottom` strands, `left`, `right` a film — green in the cold band (`mossGreen`), teal deeper. Along a run
+  of moss showing the same face its band is drawn the whole edge of each cell, stretched from a pixel of it
+  (`Planting.Strip`), so a run joins into one strip, its pieces' strands hanging from it; a lone piece keeps its own ends.
+  No other kind tiles: a floor's or a ceiling's growths stand a cell apart at least, veins two, and heat cracks' pieces
+  meet at their ends already. A felled growth's chunk is
   drawn again, a glowing one puffing spores, a spike its pebbles; a grid change draws again the chunks round it, for moss.
 - **Pictures:** cut from the cave concept's own drawing code (`objects.js`: glowcaps, crystals, spikes, threads, roots,
   hanging caps, its geode, ammonite and ribs, ore veins, heat cracks, moss) by the export beside it, as the surface's were:

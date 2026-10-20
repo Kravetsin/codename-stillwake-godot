@@ -53,6 +53,16 @@ public class PlantingTests
         Assert.Equal(21 - from, rows);
     }
 
+    [Fact]
+    public void AMossBandRunsTheWholeEdgeOfItsCellAlongARunAndALonePieceKeepsItsEnds()
+    {
+        Assert.Null(Planting.Strip(Faces.Down, 2, 3, Cell, 2, before: false, after: false));
+        Assert.Equal((32, 63, 16, 2), Planting.Strip(Faces.Down, 2, 3, Cell, 2, before: true, after: false));
+        Assert.Equal((32, 48, 16, 1), Planting.Strip(Faces.Up, 2, 3, Cell, 1, before: false, after: true));
+        Assert.Equal((32, 48, 1, 16), Planting.Strip(Faces.Left, 2, 3, Cell, 1, before: true, after: true));
+        Assert.Equal((47, 48, 1, 16), Planting.Strip(Faces.Right, 2, 3, Cell, 1, before: true, after: false));
+    }
+
     /// <summary>A column 1 wide: open, open, open, a floor slope ◢ at row 3, then a wall.</summary>
     private static double? Drip(double y, int shape = Shape.BottomRight) =>
         Planting.DripFloor(c => c < 3 ? Structure.Empty : Structure.Wall, c => c == 3 ? shape : Shape.None, 1, 5, Cell, 4, y, 20);
