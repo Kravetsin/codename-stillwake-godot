@@ -40,6 +40,28 @@ public class GrassTests
         Assert.False(Grows(above: Structure.Ladder));
     }
 
+    private static bool Edged(int material, bool natural = true, int shape = Shape.None, int above = Structure.Empty, int back = Back.None) =>
+        Grass.Edged(Structure.Wall, material, natural, shape, above, back, Soil);
+
+    [Fact]
+    public void RockShowsItsChipsUnderAnyOpenCellSoilItsMossOnlyUnderTheSky()
+    {
+        // A cave's floor: an empty cell above, its back wall behind.
+        Assert.True(Edged(Stone, back: Back.Wall));
+        Assert.True(Edged(Stone, shape: Shape.BottomLeft));
+        Assert.True(Edged(Soil));
+        Assert.False(Edged(Soil, back: Back.Wall));
+    }
+
+    [Fact]
+    public void NoEdgeOnHullCeilingSlopesOrUnderAnything()
+    {
+        Assert.False(Edged(Stone, natural: false));
+        Assert.False(Edged(Stone, shape: Shape.TopLeft));
+        Assert.False(Edged(Stone, above: Structure.Ladder));
+        Assert.False(Grass.Edged(Structure.Floor, Stone, true, Shape.None, Structure.Empty, Back.None, Soil));
+    }
+
     [Fact]
     public void EveryKindOfPlantHasALook()
     {

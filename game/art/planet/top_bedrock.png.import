@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dwdfjqaoqx04r"
-path="res://.godot/imported/grass_2_3.png-91e2f2cd97ff2fdfcb4daf1bfdef9b5f.ctex"
+uid="uid://hoc2mrfs7p40"
+path="res://.godot/imported/top_bedrock.png-4500c420ec5f49fd84814209cf4c2ffd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/planet/grass_2_3.png"
-dest_files=["res://.godot/imported/grass_2_3.png-91e2f2cd97ff2fdfcb4daf1bfdef9b5f.ctex"]
+source_file="res://art/planet/top_bedrock.png"
+dest_files=["res://.godot/imported/top_bedrock.png-4500c420ec5f49fd84814209cf4c2ffd.ctex"]
 
 [params]
 

@@ -3,8 +3,9 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Features.Grid;
 
 /// <summary>
-/// Where moss grows on a planet (0079), a rule of drawing, never the sim's: on a wall of soil, whole or a floor slope, with
-/// open sky straight above it — an empty cell with no back wall. Dug out, built over or roofed, it is bare soil.
+/// Where a planet's ground shows its living edge (0079, 0082), a rule of drawing, never the sim's: moss on a wall of soil, whole or a
+/// floor slope, with open sky straight above it — an empty cell with no back wall; dug out, built over or roofed, it is bare soil.
+/// Stone and bedrock show their chips under any empty cell, a cave's floor and a dug hole's too.
 /// </summary>
 public static class Grass
 {
@@ -16,6 +17,15 @@ public static class Grass
     public static bool Grows(int structure, int material, int shape, int aboveStructure, int aboveBack, int soil) =>
         structure == Structure.Wall && material == soil && shape is Shape.None or Shape.BottomRight or Shape.BottomLeft
         && aboveStructure == Structure.Empty && aboveBack == Back.None;
+
+    /// <summary>
+    /// Whether a cell shows its ground's living edge: moss where it <see cref="Grows"/> on soil, chips on any other
+    /// <paramref name="natural"/> material whole or a floor slope under an empty cell.
+    /// </summary>
+    public static bool Edged(int structure, int material, bool natural, int shape, int aboveStructure, int aboveBack, int soil) =>
+        material == soil
+            ? Grows(structure, material, shape, aboveStructure, aboveBack, soil)
+            : natural && structure == Structure.Wall && shape is Shape.None or Shape.BottomRight or Shape.BottomLeft && aboveStructure == Structure.Empty;
 
     /// <summary>Which of a cell's variants of moss it shows, of <paramref name="variants"/>: the same for a cell every time, neighbours mostly apart.</summary>
     public static int VariantOf(int cell, int variants)
