@@ -60,6 +60,8 @@ public partial class FloraView : Node2D
         var standing = new HashSet<int>();
         foreach (var plant in _building.Plants)
         {
+            // The caves' growth is drawn by chunks (CaveView, 0080).
+            if (!FloraLooks.Of.ContainsKey(plant.Kind)) continue;
             standing.Add(plant.Cell);
             if (!_shown.ContainsKey(plant.Cell)) Show(plant);
         }

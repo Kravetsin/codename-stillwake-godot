@@ -17,7 +17,9 @@ namespace Stillwake.Game.Dev;
 /// hero's hands, aimed by <see cref="GroundHands"/> as a mouse would; <c>poses</c> aims the drill round the hero eight ways near
 /// and far; <c>mouth</c> stands it on the rim of the nearest pit, chasm or cave mouth, to see the sky down it; <c>acacia</c> beside the
 /// acacia nearest the spawn, to see one close (0079); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
-/// its longest run of ground with no pit, for <see cref="Features.Crew.HeroAutopilot.Sprint"/> to measure. An axe hit every <see cref="Pace"/> ticks,
+/// its longest run of ground with no pit, for <see cref="Features.Crew.HeroAutopilot.Sprint"/> to measure; <c>band0</c>…<c>band3</c> in a
+/// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080). An
+/// axe hit every <see cref="Pace"/> ticks,
 /// sent as a strike sends them: cracks, chips, dust, and the sky falling into the shaft.
 /// </summary>
 public sealed class GroundDemo(string mode)
@@ -66,6 +68,14 @@ public sealed class GroundDemo(string mode)
             var m = Registry.On(world, _planet.Value);
             int w = m.Grid.Width;
             bool tunnel = mode is "cave" or "drill";
+            // In a cave of a band, or a great hall, looking at its growth (0080).
+            if (Caves(mode) && CaveSpot(m, mode) is (int spot, var look))
+            {
+                Target = look;
+                client.Send(new Transfer(_planet.Value, spot));
+                log($"ground demo: beamed down to ({spot % w}, {spot / w}), looking at ({look.X:F0}, {look.Y:F0}), seed {world.Surfaces[_planet.Value].Seed}");
+                return;
+            }
             int at = tunnel ? CaveUnder(m) ?? m.Crew.Spawn : mode == "mouth" ? RimNear(m) ?? m.Crew.Spawn : mode == "sprint" ? Features.Crew.HeroAutopilot.SprintStart(m.Grid)
                 : mode == "acacia" ? BesideAcacia(m) ?? m.Crew.Spawn : mode == "slope" ? BesideSlopes(m, _cells) ?? m.Crew.Spawn : m.Crew.Spawn;
             // The shaft under the feet; the tunnel at head height the way the hero faces, right.
@@ -74,7 +84,7 @@ public sealed class GroundDemo(string mode)
             log($"ground demo: beamed down to ({at % w}, {at / w})");
             return;
         }
-        if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint") return;
+        if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode)) return;
         var here = Registry.On(world, _planet.Value);
         int next = _cells.FindIndex(c => here.Grid.WallAt(c) is { Breaks: true });
         // drill: the hands dig, aimed at the cell by GroundHands; the others send an axe's hits as a strike would.
@@ -162,6 +172,51 @@ public sealed class GroundDemo(string mode)
             .Where(x => x > 8 && x < w - 8 && Top(x) >= Math.Max(Top(x - 4), Top(x + 4)) + 8)
             .Select(x => (int?)((Top(Top(x - 4) < Top(x + 4) ? x - 4 : x + 4) - 1) * w + (Top(x - 4) < Top(x + 4) ? x - 4 : x + 4)))
             .FirstOrDefault();
+    }
+
+    /// <summary>Whether <paramref name="mode"/> stands the hero in a cave of a band, <c>band0</c> to <c>band3</c>, or a great hall, <c>hall</c> (0080).</summary>
+    public static bool Caves(string mode) => mode is "band0" or "band1" or "band2" or "band3" or "hall";
+
+    /// <summary>
+    /// With <c>band0</c>…<c>band3</c> or <c>hall</c> (0080): the cell to stand in, in a cave of that band — for <c>hall</c> the garden's,
+    /// mostly open space sixteen rows high across the thirty columns before it, a great hall — with the most growth before it, a
+    /// glowing one thrice, the nearest the spawn's column at a tie, within 700 columns of it; and that growth's middle, in
+    /// cells, to look at.
+    /// </summary>
+    private static (int Cell, (double X, double Y) Look)? CaveSpot(Registry m, string mode)
+    {
+        var grid = m.Grid;
+        int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w, band = mode == "hall" ? 1 : mode[4] - '0';
+        var ground = m.Rules.Ground!;
+        var weight = new Dictionary<int, int>();
+        foreach (var p in m.Building.Plants)
+            if (CaveLooks.Of.TryGetValue(p.Kind, out var look)) weight[p.Cell] = look.Light != null ? 3 : 1;
+        bool Open(int x, int y) => x > 0 && y > 0 && x < w && y < h && grid.StructureAt(y * w + x) == Sim.Grid.Structure.Empty;
+        (int Score, int Far, int Cell, double X, double Y) best = (0, int.MaxValue, -1, 0, 0);
+        for (int y = 3; y < h - 4; y++)
+        {
+            if (Terrain.BandOf(ground, y) != band) continue;
+            for (int x = Math.Max(2, sx - 700); x < Math.Min(w - 24, sx + 700); x++)
+            {
+                if (!Open(x, y) || !Open(x, y - 1) || !Open(x, y - 2) || Open(x, y + 1) || !Open(x + 1, y)) continue;
+                if (mode == "hall")
+                {
+                    int open = 0;
+                    for (int dy = -16; dy <= 0; dy += 2)
+                        for (int dx = 1; dx <= 30; dx += 2) open += Open(x + dx, y + dy) ? 1 : 0;
+                    if (open < 9 * 15 * 7 / 10) continue;
+                }
+                int score = 0;
+                double mx = 0, my = 0;
+                int across = mode == "hall" ? 40 : 18, up = mode == "hall" ? 22 : 9;
+                for (int dy = -up; dy <= 3; dy++)
+                    for (int dx = 1; dx <= across; dx++)
+                        if (weight.TryGetValue((y + dy) * w + x + dx, out int k)) (score, mx, my) = (score + k, mx + k * (x + dx + 0.5), my + k * (y + dy + 0.5));
+                int far = Math.Abs(x - sx);
+                if (score > best.Score || score == best.Score && score > 0 && far < best.Far) best = (score, far, y * w + x, mx / score, my / score);
+            }
+        }
+        return best.Cell < 0 ? null : (best.Cell, (best.X, best.Y));
     }
 
     /// <summary>The open cell nearest under the spawn, at least twenty rows down, standing on ground with room above: in a cave.</summary>

@@ -18,12 +18,18 @@ public class FloraTests
     private static readonly int Soil = Materials.Get("soil").Code;
 
     /// <summary>Whether every plant of <paramref name="l"/> stands on the surface: an open cell under the sky, over whole soil.</summary>
-    private static bool OnTheSurface(Layout l) => l.Flora!.All(p =>
+    private static bool OnTheSurface(Layout l) => Surface(l.Flora!).All(p =>
     {
         int x = p.Cell % l.Width, y = p.Cell / l.Width;
         return y + 1 < l.Height && l.Rows[y + 1][x] == '#' && l.Materials![p.Cell + l.Width] == Soil
             && Enumerable.Range(0, y + 1).All(above => l.Rows[above][x] == ' ');
     });
+
+    /// <summary>The plants of the surface among <paramref name="growth"/>, the caves' left out (0080).</summary>
+    private static IEnumerable<(int Cell, string Kind)> Surface(IEnumerable<(int Cell, string Kind)> growth) =>
+        growth.Where(p => Flora.Get(p.Kind) is Flora.Kind);
+
+    private static IEnumerable<Plant> Surface(IEnumerable<Plant> growth) => growth.Where(p => Flora.Get(p.Kind) is Flora.Kind);
 
     [Property(MaxTest = 60)]
     public Property PlantsGrowOnlyOnWholeSoilOpenToTheSkyNeverInACave() => Prop.ForAll(Seeds, seed => OnTheSurface(Terrain.Generate(Ground.Small, seed)));
@@ -35,7 +41,7 @@ public class FloraTests
         Assert.True(OnTheSurface(l));
         Assert.All(Flora.All, k => Assert.Contains(l.Flora!, p => p.Kind == k.Id));
         // Most columns of open soil stay bare: a few hundred plants across two thousand columns.
-        Assert.InRange(l.Flora!.Count, 200, 900);
+        Assert.InRange(Surface(l.Flora!).Count(), 200, 900);
         Assert.Equal(l.Flora!.OrderBy(p => p.Cell), l.Flora!);
     }
 
@@ -45,7 +51,7 @@ public class FloraTests
         var (a, b) = (Terrain.Generate(Ground.Small, seed), Terrain.Generate(Ground.Small, seed));
         bool apart = Flora.All.All(k =>
         {
-            var xs = a.Flora!.Where(p => p.Kind == k.Id).Select(p => p.Cell % a.Width).Order().ToList();
+            var xs = Surface(a.Flora!).Where(p => p.Kind == k.Id).Select(p => p.Cell % a.Width).Order().ToList();
             return xs.Zip(xs.Skip(1)).All(pair => pair.Second - pair.First >= k.Apart);
         });
         return a.Flora!.SequenceEqual(b.Flora!) && apart;
@@ -141,7 +147,7 @@ public class FloraTests
     {
         var w = Down();
         var b = w.On(1).Building;
-        var all = b.Plants.ToList();
+        var all = Surface(b.Plants).ToList();
         Assert.True(all.Count > 200);
         JsonNode Building(string save) => JsonNode.Parse(save)!["surfaces"]![0]!["slices"]!["building"]!;
         string fresh = w.World.Save();
@@ -154,6 +160,6 @@ public class FloraTests
         var felled = Building(w.World.Save())["felled"]!.AsArray().Select(n => (int)n!).ToArray();
         Assert.Equal(new[] { a.Cell, c.Cell, d.Cell }, felled);
         w.Reload();
-        Assert.Equal(all.Where(p => !felled.Contains(p.Cell)), w.On(1).Building.Plants);
+        Assert.Equal(all.Where(p => !felled.Contains(p.Cell)), Surface(w.On(1).Building.Plants));
     }
 }

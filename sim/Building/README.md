@@ -15,14 +15,14 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   with its `Progress` in ticks of work — a blueprint (`Place` set) with what was `Delivered` to it so
   far, an item a part begun, as `Stack`s in the order first given, or a mark (`Clear`, the layer, set);
   `NextPlanId`; `Cracks` (0077), the natural walls dug part way, each a `Crack(Cell, Damage)`, sorted by cell; `Felled`
-  (0079), the cells of the plants felled since the ground grew, ascending. All saved. Derived (`Flora.cs`): the plants the
-  layout grew with (`Layout.Flora`; on a load, those of the ground grown again), the ones standing — every one not
-  felled — and each cell a standing plant stands in. Paying a part at a time needed no new field: what was paid
+  (0079), the cells of the plants felled since the ground grew, ascending — the caves' growth among them (0080). All saved.
+  Derived (`Flora.cs`): the plants the layout grew with (`Layout.Flora`; on a load, those of the ground grown again), the
+  ones standing — every one not felled — each by its own cell, and each cell a standing plant stands in. Paying a part at a time needed no new field: what was paid
   and the work done were saved already, and an older save's blueprint, paid in full or in part before any
   work, works on.
 - **Files:** `Rules.cs` — which plans may be made and worked; `Costs.cs` — what things cost, from
   content, what a blueprint still lacks and the parts its work is paid in; `Building.cs` — the module, its
-  commands and queries; `Digging.cs` — `Dig` and the cracks (0077); `Flora.cs` — what grows on a planet's surface (0079); `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
+  commands and queries; `Digging.cs` — `Dig` and the cracks (0077); `Flora.cs` — what grows on a planet's surface (0079) and in its caves (0080); `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
 
 ## Rules
 
@@ -93,6 +93,14 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   trees giving wood and seeds come there). A plant whose ground is gone — no wall under its cell, dug, taken apart, a
   meteor — or whose cell holds something now is felled in derivation, the tick it happens, looked at only when the grid's
   version moved. A felled plant never grows back; only `Felled` is saved, so a planet's save grows by a number a plant.
+- **What grows in a planet's caves** (0080): the caves' kinds of `Content.Flora.Cave`, grown with the ground too, each holding on
+  to something (`Flora.Anchor`): on a floor, standing in the open cell over the wall and `Tall` cells up; from a ceiling,
+  hanging in the open cell under the wall and `Tall` cells down; in the rock, lying in a stone wall's own cell beside a cave
+  (moss, mica, veins, fossils, a geode, the heat's cracks). One in open cells falls to a hit on any of them, as a plant does; one
+  in the rock is not hit itself — a `Dig` there digs the stone, as on any wall — and goes the tick the stone breaks. Any whose
+  hold is gone (`HoldOf`: the wall under it, over it, or its own) is felled in derivation; looked at only round the cells the
+  grid's log names since the last look (`ChangedSince`), all of them when it names none (a first look, a load). They are many —
+  some thirty-eight thousand on the first planet — and their cells go in `Felled` like a plant's.
 
 ## API
 
@@ -112,7 +120,8 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   what a blueprint costs in all, null for a mark or no plan; `RefundOf(planId)` — what taking apart what a mark
   names gives back, the same `Costs.BuiltAt` its last tick refunds, for its tip: null for a blueprint or no plan; `CostFor(placement)` — what placing it
   costs, for the build menu; `Cracks` — live, read-only, by cell; `Plants` — the plants standing, `Plant(Cell, Kind)`,
-  ascending by cell, live and read-only, only ever fewer; `PlantAt(cell)` — the plant standing in a cell, null for none; `DigProblem(peer, cell, tool)` — the refusal a `Dig`
+  ascending by cell, live and read-only, only ever fewer; `PlantAt(cell)` — the plant standing in a cell (one in the rock in its stone's), null for none; `HoldOf(plant)` — the cell it
+  holds on to (0080); `DigProblem(peer, cell, tool)` — the refusal a `Dig`
   would get, leaving out whether an electric weapon runs, as the client asks before it sends.
 - **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.notHere`, `building.unknown`,
   grid's keys or `building.planned`; `Deconstruct(Cell, Layer)`, refused with `building.nothingThere`,
@@ -126,7 +135,8 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   the build zone's edge is drawn too; marks mostly within what is built (TypeScript draws from the
   wreck as drawn, which in the big world of 0048 would miss the ship); cancels of ids that are and
   are not there; `Work` mostly on the oldest plan or a mark, so plans complete within a run; `Dig` with every weapon,
-  an eighth of the time on a plant or the ground under one (0079), half the rest on a crack, so walls break within a run, else anywhere, which on a small planet is mostly its ground; on
+  a quarter of the time on a plant (one in an open cell sought over three more draws, for most of a cave's lie in rock) or on
+  what holds it (0079, 0080), half the rest on a crack, so walls break within a run, else anywhere, which on a small planet is mostly its ground; on
   grown ground half of all its draws are digs.
 
 ## Invariants
@@ -138,8 +148,8 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 - A plan's progress stays below its ticks: the tick that reaches them completes it.
 - A crack lies only on a natural wall that breaks, its damage above 0 and below the wall's strength; the cracks are
   sorted by cell, one a cell. A wall broken gives exactly what it is made of, once.
-- Every standing plant's cell is open and has a wall under it, after derivation; `Plants` and `Felled` are disjoint and
-  together the plants the ground grew with (`FloraTests`).
+- Every standing plant's hold is a wall and, but for one in the rock, its cell is open, after derivation; `Plants` and
+  `Felled` are disjoint and together the plants the ground grew with (`FloraTests`, `CaveFloraTests`).
 - Items are conserved across inventories, the floor, blueprints and what is built, but for what
   drifts off the grid from space (Items' floor rules): a delivery cancelled, or a refund that does not
   fit, out in space, or in a wall with no room within `Floor.PushReach`. One in the hull is pushed
@@ -150,6 +160,8 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 - Plants on a drawn map (only tests draw them) are not brought back by a load: only a grown surface's ground grows again.
 - A plant's crown over a wall built into it, or a tree's trunk cells above its own: only its own cell holding something fells
   it. A tree falls to one hit, as a flower does, till felling gives wood (0079).
+- A cave growth's other cells, past its own, holding something now (a wall built into hanging threads) leave it standing, as a
+  plant's crown does. Moss shows on whichever faces of its stone are open now: dig beside it and it shows there too (0080).
 - Half-dug cells never heal (0077): a crack stays until its wall breaks. Reach and which cell is dug are the
   client's word, as for work.
 - Plans left stale by a grid change: plans claim their slots, so nothing can fill one first. Only
