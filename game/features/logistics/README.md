@@ -18,7 +18,7 @@ and motion are the user's picks from "Drone Look Concepts": drone A (the steel q
 | `Whir.cs`          | a drone's rotors heard: its motor, and from it, its speed and its id, its loop's pitch and volume | no |
 | `ServedBadge.cs`   | a machine's drone badge, at the right of its frame's header: shows and toggles whether drones serve it | yes |
 | `LogisticsView.cs` | in the world: drones in flight with their cargo and their lamps' light, taking off and landing; docked drones, their pads' strips, charge lamps and light; a bay's beacon; a bay's zone; drones heard | yes |
-| `DroneLight.cs`    | drones in light (0075): rotor discs and their rims' glints, the downwash and the dust it creeps, the lamp's trail, the air shimmering under the nearest three, a puff and a ring setting down or lifting off | yes |
+| `DroneLight.cs`    | drones in light (0075): rotor discs and their rims' glints, fine dust and faint veils spread along a floor within 2.5 cells under them (no falling streaks), the lamp's trail, the air shimmering under the nearest three, a puff and a ring setting down or lifting off | yes |
 
 `Served.cs`, `Hover.cs` and `Whir.cs` are compiled again into `game.tests/` (`ServedTests`, `HoverTests`, `DroneSoundTests`). The testbed (`-- --testbed`) runs two drones from a
 powered bay in room one through the closed door, keeping the furnace, the Former and the grow capsule going from the

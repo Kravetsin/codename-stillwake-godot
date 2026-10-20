@@ -437,9 +437,9 @@ Deliberately not handled:
   there; a wreck's hit by a drill throws nothing of its own (`DebrisView`). The arc drill's coil (`HeldLook.Coil`, the
   copper wound round the stock) besides, while it spins, as fine as a fire's embers (slice 3): hair-thin fine arcs
   (`Bolts`, `fine`), most arched over the stock's top into the dark from one turn to another, a few faint across its
-  bright face, 22 a second at full spin; sparks crawling along its top (a short stroke of light, `Flares.Trail`), 7 a
-  second, now and then leaping off where they end; 4 leaps a second of one or two tiny blue streaks (`Luminous.ArcSpark`);
-  2 micro-glints a second; a faint blue haze and light over it pulsing at 2.6 Hz. Every rate swells and ebbs together on
+  bright face, 33 a second at full spin; sparks crawling along its top (a short stroke of light, `Flares.Trail`), 10 a
+  second, now and then leaping off where they end; 7 leaps a second of one or two tiny blue streaks (`Luminous.ArcSpark`);
+  3 micro-glints a second; a faint blue haze and light over it pulsing at 2.6 Hz. Every rate swells and ebbs together on
   slow noise, bursts from a third of itself to twice, and is times `Fx.Crackle`; the plain drill has none.
   Heard at its bit (0059, `features/sound`): its motor whenever it spins, grains of a drill running free, spun up
   and down with the bit's picture (`HeldLook.SpinUpMs`) and sagging on a piece; and while its bit works on a piece,

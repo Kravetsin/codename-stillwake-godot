@@ -8,15 +8,19 @@ namespace Stillwake.Game.Features.Logistics;
 
 /// <summary>
 /// A flying drone's light and wash (0062, 0075): over each rotor a faint disc of light for its blur, a glint running round
-/// its rim; fine pale streaks pushed down from the rotors, tilting with it and curling as they slow, stopped by the floor
-/// under it, where a little dust creeps sideways; its work lamp's short soft trail while it flies; the air under the
-/// nearest drones bending (heat shimmer's wobble). Setting down or lifting off a pad, a puff of dust and a faint flat
-/// ring. Restrained: a few drones about a room stay quiet. In pixels of the world, through <see cref="Hover.Body"/>.
+/// its rim; the air its rotors push is seen only as the air under the nearest drones bending (heat shimmer's wobble) and,
+/// low over a floor, fine dust and faint veils spreading sideways along it, nothing falling through the air (slice 3: the
+/// streaks once pushed down read as rain); its work lamp's short soft trail while it flies. Setting down or lifting off a
+/// pad, a puff of dust and a faint flat ring. Restrained: a few drones about a room stay quiet. In pixels of the world,
+/// through <see cref="Hover.Body"/>.
 /// </summary>
 public partial class DroneLight : Node2D
 {
-    /// <summary>Streaks a second a drone's rotors push down at full spin, and dust a second where its wash meets a floor, times <see cref="Fx.Count"/>.</summary>
-    public const double WashPerSecond = 30, DustPerSecond = 4;
+    /// <summary>
+    /// Dust motes and faint veils a second where a drone's wash meets a floor at full spin, at its lowest, times
+    /// <see cref="Fx.Count"/>; a third as many at the edge of <see cref="WashReach"/>, the cells over a floor it stirs.
+    /// </summary>
+    public const double DustPerSecond = 7, VeilsPerSecond = 1.2, WashReach = 2.5;
     /// <summary>The most drones whose air shimmers: each reads the screen again.</summary>
     public const int Shimmers = 3;
     /// <summary>The rotors' middles, from the body's, as it faces right: either side and up.</summary>
@@ -28,7 +32,7 @@ public partial class DroneLight : Node2D
 
     private sealed class Seen
     {
-        public double Wash, Dust, Clock, Since;
+        public double Dust, Veils, Clock, Since;
         public readonly (double X, double Y)[] Lamp = new (double, double)[TrailPoints];
         public int Points;
         public bool Kept;
@@ -68,7 +72,7 @@ public partial class DroneLight : Node2D
         double spin = h.Spin;
         if (spin < 0.05) return;
         Rotors(h, bob, spin, s.Clock);
-        Wash(s, h, bob, spin, floor, elapsedMs);
+        Wash(s, h, spin, floor, elapsedMs);
         LampTrail(s, h, bob, elapsedMs);
         var middle = h.Body(0, 8, bob);
         var camera = GetViewport().GetCamera2D()?.GetScreenCenterPosition() ?? Vector2.Zero;
@@ -121,23 +125,24 @@ public partial class DroneLight : Node2D
         }
     }
 
-    /// <summary>Streaks pushed down from the rotors along its tilt, stopped by the floor, and dust creeping where they meet it.</summary>
-    private void Wash(Seen s, Hover h, double bob, double spin, double? floor, double elapsedMs)
+    /// <summary>
+    /// The air its rotors push, seen only where it meets a floor within <see cref="WashReach"/>: fine dust creeping out
+    /// sideways along it and now and then a faint veil curling, more the lower the drone; nothing falls through the air.
+    /// </summary>
+    private void Wash(Seen s, Hover h, double spin, double? floor, double elapsedMs)
     {
+        if (floor is not double f || f - h.Y > WashReach * ShipCamera.Cell) return;
         var glims = Glims.Shared;
-        double down = Math.PI / 2 + h.Tilt;
-        for (s.Wash += WashPerSecond * spin * Fx.Count * elapsedMs / 1000; s.Wash >= 1; s.Wash--)
-        {
-            double rx = (_random.NextDouble() < 0.5 ? -RotorX : RotorX) + Between(-3.5, 3.5);
-            var (x, y) = h.Body(rx, -4.5, bob);
-            double a = down + Between(-0.3, 0.3), v = Between(35, 70);
-            glims.Add(Luminous.Downwash, x, y + 3, Math.Cos(a) * v + h.Vx * 0.3, Math.Sin(a) * v, floor);
-        }
-        if (floor is not double f || f - h.Y > 3 * ShipCamera.Cell) return;
-        for (s.Dust += DustPerSecond * spin * Fx.Count * elapsedMs / 1000; s.Dust >= 1; s.Dust--)
+        double near = 1 - Math.Max(0, f - h.Y) / (WashReach * ShipCamera.Cell), rate = spin * Fx.Count * (0.35 + 0.65 * near) * elapsedMs / 1000;
+        for (s.Dust += DustPerSecond * rate; s.Dust >= 1; s.Dust--)
         {
             int side = _random.NextDouble() < 0.5 ? -1 : 1;
-            glims.Add(Luminous.WashDust, h.X + side * Between(2, 9), f - 0.4, side * Between(8, 22), -Between(0, 4), f, size: Between(0.4, 0.6));
+            glims.Add(Luminous.WashDust, h.X + side * Between(1, 8), f - 0.4, side * Between(10, 26), -Between(0, 3), f, size: Between(0.35, 0.55));
+        }
+        for (s.Veils += VeilsPerSecond * rate; s.Veils >= 1; s.Veils--)
+        {
+            int side = _random.NextDouble() < 0.5 ? -1 : 1;
+            glims.Add(Luminous.DustVeil, h.X + side * Between(1, 5), f - 1, side * Between(8, 16), -Between(0, 2), f, bright: 0.45);
         }
     }
 

@@ -20,7 +20,7 @@ public sealed class DrillLight
     /// Over a running arc drill's coil a second at full speed, on average, times <see cref="Fx.Crackle"/>: fine arcs between
     /// its turns, sparks set crawling along it, sparks leaping off it, micro-glints.
     /// </summary>
-    private const double ArcsPerSecond = 22, CrawlsPerSecond = 7, LeapsPerSecond = 4, GlintsPerSecond = 2;
+    private const double ArcsPerSecond = 33, CrawlsPerSecond = 10, LeapsPerSecond = 7, GlintsPerSecond = 3;
     /// <summary>How often the coil's haze pulses, a second; how fast its bursts come and go, a period in ms.</summary>
     private const double PulseHz = 2.6, BurstMs = 260;
     private static readonly (int, int, int) Warm = (255, 200, 140), Glinted = (255, 214, 150), Spark = (205, 236, 255), Haze = (90, 170, 255);

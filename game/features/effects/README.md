@@ -28,10 +28,10 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   (`RodLight`) — the shot's glint and gas, the rod's trail and wake, the bite, the bead, the zip home; a drill
   (`DrillLight`) — the bit's sparks, dust, chips and glints, the arc drill's fine arcs, crawling and leaping sparks and haze; the air (`AirView`, `VentLight`) —
   breaches' jets, condensation, shimmer and frost, wind lines, the red beat, fresh air from filling vents; a pod's
-  hatch (`PodView`) — vapour; drones (`DroneLight`) — rotor discs and glints, downwash, dust, the lamp's trail,
+  hatch (`PodView`) — vapour; drones (`DroneLight`) — rotor discs and glints, dust and veils spread along a floor close under them, the lamp's trail,
   shimmer, a pad's puff; doors (`DoorLight`) — the lit edge, the slot's motes, the seal's ring, glint, dust and hiss;
   lamps short of power (`LampSparks`) — glints, sparks, arcs, the ember; an electric smelter (`SmelterHeat`) — its
-  element's breath, shimmer and a rare arc; a pick-up off the floor or out of a catch (`PickUpFlights`) — the icon's ribbon, glint, ring and flash.
+  element's pulse, its fine crackle, rising flecks, shimmer and the contacts' arc; a pick-up off the floor or out of a catch (`PickUpFlights`) — the icon's ribbon, glint, ring and flash.
 - **Motion:** each look's gravity (aboard; none in space, chosen by the emitter), drag, a turn of its way by
   smooth value noise (`Spin`, keeping its speed) and a push along the noise's curl (`Turbulence`), a
   floor it may bounce off; a streak samples its path every 60th of a second whatever the frame rate, its

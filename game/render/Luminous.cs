@@ -150,9 +150,6 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>Fresh air breathed out of a vent filling its room, a faint veil drifting up and settling.</summary>
     public static readonly Luminous FreshAir = new(Glimmer.Wisp, [(214, 236, 255)], (1600, 2600))
     { Matter = true, Drag = 1.6, Turbulence = 14, Spin = 0.8, NoiseScale = 0.06, Size = 1.6, Grow = 2.6, Alpha = 0.07 };
-    /// <summary>Pushed down from a drone's rotors, tilting with it, curling as they slow.</summary>
-    public static readonly Luminous Downwash = new(Glimmer.Streak, [(226, 240, 255), (170, 200, 236)], (300, 650))
-    { Bright = 0.5, Drag = 1.8, Spin = 2.6, NoiseScale = 0.1, Stretch = 0.06, Shortest = 0.5, Width = 0.22, Hot = 0.3, Bounce = 0 };
     /// <summary>Dust crept sideways where a drone's wash meets the floor, or where it sets down.</summary>
     public static readonly Luminous WashDust = new(Glimmer.Mote, [(204, 208, 218)], (700, 1300))
     { Matter = true, Bright = 0.6, Fade = 1, Gravity = 6, Drag = 1.8, Turbulence = 18, Bounce = 0 };
@@ -178,6 +175,9 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// </summary>
     public static readonly Luminous ArcSpark = new(Glimmer.Streak, [(240, 252, 255), (150, 215, 255), (70, 130, 255)], (110, 240))
     { Fade = 1.3, Drag = 6, Spin = 9, NoiseScale = 0.35, Stretch = 0.05, Shortest = 0.7, Longest = 4, Width = 0.22, Hot = 0.8, Halo = 1.6 };
+    /// <summary>A tiny hot fleck drifting up off an electric smelter's element, curling and cooling from white to red.</summary>
+    public static readonly Luminous HeatSpark = new(Glimmer.Streak, [(255, 246, 220), (255, 180, 90), (230, 90, 40)], (450, 950))
+    { Bright = 0.85, Fade = 1.2, Gravity = -10, Drag = 1.6, Spin = 3.5, NoiseScale = 0.1, Stretch = 0.12, Shortest = 0.8, Longest = 3, Width = 0.2, Halo = 2 };
 }
 
 /// <summary>One luminous particle in flight.</summary>

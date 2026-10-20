@@ -108,8 +108,16 @@ calls) and a bench of all of it at once, some 830 particles and eleven shimmers,
   dark from one turn to the next, a few flicker faintly across its bright face. Sparks crawl along its top as short
   strokes of light and now and then leap off where they end; tiny blue streaks (`Luminous.ArcSpark`) leap a few pixels
   off it, jittering; micro-glints; a faint blue haze and light pulse over it. All of it comes in bursts, its rates
-  swelling and ebbing together on slow noise. Two takes were drawn, the rates at 0.6 and 1.6 times: the first too sparse
-  to read as electric, the second busier than the embers; the rates between them were kept, `Fx.Crackle` 1.
+  swelling and ebbing together on slow noise. Two takes were drawn, the rates at 0.6 and 1.6 times; the user asked for
+  more than the middle ("a drill isn't a furnace — there's one of it, so it can afford more"), so the rates are now
+  1.5 times it, the leaps 1.75 times, `Fx.Crackle` 1.
+- **The electric smelter, at work.** Slice 2's arc every 2.5–6.5 s was too rare. Now a fine crackle along the element's
+  top and bottom edges every 0.3–1 s, now and then a burst of two or three (over the glowing coils themselves a fine arc
+  does not show); a tiny hot fleck drifting up off it every 0.6–1.6 s (`Luminous.HeatSpark`); its glow pulsing with the
+  work; the contacts' blue arc every 1–2.5 s. Stopped, nothing.
+- **Drones push air, not rain.** The streaks pushed down from the rotors read as water poured on themselves and are gone.
+  The air shows only as the shimmer under the nearest three and, within 2.5 cells over a floor, fine dust and faint veils
+  spreading sideways along it, more the lower the drone; nothing falls through the air.
 - **Caught debris flies home.** A piece caught by hand (reeled in by the harpoon or not) sends what it gave to the chest
   as a pick-up off the floor does, from where the piece was when its grab set off (`OwnCatches`), with its popup's light
   sweep; a catch's items set off three 60 Hz frames apart, each arc a little higher, only the first landing with the ring
