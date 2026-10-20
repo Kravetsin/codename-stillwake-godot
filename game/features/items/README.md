@@ -18,8 +18,8 @@ by sending `Move`,
 | `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s, `Drop`s and `Sort`s in flight (0014); which items are marked unanalysed, or smelted, burnt or grown by the open machine (`MarkOf`), a stack's tip | no    |
 | `Lessons.cs`       | an analyzer's panel: its stage, how far, what an analysed item goes into, each one's tip (0027) | no    |
 | `Reach.cs`         | `HeroSpot`; pick-ups (`pickup.ts`)                                                           | no    |
-| `OwnCatches.cs`    | what this peer's own grabs of debris put into its inventory, once each as they run            | no    |
-| `PickUpFlights.cs` | a stack picked up flying home (0075): its icon on an arc to the chest, a ribbon of light behind it, a glint, a ring and a flash as it lands | yes |
+| `OwnCatches.cs`    | what this peer's own grabs of debris put into its inventory, once each as they run, and where each piece was | no    |
+| `PickUpFlights.cs` | a stack picked up flying home (0075), off the floor or out of a catch: its icon on an arc to the chest, a ribbon of light behind it, a glint, a ring and a flash as it lands; a catch's one after another, `Fx.MostRibbons` at once | yes |
 | `SortButton.cs`    | the sort button: a small square with three bars and an arrow down, drawn in code, lighter under the pointer (0008) | yes   |
 | `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, its corner's mark: the open station's flame or sprout, or the violet "?" of an item not analysed; an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
@@ -197,6 +197,10 @@ as everything E works is, in the crew feature (`AimTests`).
   (`CaughtFrom`), each item a line of `PickUpPopups`, stacked as pick-ups are and adding to a line of the same item.
   Only this peer's own: a friend's grab never flew here. A refused grab shows nothing. What did not fit floats and
   shows when it is picked up, never twice; a wreck broken by a hit floats all its loot, so it shows only as picked up.
+  Each item flies home too (`PickUpFlights`, 0075 slice 3): from where the piece was drawn when its grab was first seen
+  in flight (kept by `OwnCatches`; the piece is hidden from then on), one after another three 60 Hz frames apart, each
+  arc a little higher, the first landing with the ring and flash and the rest with a glint; at most `Fx.MostRibbons` (4)
+  fly at once, the rest shown by their popup lines alone. A grab whose piece was already gone flies nothing.
 
 ## Main's hook
 

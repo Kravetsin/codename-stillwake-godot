@@ -99,9 +99,28 @@ after every feature; a squashed `Shock` for rings along a floor; `SoftDots`. Shi
 they take no screen copy. Measured on the same machine at 1920×1080, the testbed holds 620 fps (167 → 171 draw
 calls) and a bench of all of it at once, some 830 particles and eleven shimmers, 383.
 
+## Slice 3
+
+- **The arc drill's coil, fine.** Beside the furnace's fine embers, slice 2's bolts on the coil stood out: the spear's look
+  at the coil's size. The coil now crackles in the luminous language, at the embers' scale: fine arcs (`Bolts`, `fine`),
+  a hair of white-blue light a streak's width in a blue haze twice as wide, four jagged segments however short, rolled
+  every frame, alive two to four frames, with no glow and no light of their own; most arch over the stock's top into the
+  dark from one turn to the next, a few flicker faintly across its bright face. Sparks crawl along its top as short
+  strokes of light and now and then leap off where they end; tiny blue streaks (`Luminous.ArcSpark`) leap a few pixels
+  off it, jittering; micro-glints; a faint blue haze and light pulse over it. All of it comes in bursts, its rates
+  swelling and ebbing together on slow noise. Two takes were drawn, the rates at 0.6 and 1.6 times: the first too sparse
+  to read as electric, the second busier than the embers; the rates between them were kept, `Fx.Crackle` 1.
+- **Caught debris flies home.** A piece caught by hand (reeled in by the harpoon or not) sends what it gave to the chest
+  as a pick-up off the floor does, from where the piece was when its grab set off (`OwnCatches`), with its popup's light
+  sweep; a catch's items set off three 60 Hz frames apart, each arc a little higher, only the first landing with the ring
+  and flash, at most `Fx.MostRibbons` (4) flying at once. Measured as before, nothing moved past noise (`--fx-bench` 518 →
+  522 fps with a catch of five every 1.5 s added to it, `--asteroid --arc-drill` 913 → 902).
+
 ## Deliberately not done
 
-- The arc drill is not made anywhere and no planet ruin exists yet; its art is a placeholder.
+- The arc drill is not made anywhere and no planet ruin exists yet; its art is a placeholder, and its coil's arcs are
+  placed for that picture (over the stock's top, a pixel above `HeldLook.Coil`).
+- A friend's catch flies nothing here: a peer sees only its own grabs run.
 - Another hero's drill hit on a wreck still shows as an axe's at the wreck: a peer is not told which tool hit.
 - Particles pass through walls; only a floor the emitter names stops sparks.
 - Others' heroes' swings are not held on contact: a peer is not told which swing bit.
