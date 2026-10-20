@@ -14,7 +14,8 @@ namespace Stillwake.Game.Features.Items;
 /// <c>-- --items</c>: a room with a crate, a furnace and an analyzer cabled to a solar panel, the hero
 /// carrying a few stacks, lamps lit, the analyzer at work on iron and wire lying on the floor; and a script
 /// played through Godot's own input, for recordings with <c>--write-movie</c>: the hotbar chosen by the
-/// wheel and keys, stacks picked, split and put down in the inventory, dragged along the closed hotbar,
+/// wheel and keys, stacks picked, split and put down in the inventory, shifted to the bag and back to the
+/// hotbar, dragged along the closed hotbar,
 /// the wire walked over and picked up, the furnace, the analyzer learning, a stack thrown with Q,
 /// the crate. It draws the pointer, which a movie does not.
 /// </summary>
@@ -105,41 +106,46 @@ public partial class ItemsDemo : Control
         At(2.9, () => Click(MouseButton.Right));
         At(3.0, () => Go(Inv(22)));
         At(3.3, () => Click(MouseButton.Left));
-        At(3.5, () => Press(Key.Tab));
+        // With no machine open, shift sends a stack between the hotbar and the bag, flying there: down and back up.
+        At(3.5, () => Go(Inv(4)));
+        At(3.8, () => Click(MouseButton.Left, shift: true));
+        At(4.3, () => Go(Inv(9)));
+        At(4.6, () => Click(MouseButton.Left, shift: true));
+        At(5.1, () => Press(Key.Tab));
         // Closed, the hotbar still takes a drag from one of its slots to another.
-        At(3.7, () => Go(Inv(0)));
-        At(4.0, () => Button(MouseButton.Left, true));
-        At(4.05, () => Go(Inv(7)));
-        At(4.4, () => Button(MouseButton.Left, false));
+        At(5.3, () => Go(Inv(0)));
+        At(5.6, () => Button(MouseButton.Left, true));
+        At(5.65, () => Go(Inv(7)));
+        At(6.0, () => Button(MouseButton.Left, false));
         // Over to the wire on the floor, which is picked up on the way.
-        At(4.6, () => Walk(Key.D, h => Column(h) >= 12));
+        At(6.2, () => Walk(Key.D, h => Column(h) >= 12));
         // The furnace: a plank into its fuel slot and a chunk into its input with shift.
-        At(5.6, () => Aim(14, 4));
-        At(5.9, () => Press(Key.E));
-        At(6.1, () => Go(Inv(2)));
-        At(6.4, () => Click(MouseButton.Left, shift: true));
-        At(6.5, () => Go(Inv(3)));
-        At(6.8, () => Click(MouseButton.Left, shift: true));
-        At(7.0, () => Go(new Place(Spec.Machines.Get("furnace").FuelSlot!.Value, FurnaceId())));
-        At(7.6, () => Press(Key.Escape));
+        At(7.2, () => Aim(14, 4));
+        At(7.5, () => Press(Key.E));
+        At(7.7, () => Go(Inv(2)));
+        At(8.0, () => Click(MouseButton.Left, shift: true));
+        At(8.1, () => Go(Inv(3)));
+        At(8.4, () => Click(MouseButton.Left, shift: true));
+        At(8.6, () => Go(new Place(Spec.Machines.Get("furnace").FuelSlot!.Value, FurnaceId())));
+        At(9.2, () => Press(Key.Escape));
         // The analyzer, at work on the iron since the start: it learns, and then has nothing new.
-        At(7.8, () => Aim(10, 3));
-        At(8.1, () => Press(Key.E));
-        At(8.3, () => Go(new Place(0, AnalyzerId())));
-        At(9.2, () => Aim(8, 1));
-        At(12.4, () => Press(Key.Escape));
+        At(9.4, () => Aim(10, 3));
+        At(9.7, () => Press(Key.E));
+        At(9.9, () => Go(new Place(0, AnalyzerId())));
+        At(10.8, () => Aim(8, 1));
+        At(14.0, () => Press(Key.Escape));
         // A stack thrown with Q, the way the hero faces; then back to the crate.
-        At(12.6, () => Press(Key.Key2));
-        At(12.7, () => Press(Key.Q));
-        At(13.2, () => Walk(Key.A, h => Column(h) <= 6));
-        At(14.0, () => Aim(3, 4));
-        At(14.3, () => Press(Key.E));
-        At(14.5, () => Go(Inv(11)));
-        At(14.8, () => Click(MouseButton.Left, shift: true));
-        At(15.0, () => Go(Inv(5)));
-        At(15.2, () => Button(MouseButton.Left, true));
-        At(15.25, () => Go(new Place(4, CrateId())));
-        At(15.7, () => Button(MouseButton.Left, false));
+        At(14.2, () => Press(Key.Key2));
+        At(14.3, () => Press(Key.Q));
+        At(14.8, () => Walk(Key.A, h => Column(h) <= 6));
+        At(15.6, () => Aim(3, 4));
+        At(15.9, () => Press(Key.E));
+        At(16.1, () => Go(Inv(11)));
+        At(16.4, () => Click(MouseButton.Left, shift: true));
+        At(16.6, () => Go(Inv(5)));
+        At(16.8, () => Button(MouseButton.Left, true));
+        At(16.85, () => Go(new Place(4, CrateId())));
+        At(17.3, () => Button(MouseButton.Left, false));
     }
 
     private void At(double t, Action step) => _steps.Add((t, step));

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Sim.Items;
@@ -32,7 +33,8 @@ public static class Clicks
     /// Terraria's way: a left click picks a whole stack and puts it on the next slot clicked, which swaps
     /// it with another item there; a right click picks half, rounded up, or with a stack picked puts one
     /// of it; a shift-click wears an item of the hero's own that is worn, takes off what is worn, and sends
-    /// any other stack to the other side of an open crate (<see cref="Shifted"/>). A click on the picked
+    /// any other stack to the other side of an open crate, or with none between the bag and the hotbar
+    /// (<see cref="Shifted"/>). A click on the picked
     /// slot puts it back. A right click on a canister of the hero's own, nothing picked, breathes it into
     /// the suit (0047) rather than picking half.
     /// </summary>
@@ -72,7 +74,8 @@ public static class Clicks
     /// what is worn goes onto the first free own slot, the hotbar first. A battery goes into an open charging
     /// station instead. Anything else, and anything in a crate, goes to the other side of an open crate, a
     /// fuel into a furnace's fuel slot, and into a queued station's inputs onto its own kind there, else the first empty
-    /// one, else the first, as the sim puts a move naming none.
+    /// one, else the first, as the sim puts a move naming none. With no machine open, the bag and the hotbar are the
+    /// two sides (<see cref="Across"/>).
     /// </summary>
     private static Target? Shifted(SlotClick click, Stack stack)
     {
@@ -90,7 +93,7 @@ public static class Clicks
             var slot = slots.FirstOrDefault(s => click.Inventory[s.Slot] == null) ?? slots.FirstOrDefault();
             return slot != null ? new Target(slot.Slot) : null;
         }
-        if (click.Crate is not int crate) return null;
+        if (click.Crate is not int crate) return own ? Across(click, stack) : null;
         if (!own) return new Target();
         if (spec.BurnTicks != null && click.FuelSlot != null) return new Target(click.FuelSlot, crate);
         return new Target(InputFor(click, stack), crate);
@@ -100,14 +103,40 @@ public static class Clicks
     /// The input slot of the open queued station <paramref name="stack"/> goes to: the first holding its kind with room,
     /// else the first empty one; none, the sim's first slot, for a machine without several or with no room in them.
     /// </summary>
-    private static int? InputFor(SlotClick click, Stack stack)
+    private static int? InputFor(SlotClick click, Stack stack) =>
+        click.Inputs < 2 || click.CrateSlots is not { } slots ? null : RoomFor(slots, 0, click.Inputs, stack);
+
+    /// <summary>
+    /// With no machine open, a stack in the bag goes onto the hotbar and one on the hotbar into the bag: onto its own kind
+    /// with room there, else the first empty slot; nowhere when that side has neither.
+    /// </summary>
+    private static Target? Across(SlotClick click, Stack stack)
     {
-        if (click.Inputs < 2 || click.CrateSlots is not { } slots) return null;
+        bool hotbar = click.Place.Slot < Hotbar.Row;
+        int from = hotbar ? Hotbar.Row : 0, to = hotbar ? InventorySpec.Slots : Hotbar.Row;
+        return RoomFor(click.Inventory, from, to, stack) is int slot ? new Target(slot) : null;
+    }
+
+    /// <summary>The first of <paramref name="slots"/> from <paramref name="from"/> up to <paramref name="to"/> holding a stack alike with room, else the first empty; none for neither.</summary>
+    private static int? RoomFor(IReadOnlyList<Stack?> slots, int from, int to, Stack stack)
+    {
         int limit = ItemSpecs.Get(stack.Item).Stack;
-        for (int i = 0; i < click.Inputs; i++)
+        for (int i = from; i < to; i++)
             if (slots[i] is { } s && s.Item == stack.Item && s.Charge == stack.Charge && s.Count < limit) return i;
-        for (int i = 0; i < click.Inputs; i++)
+        for (int i = from; i < to; i++)
             if (slots[i] == null) return i;
         return null;
+    }
+
+    /// <summary>
+    /// Where a stack of <paramref name="item"/> moved out of <paramref name="src"/> landed, as the slots showed it
+    /// <paramref name="before"/> and show it <paramref name="after"/> the move: each of <paramref name="shown"/> but the source
+    /// that holds more of that item now, in their order. None for a move the sim would refuse: it changes nothing shown.
+    /// </summary>
+    public static IEnumerable<Place> Landed(
+        Place src, string item, Func<Place, Stack?> before, Func<Place, Stack?> after, IEnumerable<Place> shown)
+    {
+        static int Of(Stack? stack, string item) => stack?.Item == item ? stack.Count : 0;
+        return shown.Where(p => p != src && Of(after(p), item) > Of(before(p), item));
     }
 }
