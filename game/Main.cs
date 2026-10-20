@@ -53,8 +53,8 @@ namespace Stillwake.Game;
 /// <c>--shimmer-demo</c> with <c>--testbed --near=furnace</c> aims at the furnace, plans, marks and welds over it (<see cref="ShimmerDemo"/>),
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
-/// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
-/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree or <c>--ground=slope</c> cracking slopes (0079), <c>--ground=cave</c> or <c>--ground=shaft</c>
+/// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--allocs</c> with it what was allocated, by type (<see cref="AllocationSampler"/>), <c>--for=seconds</c> quits after a while,
+/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree or <c>--ground=slope</c> cracking slopes (0079), <c>--ground=sprint --autopilot</c> a sprint over its ground and back (<see cref="HeroAutopilot.Sprint"/>, <c>--sprint 250</c> cells), <c>--sweep=DEPTH</c> the camera run along the row that deep under the spawn (<see cref="CameraSweep"/>), <c>--ground=cave</c> or <c>--ground=shaft</c>
 /// down into a cave with the helmet lamp or digging a shaft (<see cref="GroundDemo"/>), <c>--strip</c> the test strip (0076),
 /// with <c>--autopilot</c> played by a script (<see cref="HeroAutopilot.PlanetRun"/>), with <c>--beam-back</c> back aboard two seconds in,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
@@ -111,6 +111,8 @@ public partial class Main : Node2D, ITogether
     private GroundDemo? _ground;
     private ShimmerDemo? _shimmerDemo;
     private FrameLog? _frameLog;
+    private AllocationSampler? _allocs;
+    private readonly Platform.GcPace _gcPace = new();
     /// <summary>Where this machine stands on the network, for the dev panel; none alone.</summary>
     private string? _net;
     /// <summary>A world is saved this often, in ticks: five minutes of it.</summary>
@@ -178,7 +180,7 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : HeroAutopilot.Wreck();
+            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
             if (_args.FirstOrDefault(a => a.StartsWith("--edge=")) is { } edge)
@@ -286,6 +288,9 @@ public partial class Main : Node2D, ITogether
         if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null, () => _fabricator));
         if (Has("--fx-bench")) AddChild(new FxBench());
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
+        if (Has("--allocs")) _allocs = new AllocationSampler();
+        if (_args.FirstOrDefault(a => a.StartsWith("--sweep=", StringComparison.Ordinal)) is { } sweep)
+            AddChild(new CameraSweep(_camera, () => _m != _ship ? new Vector2(_m.Crew.Spawn % _m.Grid.Width, _m.Crew.Spawn / _m.Grid.Width) : null, int.Parse(sweep[8..])));
         if (Has("--measure"))
             AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count}"));
     }
@@ -870,7 +875,11 @@ public partial class Main : Node2D, ITogether
         SyncLight();
         // What a first look at a world or a surface costs (0077: a planet is built in nearly every cell).
         double all = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds;
-        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views:F0} views, {grid:F0} the grid drawn, {all - views - grid:F0} the light");
+        // What the load left behind collected now, in the pause the load already makes: else the first few collections in play
+        // find it alive and copy it, 4 to 7 ms each (GcPace).
+        GC.Collect();
+        double collected = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds - all;
+        Log($"views of {_m.Grid.Width}×{_m.Grid.Height} made in {all:F0} ms: {views:F0} views, {grid:F0} the grid drawn, {all - views - grid:F0} the light; {collected:F0} ms collecting");
     }
 
     private void AimCamera(Layout? layout)
@@ -894,6 +903,8 @@ public partial class Main : Node2D, ITogether
     public override void _Process(double delta)
     {
         _frameLog?.Start();
+        // The youngest garbage collected small and often, rather than a long pause every few seconds (GcPace).
+        if (_gcPace.Due(GC.GetTotalAllocatedBytes(), GC.CollectionCount(0))) GC.Collect(0, GCCollectionMode.Forced, blocking: true);
         _poll();
         _frameLog?.Mark("net");
         if (_session is not Session session) return;
@@ -913,6 +924,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--beam-back") && before < 2 * World.TicksPerSecond && client.World.Tick >= 2 * World.TicksPerSecond) client.Send(new Transfer(0));
         Follow(client);
         _stars.Seconds = (client.World.Tick + session.Progress) / World.TicksPerSecond;
+        if (_allocs != null) _allocs.Counting = client.World.Tick > 5 * World.TicksPerSecond;
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
         if (_worldId != null && _role != "guest" && client.World.Tick - _lastSaveTick >= AutosaveTicks) SaveNow();
         var heard = client.TakeHeroes();
@@ -1028,6 +1040,7 @@ public partial class Main : Node2D, ITogether
     {
         SaveIfOwned();
         _frameLog?.Report();
+        if (_allocs != null) GD.Print(_allocs.Report());
         if (_session is Session s)
         {
             var c = s.Client;
