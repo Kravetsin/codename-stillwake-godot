@@ -11,7 +11,7 @@ draws them — the surface's in `FloraView`, the caves' in `CaveView` — and ti
   `art/planet/{kind}_{variant}`, the variant a hash of its cell, its foot in the middle of the picture's bottom row,
   `FloraLooks.Of[kind].Sink` pixels under the top of the soil it grows from. What of it glows
   (`{kind}_{variant}_glow`: seed pods, berries, a bell, a rock's mica, a tuft's pale tip, each with its halo) is a second
-  sprite added over it unlit, at `Layers.Glows`.
+  sprite added over it unlit, at `Layers.Flora` too: behind the heroes, never over a hero standing in front of it.
 - **Pictures:** drawn in the "Stillwake" style, exported from the concept's own drawing code (the surface style
   studies' panel 9): three acacias with hanging fronds and seed pods, two bushes of berries, two rocks, bells in teal,
   violet and amber, three tufts.
@@ -42,7 +42,7 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
   `ChangedSince`, `Terrain.BandOf` for a growth's band, and where each helmet lamp shines (`HeroView.HeadLamps`, as the light
   takes it).
 - **Draws** (`CaveView.cs`) by chunks of 32 × 32 cells, those within a chunk of the view, let go past three: a chunk is two
-  canvas items, its pictures lit (`Lit`, at `Layers.Flora`, over the ground) and their glows added unlit (at `Layers.Glows`),
+  canvas items, its pictures lit (`Lit`, at `Layers.Flora`, over the ground) and their glows added unlit (at `Layers.Flora` too, behind the heroes; the glints last of it),
   each from one atlas packed at the first look of every cave picture (`art/caves`), so a chunk is a batch for each. Some
   thirty-eight thousand growths on the first planet, no node apiece. A floor's growth stands its picture's bottom row in the first
   row of the wall under it, sunk to the middle of a slope; a ceiling's hangs from the last row of the wall over it; one in

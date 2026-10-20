@@ -92,7 +92,7 @@ public partial class FloraView : Node2D
         var lights = Array.Empty<(Vector2, Color)>();
         if (Glows(name) is { } shine)
         {
-            glow = new Sprite2D { Texture = shine.Texture, Centered = false, Position = corner, ZIndex = Layers.Glows, Material = GlowMaterial };
+            glow = new Sprite2D { Texture = shine.Texture, Centered = false, Position = corner, ZIndex = Layers.Flora, Material = GlowMaterial };
             AddChild(glow);
             lights = shine.Points.Select(p => (corner + p.At, p.Colour)).ToArray();
         }

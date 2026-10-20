@@ -33,7 +33,7 @@ public partial class CaveView : Node2D
     private readonly Dictionary<int, Patch> _shown = new();
     private readonly List<LightSource> _lights = [];
     private readonly List<(LightSource Light, float Far)> _near = [];
-    private readonly Sparkles _sparkles = new() { ZIndex = Layers.Glows, Material = GlowMaterial };
+    private readonly Sparkles _sparkles = new() { ZIndex = Layers.Flora, Material = GlowMaterial };
     private readonly Queue<double> _motes = new();
     private double _seconds, _moteDue;
     private int _count = -1, _version = -1;
@@ -158,6 +158,8 @@ public partial class CaveView : Node2D
                 int chunk = r * _across + c;
                 if (!_shown.ContainsKey(chunk) && _byChunk.TryGetValue(chunk, out var list) && list.Count > 0) AddChild(_shown[chunk] = Build(list));
             }
+        // The glints over the pictures of the same layer: drawn last of it.
+        MoveChild(_sparkles, -1);
         _far.Clear();
         foreach (int chunk in _shown.Keys)
             if (chunk % _across < c0 - 2 || chunk % _across > c1 + 2 || chunk / _across < r0 - 2 || chunk / _across > r1 + 2) _far.Add(chunk);
@@ -436,7 +438,7 @@ public partial class CaveView : Node2D
     private sealed partial class Patch : Node2D
     {
         public readonly Pictures Pictures = new() { ZIndex = Layers.Flora, Texture = Atlas.Pictures };
-        public readonly Pictures Shine = new() { ZIndex = Layers.Glows, Material = GlowMaterial, Texture = Atlas.Glows };
+        public readonly Pictures Shine = new() { ZIndex = Layers.Flora, Material = GlowMaterial, Texture = Atlas.Glows };
         public readonly List<LightSource> Lights = [];
         public readonly List<(Vector2 At, Color Colour, int Own)> Glints = [];
         public readonly List<(Vector2 At, Color Colour)> Spores = [];
