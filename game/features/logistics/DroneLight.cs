@@ -20,7 +20,7 @@ public partial class DroneLight : Node2D
     /// Dust motes and faint veils a second where a drone's wash meets a floor at full spin, at its lowest, times
     /// <see cref="Fx.Count"/>; a third as many at the edge of <see cref="WashReach"/>, the cells over a floor it stirs.
     /// </summary>
-    public const double DustPerSecond = 7, VeilsPerSecond = 1.2, WashReach = 2.5;
+    public const double DustPerSecond = 14, VeilsPerSecond = 2, WashReach = 2.5;
     /// <summary>The most drones whose air shimmers: each reads the screen again.</summary>
     public const int Shimmers = 3;
     /// <summary>The rotors' middles, from the body's, as it faces right: either side and up.</summary>
@@ -137,12 +137,12 @@ public partial class DroneLight : Node2D
         for (s.Dust += DustPerSecond * rate; s.Dust >= 1; s.Dust--)
         {
             int side = _random.NextDouble() < 0.5 ? -1 : 1;
-            glims.Add(Luminous.WashDust, h.X + side * Between(1, 8), f - 0.4, side * Between(10, 26), -Between(0, 3), f, size: Between(0.35, 0.55));
+            glims.Add(Luminous.WashDust, h.X + side * Between(1, 8), f - 0.4, side * Between(10, 26), -Between(0, 3), f, size: Between(0.7, 1.05));
         }
         for (s.Veils += VeilsPerSecond * rate; s.Veils >= 1; s.Veils--)
         {
             int side = _random.NextDouble() < 0.5 ? -1 : 1;
-            glims.Add(Luminous.DustVeil, h.X + side * Between(1, 5), f - 1, side * Between(8, 16), -Between(0, 2), f, bright: 0.45);
+            glims.Add(Luminous.DustVeil, h.X + side * Between(1, 5), f - 1, side * Between(8, 16), -Between(0, 2), f, bright: 0.6);
         }
     }
 

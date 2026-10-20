@@ -151,8 +151,8 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     public static readonly Luminous FreshAir = new(Glimmer.Wisp, [(214, 236, 255)], (1600, 2600))
     { Matter = true, Drag = 1.6, Turbulence = 14, Spin = 0.8, NoiseScale = 0.06, Size = 1.6, Grow = 2.6, Alpha = 0.07 };
     /// <summary>Dust crept sideways where a drone's wash meets the floor, or where it sets down.</summary>
-    public static readonly Luminous WashDust = new(Glimmer.Mote, [(204, 208, 218)], (700, 1300))
-    { Matter = true, Bright = 0.6, Fade = 1, Gravity = 6, Drag = 1.8, Turbulence = 18, Bounce = 0 };
+    public static readonly Luminous WashDust = new(Glimmer.Mote, [(214, 218, 228)], (800, 1400))
+    { Matter = true, Bright = 0.8, Fade = 1, Gravity = 6, Drag = 1.8, Turbulence = 18, Bounce = 0 };
     /// <summary>Shaken loose from a door's slot as it opens, drifting down.</summary>
     public static readonly Luminous SlotDust = new(Glimmer.Mote, [(206, 210, 220)], (1200, 2200))
     { Matter = true, Bright = 0.75, Fade = 0.8, Gravity = 9, Drag = 1.2, Turbulence = 14, NoiseScale = 0.12, Bounce = 0 };
