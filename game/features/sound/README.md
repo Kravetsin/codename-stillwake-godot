@@ -85,7 +85,8 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
     as all there is: `Sound.Thrust`, a loop, while it thrusts, played loud (+3 dB) so its hiss comes through the muffle
     about 6 dB under the bed of space (0059),
     risen over `ThrustAttackS` (40 ms) and fallen over `ThrustReleaseS` (140 ms), linear in amplitude
-    (`LoopEnvelope`), then stopped; and a canister breathed (`Sound.Breathe`), on Suit as well. Others' drills and
+    (`LoopEnvelope`), then stopped; and a canister breathed (`Sound.AirFill`), on Suit as well, a friend's on World where it is; breathing room air
+    again (`Sound.Inhale`), once, on the Helmet bus (0081). Others' drills and
     jetpacks are silent.
   - `power/ChargerLights.cs` — each charging station, on World where it stands: `Sound.ChargerHum`, a
     positional loop faded in over `HumInS` while it charges and out over `HumOutS`, begun

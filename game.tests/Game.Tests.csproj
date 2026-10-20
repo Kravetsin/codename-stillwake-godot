@@ -45,6 +45,8 @@
     <Compile Include="../game/features/crew/Tether.cs" Link="Game/Crew/Tether.cs" />
     <Compile Include="../game/features/crew/Report.cs" Link="Game/Crew/Report.cs" />
     <Compile Include="../game/features/crew/Danger.cs" Link="Game/Crew/Danger.cs" />
+    <Compile Include="../game/features/crew/AirCues.cs" Link="Game/Crew/AirCues.cs" />
+    <Compile Include="../game/features/crew/CanistersSeen.cs" Link="Game/Crew/CanistersSeen.cs" />
     <Compile Include="../game/features/crew/Remote.cs" Link="Game/Crew/Remote.cs" />
     <Compile Include="../game/features/crew/RemoteRod.cs" Link="Game/Crew/RemoteRod.cs" />
     <Compile Include="../game/features/crew/Suits.cs" Link="Game/Crew/Suits.cs" />

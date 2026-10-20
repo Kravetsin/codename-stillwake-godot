@@ -279,4 +279,12 @@ public sealed class Ui
     public event Action? Breathed;
 
     public void Breathe() => Breathed?.Invoke();
+
+    /// <summary>
+    /// This player's hero breathed a canister in (0047, 0081): <c>crew</c> sent the refill, once a breath, whether asked
+    /// from the inventory or from the hand. <c>items</c> pulses the slot it was breathed from; the suit gauge surges.
+    /// </summary>
+    public event Action? Refilled;
+
+    public void Refill() => Refilled?.Invoke();
 }

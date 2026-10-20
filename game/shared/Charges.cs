@@ -22,7 +22,7 @@ public enum ChargeBar
 public sealed record ChargeMeter(int Percent, int Stored, int Capacity, float Share);
 
 /// <summary>
-/// The energy gauge by the suit's (0081): what the belt's batteries hold, as a <paramref name="Share"/> of a belt full of
+/// The energy tab by the suit's gauge (0081): what the belt's batteries hold, as a <paramref name="Share"/> of a belt full of
 /// full batteries and in whole power <paramref name="Units"/>; <paramref name="Low"/> under a quarter of what those worn
 /// hold full, as a slot's bar is; <paramref name="Worn"/> while any battery is on the belt.
 /// </summary>
@@ -84,11 +84,11 @@ public static class Charges
         : charging ? "charger.charging"
         : "charger.noPower";
 
-    /// <summary>How many batteries the belt wears at most: the energy gauge has a group of cells for each.</summary>
+    /// <summary>How many batteries the belt wears at most: a belt full of full batteries is what the energy tab counts against.</summary>
     public static readonly int BeltSlots = Spec.Inventory.Equipment.Count(e => e == Spec.Charge.Belt);
 
     /// <summary>
-    /// The energy gauge from the belt's charge and what its batteries hold full, <paramref name="belt"/> as
+    /// The energy tab from the belt's charge and what its batteries hold full, <paramref name="belt"/> as
     /// <c>BeltCharge</c> sums it. Shown always, whatever is held, so the gauge row never changes width.
     /// </summary>
     public static Belt BeltOf((int Charge, int Capacity) belt)
@@ -100,7 +100,7 @@ public static class Charges
         return new Belt(Math.Clamp(share, 0, 1), charge / Spec.Charge.Scale, worn && BarOf(charge, belt.Capacity) != ChargeBar.Good, worn);
     }
 
-    /// <summary>The thin space between each three digits of the energy readout: <c>4 300</c>.</summary>
+    /// <summary>The thin space between each three digits of the energy tab's number: <c>4 300</c>.</summary>
     public const char Thin = ' ';
 
     /// <summary><paramref name="units"/> with its thousands set apart by a <see cref="Thin"/> space; never negative.</summary>

@@ -96,6 +96,8 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The item the picked slot held as it was picked: one that holds another now, sorted or swapped by anyone, lets it go.</summary>
     private string? _pickedItem;
     private Place? _dragFrom, _hovered;
+    /// <summary>The slot a canister was last asked to be breathed from by a right click, and the frame: the crew breathes it the next or never.</summary>
+    private (Place Place, ulong Frame)? _breathedFrom;
     private Vector2 _mouse;
 
     private readonly Ui _ui;
@@ -109,6 +111,13 @@ public partial class InventoryPanel : CanvasLayer
         ui.OpenCrate.Subscribe(Read);
         // The chosen slot is outlined only while the hand holds what is in it.
         ui.Hand.Subscribe(Refresh);
+        // A canister breathed pulses its slot as a shifted stack's landing does: the one clicked, else the hand's (0081).
+        ui.Refilled += () =>
+        {
+            var from = _breathedFrom is var (place, frame) && Engine.GetProcessFrames() - frame <= 2 ? place : new Place(_chosen);
+            if (BoxAt(from) is { } box) _flights.Pulse(box.GetGlobalRect());
+            _breathedFrom = null;
+        };
         // A slot size chosen in the settings: everything built again at once, what is open kept open.
         ui.SlotScale.Subscribe(() =>
         {
@@ -684,7 +693,11 @@ public partial class InventoryPanel : CanvasLayer
         var result = Clicks.On(Held, new SlotClick(
             place, _reading.At(place), right, shift, Crate, _reading.Inventory, spec?.FuelSlot, spec?.Charges == true, inputs, _reading.Crate));
         (_picked, _pickedItem) = (result.Picked, result.Picked is { } p ? _reading.At(p.Place)?.Item : null);
-        if (result.Breathes) _ui.Breathe();
+        if (result.Breathes)
+        {
+            _breathedFrom = (place, Engine.GetProcessFrames());
+            _ui.Breathe();
+        }
         bool shifted = shift && !right && before.At(place) != null;
         if (result.Command != null)
         {

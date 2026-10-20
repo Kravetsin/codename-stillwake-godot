@@ -17,7 +17,7 @@ public sealed class GaugeMotion
     /// <summary>The share filled, as shown now.</summary>
     public double Fill { get; private set; }
 
-    /// <summary>The lost part's far edge after a hit, as shown now; <see cref="Fill"/> while there is none. What a readout counts.</summary>
+    /// <summary>The lost part's far edge after a hit, as shown now; <see cref="Fill"/> while there is none. What the energy tab's number counts.</summary>
     public double Trail { get; private set; }
 
     /// <summary>A hit's flash: 1 as it lands, fading to 0 over <see cref="Look.FlashS"/>.</summary>

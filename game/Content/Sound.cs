@@ -232,10 +232,17 @@ public static class Sound
     public static readonly Cue Ready = new(Shots("crew/harpoon-ready", 1), -10);
 
     /// <summary>
-    /// A canister breathed into the suit (0047), heard through it: a short hiss of air, a placeholder cut from
-    /// <see cref="Hiss"/> until a sound is picked.
+    /// A canister breathed into the suit (0047): air filling it, half a second of hiss rising fast and falling away, its
+    /// band climbing as it fills. This player's own through the suit; a friend's on World where its hero is, a tool's reach.
+    /// A placeholder synthesised in code until the audition's pick takes its file.
     /// </summary>
-    public static readonly Cue Breathe = new(["res://audio/crew/breathe-1.ogg"], -8);
+    public static readonly Cue AirFill = new(Shots("crew/air-fill", 1), -8, Heard: ToolReach);
+
+    /// <summary>
+    /// This player's hero breathing room air again, out of thin air or vacuum (0081): one soft inhale in the helmet, under
+    /// the alarm, once as the air comes back, never each breath. A synthesised placeholder until a sound is picked.
+    /// </summary>
+    public static readonly Cue Inhale = new(Shots("crew/inhale", 1), -18);
 
     /// <summary>The title's music (0035), on the Music bus, faded in with the title and out on leaving it.</summary>
     public static readonly Cue Title = new(["res://audio/music/title-1.ogg"], -2, Loops: true);
@@ -253,7 +260,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, DrillStrike, Break, Shot, Drum, Ready, Breathe, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab];
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, DrillStrike, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;

@@ -18,6 +18,8 @@ public partial class SlotFlights : Node2D
 {
     /// <summary>How long a flight takes, ms; how long its landing's pulse lasts, ms; how far that pulse grows past the slot, pixels.</summary>
     private const double FlightMs = 240, PulseMs = 260, Grow = 6;
+    /// <summary>A canister breathed from a slot pulses it longer than a landing and grows a little farther: it is the moment's own (0081).</summary>
+    private const double BreathMs = 520, BreathGrow = 9;
     /// <summary>How many 60 Hz frames after the one before it each landing of one move sets off.</summary>
     private const double Stagger = 3;
     /// <summary>How high its arc bows, a share of the way, and at most, pixels; how much larger the icon is at the top.</summary>
@@ -41,9 +43,11 @@ public partial class SlotFlights : Node2D
         public int Points;
     }
 
-    private sealed class Landing(Rect2 slot)
+    private sealed class Landing(Rect2 slot, double lasts = PulseMs, double grow = Grow)
     {
         public Rect2 Slot { get; } = slot;
+        public double Lasts { get; } = lasts;
+        public double Grows { get; } = grow;
         public double Ms;
     }
 
@@ -80,6 +84,9 @@ public partial class SlotFlights : Node2D
         if (_flights.Count < Fx.MostRibbons) _flights.Add(new Flight(icon, from, to, place, fresh, nth));
     }
 
+    /// <summary>A landing's pulse round the slot at <paramref name="slot"/> with nothing flying to it: a canister breathed from it (0081).</summary>
+    public void Pulse(Rect2 slot) => _landings.Add(new Landing(slot, BreathMs, BreathGrow));
+
     /// <summary>Whether the slot at <paramref name="place"/> waits for a flight to land in it, empty before: its icon is hidden till then.</summary>
     public bool Awaits(Place place) => _flights.Exists(f => f.Fresh && f.Place == place);
 
@@ -106,7 +113,7 @@ public partial class SlotFlights : Node2D
             _flights.RemoveAt(i);
         }
         foreach (var l in _landings) l.Ms += ms;
-        _landings.RemoveAll(l => l.Ms >= PulseMs);
+        _landings.RemoveAll(l => l.Ms >= l.Lasts);
         _under.QueueRedraw();
         _icons.QueueRedraw();
         _over.QueueRedraw();
@@ -148,9 +155,9 @@ public partial class SlotFlights : Node2D
             if (f.Ms >= 0) Glow(_under, f.At, (float)(f.To.Size.X * 1.6), Ribbon with { A = 0.35f });
         foreach (var l in _landings)
         {
-            double q = l.Ms / PulseMs, fade = 1 - q;
+            double q = l.Ms / l.Lasts, fade = 1 - q;
             _under.DrawRect(l.Slot, Landed with { A = (float)(0.28 * fade * fade) });
-            float grow = (float)(Grow * (1 - fade * fade));
+            float grow = (float)(l.Grows * (1 - fade * fade));
             _under.DrawRect(l.Slot.Grow(grow), Landed with { A = (float)(0.7 * fade) }, false, 2);
         }
     }
@@ -173,7 +180,7 @@ public partial class SlotFlights : Node2D
         DrawIcons(_over, new Color(0.81f, 0.92f, 1, 0.2f));
         foreach (var l in _landings)
         {
-            double a = 1 - l.Ms / (PulseMs * 0.45);
+            double a = 1 - l.Ms / (l.Lasts * 0.45);
             if (a <= 0) continue;
             var c = l.Slot.GetCenter();
             float r = l.Slot.Size.X * 0.6f;

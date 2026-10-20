@@ -49,7 +49,7 @@ namespace Stillwake.Game;
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand, <c>--arc-drill</c> with the arc drill), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
-/// the items room's inventory and the game menu (<see cref="MenuDemo"/>), <c>--handbook</c> the Handbook opened on a world that has found ten kinds (<see cref="HandbookDemo"/>),
+/// the items room's inventory and the game menu (<see cref="MenuDemo"/>), <c>--breathe</c> a canister breathed and the pod's air breathed again (<see cref="BreatheDemo"/>; <c>--breathe-air</c> only the air), <c>--handbook</c> the Handbook opened on a world that has found ten kinds (<see cref="HandbookDemo"/>),
 /// <c>--shimmer-demo</c> with <c>--testbed --near=furnace</c> aims at the furnace, plans, marks and welds over it (<see cref="ShimmerDemo"/>),
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
@@ -191,6 +191,7 @@ public partial class Main : Node2D, ITogether
             else if (Has("--sortie")) _hero.Start = SortieDemo.StartOf;
             else if (Has("--charge")) _hero.Start = ChargeDemo.StartOf;
             else if (Has("--die")) _hero.Start = DieDemo.StartOf;
+            else if (Has("--breathe") || Has("--breathe-air")) _hero.Start = BreatheDemo.StartOf;
             else if ((Opens ?? Near) is { } opened) _hero.Start = m => OpenDemo.StartOf(m, opened);
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
@@ -208,8 +209,9 @@ public partial class Main : Node2D, ITogether
             var energy = new EnergyBar(() => _session is Session s ? Charges.BeltOf(_m.Items.BeltCharge(s.Client.Id)) : null, _hands.Ui);
             AddChild(energy);
             // Its own layer, above the world: read from whatever registry the session runs now.
-            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None), _hands.Ui);
+            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None, true), _hands.Ui);
             AddChild(gauge);
+            if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
             AddChild(new Frost(() => _session != null && _hero is { Placed: true } h ? Report.Cold(_m.Crew, h.Current.BodyCell(_m.Grid.Width)) : 0));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
             var (panel, fabricator, building, overlays) = (_items.Panel, _fabricator, _hands.Menu, _hands.Overlays);
@@ -282,6 +284,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--handbook")) AddChild(new HandbookDemo(debrisPage));
         if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
         if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
+        if ((Has("--breathe") || Has("--breathe-air")) && _items != null) AddChild(new BreatheDemo(_items, () => _m, canister: Has("--breathe")));
         if (Opens is { } open) AddChild(new OpenDemo(_hands.Ui, open, () => _m, Arg("--open-at") is { } at ? double.Parse(at, System.Globalization.CultureInfo.InvariantCulture) : 1.0));
         if (_args.FirstOrDefault(a => a.StartsWith("--card=", StringComparison.Ordinal)) is { } card) AddChild(new CardDemo(_hands, card[7..], pick: Has("--pick")));
         if (Has("--slopes")) AddChild(new SlopesDemo(_hands));
@@ -348,6 +351,7 @@ public partial class Main : Node2D, ITogether
         if (Arg("--bow") is { } bow) FarDemo.Bow = int.Parse(bow);
         if (Has("--fly")) world = FarDemo.Seed(world, _m, Modules, int.Parse(_args.FirstOrDefault(a => a.StartsWith("--far="))?[6..] ?? "0"));
         if (Has("--die")) world = DieDemo.Seed(world, Modules);
+        if (Has("--breathe") || Has("--breathe-air")) world = BreatheDemo.Seed(world, Modules, suit: Has("--breathe") ? 8 : 6);
         if (Has("--handbook")) world = HandbookDemo.Seed(world, Modules);
         if (_args.FirstOrDefault(a => a.StartsWith("--ground=", StringComparison.Ordinal)) is { } ground)
         {

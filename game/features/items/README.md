@@ -26,7 +26,7 @@ by sending `Move`,
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
 | `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, grow capsule, burner generator, analyzer, charging station or drone bay in the machine frame under the inventory, with the logistics feature's drone badge in the header where drones have work (`Served`, set by `Main`, 0062) and a bay's bolt lit while it charges (`Charger`), the stack in hand; all built again at another slot size | yes   |
-| `EnergyBar.cs`     | the energy gauge right of the suit's, always shown, four cells a belt battery, and its readout in power units on the column's rail (0053, 0081), in tabs under the wrist computer's cuff (0074) | yes   |
+| `EnergyBar.cs`     | the energy tab at the gauge row's right end, always shown: the bolt and the belt's charge in power units (0053, 0081), in a tab under the wrist computer's cuff (0074) | yes   |
 | `FloorLayer.cs`    | stacks on the floor, unlit with a breathing rim, standing on their line and bobbing up from it, along a slope, side by side when still, gliding between the last two ticks, turning in space (`floor-layer.ts`) | yes |
 | `SlotFlights.cs`   | a stack sent across with shift flying from its slot to where it landed, on the HUD: its icon on a slight arc, a ribbon of light behind it, a pulse, a flash and a glint on the slot as it lands (0075) | yes   |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head, a soft shadow round it, a band of light sweeping across it once (0075) | yes   |
@@ -37,11 +37,11 @@ The wrist computer's metal and screens (0074) are `game/shared/`'s: `WristPieces
 where its window lies in it), `WristArt` (the art laid round a window, a screen drawn) and `WristScreen` (a panel
 that is a screen in its metal, hardware mounted on it; `MachineFrame` is one), shared with the crew's suit gauge and the crafting feature's
 Fabricator; the screens come on by the build tablet's `TabletMotion`. Its keys (`WristKey`, the sort keys and the drone
-badge) and its gauges (`WristGauge`, moved by `GaugeMotion`, laid out by `Slots.GaugeRowOf` and `MeterCells`) are
-shared too (0081); their numbers are `WristLook`'s.
+badge) and the suit's segmented gauge (`WristGauge`, moved by `GaugeMotion`, laid out by `Slots.GaugeRowOf` and
+`MeterCells`) are shared too (0081); their numbers are `WristLook`'s.
 
 What it shows of charge, a slot's bar, the empty battery's picture, the card's meter, the station's words and
-the energy bar, is worked out in `game/shared/Charges.cs` (no Godot), shared with the power feature's
+the energy tab, is worked out in `game/shared/Charges.cs` (no Godot), shared with the power feature's
 `ChargerLights`.
 
 The files without Godot are compiled again into `game.tests/`, where their TypeScript tests are ported
@@ -188,15 +188,16 @@ as everything E works is, in the crew feature (`AimTests`).
   draws, lit while it charges (`IPowerQueries.Charges`), dark at 0 otherwise; its slot beside a bar of what the battery
   holds, and under it "empty", "full", "charging" or "no power" (`Charges.StationState`). The sim refuses
   anything but a battery there (`items.notBattery`).
-- **The energy gauge** (`EnergyBar`, a layer of its own made by `Main`, 0081), right of the suit's gauge, shows the
+- **The energy tab** (`EnergyBar`, a layer of its own made by `Main`, 0081), at the gauge row's right end, shows the
   charge of the batteries on the belt (`IItemsQueries.BeltCharge`, `Charges.BeltOf`) always, whatever is held, so the
-  gauge row is always as wide as the hotbar: the bolt, then four cells for each battery the belt can wear, a wider gap
-  between batteries, lit as far as a belt of full batteries is charged; charge's green, amber and pulsing under a
-  quarter of what the worn batteries hold full (as a slot's bar), dim with none worn. Its readout, on the column's
-  right rail, gives the same charge in whole power units grouped by thin spaces ("4 300"), never seconds (0053).
-  Read four times a second; the cells and the number move smoothly between reads, a hit flashing and draining
-  (`GaugeMotion`), the number counting the lost part as it drains. `-- --charge` moves a belt battery into the bag
-  and back at its end, for recordings.
+  gauge row is always as wide as the hotbar: the bolt and the charge in whole power units grouped by thin spaces
+  ("4 300"), never seconds (0053), in a tab just wide enough for "5 400" (`WristLook.EnergyWidth`); the suit's gauge
+  takes the rest of the column. Charge's green, amber and pulsing under a quarter of what the worn batteries hold full
+  (as a slot's bar), dim with none worn. Read four times a second; the number moves smoothly between reads; a hit
+  flashes it white and it counts down the lost part as it drains (`GaugeMotion`). `-- --charge` moves a belt battery
+  into the bag and back at its end, for recordings.
+- **A canister breathed** from the inventory (a right click on it) or from the hand pulses its slot as a shifted stack's
+  landing does, longer and wider (`SlotFlights.Pulse`), when the crew sends the refill (`Ui.Refilled`, 0081).
 - A furnace's panel is its input over its fuel, the fire between them, its bar and its outputs; a
   burner generator's its fire over its fuel slot, and in its header a bolt with the power it makes
   (its `Makes`), lit while it burns and dark at 0 while cold. Both say why they stand still under them
