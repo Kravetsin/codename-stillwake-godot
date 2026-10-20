@@ -28,6 +28,24 @@ public static class Fx
     /// </summary>
     public const double Crackle = 1;
 
+    /// <summary>
+    /// A canister's air rising round the whole body (0081), about a second: a faint flat ring at the feet, <see cref="VortexRing"/>
+    /// pixels across at its widest and squashed to <see cref="VortexRingSquash"/>; streaks and motes, times <see cref="Count"/>,
+    /// thrown over <see cref="VortexEmitMs"/> from the feet up to <see cref="VortexStartShare"/> of the body, each spiralling
+    /// <see cref="VortexTurns"/> times round it, <see cref="VortexRadius"/> pixels out and <see cref="VortexTilt"/> up and down,
+    /// to <see cref="VortexAbove"/> pixels over the head, where it fades out; a pale light round the body of <see cref="VortexLight"/>.
+    /// </summary>
+    public const int VortexStreaks = 28, VortexMotes = 30;
+    public const double VortexEmitMs = 450, VortexStartShare = 0.3, VortexTurns = 1.5, VortexRadius = 11, VortexTilt = 2.5, VortexAbove = 12;
+    public const double VortexRing = 16, VortexRingSquash = 0.3, VortexLight = 0.22;
+
+    /// <summary>How fast a vortex follows the body, a rate a second: a turn or a step eases it over, never jerks it.</summary>
+    public const double VortexFollow = 20;
+
+    /// <summary>Breathing room air again: a few pale motes puffed off the visor, drifting at up to this many pixels a second.</summary>
+    public const int VisorMotes = 4;
+    public const double VisorDrift = 14;
+
     /// <summary>The most picked-up icons flying home to the hero on their ribbons of light at once (slice 3): past it a stack shows in the popup alone.</summary>
     public const int MostRibbons = 4;
 }

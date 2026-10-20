@@ -8,7 +8,7 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>Charge on screen (0053): a slot's bar, the empty battery's picture, the card's meter, the station's words and the energy bar.</summary>
+/// <summary>Charge on screen (0053): a slot's bar, the empty battery's picture, the card's meter, the station's words and the energy gauge.</summary>
 public class ChargesTests
 {
     private const string Battery = "battery";
@@ -89,22 +89,34 @@ public class ChargesTests
     }
 
     [Fact]
-    public void TheEnergyBarShowsOnlyWhileAnElectricToolIsHeldInItsColour()
+    public void TheEnergyGaugeIsAShareOfAFullBeltInWholeUnitsLowUnderAQuarterOfWhatIsWorn()
     {
-        // The drill is electric (0054): held, the bar shows the belt's charge; with none held, or anything else, it hides.
-        Assert.Equal(["drill", "arcDrill"], Spec.Items.All.Where(i => i.Draw != null).Select(i => i.Id));
-        Assert.Equal(new Energy(0.5f, Charges.Green), Charges.EnergyOf("drill", (5, 10)));
-        Assert.Null(Charges.EnergyOf(null, (5, 10)));
-        Assert.Null(Charges.EnergyOf("fireAxe", (5, 10)));
-        bool Electric(string item) => item == "fireAxe";
-        Assert.Equal(new Energy(0.5f, Charges.Green), Charges.EnergyOf("fireAxe", (5, 10), Electric));
-        Assert.Null(Charges.EnergyOf("harpoon", (5, 10), Electric));
-        // Held with no battery worn, it shows empty: there is nothing to run on.
-        Assert.Equal(new Energy(0f, Charges.Green), Charges.EnergyOf("fireAxe", (0, 0), Electric));
+        // Three batteries on the belt, four cells each (0081): one full battery lights a third of the gauge.
+        Assert.Equal(3, Charges.BeltSlots);
+        Assert.Equal(new Belt(1.0 / 3, 1800, Low: false, Worn: true), Charges.BeltOf((Full, Full)));
+        Assert.Equal(new Belt(1, 5400, Low: false, Worn: true), Charges.BeltOf((3 * Full, 3 * Full)));
+        // Units round down, as the card's meter: 1799.999 is 1799.
+        Assert.Equal(1799, Charges.BeltOf((Full - 1, Full)).Units);
+        // Low under a quarter of what the worn batteries hold full, as each slot's bar; an empty one too.
+        Assert.True(Charges.BeltOf((Full / 2 - 1, 2 * Full)).Low);
+        Assert.False(Charges.BeltOf((Full / 2, 2 * Full)).Low);
+        Assert.True(Charges.BeltOf((0, Full)).Low);
+        // None worn: shown, dim and empty, never low, so it does not pulse over nothing.
+        Assert.Equal(new Belt(0, 0, Low: false, Worn: false), Charges.BeltOf((0, 0)));
     }
 
     [Fact]
-    public void TheEnergyBarSumsTheBatteriesOnTheBeltAndNothingElse()
+    public void TheReadoutSetsThousandsApartByAThinSpace()
+    {
+        Assert.Equal("0", Charges.Grouped(0));
+        Assert.Equal("950", Charges.Grouped(950));
+        Assert.Equal("4 300", Charges.Grouped(4300));
+        Assert.Equal("12 345 678", Charges.Grouped(12345678));
+        Assert.Equal("0", Charges.Grouped(-5));
+    }
+
+    [Fact]
+    public void TheEnergyGaugeSumsTheBatteriesOnTheBeltAndNothingElse()
     {
         static JsonObject Stored(int charge) => new() { ["item"] = Battery, ["count"] = 1, ["charge"] = charge };
         var (m, _) = ItemsWorlds.With(Layout.Empty, items =>
@@ -116,6 +128,6 @@ public class ChargesTests
         });
         var belt = m.Items.BeltCharge(0);
         Assert.Equal((Full * 3 / 4, 2 * Full), belt);
-        Assert.Equal(new Energy(0.375f, Charges.Green), Charges.EnergyOf("fireAxe", belt, item => item == "fireAxe"));
+        Assert.Equal(new Belt(0.25, 1350, Low: false, Worn: true), Charges.BeltOf(belt));
     }
 }

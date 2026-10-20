@@ -61,6 +61,12 @@ public partial class InventoryPanel : CanvasLayer
     private readonly TabletMotion _motion = new();
     /// <summary>The open machine's frame, under the inventory.</summary>
     private MachineFrame? _frame;
+    /// <summary>The bag's grid and the open crate's, which a sort's light crosses (<see cref="SortSweep"/>, 0081).</summary>
+    private GridContainer _bag = null!;
+    private GridContainer? _crateGrid;
+    private SortButton _bagKey = null!;
+    private SortButton? _crateKey;
+    private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!, _heldMark = null!;
     private ProgressBar? _progress;
@@ -90,6 +96,8 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The item the picked slot held as it was picked: one that holds another now, sorted or swapped by anyone, lets it go.</summary>
     private string? _pickedItem;
     private Place? _dragFrom, _hovered;
+    /// <summary>The slot a canister was last asked to be breathed from by a right click, and the frame: the crew breathes it the next or never.</summary>
+    private (Place Place, ulong Frame)? _breathedFrom;
     private Vector2 _mouse;
 
     private readonly Ui _ui;
@@ -103,6 +111,13 @@ public partial class InventoryPanel : CanvasLayer
         ui.OpenCrate.Subscribe(Read);
         // The chosen slot is outlined only while the hand holds what is in it.
         ui.Hand.Subscribe(Refresh);
+        // A canister breathed pulses its slot as a shifted stack's landing does: the one clicked, else the hand's (0081).
+        ui.Refilled += () =>
+        {
+            var from = _breathedFrom is var (place, frame) && Engine.GetProcessFrames() - frame <= 2 ? place : new Place(_chosen);
+            if (BoxAt(from) is { } box) _flights.Pulse(box.GetGlobalRect());
+            _breathedFrom = null;
+        };
         // A slot size chosen in the settings: everything built again at once, what is open kept open.
         ui.SlotScale.Subscribe(() =>
         {
@@ -180,19 +195,17 @@ public partial class InventoryPanel : CanvasLayer
 
         // The grid, and under it the machine open; the equipment at the screen's other edge (0058).
         var shown = Style.Gap(new VBoxContainer { Position = new Vector2(Slots.Margin, Slots.InventoryTop(size)) }, 8);
-        // The bag, its sort button in the top-right corner (0008).
-        var bag = Style.Gap(new HBoxContainer(), 4);
-        bag.AddChild(Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
-        var corner = new VBoxContainer();
-        corner.AddChild(Sorter(null));
-        bag.AddChild(corner);
+        // The bag, as wide as the hotbar; its sort key on the display's right edge, outside the screen (0008, 0081).
         var grid = new WristScreen(WristPieces.Display, WristArt.Screen, 4, lit: true) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
-        grid.AddChild(bag);
+        grid.AddChild(_bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
+        grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
         shown.AddChild(_inventory = grid);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
         _root.AddChild(_body = Body(size));
         _body.Visible = false;
+        // Last: a sort's light crosses over the slots.
+        _root.AddChild(_sweep = new SortSweep());
 
         _held = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Size = new Vector2(size, size), Visible = false };
         _held.AddChild(_heldIcon = new TextureRect
@@ -230,7 +243,7 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var box in _lent) _tipSpots.Add(box, () => SlotTip(box));
         _tipSpots.Show(null);
         _built = null;
-        (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _hovered) = (null, null, null, null, null, null, null, null);
+        (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null, null);
     }
 
     /// <summary>
@@ -357,19 +370,30 @@ public partial class InventoryPanel : CanvasLayer
         return box;
     }
 
-    /// <summary>A sort button for the bag, or with <paramref name="crate"/> for that crate; its tip says what it does.</summary>
+    /// <summary>The bag's tall sort key, or with <paramref name="crate"/> that crate's square one in its header; its tip says what it does.</summary>
     private SortButton Sorter(int? crate)
     {
-        var button = new SortButton(() => SortOf(crate));
+        var size = crate == null ? new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight) : new Vector2(WristLook.KeycapSide, WristLook.KeycapSide);
+        var button = new SortButton(size, () => SortOf(crate));
         _tipSpots.Add(button, () => new Tip(T("items.sort")));
         return button;
     }
 
-    /// <summary>Sorts the bag or the crate; a stack picked is put back first, as its slot may hold another after.</summary>
+    /// <summary>
+    /// Sorts the bag or the crate, light crossing its grid and, for the bag, the display's lamp flaring; a stack picked is
+    /// put back first, as its slot may hold another after.
+    /// </summary>
     private void SortOf(int? crate)
     {
+        _ui.Click();
         (_picked, _dragFrom) = (null, null);
         Send(new Sort(crate));
+        if (crate == null)
+        {
+            _sweep.Run(_bag);
+            _inventory.Blink();
+        }
+        else if (_crateGrid != null) _sweep.Run(_crateGrid);
     }
 
     /// <summary>A stack's tip; an empty bay slot says a drone docks there, an empty kept one what drones keep it full of (0062).</summary>
@@ -395,15 +419,19 @@ public partial class InventoryPanel : CanvasLayer
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold) = (null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null);
         }
         if (want is not var (crate, kind)) return;
         // A queued station (the lifepod's Fabricator, the Former) docks in the same place, the crafting feature's own panel.
         if (Content.Stations.TryGet(kind, out var station) && !station.Fed) return;
         var spec = MachineSpecs.Get(kind);
-        _frame = new MachineFrame(T($"tool.{kind}"), kind == "burnerGenerator" ? spec.Makes : spec.Draws);
+        _frame = new MachineFrame(T($"tool.{kind}"), kind == "burnerGenerator" ? spec.Makes : spec.Draws)
+        {
+            // As wide as the wrist's column, as the bag over it (0081).
+            CustomMinimumSize = new Vector2(Slots.Column(_ui.Slot), 0),
+        };
         // A crate sorts, its button in the header beside the drone badge (0008).
-        if (kind == "crate") _frame.Head.AddChild(Sorter(crate));
+        if (kind == "crate") _frame.Head.AddChild(_crateKey = Sorter(crate));
         // Whether drones serve it, at the right of its header (0062).
         if (Served?.Invoke(crate) is { } served) _frame.Head.AddChild(served);
         _frame.Add(kind switch
@@ -414,7 +442,7 @@ public partial class InventoryPanel : CanvasLayer
             "analyzer" => _analyzer = new AnalyzerPanel(Box(new Place(0, crate)), _tipSpots, _ui.Slot),
             "charger" => ChargerBody(crate),
             _ when kind == Content.Logistics.Bay => BayBody(crate, spec),
-            _ => Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
+            _ => _crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
         });
         _shown.AddChild(_frame);
     }
@@ -547,12 +575,18 @@ public partial class InventoryPanel : CanvasLayer
                     break;
                 case >= Key.Key1 and <= Key.Key9:
                     _ui.Hand.Set(Holding.Free);
-                    _chosen = Hotbar.SlotOfDigit((int)(key.PhysicalKeycode - Key.Key0))!.Value;
+                    int digit = Hotbar.SlotOfDigit((int)(key.PhysicalKeycode - Key.Key0))!.Value;
+                    if (digit != _chosen) _ui.Click();
+                    _chosen = digit;
                     break;
                 case Key.Q:
                     // A card in hand, not the chosen slot: Q drops nothing it does not show.
                     if (!HandFree) return;
-                    if (_reading?.Inventory[_chosen] is { } stack) DropFrom(new Place(_chosen), stack.Count);
+                    if (_reading?.Inventory[_chosen] is { } stack)
+                    {
+                        _ui.Click();
+                        DropFrom(new Place(_chosen), stack.Count);
+                    }
                     break;
                 default:
                     return;
@@ -587,11 +621,15 @@ public partial class InventoryPanel : CanvasLayer
         _dragFrom = null;
         if (Held is { } inHand && !OverPanel(_mouse))
         {
+            _ui.Click();
             DropFrom(inHand.Place, inHand.Count);
             _picked = null;
             Refresh();
         }
     }
+
+    /// <summary>The middle of the bag's sort key, or of the open crate's; null with none shown: for scripted runs.</summary>
+    public Vector2? SortKeyAt(bool crate) => (crate ? _crateKey : _bagKey) is { } key && key.IsVisibleInTree() ? key.GetGlobalRect().GetCenter() : null;
 
     /// <summary>The middle of the slot at <paramref name="place"/> on screen, for scripted runs.</summary>
     public Vector2 CenterOf(Place place) => _slots.First(s => s.Place == place).GetGlobalRect().GetCenter();
@@ -641,6 +679,8 @@ public partial class InventoryPanel : CanvasLayer
         // it is let go over, as Terraria does: nothing is moved where the player cannot see it carried.
         if (!Shown && place.Crate == null && place.Slot < Hotbar.Row)
         {
+            // A drag along the hotbar clicks as it is let go, on the slot it chose.
+            _ui.Click();
             _chosen = place.Slot;
             Refresh();
         }
@@ -651,7 +691,11 @@ public partial class InventoryPanel : CanvasLayer
         if (!right && !shift) _dragFrom = Held != null ? null : place;
         if (!Shown)
         {
-            if (place.Crate == null && place.Slot < Hotbar.Row) _chosen = place.Slot;
+            if (place.Crate == null && place.Slot < Hotbar.Row)
+            {
+                _ui.Click();
+                _chosen = place.Slot;
+            }
             Refresh();
             return;
         }
@@ -660,10 +704,17 @@ public partial class InventoryPanel : CanvasLayer
         // A queued station's inputs share what is shift-clicked in, onto its kind first (the Former's, the assembler's).
         int inputs = _reading.Kind is string queued && Content.Stations.TryGet(queued, out var station) && !station.Fed ? spec?.Inputs ?? 0 : 0;
         var before = _reading;
-        var result = Clicks.On(Held, new SlotClick(
+        var held = Held;
+        var result = Clicks.On(held, new SlotClick(
             place, _reading.At(place), right, shift, Crate, _reading.Inventory, spec?.FuelSlot, spec?.Charges == true, inputs, _reading.Crate));
         (_picked, _pickedItem) = (result.Picked, result.Picked is { } p ? _reading.At(p.Place)?.Item : null);
-        if (result.Breathes) _ui.Breathe();
+        if (result.Breathes)
+        {
+            _breathedFrom = (place, Engine.GetProcessFrames());
+            _ui.Breathe();
+        }
+        // Every action clicks as it is made, a shift's on launch; a canister's when the crew breathes it.
+        if (!result.Breathes && (result.Command != null || result.Picked != held)) _ui.Click();
         bool shifted = shift && !right && before.At(place) != null;
         if (result.Command != null)
         {

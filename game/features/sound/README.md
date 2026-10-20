@@ -43,7 +43,9 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
 - **Reset:** the `AudioServer` outlives `ReloadCurrentScene` (exit to title), so `SoundView._Ready`
   sets the World and Suit buses clear again.
 - **Clicks:** every `BaseButton` in the tree, found once on `_Ready` and then by `SceneTree.NodeAdded`,
-  its `Pressed` connected once (a reparented button enters the tree again).
+  its `Pressed` connected once (a reparented button enters the tree again); and whatever asks through `Ui.Clicked`
+  (wired by `Main`, 0081): every inventory action and a canister breathed. `Sound.Click` on UI at −12 dB, its pitch
+  ±6 %, once a frame at most however many ask.
 - **Hooks elsewhere**, each feature owning its players as children, never in a static:
   - `crew/Figure.cs` — boots on the hollow metal deck: a step at each half stride walking or running;
     a jump's push-off (`Sound.Jump`) as the hero leaves the deck or a ladder rising at least half a
@@ -85,7 +87,8 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
     as all there is: `Sound.Thrust`, a loop, while it thrusts, played loud (+3 dB) so its hiss comes through the muffle
     about 6 dB under the bed of space (0059),
     risen over `ThrustAttackS` (40 ms) and fallen over `ThrustReleaseS` (140 ms), linear in amplitude
-    (`LoopEnvelope`), then stopped; and a canister breathed (`Sound.Breathe`), on Suit as well. Others' drills and
+    (`LoopEnvelope`), then stopped; and a canister breathed (`Sound.AirFill`, −6 dB), on the Helmet bus so floating never muffles its hiss away, a
+    friend's on World where it is; breathing room air again (`Sound.Inhale`), once, on Helmet too (0081). Others' drills and
     jetpacks are silent.
   - `power/ChargerLights.cs` — each charging station, on World where it stands: `Sound.ChargerHum`, a
     positional loop faded in over `HumInS` while it charges and out over `HumOutS`, begun

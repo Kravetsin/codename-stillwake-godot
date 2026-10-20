@@ -116,8 +116,8 @@ public class BudgetTests(ITestOutputHelper output)
         output.WriteLine($"planet {ground.Width}×{ground.Height}: grown in {grow:F1} ms mean; opened on a tick of {opening.Mean:F0} ms, the rooms' first flood {flood:F0} ms of it; {memory / (1024 * 1024)} MB held");
         output.WriteLine($"a save {planet} bytes more than the ship's alone, {dugSave} after a shaft of a hundred cells; loaded, ground grown again, in {load:F0} ms");
         output.WriteLine($"idle tick with a hero on it: {idle.Mean:F3} ms mean, {idle.Max:F3} ms max; digging: {digging.Mean:F3} ms mean, {digging.Max:F3} ms max");
-        // Loose for slow CI machines; the output says how far under.
-        Assert.True(grow < 400, $"growing a planet took {grow:F1} ms");
+        // Loose for CI's shared runners, seen 3–7 times slower than a desk (132 ms here); the output says how far under.
+        Assert.True(grow < 1500, $"growing a planet took {grow:F1} ms");
         Assert.True(planet < 512 * 1024, $"a planet saves {planet} bytes");
         Assert.True(idle.Mean < 2 && digging.Mean < 2, "a planet's tick is over its budget");
     }
@@ -145,7 +145,8 @@ public class BudgetTests(ITestOutputHelper output)
         double hash = hashing.Elapsed.TotalMilliseconds;
         var sweep = Time(w.World, 20, _ => []);
         output.WriteLine($"{count} cracks: hit in one tick {hit:F1} ms (every insert at the head); {held / 1024} KB held; {saved / 1024} KB more in a save; a hash {hash:F1} ms; a tick sweeping them {sweep.Mean:F2} ms");
-        Assert.True(sweep.Mean < 5, $"a sweep of {count} cracks took {sweep.Mean:F2} ms");
+        // CI's shared runners have taken 20 times a desk's 0.3 ms: an order of magnitude is what this catches.
+        Assert.True(sweep.Mean < 20, $"a sweep of {count} cracks took {sweep.Mean:F2} ms");
     }
 
     /// <summary>The reference ship alone, and in the corner of a world of space: rooms are found again only around a door, so the space costs nothing.</summary>

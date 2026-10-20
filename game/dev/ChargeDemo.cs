@@ -13,9 +13,9 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// <c>-- --charge</c>: the testbed with batteries on the belt and the hero by the charging station, for
-/// recording charge on screen (0053). The fire axe is chosen on the hotbar, so with <c>--electric=fireAxe</c>
-/// the energy bar shows; the script opens the inventory and points at the belt's first battery, its card
-/// showing, closes it, then opens the station charging its battery and points at that one.
+/// recording charge on screen (0053, 0081). The script opens the inventory and points at the belt's first battery,
+/// its card showing, closes it, then opens the station charging its battery and points at that one; then it moves
+/// the belt's first battery into the bag and back, the energy gauge losing a quarter and filling again.
 /// </summary>
 public partial class ChargeDemo : Control
 {
@@ -68,6 +68,13 @@ public partial class ChargeDemo : Control
         At(4.8, () => _ui.OpenCrate.Set(_m().Grid.MachinesOf("charger")[0].Id));
         At(5.2, () => _target = new Vector2(900, 500));
         At(6.5, () => Go(new Place(0, _m().Grid.MachinesOf("charger")[0].Id)));
+        At(8.0, () => Go(Equipment.Of(Spec.Charge.Belt).First()));
+        At(8.5, () => Click());
+        At(8.7, () => Go(new Place(EmptySlot + 3)));
+        At(9.2, () => Click());
+        At(10.2, () => Click());
+        At(10.4, () => Go(Equipment.Of(Spec.Charge.Belt).First()));
+        At(10.9, () => Click());
     }
 
     private void At(double t, Action step) => _steps.Add((t, step));
@@ -91,6 +98,12 @@ public partial class ChargeDemo : Control
         Vector2[] arrow = [_pos, _pos + new Vector2(0, 14), _pos + new Vector2(4, 11), _pos + new Vector2(9, 11)];
         DrawColoredPolygon(arrow, Colors.White);
         DrawPolyline([.. arrow, _pos], Colors.Black, 1);
+    }
+
+    private void Click()
+    {
+        foreach (bool pressed in new[] { true, false })
+            Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = pressed, Position = _pos, GlobalPosition = _pos });
     }
 
     private static void Press(Key key)

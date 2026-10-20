@@ -16,7 +16,7 @@ and motion are the user's picks from "Drone Look Concepts": drone A (the steel q
 | `Served.cs`        | the badge's look and tooltip keys; this peer's own `SetServed` in flight shown at once (0014); where a drone is between ticks; a bay's slots that came to hold a drone or stopped; whether a clamp worked | no |
 | `Hover.cs`         | a drone's motion as drawn: the spring after the sim, its lean, face, bob, rotors and swinging cargo; its lift; a landing | no |
 | `Whir.cs`          | a drone's rotors heard: its motor, and from it, its speed and its id, its loop's pitch and volume | no |
-| `ServedBadge.cs`   | a machine's drone badge, at the right of its frame's header: shows and toggles whether drones serve it | yes |
+| `ServedBadge.cs`   | a machine's drone badge, a wrist key at the right of its frame's header (0081): shows and toggles whether drones serve it | yes |
 | `LogisticsView.cs` | in the world: drones in flight with their cargo and their lamps' light, taking off and landing; docked drones, their pads' strips, charge lamps and light; a bay's beacon; a bay's zone; drones heard | yes |
 | `DroneLight.cs`    | drones in light (0075): rotor discs and their rims' glints, fine dust and faint veils spread along a floor within 2.5 cells under them (no falling streaks), the lamp's trail, the air shimmering under the nearest three, a puff and a ring setting down or lifting off | yes |
 
@@ -29,9 +29,9 @@ starts the hero in the middle of the room, and `--card=droneBay --pick` holds a 
 
 ## Guarantees
 
-- **The badge** (the mockup): a drone's icon in a small box, 22 by 18, at the right of the header. Lit, sky behind
-  it, while drones serve the machine and a bay reaches it; dim and crossed while switched off; grey where no bay
-  reaches. Shown only where drones ever have work (`Servable`): crates, fed stations, a fire's machine, queued stations;
+- **The badge** (the mockup; a key since 0081): a wrist key (`Shared.WristKey`), 24 square, its face a drone, at the
+  right of the header, beside a crate's sort key in the same metal. Lit, its face backlit sky and the drone glowing,
+  while drones serve the machine and a bay reaches it; dim and crossed while switched off; grey where no bay reaches. Shown only where drones ever have work (`Servable`): crates, fed stations, a fire's machine, queued stations;
   not on a bay, the analyzer or the charging station. A click sends `SetServed` with the other state. The one tooltip
   says the state ("Drones keep this going", "Drones leave this alone", "No drone bay reaches this", and both when
   switched off out of reach) and what a click does. Read every 100 ms and at once after its own command, showing its

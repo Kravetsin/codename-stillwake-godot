@@ -50,6 +50,40 @@ public class SlotsTests
     }
 
     [Fact]
+    public void TheGaugesFillTheHotbarsColumnExactlyNothingStandingOut()
+    {
+        Assert.Equal(400, Slots.Column(40));
+        Assert.Equal(544, Slots.Column(56));
+        foreach (var scale in Enum.GetValues<SlotScale>())
+        {
+            int slot = Slots.SizeOf(scale), column = Slots.Column(slot);
+            var row = Slots.GaugeRowOf(slot);
+            Assert.Equal(Slots.Margin, row.SuitX);
+            Assert.Equal(row.SuitX + row.SuitWidth + WristLook.TabGap, row.EnergyX);
+            // The two tabs end where the hotbar's screen ends: the energy's bolt and number take what they need, oxygen the rest.
+            Assert.Equal(Slots.Margin + column, row.EnergyX + row.EnergyWidth);
+            Assert.Equal(WristLook.EnergyWidth, row.EnergyWidth);
+            Assert.True(row.SuitWidth > 4 * row.EnergyWidth, $"{scale}: oxygen takes the most of the row");
+            Assert.Equal(0, row.SuitWidth % 2);
+            Assert.Equal(0, row.EnergyX % 2);
+        }
+    }
+
+    [Fact]
+    public void LaysAGaugesCellsAcrossItsMeterExactlyAGapApart()
+    {
+        foreach (int width in new[] { 100, 106, 170, 203, 280 })
+        {
+            var cells = MeterCells.Lay(width, 15, 2);
+            Assert.Equal(15, cells.Count);
+            Assert.Equal(0, cells[0].X);
+            Assert.Equal(width, cells[^1].X + cells[^1].Width);
+            Assert.All(cells.Skip(1).Zip(cells), p => Assert.Equal(2, p.First.X - (p.Second.X + p.Second.Width)));
+            Assert.InRange(cells.Max(c => c.Width) - cells.Min(c => c.Width), 0, 1);
+        }
+    }
+
+    [Fact]
     public void KeepsEverySettingAsAWordAndReadsItBack()
     {
         Assert.All(Enum.GetValues<SlotScale>(), scale => Assert.Equal(scale, Slots.ScaleNamed(Slots.NameOf(scale))));

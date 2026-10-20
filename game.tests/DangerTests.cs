@@ -38,7 +38,7 @@ public class DangerTests
         w.Step(new Enter(away) { From = 0 }).Step(new Enter(away) { From = 1 });
         for (int i = 0; i < (Suits.Suit - Low) * Suits.BreathEvery; i++) w.Step();
         w.Step(new Enter(byPod) { From = 1 });
-        Assert.Equal((Low, SuitDanger.Low), Danger.Read(w.M.Crew, w.M.Atmosphere, 0));
+        Assert.Equal((Low, SuitDanger.Low, false), Danger.Read(w.M.Crew, w.M.Atmosphere, 0));
         Assert.Equal(SuitDanger.None, Danger.Read(w.M.Crew, w.M.Atmosphere, 1).Danger);
     }
 

@@ -58,6 +58,8 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     public double Grow { get; init; } = 2;
     /// <summary>A wisp's opacity at its fullest.</summary>
     public double Alpha { get; init; } = 0.12;
+    /// <summary>The share of its life over which it brightens from nothing, as air drawn in out of thin air; 0 for born bright.</summary>
+    public double Rise { get; init; }
 
     // The luminous effects, by what makes them (the review page's B variants, 0075).
 
@@ -182,6 +184,19 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>A tiny hot fleck drifting up off an electric smelter's element, curling and cooling from white to red.</summary>
     public static readonly Luminous HeatSpark = new(Glimmer.Streak, [(255, 246, 220), (255, 180, 90), (230, 90, 40)], (450, 950))
     { Bright = 0.85, Fade = 1.2, Gravity = -10, Drag = 1.6, Spin = 3.5, NoiseScale = 0.1, Stretch = 0.12, Shortest = 0.8, Longest = 3, Width = 0.2, Halo = 2 };
+
+    // Air coming back (0081): a canister's air rising round the body, steered up its helix by the crew's AirSwirl; a breath of room air at the visor.
+
+    private static readonly (int, int, int)[] Air = [(236, 252, 255), (170, 232, 252), (110, 196, 240)];
+
+    /// <summary>A fine streak of a canister's air, brightening out of nothing at the feet and fading out above the head, stretched by its speed round the body.</summary>
+    public static readonly Luminous VortexStreak = new(Glimmer.Streak, Air, (650, 900))
+    { Bright = 1, Fade = 0.6, Rise = 0.12, Stretch = 0.05, Shortest = 0.8, Longest = 12, Width = 0.2, Hot = 0.65 };
+    /// <summary>A fine mote of it, carried up the same way.</summary>
+    public static readonly Luminous VortexMote = new(Glimmer.Mote, Air, (700, 1000)) { Bright = 0.9, Fade = 0.7, Rise = 0.15, Size = 0.4 };
+    /// <summary>A breath of room air at the visor: a pale mote drifting off and fading.</summary>
+    public static readonly Luminous VisorMote = new(Glimmer.Mote, [(220, 246, 255), (150, 214, 245)], (900, 1400))
+    { Bright = 0.85, Fade = 1.1, Rise = 0.12, Drag = 1.2, Turbulence = 10, Size = 0.55 };
 }
 
 /// <summary>One luminous particle in flight.</summary>
@@ -330,6 +345,7 @@ public static class LuminousMath
     {
         double b = g.Look.Bright * g.Bright * Math.Pow(Math.Max(0, 1 - g.Age), g.Look.Fade);
         if (g.Look.Flickers) b *= 0.72 + 0.28 * Math.Sin(g.AgeMs / 41 + g.Seed * 10);
+        if (g.Look.Rise > 0) b *= Math.Min(1, g.Age / g.Look.Rise);
         return b;
     }
 

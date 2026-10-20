@@ -24,12 +24,15 @@ public static class Danger
         return (double)suit / CrewSpec.Suit < Low && !inRoomAir ? SuitDanger.Low : SuitDanger.None;
     }
 
-    /// <summary>Hero <paramref name="id"/>'s suit, full while the sim does not know it, and its danger: what the gauge shows.</summary>
-    public static (int Suit, SuitDanger Danger) Read(ICrewQueries crew, IAtmosphereQueries air, int id)
+    /// <summary>
+    /// Hero <paramref name="id"/>'s suit, full while the sim does not know it, its danger, and whether it breathes room air
+    /// or the pod's: what the gauge shows.
+    /// </summary>
+    public static (int Suit, SuitDanger Danger, bool InAir) Read(ICrewQueries crew, IAtmosphereQueries air, int id)
     {
         var hero = crew.HeroOf(id);
         // The pod's air refills a suit as room air does.
         bool inRoomAir = hero != null && (air.AiredAt(hero.Cell) || crew.ByPod(hero.Cell));
-        return (hero?.Suit ?? CrewSpec.Suit, Of(hero == null ? null : (hero.Suit, hero.Out), inRoomAir));
+        return (hero?.Suit ?? CrewSpec.Suit, Of(hero == null ? null : (hero.Suit, hero.Out), inRoomAir), inRoomAir);
     }
 }

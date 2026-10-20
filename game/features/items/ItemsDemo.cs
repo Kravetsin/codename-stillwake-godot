@@ -17,7 +17,7 @@ namespace Stillwake.Game.Features.Items;
 /// wheel and keys, stacks picked, split and put down in the inventory, shifted to the bag and back to the
 /// hotbar, dragged along the closed hotbar,
 /// the wire walked over and picked up, the furnace, the analyzer learning, a stack thrown with Q,
-/// the crate. It draws the pointer, which a movie does not.
+/// the crate, its sort key and the bag's. It draws the pointer, which a movie does not.
 /// </summary>
 public partial class ItemsDemo : Control
 {
@@ -146,6 +146,19 @@ public partial class ItemsDemo : Control
         At(16.8, () => Button(MouseButton.Left, true));
         At(16.85, () => Go(new Place(4, CrateId())));
         At(17.3, () => Button(MouseButton.Left, false));
+        // The sort keys (0081): the crate's in its header, then the bag's on the display's edge, each held a moment.
+        At(17.6, () => GoTo(_view.Panel.SortKeyAt(crate: true)));
+        At(18.0, () => Button(MouseButton.Left, true));
+        At(18.15, () => Button(MouseButton.Left, false));
+        At(18.8, () => GoTo(_view.Panel.SortKeyAt(crate: false)));
+        At(19.2, () => Button(MouseButton.Left, true));
+        At(19.35, () => Button(MouseButton.Left, false));
+    }
+
+    private void GoTo(Vector2? at)
+    {
+        _follow = null;
+        if (at is { } point) _target = point;
     }
 
     private void At(double t, Action step) => _steps.Add((t, step));
