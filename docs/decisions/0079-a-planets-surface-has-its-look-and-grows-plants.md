@@ -1,4 +1,4 @@
-# 0078 — A planet's surface has its look, and grows plants from its seed
+# 0079 — A planet's surface has its look, and grows plants from its seed
 
 - Status: accepted
 - Date: 2026-10-20

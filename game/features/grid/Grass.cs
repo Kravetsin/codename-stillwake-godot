@@ -3,7 +3,7 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Features.Grid;
 
 /// <summary>
-/// Where moss grows on a planet (0078), a rule of drawing, never the sim's: on a wall of soil, whole or a floor slope, with
+/// Where moss grows on a planet (0079), a rule of drawing, never the sim's: on a wall of soil, whole or a floor slope, with
 /// open sky straight above it — an empty cell with no back wall. Dug out, built over or roofed, it is bare soil.
 /// </summary>
 public static class Grass

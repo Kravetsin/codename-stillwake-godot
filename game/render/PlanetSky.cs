@@ -4,7 +4,7 @@ using Godot;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// A planet's sky behind its ground (0078), in the "Stillwake" style (<c>art/planet</c>): the day's gradient, a pale gas
+/// A planet's sky behind its ground (0079), in the "Stillwake" style (<c>art/planet</c>): the day's gradient, a pale gas
 /// giant, high thin cloud, the sun with its glint, then far mesas, a nearer ridge and hills with spindly trees, each layer
 /// further off moving less with the camera. Drawn in screen space under the world, a pixel of art a pixel of the world at
 /// the camera's zoom, each layer repeating across; every layer's ground line lies where the world's surface does,

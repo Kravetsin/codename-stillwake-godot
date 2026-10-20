@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Stillwake.Game;
 
 /// <summary>
-/// How a planet's natural ground looks (0077, 0078): each material's colour and fleck, the chips a dig knocks off; and the
+/// How a planet's natural ground looks (0077, 0079): each material's colour and fleck, the chips a dig knocks off; and the
 /// lines its edges are drawn in where it meets the open, a dark outline and, on top, a lit line inside it. Its walls and back
 /// walls are drawn in <c>art/planet</c>, in the "Stillwake" style.
 /// </summary>

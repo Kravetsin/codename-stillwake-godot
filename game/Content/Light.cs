@@ -47,7 +47,7 @@ public static class Light
     public const float GroundDownKeep = 0.8f;
 
     /// <summary>
-    /// Under a planet's sky, what daylight keeps going down a cell through its ground (0078): the top few cells of soil under the
+    /// Under a planet's sky, what daylight keeps going down a cell through its ground (0079): the top few cells of soil under the
     /// sun are lit, fading, as the "Stillwake" style shows them, where sideways and up a wall keeps only <see cref="WallDeep"/>.
     /// </summary>
     public const float GroundSoak = 0.72f;

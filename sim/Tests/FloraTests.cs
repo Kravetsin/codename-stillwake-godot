@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>What grows on a planet's surface (0078): grown from the seed on open soil, felled by a hit or with its ground.</summary>
+/// <summary>What grows on a planet's surface (0079): grown from the seed on open soil, felled by a hit or with its ground.</summary>
 public class FloraTests
 {
     private static Arbitrary<uint> Seeds => Gen.Choose(0, int.MaxValue).Select(s => (uint)s * 2654435761u).ToArbitrary();

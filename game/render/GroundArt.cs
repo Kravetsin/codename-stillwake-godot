@@ -4,7 +4,7 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// The pictures of a planet's natural ground made here rather than drawn (0077, 0078): the edges of a cell by its open sides,
+/// The pictures of a planet's natural ground made here rather than drawn (0077, 0079): the edges of a cell by its open sides,
 /// in its material's lines (<see cref="GroundLooks"/>), and the cracks a dig leaves, cut to the cell's shape. Its walls, back
 /// walls and moss are drawn, in <c>art/planet</c>. Every pixel is a hash of where it is: the same on every machine and run.
 /// </summary>
@@ -40,7 +40,7 @@ public static class GroundArt
 
     /// <summary>
     /// The cracks a dug cell cut to <paramref name="shape"/> shows at <paramref name="stage"/>, 0 to 2 (0077): more lines,
-    /// longer, from a dent in its middle; on a slope only over its solid half (0078), its middle moved into it.
+    /// longer, from a dent in its middle; on a slope only over its solid half (0079), its middle moved into it.
     /// </summary>
     public static Image Crack(int stage, int shape = Shape.None)
     {

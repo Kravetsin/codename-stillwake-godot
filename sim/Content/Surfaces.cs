@@ -61,7 +61,7 @@ public static class Surfaces
     /// <summary>
     /// Ground under open sky, a cliff, hills and a cave down a shaft with a ladder, drawn by hand for tests and --strip: under
     /// the first planet's rules. Gravity two thirds of the ship's, so a hero jumps higher and farther; thin air, the suit
-    /// paying one breath in five outside; soft, warm daylight, the "Stillwake" style's (0078); no debris; ladders, floors, walls, back walls and doors built,
+    /// paying one breath in five outside; soft, warm daylight, the "Stillwake" style's (0079); no debris; ladders, floors, walls, back walls and doors built,
     /// no machines. Heroes beam down to its <c>S</c>, in a shelter at the cliff's foot.
     /// </summary>
     public static readonly Kind TestStrip = new("testStrip", Strip())

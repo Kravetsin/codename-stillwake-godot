@@ -152,7 +152,7 @@ public static class Migrations
             }
             return save;
         },
-        // 21 → 22: plants grow on a planet's surface (0078): none felled yet, aboard or on a surface.
+        // 21 → 22: plants grow on a planet's surface (0079): none felled yet, aboard or on a surface.
         save =>
         {
             save["slices"]!["building"]!.AsObject()["felled"] ??= new JsonArray();

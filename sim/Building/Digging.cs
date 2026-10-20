@@ -8,7 +8,7 @@ namespace Stillwake.Sim.Building;
 /// A hit of weapon <c>Tool</c> on the natural wall at <c>Cell</c> (0077): sent as the axe strikes, or at the drill's pace
 /// while it works, at a natural wall within the hero's reach. Its damage cracks the wall; the hit that reaches its
 /// strength breaks it out, the back wall behind staying, and gives the sender what it is made of. On a plant standing in an
-/// open cell (0078), it fells the plant.
+/// open cell (0079), it fells the plant.
 /// </summary>
 public sealed record Dig(int Cell, string Tool) : Command;
 
@@ -26,7 +26,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// <c>building.nothingToDig</c> for no natural wall there (a hull wall is taken apart with a mark) nor a plant in an open
-    /// cell (0078), <c>building.bedrock</c>
+    /// cell (0079), <c>building.bedrock</c>
     /// for one nothing breaks, then what the weapon says (<see cref="IItemsQueries.WeaponProblem"/>): flat, or, as the
     /// command applies, not running. A tool that deals no damage is our bug: the client sends weapons only.
     /// </summary>
@@ -45,7 +45,7 @@ public sealed partial class BuildingModule
     /// </summary>
     private void ApplyDig(Dig c)
     {
-        // A plant falls to one hit (0078), whatever the weapon; the plants on a wall broken out go in derivation.
+        // A plant falls to one hit (0079), whatever the weapon; the plants on a wall broken out go in derivation.
         if (_grid.WallAt(c.Cell) is not { } wall)
         {
             Fell(PlantAt(c.Cell)!, c.From);

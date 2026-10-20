@@ -23,7 +23,7 @@ public partial class DigView : Node2D
     private readonly Dictionary<int, (int Damage, Material Material)> _drawn = new();
     private readonly List<int> _gone = [];
 
-    /// <summary>The stages of cracks, three, for each shape a wall is cut to: a slope's only over its solid half (0078).</summary>
+    /// <summary>The stages of cracks, three, for each shape a wall is cut to: a slope's only over its solid half (0079).</summary>
     private const int Stages = 3;
     private static readonly Dictionary<(int Stage, int Shape), Texture2D> Pictures = new();
     private static readonly Dictionary<string, (Luminous Chip, Luminous Dust, Luminous Cloud)> Looks = new();

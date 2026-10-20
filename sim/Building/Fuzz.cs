@@ -49,7 +49,7 @@ public sealed partial class BuildingModule
             case 5:
                 {
                     // Mostly on a crack, so walls break within a run; else anywhere, mostly on the ground a planet is made of.
-                    // Now and then on a plant (0078), so they are felled, and under one, so their ground goes.
+                    // Now and then on a plant (0079), so they are felled, and under one, so their ground goes.
                     int cell = _plants.Count > 0 && Below(8) == 0 ? _plants[Below(_plants.Count)].Cell + (Below(2) == 0 ? 0 : _grid.Width)
                         : State.Cracks.Count > 0 && Below(2) == 0 ? State.Cracks[Below(State.Cracks.Count)].Cell : Cell();
                     return new Dig(cell, Weapons.All[Below(Weapons.All.Count)].Item) { From = from };

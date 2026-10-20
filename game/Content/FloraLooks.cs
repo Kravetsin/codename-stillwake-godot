@@ -4,7 +4,7 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game;
 
 /// <summary>
-/// How what grows on a planet looks (0078), drawn in <c>art/planet</c> in the "Stillwake" style: each kind's pictures,
+/// How what grows on a planet looks (0079), drawn in <c>art/planet</c> in the "Stillwake" style: each kind's pictures,
 /// <c>{kind}_{variant}</c> with what of it glows in <c>{kind}_{variant}_glow</c>, a plant showing one by a hash of its cell;
 /// the light its glowing parts cast; and the motes drifting about them in the day.
 /// </summary>

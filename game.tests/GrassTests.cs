@@ -5,7 +5,7 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>Where moss grows on a planet (0078): on soil, whole or a floor slope, with the open sky straight above it; and every plant drawn.</summary>
+/// <summary>Where moss grows on a planet (0079): on soil, whole or a floor slope, with the open sky straight above it; and every plant drawn.</summary>
 public class GrassTests
 {
     private static readonly int Soil = Spec.Materials.Get("soil").Code, Stone = Spec.Materials.Get("stone").Code;

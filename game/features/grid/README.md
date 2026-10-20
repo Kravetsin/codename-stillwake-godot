@@ -52,15 +52,15 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   normal map (`render/ShipTiles.cs`), so a layer's piece of the screen is one draw call. Walls, edges,
   doors, machines and sockets are lit with relief from their normal maps; back walls, pipes, floors
   and ladders flat (`render/Lit.cs`).
-- **A planet's ground** (0077, 0078): soil, stone and bedrock walls and back walls are drawn in the "Stillwake" style,
+- **A planet's ground** (0077, 0079): soil, stone and bedrock walls and back walls are drawn in the "Stillwake" style,
   `art/planet/wall_*` and `back_*`, 8 × 4 cell tiles that repeat seamlessly, cut a cell at a time as scrap's; their edges
   are made at start (`render/GroundArt.cs`, lines in `Content/GroundLooks.cs`): a dark outline by the open sides and inside
   it a lit line on top, shaded elsewhere. Slopes are cut from them as from the hull's.
-- **Moss** (0078) on soil open to the sky (`Grass.cs`, plain C#, tested: a soil wall, whole or a floor slope, under an
+- **Moss** (0079) on soil open to the sky (`Grass.cs`, plain C#, tested: a soil wall, whole or a floor slope, under an
   empty cell with no back wall), a rule of drawing, never the sim's: one of four pictures a top (`art/planet/grass_{shape}_{v}`,
   by a hash of the cell), two cells tall, laid from the cell above so its stems rise into it, over the edges. Dug, built
   over or roofed, the soil is bare; its cell's drawing alone lays and clears it, so a change above or below redraws it.
-- **Drawn near the camera** (0078): the grid is drawn in 32 × 32 chunks, each the first time the view or a chunk round it
+- **Drawn near the camera** (0079): the grid is drawn in 32 × 32 chunks, each the first time the view or a chunk round it
   reaches it; a cell changed in a chunk not drawn is drawn with it, from `DrawnLayers`. A planet is built in nearly every
   cell: drawing all 1.5 million at its first look froze it for a second; now some 11 ms that frame at the default zoom,
   31 ms zoomed far out, and 2–4 ms a frame as a walk reveals a column of chunks.

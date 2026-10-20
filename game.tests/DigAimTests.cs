@@ -54,7 +54,7 @@ public class DigAimTests
     [Fact]
     public void TheAxeAimsAtAPlantStandingInTheOpenToFellItAndAtNothingWhereNoneStands()
     {
-        // A flower on the shaft's floor (0078).
+        // A flower on the shaft's floor (0079).
         var m = new TestWorld(ShaftLayout with { Flora = [(At(4, 2), "bellTeal")] }).M;
         Assert.Equal(new Use(new Dig(At(4, 2), Axe), null), Aiming.AimAt(m, 0, InShaft, Centre(4, 2), axe: true)?.Press);
         Assert.Null(Aiming.AimAt(Shaft().M, 0, InShaft, Centre(4, 2), axe: true)?.Press);

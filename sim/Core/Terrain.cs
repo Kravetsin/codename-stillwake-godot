@@ -134,7 +134,7 @@ public static class Terrain
     }
 
     /// <summary>
-    /// What grows on the surface (0078), column by column from the left: on whole soil with the open sky above it, one draw
+    /// What grows on the surface (0079), column by column from the left: on whole soil with the open sky above it, one draw
     /// a column picks a kind of <see cref="Content.Flora.All"/> by its chances, set where it has room — its ground level with
     /// its own, no ground higher across its crown, the last of its kind far enough, the last plant's level ground not
     /// shared — and nowhere within two columns of the spawn. A column's top is its first solid cell, so nothing grows in a cave.

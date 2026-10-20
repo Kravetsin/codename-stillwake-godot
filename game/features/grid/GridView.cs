@@ -116,7 +116,7 @@ public partial class GridView : Node2D
 
     /// <summary>
     /// How many cells square the grid is drawn in, a chunk at a time, as the camera comes near it: a planet is built in nearly
-    /// every cell, and drawing all of them at once froze its first look for a second (0078).
+    /// every cell, and drawing all of them at once froze its first look for a second (0079).
     /// </summary>
     private const int Chunk = 32;
 

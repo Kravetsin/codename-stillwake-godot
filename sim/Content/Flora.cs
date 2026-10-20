@@ -1,7 +1,7 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// What grows on a planet's surface (0078): the kinds of plant, and the stones lying about, that the ground's generator
+/// What grows on a planet's surface (0079): the kinds of plant, and the stones lying about, that the ground's generator
 /// (<c>Terrain</c>) sets on open soil under the sky. Each stands in one cell, its own, over the whole soil cell it grows
 /// from; the client draws it as large as it is. Cosmetic for now: a hit fells one, giving its <see cref="Kind.Yields"/>.
 /// </summary>

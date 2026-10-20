@@ -80,7 +80,7 @@ public partial class LightView : Node2D
     /// </summary>
     public Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> HeadLamps { get; set; } = () => [];
 
-    /// <summary>Where each glowing part of a plant near the view shines from this frame, in pixels of the world, and its colour (0078).</summary>
+    /// <summary>Where each glowing part of a plant near the view shines from this frame, in pixels of the world, and its colour (0079).</summary>
     public Func<IReadOnlyList<(Vector2 At, Color Colour)>> Glows { get; set; } = () => [];
 
     /// <summary>The lights drawn into the lightmap the last frame.</summary>

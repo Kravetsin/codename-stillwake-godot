@@ -1,6 +1,6 @@
 # Flora (client)
 
-What grows on a planet's surface, seen (0078). The plants are Building's (`sim/Building/Flora.cs`): grown from the
+What grows on a planet's surface, seen (0079). The plants are Building's (`sim/Building/Flora.cs`): grown from the
 seed with the ground, felled by a hit or with their ground. This feature only draws them.
 
 - **Reads:** `BuildingModule.Plants` (each `Plant(Cell, Kind)`, ascending, only ever fewer) and, for the motes,

@@ -16,7 +16,7 @@ namespace Stillwake.Game.Dev;
 /// the spawn and digs a shaft down under its feet, so it drops in as it goes; <c>drill</c> digs the tunnel with the drill in the
 /// hero's hands, aimed by <see cref="GroundHands"/> as a mouse would; <c>poses</c> aims the drill round the hero eight ways near
 /// and far; <c>mouth</c> stands it on the rim of the nearest pit, chasm or cave mouth, to see the sky down it; <c>acacia</c> beside the
-/// acacia nearest the spawn, to see one close (0078); <c>slope</c> beside the surface slopes nearest it, each hit once. An axe hit every <see cref="Pace"/> ticks,
+/// acacia nearest the spawn, to see one close (0079); <c>slope</c> beside the surface slopes nearest it, each hit once. An axe hit every <see cref="Pace"/> ticks,
 /// sent as a strike sends them: cracks, chips, dust, and the sky falling into the shaft.
 /// </summary>
 public sealed class GroundDemo(string mode)

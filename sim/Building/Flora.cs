@@ -5,13 +5,13 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Sim.Building;
 
 /// <summary>
-/// A plant or a stone on a planet's surface (0078) at <c>Cell</c>, the open cell over the soil it grows from, of
+/// A plant or a stone on a planet's surface (0079) at <c>Cell</c>, the open cell over the soil it grows from, of
 /// <c>Kind</c> (<see cref="Flora"/>).
 /// </summary>
 public sealed record Plant(int Cell, string Kind);
 
 /// <summary>
-/// What grows on a planet's surface (0078): grown from its seed with the ground (<see cref="Layout.Flora"/>), never saved,
+/// What grows on a planet's surface (0079): grown from its seed with the ground (<see cref="Layout.Flora"/>), never saved,
 /// but for the plants felled since, by cell. One is felled by a hit on any cell it stands in, or once the ground under it is
 /// gone or something stands in its cell.
 /// </summary>

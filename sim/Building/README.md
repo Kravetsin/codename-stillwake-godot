@@ -15,14 +15,14 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   with its `Progress` in ticks of work — a blueprint (`Place` set) with what was `Delivered` to it so
   far, an item a part begun, as `Stack`s in the order first given, or a mark (`Clear`, the layer, set);
   `NextPlanId`; `Cracks` (0077), the natural walls dug part way, each a `Crack(Cell, Damage)`, sorted by cell; `Felled`
-  (0078), the cells of the plants felled since the ground grew, ascending. All saved. Derived (`Flora.cs`): the plants the
+  (0079), the cells of the plants felled since the ground grew, ascending. All saved. Derived (`Flora.cs`): the plants the
   layout grew with (`Layout.Flora`; on a load, those of the ground grown again), the ones standing — every one not
   felled — and each cell a standing plant stands in. Paying a part at a time needed no new field: what was paid
   and the work done were saved already, and an older save's blueprint, paid in full or in part before any
   work, works on.
 - **Files:** `Rules.cs` — which plans may be made and worked; `Costs.cs` — what things cost, from
   content, what a blueprint still lacks and the parts its work is paid in; `Building.cs` — the module, its
-  commands and queries; `Digging.cs` — `Dig` and the cracks (0077); `Flora.cs` — what grows on a planet's surface (0078); `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
+  commands and queries; `Digging.cs` — `Dig` and the cracks (0077); `Flora.cs` — what grows on a planet's surface (0079); `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
 
 ## Rules
 
@@ -87,7 +87,7 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   (`IItemsQueries.WeaponProblem`: `items.flat`, and `items.notRunning` for an electric one its hero does not run). Two
   digs on one cell in a tick apply in the host's order: the one that breaks it gets the yield, the next finds nothing.
   A crack whose wall is gone (a meteor) is dropped in derivation. A tool that deals no damage is our bug and throws.
-- **What grows on a planet's surface** (0078): plants and stones (`Content.Flora`), grown from the seed with the ground
+- **What grows on a planet's surface** (0079): plants and stones (`Content.Flora`), grown from the seed with the ground
   (`Terrain`), each standing in its cell over the soil it grows from and `Tall` cells up from it. A `Dig` on any of those
   cells, open (no structure), fells it at one hit, whatever the weapon, giving its kind's `Yields` to the sender (none yet:
   trees giving wood and seeds come there). A plant whose ground is gone — no wall under its cell, dug, taken apart, a
@@ -126,7 +126,7 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   the build zone's edge is drawn too; marks mostly within what is built (TypeScript draws from the
   wreck as drawn, which in the big world of 0048 would miss the ship); cancels of ids that are and
   are not there; `Work` mostly on the oldest plan or a mark, so plans complete within a run; `Dig` with every weapon,
-  an eighth of the time on a plant or the ground under one (0078), half the rest on a crack, so walls break within a run, else anywhere, which on a small planet is mostly its ground; on
+  an eighth of the time on a plant or the ground under one (0079), half the rest on a crack, so walls break within a run, else anywhere, which on a small planet is mostly its ground; on
   grown ground half of all its draws are digs.
 
 ## Invariants
@@ -149,7 +149,7 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 
 - Plants on a drawn map (only tests draw them) are not brought back by a load: only a grown surface's ground grows again.
 - A plant's crown over a wall built into it, or a tree's trunk cells above its own: only its own cell holding something fells
-  it. A tree falls to one hit, as a flower does, till felling gives wood (0078).
+  it. A tree falls to one hit, as a flower does, till felling gives wood (0079).
 - Half-dug cells never heal (0077): a crack stays until its wall breaks. Reach and which cell is dug are the
   client's word, as for work.
 - Plans left stale by a grid change: plans claim their slots, so nothing can fill one first. Only

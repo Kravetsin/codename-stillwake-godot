@@ -1,6 +1,6 @@
 # Render: the backdrop
 
-A planet's sky (0078) is `PlanetSky.cs`, shown by `Stars` in place of space on a surface with daylight: the "Stillwake"
+A planet's sky (0079) is `PlanetSky.cs`, shown by `Stars` in place of space on a surface with daylight: the "Stillwake"
 style's sky gradient, a pale gas giant, high cloud drifting, the sun added over it with its glint, then far mesas, a ridge
 and hills with spindly trees (`art/planet`), each layer repeating across every 2048 pixels. A pixel of art is a pixel of
 the world at the camera's zoom; the land's ground line lies on the world's surface (the spawn's ground), each layer

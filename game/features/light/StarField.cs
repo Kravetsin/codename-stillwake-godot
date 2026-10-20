@@ -33,7 +33,7 @@ public sealed class StarField
     /// <param name="sky">The light through the open sky, by <see cref="L.SkyOf"/> its surface's kind; the stars' when not given.</param>
     /// <param name="keep">What crossing a cell of air keeps of it: <see cref="L.StarKeep"/> aboard; a planet's ground less (<see cref="L.GroundKeep"/>, 0077), so daylight dies a cell or two round a bend.</param>
     /// <param name="down">What crossing a cell of air going down keeps, past 0: a planet's daylight falls down a shaft or a cave mouth further (<see cref="L.GroundDownKeep"/>); <paramref name="keep"/> else.</param>
-    /// <param name="soak">What going down from a wall cell into the wall under it keeps, past 0: a planet's daylight soaks a few cells down into its ground (<see cref="L.GroundSoak"/>, 0078); <see cref="L.WallDeep"/> else, as every other way.</param>
+    /// <param name="soak">What going down from a wall cell into the wall under it keeps, past 0: a planet's daylight soaks a few cells down into its ground (<see cref="L.GroundSoak"/>, 0079); <see cref="L.WallDeep"/> else, as every other way.</param>
     public StarField((float R, float G, float B)? sky = null, float keep = L.StarKeep, float down = 0, float soak = 0)
     {
         (_sky, _shares, _down) = (sky ?? L.Star, SharesOf(keep, L.WallDeep), SharesOf(down > 0 ? down : keep, soak > 0 ? soak : L.WallDeep));

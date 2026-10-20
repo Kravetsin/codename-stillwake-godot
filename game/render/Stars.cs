@@ -21,7 +21,7 @@ public partial class Stars : CanvasLayer
     private static readonly Color Star = new(223 / 255f, 232 / 255f, 245 / 255f);
 
     private readonly Sprite2D _sky;
-    /// <summary>A planet's sky behind its ground, drawn over the screen in place of space (0076, 0078).</summary>
+    /// <summary>A planet's sky behind its ground, drawn over the screen in place of space (0076, 0079).</summary>
     private readonly PlanetSky _day = new() { Visible = false };
     private readonly FarWrecks _wrecks = new();
     private readonly Dust _dust = new();

@@ -9,7 +9,7 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Features.Flora;
 
 /// <summary>
-/// What grows on a planet's surface, seen (0078): each plant the sim keeps standing (<see cref="BuildingModule.Plants"/>)
+/// What grows on a planet's surface, seen (0079): each plant the sim keeps standing (<see cref="BuildingModule.Plants"/>)
 /// drawn as a picture of its kind lit as the world is, what of it glows added over it unlit, and its glowing parts' light
 /// handed to the light feature (<see cref="Lights"/>). A plant felled is taken away in a fall of leaves. While glowing plants
 /// are in view, motes drift about them and in the open air over the ground, a few at a time, none made off the screen.
