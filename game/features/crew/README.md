@@ -474,9 +474,9 @@ Deliberately not handled:
   (`Figure.FloorRoom`, from `HeroView`), and dust along the floor is drawn behind the walls (`Luminous.Low`), so none shows through a shaft's walls.
 - **The two-handed hold** (0078, `TwoHand`): an item with `HeldLook.Both` (the drill and the arc drill now; two-handed weapons and
   tools to come, as a harpoon gun or an electric spear) is held as a rifle, its mount (`TwoHands.Mount`, between the hands) on a pivot across the middle of the chest,
-  turned there so its edge's line runs through the pointer, but at most `TwoHand.Up` up and `Down` down (0.6 rad, about 34°
-  each), past which it points as far as it turns; the pivot moves forward aimed up and up aimed down (`PivotUp`,
-  `PivotDown`). Both arms reach for it (`Rig.Reach`): the near (front) fist on `HeldLook.Grip`, its elbow back as a
+  turned there so its edge's line runs through the pointer, but at most `TwoHand.Up` up and `Down` down (55° and 85°),
+  past which it points as far as it turns; the pivot moves between `TwoHand.Keys`, forward aimed up and up and out aimed
+  down, so aimed at the cells under the feet the drill stands before the legs as a jackhammer, the body unchanged. Both arms reach for it (`Rig.Reach`): the near (front) fist on `HeldLook.Grip`, its elbow back as a
   trigger arm's, the far (back) one on `TwoHands.Foregrip`, drawn behind the body and the item; neither ever crosses the
   helmet nor lifts its elbow above the shoulder, which bounds the clamp, as the far arm's reach and the floor do. The
   hands take the grips from the pose over 120 ms, the item's turn settling as a limb does. Standing, walking, climbing or
