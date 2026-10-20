@@ -55,7 +55,7 @@ as everything E works is, in the crew feature (`AimTests`).
 - Clicks follow `click.ts` exactly: left picks a stack and puts it on the next slot, right picks half
   rounded up or puts one, but on a canister of the hero's own with none picked breathes it (`Ui.Breathe`, 0047), shift sends a stack across to the open crate (a fuel into the fuel slot of a
   furnace or a burner generator, its machine's `FuelSlot`), a click on the picked slot puts it back. A press begins a drag; let go over another slot it
-  puts the stack there, over the world it throws it. Along the closed hotbar a drag moves a stack.
+  puts the stack there, over the world it throws it. Along the closed hotbar a drag moves nothing: it chooses each slot it passes over, as in Terraria, since a carried stack is not shown there.
 - **Quick equip** (0047, Terraria's): shift on a worn kind of item (`ItemSpec.Equip`) in the hero's own slots, a
   crate open or not, puts it on the first free equipment slot of its kind (the belt's first free of three), or with
   none free swaps it with the first worn there, one `Move` either way; shift on what is worn takes it off onto the

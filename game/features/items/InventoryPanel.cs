@@ -637,15 +637,13 @@ public partial class InventoryPanel : CanvasLayer
             ClickAt(place, false, false);
             return;
         }
-        if (Shown) return;
-        // Along the hotbar with the inventory closed, where a press only chooses a slot: the stack is
-        // lifted and put down in one go, as two clicks would with it open.
-        var lifted = Clicks.On(null, new SlotClick(from, _reading.At(from), false, false, Crate, _reading.Inventory));
-        if (lifted.Picked == null) return;
-        var put = Clicks.On(lifted.Picked, new SlotClick(place, _reading.At(place), false, false, Crate, _reading.Inventory));
-        if (put.Command == null) return;
-        _chosen = place.Slot;
-        Send(put.Command);
+        // With the inventory closed a press only chooses a slot, and a drag along the hotbar chooses the slot
+        // it is let go over, as Terraria does: nothing is moved where the player cannot see it carried.
+        if (!Shown && place.Crate == null && place.Slot < Hotbar.Row)
+        {
+            _chosen = place.Slot;
+            Refresh();
+        }
     }
 
     private void ClickAt(Place place, bool right, bool shift)
@@ -703,6 +701,8 @@ public partial class InventoryPanel : CanvasLayer
         if (hovered != _hovered)
         {
             _hovered = hovered;
+            // Closed, a drag along the hotbar chooses each slot it passes over.
+            if (!Shown && _dragFrom != null && hovered is { Crate: null } h && h.Slot < Hotbar.Row) _chosen = h.Slot;
             Refresh();
         }
         // A slot a shifted stack flies into, empty before, shows it only as it lands.
