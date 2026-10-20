@@ -272,6 +272,21 @@ public partial class HeroView : Node2D
     public IReadOnlyList<(int Id, Hero Hero)> Others { get; private set; } = [];
 
     /// <summary>
+    /// Where every helmet lamp worn on this surface shines from as drawn this frame, in the world's pixels (0077): this
+    /// hero's and each friend's shown, so a friend's lamp lights a cave for everyone in it. What the light draws.
+    /// </summary>
+    public IReadOnlyList<Vector2> HeadLamps()
+    {
+        _headLamps.Clear();
+        if (_figure.HeadLamp && _figure.Visible) _headLamps.Add(_figure.HeadLampAt);
+        foreach (var (_, shown) in _shownOthers)
+            if (shown.Figure.Visible && shown.Figure.HeadLamp) _headLamps.Add(shown.Figure.HeadLampAt);
+        return _headLamps;
+    }
+
+    private readonly List<Vector2> _headLamps = [];
+
+    /// <summary>
     /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world <paramref name="m"/>
     /// and draws it, the camera centred on it, and tells the sim where it is when that matters to its
     /// breathing (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming
@@ -388,6 +403,7 @@ public partial class HeroView : Node2D
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         _figure.Wear(Suits.Of(m.Players, client.Id));
         _figure.Jetpack = jetpack;
+        _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         // Its own thrust shows at once (0014); others' as the sim says.
         Plume(client.Id, _figure, _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
@@ -648,6 +664,7 @@ public partial class HeroView : Node2D
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Loaded = shown.Rod.Loaded;
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
+            shown.Figure.HeadLamp = m.Items.Equipped(id, Content.HelmetLamp.Item);
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
             shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);

@@ -113,6 +113,11 @@ Numbers from `game/Content/Light.cs`.
   every 8×8 room of it, 1.16 and 0.76. Dim lamps of 11 cells (0070), in a 1600×900 window: 1.73–1.82 ms a frame at
   zoom 1 against 1.87–2.02 before, 0.91–0.96 at zoom 2 against 0.88–0.93.
 
+- **Helmet lamps** (0077): one main light a lamp worn, from its bulb on the helmet (`LightView.HeadLamps`, answered by
+  the crew's `HeroView.HeadLamps()`): `Light.HeadLamp`, a warm (0.95, 0.82, 0.6) keeping `Light.HeadLampKeep` (0.7) a cell
+  out to `Light.HeadLampReach` (6), its bulb `Light.HeadLampSize` (3 px) wide: enough to dig by in a cave, with shadows
+  as any lamp's; free, as bright as it is anywhere, aboard too.
+
 ## Deliberately not handled
 
 - Relief from more than one light is from their sum's slope: one direction a point, not each lamp's.

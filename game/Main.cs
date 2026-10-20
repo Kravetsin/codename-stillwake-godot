@@ -54,7 +54,8 @@ namespace Stillwake.Game;
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
-/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it (0077), <c>--strip</c> the test strip (0076),
+/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it (0077), <c>--ground=cave</c> or <c>--ground=shaft</c>
+/// down into a cave with the helmet lamp or digging a shaft (<see cref="GroundDemo"/>), <c>--strip</c> the test strip (0076),
 /// with <c>--autopilot</c> played by a script (<see cref="HeroAutopilot.PlanetRun"/>), with <c>--beam-back</c> back aboard two seconds in,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
 /// resync it, <c>--lag</c> and <c>--jitter</c> make a joiner's link bad on purpose.
@@ -106,6 +107,7 @@ public partial class Main : Node2D, ITogether
     private DebrisView _debris = null!;
     private Hands _hands = null!;
     private PlanDemo? _demo;
+    private GroundDemo? _ground;
     private ShimmerDemo? _shimmerDemo;
     private FrameLog? _frameLog;
     /// <summary>Where this machine stands on the network, for the dev panel; none alone.</summary>
@@ -331,6 +333,11 @@ public partial class Main : Node2D, ITogether
         if (Has("--fly")) world = FarDemo.Seed(world, _m, Modules, int.Parse(_args.FirstOrDefault(a => a.StartsWith("--far="))?[6..] ?? "0"));
         if (Has("--die")) world = DieDemo.Seed(world, Modules);
         if (Has("--handbook")) world = HandbookDemo.Seed(world, Modules);
+        if (_args.FirstOrDefault(a => a.StartsWith("--ground=", StringComparison.Ordinal)) is { } ground)
+        {
+            world = GroundDemo.Seed(world, Modules);
+            _ground = new GroundDemo(ground[9..]);
+        }
         PlayDev(world, Has("--gallery") ? null : layout);
     }
 
@@ -830,6 +837,7 @@ public partial class Main : Node2D, ITogether
             LampShare = Has("--lit") ? _ => 1f : lamp => power.Satisfaction(lamp.Id) / 1000f,
             Fire = m => fires.BlazeOf(m.Id),
             FireAt = FurnaceView.LightAt,
+            HeadLamps = () => _hero?.HeadLamps() ?? [],
         });
         // A planet's sky behind its ground, space aboard (0076).
         var (r, g, b) = Game.Light.SkyOf(_m.Rules);
@@ -940,6 +948,7 @@ public partial class Main : Node2D, ITogether
             _bodies.Add(BodyOf(_hero.Current));
         }
         _demo?.Frame(client, _m.Grid, Log);
+        _ground?.Frame(client, Log);
         _shimmerDemo?.Frame(client, _m.Grid, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
     }

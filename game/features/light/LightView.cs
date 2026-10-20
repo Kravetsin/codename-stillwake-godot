@@ -74,6 +74,9 @@ public partial class LightView : Node2D
     /// <summary>Where a machine of a kind gives its fire's light, in pixels from its top left; null for one with no fire.</summary>
     public Func<string, Vector2?> FireAt { get; set; } = _ => null;
 
+    /// <summary>Where each helmet lamp worn on this surface shines from this frame, in pixels of the world (0077): none till the crew answers it.</summary>
+    public Func<IReadOnlyList<Vector2>> HeadLamps { get; set; } = () => [];
+
     /// <summary>The lights drawn into the lightmap the last frame.</summary>
     public int LightCount => _lightmap.Drawn;
     public int LampCount => _shown.Count;
@@ -190,6 +193,8 @@ public partial class LightView : Node2D
             glow.Modulate = FireGlowColour with { A = Math.Min(1, FireGlowAlpha * burns) };
             _main.Add(new LightSource(at.X, at.Y, L.Fire, burns, FireReach, L.FireKeep, 1, L.FireSize));
         }
+        foreach (var at in HeadLamps())
+            _main.Add(new LightSource(at.X, at.Y, L.HeadLamp, 1, L.HeadLampReach, L.HeadLampKeep, L.LampMost, L.HeadLampSize));
         // Flashes first, the brightest moments; then the particles that give light, while the cap lasts (Fx.MostLights).
         foreach (var f in Flares.Shared.Flashes)
         {

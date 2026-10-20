@@ -81,5 +81,13 @@ public static class Light
     /// the light seen from it is wide, sharp by what casts it, wider further off. Glows are points.
     /// </summary>
     public const float LampSize = 6f, FireSize = 10f;
+
+    /// <summary>
+    /// The helmet lamp (0077): a soft warm light round the wearer's head, falling off faster than a lamp's, out to
+    /// <see cref="HeadLampReach"/> cells: enough to dig by in a cave, never a room lit whole. Its bulb is small.
+    /// </summary>
+    public static readonly (float R, float G, float B) HeadLamp = (0.95f, 0.82f, 0.6f);
+    public const float HeadLampKeep = 0.7f, HeadLampSize = 3f;
+    public const int HeadLampReach = 6;
     public static readonly (float R, float G, float B) Ambient = (0.04f, 0.045f, 0.06f);
 }

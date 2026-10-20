@@ -463,6 +463,9 @@ Deliberately not handled:
   works flag, sparks and strikes firing on ground as on a wreck, and a friend's bit on ground throws sparks too
   (`Aiming.Bites`). Nothing traces the blade or the bit, which only find wrecks in open space: a shaft, a cave or the
   strip's shelter dig alike. E digs nothing. What the dig looks like is building's (`DigView`). No sound of its own yet.
+- **The helmet lamp** (0077): worn on the head, its bulb shows on the helmet's brow (`Figure.HeadLamp`, a placeholder
+  of three warm pixels, drawn unlit), this hero's and every friend's shown; `HeroView.HeadLamps()` says where each
+  shines from this frame, which `Main` hands the light (`LightView.HeadLamps`).
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - A press on a door or valve is built from it as shown (`Shared.Predicted.Grid`, passed to `Aiming.AimAt`): it asks
@@ -472,4 +475,3 @@ Deliberately not handled:
 ## Not ported yet
 
 - `keys.test.ts`: the keys are Godot's input here, read in `HeroView`.
-- A helmet lamp: the TypeScript game has none.

@@ -151,6 +151,7 @@ public static partial class En
         ["item.drill"] = "Drill",
         ["item.arcDrill"] = "Arc drill",
         ["item.jetpack"] = "Oxygen jetpack",
+        ["item.helmetLamp"] = "Helmet lamp",
         ["item.battery"] = "Battery",
         // An item's card: its kind under its name; a tool's key and how it is used, the tiles' labels.
         ["item.scrap.kind"] = "Material",
@@ -207,6 +208,9 @@ public static partial class En
         ["item.jetpack.kind"] = "Equipment · Back",
         ["item.jetpack.key"] = "Shift",
         ["item.jetpack.hint"] = "thrust in space, on the suit's air; no lift under a planet's gravity",
+        ["item.helmetLamp.kind"] = "Equipment · Head",
+        ["item.helmetLamp.key"] = "Worn",
+        ["item.helmetLamp.hint"] = "a soft light round your head, for caves; draws nothing",
         ["item.battery.kind"] = "Equipment · Belt",
         ["item.battery.key"] = "Station",
         ["item.battery.hint"] = "to charge",

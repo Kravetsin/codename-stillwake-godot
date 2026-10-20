@@ -62,6 +62,22 @@ public partial class Figure : Node2D
 
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
     private readonly Node2D _body, _helmet;
+    private readonly Sprite2D _headLamp;
+
+    /// <summary>Where the helmet lamp sits on the helmet, from the neck it turns at, facing +x: on its brow, ahead of the visor.</summary>
+    private static readonly Vector2 HeadLampOn = new(4, -9);
+
+    /// <summary>The lamp's bulb, a few warm pixels, a placeholder till its art is picked: each figure's own, freed with it.</summary>
+    private readonly Texture2D _bulb = MakeBulb();
+
+    private static Texture2D MakeBulb()
+    {
+        var image = Image.CreateEmpty(3, 2, false, Image.Format.Rgba8);
+        image.Fill(new Color(1f, 0.9f, 0.62f));
+        image.SetPixel(0, 1, new Color(0.55f, 0.48f, 0.4f));
+        image.SetPixel(2, 1, new Color(0.55f, 0.48f, 0.4f));
+        return ImageTexture.CreateFromImage(image);
+    }
     /// <summary>The jetpack worn on the back over the air pack (0047), a placeholder picture till its art is picked.</summary>
     private readonly Sprite2D _jetpack;
     /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
@@ -172,6 +188,9 @@ public partial class Figure : Node2D
         // The helmet turns at the neck.
         _helmet = new Node2D { Position = new Vector2(0, (float)-Rig.Neck) };
         _helmet.AddChild(Part("helmet"));
+        // The helmet lamp's bulb on its brow (0077), drawn unlit: it is the light.
+        _headLamp = new Sprite2D { Texture = _bulb, Position = HeadLampOn, Visible = false, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
+        _helmet.AddChild(_headLamp);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
@@ -279,6 +298,16 @@ public partial class Figure : Node2D
         get => _jetpack.Visible;
         set => _jetpack.Visible = value;
     }
+
+    /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>
+    public bool HeadLamp
+    {
+        get => _headLamp.Visible;
+        set => _headLamp.Visible = value;
+    }
+
+    /// <summary>The helmet lamp's bulb as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
+    public Vector2 HeadLampAt => _headLamp.GlobalPosition;
 
     /// <summary>The worn jetpack's nozzle as drawn, in pixels of the world; none without one.</summary>
     public Vector2? Nozzle => _jetpack.Visible ? _jetpack.ToGlobal(NozzleAt) : null;

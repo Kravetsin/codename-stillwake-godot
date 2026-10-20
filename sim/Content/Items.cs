@@ -133,6 +133,8 @@ public static class Items
         new("arcDrill", 1, Draw: 3, Gear: true, Group: ItemGroup.Tool),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
+        // A soft warm light round the head (0077): free, drawing no power.
+        new("helmetLamp", 1, Equip: "head", Gear: true, Group: ItemGroup.Wearable),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
     ];
