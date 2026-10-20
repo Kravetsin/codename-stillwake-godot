@@ -221,8 +221,10 @@ public partial class CaveView : Node2D
                     foreach (var point in glow.Brightest.Take(look.Glints)) patch.Glints.Add((at + point, Colour(look.GlintColour), plant.Cell));
             }
             var colour = plant.Kind is "moss" or "roots" && band == 0 ? CaveLooks.ColdMoss : look.Light;
-            if (colour is { } c && glowAt is { } middle && hash / 13 % 100 < (uint)look.LightShare)
-                patch.Lights.Add(new LightSource(middle.X, middle.Y, c, look.Strength, look.Reach, look.Keep, 1));
+            // From the open, off the face of what holds it, a few pixels wide: a light in the rock lit only the rock, and a point on a face cast a hard shadow along it.
+            if (colour is { } c && glowAt is { } middle && hash / 13 % 100 < (uint)look.LightShare
+                && Planting.Light(kind.On, x, y, Cell, middle.X, middle.Y, FacesOpen(plant.Cell)) is { } shines)
+                patch.Lights.Add(new LightSource(shines.X, shines.Y, c, look.Strength, look.Reach, look.Keep, 1, CaveLooks.LightSize));
             // Mica and veins glint on the faces of their stone that are open, a pixel in.
             if (kind.On == Spec.Flora.Anchor.Rock && look.Glints > 0)
                 for (int i = 0; i < look.Glints; i++)
@@ -238,6 +240,14 @@ public partial class CaveView : Node2D
 
     /// <summary>Whether <paramref name="cell"/> is open: nothing built or grown there.</summary>
     private bool Open(int cell) => cell >= 0 && cell < _grid.Width * _grid.Height && _grid.StructureAt(cell) == Structure.Empty;
+
+    /// <summary>The faces of the cell at <paramref name="cell"/> that are open.</summary>
+    private Planting.Faces FacesOpen(int cell)
+    {
+        int w = _grid.Width, x = cell % w;
+        return (Open(cell - w) ? Planting.Faces.Up : 0) | (Open(cell + w) ? Planting.Faces.Down : 0)
+            | (x > 0 && Open(cell - 1) ? Planting.Faces.Left : 0) | (x < w - 1 && Open(cell + 1) ? Planting.Faces.Right : 0);
+    }
 
     /// <summary>A point a pixel inside an open face of the stone at <paramref name="cell"/>, by <paramref name="hash"/>; null for none open.</summary>
     private Vector2? FacePoint(int cell, uint hash)
@@ -265,13 +275,12 @@ public partial class CaveView : Node2D
     {
         _lights.Clear();
         _near.Clear();
-        var near = view.Grow(Cell * 4);
         var middle = view.GetCenter();
         foreach (var patch in _shown.Values)
             foreach (var light in patch.Lights)
             {
                 var at = new Vector2((float)light.X, (float)light.Y);
-                if (near.HasPoint(at)) _near.Add((light, at.DistanceSquaredTo(middle)));
+                if (view.Grow(light.Reach * Cell).HasPoint(at)) _near.Add((light, at.DistanceSquaredTo(middle)));
             }
         if (_near.Count > CaveLooks.MostLights) _near.Sort((a, b) => a.Far.CompareTo(b.Far));
         for (int i = 0; i < Math.Min(_near.Count, CaveLooks.MostLights); i++) _lights.Add(_near[i].Light);

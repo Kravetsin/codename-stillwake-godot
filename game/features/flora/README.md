@@ -55,8 +55,11 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
   each glowing pixel's bloom, tight, in `_glow`. Change the drawing code and export again; never edit the pictures.
 - **Light** (`CaveLooks`): each glowing kind's one light, from its glow's middle, in its colour — teal, violet, ice-blue,
   amber, rose, ember, green near the surface — at its strength and keep out to its reach (5 cells for a cap or a crystal,
-  3 for moss); moss from three in ten, roots and heat cracks from a share too. Only those of the chunks near the view, the
-  nearest its middle first, at most `CaveLooks.MostLights` (56), go to the light (`LightView.Caves`).
+  3 for moss); moss from three in ten, roots and heat cracks from a share too. Always from the open (`Planting.Light`):
+  one on a floor or from a ceiling held `LightOff` (3 px) off its face, one in the rock from just past its open face nearest
+  its glow — a light in a wall lit only the rock round it, cut off along the face, and one on a face cast its shadow along
+  it in a hard line; and `CaveLooks.LightSize` (4 px) wide, so its shadows' edges are soft as a lamp's. Only those whose
+  reach touches the view, the nearest its middle first, at most `CaveLooks.MostLights` (56), go to the light (`LightView.Caves`).
 - **Glints:** mica, veins, crystals and geodes sparkle where a helmet's beam falls on them, nothing between (walked a few
   pixels at a time through the grid's walls): a white point and a cross of its colour, twinkling, as bright as the beam is
   there. Mica draws nothing else.

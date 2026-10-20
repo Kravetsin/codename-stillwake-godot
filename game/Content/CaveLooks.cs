@@ -68,6 +68,12 @@ public static class CaveLooks
     public const int MostLights = 56;
 
     /// <summary>
+    /// How wide a growth's light is, in pixels: its shadows' edges soften over as much, as a lamp's do, not cut along a line from a
+    /// point.
+    /// </summary>
+    public const float LightSize = 4f;
+
+    /// <summary>
     /// A glint in a helmet's beam (the concept's): a white point and a cross of its colour, arms of <see cref="GlintArm"/> pixels,
     /// twinkling about <see cref="GlintTwinkle"/> times a second, shown only where the beam reaches it with nothing between.
     /// </summary>
