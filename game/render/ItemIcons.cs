@@ -14,6 +14,7 @@ public static class ItemIcons
     public const int Pixels = 16;
 
     private static readonly Dictionary<string, Texture2D> Icons = new(), Silhouettes = new();
+    private static readonly Dictionary<string, int> ClearRows = new();
 
     /// <summary>The picture of <paramref name="item"/>, loaded once.</summary>
     public static Texture2D Icon(string item)
@@ -44,9 +45,22 @@ public static class ItemIcons
         var image = Icon(item).GetImage();
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
+        int lowest = -1;
         for (int y = 0; y < image.GetHeight(); y++)
             for (int x = 0; x < image.GetWidth(); x++)
-                image.SetPixel(x, y, new Color(1, 1, 1, image.GetPixel(x, y).A));
+            {
+                float a = image.GetPixel(x, y).A;
+                if (a > 0) lowest = y;
+                image.SetPixel(x, y, new Color(1, 1, 1, a));
+            }
+        ClearRows[item] = image.GetHeight() - 1 - lowest;
         return Silhouettes[item] = ImageTexture.CreateFromImage(image);
+    }
+
+    /// <summary>The clear rows under <paramref name="item"/>'s picture, in its pixels: what a stack on the floor is lowered by to stand on it.</summary>
+    public static int ClearBelow(string item)
+    {
+        if (!ClearRows.ContainsKey(item)) Silhouette(item);
+        return ClearRows[item];
     }
 }
