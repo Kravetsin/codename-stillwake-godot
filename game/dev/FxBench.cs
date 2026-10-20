@@ -18,7 +18,7 @@ public partial class FxBench : Node2D
     private readonly Shimmer[] _shimmers = new Shimmer[Fires];
     private double _embers, _ash, _bursts, _breakMs, _crackMs;
     private readonly Features.Building.BuildGlow _weld = new();
-    private readonly Outline _aim = new(Layers.Aim);
+    private readonly Outline _aim = new(Layers.Aim) { ZAsRelative = false };
     private double _weldMs;
 
     public FxBench()
@@ -45,6 +45,7 @@ public partial class FxBench : Node2D
         for (_weldMs += ms; _weldMs >= 50; _weldMs -= 50) _weld.Sparked(1, weld, Math.PI, 1, false, middle.Y + 40);
         _aim.Begin();
         _aim.AddBox(new Rect2(weld + new Vector2(0, -8), new Vector2(16, 16)), Colors.White);
+        _aim.AddBox(new Rect2(middle + new Vector2(-2, -34), new Vector2(12, 12)), new Color("7fe08a"));
         _aim.End();
         for (int i = 0; i < Fires; i++)
         {

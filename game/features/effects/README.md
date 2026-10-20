@@ -41,10 +41,14 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
 - **Light (0019):** flashes first, then luminous particles that give light, as spots of the light feature (`LightView`), at most `Fx.MostLights` (48) together.
 - **Heat shimmer:** a `Shimmer` node per hot thing, under the flames and over what is behind them: the screen
   under its box sampled again, each row nudged sideways by two waves and noise rising through it, faded out
-  toward its edges, a texel with nothing drawn in it adding nothing, so it never darkens. The screen under each
-  box (and 4 px round it) is copied just before it by a `BackBufferCopy` of that rect: Godot's own copy is
-  taken once a frame and a canvas group drawn after it (the aim's outline, `render/Outline.cs`) leaves its own
-  buffer there, which a weld's shimmer over the outlined plan read as a black disc. The Esc menu's settings
+  toward its edges, a texel with nothing drawn in it adding nothing, so it never darkens. Every shimmer is drawn at
+  `Layers.Shimmer` (with the fire, before its flames) whoever owns it, from one copy of the whole screen taken there
+  (`Shimmer.ScreenCopy`, `Main`'s first child, shown while any shimmer is): the world drawn so far and nothing
+  over it, so the aim's outline, plans, marks, the tablet and words by the pointer stay crisp and are never
+  wobbled. Godot's own copy, taken at the first reader, and a copy per box both failed: the aim's outline is a
+  canvas group sharing that buffer, and a shimmer drawn after it, or reading past its copied rect, showed its
+  masks (a black disc over a weld, a green ghost of the furnace aimed at). `-- --testbed --near=furnace
+  --shimmer-demo` records those cases (`dev/ShimmerDemo.cs`). The Esc menu's settings
   switch it off (`Shimmer.Enabled`, kept in `user://settings.cfg`, on by default).
 - **Cost** (`-- --measure`, RTX 4060 Ti, 1920×1080): the testbed's furnace room 1.52 → 1.62 ms a frame,
   164 draw calls against 159; `-- --fx-bench` (eight fires with their shimmer, four plans worked, a wreck

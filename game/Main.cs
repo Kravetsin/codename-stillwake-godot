@@ -50,6 +50,7 @@ namespace Stillwake.Game;
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>), <c>--handbook</c> the Handbook opened on a world that has found ten kinds (<see cref="HandbookDemo"/>),
+/// <c>--shimmer-demo</c> with <c>--testbed --near=furnace</c> aims at the furnace, plans, marks and welds over it (<see cref="ShimmerDemo"/>),
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--for=seconds</c> quits after a while,
@@ -99,6 +100,7 @@ public partial class Main : Node2D, ITogether
     private DebrisView _debris = null!;
     private Hands _hands = null!;
     private PlanDemo? _demo;
+    private ShimmerDemo? _shimmerDemo;
     private FrameLog? _frameLog;
     /// <summary>Where this machine stands on the network, for the dev panel; none alone.</summary>
     private string? _net;
@@ -127,6 +129,8 @@ public partial class Main : Node2D, ITogether
         _cheat = Has("--cheat");
         var seconds = _args.FirstOrDefault(a => a.StartsWith("--for="));
         if (seconds != null) GetTree().CreateTimer(int.Parse(seconds[6..])).Timeout += Quit;
+        // First of all at its layer, before every shimmer (0075).
+        AddChild(Shimmer.NewScreenCopy());
         // Before everything else, so every button made after it clicks.
         AddChild(new SoundView(Floats, () => _title != null));
 
@@ -206,6 +210,11 @@ public partial class Main : Node2D, ITogether
         {
             _demo = new PlanDemo(_hands, _layout);
             _demo.Start();
+        }
+        if (Has("--shimmer-demo"))
+        {
+            _shimmerDemo = new ShimmerDemo(_hands);
+            _shimmerDemo.Start();
         }
         var join = _args.FirstOrDefault(a => a == "--join" || a.StartsWith("--join="));
         var hostAs = _args.FirstOrDefault(a => a == "--host" || a.StartsWith("--host="));
@@ -878,6 +887,7 @@ public partial class Main : Node2D, ITogether
             _bodies.Add(BodyOf(_hero.Current));
         }
         _demo?.Frame(client, _m.Grid, Log);
+        _shimmerDemo?.Frame(client, _m.Grid, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
     }
 

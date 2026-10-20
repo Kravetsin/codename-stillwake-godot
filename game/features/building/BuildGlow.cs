@@ -138,7 +138,7 @@ public partial class BuildGlow : Node2D
             {
                 if (w.Shimmer == null)
                 {
-                    w.Shimmer = new Shimmer { ZIndex = Layers.Plans - 1, Rise = 9, TopLevel = false };
+                    w.Shimmer = new Shimmer { Rise = 9 };
                     // In the world's own frame, not this node's screen-scaled one.
                     GetParent().AddChild(w.Shimmer);
                 }

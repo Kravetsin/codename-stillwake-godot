@@ -52,10 +52,11 @@ generator's, which shares it), a screwdriver's sparks on a plan, an axe's hit an
 - **Spots for light, capped.** A spark's light is a spot of the lightmap (0029); a break throws 26 sparks at once,
   whose spots summed would wash a wreck white, so their light is `Fx.ParticleLight` (0.3) of an old ember's and the
   flashes are weaker than the page drew (spots add over the room's light where the page's multiplied).
-- **Each shimmer copies the screen under its own box** (a `BackBufferCopy` of that rect) just before it is drawn, and
-  shows only what was drawn there (its alpha), so it bends the scene and never darkens it. Godot's own copy is taken
-  once a frame, and a canvas group drawn after it — the aim's outline over a plan being welded — leaves its own buffer
-  there: the first build drew a black disc over the weld. The Esc menu's settings switch it off (on by default).
+- **Every shimmer is drawn at one layer, after the world and before anything over it** (the aim's outline, plans,
+  marks), from one copy of the whole screen taken there, and shows only what was drawn (its alpha): it bends the
+  world and never an overlay, and never darkens. Godot's own copy (taken at the first reader) and a copy per box
+  were tried first: the aim's outline is a canvas group sharing the same buffer, and they showed a black disc over a
+  weld and a green ghost of a furnace aimed at. The Esc menu's settings switch it off (on by default).
 
 ## Deliberately not done
 

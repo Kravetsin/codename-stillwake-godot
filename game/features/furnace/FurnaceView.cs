@@ -166,7 +166,7 @@ public partial class FurnaceView : Node2D
     {
         var sprite = new Sprite2D { Centered = false, ZIndex = Layers.Fire, Material = Unlit, Texture = Picture(m.Id) };
         // Under the fire, so it wobbles the wall and the machine but not the flames or the embers.
-        var shimmer = new Shimmer { ZIndex = Layers.Fire };
+        var shimmer = new Shimmer();
         var haze = new Sprite2D
         {
             Texture = PixelArt.Glow,

@@ -5,8 +5,9 @@ namespace Stillwake.Game.Render;
 /// <summary>
 /// Heat shimmer (0075): what is drawn under a box of the world, sampled from the screen again with each row
 /// nudged sideways by a wobble rising through it, faded out toward its edges, so the air over a fire or a
-/// hot weld seems to boil. The screen under each box is copied just before it (a <c>BackBufferCopy</c> of that
-/// rect), so what was drawn before it in the frame, whatever else read the screen, is what it bends.
+/// hot weld seems to boil. Every shimmer is drawn at <see cref="Layers.Shimmer"/>, after the world and before
+/// anything drawn over it, from one copy of the screen taken there (<see cref="ScreenCopy"/>): it bends the world,
+/// never an outline, a plan or a mark, and shows only what was drawn (alpha), so it never darkens.
 /// Set <see cref="Amplitude"/> each frame; at 0 it is hidden and costs nothing.
 /// </summary>
 public partial class Shimmer : Node2D
@@ -52,27 +53,45 @@ public partial class Shimmer : Node2D
 
     private static readonly ImageTexture White = ImageTexture.CreateFromImage(Image.CreateEmpty(4, 4, false, Image.Format.Rgba8));
     private readonly ShaderMaterial _material = new() { Shader = Shader };
-    /// <summary>How far past its box the screen is copied for it: more than a row ever wobbles.</summary>
-    private const float CopyMargin = 4;
-
     /// <summary>
     /// Whether heat shimmers at all, the player's setting (on by default, <c>Settings.Shimmer</c>): off, every
     /// shimmer is hidden and costs nothing.
     /// </summary>
     public static bool Enabled { get; set; } = true;
 
-    // The screen under its box copied fresh just before it is drawn: Godot's own copy is taken once a frame, and
-    // a canvas group drawn since (the aim's outline) leaves its own buffer there, which read as a black disc.
-    private readonly BackBufferCopy _copy = new() { CopyMode = BackBufferCopy.CopyModeEnum.Rect };
-    private readonly Node2D _wobble = new();
+    /// <summary>
+    /// The one copy of the screen every shimmer reads, taken at <see cref="Layers.Shimmer"/> before any of them:
+    /// the world drawn so far and nothing over it. <c>Main</c> adds it as its first child, so at its layer it
+    /// comes before every shimmer; shown only while one is.
+    /// </summary>
+    public static BackBufferCopy ScreenCopy { get; private set; } = Copy();
+
+    /// <summary>A new copy for a new scene, the last one's gone with it.</summary>
+    public static BackBufferCopy NewScreenCopy()
+    {
+        _shown = 0;
+        return ScreenCopy = Copy();
+    }
+
+    private static BackBufferCopy Copy() => new()
+    {
+        CopyMode = BackBufferCopy.CopyModeEnum.Viewport,
+        ZIndex = Layers.Shimmer,
+        ZAsRelative = false,
+        Visible = false,
+    };
+
+    private static int _shown;
+    private bool _counted;
     private Rect2 _box;
 
     public Shimmer()
     {
-        _wobble.Material = _material;
-        _wobble.Draw += () => _wobble.DrawTextureRect(White, _box, false);
-        AddChild(_copy);
-        AddChild(_wobble);
+        Material = _material;
+        // At the shimmer layer whatever its parent's: after the world, before the plans, the aim's outline and
+        // every mark over it, which a shimmer drawn later would copy and wobble.
+        ZIndex = Layers.Shimmer;
+        ZAsRelative = false;
         Visible = false;
     }
 
@@ -84,8 +103,7 @@ public partial class Shimmer : Node2D
         {
             if (_box == value) return;
             _box = value;
-            _copy.Rect = value.Grow(CopyMargin);
-            _wobble.QueueRedraw();
+            QueueRedraw();
         }
     }
 
@@ -95,7 +113,7 @@ public partial class Shimmer : Node2D
         set
         {
             float a = value * (float)Fx.Shimmer;
-            Visible = Enabled && a > 0.02f;
+            Show(Enabled && a > 0.02f);
             if (Visible) _material.SetShaderParameter("amplitude", a);
         }
     }
@@ -105,4 +123,17 @@ public partial class Shimmer : Node2D
     {
         set => _material.SetShaderParameter("rise", value);
     }
+
+    private void Show(bool shown)
+    {
+        Visible = shown;
+        if (shown == _counted) return;
+        _counted = shown;
+        _shown = System.Math.Max(0, _shown + (shown ? 1 : -1));
+        if (IsInstanceValid(ScreenCopy)) ScreenCopy.Visible = _shown > 0;
+    }
+
+    public override void _ExitTree() => Show(false);
+
+    public override void _Draw() => DrawTextureRect(White, _box, false);
 }
