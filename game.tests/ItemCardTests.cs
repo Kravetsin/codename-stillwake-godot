@@ -2,13 +2,14 @@ using Stillwake.Game.Features.Crafting;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
+using Stillwake.Sim.Items;
 using Xunit;
 using static Stillwake.Game.I18n.En;
 using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>An item's card in the one tooltip: a tool's numbers from content, anything else's kind and what it goes into, a station's craft block, the band of an unknown item.</summary>
+/// <summary>An item's card in the one tooltip: a tool's numbers from content, a worn item's one number, anything else's name and kind, what a fed station makes of it, a station's craft block, the band of an unknown item.</summary>
 public class ItemCardTests
 {
     private static readonly Content.Station Fabricator = Content.Stations.Get("lifepod");
@@ -39,13 +40,12 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void NameTheHarpoonAToolForDebrisAndWreckageShotWithTheLeftButton()
+    public void NameTheHarpoonAToolShotWithTheLeftButton()
     {
         var card = ItemCards.Of(Spec.Harpoon.Item, unknown: false);
         Assert.True(card.Tool);
         Assert.True(ItemCards.IsTool(Spec.Harpoon.Item));
         Assert.Equal(("Harpoon", "Tool · Harpoon"), (card.Name, card.Kind));
-        Assert.Equal(["Debris", "Wreckage"], card.Uses);
         Assert.Equal("LMB", card.Use!.Key);
         Assert.Empty(card.Effects);
         Assert.NotEqual(card, card with { Tiles = [.. card.Tiles!.Take(2)] });
@@ -68,45 +68,70 @@ public class ItemCardTests
         var card = ItemCards.Of("fireAxe", unknown: false);
         Assert.True(card.Tool);
         Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
-        // Every weapon breaks anything with HP: a list of kinds would only grow.
-        Assert.Empty(card.Uses);
         Assert.Equal(new CardKey("LMB", "hold on debris or ground to break it"), card.Use);
         Assert.Empty(card.Effects);
     }
 
     [Fact]
-    public void GiveAnItemThatIsNoToolItsKindAndWhatItGoesIntoButNoTiles()
+    public void GiveAnItemThatIsNoToolItsNameAndKindButNoTiles()
     {
         var gear = ItemCards.Of("gear", unknown: false);
         Assert.False(gear.Tool);
         Assert.Null(gear.Tiles);
         Assert.Null(gear.Use);
+        Assert.False(gear.Worn);
         Assert.Equal(("Gear", "Part"), (gear.Name, gear.Kind));
-        // The crafts first, then the blueprints in content's order: the rotor, then the door, the valve and the Former.
-        Assert.Equal(["Rotor", "Drill", "Door", "Valve", "+1"], gear.Uses);
-        Assert.Equal(["Rotor", "Coil", "Harpoon", "Oxygen jetpack", "+13"], ItemCards.Of("wire", false).Uses);
         Assert.Equal(("Iron", "Material"), (ItemCards.Of("iron", false).Name, ItemCards.Of("iron", false).Kind));
         Assert.Equal("Salvage", ItemCards.Of("scrapChunk", false).Kind);
     }
 
     [Fact]
-    public void NameEveryCraftBlueprintAndCableWhoseCostHasTheItemUpToAFewAndCountTheRest()
+    public void WearEquipmentOnTheMediumCardTheHelmetLampWithItsReachFromItsLight()
     {
-        var scrap = ItemCards.Of("scrap", false).Uses;
-        Assert.Equal(ItemCards.MostInto + 1, scrap.Count);
-        Assert.Equal(["Wire", "Wall: scrap", "Back wall: scrap", "Floor"], scrap.Take(ItemCards.MostInto));
-        int into = Spec.Crafts.All.Count(c => c.Cost.Any(i => i.Item == "scrap"))
-            + Sim.Research.Blueprints.All.Count(b => b.Cost.Any(i => i.Item == "scrap"));
-        Assert.Equal($"+{into - ItemCards.MostInto}", scrap[^1]);
-        // Electronics need circuits: the crafts first, then the builds.
-        Assert.Equal(["Oxygen jetpack", "Battery", "Drill", "Drone", "+7"], ItemCards.Of("circuit", false).Uses);
-        // The farm (0060): soil goes into a soil wall (0077) and the grow capsule; a seed into nothing, it is planted.
-        Assert.Equal(["Wall: soil", "Grow capsule"], ItemCards.Of("soil", false).Uses);
-        Assert.Empty(ItemCards.Of("seed", false).Uses);
-        Assert.Equal(("Seed", "Seed"), (ItemCards.Of("seed", false).Name, ItemCards.Of("seed", false).Kind));
-        // A solar cell goes into the solar panel alone; its card names the part kind.
-        Assert.Equal(("Solar cell", "Part"), (ItemCards.Of("solarCell", false).Name, ItemCards.Of("solarCell", false).Kind));
-        Assert.Equal(["Solar panel"], ItemCards.Of("solarCell", false).Uses);
+        var lamp = ItemCards.Of(Spec.HelmetLamp.Item, false);
+        Assert.True(lamp.Worn);
+        Assert.False(lamp.Tool);
+        Assert.Equal(new CardTile(Light.HeadLampReach.ToString(), "CELLS REACH"), lamp.Headline);
+        // As content stands: 9 cells, 30 degrees either side.
+        Assert.Equal(new CardTile("9", "CELLS REACH"), lamp.Headline);
+        Assert.Equal("BEAM 60°", lamp.Detail);
+        // It draws nothing: the card shows a bolt and 0 rather than saying so.
+        Assert.Null(lamp.Draw);
+        Assert.Equal("a soft light round your head, for caves", lamp.Use!.Words);
+        // A battery's number is its charge, set per stack; the jetpack has none.
+        Assert.True(ItemCards.Of("battery", false).Worn);
+        Assert.Null(ItemCards.Of("battery", false).Headline);
+        Assert.True(ItemCards.Of("jetpack", false).Worn);
+        Assert.Null(ItemCards.Of("jetpack", false).Headline);
+        Assert.False(ItemCards.Of("drill", false).Worn);
+        Assert.False(ItemCards.Of("scrap", false).Worn);
+    }
+
+    [Fact]
+    public void SayWhatAFedStationMakesOfAnItemAndHowLongOneTakesAtItsSpeed()
+    {
+        // 60 ticks at full speed, 20 a second: three seconds at the furnace.
+        Assert.Equal(new CardOutput([("scrap", 4)], "3s"), ItemCards.OutputAt("scrapChunk", Spec.Stations.Get("furnace")));
+        Assert.Equal(new CardOutput([("iron", 2), ("scrap", 1)], "5s"), ItemCards.OutputAt("hullPlate", Spec.Stations.Get("furnace")));
+        // The electric smelter works at twice the speed: silicon's 120 ticks in three seconds.
+        Assert.Equal(new CardOutput([("glass", 1)], "3s"), ItemCards.OutputAt("silicon", Spec.Stations.Get("smelter")));
+        // A seed grows for 9600 ticks: past a minute, in minutes.
+        Assert.Equal(new CardOutput([("biomass", 4)], "8 min"), ItemCards.OutputAt("seed", Spec.Stations.Get("growCapsule")));
+        Assert.Null(ItemCards.OutputAt("planks", Spec.Stations.Get("furnace")));
+    }
+
+    [Fact]
+    public void PutWhatTheOpenFurnaceMakesOnTheCardOfWhatItSmeltsButNothingOnFuel()
+    {
+        var furnace = new Reading([], null, false, "furnace", null, []);
+        var chunk = furnace.HereTipOf(new Stack("scrapChunk", 12)).Card!;
+        Assert.Equal(SlotMark.Smelts, chunk.Here);
+        Assert.Equal(new CardOutput([("scrap", 4)], "3s"), chunk.Output);
+        var planks = furnace.HereTipOf(new Stack("planks", 30)).Card!;
+        Assert.Equal(SlotMark.Burns, planks.Here);
+        Assert.Null(planks.Output);
+        Assert.Null(new Reading([], null, false, null, null, []).HereTipOf(new Stack("scrapChunk", 12)).Card!.Output);
+        Assert.NotEqual(chunk, chunk with { Output = null });
     }
 
     [Fact]
@@ -115,18 +140,11 @@ public class ItemCardTests
         var canister = ItemCards.Of("canister", false);
         Assert.False(canister.Tool);
         Assert.Equal(new CardKey("RMB", "breathe"), canister.Use);
-        Assert.Equal(["Oxygen jetpack"], canister.Uses);
+        Assert.False(canister.Worn);
         var jetpack = ItemCards.Of("jetpack", false);
         Assert.False(jetpack.Tool);
         Assert.Equal("Shift", jetpack.Use?.Key);
         Assert.Null(ItemCards.Of("scrap", false).Use);
-    }
-
-    [Fact]
-    public void SayNothingOfWhatAnItemGoesIntoWhenItGoesIntoNothing()
-    {
-        Assert.Empty(ItemCards.Of("supplyPod", false).Uses);
-        Assert.Empty(ItemCards.Of("jetpack", false).Uses);
     }
 
     [Fact]

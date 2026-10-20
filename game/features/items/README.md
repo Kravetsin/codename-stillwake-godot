@@ -134,25 +134,35 @@ as everything E works is, in the crew feature (`AimTests`).
   none either. The card in the tooltip adds a line in the mark's colour, the mark before it: "Smelts here",
   "Burns here" or "Grows here" (`ItemCard.Here`, `Reading.HereOf`). The stack in hand keeps only the "?".
 - Every stack, in the inventory, the hotbar, a crate, a furnace or an analyzer, shows its card in the
-  one tooltip (`Shared.PointerTip`) at once by the pointer (`Shared.ItemCards`, drawn by
-  `Shared.ItemCardView`, the mockup's plaque): its icon large, its name and its kind (`item.<id>.kind`);
-  a violet "? Not analysed" band while unanalysed. A tool (the fire axe, the harpoon) is edged and its kind
-  written in amber, and adds three tiles from content, the first in amber, one decimal at most
-  (`CardTile`): the axe's damage a second, damage and seconds between hits (`Content.Axe`: damage over
-  `SwingTicks` / `TicksPerSecond`), its effects (`Axe.Effects`, none yet) as chips in their colours, and no
-  list of what it breaks, since every weapon breaks anything with HP; the harpoon's range in cells, reload in seconds and reel
-  speed in cells a second (`Content.Harpoon`), and "Debris" and "Wreckage"; then its key and hint. Any
-  other item says under "Goes into" what has it in its cost: crafts, then blueprints, then the cable,
-  in content's order, four at most and "+N" for the rest; nothing when it goes into nothing; and its key
-  where it has one (`item.<id>.key`): a canister "RMB breathe", the jetpack "Shift thrust in space". The
-  screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.
+  one tooltip (`Shared.PointerTip`) at once, pinned beside its slot, 8 px off it, its top level with the slot's, and
+  flipped to the slot's left where the screen ends, so it never covers its own slot (`TipPlace.Beside`; the slot comes
+  as the tip's `Anchor` from `TipSpots`). The card (`Shared.ItemCards`, drawn by `Shared.ItemCardView`, the item
+  card mockup) is a little screen of the wrist computer, shaped by what the item is:
+  - *Anything else* (materials, parts, salvage): the compact card, its name and kind (`item.<id>.kind`) on one line and
+    nothing more — no icon again, no list of what it goes into; a key where it has one (a canister "RMB breathe"), a
+    drone's charge.
+  - *A tool* (the fire axe, the harpoon, the drills), edged amber: its held picture whole at 6× in a dark window
+    (`ToolPicture`), a drill running in it over and over (`CardLook`): its bit turning through its frames, its lamp lit,
+    a warm glow at its point and its light thrown as the hand's is (`render/DrillLight`) into particles of its own
+    drawn at 2× (`EffectsView` without matter): sparks off the point, the arc drill's coil crackling in bursts. Under
+    it its name and kind in amber and three tiles from content, the first in amber, one decimal at most (`CardTile`):
+    a weapon's damage a second, damage and seconds between hits (`Content.Weapons`), its effects (none yet) as chips;
+    the harpoon's range in cells, reload in seconds and reel speed in cells a second (`Content.Harpoon`). An electric
+    tool adds a fourth, its `Draw` by a bolt, in power units as a machine shows its own. Then its key and hint.
+  - *Equipment*, edged green (the medium card): its picture in the window (`WornPicture`) beside its name, kind and one
+    number — the helmet lamp on the helmet, its beam reaching out with motes drifting through it, and its reach in
+    cells (`Light.HeadLampReach`) with its beam across and a bolt at 0, for it draws nothing; a battery glowing green
+    as much as it holds and its charge; the jetpack no number — then its key and hint under both.
+  Under any card, what the open fed station or fire does with it, in the mark's colour, the mark before it: "Smelts
+  here", "Burns here" or "Grows here" (`ItemCard.Here`, `Reading.HereOf`), a fed station adding what it makes of one
+  and how long one takes there at its speed, "→ scrap ×4 · 3s" (`ItemCards.OutputAt`); a violet "? Not analysed" band
+  while unanalysed; a station's block. The screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.
 - **Charge** (0053): a slot holding a battery draws a thin bar along its icon's foot, no numbers: green,
   amber under a quarter of full, an empty track at none (`Charges.BarOf`); an empty battery shows its own
   picture (`battery_empty`, `Charges.Picture`), in a slot, in the hand, on its card and on the floor. Its
-  card adds a CHARGE meter under the head: the percent of full, a bar, and a bolt with what it holds of
+  card's number is its charge: the percent of full, large and green, a bar, and a bolt with what it holds of
   full in power-ticks, the units machines draw in (`⚡ 1170 / 1800`), both rounded down (`Charges.MeterOf`).
   No time is shown: a battery is a store for any tool, and how long one lasts is felt, not spelled out.
-  An electric tool's card shows its `Draw` as a machine shows its own: a bolt and the number.
 - **A charging station's panel** (the station mockup): in its frame's header its name and a bolt with what it
   draws, lit while it charges (`IPowerQueries.Charges`), dark at 0 otherwise; its slot beside a bar of what the battery
   holds, and under it "empty", "full", "charging" or "no power" (`Charges.StationState`). The sim refuses

@@ -76,6 +76,7 @@
     <Compile Include="../game/shared/Ui.cs" Link="Game/Shared/Ui.cs" />
     <Compile Include="../game/shared/PieceDrawn.cs" Link="Game/Shared/PieceDrawn.cs" />
     <Compile Include="../game/shared/Tip.cs" Link="Game/Shared/Tip.cs" />
+    <Compile Include="../game/shared/TipPlace.cs" Link="Game/Shared/TipPlace.cs" />
     <Compile Include="../game/shared/ItemCard.cs" Link="Game/Shared/ItemCard.cs" />
     <Compile Include="../game/shared/SlotMark.cs" Link="Game/Shared/SlotMark.cs" />
     <Compile Include="../game/shared/ItemCards.cs" Link="Game/Shared/ItemCards.cs" />

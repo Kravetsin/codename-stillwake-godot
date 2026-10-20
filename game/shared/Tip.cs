@@ -39,8 +39,14 @@ public sealed record Tip(string? Name, IReadOnlyList<TipLine> Lines)
     /// <summary>What a placement looks like built, drawn before the name: a blueprint's, so its tinted look never hides what was planned.</summary>
     public Stillwake.Sim.Grid.Placement? Picture { get; init; }
 
+    /// <summary>
+    /// What the tip tells of on the screen, its left, top, width and height: the slot under the pointer, set by
+    /// <c>TipSpots</c>. An item's card is pinned beside it (<see cref="TipPlace.Beside"/>); none follows the pointer.
+    /// </summary>
+    public (float X, float Y, float W, float H)? Anchor { get; init; }
+
     public bool Equals(Tip? other) =>
-        other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines) && Equals(Card, other.Card) && Picture == other.Picture;
+        other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines) && Equals(Card, other.Card) && Picture == other.Picture && Anchor == other.Anchor;
 
     public override int GetHashCode()
     {
@@ -48,6 +54,7 @@ public sealed record Tip(string? Name, IReadOnlyList<TipLine> Lines)
         hash.Add(Name);
         hash.Add(Card);
         hash.Add(Picture);
+        hash.Add(Anchor);
         foreach (var line in Lines) hash.Add(line);
         return hash.ToHashCode();
     }

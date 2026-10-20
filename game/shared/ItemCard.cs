@@ -38,45 +38,71 @@ public sealed record StationBlock(string? Seconds, IReadOnlyList<CraftRow> Rows,
 }
 
 /// <summary>
-/// What the one tooltip shows over an item (<c>PointerTip</c>), the plaque of the card mockup: its icon
-/// large, its name and kind. A tool adds its tiles, its effects, what it works on and how it is
-/// used; anything else, what it goes into. A battery's charge under the head. A violet band while it is not
-/// analysed; what the open station does with it (<see cref="Here"/>); a station's block at the bottom where one adds it.
-/// Equal by what it says, as <see cref="Tip"/> is.
+/// What a fed station makes of one item, as the card says it under "Smelts here": its yields, then how long one takes
+/// at that station, as written. Equal by what it says.
 /// </summary>
-/// <param name="Item">The item, whose icon heads the card.</param>
+public sealed record CardOutput(IReadOnlyList<(string Item, int Count)> Items, string Time)
+{
+    public bool Equals(CardOutput? other) => other is not null && Time == other.Time && Items.SequenceEqual(other.Items);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Time);
+        foreach (var item in Items) hash.Add(item);
+        return hash.ToHashCode();
+    }
+}
+
+/// <summary>
+/// What the one tooltip shows over an item (<c>PointerTip</c>), by what the item is (the item card mockup): a tool its
+/// picture large and live, its tiles and how it is used; a worn item its picture beside one number; anything else a
+/// small label, its name and kind. A violet band while it is not analysed; what the open station does with it
+/// (<see cref="Here"/>); a station's block at the bottom where one adds it. Equal by what it says, as <see cref="Tip"/> is.
+/// </summary>
+/// <param name="Item">The item, whose picture the card shows.</param>
 /// <param name="Tiles">A tool's tiles, its key number first; null for an item that is no tool.</param>
-/// <param name="Uses">The chips: what a tool works on, or what any other item goes into.</param>
-/// <param name="Use">How a tool is used: its key and a hint.</param>
+/// <param name="Use">How it is used: its key and a hint.</param>
 /// <param name="Unknown">Not analysed yet: the band.</param>
 public sealed record ItemCard(
-    string Item, string Name, string Kind, IReadOnlyList<CardTile>? Tiles, IReadOnlyList<CardEffect> Effects,
-    IReadOnlyList<string> Uses, CardKey? Use, bool Unknown)
+    string Item, string Name, string Kind, IReadOnlyList<CardTile>? Tiles, IReadOnlyList<CardEffect> Effects, CardKey? Use, bool Unknown)
 {
     /// <summary>A tool: its card edged and its kind written in amber.</summary>
     public bool Tool => Tiles != null;
 
+    /// <summary>Worn in an equipment slot: its card edged and its kind written in green.</summary>
+    public bool Worn { get; init; }
+
+    /// <summary>A worn item's one number, large, and what it is: the helmet lamp's reach; a battery shows its <see cref="Charge"/> instead.</summary>
+    public CardTile? Headline { get; init; }
+
+    /// <summary>A few words under <see cref="Headline"/>: the lamp's beam.</summary>
+    public string? Detail { get; init; }
+
     /// <summary>What the station the item is shown in adds; null elsewhere.</summary>
     public StationBlock? Station { get; init; }
 
-    /// <summary>What this one holds, a battery's charge, under the head; null for an item that holds none.</summary>
+    /// <summary>What this one holds, a battery's charge; null for an item that holds none.</summary>
     public ChargeMeter? Charge { get; init; }
 
     /// <summary>What an electric tool draws while it works, in the units machines draw in, as a machine shows its own; null for anything else.</summary>
     public int? Draw { get; init; }
 
-    /// <summary>What the open fed station or fire does with it, a line under the head with its slot's mark: smelts, burns or grows here; <see cref="SlotMark.None"/> elsewhere.</summary>
+    /// <summary>What the open fed station or fire does with it, a line with its slot's mark: smelts, burns or grows here; <see cref="SlotMark.None"/> elsewhere.</summary>
     public SlotMark Here { get; init; }
 
-    /// <summary>The picture heading the card: its item's, or the empty battery's for one holding no charge.</summary>
+    /// <summary>What the open fed station makes of it, on the line of <see cref="Here"/>; null for none.</summary>
+    public CardOutput? Output { get; init; }
+
+    /// <summary>Its picture: its item's, or the empty battery's for one holding no charge.</summary>
     public string Picture { get; init; } = Item;
 
     public bool Equals(ItemCard? other) =>
         other is not null && Item == other.Item && Name == other.Name && Kind == other.Kind
         && (Tiles == null ? other.Tiles == null : other.Tiles != null && Tiles.SequenceEqual(other.Tiles))
-        && Effects.SequenceEqual(other.Effects) && Uses.SequenceEqual(other.Uses) && Use == other.Use
+        && Effects.SequenceEqual(other.Effects) && Use == other.Use && Worn == other.Worn && Headline == other.Headline && Detail == other.Detail
         && Unknown == other.Unknown && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw
-        && Here == other.Here;
+        && Here == other.Here && Equals(Output, other.Output);
 
     public override int GetHashCode()
     {
@@ -89,8 +115,9 @@ public sealed record ItemCard(
         hash.Add(Picture);
         hash.Add(Draw);
         hash.Add(Here);
+        hash.Add(Output);
+        hash.Add(Headline);
         foreach (var effect in Effects) hash.Add(effect);
-        foreach (var use in Uses) hash.Add(use);
         foreach (var tile in Tiles ?? []) hash.Add(tile);
         return hash.ToHashCode();
     }
