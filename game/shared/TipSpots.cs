@@ -7,7 +7,8 @@ namespace Stillwake.Game.Shared;
 /// <summary>
 /// A feature's hold on the one tooltip (<see cref="Ui.Tip"/>): the controls it says something of, found
 /// under the pointer by a hit test every frame, since Godot sends no mouse_entered to a control rebuilt
-/// under a still pointer, nor while a button is held. It takes down only the tip it set itself.
+/// under a still pointer, nor while a button is held; each tip anchored to its control (<see cref="Tip.Anchor"/>).
+/// It takes down only the tip it set itself.
 /// </summary>
 public sealed class TipSpots(Store<Tip?> shown)
 {
@@ -45,7 +46,9 @@ public sealed class TipSpots(Store<Tip?> shown)
         for (int i = _spots.Count - 1; i >= 0; i--)
         {
             var (control, tip) = _spots[i];
-            if (GodotObject.IsInstanceValid(control) && control.IsVisibleInTree() && control.GetGlobalRect().HasPoint(at)) return tip();
+            if (!GodotObject.IsInstanceValid(control) || !control.IsVisibleInTree()) continue;
+            var rect = control.GetGlobalRect();
+            if (rect.HasPoint(at)) return tip() is { } said ? said with { Anchor = (rect.Position.X, rect.Position.Y, rect.Size.X, rect.Size.Y) } : null;
         }
         return null;
     }

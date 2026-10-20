@@ -211,7 +211,7 @@ public static partial class En
         ["item.jetpack.hint"] = "thrust in space, on the suit's air; no lift under a planet's gravity",
         ["item.helmetLamp.kind"] = "Equipment · Head",
         ["item.helmetLamp.key"] = "Worn",
-        ["item.helmetLamp.hint"] = "a soft light round your head, for caves; draws nothing",
+        ["item.helmetLamp.hint"] = "a soft light round your head, for caves",
         ["item.battery.kind"] = "Equipment · Belt",
         ["item.battery.key"] = "Station",
         ["item.battery.hint"] = "to charge",
@@ -230,14 +230,17 @@ public static partial class En
         ["card.reload"] = "RELOAD",
         ["card.reel"] = "REEL",
         ["card.perSecond"] = "{n}/s",
-        ["card.debris"] = "Debris",
-        ["card.wreckage"] = "Wreckage",
         ["card.notAnalysed"] = "? Not analysed",
         ["card.smeltsHere"] = "Smelts here",
         ["card.burnsHere"] = "Burns here",
         ["card.growsHere"] = "Grows here",
-        ["card.goesInto"] = "Goes into",
-        ["card.more"] = "+{n}",
+        // A smelt's time on the line of "Smelts here", past a minute.
+        ["card.minutes"] = "{n} min",
+        // An electric tool's tile: what it draws while it works, by a bolt.
+        ["card.draw"] = "DRAW",
+        // The helmet lamp's card: how far its light reaches, and its beam across.
+        ["card.reach"] = "CELLS REACH",
+        ["card.beam"] = "BEAM {n}°",
         // What a battery holds, on its card: the share of full, and what it holds of full in power-ticks.
         ["card.charge"] = "Charge",
         ["card.percent"] = "{n}%",

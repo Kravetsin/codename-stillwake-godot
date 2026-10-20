@@ -29,7 +29,7 @@ public partial class FxBench : Node2D
     private readonly Features.Logistics.DroneLight _drones = new();
     private readonly Features.Logistics.Hover[] _hovers = [new(1), new(2), new(3)];
     private readonly Features.Crafting.SmelterHeat _smelter = new();
-    private readonly Features.Crew.DrillLight _drill = new();
+    private readonly DrillLight _drill = new();
     private readonly Features.Light.LampSparks _lamp = new();
     private readonly Features.Items.PickUpFlights _flights = new();
     private double _clock, _catchMs;

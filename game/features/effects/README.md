@@ -16,7 +16,7 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
 | `game/render/Strokes.cs`    | every stroke of light in one multimesh, soft-edged at a screen pixel                | yes   |
 | `game/render/Shimmer.cs`    | heat shimmer over a box of the world, a screen-texture shader                      | yes   |
 | `game/Content/Fx.cs`        | the knobs: length, count, turbulence, glow, glint hold, shimmer; the lights' cap    | no    |
-| `EffectsView.cs`            | the layer: steps all of it each frame and draws it                                | yes   |
+| `EffectsView.cs`            | the layer: steps all of it each frame and draws it; a drill's item card has one of its own particles, light only | yes   |
 
 - **Emitted by (luminous):** the furnace (`FurnaceView`) — embers, ash, a cracking coal's sparks and glint,
   for a furnace and a burner generator alike; the building (`BuildGlow`) — spark bursts off a screwdriver,
@@ -26,7 +26,7 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
 - **Emitted by (slice 2):** the hero's figure (`crew/Figure.cs`) — a running boot's motes and veil, a landing's grains,
   motes, veils and flat ring; the jetpack (`JetPlume`) — its core, streaks, motes, pool and shimmer; the harpoon
   (`RodLight`) — the shot's glint and gas, the rod's trail and wake, the bite, the bead, the zip home; a drill
-  (`DrillLight`) — the bit's sparks, dust, chips and glints, the arc drill's fine arcs, crawling and leaping sparks and haze; the air (`AirView`, `VentLight`) —
+  (`render/DrillLight`) — the bit's sparks, dust, chips and glints, the arc drill's fine arcs, crawling and leaping sparks and haze; the air (`AirView`, `VentLight`) —
   breaches' jets, condensation, shimmer and frost, wind lines, the red beat, fresh air from filling vents; a pod's
   hatch (`PodView`) — vapour; drones (`DroneLight`) — rotor discs and glints, dust and veils spread along a floor close under them, the lamp's trail,
   shimmer, a pad's puff; doors (`DoorLight`) — the lit edge, the slot's motes, the seal's ring, glint, dust and hiss;
