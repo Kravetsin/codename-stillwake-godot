@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Stillwake.Content;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
@@ -30,10 +31,15 @@ public sealed class StarField
     private readonly (float R, float G, float B) _sky;
 
     /// <param name="sky">The light through the open sky, by <see cref="L.SkyOf"/> its surface's kind; the stars' when not given.</param>
-    /// <param name="keep">What crossing a cell of air keeps of it: <see cref="L.StarKeep"/> aboard; a planet's ground less (<see cref="L.GroundKeep"/>, 0077), so daylight dies a cell or two into a cave.</param>
-    public StarField((float R, float G, float B)? sky = null, float keep = L.StarKeep) => (_sky, _shares) = (sky ?? L.Star, SharesOf(keep));
+    /// <param name="keep">What crossing a cell of air keeps of it: <see cref="L.StarKeep"/> aboard; a planet's ground less (<see cref="L.GroundKeep"/>, 0077), so daylight dies a cell or two round a bend.</param>
+    /// <param name="down">What crossing a cell of air going down keeps, past 0: a planet's daylight falls down a shaft or a cave mouth further (<see cref="L.GroundDownKeep"/>); <paramref name="keep"/> else.</param>
+    public StarField((float R, float G, float B)? sky = null, float keep = L.StarKeep, float down = 0)
+    {
+        (_sky, _shares, _down) = (sky ?? L.Star, SharesOf(keep), SharesOf(down > 0 ? down : keep));
+        Reach = ReachOf(_shares.Zip(_down, Math.Max).ToArray());
+    }
 
-    private readonly float[] _shares;
+    private readonly float[] _shares, _down;
 
     /// <summary>The cells worked out, in the grid's cells, past its edge too.</summary>
     public Box Region { get; private set; } = Box.None;
@@ -53,8 +59,8 @@ public sealed class StarField
     /// <summary>Light this faint, or fainter, is 0 in every byte of a texel; a hundredth under, against rounding.</summary>
     private static readonly double Faint = 0.99 * Math.Min(1, L.WallIn) / (L.BrightestSky * 255);
 
-    /// <summary>The share of light going on from a cell of one kind into the next, by <c>from × 3 + to</c>.</summary>
-    private static readonly float[] Shares = SharesOf(L.StarKeep);
+
+
 
     /// <summary>A cell's share of the stars' light by how many cells of its sky, itself among them, the stars shine into.</summary>
     private static readonly float[] SkyLight = SkyLightOf();
@@ -66,9 +72,9 @@ public sealed class StarField
     /// <see cref="Faint"/>, a wall's face, which shows light at its strongest, included. No reach when a
     /// way keeps it all.
     /// </summary>
-    public static readonly int Reach = ReachOf();
+    public int Reach { get; }
 
-    private static int ReachOf()
+    private static int ReachOf(float[] shares)
     {
         // A float a step keeps a ten-millionth more than the share at most; the margin covers it many times.
         double[] best = [1, 1, 1];
@@ -78,7 +84,7 @@ public sealed class StarField
             if (++reach > 10_000) return int.MaxValue;
             var next = new double[3];
             for (int from = 0; from < 3; from++)
-                for (int to = 0; to < 3; to++) next[to] = Math.Max(next[to], best[from] * Shares[from * 3 + to]);
+                for (int to = 0; to < 3; to++) next[to] = Math.Max(next[to], best[from] * shares[from * 3 + to]);
             best = next;
         }
         return reach;
@@ -245,7 +251,7 @@ public sealed class StarField
                 int open = sum[(y + side) * sw + x + side] - sum[y * sw + x + side] - sum[(y + side) * sw + x] + sum[y * sw + x];
                 light[i] = SkyLight[open];
             }
-        Spread(light, kind, w, h, _shares);
+        Spread(light, kind, w, h, _shares, _down);
         var bytes = Texels;
         var region = Region;
         for (int y = write.Top; y <= write.Bottom; y++)
@@ -295,7 +301,7 @@ public sealed class StarField
     /// keeps, the brightest way winning. One channel: every share is the same for red, green and blue.
     /// Open space stays whole, so a cell beside the region's edge sees what it would beside more space.
     /// </summary>
-    private static void Spread(float[] light, byte[] kind, int w, int h, float[] shares)
+    private static void Spread(float[] light, byte[] kind, int w, int h, float[] shares, float[] down)
     {
 
         int n = w * h;
@@ -318,12 +324,13 @@ public sealed class StarField
                     if (v > light[to]) light[to] = v;
                 }
             }
-            // Every column down, then up, a row at a time: the same order within each column, in memory order.
+            // Every column down, then up, a row at a time: the same order within each column, in memory order. Going down keeps
+            // the down shares: under a planet's sky, daylight falls down an opening further than it turns a corner (0077).
             for (int to = w; to < n; to++)
             {
                 float v = light[to - w];
                 if (v == 0) continue;
-                v *= shares[kind[to - w] * 3 + kind[to]];
+                v *= down[kind[to - w] * 3 + kind[to]];
                 if (v > light[to]) light[to] = v;
             }
             for (int to = n - w - 1; to >= 0; to--)

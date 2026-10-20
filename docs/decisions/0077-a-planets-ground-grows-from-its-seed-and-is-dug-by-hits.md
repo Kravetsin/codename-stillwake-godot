@@ -97,9 +97,10 @@ digging and a light to dig by come together.
   a step's and a break's dust and veils, so a wall hides what spreads past it in a shaft; a landing's spreads only as far
   as the floor runs open besides (`Figure.FloorRoom`). Chips stay over everything.
 - **Underground is black, as in Terraria.** On a planet there is no ambient light (`Lit.Ambient`: the ship keeps its own),
-  daylight crossing a cell of air keeps `Light.GroundKeep` (0.3) of itself, so it dies a cell or two into a cave mouth or a
-  shaft, and a texel deep in solid ground is lit only in the wall cell at its face (the lightmap shades it past one wall
-  cell, aboard too). Tunnels ahead are black but for lamps, fires, glows and helmet lamps; the surface's daylight is as it was.
+  daylight crossing a cell of air sideways or up keeps `Light.GroundKeep` (0.3) of itself, so it dies a cell or two round a
+  bend, and falling down keeps `Light.GroundDownKeep` (0.8), so a shaft or a cave mouth open above is lit six to eight
+  cells down, fading. Lamps and beams go into solid ground and fade there, keeping `wall_keep` (0.35) a cell of the way
+  through it from its face, smoothly (no steps along slopes), aboard too; never through it into the open beyond. Tunnels ahead are black but for lamps, fires, glows and helmet lamps; the surface's daylight is as it was.
 - **A wall does not finish on a hero.** A wall plan's last tick is refused `building.heroInside` ("Step out to finish")
   while a hero's reported body cell, or the one above or under it, is its cell; planning there is allowed, and it
   finishes once the hero steps out. Walling oneself into a pocket is fine: one digs or takes a wall apart to get out.
@@ -107,8 +108,9 @@ digging and a light to dig by come together.
   its last hit (`Crack.At`) by Building's clock, swept in derivation. Ten thousand at once, the worst case, inserted each at
   the list's head: 22 ms for the tick that makes them, 1 MB held, 319 KB in a save, a hash 4 ms, a sweep 0.3 ms a tick;
   healing keeps real counts to a few.
-- **Ladders let go as players expect:** a jump off one goes on with up held (it is not caught again while rising), a walk
-  or a jump to a side lets go, and the hands hold tools and the plan on a ladder: dig, swing and plan while climbing.
+- **Ladders let go as players expect:** a jump off one goes on with up held (it is not caught again while rising); a side
+  held in mid-air turns the hero on it and a jump then goes that way, in either order, side then jump or jump then side;
+  at its foot a walk steps off; and the hands hold tools and the plan on a ladder: dig, swing and plan while climbing.
 - **Save format 21:** Building's `cracks`, empty in every older save, the ship's and every surface's; a grown surface's grid
   as its edits (no older save holds one).
 

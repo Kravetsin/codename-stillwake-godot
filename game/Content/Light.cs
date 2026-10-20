@@ -41,6 +41,10 @@ public static class Light
     /// there (<see cref="Ambient"/> is the ship's alone), so unlit ground is black too.
     /// </summary>
     public const float GroundKeep = 0.3f;
+
+    /// <summary>Under a planet's sky, what daylight keeps falling a cell down through air: down a shaft or a cave mouth it lights
+    /// some six to eight cells, fading, while round a bend it dies within one or two (<see cref="GroundKeep"/>).</summary>
+    public const float GroundDownKeep = 0.8f;
     /// <summary>
     /// The stars' light in a lone hole in a back wall, against whole in open space: a cell's sky is the cells
     /// within <see cref="StarSky"/> of it, and with <see cref="StarFullSky"/> of them open to the stars, itself

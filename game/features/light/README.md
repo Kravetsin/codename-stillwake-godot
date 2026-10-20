@@ -122,8 +122,9 @@ Numbers from `game/Content/Light.cs`.
 
 - **Underground on a planet is black** (0077): no ambient light there (`Lit.Ambient`, set by `LightView` from its sky; the
   ship keeps `Light.Ambient`), daylight keeps `Light.GroundKeep` (0.3) a cell of air in from the open (`StarField`'s keep), so
-  it dies a cell or two into a cave mouth, and the lightmap shades a texel past the one wall cell at its face, so lamps and
-  beams light the face of solid ground, not into it (aboard too).
+  it dies a cell or two round a bend, but falls down an opening keeping `Light.GroundDownKeep` (0.8: the down sweep's shares,
+  `StarField`'s `down`), so a shaft is lit six to eight cells down; and lamps and beams go into solid ground keeping
+  `wall_keep` (0.35) a cell of the way through it from its face (`through` in the lightmap's shader), aboard too.
 
 ## Deliberately not handled
 

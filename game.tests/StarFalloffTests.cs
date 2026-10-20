@@ -52,6 +52,37 @@ public class StarFalloffTests
 
     private static int HoleShows() => Shows(L.StarHole);
 
+
+    /// <summary>
+    /// Under a planet's sky daylight falls down an opening further than it turns a corner (0077): down a shaft one wide,
+    /// back-walled, it lights several cells, fading; round the bend at its foot into a cave, it dies within a cell or two.
+    /// </summary>
+    [Fact]
+    public void DaylightFallsDownAShaftFarAndDiesRoundTheBendIntoACave()
+    {
+        // Ground under the open sky: a shaft down from it, then a cave running off its foot to the right.
+        var rows = new List<string>();
+        for (int y = 0; y < 30; y++)
+        {
+            if (y < 6) rows.Add(new string(' ', 40));
+            else if (y < 18) rows.Add(new string('#', 10) + "." + new string('#', 29));
+            else if (y < 21) rows.Add(new string('#', 10) + new string('.', 20) + new string('#', 10));
+            else rows.Add(new string('#', 40));
+        }
+        var m = new Registry();
+        World.Create(1, Layout.Parse(rows), m.All);
+        var field = new StarField((0.9f, 0.9f, 0.8f), L.GroundKeep, L.GroundDownKeep);
+        field.Work(m.Grid);
+        // Six cells down the shaft daylight still shows; the cave five cells round the bend from the shaft's foot is black.
+        Assert.True(RedAt(field, 10, 12) > 30, $"{RedAt(field, 10, 12)} six cells down");
+        Assert.True(RedAt(field, 10, 9) > RedAt(field, 10, 12));
+        Assert.Equal(0, RedAt(field, 15, 19));
+        // Aboard, the stars' keep is the same every way.
+        var aboard = new StarField((0.9f, 0.9f, 0.8f));
+        aboard.Work(m.Grid);
+        Assert.True(RedAt(aboard, 10, 12) < RedAt(field, 10, 12));
+    }
+
     [Fact]
     public void AHoleInABackWallLightsOnlyTheCellsNearIt()
     {

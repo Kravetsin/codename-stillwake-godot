@@ -566,10 +566,35 @@ public class HeroTests
             Assert.False(h.Climbing);
         }
         Assert.True(h.Y < on.Y - Unit, $"{h.Y} from {on.Y}");
-        // A jump off it to either side, and a walk off it, let go.
+        // A jump off it to either side lets go, side and jump pressed together.
         Assert.False(on.Step(new HeroInput(1, 0, true), ship).Climbing);
         Assert.False(on.Step(new HeroInput(-1, -1, true), ship).Climbing);
-        Assert.False(on.Step(Right, ship).Climbing);
+        // A walk off it at its foot, standing on the floor, lets go.
+        Assert.False(At(3500, 8 * Unit, climbing: true).Step(Right, ship).Climbing);
+    }
+
+    [Fact]
+    public void ASideHeldOnALadderInMidAirTurnsTheHeroAndAJumpThenGoesThatWay()
+    {
+        var (ship, _) = Start(LadderMap);
+        var on = At(3500, 6500, climbing: true);
+        // Side first: held a while, the hero stays on the ladder, facing that way.
+        var held = on;
+        for (int i = 0; i < 20; i++) held = held.Step(Right, ship);
+        Assert.True(held.Climbing);
+        Assert.Equal((3500, 6500, 1), (held.X, held.Y, held.Facing));
+        var left = on.Step(new HeroInput(-1, 0, false), ship);
+        Assert.Equal((true, -1), (left.Climbing, left.Facing));
+        // Then jump, the side still held: off at once, rising and going that way.
+        var jumped = held.Step(new HeroInput(1, 0, true), ship);
+        Assert.False(jumped.Climbing);
+        for (int i = 0; i < 8; i++) jumped = jumped.Step(Right, ship);
+        Assert.True(jumped.Y < on.Y && jumped.X > on.X + Unit / 2, $"({jumped.X}, {jumped.Y}) from ({on.X}, {on.Y})");
+        // Jump first, then the side: off straight up, the side steering it in the air.
+        var up = on.Step(Jump, ship);
+        Assert.False(up.Climbing);
+        for (int i = 0; i < 8; i++) up = up.Step(Right, ship);
+        Assert.True(up.Y < on.Y && up.X > on.X, $"({up.X}, {up.Y})");
     }
 
     [Fact]
@@ -612,13 +637,14 @@ public class HeroTests
     }
 
     [Fact]
-    public void LaddersAreLetGoByWalkingOrJumping()
+    public void LaddersAreLetGoByJumpingOrByWalkingAtTheirFoot()
     {
         var (ship, _) = Start(LadderMap);
         var middle = At(3500, 6 * Unit, climbing: true);
-        var walked = middle.Step(Left, ship);
+        // In mid-air a side only turns the hero on the ladder, ready to jump that way (0077); at its foot it walks off.
+        Assert.True(middle.Step(Left, ship).Climbing);
+        var walked = At(3500, 8 * Unit, climbing: true).Step(Left, ship);
         Assert.False(walked.Climbing);
-        Assert.Equal(Spec.Gravity, walked.Vy);
         Assert.Equal(8 * Unit, Settle(ship, walked, Still).Y);
         var jumped = middle.Step(Jump, ship);
         Assert.False(jumped.Climbing);

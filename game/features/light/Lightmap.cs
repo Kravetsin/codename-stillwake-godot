@@ -41,6 +41,8 @@ public partial class Lightmap : Node
             // A beam's half width, as the cosine of its half angle, and the soft edge either side of it (0077: the helmet lamp).
             uniform float beam_cos = 0.866;
             uniform float beam_soft = 0.08;
+            // What light keeps of itself a cell of the way into solid ground (0077): it fades within two or three cells.
+            uniform float wall_keep = 0.35;
             const float CELL = 16.0;
             varying vec2 world;
             varying flat vec2 centre;
@@ -69,11 +71,12 @@ public partial class Lightmap : Node
                 return k == 4 ? p.x + p.y >= 1.0 : (k == 5 ? p.y >= p.x : (k == 6 ? p.x + p.y <= 1.0 : p.y <= p.x));
             }
 
-            // Whether a wall or a door's or hatch's panel stands between a point and the light, cell by cell
-            // along the line. The walls the point is in are passed until the line comes out of them, so a wall
-            // is lit on its faces; so is the panel it is on, along the doorway's cells, till the line
-            // leaves the panel. A point beside a panel in its cell is shadowed by it.
-            bool shadowed(vec2 from, vec2 to) {
+            // How much of the light reaches a point, cell by cell along the line: none when a wall or a door's or hatch's panel
+            // stands between with the open on both sides of it. The walls the point is in are passed until the line comes out
+            // of them, keeping wall_keep a cell of the way through them (0077), so light goes into solid ground and fades
+            // there smoothly, cell edges or not; so is the panel it is on, along the doorway's cells. A point beside a panel
+            // in its cell is shadowed by it.
+            float through(vec2 from, vec2 to) {
                 vec2 a = from / CELL, d = to / CELL - a;
                 ivec2 c = ivec2(floor(a)), end = ivec2(floor(to / CELL));
                 ivec2 stp = ivec2(sign(d));
@@ -82,23 +85,25 @@ public partial class Lightmap : Node
                     d.x > 0.0 ? (floor(a.x) + 1.0 - a.x) * delta.x : (d.x < 0.0 ? (a.x - floor(a.x)) * delta.x : 1e30),
                     d.y > 0.0 ? (floor(a.y) + 1.0 - a.y) * delta.y : (d.y < 0.0 ? (a.y - floor(a.y)) * delta.y : 1e30));
                 bool leaving = true;
-                // A texel deep in solid ground is lit only in the wall cell at its face: past one, the wall it is in shades it (0077).
-                int walls = 0;
+                // How far, in cells, the line runs through the walls the point is in before it comes out of them.
+                float inside = 0.0, span_cells = length(d);
                 float t0 = 0.0;
                 for (int i = 0; i < 80; i++) {
                     float t1 = min(min(next.x, next.y), 1.0);
                     int k = kind(c);
                     if (k == 2) {
-                        if (!leaving || ++walls > 1) return true;
+                        if (!leaving) return 0.0;
+                        inside += (t1 - t0) * span_cells;
                     } else if (k >= 4) {
                         // A wall cut to a shape: its solid half as a wall, passed till the line comes out of it, its open
                         // half as the open. The solid is a half plane in the cell, so the line's two ends there tell it.
                         bool in0 = solid(k, a + d * t0 - vec2(c)), in1 = solid(k, a + d * t1 - vec2(c));
                         if (leaving && in0) {
                             leaving = in1;
+                            inside += (t1 - t0) * span_cells * (in1 ? 1.0 : 0.5);
                         } else {
                             leaving = false;
-                            if (in0 || in1) return true;
+                            if (in0 || in1) return 0.0;
                         }
                     } else if (k == 1 || k == 3) {
                         // A door's panel spans columns, a hatch's rows: where the line is across that, in pixels.
@@ -111,7 +116,7 @@ public partial class Lightmap : Node
                             leaving = x1 >= span.x && x1 <= span.y;
                         } else {
                             leaving = false;
-                            if (max(min(x0, x1), span.x) < min(max(x0, x1), span.y)) return true;
+                            if (max(min(x0, x1), span.x) < min(max(x0, x1), span.y)) return 0.0;
                         }
                     } else {
                         leaving = false;
@@ -127,7 +132,7 @@ public partial class Lightmap : Node
                         next.y += delta.y;
                     }
                 }
-                return false;
+                return pow(wall_keep, inside);
             }
 
             void fragment() {
@@ -151,14 +156,14 @@ public partial class Lightmap : Node
                 vec2 across = normalize(vec2(centre.y - world.y, world.x - centre.x) + vec2(1e-6, 0.0)) * shape.w * 0.5;
                 float seen;
                 if (shape.w < 1.0) {
-                    seen = shadowed(world, centre) ? 0.0 : 1.0;
+                    seen = through(world, centre);
                 } else {
-                    float ends = (shadowed(world, centre - across) ? 0.0 : 1.0) + (shadowed(world, centre + across) ? 0.0 : 1.0);
-                    seen = ends * 0.5;
-                    if (ends == 1.0) {
+                    float e0 = through(world, centre - across), e1 = through(world, centre + across);
+                    seen = (e0 + e1) * 0.5;
+                    if ((e0 > 0.0) != (e1 > 0.0)) {
                         // A shadow's edge: the points between the ends too.
-                        float lit = ends;
-                        for (int s = 1; s < 8; s++) lit += shadowed(world, centre + across * (float(s) / 4.0 - 1.0)) ? 0.0 : 1.0;
+                        float lit = e0 + e1;
+                        for (int s = 1; s < 8; s++) lit += through(world, centre + across * (float(s) / 4.0 - 1.0));
                         seen = lit / 9.0;
                     }
                 }
