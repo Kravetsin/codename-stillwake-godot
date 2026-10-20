@@ -44,7 +44,7 @@ digging and a light to dig by come together.
     them (0070) and a cave is dark a few cells in. An open cell with nothing solid straight above it — a cave's mouth, a
     chasm, a pit — is the open sky and has none, so no back wall sticks up out of the ground; under an overhang it keeps its.
     *Amended 2026-10-20 (playtest of the caves):* only down to `Ground.MouthFadeLeast`–`MouthFadeMost` (3–6) rows under
-    its column's surface line, ragged by column; deeper, a shaft or a chasm keeps its back wall all the way down, as a
+    its column's surface line, varying smoothly along it; deeper, a shaft or a chasm keeps its back wall all the way down, as a
     hero fell a hundred cells down one past no rock at all. Daylight still falls down it (0070's down sweep).
   - *Spawn:* the flat column nearest the middle, on whole ground, open above.
 - **The first planet** (`Surfaces.Planet`, `--planet` and the dev panel) is **2048 × 768** cells under the strip's rules,

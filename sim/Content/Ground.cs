@@ -43,7 +43,7 @@ public sealed record Ground(int Width, int Height)
 
     /// <summary>
     /// How far under a column's surface line open ground straight under the sky still shows the sky, with no back wall: from
-    /// <see cref="MouthFadeLeast"/> to <see cref="MouthFadeMost"/> rows by column, so a cave's mouth fades into rock raggedly.
+    /// <see cref="MouthFadeLeast"/> to <see cref="MouthFadeMost"/> rows, varying smoothly along the surface (a swell every 6 columns), so a cave's mouth meets rock in a gentle line.
     /// Deeper, a shaft or a chasm keeps its back wall.
     /// </summary>
     public int MouthFadeLeast { get; init; } = 3;

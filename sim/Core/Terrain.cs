@@ -112,11 +112,11 @@ public static class Terrain
 
         // Open ground with nothing solid above it, straight up to the sky — a cave's mouth, a chasm, a pit — is the open sky
         // itself near the surface: no back wall, so it shows the sky as the land round it does, down to a few rows under the
-        // surface's line, ragged column by column. Deeper, a shaft keeps its back wall all the way down, as caves and ground
+        // surface's line, varying smoothly along it. Deeper, a shaft keeps its back wall all the way down, as caves and ground
         // under an overhang keep theirs: a hero falling down one sees the rock go by.
         for (int x = 0; x < w; x++)
         {
-            int fade = g.MouthFadeLeast + (int)((long)Lattice(seed, MouthFade, x, 0) * (g.MouthFadeMost - g.MouthFadeLeast + 1) / Whole);
+            int fade = g.MouthFadeLeast + (int)((long)Noise(seed, MouthFade, x, 6) * (g.MouthFadeMost - g.MouthFadeLeast + 1) / Whole);
             for (int y = 0; y < h && y < top[x] + fade && kind[y * w + x] != 1; y++)
                 (kind[y * w + x], codes[y * w + x]) = (0, 0);
         }
