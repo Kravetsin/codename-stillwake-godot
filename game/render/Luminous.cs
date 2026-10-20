@@ -48,6 +48,8 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>Whether it lights the room round it, a glowing particle's light (<see cref="Fx.ParticleLight"/>).</summary>
     public bool Light { get; init; }
     public bool Matter { get; init; }
+    /// <summary>Dust along the floor, matter drawn behind the walls and over the back walls, so a wall hides it (0077): no light of its own.</summary>
+    public bool Low { get; init; }
     public bool Flickers { get; init; }
     /// <summary>How much of its speed it keeps bouncing off a floor it was given.</summary>
     public double Bounce { get; init; } = 0.3;
@@ -117,18 +119,18 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     { Bright = 0.6, Drag = 2, Turbulence = 70, NoiseScale = 0.1, Size = 0.55 };
     /// <summary>Fine dust a running boot lifts, settling on the floor it was given.</summary>
     public static readonly Luminous BootDust = new(Glimmer.Mote, Dust, (600, 1300))
-    { Matter = true, Fade = 1, Gravity = 12, Drag = 2.4, Turbulence = 22, NoiseScale = 0.12, Bounce = 0 };
+    { Matter = true, Low = true, Fade = 1, Gravity = 12, Drag = 2.4, Turbulence = 22, NoiseScale = 0.12, Bounce = 0 };
     /// <summary>A thin veil of dust behind a step, drifting back and settling.</summary>
     public static readonly Luminous DustVeil = new(Glimmer.Wisp, [(206, 210, 220)], (700, 1000))
-    { Matter = true, Drag = 1.6, Turbulence = 30, Size = 1.6, Grow = 2.6, Alpha = 0.2 };
+    { Matter = true, Low = true, Drag = 1.6, Turbulence = 30, Size = 1.6, Grow = 2.6, Alpha = 0.2 };
     /// <summary>Grains a landing throws skittering along the floor, smeared by their speed, slowing into motes.</summary>
     public static readonly Luminous DustGrain = new(Glimmer.Streak, Dust, (380, 800))
-    { Matter = true, Bright = 0.85, Fade = 0.9, Gravity = 60, Drag = 3.2, Spin = 1.5, Stretch = 0.045, Shortest = 0.4, Width = 0.32, Hot = 0.2, Bounce = 0.2 };
+    { Matter = true, Low = true, Bright = 0.85, Fade = 0.9, Gravity = 60, Drag = 3.2, Spin = 1.5, Stretch = 0.045, Shortest = 0.4, Width = 0.32, Hot = 0.2, Bounce = 0.2 };
     /// <summary>The motes a landing lifts, slower and longer than a step's.</summary>
     public static readonly Luminous LandDust = BootDust with { LifeMs = (900, 1700), Gravity = 8, Drag = 1.8, Turbulence = 26 };
     /// <summary>Veils rolling outward from a landing and curling.</summary>
     public static readonly Luminous LandVeil = new(Glimmer.Wisp, [(210, 214, 224)], (900, 1500))
-    { Matter = true, Drag = 1.5, Turbulence = 40, Spin = 1.5, NoiseScale = 0.07, Size = 2, Grow = 3.2, Alpha = 0.2 };
+    { Matter = true, Low = true, Drag = 1.5, Turbulence = 40, Spin = 1.5, NoiseScale = 0.07, Size = 2, Grow = 3.2, Alpha = 0.2 };
     /// <summary>Cold gas jetting from the harpoon's muzzle as it fires: fine pale streaks breaking into curls.</summary>
     public static readonly Luminous Gas = new(Glimmer.Streak, [(236, 244, 255), (190, 206, 230), (140, 156, 180)], (150, 320))
     { Bright = 0.65, Drag = 6, Spin = 4, Stretch = 0.05, Width = 0.26 };

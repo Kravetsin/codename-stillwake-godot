@@ -38,6 +38,7 @@ public static partial class En
         ["building.natural"] = "Ground: dig it with a tool",
         ["building.nothingToDig"] = "Nothing to dig",
         ["building.bedrock"] = "Too hard",
+        ["building.heroInside"] = "Step out to finish",
         ["power.noNode"] = "Nothing to fix a cable to",
         ["power.sameNode"] = "Both ends on one place",
         ["power.tooLong"] = "Too long: add an anchor",

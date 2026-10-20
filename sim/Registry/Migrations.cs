@@ -144,8 +144,12 @@ public static class Migrations
         save =>
         {
             save["slices"]!["building"]!.AsObject()["cracks"] ??= new JsonArray();
+            save["slices"]!["building"]!.AsObject()["clock"] ??= 0;
             foreach (var surface in save["surfaces"]?.AsArray() ?? [])
+            {
                 surface!["slices"]!["building"]!.AsObject()["cracks"] ??= new JsonArray();
+                surface["slices"]!["building"]!.AsObject()["clock"] ??= 0;
+            }
             return save;
         },
     ];

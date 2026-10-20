@@ -82,12 +82,14 @@ public partial class Lightmap : Node
                     d.x > 0.0 ? (floor(a.x) + 1.0 - a.x) * delta.x : (d.x < 0.0 ? (a.x - floor(a.x)) * delta.x : 1e30),
                     d.y > 0.0 ? (floor(a.y) + 1.0 - a.y) * delta.y : (d.y < 0.0 ? (a.y - floor(a.y)) * delta.y : 1e30));
                 bool leaving = true;
+                // A texel deep in solid ground is lit only in the wall cell at its face: past one, the wall it is in shades it (0077).
+                int walls = 0;
                 float t0 = 0.0;
                 for (int i = 0; i < 80; i++) {
                     float t1 = min(min(next.x, next.y), 1.0);
                     int k = kind(c);
                     if (k == 2) {
-                        if (!leaving) return true;
+                        if (!leaving || ++walls > 1) return true;
                     } else if (k >= 4) {
                         // A wall cut to a shape: its solid half as a wall, passed till the line comes out of it, its open
                         // half as the open. The solid is a half plane in the cell, so the line's two ends there tell it.

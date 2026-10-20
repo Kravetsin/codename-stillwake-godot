@@ -64,10 +64,12 @@ public class GrownSaveTests
         Assert.Equal(7, edits.Length);
         Assert.Equal(under, edits[0]);
         Assert.Equal(Structure.Empty, edits[1]);
-        // The same wall built back: the cell is as it grew, and no edit is saved for it.
+        // The same wall built back, the hero stepped aside (0077: a wall does not finish on one): the cell is as it grew, and
+        // no edit is saved for it.
+        w.Do(new Enter(spawn - 3)).Run();
         w.Do(new PlacePlan(under, Placement.Wall(m.Grid.BackAt(under)!.Id))).Run();
         int plan = m.Building.Plans.Single().Id;
-        while (m.Building.Plans.Count > 0) w.Do(new Work(plan)).Run();
+        for (int i = 0; i < 200 && m.Building.Plans.Count > 0; i++) w.Do(new Work(plan)).Run();
         Assert.Empty(GridOf(w.World.Save(), 1)["edits"]!.AsArray());
     }
 

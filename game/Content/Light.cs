@@ -34,6 +34,13 @@ public static class Light
     /// hole or a doorway it falls off within a few cells, and only open space is lit by the stars whole.
     /// </summary>
     public const float StarKeep = 0.6f, StarMachine = 0.48f;
+
+    /// <summary>
+    /// Under a planet's sky (0077), what daylight keeps crossing a cell of air in from the open: it dies a cell or two into a
+    /// cave mouth or a shaft, so tunnels ahead are black but for what lamps, fires and glows light; and no ambient light
+    /// there (<see cref="Ambient"/> is the ship's alone), so unlit ground is black too.
+    /// </summary>
+    public const float GroundKeep = 0.3f;
     /// <summary>
     /// The stars' light in a lone hole in a back wall, against whole in open space: a cell's sky is the cells
     /// within <see cref="StarSky"/> of it, and with <see cref="StarFullSky"/> of them open to the stars, itself

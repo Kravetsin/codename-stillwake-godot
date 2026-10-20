@@ -27,6 +27,8 @@ public partial class EffectsView : Node2D
     private const double MatterLight = 0.4;
 
     // Drawn a pixel of the screen a unit, so strokes are as fine as the screen allows, over the world's pixels.
+    // Dust along the floor is drawn apart, behind the walls and over the back walls, so a wall hides it (0077).
+    private readonly Node2D _lowMatter = new() { TextureFilter = TextureFilterEnum.Linear, ZAsRelative = false, ZIndex = Layers.LowDust };
     private readonly Node2D _matter = new() { TextureFilter = TextureFilterEnum.Linear },
         _light = new() { Material = Added, TextureFilter = TextureFilterEnum.Linear };
     private float _zoom = 1;
@@ -44,8 +46,10 @@ public partial class EffectsView : Node2D
         // After the features: a trail or a bloom they stamp this frame is drawn this frame.
         ProcessPriority = 100;
         Lit.Set(_matter);
-        foreach (var n in new Node2D[] { _matter, _light, _strokes }) AddChild(n);
-        _matter.Draw += DrawMatter;
+        Lit.Set(_lowMatter);
+        foreach (var n in new Node2D[] { _lowMatter, _matter, _light, _strokes }) AddChild(n);
+        _matter.Draw += () => DrawMatter(_matter, low: false);
+        _lowMatter.Draw += () => DrawMatter(_lowMatter, low: true);
         _light.Draw += DrawLight;
         for (int n = 0; n < _points.Length; n++) (_points[n], _colours[n]) = (new Vector2[n], new Color[n]);
     }
@@ -70,7 +74,8 @@ public partial class EffectsView : Node2D
         Flares.Shared.TakeFrame();
         Bolts.Shared.Step(ms);
         _zoom = Math.Max(0.01f, GetViewport().GetCanvasTransform().X.Length());
-        _matter.Scale = _light.Scale = Vector2.One / _zoom;
+        _matter.Scale = _lowMatter.Scale = _light.Scale = Vector2.One / _zoom;
+        _lowMatter.QueueRedraw();
         _matter.QueueRedraw();
         _light.QueueRedraw();
         Stroke();
@@ -98,55 +103,55 @@ public partial class EffectsView : Node2D
         on.DrawTextureRect(texture, new Rect2(at.X - s / 2, at.Y - h / 2, s, h), false, colour);
     }
 
-    /// <summary>Dust, smoke, chips and grains, lit by the room as everything solid is.</summary>
-    private void DrawMatter()
+    /// <summary>Dust, smoke, chips and grains, lit by the room as everything solid is: onto <paramref name="on"/>, those along the floor (<c>Low</c>) or the rest; dust along the floor gives no light of its own.</summary>
+    private void DrawMatter(Node2D on, bool low)
     {
         long began = Stopwatch.GetTimestamp();
         foreach (var g in Glims.Shared.Live)
         {
-            if (!g.Look.Matter) continue;
+            if (!g.Look.Matter || g.Look.Low != low) continue;
             double b = LuminousMath.Brightness(g);
             var c = LuminousMath.RampAt(g.Look.Ramp, g.Age);
             switch (g.Look.Kind)
             {
                 case Glimmer.Mote:
-                    Blob(_matter, SoftDots.Dot, g.X, g.Y, g.Size * 2, ColourOf(c, b));
+                    Blob(on, SoftDots.Dot, g.X, g.Y, g.Size * 2, ColourOf(c, b));
                     break;
                 case Glimmer.Streak:
                     // A grain: its head lit as a mote is; its smear along its way is its light (Stroke).
-                    Blob(_matter, SoftDots.Dot, g.X, g.Y, g.Look.Width * 3, ColourOf(c, b));
+                    Blob(on, SoftDots.Dot, g.X, g.Y, g.Look.Width * 3, ColourOf(c, b));
                     break;
                 case Glimmer.Wisp:
-                    Wisp(g, c);
+                    Wisp(on, g, c);
                     break;
                 case Glimmer.Chip:
-                    Chip(g, c);
+                    Chip(on, g, c);
                     break;
             }
         }
-        _matter.DrawSetTransform(Vector2.Zero);
+        on.DrawSetTransform(Vector2.Zero);
         _spentMs += Stopwatch.GetElapsedTime(began).TotalMilliseconds;
     }
 
-    private void Wisp(Glim g, (double R, double G, double B) c)
+    private void Wisp(Node2D on, Glim g, (double R, double G, double B) c)
     {
         double q = g.Age;
         double swell = Math.Min(1, q / 0.18) * Math.Pow(1 - q, 1.1);
         float r = (float)(g.Size * (1 + g.Look.Grow * (1 - (1 - q) * (1 - q)))) * _zoom;
         double v = Math.Sqrt(g.Vx * g.Vx + g.Vy * g.Vy), stretch = 1 + Math.Min(1.2, v * 0.025);
-        _matter.DrawSetTransform(Screen(g.X, g.Y), (float)(Math.Atan2(g.Vy, g.Vx) + g.Seed * 0.02), new Vector2((float)stretch, (float)(1 / Math.Sqrt(stretch))));
-        _matter.DrawTextureRect(SoftDots.Puff, new Rect2(-r, -r, r * 2, r * 2), false, ColourOf(c, g.Look.Alpha * g.Bright * swell));
+        on.DrawSetTransform(Screen(g.X, g.Y), (float)(Math.Atan2(g.Vy, g.Vx) + g.Seed * 0.02), new Vector2((float)stretch, (float)(1 / Math.Sqrt(stretch))));
+        on.DrawTextureRect(SoftDots.Puff, new Rect2(-r, -r, r * 2, r * 2), false, ColourOf(c, g.Look.Alpha * g.Bright * swell));
     }
 
     private static readonly Vector2[] ChipShape = [new(-1, -0.6f), new(1.2f, -0.3f), new(0, 0.9f)];
     private readonly Vector2[] _chip = new Vector2[3];
 
-    private void Chip(Glim g, (double R, double G, double B) c)
+    private void Chip(Node2D on, Glim g, (double R, double G, double B) c)
     {
         double q = g.Age;
-        _matter.DrawSetTransform(Screen(g.X, g.Y), (float)g.Turn, Vector2.One * _zoom * (float)(g.Size / g.Look.Size));
+        on.DrawSetTransform(Screen(g.X, g.Y), (float)g.Turn, Vector2.One * _zoom * (float)(g.Size / g.Look.Size));
         for (int i = 0; i < 3; i++) _chip[i] = ChipShape[i];
-        _matter.DrawColoredPolygon(_chip, ColourOf(c, 1 - q * q));
+        on.DrawColoredPolygon(_chip, ColourOf(c, 1 - q * q));
     }
 
     /// <summary>
@@ -160,7 +165,7 @@ public partial class EffectsView : Node2D
         var live = Glims.Shared.Live;
         foreach (var g in live)
         {
-            if (g.Look.Kind != Glimmer.Mote) continue;
+            if (g.Look.Kind != Glimmer.Mote || g.Look.Low) continue;
             double b = LuminousMath.Brightness(g) * (g.Look.Matter ? MatterLight : 1);
             if (b > 0.006) Blob(_light, SoftDots.Dot, g.X, g.Y, g.Size * 2, ColourOf(LuminousMath.RampAt(g.Look.Ramp, g.Age), b));
         }
@@ -210,7 +215,7 @@ public partial class EffectsView : Node2D
         _strokes.Begin();
         foreach (var g in Glims.Shared.Live)
         {
-            if (g.Look.Kind != Glimmer.Streak) continue;
+            if (g.Look.Kind != Glimmer.Streak || g.Look.Low) continue;
             double b = LuminousMath.Brightness(g) * (g.Look.Matter ? MatterLight : 1);
             if (b > 0.006) Streak(g, LuminousMath.RampAt(g.Look.Ramp, g.Age), b);
         }

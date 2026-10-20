@@ -197,7 +197,8 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
-        bool grab = !hero.Climbing && input.Y != 0 && input.X == 0 && !input.Jump &&
+        // Not while rising: a jump off a ladder with up held goes on, not caught by the ladder it left.
+        bool grab = !hero.Climbing && hero.Vy >= 0 && input.Y != 0 && input.X == 0 && !input.Jump &&
             TouchesLadder(ship, hero.X, hero.Y, input.Y > 0);
         if (grab || hero.Climbing)
         {

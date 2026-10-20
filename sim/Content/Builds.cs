@@ -28,6 +28,12 @@ public static class Builds
     /// <summary>Taking a thing apart is this many times faster than building it; its ticks round up.</summary>
     public const int DeconstructSpeedup = 2;
 
+    /// <summary>
+    /// Ticks a crack in natural ground lasts with no hit (0077): ten seconds, then it heals whole, as Terraria's. A dig left
+    /// half done is begun again.
+    /// </summary>
+    public const int CrackHeals = 200;
+
     private static readonly Dictionary<string, Build> ById = All.ToDictionary(b => b.Id, StringComparer.Ordinal);
 
     /// <summary>The build by its id; throws for an id that is none.</summary>

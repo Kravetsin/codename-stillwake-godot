@@ -148,15 +148,29 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
+    /// Whether a hero's body is in <paramref name="cell"/>: the cell its client last reported (<c>Hero.Cell</c>, the body's middle),
+    /// or the one above or under it, a body being under three cells tall. Its other column, where it straddles two, is not asked.
+    /// </summary>
+    private bool HeroIn(int cell)
+    {
+        int w = _grid.Width;
+        foreach (var hero in _crew.Heroes)
+            if (cell == hero.Cell || cell == hero.Cell - w || cell == hero.Cell + w) return true;
+        return false;
+    }
+
+    /// <summary>
     /// Why E on plan <paramref name="id"/> by peer <paramref name="peer"/> is refused: the plan is gone; it is a
     /// blueprint whose next part is not paid for and the hero carries nothing it still lacks; or it is a mark on
-    /// a crate that holds something or a machine a cable ends on.
+    /// a crate that holds something or a machine a cable ends on; or it is a wall whose last tick would finish it on a hero.
     /// </summary>
     private string? WorkProblemOf(int id, int peer)
     {
         var plan = State.Plans.Find(p => p.Id == id);
         if (plan == null) return "building.noPlan";
         if (plan.Clear is { } layer) return InUse(plan.Cell, layer);
+        // A wall's last tick waits while a hero stands in its cell, so nobody walls themselves in (0077); it finishes once they step out.
+        if (plan.Place is { Kind: "wall" } && plan.Progress + 1 >= Costs.TicksFor(_grid, plan) && HeroIn(plan.Cell)) return "building.heroInside";
         return Owes(plan) && PaymentOf(plan, peer) == null ? "items.notEnough" : null;
     }
 }

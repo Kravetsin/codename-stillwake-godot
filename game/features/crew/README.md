@@ -468,9 +468,11 @@ Deliberately not handled:
   shines from this frame and the way its head looks (`Figure.HeadLampToward`), which `Main` hands the light
   (`LightView.HeadLamps`): a beam that way.
 - **What is dug at stays readable** (0077): the dig target's outline is drawn over the hero and its tool (`Layers.Dug`),
-  and a drill aimed close ahead is drawn foreshortened (`Figure.Shortened`), its bit stopping 7 px short of the point, no
-  shorter than 45 % of its length. A landing's dust spreads along the floor only as far as it runs open
-  (`Figure.FloorRoom`, from `HeroView`), so none passes the walls of a shaft.
+  and a drill aimed close ahead keeps its size, pulled back along its aim with the arm (`Figure.PulledBack`), its bit's tip
+  a pixel short of the target cell, never inside it, by at most 14 px. A landing's dust spreads along the floor only as far as it runs open
+  (`Figure.FloorRoom`, from `HeroView`), and dust along the floor is drawn behind the walls (`Luminous.Low`), so none shows through a shaft's walls.
+- **Ladders** (0077): a jump off a ladder goes on with up held, not caught again while rising (`Hero.Move` grabs only falling or still); a
+  walk or a jump to a side lets go; the hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - A press on a door or valve is built from it as shown (`Shared.Predicted.Grid`, passed to `Aiming.AimAt`): it asks

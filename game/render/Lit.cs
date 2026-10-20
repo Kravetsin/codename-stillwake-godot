@@ -124,13 +124,25 @@ public static class Lit
     /// </summary>
     public static void Set(CanvasItem item, float share = 1f, bool cracks = false) => item.Material = MaterialOf(share, cracks);
 
+    private static Vector3 _ambient = new(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B);
+
+    /// <summary>
+    /// The light every lit thing has in the dark, <see cref="Light.Ambient"/> aboard; none on a planet, where unlit ground and
+    /// caves are black (0077). Set by the light of the surface drawn, for every lit material.
+    /// </summary>
+    public static void Ambient((float R, float G, float B) ambient)
+    {
+        _ambient = new Vector3(ambient.R, ambient.G, ambient.B);
+        foreach (var (_, material) in Made) material.SetShaderParameter("ambient", _ambient);
+    }
+
     private static ShaderMaterial MaterialOf(float share, bool cracks)
     {
         if (Made.TryGetValue((share, cracks), out var kept)) return kept;
         kept = new ShaderMaterial { Shader = cracks ? Cracking : Plain };
         kept.SetShaderParameter("share", share);
         kept.SetShaderParameter("blocks", share < 1f);
-        kept.SetShaderParameter("ambient", new Vector3(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B));
+        kept.SetShaderParameter("ambient", _ambient);
         kept.SetShaderParameter("spot_most", Light.ParticleMost);
         if (_starlight is var (stars, starsAt)) ShowStars(kept, stars, starsAt);
         if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);

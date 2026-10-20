@@ -91,10 +91,24 @@ digging and a light to dig by come together.
   way (a `Toward` on the light source, read by the shader as a heading): one dot product a texel more. It works
   everywhere, aboard too. `--planet` starts with the axe, the drill and the lamp worn.
 - **What is dug at stays readable:** the dig target's outline and the cracks are drawn over the hero and its tool
-  (`Layers.Dug`), the chips over everything already; a drill aimed close ahead is drawn foreshortened, its bit stopping
-  short of the cell (no shorter than 45 % of its length), as if pointed half toward the eye.
-- **A landing's dust spreads along the floor only as far as the floor runs open** (`Figure.FloorRoom`), so digging down a
-  1-wide shaft, the hero dropping a cell at each break, throws none through its walls.
+  (`Layers.Dug`), the chips over everything already; a drill aimed close ahead keeps its size and is pulled back along
+  its aim with the arm holding it, so its bit's tip rests a pixel short of the target cell, never inside it (at most 14 px).
+- **Dust along the floor is drawn behind the walls** (`Luminous.Low`, `Layers.LowDust`, over the back walls): a landing's,
+  a step's and a break's dust and veils, so a wall hides what spreads past it in a shaft; a landing's spreads only as far
+  as the floor runs open besides (`Figure.FloorRoom`). Chips stay over everything.
+- **Underground is black, as in Terraria.** On a planet there is no ambient light (`Lit.Ambient`: the ship keeps its own),
+  daylight crossing a cell of air keeps `Light.GroundKeep` (0.3) of itself, so it dies a cell or two into a cave mouth or a
+  shaft, and a texel deep in solid ground is lit only in the wall cell at its face (the lightmap shades it past one wall
+  cell, aboard too). Tunnels ahead are black but for lamps, fires, glows and helmet lamps; the surface's daylight is as it was.
+- **A wall does not finish on a hero.** A wall plan's last tick is refused `building.heroInside` ("Step out to finish")
+  while a hero's reported body cell, or the one above or under it, is its cell; planning there is allowed, and it
+  finishes once the hero steps out. Walling oneself into a pocket is fine: one digs or takes a wall apart to get out.
+- **Cracks heal.** A crack not hit for `Builds.CrackHeals` (200 ticks, 10 s) heals whole, as Terraria's: each keeps the tick of
+  its last hit (`Crack.At`) by Building's clock, swept in derivation. Ten thousand at once, the worst case, inserted each at
+  the list's head: 22 ms for the tick that makes them, 1 MB held, 319 KB in a save, a hash 4 ms, a sweep 0.3 ms a tick;
+  healing keeps real counts to a few.
+- **Ladders let go as players expect:** a jump off one goes on with up held (it is not caught again while rising), a walk
+  or a jump to a side lets go, and the hands hold tools and the plan on a ladder: dig, swing and plan while climbing.
 - **Save format 21:** Building's `cracks`, empty in every older save, the ship's and every surface's; a grown surface's grid
   as its edits (no older save holds one).
 

@@ -30,7 +30,10 @@ public sealed class StarField
     private readonly (float R, float G, float B) _sky;
 
     /// <param name="sky">The light through the open sky, by <see cref="L.SkyOf"/> its surface's kind; the stars' when not given.</param>
-    public StarField((float R, float G, float B)? sky = null) => _sky = sky ?? L.Star;
+    /// <param name="keep">What crossing a cell of air keeps of it: <see cref="L.StarKeep"/> aboard; a planet's ground less (<see cref="L.GroundKeep"/>, 0077), so daylight dies a cell or two into a cave.</param>
+    public StarField((float R, float G, float B)? sky = null, float keep = L.StarKeep) => (_sky, _shares) = (sky ?? L.Star, SharesOf(keep));
+
+    private readonly float[] _shares;
 
     /// <summary>The cells worked out, in the grid's cells, past its edge too.</summary>
     public Box Region { get; private set; } = Box.None;
@@ -51,7 +54,7 @@ public sealed class StarField
     private static readonly double Faint = 0.99 * Math.Min(1, L.WallIn) / (L.BrightestSky * 255);
 
     /// <summary>The share of light going on from a cell of one kind into the next, by <c>from × 3 + to</c>.</summary>
-    private static readonly float[] Shares = SharesOf();
+    private static readonly float[] Shares = SharesOf(L.StarKeep);
 
     /// <summary>A cell's share of the stars' light by how many cells of its sky, itself among them, the stars shine into.</summary>
     private static readonly float[] SkyLight = SkyLightOf();
@@ -242,7 +245,7 @@ public sealed class StarField
                 int open = sum[(y + side) * sw + x + side] - sum[y * sw + x + side] - sum[(y + side) * sw + x] + sum[y * sw + x];
                 light[i] = SkyLight[open];
             }
-        Spread(light, kind, w, h);
+        Spread(light, kind, w, h, _shares);
         var bytes = Texels;
         var region = Region;
         for (int y = write.Top; y <= write.Bottom; y++)
@@ -275,9 +278,9 @@ public sealed class StarField
         bytes[at + 3] = kind == Wall ? (byte)255 : (byte)0;
     }
 
-    private static float[] SharesOf()
+    private static float[] SharesOf(float keep)
     {
-        float[] into = [L.StarKeep, L.StarMachine];
+        float[] into = [keep, Math.Min(keep, L.StarMachine)];
         var shares = new float[9];
         for (int from = 0; from < 3; from++)
             for (int to = 0; to < 3; to++)
@@ -292,9 +295,9 @@ public sealed class StarField
     /// keeps, the brightest way winning. One channel: every share is the same for red, green and blue.
     /// Open space stays whole, so a cell beside the region's edge sees what it would beside more space.
     /// </summary>
-    private static void Spread(float[] light, byte[] kind, int w, int h)
+    private static void Spread(float[] light, byte[] kind, int w, int h, float[] shares)
     {
-        var shares = Shares;
+
         int n = w * h;
         for (int round = 0; round < L.Rounds; round++)
         {

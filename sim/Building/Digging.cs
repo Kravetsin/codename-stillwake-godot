@@ -47,8 +47,8 @@ public sealed partial class BuildingModule
         int damage = (at >= 0 ? State.Cracks[at].Damage : 0) + Weapons.Of(c.Tool)!.Damage;
         if (damage < wall.Strength)
         {
-            if (at >= 0) State.Cracks[at] = new Crack(c.Cell, damage);
-            else State.Cracks.Insert(~at, new Crack(c.Cell, damage));
+            if (at >= 0) State.Cracks[at] = new Crack(c.Cell, damage, State.Clock);
+            else State.Cracks.Insert(~at, new Crack(c.Cell, damage, State.Clock));
             return;
         }
         if (at >= 0) State.Cracks.RemoveAt(at);
@@ -72,8 +72,15 @@ public sealed partial class BuildingModule
         return ~lo;
     }
 
-    /// <summary>A crack whose wall is gone, to a meteor, is dropped: only a natural wall that breaks keeps one.</summary>
-    private void SweepCracks() => State.Cracks.RemoveAll(k => _grid.WallAt(k.Cell) is not { Breaks: true });
+    /// <summary>
+    /// A crack heals whole <c>Builds.CrackHeals</c> ticks after its last hit, as Terraria's; one whose wall is gone, to a meteor,
+    /// is dropped: only a natural wall that breaks keeps one. The clock ticks first.
+    /// </summary>
+    private void SweepCracks()
+    {
+        int now = ++State.Clock;
+        if (State.Cracks.Count > 0) State.Cracks.RemoveAll(k => now - k.At >= Builds.CrackHeals || _grid.WallAt(k.Cell) is not { Breaks: true });
+    }
 
     /// <summary>Whether what <paramref name="layer"/> of <paramref name="cell"/> holds is natural ground: dug, never marked.</summary>
     private bool IsNatural(int cell, string layer) => layer switch

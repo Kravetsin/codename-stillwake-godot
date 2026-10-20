@@ -21,6 +21,9 @@ public static class Layers
     public const int PlanBacks = -8;
 
     // The ship's structure and machines (grid), a socket on each powered machine.
+    /// <summary>Dust along the floor (<c>Luminous.Low</c>, 0077): over the back walls, behind the walls, which hide it.</summary>
+    public const int LowDust = -3;
+
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
 
     /// <summary>A screen or a lamp on a machine's face beside its socket: an analyzer's (research), a tank's sight glass (atmosphere).</summary>

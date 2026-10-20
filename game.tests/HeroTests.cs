@@ -553,6 +553,26 @@ public class HeroTests
     }
 
     [Fact]
+    public void AJumpOffALadderGoesOnWithUpHeldAndAWalkStepsOff()
+    {
+        var (ship, _) = Start(LadderMap);
+        var on = At(3500, 6500, climbing: true);
+        // Jumping with up held: the hero rises off the ladder, not caught again by it while it rises (0077).
+        var h = on.Step(new HeroInput(0, -1, true), ship);
+        Assert.False(h.Climbing);
+        for (int i = 0; i < 10; i++)
+        {
+            h = h.Step(Up, ship);
+            Assert.False(h.Climbing);
+        }
+        Assert.True(h.Y < on.Y - Unit, $"{h.Y} from {on.Y}");
+        // A jump off it to either side, and a walk off it, let go.
+        Assert.False(on.Step(new HeroInput(1, 0, true), ship).Climbing);
+        Assert.False(on.Step(new HeroInput(-1, -1, true), ship).Climbing);
+        Assert.False(on.Step(Right, ship).Climbing);
+    }
+
+    [Fact]
     public void LaddersAreNotGrabbedWhileWalkingOrJumpingNorFromBesideThem()
     {
         var (ship, _) = Start(LadderMap);

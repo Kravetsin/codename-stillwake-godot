@@ -70,7 +70,7 @@ public class DesyncTests
         // Small planets opened by the world's fuzz, heroes beamed down to them, their ground grown on every peer from one
         // seed and dug there (0077): walls cracked, broken out, their soil and rock given or spilt, alike on every peer.
         int planets = 0, cracked = 0, dug = 0;
-        var run = Desync.Fuzz(Definition.Game(), 8, layout: Registry.Wreck, ticks: 900, worldEvery: 6, tamper: (_, clients) =>
+        var run = Desync.Fuzz(Definition.Game(), 12, layout: Registry.Wreck, ticks: 900, worldEvery: 6, tamper: (_, clients) =>
         {
             var world = clients[0].World;
             foreach (var surface in world.Surfaces.Where(s => s.Kind == Content.Surfaces.SmallPlanet.Id))

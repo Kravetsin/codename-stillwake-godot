@@ -130,7 +130,7 @@ public partial class DigView : Node2D
         var light = (System.Math.Min(255, c.R + 50), System.Math.Min(255, c.G + 50), System.Math.Min(255, c.B + 50));
         return Looks[material] = (
             Luminous.Chip with { Ramp = [fleck, c], Gravity = 420, Bounce = 0.25, Size = 1.6 },
-            Luminous.BreakDust with { Ramp = [light], Gravity = 6 },
-            Luminous.Vapour with { Ramp = [light] });
+            Luminous.BreakDust with { Ramp = [light], Gravity = 6, Low = true },
+            Luminous.Vapour with { Ramp = [light], Matter = true, Low = true });
     }
 }

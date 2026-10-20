@@ -6,7 +6,8 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 `Grid`'s operations, paid from and refunded to the inventories in `Items`. Ported from
 `packages/sim/src/modules/building`; its rules hold here but for the payment a part at a time.
 
-- **Depends on:** `Grid` (`IGridQueries`, `IGridOps`) and `Items` (`IItemsQueries`, `IItemsOps`; `WeaponProblem` for a dig);
+- **Depends on:** `Grid` (`IGridQueries`, `IGridOps`) and `Items` (`IItemsQueries`, `IItemsOps`; `WeaponProblem` for a dig); `Crew`
+  (`ICrewQueries.Heroes`), so a wall does not finish on a hero;
   `Power` (`IPowerQueries.Cabled`), to keep a cabled machine standing; `Research`
   (`IResearchQueries.Knows`), to refuse a blueprint not known (ADR 0024); `Crafting`
   (`ICraftingQueries.Queue`), to keep a station with crafts queued standing (0057).
@@ -70,6 +71,12 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 - Anyone may cancel or work on any plan.
 - A mark whose thing is gone (a meteor broke it) is dropped in the derivation phase of that tick,
   refunding nothing; worked on that tick, it completes with nothing to refund.
+- **A wall does not finish on a hero** (0077): `Work` on a wall plan whose next tick would complete it is refused
+  `building.heroInside` while a hero's reported cell (`ICrewQueries.Heroes`, the body's middle), or the one above or under
+  it, is the plan's cell. Planning there is allowed; it finishes once the hero steps out. Building reads crew only as
+  commands apply, so it keeps its place in the run order before crew.
+- **Cracks heal** (0077): each keeps the tick of its last hit by Building's own clock (`Clock`, saved, ticked in
+  derivation); one not hit for `Builds.CrackHeals` ticks is dropped, the wall whole again.
 - **`Dig(Cell, Tool)` is a weapon's hit on natural ground** (0077), sent as the axe strikes or at the drill's pace: its
   damage (`Weapons`) is added to the cell's crack, and the hit that reaches the wall's `Strength` clears the wall —
   only the wall: its back wall stays — drops its crack and gives what it is made of (its material's `Cost`: soil, rock)

@@ -122,6 +122,32 @@ public class BudgetTests(ITestOutputHelper output)
         Assert.True(idle.Mean < 2 && digging.Mean < 2, "a planet's tick is over its budget");
     }
 
+    /// <summary>
+    /// Ten thousand cracks at once, the worst case (0077): hit in descending cell order, so every one is inserted at the
+    /// list's head; what they hold, their save and hash, and the tick that sweeps them. Healing keeps real counts tiny.
+    /// </summary>
+    [Fact]
+    public void KeepsTenThousandCracksCheap()
+    {
+        const int width = 128, height = 80, count = width * height;
+        var rows = Enumerable.Repeat(new string('#', width), height).ToArray();
+        var w = new Scenario(Layout.Parse(rows).WithMaterials(string.Join("\n", Enumerable.Repeat(new string('t', width), height))));
+        int bare = w.World.Save().Length;
+        long before = GC.GetTotalMemory(forceFullCollection: true);
+        var hitting = Stopwatch.StartNew();
+        w.World.Step([.. Enumerable.Range(0, count).Reverse().Select(c => (Command)new Building.Dig(c, Content.Weapons.Axe.Item))]);
+        double hit = hitting.Elapsed.TotalMilliseconds;
+        long held = GC.GetTotalMemory(forceFullCollection: true) - before;
+        Assert.Equal(count, w.M.Building.Cracks.Count);
+        int saved = w.World.Save().Length - bare;
+        var hashing = Stopwatch.StartNew();
+        w.World.Hash();
+        double hash = hashing.Elapsed.TotalMilliseconds;
+        var sweep = Time(w.World, 20, _ => []);
+        output.WriteLine($"{count} cracks: hit in one tick {hit:F1} ms (every insert at the head); {held / 1024} KB held; {saved / 1024} KB more in a save; a hash {hash:F1} ms; a tick sweeping them {sweep.Mean:F2} ms");
+        Assert.True(sweep.Mean < 5, $"a sweep of {count} cracks took {sweep.Mean:F2} ms");
+    }
+
     /// <summary>The reference ship alone, and in the corner of a world of space: rooms are found again only around a door, so the space costs nothing.</summary>
     [Theory]
     [InlineData(256, 128)]

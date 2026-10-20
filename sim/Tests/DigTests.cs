@@ -195,6 +195,44 @@ public class DigTests
         Assert.Empty(w.M.Building.Cracks);
     }
 
+
+    [Fact]
+    public void ACrackLeftAloneHealsWholeAndADigBeginsAgain()
+    {
+        var w = World();
+        int cell = At(5, 2);
+        for (int i = 0; i < 3; i++) w.Do(new Dig(cell, Axe)).Run();
+        // Hit last on the third tick: it lasts CrackHeals ticks from there, through a save, then heals.
+        w.Run(Builds.CrackHeals - 2).Reload();
+        Assert.Equal(3 * AxeDamage, CrackAt(w, cell));
+        w.Run();
+        Assert.Null(CrackAt(w, cell));
+        Assert.Equal("stone", w.M.Grid.WallAt(cell)?.Id);
+        // A hit keeps a crack fresh: one every few seconds never heals.
+        for (int i = 0; i < 3; i++) w.Do(new Dig(cell, Axe)).Run(Builds.CrackHeals - 1);
+        Assert.Equal(3 * AxeDamage, CrackAt(w, cell));
+    }
+
+    [Fact]
+    public void AWallsLastTickWaitsWhileAHeroStandsInItsCellAndFinishesOnceItStepsOut()
+    {
+        var w = World();
+        int cell = At(3, 1);
+        // The hero's body round the cell: its middle reported a cell above, the body under three cells tall.
+        w.Do(new Crew.Enter(At(3, 0))).Do(new SetCreative(true)).Run();
+        w.Do(new PlacePlan(cell, Placement.Wall("scrap"))).Run();
+        int plan = w.M.Building.Plans.Single().Id, ticks = Materials.Get("scrap").BuildTicks;
+        for (int i = 0; i < ticks; i++) w.Do(new Work(plan)).Run();
+        Assert.Equal(["building.heroInside"], Reasons(w));
+        Assert.Equal(ticks - 1, w.M.Building.Plans.Single().Progress);
+        Assert.Equal("building.heroInside", w.M.Building.WorkProblem(plan, 0));
+        Assert.Null(w.M.Grid.WallAt(cell));
+        // A friend standing elsewhere changes nothing; the hero stepping out lets it finish.
+        w.Do(new Crew.Enter(At(6, 0))).Do(new Work(plan) { From = 1 }).Run();
+        Assert.Equal("scrap", w.M.Grid.WallAt(cell)?.Id);
+        Assert.Empty(w.M.Building.Plans);
+    }
+
     /// <summary>
     /// Whatever digs come, in whatever order and with whatever weapon: every crack lies on a natural wall that breaks, below
     /// its strength, in cell order; and every wall broken gave exactly what it is made of, no more.

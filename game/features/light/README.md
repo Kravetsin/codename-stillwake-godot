@@ -120,6 +120,11 @@ Numbers from `game/Content/Light.cs`.
   is a `LightSource` with a `Toward`, packed with its most as 2 and its heading as a share of a turn, which the shader
   reads back (`beam_cos`, `beam_soft`): one dot product a texel. Free, as bright anywhere, aboard too.
 
+- **Underground on a planet is black** (0077): no ambient light there (`Lit.Ambient`, set by `LightView` from its sky; the
+  ship keeps `Light.Ambient`), daylight keeps `Light.GroundKeep` (0.3) a cell of air in from the open (`StarField`'s keep), so
+  it dies a cell or two into a cave mouth, and the lightmap shades a texel past the one wall cell at its face, so lamps and
+  beams light the face of solid ground, not into it (aboard too).
+
 ## Deliberately not handled
 
 - Relief from more than one light is from their sum's slope: one direction a point, not each lamp's.

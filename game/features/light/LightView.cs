@@ -89,6 +89,8 @@ public partial class LightView : Node2D
     {
         _grid = grid;
         _starlight = new Starlight(sky);
+        // Under a planet's sky no ambient light: what no light reaches is black (0077).
+        Lit.Ambient(sky == null ? L.Ambient : (0f, 0f, 0f));
         AddChild(new CanvasModulate { Color = new Color(L.Ambient.R, L.Ambient.G, L.Ambient.B) });
         AddChild(_lightmap);
         AddChild(_starlight);

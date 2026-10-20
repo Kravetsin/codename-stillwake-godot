@@ -341,10 +341,11 @@ public class PoseTests
     }
 
     [Fact]
-    public void HoldsNothingClimbingLyingOrTumbling()
+    public void HoldsToolsAndThePlanClimbingTooButNothingLyingOrTumbling()
     {
-        Assert.All(new[] { Pose.Stand, Pose.Walk, Pose.Air, Pose.Float }, p => Assert.True(HoldsIn(p)));
-        Assert.All(new[] { Pose.Climb, Pose.Lie, Pose.Tumble }, p => Assert.False(HoldsIn(p)));
+        // On a ladder the hands dig, swing and plan as anywhere (0077).
+        Assert.All(new[] { Pose.Stand, Pose.Walk, Pose.Air, Pose.Float, Pose.Climb }, p => Assert.True(HoldsIn(p)));
+        Assert.All(new[] { Pose.Lie, Pose.Tumble }, p => Assert.False(HoldsIn(p)));
     }
 
     [Fact]

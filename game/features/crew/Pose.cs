@@ -118,8 +118,8 @@ public static class Poses
         return dx < 0 ? -1 : 1;
     }
 
-    /// <summary>Whether the hands can hold the plan in <paramref name="pose"/>: not on a ladder, and not passed out.</summary>
-    public static bool HoldsIn(Pose pose) => pose is not (Pose.Climb or Pose.Lie or Pose.Tumble);
+    /// <summary>Whether the hands can hold the plan or a tool in <paramref name="pose"/>: on a ladder too (0077: dig while climbing), not passed out.</summary>
+    public static bool HoldsIn(Pose pose) => pose is not (Pose.Lie or Pose.Tumble);
 
     /// <summary>The sheet's turn, clockwise, for the head's turn <paramref name="look"/>.</summary>
     public static double SheetTurn(double look) => -Sheet.Ahead + look * Sheet.PerLook;
