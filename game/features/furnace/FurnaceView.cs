@@ -36,9 +36,9 @@ public partial class FurnaceView : Node2D
     private static readonly Vector2 EmbersFrom = new(5, 2);
     private const double EmbersSpread = 3.5;
     /// <summary>Embers a fire at work gives off a second, and ash motes.</summary>
-    private const double EmbersPerSecond = 9, AshPerSecond = 7.2;
+    private const double EmbersPerSecond = 4.5, AshPerSecond = 3.6;
     /// <summary>Sparks a cracking coal throws, at least and at most; the glint it gives, from the fire's top left.</summary>
-    private const int CrackLeast = 4, CrackMost = 7;
+    private const int CrackLeast = 2, CrackMost = 4;
     private static readonly Vector2 CrackAt = new(5, -0.5f);
     private static readonly (int, int, int) CrackGlint = (255, 190, 110);
     /// <summary>
@@ -200,7 +200,7 @@ public partial class FurnaceView : Node2D
         var from = at + EmbersFrom;
         fire.Embers += EmbersPerSecond * Fx.Count * elapsedMs / 1000;
         for (; fire.Embers >= 1; fire.Embers--)
-            glims.Add(Luminous.Ember, from.X + Between(-EmbersSpread, EmbersSpread), from.Y - Between(0, 2), Between(-6, 6), -Between(14, 32));
+            glims.Add(Luminous.Ember, from.X + Between(-EmbersSpread, EmbersSpread), from.Y - Between(0, 2), Between(-5, 5), -Between(10, 22));
         fire.Ash += AshPerSecond * Fx.Count * elapsedMs / 1000;
         for (; fire.Ash >= 1; fire.Ash--)
             glims.Add(Luminous.Ash, from.X + Between(-4, 4), from.Y - 3, Between(-3, 3), -Between(4, 9));

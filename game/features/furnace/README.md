@@ -11,13 +11,13 @@ spinning; none of it while it is out, for want of fuel, air or room. Drawn only:
   — the furnace's (14, 17) (TypeScript's `FIRE_AT`), the generator's (4, 16), each mouth drawn with the
   furnace's grate to fit — unlit for it gives light, showing `art/fire_0..2.png` (exported from
   `features/furnace/art.ts`) in turn every 110 ms, never the same picture twice running.
-- **Embers (0075):** 9 a second streak up from the top of the fire in its mouth (5, 2 from the fire's
+- **Embers (0075):** 4.5 a second streak up from the top of the fire in its mouth (5, 2 from the fire's
   corner, 3.5 px to either side) on curling paths (`Luminous.Ember`: drifting up, turned by noise,
   flickering), white-hot at the head and cooling through amber to a dull red as they fade, each lighting
-  the wall a little; 7.2 motes of ash a second drift up with them (`Luminous.Ash`). Owed between frames,
+  the wall a little; 3.6 motes of ash a second drift up with them (`Luminous.Ash`). Owed between frames,
   emitted into `Glims.Shared`, drawn and lit by the effects feature.
 - **Crackle:** with each new picture its fire draws how brightly it burns (`Flames.Blaze`): from
-  `Flames.Low` to whole, or one picture in ten a coal cracks: it flares to `Flames.Crack`, throws 4 to 7
+  `Flames.Low` to whole, or one picture in ten a coal cracks: it flares to `Flames.Crack`, throws 2 to 4
   fast sparks that arc and fall, bouncing off the machine's floor (`Luminous.CrackSpark`), and glints once
   over the mouth. The fire's glow and light breathe toward each picture's brightness, 0.18 of the way a
   60 Hz frame (`Flames.Breathe`), rather than jump with it: `BlazeOf(id)` answers the glow, 0 while out.
