@@ -5,6 +5,15 @@ TypeScript sim). A new module adds a property, its construction after its depend
 in `All`. Tests, the network and the game build worlds from a `new Registry()`: a world gets one of
 its own, as modules hold its state.
 
+## Surfaces
+
+A world is made of surfaces ([0076](../../docs/decisions/0076-a-world-is-made-of-surfaces.md)), each a
+registry of its own. Surface 0, the ship, is the registry a world is made or loaded with, and so far the
+only one. The core routes each command to the registry of its sender's surface (`World.SurfaceOf`),
+refusing one stamped on a surface its sender has left `world.elsewhere` before any module sees it; it runs
+every surface each tick in id order. A save's `slices` are the ship's, as before surfaces: other surfaces
+will be saved under a key of their own.
+
 ## The wreck
 
 `Wreck` is the world every new game starts in: the wreck of `Content.Wreck` centred in a world of

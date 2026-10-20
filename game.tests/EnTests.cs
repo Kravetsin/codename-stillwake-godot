@@ -21,7 +21,8 @@ public class EnTests
     public void HasEveryRefusalReasonTheSimCanGive()
     {
         // A refusal key is any string literal "<moduleId>.<why>" in the sim, however it is handed back.
-        var ids = new Registry().All.Select(m => m.Id);
+        // The core's own refusals too, such as a command from a surface its sender has left (0076).
+        var ids = new Registry().All.Select(m => m.Id).Append("world");
         var refusal = new Regex($"\"((?:{string.Join('|', ids)})\\.[a-z]\\w*)\"");
         var sim = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Here())!, "..", "sim"));
         var keys = Sources(sim)
@@ -31,6 +32,7 @@ public class EnTests
         Assert.Contains("grid.occupied", keys);
         Assert.Contains("items.full", keys);
         Assert.Contains("building.noPlan", keys);
+        Assert.Contains("world.elsewhere", keys);
         Assert.Empty(keys.Where(key => !Table.ContainsKey(key)).Order(StringComparer.Ordinal));
     }
 

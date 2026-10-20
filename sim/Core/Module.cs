@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Stillwake.Sim;
 
@@ -12,6 +13,13 @@ public enum Phase { Construction, Derivation, Simulation, Events }
 public abstract record Command
 {
     public int From { get; init; }
+
+    /// <summary>
+    /// The surface its sender stood on when it sent it, stamped by the client (0076): one whose sender is elsewhere
+    /// by its tick is refused. Null, as the host's farewells and tests send it, goes wherever the sender is.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Surface { get; init; }
 }
 
 /// <summary>A command turned down on its tick: <c>Reason</c> is an i18n key the player reads.</summary>
