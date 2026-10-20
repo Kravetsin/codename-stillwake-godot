@@ -48,6 +48,8 @@
     <Compile Include="../game/features/crew/Tether.cs" Link="Game/Crew/Tether.cs" />
     <Compile Include="../game/features/crew/Report.cs" Link="Game/Crew/Report.cs" />
     <Compile Include="../game/features/crew/Danger.cs" Link="Game/Crew/Danger.cs" />
+    <Compile Include="../game/features/crew/AirCues.cs" Link="Game/Crew/AirCues.cs" />
+    <Compile Include="../game/features/crew/CanistersSeen.cs" Link="Game/Crew/CanistersSeen.cs" />
     <Compile Include="../game/features/crew/Remote.cs" Link="Game/Crew/Remote.cs" />
     <Compile Include="../game/features/crew/RemoteRod.cs" Link="Game/Crew/RemoteRod.cs" />
     <Compile Include="../game/features/crew/Suits.cs" Link="Game/Crew/Suits.cs" />
@@ -87,6 +89,9 @@
     <Compile Include="../game/shared/TankFill.cs" Link="Game/Shared/TankFill.cs" />
     <Compile Include="../game/shared/Escape.cs" Link="Game/Shared/Escape.cs" />
     <Compile Include="../game/shared/Slots.cs" Link="Game/Shared/Slots.cs" />
+    <Compile Include="../game/shared/GaugeMotion.cs" Link="Game/Shared/GaugeMotion.cs" />
+    <Compile Include="../game/shared/MeterCells.cs" Link="Game/Shared/MeterCells.cs" />
+    <Compile Include="../game/Content/WristLook.cs" Link="Game/Content/WristLook.cs" />
     <Compile Include="../game/shared/WristPieces.cs" Link="Game/Shared/WristPieces.cs" />
     <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />
     <Compile Include="../game/features/building/PlanHand.cs" Link="Game/Building/PlanHand.cs" />
@@ -94,6 +99,8 @@
     <Compile Include="../game/features/building/NearGrid.cs" Link="Game/Building/NearGrid.cs" />
     <Compile Include="../game/features/building/Catalogue.cs" Link="Game/Building/Catalogue.cs" />
     <Compile Include="../game/shared/TabletMotion.cs" Link="Game/Shared/TabletMotion.cs" />
+    <Compile Include="../game/shared/TabletLayout.cs" Link="Game/Shared/TabletLayout.cs" />
+    <Compile Include="../game/shared/HandbookScreen.cs" Link="Game/Shared/HandbookScreen.cs" />
     <Compile Include="../game/render/Blueprint.cs" Link="Game/Render/Blueprint.cs" />
     <Compile Include="../game/render/DoorShape.cs" Link="Game/Render/DoorShape.cs" />
     <Compile Include="../game/render/PlanOutline.cs" Link="Game/Render/PlanOutline.cs" />

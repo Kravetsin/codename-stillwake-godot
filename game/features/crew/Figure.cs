@@ -89,6 +89,9 @@ public partial class Figure : Node2D
     /// <summary>Where the helmet lamp sits on the helmet, from the neck it turns at, facing +x: on its brow, ahead of the visor.</summary>
     private static readonly Vector2 HeadLampOn = new(4, -9);
 
+    /// <summary>The visor's middle on the helmet, from the neck, facing +x: where air breathed in is drawn to.</summary>
+    private static readonly Vector2 VisorOn = new(4, -5);
+
     /// <summary>The lamp's bulb, a few warm pixels, a placeholder till its art is picked: each figure's own, freed with it.</summary>
     private readonly Texture2D _bulb = MakeBulb();
 
@@ -338,6 +341,12 @@ public partial class Figure : Node2D
 
     /// <summary>The helmet lamp's bulb as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
     public Vector2 HeadLampAt => _headLamp.GlobalPosition;
+
+    /// <summary>The visor's middle as drawn, in pixels of the world, turning with the head: where a breath of room air puffs off (0081).</summary>
+    public Vector2 Visor => _helmet.ToGlobal(VisorOn);
+
+    /// <summary>The feet as drawn, in pixels of the world, and the way up the body, a unit vector: what a canister's vortex rises round (0081).</summary>
+    public (Vector2 Feet, Vector2 Up) Stance => (_frame.ToGlobal(Vector2.Zero), -_frame.GlobalTransform.Y.Normalized());
 
     /// <summary>Where the helmet turns, at the neck, in pixels of the world: inside the hero, so never in a wall.</summary>
     public Vector2 HeadAt => _helmet.GlobalPosition;

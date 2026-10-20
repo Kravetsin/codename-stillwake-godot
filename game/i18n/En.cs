@@ -479,6 +479,7 @@ public static partial class En
         ["menu.cancel"] = "Cancel",
         ["menu.handbook"] = "Handbook (J)",
         ["handbook.title"] = "Handbook",
+        ["handbook.hint"] = "Click: choose · Wheel: scroll · J: close",
         ["handbook.debris"] = "Debris",
         ["handbook.unknown"] = "???",
         ["handbook.empty"] = "Catch or break a piece of debris to note it here",

@@ -128,4 +128,38 @@ public class HandbookTests
         Assert.Equal(1, Finds.Fit(48, 32, 48, 48));
         Assert.Equal(0.5f, Finds.Fit(96, 48, 48, 48));
     }
+
+    private static readonly HandbookScreen Normal = new(Slots.SizeOf(SlotScale.Normal)), Large = new(Slots.SizeOf(SlotScale.Large));
+
+    [Fact]
+    public void LaysItsTabletScreenOutFromTheSlotSizeAndFitsItWithItsBezelOnTheSmallestScreen()
+    {
+        Assert.Equal((838, 376), (Normal.Width, Normal.Height));
+        Assert.Equal((950, 440), (Large.Width, Large.Height));
+        foreach (var at in (HandbookScreen[])[Normal, Large])
+        {
+            Assert.Equal(TabletLayout.Pad + TabletLayout.TabHeight + TabletLayout.Pad, HandbookScreen.BodyTop);
+            Assert.Equal(at.Width, at.BarLeft + TabletLayout.BarWidth + TabletLayout.Pad);
+            Assert.Equal(at.Height, at.FootTop + TabletLayout.FootHeight + TabletLayout.Pad);
+            Assert.Equal(at.KindsWidth + Handbook.EntryGap + Handbook.EntryWidth, at.BodyWidth);
+            // The bezel round it, the stylus's tip included, still inside 1280×720.
+            int around = TabletLayout.ArtAround * TabletLayout.ArtScale;
+            Assert.True(at.Width + around <= 1280 && at.Height + around <= 720, $"{at.Width}×{at.Height}");
+        }
+    }
+
+    [Fact]
+    public void ScrollsItsBodyARowOfKindsANotchAndNoFurtherThanItsEnd()
+    {
+        int content = Normal.BodyHeight + 100;
+        Assert.Equal(Normal.Step, Normal.Scrolled(0, 1, content));
+        Assert.Equal(100, Normal.Scrolled(0, 5, content));
+        Assert.Equal(0, Normal.Scrolled(Normal.Step, -3, content));
+        // Content that fits never scrolls, and shows no thumb.
+        Assert.Equal(0, Normal.Scrolled(0, 1, Normal.BodyHeight));
+        Assert.Null(TabletLayout.Thumb(Normal.BodyHeight, Normal.BodyHeight, 0));
+        var (top, length) = TabletLayout.Thumb(300, 600, 300)!.Value;
+        Assert.Equal((150f, 150f), (top, length));
+        Assert.Equal(TabletLayout.ThumbLeast, TabletLayout.Thumb(300, 60000, 0)!.Value.Length);
+    }
 }
