@@ -25,6 +25,8 @@ public static class CaveLooks
         public float Keep { get; init; } = 0.55f;
         public int Reach { get; init; } = 3;
         public int LightShare { get; init; } = 100;
+        /// <summary>How far its base sinks under the ground's top edge, or its top up into a ceiling, in pixels: planted, not set on it.</summary>
+        public int Sink { get; init; } = 2;
         public int Glints { get; init; }
         public (int R, int G, int B) GlintColour { get; init; } = (244, 240, 255);
     }
@@ -41,8 +43,8 @@ public static class CaveLooks
         ["crystalAmber"] = new(3) { Light = Amber, Strength = 1f, Keep = 0.68f, Reach = 5, Glints = 2, GlintColour = (255, 242, 192) },
         ["crystalRose"] = new(3) { Light = Rose, Strength = 0.9f, Keep = 0.66f, Reach = 5, Glints = 2, GlintColour = (255, 224, 220) },
         ["crystalEmber"] = new(3) { Light = Ember, Strength = 1f, Keep = 0.66f, Reach = 5, Glints = 1, GlintColour = (255, 240, 176) },
-        ["stalagmite"] = new(3) { ByBand = true },
-        ["stalactite"] = new(3) { ByBand = true },
+        ["stalagmite"] = new(3) { ByBand = true, Sink = 1 },
+        ["stalactite"] = new(3) { ByBand = true, Sink = 1 },
         ["crystalIceHang"] = new(3) { Light = Blue, Strength = 0.95f, Keep = 0.66f, Reach = 5, Glints = 2, GlintColour = (232, 248, 255) },
         ["crystalAmberHang"] = new(3) { Light = Amber, Strength = 0.95f, Keep = 0.66f, Reach = 5, Glints = 2, GlintColour = (255, 242, 192) },
         ["hangcap"] = new(3) { Light = Violet, Strength = 0.85f, Keep = 0.62f, Reach = 4 },

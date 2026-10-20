@@ -22,6 +22,9 @@ public partial class CaveView : Node2D
 {
     private const int Cell = ShipCamera.Cell, Chunk = 32;
 
+    /// <summary>A picture's rows, all of them: one not planted.</summary>
+    private const int Whole = -1;
+
     private readonly IGridQueries _grid;
     private readonly BuildingModule _building;
     private readonly Spec.Ground _ground;
@@ -185,37 +188,39 @@ public partial class CaveView : Node2D
             var kind = Spec.Flora.Get(plant.Kind);
             int x = plant.Cell % w, y = plant.Cell / w, band = Terrain.BandOf(_ground, y);
             uint hash = Hash(plant.Cell);
-            var pictures = new List<(string Name, Vector2 At)>();
+            var pictures = new List<(string Name, Vector2 At, int From, int Rows)>();
             if (plant.Kind == "moss")
             {
                 // On each face of its stone open now: its top a floor's tufts, its bottom a ceiling's strands, its sides a film.
                 string tone = band == 0 ? "mossGreen" : "moss";
                 var corner = new Vector2(x * Cell - 4, y * Cell - 4);
                 int v = (int)(hash % (uint)look.Variants);
-                if (Open(plant.Cell - w)) pictures.Add(($"caves/{tone}_top_{v}", corner));
-                if (Open(plant.Cell + w)) pictures.Add(($"caves/{tone}_bottom_{(v + 1) % look.Variants}", corner));
-                if (x > 0 && Open(plant.Cell - 1)) pictures.Add(($"caves/{tone}_left_{(v + 2) % look.Variants}", corner));
-                if (x < w - 1 && Open(plant.Cell + 1)) pictures.Add(($"caves/{tone}_right_{(v + 3) % look.Variants}", corner));
+                if (Open(plant.Cell - w)) pictures.Add(($"caves/{tone}_top_{v}", corner, 0, Whole));
+                if (Open(plant.Cell + w)) pictures.Add(($"caves/{tone}_bottom_{(v + 1) % look.Variants}", corner, 0, Whole));
+                if (x > 0 && Open(plant.Cell - 1)) pictures.Add(($"caves/{tone}_left_{(v + 2) % look.Variants}", corner, 0, Whole));
+                if (x < w - 1 && Open(plant.Cell + 1)) pictures.Add(($"caves/{tone}_right_{(v + 3) % look.Variants}", corner, 0, Whole));
             }
             else if (look.Variants > 0)
             {
                 int v = (int)(hash % (uint)look.Variants);
                 string name = look.ByBand ? $"caves/{plant.Kind}_{band}_{v}" : $"caves/{plant.Kind}_{v}";
                 var size = Atlas.At[name].Size;
-                var corner = kind.On switch
+                if (kind.On == Spec.Flora.Anchor.Rock) pictures.Add((name, new Vector2(x * Cell - 4, y * Cell - 4), 0, Whole));
+                else
                 {
-                    Spec.Flora.Anchor.Floor => new Vector2(x * Cell + Cell / 2 - (int)size.X / 2, (y + 1) * Cell - (int)size.Y + 1 + (Shape.IsFloor(_grid.ShapeAt(plant.Cell + w)) ? Cell / 2 - 1 : 0)),
-                    Spec.Flora.Anchor.Ceiling => new Vector2(x * Cell + Cell / 2 - (int)size.X / 2, y * Cell - 1),
-                    _ => new Vector2(x * Cell - 4, y * Cell - 4),
-                };
-                pictures.Add((name, corner));
-                if (plant.Kind == "stalactite" && hash / 7 % CaveLooks.DripShare == 0) patch.Drips.Add(corner + new Vector2(size.X / 2, size.Y));
+                    // Planted: its base sunk under the ground's top edge, or its top up into the ceiling, those rows not drawn.
+                    var (top, bottom) = Atlas.Used[name];
+                    var (px, py, from, rows) = Planting.Picture(kind.On, x, y, Cell, (int)size.X, (int)size.Y, top, bottom, look.Sink);
+                    pictures.Add((name, new Vector2(px, py), from, rows));
+                    if (plant.Kind == "stalactite" && hash / 7 % CaveLooks.DripShare == 0) patch.Drips.Add(new Vector2(px + size.X / 2, py + bottom + 1));
+                }
             }
             Vector2? glowAt = null;
-            foreach (var (name, at) in pictures)
+            foreach (var (name, at, from, rows) in pictures)
             {
                 var region = Atlas.At[name];
-                patch.Pictures.Items.Add((new Rect2(at, region.Size), region));
+                if (rows == Whole) patch.Pictures.Items.Add((new Rect2(at, region.Size), region));
+                else if (rows > 0) patch.Pictures.Items.Add((new Rect2(at.X, at.Y + from, region.Size.X, rows), new Rect2(region.Position.X, region.Position.Y + from, region.Size.X, rows)));
                 if (GlowOf(name) is not { } glow) continue;
                 patch.Shine.Items.Add((new Rect2(at, region.Size), region));
                 glowAt ??= at + glow.Middle;
@@ -231,10 +236,10 @@ public partial class CaveView : Node2D
             if (kind.On == Spec.Flora.Anchor.Rock && look.Glints > 0)
                 for (int i = 0; i < look.Glints; i++)
                     if (FacePoint(plant.Cell, hash >> (i * 5)) is { } point) patch.Glints.Add((point, Colour(look.GlintColour), plant.Cell));
-            if (glowAt is { } from)
+            if (glowAt is { } glowing)
             {
-                if (plant.Kind.StartsWith("glowcap", StringComparison.Ordinal) || plant.Kind == "hangcap") patch.Spores.Add((from, Colour(look.Light!.Value)));
-                if (plant.Kind == "heatCrack" && hash % 3 == 0) patch.Embers.Add(from);
+                if (plant.Kind.StartsWith("glowcap", StringComparison.Ordinal) || plant.Kind == "hangcap") patch.Spores.Add((glowing, Colour(look.Light!.Value)));
+                if (plant.Kind == "heatCrack" && hash % 3 == 0) patch.Embers.Add(glowing);
             }
         }
         return patch;
@@ -474,6 +479,9 @@ public partial class CaveView : Node2D
         public static readonly Texture2D Pictures, Glows;
         public static readonly Dictionary<string, Rect2> At = new();
 
+        /// <summary>Each picture's first and last rows with anything drawn in them: its top and its base.</summary>
+        public static readonly Dictionary<string, (int Top, int Bottom)> Used = new();
+
         static Atlas()
         {
             var names = Names().Select(n => (Name: n, Image: ImageOf(n))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
@@ -491,6 +499,8 @@ public partial class CaveView : Node2D
                 var at = At[name];
                 var whole = new Rect2I(0, 0, (int)at.Size.X, (int)at.Size.Y);
                 pictures.BlitRect(image, whole, (Vector2I)at.Position);
+                var used = image.GetUsedRect();
+                Used[name] = (used.Position.Y, used.End.Y - 1);
                 if (GlowOf(name) is { } glow) glows.BlitRect(Rgba(glow.Texture.GetImage()), whole, (Vector2I)at.Position);
             }
             (Pictures, Glows) = (ImageTexture.CreateFromImage(pictures), ImageTexture.CreateFromImage(glows));

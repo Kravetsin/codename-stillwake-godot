@@ -8,8 +8,9 @@ draws them — the surface's in `FloraView`, the caves' in `CaveView` — and ti
   `IGridQueries.StructureAt` and `BackAt` down the columns in view.
 - **Draws** (`FloraView.cs`): a `Sprite2D` per plant standing — a few hundred on the first planet, so no tile layer —
   lit as the world is (`Lit`), at `Layers.Flora`, over the ground and its moss, behind the heroes. Its picture is
-  `art/planet/{kind}_{variant}`, the variant a hash of its cell, its foot in the middle of the picture's bottom row,
-  `FloraLooks.Of[kind].Sink` pixels under the top of the soil it grows from. What of it glows
+  `art/planet/{kind}_{variant}`, the variant a hash of its cell, planted (`Planting.Picture`): its lowest drawn row
+  `FloraLooks.Of[kind].Sink` (1–2) pixels under the top of the soil it grows from, in the middle of its cell, the rows there
+  not drawn, so it stands in the ground, not on it, as Terraria's do. What of it glows
   (`{kind}_{variant}_glow`: seed pods, berries, a bell, a rock's mica, a tuft's pale tip, each with its halo) is a second
   sprite added over it unlit, at `Layers.Flora` too: behind the heroes, never over a hero standing in front of it.
 - **Pictures:** drawn in the "Stillwake" style, exported from the concept's own drawing code (the surface style
@@ -44,8 +45,9 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
 - **Draws** (`CaveView.cs`) by chunks of 32 × 32 cells, those within a chunk of the view, let go past three: a chunk is two
   canvas items, its pictures lit (`Lit`, at `Layers.Flora`, over the ground) and their glows added unlit (at `Layers.Flora` too, behind the heroes; the glints last of it),
   each from one atlas packed at the first look of every cave picture (`art/caves`), so a chunk is a batch for each. Some
-  thirty-eight thousand growths on the first planet, no node apiece. A floor's growth stands its picture's bottom row in the first
-  row of the wall under it, sunk to the middle of a slope; a ceiling's hangs from the last row of the wall over it; one in
+  thirty-eight thousand growths on the first planet, no node apiece. A floor's growth is planted as a plant is, its lowest drawn row
+  `CaveLooks` `Sink` (2, a spike 1) pixels into the wall under it, those rows not drawn; a ceiling's mirrored, its top row
+  as far up into the wall over it; neither ever on a slope (0080); one in
   the rock is 24 × 24 round its cell. A picture is `{kind}_{variant}`, the variant a hash of the cell; a stalactite's and a
   stalagmite's `{kind}_{band}_{variant}`, in its band's stone; moss one picture a face of its stone open now — `top` tufts,
   `bottom` strands, `left`, `right` a film — green in the cold band (`mossGreen`), teal deeper. A felled growth's chunk is
@@ -78,6 +80,5 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
 
 - Moss grows only on whole stone, not on slopes or soil; on whichever of its faces are open now, so digging beside it
   shows more of it.
-- A glowcap cluster on a slope is sunk to the slope's middle: its caps on the high side stand in the rock a little.
 - The light of a growth past the 56 nearest the view's middle is left out; in a hall seen whole some far ones go dark.
 - Drips do not land: they fall and fade.
