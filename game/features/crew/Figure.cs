@@ -137,6 +137,12 @@ public partial class Figure : Node2D
     private (Vector2 At, double Phase)? _chop;
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
     private SwingArm _swingArm;
+    /// <summary>
+    /// Held in both hands (0078): how far the hands have gone from the pose to the grips, 0 to 1 over <see cref="GraspMs"/>,
+    /// and the item's turn as drawn, settling toward the aim.
+    /// </summary>
+    private double _grasp, _holdAngle;
+    private const double GraspMs = 120;
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
     private readonly SwingSmear _smear = new();
     /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
@@ -447,6 +453,10 @@ public partial class Figure : Node2D
     private static Bend SettleBend(Bend from, Bend to, double elapsedMs, double within) =>
         new(SettleAngle(from.Upper, to.Upper, elapsedMs, within), SettleAngle(from.Lower, to.Lower, elapsedMs, within));
 
+    /// <summary>A limb <paramref name="share"/> of the way from <paramref name="from"/> to <paramref name="to"/>, the short way round.</summary>
+    private static Bend Mix(Bend from, Bend to, double share) =>
+        new(from.Upper + Poses.Apart(from.Upper, to.Upper) * share, from.Lower + Poses.Apart(from.Lower, to.Lower) * share);
+
     /// <summary>An angle settled toward <paramref name="to"/> the short way round, so a body stops tumbling without unwinding.</summary>
     private static double SettleAngle(double from, double to, double elapsedMs, double within = SettleMs)
     {
@@ -572,22 +582,30 @@ public partial class Figure : Node2D
             double drawn = _bit ? AxeSwing.Shown(phase) : phase;
             swung = (Math.Atan2(dy, dx) + AxeLead + AxeSwing.Lift(drawn), drawn);
         }
-        else if (aiming && Aim is { } target && item != null)
+        else if (aiming && Aim is { } target && item is { Both: null })
         {
             // The gun: the arm straight, turned so the barrel's line, not the arm's, runs through the point; eased in as a swing is.
-            // A drill: the arm raised no higher than out in front, the drill turned in the fist the rest of the way.
             var (dx, dy) = FromShoulder(target);
-            swung = (drill ? HarpoonShot.DrillFor(item, dx, dy).Arm : HarpoonShot.ArmFor(item, dx, dy), 0);
+            swung = (HarpoonShot.ArmFor(item, dx, dy), 0);
         }
         frontArm = _swingArm.Next(frontArm, swung, elapsedMs);
-        double turned = 0;
-        if (drill && aiming && Aim is { } bit && item != null)
+        var backArm = shown.BackArm;
+        // Held in both hands (0078): turned toward the point at the chest, at rest aimed at nothing, the hands on its grips,
+        // taking them from the pose over GraspMs.
+        bool both = inHand && item?.Both != null;
+        if (both)
         {
-            var (dx, dy) = FromShoulder(bit);
-            turned = HarpoonShot.TurnIn(item, frontArm, dx, dy);
+            var (dx, dy) = aiming && Aim is { } bit ? FromShoulder(bit) : default;
+            double wanted = aiming ? TwoHand.AngleFor(item!, dx, dy) : TwoHand.Rest;
+            _holdAngle = _grasp == 0 ? wanted : Settle(_holdAngle, wanted, elapsedMs);
+            _grasp = Math.Min(1, _grasp + elapsedMs / GraspMs);
+            var (near, far) = TwoHand.Arms(item!, _holdAngle);
+            double g = _grasp * _grasp * (3 - 2 * _grasp);
+            (frontArm, backArm) = (Mix(frontArm, near, g), Mix(backArm, far, g));
         }
+        else _grasp = 0;
         _frontArm.Bend(frontArm);
-        _backArm.Bend(shown.BackArm);
+        _backArm.Bend(backArm);
         _frontLeg.Bend(shown.FrontLeg);
         _backLeg.Bend(shown.BackLeg);
         bool awake = pose is not (Pose.Lie or Pose.Tumble);
@@ -632,15 +650,18 @@ public partial class Figure : Node2D
                 : item.Picture);
             bool lit = Spinning && item.Lamp != null;
             _lamp.Visible = _lampGlow.Visible = lit;
+            // Held by its grip in the fist, or in both hands by its mount on the pivot.
+            var origin = item.Both?.Mount ?? item.Grip;
             // The frames draw the lamp dim; lit, its pixel is drawn over them.
             if (item.Lamp is { } at)
             {
-                var lamp = new Vector2((float)(at.X - item.Grip.X), (float)(at.Y - item.Grip.Y));
+                var lamp = new Vector2((float)(at.X - origin.X), (float)(at.Y - origin.Y));
                 (_lamp.Position, _lampGlow.Position) = (lamp - Vector2.One / 2, lamp);
             }
-            _held.Offset = -new Vector2((float)item.Grip.X, (float)item.Grip.Y);
-            _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
-            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item) + turned);
+            _held.Offset = -new Vector2((float)origin.X, (float)origin.Y);
+            var mount = both ? TwoHand.PivotAt(_holdAngle) : fist;
+            _held.Position = new Vector2((float)mount.X, (float)(-Rig.Shoulder + mount.Y));
+            _held.Rotation = (float)(both ? _holdAngle : Rig.HeldTurn(frontArm, item));
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);

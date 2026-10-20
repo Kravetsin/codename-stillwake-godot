@@ -74,13 +74,12 @@ public static class Rig
 
     /// <summary>
     /// Where <paramref name="pixel"/> of <paramref name="look"/>'s picture is, from the shoulder, held in
-    /// the fist of an arm bent as <paramref name="arm"/>: its grip on the fist's middle, turned by <see cref="HeldTurn"/>
-    /// and <paramref name="turned"/> more in the fist, as a drill is.
+    /// the fist of an arm bent as <paramref name="arm"/>: its grip on the fist's middle, turned by <see cref="HeldTurn"/>.
     /// </summary>
-    public static Vec HeldAt(Bend arm, HeldLook look, (double X, double Y) pixel, double turned = 0)
+    public static Vec HeldAt(Bend arm, HeldLook look, (double X, double Y) pixel)
     {
         var fist = FistOf(arm);
-        double turn = HeldTurn(arm, look) + turned, cos = Math.Cos(turn), sin = Math.Sin(turn);
+        double turn = HeldTurn(arm, look), cos = Math.Cos(turn), sin = Math.Sin(turn);
         double x = pixel.X - look.Grip.X, y = pixel.Y - look.Grip.Y;
         return new Vec(fist.X + x * cos - y * sin, fist.Y + x * sin + y * cos);
     }

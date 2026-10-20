@@ -315,9 +315,9 @@ public static class Aiming
     /// <summary>
     /// The wrecks the bit of <paramref name="look"/>, the drill unless a test says, touches, held by
     /// <paramref name="hero"/> aimed at <paramref name="at"/>, in thousandths of a cell (0054), in spawn order;
-    /// none while the hero is aboard. The straight arm turns, and the drill in the fist, so the bit's line runs
-    /// through the point (<see cref="HarpoonShot.DrillFor"/>), from the shoulder of the body upright, turned the way the hero faces,
-    /// as the figure draws it; the bit, its edge, is tested against each wreck's aim box as the axe's blade is.
+    /// none while the hero is aboard. Held in both hands, the drill turns at the chest so the bit's line runs
+    /// through the point, as far as it turns (<see cref="TwoHand.AngleFor"/>), from the shoulder of the body upright, turned the way
+    /// the hero faces, as the figure draws it; the bit, its edge, is tested against each wreck's aim box as the axe's blade is.
     /// </summary>
     public static List<Piece> Touched(Registry m, Hero hero, Point at, HeldLook? look = null)
     {
@@ -325,8 +325,8 @@ public static class Aiming
         if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return touched;
         look ??= HeldLook.Drill;
         double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
-        var (arm, turn) = HarpoonShot.DrillFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
-        var (a, b) = AxeSwing.EdgeAt(look, arm, turn);
+        double angle = TwoHand.AngleFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
+        var (a, b) = (TwoHand.At(look, angle, look.EdgeFrom), TwoHand.At(look, angle, look.EdgeTo));
         var bit = (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
         foreach (var p in m.Debris.Pieces)
             if (HalfOf(p.Item) is var (halfW, halfH) && Crosses(bit, p.X - halfW, p.Y - halfH, p.X + halfW, p.Y + halfH)) touched.Add(p);
