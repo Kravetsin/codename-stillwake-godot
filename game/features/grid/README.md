@@ -60,10 +60,12 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   empty cell with no back wall), a rule of drawing, never the sim's: one of four pictures a top (`art/planet/grass_{shape}_{v}`,
   by a hash of the cell), two cells tall, laid from the cell above so its stems rise into it, over the edges. Dug, built
   over or roofed, the soil is bare; its cell's drawing alone lays and clears it, so a change above or below redraws it.
-- **Drawn near the camera** (0079): the grid is drawn in 32 × 32 chunks, each the first time the view or a chunk round it
-  reaches it; a cell changed in a chunk not drawn is drawn with it, from `DrawnLayers`. A planet is built in nearly every
-  cell: drawing all 1.5 million at its first look froze it for a second; now some 11 ms that frame at the default zoom,
-  31 ms zoomed far out, and 2–4 ms a frame as a walk reveals a column of chunks.
+- **Drawn near the camera** (0079): the grid is drawn in 32 × 32 chunks, a row at a time (`ChunkReveal`): every chunk the
+  view touches whole at once, so nothing pops in on screen, and the chunks within 40 cells round it ahead, nearest first, at
+  most 256 drawn cells a frame. A cell changed in a row not drawn yet is drawn with it, from `DrawnLayers`. A planet is built in
+  nearly every cell: drawing all 1.5 million at its first look froze it for a second; now some 11 ms that frame at the default
+  zoom, 31 ms zoomed far out. Running, the column of chunks ahead is drawn over twenty-odd frames of under a millisecond
+  each, long before it shows; drawn the frame it came near, it cost 5–12 ms with the tile layers' own update.
 
 ## Deliberately not handled
 

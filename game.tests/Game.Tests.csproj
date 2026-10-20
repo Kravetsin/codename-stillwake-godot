@@ -23,6 +23,7 @@
   <!-- The client's logic, plain C# with no Godot in it, compiled here from game/ to be tested. -->
   <ItemGroup>
     <Compile Include="../game/platform/Saves.cs" Link="Game/Platform/Saves.cs" />
+    <Compile Include="../game/platform/GcPace.cs" Link="Game/Platform/GcPace.cs" />
     <Compile Include="../game/platform/WorldIndex.cs" Link="Game/Platform/WorldIndex.cs" />
     <Compile Include="../game/platform/Roster.cs" Link="Game/Platform/Roster.cs" />
     <Compile Include="../game/net/RelayFrames.cs" Link="Game/Net/RelayFrames.cs" />
@@ -33,6 +34,7 @@
     <Compile Include="../game/features/crew/Pose.cs" Link="Game/Crew/Pose.cs" />
     <Compile Include="../game/features/crew/Aim.cs" Link="Game/Crew/Aim.cs" />
     <Compile Include="../game/features/grid/Grass.cs" Link="Game/Grid/Grass.cs" />
+    <Compile Include="../game/features/grid/ChunkReveal.cs" Link="Game/Grid/ChunkReveal.cs" />
     <Compile Include="../game/features/crew/AxeSwing.cs" Link="Game/Crew/AxeSwing.cs" />
     <Compile Include="../game/features/crew/SwingArm.cs" Link="Game/Crew/SwingArm.cs" />
     <Compile Include="../game/features/crew/HarpoonShot.cs" Link="Game/Crew/HarpoonShot.cs" />

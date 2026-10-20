@@ -174,6 +174,7 @@ public partial class Lightmap : Node
     };
 
     private readonly SubViewport _main = Map(), _spots = Map();
+    private readonly SubViewport[] _maps;
     private readonly MultiMesh _mainLights = Lights(), _spotLights = Lights();
     private readonly ShaderMaterial _material = new() { Shader = Shader };
     private float[] _mainBuffer = [], _spotBuffer = [];
@@ -185,6 +186,7 @@ public partial class Lightmap : Node
 
     public Lightmap()
     {
+        _maps = [_main, _spots];
         foreach (var (map, lights) in new[] { (_main, _mainLights), (_spots, _spotLights) })
         {
             AddChild(map);
@@ -262,9 +264,11 @@ public partial class Lightmap : Node
         var area = view.Grow(Margin * Cell);
         int texel = Math.Max(1, (int)Math.Ceiling(Math.Max(area.Size.X, area.Size.Y) / MostTexels));
         var origin = (area.Position / texel).Floor() * texel;
-        var size = new Vector2I((int)Math.Ceiling((area.End.X - origin.X) / texel), (int)Math.Ceiling((area.End.Y - origin.Y) / texel));
+        // From the view's size alone, a texel spare for where the origin falls in one: the same while the camera moves, for a new size
+        // makes both maps' textures anew, some 4 ms: sized to where the view fell on the pixels, it changed by a texel nearly every frame.
+        var size = new Vector2I(Spare(area.Size.X / texel), Spare(area.Size.Y / texel));
         var place = new Transform2D(0, new Vector2(1f / texel, 1f / texel), 0, -origin / texel);
-        foreach (var map in new[] { _main, _spots })
+        foreach (var map in _maps)
         {
             if (map.Size != size) map.Size = size;
             map.CanvasTransform = place;
@@ -273,6 +277,9 @@ public partial class Lightmap : Node
         Drawn = Draw(_mainLights, main, box, ref _mainBuffer) + Draw(_spotLights, spots, box, ref _spotBuffer);
         Lit.PlaceLightmaps(origin, texel);
     }
+
+    /// <summary>Texels enough for <paramref name="texels"/> wherever the origin falls; a float a hair over a whole number is that number.</summary>
+    private static int Spare(float texels) => (int)Math.Ceiling(texels - 0.01f) + 1;
 
     private static int Draw(MultiMesh lights, IReadOnlyList<LightSource> sources, (double, double, double, double) box, ref float[] buffer)
     {

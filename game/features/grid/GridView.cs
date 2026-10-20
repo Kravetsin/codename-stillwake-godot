@@ -5,6 +5,7 @@ using Godot;
 using Stillwake.Content;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
+using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using L = Stillwake.Game.Light;
 using S = Stillwake.Game.Sound;
@@ -46,8 +47,8 @@ public partial class GridView : Node2D
     {
         _grid = grid;
         _drawn = new DrawnLayers(grid.Width, grid.Height);
-        _chunksAcross = (grid.Width + Chunk - 1) / Chunk;
-        _chunks = new bool[_chunksAcross * ((grid.Height + Chunk - 1) / Chunk)];
+        _reveal = new ChunkReveal(grid.Width, grid.Height);
+        _drawRow = DrawRow;
         // Walls and doors take the share of light a wall keeps of what reaches its face; the rest all of it.
         _back = Layer(Layers.BackWalls);
         _pipes = Layer(Layers.Pipes);
@@ -91,7 +92,7 @@ public partial class GridView : Node2D
                     _slides.Moved(change.Cell, _drawn.Structure[change.Cell] == Structure.DoorOpen);
             }
             foreach (int cell in _drawn.Stale(changes))
-                if (_chunks[ChunkOf(cell)]) DrawCell(cell, blank: false);
+                if (_reveal.Drawn(cell)) DrawCell(cell, blank: false);
         }
         _blank = false;
         if (version != _machinesVersion && MachinesMoved() && !_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
@@ -104,7 +105,9 @@ public partial class GridView : Node2D
     /// </summary>
     public override void _Process(double delta)
     {
+        long revealed = Game.Dev.FrameLog.Begin();
         Reveal();
+        Game.Dev.FrameLog.End("reveal", revealed);
         if (!_slides.Any) return;
         foreach (int cell in _slides.Advance(delta))
         {
@@ -115,37 +118,34 @@ public partial class GridView : Node2D
     }
 
     /// <summary>
-    /// How many cells square the grid is drawn in, a chunk at a time, as the camera comes near it: a planet is built in nearly
-    /// every cell, and drawing all of them at once froze its first look for a second (0079).
+    /// What of the grid is drawn, a chunk at a time as the camera comes near it, ahead of it within a budget a frame (<see cref="ChunkReveal"/>):
+    /// a planet is built in nearly every cell, and drawing all of them at once froze its first look for a second (0079).
     /// </summary>
-    private const int Chunk = 32;
+    private readonly ChunkReveal _reveal;
+    private readonly Func<int, int, int, int> _drawRow;
 
-    /// <summary>Which chunks are drawn, row by row; a cell changed in one not drawn is drawn with it, from <see cref="_drawn"/>.</summary>
-    private readonly bool[] _chunks;
-    private readonly int _chunksAcross;
+    /// <summary>Cells of view round the screen drawn at once: the camera may move after this reads it, a frame's run at most.</summary>
+    private const int Pad = 2;
 
-    private int ChunkOf(int cell) => cell / _grid.Width / Chunk * _chunksAcross + cell % _grid.Width / Chunk;
-
-    /// <summary>Draws every chunk in the view or a chunk round it not drawn yet: once each, all a look needs at once.</summary>
+    /// <summary>Draws what the view needs: the chunks on screen whole, those round it ahead a little a frame.</summary>
     private void Reveal()
     {
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
-        int down = _chunks.Length / _chunksAcross, span = Chunk * Cell;
-        int left = Math.Max(0, (int)Math.Floor(view.Position.X / span) - 1), right = Math.Min(_chunksAcross - 1, (int)Math.Floor(view.End.X / span) + 1);
-        int top = Math.Max(0, (int)Math.Floor(view.Position.Y / span) - 1), bottom = Math.Min(down - 1, (int)Math.Floor(view.End.Y / span) + 1);
-        for (int cy = top; cy <= bottom; cy++)
-            for (int cx = left; cx <= right; cx++)
+        _reveal.Reveal(new Box((int)Math.Floor(view.Position.X / Cell) - Pad, (int)Math.Floor(view.Position.Y / Cell) - Pad,
+            (int)Math.Floor(view.End.X / Cell) + Pad, (int)Math.Floor(view.End.Y / Cell) + Pad), _drawRow);
+    }
+
+    /// <summary>Draws the cells of row <paramref name="y"/> from <paramref name="x0"/> to before <paramref name="x1"/> that hold anything; answers how many.</summary>
+    private int DrawRow(int y, int x0, int x1)
+    {
+        int drawn = 0;
+        for (int cell = y * _grid.Width + x0, end = cell + x1 - x0; cell < end; cell++)
+            if (_drawn.Structure[cell] != Structure.Empty || _drawn.Back[cell] != Back.None || _drawn.Conduit[cell] != Conduit.None)
             {
-                if (_chunks[cy * _chunksAcross + cx]) continue;
-                _chunks[cy * _chunksAcross + cx] = true;
-                int w = _grid.Width;
-                for (int y = cy * Chunk; y < Math.Min(_grid.Height, (cy + 1) * Chunk); y++)
-                    for (int x = cx * Chunk; x < Math.Min(w, (cx + 1) * Chunk); x++)
-                    {
-                        int cell = y * w + x;
-                        if (_drawn.Structure[cell] != Structure.Empty || _drawn.Back[cell] != Back.None || _drawn.Conduit[cell] != Conduit.None) DrawCell(cell, blank: true);
-                    }
+                DrawCell(cell, blank: true);
+                drawn++;
             }
+        return drawn;
     }
 
     /// <summary>A doorway's slide in light, told once from the cell it leads from: its edge while it moves, the slot's or the seal's moment at rest.</summary>
@@ -293,7 +293,7 @@ public partial class GridView : Node2D
         int above = cell - _grid.Width;
         if (above < 0 || !Grass.Grows(_drawn.Structure[cell], _drawn.Material[cell], _drawn.Shape[cell], _drawn.Structure[above], _drawn.Back[above], SoilCode))
             return;
-        Put(_grass, CellOf(above), ShipTiles.GrassName(_drawn.Shape[cell], Grass.VariantOf(cell, GroundArt.GrassVariants)));
+        Put(_grass, CellOf(above), GrassNameOf(_drawn.Shape[cell], Grass.VariantOf(cell, GroundArt.GrassVariants)));
     }
 
     /// <summary>
@@ -322,17 +322,34 @@ public partial class GridView : Node2D
     /// <summary>Lays the whole picture <paramref name="name"/> on cell <paramref name="at"/> of <paramref name="layer"/>.</summary>
     private void Put(TileMapLayer layer, Vector2I at, string name) => layer.SetCell(at, ShipTiles.Source, _tiles.At(name));
 
-    /// <summary>Scrap cut from its picture; iron a panel, a grille in about one cell of seven.</summary>
+    /// <summary>Scrap or ground cut from its picture; iron a panel, a grille in about one cell of seven.</summary>
     private void DrawBack(Vector2I at, int code)
     {
-        string material = MaterialOf(code);
-        if (material == "scrap" || Materials.Get(material).Natural)
+        if (BackCutOf(code) is { } cut)
         {
-            _back.SetCell(at, ShipTiles.Source, _tiles.CutAt(material == "scrap" ? "back_scrap" : ShipTiles.BackName(material), at.X, at.Y));
+            _back.SetCell(at, ShipTiles.Source, _tiles.CutAt(cut, at.X, at.Y));
             return;
         }
         bool grille = HashOf((at.Y << 16) | at.X) % 7 == 0;
         Put(_back, at, grille ? "back_iron_grille" : "back_iron_plain");
+    }
+
+    // Names made once, not a string a cell: a planet's ground is back wall and moss over nearly every column.
+    private readonly Dictionary<int, string?> _backCuts = new();
+    private readonly Dictionary<(int, int), string> _grassNames = new();
+
+    /// <summary>The picture a back wall of material <paramref name="code"/> is cut from over the world; null for iron's panels.</summary>
+    private string? BackCutOf(int code)
+    {
+        if (_backCuts.TryGetValue(code, out var cut)) return cut;
+        string material = MaterialOf(code);
+        return _backCuts[code] = material == "scrap" ? "back_scrap" : Materials.Get(material).Natural ? ShipTiles.BackName(material) : null;
+    }
+
+    private string GrassNameOf(int shape, int variant)
+    {
+        if (!_grassNames.TryGetValue((shape, variant), out var name)) _grassNames[(shape, variant)] = name = ShipTiles.GrassName(shape, variant);
+        return name;
     }
 
     /// <summary>A number for <paramref name="cell"/> that looks random, the same every time (hashOf in ship-art.ts).</summary>

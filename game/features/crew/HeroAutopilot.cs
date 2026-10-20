@@ -232,6 +232,64 @@ public sealed class HeroAutopilot
         Wait(120),
     ]);
 
+    /// <summary>
+    /// <c>--planet --autopilot</c>: a sprint <paramref name="cells"/> to the right across the planet's surface and back, jumping
+    /// whatever stops it, to measure what running past new ground costs a frame (<c>--frames</c>).
+    /// </summary>
+    public static HeroAutopilot Sprint(int cells)
+    {
+        int? from = null;
+        int legSteps = 0;
+        var acts = new List<Act> { Wait(120) };
+        foreach (int dir in (int[])[1, -1])
+        {
+            // A leg ends at its column, or stuck a long while at a cliff too high to jump.
+            bool told = false;
+            bool Done(Hero h)
+            {
+                int start = from ??= Column(h);
+                bool done = (dir > 0 ? Column(h) >= start + cells : Column(h) <= start) || legSteps > cells * 12;
+                if (done && !told) Godot.GD.Print($"sprint: leg {dir} ended at column {Column(h)}, row {h.Y / Hero.Unit}, from {start}, {legSteps} steps");
+                told |= done;
+                return done;
+            }
+            var run = new HeroInput(dir, 0, false, Sprint: true);
+            acts.Add(new Act(Still, (_, _) => (legSteps = 0) == 0));
+            for (int i = 0; i < cells; i++)
+            {
+                acts.Add(Until(run, (h, p) => ++legSteps > 0 && (Done(h) || p.Stopped(h))));
+                acts.Add(new Act(run with { Jump = true }, (h, p) => Done(h) || p.Steps >= 1));
+                acts.Add(new Act(run, (h, p) => ++legSteps > 0 && (Done(h) || p.Steps >= 10)));
+            }
+        }
+        acts.Add(Wait(60));
+        return new HeroAutopilot(acts);
+    }
+
+    /// <summary>
+    /// Where <see cref="Sprint"/> starts: the cell over the ground at the start of the longest run of columns whose ground steps
+    /// up or down at most four cells from one to the next, so a sprint there is never caught in a pit.
+    /// </summary>
+    public static int SprintStart(Stillwake.Sim.Grid.IGridQueries grid)
+    {
+        int w = grid.Width;
+        int Top(int x)
+        {
+            for (int y = 0; y < grid.Height; y++)
+                if (grid.StructureAt(y * w + x) != Stillwake.Sim.Grid.Structure.Empty) return y;
+            return grid.Height;
+        }
+        int best = 0, bestLength = 0, start = 0, last = Top(0);
+        for (int x = 1; x < w; x++)
+        {
+            int top = Top(x);
+            if (Math.Abs(top - last) > 4) start = x;
+            if (x - start > bestLength) (best, bestLength) = (start, x - start);
+            last = top;
+        }
+        return (Top(best + 2) - 1) * w + best + 2;
+    }
+
     /// <summary><c>--slopes</c>'s script: into the corridor's far corner, under its sloped ceiling, and stand there.</summary>
     public static HeroAutopilot SlopesRun() => new([Wait(150), Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)), Wait(1)]);
 
