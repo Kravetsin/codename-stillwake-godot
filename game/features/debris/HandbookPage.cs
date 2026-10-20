@@ -11,7 +11,7 @@ using Book = Stillwake.Game.Handbook;
 namespace Stillwake.Game.Features.Debris;
 
 /// <summary>
-/// The Handbook's debris section (0066), its body on the Handbook's tablet (0081): every kind of debris in rows by
+/// The Handbook's debris section (0066), its body on the Handbook's tablet (0083): every kind of debris in rows by
 /// where to look (<c>Handbook.DebrisRows</c>), those the world has found in the first look found, the rest black
 /// silhouettes, and, at the tab strip's right (<see cref="Tally"/>), how many looks are found of all there are; beside
 /// them the kind chosen: the look chosen big, a strip of all its looks (those not found black) with how many are found,

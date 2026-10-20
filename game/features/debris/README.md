@@ -75,7 +75,7 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   the way; the pointer on it bare-handed (red), 2 chooses the axe, the left button held till it breaks,
   then the hero swims through the loot. `-- --wrecks` lines up one of every kind instead, and the
   hero swims to each in turn and chops it till it breaks, sweeping up the loot on its way.
-- **The Handbook's Debris section** (`HandbookPage`, 0066), shown on `features/handbook`'s tablet (0081): every kind
+- **The Handbook's Debris section** (`HandbookPage`, 0066), shown on `features/handbook`'s tablet (0083): every kind
   in rows by where to look (`Content/Handbook.DebrisRows`: salvage, wrecks, asteroids, derelicts), in slots 16 px
   larger than an item slot (56 px, 72 at the large slot size; loot slots are item slots), laid out again when the
   slot size changes (`HandbookScreen`), a kind

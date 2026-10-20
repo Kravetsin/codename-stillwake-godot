@@ -3,7 +3,7 @@
 The Handbook ([0066](../../../docs/decisions/0066-the-handbook.md)): the game's reference on J, debris now,
 crafts and some mechanics later. It mirrors no sim module: it is a shell, and each section is the page of the
 feature it speaks of. It is shown on the build menu's rugged tablet
-([0081](../../../docs/decisions/0081-the-handbook-is-a-tablet.md)).
+([0083](../../../docs/decisions/0083-the-handbook-is-a-tablet.md)).
 
 - **The tablet** (`shared/Tablet`, the build menu's own): the frame's 9-slice, its plate, stylus, lamp, glass and
   blue wash; J lifts it from below the bottom edge to the middle of the screen in 130 ms and puts it away in 100 ms

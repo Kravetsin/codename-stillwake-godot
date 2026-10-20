@@ -4,7 +4,7 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// The rugged tablet's measures (0073), in screen pixels: the strips its screens share, the build menu's and the
-/// Handbook's (0081), and where its art lies round the screen. Plain numbers, so the layouts built on them are tested.
+/// Handbook's (0083), and where its art lies round the screen. Plain numbers, so the layouts built on them are tested.
 /// </summary>
 public static class TabletLayout
 {

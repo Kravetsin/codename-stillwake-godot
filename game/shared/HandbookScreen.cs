@@ -4,7 +4,7 @@ using System.Linq;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// The Handbook's tablet screen (0081), in screen pixels for a slot of <paramref name="Slot"/>: fixed, its size set by
+/// The Handbook's tablet screen (0083), in screen pixels for a slot of <paramref name="Slot"/>: fixed, its size set by
 /// the slot size alone, as the build menu's (0073). The tab strip on top, then the body, the debris rows beside a kind's
 /// entry, scrolled by the wheel with a scrollbar beside it, and the line along its foot. Read by the Handbook's shell
 /// and by its debris page, so the page fills the screen it is shown on.

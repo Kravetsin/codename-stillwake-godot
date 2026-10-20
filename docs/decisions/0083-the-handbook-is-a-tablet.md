@@ -1,4 +1,4 @@
-# 0081 — The Handbook is a tablet
+# 0083 — The Handbook is a tablet
 
 - Status: accepted
 - Date: 2026-10-20

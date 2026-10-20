@@ -88,7 +88,7 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - **The menu is a rugged tablet's screen** (0073): its frame a 9-slice of pixel art at two screen pixels a pixel
   (`art/tablet_frame.png`, the plate and the stylus over it), tiled so both slot sizes are crisp; the tablet itself, its
   frame, lights, glass, slide, tabs and scrollbar, is `shared/Tablet` (measures in `TabletLayout`), the Handbook's too
-  (0081). B slides it up from
+  (0083). B slides it up from
   the bottom edge in 130 ms, easing out, and down in 100 ms, easing in (`TabletMotion`); put away, it takes no input at
   once and shows only while it slides. Its screen fades in from 60 to 140 ms, lit at once when taken out within 1.5 s
   of being put away; no flash. A faint wash of its blue and its lamp's glow are added round it, dimmed with it.

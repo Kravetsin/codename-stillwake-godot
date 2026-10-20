@@ -5,7 +5,7 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// The rugged planning tablet (0073), the build menu's and the Handbook's (0081): its screen this panel, square, edged
+/// The rugged planning tablet (0073), the build menu's and the Handbook's (0083): its screen this panel, square, edged
 /// by the bezel's recess; round it the frame's pixel art at <see cref="TabletLayout.ArtScale"/> (a 9-slice whose
 /// stretches tile, so any size is as crisp), the ID plate at the top and the stylus at the right; the screen's faint
 /// blue wash round it and the status lamp's glow; the glass's shadow and glare over what it shows. It slides and its

@@ -22,7 +22,7 @@ public static class Handbook
     ];
 
     /// <summary>
-    /// Its tablet (0081), in screen pixels: a kind's slot this much wider than an item slot, the gap between kinds, between
+    /// Its tablet (0083), in screen pixels: a kind's slot this much wider than an item slot, the gap between kinds, between
     /// the kinds and the entry, the entry's width, its picture's height, and how much taller the scrolled body is than the rows.
     /// </summary>
     public const int KindOver = 16, KindGap = 4, EntryGap = 16, EntryWidth = 380, PictureHeight = 124, BodyOver = 64;

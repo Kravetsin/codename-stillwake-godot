@@ -15,7 +15,7 @@ namespace Stillwake.Game.Features.Handbook;
 public sealed record HandbookSection(string Name, Control Body, Control? Head = null);
 
 /// <summary>
-/// The Handbook (0066), on the build menu's rugged tablet (0081): J lifts it from below the screen's bottom edge to the
+/// The Handbook (0066), on the build menu's rugged tablet (0083): J lifts it from below the screen's bottom edge to the
 /// middle and puts it away, Esc, Tab or E put it away; its screen comes on as the plan's. On the screen, the sections
 /// as tabs, the chosen one lit, and what it says at the strip's right; under them the chosen section's body, scrolled
 /// by the wheel anywhere over the tablet, a scrollbar beside it; along the foot the book, its name and the keys. Its
