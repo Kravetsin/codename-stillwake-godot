@@ -48,6 +48,11 @@ public sealed class ShipTiles
                         var top = tops.GetRegion(new Rect2I(GroundArt.TopColumn(shape, v) * Cell, front ? 2 * Cell : 0, Cell, 2 * Cell));
                         // A row with nothing in it (bedrock has no tufts before the heroes) is no tile.
                         if (!top.IsInvisible()) pictures.Add(Picture(TopName(natural, shape, v, front), top, Relief.None));
+                        if (front) continue;
+                        // Its part in the ground's own cell, laid again over a slope's lip, so the lip does not hide it.
+                        var low = (Image)top.Duplicate();
+                        low.FillRect(new Rect2I(0, 0, Cell, Cell), Colors.Transparent);
+                        if (!low.IsInvisible()) pictures.Add(Picture(TopLowName(natural, shape, v), low, Relief.None));
                     }
             // Its details over its whole cells: singles along the sheet's first row, features over several cells on the second.
             var details = Art($"planet/detail_{natural}");
@@ -73,6 +78,19 @@ public sealed class ShipTiles
                         pictures.Add(Picture(EdgeName(material, open, shape), Made(EdgeName(material, open, shape), ShapeMasks.Cut(Art($"wall-edge_{material}_{open}"), shape)), Relief.None));
             }
         }
+        // The lip before the heroes along a slope's top (FootLook.Lip): the wall's own picture cut to a band under its top, a
+        // floor slope's and a whole wall's beside one; on the hull a kick-plate, a dark line along its foot.
+        foreach (var material in Materials.All)
+            foreach (int shape in (int[])[Shape.None, Shape.BottomRight, Shape.BottomLeft])
+            {
+                var wall = shape == Shape.None ? Art($"wall_{material.Id}") : MadeImages[WallName(material.Id, shape)];
+                var foot = material.Natural || shape == Shape.None ? null : Art($"wall-edge_{material.Id}_1");
+                pictures.Add(Picture(LipName(material.Id, shape), Made(LipName(material.Id, shape), ShapeMasks.Lip(wall, shape, FootLook.Lip, foot)), Relief.None));
+                // The band runs on past a slope's foot into the whole wall under it.
+                if (shape != Shape.None)
+                    pictures.Add(Picture(LipName(material.Id, shape, below: true),
+                        Made(LipName(material.Id, shape, below: true), ShapeMasks.Lip(Art($"wall_{material.Id}"), shape, FootLook.Lip, foot, below: true)), Relief.None));
+            }
         foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", "floor", "ladder"])
             pictures.Add(Picture(name, Relief.None));
         foreach (var natural in Materials.All.Where(m => m.Natural)) pictures.Add(Picture(BackName(natural.Id), Relief.None));
@@ -230,6 +248,16 @@ public sealed class ShipTiles
     /// laid from the cell above (0082): the row behind the heroes, or the one <paramref name="front"/> of them.
     /// </summary>
     public static string TopName(string material, int shape, int variant, bool front) => $"top_{material}_{shape}_{variant}_{(front ? "front" : "back")}";
+
+    /// <summary>The part of a living edge's back row (<see cref="TopName"/>) in its ground's own cell, laid again over a slope's lip.</summary>
+    public static string TopLowName(string material, int shape, int variant) => $"top_{material}_{shape}_{variant}_low";
+
+    /// <summary>
+    /// The lip of a wall of <paramref name="material"/> cut to <paramref name="shape"/> (or whole), drawn before the heroes along its
+    /// top so a boot set in the ground there is hidden (<see cref="FootLook.Lip"/>); <paramref name="below"/>, its run on into the
+    /// whole wall under a slope. A tile cut a cell at a time as the wall's is.
+    /// </summary>
+    public static string LipName(string material, int shape, bool below = false) => $"wall_lip_{material}_{shape}{(below ? "_below" : "")}";
 
     /// <summary>Detail <paramref name="picture"/> of a natural <paramref name="material"/> (<see cref="GroundDetails"/>), a tile cut a cell at a time.</summary>
     public static string DetailName(string material, int picture) => $"detail_{material}_{picture}";

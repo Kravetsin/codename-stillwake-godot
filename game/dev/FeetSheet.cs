@@ -1,36 +1,43 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Features.Grid;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --feet-sheet=&lt;dir&gt;</c>: a contact sheet of the hero's feet on slopes (<see cref="Footing"/>), drawn alone on
-/// plain ground, fully lit, saved as <c>feet.png</c> in the folder, then the game quits. Each row a walk, a run or a stand
-/// moved by the controller over a ramp up and down, stairs of slopes and a ledge, a tile every few steps.
+/// <c>-- --feet-sheet=&lt;dir&gt;</c>: a contact sheet of the hero's feet on slopes (<see cref="Footing"/>), drawn on the
+/// grid as the game draws it (<c>--feet-ground t</c> of stone, <c>s</c> of soil; the hull without), fully lit, saved as
+/// <c>feet.png</c> in the folder, then the game quits. Each row a walk, a run or a stand moved by the controller over a ramp up
+/// and down, stairs of slopes and a ledge, a tile every few steps.
 /// </summary>
-public partial class FeetSheet(string dir) : Node
+public partial class FeetSheet(string dir, char? ground = null) : Node
 {
     private const int TileCells = 4, Zoom = 6, Columns = 10;
     private const int Tile = TileCells * (int)Rig.Cell * Zoom;
 
     // Flat, a ramp up three (/ is ◢), a plateau, down three (\ is ◣), flat, stairs of slopes up to a plateau, a cliff.
-    private static readonly Layout Map = Layout.Parse("""
-        ########################################
-        #......................................#
-        #......................................#
-        #......................................#
-        #......................................#
-        #......../##\........../######.........#
-        #......./####\......./########.........#
-        #S...../######\..../##########.........#
-        ########################################
-        ########################################
-        """);
+    private static readonly string[] MapRows =
+    [
+        "########################################",
+        "#......................................#",
+        "#......................................#",
+        "#......................................#",
+        "#......................................#",
+        @"#......../##\........../######.........#",
+        @"#......./####\......./########.........#",
+        @"#S...../######\..../##########.........#",
+        "########################################",
+        "########################################",
+    ];
+
+    private static readonly Layout Map = Layout.Parse(MapRows);
 
     /// <summary>
     /// A row of the sheet: from each of <see cref="Starts"/> (a column's middle, in cells, and the way it faces), the keys held
@@ -75,12 +82,20 @@ public partial class FeetSheet(string dir) : Node
             for (int start = 0, column = 0; start < Strips[s].Starts.Length; start++)
                 for (int t = 0; t < Strips[s].Tiles; t++) _tiles.Add((s, column++, s, start));
         var m = new Registry();
-        World.Create(1, Map, m.All);
-        _ship = Ship.Of(m.Grid, m.Rooms);
+        // Ground of a natural material (Legend.Materials), its walls drawn as a planet's, or the hull's.
+        // On ground, the open cells under open sky (no back wall), as a planet's: its living edge grows there.
+        var map = ground is char g
+            ? Layout.Parse([.. MapRows.Select(r => new string([.. r.Select(c => c == '.' ? ' ' : c)]))])
+                .WithMaterials(string.Join('\n', MapRows.Select(r => new string([.. r.Select(c => c is '#' or '/' or '\\' ? g : '.')]))))
+            : Map;
+        World.Create(1, map, m.All);
+        _ship = Ship.Of(m.Grid, m.Rooms, rules: ground != null ? Content.Surfaces.Planet : null);
         _view = new SubViewport { Size = new Vector2I(Tile, Tile), RenderTargetUpdateMode = SubViewport.UpdateMode.Always, CanvasItemDefaultTextureFilter = Viewport.DefaultCanvasItemTextureFilter.Nearest };
         AddChild(_view);
         _view.AddChild(_world = new Node2D());
-        _world.AddChild(new Ground(_ship));
+        var grid = new GridView(m.Grid);
+        _world.AddChild(grid);
+        grid.Sync(new ShownGrid("", null, null));
         _view.AddChild(_camera = new Camera2D { Zoom = new Vector2(Zoom, Zoom), Enabled = true });
         _sheet = Image.CreateEmpty(Tile * Columns, Tile * Strips.Length, false, Image.Format.Rgba8);
         Next();
@@ -107,7 +122,7 @@ public partial class FeetSheet(string dir) : Node
             var (x, face) = strip.Starts[start];
             int at = (int)(x * Hero.Unit);
             _hero = new Hero(at, Hero.GroundAt(_ship, at, Hero.Unit + 1, 0, 9 * Hero.Unit) ?? Hero.Unit, 0, 0, false, face);
-            _figure = new Figure(0x3d7dd8, own: false) { Ground = _ship };
+            _figure = new Figure(0x3d7dd8, own: false) { Ground = _ship, ZIndex = Layers.Hero };
             _world.AddChild(_figure);
             for (int i = 0; i < 20; i++) Step(Still with { Face = face });
         }
@@ -130,32 +145,5 @@ public partial class FeetSheet(string dir) : Node
         shot.Convert(Image.Format.Rgba8);
         _sheet.BlitRect(shot, new Rect2I(0, 0, Tile, Tile), new Vector2I(column * Tile, row * Tile));
         Next();
-    }
-
-    /// <summary>The cells drawn plainly: open dark, walls light, slopes as their halves, a cell's grid faint.</summary>
-    private sealed partial class Ground(Ship ship) : Node2D
-    {
-        public override void _Draw()
-        {
-            float c = (float)Rig.Cell;
-            DrawRect(new Rect2(0, 0, ship.Width * c, ship.Height * c), new Color(0.13f, 0.14f, 0.17f));
-            var wall = new Color(0.62f, 0.62f, 0.66f);
-            for (int y = 0; y < ship.Height; y++)
-                for (int x = 0; x < ship.Width; x++)
-                {
-                    int cell = y * ship.Width + x;
-                    if (ship.StructureAt(cell) != Structure.Wall) continue;
-                    var (l, t, r, b) = (x * c, y * c, (x + 1) * c, (y + 1) * c);
-                    Vector2[] shape = ship.ShapeAt(cell) switch
-                    {
-                        Shape.BottomRight => [new(r, t), new(r, b), new(l, b)],
-                        Shape.BottomLeft => [new(l, t), new(r, b), new(l, b)],
-                        _ => [new(l, t), new(r, t), new(r, b), new(l, b)],
-                    };
-                    DrawColoredPolygon(shape, wall);
-                }
-            for (int x = 0; x <= ship.Width; x++) DrawLine(new Vector2(x * c, 0), new Vector2(x * c, ship.Height * c), new Color(1, 1, 1, 0.05f), 1f / Zoom);
-            for (int y = 0; y <= ship.Height; y++) DrawLine(new Vector2(0, y * c), new Vector2(ship.Width * c, y * c), new Color(1, 1, 1, 0.05f), 1f / Zoom);
-        }
     }
 }

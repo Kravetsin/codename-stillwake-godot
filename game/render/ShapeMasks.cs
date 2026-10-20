@@ -49,6 +49,26 @@ public static class ShapeMasks
         return cut;
     }
 
+    /// <summary>
+    /// <paramref name="picture"/>, any number of cells, each cut to the band of <paramref name="depth"/> pixels under its top: a
+    /// floor slope's diagonal (<paramref name="shape"/>) or a whole wall's top row. With <paramref name="edge"/>, its outline colour
+    /// along the band's foot, as a kick-plate on the hull. <paramref name="below"/>: a whole wall under a floor slope of
+    /// <paramref name="shape"/>, cut to where the slope's band runs on into it.
+    /// </summary>
+    public static Image Lip(Image picture, int shape, int depth, Image? edge = null, bool below = false)
+    {
+        var lip = (Image)picture.Duplicate();
+        Color? foot = edge?.GetPixel(Cell / 2, 0);
+        for (int y = 0; y < lip.GetHeight(); y++)
+            for (int x = 0; x < lip.GetWidth(); x++)
+            {
+                int px = x % Cell, py = y % Cell, under = shape == Shape.None ? py : Depth(shape, px, below ? py + Cell : py);
+                if (!below && !Covers(shape, px, py) || under >= depth) lip.SetPixel(x, y, Colors.Transparent);
+                else if (under == depth - 1 && foot is Color o && o.A > 0) lip.SetPixel(x, y, o);
+            }
+        return lip;
+    }
+
     private static readonly Dictionary<int, Texture2D> Masks = new();
 
     /// <summary>A cell's picture of <paramref name="shape"/>'s solid half, white: what the aim outline traces round a shaped wall.</summary>

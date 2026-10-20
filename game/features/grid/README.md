@@ -60,6 +60,11 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   empty cell with no back wall), a rule of drawing, never the sim's: one of four pictures a top (`art/planet/grass_{shape}_{v}`,
   by a hash of the cell), two cells tall, laid from the cell above so its stems rise into it, over the edges. Dug, built
   over or roofed, the soil is bare; its cell's drawing alone lays and clears it, so a change above or below redraws it.
+- **A slope's lip:** before the heroes (`Layers.GroundFront`), along the top of every floor slope open above, of a whole
+  wall open only above beside one, and of the whole cell under such a slope, the wall again cut to a band `FootLook.Lip`
+  (10) px deep under its surface (`ShapeMasks.Lip`, `ShipTiles.LipName`), its edges, details and the living edge's
+  part in its own cell (`TopLowName`) laid over it again, so it looks the same and hides a level boot's end set into the
+  slope (`crew/Footing`). On the hull a dark line in the edge's outline colour along its foot makes it a kick-plate.
 - **Drawn near the camera** (0079): the grid is drawn in 32 × 32 chunks, a row at a time (`ChunkReveal`): every chunk the
   view touches whole at once, so nothing pops in on screen, and the chunks within 40 cells round it ahead, nearest first, at
   most 256 drawn cells a frame. A cell changed in a row not drawn yet is drawn with it, from `DrawnLayers`. A planet is built in

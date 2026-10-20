@@ -190,38 +190,41 @@ public sealed class HeroAutopilot
     public static HeroAutopilot Aside() => new([Wait(20), Hold(new HeroInput(-1, 0, false), 25), Wait(1)]);
 
     /// <summary>
-    /// <c>-- --hills --autopilot</c> (<c>HillsDemo</c>, 0069): over the first hill and back walking, then running right
-    /// over it, through the valley and up the long ramp, where it falls into the hole at its top, the high plateau's top
-    /// at row <paramref name="plateau"/>; it jumps out and runs on over the peak and off the lone ◢'s cliff to the lone
-    /// ◣'s closed side, and walks back to the ◢'s.
-    /// </summary>
-    /// <summary>
-    /// <c>--hills --feet</c>'s script, for the feet on slopes (<see cref="Footing"/>): up the first hill and still on its slope,
-    /// turned to look down it, backwards up onto the plateau, down the far slope and still on it, backwards up it again and down
-    /// the near one, then a run over the hill and back, each foot on the ground under it.
+    /// <c>--feet</c>'s script, on <c>--hills</c> or a planet's <c>--ground=slope</c>, for the feet on slopes (<see cref="Footing"/>):
+    /// up the first hill and still on its slope, turned to look down it, backwards up onto the plateau, down the far slope and
+    /// still on it, backwards up it again and down the near one, then a run over the hill and back.
     /// </summary>
     public static HeroAutopilot FeetRun()
     {
+        // Cells as the hills count them, from where the hero stands after a wait (a planet beams it down first): column 1.5 there.
+        int start = 0;
+        double At(Hero h) => (h.X - start) / (double)Hero.Unit + 1.5;
         Func<Hero, (double, double)?> Ahead(int dir) => Beside(3 * dir, -0.5);
         Act Go(int dir, int face, Func<Hero, bool> until, bool run = false) =>
             new(new HeroInput(dir, 0, false, Sprint: run), (h, _) => until(h), Ahead(face));
         return new HeroAutopilot(
         [
-            Hold(Still, 20, Ahead(1)),
-            Go(1, 1, h => h.X >= 7 * Hero.Unit + 500),
+            new(Still, (h, p) => (start = h.X) == h.X && p.Steps >= 200, Ahead(1)),
+            Go(1, 1, h => At(h) >= 7.5),
             Hold(Still, 45, Ahead(1)),
             Hold(Still, 45, Ahead(-1)),
-            Go(1, -1, h => Column(h) >= 10),
-            Go(1, 1, h => h.X >= 14 * Hero.Unit + 500),
+            Go(1, -1, h => At(h) >= 10),
+            Go(1, 1, h => At(h) >= 14.5),
             Hold(Still, 45, Ahead(1)),
-            Go(-1, 1, h => Column(h) <= 11),
-            Go(-1, -1, h => Column(h) <= 3),
-            Go(1, 1, h => Column(h) >= 17, run: true),
-            Go(-1, -1, h => Column(h) <= 3, run: true),
+            Go(-1, 1, h => At(h) <= 11),
+            Go(-1, -1, h => At(h) <= 3),
+            Go(1, 1, h => At(h) >= 17, run: true),
+            Go(-1, -1, h => At(h) <= 3, run: true),
             Hold(Still, 30, Ahead(-1)),
         ]);
     }
 
+    /// <summary>
+    /// <c>-- --hills --autopilot</c> (<c>HillsDemo</c>, 0069): over the first hill and back walking, then running right
+    /// over it, through the valley and up the long ramp, where it falls into the hole at its top, the high plateau's top
+    /// at row <paramref name="plateau"/>; it jumps out and runs on over the peak and off the lone ◢'s cliff to the lone
+    /// ◣'s closed side, and walks back to the ◢'s.
+    /// </summary>
     public static HeroAutopilot HillsRun(int plateau)
     {
         var run = new HeroInput(1, 0, false, Sprint: true);

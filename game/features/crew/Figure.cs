@@ -62,8 +62,8 @@ public partial class Figure : Node2D
 
     /// <summary>
     /// A leg's boot, drawn apart from its shin only on a slope (<see cref="Footing"/>): the bottom of <c>hero_shin.png</c>
-    /// from the top of the boot down, at the ankle, sheared upright to the slope rather than turned with the shin; on the
-    /// flat the shin is drawn whole.
+    /// from the top of the boot down, at the ankle, kept level rather than turned with the shin; on the flat the shin is drawn
+    /// whole.
     /// </summary>
     private sealed record Boot(Sprite2D Shin, Sprite2D Sole, Vector2 Ankle)
     {
@@ -72,9 +72,9 @@ public partial class Figure : Node2D
         {
             Shin.RegionEnabled = Sole.Visible = shoe != default;
             if (!Sole.Visible) return;
-            // Upright and sheared in the figure, seen from the shin's frame: turned back by the shin; blended with the shin's own.
-            double c = Math.Cos(shin), s = Math.Sin(shin), w = shoe.Along, k = shoe.Slope;
-            var x = new Vector2((float)(1 - w + w * (c + k * s)), (float)(w * (-s + k * c)));
+            // Level in the figure, seen from the shin's frame: turned back by the shin; blended with the shin's own.
+            double c = Math.Cos(shin), s = Math.Sin(shin), w = shoe.Level;
+            var x = new Vector2((float)(1 - w + w * c), (float)(-w * s));
             var y = new Vector2((float)(w * s), (float)(1 - w + w * c));
             Sole.Transform = new Transform2D(x, y, Ankle);
         }

@@ -29,7 +29,7 @@ public partial class GridView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = new();
-    private readonly TileMapLayer _back, _pipes, _valves, _walls, _details, _edges, _tops, _topsFront, _fixtures, _doors, _machines;
+    private readonly TileMapLayer _back, _pipes, _valves, _walls, _details, _edges, _tops, _lips, _lipsBelow, _lipEdges, _lipDetails, _lipTops, _topsFront, _fixtures, _doors, _machines;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
     private readonly TileMapLayer[] _cellLayers;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
@@ -60,11 +60,18 @@ public partial class GridView : Node2D
         _edges = Layer(Layers.Edges, L.WallIn);
         // The living edge over its ground, lit as the open air its top faces; over the edges, as added after them; its tufts before the heroes.
         _tops = Layer(Layers.Edges);
+        // Before the heroes along a slope's top, its lip: the wall again, cut to a band under its top, so a boot set into the
+        // ground there is hidden; its edges, details and living edge laid over it again, as they lie on the wall.
+        _lips = Layer(Layers.GroundFront, L.WallIn);
+        _lipsBelow = Layer(Layers.GroundFront, L.WallIn);
+        _lipEdges = Layer(Layers.GroundFront, L.WallIn);
+        _lipDetails = Layer(Layers.GroundFront, L.WallIn);
+        _lipTops = Layer(Layers.GroundFront);
         _topsFront = Layer(Layers.GroundFront);
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
-        _cellLayers = [_back, _pipes, _valves, _walls, _details, _edges, _fixtures, _doors];
+        _cellLayers = [_back, _pipes, _valves, _walls, _details, _edges, _lips, _lipsBelow, _lipEdges, _lipDetails, _fixtures, _doors];
         AddChild(_sockets);
         foreach (var player in (Node[])[_opens, _closes, _turns]) AddChild(player);
     }
@@ -253,6 +260,7 @@ public partial class GridView : Node2D
             if (y > 0)
             {
                 _tops.EraseCell(new Vector2I(x, y - 1));
+                _lipTops.EraseCell(new Vector2I(x, y - 1));
                 _topsFront.EraseCell(new Vector2I(x, y - 1));
             }
         }
@@ -284,6 +292,15 @@ public partial class GridView : Node2D
                         Put(_edges, at, edges[open]);
                     DrawDetail(cell);
                     DrawTop(cell);
+                    bool lipped = Lipped(cell, shape), under = LippedUnder(cell, shape);
+                    if (lipped) _lips.SetCell(at, ShipTiles.Source, _tiles.CutAt(LipNameOf(_drawn.Material[cell], shape), x, y));
+                    if (under) _lipsBelow.SetCell(at, ShipTiles.Source, _tiles.CutAt(LipNameOf(_drawn.Material[cell], _drawn.Shape[cell - _grid.Width], below: true), x, y));
+                    if (lipped || under)
+                    {
+                        if (open != 0) Put(_lipEdges, at, edges[open]);
+                        DrawDetail(cell, _lipDetails);
+                        DrawTop(cell, lip: true);
+                    }
                     break;
                 }
             case Structure.Floor:
@@ -300,23 +317,60 @@ public partial class GridView : Node2D
 
     private static readonly int SoilCode = Materials.Get("soil").Code;
 
-    /// <summary>The living edge on the wall at <paramref name="cell"/> where it shows (<see cref="Grass.Edged"/>), laid from the cell above, up into it.</summary>
-    private void DrawTop(int cell)
+    /// <summary>
+    /// Whether the wall at <paramref name="cell"/>, cut to <paramref name="shape"/>, has a lip drawn before the heroes
+    /// (<see cref="Render.ShapeMasks.Lip"/>): a floor slope open above, or a whole wall open above only, beside one, where a
+    /// boot standing across the corner goes into it.
+    /// </summary>
+    private bool Lipped(int cell, int shape)
+    {
+        int w = _grid.Width, x = cell % w, above = cell - w;
+        if (above < 0 || _drawn.Structure[above] == Structure.Wall) return false;
+        if (Shape.IsFloor(shape)) return true;
+        if (shape != Shape.None || (~WalledSides(cell) & 15) != Doorways.Up) return false;
+        bool Slope(int c) => _drawn.Structure[c] == Structure.Wall && Shape.IsFloor(_drawn.Shape[c]);
+        return x > 0 && Slope(cell - 1) || x < w - 1 && Slope(cell + 1);
+    }
+
+    /// <summary>Whether the whole wall at <paramref name="cell"/> lies under a lipped floor slope, whose band runs on into it.</summary>
+    private bool LippedUnder(int cell, int shape)
+    {
+        int above = cell - _grid.Width;
+        return shape == Shape.None && above >= 0 && _drawn.Structure[above] == Structure.Wall && Shape.IsFloor(_drawn.Shape[above]) && Lipped(above, _drawn.Shape[above]);
+    }
+
+    private readonly Dictionary<(int, int, bool), string> _lipNames = new();
+
+    private string LipNameOf(int code, int shape, bool below = false)
+    {
+        if (!_lipNames.TryGetValue((code, shape, below), out var name)) _lipNames[(code, shape, below)] = name = ShipTiles.LipName(MaterialOf(code), shape, below);
+        return name;
+    }
+
+    /// <summary>The living edge on the wall at <paramref name="cell"/> where it shows (<see cref="Grass.Edged"/>), laid from the cell above, up into it; over its lip, only its part in the wall's cell.</summary>
+    private void DrawTop(int cell, bool lip = false)
     {
         int above = cell - _grid.Width, material = _drawn.Material[cell], shape = _drawn.Shape[cell];
         if (above < 0 || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), shape, _drawn.Structure[above], _drawn.Back[above], SoilCode))
             return;
-        var (back, front) = TopNamesOf(material, shape, Grass.VariantOf(cell, GroundArt.TopVariants(shape)));
+        int variant = Grass.VariantOf(cell, GroundArt.TopVariants(shape));
+        if (lip)
+        {
+            string low = ShipTiles.TopLowName(MaterialOf(material), shape, variant);
+            if (_tiles.Has(low)) Put(_lipTops, CellOf(above), low);
+            return;
+        }
+        var (back, front) = TopNamesOf(material, shape, variant);
         Put(_tops, CellOf(above), back);
         if (front != null) Put(_topsFront, CellOf(above), front);
     }
 
-    /// <summary>The detail <paramref name="cell"/> shows over its ground (<see cref="GroundDetails"/>), if any.</summary>
-    private void DrawDetail(int cell)
+    /// <summary>The detail <paramref name="cell"/> shows over its ground (<see cref="GroundDetails"/>), if any, on <paramref name="layer"/>: the details', or the lip's.</summary>
+    private void DrawDetail(int cell, TileMapLayer? layer = null)
     {
         int x = cell % _grid.Width, y = cell / _grid.Width;
         var detail = GroundDetails.At(x, y, _groundAt);
-        if (detail.Picture >= 0) _details.SetCell(new Vector2I(x, y), ShipTiles.Source, _tiles.CutAt(DetailNameOf(_drawn.Material[cell], detail.Picture), detail.Dx, detail.Dy));
+        if (detail.Picture >= 0) (layer ?? _details).SetCell(new Vector2I(x, y), ShipTiles.Source, _tiles.CutAt(DetailNameOf(_drawn.Material[cell], detail.Picture), detail.Dx, detail.Dy));
     }
 
     /// <summary>Draws the details of the drawn cells of <paramref name="cell"/>'s block anew, which its own change may have changed.</summary>
@@ -329,7 +383,9 @@ public partial class GridView : Node2D
                 int c = y * w + x;
                 if (!_reveal.Drawn(c)) continue;
                 _details.EraseCell(new Vector2I(x, y));
+                _lipDetails.EraseCell(new Vector2I(x, y));
                 DrawDetail(c);
+                if (_drawn.Structure[c] == Structure.Wall && (Lipped(c, _drawn.Shape[c]) || LippedUnder(c, _drawn.Shape[c]))) DrawDetail(c, _lipDetails);
             }
     }
 

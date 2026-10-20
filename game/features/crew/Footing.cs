@@ -3,36 +3,36 @@ using System;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The ground under a foot, from the hero's feet, in pixels: <see cref="Below"/> how far down it is (up is negative), and
-/// <see cref="Slope"/> how it runs, down per pixel ahead the way the hero faces, at most 1 (45°) either way.
+/// The ground under a foot, from the hero's feet, in pixels: <see cref="Below"/> how far down it is under the column of its
+/// ankle (up is negative), and under the whole boot, heel to toe, the <see cref="Lowest"/> and the <see cref="Highest"/>.
 /// </summary>
-public readonly record struct Underfoot(double Below, double Slope);
+public readonly record struct Underfoot(double Below, double Lowest, double Highest);
 
 /// <summary>
-/// How a boot sits: with its shin as the pose has it, or, as far as <see cref="Along"/> says (0 to 1), upright and sheared
-/// to the ground's <see cref="Slope"/>: each column of its picture shifted up or down with the slope, its sole following the
-/// ground in pixel steps, the column under the ankle where it was. None on the flat.
+/// How a boot sits: with its shin as the pose has it, or, as far as <see cref="Level"/> says (0 to 1), level, as the ground pick
+/// page draws a boot on a slope. None on the flat.
 /// </summary>
-public readonly record struct Shoe(double Slope, double Along);
+public readonly record struct Shoe(double Level);
 
 /// <summary>How the legs stand this frame: each leg's bend and its boot, and how far the hips and body <see cref="Drop"/>, in pixels.</summary>
 public readonly record struct Stance(Bend FrontLeg, Bend BackLeg, Shoe FrontShoe, Shoe BackShoe, double Drop);
 
 /// <summary>
-/// Where one foot is to stand this frame, from the hero's feet the way it faces: its sole, whether it is down, so its hip
-/// must reach it, the ground under it (how far down and how it runs), and how far the page's walk has taken over
-/// (<see cref="Steep"/>): how far its boot is sheared along the ground rather than turned with its shin.
+/// Where one foot is to stand this frame, from the hero's feet the way it faces: the sole under its ankle, whether it is down,
+/// so its hip must reach it, the ground under it, how far the page's walk has taken over (<see cref="Steep"/>), and how high it
+/// is lifted over the ground (<see cref="Lift"/>).
 /// </summary>
-public readonly record struct Footfall(Vec Sole, bool Down, Underfoot Ground, double Steep);
+public readonly record struct Footfall(Vec Sole, bool Down, Underfoot Ground, double Steep, double Lift = 0);
 
 /// <summary>
 /// The legs on uneven ground, a pass over the pose (<see cref="Poses.LimbsOf"/>) while the hero stands, walks or runs.
 /// On a slope the feet go as the ground pick page's walker puts them: each a short stride (<see cref="FootLook.Stride"/>)
 /// about the middle, lifted <see cref="FootLook.Lift"/> as it swings, over the ground under it; the hips just low enough for
-/// a foot that is down to reach, eased, but not so low that a knee folds past <see cref="FootLook.Fold"/> (the lower foot
-/// then touches with its toe or heel); each leg reaching hip to ankle, knee forward. The boot is sheared upright to the
-/// slope rather than turned, so it stands on it, never in it, and never swings up into the knee. Blended in by how steep
-/// the ground is, eased, so on the flat the pose's own legs stay. One per figure: it keeps the steepness and the drop.
+/// a foot that is down to reach, eased; each leg reaching hip to ankle, knee forward, a swinging one lowered rather than
+/// folded past <see cref="FootLook.Fold"/>. The boot stays level, as the page's: a foot that is down rests on the lowest
+/// ground under it, so none of it floats, its other end in the ground behind the slope's front lip (<c>GridView</c>,
+/// <see cref="FootLook.Lip"/>). Blended in by how steep the ground is, eased, so on the flat the pose's own legs stay.
+/// One per figure: it keeps the steepness and the drop between frames.
 /// </summary>
 public sealed class Footing
 {
@@ -51,8 +51,8 @@ public sealed class Footing
     /// <summary>A foot lifted less than this, in pixels, is down (the page's).</summary>
     private const double Down = 0.3;
 
-    /// <summary>How far either side of the middle the ground is read for how steep it is, and either side of a foot for its slope.</summary>
-    private const double Span = 4, Lean = 2;
+    /// <summary>How far either side of the middle the ground is read for how steep it is.</summary>
+    private const double Span = 4;
 
     private double _drop, _steep;
 
@@ -81,8 +81,8 @@ public sealed class Footing
             _drop = Settled(_drop, 0, share);
             return new Stance(pose.FrontLeg, pose.BackLeg, default, default, _drop);
         }
-        var front = Fall(pose, true, doing, travelled, _steep, Under(ship!, hero, Page(pose, true, doing, travelled, _steep).X));
-        var back = Fall(pose, false, doing, travelled, _steep, Under(ship!, hero, Page(pose, false, doing, travelled, _steep).X));
+        var front = Fall(pose, true, doing, travelled, _steep, ship!, hero);
+        var back = Fall(pose, false, doing, travelled, _steep, ship!, hero);
         _drop = Settled(_drop, DropFor(pose, front, back, _steep), share);
         return Solve(pose, front, back, _drop);
     }
@@ -109,36 +109,53 @@ public sealed class Footing
         return new Vec(own.X + (x - own.X) * steep, -own.Y + (lift + own.Y) * steep);
     }
 
-    /// <summary>Where a foot stands over the ground <paramref name="under"/> it (none for none in reach: the hero's own level): as far along and as high over it as <see cref="Page"/> says.</summary>
-    public static Footfall Fall(Limbs pose, bool front, Pose doing, double travelled, double steep, Underfoot? under)
+    /// <summary>
+    /// Where a foot of <paramref name="pose"/> stands on <paramref name="ship"/>'s ground: as far along and as high as
+    /// <see cref="Page"/> says. As the page's walk takes over, a foot that is down sets the end of its level boot over the lower
+    /// ground where the page sets its foot, its heel going up a slope, its toe down one, and rests on the lowest ground under the
+    /// boot, so none of it floats; a swinging one is lifted over the ground under its ankle.
+    /// </summary>
+    public static Footfall Fall(Limbs pose, bool front, Pose doing, double travelled, double steep, Ship ship, Hero hero)
+    {
+        var at = Page(pose, front, doing, travelled, steep);
+        double shift = 0;
+        if (at.Y < Down && Below(ship, hero, at.X - 1) is double behind && Below(ship, hero, at.X + 1) is double ahead)
+            shift = (ahead < behind ? Heel : ahead > behind ? -Toe : 0) * steep;
+        return Fall(pose, front, doing, travelled, steep, Under(ship, hero, at.X + shift), shift);
+    }
+
+    /// <summary>
+    /// Where a foot stands over the ground <paramref name="under"/> its boot (none for none in reach: the hero's own level), the
+    /// ankle <paramref name="shift"/> along from where <see cref="Page"/> puts it: over the ground under its ankle on the flat; as
+    /// the page's walk takes over, a foot that is down on the lowest ground under its level boot.
+    /// </summary>
+    public static Footfall Fall(Limbs pose, bool front, Pose doing, double travelled, double steep, Underfoot? under, double shift = 0)
     {
         var at = Page(pose, front, doing, travelled, steep);
         var ground = under ?? default;
-        return new Footfall(new Vec(at.X, ground.Below - at.Y), at.Y < Down, ground, steep);
+        bool down = at.Y < Down;
+        double rests = ground.Below + (down ? ground.Lowest - ground.Below : 0) * steep;
+        return new Footfall(new Vec(at.X + shift, rests - at.Y), down, ground, steep, Math.Max(0, at.Y));
     }
 
     /// <summary>
     /// How far the hips drop from the pose's: toward the page's natural height as the page's walk takes over, and lower
-    /// for a foot that is down to reach it; never so far that a foot that is down folds its knee tighter than
-    /// <see cref="FootLook.Fold"/> (the lower then reaches with its toe or heel), and at most <see cref="FootLook.MostDrop"/>.
+    /// for a foot that is down to reach it, at most <see cref="FootLook.MostDrop"/>.
     /// </summary>
     public static double DropFor(Limbs pose, Footfall front, Footfall back, double steep)
     {
         double hips = (ToFigure(HipOf(true), pose, 0).Y + ToFigure(HipOf(false), pose, 0).Y) / 2;
-        double drop = (-Rig.Hip * 0.98 - hips) * steep, most = FootLook.MostDrop;
+        double drop = (-Rig.Hip * 0.98 - hips) * steep;
         foreach (var (isFront, fall) in (ReadOnlySpan<(bool, Footfall)>)[(true, front), (false, back)])
         {
+            if (!fall.Down) continue;
             var hip = ToFigure(HipOf(isFront), pose, 0);
-            var leg = isFront ? pose.FrontLeg : pose.BackLeg;
-            var (reach, near) = Reaches(pose, isFront, steep);
-            // A swinging foot can come down to the ground, no lower: the knee is kept from folding past Fold there too.
-            var sole = fall.Down ? fall.Sole : fall.Sole with { Y = fall.Ground.Below };
-            var ankle = AnkleOver(sole, Lies(pose, leg), fall.Steep);
+            double reach = Reaches(pose, isFront, steep).Reach;
+            var ankle = AnkleFor(fall, Lies(pose, isFront ? pose.FrontLeg : pose.BackLeg));
             double dx = ankle.X - hip.X, dy = ankle.Y - hip.Y;
-            if (fall.Down) drop = Math.Max(drop, dy - Math.Sqrt(Math.Max(0, reach * reach - dx * dx)));
-            if (Math.Abs(dx) < near && (fall.Down || fall.Steep > 0)) most = Math.Min(most, dy - Math.Sqrt(near * near - dx * dx));
+            drop = Math.Max(drop, dy - Math.Sqrt(Math.Max(0, reach * reach - dx * dx)));
         }
-        drop = Math.Max(0, Math.Min(drop, most));
+        drop = Math.Max(0, Math.Min(drop, FootLook.MostDrop));
         return drop < 1e-6 ? 0 : drop;
     }
 
@@ -187,9 +204,9 @@ public sealed class Footing
         double shin = Lies(pose, leg);
         var ankle = AnkleOver(SoleOf(pose, front, leg, drop), shin, 0);
         var (c, s) = (Math.Cos(shin), Math.Sin(shin));
-        // Turned with the shin, or upright and sheared to the slope, blended.
-        double x = (along * c - down * s) * (1 - shoe.Along) + along * shoe.Along;
-        double y = (along * s + down * c) * (1 - shoe.Along) + (down + along * shoe.Slope) * shoe.Along;
+        // Turned with the shin, or level, blended.
+        double x = (along * c - down * s) * (1 - shoe.Level) + along * shoe.Level;
+        double y = (along * s + down * c) * (1 - shoe.Level) + down * shoe.Level;
         return new Vec(ankle.X + x, ankle.Y + y);
     }
 
@@ -202,35 +219,23 @@ public sealed class Footing
         if (drop == 0 && fall.Sole == FootOf(pose, front) && fall.Steep == 0) return (leg, default);
         // Hip to ankle, knee forward: the ankle over the sole as the pose's boot has it on the flat, straight above it as the
         // sheared boot has it on a slope.
-        var ankle = AnkleOver(fall.Sole, Lies(pose, leg), fall.Steep);
+        var ankle = AnkleFor(fall, Lies(pose, leg));
         if (!fall.Down && fall.Steep > 0)
         {
-            // Swinging, the foot comes down toward the ground, no further than onto it, before its knee folds past Fold.
+            // Swinging, the foot comes down, into the ground no deeper than its lip hides, before its knee folds past Fold.
             var hipAt = ToFigure(HipOf(front), pose, drop);
             double near = Reaches(pose, front, fall.Steep).Near, dx = ankle.X - hipAt.X;
             if (Math.Abs(dx) < near)
-                ankle = ankle with { Y = Math.Max(ankle.Y, Math.Min(hipAt.Y + Math.Sqrt(near * near - dx * dx), ankle.Y + fall.Ground.Below - fall.Sole.Y)) };
+                ankle = ankle with { Y = Math.Max(ankle.Y, Math.Min(hipAt.Y + Math.Sqrt(near * near - dx * dx), fall.Ground.Highest + FootLook.Lip - 1 - Ankle)) };
         }
         var at = ToParts(ankle, pose, drop);
         var hip = HipOf(front);
         var bend = Rig.Reach(new Vec(at.X - hip.X, at.Y - hip.Y), Rig.Leg with { Lower = Rig.Leg.Lower - Ankle }, -1);
-        if (fall.Steep == 0) return (bend, default);
-        // A foot that is down but short of the ground, its leg straight, reaches it with its toe or heel: its boot sheared
-        // steeper than the slope, by no more than Tip, till that end touches.
-        double slope = fall.Ground.Slope;
-        if (fall.Down)
-        {
-            var reached = AnkleOver(SoleOf(pose, front, bend, drop), Lies(pose, bend), 0);
-            double Gap(double along) => fall.Ground.Below + slope * (reached.X + along - fall.Sole.X) - (reached.Y + Ankle + along * slope);
-            if (Gap(0) > 0.05)
-            {
-                double toe = slope + Gap(Toe) / Toe, heel = slope - Gap(-Heel) / Heel;
-                double tipped = Math.Abs(toe - slope) < Math.Abs(heel - slope) ? toe : heel;
-                slope += Math.Clamp(tipped - slope, -FootLook.Tip, FootLook.Tip);
-            }
-        }
-        return (bend, new Shoe(slope, fall.Steep));
+        return (bend, fall.Steep == 0 ? default : new Shoe(fall.Steep));
     }
+
+    /// <summary>Where the ankle goes for a footfall: over its sole as the pose's own boot has it on the flat, straight above it, the boot level, on a slope.</summary>
+    private static Vec AnkleFor(Footfall fall, double shin) => AnkleOver(fall.Sole, shin, fall.Steep);
 
     /// <summary>The ankle over a sole at <paramref name="sole"/>: along a shin turned <paramref name="shin"/>, or straight above it as far as <paramref name="upright"/> says.</summary>
     private static Vec AnkleOver(Vec sole, double shin, double upright) =>
@@ -278,8 +283,11 @@ public sealed class Footing
     private static Underfoot? Under(Ship ship, Hero hero, double along)
     {
         if (Below(ship, hero, along) is not double at) return null;
-        double ahead = Below(ship, hero, along + Lean) ?? at, behind = Below(ship, hero, along - Lean) ?? at;
-        return new Underfoot(at, Math.Clamp((ahead - behind) / (2 * Lean), -1, 1));
+        double lowest = at, highest = at;
+        // Heel to toe a pixel and a half apart, the ends included: a corner under the boot is not missed.
+        for (double x = -Heel; x <= Toe + 1e-9; x += (Heel + Toe) / 6)
+            if (Below(ship, hero, along + x) is double ground) (lowest, highest) = (Math.Max(lowest, ground), Math.Min(highest, ground));
+        return new Underfoot(at, lowest, highest);
     }
 
     private static double Settled(double from, double to, double share)

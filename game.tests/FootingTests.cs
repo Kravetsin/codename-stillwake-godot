@@ -22,7 +22,7 @@ public class FootingTests
         #............#
         #............#
         #............#
-        #......./#####
+        #....../######
         #...../#######
         #S.../########
         ##############
@@ -92,18 +92,21 @@ public class FootingTests
         PoseTests.Close(2 / FootLook.Stride, Footing.Quicken(Pose.Run) * 2 * Math.PI / (Stride.Run * Rig.Cell), 9);
     }
 
-    /// <summary>How far above the ramp the lowest point round a boot of <paramref name="stance"/> is, sole and top from heel to toe.</summary>
-    private static double Above(Limbs limbs, Stance stance, bool front, Hero hero)
+    /// <summary>
+    /// How far above the ramp the sole of a boot of <paramref name="stance"/> is, heel to toe: at its point lowest under the
+    /// ground (most in it) and at its point highest over it.
+    /// </summary>
+    private static (double Deepest, double Highest) Sole(Limbs limbs, Stance stance, bool front, Hero hero)
     {
         var (leg, shoe) = front ? (stance.FrontLeg, stance.FrontShoe) : (stance.BackLeg, stance.BackShoe);
-        double above = double.MaxValue;
+        double deepest = double.MaxValue, highest = double.MinValue;
         for (double along = -Footing.Heel; along <= Footing.Toe; along += 0.5)
-            foreach (double down in new[] { 0, Footing.Ankle })
-            {
-                var at = Footing.BootAt(limbs, front, leg, shoe, stance.Drop, along, down);
-                above = Math.Min(above, RampBelow(hero, at.X) - at.Y);
-            }
-        return above;
+        {
+            var at = Footing.BootAt(limbs, front, leg, shoe, stance.Drop, along, Footing.Ankle);
+            double above = RampBelow(hero, at.X) - at.Y;
+            (deepest, highest) = (Math.Min(deepest, above), Math.Max(highest, above));
+        }
+        return (deepest, highest);
     }
 
     /// <summary>How far a leg reaches, hip to ankle, as a share of its reach straight.</summary>
@@ -116,20 +119,19 @@ public class FootingTests
     [Theory]
     [InlineData(1)]
     [InlineData(-1)]
-    public void StandingOnASlopeEachBootStandsOnTheGroundShearedAlongIt(int facing)
+    public void StandingOnASlopeEachBootIsLevelItsLowEndOnTheGroundItsOtherEndInItNoDeeperThanTheLip(int facing)
     {
         var hero = OnRamp(facing);
         var limbs = Posed(Pose.Stand, hero, 0);
         var stance = Settled(new Footing(), limbs, Pose.Stand, 0, Ramp, hero);
         foreach (bool front in new[] { true, false })
         {
-            Assert.InRange(Above(limbs, stance, front, hero), -0.05, 0.05);
-            Assert.Equal(1, (front ? stance.FrontShoe : stance.BackShoe).Along);
+            Assert.Equal(new Shoe(1), front ? stance.FrontShoe : stance.BackShoe);
+            var (deepest, highest) = Sole(limbs, stance, front, hero);
+            PoseTests.Close(0, highest, 1);
+            Assert.True(deepest > -FootLook.Lip, $"a boot is {-deepest} px in the ground, under the lip");
         }
-        // The uphill foot flush with the ramp; the hips no lower than lets its knee keep Fold.
-        var uphill = facing > 0 ? stance.FrontShoe : stance.BackShoe;
-        Assert.Equal(-facing, uphill.Slope, 6);
-        Assert.True(Reached(facing > 0 ? stance.FrontLeg : stance.BackLeg) >= FootLook.Fold - 0.01);
+        Assert.True(Reached(stance.FrontLeg) >= 0.45 && Reached(stance.BackLeg) >= 0.45, "a knee folds shut");
     }
 
     [Theory]
@@ -137,38 +139,34 @@ public class FootingTests
     [InlineData(Pose.Walk, -1)]
     [InlineData(Pose.Run, 1)]
     [InlineData(Pose.Run, -1)]
-    public void OnASlopeNoBootSinksAFootThatIsDownStandsOnTheGroundMostlyFlushAndNoKneeFoldsShut(Pose pose, int facing)
+    public void OnASlopeNoBootThatIsDownFloatsNoneSinksPastTheLipNoSwingingOneSinksAndNoKneeFoldsShut(Pose pose, int facing)
     {
         var hero = OnRamp(facing) with { Vx = (pose == Pose.Run ? 176 : 96) * facing };
         double cycle = pose == Pose.Run ? Stride.Run : Stride.Walk;
-        int down = 0, flush = 0;
         for (double travelled = 0; travelled < cycle; travelled += cycle / 40)
         {
             var limbs = Posed(pose, hero, travelled);
             var stance = Settled(new Footing(), limbs, pose, travelled, Ramp, hero);
             foreach (bool front in new[] { true, false })
             {
-                double above = Above(limbs, stance, front, hero);
-                Assert.True(above > -0.05, $"a boot sinks {-above} px at {travelled}");
-                var (leg, shoe) = front ? (stance.FrontLeg, stance.FrontShoe) : (stance.BackLeg, stance.BackShoe);
+                var leg = front ? stance.FrontLeg : stance.BackLeg;
                 // The hips never drop a knee past Fold; the stride itself, the hips at their height, bends one further, never shut.
-                Assert.True(Reached(leg) >= 0.5, $"a knee folds to {Reached(leg)} of its reach at {travelled}");
-                if (!Footing.Fall(limbs, front, pose, travelled, 1, null).Down) continue;
-                down++;
-                Assert.True(above < 0.05, $"a foot that is down stands {above} px over the ground at {travelled}");
-                if (Math.Abs(shoe.Slope + facing) < 1e-6) flush++;
+                Assert.True(Reached(leg) >= 0.4, $"a knee folds to {Reached(leg)} of its reach at {travelled}");
+                var (deepest, highest) = Sole(limbs, stance, front, hero);
+                Assert.True(deepest > -FootLook.Lip, $"a boot is {-deepest} px in the ground, under the lip, at {travelled}");
+                if (Footing.Fall(limbs, front, pose, travelled, 1, null).Down)
+                    Assert.True(highest < 0.05 && highest > -0.3, $"a foot that is down stands {highest} px over the ground at its highest at {travelled}");
+                else Assert.True(deepest > -FootLook.Lip, $"a swinging boot is {-deepest} px in the ground at {travelled}");
             }
         }
-        // The rest stand on their toe or heel: the hips stop short of folding the other knee.
-        Assert.True(flush * 5 >= down * 3, $"only {flush} of {down} feet that are down lie flush");
     }
 
     [Fact]
     public void AFootOutOfReachHangsFromAStraightLeg()
     {
         var limbs = Posed(Pose.Stand, OnFlat, 0);
-        var deep = new Footfall(new Vec(2, 30), true, new Underfoot(30, 0), 0);
-        var level = Footing.Fall(limbs, false, Pose.Stand, 0, 0, new Underfoot(0, 0));
+        var deep = new Footfall(new Vec(2, 30), true, new Underfoot(30, 30, 30), 0);
+        var level = Footing.Fall(limbs, false, Pose.Stand, 0, 0, new Underfoot(0, 0, 0));
         double drop = Footing.DropFor(limbs, deep, level, 0);
         // As low as the other leg, on the level, lets them go before its knee folds past Fold.
         Assert.InRange(drop, 1, FootLook.MostDrop);
