@@ -13,6 +13,7 @@ public static partial class En
 {
     public static readonly IReadOnlyDictionary<string, string> Table = new Dictionary<string, string>(StringComparer.Ordinal)
     {
+        ["world.elsewhere"] = "You are not there any more",
         ["grid.outOfBounds"] = "Outside the ship",
         ["grid.outsideZone"] = "Outside the build area",
         ["grid.occupied"] = "Something is already there",

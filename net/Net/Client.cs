@@ -66,6 +66,8 @@ public sealed class Client
     /// <summary>Asks the host to apply a command; it takes effect on the tick the host puts it in.</summary>
     public void Send(Command command)
     {
+        // Stamped with where this peer is now: should its hero leave before the tick, the command is refused (0076).
+        command = command with { Surface = World.SurfaceOf(Id) };
         _inFlight.Add(command);
         _channel.Send(new CommandMessage(World.Encode(command)));
     }

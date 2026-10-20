@@ -25,7 +25,8 @@ the same JSON, so in-process tests carry what the wire carries.
 |                             | `resync`: the host player's world, saved          |
 
 Commands travel encoded by the sender's world (`World.Encode`), and are decoded by each peer's
-(`World.Decode`) with `From` set from the stamp. The host runs no world and never decodes them.
+(`World.Decode`) with `From` set from the stamp. The host runs no world and never decodes them. `Client.Send`
+stamps each with the surface its peer is on (`Surface`, 0076), so one whose hero has moved on by its tick is refused.
 
 ## The session
 
