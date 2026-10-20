@@ -28,7 +28,7 @@ public partial class GridView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = new();
-    private readonly TileMapLayer _back, _pipes, _valves, _walls, _edges, _fixtures, _doors, _machines;
+    private readonly TileMapLayer _back, _pipes, _valves, _walls, _edges, _grass, _fixtures, _doors, _machines;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
     private readonly TileMapLayer[] _cellLayers;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
@@ -46,12 +46,16 @@ public partial class GridView : Node2D
     {
         _grid = grid;
         _drawn = new DrawnLayers(grid.Width, grid.Height);
+        _chunksAcross = (grid.Width + Chunk - 1) / Chunk;
+        _chunks = new bool[_chunksAcross * ((grid.Height + Chunk - 1) / Chunk)];
         // Walls and doors take the share of light a wall keeps of what reaches its face; the rest all of it.
         _back = Layer(Layers.BackWalls);
         _pipes = Layer(Layers.Pipes);
         _valves = Layer(Layers.Valves);
         _walls = Layer(Layers.Walls, L.WallIn);
         _edges = Layer(Layers.Edges, L.WallIn);
+        // Moss over its soil, lit as the open air its top faces; over the edges, as added after them.
+        _grass = Layer(Layers.Edges);
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
@@ -77,10 +81,8 @@ public partial class GridView : Node2D
     {
         int version = _grid.Version;
         var changes = _drawn.Follow(_grid, shown);
-        // The first drawing: every cell with anything in it changed, the empty ones beside them need nothing, and nothing moved.
-        if (_blank)
-            foreach (var change in changes) DrawCell(change.Cell, blank: true);
-        else
+        // The first look: nothing is drawn yet, and nothing moved; the chunks round the camera are drawn as it comes (Reveal).
+        if (!_blank)
         {
             foreach (var change in changes)
             {
@@ -88,7 +90,8 @@ public partial class GridView : Node2D
                 if (IsDoor(change.Structure) && IsDoor(_drawn.Structure[change.Cell]) && change.Structure != _drawn.Structure[change.Cell])
                     _slides.Moved(change.Cell, _drawn.Structure[change.Cell] == Structure.DoorOpen);
             }
-            foreach (int cell in _drawn.Stale(changes)) DrawCell(cell, blank: false);
+            foreach (int cell in _drawn.Stale(changes))
+                if (_chunks[ChunkOf(cell)]) DrawCell(cell, blank: false);
         }
         _blank = false;
         if (version != _machinesVersion && MachinesMoved() && !_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
@@ -101,6 +104,7 @@ public partial class GridView : Node2D
     /// </summary>
     public override void _Process(double delta)
     {
+        Reveal();
         if (!_slides.Any) return;
         foreach (int cell in _slides.Advance(delta))
         {
@@ -108,6 +112,40 @@ public partial class GridView : Node2D
             DrawDoor(cell);
             Light(cell);
         }
+    }
+
+    /// <summary>
+    /// How many cells square the grid is drawn in, a chunk at a time, as the camera comes near it: a planet is built in nearly
+    /// every cell, and drawing all of them at once froze its first look for a second (0079).
+    /// </summary>
+    private const int Chunk = 32;
+
+    /// <summary>Which chunks are drawn, row by row; a cell changed in one not drawn is drawn with it, from <see cref="_drawn"/>.</summary>
+    private readonly bool[] _chunks;
+    private readonly int _chunksAcross;
+
+    private int ChunkOf(int cell) => cell / _grid.Width / Chunk * _chunksAcross + cell % _grid.Width / Chunk;
+
+    /// <summary>Draws every chunk in the view or a chunk round it not drawn yet: once each, all a look needs at once.</summary>
+    private void Reveal()
+    {
+        var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
+        int down = _chunks.Length / _chunksAcross, span = Chunk * Cell;
+        int left = Math.Max(0, (int)Math.Floor(view.Position.X / span) - 1), right = Math.Min(_chunksAcross - 1, (int)Math.Floor(view.End.X / span) + 1);
+        int top = Math.Max(0, (int)Math.Floor(view.Position.Y / span) - 1), bottom = Math.Min(down - 1, (int)Math.Floor(view.End.Y / span) + 1);
+        for (int cy = top; cy <= bottom; cy++)
+            for (int cx = left; cx <= right; cx++)
+            {
+                if (_chunks[cy * _chunksAcross + cx]) continue;
+                _chunks[cy * _chunksAcross + cx] = true;
+                int w = _grid.Width;
+                for (int y = cy * Chunk; y < Math.Min(_grid.Height, (cy + 1) * Chunk); y++)
+                    for (int x = cx * Chunk; x < Math.Min(w, (cx + 1) * Chunk); x++)
+                    {
+                        int cell = y * w + x;
+                        if (_drawn.Structure[cell] != Structure.Empty || _drawn.Back[cell] != Back.None || _drawn.Conduit[cell] != Conduit.None) DrawCell(cell, blank: true);
+                    }
+            }
     }
 
     /// <summary>A doorway's slide in light, told once from the cell it leads from: its edge while it moves, the slot's or the seal's moment at rest.</summary>
@@ -201,7 +239,11 @@ public partial class GridView : Node2D
         int x = cell % _grid.Width, y = cell / _grid.Width;
         var at = new Vector2I(x, y);
         if (!blank)
+        {
             foreach (var layer in _cellLayers) layer.EraseCell(at);
+            // Moss is laid from the cell above its soil, and only this cell's drawing lays it there.
+            if (y > 0) _grass.EraseCell(new Vector2I(x, y - 1));
+        }
 
         if (_drawn.Back[cell] == Back.Wall) DrawBack(at, _drawn.BackMaterial[cell]);
 
@@ -228,6 +270,7 @@ public partial class GridView : Node2D
                     int open = ~WalledSides(cell) & Shape.ClosedSides(shape);
                     if (open != 0)
                         Put(_edges, at, edges[open]);
+                    DrawGrass(cell);
                     break;
                 }
             case Structure.Floor:
@@ -240,6 +283,17 @@ public partial class GridView : Node2D
                 DrawDoor(cell);
                 break;
         }
+    }
+
+    private static readonly int SoilCode = Materials.Get("soil").Code;
+
+    /// <summary>Moss on the wall at <paramref name="cell"/> where it grows (<see cref="Grass"/>), laid from the cell above, its stems up into it.</summary>
+    private void DrawGrass(int cell)
+    {
+        int above = cell - _grid.Width;
+        if (above < 0 || !Grass.Grows(_drawn.Structure[cell], _drawn.Material[cell], _drawn.Shape[cell], _drawn.Structure[above], _drawn.Back[above], SoilCode))
+            return;
+        Put(_grass, CellOf(above), ShipTiles.GrassName(_drawn.Shape[cell], Grass.VariantOf(cell, GroundArt.GrassVariants)));
     }
 
     /// <summary>

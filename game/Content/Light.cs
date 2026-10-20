@@ -45,6 +45,12 @@ public static class Light
     /// <summary>Under a planet's sky, what daylight keeps falling a cell down through air: down a shaft or a cave mouth it lights
     /// some six to eight cells, fading, while round a bend it dies within one or two (<see cref="GroundKeep"/>).</summary>
     public const float GroundDownKeep = 0.8f;
+
+    /// <summary>
+    /// Under a planet's sky, what daylight keeps going down a cell through its ground (0079): the top few cells of soil under the
+    /// sun are lit, fading, as the "Stillwake" style shows them, where sideways and up a wall keeps only <see cref="WallDeep"/>.
+    /// </summary>
+    public const float GroundSoak = 0.72f;
     /// <summary>
     /// The stars' light in a lone hole in a back wall, against whole in open space: a cell's sky is the cells
     /// within <see cref="StarSky"/> of it, and with <see cref="StarFullSky"/> of them open to the stars, itself
@@ -63,9 +69,6 @@ public static class Light
     /// </summary>
     public static (float R, float G, float B) SkyOf(Stillwake.Content.Surfaces.Kind kind) =>
         kind.Sky is { } sky ? (sky.R / 1000f, sky.G / 1000f, sky.B / 1000f) : Star;
-
-    /// <summary>How bright a planet's sky is drawn behind its ground, of the light it gives: the day behind, not a glare.</summary>
-    public const float SkyBackdrop = 0.45f;
 
     /// <summary>The brightest colour any sky shines in, the stars' among them: what the faintest texel of starlight is judged by.</summary>
     public static readonly float BrightestSky = Stillwake.Content.Surfaces.All.Select(SkyOf).Append(Star)

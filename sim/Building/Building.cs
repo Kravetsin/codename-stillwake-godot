@@ -74,10 +74,9 @@ public sealed partial class BuildingModule : Module<BuildingState>
         {
             State.Plans.RemoveAll(p => p.Clear is { } layer && MarkedCell(p.Cell, layer) == null);
             SweepCracks();
+            SweepPlants();
         });
     }
-
-    protected override BuildingState Init(Layout layout) => new();
 
     // Queries.
 

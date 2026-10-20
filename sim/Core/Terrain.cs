@@ -16,7 +16,7 @@ public static class Terrain
 
     /// <summary>Each noise and draw of a ground hashed apart from the others.</summary>
     private const uint Ranges = 1, Hills = 2, Bumps = 3, Soil = 4, Mouths = 5, Tunnels = 6, TunnelsFine = 7, Caverns = 8,
-        CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12;
+        CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13;
 
     public static Layout Generate(Ground g, uint seed)
     {
@@ -128,8 +128,56 @@ public static class Terrain
                 if (kind[cell - w] == 0) codes[cell] = -codes[cell];
             }
         var spawn = SpawnOf(rows, w, h);
+        var flora = Flora(g, seed, rows, codes, soil, spawn % w);
         rows[spawn / w][spawn % w] = 'S';
-        return new Layout(w, h, [.. rows.Select(r => new string(r))], Materials: codes) { Grown = true };
+        return new Layout(w, h, [.. rows.Select(r => new string(r))], Materials: codes) { Grown = true, Flora = flora };
+    }
+
+    /// <summary>
+    /// What grows on the surface (0079), column by column from the left: on whole soil with the open sky above it, one draw
+    /// a column picks a kind of <see cref="Content.Flora.All"/> by its chances, set where it has room — its ground level with
+    /// its own, no ground higher across its crown, the last of its kind far enough, the last plant's level ground not
+    /// shared — and nowhere within two columns of the spawn. A column's top is its first solid cell, so nothing grows in a cave.
+    /// </summary>
+    private static List<(int Cell, string Kind)> Flora(Ground g, uint seed, char[][] rows, int[] codes, int soil, int spawnX)
+    {
+        int w = g.Width, h = g.Height;
+        var top = new int[w];
+        for (int x = 0; x < w; x++)
+        {
+            int y = 0;
+            while (y < h && rows[y][x] == ' ') y++;
+            top[x] = y;
+        }
+        bool Soil(int x, int y) => y < h && rows[y][x] == '#' && codes[y * w + x] == soil;
+        var kinds = Content.Flora.All;
+        var last = new int[kinds.Count];
+        Array.Fill(last, int.MinValue / 2);
+        int lastX = int.MinValue / 2, lastLevel = 0;
+        var flora = new List<(int, string)>();
+        for (int x = g.BedrockSide + 1; x < w - g.BedrockSide - 1; x++)
+        {
+            int y = top[x];
+            if (!Soil(x, y) || Math.Abs(x - spawnX) <= 2) continue;
+            int roll = (int)((long)Lattice(seed, Plants, x, 0) * 1000 / Whole), from = 0, k = 0;
+            while (k < kinds.Count && roll >= from + kinds[k].Chance) from += kinds[k++].Chance;
+            if (k == kinds.Count) continue;
+            var kind = kinds[k];
+            if (x - last[k] < kind.Apart || x - lastX <= Math.Max(lastLevel, kind.Level) || y - kind.Clear < 0) continue;
+            bool room = true;
+            int reach = Math.Max(kind.Level, kind.Room);
+            for (int dx = -reach; dx <= reach && room; dx++)
+            {
+                int cx = x + dx;
+                room = cx >= 0 && cx < w && top[cx] >= y && (Math.Abs(dx) > kind.Level || top[cx] == y && Soil(cx, y));
+            }
+            if (!room) continue;
+            flora.Add(((y - 1) * w + x, kind.Id));
+            (last[k], lastX, lastLevel) = (x, x, kind.Level);
+        }
+        // Found column by column; kept by cell, row by row, as every list of cells is.
+        flora.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+        return flora;
     }
 
     /// <summary>Whether <paramref name="cell"/> is soil or stone with the open above it: the top of the ground there.</summary>

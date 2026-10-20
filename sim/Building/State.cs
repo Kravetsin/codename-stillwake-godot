@@ -39,4 +39,6 @@ public sealed class BuildingState
     [JsonInclude] internal List<Crack> Cracks { get; set; } = [];
     /// <summary>Ticks run: when a crack was last hit, for it to heal (0077).</summary>
     [JsonInclude] internal int Clock { get; set; }
+    /// <summary>The cells of the plants felled since the ground grew (0079), ascending: the rest of its plants grow again from the seed.</summary>
+    [JsonInclude] internal List<int> Felled { get; set; } = [];
 }

@@ -1,55 +1,60 @@
 using Godot;
+using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// The pictures of a planet's natural ground (0077), made here rather than drawn, placeholders till its art goes
-/// through an audition page: a wall's 8 × 4 cell tile speckled in its material's colour (<see cref="GroundLooks"/>), the
-/// edges of a cell by its open sides, and a darker, flatter back wall. Every pixel is a hash of where it is, so a
-/// picture is the same on every machine and every run.
+/// The pictures of a planet's natural ground made here rather than drawn (0077, 0079): the edges of a cell by its open sides,
+/// in its material's lines (<see cref="GroundLooks"/>), and the cracks a dig leaves, cut to the cell's shape. Its walls, back
+/// walls and moss are drawn, in <c>art/planet</c>. Every pixel is a hash of where it is: the same on every machine and run.
 /// </summary>
 public static class GroundArt
 {
-    private const int Cell = ShipCamera.Cell, Across = 8, Down = 4;
+    private const int Cell = ShipCamera.Cell;
 
-    /// <summary>A wall of <paramref name="material"/>, the whole tile, as <c>wall_{material}.png</c> would be.</summary>
-    public static Image Wall(string material) => Tile(GroundLooks.Of[material], back: false);
+    /// <summary>The tops moss is drawn for (<c>art/planet/grass_{shape}_{variant}</c>): whole, and the two floor slopes.</summary>
+    public static readonly int[] GrassShapes = [Shape.None, Shape.BottomRight, Shape.BottomLeft];
 
-    /// <summary>The back wall behind <paramref name="material"/>, cut from a tile as a scrap back wall is.</summary>
-    public static Image Back(string material) => Tile(GroundLooks.Of[material], back: true);
+    /// <summary>How many pictures of moss there are for each top, a cell showing one by a hash of where it is.</summary>
+    public const int GrassVariants = 4;
 
     /// <summary>
     /// The edges of a cell of <paramref name="material"/> on its sides <paramref name="open"/> (up 1, right 2, down 4, left 8):
-    /// a dark outer line, and inside it a line lit on top and shaded on the other sides; transparent elsewhere.
+    /// a dark outline, and inside it a lit line on top and a shaded one on the other sides; transparent elsewhere.
     /// </summary>
     public static Image Edge(string material, int open)
     {
         var look = GroundLooks.Of[material];
         var image = Image.CreateEmpty(Cell, Cell, false, Image.Format.Rgba8);
-        var outer = Shade(look.Colour, 0.32);
         for (int y = 0; y < Cell; y++)
             for (int x = 0; x < Cell; x++)
             {
                 int up = (open & 1) != 0 ? y : Cell, right = (open & 2) != 0 ? Cell - 1 - x : Cell;
                 int down = (open & 4) != 0 ? Cell - 1 - y : Cell, left = (open & 8) != 0 ? x : Cell;
                 int nearest = System.Math.Min(System.Math.Min(up, right), System.Math.Min(down, left));
-                if (nearest == 0) image.SetPixel(x, y, outer);
-                else if (nearest == 1) image.SetPixel(x, y, Shade(look.Colour, up == 1 ? 1.3 : 0.75));
+                if (nearest == 0) image.SetPixel(x, y, Colour(look.Outline));
+                else if (nearest == 1) image.SetPixel(x, y, up == 1 ? Colour(look.Lit) : Colour(look.Colour, 0.78));
             }
         return image;
     }
 
-    /// <summary>The cracks a dug cell shows at <paramref name="stage"/>, 0 to 2 (0077): more lines, longer, from a dent in its middle.</summary>
-    public static Image Crack(int stage)
+    /// <summary>
+    /// The cracks a dug cell cut to <paramref name="shape"/> shows at <paramref name="stage"/>, 0 to 2 (0077): more lines,
+    /// longer, from a dent in its middle; on a slope only over its solid half (0079), its middle moved into it.
+    /// </summary>
+    public static Image Crack(int stage, int shape = Shape.None)
     {
         var image = Image.CreateEmpty(Cell, Cell, false, Image.Format.Rgba8);
         var dark = Color.Color8(18, 14, 12, 230);
         var lit = Color.Color8(255, 240, 220, 70);
+        // A slope's cracks start from the middle of its solid half, a quarter of a cell into it from the cell's middle.
+        int mx = Cell / 2 - 1 + shape switch { Shape.BottomRight or Shape.TopRight => 3, Shape.BottomLeft or Shape.TopLeft => -3, _ => 0 };
+        int my = Cell / 2 - 1 + shape switch { Shape.BottomRight or Shape.BottomLeft => 3, Shape.TopLeft or Shape.TopRight => -3, _ => 0 };
         int lines = 3 + 2 * stage, steps = 5 + 2 * stage;
         for (int i = 0; i < lines; i++)
         {
             // Each line runs out from near the middle, a step at a time, turning a little at random: a stage grows the last.
-            int x = Cell / 2 - 1 + (int)(Hash(i, 0, 4) % 3), y = Cell / 2 - 1 + (int)(Hash(i, 0, 5) % 3);
+            int x = mx + (int)(Hash(i, 0, 4) % 3), y = my + (int)(Hash(i, 0, 5) % 3);
             int dir = (int)(Hash(i, 0, 6) % 8);
             for (int s = 0; s < steps; s++)
             {
@@ -62,32 +67,13 @@ public static class GroundArt
             }
         }
         // The dent the blows land in, wider each stage.
-        for (int y = Cell / 2 - 1 - stage / 2; y <= Cell / 2 + stage / 2; y++)
-            for (int x = Cell / 2 - 1 - stage / 2; x <= Cell / 2 + (stage + 1) / 2; x++)
+        for (int y = my - stage / 2; y <= my + 1 + stage / 2; y++)
+            for (int x = mx - stage / 2; x <= mx + 1 + (stage + 1) / 2; x++)
                 image.SetPixel(x, y, dark);
-        return image;
+        return shape == Shape.None ? image : ShapeMasks.Cut(image, shape);
     }
 
-    private static Image Tile(GroundLooks.Look look, bool back)
-    {
-        int w = Across * Cell, h = Down * Cell;
-        var image = Image.CreateEmpty(w, h, false, Image.Format.Rgba8);
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-            {
-                // Blotches four pixels across, then each pixel's own stray, and now and then a fleck or a dark grain.
-                int blotch = (int)(Hash(x / 4, y / 4, 1) % 7) - 3;
-                int stray = (int)(Hash(x, y, 2) % (uint)(2 * look.Stray + 1)) - look.Stray + blotch * look.Stray / 3;
-                uint roll = Hash(x, y, 3) % 100;
-                var c = roll < 4 ? look.Fleck : look.Colour;
-                double shade = roll >= 92 ? 0.7 : 1;
-                if (back) (stray, shade) = (stray / 2, shade * look.Back);
-                image.SetPixel(x, y, Shade((c.R + stray, c.G + stray, c.B + stray), shade));
-            }
-        return image;
-    }
-
-    private static Color Shade((int R, int G, int B) c, double by) =>
+    private static Color Colour((int R, int G, int B) c, double by = 1) =>
         Color.Color8(Byte(c.R * by), Byte(c.G * by), Byte(c.B * by));
 
     private static byte Byte(double v) => (byte)System.Math.Clamp((int)System.Math.Round(v), 0, 255);

@@ -21,8 +21,8 @@ public partial class Stars : CanvasLayer
     private static readonly Color Star = new(223 / 255f, 232 / 255f, 245 / 255f);
 
     private readonly Sprite2D _sky;
-    /// <summary>A planet's sky behind its ground, drawn over the screen in place of space (0076).</summary>
-    private readonly ColorRect _day = new() { Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
+    /// <summary>A planet's sky behind its ground, drawn over the screen in place of space (0076, 0079).</summary>
+    private readonly PlanetSky _day = new() { Visible = false };
     private readonly FarWrecks _wrecks = new();
     private readonly Dust _dust = new();
     private float _stream;
@@ -59,19 +59,21 @@ public partial class Stars : CanvasLayer
     }
 
     /// <summary>
-    /// A planet's sky in this colour behind everything, space and what drifts in it hidden; null for space, as aboard
-    /// (0076).
+    /// A planet's sky behind everything (<see cref="PlanetSky"/>), its land's ground line at this row of the world, in pixels:
+    /// space and what drifts in it hidden; null for space, as aboard (0076).
     /// </summary>
-    public Color? Daylight
+    public float? Ground
     {
-        get => _day.Visible ? _day.Color : null;
+        get => _ground;
         set
         {
+            _ground = value;
             _day.Visible = value != null;
-            if (value is { } colour) _day.Color = colour;
             _sky.Visible = _wrecks.Visible = _dust.Visible = value == null;
         }
     }
+
+    private float? _ground;
 
     /// <summary>The world's time, in seconds of ticks, that the far wrecks and the dust have drifted by: every peer's alike.</summary>
     public double Seconds { get; set; }
@@ -85,7 +87,7 @@ public partial class Stars : CanvasLayer
         var centre = camera?.GetScreenCenterPosition() ?? Vector2.Zero;
         float zoom = camera?.Zoom.X ?? 1;
         _sky.RegionRect = new Rect2(centre * zoom * Parallax + new Vector2(_stream, 0), screen);
-        _day.Size = screen;
+        if (_ground is float ground) _day.Follow(centre, zoom, screen, ground, Seconds);
         _wrecks.Follow(centre, zoom, screen, Seconds);
         _dust.Follow(centre, zoom, screen, Seconds);
     }

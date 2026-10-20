@@ -7,7 +7,8 @@ namespace Stillwake.Sim.Building;
 /// <summary>
 /// A hit of weapon <c>Tool</c> on the natural wall at <c>Cell</c> (0077): sent as the axe strikes, or at the drill's pace
 /// while it works, at a natural wall within the hero's reach. Its damage cracks the wall; the hit that reaches its
-/// strength breaks it out, the back wall behind staying, and gives the sender what it is made of.
+/// strength breaks it out, the back wall behind staying, and gives the sender what it is made of. On a plant standing in an
+/// open cell (0079), it fells the plant.
 /// </summary>
 public sealed record Dig(int Cell, string Tool) : Command;
 
@@ -24,14 +25,16 @@ public sealed partial class BuildingModule
     public string? DigProblem(int peer, int cell, string tool) => DigProblemOf(peer, cell, tool, running: false);
 
     /// <summary>
-    /// <c>building.nothingToDig</c> for no natural wall there (a hull wall is taken apart with a mark), <c>building.bedrock</c>
+    /// <c>building.nothingToDig</c> for no natural wall there (a hull wall is taken apart with a mark) nor a plant in an open
+    /// cell (0079), <c>building.bedrock</c>
     /// for one nothing breaks, then what the weapon says (<see cref="IItemsQueries.WeaponProblem"/>): flat, or, as the
     /// command applies, not running. A tool that deals no damage is our bug: the client sends weapons only.
     /// </summary>
     private string? DigProblemOf(int peer, int cell, string tool, bool running)
     {
         if (Weapons.Of(tool) == null) throw new InvalidOperationException($"building.dig: {tool} deals no damage");
-        if (_grid.WallAt(cell) is not { Natural: true } wall) return "building.nothingToDig";
+        if (_grid.WallAt(cell) is not { Natural: true } wall)
+            return PlantAt(cell) != null && _grid.StructureAt(cell) == Structure.Empty ? _items.WeaponProblem(peer, tool, running) : "building.nothingToDig";
         if (!wall.Breaks) return "building.bedrock";
         return _items.WeaponProblem(peer, tool, running);
     }
@@ -42,7 +45,12 @@ public sealed partial class BuildingModule
     /// </summary>
     private void ApplyDig(Dig c)
     {
-        var wall = _grid.WallAt(c.Cell)!;
+        // A plant falls to one hit (0079), whatever the weapon; the plants on a wall broken out go in derivation.
+        if (_grid.WallAt(c.Cell) is not { } wall)
+        {
+            Fell(PlantAt(c.Cell)!, c.From);
+            return;
+        }
         int at = CrackIndex(c.Cell);
         int damage = (at >= 0 ? State.Cracks[at].Damage : 0) + Weapons.Of(c.Tool)!.Damage;
         if (damage < wall.Strength)

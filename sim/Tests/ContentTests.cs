@@ -67,6 +67,15 @@ public class ContentTests
     // Machines
 
     [Fact]
+    public void PlantsHaveUniqueIdsATallnessAndChancesThatFitAThousand()
+    {
+        // The generator draws under 1000 a column and walks the chances in order (0079): past 1000, the last never grows.
+        Assert.Equal(Flora.All.Count, Flora.All.Select(k => k.Id).Distinct().Count());
+        Assert.All(Flora.All, k => Assert.True(k.Tall >= 1 && k.Level >= 0 && k.Room >= 0 && k.Clear >= 1 && k.Chance > 0 && k.Apart >= 1, k.Id));
+        Assert.InRange(Flora.All.Sum(k => k.Chance), 1, 1000);
+    }
+
+    [Fact]
     public void MachinesHaveAFootprintOfAtLeastOneCellAndPortsInsideIt()
     {
         foreach (var m in Machines.All)

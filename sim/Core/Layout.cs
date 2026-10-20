@@ -25,6 +25,13 @@ public sealed record Layout(
     /// </summary>
     public bool Grown { get; init; }
 
+    /// <summary>
+    /// What grows on its surface (0079): each plant's cell, the open cell over the soil it grows from, and its kind
+    /// (<c>Content.Flora</c>), ascending by cell. Grown from the seed with the ground (<c>Terrain</c>); none on a drawn map
+    /// but a test's, whose plants a load does not bring back.
+    /// </summary>
+    public IReadOnlyList<(int Cell, string Kind)>? Flora { get; init; }
+
     /// <summary>The build zone of a world of <c>Content.World</c>'s size: <c>ZoneWidth</c> × <c>ZoneHeight</c> in its middle.</summary>
     public static Box WorldZone
     {

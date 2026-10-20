@@ -33,9 +33,10 @@ public sealed class StarField
     /// <param name="sky">The light through the open sky, by <see cref="L.SkyOf"/> its surface's kind; the stars' when not given.</param>
     /// <param name="keep">What crossing a cell of air keeps of it: <see cref="L.StarKeep"/> aboard; a planet's ground less (<see cref="L.GroundKeep"/>, 0077), so daylight dies a cell or two round a bend.</param>
     /// <param name="down">What crossing a cell of air going down keeps, past 0: a planet's daylight falls down a shaft or a cave mouth further (<see cref="L.GroundDownKeep"/>); <paramref name="keep"/> else.</param>
-    public StarField((float R, float G, float B)? sky = null, float keep = L.StarKeep, float down = 0)
+    /// <param name="soak">What going down from a wall cell into the wall under it keeps, past 0: a planet's daylight soaks a few cells down into its ground (<see cref="L.GroundSoak"/>, 0079); <see cref="L.WallDeep"/> else, as every other way.</param>
+    public StarField((float R, float G, float B)? sky = null, float keep = L.StarKeep, float down = 0, float soak = 0)
     {
-        (_sky, _shares, _down) = (sky ?? L.Star, SharesOf(keep), SharesOf(down > 0 ? down : keep));
+        (_sky, _shares, _down) = (sky ?? L.Star, SharesOf(keep, L.WallDeep), SharesOf(down > 0 ? down : keep, soak > 0 ? soak : L.WallDeep));
         Reach = ReachOf(_shares.Zip(_down, Math.Max).ToArray());
     }
 
@@ -284,14 +285,14 @@ public sealed class StarField
         bytes[at + 3] = kind == Wall ? (byte)255 : (byte)0;
     }
 
-    private static float[] SharesOf(float keep)
+    private static float[] SharesOf(float keep, float deep)
     {
         float[] into = [keep, Math.Min(keep, L.StarMachine)];
         var shares = new float[9];
         for (int from = 0; from < 3; from++)
             for (int to = 0; to < 3; to++)
                 shares[from * 3 + to] = to == Wall
-                    ? from == Wall ? L.WallDeep : L.WallIn
+                    ? from == Wall ? deep : L.WallIn
                     : (from == Wall ? L.WallOut : 1) * into[to];
         return shares;
     }
