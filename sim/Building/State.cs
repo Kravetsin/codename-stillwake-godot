@@ -20,6 +20,9 @@ public sealed record Plan(int Id, int Cell, int Progress, Placement? Place, stri
     public static Plan Mark(int id, int cell, string layer) => new(id, cell, 0, null, layer, []);
 }
 
+/// <summary>A natural wall at <c>Cell</c> dug part way (0077): <c>Damage</c> of its <c>Strength</c> taken by weapons' hits.</summary>
+public sealed record Crack(int Cell, int Damage);
+
 /// <summary>
 /// The building slice. Public so modules can be typed by it, its members internal: others read it
 /// through <see cref="BuildingModule"/>'s queries.
@@ -29,4 +32,6 @@ public sealed class BuildingState
     /// <summary>The plans in the order they were made.</summary>
     [JsonInclude] internal List<Plan> Plans { get; set; } = [];
     [JsonInclude] internal int NextPlanId { get; set; } = 1;
+    /// <summary>The natural walls dug part way, by cell, ascending (0077): each below its material's strength.</summary>
+    [JsonInclude] internal List<Crack> Cracks { get; set; } = [];
 }

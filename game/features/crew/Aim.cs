@@ -228,8 +228,11 @@ public static class Aiming
         if (axe || drill != null)
         {
             // A swing begun now faces the pointer (Poses.FaceOf), and so does the stroke it is judged by; the drill always does.
-            var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
             string tool = axe ? Spec.Weapons.Axe.Item : drill!;
+            // Natural ground under the pointer is dug where it is (0077), in a shaft or a cave as under the open sky.
+            if (grid.WallAt(cell) is { Natural: true })
+                return new Aim(cell, inReach, new Use(new Dig(cell, tool), m.Building.DigProblem(peer, cell, tool)));
+            var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
             var touched = axe ? Struck(m, toward, PointOf(point)) : Touched(m, toward, PointOf(point));
             if (touched.FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
             return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true, new Use(new Hit(wreck.Id, tool), m.Debris.HitProblem(peer, wreck.Id, tool)), Piece: wreck.Id);
@@ -331,6 +334,26 @@ public static class Aiming
     }
 
     /// <summary>
+    /// The dig a strike of <paramref name="tool"/> at <paramref name="at"/>, in thousandths of a cell, sends (0077): at the
+    /// natural wall of the cell there, within the hero's reach, as plans are reached; none where the sim would refuse it.
+    /// Wherever the hero stands, a shaft or a cave too: no swing nor bit is traced, the cell is the pointer's.
+    /// </summary>
+    public static Dig? DigAt(Registry m, int peer, Hero hero, Point at, string tool)
+    {
+        if (CellAt(m.Grid, at) is not int cell || m.Grid.WallAt(cell) is not { Natural: true } || !Reaches(hero, cell, m.Grid.Width)) return null;
+        return m.Building.DigProblem(peer, cell, tool) == null ? new Dig(cell, tool) : null;
+    }
+
+    /// <summary>Whether a bit at <paramref name="at"/>, in thousandths of a cell, is on ground it bites: a natural wall that breaks. A friend's drill's sparks.</summary>
+    public static bool Bites(Registry m, Point at) => CellAt(m.Grid, at) is int cell && m.Grid.WallAt(cell) is { Breaks: true };
+
+    private static int? CellAt(IGridQueries grid, Point at)
+    {
+        int x = (int)Math.Floor(at.X / (double)Hero.Unit), y = (int)Math.Floor(at.Y / (double)Hero.Unit);
+        return x < 0 || y < 0 || x >= grid.Width || y >= grid.Height ? null : y * grid.Width + x;
+    }
+
+    /// <summary>
     /// The first wreck, in spawn order, with <paramref name="point"/> on its picture, else the small piece
     /// of debris nearest it within <c>Debris.AimRadius</c>; none while the hero is aboard.
     /// </summary>
@@ -377,8 +400,8 @@ public static class Aiming
         if (aim is not { InReach: true }) return new([], null, -1);
         if (pressed && aim.Crate is int crate) return new([], crate, -1);
         var commands = new List<Command>();
-        // A wreck is chopped by a swing of the axe (AxeSwing), never by a press.
-        if (pressed && aim.Press is { Problem: null } press && press.Command is not Hit) commands.Add(press.Command);
+        // A wreck is chopped by a swing of the axe (AxeSwing), never by a press; the ground dug so too (0077).
+        if (pressed && aim.Press is { Problem: null } press && press.Command is not (Hit or Dig)) commands.Add(press.Command);
         if (aim.Work is not { Problem: null } work || !held) return new(commands, null, -1);
         // A hold just begun sends one; so does a load that took the world's tick back.
         bool fresh = workedOnTick < 0 || tick < workedOnTick;

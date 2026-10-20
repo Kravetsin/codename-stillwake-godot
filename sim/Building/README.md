@@ -6,19 +6,20 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 `Grid`'s operations, paid from and refunded to the inventories in `Items`. Ported from
 `packages/sim/src/modules/building`; its rules hold here but for the payment a part at a time.
 
-- **Depends on:** `Grid` (`IGridQueries`, `IGridOps`) and `Items` (`IItemsQueries`, `IItemsOps`);
+- **Depends on:** `Grid` (`IGridQueries`, `IGridOps`) and `Items` (`IItemsQueries`, `IItemsOps`; `WeaponProblem` for a dig);
   `Power` (`IPowerQueries.Cabled`), to keep a cabled machine standing; `Research`
   (`IResearchQueries.Knows`), to refuse a blueprint not known (ADR 0024); `Crafting`
   (`ICraftingQueries.Queue`), to keep a station with crafts queued standing (0057).
 - **State** (`BuildingState`, members internal): `Plans` in the order they were made, each a `Plan`
   with its `Progress` in ticks of work — a blueprint (`Place` set) with what was `Delivered` to it so
   far, an item a part begun, as `Stack`s in the order first given, or a mark (`Clear`, the layer, set);
-  `NextPlanId`. All saved; nothing is derived. Paying a part at a time needed no new field: what was paid
+  `NextPlanId`; `Cracks` (0077), the natural walls dug part way, each a `Crack(Cell, Damage)`, sorted by cell. All saved;
+  nothing is derived. Paying a part at a time needed no new field: what was paid
   and the work done were saved already, and an older save's blueprint, paid in full or in part before any
   work, works on.
 - **Files:** `Rules.cs` — which plans may be made and worked; `Costs.cs` — what things cost, from
   content, what a blueprint still lacks and the parts its work is paid in; `Building.cs` — the module, its
-  commands and queries; `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
+  commands and queries; `Digging.cs` — `Dig` and the cracks (0077); `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
 
 ## Rules
 
@@ -31,8 +32,11 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   the other plans: in each cell, structure and machines share one solid slot, and a conduit and a
   back wall each have their own, as in the grid. A machine's blueprint covers its whole footprint.
   Placing one costs nothing.
+- **No blueprint builds bedrock or a natural back wall** (0077): either is refused `building.unknown`, creative mode or
+  not (`Blueprints.Has`). Soil and stone walls are blueprints like any wall, known once soil or rock is analysed.
 - A machine built into the ship (`Fixed` in `Machines`: the lifepod) is never planned nor marked,
   refused with `building.fixed`, creative mode or not; it is no blueprint.
+- **Natural ground is dug, never marked** (0077): a mark on a natural wall or back wall is refused `building.natural`.
 - A mark needs something in that layer of that cell, and one thing takes one mark. A machine holding
   items (a crate, a furnace) or a station with crafts queued is marked only empty, refused with
   `building.notEmpty`; a machine a cable
@@ -66,6 +70,14 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 - Anyone may cancel or work on any plan.
 - A mark whose thing is gone (a meteor broke it) is dropped in the derivation phase of that tick,
   refunding nothing; worked on that tick, it completes with nothing to refund.
+- **`Dig(Cell, Tool)` is a weapon's hit on natural ground** (0077), sent as the axe strikes or at the drill's pace: its
+  damage (`Weapons`) is added to the cell's crack, and the hit that reaches the wall's `Strength` clears the wall —
+  only the wall: its back wall stays — drops its crack and gives what it is made of (its material's `Cost`: soil, rock)
+  to the sender, what does not fit falling at the cell (`GiveOrDrop`). Refused `building.nothingToDig` with no natural
+  wall there (open ground, hull, off the grid), `building.bedrock` for one that never breaks, then as the weapon says
+  (`IItemsQueries.WeaponProblem`: `items.flat`, and `items.notRunning` for an electric one its hero does not run). Two
+  digs on one cell in a tick apply in the host's order: the one that breaks it gets the yield, the next finds nothing.
+  A crack whose wall is gone (a meteor) is dropped in derivation. A tool that deals no damage is our bug and throws.
 
 ## API
 
@@ -84,18 +96,22 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   `TicksFor(planId)` — the ticks a plan takes in all, against which the client draws a blueprint built as far as its `Progress`, null for no plan; `CostOf(planId)` —
   what a blueprint costs in all, null for a mark or no plan; `RefundOf(planId)` — what taking apart what a mark
   names gives back, the same `Costs.BuiltAt` its last tick refunds, for its tip: null for a blueprint or no plan; `CostFor(placement)` — what placing it
-  costs, for the build menu.
+  costs, for the build menu; `Cracks` — live, read-only, by cell; `DigProblem(peer, cell, tool)` — the refusal a `Dig`
+  would get, leaving out whether an electric weapon runs, as the client asks before it sends.
 - **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.notHere`, `building.unknown`,
   grid's keys or `building.planned`; `Deconstruct(Cell, Layer)`, refused with `building.nothingThere`,
   `building.fixed`, `building.planned`, `building.notEmpty` or `building.cabled`; `CancelPlan(Id)`, refused with
   `building.noPlan`; `Work(Plan)`, refused with `building.noPlan`, `items.notEnough`,
-  `building.notEmpty` or `building.cabled`.
+  `building.notEmpty` or `building.cabled`; `Dig(Cell, Tool)`, refused with `building.nothingToDig`, `building.bedrock`,
+  `items.flat` or `items.notRunning`. A mark is refused `building.natural` besides.
 - **Fuzz:** every command, refused ones too: placements of every kind, walls cut to every shape and a shape on
   what may have none, mostly within 16 cells of
   what the grid has built, as players build, now and then at any cell of the grid or one off it, so
   the build zone's edge is drawn too; marks mostly within what is built (TypeScript draws from the
   wreck as drawn, which in the big world of 0048 would miss the ship); cancels of ids that are and
-  are not there; `Work` mostly on the oldest plan or a mark, so plans complete within a run.
+  are not there; `Work` mostly on the oldest plan or a mark, so plans complete within a run; `Dig` with every weapon,
+  half the time on a crack, so walls break within a run, else anywhere, which on a small planet is mostly its ground; on
+  grown ground half of all its draws are digs.
 
 ## Invariants
 
@@ -104,6 +120,8 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 - A blueprint's `Delivered` never exceeds its cost, and, but in creative mode, its work never passes the
   end of the parts paid for: with k of N parts paid, `Progress <= BuildTicks * k / N`.
 - A plan's progress stays below its ticks: the tick that reaches them completes it.
+- A crack lies only on a natural wall that breaks, its damage above 0 and below the wall's strength; the cracks are
+  sorted by cell, one a cell. A wall broken gives exactly what it is made of, once.
 - Items are conserved across inventories, the floor, blueprints and what is built, but for what
   drifts off the grid from space (Items' floor rules): a delivery cancelled, or a refund that does not
   fit, out in space, or in a wall with no room within `Floor.PushReach`. One in the hull is pushed
@@ -111,6 +129,8 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 
 ## Deliberately not handled
 
+- Half-dug cells never heal (0077): a crack stays until its wall breaks. Reach and which cell is dug are the
+  client's word, as for work.
 - Plans left stale by a grid change: plans claim their slots, so nothing can fill one first. Only
   building's own work places anything in the grid (hazards only clear), so a blueprint finds its slot
   as it left it, and completing one over something throws: our bug. The tests' instant `Builder`

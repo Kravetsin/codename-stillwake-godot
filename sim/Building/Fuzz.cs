@@ -25,7 +25,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Draws every command, refused ones included: off the grid, on nothing, twice on one thing, E on a
-    /// plan that is gone or a blueprint the hero has nothing for.
+    /// plan that is gone or a blueprint the hero has nothing for, a dig at hull, bedrock or nothing, or with a drill not running.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
@@ -43,8 +43,15 @@ public sealed partial class BuildingModule
         }
         int Cell() => Below(8) == 0 ? Anywhere() : Within(FuzzMargin);
         var marks = State.Plans.Where(p => p.Clear != null).ToList();
-        switch (Below(5))
+        // On grown ground digging is most of what heroes do: half the draws there are digs.
+        switch (Rules.Ground != null && Below(2) == 0 ? 5 : Below(6))
         {
+            case 5:
+                {
+                    // Mostly on a crack, so walls break within a run; else anywhere, mostly on the ground a planet is made of.
+                    int cell = State.Cracks.Count > 0 && Below(2) == 0 ? State.Cracks[Below(State.Cracks.Count)].Cell : Cell();
+                    return new Dig(cell, Weapons.All[Below(Weapons.All.Count)].Item) { From = from };
+                }
             case 0:
                 return new PlacePlan(Cell(), FuzzPlacements[Below(FuzzPlacements.Length)]) { From = from };
             case 1:

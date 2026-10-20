@@ -3,6 +3,7 @@ using System.Linq;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 
@@ -49,6 +50,7 @@ public static class Prompts
             LoadCanister => new Prompt("use.loadCanister", press.Problem),
             Grab => new Prompt("use.catch", press.Problem),
             Hit => new Prompt("use.chop", press.Problem),
+            Dig => new Prompt("use.dig", press.Problem),
             SetDoor d => new Prompt(d.Open ? "use.openDoor" : "use.closeDoor", press.Problem),
             SetValve v => new Prompt(v.Open ? "use.openValve" : "use.closeValve", press.Problem),
             _ => throw new InvalidOperationException($"No prompt for {press.Command.GetType().Name}"),

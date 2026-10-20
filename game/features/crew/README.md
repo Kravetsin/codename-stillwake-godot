@@ -435,7 +435,7 @@ Deliberately not handled:
   ticks after (`DrillPace`) it sends a `Hit(Piece, "drill")` for each wreck its bit touches that the sim would
   take: the bit's segment, held as the figure draws it from the shoulder of the body upright, against each
   wreck's aim box (`Aiming.Touched`), out in space only. The aim marks the first such wreck with the axe's prompt,
-  "[Hold LMB] Break", red with "Batteries flat" (`debris.flat`) once the belt cannot pay. Flat, it winds down
+  "[Hold LMB] Break", red with "Batteries flat" (`items.flat`) once the belt cannot pay. Flat, it winds down
   and sends nothing; aboard it spins and touches nothing. The energy bar shows while it is held (0053). Every
   weapon works on every wreck alike: the axe chops an asteroid as any wreck, the drill bores a hull section.
   **The arc drill** (`arcDrill`, 0075) is the drill with arcs on its coil: held, run, aimed and heard alike
@@ -456,6 +456,13 @@ Deliberately not handled:
   and down with the bit's picture (`HeldLook.SpinUpMs`) and sagging on a piece; and while its bit works on a piece,
   held 0.1 s past a graze, 18 short strikes a second, each its own pitch and loudness (`StrikeTrain`), silent the
   moment it stops.
+- **Digging** (0077): with the axe or a drill held and natural ground under the pointer, in reach (`Aiming.Reaches`, as
+  plans are reached), the aim is that cell: "[Hold LMB] Dig", red with "Too hard" on bedrock or "Batteries flat", the
+  cell outlined (its slope's half for a slope). The axe's strike sends one `Dig` at the cell of its swing's point
+  (`Aiming.DigAt`) and bites, drawn stopped a moment as on a wreck; the drill sends one at its pace (`DrillPace`), its
+  works flag, sparks and strikes firing on ground as on a wreck, and a friend's bit on ground throws sparks too
+  (`Aiming.Bites`). Nothing traces the blade or the bit, which only find wrecks in open space: a shaft, a cave or the
+  strip's shelter dig alike. E digs nothing. What the dig looks like is building's (`DigView`). No sound of its own yet.
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - A press on a door or valve is built from it as shown (`Shared.Predicted.Grid`, passed to `Aiming.AimAt`): it asks

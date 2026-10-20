@@ -64,9 +64,14 @@ public sealed partial class BuildingModule : Module<BuildingState>
         Handles<Deconstruct>(c => MarkProblem(c.Cell, c.Layer), ApplyDeconstruct);
         Handles<CancelPlan>(c => State.Plans.Exists(p => p.Id == c.Id) ? null : "building.noPlan", ApplyCancelPlan);
         Handles<Work>(c => WorkProblemOf(c.Plan, c.From), ApplyWork);
-        // A mark whose thing a meteor broke has nothing left to take apart. In derivation, after every
-        // command and construction system, so a hit made before is seen on its tick.
-        System(Phase.Derivation, () => State.Plans.RemoveAll(p => p.Clear is { } layer && MarkedCell(p.Cell, layer) == null));
+        Handles<Dig>(c => DigProblemOf(c.From, c.Cell, c.Tool, running: true), ApplyDig);
+        // A mark whose thing a meteor broke has nothing left to take apart, nor a crack its wall. In derivation, after
+        // every command and construction system, so a hit made before is seen on its tick.
+        System(Phase.Derivation, () =>
+        {
+            State.Plans.RemoveAll(p => p.Clear is { } layer && MarkedCell(p.Cell, layer) == null);
+            SweepCracks();
+        });
     }
 
     protected override BuildingState Init(Layout layout) => new();

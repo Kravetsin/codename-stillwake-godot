@@ -145,7 +145,10 @@ counted twice.
   peer carries in its own slots, in the order first found; `Equipped(peer, item)` — whether it wears that
   item in an equipment slot (crew reads the jetpack so); `BeltCharge(peer)` — what the batteries on its belt
   hold, summed, and what they would hold full: the energy bar; `CanDrain(peer, amount)` — whether `Drain`
-  would take that many power-ticks now, always in creative mode: `Debris` refusing the drill `debris.flat`, and
+  would take that many power-ticks now, always in creative mode: `Debris` refusing the drill `items.flat`, and
+  the client's drill; `WeaponProblem(peer, weapon, running)` — why a hit of that weapon is refused, the same on debris and
+  ground (0077): `items.flat` for an electric one the belt cannot pay a tick of, and with `running`, as a hit applies,
+  `items.notRunning` for one its hero does not run; `Debris` and `Building` refuse hits and digs with it;
   the client's drill; `Running(peer)` — the electric item that peer's hero runs, or null: `Debris` taking its hits,
   the client comparing its own run and drawing others' drills spinning; `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
   mode; `FullFor(peer, cost)` — `items.full` when `cost` does not fit, creative mode or not. A caller

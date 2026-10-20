@@ -138,9 +138,9 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   as a container's is) falls on the cell under its middle, still, dropped by `FloorStack.Nobody`
   (`IItemsOps.DropAt`): floating there in space for anyone to pick up at once, the hero who broke it
   too. Refused with `debris.gone`, `debris.notOutside` (as `Grab`), `debris.notWreckage` (a piece
-  caught by hand), **`debris.flat`**: the weapon is electric (its item has a `Draw`, the drill) and no
-  battery on the sender's belt holds a tick of its draw (`IItemsQueries.CanDrain`), or, for the command only,
-  **`debris.notRunning`**: the weapon is electric and the sender's hero is not running it (`IItemsQueries.Running`,
+  caught by hand), **`items.flat`**: the weapon is electric (its item has a `Draw`, the drill) and no
+  battery on the sender's belt holds a tick of its draw, or, for the command only,
+  **`items.notRunning`**: the weapon is electric and the sender's hero is not running it (`IItemsQueries.WeaponProblem`, shared with digging,
   0055). A hit spends nothing: the run pays by the tick in `Items`, hitting or not. `HitProblem`, what the client
   asks before it sends, leaves the run out, so the first hit goes in the same frame as the `Run` that starts it;
   the host applies them in that order. A `Tool` that deals no damage is our bug and throws: the client sends
@@ -246,8 +246,8 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   the ship it cannot be hit, though its end sticks out into space. Accepted: it drifts on and out.
 - The weapon in hand, its pace (`Weapon.Pace`) and reach (its picture, 0040): the client's, among friends. A hit
   in flight after the weapon was put away still lands; creative mode needs no weapon either. The drill's hits in
-  flight meet the belt and the run only as they apply: one sent as the belt runs flat is refused `debris.flat`, one
-  sent after the run was stopped `debris.notRunning`.
+  flight meet the belt and the run only as they apply: one sent as the belt runs flat is refused `items.flat`, one
+  sent after the run was stopped `items.notRunning`.
 - An asteroid reeled out of its band stays out: the band is where they spawn, not where they must be.
 - The harpoon's shot, its range, the hit test, the hooked rod before the reel and the cooldown: the
   client's (0044). The cooldown is the hero's: every harpoon it holds waits for it. The sim does not

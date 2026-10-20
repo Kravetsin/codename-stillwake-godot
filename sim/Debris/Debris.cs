@@ -51,7 +51,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         _held = held;
         _items = items;
         Handles<Grab>(c => GrabProblem(c.From, c.Piece), Apply);
-        Handles<Hit>(c => HitProblem(c.From, c.Piece, c.Tool) ?? NotRunning(c.From, c.Tool), Apply);
+        Handles<Hit>(c => HitProblem(c.From, c.Piece, c.Tool) ?? _held.WeaponProblem(c.From, c.Tool, running: true), Apply);
         Handles<Reel>(c => ReelProblem(c.From, c.Piece), Apply);
         // After derivation, like the air: the grid's size is that of this tick.
         System(Phase.Simulation, Drift);
@@ -100,24 +100,17 @@ public sealed partial class DebrisModule : Module<DebrisState>
     /// <summary>
     /// Why peer <paramref name="peer"/>'s hit of piece <paramref name="id"/> with weapon <paramref name="tool"/>
     /// would be refused: it is gone, the hero or the piece is not in space, it is no wreckage, or the weapon is
-    /// electric and no battery on the belt can pay a tick of its draw. Any weapon breaks any wreck (0054). What
-    /// the client asks before it sends: the command is refused besides while an electric weapon is not running.
+    /// electric and no battery on the belt can pay a tick of its draw (<c>items.flat</c>). Any weapon breaks any wreck (0054).
+    /// What the client asks before it sends: the command is refused besides while an electric weapon is not running
+    /// (<c>items.notRunning</c>, <see cref="IItemsQueries.WeaponProblem"/>).
     /// </summary>
     public string? HitProblem(int peer, int id, string tool)
     {
         if (Content.Weapons.Of(tool) == null) throw new InvalidOperationException($"debris.hit: {tool} deals no damage");
         return Reachable(peer, id, out var piece)
             ?? (Content.Wreckage.HpOf(piece!.Item) == null ? "debris.notWreckage"
-            : Content.Items.Get(tool).Draw is int draw && !_held.CanDrain(peer, draw) ? "debris.flat"
-            : null);
+            : _held.WeaponProblem(peer, tool, running: false));
     }
-
-    /// <summary>
-    /// <c>debris.notRunning</c> for an electric weapon <paramref name="tool"/> the hero of <paramref name="peer"/> is
-    /// not running: it hits only while its motor runs, paid by the tick (0055). The client sends its <c>Run</c> first.
-    /// </summary>
-    private string? NotRunning(int peer, string tool) =>
-        Content.Items.Get(tool).Draw != null && _held.Running(peer) != tool ? "debris.notRunning" : null;
 
     /// <summary>
     /// Why peer <paramref name="peer"/>'s reel of piece <paramref name="id"/> would be refused: it is gone,

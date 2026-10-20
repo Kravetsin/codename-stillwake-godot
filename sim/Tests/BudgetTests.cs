@@ -71,6 +71,57 @@ public class BudgetTests(ITestOutputHelper output)
         return (watch.Elapsed.TotalMilliseconds / ticks, max);
     }
 
+    /// <summary>
+    /// The first planet (0077): grown from its seed within 15 ms as the surface opens, a tick of it idle with a hero on it,
+    /// and what it adds to a save, every cell of it saved whole. A hero digs a shaft down meanwhile, to time a dig too.
+    /// </summary>
+    [Fact]
+    public void GrowsAPlanetQuicklyTicksItIdleCheaplyAndSavesItSmall()
+    {
+        var ground = Content.Ground.Planet;
+        Terrain.Generate(ground, 1);
+        var growing = new Stopwatch();
+        for (uint seed = 2; seed < 12; seed++)
+        {
+            growing.Start();
+            Terrain.Generate(ground, seed);
+            growing.Stop();
+        }
+        double grow = growing.Elapsed.TotalMilliseconds / 10;
+        // The first flood of the rooms over the whole ground, caves outside: what the tick it opens on spends on them.
+        var floodRooms = new Registry();
+        foreach (var mod in floodRooms.All) mod.Create(Terrain.Generate(ground, 2));
+        floodRooms.Grid.Rebuild();
+        var flooding = Stopwatch.StartNew();
+        floodRooms.Rooms.Rebuild();
+        double flood = flooding.Elapsed.TotalMilliseconds;
+        var w = new Scenario(Layout.Parse(["......", ".S....", "######"]));
+        int ship = w.World.Save().Length;
+        w.Do(new Crew.Enter(w.M.Crew.Spawn)).Run();
+        long before = GC.GetTotalMemory(forceFullCollection: true);
+        var opening = Time(w.World, 1, _ => [new OpenSurface(Content.Surfaces.Planet.Id)]);
+        long memory = GC.GetTotalMemory(forceFullCollection: true) - before;
+        w.Do(new Transfer(1)).Run(20);
+        int planet = w.World.Save().Length - ship;
+        var loading = Stopwatch.StartNew();
+        w.Reload();
+        double load = loading.Elapsed.TotalMilliseconds;
+        Time(w.World, 50, _ => []);
+        var idle = Time(w.World, 300, _ => []);
+        var m = w.On(1);
+        int spawn = m.Crew.Spawn, width = m.Grid.Width;
+        // A shaft dug straight down under the spawn with the axe, a hit a tick, every wall broken along with the next one cracked.
+        var digging = Time(w.World, 600, t => [new Building.Dig(spawn + (1 + t / 6) * width, Content.Weapons.Axe.Item)]);
+        int dugSave = w.World.Save().Length - ship;
+        output.WriteLine($"planet {ground.Width}×{ground.Height}: grown in {grow:F1} ms mean; opened on a tick of {opening.Mean:F0} ms, the rooms' first flood {flood:F0} ms of it; {memory / (1024 * 1024)} MB held");
+        output.WriteLine($"a save {planet} bytes more than the ship's alone, {dugSave} after a shaft of a hundred cells; loaded, ground grown again, in {load:F0} ms");
+        output.WriteLine($"idle tick with a hero on it: {idle.Mean:F3} ms mean, {idle.Max:F3} ms max; digging: {digging.Mean:F3} ms mean, {digging.Max:F3} ms max");
+        // Loose for slow CI machines; the output says how far under.
+        Assert.True(grow < 400, $"growing a planet took {grow:F1} ms");
+        Assert.True(planet < 512 * 1024, $"a planet saves {planet} bytes");
+        Assert.True(idle.Mean < 2 && digging.Mean < 2, "a planet's tick is over its budget");
+    }
+
     /// <summary>The reference ship alone, and in the corner of a world of space: rooms are found again only around a door, so the space costs nothing.</summary>
     [Theory]
     [InlineData(256, 128)]

@@ -70,7 +70,7 @@ public class ItemCardTests
         Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
         // Every weapon breaks anything with HP: a list of kinds would only grow.
         Assert.Empty(card.Uses);
-        Assert.Equal(new CardKey("LMB", "hold on debris to break it"), card.Use);
+        Assert.Equal(new CardKey("LMB", "hold on debris or ground to break it"), card.Use);
         Assert.Empty(card.Effects);
     }
 

@@ -79,6 +79,7 @@ public sealed partial class BuildingModule
     private string? MarkProblem(int cell, string layer)
     {
         if (MarkedCell(cell, layer) is not int at) return "building.nothingThere";
+        if (IsNatural(at, layer)) return "building.natural";
         if (layer == "machine" && _grid.MachineAt(at) is { } machine && IsFixed(machine.Kind)) return "building.fixed";
         if (IsMarked(layer, at)) return "building.planned";
         return InUse(at, layer);

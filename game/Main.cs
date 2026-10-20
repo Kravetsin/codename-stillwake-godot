@@ -78,6 +78,7 @@ public partial class Main : Node2D, ITogether
     /// <summary>The registry the views draw: a load or a resync brings a new one.</summary>
     private Registry? _shown;
     private GridView? _grid;
+    private Features.Building.DigView? _digs;
     private LightView? _light;
     private FurnaceView? _furnace;
     private AnalyzerScreens? _screens;
@@ -799,6 +800,7 @@ public partial class Main : Node2D, ITogether
         if (_shown == _m) return;
         long made = System.Diagnostics.Stopwatch.GetTimestamp();
         _grid?.QueueFree();
+        _digs?.QueueFree();
         _light?.QueueFree();
         _furnace?.QueueFree();
         _screens?.QueueFree();
@@ -808,6 +810,7 @@ public partial class Main : Node2D, ITogether
         _stations?.QueueFree();
         _drones?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
+        AddChild(_digs = new Features.Building.DigView(_m.Grid, _m.Building));
         AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
         AddChild(_chargers = new Features.Power.ChargerLights(_m.Grid, _m.Items, _m.Power));
         AddChild(_tanks = new Features.Atmosphere.TankLooks(_m.Grid, _m.Atmosphere));

@@ -456,8 +456,11 @@ public partial class HeroView : Node2D
         {
             var hits = Aiming.HitsOf(m, client.Id, _current, _swing.At);
             foreach (var hit in hits) client.Send(hit);
+            // The ground under the swing's point is dug as it strikes, in reach (0077).
+            var dig = Aiming.DigAt(m, client.Id, _current, _swing.At, Content.Weapons.Axe.Item);
+            if (dig != null) client.Send(dig);
             // A blade that bites is drawn stopped on contact a moment (0075).
-            if (hits.Count > 0) _figure.Bit();
+            if (hits.Count > 0 || dig != null) _figure.Bit();
         }
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
         // its power every tick it runs (0055), and hits every wreck its bit touches each Pace ticks. Flat, it winds down.
@@ -470,7 +473,8 @@ public partial class HeroView : Node2D
         Drill(client, m, runs ? pointer : null, drill);
         _figure.Spinning = runs;
         // Heard while its bit is on a piece the sim would let it hit, whatever the hits' pace; its bit throws sparks there.
-        bool works = runs && Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0;
+        bool works = runs && (Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0
+            || Aiming.DigAt(m, client.Id, _current, Aiming.PointOf(pointer!.Value), running!) != null);
         _figure.Bites = works;
         HearDrill(runs, works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
@@ -525,8 +529,9 @@ public partial class HeroView : Node2D
     private void Drill(Client client, Registry m, (double X, double Y)? pointer, string? drill)
     {
         if (!_drillPace.Due(client.World.Tick, pointer != null && drill != null, Content.Weapons.Of(drill)?.Pace ?? 1)) return;
-        var touched = Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value));
-        foreach (var hit in Aiming.HitsOf(m, client.Id, touched, drill!)) client.Send(hit);
+        var at = Aiming.PointOf(pointer!.Value);
+        foreach (var hit in Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, at), drill!)) client.Send(hit);
+        if (Aiming.DigAt(m, client.Id, _current, at, drill!) is { } dig) client.Send(dig);
     }
 
     /// <summary>
@@ -639,7 +644,7 @@ public partial class HeroView : Node2D
             shown.Figure.Aim = seen.Busy is { Work: Handwork.Drill, At: var drilled } ? Pixels(drilled) : rodAim is { } aimed ? Pixels(aimed) : null;
             shown.Figure.Spinning = HeldLook.IsDrill(m.Items.Running(id));
             // Its bit throws sparks while it runs on a wreck: on one its bit touches, as this hero's own.
-            shown.Figure.Bites = shown.Figure.Spinning && seen.Busy is { Work: Handwork.Drill, At: var bit } && Aiming.Touched(m, hero, bit).Count > 0;
+            shown.Figure.Bites = shown.Figure.Spinning && seen.Busy is { Work: Handwork.Drill, At: var bit } && (Aiming.Touched(m, hero, bit).Count > 0 || Aiming.Bites(m, bit));
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Loaded = shown.Rod.Loaded;
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
