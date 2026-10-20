@@ -118,7 +118,9 @@ Numbers from `game/Content/Light.cs`.
 - **Helmet lamps** (0077): a beam and a glow a lamp worn, from its bulb on the helmet (`LightView.HeadLamps`, answered by
   the crew's `HeroView.HeadLamps()`, where it is and the way the head looks): `Light.HeadLamp`, a warm (0.95, 0.82, 0.6)
   keeping `Light.HeadLampKeep` (0.8) a cell out to `Light.HeadLampReach` (9) within `Light.HeadLampHalfAngle` (30°) of
-  that way, faded over a soft edge, its bulb 3 px wide; and `Light.HeadGlow` (0.4) of it out to 2 cells all round. A beam
+  that way, faded over a soft edge, its bulb 3 px wide; and `Light.HeadGlow` (0.4) of it out to 2 cells all round, from halfway between the bulb and the
+  neck, inside the hero (`Sources.HeadLamp`): standing against a wall the bulb pokes into it, and a light in a wall lights
+  nothing in the open, so the beam then shines from there too. A beam
   is a `LightSource` with a `Toward`, packed with its most as 2 and its heading as a share of a turn, which the shader
   reads back (`beam_cos`, `beam_soft`): one dot product a texel. Free, as bright anywhere, aboard too.
 

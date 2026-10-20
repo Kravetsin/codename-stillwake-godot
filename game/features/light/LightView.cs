@@ -78,7 +78,7 @@ public partial class LightView : Node2D
     /// Where each helmet lamp worn on this surface shines from this frame, in pixels of the world, and the way it points, a
     /// unit vector (0077): none till the crew answers it.
     /// </summary>
-    public Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> HeadLamps { get; set; } = () => [];
+    public Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> HeadLamps { get; set; } = () => [];
 
     /// <summary>Where each glowing part of a plant near the view shines from this frame, in pixels of the world, and its colour (0079).</summary>
     public Func<IReadOnlyList<(Vector2 At, Color Colour)>> Glows { get; set; } = () => [];
@@ -206,10 +206,11 @@ public partial class LightView : Node2D
             _main.Add(new LightSource(at.X, at.Y, L.Fire, burns, FireReach, L.FireKeep, 1, L.FireSize));
         }
         // A helmet lamp: its beam the way the head looks, and a faint glow round the head.
-        foreach (var (at, toward) in HeadLamps())
+        foreach (var (at, toward, head) in HeadLamps())
         {
-            _main.Add(new LightSource(at.X, at.Y, L.HeadLamp, 1, L.HeadLampReach, L.HeadLampKeep, L.LampMost, L.HeadLampSize, (toward.X, toward.Y)));
-            _main.Add(new LightSource(at.X, at.Y, L.HeadLamp, L.HeadGlow, L.HeadGlowReach, L.HeadGlowKeep, L.LampMost));
+            var (beam, glow) = Sources.HeadLamp((at.X, at.Y), (toward.X, toward.Y), (head.X, head.Y), _blocks ??= Blocks);
+            _main.Add(beam);
+            _main.Add(glow);
         }
         // A plant's glowing parts: a seed pod, a berry, a bell, a small pool of light round each.
         foreach (var (at, colour) in Glows())
@@ -252,6 +253,11 @@ public partial class LightView : Node2D
         _lightmap.Frame(view, _main, _spots);
         Game.Dev.FrameLog.End("lightmap", started);
     }
+
+    private Func<double, double, bool>? _blocks;
+
+    /// <summary>Whether a point of the world, in pixels, lies where light stops.</summary>
+    private bool Blocks(double x, double y) => Sources.Blocks(_grid.StructureAt, _grid.ShapeAt, _grid.Width, _grid.Height, Cell, x, y);
 
     /// <summary>The top of the first solid cell under <paramref name="cell"/>, in pixels, within ten; else six cells under it.</summary>
     private double FloorUnder(int cell)

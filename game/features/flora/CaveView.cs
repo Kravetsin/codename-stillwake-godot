@@ -25,7 +25,7 @@ public partial class CaveView : Node2D
     private readonly IGridQueries _grid;
     private readonly BuildingModule _building;
     private readonly Spec.Ground _ground;
-    private readonly Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> _lamps;
+    private readonly Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> _lamps;
     private readonly int _across;
     /// <summary>The standing cave growths by chunk, and the cells of all of them.</summary>
     private readonly Dictionary<int, List<Plant>> _byChunk = new();
@@ -45,7 +45,7 @@ public partial class CaveView : Node2D
     public int Glinting => _sparkles.Glints.Count;
 
     /// <param name="lamps">Where each helmet lamp on this surface shines from and the way it points, as the light takes them.</param>
-    public CaveView(IGridQueries grid, BuildingModule building, Spec.Ground ground, Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> lamps)
+    public CaveView(IGridQueries grid, BuildingModule building, Spec.Ground ground, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> lamps)
     {
         (_grid, _building, _ground, _lamps) = (grid, building, ground, lamps);
         _across = (grid.Width + Chunk - 1) / Chunk;
@@ -290,7 +290,7 @@ public partial class CaveView : Node2D
                 float best = 0;
                 for (int i = 0; i < lamps.Count; i++)
                 {
-                    var (from, toward) = lamps[i];
+                    var (from, toward, _) = lamps[i];
                     var d = at - from;
                     float far = d.Length();
                     if (far > reach || far < 1) continue;
