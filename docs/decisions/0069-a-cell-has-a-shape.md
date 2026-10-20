@@ -33,10 +33,12 @@ for air, rooms, leaks and drones.
   open half is no room's and holds no air; a stack lying in it falls as aboard, even out in space.
 - **The hero** (`game/features/crew/Hero.cs`): whole cells hold the whole box; a floor slope (◢ ◣) holds
   the middle of the feet on its diagonal, and beside the middle the box at its point nearest the middle.
-  - A walk moves in parts that end where the box's leading edge or its middle crosses into another column,
-    the feet stepping up onto ground no more than half a width above them, the head permitting, and
-    sticking to ground that fell by no more than the part walked: up and down a ramp without a jump, and
-    never a frame in the air going down.
+  - A walk moves in parts that end where the box's leading edge or its middle reaches the last thousandth of
+    its column, then crosses a thousandth into the next, the feet stepping up onto ground no more than half a
+    width above them, the head permitting, and sticking to ground that fell by no more than the part walked:
+    up and down a ramp without a jump, and never a frame in the air going down. Crossing a thousandth at a
+    time puts the feet a thousandth into the next step's diagonal, so a stair of slopes with air under its
+    steps, as players build them, is walked like a ramp on solid ground (fix of 2026-10-21).
   - A slope's closed sides (◢'s right, ◣'s left, both bottoms) stop the box like a wall; through its open
     side the box goes in and the feet climb.
   - **The low ledge rule** (standing, a wall whose top is no more than half a width above the feet does not

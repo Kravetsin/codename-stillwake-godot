@@ -243,8 +243,8 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
 
     /// <summary>
     /// A walk of <paramref name="dx"/> standing at (<paramref name="x"/>, <paramref name="y"/>), the feet kept on the
-    /// ground, in parts that end as the box's leading edge reaches the end of its column or its middle crosses into
-    /// another, so the ground and the walls ahead are read where the feet are then (0069). After each part the feet
+    /// ground, in parts that end as the box's leading edge or its middle reaches the end of its column, then cross a
+    /// thousandth into the next, so the ground and the walls ahead are read where the feet are then (0069). After each part the feet
     /// step up onto a slope or a ledge no more than half a width above them, the head permitting, and stick to ground
     /// that fell by no more than the part walked: up and down a slope at its speed on the flat, never leaving it.
     /// Walked off an edge, the rest is walked in the air; over a hole the body fits, the walk ends (<see cref="Caught"/>).
@@ -260,7 +260,10 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
             // would be stopped short at every column by the ledge it is about to step onto.
             int inColumn = dir > 0 ? (CellOf(edge) + 1) * Unit - 1 - edge : edge - CellOf(edge) * Unit;
             int toEdge = inColumn > 0 ? inColumn : 1;
-            int toMiddle = dir > 0 ? (CellOf(x) + 1) * Unit - x : x - CellOf(x) * Unit + 1;
+            // The middle too: lifted on its slope's last thousandth, it crosses into a thousandth under the next step's
+            // diagonal, which lifts it even with air under that step; crossed further, the feet would be in the air under it.
+            int inCell = dir > 0 ? (CellOf(x) + 1) * Unit - 1 - x : x - CellOf(x) * Unit;
+            int toMiddle = inCell > 0 ? inCell : 1;
             int part = Math.Min(left, Math.Min(toEdge, toMiddle));
             int to = MoveX(ship, x, y, dir * part, true, ledge: true);
             // Over a hole the body fits, the walk ends there and the hero falls in.
