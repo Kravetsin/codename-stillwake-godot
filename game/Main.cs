@@ -255,7 +255,7 @@ public partial class Main : Node2D, ITogether
         AddChild(new DevPanel(() => _session, () => _m, () => _net));
         // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
-        var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), HandbookPage.SectionIcon, debrisPage)])
+        var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
         {
             Opening = () =>
             {
