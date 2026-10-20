@@ -16,12 +16,16 @@ public static class Terrain
 
     /// <summary>Each noise and draw of a ground hashed apart from the others.</summary>
     private const uint Ranges = 1, Hills = 2, Bumps = 3, Soil = 4, Mouths = 5, Tunnels = 6, TunnelsFine = 7, Caverns = 8,
-        CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13, CaveRoll = 14, CavePatch = 17;
+        CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13, CaveRoll = 14, CavePatch = 17, MouthFade = 18;
 
-    public static Layout Generate(Ground g, uint seed) => Generate(g, seed, out _);
+    public static Layout Generate(Ground g, uint seed) => Generate(g, seed, out _, out _);
 
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
-    internal static Layout Generate(Ground g, uint seed, out bool[] hall)
+    internal static Layout Generate(Ground g, uint seed, out bool[] hall) => Generate(g, seed, out hall, out _);
+
+    /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
+    /// <param name="surface">Each column's surface, its first row of ground before caves and landmarks open it: for tests.</param>
+    internal static Layout Generate(Ground g, uint seed, out bool[] hall, out int[] surface)
     {
         int w = g.Width, h = g.Height, floor = h - g.BedrockRows;
         int soil = Materials.Get("soil").Code, stone = Materials.Get("stone").Code, bedrock = Materials.Get("bedrock").Code;
@@ -107,10 +111,16 @@ public static class Terrain
             }
 
         // Open ground with nothing solid above it, straight up to the sky — a cave's mouth, a chasm, a pit — is the open sky
-        // itself: no back wall, so it shows the sky as the land round it does. Under an overhang, and in caves, it keeps its.
+        // itself near the surface: no back wall, so it shows the sky as the land round it does, down to a few rows under the
+        // surface's line, varying smoothly along it. Deeper, a shaft keeps its back wall all the way down, as caves and ground
+        // under an overhang keep theirs: a hero falling down one sees the rock go by.
         for (int x = 0; x < w; x++)
-            for (int y = 0; y < h && kind[y * w + x] != 1; y++)
+        {
+            int fade = g.MouthFadeLeast + (int)((long)Noise(seed, MouthFade, x, 6) * (g.MouthFadeMost - g.MouthFadeLeast + 1) / Whole);
+            for (int y = 0; y < h && y < top[x] + fade && kind[y * w + x] != 1; y++)
                 (kind[y * w + x], codes[y * w + x]) = (0, 0);
+        }
+        surface = top;
 
         var rows = new char[h][];
         for (int y = 0; y < h; y++)
@@ -207,7 +217,7 @@ public static class Terrain
 
     /// <summary>
     /// What grows in the caves (0080), row by row from the top, each row from the left: in every slot — an open cave cell over a
-    /// wall (a floor, whole or a slope), one under a whole wall (a ceiling), a stone wall beside a cave cell (rock) — one draw under 10000
+    /// whole wall (a floor), one under a whole wall (a ceiling), a stone wall beside a cave cell (rock) — one draw under 10000
     /// picks a kind of that anchor by its chance in the row's band, scaled by the patch noise there and in a great hall, set
     /// where it has room (<see cref="Content.Flora.CaveKind"/>). Only in the caves: an open cell under the sky is no slot, nor a
     /// wall beside only the sky.
@@ -238,7 +248,7 @@ public static class Terrain
                 int cell = y * w + x;
                 if (Open(x, y))
                 {
-                    if (rows[y + 1][x] is '#' or '/' or '\\') Try(Content.Flora.Anchor.Floor, x, y, cell);
+                    if (rows[y + 1][x] == '#') Try(Content.Flora.Anchor.Floor, x, y, cell);
                     if (rows[y - 1][x] == '#') Try(Content.Flora.Anchor.Ceiling, x, y, cell);
                 }
                 else if (rows[y][x] == '#' && codes[cell] == stone && (Open(x, y - 1) || Open(x, y + 1) || Open(x - 1, y) || Open(x + 1, y)))
@@ -274,9 +284,9 @@ public static class Terrain
             {
                 for (int i = 0, at = cell; i < kind.Tall; i++, at += step)
                     if (at < 0 || at >= w * h || rows[at / w][x] != '.' || taken[at]) return;
-                // A narrow growth may stand on a floor's slope, sunk to its middle; a wide one only on whole floors.
+                // Only on whole walls, never a slope, as Terraria's: no growth floats over a slope or stands in one.
                 for (int dx = -kind.Wide; dx <= kind.Wide; dx++)
-                    if (x + dx < 0 || x + dx >= w || !Open(x + dx, y) || rows[y + hold][x + dx] != '#' && (kind.Wide > 0 || dx != 0)) return;
+                    if (x + dx < 0 || x + dx >= w || !Open(x + dx, y) || rows[y + hold][x + dx] != '#') return;
                 for (int i = 0, at = cell; i < kind.Tall; i++, at += step) taken[at] = true;
             }
             into.Add((cell, kind.Id));

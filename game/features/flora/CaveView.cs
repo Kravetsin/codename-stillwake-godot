@@ -22,18 +22,23 @@ public partial class CaveView : Node2D
 {
     private const int Cell = ShipCamera.Cell, Chunk = 32;
 
+    /// <summary>A picture's rows, all of them: one not planted.</summary>
+    private const int Whole = -1;
+
     private readonly IGridQueries _grid;
     private readonly BuildingModule _building;
     private readonly Spec.Ground _ground;
-    private readonly Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> _lamps;
+    private readonly Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> _lamps;
     private readonly int _across;
     /// <summary>The standing cave growths by chunk, and the cells of all of them.</summary>
     private readonly Dictionary<int, List<Plant>> _byChunk = new();
     private readonly HashSet<int> _standing = [];
+    /// <summary>The cells of the moss standing: a run of it joins.</summary>
+    private readonly HashSet<int> _moss = [];
     private readonly Dictionary<int, Patch> _shown = new();
     private readonly List<LightSource> _lights = [];
     private readonly List<(LightSource Light, float Far)> _near = [];
-    private readonly Sparkles _sparkles = new() { ZIndex = Layers.Glows, Material = GlowMaterial };
+    private readonly Sparkles _sparkles = new() { ZIndex = Layers.Flora, Material = GlowMaterial };
     private readonly Queue<double> _motes = new();
     private double _seconds, _moteDue;
     private int _count = -1, _version = -1;
@@ -45,7 +50,7 @@ public partial class CaveView : Node2D
     public int Glinting => _sparkles.Glints.Count;
 
     /// <param name="lamps">Where each helmet lamp on this surface shines from and the way it points, as the light takes them.</param>
-    public CaveView(IGridQueries grid, BuildingModule building, Spec.Ground ground, Func<IReadOnlyList<(Vector2 At, Vector2 Toward)>> lamps)
+    public CaveView(IGridQueries grid, BuildingModule building, Spec.Ground ground, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> lamps)
     {
         (_grid, _building, _ground, _lamps) = (grid, building, ground, lamps);
         _across = (grid.Width + Chunk - 1) / Chunk;
@@ -76,6 +81,7 @@ public partial class CaveView : Node2D
         Glints(view);
         _sparkles.Time = _seconds;
         _sparkles.QueueRedraw();
+        Land();
         Motes(view, delta);
         _spentMs += System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
         _frames++;
@@ -91,6 +97,7 @@ public partial class CaveView : Node2D
         {
             if (!CaveLooks.Of.ContainsKey(plant.Kind)) continue;
             now.Add(plant.Cell);
+            if (first && plant.Kind == "moss") _moss.Add(plant.Cell);
             if (first) Of(ChunkOf(plant.Cell)).Add(plant);
         }
         if (first)
@@ -101,6 +108,7 @@ public partial class CaveView : Node2D
         foreach (int cell in _standing.Where(c => !now.Contains(c)).ToList())
         {
             _standing.Remove(cell);
+            _moss.Remove(cell);
             int chunk = ChunkOf(cell);
             var list = Of(chunk);
             int at = list.FindIndex(p => p.Cell == cell);
@@ -158,6 +166,8 @@ public partial class CaveView : Node2D
                 int chunk = r * _across + c;
                 if (!_shown.ContainsKey(chunk) && _byChunk.TryGetValue(chunk, out var list) && list.Count > 0) AddChild(_shown[chunk] = Build(list));
             }
+        // The glints over the pictures of the same layer: drawn last of it.
+        MoveChild(_sparkles, -1);
         _far.Clear();
         foreach (int chunk in _shown.Keys)
             if (chunk % _across < c0 - 2 || chunk % _across > c1 + 2 || chunk / _across < r0 - 2 || chunk / _across > r1 + 2) _far.Add(chunk);
@@ -183,37 +193,51 @@ public partial class CaveView : Node2D
             var kind = Spec.Flora.Get(plant.Kind);
             int x = plant.Cell % w, y = plant.Cell / w, band = Terrain.BandOf(_ground, y);
             uint hash = Hash(plant.Cell);
-            var pictures = new List<(string Name, Vector2 At)>();
+            var pictures = new List<(string Name, Vector2 At, int From, int Rows)>();
             if (plant.Kind == "moss")
             {
                 // On each face of its stone open now: its top a floor's tufts, its bottom a ceiling's strands, its sides a film.
                 string tone = band == 0 ? "mossGreen" : "moss";
                 var corner = new Vector2(x * Cell - 4, y * Cell - 4);
                 int v = (int)(hash % (uint)look.Variants);
-                if (Open(plant.Cell - w)) pictures.Add(($"caves/{tone}_top_{v}", corner));
-                if (Open(plant.Cell + w)) pictures.Add(($"caves/{tone}_bottom_{(v + 1) % look.Variants}", corner));
-                if (x > 0 && Open(plant.Cell - 1)) pictures.Add(($"caves/{tone}_left_{(v + 2) % look.Variants}", corner));
-                if (x < w - 1 && Open(plant.Cell + 1)) pictures.Add(($"caves/{tone}_right_{(v + 3) % look.Variants}", corner));
+                int own = plant.Cell;
+                // A face's band runs on along a run of moss showing the same face, so a run joins rather than repeating its piece.
+                void Face(Planting.Faces face, string name, int toward, int before, int after)
+                {
+                    if (face is Planting.Faces.Left && x == 0 || face is Planting.Faces.Right && x == w - 1 || !Open(own + toward)) return;
+                    bool Runs(int n) => _moss.Contains(n) && Open(n + toward);
+                    var band = Atlas.Band[(tone, face)];
+                    int thick = (int)(face is Planting.Faces.Up or Planting.Faces.Down ? band.Size.Y : band.Size.X);
+                    if (Planting.Strip(face, x, y, Cell, thick, Runs(own + before), Runs(own + after)) is (int sx, int sy, int sw, int sh))
+                        patch.Pictures.Items.Add((new Rect2(sx, sy, sw, sh), band));
+                    pictures.Add((name, corner, 0, Whole));
+                }
+                Face(Planting.Faces.Up, $"caves/{tone}_top_{v}", -w, -1, 1);
+                Face(Planting.Faces.Down, $"caves/{tone}_bottom_{(v + 1) % look.Variants}", w, -1, 1);
+                Face(Planting.Faces.Left, $"caves/{tone}_left_{(v + 2) % look.Variants}", -1, -w, w);
+                Face(Planting.Faces.Right, $"caves/{tone}_right_{(v + 3) % look.Variants}", 1, -w, w);
             }
             else if (look.Variants > 0)
             {
                 int v = (int)(hash % (uint)look.Variants);
                 string name = look.ByBand ? $"caves/{plant.Kind}_{band}_{v}" : $"caves/{plant.Kind}_{v}";
                 var size = Atlas.At[name].Size;
-                var corner = kind.On switch
+                if (kind.On == Spec.Flora.Anchor.Rock) pictures.Add((name, new Vector2(x * Cell - 4, y * Cell - 4), 0, Whole));
+                else
                 {
-                    Spec.Flora.Anchor.Floor => new Vector2(x * Cell + Cell / 2 - (int)size.X / 2, (y + 1) * Cell - (int)size.Y + 1 + (Shape.IsFloor(_grid.ShapeAt(plant.Cell + w)) ? Cell / 2 - 1 : 0)),
-                    Spec.Flora.Anchor.Ceiling => new Vector2(x * Cell + Cell / 2 - (int)size.X / 2, y * Cell - 1),
-                    _ => new Vector2(x * Cell - 4, y * Cell - 4),
-                };
-                pictures.Add((name, corner));
-                if (plant.Kind == "stalactite" && hash / 7 % CaveLooks.DripShare == 0) patch.Drips.Add(corner + new Vector2(size.X / 2, size.Y));
+                    // Planted: its base sunk under the ground's top edge, or its top up into the ceiling, those rows not drawn.
+                    var (top, bottom) = Atlas.Used[name];
+                    var (px, py, from, rows) = Planting.Picture(kind.On, x, y, Cell, (int)size.X, (int)size.Y, top, bottom, look.Sink);
+                    pictures.Add((name, new Vector2(px, py), from, rows));
+                    if (plant.Kind == "stalactite" && hash / 7 % CaveLooks.DripShare == 0) Drip(patch, new Vector2(px + size.X / 2, py + bottom + 1));
+                }
             }
             Vector2? glowAt = null;
-            foreach (var (name, at) in pictures)
+            foreach (var (name, at, from, rows) in pictures)
             {
                 var region = Atlas.At[name];
-                patch.Pictures.Items.Add((new Rect2(at, region.Size), region));
+                if (rows == Whole) patch.Pictures.Items.Add((new Rect2(at, region.Size), region));
+                else if (rows > 0) patch.Pictures.Items.Add((new Rect2(at.X, at.Y + from, region.Size.X, rows), new Rect2(region.Position.X, region.Position.Y + from, region.Size.X, rows)));
                 if (GlowOf(name) is not { } glow) continue;
                 patch.Shine.Items.Add((new Rect2(at, region.Size), region));
                 glowAt ??= at + glow.Middle;
@@ -221,16 +245,17 @@ public partial class CaveView : Node2D
                     foreach (var point in glow.Brightest.Take(look.Glints)) patch.Glints.Add((at + point, Colour(look.GlintColour), plant.Cell));
             }
             var colour = plant.Kind is "moss" or "roots" && band == 0 ? CaveLooks.ColdMoss : look.Light;
-            if (colour is { } c && glowAt is { } middle && hash / 13 % 100 < (uint)look.LightShare)
-                patch.Lights.Add(new LightSource(middle.X, middle.Y, c, look.Strength, look.Reach, look.Keep, 1));
+            // From the open, off the face of what holds it, a few pixels wide: a light in the rock lit only the rock, and a point on a face cast a hard shadow along it.
+            if (colour is { } c && glowAt is { } middle && Planting.Light(kind.On, x, y, Cell, middle.X, middle.Y, FacesOpen(plant.Cell)) is { } shines)
+                patch.Lights.Add(new LightSource(shines.X, shines.Y, c, look.Strength, look.Reach, look.Keep, 1, CaveLooks.LightSize));
             // Mica and veins glint on the faces of their stone that are open, a pixel in.
             if (kind.On == Spec.Flora.Anchor.Rock && look.Glints > 0)
                 for (int i = 0; i < look.Glints; i++)
                     if (FacePoint(plant.Cell, hash >> (i * 5)) is { } point) patch.Glints.Add((point, Colour(look.GlintColour), plant.Cell));
-            if (glowAt is { } from)
+            if (glowAt is { } glowing)
             {
-                if (plant.Kind.StartsWith("glowcap", StringComparison.Ordinal) || plant.Kind == "hangcap") patch.Spores.Add((from, Colour(look.Light!.Value)));
-                if (plant.Kind == "heatCrack" && hash % 3 == 0) patch.Embers.Add(from);
+                if (plant.Kind.StartsWith("glowcap", StringComparison.Ordinal) || plant.Kind == "hangcap") patch.Spores.Add((glowing, Colour(look.Light!.Value)));
+                if (plant.Kind == "heatCrack" && hash % 3 == 0) patch.Embers.Add(glowing);
             }
         }
         return patch;
@@ -238,6 +263,14 @@ public partial class CaveView : Node2D
 
     /// <summary>Whether <paramref name="cell"/> is open: nothing built or grown there.</summary>
     private bool Open(int cell) => cell >= 0 && cell < _grid.Width * _grid.Height && _grid.StructureAt(cell) == Structure.Empty;
+
+    /// <summary>The faces of the cell at <paramref name="cell"/> that are open.</summary>
+    private Planting.Faces FacesOpen(int cell)
+    {
+        int w = _grid.Width, x = cell % w;
+        return (Open(cell - w) ? Planting.Faces.Up : 0) | (Open(cell + w) ? Planting.Faces.Down : 0)
+            | (x > 0 && Open(cell - 1) ? Planting.Faces.Left : 0) | (x < w - 1 && Open(cell + 1) ? Planting.Faces.Right : 0);
+    }
 
     /// <summary>A point a pixel inside an open face of the stone at <paramref name="cell"/>, by <paramref name="hash"/>; null for none open.</summary>
     private Vector2? FacePoint(int cell, uint hash)
@@ -265,13 +298,12 @@ public partial class CaveView : Node2D
     {
         _lights.Clear();
         _near.Clear();
-        var near = view.Grow(Cell * 4);
         var middle = view.GetCenter();
         foreach (var patch in _shown.Values)
             foreach (var light in patch.Lights)
             {
                 var at = new Vector2((float)light.X, (float)light.Y);
-                if (near.HasPoint(at)) _near.Add((light, at.DistanceSquaredTo(middle)));
+                if (view.Grow(light.Reach * Cell).HasPoint(at)) _near.Add((light, at.DistanceSquaredTo(middle)));
             }
         if (_near.Count > CaveLooks.MostLights) _near.Sort((a, b) => a.Far.CompareTo(b.Far));
         for (int i = 0; i < Math.Min(_near.Count, CaveLooks.MostLights); i++) _lights.Add(_near[i].Light);
@@ -290,7 +322,7 @@ public partial class CaveView : Node2D
                 float best = 0;
                 for (int i = 0; i < lamps.Count; i++)
                 {
-                    var (from, toward) = lamps[i];
+                    var (from, toward, _) = lamps[i];
                     var d = at - from;
                     float far = d.Length();
                     if (far > reach || far < 1) continue;
@@ -327,27 +359,55 @@ public partial class CaveView : Node2D
         _sources.Clear();
         foreach (var patch in _shown.Values)
         {
-            foreach (var (at, colour) in patch.Spores) if (view.HasPoint(at)) _sources.Add((0, at, colour));
-            foreach (var at in patch.Drips) if (view.HasPoint(at)) _sources.Add((1, at, default));
-            foreach (var at in patch.Embers) if (view.HasPoint(at)) _sources.Add((2, at, default));
+            foreach (var (at, colour) in patch.Spores) if (view.HasPoint(at)) _sources.Add((0, at, colour, 0));
+            foreach (var (at, floor) in patch.Drips) if (view.HasPoint(at)) _sources.Add((1, at, default, floor));
+            foreach (var at in patch.Embers) if (view.HasPoint(at)) _sources.Add((2, at, default, 0));
         }
         var glims = Glims.Shared;
         for (; _moteDue >= 1; _moteDue--)
         {
             if (_sources.Count == 0 || _motes.Count >= CaveLooks.MostMotes) continue;
-            var (what, at, colour) = _sources[(int)glims.Between(0, _sources.Count - 0.001)];
+            var (what, at, colour, landsOn) = _sources[(int)glims.Between(0, _sources.Count - 0.001)];
             Glim? made = what switch
             {
                 0 => glims.Add(SporeOf(colour),
                     at.X + glims.Between(-12, 12), at.Y + glims.Between(-8, 4), glims.Between(-3, 3), glims.Between(-5, -1), bright: glims.Between(0.4, 0.9)),
-                1 => glims.Add(CaveLooks.Drip, at.X, at.Y + 1, 0, 8),
+                1 => glims.Add(CaveLooks.Drip, at.X, at.Y + 1, 0, 8, floor: landsOn),
                 _ => glims.Add(CaveLooks.Ember_, at.X + glims.Between(-6, 6), at.Y, glims.Between(-4, 4), glims.Between(-14, -5), bright: glims.Between(0.4, 0.8)),
             };
             if (made != null) _motes.Enqueue(_seconds + made.LifeMs / 1000);
+            if (made != null && what == 1) _falling.Add((made, landsOn));
         }
     }
 
-    private readonly List<(int What, Vector2 At, Color Colour)> _sources = [];
+    private readonly List<(int What, Vector2 At, Color Colour, float Floor)> _sources = [];
+
+    /// <summary>The drips falling, each with the row of pixels it lands on.</summary>
+    private readonly List<(Glim Drip, float Floor)> _falling = [];
+
+    /// <summary>A drip from the tip of a stalactite at <paramref name="tip"/>, landing on what is under it: none with nowhere to fall.</summary>
+    private void Drip(Patch patch, Vector2 tip)
+    {
+        if (Planting.DripFloor(_grid.StructureAt, _grid.ShapeAt, _grid.Width, _grid.Height, Cell, tip.X, tip.Y, CaveLooks.DripRows) is double floor)
+            patch.Drips.Add((tip, (float)floor));
+    }
+
+    /// <summary>Each drip that reached what it falls on splashes there and is gone: it never falls through the ground.</summary>
+    private void Land()
+    {
+        for (int i = _falling.Count - 1; i >= 0; i--)
+        {
+            var (drip, floor) = _falling[i];
+            if (drip.AgeMs < drip.LifeMs && drip.Y < floor - 0.01) continue;
+            if (drip.AgeMs < drip.LifeMs)
+            {
+                drip.AgeMs = drip.LifeMs;
+                Glims.Shared.Spray(CaveLooks.Splash, drip.X, floor - 0.5, CaveLooks.SplashDrops, -Math.PI / 2, (-1.1, 1.1), (14, 34), floor);
+            }
+            _falling[i] = _falling[^1];
+            _falling.RemoveAt(_falling.Count - 1);
+        }
+    }
 
     /// <summary>A spore in <paramref name="colour"/>, made once a colour rather than once a spore.</summary>
     private static Luminous SporeOf(Color colour)
@@ -427,11 +487,12 @@ public partial class CaveView : Node2D
     private sealed partial class Patch : Node2D
     {
         public readonly Pictures Pictures = new() { ZIndex = Layers.Flora, Texture = Atlas.Pictures };
-        public readonly Pictures Shine = new() { ZIndex = Layers.Glows, Material = GlowMaterial, Texture = Atlas.Glows };
+        public readonly Pictures Shine = new() { ZIndex = Layers.Flora, Material = GlowMaterial, Texture = Atlas.Glows };
         public readonly List<LightSource> Lights = [];
         public readonly List<(Vector2 At, Color Colour, int Own)> Glints = [];
         public readonly List<(Vector2 At, Color Colour)> Spores = [];
-        public readonly List<Vector2> Drips = [], Embers = [];
+        public readonly List<(Vector2 At, float Floor)> Drips = [];
+        public readonly List<Vector2> Embers = [];
 
         public Patch()
         {
@@ -463,6 +524,12 @@ public partial class CaveView : Node2D
         public static readonly Texture2D Pictures, Glows;
         public static readonly Dictionary<string, Rect2> At = new();
 
+        /// <summary>Each picture's first and last rows with anything drawn in them: its top and its base.</summary>
+        public static readonly Dictionary<string, (int Top, int Bottom)> Used = new();
+
+        /// <summary>A pixel of each moss tone's band along each face, stretched along a run of it: its colour, its thickness.</summary>
+        public static readonly Dictionary<(string Tone, Planting.Faces Face), Rect2> Band = new();
+
         static Atlas()
         {
             var names = Names().Select(n => (Name: n, Image: ImageOf(n))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
@@ -480,9 +547,36 @@ public partial class CaveView : Node2D
                 var at = At[name];
                 var whole = new Rect2I(0, 0, (int)at.Size.X, (int)at.Size.Y);
                 pictures.BlitRect(image, whole, (Vector2I)at.Position);
-                if (GlowOf(name) is { } glow) glows.BlitRect(Rgba(glow.Texture.GetImage()), whole, (Vector2I)at.Position);
+                var used = image.GetUsedRect();
+                Used[name] = (used.Position.Y, used.End.Y - 1);
+                if (GlowOf(name) is { } glow) glows.BlitRect(Faded(Rgba(glow.Texture.GetImage())), whole, (Vector2I)at.Position);
             }
+            foreach (string tone in (string[])["moss", "mossGreen"])
+                foreach (var (face, name, line, thick) in MossBands)
+                    Band[(tone, face)] = BandOf(names.Where(n => n.Name.StartsWith($"caves/{tone}_{name}_", StringComparison.Ordinal)).ToList(), face, line, thick);
             (Pictures, Glows) = (ImageTexture.CreateFromImage(pictures), ImageTexture.CreateFromImage(glows));
+        }
+
+        /// <summary>
+        /// Where each face's band of moss lies in its pictures, which are 24 × 24 round their cell: its row, along a top or a
+        /// bottom, or its column, down a side; and how many pixels thick it is.
+        /// </summary>
+        private static readonly (Planting.Faces Face, string Name, int Line, int Thick)[] MossBands =
+            [(Planting.Faces.Up, "top", 4, 1), (Planting.Faces.Down, "bottom", 19, 2), (Planting.Faces.Left, "left", 4, 1), (Planting.Faces.Right, "right", 19, 1)];
+
+        /// <summary>The first pixel of a moss face's band in its pictures, <paramref name="thick"/> across it, in the atlas.</summary>
+        private static Rect2 BandOf(List<(string Name, Image Image)> pictures, Planting.Faces face, int line, int thick)
+        {
+            bool across = face is Planting.Faces.Up or Planting.Faces.Down;
+            foreach (var (name, image) in pictures)
+                for (int i = 0; i < 24; i++)
+                {
+                    var (px, py) = across ? (i, line) : (line, i);
+                    if (image.GetPixel(px, py).A < 0.5f) continue;
+                    var at = At[name].Position + new Vector2(px, py);
+                    return across ? new Rect2(at, new Vector2(1, thick)) : new Rect2(at, new Vector2(thick, 1));
+                }
+            throw new InvalidOperationException($"No band of moss along {face} in its pictures.");
         }
 
         /// <summary>The name of every cave picture: each kind's variants, by band for those that are, moss by tone and face.</summary>
@@ -502,6 +596,25 @@ public partial class CaveView : Node2D
                     }
                     else yield return $"caves/{kind}_{v}";
                 }
+        }
+
+        /// <summary>How many pixels in from its picture's edge a glow fades out over: cut off at the edge, its bloom drew the picture's box.</summary>
+        private const int FadeIn = 3;
+
+        /// <summary><paramref name="glow"/> fading to nothing at its edges, over <see cref="FadeIn"/> pixels.</summary>
+        private static Image Faded(Image glow)
+        {
+            int w = glow.GetWidth(), h = glow.GetHeight();
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    int edge = Math.Min(Math.Min(x, w - 1 - x), Math.Min(y, h - 1 - y));
+                    if (edge >= FadeIn) continue;
+                    var c = glow.GetPixel(x, y);
+                    float keep = (edge + 0.5f) / FadeIn;
+                    glow.SetPixel(x, y, c with { A = c.A * keep * keep });
+                }
+            return glow;
         }
 
         private static Image ImageOf(string name) => Rgba(PixelArt.Picture(name).GetImage());

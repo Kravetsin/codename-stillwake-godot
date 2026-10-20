@@ -125,11 +125,12 @@ public sealed partial class BuildingModule
     /// <summary>Scratch for <see cref="SweepPlants"/>: the plants whose cell or hold a change touched.</summary>
     private readonly List<Plant> _nearChanges = [];
 
-    /// <summary>Whether <paramref name="plant"/>'s hold is gone, or its open cell holds something now.</summary>
+    /// <summary>Whether <paramref name="plant"/>'s hold is gone or cut to a slope (it grows on whole walls only), or its open cell holds something now.</summary>
     private bool Uprooted(Plant plant)
     {
         if (Kinds[plant.Kind].On == Flora.Anchor.Rock) return _grid.StructureAt(plant.Cell) != Structure.Wall;
-        return _grid.StructureAt(HoldOf(plant)) != Structure.Wall || _grid.StructureAt(plant.Cell) != Structure.Empty || _grid.MachineAt(plant.Cell) != null;
+        int hold = HoldOf(plant);
+        return _grid.StructureAt(hold) != Structure.Wall || _grid.ShapeAt(hold) != Shape.None || _grid.StructureAt(plant.Cell) != Structure.Empty || _grid.MachineAt(plant.Cell) != null;
     }
 
     /// <summary>The grid's version when the plants were last looked at: derived, so after a load they are looked at again.</summary>
