@@ -69,10 +69,10 @@ public class DesyncTests
     {
         // Small planets opened by the world's fuzz, heroes beamed down to them, their ground grown on every peer from one
         // seed and dug there (0077): walls cracked, broken out, their soil and rock given or spilt, plants felled (0079), alike on
-        // every peer. Long enough that digs, few in a fuzz, break a wall and fell a growth among the caves' (0080); seed 19 reaches every
-        // case, as about one seed in five does, 7 no longer since fitting modules (0086) shifted the stream.
+        // every peer. Long enough that digs, few in a fuzz, break a wall and fell a growth among the caves' (0080); seed 1 reaches every
+        // case, as about one seed in five does: 7 no longer since fitting modules (0086) shifted the stream, 19 since the spire's furnishing (0090).
         int planets = 0, cracked = 0, dug = 0, felled = 0;
-        var run = Desync.Fuzz(Definition.Game(), 19, layout: Registry.Wreck, ticks: 1800, worldEvery: 6, tamper: (_, clients) =>
+        var run = Desync.Fuzz(Definition.Game(), 1, layout: Registry.Wreck, ticks: 1800, worldEvery: 6, tamper: (_, clients) =>
         {
             var world = clients[0].World;
             foreach (var surface in world.Surfaces.Where(s => s.Kind == Content.Surfaces.SmallPlanet.Id))

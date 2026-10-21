@@ -206,6 +206,20 @@ icon('arcLamp.png', (p) => {
     p.set(8 + x, 10 + y, d > 3.4 ? ARC.lo : d < 1.5 ? ARC.core : d < 2.8 ? ARC.hi : ARC.mid);
   }
 });
+// The arc lamp hung aboard (machine_arcLamp, 0090): the ceiling lamp's mount from the top of its cell, its globe under it, unlit
+// (the light feature lights it).
+(function machine() {
+  const a = new Pic(16, 16, 0);
+  D.R(a, 7, 0, 2, 2, A[0]); a.set(7, 0, A[4]); D.abox(a, 3, 2, 10, 3);
+  for (let y = -4; y <= 4; y++) for (let x = -4; x <= 4; x++) {
+    const d = Math.sqrt(x * x + y * y); if (d > 4.3) continue;
+    a.set(8 + x, 10 + y, d > 3.4 ? A[0] : (x < 0 && y < 0 && d < 2.6) ? hex('#3a5468') : hex('#26384a'));
+  }
+  a.set(6, 8, hex('#9fc4e0')); a.set(8, 9, A[4]); a.set(8, 11, A[4]); a.set(8, 15, A[0]);
+  const img = P.create(16, 16);
+  for (let i = 0; i < 256; i++) if (a.op[i]) { const o = i * 4; img.data[o] = byte(a.alb[i * 3]); img.data[o + 1] = byte(a.alb[i * 3 + 1]); img.data[o + 2] = byte(a.alb[i * 3 + 2]); img.data[o + 3] = 255; }
+  P.encode(img, path.join(GAME, 'art', 'machine_arcLamp.png'));
+})();
 icon('cloth.png', (p) => {
   // A folded length of the makers' red cloth, its ochre band.
   const R = D.PAL.red, O = D.PAL.ochre;

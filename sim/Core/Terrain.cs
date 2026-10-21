@@ -368,6 +368,7 @@ public static class Terrain
                     };
                     if (kind != null) flora.Add((cell, kind));
                 }
+            foreach (var (kind, px, py) in Content.Ruins.SpireFurnishing) flora.Add(((y0 + py) * w + x0 + px, kind));
             spires.Add((x0, y0));
         }
         return spires;

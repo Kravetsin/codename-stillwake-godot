@@ -23,7 +23,9 @@ public partial class LightView : Node2D
 {
     private const int Cell = ShipCamera.Cell;
     /// <summary>A lit lamp's warm glow, how far across it reaches, in cells, and how opaque at full light: a faint halo.</summary>
-    private static readonly Color GlowColour = new(0xffd9a0ff);
+    private static readonly Color GlowColour = new(0xffd9a0ff), ArcGlowColour = new(0xb4dcffff);
+
+    private static Color GlowOf(Machine lamp) => lamp.Kind == "arcLamp" ? ArcGlowColour : GlowColour;
     private const float GlowCells = 1.75f, GlowAlpha = 0.4f;
     /// <summary>
     /// A burning fire's glow at its machine's mouth, how far across it reaches, in cells, and how opaque it
@@ -155,14 +157,14 @@ public partial class LightView : Node2D
     {
         foreach (var node in _lamps.GetChildren()) node.QueueFree();
         _shown.Clear();
-        foreach (var lamp in _machines.Where(m => m.Kind == "lamp"))
+        foreach (var lamp in _machines.Where(m => m.Kind is "lamp" or "arcLamp"))
         {
             var at = new Vector2(lamp.Cell % _grid.Width + 0.5f, lamp.Cell / _grid.Width + 0.5f) * Cell;
             var glow = new Sprite2D
             {
                 Texture = PixelArt.Glow,
                 Position = at,
-                Modulate = GlowColour,
+                Modulate = GlowOf(lamp),
                 Scale = Vector2.One * GlowCells * Cell / PixelArt.Glow.GetWidth(),
                 ZIndex = Layers.Glows,
                 Material = GlowMaterial,
@@ -201,8 +203,11 @@ public partial class LightView : Node2D
             float share = LampShare(lamp), shines = Flicker.BrightnessOf(share, _timeMs, lamp.Id);
             if (share > 0 && share < 1) _sparks.Lamp(lamp.Id, at, shines, floor, delta * 1000);
             glow.Visible = shines > 0;
-            glow.Modulate = GlowColour with { A = shines * GlowAlpha };
-            _main.Add(new LightSource(at.X, at.Y, L.Lamp, shines, L.LampReach, L.LampKeep, L.LampMost, L.LampSize));
+            glow.Modulate = GlowOf(lamp) with { A = shines * GlowAlpha };
+            // An arc makers' lamp (0090): their cold light, brighter and further.
+            _main.Add(lamp.Kind == "arcLamp"
+                ? new LightSource(at.X, at.Y, L.ArcLamp, shines * L.ArcLampStrength, L.ArcLampReach, L.ArcLampKeep, L.LampMost, L.LampSize)
+                : new LightSource(at.X, at.Y, L.Lamp, shines, L.LampReach, L.LampKeep, L.LampMost, L.LampSize));
         }
         _sparks.End();
         foreach (var (machine, at, glow) in _fires)
