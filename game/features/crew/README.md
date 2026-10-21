@@ -30,6 +30,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Suits.cs`         | the suit colours, `Suits.Of`, their shades and the colour the PNGs are drawn in (`suits.ts`, `art.ts`) | no |
 | `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`; luminous, 0075: fine motes and a veil a running step, grains, motes, veils and a flat ring on landing) | yes |
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
+| `CameraFollow.cs`  | where the camera looks: led by the hero's steps, held through a jump, eased at any frame rate (`Followed`) | no |
 | `JetPlume.cs`      | a jetpack's plume (0075): its core of light, streaks, motes, pool of light, shimmer | yes |
 | `RodLight.cs`      | the harpoon's light (0075): the shot's glint and gas, the rod's trail and wake, the bite, the taut line's bead, the zip home | yes |
 | `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway (door or hatch, 0067), a valve's wheel, a plan's own pictures | yes |
@@ -51,7 +52,7 @@ The files without Godot are compiled a second time into `game.tests/` (linked, a
 `game/Content/Light.cs`), where their TypeScript tests are ported one for one: `hero.test.ts`,
 `pose.test.ts`, `rig.test.ts`, `tether.test.ts`, `report.test.ts`, `danger.test.ts`, `remote.test.ts`,
 `suits.test.ts`, `prompt.test.ts` (`PromptTests`) and `aim.test.ts` (`AimTests`, the harpoon rod's contact
-too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests` and `BodiesTests` have no TypeScript original.
+too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests`, `BodiesTests` and `CameraFollowTests` have no TypeScript original.
 
 ## Guarantees
 
@@ -212,8 +213,15 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   along the floor (`Poses.Adrift`, at most about 25°), the legs trail and the free hand paddles, and
   still it drifts calmly, never panicking. `pose.test.ts`'s swimming tests are replaced by the upright
   ones.
-- The camera is a plain `Camera2D` that `HeroView.Frame` centres on the body's middle; the world's
-  camera from G-06 (`ShipCamera.Follow`) takes its place when the two land together.
+- The camera no longer sits on the body's middle (movement review, item 12; `CameraFollow`, numbers in
+  `game/Content/Camera.cs`). It leads the way the hero moved its last step, never the way it faces, so turning
+  to aim at the pointer moves nothing: `LeadShare` of the screen's width at a run, at every zoom, the lead
+  turning over `LeadTurnMs` and the view easing over `SmoothMs` whatever the frame rate. Under gravity it
+  keeps the height the hero last stood at (two steps running with no fall speed, or on a ladder) through a
+  jump, up to `HoldUp` above it, and follows a landing on another height or a fall past `HoldDown`, a fall
+  never more than `CatchDown` below the screen's middle. Floating in space it holds nothing and leads up and
+  down too. Wherever the hero is put anew (a session's start, waking at the pod, another surface, passing
+  out where the sim has it) the camera is put straight on it.
 
 ## The jetpack and the swim (0047)
 
