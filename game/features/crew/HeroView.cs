@@ -49,7 +49,7 @@ public partial class HeroView : Node2D
     // What the hands touch is heard through the suit, in vacuum as a glove's thump; doors and valves sound where they stand (GridView).
     private readonly ActSound _act = new();
     private readonly Clock _clock = new(Hero.StepMs);
-    /// <summary>Where the camera looks: ahead of the hero, held through a jump; put straight on it wherever the hero is put anew.</summary>
+    /// <summary>Where the camera looks: ahead of the hero, its height eased after it; put straight on it wherever the hero is put anew.</summary>
     private readonly CameraFollow _follow = new();
     private bool _snap;
     /// <summary>The grid's width last frame, to find where a planned cell is.</summary>
@@ -433,13 +433,12 @@ public partial class HeroView : Node2D
 
     /// <summary>
     /// The camera after the hero drawn at (<paramref name="x"/>, <paramref name="y"/>), its feet in thousandths of a
-    /// cell: led by its last step, held through a jump while it neither stands nor floats (<see cref="CameraFollow"/>).
-    /// Standing is two steps running with no fall speed: a jump's top and a head against a ceiling leave one.
+    /// cell: led the way its last step went, the height eased after it (<see cref="CameraFollow"/>).
     /// </summary>
     private void Follow(Camera2D camera, Ship ship, double x, double y, double elapsedMs)
     {
         var hero = new Followed(x / Hero.Unit, (y - Spec.Height / 2.0) / Hero.Unit, _current.X - _previous.X, _current.Y - _previous.Y,
-            _current.Climbing || _current.Vy == 0 && _previous.Vy == 0, ship.Space(_current.BodyCell(ship.Width)));
+            ship.Space(_current.BodyCell(ship.Width)));
         if (_snap) _follow.Snap(hero);
         else _follow.Step(hero, camera.GetViewportRect().Size.X / camera.Zoom.X / Rig.Cell, elapsedMs);
         _snap = false;
