@@ -1,0 +1,15 @@
+# What the builds and shots write; the published artifacts hold the built pages.
+site/
+shots/
+art/
+assets/
+out/*.png
+out/**/*.png
+index.html
+local.html
+probe.html
+check.html
+planet-bg.html
+hero-redesign.html
+arc-icon.html
+preview.html

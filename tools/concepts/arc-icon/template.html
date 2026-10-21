@@ -1,0 +1,520 @@
+<title>Значок дуги</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jura:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a workbench of candidate cards, each a strip of real game UI at 1:1 plus zooms; family rows and the pick form below. */
+:root {
+  color-scheme: dark;
+  --bg: #090d16;
+  --surface: #0f1729;
+  --rule: #1b2538;
+  --ink: #e2e8f0;
+  --dim: #8a97ab;
+  --faint: #5b6679;
+  --violet: #d9c8ff;
+  --violet-deep: #221a3d;
+  --violet-mid: #a78bfa;
+  /* game UI, from the Godot code */
+  --g-inv: #0f1729;
+  --g-machine: #152124;
+  --g-slot: #1c2739;
+  --g-slot-edge: #475569;
+  --g-tool: #3f3e3c;
+  --g-tool-edge: #a6884f;
+  --g-sock: #1b2734;
+  --g-sock-edge: #666b85;
+  --g-slate100: #f1f5f9;
+  --g-slate300: #cbd5e1;
+  --g-slate400: #94a3b8;
+  --f-display: "Jura", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", Consolas, monospace;
+  --f-game-mono: Consolas, Menlo, monospace;
+  --f-game-sans: "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: 34px; line-height: 1.1; }
+h2 { font-size: 22px; }
+h3 { font-size: 17px; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--violet-mid); }
+.lede { color: var(--dim); }
+header { display: flex; flex-direction: column; gap: 12px; }
+.hero-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.hero-icon { width: 72px; height: 72px; flex: none; }
+section { display: flex; flex-direction: column; gap: 16px; }
+
+.sizes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.size { border-top: 2px solid var(--rule); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.size b { font-family: var(--f-mono); font-weight: 600; color: var(--violet); font-size: 14px; }
+.size span { color: var(--dim); font-size: 13.5px; }
+
+.shots { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+.shots figure { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; max-width: 100%; }
+.shots img { image-rendering: pixelated; display: block; max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 4px; }
+figcaption { font-size: 12.5px; color: var(--faint); font-family: var(--f-mono); }
+
+.controls { display: flex; gap: 10px 24px; flex-wrap: wrap; align-items: center; padding: 12px 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.controls .label { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { padding: 5px 11px; font-size: 13px; cursor: pointer; color: var(--dim); }
+.seg input:checked + label { background: var(--violet-deep); color: var(--violet); }
+.seg input:focus-visible + label { outline: 2px solid var(--violet); outline-offset: -2px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 540px), 1fr)); gap: 16px; }
+.cand { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; transition: border-color .15s; }
+.cand.picked { border-color: var(--violet-mid); box-shadow: 0 0 0 1px var(--violet-mid), 0 0 24px rgba(167,139,250,.12); }
+.cand-head { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+.cand-head .t { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+.letter { font-family: var(--f-display); font-weight: 700; color: var(--violet); font-size: 20px; }
+.idea { color: var(--dim); font-size: 13.5px; }
+.pick { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--dim); cursor: pointer; padding: 3px 10px 3px 8px; border: 1px solid var(--rule); border-radius: 999px; }
+.pick input { accent-color: #a78bfa; margin: 0; }
+.cand.picked .pick { color: var(--violet); border-color: var(--violet-mid); }
+
+.scene { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+.zooms { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+.zoom { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.zoom canvas { display: block; border-radius: 4px; }
+.zoom .cap, .gcap { font-family: var(--f-mono); font-size: 11px; color: var(--faint); }
+.gcap { display: block; margin-top: 2px; }
+.bg-dark { background: var(--g-inv); }
+
+/* game UI reproduced from the Godot code: 1 CSS px = 1 UI px (1280x720) */
+.g-inv { background: var(--g-inv); padding: 6px; border-radius: 3px; display: flex; flex-direction: column; gap: 4px; }
+.g-row { display: flex; gap: 4px; }
+.slot { width: 40px; height: 40px; position: relative; background: var(--g-slot); border: 1px solid var(--g-slot-edge); border-radius: 3px; flex: none; }
+.slot.tool { background: var(--g-tool); border-color: var(--g-tool-edge); }
+.slot > img.item { position: absolute; left: 3px; top: 3px; width: 32px; height: 32px; image-rendering: pixelated; }
+.slot > canvas.mark { position: absolute; left: 23px; top: 1px; }
+.slot .count { position: absolute; right: 2px; bottom: -1px; font: 10px var(--f-game-mono); color: #fff; text-shadow: 1px 1px 0 rgba(0,0,0,.6); }
+.g-machine { background: var(--g-machine); padding: 8px 10px; border-radius: 3px; display: flex; gap: 6px; align-items: center; }
+.g-machine .lab { font: 10px var(--f-game-mono); color: var(--g-slate400); margin-right: 2px; }
+.sock { width: 40px; height: 40px; position: relative; background: var(--g-sock); border: 1px solid var(--g-sock-edge); border-radius: 4px; flex: none; }
+.sock.hot { background: var(--violet-deep); border-color: #f4eeff; box-shadow: 0 0 4px 1px rgba(217,200,255,.55); }
+.sock.fitted { background: var(--violet-deep); border-color: rgba(217,200,255,.85); }
+.sock > canvas, .sock > img { position: absolute; left: 3px; top: 3px; }
+.sock > img { width: 32px; height: 32px; image-rendering: pixelated; }
+.g-col { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.g-card { background: #0f1729 linear-gradient(162deg, rgba(200,225,255,.055), transparent 38%); border: 1px solid #475569; border-radius: 3px; box-shadow: 0 4px 7px rgba(0,0,0,.45), inset 2px 2px 0 rgba(0,0,0,.38); width: 236px; padding: 5px 0 8px; }
+.g-card .line { display: flex; gap: 8px; align-items: flex-end; padding: 0 9px 6px; }
+.g-card .nm { font: 600 13px var(--f-game-sans); color: var(--g-slate100); }
+.g-card .kd { font: 11px var(--f-game-mono); color: var(--g-slate400); }
+.g-card .chips { display: flex; justify-content: center; padding: 0 10px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; background: var(--violet-deep); border: 1px solid rgba(217,200,255,.45); border-radius: 3px; padding: 2px 6px 2px 4px; font: 700 11px var(--f-game-mono); color: var(--violet); }
+.chip canvas { display: block; }
+.g-card .about { font: 11px var(--f-game-sans); color: var(--g-slate300); text-align: center; padding: 5px 12px 0; line-height: 1.35; }
+.g-card .about b { color: var(--violet); font-weight: 600; }
+
+.family { display: flex; flex-direction: column; gap: 14px; }
+.fam { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.fam-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.tech { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tech .tn { font-family: var(--f-mono); font-size: 12px; color: var(--dim); }
+.tech .tn i { font-style: normal; font-weight: 600; }
+.tech .tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mini-chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 3px; padding: 2px 6px 2px 4px; font: 700 11px var(--f-game-mono); border: 1px solid; }
+
+.form { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+.form .row { display: flex; flex-direction: column; gap: 6px; }
+.form label.k { font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.chosen { font-family: var(--f-display); font-size: 18px; color: var(--violet); }
+textarea { width: 100%; background: var(--bg); color: var(--ink); border: 1px solid var(--rule); border-radius: 5px; padding: 10px 12px; font: 14px/1.5 var(--f-body); resize: vertical; }
+textarea:focus-visible { outline: 2px solid var(--violet-mid); outline-offset: 1px; }
+#summary { font-family: var(--f-mono); font-size: 13px; min-height: 130px; }
+.btn { align-self: flex-start; background: var(--violet-deep); color: var(--violet); border: 1px solid var(--violet-mid); border-radius: 5px; padding: 8px 16px; font: 600 14px var(--f-body); cursor: pointer; }
+.btn:hover { background: #2d2252; }
+.btn:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.note { font-size: 13px; color: var(--faint); }
+.copied { font-size: 13px; color: var(--violet-mid); min-height: 1.4em; }
+@media (max-width: 480px) { h1 { font-size: 27px; } .cand { padding: 12px; } }
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Stillwake · модули · ADR 0086</span>
+  <div class="hero-row">
+    <canvas class="hero-icon" id="hero"></canvas>
+    <h1>Значок технологии «Дуга»</h1>
+  </div>
+  <p class="lede">У каждой технологии модулей свой значок. Дуга первая: техника древней цивилизации из руин, бытовая для неё вещь, по виду фиолетово-белая молния. Значок рисуется тонкими линиями: белая сердцевина, фиолетовый край, мягкое свечение, без мультяшных обводок. Ниже десять вариантов в настоящих размерах на настоящих фонах интерфейса, крупные виды и три лучших как семья с двумя выдуманными технологиями.</p>
+</header>
+
+<section>
+  <h2>Где живёт значок</h2>
+  <div class="sizes">
+    <div class="size"><b>14 px · метка слота</b><span>Правый верхний угол слота 40 px, как пламя на том, что горит в открытой станции (7-пиксельная картинка ×2). Появляется на модулях, которые подходят открытой станции.</span></div>
+    <div class="size"><b>32 px · призрак в гнезде</b><span>Поле значка внутри гнезда модуля 40 px (отступ 4). Пустое гнездо показывает бледный призрак; пока несёшь подходящий модуль, гнездо светится.</span></div>
+    <div class="size"><b>12 px · карточка предмета</b><span>Перед словом FITS в фиолетовой плашке, как значок пламени в строке «Smelts here» (картинка 12 px).</span></div>
+    <div class="size"><b>14 px · инструмент, позже</b><span>Та же метка на совместимом инструменте (бур), когда дуга встанет и на него.</span></div>
+  </div>
+  <div class="shots">
+    <figure><img src="%%CROP1%%" alt="Сейчас: гнездо модуля в панели электроплавильни с подсказкой" width="420" height="195"><figcaption>сейчас: гнездо с призраком-заглушкой, 1:1</figcaption></figure>
+    <figure><img src="%%CROP2%%" alt="Сейчас: карточка модуля дуги с плашкой FITS" width="426" height="150"><figcaption>сейчас: карточка с плашкой FITS, 1:1</figcaption></figure>
+  </div>
+</section>
+
+<div class="controls" role="group" aria-label="Анимация">
+  <span class="label">Анимация</span>
+  <div class="seg">
+    <input type="radio" name="anim" id="anim-burst" value="burst" checked><label for="anim-burst">треск изредка</label>
+    <input type="radio" name="anim" id="anim-const" value="const"><label for="anim-const">постоянно, на двойках</label>
+    <input type="radio" name="anim" id="anim-off" value="off"><label for="anim-off">без анимации</label>
+  </div>
+  <span class="note">Треск: 2–5 рисунков по 2 кадра (12 в секунду), раз в 1,5–4 с. В покое значок неподвижен.</span>
+</div>
+
+<section>
+  <h2>Варианты</h2>
+  <p class="lede">В каждой карточке слева направо: слоты инвентаря (модуль дуги и бур с меткой, руда с пламенем для сравнения масштаба), гнездо в панели станции (пустое, со светом пока несёшь модуль, с вставленным модулем), карточка модуля. Под ними значок крупно и метка 14 px в настоящих пикселях экрана 720p, увеличенная в 6 раз.</p>
+  <div class="grid" id="grid"></div>
+</section>
+
+<section>
+  <h2>Семья: три сильнейших и две будущие технологии</h2>
+  <p class="lede">Рамка общая, внутри свой знак и свой цвет. «Крио» и «Тяготение» выдуманы только для проверки: снежинка и орбита в той же рамке. Модуль для них условный, перекрашенная картинка дуги.</p>
+  <div class="family" id="family"></div>
+</section>
+
+<section>
+  <h2>Выбор</h2>
+  <form class="form" id="form" autocomplete="off">
+    <div class="row"><label class="k">Вариант</label><div class="chosen" id="chosen">не выбран: отметь «Беру» в карточке</div></div>
+    <div class="row"><label class="k" for="notes">Заметки</label><textarea id="notes" rows="4" placeholder="что поправить: толщина, рамка, цвет, другой знак внутри, анимация в игре"></textarea></div>
+    <div class="row"><label class="k" for="summary">Итог, чтобы скопировать</label><textarea id="summary" readonly></textarea></div>
+    <button class="btn" type="button" id="copy">Скопировать итог</button>
+    <div class="copied" id="copied" aria-live="polite"></div>
+  </form>
+</section>
+</div>
+
+<script>
+const ICONS = %%ICONS%%;
+const TECH = {
+  arc:  { name: 'Дуга',      core: [252,246,255], rim: [178,132,255], glow: [170,130,255], ghost: [217,200,255], chipBg: '#221a3d', chipFg: '#d9c8ff' },
+  cryo: { name: 'Крио',      core: [244,255,254], rim: [108,214,232], glow: [90,200,230],  ghost: [190,238,246], chipBg: '#122a33', chipFg: '#bdeef6' },
+  grav: { name: 'Тяготение', core: [255,250,238], rim: [240,182,92],  glow: [236,166,70],  ghost: [250,222,170], chipBg: '#2e2412', chipFg: '#f8ddaa' },
+};
+
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${Math.max(0, Math.min(1, a))})`;
+
+/* ---------- drawing kit: every shape is a list of strokes drawn in passes (halo, glow, rim, core) ---------- */
+function kit(R) {
+  const S = R.S, P = (u, v) => [u * S, v * S];
+  const inBox = (b, u, v) => P(b[0] + u * b[2], b[1] + v * b[3]);
+  function jag(pts, stray) {
+    if (!R.seed) return pts;
+    const r = R.rng, out = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1;
+      const nx = -dy / L, ny = dx / L, k = L > S * 0.22 ? 2 : 1;
+      for (let j = 1; j <= k; j++) { const t = j / (k + 1), o = (r() * 2 - 1) * stray * L; out.push([x0 + dx * t + nx * o, y0 + dy * t + ny * o]); }
+      out.push([x1, y1]);
+    }
+    return out;
+  }
+  const poly = (pts, closed) => c => { c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); if (closed) c.closePath(); };
+  const K = {
+    S, P, inBox,
+    frame(build, w = 1) { R.list.push({ build, role: 'frame', w }); },
+    glyph(build, w = 1) { R.list.push({ build, role: 'glyph', w }); },
+    framePoly(uv, closed = true, w = 1) { K.frame(poly(uv.map(p => P(p[0], p[1])), closed), w); },
+    frameCircle(u, v, r, w = 1, a0 = 0, a1 = Math.PI * 2) { K.frame(c => { c.moveTo(u * S + r * S * Math.cos(a0), v * S + r * S * Math.sin(a0)); c.arc(u * S, v * S, r * S, a0, a1); }, w); },
+    dot(u, v, r, role = 'glyph') { const [x, y] = P(u, v); R.list.push({ build: c => { c.moveTo(x, y); c.lineTo(x + 0.01, y); }, role, w: 0, dot: r * S }); },
+    bolt(pts, w = 1, stray = 0.15, branch = true) {
+      let p = jag(pts, stray);
+      K.glyph(poly(p, false), w);
+      if (R.seed && branch && R.rng() < R.branchChance) {
+        const i = 1 + Math.floor(R.rng() * (p.length - 2)), [x, y] = p[i], [x1, y1] = p[i + 1] || p[i - 1];
+        const a = Math.atan2(y1 - y, x1 - x) + (R.rng() < 0.5 ? -1 : 1) * (0.6 + R.rng() * 0.5), L = S * (0.14 + R.rng() * 0.1);
+        const m = [x + Math.cos(a) * L * 0.5 + (R.rng() - 0.5) * L * 0.3, y + Math.sin(a) * L * 0.5 + (R.rng() - 0.5) * L * 0.3], e = [x + Math.cos(a) * L, y + Math.sin(a) * L];
+        K.glyph(poly([[x, y], m, e], false), w * 0.6);
+      }
+    },
+    // the classic three-stroke bolt, top right to bottom left, fitted to box b
+    zbolt(b, w = 1) { K.bolt([[.68, 0], [.2, .56], [.66, .48], [.3, 1]].map(q => inBox(b, q[0], q[1])), w); },
+    snow(b, w = 1) {
+      const cx = b[0] + b[2] / 2, cy = b[1] + b[3] / 2, r = Math.min(b[2], b[3]) / 2;
+      for (const a of [Math.PI / 2, Math.PI / 6, -Math.PI / 6]) {
+        const dx = Math.cos(a) * r, dy = Math.sin(a) * r;
+        K.glyph(poly([P(cx - dx, cy - dy), P(cx + dx, cy + dy)], false), w);
+      }
+      if (S >= 24) for (const s of [-1, 1]) { const y = cy + s * r * 0.62; K.glyph(poly([P(cx - r * 0.22, y - s * r * 0.2), P(cx, y), P(cx + r * 0.22, y - s * r * 0.2)], false), w * 0.7); }
+    },
+    orbit(b, w = 1) {
+      const cx = (b[0] + b[2] / 2) * S, cy = (b[1] + b[3] / 2) * S, rx = b[2] / 2 * S, ry = b[3] * 0.2 * S;
+      K.glyph(c => { c.ellipse(cx, cy, rx, ry, -0.5, 0, Math.PI * 2); }, w * 0.85);
+      K.dot(b[0] + b[2] / 2, b[1] + b[3] / 2, Math.min(b[2], b[3]) * 0.13);
+    },
+    techGlyph(tech, b, w = 1) { if (tech === 'cryo') K.snow(b, w); else if (tech === 'grav') K.orbit(b, w); else K.zbolt(b, w); },
+  };
+  return K;
+}
+
+function render(c, R) {
+  const T = TECH[R.tech], I = R.inten, S = R.S;
+  const base = Math.max(1.25, S * 0.08) * (R.cand.weight || 1);
+  const fw = R.cand.frameW || 0.55;
+  c.lineJoin = 'round'; c.lineCap = 'round';
+  const widthOf = s => s.dot ? s.dot * 2 : base * s.w * (s.role === 'frame' ? fw : 1);
+  const each = fn => { for (const s of R.list) { c.beginPath(); s.build(c); fn(s, widthOf(s)); } };
+  if (R.mode === 'ghost') {
+    each((s, w) => { c.strokeStyle = rgba(T.rim, s.role === 'frame' ? 0.36 : 0.48); c.lineWidth = w; c.stroke(); });
+    return;
+  }
+  const hot = R.mode === 'hot';
+  if (R.mode === 'mark') {
+    c.save(); c.shadowColor = 'rgba(5,8,14,0.95)'; c.shadowBlur = 1.6;
+    each((s, w) => { c.strokeStyle = 'rgba(5,8,14,0.82)'; c.lineWidth = w + 2.1; c.stroke(); });
+    c.restore();
+  }
+  c.save(); c.shadowColor = rgba(T.glow, (hot ? 0.6 : 0.85) * I); c.shadowBlur = S * (hot ? 0.12 : 0.17) * Math.min(1.4, I);
+  each((s, w) => { c.strokeStyle = rgba(T.glow, (s.role === 'frame' ? 0.16 : 0.34) * I); c.lineWidth = w * 2.4; c.stroke(); });
+  c.restore();
+  each((s, w) => { c.strokeStyle = rgba(T.rim, (s.role === 'frame' ? 0.7 : 1) * (hot ? 0.85 : 1) * Math.min(1, 0.35 + 0.65 * I)); c.lineWidth = w; c.stroke(); });
+  each((s, w) => {
+    if (s.role === 'frame') { if (R.cand.frameCore) { c.strokeStyle = rgba(T.core, 0.28 * I); c.lineWidth = Math.max(0.5, w * 0.3); c.stroke(); } return; }
+    c.strokeStyle = rgba(T.core, (hot ? 0.75 : 1) * Math.min(1, I)); c.lineWidth = Math.max(0.55, w * 0.42); c.stroke();
+  });
+}
+
+/* ---------- the candidates: a frame shared by the family, and a glyph per technology ---------- */
+const HEX = [[.5, .03], [.9, .265], [.9, .735], [.5, .97], [.1, .735], [.1, .265]];
+const CANDS = [
+  { id: 'A', name: 'Голая молния', idea: 'Одна трёхштриховая молния без рамки. Семью держит только цвет.',
+    draw(K, t) { K.techGlyph(t, t === 'arc' ? [.16, .04, .68, .92] : [.12, .12, .76, .76], t === 'arc' ? 1 : 1); } },
+  { id: 'B', name: 'Дуга меж электродов', idea: 'Буквальная дуга: разряд аркой между двумя столбиками. Столбики общие для семьи, между ними знак технологии.',
+    draw(K, t) {
+      K.framePoly([[.15, .78], [.15, .97]], false, 1.5); K.framePoly([[.85, .78], [.85, .97]], false, 1.5);
+      K.dot(.15, .76, .075, 'glyph'); K.dot(.85, .76, .075, 'glyph');
+      if (t !== 'arc') { K.techGlyph(t, [.27, .1, .46, .52]); return; }
+      const pts = []; for (let i = 0; i <= 8; i++) { const a = Math.PI + i / 8 * Math.PI, r = 0.35 + (i % 2 ? 0.055 : -0.02) * (i === 0 || i === 8 ? 0 : 1); pts.push(K.P(.5 + Math.cos(a) * r, .76 + Math.sin(a) * r * 1.55)); }
+      K.bolt(pts, 0.95, 0.16);
+    } },
+  { id: 'C', name: 'Шестигранник', idea: 'Тонкий шестигранник, внутри молния. Строгая техническая рамка, у каждой технологии свой знак внутри.', frameCore: true,
+    draw(K, t) { K.framePoly(HEX); K.techGlyph(t, t === 'arc' ? [.3, .2, .4, .6] : [.26, .26, .48, .48], 0.92); } },
+  { id: 'D', name: 'Ромб', idea: 'Ромб на вершине, внутри молния. Читается углами даже в 14 px.', frameCore: true,
+    draw(K, t) { K.framePoly([[.5, .02], [.98, .5], [.5, .98], [.02, .5]]); K.techGlyph(t, t === 'arc' ? [.34, .22, .32, .56] : [.3, .3, .4, .4], 0.85); } },
+  { id: 'E', name: 'Печать', idea: 'Круг с четырьмя засечками, как древний знак или компас. Молния в центре.',
+    draw(K, t) { K.frameCircle(.5, .5, .36); for (const [u, v, x, y] of [[.5, .02, .5, .12], [.5, .88, .5, .98], [.02, .5, .12, .5], [.88, .5, .98, .5]]) K.framePoly([[u, v], [x, y]], false, 1.1);
+      K.techGlyph(t, t === 'arc' ? [.34, .24, .32, .52] : [.3, .3, .4, .4], 0.85); } },
+  { id: 'F', name: 'Арка шпиля', idea: 'Стрельчатая арка, как вход в шпиль руин, открытая снизу. Разряд падает из её вершины. Рамка сразу говорит «древнее».', frameCore: true,
+    draw(K, t) {
+      K.frame(c => { const S = K.S; c.moveTo(.16 * S, .98 * S); c.lineTo(.16 * S, .46 * S); c.quadraticCurveTo(.16 * S, .14 * S, .5 * S, .02 * S); c.quadraticCurveTo(.84 * S, .14 * S, .84 * S, .46 * S); c.lineTo(.84 * S, .98 * S); });
+      if (t === 'arc') K.bolt([[.5, .16], [.36, .44], [.6, .52], [.42, .9]].map(q => K.P(q[0], q[1])), 0.95, 0.2);
+      else K.techGlyph(t, [.29, .3, .42, .42], 0.9);
+    } },
+  { id: 'G', name: 'Катушка-реликвия', idea: 'Знак вещи из руин: катушка дуги с искрой над ней. У каждой технологии была бы своя реликвия, общей рамки нет.',
+    draw(K, t) {
+      if (t !== 'arc') { K.techGlyph(t, [.12, .12, .76, .76]); return; }
+      const S = K.S; for (const v of [.5, .67, .84]) K.frame(c => { c.moveTo(.76 * S, v * S); c.ellipse(.5 * S, v * S, .26 * S, .075 * S, -0.18, 0, Math.PI * 2); }, 1.25);
+      K.framePoly([[.5, .9], [.5, .99]], false, 1.4);
+      K.bolt([[.5, .44], [.6, .27], [.43, .2], [.58, .02]].map(q => K.P(q[0], q[1])), 0.9, 0.22);
+    } },
+  { id: 'H', name: 'Обелиск', idea: 'Вытянутый шестигранник, как кристалл или обелиск. Выше и уже соседних меток, молния вдоль.', frameCore: true,
+    draw(K, t) { K.framePoly([[.5, .01], [.8, .19], [.8, .81], [.5, .99], [.2, .81], [.2, .19]]); K.techGlyph(t, t === 'arc' ? [.35, .2, .3, .6] : [.3, .33, .4, .34], 0.85); } },
+  { id: 'I', name: 'Плазменный шар', idea: 'Кольцо, из центра к краю бьют три разряда, как в плазменной лампе. В семье внутри шара знак технологии.',
+    draw(K, t) {
+      K.frameCircle(.5, .5, .45);
+      if (t !== 'arc') { K.techGlyph(t, [.27, .27, .46, .46], 0.9); return; }
+      K.dot(.5, .5, .07);
+      for (const a of [-1.75, 0.35, 2.45]) { const m = a + 0.45; K.bolt([K.P(.5, .5), K.P(.5 + Math.cos(m) * .22, .5 + Math.sin(m) * .22), K.P(.5 + Math.cos(a) * .43, .5 + Math.sin(a) * .43)], 0.75, 0.2, false); }
+    } },
+  { id: 'J', name: 'Руна на постаменте', idea: 'Молния без рамки, но стоит на черте с двумя засечками. Черта общая для семьи, она и отличает метку модуля от пламени и ростка.',
+    draw(K, t) { K.framePoly([[.12, .84], [.12, .95], [.88, .95], [.88, .84]], false, 1.25); K.techGlyph(t, t === 'arc' ? [.24, .02, .52, .78] : [.2, .08, .6, .66], 1); } },
+];
+const FAMILY = ['F', 'C', 'J'];
+
+/* ---------- instances and the clock ---------- */
+const DPR = Math.min(3, window.devicePixelRatio || 1);
+const insts = [];
+let animMode = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'off' : 'burst';
+function makeCanvas(opts) {
+  const cv = document.createElement('canvas');
+  const scale = opts.pixel || 0;
+  const css = scale ? opts.S * scale : opts.S;
+  cv.style.width = css + 'px'; cv.style.height = css + 'px';
+  cv.width = Math.round(css * (scale ? 1 : DPR)); cv.height = cv.width;
+  if (opts.cls) cv.className = opts.cls;
+  if (opts.label) { cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', opts.label); }
+  const inst = { cv, ...opts, seed: 0, inten: 1, burst: 0, next: performance.now() + 400 + Math.random() * 3500, visible: true };
+  insts.push(inst); draw(inst);
+  return cv;
+}
+let off = document.createElement('canvas');
+function draw(inst) {
+  const cand = CANDS.find(c => c.id === inst.cand);
+  const R = { S: inst.S, tech: inst.tech || 'arc', mode: inst.mode, cand, seed: inst.seed, inten: inst.inten, list: [], rng: rng(inst.seed || 1), branchChance: animMode === 'const' ? 0.25 : 0.5 };
+  if (R.mode === 'ghost') { R.seed = 0; R.inten = 1; }
+  const K = kit(R); cand.draw(K, R.tech);
+  const ctx = inst.cv.getContext('2d');
+  if (inst.pixel) {
+    off.width = inst.S; off.height = inst.S; const o = off.getContext('2d');
+    o.clearRect(0, 0, inst.S, inst.S);
+    if (inst.bg) { o.fillStyle = inst.bg; o.fillRect(0, 0, inst.S, inst.S); }
+    render(o, R);
+    ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, inst.cv.width, inst.cv.height);
+    ctx.drawImage(off, 0, 0, inst.cv.width, inst.cv.height);
+    return;
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, inst.cv.width, inst.cv.height);
+  if (inst.bg) { ctx.fillStyle = inst.bg; ctx.fillRect(0, 0, inst.cv.width, inst.cv.height); }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  render(ctx, R);
+}
+function step(now) {
+  for (const s of insts) {
+    if (!s.visible || s.mode === 'ghost' || s.still) continue;
+    const was = s.seed;
+    if (animMode === 'off') { s.seed = 0; s.inten = 1; s.burst = 0; }
+    else if (animMode === 'const') { s.seed = 1 + Math.floor(Math.random() * 1e9); s.inten = 0.85 + Math.random() * 0.3; }
+    else if (s.burst > 0) { s.burst--; s.seed = 1 + Math.floor(Math.random() * 1e9); s.inten = 0.7 + Math.random() * 0.65; if (s.burst === 0) s.next = now + 1500 + Math.random() * 2500; }
+    else if (now >= s.next) { s.burst = 2 + Math.floor(Math.random() * 4); s.seed = 1 + Math.floor(Math.random() * 1e9); s.inten = 1.25; }
+    else { s.seed = 0; s.inten = 1; }
+    if (s.seed !== was || s.seed) draw(s);
+  }
+}
+let last = 0;
+function loop(now) { if (now - last >= 1000 / 12) { last = now - ((now - last) % (1000 / 12)); step(now); } requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+
+/* ---------- building the page ---------- */
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const img = (key, cls) => { const i = document.createElement('img'); i.src = ICONS[key]; i.className = cls || 'item'; i.alt = ''; return i; };
+function flame() {
+  const rows = ['...K...', '..KoK..', '.KoooK.', 'KooyooK', 'KoyyyoK', 'KoyyyoK', '.KKKKK.'], col = { K: '#1a1e25', o: '#f97316', y: '#fcd34d' };
+  const cv = document.createElement('canvas'); cv.width = 7; cv.height = 7; cv.className = 'mark'; cv.style.width = cv.style.height = '14px'; cv.style.imageRendering = 'pixelated';
+  const x = cv.getContext('2d'); rows.forEach((r, j) => [...r].forEach((ch, i) => { if (col[ch]) { x.fillStyle = col[ch]; x.fillRect(i, j, 1, 1); } }));
+  return cv;
+}
+function slot(item, opts = {}) {
+  const s = el('div', 'slot' + (opts.tool ? ' tool' : ''));
+  if (item) s.appendChild(img(item));
+  if (opts.filter) s.firstChild.style.filter = opts.filter;
+  if (opts.mark) s.appendChild(opts.mark);
+  if (opts.count) s.appendChild(el('span', 'count', opts.count));
+  return s;
+}
+const markCv = (cand, tech = 'arc') => makeCanvas({ cand, tech, S: 14, mode: 'mark', cls: 'mark', label: 'метка модуля' });
+function socket(cand, state, tech = 'arc', filter) {
+  const s = el('div', 'sock' + (state === 'hot' ? ' hot' : state === 'fitted' ? ' fitted' : ''));
+  if (state === 'fitted') { const i = img('arcModule', ''); if (filter) i.style.filter = filter; s.appendChild(i); }
+  else s.appendChild(makeCanvas({ cand, tech, S: 32, mode: state === 'hot' ? 'hot' : 'ghost', label: 'призрак модуля в гнезде' }));
+  return s;
+}
+function card(cand) {
+  const c = el('div', 'g-card');
+  c.appendChild(el('div', 'line', '<span class="nm">Arc module</span><span class="kd">Module</span>'));
+  const chips = el('div', 'chips'), chip = el('span', 'chip');
+  chip.appendChild(makeCanvas({ cand, S: 12, mode: 'lit', label: 'значок дуги' })); chip.appendChild(document.createTextNode('FITS'));
+  chips.appendChild(chip); c.appendChild(chips);
+  c.appendChild(el('div', 'about', '<b>FITS</b> — Electric smelter, Former, Circuit assembler: ×2 speed for ×2 power'));
+  return c;
+}
+
+const grid = document.getElementById('grid');
+for (const c of CANDS) {
+  const box = el('article', 'cand'); box.id = 'cand-' + c.id;
+  const head = el('div', 'cand-head');
+  head.appendChild(el('div', 't', `<span class="letter">${c.id}</span><h3>${c.name}</h3>`));
+  const pick = el('label', 'pick', `<input type="radio" name="pick" value="${c.id}" id="pick-${c.id}"> Беру`);
+  head.appendChild(pick); box.appendChild(head);
+  box.appendChild(el('p', 'idea', c.idea));
+
+  const scene = el('div', 'scene');
+  const inv = el('div', 'g-inv'), row = el('div', 'g-row');
+  row.appendChild(slot('arcModule', { mark: markCv(c.id) }));
+  row.appendChild(slot('drill', { tool: true, mark: markCv(c.id) }));
+  row.appendChild(slot('magnetite', { mark: flame(), count: '47' }));
+  row.appendChild(slot('circuit', { count: '6' }));
+  inv.appendChild(row); scene.appendChild(inv);
+  const mach = el('div', 'g-machine');
+  mach.appendChild(el('span', 'lab', 'Module'));
+  mach.appendChild(socket(c.id, 'empty')); mach.appendChild(socket(c.id, 'hot')); mach.appendChild(socket(c.id, 'fitted'));
+  scene.appendChild(mach);
+  box.appendChild(scene);
+  const caps = el('div', 'gcap', 'слоты: модуль · бур · руда с пламенем · просто предмет  |  гнездо: пустое · несёшь модуль · вставлен');
+  box.appendChild(caps);
+
+  const bottom = el('div', 'scene'); bottom.style.alignItems = 'flex-start';
+  bottom.appendChild(card(c.id));
+  const zooms = el('div', 'zooms');
+  const z1 = el('div', 'zoom'); z1.appendChild(makeCanvas({ cand: c.id, S: 104, mode: 'lit', bg: '#0f1729', label: 'значок крупно' })); z1.appendChild(el('span', 'cap', 'крупно'));
+  const z2 = el('div', 'zoom'); z2.appendChild(makeCanvas({ cand: c.id, S: 14, mode: 'mark', pixel: 6, bg: '#1c2739', label: 'метка 14 px в пикселях' })); z2.appendChild(el('span', 'cap', '14 px ×6, 720p'));
+  const z3 = el('div', 'zoom'); z3.appendChild(makeCanvas({ cand: c.id, S: 32, mode: 'ghost', pixel: 2, bg: '#1b2734', label: 'призрак 32 px' })); z3.appendChild(el('span', 'cap', 'призрак ×2'));
+  zooms.append(z1, z2, z3); bottom.appendChild(zooms);
+  box.appendChild(bottom);
+  grid.appendChild(box);
+}
+
+const fam = document.getElementById('family');
+const FILTERS = { arc: '', cryo: 'hue-rotate(-75deg) saturate(1.1)', grav: 'hue-rotate(150deg) saturate(1.3)' };
+for (const id of FAMILY) {
+  const c = CANDS.find(x => x.id === id);
+  const f = el('div', 'fam');
+  f.appendChild(el('div', 'cand-head', `<div class="t"><span class="letter">${c.id}</span><h3>${c.name}</h3></div>`));
+  const r = el('div', 'fam-row');
+  for (const t of ['arc', 'cryo', 'grav']) {
+    const T = TECH[t], d = el('div', 'tech');
+    d.appendChild(el('span', 'tn', `<i style="color:${T.chipFg}">${T.name}</i>${t === 'arc' ? '' : ' · выдумана'}`));
+    const tools = el('div', 'tools');
+    const inv = el('div', 'g-inv'), row = el('div', 'g-row');
+    row.appendChild(slot('arcModule', { mark: markCv(id, t), filter: FILTERS[t] || 'none' }));
+    inv.appendChild(row); tools.appendChild(inv);
+    const m = el('div', 'g-machine'); m.appendChild(socket(id, 'empty', t)); m.appendChild(socket(id, 'hot', t)); tools.appendChild(m);
+    d.appendChild(tools);
+    const t2 = el('div', 'tools');
+    const chip = el('span', 'mini-chip'); chip.style.background = T.chipBg; chip.style.color = T.chipFg; chip.style.borderColor = rgba(T.ghost, 0.45);
+    chip.appendChild(makeCanvas({ cand: id, tech: t, S: 12, mode: 'lit', label: 'значок' })); chip.appendChild(document.createTextNode('FITS'));
+    t2.appendChild(chip);
+    t2.appendChild(makeCanvas({ cand: id, tech: t, S: 64, mode: 'lit', bg: '#0f1729', label: 'значок крупно' }));
+    d.appendChild(t2);
+    r.appendChild(d);
+  }
+  f.appendChild(r);
+  fam.appendChild(f);
+}
+
+const heroCv = document.getElementById('hero');
+insts.push(Object.assign({ cv: heroCv, cand: 'F', tech: 'arc', S: 72, mode: 'lit', seed: 0, inten: 1, burst: 0, next: performance.now() + 900, visible: true }));
+heroCv.width = heroCv.height = Math.round(72 * DPR); draw(insts[insts.length - 1]);
+
+const io = new IntersectionObserver(es => { for (const e of es) for (const s of insts) if (e.target.contains(s.cv)) s.visible = e.isIntersecting; }, { rootMargin: '100px' });
+document.querySelectorAll('.cand, .fam').forEach(n => io.observe(n));
+
+/* ---------- controls and the pick ---------- */
+const animInputs = document.querySelectorAll('input[name=anim]');
+animInputs.forEach(i => { if (i.value === animMode) i.checked = true; i.addEventListener('change', () => { animMode = i.value; for (const s of insts) { s.seed = 0; s.inten = 1; s.burst = 0; draw(s); } summarize(); }); });
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+const notes = document.getElementById('notes'), summary = document.getElementById('summary'), chosen = document.getElementById('chosen');
+function current() { const p = document.querySelector('input[name=pick]:checked'); return p ? CANDS.find(c => c.id === p.value) : null; }
+function summarize() {
+  const c = current();
+  document.querySelectorAll('.cand').forEach(n => n.classList.toggle('picked', !!c && n.id === 'cand-' + c.id));
+  chosen.textContent = c ? `${c.id} · ${c.name}` : 'не выбран: отметь «Беру» в карточке';
+  const anim = { burst: 'треск изредка', const: 'постоянно, на двойках', off: 'без анимации' }[animMode];
+  summary.value = [
+    'Значок технологии «Дуга»: выбор',
+    'Вариант: ' + (c ? `${c.id} · ${c.name}` : 'не выбран'),
+    'Анимация (что было включено): ' + anim,
+    'Заметки: ' + (notes.value.trim() || 'нет'),
+  ].join('\n');
+}
+document.querySelectorAll('input[name=pick]').forEach(i => i.addEventListener('change', () => { store.set('arc-icon-pick', i.value); summarize(); }));
+notes.addEventListener('input', () => { store.set('arc-icon-notes', notes.value); summarize(); });
+const savedPick = store.get('arc-icon-pick'); if (savedPick) { const i = document.getElementById('pick-' + savedPick); if (i) i.checked = true; }
+notes.value = store.get('arc-icon-notes') || '';
+summarize();
+document.getElementById('copy').addEventListener('click', () => {
+  const done = document.getElementById('copied');
+  navigator.clipboard.writeText(summary.value).then(() => { done.textContent = 'Скопировано.'; }, () => { summary.focus(); summary.select(); done.textContent = 'Буфер недоступен: текст выделен, скопируй через Ctrl+C.'; });
+});
+document.getElementById('form').addEventListener('submit', e => e.preventDefault());
+</script>

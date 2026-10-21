@@ -1,0 +1,594 @@
+<title>Дуговая реликвия</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Golos+Text:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one dark column, as the ruins pages before it; the pictures are live and carry the page, text is caption.
+   Deliberately single-theme (dark): glowing pixel art only reads on black. */
+:root {
+  --ink: #05050a;        /* page: a cave with every lamp off */
+  --panel: #0c0b13;
+  --line: #231f33;
+  --fg: #e6e3ee;
+  --muted: #918ba3;
+  --arc: #c6b0ff;        /* the relic's violet-white: the one accent */
+  --cu: #e3a656;         /* their copper: marks what the makers built */
+  --cool: #8ec7ff;       /* their old blue lamps */
+  --font-display: "Press Start 2P", "Courier New", monospace;
+  --font-body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 40px; --s7: 64px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--ink); color: var(--fg); font: 16px/1.55 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: var(--s6) var(--s7);
+}
+.wrap { max-width: 1260px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--s7); }
+section { display: flex; flex-direction: column; gap: var(--s5); }
+h1, h2 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; }
+h3 { font-family: var(--font-body); font-weight: 600; text-wrap: balance; margin: 0; font-size: 1.08rem; line-height: 1.3; }
+h1 { font-size: clamp(1.35rem, 3.6vw, 2.3rem); line-height: 1.35; }
+h2 { font-size: clamp(0.95rem, 2.2vw, 1.2rem); line-height: 1.5; }
+p { margin: 0; max-width: 70ch; }
+.eyebrow { font: 600 0.75rem/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--arc); }
+.muted { color: var(--muted); }
+header { display: flex; flex-direction: column; gap: var(--s4); }
+.lede { font-size: 1.12rem; }
+blockquote { margin: 0; padding: var(--s3) var(--s4); border-left: 2px solid var(--arc); color: var(--muted); max-width: 74ch; font-size: 0.95rem; }
+.facts { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
+.facts li { font: 0.78rem/1 var(--font-mono); color: var(--muted); border: 1px solid var(--line); padding: 6px 8px; border-radius: 3px; }
+.sechead { display: flex; flex-direction: column; gap: var(--s2); }
+.bar { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s5); align-items: center; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--ink) 88%, transparent); padding-block: var(--s2); backdrop-filter: blur(4px); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ink); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; flex-wrap: wrap; }
+.seg button { font: 600 0.8rem/1 var(--font-mono); background: transparent; color: var(--muted); border: 0; padding: 9px 12px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--ink); }
+button:focus-visible, textarea:focus-visible, input:focus-visible + span, input[type="text"]:focus-visible, input[type="radio"]:focus-visible { outline: 2px solid var(--arc); outline-offset: 2px; }
+.label { font: 600 0.72rem/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+/* live stages */
+.stage { position: relative; max-width: 100%; }
+.stage img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; image-rendering: pixelated; }
+.frame { border: 1px solid var(--line); border-radius: 3px; background: #000; overflow-x: auto; }
+
+/* today */
+.today { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: var(--s5); align-items: start; }
+.today figure { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.today figure img { display: block; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 3px; max-width: 100%; height: auto; }
+figcaption { font: 0.72rem/1.4 var(--font-mono); color: var(--muted); }
+.today ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+/* relic cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 560px), 1fr)); gap: var(--s5); }
+.card { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; border: 1px solid var(--line); border-radius: 4px; padding: var(--s3); background: var(--panel); }
+.card.dropped { opacity: 0.5; }
+.views { display: flex; gap: var(--s3); align-items: flex-end; flex-wrap: wrap; background: #000; border-radius: 3px; padding: var(--s2); }
+.views .big { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.views .big .stage { width: calc(var(--pw) * var(--z) * 1px); }
+.views .one { flex: none; display: flex; flex-direction: column; gap: 4px; }
+.views .one .stage { width: calc(var(--pw) * 1px); }
+.vlabel { font: 0.64rem/1 var(--font-mono); color: var(--muted); }
+.icons { display: flex; gap: var(--s4); align-items: flex-end; flex-wrap: wrap; }
+.icons .ic { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.icons img { display: block; image-rendering: pixelated; }
+.slot { width: 44px; height: 44px; border: 1px solid #2c3a52; border-radius: 4px; background: #16202e; display: grid; place-items: center; box-shadow: inset 0 0 0 1px #0b1119; }
+.slot img { width: 32px; height: 32px; }
+.slots { display: flex; gap: 3px; }
+.slot.empty { opacity: 0.8; }
+.card .top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
+.card .num { font: 400 0.8rem/1 var(--font-display); color: var(--arc); }
+dl.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px var(--s3); margin: 0; font-size: 0.92rem; }
+dl.kv dt { font: 600 0.66rem/1.9 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+dl.kv dt.cu { color: var(--cu); }
+dl.kv dt.ar { color: var(--arc); }
+dl.kv dd { margin: 0; min-width: 0; }
+
+/* spires, homes */
+.trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: var(--s5); align-items: start; }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s6); }
+.variant { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; }
+.variant .frame .stage { width: calc(var(--pw) * var(--z, 1) * 1px); }
+.variant ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 5px; font-size: 0.93rem; }
+.variant .head { display: flex; justify-content: space-between; align-items: center; gap: var(--s2); flex-wrap: wrap; }
+.pair { font: 0.74rem/1.3 var(--font-mono); color: var(--muted); }
+.homepair { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: var(--s5); align-items: start; }
+
+/* picks */
+.pickrow { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s3); align-items: center; padding-top: var(--s3); border-top: 1px dashed var(--line); }
+.pick { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.pick label { position: relative; cursor: pointer; }
+.pick input { position: absolute; opacity: 0; pointer-events: none; }
+.pick span { display: block; font: 600 0.76rem/1 var(--font-mono); padding: 8px 10px; color: var(--muted); border-right: 1px solid var(--line); white-space: nowrap; }
+.pick label:last-child span { border-right: 0; }
+.pick input:checked + span { color: var(--ink); }
+.pick input[value="take"]:checked + span { background: var(--arc); }
+.pick input[value="change"]:checked + span { background: var(--cu); }
+.pick input[value="drop"]:checked + span { background: #5b5668; color: var(--fg); }
+.pickrow input[type="text"] { flex: 1 1 220px; min-width: 0; background: var(--ink); color: var(--fg); border: 1px solid var(--line); border-radius: 3px; padding: 8px 10px; font: 0.9rem/1.3 var(--font-body); }
+
+/* gameplay */
+.plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr)); gap: var(--s5); }
+.q { display: flex; flex-direction: column; gap: var(--s3); border: 1px solid var(--line); border-radius: 4px; padding: var(--s4); background: var(--panel); min-width: 0; }
+.opts { display: flex; flex-direction: column; gap: var(--s2); }
+.opts label { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s3); align-items: start; border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; cursor: pointer; font-size: 0.93rem; }
+.opts input { accent-color: var(--arc); margin-top: 4px; }
+.opts label:has(input:checked) { border-color: color-mix(in srgb, var(--arc) 60%, transparent); background: color-mix(in srgb, var(--arc) 7%, transparent); }
+.rec { font: 600 0.64rem/1 var(--font-mono); color: var(--arc); letter-spacing: 0.08em; text-transform: uppercase; margin-left: 6px; }
+.recipe { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; font: 0.82rem/1.3 var(--font-mono); color: var(--muted); }
+.recipe b { color: var(--fg); font-weight: 600; }
+.recipe .arrow { color: var(--arc); }
+
+form { display: flex; flex-direction: column; gap: var(--s5); }
+textarea { width: 100%; min-height: 110px; background: var(--ink); color: var(--fg); border: 1px solid var(--line); border-radius: 3px; padding: var(--s3); font: 0.95rem/1.5 var(--font-body); resize: vertical; }
+pre#summary { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: var(--s4); font: 0.8rem/1.55 var(--font-mono); white-space: pre-wrap; word-break: break-word; color: var(--arc); }
+.btn { font: 600 0.85rem/1 var(--font-mono); background: var(--arc); color: var(--ink); border: 0; border-radius: 3px; padding: 11px 16px; cursor: pointer; }
+.counts { font: 0.8rem/1 var(--font-mono); color: var(--muted); }
+.copyrow { display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .today, .homepair { grid-template-columns: minmax(0, 1fr); }
+  dl.kv { grid-template-columns: minmax(0, 1fr); }
+  dl.kv dt { line-height: 1.2; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Stillwake · первая планета · руины · реликвия дуги</span>
+  <h1>Дуговая реликвия</h1>
+  <p class="lede">Катушка в нише не объясняет, откуда столько энергии. Здесь реликвия становится чужой вещью, которая упала на прежних жителей с неба. Они её приручили: построили вокруг неё медь, фарфор и башни. Она всё время искрит, так что в тёмной пещере её не пропустить.</p>
+  <blockquote>«Шпиль надо подправить, и, может, дуговые артефакты стоит класть и в комнаты. Но артефакт перерисовать: чужеродный объект, который упал на прежних жителей, а они приручили его силу и пользовались в быту. Он должен сильно искрить, чтобы игрок его заметил».</blockquote>
+  <ul class="facts">
+    <li>7 вещей · 3 шпиля · 2 места в доме</li>
+    <li>клетка 16 px · предмет 2 клетки · иконка 16 px</li>
+    <li>свет: фиолетово-белый, как знак дуги</li>
+    <li>всё анимировано: дуги на двойках, разряды, искры</li>
+  </ul>
+</header>
+
+<div class="bar" role="toolbar" aria-label="Вид">
+  <span class="label">Движение</span>
+  <div class="seg"><button type="button" id="motionOn" aria-pressed="true">идёт</button><button type="button" id="motionOff" aria-pressed="false">стоп</button></div>
+  <span class="label">Увеличение</span>
+  <div class="seg" id="zoomSeg"><button type="button" data-z="1" aria-pressed="false">1× как в игре</button><button type="button" data-z="2" aria-pressed="true">2×</button><button type="button" data-z="3" aria-pressed="false">3×</button></div>
+</div>
+
+<section aria-labelledby="h-today">
+  <div class="sechead"><span class="eyebrow">Сейчас</span><h2 id="h-today">Что не так со шпилем</h2></div>
+  <div class="today">
+    <figure><img src="{{img:today-spire}}" width="240" height="400" alt="Шпиль сейчас: серый ступенчатый силуэт над холмами, внутри чёрный"><figcaption>снаружи, 1×</figcaption></figure>
+    <figure><img src="{{img:today-inside}}" width="320" height="240" alt="Камера шпиля сейчас: ниша с медной катушкой"><figcaption>камера и катушка</figcaption></figure>
+    <ul>
+      <li><b>Шахта чёрная.</b> Внутри ничего не светит, спуск по уступам вслепую, только шлем.</li>
+      <li><b>Лампа на вершине</b> — одна голубая точка. С холма её не отличить от звезды.</li>
+      <li><b>Катушка в нише</b> выглядит как деталь, которую сделали сами жители. Непонятно, почему она ценнее всего, что умеет корабль.</li>
+      <li><b>Силуэт</b> — серая ступенчатая башня. Нет ничего, что объясняло бы, зачем её построили.</li>
+      <li><b>Голубая дуга</b> домов и шпиля расходится с фиолетово-белым знаком дуговой технологии (иконка модуля).</li>
+    </ul>
+  </div>
+</section>
+
+<section aria-labelledby="h-relic">
+  <div class="sechead">
+    <span class="eyebrow">1 · Предмет</span>
+    <h2 id="h-relic">Семь чужих вещей в колыбелях жителей</h2>
+    <p class="muted">У каждой две части. Чужое: стекло, металл, кристалл, скорлупа, которых жители делать не умели; оно светится само. Своё: медь, фарфоровые изоляторы и сталь, собранные вокруг. Сверху сцена крупно (увеличение выбирается в панели), под ней та же сцена 1× рядом с героем, как в игре. Внизу иконка 16 px: 1×, 4× и в ячейке сумки.</p>
+  </div>
+  <div class="grid" id="cards"></div>
+</section>
+
+<section aria-labelledby="h-spire">
+  <div class="sechead">
+    <span class="eyebrow">2а · Где живёт: шпиль</span>
+    <h2 id="h-spire">Три шпиля, построенных вокруг упавшего</h2>
+    <p class="muted">Ночь, 1× по умолчанию: так шпиль виден с холма слева. Переключатель «после» показывает, что остаётся, когда реликвию забрали. Вещь к шпилю подобрана только для рисунка: любая из семи подходит к любому.</p>
+  </div>
+  <div class="trio" id="spires"></div>
+</section>
+
+<section aria-labelledby="h-home">
+  <div class="sechead">
+    <span class="eyebrow">2б · Где живёт: дом</span>
+    <h2 id="h-home">Скол реликвии в жилище</h2>
+    <p class="muted">Комната с очагом с прошлой страницы. Всё, что питалось от общей сети, давно мёртвое, горит только то, что подключено к сколу. Так реликвия объясняет, почему в доме что-то ещё светится, и показывает, куда идти.</p>
+  </div>
+  <div class="duo" id="homes"></div>
+</section>
+
+<form id="form" autocomplete="off">
+<section aria-labelledby="h-game">
+  <div class="sechead">
+    <span class="eyebrow">3 · Игра</span>
+    <h2 id="h-game">Что берёт игрок и что остаётся</h2>
+  </div>
+  <div class="plan">
+    <div class="q">
+      <h3>Что даёт реликвия</h3>
+      <div class="recipe"><b>реликвия</b><span class="arrow">→ анализатор →</span><b>чертёж «дуговой модуль»</b><span class="arrow">· сборщик:</span><b>реликвия → 4 скола</b><span class="arrow">·</span><b>скол + медь + схема → модуль</b></div>
+      <div class="opts">
+        <label><input type="radio" name="g-take" value="a" checked><span>Анализ даёт чертёж один раз. Сама реликвия делится на 4 скола, каждый скол становится модулем. Шпиль даёт 4 модуля, дом 1 (там сразу скол).<span class="rec">предлагаю</span></span></label>
+        <label><input type="radio" name="g-take" value="b"><span>Одна реликвия = один модуль. Шпилей 4 на планету, модулей мало, каждый ценен.</span></label>
+        <label><input type="radio" name="g-take" value="c"><span>Реликвия не расходуется. Её ставят на корабле как источник: модули работают, пока она в радиусе.</span></label>
+      </div>
+    </div>
+    <div class="q">
+      <h3>Что остаётся после</h3>
+      <div class="opts">
+        <label><input type="radio" name="g-after" value="a" checked><span>Колыбель искрит ещё 3 секунды: дуги редеют, напоследок один разряд в ближайший металл. Потом гаснет весь шпиль: венец, линза или копьё, жилы в породе. С холма видно, какие шпили уже взяты.<span class="rec">предлагаю</span></span></label>
+        <label><input type="radio" name="g-after" value="b"><span>Шпиль горит дальше, но вполовину слабее: в колыбели остался кусочек, она пустая и изредка потрескивает.</span></label>
+        <label><input type="radio" name="g-after" value="c"><span>Свет уходит вверх по шахте и с хлопком гаснет в вершине. Короткая сцена на 2 секунды, после неё темно.</span></label>
+      </div>
+    </div>
+    <div class="q">
+      <h3>Бьёт ли она рядом</h3>
+      <div class="opts">
+        <label><input type="radio" name="g-zap" value="a"><span>Мелкие дуги иногда бьют героя ближе 1,5 клетки (3 урона и толчок), большой разряд бьёт на 10. Подходить к ней надо быстро.</span></label>
+        <label><input type="radio" name="g-zap" value="b" checked><span>Бьёт, только когда рубишь колыбель: каждый удар даёт разряд в героя (5 урона), как резонатор. Без удара она только светит и гудит.<span class="rec">предлагаю</span></span></label>
+        <label><input type="radio" name="g-zap" value="c"><span>Не бьёт совсем: только свет, звук и искры.</span></label>
+      </div>
+    </div>
+    <div class="q">
+      <h3>Зацепка для сюжета</h3>
+      <div class="opts">
+        <label><input type="radio" name="g-lore" value="a" checked><span>«Они не изобрели дугу: она упала им на головы, и всё, что они построили, выросло вокруг осколков».</span></label>
+        <label><input type="radio" name="g-lore" value="b"><span>«Каждый шпиль стоит там, где небо уронило кусок чего-то большего, и куски до сих пор тянутся друг к другу».</span></label>
+        <label><input type="radio" name="g-lore" value="c"><span>«Осколки — части одной вещи, которая разбилась над планетой. Жители не знали, что будет, если собрать её снова». Вопрос другу.</span></label>
+      </div>
+    </div>
+    <div class="q">
+      <h3>Цвет домашних ламп</h3>
+      <div class="opts">
+        <label><input type="radio" name="g-col" value="a" checked><span>Лампы, которые питает скол, горят фиолетово-белым, как реликвия. Голубыми остаются только мёртвые лампы общей сети.<span class="rec">предлагаю</span></span></label>
+        <label><input type="radio" name="g-col" value="b"><span>Всё как сейчас: голубые лампы жителей, фиолетово-белая только сама реликвия.</span></label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-sum">
+  <div class="sechead"><span class="eyebrow">4 · Выбор</span><h2 id="h-sum">Итог, чтобы скопировать</h2>
+    <p class="muted">Отметки ставятся в карточках выше. Выбор запоминается в этом браузере.</p></div>
+  <textarea id="notes" name="notes" placeholder="Общие заметки: что смешать, что дорисовать…"></textarea>
+  <pre id="summary" aria-live="polite"></pre>
+  <div class="copyrow"><button type="button" class="btn" id="copy">Скопировать итог</button><span class="counts" id="counts"></span><span class="counts" id="copyMsg"></span></div>
+</section>
+</form>
+</div>
+
+<script>
+(function () {
+  var META = {{json:meta}};
+  var IMG = {{json:imgs}};
+  var DESIGNS = {{json:designs}};
+  var SPIRES = [
+    { id: 'spire-v1', name: 'Маяк над воронкой', pair: 'с Небесным осколком', pts: [
+      ['Снаружи', 'Венец на вершине: фарфоровая стопка, светящаяся сфера и два медных рога. Дуга ползёт вверх между рогами и срывается, снова и снова. С холма видно движущийся свет, а не точку.'],
+      ['Вход', 'Как сейчас: две земляные пробки по бокам комнаты в вершине.'],
+      ['Шахта', 'По задней стене идёт медная шина. Раз в 2–4 секунды по ней бежит импульс снизу вверх и вспыхивает в венце. Шахта больше не чёрная: шина подсвечивает уступы.'],
+      ['Камера', 'Пол проломлен, осколок вбит в воронку под ним. Тайник отодвинут влево. От удара в породе остались фульгуриты, жилы оплавленного стекла: тлеют, если подкопать сбоку, и подсказывают, где камера.']] },
+    { id: 'spire-v2', name: 'Световой колодец', pair: 'с Чужим ядром', pts: [
+      ['Снаружи', 'Вместо лампы линза, из неё в небо бьёт столб света. Ночью его видно с любого края карты: лучший ориентир из трёх.'],
+      ['Вход', 'Пробки как сейчас. Вершина сужена до трубы над линзой.'],
+      ['Шахта', 'Одна прямая труба света от камеры до линзы, по ней поднимаются пылинки. Уступы с обеих сторон силуэтом на свету, спуск видно целиком.'],
+      ['Камера', 'Выше, 5 клеток. Ядро в медной клетке стоит на полу, большие разряды бьют в стены камеры.']] },
+    { id: 'spire-v3', name: 'Пронзённая башня', pair: 'с Сердцем-кристаллом', pts: [
+      ['Снаружи', 'Кристальное копьё упало остриём вверх, башню построили вокруг него как ножны. Его острие торчит над вершиной вместо лампы, по копью снизу вверх бегут вспышки.'],
+      ['Вход', 'Пробки как сейчас, копьё стоит посреди комнаты на заднем плане.'],
+      ['Шахта', 'Копьё проходит через всю шахту на заднем плане и не мешает прыгать. На каждом уступе его держит медное кольцо.'],
+      ['Камера', 'У подножия копья жители откололи сердце и положили его в колыбель. Его и берут. После этого копьё гаснет снизу вверх и остаётся тёмным стеклом.']] },
+  ];
+  var HOMES = [
+    { id: 'home-niche', name: 'Домашнее сердце', where: 'ниша у очага', pts: [
+      ['Где', 'Ниша в стене кухни, в ней скол осколка на маленьком хомуте.'],
+      ['Что питает', 'Медный провод идёт к очагу и под потолком к лампе над столом. Эти две вещи горят, всё остальное в доме мёртвое. По проводу ползут дуги и ведут взгляд от лампы к нише.'],
+      ['Взял', 'Очаг и лампа гаснут, провод чернеет.']] },
+    { id: 'home-lamp', name: 'Люстра', where: 'над столом', pts: [
+      ['Где', 'Медная клетка на цепи над обеденным столом, в ней кристаллик сердца.'],
+      ['Что питает', 'Только себя: светит на весь обеденный угол, дуги бьют в прутья клетки. Самая заметная вещь в комнате.'],
+      ['Взял', 'Клетка пустеет, в комнате темно. Остаётся только шлем.']] },
+  ];
+
+  var STORE = 'arc-relic-picks-v1';
+  var saved = {}; try { saved = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; } catch (e) { saved = {}; }
+  function persist() { try { localStorage.setItem(STORE, JSON.stringify(saved)); } catch (e) {} }
+
+  function el(tag, attrs, html) { var e = document.createElement(tag); if (attrs) for (var k in attrs) { if (k === 'class') e.className = attrs[k]; else if (k === 'style') e.style.cssText = attrs[k]; else e.setAttribute(k, attrs[k]); } if (html != null) e.innerHTML = html; return e; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function pickRow(key) {
+    var row = el('div', { class: 'pickrow' }), pk = el('div', { class: 'pick', role: 'radiogroup', 'aria-label': 'Выбор' });
+    [['take', 'беру'], ['change', 'изменить'], ['drop', 'не надо']].forEach(function (o) {
+      var lb = el('label'), inp = el('input', { type: 'radio', name: 'p-' + key, value: o[0], id: 'p-' + key + '-' + o[0] });
+      if (saved['p-' + key] === o[0]) inp.checked = true; lb.appendChild(inp); lb.appendChild(el('span', null, o[1])); pk.appendChild(lb);
+    });
+    var note = el('input', { type: 'text', name: 'n-' + key, id: 'n-' + key, placeholder: 'заметка', 'aria-label': 'Заметка' }); note.value = saved['n-' + key] || '';
+    row.appendChild(pk); row.appendChild(note); return row;
+  }
+  var layers = [];
+  function stage(id, mode) {
+    var m = META[id], st = el('div', { class: 'stage', style: '--pw:' + m.size[0] }), img = el('img', { src: IMG[id + '-hi'], width: m.size[0], height: m.size[1], alt: '' });
+    var cv = el('canvas', { 'aria-hidden': 'true' }); st.appendChild(img); st.appendChild(cv);
+    layers.push(newLayer(cv, id, img)); return st;
+  }
+
+  // ---- cards ----
+  var cardsEl = document.getElementById('cards');
+  DESIGNS.forEach(function (d, n) {
+    var c = el('article', { class: 'card', id: 'card-' + d.id });
+    var top = el('div', { class: 'top' }, '<h3>' + esc(d.name) + '</h3><span class="num">' + (n + 1) + '/7</span>');
+    var views = el('div', { class: 'views' }), big = el('div', { class: 'big' }), one = el('div', { class: 'one' });
+    big.appendChild(stage('card-' + d.id)); one.appendChild(stage('card-' + d.id)); one.appendChild(el('span', { class: 'vlabel' }, '1× в игре'));
+    views.appendChild(big); views.appendChild(one);
+    var ic = IMG['icon-' + d.id];
+    var icons = el('div', { class: 'icons' },
+      '<div class="ic"><img src="' + ic + '" width="16" height="16" alt="Иконка ' + esc(d.short) + ' 1×"><span class="vlabel">16 px</span></div>' +
+      '<div class="ic"><img src="' + ic + '" width="64" height="64" alt="Иконка ' + esc(d.short) + ' 4×"><span class="vlabel">4×</span></div>' +
+      '<div class="ic"><div class="slots"><div class="slot"><img src="' + IMG['today-coil'] + '" alt="Медная катушка сейчас"></div><div class="slot"><img src="' + ic + '" alt="' + esc(d.short) + ' в ячейке"></div><div class="slot empty"></div></div><span class="vlabel">в сумке: сейчас · новая</span></div>');
+    var kv = el('dl', { class: 'kv' }, '<dt class="ar">Чужое</dt><dd>' + esc(d.what) + '</dd><dt class="cu">Приручили</dt><dd>' + esc(d.tamed) + '</dd>');
+    c.appendChild(top); c.appendChild(views); c.appendChild(icons); c.appendChild(kv); c.appendChild(pickRow('relic-' + d.id));
+    cardsEl.appendChild(c);
+  });
+  // ---- spires ----
+  var spEl = document.getElementById('spires');
+  SPIRES.forEach(function (s, n) {
+    var v = el('article', { class: 'variant', id: 'v-' + s.id });
+    var head = el('div', { class: 'head' }, '<h3>' + (n + 1) + '. ' + esc(s.name) + '</h3>');
+    var seg = el('div', { class: 'seg' }); var bOn = el('button', { type: 'button', 'aria-pressed': 'true' }, 'живой'), bOff = el('button', { type: 'button', 'aria-pressed': 'false' }, 'после');
+    seg.appendChild(bOn); seg.appendChild(bOff); head.appendChild(seg);
+    var fr = el('div', { class: 'frame spire-frame' }), st = stage(s.id); fr.appendChild(st);
+    var L = layers[layers.length - 1];
+    bOn.addEventListener('click', function () { L.off = false; L.img.src = IMG[s.id + '-hi']; bOn.setAttribute('aria-pressed', 'true'); bOff.setAttribute('aria-pressed', 'false'); });
+    bOff.addEventListener('click', function () { L.off = true; L.img.src = IMG[s.id + '-off']; bOn.setAttribute('aria-pressed', 'false'); bOff.setAttribute('aria-pressed', 'true'); });
+    v.appendChild(head); v.appendChild(el('span', { class: 'pair' }, s.pair)); v.appendChild(fr);
+    v.appendChild(el('dl', { class: 'kv' }, s.pts.map(function (p) { return '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>'; }).join('')));
+    v.appendChild(pickRow(s.id)); spEl.appendChild(v);
+  });
+  // ---- homes ----
+  var hEl = document.getElementById('homes');
+  HOMES.forEach(function (h, n) {
+    var v = el('article', { class: 'variant', id: 'v-' + h.id });
+    v.appendChild(el('div', { class: 'head' }, '<h3>' + String.fromCharCode(1040 + n) + '. ' + esc(h.name) + '</h3><span class="pair">' + esc(h.where) + '</span>'));
+    var wrap = el('div', { class: 'homepair' }), fr = el('div', { class: 'frame home-frame' }); fr.appendChild(stage(h.id));
+    wrap.appendChild(fr); wrap.appendChild(el('dl', { class: 'kv' }, h.pts.map(function (p) { return '<dt>' + esc(p[0]) + '</dt><dd>' + esc(p[1]) + '</dd>'; }).join('')));
+    v.appendChild(wrap); v.appendChild(pickRow(h.id)); hEl.appendChild(v);
+  });
+
+  // ---- zoom ----
+  var zoom = 2;
+  function setZoom(z) {
+    zoom = z; document.querySelectorAll('#zoomSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.z === z)); });
+    document.querySelectorAll('.views .big').forEach(function (e) { e.style.setProperty('--z', Math.max(2, z)); });
+    document.querySelectorAll('.spire-frame').forEach(function (e) { e.style.setProperty('--z', z === 3 ? 2 : 1); });
+    document.querySelectorAll('.home-frame').forEach(function (e) { e.style.setProperty('--z', z === 1 ? 1 : 2); });
+    try { localStorage.setItem(STORE + '-z', z); } catch (e) {}
+  }
+  document.querySelectorAll('#zoomSeg button').forEach(function (b) { b.addEventListener('click', function () { setZoom(+b.dataset.z); }); });
+  var z0 = 2; try { z0 = +(localStorage.getItem(STORE + '-z') || 2) || 2; } catch (e) {}
+  setZoom(z0);
+
+  // ---- summary ----
+  var form = document.getElementById('form'), WORD = { take: 'беру', change: 'изменить', drop: 'не надо' };
+  var notes = document.getElementById('notes'); notes.value = saved.notes || '';
+  document.querySelectorAll('.opts input').forEach(function (i) { if (saved[i.name] === i.value) i.checked = true; });
+  function optText(name) { var i = document.querySelector('input[name="' + name + '"]:checked'); if (!i) return '—'; return i.parentNode.querySelector('span').childNodes[0].textContent.trim(); }
+  function summary() {
+    document.querySelectorAll('input[type="radio"]:checked').forEach(function (i) { saved[i.name] = i.value; });
+    document.querySelectorAll('.pickrow input[type="text"]').forEach(function (i) { saved[i.name] = i.value; });
+    saved.notes = notes.value; persist();
+    var lines = ['Дуговая реликвия: выбор', ''], n = 0, total = 0;
+    function line(key, title) { total++; var v = saved['p-' + key], t = saved['n-' + key]; if (v) n++; lines.push('- ' + title + ': ' + (v ? WORD[v] : '—') + (t ? ' (' + t + ')' : '')); var card = document.getElementById('card-' + key.replace('relic-', '')); if (card) card.classList.toggle('dropped', v === 'drop'); }
+    lines.push('Вещи:'); DESIGNS.forEach(function (d, i) { line('relic-' + d.id, (i + 1) + '. ' + d.name); });
+    lines.push('', 'Шпили:'); SPIRES.forEach(function (s, i) { line(s.id, (i + 1) + '. ' + s.name); });
+    lines.push('', 'Дом:'); HOMES.forEach(function (h, i) { line(h.id, String.fromCharCode(1040 + i) + '. ' + h.name); });
+    lines.push('', 'Игра:', '- даёт: ' + optText('g-take'), '- после: ' + optText('g-after'), '- бьёт: ' + optText('g-zap'), '- сюжет: ' + optText('g-lore'), '- лампы дома: ' + optText('g-col'));
+    if (notes.value.trim()) lines.push('', 'Заметки: ' + notes.value.trim());
+    document.getElementById('summary').textContent = lines.join('\n');
+    document.getElementById('counts').textContent = 'отмечено ' + n + ' из ' + total;
+  }
+  form.addEventListener('change', summary); form.addEventListener('input', summary);
+  document.addEventListener('change', function (e) { if (e.target.closest && e.target.closest('.pickrow')) summary(); });
+  document.addEventListener('input', function (e) { if (e.target.closest && e.target.closest('.pickrow')) summary(); });
+  form.addEventListener('submit', function (ev) { ev.preventDefault(); });
+  document.getElementById('copy').addEventListener('click', function () {
+    var txt = document.getElementById('summary').textContent, msg = document.getElementById('copyMsg');
+    function fallback() { var r = document.createRange(); r.selectNodeContents(document.getElementById('summary')); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); msg.textContent = 'Выделено: нажми Ctrl+C'; }
+    try { navigator.clipboard.writeText(txt).then(function () { msg.textContent = 'Скопировано'; }, fallback); } catch (e) { fallback(); }
+  });
+  summary();
+
+  // ================= the live layer =================
+  // arcs are thin polylines held on twos (white core, violet rim, glow); big discharges relight the scene from its fx bake;
+  // the hum breathes between the lo and hi bakes; sparks are thin streaks that fall and bounce once.
+  function R() { return Math.random(); }
+  function rr(a, b) { return a + R() * (b - a); }
+  function pick(a) { return a[Math.floor(R() * a.length)]; }
+  var PALS = { v: { core: '253,250,255', rim: '176,138,255', glow: [150, 110, 255] }, b: { core: '244,254,255', rim: '85,214,255', glow: [70, 180, 255] } };
+  var SPR = {};
+  function sprite(c) {
+    var k = c.join(','); if (SPR[k]) return SPR[k];
+    var s = document.createElement('canvas'); s.width = s.height = 64; var x = s.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(' + k + ',1)'); g.addColorStop(0.25, 'rgba(' + k + ',0.45)'); g.addColorStop(0.6, 'rgba(' + k + ',0.1)'); g.addColorStop(1, 'rgba(' + k + ',0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64); return (SPR[k] = s);
+  }
+  function glow(L, x, y, r, c, a) { if (a <= 0.003) return; var k = L.k, s = r * 2 * k; L.ctx.globalAlpha = Math.min(1, a); L.ctx.drawImage(sprite(c), x * k - s / 2, y * k - s / 2, s, s); }
+  function boltShape(a, b, bulge, branchy) {
+    var dx0 = b[0] - a[0], dy0 = b[1] - a[1], Ln = Math.sqrt(dx0 * dx0 + dy0 * dy0), pts = [a, b];
+    var levels = Math.max(1, Math.min(6, Math.ceil(Math.log(Math.max(Ln, 2) / 1.5) / Math.LN2)));
+    for (var lv = 0; lv < levels; lv++) {
+      var np = [pts[0]];
+      for (var i = 0; i < pts.length - 1; i++) {
+        var p = pts[i], q = pts[i + 1], dx = q[0] - p[0], dy = q[1] - p[1], sl = Math.sqrt(dx * dx + dy * dy) || 1;
+        var off = (R() * 2 - 1) * 0.36 * sl * 0.55 + (lv === 0 ? bulge * Ln : 0);
+        np.push([(p[0] + q[0]) / 2 - dy / sl * off, (p[1] + q[1]) / 2 + dx / sl * off], q);
+      }
+      pts = np;
+    }
+    var br = [];
+    if (branchy && Ln > 8) for (var j = 2; j < pts.length - 2 && br.length < branchy; j++) if (R() < 0.08) {
+      var ang = Math.atan2(dy0, dx0) + (R() < 0.5 ? -1 : 1) * rr(0.35, 1.1), len = Ln * rr(0.15, 0.4);
+      br.push(boltShape(pts[j], [pts[j][0] + Math.cos(ang) * len, pts[j][1] + Math.sin(ang) * len], 0, 0).pts);
+    }
+    return { pts: pts, br: br };
+  }
+  function Bolt(gen, life, w, o) { o = o || {}; this.gen = gen; this.life = life; this.age = 0; this.w = w; this.light = o.light || 0; this.pal = PALS[o.pal || 'v']; this.branchy = o.branchy || 0; this.roll(); }
+  Bolt.prototype.roll = function () { var e = this.gen(), s = boltShape(e[0], e[1], rr(-0.18, 0.18), this.branchy); this.pts = s.pts; this.br = s.br; this.end = e[1]; this.mid = this.pts[this.pts.length >> 1]; };
+  function path(ctx, pts, k) { ctx.beginPath(); ctx.moveTo(pts[0][0] * k, pts[0][1] * k); for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * k, pts[i][1] * k); }
+  function drawBolts(L) {
+    var ctx = L.ctx, k = L.k; if (!L.bolts.length) return;
+    L.bolts.forEach(function (b) { var st = Math.max(2, b.pts.length >> 3); for (var i = 0; i < b.pts.length; i += st) glow(L, b.pts[i][0], b.pts[i][1], 4 + 3 * b.w, b.pal.glow, 0.14 + 0.08 * b.w); if (b.light) glow(L, b.mid[0], b.mid[1], 14 + 22 * b.light, b.pal.glow, 0.35 * b.light); });
+    ctx.globalAlpha = 1; ctx.lineJoin = 'miter'; ctx.miterLimit = 3; ctx.lineCap = 'round';
+    L.bolts.forEach(function (b) { var f = 1 - 0.45 * b.age / b.life; ctx.strokeStyle = 'rgba(' + b.pal.rim + ',' + f + ')';
+      ctx.lineWidth = Math.max(1, 0.7 * k * b.w); b.br.forEach(function (q) { path(ctx, q, k); ctx.stroke(); });
+      ctx.lineWidth = Math.max(1.4, 1.05 * k * b.w); path(ctx, b.pts, k); ctx.stroke(); });
+    L.bolts.forEach(function (b) { ctx.strokeStyle = 'rgba(' + b.pal.core + ',1)';
+      ctx.lineWidth = Math.max(0.7, 0.3 * k * b.w); b.br.forEach(function (q) { path(ctx, q, k); ctx.stroke(); });
+      ctx.lineWidth = Math.max(0.9, 0.42 * k * b.w); path(ctx, b.pts, k); ctx.stroke(); });
+  }
+  function jit(p, a) { return [p[0] + rr(-a, a), p[1] + rr(-a, a)]; }
+  function spark(L, x, y, vx, vy, floor, c) { if (L.parts.length > 260) return; L.parts.push({ x: x, y: y, vx: vx, vy: vy, life: rr(0.5, 1.3), age: 0, floor: floor, c: c || [200, 170, 255], bounced: 0 }); }
+  function burst(L, p, n, floor, up) { for (var i = 0; i < n; i++) { var a = rr(0, Math.PI * 2), s = rr(25, 80); spark(L, p[0], p[1], Math.cos(a) * s, Math.sin(a) * s - (up || 25), floor); } }
+
+  function newLayer(cv, id, img) {
+    var m = META[id], L = { cv: cv, ctx: cv.getContext('2d'), id: id, img: img, meta: m, vis: false, bolts: [], parts: [], motes: [], flash: 0, t: R() * 10, hum: 0, st: [], off: false, ready: false };
+    var srcs = ['lo', 'hi', 'fx'], left = 3; L.ims = {};
+    srcs.forEach(function (s) { var im = new Image(); im.onload = function () { if (--left === 0) L.ready = true; }; im.src = IMG[id + '-' + s]; L.ims[s] = im; });
+    m.emitters.forEach(function (e) { L.st.push({ next: e.big ? rr(0.6, e.big[0]) : e.every ? rr(0.4, e.every[0]) : 0, pos: -1, t: R() * 50 }); });
+    return L;
+  }
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) { es.forEach(function (en) { layers.forEach(function (L) { if (L.cv === en.target) L.vis = en.isIntersecting; }); }); }, { rootMargin: '120px' }) : null;
+  layers.forEach(function (L) { if (io) io.observe(L.cv); else L.vis = true; });
+
+  var DT = 1 / 24;
+  function tick(L) {
+    L.t += DT; var t = L.t;
+    L.hum = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 / 1.7) * (0.85 + 0.15 * Math.sin(t * 13.1));
+    if (!L.off) L.meta.emitters.forEach(function (e, i) {
+      var s = L.st[i]; s.t++;
+      if (e.kind === 'relic') {
+        var S = e.S || 1, small = e.small;
+        // constant arcs to its own metal, crackle in the air round it
+        var nArc = R() < e.rate ? (R() < 0.35 ? 2 : 1) : 0;
+        for (var a = 0; a < nArc; a++) (function () {
+          var from = pick(e.src), to = R() < 0.75 ? pick(e.near) : null;
+          if (to) L.bolts.push(new Bolt(function () { return [jit(from, 0.6), jit(to, 0.7)]; }, Math.round(rr(2, 5)), small ? 0.45 : 0.6));
+          else { var ang = rr(0, Math.PI * 2), rch = rr(4, 9) * Math.max(0.7, S); L.bolts.push(new Bolt(function () { return [jit(from, 0.4), [from[0] + Math.cos(ang) * rch + rr(-1, 1), from[1] + Math.sin(ang) * rch + rr(-1, 1)]]; }, Math.round(rr(2, 3)), 0.4)); }
+          if (R() < 0.4) spark(L, from[0], from[1], rr(-25, 25), rr(-40, 0), e.floor);
+        })();
+        // now and then a reach to the room's metal
+        if (e.far.length && R() < e.rate * 0.12) { var f = pick(e.far), fr0 = pick(e.src); L.bolts.push(new Bolt(function () { return [jit(fr0, 0.5), jit(f, 1)]; }, Math.round(rr(3, 5)), 0.7, { light: 0.25, branchy: 1 })); burst(L, f, 3, e.floor); }
+        // drips of sparks
+        if (R() < (small ? 0.12 : 0.22)) { var dsrc = pick(e.src); spark(L, dsrc[0] + rr(-1, 1), dsrc[1], rr(-8, 8), rr(-6, 10), e.floor); }
+        // the big discharge
+        if (!L.off && t >= s.next) {
+          s.next = t + rr(e.big[0], e.big[1]);
+          var tgt = e.hero && R() < 0.3 ? e.hero : (e.far.length ? pick(e.far) : pick(e.near)), from2 = e.core;
+          L.bolts.push(new Bolt(function () { return [jit(from2, 1), jit(tgt, 1.2)]; }, 8, small ? 0.9 : 1.35, { light: 1, branchy: 3 }));
+          for (var b2 = 0; b2 < 3; b2++) (function () { var n2 = pick(e.near.concat(e.far)); L.bolts.push(new Bolt(function () { return [jit(e.core, 1), jit(n2, 1)]; }, Math.round(rr(3, 6)), 0.8, { light: 0.3, branchy: 1 })); })();
+          L.flash = Math.max(L.flash, small ? 0.75 : 1); burst(L, tgt, small ? 8 : 16, e.floor, 35); burst(L, e.core, 8, e.floor, 10);
+          if (tgt === e.hero) L.parts.push({ glint: 1, x: tgt[0], y: tgt[1], life: 10, age: 0, c: [255, 255, 255] });
+        }
+      } else if (e.kind === 'climb') {
+        if (s.pos < 0 && t >= s.next) s.pos = 0;
+        if (s.pos >= 0) {
+          var a0 = e.pts[0], a1 = e.pts[1]; s.pos += DT / (e.soft ? 0.9 : 0.6);
+          var hx = a0[0] + (a1[0] - a0[0]) * Math.min(1, s.pos), hy = a0[1] + (a1[1] - a0[1]) * Math.min(1, s.pos);
+          s.head = [hx, hy];
+          if (!e.soft || R() < 0.5) L.bolts.push(new Bolt(function () { return [[hx + rr(-1, 1), hy], [hx + rr(-4, 4), hy + rr(8, 16)]]; }, 2, 0.55));
+          if (R() < 0.4) spark(L, hx, hy, rr(-15, 15), rr(-10, 10), 1e9);
+          if (s.pos >= 1) {
+            s.pos = -1; s.next = t + rr(e.every[0], e.every[1]); L.flash = Math.max(L.flash, 0.45); s.flare = 6;
+            for (var q = 0; q < 4; q++) (function () { var ang = rr(-Math.PI, 0), rr2 = rr(8, 18); L.bolts.push(new Bolt(function () { return [jit(e.flare, 0.6), [e.flare[0] + Math.cos(ang) * rr2, e.flare[1] + Math.sin(ang) * rr2]]; }, Math.round(rr(3, 6)), 0.7, { light: 0.4, branchy: 1 })); })();
+            burst(L, e.flare, 10, 1e9, 20);
+          }
+        }
+        if (s.flare) s.flare--;
+      } else if (e.kind === 'ladder') {
+        var ph = (t % e.period) / e.period, A0 = [e.a[0] + (e.a1[0] - e.a[0]) * ph, e.a[1] + (e.a1[1] - e.a[1]) * ph], B0 = [e.b[0] + (e.b1[0] - e.b[0]) * ph, e.b[1] + (e.b1[1] - e.b[1]) * ph];
+        if (s.t % 2 === 0) L.bolts.push(new Bolt(function () { return [jit(A0, 0.3), jit(B0, 0.3)]; }, 2, 1.05, { light: 0.6 }));
+        if (ph > 0.9 && R() < 0.5) burst(L, [(A0[0] + B0[0]) / 2, A0[1]], 2, 1e9, 30);
+      } else if (e.kind === 'orb') {
+        if (R() < 0.45) { var tf = pick(e.far); L.bolts.push(new Bolt(function () { return [jit([e.x, e.y], e.r * 0.5), jit(tf, 0.8)]; }, Math.round(rr(2, 4)), 0.55)); }
+      } else if (e.kind === 'beam') {
+        if (R() < 0.5) L.motes.push({ x: e.x + rr(-e.w / 2.5, e.w / 2.5), y: e.y0 - rr(0, 20), vy: -rr(10, 26), life: rr(2, 5), age: 0, beam: e });
+      } else if (e.kind === 'crawl') {
+        if (R() < e.rate) { var j = Math.floor(R() * (e.pts.length - 2)); var p0 = e.pts[j], p1 = e.pts[Math.min(e.pts.length - 1, j + 1 + Math.floor(R() * 3))]; L.bolts.push(new Bolt(function () { return [[p0[0], p0[1] - 1], [p1[0], p1[1] - 1]]; }, Math.round(rr(2, 4)), 0.45)); }
+      } else if (e.kind === 'arc') {
+        if (R() < (e.rate || 0.02) * 1.8) { var aa = e.a, bb = e.b; if (bb !== 'air') L.bolts.push(new Bolt(function () { return [jit(aa, 0.6), jit(bb, 0.8)]; }, Math.round((e.life || 4) * rr(1, 1.6)), e.w || 0.6, { pal: 'b', light: e.light })); }
+      } else if (e.kind === 'pulse') {
+        if (s.t % 3 === 0) s.v = 1 + e.amp * rr(-1, 1) * (R() < 0.08 ? 2.5 : 1);
+      } else if (e.kind === 'embers') {
+        if (R() < 0.22) L.parts.push({ x: e.x + rr(-e.w / 2, e.w / 2), y: e.y, vx: rr(-5, 5), vy: -rr(14, 26), life: rr(0.6, 1.4), age: 0, floor: 1e9, c: e.col, hot: 1, nog: 1 });
+      }
+    });
+    for (var j2 = L.bolts.length - 1; j2 >= 0; j2--) { var b = L.bolts[j2]; b.age++; if (b.age >= b.life) { L.bolts.splice(j2, 1); continue; } if (b.age % 2 === 0) b.roll(); }
+    for (var n = L.parts.length - 1; n >= 0; n--) {
+      var p = L.parts[n];
+      if (p.glint) { p.age++; if (p.age >= p.life) L.parts.splice(n, 1); continue; }
+      p.age += DT; if (p.age >= p.life) { L.parts.splice(n, 1); continue; }
+      p.px = p.x; p.py = p.y; if (!p.nog) p.vy += 240 * DT; p.x += p.vx * DT; p.y += p.vy * DT;
+      if (p.y > p.floor) { if (p.bounced || p.vy < 20) { L.parts.splice(n, 1); continue; } p.y = p.floor; p.vy *= -0.3; p.vx *= 0.6; p.bounced = 1; }
+    }
+    for (var mn = L.motes.length - 1; mn >= 0; mn--) { var mo = L.motes[mn]; mo.age += DT; mo.y += mo.vy * DT; mo.x += Math.sin(mo.age * 3 + mn) * 0.1; if (mo.age > mo.life || mo.y < 0) L.motes.splice(mn, 1); }
+    L.flash *= 0.74; if (L.flash < 0.01) L.flash = 0;
+  }
+  function draw(L) {
+    var ctx = L.ctx, k = L.k, W = L.cv.width, H = L.cv.height;
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
+    if (L.off) { ctx.clearRect(0, 0, W, H); }
+    else {
+      ctx.drawImage(L.ims.lo, 0, 0, W, H);
+      ctx.globalAlpha = 0.35 + 0.65 * L.hum; ctx.drawImage(L.ims.hi, 0, 0, W, H);
+      if (L.flash > 0) { ctx.globalAlpha = Math.min(1, L.flash * 0.9); ctx.drawImage(L.ims.fx, 0, 0, W, H); }
+    }
+    ctx.globalCompositeOperation = 'lighter';
+    if (!L.off) L.meta.emitters.forEach(function (e, i) {
+      var s = L.st[i];
+      if (e.kind === 'relic') { glow(L, e.core[0], e.core[1], e.r * 0.28, [150, 110, 255], 0.12 + 0.16 * L.hum); glow(L, e.core[0], e.core[1], 5 * (e.S || 1), [235, 225, 255], 0.25 + 0.25 * L.hum);
+        if (e.orbit) for (var q = 0; q < 3; q++) { var ang = L.t * 3.2 + q * 2.094, x = e.orbit.x + Math.cos(ang) * e.orbit.r, y = e.orbit.y + Math.sin(ang) * e.orbit.r; glow(L, x, y, 2.4, [180, 140, 255], 0.6); glow(L, x, y, 0.9, [255, 255, 255], 0.9); } }
+      else if (e.kind === 'climb' && s.head) { if (s.pos >= 0) { glow(L, s.head[0], s.head[1], 9, [150, 110, 255], 0.6); glow(L, s.head[0], s.head[1], 2.5, [255, 255, 255], 1); } if (s.flare) glow(L, e.flare[0], e.flare[1], 26, [170, 130, 255], 0.12 * s.flare); }
+      else if (e.kind === 'orb') glow(L, e.x, e.y, e.r * 3, [170, 130, 255], 0.2 + 0.25 * L.hum);
+      else if (e.kind === 'beam') {
+        var fl = 0.75 + 0.25 * L.hum + rr(-0.05, 0.05), g = ctx.createLinearGradient((e.x - e.w / 2) * k, 0, (e.x + e.w / 2) * k, 0);
+        g.addColorStop(0, 'rgba(150,110,255,0)'); g.addColorStop(0.35, 'rgba(170,135,255,' + 0.22 * fl + ')'); g.addColorStop(0.5, 'rgba(240,232,255,' + 0.32 * fl + ')'); g.addColorStop(0.65, 'rgba(170,135,255,' + 0.22 * fl + ')'); g.addColorStop(1, 'rgba(150,110,255,0)');
+        ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.fillRect((e.x - e.w / 2) * k, e.y1 * k, e.w * k, (e.y0 - e.y1) * k);
+        var sw = e.sky.w, g2 = ctx.createLinearGradient(0, e.y1 * k, 0, e.sky.y1 * k); g2.addColorStop(0, 'rgba(220,205,255,' + 0.55 * fl + ')'); g2.addColorStop(0.3, 'rgba(170,135,255,' + 0.3 * fl + ')'); g2.addColorStop(1, 'rgba(150,110,255,0.06)');
+        ctx.fillStyle = g2; ctx.beginPath(); ctx.moveTo((e.x - 4) * k, e.y1 * k); ctx.lineTo((e.x + 4) * k, e.y1 * k); ctx.lineTo((e.x + sw / 2) * k, e.sky.y1 * k); ctx.lineTo((e.x - sw / 2) * k, e.sky.y1 * k); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,' + 0.55 * fl + ')'; ctx.fillRect((e.x - 0.5) * k, e.sky.y1 * k, Math.max(1, k), (e.y1 - e.sky.y1) * k);
+      }
+      else if (e.kind === 'pulse' && s.v > 1) glow(L, e.x, e.y, e.r * 0.5, e.col, (s.v - 1) * 2.2);
+    });
+    L.motes.forEach(function (m) { var a = Math.sin(Math.PI * m.age / m.life) * 0.8; ctx.globalAlpha = a; ctx.fillStyle = 'rgb(230,220,255)'; ctx.fillRect(Math.round(m.x * k), Math.round(m.y * k), Math.max(1, k * 0.6), Math.max(1, k * 0.6)); });
+    L.parts.forEach(function (p) {
+      if (p.glint) { var f = Math.sin(Math.PI * p.age / p.life), arm = 5 * f; ctx.globalAlpha = f; ctx.strokeStyle = 'rgb(255,255,255)'; ctx.lineWidth = Math.max(1, 0.4 * k); ctx.beginPath(); ctx.moveTo((p.x - arm) * k, p.y * k); ctx.lineTo((p.x + arm) * k, p.y * k); ctx.moveTo(p.x * k, (p.y - arm) * k); ctx.lineTo(p.x * k, (p.y + arm) * k); ctx.stroke(); glow(L, p.x, p.y, 8, [190, 160, 255], 0.5 * f); return; }
+      var q2 = p.age / p.life, a2 = Math.min(1, p.age * 8) * (1 - q2 * q2);
+      ctx.globalAlpha = a2; ctx.strokeStyle = p.hot ? 'rgba(255,236,190,1)' : (q2 < 0.3 ? 'rgb(255,252,255)' : 'rgb(' + p.c.join(',') + ')'); ctx.lineWidth = Math.max(1, 0.38 * k); ctx.lineCap = 'round';
+      var tx = p.px != null ? p.px : p.x - p.vx * DT, ty = p.py != null ? p.py : p.y - p.vy * DT;
+      ctx.beginPath(); ctx.moveTo(tx * k, ty * k); ctx.lineTo(p.x * k, p.y * k); ctx.stroke();
+      glow(L, p.x, p.y, 2, p.hot ? [255, 170, 90] : p.c, 0.3 * a2);
+    });
+    drawBolts(L);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var moving = !reduce, onB = document.getElementById('motionOn'), offB = document.getElementById('motionOff');
+  function setMotion(on) { moving = on; onB.setAttribute('aria-pressed', String(on)); offB.setAttribute('aria-pressed', String(!on)); if (!on) layers.forEach(function (L) { L.ctx.clearRect(0, 0, L.cv.width, L.cv.height); }); }
+  onB.addEventListener('click', function () { setMotion(true); }); offB.addEventListener('click', function () { setMotion(false); });
+  function fit(L) { var w = L.cv.clientWidth, h = L.cv.clientHeight; if (!w) return false; var dpr = window.devicePixelRatio || 1; if (L.cv.width !== Math.round(w * dpr) || L.cv.height !== Math.round(h * dpr)) { L.cv.width = Math.round(w * dpr); L.cv.height = Math.round(h * dpr); } L.k = L.cv.width / L.meta.size[0]; return true; }
+  var acc = 0, last = 0;
+  function frame(now) {
+    requestAnimationFrame(frame);
+    var dt = Math.min(0.1, (now - last) / 1000 || 0); last = now;
+    if (!moving) return;
+    acc += dt; if (acc < DT) return; acc = Math.min(acc - DT, 0.1);
+    layers.forEach(function (L) { if (!L.vis || !L.ready || !fit(L)) return; tick(L); draw(L); });
+  }
+  window.__arc = { layers: layers, step: function (n) { for (var i = 0; i < (n || 1); i++) layers.forEach(function (L) { if (!L.ready || !fit(L)) return; tick(L); draw(L); }); }, setMotion: setMotion };
+  setMotion(moving);
+  requestAnimationFrame(frame);
+})();
+</script>

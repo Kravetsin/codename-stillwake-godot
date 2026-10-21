@@ -1,0 +1,271 @@
+<title>Новый облик героя</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a suit bay. One locker per look, stacked; a rack with every look side by side; the fitting slip at the end. Dark on purpose: the game's pixel art is lit on a dark hull. */
+:root {
+  --hull: #0a0d12; --panel: #11161e; --panel2: #18202a; --line: #252e3b; --fg: #e2e6ea; --mute: #8b96a4;
+  --amber: #e8b04a; --glow: #7fe8d4; --warn: #e39a5b;
+  --display: "Pixelify Sans", "Segoe UI", system-ui, sans-serif; --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--hull); color: var(--fg); font: 15px/1.55 var(--body); margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 72px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--hull); }
+.wrap { max-width: 1220px; margin: 0 auto; display: grid; gap: 44px; grid-template-columns: minmax(0, 1fr); }
+.wrap > * { min-width: 0; }
+h1, h2, h3 { font-family: var(--display); font-weight: 500; text-wrap: balance; margin: 0; letter-spacing: 0.02em; }
+h1 { font-size: clamp(30px, 5vw, 48px); line-height: 1.05; }
+h2 { font-size: 24px; }
+h3 { font-size: 20px; }
+p { margin: 0; max-width: 70ch; }
+code, .mono { font-family: var(--mono); font-size: 0.92em; }
+.eyebrow { font: 600 11px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--amber); }
+.mute { color: var(--mute); }
+header { display: grid; gap: 14px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fact { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; font: 12.5px/1.35 var(--mono); color: var(--mute); overflow-wrap: anywhere; }
+.fact b { color: var(--fg); font-weight: 600; }
+section { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); }
+section > * { min-width: 0; }
+.sec-head { display: grid; gap: 8px; }
+
+/* controls */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: rgba(10, 13, 18, 0.94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); padding: 10px 0; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.bar label { font: 600 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); }
+.grp { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+.seg button { background: transparent; color: var(--mute); border: 0; padding: 6px 10px; font: 500 13px var(--body); cursor: pointer; }
+.seg button:hover { color: var(--fg); }
+.seg button[aria-pressed="true"] { background: var(--panel2); color: var(--fg); box-shadow: inset 0 -2px 0 var(--amber); }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+
+/* lockers */
+.cards { display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.card-head { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.badge { font: 700 26px/1 var(--display); color: var(--hull); background: var(--amber); width: 40px; height: 40px; display: grid; place-items: center; border-radius: 3px; flex: none; }
+#now-card .badge { background: var(--mute); }
+.ttl { flex: 1 1 280px; min-width: 0; display: grid; gap: 2px; }
+.sub { color: var(--mute); font-size: 14px; }
+.card-head .seg button { padding: 5px 9px; font-size: 12.5px; }
+.card-body { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: start; }
+.stage { min-width: 0; overflow-x: auto; }
+canvas { image-rendering: pixelated; display: block; max-width: 100%; }
+.stage canvas { border-radius: 4px; background: #05070b; }
+.side { display: grid; gap: 14px; min-width: 0; align-content: start; }
+figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+figcaption { font: 12px/1.4 var(--mono); color: var(--mute); }
+.one canvas { width: auto; image-rendering: auto; border-radius: 3px; }
+.sheetf { overflow-x: auto; }
+.sheetf canvas { max-width: none; background: #1a2029; border-radius: 3px; }
+.notes { margin: 0; display: grid; gap: 10px; }
+.notes div { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 10px; }
+.notes dt { font: 600 11px/1.6 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); }
+.notes dd { margin: 0; font-size: 14px; line-height: 1.5; }
+@media (max-width: 1100px) { .card-body { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 520px) { .notes div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+
+/* proof */
+.proof { align-items: start; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+.proof img { image-rendering: pixelated; width: 100%; max-width: 440px; border-radius: 3px; }
+.pair div { display: flex; gap: 8px; } .pair img { width: 200px; max-width: 48%; }
+.proof .txt { display: grid; gap: 10px; align-content: start; font-size: 14px; }
+.proof ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+
+/* rack */
+.rack { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: 16px; }
+.lu { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; }
+.lu canvas { border-radius: 3px; }
+.lu figcaption b { color: var(--fg); font-weight: 600; }
+.dots { display: inline-flex; gap: 10px; }
+.dots button { width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--dot); cursor: pointer; opacity: 0.45; }
+.dots button[aria-pressed="true"] { opacity: 1; box-shadow: 0 0 0 2px var(--hull), 0 0 0 4px var(--fg); }
+
+/* the slip */
+form { display: grid; gap: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
+legend { font: 600 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--amber); padding: 0 0 8px; }
+.opts { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+fieldset > .opt { justify-self: start; }
+.opt { display: inline-flex; align-items: center; gap: 8px; background: var(--panel2); border: 1px solid var(--line); border-radius: 5px; padding: 7px 11px; font-size: 14px; cursor: pointer; }
+.opt:has(input:checked) { border-color: var(--amber); }
+.opt input { accent-color: var(--amber); margin: 0; }
+.opt small { color: var(--mute); font-size: 12.5px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 18px 26px; }
+.hint { font-size: 13px; color: var(--mute); }
+textarea { width: 100%; background: var(--hull); color: var(--fg); border: 1px solid var(--line); border-radius: 5px; padding: 10px; font: 13.5px/1.5 var(--mono); resize: vertical; }
+.copyrow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn { background: var(--amber); color: #1a1206; border: 0; border-radius: 5px; padding: 9px 16px; font: 600 14px var(--body); cursor: pointer; }
+.btn:hover { filter: brightness(1.08); }
+#copied { font: 13px var(--mono); color: var(--glow); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Stillwake · герой · выбор облика</p>
+    <h1>Новый облик героя</h1>
+    <p>Пять направлений, каждое собрано на том же риге, что в игре: те же семь деталей и ранец, те же шарниры и позы из <code>Pose.cs</code>. Поэтому работа над движением не ломается. Где направлению нужен другой риг, в карточке сказано, что именно меняется. Каждое показано в четырёх цветах костюма, на палубе, на планете, в тёмной пещере под лучом шлема и в космосе с реактивным ранцем.</p>
+    <div class="facts">
+      <span class="fact">рост <b>2,625 клетки</b> = 42 px</span>
+      <span class="fact">клетка <b>16 px</b></span>
+      <span class="fact">детали <b>шлем, корпус, ранец, плечо, предплечье, бедро, голень</b> + реактивный ранец</span>
+      <span class="fact">луч шлема <b>60°, 9 клеток</b> (0077)</span>
+      <span class="fact">цвета <b>e8b04a 5fc8c0 a08cf0 8cd06a</b></span>
+    </div>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Что показывать">
+    <div class="grp"><label>Поза</label><div class="seg" id="pose"></div></div>
+    <div class="grp"><label>Сцена</label><div class="seg" id="scene"></div></div>
+    <div class="grp"><label>Масштаб</label><div class="seg" id="zoom"></div></div>
+  </div>
+
+  <section id="now">
+    <div class="sec-head">
+      <p class="eyebrow">Сейчас</p>
+      <h2>Герой в игре сегодня</h2>
+      <p class="mute">Нарисован настоящими картинками <code>art/hero_*.png</code> и тем же ригом. Ниже кадры из запущенной игры для сравнения.</p>
+    </div>
+    <div id="now-card"></div>
+    <div class="proof">
+      <figure><img alt="Кадр из игры: герой на палубе корабля у ящика, тёплый свет ламп" src="/*SHOT_DECK*/"><figcaption>игра, палуба (--jetpack), 1× ×4</figcaption></figure>
+      <figure><img alt="Кадр из игры: герой с топором на поверхности планеты" src="/*SHOT_PLANET*/"><figcaption>игра, поверхность (--planet), 1× ×4</figcaption></figure>
+      <figure class="pair"><div><img alt="Герой в игре крупно" src="/*CMP_REAL*/"><img alt="Тот же герой на этой странице крупно" src="/*CMP_MINE*/"></div><figcaption>игра · страница, 1× ×5</figcaption></figure>
+      <div class="txt">
+        <p><b>Как сверено.</b></p>
+        <ul>
+          <li>Игра собрана из копии репозитория (<code>git archive</code> в папку черновиков, <code>dotnet build</code>, <code>godot --import</code>) и записана через <code>--write-movie</code>: палуба, поверхность, полёт с ранцем.</li>
+          <li>Детали, шарниры (<code>Figure.Joints</code>), длины рук и ног (<code>Rig.cs</code>), позы (<code>Pose.cs</code>), хват бура (<code>TwoHand.Keys</code>) и перекраска (<code>SuitArt</code>) перенесены один к одному. Силуэт, шлем с визором, пояс, серый ранец и ботинки совпадают с кадром при увеличении ×7 (пара крупно: слева игра, справа эта страница; в игре у героя в руке топор).</li>
+          <li>Отличается свет: здесь он упрощён до ламп и окружающего света без теней от стен. В пещере свет только от луча шлема, кристаллов и грибов, как в 0077 и 0080.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="dirs">
+    <div class="sec-head">
+      <p class="eyebrow">Направления</p>
+      <h2>Пять вариантов в стиле игры</h2>
+      <p class="mute">Контур в 3–4 тона, свет сверху слева, как у ящика, печи и планеты. Всё, что светится (визор, огоньки, лампа шлема), рисуется без освещения и само даёт свет своего цвета. Переключатели из формы внизу (антенна, свечение визора, отставание ранца, жизнь в стойке) сразу видны здесь.</p>
+    </div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section id="rack">
+    <div class="sec-head">
+      <p class="eyebrow">Все рядом</p>
+      <h2>Сейчас и пять направлений в одном месте</h2>
+      <div class="grp"><span class="mute">Цвет костюма</span><div class="dots" id="lu-suit"></div></div>
+    </div>
+    <div class="rack" id="lineups"></div>
+  </section>
+
+  <section id="choose">
+    <div class="sec-head">
+      <p class="eyebrow">Выбор</p>
+      <h2>Что берём</h2>
+      <p class="mute">Выберите направление и отметьте детали. Это же отвечает на пункты 7 и 8 страницы движения (стойка: дыхание, перенос веса, оглядка; ранец, шлем, антенна). Внизу готовый текст, его можно скопировать.</p>
+    </div>
+    <form id="pick" autocomplete="off">
+      <fieldset>
+        <legend>Направление</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="dir" id="d-now" value="now"> Оставить как сейчас</label>
+          <label class="opt"><input type="radio" name="dir" id="d-A" value="A"> A · Ремонт</label>
+          <label class="opt"><input type="radio" name="dir" id="d-B" value="B"> B · Колокол</label>
+          <label class="opt"><input type="radio" name="dir" id="d-C" value="C"> C · Монтажник</label>
+          <label class="opt"><input type="radio" name="dir" id="d-D" value="D"> D · Старьёвщик</label>
+          <label class="opt"><input type="radio" name="dir" id="d-E" value="E"> E · Тяжёлый</label>
+        </div>
+        <textarea id="mix" name="mix" rows="2" placeholder="Смешать, например: корпус и ранец из D, шлем из B, визор светится как в E"></textarea>
+      </fieldset>
+      <div class="cols">
+        <fieldset>
+          <legend>Пропорции</legend>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="prop" id="p-now" value="now" data-t="как сейчас (A, D, E)" checked> Как сейчас</label>
+            <label class="opt"><input type="radio" name="prop" id="p-chibi" value="chibi" data-t="ниже, шлем крупнее (B)"> Ниже, шлем крупнее <small>B</small></label>
+            <label class="opt"><input type="radio" name="prop" id="p-tall" value="tall" data-t="выше и стройнее (C)"> Выше <small>C</small></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Шлем</legend>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="helmet" id="h-round" value="round" data-t="круглый, как сейчас (A)" checked> Круглый <small>A</small></label>
+            <label class="opt"><input type="radio" name="helmet" id="h-dome" value="dome" data-t="колокол с иллюминатором (B)"> Колокол <small>B</small></label>
+            <label class="opt"><input type="radio" name="helmet" id="h-slim" value="slim" data-t="плотный с щелью (C)"> Со щелью <small>C</small></label>
+            <label class="opt"><input type="radio" name="helmet" id="h-box" value="box" data-t="сварной с коробом лампы (D)"> Сварной <small>D</small></label>
+            <label class="opt"><input type="radio" name="helmet" id="h-armor" value="armor" data-t="бронированный с полосой визора (E)"> Бронированный <small>E</small></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Свечение визора</legend>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="visor" id="v-none" value="none" data-t="нет, тёмное стекло"> Нет, тёмное стекло</label>
+            <label class="opt"><input type="radio" name="visor" id="v-dir" value="dir" data-t="да, как нарисовано в направлении (B бирюза, C белая щель, E цвет игрока)" checked> Да, как в направлении</label>
+            <label class="opt"><input type="radio" name="visor" id="v-suit" value="suit" data-t="да, всегда цветом игрока"> Всегда цветом игрока</label>
+          </div>
+          <p class="hint">Светящийся визор даёт свет своего цвета: в пещере лицо видно и без лампы.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Антенна</legend>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="ant" id="a-none" value="none" data-t="нет"> Нет</label>
+            <label class="opt"><input type="radio" name="ant" id="a-dir" value="dir" data-t="только где нарисована (C)" checked> Только в C</label>
+            <label class="opt"><input type="radio" name="ant" id="a-all" value="all" data-t="у всех, качается на пружине"> У всех</label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Ранец</legend>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="pack" id="k-a" value="a" data-t="баллон (A)" checked> Баллон <small>A</small></label>
+            <label class="opt"><input type="radio" name="pack" id="k-b" value="b" data-t="круглый баллон с вентилем (B)"> С вентилем <small>B</small></label>
+            <label class="opt"><input type="radio" name="pack" id="k-c" value="c" data-t="станковый с брезентовым мешком (C)"> Станковый <small>C</small></label>
+            <label class="opt"><input type="radio" name="pack" id="k-d" value="d" data-t="ящик из досок (D)"> Ящик <small>D</small></label>
+            <label class="opt"><input type="radio" name="pack" id="k-e" value="e" data-t="горб с огоньком цвета игрока (E)"> С огоньком <small>E</small></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Контур и износ</legend>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="outline" id="o-dark" value="dark" data-t="общий тёмный, как у тайлов (B–E)" checked> Тёмный общий</label>
+            <label class="opt"><input type="radio" name="outline" id="o-suit" value="suit" data-t="тёмный тон костюма, как сейчас (A)"> Тон костюма <small>A</small></label>
+          </div>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="wear" id="w-0" value="0" data-t="чистый костюм"> Чистый</label>
+            <label class="opt"><input type="radio" name="wear" id="w-1" value="1" data-t="немного: пара царапин и заплата" checked> Немного</label>
+            <label class="opt"><input type="radio" name="wear" id="w-2" value="2" data-t="много: заплаты, изолента, ржавчина (D)"> Много <small>D</small></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Движение деталей · пункт 8</legend>
+          <label class="opt"><input type="checkbox" id="c-lag" data-t="ранец и шлем отстают на пружине" checked> Ранец и шлем отстают на пружине</label>
+          <label class="opt"><input type="checkbox" id="c-back" data-t="огонёк цвета игрока на спине"> Огонёк цвета игрока на спине</label>
+          <label class="opt"><input type="checkbox" id="c-pads" data-t="налокотники и наколенники" checked> Налокотники и наколенники</label>
+        </fieldset>
+        <fieldset>
+          <legend>Стойка · пункт 7</legend>
+          <label class="opt"><input type="checkbox" id="c-breath" data-t="дыхание" checked> Дыхание</label>
+          <label class="opt"><input type="checkbox" id="c-shift" data-t="перенос веса" checked> Перенос веса через 2,5 с</label>
+          <label class="opt"><input type="checkbox" id="c-glance" data-t="оглядка" checked> Оглядка вверх и вниз</label>
+        </fieldset>
+      </div>
+      <fieldset>
+        <legend>Ещё</legend>
+        <textarea id="note" name="note" rows="2" placeholder="Что ещё поправить"></textarea>
+      </fieldset>
+      <fieldset>
+        <legend>Итог</legend>
+        <textarea id="sum" rows="11" readonly aria-label="Итог выбора"></textarea>
+        <div class="copyrow"><button type="button" class="btn" id="copy">Скопировать итог</button><span id="copied" role="status"></span></div>
+      </fieldset>
+    </form>
+  </section>
+</div>
+<script>
+const ART = /*ART*/;
+/*CODE*/
+</script>

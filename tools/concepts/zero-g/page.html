@@ -1,0 +1,186 @@
+<title>Руки в невесомости</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the movement pages' ship console, kept for continuity. States across the top, a 3×3 wall of panels in lockstep, then the sandbox, the sources, the pick. Dark on purpose: the pixel art reads on the hull's dark. */
+:root {
+  --hull: #0b0e13; --panel: #121821; --panel2: #18202b; --line: #243040; --fg: #dde3ea; --mute: #8995a5;
+  --suit: #e8b04a; --new: #5fc8c0; --now: #9aa3ad; --warn: #e39a5b; --void: #06080c;
+  --display: "Unbounded", "Segoe UI", system-ui, sans-serif; --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--hull); color: var(--fg); font: 15px/1.55 var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 44px; grid-template-columns: minmax(0, 1fr); }
+.wrap > *, section > * { min-width: 0; }
+section, header { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+h1, h2, h3 { font-family: var(--display); font-weight: 500; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.15; }
+h2 { font-size: 21px; }
+h3 { font-size: 14.5px; font-weight: 500; }
+p { margin: 0; max-width: 72ch; }
+.eyebrow { font: 600 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--suit); }
+.mute { color: var(--mute); }
+.lede { font-size: 16px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fact { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font: 12.5px/1.35 var(--mono); color: var(--mute); overflow-wrap: anywhere; }
+.fact b { color: var(--fg); font-weight: 600; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; justify-content: space-between; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { background: transparent; color: var(--mute); border: 0; padding: 7px 12px; font: 500 13px var(--body); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel2); color: var(--fg); box-shadow: inset 0 -2px 0 var(--suit); }
+.chk { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--mute); cursor: pointer; }
+.chk input { accent-color: var(--new); }
+.btn { background: var(--panel2); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 7px 12px; font: 500 13px var(--body); cursor: pointer; }
+.btn:hover { border-color: var(--mute); }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, .stage:focus-visible { outline: 2px solid var(--suit); outline-offset: 2px; }
+.what { font-size: 13.5px; color: var(--mute); min-height: 2.6em; }
+
+/* the wall of panels */
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.panel.now { border-color: #3a4352; }
+.panel .ttl { display: flex; align-items: baseline; gap: 8px; }
+.panel .let { font: 700 13px var(--display); color: var(--suit); min-width: 1.4em; }
+.panel.now .let { color: var(--now); }
+.panel canvas { display: block; width: 100%; aspect-ratio: 4 / 3; max-width: 100%; border-radius: 7px; background: var(--void); image-rendering: pixelated; }
+.panel .short { font-size: 12.5px; line-height: 1.45; color: var(--mute); min-height: 3.6em; }
+.pick { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
+.pick .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.opt { display: inline-flex; position: relative; }
+.opt input { position: absolute; opacity: 0; pointer-events: none; }
+.opt span { font: 500 12.5px var(--body); padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--mute); cursor: pointer; }
+.opt input:checked + span.take { color: #0b0e13; background: var(--new); border-color: var(--new); }
+.opt input:checked + span.change { color: #0b0e13; background: var(--suit); border-color: var(--suit); }
+.opt input:checked + span.drop { color: var(--fg); background: #3a2a26; border-color: #6b4a40; }
+.opt input:focus-visible + span { outline: 2px solid var(--suit); outline-offset: 2px; }
+.note { width: 100%; background: var(--hull); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: 13px var(--body); resize: vertical; min-height: 32px; }
+
+/* the sandbox */
+.play { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+.stage { position: relative; border-radius: 8px; }
+.stage canvas { display: block; width: 100%; height: clamp(300px, 52vw, 520px); border-radius: 8px; background: var(--void); image-rendering: pixelated; }
+.armed { position: absolute; left: 10px; top: 10px; font: 12px var(--mono); color: var(--mute); background: rgba(6,8,12,0.8); padding: 5px 8px; border-radius: 5px; }
+.armed.on { color: var(--new); }
+.readout { position: absolute; right: 10px; top: 10px; font: 12px/1.5 var(--mono); color: var(--fg); background: rgba(6,8,12,0.8); padding: 5px 8px; border-radius: 5px; text-align: right; font-variant-numeric: tabular-nums; }
+.keys { font: 12.5px/1.7 var(--mono); color: var(--mute); }
+kbd { font: 600 11.5px var(--mono); color: var(--fg); background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; }
+.layers { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+.layers .lab { font: 600 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--suit); }
+.pad { display: none; gap: 8px; flex-wrap: wrap; }
+.pad button { flex: 1 0 56px; padding: 14px 0; font-size: 15px; touch-action: none; user-select: none; }
+@media (pointer: coarse) { .pad { display: flex; } }
+.tune { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px 22px; }
+.sl { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; align-items: center; font-size: 13px; }
+.sl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--new); }
+.sl output { font: 12.5px var(--mono); color: var(--new); font-variant-numeric: tabular-nums; }
+.sl .was { font: 11.5px var(--mono); color: var(--mute); }
+
+/* sources */
+.ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 14px 28px; }
+.ideas div { min-width: 0; display: grid; gap: 4px; align-content: start; }
+.ideas h3 { color: var(--suit); font-size: 13px; }
+.ideas p { font-size: 13.5px; color: var(--mute); }
+.ideas b { color: var(--fg); font-weight: 500; }
+.omit { display: grid; gap: 6px; padding-left: 0; margin: 0; list-style: none; }
+.omit li { padding-left: 14px; position: relative; max-width: 90ch; font-size: 14px; }
+.omit li::before { content: "×"; position: absolute; left: 0; color: var(--warn); }
+.summary { display: grid; gap: 10px; }
+.summary textarea { width: 100%; min-height: 240px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font: 12.5px/1.55 var(--mono); }
+#mixNote { min-height: 72px; }
+#err { color: var(--warn); font: 12px var(--mono); white-space: pre-wrap; }
+@media (max-width: 980px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Stillwake · движение · невесомость, последний кусок</span>
+    <h1>Руки в невесомости</h1>
+    <p class="lede">Ноги остаются как в игре. Руки сейчас гребут по кругу, раз в 1,1 секунды, как пёс в воде. Вы так и сказали: по-собачьи. Ниже восемь других вариантов рядом с текущим. Все панели летят по одной физике (одобренный п. 10) и с одними кнопками, так что разница только в руках.</p>
+    <div class="facts">
+      <span class="fact">плавание <b>1,8 кл/с</b>, набор <b>150 мс</b></span>
+      <span class="fact">толчок от стены <b>5,4 кл/с</b>, полёт <b>~5–6 кл</b></span>
+      <span class="fact">рывок ранца <b>100 мс ×2,5</b>, потом 8/шаг до 250</span>
+      <span class="fact">торможение ранцем: <b>струйки газа</b></span>
+      <span class="fact">ноги, наклон, дрейф: <b>Pose.Floating как есть</b></span>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-wall">
+    <div class="sec-head"><h2 id="h-wall">Девять рук рядом</h2><span class="mute" style="font-size:13px">все панели в одном такте, цикл повторяется</span></div>
+    <div class="bar"><div class="seg" id="states" role="group" aria-label="Что делает герой"></div></div>
+    <div class="bar"><label class="chk"><input type="checkbox" id="slow"> замедлить ×4</label><button class="btn" id="sync">С начала</button></div>
+    <p class="what" id="what"></p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section aria-labelledby="h-play">
+    <div class="sec-head"><h2 id="h-play">Песочница</h2><span class="mute" style="font-size:13px">большая комната без воздуха: стены, лестница, блоки, окно</span></div>
+    <div class="play">
+      <div class="bar"><div class="seg" id="pVars" role="group" aria-label="Вариант рук"></div></div>
+      <div class="layers" id="pLayers">
+        <span class="lab">свой микс</span>
+        <label class="chk">основа <select id="pBase" class="btn" style="padding:4px 6px"><option value="now">сейчас (гребок)</option><option value="nbp">A нейтральная</option><option value="stand">E стойка</option></select></label>
+        <label class="chk"><input type="checkbox" data-l="spring"> B инерция</label>
+        <label class="chk"><input type="checkbox" data-l="reach"> C опора</label>
+        <label class="chk"><input type="checkbox" data-l="jet"> D ранец</label>
+        <label class="chk"><input type="checkbox" data-l="lead"> F рука вперёд</label>
+        <label class="chk"><input type="checkbox" data-l="stroke"> G гребок</label>
+      </div>
+      <div class="bar">
+        <div class="seg" id="pItem" role="group" aria-label="В руках"><button data-i="" aria-pressed="true">руки пустые</button><button data-i="axe" aria-pressed="false">топор</button><button data-i="drill" aria-pressed="false">дрель</button></div>
+        <div class="seg" id="pPhys" role="group" aria-label="Физика"><button data-p="new" aria-pressed="true">физика п. 10</button><button data-p="old" aria-pressed="false">физика сейчас</button></div>
+        <label class="chk"><input type="checkbox" id="pJet" checked> ранец надет</label>
+        <button class="btn" id="pReset">На старт</button>
+      </div>
+      <div class="stage" id="stage" tabindex="0" aria-label="Песочница: клик, потом клавиши">
+        <canvas id="cPlay"></canvas>
+        <span class="armed" id="armed">Кликните по полю, чтобы управлять</span>
+        <span class="readout" id="readout"></span>
+      </div>
+      <div class="pad" id="pad">
+        <button class="btn" data-k="left">←</button><button class="btn" data-k="up">↑</button><button class="btn" data-k="down">↓</button><button class="btn" data-k="right">→</button><button class="btn" data-k="shift">ранец</button><button class="btn" data-k="jump">толчок</button>
+      </div>
+      <p class="keys"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> или <kbd>WASD</kbd> плыть · <kbd>Space</kbd> у стены толкнуться · <kbd>Shift</kbd> со стрелкой тяга ранца, как в игре · <kbd>J</kbd> снять или надеть ранец · <kbd>Esc</kbd> отпустить клавиши</p>
+      <div class="tune" id="tune"></div>
+      <div class="bar"><button class="btn" id="defaults">Числа как одобрено</button></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-ideas">
+    <h2 id="h-ideas">Откуда варианты</h2>
+    <div class="ideas">
+      <div><h3>A · NASA, нейтральная поза</h3><p>На орбите расслабленное тело само принимает одну позу: плечи чуть вперёд, <b>локти согнуты, кисти на уровне груди</b>, колени полусогнуты. Так её описывает стандарт NASA-STD-3000 по данным Skylab. Мышцы ничего не делают, поэтому это лучший покой для дрейфа.</p></div>
+      <div><h3>B · Принципы анимации</h3><p>Захлёст и запаздывание: свободная часть тела отстаёт от рывка, проскакивает и успокаивается. Это <b>вторичное движение</b>, и оно показывает вес без гребка. Ранец и шлем из п. 8 устроены так же.</p></div>
+      <div><h3>C · МКС и «Гравитация»</h3><p>На станции перемещаются <b>руками по поручням</b>, перехватом. От стены отталкиваются руками или ногами и летят, вытянув руки. На подлёте к стене руки выставляют вперёд и гасят удар локтями.</p></div>
+      <div><h3>D · Space Engineers, Dead Space 2</h3><p>В полёте на ранце там руки не гребут. Тело держит одну позу, а движение видно по струе и наклону. D идёт чуть дальше: <b>руки на лямках и пульте ранца</b>, пока он работает. Кисть у груди сразу говорит, что сейчас летит ранец, а не человек.</p></div>
+      <div><h3>E · самый простой путь</h3><p>Так делают многие 2D-игры: в невесомости остаётся поза стойки, и она медленно плывёт. Это <b>самый дешёвый</b> вариант. Он ничего не путает, но и ничего не рассказывает.</p></div>
+      <div><h3>F и G · мои</h3><p><b>F</b>: рука показывает курс, как у супергероя в полёте, и курс читается без слов, одним силуэтом. <b>G</b>: если гребок всё же нужен, пусть будет один, как в брассе, а потом долгое скольжение. Тогда это толчок, а не собачий бег.</p></div>
+    </div>
+    <ul class="omit">
+      <li>Гребок в физике ничего не значит: плавание остаётся абстракцией игры на 1,8 кл/с, руки только показывают его.</li>
+      <li>С дрелью обе руки на ней (0078), поэтому C, D, G её не меняют. Различаются только B (дрель отстаёт от рывков) и F (дрель смотрит по курсу).</li>
+      <li>Отскока от стены нет: п. 10 его не включает, удар гасят только руки в C.</li>
+      <li>Ноги не трогаю: у всех вариантов ноги из <code>Pose.Floating</code>, как сейчас.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="h-sum">
+    <h2 id="h-sum">Выбор</h2>
+    <div class="summary">
+      <label for="mixNote" class="mute" style="font-size:13.5px">Микс: что с чем соединить, что поменять в числах или в позе</label>
+      <textarea id="mixNote" placeholder="Например: A + C, но без D; B мягче"></textarea>
+      <textarea id="sum" readonly aria-label="Итог для копирования"></textarea>
+      <div class="bar"><button class="btn" id="copy">Скопировать итог</button><span class="mute" id="copied" style="font-size:13px"></span></div>
+    </div>
+  </section>
+  <div id="err"></div>
+</div>
+<script>
+const ART = /*ART*/;
+/*CODE*/
+</script>
