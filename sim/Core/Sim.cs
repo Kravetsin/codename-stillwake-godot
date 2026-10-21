@@ -119,7 +119,7 @@ public sealed class World
                 var more = ship.Another();
                 world._surfaces.Add(world.Attach(surface, more));
                 // A grown surface saves what changed since its ground grew: grown again here, from its seed (0077).
-                var ground = Content.Surfaces.Get(surface.Kind).Ground is { } g ? Terrain.Generate(g, surface.Seed) : null;
+                var ground = Content.Surfaces.Get(surface.Kind) is Content.PlanetType type ? Terrain.Generate(type, surface.Seed) : null;
                 Restore(saved.GetProperty("slices"), more, world.Json, ground);
             }
             foreach (var at in root.GetProperty("where").EnumerateArray())
@@ -177,7 +177,7 @@ public sealed class World
         var kind = Content.Surfaces.Get(c.Kind);
         var ship = _surfaces[0].Modules as IModules ?? throw new InvalidOperationException("This world cannot open surfaces.");
         uint seed = _rngOver.Below(1UL << 32);
-        var layout = kind.Ground is { } ground ? Terrain.Generate(ground, seed) : Layout.Parse(kind.Rows);
+        var layout = kind is Content.PlanetType type ? Terrain.Generate(type, seed) : Layout.Parse(kind.Rows);
         var modules = ship.Another();
         var surface = Attach(new Surface(_surfaces.Count, kind.Id, seed), modules);
         foreach (var m in modules) m.Create(layout);
@@ -224,7 +224,7 @@ public sealed class World
     public Command Fuzz(Rng rng, int from)
     {
         if (CanOpen && _surfaces.Count < FuzzedSurfaces && rng.Below(3) == 0)
-            return new OpenSurface((rng.Below(2) == 0 ? Content.Surfaces.TestStrip : Content.Surfaces.SmallPlanet).Id) { From = from };
+            return new OpenSurface((rng.Below(2) == 0 ? Content.Surfaces.TestStrip : Content.PlanetTypes.Small).Id) { From = from };
         int to = (int)rng.Below((uint)_surfaces.Count + 1);
         int? cell = rng.Below(3) == 0 ? (int)rng.Below(400) : null;
         return new Transfer(to, cell) { From = from };

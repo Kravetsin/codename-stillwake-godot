@@ -399,7 +399,7 @@ public partial class Main : Node2D, ITogether
         // --planet: a planet opened and the hero beamed down to it at once (0077); --strip: the test strip (0076).
         if (Has("--planet") || Has("--strip"))
         {
-            client.Send(new OpenSurface((Has("--strip") ? Content.Surfaces.TestStrip : Content.Surfaces.Planet).Id));
+            client.Send(new OpenSurface((Has("--strip") ? Content.Surfaces.TestStrip : Content.PlanetTypes.First).Id));
             client.Send(new Transfer(world.Surfaces.Count));
         }
         ShowWorld();
@@ -869,10 +869,11 @@ public partial class Main : Node2D, ITogether
         var flora = new Features.Flora.FloraView(_m.Grid, _m.Building);
         AddChild(_flora = flora);
         // A planet's caves: their growth, and their stone tinted by depth (0080).
-        if (_m.Rules.Ground is { } ground)
+        if (_m.Rules is Content.PlanetType planet)
         {
-            AddChild(_caveTint = new Features.Flora.CaveTint(ground));
-            AddChild(_caves = new Features.Flora.CaveView(_m.Grid, _m.Building, ground, () => _hero?.HeadLamps() ?? []));
+            var ground = planet.Ground;
+            AddChild(_caveTint = new Features.Flora.CaveTint(planet, PlanetLooks.Of[planet.Id]));
+            AddChild(_caves = new Features.Flora.CaveView(_m.Grid, _m.Building, planet, () => _hero?.HeadLamps() ?? []));
             // The arc makers' homes in its ground (0091); --no-homes leaves them undrawn, to measure what they cost.
             if (!Has("--no-homes")) AddChild(_homes = new Features.Ruins.HomesView(_m.Grid, _m.Building, HeroBodies) { Mood = Arg("--homes") switch { "lit" => true, "dark" => false, _ => null } });
             // Its core: lava under the caves, glowing.
@@ -892,7 +893,7 @@ public partial class Main : Node2D, ITogether
         // The fires before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);
         AddChild(_furnace = fires);
-        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules.Ground != null)
+        AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
             // --lit: every lamp at full power, to measure the light on the reference world.
             LampShare = Has("--lit") ? _ => 1f : lamp => power.Satisfaction(lamp.Id) / 1000f,
@@ -905,7 +906,7 @@ public partial class Main : Node2D, ITogether
             Homes = () => homes?.Lights ?? [],
         });
         // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
-        _stars.Ground = _m.Rules.Sky != null ? (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell : null;
+        _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);
         MoveChild(_camera, -1);
         _shown = _m;
         double views = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds;

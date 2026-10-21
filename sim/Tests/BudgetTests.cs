@@ -80,19 +80,20 @@ public class BudgetTests(ITestOutputHelper output)
     [Fact]
     public void GrowsAPlanetQuicklyTicksItIdleCheaplyAndSavesItSmall()
     {
-        var ground = Content.Ground.Planet;
-        Terrain.Generate(ground, 1);
+        var type = Content.PlanetTypes.First;
+        var ground = type.Ground;
+        Terrain.Generate(type, 1);
         var growing = new Stopwatch();
         for (uint seed = 2; seed < 12; seed++)
         {
             growing.Start();
-            Terrain.Generate(ground, seed);
+            Terrain.Generate(type, seed);
             growing.Stop();
         }
         double grow = growing.Elapsed.TotalMilliseconds / 10;
         // The first flood of the rooms over the whole ground, caves outside: what the tick it opens on spends on them.
         var floodRooms = new Registry();
-        foreach (var mod in floodRooms.All) mod.Create(Terrain.Generate(ground, 2));
+        foreach (var mod in floodRooms.All) mod.Create(Terrain.Generate(type, 2));
         floodRooms.Grid.Rebuild();
         var flooding = Stopwatch.StartNew();
         floodRooms.Rooms.Rebuild();
@@ -101,7 +102,7 @@ public class BudgetTests(ITestOutputHelper output)
         int ship = w.World.Save().Length;
         w.Do(new Crew.Enter(w.M.Crew.Spawn)).Run();
         long before = GC.GetTotalMemory(forceFullCollection: true);
-        var opening = Time(w.World, 1, _ => [new OpenSurface(Content.Surfaces.Planet.Id)]);
+        var opening = Time(w.World, 1, _ => [new OpenSurface(Content.PlanetTypes.First.Id)]);
         long memory = GC.GetTotalMemory(forceFullCollection: true) - before;
         w.Do(new Transfer(1)).Run(20);
         int planet = w.World.Save().Length - ship;
