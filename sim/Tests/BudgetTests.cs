@@ -8,8 +8,10 @@ namespace Stillwake.Sim.Tests;
 /// <summary>
 /// A sim tick on the reference world (CLAUDE.md's budgets: 256×128, every layer in use), timed with a
 /// Stopwatch here, never in the sim. The bound asserted is loose, for slow CI machines; the output
-/// says how far under 2 ms a tick stays.
+/// says how far under 2 ms a tick stays. Timed alone, after the other tests: a CI runner's few cores
+/// shared with them made a 2 ms tick read as 10.
 /// </summary>
+[Collection(nameof(BudgetTests))]
 public class BudgetTests(ITestOutputHelper output)
 {
     /// <summary>
@@ -341,3 +343,7 @@ public class BudgetTests(ITestOutputHelper output)
         Assert.True(ticks.Mean < 10, "a tick is far over its budget");
     }
 }
+
+/// <summary>The budget tests run with no other test beside them, so their timings are the sim's alone.</summary>
+[CollectionDefinition(nameof(BudgetTests), DisableParallelization = true)]
+public class BudgetTestsAlone;
