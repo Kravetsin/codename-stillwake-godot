@@ -13,7 +13,7 @@ public class TerrainTests
     private static readonly Ground Small = Ground.Small, Planet = Ground.Planet;
 
     /// <summary>The small ground with no ruins: what it grows of itself, before a spire is stamped over it (0085).</summary>
-    private static readonly Ground Bare = Ground.Small with { Spires = 0 };
+    private static readonly Ground Bare = Ground.Small with { Spires = 0, Homes = 0 };
     private static int Code(string material) => Materials.Get(material).Code;
 
     private static Arbitrary<uint> Seeds => Gen.Choose(0, int.MaxValue).Select(s => (uint)s * 2654435761u).ToArbitrary();

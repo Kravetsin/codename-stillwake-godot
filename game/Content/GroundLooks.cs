@@ -21,6 +21,8 @@ public static class GroundLooks
         ["lava"] = new((150, 40, 12), (255, 150, 40), (40, 10, 4), (255, 190, 80)),
         // The ruins' alloy (0085): cool steel with a touch of teal, a placeholder till the user picks its art.
         ["alloy"] = new((78, 103, 114), (110, 138, 147), (20, 29, 36), (166, 194, 198)),
+        // The homes' plaster (0091), the page's warm lime-washed stone: seen only as their back walls.
+        ["plaster"] = new((92, 79, 69), (106, 90, 76), (36, 28, 22), (130, 112, 96)),
     };
 
     /// <summary>How many of a dig's chips fly per hit, and the dust of a break.</summary>
