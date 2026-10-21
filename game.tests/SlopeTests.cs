@@ -98,7 +98,9 @@ public class SlopeTests
                     // The last step, flush against the room's far wall, is short.
                     if (next.X == wall) break;
                     var pose = Poses.PoseOf(next, false, false);
-                    if (pose != want || Math.Abs(next.Vx) != speed) seen.Add($"{pose} at x {next.X} vx {next.Vx}");
+                    // From standing it first gains speed (0089), on the flat before the hill.
+                    if (Gaining(h, next, run)) Assert.True(Math.Abs(next.X - from) < 2 * Unit, $"still gaining speed at {next}");
+                    else if (pose != want || Math.Abs(next.Vx) != speed) seen.Add($"{pose} at x {next.X} vx {next.Vx}");
                     h = next;
                 }
                 Assert.Empty(seen);
@@ -228,11 +230,16 @@ public class SlopeTests
             Assert.True(GroundUnder(ship, next.X) == next.Y, $"off the ground at {next}: it is at {GroundUnder(ship, next.X)}");
             if (next.X == h.X) return next;
             Assert.False(slowed, $"slowed down short of a wall before {next}");
-            slowed = Math.Abs(next.Vx) != speed;
+            slowed = Math.Abs(next.Vx) != speed && !Gaining(h, next, keys.Sprint);
             h = next;
         }
         throw new InvalidOperationException("never stopped");
     }
+
+    /// <summary>Whether a step from <paramref name="h"/> to <paramref name="next"/> gained the walk's or the run's whole step of speed toward its top (0089).</summary>
+    private static bool Gaining(Hero h, Hero next, bool run) =>
+        Math.Abs(next.Vx) == Math.Min(run ? Spec.Run : Spec.Walk, Math.Abs(h.Vx) + (run ? Spec.RunAccel : Spec.WalkAccel)) &&
+        Math.Abs(next.Vx) > Math.Abs(h.Vx);
 
     /// <summary>
     /// Up a stair of slopes with air under its steps, along their one 45° line every step, onto what its top meets and on
@@ -366,7 +373,7 @@ public class SlopeTests
         var h = HeroTests.Settle(ship, new Hero(x, 6 * Unit, 0, 0, false, 1), Still);
         int top = h.Y;
         h = h.Step(Still with { Jump = true }, ship);
-        for (int i = 0; i < 200; i++, h = h.Step(Still, ship)) top = Math.Min(top, h.Y);
+        for (int i = 0; i < 200; i++, h = h.Step(HeroTests.Held, ship)) top = Math.Min(top, h.Y);
         Assert.Equal(6 * Unit, h.Y);
         return top;
     }
@@ -455,7 +462,8 @@ public class SlopeTests
             from y in Gen.Elements(-1, 0, 0, 1)
             from jump in Gen.Elements(false, false, true)
             from run in Gen.Elements(false, true)
-            select new HeroInput(x, y, jump, Sprint: run);
+            from held in Gen.Elements(false, true)
+            select new HeroInput(x, y, jump, Sprint: run, JumpHeld: held);
         var gen =
             from width in Gen.Choose(1, 10)
             from height in Gen.Choose(1, 12)

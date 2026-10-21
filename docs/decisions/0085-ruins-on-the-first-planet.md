@@ -58,7 +58,8 @@ will be a module set into tools and stations (designed next); this slice places 
 ## Deliberately not handled
 
 - **Vaults and scrolls** (slice b), the crucible (c) and the deepest scroll (d).
-- **The arc coil does nothing yet:** no recipe or module takes it; it waits for the module design.
+- **The arc coil does nothing yet:** no recipe or module takes it; it waits for the module design. (Amended by
+  [0086](0086-modules-one-socket-for-machines-and-tools.md): the arc module is made of it.)
 - **A spire's body stands above lower ground beside it:** anchored at the highest ground across it, its alloy shows
   where the ground falls away, a wall a hero may have to dig or jump. Over a chasm it hangs.
 - **Re-dealing the ruins changes old planets:** a save of a planet grown before this change grows spires where it had none;

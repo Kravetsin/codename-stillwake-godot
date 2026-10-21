@@ -51,6 +51,7 @@ public static class ItemCardView
     private static readonly LabelSettings UnknownText = Style.Text(Style.Mono, 11, Style.Violet400);
     private static readonly LabelSettings FireText = Style.Text(Style.Mono, 11, Style.Orange400);
     private static readonly LabelSettings GrowText = Style.Text(Style.Mono, 11, Style.Green400);
+    private static readonly LabelSettings TechText = Style.Text(Style.Mono, 11, new Color(ItemCards.ModuleColour));
     private static readonly LabelSettings YieldText = Style.Text(Style.Mono, 11, Style.Slate300);
     private static readonly LabelSettings TimeDim = Style.Text(Style.Mono, 11, Style.Slate500);
     private static readonly LabelSettings CraftText = Style.Text(new FontVariation { BaseFont = BoldMono, SpacingGlyph = 1 }, 10, Style.Slate400);
@@ -139,7 +140,9 @@ public static class ItemCardView
     /// <summary>Under any card: what the open station does with it, the band while unknown, a station's block.</summary>
     private static void Bottom(ItemCard card, VBoxContainer column)
     {
-        if (card.Here != SlotMark.None) column.AddChild(HereStrip(card.Here, card.Output));
+        // A module says what it does, its tech's icon before it; the slot's mark says it fits here, no words needed (0086).
+        if (card.Tech is { } tech) column.AddChild(TechStrip(tech));
+        if (card.Here is not (SlotMark.None or SlotMark.Fits)) column.AddChild(HereStrip(card.Here, card.Output));
         if (card.Unknown) column.AddChild(UnknownStrip());
         if (card.Station is { } station) column.AddChild(Station(station));
     }
@@ -384,13 +387,29 @@ public static class ItemCardView
     /// <summary>Not analysed yet: "? Not analysed" in violet.</summary>
     private static Control UnknownStrip() => Strip(Style.Violet400, Text(T("card.notAnalysed"), UnknownText, HorizontalAlignment.Left));
 
-    /// <summary>The picture of a slot's station mark: a flame for what a fire smelts or burns, a sprout for what is grown; none for the rest.</summary>
+    /// <summary>
+    /// The picture of a slot's machine mark: a flame for what a fire smelts or burns, a sprout for what is grown; none for
+    /// the rest, a module that fits among them, its tech icon drawn live (<see cref="TechIcon"/>, 0086).
+    /// </summary>
     public static Texture2D? MarkPicture(SlotMark mark) => mark switch
     {
         SlotMark.Smelts or SlotMark.Burns => AsciiArt.Flame(),
         SlotMark.Grows => AsciiArt.Sprout(),
         _ => null,
     };
+
+    /// <summary>A module's strip (0086): its technology's icon, then what it does, in the arcs' violet-white.</summary>
+    private static Control TechStrip(CardTech tech)
+    {
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        row.AddChild(new TechIcon(tech.Tech, 12, TechShow.Lit)
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        });
+        row.AddChild(Text(tech.About, TechText, HorizontalAlignment.Left));
+        return Strip(new Color(ItemCards.ModuleColour), row);
+    }
 
     /// <summary>
     /// What the open station does with the item, in the mark's colour: its slot's mark, then "Smelts here" or the like,

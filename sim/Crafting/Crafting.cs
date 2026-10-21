@@ -322,10 +322,18 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     // Helpers.
 
     /// <summary>
-    /// The station <paramref name="m"/> is, as it works now: its entry in <c>Content.Stations</c>. The one place a
-    /// station's speed, queue size and heat are read, so what upgrades a machine folds in here.
+    /// The station <paramref name="m"/> is, as it works now: its entry in <c>Content.Stations</c> with the modules fitted
+    /// into it folded in (0086): its speed × (1000 + their speed) / 1000, rounded down, a gain; a fed one's heat plus
+    /// theirs. The one place a station's speed, queue size and heat are read.
     /// </summary>
-    private static Station? StationOf(Machine m) => Stations.TryGet(m.Kind, out var station) ? station : null;
+    private Station? StationOf(Machine m)
+    {
+        if (!Stations.TryGet(m.Kind, out var station)) return null;
+        var boost = _items.Boost(m.Id);
+        if (boost == default) return station;
+        // Heat only where it means something: a queued station's 0 says it is not fed.
+        return station with { Speed = Boost.Gain(station.Speed, boost.Speed), Heat = station.Fed ? station.Heat + boost.Heat : 0 };
+    }
 
     /// <summary>Whether queued <paramref name="station"/> makes <paramref name="recipe"/>: it is in its rows.</summary>
     private static bool Makes(Station station, string recipe)

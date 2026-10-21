@@ -74,6 +74,9 @@ internal sealed class Runner
 /// <summary>The item an input slot of a fed station or a fire remembers (0062): what drones keep it full of, held or not.</summary>
 public sealed record Kept(int Machine, int Slot, string Item);
 
+/// <summary>A module fitted into a machine (0086): out of every slot, so drones and moves never see it.</summary>
+public sealed record Fitted(int Machine, string Module);
+
 /// <summary>The items' slice. Public so modules can be typed by it; its members internal.</summary>
 public sealed class ItemsState
 {
@@ -92,4 +95,14 @@ public sealed class ItemsState
     [JsonInclude] internal int Ticks { get; set; }
     /// <summary>What input slots remember, by machine and slot, in that order: the last item put in, until taken out by hand.</summary>
     [JsonInclude] internal List<Kept> Kept { get; set; } = [];
+    /// <summary>The modules fitted into machines (0086), by machine, then module, ordinal.</summary>
+    [JsonIgnore] internal List<Fitted> Fitted { get; set; } = [];
+
+    /// <summary><see cref="Fitted"/> as a save writes it: left out while none is fitted, so a save without modules is as it was.</summary>
+    [JsonInclude, JsonPropertyName("fitted"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Fitted>? FittedSaved
+    {
+        get => Fitted.Count == 0 ? null : Fitted;
+        set => Fitted = value ?? [];
+    }
 }

@@ -139,6 +139,9 @@
     <Compile Include="../game/Content/Handbook.cs" Link="Game/Content/Handbook.cs" />
     <Compile Include="../game/features/debris/Finds.cs" Link="Game/Debris/Finds.cs" />
     <Compile Include="../game/Content/HeldLook.cs" Link="Game/Content/HeldLook.cs" />
+    <Compile Include="../game/Content/TechLooks.cs" Link="Game/Content/TechLooks.cs" />
+    <Compile Include="../game/render/TechCanvas.cs" Link="Game/Render/TechCanvas.cs" />
+    <Compile Include="../game/render/TechShow.cs" Link="Game/Render/TechShow.cs" />
     <Compile Include="../game/features/dev-panel/CueNames.cs" Link="Game/Dev/CueNames.cs" />
   </ItemGroup>
 </Project>

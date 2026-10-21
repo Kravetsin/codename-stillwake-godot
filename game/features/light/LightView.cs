@@ -239,7 +239,7 @@ public partial class LightView : Node2D
             // A short arc lights less than a long one: a crawl over a coil barely, a leap to a wall the room round it.
             double length = Math.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
             float strength = (float)(Fx.BoltLight * bolt.Intensity * Math.Min(1, length / 10 + 0.3) * Fx.Glow);
-            _spots.Add(new LightSource((float)(x0 + x1) / 2, (float)(y0 + y1) / 2, Rgb(Bolts.GlowColour), strength, ParticleReach + 1, L.ParticleKeep, 1));
+            _spots.Add(new LightSource((float)(x0 + x1) / 2, (float)(y0 + y1) / 2, Rgb(bolt.Tint.Glow), strength, ParticleReach + 1, L.ParticleKeep, 1));
         }
         foreach (var g in Glims.Shared.Live)
         {

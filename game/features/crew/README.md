@@ -34,7 +34,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `JetPlume.cs`      | a jetpack's plume (0075): its core of light, streaks, motes, pool of light, shimmer | yes |
 | `RodLight.cs`      | the harpoon's light (0075): the shot's glint and gas, the rod's trail and wake, the bite, the taut line's bead, the zip home | yes |
 | `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway (door or hatch, 0067), a valve's wheel, a plan's own pictures | yes |
-| `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`); `HillsRun`, the walk over `-- --hills` | no    |
+| `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`); `HillsRun`, the walk over `-- --hills`; `Feel`, `-- --feel` with `--hills`, `--strip` or `--planet`: tap and held jumps, a run, a coyote jump, traced every step (0089) | no    |
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`), on a room's change and as its report every `Crew.ReportEvery` ticks (0050); `ExertOf` and `ThrustOf`, what it breathes and vents; `RefillOf`, a canister breathed once; `Cold`, how hard the cold bites at a cell | no    |
 | `Frost.cs`         | the frost past the field: one full-screen shader quad over the world, under the HUD (0050) | yes   |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads, room air included | no    |
@@ -143,6 +143,31 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   with `--autopilot` the hero walks it (`HeroAutopilot.HillsRun`). `-- --slopes` (`game/dev/SlopesDemo.cs`) has a
   corridor three high with its far top corner cut; with `--autopilot` the hero walks in under it (`SlopesRun`).
 
+## The jump and the walk's feel (0089)
+
+- **Coyote time and the jump buffer:** a jump still pushes off the ground up to `Hero.Coyote` (6) steps after the
+  feet left it, and a press of Space in the air jumps on landing up to `Hero.JumpBuffer` (6) steps later. The hero
+  keeps the timers (`Hero.Airborne`, `Hero.Buffered`); a jump spends both, so one press makes one jump and no second
+  press in the air jumps again. A hero made in mid-air counts as not having stood.
+- **As high as Space is held:** `HeroInput.JumpHeld` is Space held down (the press's step counts as held). Let go
+  while a jump rises (`Hero.Rising`), the rise speed is halved once (`Hero.JumpCut`); below `Hero.Apex` up or down
+  with Space held, gravity eases to `Ship.ApexGravity` (12 aboard); coming down it is `Ship.FallGravity` (24 aboard,
+  21 on a planet: `Hero.FallGravity`, `Hero.PlanetFallGravity` of the kind's own). Held to its top, a jump of
+  `Hero.Jump` 415 rises 3954 thousandths in 22 steps and lands 20 later; a tap, 1222 in 11. On a planet: 6014 in 33,
+  28 down, 61 steps in all. A fall not jumped eases too with Space held; a jump off a ladder is cut as any.
+- **The walk's start and stop:** the speed across is kept between steps (`Hero.Vx`, what the step moved, or what it
+  walked where the walk ended as the body dropped off an edge or into a hole: only what stops the body takes it) and eased
+  toward what the keys ask (`Hero.Paced`): `WalkAccel` 30 a step (full walk in 4), `RunAccel` 32 (full run in 7),
+  `Stop` 30 with no key or turning (a walk stops in 4, a run in 8, a run let go of Shift slows to a walk in 4). In
+  the air each is `AirControl` (650 thousandths) of it, rounded down: 19, 20, 19. Speed carries off a ledge, a jump,
+  the harpoon's pull and a swim into gravity; a door's push leaves none. Slopes are walked at whatever the speed:
+  `Walk` takes any step, so the parts that end at a column's last thousandth are as before (`SlopeTests` walk the
+  hill and the stairs from standing).
+- Others see a jump from the motion (`Poses.Jumped`) once it rises at a quarter of `Hero.Jump`, so a tap's halved
+  rise is heard pushing off too. The script holds Space 40 steps after each press (`HeroAutopilot`), jumping full height.
+- Tested in `HeroFeelTests`: each timer to its last step and one past, a spent coyote jump, a tap under half a held
+  jump, the eased top, the airtimes aboard and on a planet, the walk's and the run's step counts, turning, the air's share.
+
 ## Others' heroes
 
 - **Another surface (0076):** moved by the sim to another surface, this hero stands where it arrived, the harpoon's
@@ -151,7 +176,8 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 - **A planet's rules (0076):** `Ship.Of` takes the kind of the surface (`Registry.Rules`): the hero floats only where
   `IRoomsQueries.Afloat` says, never on a planet, its open sky included, so no swim, tether, thrust or muffle there;
   and a fall gains the kind's gravity a step (`Ship.Gravity`, `Surfaces.Kind.Fall` of `Hero.Gravity`: 14 on the
-  test strip, against 21 aboard), so a jump clears six cells where aboard it clears three (`PlanetHeroTests`).
+  test strip, against 21 aboard), so a jump clears six cells where aboard it clears three (`PlanetHeroTests`), and
+  comes down at half as much again (`Hero.PlanetFallGravity`, 0089).
   `--strip --autopilot` plays the strip (`HeroAutopilot.PlanetRun`): out of the shelter, onto the cliff, down the
   shaft into the cave.
 

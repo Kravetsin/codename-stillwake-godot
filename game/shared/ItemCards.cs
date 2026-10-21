@@ -38,6 +38,7 @@ public static class ItemCards
         if (!IsTool(item))
         {
             var card = new ItemCard(item, name, kind, null, [], key, unknown);
+            if (Spec.Modules.TryGet(item, out var module)) card = card with { Tech = TechOf(module) };
             return Spec.Items.Get(item).Equip == null ? card : Worn(card);
         }
         if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), [], key, unknown);
@@ -52,6 +53,19 @@ public static class ItemCards
             ],
             weapon.Effects.Select(e => new CardEffect(T($"effect.{e.Id}"), T($"effect.{e.Id}.about"), e.Colour, e.Ground)).ToList(),
             key, unknown);
+    }
+
+    /// <summary>The arc's violet-white on a deep violet: a module's socket and strip, as its arcs look (0086).</summary>
+    public const string ModuleColour = "d9c8ff", ModuleGround = "221a3d";
+
+    /// <summary>
+    /// A module's strip at the bottom of its card (0086): its technology's icon and what it does, its speed and power as
+    /// times, "×2 speed · ×2 power"; never where it goes, for modules will be many and so will what takes them.
+    /// </summary>
+    private static CardTech TechOf(Spec.ModuleSpec module)
+    {
+        string Times(int added) => Number((1000 + added) / 1000.0);
+        return new CardTech(module.Tech, T("card.techAbout", ("speed", Times(module.Speed)), ("power", Times(module.Draw))));
     }
 
     /// <summary>

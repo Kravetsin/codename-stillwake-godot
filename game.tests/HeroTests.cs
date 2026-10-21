@@ -42,6 +42,8 @@ public class HeroTests
     private static readonly HeroInput Up = Still with { Y = -1 };
     private static readonly HeroInput Down = Still with { Y = 1 };
     private static readonly HeroInput Jump = Still with { Jump = true };
+    /// <summary>Space held down after a jump's press, so it rises its full height (0089).</summary>
+    internal static readonly HeroInput Held = Still with { JumpHeld = true };
 
     /// <summary>Steps with <paramref name="input"/> until <paramref name="done"/> holds; fails if it never does.</summary>
     internal static Hero Until(Ship ship, Hero hero, HeroInput input, Func<Hero, bool> done)
@@ -106,7 +108,7 @@ public class HeroTests
     public void WalksUntilFlushAgainstAWallEitherWay()
     {
         var (ship, hero) = Start(Room);
-        Assert.Equal(hero.X + Spec.Walk, hero.Step(Right, ship).X);
+        Assert.Equal(hero.X + Spec.WalkAccel, hero.Step(Right, ship).X);
         Assert.Equal(6 * Unit - Half, Settle(ship, hero, Right).X);
         Assert.Equal(1 * Unit + Half, Settle(ship, hero, Left).X);
     }
@@ -115,7 +117,7 @@ public class HeroTests
     public void RunsWithShiftHeldFasterThanItWalksButSwimsNoFasterForItInSpace()
     {
         var (ship, hero) = Start(Room);
-        Assert.Equal(hero.X + Spec.Run, hero.Step(Right with { Sprint = true }, ship).X);
+        Assert.Equal(Spec.Run, Run(ship, hero, Right with { Sprint = true }, 7).Vx);
         Assert.True(Spec.Run > Spec.Walk);
         var opened = Opened();
         var h = Hero.At(opened, 40 * opened.Width + 120);
@@ -202,11 +204,11 @@ public class HeroTests
         var three = Ledge(3);
         var h = three.Hero.Step(Jump, three.Ship);
         Assert.Equal(-Spec.Jump + Spec.Gravity, h.Vy);
-        h = Until(three.Ship, h, Right, x => Column(x) == 3);
+        h = Until(three.Ship, h, Held with { X = 1 }, x => Column(x) == 3);
         Assert.Equal(6 * Unit, Settle(three.Ship, h, Still).Y);
 
         var four = Ledge(4);
-        var g = Run(four.Ship, four.Hero.Step(Jump, four.Ship), Right, 200);
+        var g = Run(four.Ship, four.Hero.Step(Jump, four.Ship), Held with { X = 1 }, 200);
         Assert.True(Column(g) < 3);
         Assert.Equal(9 * Unit, g.Y);
     }
@@ -244,7 +246,7 @@ public class HeroTests
         Assert.True(top.Step(Still, ship).Y > top.Y);
         // Head against the ceiling, the hero still walks into the next column.
         var atEdge = top with { X = 3 * Unit - Half };
-        Assert.Equal(atEdge.X + Spec.Walk, atEdge.Step(Right, ship).X);
+        Assert.Equal(atEdge.X + Spec.WalkAccel * Spec.AirControl / 1000, atEdge.Step(Right, ship).X);
         Assert.Equal(4 * Unit, Settle(ship, top, Still).Y);
     }
 
@@ -373,21 +375,22 @@ public class HeroTests
         foreach (int x in new[] { 4 * Unit + 10, 4 * Unit + Half - 1, 5 * Unit - Half + 1, 5 * Unit - 10 })
         {
             var over = At(x, Deck);
-            Assert.Equal(over, Settle(ship, over, Still));
+            // Settled, it has stood: its coyote timer is at the ground's (0089).
+            Assert.Equal(over with { Airborne = 0 }, Settle(ship, over, Still));
             var fallen = Settle(ship, over, Down);
             Assert.Equal(Below, fallen.Y);
             Assert.InRange(fallen.X, 4 * Unit + Half, 5 * Unit - Half);
         }
         // With the middle beside the hole, down does nothing.
         var beside = At(4 * Unit - 10, Deck);
-        Assert.Equal(beside, Settle(ship, beside, Down));
+        Assert.Equal(beside with { Airborne = 0 }, Settle(ship, beside, Down));
     }
 
     [Fact]
     public void JumpsOverAHoleOneCellWideAndWalksOverALadderTopInOne()
     {
         var (ship, _) = Start(HoleMap);
-        var jumped = Settle(ship, At(1600, Deck).Step(Jump with { X = 1 }, ship), Right);
+        var jumped = Settle(ship, At(1600, Deck).Step(Jump with { X = 1 }, ship), Held with { X = 1 });
         Assert.Equal(Deck, jumped.Y);
         Assert.Equal(8 * Unit - Half, jumped.X);
 
@@ -604,14 +607,15 @@ public class HeroTests
         var at = At(3500, 8 * Unit);
         Assert.False(at.Step(new HeroInput(1, -1, false), ship).Climbing);
         var falling = at with { Y = 6500, Vy = 200 };
-        Assert.Equal(200 + Spec.Gravity, falling.Step(new HeroInput(1, -1, false), ship).Vy);
+        Assert.Equal(200 + ship.FallGravity, falling.Step(new HeroInput(1, -1, false), ship).Vy);
         var midAir = at with { Y = 6500 };
         var jumped = midAir.Step(new HeroInput(0, -1, true), ship);
         Assert.False(jumped.Climbing);
-        Assert.Equal(Spec.Gravity, jumped.Vy);
+        // No jump: it falls, at a jump's top's gravity with Space held (0089).
+        Assert.Equal(ship.ApexGravity, jumped.Vy);
         // The body overlaps the ladder by most of its width, but its middle is not on it.
         var beside = at with { X = 3 * Unit - 1 };
-        Assert.Equal(beside, beside.Step(Up, ship));
+        Assert.Equal(beside with { Airborne = 0 }, beside.Step(Up, ship));
     }
 
     [Fact]
@@ -849,7 +853,8 @@ public class HeroTests
         from x in Gen.Elements(-1, 0, 1)
         from y in Gen.Elements(-1, 0, 1)
         from jump in Gen.Elements(false, true)
-        select new HeroInput(x, y, jump);
+        from held in Gen.Elements(false, true)
+        select new HeroInput(x, y, jump, JumpHeld: held);
 
     [Fact]
     public void InSpaceKeepsTheBodyWithinTheTetherSlidingAlongItsLimitNeverThroughAWall()

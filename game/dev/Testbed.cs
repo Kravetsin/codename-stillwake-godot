@@ -38,8 +38,11 @@ public static class Testbed
     /// <summary>What is found and never made, the arc drill (0075): in the supply crate by the door, the first crate full.</summary>
     public static IEnumerable<string> Found => Weapons.Found.Select(w => w.Item);
 
-    /// <summary>What the supply crate by the door holds besides its supplies, the first crate being full: what is found, and the helmet lamp (0077).</summary>
-    public static IEnumerable<string> InSupply => [.. Found, HelmetLamp.Item];
+    /// <summary>
+    /// What the supply crate by the door holds besides its supplies, the first crate being full: what is found, the helmet lamp
+    /// (0077), and an arc module for each station it fits (0086), which takes a spire's relic to make.
+    /// </summary>
+    public static IEnumerable<string> InSupply => [.. Found, HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item)];
 
     /// <summary>
     /// Room one holds the lifepod, the crates, the drone bay and the air: a tank with a canister and a generator piped to a

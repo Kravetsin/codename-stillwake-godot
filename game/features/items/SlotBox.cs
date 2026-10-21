@@ -11,7 +11,8 @@ namespace Stillwake.Game.Features.Items;
 /// tool amber and a worn item green (<see cref="SlotLooks"/>), edged near-white when chosen, faded while its
 /// stack is picked, its icon inset 4 px and its count in the corner; on the hotbar the key that chooses it in
 /// the top-left corner, and in the top-right its mark (<see cref="SlotMark"/>): a small flame or sprout while the open
-/// station smelts, burns or grows its item, else a violet "?" while its item is not analysed. Empty, it may show a faint
+/// station smelts, burns or grows its item, or a module's tech icon where the open machine takes it (0086), else a violet "?"
+/// while its item is not analysed. Empty, it may show a faint
 /// silhouette of what goes in it (<see cref="Ghost"/>).
 /// </summary>
 public partial class SlotBox : Panel
@@ -82,6 +83,8 @@ public partial class SlotBox : Panel
     private readonly Label _mark;
     /// <summary>The open station's mark, a flame or a sprout, where the "?" sits and before it.</summary>
     private readonly TextureRect _sign;
+    /// <summary>A module's tech icon where the open machine takes it, in the same corner, crackling; made when first shown.</summary>
+    private TechIcon? _fits;
     /// <summary>A battery's charge, a thin bar along the icon's foot (0053): no numbers.</summary>
     private readonly ColorRect _track = new() { Color = new Color("0b1220"), MouseFilter = MouseFilterEnum.Ignore, Visible = false };
     private readonly ColorRect _fill = new() { MouseFilter = MouseFilterEnum.Ignore };
@@ -133,12 +136,33 @@ public partial class SlotBox : Panel
     private static TextureRect Sign(int size) => new()
     {
         Position = new Vector2(size - 16, 2),
-        Size = new Vector2(14, 14),
+        Size = new Vector2(MarkSide, MarkSide),
         ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
         StretchMode = TextureRect.StretchModeEnum.Scale,
         TextureFilter = TextureFilterEnum.Nearest,
         MouseFilter = MouseFilterEnum.Ignore,
     };
+
+    /// <summary>A corner mark's side, pixels.</summary>
+    private const int MarkSide = 14;
+
+    /// <summary>Technology <paramref name="tech"/>'s icon as the corner's mark, where the flame sits; none for null.</summary>
+    private void ShowFits(string? tech)
+    {
+        if (tech == null)
+        {
+            if (_fits != null) _fits.Visible = false;
+            return;
+        }
+        if (_fits == null)
+        {
+            _fits = new TechIcon(tech, MarkSide, TechShow.Mark) { Position = new Vector2(_size - 16, 2) };
+            AddChild(_fits);
+            MoveChild(_fits, _sign.GetIndex() + 1);
+        }
+        _fits.Set(tech, TechShow.Mark);
+        _fits.Visible = true;
+    }
 
     /// <summary>A slot lit green with a soft glow around and inside its edge: it would wear what is carried.</summary>
     private static StyleBoxFlat Lit()
@@ -155,6 +179,7 @@ public partial class SlotBox : Panel
     {
         _mark.Visible = stack != null && mark == SlotMark.Unknown;
         _sign.Texture = stack != null ? ItemCardView.MarkPicture(mark) : null;
+        ShowFits(stack != null && mark == SlotMark.Fits && Content.Modules.TryGet(stack.Item, out var module) ? module.Tech : null);
         var box = glow switch
         {
             null => SlotLooks.Of(stack == null ? SlotTint.Plain : Slots.TintOf(stack.Item), hovered, chosen),
@@ -182,12 +207,15 @@ public partial class SlotBox : Panel
         _fill.Size = new Vector2(Mathf.Max(1, Mathf.Round((_size - 8) * Charges.Share(stack!))), 3);
     }
 
-    /// <summary>Whether a stack shifted here still flies to it (<see cref="SlotFlights"/>): its icon and count hidden till it lands.</summary>
+    /// <summary>Whether a stack shifted here still flies to it (<see cref="SlotFlights"/>): its icon, count and mark hidden till it lands.</summary>
     public void Awaiting(bool flying)
     {
         var shown = new Color(1, 1, 1, flying ? 0 : 1);
         _icon.SelfModulate = shown;
         _count.SelfModulate = shown;
+        _sign.SelfModulate = shown;
+        if (_fits != null) _fits.SelfModulate = shown;
+        _mark.SelfModulate = shown;
     }
 
     private Tween? _shake;

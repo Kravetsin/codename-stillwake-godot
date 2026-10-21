@@ -20,11 +20,12 @@ public readonly record struct Point(int X, int Y);
 /// toward that point, keys and gravity aside, and held there once it is. <see cref="Jetpack"/>, a jetpack worn
 /// (0047): in space the hero keeps its speed, ties no tether, and while <see cref="Thrust"/> is set, a unit
 /// vector in thousandths, gains <c>Jetpack.Accel</c> a step that way up to <c>Jetpack.Top</c>; else it slows
-/// by <c>Jetpack.Drag</c> a step toward what the keys swim.
+/// by <c>Jetpack.Drag</c> a step toward what the keys swim. <see cref="JumpHeld"/>, Space held down: let go while a
+/// jump rises, it rises less (<c>Hero.JumpCut</c>); the step <see cref="Jump"/> is set counts as held too.
 /// </summary>
 public readonly record struct HeroInput(
     int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false, Point? Pull = null,
-    bool Jetpack = false, Point? Thrust = null);
+    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false);
 
 /// <summary>
 /// The cells the hero moves against and the shapes of their walls (0069); which of them are space, where the
@@ -34,10 +35,16 @@ public readonly record struct HeroInput(
 /// </summary>
 public sealed class Ship(
     int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null, Func<int, int>? shapeAt = null,
-    int gravity = Spec.Gravity)
+    int gravity = Spec.Gravity, int falling = Spec.FallGravity)
 {
     /// <summary>What a fall gains a step, in thousandths of a cell a step.</summary>
     public int Gravity => gravity;
+
+    /// <summary>What a hero gains a step coming down: <paramref name="falling"/> thousandths of <see cref="Gravity"/>, rounded down (0089).</summary>
+    public int FallGravity => gravity * falling / 1000;
+
+    /// <summary>What a held jump gains a step at its top: <c>Hero.ApexGravity</c> thousandths of <see cref="Gravity"/>, rounded down (0089).</summary>
+    public int ApexGravity => gravity * Spec.ApexGravity / 1000;
 
     public int Width => width;
     public int Height => height;
@@ -56,21 +63,30 @@ public sealed class Ship(
     /// The ship as the sim's grid and rooms see it now, its cells' structure as <paramref name="structureAt"/>
     /// gives it when given: doors as this peer shows them, its own toggles in flight made (0014). Under the rules of
     /// its surface's kind, <paramref name="rules"/>, the ship's when none: the hero floats only where the rooms say
-    /// something does, never on a planet, and falls by the kind's gravity (0076).
+    /// something does, never on a planet, and falls by the kind's gravity (0076), coming down the faster under a
+    /// planet's own (<c>Hero.PlanetFallGravity</c>, 0089).
     /// </summary>
-    public static Ship Of(IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null, Stillwake.Content.Surfaces.Kind? rules = null) =>
-        new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, rooms.Afloat,
+    public static Ship Of(IGridQueries grid, IRoomsQueries rooms, Func<int, int>? structureAt = null, Stillwake.Content.Surfaces.Kind? rules = null)
+    {
+        var kind = rules ?? Stillwake.Content.Surfaces.Ship;
+        return new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, rooms.Afloat,
             cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null, grid.ShapeAt,
-            (rules ?? Stillwake.Content.Surfaces.Ship).Fall(Spec.Gravity));
+            kind.Fall(Spec.Gravity), kind.Floats ? Spec.FallGravity : Spec.PlanetFallGravity);
+    }
 }
 
 /// <summary>
 /// One hero's movement (apps/game/src/features/crew/hero.ts): <see cref="X"/> is the middle of the box
 /// and <see cref="Y"/> its bottom, where the feet are, in thousandths of a cell. <see cref="Anchor"/>,
 /// out in space, is where the tether is fixed: the middle of the last cell not in space the body left
-/// (0007); none aboard.
+/// (0007); none aboard. The jump's timers (0089): <see cref="Airborne"/>, steps since the feet last stood, kept at
+/// most one past <c>Hero.Coyote</c>, and that once a jump is spent or before the hero first stands, so one made in
+/// mid-air cannot jump; <see cref="Buffered"/>, the steps a press of Space made in the air still jumps on landing;
+/// <see cref="Rising"/>, a jump rising that letting go of Space cuts.
 /// </summary>
-public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor = null)
+public readonly record struct Hero(
+    int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor = null,
+    int Airborne = Spec.Coyote + 1, int Buffered = 0, bool Rising = false)
 {
     /// <summary>Thousandths of a cell: the unit of every length and speed in <see cref="Spec"/>.</summary>
     public const int Unit = 1000;
@@ -184,8 +200,9 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         }
         if (to is not { } way) return null;
         int nx = x + Math.Clamp(way.X - x, -PushStep, PushStep), ny = y + Math.Clamp(way.Y - y, -PushStep, PushStep);
-        // No speed up or down kept: lifted onto a hatch, the hero lands on it rather than hopping off it.
-        return new Hero(nx, ny, nx - x, 0, false, hero.Facing, hero.Anchor);
+        // No speed kept: lifted onto a hatch, the hero lands on it rather than hopping off it, and pushed out of a door it
+        // stops beside it rather than walking on (0089).
+        return new Hero(nx, ny, 0, 0, false, hero.Facing, hero.Anchor);
     }
 
     /// <summary>How far the grapple pulls the body a step: <c>Harpoon.PullSpeed</c> a tick, rounded to whole thousandths.</summary>
@@ -197,6 +214,7 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
         if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
+        bool held = input.Jump || input.JumpHeld;
         // Not while rising: a jump off a ladder with up held goes on, not caught by the ladder it left.
         bool grab = !hero.Climbing && hero.Vy >= 0 && input.Y != 0 && input.X == 0 && !input.Jump &&
             TouchesLadder(ship, hero.X, hero.Y, input.Y > 0);
@@ -213,32 +231,70 @@ public readonly record struct Hero(int X, int Y, int Vx, int Vy, bool Climbing, 
                 if (hero.Climbing) return hero with { Vx = 0, Vy = 0, Facing = facing };
             }
             // Jumping, either side or straight up, or walking off at the foot lets go.
-            else return Fall(ship, hero.X, hero.Y, input.X, input.Jump ? -Spec.Jump : 0, facing, input.Sprint);
+            else
+            {
+                var off = Fall(ship, hero.X, hero.Y, Paced(hero.Vx, input, Grounded(ship, hero.X, hero.Y)),
+                    input.Jump ? -Spec.Jump : 0, facing, held);
+                return input.Jump ? off with { Rising = true } : off;
+            }
         }
-        int vy = input.Jump && Grounded(ship, hero.X, hero.Y) ? -Spec.Jump : hero.Vy;
-        return Fall(ship, hero.X, hero.Y, input.X, vy, facing, input.Sprint, input.Y > 0 && !input.Jump);
+        // A press counts for the buffer's steps, and the ground for the coyote's after the feet leave it (0089).
+        bool grounded = hero.Vy >= 0 && Grounded(ship, hero.X, hero.Y);
+        int airborne = grounded ? 0 : Math.Min(hero.Airborne + 1, Spec.Coyote + 1);
+        bool jumps = (input.Jump || hero.Buffered > 0) && airborne <= Spec.Coyote;
+        int vy = jumps ? -Spec.Jump : hero.Vy;
+        bool rising = jumps || hero.Rising;
+        if (rising && !held && vy < 0) (vy, rising) = (vy * Spec.JumpCut / 1000, false);
+        var after = Fall(ship, hero.X, hero.Y, Paced(hero.Vx, input, grounded), vy, facing, held, input.Y > 0 && !input.Jump);
+        return after with
+        {
+            Airborne = jumps ? Spec.Coyote + 1 : airborne,
+            Buffered = jumps ? 0 : input.Jump ? Spec.JumpBuffer : Math.Max(0, hero.Buffered - 1),
+            Rising = rising && vy < 0,
+        };
     }
 
     /// <summary>
-    /// A step under gravity. Standing, a walk follows the ground up and down slopes (<see cref="Walk"/>) and stops where
-    /// the body first fits a hole below it (<see cref="Caught"/>), <paramref name="down"/> with no walk slides the body
-    /// into the hole under its middle (<see cref="Slid"/>), and <paramref name="down"/> on floors alone drops through
-    /// them (<see cref="OnFloors"/>).
+    /// The walk's speed after a step from <paramref name="vx"/>: gaining <c>Hero.WalkAccel</c> or <c>Hero.RunAccel</c>
+    /// toward what the keys walk or run, else losing <c>Hero.Stop</c> toward it, landing on it; in the air by
+    /// <c>Hero.AirControl</c> of either (0089).
     /// </summary>
-    private static Hero Fall(Ship ship, int x, int y, int dir, int vy, int facing, bool sprint, bool down = false)
+    private static int Paced(int vx, HeroInput input, bool grounded)
     {
-        int speed = Math.Min(vy + ship.Gravity, Spec.MaxFall);
+        int top = input.Sprint ? Spec.Run : Spec.Walk, target = input.X * top;
+        bool gains = input.X != 0 && (vx == 0 || Math.Sign(vx) == input.X) && Math.Abs(vx) <= top;
+        int rate = gains ? (input.Sprint ? Spec.RunAccel : Spec.WalkAccel) : Spec.Stop;
+        if (!grounded) rate = rate * Spec.AirControl / 1000;
+        return vx < target ? Math.Min(target, vx + rate) : Math.Max(target, vx - rate);
+    }
+
+    /// <summary>
+    /// A step under gravity, moving <paramref name="vx"/> across. Standing, a walk follows the ground up and down slopes
+    /// (<see cref="Walk"/>) and stops where the body first fits a hole below it (<see cref="Caught"/>), <paramref name="down"/>
+    /// with no walk slides the body into the hole under its middle (<see cref="Slid"/>), and <paramref name="down"/> on
+    /// floors alone drops through them (<see cref="OnFloors"/>). Off the ground, a fall gains <see cref="Ship.FallGravity"/>,
+    /// and a jump's top with Space <paramref name="held"/> <see cref="Ship.ApexGravity"/> (0089).
+    /// </summary>
+    private static Hero Fall(Ship ship, int x, int y, int vx, int vy, int facing, bool held, bool down = false)
+    {
         bool standing = vy >= 0 && Grounded(ship, x, y);
-        int step = dir * (sprint ? Spec.Run : Spec.Walk);
-        var (nx, wy) = standing && dir != 0 ? Walk(ship, x, y, step)
+        int gravity = standing ? ship.Gravity
+            : held && Math.Abs(vy) < Spec.Apex ? ship.ApexGravity
+            : vy > 0 ? ship.FallGravity
+            : ship.Gravity;
+        int speed = Math.Min(vy + gravity, Spec.MaxFall);
+        var (nx, wy) = standing && vx != 0 ? Walk(ship, x, y, vx)
             : standing && down ? (Slid(ship, x, y), y)
-            : Aloft(ship, x, y, step);
+            : Aloft(ship, x, y, vx);
         // Feet a thousandth into the floor's row: a row the feet are in is never landed on (MoveY).
         int ny = standing && down && OnFloors(ship, nx, wy)
             ? MoveY(ship, nx, wy + 1, speed - 1, false, true)
             : MoveY(ship, nx, wy, speed, false, true);
         if (!Clear(ship, nx, ny)) (nx, wy, ny) = Clear(ship, nx, wy) ? (nx, wy, wy) : (x, y, y);
-        return new Hero(nx, ny, nx - x, ny - wy == speed ? speed : 0, false, facing);
+        bool falls = speed > 0 && ny - wy == speed;
+        // A walk ended where the body drops off an edge or into a hole keeps its speed; only what stops the body takes it (0089).
+        int across = falls && nx - x != vx && vx != 0 && MoveX(ship, nx, ny, Math.Sign(vx), true) != nx ? vx : nx - x;
+        return new Hero(nx, ny, across, ny - wy == speed ? speed : 0, false, facing);
     }
 
     /// <summary>

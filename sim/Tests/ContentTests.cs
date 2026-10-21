@@ -134,12 +134,22 @@ public class ContentTests
     }
 
     [Fact]
-    public void HeroJumpsOntoALedgeThreeCellsHighNotFour()
+    public void HeroJumpsOntoALedgeThreeCellsHighNotFourAndSixOnAPlanet()
     {
-        int rise = 0;
-        for (int v = Hero.Jump - Hero.Gravity; v > 0; v -= Hero.Gravity) rise += v;
-        Assert.True(rise > 3 * Cell, $"rise {rise}");
-        Assert.True(rise < 4 * Cell, $"rise {rise}");
+        // A jump held to its top, as the controller steps it: eased gravity below Hero.Apex (0089).
+        static int Rise(int gravity)
+        {
+            int apex = gravity * Hero.ApexGravity / 1000, rise = 0;
+            for (int v = Hero.Jump; ;)
+            {
+                v -= v < Hero.Apex ? apex : gravity;
+                if (v <= 0) return rise;
+                rise += v;
+            }
+        }
+        int aboard = Rise(Hero.Gravity), planet = Rise(Surfaces.Planet.Fall(Hero.Gravity));
+        Assert.True(aboard > 3 * Cell && aboard < 4 * Cell, $"rise {aboard}");
+        Assert.True(planet > 6 * Cell && planet < 7 * Cell, $"rise {planet}");
     }
 
     // Items
@@ -847,12 +857,12 @@ public class ContentTests
     /// <summary>
     /// Every craft is made at some queued station; the pod keeps its twelve and its list stops growing, new crafts
     /// going to machines (0057): the electronics, circuits and solar cells, to the circuit assembler alone, and soil to
-    /// the Former alone (0060), as the motor of a planet's copper.
+    /// the Former alone (0060), as the motor of a planet's copper; the arc module to the assembler too (0086).
     /// </summary>
     [Fact]
     public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilAndMotorsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell", "drone"], formed = ["soil", "motor"];
+        string[] electronics = ["circuit", "solarCell", "drone", "arcModule"], formed = ["soil", "motor"];
         Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));
         Assert.All(formed, item => Assert.Equal(["former"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(item))).Select(s => s.Machine)));
@@ -864,6 +874,36 @@ public class ContentTests
             Assert.All(placed, craft => Assert.True(Crafts.TryGet(craft, out _), $"{station.Machine} lays out {craft}"));
             foreach (var row in station.Rows) Assert.InRange(row.Count, 1, Stations.RowMost);
         }
+    }
+
+    /// <summary>
+    /// A module (0086) is an item of its own, a stack of one kept in death, made at a station and never found: no wreck,
+    /// container or growth gives one. It fits only electric stations, for it multiplies what they draw: never the furnace's
+    /// planks nor the pod. What it adds is never negative, in whole thousandths.
+    /// </summary>
+    [Fact]
+    public void ModulesAreGearMadeNeverLootFittingOnlyElectricStationsAndAddingWholeThousandths()
+    {
+        Assert.Equal(Modules.All.Count, Modules.All.Select(m => m.Item).Distinct().Count());
+        var given = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).SelectMany(k => Loot.Of(k.Item) ?? []).Select(e => e.Item)
+            .Concat(Flora.All.Concat<Flora.Growth>(Flora.Cave).SelectMany(k => k.Yields).Select(y => y.Item)).ToHashSet();
+        foreach (var module in Modules.All)
+        {
+            var item = Content.Items.Get(module.Item);
+            Assert.True(item is { Stack: 1, Gear: true, Capacity: null, Equip: null }, module.Item);
+            Assert.True(Crafts.TryGet(module.Item, out _), module.Item);
+            Assert.DoesNotContain(module.Item, given);
+            Assert.NotEmpty(module.Hosts);
+            Assert.False(string.IsNullOrEmpty(module.Tech), module.Item);
+            foreach (var host in module.Hosts)
+            {
+                Assert.True(Stations.TryGet(host, out _) && Machines.Get(host).Draws != null, $"{module.Item} fits {host}");
+                Assert.False(Machines.Get(host).Fixed, host);
+            }
+            Assert.True(module is { Speed: >= 0, Draw: >= 0, Damage: >= 0, Heat: >= 0 }, module.Item);
+        }
+        Assert.DoesNotContain(Modules.All, m => m.Hosts.Contains("furnace") || m.Hosts.Contains("lifepod"));
+        Assert.Equal((1000, 1000, 1000, 0), (Modules.Arc.Speed, Modules.Arc.Draw, Modules.Arc.Damage, Modules.Arc.Heat));
     }
 
     /// <summary>

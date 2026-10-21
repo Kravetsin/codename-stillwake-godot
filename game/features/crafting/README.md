@@ -17,6 +17,7 @@ mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 | `FabricatorPanel.cs`  | any queued station's panel under the inventory, in the machine frame: header, bolt and screen; recipes on the left, the shared queue and outputs on the right | yes |
 | `FabricatorScreen.cs` | the panel's small screen: lines running while it works, READY idle, dark with no power | yes   |
 | `StationView.cs`      | over a station's picture: the Former's flywheel, gears and press head moving, the smelter's coils glowing and lighting the room, the assembler's arm dipping and its screen lighting the room green, while it works; a cold-blue mark on a fed station too cold for its input | yes |
+| `ArcCrackle.cs`       | a station with the arc module fitted, at work (0086): violet-white arcs crawling along its body's outline every 70–260 ms, now and then a burst or one leaping down a side, and a flickering violet-white light; nothing stopped | yes |
 | `SmelterHeat.cs`      | an electric smelter at work in light (0075): its element's glow pulsing, a fine crackle along its top and bottom edges every 0.3–1 s (now and then two or three), a hot fleck drifting up every 0.6–1.6 s, a blue arc at its contacts every 1–2.5 s, a faint shimmer; nothing stopped | yes |
 | `StationSounds.cs`    | a station heard at work where it stands (0059): the Former's strokes in step with its head and its motor, the smelter's hum and its melt's pops; told by `StationView` every frame | yes |
 | `PodView.cs`          | over the pod's picture: its screen, its tray, its glass glowing while a hero is made    | yes   |
@@ -61,7 +62,8 @@ caves give (0080), drawn as ASCII in the icons' outlined palette till the user p
   a known recipe queues it **from the inputs** (shift ×5), whatever is carried. A tool's recipe (the fire axe) is tinted amber, a worn item's (the jetpack, the battery) green,
   each edged in its colour, full under the pointer, as their slots are everywhere (`Shared.SlotLooks`); a silhouette is not. Every slot is `Ui.Slot` wide, built again when the slot size changes.
 - No status line: the screen says whether it works, the queue's slot filling and full says the rest,
-  and the outputs show what can be taken.
+  and the outputs show what can be taken: a click takes the stack into the inventory through the items feature, as a
+  shift-click on its slot, flying there (`ShiftOut`, wired by `Main`; every shifted stack flies, 0075).
 - On the right, inputs, queue, outputs (the logistics mockup). "Inputs", at a station that has them: its input
   slots, drawn and worked by the items feature (`InventoryPanel.Lend`) as any machine's, so a stack goes in and out
   by its clicks, the hand, drags and shift-clicks; laid out again only for another station or slot size. A
@@ -117,10 +119,23 @@ caves give (0080), drawn as ASCII in the icons' outlined palette till the user p
   (`ICraftingQueries.TooCold`) shows a five-pixel star of ice where it would work it — the furnace's
   mouth, the smelter's grate — drawn unlit, pulsing slowly between a dim and a cold blue, lighting a
   little round it. Its panel (the items feature) says the rest.
+- **The arc module** (0086): a station with it fitted (`IItemsQueries.FittedTo`) crackles while it works (`Works`): crisp
+  violet-white arcs (`Bolts` in `BoltTint.Violet`) crawl along its body's outline, its footprint below the top third,
+  bowed out from it, every 70–260 ms, now and then a burst of two or three or a longer one leaping from a top corner
+  down a side, and the room round it is lit violet-white, flickering (a `Glow` and a bloom; `ArcCrackle`). One look for
+  every station, no art of its own. Idle, without power or without the arc: no arcs, no light. `-- --testbed --arc`
+  plays it: the smelter opened, its empty socket and the module's card pointed at, the module shifted in, out and in
+  again, flying each way, the smelter
+  crackling, then its rock taken out and the smelter dark.
+- A queued station's module socket sits at its inputs' right end, under the word "Module" (`LendSockets`, the items
+  feature's), so the panel is no taller; its bolt says what it draws with its modules (`Draw`, set by `Main`).
 - Read every 100 ms and at once after a click; slots are rebuilt only when a recipe's look, the queue
   or the outputs change, the bar every read. Hover and the pulse are painted every frame.
 
 ## Deliberately not handled
+
+- The arcs are the same on every station: no picture of the module on the machine, no per-machine spot (cut from the
+  design; a `ModuleLook` per machine waits for the user's picks). Silent: a crackle waits for the user's audition.
 
 - A craft sent shows in the queue once its tick has run, a round trip later, not at once as moves do
   (0014): queueing is not a hand's motion, and nothing in the world waits on it.

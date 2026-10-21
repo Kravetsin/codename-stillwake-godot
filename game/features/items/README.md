@@ -12,7 +12,7 @@ by sending `Move`,
 
 | File               | Holds                                                                                        | Godot |
 | ------------------ | -------------------------------------------------------------------------------------------- | ----- |
-| `Click.cs`         | the click rules (`click.ts`), quick equip (0047) and shift between the bag and the hotbar: `Clicks.On`, `Picked`, `SlotClick`, `Clicked`; where a shifted stack landed (`Clicks.Landed`) | no    |
+| `Click.cs`         | the click rules (`click.ts`), quick equip (0047), shift between the bag and the hotbar, a module's socket (0086): `Clicks.On`, `Clicks.OnSocket`, `Picked`, `SlotClick`, `SocketClick`, `Clicked`; every shift's `Flight`, and where a shifted stack landed (`Clicks.Landed`) | no    |
 | `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`); the digit each slot shows, the key that chooses it | no    |
 | `Equipment.cs`     | the equipment slots by kind, and which light up or dim while a stack is carried (`SlotGlow`, 0047) | no    |
 | `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s, `Drop`s and `Sort`s in flight (0014); which items are marked unanalysed, or smelted, burnt or grown by the open machine (`MarkOf`), a stack's tip | no    |
@@ -24,11 +24,12 @@ by sending `Move`,
 | `SortSweep.cs`     | a sort's light: a bright line crossing the sorted grid, a band of sky behind it (0081) | yes   |
 | `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, its corner's mark: the open station's flame or sprout, or the violet "?" of an item not analysed; an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
+| `ModuleSocket.cs`  | a machine's socket for one module (0086): empty, the icon of the technology it takes, faint; fitted, the module lit; glowing violet-white while a module carried would go in | yes |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
 | `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, grow capsule, burner generator, analyzer, charging station or drone bay in the machine frame under the inventory, with the logistics feature's drone badge in the header where drones have work (`Served`, set by `Main`, 0062) and a bay's bolt lit while it charges (`Charger`), the stack in hand; all built again at another slot size | yes   |
 | `EnergyBar.cs`     | the energy tab at the gauge row's right end, always shown: the bolt and the belt's charge in power units (0053, 0081), in a tab under the wrist computer's cuff (0074) | yes   |
 | `FloorLayer.cs`    | stacks on the floor, unlit with a breathing rim, standing on their line and bobbing up from it, along a slope, side by side when still, gliding between the last two ticks, turning in space (`floor-layer.ts`) | yes |
-| `SlotFlights.cs`   | a stack sent across with shift flying from its slot to where it landed, on the HUD: its icon on a slight arc, a ribbon of light behind it, a pulse, a flash and a glint on the slot as it lands (0075) | yes   |
+| `SlotFlights.cs`   | a stack sent across with shift flying from its slot or socket to where it landed, on the HUD: its icon on a slight arc, a ribbon of light behind it, a pulse, a flash and a glint on the slot as it lands (0075) | yes   |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head, a soft shadow round it, a band of light sweeping across it once (0075) | yes   |
 | `ItemsView.cs`     | the feature: pick-ups, the layers and the panel                                              | yes   |
 | `ItemsDemo.cs`     | `-- --items`: a room with a crate, a furnace and an analyzer, and a script for recordings, the sort keys pressed at its end | yes   |
@@ -81,6 +82,12 @@ as everything E works is, in the crew feature (`AimTests`).
   waiting for the host: a quarter of a second on a slight arc, a little larger at its top, a thin ribbon of light behind
   it, landing in a pulse round the slot, a brief flash in it and a glint. A slot that was empty shows its new stack as
   the icon lands. A move `Reading` shows changing nothing (the sim would refuse it) flies nothing and shakes the slot.
+  **Every shift that sends a stack flies it, by construction:** `Clicks.On` and `Clicks.OnSocket` decide each shift's
+  `Flight` in one place (`Flying`) from the command it sends — a `Move` from its slot to wherever it lands, a `Fit` from
+  its slot into the socket, an `Unfit` from the socket into the slot it names — and the panel sends every command
+  through one method (`Act`) that starts it. A queued station's output taken (the crafting feature's, `ShiftOut` wired
+  by `Main`) goes the same way, flying from where it is drawn. `ShiftFlightsTests` shift-clicks every item from every
+  slot of every panel (none open and each machine kind in content) and every socket, and fails on a command with no flight.
   Over every panel, under the stack carried; several landings one after another, `Fx.MostRibbons` at most.
 - One hand (0022, `Ui.Hand`): 1–9 and the wheel over the world choose a hotbar slot and free the hand,
   putting the plan away; Tab frees it too as it opens the inventory. Q throws the chosen slot's whole
@@ -119,7 +126,29 @@ as everything E works is, in the crew feature (`AimTests`).
 - **Every machine opens in one frame** (`Shared.MachineFrame`, 0058) under the inventory: the same panel,
   its name (`tool.<kind>`) in bold and, for one on the power grid, a bolt and its power in the header, lit
   while it works and dark at 0 otherwise (a burner generator's is what it makes, lit while it burns, an
-  analyzer's lit while it analyses); then its body, below.
+  analyzer's lit while it analyses); then its body, below. A station's bolt says what it draws with its modules
+  (`IPowerQueries.Draw`, `Draw` set by `Main`): 8 for a smelter with the arc.
+- **Module sockets** (0086): a machine that takes a module (`Content.Modules`' hosts: the electric smelter, the Former,
+  the circuit assembler) shows a socket per module it takes (`ModuleSocket`): under a fed station's body, after the word
+  "Module"; at a queued station's inputs' right end, lent to the crafting feature (`LendSockets`, wired by `Main`), so
+  its panel grows no taller. Empty, the ghost of the icon of the technology it takes (`TechLooks`, by the module's
+  `Tech`; `TechIcon`, 32 px), its rim alone, faint and still; fitted, the module lit on violet; while a module that
+  would go in is carried (picked or dragged), it glows violet-white, its icon lit and crackling. A module carried let go
+  or clicked on it is fitted (`Fit`); shift on a module in the bag with such a machine open fits it at once, flying
+  into the socket. A press on a fitted socket
+  takes the module out: let go there, or shifted, into the first empty slot of the hero's own, the hotbar first, flying
+  there (`Unfit` naming it); dragged, onto the bag slot it is let go over, carried under the pointer meanwhile. Its tip:
+  fitted, the module's card with "LMB take out"; empty, only "Module socket": no list of what it takes, its icon says
+  it. The open machine's fits and takes in flight show at once, as moves do (`Reading.Fitted`, `Reading.Fitting`).
+- **What fits, by its icon** (0086): with a machine that takes modules open, every slot holding a module it takes shows
+  that module's tech icon as its mark, 14 px on a soft dark halo, where a fire's flame sits (`SlotMark.Fits`). A
+  module's card names no machine: a strip at its bottom, its tech icon (12 px) and what it does in one line ("×2 speed
+  · ×2 power", `ItemCard.Tech`).
+- **Tech icons** (0086, the user's pick on the arc icon page, variant C): a thin hexagon every technology shares, its
+  glyph and colours its own (`TechLooks`: the arc's a three-stroke bolt, violet-rimmed and white-hot), drawn in thin
+  lines by `TechCanvas` in the page's passes (a mark's dark halo, glow, rim, core) into a texture of the icon's pixels.
+  Lit, the glyph crackles on twos: twelve times a second it is jagged afresh, now and then branching, its brightness
+  0.85 to 1.15; only a `TechIcon` seen repaints, and a ghost never does.
 - **Sorting** (0008, 0081): a sort key (`SortButton`, its tip "Sort"), a hardware key of the wrist's metal, stands on
   the bag display's right edge, outside the screen, level with its first row, so the bag is as wide as the hotbar; an
   open crate's square one sits in its frame header, left of the drone badge; only a crate has one. A press sends `Sort`

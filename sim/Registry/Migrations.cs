@@ -162,6 +162,9 @@ public static class Migrations
         },
         // 22 → 23: the Former takes a third input, for a motor's three parts (0080), aboard and on every surface.
         FormerInputs,
+        // 23 → 24: a machine may hold modules (0086), written only when one does: no save before held any, so nothing
+        // changes but the format, which keeps an older build from loading a fitted module and losing it.
+        save => save,
     ];
 
     /// <summary>

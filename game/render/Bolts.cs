@@ -6,12 +6,22 @@ namespace Stillwake.Game.Render;
 /// <summary>Where a bolt runs now, in pixels of the world, and how far its first fold bows out, a share of its length.</summary>
 public delegate (double X0, double Y0, double X1, double Y1, double Bulge) BoltEnds();
 
+/// <summary>An arc's colours: its white core, its rim, the glow along it and the light it gives.</summary>
+public sealed record BoltTint((int R, int G, int B) Core, (int R, int G, int B) Rim, (int R, int G, int B) Glow)
+{
+    /// <summary>Every arc's till the arc module: a white core over a cyan rim (0075).</summary>
+    public static readonly BoltTint Cyan = new((244, 254, 255), (85, 214, 255), (70, 180, 255));
+
+    /// <summary>The arc module's (0086): a white core over a violet rim, a violet-white light.</summary>
+    public static readonly BoltTint Violet = new((252, 246, 255), (178, 132, 255), (170, 130, 255));
+}
+
 /// <summary>
 /// One electric arc (0075): a crooked line from end to end, its shape held for <see cref="Bolts.Hold"/> 60 Hz frames and
 /// rolled anew, alive <see cref="Life"/> of them. Its shape is kept along and across the line between its ends, a share
 /// of its length, so a held arc stays on ends that move: the drill swinging, a lamp's socket.
 /// </summary>
-public sealed class Bolt(BoltEnds ends, int life, double intensity, double width, bool branchy, bool fine = false)
+public sealed class Bolt(BoltEnds ends, int life, double intensity, double width, bool branchy, bool fine = false, BoltTint? tint = null)
 {
     public BoltEnds Ends { get; } = ends;
     /// <summary>Its life and age, in 60 Hz frames.</summary>
@@ -27,6 +37,8 @@ public sealed class Bolt(BoltEnds ends, int life, double intensity, double width
     /// its shape rolled anew every frame, no glow along it and no light of its own, for what throws it lights the room itself.
     /// </summary>
     public bool Fine { get; } = fine;
+    /// <summary>Its colours: the cyan of every arc but the arc module's violet (0086).</summary>
+    public BoltTint Tint { get; } = tint ?? BoltTint.Cyan;
     /// <summary>Its line, then each branch's, as (along, across) shares of its length; <see cref="Runs"/> says where each starts.</summary>
     internal readonly List<(double U, double V)> Shape = [];
     internal readonly List<int> Runs = [];
@@ -66,7 +78,6 @@ public sealed class Bolts(Func<double>? random = null)
     public const double Rim = 2.5, Core = 1, Stray = 0.35;
     /// <summary>The chance a fork grows at a point of a branchy arc, before the share each point gets.</summary>
     private const double Branching = 0.35;
-    public static readonly (int R, int G, int B) CoreColour = (244, 254, 255), RimColour = (85, 214, 255), GlowColour = (70, 180, 255);
     /// <summary>A fine arc's core and the haze either side of it (<see cref="Bolt.Fine"/>).</summary>
     public static readonly (int R, int G, int B) FineCore = (222, 244, 255), FineHaze = (90, 170, 255);
 
@@ -79,10 +90,10 @@ public sealed class Bolts(Func<double>? random = null)
     public IReadOnlyList<Bolt> Live => _live;
 
     /// <summary>A new arc along <paramref name="ends"/> for <paramref name="life"/> 60 Hz frames, its shape rolled now; null past the limit.</summary>
-    public Bolt? Add(BoltEnds ends, int life, double intensity = 1, double width = 1, bool branchy = false, bool fine = false)
+    public Bolt? Add(BoltEnds ends, int life, double intensity = 1, double width = 1, bool branchy = false, bool fine = false, BoltTint? tint = null)
     {
         if (_live.Count >= Limit) return null;
-        var bolt = new Bolt(ends, Math.Max(1, life), intensity, width, branchy, fine);
+        var bolt = new Bolt(ends, Math.Max(1, life), intensity, width, branchy, fine, tint);
         Roll(bolt);
         _live.Add(bolt);
         return bolt;

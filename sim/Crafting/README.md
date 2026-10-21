@@ -12,7 +12,8 @@ enough, and a grow capsule grows a seed into biomass the same way: each fed stat
 rather than part of `Items`: it asks `Research` what is known, and research depends on items.
 
 - **Depends on:** `Grid` (`IGridQueries`: `Machines`, `MachineById`: which machines are stations),
-  `Items` (`IItemsQueries`: `Crate`, `CanSmelt`, `ShortOf`, `FullFor`, `OutputFull`, `InputsLack`; `IItemsOps`:
+  `Items` (`IItemsQueries`: `Crate`, `CanSmelt`, `ShortOf`, `FullFor`, `OutputFull`, `InputsLack`, `Boost`, what the
+  modules fitted into a station add; `IItemsOps`:
   `Take`, `Give`, `Output`, `Smelt`, `TakeInputs`), `Research` (`IResearchQueries.Knows`), `Power` (`IPowerQueries.Satisfaction`,
   a powered station's share; `IPowerOps.Rest`, an idle one draws nothing); the world's `Rng`, for a crop's seeds.
 - **Depended on by:** `Building` (`ICraftingQueries.Queue`: a station with crafts queued is not taken
@@ -35,8 +36,12 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
 
 - **A station** is a machine with an entry in `Content.Stations`: its `Speed` in thousandths of full
   speed, its `QueueMost`, its `Rows` (what a queued one makes, as its panel lays them out), its `Heat`
-  (a fed one's; above 0 makes it fed) and its `Process` (a fed one's, "smelt" or "grow"). `StationOf` is the one place these are read, so a machine upgrade
-  folds in there. Its slots are its machine's (`MachineSpec.Slots`, `Inputs`), read by `Items`.
+  (a fed one's; above 0 makes it fed) and its `Process` (a fed one's, "smelt" or "grow"). `StationOf`, an instance
+  method, is the one place these are read, so a machine upgrade folds in there: **the modules fitted into it**
+  (`IItemsQueries.Boost`, [0086](../../docs/decisions/0086-modules-one-socket-for-machines-and-tools.md)) make its speed
+  `Speed × (1000 + their Speed) / 1000`, rounded down, a gain: the arc module doubles it. A fed one's heat gains theirs
+  (no module adds any yet: the crucible to come); a queued one's stays 0, which says it is not fed. The pod and the
+  furnace take no module. Its slots are its machine's (`MachineSpec.Slots`, `Inputs`), read by `Items`.
 - **Energy** is the machine's: one that `Draws` works at its network's satisfaction; one with a `FuelSlot`
   at full while its fire burns (`Heat`) and not at all while it is out; one with neither (the pod) at full.
   **Work a tick** is `Speed × share / 1000`, rounded down. Stations work in the simulation phase, after
@@ -116,7 +121,7 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
     15), drawn from the world's `Rng` as the crop completes, stations in machine id order (`Returned`), passed to
     `IItemsOps.Smelt(id, back)`. An item without `Returns` draws nothing. It grows only with room in its outputs for
     the yields and the most seeds it may give back, so no draw ever overflows a slot.
-  - **Heat** is the station's `Heat`, read in `StationOf` alone, so a machine upgrade folds in there.
+  - **Heat** is the station's `Heat`, read in `StationOf` alone, so a module's heat folds in there.
     **Too cold:** an item of its process with `Yields` hotter than the station is taken into its input (`Items`
     refuses nothing for it) and kept there, never worked, a furnace never lit for it: `TooCold(machine)` says so,
     for the station's panel and its mark in the world. Replaced by what it can work, it works.
