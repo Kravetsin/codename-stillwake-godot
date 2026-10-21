@@ -15,14 +15,14 @@ by sending `Move`,
 | `Click.cs`         | the click rules (`click.ts`), quick equip (0047), shift between the bag and the hotbar, a module's socket (0086): `Clicks.On`, `Clicks.OnSocket`, `Picked`, `SlotClick`, `SocketClick`, `Clicked`; every shift's `Flight`, and where a shifted stack landed (`Clicks.Landed`) | no    |
 | `Hotbar.cs`        | the row of nine and the wheel (`hotbar.ts`); the digit each slot shows, the key that chooses it | no    |
 | `Equipment.cs`     | the equipment slots by kind, and which light up or dim while a stack is carried (`SlotGlow`, 0047) | no    |
-| `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s, `Drop`s and `Sort`s in flight (0014); which items are marked unanalysed, or smelted, burnt or grown by the open machine (`MarkOf`), a stack's tip | no    |
+| `Reading.cs`       | the slots as this peer shows them: `AfterMoves` over its `Move`s, `Drop`s and `Sort`s in flight (0014); which items are marked unanalysed, or smelted, burnt or grown by the open machine (`MarkOf`), the ghost a station's slot shows (`GhostOf`) and what lights it (`Lights`), a stack's tip | no    |
 | `Lessons.cs`       | an analyzer's panel: its stage, how far, what an analysed item goes into, each one's tip (0027) | no    |
 | `Reach.cs`         | `HeroSpot`; pick-ups (`pickup.ts`)                                                           | no    |
 | `OwnCatches.cs`    | what this peer's own grabs of debris put into its inventory, once each as they run, and where each piece was | no    |
 | `PickUpFlights.cs` | a stack picked up flying home (0075), off the floor or out of a catch: its icon on an arc to the chest, a ribbon of light behind it, a glint, a ring and a flash as it lands; a catch's one after another, `Fx.MostRibbons` at once | yes |
 | `SortButton.cs`    | the sort key (0008, 0081): a wrist key whose face shows three bars and an arrow down, drawn in code, lit sky under the pointer, white while held, glowing a moment after | yes   |
 | `SortSweep.cs`     | a sort's light: a bright line crossing the sorted grid, a band of sky behind it (0081) | yes   |
-| `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, its corner's mark: the open station's flame or sprout, or the violet "?" of an item not analysed; an equipment slot's looks | yes   |
+| `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, its corner's mark (a `GlowIcon`): the open station's flame, ingot or sprout, a module's tech, or the violet "?" of an item not analysed; empty, a station slot's ghost (`GhostMark`); an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `ModuleSocket.cs`  | a machine's socket for one module (0086): empty, the icon of the technology it takes, faint; fitted, the module lit; glowing violet-white while a module carried would go in | yes |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
@@ -132,7 +132,7 @@ as everything E works is, in the crew feature (`AimTests`).
   the circuit assembler) shows a socket per module it takes (`ModuleSocket`): under a fed station's body, after the word
   "Module"; at a queued station's inputs' right end, lent to the crafting feature (`LendSockets`, wired by `Main`), so
   its panel grows no taller. Empty, the ghost of the icon of the technology it takes (`TechLooks`, by the module's
-  `Tech`; `TechIcon`, 32 px), its rim alone, faint and still; fitted, the module lit on violet; while a module that
+  `Tech`; `GlowIcon`, 32 px), its rim alone, faint and still; fitted, the module lit on violet; while a module that
   would go in is carried (picked or dragged), it glows violet-white, its icon lit and crackling. A module carried let go
   or clicked on it is fitted (`Fit`); shift on a module in the bag with such a machine open fits it at once, flying
   into the socket. A press on a fitted socket
@@ -142,13 +142,28 @@ as everything E works is, in the crew feature (`AimTests`).
   it. The open machine's fits and takes in flight show at once, as moves do (`Reading.Fitted`, `Reading.Fitting`).
 - **What fits, by its icon** (0086): with a machine that takes modules open, every slot holding a module it takes shows
   that module's tech icon as its mark, 14 px on a soft dark halo, where a fire's flame sits (`SlotMark.Fits`). A
-  module's card names no machine: a strip at its bottom, its tech icon (12 px) and what it does in one line ("×2 speed
+  module's card names no machine: a strip at its bottom, its tech icon (24 px, lit and moving) and what it does in one line ("×2 speed
   · ×2 power", `ItemCard.Tech`).
-- **Tech icons** (0086, the user's pick on the arc icon page, variant C): a thin hexagon every technology shares, its
-  glyph and colours its own (`TechLooks`: the arc's a three-stroke bolt, violet-rimmed and white-hot), drawn in thin
-  lines by `TechCanvas` in the page's passes (a mark's dark halo, glow, rim, core) into a texture of the icon's pixels.
-  Lit, the glyph crackles on twos: twelve times a second it is jagged afresh, now and then branching, its brightness
-  0.85 to 1.15; only a `TechIcon` seen repaints, and a ghost never does.
+- **Glowing line icons** (0086, the user's pick on the arc icon page, variant C; 0097): a thin frame and a glyph in
+  thin lines, drawn by `IconCanvas` in the page's passes (a mark's dark halo, glow, rim, core) into a texture of the
+  icon's pixels; frame, glyph, colours and motion are data (`IconLooks`' `Look`). The frame says the kind: a
+  **hexagon** is a module's technology (`TechLooks`: the arc's three-stroke bolt, violet-rimmed and white-hot), a
+  **ring** a station's work (`MarkLooks`). Lit, a glyph moves on twos, twelve frames a second (`IconLooks.Lines`): the
+  arc crackles, jagged afresh each frame, now and then branching, its brightness 0.85 to 1.15. Shown by `GlowIcon`: only
+  one seen moves, a ghost never does, and a motion that comes round (`IconLooks.Cycle`) is painted once a frame for
+  every icon of its look, size and show, so a bag of marks costs a texture swap each; each icon starts at its own frame.
+- **Station marks** (0097), each in the ring, its glyph, colours and motion its own:
+
+  | Mark (`SlotMark`) | Glyph | Colour | Lit, it |
+  | --- | --- | --- | --- |
+  | `Burns` (a fire's fuel) | a flame, its tip bent, a tongue and a lick | orange, white-hot | flickers: its tip licks, its foot still |
+  | `Smelts` (a fed station's input) | a hot ingot, two wisps over it | gold | the wisps sway as heat rises, it breathes |
+  | `Grows` (the grow capsule's input) | a sprout of two leaves on the ground | green | sways from its foot |
+  | `Unknown` (not analysed; the analyzer's slot) | a "?" | violet | stands still: it marks many slots at once |
+  | `Charges` (the charging station's slot) | a battery | charge's green | its three bars light from the bottom |
+  | `Docks` (a drone bay's slots) | a quad from above, four rotor rings | the drones' sky | its blades spin, neighbours the other way |
+
+  `Charges` and `Docks` are only ghosts: no bag slot wears them, as before.
 - **Sorting** (0008, 0081): a sort key (`SortButton`, its tip "Sort"), a hardware key of the wrist's metal, stands on
   the bag display's right edge, outside the screen, level with its first row, so the bag is as wide as the hotbar; an
   open crate's square one sits in its frame header, left of the drone badge; only a crate has one. A press sends `Sort`
@@ -176,17 +191,26 @@ as everything E works is, in the crew feature (`AimTests`).
   battery or biofuel never shows it, nor its card the band.
 - **What the open machine takes** (playtest 1: a friend could not tell rock smelts): while a fed station's
   window is open, every inventory, hotbar and equipment slot whose item it processes (`CraftingModule.Processes`:
-  of its process, no hotter than it) shows its mark where the "?" sits, and before the "?": a small orange
-  flame (`AsciiArt.Flame`, 7 px drawn at 14) for the furnace and the electric smelter, a small green sprout
-  (`AsciiArt.Sprout`) for the grow capsule. A machine with a fire (the furnace, the burner generator) marks its
-  fuel, what has `BurnTicks`, with the same flame: one sign for "this fire takes it", the tooltip telling the
-  two apart. An item too hot for the station (silicon at the furnace) gets no mark; the machine's own slots
+  of its process, no hotter than it) shows its mark, 14 px on its dark halo, where the "?" sits, and before the "?":
+  the gold ingot for the furnace and the electric smelter, the green sprout for the grow capsule. A machine with a fire
+  (the furnace, the burner generator) marks its fuel, what has `BurnTicks`, with the flame: at the furnace the ingot
+  and the flame tell its two inputs apart (0097). An item too hot for the station (silicon at the furnace) gets no mark; the machine's own slots
   none either. The card in the tooltip adds a line in the mark's colour, the mark before it: "Smelts here",
   "Burns here" or "Grows here" (`ItemCard.Here`, `Reading.HereOf`). The stack in hand keeps only the "?".
+- **A station's empty slot shows the ghost of its mark** (0097), as a module socket the ghost of its tech's icon: the
+  mark's rim alone, faint and still, filling the slot inside its inset (`Reading.GhostOf`): the furnace's input the
+  ingot and its fuel slot the flame, the electric smelter's input the ingot, the grow capsule's the sprout (in place of
+  0060's faint seed), the burner generator's fuel slot the flame, the analyzer's the "?", the charging station's a
+  battery, a drone bay's four a drone (in place of the drone's silhouette; its tip still says a drone docks there).
+  Outputs, crates and a queued station's inputs show none; a slot drones keep shows its kept item instead (0062).
+  While a stack that would go in is carried (picked or dragged), the ghost lights and moves (`Reading.Lights`): what
+  wears that mark in the bag with the station open, what a fire burns, what waits for analysis, what holds a charge, a
+  drone. Nothing is refused by it: the sim's rules for what a slot takes stay as they were.
 - Every stack, in the inventory, the hotbar, a crate, a furnace or an analyzer, shows its card in the
-  one tooltip (`Shared.PointerTip`) at once, pinned beside its slot, 8 px off it, its top level with the slot's, and
-  flipped to the slot's left where the screen ends, so it never covers its own slot (`TipPlace.Beside`; the slot comes
-  as the tip's `Anchor` from `TipSpots`). The card (`Shared.ItemCards`, drawn by `Shared.ItemCardView`, the item
+  one tooltip (`Shared.PointerTip`) at once, moving with the pointer one to one: right of it by the slot's width and
+  8 px, so it clears the slot from anywhere in it, and 8 px below it; flipped to the pointer's left where the screen
+  ends and above it at the screen's foot, so it never covers its own slot nor the pointer (`TipPlace.Near`; the slot
+  comes as the tip's `Anchor` from `TipSpots`). The card (`Shared.ItemCards`, drawn by `Shared.ItemCardView`, the item
   card mockup) is a little screen of the wrist computer, shaped by what the item is:
   - *Anything else* (materials, parts, salvage): the compact card, its name and kind (`item.<id>.kind`) on one line and
     nothing more — no icon again, no list of what it goes into; a key where it has one (a canister "RMB breathe"), a
@@ -204,10 +228,11 @@ as everything E works is, in the crew feature (`AimTests`).
     number — the helmet lamp on the helmet, its beam reaching out with motes drifting through it, and its reach in
     cells (`Light.HeadLampReach`) with its beam across and a bolt at 0, for it draws nothing; a battery glowing green
     as much as it holds and its charge; the jetpack no number — then its key and hint under both.
-  Under any card, what the open fed station or fire does with it, in the mark's colour, the mark before it: "Smelts
+  Under any card, what the open fed station or fire does with it, in the mark's colour (`Smelts` gold), the mark lit
+  before it, 24 px and moving: "Smelts
   here", "Burns here" or "Grows here" (`ItemCard.Here`, `Reading.HereOf`), a fed station adding what it makes of one
-  and how long one takes there at its speed, "→ scrap ×4 · 3s" (`ItemCards.OutputAt`); a violet "? Not analysed" band
-  while unanalysed; a station's block. The screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.
+  and how long one takes there at its speed, "→ scrap ×4 · 3s" (`ItemCards.OutputAt`); a violet band, the "?" mark
+  and "Not analysed", while unanalysed; a station's block. The screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.
 - **Charge** (0053): a slot holding a battery draws a thin bar along its icon's foot, no numbers: green,
   amber under a quarter of full, an empty track at none (`Charges.BarOf`); an empty battery shows its own
   picture (`battery_empty`, `Charges.Picture`), in a slot, in the hand, on its card and on the floor. Its
@@ -241,8 +266,7 @@ as everything E works is, in the crew feature (`AimTests`).
   and dark at 0 otherwise, as the Former's; under it `furnace.full` when it has no room for what it makes. It
   reads `CraftingModule` (`Works`, `Progress`, `WorkOf`, `TooCold`, `CanSmelt`), handed in by `Main`.
 - A grow capsule's panel is the smelter's (0060): its input over its mark, pink as its lamp while it grows, a green
-  bar and its two outputs, the bolt with what it draws. Its empty input shows a faint seed (`SlotBox.Ghost`: the one
-  item of its station's process). What a fed station does not work (rock in a capsule, a seed in a smelter) fills no
+  bar and its two outputs, the bolt with what it draws. Its empty input shows the sprout's ghost (`SlotBox.GhostMark`). What a fed station does not work (rock in a capsule, a seed in a smelter) fills no
   bar and says nothing.
 - **Too cold:** a furnace or a smelter whose input holds what needs more heat than it has turns the
   mark between its slots cold blue, with no line under the panel; over the mark the one tooltip says

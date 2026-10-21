@@ -34,6 +34,15 @@ public static class Slots
     /// <summary>The icon's inset from a slot's edge, the same at every size.</summary>
     public const int Inset = 4;
 
+    /// <summary>A slot's corner mark's side (0086, 0097), and its margin from the slot's top and right edges.</summary>
+    public const int MarkSide = 14, MarkMargin = 2;
+
+    /// <summary>Where a corner mark's top-left sits in a slot <paramref name="slot"/> wide: its top-right, the top-left being the hotbar's digit.</summary>
+    public static (int X, int Y) MarkAt(int slot) => (slot - MarkSide - MarkMargin, MarkMargin);
+
+    /// <summary>A station slot's ghost's side (0097), as a module socket's: the slot inside its icon's inset.</summary>
+    public static int GhostSide(int slot) => slot - 2 * Inset;
+
     /// <summary>The gap between slots in a grid.</summary>
     public const int Gap = 4;
 

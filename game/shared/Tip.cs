@@ -41,7 +41,7 @@ public sealed record Tip(string? Name, IReadOnlyList<TipLine> Lines)
 
     /// <summary>
     /// What the tip tells of on the screen, its left, top, width and height: the slot under the pointer, set by
-    /// <c>TipSpots</c>. An item's card is pinned beside it (<see cref="TipPlace.Beside"/>); none follows the pointer.
+    /// <c>TipSpots</c>. An item's card moves with the pointer clear of it (<see cref="TipPlace.Near"/>).
     /// </summary>
     public (float X, float Y, float W, float H)? Anchor { get; init; }
 
