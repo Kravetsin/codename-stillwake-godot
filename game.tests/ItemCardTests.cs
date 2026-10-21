@@ -165,7 +165,7 @@ public class ItemCardTests
         // The fire axe goes into nothing: known from the start, never banded.
         Assert.False(With(false).TipOf("fireAxe").Card!.Unknown);
         Assert.Equal("Iron", With(false).TipOf("iron").Name);
-        Assert.Equal("? Not analysed", T("card.notAnalysed"));
+        Assert.Equal("Not analysed", T("card.notAnalysed"));
     }
 
     [Fact]

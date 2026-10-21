@@ -50,6 +50,7 @@ public static class ItemCardView
     private static readonly LabelSettings KeyText = Style.Text(BoldMono, 10, Style.Slate300);
     private static readonly LabelSettings UnknownText = Style.Text(Style.Mono, 11, Style.Violet400);
     private static readonly LabelSettings FireText = Style.Text(Style.Mono, 11, Style.Orange400);
+    private static readonly LabelSettings SmeltText = Style.Text(Style.Mono, 11, Style.Amber400);
     private static readonly LabelSettings GrowText = Style.Text(Style.Mono, 11, Style.Green400);
     private static readonly LabelSettings TechText = Style.Text(Style.Mono, 11, new Color(ItemCards.ModuleColour));
     private static readonly LabelSettings YieldText = Style.Text(Style.Mono, 11, Style.Slate300);
@@ -384,29 +385,27 @@ public static class ItemCardView
         return Boxed(box, content);
     }
 
-    /// <summary>Not analysed yet: "? Not analysed" in violet.</summary>
-    private static Control UnknownStrip() => Strip(Style.Violet400, Text(T("card.notAnalysed"), UnknownText, HorizontalAlignment.Left));
-
-    /// <summary>
-    /// The picture of a slot's machine mark: a flame for what a fire smelts or burns, a sprout for what is grown; none for
-    /// the rest, a module that fits among them, its tech icon drawn live (<see cref="TechIcon"/>, 0086).
-    /// </summary>
-    public static Texture2D? MarkPicture(SlotMark mark) => mark switch
+    /// <summary>Not analysed yet: the slot's "?" mark, lit, and "Not analysed" in violet.</summary>
+    private static Control UnknownStrip()
     {
-        SlotMark.Smelts or SlotMark.Burns => AsciiArt.Flame(),
-        SlotMark.Grows => AsciiArt.Sprout(),
-        _ => null,
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        row.AddChild(StripIcon(MarkLooks.Unknown));
+        row.AddChild(Text(T("card.notAnalysed"), UnknownText, HorizontalAlignment.Left));
+        return Strip(Style.Violet400, row);
+    }
+
+    /// <summary>A strip's icon, 12 px, lit and moving (0086, 0095): a module's tech, a station's mark.</summary>
+    private static GlowIcon StripIcon(IconLooks.Look look) => new(look, 12, IconShow.Lit)
+    {
+        SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+        SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
     };
 
     /// <summary>A module's strip (0086): its technology's icon, then what it does, in the arcs' violet-white.</summary>
     private static Control TechStrip(CardTech tech)
     {
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
-        row.AddChild(new TechIcon(tech.Tech, 12, TechShow.Lit)
-        {
-            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-        });
+        row.AddChild(StripIcon(TechLooks.Of(tech.Tech)));
         row.AddChild(Text(tech.About, TechText, HorizontalAlignment.Left));
         return Strip(new Color(ItemCards.ModuleColour), row);
     }
@@ -417,11 +416,15 @@ public static class ItemCardView
     /// </summary>
     private static Control HereStrip(SlotMark here, CardOutput? output)
     {
-        var colour = here == SlotMark.Grows ? Style.Green400 : Style.Orange400;
+        var (colour, text, key) = here switch
+        {
+            SlotMark.Grows => (Style.Green400, GrowText, "card.growsHere"),
+            SlotMark.Burns => (Style.Orange400, FireText, "card.burnsHere"),
+            _ => (Style.Amber400, SmeltText, "card.smeltsHere"),
+        };
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
-        row.AddChild(Picture(MarkPicture(here)!, 12));
-        string key = here switch { SlotMark.Grows => "card.growsHere", SlotMark.Burns => "card.burnsHere", _ => "card.smeltsHere" };
-        row.AddChild(Text(T(key), here == SlotMark.Grows ? GrowText : FireText));
+        row.AddChild(StripIcon(MarkLooks.Of(here)));
+        row.AddChild(Text(T(key), text));
         if (output != null)
         {
             var made = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 3);

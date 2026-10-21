@@ -55,6 +55,37 @@ public sealed record Reading(
             ? SlotMark.Burns : SlotMark.None;
     }
 
+    /// <summary>
+    /// The mark whose faint ghost slot <paramref name="slot"/> of a <paramref name="kind"/> shows while empty (0095): a fed
+    /// station's input what it does (the furnace's and the smelter's crucible, the grow capsule's sprout), a fire's fuel slot
+    /// the flame, an analyzer's the "?", a charging station's a battery, a drone bay's a drone; none for any other slot.
+    /// </summary>
+    public static SlotMark GhostOf(string kind, int slot)
+    {
+        if (!Content.Machines.TryGet(kind, out var spec)) return SlotMark.None;
+        if (spec.FuelSlot == slot) return SlotMark.Burns;
+        if (Content.Stations.TryGet(kind, out var station) && station.Fed && slot < (spec.Inputs ?? 0))
+            return station.Process == "grow" ? SlotMark.Grows : SlotMark.Smelts;
+        if (kind == Content.Logistics.Bay) return SlotMark.Docks;
+        if (spec.Charges) return SlotMark.Charges;
+        return kind == "analyzer" && slot == 0 ? SlotMark.Unknown : SlotMark.None;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="item"/>, carried, lights the ghost <paramref name="ghost"/> of the open machine's empty slot:
+    /// what wears that mark in the bag with it open, what the fire burns, the "?" of what waits for analysis, what holds a
+    /// charge, a drone.
+    /// </summary>
+    public bool Lights(SlotMark ghost, string item) => ghost switch
+    {
+        SlotMark.Smelts or SlotMark.Grows => Kind != null && Content.Stations.TryGet(Kind, out var station) && station.Fed && CraftingModule.Processes(station, item),
+        SlotMark.Burns => Content.Items.Get(item).BurnTicks != null,
+        SlotMark.Unknown => Unknown(item),
+        SlotMark.Charges => Content.Items.Get(item).Capacity != null,
+        SlotMark.Docks => item == Content.Logistics.Drone,
+        _ => false,
+    };
+
     /// <summary>The mark in the corner of an inventory slot holding <paramref name="item"/>: the open machine's (<see cref="HereOf"/>), else the "?" while it is not analysed.</summary>
     public SlotMark MarkOf(string item) =>
         HereOf(item) is var here && here != SlotMark.None ? here : Unknown(item) ? SlotMark.Unknown : SlotMark.None;

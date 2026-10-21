@@ -25,8 +25,9 @@ namespace Stillwake.Game.Features.Items;
 /// same place. Stacks move by clicks (<see cref="Clicks.On"/>), or dragged from one slot to another; Tab or Esc
 /// closes both. 1–9 and the wheel over the world choose a hotbar slot, Q throws its stack. A stack's name, and
 /// whether it waits for an analyzer, show in the one tooltip; an item the open fed station or fire takes has its
-/// flame or sprout in its slot's corner (<see cref="Reading.MarkOf"/>), else one not analysed a violet "?" in its
-/// slot's corner, and in the hand. At the screen's right edge, the equipment by the body (0047, 0058) and the
+/// flame, ingot or sprout in its slot's corner (<see cref="Reading.MarkOf"/>), else one not analysed a violet "?" in its
+/// slot's corner, and in the hand; a station's empty slot the faint ghost of its mark, lit while what is carried would go in (0095).
+/// At the screen's right edge, the equipment by the body (0047, 0058) and the
 /// hands' tool: a stack carried lights the slots that would wear it and dims the rest; a right click on a
 /// canister of the hero's own breathes it (<see cref="Ui.Breathe"/>). Every slot is <see cref="Ui.Slot"/> wide,
 /// and all of it is built again when that changes. It is the wrist computer (0074): the hotbar on the cuff, the bag on
@@ -74,7 +75,9 @@ public partial class InventoryPanel : CanvasLayer
     private SortButton? _crateKey;
     private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
-    private Label _heldCount = null!, _creative = null!, _heldMark = null!;
+    private Label _heldCount = null!, _creative = null!;
+    /// <summary>The stack in hand's "?" while it is not analysed, in its corner as a slot's.</summary>
+    private GlowIcon _heldMark = null!;
     private ProgressBar? _progress;
     private Label? _problem;
     /// <summary>A charging station's: the bar of what its battery holds, and what it does now in words.</summary>
@@ -226,7 +229,7 @@ public partial class InventoryPanel : CanvasLayer
             Size = new Vector2(icon, icon),
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
-        _held.AddChild(_heldMark = SlotBox.Mark(size));
+        _held.AddChild(_heldMark = SlotBox.Corner(MarkLooks.Unknown, size));
         _held.AddChild(_heldCount = new Label
         {
             LabelSettings = Style.Text(Style.Mono, 10, Colors.White, shadow: true),
@@ -356,6 +359,8 @@ public partial class InventoryPanel : CanvasLayer
     private SlotBox Box(Place place, string? key = null)
     {
         var box = new SlotBox(place, _ui.Slot, key);
+        // A station's slot shows the ghost of what it takes (0095).
+        if (place.Crate != null && _reading?.Kind is { } kind) box.GhostMark = Reading.GhostOf(kind, place.Slot);
         box.Pressed += ClickAt;
         _tipSpots.Add(box, () => SlotTip(box));
         _slots.Add(box);
@@ -530,7 +535,7 @@ public partial class InventoryPanel : CanvasLayer
             var name = T("logistics.kept", ("item", T($"item.{kept}")));
             return Supplied?.Invoke(id, kept) == false ? new Tip(name, new TipLine(T("logistics.noneInReach"), Tone.Bad)) : new Tip(name);
         }
-        return box.Ghost == Content.Logistics.Drone ? new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)) : null;
+        return box.GhostMark == SlotMark.Docks ? new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)) : null;
     }
 
     /// <summary>The open crate's panel, made anew for each crate: a crate's grid, a furnace's or an analyzer's own, in the machine frame.</summary>
@@ -574,16 +579,11 @@ public partial class InventoryPanel : CanvasLayer
         _shown.AddChild(_frame);
     }
 
-    /// <summary>A drone bay's four slots, each showing a faint drone while empty: drones dock there and charge, each slot's bar its drone's charge (0062).</summary>
+    /// <summary>A drone bay's four slots, each showing a faint drone's mark while empty: drones dock there and charge, each slot's bar its drone's charge (0062).</summary>
     private Control BayBody(int crate, Content.MachineSpec spec)
     {
         var row = Style.Gap(new HBoxContainer(), Slots.Gap);
-        for (int i = 0; i < spec.Slots; i++)
-        {
-            var box = Box(new Place(i, crate));
-            box.Ghost = Content.Logistics.Drone;
-            row.AddChild(box);
-        }
+        for (int i = 0; i < spec.Slots; i++) row.AddChild(Box(new Place(i, crate)));
         return row;
     }
 
@@ -607,17 +607,14 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>
     /// A fed station on power, the furnace's without the fuel: its input over its mark, lit while it works, its bar and its
     /// outputs. The electric smelter's mark and bar are a fire's orange; a grow capsule's mark is its lamp's pink, its bar
-    /// green, and its empty input shows the seed it takes (0060): the one item of its process.
+    /// green; its empty input shows the ghost of a sprout, the smelter's a crucible (0095).
     /// </summary>
     private Control FedBody(int crate, string kind)
     {
         var column = Style.Gap(new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
         var spec = MachineSpecs.Get(kind);
         var process = Content.Stations.Get(kind).Process;
-        var input = Box(new Place(0, crate));
-        var takes = Content.Items.All.Where(i => i.Yields != null && i.Process == process).ToList();
-        if (takes.Count == 1) input.Ghost = takes[0].Id;
-        column.AddChild(input);
+        column.AddChild(Box(new Place(0, crate)));
         column.AddChild(_fire = HeatMark());
         var outputs = Style.Gap(new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter }, Slots.Gap);
         for (int i = spec.Inputs!.Value; i < spec.Slots; i++) outputs.AddChild(Box(new Place(i, crate)));
@@ -984,7 +981,8 @@ public partial class InventoryPanel : CanvasLayer
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,
                 stack == null ? SlotMark.None : p.Crate == null ? reading.MarkOf(stack.Item) : reading.Unknown(stack.Item) ? SlotMark.Unknown : SlotMark.None,
-                Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null);
+                Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
+                stack == null && carried != null && reading.Lights(box.GhostMark, carried));
         }
         // A socket glows while a module carried would go in; one being taken out is carried as a stack is (0086).
         foreach (var socket in _sockets)
