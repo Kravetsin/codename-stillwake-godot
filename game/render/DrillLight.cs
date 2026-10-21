@@ -5,11 +5,10 @@ using Godot;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// A drill's light (0054, 0075), one a figure. Where its bit bites a wreck, the axe's hit in small and without end: a
-/// steady spray of sparks thrown back off the bit, slow metal dust, now and then a tumbling chip, a small glint every
-/// so often and a warm light held there. The arc drill's coil besides, while it runs, as fine as a fire's embers (slice
-/// 3): hair-thin arcs flicking between its turns, sparks crawling along it and now and then leaping a little way off,
-/// micro-glints, a faint blue haze and light pulsing over it, all of it coming in bursts; the plain drill has none.
+/// A drill's own light (0054, 0075, 0094), one a figure: the arc drill's coil, while it runs, as fine as a fire's embers
+/// (slice 3): hair-thin arcs flicking between its turns, sparks crawling along it and now and then leaping a little way off,
+/// micro-glints, a faint blue haze and light pulsing over it, all of it coming in bursts; the plain drill has none. What its
+/// hits knock out of what they strike is that object's (<see cref="HitBurst"/>), thrown where it is struck, never at the bit.
 /// A figure's throws into the world's particles; an item card's into its own (<c>ToolPicture</c>).
 /// </summary>
 public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
@@ -21,8 +20,6 @@ public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
     /// <summary>Thrown into the world's particles, which the effects layer draws.</summary>
     public DrillLight() : this(Glims.Shared, Flares.Shared, Bolts.Shared) { }
 
-    /// <summary>What a biting bit throws a second, times <see cref="Fx.Count"/>, and how often it glints.</summary>
-    private const double SparksPerSecond = 26, DustPerSecond = 6, ChipsPerSecond = 1.5, GlintEveryMs = 240;
     /// <summary>
     /// Over a running arc drill's coil a second at full speed, on average, times <see cref="Fx.Crackle"/>: fine arcs between
     /// its turns, sparks set crawling along it, sparks leaping off it, micro-glints.
@@ -30,7 +27,7 @@ public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
     private const double ArcsPerSecond = 33, CrawlsPerSecond = 10, LeapsPerSecond = 7, GlintsPerSecond = 3;
     /// <summary>How often the coil's haze pulses, a second; how fast its bursts come and go, a period in ms.</summary>
     private const double PulseHz = 2.6, BurstMs = 260;
-    private static readonly (int, int, int) Warm = (255, 200, 140), Glinted = (255, 214, 150), Spark = (205, 236, 255), Haze = (90, 170, 255);
+    private static readonly (int, int, int) Spark = (205, 236, 255), Haze = (90, 170, 255);
 
     /// <summary>A spark crawling along the coil, in pixels of the drill's picture: where it set off, which way, how fast, along which row.</summary>
     private sealed class Crawl
@@ -42,49 +39,18 @@ public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
     private readonly List<Crawl> _crawling = [];
     private readonly object _coilLight = new();
     private readonly (double X, double Y)[] _trail = new (double, double)[4];
-    private double _sparks, _dust, _chips, _sinceGlint = GlintEveryMs, _arcs, _crawls, _leaps, _glints, _clockMs;
+    private double _arcs, _crawls, _leaps, _glints, _clockMs;
 
     private double Between(double from, double to) => from + (to - from) * _random.NextDouble();
 
     /// <summary>
     /// The drill <paramref name="elapsedMs"/> on: <paramref name="look"/> held, none without a drill, spinning at
-    /// <paramref name="spin"/> (0 to 1); biting a wreck at <paramref name="tip"/> while <paramref name="bites"/>, its bit
-    /// pointing <paramref name="barrel"/>. <paramref name="held"/> takes a point of its picture to the world, as drawn now.
+    /// <paramref name="spin"/> (0 to 1). <paramref name="held"/> takes a point of its picture to the world, as drawn now.
     /// </summary>
-    public void Step(HeldLook? look, double spin, bool bites, Vector2? tip, Vector2 barrel, Func<(double X, double Y), Vector2> held, double elapsedMs)
+    public void Step(HeldLook? look, double spin, Func<(double X, double Y), Vector2> held, double elapsedMs)
     {
-        if (bites && tip is { } at) Bite(at, barrel, elapsedMs);
-        else _sinceGlint = GlintEveryMs;
         if (look?.Coil is { } coil && spin > 0.3) Coil(coil, spin, held, elapsedMs);
         else _crawling.Clear();
-    }
-
-    /// <summary>Sparks thrown back off the bit and spread, dust, a chip now and then, a glint every so often, a warm light.</summary>
-    private void Bite(Vector2 tip, Vector2 barrel, double elapsedMs)
-    {
-        var glims = _glims;
-        double s = elapsedMs / 1000 * Fx.Count, back = Math.Atan2(-barrel.Y, -barrel.X);
-        for (_sparks += SparksPerSecond * s; _sparks >= 1; _sparks--)
-        {
-            double a = back + Between(-1.1, 1.1), v = Between(45, 120);
-            glims.Add(Luminous.DrillSpark, tip.X, tip.Y, Math.Cos(a) * v, Math.Sin(a) * v);
-        }
-        for (_dust += DustPerSecond * s; _dust >= 1; _dust--)
-        {
-            double a = back + Between(-1.8, 1.8), v = Between(4, 16);
-            glims.Add(Luminous.HitDust, tip.X, tip.Y, Math.Cos(a) * v, Math.Sin(a) * v, size: Between(0.35, 0.55));
-        }
-        for (_chips += ChipsPerSecond * s; _chips >= 1; _chips--)
-        {
-            double a = back + Between(-1.1, 1.1), v = Between(12, 26);
-            glims.Add(Luminous.Chip, tip.X, tip.Y, Math.Cos(a) * v, Math.Sin(a) * v, size: Luminous.Chip.Size * 0.65);
-        }
-        if ((_sinceGlint += elapsedMs) >= GlintEveryMs)
-        {
-            _sinceGlint = 0;
-            _flares.Glint(tip.X, tip.Y, 4, Glinted, Between(-0.2, 0.2));
-        }
-        _flares.Hold(this, tip.X, tip.Y, Warm, 0.22 * Fx.Glow, 2, 0.45f, 0.7);
     }
 
     /// <summary>The arc drill's coil, the box <paramref name="coil"/> of its picture, crackling: its arcs, crawling and leaping sparks, glints and haze.</summary>

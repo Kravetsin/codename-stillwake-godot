@@ -11,9 +11,9 @@ namespace Stillwake.Game.Features.Building;
 
 /// <summary>
 /// Digging seen (0077): each cracked wall drawn with cracks in three stages as its crack grows toward its strength
-/// (<see cref="BuildingModule.Cracks"/>); a hit that deepens one throws chips in its material's colour and a little dust,
-/// a wall broken out bursts into dust and chips. Whoever dug: a friend's digs show as one's own. It reads the cracks each
-/// frame, a short list, and redraws only when they change.
+/// (<see cref="BuildingModule.Cracks"/>); a wall broken out bursts into dust and chips. Whoever dug: a friend's digs show as
+/// one's own. A hit's own look is thrown where it strikes, by the crew as it is struck (<c>HitBurst</c>, 0094). It reads the
+/// cracks each frame, a short list, and redraws only when they change.
 /// </summary>
 public partial class DigView : Node2D
 {
@@ -54,7 +54,6 @@ public partial class DigView : Node2D
             if (_drawn.TryGetValue(crack.Cell, out var was) && was.Damage == crack.Damage) continue;
             var material = _grid.WallAt(crack.Cell);
             if (material == null) continue;
-            if (crack.Damage > was.Damage) Hit(crack.Cell, material);
             _drawn[crack.Cell] = (crack.Damage, material);
             changed = true;
         }
@@ -86,17 +85,6 @@ public partial class DigView : Node2D
             int stage = System.Math.Clamp(damage * Stages / System.Math.Max(1, material.Strength), 0, Stages - 1);
             DrawTexture(Texture(stage, _grid.ShapeAt(cell)), new Vector2(cell % w, cell / w) * Cell);
         }
-    }
-
-    /// <summary>A hit deepened the crack in <paramref name="cell"/>: chips of it knocked out and a puff of its dust.</summary>
-    private void Hit(int cell, Material material)
-    {
-        var (chip, dust, _) = LooksOf(material.Id);
-        var (x, y, floor) = Where(cell);
-        var glims = Glims.Shared;
-        glims.Spray(chip, x, y, (int)System.Math.Round(GroundLooks.Chips * Fx.Count), -System.Math.PI / 2, (-1.3, 1.3), (30, 70), floor);
-        for (int i = 0; i < System.Math.Round(4 * Fx.Count); i++)
-            glims.Add(dust, x + glims.Between(-4, 4), y + glims.Between(-4, 4), glims.Between(-12, 12), -glims.Between(2, 14), size: glims.Between(0.4, 0.7));
     }
 
     /// <summary><paramref name="cell"/> broken out: a cloud of its dust where it stood, and chips falling.</summary>

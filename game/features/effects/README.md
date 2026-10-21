@@ -17,16 +17,46 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
 | `game/render/Shimmer.cs`    | heat shimmer over a box of the world, a screen-texture shader                      | yes   |
 | `game/Content/Fx.cs`        | the knobs: length, count, turbulence, glow, glint hold, shimmer; the lights' cap    | no    |
 | `EffectsView.cs`            | the layer: steps all of it each frame and draws it; a drill's item card has one of its own particles, light only | yes   |
+| `game/Content/HitLooks.cs`  | a hit's look by what it strikes (0094): `Impact`, `Throw`, `HitLook`, the tables by material and by growth beside the sound's, each object's look | no |
+| `game/render/HitBurst.cs`   | throws a `HitLook`, or a share of it, out of a struck face: `HitBurst.Shared`, or a card's own | no |
+| `Impacts.cs`                | what a hit at a cell strikes, where on it (`HitPoint`: the face toward the hero), the floor its chips fall to, a tool's share | no |
 
 - **Emitted by (luminous):** the furnace (`FurnaceView`) — embers, ash, a cracking coal's sparks and glint,
   for a furnace and a burner generator alike; the building (`BuildGlow`) — spark bursts off a screwdriver,
   glints, smoke off its molten spot, motes off a plan's cut and round a finished plan; the debris
-  (`DebrisView`) — an axe's hit sparks, dust, chips, glint, shock line and flash, a drill's few sparks, a
-  break's sparks, dust, cloud, glint, ring and flash, and a broken piece's embers (`BreakView`).
+  (`DebrisView`) — a wreck's hit (`HitBurst`, below), a break's sparks, dust, cloud, glint, ring and flash, and a
+  broken piece's embers (`BreakView`); the crew (`HeroView.Struck`) — every tool's hit on the ground or a growth.
+- **Hits look as what they strike (0094)**, whatever the tool, as they sound (0093), thrown where the object is struck,
+  never at the tool: a wall's open face turned toward the hero who struck (else its closed face turned to it; a slope's
+  diagonal), at the point of it nearest the hero, kept 0.15 of the face off its corners; a growth's cell's middle drawn a
+  quarter cell toward the hero; a wreck where a running drill's bit is on its box, else its side facing the nearest
+  hero. Chips fall to the floor under the face, within six rows. One table by the natural wall's material and one by the
+  growth's kind (`HitLooks.Ground`, `HitLooks.Growths`), beside the sound's; what lies in the rock is struck as its stone.
+  A whole hit is the axe's; a faster tool's throws its pace over the axe's (`Impacts.ShareOf`: the drill a fifth, the arc
+  drill two fifths), so a second of drilling throws what a second of chopping does: each count by chance, rounded so
+  it adds up, the glint and shock ring by the same chance, the light to the share's root. The hit that breaks or fells an
+  object throws the whole, once an object (a crystal's only hit). None is drawn behind the walls: thrown out of a face,
+  a chip lands on the grass and shows.
+
+  | Struck                                                    | Its hit (a whole one, the axe's; × `Fx.Count`)                     |
+  | --------------------------------------------------------- | ------------------------------------------------------------------ |
+  | a wreck, out in space                                     | 16 sparks, 14 motes of metal dust, 3 dark chips; glint, ring, warm flash |
+  | alloy, the ruins' metal pieces                            | 12 sparks arcing down, 6 dust, 3 alloy chips; glint, ring, warm flash |
+  | stone, a rock, a stalagmite or stalactite                 | 4 short fine sparks, 5 stone chips, 5 dust; a faint flash           |
+  | soil                                                      | 6 crumbs, 7 dust; no sparks                                         |
+  | the homes' plaster                                        | 4 chips, 9 dust; no sparks                                          |
+  | wood: ruin furniture, roots                               | 6 splinters, 2 wood chips, 3 pale dust                              |
+  | a tree                                                    | 6 splinters, a wood chip, 3 leaves                                  |
+  | a bush, grass, bell flowers, herbs                        | 4 leaves, 2 green motes                                             |
+  | a crystal, a geode, an ice vein                           | 5 cold glitter streaks, 3 glassy shards; a cold glint and flash    |
+  | a glowcap or hanging cap                                  | 7 spores drifting up                                                |
+  | cloth: banners, rugs, curtains; a cobweb, a cave's threads | 6 fibres, 2 pale dust                                              |
+  | glass: lamps, lanterns, windows, jars                     | 4 glassy shards, 4 glitter streaks; a cold glint                   |
+  | crockery: dishes, pots, a basin, potted plants            | 4 glazed chips, 3 pale dust                                         |
 - **Emitted by (slice 2):** the hero's figure (`crew/Figure.cs`) — a running boot's motes and veil, a landing's grains,
   motes, veils and flat ring; the jetpack (`JetPlume`) — its core, streaks, motes, pool and shimmer; the harpoon
   (`RodLight`) — the shot's glint and gas, the rod's trail and wake, the bite, the bead, the zip home; a drill
-  (`render/DrillLight`) — the bit's sparks, dust, chips and glints, the arc drill's fine arcs, crawling and leaping sparks and haze; the air (`AirView`, `VentLight`) —
+  (`render/DrillLight`) — the arc drill's fine arcs, crawling and leaping sparks and haze, only the tool's own; the air (`AirView`, `VentLight`) —
   breaches' jets, condensation, shimmer and frost, wind lines, the red beat, fresh air from filling vents; a pod's
   hatch (`PodView`) — vapour; drones (`DroneLight`) — rotor discs and glints, dust and veils spread along a floor close under them, the lamp's trail,
   shimmer, a pad's puff; doors (`DoorLight`) — the lit edge, the slot's motes, the seal's ring, glint, dust and hiss;
@@ -86,8 +116,12 @@ The luminous arithmetic, trails, blooms, floor rings and arcs are tested in `Lum
 ## Deliberately not handled
 
 - Particles fly through walls: nothing but a floor an emitter names stops them.
-- Another hero's drill hit on a wreck is drawn as an axe's at the wreck (a peer is not told which tool hit), on top of
-  the sparks its bit throws; this hero's own throws nothing at the wreck.
+- A peer is not told which tool hit a wreck: a hit under a running drill's bit is taken for that drill's, so a friend's
+  axe striking a wreck this hero drills looks like a drill's hit (0094).
+- A hit on a tree's crown lands in the struck cell, which may be the air between two branches; a plant's picture is the
+  client's, its cells the sim's, and nothing finds the wood in the picture (0094).
+- A chip keeps the one floor it was thrown over: one that flies past the edge of a step rests on the air at the step's
+  height for its life. Chips are thrown slow and close for that, within about a cell (0094).
 - A door's hiss of vapour comes as the panel meets the seal, the shut sound at the start of the slide.
 - A breach let out through a missing back wall (no way out) jets every way and neither shimmers nor frosts.
 

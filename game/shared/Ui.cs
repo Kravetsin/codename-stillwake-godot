@@ -250,6 +250,12 @@ public sealed class Ui
     public IReadOnlyList<(float X, float Y)> Heroes { get; set; } = [];
 
     /// <summary>
+    /// The point of every running drill as last drawn, in the world's pixels, and which drill it is. Set by <c>crew</c> every
+    /// frame; <c>debris</c> strikes a wreck a bit is on where the bit is, a share of an axe's hit at a time (0094).
+    /// </summary>
+    public IReadOnlyList<(float X, float Y, string Tool)> Bits { get; set; } = [];
+
+    /// <summary>
     /// The piece of debris the hands would grab or chop, and whether the sim would refuse it: <c>crew</c> sets it while
     /// the pointer is on one within reach, <c>debris</c> outlines that piece.
     /// </summary>

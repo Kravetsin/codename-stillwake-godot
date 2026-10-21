@@ -10,8 +10,8 @@ namespace Stillwake.Game.Shared;
 /// A tool's picture on its card (the item card mockup, layout A): its held picture whole, <see cref="CardLook.ToolScale"/>
 /// times and crisp, in a small dark window. A drill runs on its own, over and over: its bit turning through its frames,
 /// its lamp lit, and its light thrown as the hand's is (<see cref="DrillLight"/>) into particles of its own, drawn over it
-/// at <see cref="CardLook.EffectScale"/> screen pixels a pixel of the world: sparks off its point, the arc drill's coil
-/// crackling in bursts.
+/// at <see cref="CardLook.EffectScale"/> screen pixels a pixel of the world: the arc drill's coil crackling in bursts, and
+/// at its point, as if it bit a wreck, a wreck's hits at its pace (<see cref="HitBurst"/>, 0094).
 /// </summary>
 public partial class ToolPicture : Control
 {
@@ -43,13 +43,18 @@ public partial class ToolPicture : Control
     private readonly TextureRect _picture;
     private readonly Control[] _lit = [];
     private readonly DrillLight? _light;
+    private readonly HitBurst? _hits;
     private readonly Flares _flares = new();
     private readonly Func<(double X, double Y), Vector2> _held;
-    private double _clockMs, _spun, _frame;
+    /// <summary>The ms between the drill's hits, its weapon's pace, and the share of the axe's hit each throws; how long since its last.</summary>
+    private readonly double _paceMs, _share;
+    private double _clockMs, _spun, _frame, _sinceHitMs;
 
-    public ToolPicture(HeldLook look)
+    public ToolPicture(HeldLook look, string item)
     {
         _look = look;
+        _paceMs = (Content.Weapons.Of(item)?.Pace ?? 1) * 1000.0 / Sim.World.TicksPerSecond;
+        _share = Features.Effects.Impacts.ShareOf(item);
         _still = GD.Load<Texture2D>(look.Loaded ?? look.Picture);
         int scale = CardLook.ToolScale;
         var size = _still.GetSize() * scale;
@@ -99,13 +104,14 @@ public partial class ToolPicture : Control
         var glims = new Glims(MostGlims);
         var bolts = new Bolts();
         _light = new DrillLight(glims, _flares, bolts);
+        _hits = new HitBurst(glims, _flares);
         var effects = new Node2D { Position = origin, Scale = Vector2.One * CardLook.EffectScale };
         effects.AddChild(new EffectsView(glims, _flares, bolts, matter: false));
         AddChild(effects);
     }
 
     /// <summary>The picture of <paramref name="item"/> held, for its card; null for an item held as no picture.</summary>
-    public static ToolPicture? Of(string item) => HeldLook.Of(item) is { } look ? new ToolPicture(look) : null;
+    public static ToolPicture? Of(string item) => HeldLook.Of(item) is { } look ? new ToolPicture(look, item) : null;
 
     public override void _Draw() => DrawWindow(this, Size);
 
@@ -134,8 +140,11 @@ public partial class ToolPicture : Control
         _picture.Texture = frame > 0 ? _spin[frame - 1] : _still;
         foreach (var c in _lit) c.Visible = running;
         var tip = _held(_look.EdgeTo);
-        // Nothing to bite on a card: the bit throws its sparks into the dark while it runs at speed.
-        _light!.Step(_look, _spun, running && _spun > 0.5, tip, Vector2.Right, _held, ms);
+        _light!.Step(_look, _spun, _held, ms);
+        // Nothing to bite on a card: while it runs at speed, a wreck's hits at its point, each its share of the axe's.
+        _sinceHitMs = running && _spun > 0.5 ? _sinceHitMs + ms : 0;
+        for (; _sinceHitMs >= _paceMs; _sinceHitMs -= _paceMs)
+            _hits!.Throw(HitLooks.Of[Impact.Wreck], tip.X, tip.Y, -1, 0, _share);
         if (_spun > 0)
             _flares.Bloom(tip.X, tip.Y, HeatAcross / CardLook.EffectScale, Heat, HeatAlpha * _spun * _spun);
     }

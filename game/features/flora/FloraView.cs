@@ -132,8 +132,9 @@ public partial class FloraView : Node2D
     private readonly List<int> _scratch = [];
 
     /// <summary>
-    /// A hit that deepens a plant's crack (it has strength, 0079) and leaves it standing: a few leaves or pebbles knocked off
-    /// and a short shake, so a tree taking several swings answers each. Reads the cracks, a short list, each frame.
+    /// A hit that deepens a plant's crack (it has strength, 0079) and leaves it standing: a short shake, so a tree taking several
+    /// swings answers each; what it knocks off is thrown where it struck (<c>HitBurst</c>, 0094). Reads the cracks, a short list,
+    /// each frame.
     /// </summary>
     private void Hits(double delta)
     {
@@ -144,7 +145,7 @@ public partial class FloraView : Node2D
             _scratch.Add(crack.Cell);
             if (_cracks.TryGetValue(crack.Cell, out int was) && was >= crack.Damage) continue;
             _cracks[crack.Cell] = crack.Damage;
-            Knocked(crack.Cell, shown.Kind, shown.Picture);
+            Shake(crack.Cell, shown.Picture);
         }
         foreach (int cell in _cracks.Keys.Where(c => !_scratch.Contains(c)).ToList()) _cracks.Remove(cell);
         foreach (var (cell, (rest, left)) in _shaking.ToList())
@@ -161,12 +162,8 @@ public partial class FloraView : Node2D
         }
     }
 
-    private void Knocked(int cell, string kind, Sprite2D picture)
+    private void Shake(int cell, Sprite2D picture)
     {
-        int w = _grid.Width;
-        double x = (cell % w + 0.5) * Cell, ground = (cell / w + 1) * Cell, y = ground - Math.Min(picture.Texture.GetSize().Y, 3 * Cell) / 2;
-        var look = kind == "rock" ? FloraLooks.Pebble : FloraLooks.Leaf;
-        Glims.Shared.Spray(look, x, y, (int)Math.Round(FloraLooks.Knocked * Fx.Count), -Math.PI / 2, (-1.4, 1.4), (20, 50), ground);
         var rest = _shaking.TryGetValue(cell, out var shaking) ? shaking.Home : picture.Position;
         _shaking[cell] = (rest, FloraLooks.ShakeSeconds);
     }

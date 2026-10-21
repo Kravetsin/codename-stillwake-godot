@@ -25,8 +25,8 @@ public static class GroundLooks
         ["plaster"] = new((92, 79, 69), (106, 90, 76), (36, 28, 22), (130, 112, 96)),
     };
 
-    /// <summary>How many of a dig's chips fly per hit, and the dust of a break.</summary>
-    public const int Chips = 5, BreakDust = 18, BreakChips = 8;
+    /// <summary>The dust and the chips of a break; a hit's are <see cref="HitLooks"/>'.</summary>
+    public const int BreakDust = 18, BreakChips = 8;
 
     /// <summary>
     /// How a natural back wall recedes behind its ground (0088), worked on its picture at load: paled toward its grey by

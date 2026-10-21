@@ -344,9 +344,6 @@ public static class Aiming
         return m.Building.DigProblem(peer, cell, tool) == null ? new Dig(cell, tool) : null;
     }
 
-    /// <summary>Whether a bit at <paramref name="at"/>, in thousandths of a cell, is on ground it bites: a natural wall that breaks. A friend's drill's sparks.</summary>
-    public static bool Bites(Registry m, Point at) => CellAt(m.Grid, at) is int cell && m.Grid.WallAt(cell) is { Breaks: true };
-
     private static int? CellAt(IGridQueries grid, Point at)
     {
         int x = (int)Math.Floor(at.X / (double)Hero.Unit), y = (int)Math.Floor(at.Y / (double)Hero.Unit);

@@ -189,8 +189,10 @@ public partial class DebrisView(Ui ui) : Node2D
     }
 
     /// <summary>
-    /// A hit landed on <paramref name="piece"/>, drawn at <paramref name="at"/>: its cracks deepen, it jolts away
-    /// from the nearest hero and sparks fly that way; the chop is heard if the hit was this player's own (0042).
+    /// A hit landed on <paramref name="piece"/>, drawn at <paramref name="at"/>: its cracks deepen, it jolts away from the
+    /// nearest hero, and a wreck's hit (0075, 0094) flies back toward it from where it was struck: under a running drill's bit
+    /// on it, that drill's share of the axe's hit; else the axe's whole, on the side facing the hero, the view nudged a pixel
+    /// and the chop heard if the hit was this player's own (0042). An own drill's chops are heard as each is sent (HeroView).
     /// </summary>
     private void Struck(Shown one, Piece piece, Vector2 at)
     {
@@ -201,47 +203,52 @@ public partial class DebrisView(Ui ui) : Node2D
         if (away == Vector2.Zero) away = Vector2.Right;
         one.Away = away;
         one.JoltMs = JoltMs;
-        // Struck on the side facing the hero, sparks thrown back toward it.
         var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
         var side = at - away * Math.Min(size.X, size.Y) * 0.4f;
-        // A drill's hits come ten or more a second: its chop is heard as each is sent (HeroView), and its bit throws its own
-        // sparks where it bites (crew's DrillLight).
-        if (HeldLook.IsDrill(_own.ToolOn(piece.Id))) return;
-        double back = (-away).Angle();
-        var glims = Glims.Shared;
-        // The axe's bite (0075): a glint, sparks sprayed back toward the hero, slow metal dust, three chips, a faint
-        // shock line, a flash on the wreck and round it; this player's own, the view nudged a pixel.
-        for (int i = 0; i < Math.Round(HitSparks * Fx.Count); i++)
-        {
-            double a = back + glims.Between(-1, 1) * glims.Between(0.2, 1), s = glims.Between(60, 175);
-            glims.Add(Luminous.HitSpark, side.X, side.Y, Math.Cos(a) * s, Math.Sin(a) * s);
-        }
-        for (int i = 0; i < Math.Round(HitDust * Fx.Count); i++)
-        {
-            double a = back + glims.Between(-1.8, 1.8), s = glims.Between(5, 26);
-            glims.Add(Luminous.HitDust, side.X, side.Y, Math.Cos(a) * s, Math.Sin(a) * s, size: glims.Between(0.4, 0.7));
-        }
-        glims.Spray(Luminous.Chip, side.X, side.Y, Chips, back, (-1.1, 1.1), (22, 40));
-        Flares.Shared.Glint(side.X, side.Y, 10, HitGlint);
-        Flares.Shared.Shock(side.X, side.Y, 2, 17, 11 * FrameMs, ShockColour, 0.35 * Fx.Glow);
-        Flares.Shared.Flash(side.X, side.Y, (255, 220, 170), HitFlash * Fx.Glow, 2, 0.45f, FlashDecay);
-        one.Flash = 1;
-        if (_own.Ran(piece.Id))
+        var bit = BitOn(at, size);
+        string tool = _own.ToolOn(piece.Id) ?? bit?.Tool ?? Content.Weapons.Axe.Item;
+        bool drill = HeldLook.IsDrill(tool);
+        var point = drill && bit is { } on ? on.At : side;
+        double share = Features.Effects.Impacts.ShareOf(tool);
+        HitBurst.Shared.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
+        one.Flash = Math.Max(one.Flash, share);
+        if (_own.Ran(piece.Id) && !drill)
         {
             _chop.PlayAt(side);
             Nudged?.Invoke(away);
         }
     }
 
-    /// <summary>Sparks an axe's hit throws, the dust it knocks off and the chips.</summary>
-    private const int HitSparks = 16, HitDust = 14, Chips = 3;
+    /// <summary>
+    /// The running drill's bit on a wreck drawn at <paramref name="at"/>, <paramref name="size"/> across, if one is within
+    /// <see cref="BitMargin"/> pixels of its picture's box: where on the box it bites, and which drill it is.
+    /// </summary>
+    private (Vector2 At, string Tool)? BitOn(Vector2 at, Vector2 size)
+    {
+        var half = size / 2;
+        (Vector2 At, string Tool)? nearest = null;
+        float best = float.MaxValue;
+        foreach (var (x, y, tool) in ui.Bits)
+        {
+            var bit = new Vector2(x, y);
+            var on = new Vector2(Math.Clamp(bit.X, at.X - half.X, at.X + half.X), Math.Clamp(bit.Y, at.Y - half.Y, at.Y + half.Y));
+            float gap = bit.DistanceTo(on);
+            if (gap > BitMargin || gap >= best) continue;
+            (best, nearest) = (gap, (on, tool));
+        }
+        return nearest;
+    }
+
+    /// <summary>How far off a wreck's picture's box a drill's bit, as drawn, still bites it, in pixels: the aim box's margin and a frame's drift.</summary>
+    private const float BitMargin = 4;
+
     private const double FrameMs = 1000.0 / 60;
-    private static readonly (int, int, int) HitGlint = (255, 214, 150), ShockColour = (255, 236, 210);
+    private static readonly (int, int, int) BreakGlint = (255, 214, 150), ShockColour = (255, 236, 210);
     /// <summary>How much brighter a struck wreck's picture flares, warm, as its flash dies away by <see cref="FlashDecay"/> a 60 Hz frame.</summary>
     private static readonly Color FlashTint = new(0.16f, 0.14f, 0.12f, 0);
     private const double FlashDecay = 0.84;
-    /// <summary>How strongly a hit and a break light what is round them at first: spots add over the room's light, so less than the page drew.</summary>
-    private const double HitFlash = 0.25, BreakFlash = 0.45;
+    /// <summary>How strongly a break lights what is round it at first: spots add over the room's light, so less than the page drew.</summary>
+    private const double BreakFlash = 0.45;
 
     /// <summary>This player's own axe bit a wreck, knocking it <c>away</c>: the view nudges (<see cref="ShipCamera.Nudge"/>).</summary>
     public event Action<Vector2>? Nudged;
@@ -278,7 +285,7 @@ public partial class DebrisView(Ui ui) : Node2D
             glims.Add(Luminous.Vapour, at.X + Math.Cos(a) * 3 * big, at.Y + Math.Sin(a) * 2 * big, Math.Cos(a) * s, Math.Sin(a) * s,
                 size: glims.Between(3, 4.5) * big);
         }
-        Flares.Shared.Glint(at.X, at.Y, 18 * Math.Sqrt(big), HitGlint);
+        Flares.Shared.Glint(at.X, at.Y, 18 * Math.Sqrt(big), BreakGlint);
         Flares.Shared.Shock(at.X, at.Y, 4, 4 + 40 * big * Fx.Length, 14 * FrameMs, ShockColour, 0.4 * Fx.Glow, 0.32);
         Flares.Shared.Flash(at.X, at.Y, (255, 226, 180), BreakFlash * Fx.Glow, 4, 0.45f, 0.9);
         if (own) _break.PlayAt(at);
