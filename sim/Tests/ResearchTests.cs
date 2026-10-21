@@ -106,6 +106,21 @@ public class ResearchTests
     }
 
     [Fact]
+    public void AnAnalysedArcLampOpensTheArcLampAboardWhichIsBuiltOfOne()
+    {
+        // A whole lamp of the arc makers' homes (0091): analysed, it stays, and its blueprint opens; hung aboard, it is the cost.
+        var (w, id) = SetUp();
+        w.GiveItems(0, ("arcLamp", 1));
+        var lamp = new Placement("machine", "arcLamp");
+        Assert.False(w.M.Research.Knows(lamp));
+        Assert.Equal(["arcLamp"], RecipeOf(w, "arcLamp").Unanalysed);
+        Analyse(w, id, "arcLamp");
+        Assert.True(w.M.Research.Knows(lamp));
+        Assert.Equal([("arcLamp", 1)], Content.Machines.Get("arcLamp").Cost);
+        Assert.Equal(Content.Machines.Get("lamp").Draws, Content.Machines.Get("arcLamp").Draws);
+    }
+
+    [Fact]
     public void OpensABlueprintOnceEveryItemOfItsCostIsAnalysedSayingWhichAreLeft()
     {
         var (w, id) = SetUp();

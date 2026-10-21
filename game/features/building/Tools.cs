@@ -95,6 +95,7 @@ public static class Tools
             Place("solarPanel", new Placement("machine", "solarPanel")),
             Place("burnerGenerator", new Placement("machine", "burnerGenerator")),
             Place("lamp", new Placement("machine", "lamp")),
+            Place("arcLamp", new Placement("machine", "arcLamp")),
             Place("charger", new Placement("machine", "charger")),
         ], Power),
         new("production",

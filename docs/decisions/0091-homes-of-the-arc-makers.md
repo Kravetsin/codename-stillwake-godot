@@ -1,7 +1,7 @@
 # 0091 — Homes of the arc makers: furnished ruins in the first planet's ground
 
-- Status: accepted; slice 1 built (three homes, their 49 pieces, plaster, cloth, the arc lamp as an item); the arc lamp's
-  blueprint aboard and the spire's furnished chamber next (slice 2). Amends [0080](0080-caves-glow-by-depth.md) and
+- Status: accepted; slice 1 built (three homes, their 49 pieces, plaster, cloth, the arc lamp as an item); slice 2 built (the
+  arc lamp hung aboard, the spire's chamber furnished). Amends [0080](0080-caves-glow-by-depth.md) and
   [0085](0085-ruins-on-the-first-planet.md): a growth may stand over several cells, hang on a back wall, or stand on another.
 - Date: 2026-10-21
 - Design: the homes concept page the user approved whole ("take every set on it"): its three scenes, its catalogue of 49
@@ -86,6 +86,17 @@ there. The page drew three homes cut in the rock, each lit two ways ("lamps stil
   `--homes lit` and `--homes dark` light every lamp that may go out, or none, the page's two moods; `--no-homes` leaves them
   undrawn, to measure what they cost.
 
+## Slice 2
+
+- **The arc lamp aboard** (`Machines`: `arcLamp`, 1 × 1, drawing 1 as the starter lamp does): its blueprint costs one arc lamp,
+  so it opens once one is analysed (the item stays in the analyzer, 0027) and each hung aboard is a lamp found. The light feature
+  lights it in the makers' cold white-blue, three tenths stronger and ten cells out (`Light.ArcLamp`), its halo cyan; short of
+  power it flickers as any lamp. Its pictures, the ceiling lamp's mount and globe in a cell, from the export: its body, dark,
+  drawn whatever its power, and while it shines the homes' own globe alight over it with its glow, and at full power the ceiling
+  lamp's arc crackling across it, as a lit home's lamp. `J` on a map.
+- **The spire's chamber furnished** (`Ruins.SpireFurnishing`, the page's proposal): a table and a chair, a ceiling lamp over them,
+  a shelf with an empty scroll case, the makers' banner by the shrine, a cobweb; set with the spire's own growths.
+
 ## Rejected
 
 - **A list of ruin pieces of their own in Building:** everything a piece needs is a growth's, with three new properties.
@@ -94,8 +105,9 @@ there. The page drew three homes cut in the rock, each lit two ways ("lamps stil
 
 ## Deliberately not handled
 
-- **The arc lamp's blueprint and the lamp aboard** (slice 2): the item drops and is kept; it is not built yet.
-- **The spire's chamber furnished** (slice 2).
+- **More arc lamps made aboard** from glass, wire and alloy scrap (the page): research opens what is made of what was analysed,
+  and a craft of those three would open without any lamp found; a rule opening a craft by analysing another item would be new.
+  Till then every lamp aboard is one found.
 - **A piece's other cells built over** leave it standing, as a tree's crown does (0080).
 - **Pieces past the first planet's homes:** no surface or cave grows them; only `Terrain` sets them.
 - **Text of the past:** the story is told by things, no words, no ghosts, no voices (the page).

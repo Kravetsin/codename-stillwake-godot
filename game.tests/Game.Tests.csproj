@@ -139,6 +139,7 @@
     <Compile Include="../game/Content/FloraLooks.cs" Link="Game/Content/FloraLooks.cs" />
     <Compile Include="../game/Content/HomesLooks.cs" Link="Game/Content/HomesLooks.cs" />
     <Compile Include="../game/Content/HomesArt.cs" Link="Game/Content/HomesArt.cs" />
+    <Compile Include="../game/Content/ArcLampLooks.cs" Link="Game/Content/ArcLampLooks.cs" />
     <Compile Include="../game/features/flora/Planting.cs" Link="Game/Flora/Planting.cs" />
     <Compile Include="../game/Content/Handbook.cs" Link="Game/Content/Handbook.cs" />
     <Compile Include="../game/features/debris/Finds.cs" Link="Game/Debris/Finds.cs" />

@@ -81,6 +81,14 @@ public static class Light
     public const float LampKeep = 0.74f;
     public const int LampReach = 8;
     public const float LampMost = 1f;
+
+    /// <summary>
+    /// An arc makers' lamp hung aboard (0091): their cold white-blue, brighter than the starter lamp and reaching further, as their
+    /// homes' lamps are (the page's arc light, a fifth wider, three tenths stronger).
+    /// </summary>
+    public static readonly (float R, float G, float B) ArcLamp = (0.56f, 0.78f, 1f);
+    public const float ArcLampKeep = 0.78f, ArcLampStrength = 1.3f;
+    public const int ArcLampReach = 10;
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
     public const float FireKeep = 0.72f;
     // An ember's light is a bright point, not a wash: the furnace's fire lights the room round it anyway.

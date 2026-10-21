@@ -927,4 +927,4 @@ function put(p, id, x, y, o = {}) {
   return { x, top, w: P.w, h: P.h };
 }
 
-module.exports = { PIECES, PAL, ARC, HOT, HOLO, TEAL, VIO, put, dust, blend, line, box, abox, R, emblem };
+module.exports = { PIECES, PAL, ARC, HOT, HOLO, TEAL, VIO, put, dust, blend, line, box, abox, R, emblem, globe };
