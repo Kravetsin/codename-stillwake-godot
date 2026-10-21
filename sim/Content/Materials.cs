@@ -6,7 +6,7 @@ namespace Stillwake.Content;
 /// <param name="Code">Stored in saves instead of the name: never reuse or renumber a code.</param>
 /// <param name="Strength">
 /// A natural wall's hit points: the damage of weapons' hits (0054) that breaks it out (0077). <see cref="Unbreakable"/>
-/// for one nothing breaks, bedrock. Unused for hull, which is taken apart with marks.
+/// for one nothing breaks, bedrock and lava. Unused for hull, which is taken apart with marks.
 /// </param>
 /// <param name="Leak">
 /// Oxygen units lost every <see cref="Air.LeakEvery"/> ticks (ten minutes) through one cell of it that an
@@ -46,6 +46,8 @@ public static class Materials
         new("soil", Code: 3, Strength: 4, Leak: 40, Cost: [("soil", 1)], BuildTicks: 10, Natural: true),
         new("stone", Code: 4, Strength: 12, Leak: 36, Cost: [("rock", 1)], BuildTicks: 20, Natural: true),
         new("bedrock", Code: 5, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
+        // The planet's core over its bedrock: molten rock nothing digs or builds, burning a hero who touches it (Content.Lava).
+        new(Lava.Material, Code: 6, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
     ];
 
     /// <summary>What a <c>#</c> on a map is built of.</summary>

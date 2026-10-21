@@ -6,7 +6,8 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
 [0028](../../docs/decisions/0028-the-lifepod-and-crafting-by-machine-only.md).
 
 - **Depends on:** `Atmosphere` (`IAtmosphereOps`: its `Breathe` operation decides whether a cell's
-  room has air and takes it); `Grid` (`IGridQueries.Width`, `Height` and `Zone`: where a cell is, for the pod's reach and the field); `Items`
+  room has air and takes it); `Grid` (`IGridQueries.Width`, `Height` and `Zone`: where a cell is, for the pod's reach and the field;
+  `WallAt`, lava under a hero); `Items`
   (`IItemsQueries.Equipped`, `ShortOf` and `Creative`, whether a hero wears a jetpack, carries a canister and needs air;
   `IItemsOps.Take`, the canister breathed; `IItemsOps.StopRunning`, an electric tool stopped as its hero passes out
   or leaves, 0055; `IItemsOps.LeaveBody`, what a hero carried left where it died, 0061); `Players` (`IPlayersQueries.Worn`
@@ -91,6 +92,12 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   so (or by the breath) passes the hero out as ever. It adds to thrust, which the suit pays apart. On a
   map that sets no zone the field reaches past the grid, so no cell on it costs anything. A planet's grid sets none (0076):
   its whole grid is its field.
+- **Lava burns** ([0084](../../docs/decisions/0084-the-planets-core-is-lava.md)): `Burns(cell)`, public on the module, is
+  whether a wall of lava (`Content.Lava.Material`) is at the reported cell or up to `Lava.Reach` (2) rows under it — where
+  the feet of a hero standing on it are, its middle 1312 thousandths over them. At every breath the suit alone pays
+  `Lava.Burn` (15) more for it, with the cold: with the breath itself a full suit (45) is gone on the third breath, two
+  to three seconds after the sim hears of the hero there, and the hero passes out, dies and wakes at the pod as from any
+  empty suit. It reads the reported cell, so a report up to a second late (0050) burns a second late.
 - **Creative mode** (`Items`' dev panel switch): every tick a conscious hero's suit is full, whatever
   breath, exertion, thrust or cold would take, so it never passes out; it takes nothing from the pod or
   a room's air either. A hero already out when creative mode comes on wakes as ever.
@@ -102,7 +109,7 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
 - **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)` — whether a hero there draws the pod's air; `EdgeCost(cell)` — what the
   cold takes from a suit a breath there (the breath and the client's frost read it); `HeroOf(id)` (TypeScript's `hero`; a method cannot share
   the `Hero` class's name) — the `Hero` with `Id`, `Cell`, `Suit`, `Out`, or null (its colour is `Players.ColourOf`);
-  `Heroes` — all of them, in id order, live and read-only.
+  `Heroes` — all of them, in id order, live and read-only. On the module: `Burns(cell)` — whether lava burns a hero reported there.
 - **Commands:** `Enter(Cell)`, with no refusals: a cell off the grid or in a wall is simply no air;
   `PickColour(Colour)`, refused with `crew.noHero`, `crew.noSuchColour` or `crew.colourTaken`;
   `Leave`, refused with `crew.noHero`; `Exert(On)`, refused with `crew.noHero`; `Thrust(On)`, refused

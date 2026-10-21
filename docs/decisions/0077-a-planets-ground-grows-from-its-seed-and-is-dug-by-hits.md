@@ -34,7 +34,8 @@ digging and a light to dig by come together.
     of the middle: 4 *chasms*, clefts up to 12 cells across cut from the surface 130–260 rows down, wandering and
     narrowing; 6 *great halls*, caverns up to 72 × 28 cells either side of their middle, their walls ragged by noise,
     from 80 rows under the surface to the bedrock. Walking across takes minutes; there is something to find.
-  - *Bedrock:* the bottom 3 rows and a 1-wide column at each side, the whole height.
+  - *Bedrock:* the bottom 3 rows and a 1-wide column at each side, the whole height. *Amended by [0084](0084-the-planets-core-is-lava.md):* the
+    bottom 3 rows are the core, 2 of lava over 1 of bedrock.
   - *Slopes:* a soil or stone cell open above with one side open and the other solid is cut to ◢ or ◣ (0069), rising
     toward the solid side; the surface and cave floors alike. A slope under the open sky has no back wall, so its open
     half shows the sky (a negative material code in `Layout.Materials`); one in a cave keeps its, dark. No spikes: a bump

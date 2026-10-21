@@ -30,16 +30,31 @@ public class TerrainTests
     }
 
     [Property(MaxTest = 60)]
-    public Property TheBottomRowsAndTheSideColumnsAreBedrockTheWholeHeight() => Prop.ForAll(Seeds, seed =>
+    public Property TheBottomIsLavaOverBedrockAndTheSideColumnsBedrockTheWholeHeight() => Prop.ForAll(Seeds, seed =>
     {
         var l = Terrain.Generate(Small, seed);
-        bool Bedrock(int x, int y) => l.Rows[y][x] == '#' && l.Materials![y * l.Width + x] == Code("bedrock");
-        var edge = Enumerable.Range(0, l.Height).SelectMany(y => new[] { (0, y), (l.Width - 1, y) })
-            .Concat(Enumerable.Range(l.Height - Small.BedrockRows, Small.BedrockRows).SelectMany(y => Enumerable.Range(0, l.Width).Select(x => (x, y))));
+        bool Is(int x, int y, string material) => l.Rows[y][x] == '#' && l.Materials![y * l.Width + x] == Code(material);
+        int floor = l.Height - Small.CoreRows;
+        var sides = Enumerable.Range(0, l.Height).SelectMany(y => new[] { (0, y), (l.Width - 1, y) });
+        var bedrock = Enumerable.Range(floor + Small.LavaRows, Small.BedrockRows).SelectMany(y => Enumerable.Range(0, l.Width).Select(x => (x, y)));
+        // The lava under every column between the sides, solid, the bedrock under it: nothing falls out of the bottom.
+        var lava = Enumerable.Range(floor, Small.LavaRows).SelectMany(y => Enumerable.Range(1, l.Width - 2).Select(x => (x, y)));
         // Nowhere else: the ground inside is soil and stone.
-        var inside = Enumerable.Range(0, l.Height - Small.BedrockRows).SelectMany(y => Enumerable.Range(1, l.Width - 2).Select(x => (x, y)));
-        return edge.All(c => Bedrock(c.Item1, c.Item2)) && inside.All(c => l.Materials![c.Item2 * l.Width + c.Item1] != Code("bedrock"));
+        var inside = Enumerable.Range(0, floor).SelectMany(y => Enumerable.Range(1, l.Width - 2).Select(x => (x, y)));
+        return Small.LavaRows > 0 && Small.BedrockRows > 0
+            && sides.Concat(bedrock).All(c => Is(c.Item1, c.Item2, "bedrock")) && lava.All(c => Is(c.Item1, c.Item2, "lava"))
+            && inside.All(c => Math.Abs(l.Materials![c.Item2 * l.Width + c.Item1]) is var m && m != Code("bedrock") && m != Code("lava"));
     });
+
+    [Fact]
+    public void NothingGrowsOnTheLava()
+    {
+        // The deepest caves of the first planet reach the lava: their floors there grow nothing.
+        var l = Terrain.Generate(Planet, 1);
+        int floor = l.Height - Planet.CoreRows;
+        Assert.Contains(Enumerable.Range(0, l.Width), x => l.Rows[floor - 1][x] == '.');
+        Assert.DoesNotContain(l.Flora!, f => f.Cell / l.Width == floor - 1 && Content.Flora.Cave.Any(k => k.Id == f.Kind && k.Holds == Content.Flora.Anchor.Floor));
+    }
 
     [Property(MaxTest = 60)]
     public Property HeroesBeamDownToAnOpenCellOnWholeGroundUnderTheSky() => Prop.ForAll(Seeds, seed =>
@@ -69,7 +84,7 @@ public class TerrainTests
             int top = TopOf(l, x), soil = SoilAt(l, x, top);
             if (soil > Small.SoilMost) return false;
             // Stone from there to the bedrock, open or not; nothing but sky above.
-            if (Enumerable.Range(top + soil, l.Height - Small.BedrockRows - top - soil).Any(y => Math.Abs(l.Materials![y * l.Width + x]) != Code("stone"))) return false;
+            if (Enumerable.Range(top + soil, l.Height - Small.CoreRows - top - soil).Any(y => Math.Abs(l.Materials![y * l.Width + x]) != Code("stone"))) return false;
             // Above it, the sky, or a cave under an overhang of another column's: open, and of no material but in a cave.
             if (Enumerable.Range(0, top).Any(y => l.Rows[y][x] is not (' ' or 'S' or '.') || l.Rows[y][x] != '.' && l.Materials![y * l.Width + x] != 0)) return false;
         }
@@ -186,7 +201,7 @@ public class TerrainTests
         foreach (uint seed in Enumerable.Range(1, 12).Select(s => (uint)s))
         {
             var l = Terrain.Generate(Planet, seed);
-            int from = Planet.Surface + Planet.CaveFrom, to = Planet.Height - Planet.BedrockRows, third = (to - from) / 3;
+            int from = Planet.Surface + Planet.CaveFrom, to = Planet.Height - Planet.CoreRows, third = (to - from) / 3;
             double Open(int top, int bottom) =>
                 Enumerable.Range(top, bottom - top).Sum(y => l.Rows[y].Count(c => c == '.')) / (double)((bottom - top) * l.Width);
             Assert.True(Open(to - third, to) > Open(from, from + third) * 1.15, $"seed {seed}: {Open(from, from + third):P0} above, {Open(to - third, to):P0} below");
@@ -224,7 +239,7 @@ public class TerrainTests
             Assert.All(chasms, x => Assert.True(Math.Abs(x - middle) > Planet.Clear, $"seed {seed}: a chasm at {x}"));
             Assert.True(chasms.Max() - chasms.Min() > w / 2, $"seed {seed}: chasms only from {chasms.Min()} to {chasms.Max()}");
             // A hall: a run of open cells along a row, deep down, as wide as the smallest hall.
-            int halls = Enumerable.Range(Planet.Surface + Planet.HallFrom, l.Height - Planet.Surface - Planet.HallFrom - Planet.BedrockRows)
+            int halls = Enumerable.Range(Planet.Surface + Planet.HallFrom, l.Height - Planet.Surface - Planet.HallFrom - Planet.CoreRows)
                 .Count(y => l.Rows[y].Contains(new string('.', Planet.HallWide)));
             Assert.True(halls > 0, $"seed {seed}: no hall");
         }
