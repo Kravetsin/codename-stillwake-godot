@@ -211,8 +211,8 @@ public class MachineSoundTests
         // The stroke only a little over its motor, and quieter than a door or a step.
         Assert.InRange(Sound.FormerStroke.VolumeDb - Sound.FormerMotor.VolumeDb, 0, 4);
         Assert.True(Sound.FormerStroke.VolumeDb < Sound.DoorOpen.VolumeDb && Sound.FormerStroke.VolumeDb < Sound.Step.VolumeDb);
-        // The drill's motor 6 dB under its strikes as auditioned: the strike's file is 8 dB louder than the audition's cut of it.
-        Assert.Equal(-6, Sound.DrillWhir.VolumeDb - (Sound.DrillStrike.VolumeDb + 8));
+        // The drill's motor at the level it was auditioned at, under the old strikes it was matched to.
+        Assert.Equal(-8, Sound.DrillWhir.VolumeDb);
         Assert.Equal((0.15f, 0.1f, 0.02f), (Sound.FormerStrokePitch, Sound.SmelterCracklePitch, Sound.DrillWhirPitch));
         Assert.True(Sound.FormerMotor.Loops && Sound.SmelterHum.Loops);
         Assert.False(Sound.DrillWhir.Loops || Sound.SmelterCrackle.Loops || Sound.FormerStroke.Loops);

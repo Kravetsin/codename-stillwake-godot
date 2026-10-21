@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Light;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Building;
@@ -31,6 +32,8 @@ public partial class HomesView : Node2D
     private readonly Func<IReadOnlyList<Vector2>> _heroes;
     private readonly Painter _pictures, _shine;
     private readonly Heard2D _tine, _zap;
+    /// <summary>A piece felled heard where it stood, by what it is made of, whoever felled it (0093).</summary>
+    private readonly Voices _falls = new(Game.Sound.World, voices: 3);
     private readonly List<Shown> _shown = [];
     private readonly Dictionary<int, Shown> _byCell = new();
     private readonly List<Shown> _inView = [];
@@ -60,6 +63,7 @@ public partial class HomesView : Node2D
         AddChild(_shine = new Painter(this, glow: true) { ZIndex = Layers.Flora, Material = GlowMaterial });
         AddChild(_tine = Cues.Player2D(Game.Sound.MusicBox, Game.Sound.World, voices: 4));
         AddChild(_zap = Cues.Player2D(Game.Sound.Zap, Game.Sound.World, voices: 2));
+        AddChild(_falls);
     }
 
     /// <summary>The mean time this view took a frame since it was last asked, in milliseconds: for <c>--measure</c>.</summary>
@@ -182,6 +186,7 @@ public partial class HomesView : Node2D
         glims.Spray(Chip, middle.X, middle.Y, (int)Math.Round(6 * Fx.Count), -Math.PI / 2, (-1.4, 1.4), (20, 60), s.Box.Y + s.Art.BoxH);
         if (s.Lit && s.Art.Lights.Length > 0) glims.Spray(Luminous.ArcSpark, middle.X, middle.Y, 6, -Math.PI / 2, (-Math.PI, Math.PI), (30, 90));
         if (s.Plant.Kind == "musicBox") Tune(middle);
+        if (GroundSounds.FallOf(s.Plant.Kind) is { } fall) _falls.Play(fall, middle);
     }
 
     /// <summary>Chips knocked off a piece: dust and splinters, falling.</summary>

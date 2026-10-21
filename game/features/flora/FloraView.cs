@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content.Flora;
@@ -32,10 +34,14 @@ public partial class FloraView : Node2D
     /// <summary>The light of every glowing part of a plant near the view this frame, in pixels of the world.</summary>
     public IReadOnlyList<(Vector2 At, Color Colour)> Lights => _lights;
 
+    /// <summary>A plant felled heard where it stood, by its kind, whoever felled it (0093).</summary>
+    private readonly Voices _falls = new(Game.Sound.World, voices: 3);
+
     public FloraView(IGridQueries grid, BuildingModule building)
     {
         _grid = grid;
         _building = building;
+        AddChild(_falls);
     }
 
     public override void _Process(double delta)
@@ -172,6 +178,7 @@ public partial class FloraView : Node2D
         double x = (cell % w + 0.5) * Cell, ground = (cell / w + 1) * Cell, y = ground - Math.Min(tall, 3 * Cell) / 2;
         var look = kind == "rock" ? FloraLooks.Pebble : FloraLooks.Leaf;
         Glims.Shared.Spray(look, x, y, (int)Math.Round(FloraLooks.Fallen * Fx.Count), -Math.PI / 2, (-1.4, 1.4), (20, 60), ground);
+        if (GroundSounds.FallOf(kind) is { } fall) _falls.Play(fall, new Vector2((float)x, (float)y));
     }
 
     /// <summary>

@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Light;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
@@ -50,11 +52,18 @@ public partial class CaveView : Node2D
     public int Glinting => _sparkles.Glints.Count;
 
     /// <param name="lamps">Where each helmet lamp on this surface shines from and the way it points, as the light takes them.</param>
+    /// <summary>A growth felled heard where it stood, by its kind; a drip heard where it splashes, now and then (0093).</summary>
+    private readonly Voices _falls = new(Game.Sound.World, voices: 3);
+    private readonly Heard2D _drip = Cues.Player2D(Game.Sound.CaveDrip, Game.Sound.World, voices: 2);
+    private double _dripQuietS;
+
     public CaveView(IGridQueries grid, BuildingModule building, Spec.Ground ground, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> lamps)
     {
         (_grid, _building, _ground, _lamps) = (grid, building, ground, lamps);
         _across = (grid.Width + Chunk - 1) / Chunk;
         AddChild(_sparkles);
+        AddChild(_falls);
+        AddChild(_drip);
     }
 
     /// <summary>The mean time this view took a frame since it was last asked, in milliseconds: for <c>--measure</c>.</summary>
@@ -81,6 +90,7 @@ public partial class CaveView : Node2D
         Glints(view);
         _sparkles.Time = _seconds;
         _sparkles.QueueRedraw();
+        _dripQuietS -= delta;
         Land();
         Motes(view, delta);
         _spentMs += System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
@@ -403,6 +413,13 @@ public partial class CaveView : Node2D
             {
                 drip.AgeMs = drip.LifeMs;
                 Glims.Shared.Spray(CaveLooks.Splash, drip.X, floor - 0.5, CaveLooks.SplashDrops, -Math.PI / 2, (-1.1, 1.1), (14, 34), floor);
+                // Heard now and then, however many fall: a cave drips, it does not rain.
+                if (_dripQuietS <= 0)
+                {
+                    var glims = Glims.Shared;
+                    _dripQuietS = glims.Between(Game.Sound.CaveDripLeastS, Game.Sound.CaveDripMostS);
+                    _drip.PlayAt(new Vector2((float)drip.X, floor), 1, (float)glims.Between(Game.Sound.CaveDripLowDb, 0));
+                }
             }
             _falling[i] = _falling[^1];
             _falling.RemoveAt(_falling.Count - 1);
@@ -434,6 +451,7 @@ public partial class CaveView : Node2D
         }
         else if (plant.Kind is "stalactite" or "stalagmite")
             glims.Spray(FloraLooks.Pebble, x, y, 6, -Math.PI / 2, (-1.4, 1.4), (20, 60), (plant.Cell / w + 1) * Cell);
+        if (GroundSounds.FallOf(plant.Kind) is { } fall) _falls.Play(fall, new Vector2((float)x, (float)y));
     }
 
     private static Color Colour((int R, int G, int B) c) => new(c.R / 255f, c.G / 255f, c.B / 255f);

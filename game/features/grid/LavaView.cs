@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Features.Light;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content;
 
@@ -100,6 +102,15 @@ public partial class LavaView : Node2D
     private readonly ImageTexture _openTexture;
     private int _version = -1;
     private double _timeMs, _emberDue;
+    /// <summary>
+    /// The lava heard (0093): its rumble at the open lava nearest the view's middle while any is in reach, its bubbles at random
+    /// moments at open cells in reach.
+    /// </summary>
+    private readonly Heard2D _bed = Cues.Player2D(Game.Sound.LavaBed, Game.Sound.World);
+    private readonly Heard2D _bubble = Cues.Player2D(Game.Sound.LavaBubble, Game.Sound.World, voices: 3);
+    private readonly List<int> _heard = [];
+    private RandomTrain _bubbles;
+    private readonly Random _random = new();
 
     /// <summary>The lava's lights near the view: where the open is over its surface, the nearest the view's middle.</summary>
     public IReadOnlyList<LightSource> Lights => _lights;
@@ -122,6 +133,8 @@ public partial class LavaView : Node2D
         haze.Draw += () => haze.DrawRect(
             new Rect2(_left * Cell, (_top - LavaLooks.HazeRows) * Cell, (_right - _left) * Cell, LavaLooks.HazeRows * Cell), Colors.White);
         AddChild(haze);
+        AddChild(_bed);
+        AddChild(_bubble);
     }
 
     private ShaderMaterial MaterialOf(Shader shader)
@@ -150,7 +163,11 @@ public partial class LavaView : Node2D
         }
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();
         // Below the view, or too far above it for its light to reach in: no lights, no embers.
-        if (view.End.Y < (_top - LavaLooks.Reach) * Cell || view.Position.Y > _top * Cell) return;
+        if (view.End.Y < (_top - LavaLooks.Reach) * Cell || view.Position.Y > _top * Cell)
+        {
+            Hear(view.GetCenter(), delta);
+            return;
+        }
         int from = Math.Max(_left, (int)Math.Floor(view.Position.X / Cell) - LavaLooks.Reach);
         int to = Math.Min(_right, (int)Math.Ceiling(view.End.X / Cell) + LavaLooks.Reach);
         int middle = Math.Clamp((int)(view.GetCenter().X / Cell), from, to);
@@ -158,6 +175,7 @@ public partial class LavaView : Node2D
         Stretch(middle, to, +1);
         Stretch(middle - 1, from - 1, -1);
         Embers(delta);
+        Hear(view.GetCenter(), delta);
 
         void Stretch(int start, int end, int step)
         {
@@ -179,6 +197,40 @@ public partial class LavaView : Node2D
         _lights.Add(new LightSource((x + 0.5) * Cell, (_top - 0.5) * Cell, LavaLooks.Light, LavaLooks.Strength * breathes,
             LavaLooks.Reach, LavaLooks.Keep, 1, LavaLooks.Size));
     }
+
+    /// <summary>
+    /// The lava heard from <paramref name="ear"/>, the view's middle: its rumble at the open surface nearest it while any is within
+    /// the rumble's reach, moved along as the view moves, and its bubbles at open cells within it.
+    /// </summary>
+    private void Hear(Vector2 ear, double delta)
+    {
+        _heard.Clear();
+        float silent = Game.Sound.LavaBed.Heard!.Silent * Cell, best = float.MaxValue;
+        int nearest = -1;
+        foreach (int x in _open)
+        {
+            float far = SurfaceAt(x).DistanceTo(ear);
+            if (far > silent) continue;
+            _heard.Add(x);
+            if (far < best) (best, nearest) = (far, x);
+        }
+        if (nearest >= 0)
+        {
+            _bed.GlobalPosition = SurfaceAt(nearest);
+            // Begun somewhere along its loop, so it never starts on the same swell.
+            if (!_bed.Playing) _bed.Play((float)(_random.NextDouble() * _bed.Stream.GetLength()));
+        }
+        else if (_bed.Playing) _bed.Stop();
+        for (int due = _bubbles.Due(delta, _heard.Count > 0, Game.Sound.LavaBubblesPerSecond, _random); due > 0; due--)
+        {
+            var at = SurfaceAt(_heard[_random.Next(_heard.Count)]) + new Vector2((float)(_random.NextDouble() - 0.5) * Cell, 0);
+            var (pitch, _) = StrikeTrain.Vary(_random, Game.Sound.LavaBubblePitch, 0);
+            _bubble.PlayAt(at, pitch, (float)_random.NextDouble() * Game.Sound.LavaBubbleLowDb);
+        }
+    }
+
+    /// <summary>The middle of the open cell over the lava's surface in column <paramref name="x"/>, in pixels of the world.</summary>
+    private Vector2 SurfaceAt(int x) => new((x + 0.5f) * Cell, (_top - 0.5f) * Cell);
 
     /// <summary>Embers rising off the open surface near the view, at <see cref="LavaLooks.EmbersASecond"/> each open cell, at random.</summary>
     private void Embers(double delta)

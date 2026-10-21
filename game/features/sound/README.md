@@ -1,6 +1,6 @@
 # sound (client): what is heard
 
-The first sound pass (ADR 0033), what is heard in space (0042), machines heard at work (0059) and drones (0062). Presentation only: nothing in
+The first sound pass (ADR 0033), what is heard in space (0042), machines heard at work (0059), drones (0062) and a planet (0093). Presentation only: nothing in
 `sim/` or `net/` makes or knows of a sound; each peer plays what it sees.
 
 | File                           | Holds                                                                                          | Godot |
@@ -13,6 +13,8 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
 | `Hearing.cs`                   | the buses at a share of the way into space (`Mix`), and the easing of a share                   | no    |
 | `Strikes.cs`                   | a train of one-shots at a rate, each its own pitch and volume (`StrikeTrain`); a loop's attack and release (`LoopEnvelope`); a one-shot in step with a picture (`FrameBeat`); one-shots at random moments (`RandomTrain`) | no    |
 | `Motors.cs`                    | a motor's spin and load, and from them its pitch scale and volume (`MotorSound`); a touch held on past a flicker (`TouchHold`) | no    |
+| `GroundSounds.cs`              | a planet heard (0093): what the boots stand on (`FootingOf`), and from `Sound`'s tables the step, push-off and landing by it, any tool's hit by the wall or growth it lands on (a drill's every Nth, quieter), a wall's break, a growth's fall | no    |
+| `game/shared/Voices.cs`        | players of whichever cues something plays, one a cue, made as first played: the boots, the ground's hits, breaks and falls | yes   |
 | `SoundView.cs`                 | the hearing: button clicks, the muffle while floating, the title's music and the bed of space   | yes   |
 | `game/audio/`                  | the files, one-shots as WAV and loops as OGG looped on import; `CREDITS.md`, CC0 or marked placeholders. Synthesised loops and pops are rendered offline from the audition's parameters (deterministic seeds; a loop's second of two periods kept, so it closes on itself; −23 dBFS RMS) | — |
 
@@ -52,7 +54,11 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
     jump's speed (`Poses.Jumped`), so walking off an edge, falling, makes none; a landing coming down
     from the air (`Poses.Landed`), not at a jump's top where the controller leaves a step without
     speed. The landing is the steps' own files, 4 dB louder and at 0.85 of their pitch (`Cue.Tune`).
-    All on World: this player's hero heard the same anywhere, the others' positional
+    On a planet (0093) each by what the boots stand on (`Figure.Footing`, set by `HeroView` from
+    `GroundSounds.FootingOf`, kept from the last ground in the air): grass, moss (the grass step 4 dB quieter), soil, stone
+    (plaster too) and alloy each their step, a jump pushing off with it; on natural ground a soft landing under
+    `HeroMotion.Landing.Heavy` and a heavy one from it, `LandSoftestDb` quieter and higher at a light fall; on alloy its step
+    landing as the deck's (`Sound.LandAlloy`). All on World: this player's hero heard the same anywhere, the others' positional
     (`AudioStreamPlayer2D`), their jumps read from their sent motion as their own peer's are; nothing
     new goes over the wire.
   - `crew/HeroView.cs` and `items/ItemsView.cs` — on Suit, through `ActSound`: the one soft action click
@@ -74,12 +80,9 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
     volume from `MotorSound` with `Sound.DrillMotor`: spun up and down with the bit's picture (`HeldLook.SpinUpMs`, 120 and
     700 ms), pitch 0.35 + 0.65·spin, full volume from two thirds of its spin, and on a piece 8% lower and 3 dB quieter,
     eased in over 60 ms and out over 150 ms. While it runs with its bit on a piece the sim would let it hit, held on
-    `DrillTouchHoldS` (0.1 s) after the bit last was (`TouchHold`), so grazing an edge never breaks into bursts,
-    `Sound.DrillStrike` (a pickaxe on metal cut to 50 ms) at
-    `Sound.DrillStrikesPerSecond` (18, a hammer drill's buzz, apart from the damage's 10 hits a second), the
-    first at once, each its pitch scale within ±`DrillStrikePitch` (12%) and its volume within
-    ±`DrillStrikeVolumeDb` (1.5 dB) (`StrikeTrain`); stopped, voices and all, the frame the drill stops or the hold
-    runs out. Its hits play no chop.
+    `DrillTouchHoldS` (0.1 s) after the bit last was (`TouchHold`), so grazing an edge never breaks into bursts, the
+    motor is loaded. Its hits on a wreck sound as a wreck does, `Sound.Chop`, one each as it is sent, `DrillHitDb` quieter
+    (0093); the old pickaxe strikes are gone.
     This player's axe (0068), on Suit, every swing, a wreck hit or nothing: `Sound.Swing`, a staff's whoosh, one of four,
     its pitch ±8%, begun at `AxeSwing.WhooshMs` so its loudest moment (`Sound.SwingPeakS` into each file) falls in the
     middle of the downstroke, some 20 ms before the blade crosses the line; muffled in space as the chop is. Others' swings are
@@ -129,6 +132,16 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
     0034) as the drawing sees the wreck's damage rise, and the break where a wreck its own hit broke
     bursts. Own is told by `debris/OwnHits.cs`: a `Hit` of this peer's that has left `Client.InFlight`
     since the last frame. Another hero's hit is silent: a wreck is only out in space (0042).
+  - On a planet (0093), all on World where it happens but this hero's own hits, on Suit:
+    `crew/HeroView.cs` — every tool's hit sounds as what it hits (`GroundSounds.HitAt`, one table for all): the axe's as its
+    blade strikes, this hero's and a friend's as its swing is played; the drill's at its hit pace as the dig goes out (a friend's
+    from what the client knows: the sim's `Items.Running` and its sent `Busy` bit), every hit (the drill's 10 a second),
+    `DrillHitDb` under the axe's, on 5 voices (6 for friends). The drill keeps its motor's whir. A hero touching lava hisses
+    (`Sound.LavaBurn`) at once and every `LavaBurnEveryS` while it burns. `building/DigView.cs` — a cracked wall broken out, by
+    its material (`Sound.Ground`). `flora/FloraView.cs`, `flora/CaveView.cs`, `ruins/HomesView.cs` — a growth felled, by its
+    kind (`Sound.Growths`; `Sound.Unheard` none); `CaveView` a drip where it splashes, at most one every `CaveDripLeastS` to
+    `CaveDripMostS`. `grid/LavaView.cs` — the rumble (`Sound.LavaBed`) at the open lava nearest the view's middle while any is
+    in its reach, and its bubbles (`Sound.LavaBubble`, `RandomTrain`) at open cells in it.
   - `atmosphere/AirView.cs` — two looped positional players, each at its source nearest the middle
     of the screen and stopped without one: the hiss at a venting stream, and the ship's hum at a vent
     with oxygen behind it (its room's networks hold some or make some). The hum is the vents', not the
@@ -148,3 +161,5 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
 - The circuit assembler is silent till its audition. A station taken down mid-work stops at once, without running
   down. The Former strikes from its first picture down, not once its motor is at speed as the audition did: the
   stroke follows the head seen, and the head moves at once.
+- On a planet (0093): ladders, cave air and surface wind, as the user chose; a friend's drill's whir; rugs underfoot sound as the floor under them; the deck's landing keeps one loudness whatever the fall. A
+  wall broken without a crack first would be silent, but no weapon breaks one in a hit.
