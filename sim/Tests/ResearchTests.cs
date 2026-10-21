@@ -94,6 +94,18 @@ public class ResearchTests
     }
 
     [Fact]
+    public void AnalysedAlloyScrapOpensWallsOfTheRuinsAlloy()
+    {
+        // The ruins' alloy (0085) is a natural material: its walls a blueprint once its scrap is analysed, aboard as leaky decor.
+        var (w, id) = SetUp();
+        w.GiveItems(0, ("alloyScrap", 1));
+        var wall = Placement.Wall("alloy");
+        Assert.Equal(["alloyScrap"], RecipeOf(w, "wallAlloy").Unanalysed);
+        Analyse(w, id, "alloyScrap");
+        Assert.True(w.M.Research.Knows(wall));
+    }
+
+    [Fact]
     public void OpensABlueprintOnceEveryItemOfItsCostIsAnalysedSayingWhichAreLeft()
     {
         var (w, id) = SetUp();

@@ -48,6 +48,8 @@ public static class Materials
         new("bedrock", Code: 5, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
         // The planet's core over its bedrock: molten rock nothing digs or builds, burning a hero who touches it (Content.Lava).
         new(Lava.Material, Code: 6, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
+        // The ruins' metal (0085): five times stone, four seconds of the arc drill, six of the drill; a scrap of it a cell.
+        new("alloy", Code: 7, Strength: 60, Leak: 36, Cost: [("alloyScrap", 1)], BuildTicks: 40, Natural: true),
     ];
 
     /// <summary>What a <c>#</c> on a map is built of.</summary>

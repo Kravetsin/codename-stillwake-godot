@@ -112,8 +112,13 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   some thirty-eight thousand on the first planet — and their cells go in `Felled` like a plant's. Felled by a hit or by
   digging out their hold, they give fixed `Yields`: teal and hanging caps 2 biomass, violet caps a spore, ice crystals an
   ice and ice veins 2, the amber, rose and ember crystals a crystal and a geode 6, copper veins 2 copper ore, mica a mica,
-  the heat's cracks 2 magnetite. Felled by
-  anything else (a meteor, a sweep after a load), nothing.
+  the heat's cracks 2 magnetite.
+- **A growth felled by nobody lets its yields fall** (0085), every kind alike, the surface's and the caves': built over (a floor
+  or a ladder in its cell), its hold gone to a meteor — whatever the sweep fells — drops its `Yields` at its cell for anyone
+  (`DropAt(FloorStack.Nobody, …)`). Its cell is in `Felled` from then, so a load never fells or drops it again.
+- **The ruins' growths** (0085): a spire's cache, standing on its alloy floor (alloy scrap 4, wire 6, silicon 2), its relic's
+  shrine in a wall of its alloy (an arc coil, dug out with the alloy's 60), and its lamp in its tip's top cell (nothing), are
+  cave kinds no band grows (`Content.Ruins`), set by `Terrain` where it stamps a spire, and felled as any.
 
 ## API
 

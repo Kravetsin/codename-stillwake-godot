@@ -62,6 +62,7 @@ public static class Legend
         ('t', "stone"),
         ('b', "bedrock"),
         ('l', "lava"),
+        ('a', "alloy"),
     ];
 
     /// <summary>The material a material map's <paramref name="c"/> names; null for the default hull, or a character none names.</summary>

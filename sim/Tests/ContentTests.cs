@@ -61,7 +61,10 @@ public class ContentTests
             Assert.All(Weapons.All, w => Assert.True(w.Damage < m.Strength, $"{w.Item} on {m.Id}"));
             Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
         }
-        Assert.Equal(["soil", "stone", "bedrock", "lava"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
+        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
+        // The ruins' alloy (0085): six seconds of the drill, four of the arc drill, fifteen of the axe.
+        int Seconds(Weapon w) => Materials.Get("alloy").Strength / (w.Damage * World.TicksPerSecond / w.Pace);
+        Assert.Equal((15, 6, 4), (Seconds(Weapons.Axe), Seconds(Weapons.Drill), Seconds(Weapons.ArcDrill)));
     }
 
     // Machines
@@ -76,7 +79,7 @@ public class ContentTests
     }
 
     [Fact]
-    public void CaveKindsHaveIdsOfTheirOwnAChanceInEveryBandAndRoomInTheirDraw()
+    public void CaveKindsHaveIdsOfTheirOwnAChanceInEveryBandButTheRuinsAndRoomInTheirDraw()
     {
         // One id among the surface's and the caves' (0080): a felled cell names no kind, but the client draws by id.
         var ids = Flora.All.Select(k => k.Id).Concat(Flora.Cave.Select(k => k.Id)).ToList();
@@ -85,7 +88,9 @@ public class ContentTests
         Assert.All(Flora.Cave, k =>
         {
             Assert.Equal(Flora.Bands.Count + 1, k.Chances.Count);
-            Assert.True(k.Tall >= 1 && k.Wide >= 0 && k.Apart >= 1 && k.Chances.All(c => c >= 0) && k.Chances.Any(c => c > 0), k.Id);
+            Assert.True(k.Tall >= 1 && k.Wide >= 0 && k.Apart >= 1 && k.Chances.All(c => c >= 0), k.Id);
+            // Grown by some chance in some band, or set by a ruin (0085) and never grown.
+            Assert.Equal(!Ruins.Growths.Contains(k.Id), k.Chances.Any(c => c > 0));
             // What lies in the rock lies in its own cell.
             if (k.On == Flora.Anchor.Rock) Assert.True(k.Tall == 1 && k.Wide == 0, k.Id);
             else Assert.False(k.Floors, k.Id);
@@ -1071,7 +1076,7 @@ public class ContentTests
             Assert.All(kind.Yields, y => Assert.True(Content.Items.TryGet(y.Item, out _) && y.Count > 0, $"{kind.Id}: {y.Item}"));
         var giving = Flora.All.Concat<Flora.Growth>(Flora.Cave).Where(k => k.Yields.Count > 0).Select(k => k.Id).Order(StringComparer.Ordinal);
         Assert.Equal(
-            ["acacia", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "heatCrack", "mica", "rock", "veinCopper", "veinIce"],
+            ["acacia", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "heatCrack", "mica", "relicShrine", "rock", "spireCache", "veinCopper", "veinIce"],
             giving);
         // A geode is a hollow of crystals: more than any one crystal gives.
         Assert.True(Flora.Get("geode").Yields.Single().Count > Flora.Cave.Where(k => k.Id.StartsWith("crystal", StringComparison.Ordinal)).Max(k => k.Yields.Single().Count));

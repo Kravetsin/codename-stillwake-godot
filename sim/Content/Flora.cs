@@ -138,6 +138,11 @@ public static class Flora
         new("heatCrack", Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 2400]) { Floors = true, Yields = [("magnetite", 2)] },
         new("moss", Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [360, 2000, 500, 0]),
         new("mica", Anchor.Rock, Tall: 1, Wide: 0, Apart: 2, Chances: [1600, 900, 1400, 800]) { Yields = [("mica", 1)] },
+        // The ruins' (0085, Content.Ruins): never grown, no chance in any band, set where a spire is stamped. A cache on the
+        // floor of its chamber, a shrine in the alloy beside it holding a relic, a lamp in its tip's alloy.
+        new(Ruins.SpireCache, Anchor.Floor, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 0]) { Yields = [("alloyScrap", 4), ("wire", 6), ("silicon", 2)] },
+        new(Ruins.RelicShrine, Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 0]) { Yields = [("arcCoil", 1)] },
+        new(Ruins.SpireLamp, Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 0]),
     ];
 
     /// <summary>The kind <paramref name="id"/>, of the surface or the caves; one not here is our bug.</summary>

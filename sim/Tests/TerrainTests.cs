@@ -11,6 +11,9 @@ namespace Stillwake.Sim.Tests;
 public class TerrainTests
 {
     private static readonly Ground Small = Ground.Small, Planet = Ground.Planet;
+
+    /// <summary>The small ground with no ruins: what it grows of itself, before a spire is stamped over it (0085).</summary>
+    private static readonly Ground Bare = Ground.Small with { Spires = 0 };
     private static int Code(string material) => Materials.Get(material).Code;
 
     private static Arbitrary<uint> Seeds => Gen.Choose(0, int.MaxValue).Select(s => (uint)s * 2654435761u).ToArbitrary();
@@ -78,7 +81,7 @@ public class TerrainTests
     [Property(MaxTest = 60)]
     public Property SoilLiesOverStoneAtMostEightDeepAndTheSkyHasNoMaterial() => Prop.ForAll(Seeds, seed =>
     {
-        var l = Terrain.Generate(Small, seed);
+        var l = Terrain.Generate(Bare, seed);
         for (int x = 1; x < l.Width - 1; x++)
         {
             int top = TopOf(l, x), soil = SoilAt(l, x, top);
@@ -114,7 +117,7 @@ public class TerrainTests
     [Property(MaxTest = 60)]
     public Property ASlopeIsAWallOpenAboveWithOneSideOpenAndRisesTowardTheOther() => Prop.ForAll(Seeds, seed =>
     {
-        var l = Terrain.Generate(Small, seed);
+        var l = Terrain.Generate(Bare, seed);
         bool Solid(int x, int y) => l.Rows[y][x] is '#' or '/' or '\\';
         for (int y = 1; y < l.Height; y++)
             for (int x = 1; x < l.Width - 1; x++)
@@ -135,7 +138,7 @@ public class TerrainTests
     [Property(MaxTest = 60)]
     public Property NoSpikeStandsUpAndASlopeUnderTheSkyHasNoBackWallWhereOneInACaveKeepsIt() => Prop.ForAll(Seeds, seed =>
     {
-        var l = Terrain.Generate(Small, seed);
+        var l = Terrain.Generate(Bare, seed);
         static bool Open(char c) => c is ' ' or '.' or 'S';
         for (int y = 1; y < l.Height; y++)
             for (int x = 1; x < l.Width - 1; x++)
@@ -161,7 +164,7 @@ public class TerrainTests
 
     private static bool SkyFadesUnderTheSurface(uint seed)
     {
-        var l = Terrain.Generate(Small, seed, out _, out var surface);
+        var l = Terrain.Generate(Bare, seed, out _, out var surface);
         for (int x = 0; x < l.Width; x++)
         {
             // Down each column: open sky, with no material, till its first solid cell or a few rows under its surface's line,
