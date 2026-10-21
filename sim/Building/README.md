@@ -36,11 +36,13 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   the other plans: in each cell, structure and machines share one solid slot, and a conduit and a
   back wall each have their own, as in the grid. A machine's blueprint covers its whole footprint.
   Placing one costs nothing.
-- **No blueprint builds bedrock or a natural back wall** (0077): either is refused `building.unknown`, creative mode or
-  not (`Blueprints.Has`). Soil and stone walls are blueprints like any wall, known once soil or rock is analysed.
+- **No blueprint builds bedrock** (0077), front or back: refused `building.unknown`, creative mode or not
+  (`Blueprints.Has`). Soil and stone walls and back walls (0084) are blueprints like any, known once soil or rock is analysed.
 - A machine built into the ship (`Fixed` in `Machines`: the lifepod) is never planned nor marked,
   refused with `building.fixed`, creative mode or not; it is no blueprint.
-- **Natural ground is dug, never marked** (0077): a mark on a natural wall or back wall is refused `building.natural`.
+- **Natural ground is dug, never marked** (0077): a mark on a natural wall, or on the ground's own back wall
+  (`IGridQueries.GrownBack`), is refused `building.natural`. A soil or stone back wall a hero built is marked and taken
+  apart for its item as any back wall (0084).
 - A mark needs something in that layer of that cell, and one thing takes one mark. A machine holding
   items (a crate, a furnace) or a station with crafts queued is marked only empty, refused with
   `building.notEmpty`; a machine a cable

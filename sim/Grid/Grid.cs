@@ -108,6 +108,11 @@ public interface IGridQueries
     Material? WallAt(int cell);
     /// <summary>What the back wall behind <paramref name="cell"/> is made of; null for none, or off the grid.</summary>
     Material? BackAt(int cell);
+    /// <summary>
+    /// Whether the back wall behind <paramref name="cell"/> is the ground's own, as it grew from the seed (0077): false for
+    /// none, for one a hero built, and on a surface that did not grow, the ship or a drawn map.
+    /// </summary>
+    bool GrownBack(int cell);
     /// <summary>The conduit code at <paramref name="cell"/>: <see cref="Conduit.None"/> off the grid.</summary>
     int ConduitAt(int cell);
     Machine? MachineAt(int cell);

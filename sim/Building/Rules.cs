@@ -103,7 +103,7 @@ public sealed partial class BuildingModule
         return taken ? "building.planned" : null;
     }
 
-    /// <summary>A wall or back wall of a material no blueprint builds (0077): of bedrock, or a natural back wall; creative mode too.</summary>
+    /// <summary>A wall or back wall of a material no blueprint builds (0077): of bedrock; creative mode too.</summary>
     private static bool Unbuilt(Placement place) =>
         place.Kind is "wall" or "backWall" && Materials.TryGet(place.Material ?? "", out _) && !Research.Blueprints.Has(place);
 
