@@ -20,9 +20,11 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      # The runner also carries newer SDKs whose formatter disagrees with 8.0's; global.json picks ours.
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          global-json-file: global.json
+      - run: dotnet --version
       - run: dotnet restore Stillwake.sln
       - run: dotnet format Stillwake.sln --verify-no-changes --no-restore
       # The game builds without the Godot editor: Godot.NET.Sdk comes from NuGet. Analyzers fail it.
