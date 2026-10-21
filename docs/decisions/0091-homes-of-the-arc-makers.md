@@ -92,8 +92,8 @@ there. The page drew three homes cut in the rock, each lit two ways ("lamps stil
   so it opens once one is analysed (the item stays in the analyzer, 0027) and each hung aboard is a lamp found. The light feature
   lights it in the makers' cold white-blue, three tenths stronger and ten cells out (`Light.ArcLamp`), its halo cyan; short of
   power it flickers as any lamp. Its pictures, the lantern of its icon hung by its handle in a cell, from the export (which reads
-  the picked icon): its body, its glass cold, drawn whatever its power, and while it shines the icon's own glass alight over it
-  with its glow, and at full power the homes' lantern's arc crackling across it, as a lit home's lamp. `J` on a map.
+  the picked icon): its body, its glass cold, drawn whatever its power, and while it shines the icon's own glass alight over it,
+  unlit and under no glow so its blue rings show, its glow and halo round it, and at full power the homes' lantern's arc crackling across it, as a lit home's lamp. `J` on a map.
 - **The spire's chamber furnished** (`Ruins.SpireFurnishing`, the page's proposal): a table and a chair, a ceiling lamp over them,
   a shelf with an empty scroll case, the makers' banner by the shrine, a cobweb; set with the spire's own growths.
 

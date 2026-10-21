@@ -5,8 +5,9 @@ namespace Stillwake.Game;
 
 /// <summary>
 /// How the arc makers' lamp hung aboard looks (0091): the lantern of its icon, hung by its handle from the top of its cell. Its
-/// body, cage and cold glass always, the grid's tile lit by the world; while it shines its glass alight over it and the glass's
-/// glow added, both as bright as it shines; and at full power the homes' lantern's arc crackling across its glass.
+/// body, cage and cold glass always, the grid's tile lit by the world; while it shines its glass alight over it, drawn as the icon
+/// draws it with no light or glow over it, and its glow round it, both as bright as it shines; and at full power the homes'
+/// lantern's arc crackling across its glass.
 /// </summary>
 public static class ArcLampLooks
 {

@@ -44,6 +44,18 @@ public class ArcLampLooksTests
     }
 
     [Fact]
+    public void ItsGlowLiesRoundItsGlassNeverOverItSoTheIconsRingsShowWhileItShines()
+    {
+        var alight = Pixels(Path.Combine(Art, $"{ArcLampLooks.Alight}.png"));
+        var glow = Pixels(Path.Combine(Art, $"{ArcLampLooks.Glow}.png"), size: 32);
+        // The glow's picture is the cell's with a half cell's margin round it, both laid on the cell's middle.
+        bool Glows(int x, int y) => glow[(y + 8) * 32 + x + 8] >> 24 != 0;
+        for (int i = 0; i < 256; i++)
+            if (alight[i] >> 24 != 0) Assert.False(Glows(i % 16, i / 16), $"glow over the glass at {i % 16}, {i / 16}");
+        Assert.True(Glows(4, 7) && Glows(11, 7), "a glow on either side of the glass");
+    }
+
+    [Fact]
     public void ItCracklesOnlyAtFullPowerTheHomesLanternsArcAcrossItsGlass()
     {
         Assert.True(ArcLampLooks.Crackles(1));
@@ -60,8 +72,8 @@ public class ArcLampLooksTests
         Assert.True(Lit(arc.X, arc.Y) && Lit(arc.X2, arc.Y2) && Lit((arc.X + arc.X2) / 2, (arc.Y + arc.Y2) / 2));
     }
 
-    /// <summary>A 16 × 16 picture as the export writes it (8-bit RGBA, each row unfiltered): each pixel's ARGB.</summary>
-    private static uint[] Pixels(string file)
+    /// <summary>A square picture <paramref name="size"/> wide as the export writes it (8-bit RGBA, each row unfiltered): each pixel's ARGB.</summary>
+    private static uint[] Pixels(string file, int size = 16)
     {
         var png = File.ReadAllBytes(file);
         using var idat = new MemoryStream();
@@ -75,15 +87,16 @@ public class ArcLampLooksTests
         using var raw = new MemoryStream();
         using (var z = new ZLibStream(idat, CompressionMode.Decompress)) z.CopyTo(raw);
         var bytes = raw.ToArray();
-        Assert.Equal(16 * (1 + 16 * 4), bytes.Length);
-        var pixels = new uint[16 * 16];
-        for (int y = 0; y < 16; y++)
+        int row = 1 + size * 4;
+        Assert.Equal(size * row, bytes.Length);
+        var pixels = new uint[size * size];
+        for (int y = 0; y < size; y++)
         {
-            Assert.Equal(0, bytes[y * 65]);
-            for (int x = 0; x < 16; x++)
+            Assert.Equal(0, bytes[y * row]);
+            for (int x = 0; x < size; x++)
             {
-                int o = y * 65 + 1 + x * 4;
-                pixels[y * 16 + x] = (uint)bytes[o + 3] << 24 | (uint)bytes[o] << 16 | (uint)bytes[o + 1] << 8 | bytes[o + 2];
+                int o = y * row + 1 + x * 4;
+                pixels[y * size + x] = (uint)bytes[o + 3] << 24 | (uint)bytes[o] << 16 | (uint)bytes[o + 1] << 8 | bytes[o + 2];
             }
         }
         return pixels;

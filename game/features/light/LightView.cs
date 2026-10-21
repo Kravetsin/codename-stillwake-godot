@@ -168,7 +168,8 @@ public partial class LightView : Node2D
                 Position = at,
                 Modulate = GlowOf(lamp),
                 Scale = Vector2.One * GlowCells * Cell / PixelArt.Glow.GetWidth(),
-                ZIndex = Layers.Glows,
+                // An arc lamp's halo under its glass, which is added after it in the same layer: it never washes the rings to white.
+                ZIndex = lamp.Kind == ArcLampLooks.Kind ? Layers.Screens : Layers.Glows,
                 Material = GlowMaterial,
             };
             _lamps.AddChild(glow);
@@ -194,13 +195,12 @@ public partial class LightView : Node2D
     }
 
     /// <summary>
-    /// An arc lamp's glass alight, lit by the world as its body is, and its glow added unlit (<see cref="ArcLampLooks"/>), over its
+    /// An arc lamp's glass alight, unlit for it gives the light, and its glow added round it (<see cref="ArcLampLooks"/>), over its
     /// body in the cell whose middle is <paramref name="at"/>; hidden till it shines.
     /// </summary>
     private (Sprite2D Alight, Sprite2D Glow) Glass(Vector2 at)
     {
-        var alight = new Sprite2D { Texture = PixelArt.Picture(ArcLampLooks.Alight), Position = at, ZIndex = Layers.Screens, Visible = false };
-        Lit.Set(alight);
+        var alight = new Sprite2D { Texture = PixelArt.Picture(ArcLampLooks.Alight), Position = at, ZIndex = Layers.Screens, Material = Unlit, Visible = false };
         var shine = new Sprite2D { Texture = PixelArt.Picture(ArcLampLooks.Glow), Position = at, ZIndex = Layers.Screens, Material = GlowMaterial, Visible = false };
         _lamps.AddChild(alight);
         _lamps.AddChild(shine);
@@ -315,6 +315,9 @@ public partial class LightView : Node2D
     }
 
     private static (float R, float G, float B) Rgb((int R, int G, int B) c) => (c.R / 255f, c.G / 255f, c.B / 255f);
+
+    /// <summary>What gives light drawn as it is, the world's light not falling on it: an arc lamp's glass.</summary>
+    private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
 
     /// <summary>A glow's: added over what lies under it, unlit, for it gives light.</summary>
     private static readonly CanvasItemMaterial GlowMaterial = new()

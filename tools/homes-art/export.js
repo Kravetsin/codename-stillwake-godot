@@ -193,13 +193,14 @@ P.encode(sheet(() => null), path.join(PLANET, 'detail_plaster.png'));
 // ---- the arc lamp hung aboard (0091): the lantern of its icon (game/art/items/arcLamp.png, picked on the planet icons page),
 // hung by its handle from the top of its cell. Its glass is what shines. Dark, the body the grid draws whatever its power
 // (machine_arcLamp), the glass cold; alight, the icon's own glass (_lit) and its glow with a margin round the cell (_glow), which
-// the light feature lays over the body while it shines (ArcLampLooks). The cloth's and the lamp's icons are picked, not drawn. ----
+// the light feature lays over the body while it shines (ArcLampLooks): the glass unlit, the glow round it and never over it, so
+// nothing washes the icon's blue rings out to white. The cloth's and the lamp's icons are picked, not drawn. ----
 const A = D.PAL.alloy, ARC = D.ARC;
 (function machine() {
   const icon = P.decode(path.join(GAME, 'art', 'items', 'arcLamp.png'));
   const key = (c) => c.map(byte).join();
   // The icon's arc blues, each with how strongly it glows (the homes' globe's) and the cold glass it is while the lamp is off.
-  const GLASS = new Map([[ARC.lo, 0.55, '#141e2a'], [ARC.mid, 0.85, '#26384a'], [ARC.hi, 0.85, '#3a5468'], [ARC.core, 1.1, '#5a7890']]
+  const GLASS = new Map([[ARC.lo, 0.55, '#34506a'], [ARC.mid, 0.85, '#46667f'], [ARC.hi, 0.85, '#5a7c96'], [ARC.core, 1.1, '#7a9cb4']]
     .map(([c, k, off]) => [key(c), { k, off: hex(off) }]));
   let glass = 0;
   const lamp = { w: 16, h: 16, draw(p, x, y, o) {
@@ -211,14 +212,15 @@ const A = D.PAL.alloy, ARC = D.ARC;
       else p.set(x + i, y + j, g.off);
     }
     // Off, a glint on its glass where the room's light catches it.
-    if (!o.lit) p.set(x + 6, y + 5, hex('#9fc4e0'));
+    if (!o.lit) p.set(x + 6, y + 5, hex('#c4e4f4'));
   } };
   const dark = render('arcLampAboard', { lit: false }, lamp), lit = render('arcLampAboard', { lit: true }, lamp), cell = { x0: M, y0: M, x1: M + 15, y1: M + 15 };
   if (!glass) throw new Error('the arc lamp icon has no arc blue glass to light');
   write(dark.rgba, dark.W, cell, path.join(GAME, 'art', 'machine_arcLamp.png'));
   const changed = lit.rgba.map((v, i) => (lit.rgba.slice(i - (i % 4), i - (i % 4) + 4).some((c, k) => c !== dark.rgba[i - (i % 4) + k]) ? v : 0));
   write(changed, lit.W, cell, path.join(GAME, 'art', 'machine_arcLamp_lit.png'));
-  write(lit.glow, lit.W, { x0: 0, y0: 0, x1: lit.W - 1, y1: lit.H - 1 }, path.join(GAME, 'art', 'machine_arcLamp_glow.png'));
+  const round = lit.glow.map((v, i) => (changed[i - (i % 4) + 3] > 0 ? 0 : v));
+  write(round, lit.W, { x0: 0, y0: 0, x1: lit.W - 1, y1: lit.H - 1 }, path.join(GAME, 'art', 'machine_arcLamp_glow.png'));
 })();
 
 // ---- placeholder one-shots till the user picks (Sound.cs): synthesised, normalised to -3 dBFS peak ----
