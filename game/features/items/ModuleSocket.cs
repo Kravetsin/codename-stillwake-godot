@@ -33,19 +33,19 @@ public partial class ModuleSocket : Panel
         MouseFilter = MouseFilterEnum.Ignore,
     };
     /// <summary>The tech's icon, filling the inset: its ghost, or lit and crackling while what is carried goes in.</summary>
-    private readonly TechIcon _tech;
-    private readonly string _techId;
+    private readonly GlowIcon _tech;
+    private readonly IconLooks.Look _look;
     private (bool Fitted, bool Takes, bool Hovered) _shown;
     private bool _awaiting;
 
     public ModuleSocket(int machine, Content.ModuleSpec module, int size)
     {
-        (Machine, Module, _techId) = (machine, module.Item, module.Tech);
+        (Machine, Module, _look) = (machine, module.Item, TechLooks.Of(module.Tech));
         CustomMinimumSize = new Vector2(size, size);
         AddChild(_icon);
         _icon.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, LayoutPresetMode.Minsize, Slots.Inset);
         _icon.Texture = ItemIcons.Icon(Module);
-        _tech = new TechIcon(_techId, size - 2 * Slots.Inset, TechShow.Ghost) { Position = Vector2.One * Slots.Inset };
+        _tech = new GlowIcon(_look, size - 2 * Slots.Inset, IconShow.Ghost) { Position = Vector2.One * Slots.Inset };
         AddChild(_tech);
         GuiInput += OnGuiInput;
         Show(false, false, false);
@@ -59,7 +59,7 @@ public partial class ModuleSocket : Panel
         AddThemeStyleboxOverride("panel", takes ? Takes : hovered ? Hover : full ? Fitted : Empty);
         _icon.Visible = full;
         _tech.Visible = !full;
-        _tech.Set(_techId, takes ? TechShow.Hot : TechShow.Ghost);
+        _tech.Set(_look, takes ? IconShow.Hot : IconShow.Ghost);
     }
 
     /// <summary>Whether a module shifted here still flies to it: shown empty till it lands.</summary>

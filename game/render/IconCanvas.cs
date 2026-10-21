@@ -4,12 +4,12 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// A tech icon's pixels (<see cref="TechLooks"/>), painted as the icon page's canvas strokes them: each line in passes,
+/// A glowing line icon's pixels (<see cref="IconLooks"/>), painted as the arc icon page's canvas strokes them: each line in passes,
 /// a dark halo for a mark, then a glow with a blurred shadow, then the rim, then the white-hot core, every stroke laid
 /// over the last. A line's cover is its round-capped band's share of each pixel; a shadow, that band blurred. Plain C#:
 /// some tens of thousands of sums for a 32 px paint, twelve a second.
 /// </summary>
-public sealed class TechCanvas
+public sealed class IconCanvas
 {
     // The page's numbers for variant C, render() in its script: alphas and widths by pass.
     private const float HaloWiden = 2.1f, HaloAlpha = 0.82f, HaloShadow = 0.95f, HaloBlur = 1.6f;
@@ -24,7 +24,7 @@ public sealed class TechCanvas
 
     private readonly float[] _paint, _distance;
 
-    public TechCanvas(int side)
+    public IconCanvas(int side)
     {
         Side = side;
         Rgba = new byte[side * side * 4];
@@ -33,20 +33,20 @@ public sealed class TechCanvas
     }
 
     /// <summary>Paints <paramref name="lines"/> of <paramref name="look"/> as <paramref name="show"/> asks, at <paramref name="intensity"/> (1 still).</summary>
-    public void Paint(TechLooks.Look look, IReadOnlyList<TechLooks.Line> lines, TechShow show, float intensity)
+    public void Paint(IconLooks.Look look, IReadOnlyList<IconLooks.Line> lines, IconShow show, float intensity)
     {
         Array.Clear(_paint);
-        float s = Side, i = intensity, baseWidth = MathF.Max(TechLooks.LeastWidth, s * TechLooks.WidthShare);
+        float s = Side, i = intensity, baseWidth = MathF.Max(IconLooks.LeastWidth, s * IconLooks.WidthShare);
         var (core, rim, glow) = (Colour(look.Core), Colour(look.Rim), Colour(look.Glow));
-        bool hot = show == TechShow.Hot;
-        float WidthOf(TechLooks.Line l) => baseWidth * l.Weight * (l.Frame ? TechLooks.FrameWeight : 1);
-        if (show == TechShow.Ghost)
+        bool hot = show == IconShow.Hot;
+        float WidthOf(IconLooks.Line l) => baseWidth * l.Weight * (l.Frame ? IconLooks.FrameWeight : 1);
+        if (show == IconShow.Ghost)
         {
             foreach (var l in lines) Stroke(l, rim, l.Frame ? GhostFrame : GhostGlyph, WidthOf(l));
             Finish();
             return;
         }
-        if (show == TechShow.Mark)
+        if (show == IconShow.Mark)
             foreach (var l in lines) Stroke(l, Halo, HaloAlpha, WidthOf(l) + HaloWiden, (Halo, HaloShadow, HaloBlur));
         float glowShadow = (hot ? 0.6f : 0.85f) * i, blur = s * (hot ? 0.12f : 0.17f) * MathF.Min(1.4f, i);
         foreach (var l in lines) Stroke(l, glow, (l.Frame ? GlowFrame : GlowGlyph) * i, WidthOf(l) * GlowWiden, (glow, glowShadow, blur));
@@ -65,7 +65,7 @@ public sealed class TechCanvas
     /// One canvas stroke of <paramref name="line"/>: its blurred shadow first, if any (blur <c>b</c> a Gaussian of
     /// σ = b / 2, as canvas has it), then the line itself, <paramref name="width"/> wide, laid over what is painted.
     /// </summary>
-    private void Stroke(TechLooks.Line line, (float R, float G, float B) colour, float alpha, float width,
+    private void Stroke(IconLooks.Line line, (float R, float G, float B) colour, float alpha, float width,
         ((float R, float G, float B) Colour, float Alpha, float Blur)? shadow = null)
     {
         alpha = Math.Clamp(alpha, 0, 1);
@@ -90,7 +90,7 @@ public sealed class TechCanvas
     }
 
     /// <summary>Each pixel centre's distance to <paramref name="line"/>, in pixels.</summary>
-    private void Measure(TechLooks.Line line)
+    private void Measure(IconLooks.Line line)
     {
         float s = Side;
         Array.Fill(_distance, float.MaxValue);

@@ -50,6 +50,7 @@ public static class ItemCardView
     private static readonly LabelSettings KeyText = Style.Text(BoldMono, 10, Style.Slate300);
     private static readonly LabelSettings UnknownText = Style.Text(Style.Mono, 11, Style.Violet400);
     private static readonly LabelSettings FireText = Style.Text(Style.Mono, 11, Style.Orange400);
+    private static readonly LabelSettings SmeltText = Style.Text(Style.Mono, 11, Style.Amber400);
     private static readonly LabelSettings GrowText = Style.Text(Style.Mono, 11, Style.Green400);
     private static readonly LabelSettings TechText = Style.Text(Style.Mono, 11, new Color(ItemCards.ModuleColour));
     private static readonly LabelSettings YieldText = Style.Text(Style.Mono, 11, Style.Slate300);
@@ -384,31 +385,32 @@ public static class ItemCardView
         return Boxed(box, content);
     }
 
-    /// <summary>Not analysed yet: "? Not analysed" in violet.</summary>
-    private static Control UnknownStrip() => Strip(Style.Violet400, Text(T("card.notAnalysed"), UnknownText, HorizontalAlignment.Left));
-
-    /// <summary>
-    /// The picture of a slot's machine mark: a flame for what a fire smelts or burns, a sprout for what is grown; none for
-    /// the rest, a module that fits among them, its tech icon drawn live (<see cref="TechIcon"/>, 0086).
-    /// </summary>
-    public static Texture2D? MarkPicture(SlotMark mark) => mark switch
+    /// <summary>Not analysed yet: the slot's "?" mark, lit, and "Not analysed" in violet.</summary>
+    private static Control UnknownStrip()
     {
-        SlotMark.Smelts or SlotMark.Burns => AsciiArt.Flame(),
-        SlotMark.Grows => AsciiArt.Sprout(),
-        _ => null,
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, StripGap);
+        row.AddChild(StripIcon(MarkLooks.Unknown));
+        row.AddChild(Text(T("card.notAnalysed"), UnknownText, HorizontalAlignment.Left));
+        return Strip(Style.Violet400, Centred(row));
+    }
+
+    /// <summary>A strip's icon's side and its gap to the words, in pixels: big enough to read the mark's motion.</summary>
+    private const int StripSide = 24, StripGap = 7;
+
+    /// <summary>A strip's icon, lit and moving as the slots' marks do (0086, 0097): a module's tech, a station's mark.</summary>
+    private static GlowIcon StripIcon(IconLooks.Look look) => new(look, StripSide, IconShow.Lit)
+    {
+        SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+        SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
     };
 
     /// <summary>A module's strip (0086): its technology's icon, then what it does, in the arcs' violet-white.</summary>
     private static Control TechStrip(CardTech tech)
     {
-        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
-        row.AddChild(new TechIcon(tech.Tech, 12, TechShow.Lit)
-        {
-            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-        });
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, StripGap);
+        row.AddChild(StripIcon(TechLooks.Of(tech.Tech)));
         row.AddChild(Text(tech.About, TechText, HorizontalAlignment.Left));
-        return Strip(new Color(ItemCards.ModuleColour), row);
+        return Strip(new Color(ItemCards.ModuleColour), Centred(row));
     }
 
     /// <summary>
@@ -417,11 +419,15 @@ public static class ItemCardView
     /// </summary>
     private static Control HereStrip(SlotMark here, CardOutput? output)
     {
-        var colour = here == SlotMark.Grows ? Style.Green400 : Style.Orange400;
-        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
-        row.AddChild(Picture(MarkPicture(here)!, 12));
-        string key = here switch { SlotMark.Grows => "card.growsHere", SlotMark.Burns => "card.burnsHere", _ => "card.smeltsHere" };
-        row.AddChild(Text(T(key), here == SlotMark.Grows ? GrowText : FireText));
+        var (colour, text, key) = here switch
+        {
+            SlotMark.Grows => (Style.Green400, GrowText, "card.growsHere"),
+            SlotMark.Burns => (Style.Orange400, FireText, "card.burnsHere"),
+            _ => (Style.Amber400, SmeltText, "card.smeltsHere"),
+        };
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, StripGap);
+        row.AddChild(StripIcon(MarkLooks.Of(here)));
+        row.AddChild(Text(T(key), text));
         if (output != null)
         {
             var made = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 3);
@@ -434,7 +440,15 @@ public static class ItemCardView
             made.AddChild(Text($" · {output.Time}", TimeDim));
             row.AddChild(made);
         }
-        return Strip(colour, row);
+        return Strip(colour, Centred(row));
+    }
+
+    /// <summary>A strip's row with its words and yields on the middle of its icon, not its top.</summary>
+    private static Control Centred(HBoxContainer row)
+    {
+        foreach (var child in row.GetChildren())
+            if (child is Control control) control.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        return row;
     }
 
     /// <summary>
