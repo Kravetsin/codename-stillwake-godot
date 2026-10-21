@@ -19,7 +19,30 @@ public static class Hero
     public const int Height = 2625;
     public const int Walk = 120;
     public const int Run = 220;
-    public const int Climb = 180;
+
+    /// <summary>Up a ladder: 6.6 cells a second, slow enough to read the hands taking rungs (0092).</summary>
+    public const int ClimbUp = 110;
+
+    /// <summary>Down a ladder: 9 cells a second.</summary>
+    public const int ClimbDown = 150;
+
+    /// <summary>Down a ladder with Shift held, the hands on the rails: 18 cells a second.</summary>
+    public const int Slide = 300;
+
+    /// <summary>Thousandths of the way to a ladder's middle the hero moves a step on it, rounded toward the hero: about 5 steps from its edge.</summary>
+    public const int LadderCentring = 450;
+
+    /// <summary>Within this of a ladder's middle the hero is on it: the easing's last thousandths are not drawn out.</summary>
+    public const int LadderSnap = 25;
+
+    /// <summary>Steps after a jump or a walk off a ladder before up grabs one again (200 ms): a jump off it with up held goes on.</summary>
+    public const int Regrab = 12;
+
+    /// <summary>Thousandths of <see cref="Run"/> a jump off a ladder to one side starts across with, rounded down.</summary>
+    public const int LadderJumpAcross = 900;
+
+    /// <summary>Thousandths of <see cref="Jump"/> a jump off a ladder to one side rises with, rounded toward zero: a leap off, not up.</summary>
+    public const int LadderJumpRise = 850;
 
     /// <summary>The push up a jump starts with: held to its top it clears three cells but not four (3.95), six on a planet (6.01).</summary>
     public const int Jump = 415;

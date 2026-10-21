@@ -65,4 +65,28 @@ public static class HeroMotion
         public const int RiseBelow = -150, Blend = 450, Apex = 60, FlailSpeed = 300, DriftSpeed = 100;
         public const double Tuck = 0.5, PushMs = 110, FlailAfterMs = 450, FlailMs = 300, Drift = 0.1;
     }
+
+    /// <summary>
+    /// On a ladder (0092), in pixels of the world. The hands and feet take the rungs of <c>art/ladder.png</c>, which lie
+    /// <see cref="FrontRung"/> and <see cref="BackRung"/> pixels down each cell: the front hand the one, the back hand the
+    /// other, each foot the rung its opposite hand's stroke puts it on. A hand holds its rung from <see cref="HandTop"/> over
+    /// the shoulder for <see cref="Grip"/> of a cell climbed, <see cref="HandOut"/> before the body; a foot from its top under
+    /// the hip; so the cycle is a cell climbed, read from where the hero is, and a held rung stays put as the body passes it.
+    /// </summary>
+    public static class Ladder
+    {
+        public const double FrontRung = 5, BackRung = 12, Grip = 0.55, HandTop = -8.6, HandOut = 8.4, HandSwing = 3, FootOut = 3.8,
+            FootSwing = 3.8;
+
+        /// <summary>
+        /// The pull-up at the top: from the ledge at the hands' highest hold to <see cref="PullBlend"/> under it
+        /// the hands go onto it and stay there as the body rises past them, pushing down once under the shoulder; within
+        /// <see cref="KneeFrom"/> the front foot steps up onto it over <see cref="KneeBlend"/>; within <see cref="PushFrom"/> the
+        /// back leg straightens under the body; the body leans <see cref="Lean"/> into the ledge till <see cref="LeanTill"/> of it.
+        /// </summary>
+        public const double PullBlend = 4, KneeFrom = 18, KneeBlend = 3, PushFrom = 8, Lean = 0.15, LeanTill = 10;
+
+        /// <summary>Sliding (Shift and down, seen by a fall faster than the climb down) the gloves throw this many sparks a step off the rails.</summary>
+        public const double SparksPerStep = 0.8;
+    }
 }

@@ -1,5 +1,6 @@
 using System;
 using Feel = Stillwake.Game.HeroMotion;
+using Rung = Stillwake.Game.HeroMotion.Ladder;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -26,22 +27,28 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// none they follow the hero's speed at once. <see cref="Wields"/> while the front hand holds an item, the
 /// axe or the harpoon: afloat, or flailing in a long fall, that arm keeps calm. <see cref="Momentum"/>, what the figure
 /// read from the motion over time (<see cref="Motion"/>, 0090): the lean, the skid, the landing's depth, the jump's and
-/// the fall's timers; none for a body at rest in it.
+/// the fall's timers; none for a body at rest in it. <see cref="Ledge"/>, on a ladder, how far its top is over the feet in
+/// pixels (<see cref="Hero.LedgeAbove"/>): what the hands pull the body up onto (0092); none away from one.
 /// </summary>
 public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null,
     double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, bool Wields = false,
-    Momentum? Momentum = null);
+    Momentum? Momentum = null, double? Ledge = null);
 
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
 {
-    /// <summary>
-    /// Cells walked or climbed per full cycle of the limbs: two steps, two rungs. The climb is far quicker
-    /// than hands could take rungs, so the limbs keep a pace that reads.
-    /// </summary>
+    /// <summary>Cells walked per full cycle of the legs: two steps. A climb's cycle is a cell, by its rungs (<see cref="Ladder"/>).</summary>
     public static class Stride
     {
-        public const double Walk = 2.8, Run = 4.6, Climb = 3.6;
+        public const double Walk = 2.8, Run = 4.6;
+    }
+
+    /// <summary>
+    /// Sliding down a ladder (0092): both hands high on the rails, the legs hanging straight, the feet off the rungs.
+    /// </summary>
+    public static class OnLadder
+    {
+        public static readonly Limbs Slide = new(B(2.78, 0.12), B(2.58, 0.18), B(0.2, -0.15), B(-0.12, -0.08), 0, 0, false);
     }
 
     /// <summary>
@@ -112,8 +119,6 @@ public static class Poses
     }
 
     private const double BreathMs = 2600, DriftMs = 3400;
-    /// <summary>The share of a climbing cycle a hand or foot holds on, sliding down as the body rises past it.</summary>
-    private const double Grip = 0.6;
     /// <summary>Within this many cells of the body's middle the pointer turns nobody: no flicker over the hero.</summary>
     private const double FaceDeadzone = 0.25;
 
@@ -285,7 +290,7 @@ public static class Poses
             case Pose.Air:
                 return InTheAir(hero, moment);
             case Pose.Climb:
-                return Climbing(moment.Travelled / Stride.Climb);
+                return Climbing(hero, moment.Ledge);
             case Pose.Float:
                 return Floating(hero, moment.TimeMs, moment.Swim ?? (Swimming(hero) ? 1 : 0), moment.Fast ?? (SwimmingFast(hero) ? 1 : 0),
                     moment.Wields);
@@ -440,34 +445,99 @@ public static class Poses
     }
 
     /// <summary>
-    /// Where a hand or foot on a ladder is at <paramref name="cycle"/> through its climb: holding on from
-    /// <paramref name="top"/> down to <paramref name="top"/> + <paramref name="range"/>, then let go and
-    /// brought back up, out from the ladder by <paramref name="outward"/> on the way.
+    /// Where a hand or foot on a ladder is <paramref name="cycle"/> through its climb: holding its rung from
+    /// <paramref name="top"/> down a <see cref="Rung.Grip"/> of a cell as the body rises past it, then let go and brought back
+    /// up a rung, out from the ladder by <paramref name="outward"/> on the way.
     /// </summary>
-    private static Vec OnRung(double cycle, double top, double range, double x, double outward)
+    private static Vec OnRung(double cycle, double top, double x, double outward)
     {
-        double p = cycle - Math.Floor(cycle);
-        if (p < Grip) return new Vec(x, top + p / Grip * range);
-        double q = (p - Grip) / (1 - Grip);
+        double p = cycle - Math.Floor(cycle), grip = Rung.Grip, range = grip * Rig.Cell;
+        if (p < grip) return new Vec(x, top + p * Rig.Cell);
+        double q = (p - grip) / (1 - grip);
         return new Vec(x - outward * Math.Sin(q * Math.PI), top + (1 - q) * range);
     }
 
-    /// <summary>Hands over the head taking rungs in turn, each with the opposite foot, knees coming up.</summary>
-    private static Limbs Climbing(double cycle)
+    /// <summary>
+    /// How far through its cycle a hand or foot is, its joint <paramref name="joint"/> pixels over feet at
+    /// <paramref name="feet"/> (pixels down the world), holding from <paramref name="top"/> under the joint: 0 where its
+    /// highest hold is on a rung <paramref name="rung"/> pixels down a cell, so a held rung stays where the ladder draws it.
+    /// </summary>
+    private static double RungCycle(double feet, double joint, double top, double rung)
     {
-        double arm = Rig.Arm.Upper + Rig.Arm.Lower;
-        // Out past the helmet, so the hands are never across the visor.
-        Vec Hand(double at) => OnRung(at, -arm * 0.85, arm * 0.6, Rig.W * 0.6, Rig.W * 0.2);
-        Vec Foot(double at) => OnRung(at, Rig.Hip - arm * 0.75, arm * 0.7, Rig.W * 0.25, Rig.W * 0.25);
-        // Elbows bend as arms do, forearms forward, the elbows below the hands as when pulling up.
-        return new Limbs(
-            FrontArm: Rig.Reach(Hand(cycle), Rig.Arm, 1),
-            BackArm: Rig.Reach(Hand(cycle + 0.5), Rig.Arm, 1),
-            FrontLeg: Rig.Reach(Foot(cycle + 0.5), Rig.Leg, -1),
-            BackLeg: Rig.Reach(Foot(cycle), Rig.Leg, -1),
-            // Each pull lifts the body a little.
-            Tilt: 0, Lift: 0.8 * Math.Abs(Math.Sin(cycle * 2 * Math.PI)), Lying: false);
+        double at = (rung - feet + joint - top) / Rig.Cell;
+        return at - Math.Floor(at);
     }
+
+    /// <summary>
+    /// Where a foot first holds under its hip, so it takes rung <paramref name="rung"/> in step with the hand on
+    /// <paramref name="hand"/>: within a cell under the hip.
+    /// </summary>
+    private static double FootTop(double rung, double hand)
+    {
+        double at = rung + Rig.Hip - (hand + Rig.Shoulder - Rung.HandTop);
+        return at - Math.Floor(at / Rig.Cell) * Rig.Cell;
+    }
+
+    /// <summary>How far a ladder's slide shows, from the climb down's speed (none) to the slide's (all), read from the fall alone (0092).</summary>
+    public static double SlideOf(int vy) =>
+        Math.Clamp((double)(vy - Stillwake.Content.Hero.ClimbDown) / (Stillwake.Content.Hero.Slide - Stillwake.Content.Hero.ClimbDown), 0, 1);
+
+    /// <summary>How far the hands have gone onto a ledge <paramref name="ledge"/> pixels over the feet: from their highest hold, over <c>Ladder.PullBlend</c>.</summary>
+    public static double PullOf(double? ledge) =>
+        ledge is double l ? Math.Clamp((Rig.Shoulder - Rung.HandTop - l) / Rung.PullBlend, 0, 1) : 0;
+
+    /// <summary>
+    /// On a ladder (0092): hands over the head taking rungs in turn, each with the opposite foot, the cycle a cell climbed read
+    /// from where <paramref name="hero"/> is, so every hero shows it alike from its position and a held rung stays put; sliding,
+    /// the hands high on the rails by the fall's speed; near the top, a <paramref name="ledge"/> pixels over the feet, pulled up
+    /// onto it (<see cref="PullUp"/>).
+    /// </summary>
+    private static Limbs Climbing(Hero hero, double? ledge)
+    {
+        double feet = (double)hero.Y / Hero.Unit * Rig.Cell;
+        Vec Hand(double rung) => OnRung(RungCycle(feet, Rig.Shoulder, Rung.HandTop, rung), Rung.HandTop, Rung.HandOut, Rung.HandSwing);
+        Vec Foot(double rung, double hand)
+        {
+            double top = FootTop(rung, hand);
+            return OnRung(RungCycle(feet, Rig.Hip, top, rung), top, Rung.FootOut, Rung.FootSwing);
+        }
+        // Elbows bend as arms do, forearms forward, the elbows below the hands as when pulling up. The body is not lifted:
+        // a held rung stays where the ladder draws it.
+        var limbs = new Limbs(
+            FrontArm: Rig.Reach(Hand(Rung.FrontRung), Rig.Arm, 1),
+            BackArm: Rig.Reach(Hand(Rung.BackRung), Rig.Arm, 1),
+            FrontLeg: Rig.Reach(Foot(Rung.FrontRung, Rung.BackRung), Rig.Leg, -1),
+            BackLeg: Rig.Reach(Foot(Rung.BackRung, Rung.FrontRung), Rig.Leg, -1),
+            Tilt: 0, Lift: 0, Lying: false);
+        if (ledge is double l && PullOf(l) > 0) limbs = PullUp(limbs, l);
+        double slide = SlideOf(hero.Vy);
+        return slide > 0 ? Mix(limbs, OnLadder.Slide, slide) : limbs;
+    }
+
+    /// <summary>
+    /// Pulled up onto a ledge <paramref name="ledge"/> pixels over the feet (0092): the hands on it ahead, staying there as the
+    /// body rises past them, closing in under the shoulder to push down; the front foot stepping up onto it, the back leg
+    /// straightening under the body; the body leaning into it. At the ledge, all but standing on it.
+    /// </summary>
+    private static Limbs PullUp(Limbs climbing, double ledge)
+    {
+        double pull = PullOf(ledge), down = Rig.Shoulder - ledge, reach = 0.98 * (Rig.Arm.Upper + Rig.Arm.Lower);
+        double ahead = Math.Clamp(Math.Sqrt(Math.Max(0, reach * reach - down * down)), 1.5, Rung.HandOut);
+        double knee = Math.Clamp((Rung.KneeFrom - ledge) / Rung.KneeBlend, 0, 1);
+        double push = Math.Clamp((Rung.PushFrom - ledge) / Rung.PushFrom, 0, 1);
+        var step = Rig.Reach(new Vec(Rig.W * 0.3, Math.Max(2.5, Rig.Hip - ledge)), Rig.Leg, -1);
+        var under = Rig.Reach(new Vec(-Rig.W * 0.05, Rig.Hip - 0.3), Rig.Leg, -1);
+        return climbing with
+        {
+            FrontArm = MixBend(climbing.FrontArm, Rig.Reach(new Vec(ahead, down), Rig.Arm, 1), pull),
+            BackArm = MixBend(climbing.BackArm, Rig.Reach(new Vec(ahead - 1.5, down), Rig.Arm, 1), pull),
+            FrontLeg = MixBend(climbing.FrontLeg, step, knee),
+            BackLeg = MixBend(climbing.BackLeg, under, push),
+            Tilt = Rung.Lean * pull * Math.Clamp(ledge / Rung.LeanTill, 0, 1),
+        };
+    }
+
+    private static Bend MixBend(Bend a, Bend b, double by) => new(a.Upper + Apart(a.Upper, b.Upper) * by, a.Lower + Apart(a.Lower, b.Lower) * by);
 
     /// <summary>Whether the hero swims, rather than drifting still.</summary>
     public static bool Swimming(Hero hero) => hero.Vx != 0 || hero.Vy != 0;

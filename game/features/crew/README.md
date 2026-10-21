@@ -35,7 +35,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `JetPlume.cs`      | a jetpack's plume (0075): its core of light, streaks, motes, pool of light, shimmer | yes |
 | `RodLight.cs`      | the harpoon's light (0075): the shot's glint and gas, the rod's trail and wake, the bite, the taut line's bead, the zip home | yes |
 | `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway (door or hatch, 0067), a valve's wheel, a plan's own pictures | yes |
-| `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`); `HillsRun`, the walk over `-- --hills`; `Feel`, `-- --feel` with `--hills`, `--strip` or `--planet`: tap and held jumps, a run, a coyote jump, traced every step (0089); `PosesRun` in the `Hall`, `-- --poses --autopilot --lit`: a sprint reversed and stopped, a hop, a held jump, falls of 8 and 21 cells, the drill held through jumps (0090) | no    |
+| `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`); `HillsRun`, the walk over `-- --hills`; `Feel`, `-- --feel` with `--hills`, `--strip` or `--planet`: tap and held jumps, a run, a coyote jump, traced every step (0089); `PosesRun` in the `Hall`, `-- --poses --autopilot --lit`: a sprint reversed and stopped, a hop, a held jump, falls of 8 and 21 cells, the drill held through jumps (0090); `LaddersRun` in `Ladders`, `-- --ladders --autopilot --lit`, and `StripLaddersRun` with `--strip`: a ladder grabbed running and mid-jump, slid, leapt off, pulled up out of (0092) | no    |
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`), on a room's change and as its report every `Crew.ReportEvery` ticks (0050); `ExertOf` and `ThrustOf`, what it breathes and vents; `RefillOf`, a canister breathed once; `Cold`, how hard the cold bites at a cell | no    |
 | `Frost.cs`         | the frost past the field: one full-screen shader quad over the world, under the HUD (0050) | yes   |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads, room air included | no    |
@@ -557,9 +557,17 @@ Deliberately not handled:
   afloat alike; a friend's hero shows it aimed at the point it drills while it runs, else resting `TwoHand.Rest` down.
   `Aim.Touched` traces the bit of the same hold, the body upright. `-- --pose-sheet=<dir>` (`game/dev/PoseSheet.cs`) draws
   the hold eight ways round the shoulder, near and far, standing and on a ladder, facing either way, into PNGs and quits.
-- **Ladders** (0077): a jump off a ladder goes on with up held, not caught again while rising (`Hero.Move` grabs only falling or still); a side
-  held in mid-air turns the hero on it, ready to jump that way, side then jump or jump then side; at its foot a
-  walk steps off and a jump either way lets go; the hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder.
+- **Ladders** (0077, 0092): up grabs one walking, running, falling or rising, but not for `Hero.Regrab` 12 steps after a jump or
+  a walk off one, so a jump off with up held goes on; down grabs standing or falling with no side held. The hero eases onto its
+  middle (`LadderCentring` 450 of the way a step, about 5 steps) and climbs up at 110 a step (6.6 cells a second), down at 150
+  (9), with Shift sliding at 300 (18). A side held in mid-air turns the hero on it, ready to jump that way, side then jump or
+  jump then side; on the ground a side walks off unless up is held; Space with a side leaps off at 0.9 of the run and 0.85 of
+  the jump, straight up as from the floor. At the top the body rises to it and stands; the figure has pulled itself up meanwhile
+  onto `Hero.LedgeAbove`, hands on the ledge, the front foot stepping up (`Poses.PullUp`). The hands and feet take the
+  ladder's rungs by the hero's height (`HeroMotion.Ladder`), so a held rung stays put; a slide, read from `Vy`, raises the
+  hands to the rails and throws `Luminous.RailSpark`s. A friend's hero shows all of it from `Climbing`, `X`, `Y` and `Vy`. The
+  hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder. `-- --ladders --autopilot --lit`
+  records it (`HeroAutopilot.LaddersRun`; with `--strip`, the strip's shaft).
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - A press on a door or valve is built from it as shown (`Shared.Predicted.Grid`, passed to `Aiming.AimAt`): it asks
