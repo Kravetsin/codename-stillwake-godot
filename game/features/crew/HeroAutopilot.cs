@@ -27,8 +27,12 @@ public sealed class HeroAutopilot
         ################
         """);
 
-    /// <summary>One act: the keys held until <see cref="Done"/> says so, where the pointer is meanwhile, and whether it starts with E.</summary>
-    private sealed record Act(HeroInput Keys, Func<Hero, Progress, bool> Done, Func<Hero, (double X, double Y)?>? Point = null, bool Press = false);
+    /// <summary>
+    /// One act: the keys held until <see cref="Done"/> says so, where the pointer is meanwhile, whether it starts with E, and
+    /// whether Space is let go through it, cutting a jump short (0089).
+    /// </summary>
+    private sealed record Act(
+        HeroInput Keys, Func<Hero, Progress, bool> Done, Func<Hero, (double X, double Y)?>? Point = null, bool Press = false, bool LetsGo = false);
 
     /// <summary>How far into an act the script is: its steps so far, and the hero a step ago.</summary>
     private readonly record struct Progress(int Steps, Hero? Last)
@@ -39,7 +43,8 @@ public sealed class HeroAutopilot
 
     private static readonly HeroInput Still = new(0, 0, false);
     private readonly IReadOnlyList<Act> _acts;
-    private int _at, _steps;
+    private int _at, _steps, _held, _step;
+    private bool _trace;
     private bool _press;
     private Hero? _last;
 
@@ -70,8 +75,15 @@ public sealed class HeroAutopilot
         _last = hero;
         if (_at >= _acts.Count) return Still;
         _steps++;
-        return _acts[_at].Keys;
+        var keys = _acts[_at].Keys;
+        // Space stays held a while after each press, so the script's jumps go their full height, but where an act lets go (0089).
+        _held = keys.Jump ? HeldFor : _acts[_at].LetsGo ? 0 : Math.Max(0, _held - 1);
+        if (_trace) Godot.GD.Print($"feel: step {++_step} act {_at} x {hero.X} y {hero.Y} vx {hero.Vx} vy {hero.Vy}");
+        return keys with { JumpHeld = keys.JumpHeld || _held > 0 };
     }
+
+    /// <summary>How many steps the script holds Space after pressing it: past a held jump's top.</summary>
+    private const int HeldFor = 40;
 
     private static Act Hold(HeroInput keys, int steps, Func<Hero, (double, double)?>? point = null) => new(keys, (_, p) => p.Steps >= steps, point);
     private static Act Until(HeroInput keys, Func<Hero, Progress, bool> done) => new(keys, done);
@@ -317,5 +329,46 @@ public sealed class HeroAutopilot
             Jump(1),
             Wait(60),
         ]);
+    }
+
+    /// <summary>
+    /// <c>-- --feel</c> (0089), tracing every step: a tap jump, a held one, a run started and let go, then a jump three steps
+    /// after walking off a ledge. With <c>--hills</c> (<paramref name="hills"/>) the ledge is the floor off the ladder's top;
+    /// with <c>--strip</c> (<paramref name="strip"/>), out of the shelter, the cliff's far step, jumped onto first; else none.
+    /// </summary>
+    public static HeroAutopilot Feel(bool hills, bool strip)
+    {
+        int run = hills ? 1 : -1;
+        var acts = new List<Act> { Wait(hills ? 30 : 90) };
+        if (strip) acts.Add(Walk(-1, h => Column(h) <= 27));
+        acts.AddRange(
+        [
+            Wait(20),
+            Jump(),
+            new(Still, (_, p) => p.Steps >= 70, LetsGo: true),
+            Jump(),
+            Wait(90),
+            Hold(new HeroInput(run, 0, false, Sprint: true), 15),
+            Wait(40),
+        ]);
+        var off = hills ? -1 : 1;
+        if (hills)
+            acts.AddRange(
+            [
+                Walk(1, h => Column(h) == 24),
+                Until(new HeroInput(0, -1, false), (h, p) => p.Steps > 2 && !h.Climbing),
+                Wait(20),
+            ]);
+        if (strip) acts.AddRange([Walk(1, h => Column(h) >= 27), Jump(1), Hold(new HeroInput(1, 0, false), 90)]);
+        if (hills || strip)
+            acts.AddRange(
+            [
+                Until(new HeroInput(off, 0, false), (h, _) => h.Vy > 0),
+                Hold(new HeroInput(off, 0, false), 3),
+                Jump(off),
+                Hold(new HeroInput(off, 0, false), 60),
+            ]);
+        acts.Add(Wait(60));
+        return new HeroAutopilot(acts) { _trace = true };
     }
 }
