@@ -15,7 +15,7 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
 - An open cell is an **opening** when it sits in a wall line: an open door, or a cell with walls or
   closed doors on both its left and right, or both above and below.
 - **Space** is a flood from the open cells on the grid's border through open cells that are not
-  openings. **On grown ground** (0077: a kind with a `Ground`) an open cell under the sky (no back wall) or before
+  openings. **On grown ground** (0077: a planet type, 0095) an open cell under the sky (no back wall) or before
   natural ground (a natural back wall) is outside wherever it is, space flooding from it and through it as from the
   border: natural ground holds no air, so caves are never rooms, and a dig is found again round itself rather than
   through a cave network spanning the planet (which cost 100 ms a dig). A back wall changed there is found again as a

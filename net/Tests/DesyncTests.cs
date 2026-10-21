@@ -102,7 +102,7 @@ public class DesyncTests(ITestOutputHelper output)
         // seed and dug there (0077): walls cracked, broken out, their soil and rock given or spilt, plants felled (0079), alike on
         // every peer. Digs are few in a fuzz, so the first client also digs on its own: beamed down to the first small planet,
         // opened if the fuzz has not, it swings the axe at the topmost soil or stone and the first plant it may hit.
-        string planet = Content.Surfaces.SmallPlanet.Id, axe = Content.Weapons.Axe.Item;
+        string planet = Content.PlanetTypes.Small.Id, axe = Content.Weapons.Axe.Item;
         static bool Ground(Content.Material? wall) => wall != null && wall.Cost.Any(c => c.Item is "soil" or "rock");
         Covering(19, tried =>
         {
@@ -117,7 +117,7 @@ public class DesyncTests(ITestOutputHelper output)
                     int got = m.Items.Floor.Where(s => s.Item is "soil" or "rock").Sum(s => s.Count)
                         + clients.Sum(c => m.Items.Totals(c.Id).Where(t => t.Item is "soil" or "rock").Sum(t => t.Count));
                     dug = Math.Max(dug, got);
-                    felled = Math.Max(felled, Terrain.Generate(Content.Ground.Small, surface.Seed).Flora!.Count - m.Building.Plants.Count);
+                    felled = Math.Max(felled, Terrain.Generate(Content.PlanetTypes.Small, surface.Seed).Flora!.Count - m.Building.Plants.Count);
                 }
                 planets = Math.Max(planets, world.Surfaces.Count(s => s.Kind == planet));
 

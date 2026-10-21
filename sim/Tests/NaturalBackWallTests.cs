@@ -24,7 +24,7 @@ public class NaturalBackWallTests
     private static Scenario Down(IReadOnlyList<string>? known = null, params (string Item, int Count)[] items)
     {
         var w = new Scenario(Layout.Parse(Ship) with { Known = known });
-        w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Surfaces.SmallPlanet.Id)).Run();
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(PlanetTypes.Small.Id)).Run();
         if (items.Length > 0) w.GiveItems(0, items);
         return w.Do(new Transfer(1)).Run();
     }

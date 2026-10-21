@@ -155,7 +155,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
     /// Whether this surface's ground grew from a seed (0077): there an open cell under the sky, with no back wall, or before
     /// natural ground, which holds no air, is outside, wherever it is, so caves are not rooms and a dig costs what is round it.
     /// </summary>
-    private bool Grown => Rules.Ground != null;
+    private bool Grown => Rules is Content.PlanetType;
 
     private static readonly bool[] Natural = Enumerable.Range(0, Content.Materials.All.Max(m => m.Code) + 1)
         .Select(code => Content.Materials.All.Any(m => m.Code == code && m.Natural)).ToArray();

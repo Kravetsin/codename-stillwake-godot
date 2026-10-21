@@ -78,7 +78,7 @@ public partial class DevPanel : CanvasLayer
         column.AddChild(buttons);
         // Surfaces (0076): a planet (0077) or the test strip opened, and this hero beamed between the last opened and the ship.
         var surfaces = Style.Gap(new HBoxContainer(), 8);
-        surfaces.AddChild(Style.Button("open planet", () => Send(new OpenSurface(Content.Surfaces.Planet.Id))));
+        surfaces.AddChild(Style.Button("open planet", () => Send(new OpenSurface(Content.PlanetTypes.First.Id))));
         surfaces.AddChild(Style.Button("open strip", () => Send(new OpenSurface(Content.Surfaces.TestStrip.Id))));
         surfaces.AddChild(Style.Button("to ship", () => Send(new Transfer(0))));
         surfaces.AddChild(Style.Button("down", ToLast));

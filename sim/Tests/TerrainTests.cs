@@ -10,10 +10,10 @@ namespace Stillwake.Sim.Tests;
 /// <summary>A planet's ground grown from its seed (0077): what <see cref="Terrain"/> guarantees whatever the seed.</summary>
 public class TerrainTests
 {
-    private static readonly Ground Small = Ground.Small, Planet = Ground.Planet;
+    private static readonly Ground Small = PlanetTypes.Small.Ground, Planet = PlanetTypes.First.Ground;
 
     /// <summary>The small ground with no ruins: what it grows of itself, before a spire is stamped over it (0085).</summary>
-    private static readonly Ground Bare = Ground.Small with { Spires = 0, Homes = 0 };
+    private static readonly PlanetType BareType = PlanetTypes.Small with { Ground = PlanetTypes.Small.Ground with { Spires = 0, Homes = 0 } };
     private static int Code(string material) => Materials.Get(material).Code;
 
     private static Arbitrary<uint> Seeds => Gen.Choose(0, int.MaxValue).Select(s => (uint)s * 2654435761u).ToArbitrary();
@@ -21,21 +21,21 @@ public class TerrainTests
     [Property(MaxTest = 60)]
     public Property TheSameSeedGrowsTheSameGround() => Prop.ForAll(Seeds, seed =>
     {
-        var (a, b) = (Terrain.Generate(Small, seed), Terrain.Generate(Small, seed));
+        var (a, b) = (Terrain.Generate(PlanetTypes.Small, seed), Terrain.Generate(PlanetTypes.Small, seed));
         return a.Rows.SequenceEqual(b.Rows) && a.Materials!.SequenceEqual(b.Materials!);
     });
 
     [Fact]
     public void AnotherSeedGrowsOtherGround()
     {
-        var (a, b) = (Terrain.Generate(Planet, 1), Terrain.Generate(Planet, 2));
+        var (a, b) = (Terrain.Generate(PlanetTypes.First, 1), Terrain.Generate(PlanetTypes.First, 2));
         Assert.False(a.Rows.SequenceEqual(b.Rows));
     }
 
     [Property(MaxTest = 60)]
     public Property TheBottomIsLavaOverBedrockAndTheSideColumnsBedrockTheWholeHeight() => Prop.ForAll(Seeds, seed =>
     {
-        var l = Terrain.Generate(Small, seed);
+        var l = Terrain.Generate(PlanetTypes.Small, seed);
         bool Is(int x, int y, string material) => l.Rows[y][x] == '#' && l.Materials![y * l.Width + x] == Code(material);
         int floor = l.Height - Small.CoreRows;
         var sides = Enumerable.Range(0, l.Height).SelectMany(y => new[] { (0, y), (l.Width - 1, y) });
@@ -53,7 +53,7 @@ public class TerrainTests
     public void NothingGrowsOnTheLava()
     {
         // The deepest caves of the first planet reach the lava: their floors there grow nothing.
-        var l = Terrain.Generate(Planet, 1);
+        var l = Terrain.Generate(PlanetTypes.First, 1);
         int floor = l.Height - Planet.CoreRows;
         Assert.Contains(Enumerable.Range(0, l.Width), x => l.Rows[floor - 1][x] == '.');
         Assert.DoesNotContain(l.Flora!, f => f.Cell / l.Width == floor - 1 && Content.Flora.Cave.Any(k => k.Id == f.Kind && k.Holds == Content.Flora.Anchor.Floor));
@@ -62,7 +62,7 @@ public class TerrainTests
     [Property(MaxTest = 60)]
     public Property HeroesBeamDownToAnOpenCellOnWholeGroundUnderTheSky() => Prop.ForAll(Seeds, seed =>
     {
-        var l = Terrain.Generate(Small, seed);
+        var l = Terrain.Generate(PlanetTypes.Small, seed);
         int spawn = Assert.Single(l.CellsOf('S'));
         int x = spawn % l.Width, y = spawn / l.Width;
         // Whole ground under it, the sky over it: no back wall, nothing above.
@@ -73,7 +73,7 @@ public class TerrainTests
     [Fact]
     public void HeroesBeamDownNearTheMiddleOfThePlanet()
     {
-        var l = Terrain.Generate(Planet, 7);
+        var l = Terrain.Generate(PlanetTypes.First, 7);
         int spawn = l.CellsOf('S').Single();
         Assert.InRange(spawn % l.Width, l.Width / 2 - 40, l.Width / 2 + 40);
     }
@@ -81,7 +81,7 @@ public class TerrainTests
     [Property(MaxTest = 60)]
     public Property SoilLiesOverStoneAtMostEightDeepAndTheSkyHasNoMaterial() => Prop.ForAll(Seeds, seed =>
     {
-        var l = Terrain.Generate(Bare, seed);
+        var l = Terrain.Generate(BareType, seed);
         for (int x = 1; x < l.Width - 1; x++)
         {
             int top = TopOf(l, x), soil = SoilAt(l, x, top);
@@ -101,7 +101,7 @@ public class TerrainTests
         // planet a few columns in a hundred. A tiny ground may be half chasm, so this is measured on planets.
         foreach (uint seed in Enumerable.Range(1, 6).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(Planet, seed);
+            var l = Terrain.Generate(PlanetTypes.First, seed);
             int thin = Enumerable.Range(1, l.Width - 2).Count(x => SoilAt(l, x, TopOf(l, x)) < Planet.SoilLeast);
             Assert.True(thin * 10 <= l.Width, $"seed {seed}: {thin} thin columns");
         }
@@ -117,7 +117,7 @@ public class TerrainTests
     [Property(MaxTest = 60)]
     public Property ASlopeIsAWallOpenAboveWithOneSideOpenAndRisesTowardTheOther() => Prop.ForAll(Seeds, seed =>
     {
-        var l = Terrain.Generate(Bare, seed);
+        var l = Terrain.Generate(BareType, seed);
         bool Solid(int x, int y) => l.Rows[y][x] is '#' or '/' or '\\';
         for (int y = 1; y < l.Height; y++)
             for (int x = 1; x < l.Width - 1; x++)
@@ -138,7 +138,7 @@ public class TerrainTests
     [Property(MaxTest = 60)]
     public Property NoSpikeStandsUpAndASlopeUnderTheSkyHasNoBackWallWhereOneInACaveKeepsIt() => Prop.ForAll(Seeds, seed =>
     {
-        var l = Terrain.Generate(Bare, seed);
+        var l = Terrain.Generate(BareType, seed);
         static bool Open(char c) => c is ' ' or '.' or 'S';
         for (int y = 1; y < l.Height; y++)
             for (int x = 1; x < l.Width - 1; x++)
@@ -164,7 +164,7 @@ public class TerrainTests
 
     private static bool SkyFadesUnderTheSurface(uint seed)
     {
-        var l = Terrain.Generate(Bare, seed, out _, out var surface);
+        var l = Terrain.Generate(BareType, seed, out _, out var surface);
         for (int x = 0; x < l.Width; x++)
         {
             // Down each column: open sky, with no material, till its first solid cell or a few rows under its surface's line,
@@ -192,7 +192,7 @@ public class TerrainTests
     public void AShaftKeepsItsBackWallAllTheWayDownUnderItsMouth()
     {
         // The first planet's chasms go down hundreds of rows straight under the sky: only their first few rows show it.
-        var l = Terrain.Generate(Planet, 1, out _, out var surface);
+        var l = Terrain.Generate(PlanetTypes.First, 1, out _, out var surface);
         int deepest = 0;
         for (int x = 0; x < l.Width; x++)
         {
@@ -211,7 +211,7 @@ public class TerrainTests
     {
         foreach (uint seed in Enumerable.Range(1, 12).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(Planet, seed);
+            var l = Terrain.Generate(PlanetTypes.First, seed);
             int from = Planet.Surface + Planet.CaveFrom, to = Planet.Height - Planet.CoreRows, third = (to - from) / 3;
             double Open(int top, int bottom) =>
                 Enumerable.Range(top, bottom - top).Sum(y => l.Rows[y].Count(c => c == '.')) / (double)((bottom - top) * l.Width);
@@ -226,7 +226,7 @@ public class TerrainTests
         int mouths = 0;
         foreach (uint seed in Enumerable.Range(1, 12).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(Planet, seed);
+            var l = Terrain.Generate(PlanetTypes.First, seed);
             int near = Enumerable.Range(Planet.Surface, 2 * Planet.CaveFrom).Sum(y => l.Rows[y].Count(c => c == '.'));
             Assert.True(near > 100, $"seed {seed}: {near} cave cells near the surface");
             // A cave breaking the surface: open under the open sky.
@@ -240,7 +240,7 @@ public class TerrainTests
     {
         foreach (uint seed in new uint[] { 1, 2, 3 })
         {
-            var l = Terrain.Generate(Planet, seed);
+            var l = Terrain.Generate(PlanetTypes.First, seed);
             int w = l.Width, middle = w / 2;
             int TopOf(int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[Math.Clamp(y, 0, l.Height - 1)][Math.Clamp(x, 1, w - 2)] is '#' or '/' or '\\');
             // A chasm: a column open nine cells in ten from the land beside it down half a chasm's greatest depth.
@@ -267,7 +267,7 @@ public class TerrainTests
     [Fact]
     public void AGrownGroundIsBuiltOfItsMaterialsWithBackWallsFromTheSurfaceDown()
     {
-        var l = Terrain.Generate(Small, 3);
+        var l = Terrain.Generate(PlanetTypes.Small, 3);
         var grid = new Scenario(l).M.Grid;
         for (int cell = 0; cell < l.Width * l.Height; cell++)
         {

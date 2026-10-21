@@ -3,7 +3,7 @@ using Stillwake.Content;
 namespace Stillwake.Sim;
 
 /// <summary>
-/// A planet's ground grown from its seed (0077): a pure function of a <see cref="Ground"/> and the seed, filling a
+/// A planet's ground grown from its seed (0077): a pure function of a <see cref="PlanetType"/> (0095) and the seed, filling a
 /// <see cref="Layout"/> directly with the legend's characters and each cell's material in <see cref="Layout.Materials"/>.
 /// Integer value noise only, an unchecked hash of the seed and the cell, weights never negative, so every peer grows the
 /// same ground. It runs when the surface opens and again when a save of it loads, which holds only what was changed
@@ -19,31 +19,32 @@ public static class Terrain
         CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13, CaveRoll = 14, CavePatch = 17, MouthFade = 18,
         SpireAt = 19, HomeAt = 20;
 
-    public static Layout Generate(Ground g, uint seed) => Generate(g, seed, out _, out _, out _);
+    public static Layout Generate(PlanetType t, uint seed) => Generate(t, seed, out _, out _, out _);
 
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
-    internal static Layout Generate(Ground g, uint seed, out bool[] hall) => Generate(g, seed, out hall, out _, out _);
+    internal static Layout Generate(PlanetType t, uint seed, out bool[] hall) => Generate(t, seed, out hall, out _, out _);
 
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
     /// <param name="surface">Each column's surface, its first row of ground before caves and landmarks open it: for tests.</param>
-    internal static Layout Generate(Ground g, uint seed, out bool[] hall, out int[] surface) => Generate(g, seed, out hall, out surface, out _);
+    internal static Layout Generate(PlanetType t, uint seed, out bool[] hall, out int[] surface) => Generate(t, seed, out hall, out surface, out _);
 
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
     /// <param name="surface">Each column's surface, its first row of ground before caves and landmarks open it: for tests.</param>
     /// <param name="spires">Each spire stamped (0085), its left column and its top row: for tests.</param>
-    internal static Layout Generate(Ground g, uint seed, out bool[] hall, out int[] surface, out List<(int X, int Y)> spires) =>
-        Generate(g, seed, out hall, out surface, out spires, out _);
+    internal static Layout Generate(PlanetType t, uint seed, out bool[] hall, out int[] surface, out List<(int X, int Y)> spires) =>
+        Generate(t, seed, out hall, out surface, out spires, out _);
 
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
     /// <param name="surface">Each column's surface, its first row of ground before caves and landmarks open it: for tests.</param>
     /// <param name="spires">Each spire stamped (0085), its left column and its top row: for tests.</param>
     /// <param name="homes">Each home stamped (0091), its left column, its top row and its scheme: for tests.</param>
     internal static Layout Generate(
-        Ground g, uint seed, out bool[] hall, out int[] surface, out List<(int X, int Y)> spires, out List<(int X, int Y, Ruins.Home Home)> homes)
+        PlanetType t, uint seed, out bool[] hall, out int[] surface, out List<(int X, int Y)> spires, out List<(int X, int Y, Ruins.Home Home)> homes)
     {
+        var g = t.Ground;
         int w = g.Width, h = g.Height, floor = h - g.CoreRows;
-        int soil = Materials.Get("soil").Code, stone = Materials.Get("stone").Code, bedrock = Materials.Get("bedrock").Code;
-        int lava = Materials.Get(Content.Lava.Material).Code;
+        int soil = Materials.Get(t.Soil).Code, stone = Materials.Get(t.Stone).Code, bedrock = Materials.Get(t.Bedrock).Code;
+        int core = Materials.Get(t.Core).Code;
         var codes = new int[w * h];
         // 0 sky, 1 solid, 2 open below the surface.
         var kind = new byte[w * h];
@@ -94,7 +95,7 @@ public static class Terrain
                 if (side || y >= floor)
                 {
                     // The core: lava over the bedrock, between the bedrock's columns at the sides.
-                    (kind[cell], codes[cell]) = (1, !side && y < floor + g.LavaRows ? lava : bedrock);
+                    (kind[cell], codes[cell]) = (1, !side && y < floor + g.LavaRows ? core : bedrock);
                     continue;
                 }
                 if (y < top[x]) continue;
@@ -162,8 +163,8 @@ public static class Terrain
             }
         var spawn = SpawnOf(rows, w, h);
         var surfaceTop = TopsOf(rows, w, h);
-        var flora = Flora(g, seed, rows, codes, soil, spawn % w, surfaceTop);
-        CaveFlora(g, seed, rows, codes, hall, surfaceTop, flora);
+        var flora = Flora(t, seed, rows, codes, soil, spawn % w, surfaceTop);
+        CaveFlora(t, seed, rows, codes, hall, surfaceTop, flora);
         spires = Spires(g, seed, top, rows, codes, flora);
         homes = Homes(g, seed, top, rows, codes, flora, spires);
         // Found column by column and row by row; kept by cell, as every list of cells is.
@@ -174,15 +175,16 @@ public static class Terrain
 
     /// <summary>
     /// What grows on the surface (0079), column by column from the left: on whole soil with the open sky above it, one draw
-    /// a column picks a kind of <see cref="Content.Flora.All"/> by its chances, set where it has room — its ground level with
+    /// a column picks a kind of its type's <see cref="PlanetType.Plants"/> by its chances, set where it has room — its ground level with
     /// its own, no ground higher across its crown, the last of its kind far enough, the last plant's level ground not
     /// shared — and nowhere within two columns of the spawn. A column's top is its first solid cell, so nothing grows in a cave.
     /// </summary>
-    private static List<(int Cell, string Kind)> Flora(Ground g, uint seed, char[][] rows, int[] codes, int soil, int spawnX, int[] top)
+    private static List<(int Cell, string Kind)> Flora(PlanetType t, uint seed, char[][] rows, int[] codes, int soil, int spawnX, int[] top)
     {
+        var g = t.Ground;
         int w = g.Width, h = g.Height;
         bool Soil(int x, int y) => y < h && rows[y][x] == '#' && codes[y * w + x] == soil;
-        var kinds = Content.Flora.All;
+        var kinds = t.Plants;
         var last = new int[kinds.Count];
         Array.Fill(last, int.MinValue / 2);
         int lastX = int.MinValue / 2, lastLevel = 0;
@@ -224,15 +226,16 @@ public static class Terrain
     }
 
     /// <summary>
-    /// The depth band of row <paramref name="row"/> of ground <paramref name="g"/> (0080): 0, the coldest, near and above the
-    /// surface's middle, to the last over the core, by <see cref="Content.Flora.Bands"/>' thousandths of the way down.
+    /// The depth band of row <paramref name="row"/> of a planet of type <paramref name="t"/> (0080): 0, the coldest, near and above the
+    /// surface's middle, to the last over the core, by its <see cref="PlanetType.Bands"/>' thousandths of the way down.
     /// </summary>
-    public static int BandOf(Ground g, int row)
+    public static int BandOf(PlanetType t, int row)
     {
+        var g = t.Ground;
         int span = Math.Max(1, g.Height - g.CoreRows - g.Surface);
         long down = (long)(row - g.Surface) * 1000 / span;
         int band = 0;
-        while (band < Content.Flora.Bands.Count && down >= Content.Flora.Bands[band]) band++;
+        while (band < t.Bands.Count && down >= t.Bands[band]) band++;
         return band;
     }
 
@@ -243,12 +246,13 @@ public static class Terrain
     /// where it has room (<see cref="Content.Flora.CaveKind"/>). Only in the caves: an open cell under the sky is no slot, nor a
     /// wall beside only the sky.
     /// </summary>
-    private static void CaveFlora(Ground g, uint seed, char[][] rows, int[] codes, bool[] hall, int[] top, List<(int, string)> into)
+    private static void CaveFlora(PlanetType t, uint seed, char[][] rows, int[] codes, bool[] hall, int[] top, List<(int, string)> into)
     {
-        int w = g.Width, h = g.Height, floor = h - g.CoreRows, stone = Materials.Get("stone").Code;
-        var kinds = Content.Flora.Cave;
+        var g = t.Ground;
+        int w = g.Width, h = g.Height, floor = h - g.CoreRows, stone = Materials.Get(t.Stone).Code;
+        var kinds = t.Caves;
         var bands = new int[h];
-        for (int y = 0; y < h; y++) bands[y] = BandOf(g, y);
+        for (int y = 0; y < h; y++) bands[y] = BandOf(t, y);
         // Each anchor's kinds, in the list's order, and each kind's chance by band: looked up a slot at a time.
         var byAnchor = new int[3][];
         for (int on = 0; on < 3; on++) byAnchor[on] = Enumerable.Range(0, kinds.Count).Where(k => (int)kinds[k].Holds == on).ToArray();
@@ -256,7 +260,7 @@ public static class Terrain
         var last = new int[kinds.Count];
         var lastOn = new int[3];
         var taken = new bool[w * h];
-        var patches = new Field(seed, CavePatch, Content.Flora.PatchWave, Content.Flora.PatchWave, w);
+        var patches = new Field(seed, CavePatch, t.PatchWave, t.PatchWave, w);
         var patch = new int[w];
         bool Open(int x, int y) => rows[y][x] == '.';
         for (int y = 1; y < floor; y++)
@@ -284,7 +288,7 @@ public static class Terrain
             int band = bands[y], roll = (int)((long)Lattice(seed, CaveRoll + (uint)on, x, y) * 10000 / Whole);
             // Percent of the chances here: the patch noise's share of its most, times a hall's — a wall's when it faces one.
             bool inHall = hall[cell] || on == Content.Flora.Anchor.Rock && (hall[cell - w] || hall[cell + w] || hall[cell - 1] || hall[cell + 1]);
-            long scale = (long)patch[x] * Content.Flora.PatchMost / Whole * (inHall ? Content.Flora.Hall : 100);
+            long scale = (long)patch[x] * t.PatchMost / Whole * (inHall ? t.Hall : 100);
             long from = 0;
             int k = -1;
             foreach (int each in byAnchor[(int)on])

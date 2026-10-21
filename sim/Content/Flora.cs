@@ -74,8 +74,9 @@ public static class Flora
     }
 
     /// <summary>
-    /// The first planet's: an acacia with hanging fronds and glowing seed pods, a bush of glowing berries, a rock, bell
-    /// flowers glowing in three colours, a tuft of grass. Strengths are seconds of the axe's 4 a second: a tree 3, a rock 2,
+    /// The surface's growths, the catalog every planet type takes its plants from (0095), with the first planet's chances: an
+    /// acacia with hanging fronds and glowing seed pods, a bush of glowing berries, a rock, bell flowers glowing in three
+    /// colours, a tuft of grass. Strengths are seconds of the axe's 4 a second: a tree 3, a rock 2,
     /// a bush 1. A tree's 10 planks are more than any cargo crate's 3 to 6.
     /// </summary>
     public static readonly IReadOnlyList<Kind> All =
@@ -92,8 +93,9 @@ public static class Flora
     /// <summary>
     /// A kind of cave growth (0080). In each slot of its anchor — an open cave cell over a wall, one under a whole wall,
     /// or a natural wall beside a cave — the generator draws a number under 10000 and sets the kind whose chance there, in
-    /// this list's order among those of that anchor, it falls in: <c>Chances</c> by depth band (<see cref="Bands"/>), scaled
-    /// by the patch noise there (<see cref="PatchMost"/>), so they gather, and in a great hall by <see cref="Hall"/>. It needs
+    /// this list's order among those of that anchor, it falls in: <c>Chances</c> by its planet type's depth band
+    /// (<see cref="PlanetType.Bands"/>), scaled by the patch noise there (<see cref="PlanetType.PatchMost"/>), so they gather,
+    /// and in a great hall by <see cref="PlanetType.Hall"/>. It needs
     /// its <c>Tall</c> cells open and free, the cells <c>Wide</c> either side open over the same wall, whole walls
     /// all, never a slope (Terraria's rule) — and none of its kind nearer than <c>Apart</c> cells along the row; one on
     /// a floor or a ceiling, nothing of its anchor in the cell before it.
@@ -111,24 +113,8 @@ public static class Flora
     }
 
     /// <summary>
-    /// The depth bands, strata of the ground (0080): the bottom of each but the last in thousandths of the way from the
-    /// surface's middle row (<c>Ground.Surface</c>) down to the bedrock. The cold band, ice-blue (above the surface's middle
-    /// too); the garden, teal and violet, the busiest; the amber deep; and the ember band over the bedrock, its rock cracked
-    /// with heat.
-    /// </summary>
-    public static readonly IReadOnlyList<int> Bands = [250, 600, 850];
-
-    /// <summary>
-    /// How growth gathers: chances scaled by a smooth noise, a swell every <see cref="PatchWave"/> cells, from nothing to
-    /// <see cref="PatchMost"/> percent, so it comes in patches and clusters and much of the rock stays bare.
-    /// </summary>
-    public const int PatchWave = 12, PatchMost = 220;
-
-    /// <summary>In a great hall chances are this many percent of a tunnel's: the halls are gardens, tunnels sparse.</summary>
-    public const int Hall = 700;
-
-    /// <summary>
-    /// The caves' (0080), by anchor, the rarest first within each, so a dense patch does not crowd them out but for mica. Teal and
+    /// The caves' growths (0080), the catalog every planet type takes its caves' from (0095), with the first planet's chances
+    /// in its four bands; by anchor, the rarest first within each, so a dense patch does not crowd them out but for mica. Teal and
     /// hanging caps give biomass, violet ones spores; ice crystals and veins ice, the others crystal, a geode six; copper veins
     /// ore; mica its flakes; the heat's cracks magnetite.
     /// </summary>

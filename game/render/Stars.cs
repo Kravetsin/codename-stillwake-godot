@@ -21,8 +21,9 @@ public partial class Stars : CanvasLayer
     private static readonly Color Star = new(223 / 255f, 232 / 255f, 245 / 255f);
 
     private readonly Sprite2D _sky;
-    /// <summary>A planet's sky behind its ground, drawn over the screen in place of space (0076, 0079).</summary>
-    private readonly PlanetSky _day = new() { Visible = false };
+    /// <summary>A planet's sky behind its ground, drawn over the screen in place of space (0076, 0079); its set's pictures.</summary>
+    private PlanetSky? _day;
+    private string? _set;
     private readonly FarWrecks _wrecks = new();
     private readonly Dust _dust = new();
     private float _stream;
@@ -52,25 +53,28 @@ public partial class Stars : CanvasLayer
             // The project draws nearest: a star would hold still and jump a whole pixel every few frames.
             TextureFilter = CanvasItem.TextureFilterEnum.Linear,
         };
-        AddChild(_day);
         AddChild(_sky);
         AddChild(_wrecks);
         AddChild(_dust);
     }
 
     /// <summary>
-    /// A planet's sky behind everything (<see cref="PlanetSky"/>), its land's ground line at this row of the world, in pixels:
-    /// space and what drifts in it hidden; null for space, as aboard (0076).
+    /// A planet's sky behind everything (<see cref="PlanetSky"/>), of backdrop set <paramref name="backdrop"/>
+    /// (<see cref="PlanetLooks"/>), its land's ground line at row <paramref name="ground"/> of the world, in pixels: space and
+    /// what drifts in it hidden. Space, as aboard (0076), for a null set. A set is drawn once, kept while it is shown again.
     /// </summary>
-    public float? Ground
+    public void Show(string? backdrop, float ground)
     {
-        get => _ground;
-        set
+        if (backdrop != null && backdrop != _set)
         {
-            _ground = value;
-            _day.Visible = value != null;
-            _sky.Visible = _wrecks.Visible = _dust.Visible = value == null;
+            _day?.QueueFree();
+            AddChild(_day = new PlanetSky(backdrop));
+            MoveChild(_day, 0);
+            _set = backdrop;
         }
+        _ground = backdrop != null ? ground : null;
+        if (_day != null) _day.Visible = _ground != null;
+        _sky.Visible = _wrecks.Visible = _dust.Visible = _ground == null;
     }
 
     private float? _ground;
@@ -87,7 +91,7 @@ public partial class Stars : CanvasLayer
         var centre = camera?.GetScreenCenterPosition() ?? Vector2.Zero;
         float zoom = camera?.Zoom.X ?? 1;
         _sky.RegionRect = new Rect2(centre * zoom * Parallax + new Vector2(_stream, 0), screen);
-        if (_ground is float ground) _day.Follow(centre, zoom, screen, ground, Seconds);
+        if (_ground is float ground) _day!.Follow(centre, zoom, screen, ground, Seconds);
         _wrecks.Follow(centre, zoom, screen, Seconds);
         _dust.Follow(centre, zoom, screen, Seconds);
     }
