@@ -1,7 +1,7 @@
 # 0086 — Modules: one socket for machines and tools
 
 - Status: accepted; slice 1 built (the arc module in electric stations); the arc on the drill, then unlock modules, next.
-  Amended by [0095](0095-the-sky-shard.md): the arc module is made of a sky shard, not the arc coil.
+  Amended by [0096](0096-the-sky-shard.md): the arc module is made of a sky shard, not the arc coil.
 - Date: 2026-10-21
 - Design: `designs/modules.md` (the session's scratchpad) and its review, which overrides its top; the user's decisions
 - Amends: [0085](0085-ruins-on-the-first-planet.md)'s "the arc coil does nothing yet": it is what the arc module is made of

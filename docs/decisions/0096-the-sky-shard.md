@@ -1,4 +1,4 @@
-# 0095 — The sky shard: the arc relic, its spire a light well, a home's heart
+# 0096 — The sky shard: the arc relic, its spire a light well, a home's heart
 
 - Status: accepted
 - Date: 2026-10-21
@@ -33,19 +33,25 @@ round it, three spires built round what fell, and a chip of a relic in a home.
 - **Which relics are taken is the sim's, from the felled cells** (`BuildingModule.Relics`, `Relic(Cell, Kind, Taken)`, derived
   from `Felled`), so every peer, every load and a friend joining later agree which spires and homes still burn. No new state.
 - **The spire is a light well with the shard's roots** (the user's mix: V2's well, V1's roots and the shard). The lens in its tip
-  over a flue open down its middle column; a ladder from the room's floor down that column to the chamber, the light's own
-  column, the ledges either side lit by it; the chamber five rows tall, the cradle under the ladder's foot, a cache, a table, a
-  lamp over it, a shelf, the banner, a cobweb. While its relic stands it burns: the shard sparking (small arcs on twos, a reach
+  over a flue, its middle column open from the lens down to the chamber, the light's own column, the ledges either side lit by
+  it; the chamber five rows tall, the cradle under the light, a cache, a lamp under the ledge over it, a shelf, the banner, a
+  cobweb. While its relic stands it burns: the shard sparking (small arcs on twos, a reach
   to the chamber's metal now and then, a big discharge every 2.6–5.5 s re-lighting the room, sparks raining), the shaft lit up
   its column, the lens alight throwing a pillar of light 72 cells into the sky, the roots glowing in the rock round the chamber.
 - **Taken, the spire goes dark** (the page's "after"): watched, the cradle sparks three seconds more, its arcs thinning, a last
-  discharge into the ladder's foot, then everything goes out: pillar, shaft, lens, roots. From a hill one sees which spires are
+  discharge into the slab by it, then everything goes out: pillar, shaft, lens, roots. From a hill one sees which spires are
   taken. Found taken (a load, a friend joining), it is dark at once. The empty cradle stays, drawn only.
-- **The ladder is the way out.** Measured on the old shaft: from a ledge the next is three rows up, a held jump's six on the
-  planet, but the ledge over the hero's head on the same side is six rows up, five open rows for a body 2.625 tall, so the feet
-  rise 2.375, short of the ledge assist's third of a cell (0092). A ladder up the light column reads with the light well (its
-  rungs in the beam) and climbs out whatever the ledges; the room's floor is closed but for the ladder's top, so the hero stands
-  on it and walks out through a plug. A controller test climbs out of the spire as five seeds grow it.
+- **Ledges four rows apart are the way out.** Measured on the old shaft: from a ledge the next was three rows up, well inside a
+  held jump's six on the planet, but the ledge over the hero's head on its own side was six rows up, five open rows for a body
+  2.625 tall, so the feet rose 2.375, short of the next and of the ledge assist's third of a cell (0092): "you can only go
+  down". Now the ledges, three cells out from either wall by turns, are four rows apart (rows 22, 18, 14), so the one over a
+  take-off is eight rows up and a hero landing on the next has its head clear by 0.375; four rows apart, two ledges never both
+  reach into a hero's height, so it passes between them through the light's column; each step is four rows, two under the jump,
+  the assist a margin, not a need. A slab two rows over the chamber's floor at its right is the first step (from the floor to
+  row 22 would be six, all of the jump); the room's floor is a hole three wide over the last ledge, the floor beside it the last
+  step, and the right plug the way out. Five held jumps from the chamber's floor to the room, a running jump off each ledge's
+  edge but the first. A controller test climbs out so, with plain keys, on five seeds' spires, and misses with a ledge taken out
+  or moved over its neighbour.
 - **A home's heart** (the page's home A): the chip in its niche by the hearth home's arch, a copper cable from it to the hearth
   and up and along the ceiling to the lamp over the table. Only those two burn, the lamp violet-white as the relic, the hearth's
   arcs violet; every other lamp of the home that may go out is dead, the common network long gone (`HomesLooks.Fed`, `MoodOf`).
@@ -59,8 +65,8 @@ round it, three spires built round what fell, and a chip of a relic in a home.
 - **The page's "relic → 4 chips at the assembler"**: the cradle gives the four itself; a craft splitting one item into four
   would be a station rule of its own for one use.
 - **Shocking every drill hit for 5**: 50 a second, a suit gone in a second; the share keeps the user's 5 a swing.
-- **Moving the ledges four rows apart** instead of a ladder: the body gets longer or the ledges fewer, the jump still needs the
-  ledge's edge, and a ladder down the beam reads better with the well.
+- **A ladder up the light column** (the first build): it climbed out whatever the ledges, but the user found it looked strange in
+  the makers' well; the ledges, as the page drew them, do it now.
 - **A cave light for the lens**: the caves' view bakes its pictures by chunk; the lens's glass is drawn dark there and its light
   laid over it by the spires' view, which knows when it goes out.
 

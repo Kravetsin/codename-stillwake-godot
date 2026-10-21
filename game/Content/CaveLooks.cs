@@ -59,7 +59,7 @@ public static class CaveLooks
         ["geode"] = new(2) { Light = Violet, Strength = 1.4f, Keep = 0.78f, Reach = 7, Glints = 2, GlintColour = (240, 216, 255) },
         ["heatCrack"] = new(4) { Light = Ember, Strength = 1.3f, Keep = 0.74f, Reach = 6 },
         // The ruins' (0085): a cache's small teal lamp; the spire's lens in its tip, here its glass dark, lit over it by the
-        // spires' view while its relic stands (0095).
+        // spires' view while its relic stands (0096).
         [Spec.Ruins.SpireCache] = new(1) { Light = Teal, Strength = 1.1f, Keep = 0.7f, Reach = 4 },
         [Spec.Ruins.SpireLamp] = new(1),
     };

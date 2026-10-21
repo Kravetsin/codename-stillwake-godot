@@ -60,7 +60,7 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
   hanging caps, its geode, ammonite and ribs, ore veins, heat cracks, moss) by the export beside it, as the surface's were:
   each glowing pixel's bloom, tight, in `_glow`. Change the drawing code and export again; never edit the pictures.
   The ruins' (0085): a spire's cache, an alloy capsule with a small teal lamp (`spireCache_0`), a placeholder drawn by a script
-  not kept; the spire's lens in its tip, its glass dark (`spireLamp_0`, exported from the relic page by `tools/homes-art`, 0095),
+  not kept; the spire's lens in its tip, its glass dark (`spireLamp_0`, exported from the relic page by `tools/homes-art`, 0096),
   lit over it while its relic stands by the ruins' view.
 - **Light** (`CaveLooks`): each glowing growth's one light, every piece of a kind alike, from its glow's middle, in its colour —
   teal, violet, ice-blue, amber, rose, ember, green near the surface — at its strength and keep out to its reach (8 cells for a

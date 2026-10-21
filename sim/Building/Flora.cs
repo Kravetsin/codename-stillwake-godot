@@ -14,7 +14,7 @@ namespace Stillwake.Sim.Building;
 public sealed record Plant(int Cell, string Kind);
 
 /// <summary>
-/// A relic a ruin grew with (0095, <see cref="Ruins.Relics"/>): a spire's cradle or a home's niche at its own <c>Cell</c>, and
+/// A relic a ruin grew with (0096, <see cref="Ruins.Relics"/>): a spire's cradle or a home's niche at its own <c>Cell</c>, and
 /// whether it is <c>Taken</c>, felled since the ground grew. Read from what is saved alone, so every peer and every load agrees
 /// which spires and homes still burn.
 /// </summary>
@@ -42,7 +42,7 @@ public sealed partial class BuildingModule
     private readonly List<int> _resonators = [];
     private readonly List<Relic> _relics = [];
 
-    /// <summary>The relics the ground grew with, ascending by cell, standing or taken (0095): live and read-only.</summary>
+    /// <summary>The relics the ground grew with, ascending by cell, standing or taken (0096): live and read-only.</summary>
     public IReadOnlyList<Relic> Relics => _relics;
 
     /// <summary>Every kind of growth by id, looked up as often as a plant is.</summary>

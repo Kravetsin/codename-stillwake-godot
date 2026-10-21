@@ -98,7 +98,7 @@ public static class Items
         // it; a whole lamp of theirs, kept till its blueprint comes.
         new("cloth", 50, BurnTicks: 200),
         new("arcLamp", 10),
-        // A shard of the sky the arc makers built round (0095): four from a spire's cradle, one from a home's niche; each is an
+        // A shard of the sky the arc makers built round (0096): four from a spire's cradle, one from a home's niche; each is an
         // arc module (0086). Kept, as tools are, when a hero dies.
         new("arcShard", 8, Gear: true, Group: ItemGroup.Tool),
         // Made of that relic at the circuit assembler (0086): fitted into an electric station, twice its speed for twice its

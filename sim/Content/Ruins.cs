@@ -4,7 +4,7 @@ using Piece = Stillwake.Content.Flora.Piece;
 namespace Stillwake.Content;
 
 /// <summary>
-/// What whoever came before left on the first planet (0085, 0091, 0095): prefabs drawn as ASCII, stamped into the ground as it
+/// What whoever came before left on the first planet (0085, 0091, 0096): prefabs drawn as ASCII, stamped into the ground as it
 /// grows (<c>Terrain</c>), last, over the caves, the landmarks and what grew there. A prefab's characters: <c>#</c> a wall of
 /// alloy, <c>.</c> open with an alloy back wall, <c>p</c> open with a plaster back wall, <c>s</c> a soil plug in a doorway (wall
 /// and back wall soil), <c>t</c> a wall of stone, <c>,</c> open with a stone back wall, <c>c</c> a cache standing open on the
@@ -21,7 +21,7 @@ public static class Ruins
     public static readonly IReadOnlyList<string> Growths = [SpireCache, SpireLamp];
 
     /// <summary>
-    /// The arc relic (0095): a sky shard, black glass with white cracks alight, held upright in a copper cradle on a spire's chamber
+    /// The arc relic (0096): a sky shard, black glass with white cracks alight, held upright in a copper cradle on a spire's chamber
     /// floor (<see cref="Cradle"/>), which splits into four shards as it is taken; and a chip of one in a wall niche of the hearth
     /// home (<see cref="Niche"/>). A shard (<see cref="Shard"/>) is what an arc module is made of; analysed, it opens its blueprint.
     /// </summary>
@@ -31,7 +31,7 @@ public static class Ruins
     public static readonly IReadOnlyList<string> Relics = [Cradle, Niche];
 
     /// <summary>
-    /// What a hit on a cradle costs its striker (0095), as the resonator's zap: the axe's hit <see cref="CradleShock"/> units of its
+    /// What a hit on a cradle costs its striker (0096), as the resonator's zap: the axe's hit <see cref="CradleShock"/> units of its
     /// suit; a faster tool's hit its share of the axe's pace, rounded up, so a second of hitting costs as much whatever strikes.
     /// </summary>
     public const int CradleShock = 5;
@@ -170,7 +170,7 @@ public static class Ruins
         new("crack", Anchor.Back, Tall: 2) { Behind = true, Fixed = true },
         new("fallenBeam", Anchor.Rock, Tall: 1) { Across = 2, Yields = [("alloyScrap", 3)] },
         new("rubble", Anchor.Rock, Tall: 1) { Across = 2, Yields = [("rock", 2), ("alloyScrap", 1)] },
-        // The relic (0095): the sky shard in its cradle splits into four shards as it is taken, every hit on it discharging into
+        // The relic (0096): the sky shard in its cradle splits into four shards as it is taken, every hit on it discharging into
         // its striker (CradleShock); the chip in the hearth home's niche is one.
         new(Cradle, Anchor.Floor, Tall: 3) { Across = 3, Strength = 8, Yields = [(Shard, 4)] },
         new(Niche, Anchor.Back, Tall: 2) { Behind = true, Strength = 2, Yields = [(Shard, 1)] },
@@ -190,7 +190,7 @@ public static class Ruins
     /// <summary>
     /// A: the hearth room, the family's table with a supper left on it and a candle still lit, the kitchen through an arch at the
     /// right: the hearth with its coil, the kettle on a stool, herbs drying, the jar of what still glows; by the door the coat pegs
-    /// and the height marks; in the wall by the arch, the home's heart (0095): a chip of a sky shard in a niche, which still feeds
+    /// and the height marks; in the wall by the arch, the home's heart (0096): a chip of a sky shard in a niche, which still feeds
     /// the hearth and the lamp over the table. A soil plug a hero's height in either end wall.
     /// </summary>
     public static readonly Home Hearth = new("hearth",

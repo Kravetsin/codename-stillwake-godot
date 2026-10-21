@@ -10,7 +10,7 @@ public static partial class RelicArt
 }
 
 /// <summary>
-/// How the arc relic looks alive (0095), the relic concept page's live layer at its 24 steps a second: its colour, the rates of its
+/// How the arc relic looks alive (0096), the relic concept page's live layer at its 24 steps a second: its colour, the rates of its
 /// arcs, its big discharges, the light it gives a spire — the lens, the lit shaft, the pillar of light over it, the glowing roots
 /// in the rock round its chamber — and how it dies once it is taken. Every number here is the page's, or set against it in game.
 /// </summary>

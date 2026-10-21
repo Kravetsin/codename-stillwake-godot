@@ -879,7 +879,7 @@ public partial class Main : Node2D, ITogether
             AddChild(_caves = new Features.Flora.CaveView(_m.Grid, _m.Building, planet, () => _hero?.HeadLamps() ?? []));
             // The arc makers' homes in its ground (0091); --no-homes leaves them undrawn, to measure what they cost.
             if (!Has("--no-homes")) AddChild(_homes = new Features.Ruins.HomesView(_m.Grid, _m.Building, HeroBodies) { Mood = Arg("--homes") switch { "lit" => true, "dark" => false, _ => null } });
-            // The spires alight round their relics, dark once taken (0095).
+            // The spires alight round their relics, dark once taken (0096).
             if (!Has("--no-homes")) AddChild(_spires = new Features.Ruins.SpiresView(_m.Grid, _m.Building, HeroBodies));
             // Its core: lava under the caves, glowing.
             AddChild(_lava = new Features.Grid.LavaView(_m.Grid, ground));

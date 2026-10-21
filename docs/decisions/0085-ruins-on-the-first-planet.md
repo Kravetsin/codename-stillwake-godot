@@ -1,8 +1,8 @@
 # 0085 — Ruins on the first planet
 
 - Status: accepted; slice a built (spires, alloy, caches, the relic's shrine); vaults and scrolls next (slice b). Amends
-  [0080](0080-caves-glow-by-depth.md): a growth felled by nobody now lets its yields fall. Amended by [0095](0095-the-sky-shard.md):
-  the shrine and its arc coil are gone, the relic a sky shard in a cradle on the chamber's floor, the spire a light well with a ladder.
+  [0080](0080-caves-glow-by-depth.md): a growth felled by nobody now lets its yields fall. Amended by [0096](0096-the-sky-shard.md):
+  the shrine and its arc coil are gone, the relic a sky shard in a cradle on the chamber's floor, the spire a light well, its ledges four rows apart.
 - Date: 2026-10-21
 - Design: `designs/ruins-scrolls.md` (the session's scratchpad) and its review, which overrides its top
 

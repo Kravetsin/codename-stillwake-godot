@@ -1,4 +1,4 @@
-// The arc relic (ADR 0095), from the relic concept page's own drawing code (its lib.js and designs.js, design 1 "the sky shard",
+// The arc relic (ADR 0096), from the relic concept page's own drawing code (its lib.js and designs.js, design 1 "the sky shard",
 // unchanged but for its requires): the shard held upright in its copper collar on three legs over porcelain; a chip of one in a
 // home's wall niche (the page's home A); the spire's lens (its light-well spire); the shard's 16 px icon. Each piece is drawn
 // into the export's Pic as decor.js's are, and says where its arcs leave from, the metal they jump to and its heart.

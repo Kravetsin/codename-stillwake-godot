@@ -418,7 +418,7 @@ public class HomesTests
             Assert.All(home.Rows, r => Assert.True(r.All(c => c is Ruins.Alloy or Ruins.Open or Ruins.Plaster or Ruins.Plug or Ruins.Stone or Ruins.OpenStone), home.Id));
             Assert.Null(Held(home));
         }
-        // Every piece is in some home, or in the spire's chamber: its relic's cradle (0095).
+        // Every piece is in some home, or in the spire's chamber: its relic's cradle (0096).
         Assert.All(Ruins.Pieces, p => Assert.True(Ruins.Homes.Any(h => h.Pieces.Any(q => q.Kind == p.Id)) || Ruins.SpireFurnishing.Any(q => q.Kind == p.Id), p.Id));
     }
 

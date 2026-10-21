@@ -18,7 +18,7 @@ public static class Crackle
 
     /// <summary>
     /// An arc of <paramref name="e"/>'s from <paramref name="a"/> to <paramref name="b"/>, in pixels of the world, living its life;
-    /// in <paramref name="tint"/>, a relic's violet where its chip feeds the piece (0095), else cyan.
+    /// in <paramref name="tint"/>, a relic's violet where its chip feeds the piece (0096), else cyan.
     /// </summary>
     public static void Strike(Random random, Emitter e, Vector2 a, Vector2 b, BoltTint? tint = null)
     {

@@ -106,7 +106,7 @@ public partial class HomesView : Node2D
 
     /// <summary>
     /// Brings the pieces shown up to those standing: a new one placed, a felled one taken away in a puff of dust; and what a home's
-    /// heart feeds lit or dark as its chip stands or is taken (0095), placed again.
+    /// heart feeds lit or dark as its chip stands or is taken (0096), placed again.
     /// </summary>
     private void Follow()
     {
@@ -163,7 +163,7 @@ public partial class HomesView : Node2D
     }
 
     /// <summary>
-    /// The homes holding a heart (0095), from the sim's relics: each niche's cell, the cells of what it feeds, its home's box in
+    /// The homes holding a heart (0096), from the sim's relics: each niche's cell, the cells of what it feeds, its home's box in
     /// cells, whether its chip is taken, and the copper cable from it to the hearth and along the ceiling to the lamp.
     /// </summary>
     private void Hearts()
@@ -223,7 +223,7 @@ public partial class HomesView : Node2D
 
     /// <summary>
     /// Whether <paramref name="plant"/> burns and whether a heart feeds it: what a heart feeds burns while its chip stands, every other
-    /// lamp in its home that may go out is dead (0095); elsewhere the mood by the world's seed, or the one asked for.
+    /// lamp in its home that may go out is dead (0096); elsewhere the mood by the world's seed, or the one asked for.
     /// </summary>
     private (bool Lit, bool Fed) MoodOf(Plant plant, HomesArt.Picture art)
     {
@@ -435,7 +435,7 @@ public partial class HomesView : Node2D
                 var at = s.Box + new Vector2(l.X, l.Y);
                 int reach = (int)Math.Ceiling(l.Reach * (arc ? HomesLooks.ArcReach : 1));
                 if (!view.Grow(reach * Cell).HasPoint(at)) continue;
-                // Fed by a relic's chip, the makers' arc burns violet-white as the relic does (0095).
+                // Fed by a relic's chip, the makers' arc burns violet-white as the relic does (0096).
                 var colour = arc && s.Fed ? RelicLooks.Light : l.Colour;
                 var light = new LightSource(at.X, at.Y, colour, l.Strength * (arc ? HomesLooks.ArcStrength : 1) * bright, reach, HomesLooks.Keep, 1, HomesLooks.LightSize);
                 _near.Add((light, at.DistanceSquaredTo(middle)));
@@ -495,7 +495,7 @@ public partial class HomesView : Node2D
         }
     }
 
-    /// <summary>A heart's copper cable (0095), lit as the world is: bright copper while its chip stands, blackened once it is taken.</summary>
+    /// <summary>A heart's copper cable (0096), lit as the world is: bright copper while its chip stands, blackened once it is taken.</summary>
     private void Cables(Painter on)
     {
         foreach (var h in _hearts)
@@ -618,13 +618,13 @@ public partial class HomesView : Node2D
         public readonly List<Mote> Motes = [];
         public int Ticks;
         public double Shake;
-        /// <summary>Fed by a home's heart (0095): its arcs and light the relic's violet-white.</summary>
+        /// <summary>Fed by a home's heart (0096): its arcs and light the relic's violet-white.</summary>
         public bool Fed { get; init; }
-        /// <summary>A relic's chip sparking in its niche (0095).</summary>
+        /// <summary>A relic's chip sparking in its niche (0096).</summary>
         public RelicSparks? Sparks { get; set; }
     }
 
-    /// <summary>A home holding a heart (0095): its niche's cell, its box in cells, what it feeds, its floor's row of pixels, its cable.</summary>
+    /// <summary>A home holding a heart (0096): its niche's cell, its box in cells, what it feeds, its floor's row of pixels, its cable.</summary>
     private sealed class Heart(int niche, Rect2I home, List<int> feeds, float floor)
     {
         public int Niche { get; } = niche;

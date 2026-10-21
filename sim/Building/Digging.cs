@@ -49,7 +49,7 @@ public sealed partial class BuildingModule
         if (_grid.WallAt(c.Cell) is not { } wall)
         {
             var plant = PlantAt(c.Cell)!;
-            // A relic's cradle discharges into whoever strikes it (0095), the felling hit too, before it gives its shards.
+            // A relic's cradle discharges into whoever strikes it (0096), the felling hit too, before it gives its shards.
             if (plant.Kind == Ruins.Cradle) _crewOps.Shock(c.From, ShockOf(c.Tool));
             if (Cracked(plant.Cell, Kinds[plant.Kind].Strength, c.Tool)) Fell(plant, c.From);
             return;
@@ -63,7 +63,7 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// The units of a suit a hit of <paramref name="tool"/> on a cradle costs (0095): <see cref="Ruins.CradleShock"/> for the axe's,
+    /// The units of a suit a hit of <paramref name="tool"/> on a cradle costs (0096): <see cref="Ruins.CradleShock"/> for the axe's,
     /// a faster tool's its pace's share of the axe's, rounded up (a cost): the drill's 1, the arc drill's 2, 10 a second each.
     /// </summary>
     public static int ShockOf(string tool)

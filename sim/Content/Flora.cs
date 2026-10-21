@@ -146,7 +146,7 @@ public static class Flora
         new("moss", Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [360, 2000, 500, 0]),
         new("mica", Anchor.Rock, Tall: 1, Wide: 0, Apart: 2, Chances: [1600, 900, 1400, 800]) { Yields = [("mica", 1)] },
         // The ruins' (0085, Content.Ruins): never grown, no chance in any band, set where a spire is stamped. A cache on the
-        // floor of its chamber, the lens in its tip's alloy; its relic's cradle is a piece (0095).
+        // floor of its chamber, the lens in its tip's alloy; its relic's cradle is a piece (0096).
         new(Ruins.SpireCache, Anchor.Floor, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 0]) { Yields = [("alloyScrap", 4), ("wire", 6), ("silicon", 2)] },
         new(Ruins.SpireLamp, Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 0]),
     ];

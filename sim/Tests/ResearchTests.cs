@@ -123,7 +123,7 @@ public class ResearchTests
     [Fact]
     public void AnAnalysedSkyShardOpensTheArcModuleOnceAndStaysToBeWoundIntoOne()
     {
-        // The relic (0095): its blueprint opens by analysing a shard, the rest of its cost known; the shard stays for the module.
+        // The relic (0096): its blueprint opens by analysing a shard, the rest of its cost known; the shard stays for the module.
         var (w, id) = SetUp();
         w.GiveItems(0, (Content.Ruins.Shard, 2), ("coil", 1), ("circuit", 1), ("frame", 1));
         foreach (string part in (string[])["coil", "circuit", "frame"]) Analyse(w, id, part);

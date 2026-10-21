@@ -3,7 +3,7 @@
 - Status: accepted; slice 1 built (three homes, their 49 pieces, plaster, cloth, the arc lamp as an item); slice 2 built (the
   arc lamp hung aboard, the spire's chamber furnished). Amends [0080](0080-caves-glow-by-depth.md) and
   [0085](0085-ruins-on-the-first-planet.md): a growth may stand over several cells, hang on a back wall, or stand on another.
-  Amended by [0095](0095-the-sky-shard.md): the hearth home's heart feeds its hearth and table lamp, the rest of its lamps dead;
+  Amended by [0096](0096-the-sky-shard.md): the hearth home's heart feeds its hearth and table lamp, the rest of its lamps dead;
   the spire's chamber furnished anew round the relic's cradle.
 - Date: 2026-10-21
 - Design: the homes concept page the user approved whole ("take every set on it"): its three scenes, its catalogue of 49

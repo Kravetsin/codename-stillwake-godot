@@ -7,7 +7,7 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 `packages/sim/src/modules/building`; its rules hold here but for the payment a part at a time.
 
 - **Depends on:** `Grid` (`IGridQueries`, `IGridOps`) and `Items` (`IItemsQueries`, `IItemsOps`; `WeaponProblem` for a dig); `Crew`
-  (`ICrewQueries.Heroes`), so a wall does not finish on a hero, and `ICrewOps.Shock`, the resonator's zap (0091) and a relic's cradle's (0095);
+  (`ICrewQueries.Heroes`), so a wall does not finish on a hero, and `ICrewOps.Shock`, the resonator's zap (0091) and a relic's cradle's (0096);
   `Power` (`IPowerQueries.Cabled`), to keep a cabled machine standing; `Research`
   (`IResearchQueries.Knows`), to refuse a blueprint not known (ADR 0024); `Crafting`
   (`ICraftingQueries.Queue`), to keep a station with crafts queued standing (0057).
@@ -119,7 +119,7 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   (`DropAt(FloorStack.Nobody, …)`). Its cell is in `Felled` from then, so a load never fells or drops it again.
 - **The ruins' growths** (0085): a spire's cache, standing on its alloy floor (alloy scrap 4, wire 6, silicon 2), and its lens in
   its tip's top cell (nothing), are cave kinds no band grows (`Content.Ruins`), set by `Terrain` where it stamps a spire, and felled
-  as any. Its relic's cradle is a piece (0095).
+  as any. Its relic's cradle is a piece (0096).
 - **The homes' pieces** (0091): `Content.Ruins.Pieces`, growths (`Flora.Piece`) set by `Terrain` where it stamps a home, felled,
   saved and dropped as any. What they need every growth has: `Across` columns from its own cell (the bottom-left on a floor, the
   top-left else) beside its `Tall` rows, a hit on any of them hitting it, its crack kept by its own cell, the wall under (over)
@@ -132,7 +132,7 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 - **The resonator zaps** (0091): every breath (`Crew.BreathEvery` of this module's clock, in the simulation phase, before crew
   breathes) each hero not out whose reported cell lies within `Ruins.ZapReach` (1) of a standing resonator's cells pays
   `Ruins.Zap` (5) of its suit through `ICrewOps.Shock`. The resonators standing are derived (`_resonators`), by own cell.
-- **The relic** (0095): a spire's cradle (`Ruins.Cradle`, three across and up, 8 hit points) gives four `arcShard`, a home's niche
+- **The relic** (0096): a spire's cradle (`Ruins.Cradle`, three across and up, 8 hit points) gives four `arcShard`, a home's niche
   (`Ruins.Niche`) one. Every `Dig` on a standing cradle, the felling one too, first shocks its sender through `ICrewOps.Shock`:
   `Ruins.CradleShock` (5) for the axe's hit, a faster tool's its pace's share of the axe's, rounded up (`ShockOf`: the drill 1, the arc
   drill 2), 10 units a second whatever strikes. Its floor dug out from under it fells it for the digger, unshocked. `Relics` reads,
@@ -158,7 +158,7 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   costs, for the build menu; `Cracks` — live, read-only, by cell; `Plants` — the plants standing, `Plant(Cell, Kind)`,
   ascending by cell, live and read-only, only ever fewer; `PlantAt(cell)` — the plant a hit there takes, the one in front first, then the one behind, never a fixed one (one in the rock in
   its stone's), null for none; `HoldOf(plant)` — the cell it holds on to in its own column (0080); `Zaps(cell)` — whether a hero
-  reported there stands right by a resonator (0091); `Relics` — every relic grown, `Relic(Cell, Kind, Taken)`, by cell (0095);
+  reported there stands right by a resonator (0091); `Relics` — every relic grown, `Relic(Cell, Kind, Taken)`, by cell (0096);
   `ShockOf(tool)` — what a hit of it on a cradle costs its striker; `DigProblem(peer, cell, tool)` — the refusal a `Dig`
   would get, leaving out whether an electric weapon runs, as the client asks before it sends.
 - **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.notHere`, `building.unknown`,

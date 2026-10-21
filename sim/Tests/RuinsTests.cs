@@ -9,7 +9,7 @@ namespace Stillwake.Sim.Tests;
 
 /// <summary>
 /// Ruins on the first planet (0085): spires of alloy stamped into the ground at places the seed chooses, a cache and a relic's
-/// cradle in each (0095); and a growth felled by nobody letting its yields fall where it stood.
+/// cradle in each (0096); and a growth felled by nobody letting its yields fall where it stood.
 /// </summary>
 public class RuinsTests
 {
@@ -135,7 +135,7 @@ public class RuinsTests
         // Hero 0 beamed down to a small planet, its one spire and its one home grown with it.
         var w = new Scenario(".S..\n####", 3);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.Do(new OpenSurface(Content.Surfaces.SmallPlanet.Id)).Run();
+        w.Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
         w.Do(new Transfer(1)).Run(2);
         var cradle = w.On(1).Building.Relics.Single(r => r.Kind == Ruins.Cradle);
         Assert.False(cradle.Taken);

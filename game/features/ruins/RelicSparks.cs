@@ -6,7 +6,7 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Ruins;
 
 /// <summary>
-/// A relic sparking (0095), the relic page's live emitter a step at a time: small arcs on twos from its cracks to its own metal or
+/// A relic sparking (0096), the relic page's live emitter a step at a time: small arcs on twos from its cracks to its own metal or
 /// into the air, now and then a reach to the room's metal, sparks dripping off it, and every few seconds a big discharge from its
 /// heart into the room's metal that re-lights it (<see cref="Flash"/>), sparks raining. <see cref="Fade"/> thins it out once it is
 /// taken. Drawn only, each peer its own: a spire's cradle and a home's niche alike.

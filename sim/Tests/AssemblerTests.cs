@@ -75,7 +75,7 @@ public class AssemblerTests
     [Fact]
     public void WindsASkyShardIntoAnArcModuleOneShardAModule()
     {
-        // A spire's cradle gives four shards, four modules (0095).
+        // A spire's cradle gives four shards, four modules (0096).
         var w = World().GiveItems(0, (Content.Ruins.Shard, 4), ("coil", 8), ("circuit", 8), ("frame", 4));
         int assembler = Assembler(w);
         Assert.Equal([(Content.Ruins.Shard, 1), ("coil", 2), ("circuit", 2), ("frame", 1)], Crafts.Get("arcModule").Cost);

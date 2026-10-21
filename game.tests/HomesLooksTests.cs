@@ -49,7 +49,7 @@ public class HomesLooksTests
         Assert.InRange(lamps, 1800, 2200);
         Assert.Equal("homes/ceilLamp_0_dark", HomesLooks.PictureOf("ceilLamp", 7, lit: false));
         Assert.Equal("homes/arcCandle_0", HomesLooks.PictureOf("arcCandle", 7, lit: false));
-        // A relic's cradle always burns while it stands: its dark look is the cradle a taken one leaves (0095).
+        // A relic's cradle always burns while it stands: its dark look is the cradle a taken one leaves (0096).
         Assert.All(Enumerable.Range(0, 30), cell => Assert.True(HomesLooks.Lit(Spec.Ruins.Cradle, cell)));
     }
 

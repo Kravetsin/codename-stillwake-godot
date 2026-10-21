@@ -83,7 +83,7 @@ public static class HomesLooks
 
     /// <summary>
     /// The picture of piece <paramref name="kind"/> at <paramref name="cell"/>: its variant by a hash of its cell, lit or dark; lit and
-    /// fed by a relic's chip (<paramref name="fed"/>, 0095), its violet-white look where it has one (<see cref="FedLooks"/>).
+    /// fed by a relic's chip (<paramref name="fed"/>, 0096), its violet-white look where it has one (<see cref="FedLooks"/>).
     /// </summary>
     public static string PictureOf(string kind, int cell, bool lit, int? variant = null, bool fed = false)
     {
@@ -96,19 +96,19 @@ public static class HomesLooks
     /// <summary>
     /// Whether piece <paramref name="kind"/>'s lamp at <paramref name="cell"/> burns (the page's mix by the world's seed): what never
     /// goes out always, every other lamp two in three, by a hash of its cell, so every peer sees the same. A relic's cradle always
-    /// burns while it stands: its dark look is the cradle a taken one leaves (0095).
+    /// burns while it stands: its dark look is the cradle a taken one leaves (0096).
     /// </summary>
     public static bool Lit(string kind, int cell) => !HomesArt.Of[kind].Dark || kind == Stillwake.Content.Ruins.Cradle || Hash(cell) / 7 % LitOf != 0;
 
     /// <summary>
-    /// What a home's heart feeds (0095): in a home holding a chip of a relic, these pieces burn while it stands, its arcs and light
+    /// What a home's heart feeds (0096): in a home holding a chip of a relic, these pieces burn while it stands, its arcs and light
     /// violet-white as the relic's, and every other lamp that may go out is dead, the common network long gone; the chip taken, they
     /// go dark too.
     /// </summary>
     public static readonly IReadOnlyList<string> Fed = ["hearth", "ceilLamp"];
 
     /// <summary>
-    /// Whether piece <paramref name="kind"/> at <paramref name="cell"/> burns, and whether a heart feeds it (0095): one a heart
+    /// Whether piece <paramref name="kind"/> at <paramref name="cell"/> burns, and whether a heart feeds it (0096): one a heart
     /// <paramref name="feeds"/> while its chip stands (not <paramref name="taken"/>); any other lamp that may go out in a home with a
     /// heart (<paramref name="hearted"/>) never, the common network dead; elsewhere <paramref name="mood"/> when asked for (every lamp
     /// that may go out lit, or none), else the mix by the world's seed (<see cref="Lit"/>).

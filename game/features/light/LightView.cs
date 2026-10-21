@@ -96,7 +96,7 @@ public partial class LightView : Node2D
     /// <summary>The light of the arc makers' lamps and hearths near the view this frame (0091: <c>HomesView</c>).</summary>
     public Func<IReadOnlyList<LightSource>> Homes { get; set; } = () => [];
 
-    /// <summary>The light of the spires round their relics near the view this frame (0095: <c>SpiresView</c>).</summary>
+    /// <summary>The light of the spires round their relics near the view this frame (0096: <c>SpiresView</c>).</summary>
     public Func<IReadOnlyList<LightSource>> Spires { get; set; } = () => [];
 
     /// <summary>The lights drawn into the lightmap the last frame.</summary>

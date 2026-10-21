@@ -249,7 +249,7 @@ public static class Sound
     public static readonly Cue Zap = new(Shots("ruins/zap", 1), -10, Pitch: 0.08f, Heard: new(4, 16));
 
     /// <summary>
-    /// A relic humming in its cradle (0095): the charging station's synthesised hum played half again as high, heard round its
+    /// A relic humming in its cradle (0096): the charging station's synthesised hum played half again as high, heard round its
     /// chamber; a placeholder till the user picks, as its discharges are the resonator's <see cref="Zap"/>.
     /// </summary>
     public static readonly Cue RelicHum = new(["res://audio/power/charger-hum-1.ogg"], -14, Pitch: 0, Loops: true, Heard: new(3, 14), Tune: 1.5f);

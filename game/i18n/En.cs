@@ -211,7 +211,7 @@ public static partial class En
         ["item.cloth.kind"] = "Material",
         ["item.arcLamp.kind"] = "Relic",
         ["item.arcShard.kind"] = "Relic",
-        // The relic's line for the handbook and the analysis (0095), kept for the friend's story. Russian, as the user picked it:
+        // The relic's line for the handbook and the analysis (0096), kept for the friend's story. Russian, as the user picked it:
         // «Они не изобрели дугу: она упала им на головы, и всё, что они построили, выросло вокруг осколков».
         ["item.arcShard.lore"] = "They did not invent the arc: it fell on their heads, and everything they built grew up around the shards.",
         ["item.arcModule.kind"] = "Module",

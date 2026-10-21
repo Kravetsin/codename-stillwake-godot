@@ -12,7 +12,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Ruins;
 
 /// <summary>
-/// The spires alight round their relics (0095): each spire whose cradle the sim keeps standing (<see cref="BuildingModule.Relics"/>)
+/// The spires alight round their relics (0096): each spire whose cradle the sim keeps standing (<see cref="BuildingModule.Relics"/>)
 /// burns — the shard sparking in its cradle, the lit shaft up its light well, the lens in its tip throwing a pillar of light into the
 /// sky, its roots glowing in the rock round its chamber — and a taken one goes dark: watched being taken, its cradle sparks out over
 /// a few seconds first; found taken, after a load or by a friend joining, it is dark from the start. A hit on the cradle arcs into the
