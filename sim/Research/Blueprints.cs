@@ -15,21 +15,20 @@ public static class Blueprints
     private static string Titled(string id) => id.Length == 0 ? "" : char.ToUpperInvariant(id[0]) + id[1..];
 
     /// <summary>
-    /// Every blueprint there is, with what it places and costs: walls by material but bedrock, never built, back walls of
-    /// hull materials, never of a natural one, which nothing would take down again (0077); builds; machines but those built
-    /// into the ship (the lifepod).
+    /// Every blueprint there is, with what it places and costs: walls and back walls by material but bedrock, never built
+    /// (0077, 0084); builds; machines but those built into the ship (the lifepod).
     /// </summary>
     public static readonly IReadOnlyList<Blueprint> All =
     [
         .. Content.Materials.All.Where(m => m.Built).Select(m => Of(Placement.Wall(m.Id), m.Cost)),
-        .. Content.Materials.All.Where(m => !m.Natural).Select(m => Of(Placement.BackWall(m.Id), m.Cost)),
+        .. Content.Materials.All.Where(m => m.Built).Select(m => Of(Placement.BackWall(m.Id), m.Cost)),
         .. Content.Builds.All.Select(b => Of(new Placement(b.Id is "pipe" or "valve" ? "conduit" : "structure", b.Id), b.Cost)),
         .. Content.Machines.All.Where(m => !m.Fixed).Select(m => Of(new Placement("machine", m.Kind), m.Cost)),
     ];
 
     private static readonly HashSet<string> Ids = All.Select(b => b.Id).ToHashSet(StringComparer.Ordinal);
 
-    /// <summary>Whether a blueprint places <paramref name="placement"/>: none for a bedrock wall or a soil back wall.</summary>
+    /// <summary>Whether a blueprint places <paramref name="placement"/>: none for a bedrock wall or back wall.</summary>
     public static bool Has(Placement placement) => Ids.Contains(Of(placement));
 
     private static Blueprint Of(Placement placement, IReadOnlyList<(string Item, int Count)> cost) => new(Of(placement), placement, cost);

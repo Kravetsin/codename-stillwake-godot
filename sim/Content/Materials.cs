@@ -18,8 +18,8 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="BuildTicks">Ticks of a hero's work to build one cell; 0 for one never built.</param>
 /// <param name="Natural">
-/// A planet's ground (0077): dug by weapons, never marked to take apart; a wall of it may be planned, a back wall not, for
-/// nothing would take one down again.
+/// A planet's ground (0077): its walls dug by weapons, never marked to take apart; walls and back walls of it may be planned,
+/// and a back wall a hero built is taken apart as any (0084), the ground's own never.
 /// </param>
 public sealed record Material(
     string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, bool Natural = false)

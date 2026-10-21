@@ -81,7 +81,7 @@ public class GrownSaveTests
     [Property(MaxTest = 25)]
     public Property TheGroundIsItsSeedsWithItsEditsAndItsRoomsAreThoseFoundWhole()
     {
-        string[] builds = ["wall:scrap", "wall:soil", "back:scrap", "door", "ladder"];
+        string[] builds = ["wall:scrap", "wall:soil", "back:scrap", "back:soil", "door", "ladder"];
         var gen =
             from steps in (from x in Gen.Choose(1, 62) from y in Gen.Choose(0, 46) from what in Gen.Choose(0, builds.Length + 2) select (x, y, what)).ListOf()
             from reload in Gen.Choose(0, 40)
@@ -96,7 +96,7 @@ public class GrownSaveTests
                 int cell = y * m.Grid.Width + x;
                 if (what >= builds.Length)
                     w.Do(new Dig(cell, "fireAxe")).Do(new Dig(cell, "fireAxe")).Do(new Dig(cell, "fireAxe")).Do(new Dig(cell, "fireAxe"))
-                        .Do(new Dig(cell, "fireAxe")).Do(new Dig(cell, "fireAxe")).Do(new Deconstruct(cell, "structure"));
+                        .Do(new Dig(cell, "fireAxe")).Do(new Dig(cell, "fireAxe")).Do(new Deconstruct(cell, "structure")).Do(new Deconstruct(cell, "back"));
                 else
                 {
                     var place = builds[what].Split(':') switch

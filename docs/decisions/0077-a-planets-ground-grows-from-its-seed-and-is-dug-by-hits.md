@@ -70,6 +70,8 @@ digging and a light to dig by come together.
   allowed on planets (`wall` is in their build list) and aboard as leaky decor; bedrock and natural back walls are no
   blueprint, refused `building.unknown` even in creative mode, since nothing would take one down. `rock` is "Rock" to
   players: one item for asteroid ore and stone.
+  *Amended by [0084](0084-back-walls-of-natural-materials.md):* soil and stone back walls are blueprints too, a built one
+  taken apart with a mark; bedrock and the ground's own back walls stay as decided here.
 - **Digging is `Dig(Cell, Tool)` in Building,** which owns plans and taking things apart, and now `Cracks`: a saved list of
   (cell, damage) sorted by cell. A dig adds its weapon's damage (axe 2, drill 1, arc drill 3 a hit; 4, 10 and 15 a
   second at their paces); reaching the wall's strength clears the wall, and only the wall — its back wall stays — and
