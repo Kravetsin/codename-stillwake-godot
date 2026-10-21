@@ -35,11 +35,11 @@ public class TestbedTests
     [Fact]
     public void ItsCratesHoldAFullStackOfEveryItemAHeroCanCarryAndNoWreckageTheFarmsInASecond()
     {
-        Assert.True(Testbed.Carried.Count(i => !Testbed.Farm.Contains(i.Id) && !Testbed.InSupply.Contains(i.Id)) < Spec.Machines.Get("crate").Slots);
+        Assert.True(Testbed.Carried.Count(i => !Testbed.InFarmCrate(i.Id) && !Testbed.InSupply.Contains(i.Id)) < Spec.Machines.Get("crate").Slots);
         var m = Built.Value;
         var crate = m.Items.Crate(Crates(m)[0]);
         var farm = m.Items.Crate(Crates(m)[1]);
-        Assert.All(Testbed.Carried.Where(i => !Testbed.InSupply.Contains(i.Id)), item => Assert.Contains(new Stack(item.Id, item.Stack), Testbed.Farm.Contains(item.Id) ? farm : crate));
+        Assert.All(Testbed.Carried.Where(i => !Testbed.InSupply.Contains(i.Id)), item => Assert.Contains(new Stack(item.Id, item.Stack), Testbed.InFarmCrate(item.Id) ? farm : crate));
         // What is found and never made, the arc drill, in the supply crate by the door.
         Assert.Equal(["arcDrill"], Testbed.Found);
         Assert.Contains(new Stack("arcDrill", 1), m.Items.Crate(CrateAt(m, Testbed.Supply)));

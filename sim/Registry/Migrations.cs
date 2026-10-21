@@ -160,7 +160,29 @@ public static class Migrations
                 surface!["slices"]!["building"]!.AsObject()["felled"] ??= new JsonArray();
             return save;
         },
+        // 22 → 23: the Former takes a third input, for a motor's three parts (0080), aboard and on every surface.
+        FormerInputs,
     ];
+
+    /// <summary>
+    /// 22 → 23: what each Former holds gains a third input, empty, after its two, so its outputs keep their stacks; aboard
+    /// and on every surface. A Former already of its new size is left as it is.
+    /// </summary>
+    public static JsonObject FormerInputs(JsonObject save)
+    {
+        static void Widen(JsonNode slices)
+        {
+            var formers = slices["grid"]!["machines"]!.AsArray().Where(m => (string)m!["kind"]! == "former").Select(m => (int)m!["id"]!).ToList();
+            foreach (var held in slices["items"]!["crates"]!.AsArray())
+            {
+                var slots = held!["slots"]!.AsArray();
+                if (formers.Contains((int)held["id"]!) && slots.Count == 5) slots.Insert(2, null);
+            }
+        }
+        Widen(save["slices"]!);
+        foreach (var surface in save["surfaces"]?.AsArray() ?? []) Widen(surface!["slices"]!);
+        return save;
+    }
 
     /// <summary>
     /// 19 → 20: what is the player's rather than a surface's moves into the world's globals (0076), slices of their own
