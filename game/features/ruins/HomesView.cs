@@ -221,8 +221,7 @@ public partial class HomesView : Node2D
             {
                 case Emits.Arc:
                     {
-                        double p = e.Beat ? (s.Ticks % 6 == 0 ? 0.7 : 0) : (e.Rate == 0 ? 0.02 : e.Rate) * 1.8;
-                        if (_random.NextDouble() >= p) break;
+                        if (_random.NextDouble() >= Crackle.Chance(e, s.Ticks)) break;
                         var a = s.Box + new Vector2(e.X + (float)Between(-0.6, 0.6), e.Y + (float)Between(-0.6, 0.6));
                         Vector2 b;
                         if (e.ToAir)
@@ -231,8 +230,7 @@ public partial class HomesView : Node2D
                             b = new Vector2(e.X + (float)(Math.Cos(angle) * reach), e.Y + (float)(Math.Sin(angle) * reach)) + s.Box;
                         }
                         else b = s.Box + new Vector2(e.X2 + (float)Between(-0.8, 0.8), e.Y2 + (float)Between(-0.8, 0.8));
-                        int life = (int)Math.Round(e.Life * Between(1, 1.8) * 2.5);
-                        Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, Between(-0.15, 0.15)), life, 1, Math.Max(0.35, e.Width), branchy: true);
+                        Crackle.Strike(_random, e, a, b);
                         break;
                     }
                 case Emits.Pulse:

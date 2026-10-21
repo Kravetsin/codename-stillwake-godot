@@ -91,7 +91,9 @@ there. The page drew three homes cut in the rock, each lit two ways ("lamps stil
 - **The arc lamp aboard** (`Machines`: `arcLamp`, 1 × 1, drawing 1 as the starter lamp does): its blueprint costs one arc lamp,
   so it opens once one is analysed (the item stays in the analyzer, 0027) and each hung aboard is a lamp found. The light feature
   lights it in the makers' cold white-blue, three tenths stronger and ten cells out (`Light.ArcLamp`), its halo cyan; short of
-  power it flickers as any lamp. Its picture, the ceiling lamp's mount and globe in a cell, from the export. `J` on a map.
+  power it flickers as any lamp. Its pictures, the ceiling lamp's mount and globe in a cell, from the export: its body, dark,
+  drawn whatever its power, and while it shines the homes' own globe alight over it with its glow, and at full power the ceiling
+  lamp's arc crackling across it, as a lit home's lamp. `J` on a map.
 - **The spire's chamber furnished** (`Ruins.SpireFurnishing`, the page's proposal): a table and a chair, a ceiling lamp over them,
   a shelf with an empty scroll case, the makers' banner by the shrine, a cobweb; set with the spire's own growths.
 

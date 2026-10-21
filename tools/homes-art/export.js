@@ -1,4 +1,4 @@
-// Exports the arc makers' homes (ADR 0090) from the concept page's own drawing code (decor.js, unchanged but for its require):
+// Exports the arc makers' homes (ADR 0090) from the concept page's own drawing code (decor.js, unchanged but for its require and exports):
 // each piece's picture, what of it glows, its dark look where its lamp may be out, its lights and its live emitters, into
 // game/art/homes and game/Content/HomesArt.cs; the plaster's wall and back wall into game/art/planet; the cloth's and the arc
 // lamp's icons; the music box's placeholder tine. Change the drawing code and run `node tools/homes-art/export.js`; never edit
@@ -50,8 +50,8 @@ function blur(src, W, H, rad) {
 const byte = (v) => Math.round(Math.min(1, Math.max(0, v)) * 255);
 
 /** One look of a piece: drawn over black and over white, so a pixel blended over nothing keeps its alpha; and its glow. */
-function render(id, opts) {
-  const pc = D.PIECES[id], top = (opts.flue || 0) + M, W = pc.w + 2 * M, H = pc.h + top + M;
+function render(id, opts, pc = D.PIECES[id]) {
+  const top = (opts.flue || 0) + M, W = pc.w + 2 * M, H = pc.h + top + M;
   const draw = (key) => { const p = new Pic(W, H, key); pc.draw(p, M, top, { lit: true, ...opts }); return p; };
   const a = draw(0), b = draw(1), n = W * H;
   const rgba = new Float32Array(n * 4);
@@ -206,19 +206,27 @@ icon('arcLamp.png', (p) => {
     p.set(8 + x, 10 + y, d > 3.4 ? ARC.lo : d < 1.5 ? ARC.core : d < 2.8 ? ARC.hi : ARC.mid);
   }
 });
-// The arc lamp hung aboard (machine_arcLamp, 0090): the ceiling lamp's mount from the top of its cell, its globe under it, unlit
-// (the light feature lights it).
+// The arc lamp hung aboard (0090): the ceiling lamp's mount from the top of its cell, its globe under it. Dark, the body the grid
+// draws whatever its power (machine_arcLamp); alight, the homes' own globe: what of it differs from the body (_lit) and its glow
+// with a margin round the cell (_glow), which the light feature lays over the body while it shines (ArcLampLooks).
 (function machine() {
-  const a = new Pic(16, 16, 0);
-  D.R(a, 7, 0, 2, 2, A[0]); a.set(7, 0, A[4]); D.abox(a, 3, 2, 10, 3);
-  for (let y = -4; y <= 4; y++) for (let x = -4; x <= 4; x++) {
-    const d = Math.sqrt(x * x + y * y); if (d > 4.3) continue;
-    a.set(8 + x, 10 + y, d > 3.4 ? A[0] : (x < 0 && y < 0 && d < 2.6) ? hex('#3a5468') : hex('#26384a'));
-  }
-  a.set(6, 8, hex('#9fc4e0')); a.set(8, 9, A[4]); a.set(8, 11, A[4]); a.set(8, 15, A[0]);
-  const img = P.create(16, 16);
-  for (let i = 0; i < 256; i++) if (a.op[i]) { const o = i * 4; img.data[o] = byte(a.alb[i * 3]); img.data[o + 1] = byte(a.alb[i * 3 + 1]); img.data[o + 2] = byte(a.alb[i * 3 + 2]); img.data[o + 3] = 255; }
-  P.encode(img, path.join(GAME, 'art', 'machine_arcLamp.png'));
+  const lamp = { w: 16, h: 16, draw(p, x, y, o) {
+    D.R(p, x + 7, y, 2, 2, A[0]); p.set(x + 7, y, A[4]); D.abox(p, x + 3, y + 2, 10, 3);
+    if (o.lit) D.globe(p, x + 8, y + 10, 4, true);
+    else {
+      for (let j = -4; j <= 4; j++) for (let i = -4; i <= 4; i++) {
+        const d = Math.sqrt(i * i + j * j); if (d > 4.3) continue;
+        p.set(x + 8 + i, y + 10 + j, d > 3.4 ? A[0] : (i < 0 && j < 0 && d < 2.6) ? hex('#3a5468') : hex('#26384a'));
+      }
+      p.set(x + 6, y + 8, hex('#9fc4e0')); p.set(x + 8, y + 9, A[4]); p.set(x + 8, y + 11, A[4]);
+    }
+    p.set(x + 8, y + 15, A[0]);
+  } };
+  const dark = render('arcLampAboard', { lit: false }, lamp), lit = render('arcLampAboard', { lit: true }, lamp), cell = { x0: M, y0: M, x1: M + 15, y1: M + 15 };
+  write(dark.rgba, dark.W, cell, path.join(GAME, 'art', 'machine_arcLamp.png'));
+  const changed = lit.rgba.map((v, i) => (lit.rgba.slice(i - (i % 4), i - (i % 4) + 4).some((c, k) => c !== dark.rgba[i - (i % 4) + k]) ? v : 0));
+  write(changed, lit.W, cell, path.join(GAME, 'art', 'machine_arcLamp_lit.png'));
+  write(lit.glow, lit.W, { x0: 0, y0: 0, x1: lit.W - 1, y1: lit.H - 1 }, path.join(GAME, 'art', 'machine_arcLamp_glow.png'));
 })();
 icon('cloth.png', (p) => {
   // A folded length of the makers' red cloth, its ochre band.
