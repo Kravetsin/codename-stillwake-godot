@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xspfxiq64bc2"
-path="res://.godot/imported/relicShrine_0_glow.png-a0c160fb971e5428d2ab3e6902bd0232.ctex"
+uid="uid://dhjm3ceqyggts"
+path="res://.godot/imported/ceilLamp_0_fed_glow.png-0b8a9f1082bc1f81f1af229ddff3dcb4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/caves/relicShrine_0_glow.png"
-dest_files=["res://.godot/imported/relicShrine_0_glow.png-a0c160fb971e5428d2ab3e6902bd0232.ctex"]
+source_file="res://art/homes/ceilLamp_0_fed_glow.png"
+dest_files=["res://.godot/imported/ceilLamp_0_fed_glow.png-0b8a9f1082bc1f81f1af229ddff3dcb4.ctex"]
 
 [params]
 

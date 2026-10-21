@@ -366,7 +366,6 @@ public static class Terrain
                     string? kind = c switch
                     {
                         Content.Ruins.Cache => Content.Ruins.SpireCache,
-                        Content.Ruins.Shrine => Content.Ruins.RelicShrine,
                         Content.Ruins.Lamp => Content.Ruins.SpireLamp,
                         _ => null,
                     };

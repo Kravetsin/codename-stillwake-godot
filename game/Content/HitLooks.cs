@@ -184,15 +184,16 @@ public static class HitLooks
         (["roots"], Impact.Wood),
         (["rock", "stalagmite", "stalactite"], Impact.Stone),
         (["cobweb", "threadTeal", "threadViolet"], Impact.Cloth),
-        (["crystalRose", "crystalIce", "crystalAmber", "crystalEmber", "crystalIceHang", "crystalAmberHang", "geode", "veinIce"], Impact.Crystal),
+        (["crystalRose", "crystalIce", "crystalAmber", "crystalEmber", "crystalIceHang", "crystalAmberHang", "geode", "veinIce",
+            Stillwake.Content.Ruins.Cradle], Impact.Crystal),
         (["glowcapViolet", "glowcapTeal", "hangcap"], Impact.Spores),
         (["table", "chair", "stool", "bench", "bed", "cradle", "wardrobe", "chest", "frame", "clock", "basket", "toys", "desk",
             "bookshelf", "wallShelf", "toolRack", "heightMarks"], Impact.Wood),
         (["banner", "tapestry", "rug", "curtain", "coatPegs", "drawings"], Impact.Cloth),
         (["ceilLamp", "sconce", "floorLamp", "lantern", "arcCandle", "lightWindow", "garland", "brokenLamp", "shelfJars", "holoPortrait",
-            Stillwake.Content.Ruins.SpireLamp], Impact.Glass),
-        (["hearth", "kettle", "utensils", "musicBox", Stillwake.Content.Ruins.Resonator, "fallenBeam", Stillwake.Content.Ruins.SpireCache,
-            Stillwake.Content.Ruins.RelicShrine], Impact.Alloy),
+            Stillwake.Content.Ruins.SpireLamp, Stillwake.Content.Ruins.Niche], Impact.Glass),
+        (["hearth", "kettle", "utensils", "musicBox", Stillwake.Content.Ruins.Resonator, "fallenBeam", Stillwake.Content.Ruins.SpireCache],
+            Impact.Alloy),
         (["dishes", "pots", "basin", "plantAlive", "plantDead"], Impact.Ceramic));
 
     private static Dictionary<string, Impact> Looking(params (string[] Kinds, Impact Impact)[] groups) =>

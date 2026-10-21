@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c7vniarbr6y0h"
-path="res://.godot/imported/relicShrine_0.png-948e0880a5104cf2212f98d6bf98c7eb.ctex"
+uid="uid://cqr1ra4lse0if"
+path="res://.godot/imported/shardCradle_0.png-6ac5c61942aa0a71dd36d092bf094093.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/caves/relicShrine_0.png"
-dest_files=["res://.godot/imported/relicShrine_0.png-948e0880a5104cf2212f98d6bf98c7eb.ctex"]
+source_file="res://art/homes/shardCradle_0.png"
+dest_files=["res://.godot/imported/shardCradle_0.png-6ac5c61942aa0a71dd36d092bf094093.ctex"]
 
 [params]
 

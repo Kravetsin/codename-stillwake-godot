@@ -248,6 +248,12 @@ public static class Sound
     /// <summary>The resonator zapping a hero beside it (0091): a short crackle of noise, synthesised. A placeholder till the user picks.</summary>
     public static readonly Cue Zap = new(Shots("ruins/zap", 1), -10, Pitch: 0.08f, Heard: new(4, 16));
 
+    /// <summary>
+    /// A relic humming in its cradle (0096): the charging station's synthesised hum played half again as high, heard round its
+    /// chamber; a placeholder till the user picks, as its discharges are the resonator's <see cref="Zap"/>.
+    /// </summary>
+    public static readonly Cue RelicHum = new(["res://audio/power/charger-hum-1.ogg"], -14, Pitch: 0, Loops: true, Heard: new(3, 14), Tune: 1.5f);
+
     /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>
     public static readonly Cue ChargeFull = new(Shots("power/charge-full", 1), -10, Pitch: 0, Heard: new(4, 16));
     /// <summary>How far something breaking carries: a wreck, a cell of ground, a tree or a ruin's piece. Full within 6 cells, gone at 28.</summary>
@@ -360,9 +366,9 @@ public static class Sound
             "bookshelf", "wallShelf", "toolRack", "heightMarks"], ChopWood, WoodBreak),
         (["banner", "tapestry", "rug", "curtain", "coatPegs", "drawings"], null, ClothTear),
         (["ceilLamp", "sconce", "floorLamp", "lantern", "arcCandle", "lightWindow", "garland", "brokenLamp", "shelfJars", "holoPortrait",
-            Stillwake.Content.Ruins.SpireLamp], null, GlassBreak),
+            Stillwake.Content.Ruins.SpireLamp, Stillwake.Content.Ruins.Niche], null, GlassBreak),
         (["hearth", "kettle", "utensils", "musicBox", Stillwake.Content.Ruins.Resonator, "fallenBeam", Stillwake.Content.Ruins.SpireCache,
-            Stillwake.Content.Ruins.RelicShrine], Chop, MetalBreak),
+            Stillwake.Content.Ruins.Cradle], Chop, MetalBreak),
         (["dishes", "pots", "basin", "plantAlive", "plantDead"], HitStone, CeramicBreak));
 
     /// <summary>The growths with no sound of their own: in the rock, gone with their stone; or fixed, never felled.</summary>

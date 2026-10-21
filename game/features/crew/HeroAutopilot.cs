@@ -449,6 +449,31 @@ public sealed class HeroAutopilot
     }
 
     /// <summary>
+    /// The climb out of a spire (0096, <c>--ground=spire-climb --autopilot</c>), as <c>SpireClimbTests</c> climbs it: from its chamber
+    /// floor under the light a held jump onto the slab, a running jump off its edge onto the first ledge, three more off each
+    /// ledge's edge by turns, the last up through the hole into the room, and out right through the plug the demo dug.
+    /// </summary>
+    public static HeroAutopilot SpireClimb()
+    {
+        int? light = null;
+        int At(double cells) => (int)((light!.Value - 4 + cells) * Hero.Unit);
+        HeroInput Side(int dir) => new(dir, 0, false);
+        Act Landed(int dir) => Until(Side(dir), (h, p) => p.Steps > 3 && h.Airborne == 0);
+        return new HeroAutopilot(
+        [
+            Wait(240),
+            Until(Still, (h, _) => (light ??= Column(h)) >= 0),
+            Jump(1), Landed(1),
+            Until(Side(-1), (h, _) => h.X <= At(6.3)), Jump(-1), Landed(-1),
+            Until(Side(1), (h, _) => h.X >= At(3.7)), Jump(1), Landed(1),
+            Until(Side(-1), (h, _) => h.X <= At(5.3)), Jump(-1), Landed(-1),
+            Until(Side(1), (h, _) => h.X >= At(3.7)), Jump(1), Landed(1),
+            Hold(Side(1), 60),
+            Wait(60),
+        ])
+        { _trace = true };
+    }
+    /// <summary>
     /// The <see cref="Ledges"/> script (0092): a held jump at the four-cell ledge, stepped up onto; off its far side, and a held
     /// jump at the five-cell one, falling short.
     /// </summary>

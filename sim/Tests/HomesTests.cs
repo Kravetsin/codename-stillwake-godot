@@ -400,7 +400,7 @@ public class HomesTests
     {
         var ids = Flora.Every.Select(k => k.Id).ToList();
         Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(49, Ruins.Pieces.Count);
+        Assert.Equal(51, Ruins.Pieces.Count);
         Assert.All(Ruins.Pieces, p =>
         {
             Assert.True(p.Across >= 1 && p.Tall >= 1 && p.Strength >= 0, p.Id);
@@ -418,16 +418,16 @@ public class HomesTests
             Assert.All(home.Rows, r => Assert.True(r.All(c => c is Ruins.Alloy or Ruins.Open or Ruins.Plaster or Ruins.Plug or Ruins.Stone or Ruins.OpenStone), home.Id));
             Assert.Null(Held(home));
         }
-        // Every piece is in some home.
-        Assert.All(Ruins.Pieces, p => Assert.Contains(Ruins.Homes, h => h.Pieces.Any(q => q.Kind == p.Id)));
+        // Every piece is in some home, or in the spire's chamber: its relic's cradle (0096).
+        Assert.All(Ruins.Pieces, p => Assert.True(Ruins.Homes.Any(h => h.Pieces.Any(q => q.Kind == p.Id)) || Ruins.SpireFurnishing.Any(q => q.Kind == p.Id), p.Id));
     }
 
     [Fact]
-    public void TheSpiresChamberIsFurnishedEachPieceHeldAndClearOfItsCacheAndShrine()
+    public void TheSpiresChamberIsFurnishedEachPieceHeldAndClearOfItsCache()
     {
+        // Held() takes every piece's cell for open: a cache's is not.
         Assert.Null(Held(new Ruins.Home("spire", Ruins.Spire, Ruins.SpireFurnishing)));
-        // Nothing stands in the cache's cell nor in the shrine's.
-        Assert.DoesNotContain(Ruins.SpireFurnishing, p => Ruins.Spire[p.Y][p.X] is Ruins.Cache or Ruins.Shrine);
+        Assert.Contains(Ruins.SpireFurnishing, p => p.Kind == Ruins.Cradle);
         foreach (uint seed in Enumerable.Range(1, 20).Select(s => (uint)s))
         {
             var l = Terrain.Generate(PlanetTypes.Small, seed, out _, out _, out var spires, out _);

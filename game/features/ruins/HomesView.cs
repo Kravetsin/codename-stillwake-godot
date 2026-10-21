@@ -42,8 +42,10 @@ public partial class HomesView : Node2D
     private readonly Dictionary<int, int> _cracks = new();
     private readonly List<(double At, float Pitch, Vector2 Where)> _tune = [];
     private readonly Random _random = new();
+    private readonly List<Heart> _hearts = [];
     private int _count = -1;
     private double _seconds, _owed, _zapHeard;
+    private Rect2 _view;
 
     /// <summary>
     /// For recordings (<c>--homes=lit</c>, <c>--homes=dark</c>): every lamp that may go out lit, or all of them out, the page's two
@@ -82,7 +84,7 @@ public partial class HomesView : Node2D
         long start = System.Diagnostics.Stopwatch.GetTimestamp();
         _seconds += delta;
         if (_building.Plants.Count != _count) Follow();
-        var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();
+        var view = _view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();
         _inView.Clear();
         var near = view.Grow(6 * Cell);
         foreach (var s in _shown)
@@ -102,11 +104,20 @@ public partial class HomesView : Node2D
         _frames++;
     }
 
-    /// <summary>Brings the pieces shown up to those standing: a new one placed, a felled one taken away in a puff of dust.</summary>
+    /// <summary>
+    /// Brings the pieces shown up to those standing: a new one placed, a felled one taken away in a puff of dust; and what a home's
+    /// heart feeds lit or dark as its chip stands or is taken (0096), placed again.
+    /// </summary>
     private void Follow()
     {
         bool first = _count < 0;
         _count = _building.Plants.Count;
+        Hearts();
+        foreach (var s in _shown.Where(s => MoodOf(s.Plant, s.Art) != (s.Lit, s.Fed)).ToList())
+        {
+            _shown.Remove(s);
+            _byCell.Remove(s.Plant.Cell);
+        }
         var standing = new HashSet<int>();
         // From the bottom up: a table placed before the dishes standing on it.
         for (int i = _building.Plants.Count - 1; i >= 0; i--)
@@ -135,18 +146,90 @@ public partial class HomesView : Node2D
         if (spec.On == Spec.Flora.Anchor.Floor && _building.PlantAt(plant.Cell + w) is { } under && _byCell.TryGetValue(under.Cell, out var below))
             standsOn = (int)below.Box.Y + HomesLooks.SinksInto(under.Kind);
         var (bx, by) = HomesLooks.BoxAt(plant.Kind, spec.On, x, y, spec.Across, spec.Tall, standsOn);
-        bool lit = Mood is bool all ? all || !art.Dark : HomesLooks.Lit(plant.Kind, plant.Cell);
+        var (lit, fed) = MoodOf(plant, art);
         int? variant = plant.Kind == "chair" ? Facing(plant.Cell) : null;
-        string name = HomesLooks.PictureOf(plant.Kind, plant.Cell, lit, variant);
+        string name = HomesLooks.PictureOf(plant.Kind, plant.Cell, lit, variant, fed);
         var box = new Vector2(bx, by);
         var corner = box - new Vector2(art.OriginX, art.OriginY);
-        var shown = new Shown(plant, art, name, box, corner, lit, spec.Behind, (float)(HomesLooks.Hash(plant.Cell) % 1000 / 1000.0 * Mathf.Tau));
+        var shown = new Shown(plant, art, name, box, corner, lit, spec.Behind, (float)(HomesLooks.Hash(plant.Cell) % 1000 / 1000.0 * Mathf.Tau)) { Fed = fed };
+        if (plant.Kind == Spec.Ruins.Niche && _hearts.FirstOrDefault(h => h.Niche == plant.Cell) is { } heart)
+            shown.Sparks = new RelicSparks(_random, RelicArt.Niche, box, heart.Cable.Where((p, i) => i % 3 == 0 && p.DistanceTo(box) < 3 * Cell).ToList(), heart.Floor, small: true);
         foreach (var e in art.Emitters)
             if (e.Kind == Emits.Motes)
                 for (int i = 0; i < e.Count; i++)
                     shown.Motes.Add(new Mote { X = Between(e.X, e.X2), Y = Between(e.Y, e.Y2), Vx = Between(-1.5, 1.5), Vy = Between(-1, 1), Phase = Between(0, 6), Box = e });
         _shown.Add(shown);
         _byCell[plant.Cell] = shown;
+    }
+
+    /// <summary>
+    /// The homes holding a heart (0096), from the sim's relics: each niche's cell, the cells of what it feeds, its home's box in
+    /// cells, whether its chip is taken, and the copper cable from it to the hearth and along the ceiling to the lamp.
+    /// </summary>
+    private void Hearts()
+    {
+        int w = _grid.Width;
+        foreach (var relic in _building.Relics)
+        {
+            if (relic.Kind != Spec.Ruins.Niche) continue;
+            if (_hearts.FirstOrDefault(h => h.Niche == relic.Cell) is { } known)
+            {
+                known.Taken = relic.Taken;
+                continue;
+            }
+            var home = Spec.Ruins.Homes.FirstOrDefault(h => h.Pieces.Any(p => p.Kind == Spec.Ruins.Niche));
+            if (home == null) continue;
+            var (_, nx, ny) = home.Pieces.First(p => p.Kind == Spec.Ruins.Niche);
+            int x0 = relic.Cell % w - nx, y0 = relic.Cell / w - ny;
+            var feeds = home.Pieces.Where(p => HomesLooks.Fed.Contains(p.Kind)).Select(p => (p.Kind, Cell: (y0 + p.Y) * w + x0 + p.X)).ToList();
+            var heart = new Heart(relic.Cell, new Rect2I(x0, y0, home.Wide, home.Tall), [.. feeds.Select(f => f.Cell)], (y0 + home.Tall - 1) * Cell) { Taken = relic.Taken };
+            heart.Cable.AddRange(CableOf(relic.Cell, y0, feeds));
+            _hearts.Add(heart);
+        }
+    }
+
+    /// <summary>The cable's pixels, a step apart: from the niche's side to the hearth, from its lintel up to the ceiling and along it to the lamp.</summary>
+    private List<Vector2> CableOf(int niche, int homeTop, List<(string Kind, int Cell)> feeds)
+    {
+        int w = _grid.Width;
+        Vector2 Box(string kind, int cell)
+        {
+            var spec = Spec.Flora.Get(kind);
+            var (x, y) = HomesLooks.BoxAt(kind, spec.On, cell % w, cell / w, spec.Across, spec.Tall);
+            return new Vector2(x, y);
+        }
+        var corner = Box(Spec.Ruins.Niche, niche);
+        var side = corner + new Vector2(RelicArt.NicheSide.X, RelicArt.NicheSide.Y);
+        var top = corner + new Vector2(RelicArt.NicheTop.X, RelicArt.NicheTop.Y);
+        float ceiling = (homeTop + 1) * Cell + 1;
+        var cable = new List<Vector2>();
+        void Run(Vector2 a, Vector2 b)
+        {
+            int steps = (int)Math.Max(Math.Abs(b.X - a.X), Math.Abs(b.Y - a.Y));
+            for (int i = 0; i <= steps; i++) cable.Add((a + (b - a) * (steps == 0 ? 0 : (float)i / steps)).Floor());
+        }
+        foreach (var (kind, cell) in feeds)
+        {
+            var box = Box(kind, cell);
+            if (kind == "hearth") Run(side, new Vector2(box.X + 4, side.Y));
+            else
+            {
+                Run(top, new Vector2(top.X, ceiling));
+                Run(new Vector2(top.X, ceiling), new Vector2(box.X + HomesArt.Of[kind].BoxW / 2, ceiling));
+            }
+        }
+        return cable;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="plant"/> burns and whether a heart feeds it: what a heart feeds burns while its chip stands, every other
+    /// lamp in its home that may go out is dead (0096); elsewhere the mood by the world's seed, or the one asked for.
+    /// </summary>
+    private (bool Lit, bool Fed) MoodOf(Plant plant, HomesArt.Picture art)
+    {
+        int w = _grid.Width;
+        var heart = _hearts.FirstOrDefault(h => h.Home.HasPoint(new Vector2I(plant.Cell % w, plant.Cell / w)));
+        return HomesLooks.MoodOf(plant.Kind, plant.Cell, heart?.Feeds.Contains(plant.Cell) == true, heart != null, heart?.Taken == true, Mood);
     }
 
     /// <summary>A chair faces its table or desk, the nearest within three columns in its row; else either way, by its cell.</summary>
@@ -216,6 +299,22 @@ public partial class HomesView : Node2D
         if (!s.Lit) return;
         s.Ticks++;
         var art = s.Art;
+        if (s.Sparks is { } sparks)
+        {
+            if (sparks.Step(_seconds))
+            {
+                Flares.Shared.Flash(sparks.Core.X, sparks.Core.Y, RelicLooks.Hot, RelicLooks.FlashStrength * RelicLooks.SmallFlash, RelicLooks.FlashReach, RelicLooks.LightKeep, RelicLooks.FlashDecay);
+                _zap.PlayAt(sparks.Core, 0.9f + (float)Between(0, 0.2), -4);
+            }
+            // Arcs crawl along its cable, leading the eye from the lamp to the niche.
+            if (_hearts.FirstOrDefault(h => h.Niche == s.Plant.Cell) is { Cable.Count: > 4 } heart && _random.NextDouble() < 0.35)
+            {
+                int j = _random.Next(heart.Cable.Count - 4);
+                var (a, b) = (heart.Cable[j] - new Vector2(0, 1), heart.Cable[Math.Min(heart.Cable.Count - 1, j + 2 + _random.Next(10))] - new Vector2(0, 1));
+                Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, 0), (int)Math.Round(Between(2, 4) * 2.5), 0.6, 0.45, tint: BoltTint.Violet);
+            }
+        }
+        var tint = s.Fed ? BoltTint.Violet : null;
         for (int i = 0; i < art.Emitters.Length; i++)
         {
             var e = art.Emitters[i];
@@ -233,7 +332,7 @@ public partial class HomesView : Node2D
                             b = new Vector2(e.X + (float)(Math.Cos(angle) * reach), e.Y + (float)(Math.Sin(angle) * reach)) + s.Box;
                         }
                         else b = s.Box + new Vector2(e.X2 + (float)Between(-0.8, 0.8), e.Y2 + (float)Between(-0.8, 0.8));
-                        Crackle.Strike(_random, e, a, b);
+                        Crackle.Strike(_random, e, a, b, tint);
                         break;
                     }
                 case Emits.Pulse:
@@ -300,7 +399,7 @@ public partial class HomesView : Node2D
             var e = s.Art.Emitters[i];
             var at = s.Box + new Vector2(e.X, e.Y);
             if (e.Kind == Emits.Pulse && s.State[i].Value - 1 is var d and > 0)
-                Flares.Shared.Bloom(at.X, at.Y, e.Radius, e.Colour, Math.Min(0.6, d * 2.2) * Fx.Glow);
+                Flares.Shared.Bloom(at.X, at.Y, e.Radius, s.Fed && e.Colour.B > e.Colour.R ? RelicLooks.Glow : e.Colour, Math.Min(0.6, d * 2.2) * Fx.Glow);
             else if (e.Kind == Emits.Sputter && s.State[i].On)
                 Flares.Shared.Bloom(at.X, at.Y, e.Radius * 0.9, (120, 200, 255), 0.45 * Fx.Glow);
         }
@@ -336,7 +435,9 @@ public partial class HomesView : Node2D
                 var at = s.Box + new Vector2(l.X, l.Y);
                 int reach = (int)Math.Ceiling(l.Reach * (arc ? HomesLooks.ArcReach : 1));
                 if (!view.Grow(reach * Cell).HasPoint(at)) continue;
-                var light = new LightSource(at.X, at.Y, l.Colour, l.Strength * (arc ? HomesLooks.ArcStrength : 1) * bright, reach, HomesLooks.Keep, 1, HomesLooks.LightSize);
+                // Fed by a relic's chip, the makers' arc burns violet-white as the relic does (0096).
+                var colour = arc && s.Fed ? RelicLooks.Light : l.Colour;
+                var light = new LightSource(at.X, at.Y, colour, l.Strength * (arc ? HomesLooks.ArcStrength : 1) * bright, reach, HomesLooks.Keep, 1, HomesLooks.LightSize);
                 _near.Add((light, at.DistanceSquaredTo(middle)));
             }
         }
@@ -376,6 +477,7 @@ public partial class HomesView : Node2D
     /// <summary>The pictures of the pieces in view, their glows, and what the page draws live: dots, scanlines, glints, motes.</summary>
     private void Paint(Painter on, bool glow)
     {
+        if (!glow) Cables(on);
         foreach (var s in _inView)
         {
             var region = Atlas.At[s.Name];
@@ -390,6 +492,22 @@ public partial class HomesView : Node2D
                 DrawSwaying(on, Atlas.Shine, Atlas.Glows[s.Name], corner, s, new Color(1, 1, 1, Math.Clamp(bright, 0.5f, 1f)));
             if (!s.Lit) continue;
             Live(on, s);
+        }
+    }
+
+    /// <summary>A heart's copper cable (0096), lit as the world is: bright copper while its chip stands, blackened once it is taken.</summary>
+    private void Cables(Painter on)
+    {
+        foreach (var h in _hearts)
+        {
+            var box = new Rect2(h.Home.Position * Cell, h.Home.Size * Cell);
+            if (!_view.Intersects(box)) continue;
+            var (lit, under) = h.Taken ? (new Color(0.24f, 0.17f, 0.13f), new Color(0.1f, 0.07f, 0.06f)) : (new Color(0.73f, 0.47f, 0.23f), new Color(0.18f, 0.09f, 0.03f));
+            foreach (var p in h.Cable)
+            {
+                on.DrawRect(new Rect2(p, Vector2.One), lit);
+                on.DrawRect(new Rect2(p + new Vector2(0, 1), Vector2.One), under);
+            }
         }
     }
 
@@ -500,6 +618,21 @@ public partial class HomesView : Node2D
         public readonly List<Mote> Motes = [];
         public int Ticks;
         public double Shake;
+        /// <summary>Fed by a home's heart (0096): its arcs and light the relic's violet-white.</summary>
+        public bool Fed { get; init; }
+        /// <summary>A relic's chip sparking in its niche (0096).</summary>
+        public RelicSparks? Sparks { get; set; }
+    }
+
+    /// <summary>A home holding a heart (0096): its niche's cell, its box in cells, what it feeds, its floor's row of pixels, its cable.</summary>
+    private sealed class Heart(int niche, Rect2I home, List<int> feeds, float floor)
+    {
+        public int Niche { get; } = niche;
+        public Rect2I Home { get; } = home;
+        public List<int> Feeds { get; } = feeds;
+        public float Floor { get; } = floor;
+        public List<Vector2> Cable { get; } = [];
+        public bool Taken { get; set; }
     }
 
     private struct State
@@ -563,6 +696,7 @@ public partial class HomesView : Node2D
                 {
                     yield return $"homes/{kind}_{v}";
                     if (art.Dark) yield return $"homes/{kind}_{v}_dark";
+                    if (HomesLooks.FedLooks.Contains(kind)) yield return $"homes/{kind}_{v}_fed";
                 }
         }
 

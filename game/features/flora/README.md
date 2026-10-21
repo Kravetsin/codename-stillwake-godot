@@ -59,10 +59,9 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
 - **Pictures:** cut from the cave concept's own drawing code (`objects.js`: glowcaps, crystals, spikes, threads, roots,
   hanging caps, its geode, ammonite and ribs, ore veins, heat cracks, moss) by the export beside it, as the surface's were:
   each glowing pixel's bloom, tight, in `_glow`. Change the drawing code and export again; never edit the pictures.
-  The ruins' (0085) are placeholders drawn by a script not kept, till the user picks on a page: a spire's cache, an alloy
-  capsule with a small teal lamp (`spireCache_0`); a relic's shrine, a niche in the alloy holding an arc coil wreathed in arcs,
-  two lamps at its top (`relicShrine_0`); the spire's lamp, a cyan lens in its tip, the brightest of them, reaching 10
-  cells (`spireLamp_0`).
+  The ruins' (0085): a spire's cache, an alloy capsule with a small teal lamp (`spireCache_0`), a placeholder drawn by a script
+  not kept; the spire's lens in its tip, its glass dark (`spireLamp_0`, exported from the relic page by `tools/homes-art`, 0096),
+  lit over it while its relic stands by the ruins' view.
 - **Light** (`CaveLooks`): each glowing growth's one light, every piece of a kind alike, from its glow's middle, in its colour —
   teal, violet, ice-blue, amber, rose, ember, green near the surface — at its strength and keep out to its reach (8 cells for a
   cap or a crystal, 5 for moss, 4 for roots): the only light in a cave, so a cluster lights the walls, the floor and a hero

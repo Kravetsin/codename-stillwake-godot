@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bjg7qasxvxrcd"
-path="res://.godot/imported/arcCoil.png-0b68118699cca10ef23027c74d172b54.ctex"
+uid="uid://vuxfd3ckd7tn"
+path="res://.godot/imported/spireLens_glow.png-be09a35d0024dcdd07af484f2e541fb8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/items/arcCoil.png"
-dest_files=["res://.godot/imported/arcCoil.png-0b68118699cca10ef23027c74d172b54.ctex"]
+source_file="res://art/ruins/spireLens_glow.png"
+dest_files=["res://.godot/imported/spireLens_glow.png-be09a35d0024dcdd07af484f2e541fb8.ctex"]
 
 [params]
 
