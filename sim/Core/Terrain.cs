@@ -95,17 +95,19 @@ public static class Terrain
         hall = new bool[w * h];
         Landmarks(g, seed, top, kind, caverns, hall);
         // No spikes: a bump one or two cells wide standing up alone, open above, would be cut to a lone ◢◣ peak or left a
-        // post; it is taken away, so the ground under it is the top, row by row down, and hills stay walkable.
+        // post; it is taken away, so the ground under it is the top, row by row down, and hills stay walkable. Out in the
+        // open air it becomes sky; a post in a pit or a cave leaves ground with its back wall, sky only as far as the fade below.
         for (int y = 1; y < h; y++)
             for (int x = 1; x < w - 1; x++)
             {
                 int cell = y * w + x;
                 if (!Bump(kind, codes, bedrock, cell, w) || kind[cell - 1] == 1) continue;
                 int across = kind[cell + 1] != 1 ? 1 : x + 2 < w && kind[cell + 2] != 1 && Bump(kind, codes, bedrock, cell + 1, w) ? 2 : 0;
+                bool air = kind[cell - 1] == 0 || kind[cell + across] == 0;
                 for (int i = 0; i < across; i++)
                 {
                     int at = cell + i;
-                    bool sky = kind[at - w] == 0;
+                    bool sky = air && kind[at - w] == 0;
                     (kind[at], codes[at]) = (sky ? (byte)0 : (byte)2, sky ? 0 : codes[at]);
                 }
             }
