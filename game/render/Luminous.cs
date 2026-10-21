@@ -133,12 +133,6 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>Veils rolling outward from a landing and curling.</summary>
     public static readonly Luminous LandVeil = new(Glimmer.Wisp, [(210, 214, 224)], (900, 1500))
     { Matter = true, Low = true, Drag = 1.5, Turbulence = 40, Spin = 1.5, NoiseScale = 0.07, Size = 2, Grow = 3.2, Alpha = 0.2 };
-    /// <summary>
-    /// A skidding sole's scrape along the floor (0090): thin pale streaks of light, the dust's colours, dragged to a stop in
-    /// a moment. Drawn as light, not matter: the boots' matter dust all but vanishes in a dim room, and these must read.
-    /// </summary>
-    public static readonly Luminous SkidDust = new(Glimmer.Streak, [(236, 238, 242), (214, 218, 228), (170, 174, 186)], (180, 300))
-    { Bright = 0.7, Fade = 1.1, Gravity = 20, Drag = 6, Spin = 0.5, Stretch = 0.05, Shortest = 1, Width = 0.26, Hot = 0.3, Bounce = 0.2 };
     /// <summary>A heavy landing's shock along the floor (0090): pale streaks of light racing out under its ring, gone in a moment.</summary>
     public static readonly Luminous LandStreak = new(Glimmer.Streak, [(240, 244, 250), (200, 208, 222)], (200, 240))
     { Bright = 0.55, Fade = 1.2, Drag = 7, Stretch = 0.05, Shortest = 1, Width = 0.24, Hot = 0.4 };

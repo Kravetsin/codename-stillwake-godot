@@ -26,7 +26,7 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// drifting still into swimming and on into swimming fast, each 0 to 1; the figure eases them, and with
 /// none they follow the hero's speed at once. <see cref="Wields"/> while the front hand holds an item, the
 /// axe or the harpoon: afloat, or flailing in a long fall, that arm keeps calm. <see cref="Momentum"/>, what the figure
-/// read from the motion over time (<see cref="Motion"/>, 0090): the lean, the skid, the landing's depth, the jump's and
+/// read from the motion over time (<see cref="Motion"/>, 0090): the lean, the landing's depth, the jump's and
 /// the fall's timers; none for a body at rest in it. <see cref="Ledge"/>, on a ladder, how far its top is over the feet in
 /// pixels (<see cref="Hero.LedgeAbove"/>), or in the air the ledge a jump steps up onto (<see cref="Hero.MantleLedge"/>): what
 /// the hands pull the body up onto (0092); none away from one.
@@ -82,16 +82,6 @@ public static class Poses
         public static readonly Limbs Fall = new(B(1.4, 0.4), B(1.1, 0.5), B(0.35, -0.45), B(-0.05, -0.3), 0, 0, false);
         public static readonly Limbs Top = new(B(2.0, 0.5), B(1.7, 0.6), B(1.25, -1.6), B(0.6, -1.3), 0, 0, false);
         public static readonly Limbs Push = new(B(2.6, 0.2), B(2.2, 0.25), B(-0.1, -0.08), B(-0.35, -0.1), 0, 0, false);
-    }
-
-    /// <summary>
-    /// A skid (0090): <see cref="Braking"/>, sliding the way it faces, the front leg planted ahead and the body thrown back;
-    /// <see cref="Turned"/>, sliding backwards after a turn, the soles dragging behind and the body leaning into its new way.
-    /// </summary>
-    public static class Skidding
-    {
-        public static readonly Limbs Braking = new(B(0.6, 0.9), B(0.9, 0.6), B(0.75, -0.15), B(0.1, -0.9), -0.14, 0, false);
-        public static readonly Limbs Turned = new(B(-0.4, 1.3), B(0.8, 1.3), B(0.35, -1.0), B(-0.6, -0.2), 0.22, 0, false);
     }
 
     /// <summary>How far the head turns toward the pointer, in radians: up, and down.</summary>
@@ -225,13 +215,11 @@ public static class Poses
         return limbs with { Lift = lowest - Rig.Hip };
     }
 
-    /// <summary>On the floor, the body leans into its acceleration and blends into a skid as far as it skids (0090).</summary>
-    private static Limbs Leaned(Limbs limbs, Momentum motion)
-    {
-        var leaned = limbs with { Tilt = limbs.Tilt + motion.Lean };
-        if (motion.Skid <= 0.01) return leaned;
-        return Mix(leaned, motion.Along > 0 ? Skidding.Braking : Skidding.Turned, Math.Min(1, motion.Skid));
-    }
+    /// <summary>
+    /// On the floor, the body leans into its acceleration (0090). No skid pose: tapping left and right made the legs dance
+    /// on the spot.
+    /// </summary>
+    private static Limbs Leaned(Limbs limbs, Momentum motion) => limbs with { Tilt = limbs.Tilt + motion.Lean };
 
     /// <summary>
     /// Touching down, the knees bend deep and straighten again, the feet under the hips; <paramref name="depth"/> times the
