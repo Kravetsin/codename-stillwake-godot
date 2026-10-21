@@ -357,12 +357,11 @@ public static class Terrain
                     if (c == Content.Ruins.Keep) continue;
                     int x = x0 + dx, y = y0 + dy, cell = y * w + x;
                     bool open = c is Content.Ruins.Open or Content.Ruins.Cache;
-                    rows[y][x] = open ? '.' : '#';
+                    rows[y][x] = c == Content.Ruins.Ladder ? 'H' : open ? '.' : '#';
                     codes[cell] = c == Content.Ruins.Plug ? soil : alloy;
                     string? kind = c switch
                     {
                         Content.Ruins.Cache => Content.Ruins.SpireCache,
-                        Content.Ruins.Shrine => Content.Ruins.RelicShrine,
                         Content.Ruins.Lamp => Content.Ruins.SpireLamp,
                         _ => null,
                     };

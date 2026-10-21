@@ -360,9 +360,9 @@ public static class Sound
             "bookshelf", "wallShelf", "toolRack", "heightMarks"], ChopWood, WoodBreak),
         (["banner", "tapestry", "rug", "curtain", "coatPegs", "drawings"], null, ClothTear),
         (["ceilLamp", "sconce", "floorLamp", "lantern", "arcCandle", "lightWindow", "garland", "brokenLamp", "shelfJars", "holoPortrait",
-            Stillwake.Content.Ruins.SpireLamp], null, GlassBreak),
+            Stillwake.Content.Ruins.SpireLamp, Stillwake.Content.Ruins.Niche], null, GlassBreak),
         (["hearth", "kettle", "utensils", "musicBox", Stillwake.Content.Ruins.Resonator, "fallenBeam", Stillwake.Content.Ruins.SpireCache,
-            Stillwake.Content.Ruins.RelicShrine], Chop, MetalBreak),
+            Stillwake.Content.Ruins.Cradle], Chop, MetalBreak),
         (["dishes", "pots", "basin", "plantAlive", "plantDead"], HitStone, CeramicBreak));
 
     /// <summary>The growths with no sound of their own: in the rock, gone with their stone; or fixed, never felled.</summary>

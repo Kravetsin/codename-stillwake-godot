@@ -4,61 +4,79 @@ using Piece = Stillwake.Content.Flora.Piece;
 namespace Stillwake.Content;
 
 /// <summary>
-/// What whoever came before left on the first planet (0085, 0091): prefabs drawn as ASCII, stamped into the ground as it grows
-/// (<c>Terrain</c>), last, over the caves, the landmarks and what grew there. A prefab's characters: <c>#</c> a wall of alloy,
-/// <c>.</c> open with an alloy back wall, <c>p</c> open with a plaster back wall, <c>s</c> a soil plug in a doorway (wall and
-/// back wall soil), <c>t</c> a wall of stone, <c>,</c> open with a stone back wall, <c>c</c> a cache standing open on the alloy
-/// floor under it, <c>r</c> a relic's shrine in a wall of alloy, <c>l</c> a lamp in a wall of alloy, a space the ground as it
+/// What whoever came before left on the first planet (0085, 0091, 0095): prefabs drawn as ASCII, stamped into the ground as it
+/// grows (<c>Terrain</c>), last, over the caves, the landmarks and what grew there. A prefab's characters: <c>#</c> a wall of
+/// alloy, <c>.</c> open with an alloy back wall, <c>p</c> open with a plaster back wall, <c>s</c> a soil plug in a doorway (wall
+/// and back wall soil), <c>t</c> a wall of stone, <c>,</c> open with a stone back wall, <c>c</c> a cache standing open on the
+/// alloy floor under it, <c>l</c> the lens in a wall of alloy, <c>H</c> a ladder with an alloy back wall, a space the ground as it
 /// grew. Where they go and how many: <c>Ground.Spires</c>, <c>Ground.RuinClear</c>, <c>Ground.SpireRise</c>; <c>Ground.Homes</c>,
 /// <c>Ground.HomeClear</c>, <c>Ground.HomeDeepLeast</c>.
 /// </summary>
 public static class Ruins
 {
-    /// <summary>The growths a ruin sets (<see cref="Flora.Cave"/>, chances all 0: never grown): its cache, its shrine, its lamp.</summary>
-    public const string SpireCache = "spireCache", RelicShrine = "relicShrine", SpireLamp = "spireLamp";
+    /// <summary>The growths a spire sets (<see cref="Flora.Cave"/>, chances all 0: never grown): its cache, the lens in its tip.</summary>
+    public const string SpireCache = "spireCache", SpireLamp = "spireLamp";
 
-    /// <summary>Every growth a spire sets, never one the caves grow.</summary>
-    public static readonly IReadOnlyList<string> Growths = [SpireCache, RelicShrine, SpireLamp];
-
-    /// <summary>The characters of a prefab.</summary>
-    public const char Alloy = '#', Open = '.', Plaster = 'p', Plug = 's', Stone = 't', OpenStone = ',', Cache = 'c', Shrine = 'r', Lamp = 'l', Keep = ' ';
+    /// <summary>Every cave kind a spire sets, never one the caves grow; what furnishes it are pieces (<see cref="SpireFurnishing"/>).</summary>
+    public static readonly IReadOnlyList<string> Growths = [SpireCache, SpireLamp];
 
     /// <summary>
-    /// A spire, 9 × 30, its top row first: a tip of alloy with its lamp, a room in it walled at either side by a soil plug a
-    /// hero's height (dug in two swings of the axe), over a body sunk in the ground, its roof at the anchor (row 10 with a
-    /// rise of 10). A hole in the roof drops into a shaft of ledges, three rows apart and either side by turns, so a hero
-    /// jumps back up as it fell down; at the bottom a chamber with a cache on its floor and a shrine in its right wall.
+    /// The arc relic (0095): a sky shard, black glass with white cracks alight, held upright in a copper cradle on a spire's chamber
+    /// floor (<see cref="Cradle"/>), which splits into four shards as it is taken; and a chip of one in a wall niche of the hearth
+    /// home (<see cref="Niche"/>). A shard (<see cref="Shard"/>) is what an arc module is made of; analysed, it opens its blueprint.
+    /// </summary>
+    public const string Cradle = "shardCradle", Niche = "shardNiche", Shard = "arcShard";
+
+    /// <summary>The pieces holding a relic: a spire's light and a home's chip-fed lamps burn while theirs stands, from the felled cells.</summary>
+    public static readonly IReadOnlyList<string> Relics = [Cradle, Niche];
+
+    /// <summary>
+    /// What a hit on a cradle costs its striker (0095), as the resonator's zap: the axe's hit <see cref="CradleShock"/> units of its
+    /// suit; a faster tool's hit its share of the axe's pace, rounded up, so a second of hitting costs as much whatever strikes.
+    /// </summary>
+    public const int CradleShock = 5;
+
+    /// <summary>The characters of a prefab.</summary>
+    public const char Alloy = '#', Open = '.', Plaster = 'p', Plug = 's', Stone = 't', OpenStone = ',', Cache = 'c', Lamp = 'l', Ladder = 'H', Keep = ' ';
+
+    /// <summary>
+    /// A spire, 9 × 30, its top row first: a light well (0095). The lens in its tip over a flue open down its middle column; a room
+    /// in the tip walled at either side by a soil plug a hero's height (dug in two swings of the axe), over a body sunk in the
+    /// ground, its roof at the anchor (row 10 with a rise of 10). A ladder from the room's floor down the middle column, the light's
+    /// own, with ledges three rows apart either side by turns; at the bottom a chamber five rows tall, a cache on its floor and the
+    /// relic's cradle under the ladder's foot. The ladder is the way back up: a ledge three rows over another leaves a hero no
+    /// room to jump onto the next with the one over that in the way.
     /// </summary>
     public static readonly IReadOnlyList<string> Spire =
     [
-        "    l    ",
-        "    #    ",
-        "   ###   ",
-        "   ###   ",
+        "   #l#   ",
+        "   #.#   ",
+        "   #.#   ",
+        "   #.#   ",
         "   #.#   ",
         "  ##.##  ",
         "  #...#  ",
         "  s...s  ",
         "  s...s  ",
         "  s...s  ",
-        "###...###",
+        "####H####",
+        "#...H...#",
+        "#...H...#",
+        "####H...#",
+        "#...H...#",
+        "#...H...#",
+        "#...H####",
+        "#...H...#",
+        "#...H...#",
+        "####H...#",
+        "#...H...#",
+        "#...H...#",
+        "#...H####",
+        "#...H...#",
+        "#...H...#",
         "#.......#",
         "#.......#",
-        "####....#",
-        "#.......#",
-        "#.......#",
-        "#....####",
-        "#.......#",
-        "#.......#",
-        "####....#",
-        "#.......#",
-        "#.......#",
-        "#....####",
-        "#.......#",
-        "#.......#",
-        "####....#",
-        "#.......r",
-        "#....c..#",
+        "#c......#",
         "#########",
         "#########",
     ];
@@ -67,12 +85,12 @@ public static class Ruins
     public static int SpireWide => Spire[0].Length;
 
     /// <summary>
-    /// The spire's chamber furnished (0091, the homes page): a post, not a home, but someone kept it — a table and a chair, a lamp
-    /// hanging over them, a shelf with an empty scroll case, the makers' banner by the shrine, a cobweb in the corner. Pieces by
-    /// kind at their own cells in <see cref="Spire"/>'s columns and rows, as a home's are.
+    /// The spire's chamber furnished (0091, the homes page; 0095): the relic's cradle in its middle under the ladder's foot, and a
+    /// post someone kept — a table, a lamp hanging over it, a shelf with an empty scroll case over it, the makers' banner over the
+    /// cache, a cobweb in the corner. Pieces by kind at their own cells in <see cref="Spire"/>'s columns and rows, as a home's are.
     /// </summary>
     public static readonly IReadOnlyList<(string Kind, int X, int Y)> SpireFurnishing =
-        [("cobweb", 1, 26), ("ceilLamp", 2, 26), ("table", 1, 27), ("chair", 3, 27), ("wallShelf", 4, 26), ("banner", 6, 26)];
+        [("banner", 1, 24), (Cradle, 3, 27), ("ceilLamp", 6, 23), ("cobweb", 7, 23), ("wallShelf", 6, 25), ("table", 6, 27)];
 
     /// <summary>The resonator (0091): it zaps who comes right up to it.</summary>
     public const string Resonator = "arcDevice";
@@ -151,6 +169,10 @@ public static class Ruins
         new("crack", Anchor.Back, Tall: 2) { Behind = true, Fixed = true },
         new("fallenBeam", Anchor.Rock, Tall: 1) { Across = 2, Yields = [("alloyScrap", 3)] },
         new("rubble", Anchor.Rock, Tall: 1) { Across = 2, Yields = [("rock", 2), ("alloyScrap", 1)] },
+        // The relic (0095): the sky shard in its cradle splits into four shards as it is taken, every hit on it discharging into
+        // its striker (CradleShock); the chip in the hearth home's niche is one.
+        new(Cradle, Anchor.Floor, Tall: 3) { Across = 3, Strength = 8, Yields = [(Shard, 4)] },
+        new(Niche, Anchor.Back, Tall: 2) { Behind = true, Strength = 2, Yields = [(Shard, 1)] },
     ];
 
     /// <summary>
@@ -167,7 +189,8 @@ public static class Ruins
     /// <summary>
     /// A: the hearth room, the family's table with a supper left on it and a candle still lit, the kitchen through an arch at the
     /// right: the hearth with its coil, the kettle on a stool, herbs drying, the jar of what still glows; by the door the coat pegs
-    /// and the height marks. A soil plug a hero's height in either end wall.
+    /// and the height marks; in the wall by the arch, the home's heart (0095): a chip of a sky shard in a niche, which still feeds
+    /// the hearth and the lamp over the table. A soil plug a hero's height in either end wall.
     /// </summary>
     public static readonly Home Hearth = new("hearth",
     [
@@ -183,7 +206,7 @@ public static class Ruins
         ("cobweb", 1, 1), ("heightMarks", 1, 3), ("coatPegs", 2, 1), ("basket", 2, 5), ("lightWindow", 3, 1), ("bench", 3, 5),
         ("rug", 5, 5), ("chair", 6, 5), ("table", 7, 5), ("dishes", 7, 4), ("arcCandle", 8, 4), ("chair", 9, 5), ("ceilLamp", 7, 1),
         ("frame", 10, 2), ("stool", 10, 5), ("plantAlive", 11, 5), ("holoPortrait", 12, 2), ("banner", 13, 1), ("pots", 14, 5),
-        ("clock", 15, 1), ("herbs", 17, 1), ("herbs", 18, 1), ("hearth", 20, 5), ("utensils", 22, 2), ("stool", 22, 5),
+        ("clock", 15, 1), ("herbs", 17, 1), ("herbs", 18, 1), (Niche, 17, 3), ("hearth", 20, 5), ("utensils", 22, 2), ("stool", 22, 5),
         ("kettle", 22, 4), ("shelfJars", 24, 2), ("sconce", 26, 2), ("basin", 27, 5), ("wallShelf", 28, 2), ("pots", 29, 5),
     ]);
 
