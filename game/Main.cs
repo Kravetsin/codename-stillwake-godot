@@ -294,7 +294,8 @@ public partial class Main : Node2D, ITogether
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--handbook")) AddChild(new HandbookDemo(debrisPage));
         if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
-        if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));        if (Has("--arc") && _items != null) AddChild(new ArcDemo(_items, _hands.Ui, () => _m));
+        if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
+        if (Has("--arc") && _items != null) AddChild(new ArcDemo(_items, _hands.Ui, () => _m));
         if (Arg("--marks") is { } marked && Opens is { } marking && _items != null)
             AddChild(new MarksDemo(_items, marking, marked, int.Parse(Arg("--into") ?? "0"), () => _m));
         if ((Has("--breathe") || Has("--breathe-air")) && _items != null) AddChild(new BreatheDemo(_items, () => _m, canister: Has("--breathe")));
