@@ -10,7 +10,7 @@ namespace Stillwake.Game.Tests;
 
 /// <summary>
 /// The glowing line icons: a module technology's (0086), the shared hexagon, its glyph crackling on twos, painted as the
-/// page drew it; and a station's marks (0095), the shared ring, each its glyph, colours and motion.
+/// page drew it; and a station's marks (0097), the shared ring, each its glyph, colours and motion.
 /// </summary>
 public class IconTests
 {

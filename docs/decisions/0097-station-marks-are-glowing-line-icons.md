@@ -1,4 +1,4 @@
-# 0095 — Station marks are glowing line icons
+# 0097 — Station marks are glowing line icons
 
 - Status: accepted; built
 - Date: 2026-10-21

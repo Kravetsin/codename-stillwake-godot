@@ -3,7 +3,7 @@ namespace Stillwake.Game.Shared;
 /// <summary>
 /// The mark in an inventory slot's top-right corner: what the open fed station or fire does with the item, or that the
 /// open machine takes it as a module, else the violet "?" of an item not analysed yet. A machine's mark goes before the "?".
-/// The same marks, drawn by <see cref="MarkLooks"/>, are the faint ghosts of a station's own empty slots (0095).
+/// The same marks, drawn by <see cref="MarkLooks"/>, are the faint ghosts of a station's own empty slots (0097).
 /// </summary>
 public enum SlotMark
 {

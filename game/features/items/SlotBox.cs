@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Items;
 /// One slot, <see cref="Slots.SizeOf"/> square (<c>SlotBox</c> in Inventory.tsx): tinted by what it holds, a
 /// tool amber and a worn item green (<see cref="SlotLooks"/>), edged near-white when chosen, faded while its
 /// stack is picked, its icon inset 4 px and its count in the corner; on the hotbar the key that chooses it in
-/// the top-left corner, and in the top-right its mark (<see cref="SlotMark"/>), a glowing line icon (0095): a flame, a
+/// the top-left corner, and in the top-right its mark (<see cref="SlotMark"/>), a glowing line icon (0097): a flame, a
 /// crucible or a sprout while the open station burns, smelts or grows its item, or a module's tech icon where the open
 /// machine takes it (0086), else a violet "?" while its item is not analysed. Empty, a station's slot shows the faint
 /// ghost of the mark of what goes in it (<see cref="GhostMark"/>), lit while what is carried would.
@@ -31,7 +31,7 @@ public partial class SlotBox : Panel
     public Place Place { get; }
 
     /// <summary>
-    /// The mark of what goes in this station's slot (0095), its faint ghost while the slot is empty, unless drones keep it
+    /// The mark of what goes in this station's slot (0097), its faint ghost while the slot is empty, unless drones keep it
     /// (<see cref="Kept"/>): a furnace's crucible and flame, a grow capsule's sprout, a drone bay's drone. None for the rest.
     /// </summary>
     public SlotMark GhostMark { get; set; }

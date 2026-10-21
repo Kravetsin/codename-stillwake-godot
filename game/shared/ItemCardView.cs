@@ -394,7 +394,7 @@ public static class ItemCardView
         return Strip(Style.Violet400, row);
     }
 
-    /// <summary>A strip's icon, 12 px, lit and moving (0086, 0095): a module's tech, a station's mark.</summary>
+    /// <summary>A strip's icon, 12 px, lit and moving (0086, 0097): a module's tech, a station's mark.</summary>
     private static GlowIcon StripIcon(IconLooks.Look look) => new(look, 12, IconShow.Lit)
     {
         SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,

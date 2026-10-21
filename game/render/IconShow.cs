@@ -1,6 +1,6 @@
 namespace Stillwake.Game.Render;
 
-/// <summary>Where a glowing line icon is drawn (0086, 0095), and so how: each as the arc icon page draws it.</summary>
+/// <summary>Where a glowing line icon is drawn (0086, 0097), and so how: each as the arc icon page draws it.</summary>
 public enum IconShow
 {
     /// <summary>A slot's mark, 14 px: lit, on a soft dark halo so it reads over any item.</summary>

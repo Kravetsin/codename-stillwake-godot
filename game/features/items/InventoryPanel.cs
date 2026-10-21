@@ -26,7 +26,7 @@ namespace Stillwake.Game.Features.Items;
 /// closes both. 1–9 and the wheel over the world choose a hotbar slot, Q throws its stack. A stack's name, and
 /// whether it waits for an analyzer, show in the one tooltip; an item the open fed station or fire takes has its
 /// flame, ingot or sprout in its slot's corner (<see cref="Reading.MarkOf"/>), else one not analysed a violet "?" in its
-/// slot's corner, and in the hand; a station's empty slot the faint ghost of its mark, lit while what is carried would go in (0095).
+/// slot's corner, and in the hand; a station's empty slot the faint ghost of its mark, lit while what is carried would go in (0097).
 /// At the screen's right edge, the equipment by the body (0047, 0058) and the
 /// hands' tool: a stack carried lights the slots that would wear it and dims the rest; a right click on a
 /// canister of the hero's own breathes it (<see cref="Ui.Breathe"/>). Every slot is <see cref="Ui.Slot"/> wide,
@@ -359,7 +359,7 @@ public partial class InventoryPanel : CanvasLayer
     private SlotBox Box(Place place, string? key = null)
     {
         var box = new SlotBox(place, _ui.Slot, key);
-        // A station's slot shows the ghost of what it takes (0095).
+        // A station's slot shows the ghost of what it takes (0097).
         if (place.Crate != null && _reading?.Kind is { } kind) box.GhostMark = Reading.GhostOf(kind, place.Slot);
         box.Pressed += ClickAt;
         _tipSpots.Add(box, () => SlotTip(box));
@@ -607,7 +607,7 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>
     /// A fed station on power, the furnace's without the fuel: its input over its mark, lit while it works, its bar and its
     /// outputs. The electric smelter's mark and bar are a fire's orange; a grow capsule's mark is its lamp's pink, its bar
-    /// green; its empty input shows the ghost of a sprout, the smelter's a crucible (0095).
+    /// green; its empty input shows the ghost of a sprout, the smelter's a crucible (0097).
     /// </summary>
     private Control FedBody(int crate, string kind)
     {

@@ -5,7 +5,7 @@ using static Stillwake.Game.IconLooks;
 namespace Stillwake.Game;
 
 /// <summary>
-/// The marks of what a station does with an item (0095), in the module technologies' line language (0086) but in a ring
+/// The marks of what a station does with an item (0097), in the module technologies' line language (0086) but in a ring
 /// rather than their hexagon (<see cref="IconLooks.Ring"/>): a hexagon is a module, a ring a station's work. Each its
 /// glyph, its colours and its motion: in an inventory slot's corner while the station is open (<see cref="SlotMark"/>),
 /// before "Burns here" and the like on a card, and as the faint ghost in the station's own empty slot that takes it.

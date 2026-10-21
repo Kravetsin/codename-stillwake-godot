@@ -144,7 +144,7 @@ as everything E works is, in the crew feature (`AimTests`).
   that module's tech icon as its mark, 14 px on a soft dark halo, where a fire's flame sits (`SlotMark.Fits`). A
   module's card names no machine: a strip at its bottom, its tech icon (12 px) and what it does in one line ("×2 speed
   · ×2 power", `ItemCard.Tech`).
-- **Glowing line icons** (0086, the user's pick on the arc icon page, variant C; 0095): a thin frame and a glyph in
+- **Glowing line icons** (0086, the user's pick on the arc icon page, variant C; 0097): a thin frame and a glyph in
   thin lines, drawn by `IconCanvas` in the page's passes (a mark's dark halo, glow, rim, core) into a texture of the
   icon's pixels; frame, glyph, colours and motion are data (`IconLooks`' `Look`). The frame says the kind: a
   **hexagon** is a module's technology (`TechLooks`: the arc's three-stroke bolt, violet-rimmed and white-hot), a
@@ -152,7 +152,7 @@ as everything E works is, in the crew feature (`AimTests`).
   arc crackles, jagged afresh each frame, now and then branching, its brightness 0.85 to 1.15. Shown by `GlowIcon`: only
   one seen moves, a ghost never does, and a motion that comes round (`IconLooks.Cycle`) is painted once a frame for
   every icon of its look, size and show, so a bag of marks costs a texture swap each; each icon starts at its own frame.
-- **Station marks** (0095), each in the ring, its glyph, colours and motion its own:
+- **Station marks** (0097), each in the ring, its glyph, colours and motion its own:
 
   | Mark (`SlotMark`) | Glyph | Colour | Lit, it |
   | --- | --- | --- | --- |
@@ -194,10 +194,10 @@ as everything E works is, in the crew feature (`AimTests`).
   of its process, no hotter than it) shows its mark, 14 px on its dark halo, where the "?" sits, and before the "?":
   the gold ingot for the furnace and the electric smelter, the green sprout for the grow capsule. A machine with a fire
   (the furnace, the burner generator) marks its fuel, what has `BurnTicks`, with the flame: at the furnace the ingot
-  and the flame tell its two inputs apart (0095). An item too hot for the station (silicon at the furnace) gets no mark; the machine's own slots
+  and the flame tell its two inputs apart (0097). An item too hot for the station (silicon at the furnace) gets no mark; the machine's own slots
   none either. The card in the tooltip adds a line in the mark's colour, the mark before it: "Smelts here",
   "Burns here" or "Grows here" (`ItemCard.Here`, `Reading.HereOf`). The stack in hand keeps only the "?".
-- **A station's empty slot shows the ghost of its mark** (0095), as a module socket the ghost of its tech's icon: the
+- **A station's empty slot shows the ghost of its mark** (0097), as a module socket the ghost of its tech's icon: the
   mark's rim alone, faint and still, filling the slot inside its inset (`Reading.GhostOf`): the furnace's input the
   ingot and its fuel slot the flame, the electric smelter's input the ingot, the grow capsule's the sprout (in place of
   0060's faint seed), the burner generator's fuel slot the flame, the analyzer's the "?", the charging station's a

@@ -56,7 +56,7 @@ public sealed record Reading(
     }
 
     /// <summary>
-    /// The mark whose faint ghost slot <paramref name="slot"/> of a <paramref name="kind"/> shows while empty (0095): a fed
+    /// The mark whose faint ghost slot <paramref name="slot"/> of a <paramref name="kind"/> shows while empty (0097): a fed
     /// station's input what it does (the furnace's and the smelter's crucible, the grow capsule's sprout), a fire's fuel slot
     /// the flame, an analyzer's the "?", a charging station's a battery, a drone bay's a drone; none for any other slot.
     /// </summary>

@@ -8,7 +8,7 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// A glowing line icon (<see cref="IconLooks"/>): a module technology's (<see cref="TechLooks"/>, 0086) or a station's mark
-/// (<see cref="MarkLooks"/>, 0095), a square of pixels painted by <see cref="IconCanvas"/>: a slot's mark, a socket's or
+/// (<see cref="MarkLooks"/>, 0097), a square of pixels painted by <see cref="IconCanvas"/>: a slot's mark, a socket's or
 /// slot's ghost or glow, a card's. Lit, it moves its own way while seen, twelve frames a second; a ghost and a still look
 /// stand still. A motion that comes round (<see cref="Cycle"/>) is painted once a frame for every icon of its look, size and
 /// show, so a bag full of flames costs a texture swap each; a crackle is painted afresh. Each icon starts at a frame of its

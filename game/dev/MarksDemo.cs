@@ -12,7 +12,7 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// <c>-- --testbed --open=&lt;kind&gt; --marks &lt;item&gt; [--into &lt;slot&gt;]</c>: for recording the slot marks and
-/// the station slots' ghosts (0095). Creative mode off and nothing analysed, so the "?" shows; the hero's bag holds a stack of
+/// the station slots' ghosts (0097). Creative mode off and nothing analysed, so the "?" shows; the hero's bag holds a stack of
 /// each item a station marks. Once the machine is open the pointer rests on the item's slot, its card shown, picks the
 /// stack up and carries it over the machine's slot <c>into</c> (0 by default), its ghost lit, and over the bag again.
 /// </summary>

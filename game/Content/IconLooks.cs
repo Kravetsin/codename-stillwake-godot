@@ -5,7 +5,7 @@ using System.Linq;
 namespace Stillwake.Game;
 
 /// <summary>
-/// The glowing line icons (0086, 0095): a thin frame and inside it a glyph, drawn in thin lines with a white-hot core, a
+/// The glowing line icons (0086, 0097): a thin frame and inside it a glyph, drawn in thin lines with a white-hot core, a
 /// coloured rim and a soft glow by <see cref="Render.IconCanvas"/>. The frame says what kind of sign it is: a hexagon is
 /// a module's technology (<see cref="TechLooks"/>), a ring what a station does (<see cref="MarkLooks"/>). Lit, a glyph
 /// moves its own way, held on twos: redrawn twelve times a second (<see cref="Lines"/>). In shares of the icon's side,
