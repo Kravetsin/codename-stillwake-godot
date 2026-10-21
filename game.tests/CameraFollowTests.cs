@@ -149,8 +149,8 @@ public class CameraFollowTests
 
     /// <summary>Aboard, and on the first planet, whose gravity is two thirds of the ship's.</summary>
     [Theory]
-    [InlineData(Spec.Gravity, 3.9)]
-    [InlineData(Spec.Gravity * 2 / 3, 6)]
+    [InlineData(Spec.Gravity, 3.8)]
+    [InlineData(Spec.Gravity * 2 / 3, 5.9)]
     public void AJumpIsFollowedUpAndDownNeverFarBehind(int gravity, double rises)
     {
         var camera = At(Standing(0, 10));
