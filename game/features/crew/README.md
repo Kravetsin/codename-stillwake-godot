@@ -269,6 +269,11 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   until landing made the eye hunt), never more than `Catch` cells from it however fast it jumps or falls. Floating
   in space the lead is up and down as well, on the same exact follow. Wherever the hero is put anew (a session's
   start, waking at the pod, another surface, passing out where the sim has it) the camera is put straight on it.
+  Every ease ends no slower than `SettleSpeed` (half the lead a second) and lands exactly on its aim: an eased tail
+  crawled, its last screen pixels most of a second apart, and the stop twitched in. The camera is drawn on whole screen
+  pixels, an eighth of one off them (`CameraFollow.OnPixels`), so the world shifts all at once rather than a texel
+  column at a time at zooms that are not whole, and this player's hero is drawn a whole number of pixels from the
+  camera, so a steady lead holds it still on screen. Others' heroes stand where they are, between pixels.
 
 ## The jetpack and the swim (0047)
 

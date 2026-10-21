@@ -7,6 +7,7 @@ namespace Stillwake.Game;
 /// <see cref="LeadTurnMs"/> and eases over <see cref="SmoothMs"/>, while the hero itself is followed exactly, so
 /// nothing trails. Up and down under gravity it always follows the body's middle, eased over <see cref="SmoothMs"/>,
 /// jumps too, and never more than <see cref="Catch"/> cells behind. Floating in space it leads up and down as across.
+/// Every ease ends no slower than <see cref="SettleSpeed"/>, so the last pixels come at a steady pace.
 /// </summary>
 public static class Camera
 {
@@ -24,6 +25,12 @@ public static class Camera
 
     /// <summary>How long the camera takes to settle, as the time constant it eases by, in milliseconds: the lead's size, and the height.</summary>
     public const double SmoothMs = 180;
+
+    /// <summary>
+    /// The slowest the view moves while it settles, in full leads a second, 20 pixels a second on a screen 1920 wide: an
+    /// ease's tail crawls ever slower, its last pixels most of a second apart, and twitches in at the end.
+    /// </summary>
+    public const double SettleSpeed = 0.5;
 
     /// <summary>The farthest the body's middle gets above or below the screen's middle under gravity, in cells, however fast it moves.</summary>
     public const double Catch = 1.5;
