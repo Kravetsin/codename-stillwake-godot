@@ -142,6 +142,12 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>A heavy landing's shock along the floor (0090): pale streaks of light racing out under its ring, gone in a moment.</summary>
     public static readonly Luminous LandStreak = new(Glimmer.Streak, [(240, 244, 250), (200, 208, 222)], (200, 240))
     { Bright = 0.55, Fade = 1.2, Drag = 7, Stretch = 0.05, Shortest = 1, Width = 0.24, Hot = 0.4 };
+    /// <summary>
+    /// Off the gloves sliding down a ladder's rails (0092): tiny hot streaks flicked up and out, arcing down and cooling in a
+    /// blink; each lights its spot a little.
+    /// </summary>
+    public static readonly Luminous RailSpark = new(Glimmer.Streak, [(255, 240, 190), (255, 186, 90), (225, 100, 40)], (140, 300))
+    { Bright = 0.75, Fade = 1.2, Gravity = 260, Drag = 1.2, Spin = 2, Stretch = 0.045, Shortest = 0.6, Longest = 4, Width = 0.22, Halo = 2.5, Light = true };
     /// <summary>Cold gas jetting from the harpoon's muzzle as it fires: fine pale streaks breaking into curls.</summary>
     public static readonly Luminous Gas = new(Glimmer.Streak, [(236, 244, 255), (190, 206, 230), (140, 156, 180)], (150, 320))
     { Bright = 0.65, Drag = 6, Spin = 4, Stretch = 0.05, Width = 0.26 };

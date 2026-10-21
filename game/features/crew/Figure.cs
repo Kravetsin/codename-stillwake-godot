@@ -443,6 +443,27 @@ public partial class Figure : Node2D
     /// </summary>
     public (double Left, double Right) FloorRoom { get; set; } = (double.MaxValue, double.MaxValue);
 
+    /// <summary>
+    /// On a ladder, how far its top is over the feet, in pixels (<see cref="Hero.LedgeAbove"/>), or in the air how far a ledge
+    /// the jump steps up onto is (<see cref="Hero.MantleLedge"/>): what the hands pull the body up onto (0092). Set by the crew
+    /// each frame; none away from one.
+    /// </summary>
+    public double? Ledge { get; set; }
+
+    /// <summary>
+    /// Sparks off the gloves sliding down a ladder (0092): <paramref name="count"/> tiny hot streaks flicked up and out from
+    /// either hand, at <paramref name="front"/> and <paramref name="back"/> in pixels of the world.
+    /// </summary>
+    private static void Sparks(Vector2 front, Vector2 back, int count)
+    {
+        var glims = Glims.Shared;
+        for (int i = 0; i < Math.Round(count * Fx.Count); i++)
+        {
+            var at = i % 2 == 0 ? front : back;
+            glims.Add(Luminous.RailSpark, at.X + glims.Between(-0.5, 0.5), at.Y, glims.Between(-30, 30), -glims.Between(40, 110));
+        }
+    }
+
     /// <summary>The figure in a suit of <paramref name="colour"/>, 0xRRGGBB: its pictures recoloured, when it changes.</summary>
     public void Wear(int colour)
     {
@@ -551,7 +572,7 @@ public partial class Figure : Node2D
         _swim = afloat ? Settle(_swim, Poses.Swimming(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _motion.Landing, holding ? _head : null,
-            _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now));
+            _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null));
         var from = _shown ?? to;
         double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(
@@ -637,6 +658,11 @@ public partial class Figure : Node2D
         _backArm.Bend(backArm);
         _frontLeg.Bend(shown.FrontLeg);
         _backLeg.Bend(shown.BackLeg);
+        if (cues.Sparks > 0)
+        {
+            Vector2 Glove(Bend arm) => _frame.ToGlobal(Pixel(Rig.FistOf(arm)));
+            Sparks(Glove(frontArm), Glove(backArm), cues.Sparks);
+        }
         bool awake = pose is not (Pose.Lie or Pose.Tumble);
         _head = Settle(_head, awake ? look : 0, elapsedMs, HeadSettleMs);
         _helmet.Rotation = (float)_head;
@@ -710,6 +736,9 @@ public partial class Figure : Node2D
         ShowBeams(holding);
         _drillLight.Step(inHand && drill ? item : null, _spin, Bites && inHand, Muzzle, Barrel, _heldAt ??= HeldAt, elapsedMs);
     }
+
+    /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>
+    private static Vector2 Pixel(Vec fromShoulder) => new((float)fromShoulder.X, (float)(fromShoulder.Y - Rig.Shoulder));
 
     /// <summary>A point of the held item's picture in the world, as it is drawn now.</summary>
     private Vector2 HeldAt((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);

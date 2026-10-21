@@ -43,7 +43,7 @@ namespace Stillwake.Game;
 /// world as the title makes one, the wreck in the middle of the big world, kept nowhere; <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
 /// large, its tiles over <c>--built WxH</c> of it from the top-left, all of it by default), <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings,
-/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--hills</c> ground of slopes to walk (<see cref="HillsDemo"/>), <c>--slopes</c> walls cut to shapes planned with R, lit, and a corridor under a sloped ceiling (<see cref="SlopesDemo"/>), <c>--floor</c> stacks falling through a machine onto a dark floor and a slope (<see cref="FloorDemo"/>), <c>--aside</c> steps the hero
+/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--ladders</c> a tall one up through a hatch beside a laddered pit, or with <c>--strip</c> the strip's shaft (<see cref="HeroAutopilot.LaddersRun"/>, 0092), <c>--ledges</c> a ledge a jump steps up onto and one it falls short of (0092), <c>--hills</c> ground of slopes to walk (<see cref="HillsDemo"/>), <c>--slopes</c> walls cut to shapes planned with R, lit, and a corridor under a sloped ceiling (<see cref="SlopesDemo"/>), <c>--floor</c> stacks falling through a machine onto a dark floor and a slope (<see cref="FloorDemo"/>), <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
@@ -178,6 +178,8 @@ public partial class Main : Node2D, ITogether
         if (Has("--world") || Has("--fly") || Has("--asteroid") || Has("--sortie")) _layout = Registry.Wreck;
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--poses")) _layout = HeroAutopilot.Hall;
+        if (Has("--ladders") && !Has("--strip")) _layout = HeroAutopilot.Ladders;
+        if (Has("--ledges")) _layout = HeroAutopilot.Ledges;
         if (Has("--hills")) _layout = HillsDemo.Map;
         if (Has("--slopes")) _layout = SlopesDemo.Map;
         if (Has("--floor")) _layout = FloorDemo.Map;
@@ -188,7 +190,7 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40) : Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip")) : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
+            var script = Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40) : Has("--ledges") && Has("--autopilot") ? HeroAutopilot.LedgesRun() : Has("--ladders") && Has("--autopilot") ? (Has("--strip") ? HeroAutopilot.StripLaddersRun() : HeroAutopilot.LaddersRun()) : Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip")) : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             if (Has("--poses")) AddChild(new PosesDemo(script!));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).

@@ -44,6 +44,41 @@ public sealed class HeroAutopilot
             _ => "#" + new string('.', 44) + "#",
         }))]);
 
+    /// <summary>
+    /// A shaft for recording the ladder (0092), <c>-- --ladders --autopilot --lit</c>: a ladder fourteen cells tall in column 8
+    /// up through an open hatch into the room above; right of it a pit four cells deep with a ladder up out of it in column 16,
+    /// and the floor on beyond.
+    /// </summary>
+    public static readonly Layout Ladders = Layout.Parse(
+        [.. Enumerable.Range(0, 25).Select(r => ShaftLamps(r, r switch
+        {
+            0 or 24 => new string('#', 28),
+            6 => "#######ddd##################",
+            20 => new string('#', 14) + ".." + "H" + "....." + new string('#', 6),
+            > 20 => new string('#', 14) + ".." + "H" + "....." + new string('#', 6),
+            19 => "#.S.....H.......H..........#",
+            > 9 and < 20 => "#.......H.......H..........#",
+            > 6 => "#.......H...................#"[..27] + "#",
+            _ => "#" + new string('.', 26) + "#",
+        }))]);
+
+    /// <summary>
+    /// Two ledges for recording the ledge assist (0092), <c>-- --ledges --autopilot --lit</c>: one four cells high, which a held
+    /// jump falls 46 short of and steps up onto, and one five high, which it falls clearly short of.
+    /// </summary>
+    public static readonly Layout Ledges = Layout.Parse(
+        [.. Enumerable.Range(0, 13).Select(r => ShaftLamps(r, r switch
+        {
+            0 or 12 => new string('#', 30),
+            11 => "#.S....." + new string('#', 6) + "......" + new string('#', 10),
+            >= 8 => "#......." + new string('#', 6) + "......" + new string('#', 10),
+            >= 7 => "#......." + new string('.', 6) + "......" + new string('#', 10),
+            _ => "#" + new string('.', 28) + "#",
+        }))]);
+
+    private static string ShaftLamps(int row, string cells) =>
+        row is 2 or 9 or 14 or 19 ? string.Concat(cells.Select((c, x) => c == '.' && x % 5 == 1 ? 'L' : c)) : cells;
+
     private static string Lamps(int row, string cells) =>
         row is 1 or 7 or 19 or 26 or 29 ? string.Concat(cells.Select((c, x) => c == '.' && x % 6 == 3 ? 'L' : c)) : cells;
 
@@ -382,6 +417,75 @@ public sealed class HeroAutopilot
         ])
         { _trace = true };
     }
+
+    /// <summary>
+    /// The <see cref="Ladders"/> script (0092): a run at the ladder with up held, grabbed on the way and climbed, pulled up through
+    /// the hatch; back down, slid the rest of the way with Shift; a running jump over the pit, caught on its ladder mid-air;
+    /// up it a little, and a leap off it to the side onto the floor beyond.
+    /// </summary>
+    public static HeroAutopilot LaddersRun()
+    {
+        var up = new HeroInput(0, -1, false);
+        return new HeroAutopilot(
+        [
+            Wait(40),
+            Until(new HeroInput(1, -1, false, Sprint: true), (h, _) => h.Climbing),
+            Until(up, (h, p) => p.Steps > 2 && !h.Climbing),
+            Wait(40),
+            Until(new HeroInput(0, 1, false), (h, _) => h.Y > 12 * Hero.Unit),
+            Until(new HeroInput(0, 1, false, Sprint: true), (h, p) => p.Stopped(h)),
+            Wait(30),
+            Walk(1, h => Column(h) >= 12),
+            Hold(new HeroInput(1, 0, false, Sprint: true), 6),
+            Hold(new HeroInput(1, -1, true, Sprint: true), 1),
+            Until(new HeroInput(1, -1, false, Sprint: true), (h, p) => h.Climbing || p.Steps > 90),
+            Hold(up, 40),
+            Wait(30),
+            Hold(new HeroInput(1, 0, true), 1),
+            Hold(new HeroInput(1, 0, false), 70),
+            Wait(40),
+        ])
+        { _trace = true };
+    }
+
+    /// <summary>
+    /// The <see cref="Ledges"/> script (0092): a held jump at the four-cell ledge, stepped up onto; off its far side, and a held
+    /// jump at the five-cell one, falling short.
+    /// </summary>
+    public static HeroAutopilot LedgesRun() => new(
+    [
+        Wait(40),
+        Walk(1, h => Column(h) >= 6),
+        Jump(1),
+        Hold(new HeroInput(1, 0, false), 70),
+        Walk(1, h => Column(h) >= 15 && h.Vy == 0 && h.Y > 10 * Hero.Unit),
+        Walk(1, h => Column(h) >= 18),
+        Jump(1),
+        Hold(new HeroInput(1, 0, false), 80),
+        Wait(40),
+    ])
+    { _trace = true };
+
+    /// <summary>
+    /// <c>--strip --ladders</c>: the planet's test strip's ladder (0092): out of the shelter to the shaft, down its ladder sliding,
+    /// up again and pulled out over its top onto the ground, under the planet's gravity.
+    /// </summary>
+    public static HeroAutopilot StripLaddersRun() => new(
+    [
+        Wait(90),
+        Walk(-1, h => Column(h) <= 27),
+        Jump(1),
+        Hold(new HeroInput(1, 0, false), 90),
+        Walk(1, h => Column(h) >= 70),
+        Until(new HeroInput(0, 1, false), (h, p) => p.Steps > 12),
+        Until(new HeroInput(0, 1, false, Sprint: true), (h, p) => p.Stopped(h)),
+        Wait(30),
+        Until(new HeroInput(0, -1, false), (h, p) => p.Steps > 2 && !h.Climbing),
+        Wait(30),
+        Walk(-1, h => Column(h) <= 66),
+        Wait(30),
+    ])
+    { _trace = true };
 
     /// <summary>The <see cref="Gym"/>'s script.</summary>
     public static HeroAutopilot GymRun()

@@ -24,14 +24,17 @@ public readonly record struct Momentum(
 /// </summary>
 public sealed class Motion
 {
-    /// <summary>What a frame set off: a jump, a landing and how fast it fell, and how many streaks of dust the soles throw.</summary>
-    public readonly record struct Cues(bool Jumped, int? Landed, int SkidDust);
+    /// <summary>
+    /// What a frame set off: a jump, a landing and how fast it fell, how many streaks of dust the soles throw, and how many
+    /// sparks the gloves throw sliding down a ladder (0092).
+    /// </summary>
+    public readonly record struct Cues(bool Jumped, int? Landed, int SkidDust, int Sparks = 0);
 
     private int? _vx;
     private Pose? _was;
     /// <summary>The acceleration across, smoothed, in thousandths of a cell a step gained a step.</summary>
     private double _acceleration;
-    private double _skidMs, _skid, _dustOwed;
+    private double _skidMs, _skid, _dustOwed, _sparksOwed;
     private int _along = 1, _sliding;
     private double _sinceJumpMs = double.PositiveInfinity, _fallingMs;
     private int _fall;
@@ -98,6 +101,16 @@ public sealed class Motion
         }
         else _dustOwed = 0;
 
+        // Sliding down a ladder, seen from the fall alone: the gloves throw sparks off its rails as fast as it slides.
+        int sparks = 0;
+        if (pose == Pose.Climb && Poses.SlideOf(hero.Vy) is var slide and > 0)
+        {
+            _sparksOwed += Look.Ladder.SparksPerStep * slide * steps;
+            sparks = (int)_sparksOwed;
+            _sparksOwed -= sparks;
+        }
+        else _sparksOwed = 0;
+
         bool jumped = Poses.Jumped(_was, pose, hero);
         if (jumped) _sinceJumpMs = 0;
         else _sinceJumpMs += elapsedMs;
@@ -113,6 +126,6 @@ public sealed class Motion
         _landMs = Math.Max(0, _landMs - elapsedMs);
         _was = pose;
         Now = new Momentum(ground ? LeanOf(_acceleration, hero.Facing) : 0, _skid, _along, _depth, _sinceJumpMs, _fallingMs);
-        return new Cues(jumped, landed, dust);
+        return new Cues(jumped, landed, dust, sparks);
     }
 }
