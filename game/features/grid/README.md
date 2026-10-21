@@ -55,7 +55,13 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
 - **A planet's ground** (0077, 0079): soil, stone and bedrock walls and back walls are drawn in the "Stillwake" style,
   `art/planet/wall_*` and `back_*`, 8 × 4 cell tiles that repeat seamlessly, cut a cell at a time as scrap's; their edges
   are made at start (`render/GroundArt.cs`, lines in `Content/GroundLooks.cs`): a dark outline by the open sides and inside
-  it a lit line on top, shaded elsewhere. Slopes are cut from them as from the hull's.
+  it two lit lines on top, one on the other sides, a floor slope's diagonal lit as a top (0088). Slopes are cut from them as
+  from the hull's.
+- **Back walls recede** (0088): a natural back wall's picture is paled, cooled and darkened at load (`GroundArt.Recede`), and
+  walls cast a soft three-tone shadow on it along their open edges (`render/GroundShadow.cs`, plain C#, tested): a tile a
+  three by three of walls round a cell, made once into a shared atlas (`render/ShadowTiles.cs`), drawn on its own layer over
+  the back walls, multiplying them. A changed cell redraws its corner neighbours' shadows too, which `Stale` leaves be. The
+  hull's back walls are left as they were.
 - **Moss** (0079) on soil open to the sky (`Grass.cs`, plain C#, tested: a soil wall, whole or a floor slope, under an
   empty cell with no back wall), a rule of drawing, never the sim's: one of four pictures a top (`art/planet/grass_{shape}_{v}`,
   by a hash of the cell), two cells tall, laid from the cell above so its stems rise into it, over the edges. Dug, built

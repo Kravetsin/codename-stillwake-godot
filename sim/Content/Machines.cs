@@ -68,7 +68,7 @@ public static class Machines
         // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
         new("charger", 1, 2, [], [("frame", 1), ("coil", 1), ("wire", 4), ("circuit", 1)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: true),
         // Presses and turns parts at full speed while it draws (Stations): two inputs, the most any craft of its needs, then three outputs. Rests idle.
-        new("former", 2, 2, [], [("frame", 2), ("rotor", 1), ("gear", 2), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 5, Inputs: 2),
+        new("former", 2, 2, [], [("frame", 2), ("rotor", 1), ("gear", 2), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 6, Inputs: 3),
         // Smelts on power, twice the furnace's speed and hotter (Stations): its input, then three outputs. Rests idle.
         new("smelter", 2, 2, [], [("frame", 1), ("coil", 2), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 4, Plug: (4, 17), Slots: 4, Inputs: 1),
         // Assembles electronics at full speed while it draws (Stations): four inputs, a drone's, then three outputs. Rests idle.

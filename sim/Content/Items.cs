@@ -79,6 +79,19 @@ public static class Items
         // Broken out of asteroids (0054) and dug out of a planet's stone (0077); smelted into silicon at a furnace or the
         // electric smelter. Players see "Rock".
         new("rock", 50, Yields: [("silicon", 2)], SmeltTicks: 160, Group: ItemGroup.Salvage),
+        // Dug out of a planet's caves (0080): copper ore from its veins, an ingot an ore at the furnace's heat, as slow as rock.
+        new("copperOre", 50, Yields: [("copper", 1)], SmeltTicks: 160, Group: ItemGroup.Salvage),
+        new("copper", 100),
+        // From ice veins and crystals; nothing melts it yet: the jump's and the engine's cost to come.
+        new("ice", 50),
+        // Broken off the deep's crystals and out of geodes: for sensors and machine modules to come.
+        new("crystal", 50),
+        // Off the violet glowcaps: for the spore bed to come.
+        new("spore", 50),
+        // Flakes out of the glinting mica in cave walls: for sensors and the radar to come.
+        new("mica", 50),
+        // Lodestone, a natural magnet, out of the heat's cracks over the bedrock: a motor's magnet.
+        new("magnetite", 50),
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1, Group: ItemGroup.Other),
         new("cargoCrate", 1, Group: ItemGroup.Other),
@@ -105,6 +118,8 @@ public static class Items
         new("gear", 50),
         new("tube", 100),
         new("rotor", 20),
+        // A rotor wound with copper round a lodestone, at the Former: what radar and the engine will be built of.
+        new("motor", 20),
         new("frame", 20),
         new("coil", 50),
         // Smelted from rock, and smelted on into glass only where it is hot enough: the electric smelter (0057).

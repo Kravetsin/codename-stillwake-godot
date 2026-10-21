@@ -37,9 +37,9 @@ public class StationInputsTests
     private static Scenario Feed(Scenario w, int count) => w.Do(new Move(new Slot(0), new Target(null, Former(w)), count)).Run();
 
     [Fact]
-    public void TheFormerTakesTwoInputsAndTheAssemblerFourBeforeTheirThreeOutputsThePodNone()
+    public void TheFormerTakesThreeInputsAndTheAssemblerFourBeforeTheirThreeOutputsThePodNone()
     {
-        Assert.Equal((2, 5), (Machines.Get("former").Inputs, Machines.Get("former").Slots));
+        Assert.Equal((3, 6), (Machines.Get("former").Inputs, Machines.Get("former").Slots));
         Assert.Equal((4, 7), (Machines.Get("assembler").Inputs, Machines.Get("assembler").Slots));
         Assert.Equal((0, 3), (Machines.Get("lifepod").Inputs, Machines.Get("lifepod").Slots));
     }
@@ -176,7 +176,7 @@ public class StationInputsTests
         var w = World().GiveItems(0, ("gear", 3));
         int former = Former(w);
         w.Do(new Move(new Slot(0), new Target(null, former), 4)).Do(new Move(new Slot(1), new Target(1, former), 3)).Run();
-        Assert.Equal([new Stack("iron", 4), new Stack("gear", 3), null, null, null], w.M.Items.Crate(former));
+        Assert.Equal([new Stack("iron", 4), new Stack("gear", 3), null, null, null, null], w.M.Items.Crate(former));
         for (int slot = Inputs; slot < Machines.Get("former").Slots; slot++)
             w.Do(new Move(new Slot(0), new Target(slot, former), 1));
         w.Run();

@@ -68,7 +68,8 @@ On this machine (RTX 4060 Ti), 1280 × 720:
 
 ## Deliberately not handled
 
-- **Felling gives nothing yet** and a tree falls to one hit, as a flower: yields and a tree's strength come with wood.
+- ~~**Felling gives nothing yet** and a tree falls to one hit, as a flower~~ — *amended 2026-10-21:* plants give `Yields` and
+  surface plants have a `Strength`, a tree taking 3 s of the axe; see 0080's amendment.
 - **Plants don't grow back, spread or sway,** and none grows in caves, on stone, on slopes or on built soil walls made later.
 - **Only a plant's own cell holding something fells it:** a wall built into a crown or beside a trunk leaves it standing.
 - **Plants on a drawn map** (tests) are not brought back by a load: only grown ground grows again.

@@ -7,15 +7,15 @@ namespace Stillwake.Sim.Building;
 /// <summary>
 /// A hit of weapon <c>Tool</c> on the natural wall at <c>Cell</c> (0077): sent as the axe strikes, or at the drill's pace
 /// while it works, at a natural wall within the hero's reach. Its damage cracks the wall; the hit that reaches its
-/// strength breaks it out, the back wall behind staying, and gives the sender what it is made of. On a plant standing in an
-/// open cell (0079), it fells the plant.
+/// strength breaks it out, the back wall behind staying, and gives the sender what it is made of and what grew on, in or
+/// from it. On a plant standing in an open cell (0079), it cracks the plant by its own cell, felling it at its strength.
 /// </summary>
 public sealed record Dig(int Cell, string Tool) : Command;
 
 /// <summary>Digging a planet's ground (0077): cracks kept by cell, a wall broken out at its strength.</summary>
 public sealed partial class BuildingModule
 {
-    /// <summary>The natural walls dug part way, ascending by cell: live and read-only.</summary>
+    /// <summary>The natural walls and the plants (by their own cells) hit part way, ascending by cell: live and read-only.</summary>
     public IReadOnlyList<Crack> Cracks => State.Cracks;
 
     /// <summary>
@@ -41,27 +41,50 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// The weapon's damage added to the wall's crack; reaching its strength, the wall is cleared, its crack with it, and
-    /// what it is made of given to the sender, what does not fit falling where it stood.
+    /// what it is made of given to the sender, then the yields of the growths it held, what does not fit falling where it stood.
     /// </summary>
     private void ApplyDig(Dig c)
     {
-        // A plant falls to one hit (0079), whatever the weapon; the plants on a wall broken out go in derivation.
+        // A plant is cracked by its own cell, whichever of its cells is hit; one of no strength falls to any hit.
         if (_grid.WallAt(c.Cell) is not { } wall)
         {
-            Fell(PlantAt(c.Cell)!, c.From);
+            var plant = PlantAt(c.Cell)!;
+            if (Cracked(plant.Cell, Kinds[plant.Kind].Strength, c.Tool)) Fell(plant, c.From);
             return;
         }
-        int at = CrackIndex(c.Cell);
-        int damage = (at >= 0 ? State.Cracks[at].Damage : 0) + Weapons.Of(c.Tool)!.Damage;
-        if (damage < wall.Strength)
-        {
-            if (at >= 0) State.Cracks[at] = new Crack(c.Cell, damage, State.Clock);
-            else State.Cracks.Insert(~at, new Crack(c.Cell, damage, State.Clock));
-            return;
-        }
-        if (at >= 0) State.Cracks.RemoveAt(at);
+        if (!Cracked(c.Cell, wall.Strength, c.Tool)) return;
         _gridOps.Clear(c.Cell, "structure");
         _itemsOps.GiveOrDrop(c.From, wall.Cost, c.Cell);
+        // What the wall held goes to its digger now; the sweep would fell it the same tick, giving nothing.
+        foreach (var plant in HeldBy(c.Cell)) Fell(plant, c.From);
+    }
+
+    /// <summary>
+    /// The growths <paramref name="cell"/>'s wall holds (<see cref="HoldOf"/>), in cell order: one standing on it, one in
+    /// its own stone, one hanging from it.
+    /// </summary>
+    private IEnumerable<Plant> HeldBy(int cell)
+    {
+        foreach (int at in (int[])[cell - _grid.Width, cell, cell + _grid.Width])
+            if (_plantOwn.TryGetValue(at, out var plant) && HoldOf(plant) == cell) yield return plant;
+    }
+
+    /// <summary>
+    /// Adds <paramref name="tool"/>'s damage to <paramref name="cell"/>'s crack: true, its crack dropped, once it reaches
+    /// <paramref name="strength"/>; else false, the crack kept deeper, its last hit now.
+    /// </summary>
+    private bool Cracked(int cell, int strength, string tool)
+    {
+        int at = CrackIndex(cell);
+        int damage = (at >= 0 ? State.Cracks[at].Damage : 0) + Weapons.Of(tool)!.Damage;
+        if (damage >= strength)
+        {
+            if (at >= 0) State.Cracks.RemoveAt(at);
+            return true;
+        }
+        if (at >= 0) State.Cracks[at] = new Crack(cell, damage, State.Clock);
+        else State.Cracks.Insert(~at, new Crack(cell, damage, State.Clock));
+        return false;
     }
 
     /// <summary>Where <paramref name="cell"/>'s crack is in <see cref="BuildingState.Cracks"/>; the complement of where it would go when it has none.</summary>
@@ -82,13 +105,19 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// A crack heals whole <c>Builds.CrackHeals</c> ticks after its last hit, as Terraria's; one whose wall is gone, to a meteor,
-    /// is dropped: only a natural wall that breaks keeps one. The clock ticks first.
+    /// is dropped: only a natural wall that breaks, or a plant of some strength in its own open cell, keeps one. The clock
+    /// ticks first.
     /// </summary>
     private void SweepCracks()
     {
         int now = ++State.Clock;
-        if (State.Cracks.Count > 0) State.Cracks.RemoveAll(k => now - k.At >= Builds.CrackHeals || _grid.WallAt(k.Cell) is not { Breaks: true });
+        if (State.Cracks.Count > 0) State.Cracks.RemoveAll(k => now - k.At >= Builds.CrackHeals || !Crackable(k.Cell));
     }
+
+    /// <summary>Whether <paramref name="cell"/> holds what a crack is kept for: a natural wall that breaks, or the own cell of a plant with strength.</summary>
+    private bool Crackable(int cell) => _grid.WallAt(cell) is { } wall
+        ? wall.Breaks
+        : _plantOwn.TryGetValue(cell, out var plant) && Kinds[plant.Kind].Strength > 0;
 
     /// <summary>
     /// Whether what <paramref name="layer"/> of <paramref name="cell"/> holds is natural ground, never marked: a natural wall,

@@ -91,6 +91,8 @@ public sealed partial class BuildingModule
         _plants.RemoveAt(_plants.BinarySearch(plant, ByCell));
         _plantOwn.Remove(plant.Cell);
         foreach (int cell in CellsOf(plant)) _plantIn.Remove(cell);
+        // Its crack goes with it, before a wall built in its cell could take it over; one in the rock's is the wall's.
+        if (Kinds[plant.Kind].On != Flora.Anchor.Rock && CrackIndex(plant.Cell) is >= 0 and var crack) State.Cracks.RemoveAt(crack);
         if (peer is int sender && Kinds[plant.Kind].Yields is { Count: > 0 } yields) _itemsOps.GiveOrDrop(sender, yields, plant.Cell);
     }
 

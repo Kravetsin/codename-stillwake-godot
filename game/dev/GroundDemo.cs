@@ -16,7 +16,8 @@ namespace Stillwake.Game.Dev;
 /// the spawn and digs a shaft down under its feet, so it drops in as it goes; <c>drill</c> digs the tunnel with the drill in the
 /// hero's hands, aimed by <see cref="GroundHands"/> as a mouse would; <c>poses</c> aims the drill round the hero eight ways near
 /// and far; <c>mouth</c> stands it on the rim of the nearest pit, chasm or cave mouth, to see the sky down it; <c>acacia</c> beside the
-/// acacia nearest the spawn, to see one close (0079); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
+/// acacia nearest the spawn, to see one close (0079); <c>pit</c> digs a pit under the spawn, a block left standing on its floor, to
+/// tell the ground from its back wall (0088); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
 /// its longest run of ground with no pit, for <see cref="Features.Crew.HeroAutopilot.Sprint"/> to measure; <c>band0</c>…<c>band3</c> in a
 /// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080); <c>backs</c>
 /// at the spawn, building soil and stone back walls beside it (0084). An
@@ -30,6 +31,9 @@ public sealed class GroundDemo(string mode)
 
     /// <summary>How many cells the shaft goes down, and the tunnel along.</summary>
     private const int Depth = 14, Along = 3;
+
+    /// <summary><c>pit</c>'s depth, its cells either side of the hero, and the column of the block left on its floor.</summary>
+    private const int PitDepth = 3, PitSide = 3, PitBlock = 2;
 
     private int? _planet;
     private bool _opened;
@@ -84,7 +88,11 @@ public sealed class GroundDemo(string mode)
             int at = tunnel ? CaveUnder(m) ?? m.Crew.Spawn : mode == "mouth" ? RimNear(m) ?? m.Crew.Spawn : mode == "sprint" ? Features.Crew.HeroAutopilot.SprintStart(m.Grid)
                 : mode == "acacia" ? BesideAcacia(m) ?? m.Crew.Spawn : mode == "slope" ? BesideSlopes(m, _cells) ?? m.Crew.Spawn : m.Crew.Spawn;
             // The shaft under the feet; the tunnel at head height the way the hero faces, right.
-            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("slope" or "acacia" or "sprint"); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
+            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("slope" or "acacia" or "sprint" or "pit"); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
+            // pit: a pit under the feet, a block of its ground left standing on its floor (0088).
+            for (int dy = 1; dy <= PitDepth && mode == "pit"; dy++)
+                for (int dx = -PitSide; dx <= PitSide; dx++)
+                    if ((dx, dy) != (PitBlock, PitDepth)) _cells.Add(at + dy * w + dx);
             client.Send(new Transfer(_planet.Value, at));
             log($"ground demo: beamed down to ({at % w}, {at / w})");
             return;

@@ -15,8 +15,7 @@ public static class ShapeMasks
     private const int Cell = ShipCamera.Cell;
 
     /// <summary>Whether pixel (<paramref name="px"/>, <paramref name="py"/>) of a cell lies in the solid of <paramref name="shape"/>.</summary>
-    public static bool Covers(int shape, int px, int py) =>
-        Shape.Solid(shape, (2 * px + 1) * Shape.Unit / (2 * Cell), (2 * py + 1) * Shape.Unit / (2 * Cell));
+    public static bool Covers(int shape, int px, int py) => GroundShadow.Covers(shape, px, py);
 
     /// <summary>How far a covered pixel is in from the diagonal, 0 on it; past the cell's size for a whole wall.</summary>
     private static int Depth(int shape, int px, int py) => shape switch
@@ -33,18 +32,23 @@ public static class ShapeMasks
     /// pixels along its diagonal take <paramref name="edge"/>'s outer and inner colour, as a side open to the room
     /// is drawn. Without an edge, cut only.
     /// </summary>
-    public static Image Cut(Image picture, int shape, Image? edge = null)
+    public static Image Cut(Image picture, int shape, Image? edge = null) =>
+        // The edge picture of a cell open above: its first two rows are a side's outer and inner line.
+        Cut(picture, shape, edge == null ? [] : [edge.GetPixel(Cell / 2, 0), edge.GetPixel(Cell / 2, 1)]);
+
+    /// <summary>
+    /// <paramref name="picture"/> with every cell cut to <paramref name="shape"/>, the pixels along its diagonal taking
+    /// <paramref name="lines"/>' colours, the diagonal first and each next one a pixel further in; a transparent one leaves the picture.
+    /// </summary>
+    public static Image Cut(Image picture, int shape, IReadOnlyList<Color> lines)
     {
         var cut = (Image)picture.Duplicate();
-        // The edge picture of a cell open above: its first two rows are a side's outer and inner line.
-        Color? outer = edge?.GetPixel(Cell / 2, 0), inner = edge?.GetPixel(Cell / 2, 1);
         for (int y = 0; y < cut.GetHeight(); y++)
             for (int x = 0; x < cut.GetWidth(); x++)
             {
-                int px = x % Cell, py = y % Cell;
+                int px = x % Cell, py = y % Cell, depth = Depth(shape, px, py);
                 if (!Covers(shape, px, py)) cut.SetPixel(x, y, Colors.Transparent);
-                else if (Depth(shape, px, py) == 0 && outer is Color o && o.A > 0) cut.SetPixel(x, y, o);
-                else if (Depth(shape, px, py) == 1 && inner is Color i && i.A > 0) cut.SetPixel(x, y, i);
+                else if (depth < lines.Count && lines[depth].A > 0) cut.SetPixel(x, y, lines[depth]);
             }
         return cut;
     }

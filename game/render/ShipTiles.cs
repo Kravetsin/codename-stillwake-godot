@@ -35,7 +35,8 @@ public sealed class ShipTiles
         {
             Made($"wall_{natural}", Art($"planet/wall_{natural}"));
             for (int open = 1; open < 16; open++) Made($"wall-edge_{natural}_{open}", GroundArt.Edge(natural, open));
-            Made(BackName(natural), Art($"planet/back_{natural}"));
+            // Its back wall recedes behind it, paler, cooler and darker (0088).
+            Made(BackName(natural), GroundArt.Recede(Art($"planet/back_{natural}")));
         }
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
@@ -67,7 +68,10 @@ public sealed class ShipTiles
             // Walls cut to a shape (0069): the same pictures, each cell cut, the diagonal edged as an open side is.
             foreach (int shape in Shape.Cut)
             {
-                pictures.Add(Picture(WallName(material, shape), Made(WallName(material, shape), ShapeMasks.Cut(Art($"wall_{material}"), shape, Art($"wall-edge_{material}_1"))), Relief.None));
+                // The ground's diagonal catches the light as its tops do (0088); the hull's takes its edge's lines.
+                var cut = Materials.Get(material).Natural ? ShapeMasks.Cut(Art($"wall_{material}"), shape, GroundArt.Diagonal(material, shape))
+                    : ShapeMasks.Cut(Art($"wall_{material}"), shape, Art($"wall-edge_{material}_1"));
+                pictures.Add(Picture(WallName(material, shape), Made(WallName(material, shape), cut), Relief.None));
                 for (int open = 1; open < 16; open++)
                     if ((open & ~Shape.ClosedSides(shape)) == 0)
                         pictures.Add(Picture(EdgeName(material, open, shape), Made(EdgeName(material, open, shape), ShapeMasks.Cut(Art($"wall-edge_{material}_{open}"), shape)), Relief.None));

@@ -25,8 +25,8 @@ public static class GroundArt
     public static int TopColumn(int shape, int variant) => shape switch { Shape.BottomRight => 4 + variant, Shape.BottomLeft => 6 + variant, _ => variant };
 
     /// <summary>
-    /// The edges of a cell of <paramref name="material"/> on its sides <paramref name="open"/> (up 1, right 2, down 4, left 8):
-    /// a dark outline, and inside it a lit line on top and a shaded one on the other sides; transparent elsewhere.
+    /// The edges of a cell of <paramref name="material"/> on its sides <paramref name="open"/> (up 1, right 2, down 4, left 8),
+    /// catching the light (0088): a dark outline, inside it two lit lines on top and one on the other sides; transparent elsewhere.
     /// </summary>
     public static Image Edge(string material, int open)
     {
@@ -39,9 +39,44 @@ public static class GroundArt
                 int down = (open & 4) != 0 ? Cell - 1 - y : Cell, left = (open & 8) != 0 ? x : Cell;
                 int nearest = System.Math.Min(System.Math.Min(up, right), System.Math.Min(down, left));
                 if (nearest == 0) image.SetPixel(x, y, Colour(look.Outline));
-                else if (nearest == 1) image.SetPixel(x, y, up == 1 ? Colour(look.Lit) : Colour(look.Colour, 0.78));
+                else if (up == 1) image.SetPixel(x, y, Colour(look.Lit, GroundLooks.RimTop));
+                else if (up == 2) image.SetPixel(x, y, Colour(look.Lit, GroundLooks.RimUnder));
+                else if (nearest == 1) image.SetPixel(x, y, Colour(look.Lit, GroundLooks.RimSide));
             }
         return image;
+    }
+
+    /// <summary>
+    /// The lines along the diagonal of a <paramref name="material"/> wall cut to <paramref name="shape"/>, from the diagonal in:
+    /// its outline, then a floor slope's two lit lines as a top's (0088), a ceiling slope's one.
+    /// </summary>
+    public static Color[] Diagonal(string material, int shape)
+    {
+        var look = GroundLooks.Of[material];
+        return Shape.IsFloor(shape)
+            ? [Colour(look.Outline), Colour(look.Lit, GroundLooks.RimTop), Colour(look.Lit, GroundLooks.RimUnder)]
+            : [Colour(look.Outline), Colour(look.Lit)];
+    }
+
+    /// <summary>
+    /// A natural back wall's <paramref name="picture"/> receding behind its ground (0088): paler, cooler and darker, by
+    /// <see cref="GroundLooks.BackPale"/>, <see cref="GroundLooks.BackCool"/> and <see cref="GroundLooks.BackDim"/>.
+    /// </summary>
+    public static Image Recede(Image picture)
+    {
+        var (cr, cg, cb) = GroundLooks.CoolShift;
+        double dim = GroundLooks.BackDim, pale = GroundLooks.BackPale, cool = GroundLooks.BackCool;
+        double kr = (1 + cr * cool) * dim, kg = (1 + cg * cool) * dim, kb = (1 + cb * cool) * dim;
+        // RGBA8 bytes: a pixel at a time through Godot costs a call each.
+        byte[] data = picture.GetData();
+        for (int i = 0; i < data.Length; i += 4)
+        {
+            double r = data[i], g = data[i + 1], b = data[i + 2], grey = 0.3 * r + 0.59 * g + 0.11 * b;
+            data[i] = Byte((r + (grey - r) * pale) * kr);
+            data[i + 1] = Byte((g + (grey - g) * pale) * kg);
+            data[i + 2] = Byte((b + (grey - b) * pale) * kb);
+        }
+        return Image.CreateFromData(picture.GetWidth(), picture.GetHeight(), false, Image.Format.Rgba8, data);
     }
 
     /// <summary>
