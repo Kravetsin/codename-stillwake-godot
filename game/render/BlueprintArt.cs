@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using Stillwake.Content;
 using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Render;
@@ -34,7 +35,10 @@ public static class BlueprintArt
             ? [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!, placement.Shape), Cut: true),
                 new(TileLayer.Edges, ShipTiles.EdgeName(placement.Material!, open, placement.Shape))]
             : [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!, placement.Shape), Cut: true)],
-        "backWall" => [placement.Material == "scrap" ? new(TileLayer.Back, "back_scrap", Cut: true) : new(TileLayer.Back, $"back_{placement.Material}_plain")],
+        // Scrap's and the ground's are tiles laid over the world, cut a cell at a time (0079); iron's a plain panel.
+        "backWall" => [placement.Material == "scrap" || Materials.Get(placement.Material!).Natural
+            ? new(TileLayer.Back, ShipTiles.BackName(placement.Material!), Cut: true)
+            : new(TileLayer.Back, $"back_{placement.Material}_plain")],
         "floor" or "ladder" => [new(TileLayer.Fixtures, placement.Kind)],
         // A planned door is shut, a door or a hatch by the doors it joins (0067).
         "door" => [new(TileLayer.Doors, DoorShape.Picture(closed: true, linked))],

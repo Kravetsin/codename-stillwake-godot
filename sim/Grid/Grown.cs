@@ -42,6 +42,12 @@ public sealed partial class GridModule
         _touched.Add(cell);
     }
 
+    public bool GrownBack(int cell)
+    {
+        if (!_grown || BackAt(cell) == null) return false;
+        return !_base.TryGetValue(cell, out var was) || was[3] == State.Back[cell] && was[4] == State.BackMaterial[cell];
+    }
+
     private static int[] Of(GridState s, int cell) =>
         [s.Structure[cell], s.Material[cell], s.Conduit[cell], s.Back[cell], s.BackMaterial[cell], s.Shape[cell]];
 

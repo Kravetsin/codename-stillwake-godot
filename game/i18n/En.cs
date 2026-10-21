@@ -88,6 +88,8 @@ public static partial class En
         ["tool.backWallIron.about"] = "A wall behind a room that leaks a fifth less than scrap.",
         ["tool.wallSoil.about"] = "Packed soil, as a planet's ground is: dug out again in two swings. Leaks more than any hull.",
         ["tool.wallStone.about"] = "Stone laid of rock, as a planet's ground is: dug out again with a few swings more. Leaks more than any hull.",
+        ["tool.backWallSoil.about"] = "Packed soil behind, as a planet's ground has: it shuts out the sky. Holds no air on a planet; aboard it leaks more than any hull.",
+        ["tool.backWallStone.about"] = "Stone laid of rock behind, as a planet's ground has: it shuts out the sky. Holds no air on a planet; aboard it leaks more than any hull.",
         ["tool.floor.about"] = "A platform to stand on, climbed through from below.",
         ["tool.ladder.about"] = "Climbs between decks.",
         ["tool.door.about"] = "Opens with E. Closed, it holds air.",

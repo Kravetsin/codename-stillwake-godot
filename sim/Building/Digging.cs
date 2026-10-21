@@ -90,11 +90,14 @@ public sealed partial class BuildingModule
         if (State.Cracks.Count > 0) State.Cracks.RemoveAll(k => now - k.At >= Builds.CrackHeals || _grid.WallAt(k.Cell) is not { Breaks: true });
     }
 
-    /// <summary>Whether what <paramref name="layer"/> of <paramref name="cell"/> holds is natural ground: dug, never marked.</summary>
+    /// <summary>
+    /// Whether what <paramref name="layer"/> of <paramref name="cell"/> holds is natural ground, never marked: a natural wall,
+    /// dug, or the ground's own back wall; one a hero built of soil or stone is taken apart as any back wall (0084).
+    /// </summary>
     private bool IsNatural(int cell, string layer) => layer switch
     {
         "structure" => _grid.WallAt(cell)?.Natural == true,
-        "back" => _grid.BackAt(cell)?.Natural == true,
+        "back" => _grid.BackAt(cell)?.Natural == true && _grid.GrownBack(cell),
         _ => false,
     };
 }

@@ -18,7 +18,8 @@ namespace Stillwake.Game.Dev;
 /// and far; <c>mouth</c> stands it on the rim of the nearest pit, chasm or cave mouth, to see the sky down it; <c>acacia</c> beside the
 /// acacia nearest the spawn, to see one close (0079); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
 /// its longest run of ground with no pit, for <see cref="Features.Crew.HeroAutopilot.Sprint"/> to measure; <c>band0</c>…<c>band3</c> in a
-/// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080). An
+/// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080); <c>backs</c>
+/// at the spawn, building soil and stone back walls beside it (0084). An
 /// axe hit every <see cref="Pace"/> ticks,
 /// sent as a strike sends them: cracks, chips, dust, and the sky falling into the shaft.
 /// </summary>
@@ -90,6 +91,11 @@ public sealed class GroundDemo(string mode)
         }
         if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode)) return;
         var here = Registry.On(world, _planet.Value);
+        if (mode == "backs")
+        {
+            Backs(client, here);
+            return;
+        }
         int next = _cells.FindIndex(c => here.Grid.WallAt(c) is { Breaks: true });
         // drill: the hands dig, aimed at the cell by GroundHands; the others send an axe's hits as a strike would.
         if (mode == "drill")
@@ -134,6 +140,27 @@ public sealed class GroundDemo(string mode)
 
     /// <summary>How many of <c>slope</c>'s cells were hit.</summary>
     private int _struck;
+
+    private bool _planned;
+
+    /// <summary>
+    /// <c>backs</c> (0084): in creative mode, back walls of soil and of stone planned three by three on the ground right of
+    /// the spawn, under the sky, then worked a plan at a time as E would.
+    /// </summary>
+    private void Backs(Client client, Registry m)
+    {
+        if (!_planned)
+        {
+            _planned = true;
+            client.Send(new Sim.Items.SetCreative(true));
+            int w = m.Grid.Width, spawn = m.Crew.Spawn;
+            foreach (var (dx, material) in new[] { (2, "soil"), (6, "stone") })
+                for (int dy = -2; dy <= 0; dy++)
+                    for (int x = 0; x < 3; x++) client.Send(new PlacePlan(spawn + dy * w + dx + x, Sim.Grid.Placement.BackWall(material)));
+            return;
+        }
+        if (m.Building.Plans.Count > 0) client.Send(new Work(m.Building.Plans[0].Id));
+    }
 
     /// <summary>The open cell three columns left of the acacia nearest the spawn, on the ground there: to see one close.</summary>
     private static int? BesideAcacia(Registry m)
