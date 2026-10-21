@@ -150,7 +150,7 @@ public static partial class En
         ["item.alloyScrap"] = "Alloy scrap",
         ["item.cloth"] = "Cloth",
         ["item.arcLamp"] = "Arc lamp",
-        ["item.arcCoil"] = "Arc coil",
+        ["item.arcShard"] = "Sky shard",
         ["item.arcModule"] = "Arc module",
         ["item.wire"] = "Wire",
         ["item.plate"] = "Plate",
@@ -210,7 +210,10 @@ public static partial class En
         ["item.alloyScrap.kind"] = "Material",
         ["item.cloth.kind"] = "Material",
         ["item.arcLamp.kind"] = "Relic",
-        ["item.arcCoil.kind"] = "Relic",
+        ["item.arcShard.kind"] = "Relic",
+        // The relic's line for the handbook and the analysis (0096), kept for the friend's story. Russian, as the user picked it:
+        // «Они не изобрели дугу: она упала им на головы, и всё, что они построили, выросло вокруг осколков».
+        ["item.arcShard.lore"] = "They did not invent the arc: it fell on their heads, and everything they built grew up around the shards.",
         ["item.arcModule.kind"] = "Module",
         ["item.wire.kind"] = "Part",
         ["item.plate.kind"] = "Part",

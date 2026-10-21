@@ -1,0 +1,8 @@
+# What the painters write beside themselves: candidates, previews, built pick pages.
+out/
+tmp/
+wrecks/icons/
+*.png
+concepts.html
+export.html
+debris-v1/manifest.json

@@ -73,6 +73,20 @@ public class AssemblerTests
     }
 
     [Fact]
+    public void WindsASkyShardIntoAnArcModuleOneShardAModule()
+    {
+        // A spire's cradle gives four shards, four modules (0096).
+        var w = World().GiveItems(0, (Content.Ruins.Shard, 4), ("coil", 8), ("circuit", 8), ("frame", 4));
+        int assembler = Assembler(w);
+        Assert.Equal([(Content.Ruins.Shard, 1), ("coil", 2), ("circuit", 2), ("frame", 1)], Crafts.Get("arcModule").Cost);
+        w.Do(new Craft(assembler, "arcModule", 1)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal((3, 6, 6, 3), (Carried(w, Content.Ruins.Shard), Carried(w, "coil"), Carried(w, "circuit"), Carried(w, "frame")));
+        w.Run(Crafts.Get("arcModule").Ticks);
+        Assert.Equal(1, Made(w, "arcModule"));
+    }
+
+    [Fact]
     public void MakesASolarCellOfSiliconGlassAndWireInAHundredTicks()
     {
         var w = World();

@@ -1,0 +1,5 @@
+<body style="background:#334;margin:0"><canvas id=c width=900 height=300></canvas><script>
+const files=['hero_helmet','hero_torso','hero_pack','hero_upperArm','hero_forearm','hero_thigh','hero_shin','hero_jetpack','ladder','floor','wall_iron','back_iron_plain','wall-edge_iron_1','wall-edge_iron_2','wall-edge_iron_4','wall-edge_iron_8','wall-edge_iron_15'];
+const c=document.getElementById('c').getContext('2d');c.imageSmoothingEnabled=false;let x=4;
+files.forEach((f,i)=>{const im=new Image();im.onload=()=>{c.drawImage(im,4+(i%9)*96,4+Math.floor(i/9)*140,im.width*5,im.height*5)};im.src='art/'+f+'.png'});
+</script></body>

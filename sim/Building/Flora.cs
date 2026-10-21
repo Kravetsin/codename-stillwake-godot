@@ -14,6 +14,13 @@ namespace Stillwake.Sim.Building;
 public sealed record Plant(int Cell, string Kind);
 
 /// <summary>
+/// A relic a ruin grew with (0096, <see cref="Ruins.Relics"/>): a spire's cradle or a home's niche at its own <c>Cell</c>, and
+/// whether it is <c>Taken</c>, felled since the ground grew. Read from what is saved alone, so every peer and every load agrees
+/// which spires and homes still burn.
+/// </summary>
+public sealed record Relic(int Cell, string Kind, bool Taken);
+
+/// <summary>
 /// What grows on a planet, on its surface (0079) and in its caves (0080), and the pieces of its ruins (0091): grown from its seed
 /// with the ground (<see cref="Layout.Flora"/>), never saved, but for the growths felled since, by cell. One is felled by a hit on
 /// any open cell it stands in, or once what it holds on to is gone — the wall under any of its columns, over them, its own, or
@@ -33,6 +40,10 @@ public sealed partial class BuildingModule
     private readonly Dictionary<int, Plant> _plantIn = new();
     private readonly Dictionary<int, Plant> _plantBehind = new();
     private readonly List<int> _resonators = [];
+    private readonly List<Relic> _relics = [];
+
+    /// <summary>The relics the ground grew with, ascending by cell, standing or taken (0096): live and read-only.</summary>
+    public IReadOnlyList<Relic> Relics => _relics;
 
     /// <summary>Every kind of growth by id, looked up as often as a plant is.</summary>
     private static readonly Dictionary<string, Flora.Growth> Kinds = Flora.Every.ToDictionary(k => k.Id, StringComparer.Ordinal);
@@ -93,8 +104,13 @@ public sealed partial class BuildingModule
         _plantIn.Clear();
         _plantBehind.Clear();
         _resonators.Clear();
+        _relics.Clear();
         foreach (var (cell, kind) in _grown)
-            if (State.Felled.BinarySearch(cell) < 0) Stand(new Plant(cell, kind));
+        {
+            bool felled = State.Felled.BinarySearch(cell) >= 0;
+            if (!felled) Stand(new Plant(cell, kind));
+            if (Ruins.Relics.Contains(kind)) _relics.Add(new Relic(cell, kind, felled));
+        }
     }
 
     private void Stand(Plant plant)
@@ -152,6 +168,8 @@ public sealed partial class BuildingModule
         var layer = LayerOf(plant);
         foreach (int cell in CellsOf(plant)) layer.Remove(cell);
         if (plant.Kind == Ruins.Resonator) _resonators.Remove(plant.Cell);
+        int relic = _relics.FindIndex(r => r.Cell == plant.Cell);
+        if (relic >= 0) _relics[relic] = _relics[relic] with { Taken = true };
         // Its crack goes with it, before a wall built in its cell could take it over; one in the rock's is the wall's.
         if (Kinds[plant.Kind].On != Flora.Anchor.Rock && CrackIndex(plant.Cell) is >= 0 and var crack) State.Cracks.RemoveAt(crack);
         if (Kinds[plant.Kind].Yields is { Count: > 0 } yields)

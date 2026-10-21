@@ -1116,7 +1116,7 @@ public class ContentTests
             Assert.All(kind.Yields, y => Assert.True(Content.Items.TryGet(y.Item, out _) && y.Count > 0, $"{kind.Id}: {y.Item}"));
         var giving = Flora.All.Concat<Flora.Growth>(Flora.Cave).Where(k => k.Yields.Count > 0).Select(k => k.Id).Order(StringComparer.Ordinal);
         Assert.Equal(
-            ["acacia", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "heatCrack", "mica", "relicShrine", "rock", "spireCache", "veinCopper", "veinIce"],
+            ["acacia", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "heatCrack", "mica", "rock", "spireCache", "veinCopper", "veinIce"],
             giving);
         // A geode is a hollow of crystals: more than any one crystal gives.
         Assert.True(Flora.Get("geode").Yields.Single().Count > Flora.Cave.Where(k => k.Id.StartsWith("crystal", StringComparison.Ordinal)).Max(k => k.Yields.Single().Count));

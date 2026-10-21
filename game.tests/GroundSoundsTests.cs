@@ -147,14 +147,14 @@ public class GroundSoundsTests
         Assert.Same(S.Crystal, GroundSounds.FallOf("geode"));
         Assert.Same(S.Glowcap, GroundSounds.FallOf("hangcap"));
         Assert.Same(S.BushSoft, GroundSounds.FallOf("roots"));
-        // A ruin's piece by its material; the spire's cache, shrine and lamp as metal and glass.
+        // A ruin's piece by its material; the spire's cache, cradle and lens as metal and glass.
         Assert.Same(S.WoodBreak, GroundSounds.FallOf("chair"));
         Assert.Same(S.ClothTear, GroundSounds.FallOf("tapestry"));
         Assert.Same(S.GlassBreak, GroundSounds.FallOf("ceilLamp"));
         Assert.Same(S.MetalBreak, GroundSounds.FallOf("kettle"));
         Assert.Same(S.CeramicBreak, GroundSounds.FallOf("dishes"));
         Assert.Same(S.MetalBreak, GroundSounds.FallOf(Spec.Ruins.SpireCache));
-        Assert.Same(S.MetalBreak, GroundSounds.FallOf(Spec.Ruins.RelicShrine));
+        Assert.Same(S.MetalBreak, GroundSounds.FallOf(Spec.Ruins.Cradle));
         Assert.Same(S.GlassBreak, GroundSounds.FallOf(Spec.Ruins.SpireLamp));
         // What lies in the rock goes with its stone, whose break speaks.
         Assert.Null(GroundSounds.FallOf("moss"));

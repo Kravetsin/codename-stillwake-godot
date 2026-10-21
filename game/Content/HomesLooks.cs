@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Anchor = Stillwake.Content.Flora.Anchor;
 
 namespace Stillwake.Game;
@@ -80,19 +81,48 @@ public static class HomesLooks
 {
     private const int Cell = 16;
 
-    /// <summary>The picture of piece <paramref name="kind"/> at <paramref name="cell"/>: its variant by a hash of its cell, lit or dark.</summary>
-    public static string PictureOf(string kind, int cell, bool lit, int? variant = null)
+    /// <summary>
+    /// The picture of piece <paramref name="kind"/> at <paramref name="cell"/>: its variant by a hash of its cell, lit or dark; lit and
+    /// fed by a relic's chip (<paramref name="fed"/>, 0096), its violet-white look where it has one (<see cref="FedLooks"/>).
+    /// </summary>
+    public static string PictureOf(string kind, int cell, bool lit, int? variant = null, bool fed = false)
     {
         var art = HomesArt.Of[kind];
         int v = variant ?? (int)(Hash(cell) % (uint)art.Variants);
+        if (lit && fed && FedLooks.Contains(kind)) return $"homes/{kind}_{v}_fed";
         return lit || !art.Dark ? $"homes/{kind}_{v}" : $"homes/{kind}_{v}_dark";
     }
 
     /// <summary>
     /// Whether piece <paramref name="kind"/>'s lamp at <paramref name="cell"/> burns (the page's mix by the world's seed): what never
-    /// goes out always, every other lamp two in three, by a hash of its cell, so every peer sees the same.
+    /// goes out always, every other lamp two in three, by a hash of its cell, so every peer sees the same. A relic's cradle always
+    /// burns while it stands: its dark look is the cradle a taken one leaves (0096).
     /// </summary>
-    public static bool Lit(string kind, int cell) => !HomesArt.Of[kind].Dark || Hash(cell) / 7 % LitOf != 0;
+    public static bool Lit(string kind, int cell) => !HomesArt.Of[kind].Dark || kind == Stillwake.Content.Ruins.Cradle || Hash(cell) / 7 % LitOf != 0;
+
+    /// <summary>
+    /// What a home's heart feeds (0096): in a home holding a chip of a relic, these pieces burn while it stands, its arcs and light
+    /// violet-white as the relic's, and every other lamp that may go out is dead, the common network long gone; the chip taken, they
+    /// go dark too.
+    /// </summary>
+    public static readonly IReadOnlyList<string> Fed = ["hearth", "ceilLamp"];
+
+    /// <summary>
+    /// Whether piece <paramref name="kind"/> at <paramref name="cell"/> burns, and whether a heart feeds it (0096): one a heart
+    /// <paramref name="feeds"/> while its chip stands (not <paramref name="taken"/>); any other lamp that may go out in a home with a
+    /// heart (<paramref name="hearted"/>) never, the common network dead; elsewhere <paramref name="mood"/> when asked for (every lamp
+    /// that may go out lit, or none), else the mix by the world's seed (<see cref="Lit"/>).
+    /// </summary>
+    public static (bool Lit, bool Fed) MoodOf(string kind, int cell, bool feeds, bool hearted, bool taken, bool? mood = null)
+    {
+        bool dark = HomesArt.Of[kind].Dark;
+        if (feeds) return (!taken, true);
+        if (hearted && dark) return (false, false);
+        return (mood is bool all ? all || !dark : Lit(kind, cell), false);
+    }
+
+    /// <summary>The fed pieces drawn again in the relic's colours (<c>_fed</c>): the lamp's globe; the hearth's coil stays a fire's.</summary>
+    public static readonly IReadOnlyList<string> FedLooks = ["ceilLamp"];
 
     /// <summary>One in this many lamps that may go out is out.</summary>
     public const int LitOf = 3;

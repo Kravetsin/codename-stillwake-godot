@@ -1,0 +1,8 @@
+{
+  "rock": "asteroidRock-3",
+  "battery": "battery-1-charged",
+  "battery_empty": "battery-1-empty",
+  "coil": "coil-1",
+  "frame": "frame-3",
+  "tube": "tube-1"
+}

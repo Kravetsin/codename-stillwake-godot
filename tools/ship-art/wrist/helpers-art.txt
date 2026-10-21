@@ -1,0 +1,52 @@
+    function Art(w, h) {
+      const [c, g] = cv(w, h);
+      const A = { c, g, w, h };
+      A.p = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
+      A.r = (x, y, w2, h2, col) => { g.fillStyle = col; g.fillRect(x, y, w2, h2); };
+      A.clear = (x, y, w2, h2) => g.clearRect(x, y, w2, h2);
+      A.get = () => g.getImageData(0, 0, w, h);
+      // paints a mask with outline, a highlight toward the top-left and a shade toward the bottom-right
+      A.shape = (x0, y0, w2, h2, inside, pal, rim) => {
+        for (let y = 0; y < h2; y++) for (let x = 0; x < w2; x++) {
+          if (!inside(x, y)) continue;
+          const edge = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
+          let col = pal.b;
+          if (edge) col = pal.o;
+          else if (!inside(x, y - 2) || !inside(x - 2, y)) col = pal.hi;
+          else if (!inside(x, y + 2) || !inside(x + 2, y)) col = pal.lo;
+          if (rim && !edge && rim(x, y, inside)) col = pal.rim;
+          A.p(x0 + x, y0 + y, col);
+        }
+      };
+      return A;
+    }
+    const rr = (w, h, r) => (x, y) => {
+      if (x < 0 || y < 0 || x >= w || y >= h) return false;
+      const cx = x < r ? r : x >= w - r ? w - r : null, cy = y < r ? r : y >= h - r ? h - r : null;
+      if (cx === null || cy === null) return true;
+      const dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+      return dx * dx + dy * dy <= r * r;
+    };
+    const capsule = (ax, ay, bx, by, r) => (x, y) => {
+      const px = x + 0.5, py = y + 0.5, vx = bx - ax, vy = by - ay;
+      const t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy)));
+      const dx = px - ax - vx * t, dy = py - ay - vy * t;
+      return dx * dx + dy * dy <= r * r;
+    };
+    const screw = (A, x, y, pal) => { A.p(x + 1, y, pal.o); A.p(x, y + 1, pal.o); A.p(x + 2, y + 1, pal.o); A.p(x + 1, y + 2, pal.o); A.p(x + 1, y + 1, pal.hi2); A.p(x, y, pal.hi); A.p(x + 2, y + 2, pal.lo); };
+    // scratches, dents and chipped paint on the bezel's flat colour only
+    function scuff(A, base, marks) {
+      const d = A.get(), p = d.data, [br, bg, bb] = [1, 3, 5].map((i) => parseInt(base.slice(i, i + 2), 16));
+      const isBase = (x, y) => { const i = (y * A.w + x) * 4; return p[i + 3] && p[i] === br && p[i + 1] === bg && p[i + 2] === bb; };
+      for (let n = 0; n < marks.count; n++) {
+        const x = (rnd() * A.w) | 0, y = (rnd() * A.h) | 0;
+        if (!isBase(x, y)) continue;
+        const kind = rnd();
+        if (kind < 0.55) { // scratch, 2-4 px along a slant
+          const len = 2 + ((rnd() * 3) | 0), dx = rnd() < 0.5 ? 1 : -1, slope = rnd() < 0.6 ? 0 : 1;
+          for (let k = 0; k < len; k++) { const X = x + k * dx, Y = y + ((k * slope) >> 1); if (X >= 0 && X < A.w && isBase(X, Y)) A.p(X, Y, marks.scratch); }
+        } else if (kind < 0.8) { A.p(x, y, marks.dent); if (isBase(x + 1, y)) A.p(x + 1, y, marks.dent); if (isBase(x, y + 1)) A.p(x, y + 1, marks.hi); }
+        else A.p(x, y, marks.grime);
+      }
+    }
+    const up = (art) => { const [c, g] = cv(art.width * 2, art.height * 2); g.drawImage(art, 0, 0, c.width, c.height); return c; };

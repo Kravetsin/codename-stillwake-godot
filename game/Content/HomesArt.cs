@@ -88,7 +88,7 @@ public static partial class HomesArt
             Lights = [new(18, 8, (0.35f, 1, 0.85f), 3, 0.55f)],
             Emitters = [],
         },
-        ["hearth"] = new(1, 36, 50, 0, 31, 36, 82, Dark: false)
+        ["hearth"] = new(1, 36, 50, 0, 31, 36, 82, Dark: true)
         {
             Lights = [new(18, 38, (1, 0.6f, 0.3f), 8, 1.15f)],
             Emitters = [new(Emits.Arc, 10, 33) { X2 = 25, Y2 = 33, Rate = 0.05f, Life = 5, Width = 0.7f, Light = 0.4f }, new(Emits.Pulse, 18, 38) { Radius = 36, Colour = (255, 150, 70), Amp = 0.12f }, new(Emits.Embers, 18, 33) { Width = 16, Colour = (255, 170, 90) }],
@@ -251,6 +251,16 @@ public static partial class HomesArt
         ["toolRack"] = new(1, 32, 22, 1, 2, 34, 25, Dark: false)
         {
             Lights = [],
+            Emitters = [],
+        },
+        ["shardCradle"] = new(1, 48, 48, -3, 0, 44, 49, Dark: true)
+        {
+            Lights = [],
+            Emitters = [],
+        },
+        ["shardNiche"] = new(1, 24, 32, 1, 1, 26, 33, Dark: false)
+        {
+            Lights = [new(12, 16, (0.74f, 0.62f, 1), 6, 1.1f)],
             Emitters = [],
         },
     };

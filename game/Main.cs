@@ -83,6 +83,7 @@ public partial class Main : Node2D, ITogether
     private Features.Flora.FloraView? _flora;
     private Features.Flora.CaveView? _caves;
     private Features.Ruins.HomesView? _homes;
+    private Features.Ruins.SpiresView? _spires;
     private Features.Flora.CaveTint? _caveTint;
     private Features.Grid.LavaView? _lava;
     private LightView? _light;
@@ -190,7 +191,7 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40) : Has("--ledges") && Has("--autopilot") ? HeroAutopilot.LedgesRun() : Has("--ladders") && Has("--autopilot") ? (Has("--strip") ? HeroAutopilot.StripLaddersRun() : HeroAutopilot.LaddersRun()) : Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip")) : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
+            var script = Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40) : Has("--ledges") && Has("--autopilot") ? HeroAutopilot.LedgesRun() : Has("--ladders") && Has("--autopilot") ? (Has("--strip") ? HeroAutopilot.StripLaddersRun() : HeroAutopilot.LaddersRun()) : Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip")) : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : Has("--ground=spire-climb") && Has("--autopilot") ? HeroAutopilot.SpireClimb() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             if (Has("--poses")) AddChild(new PosesDemo(script!));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
@@ -311,7 +312,7 @@ public partial class Main : Node2D, ITogether
         if (_args.FirstOrDefault(a => a.StartsWith("--sweep=", StringComparison.Ordinal)) is { } sweep)
             AddChild(new CameraSweep(_camera, () => _m != _ship ? new Vector2(_m.Crew.Spawn % _m.Grid.Width, _m.Crew.Spawn / _m.Grid.Width) : null, int.Parse(sweep[8..])));
         if (Has("--measure"))
-            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count} cave-lights={_caves?.Lights.Count} lava-lights={_lava?.Lights.Count} glints={_caves?.Glinting} caves={_caves?.TakeCostMs():F3}ms home-lights={_homes?.Lights.Count} homes={_homes?.TakeCostMs():F3}ms"));
+            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count} cave-lights={_caves?.Lights.Count} lava-lights={_lava?.Lights.Count} glints={_caves?.Glinting} caves={_caves?.TakeCostMs():F3}ms home-lights={_homes?.Lights.Count} homes={_homes?.TakeCostMs():F3}ms spire-lights={_spires?.Lights.Count} spires={_spires?.TakeCostMs():F3}ms"));
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
@@ -375,7 +376,7 @@ public partial class Main : Node2D, ITogether
         if (_args.FirstOrDefault(a => a.StartsWith("--ground=", StringComparison.Ordinal)) is { } ground)
         {
             world = GroundDemo.Seed(world, Modules, ArcDrill);
-            _ground = new GroundDemo(ground[9..]);
+            _ground = new GroundDemo(ground[9..]) { TakeAt = Arg("--take-at") is { } take ? (int)(double.Parse(take, System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond) : null, Offset = int.Parse(Arg("--ground-offset") ?? "0") };
             if (ground[9..] is "drill" or "poses") AddChild(new GroundHands(_ground));
             else if (GroundDemo.Hits(ground[9..])) AddChild(new GroundHands(_ground, slot: Has("--axe") ? Key.Key1 : Key.Key2));
             else if (GroundDemo.Caves(ground[9..])) AddChild(new GroundHands(_ground, dig: false));
@@ -856,6 +857,8 @@ public partial class Main : Node2D, ITogether
         _caves?.QueueFree();
         _homes?.QueueFree();
         _homes = null;
+        _spires?.QueueFree();
+        _spires = null;
         _caveTint?.QueueFree();
         _lava?.QueueFree();
         (_caves, _caveTint, _lava) = (null, null, null);
@@ -879,10 +882,12 @@ public partial class Main : Node2D, ITogether
             AddChild(_caves = new Features.Flora.CaveView(_m.Grid, _m.Building, planet, () => _hero?.HeadLamps() ?? []));
             // The arc makers' homes in its ground (0091); --no-homes leaves them undrawn, to measure what they cost.
             if (!Has("--no-homes")) AddChild(_homes = new Features.Ruins.HomesView(_m.Grid, _m.Building, HeroBodies) { Mood = Arg("--homes") switch { "lit" => true, "dark" => false, _ => null } });
+            // The spires alight round their relics, dark once taken (0096).
+            if (!Has("--no-homes")) AddChild(_spires = new Features.Ruins.SpiresView(_m.Grid, _m.Building, HeroBodies));
             // Its core: lava under the caves, glowing.
             AddChild(_lava = new Features.Grid.LavaView(_m.Grid, ground));
         }
-        var (caves, lava, homes) = (_caves, _lava, _homes);
+        var (caves, lava, homes, spires) = (_caves, _lava, _homes, _spires);
         AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
         AddChild(_chargers = new Features.Power.ChargerLights(_m.Grid, _m.Items, _m.Power));
         AddChild(_tanks = new Features.Atmosphere.TankLooks(_m.Grid, _m.Atmosphere));
@@ -907,6 +912,7 @@ public partial class Main : Node2D, ITogether
             Caves = () => caves?.Lights ?? [],
             Lava = () => lava?.Lights ?? [],
             Homes = () => homes?.Lights ?? [],
+            Spires = () => spires?.Lights ?? [],
         });
         // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
         _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);

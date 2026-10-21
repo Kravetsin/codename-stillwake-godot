@@ -33,8 +33,7 @@ public static class CaveLooks
 
     // The concept's palette of light (objects.js PAL).
     private static readonly (float, float, float) Teal = (0.35f, 1f, 0.85f), Violet = (0.7f, 0.5f, 1f), Blue = (0.5f, 0.78f, 1f),
-        Amber = (1f, 0.7f, 0.32f), Rose = (1f, 0.5f, 0.5f), Ember = (1f, 0.42f, 0.16f), Green = (0.6f, 1f, 0.45f),
-        Arc = (0.72f, 0.7f, 1f), Beacon = (0.45f, 0.9f, 1f);
+        Amber = (1f, 0.7f, 0.32f), Rose = (1f, 0.5f, 0.5f), Ember = (1f, 0.42f, 0.16f), Green = (0.6f, 1f, 0.45f);
 
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>
     {
@@ -59,11 +58,10 @@ public static class CaveLooks
         ["fossil"] = new(3),
         ["geode"] = new(2) { Light = Violet, Strength = 1.4f, Keep = 0.78f, Reach = 7, Glints = 2, GlintColour = (240, 216, 255) },
         ["heatCrack"] = new(4) { Light = Ember, Strength = 1.3f, Keep = 0.74f, Reach = 6 },
-        // The ruins' (0085), placeholders till the user picks: a cache's small teal lamp, the shrine's arcs, the spire's lamp in its
-        // tip, bright enough to find it by from afar.
+        // The ruins' (0085): a cache's small teal lamp; the spire's lens in its tip, here its glass dark, lit over it by the
+        // spires' view while its relic stands (0096).
         [Spec.Ruins.SpireCache] = new(1) { Light = Teal, Strength = 1.1f, Keep = 0.7f, Reach = 4 },
-        [Spec.Ruins.RelicShrine] = new(1) { Light = Arc, Strength = 1.3f, Keep = 0.74f, Reach = 5 },
-        [Spec.Ruins.SpireLamp] = new(1) { Light = Beacon, Strength = 2f, Keep = 0.85f, Reach = 10 },
+        [Spec.Ruins.SpireLamp] = new(1),
     };
 
     /// <summary>Moss in the cold band is the surface's green; deeper it is the garden's teal.</summary>
