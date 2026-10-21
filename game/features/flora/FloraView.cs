@@ -43,6 +43,7 @@ public partial class FloraView : Node2D
         long started = Game.Dev.FrameLog.Begin();
         _seconds += delta;
         if (_building.Plants.Count != _count) Follow();
+        Hits(delta);
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
         var near = view.Grow(Cell * FloraLooks.LightReach);
         _lights.Clear();
@@ -117,6 +118,51 @@ public partial class FloraView : Node2D
         if (image.IsCompressed()) image.Decompress();
         var used = image.GetUsedRect();
         return (used.Position.Y, used.End.Y - 1);
+    }
+
+    /// <summary>The depth of each plant's crack last seen, by its cell, and the plants shaking: their picture's resting place and the seconds left.</summary>
+    private readonly Dictionary<int, int> _cracks = new();
+    private readonly Dictionary<int, (Vector2 Home, double Left)> _shaking = new();
+    private readonly List<int> _scratch = [];
+
+    /// <summary>
+    /// A hit that deepens a plant's crack (it has strength, 0079) and leaves it standing: a few leaves or pebbles knocked off
+    /// and a short shake, so a tree taking several swings answers each. Reads the cracks, a short list, each frame.
+    /// </summary>
+    private void Hits(double delta)
+    {
+        _scratch.Clear();
+        foreach (var crack in _building.Cracks)
+        {
+            if (!_shown.TryGetValue(crack.Cell, out var shown)) continue;
+            _scratch.Add(crack.Cell);
+            if (_cracks.TryGetValue(crack.Cell, out int was) && was >= crack.Damage) continue;
+            _cracks[crack.Cell] = crack.Damage;
+            Knocked(crack.Cell, shown.Kind, shown.Picture);
+        }
+        foreach (int cell in _cracks.Keys.Where(c => !_scratch.Contains(c)).ToList()) _cracks.Remove(cell);
+        foreach (var (cell, (rest, left)) in _shaking.ToList())
+        {
+            bool gone = !_shown.TryGetValue(cell, out var shown);
+            if (gone || left - delta <= 0)
+            {
+                if (!gone) shown.Picture.Position = rest;
+                _shaking.Remove(cell);
+                continue;
+            }
+            shown.Picture.Position = rest + new Vector2((float)Math.Round(Math.Sin((left - delta) * 90) * FloraLooks.Shake), 0);
+            _shaking[cell] = (rest, left - delta);
+        }
+    }
+
+    private void Knocked(int cell, string kind, Sprite2D picture)
+    {
+        int w = _grid.Width;
+        double x = (cell % w + 0.5) * Cell, ground = (cell / w + 1) * Cell, y = ground - Math.Min(picture.Texture.GetSize().Y, 3 * Cell) / 2;
+        var look = kind == "rock" ? FloraLooks.Pebble : FloraLooks.Leaf;
+        Glims.Shared.Spray(look, x, y, (int)Math.Round(FloraLooks.Knocked * Fx.Count), -Math.PI / 2, (-1.4, 1.4), (20, 50), ground);
+        var rest = _shaking.TryGetValue(cell, out var shaking) ? shaking.Home : picture.Position;
+        _shaking[cell] = (rest, FloraLooks.ShakeSeconds);
     }
 
     /// <summary>A felled plant's leaves, or a rock's chips, falling where it stood.</summary>

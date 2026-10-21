@@ -49,7 +49,7 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
     10, a rotor 15, a frame 20, the harpoon 30, while the hero is out salvaging. It needs no power and no air.
   - **The Former** is the first powered station: 2×2, it draws 3 and works at speed 1000, five times the
     pod, with a queue of eight; it makes the parts and components (wire, plate, gear, tube, frame, coil,
-    rotor), not tools; and alone, soil (0060) and the motor, a rotor and 4 of a planet's copper in 120 ticks (0080). It costs 2 frames, a rotor, 2 gears and a circuit, so it opens once those four are
+    rotor), not tools; and alone, soil (0060) and the motor, a rotor, 2 of a planet's copper and a magnetite in 120 ticks (0080). It costs 2 frames, a rotor, 2 gears and a circuit, so it opens once those four are
     analysed (0027). A plate takes 2 s at full power, about 2.8 s at 70%. Idle, it rests and draws nothing.
   - **The circuit assembler** makes the electronics: 2×2, it draws 2 and works at speed 1000, a queue of eight;
     a circuit of a silicon and 2 wire in 80 ticks, a solar cell of a silicon, a glass and a wire in 100, and on a
@@ -58,9 +58,10 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
     costs a frame, a rotor, a glass, 2 wire and a circuit, salvaged, so it opens once those five are analysed.
     Idle, it rests as the Former does. The pod and the Former make neither; the pod's list stops growing
     (0057).
-  - **Inputs** (0057): the Former has 2 input slots and the assembler 4, before their 3 outputs: as many as the
-    most distinct items any of their crafts needs (a rotor's gear and wire; a drone's rotor, plates, circuit and battery,
-    `ContentTests`; the assembler had 3, a solar cell's, until the drone, 0062). The pod has none, paid by hand by design. Items go in by hand as into any machine with inputs
+  - **Inputs** (0057): the Former has 3 input slots and the assembler 4, before their 3 outputs: as many as the
+    most distinct items any of their crafts needs (a motor's rotor, copper and magnetite; a drone's rotor, plates, circuit
+    and battery, `ContentTests`; the assembler had 3, a solar cell's, until the drone, 0062; the Former 2, a rotor's, until
+    the motor, 0080, save format 23). The pod has none, paid by hand by design. Items go in by hand as into any machine with inputs
     (`Items`: a move naming no slot into the first; the outputs only taken from).
   - `Craft(Machine, Recipe, Count, FromInputs)`, **paid** (the default), takes the cost of all `Count` units from the
     sender at once (nothing in creative mode); **fed from the inputs** it takes nothing and is never refused as
@@ -100,7 +101,7 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
   the outputs full, the power cut — is kept while the item stays. The furnace: speed 1000, heat 1; a scrap
   chunk smelts in 60 ticks of fire into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap, rock in 160
   into 2 silicon, biomass in 160 into a biofuel, a planet's copper ore in 160 into a copper (an ingot an ore, so a
-  vein's 2 ore are 2 copper; a motor, pressed at the Former of a rotor and 4 copper, takes two veins).
+  vein's 2 ore are 2 copper, a motor's worth with a magnetite).
   - **The electric smelter** is the second fed station: 2×2, it draws 4 and works at speed 2000, twice the
     furnace, at heat 2; an input and three outputs, no fuel. It costs a frame, 2 coils, 4 plates and a
     circuit, so it opens once those four are analysed. Rock takes 4 s there at full power; silicon, which

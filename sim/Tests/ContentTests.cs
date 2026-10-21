@@ -927,6 +927,8 @@ public class ContentTests
         foreach (var item in Content.Items.All)
             foreach (var (made, _) in item.Yields ?? []) had.Add(made);
         foreach (var craft in Crafts.All) had.Add(craft.Item);
+        // What a planet's growth gives (0080).
+        foreach (var (item, _) in Flora.All.Concat<Flora.Growth>(Flora.Cave).SelectMany(k => k.Yields)) had.Add(item);
         var costs = AllBuilds().Select(b => b.Cost).Concat(Crafts.All.Select(c => c.Cost)).Append(Content.Power.CableCost);
         foreach (var (item, _) in costs.SelectMany(c => c)) Assert.Contains(item, had);
     }
@@ -1021,12 +1023,13 @@ public class ContentTests
 
     /// <summary>
     /// What the planet's caves give (0080) is had there alone: copper ore from its veins, smelted into copper at the furnace,
-    /// and the motor of it at the Former; ice, crystal and spores. Aboard, none of them.
+    /// magnetite from the heat's cracks over the bedrock, and the motor of both at the Former; ice, crystal, spores and mica.
+    /// Aboard, none of them; and no motor without the deepest band's magnetite.
     /// </summary>
     [Fact]
-    public void CopperIceCrystalAndSporesComeFromAPlanetAloneAndTheMotorOfItsCopperAtTheFormer()
+    public void WhatTheCavesGiveComesFromAPlanetAloneAndTheMotorNeedsItsCopperAndItsDeepestMagnetite()
     {
-        string[] planetary = ["copperOre", "copper", "motor", "ice", "crystal", "spore"];
+        string[] planetary = ["copperOre", "copper", "magnetite", "motor", "ice", "crystal", "spore", "mica"];
         var aboard = Reachable(Stations.All).Items;
         Assert.All(planetary, item => Assert.DoesNotContain(item, aboard));
         var (down, known) = Reachable(Stations.All, planet: true);
@@ -1035,6 +1038,26 @@ public class ContentTests
         Assert.DoesNotContain("motor", Reachable([.. Stations.All.Where(s => s.Machine != "former")], planet: true).Items);
         Assert.Equal([("copper", 1)], Content.Items.Get("copperOre").Yields);
         Assert.Equal(1, Content.Items.Get("copperOre").Heat);
+        Assert.Contains(("magnetite", 1), Crafts.Get("motor").Cost);
+        // Magnetite lies only in the heat's cracks, and they only in the band over the bedrock.
+        var magnetic = Flora.Cave.Where(k => k.Yields.Any(y => y.Item == "magnetite")).ToList();
+        Assert.Equal(["heatCrack"], magnetic.Select(k => k.Id));
+        Assert.All(magnetic, k => Assert.Equal([0, 0, 0], k.Chances.Take(Flora.Bands.Count)));
+    }
+
+    /// <summary>
+    /// A surface plant with strength takes more than one hit of any weapon and fewer than a stone wall's (0077): a tree some
+    /// seconds of the axe, more than a rock, more than a bush. A tree gives more planks than any cargo crate holds.
+    /// </summary>
+    [Fact]
+    public void TreesRocksAndBushesTakeSeveralHitsOfAnyWeaponATreeTheMostAndGiveMorePlanksThanACrate()
+    {
+        int Seconds(string kind) => Flora.Get(kind).Strength / (Weapons.Axe.Damage * World.TicksPerSecond / Weapons.Axe.Pace);
+        Assert.Equal((3, 2, 1), (Seconds("acacia"), Seconds("rock"), Seconds("bush")));
+        foreach (var kind in Flora.All.Where(k => k.Strength > 0))
+            Assert.All(Weapons.All, w => Assert.True(w.Damage < kind.Strength && kind.Strength <= Materials.Get("stone").Strength, $"{w.Item} on {kind.Id}"));
+        Assert.All(Flora.Cave, k => Assert.Equal(0, k.Strength));
+        Assert.True(Flora.Get("acacia").Yields.Single(y => y.Item == "planks").Count > Loot.Of("cargoCrate")!.Single(e => e.Item == "planks").Max);
     }
 
     /// <summary>
@@ -1048,7 +1071,7 @@ public class ContentTests
             Assert.All(kind.Yields, y => Assert.True(Content.Items.TryGet(y.Item, out _) && y.Count > 0, $"{kind.Id}: {y.Item}"));
         var giving = Flora.All.Concat<Flora.Growth>(Flora.Cave).Where(k => k.Yields.Count > 0).Select(k => k.Id).Order(StringComparer.Ordinal);
         Assert.Equal(
-            ["acacia", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "rock", "veinCopper", "veinIce"],
+            ["acacia", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "heatCrack", "mica", "rock", "veinCopper", "veinIce"],
             giving);
         // A geode is a hollow of crystals: more than any one crystal gives.
         Assert.True(Flora.Get("geode").Yields.Single().Count > Flora.Cave.Where(k => k.Id.StartsWith("crystal", StringComparison.Ordinal)).Max(k => k.Yields.Single().Count));

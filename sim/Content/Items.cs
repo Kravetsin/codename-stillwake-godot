@@ -88,6 +88,10 @@ public static class Items
         new("crystal", 50),
         // Off the violet glowcaps: for the spore bed to come.
         new("spore", 50),
+        // Flakes out of the glinting mica in cave walls: for sensors and the radar to come.
+        new("mica", 50),
+        // Lodestone, a natural magnet, out of the heat's cracks over the bedrock: a motor's magnet.
+        new("magnetite", 50),
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1, Group: ItemGroup.Other),
         new("cargoCrate", 1, Group: ItemGroup.Other),
@@ -114,7 +118,7 @@ public static class Items
         new("gear", 50),
         new("tube", 100),
         new("rotor", 20),
-        // A rotor wound with copper, at the Former: what radar and the engine will be built of.
+        // A rotor wound with copper round a lodestone, at the Former: what radar and the engine will be built of.
         new("motor", 20),
         new("frame", 20),
         new("coil", 50),

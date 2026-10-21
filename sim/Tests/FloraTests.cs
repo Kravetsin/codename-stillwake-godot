@@ -42,6 +42,21 @@ public class FloraTests
         Assert.All(Flora.All, k => Assert.Contains(l.Flora!, p => p.Kind == k.Id));
         // Most columns of open soil stay bare: a few hundred plants across two thousand columns.
         Assert.InRange(Surface(l.Flora!).Count(), 200, 900);
+    }
+
+    /// <summary>
+    /// The surface's density, measured on the first planet's seed 1: some two to three times what it first grew (0079: 18
+    /// acacias, 21 bushes, 14 rocks, 139 bells), so a walk passes trees and bushes often; spacing keeps them apart.
+    /// </summary>
+    [Fact]
+    public void TheFirstPlanetsSurfaceGrowsTwoToThreeTimesItsFirstTreesBushesRocksAndFlowers()
+    {
+        var l = Terrain.Generate(Ground.Planet, 1);
+        int Of(params string[] kinds) => l.Flora!.Count(p => kinds.Contains(p.Kind));
+        Assert.InRange(Of("acacia"), 2 * 18, 3 * 18);
+        Assert.InRange(Of("bush"), 2 * 21, 3 * 21);
+        Assert.InRange(Of("rock"), 2 * 14, 3 * 14);
+        Assert.InRange(Of("bellTeal", "bellViolet", "bellAmber"), 2 * 139, 3 * 139);
         Assert.Equal(l.Flora!.OrderBy(p => p.Cell), l.Flora!);
     }
 
@@ -87,7 +102,8 @@ public class FloraTests
         Assert.Equal(["bellTeal", "acacia"], Kinds(w));
         // The acacia's trunk, a row above its own cell.
         Assert.Equal("acacia", w.M.Building.PlantAt(5)?.Kind);
-        w.Do(new Dig(5, Weapons.Axe.Item)).Run();
+        // A tree takes hits to its strength (0080), each on any of its cells.
+        for (int hit = 0; hit < Flora.Get("acacia").Strength / Weapons.Axe.Damage; hit++) w.Do(new Dig(5, Weapons.Axe.Item)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(["bellTeal"], Kinds(w));
         Assert.Null(w.M.Building.PlantAt(5));

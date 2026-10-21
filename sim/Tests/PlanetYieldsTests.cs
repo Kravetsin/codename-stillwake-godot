@@ -104,22 +104,99 @@ public class PlanetYieldsTests
     [Fact]
     public void AFelledAcaciaGivesPlanksABushASeedAndASurfaceRockRock()
     {
-        var layout = Layout.Parse("""
-            ........
-            ........
-            ########
-            """).WithMaterials("""
-            ........
-            ........
-            ssssssss
-            """) with { Flora = [(At(1, 1), "acacia"), (At(4, 1), "bush"), (At(6, 1), "rock")] };
-        var w = new Scenario(layout);
-        w.Do(new Dig(At(1, 0), Axe)).Do(new Dig(At(4, 1), Axe)).Run();
-        Assert.Equal((4, 1), (Count(w, "planks"), Count(w, "seed")));
-        // The rock's soil dug from under it: it goes to the digger too, with the soil.
+        var w = Meadow();
+        Fell(w, At(1, 0));
+        Fell(w, At(4, 1));
+        Assert.Equal((10, 1), (Count(w, "planks"), Count(w, "seed")));
+        // The rock's soil dug from under it: it goes to the digger too, whole, with the soil.
         w.Do(new Dig(At(6, 2), Axe)).Do(new Dig(At(6, 2), Axe)).Run();
         Assert.Equal((2, 1), (Count(w, "rock"), Count(w, "soil")));
         Assert.Empty(w.M.Building.Plants);
+        Assert.Empty(w.M.Building.Cracks);
+    }
+
+    /// <summary>Soil under open sky: an acacia at (1, 1), its trunk up through (1, 0); a bush at (4, 1); a rock at (6, 1).</summary>
+    private static Scenario Meadow() => new(Layout.Parse("""
+        ........
+        ........
+        ########
+        """).WithMaterials("""
+        ........
+        ........
+        ssssssss
+        """) with { Flora = [(At(1, 1), "acacia"), (At(4, 1), "bush"), (At(6, 1), "rock")] });
+
+    /// <summary>Hits <paramref name="cell"/> with the axe, a hit a tick, till what stands there is felled; the hits it took.</summary>
+    private static int Fell(Scenario w, int cell)
+    {
+        int count = w.M.Building.Plants.Count, hits = 0;
+        while (w.M.Building.Plants.Count == count)
+        {
+            Assert.True(++hits <= 100, $"nothing at {cell} felled");
+            w.Do(new Dig(cell, Axe)).Run();
+        }
+        Assert.Empty(w.Refusals);
+        return hits;
+    }
+
+    [Fact]
+    public void ATreeTakesThreeSecondsOfTheAxeARockTwoABushOneAndACapOneHit()
+    {
+        var w = Meadow();
+        int axe = Weapons.Axe.Damage, pace = Weapons.Axe.Pace;
+        Assert.Equal((12, 8, 4), (Flora.Get("acacia").Strength, Flora.Get("rock").Strength, Flora.Get("bush").Strength));
+        // Swings at the axe's pace, the first at once: a tree's sixth lands two and a half seconds in, three of swinging.
+        Assert.Equal(Flora.Get("acacia").Strength / axe, Fell(w, At(1, 1)));
+        Assert.Equal(3 * World.TicksPerSecond, Flora.Get("acacia").Strength / axe * pace);
+        Assert.Equal(Flora.Get("rock").Strength / axe, Fell(w, At(6, 1)));
+        Assert.Equal(Flora.Get("bush").Strength / axe, Fell(w, At(4, 1)));
+        Assert.Equal(1, Fell(Cave(), At(2, 2)));
+    }
+
+    [Fact]
+    public void ATreesHitsAddUpWhicheverOfItsCellsTheyLandOnAndHealUnhitForAWhile()
+    {
+        var w = Meadow();
+        int axe = Weapons.Axe.Damage;
+        w.Do(new Dig(At(1, 1), Axe)).Run().Do(new Dig(At(1, 0), Axe)).Run();
+        // Cracked by its own cell, wherever it was hit; still standing, nothing given.
+        Assert.Equal([new Crack(At(1, 1), 2 * axe, w.M.Building.Cracks[0].At)], w.M.Building.Cracks);
+        Assert.Contains("acacia", w.M.Building.Plants.Select(p => p.Kind));
+        Assert.Equal(0, Count(w, "planks"));
+        w.Run(Builds.CrackHeals);
+        Assert.Empty(w.M.Building.Cracks);
+        Assert.Equal(Flora.Get("acacia").Strength / axe, Fell(w, At(1, 0)));
+    }
+
+    [Fact]
+    public void ATreeCrackedAndThenFelledByItsGroundLeavesNoCrackBehind()
+    {
+        var w = Meadow();
+        w.Do(new Dig(At(1, 0), Axe)).Run();
+        Assert.Single(w.M.Building.Cracks);
+        // Its soil dug out from under it: the tree goes whole to the digger, its crack with it.
+        w.Do(new Dig(At(1, 2), Axe)).Run().Do(new Dig(At(1, 2), Axe)).Run();
+        Assert.Equal((10, 1), (Count(w, "planks"), Count(w, "soil")));
+        Assert.Empty(w.M.Building.Cracks);
+    }
+
+    [Fact]
+    public void DugMicaGivesItsFlakesAndAHeatCrackMagnetite()
+    {
+        var w = new Scenario(Layout.Parse("""
+            ########
+            #......#
+            ########
+            ########
+            """).WithMaterials("""
+            tttttttt
+            t......t
+            tttttttt
+            tttttttt
+            """) with { Flora = [(At(0, 1), "mica"), (At(3, 2), "heatCrack")] });
+        DigOut(w, At(0, 1));
+        DigOut(w, At(3, 2));
+        Assert.Equal((1, 2, 2), (Count(w, "mica"), Count(w, "magnetite"), Count(w, "rock")));
     }
 
     /// <summary>A furnace and an electric smelter in an aired room, powered; peer 0 carrying copper ore and planks.</summary>
@@ -158,24 +235,40 @@ public class PlanetYieldsTests
         Assert.Empty(w.Refusals);
     }
 
+    /// <summary>A lifepod, a Former and an assembler, the Former and the assembler each on a panel of their own.</summary>
+    private static Scenario Workshop() => new(Layout.Parse(
+        ["PPP   PPP      ", "               ", "###############", "#OOO..........#", "#OOO.MM.YY....#", "#OOO.MM.YY....#", "###############"],
+        null, [((0, 0), (5, 4)), ((6, 0), (8, 4))]));
+
     [Fact]
-    public void AMotorIsPressedOfARotorAndFourCopperAtTheFormerAlone()
+    public void AMotorIsPressedOfARotorTwoCopperAndAMagnetiteAtTheFormerAlone()
     {
-        var w = new Scenario(Layout.Parse(
-                ["PPP   PPP      ", "               ", "###############", "#OOO..........#", "#OOO.MM.YY....#", "#OOO.MM.YY....#", "###############"],
-                null, [((0, 0), (5, 4)), ((6, 0), (8, 4))]))
-            .GiveItems(0, ("rotor", 1), ("copper", 4));
+        var w = Workshop().GiveItems(0, ("rotor", 1), ("copper", 2), ("magnetite", 1));
         int former = w.M.Grid.MachinesOf("former").Single().Id, pod = w.M.Grid.MachinesOf("lifepod").Single().Id;
         int ticks = Content.Crafts.Get("motor").Ticks;
-        Assert.Equal([("rotor", 1), ("copper", 4)], Content.Crafts.Get("motor").Cost);
+        Assert.Equal([("rotor", 1), ("copper", 2), ("magnetite", 1)], Content.Crafts.Get("motor").Cost);
         w.Do(new Craft(pod, "motor", 1)).Run();
         Assert.Equal(["crafting.notHere"], w.Refusals.Select(r => r.Reason));
         w.Do(new Craft(former, "motor", 1)).Run();
         Assert.Single(w.Refusals);
-        Assert.Equal((0, 0), (Count(w, "rotor"), Count(w, "copper")));
+        Assert.Equal((0, 0, 0), (Count(w, "rotor"), Count(w, "copper"), Count(w, "magnetite")));
         w.Run(ticks - 2);
         Assert.Equal(0, Held(w, former, "motor"));
         w.Run();
         Assert.Equal(1, Held(w, former, "motor"));
+    }
+
+    [Fact]
+    public void AFormerPressesAMotorFromItsThreeInputs()
+    {
+        var w = Workshop().GiveItems(0, ("rotor", 1), ("copper", 2), ("magnetite", 1));
+        int former = w.M.Grid.MachinesOf("former").Single().Id;
+        Assert.Equal(3, Machines.Get("former").Inputs);
+        Put(w, former, "rotor", 1, 0);
+        Put(w, former, "copper", 2, 1);
+        Put(w, former, "magnetite", 1, 2);
+        w.Do(new Craft(former, "motor", 1, FromInputs: true)).Run(Content.Crafts.Get("motor").Ticks + 1);
+        Assert.Empty(w.Refusals);
+        Assert.Equal((1, 0, 0, 0), (Held(w, former, "motor"), Held(w, former, "rotor"), Held(w, former, "copper"), Held(w, former, "magnetite")));
     }
 }

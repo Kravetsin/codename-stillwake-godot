@@ -27,9 +27,15 @@ public static class Flora
     {
         /// <summary>
         /// What felling one gives the hero who did, by a hit or by breaking out what holds it: fixed counts, no draw.
-        /// Nothing for what is only to look at: flowers, grass, stalactites, threads, roots, moss, mica, fossils, heat cracks.
+        /// Nothing for what is only to look at: flowers, grass, stalactites, stalagmites, threads, roots, moss, fossils.
         /// </summary>
         public IReadOnlyList<(string Item, int Count)> Yields { get; init; } = [];
+
+        /// <summary>
+        /// Its hit points, as a natural wall's strength (0077): the damage of weapons' hits, cracking it by its own cell, that
+        /// fells it. 0 for one that falls to any hit: flowers, grass, the caves' growth.
+        /// </summary>
+        public int Strength { get; init; }
 
         /// <summary>What it holds on to.</summary>
         public abstract Anchor On { get; }
@@ -48,16 +54,17 @@ public static class Flora
 
     /// <summary>
     /// The first planet's: an acacia with hanging fronds and glowing seed pods, a bush of glowing berries, a rock, bell
-    /// flowers glowing in three colours, a tuft of grass; most columns of open soil bare.
+    /// flowers glowing in three colours, a tuft of grass. Strengths are seconds of the axe's 4 a second: a tree 3, a rock 2,
+    /// a bush 1. A tree's 10 planks are more than any cargo crate's 3 to 6.
     /// </summary>
     public static readonly IReadOnlyList<Kind> All =
     [
-        new("acacia", Tall: 9, Level: 1, Room: 3, Clear: 12, Chance: 80, Apart: 30) { Yields = [("planks", 4)] },
-        new("bush", Tall: 1, Level: 1, Room: 2, Clear: 2, Chance: 55, Apart: 10) { Yields = [("seed", 1)] },
-        new("rock", Tall: 1, Level: 1, Room: 1, Clear: 2, Chance: 22, Apart: 16) { Yields = [("rock", 2)] },
-        new("bellTeal", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 40, Apart: 4),
-        new("bellViolet", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 30, Apart: 5),
-        new("bellAmber", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 25, Apart: 6),
+        new("acacia", Tall: 9, Level: 1, Room: 3, Clear: 12, Chance: 260, Apart: 12) { Yields = [("planks", 10)], Strength = 12 },
+        new("bush", Tall: 1, Level: 1, Room: 2, Clear: 2, Chance: 160, Apart: 5) { Yields = [("seed", 1)], Strength = 4 },
+        new("rock", Tall: 1, Level: 1, Room: 1, Clear: 2, Chance: 65, Apart: 6) { Yields = [("rock", 2)], Strength = 8 },
+        new("bellTeal", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 100, Apart: 3),
+        new("bellViolet", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 80, Apart: 3),
+        new("bellAmber", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 75, Apart: 4),
         new("tuft", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 150, Apart: 2),
     ];
 
@@ -101,7 +108,8 @@ public static class Flora
 
     /// <summary>
     /// The caves' (0080), by anchor, the rarest first within each, so a dense patch does not crowd them out but for mica. Teal and
-    /// hanging caps give biomass, violet ones spores; ice crystals and veins ice, the others crystal, a geode six; copper veins ore.
+    /// hanging caps give biomass, violet ones spores; ice crystals and veins ice, the others crystal, a geode six; copper veins
+    /// ore; mica its flakes; the heat's cracks magnetite.
     /// </summary>
     public static readonly IReadOnlyList<CaveKind> Cave =
     [
@@ -127,9 +135,9 @@ public static class Flora
         new("fossil", Anchor.Rock, Tall: 1, Wide: 0, Apart: 20, Chances: [0, 30, 50, 0]),
         new("veinIce", Anchor.Rock, Tall: 1, Wide: 0, Apart: 2, Chances: [360, 0, 0, 0]) { Yields = [("ice", 2)] },
         new("veinCopper", Anchor.Rock, Tall: 1, Wide: 0, Apart: 2, Chances: [0, 60, 360, 140]) { Yields = [("copperOre", 2)] },
-        new("heatCrack", Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 2400]) { Floors = true },
+        new("heatCrack", Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 2400]) { Floors = true, Yields = [("magnetite", 2)] },
         new("moss", Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [360, 2000, 500, 0]),
-        new("mica", Anchor.Rock, Tall: 1, Wide: 0, Apart: 2, Chances: [1600, 900, 1400, 800]),
+        new("mica", Anchor.Rock, Tall: 1, Wide: 0, Apart: 2, Chances: [1600, 900, 1400, 800]) { Yields = [("mica", 1)] },
     ];
 
     /// <summary>The kind <paramref name="id"/>, of the surface or the caves; one not here is our bug.</summary>
