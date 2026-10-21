@@ -32,6 +32,8 @@
     <Compile Include="../game/features/crew/Hero.cs" Link="Game/Crew/Hero.cs" />
     <Compile Include="../game/features/crew/Rig.cs" Link="Game/Crew/Rig.cs" />
     <Compile Include="../game/features/crew/Pose.cs" Link="Game/Crew/Pose.cs" />
+    <Compile Include="../game/features/crew/Motion.cs" Link="Game/Crew/Motion.cs" />
+    <Compile Include="../game/Content/HeroMotion.cs" Link="Game/Content/HeroMotion.cs" />
     <Compile Include="../game/features/crew/Aim.cs" Link="Game/Crew/Aim.cs" />
     <Compile Include="../game/features/grid/Grass.cs" Link="Game/Grid/Grass.cs" />
     <Compile Include="../game/features/grid/ChunkReveal.cs" Link="Game/Grid/ChunkReveal.cs" />
