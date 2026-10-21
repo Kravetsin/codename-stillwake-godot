@@ -12,7 +12,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Ruins;
 
 /// <summary>
-/// The arc makers' homes, seen (0090): each piece the sim keeps standing (<see cref="BuildingModule.Plants"/> of a kind in
+/// The arc makers' homes, seen (0091): each piece the sim keeps standing (<see cref="BuildingModule.Plants"/> of a kind in
 /// <see cref="Spec.Ruins.Pieces"/>) drawn from one atlas of the page's pictures, lit as the world is, what glows added over it
 /// unlit; its lamps' light handed to the light feature (<see cref="Lights"/>); and what the page set moving — arcs, pulses, a
 /// sputtering lamp, the mobile, the hologram, the last pixel, twinkling beads, spores, embers, motes and swaying cloth — while

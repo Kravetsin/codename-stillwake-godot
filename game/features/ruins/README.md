@@ -1,6 +1,6 @@
 # Ruins (client)
 
-The arc makers' homes, seen (ADR 0090). The pieces are Building's growths (`sim/Building/Flora.cs`, `Content.Ruins.Pieces`):
+The arc makers' homes, seen (ADR 0091). The pieces are Building's growths (`sim/Building/Flora.cs`, `Content.Ruins.Pieces`):
 stamped into the ground with it, felled by hits or with what holds them. This feature only draws them (`HomesView`).
 
 - **Reads:** `BuildingModule.Plants` of a piece's kind, `PlantAt` (what a piece stands on, a chair's table), `Cracks` (hits),

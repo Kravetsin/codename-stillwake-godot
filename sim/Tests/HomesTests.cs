@@ -8,7 +8,7 @@ using Xunit;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The arc makers' homes (0090): rooms of alloy and plaster stamped into the first planet's ground, furnished with pieces that are
+/// The arc makers' homes (0091): rooms of alloy and plaster stamped into the first planet's ground, furnished with pieces that are
 /// growths over several cells, on floors, ceilings, back walls and each other, each felled by its hits for the page's yields.
 /// </summary>
 public class HomesTests

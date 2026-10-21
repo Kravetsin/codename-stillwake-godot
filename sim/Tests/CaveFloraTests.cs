@@ -22,7 +22,7 @@ public class CaveFloraTests
     /// Whether every cave growth of <paramref name="l"/> is where it may be: in a cave — an open cell with a back wall, its
     /// <c>Tall</c> cells open, on a whole wall or under one — or in stone beside a cave cell; in a band it lives in; roots near
     /// the surface (but under a spire, whose tip stands over the ground the roots grew under, 0085); and no two in one cell. A
-    /// home's collapsed end is grown over by its prefab, not the caves (0090): what lies in a home's box is the home's.
+    /// home's collapsed end is grown over by its prefab, not the caves (0091): what lies in a home's box is the home's.
     /// </summary>
     private static string? Misplaced(Layout l, Ground g, IReadOnlyList<(int X, int Y)>? spires = null, IReadOnlyList<(int X, int Y, Ruins.Home Home)>? homes = null)
     {

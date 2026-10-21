@@ -216,12 +216,12 @@ public static class Sound
     public static readonly Cue DroneGrab = new(Shots("logistics/drone-grab", 3), -10, Heard: StationReach);
 
     /// <summary>
-    /// The arc makers' music box hit (0090): a plucked steel tine, synthesised, played at its tune's pitches (<c>HomesLooks.Tune</c>),
+    /// The arc makers' music box hit (0091): a plucked steel tine, synthesised, played at its tune's pitches (<c>HomesLooks.Tune</c>),
     /// so no pitch of its own. A placeholder till the user picks.
     /// </summary>
     public static readonly Cue MusicBox = new(Shots("ruins/music-box", 1), -12, Pitch: 0, Heard: new(4, 16));
 
-    /// <summary>The resonator zapping a hero beside it (0090): a short crackle of noise, synthesised. A placeholder till the user picks.</summary>
+    /// <summary>The resonator zapping a hero beside it (0091): a short crackle of noise, synthesised. A placeholder till the user picks.</summary>
     public static readonly Cue Zap = new(Shots("ruins/zap", 1), -10, Pitch: 0.08f, Heard: new(4, 16));
 
     /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>

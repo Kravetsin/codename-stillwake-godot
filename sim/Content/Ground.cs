@@ -98,7 +98,7 @@ public sealed record Ground(int Width, int Height)
     public int SpireRise { get; init; } = 10;
 
     /// <summary>
-    /// The arc makers' homes (0090): <see cref="Homes"/> of them (<see cref="Ruins.Homes"/>, each scheme in turn), each in a band of
+    /// The arc makers' homes (0091): <see cref="Homes"/> of them (<see cref="Ruins.Homes"/>, each scheme in turn), each in a band of
     /// its own along the columns at least <see cref="HomeClear"/> from the middle, clear of the spires; its ceiling
     /// <see cref="HomeDeepLeast"/> to <see cref="HomeDeepMost"/> rows (by the seed) under the lowest surface across it, so it is
     /// found by digging near the surface.
@@ -128,7 +128,7 @@ public sealed record Ground(int Width, int Height)
 
     /// <summary>
     /// The same ground small, 64 × 48, for tests and the fuzz: low hills, caves a little nearer the surface, a chasm and a
-    /// hall of its size, one spire (0085), so the fuzz digs alloy, and one home (0090), its scheme by the seed, anywhere it
+    /// hall of its size, one spire (0085), so the fuzz digs alloy, and one home (0091), its scheme by the seed, anywhere it
     /// fits beside the spire, for a home is wider than the columns left beside a clear middle there.
     /// </summary>
     public static readonly Ground Small = new(64, 48)

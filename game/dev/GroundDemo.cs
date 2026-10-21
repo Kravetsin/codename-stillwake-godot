@@ -233,7 +233,7 @@ public sealed class GroundDemo(string mode)
         return mode == "spire" ? (y0 + rise - 1) * w + x0 + 1 : (y0 + Spec.Ruins.Spire.Count - 3) * w + x0 + 6;
     }
 
-    /// <summary>Whether <paramref name="mode"/> stands the hero in a home of the arc makers (0090): <c>home-hearth</c>, <c>home-bedroom</c>, <c>home-study</c>.</summary>
+    /// <summary>Whether <paramref name="mode"/> stands the hero in a home of the arc makers (0091): <c>home-hearth</c>, <c>home-bedroom</c>, <c>home-study</c>.</summary>
     public static bool Homes(string mode) => Spec.Ruins.Homes.Any(h => mode == $"home-{h.Id}");
 
     /// <summary>

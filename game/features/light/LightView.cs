@@ -89,7 +89,7 @@ public partial class LightView : Node2D
     /// <summary>The light of a planet's lava near the view this frame, where the open is over its surface (<c>LavaView</c>).</summary>
     public Func<IReadOnlyList<LightSource>> Lava { get; set; } = () => [];
 
-    /// <summary>The light of the arc makers' lamps and hearths near the view this frame (0090: <c>HomesView</c>).</summary>
+    /// <summary>The light of the arc makers' lamps and hearths near the view this frame (0091: <c>HomesView</c>).</summary>
     public Func<IReadOnlyList<LightSource>> Homes { get; set; } = () => [];
 
     /// <summary>The lights drawn into the lightmap the last frame.</summary>

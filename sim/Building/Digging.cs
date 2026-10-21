@@ -62,7 +62,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// The growths <paramref name="cell"/>'s wall holds (<see cref="HoldsOf"/>), in cell order: one standing on it, one in
-    /// its own stone, one hanging from it, in front or behind; a piece over several columns by any of them (0090).
+    /// its own stone, one hanging from it, in front or behind; a piece over several columns by any of them (0091).
     /// </summary>
     private List<Plant> HeldBy(int cell)
     {

@@ -94,7 +94,7 @@ public static class Items
         new("magnetite", 50),
         // Out of the ruins (0085): scrap of their alloy, a cell of wall dug or a spire cache opened; walls of it built.
         new("alloyScrap", 50),
-        // What the arc makers' homes give (0090): the cloth of their rugs and banners, which burns till the ship makes things of
+        // What the arc makers' homes give (0091): the cloth of their rugs and banners, which burns till the ship makes things of
         // it; a whole lamp of theirs, kept till its blueprint comes.
         new("cloth", 50, BurnTicks: 200),
         new("arcLamp", 10),
