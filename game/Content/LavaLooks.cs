@@ -1,17 +1,17 @@
 namespace Stillwake.Game;
 
 /// <summary>
-/// How the planet's lava looks (its core, <c>Content.Lava</c>): its band drawn glowing from <c>art/planet/wall_lava</c>, flowing
-/// slowly, and a light of its colour every <see cref="LightEvery"/> cells along its surface where the open is over it, at most
-/// <see cref="MostLights"/>, the nearest the view's middle.
+/// How the planet's lava looks (its core, <c>Content.Lava</c>), after the cave concepts' core (0087): its band and the haze off
+/// it drawn by the lava view's shaders, and where the open is over its surface a light of its colour every
+/// <see cref="LightEvery"/> cells, at most <see cref="MostLights"/>, the nearest the view's middle, and embers rising.
 /// </summary>
 public static class LavaLooks
 {
-    /// <summary>The light it gives: a deep orange, stronger than a crystal's, reaching as far as a lamp's.</summary>
-    public static readonly (float R, float G, float B) Light = (1f, 0.4f, 0.1f);
+    /// <summary>The light it gives, the concept's: a deep orange, strong and holding well over a few cells.</summary>
+    public static readonly (float R, float G, float B) Light = (1f, 0.42f, 0.14f);
 
-    public const float Strength = 1.6f, Keep = 0.8f, Size = 12f;
-    public const int Reach = 9;
+    public const float Strength = 1.8f, Keep = 0.85f, Size = 12f;
+    public const int Reach = 7;
 
     /// <summary>Cells between two lights along an open stretch of its surface, from its first: a stretch narrower still gets one.</summary>
     public const int LightEvery = 3;
@@ -21,4 +21,13 @@ public static class LavaLooks
 
     /// <summary>How much each light breathes, up and down, as the lava churns: a share of its strength.</summary>
     public const float Flicker = 0.15f;
+
+    /// <summary>The warm haze over open lava, the concept's bloom: how many rows it rises, its strength at the surface, its colour.</summary>
+    public const int HazeRows = 1;
+
+    public const float Haze = 0.8f;
+    public static readonly (float R, float G, float B) HazeColour = (1f, 0.5f, 0.18f);
+
+    /// <summary>Embers rising off the open surface near the view, a second for each open cell of it.</summary>
+    public const double EmbersASecond = 0.06;
 }

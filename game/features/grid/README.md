@@ -56,13 +56,15 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   `art/planet/wall_*` and `back_*`, 8 × 4 cell tiles that repeat seamlessly, cut a cell at a time as scrap's; their edges
   are made at start (`render/GroundArt.cs`, lines in `Content/GroundLooks.cs`): a dark outline by the open sides and inside
   it a lit line on top, shaded elsewhere. Slopes are cut from them as from the hull's.
-- **Lava** (0084), the planet's core: its tiles are drawn as any ground's (`art/planet/*_lava`, placeholders made by a script
-  till an audition), and over them `LavaView` draws the band unlit, one quad its length: `wall_lava` sampled twice, two
-  sheets of crust drifting apart and bent by slow waves, each patch breathing, the surface a white-hot row of pixels fading
-  to orange (its shader). It gives light where the open is over its surface: a lamp of `LavaLooks.Light` every
+- **Lava** (0087), the planet's core, as the cave concepts drew it: its tiles are drawn as any ground's (`art/planet/*_lava`,
+  the concept's recipe made still by a script; no living edge), and over them `LavaView` draws the band unlit, one quad its
+  length, its shader the concept's value noise — deep orange to gold patches, pale yellow cracks, a white-hot surface —
+  churning slowly. Over open lava an added quad a cell high is its warm haze, and embers rise (`CaveLooks.Ember_`, at random
+  along it). Under rock it shows its dark crust, cracks dimly glowing: the open over each column is a texel of a row texture,
+  laid again when the grid's `Version` moves. It gives light where the open is over it: a lamp of `LavaLooks.Light` every
   `LavaLooks.LightEvery` (3) cells of an open stretch from its first, out from the view's middle, at most `MostLights`,
   each breathing a little, fed to the light feature (`LightView.Lava`). Lava is never dug nor built, so the band is the
-  ground's rows (`Ground.CoreRows`, `LavaRows`), never read again; only the cells over it are, each frame, along the view.
+  ground's rows (`Ground.CoreRows`, `LavaRows`).
 - **Moss** (0079) on soil open to the sky (`Grass.cs`, plain C#, tested: a soil wall, whole or a floor slope, under an
   empty cell with no back wall), a rule of drawing, never the sim's: one of four pictures a top (`art/planet/grass_{shape}_{v}`,
   by a hash of the cell), two cells tall, laid from the cell above so its stems rise into it, over the edges. Dug, built

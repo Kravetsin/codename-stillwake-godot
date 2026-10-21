@@ -92,7 +92,7 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   so (or by the breath) passes the hero out as ever. It adds to thrust, which the suit pays apart. On a
   map that sets no zone the field reaches past the grid, so no cell on it costs anything. A planet's grid sets none (0076):
   its whole grid is its field.
-- **Lava burns** ([0084](../../docs/decisions/0084-the-planets-core-is-lava.md)): `Burns(cell)`, public on the module, is
+- **Lava burns** ([0087](../../docs/decisions/0087-the-planets-core-is-lava.md)): `Burns(cell)`, public on the module, is
   whether a wall of lava (`Content.Lava.Material`) is at the reported cell or up to `Lava.Reach` (2) rows under it — where
   the feet of a hero standing on it are, its middle 1312 thousandths over them. At every breath the suit alone pays
   `Lava.Burn` (15) more for it, with the cold: with the breath itself a full suit (45) is gone on the third breath, two
