@@ -51,7 +51,7 @@ public partial class LightView : Node2D
     private readonly Lightmap _lightmap = new();
     private readonly Starlight _starlight;
     private readonly Node2D _lamps = new();
-    private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow, double Floor, (Sprite2D Alight, Sprite2D Glow)? Globe)> _shown = new();
+    private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow, double Floor, (Sprite2D Alight, Sprite2D Glow)? Glass)> _shown = new();
     /// <summary>Rolls an arc lamp's crackle (0091).</summary>
     private readonly Random _random = new();
     /// <summary>The sparks, glints, ember and arcs of lamps short of power (0075).</summary>
@@ -168,11 +168,12 @@ public partial class LightView : Node2D
                 Position = at,
                 Modulate = GlowOf(lamp),
                 Scale = Vector2.One * GlowCells * Cell / PixelArt.Glow.GetWidth(),
-                ZIndex = Layers.Glows,
+                // An arc lamp's halo under its glass, which is added after it in the same layer: it never washes the rings to white.
+                ZIndex = lamp.Kind == ArcLampLooks.Kind ? Layers.Screens : Layers.Glows,
                 Material = GlowMaterial,
             };
             _lamps.AddChild(glow);
-            _shown.Add((lamp, at, glow, FloorUnder(lamp.Cell), lamp.Kind == ArcLampLooks.Kind ? Globe(at) : null));
+            _shown.Add((lamp, at, glow, FloorUnder(lamp.Cell), lamp.Kind == ArcLampLooks.Kind ? Glass(at) : null));
         }
         _fires.Clear();
         foreach (var m in _machines)
@@ -194,21 +195,20 @@ public partial class LightView : Node2D
     }
 
     /// <summary>
-    /// An arc lamp's globe alight, lit by the world as its body is, and its glow added unlit (<see cref="ArcLampLooks"/>), over its
+    /// An arc lamp's glass alight, unlit for it gives the light, and its glow added round it (<see cref="ArcLampLooks"/>), over its
     /// body in the cell whose middle is <paramref name="at"/>; hidden till it shines.
     /// </summary>
-    private (Sprite2D Alight, Sprite2D Glow) Globe(Vector2 at)
+    private (Sprite2D Alight, Sprite2D Glow) Glass(Vector2 at)
     {
-        var alight = new Sprite2D { Texture = PixelArt.Picture(ArcLampLooks.Alight), Position = at, ZIndex = Layers.Screens, Visible = false };
-        Lit.Set(alight);
+        var alight = new Sprite2D { Texture = PixelArt.Picture(ArcLampLooks.Alight), Position = at, ZIndex = Layers.Screens, Material = Unlit, Visible = false };
         var shine = new Sprite2D { Texture = PixelArt.Picture(ArcLampLooks.Glow), Position = at, ZIndex = Layers.Screens, Material = GlowMaterial, Visible = false };
         _lamps.AddChild(alight);
         _lamps.AddChild(shine);
         return (alight, shine);
     }
 
-    /// <summary>An arc lamp's globe as bright as it <paramref name="shines"/>; at full power its arc crackling across it now and then.</summary>
-    private void ShowGlobe(Sprite2D alight, Sprite2D shine, Vector2 at, float share, float shines, double delta)
+    /// <summary>An arc lamp's glass as bright as it <paramref name="shines"/>; at full power its arc crackling across it now and then.</summary>
+    private void ShowGlass(Sprite2D alight, Sprite2D shine, Vector2 at, float share, float shines, double delta)
     {
         var look = ArcLampLooks.Drawn(shines);
         (alight.Visible, alight.Modulate) = (look.Alight > 0, new Color(1, 1, 1, look.Alight));
@@ -226,10 +226,10 @@ public partial class LightView : Node2D
         _main.Clear();
         _spots.Clear();
         _sparks.Begin();
-        foreach (var (lamp, at, glow, floor, globe) in _shown)
+        foreach (var (lamp, at, glow, floor, glass) in _shown)
         {
             float share = LampShare(lamp), shines = Flicker.BrightnessOf(share, _timeMs, lamp.Id);
-            if (globe is { } g) ShowGlobe(g.Alight, g.Glow, at, share, shines, delta);
+            if (glass is { } g) ShowGlass(g.Alight, g.Glow, at, share, shines, delta);
             if (share > 0 && share < 1) _sparks.Lamp(lamp.Id, at, shines, floor, delta * 1000);
             glow.Visible = shines > 0;
             glow.Modulate = GlowOf(lamp) with { A = shines * GlowAlpha };
@@ -315,6 +315,9 @@ public partial class LightView : Node2D
     }
 
     private static (float R, float G, float B) Rgb((int R, int G, int B) c) => (c.R / 255f, c.G / 255f, c.B / 255f);
+
+    /// <summary>What gives light drawn as it is, the world's light not falling on it: an arc lamp's glass.</summary>
+    private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
 
     /// <summary>A glow's: added over what lies under it, unlit, for it gives light.</summary>
     private static readonly CanvasItemMaterial GlowMaterial = new()
