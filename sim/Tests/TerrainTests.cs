@@ -136,7 +136,15 @@ public class TerrainTests
     });
 
     [Property(MaxTest = 60)]
-    public Property OpenGroundStraightUnderTheSkyHasNoBackWallNearTheSurfaceAndDeeperOrUnderAnOverhangKeepsIt() => Prop.ForAll(Seeds, seed =>
+    public Property OpenGroundStraightUnderTheSkyHasNoBackWallNearTheSurfaceAndDeeperOrUnderAnOverhangKeepsIt() =>
+        Prop.ForAll(Seeds, SkyFadesUnderTheSurface);
+
+    [Fact]
+    public void APostCutFromAPitKeepsItsBackWallBelowTheFade() =>
+        // A post standing in a pit, taken away as a spike, once showed the sky all the way down it.
+        Assert.True(SkyFadesUnderTheSurface(1231727561u));
+
+    private static bool SkyFadesUnderTheSurface(uint seed)
     {
         var l = Terrain.Generate(Small, seed, out _, out var surface);
         for (int x = 0; x < l.Width; x++)
@@ -160,7 +168,7 @@ public class TerrainTests
             }
         }
         return true;
-    });
+    }
 
     [Fact]
     public void AShaftKeepsItsBackWallAllTheWayDownUnderItsMouth()
