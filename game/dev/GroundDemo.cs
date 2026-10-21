@@ -88,10 +88,10 @@ public sealed class GroundDemo(string mode)
                 log($"ground demo: beamed down to ({spot % w}, {spot / w}), looking at ({look.X:F0}, {look.Y:F0}), seed {world.Surfaces[_planet.Value].Seed}");
                 return;
             }
-            int at = Spires(mode) ? SpireSpot(m, mode) ?? m.Crew.Spawn : tunnel ? CaveUnder(m) ?? m.Crew.Spawn : mode == "mouth" ? RimNear(m) ?? m.Crew.Spawn : mode == "sprint" ? Features.Crew.HeroAutopilot.SprintStart(m.Grid)
+            int at = Spires(mode) ? SpireSpot(m, mode) ?? m.Crew.Spawn : Homes(mode) ? HomeSpot(m, mode) ?? m.Crew.Spawn : tunnel ? CaveUnder(m) ?? m.Crew.Spawn : mode == "mouth" ? RimNear(m) ?? m.Crew.Spawn : mode == "sprint" ? Features.Crew.HeroAutopilot.SprintStart(m.Grid)
                 : mode == "acacia" ? BesideAcacia(m) ?? m.Crew.Spawn : mode == "slope" ? BesideSlopes(m, _cells) ?? m.Crew.Spawn : m.Crew.Spawn;
             // The shaft under the feet; the tunnel at head height the way the hero faces, right.
-            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("slope" or "acacia" or "sprint" or "pit") && !Spires(mode); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
+            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("slope" or "acacia" or "sprint" or "pit") && !Spires(mode) && !Homes(mode); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
             // pit: a pit under the feet, a block of its ground left standing on its floor (0088).
             for (int dy = 1; dy <= PitDepth && mode == "pit"; dy++)
                 for (int dx = -PitSide; dx <= PitSide; dx++)
@@ -100,7 +100,7 @@ public sealed class GroundDemo(string mode)
             log($"ground demo: beamed down to ({at % w}, {at / w})");
             return;
         }
-        if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode) || Spires(mode)) return;
+        if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode) || Spires(mode) || Homes(mode)) return;
         var here = Registry.On(world, _planet.Value);
         if (mode == "backs")
         {
@@ -231,6 +231,24 @@ public sealed class GroundDemo(string mode)
         int x0 = lamp.Cell % w - Spec.Ruins.Spire[0].IndexOf(Spec.Ruins.Lamp), y0 = lamp.Cell / w;
         if (mode == "spire-far") return (TopOf(m, x0 - 40) - 1) * w + x0 - 40;
         return mode == "spire" ? (y0 + rise - 1) * w + x0 + 1 : (y0 + Spec.Ruins.Spire.Count - 3) * w + x0 + 6;
+    }
+
+    /// <summary>Whether <paramref name="mode"/> stands the hero in a home of the arc makers (0091): <c>home-hearth</c>, <c>home-bedroom</c>, <c>home-study</c>.</summary>
+    public static bool Homes(string mode) => Spec.Ruins.Homes.Any(h => mode == $"home-{h.Id}");
+
+    /// <summary>
+    /// The cell to stand in in the home of <paramref name="mode"/>'s scheme nearest the spawn, found by a piece of its own no other
+    /// scheme has: on its floor in its middle, the whole room in view.
+    /// </summary>
+    private static int? HomeSpot(Registry m, string mode)
+    {
+        var home = Spec.Ruins.Homes.First(h => mode == $"home-{h.Id}");
+        var own = home.Pieces.First(p => Spec.Ruins.Homes.Where(o => o != home).All(o => o.Pieces.All(q => q.Kind != p.Kind)));
+        int w = m.Grid.Width, sx = m.Crew.Spawn % w;
+        var piece = m.Building.Plants.Where(p => p.Kind == own.Kind).OrderBy(p => Math.Abs(p.Cell % w - sx)).FirstOrDefault();
+        if (piece == null) return null;
+        int x0 = piece.Cell % w - own.X, y0 = piece.Cell / w - own.Y;
+        return (y0 + home.Tall - 2) * w + x0 + home.Wide / 2;
     }
 
     /// <summary>Whether <paramref name="mode"/> stands the hero in a cave of a band, <c>band0</c> to <c>band3</c>, a great hall, <c>hall</c> (0080), or by the lava, <c>lava</c>.</summary>

@@ -94,6 +94,10 @@ public static class Items
         new("magnetite", 50),
         // Out of the ruins (0085): scrap of their alloy, a cell of wall dug or a spire cache opened; walls of it built.
         new("alloyScrap", 50),
+        // What the arc makers' homes give (0091): the cloth of their rugs and banners, which burns till the ship makes things of
+        // it; a whole lamp of theirs, kept till its blueprint comes.
+        new("cloth", 50, BurnTicks: 200),
+        new("arcLamp", 10),
         // A relic of a spire's shrine (0085): the arcs' tech, what the arc module is wound of (0086). Kept, as tools are, when a hero dies.
         new("arcCoil", 5, Gear: true, Group: ItemGroup.Tool),
         // Made of that relic at the circuit assembler (0086): fitted into an electric station, twice its speed for twice its

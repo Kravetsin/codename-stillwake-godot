@@ -7,7 +7,7 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 `packages/sim/src/modules/building`; its rules hold here but for the payment a part at a time.
 
 - **Depends on:** `Grid` (`IGridQueries`, `IGridOps`) and `Items` (`IItemsQueries`, `IItemsOps`; `WeaponProblem` for a dig); `Crew`
-  (`ICrewQueries.Heroes`), so a wall does not finish on a hero;
+  (`ICrewQueries.Heroes`), so a wall does not finish on a hero, and `ICrewOps.Shock`, the resonator's zap (0091);
   `Power` (`IPowerQueries.Cabled`), to keep a cabled machine standing; `Research`
   (`IResearchQueries.Knows`), to refuse a blueprint not known (ADR 0024); `Crafting`
   (`ICraftingQueries.Queue`), to keep a station with crafts queued standing (0057).
@@ -120,6 +120,18 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 - **The ruins' growths** (0085): a spire's cache, standing on its alloy floor (alloy scrap 4, wire 6, silicon 2), its relic's
   shrine in a wall of its alloy (an arc coil, dug out with the alloy's 60), and its lamp in its tip's top cell (nothing), are
   cave kinds no band grows (`Content.Ruins`), set by `Terrain` where it stamps a spire, and felled as any.
+- **The homes' pieces** (0091): `Content.Ruins.Pieces`, growths (`Flora.Piece`) set by `Terrain` where it stamps a home, felled,
+  saved and dropped as any. What they need every growth has: `Across` columns from its own cell (the bottom-left on a floor, the
+  top-left else) beside its `Tall` rows, a hit on any of them hitting it, its crack kept by its own cell, the wall under (over)
+  each of its columns holding it, any of them dug felling it for the digger; `Anchor.Back`, hung on the back wall of its cells,
+  felled when its back wall goes or its own cell is built over; `Behind` (a back wall's pieces, a rug), kept in a layer of their
+  own, so a cell holds one piece in front and one behind, `PlantAt` and a hit taking the front one first; `Fixed` (the mural, the
+  crack), which no hit takes and `PlantAt` never names. A floor's piece may stand on the front piece under it, a table or a
+  stool: felling that one fells what stands on it, its yields to the same hero or let fall for anyone. The fallen beam and the
+  rubble lie in two walls each of the home's alloy and stone, which block the way; any of them dug fells the piece.
+- **The resonator zaps** (0091): every breath (`Crew.BreathEvery` of this module's clock, in the simulation phase, before crew
+  breathes) each hero not out whose reported cell lies within `Ruins.ZapReach` (1) of a standing resonator's cells pays
+  `Ruins.Zap` (5) of its suit through `ICrewOps.Shock`. The resonators standing are derived (`_resonators`), by own cell.
 
 ## API
 
@@ -139,8 +151,9 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   what a blueprint costs in all, null for a mark or no plan; `RefundOf(planId)` — what taking apart what a mark
   names gives back, the same `Costs.BuiltAt` its last tick refunds, for its tip: null for a blueprint or no plan; `CostFor(placement)` — what placing it
   costs, for the build menu; `Cracks` — live, read-only, by cell; `Plants` — the plants standing, `Plant(Cell, Kind)`,
-  ascending by cell, live and read-only, only ever fewer; `PlantAt(cell)` — the plant standing in a cell (one in the rock in its stone's), null for none; `HoldOf(plant)` — the cell it
-  holds on to (0080); `DigProblem(peer, cell, tool)` — the refusal a `Dig`
+  ascending by cell, live and read-only, only ever fewer; `PlantAt(cell)` — the plant a hit there takes, the one in front first, then the one behind, never a fixed one (one in the rock in
+  its stone's), null for none; `HoldOf(plant)` — the cell it holds on to in its own column (0080); `Zaps(cell)` — whether a hero
+  reported there stands right by a resonator (0091); `DigProblem(peer, cell, tool)` — the refusal a `Dig`
   would get, leaving out whether an electric weapon runs, as the client asks before it sends.
 - **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.notHere`, `building.unknown`,
   grid's keys or `building.planned`; `Deconstruct(Cell, Layer)`, refused with `building.nothingThere`,

@@ -98,6 +98,9 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   `Lava.Burn` (15) more for it, with the cold: with the breath itself a full suit (45) is gone on the third breath, two
   to three seconds after the sim hears of the hero there, and the hero passes out, dies and wakes at the pod as from any
   empty suit. It reads the reported cell, so a report up to a second late (0050) burns a second late.
+- **A shock** ([0091](../../docs/decisions/0091-homes-of-the-arc-makers.md)): `ICrewOps.Shock(peer, units)`, the one operation,
+  takes units from a conscious hero's suit at once, the suit alone, and passes it out as an empty suit does; nothing in creative
+  mode. Building calls it for a ruin's resonator zapping a hero beside it, at the breath's tick, before crew breathes.
 - **Creative mode** (`Items`' dev panel switch): every tick a conscious hero's suit is full, whatever
   breath, exertion, thrust or cold would take, so it never passes out; it takes nothing from the pod or
   a room's air either. A hero already out when creative mode comes on wakes as ever.

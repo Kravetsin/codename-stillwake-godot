@@ -89,6 +89,9 @@ public partial class LightView : Node2D
     /// <summary>The light of a planet's lava near the view this frame, where the open is over its surface (<c>LavaView</c>).</summary>
     public Func<IReadOnlyList<LightSource>> Lava { get; set; } = () => [];
 
+    /// <summary>The light of the arc makers' lamps and hearths near the view this frame (0091: <c>HomesView</c>).</summary>
+    public Func<IReadOnlyList<LightSource>> Homes { get; set; } = () => [];
+
     /// <summary>The lights drawn into the lightmap the last frame.</summary>
     public int LightCount => _lightmap.Drawn;
     public int LampCount => _shown.Count;
@@ -224,6 +227,8 @@ public partial class LightView : Node2D
         for (int i = 0; i < caves.Count; i++) _main.Add(caves[i]);
         var lava = Lava();
         for (int i = 0; i < lava.Count; i++) _main.Add(lava[i]);
+        var homes = Homes();
+        for (int i = 0; i < homes.Count; i++) _main.Add(homes[i]);
         // Flashes first, the brightest moments; then the particles that give light, while the cap lasts (Fx.MostLights).
         foreach (var f in Flares.Shared.Flashes)
         {

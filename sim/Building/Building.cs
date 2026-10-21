@@ -48,12 +48,13 @@ public sealed partial class BuildingModule : Module<BuildingState>
     private readonly IResearchQueries _research;
     private readonly ICraftingQueries _crafting;
     private readonly ICrewQueries _crew;
+    private readonly ICrewOps _crewOps;
 
     public override string Id => "building";
 
     public BuildingModule(
         IGridQueries grid, IGridOps gridOps, IItemsQueries items, IItemsOps itemsOps,
-        IPowerQueries power, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew)
+        IPowerQueries power, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps)
     {
         _grid = grid;
         _gridOps = gridOps;
@@ -63,6 +64,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
         _research = research;
         _crafting = crafting;
         _crew = crew;
+        _crewOps = crewOps;
         Handles<PlacePlan>(c => PlaceProblem(c.Cell, c.Placement), ApplyPlacePlan);
         Handles<Deconstruct>(c => MarkProblem(c.Cell, c.Layer), ApplyDeconstruct);
         Handles<CancelPlan>(c => State.Plans.Exists(p => p.Id == c.Id) ? null : "building.noPlan", ApplyCancelPlan);
@@ -76,6 +78,8 @@ public sealed partial class BuildingModule : Module<BuildingState>
             SweepCracks();
             SweepPlants();
         });
+        // A ruin's resonator zaps who stands right by it, a breath at a time (0091): before crew breathes, in its phase.
+        System(Phase.Simulation, Zap);
     }
 
     // Queries.
