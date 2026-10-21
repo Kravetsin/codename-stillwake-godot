@@ -101,9 +101,9 @@ public class GrownSaveTests
                 {
                     var place = builds[what].Split(':') switch
                     {
-                        ["wall", var material] => Placement.Wall(material),
-                        ["back", var material] => Placement.BackWall(material),
-                        [var kind] => new Placement("structure", kind),
+                    ["wall", var material] => Placement.Wall(material),
+                    ["back", var material] => Placement.BackWall(material),
+                    [var kind] => new Placement("structure", kind),
                         _ => throw new InvalidOperationException(),
                     };
                     w.Do(new PlacePlan(cell, place));

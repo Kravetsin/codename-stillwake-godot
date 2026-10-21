@@ -176,15 +176,16 @@ in the sim.
 ```
 dotnet build Stillwake.sln                 # everything, analyzers included
 dotnet test Stillwake.sln                  # the sim's tests
-dotnet format Stillwake.sln --include $(git diff --name-only origin/main -- "*.cs")   # what CI checks, changed files
-dotnet format Stillwake.sln --verify-no-changes                                      # all of it, ~45 s
+dotnet format Stillwake.sln --include $(git diff --name-only origin/main -- "*.cs")   # fix the changed files
+dotnet format Stillwake.sln --verify-no-changes --no-restore                         # CI's exact check, ~25 s
 godot --path game                          # play; --headless --import once after new assets
 godot --path game --write-movie /tmp/f/shot.png --fixed-fps 20 --quit-after 100 -- --autopilot
 godot --headless --path game --export-release "Windows Desktop" ../build/windows/Stillwake.exe
 ```
 
 `godot` is `Godot_v4.7.2-stable_mono_win64_console.exe` (on this machine in
-`C:\Users\Kravets\Tools\godot-4.7.2\`).
+`C:\Users\Kravets\Tools\godot-4.7.2\`). `global.json` pins the SDK (8.0.426, newer patches of 8.0.4xx
+allowed) for us and CI alike: another SDK's `dotnet format` indents differently, so bump it in one PR.
 
 ## Conventions
 
