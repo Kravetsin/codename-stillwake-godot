@@ -51,10 +51,10 @@ public sealed partial class BuildingModule
             var plant = PlantAt(c.Cell)!;
             // A relic's cradle discharges into whoever strikes it (0096), the felling hit too, before it gives its shards.
             if (plant.Kind == Ruins.Cradle) _crewOps.Shock(c.From, ShockOf(c.Tool));
-            if (Cracked(plant.Cell, Kinds[plant.Kind].Strength, c.Tool)) Fell(plant, c.From);
+            if (Cracked(plant.Cell, Kinds[plant.Kind].Strength, _items.Damage(c.From, c.Tool))) Fell(plant, c.From);
             return;
         }
-        if (!Cracked(c.Cell, wall.Strength, c.Tool)) return;
+        if (!Cracked(c.Cell, wall.Strength, _items.Damage(c.From, c.Tool))) return;
         _gridOps.Clear(c.Cell, "structure");
         _itemsOps.GiveOrDrop(c.From, wall.Cost, c.Cell);
         // What the wall held goes to its digger now; the sweep would fell it the same tick, giving nothing.
@@ -64,7 +64,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// The units of a suit a hit of <paramref name="tool"/> on a cradle costs (0096): <see cref="Ruins.CradleShock"/> for the axe's,
-    /// a faster tool's its pace's share of the axe's, rounded up (a cost): the drill's 1, the arc drill's 2, 10 a second each.
+    /// a faster tool's its pace's share of the axe's, rounded up (a cost): the drill's 1, 10 a second, a module in it or not.
     /// </summary>
     public static int ShockOf(string tool)
     {
@@ -88,13 +88,14 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// Adds <paramref name="tool"/>'s damage to <paramref name="cell"/>'s crack: true, its crack dropped, once it reaches
-    /// <paramref name="strength"/>; else false, the crack kept deeper, its last hit now.
+    /// Adds a hit's <paramref name="hit"/> damage, its sender's weapon's (<see cref="IItemsQueries.Damage"/>), to
+    /// <paramref name="cell"/>'s crack: true, its crack dropped, once it reaches <paramref name="strength"/>; else false, the
+    /// crack kept deeper, its last hit now.
     /// </summary>
-    private bool Cracked(int cell, int strength, string tool)
+    private bool Cracked(int cell, int strength, int hit)
     {
         int at = CrackIndex(cell);
-        int damage = (at >= 0 ? State.Cracks[at].Damage : 0) + Weapons.Of(tool)!.Damage;
+        int damage = (at >= 0 ? State.Cracks[at].Damage : 0) + hit;
         if (damage >= strength)
         {
             if (at >= 0) State.Cracks.RemoveAt(at);

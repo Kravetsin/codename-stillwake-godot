@@ -76,6 +76,7 @@ internal static class FloorRules
                 Item = stack.Item,
                 Count = n,
                 Charge = stack.Charge,
+                Module = stack.Module,
                 Cell = cell,
                 X = x,
                 Y = y,

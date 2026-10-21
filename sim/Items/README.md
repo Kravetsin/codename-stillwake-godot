@@ -10,7 +10,7 @@ mode, the world setting in which nothing is ever taken
   the floor up, a slope's diagonal too (`ShapeAt`); `Rooms` (`IRoomsQueries`), for where space is and which open cells are in a room.
 - **State:** `Inventories` — those changed at least once, by peer id in id order; `Crates` — the
   machines holding something, by machine id in id order; `Creative`; `Floor` — stacks lying about
-  (`FloorStack`: id, item, count, charge, cell, x, y, vx, vy, by, at, and the `Body` it is part of, if any) in id order, with `NextFloorId`;
+  (`FloorStack`: id, item, count, charge, module, cell, x, y, vx, vy, by, at, and the `Body` it is part of, if any) in id order, with `NextFloorId`;
   `Ticks`, the module's own clock; `Kept` — what input slots remember (`Kept(Machine, Slot, Item)`), by machine and slot, sorted (0062); `Running` — the electric tools heroes run (`Runner`: peer, item), at most one a
   peer, in peer order (0055); `Fitted` — the modules fitted into machines (`Fitted(Machine, Module)`), by machine, then
   module, ordinal (0086), written to a save only while one is fitted. All saved, as sorted lists; nothing is derived.
@@ -25,7 +25,7 @@ mode, the world setting in which nothing is ever taken
   `Inventory.Equipment` (head, back, three on the belt), `Inventory.Total` in all
   ([0047](../../docs/decisions/0047-equipment-the-jetpack-and-the-slower-swim.md)); a machine holding items
   has its `Slots` in `Machines`. Each slot is a
-  `Stack` (`Item`, `Count` from 1 to the item's `Stack` limit in `Items`, and `Charge`) or null. Items are known by
+  `Stack` (`Item`, `Count` from 1 to the item's `Stack` limit in `Items`, `Charge` and `Module`) or null. Items are known by
   their id; every material is one, the salvage items, with `Yields`, are what caught debris
   becomes, in stacks of 20 (hull plates) and 50 (scrap chunks, asteroid ore) since 0062, and the parts (wire, plate, gear, tube, and of them the rotor, frame and coil) are crafted by
   `Crafting` into the lifepod's outputs;
@@ -37,12 +37,24 @@ mode, the world setting in which nothing is ever taken
 - **What one item holds of its own** (0053) is on its stack: `Charge`, a battery's, from 0 to its item's
   `Capacity`, in the units machines draw power in (power-ticks, stored in thousandths: `Content.Charge`), only on items of a stack of one that have one, 0 on anything else. Every copy of a stack is
   made with `with`, so it goes wherever the stack goes: a move, a swap, a crate, a drop and its pick-up
-  (`FloorStack.Charge`, `AsStack`). Stacks merge, onto a slot or on the floor, only when alike
-  (`Stacks.Alike`: one item, one charge); a whole stack moved onto one not alike swaps with it, so two
-  batteries swap. Stacks made from a cost, given, crafted or refunded, hold none: a crafted battery is
-  empty. No cost names an item with a capacity (`ContentTests`), so paying never destroys charge. Saved
-  only where it is not 0. A later per-item value (a tool's wear) is one more such field, copied, compared
-  in `Alike` and carried by the floor alike.
+  (`FloorStack.Charge`, `AsStack`). Stacks merge, onto a slot, on the floor or in a drone's cargo, only when
+  alike (`Stack.Alike`, `Stacks.Alike`: one item, one charge, one module); a whole stack moved onto one not alike
+  swaps with it, so two batteries swap, and a fitted drill and a plain one. Stacks made from a cost, given, crafted or
+  refunded, hold none: a crafted battery is empty, a crafted drill plain. No cost names an item with a capacity
+  (`ContentTests`), so paying never destroys charge; none names a drill. Saved only where it is not 0.
+- **A tool's module** ([0098](../../docs/decisions/0098-the-tool-bench-modules-in-tools.md)) is the second such value:
+  `Module`, the item id of the module fitted into a tool, on a stack of one of an item among the module's `Hosts` (the
+  drill takes the arc), none on anything else. It goes wherever the stack goes, as charge does (`FloorStack.Module`,
+  `AsStack`, `LayDown`), is compared in `Alike`, sorts after the plain stack (`Stacks.Sorted`: none first, then by
+  module, ordinal), stays with its hero in death (the drill is gear) and is written to a save only when set. Nothing
+  fits one yet but a dev world (`--arc-drill`, the testbed's supply crate); the tool bench comes next. A later per-item
+  value (a tool's wear) is one more such field, copied, compared in `Alike` and carried by the floor alike.
+- **A tool works with its stack** (0098): `ToolStack(peer, item)` is the first stack of that item the peer carries, in
+  slot order, one with a module first, so with two drills the fitted one is used, whichever is in hand (the hand is the
+  client's word). `Damage(peer, tool)` is the weapon's `Damage`, a gain by that stack's module (`Boost.Gain`, rounded
+  down: the arc's +1000 makes the drill's 1 a 2), the weapon's own while the peer carries none (a hit's sender is never
+  checked for holding its weapon); `Debris` and `Building` take it off a wreck or a wall. A run draws its tool's `Draw`
+  a cost by that stack's module (`Boost.Cost`, rounded up: 3 → 6), and `items.flat` is judged on it.
 - **Equipment.** An equipment slot holds only an item whose `Equip` in `Items` is its kind: the jetpack on
   the back, batteries on the belt. A move that would leave anything else in one, put there or swapped in from either side, is
   refused with `items.notEquipment` (`Stacks.Misfit`).
@@ -65,9 +77,9 @@ mode, the world setting in which nothing is ever taken
     leave anything else in it, put or swapped in, is refused with `items.notBattery` (`Stacks.Unfit`).
 - **Sorting** (0008, Terraria's): `Sort(Crate)` sorts the sender's bag, its own slots past the hotbar
   (`Inventory.Hotbar`, the first row) up to its equipment, or with `Crate` every slot of a crate (`Machines` kind
-  `crate`). Stacks alike (`Stacks.Alike`: one item, one charge) merge up to their limit, the full ones first, so two
+  `crate`). Stacks alike (`Stacks.Alike`: one item, one charge, one module) merge up to their limit, the full ones first, so two
   batteries holding other charge stay two; then they are laid from the first slot in order of the item's `Group`
-  (`ItemGroup`: tools, wearables, materials and parts, salvage, the rest), its id (ordinal), charge, fullest first, and
+  (`ItemGroup`: tools, wearables, materials and parts, salvage, the rest), its id (ordinal), module (none first, then ordinal), charge, fullest first, and
   count, largest first; the empty slots after (`Stacks.Sorted`). The hotbar and the equipment stay as they are; every
   item and every charge is kept. Only a crate sorts: a machine's slots have their places (inputs, fuel, outputs). Two
   sorts of one crate in one tick apply in the host's order, the second finding it sorted. In creative mode too.
@@ -78,7 +90,8 @@ mode, the world setting in which nothing is ever taken
 - **Running an electric tool** (0055): `Run(Item, On)` says the sender's hero runs an item with a `Draw` it carries,
   in any slot (which one is in hand is the client's word), or has stopped; its client sends it while its own run
   differs from the sim's, as `Thrust` is. A hero runs one thing: on replaces what it ran, off stops whatever it runs.
-  Every tick, before the floor settles, each run in peer order draws its item's `Draw` through `Drain`, touching
+  Every tick, before the floor settles, each run in peer order draws its item's `Draw`, boosted by the module of the
+  stack it runs (`ToolStack`, 0098), through `Drain`, touching
   anything or nothing; one whose belt cannot pay the tick, or whose item its peer no longer carries, stops by itself,
   so a run never outlives a belt that cannot pay. The draw is whole power-ticks a tick, so nothing is left over to
   carry. Creative mode draws nothing and never stops a run for want of charge. `Crew` stops a run as its hero passes
@@ -162,7 +175,9 @@ counted twice.
   ground (0077): `items.flat` for an electric one the belt cannot pay a tick of, and with `running`, as a hit applies,
   `items.notRunning` for one its hero does not run; `Debris` and `Building` refuse hits and digs with it;
   the client's drill; `Running(peer)` — the electric item that peer's hero runs, or null: `Debris` taking its hits,
-  the client comparing its own run and drawing others' drills spinning; `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
+  the client comparing its own run and drawing others' drills spinning; `ToolStack(peer, item)` — the stack of that
+  tool the peer works with, a fitted one first: the client's held look; `Damage(peer, tool)` — what its hit takes, its
+  module's boost in it: `Debris`, `Building`, and the client's guesses of how a hit sounds and looks; `ShortOf(peer, cost)` — `items.notEnough` when the peer cannot pay `cost`, never in creative
   mode; `FullFor(peer, cost)` — `items.full` when `cost` does not fit, creative mode or not. A caller
   refuses with these keys. `AfterMoves(peer, moves)` — copies of the peer's inventory and of the
   machines the `Move`s, `Drop`s and `Sort`s touch, as the commands would leave them, refused ones skipped: what
@@ -184,7 +199,7 @@ counted twice.
   `RoomFor(id, stack)` — how many of a stack would go in; the operations `TakeFrom(id, slot, count)` — up to `count` from
   any slot, outputs too, the stack taken with all it holds of its own, null for an empty slot; `PutIn(id, stack)` — as
   much as fits, as a whole, onto stacks alike in slot order and then into empty slots, returning how many did not fit;
-  `LayDown(stack, cell)` — a stack on the floor, still, by `FloorStack.Nobody`, its charge with it. **Where a delivery
+  `LayDown(stack, cell)` — a stack on the floor, still, by `FloorStack.Nobody`, its charge and module with it. **Where a delivery
   goes:** a fuel (`BurnTicks`) only into a machine's `FuelSlot`; anything else into its inputs but the fuel slot, so a
   furnace's fuel and what it smelts never mix; a machine with no `Inputs` given (a crate) all its slots;
   a charging station (the charger, a drone bay) nothing without a capacity: a bay takes drones, and batteries, to charge. In creative mode too: these only move what is there. Moves by hand
@@ -248,6 +263,9 @@ stack holding charge into any slot with `Put`, from
 - A machine has an entry only while it holds something; `building` takes a crate apart only empty.
 - Fits and takes make and lose nothing: across inventories, machines, the floor and what is fitted, every module is
   where it was or moved (`ArcModuleTests`, FsCheck); a machine holds at most one of each module, and only one it takes.
+- Each arc module is in exactly one place, an item, fitted into a machine or on a tool's stack, whatever moves, drops,
+  pick-ups, sorts, fits and takes do; a stack carries a module only as a stack of one of an item the module fits
+  (`DrillArcTests`, FsCheck).
 - Death makes and loses nothing: what both heroes carry and what lies about changes only by what leaves, stacks in
   space past the grid's edge and a body's at its limit; no body's stack is gear (`DeathTests`, FsCheck).
 
@@ -270,6 +288,10 @@ stack holding charge into any slot with `Put`, from
 - A module fitted into a machine that is gone some other way than being taken apart would stay in `Fitted`: nothing a
   player does removes a machine but `Building`, which refuses while one is fitted.
 - A fit or a take shows once its tick has run, not at once as a move does (0014): it is no hand's motion over slots.
+- With two drills carried, the fitted one drills, draws and is drawn in hand whichever is chosen (0098): carrying two
+  takes a player putting a spare in the bag; the sim is told which tool runs, not which slot.
+- Drones never carry a fitted drill: they fetch only what an input keeps, and no input keeps a tool. Their cargo would
+  keep its module all the same (`Stack.Alike` in `TakeAll`).
 - A battery's charge never leaks, in a crate, on the floor or on a belt: only a tool spends it.
 - A `Run` landing on a hero already passed out pays one tick before `Crew` stops it: items run before crew in a
   tick, and the client of a hero out sends none of its own; 3 power-ticks, accepted.

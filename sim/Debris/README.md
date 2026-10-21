@@ -133,7 +133,8 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   always into 1 to 3 seeds and 1 to 2 soil, the seed's second source beside supply pods, an asteroid into
   3 to 5 rock, the others by their size. Hit points alone say how
   hard a kind is: **every weapon breaks every kind** (0054). `Hit(Piece, Tool)` takes the weapon's
-  `Weapons.Of(Tool).Damage` off them, adding it to the piece's `Damage`;
+  damage for its sender off them (`IItemsQueries.Damage`: `Weapons.Of(Tool).Damage`, boosted by the module fitted into
+  the sender's tool, 0098), adding it to the piece's `Damage`;
   the hit that brings `Damage` to its hit points removes it, and its loot (`Loot`, drawn by `LootOf`
   as a container's is) falls on the cell under its middle, still, dropped by `FloorStack.Nobody`
   (`IItemsOps.DropAt`): floating there in space for anyone to pick up at once, the hero who broke it

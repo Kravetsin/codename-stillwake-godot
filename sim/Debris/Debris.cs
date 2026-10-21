@@ -179,7 +179,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         if (at < 0) throw new InvalidOperationException("debris.hit: applied to a piece that is gone");
         var piece = State.Pieces[at];
         int hp = Content.Wreckage.HpOf(piece.Item) ?? throw new InvalidOperationException("debris.hit: applied to no wreck");
-        piece.Damage += Content.Weapons.Of(c.Tool)!.Damage;
+        piece.Damage += _held.Damage(c.From, c.Tool);
         if (piece.Damage < hp) return;
         State.Pieces.RemoveAt(at);
         var loot = LootOf(piece.Item, Random);

@@ -51,6 +51,41 @@ public sealed partial class ItemsModule
     }
 
     /// <summary>
+    /// The stack of tool <paramref name="item"/> <paramref name="peer"/> works with (0098): the first it carries, in slot order,
+    /// with a module fitted, else the first it carries; none while it carries none. With two drills, the fitted one drills.
+    /// </summary>
+    public Stack? ToolStack(int peer, string item)
+    {
+        var slots = Inventory(peer);
+        Stack? first = null;
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (slots[i] is not { } s || s.Item != item) continue;
+            if (s.Module != null) return s;
+            first ??= s;
+        }
+        return first;
+    }
+
+    /// <summary>
+    /// What a hit of weapon <paramref name="tool"/> by <paramref name="peer"/> takes (0098): the weapon's damage, a gain by
+    /// the module fitted into the stack it works with (<see cref="ToolStack"/>), rounded down; the weapon's own while the
+    /// peer carries none, as a hit's sender is not checked for holding its weapon (0034).
+    /// </summary>
+    public int Damage(int peer, string tool)
+    {
+        int damage = Weapons.Of(tool)?.Damage ?? throw new InvalidOperationException($"items.damage: {tool} deals no damage");
+        return ToolStack(peer, tool)?.Module is { } module ? Items.Boost.Gain(damage, Modules.Get(module).Damage) : damage;
+    }
+
+    /// <summary>What <paramref name="stack"/>, an electric item, draws a tick it runs: its <c>Draw</c>, a cost by its module, rounded up (0098).</summary>
+    private static int DrawOf(Stack stack)
+    {
+        int draw = Content.Items.Get(stack.Item).Draw!.Value;
+        return stack.Module is { } module ? Items.Boost.Cost(draw, Modules.Get(module).Draw) : draw;
+    }
+
+    /// <summary>
     /// Why the sender's <see cref="Fit"/> of what <paramref name="from"/> holds into <paramref name="machine"/> would be
     /// refused: a client asks it while a module is held over a socket.
     /// </summary>

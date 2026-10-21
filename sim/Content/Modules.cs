@@ -5,7 +5,7 @@ namespace Stillwake.Content;
 /// <summary>
 /// A module (0086): an item fitted into a machine by hand, Valheim's way: one of each kind a machine at most, taken
 /// out again by hand, never moved by drones, never loot. What it adds is in thousandths added to 1000, so +1000 is
-/// twice: a station's <see cref="Station.Speed"/>, a machine's <c>Draws</c>, a tool's damage to come. Gains round
+/// twice: a station's <see cref="Station.Speed"/>, a machine's <c>Draws</c>, a tool's damage and draw. Gains round
 /// down, costs up.
 /// </summary>
 /// <param name="Item">The item it is, by its id.</param>
@@ -13,10 +13,13 @@ namespace Stillwake.Content;
 /// Its technology, by id: the client's icon for it, shown on the sockets that take it, on the slots of modules that fit
 /// the machine open and on its card, in place of any list of where it goes (0086).
 /// </param>
-/// <param name="Hosts">What it fits into, by kind: electric stations only, for it multiplies what they draw; a tool next.</param>
+/// <param name="Hosts">
+/// What it fits into, by kind: electric stations, by their machine's kind, and electric tools, by their item (0098), for it
+/// multiplies what they draw.
+/// </param>
 /// <param name="Speed">Thousandths added to a station's speed: its work a tick, rounded down.</param>
-/// <param name="Draw">Thousandths added to what its machine draws, rounded up.</param>
-/// <param name="Damage">Thousandths added to a tool's damage, rounded down: the arc on the drill, next (0086).</param>
+/// <param name="Draw">Thousandths added to what its machine or tool draws, rounded up.</param>
+/// <param name="Damage">Thousandths added to a tool's damage a hit, rounded down (0098).</param>
 /// <param name="Heat">Added to a fed station's heat: an unlock module, the crucible, to come (0086).</param>
 public sealed record ModuleSpec(string Item, string Tech, IReadOnlyList<string> Hosts, int Speed = 0, int Draw = 0, int Damage = 0, int Heat = 0);
 
@@ -24,10 +27,10 @@ public sealed record ModuleSpec(string Item, string Tech, IReadOnlyList<string> 
 public static class Modules
 {
     /// <summary>
-    /// The arc module, of a spire's relic coil (0085): twice the speed for twice the power in an electric station. The
-    /// furnace and the pod take none: one burns planks, the other is paid by hand.
+    /// The arc module, of a sky shard (0096): twice the speed for twice the power in an electric station, twice the damage
+    /// for twice the draw in the drill (0098). The furnace and the pod take none: one burns planks, the other is paid by hand.
     /// </summary>
-    public static readonly ModuleSpec Arc = new("arcModule", "arc", ["smelter", "former", "assembler"], Speed: 1000, Draw: 1000, Damage: 1000);
+    public static readonly ModuleSpec Arc = new("arcModule", "arc", ["smelter", "former", "assembler", "drill"], Speed: 1000, Draw: 1000, Damage: 1000);
 
     public static readonly IReadOnlyList<ModuleSpec> All = [Arc];
 

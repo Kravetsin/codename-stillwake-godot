@@ -84,7 +84,7 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 - **Cracks heal** (0077): each keeps the tick of its last hit by Building's own clock (`Clock`, saved, ticked in
   derivation); one not hit for `Builds.CrackHeals` ticks is dropped, the wall whole again.
 - **`Dig(Cell, Tool)` is a weapon's hit on natural ground** (0077), sent as the axe strikes or at the drill's pace: its
-  damage (`Weapons`) is added to the cell's crack, and the hit that reaches the wall's `Strength` clears the wall —
+  damage for its sender (`IItemsQueries.Damage`: the weapon's, boosted by its tool's module, 0098) is added to the cell's crack, and the hit that reaches the wall's `Strength` clears the wall —
   only the wall: its back wall stays — drops its crack and gives what it is made of (its material's `Cost`: soil, rock)
   to the sender, then the `Yields` of every growth the wall held — the one in its own stone, the one standing on it, the
   one hanging from it — felled there and then, before derivation's sweep would fell them for nothing; what does not fit
@@ -134,8 +134,8 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   `Ruins.Zap` (5) of its suit through `ICrewOps.Shock`. The resonators standing are derived (`_resonators`), by own cell.
 - **The relic** (0096): a spire's cradle (`Ruins.Cradle`, three across and up, 8 hit points) gives four `arcShard`, a home's niche
   (`Ruins.Niche`) one. Every `Dig` on a standing cradle, the felling one too, first shocks its sender through `ICrewOps.Shock`:
-  `Ruins.CradleShock` (5) for the axe's hit, a faster tool's its pace's share of the axe's, rounded up (`ShockOf`: the drill 1, the arc
-  drill 2), 10 units a second whatever strikes. Its floor dug out from under it fells it for the digger, unshocked. `Relics` reads,
+  `Ruins.CradleShock` (5) for the axe's hit, a faster tool's its pace's share of the axe's, rounded up (`ShockOf`: the drill 1, a module
+  in it or not), 10 units a second whatever strikes. Its floor dug out from under it fells it for the digger, unshocked. `Relics` reads,
   for every relic the ground grew (`Ruins.Relics`), whether it is taken from `Felled` alone, so a load and a friend joining agree.
 
 ## API
