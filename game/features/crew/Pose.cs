@@ -146,12 +146,13 @@ public static class Poses
 
     /// <summary>
     /// Whether <paramref name="hero"/>, in <paramref name="now"/> after <paramref name="was"/>, has just
-    /// jumped: off the deck or a ladder into the air, rising at least half a jump's push. Walking off an
-    /// edge leaves the hero falling, not rising. Read from the motion alone, so others' heroes, seen up to
-    /// a send late and a few steps into the rise, jump as their own peer saw them.
+    /// jumped: off the deck or a ladder into the air, rising at least a quarter of a jump's push, so a tap's
+    /// halved rise counts too (0089). Walking off an edge leaves the hero falling, not rising. Read from the
+    /// motion alone, so others' heroes, seen up to a send late and a few steps into the rise, jump as their own
+    /// peer saw them.
     /// </summary>
     public static bool Jumped(Pose? was, Pose now, Hero hero) =>
-        was is Pose.Stand or Pose.Walk or Pose.Run or Pose.Climb && now == Pose.Air && hero.Vy <= -Stillwake.Content.Hero.Jump / 2;
+        was is Pose.Stand or Pose.Walk or Pose.Run or Pose.Climb && now == Pose.Air && hero.Vy <= -Stillwake.Content.Hero.Jump / 4;
 
     /// <summary>
     /// Whether the hero has just landed, in <paramref name="now"/> after <paramref name="was"/>, having last

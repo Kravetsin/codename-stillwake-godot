@@ -31,7 +31,7 @@ public class PlanetHeroTests
     {
         var (ship, hero) = Ledge(high, rules);
         hero = hero.Step(Jump, ship);
-        for (int i = 0; i < 300; i++) hero = hero.Step(Right, ship);
+        for (int i = 0; i < 300; i++) hero = hero.Step(Right with { JumpHeld = true }, ship);
         return hero.Y;
     }
 
@@ -44,7 +44,7 @@ public class PlanetHeroTests
         Assert.True(fall < Spec.Gravity);
         var up = hero.Step(Jump, ship);
         Assert.Equal(-Spec.Jump + fall, up.Vy);
-        Assert.Equal(up.Vy + fall, up.Step(Still, ship).Vy);
+        Assert.Equal(up.Vy + fall, up.Step(Still with { JumpHeld = true }, ship).Vy);
     }
 
     [Fact]
