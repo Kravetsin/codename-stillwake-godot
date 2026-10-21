@@ -134,12 +134,22 @@ public class ContentTests
     }
 
     [Fact]
-    public void HeroJumpsOntoALedgeThreeCellsHighNotFour()
+    public void HeroJumpsOntoALedgeThreeCellsHighNotFourAndSixOnAPlanet()
     {
-        int rise = 0;
-        for (int v = Hero.Jump - Hero.Gravity; v > 0; v -= Hero.Gravity) rise += v;
-        Assert.True(rise > 3 * Cell, $"rise {rise}");
-        Assert.True(rise < 4 * Cell, $"rise {rise}");
+        // A jump held to its top, as the controller steps it: eased gravity below Hero.Apex (0089).
+        static int Rise(int gravity)
+        {
+            int apex = gravity * Hero.ApexGravity / 1000, rise = 0;
+            for (int v = Hero.Jump; ;)
+            {
+                v -= v < Hero.Apex ? apex : gravity;
+                if (v <= 0) return rise;
+                rise += v;
+            }
+        }
+        int aboard = Rise(Hero.Gravity), planet = Rise(Surfaces.Planet.Fall(Hero.Gravity));
+        Assert.True(aboard > 3 * Cell && aboard < 4 * Cell, $"rise {aboard}");
+        Assert.True(planet > 6 * Cell && planet < 7 * Cell, $"rise {planet}");
     }
 
     // Items

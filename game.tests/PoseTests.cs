@@ -38,7 +38,7 @@ public class PoseTests
         Assert.True(Jumped(Pose.Stand, PoseOf(jumped, false, false), jumped));
         Assert.True(Jumped(Pose.Run, Pose.Air, jumped));
         Assert.True(Jumped(Pose.Climb, Pose.Air, jumped));
-        // Seen a send late, a few steps into the rise, it is still a jump.
+        // Seen a send late, a few steps into the rise, it is still a jump: a tap's, Space let go and the rise halved, too (0089).
         var risen = jumped.Step(new HeroInput(0, 0, false), ship).Step(new HeroInput(0, 0, false), ship).Step(new HeroInput(0, 0, false), ship);
         Assert.True(Jumped(Pose.Walk, Pose.Air, risen));
 

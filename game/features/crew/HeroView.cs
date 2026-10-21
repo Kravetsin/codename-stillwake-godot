@@ -49,6 +49,9 @@ public partial class HeroView : Node2D
     // What the hands touch is heard through the suit, in vacuum as a glove's thump; doors and valves sound where they stand (GridView).
     private readonly ActSound _act = new();
     private readonly Clock _clock = new(Hero.StepMs);
+    /// <summary>Where the camera looks: ahead of the hero, its height eased after it; put straight on it wherever the hero is put anew.</summary>
+    private readonly CameraFollow _follow = new();
+    private bool _snap;
     /// <summary>The grid's width last frame, to find where a planned cell is.</summary>
     private int _width = 1;
     private readonly HeroAutopilot? _autopilot;
@@ -294,7 +297,7 @@ public partial class HeroView : Node2D
 
     /// <summary>
     /// Moves the hero on by <paramref name="elapsedMs"/> against the client's world <paramref name="m"/>
-    /// and draws it, the camera centred on it, and tells the sim where it is when that matters to its
+    /// and draws it, the camera following it (<see cref="CameraFollow"/>), and tells the sim where it is when that matters to its
     /// breathing (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming
     /// round, and takes no orders while passed out. <paramref name="heard"/> are the other heroes the
     /// client took since the last frame, each drawn where it stood a little while ago; <paramref name="progress"/> is
@@ -321,15 +324,21 @@ public partial class HeroView : Node2D
         // Waking from passing out, the sim has put the hero at the spawn: so does the client. Moved to another surface, it
         // stands where it arrived.
         if (moved && known != null)
+        {
             _previous = _current = Hero.At(ship, known.Cell);
+            _snap = true;
+        }
         else if (!_placed || (_wasOut && !passedOut) || moved)
         {
             _previous = _current = Hero.At(ship, !_placed && Start != null ? Start(m) : m.Crew.Spawn);
-            _placed = true;
+            _placed = _snap = true;
         }
         // Passing out it dies where the sim has it (0061), where its body falls: it lies there, not a report behind.
         else if (!_wasOut && passedOut && known!.Cell >= 0 && known.Cell < grid.Width * grid.Height)
+        {
             _previous = _current = Hero.At(ship, known.Cell);
+            _snap = true;
+        }
         _wasOut = passedOut;
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
         var pointed = Pointer();
@@ -395,7 +404,7 @@ public partial class HeroView : Node2D
         double between = _clock.Progress;
         double x = _previous.X + (_current.X - _previous.X) * between;
         double y = _previous.Y + (_current.Y - _previous.Y) * between;
-        camera.Position = new Vector2((float)(x / Hero.Unit), (float)((y - Spec.Height / 2.0) / Hero.Unit)) * (float)Rig.Cell;
+        Follow(camera, ship, x, y, elapsedMs);
 
         // Aimed after following, so the pointer is read where the camera now is.
         var pointer = Pointer();
@@ -420,6 +429,20 @@ public partial class HeroView : Node2D
         _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen), _steps * Hero.StepMs);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();
+    }
+
+    /// <summary>
+    /// The camera after the hero drawn at (<paramref name="x"/>, <paramref name="y"/>), its feet in thousandths of a
+    /// cell: led the way its last step went, the height eased after it (<see cref="CameraFollow"/>).
+    /// </summary>
+    private void Follow(Camera2D camera, Ship ship, double x, double y, double elapsedMs)
+    {
+        var hero = new Followed(x / Hero.Unit, (y - Spec.Height / 2.0) / Hero.Unit, _current.X - _previous.X, _current.Y - _previous.Y,
+            ship.Space(_current.BodyCell(ship.Width)));
+        if (_snap) _follow.Snap(hero);
+        else _follow.Step(hero, camera.GetViewportRect().Size.X / camera.Zoom.X / Rig.Cell, elapsedMs);
+        _snap = false;
+        camera.Position = new Vector2((float)_follow.X, (float)_follow.Y) * (float)Rig.Cell;
     }
 
     /// <summary>
@@ -894,7 +917,8 @@ public partial class HeroView : Node2D
             Axis(Held(Key.A, Key.Left), Held(Key.D, Key.Right)),
             Axis(Held(Key.W, Key.Up), Held(Key.S, Key.Down)),
             _jump,
-            Sprint: Input.IsPhysicalKeyPressed(Key.Shift));
+            Sprint: Input.IsPhysicalKeyPressed(Key.Shift),
+            JumpHeld: Input.IsPhysicalKeyPressed(Key.Space));
         _jump = false;
         return input;
     }
