@@ -39,7 +39,7 @@ its tech's ghost. The furnace's two inputs, ore and fuel, shared one flame, so i
   shows its kept item instead. Outputs, crates and queued stations' inputs show none.
 - **Cheap:** a motion that comes round (`IconLooks.Cycle`) is painted once per frame for every icon of its look, size and
   show and shared as a texture; only the arc's crackle is painted afresh, as before. Each icon starts at a frame of its own.
-- **Cards:** "Smelts here" and the like, and the "Not analysed" band, carry the lit mark at 12 px, as a module's strip.
+- **Cards:** "Smelts here" and the like, and the "Not analysed" band, carry the lit mark at 24 px, moving as the slots' marks do, as a module's strip its tech; at 12 px the motion did not read.
 - **Dev:** `-- --testbed --open=<kind> --marks <item> --into <slot>` empties that machine, turns creative off, forgets
   what was analysed, fills the bag with what each station marks, and carries the item over the slot (`MarksDemo`).
 

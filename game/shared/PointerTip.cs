@@ -13,7 +13,7 @@ namespace Stillwake.Game.Shared;
 /// cell (<see cref="Ui.WorldTip"/>), the first line naming it, or a blueprint under it: what it builds,
 /// then what is carried against what it still needs, or a mark: what it is, then what taking it down gives back
 /// (<see cref="Ui.CostTip"/>). A tip with an item's card shows the card (<see cref="ItemCardView"/>)
-/// in place of its lines, pinned beside the slot it tells of rather than at the pointer (<see cref="TipPlace"/>). Text on demand, only while there is something to say.
+/// in place of its lines, moving with the pointer beside the slot it tells of, never over it (<see cref="TipPlace"/>). Text on demand, only while there is something to say.
 /// </summary>
 public partial class PointerTip : CanvasLayer
 {
@@ -21,8 +21,8 @@ public partial class PointerTip : CanvasLayer
     private const float ReasonSize = 10, ReasonStroke = 3, ReasonOffset = 12;
     /// <summary>The tip's widest, its padding and its gap from the pointer and the screen's edge, in pixels.</summary>
     private const float Widest = 260, PadX = 8, Edge = 6;
-    /// <summary>An item's card's gap from the slot it is pinned beside, in pixels.</summary>
-    private const float FromSlot = 8;
+    /// <summary>An item's card's gap past the slot under the pointer, and its drop below the pointer, in pixels.</summary>
+    private const float FromSlot = 8, CardDrop = 8;
     private static readonly Vector2 FromPointer = new(14, 16);
     private static readonly Color ReasonColour = new("ffe4e4"), Outline = new("0b0f17");
 
@@ -94,15 +94,16 @@ public partial class PointerTip : CanvasLayer
         _panel.Visible = tip != null;
         if (tip == null) return;
         var screen = GetViewport().GetVisibleRect().Size;
-        // An item's card pinned beside its slot, never over it; anything else beside the pointer, past a stack carried
+        var pointed = toScreen * cell;
+        // An item's card by the pointer, clear of the slot under it; anything else beside the pointer, past a stack carried
         // on it, kept inside the screen.
         if (tip.Card != null && tip.Anchor is { } slot)
         {
-            var (x, y) = TipPlace.Beside(slot, (_panel.Size.X, _panel.Size.Y), (screen.X, screen.Y), FromSlot, Edge);
+            var (x, y) = TipPlace.Near((pointed.X, pointed.Y), slot, (_panel.Size.X, _panel.Size.Y), (screen.X, screen.Y), FromSlot, CardDrop, Edge);
             _panel.Position = new Vector2(x, y);
             return;
         }
-        var at = toScreen * cell + FromPointer + Vector2.One * (_ui.OnPointer.Get() / 2);
+        var at = pointed + FromPointer + Vector2.One * (_ui.OnPointer.Get() / 2);
         _panel.Position = new Vector2(
             Mathf.Max(Edge, Mathf.Min(at.X, screen.X - _panel.Size.X - Edge)),
             Mathf.Max(Edge, Mathf.Min(at.Y, screen.Y - _panel.Size.Y - Edge)));

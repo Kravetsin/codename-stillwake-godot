@@ -142,7 +142,7 @@ as everything E works is, in the crew feature (`AimTests`).
   it. The open machine's fits and takes in flight show at once, as moves do (`Reading.Fitted`, `Reading.Fitting`).
 - **What fits, by its icon** (0086): with a machine that takes modules open, every slot holding a module it takes shows
   that module's tech icon as its mark, 14 px on a soft dark halo, where a fire's flame sits (`SlotMark.Fits`). A
-  module's card names no machine: a strip at its bottom, its tech icon (12 px) and what it does in one line ("×2 speed
+  module's card names no machine: a strip at its bottom, its tech icon (24 px, lit and moving) and what it does in one line ("×2 speed
   · ×2 power", `ItemCard.Tech`).
 - **Glowing line icons** (0086, the user's pick on the arc icon page, variant C; 0097): a thin frame and a glyph in
   thin lines, drawn by `IconCanvas` in the page's passes (a mark's dark halo, glow, rim, core) into a texture of the
@@ -207,9 +207,10 @@ as everything E works is, in the crew feature (`AimTests`).
   wears that mark in the bag with the station open, what a fire burns, what waits for analysis, what holds a charge, a
   drone. Nothing is refused by it: the sim's rules for what a slot takes stay as they were.
 - Every stack, in the inventory, the hotbar, a crate, a furnace or an analyzer, shows its card in the
-  one tooltip (`Shared.PointerTip`) at once, pinned beside its slot, 8 px off it, its top level with the slot's, and
-  flipped to the slot's left where the screen ends, so it never covers its own slot (`TipPlace.Beside`; the slot comes
-  as the tip's `Anchor` from `TipSpots`). The card (`Shared.ItemCards`, drawn by `Shared.ItemCardView`, the item
+  one tooltip (`Shared.PointerTip`) at once, moving with the pointer one to one: right of it by the slot's width and
+  8 px, so it clears the slot from anywhere in it, and 8 px below it; flipped to the pointer's left where the screen
+  ends and above it at the screen's foot, so it never covers its own slot nor the pointer (`TipPlace.Near`; the slot
+  comes as the tip's `Anchor` from `TipSpots`). The card (`Shared.ItemCards`, drawn by `Shared.ItemCardView`, the item
   card mockup) is a little screen of the wrist computer, shaped by what the item is:
   - *Anything else* (materials, parts, salvage): the compact card, its name and kind (`item.<id>.kind`) on one line and
     nothing more — no icon again, no list of what it goes into; a key where it has one (a canister "RMB breathe"), a
@@ -228,7 +229,7 @@ as everything E works is, in the crew feature (`AimTests`).
     cells (`Light.HeadLampReach`) with its beam across and a bolt at 0, for it draws nothing; a battery glowing green
     as much as it holds and its charge; the jetpack no number — then its key and hint under both.
   Under any card, what the open fed station or fire does with it, in the mark's colour (`Smelts` gold), the mark lit
-  before it, 12 px: "Smelts
+  before it, 24 px and moving: "Smelts
   here", "Burns here" or "Grows here" (`ItemCard.Here`, `Reading.HereOf`), a fed station adding what it makes of one
   and how long one takes there at its speed, "→ scrap ×4 · 3s" (`ItemCards.OutputAt`); a violet band, the "?" mark
   and "Not analysed", while unanalysed; a station's block. The screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.

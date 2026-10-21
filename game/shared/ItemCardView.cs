@@ -388,14 +388,17 @@ public static class ItemCardView
     /// <summary>Not analysed yet: the slot's "?" mark, lit, and "Not analysed" in violet.</summary>
     private static Control UnknownStrip()
     {
-        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, StripGap);
         row.AddChild(StripIcon(MarkLooks.Unknown));
         row.AddChild(Text(T("card.notAnalysed"), UnknownText, HorizontalAlignment.Left));
-        return Strip(Style.Violet400, row);
+        return Strip(Style.Violet400, Centred(row));
     }
 
-    /// <summary>A strip's icon, 12 px, lit and moving (0086, 0097): a module's tech, a station's mark.</summary>
-    private static GlowIcon StripIcon(IconLooks.Look look) => new(look, 12, IconShow.Lit)
+    /// <summary>A strip's icon's side and its gap to the words, in pixels: big enough to read the mark's motion.</summary>
+    private const int StripSide = 24, StripGap = 7;
+
+    /// <summary>A strip's icon, lit and moving as the slots' marks do (0086, 0097): a module's tech, a station's mark.</summary>
+    private static GlowIcon StripIcon(IconLooks.Look look) => new(look, StripSide, IconShow.Lit)
     {
         SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
         SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
@@ -404,10 +407,10 @@ public static class ItemCardView
     /// <summary>A module's strip (0086): its technology's icon, then what it does, in the arcs' violet-white.</summary>
     private static Control TechStrip(CardTech tech)
     {
-        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, StripGap);
         row.AddChild(StripIcon(TechLooks.Of(tech.Tech)));
         row.AddChild(Text(tech.About, TechText, HorizontalAlignment.Left));
-        return Strip(new Color(ItemCards.ModuleColour), row);
+        return Strip(new Color(ItemCards.ModuleColour), Centred(row));
     }
 
     /// <summary>
@@ -422,7 +425,7 @@ public static class ItemCardView
             SlotMark.Burns => (Style.Orange400, FireText, "card.burnsHere"),
             _ => (Style.Amber400, SmeltText, "card.smeltsHere"),
         };
-        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, StripGap);
         row.AddChild(StripIcon(MarkLooks.Of(here)));
         row.AddChild(Text(T(key), text));
         if (output != null)
@@ -437,7 +440,15 @@ public static class ItemCardView
             made.AddChild(Text($" · {output.Time}", TimeDim));
             row.AddChild(made);
         }
-        return Strip(colour, row);
+        return Strip(colour, Centred(row));
+    }
+
+    /// <summary>A strip's row with its words and yields on the middle of its icon, not its top.</summary>
+    private static Control Centred(HBoxContainer row)
+    {
+        foreach (var child in row.GetChildren())
+            if (child is Control control) control.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        return row;
     }
 
     /// <summary>
