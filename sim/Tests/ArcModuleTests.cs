@@ -153,20 +153,23 @@ public class ArcModuleTests
     {
         var w = World();
         int smelter = Id(w, "smelter");
+        var station = Spec.Stations.Get("smelter");
+        int speed = 2 * station.Speed, draws = 2 * Spec.Machines.Get("smelter").Draws!.Value;
         FitArc(w, smelter).Run();
-        Assert.Equal((4000, 2), (w.M.Crafting.StationOf(smelter)!.Speed, w.M.Crafting.StationOf(smelter)!.Heat));
-        Assert.Equal(8, w.M.Power.Draw(smelter));
+        Assert.Equal((speed, station.Heat), (w.M.Crafting.StationOf(smelter)!.Speed, w.M.Crafting.StationOf(smelter)!.Heat));
+        Assert.Equal(draws, w.M.Power.Draw(smelter));
         Assert.Equal(0, Demand(w));
         w.Do(new Move(new Slot(SlotOf(w, "rock")), new Target(0, smelter), 1)).Run();
         // The tick it is fed is the first of its work, at the full share the network gave it resting.
-        Assert.Equal(4000, w.M.Crafting.Progress(smelter));
+        Assert.Equal(speed, w.M.Crafting.Progress(smelter));
         w.Run();
-        Assert.Equal(8, Demand(w));
-        // 160 ticks of the furnace's work in 40, a quarter.
-        w.Run(160 * 1000 / 4000 - 3);
+        Assert.Equal(draws, Demand(w));
+        // The furnace's work on a rock at the doubled speed: the ticks it takes, rounded up.
+        var rock = Spec.Items.Get("rock");
+        w.Run((rock.SmeltTicks!.Value * 1000 + speed - 1) / speed - 3);
         Assert.Equal(0, Held(w, smelter, "silicon"));
         w.Run();
-        Assert.Equal(2, Held(w, smelter, "silicon"));
+        Assert.Equal(rock.Yields!.Single(y => y.Item == "silicon").Count, Held(w, smelter, "silicon"));
     }
 
     [Fact]
@@ -177,11 +180,14 @@ public class ArcModuleTests
         int smelter = Id(w, "smelter");
         FitArc(w, smelter);
         w.Do(new Move(new Slot(SlotOf(w, "rock")), new Target(0, smelter), 1)).Run().Run();
-        // A panel's 5 for a draw of 8: 625 thousandths of 4000, more than the 2000 it makes without the arc.
+        // A panel's power for the doubled draw: that share of the doubled speed, more than the speed without the arc.
+        int makes = Spec.Machines.Get("solarPanel").Makes!.Value, draws = 2 * Spec.Machines.Get("smelter").Draws!.Value;
+        int speed = 2 * Spec.Stations.Get("smelter").Speed;
+        Assert.True(makes < draws, "the panel falls short of the doubled draw");
         int share = w.M.Power.Satisfaction(smelter);
-        Assert.Equal(5000 / 8, share);
-        Assert.Equal(4000 + 4000 * share / 1000, w.M.Crafting.Progress(smelter));
-        Assert.Equal(2500, 4000 * share / 1000);
+        Assert.Equal(makes * 1000 / draws, share);
+        Assert.Equal(speed + speed * share / 1000, w.M.Crafting.Progress(smelter));
+        Assert.True(speed * share / 1000 > speed / 2, "more than it makes without the arc");
     }
 
     [Fact]
@@ -191,16 +197,21 @@ public class ArcModuleTests
         int former = Id(w, "former"), assembler = Id(w, "assembler");
         FitArc(w, former);
         FitArc(w, assembler).Run();
-        Assert.Equal((2000, 6), (w.M.Crafting.StationOf(former)!.Speed, w.M.Power.Draw(former)));
-        Assert.Equal((2000, 4), (w.M.Crafting.StationOf(assembler)!.Speed, w.M.Power.Draw(assembler)));
+        (int Speed, int Draws) Doubled(string kind) => (2 * Spec.Stations.Get(kind).Speed, 2 * Spec.Machines.Get(kind).Draws!.Value);
+        var (formerAt, assemblerAt) = (Doubled("former"), Doubled("assembler"));
+        Assert.Equal(formerAt, (w.M.Crafting.StationOf(former)!.Speed, w.M.Power.Draw(former)));
+        Assert.Equal(assemblerAt, (w.M.Crafting.StationOf(assembler)!.Speed, w.M.Power.Draw(assembler)));
         w.Do(new Craft(former, "gear", 1)).Do(new Craft(assembler, "circuit", 1)).Run();
-        Assert.Equal((2000, 2000), (w.M.Crafting.Progress(former), w.M.Crafting.Progress(assembler)));
+        Assert.Equal((formerAt.Speed, assemblerAt.Speed), (w.M.Crafting.Progress(former), w.M.Crafting.Progress(assembler)));
         w.Run();
-        Assert.Equal(6 + 4, Demand(w));
-        // A gear's 40 ticks in 20, a circuit's 80 in 40.
-        w.Run(20 - 2);
+        Assert.Equal(formerAt.Draws + assemblerAt.Draws, Demand(w));
+        // A gear and a circuit at the doubled speeds, each in the ticks it takes rounded up, the first two run.
+        int Ticks(string craft, int speed) => (Spec.Crafts.Get(craft).Ticks * 1000 + speed - 1) / speed;
+        int gear = Ticks("gear", formerAt.Speed), circuit = Ticks("circuit", assemblerAt.Speed);
+        Assert.True(gear < circuit, "the gear comes first");
+        w.Run(gear - 2);
         Assert.Equal(1, Held(w, former, "gear"));
-        w.Run(20);
+        w.Run(circuit - gear);
         Assert.Equal(1, Held(w, assembler, "circuit"));
     }
 

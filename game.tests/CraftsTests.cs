@@ -31,11 +31,14 @@ public class CraftsTests
     public void LaysEveryRecipeInItsFixedPlaceFourARowTwoRowsAtLeast()
     {
         Assert.Equal(4, Crafts.Columns);
-        Assert.Equal(["plate", "gear", "tube", "frame", "wire", "coil", "rotor", null, "fireAxe", "harpoon", "drill", null, "jetpack", "battery", "helmetLamp", null], Crafts.Places(Fabricator));
-        // The pod keeps its twelve; new crafts go to machines (0057): the electronics, soil and the motor at the Former (0060), the drone (0062), the arc module (0086).
-        Assert.Equal(Content.Crafts.All.Count - 6, Crafts.Places(Fabricator).Count(p => p != null));
-        Assert.Equal(["plate", "gear", "tube", "frame", "wire", "coil", "rotor", "motor", "soil", null, null, null], Crafts.Places(Content.Stations.Get("former")));
-        Assert.Equal(["circuit", "solarCell", null, null, "drone", null, null, null, "arcModule", null, null, null], Crafts.Places(Assembler));
+        // Each row of a station's recipes from the start of a row of four, two rows even for one.
+        Assert.Equal(["plate", "gear", null, null, "wire", null, null, null, "rotor", "coil", "tube", "frame"],
+            Crafts.Places(Fabricator with { Rows = [["plate", "gear"], ["wire"], ["rotor", "coil", "tube", "frame"]] }));
+        Assert.Equal(["circuit", null, null, null, null, null, null, null], Crafts.Places(Assembler with { Rows = [["circuit"]] }));
+        // No station lays more in a row than fits.
+        Assert.All(Content.Stations.All, s => Assert.All(s.Rows, row => Assert.InRange(row.Count, 1, Crafts.Columns)));
+        // Every craft has its place at some station: new ones go to machines (0057), not all of them to the pod.
+        Assert.All(Content.Crafts.All, c => Assert.Contains(Content.Stations.All, s => Crafts.Places(s).Contains(c.Item)));
     }
 
     [Fact]
@@ -106,8 +109,11 @@ public class CraftsTests
     [Fact]
     public void SaysAUnitsTimeAtThePodInSecondsToATenth()
     {
-        // The pod at a fifth of full speed: a wire 5 s, a plate 10, a rotor 15, a frame 20, the harpoon 25.
-        Assert.Equal(["5", "10", "15", "20", "25"], new[] { "wire", "plate", "rotor", "frame", "harpoon" }.Select(c => Crafts.Seconds(c, Fabricator)));
+        // Whole seconds or to a tenth, never more digits: at the pod's own speed, and at one that cuts seconds into thirds.
+        var thirds = Fabricator with { Speed = 300 };
+        Assert.All(Content.Crafts.All, c => Assert.Matches(@"^\d+(\.\d)?$", Crafts.Seconds(c.Item, Fabricator)));
+        Assert.All(Content.Crafts.All, c => Assert.Matches(@"^\d+(\.\d)?$", Crafts.Seconds(c.Item, thirds)));
+        Assert.Contains(Content.Crafts.All, c => Crafts.Seconds(c.Item, thirds).Contains('.'));
         Assert.All(Content.Crafts.All, c => Assert.InRange(
             double.Parse(Crafts.Seconds(c.Item, Fabricator), System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond,
             c.Ticks * 1000 / Fabricator.Speed - 1, c.Ticks * 1000 / Fabricator.Speed + 1));

@@ -10,7 +10,8 @@ The game is being ported from its TypeScript prototype
 
 ## Run
 
-Needs the .NET 8 SDK and Godot 4.7 (.NET build); the scripts look for Godot in
+Needs the .NET SDK 8.0.426 or a later 8.0.4xx patch (`global.json` pins it; `winget install
+Microsoft.DotNet.SDK.8` brings the newest) and Godot 4.7 (.NET build); the scripts look for Godot in
 `%USERPROFILE%\Tools\godot-4.7.2\` unless `STILLWAKE_GODOT` names the exe.
 
 - `play.cmd` — builds the C# and starts the game; arguments go to the game: `play.cmd --host`,

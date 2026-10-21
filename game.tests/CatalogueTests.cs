@@ -116,8 +116,11 @@ public class CatalogueTests
     [Fact]
     public void SearchesEveryTabByNameCaseIgnored()
     {
-        var walls = Tools.Matching(Tools.All, " WALL ").Select(t => t.Id).ToList();
-        Assert.Equal(["wallScrap", "wallIron", "wallSoil", "wallStone", "wallAlloy", "backWallScrap", "backWallIron", "backWallSoil", "backWallStone", "backWallAlloy"], walls);
+        // Every wall and back wall of every material, whatever materials there are, and nothing else.
+        var walls = Tools.Matching(Tools.All, " WALL ");
+        Assert.Equal(Tools.All.Where(t => t.Label.Contains("wall", StringComparison.OrdinalIgnoreCase)), walls);
+        Assert.Contains(walls, t => t.Id == "wallScrap");
+        Assert.Contains(walls, t => t.Id == "backWallScrap");
         Assert.Equal(["generator", "burnerGenerator"], Tools.Matching(Tools.All, "generator").Select(t => t.Id));
         Assert.Empty(Tools.Matching(Tools.All, "no such thing"));
     }
