@@ -29,7 +29,7 @@ public partial class CaveView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly BuildingModule _building;
-    private readonly Spec.Ground _ground;
+    private readonly Spec.PlanetType _type;
     private readonly Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> _lamps;
     private readonly int _across;
     /// <summary>The standing cave growths by chunk, and the cells of all of them.</summary>
@@ -57,9 +57,9 @@ public partial class CaveView : Node2D
     private readonly Heard2D _drip = Cues.Player2D(Game.Sound.CaveDrip, Game.Sound.World, voices: 2);
     private double _dripQuietS;
 
-    public CaveView(IGridQueries grid, BuildingModule building, Spec.Ground ground, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> lamps)
+    public CaveView(IGridQueries grid, BuildingModule building, Spec.PlanetType type, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> lamps)
     {
-        (_grid, _building, _ground, _lamps) = (grid, building, ground, lamps);
+        (_grid, _building, _type, _lamps) = (grid, building, type, lamps);
         _across = (grid.Width + Chunk - 1) / Chunk;
         AddChild(_sparkles);
         AddChild(_falls);
@@ -201,7 +201,7 @@ public partial class CaveView : Node2D
         {
             var look = CaveLooks.Of[plant.Kind];
             var kind = Spec.Flora.Get(plant.Kind);
-            int x = plant.Cell % w, y = plant.Cell / w, band = Terrain.BandOf(_ground, y);
+            int x = plant.Cell % w, y = plant.Cell / w, band = Terrain.BandOf(_type, y);
             uint hash = Hash(plant.Cell);
             var pictures = new List<(string Name, Vector2 At, int From, int Rows)>();
             if (plant.Kind == "moss")
@@ -610,7 +610,7 @@ public partial class CaveView : Node2D
                     }
                     else if (look.ByBand)
                     {
-                        for (int band = 0; band <= Spec.Flora.Bands.Count; band++) yield return $"caves/{kind}_{band}_{v}";
+                        for (int band = 0; band < CaveLooks.Bands; band++) yield return $"caves/{kind}_{band}_{v}";
                     }
                     else yield return $"caves/{kind}_{v}";
                 }

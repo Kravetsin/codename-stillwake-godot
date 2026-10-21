@@ -157,8 +157,8 @@ public class RuinsTests
     {
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(Ground.Planet, seed, out _, out var surface, out var spires);
-            Assert.Null(Wrong(Ground.Planet, l, spires, surface));
+            var l = Terrain.Generate(PlanetTypes.First, seed, out _, out var surface, out var spires);
+            Assert.Null(Wrong(PlanetTypes.First.Ground, l, spires, surface));
             // Spread along the planet: both sides of the middle hold one.
             Assert.Contains(spires, s => s.X < l.Width / 2);
             Assert.Contains(spires, s => s.X > l.Width / 2);
@@ -170,11 +170,11 @@ public class RuinsTests
     {
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(Ground.Small, seed, out _, out var surface, out var spires);
+            var l = Terrain.Generate(PlanetTypes.Small, seed, out _, out var surface, out var spires);
             var (x0, y0) = Assert.Single(spires);
             int highest = Enumerable.Range(x0, Ruins.SpireWide).Min(x => surface[x]);
             // Anchored at its highest ground, but where the small grid has no room for its tip or its body.
-            var g = Ground.Small with { SpireRise = highest - y0 };
+            var g = PlanetTypes.Small.Ground with { SpireRise = highest - y0 };
             Assert.Null(Wrong(g, l, spires, surface));
             int spawn = Assert.Single(l.CellsOf('S')) % l.Width;
             Assert.True(spawn < x0 || spawn >= x0 + Ruins.SpireWide, $"seed {seed}: spawn in the spire");
@@ -186,7 +186,7 @@ public class RuinsTests
     {
         foreach (uint seed in new uint[] { 1, 2, 3, 4, 5 })
         {
-            var w = new Scenario(Terrain.Generate(Ground.Small, seed)).Run(2);
+            var w = new Scenario(Terrain.Generate(PlanetTypes.Small, seed)).Run(2);
             Assert.Empty(w.M.Items.Floor);
             Assert.All(Ruins.Growths, kind => Assert.Contains(kind, Kinds(w)));
         }

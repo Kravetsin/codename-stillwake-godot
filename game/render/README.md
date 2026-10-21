@@ -2,7 +2,7 @@
 
 A planet's sky (0079) is `PlanetSky.cs`, shown by `Stars` in place of space on a surface with daylight: the "Stillwake"
 style's sky gradient, a pale gas giant, high cloud drifting, the sun added over it with its glint, then far mesas, a ridge
-and hills with spindly trees (`art/planet`), each layer repeating across every 2048 pixels. A pixel of art is a pixel of
+and hills with spindly trees (`art/planet`, the set its kind's `PlanetLooks.Backdrop` names, 0095), each layer repeating across every 2048 pixels. A pixel of art is a pixel of
 the world at the camera's zoom; the land's ground line lies on the world's surface (the spawn's ground), each layer
 following 0.1, 0.18 and 0.3 of the camera, the gradient 0.04; the sun, the giant and the clouds hang at fixed shares of
 the screen, so they stay in the sky however near the camera is. Under each layer its bottom colour fills the screen.

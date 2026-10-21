@@ -52,7 +52,7 @@ public sealed partial class BuildingModule
         int Cell() => Below(8) == 0 ? Anywhere() : Within(FuzzMargin);
         var marks = State.Plans.Where(p => p.Clear != null).ToList();
         // On grown ground digging is most of what heroes do: half the draws there are digs.
-        switch (Rules.Ground != null && Below(2) == 0 ? 5 : Below(6))
+        switch (Rules is Content.PlanetType && Below(2) == 0 ? 5 : Below(6))
         {
             case 5:
                 {

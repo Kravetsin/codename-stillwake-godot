@@ -259,10 +259,10 @@ public class HomesTests
             // Hero 0 beamed down to a small planet, its one home grown with it.
             var w = new Scenario(".S..\n####", seed);
             w.Do(new Enter(w.M.Crew.Spawn)).Run();
-            w.Do(new OpenSurface(Content.Surfaces.SmallPlanet.Id)).Run();
+            w.Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
             w.Do(new Transfer(1)).Run(2);
             var m = w.On(1);
-            var l = Terrain.Generate(Ground.Small, w.World.Surfaces[1].Seed, out _, out _, out _, out var homes);
+            var l = Terrain.Generate(PlanetTypes.Small, w.World.Surfaces[1].Seed, out _, out _, out _, out var homes);
             var (hx, hy, home) = Assert.Single(homes);
             Assert.Empty(m.Items.Floor);
             // Every piece of its scheme stands where its prefab sets it.
@@ -375,8 +375,8 @@ public class HomesTests
     {
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(Ground.Planet, seed, out _, out var surface, out var spires, out var homes);
-            Assert.Null(Wrong(Ground.Planet, l, spires, homes, surface));
+            var l = Terrain.Generate(PlanetTypes.First, seed, out _, out var surface, out var spires, out var homes);
+            Assert.Null(Wrong(PlanetTypes.First.Ground, l, spires, homes, surface));
             Assert.Equal(Ruins.Homes.Select(h => h.Id).Order(StringComparer.Ordinal), homes.Select(h => h.Home.Id).Order(StringComparer.Ordinal));
         }
     }
@@ -387,8 +387,8 @@ public class HomesTests
         var schemes = new HashSet<string>(StringComparer.Ordinal);
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(Ground.Small, seed, out _, out var surface, out var spires, out var homes);
-            Assert.Null(Wrong(Ground.Small, l, spires, homes, surface));
+            var l = Terrain.Generate(PlanetTypes.Small, seed, out _, out var surface, out var spires, out var homes);
+            Assert.Null(Wrong(PlanetTypes.Small.Ground, l, spires, homes, surface));
             schemes.Add(homes.Single().Home.Id);
         }
         // The fuzz digs every scheme's pieces across its seeds.
@@ -430,7 +430,7 @@ public class HomesTests
         Assert.DoesNotContain(Ruins.SpireFurnishing, p => Ruins.Spire[p.Y][p.X] is Ruins.Cache or Ruins.Shrine);
         foreach (uint seed in Enumerable.Range(1, 20).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(Ground.Small, seed, out _, out _, out var spires, out _);
+            var l = Terrain.Generate(PlanetTypes.Small, seed, out _, out _, out var spires, out _);
             var (x0, y0) = spires.Single();
             Assert.All(Ruins.SpireFurnishing, q => Assert.Contains(l.Flora!, p => p.Kind == q.Kind && p.Cell == (y0 + q.Y) * l.Width + x0 + q.X));
         }

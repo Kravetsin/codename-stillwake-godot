@@ -84,10 +84,10 @@ public class ContentTests
         // One id among the surface's and the caves' (0080): a felled cell names no kind, but the client draws by id.
         var ids = Flora.All.Select(k => k.Id).Concat(Flora.Cave.Select(k => k.Id)).ToList();
         Assert.Equal(ids.Count, ids.Distinct().Count());
-        Assert.Equal(Flora.Bands.Order(), Flora.Bands);
+        Assert.Equal(PlanetTypes.First.Bands.Order(), PlanetTypes.First.Bands);
         Assert.All(Flora.Cave, k =>
         {
-            Assert.Equal(Flora.Bands.Count + 1, k.Chances.Count);
+            Assert.Equal(PlanetTypes.First.Bands.Count + 1, k.Chances.Count);
             Assert.True(k.Tall >= 1 && k.Wide >= 0 && k.Apart >= 1 && k.Chances.All(c => c >= 0), k.Id);
             // Grown by some chance in some band, or set by a ruin (0085) and never grown.
             Assert.Equal(!Ruins.Growths.Contains(k.Id), k.Chances.Any(c => c > 0));
@@ -98,7 +98,7 @@ public class ContentTests
         // A slot draws under 10000 and walks its anchor's chances; at their most, in a hall's dense patch, they may pass it,
         // which only crowds out the last of them: the commonest, listed last.
         foreach (var on in Enum.GetValues<Flora.Anchor>())
-            for (int band = 0; band <= Flora.Bands.Count; band++)
+            for (int band = 0; band <= PlanetTypes.First.Bands.Count; band++)
                 Assert.InRange(Flora.Cave.Where(k => k.On == on).Sum(k => k.Chances[band]), 0, 10000);
     }
 
@@ -147,7 +147,7 @@ public class ContentTests
                 rise += v;
             }
         }
-        int aboard = Rise(Hero.Gravity), planet = Rise(Surfaces.Planet.Fall(Hero.Gravity));
+        int aboard = Rise(Hero.Gravity), planet = Rise(PlanetTypes.First.Fall(Hero.Gravity));
         Assert.True(aboard > 3 * Cell && aboard < 4 * Cell, $"rise {aboard}");
         Assert.True(planet > 6 * Cell && planet < 7 * Cell, $"rise {planet}");
     }
@@ -1087,7 +1087,7 @@ public class ContentTests
         // Magnetite lies only in the heat's cracks, and they only in the band over the bedrock.
         var magnetic = Flora.Cave.Where(k => k.Yields.Any(y => y.Item == "magnetite")).ToList();
         Assert.Equal(["heatCrack"], magnetic.Select(k => k.Id));
-        Assert.All(magnetic, k => Assert.Equal([0, 0, 0], k.Chances.Take(Flora.Bands.Count)));
+        Assert.All(magnetic, k => Assert.Equal([0, 0, 0], k.Chances.Take(PlanetTypes.First.Bands.Count)));
     }
 
     /// <summary>

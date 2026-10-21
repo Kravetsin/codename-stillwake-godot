@@ -36,7 +36,7 @@ public class GrownSaveTests
     [Fact]
     public void AFreshPlanetSavesItsSeedAndNoCellsAtAll()
     {
-        var w = Down(Content.Surfaces.Planet);
+        var w = Down(Content.PlanetTypes.First);
         string save = w.World.Save();
         var grid = GridOf(save, 1);
         Assert.Empty(grid["edits"]!.AsArray());
@@ -55,7 +55,7 @@ public class GrownSaveTests
     [Fact]
     public void ASaveHoldsTheCellsDugOrBuiltAndNoneChangedBack()
     {
-        var w = Down(Content.Surfaces.SmallPlanet);
+        var w = Down(Content.PlanetTypes.Small);
         var m = w.On(1);
         int spawn = m.Crew.Spawn, under = spawn + m.Grid.Width;
         w.Do(new Dig(under, "fireAxe")).Do(new Dig(under, "fireAxe")).Run();
@@ -88,7 +88,7 @@ public class GrownSaveTests
             select (steps: steps.Take(60).ToList(), reload);
         return Prop.ForAll(gen.ToArbitrary(), t =>
         {
-            var w = Down(Content.Surfaces.SmallPlanet);
+            var w = Down(Content.PlanetTypes.Small);
             for (int i = 0; i < t.steps.Count; i++)
             {
                 var m = w.On(1);
@@ -124,7 +124,7 @@ public class GrownSaveTests
         var grid = w.On(1).Grid;
         var surface = w.World.Surfaces[1];
         var ground = new GridModule();
-        ground.Create(Terrain.Generate(Content.Ground.Small, surface.Seed));
+        ground.Create(Terrain.Generate(Content.PlanetTypes.Small, surface.Seed));
         int[][] Layers(GridModule g) => [g.StructureLayer.ToArray(), g.MaterialLayer.ToArray(), g.ConduitLayer.ToArray(), g.BackLayer.ToArray(), g.BackMaterialLayer.ToArray(), g.ShapeLayer.ToArray()];
         var (now, grown) = (Layers(grid), Layers(ground));
         var differ = Enumerable.Range(0, grid.Width * grid.Height).Where(c => Enumerable.Range(0, 6).Any(l => now[l][c] != grown[l][c])).ToList();
@@ -151,7 +151,7 @@ public class GrownSaveTests
     [Fact]
     public void ACaveIsOutsideNeverARoomAndARoomBuiltUnderTheSkyIsOne()
     {
-        var w = Down(Content.Surfaces.SmallPlanet);
+        var w = Down(Content.PlanetTypes.Small);
         var m = w.On(1);
         var g = m.Grid;
         // Every open cell under the surface, with its natural back wall, is outside.
