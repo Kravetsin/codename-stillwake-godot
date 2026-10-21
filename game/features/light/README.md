@@ -74,7 +74,7 @@ Numbers from `game/Content/Light.cs`.
 - **Spots:** first each flash of `Flares.Shared` (0075: a hit's, a break's, a spark burst's flicker, a
   molten spot, a jetpack's pool, a venting room's red beat), at its strength, keeping its own keep out to its own reach;
   then each electric arc (`Bolts.Shared`) but a fine one at its middle in cyan, `Fx.BoltLight` of its brightness, less for a short one
-  (a lamp's spark of an arc barely, a long one the room round it; a fine one lights nothing, the arc drill's coil
+  (a lamp's spark of an arc barely, a long one the room round it; a fine one lights nothing, an arc-fitted drill's coil
   holding a pulsing light of its own); then each luminous particle
   that gives light (`Glims.Shared`, `Luminous.Light`) at `Light.Particle` times `Fx.ParticleLight` of its
   colour on its ramp as it fades,

@@ -12,8 +12,9 @@ namespace Stillwake.Game.Features.Items;
 /// stack is picked, its icon inset 4 px and its count in the corner; on the hotbar the key that chooses it in
 /// the top-left corner, and in the top-right its mark (<see cref="SlotMark"/>), a glowing line icon (0097): a flame, a
 /// crucible or a sprout while the open station burns, smelts or grows its item, or a module's tech icon where the open
-/// machine takes it (0086), else a violet "?" while its item is not analysed. Empty, a station's slot shows the faint
-/// ghost of the mark of what goes in it (<see cref="GhostMark"/>), lit while what is carried would.
+/// machine takes it (0086), else a violet "?" while its item is not analysed; in the bottom-left a tool's badge, the tech icon
+/// of the module fitted into it (0098). Empty, a station's slot shows the faint ghost of the mark of what goes in it
+/// (<see cref="GhostMark"/>), lit while what is carried would.
 /// </summary>
 public partial class SlotBox : Panel
 {
@@ -77,6 +78,8 @@ public partial class SlotBox : Panel
     private GlowIcon? _ghost;
     /// <summary>Its corner's mark, the open station's or a module's tech icon or the "?"; made when first shown.</summary>
     private GlowIcon? _corner;
+    /// <summary>A fitted tool's badge (0098): its module's tech icon in the bottom-left corner; made when first shown.</summary>
+    private GlowIcon? _badge;
     /// <summary>A battery's charge, a thin bar along the icon's foot (0053): no numbers.</summary>
     private readonly ColorRect _track = new() { Color = new Color("0b1220"), MouseFilter = MouseFilterEnum.Ignore, Visible = false };
     private readonly ColorRect _fill = new() { MouseFilter = MouseFilterEnum.Ignore };
@@ -144,6 +147,25 @@ public partial class SlotBox : Panel
         _corner.Visible = true;
     }
 
+    /// <summary>The badge of the module fitted into <paramref name="stack"/>'s tool, its tech's icon, bottom-left; none for a plain stack or none.</summary>
+    private void ShowBadge(Stack? stack)
+    {
+        if (stack?.Module is not { } module || !Content.Modules.TryGet(module, out var spec))
+        {
+            if (_badge != null) _badge.Visible = false;
+            return;
+        }
+        var look = TechLooks.Of(spec.Tech);
+        if (_badge == null)
+        {
+            var (x, y) = Slots.BadgeAt(_size);
+            AddChild(_badge = new GlowIcon(look, Slots.MarkSide, IconShow.Mark) { Position = new Vector2(x, y) });
+            MoveChild(_badge, _keptDot.GetIndex());
+        }
+        _badge.Set(look, IconShow.Mark);
+        _badge.Visible = true;
+    }
+
     /// <summary>The ghost of <paramref name="mark"/> filling the inset, lit while <paramref name="lit"/>; none for <see cref="SlotMark.None"/>.</summary>
     private void ShowGhost(SlotMark mark, bool lit)
     {
@@ -177,6 +199,7 @@ public partial class SlotBox : Panel
     public void Show(Stack? stack, bool chosen, bool picked, bool hovered, SlotMark mark, SlotGlow? glow = null, bool lights = false)
     {
         ShowCorner(stack == null ? null : LookOf(mark, stack.Item));
+        ShowBadge(stack);
         ShowGhost(stack == null && Kept == null ? GhostMark : SlotMark.None, lights);
         var box = glow switch
         {
@@ -211,6 +234,7 @@ public partial class SlotBox : Panel
         _icon.SelfModulate = shown;
         _count.SelfModulate = shown;
         if (_corner != null) _corner.SelfModulate = shown;
+        if (_badge != null) _badge.SelfModulate = shown;
     }
 
     private Tween? _shake;

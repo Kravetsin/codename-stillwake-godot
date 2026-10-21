@@ -97,8 +97,14 @@ public sealed record ItemCard(
     /// <summary>What the open fed station makes of it, on the line of <see cref="Here"/>; null for none.</summary>
     public CardOutput? Output { get; init; }
 
-    /// <summary>A module's technology and what it does, a strip at its card's bottom (0086); null for anything else.</summary>
+    /// <summary>
+    /// A module's technology and what it does, a strip at its card's bottom (0086); a tool's module fitted, named on the same
+    /// strip (0098); null for anything else.
+    /// </summary>
     public CardTech? Tech { get; init; }
+
+    /// <summary>The module fitted into this tool (0098), by item: its picture drawn with it; null for none.</summary>
+    public string? Fitted { get; init; }
 
     /// <summary>Its picture: its item's, or the empty battery's for one holding no charge.</summary>
     public string Picture { get; init; } = Item;
@@ -108,7 +114,7 @@ public sealed record ItemCard(
         && (Tiles == null ? other.Tiles == null : other.Tiles != null && Tiles.SequenceEqual(other.Tiles))
         && Effects.SequenceEqual(other.Effects) && Use == other.Use && Worn == other.Worn && Headline == other.Headline && Detail == other.Detail
         && Unknown == other.Unknown && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw
-        && Here == other.Here && Equals(Output, other.Output) && Tech == other.Tech;
+        && Here == other.Here && Equals(Output, other.Output) && Tech == other.Tech && Fitted == other.Fitted;
 
     public override int GetHashCode()
     {
@@ -124,6 +130,7 @@ public sealed record ItemCard(
         hash.Add(Output);
         hash.Add(Headline);
         hash.Add(Tech);
+        hash.Add(Fitted);
         foreach (var effect in Effects) hash.Add(effect);
         foreach (var tile in Tiles ?? []) hash.Add(tile);
         return hash.ToHashCode();

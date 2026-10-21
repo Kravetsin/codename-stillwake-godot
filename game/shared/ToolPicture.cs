@@ -10,7 +10,7 @@ namespace Stillwake.Game.Shared;
 /// A tool's picture on its card (the item card mockup, layout A): its held picture whole, <see cref="CardLook.ToolScale"/>
 /// times and crisp, in a small dark window. A drill runs on its own, over and over: its bit turning through its frames,
 /// its lamp lit, and its light thrown as the hand's is (<see cref="DrillLight"/>) into particles of its own, drawn over it
-/// at <see cref="CardLook.EffectScale"/> screen pixels a pixel of the world: the arc drill's coil crackling in bursts, and
+/// at <see cref="CardLook.EffectScale"/> screen pixels a pixel of the world: an arc-fitted drill's coil crackling in bursts, and
 /// at its point, as if it bit a wreck, a wreck's hits at its pace (<see cref="HitBurst"/>, 0094).
 /// </summary>
 public partial class ToolPicture : Control
@@ -110,8 +110,8 @@ public partial class ToolPicture : Control
         AddChild(effects);
     }
 
-    /// <summary>The picture of <paramref name="item"/> held, for its card; null for an item held as no picture.</summary>
-    public static ToolPicture? Of(string item) => HeldLook.Of(item) is { } look ? new ToolPicture(look, item) : null;
+    /// <summary>The picture of <paramref name="item"/> held, <paramref name="module"/> fitted into it (0098), for its card; null for an item held as no picture.</summary>
+    public static ToolPicture? Of(string item, string? module = null) => HeldLook.Of(item, module) is { } look ? new ToolPicture(look, item) : null;
 
     public override void _Draw() => DrawWindow(this, Size);
 

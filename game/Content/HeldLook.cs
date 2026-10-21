@@ -46,8 +46,9 @@ public sealed record HeldLook(
         Both: new TwoHands((12, 10.5), (7.5, 10.5)));
 
     /// <summary>
-    /// The arc drill (0075): the drill's picture, its coil tinted (a placeholder, <c>art/hero_arc_drill*.png</c>); while it runs,
-    /// arcs crawl over its <see cref="Coil"/>, the box of the stock it is wound round, and now and then leap off it.
+    /// The drill with the arc module fitted (0075, 0098): the drill's picture, its coil tinted (a placeholder,
+    /// <c>art/hero_arc_drill*.png</c>); while it runs, arcs crawl over its <see cref="Coil"/>, the box of the stock it is
+    /// wound round, and now and then leap off it.
     /// </summary>
     public static readonly HeldLook ArcDrill = Drill with
     {
@@ -65,13 +66,14 @@ public sealed record HeldLook(
     /// <summary>The colour of a running item's <see cref="Lamp"/>, "rrggbb": in the hand and on its card.</summary>
     public const string LampColour = "9dff8a";
 
-    /// <summary>How <paramref name="item"/> looks in the hand; none for an item held as no picture.</summary>
-    public static HeldLook? Of(string? item) =>
-        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill
-        : item == Content.Weapons.ArcDrill.Item ? ArcDrill : null;
+    /// <summary>How <paramref name="item"/> looks in the hand, <paramref name="module"/> fitted into it (0098); none for an item held as no picture.</summary>
+    public static HeldLook? Of(string? item, string? module = null) =>
+        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon
+        : item == Content.Weapons.Drill.Item ? module == Content.Modules.Arc.Item ? ArcDrill : Drill
+        : null;
 
-    /// <summary>Whether <paramref name="item"/> is a drill, the plain or the arc drill: aimed, run on the belt, drilling what its bit touches.</summary>
-    public static bool IsDrill(string? item) => item == Content.Weapons.Drill.Item || item == Content.Weapons.ArcDrill.Item;
+    /// <summary>Whether <paramref name="item"/> is the drill, a module in it or not: aimed, run on the belt, drilling what its bit touches.</summary>
+    public static bool IsDrill(string? item) => item == Content.Weapons.Drill.Item;
 }
 
 /// <summary>

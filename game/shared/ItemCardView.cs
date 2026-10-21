@@ -91,7 +91,7 @@ public static class ItemCardView
     private static Control ToolCard(ItemCard card)
     {
         var column = Column(0);
-        if (ToolPicture.Of(card.Item) is { } picture)
+        if (ToolPicture.Of(card.Item, card.Fitted) is { } picture)
         {
             picture.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
             column.AddChild(Padded(picture, 5, 5, 7, 0));

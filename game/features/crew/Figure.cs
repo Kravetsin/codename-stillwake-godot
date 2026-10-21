@@ -288,6 +288,9 @@ public partial class Figure : Node2D
     /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
     public string? Wields { get; set; }
 
+    /// <summary>The module fitted into what it wields, as the sim says of the stack its hero works with (0098): the drill's arc coil; none for most.</summary>
+    public string? Fitted { get; set; }
+
     /// <summary>Where the harpoon or the drill held aims, in pixels of the world: the arm straight, the barrel's or the bit's line through it; none to let it hang.</summary>
     public Vector2? Aim { get; set; }
 
@@ -533,7 +536,7 @@ public partial class Figure : Node2D
         bool working = _workAt != null && Poses.HoldsIn(pose);
         _workMs = working ? _workMs + elapsedMs : 0;
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
-        var item = HeldLook.Of(Wields);
+        var item = HeldLook.Of(Wields, Fitted);
         bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding;
         bool chopping = _chop != null && item == HeldLook.FireAxe && inHand;
         bool aiming = Aim != null && item?.Aimed == true && inHand, drill = HeldLook.IsDrill(Wields);

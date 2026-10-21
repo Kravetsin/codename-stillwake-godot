@@ -40,6 +40,9 @@ public static class Slots
     /// <summary>Where a corner mark's top-left sits in a slot <paramref name="slot"/> wide: its top-right, the top-left being the hotbar's digit.</summary>
     public static (int X, int Y) MarkAt(int slot) => (slot - MarkSide - MarkMargin, MarkMargin);
 
+    /// <summary>Where a fitted tool's badge (0098), its module's tech icon at a mark's size, sits: the bottom-left corner, the count being bottom-right.</summary>
+    public static (int X, int Y) BadgeAt(int slot) => (MarkMargin, slot - MarkSide - MarkMargin);
+
     /// <summary>A station slot's ghost's side (0097), as a module socket's: the slot inside its icon's inset.</summary>
     public static int GhostSide(int slot) => slot - 2 * Inset;
 

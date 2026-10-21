@@ -235,4 +235,23 @@ public class ItemCardTests
         Assert.NotEqual(card, card with { Tech = null });
         Assert.Null(ItemCards.Of("iron", unknown: false).Tech);
     }
+
+    [Fact]
+    public void NameTheModuleFittedIntoADrillInOneLineItsNumbersAsTheDrillsAndItsPictureTheArcs()
+    {
+        string drill = Spec.Weapons.Drill.Item, arc = Spec.Modules.Arc.Item;
+        var plain = With(true).TipOf(new Stack(drill, 1)).Card!;
+        var fitted = With(true).TipOf(new Stack(drill, 1, Module: arc)).Card!;
+        Assert.Equal(new CardTech("arc", "Arc module fitted"), fitted.Tech);
+        Assert.Equal(arc, fitted.Fitted);
+        Assert.Null(plain.Tech);
+        Assert.Null(plain.Fitted);
+        // No change to its tiles: what the module adds is felt, not read (0098).
+        Assert.Equal(plain.Tiles, fitted.Tiles);
+        Assert.NotEqual(plain, fitted);
+        // In the hand and on the card, the arc drill's coil.
+        Assert.Same(HeldLook.ArcDrill, HeldLook.Of(drill, arc));
+        Assert.Same(HeldLook.Drill, HeldLook.Of(drill));
+        Assert.True(HeldLook.IsDrill(drill));
+    }
 }

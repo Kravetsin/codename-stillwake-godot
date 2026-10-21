@@ -48,7 +48,7 @@ namespace Stillwake.Game;
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>, and with <c>--marks &lt;item&gt; --into &lt;slot&gt;</c> that machine emptied and the item carried over its slot, <see cref="MarksDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
-/// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand, <c>--arc-drill</c> with the arc drill), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
+/// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand, <c>--arc-drill</c> with the arc module in the drill), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>), <c>--breathe</c> a canister breathed and the pod's air breathed again (<see cref="BreatheDemo"/>; <c>--breathe-air</c> only the air), <c>--handbook</c> the Handbook opened on a world that has found ten kinds (<see cref="HandbookDemo"/>),
 /// <c>--shimmer-demo</c> with <c>--testbed --near=furnace</c> aims at the furnace, plans, marks and welds over it (<see cref="ShimmerDemo"/>),
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
@@ -294,8 +294,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--handbook")) AddChild(new HandbookDemo(debrisPage));
         if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
-        if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
-        if (Has("--arc") && _items != null) AddChild(new ArcDemo(_items, _hands.Ui, () => _m));
+        if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));        if (Has("--arc") && _items != null) AddChild(new ArcDemo(_items, _hands.Ui, () => _m));
         if (Arg("--marks") is { } marked && Opens is { } marking && _items != null)
             AddChild(new MarksDemo(_items, marking, marked, int.Parse(Arg("--into") ?? "0"), () => _m));
         if ((Has("--breathe") || Has("--breathe-air")) && _items != null) AddChild(new BreatheDemo(_items, () => _m, canister: Has("--breathe")));
@@ -320,8 +319,11 @@ public partial class Main : Node2D, ITogether
 
     private bool Has(string flag) => _args.Contains(flag);
 
-    /// <summary><c>--arc-drill</c>, with <c>--asteroid</c>, <c>--planet</c> or <c>--ground</c>: the arc drill in the hero's hands at the start.</summary>
-    private string? ArcDrill => Has("--arc-drill") ? Content.Weapons.ArcDrill.Item : null;
+    /// <summary>
+    /// <c>--arc-drill</c>, with <c>--asteroid</c>, <c>--planet</c> or <c>--ground</c>: a drill with the arc module fitted in the hero's
+    /// hands at the start (0098), the one way a module gets into a tool till the tool bench.
+    /// </summary>
+    private string? ArcDrill => Has("--arc-drill") ? Content.Modules.Arc.Item : null;
 
     /// <summary><c>--open=&lt;kind&gt;</c>: the machine of that kind the hero opens at the start (<see cref="OpenDemo"/>).</summary>
     private string? Opens => _args.FirstOrDefault(a => a.StartsWith("--open=", StringComparison.Ordinal))?[7..];
@@ -378,7 +380,9 @@ public partial class Main : Node2D, ITogether
             world = GroundDemo.Seed(world, Modules, ArcDrill);
             _ground = new GroundDemo(ground[9..]) { TakeAt = Arg("--take-at") is { } take ? (int)(double.Parse(take, System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond) : null, Offset = int.Parse(Arg("--ground-offset") ?? "0") };
             if (ground[9..] is "drill" or "poses") AddChild(new GroundHands(_ground));
-            else if (GroundDemo.Hits(ground[9..])) AddChild(new GroundHands(_ground, slot: Has("--axe") ? Key.Key1 : Key.Key2));
+            // With --arc-drill the fitted drill is the first slot and the axe the third (GroundDemo.Seed).
+            else if (GroundDemo.Hits(ground[9..]))
+                AddChild(new GroundHands(_ground, slot: Has("--axe") ? (ArcDrill != null ? Key.Key3 : Key.Key1) : ArcDrill != null ? Key.Key1 : Key.Key2));
             else if (GroundDemo.Caves(ground[9..])) AddChild(new GroundHands(_ground, dig: false));
         }
         // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077).

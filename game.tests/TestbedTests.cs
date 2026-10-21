@@ -40,12 +40,11 @@ public class TestbedTests
         var crate = m.Items.Crate(Crates(m)[0]);
         var farm = m.Items.Crate(Crates(m)[1]);
         Assert.All(Testbed.Carried.Where(i => !Testbed.InSupply.Contains(i.Id)), item => Assert.Contains(new Stack(item.Id, item.Stack), Testbed.InFarmCrate(item.Id) ? farm : crate));
-        // What is found and never made, the arc drill, in the supply crate by the door.
-        Assert.Equal(["arcDrill"], Testbed.Found);
-        Assert.Contains(new Stack("arcDrill", 1), m.Items.Crate(CrateAt(m, Testbed.Supply)));
+        // A drill with the arc fitted (0098), in the supply crate by the door: no bench fits one yet.
+        Assert.Contains(new Stack(Spec.Weapons.Drill.Item, 1, Module: Spec.Modules.Arc.Item), m.Items.Crate(CrateAt(m, Testbed.Supply)));
         Assert.Contains(new Stack(Spec.HelmetLamp.Item, 1), m.Items.Crate(CrateAt(m, Testbed.Supply)));
-        // An arc module for each station it fits (0086): the dev's way to one before the ruins give its coil.
-        Assert.Equal(Spec.Modules.Arc.Hosts.Count, m.Items.Crate(CrateAt(m, Testbed.Supply)).Count(s => s?.Item == Spec.Modules.Arc.Item));
+        // An arc module for each station it fits (0086): the dev's way to one before the ruins give its shard.
+        Assert.Equal(3, m.Items.Crate(CrateAt(m, Testbed.Supply)).Count(s => s?.Item == Spec.Modules.Arc.Item));
         Assert.Equal(Testbed.FarmCrate.Select(i => new Stack(i, Spec.Items.Get(i).Stack)), farm.Where(s => s != null));
         Assert.DoesNotContain(crate, stack => stack is { } s && Spec.Wreckage.HpOf(s.Item) != null);
         Assert.Contains(crate, stack => stack is { Item: "circuit" });

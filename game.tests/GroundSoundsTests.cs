@@ -130,7 +130,6 @@ public class GroundSoundsTests
     {
         // Every hit is heard, the drill's 10 a second too: a run of them, overlapping, about as loud as the axe's one by one.
         Assert.Equal(S.DrillHitDb, GroundSounds.HitDbOf(Drill));
-        Assert.Equal(S.DrillHitDb, GroundSounds.HitDbOf(Spec.Weapons.ArcDrill.Item));
         Assert.Equal(0, GroundSounds.HitDbOf(Axe));
     }
 
@@ -182,24 +181,26 @@ public class GroundSoundsTests
             """) with { Flora = [(2, "bush"), (3, "tuft"), (4, "acacia")] };
         var world = new TestWorld(layout);
         var m = world.M;
-        Assert.Same(S.HitSoil, GroundSounds.HitAt(m.Grid, m.Building, 8 + 1, Axe));
+        Assert.Same(S.HitSoil, GroundSounds.HitAt(m.Grid, m.Building, 8 + 1, Spec.Weapons.Axe.Damage));
         // A tuft falls to any hit: its fall alone is heard.
-        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 3, Axe));
+        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 3, Spec.Weapons.Axe.Damage));
         // A tree's last hit chops as it falls.
-        Assert.Same(S.ChopWood, GroundSounds.HitAt(m.Grid, m.Building, 4, Axe));
+        Assert.Same(S.ChopWood, GroundSounds.HitAt(m.Grid, m.Building, 4, Spec.Weapons.Axe.Damage));
         // A bush takes two of the axe's hits: the first is heard, the second fells it and its fall says so.
-        Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Axe));
+        Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Spec.Weapons.Axe.Damage));
         // Any tool's hit sounds as what it hits: the drill's on soil, a tree, a bush as the axe's.
-        Assert.Same(S.HitSoil, GroundSounds.HitAt(m.Grid, m.Building, 8 + 1, Drill));
-        Assert.Same(S.ChopWood, GroundSounds.HitAt(m.Grid, m.Building, 4, Drill));
-        Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Drill));
-        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 3, Drill));
+        Assert.Same(S.HitSoil, GroundSounds.HitAt(m.Grid, m.Building, 8 + 1, Spec.Weapons.Drill.Damage));
+        Assert.Same(S.ChopWood, GroundSounds.HitAt(m.Grid, m.Building, 4, Spec.Weapons.Drill.Damage));
+        Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Spec.Weapons.Drill.Damage));
+        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 3, Spec.Weapons.Drill.Damage));
         world.Step(new Dig(2, Axe) { From = 0 });
         Assert.Contains(m.Building.Cracks, c => c.Cell == 2);
-        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 2, Axe));
+        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 2, Spec.Weapons.Axe.Damage));
         // The drill's smaller bite leaves it standing one hit more: that hit is heard.
-        Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Drill));
+        Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Spec.Weapons.Drill.Damage));
+        // With the arc fitted (0098) its bite is the axe's: that hit fells it, and the fall says so.
+        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 2, Sim.Items.Boost.Gain(Spec.Weapons.Drill.Damage, Spec.Modules.Arc.Damage)));
         // Nothing there, nothing heard.
-        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 6, Axe));
+        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 6, Spec.Weapons.Axe.Damage));
     }
 }

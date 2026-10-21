@@ -56,7 +56,7 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
 - **Emitted by (slice 2):** the hero's figure (`crew/Figure.cs`) — a running boot's motes and veil, a landing's grains,
   motes, veils and flat ring; the jetpack (`JetPlume`) — its core, streaks, motes, pool and shimmer; the harpoon
   (`RodLight`) — the shot's glint and gas, the rod's trail and wake, the bite, the bead, the zip home; a drill
-  (`render/DrillLight`) — the arc drill's fine arcs, crawling and leaping sparks and haze, only the tool's own; the air (`AirView`, `VentLight`) —
+  (`render/DrillLight`) — an arc-fitted drill's fine arcs, crawling and leaping sparks and haze, only the tool's own; the air (`AirView`, `VentLight`) —
   breaches' jets, condensation, shimmer and frost, wind lines, the red beat, fresh air from filling vents; a pod's
   hatch (`PodView`) — vapour; drones (`DroneLight`) — rotor discs and glints, dust and veils spread along a floor close under them, the lamp's trail,
   shimmer, a pad's puff; doors (`DoorLight`) — the lit edge, the slot's motes, the seal's ring, glint, dust and hiss;
@@ -81,7 +81,7 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   thing (`Flares.Trail`, `Bloom`) and taken for drawing once a frame (`Flares.TakeFrame`): the layer runs after every
   feature (`ProcessPriority` 100), so what they stamp is drawn the frame they stamp it. Arcs (`Bolts`): a rim in their
   tint (`BoltTint`: cyan, or the arc module's violet, 0086) then a white core, a glow and a light in the tint, their shape kept along and across the line between their ends so a
-  held shape stays on ends that move. A fine arc (slice 3, the arc drill's coil) is a hair of white-blue light a streak's
+  held shape stays on ends that move. A fine arc (slice 3, an arc-fitted drill's coil) is a hair of white-blue light a streak's
   width in a blue haze twice as wide, folded twice at least and jagged, rolled anew every frame, with no glow and no light.
 - **Light (0019):** flashes first, then arcs, then luminous particles that give light, as spots of the light feature (`LightView`), at most `Fx.MostLights` (48) together.
 - **Heat shimmer:** a `Shimmer` node per hot thing, under the flames and over what is behind them: the screen

@@ -23,7 +23,7 @@ public static class Fx
     public const float BoltLight = 0.22f;
 
     /// <summary>
-    /// How lively a running arc drill's coil is (slice 3), 1 as picked: its fine arcs, crawling sparks, leaps and glints a
+    /// How lively the coil of a running drill with the arc fitted is (slice 3), 1 as picked: its fine arcs, crawling sparks, leaps and glints a
     /// second are times this; its haze pulses as it is.
     /// </summary>
     public const double Crackle = 1;

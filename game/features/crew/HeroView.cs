@@ -524,7 +524,7 @@ public partial class HeroView : Node2D
             var dig = Aiming.DigAt(m, client.Id, _current, _swing.At, Content.Weapons.Axe.Item);
             if (dig != null)
             {
-                Struck(_groundHits, m, dig, _current);
+                Struck(_groundHits, m, dig, _current, client.Id);
                 client.Send(dig);
             }
             // A blade that bites is drawn stopped on contact a moment (0075).
@@ -584,7 +584,7 @@ public partial class HeroView : Node2D
             : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
             : null;
-        ShowHands(_figure, _wields, _busy, _swing.Phase is double phase ? (_swing.At, phase) : null);
+        ShowHands(_figure, _wields, FittedOf(m, client.Id, _wields), _busy, _swing.Phase is double phase ? (_swing.At, phase) : null);
         if (uses.Open is int open) _ui.OpenCrate.Set(open);
         // A crate stays open while the hero can reach it, awake.
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
@@ -607,7 +607,7 @@ public partial class HeroView : Node2D
         if (wreck) _drillChop.PlayAt(_figure.Muzzle ?? _figure.GlobalPosition, 1, GroundSounds.HitDbOf(drill!));
         if (Aiming.DigAt(m, client.Id, _current, at, drill!) is { } dig)
         {
-            Struck(_groundHits, m, dig, _current);
+            Struck(_groundHits, m, dig, _current, client.Id);
             client.Send(dig);
         }
     }
@@ -649,18 +649,20 @@ public partial class HeroView : Node2D
     /// A tool's <paramref name="dig"/> by <paramref name="hero"/> heard and seen where it strikes, as the wall or growth it lands
     /// on sounds and looks hit, whatever the tool (0093, 0094): on the face of it turned toward the hero (<see cref="Impacts.On"/>),
     /// heard on <paramref name="voices"/>. Every hit, a drill's as often as it hits, each throwing its share of the axe's look,
-    /// the one that breaks or fells it the whole (<see cref="Impacts.ShareAt"/>).
+    /// the one that breaks or fells it the whole (<see cref="Impacts.ShareAt"/>), by the damage the sim gives peer
+    /// <paramref name="peer"/>'s hit, its module's boost in it (0098).
     /// </summary>
-    private static void Struck(Voices voices, Registry m, Sim.Building.Dig dig, Hero hero)
+    private static void Struck(Voices voices, Registry m, Sim.Building.Dig dig, Hero hero, int peer)
     {
         var middle = hero.Middle;
         var at = Impacts.On(m.Grid, dig.Cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
         var point = new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell));
-        if (GroundSounds.HitAt(m.Grid, m.Building, dig.Cell, dig.Tool) is { } hit)
+        int damage = m.Items.Damage(peer, dig.Tool);
+        if (GroundSounds.HitAt(m.Grid, m.Building, dig.Cell, damage) is { } hit)
             voices.Play(hit, point, offsetDb: GroundSounds.HitDbOf(dig.Tool));
         if (Impacts.At(m.Grid, m.Building, dig.Cell) is not { } impact) return;
         double? floor = Impacts.FloorUnder(m.Grid, at) * Rig.Cell;
-        HitBurst.Shared.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, Impacts.ShareAt(m.Grid, m.Building, dig.Cell, dig.Tool), floor);
+        HitBurst.Shared.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, Impacts.ShareAt(m.Grid, m.Building, dig.Cell, dig.Tool, damage), floor);
     }
 
     /// <summary>Whether <paramref name="hero"/>, awake, touches lava where the sim has it, its suit burning (0087).</summary>
@@ -683,12 +685,19 @@ public partial class HeroView : Node2D
     /// A figure's hands as <paramref name="wields"/> and <paramref name="busy"/> say, the axe swung toward
     /// <paramref name="swing"/>'s point as far as it is through: this machine's hero's and the others' alike.
     /// </summary>
-    private static void ShowHands(Figure figure, string? wields, Busy? busy, (Point At, double Phase)? swing)
+    private static void ShowHands(Figure figure, string? wields, string? fitted, Busy? busy, (Point At, double Phase)? swing)
     {
         figure.Wields = wields;
+        figure.Fitted = fitted;
         figure.Chop(swing is { At: var point, Phase: var phase } ? (Pixels(point), phase) : null);
         figure.Work(busy is { Work: Handwork.Work, At: var plan } ? Pixels(plan) : null);
     }
+
+    /// <summary>
+    /// The module fitted into the stack of <paramref name="wields"/> peer <paramref name="peer"/> works with, as the sim holds
+    /// its slots (0098): every peer's alike, a friend's too; none for an empty hand or a plain tool.
+    /// </summary>
+    private static string? FittedOf(Registry m, int peer, string? wields) => wields == null ? null : m.Items.ToolStack(peer, wields)?.Module;
 
     /// <summary>
     /// How far the floor runs open from <paramref name="hero"/>'s feet to either side, in pixels of the world, looking four
@@ -776,14 +785,14 @@ public partial class HeroView : Node2D
             if (!axe) shown.Swing.Stop();
             // Its blade heard and seen where it strikes the ground as it is played here, the dig its own peer sends then (0093, 0094).
             if (shown.Swing.Follow(elapsedMs, axe ? chop : null).Hits && Aiming.DigAt(m, id, hero, shown.Swing.At, Content.Weapons.Axe.Item) is { } dig)
-                Struck(_othersGroundHits, m, dig, hero);
+                Struck(_othersGroundHits, m, dig, hero, id);
             // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: the dig its peer sends there.
             string? running = m.Items.Running(id);
             bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };
             if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1)
                 && Aiming.DigAt(m, id, hero, seen.Busy!.Value.At, running!) is { } bored)
-                Struck(_othersGroundHits, m, bored, hero);
-            ShowHands(shown.Figure, seen.Wields, seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
+                Struck(_othersGroundHits, m, bored, hero, id);
+            ShowHands(shown.Figure, seen.Wields, FittedOf(m, id, seen.Wields), seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.
             var rodAim = shown.Rod.AimAt(seen.Rod, PieceDrawnAt);

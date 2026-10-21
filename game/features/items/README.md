@@ -22,7 +22,7 @@ by sending `Move`,
 | `PickUpFlights.cs` | a stack picked up flying home (0075), off the floor or out of a catch: its icon on an arc to the chest, a ribbon of light behind it, a glint, a ring and a flash as it lands; a catch's one after another, `Fx.MostRibbons` at once | yes |
 | `SortButton.cs`    | the sort key (0008, 0081): a wrist key whose face shows three bars and an arrow down, drawn in code, lit sky under the pointer, white while held, glowing a moment after | yes   |
 | `SortSweep.cs`     | a sort's light: a bright line crossing the sorted grid, a band of sky behind it (0081) | yes   |
-| `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, its corner's mark (a `GlowIcon`): the open station's flame, ingot or sprout, a module's tech, or the violet "?" of an item not analysed; empty, a station slot's ghost (`GhostMark`); an equipment slot's looks | yes   |
+| `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, its corner's mark (a `GlowIcon`): the open station's flame, ingot or sprout, a module's tech, or the violet "?" of an item not analysed; a fitted tool's badge, its module's tech, bottom-left (0098); empty, a station slot's ghost (`GhostMark`); an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
 | `ModuleSocket.cs`  | a machine's socket for one module (0086): empty, the icon of the technology it takes, faint; fitted, the module lit; glowing violet-white while a module carried would go in | yes |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
@@ -218,12 +218,15 @@ as everything E works is, in the crew feature (`AimTests`).
   - *A tool* (the fire axe, the harpoon, the drills), edged amber: its held picture whole at 6× in a dark window
     (`ToolPicture`), a drill running in it over and over (`CardLook`): its bit turning through its frames, its lamp lit,
     a warm glow at its point and its light thrown as the hand's is (`render/DrillLight`) into particles of its own
-    drawn at 2× (`EffectsView` without matter): the arc drill's coil crackling in bursts, and at the point, as if it bit
+    drawn at 2× (`EffectsView` without matter): an arc-fitted drill's coil crackling in bursts, and at the point, as if it bit
     a wreck, a wreck's hits at its pace, each its share of the axe's (`HitBurst`, 0094). Under
     it its name and kind in amber and three tiles from content, the first in amber, one decimal at most (`CardTile`):
     a weapon's damage a second, damage and seconds between hits (`Content.Weapons`), its effects (none yet) as chips;
     the harpoon's range in cells, reload in seconds and reel speed in cells a second (`Content.Harpoon`). An electric
-    tool adds a fourth, its `Draw` by a bolt, in power units as a machine shows its own. Then its key and hint.
+    tool adds a fourth, its `Draw` by a bolt, in power units as a machine shows its own. Then its key and hint. A tool
+    with a module fitted (0098, `Stack.Module`) is drawn with it (the arc's coil) and ends in the module's strip, its
+    tech's icon and one line, "Arc module fitted" (`card.fitted`); its tiles stay the plain tool's: what the module adds
+    is felt, not read. Its slot wears the module's tech icon as a badge in its bottom-left corner (`Slots.BadgeAt`).
   - *Equipment*, edged green (the medium card): its picture in the window (`WornPicture`) beside its name, kind and one
     number — the helmet lamp on the helmet, its beam reaching out with motes drifting through it, and its reach in
     cells (`Light.HeadLampReach`) with its beam across and a bolt at 0, for it draws nothing; a battery glowing green

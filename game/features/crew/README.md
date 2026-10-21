@@ -511,14 +511,15 @@ Deliberately not handled:
   "[Hold LMB] Break", red with "Batteries flat" (`items.flat`) once the belt cannot pay. Flat, it winds down
   and sends nothing; aboard it spins and touches nothing. The energy bar shows while it is held (0053). Every
   weapon works on every wreck alike: the axe chops an asteroid as any wreck, the drill bores a hull section.
-  **The arc drill** (`arcDrill`, 0075) is the drill with arcs on its coil: held, run, aimed and heard alike
-  (`HeldLook.IsDrill`), its own `Weapons.ArcDrill` pace and damage (15 a second to the drill's 10), its picture the
-  drill's with the coil tinted (`art/hero_arc_drill*.png`, a placeholder). Found, never made: only the testbed's
-  supply crate and `-- --asteroid --arc-drill` hold one till planet ruins do.
+  **The drill with the arc module fitted** (0075, 0098) has arcs on its coil: held, run, aimed and heard as the drill
+  (`HeldLook.IsDrill`), at its pace, twice its damage for twice its draw (the sim's, `IItemsQueries.Damage`), its picture
+  the drill's with the coil tinted (`HeldLook.ArcDrill`, `art/hero_arc_drill*.png`, a placeholder). The figure is told the
+  module of the stack its hero works with (`Figure.Fitted`, from `ToolStack`), this hero's and a friend's alike. Till the
+  tool bench, only the testbed's supply crate and `-- --asteroid`, `--planet` or `--ground=… --arc-drill` hold one.
   **Its light** (`render/DrillLight`, 0075, shared with the drill's item card, which throws it into particles of its own):
   only the tool's own; what its hits knock out of what they strike is that object's, thrown where it is struck
   (0094: `HitBurst`, below and in `features/effects`), so the bit throws nothing, whether it reaches the hit or only
-  spins short of it. The arc drill's coil (`HeldLook.Coil`, the
+  spins short of it. An arc-fitted drill's coil (`HeldLook.Coil`, the
   copper wound round the stock) besides, while it spins, as fine as a fire's embers (slice 3): hair-thin fine arcs
   (`Bolts`, `fine`), most arched over the stock's top into the dark from one turn to another, a few faint across its
   bright face, 33 a second at full spin; sparks crawling along its top (a short stroke of light, `Flares.Trail`), 10 a
@@ -537,7 +538,8 @@ Deliberately not handled:
   open space: a shaft, a cave or the strip's shelter dig alike. E digs nothing. Each dig is heard and seen as it is sent,
   and a friend's as its swing or its drill's pace is played here (`Struck`, 0093, 0094): by what it lands on, on that
   cell's face turned toward the hero who struck (`Impacts.On`), its look a share of the axe's for a faster tool
-  (`Impacts.ShareAt`), the whole for the hit that breaks or fells it. Its cracks and breaks are building's (`DigView`).
+  (`Impacts.ShareAt`), the whole for the hit that breaks or fells it, judged by the damage the sim gives its striker's
+  hit (`IItemsQueries.Damage`, a module's boost in it). Its cracks and breaks are building's (`DigView`).
   `Ui.Bits` hands `debris` every running drill's point as drawn, where a wreck it bites is struck.
 - **The helmet lamp** (0077): worn on the head, its bulb shows on the helmet's brow (`Figure.HeadLamp`, a placeholder
   of three warm pixels, drawn unlit), this hero's and every friend's shown; `HeroView.HeadLamps()` says where each
@@ -545,9 +547,9 @@ Deliberately not handled:
   (`LightView.HeadLamps`): a beam that way.
 - **What is dug at stays readable** (0077): the dig target's outline is drawn over the hero and its tool (`Layers.Dug`),
   and the drill, always full size, is held two-handed across the chest (0078, below), close to the body, so it hides little of
-  the cells before the hero; the drill and arc drill alike, and `Aim.Touched` traces the same bit. A landing's dust spreads along the floor only as far as it runs open
+  the cells before the hero; with a module or without, and `Aim.Touched` traces the same bit. A landing's dust spreads along the floor only as far as it runs open
   (`Figure.FloorRoom`, from `HeroView`), and dust along the floor is drawn behind the walls (`Luminous.Low`), so none shows through a shaft's walls.
-- **The two-handed hold** (0078, `TwoHand`): an item with `HeldLook.Both` (the drill and the arc drill now; two-handed weapons and
+- **The two-handed hold** (0078, `TwoHand`): an item with `HeldLook.Both` (the drill now, fitted or plain; two-handed weapons and
   tools to come, as a harpoon gun or an electric spear) is held as a rifle, its mount (`TwoHands.Mount`, between the hands) on a pivot across the middle of the chest,
   turned there so its edge's line runs through the pointer, but at most `TwoHand.Up` up and `Down` down (55° and 85°),
   past which it points as far as it turns; the pivot moves between `TwoHand.Keys`, forward aimed up and up and out aimed
