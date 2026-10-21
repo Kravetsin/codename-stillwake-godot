@@ -22,7 +22,7 @@ public sealed class RelicSparks
     private double _next;
 
     /// <param name="corner">Its piece's box corner, in pixels of the world.</param>
-    /// <param name="far">The room's metal round it, in pixels of the world: its walls, a ladder, a cache, a cable.</param>
+    /// <param name="far">The room's metal round it, in pixels of the world: its walls, a ledge, a cache, a cable.</param>
     /// <param name="floor">Where its sparks land, a row of pixels.</param>
     public RelicSparks(Random random, RelicArt.Sparking art, Vector2 corner, IReadOnlyList<Vector2> far, float floor, bool small)
     {

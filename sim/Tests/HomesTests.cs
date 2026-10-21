@@ -423,9 +423,9 @@ public class HomesTests
     }
 
     [Fact]
-    public void TheSpiresChamberIsFurnishedEachPieceHeldAndClearOfItsCacheAndLadder()
+    public void TheSpiresChamberIsFurnishedEachPieceHeldAndClearOfItsCache()
     {
-        // Held() takes every piece's cell for open: a cache's or a ladder's is not.
+        // Held() takes every piece's cell for open: a cache's is not.
         Assert.Null(Held(new Ruins.Home("spire", Ruins.Spire, Ruins.SpireFurnishing)));
         Assert.Contains(Ruins.SpireFurnishing, p => p.Kind == Ruins.Cradle);
         foreach (uint seed in Enumerable.Range(1, 20).Select(s => (uint)s))

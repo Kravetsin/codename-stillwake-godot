@@ -119,17 +119,14 @@ public partial class SpiresView : Node2D
         var corner = new Vector2(bx, by);
         int chamberFloor = (y0 + Spec.Ruins.Spire.Count - 2) * Cell;
         var far = new List<Vector2>();
-        // The chamber's metal round the cradle: its walls' inner faces, the ledge over its right, the ladder's foot, the cache.
+        // The chamber's metal round the cradle: its walls' inner faces, the ledge over its left, the slab at its right, the cache.
         for (int y = (y0 + 23) * Cell + 2; y < chamberFloor; y += 6)
         {
             far.Add(new Vector2((x0 + 1) * Cell, y));
             far.Add(new Vector2((x0 + 8) * Cell, y));
         }
-        for (int x = (x0 + 5) * Cell; x < (x0 + 8) * Cell; x += 8) far.Add(new Vector2(x, (y0 + 23) * Cell));
-        int ladder = (x0 + 4) * Cell;
-        far.Add(new Vector2(ladder + 3, (y0 + 25) * Cell - 1));
-        far.Add(new Vector2(ladder + 13, (y0 + 25) * Cell - 1));
-        far.Add(new Vector2(ladder + 3, (y0 + 24) * Cell + 6));
+        for (int x = (x0 + 1) * Cell + 4; x < (x0 + 4) * Cell; x += 8) far.Add(new Vector2(x, (y0 + 23) * Cell));
+        for (int x = (x0 + 6) * Cell + 2; x < (x0 + 8) * Cell; x += 8) far.Add(new Vector2(x, Slab(x0, y0).Y));
         far.Add(new Vector2((x0 + 1) * Cell + 8, chamberFloor - 12));
         var sparks = new RelicSparks(_random, RelicArt.Cradle, corner, far, chamberFloor, small: false);
         var spire = new Spire(relic.Cell, x0, y0, corner, sparks, Roots(relic.Cell, sparks.Core.X, chamberFloor + 6))
@@ -172,6 +169,9 @@ public partial class SpiresView : Node2D
         return roots;
     }
 
+    /// <summary>The near corner of the slab at the chamber's right, the relic's nearest metal: where its last discharge goes.</summary>
+    private static Vector2 Slab(int x0, int y0) => new((x0 + 6) * Cell + 1, (y0 + Spec.Ruins.Spire.Count - 4) * Cell);
+
     /// <summary>How much a spire still burns: 1 while its relic stands and while it sparks out, then going dark.</summary>
     private double Burns(Spire s)
     {
@@ -194,7 +194,7 @@ public partial class SpiresView : Node2D
             {
                 s.Last = true;
                 var core = s.Sparks.Core;
-                s.Sparks.Discharge(new Vector2((s.X0 + 4) * Cell + 3, (s.Y0 + 25) * Cell - 1));
+                s.Sparks.Discharge(Slab(s.X0, s.Y0));
                 Flash(s, core, 0.8);
             }
         }

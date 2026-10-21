@@ -226,7 +226,6 @@ public class RuinsTests
                     var want = c switch
                     {
                         Ruins.Open or Ruins.Cache => ('.', alloy),
-                        Ruins.Ladder => ('H', alloy),
                         Ruins.Plug => ('#', soil),
                         Ruins.Keep => (row, code),
                         _ => ('#', alloy),

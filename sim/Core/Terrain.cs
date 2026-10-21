@@ -357,7 +357,7 @@ public static class Terrain
                     if (c == Content.Ruins.Keep) continue;
                     int x = x0 + dx, y = y0 + dy, cell = y * w + x;
                     bool open = c is Content.Ruins.Open or Content.Ruins.Cache;
-                    rows[y][x] = c == Content.Ruins.Ladder ? 'H' : open ? '.' : '#';
+                    rows[y][x] = open ? '.' : '#';
                     codes[cell] = c == Content.Ruins.Plug ? soil : alloy;
                     string? kind = c switch
                     {
