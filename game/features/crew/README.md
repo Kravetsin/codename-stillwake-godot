@@ -12,8 +12,8 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | ------------------ | --------------------------------------------------------------------------------------- | ----- |
 | `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship` (with its walls' shapes, 0069), `Point`; one `Step` at 60 a second, up and down slopes; the jetpack's flight (`Flown`, `ThrustToward`, 0047) | no    |
 | `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`); the fist and an item held in it (`FistOf`, `HeldAt`, 0040) | no    |
-| `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`); `Jumped` and `Landed`, when the boots are heard pushing off and coming down; the air's poses blended by the speed up or down, the skid's two poses (0090) | no    |
-| `Motion.cs`        | what the figure reads from the motion over time (0090): the lean of its acceleration, the skid, the landing's depth and length by the fall, the time since a jump and falling (`Momentum`); a landing's ring by the fall | no    |
+| `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`); `Jumped` and `Landed`, when the boots are heard pushing off and coming down; the air's poses blended by the speed up or down (0090) | no    |
+| `Motion.cs`        | what the figure reads from the motion over time (0090): the lean of its acceleration, the landing's depth and length by the fall, the time since a jump and falling (`Momentum`); a landing's ring by the fall | no    |
 | `Aim.cs`           | reach, what the pointer aims at and what the hands send (`aim.ts`): doors, valves, tanks, crates, plans, debris; what the axe's blade touches (`Struck`, 0039), what the drill's bit touches (`Touched`, 0054) | no    |
 | `AxeSwing.cs`      | the fire axe's swing: one clock for the blade drawn and the strike, its point, this hero's and others'; the arm and the edge through it (`ArmAt`, `EdgeAt`, `Lead`) (0038, 0039, 0040); a swing that bit drawn held on contact (`Shown`, 0075) | no    |
 | `SwingSmear.cs`    | the swipe of light an axe's downstroke leaves round the shoulder (0075) | yes   |
@@ -29,7 +29,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `Remote.cs`        | `Seen` with its hands (`Busy`, `Handwork`) and its harpoon's rod (`RodSeen`), `SentHero` (and its wire string), `RemoteHeroes`, `HeroSender` (`remote.ts`)     | no    |
 | `RemoteRod.cs`     | another hero's harpoon played out here from the rod it sends: flight, hook, reel, way back, its cues and its gun loaded (0065) | no    |
 | `Suits.cs`         | the suit colours, `Suits.Of`, their shades and the colour the PNGs are drawn in (`suits.ts`, `art.ts`) | no |
-| `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`; luminous, 0075: fine motes and a veil a running step, grains, motes, veils and a flat ring on landing; a skid's streaks, a heavy landing's wider ring and streaks, 0090) | yes |
+| `Figure.cs`        | the rig of `art/hero_*.png` sprites in a suit (`SuitArt`), lit, posed and settled every frame, the plan's sheet in its hands, dust from its boots (`figure.ts`; luminous, 0075: fine motes and a veil a running step, grains, motes, veils and a flat ring on landing; a heavy landing's wider ring and streaks, 0090) | yes |
 | `HeroView.cs`      | the layer: keys, steps, drawing between steps, others' heroes, tethers, the hands, the aim outline, the camera | yes |
 | `CameraFollow.cs`  | where the camera looks: led by the hero's steps, its height eased after it, alike at any frame rate (`Followed`) | no |
 | `JetPlume.cs`      | a jetpack's plume (0075): its core of light, streaks, motes, pool of light, shimmer | yes |
@@ -174,10 +174,8 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 - **Lean:** on the floor the body leans `HeroMotion.Lean.Gain` (0.006) radians per thousandth of a cell a step gained a
   step, the change smoothed by 0.3 a step (by time, so a friend's speed seen a send at a time leans it as far), at most
   0.25 forward and 0.22 back. At speed it is upright again but for the run's own 0.15. The tilt settles in 60 ms.
-- **Skid:** losing speed on the floor from over 50 across, the skid pose blends in over 45 ms and holds 7 steps past
-  the last such step: braking (`Poses.Skidding.Braking`) facing the way it slides, turned (`Turned`) sliding backwards
-  after a reversal. While it slides over 50 the soles throw 0.7 streaks of light a step in the dust's colours
-  (`Luminous.SkidDust`), every second one a matter mote. Stopped dead by a wall, no skid.
+- **No skid:** a stop or a turn only leans the body. The skid pose and its streaks were taken out: tapping left and
+  right made the legs dance on the spot.
 - **Landing:** the knees sink `Poses.Land.Sink` times the fall over 420 (0.35 to 1.8; ×0.6 landing at over 60 across),
   springing back in 150 ms plus 110 by the fall over 600. A hop (229) sinks 0.55, a held jump (398) 0.95, eight cells
   (597) 1.42 and heavy (from 480): its ring goes out to 34 px, at 0.45 for 260 ms, and two light streaks race out either
@@ -186,8 +184,8 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   the knees tuck toward `Top`, up to half; for 110 ms after a jump the legs push straight (`Push`); falling faster
   than 300 for over 450 ms the arms flail, fully 300 ms later (the front arm calm while it holds an item); moving
   faster than 100 across the body tips 0.1 into its way. A two-handed item keeps both fists on its grips throughout.
-- All of it is read from `X`, `Y`, `Vx`, `Vy`, `Facing` and the pose, which others' heroes send: friends lean, skid
-  and land as their peer draws them (a walk's stop seen a send at a time may miss its skid). Tested in `MotionTests`.
+- All of it is read from `X`, `Y`, `Vx`, `Vy`, `Facing` and the pose, which others' heroes send: friends lean
+  and land as their peer draws them. Tested in `MotionTests`.
 
 ## Others' heroes
 

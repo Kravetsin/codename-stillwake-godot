@@ -97,7 +97,7 @@ public partial class Figure : Node2D
     private double _strideFrom;
     private Pose? _wasPose;
     private double _timeMs, _head;
-    /// <summary>The lean, the skid, the landing and the air's timers, read from the motion (0090).</summary>
+    /// <summary>The lean, the landing and the air's timers, read from the motion (0090).</summary>
     private readonly Motion _motion = new();
     /// <summary>How long since passing out, and what picks the heap it ends in, new each time.</summary>
     private double _outMs, _outTilt;
@@ -387,23 +387,6 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
-    /// A skid's scrape at the soles, (<paramref name="x"/>, <paramref name="y"/>) the floor (0090): <paramref name="streaks"/>
-    /// thin pale streaks of light shot along the floor the way the hero <paramref name="slides"/>, about every second one with
-    /// a mote of the boots' matter dust lifted with it (0075).
-    /// </summary>
-    private static void Skid(double x, double y, int slides, int streaks)
-    {
-        var glims = Glims.Shared;
-        double at = x + slides * Rig.W * 0.27;
-        for (int i = 0; i < Math.Round(streaks * Fx.Count); i++)
-        {
-            glims.Add(Luminous.SkidDust, at + glims.Between(-1, 1), y - 0.5, slides * glims.Between(40, 90), -glims.Between(0, 6), y);
-            if (glims.Between(0, HeroMotion.Skid.MotesEvery) < 1)
-                glims.Add(Luminous.BootDust, at, y - 1, slides * glims.Between(10, 40), -glims.Between(5, 18), y, glims.Between(0.5, 0.8), glims.Between(0.45, 0.8));
-        }
-    }
-
-    /// <summary>
     /// A landing's dust at the feet, (<paramref name="x"/>, <paramref name="y"/>) the floor (0075): to either side
     /// <paramref name="grains"/> grains skittering out along the floor, slowing into motes, as many motes, two veils rolling
     /// out and curling; and a faint flat ring racing out along the floor, the only light in it, as wide as the
@@ -545,7 +528,6 @@ public partial class Figure : Node2D
             int puff = Math.Min(DustLandMost, Math.Max(DustLandLeast, (int)Math.Round(fall * DustLandPerSpeed, MidpointRounding.AwayFromZero)));
             Land(feetX, feetY, puff, fall);
         }
-        if (cues.SkidDust > 0) Skid(feetX, feetY, _motion.Sliding, cues.SkidDust);
         // A foot comes down at the end of each half stride, a quarter stride in: heard walking and running,
         // kicking up dust only running.
         double? stride = pose switch { Pose.Run => Poses.Stride.Run, Pose.Walk => Poses.Stride.Walk, _ => null };

@@ -1,6 +1,6 @@
 # 0090 — The figure leans, skids and lands by its motion
 
-- Status: accepted
+- Status: accepted; the skid is withdrawn (see the end)
 - Date: 2026-10-21
 
 ## Context
@@ -63,3 +63,9 @@ keeps them.
 
 Recorded with `-- --poses --autopilot --lit --zoom 4` (`HeroAutopilot.Hall`, `PosesRun`); a friend with `--host` and a guest
 `--join --aside`. Tested in `MotionTests`.
+
+## Amended: no skid (2026-10-21)
+
+After playing it, the user asked to remove the skid: tapping left and right quickly made the legs dance on the spot. The
+skid's two poses (`Poses.Skidding`), its timers in `Motion`, its streaks (`Luminous.SkidDust`) and `HeroMotion.Skid` are
+gone. A stop or a turn now only leans the body, by the same lean as above; the landing and the air poses are unchanged.

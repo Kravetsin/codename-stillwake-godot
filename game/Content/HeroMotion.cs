@@ -1,7 +1,7 @@
 namespace Stillwake.Game;
 
 /// <summary>
-/// How the hero's figure answers its motion (0090): the lean of its acceleration, the skid of a hard stop, the landing by
+/// How the hero's figure answers its motion (0090): the lean of its acceleration, the landing by
 /// how fast it fell and the poses through the air, as the research page proposed them. Speeds are the controller's,
 /// thousandths of a cell a step; times in milliseconds; angles in radians, forward positive. Drawn only, never read by
 /// the sim.
@@ -16,18 +16,6 @@ public static class HeroMotion
     public static class Lean
     {
         public const double Gain = 0.006, Smooth = 0.3, Forward = 0.25, Back = 0.22, SettleMs = 60;
-    }
-
-    /// <summary>
-    /// A skid: on the ground, losing at least <see cref="Brake"/> a step from over <see cref="Speed"/>, the skid pose is
-    /// held <see cref="Ms"/> past the last such step (7 steps), blended in and out over <see cref="BlendMs"/>. While it
-    /// slides on over <see cref="Speed"/>, the soles throw <see cref="StreaksPerStep"/> streaks of dust a step, every
-    /// <see cref="MotesEvery"/>th with a mote.
-    /// </summary>
-    public static class Skid
-    {
-        public const int Speed = 50, Brake = 3, MotesEvery = 2;
-        public const double Ms = 7 * 1000.0 / 60, BlendMs = 45, StreaksPerStep = 0.7;
     }
 
     /// <summary>

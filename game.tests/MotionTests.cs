@@ -82,41 +82,25 @@ public class MotionTests
         double ownMost = own.Max(f => f.Now.Lean), sentMost = sent.Max(f => f.Now.Lean);
         Assert.InRange(sentMost, ownMost * 0.8, Math.Min(Look.Lean.Forward, ownMost * 1.5));
         Assert.InRange(sent.Min(f => f.Now.Lean), -Look.Lean.Back, own.Min(f => f.Now.Lean) * 0.8);
-        // It skids to its stop as its own peer sees it do.
-        Assert.Contains(sent, f => f.Now.Skid > 0.9);
     }
 
     [Fact]
-    public void SkidsBrakingFromARunAndTurnedOnAReversalThenSettles()
+    public void BrakingAndTurningOnlyLeanTheBodyTheLegsKeepTheirStride()
     {
-        // The pointer ahead: it faces the way it ran and brakes, the front leg planted.
-        var braking = Drive(Standing, [.. Hold(RunRight with { Face = 1 }, 40), .. Hold(RunLeft with { Face = 1 }, 30)]);
-        Assert.All(braking.Take(40), f => Assert.Equal(0, f.Now.Skid));
-        var skid = braking.Skip(40).Where(f => f.Now.Skid > 0.9).ToList();
-        Assert.NotEmpty(skid);
-        Assert.All(skid, f => Assert.Equal(1, f.Now.Along));
-        // No pointer: it turns at once and slides on backwards.
-        var turned = Drive(Standing, [.. Hold(RunRight, 40), .. Hold(RunLeft, 30)]);
-        Assert.Contains(turned, f => f.Now.Skid > 0.9 && f.Now.Along == -1);
-        // Run up to speed the other way, it skids no more.
-        Assert.True(turned[^1].Now.Skid < 0.01, $"{turned[^1].Now.Skid}");
+        // Tapping left and right once made a skid's legs dance on the spot: a stop or a turn now only leans.
+        var hero = new Hero(5 * Unit, 9 * Unit, 0, 0, false, 1);
+        foreach (var keys in new[] { Hold(RunRight with { Face = 1 }, 40).Concat(Hold(RunLeft with { Face = 1 }, 30)), Hold(RunRight, 40).Concat(Hold(Still, 30)) })
+            foreach (var f in Drive(Standing, [.. keys]))
+            {
+                var still = LimbsOf(Pose.Run, hero, new Moment(0, 0, Momentum: Momentum.AtRest));
+                var moved = LimbsOf(Pose.Run, hero, new Moment(0, 0, Momentum: f.Now));
+                Assert.Equal(still with { Tilt = moved.Tilt }, moved);
+            }
     }
 
     [Fact]
-    public void TheSolesThrowDustOnlyWhileTheySlideFast()
+    public void AWalkKeptOnAHillNeverLeans()
     {
-        var frames = Drive(Standing, [.. Hold(RunRight, 40), .. Hold(Still, 30)]);
-        Assert.All(frames.Take(40), f => Assert.Equal(0, f.Cues.SkidDust));
-        int dust = frames.Skip(40).Sum(f => f.Cues.SkidDust);
-        // A run's stop slides some six steps over the crawl: about 0.7 a step.
-        Assert.InRange(dust, 3, 6);
-        Assert.All(frames.Skip(40).Where(f => Math.Abs(f.Hero.Vx) <= Look.Skid.Speed), f => Assert.Equal(0, f.Cues.SkidDust));
-    }
-
-    [Fact]
-    public void SetsOffWithoutASkidAndAWalkKeptOnAHillNeverLeansNorSkids()
-    {
-        Assert.All(Drive(Standing, Hold(RunRight, 40)), f => Assert.Equal(0, f.Now.Skid));
         var ship = HeroTests.ShipFrom(SlopeTests.Hill);
         foreach (bool run in new[] { false, true })
         {
@@ -132,7 +116,6 @@ public class MotionTests
                 // Past setting off, at its speed up the slope, over the top and down: as on the flat.
                 if (i < 30) continue;
                 Assert.True(Math.Abs(motion.Now.Lean) < 0.01, $"leans {motion.Now.Lean} at {h}");
-                Assert.Equal(0, motion.Now.Skid);
             }
         }
     }
