@@ -52,7 +52,7 @@ public partial class LightView : Node2D
     private readonly Starlight _starlight;
     private readonly Node2D _lamps = new();
     private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow, double Floor, (Sprite2D Alight, Sprite2D Glow)? Globe)> _shown = new();
-    /// <summary>Rolls an arc lamp's crackle (0090).</summary>
+    /// <summary>Rolls an arc lamp's crackle (0091).</summary>
     private readonly Random _random = new();
     /// <summary>The sparks, glints, ember and arcs of lamps short of power (0075).</summary>
     private readonly LampSparks _sparks = new();
@@ -93,7 +93,7 @@ public partial class LightView : Node2D
     /// <summary>The light of a planet's lava near the view this frame, where the open is over its surface (<c>LavaView</c>).</summary>
     public Func<IReadOnlyList<LightSource>> Lava { get; set; } = () => [];
 
-    /// <summary>The light of the arc makers' lamps and hearths near the view this frame (0090: <c>HomesView</c>).</summary>
+    /// <summary>The light of the arc makers' lamps and hearths near the view this frame (0091: <c>HomesView</c>).</summary>
     public Func<IReadOnlyList<LightSource>> Homes { get; set; } = () => [];
 
     /// <summary>The lights drawn into the lightmap the last frame.</summary>
@@ -233,7 +233,7 @@ public partial class LightView : Node2D
             if (share > 0 && share < 1) _sparks.Lamp(lamp.Id, at, shines, floor, delta * 1000);
             glow.Visible = shines > 0;
             glow.Modulate = GlowOf(lamp) with { A = shines * GlowAlpha };
-            // An arc makers' lamp (0090): their cold light, brighter and further.
+            // An arc makers' lamp (0091): their cold light, brighter and further.
             _main.Add(lamp.Kind == "arcLamp"
                 ? new LightSource(at.X, at.Y, L.ArcLamp, shines * L.ArcLampStrength, L.ArcLampReach, L.ArcLampKeep, L.LampMost, L.LampSize)
                 : new LightSource(at.X, at.Y, L.Lamp, shines, L.LampReach, L.LampKeep, L.LampMost, L.LampSize));

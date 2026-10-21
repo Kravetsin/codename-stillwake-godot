@@ -37,7 +37,7 @@ public static class Terrain
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
     /// <param name="surface">Each column's surface, its first row of ground before caves and landmarks open it: for tests.</param>
     /// <param name="spires">Each spire stamped (0085), its left column and its top row: for tests.</param>
-    /// <param name="homes">Each home stamped (0090), its left column, its top row and its scheme: for tests.</param>
+    /// <param name="homes">Each home stamped (0091), its left column, its top row and its scheme: for tests.</param>
     internal static Layout Generate(
         Ground g, uint seed, out bool[] hall, out int[] surface, out List<(int X, int Y)> spires, out List<(int X, int Y, Ruins.Home Home)> homes)
     {
@@ -396,7 +396,7 @@ public static class Terrain
     private const int HomeMargin = 2;
 
     /// <summary>
-    /// The arc makers' homes (0090), stamped after the spires, last of all: <see cref="Ground.Homes"/> of them, their schemes in
+    /// The arc makers' homes (0091), stamped after the spires, last of all: <see cref="Ground.Homes"/> of them, their schemes in
     /// <see cref="Content.Ruins.Homes"/>' order from one the seed picks, each in a band of its own along the columns a home may
     /// start at — inside the bedrock's sides, none within <see cref="Ground.HomeClear"/> of the middle — at the start nearest the
     /// seed's pick in its band whose box, <see cref="HomeMargin"/> wider each side, meets no spire's columns; every band but the

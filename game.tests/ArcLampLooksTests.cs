@@ -2,7 +2,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>How the arc makers' lamp hung aboard looks (0090): its picture in every state, its globe alight only while it shines.</summary>
+/// <summary>How the arc makers' lamp hung aboard looks (0091): its picture in every state, its globe alight only while it shines.</summary>
 public class ArcLampLooksTests
 {
     private static string Art => Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art");

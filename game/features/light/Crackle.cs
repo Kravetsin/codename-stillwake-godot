@@ -5,7 +5,7 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Light;
 
 /// <summary>
-/// The arc makers' arcs crackling (0090, the page's arc emitters, <see cref="Emits.Arc"/>): how often one strikes, and the arc it
+/// The arc makers' arcs crackling (0091, the page's arc emitters, <see cref="Emits.Arc"/>): how often one strikes, and the arc it
 /// strikes, cyan and branchy; for their homes' pieces and their lamp hung aboard alike.
 /// </summary>
 public static class Crackle

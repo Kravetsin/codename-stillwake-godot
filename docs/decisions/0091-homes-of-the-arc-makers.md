@@ -1,4 +1,4 @@
-# 0090 — Homes of the arc makers: furnished ruins in the first planet's ground
+# 0091 — Homes of the arc makers: furnished ruins in the first planet's ground
 
 - Status: accepted; slice 1 built (three homes, their 49 pieces, plaster, cloth, the arc lamp as an item); slice 2 built (the
   arc lamp hung aboard, the spire's chamber furnished). Amends [0080](0080-caves-glow-by-depth.md) and

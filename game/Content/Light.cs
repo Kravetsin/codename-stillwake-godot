@@ -83,7 +83,7 @@ public static class Light
     public const float LampMost = 1f;
 
     /// <summary>
-    /// An arc makers' lamp hung aboard (0090): their cold white-blue, brighter than the starter lamp and reaching further, as their
+    /// An arc makers' lamp hung aboard (0091): their cold white-blue, brighter than the starter lamp and reaching further, as their
     /// homes' lamps are (the page's arc light, a fifth wider, three tenths stronger).
     /// </summary>
     public static readonly (float R, float G, float B) ArcLamp = (0.56f, 0.78f, 1f);

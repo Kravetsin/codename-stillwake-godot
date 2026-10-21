@@ -870,7 +870,7 @@ public partial class Main : Node2D, ITogether
         {
             AddChild(_caveTint = new Features.Flora.CaveTint(ground));
             AddChild(_caves = new Features.Flora.CaveView(_m.Grid, _m.Building, ground, () => _hero?.HeadLamps() ?? []));
-            // The arc makers' homes in its ground (0090); --no-homes leaves them undrawn, to measure what they cost.
+            // The arc makers' homes in its ground (0091); --no-homes leaves them undrawn, to measure what they cost.
             if (!Has("--no-homes")) AddChild(_homes = new Features.Ruins.HomesView(_m.Grid, _m.Building, HeroBodies) { Mood = Arg("--homes") switch { "lit" => true, "dark" => false, _ => null } });
             // Its core: lava under the caves, glowing.
             AddChild(_lava = new Features.Grid.LavaView(_m.Grid, ground));
@@ -1034,7 +1034,7 @@ public partial class Main : Node2D, ITogether
 
     private readonly List<Body> _bodies = [];
 
-    /// <summary>The middle of every hero's body on this surface, in pixels of the world: the resonator's arc leaps to it (0090).</summary>
+    /// <summary>The middle of every hero's body on this surface, in pixels of the world: the resonator's arc leaps to it (0091).</summary>
     private IReadOnlyList<Godot.Vector2> HeroBodies()
     {
         _heroBodies.Clear();

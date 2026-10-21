@@ -4,7 +4,7 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>How the arc makers' homes look (0090): every piece has its pictures, and stands, hangs and leans where the page puts it.</summary>
+/// <summary>How the arc makers' homes look (0091): every piece has its pictures, and stands, hangs and leans where the page puts it.</summary>
 public class HomesLooksTests
 {
     private static string Art => Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art");

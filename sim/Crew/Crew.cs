@@ -57,7 +57,7 @@ public interface ICrewOps
 {
     /// <summary>
     /// Hero <paramref name="peer"/>'s suit pays <paramref name="units"/> at once, the suit alone, as the cold and the lava take it:
-    /// a ruin's resonator zapping it (0090). A suit run dry passes it out; nothing in creative mode, nor for a hero out or none.
+    /// a ruin's resonator zapping it (0091). A suit run dry passes it out; nothing in creative mode, nor for a hero out or none.
     /// </summary>
     void Shock(int peer, int units);
 }

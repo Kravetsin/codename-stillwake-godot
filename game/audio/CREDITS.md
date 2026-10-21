@@ -77,8 +77,8 @@ released under CC0.
 | `logistics/drone-grab-2.wav` | UI Audio, `switch20.ogg`, https://kenney.nl/assets/ui-audio | Kenney | CC0 |
 | `logistics/drone-grab-3.wav` | UI Audio, `switch1.ogg`, https://kenney.nl/assets/ui-audio | Kenney | CC0 |
 | `logistics/drone-whir-1.ogg` | generated for Stillwake: noise band-passed at 450 Hz chopped ±25% 37.5 times a second, noise low-passed at 250 Hz under it and a faint 112.5 Hz tone, a 2 s loop rendered offline to −23 dBFS RMS (the audition's "Fan") | Stillwake team | CC0 |
-| `ruins/music-box-1.wav` | generated for Stillwake (tools/homes-art/export.js): a plucked steel tine, a sine at 1568 Hz with inharmonic partials at 2.76, 5.40 and 8.93 times it, each decaying, 0.9 s, to −3 dBFS peak; played at a tune's pitches (a placeholder till an audition, 0090) | Stillwake team | CC0 |
-| `ruins/zap-1.wav` | generated for Stillwake (tools/homes-art/export.js): bursts of smoothed noise a few milliseconds each under a quarter-second fall, to −3 dBFS peak (a placeholder till an audition, 0090) | Stillwake team | CC0 |
+| `ruins/music-box-1.wav` | generated for Stillwake (tools/homes-art/export.js): a plucked steel tine, a sine at 1568 Hz with inharmonic partials at 2.76, 5.40 and 8.93 times it, each decaying, 0.9 s, to −3 dBFS peak; played at a tune's pitches (a placeholder till an audition, 0091) | Stillwake team | CC0 |
+| `ruins/zap-1.wav` | generated for Stillwake (tools/homes-art/export.js): bursts of smoothed noise a few milliseconds each under a quarter-second fall, to −3 dBFS peak (a placeholder till an audition, 0091) | Stillwake team | CC0 |
 | `music/space-1.ogg` | generated for Stillwake: the synthesised drone "Wreck" (v2), 80 s looping seamlessly, about −18 LUFS; a placeholder for the bed of space (ADR 0042) until the team writes its own | Stillwake team | CC0 |
 | `music/title-1.ogg` | made by the team with Suno (suno.com) on its free plan, 2026-10-16, normalised to about −18 LUFS | Stillwake team | Suno Basic, non-commercial: replace before sale |
 | `power/charge-full-1.wav` | Freesound, "UI Confirm" (0.27 s from its attack), https://freesound.org/people/unfa/sounds/584184/ | unfa | CC0 |

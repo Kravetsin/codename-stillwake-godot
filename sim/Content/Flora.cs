@@ -3,7 +3,7 @@ namespace Stillwake.Content;
 /// <summary>
 /// What grows on a planet (0079, 0080): on its surface, the kinds of plant and the stones lying about that the ground's
 /// generator (<c>Terrain</c>) sets on open soil under the sky; in its caves, the glowing things, crystals and stone it sets on
-/// their floors, from their ceilings and in the rock round them, by depth band; and the pieces of the ruins' homes (0090). Each
+/// their floors, from their ceilings and in the rock round them, by depth band; and the pieces of the ruins' homes (0091). Each
 /// stands in its own cell and <c>Tall</c> of its column, a home's piece in <c>Across</c> columns; the client draws it as large as it is. A hit fells one, or breaking out the wall it holds on to, giving its <see cref="Growth.Yields"/>.
 /// </summary>
 public static class Flora
@@ -12,7 +12,7 @@ public static class Flora
     public enum Anchor
     {
         /// <summary>
-        /// Stands in an open cell on the wall under it, <c>Tall</c> cells up, or on a piece standing under it (0090: dishes on a
+        /// Stands in an open cell on the wall under it, <c>Tall</c> cells up, or on a piece standing under it (0091: dishes on a
         /// table, a kettle on a stool).
         /// </summary>
         Floor,
@@ -23,7 +23,7 @@ public static class Flora
         /// <summary>Lies in a natural wall's own cell beside a cave: it goes when the wall is dug.</summary>
         Rock,
 
-        /// <summary>Hangs on the back wall of its open cells, <c>Tall</c> cells down (0090): a painting, a shelf, a sconce.</summary>
+        /// <summary>Hangs on the back wall of its open cells, <c>Tall</c> cells down (0091): a painting, a shelf, a sconce.</summary>
         Back,
     }
 
@@ -32,18 +32,18 @@ public static class Flora
     public abstract record Growth(string Id, int Tall)
     {
         /// <summary>
-        /// The columns it stands in (0090), its own and to the right, each holding on to the wall under it (over it from a
+        /// The columns it stands in (0091), its own and to the right, each holding on to the wall under it (over it from a
         /// ceiling, its own in the rock): 1 for all but a ruin's wider pieces.
         /// </summary>
         public int Across { get; init; } = 1;
 
         /// <summary>
-        /// Behind what stands in front (0090): a back wall's pieces, a rug. A cell holds one growth in front and one behind; a hit
+        /// Behind what stands in front (0091): a back wall's pieces, a rug. A cell holds one growth in front and one behind; a hit
         /// takes the front one first.
         /// </summary>
         public bool Behind { get; init; }
 
-        /// <summary>Painted on or cut into the back wall (0090): no hit takes it.</summary>
+        /// <summary>Painted on or cut into the back wall (0091): no hit takes it.</summary>
         public bool Fixed { get; init; }
 
         /// <summary>
@@ -167,7 +167,7 @@ public static class Flora
     ];
 
     /// <summary>
-    /// A piece of a ruin's furnishing (0090, <see cref="Ruins.Pieces"/>): never grown, set where a home is stamped, held by
+    /// A piece of a ruin's furnishing (0091, <see cref="Ruins.Pieces"/>): never grown, set where a home is stamped, held by
     /// <paramref name="Holds"/>, <c>Across</c> columns and <c>Tall</c> rows.
     /// </summary>
     public sealed record Piece(string Id, Anchor Holds, int Tall) : Growth(Id, Tall)

@@ -4,7 +4,7 @@ using Anchor = Stillwake.Content.Flora.Anchor;
 
 namespace Stillwake.Game;
 
-/// <summary>What a piece of a home's picture does live (ADR 0090), as the concept page's emitters put it.</summary>
+/// <summary>What a piece of a home's picture does live (ADR 0091), as the concept page's emitters put it.</summary>
 public enum Emits
 {
     /// <summary>An arc crackling from (X, Y) to (X2, Y2), or into the air by Reach: Rate a page tick (24 a second), Life page ticks.</summary>
@@ -72,7 +72,7 @@ public static partial class HomesArt
 }
 
 /// <summary>
-/// How the arc makers' homes look (ADR 0090): their pieces' pictures, drawn in <c>art/homes</c> from the concept page's own
+/// How the arc makers' homes look (ADR 0091): their pieces' pictures, drawn in <c>art/homes</c> from the concept page's own
 /// code (<see cref="HomesArt"/>), where each stands against what holds it, which lamps burn, how their light falls, and how
 /// cloth sways. Plain C#, so where a piece stands is tested.
 /// </summary>

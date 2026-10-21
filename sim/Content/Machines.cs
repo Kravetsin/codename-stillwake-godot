@@ -58,7 +58,7 @@ public static class Machines
         new("solarPanel", 3, 1, [], [("frame", 1), ("solarCell", 4), ("wire", 2), ("circuit", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14)),
         new("vent", 1, 1, [(0, 0)], [("plate", 1), ("tube", 1)], BuildTicks: 60),
         new("lamp", 1, 1, [], [("wire", 2), ("scrap", 1)], BuildTicks: 60, Draws: 1, Plug: (11, 1)),
-        // A lamp of the arc makers' homes hung aboard (0090): its blueprint opens once an arc lamp is analysed; brighter and
+        // A lamp of the arc makers' homes hung aboard (0091): its blueprint opens once an arc lamp is analysed; brighter and
         // colder than the starter lamp, for the same power.
         new("arcLamp", 1, 1, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1)),
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).

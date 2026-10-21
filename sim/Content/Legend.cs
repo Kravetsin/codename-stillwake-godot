@@ -29,7 +29,7 @@ public static class Legend
         ('B', "burner generator: draw its whole footprint"),
         ('V', "vent"),
         ('L', "lamp"),
-        ('J', "arc lamp: one of the arc makers' hung aboard (0090)"),
+        ('J', "arc lamp: one of the arc makers' hung aboard (0091)"),
         ('K', "crate: draw its whole footprint"),
         ('A', "analyzer: draw its whole footprint"),
         ('C', "charging station: draw its whole footprint"),

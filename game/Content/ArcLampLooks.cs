@@ -4,7 +4,7 @@ using System.Linq;
 namespace Stillwake.Game;
 
 /// <summary>
-/// How the arc makers' lamp hung aboard looks (0090), as their ceiling lamp does in the homes: its body, mount and dark globe,
+/// How the arc makers' lamp hung aboard looks (0091), as their ceiling lamp does in the homes: its body, mount and dark globe,
 /// always, the grid's tile lit by the world; while it shines its globe alight over it and the globe's glow added, both as bright
 /// as it shines; and at full power the ceiling lamp's arc crackling across its globe.
 /// </summary>

@@ -78,7 +78,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
             SweepCracks();
             SweepPlants();
         });
-        // A ruin's resonator zaps who stands right by it, a breath at a time (0090): before crew breathes, in its phase.
+        // A ruin's resonator zaps who stands right by it, a breath at a time (0091): before crew breathes, in its phase.
         System(Phase.Simulation, Zap);
     }
 

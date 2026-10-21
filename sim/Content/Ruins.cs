@@ -4,7 +4,7 @@ using Piece = Stillwake.Content.Flora.Piece;
 namespace Stillwake.Content;
 
 /// <summary>
-/// What whoever came before left on the first planet (0085, 0090): prefabs drawn as ASCII, stamped into the ground as it grows
+/// What whoever came before left on the first planet (0085, 0091): prefabs drawn as ASCII, stamped into the ground as it grows
 /// (<c>Terrain</c>), last, over the caves, the landmarks and what grew there. A prefab's characters: <c>#</c> a wall of alloy,
 /// <c>.</c> open with an alloy back wall, <c>p</c> open with a plaster back wall, <c>s</c> a soil plug in a doorway (wall and
 /// back wall soil), <c>t</c> a wall of stone, <c>,</c> open with a stone back wall, <c>c</c> a cache standing open on the alloy
@@ -67,14 +67,14 @@ public static class Ruins
     public static int SpireWide => Spire[0].Length;
 
     /// <summary>
-    /// The spire's chamber furnished (0090, the homes page): a post, not a home, but someone kept it — a table and a chair, a lamp
+    /// The spire's chamber furnished (0091, the homes page): a post, not a home, but someone kept it — a table and a chair, a lamp
     /// hanging over them, a shelf with an empty scroll case, the makers' banner by the shrine, a cobweb in the corner. Pieces by
     /// kind at their own cells in <see cref="Spire"/>'s columns and rows, as a home's are.
     /// </summary>
     public static readonly IReadOnlyList<(string Kind, int X, int Y)> SpireFurnishing =
         [("cobweb", 1, 26), ("ceilLamp", 2, 26), ("table", 1, 27), ("chair", 3, 27), ("wallShelf", 4, 26), ("banner", 6, 26)];
 
-    /// <summary>The resonator (0090): it zaps who comes right up to it.</summary>
+    /// <summary>The resonator (0091): it zaps who comes right up to it.</summary>
     public const string Resonator = "arcDevice";
 
     /// <summary>
@@ -84,7 +84,7 @@ public static class Ruins
     public const int Zap = 5, ZapReach = 1;
 
     /// <summary>
-    /// The pieces of the arc makers' homes (0090), the concept page's catalogue: by its groups, light, furniture, the kitchen,
+    /// The pieces of the arc makers' homes (0091), the concept page's catalogue: by its groups, light, furniture, the kitchen,
     /// cloth and memory, the child's, knowledge and work, plants and time. Its columns and rows (<c>Across</c>, <c>Tall</c>) are
     /// the cells its picture mostly covers; its hit points (<c>Strength</c>) a lamp's or a picture's one swing of the axe, a
     /// chair's two, a table's three, the hearth's and the resonator's six, as a tree's; paper, cloth, crockery and the chest
@@ -154,7 +154,7 @@ public static class Ruins
     ];
 
     /// <summary>
-    /// A home of the arc makers (0090): its shell as ASCII, its top row first (<see cref="Ruins"/>' characters), and its pieces,
+    /// A home of the arc makers (0091): its shell as ASCII, its top row first (<see cref="Ruins"/>' characters), and its pieces,
     /// each by kind at its own cell — a floor's bottom-left, a ceiling's, a back wall's or one in the rock's top-left — in the
     /// prefab's columns and rows. The caves' growth on a collapsed end is listed as its pieces are.
     /// </summary>

@@ -6,7 +6,7 @@ using Stillwake.Sim.Items;
 namespace Stillwake.Sim.Building;
 
 /// <summary>
-/// A plant or a stone on a planet's surface (0079), a growth of its caves (0080) or a piece of a ruin's home (0090), at
+/// A plant or a stone on a planet's surface (0079), a growth of its caves (0080) or a piece of a ruin's home (0091), at
 /// <c>Cell</c> of <c>Kind</c> (<see cref="Flora"/>): on the surface the open cell over the soil it grows from; in a cave the
 /// open cell over its floor or under its ceiling, or the wall's own cell it lies in; a piece wider or taller than a cell by its
 /// own cell, the bottom-left on a floor, the top-left else.
@@ -14,7 +14,7 @@ namespace Stillwake.Sim.Building;
 public sealed record Plant(int Cell, string Kind);
 
 /// <summary>
-/// What grows on a planet, on its surface (0079) and in its caves (0080), and the pieces of its ruins (0090): grown from its seed
+/// What grows on a planet, on its surface (0079) and in its caves (0080), and the pieces of its ruins (0091): grown from its seed
 /// with the ground (<see cref="Layout.Flora"/>), never saved, but for the growths felled since, by cell. One is felled by a hit on
 /// any open cell it stands in, or once what it holds on to is gone — the wall under any of its columns, over them, its own, or
 /// the piece it stands on — or something stands in its own open cell.
@@ -26,7 +26,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Derived: the plants standing, ascending by cell; each by its own cell; the plant standing in front in each cell it stands in,
-    /// and behind (0090: a back wall's pieces, a rug); and the resonators standing, by their own cells.
+    /// and behind (0091: a back wall's pieces, a rug); and the resonators standing, by their own cells.
     /// </summary>
     private readonly List<Plant> _plants = [];
     private readonly Dictionary<int, Plant> _plantOwn = new();
@@ -42,7 +42,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// The plant a hit on <paramref name="cell"/> takes: the one standing in front there, its own or one of the cells it stands up,
-    /// hangs down or reaches across into, else the one behind (0090), never one painted on the back wall; null for none.
+    /// hangs down or reaches across into, else the one behind (0091), never one painted on the back wall; null for none.
     /// </summary>
     public Plant? PlantAt(int cell) =>
         _plantIn.GetValueOrDefault(cell) ?? (_plantBehind.TryGetValue(cell, out var behind) && !Kinds[behind.Kind].Fixed ? behind : null);
@@ -56,7 +56,7 @@ public sealed partial class BuildingModule
     };
 
     /// <summary>
-    /// Whether a hero reported at <paramref name="cell"/> stands right by a resonator (0090): within <see cref="Ruins.ZapReach"/>
+    /// Whether a hero reported at <paramref name="cell"/> stands right by a resonator (0091): within <see cref="Ruins.ZapReach"/>
     /// cells of one of its cells either way. The client draws its arc to the hero while it does.
     /// </summary>
     public bool Zaps(int cell)
@@ -106,7 +106,7 @@ public sealed partial class BuildingModule
         if (plant.Kind == Ruins.Resonator) _resonators.Add(plant.Cell);
     }
 
-    /// <summary>Where <paramref name="plant"/>'s cells are kept: in front, or behind for a back wall's piece or a rug (0090).</summary>
+    /// <summary>Where <paramref name="plant"/>'s cells are kept: in front, or behind for a back wall's piece or a rug (0091).</summary>
     private Dictionary<int, Plant> LayerOf(Plant plant) => Kinds[plant.Kind].Behind ? _plantBehind : _plantIn;
 
     /// <summary>
@@ -140,7 +140,7 @@ public sealed partial class BuildingModule
     /// <summary>
     /// Fells <paramref name="plant"/>: it is noted felled, for good, and gives what it yields to <paramref name="peer"/>; felled
     /// by nobody — built over, its hold gone to a meteor — it lets its yields fall at its cell for anyone (0085). What stood on it
-    /// falls with it, its yields to the same (0090: the dishes with the table).
+    /// falls with it, its yields to the same (0091: the dishes with the table).
     /// </summary>
     private void Fell(Plant plant, int? peer)
     {
@@ -204,7 +204,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Whether <paramref name="plant"/>'s hold is gone or cut to a slope (it grows on whole walls only), or its own open cell holds
-    /// something now. A floor's piece may stand on the piece in front under it instead (0090); one on a back wall needs its own.
+    /// something now. A floor's piece may stand on the piece in front under it instead (0091); one on a back wall needs its own.
     /// </summary>
     private bool Uprooted(Plant plant)
     {
@@ -229,7 +229,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Every breath (<see cref="Content.Crew.BreathEvery"/> of this module's clock) a hero standing right by a resonator pays its
-    /// zap (0090), in id order; none out cold.
+    /// zap (0091), in id order; none out cold.
     /// </summary>
     private void Zap()
     {

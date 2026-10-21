@@ -108,7 +108,7 @@ public class ResearchTests
     [Fact]
     public void AnAnalysedArcLampOpensTheArcLampAboardWhichIsBuiltOfOne()
     {
-        // A whole lamp of the arc makers' homes (0090): analysed, it stays, and its blueprint opens; hung aboard, it is the cost.
+        // A whole lamp of the arc makers' homes (0091): analysed, it stays, and its blueprint opens; hung aboard, it is the cost.
         var (w, id) = SetUp();
         w.GiveItems(0, ("arcLamp", 1));
         var lamp = new Placement("machine", "arcLamp");
