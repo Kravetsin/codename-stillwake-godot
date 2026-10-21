@@ -13,6 +13,9 @@ public class ChargesTests
 {
     private const string Battery = "battery";
     private static readonly int Full = Spec.Items.Get(Battery).Capacity!.Value;
+
+    /// <summary>A full battery in the power-ticks machines draw in.</summary>
+    private static readonly int Units = Full / Spec.Charge.Scale;
     private static Stack Charged(int charge) => new(Battery, 1, charge);
 
     [Fact]
@@ -45,11 +48,11 @@ public class ChargesTests
     [Fact]
     public void TheCardsMeterGivesWholePercentAndWhatItHoldsInPowerTicksNeverATime()
     {
-        // 65% of a battery of 1800 power-ticks is 1170, in the units machines draw in.
-        Assert.Equal(new ChargeMeter(65, 1170, 1800, 0.65f), Charges.MeterOf(Charged(Full * 65 / 100)));
-        Assert.Equal(new ChargeMeter(100, 1800, 1800, 1f), Charges.MeterOf(Charged(Full)));
-        // Rounded down: a hair short of full is 99% and 1799, a stored unit is none.
-        Assert.Equal((99, 1799), (Charges.MeterOf(Charged(Full - 1))!.Percent, Charges.MeterOf(Charged(Full - 1))!.Stored));
+        // 65% of a battery is 65% of its power-ticks, in the units machines draw in.
+        Assert.Equal(new ChargeMeter(65, Full * 65 / 100 / Spec.Charge.Scale, Units, 0.65f), Charges.MeterOf(Charged(Full * 65 / 100)));
+        Assert.Equal(new ChargeMeter(100, Units, Units, 1f), Charges.MeterOf(Charged(Full)));
+        // Rounded down: a hair short of full is 99% and a power-tick short, a stored unit is none.
+        Assert.Equal((99, Units - 1), (Charges.MeterOf(Charged(Full - 1))!.Percent, Charges.MeterOf(Charged(Full - 1))!.Stored));
         Assert.Equal((0, 0), (Charges.MeterOf(Charged(1))!.Percent, Charges.MeterOf(Charged(1))!.Stored));
         Assert.Null(Charges.MeterOf(new Stack("scrap", 3)));
     }
@@ -59,7 +62,7 @@ public class ChargesTests
     {
         var reading = new Reading([], null, Creative: true, null, null, []);
         var card = reading.TipOf(Charged(Full * 6 / 10)).Card!;
-        Assert.Equal(new ChargeMeter(60, 1080, 1800, 0.6f), card.Charge);
+        Assert.Equal(new ChargeMeter(60, Full * 6 / 10 / Spec.Charge.Scale, Units, 0.6f), card.Charge);
         Assert.Equal(Battery, card.Picture);
         var empty = reading.TipOf(Charged(0)).Card!;
         Assert.Equal("battery_empty", empty.Picture);
@@ -93,10 +96,10 @@ public class ChargesTests
     {
         // Three batteries on the belt, four cells each (0081): one full battery lights a third of the gauge.
         Assert.Equal(3, Charges.BeltSlots);
-        Assert.Equal(new Belt(1.0 / 3, 1800, Low: false, Worn: true), Charges.BeltOf((Full, Full)));
-        Assert.Equal(new Belt(1, 5400, Low: false, Worn: true), Charges.BeltOf((3 * Full, 3 * Full)));
-        // Units round down, as the card's meter: 1799.999 is 1799.
-        Assert.Equal(1799, Charges.BeltOf((Full - 1, Full)).Units);
+        Assert.Equal(new Belt(1.0 / 3, Units, Low: false, Worn: true), Charges.BeltOf((Full, Full)));
+        Assert.Equal(new Belt(1, 3 * Units, Low: false, Worn: true), Charges.BeltOf((3 * Full, 3 * Full)));
+        // Units round down, as the card's meter: a hair short of a full battery is a power-tick short.
+        Assert.Equal(Units - 1, Charges.BeltOf((Full - 1, Full)).Units);
         // Low under a quarter of what the worn batteries hold full, as each slot's bar; an empty one too.
         Assert.True(Charges.BeltOf((Full / 2 - 1, 2 * Full)).Low);
         Assert.False(Charges.BeltOf((Full / 2, 2 * Full)).Low);
@@ -128,6 +131,6 @@ public class ChargesTests
         });
         var belt = m.Items.BeltCharge(0);
         Assert.Equal((Full * 3 / 4, 2 * Full), belt);
-        Assert.Equal(new Belt(0.25, 1350, Low: false, Worn: true), Charges.BeltOf(belt));
+        Assert.Equal(new Belt(0.25, Full * 3 / 4 / Spec.Charge.Scale, Low: false, Worn: true), Charges.BeltOf(belt));
     }
 }

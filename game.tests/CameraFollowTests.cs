@@ -147,12 +147,18 @@ public class CameraFollowTests
         return path;
     }
 
-    /// <summary>Aboard, and on the first planet, whose gravity is two thirds of the ship's.</summary>
+    /// <summary>Aboard, and on the first planet, at its own gravity.</summary>
     [Theory]
-    [InlineData(Spec.Gravity, 3.8)]
-    [InlineData(Spec.Gravity * 2 / 3, 5.9)]
-    public void AJumpIsFollowedUpAndDownNeverFarBehind(int gravity, double rises)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AJumpIsFollowedUpAndDownNeverFarBehind(bool planet)
     {
+        int gravity = planet ? Stillwake.Content.Surfaces.SmallPlanet.Fall(Spec.Gravity) : Spec.Gravity;
+        // The jump's top: each step that still rises, Hero.Jump less gravity a step, summed.
+        int rising = (Spec.Jump - 1) / gravity;
+        double rises = (rising * Spec.Jump - gravity * rising * (rising + 1) / 2) / (double)Hero.Unit;
+        // Higher than the catch, or the view would not need to follow at all.
+        Assert.True(rises > Look.Catch, $"a jump of {rises} cells stays within the catch");
         var camera = At(Standing(0, 10));
         double highest = 10, cameraHighest = 10, worst = 0;
         foreach (var hero in Jump(10, gravity))
@@ -162,7 +168,7 @@ public class CameraFollowTests
             cameraHighest = Math.Min(cameraHighest, camera.Y);
             worst = Math.Max(worst, Math.Abs(camera.Y - hero.Y));
         }
-        Assert.True(10 - highest > rises, $"the jump rose only {10 - highest} cells");
+        Assert.Equal(rises, 10 - highest, 9);
         // The view rose with it most of the way, never further than the catch from it, and is back down with it.
         Assert.True(10 - cameraHighest > (10 - highest) * 0.6, $"the view rose {10 - cameraHighest} of {10 - highest} cells");
         Assert.True(worst <= Look.Catch + 1e-9, $"the hero got {worst} cells from the middle");
