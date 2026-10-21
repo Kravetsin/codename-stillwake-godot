@@ -41,6 +41,15 @@ public static class Hero
     /// <summary>Thousandths of <see cref="Run"/> a jump off a ladder to one side starts across with, rounded down.</summary>
     public const int LadderJumpAcross = 900;
 
+    /// <summary>
+    /// The ledge assist (0092): a jump whose feet fall short of a ledge it is pressed against by no more than its drawn foot is
+    /// raised over it, at most this much a step, as a climb is, then put onto it <see cref="MantleAcross"/> across.
+    /// </summary>
+    public const int MantleRise = 110;
+
+    /// <summary>How far onto a ledge the assist puts the hero, across, the step its feet reach the top.</summary>
+    public const int MantleAcross = 60;
+
     /// <summary>Thousandths of <see cref="Jump"/> a jump off a ladder to one side rises with, rounded toward zero: a leap off, not up.</summary>
     public const int LadderJumpRise = 850;
 

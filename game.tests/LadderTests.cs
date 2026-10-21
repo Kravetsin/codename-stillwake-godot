@@ -202,29 +202,23 @@ public class LadderTests
         LimbsOf(Pose.Climb, At(Middle, y, climbing: true, vy: vy), new Moment(0, 0, Ledge: ledge));
 
     [Fact]
-    public void HandsHoldTheRungsTheLadderDrawsWhileTheBodyClimbsPastThem()
+    public void HandsReachOverEachOtherEveryTwoCellsClimbedReadFromTheHeight()
     {
-        // Over a cell climbed, read from where the hero is: each hand on a rung of ladder.png a grip's share of the way, there
-        // it stays put; the cycle is a cell, whatever pose came before.
-        foreach (var (rung, arm) in new (double, Func<Limbs, Bend>)[] { (Look.Ladder.FrontRung, l => l.FrontArm), (Look.Ladder.BackRung, l => l.BackArm) })
+        // The cycle is Ladder.Stride cells climbed, whatever pose came before; a hand reaches over the other every half of it.
+        int stride = (int)(Look.Ladder.Stride * Unit), half = stride / 2;
+        Assert.Equal(2 * Unit, half);
+        foreach (int y in new[] { 9 * Unit, 8 * Unit + 370, 7 * Unit + 910 })
         {
-            int held = 0;
-            double? last = null;
-            for (int y = 9 * Unit; y > 8 * Unit; y -= 10)
-            {
-                double at = HandAt(arm(Climbing(y)), y);
-                bool onRung = Math.Abs(at - Math.Floor(at / Rig.Cell) * Rig.Cell - rung) < 0.01;
-                if (onRung)
-                {
-                    held++;
-                    if (last is double was) Assert.True(Math.Abs(was - at) < 0.01 || Math.Abs(Math.Abs(was - at) - Rig.Cell) < 0.01);
-                    last = at;
-                }
-            }
-            Assert.InRange(held, 50, 60);
-            Assert.Equal(arm(Climbing(9 * Unit)), arm(Climbing(8 * Unit)));
+            PoseTests.Close(Climbing(y).FrontArm.Upper, Climbing(y - stride).FrontArm.Upper, 6);
+            var a = Climbing(y);
+            var b = Climbing(y - half);
+            PoseTests.Close(a.FrontArm.Upper, b.BackArm.Upper, 6);
+            PoseTests.Close(a.BackLeg.Upper, b.FrontLeg.Upper, 6);
         }
-        // Each hand with the other on its own rung, not together.
+        // Climbing up, a hand reaches over the other about three times a second: calm, not by the rungs.
+        double reaches = Spec.ClimbUp * 60.0 / Unit / (Look.Ladder.Stride / 2);
+        Assert.InRange(reaches, 3, 3.5);
+        // Each hand on its own hold, not together.
         var l = Climbing(8 * Unit + 300);
         Assert.False(Math.Abs(HandAt(l.FrontArm, 8300) - HandAt(l.BackArm, 8300)) < 0.5);
     }

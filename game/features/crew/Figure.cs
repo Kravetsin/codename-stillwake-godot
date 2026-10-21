@@ -444,8 +444,9 @@ public partial class Figure : Node2D
     public (double Left, double Right) FloorRoom { get; set; } = (double.MaxValue, double.MaxValue);
 
     /// <summary>
-    /// On a ladder, how far its top is over the feet, in pixels (<see cref="Hero.LedgeAbove"/>): what the hands pull the body
-    /// up onto (0092). Set by the crew each frame; none away from one.
+    /// On a ladder, how far its top is over the feet, in pixels (<see cref="Hero.LedgeAbove"/>), or in the air how far a ledge
+    /// the jump steps up onto is (<see cref="Hero.MantleLedge"/>): what the hands pull the body up onto (0092). Set by the crew
+    /// each frame; none away from one.
     /// </summary>
     public double? Ledge { get; set; }
 
@@ -571,7 +572,7 @@ public partial class Figure : Node2D
         _swim = afloat ? Settle(_swim, Poses.Swimming(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _motion.Landing, holding ? _head : null,
-            _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose == Pose.Climb ? Ledge : null));
+            _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null));
         var from = _shown ?? to;
         double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(

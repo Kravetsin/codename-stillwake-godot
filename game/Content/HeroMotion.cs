@@ -67,16 +67,16 @@ public static class HeroMotion
     }
 
     /// <summary>
-    /// On a ladder (0092), in pixels of the world. The hands and feet take the rungs of <c>art/ladder.png</c>, which lie
-    /// <see cref="FrontRung"/> and <see cref="BackRung"/> pixels down each cell: the front hand the one, the back hand the
-    /// other, each foot the rung its opposite hand's stroke puts it on. A hand holds its rung from <see cref="HandTop"/> over
-    /// the shoulder for <see cref="Grip"/> of a cell climbed, <see cref="HandOut"/> before the body; a foot from its top under
-    /// the hip; so the cycle is a cell climbed, read from where the hero is, and a held rung stays put as the body passes it.
+    /// On a ladder (0092), in pixels of the world. The limbs' cycle is <see cref="Stride"/> cells climbed, read from the hero's
+    /// height so every peer draws it alike: a hand reaches over the other every half of it, about 3 times a second climbing up.
+    /// A hand holds from <see cref="HandTop"/> over the shoulder down <see cref="HandRange"/> for <see cref="Grip"/> of the
+    /// cycle, <see cref="HandOut"/> before the body, then is brought back up <see cref="HandSwing"/> out; a foot the same from
+    /// <see cref="FootTop"/> under the hip, with the opposite hand. Not tied to the rungs: the hands slide up the rails.
     /// </summary>
     public static class Ladder
     {
-        public const double FrontRung = 5, BackRung = 12, Grip = 0.55, HandTop = -8.6, HandOut = 8.4, HandSwing = 3, FootOut = 3.8,
-            FootSwing = 3.8;
+        public const double Stride = 4, Grip = 0.6, HandTop = -8.6, HandRange = 8.8, HandOut = 8.4, HandSwing = 3,
+            FootTop = 8.4, FootRange = 8.8, FootOut = 3.8, FootSwing = 3.8;
 
         /// <summary>
         /// The pull-up at the top: from the ledge at the hands' highest hold to <see cref="PullBlend"/> under it

@@ -191,8 +191,10 @@ public class HeroTests
         Assert.Equal(4 * Unit - Half, Settle(low.Ship, low.Hero, Right).X);
     }
 
+    // Was JumpsOntoALedgeThreeCellsHighNotFour: a held jump's feet come 46 short of a fourth cell, inside the drawn foot's
+    // reach at its top, so the ledge assist puts the hero on it (0092). Five is still out of reach.
     [Fact]
-    public void JumpsOntoALedgeThreeCellsHighNotFour()
+    public void JumpsOntoALedgeFourCellsHighWithTheLedgeAssistNotFive()
     {
         (Ship Ship, Hero Hero) Ledge(int high)
         {
@@ -208,7 +210,12 @@ public class HeroTests
         Assert.Equal(6 * Unit, Settle(three.Ship, h, Still).Y);
 
         var four = Ledge(4);
-        var g = Run(four.Ship, four.Hero.Step(Jump, four.Ship), Held with { X = 1 }, 200);
+        var f = Run(four.Ship, four.Hero.Step(Jump, four.Ship), Held with { X = 1 }, 200);
+        Assert.True(Column(f) >= 3);
+        Assert.Equal(5 * Unit, f.Y);
+
+        var five = Ledge(5);
+        var g = Run(five.Ship, five.Hero.Step(Jump, five.Ship), Held with { X = 1 }, 200);
         Assert.True(Column(g) < 3);
         Assert.Equal(9 * Unit, g.Y);
     }

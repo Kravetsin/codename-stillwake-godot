@@ -563,11 +563,16 @@ Deliberately not handled:
   (9), with Shift sliding at 300 (18). A side held in mid-air turns the hero on it, ready to jump that way, side then jump or
   jump then side; on the ground a side walks off unless up is held; Space with a side leaps off at 0.9 of the run and 0.85 of
   the jump, straight up as from the floor. At the top the body rises to it and stands; the figure has pulled itself up meanwhile
-  onto `Hero.LedgeAbove`, hands on the ledge, the front foot stepping up (`Poses.PullUp`). The hands and feet take the
-  ladder's rungs by the hero's height (`HeroMotion.Ladder`), so a held rung stays put; a slide, read from `Vy`, raises the
+  onto `Hero.LedgeAbove`, hands on the ledge, the front foot stepping up (`Poses.PullUp`). The limbs' cycle is 4 cells climbed,
+  read from the hero's height (`HeroMotion.Ladder`): a hand over the other every 2 cells; a slide, read from `Vy`, raises the
   hands to the rails and throws `Luminous.RailSpark`s. A friend's hero shows all of it from `Climbing`, `X`, `Y` and `Vy`. The
   hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder. `-- --ladders --autopilot --lit`
   records it (`HeroAutopilot.LaddersRun`; with `--strip`, the strip's shaft).
+- **Ledge assist** (0092): a jump (`Hero.Leaping`) pressed toward a whole wall whose top its feet are short of by no more than
+  the drawn foot clears (`Hero.MantleReach`, from `Poses.FootLift`: 297 at the top, 278 rising, 36 falling fast), rising no
+  faster than 110 a step, is raised up to `MantleRise` 110 a step and put `MantleAcross` 60 onto the top, standing; the figure
+  steps up in the pull-up's end (`Hero.MantleLedge`, read from any hero's position). A held jump now gets onto four cells
+  aboard, not five; on the planet six, not seven. `-- --ledges --autopilot --lit` records it (`HeroAutopilot.LedgesRun`).
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - A press on a door or valve is built from it as shown (`Shared.Predicted.Grid`, passed to `Aiming.AimAt`): it asks

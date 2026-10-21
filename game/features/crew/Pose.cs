@@ -28,7 +28,8 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// axe or the harpoon: afloat, or flailing in a long fall, that arm keeps calm. <see cref="Momentum"/>, what the figure
 /// read from the motion over time (<see cref="Motion"/>, 0090): the lean, the skid, the landing's depth, the jump's and
 /// the fall's timers; none for a body at rest in it. <see cref="Ledge"/>, on a ladder, how far its top is over the feet in
-/// pixels (<see cref="Hero.LedgeAbove"/>): what the hands pull the body up onto (0092); none away from one.
+/// pixels (<see cref="Hero.LedgeAbove"/>), or in the air the ledge a jump steps up onto (<see cref="Hero.MantleLedge"/>): what
+/// the hands pull the body up onto (0092); none away from one.
 /// </summary>
 public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null,
     double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, bool Wields = false,
@@ -324,7 +325,20 @@ public static class Poses
                 FrontLeg = limbs.FrontLeg with { Upper = limbs.FrontLeg.Upper + 0.15 * flail * Math.Sin(t / 110) },
             };
         }
-        return limbs with { Tilt = DriftOf(hero) };
+        limbs = limbs with { Tilt = DriftOf(hero) };
+        // Stepping up onto a ledge the jump fell just short of (0092): the ladder top's pull-up, at its end.
+        return moment.Ledge is double ledge ? PullUp(limbs, ledge) : limbs;
+    }
+
+    /// <summary>
+    /// How far over the feet the higher foot is drawn in the air at <paramref name="vy"/>, in pixels (0092): the knees tucked
+    /// rising and at a jump's top, hanging falling. A jump whose feet fall short of a ledge by less, against it, steps up onto
+    /// it (<see cref="Hero"/>'s ledge assist): it looked as if the foot was on it, so it is.
+    /// </summary>
+    public static double FootLift(int vy)
+    {
+        var air = InTheAir(new Hero(0, 0, 0, vy, false, 1), new Moment(0, 0));
+        return Rig.Hip - Math.Min(Rig.EndOf(air.FrontLeg, Rig.Leg).Y, Rig.EndOf(air.BackLeg, Rig.Leg).Y);
     }
 
     /// <summary>How far the knees tuck at a jump's top, moving <paramref name="vy"/> up or down: up to <c>Air.Tuck</c> at still.</summary>
@@ -445,37 +459,16 @@ public static class Poses
     }
 
     /// <summary>
-    /// Where a hand or foot on a ladder is <paramref name="cycle"/> through its climb: holding its rung from
-    /// <paramref name="top"/> down a <see cref="Rung.Grip"/> of a cell as the body rises past it, then let go and brought back
-    /// up a rung, out from the ladder by <paramref name="outward"/> on the way.
+    /// Where a hand or foot on a ladder is <paramref name="cycle"/> through its climb: holding on from <paramref name="top"/>
+    /// down <paramref name="range"/> for <c>Ladder.Grip</c> of the cycle, then let go and brought back up, out from the ladder
+    /// by <paramref name="outward"/> on the way.
     /// </summary>
-    private static Vec OnRung(double cycle, double top, double x, double outward)
+    private static Vec OnRung(double cycle, double top, double range, double x, double outward)
     {
-        double p = cycle - Math.Floor(cycle), grip = Rung.Grip, range = grip * Rig.Cell;
-        if (p < grip) return new Vec(x, top + p * Rig.Cell);
+        double p = cycle - Math.Floor(cycle), grip = Rung.Grip;
+        if (p < grip) return new Vec(x, top + p / grip * range);
         double q = (p - grip) / (1 - grip);
         return new Vec(x - outward * Math.Sin(q * Math.PI), top + (1 - q) * range);
-    }
-
-    /// <summary>
-    /// How far through its cycle a hand or foot is, its joint <paramref name="joint"/> pixels over feet at
-    /// <paramref name="feet"/> (pixels down the world), holding from <paramref name="top"/> under the joint: 0 where its
-    /// highest hold is on a rung <paramref name="rung"/> pixels down a cell, so a held rung stays where the ladder draws it.
-    /// </summary>
-    private static double RungCycle(double feet, double joint, double top, double rung)
-    {
-        double at = (rung - feet + joint - top) / Rig.Cell;
-        return at - Math.Floor(at);
-    }
-
-    /// <summary>
-    /// Where a foot first holds under its hip, so it takes rung <paramref name="rung"/> in step with the hand on
-    /// <paramref name="hand"/>: within a cell under the hip.
-    /// </summary>
-    private static double FootTop(double rung, double hand)
-    {
-        double at = rung + Rig.Hip - (hand + Rig.Shoulder - Rung.HandTop);
-        return at - Math.Floor(at / Rig.Cell) * Rig.Cell;
     }
 
     /// <summary>How far a ladder's slide shows, from the climb down's speed (none) to the slide's (all), read from the fall alone (0092).</summary>
@@ -487,27 +480,22 @@ public static class Poses
         ledge is double l ? Math.Clamp((Rig.Shoulder - Rung.HandTop - l) / Rung.PullBlend, 0, 1) : 0;
 
     /// <summary>
-    /// On a ladder (0092): hands over the head taking rungs in turn, each with the opposite foot, the cycle a cell climbed read
-    /// from where <paramref name="hero"/> is, so every hero shows it alike from its position and a held rung stays put; sliding,
-    /// the hands high on the rails by the fall's speed; near the top, a <paramref name="ledge"/> pixels over the feet, pulled up
-    /// onto it (<see cref="PullUp"/>).
+    /// On a ladder (0092): hands over the head reaching in turn, each with the opposite foot, a hand over the other every half
+    /// of <c>Ladder.Stride</c> cells climbed, read from where <paramref name="hero"/> is, so every hero shows it alike from its
+    /// position; sliding, the hands high on the rails by the fall's speed; near the top, a <paramref name="ledge"/> pixels over
+    /// the feet, pulled up onto it (<see cref="PullUp"/>).
     /// </summary>
     private static Limbs Climbing(Hero hero, double? ledge)
     {
-        double feet = (double)hero.Y / Hero.Unit * Rig.Cell;
-        Vec Hand(double rung) => OnRung(RungCycle(feet, Rig.Shoulder, Rung.HandTop, rung), Rung.HandTop, Rung.HandOut, Rung.HandSwing);
-        Vec Foot(double rung, double hand)
-        {
-            double top = FootTop(rung, hand);
-            return OnRung(RungCycle(feet, Rig.Hip, top, rung), top, Rung.FootOut, Rung.FootSwing);
-        }
-        // Elbows bend as arms do, forearms forward, the elbows below the hands as when pulling up. The body is not lifted:
-        // a held rung stays where the ladder draws it.
+        double cycle = -(double)hero.Y / Hero.Unit / Rung.Stride;
+        Vec Hand(double at) => OnRung(at, Rung.HandTop, Rung.HandRange, Rung.HandOut, Rung.HandSwing);
+        Vec Foot(double at) => OnRung(at, Rung.FootTop, Rung.FootRange, Rung.FootOut, Rung.FootSwing);
+        // Elbows bend as arms do, forearms forward, the elbows below the hands as when pulling up.
         var limbs = new Limbs(
-            FrontArm: Rig.Reach(Hand(Rung.FrontRung), Rig.Arm, 1),
-            BackArm: Rig.Reach(Hand(Rung.BackRung), Rig.Arm, 1),
-            FrontLeg: Rig.Reach(Foot(Rung.FrontRung, Rung.BackRung), Rig.Leg, -1),
-            BackLeg: Rig.Reach(Foot(Rung.BackRung, Rung.FrontRung), Rig.Leg, -1),
+            FrontArm: Rig.Reach(Hand(cycle), Rig.Arm, 1),
+            BackArm: Rig.Reach(Hand(cycle + 0.5), Rig.Arm, 1),
+            FrontLeg: Rig.Reach(Foot(cycle + 0.5), Rig.Leg, -1),
+            BackLeg: Rig.Reach(Foot(cycle), Rig.Leg, -1),
             Tilt: 0, Lift: 0, Lying: false);
         if (ledge is double l && PullOf(l) > 0) limbs = PullUp(limbs, l);
         double slide = SlideOf(hero.Vy);

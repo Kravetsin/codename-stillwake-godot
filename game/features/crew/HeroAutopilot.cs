@@ -62,6 +62,20 @@ public sealed class HeroAutopilot
             _ => "#" + new string('.', 26) + "#",
         }))]);
 
+    /// <summary>
+    /// Two ledges for recording the ledge assist (0092), <c>-- --ledges --autopilot --lit</c>: one four cells high, which a held
+    /// jump falls 46 short of and steps up onto, and one five high, which it falls clearly short of.
+    /// </summary>
+    public static readonly Layout Ledges = Layout.Parse(
+        [.. Enumerable.Range(0, 13).Select(r => ShaftLamps(r, r switch
+        {
+            0 or 12 => new string('#', 30),
+            11 => "#.S....." + new string('#', 6) + "......" + new string('#', 10),
+            >= 8 => "#......." + new string('#', 6) + "......" + new string('#', 10),
+            >= 7 => "#......." + new string('.', 6) + "......" + new string('#', 10),
+            _ => "#" + new string('.', 28) + "#",
+        }))]);
+
     private static string ShaftLamps(int row, string cells) =>
         row is 2 or 9 or 14 or 19 ? string.Concat(cells.Select((c, x) => c == '.' && x % 5 == 1 ? 'L' : c)) : cells;
 
@@ -433,6 +447,24 @@ public sealed class HeroAutopilot
         ])
         { _trace = true };
     }
+
+    /// <summary>
+    /// The <see cref="Ledges"/> script (0092): a held jump at the four-cell ledge, stepped up onto; off its far side, and a held
+    /// jump at the five-cell one, falling short.
+    /// </summary>
+    public static HeroAutopilot LedgesRun() => new(
+    [
+        Wait(40),
+        Walk(1, h => Column(h) >= 6),
+        Jump(1),
+        Hold(new HeroInput(1, 0, false), 70),
+        Walk(1, h => Column(h) >= 15 && h.Vy == 0 && h.Y > 10 * Hero.Unit),
+        Walk(1, h => Column(h) >= 18),
+        Jump(1),
+        Hold(new HeroInput(1, 0, false), 80),
+        Wait(40),
+    ])
+    { _trace = true };
 
     /// <summary>
     /// <c>--strip --ladders</c>: the planet's test strip's ladder (0092): out of the shelter to the shaft, down its ladder sliding,

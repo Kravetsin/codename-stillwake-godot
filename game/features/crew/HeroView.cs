@@ -650,8 +650,12 @@ public partial class HeroView : Node2D
         return (Room(-1), Room(1));
     }
 
-    /// <summary>How far the top of the ladder <paramref name="hero"/> climbs is over its feet, in pixels: what its figure pulls itself up onto (0092).</summary>
-    private static double? LedgeOf(Ship ship, Hero hero) => Hero.LedgeAbove(ship, hero) is int up ? up * Rig.Cell / Hero.Unit : null;
+    /// <summary>
+    /// How far the top of the ladder <paramref name="hero"/> climbs, or of the ledge its jump steps up onto, is over its feet, in
+    /// pixels: what its figure pulls itself up onto (0092), read alike for every hero from where it is.
+    /// </summary>
+    private static double? LedgeOf(Ship ship, Hero hero) =>
+        (Hero.LedgeAbove(ship, hero) ?? Hero.MantleLedge(ship, hero)) is int up ? up * Rig.Cell / Hero.Unit : null;
 
     /// <summary>The middle of <paramref name="cell"/>, in thousandths of a cell.</summary>
     private Point Middle(int cell) => new(cell % _width * Hero.Unit + Hero.Unit / 2, cell / _width * Hero.Unit + Hero.Unit / 2);
