@@ -194,12 +194,13 @@ public partial class Main : Node2D, ITogether
             else if (Has("--fly") || Has("--asteroid")) _hero.Start = FarDemo.StartOf;
             else if (Has("--sortie")) _hero.Start = SortieDemo.StartOf;
             else if (Has("--charge")) _hero.Start = ChargeDemo.StartOf;
+            else if (Has("--arc")) _hero.Start = m => OpenDemo.StartOf(m, "smelter");
             else if (Has("--die")) _hero.Start = DieDemo.StartOf;
             else if (Has("--breathe") || Has("--breathe-air")) _hero.Start = BreatheDemo.StartOf;
             else if ((Opens ?? Near) is { } opened) _hero.Start = m => OpenDemo.StartOf(m, opened);
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
-            AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend });
+            AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend, LendSockets = _items.Panel.LendSockets });
             // The drone badge is the logistics feature's, put in the items' and crafting panels' headers where drones have work (0062).
             Features.Logistics.DroneWorld? Drones() => _session is Session s ? new(_m.Logistics, s.Client.InFlight) : null;
             void SendNow(Command c) => (_session as Session)?.Client.Send(c);
@@ -288,6 +289,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--handbook")) AddChild(new HandbookDemo(debrisPage));
         if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
         if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
+        if (Has("--arc") && _items != null) AddChild(new ArcDemo(_items, _hands.Ui, () => _m));
         if ((Has("--breathe") || Has("--breathe-air")) && _items != null) AddChild(new BreatheDemo(_items, () => _m, canister: Has("--breathe")));
         if (Opens is { } open) AddChild(new OpenDemo(_hands.Ui, open, () => _m, Arg("--open-at") is { } at ? double.Parse(at, System.Globalization.CultureInfo.InvariantCulture) : 1.0));
         if (_args.FirstOrDefault(a => a.StartsWith("--card=", StringComparison.Ordinal)) is { } card) AddChild(new CardDemo(_hands, card[7..], pick: Has("--pick")));
@@ -353,6 +355,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--floor")) world = FloorDemo.Seed(world, Modules);
         if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);
         if (Has("--charge")) world = ChargeDemo.Seed(world, Modules);
+        if (Has("--arc")) world = ArcDemo.Seed(world, Modules);
         if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules, ArcDrill);
         if (Has("--sortie")) world = SortieDemo.Seed(world, _m, Modules);
         if (Arg("--bow") is { } bow) FarDemo.Bow = int.Parse(bow);
@@ -869,7 +872,7 @@ public partial class Main : Node2D, ITogether
         AddChild(_chargers = new Features.Power.ChargerLights(_m.Grid, _m.Items, _m.Power));
         AddChild(_tanks = new Features.Atmosphere.TankLooks(_m.Grid, _m.Atmosphere));
         AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
-        AddChild(_stations = new StationView(_m.Grid, _m.Crafting));
+        AddChild(_stations = new StationView(_m.Grid, _m.Crafting, _m.Items));
         var ui = _hands.Ui;
         AddChild(_drones = new Features.Logistics.LogisticsView(_m.Grid, _m.Items, _m.Power, _m.Logistics, () => (_session as Session)?.Progress ?? 0,
             () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open)?.Kind == Content.Logistics.Bay ? open : null,
@@ -984,8 +987,10 @@ public partial class Main : Node2D, ITogether
         _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
         if (_items != null) _items.Panel.Charger = _m.Power.Charges;
+        if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, SpotOf(_hero), session.Progress, delta * 1000);
+        if (_fabricator != null) _fabricator.Draw = _m.Power.Draw;
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);

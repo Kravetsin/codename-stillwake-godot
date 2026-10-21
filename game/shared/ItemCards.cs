@@ -37,7 +37,7 @@ public static class ItemCards
         var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key"), T($"item.{item}.hint")) : null;
         if (!IsTool(item))
         {
-            var card = new ItemCard(item, name, kind, null, [], key, unknown);
+            var card = new ItemCard(item, name, kind, null, Spec.Modules.TryGet(item, out var module) ? [Fits(module)] : [], key, unknown);
             return Spec.Items.Get(item).Equip == null ? card : Worn(card);
         }
         if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), [], key, unknown);
@@ -52,6 +52,20 @@ public static class ItemCards
             ],
             weapon.Effects.Select(e => new CardEffect(T($"effect.{e.Id}"), T($"effect.{e.Id}.about"), e.Colour, e.Ground)).ToList(),
             key, unknown);
+    }
+
+    /// <summary>The arc's violet-white on a deep violet: a module's chip, as its arcs look (0086).</summary>
+    public const string ModuleColour = "d9c8ff", ModuleGround = "221a3d";
+
+    /// <summary>
+    /// A module's "fits" chip (0086): the machines it fits into, by name, and what it does there, its speed and power as
+    /// times: "×2 speed for ×2 power".
+    /// </summary>
+    private static CardEffect Fits(Spec.ModuleSpec module)
+    {
+        string machines = string.Join(", ", module.Hosts.Select(h => T($"tool.{h}")));
+        string Times(int added) => Number((1000 + added) / 1000.0);
+        return new CardEffect(T("card.fits"), T("card.fitsAbout", ("machines", machines), ("speed", Times(module.Speed)), ("power", Times(module.Draw))), ModuleColour, ModuleGround);
     }
 
     /// <summary>

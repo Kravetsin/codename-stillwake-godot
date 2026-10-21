@@ -56,6 +56,9 @@ public interface IItemsQueries
     int HeldFor(int id, string item);
     int RoomFor(int id, Stack stack);
     string? KeptAt(int id, int slot);
+    IReadOnlyList<string> FittedTo(int machine);
+    Boost Boost(int machine);
+    string? FitProblem(int peer, Place from, int machine);
 }
 
 /// <summary>How a module that depends on the items may change them.</summary>
@@ -102,6 +105,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Handles<Move>(MoveProblem, ApplyMove);
         Handles<Run>(RunProblem, ApplyRun);
         Handles<Sort>(SortProblem, ApplySort);
+        Handles<Fit>(c => FitProblem(c.From, c.Module, c.Machine), ApplyFit);
+        Handles<Unfit>(UnfitProblem, ApplyUnfit);
         // After derivation: falling reads the rooms, rebuilt by then.
         System(Phase.Simulation, () =>
         {

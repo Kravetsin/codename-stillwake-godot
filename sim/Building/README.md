@@ -44,7 +44,8 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   (`IGridQueries.GrownBack`), is refused `building.natural`. A soil or stone back wall a hero built is marked and taken
   apart for its item as any back wall (0084).
 - A mark needs something in that layer of that cell, and one thing takes one mark. A machine holding
-  items (a crate, a furnace) or a station with crafts queued is marked only empty, refused with
+  items (a crate, a furnace), a module fitted (`IItemsQueries.FittedTo`, 0086) or a station with crafts queued is marked
+  only empty, refused with
   `building.notEmpty`; a machine a cable
   ends on, only with its cables cut, refused with `building.cabled`. Both are checked again when the
   mark is worked. A machine's mark is kept at the machine's top-left, whichever of its cells was

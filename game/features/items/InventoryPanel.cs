@@ -48,6 +48,12 @@ public partial class InventoryPanel : CanvasLayer
     private readonly List<SlotBox> _slots = [];
     /// <summary>The slots lent to another feature's panel (<see cref="Lend"/>): theirs to take down, not this panel's.</summary>
     private readonly List<SlotBox> _lent = [];
+    /// <summary>The open machine's module sockets (0086), this panel's and those lent (<see cref="LendSockets"/>); each forgotten as it leaves the tree.</summary>
+    private readonly List<ModuleSocket> _sockets = [];
+    private readonly HashSet<ModuleSocket> _lentSockets = [];
+    /// <summary>A fitted socket pressed, its module being taken out: let go over a bag slot it goes there, over the socket anywhere it fits.</summary>
+    private ModuleSocket? _unfitting;
+    private ModuleSocket? _socketHovered;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     /// <summary>The stack carried, over every panel.</summary>
     private readonly CanvasLayer _over = new() { Layer = ScreenLayers.Tips };
@@ -141,6 +147,9 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>Whether a charging station fills what it holds now, by machine id: the power module's <c>Charges</c>.</summary>
     public Func<int, bool>? Charger { get; set; }
+
+    /// <summary>What a machine draws while it works, its modules folded in (0086), by machine id: the power module's <c>Draw</c>.</summary>
+    public Func<int, int>? Draw { get; set; }
 
     /// <summary>A machine's drone badge (0062), the logistics feature's, put at the right of its frame's header; null where drones have no work. Set by <c>Main</c>.</summary>
     public Func<int, Control?>? Served { get; set; }
@@ -241,6 +250,7 @@ public partial class InventoryPanel : CanvasLayer
         _slots.RemoveAll(s => !_lent.Contains(s));
         _tipSpots.Clear();
         foreach (var box in _lent) _tipSpots.Add(box, () => SlotTip(box));
+        foreach (var socket in _lentSockets) _tipSpots.Add(socket, () => SocketTip(socket));
         _tipSpots.Show(null);
         _built = null;
         (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null, null);
@@ -261,7 +271,7 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>Closes both the inventory and the crate, putting a picked stack back: Tab, or Esc through <see cref="Escape"/>.</summary>
     public void Close()
     {
-        (_open, _picked) = (false, null);
+        (_open, _picked, _unfitting) = (false, null, null);
         _ui.OpenCrate.Set(null);
         Read();
     }
@@ -370,6 +380,117 @@ public partial class InventoryPanel : CanvasLayer
         return box;
     }
 
+    /// <summary>
+    /// Machine <paramref name="machine"/>'s module sockets for another feature's panel to lay out (0086), worked here as this
+    /// panel's own: the crafting feature's queued stations (wired by <c>Main</c>). Null for a machine that takes no module.
+    /// </summary>
+    public Control? LendSockets(int machine, string kind)
+    {
+        if (Sockets(machine, kind, caption: false) is not { } row) return null;
+        foreach (var socket in row.GetChildren().OfType<ModuleSocket>()) _lentSockets.Add(socket);
+        Refresh();
+        return row;
+    }
+
+    /// <summary>
+    /// A row of machine <paramref name="machine"/>'s sockets, one for each module a machine of <paramref name="kind"/> takes
+    /// (<c>Content.Modules</c>), after its caption; null for a machine that takes none (the furnace, the pod).
+    /// </summary>
+    private Control? Sockets(int machine, string kind, bool caption = true)
+    {
+        var takes = Content.Modules.All.Where(m => m.Hosts.Contains(kind)).ToList();
+        if (takes.Count == 0) return null;
+        var row = Style.Gap(new HBoxContainer(), Slots.Gap);
+        foreach (var module in takes)
+        {
+            var socket = new ModuleSocket(machine, module.Item, _ui.Slot);
+            socket.Pressed += SocketPressed;
+            _tipSpots.Add(socket, () => SocketTip(socket));
+            _sockets.Add(socket);
+            socket.TreeExiting += () =>
+            {
+                _sockets.Remove(socket);
+                _lentSockets.Remove(socket);
+            };
+            row.AddChild(socket);
+        }
+        if (!caption) return row;
+        var words = new Label
+        {
+            Text = T("module.socket"),
+            LabelSettings = Style.Text(Style.Mono, 10, Style.Slate400),
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        row.AddChild(words);
+        row.MoveChild(words, 0);
+        return row;
+    }
+
+    /// <summary>The modules fitted into <paramref name="machine"/>, as the world has them: a fit shows once its tick has run.</summary>
+    private IReadOnlyList<string> FittedTo(int machine) => _items?.FittedTo(machine) ?? [];
+
+    /// <summary>Whether <paramref name="item"/> would go into a socket of open machine <paramref name="machine"/>: a module it takes, not fitted yet.</summary>
+    private bool GoesIn(string? item, int machine) =>
+        item != null && _grid?.MachineById(machine) is { } m && Content.Modules.Fits(item, m.Kind) && !FittedTo(machine).Contains(item);
+
+    /// <summary>
+    /// A socket pressed: a module carried that goes in is fitted (<see cref="Fit"/>); a fitted one begins to come out,
+    /// with shift at once, anywhere in the bag it fits.
+    /// </summary>
+    private void SocketPressed(ModuleSocket socket, bool shift)
+    {
+        if (!Shown || _reading == null) return;
+        bool fitted = FittedTo(socket.Machine).Contains(socket.Module);
+        if (Held is { } held)
+        {
+            if (_reading.At(held.Place)?.Item == socket.Module && !fitted) FitFrom(held.Place, socket);
+            return;
+        }
+        if (!fitted) return;
+        _ui.Click();
+        if (shift) Send(new Unfit(socket.Machine, socket.Module));
+        else _unfitting = socket;
+        Refresh();
+    }
+
+    /// <summary>Fits what <paramref name="from"/> holds into <paramref name="socket"/>'s machine, the hand let go.</summary>
+    private void FitFrom(Place from, ModuleSocket socket)
+    {
+        _ui.Click();
+        (_picked, _dragFrom) = (null, null);
+        Send(new Fit(from, socket.Machine));
+    }
+
+    /// <summary>
+    /// The left button let go over a socket: a module carried or dragged there is fitted; one being taken out, let go
+    /// where it was pressed, goes anywhere in the bag it fits.
+    /// </summary>
+    private void ReleaseOnSocket(ModuleSocket socket)
+    {
+        var unfitting = _unfitting;
+        _unfitting = null;
+        if (unfitting == socket) Send(new Unfit(socket.Machine, socket.Module));
+        else if (Held is { } held && _reading?.At(held.Place)?.Item == socket.Module && GoesIn(socket.Module, socket.Machine)) FitFrom(held.Place, socket);
+        _dragFrom = null;
+        Refresh();
+    }
+
+    private ModuleSocket? SocketUnder(Vector2 at) => _ui.MenuOpen.Get() ? null :
+        _sockets.FirstOrDefault(s => GodotObject.IsInstanceValid(s) && s.IsVisibleInTree() && s.GetGlobalRect().HasPoint(at));
+
+    /// <summary>A fitted socket's tip: its module's card, a click taking it out; an empty one's, what it takes.</summary>
+    private Tip? SocketTip(ModuleSocket socket)
+    {
+        if (_reading is not { } reading) return null;
+        if (FittedTo(socket.Machine).Contains(socket.Module))
+        {
+            var tip = reading.TipOf(socket.Module);
+            return tip with { Card = tip.Card! with { Use = new CardKey("LMB", T("card.takeOut")) } };
+        }
+        return new Tip(T("module.empty"), new TipLine(T("module.takes", ("item", T($"item.{socket.Module}"))), Tone.Plain, socket.Module), new TipLine(T("module.fit"), Tone.Dim));
+    }
+
     /// <summary>The bag's tall sort key, or with <paramref name="crate"/> that crate's square one in its header; its tip says what it does.</summary>
     private SortButton Sorter(int? crate)
     {
@@ -444,6 +565,8 @@ public partial class InventoryPanel : CanvasLayer
             _ when kind == Content.Logistics.Bay => BayBody(crate, spec),
             _ => _crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
         });
+        // Its module sockets under its body, for a machine that takes any (0086).
+        if (Sockets(crate, kind) is { } sockets) _frame.Add(sockets);
         _shown.AddChild(_frame);
     }
 
@@ -613,6 +736,19 @@ public partial class InventoryPanel : CanvasLayer
         if (e is InputEventMouseMotion motion) _mouse = motion.Position;
         if (e is not InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false } up) return;
         _mouse = up.Position;
+        // Sockets first (0086): a module let go there is fitted; one taken out goes to the bag slot it is let go over.
+        if (SocketUnder(_mouse) is { } socket)
+        {
+            ReleaseOnSocket(socket);
+            return;
+        }
+        if (_unfitting is { } from)
+        {
+            _unfitting = null;
+            if (SlotUnder(_mouse) is { Crate: null } bag && bag.Slot < Content.Inventory.Slots) Send(new Unfit(from.Machine, from.Module, bag.Slot));
+            Refresh();
+            return;
+        }
         if (SlotUnder(_mouse) is { } place)
         {
             ReleaseAt(place);
@@ -630,6 +766,10 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>The middle of the bag's sort key, or of the open crate's; null with none shown: for scripted runs.</summary>
     public Vector2? SortKeyAt(bool crate) => (crate ? _crateKey : _bagKey) is { } key && key.IsVisibleInTree() ? key.GetGlobalRect().GetCenter() : null;
+
+    /// <summary>The middle of machine <paramref name="machine"/>'s first module socket on screen while it shows, for scripted runs (0086).</summary>
+    public Vector2? SocketAt(int machine) =>
+        _sockets.FirstOrDefault(s => GodotObject.IsInstanceValid(s) && s.Machine == machine && s.IsVisibleInTree())?.GetGlobalRect().GetCenter();
 
     /// <summary>The middle of the slot at <paramref name="place"/> on screen, for scripted runs.</summary>
     public Vector2 CenterOf(Place place) => _slots.First(s => s.Place == place).GetGlobalRect().GetCenter();
@@ -700,6 +840,13 @@ public partial class InventoryPanel : CanvasLayer
             return;
         }
         if (_reading == null) return;
+        // Shift on a module in the bag with a machine open that takes it: fitted at once (0086).
+        if (shift && !right && Held == null && place.Crate == null && Crate is int open && GoesIn(_reading.At(place)?.Item, open)
+            && _sockets.FirstOrDefault(s => s.Machine == open && s.Module == _reading.At(place)!.Item) is { } into)
+        {
+            FitFrom(place, into);
+            return;
+        }
         var spec = _reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
         // A queued station's inputs share what is shift-clicked in, onto its kind first (the Former's, the assembler's).
         int inputs = _reading.Kind is string queued && Content.Stations.TryGet(queued, out var station) && !station.Fed ? spec?.Inputs ?? 0 : 0;
@@ -749,6 +896,12 @@ public partial class InventoryPanel : CanvasLayer
     {
         // Hover by hit test: while a button is held Godot sends no mouse_entered to other controls.
         var hovered = SlotUnder(_mouse);
+        var socketHovered = SocketUnder(_mouse);
+        if (socketHovered != _socketHovered)
+        {
+            _socketHovered = socketHovered;
+            Refresh();
+        }
         if (hovered != _hovered)
         {
             _hovered = hovered;
@@ -796,7 +949,11 @@ public partial class InventoryPanel : CanvasLayer
                 stack == null ? SlotMark.None : p.Crate == null ? reading.MarkOf(stack.Item) : reading.Unknown(stack.Item) ? SlotMark.Unknown : SlotMark.None,
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null);
         }
-        _held.Visible = held != null;
+        // A socket glows while a module carried would go in; one being taken out is carried as a stack is (0086).
+        foreach (var socket in _sockets)
+            socket.Show(FittedTo(socket.Machine).Contains(socket.Module), carried == socket.Module && GoesIn(carried, socket.Machine), _socketHovered == socket);
+        if (_unfitting is { } unfitting && !GodotObject.IsInstanceValid(unfitting)) _unfitting = null;
+        _held.Visible = held != null || _unfitting != null;
         if (held is { } h)
         {
             var stack = reading.At(h.Place)!;
@@ -804,6 +961,12 @@ public partial class InventoryPanel : CanvasLayer
             _heldIcon.Texture = ItemIcons.Icon(Charges.Picture(item, stack.Charge));
             _heldMark.Visible = reading.Unknown(item);
             _heldCount.Text = h.Count > 1 ? h.Count.ToString() : "";
+        }
+        else if (_unfitting is { } coming)
+        {
+            _heldIcon.Texture = ItemIcons.Icon(coming.Module);
+            _heldMark.Visible = false;
+            _heldCount.Text = "";
         }
         ShowMachine(reading);
         // A machine open under the bag squares the display's bottom edge, where the machine's module meets it (0074).
@@ -878,6 +1041,8 @@ public partial class InventoryPanel : CanvasLayer
         _fire.AddThemeStyleboxOverride("panel", _tooCold != null ? Cold : works ? on : FireOut);
         int? work = crafting.WorkOf(id);
         _progress.Value = work is int w ? (double)crafting.Progress(id) / w : 0;
+        // What it draws with its modules: an arc fitted doubles it (0086).
+        if (Draw?.Invoke(id) is int draw) _frame?.Describe(T($"tool.{reading.Kind}"), draw);
         _frame?.Light(works);
         bool full = work != null && _tooCold == null && !crafting.CanSmelt(id);
         _problem.Text = full ? T("furnace.full") : "";

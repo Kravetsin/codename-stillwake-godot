@@ -47,6 +47,11 @@ public interface IPowerQueries
     /// <summary>The share of its draw machine <paramref name="machineId"/> gets, in thousandths; 0 off every network.</summary>
     int Satisfaction(int machineId);
     /// <summary>
+    /// What machine <paramref name="machineId"/> draws while it draws: its <c>Draws</c> × (1000 + its modules' draw) / 1000,
+    /// rounded up, a cost (0086); 0 for one drawing none. What its panel's bolt says.
+    /// </summary>
+    int Draw(int machineId);
+    /// <summary>
     /// Whether charging station <paramref name="machineId"/> fills what it holds this tick: an item short of its
     /// capacity, on a network that gives it power. What its light and its panel's bolt show, a drone bay's too.
     /// </summary>
@@ -76,7 +81,8 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     private readonly IItemsOps _itemsOps;
     /// <summary>Made once, so the tick's derivation allocates no delegates.</summary>
     private readonly Predicate<int> _standing;
-    private readonly Func<Machine, bool> _drawing, _making;
+    private readonly Func<Machine, int> _draw;
+    private readonly Func<Machine, bool> _making;
 
     public override string Id => "power";
 
@@ -87,7 +93,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         _items = items;
         _itemsOps = itemsOps;
         _standing = id => _grid.MachineById(id) != null;
-        _drawing = Drawing;
+        _draw = m => Drawing(m) ? DrawOf(m) : 0;
         _making = m => !IsResting(m.Id);
         Handles<Lay>(c => LayProblem(c.From, c.A, c.B), ApplyLay);
         Handles<Move>(c => MoveProblem(c.Node, c.To, c.Cable), ApplyMove);
@@ -105,7 +111,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     protected override PowerState Init(Layout layout) => new() { Cables = StartingCables(layout) };
 
-    public override void Rebuild() => (State.Networks, State.Satisfaction) = Find(_grid, _rooms, State.Cables, _drawing, _making);
+    public override void Rebuild() => (State.Networks, State.Satisfaction) = Find(_grid, _rooms, State.Cables, _draw, _making);
 
     /// <summary>
     /// The cables a map lays, each end resolved to its node as <see cref="Lay"/> would: a machine drawn
@@ -174,7 +180,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
             {
                 if (!Charges(m.Id)) continue;
                 // Both are never negative, so integer division is the floor.
-                int amount = (Spec(m).Draws ?? 0) * Content.Charge.Scale * Satisfaction(m.Id) / 1000;
+                int amount = DrawOf(m) * Content.Charge.Scale * Satisfaction(m.Id) / 1000;
                 if (amount <= 0) continue;
                 var slots = _items.Crate(m.Id);
                 int shortOf = 0;
@@ -191,6 +197,9 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     private bool IsResting(int machineId) => State.Resting.BinarySearch(machineId) >= 0;
 
+    /// <summary>What <paramref name="m"/> draws while it draws, its modules folded in, rounded up (0086).</summary>
+    private int DrawOf(Machine m) => Spec(m).Draws is int draws ? Boost.Cost(draws, _items.Boost(m.Id).Draw) : 0;
+
     // Queries.
 
     public IReadOnlyList<Cable> Cables => State.Cables;
@@ -199,6 +208,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     public PowerNetwork? NetworkOf(int node) => State.Networks.Find(n => n.Nodes.Contains(node));
     public bool Cabled(int node) => State.Cables.Exists(c => c.A == node || c.B == node);
     public int Satisfaction(int machineId) => State.Satisfaction.TryGetValue(machineId, out int s) ? s : 0;
+    public int Draw(int machineId) => _grid.MachineById(machineId) is { } m ? DrawOf(m) : 0;
 
     public bool Charges(int machineId) =>
         _grid.MachineById(machineId) is { } m && Spec(m).Charges && Drawing(m) && Satisfaction(machineId) > 0;

@@ -78,6 +78,8 @@ public static class ItemCardView
         kind.SizeFlagsVertical = Control.SizeFlags.ShrinkEnd;
         line.AddChild(kind);
         var column = Column(0, Padded(line, 9, 5, 9, 6));
+        // A module's "fits" chip (0086): where it goes and what it does there.
+        if (card.Effects.Count > 0) column.AddChild(Padded(Effects(card.Effects), Pad, 0, Pad, 8));
         // A canister is breathed with a key of its own: the one thing its slot cannot say.
         if (card.Use is { } how) column.AddChild(Ruled(UseRow(how, null)));
         if (card.Charge is { } charge) column.AddChild(Meter(charge));

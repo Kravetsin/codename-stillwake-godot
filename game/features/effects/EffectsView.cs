@@ -232,7 +232,7 @@ public partial class EffectsView : Node2D
         for (int line = 0; line < bolt.Lines; line++)
         {
             int n = bolt.PointsOf(line, x0, y0, x1, y1, _bolt);
-            var colour = ColourOf(Bolts.GlowColour, 0.22 * bolt.Intensity * (line == 0 ? 1 : 0.6) * Fx.Glow * 0.7);
+            var colour = ColourOf(bolt.Tint.Glow, 0.22 * bolt.Intensity * (line == 0 ? 1 : 0.6) * Fx.Glow * 0.7);
             for (int i = 0; i < n; i += 2) Blob(_light, PixelArt.Glow, _bolt[i].X, _bolt[i].Y, size * (line == 0 ? 1 : 0.7), colour);
         }
     }
@@ -322,8 +322,8 @@ public partial class EffectsView : Node2D
                 Paint(n, ColourOf(Bolts.FineCore, a), Core(hair));
                 continue;
             }
-            Paint(n, ColourOf(Bolts.RimColour, a * 0.85), Core(Math.Max(Thinnest, (float)(Bolts.Rim * bolt.Width * thin) * _zoom)));
-            Paint(n, ColourOf(Bolts.CoreColour, a), Core(Math.Max(Thinnest, (float)(Bolts.Core * bolt.Width * thin) * _zoom)));
+            Paint(n, ColourOf(bolt.Tint.Rim, a * 0.85), Core(Math.Max(Thinnest, (float)(Bolts.Rim * bolt.Width * thin) * _zoom)));
+            Paint(n, ColourOf(bolt.Tint.Core, a), Core(Math.Max(Thinnest, (float)(Bolts.Core * bolt.Width * thin) * _zoom)));
         }
 
         void Paint(int n, Color colour, float width)

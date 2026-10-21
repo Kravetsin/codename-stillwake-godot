@@ -11,13 +11,15 @@ public sealed partial class ItemsModule
     /// and then a battery into a charging station or onto the belt (<see cref="ToStationOrBelt"/>), or a sort
     /// of the bag or of a machine, a crate or not (<c>items.notCrate</c>) or none (<c>items.noCrate</c>).
     /// Creative mode switches now and then, mostly off; now and then a run of an electric tool (<see cref="RunOrStop"/>). Now and then a drop onto a cell, off the grid
-    /// too, or a pick-up of a stack on the floor or of one long gone.
+    /// too, or a pick-up of a stack on the floor or of one long gone. Now and then a module fitted or taken out
+    /// (<see cref="FitOrUnfit"/>).
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         if (rng.Below(10) == 0) return new SetCreative(rng.Below(4) == 0) { From = from };
         if (rng.Below(10) == 0) return RunOrStop(rng, from);
         var own = State.Inventories.Find(h => h.Id == from)?.Slots;
+        if (rng.Below(10) == 0) return FitOrUnfit(rng, from, own);
         // Mostly a machine that holds something; the wreck's other machines and missing ids otherwise.
         int AnyCrate() => State.Crates.Count > 0 && rng.Below(4) != 0
             ? State.Crates[(int)rng.Below((uint)State.Crates.Count)].Id
@@ -64,6 +66,38 @@ public sealed partial class ItemsModule
     }
 
     private static readonly ItemSpec[] Electric = [.. Content.Items.All.Where(i => i.Draw != null)];
+
+    /// <summary>
+    /// A module fitted, mostly from a slot holding one, the sender's or a machine's, into a machine that takes it or
+    /// any machine (<c>items.notModule</c>, or <c>items.fitted</c> where one is), now and then from any slot or into
+    /// a machine that is not there; or taken out, mostly one fitted, into a slot of the sender's or wherever it fits
+    /// (<c>items.full</c>, <c>items.noSlot</c>), now and then one that is not there (<c>items.notFitted</c>).
+    /// </summary>
+    private Command FitOrUnfit(Rng rng, int from, Stack?[]? own)
+    {
+        int Below(int n) => (int)rng.Below((uint)n);
+        var machines = _grid.Machines;
+        int AnyMachine() => machines.Count > 0 && Below(6) != 0 ? machines[Below(machines.Count)].Id : Below(60);
+        if (Below(2) == 0)
+        {
+            var fitted = State.Fitted;
+            var (machine, module) = fitted.Count > 0 && Below(4) != 0
+                ? (fitted[Below(fitted.Count)] is var f ? (f.Machine, f.Module) : default)
+                : (AnyMachine(), Below(3) == 0 ? "iron" : Modules.All[Below(Modules.All.Count)].Item);
+            int? slot = Below(2) == 0 ? null : Below(Content.Inventory.Total + 1) - 1;
+            return new Unfit(machine, module, slot) { From = from };
+        }
+        var holding = new List<Place>();
+        for (int i = 0; i < (own?.Length ?? 0); i++)
+            if (Modules.TryGet(own![i]?.Item, out _)) holding.Add(new Place(i));
+        foreach (var held in State.Crates)
+            for (int i = 0; i < held.Slots.Length; i++)
+                if (Modules.TryGet(held.Slots[i]?.Item, out _)) holding.Add(new Place(i, held.Id));
+        var what = holding.Count > 0 && Below(5) != 0 ? holding[Below(holding.Count)] : new Place(Below(Content.Inventory.Total + 1) - 1);
+        var hosts = machines.Where(m => Modules.All.Any(s => s.Hosts.Contains(m.Kind))).ToList();
+        int into = hosts.Count > 0 && Below(3) != 0 ? hosts[Below(hosts.Count)].Id : AnyMachine();
+        return new Fit(what, into) { From = from };
+    }
 
     /// <summary>
     /// A run of an electric item turned on, mostly, or off; now and then of any item, so <c>items.notElectric</c> is

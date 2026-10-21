@@ -49,8 +49,8 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   `Fx.GlintHold`, drawn at least once at any frame rate. A grain of matter (a streak that is `Matter`) is lit at its head as
   a mote, its smear along its way light at 0.4. Trails and blooms are stamped for one frame by what follows a moving
   thing (`Flares.Trail`, `Bloom`) and taken for drawing once a frame (`Flares.TakeFrame`): the layer runs after every
-  feature (`ProcessPriority` 100), so what they stamp is drawn the frame they stamp it. Arcs (`Bolts`): a cyan rim
-  then a white core, a glow at every other point, their shape kept along and across the line between their ends so a
+  feature (`ProcessPriority` 100), so what they stamp is drawn the frame they stamp it. Arcs (`Bolts`): a rim in their
+  tint (`BoltTint`: cyan, or the arc module's violet, 0086) then a white core, a glow and a light in the tint, their shape kept along and across the line between their ends so a
   held shape stays on ends that move. A fine arc (slice 3, the arc drill's coil) is a hair of white-blue light a streak's
   width in a blue haze twice as wide, folded twice at least and jagged, rolled anew every frame, with no glow and no light.
 - **Light (0019):** flashes first, then arcs, then luminous particles that give light, as spots of the light feature (`LightView`), at most `Fx.MostLights` (48) together.

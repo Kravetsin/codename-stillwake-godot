@@ -5,6 +5,7 @@ using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
 
 namespace Stillwake.Game.Features.Crafting;
 
@@ -59,6 +60,10 @@ public partial class StationView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly CraftingModule _crafting;
+    private readonly IItemsQueries _items;
+    /// <summary>Each station's arcs while the arc module is fitted (<see cref="ArcCrackle"/>, 0086), by machine id, and those seen this frame.</summary>
+    private readonly Dictionary<int, ArcCrackle> _arcs = new();
+    private readonly HashSet<int> _arced = new();
     /// <summary>The pictures at work shown, a screen's over them, and their lights, by machine id.</summary>
     private readonly Dictionary<int, (Sprite2D Sprite, Sprite2D? Screen, Glow[] Glows)> _shown = new();
     private readonly HashSet<int> _working = new();
@@ -76,10 +81,11 @@ public partial class StationView : Node2D
     private readonly HashSet<int> _heated = new();
     private double _clock;
 
-    public StationView(IGridQueries grid, CraftingModule crafting)
+    public StationView(IGridQueries grid, CraftingModule crafting, IItemsQueries items)
     {
         _grid = grid;
         _crafting = crafting;
+        _items = items;
         AddChild(_marks);
         AddChild(_sounds);
         _marks.Draw += DrawMarks;
@@ -104,6 +110,7 @@ public partial class StationView : Node2D
             if (!Moving.TryGetValue(m.Kind, out var motion)) continue;
             bool works = _crafting.Works(m.Id);
             if (m.Kind == "smelter") Heat(m.Id, corner, works, delta);
+            if (Content.Modules.Fits(Content.Modules.Arc.Item, m.Kind)) Arc(m, corner, works, delta);
             // Each machine a step apart from the next, so two never beat in step.
             long step = (long)(_clock / motion.StepMs) + m.Id;
             var middle = corner + PixelArt.Picture($"{m.Kind}_work_0").GetSize() / 2;
@@ -132,6 +139,12 @@ public partial class StationView : Node2D
             _heat.Remove(id);
         }
         _heated.Clear();
+        foreach (var id in _arcs.Keys.Where(id => !_arced.Contains(id)).ToList())
+        {
+            _arcs[id].QueueFree();
+            _arcs.Remove(id);
+        }
+        _arced.Clear();
         _stopped.Clear();
         foreach (var id in _shown.Keys)
             if (!_working.Contains(id)) _stopped.Add(id);
@@ -160,6 +173,23 @@ public partial class StationView : Node2D
             AddChild(_heat[id] = heat = new SmelterHeat());
         }
         heat.Step(corner, works, delta * 1000);
+    }
+
+    /// <summary>
+    /// A station's arcs while the arc module is fitted (<see cref="ArcCrackle"/>, 0086), made the first time it works with
+    /// one, gone with the module.
+    /// </summary>
+    private void Arc(Sim.Grid.Machine m, Vector2 corner, bool works, double delta)
+    {
+        if (!_items.FittedTo(m.Id).Contains(Content.Modules.Arc.Item)) return;
+        _arced.Add(m.Id);
+        if (!_arcs.TryGetValue(m.Id, out var arc))
+        {
+            if (!works) return;
+            AddChild(_arcs[m.Id] = arc = new ArcCrackle());
+        }
+        var spec = Content.Machines.Get(m.Kind);
+        arc.Step(corner, new Vector2(spec.Width, spec.Height) * Cell, works, delta * 1000);
     }
 
     /// <summary>

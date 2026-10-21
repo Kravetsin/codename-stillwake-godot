@@ -24,6 +24,7 @@ by sending `Move`,
 | `SortSweep.cs`     | a sort's light: a bright line crossing the sorted grid, a band of sky behind it (0081) | yes   |
 | `SlotBox.cs`       | one slot, `Ui.Slot` wide: icon, count, tint, chosen, picked, hovered, a hotbar slot's digit, its corner's mark: the open station's flame or sprout, or the violet "?" of an item not analysed; an equipment slot's looks | yes   |
 | `AnalyzerPanel.cs` | an analyzer's panel: its slot and screen, a hint, its bar, what its item goes into           | yes   |
+| `ModuleSocket.cs`  | a machine's socket for one module (0086): empty, a faint violet ghost of what it takes; fitted, the module lit; glowing violet-white while a module carried would go in | yes |
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
 | `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, grow capsule, burner generator, analyzer, charging station or drone bay in the machine frame under the inventory, with the logistics feature's drone badge in the header where drones have work (`Served`, set by `Main`, 0062) and a bay's bolt lit while it charges (`Charger`), the stack in hand; all built again at another slot size | yes   |
 | `EnergyBar.cs`     | the energy tab at the gauge row's right end, always shown: the bolt and the belt's charge in power units (0053, 0081), in a tab under the wrist computer's cuff (0074) | yes   |
@@ -119,7 +120,17 @@ as everything E works is, in the crew feature (`AimTests`).
 - **Every machine opens in one frame** (`Shared.MachineFrame`, 0058) under the inventory: the same panel,
   its name (`tool.<kind>`) in bold and, for one on the power grid, a bolt and its power in the header, lit
   while it works and dark at 0 otherwise (a burner generator's is what it makes, lit while it burns, an
-  analyzer's lit while it analyses); then its body, below.
+  analyzer's lit while it analyses); then its body, below. A station's bolt says what it draws with its modules
+  (`IPowerQueries.Draw`, `Draw` set by `Main`): 8 for a smelter with the arc.
+- **Module sockets** (0086): a machine that takes a module (`Content.Modules`' hosts: the electric smelter, the Former,
+  the circuit assembler) shows a socket per module it takes (`ModuleSocket`): under a fed station's body, after the word
+  "Module"; at a queued station's inputs' right end, lent to the crafting feature (`LendSockets`, wired by `Main`), so
+  its panel grows no taller. Empty, a faint violet ghost of the module; fitted, the module lit on violet; while a
+  module that would go in is carried (picked or dragged), it glows violet-white. A module carried let go or clicked
+  on it is fitted (`Fit`); shift on a module in the bag with such a machine open fits it at once. A press on a fitted
+  socket takes the module out: let go there, or shifted, anywhere in the bag it fits; dragged, onto the bag slot it is
+  let go over (`Unfit` with that slot), carried under the pointer meanwhile. Its tip: fitted, the module's card with
+  "LMB take out"; empty, what it takes. What is fitted is read from the world, so a fit shows once its tick has run.
 - **Sorting** (0008, 0081): a sort key (`SortButton`, its tip "Sort"), a hardware key of the wrist's metal, stands on
   the bag display's right edge, outside the screen, level with its first row, so the bag is as wide as the hotbar; an
   open crate's square one sits in its frame header, left of the drone badge; only a crate has one. A press sends `Sort`

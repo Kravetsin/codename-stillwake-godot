@@ -12,9 +12,11 @@ mode, the world setting in which nothing is ever taken
   machines holding something, by machine id in id order; `Creative`; `Floor` — stacks lying about
   (`FloorStack`: id, item, count, charge, cell, x, y, vx, vy, by, at, and the `Body` it is part of, if any) in id order, with `NextFloorId`;
   `Ticks`, the module's own clock; `Kept` — what input slots remember (`Kept(Machine, Slot, Item)`), by machine and slot, sorted (0062); `Running` — the electric tools heroes run (`Runner`: peer, item), at most one a
-  peer, in peer order (0055). All saved, as sorted lists; nothing is derived.
+  peer, in peer order (0055); `Fitted` — the modules fitted into machines (`Fitted(Machine, Module)`), by machine, then
+  module, ordinal (0086), written to a save only while one is fitted. All saved, as sorted lists; nothing is derived.
 - **Files:** `Stacks.cs` — the rules below, on slots; `Floor.cs` — stacks on the floor; `Items.cs` —
-  the module, its commands and interfaces; `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
+  the module, its commands and interfaces; `Modules.cs` — modules fitted into machines, `Fit`, `Unfit` and `Boost`;
+  `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
 - **Start:** every inventory and every machine empty: what a hero has, it caught, smelted and crafted.
 
 ## Rules
@@ -82,6 +84,16 @@ mode, the world setting in which nothing is ever taken
   carry. Creative mode draws nothing and never stops a run for want of charge. `Crew` stops a run as its hero passes
   out and while it stays out, and as it leaves (`StopRunning`). `Debris` takes an electric weapon's hit only while
   its sender runs it; the hit itself spends nothing.
+- **Modules** ([0086](../../docs/decisions/0086-modules-one-socket-for-machines-and-tools.md), Valheim's): a module is an
+  item of `Content.Modules` (the arc module), fitted into a machine by hand and out of every slot, so no move, sort,
+  smelt or drone ever sees it. `Fit(Module, Machine)` takes the one item in `Module` (a `Place`: the sender's slot or a
+  machine's) into machine `Machine`, which must be one of the module's `Hosts` (the electric smelter, the Former, the
+  circuit assembler; never the furnace or the pod) and hold none of that kind yet: one of each module a machine.
+  `Unfit(Machine, Module, Slot?)` takes it out into the sender's own slot `Slot`, an empty one, or with none wherever
+  it fits there, as a give does. `Boost(machine)` sums what the modules fitted into a machine add, in thousandths added
+  to 1000 (speed, draw, a tool's damage) and heat; `Boost.Gain` rounds a gain down (a station's speed, `Crafting`),
+  `Boost.Cost` a cost up (a machine's draw, `Power`). A machine holding a module is not taken apart (`Building`,
+  `building.notEmpty`). In creative mode too: a fit is a move, nothing made or taken.
 - A change of nothing (a cost of zeros) changes nothing and stores no inventory; a machine emptied
   loses its entry.
 - In creative mode nothing is taken; giving still gives: what is taken apart is still there.
@@ -210,6 +222,12 @@ counted twice.
   `Run(Item, On)` — refused with `items.notElectric` (the item has no `Draw`, on or off), and turning on with
   `items.notHeld` (the sender carries none) or `items.flat` (no belt battery holds a tick of its draw; never in
   creative mode). Off with nothing running is no refusal.
+  `Fit(Module, Machine)` — refused with `items.noMachine` (no such machine), `items.noCrate`, `items.noSlot`,
+  `items.empty` (as a move's source), `items.notModule` (not a module that machine takes: iron, or the arc into a
+  furnace) or `items.fitted` (one of its kind is fitted there). `Unfit(Machine, Module, Slot?)` — refused with
+  `items.notFitted` (no such module in that machine), `items.noSlot` (a slot past the sender's own) or `items.full` (the
+  slot named holds something, or with none named, no room). Queries: `FittedTo(machine)` — its modules, ordinal;
+  `Boost(machine)`; `FitProblem(peer, from, machine)` — the refusal a fit would get.
 Tests put items into an inventory with `GiveItems`, onto a hero with `Wear`, into a machine with `FillCrate` and a
 stack holding charge into any slot with `Put`, from
 `sim/Tests/ItemsTesting.cs`.
@@ -228,6 +246,8 @@ stack holding charge into any slot with `Put`, from
 - A run draws exactly its `Draw` a tick it goes on, and one its belt cannot pay stops that tick, paying nothing;
   charge never goes below nothing; a peer runs only what it carries (`RunTests`, FsCheck).
 - A machine has an entry only while it holds something; `building` takes a crate apart only empty.
+- Fits and takes make and lose nothing: across inventories, machines, the floor and what is fitted, every module is
+  where it was or moved (`ArcModuleTests`, FsCheck); a machine holds at most one of each module, and only one it takes.
 - Death makes and loses nothing: what both heroes carry and what lies about changes only by what leaves, stacks in
   space past the grid's edge and a body's at its limit; no body's stack is gear (`DeathTests`, FsCheck).
 
@@ -247,6 +267,9 @@ stack holding charge into any slot with `Put`, from
 - A drone on its way to a crate that a sort has since rearranged takes what of its item is there, in whichever slots,
   or with none looks for its next job (`Logistics`), as after a move by hand: it is sent for an item, not a slot.
 - Who may switch creative mode: anyone; it is a dev panel switch among friends.
+- A module fitted into a machine that is gone some other way than being taken apart would stay in `Fitted`: nothing a
+  player does removes a machine but `Building`, which refuses while one is fitted.
+- A fit or a take shows once its tick has run, not at once as a move does (0014): it is no hand's motion over slots.
 - A battery's charge never leaks, in a crate, on the floor or on a belt: only a tool spends it.
 - A `Run` landing on a hero already passed out pays one tick before `Crew` stops it: items run before crew in a
   tick, and the client of a hero out sends none of its own; 3 power-ticks, accepted.

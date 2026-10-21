@@ -94,8 +94,11 @@ public static class Items
         new("magnetite", 50),
         // Out of the ruins (0085): scrap of their alloy, a cell of wall dug or a spire cache opened; walls of it built.
         new("alloyScrap", 50),
-        // A relic of a spire's shrine (0085): the arcs' tech, a module to come; a trophy till then. Kept, as tools are, when a hero dies.
+        // A relic of a spire's shrine (0085): the arcs' tech, what the arc module is wound of (0086). Kept, as tools are, when a hero dies.
         new("arcCoil", 5, Gear: true, Group: ItemGroup.Tool),
+        // Made of that relic at the circuit assembler (0086): fitted into an electric station, twice its speed for twice its
+        // power (Modules). Gear, kept when a hero dies.
+        new("arcModule", 1, Gear: true, Group: ItemGroup.Tool),
         // Containers: caught, they open into their loot (Loot), and are never carried.
         new("supplyPod", 1, Group: ItemGroup.Other),
         new("cargoCrate", 1, Group: ItemGroup.Other),

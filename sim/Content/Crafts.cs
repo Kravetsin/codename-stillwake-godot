@@ -37,6 +37,8 @@ public static class Crafts
         new("motor", [("rotor", 1), ("copper", 2), ("magnetite", 1)], Ticks: 120),
         // At the circuit assembler: a drone, of a rotor, plates, a circuit and the battery it will run on (0062).
         new("drone", [("rotor", 1), ("plate", 2), ("circuit", 1), ("battery", 1)], Ticks: 160),
+        // At the circuit assembler: a spire's arc coil wound into a module an electric station takes (0086), in ten seconds.
+        new("arcModule", [("arcCoil", 1), ("coil", 2), ("circuit", 2), ("frame", 1)], Ticks: 200),
     ];
 
     private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);
