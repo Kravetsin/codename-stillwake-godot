@@ -80,12 +80,9 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
     volume from `MotorSound` with `Sound.DrillMotor`: spun up and down with the bit's picture (`HeldLook.SpinUpMs`, 120 and
     700 ms), pitch 0.35 + 0.65·spin, full volume from two thirds of its spin, and on a piece 8% lower and 3 dB quieter,
     eased in over 60 ms and out over 150 ms. While it runs with its bit on a piece the sim would let it hit, held on
-    `DrillTouchHoldS` (0.1 s) after the bit last was (`TouchHold`), so grazing an edge never breaks into bursts,
-    `Sound.DrillStrike` (a pickaxe on metal cut to 50 ms) at
-    `Sound.DrillStrikesPerSecond` (18, a hammer drill's buzz, apart from the damage's 10 hits a second), the
-    first at once, each its pitch scale within ±`DrillStrikePitch` (12%) and its volume within
-    ±`DrillStrikeVolumeDb` (1.5 dB) (`StrikeTrain`); stopped, voices and all, the frame the drill stops or the hold
-    runs out. Its hits play no chop.
+    `DrillTouchHoldS` (0.1 s) after the bit last was (`TouchHold`), so grazing an edge never breaks into bursts, the
+    motor is loaded. Its hits on a wreck sound as a wreck does, `Sound.Chop`, one each as it is sent, `DrillHitDb` quieter
+    (0093); the old pickaxe strikes are gone.
     This player's axe (0068), on Suit, every swing, a wreck hit or nothing: `Sound.Swing`, a staff's whoosh, one of four,
     its pitch ±8%, begun at `AxeSwing.WhooshMs` so its loudest moment (`Sound.SwingPeakS` into each file) falls in the
     middle of the downstroke, some 20 ms before the blade crosses the line; muffled in space as the chop is. Others' swings are
@@ -138,9 +135,8 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
   - On a planet (0093), all on World where it happens but this hero's own hits, on Suit:
     `crew/HeroView.cs` — every tool's hit sounds as what it hits (`GroundSounds.HitAt`, one table for all): the axe's as its
     blade strikes, this hero's and a friend's as its swing is played; the drill's at its hit pace as the dig goes out (a friend's
-    from what the client knows: the sim's `Items.Running` and its sent `Busy` bit), heard every `HeardEvery` (the drill's 10 a
-    second every second, at most `DrillHitsMostPerSecond`), `DrillHitDb` under the axe's. The drill keeps its motor's whir;
-    its pickaxe strikes buzz only on a wreck. A hero touching lava hisses
+    from what the client knows: the sim's `Items.Running` and its sent `Busy` bit), every hit (the drill's 10 a second),
+    `DrillHitDb` under the axe's, on 5 voices (6 for friends). The drill keeps its motor's whir. A hero touching lava hisses
     (`Sound.LavaBurn`) at once and every `LavaBurnEveryS` while it burns. `building/DigView.cs` — a cracked wall broken out, by
     its material (`Sound.Ground`). `flora/FloraView.cs`, `flora/CaveView.cs`, `ruins/HomesView.cs` — a growth felled, by its
     kind (`Sound.Growths`; `Sound.Unheard` none); `CaveView` a drip where it splashes, at most one every `CaveDripLeastS` to

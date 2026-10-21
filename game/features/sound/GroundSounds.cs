@@ -113,16 +113,6 @@ public static class GroundSounds
         return crack + damage >= Spec.Flora.Get(plant.Kind).Strength ? null : hit;
     }
 
-    /// <summary>
-    /// Which of <paramref name="tool"/>'s hits are heard: every one at most <see cref="S.DrillHitsMostPerSecond"/> a second, else
-    /// every second, third…, the fewest that keep under it (the drill's 10 a second, every second one). The axe's 2, each.
-    /// </summary>
-    public static int HeardEvery(string tool)
-    {
-        double perSecond = (double)Stillwake.Sim.World.TicksPerSecond / (Spec.Weapons.Of(tool)?.Pace ?? 1);
-        return Math.Max(1, (int)Math.Ceiling(perSecond / S.DrillHitsMostPerSecond - 1e-9));
-    }
-
     /// <summary>The decibels a hit of <paramref name="tool"/> plays under the object's hit: a drill's, run together, quieter.</summary>
     public static float HitDbOf(string tool) => HeldLook.IsDrill(tool) ? S.DrillHitDb : 0;
 }

@@ -7,23 +7,24 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The drill's strikes, the jetpack's thrust and the charging station's hum and blip (0054): when they sound, how often, how varied.</summary>
+/// <summary>A train of one-shots (the drill motor's grains), the jetpack's thrust and the charging station's hum and blip (0054): when they sound, how often, how varied.</summary>
 public class EquipSoundTests
 {
     private const double Frame = 1000.0 / 60;
+    /// <summary>A train's rate and spread, as a buzz of one-shots would have them.</summary>
+    private const float Rate = 18, Pitch = 0.12f, VolumeDb = 1.5f;
 
     /// <summary>The strikes due in each of <paramref name="frames"/> frames of <paramref name="ms"/>, on as <paramref name="on"/> says frame by frame.</summary>
     private static List<int> Strikes(ref StrikeTrain train, int frames, Func<int, bool> on, double ms = Frame)
     {
         var due = new List<int>();
-        for (int i = 0; i < frames; i++) due.Add(train.Due(ms, on(i), Sound.DrillStrikesPerSecond));
+        for (int i = 0; i < frames; i++) due.Add(train.Due(ms, on(i), Rate));
         return due;
     }
 
     [Fact]
-    public void StrikesEighteenTimesASecondTheFirstAtOnceWhateverTheFrameRate()
+    public void StrikesAtItsRateTheFirstAtOnceWhateverTheFrameRate()
     {
-        Assert.Equal(18, Sound.DrillStrikesPerSecond);
         var train = new StrikeTrain();
         var due = Strikes(ref train, 60, _ => true);
         Assert.Equal(1, due[0]);
@@ -58,8 +59,7 @@ public class EquipSoundTests
     public void VariesEachStrikesPitchAndVolumeWithinTheirSpreadAndAcrossIt()
     {
         var random = new Random(7);
-        var strikes = Enumerable.Range(0, 2000).Select(_ => StrikeTrain.Vary(random, Sound.DrillStrikePitch, Sound.DrillStrikeVolumeDb)).ToList();
-        Assert.Equal((0.12f, 1.5f), (Sound.DrillStrikePitch, Sound.DrillStrikeVolumeDb));
+        var strikes = Enumerable.Range(0, 2000).Select(_ => StrikeTrain.Vary(random, Pitch, VolumeDb)).ToList();
         Assert.All(strikes, s => Assert.InRange(s.Pitch, 0.88f, 1.12f));
         Assert.All(strikes, s => Assert.InRange(s.OffsetDb, -1.5f, 1.5f));
         // Spread across the range, not bunched: some near each end.

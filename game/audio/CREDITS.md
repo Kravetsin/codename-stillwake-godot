@@ -109,7 +109,6 @@ is synthesised as the machines' loops are, its second period kept.
 | `debris/drill-whir-1.wav` | Freesound, "DeWalt 18V drill, no-load spins" (150 ms at 6.3 s), https://freesound.org/people/megashroom/sounds/390162/ | megashroom | CC0 |
 | `debris/drill-whir-2.wav` | Freesound, "DeWalt 18V drill, no-load spins" (150 ms at 6.62 s), https://freesound.org/people/megashroom/sounds/390162/ | megashroom | CC0 |
 | `debris/drill-whir-3.wav` | Freesound, "DeWalt 18V drill, no-load spins" (150 ms at 6.95 s), https://freesound.org/people/megashroom/sounds/390162/ | megashroom | CC0 |
-| `debris/drill-strike-1.wav` | Freesound, "Pickaxe3" (50 ms from its attack, held 12 ms, faded out), https://freesound.org/people/NoisyRedFox/sounds/760567/ | NoisyRedFox | CC0 |
 | `flora/bush-1.wav` | Freesound, "bushhit.wav" (0.6 s from 0.003 s), https://freesound.org/people/j1987/sounds/106113/ | j1987 | CC0 |
 | `flora/cave-drip-1.wav` | Freesound, "Water Drop 01" (0.187 s from 0.003 s), https://freesound.org/people/LilMati/sounds/348022/ | LilMati | CC0 |
 | `flora/cave-drip-2.wav` | Freesound, "Water Drop 02" (0.119 s), https://freesound.org/people/LilMati/sounds/349873/ | LilMati | CC0 |

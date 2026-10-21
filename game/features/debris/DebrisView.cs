@@ -204,8 +204,8 @@ public partial class DebrisView(Ui ui) : Node2D
         // Struck on the side facing the hero, sparks thrown back toward it.
         var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
         var side = at - away * Math.Min(size.X, size.Y) * 0.4f;
-        // A drill's hits come ten or more a second: no chop, its strikes are heard as it works (HeroView), and its bit throws
-        // its own sparks where it bites (crew's DrillLight).
+        // A drill's hits come ten or more a second: its chop is heard as each is sent (HeroView), and its bit throws its own
+        // sparks where it bites (crew's DrillLight).
         if (HeldLook.IsDrill(_own.ToolOn(piece.Id))) return;
         double back = (-away).Angle();
         var glims = Glims.Shared;

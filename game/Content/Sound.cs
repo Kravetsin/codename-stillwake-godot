@@ -140,19 +140,11 @@ public static class Sound
     public const double SwingPeakS = 0.065;
 
     /// <summary>
-    /// This player's own axe biting into a wreck (0034, 0042), heard where the wreck is: on the Suit bus,
-    /// through the glove, as a wreck is only ever out in space; another hero's hit there is silent.
+    /// This player's own tool biting into a wreck (0034, 0042), heard where the wreck is: on the Suit bus, through the
+    /// glove, as a wreck is only ever out in space; another hero's hit there is silent. A wreck sounds hit as this whatever
+    /// hits it (0093): the axe's swing, the drill's hits as often as it hits, <see cref="DrillHitDb"/> quieter.
     /// </summary>
     public static readonly Cue Chop = new(Shots("debris/chop", 3), -2, Pitch: 0.1f, Heard: ToolReach);
-    /// <summary>
-    /// This player's own drill working on a wreck (0054), heard at its bit on the Suit bus as the chop is: a pickaxe on
-    /// metal, a low heavy tuk, cut to 50 ms so <see cref="DrillStrikesPerSecond"/> of them buzz as a hammer drill does
-    /// (its 4000 to 5500 blows a minute are a buzz, not clicks), apart from the damage's pace. Each strike's pitch and
-    /// volume are varied by the player (<see cref="DrillStrikePitch"/>, <see cref="DrillStrikeVolumeDb"/>), not the cue.
-    /// </summary>
-    public static readonly Cue DrillStrike = new(Shots("debris/drill-strike", 1), -10, Pitch: 0, Heard: new(5, 20));
-    /// <summary>Strikes a second while the drill works on a piece, and how far each one's pitch scale and volume stray either way.</summary>
-    public const float DrillStrikesPerSecond = 18, DrillStrikePitch = 0.12f, DrillStrikeVolumeDb = 1.5f;
 
     /// <summary>
     /// This player's drill's motor (0059), heard at its bit on the Suit bus whenever it spins, on a piece or at nothing: grains of
@@ -275,12 +267,11 @@ public static class Sound
     public static readonly Cue BreakStone = new(Shots("building/break-stone", 3), 1, Heard: BreakReach);
 
     /// <summary>
-    /// Every tool's hit on the ground sounds as what it hits (0093): a drill plays the axe's own hit sounds, at its hit pace
-    /// but at most <see cref="DrillHitsMostPerSecond"/> a second (the drill's 10 hits a second heard every second one, the arc
-    /// drill's 5 each), each <see cref="DrillHitDb"/> under the axe's, so a run of them, overlapping, is about as loud as the
-    /// axe's hits one by one. Its motor's whir stays its own.
+    /// Every tool's hit sounds as what it hits (0093), the ground or a wreck: a drill plays the axe's own hit sounds, every
+    /// one it hits (the drill's 10 a second, the arc drill's 5), each <see cref="DrillHitDb"/> under the axe's, so a run of
+    /// them, overlapping, is about as loud as the axe's hits one by one. Its motor's whir stays its own.
     /// </summary>
-    public const float DrillHitsMostPerSecond = 5, DrillHitDb = -4;
+    public const float DrillHitDb = -4;
 
     /// <summary>The axe in an acacia's trunk, and the tree falling as its last hit fells it.</summary>
     public static readonly Cue ChopWood = new(Shots("flora/chop-wood", 2), 1, Pitch: 0.1f, Heard: ToolReach);
@@ -422,7 +413,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, DrillStrike, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip];

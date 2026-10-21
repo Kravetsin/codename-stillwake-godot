@@ -126,14 +126,9 @@ public class GroundSoundsTests
     }
 
     [Fact]
-    public void ADrillsHitsAreHeardAtMostFiveASecondAndQuieterTheAxesEachAtItsOwnVolume()
+    public void ADrillsHitsAreQuieterThanTheAxesEachAtItsOwnVolume()
     {
-        // The drill hits 10 times a second, every second heard; the arc drill 5, and the axe 2, each.
-        Assert.Equal(2, GroundSounds.HeardEvery(Drill));
-        Assert.Equal(1, GroundSounds.HeardEvery(Spec.Weapons.ArcDrill.Item));
-        Assert.Equal(1, GroundSounds.HeardEvery(Axe));
-        foreach (var weapon in new[] { Spec.Weapons.Axe, Spec.Weapons.Drill, Spec.Weapons.ArcDrill })
-            Assert.InRange(Stillwake.Sim.World.TicksPerSecond / (double)weapon.Pace / GroundSounds.HeardEvery(weapon.Item), 1, S.DrillHitsMostPerSecond);
+        // Every hit is heard, the drill's 10 a second too: a run of them, overlapping, about as loud as the axe's one by one.
         Assert.Equal(S.DrillHitDb, GroundSounds.HitDbOf(Drill));
         Assert.Equal(S.DrillHitDb, GroundSounds.HitDbOf(Spec.Weapons.ArcDrill.Item));
         Assert.Equal(0, GroundSounds.HitDbOf(Axe));

@@ -26,13 +26,12 @@ the planet lacks, and the user picked one set for each, or none.
 - **The object decides how a hit sounds, whatever the tool:** one table, by the natural wall there, else by the growth the
   hit takes (this hero's hits on Suit, a friend's on World where it hits). A growth any hit fells has no hit, its fall says
   it; nor does the felling hit of one whose fall sounds as its hits (a bush), or it would play twice. The axe's is heard as its
-  blade strikes, a friend's as its swing is played here. The drill's are the same full sounds at its hit pace, as each dig
-  goes out: its 10 hits a second would pile four 0.35 s hits on each other, so at most 5 a second are heard (every second
-  of the drill's, each of the arc drill's), 4 dB under the axe's, so a run of them is about as loud as the axe's hits one by
-  one. A friend's drill is heard from what the client already knows: the sim says what it runs (`Items.Running`), its sent
-  hands where its bit is (`Busy`), its digs found there at the drill's pace; nothing new goes over the wire. A tool keeps only
-  its own layer: the axe's swing, the drill's whir; the drill's pickaxe strikes buzz on a wreck alone (0054), the ground
-  heard by what it is.
+  blade strikes, a friend's as its swing is played here. The drill's are the same full sounds, every hit it makes as each
+  dig goes out (its 10 a second, the arc drill's 5; the user tried it at ×4 speed and wanted every hit heard), 4 dB under the
+  axe's, so a run of them is about as loud as the axe's hits one by one. A friend's drill is heard from what the client
+  already knows: the sim says what it runs (`Items.Running`), its sent hands where its bit is (`Busy`), its digs found there
+  at the drill's pace; nothing new goes over the wire. A tool keeps only its own layer: the axe's swing, the drill's whir. A
+  wreck is an object too: the drill on one plays the chop, once a hit as each is sent; the old pickaxe strikes (0054) are gone.
 - **Breaks and falls as the sim makes them, whoever made them:** a cracked wall gone (`DigView`) by its material; a growth
   gone (`FloraView`, `CaveView`, `HomesView`) by its kind. What lies in the rock and goes with its stone (moss, mica, a
   copper vein, the heat's cracks, a fossil, rubble) has no sound of its own; a geode or an ice vein adds its crystals' snap, a
@@ -56,7 +55,5 @@ the planet lacks, and the user picked one set for each, or none.
 - **A friend's drill's whir** stays silent, as before. A friend's hits are heard as played here, its swings and its drill's
   pace from what it sent: a hit sent while its swing was not shown is missed, and its drill's hits are this peer's guess of
   its pace, not its own ticks.
-- **The drill on a wreck** keeps its pickaxe strikes (0054), the user's earlier pick; a wreck heard as its own object would
-  be the chop at the drill's pace, a change for space to decide.
 - **Rugs underfoot** sound as the floor under them.
 - **The deck's landing** keeps its one loudness whatever the fall.
