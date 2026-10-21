@@ -29,7 +29,8 @@ public partial class GridView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = new();
-    private readonly TileMapLayer _back, _pipes, _valves, _walls, _details, _edges, _tops, _topsFront, _fixtures, _doors, _machines;
+    private readonly ShadowTiles _shadows = ShadowTiles.Shared;
+    private readonly TileMapLayer _back, _shade, _pipes, _valves, _walls, _details, _edges, _tops, _topsFront, _fixtures, _doors, _machines;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
     private readonly TileMapLayer[] _cellLayers;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
@@ -52,6 +53,16 @@ public partial class GridView : Node2D
         _groundAt = GroundAt;
         // Walls and doors take the share of light a wall keeps of what reaches its face; the rest all of it.
         _back = Layer(Layers.BackWalls);
+        // The ground's soft shadow on natural back walls, multiplying them as lit (0088).
+        _shade = new TileMapLayer
+        {
+            TileSet = _shadows.Set,
+            ZIndex = Layers.BackShade,
+            CollisionEnabled = false,
+            NavigationEnabled = false,
+            Material = ShadowTiles.Multiply,
+        };
+        AddChild(_shade);
         _pipes = Layer(Layers.Pipes);
         _valves = Layer(Layers.Valves);
         _walls = Layer(Layers.Walls, L.WallIn);
@@ -64,7 +75,7 @@ public partial class GridView : Node2D
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
-        _cellLayers = [_back, _pipes, _valves, _walls, _details, _edges, _fixtures, _doors];
+        _cellLayers = [_back, _shade, _pipes, _valves, _walls, _details, _edges, _fixtures, _doors];
         AddChild(_sockets);
         foreach (var player in (Node[])[_opens, _closes, _turns]) AddChild(player);
     }
@@ -97,12 +108,15 @@ public partial class GridView : Node2D
             }
             foreach (int cell in _drawn.Stale(changes))
                 if (_reveal.Drawn(cell)) DrawCell(cell, blank: false);
+            // A wall's shadow reaches its corner neighbours too, which Stale leaves be.
+            foreach (var change in changes) DrawCornerShades(change.Cell);
             // A feature over several cells hangs on every cell of its block: one dug, the rest of it goes too.
             foreach (var change in changes)
                 if (_blocks.Add(BlockOf(change.Cell))) DrawDetails(change.Cell);
             _blocks.Clear();
         }
         _blank = false;
+        _shadows.Flush();
         if (version != _machinesVersion && MachinesMoved() && !_drawnMachines.SequenceEqual(_grid.Machines)) DrawMachines();
         _machinesVersion = version;
     }
@@ -115,6 +129,7 @@ public partial class GridView : Node2D
     {
         long revealed = Game.Dev.FrameLog.Begin();
         Reveal();
+        _shadows.Flush();
         Game.Dev.FrameLog.End("reveal", revealed);
         if (!_slides.Any) return;
         foreach (int cell in _slides.Advance(delta))
@@ -257,7 +272,11 @@ public partial class GridView : Node2D
             }
         }
 
-        if (_drawn.Back[cell] == Back.Wall) DrawBack(at, _drawn.BackMaterial[cell]);
+        if (_drawn.Back[cell] == Back.Wall)
+        {
+            DrawBack(at, _drawn.BackMaterial[cell]);
+            DrawShade(cell, blank);
+        }
 
         int conduit = _drawn.Conduit[cell];
         if (conduit != Conduit.None)
@@ -298,13 +317,16 @@ public partial class GridView : Node2D
         }
     }
 
-    private static readonly int SoilCode = Materials.Get("soil").Code;
+    private static readonly int SoilCode = Materials.Get("soil").Code, LavaCode = Materials.Get(Stillwake.Content.Lava.Material).Code;
 
-    /// <summary>The living edge on the wall at <paramref name="cell"/> where it shows (<see cref="Grass.Edged"/>), laid from the cell above, up into it.</summary>
+    /// <summary>
+    /// The living edge on the wall at <paramref name="cell"/> where it shows (<see cref="Grass.Edged"/>), laid from the cell above, up
+    /// into it. Lava has none: its surface, its haze and its embers are the lava view's.
+    /// </summary>
     private void DrawTop(int cell)
     {
         int above = cell - _grid.Width, material = _drawn.Material[cell], shape = _drawn.Shape[cell];
-        if (above < 0 || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), shape, _drawn.Structure[above], _drawn.Back[above], SoilCode))
+        if (above < 0 || material == LavaCode || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), shape, _drawn.Structure[above], _drawn.Back[above], SoilCode))
             return;
         var (back, front) = TopNamesOf(material, shape, Grass.VariantOf(cell, GroundArt.TopVariants(shape)));
         Put(_tops, CellOf(above), back);
@@ -383,6 +405,45 @@ public partial class GridView : Node2D
         }
         bool grille = HashOf((at.Y << 16) | at.X) % 7 == 0;
         Put(_back, at, grille ? "back_iron_grille" : "back_iron_plain");
+    }
+
+    /// <summary>Scratch for <see cref="DrawShade"/>: the walls' shapes round a cell.</summary>
+    private readonly int[] _around = new int[9];
+
+    /// <summary>
+    /// The shadow the walls round <paramref name="cell"/> cast on its natural back wall (<see cref="GroundShadow"/>, 0088), if any;
+    /// the old one erased unless <paramref name="blank"/>. Only the ground's back walls take one (see the ADR for the hull's).
+    /// </summary>
+    private void DrawShade(int cell, bool blank)
+    {
+        int w = _grid.Width, x = cell % w, y = cell / w;
+        var at = new Vector2I(x, y);
+        Vector2I? tile = null;
+        bool covered = _drawn.Structure[cell] == Structure.Wall && _drawn.Shape[cell] == Shape.None;
+        if (!covered && _drawn.Back[cell] == Back.Wall && IsNatural(_drawn.BackMaterial[cell]))
+        {
+            for (int i = 0; i < 9; i++)
+            {
+                int nx = x + i % 3 - 1, ny = y + i / 3 - 1;
+                bool wall = nx >= 0 && ny >= 0 && nx < w && ny < _grid.Height && _drawn.Structure[ny * w + nx] == Structure.Wall;
+                _around[i] = wall ? _drawn.Shape[ny * w + nx] : -1;
+            }
+            tile = _shadows.TileOf(_around);
+        }
+        if (tile is { } t) _shade.SetCell(at, ShadowTiles.Source, t);
+        else if (!blank) _shade.EraseCell(at);
+    }
+
+    /// <summary>Draws anew the shadows on the drawn cells at <paramref name="cell"/>'s four corners.</summary>
+    private void DrawCornerShades(int cell)
+    {
+        int w = _grid.Width, x = cell % w, y = cell / w;
+        for (int dy = -1; dy <= 1; dy += 2)
+            for (int dx = -1; dx <= 1; dx += 2)
+            {
+                int nx = x + dx, ny = y + dy;
+                if (nx >= 0 && ny >= 0 && nx < w && ny < _grid.Height && _reveal.Drawn(ny * w + nx)) DrawShade(ny * w + nx, blank: false);
+            }
     }
 
     // Names made once, not a string a cell: a planet's ground is back wall and moss over nearly every column.

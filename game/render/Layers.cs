@@ -12,7 +12,10 @@ public static class Layers
     public const int Debris = -20;
 
     // What runs behind the ship's structure: back walls, pipes and their valves, cables (grid's and power's behind).
-    public const int BackWalls = -10, Pipes = -6, Valves = -5, Cables = -4;
+    public const int BackWalls = -11, Pipes = -6, Valves = -5, Cables = -4;
+
+    /// <summary>The ground's soft shadow on its back walls (0088), multiplying them, under all that is drawn over them.</summary>
+    public const int BackShade = -10;
 
     /// <summary>The air in the rooms and the lifepod's reach, over the back walls, behind all that stands in them (atmosphere).</summary>
     public const int Air = -9;
@@ -25,6 +28,9 @@ public static class Layers
     public const int LowDust = -3;
 
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
+
+    /// <summary>A planet's lava (grid): glowing over its own tiles and their edges, after the caves' tint, which leaves it its colour.</summary>
+    public const int Lava = Fixtures;
 
     /// <summary>What grows on a planet (flora, 0079, 0080): over the ground and its moss, behind the heroes, its glows and glints too.</summary>
     public const int Flora = Fixtures;

@@ -2,8 +2,8 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// How a planet's ground grows from its seed (0077), read by the core's <c>Terrain</c>: ranges, hills and cliffs of soil
-/// over stone, caves denser deeper, a few landmarks at places the seed chooses — chasms and great halls — and bedrock
-/// under it all and at its sides. Noise values run from 0 to 65535; a wave is how many cells one swell of noise spans.
+/// over stone, caves denser deeper, a few landmarks at places the seed chooses — chasms and great halls — and lava over
+/// bedrock under it all, bedrock at its sides. Noise values run from 0 to 65535; a wave is how many cells one swell of noise spans.
 /// Rows count down from the top of the grid, depths down from a column's surface.
 /// </summary>
 public sealed record Ground(int Width, int Height)
@@ -97,9 +97,17 @@ public sealed record Ground(int Width, int Height)
     public int RuinClear { get; init; } = 384;
     public int SpireRise { get; init; } = 10;
 
-    /// <summary>The bedrock: the bottom rows, and a column at either side the whole height of the grid.</summary>
-    public int BedrockRows { get; init; } = 3;
+    /// <summary>
+    /// The planet's core under the caves, <see cref="CoreRows"/> rows: <see cref="LavaRows"/> of lava (<see cref="Lava"/>) over
+    /// <see cref="BedrockRows"/> of bedrock, the lava between the bedrock columns at either side, <see cref="BedrockSide"/>
+    /// wide the whole height of the grid.
+    /// </summary>
+    public int LavaRows { get; init; } = 2;
+    public int BedrockRows { get; init; } = 1;
     public int BedrockSide { get; init; } = 1;
+
+    /// <summary>The rows under the caves: the lava and the bedrock under it.</summary>
+    public int CoreRows => LavaRows + BedrockRows;
 
     /// <summary>
     /// The first planet's ground, 2048 × 768 cells: some minutes' walk across, its surface a fifth of the way down under

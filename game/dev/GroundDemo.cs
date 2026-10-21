@@ -16,11 +16,14 @@ namespace Stillwake.Game.Dev;
 /// the spawn and digs a shaft down under its feet, so it drops in as it goes; <c>drill</c> digs the tunnel with the drill in the
 /// hero's hands, aimed by <see cref="GroundHands"/> as a mouse would; <c>poses</c> aims the drill round the hero eight ways near
 /// and far; <c>mouth</c> stands it on the rim of the nearest pit, chasm or cave mouth, to see the sky down it; <c>acacia</c> beside the
-/// acacia nearest the spawn, to see one close (0079); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
+/// acacia nearest the spawn, to see one close (0079); <c>pit</c> digs a pit under the spawn, a block left standing on its floor, to
+/// tell the ground from its back wall (0088); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
 /// its longest run of ground with no pit, for <see cref="Features.Crew.HeroAutopilot.Sprint"/> to measure; <c>band0</c>…<c>band3</c> in a
-/// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080);
-/// <c>spire</c> on the roof of the spire nearest the spawn beside its left plug, <c>spire-in</c> in its chamber by the cache,
-/// <c>spire-far</c> on the ground forty columns left of it, to see its tip over the hills (0085). An
+/// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080); <c>backs</c>
+/// at the spawn, building soil and stone back walls beside it (0084); <c>lava</c> on the floor of the cave nearest the spawn's
+/// column whose lava is open, looking at it; <c>spire</c> on the roof of the spire nearest the spawn beside its left plug,
+/// <c>spire-in</c> in its chamber by the cache, <c>spire-far</c> on the ground forty columns left of it, to see its tip over the
+/// hills (0085). An
 /// axe hit every <see cref="Pace"/> ticks,
 /// sent as a strike sends them: cracks, chips, dust, and the sky falling into the shaft.
 /// </summary>
@@ -31,6 +34,9 @@ public sealed class GroundDemo(string mode)
 
     /// <summary>How many cells the shaft goes down, and the tunnel along.</summary>
     private const int Depth = 14, Along = 3;
+
+    /// <summary><c>pit</c>'s depth, its cells either side of the hero, and the column of the block left on its floor.</summary>
+    private const int PitDepth = 3, PitSide = 3, PitBlock = 2;
 
     private int? _planet;
     private bool _opened;
@@ -75,7 +81,7 @@ public sealed class GroundDemo(string mode)
             int w = m.Grid.Width;
             bool tunnel = mode is "cave" or "drill";
             // In a cave of a band, or a great hall, looking at its growth (0080).
-            if (Caves(mode) && CaveSpot(m, mode) is (int spot, var look))
+            if (Caves(mode) && (mode == "lava" ? LavaSpot(m) : CaveSpot(m, mode)) is (int spot, var look))
             {
                 Target = look;
                 client.Send(new Transfer(_planet.Value, spot));
@@ -85,13 +91,22 @@ public sealed class GroundDemo(string mode)
             int at = Spires(mode) ? SpireSpot(m, mode) ?? m.Crew.Spawn : tunnel ? CaveUnder(m) ?? m.Crew.Spawn : mode == "mouth" ? RimNear(m) ?? m.Crew.Spawn : mode == "sprint" ? Features.Crew.HeroAutopilot.SprintStart(m.Grid)
                 : mode == "acacia" ? BesideAcacia(m) ?? m.Crew.Spawn : mode == "slope" ? BesideSlopes(m, _cells) ?? m.Crew.Spawn : m.Crew.Spawn;
             // The shaft under the feet; the tunnel at head height the way the hero faces, right.
-            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("slope" or "acacia" or "sprint") && !Spires(mode); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
+            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("slope" or "acacia" or "sprint" or "pit") && !Spires(mode); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
+            // pit: a pit under the feet, a block of its ground left standing on its floor (0088).
+            for (int dy = 1; dy <= PitDepth && mode == "pit"; dy++)
+                for (int dx = -PitSide; dx <= PitSide; dx++)
+                    if ((dx, dy) != (PitBlock, PitDepth)) _cells.Add(at + dy * w + dx);
             client.Send(new Transfer(_planet.Value, at));
             log($"ground demo: beamed down to ({at % w}, {at / w})");
             return;
         }
         if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode) || Spires(mode)) return;
         var here = Registry.On(world, _planet.Value);
+        if (mode == "backs")
+        {
+            Backs(client, here);
+            return;
+        }
         int next = _cells.FindIndex(c => here.Grid.WallAt(c) is { Breaks: true });
         // drill: the hands dig, aimed at the cell by GroundHands; the others send an axe's hits as a strike would.
         if (mode == "drill")
@@ -136,6 +151,27 @@ public sealed class GroundDemo(string mode)
 
     /// <summary>How many of <c>slope</c>'s cells were hit.</summary>
     private int _struck;
+
+    private bool _planned;
+
+    /// <summary>
+    /// <c>backs</c> (0084): in creative mode, back walls of soil and of stone planned three by three on the ground right of
+    /// the spawn, under the sky, then worked a plan at a time as E would.
+    /// </summary>
+    private void Backs(Client client, Registry m)
+    {
+        if (!_planned)
+        {
+            _planned = true;
+            client.Send(new Sim.Items.SetCreative(true));
+            int w = m.Grid.Width, spawn = m.Crew.Spawn;
+            foreach (var (dx, material) in new[] { (2, "soil"), (6, "stone") })
+                for (int dy = -2; dy <= 0; dy++)
+                    for (int x = 0; x < 3; x++) client.Send(new PlacePlan(spawn + dy * w + dx + x, Sim.Grid.Placement.BackWall(material)));
+            return;
+        }
+        if (m.Building.Plans.Count > 0) client.Send(new Work(m.Building.Plans[0].Id));
+    }
 
     /// <summary>The open cell three columns left of the acacia nearest the spawn, on the ground there: to see one close.</summary>
     private static int? BesideAcacia(Registry m)
@@ -197,8 +233,8 @@ public sealed class GroundDemo(string mode)
         return mode == "spire" ? (y0 + rise - 1) * w + x0 + 1 : (y0 + Spec.Ruins.Spire.Count - 3) * w + x0 + 6;
     }
 
-    /// <summary>Whether <paramref name="mode"/> stands the hero in a cave of a band, <c>band0</c> to <c>band3</c>, or a great hall, <c>hall</c> (0080).</summary>
-    public static bool Caves(string mode) => mode is "band0" or "band1" or "band2" or "band3" or "hall";
+    /// <summary>Whether <paramref name="mode"/> stands the hero in a cave of a band, <c>band0</c> to <c>band3</c>, a great hall, <c>hall</c> (0080), or by the lava, <c>lava</c>.</summary>
+    public static bool Caves(string mode) => mode is "band0" or "band1" or "band2" or "band3" or "hall" or "lava";
 
     /// <summary>
     /// With <c>band0</c>…<c>band3</c> or <c>hall</c> (0080): the cell to stand in, in a cave of that band — for <c>hall</c> the garden's,
@@ -240,6 +276,26 @@ public sealed class GroundDemo(string mode)
             }
         }
         return best.Cell < 0 ? null : (best.Cell, (best.X, best.Y));
+    }
+
+    /// <summary>
+    /// With <c>lava</c>: a cell on a whole floor of stone with room above, within twenty rows over the lava and two to fourteen
+    /// columns beside a cell of its surface open above, the nearest the spawn's column; and that open lava's middle, in cells.
+    /// </summary>
+    private static (int Cell, (double X, double Y) Look)? LavaSpot(Registry m)
+    {
+        var grid = m.Grid;
+        int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w, top = h - m.Rules.Ground!.CoreRows;
+        bool Open(int x, int y) => x > 0 && y > 0 && x < w && y < h && grid.StructureAt(y * w + x) == Sim.Grid.Structure.Empty;
+        bool Lava(int x) => Open(x, top - 1);
+        foreach (int x in Enumerable.Range(0, w).OrderBy(x => Math.Abs(x - sx)).Where(Lava))
+            for (int d = 2; d <= 14; d++)
+                foreach (int fx in new[] { x - d, x + d })
+                    for (int y = top - 2; y > top - 20; y--)
+                        if (Open(fx, y) && Open(fx, y - 1) && Open(fx, y - 2) && grid.WallAt((y + 1) * w + fx) is { Id: "stone" }
+                            && grid.ShapeAt((y + 1) * w + fx) == Sim.Grid.Shape.None)
+                            return (y * w + fx, (x + 0.5, top + 0.5));
+        return null;
     }
 
     /// <summary>The open cell nearest under the spawn, at least twenty rows down, standing on ground with room above: in a cave.</summary>

@@ -117,7 +117,7 @@ public class CatalogueTests
     public void SearchesEveryTabByNameCaseIgnored()
     {
         var walls = Tools.Matching(Tools.All, " WALL ").Select(t => t.Id).ToList();
-        Assert.Equal(["wallScrap", "wallIron", "wallSoil", "wallStone", "wallAlloy", "backWallScrap", "backWallIron"], walls);
+        Assert.Equal(["wallScrap", "wallIron", "wallSoil", "wallStone", "wallAlloy", "backWallScrap", "backWallIron", "backWallSoil", "backWallStone", "backWallAlloy"], walls);
         Assert.Equal(["generator", "burnerGenerator"], Tools.Matching(Tools.All, "generator").Select(t => t.Id));
         Assert.Empty(Tools.Matching(Tools.All, "no such thing"));
     }

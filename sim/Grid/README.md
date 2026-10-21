@@ -78,7 +78,8 @@ free back slot: it stands behind anything, and in space.
   machine in id order —, `MachinesOf(kind)` — one kind's, in id order, for the systems that work one
   kind (furnaces, analyzers, vents, tanks, generators) —, `PortsOf(machine)` — the cells where conduits meet it, from its
   kind's port offsets —, `WallAt(cell)` and `BackAt(cell)` — the `Material` of the wall or back
-  wall there, null for none —, `Footprint(kind, cell)` — the cells a machine of that kind would cover
+  wall there, null for none —, `GrownBack(cell)` — whether that back wall is a grown ground's own, unchanged since it
+  grew, false aboard, on drawn maps and for one a hero built (0084) —, `Footprint(kind, cell)` — the cells a machine of that kind would cover
   from that top-left, null when it is no machine or does not fit —, `PlacementProblem(cell, placement)`,
   `AfterToggles(commands)` — the structure and conduit codes of just the cells the `SetDoor`s and
   `SetValve`s among the commands would change, each as it would apply and skipped where refused,

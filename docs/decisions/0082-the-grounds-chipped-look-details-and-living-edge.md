@@ -1,6 +1,6 @@
 # 0082 — The ground's chipped look: details over it and a living edge on top
 
-- Status: accepted; supersedes 0079's moss tops
+- Status: accepted; supersedes 0079's moss tops; its edges amended by [0088](0088-back-walls-recede-solid-edges-catch-light.md)
 - Date: 2026-10-20
 
 ## Context

@@ -24,7 +24,7 @@ public partial class CaveTint : Node2D
         ZIndex = Layers.Edges;
         Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Mul, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
         var bands = Spec.Flora.Bands;
-        int span = ground.Height - ground.BedrockRows - ground.Surface;
+        int span = ground.Height - ground.CoreRows - ground.Surface;
         Color Of(int band) => new(CaveLooks.Tint[band].R, CaveLooks.Tint[band].G, CaveLooks.Tint[band].B);
         _stops.Add(((ground.Surface + CaveLooks.TintFrom) * Cell, Colors.White));
         _stops.Add(((ground.Surface + CaveLooks.TintFrom + CaveLooks.TintOver) * Cell, Of(0)));

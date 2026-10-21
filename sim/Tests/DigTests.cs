@@ -142,13 +142,13 @@ public class DigTests
     }
 
     [Fact]
-    public void RefusesAMarkOnNaturalGroundItsBackWallTooButNotOnTheHullBesideIt()
+    public void RefusesAMarkOnANaturalWallButNotOnTheHullBesideIt()
     {
+        // The ground's own back walls, refused too, are a grown planet's (NaturalBackWallTests): a drawn map's are as built.
         var w = World();
         w.Do(new Deconstruct(At(2, 2), "structure")).Do(new Deconstruct(At(7, 2), "structure")).Run();
-        w.Do(new ClearAt(At(5, 3), "structure")).Run();
-        w.Do(new Deconstruct(At(5, 3), "back")).Do(new Deconstruct(At(0, 2), "structure")).Run();
-        Assert.Equal(["building.natural", "building.natural", "building.natural"], Reasons(w));
+        w.Do(new Deconstruct(At(0, 2), "structure")).Run();
+        Assert.Equal(["building.natural", "building.natural"], Reasons(w));
         Assert.Equal("building.natural", w.M.Building.Problem(At(1, 3), "structure"));
         Assert.Single(w.M.Building.Plans);
     }
@@ -174,14 +174,15 @@ public class DigTests
     }
 
     [Fact]
-    public void NoBlueprintBuildsBedrockOrANaturalBackWallNotEvenInCreativeMode()
+    public void NoBlueprintBuildsBedrockFrontOrBackNotEvenInCreativeMode()
     {
         var w = World();
         w.Do(new SetCreative(true)).Run();
         Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.Wall("bedrock")));
         Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.Wall("bedrock") with { Shape = Shape.BottomLeft }));
         w.Do(new ClearAt(At(3, 1), "back")).Run();
-        Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.BackWall("soil")));
+        Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.BackWall("bedrock")));
+        Assert.Null(w.M.Building.Problem(At(3, 1), Placement.BackWall("soil")));
         Assert.Null(w.M.Building.Problem(At(3, 1), Placement.BackWall("iron")));
         Assert.Null(w.M.Building.Problem(At(3, 1), Placement.Wall("stone")));
     }

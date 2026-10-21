@@ -61,6 +61,7 @@ public static class Legend
         ('s', "soil"),
         ('t', "stone"),
         ('b', "bedrock"),
+        ('l', "lava"),
         ('a', "alloy"),
     ];
 

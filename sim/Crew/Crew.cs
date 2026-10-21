@@ -146,7 +146,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICarri
                 int pod = ByPod(hero.Cell) ? Math.Min(Content.Crew.PodRefill, breathes + lack) : 0;
                 int want = Math.Min(breathes + Math.Min(Content.Crew.Refill, lack), breathes + lack - pod);
                 int taken = want > 0 ? atmosphere.Breathe(hero.Cell, want) : 0;
-                int cold = EdgeCost(hero.Cell);
+                // The cold past the field and the lava's burn, the suit alone.
+                int cold = EdgeCost(hero.Cell) + (Burns(hero.Cell) ? Content.Lava.Burn : 0);
                 int net = pod + taken - breathes;
                 // Thin air (0076): what the air falls short of the breath, the suit pays one breath in ThinAir.
                 if (net < 0 && Rules.ThinAir is int every && State.Clock / Content.Crew.BreathEvery % every != 0) net = 0;
@@ -243,6 +244,21 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICarri
             Math.Max(Depth(left - x, left), Depth(x - right, width - 1 - right)),
             Math.Max(Depth(top - y, top), Depth(y - bottom, height - 1 - bottom))));
         return (Content.Field.EdgeCost * depth * depth + 999_999) / 1_000_000;
+    }
+
+    private static readonly int LavaCode = Content.Materials.Get(Content.Lava.Material).Code;
+
+    /// <summary>
+    /// Whether a hero reported at <paramref name="cell"/> touches lava: a wall of it there or up to <c>Lava.Reach</c> rows under
+    /// it, where the feet of a hero standing on it are. Off the grid nothing burns.
+    /// </summary>
+    public bool Burns(int cell)
+    {
+        int width = _grid.Width, size = width * _grid.Height;
+        if (cell < 0 || cell >= size) return false;
+        for (int at = cell, i = 0; i <= Content.Lava.Reach && at < size; i++, at += width)
+            if (_grid.WallAt(at) is { } wall && wall.Code == LavaCode) return true;
+        return false;
     }
 
     /// <summary>

@@ -14,7 +14,7 @@ will be a module set into tools and stations (designed next); this slice places 
 
 ## Decision
 
-- **Alloy, a natural material** (`Materials`, code 6, `a` in a test's material map): strength 60, five times stone — fifteen
+- **Alloy, a natural material** (`Materials`, code 7, `a` in a test's material map): strength 60, five times stone — fifteen
   seconds of the axe, six of the drill, four of the arc drill — yielding a scrap of it, `alloyScrap`, which builds it back.
   Its walls are a blueprint as soil's and stone's, opened once alloy scrap is analysed (0027), aboard as leaky decor (leak 36,
   as stone); its back walls follow the rule natural back walls get in 0084.
