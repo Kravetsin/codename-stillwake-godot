@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Godot;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Material = Stillwake.Content.Material;
@@ -28,12 +30,16 @@ public partial class DigView : Node2D
     private static readonly Dictionary<(int Stage, int Shape), Texture2D> Pictures = new();
     private static readonly Dictionary<string, (Luminous Chip, Luminous Dust, Luminous Cloud)> Looks = new();
 
+    /// <summary>A wall broken out heard where it stood, by its material, whoever broke it (0093).</summary>
+    private readonly Voices _breaks = new(Game.Sound.World, voices: 3);
+
     public DigView(IGridQueries grid, BuildingModule building)
     {
         _grid = grid;
         _building = building;
         ZIndex = Layers.Dug;
         Lit.Set(this, Stillwake.Game.Light.WallIn);
+        AddChild(_breaks);
     }
 
     private static Texture2D Texture(int stage, int shape) =>
@@ -98,6 +104,7 @@ public partial class DigView : Node2D
     {
         var (chip, dust, cloud) = LooksOf(material.Id);
         var (x, y, floor) = Where(cell);
+        if (GroundSounds.BreakOf(material) is { } broke) _breaks.Play(broke, new Vector2((float)x, (float)y));
         var glims = Glims.Shared;
         for (int i = 0; i < System.Math.Round(GroundLooks.BreakDust * Fx.Count); i++)
         {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using S = Stillwake.Game.Sound;
@@ -166,14 +167,16 @@ public partial class Figure : Node2D
     private const double SlackMs = 450;
     /// <summary>The step the walk is on, counted from where it began; a new one puts a foot down.</summary>
     private int? _step;
-    private readonly Action _stepped, _landed, _jumped;
+    /// <summary>The boots heard, each sound by what they stand on: this player's own the same anywhere, another's where it is.</summary>
+    private readonly Voices _boots;
 
-    /// <param name="own">Whether it is this player's hero, heard on the suit rather than in the world.</param>
+    /// <summary>What the boots stand on, or last stood on while in the air (0093): what its steps, jumps and landings sound like.</summary>
+    public S.Footing Footing { get; set; } = S.Footing.Deck;
+
+    /// <param name="own">Whether it is this player's hero, heard the same anywhere rather than from where it is.</param>
     public Figure(int colour, bool own)
     {
-        _stepped = Voice(S.Step, own);
-        _landed = Voice(S.Land, own);
-        _jumped = Voice(S.Jump, own);
+        AddChild(_boots = new Voices(S.World, voices: 1, placed: !own));
         _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
         _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
         _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
@@ -252,19 +255,8 @@ public partial class Figure : Node2D
         return picture;
     }
 
-    /// <summary>A player of <paramref name="cue"/> at the feet, on the World bus, silent while floating: heard the same anywhere for this player's hero, else placed in the world.</summary>
-    private Action Voice(S.Cue cue, bool own)
-    {
-        if (own)
-        {
-            var mine = Cues.Player(cue, S.World);
-            AddChild(mine);
-            return () => mine.Play();
-        }
-        var world = Cues.Player2D(cue, S.World);
-        AddChild(world);
-        return () => world.Play();
-    }
+    /// <summary>The boots' <paramref name="cue"/> at the feet, on the World bus, silent while floating.</summary>
+    private void Boots(S.Cue cue, float tune = 1, float offsetDb = 0) => _boots.Play(cue, GlobalPosition, tune, offsetDb);
 
     /// <summary>Has the hero aim its planner at <paramref name="cells"/>, in pixels of the world, and beam them in.</summary>
     public void Beam(IReadOnlyList<Vector2> cells)
@@ -517,10 +509,11 @@ public partial class Figure : Node2D
         // Where the feet are, in pixels of the world.
         double feetX = (double)hero.X / Hero.Unit * Rig.Cell, feetY = (double)hero.Y / Hero.Unit * Rig.Cell;
         var cues = _motion.Step(hero, pose, elapsedMs);
-        if (cues.Jumped) _jumped();
+        if (cues.Jumped) Boots(GroundSounds.JumpOf(Footing));
         if (cues.Landed is int fall)
         {
-            _landed();
+            var (landing, louder, tune) = GroundSounds.LandOf(Footing, fall);
+            Boots(landing, tune, louder);
             int puff = Math.Min(DustLandMost, Math.Max(DustLandLeast, (int)Math.Round(fall * DustLandPerSpeed, MidpointRounding.AwayFromZero)));
             Land(feetX, feetY, puff, fall);
         }
@@ -531,7 +524,7 @@ public partial class Figure : Node2D
         int? stepping = stride is double st ? (int)Math.Floor((_travelled - _strideFrom - st / 4) / (st / 2)) : null;
         if (stepping != null && _step != null && stepping != _step)
         {
-            _stepped();
+            Boots(GroundSounds.StepOf(Footing));
             if (pose == Pose.Run) Kick(feetX + hero.Facing * Rig.W * 0.3, feetY, hero.Facing);
         }
         _step = stepping;

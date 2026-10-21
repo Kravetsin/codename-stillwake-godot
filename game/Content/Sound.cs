@@ -22,6 +22,12 @@ public static class Sound
     public sealed record Cue(IReadOnlyList<string> Files, float VolumeDb, float Pitch = 0.06f, bool Loops = false, Reach? Heard = null, float Tune = 1);
 
     /// <summary>
+    /// What a hero's boots stand on (0093): anything built, a hull wall, a floor or a ladder, is the ship's deck; on a planet's
+    /// ground, grass where moss grows on soil under the sky (the drawing's rule), moss on a cave's rock, bare soil, stone, alloy.
+    /// </summary>
+    public enum Footing { Deck, Grass, Moss, Soil, Stone, Alloy }
+
+    /// <summary>
     /// A motor's sound (0059): a loop that spins up over <paramref name="SpinUpS"/> and down over <paramref name="SpinDownS"/>,
     /// linearly, its pitch scale rising from <paramref name="Idle"/> at a standstill to 1 at speed and its volume with it,
     /// full from <c>1/<paramref name="Swell"/></c> of its speed. Under load it sags: its pitch scale times 1 − <paramref name="Sag"/>
@@ -74,6 +80,32 @@ public static class Sound
     public static readonly Cue Land = Step with { VolumeDb = -8, Tune = 0.85f };
     /// <summary>The boots pushing off the deck as the hero jumps; walking off an edge makes none.</summary>
     public static readonly Cue Jump = new(Shots("crew/jump", 4), -12, Heard: new(4, 18));
+
+    /// <summary>
+    /// Boots on a planet's ground (0093), at each half stride as on the deck: on grass (soil under the open sky), bare soil, stone
+    /// (bedrock, lava's crust and the homes' plaster floors too) and the ruins' alloy. Their files are levelled as the audition
+    /// played them beside the deck's step, 8 dB under it, so each sits by the ship's step as the user heard it. A jump off the
+    /// ground pushes off with the step of what it stood on.
+    /// </summary>
+    public static readonly Cue StepGrass = new(Shots("crew/step-grass", 6), -8, Heard: new(4, 18));
+    public static readonly Cue StepSoil = new(Shots("crew/step-soil", 5), -8, Heard: new(4, 18));
+    public static readonly Cue StepStone = new(Shots("crew/step-stone", 6), -8, Heard: new(4, 18));
+    public static readonly Cue StepAlloy = new(Shots("crew/step-alloy", 5), -8, Heard: new(4, 18));
+    /// <summary>Moss on a cave's rock underfoot: the grass step, quieter (the audition's proposal).</summary>
+    public static readonly Cue StepMoss = StepGrass with { VolumeDb = -12 };
+
+    /// <summary>
+    /// A landing on natural ground (0093): a light one on <see cref="LandSoft"/>, one from <c>HeroMotion.Landing.Heavy</c> on
+    /// <see cref="LandHard"/>, as the figure's landing pose turns heavy (0090). Louder and lower the harder the fall: from
+    /// <see cref="LandSoftestDb"/> and its own pitch at a fall of <see cref="LandSoftestFall"/> or less, to its full volume at
+    /// <see cref="LandHardestTune"/> of its pitch from <see cref="LandHardestFall"/>, the audition's hop, jump and long fall.
+    /// On the ruins' alloy it lands as on the deck, its step louder and lower (<see cref="LandAlloy"/>).
+    /// </summary>
+    public static readonly Cue LandSoft = new(Shots("crew/land-soft", 1), -6, Heard: new(4, 18));
+    public static readonly Cue LandHard = new(Shots("crew/land-hard", 3), -6, Heard: new(4, 18));
+    public static readonly Cue LandAlloy = StepAlloy with { VolumeDb = -4, Tune = 0.85f };
+    public const int LandSoftestFall = 250, LandHardestFall = 900;
+    public const float LandSoftestDb = -6, LandHardestTune = 0.88f;
     public static readonly Cue Alarm = new(Shots("crew/alarm", 1), -14, Pitch: 0);
     public static readonly Cue Screwdriver = new(Shots("building/screwdriver", 5), -16, Heard: new(4, 14));
     public static readonly Cue Hiss = Looped("atmosphere/hiss", -8, new(6, 24));
@@ -226,8 +258,126 @@ public static class Sound
 
     /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>
     public static readonly Cue ChargeFull = new(Shots("power/charge-full", 1), -10, Pitch: 0, Heard: new(4, 16));
+    /// <summary>How far something breaking carries: a wreck, a cell of ground, a tree or a ruin's piece. Full within 6 cells, gone at 28.</summary>
+    public static readonly Reach BreakReach = new(6, 28);
+
     /// <summary>A wreck breaking apart under this player's last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
-    public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: new(6, 28));
+    public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: BreakReach);
+
+    /// <summary>
+    /// A planet's ground and what grows on it, hit and broken (0093): each file levelled as the audition played it under the axe's
+    /// swing, so played 1 dB over its level, as loud by the swing as the user heard it; a hit about as loud as a wreck's chop, a
+    /// break as a wreck's. Hits ±10% in pitch, falls ±6%. The axe's hit on soil and stone; a cell of either broken out.
+    /// </summary>
+    public static readonly Cue HitSoil = new(Shots("building/hit-soil", 5), 1, Pitch: 0.1f, Heard: ToolReach);
+    public static readonly Cue HitStone = new(Shots("building/hit-stone", 5), 1, Pitch: 0.1f, Heard: ToolReach);
+    public static readonly Cue BreakSoil = new(Shots("building/break-soil", 3), 1, Heard: BreakReach);
+    public static readonly Cue BreakStone = new(Shots("building/break-stone", 3), 1, Heard: BreakReach);
+
+    /// <summary>
+    /// The drill's strikes in soil, in place of its pickaxe on metal (<see cref="DrillStrike"/>): grains of the axe's own hit on
+    /// soil, 50 ms from each file's attack cut as the strike was, struck alike (<see cref="DrillStrikesPerSecond"/>, its pitch and
+    /// volume spread); 4.5 dB louder than the strike, whose file is louder, so a train of either is as loud.
+    /// </summary>
+    public static readonly Cue DrillSoil = new(Shots("building/drill-soil", 5), -5.5f, Pitch: 0, Heard: DrillStrike.Heard);
+
+    /// <summary>The axe in an acacia's trunk, and the tree falling as its last hit fells it.</summary>
+    public static readonly Cue ChopWood = new(Shots("flora/chop-wood", 2), 1, Pitch: 0.1f, Heard: ToolReach);
+    public static readonly Cue TreeFall = new(Shots("flora/tree-fall", 1), 1, Heard: BreakReach);
+    /// <summary>A bush hit; the caves' threads and roots, quieter.</summary>
+    public static readonly Cue Bush = new(Shots("flora/bush", 1), 1, Pitch: 0.1f, Heard: ToolReach);
+    public static readonly Cue BushSoft = Bush with { VolumeDb = -5 };
+    /// <summary>A tuft of grass or a bell flower cut, a sickle through grass; a herb or a cobweb too.</summary>
+    public static readonly Cue Grass = new(Shots("flora/grass", 4), 1, Pitch: 0.1f, Heard: ToolReach);
+    /// <summary>A crystal, an icicle, a geode or a vein of ice breaking: icicles snapping.</summary>
+    public static readonly Cue Crystal = new(Shots("flora/crystal", 4), 1, Heard: ToolReach);
+    /// <summary>A glowcap or a hanging cap felled: a squelch.</summary>
+    public static readonly Cue Glowcap = new(Shots("flora/glowcap", 1), 1, Pitch: 0.1f, Heard: ToolReach);
+
+    /// <summary>A ruin's piece felled (0091), by what it is made of: wood, cloth, glass, metal or crockery.</summary>
+    public static readonly Cue WoodBreak = new(Shots("ruins/wood-break", 1), 1, Heard: BreakReach);
+    public static readonly Cue ClothTear = new(Shots("ruins/cloth-tear", 1), 1, Heard: BreakReach);
+    public static readonly Cue GlassBreak = new(Shots("ruins/glass-break", 1), 1, Heard: BreakReach);
+    public static readonly Cue MetalBreak = new(Shots("ruins/metal-break", 2), 1, Heard: BreakReach);
+    public static readonly Cue CeramicBreak = new(Shots("ruins/ceramic-break", 1), 1, Heard: BreakReach);
+
+    /// <summary>
+    /// The planet's lava (0087, 0093), on World, a station's reach: a deep rumble, a 4 s loop synthesised to close on itself, at
+    /// the open lava nearest the listener, as loud as a station at work; over it its bubbles popping at random moments,
+    /// <see cref="LavaBubblesPerSecond"/> a second on average, each at an open cell in reach, its pitch within ±<see cref="LavaBubblePitch"/>
+    /// and up to <see cref="LavaBubbleLowDb"/> under its cue's, the loudest 1 dB over the rumble.
+    /// </summary>
+    public static readonly Cue LavaBed = Looped("grid/lava-bed", -6, StationReach);
+    public static readonly Cue LavaBubble = new(Shots("grid/lava-bubble", 6), -8, Pitch: 0, Heard: StationReach);
+    public const float LavaBubblesPerSecond = 2, LavaBubblePitch = 0.1f, LavaBubbleLowDb = -8;
+
+    /// <summary>
+    /// A hero touching lava (0087): a hiss of pressure, its suit burning, at each breath while it burns
+    /// (<see cref="LavaBurnEveryS"/>), the first as it touches; about as loud as a chop. This player's own on Suit, a friend's on World.
+    /// </summary>
+    public static readonly Cue LavaBurn = new(Shots("crew/lava-burn", 1), -6, Heard: ToolReach);
+    public static readonly double LavaBurnEveryS = (double)Stillwake.Content.Crew.BreathEvery / Stillwake.Sim.World.TicksPerSecond;
+
+    /// <summary>
+    /// A drip off a stalactite landing in a cave (0080), where it splashes: a water drop, at most one every
+    /// <see cref="CaveDripLeastS"/> to <see cref="CaveDripMostS"/> s however many fall, up to <see cref="CaveDripLowDb"/> under its cue's.
+    /// </summary>
+    public static readonly Cue CaveDrip = new(Shots("flora/cave-drip", 2), -9, Pitch: 0.08f, Heard: new(4, 16));
+    public const double CaveDripLeastS = 0.5, CaveDripMostS = 2.2;
+    public const float CaveDripLowDb = -10;
+
+    /// <summary>
+    /// What each step plays, by what the boots stand on (<see cref="Footing"/>): the deck's own step on anything built.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<Footing, Cue> Steps = new Dictionary<Footing, Cue>
+    {
+        [Footing.Deck] = Step,
+        [Footing.Grass] = StepGrass,
+        [Footing.Moss] = StepMoss,
+        [Footing.Soil] = StepSoil,
+        [Footing.Stone] = StepStone,
+        [Footing.Alloy] = StepAlloy,
+    };
+
+    /// <summary>
+    /// A natural wall hit by the axe and broken out, by its material: soil and stone their own, the homes' plaster as stone, the
+    /// ruins' alloy as a wreck's metal (<see cref="Chop"/>, <see cref="Break"/>). Bedrock and lava never break, so never sound.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, (Cue Hit, Cue Break)> Ground = new Dictionary<string, (Cue, Cue)>
+    {
+        ["soil"] = (HitSoil, BreakSoil),
+        ["stone"] = (HitStone, BreakStone),
+        ["plaster"] = (HitStone, BreakStone),
+        ["alloy"] = (Chop, Break),
+    };
+
+    /// <summary>
+    /// Growths by what they sound like (0079, 0080, 0091): each kind's hit, none for one any hit fells alone, and its fall. A
+    /// surface rock and a stalagmite or a stalactite are stone; a ruin's piece its material. What lies in the rock and goes with
+    /// it — moss, mica, a copper vein, the heat's cracks, a fossil, rubble — has no sound of its own: its stone's break speaks.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, (Cue? Hit, Cue Fall)> Growths = Sounding(
+        (["acacia"], ChopWood, TreeFall),
+        (["bush"], Bush, Bush),
+        (["rock", "stalagmite", "stalactite"], HitStone, BreakStone),
+        (["bellTeal", "bellViolet", "bellAmber", "tuft", "herbs", "cobweb"], null, Grass),
+        (["threadTeal", "threadViolet", "roots"], null, BushSoft),
+        (["crystalRose", "crystalIce", "crystalAmber", "crystalEmber", "crystalIceHang", "crystalAmberHang", "geode", "veinIce"], null, Crystal),
+        (["glowcapViolet", "glowcapTeal", "hangcap"], null, Glowcap),
+        (["table", "chair", "stool", "bench", "bed", "cradle", "wardrobe", "chest", "frame", "clock", "basket", "toys", "desk",
+            "bookshelf", "wallShelf", "toolRack", "heightMarks"], ChopWood, WoodBreak),
+        (["banner", "tapestry", "rug", "curtain", "coatPegs", "drawings"], null, ClothTear),
+        (["ceilLamp", "sconce", "floorLamp", "lantern", "arcCandle", "lightWindow", "garland", "brokenLamp", "shelfJars", "holoPortrait",
+            Stillwake.Content.Ruins.SpireLamp], null, GlassBreak),
+        (["hearth", "kettle", "utensils", "musicBox", Stillwake.Content.Ruins.Resonator, "fallenBeam", Stillwake.Content.Ruins.SpireCache,
+            Stillwake.Content.Ruins.RelicShrine], Chop, MetalBreak),
+        (["dishes", "pots", "basin", "plantAlive", "plantDead"], HitStone, CeramicBreak));
+
+    /// <summary>The growths with no sound of their own: in the rock, gone with their stone; or fixed, never felled.</summary>
+    public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "veinCopper", "heatCrack", "fossil", "rubble", "mural", "crack"];
+
+    private static Dictionary<string, (Cue? Hit, Cue Fall)> Sounding(params (string[] Kinds, Cue? Hit, Cue Fall)[] groups) =>
+        groups.SelectMany(g => g.Kinds.Select(kind => (kind, g.Hit, g.Fall))).ToDictionary(k => k.kind, k => (k.Hit, k.Fall));
 
     /// <summary>
     /// This player's harpoon (0044), on the Suit bus, through the glove: its rod fired, a dart trap's click and
@@ -271,7 +421,11 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, DrillStrike, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap];
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, DrillStrike, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
+        StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone, DrillSoil,
+        ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
+        LavaBubble, LavaBurn, CaveDrip];
+    // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;
