@@ -13,7 +13,7 @@ namespace Stillwake.Game.Tests;
 public class GroundSoundsTests
 {
     private const int Unit = 1000;
-    private static readonly string Axe = Spec.Weapons.Axe.Item;
+    private static readonly string Axe = Spec.Weapons.Axe.Item, Drill = Spec.Weapons.Drill.Item;
 
     /// <summary>
     /// Row 1 left to right: soil under the sky, a gap, soil, stone, stone with moss, two floors, plaster and alloy indoors,
@@ -126,12 +126,17 @@ public class GroundSoundsTests
     }
 
     [Fact]
-    public void TheDrillStrikesGrainsOfSoilInSoilAndItsPickaxeOnAnythingElse()
+    public void ADrillsHitsAreHeardAtMostFiveASecondAndQuieterTheAxesEachAtItsOwnVolume()
     {
-        Assert.Same(S.DrillSoil, GroundSounds.DrillOf(Spec.Materials.Get("soil")));
-        Assert.Same(S.DrillStrike, GroundSounds.DrillOf(Spec.Materials.Get("stone")));
-        Assert.Same(S.DrillStrike, GroundSounds.DrillOf(Spec.Materials.Get("alloy")));
-        Assert.Same(S.DrillStrike, GroundSounds.DrillOf(null));
+        // The drill hits 10 times a second, every second heard; the arc drill 5, and the axe 2, each.
+        Assert.Equal(2, GroundSounds.HeardEvery(Drill));
+        Assert.Equal(1, GroundSounds.HeardEvery(Spec.Weapons.ArcDrill.Item));
+        Assert.Equal(1, GroundSounds.HeardEvery(Axe));
+        foreach (var weapon in new[] { Spec.Weapons.Axe, Spec.Weapons.Drill, Spec.Weapons.ArcDrill })
+            Assert.InRange(Stillwake.Sim.World.TicksPerSecond / (double)weapon.Pace / GroundSounds.HeardEvery(weapon.Item), 1, S.DrillHitsMostPerSecond);
+        Assert.Equal(S.DrillHitDb, GroundSounds.HitDbOf(Drill));
+        Assert.Equal(S.DrillHitDb, GroundSounds.HitDbOf(Spec.Weapons.ArcDrill.Item));
+        Assert.Equal(0, GroundSounds.HitDbOf(Axe));
     }
 
     [Fact]
@@ -189,9 +194,16 @@ public class GroundSoundsTests
         Assert.Same(S.ChopWood, GroundSounds.HitAt(m.Grid, m.Building, 4, Axe));
         // A bush takes two of the axe's hits: the first is heard, the second fells it and its fall says so.
         Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Axe));
+        // Any tool's hit sounds as what it hits: the drill's on soil, a tree, a bush as the axe's.
+        Assert.Same(S.HitSoil, GroundSounds.HitAt(m.Grid, m.Building, 8 + 1, Drill));
+        Assert.Same(S.ChopWood, GroundSounds.HitAt(m.Grid, m.Building, 4, Drill));
+        Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Drill));
+        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 3, Drill));
         world.Step(new Dig(2, Axe) { From = 0 });
         Assert.Contains(m.Building.Cracks, c => c.Cell == 2);
         Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 2, Axe));
+        // The drill's smaller bite leaves it standing one hit more: that hit is heard.
+        Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Drill));
         // Nothing there, nothing heard.
         Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 6, Axe));
     }

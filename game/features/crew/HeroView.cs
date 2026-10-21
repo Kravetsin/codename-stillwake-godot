@@ -78,6 +78,9 @@ public partial class HeroView : Node2D
         public readonly Heard2D Drum = drum;
         /// <summary>Its suit's hiss while it burns in lava, one a breath (0093).</summary>
         public StrikeTrain Burns;
+        /// <summary>Its drill's hits on the ground as played here, at the drill's pace, and its tools' hits counted to hear every Nth (0093).</summary>
+        public DrillPace Drill;
+        public int DrillHits, AxeHits;
     }
 
     /// <summary>Each other hero drawn, by peer id.</summary>
@@ -131,9 +134,10 @@ public partial class HeroView : Node2D
     private DrillPace _drillPace;
     /// <summary>The drill's strikes, heard at its bit through the suit while it works on a piece, apart from its hits (0054).</summary>
     private readonly Heard2D _strike = Cues.Player2D(S.DrillStrike, S.Suit, voices: 2);
-    /// <summary>The drill's strikes in soil: grains of the axe's own hit there (0093).</summary>
-    private readonly Heard2D _soilStrike = Cues.Player2D(S.DrillSoil, S.Suit, voices: 2);
     private StrikeTrain _strikes;
+    /// <summary>Whether its bit was on a wreck lately, where it strikes (0093); and this hero's tools' hits on the ground, counted to hear every Nth.</summary>
+    private TouchHold _onWreck;
+    private int _drillHits, _axeHits;
     private readonly Random _strikeSpread = new();
     /// <summary>The drill's motor, heard at its bit through the suit while it spins: grains, fewer and lower as it spins up or down (0059).</summary>
     private readonly Heard2D _whir = Cues.Player2D(S.DrillWhir, S.Suit, voices: 3);
@@ -161,7 +165,7 @@ public partial class HeroView : Node2D
     /// An axe's hit on a planet's ground or what grows there, as its blade strikes (0093): this hero's through the suit, as its
     /// swing is; others' on World where they hit, their swings played as sent.
     /// </summary>
-    private readonly Voices _groundHits = new(S.Suit), _othersGroundHits = new(S.World, voices: 3);
+    private readonly Voices _groundHits = new(S.Suit, voices: 3), _othersGroundHits = new(S.World, voices: 4);
     /// <summary>The suit's hiss while this hero burns in lava, one a breath (0093); a friend's on World where it is.</summary>
     private readonly AudioStreamPlayer _burn = Cues.Player(S.LavaBurn, S.Suit);
     private readonly Heard2D _othersBurn = Cues.Player2D(S.LavaBurn, S.World, voices: 2);
@@ -215,7 +219,7 @@ public partial class HeroView : Node2D
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.
         AddChild(_lines);
         _rod = NewRod();
-        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _strike, _soilStrike, _whir, _thrustLoop, _othersShot, _othersBite,
+        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _strike, _whir, _thrustLoop, _othersShot, _othersBite,
                      _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn })
             AddChild(player);
         _tethers.Paint = PaintTethers;
@@ -522,7 +526,7 @@ public partial class HeroView : Node2D
             var dig = Aiming.DigAt(m, client.Id, _current, _swing.At, Content.Weapons.Axe.Item);
             if (dig != null)
             {
-                HearDig(_groundHits, m, dig);
+                HearDig(_groundHits, m, dig, ref _axeHits);
                 client.Send(dig);
             }
             // A blade that bites is drawn stopped on contact a moment (0075).
@@ -538,13 +542,12 @@ public partial class HeroView : Node2D
         bool runs = running != null;
         Drill(client, m, runs ? pointer : null, drill);
         _figure.Spinning = runs;
-        // Heard while its bit is on a piece the sim would let it hit, whatever the hits' pace; its bit throws sparks there.
-        var bitDigs = runs ? Aiming.DigAt(m, client.Id, _current, Aiming.PointOf(pointer!.Value), running!) : null;
-        bool works = runs && (Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0
-            || bitDigs != null);
+        // Loaded while its bit is on a piece the sim would let it hit, a wreck or the ground; its bit throws sparks there. Its
+        // strikes buzz on a wreck; the ground is heard by its hits, as the object it is (0093).
+        bool onWreck = runs && Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0;
+        bool works = onWreck || runs && Aiming.DigAt(m, client.Id, _current, Aiming.PointOf(pointer!.Value), running!) != null;
         _figure.Bites = works;
-        // In soil its strikes are grains of soil, on anything else its pickaxe on metal (0093).
-        HearDrill(runs, works, GroundSounds.DrillOf(bitDigs is { } dug ? m.Grid.WallAt(dug.Cell) : null) == S.DrillSoil, elapsedMs);
+        HearDrill(runs, works, onWreck, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
         // Aimed aboard too, though it fires only out in space.
@@ -599,16 +602,21 @@ public partial class HeroView : Node2D
         if (!_drillPace.Due(client.World.Tick, pointer != null && drill != null, Content.Weapons.Of(drill)?.Pace ?? 1)) return;
         var at = Aiming.PointOf(pointer!.Value);
         foreach (var hit in Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, at), drill!)) client.Send(hit);
-        if (Aiming.DigAt(m, client.Id, _current, at, drill!) is { } dig) client.Send(dig);
+        if (Aiming.DigAt(m, client.Id, _current, at, drill!) is { } dig)
+        {
+            HearDig(_groundHits, m, dig, ref _drillHits);
+            client.Send(dig);
+        }
     }
 
     /// <summary>
     /// The drill heard at its bit as last drawn: its motor whenever it <paramref name="runs"/>, spun up and down with its picture
     /// and loaded while on a piece (0059); and its strikes while it <paramref name="works"/> on a piece (0054),
     /// <c>Sound.DrillStrikesPerSecond</c>, each its own pitch and volume, held on <c>Sound.DrillTouchHoldS</c> past the bit leaving
-    /// it, so grazing an edge keeps striking; silent the moment the drill stops. Its bit in <paramref name="soil"/>, they are soil's grains.
+    /// it, so grazing an edge keeps striking; silent the moment the drill stops. The strikes only <paramref name="onWreck"/>: in the
+    /// ground its hits sound as what they hit (<see cref="HearDig"/>).
     /// </summary>
-    private void HearDrill(bool runs, bool works, bool soil, double elapsedMs)
+    private void HearDrill(bool runs, bool works, bool onWreck, double elapsedMs)
     {
         double elapsedS = elapsedMs / 1000;
         bool onPiece = runs && _onPiece.Step(works, elapsedS, S.DrillTouchHoldS);
@@ -621,21 +629,26 @@ public partial class HeroView : Node2D
             var (spread, _) = StrikeTrain.Vary(_strikeSpread, S.DrillWhirPitch, 0);
             _whir.PlayAt(at, (float)speed * spread, _drillMotor.GainDb(S.DrillMotor));
         }
-        int due = _strikes.Due(elapsedMs, onPiece, S.DrillStrikesPerSecond);
-        if (!onPiece && _strike.Playing) _strike.Stop();
-        if (!onPiece && _soilStrike.Playing) _soilStrike.Stop();
+        bool striking = onPiece && _onWreck.Step(onWreck, elapsedS, S.DrillTouchHoldS);
+        int due = _strikes.Due(elapsedMs, striking, S.DrillStrikesPerSecond);
+        if (!striking && _strike.Playing) _strike.Stop();
         for (int i = 0; i < due; i++)
         {
             var (pitch, offsetDb) = StrikeTrain.Vary(_strikeSpread, S.DrillStrikePitch, S.DrillStrikeVolumeDb);
-            (soil ? _soilStrike : _strike).PlayAt(at, pitch, offsetDb);
+            _strike.PlayAt(at, pitch, offsetDb);
         }
     }
 
-    /// <summary>An axe's <paramref name="dig"/> heard where it strikes, by the wall or growth it lands on, on <paramref name="voices"/> (0093).</summary>
-    private static void HearDig(Voices voices, Registry m, Sim.Building.Dig dig)
+    /// <summary>
+    /// A tool's <paramref name="dig"/> heard where it strikes, as the wall or growth it lands on sounds hit, whatever the tool
+    /// (0093), on <paramref name="voices"/>: <paramref name="count"/>, the tool's hits so far, says whether this one is heard, a
+    /// drill's every second.
+    /// </summary>
+    private static void HearDig(Voices voices, Registry m, Sim.Building.Dig dig, ref int count)
     {
+        if (count++ % GroundSounds.HeardEvery(dig.Tool) != 0) return;
         if (GroundSounds.HitAt(m.Grid, m.Building, dig.Cell, dig.Tool) is { } hit)
-            voices.Play(hit, new Vector2(dig.Cell % m.Grid.Width + 0.5f, dig.Cell / m.Grid.Width + 0.5f) * (float)Rig.Cell);
+            voices.Play(hit, new Vector2(dig.Cell % m.Grid.Width + 0.5f, dig.Cell / m.Grid.Width + 0.5f) * (float)Rig.Cell, offsetDb: GroundSounds.HitDbOf(dig.Tool));
     }
 
     /// <summary>Whether <paramref name="hero"/>, awake, touches lava where the sim has it, its suit burning (0087).</summary>
@@ -744,7 +757,13 @@ public partial class HeroView : Node2D
             if (!axe) shown.Swing.Stop();
             // Its blade heard where it strikes the ground as it is played here, the dig its own peer sends then (0093).
             if (shown.Swing.Follow(elapsedMs, axe ? chop : null).Hits && Aiming.DigAt(m, id, hero, shown.Swing.At, Content.Weapons.Axe.Item) is { } dig)
-                HearDig(_othersGroundHits, m, dig);
+                HearDig(_othersGroundHits, m, dig, ref shown.AxeHits);
+            // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: the dig its peer sends there.
+            string? running = m.Items.Running(id);
+            bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };
+            if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1)
+                && Aiming.DigAt(m, id, hero, seen.Busy!.Value.At, running!) is { } bored)
+                HearDig(_othersGroundHits, m, bored, ref shown.DrillHits);
             ShowHands(shown.Figure, seen.Wields, seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.

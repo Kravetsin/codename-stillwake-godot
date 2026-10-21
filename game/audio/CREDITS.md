@@ -15,10 +15,8 @@ released under CC0.
 
 The planet's sounds (0093) are the planet audition's cuts, as heard there: each mono 48 kHz WAV cut from 5 ms before its
 onset, or at the point of its source given here, held, decayed to −60 dB by its length and faded over its last 10 ms; each
-sound's variants levelled to one max momentary loudness, peaking at −3 dBFS at most (so a few fall short). The drill's soil
-grains are the first 50 ms of the axe's soil hits, held 12 ms, decayed by 40 dB and faded over the last 8 ms as the drill's
-strike is, levelled alike to −28.2 LUFS momentary. The lava's rumble is synthesised as the machines' loops are, its second
-period kept.
+sound's variants levelled to one max momentary loudness, peaking at −3 dBFS at most (so a few fall short). The lava's rumble
+is synthesised as the machines' loops are, its second period kept.
 
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
@@ -35,11 +33,6 @@ period kept.
 | `building/break-stone-1.wav` | Freesound, "Rocks.wav" (0.9 s from 0.895 s), https://freesound.org/people/adamgryu/sounds/336023/ | adamgryu | CC0 |
 | `building/break-stone-2.wav` | Freesound, "Rocks.wav" (0.9 s from 1.17 s), https://freesound.org/people/adamgryu/sounds/336023/ | adamgryu | CC0 |
 | `building/break-stone-3.wav` | Freesound, "Rocks.wav" (0.9 s from 1.84 s), https://freesound.org/people/adamgryu/sounds/336023/ | adamgryu | CC0 |
-| `building/drill-soil-1.wav` | the first 50 ms of `building/hit-soil-1.wav`: Freesound, "Shovel_dirt.wav" (0.35 s from 0.316 s), https://freesound.org/people/dr19/sounds/353907/ | dr19 | CC0 |
-| `building/drill-soil-2.wav` | the first 50 ms of `building/hit-soil-2.wav`: Freesound, "Shovel_dirt.wav" (0.35 s from 1.632 s), https://freesound.org/people/dr19/sounds/353907/ | dr19 | CC0 |
-| `building/drill-soil-3.wav` | the first 50 ms of `building/hit-soil-3.wav`: Freesound, "Shovel_dirt.wav" (0.35 s from 3.249 s), https://freesound.org/people/dr19/sounds/353907/ | dr19 | CC0 |
-| `building/drill-soil-4.wav` | the first 50 ms of `building/hit-soil-4.wav`: Freesound, "Shovel_dirt.wav" (0.35 s from 4.983 s), https://freesound.org/people/dr19/sounds/353907/ | dr19 | CC0 |
-| `building/drill-soil-5.wav` | the first 50 ms of `building/hit-soil-5.wav`: Freesound, "Shovel_dirt.wav" (0.35 s from 6.958 s), https://freesound.org/people/dr19/sounds/353907/ | dr19 | CC0 |
 | `building/hit-soil-1.wav` | Freesound, "Shovel_dirt.wav" (0.35 s from 0.316 s), https://freesound.org/people/dr19/sounds/353907/ | dr19 | CC0 |
 | `building/hit-soil-2.wav` | Freesound, "Shovel_dirt.wav" (0.35 s from 1.632 s), https://freesound.org/people/dr19/sounds/353907/ | dr19 | CC0 |
 | `building/hit-soil-3.wav` | Freesound, "Shovel_dirt.wav" (0.35 s from 3.249 s), https://freesound.org/people/dr19/sounds/353907/ | dr19 | CC0 |

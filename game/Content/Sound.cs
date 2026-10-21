@@ -267,7 +267,7 @@ public static class Sound
     /// <summary>
     /// A planet's ground and what grows on it, hit and broken (0093): each file levelled as the audition played it under the axe's
     /// swing, so played 1 dB over its level, as loud by the swing as the user heard it; a hit about as loud as a wreck's chop, a
-    /// break as a wreck's. Hits ±10% in pitch, falls ±6%. The axe's hit on soil and stone; a cell of either broken out.
+    /// break as a wreck's. Hits ±10% in pitch, falls ±6%. Any tool's hit on soil and stone; a cell of either broken out.
     /// </summary>
     public static readonly Cue HitSoil = new(Shots("building/hit-soil", 5), 1, Pitch: 0.1f, Heard: ToolReach);
     public static readonly Cue HitStone = new(Shots("building/hit-stone", 5), 1, Pitch: 0.1f, Heard: ToolReach);
@@ -275,11 +275,12 @@ public static class Sound
     public static readonly Cue BreakStone = new(Shots("building/break-stone", 3), 1, Heard: BreakReach);
 
     /// <summary>
-    /// The drill's strikes in soil, in place of its pickaxe on metal (<see cref="DrillStrike"/>): grains of the axe's own hit on
-    /// soil, 50 ms from each file's attack cut as the strike was, struck alike (<see cref="DrillStrikesPerSecond"/>, its pitch and
-    /// volume spread); 4.5 dB louder than the strike, whose file is louder, so a train of either is as loud.
+    /// Every tool's hit on the ground sounds as what it hits (0093): a drill plays the axe's own hit sounds, at its hit pace
+    /// but at most <see cref="DrillHitsMostPerSecond"/> a second (the drill's 10 hits a second heard every second one, the arc
+    /// drill's 5 each), each <see cref="DrillHitDb"/> under the axe's, so a run of them, overlapping, is about as loud as the
+    /// axe's hits one by one. Its motor's whir stays its own.
     /// </summary>
-    public static readonly Cue DrillSoil = new(Shots("building/drill-soil", 5), -5.5f, Pitch: 0, Heard: DrillStrike.Heard);
+    public const float DrillHitsMostPerSecond = 5, DrillHitDb = -4;
 
     /// <summary>The axe in an acacia's trunk, and the tree falling as its last hit fells it.</summary>
     public static readonly Cue ChopWood = new(Shots("flora/chop-wood", 2), 1, Pitch: 0.1f, Heard: ToolReach);
@@ -340,7 +341,7 @@ public static class Sound
     };
 
     /// <summary>
-    /// A natural wall hit by the axe and broken out, by its material: soil and stone their own, the homes' plaster as stone, the
+    /// A natural wall hit by any tool and broken out, by its material: soil and stone their own, the homes' plaster as stone, the
     /// ruins' alloy as a wreck's metal (<see cref="Chop"/>, <see cref="Break"/>). Bedrock and lava never break, so never sound.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, (Cue Hit, Cue Break)> Ground = new Dictionary<string, (Cue, Cue)>
@@ -422,7 +423,7 @@ public static class Sound
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
     public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, DrillStrike, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
-        StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone, DrillSoil,
+        StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.

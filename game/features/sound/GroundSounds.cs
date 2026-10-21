@@ -97,9 +97,9 @@ public static class GroundSounds
     public static S.Cue? FallOf(string kind) => S.Growths.TryGetValue(kind, out var sounds) ? sounds.Fall : null;
 
     /// <summary>
-    /// The axe's hit, of <paramref name="tool"/>'s damage, at <paramref name="cell"/>: the natural wall's there, else the growth's the
-    /// hit takes. None for a growth any hit fells alone, its fall saying it; nor for the hit that fells one whose fall sounds as its
-    /// hits do, a bush's last, which would play it twice.
+    /// A hit of <paramref name="tool"/>, any tool, at <paramref name="cell"/>: what is hit decides, the natural wall's there, else
+    /// the growth's the hit takes. None for a growth any hit fells alone, its fall saying it; nor for the hit that fells one whose
+    /// fall sounds as its hits do, a bush's last, which would play it twice.
     /// </summary>
     public static S.Cue? HitAt(IGridQueries grid, BuildingModule building, int cell, string tool)
     {
@@ -113,6 +113,16 @@ public static class GroundSounds
         return crack + damage >= Spec.Flora.Get(plant.Kind).Strength ? null : hit;
     }
 
-    /// <summary>The drill's strike at a wall of <paramref name="material"/>: grains of soil in soil, else its pickaxe on metal.</summary>
-    public static S.Cue DrillOf(Material? material) => material?.Id == "soil" ? S.DrillSoil : S.DrillStrike;
+    /// <summary>
+    /// Which of <paramref name="tool"/>'s hits are heard: every one at most <see cref="S.DrillHitsMostPerSecond"/> a second, else
+    /// every second, third…, the fewest that keep under it (the drill's 10 a second, every second one). The axe's 2, each.
+    /// </summary>
+    public static int HeardEvery(string tool)
+    {
+        double perSecond = (double)Stillwake.Sim.World.TicksPerSecond / (Spec.Weapons.Of(tool)?.Pace ?? 1);
+        return Math.Max(1, (int)Math.Ceiling(perSecond / S.DrillHitsMostPerSecond - 1e-9));
+    }
+
+    /// <summary>The decibels a hit of <paramref name="tool"/> plays under the object's hit: a drill's, run together, quieter.</summary>
+    public static float HitDbOf(string tool) => HeldLook.IsDrill(tool) ? S.DrillHitDb : 0;
 }

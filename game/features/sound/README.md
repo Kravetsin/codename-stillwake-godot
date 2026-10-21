@@ -13,7 +13,7 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
 | `Hearing.cs`                   | the buses at a share of the way into space (`Mix`), and the easing of a share                   | no    |
 | `Strikes.cs`                   | a train of one-shots at a rate, each its own pitch and volume (`StrikeTrain`); a loop's attack and release (`LoopEnvelope`); a one-shot in step with a picture (`FrameBeat`); one-shots at random moments (`RandomTrain`) | no    |
 | `Motors.cs`                    | a motor's spin and load, and from them its pitch scale and volume (`MotorSound`); a touch held on past a flicker (`TouchHold`) | no    |
-| `GroundSounds.cs`              | a planet heard (0093): what the boots stand on (`FootingOf`), and from `Sound`'s tables the step, push-off and landing by it, an axe's hit by the wall or growth it lands on, a wall's break, a growth's fall, the drill's strike by the wall at its bit | no    |
+| `GroundSounds.cs`              | a planet heard (0093): what the boots stand on (`FootingOf`), and from `Sound`'s tables the step, push-off and landing by it, any tool's hit by the wall or growth it lands on (a drill's every Nth, quieter), a wall's break, a growth's fall | no    |
 | `game/shared/Voices.cs`        | players of whichever cues something plays, one a cue, made as first played: the boots, the ground's hits, breaks and falls | yes   |
 | `SoundView.cs`                 | the hearing: button clicks, the muffle while floating, the title's music and the bed of space   | yes   |
 | `game/audio/`                  | the files, one-shots as WAV and loops as OGG looped on import; `CREDITS.md`, CC0 or marked placeholders. Synthesised loops and pops are rendered offline from the audition's parameters (deterministic seeds; a loop's second of two periods kept, so it closes on itself; −23 dBFS RMS) | — |
@@ -136,8 +136,11 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
     bursts. Own is told by `debris/OwnHits.cs`: a `Hit` of this peer's that has left `Client.InFlight`
     since the last frame. Another hero's hit is silent: a wreck is only out in space (0042).
   - On a planet (0093), all on World where it happens but this hero's own hits, on Suit:
-    `crew/HeroView.cs` — an axe's hit as its blade strikes (`GroundSounds.HitAt`), this hero's and a friend's as its swing is
-    played; the drill's strikes in soil are `Sound.DrillSoil`, grains of the soil hit; a hero touching lava hisses
+    `crew/HeroView.cs` — every tool's hit sounds as what it hits (`GroundSounds.HitAt`, one table for all): the axe's as its
+    blade strikes, this hero's and a friend's as its swing is played; the drill's at its hit pace as the dig goes out (a friend's
+    from what the client knows: the sim's `Items.Running` and its sent `Busy` bit), heard every `HeardEvery` (the drill's 10 a
+    second every second, at most `DrillHitsMostPerSecond`), `DrillHitDb` under the axe's. The drill keeps its motor's whir;
+    its pickaxe strikes buzz only on a wreck. A hero touching lava hisses
     (`Sound.LavaBurn`) at once and every `LavaBurnEveryS` while it burns. `building/DigView.cs` — a cracked wall broken out, by
     its material (`Sound.Ground`). `flora/FloraView.cs`, `flora/CaveView.cs`, `ruins/HomesView.cs` — a growth felled, by its
     kind (`Sound.Growths`; `Sound.Unheard` none); `CaveView` a drip where it splashes, at most one every `CaveDripLeastS` to
@@ -162,6 +165,5 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
 - The circuit assembler is silent till its audition. A station taken down mid-work stops at once, without running
   down. The Former strikes from its first picture down, not once its motor is at speed as the audition did: the
   stroke follows the head seen, and the head moves at once.
-- On a planet (0093): ladders, cave air and surface wind, as the user chose; a friend's drill; a drill on a growth strikes
-  its pickaxe; rugs underfoot sound as the floor under them; the deck's landing keeps one loudness whatever the fall. A
+- On a planet (0093): ladders, cave air and surface wind, as the user chose; a friend's drill's whir; rugs underfoot sound as the floor under them; the deck's landing keeps one loudness whatever the fall. A
   wall broken without a crack first would be silent, but no weapon breaks one in a hit.
