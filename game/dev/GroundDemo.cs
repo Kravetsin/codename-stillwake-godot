@@ -18,7 +18,9 @@ namespace Stillwake.Game.Dev;
 /// and far; <c>mouth</c> stands it on the rim of the nearest pit, chasm or cave mouth, to see the sky down it; <c>acacia</c> beside the
 /// acacia nearest the spawn, to see one close (0079); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
 /// its longest run of ground with no pit, for <see cref="Features.Crew.HeroAutopilot.Sprint"/> to measure; <c>band0</c>…<c>band3</c> in a
-/// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080). An
+/// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080);
+/// <c>spire</c> on the roof of the spire nearest the spawn beside its left plug, <c>spire-in</c> in its chamber by the cache,
+/// <c>spire-far</c> on the ground forty columns left of it, to see its tip over the hills (0085). An
 /// axe hit every <see cref="Pace"/> ticks,
 /// sent as a strike sends them: cracks, chips, dust, and the sky falling into the shaft.
 /// </summary>
@@ -80,15 +82,15 @@ public sealed class GroundDemo(string mode)
                 log($"ground demo: beamed down to ({spot % w}, {spot / w}), looking at ({look.X:F0}, {look.Y:F0}), seed {world.Surfaces[_planet.Value].Seed}");
                 return;
             }
-            int at = tunnel ? CaveUnder(m) ?? m.Crew.Spawn : mode == "mouth" ? RimNear(m) ?? m.Crew.Spawn : mode == "sprint" ? Features.Crew.HeroAutopilot.SprintStart(m.Grid)
+            int at = Spires(mode) ? SpireSpot(m, mode) ?? m.Crew.Spawn : tunnel ? CaveUnder(m) ?? m.Crew.Spawn : mode == "mouth" ? RimNear(m) ?? m.Crew.Spawn : mode == "sprint" ? Features.Crew.HeroAutopilot.SprintStart(m.Grid)
                 : mode == "acacia" ? BesideAcacia(m) ?? m.Crew.Spawn : mode == "slope" ? BesideSlopes(m, _cells) ?? m.Crew.Spawn : m.Crew.Spawn;
             // The shaft under the feet; the tunnel at head height the way the hero faces, right.
-            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("slope" or "acacia" or "sprint"); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
+            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("slope" or "acacia" or "sprint") && !Spires(mode); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
             client.Send(new Transfer(_planet.Value, at));
             log($"ground demo: beamed down to ({at % w}, {at / w})");
             return;
         }
-        if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode)) return;
+        if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode) || Spires(mode)) return;
         var here = Registry.On(world, _planet.Value);
         int next = _cells.FindIndex(c => here.Grid.WallAt(c) is { Breaks: true });
         // drill: the hands dig, aimed at the cell by GroundHands; the others send an axe's hits as a strike would.
@@ -176,6 +178,23 @@ public sealed class GroundDemo(string mode)
             .Where(x => x > 8 && x < w - 8 && Top(x) >= Math.Max(Top(x - 4), Top(x + 4)) + 8)
             .Select(x => (int?)((Top(Top(x - 4) < Top(x + 4) ? x - 4 : x + 4) - 1) * w + (Top(x - 4) < Top(x + 4) ? x - 4 : x + 4)))
             .FirstOrDefault();
+    }
+
+    /// <summary>Whether <paramref name="mode"/> stands the hero at a spire (0085): <c>spire</c>, <c>spire-in</c> or <c>spire-far</c>.</summary>
+    public static bool Spires(string mode) => mode is "spire" or "spire-in" or "spire-far";
+
+    /// <summary>
+    /// The cell to stand in at the spire nearest the spawn, found by its lamp in its tip's top cell: on its roof beside its left plug,
+    /// in its chamber beside its cache, or on the ground forty columns left of it.
+    /// </summary>
+    private static int? SpireSpot(Registry m, string mode)
+    {
+        int w = m.Grid.Width, sx = m.Crew.Spawn % w, rise = m.Rules.Ground!.SpireRise;
+        var lamp = m.Building.Plants.Where(p => p.Kind == Spec.Ruins.SpireLamp).OrderBy(p => Math.Abs(p.Cell % w - sx)).FirstOrDefault();
+        if (lamp == null) return null;
+        int x0 = lamp.Cell % w - Spec.Ruins.Spire[0].IndexOf(Spec.Ruins.Lamp), y0 = lamp.Cell / w;
+        if (mode == "spire-far") return (TopOf(m, x0 - 40) - 1) * w + x0 - 40;
+        return mode == "spire" ? (y0 + rise - 1) * w + x0 + 1 : (y0 + Spec.Ruins.Spire.Count - 3) * w + x0 + 6;
     }
 
     /// <summary>Whether <paramref name="mode"/> stands the hero in a cave of a band, <c>band0</c> to <c>band3</c>, or a great hall, <c>hall</c> (0080).</summary>

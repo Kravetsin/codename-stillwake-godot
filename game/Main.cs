@@ -52,7 +52,7 @@ namespace Stillwake.Game;
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>), <c>--breathe</c> a canister breathed and the pod's air breathed again (<see cref="BreatheDemo"/>; <c>--breathe-air</c> only the air), <c>--handbook</c> the Handbook opened on a world that has found ten kinds (<see cref="HandbookDemo"/>),
 /// <c>--shimmer-demo</c> with <c>--testbed --near=furnace</c> aims at the furnace, plans, marks and welds over it (<see cref="ShimmerDemo"/>),
 /// <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
-/// <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
+/// <c>--snap FILE</c> saves the screen to FILE once the world is <c>--snap-at</c> seconds old and quits, <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--allocs</c> with it what was allocated, by type (<see cref="AllocationSampler"/>), <c>--for=seconds</c> quits after a while,
 /// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree or <c>--ground=slope</c> cracking slopes (0079), <c>--ground=band0</c>…<c>band3</c> in a cave of a depth band or <c>--ground=hall</c> in a great hall, looking at its growth (0080), <c>--ground=sprint --autopilot</c> a sprint over its ground and back (<see cref="HeroAutopilot.Sprint"/>, <c>--sprint 250</c> cells), <c>--sweep=DEPTH</c> the camera run along the row that deep under the spawn (<see cref="CameraSweep"/>), <c>--ground=cave</c> or <c>--ground=shaft</c>
 /// down into a cave with the helmet lamp or digging a shaft (<see cref="GroundDemo"/>), <c>--strip</c> the test strip (0076),
@@ -948,6 +948,14 @@ public partial class Main : Node2D, ITogether
         // --beam-back, with --planet or --strip: back aboard two seconds in, to see the switch both ways.
         if (Has("--beam-back") && before < 2 * World.TicksPerSecond && client.World.Tick >= 2 * World.TicksPerSecond) client.Send(new Transfer(0));
         Follow(client);
+        // --snap FILE: the screen saved to FILE as a PNG once the world is --snap-at seconds old (6 by default), then quit.
+        if (Arg("--snap") is { } snap && client.World.Tick >= World.TicksPerSecond * int.Parse(Arg("--snap-at") ?? "6") && !_snapped)
+        {
+            _snapped = true;
+            GetViewport().GetTexture().GetImage().SavePng(snap);
+            Log($"snapped {snap}");
+            Quit();
+        }
         _stars.Seconds = (client.World.Tick + session.Progress) / World.TicksPerSecond;
         if (_allocs != null) _allocs.Counting = client.World.Tick > 5 * World.TicksPerSecond;
         if (_role != "alone" && client.World.Tick / 100 != before / 100) Log($"tick {client.World.Tick} hash {client.World.Hash():x16}");
@@ -1077,4 +1085,7 @@ public partial class Main : Node2D, ITogether
     }
 
     private void Log(string text) => GD.Print($"[{_role}] {text}");
+
+    /// <summary>Whether <c>--snap</c> has saved its picture.</summary>
+    private bool _snapped;
 }

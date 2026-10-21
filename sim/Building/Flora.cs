@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
 
 namespace Stillwake.Sim.Building;
 
@@ -82,7 +83,10 @@ public sealed partial class BuildingModule
         for (int i = 0, cell = plant.Cell; i < kind.Tall && cell >= 0 && cell < cells; i++, cell += step) yield return cell;
     }
 
-    /// <summary>Fells <paramref name="plant"/>: it is noted felled, for good, and gives what it yields to <paramref name="peer"/>, if any.</summary>
+    /// <summary>
+    /// Fells <paramref name="plant"/>: it is noted felled, for good, and gives what it yields to <paramref name="peer"/>; felled
+    /// by nobody — built over, its hold gone to a meteor — it lets its yields fall at its cell for anyone (0085).
+    /// </summary>
     private void Fell(Plant plant, int? peer)
     {
         int at = State.Felled.BinarySearch(plant.Cell);
@@ -93,7 +97,9 @@ public sealed partial class BuildingModule
         foreach (int cell in CellsOf(plant)) _plantIn.Remove(cell);
         // Its crack goes with it, before a wall built in its cell could take it over; one in the rock's is the wall's.
         if (Kinds[plant.Kind].On != Flora.Anchor.Rock && CrackIndex(plant.Cell) is >= 0 and var crack) State.Cracks.RemoveAt(crack);
-        if (peer is int sender && Kinds[plant.Kind].Yields is { Count: > 0 } yields) _itemsOps.GiveOrDrop(sender, yields, plant.Cell);
+        if (Kinds[plant.Kind].Yields is not { Count: > 0 } yields) return;
+        if (peer is int sender) _itemsOps.GiveOrDrop(sender, yields, plant.Cell);
+        else _itemsOps.DropAt(FloorStack.Nobody, yields, plant.Cell);
     }
 
     private static readonly Comparer<Plant> ByCell = Comparer<Plant>.Create((a, b) => a.Cell.CompareTo(b.Cell));

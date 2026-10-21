@@ -46,6 +46,8 @@ public static class Materials
         new("soil", Code: 3, Strength: 4, Leak: 40, Cost: [("soil", 1)], BuildTicks: 10, Natural: true),
         new("stone", Code: 4, Strength: 12, Leak: 36, Cost: [("rock", 1)], BuildTicks: 20, Natural: true),
         new("bedrock", Code: 5, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
+        // The ruins' metal (0085): five times stone, four seconds of the arc drill, six of the drill; a scrap of it a cell.
+        new("alloy", Code: 6, Strength: 60, Leak: 36, Cost: [("alloyScrap", 1)], BuildTicks: 40, Natural: true),
     ];
 
     /// <summary>What a <c>#</c> on a map is built of.</summary>

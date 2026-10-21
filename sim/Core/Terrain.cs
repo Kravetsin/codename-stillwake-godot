@@ -16,16 +16,22 @@ public static class Terrain
 
     /// <summary>Each noise and draw of a ground hashed apart from the others.</summary>
     private const uint Ranges = 1, Hills = 2, Bumps = 3, Soil = 4, Mouths = 5, Tunnels = 6, TunnelsFine = 7, Caverns = 8,
-        CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13, CaveRoll = 14, CavePatch = 17, MouthFade = 18;
+        CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13, CaveRoll = 14, CavePatch = 17, MouthFade = 18,
+        SpireAt = 19;
 
-    public static Layout Generate(Ground g, uint seed) => Generate(g, seed, out _, out _);
+    public static Layout Generate(Ground g, uint seed) => Generate(g, seed, out _, out _, out _);
 
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
-    internal static Layout Generate(Ground g, uint seed, out bool[] hall) => Generate(g, seed, out hall, out _);
+    internal static Layout Generate(Ground g, uint seed, out bool[] hall) => Generate(g, seed, out hall, out _, out _);
 
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
     /// <param name="surface">Each column's surface, its first row of ground before caves and landmarks open it: for tests.</param>
-    internal static Layout Generate(Ground g, uint seed, out bool[] hall, out int[] surface)
+    internal static Layout Generate(Ground g, uint seed, out bool[] hall, out int[] surface) => Generate(g, seed, out hall, out surface, out _);
+
+    /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
+    /// <param name="surface">Each column's surface, its first row of ground before caves and landmarks open it: for tests.</param>
+    /// <param name="spires">Each spire stamped (0085), its left column and its top row: for tests.</param>
+    internal static Layout Generate(Ground g, uint seed, out bool[] hall, out int[] surface, out List<(int X, int Y)> spires)
     {
         int w = g.Width, h = g.Height, floor = h - g.BedrockRows;
         int soil = Materials.Get("soil").Code, stone = Materials.Get("stone").Code, bedrock = Materials.Get("bedrock").Code;
@@ -145,6 +151,7 @@ public static class Terrain
         var surfaceTop = TopsOf(rows, w, h);
         var flora = Flora(g, seed, rows, codes, soil, spawn % w, surfaceTop);
         CaveFlora(g, seed, rows, codes, hall, surfaceTop, flora);
+        spires = Spires(g, seed, top, rows, codes, flora);
         // Found column by column and row by row; kept by cell, as every list of cells is.
         flora.Sort((a, b) => a.Item1.CompareTo(b.Item1));
         rows[spawn / w][spawn % w] = 'S';
@@ -292,6 +299,63 @@ public static class Terrain
             into.Add((cell, kind.Id));
             (last[k], lastOn[(int)on]) = (x, x);
         }
+    }
+
+    /// <summary>
+    /// The spires (0085), stamped last over all that grew: <see cref="Ground.Spires"/> at columns the seed chooses, each in a
+    /// band of its own so they spread and never overlap, every column of each at least <see cref="Ground.RuinClear"/> from the
+    /// middle; each anchored at the highest surface across it (<paramref name="top"/>), <see cref="Ground.SpireRise"/> of its rows
+    /// above that, moved down or up only where the grid is too small to hold it. Its cells overwrite the rows and the materials
+    /// but where it keeps the ground; what grew in its box, or lay in the rock a cell round it, goes, and its own growths are
+    /// set. Slopes and the other growths beside it were found before it and stay as they are.
+    /// </summary>
+    /// <returns>Each spire's left column and top row.</returns>
+    private static List<(int X, int Y)> Spires(Ground g, uint seed, int[] top, char[][] rows, int[] codes, List<(int Cell, string Kind)> flora)
+    {
+        var spires = new List<(int X, int Y)>();
+        var prefab = Content.Ruins.Spire;
+        int w = g.Width, wide = Content.Ruins.SpireWide, tall = prefab.Count, rise = Math.Clamp(g.SpireRise, 0, tall);
+        int floor = g.Height - g.BedrockRows, middle = w / 2, from = g.BedrockSide + 1;
+        // The left columns a spire may start at, the left side's then the right's, counted as one run the bands split.
+        int left = Math.Max(0, middle - g.RuinClear - wide + 1 - from), rightFrom = middle + g.RuinClear;
+        int right = Math.Max(0, w - g.BedrockSide - 1 - wide + 1 - rightFrom);
+        int lowest = floor - (tall - rise);
+        if (g.Spires <= 0 || left + right == 0 || lowest < rise) return spires;
+        int band = (left + right) / g.Spires;
+        if (band < wide + 1) return spires;
+        int alloy = Materials.Get("alloy").Code, soil = Materials.Get("soil").Code;
+        for (int k = 0; k < g.Spires; k++)
+        {
+            // Within its band, a spire's width short of its end: the next one starts past it.
+            int at = k * band + (int)((long)Lattice(seed, SpireAt, k, 0) * (band - wide) / Whole);
+            int x0 = at < left ? from + at : rightFrom + (at - left);
+            int anchor = int.MaxValue;
+            for (int x = x0; x < x0 + wide; x++) anchor = Math.Min(anchor, top[x]);
+            int y0 = Math.Clamp(anchor, rise, lowest) - rise;
+            // What grew in its box goes, and what lay in the rock round it, which the spire's alloy may now close off from its cave.
+            bool In(int cell, int by) => cell % w >= x0 - by && cell % w < x0 + wide + by && cell / w >= y0 - by && cell / w < y0 + tall + by;
+            flora.RemoveAll(p => In(p.Cell, 0) || In(p.Cell, 1) && Content.Flora.Get(p.Kind).On == Content.Flora.Anchor.Rock);
+            for (int dy = 0; dy < tall; dy++)
+                for (int dx = 0; dx < wide; dx++)
+                {
+                    char c = prefab[dy][dx];
+                    if (c == Content.Ruins.Keep) continue;
+                    int x = x0 + dx, y = y0 + dy, cell = y * w + x;
+                    bool open = c is Content.Ruins.Open or Content.Ruins.Cache;
+                    rows[y][x] = open ? '.' : '#';
+                    codes[cell] = c == Content.Ruins.Plug ? soil : alloy;
+                    string? kind = c switch
+                    {
+                        Content.Ruins.Cache => Content.Ruins.SpireCache,
+                        Content.Ruins.Shrine => Content.Ruins.RelicShrine,
+                        Content.Ruins.Lamp => Content.Ruins.SpireLamp,
+                        _ => null,
+                    };
+                    if (kind != null) flora.Add((cell, kind));
+                }
+            spires.Add((x0, y0));
+        }
+        return spires;
     }
 
     /// <summary>Whether <paramref name="cell"/> is soil or stone with the open above it: the top of the ground there.</summary>

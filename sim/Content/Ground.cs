@@ -88,6 +88,15 @@ public sealed record Ground(int Width, int Height)
     /// <summary>The columns either side of the middle no landmark comes into: where heroes beam down.</summary>
     public int Clear { get; init; } = 120;
 
+    /// <summary>
+    /// Ruins (0085): <see cref="Spires"/> spires (<see cref="Ruins.Spire"/>) at columns the seed chooses, each in a band of its
+    /// own, none within <see cref="RuinClear"/> columns of the middle, so finding one takes a walk; each anchored at the highest
+    /// ground across it, <see cref="SpireRise"/> of its rows standing above that, so its tip shows over the hills (0 buries it).
+    /// </summary>
+    public int Spires { get; init; } = 4;
+    public int RuinClear { get; init; } = 384;
+    public int SpireRise { get; init; } = 10;
+
     /// <summary>The bedrock: the bottom rows, and a column at either side the whole height of the grid.</summary>
     public int BedrockRows { get; init; } = 3;
     public int BedrockSide { get; init; } = 1;
@@ -100,7 +109,7 @@ public sealed record Ground(int Width, int Height)
 
     /// <summary>
     /// The same ground small, 64 × 48, for tests and the fuzz: low hills, caves a little nearer the surface, a chasm and a
-    /// hall of its size.
+    /// hall of its size, and one spire (0085), so the fuzz digs alloy.
     /// </summary>
     public static readonly Ground Small = new(64, 48)
     {
@@ -119,5 +128,7 @@ public sealed record Ground(int Width, int Height)
         HallTall = 4,
         HallFrom = 14,
         Clear = 8,
+        Spires = 1,
+        RuinClear = 12,
     };
 }

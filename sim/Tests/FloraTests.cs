@@ -46,12 +46,13 @@ public class FloraTests
 
     /// <summary>
     /// The surface's density, measured on the first planet's seed 1: some two to three times what it first grew (0079: 18
-    /// acacias, 21 bushes, 14 rocks, 139 bells), so a walk passes trees and bushes often; spacing keeps them apart.
+    /// acacias, 21 bushes, 14 rocks, 139 bells), so a walk passes trees and bushes often; spacing keeps them apart. What grows,
+    /// before the spires clear their boxes (0085).
     /// </summary>
     [Fact]
     public void TheFirstPlanetsSurfaceGrowsTwoToThreeTimesItsFirstTreesBushesRocksAndFlowers()
     {
-        var l = Terrain.Generate(Ground.Planet, 1);
+        var l = Terrain.Generate(Ground.Planet with { Spires = 0 }, 1);
         int Of(params string[] kinds) => l.Flora!.Count(p => kinds.Contains(p.Kind));
         Assert.InRange(Of("acacia"), 2 * 18, 3 * 18);
         Assert.InRange(Of("bush"), 2 * 21, 3 * 21);

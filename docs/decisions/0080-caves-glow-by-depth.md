@@ -1,6 +1,6 @@
 # 0080 — Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock
 
-- Status: accepted
+- Status: accepted; a growth felled by nobody lets its yields fall, and the ruins set growths of their own: [0085](0085-ruins-on-the-first-planet.md)
 - Date: 2026-10-20
 
 ## Context

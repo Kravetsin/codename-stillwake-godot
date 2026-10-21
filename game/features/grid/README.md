@@ -56,6 +56,9 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   `art/planet/wall_*` and `back_*`, 8 × 4 cell tiles that repeat seamlessly, cut a cell at a time as scrap's; their edges
   are made at start (`render/GroundArt.cs`, lines in `Content/GroundLooks.cs`): a dark outline by the open sides and inside
   it a lit line on top, shaded elsewhere. Slopes are cut from them as from the hull's.
+  The ruins' alloy (0085) is a natural material drawn the same way: `wall_alloy` plates of cool steel in courses with rivets
+  and a few engraved glyphs, `back_alloy` the same darker, `top_alloy` metal grit, `detail_alloy` vents, glyphs and the
+  makers' emblems; placeholders drawn by a script not kept, till the user picks on a page.
 - **Moss** (0079) on soil open to the sky (`Grass.cs`, plain C#, tested: a soil wall, whole or a floor slope, under an
   empty cell with no back wall), a rule of drawing, never the sim's: one of four pictures a top (`art/planet/grass_{shape}_{v}`,
   by a hash of the cell), two cells tall, laid from the cell above so its stems rise into it, over the edges. Dug, built

@@ -17,6 +17,8 @@ public static class GroundLooks
         ["soil"] = new((98, 74, 58), (125, 96, 74), (36, 25, 15), (138, 106, 80)),
         ["stone"] = new((97, 103, 119), (128, 136, 152), (26, 28, 36), (138, 146, 160)),
         ["bedrock"] = new((56, 53, 66), (90, 86, 106), (20, 18, 24), (78, 74, 92)),
+        // The ruins' alloy (0085): cool steel with a touch of teal, a placeholder till the user picks its art.
+        ["alloy"] = new((78, 103, 114), (110, 138, 147), (20, 29, 36), (166, 194, 198)),
     };
 
     /// <summary>How many of a dig's chips fly per hit, and the dust of a break.</summary>
