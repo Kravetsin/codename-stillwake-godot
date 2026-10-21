@@ -51,6 +51,7 @@ public static class ItemCardView
     private static readonly LabelSettings UnknownText = Style.Text(Style.Mono, 11, Style.Violet400);
     private static readonly LabelSettings FireText = Style.Text(Style.Mono, 11, Style.Orange400);
     private static readonly LabelSettings GrowText = Style.Text(Style.Mono, 11, Style.Green400);
+    private static readonly LabelSettings TechText = Style.Text(Style.Mono, 11, new Color(ItemCards.ModuleColour));
     private static readonly LabelSettings YieldText = Style.Text(Style.Mono, 11, Style.Slate300);
     private static readonly LabelSettings TimeDim = Style.Text(Style.Mono, 11, Style.Slate500);
     private static readonly LabelSettings CraftText = Style.Text(new FontVariation { BaseFont = BoldMono, SpacingGlyph = 1 }, 10, Style.Slate400);
@@ -78,8 +79,6 @@ public static class ItemCardView
         kind.SizeFlagsVertical = Control.SizeFlags.ShrinkEnd;
         line.AddChild(kind);
         var column = Column(0, Padded(line, 9, 5, 9, 6));
-        // A module's "fits" chip (0086): where it goes and what it does there.
-        if (card.Effects.Count > 0) column.AddChild(Padded(Effects(card.Effects), Pad, 0, Pad, 8));
         // A canister is breathed with a key of its own: the one thing its slot cannot say.
         if (card.Use is { } how) column.AddChild(Ruled(UseRow(how, null)));
         if (card.Charge is { } charge) column.AddChild(Meter(charge));
@@ -141,7 +140,9 @@ public static class ItemCardView
     /// <summary>Under any card: what the open station does with it, the band while unknown, a station's block.</summary>
     private static void Bottom(ItemCard card, VBoxContainer column)
     {
-        if (card.Here != SlotMark.None) column.AddChild(HereStrip(card.Here, card.Output));
+        // A module says what it does, its tech's icon before it; the slot's mark says it fits here, no words needed (0086).
+        if (card.Tech is { } tech) column.AddChild(TechStrip(tech));
+        if (card.Here is not (SlotMark.None or SlotMark.Fits)) column.AddChild(HereStrip(card.Here, card.Output));
         if (card.Unknown) column.AddChild(UnknownStrip());
         if (card.Station is { } station) column.AddChild(Station(station));
     }
@@ -386,13 +387,26 @@ public static class ItemCardView
     /// <summary>Not analysed yet: "? Not analysed" in violet.</summary>
     private static Control UnknownStrip() => Strip(Style.Violet400, Text(T("card.notAnalysed"), UnknownText, HorizontalAlignment.Left));
 
-    /// <summary>The picture of a slot's station mark: a flame for what a fire smelts or burns, a sprout for what is grown; none for the rest.</summary>
-    public static Texture2D? MarkPicture(SlotMark mark) => mark switch
+    /// <summary>
+    /// The picture of a slot's machine mark for <paramref name="item"/>: a flame for what a fire smelts or burns, a sprout
+    /// for what is grown, a module's tech icon where it fits (0086); none for the rest.
+    /// </summary>
+    public static Texture2D? MarkPicture(SlotMark mark, string item) => mark switch
     {
         SlotMark.Smelts or SlotMark.Burns => AsciiArt.Flame(),
         SlotMark.Grows => AsciiArt.Sprout(),
+        SlotMark.Fits when Content.Modules.TryGet(item, out var module) => AsciiArt.Tech(module.Tech),
         _ => null,
     };
+
+    /// <summary>A module's strip (0086): its technology's icon, then what it does, in the arcs' violet-white.</summary>
+    private static Control TechStrip(CardTech tech)
+    {
+        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        row.AddChild(Picture(AsciiArt.Tech(tech.Tech), 14));
+        row.AddChild(Text(tech.About, TechText, HorizontalAlignment.Left));
+        return Strip(new Color(ItemCards.ModuleColour), row);
+    }
 
     /// <summary>
     /// What the open station does with the item, in the mark's colour: its slot's mark, then "Smelts here" or the like,
@@ -402,7 +416,7 @@ public static class ItemCardView
     {
         var colour = here == SlotMark.Grows ? Style.Green400 : Style.Orange400;
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
-        row.AddChild(Picture(MarkPicture(here)!, 12));
+        row.AddChild(Picture(MarkPicture(here, "")!, 12));
         string key = here switch { SlotMark.Grows => "card.growsHere", SlotMark.Burns => "card.burnsHere", _ => "card.smeltsHere" };
         row.AddChild(Text(T(key), here == SlotMark.Grows ? GrowText : FireText));
         if (output != null)

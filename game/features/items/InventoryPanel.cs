@@ -398,12 +398,12 @@ public partial class InventoryPanel : CanvasLayer
     /// </summary>
     private Control? Sockets(int machine, string kind, bool caption = true)
     {
-        var takes = Content.Modules.All.Where(m => m.Hosts.Contains(kind)).ToList();
+        var takes = Content.Modules.For(kind).ToList();
         if (takes.Count == 0) return null;
         var row = Style.Gap(new HBoxContainer(), Slots.Gap);
         foreach (var module in takes)
         {
-            var socket = new ModuleSocket(machine, module.Item, _ui.Slot);
+            var socket = new ModuleSocket(machine, module, _ui.Slot);
             socket.Pressed += SocketPressed;
             _tipSpots.Add(socket, () => SocketTip(socket));
             _sockets.Add(socket);
@@ -427,30 +427,31 @@ public partial class InventoryPanel : CanvasLayer
         return row;
     }
 
-    /// <summary>The modules fitted into <paramref name="machine"/>, as the world has them: a fit shows once its tick has run.</summary>
-    private IReadOnlyList<string> FittedTo(int machine) => _items?.FittedTo(machine) ?? [];
+    /// <summary>
+    /// The modules fitted into <paramref name="machine"/>: the open machine's as shown, this peer's own fits and takes in
+    /// flight made (<see cref="Reading.Fitted"/>); another's as the world has them.
+    /// </summary>
+    private IReadOnlyList<string> FittedTo(int machine) =>
+        machine == Crate && _reading != null ? _reading.Fitted : _items?.FittedTo(machine) ?? [];
 
     /// <summary>Whether <paramref name="item"/> would go into a socket of open machine <paramref name="machine"/>: a module it takes, not fitted yet.</summary>
     private bool GoesIn(string? item, int machine) =>
         item != null && _grid?.MachineById(machine) is { } m && Content.Modules.Fits(item, m.Kind) && !FittedTo(machine).Contains(item);
 
     /// <summary>
-    /// A socket pressed: a module carried that goes in is fitted (<see cref="Fit"/>); a fitted one begins to come out,
-    /// with shift at once, anywhere in the bag it fits.
+    /// A socket pressed (<see cref="Clicks.OnSocket"/>): a module carried that goes in is fitted; a fitted one begins to
+    /// come out, with shift at once into the bag, flying there.
     /// </summary>
     private void SocketPressed(ModuleSocket socket, bool shift)
     {
-        if (!Shown || _reading == null) return;
-        bool fitted = FittedTo(socket.Machine).Contains(socket.Module);
-        if (Held is { } held)
-        {
-            if (_reading.At(held.Place)?.Item == socket.Module && !fitted) FitFrom(held.Place, socket);
-            return;
-        }
-        if (!fitted) return;
-        _ui.Click();
-        if (shift) Send(new Unfit(socket.Machine, socket.Module));
-        else _unfitting = socket;
+        if (!Shown || _reading is not { } reading) return;
+        var held = Held;
+        var result = Clicks.OnSocket(held, new SocketClick(
+            socket.Machine, socket.Module, FittedTo(socket.Machine).Contains(socket.Module), shift, held is { } h ? reading.At(h.Place) : null, reading.Inventory));
+        if (result.Command != null || result.TakesOut) _ui.Click();
+        if (result.Command != null) (_picked, _dragFrom) = (null, null);
+        if (result.TakesOut) _unfitting = socket;
+        Act(reading, result);
         Refresh();
     }
 
@@ -464,13 +465,13 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>
     /// The left button let go over a socket: a module carried or dragged there is fitted; one being taken out, let go
-    /// where it was pressed, goes anywhere in the bag it fits.
+    /// where it was pressed, flies into the bag's first empty slot (<see cref="Clicks.TakeOut"/>).
     /// </summary>
     private void ReleaseOnSocket(ModuleSocket socket)
     {
         var unfitting = _unfitting;
         _unfitting = null;
-        if (unfitting == socket) Send(new Unfit(socket.Machine, socket.Module));
+        if (unfitting == socket && _reading is { } reading) Act(reading, Clicks.TakeOut(socket.Machine, socket.Module, reading.Inventory));
         else if (Held is { } held && _reading?.At(held.Place)?.Item == socket.Module && GoesIn(socket.Module, socket.Machine)) FitFrom(held.Place, socket);
         _dragFrom = null;
         Refresh();
@@ -479,7 +480,10 @@ public partial class InventoryPanel : CanvasLayer
     private ModuleSocket? SocketUnder(Vector2 at) => _ui.MenuOpen.Get() ? null :
         _sockets.FirstOrDefault(s => GodotObject.IsInstanceValid(s) && s.IsVisibleInTree() && s.GetGlobalRect().HasPoint(at));
 
-    /// <summary>A fitted socket's tip: its module's card, a click taking it out; an empty one's, what it takes.</summary>
+    /// <summary>
+    /// A fitted socket's tip: its module's card, a click taking it out; an empty one's, only its name: the tech icon in it
+    /// says what it takes (0086).
+    /// </summary>
     private Tip? SocketTip(ModuleSocket socket)
     {
         if (_reading is not { } reading) return null;
@@ -488,7 +492,7 @@ public partial class InventoryPanel : CanvasLayer
             var tip = reading.TipOf(socket.Module);
             return tip with { Card = tip.Card! with { Use = new CardKey("LMB", T("card.takeOut")) } };
         }
-        return new Tip(T("module.empty"), new TipLine(T("module.takes", ("item", T($"item.{socket.Module}"))), Tone.Plain, socket.Module), new TipLine(T("module.fit"), Tone.Dim));
+        return new Tip(T("module.empty"));
     }
 
     /// <summary>The bag's tall sort key, or with <paramref name="crate"/> that crate's square one in its header; its tip says what it does.</summary>
@@ -840,20 +844,10 @@ public partial class InventoryPanel : CanvasLayer
             return;
         }
         if (_reading == null) return;
-        // Shift on a module in the bag with a machine open that takes it: fitted at once (0086).
-        if (shift && !right && Held == null && place.Crate == null && Crate is int open && GoesIn(_reading.At(place)?.Item, open)
-            && _sockets.FirstOrDefault(s => s.Machine == open && s.Module == _reading.At(place)!.Item) is { } into)
-        {
-            FitFrom(place, into);
-            return;
-        }
-        var spec = _reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
-        // A queued station's inputs share what is shift-clicked in, onto its kind first (the Former's, the assembler's).
-        int inputs = _reading.Kind is string queued && Content.Stations.TryGet(queued, out var station) && !station.Fed ? spec?.Inputs ?? 0 : 0;
         var before = _reading;
         var held = Held;
-        var result = Clicks.On(held, new SlotClick(
-            place, _reading.At(place), right, shift, Crate, _reading.Inventory, spec?.FuelSlot, spec?.Charges == true, inputs, _reading.Crate));
+        // A queued station's inputs share what is shift-clicked in, onto its kind first; a module goes into its free socket.
+        var result = Clicks.On(held, SlotClick.Of(_reading, place, right, shift, Crate));
         (_picked, _pickedItem) = (result.Picked, result.Picked is { } p ? _reading.At(p.Place)?.Item : null);
         if (result.Breathes)
         {
@@ -862,34 +856,76 @@ public partial class InventoryPanel : CanvasLayer
         }
         // Every action clicks as it is made, a shift's on launch; a canister's when the crew breathes it.
         if (!result.Breathes && (result.Command != null || result.Picked != held)) _ui.Click();
-        bool shifted = shift && !right && before.At(place) != null;
-        if (result.Command != null)
-        {
-            Send(result.Command);
-            if (shifted) Fly(before, result.Command);
-        }
+        if (result.Command != null) Act(before, result);
         else
         {
-            if (shifted) BoxAt(place)?.Shake();
+            if (shift && !right && before.At(place) != null) BoxAt(place)?.Shake();
             Refresh();
         }
     }
 
-    private SlotBox? BoxAt(Place place) => _slots.FirstOrDefault(s => s.Place == place && s.IsVisibleInTree());
+    /// <summary>
+    /// A stack shift-clicked out of a slot that is not one of this panel's, at <paramref name="from"/> on screen: a queued
+    /// station's output, the crafting feature's (wired by <c>Main</c>). Taken as a shift-click on its slot is, flying.
+    /// </summary>
+    public void ShiftOut(Place place, Rect2 from)
+    {
+        if (_reading is not { } reading) return;
+        Act(reading, Clicks.On(null, SlotClick.Of(reading, place, false, true, Crate)), from);
+    }
 
     /// <summary>
-    /// A stack sent across with shift flying from its slot to each it landed in, as the slots show it now, the move made
-    /// at once (0014); a move the sim would refuse lands nowhere, and its slot shakes.
+    /// The one way a click's command goes out (0075, 0086): sent, the slots read again at once, and a stack sent with shift
+    /// flying from where it was (<paramref name="from"/> for a slot not this panel's) to where it went (<see cref="Fly"/>).
     /// </summary>
-    private void Fly(Reading before, Move move)
+    private void Act(Reading before, Clicked result, Rect2? from = null)
     {
-        if (_reading is not { } after || before.At(move.Src) is not { } stack || BoxAt(move.Src) is not { } src) return;
-        var shown = _slots.Where(s => s.IsVisibleInTree()).Select(s => s.Place).ToList();
-        var landed = Clicks.Landed(move.Src, stack.Item, before.At, after.At, shown).ToList();
-        if (landed.Count == 0) src.Shake();
+        if (result.Command is not { } command) return;
+        Send(command);
+        if (result.Flight is { } flight) Fly(before, flight, from);
+    }
+
+    private SlotBox? BoxAt(Place place) => _slots.FirstOrDefault(s => s.Place == place && s.IsVisibleInTree());
+
+    private ModuleSocket? SocketAt(SocketSpot spot) =>
+        _sockets.FirstOrDefault(s => GodotObject.IsInstanceValid(s) && s.Machine == spot.Machine && s.Module == spot.Module && s.IsVisibleInTree());
+
+    /// <summary>Where <paramref name="spot"/> is on screen while it shows: a slot's box or a socket.</summary>
+    private Rect2? RectOf(Spot spot) => spot switch
+    {
+        SlotSpot slot => BoxAt(slot.Place)?.GetGlobalRect(),
+        SocketSpot socket => SocketAt(socket)?.GetGlobalRect(),
+        _ => null,
+    };
+
+    /// <summary>
+    /// A stack sent with shift flying from where it was to where it went, as the slots show it now, the command made at
+    /// once (0014): into a socket, into the slot named, or each slot it landed in; a move the sim would refuse lands
+    /// nowhere, and its slot shakes.
+    /// </summary>
+    private void Fly(Reading before, Flight flight, Rect2? from)
+    {
+        if (_reading is not { } after || (from ?? RectOf(flight.From)) is not { } src) return;
+        var stack = flight.From is SlotSpot { Place: var place } ? before.At(place) : flight.From is SocketSpot s ? new Stack(s.Module, 1) : null;
+        if (stack == null) return;
         var icon = ItemIcons.Icon(Charges.Picture(stack.Item, stack.Charge));
-        for (int i = 0; i < landed.Count; i++)
-            if (BoxAt(landed[i]) is { } to) _flights.Fly(icon, src.GetGlobalRect().GetCenter(), to.GetGlobalRect(), landed[i], before.At(landed[i]) == null, i);
+        var start = src.GetCenter();
+        switch (flight.To)
+        {
+            case SocketSpot socket when SocketAt(socket) is { } to:
+                _flights.Fly(icon, start, to.GetGlobalRect(), socket, true);
+                return;
+            case SlotSpot slot when BoxAt(slot.Place) is { } to:
+                _flights.Fly(icon, start, to.GetGlobalRect(), slot, before.At(slot.Place) == null);
+                return;
+            case null when flight.From is SlotSpot { Place: var at }:
+                var shown = _slots.Where(b => b.IsVisibleInTree()).Select(b => b.Place).ToList();
+                var landed = Clicks.Landed(at, stack.Item, before.At, after.At, shown).ToList();
+                if (landed.Count == 0) BoxAt(at)?.Shake();
+                for (int i = 0; i < landed.Count; i++)
+                    if (BoxAt(landed[i]) is { } box) _flights.Fly(icon, start, box.GetGlobalRect(), new SlotSpot(landed[i]), before.At(landed[i]) == null, i);
+                return;
+        }
     }
 
     public override void _Process(double delta)
@@ -912,7 +948,8 @@ public partial class InventoryPanel : CanvasLayer
         // A slot a shifted stack flies into, empty before, shows it only as it lands.
         if (_flights.Busy || _flown)
         {
-            foreach (var box in _slots) box.Awaiting(_flights.Awaits(box.Place));
+            foreach (var box in _slots) box.Awaiting(_flights.Awaits(new SlotSpot(box.Place)));
+            foreach (var socket in _sockets) socket.Awaiting(_flights.Awaits(new SocketSpot(socket.Machine, socket.Module)));
             _flown = _flights.Busy;
         }
         // A stack carried is the pointer: its icon centred on it, the arrow hidden while it is.

@@ -2,6 +2,7 @@ using Stillwake.Game.Features.Items;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Items;
 using Xunit;
+using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
@@ -54,5 +55,28 @@ public class SlotMarksTests
         Assert.Equal(SlotMark.Burns, Open("furnace").HereTipOf(new Stack("planks", 1)).Card!.Here);
         Assert.Equal(SlotMark.None, Open(null).HereTipOf(stack).Card!.Here);
         Assert.NotEqual(Open("furnace").HereTipOf(stack), Open(null).HereTipOf(stack));
+    }
+
+    [Fact]
+    public void MarkAModuleTheOpenMachineTakesWithItsTechsIconAndSayNoWordsOfWhereItGoes()
+    {
+        var arc = Spec.Modules.Arc.Item;
+        foreach (var host in Spec.Modules.Arc.Hosts) Assert.Equal(SlotMark.Fits, Open(host, arc).MarkOf(arc));
+        // Where it does not fit, the furnace, or with no machine open: only what it shows anyway.
+        Assert.Equal(SlotMark.None, Open("furnace", arc).MarkOf(arc));
+        Assert.Equal(SlotMark.None, Open(null, arc).MarkOf(arc));
+        Assert.Equal(SlotMark.Fits, Open("smelter").HereTipOf(new Stack(arc, 1)).Card!.Here);
+    }
+
+    [Fact]
+    public void EveryModulesTechHasASharpIconOfItsOwn()
+    {
+        foreach (var module in Spec.Modules.All)
+        {
+            var look = TechLooks.Of(module.Tech);
+            Assert.Equal(TechLooks.Side, look.Rows.Count);
+            Assert.All(look.Rows, row => Assert.Equal(TechLooks.Side, row.Length));
+            Assert.All(look.Rows.SelectMany(r => r), c => Assert.True(c == '.' || look.Palette.ContainsKey(c), $"{module.Tech}: {c}"));
+        }
     }
 }

@@ -9,12 +9,16 @@ namespace Stillwake.Content;
 /// down, costs up.
 /// </summary>
 /// <param name="Item">The item it is, by its id.</param>
-/// <param name="Hosts">The kinds of machine it fits into: electric stations only, for it multiplies what they draw.</param>
+/// <param name="Tech">
+/// Its technology, by id: the client's icon for it, shown on the sockets that take it, on the slots of modules that fit
+/// the machine open and on its card, in place of any list of where it goes (0086).
+/// </param>
+/// <param name="Hosts">What it fits into, by kind: electric stations only, for it multiplies what they draw; a tool next.</param>
 /// <param name="Speed">Thousandths added to a station's speed: its work a tick, rounded down.</param>
 /// <param name="Draw">Thousandths added to what its machine draws, rounded up.</param>
 /// <param name="Damage">Thousandths added to a tool's damage, rounded down: the arc on the drill, next (0086).</param>
 /// <param name="Heat">Added to a fed station's heat: an unlock module, the crucible, to come (0086).</param>
-public sealed record ModuleSpec(string Item, IReadOnlyList<string> Hosts, int Speed = 0, int Draw = 0, int Damage = 0, int Heat = 0);
+public sealed record ModuleSpec(string Item, string Tech, IReadOnlyList<string> Hosts, int Speed = 0, int Draw = 0, int Damage = 0, int Heat = 0);
 
 /// <summary>Every module, by its item (0086).</summary>
 public static class Modules
@@ -23,7 +27,7 @@ public static class Modules
     /// The arc module, of a spire's relic coil (0085): twice the speed for twice the power in an electric station. The
     /// furnace and the pod take none: one burns planks, the other is paid by hand.
     /// </summary>
-    public static readonly ModuleSpec Arc = new("arcModule", ["smelter", "former", "assembler"], Speed: 1000, Draw: 1000, Damage: 1000);
+    public static readonly ModuleSpec Arc = new("arcModule", "arc", ["smelter", "former", "assembler"], Speed: 1000, Draw: 1000, Damage: 1000);
 
     public static readonly IReadOnlyList<ModuleSpec> All = [Arc];
 
@@ -38,6 +42,9 @@ public static class Modules
         return item != null && ByItem.TryGetValue(item, out module);
     }
 
-    /// <summary>Whether module <paramref name="item"/> fits into a machine of <paramref name="kind"/>.</summary>
+    /// <summary>Whether module <paramref name="item"/> fits into a host of <paramref name="kind"/>.</summary>
     public static bool Fits(string? item, string kind) => TryGet(item, out var module) && module.Hosts.Contains(kind);
+
+    /// <summary>The modules a host of <paramref name="kind"/> takes, a socket each, in <see cref="All"/>'s order; none for most.</summary>
+    public static IEnumerable<ModuleSpec> For(string kind) => All.Where(m => m.Hosts.Contains(kind));
 }

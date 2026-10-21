@@ -123,6 +123,12 @@ public partial class FabricatorPanel : CanvasLayer
     /// </summary>
     public Func<Place, Control>? Lend { get; set; }
 
+    /// <summary>
+    /// An output taken into the inventory by the items feature, as a shift-click on its slot is, flying from where it is on
+    /// screen to where it lands (0075): the one path a stack shifted takes. Set by <c>Main</c>.
+    /// </summary>
+    public Action<Place, Rect2>? ShiftOut { get; set; }
+
     /// <summary>The station's drone badge (0062), the logistics feature's; null where drones have no work. Set by <c>Main</c>.</summary>
     public Func<int, Control?>? Served { get; set; }
 
@@ -461,7 +467,8 @@ public partial class FabricatorPanel : CanvasLayer
         {
             if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
             box.AcceptEvent();
-            Send(new Move(new Place(slot, pod), new Target(), stack.Count));
+            ShiftOut?.Invoke(new Place(slot, pod), box.GetGlobalRect());
+            Read();
         };
         return box;
     }

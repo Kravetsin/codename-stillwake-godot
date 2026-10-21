@@ -7,6 +7,9 @@ namespace Stillwake.Game.Shared;
 /// <summary>An effect on a tool's card: a chip with its name, and a line telling it, in its colours, "rrggbb".</summary>
 public sealed record CardEffect(string Name, string About, string Colour, string Ground);
 
+/// <summary>A module's technology (0086), by the id of its icon, and what it does in one short line: "×2 speed · ×2 power".</summary>
+public sealed record CardTech(string Tech, string About);
+
 /// <summary>A key cap and what it does: "LMB" and "craft".</summary>
 public sealed record CardKey(string Key, string Words);
 
@@ -94,6 +97,9 @@ public sealed record ItemCard(
     /// <summary>What the open fed station makes of it, on the line of <see cref="Here"/>; null for none.</summary>
     public CardOutput? Output { get; init; }
 
+    /// <summary>A module's technology and what it does, a strip at its card's bottom (0086); null for anything else.</summary>
+    public CardTech? Tech { get; init; }
+
     /// <summary>Its picture: its item's, or the empty battery's for one holding no charge.</summary>
     public string Picture { get; init; } = Item;
 
@@ -102,7 +108,7 @@ public sealed record ItemCard(
         && (Tiles == null ? other.Tiles == null : other.Tiles != null && Tiles.SequenceEqual(other.Tiles))
         && Effects.SequenceEqual(other.Effects) && Use == other.Use && Worn == other.Worn && Headline == other.Headline && Detail == other.Detail
         && Unknown == other.Unknown && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw
-        && Here == other.Here && Equals(Output, other.Output);
+        && Here == other.Here && Equals(Output, other.Output) && Tech == other.Tech;
 
     public override int GetHashCode()
     {
@@ -117,6 +123,7 @@ public sealed record ItemCard(
         hash.Add(Here);
         hash.Add(Output);
         hash.Add(Headline);
+        hash.Add(Tech);
         foreach (var effect in Effects) hash.Add(effect);
         foreach (var tile in Tiles ?? []) hash.Add(tile);
         return hash.ToHashCode();

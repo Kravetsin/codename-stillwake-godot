@@ -200,7 +200,7 @@ public partial class Main : Node2D, ITogether
             else if ((Opens ?? Near) is { } opened) _hero.Start = m => OpenDemo.StartOf(m, opened);
             AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
-            AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend, LendSockets = _items.Panel.LendSockets });
+            AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend, LendSockets = _items.Panel.LendSockets, ShiftOut = _items.Panel.ShiftOut });
             // The drone badge is the logistics feature's, put in the items' and crafting panels' headers where drones have work (0062).
             Features.Logistics.DroneWorld? Drones() => _session is Session s ? new(_m.Logistics, s.Client.InFlight) : null;
             void SendNow(Command c) => (_session as Session)?.Client.Send(c);

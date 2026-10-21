@@ -37,7 +37,8 @@ public static class ItemCards
         var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key"), T($"item.{item}.hint")) : null;
         if (!IsTool(item))
         {
-            var card = new ItemCard(item, name, kind, null, Spec.Modules.TryGet(item, out var module) ? [Fits(module)] : [], key, unknown);
+            var card = new ItemCard(item, name, kind, null, [], key, unknown);
+            if (Spec.Modules.TryGet(item, out var module)) card = card with { Tech = TechOf(module) };
             return Spec.Items.Get(item).Equip == null ? card : Worn(card);
         }
         if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), [], key, unknown);
@@ -54,18 +55,17 @@ public static class ItemCards
             key, unknown);
     }
 
-    /// <summary>The arc's violet-white on a deep violet: a module's chip, as its arcs look (0086).</summary>
+    /// <summary>The arc's violet-white on a deep violet: a module's socket and strip, as its arcs look (0086).</summary>
     public const string ModuleColour = "d9c8ff", ModuleGround = "221a3d";
 
     /// <summary>
-    /// A module's "fits" chip (0086): the machines it fits into, by name, and what it does there, its speed and power as
-    /// times: "×2 speed for ×2 power".
+    /// A module's strip at the bottom of its card (0086): its technology's icon and what it does, its speed and power as
+    /// times, "×2 speed · ×2 power"; never where it goes, for modules will be many and so will what takes them.
     /// </summary>
-    private static CardEffect Fits(Spec.ModuleSpec module)
+    private static CardTech TechOf(Spec.ModuleSpec module)
     {
-        string machines = string.Join(", ", module.Hosts.Select(h => T($"tool.{h}")));
         string Times(int added) => Number((1000 + added) / 1000.0);
-        return new CardEffect(T("card.fits"), T("card.fitsAbout", ("machines", machines), ("speed", Times(module.Speed)), ("power", Times(module.Draw))), ModuleColour, ModuleGround);
+        return new CardTech(module.Tech, T("card.techAbout", ("speed", Times(module.Speed)), ("power", Times(module.Draw))));
     }
 
     /// <summary>

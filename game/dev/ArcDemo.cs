@@ -12,9 +12,10 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// <c>-- --testbed --arc</c>: the hero by the testbed's electric smelter, smelting rock, an arc module in its bag, for
-/// recording the module socket and the arcs (0086). The script opens the smelter, points at its empty socket and at the
-/// module, its card showing where it fits; picks it up, the socket lighting; fits it, the smelter crackling violet-white
-/// as it works; then takes the rock out, and the smelter stands dark with the arc still fitted.
+/// recording the module socket and the arcs (0086). The script opens the smelter, points at its empty socket, its tech's
+/// icon in it, and at the module, marked with that icon, its card showing it; shifts it into the socket, flying there;
+/// shifts it back out into the bag and in again; the smelter crackles violet-white as it works; then the rock is taken out,
+/// and the smelter stands dark with the arc still fitted.
 /// </summary>
 public partial class ArcDemo : Control
 {
@@ -50,16 +51,19 @@ public partial class ArcDemo : Control
         At(0.5, () => _ui.OpenCrate.Set(Smelter()));
         At(1.2, () => _target = _view.Panel.SocketAt(Smelter()) ?? _target);
         At(2.6, () => Go(new Place(ArcSlot)));
-        At(4.2, Click);
-        At(4.4, () => _target = _view.Panel.SocketAt(Smelter()) ?? _target);
-        At(5.6, Click);
+        At(4.2, () => Click(shift: true));
+        At(5.0, () => _target = _view.Panel.SocketAt(Smelter()) ?? _target);
+        // Out into the first empty slot, the hotbar's first, and in again from there.
+        At(6.2, () => Click(shift: true));
+        At(6.8, () => Go(new Place(0)));
+        At(7.6, () => Click(shift: true));
         // Away from the panel, so the smelter shows crackling.
-        At(6.0, () => _target = new Vector2(1100, 300));
-        At(10.0, () => Go(new Place(0, Smelter())));
-        At(10.5, Click);
-        At(10.7, () => Go(new Place(RockSlot)));
-        At(11.2, Click);
-        At(11.6, () => _target = new Vector2(1100, 300));
+        At(8.0, () => _target = new Vector2(1100, 300));
+        At(12.0, () => Go(new Place(0, Smelter())));
+        At(12.5, () => Click());
+        At(12.7, () => Go(new Place(RockSlot)));
+        At(13.2, () => Click());
+        At(13.6, () => _target = new Vector2(1100, 300));
     }
 
     private int Smelter() => _m().Grid.MachinesOf("smelter")[0].Id;
@@ -87,9 +91,9 @@ public partial class ArcDemo : Control
         DrawPolyline([.. arrow, _pos], Colors.Black, 1);
     }
 
-    private void Click()
+    private void Click(bool shift = false)
     {
         foreach (bool pressed in new[] { true, false })
-            Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = pressed, Position = _pos, GlobalPosition = _pos });
+            Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = pressed, Position = _pos, GlobalPosition = _pos, ShiftPressed = shift });
     }
 }

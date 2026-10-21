@@ -11,7 +11,8 @@ namespace Stillwake.Game.Features.Items;
 /// tool amber and a worn item green (<see cref="SlotLooks"/>), edged near-white when chosen, faded while its
 /// stack is picked, its icon inset 4 px and its count in the corner; on the hotbar the key that chooses it in
 /// the top-left corner, and in the top-right its mark (<see cref="SlotMark"/>): a small flame or sprout while the open
-/// station smelts, burns or grows its item, else a violet "?" while its item is not analysed. Empty, it may show a faint
+/// station smelts, burns or grows its item, or a module's tech icon where the open machine takes it (0086), else a violet "?"
+/// while its item is not analysed. Empty, it may show a faint
 /// silhouette of what goes in it (<see cref="Ghost"/>).
 /// </summary>
 public partial class SlotBox : Panel
@@ -154,7 +155,7 @@ public partial class SlotBox : Panel
     public void Show(Stack? stack, bool chosen, bool picked, bool hovered, SlotMark mark, SlotGlow? glow = null)
     {
         _mark.Visible = stack != null && mark == SlotMark.Unknown;
-        _sign.Texture = stack != null ? ItemCardView.MarkPicture(mark) : null;
+        _sign.Texture = stack != null ? ItemCardView.MarkPicture(mark, stack.Item) : null;
         var box = glow switch
         {
             null => SlotLooks.Of(stack == null ? SlotTint.Plain : Slots.TintOf(stack.Item), hovered, chosen),
@@ -182,12 +183,14 @@ public partial class SlotBox : Panel
         _fill.Size = new Vector2(Mathf.Max(1, Mathf.Round((_size - 8) * Charges.Share(stack!))), 3);
     }
 
-    /// <summary>Whether a stack shifted here still flies to it (<see cref="SlotFlights"/>): its icon and count hidden till it lands.</summary>
+    /// <summary>Whether a stack shifted here still flies to it (<see cref="SlotFlights"/>): its icon, count and mark hidden till it lands.</summary>
     public void Awaiting(bool flying)
     {
         var shown = new Color(1, 1, 1, flying ? 0 : 1);
         _icon.SelfModulate = shown;
         _count.SelfModulate = shown;
+        _sign.SelfModulate = shown;
+        _mark.SelfModulate = shown;
     }
 
     private Tween? _shake;

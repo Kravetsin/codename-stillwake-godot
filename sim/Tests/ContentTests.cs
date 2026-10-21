@@ -884,6 +884,7 @@ public class ContentTests
             Assert.True(Crafts.TryGet(module.Item, out _), module.Item);
             Assert.DoesNotContain(module.Item, given);
             Assert.NotEmpty(module.Hosts);
+            Assert.False(string.IsNullOrEmpty(module.Tech), module.Item);
             foreach (var host in module.Hosts)
             {
                 Assert.True(Stations.TryGet(host, out _) && Machines.Get(host).Draws != null, $"{module.Item} fits {host}");

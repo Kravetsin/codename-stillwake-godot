@@ -29,6 +29,9 @@ public class ClickTests
 
     private static Move MoveOf(Place src, Target dst, int count) => new(src, dst, count);
 
+    /// <summary>A shifted stack's flight from <paramref name="from"/> to wherever it lands.</summary>
+    private static Flight Flown(Place from) => new(new SlotSpot(from));
+
     [Fact]
     public void PickAWholeStackWithTheLeftButtonAndPutItOnTheNextSlot()
     {
@@ -103,7 +106,7 @@ public class ClickTests
     [Fact]
     public void SendAStackToTheOtherSideOfAnOpenCrateWithShiftAndNowhereWithoutOne()
     {
-        Assert.Equal(new Clicked(null, MoveOf(Inv(1), new Target(Crate: 7), 6)), Clicks.On(null, Click(Inv(1), Scrap(6), shift: true)));
+        Assert.Equal(new Clicked(null, MoveOf(Inv(1), new Target(Crate: 7), 6), Flight: Flown(Inv(1))), Clicks.On(null, Click(Inv(1), Scrap(6), shift: true)));
         Assert.Equal(MoveOf(Box(1), new Target(), 6), Clicks.On(null, Click(Box(1), Scrap(6), shift: true)).Command);
         // Nothing shifted from an empty slot: a stack picked stays picked.
         var held = new Picked(Inv(9), 1);
@@ -115,7 +118,7 @@ public class ClickTests
     {
         var inventory = Holding((Inv(0), Scrap(4)), (Inv(1), new Stack("iron", 9)), (Inv(12), new Stack("planks", 7)));
         Assert.Equal(
-            new Clicked(null, MoveOf(Inv(12), Inv(2), 7)),
+            new Clicked(null, MoveOf(Inv(12), Inv(2), 7), Flight: Flown(Inv(12))),
             Clicks.On(null, Click(Inv(12), new Stack("planks", 7), shift: true, crate: null, inventory: inventory)));
     }
 
@@ -179,7 +182,7 @@ public class ClickTests
     {
         var jetpack = new Stack("jetpack", 1);
         Assert.Equal(
-            new Clicked(null, MoveOf(Inv(3), Back, 1)),
+            new Clicked(null, MoveOf(Inv(3), Back, 1), Flight: Flown(Inv(3))),
             Clicks.On(null, Click(Inv(3), jetpack, shift: true, crate: null, inventory: Holding((Inv(3), jetpack)))));
     }
 
@@ -210,7 +213,7 @@ public class ClickTests
         var jetpack = new Stack("jetpack", 1);
         var inventory = Holding((Back, jetpack), (Inv(0), Scrap(4)));
         Assert.Equal(
-            new Clicked(null, MoveOf(Back, Inv(1), 1)),
+            new Clicked(null, MoveOf(Back, Inv(1), 1), Flight: Flown(Back)),
             Clicks.On(null, Click(Back, jetpack, shift: true, crate: null, inventory: inventory)));
         // With every own slot full it stays worn, and a stack picked stays picked.
         var full = Holding([.. Enumerable.Range(0, Spec.Inventory.Slots).Select(i => (Inv(i), Scrap(1))), (Back, jetpack)]);

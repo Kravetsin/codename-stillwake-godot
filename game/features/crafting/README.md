@@ -62,7 +62,8 @@ caves give (0080), drawn as ASCII in the icons' outlined palette till the user p
   a known recipe queues it **from the inputs** (shift ×5), whatever is carried. A tool's recipe (the fire axe) is tinted amber, a worn item's (the jetpack, the battery) green,
   each edged in its colour, full under the pointer, as their slots are everywhere (`Shared.SlotLooks`); a silhouette is not. Every slot is `Ui.Slot` wide, built again when the slot size changes.
 - No status line: the screen says whether it works, the queue's slot filling and full says the rest,
-  and the outputs show what can be taken.
+  and the outputs show what can be taken: a click takes the stack into the inventory through the items feature, as a
+  shift-click on its slot, flying there (`ShiftOut`, wired by `Main`; every shifted stack flies, 0075).
 - On the right, inputs, queue, outputs (the logistics mockup). "Inputs", at a station that has them: its input
   slots, drawn and worked by the items feature (`InventoryPanel.Lend`) as any machine's, so a stack goes in and out
   by its clicks, the hand, drags and shift-clicks; laid out again only for another station or slot size. A
@@ -123,7 +124,8 @@ caves give (0080), drawn as ASCII in the icons' outlined palette till the user p
   bowed out from it, every 70–260 ms, now and then a burst of two or three or a longer one leaping from a top corner
   down a side, and the room round it is lit violet-white, flickering (a `Glow` and a bloom; `ArcCrackle`). One look for
   every station, no art of its own. Idle, without power or without the arc: no arcs, no light. `-- --testbed --arc`
-  plays it: the smelter opened, its empty socket and the module's card pointed at, the module fitted, the smelter
+  plays it: the smelter opened, its empty socket and the module's card pointed at, the module shifted in, out and in
+  again, flying each way, the smelter
   crackling, then its rock taken out and the smelter dark.
 - A queued station's module socket sits at its inputs' right end, under the word "Module" (`LendSockets`, the items
   feature's), so the panel is no taller; its bolt says what it draws with its modules (`Draw`, set by `Main`).
