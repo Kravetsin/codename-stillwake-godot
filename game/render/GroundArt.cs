@@ -26,7 +26,7 @@ public static class GroundArt
 
     /// <summary>
     /// The edges of a cell of <paramref name="material"/> on its sides <paramref name="open"/> (up 1, right 2, down 4, left 8),
-    /// catching the light (0085): a dark outline, inside it two lit lines on top and one on the other sides; transparent elsewhere.
+    /// catching the light (0088): a dark outline, inside it two lit lines on top and one on the other sides; transparent elsewhere.
     /// </summary>
     public static Image Edge(string material, int open)
     {
@@ -48,7 +48,7 @@ public static class GroundArt
 
     /// <summary>
     /// The lines along the diagonal of a <paramref name="material"/> wall cut to <paramref name="shape"/>, from the diagonal in:
-    /// its outline, then a floor slope's two lit lines as a top's (0085), a ceiling slope's one.
+    /// its outline, then a floor slope's two lit lines as a top's (0088), a ceiling slope's one.
     /// </summary>
     public static Color[] Diagonal(string material, int shape)
     {
@@ -59,7 +59,7 @@ public static class GroundArt
     }
 
     /// <summary>
-    /// A natural back wall's <paramref name="picture"/> receding behind its ground (0085): paler, cooler and darker, by
+    /// A natural back wall's <paramref name="picture"/> receding behind its ground (0088): paler, cooler and darker, by
     /// <see cref="GroundLooks.BackPale"/>, <see cref="GroundLooks.BackCool"/> and <see cref="GroundLooks.BackDim"/>.
     /// </summary>
     public static Image Recede(Image picture)

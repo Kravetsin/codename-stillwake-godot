@@ -1,4 +1,4 @@
-# 0085 — Back walls recede, the ground's edges catch the light
+# 0088 — Back walls recede, the ground's edges catch the light
 
 - Status: accepted; amends [0082](0082-the-grounds-chipped-look-details-and-living-edge.md)'s edges
 - Date: 2026-10-21

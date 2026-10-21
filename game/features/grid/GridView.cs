@@ -53,7 +53,7 @@ public partial class GridView : Node2D
         _groundAt = GroundAt;
         // Walls and doors take the share of light a wall keeps of what reaches its face; the rest all of it.
         _back = Layer(Layers.BackWalls);
-        // The ground's soft shadow on natural back walls, multiplying them as lit (0085).
+        // The ground's soft shadow on natural back walls, multiplying them as lit (0088).
         _shade = new TileMapLayer
         {
             TileSet = _shadows.Set,
@@ -408,7 +408,7 @@ public partial class GridView : Node2D
     private readonly int[] _around = new int[9];
 
     /// <summary>
-    /// The shadow the walls round <paramref name="cell"/> cast on its natural back wall (<see cref="GroundShadow"/>, 0085), if any;
+    /// The shadow the walls round <paramref name="cell"/> cast on its natural back wall (<see cref="GroundShadow"/>, 0088), if any;
     /// the old one erased unless <paramref name="blank"/>. Only the ground's back walls take one (see the ADR for the hull's).
     /// </summary>
     private void DrawShade(int cell, bool blank)

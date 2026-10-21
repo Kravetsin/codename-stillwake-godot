@@ -23,7 +23,7 @@ public static class GroundLooks
     public const int Chips = 5, BreakDust = 18, BreakChips = 8;
 
     /// <summary>
-    /// How a natural back wall recedes behind its ground (0085), worked on its picture at load: paled toward its grey by
+    /// How a natural back wall recedes behind its ground (0088), worked on its picture at load: paled toward its grey by
     /// <see cref="BackPale"/>, cooled by <see cref="BackCool"/> of <see cref="CoolShift"/> (each colour's change, cooled fully),
     /// then darkened to <see cref="BackDim"/>.
     /// </summary>
@@ -32,7 +32,7 @@ public static class GroundLooks
     public static readonly (double R, double G, double B) CoolShift = (-0.14, -0.05, 0.16);
 
     /// <summary>
-    /// The soft shadow the ground casts on a natural back wall along its open edges (0085): the ground's pixels blurred twice
+    /// The soft shadow the ground casts on a natural back wall along its open edges (0088): the ground's pixels blurred twice
     /// by a box <see cref="ShadowReach"/> pixels each way (about twice that in all), times <see cref="ShadowGain"/>, in
     /// <see cref="ShadowSteps"/> tones, the darkest taking <see cref="ShadowDepth"/> of the back wall's light away.
     /// </summary>
@@ -41,7 +41,7 @@ public static class GroundLooks
     public const double ShadowGain = 2.1, ShadowDepth = 0.5;
 
     /// <summary>
-    /// The lit edge of the ground where it meets the open (0085), its lit colour times these: the line under a top's outline,
+    /// The lit edge of the ground where it meets the open (0088), its lit colour times these: the line under a top's outline,
     /// the one under that, and the line inside the outline on its other sides. A floor slope's diagonal is lit as a top.
     /// </summary>
     public const double RimTop = 1.28, RimUnder = 1.02, RimSide = 0.96;

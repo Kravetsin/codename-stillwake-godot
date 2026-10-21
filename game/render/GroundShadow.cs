@@ -4,7 +4,7 @@ using Stillwake.Sim.Grid;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// The soft shadow walls cast on a natural back wall along their open edges (0085), a rule of drawing: the walls' pixels round a
+/// The soft shadow walls cast on a natural back wall along their open edges (0088), a rule of drawing: the walls' pixels round a
 /// cell blurred twice by a box (<see cref="GroundLooks.ShadowReach"/>), strengthened (<see cref="GroundLooks.ShadowGain"/>) and
 /// stepped into <see cref="GroundLooks.ShadowSteps"/> tones. It reaches less than a cell, so a cell's shadow hangs on the walls of
 /// its own cell and its eight neighbours only. Plain C#, so it is tested.

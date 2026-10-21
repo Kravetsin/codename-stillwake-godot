@@ -5,7 +5,7 @@ using Godot;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// The shadows walls cast on natural back walls (<see cref="GroundShadow"/>, 0085) as tiles of one <see cref="TileSet"/>, made the
+/// The shadows walls cast on natural back walls (<see cref="GroundShadow"/>, 0088) as tiles of one <see cref="TileSet"/>, made the
 /// first time a cell's walls round it ask for one and kept: a sprint over a planet's surface made 166, a deep cave 102. Its slots are made at start, white, so a
 /// shadow made later only changes the atlas's pixels, never the tile set, which would make every layer drawing it rebuild. A tile
 /// multiplies what is under it, so it is drawn just over the back walls and darkens them by their light.
@@ -76,7 +76,7 @@ public sealed class ShadowTiles
         if (_byLook.TryGetValue(look, out var same)) return same;
         if (_made == Across * Across)
         {
-            // Accepted (0085): past this many a cell shows none; a planet was seen to need a few hundred.
+            // Accepted (0088): past this many a cell shows none; a planet was seen to need a few hundred.
             if (!_warned) GD.PushWarning($"ShadowTiles: all {Across * Across} shadows taken, new ones not drawn");
             _warned = true;
             return null;

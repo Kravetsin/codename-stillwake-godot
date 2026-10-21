@@ -17,7 +17,7 @@ namespace Stillwake.Game.Dev;
 /// hero's hands, aimed by <see cref="GroundHands"/> as a mouse would; <c>poses</c> aims the drill round the hero eight ways near
 /// and far; <c>mouth</c> stands it on the rim of the nearest pit, chasm or cave mouth, to see the sky down it; <c>acacia</c> beside the
 /// acacia nearest the spawn, to see one close (0079); <c>pit</c> digs a pit under the spawn, a block left standing on its floor, to
-/// tell the ground from its back wall (0085); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
+/// tell the ground from its back wall (0088); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
 /// its longest run of ground with no pit, for <see cref="Features.Crew.HeroAutopilot.Sprint"/> to measure; <c>band0</c>…<c>band3</c> in a
 /// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080). An
 /// axe hit every <see cref="Pace"/> ticks,
@@ -88,7 +88,7 @@ public sealed class GroundDemo(string mode)
                 : mode == "acacia" ? BesideAcacia(m) ?? m.Crew.Spawn : mode == "slope" ? BesideSlopes(m, _cells) ?? m.Crew.Spawn : m.Crew.Spawn;
             // The shaft under the feet; the tunnel at head height the way the hero faces, right.
             for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("slope" or "acacia" or "sprint" or "pit"); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
-            // pit: a pit under the feet, a block of its ground left standing on its floor (0085).
+            // pit: a pit under the feet, a block of its ground left standing on its floor (0088).
             for (int dy = 1; dy <= PitDepth && mode == "pit"; dy++)
                 for (int dx = -PitSide; dx <= PitSide; dx++)
                     if ((dx, dy) != (PitBlock, PitDepth)) _cells.Add(at + dy * w + dx);

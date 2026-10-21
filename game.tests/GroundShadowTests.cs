@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The soft shadow walls cast on a natural back wall (0085): three tones along their open edges, none under the walls.</summary>
+/// <summary>The soft shadow walls cast on a natural back wall (0088): three tones along their open edges, none under the walls.</summary>
 public class GroundShadowTests
 {
     private const int Cell = 16, Open = -1, Whole = Shape.None;
