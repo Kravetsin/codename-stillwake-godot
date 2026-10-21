@@ -388,14 +388,13 @@ public static class ItemCardView
     private static Control UnknownStrip() => Strip(Style.Violet400, Text(T("card.notAnalysed"), UnknownText, HorizontalAlignment.Left));
 
     /// <summary>
-    /// The picture of a slot's machine mark for <paramref name="item"/>: a flame for what a fire smelts or burns, a sprout
-    /// for what is grown, a module's tech icon where it fits (0086); none for the rest.
+    /// The picture of a slot's machine mark: a flame for what a fire smelts or burns, a sprout for what is grown; none for
+    /// the rest, a module that fits among them, its tech icon drawn live (<see cref="TechIcon"/>, 0086).
     /// </summary>
-    public static Texture2D? MarkPicture(SlotMark mark, string item) => mark switch
+    public static Texture2D? MarkPicture(SlotMark mark) => mark switch
     {
         SlotMark.Smelts or SlotMark.Burns => AsciiArt.Flame(),
         SlotMark.Grows => AsciiArt.Sprout(),
-        SlotMark.Fits when Content.Modules.TryGet(item, out var module) => AsciiArt.Tech(module.Tech),
         _ => null,
     };
 
@@ -403,7 +402,11 @@ public static class ItemCardView
     private static Control TechStrip(CardTech tech)
     {
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
-        row.AddChild(Picture(AsciiArt.Tech(tech.Tech), 14));
+        row.AddChild(new TechIcon(tech.Tech, 12, TechShow.Lit)
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        });
         row.AddChild(Text(tech.About, TechText, HorizontalAlignment.Left));
         return Strip(new Color(ItemCards.ModuleColour), row);
     }
@@ -416,7 +419,7 @@ public static class ItemCardView
     {
         var colour = here == SlotMark.Grows ? Style.Green400 : Style.Orange400;
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
-        row.AddChild(Picture(MarkPicture(here, "")!, 12));
+        row.AddChild(Picture(MarkPicture(here)!, 12));
         string key = here switch { SlotMark.Grows => "card.growsHere", SlotMark.Burns => "card.burnsHere", _ => "card.smeltsHere" };
         row.AddChild(Text(T(key), here == SlotMark.Grows ? GrowText : FireText));
         if (output != null)

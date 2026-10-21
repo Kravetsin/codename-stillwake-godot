@@ -6,9 +6,9 @@ using Stillwake.Game.Shared;
 namespace Stillwake.Game.Features.Items;
 
 /// <summary>
-/// A machine's socket for one module (0086), a slot wide: empty, the icon of the technology it takes, faint, in a dark slot
-/// with a violet edge; fitted, the module's picture in a slot lit violet-white. While a module that would go in is carried,
-/// it glows. A press on it fits what is carried, or begins taking the module out.
+/// A machine's socket for one module (0086), a slot wide: empty, the ghost of the icon of the technology it takes, in a dark
+/// slot with a violet edge; fitted, the module's picture in a slot lit violet-white. While a module that would go in is
+/// carried, it glows, the icon lit and crackling. A press on it fits what is carried, or begins taking the module out.
 /// </summary>
 public partial class ModuleSocket : Panel
 {
@@ -17,8 +17,6 @@ public partial class ModuleSocket : Panel
     private static readonly StyleBoxFlat Fitted = Style.Box(Deep, Violet with { A = 0.85f });
     private static readonly StyleBoxFlat Hover = Style.Box(Deep, Violet);
     private static readonly StyleBoxFlat Takes = Glowing();
-    /// <summary>How much of its colour the tech icon shows in an empty socket; and while a module that goes in is carried.</summary>
-    private const float GhostAlpha = 0.45f, TakesAlpha = 0.9f;
 
     /// <summary>The machine it is a socket of, and the module it takes.</summary>
     public int Machine { get; }
@@ -34,28 +32,20 @@ public partial class ModuleSocket : Panel
         TextureFilter = TextureFilterEnum.Nearest,
         MouseFilter = MouseFilterEnum.Ignore,
     };
-    /// <summary>The tech's icon, at the largest whole multiple of its pixels inside the inset, in the middle: sharp.</summary>
-    private readonly TextureRect _tech = new()
-    {
-        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-        StretchMode = TextureRect.StretchModeEnum.Scale,
-        TextureFilter = TextureFilterEnum.Nearest,
-        MouseFilter = MouseFilterEnum.Ignore,
-    };
+    /// <summary>The tech's icon, filling the inset: its ghost, or lit and crackling while what is carried goes in.</summary>
+    private readonly TechIcon _tech;
+    private readonly string _techId;
     private (bool Fitted, bool Takes, bool Hovered) _shown;
     private bool _awaiting;
 
     public ModuleSocket(int machine, Content.ModuleSpec module, int size)
     {
-        (Machine, Module) = (machine, module.Item);
+        (Machine, Module, _techId) = (machine, module.Item, module.Tech);
         CustomMinimumSize = new Vector2(size, size);
         AddChild(_icon);
         _icon.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect, LayoutPresetMode.Minsize, Slots.Inset);
         _icon.Texture = ItemIcons.Icon(Module);
-        int side = (size - 2 * Slots.Inset) / TechLooks.Side * TechLooks.Side;
-        _tech.Texture = AsciiArt.Tech(module.Tech);
-        _tech.Size = new Vector2(side, side);
-        _tech.Position = Vector2.One * ((size - side) / 2);
+        _tech = new TechIcon(_techId, size - 2 * Slots.Inset, TechShow.Ghost) { Position = Vector2.One * Slots.Inset };
         AddChild(_tech);
         GuiInput += OnGuiInput;
         Show(false, false, false);
@@ -69,7 +59,7 @@ public partial class ModuleSocket : Panel
         AddThemeStyleboxOverride("panel", takes ? Takes : hovered ? Hover : full ? Fitted : Empty);
         _icon.Visible = full;
         _tech.Visible = !full;
-        _tech.Modulate = Colors.White with { A = takes ? TakesAlpha : GhostAlpha };
+        _tech.Set(_techId, takes ? TechShow.Hot : TechShow.Ghost);
     }
 
     /// <summary>Whether a module shifted here still flies to it: shown empty till it lands.</summary>

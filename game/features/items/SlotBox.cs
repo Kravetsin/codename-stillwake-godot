@@ -83,6 +83,8 @@ public partial class SlotBox : Panel
     private readonly Label _mark;
     /// <summary>The open station's mark, a flame or a sprout, where the "?" sits and before it.</summary>
     private readonly TextureRect _sign;
+    /// <summary>A module's tech icon where the open machine takes it, in the same corner, crackling; made when first shown.</summary>
+    private TechIcon? _fits;
     /// <summary>A battery's charge, a thin bar along the icon's foot (0053): no numbers.</summary>
     private readonly ColorRect _track = new() { Color = new Color("0b1220"), MouseFilter = MouseFilterEnum.Ignore, Visible = false };
     private readonly ColorRect _fill = new() { MouseFilter = MouseFilterEnum.Ignore };
@@ -134,12 +136,33 @@ public partial class SlotBox : Panel
     private static TextureRect Sign(int size) => new()
     {
         Position = new Vector2(size - 16, 2),
-        Size = new Vector2(14, 14),
+        Size = new Vector2(MarkSide, MarkSide),
         ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
         StretchMode = TextureRect.StretchModeEnum.Scale,
         TextureFilter = TextureFilterEnum.Nearest,
         MouseFilter = MouseFilterEnum.Ignore,
     };
+
+    /// <summary>A corner mark's side, pixels.</summary>
+    private const int MarkSide = 14;
+
+    /// <summary>Technology <paramref name="tech"/>'s icon as the corner's mark, where the flame sits; none for null.</summary>
+    private void ShowFits(string? tech)
+    {
+        if (tech == null)
+        {
+            if (_fits != null) _fits.Visible = false;
+            return;
+        }
+        if (_fits == null)
+        {
+            _fits = new TechIcon(tech, MarkSide, TechShow.Mark) { Position = new Vector2(_size - 16, 2) };
+            AddChild(_fits);
+            MoveChild(_fits, _sign.GetIndex() + 1);
+        }
+        _fits.Set(tech, TechShow.Mark);
+        _fits.Visible = true;
+    }
 
     /// <summary>A slot lit green with a soft glow around and inside its edge: it would wear what is carried.</summary>
     private static StyleBoxFlat Lit()
@@ -155,7 +178,8 @@ public partial class SlotBox : Panel
     public void Show(Stack? stack, bool chosen, bool picked, bool hovered, SlotMark mark, SlotGlow? glow = null)
     {
         _mark.Visible = stack != null && mark == SlotMark.Unknown;
-        _sign.Texture = stack != null ? ItemCardView.MarkPicture(mark, stack.Item) : null;
+        _sign.Texture = stack != null ? ItemCardView.MarkPicture(mark) : null;
+        ShowFits(stack != null && mark == SlotMark.Fits && Content.Modules.TryGet(stack.Item, out var module) ? module.Tech : null);
         var box = glow switch
         {
             null => SlotLooks.Of(stack == null ? SlotTint.Plain : Slots.TintOf(stack.Item), hovered, chosen),
@@ -190,6 +214,7 @@ public partial class SlotBox : Panel
         _icon.SelfModulate = shown;
         _count.SelfModulate = shown;
         _sign.SelfModulate = shown;
+        if (_fits != null) _fits.SelfModulate = shown;
         _mark.SelfModulate = shown;
     }
 

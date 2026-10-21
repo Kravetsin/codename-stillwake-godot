@@ -69,14 +69,13 @@ public class SlotMarksTests
     }
 
     [Fact]
-    public void EveryModulesTechHasASharpIconOfItsOwn()
+    public void EveryModulesTechHasAGlyphOfItsOwnInsideTheSharedFrame()
     {
         foreach (var module in Spec.Modules.All)
         {
             var look = TechLooks.Of(module.Tech);
-            Assert.Equal(TechLooks.Side, look.Rows.Count);
-            Assert.All(look.Rows, row => Assert.Equal(TechLooks.Side, row.Length));
-            Assert.All(look.Rows.SelectMany(r => r), c => Assert.True(c == '.' || look.Palette.ContainsKey(c), $"{module.Tech}: {c}"));
+            Assert.NotEmpty(look.Glyph);
+            Assert.All(look.Glyph.SelectMany(s => s.Points), p => Assert.True(p.U is > 0.1f and < 0.9f && p.V is > 0.03f and < 0.97f, $"{module.Tech}: {p}"));
         }
     }
 }

@@ -54,15 +54,16 @@ time (0049).
   modules to come. Speed and share are floored separately: a smelter with the arc on a panel's 5 gets 625 thousandths,
   2500 a tick, still faster than 2000 without it.
 - **Seen** (placeholders; the user's mockup rule stands for anything larger): the machine's panel shows a socket per
-  module it takes, its tech's icon faint while empty, the module lit violet once fitted, glowing violet-white while a
-  module that would go in is carried. A module is dragged or clicked onto it, shift-clicked from the bag, and dragged,
+  module it takes, its tech's icon a faint ghost while empty, the module lit violet once fitted, glowing violet-white,
+  the icon crackling, while a module that would go in is carried. A module is dragged or clicked onto it, shift-clicked from the bag, and dragged,
   clicked or shift-clicked out of it. **A shift flies it, as every shift-click that sends a stack does** (0075): into the
   socket, or out into the first empty slot, the hotbar first; the client decides each shift's flight in one place from
   the command it sends, and a test shift-clicks every item in every panel and every socket and fails on one that does
   not fly. A station with the arc fitted crackles while it works: crisp violet-white arcs along its outline, now and
   then a burst or one leaping down a side, the room lit violet-white, flickering (anime-line arcs of the effects
-  toolkit's `Bolts`, now tinted); idle, nothing. The module's picture and the arc's icon (a small violet-white zigzag)
-  are placeholders, the icon for the user to pick on a page.
+  toolkit's `Bolts`, now tinted); idle, nothing. The module's picture is a placeholder. The tech icon is the user's pick
+  on the arc icon page, variant C: a thin hexagon shared by every technology, its glyph and colours its own (the arc's
+  a violet-white bolt), drawn in thin lines with a glow, the glyph crackling on twos, twelve fresh jags a second.
 - **Dev:** the testbed's supply crate holds an arc module for each station it fits; `-- --testbed --arc` scripts a fit
   into the smelter for recordings.
 

@@ -47,13 +47,6 @@ public static class AsciiArt
         ["KK...KK", "KgK.KgK", "KggKggK", ".KgGgK.", "..KGK..", "..KGK..", "..KKK.."],
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['g'] = 0x4ade80, ['G'] = 0x22c55e });
 
-    /// <summary>A module technology's icon (<see cref="TechLooks"/>, 0086): what a socket takes, and what fits it.</summary>
-    public static ImageTexture Tech(string tech)
-    {
-        var look = TechLooks.Of(tech);
-        return Texture($"tech:{tech}", look.Rows, look.Palette);
-    }
-
     /// <summary>A cable's plug, in a socket it is plugged into: the cable card's picture too.</summary>
     public static ImageTexture Plug() => Texture("power-plug",
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],
