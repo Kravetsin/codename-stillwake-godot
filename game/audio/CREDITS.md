@@ -93,7 +93,6 @@ is synthesised as the machines' loops are, its second period kept.
 | `crew/step-soil-2.wav` | Freesound, "Footsteps_Dirt_Single_06.wav" (0.3 s from 0.037 s), https://freesound.org/people/BenDrain/sounds/487863/ | BenDrain | CC0 |
 | `crew/step-soil-3.wav` | Freesound, "Footsteps_Dirt_Single_07.wav" (0.3 s from 0.011 s), https://freesound.org/people/BenDrain/sounds/487864/ | BenDrain | CC0 |
 | `crew/step-soil-4.wav` | Freesound, "Footsteps_Dirt_Single_04.wav" (0.3 s), https://freesound.org/people/BenDrain/sounds/487869/ | BenDrain | CC0 |
-| `crew/step-soil-5.wav` | Freesound, "Footsteps_Dirt_Single_01.wav" (0.3 s), https://freesound.org/people/BenDrain/sounds/487866/ | BenDrain | CC0 |
 | `crew/step-stone-1.wav` | Freesound, "Hiking Boot Footsteps on Stone" (0.3 s from 0.095 s), https://freesound.org/people/Fission9/sounds/521590/ | Fission9 | CC0 |
 | `crew/step-stone-2.wav` | Freesound, "Hiking Boot Footsteps on Stone" (0.3 s from 0.692 s), https://freesound.org/people/Fission9/sounds/521590/ | Fission9 | CC0 |
 | `crew/step-stone-3.wav` | Freesound, "Hiking Boot Footsteps on Stone" (0.3 s from 1.255 s), https://freesound.org/people/Fission9/sounds/521590/ | Fission9 | CC0 |
