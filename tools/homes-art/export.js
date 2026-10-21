@@ -1,7 +1,7 @@
 // Exports the arc makers' homes (ADR 0091) from the concept page's own drawing code (decor.js, unchanged but for its require and exports):
 // each piece's picture, what of it glows, its dark look where its lamp may be out, its lights and its live emitters, into
-// game/art/homes and game/Content/HomesArt.cs; the plaster's wall and back wall into game/art/planet; the cloth's and the arc
-// lamp's icons; the music box's placeholder tine. Change the drawing code and run `node tools/homes-art/export.js`; never edit
+// game/art/homes and game/Content/HomesArt.cs; the plaster's wall and back wall into game/art/planet; the arc lamp aboard, from
+// its icon; the music box's placeholder tine. Change the drawing code and run `node tools/homes-art/export.js`; never edit
 // what it writes.
 const fs = require('fs'), path = require('path');
 const P = require('./png');
@@ -190,51 +190,36 @@ P.encode(sheet((x, y) => PLASTER(x, y)), path.join(PLANET, 'wall_plaster.png'));
 P.encode(sheet(() => null), path.join(PLANET, 'top_plaster.png'));
 P.encode(sheet(() => null), path.join(PLANET, 'detail_plaster.png'));
 
-// ---- the new items' icons, 16 x 16, drawn with the page's own palette and primitives ----
-function icon(file, paint) {
-  const a = new Pic(16, 16, 0); paint(a);
-  const img = P.create(16, 16);
-  for (let i = 0; i < 256; i++) if (a.op[i]) { const o = i * 4; img.data[o] = byte(a.alb[i * 3]); img.data[o + 1] = byte(a.alb[i * 3 + 1]); img.data[o + 2] = byte(a.alb[i * 3 + 2]); img.data[o + 3] = 255; }
-  P.encode(img, path.join(GAME, 'art', 'items', file));
-}
+// ---- the arc lamp hung aboard (0091): the lantern of its icon (game/art/items/arcLamp.png, picked on the planet icons page),
+// hung by its handle from the top of its cell. Its glass is what shines. Dark, the body the grid draws whatever its power
+// (machine_arcLamp), the glass cold; alight, the icon's own glass (_lit) and its glow with a margin round the cell (_glow), which
+// the light feature lays over the body while it shines (ArcLampLooks). The cloth's and the lamp's icons are picked, not drawn. ----
 const A = D.PAL.alloy, ARC = D.ARC;
-icon('arcLamp.png', (p) => {
-  // The ceiling lamp's cap over its globe, lit: a whole lamp of theirs.
-  D.R(p, 7, 1, 2, 2, A[0]); D.abox(p, 4, 3, 8, 3);
-  for (let y = -4; y <= 4; y++) for (let x = -4; x <= 4; x++) {
-    const d = Math.sqrt(x * x + y * y); if (d > 4.3) continue;
-    p.set(8 + x, 10 + y, d > 3.4 ? ARC.lo : d < 1.5 ? ARC.core : d < 2.8 ? ARC.hi : ARC.mid);
-  }
-});
-// The arc lamp hung aboard (0091): the ceiling lamp's mount from the top of its cell, its globe under it. Dark, the body the grid
-// draws whatever its power (machine_arcLamp); alight, the homes' own globe: what of it differs from the body (_lit) and its glow
-// with a margin round the cell (_glow), which the light feature lays over the body while it shines (ArcLampLooks).
 (function machine() {
+  const icon = P.decode(path.join(GAME, 'art', 'items', 'arcLamp.png'));
+  const key = (c) => c.map(byte).join();
+  // The icon's arc blues, each with how strongly it glows (the homes' globe's) and the cold glass it is while the lamp is off.
+  const GLASS = new Map([[ARC.lo, 0.55, '#141e2a'], [ARC.mid, 0.85, '#26384a'], [ARC.hi, 0.85, '#3a5468'], [ARC.core, 1.1, '#5a7890']]
+    .map(([c, k, off]) => [key(c), { k, off: hex(off) }]));
+  let glass = 0;
   const lamp = { w: 16, h: 16, draw(p, x, y, o) {
-    D.R(p, x + 7, y, 2, 2, A[0]); p.set(x + 7, y, A[4]); D.abox(p, x + 3, y + 2, 10, 3);
-    if (o.lit) D.globe(p, x + 8, y + 10, 4, true);
-    else {
-      for (let j = -4; j <= 4; j++) for (let i = -4; i <= 4; i++) {
-        const d = Math.sqrt(i * i + j * j); if (d > 4.3) continue;
-        p.set(x + 8 + i, y + 10 + j, d > 3.4 ? A[0] : (i < 0 && j < 0 && d < 2.6) ? hex('#3a5468') : hex('#26384a'));
-      }
-      p.set(x + 6, y + 8, hex('#9fc4e0')); p.set(x + 8, y + 9, A[4]); p.set(x + 8, y + 11, A[4]);
+    for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
+      const at = (j * 16 + i) * 4; if (!icon.data[at + 3]) continue;
+      const c = [0, 1, 2].map((k) => icon.data[at + k] / 255), g = GLASS.get(key(c));
+      if (!g) p.set(x + i, y + j, c);
+      else if (o.lit) { p.glow(x + i, y + j, c, g.k); glass++; }
+      else p.set(x + i, y + j, g.off);
     }
-    p.set(x + 8, y + 15, A[0]);
+    // Off, a glint on its glass where the room's light catches it.
+    if (!o.lit) p.set(x + 6, y + 5, hex('#9fc4e0'));
   } };
   const dark = render('arcLampAboard', { lit: false }, lamp), lit = render('arcLampAboard', { lit: true }, lamp), cell = { x0: M, y0: M, x1: M + 15, y1: M + 15 };
+  if (!glass) throw new Error('the arc lamp icon has no arc blue glass to light');
   write(dark.rgba, dark.W, cell, path.join(GAME, 'art', 'machine_arcLamp.png'));
   const changed = lit.rgba.map((v, i) => (lit.rgba.slice(i - (i % 4), i - (i % 4) + 4).some((c, k) => c !== dark.rgba[i - (i % 4) + k]) ? v : 0));
   write(changed, lit.W, cell, path.join(GAME, 'art', 'machine_arcLamp_lit.png'));
   write(lit.glow, lit.W, { x0: 0, y0: 0, x1: lit.W - 1, y1: lit.H - 1 }, path.join(GAME, 'art', 'machine_arcLamp_glow.png'));
 })();
-icon('cloth.png', (p) => {
-  // A folded length of the makers' red cloth, its ochre band.
-  const R = D.PAL.red, O = D.PAL.ochre;
-  D.box(p, 2, 4, 12, 4, R, { round: true }); D.box(p, 1, 7, 14, 5, R, { round: true });
-  for (let x = 2; x < 14; x++) p.set(x, 9, O[3]);
-  p.set(3, 5, R[4]); p.set(2, 8, R[4]);
-});
 
 // ---- placeholder one-shots till the user picks (Sound.cs): synthesised, normalised to -3 dBFS peak ----
 function wav(name, secs, sample) {
@@ -256,4 +241,4 @@ wav('music-box', 0.9, (t) => Math.min(1, t / 0.002) * TINE.reduce((v, [m, a, d])
 let seed = 7; const rnd = () => ((seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 4294967296);
 let burst = 0, prev = 0;
 wav('zap', 0.28, (t) => { if (rnd() < 0.004) burst = 0.6 + rnd() * 0.4; burst *= 0.9985; const white = rnd() * 2 - 1; prev = prev * 0.35 + white * 0.65; return (prev * burst + white * 0.08) * Math.exp(-9 * t) * Math.min(1, t / 0.001); });
-console.log('plaster, icons, tine');
+console.log('plaster, arc lamp, tine');
