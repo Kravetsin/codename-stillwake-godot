@@ -44,11 +44,30 @@ public class HomesLooksTests
     [Fact]
     public void WhatNeverGoesOutAlwaysBurnsAndTwoLampsInThreeThatMayAreLit()
     {
-        Assert.True(HomesLooks.Lit("hearth", 12345));
+        Assert.True(HomesLooks.Lit("arcCandle", 12345));
         var lamps = Enumerable.Range(0, 3000).Count(cell => HomesLooks.Lit("ceilLamp", cell));
         Assert.InRange(lamps, 1800, 2200);
         Assert.Equal("homes/ceilLamp_0_dark", HomesLooks.PictureOf("ceilLamp", 7, lit: false));
-        Assert.Equal("homes/hearth_0", HomesLooks.PictureOf("hearth", 7, lit: false));
+        Assert.Equal("homes/arcCandle_0", HomesLooks.PictureOf("arcCandle", 7, lit: false));
+        // A relic's cradle always burns while it stands: its dark look is the cradle a taken one leaves (0095).
+        Assert.All(Enumerable.Range(0, 30), cell => Assert.True(HomesLooks.Lit(Spec.Ruins.Cradle, cell)));
+    }
+
+    [Fact]
+    public void AHeartFeedsItsHearthAndLampVioletWhileItsChipStandsAndTheRestOfItsHomesLampsAreDead()
+    {
+        // Fed: lit and violet while the chip stands, dark once it is taken, whatever the seed's mix or the mood asked for.
+        Assert.Equal((true, true), HomesLooks.MoodOf("ceilLamp", 7, feeds: true, hearted: true, taken: false));
+        Assert.Equal((false, true), HomesLooks.MoodOf("hearth", 7, feeds: true, hearted: true, taken: true, mood: true));
+        Assert.Equal("homes/ceilLamp_0_fed", HomesLooks.PictureOf("ceilLamp", 7, lit: true, fed: true));
+        Assert.Equal("homes/hearth_0", HomesLooks.PictureOf("hearth", 7, lit: true, fed: true));
+        Assert.Equal("homes/hearth_0_dark", HomesLooks.PictureOf("hearth", 7, lit: false, fed: true));
+        // The common network's lamps in its home are dead; what never goes out still burns; elsewhere the mix as before.
+        Assert.All(Enumerable.Range(0, 30), cell => Assert.False(HomesLooks.MoodOf("sconce", cell, feeds: false, hearted: true, taken: false).Lit));
+        Assert.True(HomesLooks.MoodOf("arcCandle", 7, feeds: false, hearted: true, taken: false).Lit);
+        Assert.Equal(HomesLooks.Lit("sconce", 11), HomesLooks.MoodOf("sconce", 11, feeds: false, hearted: false, taken: false).Lit);
+        Assert.All(HomesLooks.Fed, kind => Assert.Contains(Spec.Ruins.Hearth.Pieces, p => p.Kind == kind));
+        Assert.True(File.Exists(Path.Combine(Art, "homes", "ceilLamp_0_fed.png")));
     }
 
     [Fact]

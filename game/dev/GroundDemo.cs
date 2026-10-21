@@ -38,6 +38,9 @@ public sealed class GroundDemo(string mode)
     /// <summary><c>pit</c>'s depth, its cells either side of the hero, and the column of the block left on its floor.</summary>
     private const int PitDepth = 3, PitSide = 3, PitBlock = 2;
 
+    /// <summary><c>--take-at SECONDS</c> at a spire: the world's tick its nearest relic is struck from, till it is taken (0095).</summary>
+    public int? TakeAt { get; init; }
+
     private int? _planet;
     private bool _opened;
     private int _hits;
@@ -110,11 +113,26 @@ public sealed class GroundDemo(string mode)
             for (int dy = 1; dy <= PitDepth && mode == "pit"; dy++)
                 for (int dx = -PitSide; dx <= PitSide; dx++)
                     if ((dx, dy) != (PitBlock, PitDepth)) _cells.Add(at + dy * w + dx);
+            // spire-climb: its left plug dug open for the climb out (0095).
+            if (mode == "spire-climb")
+                for (int dy = 0; dy < Spec.Ruins.Spire.Count; dy++)
+                    if (Spec.Ruins.Spire[dy].IndexOf(Spec.Ruins.Plug) is int px and >= 0)
+                        _cells.Add((at / w - (Spec.Ruins.Spire.Count - 3) + dy) * w + at % w - 6 + px);
             client.Send(new Transfer(_planet.Value, at));
             log($"ground demo: beamed down to ({at % w}, {at / w})");
             return;
         }
-        if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode) || Spires(mode) || Homes(mode)) return;
+        if (world.SurfaceOf(client.Id) == _planet && (Spires(mode) || Homes(mode)) && TakeAt is int take && world.Tick >= take && world.Tick - _hits >= Pace)
+        {
+            // --take-at: the nearest spire's relic, or home's chip, struck till it is taken, an axe's swing at a time (0095).
+            _hits = world.Tick;
+            var m = Registry.On(world, _planet.Value);
+            int sx = m.Crew.HeroOf(client.Id)?.Cell % m.Grid.Width ?? 0;
+            string kind = Spires(mode) ? Spec.Ruins.Cradle : Spec.Ruins.Niche;
+            if (m.Building.Relics.Where(r => r.Kind == kind).OrderBy(r => Math.Abs(r.Cell % m.Grid.Width - sx)).FirstOrDefault() is { Taken: false } relic)
+                client.Send(new Dig(relic.Cell, Spec.Weapons.Axe.Item));
+        }
+        if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode) || (Spires(mode) && mode != "spire-climb") || Homes(mode)) return;
         var here = Registry.On(world, _planet.Value);
         if (Hits(mode))
         {
@@ -310,7 +328,7 @@ public sealed class GroundDemo(string mode)
     }
 
     /// <summary>Whether <paramref name="mode"/> stands the hero at a spire (0085): <c>spire</c>, <c>spire-in</c> or <c>spire-far</c>.</summary>
-    public static bool Spires(string mode) => mode is "spire" or "spire-in" or "spire-far";
+    public static bool Spires(string mode) => mode is "spire" or "spire-in" or "spire-far" or "spire-climb";
 
     /// <summary>
     /// The cell to stand in at the spire nearest the spawn, found by its lamp in its tip's top cell: on its roof beside its left plug,

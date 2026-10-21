@@ -79,15 +79,19 @@ public class SpireClimbTests
     {
         var (ship, x0, y0) = Spire(seed);
         var path = ClimbOut(ship, x0, y0);
-        Assert.True(path.Any(h => h.Climbing), string.Join(" ", path.Where((_, i) => i % 5 == 0).Select(h => $"({h.X},{h.Y},{(h.Climbing ? "c" : "")})")) + $" x0={x0} y0={y0}");
+        Assert.True(path.Any(h => h.Climbing), Trace(path, x0, y0));
         // It stood on the room's floor, the ladder's top, before it walked out.
         Assert.True(path.Any(h => !h.Climbing && h.Y == (y0 + 10) * Unit && Math.Abs(h.X - ((x0 + 4) * Unit + Unit / 2)) < Unit),
-            string.Join(" ", path.Where((_, i) => i % 5 == 0).Select(h => $"({h.X},{h.Y},{(h.Climbing ? "c" : "")})")) + $" x0={x0} y0={y0}");
+            Trace(path, x0, y0));
         var end = path[^1];
         Assert.True(end.X < (x0 + 1) * Unit, $"seed {seed}: ended at ({end.X}, {end.Y}), the spire's left at {x0 * Unit}");
         // Out over the spire's roof or the ground beside it, never back down its shaft.
         Assert.True(end.X < x0 * Unit || end.Y <= (y0 + 10) * Unit, $"seed {seed}: ended at ({end.X}, {end.Y})");
     }
+
+    /// <summary>The path every fifth step, its feet and whether it climbs, for a failure to say where the hero went.</summary>
+    private static string Trace(List<Hero> path, int x0, int y0) =>
+        string.Join(" ", path.Where((_, i) => i % 5 == 0).Select(h => $"({h.X}, {h.Y}{(h.Climbing ? ", climbing" : "")})")) + $" from the spire at ({x0}, {y0})";
 
     [Fact]
     public void WithoutTheLadderTheLedgeOverTheNextStopsAJumpUpToIt()

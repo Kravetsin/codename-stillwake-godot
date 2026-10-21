@@ -449,6 +449,29 @@ public sealed class HeroAutopilot
     }
 
     /// <summary>
+    /// The climb out of a spire (0095, <c>--ground=spire-climb --autopilot</c>): from its chamber floor two columns left to the
+    /// ladder's foot, a jump at it with up held, up it to the room's floor and out left through the plug the demo dug.
+    /// </summary>
+    public static HeroAutopilot SpireClimb()
+    {
+        var up = new HeroInput(0, -1, false);
+        int? from = null;
+        return new HeroAutopilot(
+        [
+            Wait(240),
+            Until(new HeroInput(-1, 0, false), (h, _) => (from ??= Column(h)) - Column(h) >= 2 && h.X % Hero.Unit is > 350 and < 650),
+            Wait(20),
+            Hold(new HeroInput(0, -1, true), 1),
+            Until(up, (h, p) => h.Climbing || p.Steps > 60),
+            Until(up, (h, p) => p.Steps > 2 && !h.Climbing),
+            Wait(30),
+            Hold(new HeroInput(-1, 0, false), 50),
+            Wait(60),
+        ])
+        { _trace = true };
+    }
+
+    /// <summary>
     /// The <see cref="Ledges"/> script (0092): a held jump at the four-cell ledge, stepped up onto; off its far side, and a held
     /// jump at the five-cell one, falling short.
     /// </summary>

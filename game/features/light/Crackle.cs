@@ -16,11 +16,14 @@ public static class Crackle
     /// <summary>The chance arc <paramref name="e"/> strikes in a step, its piece's <paramref name="ticks"/>th: its rate's, a beat's every sixth.</summary>
     public static double Chance(Emitter e, int ticks) => e.Beat ? (ticks % 6 == 0 ? 0.7 : 0) : (e.Rate == 0 ? 0.02 : e.Rate) * 1.8;
 
-    /// <summary>An arc of <paramref name="e"/>'s from <paramref name="a"/> to <paramref name="b"/>, in pixels of the world, living its life.</summary>
-    public static void Strike(Random random, Emitter e, Vector2 a, Vector2 b)
+    /// <summary>
+    /// An arc of <paramref name="e"/>'s from <paramref name="a"/> to <paramref name="b"/>, in pixels of the world, living its life;
+    /// in <paramref name="tint"/>, a relic's violet where its chip feeds the piece (0095), else cyan.
+    /// </summary>
+    public static void Strike(Random random, Emitter e, Vector2 a, Vector2 b, BoltTint? tint = null)
     {
         double Between(double from, double to) => from + (to - from) * random.NextDouble();
         int life = (int)Math.Round(e.Life * Between(1, 1.8) * 2.5);
-        Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, Between(-0.15, 0.15)), life, 1, Math.Max(0.35, e.Width), branchy: true);
+        Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, Between(-0.15, 0.15)), life, 1, Math.Max(0.35, e.Width), branchy: true, tint: tint);
     }
 }

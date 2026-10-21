@@ -44,7 +44,7 @@ lit pink, drawn unlit; and `art/growCapsule_plant_0..3.png`, the plant at each q
 budding bush, with the glass's glints kept over it. The farm's icons are `art/items/seed.png`, `soil.png`,
 `biomass.png` and `biofuel.png`. The script that drew them is not kept: they are placeholders. So are what a planet's
 caves give (0080), drawn as ASCII in the icons' outlined palette till the user picks art: `copperOre.png`, `copper.png`,
-`ice.png`, `crystal.png`, `spore.png`, `mica.png`, `magnetite.png` and the Former's `motor.png`; the ruins' `alloyScrap.png` and `arcCoil.png` (0085).
+`ice.png`, `crystal.png`, `spore.png`, `mica.png`, `magnetite.png` and the Former's `motor.png`; the ruins' `alloyScrap.png` (0085); the sky shard's `arcShard.png` is the relic page's icon, exported (0095).
 
 ## Guarantees
 

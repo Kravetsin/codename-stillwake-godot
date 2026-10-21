@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1e2xrtwj41q1"
-path="res://.godot/imported/spireLamp_0_glow.png-85516178147b7a6132e88580c2c8cfe1.ctex"
+uid="uid://cqxuhuitpbeco"
+path="res://.godot/imported/ceilLamp_0_fed.png-66147c53ae34a12d05395f7caa0ef787.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/caves/spireLamp_0_glow.png"
-dest_files=["res://.godot/imported/spireLamp_0_glow.png-85516178147b7a6132e88580c2c8cfe1.ctex"]
+source_file="res://art/homes/ceilLamp_0_fed.png"
+dest_files=["res://.godot/imported/ceilLamp_0_fed.png-66147c53ae34a12d05395f7caa0ef787.ctex"]
 
 [params]
 
