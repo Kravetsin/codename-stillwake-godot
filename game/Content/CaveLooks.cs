@@ -119,10 +119,8 @@ public static class CaveLooks
     public static readonly Luminous Ember_ = Luminous.Ember with { LifeMs = (2200, 4200), Gravity = -10, Drag = 0.9, Turbulence = 10, Bright = 0.7, Light = false };
 
     /// <summary>
-    /// The stone's tint by band, multiplied over the ground in its rows (0080): the coldest a cool blue-grey, the garden as it is,
-    /// the amber deep warmer, the ember band a warm red-brown; blended from one band's middle to the next. From
-    /// <see cref="TintFrom"/> rows under the surface's middle, so the land under the sky keeps its own colours.
+    /// The bands a by-band picture is drawn for (<c>{kind}_{band}_{variant}</c>): the first planet's four (0080). A type of more
+    /// bands fails a test until they are drawn.
     /// </summary>
-    public static readonly (float R, float G, float B)[] Tint = [(0.86f, 0.94f, 1f), (0.94f, 1f, 0.98f), (1f, 0.9f, 0.88f), (1f, 0.78f, 0.66f)];
-    public const int TintFrom = 40, TintOver = 60;
+    public const int Bands = 4;
 }

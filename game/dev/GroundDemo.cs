@@ -73,7 +73,7 @@ public sealed class GroundDemo(string mode)
         var world = client.World;
         if (_planet == null)
         {
-            if (world.Surfaces.Count == 1 && !_opened) client.Send(new OpenSurface(Spec.Surfaces.Planet.Id));
+            if (world.Surfaces.Count == 1 && !_opened) client.Send(new OpenSurface(Spec.PlanetTypes.First.Id));
             _opened = true;
             if (world.Surfaces.Count < 2) return;
             _planet = world.Surfaces.Count - 1;
@@ -318,7 +318,7 @@ public sealed class GroundDemo(string mode)
     /// </summary>
     private static int? SpireSpot(Registry m, string mode)
     {
-        int w = m.Grid.Width, sx = m.Crew.Spawn % w, rise = m.Rules.Ground!.SpireRise;
+        int w = m.Grid.Width, sx = m.Crew.Spawn % w, rise = ((Spec.PlanetType)m.Rules).Ground.SpireRise;
         var lamp = m.Building.Plants.Where(p => p.Kind == Spec.Ruins.SpireLamp).OrderBy(p => Math.Abs(p.Cell % w - sx)).FirstOrDefault();
         if (lamp == null) return null;
         int x0 = lamp.Cell % w - Spec.Ruins.Spire[0].IndexOf(Spec.Ruins.Lamp), y0 = lamp.Cell / w;
@@ -357,7 +357,7 @@ public sealed class GroundDemo(string mode)
     {
         var grid = m.Grid;
         int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w, band = mode == "hall" ? 1 : mode[4] - '0';
-        var ground = m.Rules.Ground!;
+        var planet = (Spec.PlanetType)m.Rules;
         var weight = new Dictionary<int, int>();
         foreach (var p in m.Building.Plants)
             if (CaveLooks.Of.TryGetValue(p.Kind, out var look)) weight[p.Cell] = look.Light != null ? 3 : 1;
@@ -365,7 +365,7 @@ public sealed class GroundDemo(string mode)
         (int Score, int Far, int Cell, double X, double Y) best = (0, int.MaxValue, -1, 0, 0);
         for (int y = 3; y < h - 4; y++)
         {
-            if (Terrain.BandOf(ground, y) != band) continue;
+            if (Terrain.BandOf(planet, y) != band) continue;
             for (int x = Math.Max(2, sx - 700); x < Math.Min(w - 24, sx + 700); x++)
             {
                 if (!Open(x, y) || !Open(x, y - 1) || !Open(x, y - 2) || Open(x, y + 1) || !Open(x + 1, y)) continue;
@@ -396,7 +396,7 @@ public sealed class GroundDemo(string mode)
     private static (int Cell, (double X, double Y) Look)? LavaSpot(Registry m)
     {
         var grid = m.Grid;
-        int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w, top = h - m.Rules.Ground!.CoreRows;
+        int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w, top = h - ((Spec.PlanetType)m.Rules).Ground.CoreRows;
         bool Open(int x, int y) => x > 0 && y > 0 && x < w && y < h && grid.StructureAt(y * w + x) == Sim.Grid.Structure.Empty;
         bool Lava(int x) => Open(x, top - 1);
         foreach (int x in Enumerable.Range(0, w).OrderBy(x => Math.Abs(x - sx)).Where(Lava))

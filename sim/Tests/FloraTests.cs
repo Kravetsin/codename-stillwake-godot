@@ -32,12 +32,12 @@ public class FloraTests
     private static IEnumerable<Plant> Surface(IEnumerable<Plant> growth) => growth.Where(p => Flora.Get(p.Kind) is Flora.Kind);
 
     [Property(MaxTest = 60)]
-    public Property PlantsGrowOnlyOnWholeSoilOpenToTheSkyNeverInACave() => Prop.ForAll(Seeds, seed => OnTheSurface(Terrain.Generate(Ground.Small, seed)));
+    public Property PlantsGrowOnlyOnWholeSoilOpenToTheSkyNeverInACave() => Prop.ForAll(Seeds, seed => OnTheSurface(Terrain.Generate(PlanetTypes.Small, seed)));
 
     [Fact]
     public void TheFirstPlanetGrowsEveryKindOnItsSurfaceAndNoneInItsCaves()
     {
-        var l = Terrain.Generate(Ground.Planet, 1);
+        var l = Terrain.Generate(PlanetTypes.First, 1);
         Assert.True(OnTheSurface(l));
         Assert.All(Flora.All, k => Assert.Contains(l.Flora!, p => p.Kind == k.Id));
         // Most columns of open soil stay bare: a few hundred plants across two thousand columns.
@@ -52,7 +52,7 @@ public class FloraTests
     [Fact]
     public void TheFirstPlanetsSurfaceGrowsTwoToThreeTimesItsFirstTreesBushesRocksAndFlowers()
     {
-        var l = Terrain.Generate(Ground.Planet with { Spires = 0 }, 1);
+        var l = Terrain.Generate(PlanetTypes.First with { Ground = PlanetTypes.First.Ground with { Spires = 0 } }, 1);
         int Of(params string[] kinds) => l.Flora!.Count(p => kinds.Contains(p.Kind));
         Assert.InRange(Of("acacia"), 2 * 18, 3 * 18);
         Assert.InRange(Of("bush"), 2 * 21, 3 * 21);
@@ -64,7 +64,7 @@ public class FloraTests
     [Property(MaxTest = 60)]
     public Property TheSameSeedGrowsTheSamePlantsAndKindsKeepTheirDistance() => Prop.ForAll(Seeds, seed =>
     {
-        var (a, b) = (Terrain.Generate(Ground.Small, seed), Terrain.Generate(Ground.Small, seed));
+        var (a, b) = (Terrain.Generate(PlanetTypes.Small, seed), Terrain.Generate(PlanetTypes.Small, seed));
         bool apart = Flora.All.All(k =>
         {
             var xs = Surface(a.Flora!).Where(p => p.Kind == k.Id).Select(p => p.Cell % a.Width).Order().ToList();
@@ -75,7 +75,7 @@ public class FloraTests
 
     [Fact]
     public void AnotherSeedGrowsOtherPlants() =>
-        Assert.False(Terrain.Generate(Ground.Planet, 1).Flora!.SequenceEqual(Terrain.Generate(Ground.Planet, 2).Flora!));
+        Assert.False(Terrain.Generate(PlanetTypes.First, 1).Flora!.SequenceEqual(Terrain.Generate(PlanetTypes.First, 2).Flora!));
 
     /// <summary>Soil under open ground, with a flower at (2, 1) and an acacia at (5, 1), whose trunk stands up to the top row.</summary>
     private static Scenario Meadow()
@@ -155,7 +155,7 @@ public class FloraTests
             ######
             """);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.Do(new OpenSurface(Surfaces.Planet.Id)).Run();
+        w.Do(new OpenSurface(PlanetTypes.First.Id)).Run();
         return w.Do(new Transfer(1)).Run();
     }
 

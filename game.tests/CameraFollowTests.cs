@@ -153,7 +153,7 @@ public class CameraFollowTests
     [InlineData(true)]
     public void AJumpIsFollowedUpAndDownNeverFarBehind(bool planet)
     {
-        int gravity = planet ? Stillwake.Content.Surfaces.SmallPlanet.Fall(Spec.Gravity) : Spec.Gravity;
+        int gravity = planet ? Stillwake.Content.PlanetTypes.Small.Fall(Spec.Gravity) : Spec.Gravity;
         // The jump's top: each step that still rises, Hero.Jump less gravity a step, summed.
         int rising = (Spec.Jump - 1) / gravity;
         double rises = (rising * Spec.Jump - gravity * rising * (rising + 1) / 2) / (double)Hero.Unit;

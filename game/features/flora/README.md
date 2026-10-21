@@ -83,7 +83,7 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
 - **Tint** (`CaveTint.cs`): one band of colour per depth band, multiplied over all that is drawn under `Layers.Edges` in its
   rows — walls, edges, back walls — and nothing over it, so the growths and the light keep their colours: cool blue-grey,
   as it is, warmer, red-brown, blended from each band's middle to the next, from `TintFrom` (40) rows under the surface's
-  middle. A quad a band across the view, drawn again when the view moves.
+  middle, all by its planet type's look (`PlanetLooks`, 0095). A quad a band across the view, drawn again when the view moves.
 - **Cost** (`--ground=hall --measure`, the first planet's lushest garden hall, RTX 4060 Ti, 1280 × 720): 804–827 fps at
   zoom 1 against 868–875 with no cave growth drawn (render CPU 0.39 ms against 0.37, 82 draws against 75), 924 at zoom 2
   against 965–980; the view 0.05–0.08 ms a frame, allocating nothing, 56 lights of it at zoom 1. Without the atlas it was

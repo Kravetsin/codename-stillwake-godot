@@ -3,8 +3,8 @@ namespace Stillwake.Content;
 /// <summary>
 /// The kinds of surface a world is made of (0076): the ship, and those a world may open besides it. Each names its
 /// rules — gravity, air, sky, debris, what may be built — read by the modules and the client of a surface of it, never
-/// saved; and the ground it is drawn as. So far one besides the ship, a strip of ground to stand heroes on while planets
-/// are built, under the first planet's rules.
+/// saved; and the ground it is drawn as. Besides the ship, a strip of ground to stand heroes on, under the first planet's
+/// rules, and the planet types (<see cref="PlanetTypes"/>, 0095).
 /// </summary>
 public static class Surfaces
 {
@@ -13,14 +13,10 @@ public static class Surfaces
 
     /// <summary>
     /// A kind of surface: its id, saved with each surface of it, and its ground drawn as a map in <see cref="Legend"/>'s
-    /// characters, or grown from each surface's seed by its <see cref="Ground"/>.
+    /// characters, or, for a <see cref="PlanetType"/>, grown from each surface's seed.
     /// </summary>
-    public sealed record Kind(string Id, IReadOnlyList<string> Rows)
+    public record Kind(string Id, IReadOnlyList<string> Rows)
     {
-        /// <summary>How its ground grows from a surface's seed (0077); null for one drawn as <c>Rows</c>.</summary>
-        public Ground? Ground { get; init; }
-
-
         /// <summary>
         /// Gravity everywhere on it, the open sky too, in thousandths of the ship's; null for the ship's own way: gravity
         /// aboard, afloat in space, where the jetpack flies.
@@ -60,30 +56,19 @@ public static class Surfaces
 
     /// <summary>
     /// Ground under open sky, a cliff, hills and a cave down a shaft with a ladder, drawn by hand for tests and --strip: under
-    /// the first planet's rules. Gravity two thirds of the ship's, so a hero jumps higher and farther; thin air, the suit
-    /// paying one breath in five outside; soft, warm daylight, the "Stillwake" style's (0079); no debris; ladders, floors, walls, back walls and doors built,
-    /// no machines. Heroes beam down to its <c>S</c>, in a shelter at the cliff's foot.
+    /// the first planet's rules (<see cref="PlanetTypes.First"/>). Heroes beam down to its <c>S</c>, in a shelter at the cliff's foot.
     /// </summary>
     public static readonly Kind TestStrip = new("testStrip", Strip())
     {
-        Gravity = 700,
-        ThinAir = 5,
-        Sky = new Light(1000, 970, 900),
-        Debris = false,
-        Builds = ["wall", "backWall", "floor", "ladder", "door"],
+        Gravity = PlanetTypes.First.Gravity,
+        ThinAir = PlanetTypes.First.ThinAir,
+        Sky = PlanetTypes.First.Sky,
+        Debris = PlanetTypes.First.Debris,
+        Builds = PlanetTypes.First.Builds,
     };
 
-    /// <summary>
-    /// The first planet (0077): ground grown from its seed, hills of soil over stone, caves denser deeper, bedrock under
-    /// it, under the strip's rules. Opened by <c>--planet</c> and the dev panel till the drop pod.
-    /// </summary>
-    public static readonly Kind Planet = TestStrip with { Id = "planet", Rows = [], Ground = Content.Ground.Planet };
-
-    /// <summary>The planet's ground grown small, for tests and the fuzz: the same generator, a fraction of the cells.</summary>
-    public static readonly Kind SmallPlanet = Planet with { Id = "smallPlanet", Ground = Content.Ground.Small };
-
     /// <summary>The kinds a world may open: every one but the ship.</summary>
-    public static readonly IReadOnlyList<Kind> All = [TestStrip, Planet, SmallPlanet];
+    public static readonly IReadOnlyList<Kind> All = [TestStrip, .. PlanetTypes.All];
 
     /// <summary>The kind named <paramref name="id"/>, the ship's too; one not here is our bug: peers run one build.</summary>
     public static Kind Get(string id) =>

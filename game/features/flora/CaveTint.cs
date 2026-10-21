@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Flora;
 /// The stone's colour by depth band (0080): one band of colour a band of rows, multiplied over the ground drawn under it —
 /// walls, their edges, back walls — and nothing over it, so the growths and the light keep their own colours. The coldest
 /// band a cool blue-grey, the garden as it is, the amber deep warmer, the ember band red-brown, blended from each band's middle
-/// to the next (<see cref="CaveLooks.Tint"/>); none above <see cref="CaveLooks.TintFrom"/> rows under the surface's middle.
+/// to the next (its type's <see cref="PlanetLooks.Look"/>); none above its <c>TintFrom</c> rows under the surface's middle.
 /// A quad a band across the view, drawn again only when the view moves.
 /// </summary>
 public partial class CaveTint : Node2D
@@ -19,15 +19,15 @@ public partial class CaveTint : Node2D
     private readonly List<(float Y, Color Colour)> _stops = [];
     private Rect2 _view;
 
-    public CaveTint(Spec.Ground ground)
+    public CaveTint(Spec.PlanetType type, PlanetLooks.Look look)
     {
         ZIndex = Layers.Edges;
         Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Mul, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
-        var bands = Spec.Flora.Bands;
+        var (ground, bands) = (type.Ground, type.Bands);
         int span = ground.Height - ground.CoreRows - ground.Surface;
-        Color Of(int band) => new(CaveLooks.Tint[band].R, CaveLooks.Tint[band].G, CaveLooks.Tint[band].B);
-        _stops.Add(((ground.Surface + CaveLooks.TintFrom) * Cell, Colors.White));
-        _stops.Add(((ground.Surface + CaveLooks.TintFrom + CaveLooks.TintOver) * Cell, Of(0)));
+        Color Of(int band) => new(look.Tint[band].R, look.Tint[band].G, look.Tint[band].B);
+        _stops.Add(((ground.Surface + look.TintFrom) * Cell, Colors.White));
+        _stops.Add(((ground.Surface + look.TintFrom + look.TintOver) * Cell, Of(0)));
         for (int band = 1; band <= bands.Count; band++)
         {
             int top = bands[band - 1], bottom = band < bands.Count ? bands[band] : 1000;

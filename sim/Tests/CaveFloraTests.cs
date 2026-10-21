@@ -24,7 +24,7 @@ public class CaveFloraTests
     /// the surface (but under a spire, whose tip stands over the ground the roots grew under, 0085); and no two in one cell. A
     /// home's collapsed end is grown over by its prefab, not the caves (0091): what lies in a home's box is the home's.
     /// </summary>
-    private static string? Misplaced(Layout l, Ground g, IReadOnlyList<(int X, int Y)>? spires = null, IReadOnlyList<(int X, int Y, Ruins.Home Home)>? homes = null)
+    private static string? Misplaced(Layout l, PlanetType t, IReadOnlyList<(int X, int Y)>? spires = null, IReadOnlyList<(int X, int Y, Ruins.Home Home)>? homes = null)
     {
         int w = l.Width;
         char At(int cell) => cell < 0 || cell >= w * l.Height ? '#' : l.Rows[cell / w][cell % w];
@@ -34,7 +34,7 @@ public class CaveFloraTests
             int x = cell % w, y = cell / w;
             if (homes?.Any(h => x >= h.X && x < h.X + h.Home.Wide && y >= h.Y && y < h.Y + h.Home.Tall) == true) continue;
             string where = $"{kind.Id} at ({x}, {y})";
-            if (kind.Chances[Terrain.BandOf(g, y)] == 0) return $"{where}: not in its band";
+            if (kind.Chances[Terrain.BandOf(t, y)] == 0) return $"{where}: not in its band";
             switch (kind.On)
             {
                 case Flora.Anchor.Rock:
@@ -62,17 +62,17 @@ public class CaveFloraTests
 
     [Property(MaxTest = 60)]
     public Property CaveGrowthIsOnlyInCavesOnWhatHoldsItInItsBand() =>
-        Prop.ForAll(Seeds, seed => Misplaced(Terrain.Generate(Ground.Small, seed, out _, out _, out var spires, out var homes), Ground.Small, spires, homes) is not { } why
+        Prop.ForAll(Seeds, seed => Misplaced(Terrain.Generate(PlanetTypes.Small, seed, out _, out _, out var spires, out var homes), PlanetTypes.Small, spires, homes) is not { } why
             ? true.ToProperty() : false.Label(why));
 
     [Fact]
     public void TheFirstPlanetGrowsEveryCaveKindWhereItMayAndEachBandItsOwn()
     {
-        var l = Terrain.Generate(Ground.Planet, 1, out _, out _, out var spires, out var homes);
-        Assert.Null(Misplaced(l, Ground.Planet, spires, homes));
+        var l = Terrain.Generate(PlanetTypes.First, 1, out _, out _, out var spires, out var homes);
+        Assert.Null(Misplaced(l, PlanetTypes.First, spires, homes));
         Assert.All(Flora.Cave, k => Assert.Contains(l.Flora!, p => p.Kind == k.Id));
         // The cold band's crystals are ice, the deep's amber, the ember band's ember: each band has its own look.
-        var byBand = CaveGrowth(l).GroupBy(p => Terrain.BandOf(Ground.Planet, p.Cell / l.Width)).ToDictionary(b => b.Key, b => b.Select(p => p.Kind.Id).ToHashSet());
+        var byBand = CaveGrowth(l).GroupBy(p => Terrain.BandOf(PlanetTypes.First, p.Cell / l.Width)).ToDictionary(b => b.Key, b => b.Select(p => p.Kind.Id).ToHashSet());
         Assert.Contains("crystalIce", byBand[0]);
         Assert.Contains("roots", byBand[0]);
         Assert.DoesNotContain("crystalAmber", byBand[0]);
@@ -87,7 +87,7 @@ public class CaveFloraTests
     [Property(MaxTest = 30)]
     public Property TheSameSeedGrowsTheSameCavesAndKindsKeepTheirDistanceAlongARow() => Prop.ForAll(Seeds, seed =>
     {
-        var (a, b) = (Terrain.Generate(Ground.Small, seed), Terrain.Generate(Ground.Small, seed));
+        var (a, b) = (Terrain.Generate(PlanetTypes.Small, seed), Terrain.Generate(PlanetTypes.Small, seed));
         bool apart = Flora.Cave.All(k => CaveGrowth(a).Where(p => p.Kind == k).GroupBy(p => p.Cell / a.Width)
             .All(row => row.Select(p => p.Cell).Order().Zip(row.Select(p => p.Cell).Order().Skip(1)).All(pair => pair.Second - pair.First >= k.Apart)));
         return a.Flora!.SequenceEqual(b.Flora!) && apart;
@@ -95,12 +95,12 @@ public class CaveFloraTests
 
     [Fact]
     public void AnotherSeedGrowsOtherCaves() =>
-        Assert.False(CaveGrowth(Terrain.Generate(Ground.Planet, 1)).SequenceEqual(CaveGrowth(Terrain.Generate(Ground.Planet, 2))));
+        Assert.False(CaveGrowth(Terrain.Generate(PlanetTypes.First, 1)).SequenceEqual(CaveGrowth(Terrain.Generate(PlanetTypes.First, 2))));
 
     [Fact]
     public void TheGreatHallsAreGardensAndTheTunnelsSparse()
     {
-        var l = Terrain.Generate(Ground.Planet, 1, out var hall);
+        var l = Terrain.Generate(PlanetTypes.First, 1, out var hall);
         int w = l.Width;
         // Growth per slot: an open cave cell with a wall under or over it, in a hall and out of one.
         bool Slot(int cell) => l.At(cell) == '.' && (l.At(cell + w) == '#' || l.At(cell - w) == '#');
@@ -196,7 +196,7 @@ public class CaveFloraTests
             ######
             """);
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
-        w.Do(new OpenSurface(Surfaces.Planet.Id)).Run();
+        w.Do(new OpenSurface(PlanetTypes.First.Id)).Run();
         return w.Do(new Transfer(1)).Run();
     }
 

@@ -35,20 +35,21 @@ public partial class PlanetSky : Node2D
     private readonly Sprite2D _sky, _giant, _clouds, _sun;
     private readonly List<(Sprite2D Sprite, ColorRect Under, float Top, float Follows)> _land = [];
 
-    public PlanetSky()
+    /// <param name="set">The folder of its pictures under <c>art</c>: its planet type's backdrop (<see cref="PlanetLooks"/>, 0095).</param>
+    public PlanetSky(string set)
     {
-        var sky = PixelArt.Picture("planet/sky");
+        var sky = PixelArt.Picture($"{set}/sky");
         _above.Color = TopOf(sky);
         AddChild(_above);
         AddChild(_sky = Layer(sky, repeat: false));
-        AddChild(_giant = Layer(PixelArt.Picture("planet/giant"), repeat: false));
-        AddChild(_clouds = Layer(PixelArt.Picture("planet/clouds"), repeat: true));
-        _sun = Layer(PixelArt.Picture("planet/sun"), repeat: false);
+        AddChild(_giant = Layer(PixelArt.Picture($"{set}/giant"), repeat: false));
+        AddChild(_clouds = Layer(PixelArt.Picture($"{set}/clouds"), repeat: true));
+        _sun = Layer(PixelArt.Picture($"{set}/sun"), repeat: false);
         _sun.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
         AddChild(_sun);
         foreach (var (name, top, follows) in Land)
         {
-            var texture = PixelArt.Picture($"planet/{name}");
+            var texture = PixelArt.Picture($"{set}/{name}");
             var under = new ColorRect { Color = BottomOf(texture), MouseFilter = Control.MouseFilterEnum.Ignore };
             var sprite = Layer(texture, repeat: true);
             AddChild(under);
