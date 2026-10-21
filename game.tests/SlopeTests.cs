@@ -18,7 +18,7 @@ public class SlopeTests
     private static readonly HeroInput Down = Still with { Y = 1 }, Up = Still with { Y = -1 };
 
     // A hill: three cells up, a plateau two wide, three down; flat ground either side on row 9's top.
-    private const string Hill = """
+    internal const string Hill = """
         ################
         #..............#
         #..............#

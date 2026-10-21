@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Stillwake.Sim;
 
 namespace Stillwake.Game.Features.Crew;
@@ -28,11 +29,32 @@ public sealed class HeroAutopilot
         """);
 
     /// <summary>
+    /// A hall for recording the figure's motion (0090), <c>-- --poses</c>: a ladder up to a floor eight cells over the deck and
+    /// one up to a floor twenty-one over it, each walked off; lamps under its ceiling and halfway down, lit with <c>--lit</c>.
+    /// </summary>
+    public static readonly Layout Hall = Layout.Parse(
+        [.. Enumerable.Range(0, 32).Select(r => Lamps(r, r switch
+        {
+            0 or 31 => new string('#', 46),
+            10 => "#" + new string('.', 31) + "H========" + new string('.', 4) + "#",
+            23 => "#" + new string('.', 7) + "H======" + new string('.', 17) + "H" + new string('.', 12) + "#",
+            30 => "#" + new string('.', 7) + "H" + new string('.', 9) + "S" + new string('.', 13) + "H" + new string('.', 12) + "#",
+            > 23 => "#" + new string('.', 7) + "H" + new string('.', 23) + "H" + new string('.', 12) + "#",
+            > 10 => "#" + new string('.', 31) + "H" + new string('.', 12) + "#",
+            _ => "#" + new string('.', 44) + "#",
+        }))]);
+
+    private static string Lamps(int row, string cells) =>
+        row is 1 or 7 or 19 or 26 or 29 ? string.Concat(cells.Select((c, x) => c == '.' && x % 6 == 3 ? 'L' : c)) : cells;
+
+    /// <summary>
     /// One act: the keys held until <see cref="Done"/> says so, where the pointer is meanwhile, whether it starts with E, and
-    /// whether Space is let go through it, cutting a jump short (0089).
+    /// whether Space is let go through it, cutting a jump short (0089); the hotbar key, 1 to 9, it starts by pressing
+    /// (<see cref="TakeSlot"/>).
     /// </summary>
     private sealed record Act(
-        HeroInput Keys, Func<Hero, Progress, bool> Done, Func<Hero, (double X, double Y)?>? Point = null, bool Press = false, bool LetsGo = false);
+        HeroInput Keys, Func<Hero, Progress, bool> Done, Func<Hero, (double X, double Y)?>? Point = null, bool Press = false, bool LetsGo = false,
+        int? Slot = null);
 
     /// <summary>How far into an act the script is: its steps so far, and the hero a step ago.</summary>
     private readonly record struct Progress(int Steps, Hero? Last)
@@ -61,6 +83,16 @@ public sealed class HeroAutopilot
         return pressed;
     }
 
+    private int? _slot;
+
+    /// <summary>The hotbar key the script pressed since the last call, if any: its recorder presses it.</summary>
+    public int? TakeSlot()
+    {
+        var slot = _slot;
+        _slot = null;
+        return slot;
+    }
+
     /// <summary>The keys for the next controller step of <paramref name="hero"/>.</summary>
     public HeroInput Next(Hero hero)
     {
@@ -68,6 +100,7 @@ public sealed class HeroAutopilot
         {
             var act = _acts[_at];
             if (_steps == 0 && act.Press) _press = true;
+            if (_steps == 0 && act.Slot != null) _slot = act.Slot;
             if (!act.Done(hero, new Progress(_steps, _last))) break;
             _at++;
             _steps = 0;
@@ -78,7 +111,7 @@ public sealed class HeroAutopilot
         var keys = _acts[_at].Keys;
         // Space stays held a while after each press, so the script's jumps go their full height, but where an act lets go (0089).
         _held = keys.Jump ? HeldFor : _acts[_at].LetsGo ? 0 : Math.Max(0, _held - 1);
-        if (_trace) Godot.GD.Print($"feel: step {++_step} act {_at} x {hero.X} y {hero.Y} vx {hero.Vx} vy {hero.Vy}");
+        if (_trace) Godot.GD.Print($"feel: step {++_step} act {_at} x {hero.X} y {hero.Y} vx {hero.Vx} vy {hero.Vy} frame {Godot.Engine.GetFramesDrawn()}");
         return keys with { JumpHeld = keys.JumpHeld || _held > 0 };
     }
 
@@ -308,6 +341,47 @@ public sealed class HeroAutopilot
 
     /// <summary><c>--slopes</c>'s script: into the corridor's far corner, under its sloped ceiling, and stand there.</summary>
     public static HeroAutopilot SlopesRun() => new([Wait(150), Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)), Wait(1)]);
+
+    /// <summary>
+    /// The <see cref="Hall"/>'s script (0090), its hands empty (the hotbar's empty third slot): a sprint started, reversed
+    /// and stopped, a tap and a held jump, the eight-cell floor walked off, the twenty-one-cell one walked off, then the drill
+    /// taken out and held aimed ahead through a jump on the spot and a running one.
+    /// </summary>
+    public static HeroAutopilot PosesRun(int wait = 40)
+    {
+        var run = new HeroInput(1, 0, false, Sprint: true);
+        var up = new HeroInput(0, -1, false);
+        var ahead = Beside(2.5, 0.4);
+        return new HeroAutopilot(
+        [
+            new(Still, (_, p) => p.Steps >= wait, Slot: 3),
+            Hold(run, 36),
+            Hold(run with { X = -1 }, 40),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Wait(30),
+            Jump(),
+            new(Still, (_, p) => p.Steps >= 50, LetsGo: true),
+            Jump(),
+            Wait(80),
+            Walk(-1, h => Column(h) <= 8),
+            Until(up, (h, p) => p.Steps > 2 && !h.Climbing),
+            Walk(1, h => Column(h) >= 16),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Wait(30),
+            Walk(1, h => Column(h) >= 32),
+            Until(up, (h, p) => p.Steps > 2 && !h.Climbing),
+            Walk(1, h => Column(h) >= 42),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Wait(40),
+            new(Still, (_, p) => p.Steps >= 30, ahead, Slot: 2),
+            new(new HeroInput(0, 0, true), (_, p) => p.Steps >= 1, ahead),
+            Hold(Still, 80, ahead),
+            new(run with { X = -1, Jump = true }, (_, p) => p.Steps >= 1, Beside(-2.5, 0.4)),
+            Hold(run with { X = -1 }, 50, Beside(-2.5, 0.4)),
+            Hold(Still, 40, Beside(-2.5, 0.4)),
+        ])
+        { _trace = true };
+    }
 
     /// <summary>The <see cref="Gym"/>'s script.</summary>
     public static HeroAutopilot GymRun()
