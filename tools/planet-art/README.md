@@ -53,7 +53,7 @@ picture in `game/art` comes back byte for byte. What it writes beside itself (`g
   `GroundArt.Recede` (`game/render/GroundArt.cs`, numbers in `game/Content/GroundLooks.cs`) pales, cools and darkens a
   natural back wall's picture at load; no picture is painted for it.
 - The ship's art (debris, machines, the hero, drones, hatches, the tank, the wrist, the early item icons, the farm's)
-  has painters too, still in the scratchpads; they are outside the planet's pipeline and not copied here.
+  is painted by [`tools/ship-art`](../ship-art).
 
 ## The pages the pictures were picked on
 

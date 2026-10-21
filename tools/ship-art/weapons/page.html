@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Melee Weapons</title>
+<meta name="description" content="Stillwake melee weapons, concept: held sprites, icons, grip and edge points, the swing in the hand, and concept stats.">
+<style>
+/* Layout: a header with the four rules and the marker toggles, then a section per weapon (fire axe first):
+   sprite, icon and item card in a row, the three poses under them, the metadata last. */
+:root {
+  --space: #070a10; --page: #0b0e14; --bench: #111823; --line: #253042; --ink: #e3e9f0; --muted: #8b99aa;
+  --s950: #020617; --s900: #0f172a; --s800: #1e293b; --s700: #334155; --s600: #475569; --s500: #64748b; --s400: #94a3b8; --s300: #cbd5e1; --s100: #f1f5f9;
+  --amber: #f2b84b; --violet: #a78bfa; --grip: #6fd3ff; --edge: #ff7a2e; --arm: #c4b5fd;
+  --fire: #ff7a2e; --fire-bg: #3a1a0c;
+  --mono: Consolas, Menlo, ui-monospace, monospace; --ui: "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--page); }
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 var(--ui); overflow-x: hidden;
+  padding: 28px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px)); }
+.wrap { max-width: 1160px; margin: 0 auto; display: grid; gap: 22px; }
+.eyebrow { font: 600 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--amber); }
+h1 { font: 600 30px/1.15 var(--ui); margin: 4px 0 8px; text-wrap: balance; }
+header > p { margin: 0; color: var(--muted); max-width: 78ch; }
+.rules { list-style: none; padding: 0; margin: 14px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; }
+.rules li { background: var(--bench); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px 9px; font-size: 13px; color: var(--s300); }
+.rules b { display: block; font: 600 11px var(--mono); color: var(--s400); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+.bar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--page) 92%, transparent); backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line); margin: 0 -16px; padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.hotbar { display: flex; gap: 6px; padding: 5px; background: rgba(15, 23, 42, .85); border: 1px solid var(--s700); border-radius: 6px; }
+.slot { width: 44px; height: 44px; border-radius: 5px; background: rgba(30, 41, 59, .7); border: 1px solid var(--s700); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.slot:hover, .slot:focus-visible { border-color: var(--amber); outline: none; }
+.slot img { width: 32px; height: 32px; image-rendering: pixelated; }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px 12px; font: 13px var(--mono); color: var(--s300); }
+.toggles label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; white-space: nowrap; }
+.toggles input { accent-color: var(--amber); margin: 0; }
+.sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; border: 1px solid #14171e; }
+.weapon { background: var(--bench); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 14px; min-width: 0; scroll-margin-top: 70px; }
+.whead { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.whead .n { font: 600 12px var(--mono); color: var(--s500); }
+.whead h2 { font: 600 21px var(--ui); margin: 0; }
+.whead .kind { font: 12px var(--mono); color: var(--s400); }
+.role { margin: 0; color: var(--s300); font-size: 14px; max-width: 80ch; }
+.row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto; gap: 16px; align-items: start; }
+.box { background: var(--space); border-radius: 4px; padding: 14px; display: grid; gap: 8px; justify-items: center; align-content: start; min-width: 0; }
+.cap { font: 11px var(--mono); color: var(--s500); text-align: center; }
+.pix { position: relative; width: min(100%, calc(var(--w) * var(--k) * 1px)); aspect-ratio: var(--w) / var(--h); }
+.pix img, .pix svg { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.pix svg { overflow: visible; }
+.slots { display: flex; gap: 10px; align-items: end; }
+.slots .slot { cursor: default; }
+.slots .slot.big { width: 52px; height: 52px; }
+.slots .one img { width: 16px; height: 16px; }
+body.no-grip .m-grip, body.no-edge .m-edge, body.no-arm .m-arm { display: none; }
+.poses { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.poses figure { margin: 0; background: var(--space); border-radius: 4px; overflow: hidden; }
+.poses canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.poses figcaption { font: 12px var(--mono); color: var(--s400); padding: 5px 10px 7px; display: flex; justify-content: space-between; gap: 8px; }
+.poses figcaption span { color: var(--s500); }
+.meta { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.meta div { background: var(--bench); padding: 6px 10px; min-width: 0; }
+.meta dt { font: 10px var(--mono); color: var(--s500); letter-spacing: .08em; text-transform: uppercase; }
+.meta dd { margin: 0; font: 13px var(--mono); color: var(--s100); overflow-wrap: anywhere; }
+.note { color: var(--muted); font-size: 13px; margin: 0; }
+code { font: 12.5px var(--mono); color: var(--s300); }
+
+/* ---- the item card, variant C (plaque) ---- */
+.cardcol { display: grid; gap: 6px; justify-items: center; }
+.concept { font: 600 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--violet); border: 1px dashed color-mix(in srgb, var(--violet) 55%, transparent); border-radius: 3px; padding: 1px 6px; }
+.card { width: 230px; background: rgba(2, 6, 23, .95); border: 2px solid var(--s600); border-radius: 2px; box-shadow: inset 0 0 0 1px #000, 0 4px 14px rgba(0,0,0,.45); color: var(--s300); font: 12px/1.35 var(--ui); overflow: hidden; }
+.card .head { display: grid; justify-items: center; gap: 2px; padding: 10px 10px 6px; background: linear-gradient(var(--s900), rgba(2,6,23,.95)); }
+.frame { width: 56px; height: 56px; border-radius: 3px; background: var(--s900); border: 2px solid var(--s700); display: grid; place-items: center; }
+.frame img { width: 48px; height: 48px; image-rendering: pixelated; }
+.card .name { font: 600 14px var(--ui); color: var(--s100); margin-top: 4px; }
+.card .kind { font: 11px var(--mono); color: var(--s400); letter-spacing: .02em; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 2px solid var(--s800); border-bottom: 2px solid var(--s800); }
+.tile { display: grid; justify-items: center; padding: 6px 2px 5px; gap: 1px; }
+.tile + .tile { border-left: 2px solid var(--s800); }
+.tile b { font: 700 16px/1 var(--mono); color: var(--s100); font-variant-numeric: tabular-nums; }
+.tile span { font: 9px var(--mono); color: var(--s500); letter-spacing: .1em; }
+.tile.dps { background: color-mix(in srgb, var(--amber) 10%, transparent); }
+.tile.dps b { color: var(--amber); font-size: 19px; } .tile.dps span { color: var(--amber); }
+.card .body { padding: 7px 10px 8px; display: grid; gap: 6px; justify-items: center; text-align: center; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.chip { display: inline-flex; gap: 4px; align-items: center; font: 600 11px var(--mono); padding: 1px 6px; border-radius: 3px; border: 1px solid; }
+.chip.fire { color: var(--fire); background: var(--fire-bg); border-color: color-mix(in srgb, var(--fire) 45%, transparent); }
+.chip.use { color: var(--s300); background: var(--s800); border-color: var(--s700); font-weight: 400; }
+.effect { font: 11px/1.35 var(--ui); } .effect b { color: var(--fire); font-weight: 600; }
+.hint { font: 11px var(--mono); color: var(--s500); display: flex; gap: 6px; align-items: center; }
+.key { font: 600 10px var(--mono); color: var(--s300); border: 1px solid var(--s600); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; }
+.extra { font: 11px var(--mono); color: var(--s500); text-align: center; }
+
+@media (max-width: 860px) {
+  .row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .cardcol { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  h1 { font-size: 25px; }
+  .row { grid-template-columns: minmax(0, 1fr); }
+  .poses { grid-template-columns: minmax(0, 1fr); }
+  .weapon { padding: 12px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Stillwake · melee · concept art</div>
+    <h1>Melee weapons</h1>
+    <p>A pixel of art is a pixel of the world, 16 to a cell. Every held sprite lies the same way: the handle along +x from the grip, the head at the far end, the working side below (+y), so it leads the overhead swing. The dark wrap on each handle is where the fist closes. Numbers on the cards are concept numbers, not content.</p>
+    <ol class="rules">
+      <li><b>1 · Grip</b>On the handle where the fist closes, about a third up for axes and hammers, not at its end.</li>
+      <li><b>2 · Hold angle</b>The handle leaves the fist at an angle to the forearm, about 90° for axes, hammers and bars.</li>
+      <li><b>3 · Hand over</b>The front hand is drawn over the handle.</li>
+      <li><b>4 · Working part</b>The weapon marks its edge or head points; the hit zone is the path they sweep.</li>
+    </ol>
+  </header>
+
+  <div class="bar">
+    <nav class="hotbar" id="hotbar" aria-label="Weapons"></nav>
+    <div class="toggles" role="group" aria-label="Markers">
+      <label><input type="checkbox" data-hide="no-grip" checked><span class="sw" style="background:var(--grip)"></span>Grip</label>
+      <label><input type="checkbox" data-hide="no-edge" checked><span class="sw" style="background:var(--edge)"></span>Edge points</label>
+      <label><input type="checkbox" data-hide="no-path" checked><span class="sw" style="background:color-mix(in srgb, var(--edge) 40%, transparent)"></span>Hit path</label>
+      <label><input type="checkbox" data-hide="no-arm" checked><span class="sw" style="background:var(--arm)"></span>Forearm · hold angle</label>
+    </div>
+  </div>
+
+  <main id="list" class="wrap"></main>
+
+  <p class="note">The poses use the game's hero parts and rig (Rig.cs): shoulder at 0.61 of the 42 px figure, arm segments 6.1 px. The grip sits at the fist's middle, 4.8 px from the elbow, a little short of the arm's end where the game hangs the axe today, so the fist closes over the handle. The weapon's angle is the forearm's minus the hold angle; the path runs from Raised through Strike to a short follow-through. Reach is how far the edge points get from the shoulder, scaled so the fire axe keeps its 2000. Files: <code>held_*.png</code>, <code>icon_*.png</code>, <code>weapons.json</code>.</p>
+</div>
+
+<script>
+/*POSE*/
+/*DATA*/
+(function () {
+  var K = 8, PK = 6;
+  var img = {};
+  Object.keys(IMAGES).forEach(function (k) { var i = new Image(); i.src = IMAGES[k]; img[k] = i; });
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var f1 = function (n) { return (Math.round(n * 100) / 100).toString(); };
+
+  // markers over a held sprite, in its own pixels
+  function overlay(w) {
+    var g = w.grip, s = '';
+    var back = (w.hold + 180) * Math.PI / 180, L = 7.5;
+    var ex = g[0] + Math.cos(back) * L, ey = g[1] + Math.sin(back) * L;
+    var r = 3.2, a1 = back;
+    var arc = 'M' + (g[0] + r) + ' ' + g[1] + ' A' + r + ' ' + r + ' 0 0 0 ' + (g[0] + Math.cos(a1) * r) + ' ' + (g[1] + Math.sin(a1) * r);
+    s += '<g class="m-arm" stroke="var(--arm)" fill="none" stroke-width=".28">' +
+      '<line x1="' + g[0] + '" y1="' + g[1] + '" x2="' + ex + '" y2="' + ey + '" stroke-dasharray=".8 .5"/>' +
+      '<path d="' + arc + '"/>' +
+      '<text x="' + (g[0] + 1.1) + '" y="' + (g[1] - 3.9) + '" fill="var(--arm)" stroke="#070a10" stroke-width=".5" paint-order="stroke" font-size="2.2" font-family="Consolas, monospace">' + w.hold + '°</text>' +
+      '<text x="' + (ex + 0.6) + '" y="' + (ey + 0.6) + '" fill="var(--arm)" stroke="#070a10" stroke-width=".5" paint-order="stroke" font-size="1.7" font-family="Consolas, monospace">elbow</text></g>';
+    w.edge.forEach(function (e) {
+      s += '<rect class="m-edge" x="' + (e[0] - .55) + '" y="' + (e[1] - .55) + '" width="1.1" height="1.1" transform="rotate(45 ' + e[0] + ' ' + e[1] + ')" fill="var(--edge)" stroke="#14171e" stroke-width=".25"/>';
+    });
+    s += '<g class="m-grip"><circle cx="' + g[0] + '" cy="' + g[1] + '" r="1.2" fill="none" stroke="#14171e" stroke-width=".55"/><circle cx="' + g[0] + '" cy="' + g[1] + '" r="1.2" fill="none" stroke="var(--grip)" stroke-width=".3"/><circle cx="' + g[0] + '" cy="' + g[1] + '" r=".35" fill="var(--grip)"/></g>';
+    var v = view(w);
+    return '<svg viewBox="' + v.join(' ') + '" role="img" aria-label="' + esc(w.name) + ', held"><image href="' + IMAGES['held_' + w.id] + '" x="0" y="0" width="' + w.held.w + '" height="' + w.held.h + '" style="image-rendering:pixelated"/>' + s + '</svg>';
+  }
+
+  // the sprite's box grown to hold the hold-angle line and its labels
+  function view(w) {
+    var back = (w.hold + 180) * Math.PI / 180, ey = w.grip[1] + Math.sin(back) * 7.5;
+    var x0 = -1, y0 = Math.min(-1, Math.floor(ey - 2.5)), x1 = w.held.w + 1, y1 = w.held.h + 1;
+    return [x0, y0, x1 - x0, y1 - y0];
+  }
+  function card(w) {
+    var fx = w.effects.map(function (e) { return '<span class="chip fire">' + esc(e.name) + '</span>'; }).join('');
+    var fxl = w.effects.map(function (e) { return '<div class="effect"><b>' + esc(e.name) + '</b> — ' + esc(e.about) + '</div>'; }).join('');
+    return '<div class="cardcol"><span class="concept">concept numbers</span><div class="card">' +
+      '<div class="head"><div class="frame"><img src="' + IMAGES['icon_' + w.id] + '" alt=""></div><div class="name">' + esc(w.name) + '</div><div class="kind">' + esc(w.kind) + '</div></div>' +
+      '<div class="tiles"><div class="tile dps"><b>' + w.dps + '</b><span>DPS</span></div><div class="tile"><b>' + w.damage + '</b><span>DMG</span></div><div class="tile"><b>' + f1(w.seconds) + 's</b><span>HIT</span></div></div>' +
+      '<div class="body">' + (fx ? '<div class="chips">' + fx + '</div>' + fxl : '') + '<div class="chips"><span class="chip use">Wreckage</span></div><div class="hint"><span class="key">LMB</span>hold to swing</div></div></div>' +
+      '<div class="extra">reach ' + (w.reach / 1000).toFixed(1) + ' cells · arc ' + w.arc + '°</div></div>';
+  }
+
+  function section(w, n) {
+    var el = document.createElement('section');
+    el.className = 'weapon'; el.id = 'w-' + w.id;
+    el.innerHTML =
+      '<div class="whead"><span class="n">' + String(n + 1).padStart(2, '0') + '</span><h2>' + esc(w.name) + '</h2><span class="kind">' + esc(w.kind) + '</span></div>' +
+      '<p class="role">' + esc(w.role) + '</p>' +
+      '<div class="row">' +
+        '<figure class="box" style="margin:0"><div class="pix" style="--w:' + view(w)[2] + ';--h:' + view(w)[3] + ';--k:' + K + '">' + overlay(w) + '</div>' +
+          '<figcaption class="cap">held · ' + w.held.w + '×' + w.held.h + ' px · shown ' + K + '×</figcaption></figure>' +
+        '<figure class="box" style="margin:0"><div class="pix" style="--w:16;--h:16;--k:' + K + '"><img src="' + IMAGES['icon_' + w.id] + '" alt="' + esc(w.name) + ', icon"></div>' +
+          '<div class="slots"><span class="slot big"><img src="' + IMAGES['icon_' + w.id] + '" alt=""></span><span class="slot one"><img src="' + IMAGES['icon_' + w.id] + '" alt=""></span></div>' +
+          '<figcaption class="cap">icon · 16×16 · ' + K + '×, a 2× slot, 1×</figcaption></figure>' +
+        card(w) +
+      '</div>' +
+      '<div class="poses">' + ['rest', 'raised', 'strike'].map(function (p) {
+        return '<figure><canvas width="' + FRAME.w * PK + '" height="' + FRAME.h * PK + '" data-pose="' + p + '" aria-label="' + esc(w.name) + ' in the hand, ' + POSE.POSES[p].label + '"></canvas>' +
+          '<figcaption>' + POSE.POSES[p].label + '<span>upper ' + POSE.POSES[p].upper + '° · forearm ' + POSE.POSES[p].fore + '° · weapon ' + (POSE.POSES[p].fore - w.hold) + '°</span></figcaption></figure>';
+      }).join('') + '</div>' +
+      '<dl class="meta">' +
+        '<div><dt>grip</dt><dd>(' + w.grip.join(', ') + ') px</dd></div>' +
+        '<div><dt>hold angle</dt><dd>' + w.hold + '° to the forearm</dd></div>' +
+        '<div><dt>edge points</dt><dd>' + w.edge.map(function (e) { return '(' + e.join(', ') + ')'; }).join(' ') + '</dd></div>' +
+        '<div><dt>damage · swing</dt><dd>' + w.damage + ' · ' + w.ticks + ' ticks (' + f1(w.seconds) + ' s)</dd></div>' +
+        '<div><dt>reach · arc</dt><dd>' + w.reach + ' (' + w.reachPx + ' px drawn) · ' + w.arc + '°</dd></div>' +
+      '</dl>';
+    return el;
+  }
+
+  var list = document.getElementById('list'), bar = document.getElementById('hotbar');
+  WEAPONS.forEach(function (w, n) {
+    list.appendChild(section(w, n));
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'slot'; b.title = w.name;
+    b.innerHTML = '<img src="' + IMAGES['icon_' + w.id] + '" alt="' + esc(w.name) + '">';
+    b.addEventListener('click', function () { document.getElementById('w-' + w.id).scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    bar.appendChild(b);
+  });
+
+  var hidden = function (c) { return document.body.classList.contains(c); };
+  function dot(ctx, x, y, colour, diamond) {
+    ctx.save(); ctx.translate(x, y);
+    if (diamond) ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = '#14171e'; diamond ? ctx.fillRect(-5, -5, 10, 10) : (ctx.beginPath(), ctx.arc(0, 0, 6, 0, 7), ctx.fill());
+    ctx.fillStyle = colour; diamond ? ctx.fillRect(-3, -3, 6, 6) : (ctx.beginPath(), ctx.arc(0, 0, 3.5, 0, 7), ctx.fill());
+    ctx.restore();
+  }
+  function draw(canvas, w) {
+    var ctx = canvas.getContext('2d'), pose = POSE.POSES[canvas.dataset.pose], sc = POSE.scene(w, pose);
+    var X = -FRAME.x0 * PK, Y = -FRAME.y0 * PK, P = function (p) { return [X + p[0] * PK, Y + p[1] * PK]; };
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#070a10'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#1b2433'; ctx.fillRect(0, Y, canvas.width, 2);
+    if (!hidden('no-path')) {
+      var paths = POSE.sweep(w, 80).map(function (path) { return path.map(P); });
+      if (paths.length > 1) {
+        var a = paths[0], b = paths[paths.length - 1];
+        ctx.beginPath(); ctx.moveTo(a[0][0], a[0][1]);
+        a.forEach(function (p) { ctx.lineTo(p[0], p[1]); });
+        b.slice().reverse().forEach(function (p) { ctx.lineTo(p[0], p[1]); });
+        ctx.closePath(); ctx.fillStyle = 'rgba(255,122,46,.13)'; ctx.fill();
+      }
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,122,46,.5)'; ctx.setLineDash([6, 5]);
+      paths.forEach(function (path) { ctx.beginPath(); path.forEach(function (p, i) { i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }); ctx.stroke(); });
+      ctx.setLineDash([]);
+    }
+    ctx.imageSmoothingEnabled = false;
+    sc.list.forEach(function (d) {
+      var im = d.part === 'weapon' ? img['held_' + w.id] : img[d.part + (d.far ? 'Far' : '')];
+      var j = d.joint || POSE.JOINT[d.part];
+      ctx.setTransform(PK, 0, 0, PK, X + d.at[0] * PK, Y + d.at[1] * PK);
+      ctx.rotate(d.rot * Math.PI / 180);
+      ctx.drawImage(im, -j[0], -j[1]);
+    });
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (!hidden('no-arm')) {
+      var el = P(sc.elbow), fi = P(sc.grip);
+      ctx.lineCap = 'round'; ctx.strokeStyle = '#14171e'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(el[0], el[1]); ctx.lineTo(fi[0], fi[1]); ctx.stroke();
+      ctx.strokeStyle = '#c4b5fd'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(el[0], el[1]); ctx.lineTo(fi[0], fi[1]); ctx.stroke();
+      ctx.fillStyle = '#c4b5fd'; ctx.beginPath(); ctx.arc(el[0], el[1], 3.5, 0, 7); ctx.fill(); ctx.lineCap = 'butt';
+    }
+    if (!hidden('no-grip')) { var g = P(sc.grip); dot(ctx, g[0], g[1], '#6fd3ff'); }
+    if (!hidden('no-edge')) sc.edges.forEach(function (e) { var q = P(e); dot(ctx, q[0], q[1], '#ff7a2e', true); });
+  }
+  function drawAll() {
+    WEAPONS.forEach(function (w) {
+      document.querySelectorAll('#w-' + w.id + ' canvas').forEach(function (c) { draw(c, w); });
+    });
+  }
+  document.querySelectorAll('[data-hide]').forEach(function (box) {
+    box.addEventListener('change', function () { document.body.classList.toggle(box.dataset.hide, !box.checked); drawAll(); });
+  });
+  var waiting = Object.keys(img).length;
+  Object.keys(img).forEach(function (k) {
+    if (img[k].complete) { if (--waiting === 0) drawAll(); }
+    else img[k].onload = function () { if (--waiting === 0) drawAll(); };
+  });
+})();
+</script>
+</body>
+</html>
