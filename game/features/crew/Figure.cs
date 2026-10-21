@@ -97,8 +97,8 @@ public partial class Figure : Node2D
     private double _strideFrom;
     private Pose? _wasPose;
     private double _timeMs, _head;
-    /// <summary>Milliseconds of a landing still to spring back from.</summary>
-    private double _landingMs;
+    /// <summary>The lean, the skid, the landing and the air's timers, read from the motion (0090).</summary>
+    private readonly Motion _motion = new();
     /// <summary>How long since passing out, and what picks the heap it ends in, new each time.</summary>
     private double _outMs, _outTilt;
     private int _slump;
@@ -166,8 +166,6 @@ public partial class Figure : Node2D
     private const double SlackMs = 450;
     /// <summary>The step the walk is on, counted from where it began; a new one puts a foot down.</summary>
     private int? _step;
-    /// <summary>How fast the hero last fell, thousandths of a cell a step: how hard it lands.</summary>
-    private int _fall;
     private readonly Action _stepped, _landed, _jumped;
 
     /// <param name="own">Whether it is this player's hero, heard on the suit rather than in the world.</param>
@@ -389,11 +387,30 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
+    /// A skid's scrape at the soles, (<paramref name="x"/>, <paramref name="y"/>) the floor (0090): <paramref name="streaks"/>
+    /// thin pale streaks of light shot along the floor the way the hero <paramref name="slides"/>, about every second one with
+    /// a mote of the boots' matter dust lifted with it (0075).
+    /// </summary>
+    private static void Skid(double x, double y, int slides, int streaks)
+    {
+        var glims = Glims.Shared;
+        double at = x + slides * Rig.W * 0.27;
+        for (int i = 0; i < Math.Round(streaks * Fx.Count); i++)
+        {
+            glims.Add(Luminous.SkidDust, at + glims.Between(-1, 1), y - 0.5, slides * glims.Between(40, 90), -glims.Between(0, 6), y);
+            if (glims.Between(0, HeroMotion.Skid.MotesEvery) < 1)
+                glims.Add(Luminous.BootDust, at, y - 1, slides * glims.Between(10, 40), -glims.Between(5, 18), y, glims.Between(0.5, 0.8), glims.Between(0.45, 0.8));
+        }
+    }
+
+    /// <summary>
     /// A landing's dust at the feet, (<paramref name="x"/>, <paramref name="y"/>) the floor (0075): to either side
     /// <paramref name="grains"/> grains skittering out along the floor, slowing into motes, as many motes, two veils rolling
-    /// out and curling; and a faint flat ring racing out along the floor, the only light in it.
+    /// out and curling; and a faint flat ring racing out along the floor, the only light in it, as wide as the
+    /// <paramref name="fall"/> was fast (0090). A heavy landing's ring goes wider, brighter and longer, and two streaks of light
+    /// race along the floor either side ahead of it.
     /// </summary>
-    private void Land(double x, double y, int grains)
+    private void Land(double x, double y, int grains, int fall)
     {
         var glims = Glims.Shared;
         foreach (int side in (ReadOnlySpan<int>)[-1, 1])
@@ -409,9 +426,12 @@ public partial class Figure : Node2D
             if (room < FloorSpread / 2) continue;
             for (int i = 0; i < 2; i++)
                 glims.Add(Luminous.LandVeil, x + side * (2 + i * 3), y - 1.4 - i * 0.6, side * glims.Between(12, 26), -glims.Between(1, 5));
+            for (int i = 0; i < HeroMotion.Landing.HeavyStreaks && Motion.Heavy(fall); i++)
+                glims.Add(Luminous.LandStreak, x + side * 3, y - 0.6, side * glims.Between(90, 140), -glims.Between(0, 8));
         }
-        double ring = Math.Min(3 + 26 * Fx.Length, Math.Min(FloorRoom.Left, FloorRoom.Right));
-        if (ring >= 6) Flares.Shared.Shock(x, y - 0.4, 3, ring, 10 * Glim.SampleMs, (236, 240, 248), 0.32 * Fx.Glow, 0.28, 0.16);
+        var (to, ms, alpha) = Motion.RingOf(fall);
+        double ring = Math.Min(Motion.RingFrom + (to - Motion.RingFrom) * Fx.Length, Math.Min(FloorRoom.Left, FloorRoom.Right));
+        if (ring >= 6) Flares.Shared.Shock(x, y - 0.4, Motion.RingFrom, ring, ms, (236, 240, 248), alpha * Fx.Glow, 0.28, 0.16);
     }
 
     /// <summary>How far, in pixels, a landing's dust needs the floor open to spread its whole way.</summary>
@@ -496,15 +516,15 @@ public partial class Figure : Node2D
         _outMs += elapsedMs;
         // Where the feet are, in pixels of the world.
         double feetX = (double)hero.X / Hero.Unit * Rig.Cell, feetY = (double)hero.Y / Hero.Unit * Rig.Cell;
-        if (Poses.Jumped(_wasPose, pose, hero)) _jumped();
-        if (pose == Pose.Air) _fall = Math.Max(0, hero.Vy);
-        if (Poses.Landed(_wasPose, pose, _fall))
+        var cues = _motion.Step(hero, pose, elapsedMs);
+        if (cues.Jumped) _jumped();
+        if (cues.Landed is int fall)
         {
-            _landingMs = Poses.Land.Ms;
             _landed();
-            int puff = Math.Min(DustLandMost, Math.Max(DustLandLeast, (int)Math.Round(_fall * DustLandPerSpeed, MidpointRounding.AwayFromZero)));
-            Land(feetX, feetY, puff);
+            int puff = Math.Min(DustLandMost, Math.Max(DustLandLeast, (int)Math.Round(fall * DustLandPerSpeed, MidpointRounding.AwayFromZero)));
+            Land(feetX, feetY, puff, fall);
         }
+        if (cues.SkidDust > 0) Skid(feetX, feetY, _motion.Sliding, cues.SkidDust);
         // A foot comes down at the end of each half stride, a quarter stride in: heard walking and running,
         // kicking up dust only running.
         double? stride = pose switch { Pose.Run => Poses.Stride.Run, Pose.Walk => Poses.Stride.Walk, _ => null };
@@ -515,7 +535,6 @@ public partial class Figure : Node2D
             if (pose == Pose.Run) Kick(feetX + hero.Facing * Rig.W * 0.3, feetY, hero.Facing);
         }
         _step = stepping;
-        _landingMs = Math.Max(0, _landingMs - elapsedMs);
         _wasPose = pose;
         // Working a plan the screwdriver takes the front hand; the planner waits till it is done.
         bool working = _workAt != null && Poses.HoldsIn(pose);
@@ -531,8 +550,8 @@ public partial class Figure : Node2D
         bool afloat = pose == Pose.Float;
         _swim = afloat ? Settle(_swim, Poses.Swimming(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
-        var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _landingMs / Poses.Land.Ms, holding ? _head : null,
-            _outMs, _slump, _outTilt, _swim, _fast, item != null));
+        var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _motion.Landing, holding ? _head : null,
+            _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now));
         var from = _shown ?? to;
         double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(
@@ -540,7 +559,7 @@ public partial class Figure : Node2D
             SettleBend(from.BackArm, to.BackArm, elapsedMs, within),
             SettleBend(from.FrontLeg, to.FrontLeg, elapsedMs, within),
             SettleBend(from.BackLeg, to.BackLeg, elapsedMs, within),
-            SettleAngle(from.Tilt, to.Tilt, elapsedMs, afloat ? LeanMs : SettleMs),
+            SettleAngle(from.Tilt, to.Tilt, elapsedMs, afloat ? LeanMs : pose is Pose.Lie or Pose.Tumble ? SettleMs : HeroMotion.Lean.SettleMs),
             Settle(from.Lift, to.Lift, elapsedMs),
             to.Lying);
         _shown = shown;

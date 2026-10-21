@@ -176,6 +176,7 @@ public partial class Main : Node2D, ITogether
         _debris.Nudged += _camera.Nudge;
         if (Has("--world") || Has("--fly") || Has("--asteroid") || Has("--sortie")) _layout = Registry.Wreck;
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
+        if (Has("--poses")) _layout = HeroAutopilot.Hall;
         if (Has("--hills")) _layout = HillsDemo.Map;
         if (Has("--slopes")) _layout = SlopesDemo.Map;
         if (Has("--floor")) _layout = FloorDemo.Map;
@@ -186,8 +187,9 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip")) : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
+            var script = Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40) : Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip")) : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
+            if (Has("--poses")) AddChild(new PosesDemo(script!));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
             if (_args.FirstOrDefault(a => a.StartsWith("--edge=")) is { } edge)
                 _hero.Start = m => m.Grid.Height / 2 * m.Grid.Width + Math.Max(0, m.Grid.Zone.Left - Content.Field.Margin - int.Parse(edge[7..]));
@@ -353,6 +355,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--hills")) world = HillsDemo.Seed(world, Modules);
         if (Has("--slopes")) world = SlopesDemo.Seed(world, Modules);
         if (Has("--floor")) world = FloorDemo.Seed(world, Modules);
+        if (Has("--poses")) world = GroundDemo.Seed(world, Modules);
         if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);
         if (Has("--charge")) world = ChargeDemo.Seed(world, Modules);
         if (Has("--arc")) world = ArcDemo.Seed(world, Modules);

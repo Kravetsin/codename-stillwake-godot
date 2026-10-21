@@ -1,4 +1,5 @@
 using System;
+using Feel = Stillwake.Game.HeroMotion;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -23,10 +24,13 @@ public readonly record struct Limbs(Bend FrontArm, Bend BackArm, Bend FrontLeg, 
 /// as it passed out, which in space it keeps. Afloat, <see cref="Swim"/> and <see cref="Fast"/> blend from
 /// drifting still into swimming and on into swimming fast, each 0 to 1; the figure eases them, and with
 /// none they follow the hero's speed at once. <see cref="Wields"/> while the front hand holds an item, the
-/// axe or the harpoon: afloat that arm keeps calm rather than paddling.
+/// axe or the harpoon: afloat, or flailing in a long fall, that arm keeps calm. <see cref="Momentum"/>, what the figure
+/// read from the motion over time (<see cref="Motion"/>, 0090): the lean, the skid, the landing's depth, the jump's and
+/// the fall's timers; none for a body at rest in it.
 /// </summary>
 public readonly record struct Moment(double Travelled, double TimeMs, double? Landing = null, double? Plan = null,
-    double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, bool Wields = false);
+    double? OutMs = null, int Slump = 0, double OutTilt = 0, double? Swim = null, double? Fast = null, bool Wields = false,
+    Momentum? Momentum = null);
 
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
@@ -53,10 +57,33 @@ public static class Poses
         public const double PaddleMs = 1100, PaddleFastMs = 700, SwayMs = 5200;
     }
 
-    /// <summary>How long a landing takes to spring back, and how far, in pixels, the body sinks into it.</summary>
+    /// <summary>How far, in pixels, the body sinks into a landing at depth 1; how deep and how long by the fall is <see cref="Motion"/>'s (0090).</summary>
     public static class Land
     {
-        public const double Ms = 220, Sink = Rig.Hip * 0.22;
+        public const double Sink = Rig.Hip * 0.22;
+    }
+
+    /// <summary>
+    /// The air's poses (0090): <see cref="Rise"/>, knees tucked and arms up; <see cref="Fall"/>, legs reaching for the floor
+    /// and arms out; <see cref="Top"/>, the knees drawn to the chest at a jump's top; <see cref="Push"/>, the legs straight
+    /// under the body pushing off, the arms thrown up.
+    /// </summary>
+    public static class Airborne
+    {
+        public static readonly Limbs Rise = new(B(2.3, 0.35), B(1.9, 0.5), B(1, -1.3), B(0.25, -0.8), 0, 0, false);
+        public static readonly Limbs Fall = new(B(1.4, 0.4), B(1.1, 0.5), B(0.35, -0.45), B(-0.05, -0.3), 0, 0, false);
+        public static readonly Limbs Top = new(B(2.0, 0.5), B(1.7, 0.6), B(1.25, -1.6), B(0.6, -1.3), 0, 0, false);
+        public static readonly Limbs Push = new(B(2.6, 0.2), B(2.2, 0.25), B(-0.1, -0.08), B(-0.35, -0.1), 0, 0, false);
+    }
+
+    /// <summary>
+    /// A skid (0090): <see cref="Braking"/>, sliding the way it faces, the front leg planted ahead and the body thrown back;
+    /// <see cref="Turned"/>, sliding backwards after a turn, the soles dragging behind and the body leaning into its new way.
+    /// </summary>
+    public static class Skidding
+    {
+        public static readonly Limbs Braking = new(B(0.6, 0.9), B(0.9, 0.6), B(0.75, -0.15), B(0.1, -0.9), -0.14, 0, false);
+        public static readonly Limbs Turned = new(B(-0.4, 1.3), B(0.8, 1.3), B(0.35, -1.0), B(-0.6, -0.2), 0.22, 0, false);
     }
 
     /// <summary>How far the head turns toward the pointer, in radians: up, and down.</summary>
@@ -173,7 +200,8 @@ public static class Poses
     public static Limbs LimbsOf(Pose pose, Hero hero, Moment moment)
     {
         var body = BodyOf(pose, hero, moment);
-        var landed = pose is Pose.Stand or Pose.Walk or Pose.Run ? Grounded(LandingOf(body, moment.Landing)) : body;
+        var motion = moment.Momentum ?? Momentum.AtRest;
+        var landed = pose is Pose.Stand or Pose.Walk or Pose.Run ? Grounded(LandingOf(Leaned(body, motion), moment.Landing, motion.Depth)) : body;
         if (moment.Plan is not double look || !HoldsIn(pose)) return landed;
         var front = PlanHand(look);
         double along = Hold.FarHand * Sheet.Length;
@@ -191,13 +219,24 @@ public static class Poses
         return limbs with { Lift = lowest - Rig.Hip };
     }
 
-    /// <summary>Touching down, the knees bend deep and straighten again, the feet under the hips.</summary>
-    private static Limbs LandingOf(Limbs limbs, double? landing)
+    /// <summary>On the floor, the body leans into its acceleration and blends into a skid as far as it skids (0090).</summary>
+    private static Limbs Leaned(Limbs limbs, Momentum motion)
+    {
+        var leaned = limbs with { Tilt = limbs.Tilt + motion.Lean };
+        if (motion.Skid <= 0.01) return leaned;
+        return Mix(leaned, motion.Along > 0 ? Skidding.Braking : Skidding.Turned, Math.Min(1, motion.Skid));
+    }
+
+    /// <summary>
+    /// Touching down, the knees bend deep and straighten again, the feet under the hips; <paramref name="depth"/> times the
+    /// sink of <see cref="Land.Sink"/> (0090).
+    /// </summary>
+    private static Limbs LandingOf(Limbs limbs, double? landing, double depth)
     {
         if (landing is not double l || l == 0) return limbs;
         // Down fast and up slower: the deepest a third of the way through.
         double t = 1 - l;
-        double sink = Land.Sink * (t < 1.0 / 3 ? t * 3 : (1 - t) * 1.5);
+        double sink = Land.Sink * depth * (t < 1.0 / 3 ? t * 3 : (1 - t) * 1.5);
         Bend Foot(double x) => Rig.Reach(new Vec(x, Rig.Hip - sink), Rig.Leg, -1);
         return limbs with
         {
@@ -244,10 +283,7 @@ public static class Poses
                         Tilt: 0.15, Lift: 0, Lying: false);
                 }
             case Pose.Air:
-                // Rising, knees tucked and arms up; falling, legs reach for the floor and arms out.
-                return hero.Vy < 0
-                    ? new Limbs(B(2.3, 0.35), B(1.9, 0.5), B(1, -1.3), B(0.25, -0.8), 0, 0, false)
-                    : new Limbs(B(1.4, 0.4), B(1.1, 0.5), B(0.35, -0.45), B(-0.05, -0.3), 0, 0, false);
+                return InTheAir(hero, moment);
             case Pose.Climb:
                 return Climbing(moment.Travelled / Stride.Climb);
             case Pose.Float:
@@ -260,6 +296,50 @@ public static class Poses
                 return Limp(moment);
         }
     }
+
+    /// <summary>
+    /// In the air (0090): from rising into falling as the speed up or down says, the knees tucked near the top, the legs
+    /// pushing straight just after a jump, the arms flailing a long fall (the front one calm while it holds an item), and
+    /// the body tipped into a fast way across.
+    /// </summary>
+    private static Limbs InTheAir(Hero hero, Moment moment)
+    {
+        var motion = moment.Momentum ?? Momentum.AtRest;
+        double k = Math.Clamp((double)(hero.Vy - Feel.Air.RiseBelow) / Feel.Air.Blend, 0, 1);
+        var limbs = Mix(Airborne.Rise, Airborne.Fall, k * k * (3 - 2 * k));
+        if (TopOf(hero.Vy) is var top and > 0) limbs = Mix(limbs, Airborne.Top, top);
+        if (PushOf(motion.SinceJumpMs) is var push and > 0) limbs = Mix(limbs, Airborne.Push, push);
+        if (FlailOf(hero.Vy, motion.FallingMs) is var flail and > 0)
+        {
+            double t = moment.TimeMs;
+            limbs = limbs with
+            {
+                FrontArm = moment.Wields ? limbs.FrontArm : limbs.FrontArm with { Upper = limbs.FrontArm.Upper + 0.35 * flail * Math.Sin(t / 70) },
+                BackArm = limbs.BackArm with { Upper = limbs.BackArm.Upper - 0.3 * flail * Math.Sin(t / 85 + 1) },
+                FrontLeg = limbs.FrontLeg with { Upper = limbs.FrontLeg.Upper + 0.15 * flail * Math.Sin(t / 110) },
+            };
+        }
+        return limbs with { Tilt = DriftOf(hero) };
+    }
+
+    /// <summary>How far the knees tuck at a jump's top, moving <paramref name="vy"/> up or down: up to <c>Air.Tuck</c> at still.</summary>
+    public static double TopOf(int vy)
+    {
+        int apex = Feel.Air.Apex;
+        return Math.Abs(vy) < apex ? (1 - (double)Math.Abs(vy) / apex) * Feel.Air.Tuck : 0;
+    }
+
+    /// <summary>How far the legs push straight <paramref name="sinceJumpMs"/> after a jump: from 1 to none over <c>Air.PushMs</c>.</summary>
+    public static double PushOf(double sinceJumpMs) =>
+        sinceJumpMs < Feel.Air.PushMs ? 1 - sinceJumpMs / Feel.Air.PushMs : 0;
+
+    /// <summary>How hard the arms flail falling at <paramref name="vy"/> for <paramref name="fallingMs"/>: from none to 1.</summary>
+    public static double FlailOf(int vy, double fallingMs) =>
+        vy > Feel.Air.FlailSpeed && fallingMs > Feel.Air.FlailAfterMs ? Math.Clamp((fallingMs - Feel.Air.FlailAfterMs) / Feel.Air.FlailMs, 0, 1) : 0;
+
+    /// <summary>How far the body tips into its way across in the air, forward when it goes the way it faces.</summary>
+    public static double DriftOf(Hero hero) =>
+        Math.Abs(hero.Vx) > Feel.Air.DriftSpeed ? Feel.Air.Drift * Math.Sign(hero.Vx) * hero.Facing : 0;
 
     /// <summary>
     /// Passing out: the knees give way for <see cref="BuckleMs"/>, the body topples onto its back for
