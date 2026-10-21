@@ -98,6 +98,17 @@ public sealed record Ground(int Width, int Height)
     public int SpireRise { get; init; } = 10;
 
     /// <summary>
+    /// The arc makers' homes (0090): <see cref="Homes"/> of them (<see cref="Ruins.Homes"/>, each scheme in turn), each in a band of
+    /// its own along the columns at least <see cref="HomeClear"/> from the middle, clear of the spires; its ceiling
+    /// <see cref="HomeDeepLeast"/> to <see cref="HomeDeepMost"/> rows (by the seed) under the lowest surface across it, so it is
+    /// found by digging near the surface.
+    /// </summary>
+    public int Homes { get; init; } = 3;
+    public int HomeClear { get; init; } = 384;
+    public int HomeDeepLeast { get; init; } = 8;
+    public int HomeDeepMost { get; init; } = 20;
+
+    /// <summary>
     /// The planet's core under the caves, <see cref="CoreRows"/> rows: <see cref="LavaRows"/> of lava (<see cref="Lava"/>) over
     /// <see cref="BedrockRows"/> of bedrock, the lava between the bedrock columns at either side, <see cref="BedrockSide"/>
     /// wide the whole height of the grid.
@@ -117,7 +128,8 @@ public sealed record Ground(int Width, int Height)
 
     /// <summary>
     /// The same ground small, 64 × 48, for tests and the fuzz: low hills, caves a little nearer the surface, a chasm and a
-    /// hall of its size, and one spire (0085), so the fuzz digs alloy.
+    /// hall of its size, one spire (0085), so the fuzz digs alloy, and one home (0090), its scheme by the seed, anywhere it
+    /// fits beside the spire, for a home is wider than the columns left beside a clear middle there.
     /// </summary>
     public static readonly Ground Small = new(64, 48)
     {
@@ -138,5 +150,9 @@ public sealed record Ground(int Width, int Height)
         Clear = 8,
         Spires = 1,
         RuinClear = 12,
+        Homes = 1,
+        HomeClear = 0,
+        HomeDeepLeast = 4,
+        HomeDeepMost = 10,
     };
 }

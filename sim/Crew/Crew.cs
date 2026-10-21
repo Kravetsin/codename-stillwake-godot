@@ -52,12 +52,22 @@ public interface ICrewQueries
     IReadOnlyList<Hero> Heroes { get; }
 }
 
+/// <summary>How another module may change a hero.</summary>
+public interface ICrewOps
+{
+    /// <summary>
+    /// Hero <paramref name="peer"/>'s suit pays <paramref name="units"/> at once, the suit alone, as the cold and the lava take it:
+    /// a ruin's resonator zapping it (0090). A suit run dry passes it out; nothing in creative mode, nor for a hero out or none.
+    /// </summary>
+    void Shock(int peer, int units);
+}
+
 /// <summary>
 /// Heroes inside the sim: where each one is, as its client says, and how it breathes — room air in a
 /// cell holding it, the suit anywhere else, passing out when the suit runs dry
 /// (packages/sim/src/modules/crew).
 /// </summary>
-public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICarries
+public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewOps, ICarries
 {
     public override string Id => "crew";
 
@@ -152,18 +162,27 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICarri
                 // Thin air (0076): what the air falls short of the breath, the suit pays one breath in ThinAir.
                 if (net < 0 && Rules.ThinAir is int every && State.Clock / Content.Crew.BreathEvery % every != 0) net = 0;
                 hero.Suit = Math.Max(0, hero.Suit + net - cold);
-                if (hero.Suit == 0 && (net < 0 || cold > 0))
-                {
-                    hero.Out = Content.Crew.PassOut;
-                    hero.Exerting = false;
-                    hero.Thrusting = false;
-                    _itemsOps.StopRunning(hero.Id);
-                    // Passing out is death (0061): what it carried stays where it fell, off the grid at the spawn.
-                    bool onGrid = hero.Cell >= 0 && hero.Cell < _grid.Width * _grid.Height;
-                    _itemsOps.LeaveBody(hero.Id, onGrid ? hero.Cell : State.Spawn);
-                }
+                if (hero.Suit == 0 && (net < 0 || cold > 0)) PassOut(hero);
             }
         });
+    }
+
+    /// <summary>Passing out is death (0061): what it carried stays where it fell, off the grid at the spawn.</summary>
+    private void PassOut(Hero hero)
+    {
+        hero.Out = Content.Crew.PassOut;
+        hero.Exerting = false;
+        hero.Thrusting = false;
+        _itemsOps.StopRunning(hero.Id);
+        bool onGrid = hero.Cell >= 0 && hero.Cell < _grid.Width * _grid.Height;
+        _itemsOps.LeaveBody(hero.Id, onGrid ? hero.Cell : State.Spawn);
+    }
+
+    public void Shock(int peer, int units)
+    {
+        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative || units <= 0) return;
+        hero.Suit = Math.Max(0, hero.Suit - units);
+        if (hero.Suit == 0) PassOut(hero);
     }
 
     /// <summary>

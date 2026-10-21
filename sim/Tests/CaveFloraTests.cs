@@ -21,9 +21,10 @@ public class CaveFloraTests
     /// <summary>
     /// Whether every cave growth of <paramref name="l"/> is where it may be: in a cave — an open cell with a back wall, its
     /// <c>Tall</c> cells open, on a whole wall or under one — or in stone beside a cave cell; in a band it lives in; roots near
-    /// the surface (but under a spire, whose tip stands over the ground the roots grew under, 0085); and no two in one cell.
+    /// the surface (but under a spire, whose tip stands over the ground the roots grew under, 0085); and no two in one cell. A
+    /// home's collapsed end is grown over by its prefab, not the caves (0090): what lies in a home's box is the home's.
     /// </summary>
-    private static string? Misplaced(Layout l, Ground g, IReadOnlyList<(int X, int Y)>? spires = null)
+    private static string? Misplaced(Layout l, Ground g, IReadOnlyList<(int X, int Y)>? spires = null, IReadOnlyList<(int X, int Y, Ruins.Home Home)>? homes = null)
     {
         int w = l.Width;
         char At(int cell) => cell < 0 || cell >= w * l.Height ? '#' : l.Rows[cell / w][cell % w];
@@ -31,6 +32,7 @@ public class CaveFloraTests
         foreach (var (cell, kind) in CaveGrowth(l))
         {
             int x = cell % w, y = cell / w;
+            if (homes?.Any(h => x >= h.X && x < h.X + h.Home.Wide && y >= h.Y && y < h.Y + h.Home.Tall) == true) continue;
             string where = $"{kind.Id} at ({x}, {y})";
             if (kind.Chances[Terrain.BandOf(g, y)] == 0) return $"{where}: not in its band";
             switch (kind.On)
@@ -60,13 +62,14 @@ public class CaveFloraTests
 
     [Property(MaxTest = 60)]
     public Property CaveGrowthIsOnlyInCavesOnWhatHoldsItInItsBand() =>
-        Prop.ForAll(Seeds, seed => Misplaced(Terrain.Generate(Ground.Small, seed, out _, out _, out var spires), Ground.Small, spires) is not { } why ? true.ToProperty() : false.Label(why));
+        Prop.ForAll(Seeds, seed => Misplaced(Terrain.Generate(Ground.Small, seed, out _, out _, out var spires, out var homes), Ground.Small, spires, homes) is not { } why
+            ? true.ToProperty() : false.Label(why));
 
     [Fact]
     public void TheFirstPlanetGrowsEveryCaveKindWhereItMayAndEachBandItsOwn()
     {
-        var l = Terrain.Generate(Ground.Planet, 1, out _, out _, out var spires);
-        Assert.Null(Misplaced(l, Ground.Planet, spires));
+        var l = Terrain.Generate(Ground.Planet, 1, out _, out _, out var spires, out var homes);
+        Assert.Null(Misplaced(l, Ground.Planet, spires, homes));
         Assert.All(Flora.Cave, k => Assert.Contains(l.Flora!, p => p.Kind == k.Id));
         // The cold band's crystals are ice, the deep's amber, the ember band's ember: each band has its own look.
         var byBand = CaveGrowth(l).GroupBy(p => Terrain.BandOf(Ground.Planet, p.Cell / l.Width)).ToDictionary(b => b.Key, b => b.Select(p => p.Kind.Id).ToHashSet());

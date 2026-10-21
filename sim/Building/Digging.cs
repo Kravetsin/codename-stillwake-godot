@@ -56,17 +56,23 @@ public sealed partial class BuildingModule
         _gridOps.Clear(c.Cell, "structure");
         _itemsOps.GiveOrDrop(c.From, wall.Cost, c.Cell);
         // What the wall held goes to its digger now; the sweep would fell it the same tick, giving nothing.
-        foreach (var plant in HeldBy(c.Cell)) Fell(plant, c.From);
+        foreach (var plant in HeldBy(c.Cell))
+            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant) Fell(plant, c.From);
     }
 
     /// <summary>
-    /// The growths <paramref name="cell"/>'s wall holds (<see cref="HoldOf"/>), in cell order: one standing on it, one in
-    /// its own stone, one hanging from it.
+    /// The growths <paramref name="cell"/>'s wall holds (<see cref="HoldsOf"/>), in cell order: one standing on it, one in
+    /// its own stone, one hanging from it, in front or behind; a piece over several columns by any of them (0090).
     /// </summary>
-    private IEnumerable<Plant> HeldBy(int cell)
+    private List<Plant> HeldBy(int cell)
     {
+        var held = new List<Plant>();
         foreach (int at in (int[])[cell - _grid.Width, cell, cell + _grid.Width])
-            if (_plantOwn.TryGetValue(at, out var plant) && HoldOf(plant) == cell) yield return plant;
+            foreach (var layer in (Dictionary<int, Plant>[])[_plantIn, _plantBehind])
+                if (layer.TryGetValue(at, out var plant) && !held.Contains(plant) && Kinds[plant.Kind].On != Flora.Anchor.Back && HoldsOf(plant).Contains(cell))
+                    held.Add(plant);
+        held.Sort(ByCell);
+        return held;
     }
 
     /// <summary>

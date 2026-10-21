@@ -61,7 +61,7 @@ public class ContentTests
             Assert.All(Weapons.All, w => Assert.True(w.Damage < m.Strength, $"{w.Item} on {m.Id}"));
             Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
         }
-        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
+        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
         // The ruins' alloy (0085): six seconds of the drill, four of the arc drill, fifteen of the axe.
         int Seconds(Weapon w) => Materials.Get("alloy").Strength / (w.Damage * World.TicksPerSecond / w.Pace);
         Assert.Equal((15, 6, 4), (Seconds(Weapons.Axe), Seconds(Weapons.Drill), Seconds(Weapons.ArcDrill)));
@@ -876,7 +876,7 @@ public class ContentTests
     {
         Assert.Equal(Modules.All.Count, Modules.All.Select(m => m.Item).Distinct().Count());
         var given = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).SelectMany(k => Loot.Of(k.Item) ?? []).Select(e => e.Item)
-            .Concat(Flora.All.Concat<Flora.Growth>(Flora.Cave).SelectMany(k => k.Yields).Select(y => y.Item)).ToHashSet();
+            .Concat(Flora.Every.SelectMany(k => k.Yields).Select(y => y.Item)).ToHashSet();
         foreach (var module in Modules.All)
         {
             var item = Content.Items.Get(module.Item);
@@ -963,7 +963,7 @@ public class ContentTests
             foreach (var (made, _) in item.Yields ?? []) had.Add(made);
         foreach (var craft in Crafts.All) had.Add(craft.Item);
         // What a planet's growth gives (0080).
-        foreach (var (item, _) in Flora.All.Concat<Flora.Growth>(Flora.Cave).SelectMany(k => k.Yields)) had.Add(item);
+        foreach (var (item, _) in Flora.Every.SelectMany(k => k.Yields)) had.Add(item);
         var costs = AllBuilds().Select(b => b.Cost).Concat(Crafts.All.Select(c => c.Cost)).Append(Content.Power.CableCost);
         foreach (var (item, _) in costs.SelectMany(c => c)) Assert.Contains(item, had);
     }
@@ -1004,7 +1004,7 @@ public class ContentTests
     {
         var had = new HashSet<string>(StringComparer.Ordinal);
         if (planet)
-            foreach (var (item, _) in Materials.All.Where(m => m.Breaks).SelectMany(m => m.Cost).Concat(Flora.All.Concat<Flora.Growth>(Flora.Cave).SelectMany(k => k.Yields)))
+            foreach (var (item, _) in Materials.All.Where(m => m.Breaks).SelectMany(m => m.Cost).Concat(Flora.Every.SelectMany(k => k.Yields)))
                 had.Add(item);
         foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Where(k => !never.Contains(k.Item)))
         {
@@ -1102,7 +1102,7 @@ public class ContentTests
     [Fact]
     public void FloraYieldsWholeCountsOfRealItemsAndEveryKindWorthBreakingGivesSome()
     {
-        foreach (var kind in Flora.All.Concat<Flora.Growth>(Flora.Cave))
+        foreach (var kind in Flora.Every)
             Assert.All(kind.Yields, y => Assert.True(Content.Items.TryGet(y.Item, out _) && y.Count > 0, $"{kind.Id}: {y.Item}"));
         var giving = Flora.All.Concat<Flora.Growth>(Flora.Cave).Where(k => k.Yields.Count > 0).Select(k => k.Id).Order(StringComparer.Ordinal);
         Assert.Equal(

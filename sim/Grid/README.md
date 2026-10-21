@@ -109,7 +109,7 @@ draws part of one does not load. Every character but a space has a back wall of 
 hull walls included. A map's machines take ids 1, 2, … by their top-left cells in reading order.
 
 A map may come with its cells' materials (`Layout.Materials`, 0077): a planet's ground grown from its seed
-(`Terrain`), or a test's material map (`Layout.WithMaterials`, `Legend.Materials`: `s` soil, `t` stone, `b` bedrock, `a` the ruins' alloy, 0085).
+(`Terrain`), or a test's material map (`Layout.WithMaterials`, `Legend.Materials`: `s` soil, `t` stone, `b` bedrock, `a` the ruins' alloy, 0085, `p` the homes' plaster, 0090).
 A wall and the back wall behind a cell are then of that cell's material; a code of 0 is open sky, with no back wall, and a
 negative one the material with no back wall: a slope under the sky, whose open half shows it.
 Natural materials (`Material.Natural`) are walls like any other to the grid: what digs them is building's (0077).

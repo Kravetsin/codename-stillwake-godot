@@ -215,6 +215,15 @@ public static class Sound
     /// <summary>A drone's clamp taking a stack, or putting it in: one of three small plastic switches, 3 dB under a station (−35 LUFS).</summary>
     public static readonly Cue DroneGrab = new(Shots("logistics/drone-grab", 3), -10, Heard: StationReach);
 
+    /// <summary>
+    /// The arc makers' music box hit (0090): a plucked steel tine, synthesised, played at its tune's pitches (<c>HomesLooks.Tune</c>),
+    /// so no pitch of its own. A placeholder till the user picks.
+    /// </summary>
+    public static readonly Cue MusicBox = new(Shots("ruins/music-box", 1), -12, Pitch: 0, Heard: new(4, 16));
+
+    /// <summary>The resonator zapping a hero beside it (0090): a short crackle of noise, synthesised. A placeholder till the user picks.</summary>
+    public static readonly Cue Zap = new(Shots("ruins/zap", 1), -10, Pitch: 0.08f, Heard: new(4, 16));
+
     /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>
     public static readonly Cue ChargeFull = new(Shots("power/charge-full", 1), -10, Pitch: 0, Heard: new(4, 16));
     /// <summary>A wreck breaking apart under this player's last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
@@ -262,7 +271,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, DrillStrike, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab];
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, DrillStrike, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap];
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>
     public const double AlarmEveryS = 1.6;

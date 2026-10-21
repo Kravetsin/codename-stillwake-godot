@@ -6,45 +6,72 @@ using Stillwake.Sim.Items;
 namespace Stillwake.Sim.Building;
 
 /// <summary>
-/// A plant or a stone on a planet's surface (0079), or a growth of its caves (0080), at <c>Cell</c> of <c>Kind</c>
-/// (<see cref="Flora"/>): on the surface the open cell over the soil it grows from; in a cave the open cell over its floor or
-/// under its ceiling, or the wall's own cell it lies in.
+/// A plant or a stone on a planet's surface (0079), a growth of its caves (0080) or a piece of a ruin's home (0090), at
+/// <c>Cell</c> of <c>Kind</c> (<see cref="Flora"/>): on the surface the open cell over the soil it grows from; in a cave the
+/// open cell over its floor or under its ceiling, or the wall's own cell it lies in; a piece wider or taller than a cell by its
+/// own cell, the bottom-left on a floor, the top-left else.
 /// </summary>
 public sealed record Plant(int Cell, string Kind);
 
 /// <summary>
-/// What grows on a planet, on its surface (0079) and in its caves (0080): grown from its seed with the ground
-/// (<see cref="Layout.Flora"/>), never saved, but for the growths felled since, by cell. One is felled by a hit on any open
-/// cell it stands in, or once what it holds on to is gone — the wall under it, over it, or its own — or something stands
-/// in its open cell.
+/// What grows on a planet, on its surface (0079) and in its caves (0080), and the pieces of its ruins (0090): grown from its seed
+/// with the ground (<see cref="Layout.Flora"/>), never saved, but for the growths felled since, by cell. One is felled by a hit on
+/// any open cell it stands in, or once what it holds on to is gone — the wall under any of its columns, over them, its own, or
+/// the piece it stands on — or something stands in its own open cell.
 /// </summary>
 public sealed partial class BuildingModule
 {
     /// <summary>The plants the ground grew with, ascending by cell: derived from the layout, the ground a load grows again.</summary>
     private IReadOnlyList<(int Cell, string Kind)> _grown = [];
 
-    /// <summary>Derived: the plants standing, ascending by cell; each by its own cell; and the plant standing in each cell it stands in.</summary>
+    /// <summary>
+    /// Derived: the plants standing, ascending by cell; each by its own cell; the plant standing in front in each cell it stands in,
+    /// and behind (0090: a back wall's pieces, a rug); and the resonators standing, by their own cells.
+    /// </summary>
     private readonly List<Plant> _plants = [];
     private readonly Dictionary<int, Plant> _plantOwn = new();
     private readonly Dictionary<int, Plant> _plantIn = new();
+    private readonly Dictionary<int, Plant> _plantBehind = new();
+    private readonly List<int> _resonators = [];
 
     /// <summary>Every kind of growth by id, looked up as often as a plant is.</summary>
-    private static readonly Dictionary<string, Flora.Growth> Kinds =
-        Flora.All.Cast<Flora.Growth>().Concat(Flora.Cave).ToDictionary(k => k.Id, StringComparer.Ordinal);
+    private static readonly Dictionary<string, Flora.Growth> Kinds = Flora.Every.ToDictionary(k => k.Id, StringComparer.Ordinal);
 
     /// <summary>The plants standing, ascending by cell: live and read-only. Felling only takes from it, so its count tells a change.</summary>
     public IReadOnlyList<Plant> Plants => _plants;
 
-    /// <summary>The plant standing in <paramref name="cell"/>, its own or one of the cells it stands up or hangs down into; null for none.</summary>
-    public Plant? PlantAt(int cell) => _plantIn.GetValueOrDefault(cell);
+    /// <summary>
+    /// The plant a hit on <paramref name="cell"/> takes: the one standing in front there, its own or one of the cells it stands up,
+    /// hangs down or reaches across into, else the one behind (0090), never one painted on the back wall; null for none.
+    /// </summary>
+    public Plant? PlantAt(int cell) =>
+        _plantIn.GetValueOrDefault(cell) ?? (_plantBehind.TryGetValue(cell, out var behind) && !Kinds[behind.Kind].Fixed ? behind : null);
 
-    /// <summary>The cell <paramref name="plant"/> holds on to: the wall under it, over it, or its own (0080).</summary>
+    /// <summary>The cell <paramref name="plant"/> holds on to under, over or in its own column: the wall under it, over it, or its own (0080).</summary>
     public int HoldOf(Plant plant) => Kinds[plant.Kind].On switch
     {
         Flora.Anchor.Floor => plant.Cell + _grid.Width,
         Flora.Anchor.Ceiling => plant.Cell - _grid.Width,
         _ => plant.Cell,
     };
+
+    /// <summary>
+    /// Whether a hero reported at <paramref name="cell"/> stands right by a resonator (0090): within <see cref="Ruins.ZapReach"/>
+    /// cells of one of its cells either way. The client draws its arc to the hero while it does.
+    /// </summary>
+    public bool Zaps(int cell)
+    {
+        int w = _grid.Width;
+        if (_resonators.Count == 0 || cell < 0 || cell >= w * _grid.Height) return false;
+        var kind = Kinds[Ruins.Resonator];
+        int x = cell % w, y = cell / w, reach = Ruins.ZapReach;
+        foreach (int own in _resonators)
+        {
+            int left = own % w, bottom = own / w;
+            if (x >= left - reach && x < left + kind.Across + reach && y > bottom - kind.Tall - reach && y <= bottom + reach) return true;
+        }
+        return false;
+    }
 
     protected override BuildingState Init(Layout layout)
     {
@@ -64,6 +91,8 @@ public sealed partial class BuildingModule
         _plants.Clear();
         _plantOwn.Clear();
         _plantIn.Clear();
+        _plantBehind.Clear();
+        _resonators.Clear();
         foreach (var (cell, kind) in _grown)
             if (State.Felled.BinarySearch(cell) < 0) Stand(new Plant(cell, kind));
     }
@@ -72,20 +101,46 @@ public sealed partial class BuildingModule
     {
         _plants.Add(plant);
         _plantOwn[plant.Cell] = plant;
-        foreach (int cell in CellsOf(plant)) _plantIn[cell] = plant;
+        var layer = LayerOf(plant);
+        foreach (int cell in CellsOf(plant)) layer[cell] = plant;
+        if (plant.Kind == Ruins.Resonator) _resonators.Add(plant.Cell);
     }
 
-    /// <summary>The cells <paramref name="plant"/> stands in, its own and up from it, or down from one hanging, those on the grid.</summary>
+    /// <summary>Where <paramref name="plant"/>'s cells are kept: in front, or behind for a back wall's piece or a rug (0090).</summary>
+    private Dictionary<int, Plant> LayerOf(Plant plant) => Kinds[plant.Kind].Behind ? _plantBehind : _plantIn;
+
+    /// <summary>
+    /// The cells <paramref name="plant"/> stands in, those on the grid: each of its <c>Across</c> columns from its own, up from it
+    /// on a floor, down from it from a ceiling, on a back wall or in the rock.
+    /// </summary>
     private IEnumerable<int> CellsOf(Plant plant)
     {
         var kind = Kinds[plant.Kind];
-        int step = kind.On == Flora.Anchor.Ceiling ? _grid.Width : -_grid.Width, cells = _grid.Width * _grid.Height;
-        for (int i = 0, cell = plant.Cell; i < kind.Tall && cell >= 0 && cell < cells; i++, cell += step) yield return cell;
+        int w = _grid.Width, step = kind.On == Flora.Anchor.Floor ? -w : w, cells = w * _grid.Height, x = plant.Cell % w;
+        for (int dx = 0; dx < kind.Across && x + dx < w; dx++)
+            for (int i = 0, cell = plant.Cell + dx; i < kind.Tall && cell >= 0 && cell < cells; i++, cell += step) yield return cell;
+    }
+
+    /// <summary>
+    /// The cells <paramref name="plant"/> holds on to: the cell under each of its columns on a floor (a wall, or a piece it stands
+    /// on), over each from a ceiling, its own walls in the rock; for one on a back wall, the back walls of its own cells.
+    /// </summary>
+    private IEnumerable<int> HoldsOf(Plant plant)
+    {
+        var kind = Kinds[plant.Kind];
+        if (kind.On is Flora.Anchor.Rock or Flora.Anchor.Back)
+        {
+            foreach (int cell in CellsOf(plant)) yield return cell;
+            yield break;
+        }
+        int w = _grid.Width, by = kind.On == Flora.Anchor.Floor ? w : -w, x = plant.Cell % w;
+        for (int dx = 0; dx < kind.Across && x + dx < w; dx++) yield return plant.Cell + dx + by;
     }
 
     /// <summary>
     /// Fells <paramref name="plant"/>: it is noted felled, for good, and gives what it yields to <paramref name="peer"/>; felled
-    /// by nobody — built over, its hold gone to a meteor — it lets its yields fall at its cell for anyone (0085).
+    /// by nobody — built over, its hold gone to a meteor — it lets its yields fall at its cell for anyone (0085). What stood on it
+    /// falls with it, its yields to the same (0090: the dishes with the table).
     /// </summary>
     private void Fell(Plant plant, int? peer)
     {
@@ -94,12 +149,23 @@ public sealed partial class BuildingModule
         State.Felled.Insert(~at, plant.Cell);
         _plants.RemoveAt(_plants.BinarySearch(plant, ByCell));
         _plantOwn.Remove(plant.Cell);
-        foreach (int cell in CellsOf(plant)) _plantIn.Remove(cell);
+        var layer = LayerOf(plant);
+        foreach (int cell in CellsOf(plant)) layer.Remove(cell);
+        if (plant.Kind == Ruins.Resonator) _resonators.Remove(plant.Cell);
         // Its crack goes with it, before a wall built in its cell could take it over; one in the rock's is the wall's.
         if (Kinds[plant.Kind].On != Flora.Anchor.Rock && CrackIndex(plant.Cell) is >= 0 and var crack) State.Cracks.RemoveAt(crack);
-        if (Kinds[plant.Kind].Yields is not { Count: > 0 } yields) return;
-        if (peer is int sender) _itemsOps.GiveOrDrop(sender, yields, plant.Cell);
-        else _itemsOps.DropAt(FloorStack.Nobody, yields, plant.Cell);
+        if (Kinds[plant.Kind].Yields is { Count: > 0 } yields)
+        {
+            if (peer is int sender) _itemsOps.GiveOrDrop(sender, yields, plant.Cell);
+            else _itemsOps.DropAt(FloorStack.Nobody, yields, plant.Cell);
+        }
+        if (layer != _plantIn) return;
+        var standing = new List<Plant>();
+        foreach (int cell in CellsOf(plant))
+            if (_plantIn.TryGetValue(cell - _grid.Width, out var above) && !standing.Contains(above) && Kinds[above.Kind].On == Flora.Anchor.Floor
+                && HoldsOf(above).Contains(cell))
+                standing.Add(above);
+        foreach (var above in standing.OrderBy(p => p.Cell)) Fell(above, peer);
     }
 
     private static readonly Comparer<Plant> ByCell = Comparer<Plant>.Create((a, b) => a.Cell.CompareTo(b.Cell));
@@ -117,30 +183,58 @@ public sealed partial class BuildingModule
         if (log == null)
         {
             for (int i = _plants.Count - 1; i >= 0; i--)
-                if (Uprooted(_plants[i])) Fell(_plants[i], null);
+                if (i < _plants.Count && Uprooted(_plants[i])) Fell(_plants[i], null);
             return;
         }
         int w = _grid.Width;
         _nearChanges.Clear();
         foreach (var change in log)
             foreach (int cell in (ReadOnlySpan<int>)[change.Cell, change.Cell - w, change.Cell + w])
-                if (_plantOwn.TryGetValue(cell, out var plant)) _nearChanges.Add(plant);
-        // Each at most once, by cell: felling takes it out of what the next would find.
+            {
+                if (_plantIn.TryGetValue(cell, out var plant)) _nearChanges.Add(plant);
+                if (_plantBehind.TryGetValue(cell, out var behind)) _nearChanges.Add(behind);
+            }
+        // Each at most once, by cell: felling takes it out of what the next would find, and what stood on it with it.
         foreach (var plant in _nearChanges.Distinct().OrderBy(p => p.Cell).ToList())
-            if (Uprooted(plant)) Fell(plant, null);
+            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Uprooted(plant)) Fell(plant, null);
     }
 
-    /// <summary>Scratch for <see cref="SweepPlants"/>: the plants whose cell or hold a change touched.</summary>
+    /// <summary>Scratch for <see cref="SweepPlants"/>: the plants whose cells or holds a change touched.</summary>
     private readonly List<Plant> _nearChanges = [];
 
-    /// <summary>Whether <paramref name="plant"/>'s hold is gone or cut to a slope (it grows on whole walls only), or its open cell holds something now.</summary>
+    /// <summary>
+    /// Whether <paramref name="plant"/>'s hold is gone or cut to a slope (it grows on whole walls only), or its own open cell holds
+    /// something now. A floor's piece may stand on the piece in front under it instead (0090); one on a back wall needs its own.
+    /// </summary>
     private bool Uprooted(Plant plant)
     {
-        if (Kinds[plant.Kind].On == Flora.Anchor.Rock) return _grid.StructureAt(plant.Cell) != Structure.Wall;
-        int hold = HoldOf(plant);
-        return _grid.StructureAt(hold) != Structure.Wall || _grid.ShapeAt(hold) != Shape.None || _grid.StructureAt(plant.Cell) != Structure.Empty || _grid.MachineAt(plant.Cell) != null;
+        var on = Kinds[plant.Kind].On;
+        if (on == Flora.Anchor.Rock) return HoldsOf(plant).Any(cell => _grid.StructureAt(cell) != Structure.Wall);
+        if (on == Flora.Anchor.Back)
+        {
+            if (_grid.BackAt(plant.Cell) == null) return true;
+        }
+        else
+            foreach (int hold in HoldsOf(plant))
+            {
+                bool whole = _grid.StructureAt(hold) == Structure.Wall && _grid.ShapeAt(hold) == Shape.None;
+                bool onPiece = on == Flora.Anchor.Floor && _plantIn.TryGetValue(hold, out var under) && under != plant && Kinds[under.Kind].On == Flora.Anchor.Floor;
+                if (!whole && !onPiece) return true;
+            }
+        return _grid.StructureAt(plant.Cell) != Structure.Empty || _grid.MachineAt(plant.Cell) != null;
     }
 
     /// <summary>The grid's version when the plants were last looked at: derived, so after a load they are looked at again.</summary>
     private int _plantsSeen = -1;
+
+    /// <summary>
+    /// Every breath (<see cref="Content.Crew.BreathEvery"/> of this module's clock) a hero standing right by a resonator pays its
+    /// zap (0090), in id order; none out cold.
+    /// </summary>
+    private void Zap()
+    {
+        if (_resonators.Count == 0 || State.Clock % Content.Crew.BreathEvery != 0) return;
+        foreach (var hero in _crew.Heroes)
+            if (hero.Out == 0 && Zaps(hero.Cell)) _crewOps.Shock(hero.Id, Ruins.Zap);
+    }
 }

@@ -82,6 +82,7 @@ public partial class Main : Node2D, ITogether
     private Features.Building.DigView? _digs;
     private Features.Flora.FloraView? _flora;
     private Features.Flora.CaveView? _caves;
+    private Features.Ruins.HomesView? _homes;
     private Features.Flora.CaveTint? _caveTint;
     private Features.Grid.LavaView? _lava;
     private LightView? _light;
@@ -304,7 +305,7 @@ public partial class Main : Node2D, ITogether
         if (_args.FirstOrDefault(a => a.StartsWith("--sweep=", StringComparison.Ordinal)) is { } sweep)
             AddChild(new CameraSweep(_camera, () => _m != _ship ? new Vector2(_m.Crew.Spawn % _m.Grid.Width, _m.Crew.Spawn / _m.Grid.Width) : null, int.Parse(sweep[8..])));
         if (Has("--measure"))
-            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count} cave-lights={_caves?.Lights.Count} lava-lights={_lava?.Lights.Count} glints={_caves?.Glinting} caves={_caves?.TakeCostMs():F3}ms"));
+            AddChild(new PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count} cave-lights={_caves?.Lights.Count} lava-lights={_lava?.Lights.Count} glints={_caves?.Glinting} caves={_caves?.TakeCostMs():F3}ms home-lights={_homes?.Lights.Count} homes={_homes?.TakeCostMs():F3}ms"));
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
@@ -844,6 +845,8 @@ public partial class Main : Node2D, ITogether
         _digs?.QueueFree();
         _flora?.QueueFree();
         _caves?.QueueFree();
+        _homes?.QueueFree();
+        _homes = null;
         _caveTint?.QueueFree();
         _lava?.QueueFree();
         (_caves, _caveTint, _lava) = (null, null, null);
@@ -864,10 +867,12 @@ public partial class Main : Node2D, ITogether
         {
             AddChild(_caveTint = new Features.Flora.CaveTint(ground));
             AddChild(_caves = new Features.Flora.CaveView(_m.Grid, _m.Building, ground, () => _hero?.HeadLamps() ?? []));
+            // The arc makers' homes in its ground (0090); --no-homes leaves them undrawn, to measure what they cost.
+            if (!Has("--no-homes")) AddChild(_homes = new Features.Ruins.HomesView(_m.Grid, _m.Building, HeroBodies) { Mood = Arg("--homes") switch { "lit" => true, "dark" => false, _ => null } });
             // Its core: lava under the caves, glowing.
             AddChild(_lava = new Features.Grid.LavaView(_m.Grid, ground));
         }
-        var (caves, lava) = (_caves, _lava);
+        var (caves, lava, homes) = (_caves, _lava, _homes);
         AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
         AddChild(_chargers = new Features.Power.ChargerLights(_m.Grid, _m.Items, _m.Power));
         AddChild(_tanks = new Features.Atmosphere.TankLooks(_m.Grid, _m.Atmosphere));
@@ -891,6 +896,7 @@ public partial class Main : Node2D, ITogether
             Glows = () => flora.Lights,
             Caves = () => caves?.Lights ?? [],
             Lava = () => lava?.Lights ?? [],
+            Homes = () => homes?.Lights ?? [],
         });
         // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
         _stars.Ground = _m.Rules.Sky != null ? (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell : null;
@@ -1024,6 +1030,21 @@ public partial class Main : Node2D, ITogether
     }
 
     private readonly List<Body> _bodies = [];
+
+    /// <summary>The middle of every hero's body on this surface, in pixels of the world: the resonator's arc leaps to it (0090).</summary>
+    private IReadOnlyList<Godot.Vector2> HeroBodies()
+    {
+        _heroBodies.Clear();
+        if (_hero == null) return _heroBodies;
+        foreach (var other in _hero.Others) _heroBodies.Add(MiddleOf(other.Hero));
+        _heroBodies.Add(MiddleOf(_hero.Current));
+        return _heroBodies;
+    }
+
+    private readonly List<Godot.Vector2> _heroBodies = [];
+
+    private static Godot.Vector2 MiddleOf(Hero h) =>
+        new((float)(h.X / (double)Hero.Unit * ShipCamera.Cell), (float)((h.Y - Content.Hero.Height / 2.0) / Hero.Unit * ShipCamera.Cell));
 
     private static Body BodyOf(Hero h)
     {
