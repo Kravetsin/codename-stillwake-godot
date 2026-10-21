@@ -442,6 +442,42 @@ public class MigrationsTests
         Assert.Equal(after.ToJsonString(), Migrations.Globals(after.DeepClone().AsObject()).ToJsonString());
     }
 
+    /// <summary>The format <see cref="Migrations.FormerInputs"/> upgrades a save into: the Former's third input.</summary>
+    private static readonly int FormerInputsFormat = Migrations.Oldest + 1 + Migrations.Steps.ToList().IndexOf(Migrations.FormerInputs);
+
+    [Fact]
+    public void GivesTheFormerAThirdInputAfterItsTwoSoItsOutputsKeepTheirStacks()
+    {
+        // A Former on a panel, having pressed a plate, with iron in its first input and planks in its second.
+        var w = new Scenario(Layout.Parse(["PPP     ", "        ", "########", "#MM....#", "#MM....#", "########"], null, [((0, 0), (1, 3))]))
+            .GiveItems(0, ("iron", 4), ("planks", 3));
+        int former = w.M.Grid.MachinesOf("former").Single().Id;
+        w.Do(new Crafting.Craft(former, "plate", 1)).Run(100);
+        w.Do(new Move(new Items.Place(0), new Target(0, former), 1)).Do(new Move(new Items.Place(1), new Target(1, former), 3)).Run();
+        var saved = JsonNode.Parse(w.World.Save())!.AsObject();
+        saved["slices"]!.AsObject().Remove("builder");
+        string save = saved.ToJsonString();
+        var was = w.M.Items.Crate(former).ToList();
+        Assert.Equal(new Stack("plate", 1), was[Content.Machines.Get("former").Inputs!.Value]);
+
+        // As the format before kept it: two inputs.
+        var root = JsonNode.Parse(save)!.AsObject();
+        root["format"] = FormerInputsFormat - 1;
+        foreach (var held in root["slices"]!["items"]!["crates"]!.AsArray())
+            if ((int)held!["id"]! == former)
+            {
+                Assert.Null(held["slots"]![2]);
+                held["slots"]!.AsArray().RemoveAt(2);
+            }
+        string old = root.ToJsonString();
+        Assert.Equal(save, Migrations.Upgrade(old));
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(old), m.All);
+        Assert.Equal(was, m.Items.Crate(former));
+        // Upgraded again, it is left as it is.
+        Assert.Equal(save, Migrations.FormerInputs(JsonNode.Parse(save)!.AsObject()).ToJsonString());
+    }
+
     [Fact]
     public void LeavesASaveOfThisFormatAsItIsAndOneTooOldForTheLoadToRefuse()
     {

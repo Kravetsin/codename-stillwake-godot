@@ -32,9 +32,9 @@ public class CraftsTests
     {
         Assert.Equal(4, Crafts.Columns);
         Assert.Equal(["plate", "gear", "tube", "frame", "wire", "coil", "rotor", null, "fireAxe", "harpoon", "drill", null, "jetpack", "battery", "helmetLamp", null], Crafts.Places(Fabricator));
-        // The pod keeps its twelve; new crafts go to machines (0057): the electronics, soil at the Former (0060), the drone (0062).
-        Assert.Equal(Content.Crafts.All.Count - 4, Crafts.Places(Fabricator).Count(p => p != null));
-        Assert.Equal(["plate", "gear", "tube", "frame", "wire", "coil", "rotor", null, "soil", null, null, null], Crafts.Places(Content.Stations.Get("former")));
+        // The pod keeps its twelve; new crafts go to machines (0057): the electronics, soil and the motor at the Former (0060), the drone (0062).
+        Assert.Equal(Content.Crafts.All.Count - 5, Crafts.Places(Fabricator).Count(p => p != null));
+        Assert.Equal(["plate", "gear", "tube", "frame", "wire", "coil", "rotor", "motor", "soil", null, null, null], Crafts.Places(Content.Stations.Get("former")));
         Assert.Equal(["circuit", "solarCell", null, null, "drone", null, null, null], Crafts.Places(Assembler));
     }
 

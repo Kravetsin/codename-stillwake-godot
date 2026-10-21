@@ -70,8 +70,24 @@ On this machine (RTX 4060 Ti), 1280 × 720, `--ground=hall --measure` (the first
 
 ## Deliberately not handled
 
-- **Nothing is given yet:** glowcaps (biomass, spores), crystals (shards), a geode (its crystals) and the veins (copper, ice)
-  keep an empty `Yields` till those items exist; a vein is stone to dig.
+- ~~**Nothing is given yet**~~ — *amended 2026-10-21 (the planet's content, slice 1):* growths give fixed `Yields`, no draw,
+  to whoever fells them, by a hit or by breaking out the wall that holds them (`Dig` fells them there and then, before the
+  sweep would for nothing; what does not fit falls where each was): teal and hanging caps 2 biomass, violet caps a spore,
+  ice crystals an ice and ice veins 2, the amber, rose and ember crystals a crystal, a geode 6, copper veins 2 copper ore,
+  mica a mica (it glints, so players expected something; for sensors and the radar next), the heat's cracks over the
+  bedrock 2 magnetite (lodestone); on the surface an acacia 10 planks (a cargo crate holds 3 to 6), a bush a seed, a
+  rock 2 rock. New items: copper ore, smelted at the furnace's heat into copper one for one in 160 ticks; copper; ice,
+  which nothing melts yet (the jump's and the engine's cost to come); crystal; spores, for the spore bed to come; mica;
+  magnetite. The Former presses a motor of a rotor, 2 copper and a magnetite, so the deepest band matters; it takes a
+  third input for it (save format 23: each Former's slots gain an empty third input, aboard and on every surface). Their
+  icons are placeholders. Stalactites, stalagmites, threads, roots, moss, fossils, flowers and grass give nothing.
+  - *Playtest (same day): trees fell in one hit and gave too little, and the surface was bare.* Surface plants have a
+    `Strength`, hit points as a natural wall's: a hit on any of a plant's cells cracks it by its own cell in Building's
+    `Cracks` (healing as a wall's do, dropped when it is felled), and it falls when the damage reaches it, an acacia 12
+    (3 s of the axe's 4 a second), a rock 8 (2 s), a bush 4 (1 s); flowers, grass and every cave growth keep falling to
+    any hit. The surface grows denser: on the first planet's seed 1, acacias 18 → 45, bushes 21 → 47, rocks 14 → 37,
+    bells 139 → 281, tufts 192 → 185 (384 → 595 in all), by higher chances and shorter spacing. A plant hit and left
+    standing shakes and drops a few leaves or pebbles (`FloraView`); its crack draws no cracks.
 - **Moss grows only on whole stone,** not on slopes or soil, and shows on whichever faces of its stone are open now.
 - **A cave growth's other cells holding something** (a wall built into hanging threads) leave it standing, as a tree's crown.
 - **Halls stay dark in their middle:** a hall is mostly air, its growth on its rim; lights past the 56 nearest the view's

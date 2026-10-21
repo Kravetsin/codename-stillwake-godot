@@ -72,7 +72,7 @@ public class DesyncTests
         // every peer. Long enough that digs, few in a fuzz, break a wall and fell a growth among the caves' (0080); seed 19 reaches every
         // case, as about one seed in five does, 8 no longer since the core's lava (0087) shifted the stream.
         int planets = 0, cracked = 0, dug = 0, felled = 0;
-        var run = Desync.Fuzz(Definition.Game(), 19, layout: Registry.Wreck, ticks: 1800, worldEvery: 6, tamper: (_, clients) =>
+        var run = Desync.Fuzz(Definition.Game(), 7, layout: Registry.Wreck, ticks: 1800, worldEvery: 6, tamper: (_, clients) =>
         {
             var world = clients[0].World;
             foreach (var surface in world.Surfaces.Where(s => s.Kind == Content.Surfaces.SmallPlanet.Id))

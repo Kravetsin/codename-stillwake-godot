@@ -36,6 +36,8 @@
     <Compile Include="../game/features/grid/Grass.cs" Link="Game/Grid/Grass.cs" />
     <Compile Include="../game/features/grid/ChunkReveal.cs" Link="Game/Grid/ChunkReveal.cs" />
     <Compile Include="../game/render/GroundDetails.cs" Link="Game/Render/GroundDetails.cs" />
+    <Compile Include="../game/render/GroundShadow.cs" Link="Game/Render/GroundShadow.cs" />
+    <Compile Include="../game/Content/GroundLooks.cs" Link="Game/Content/GroundLooks.cs" />
     <Compile Include="../game/features/crew/AxeSwing.cs" Link="Game/Crew/AxeSwing.cs" />
     <Compile Include="../game/features/crew/SwingArm.cs" Link="Game/Crew/SwingArm.cs" />
     <Compile Include="../game/features/crew/HarpoonShot.cs" Link="Game/Crew/HarpoonShot.cs" />

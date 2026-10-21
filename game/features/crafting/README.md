@@ -41,7 +41,9 @@ icon is `art/items/solarCell.png`. The grow capsule's (0060): `art/machine_growC
 plated base, a soil bed inside, a grow lamp under its cap, dark; `art/growCapsule_work_0.png`, only the lamp's lens
 lit pink, drawn unlit; and `art/growCapsule_plant_0..3.png`, the plant at each quarter of its crop, a sprout to a
 budding bush, with the glass's glints kept over it. The farm's icons are `art/items/seed.png`, `soil.png`,
-`biomass.png` and `biofuel.png`. The script that drew them is not kept: they are placeholders.
+`biomass.png` and `biofuel.png`. The script that drew them is not kept: they are placeholders. So are what a planet's
+caves give (0080), drawn as ASCII in the icons' outlined palette till the user picks art: `copperOre.png`, `copper.png`,
+`ice.png`, `crystal.png`, `spore.png`, `mica.png`, `magnetite.png` and the Former's `motor.png`.
 
 ## Guarantees
 
