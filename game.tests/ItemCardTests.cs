@@ -222,4 +222,15 @@ public class ItemCardTests
             Assert.True(Table.ContainsKey($"effect.{e.Id}.about"), e.Id);
         });
     }
+
+    [Fact]
+    public void CardAModuleWithItsTechAndWhatItDoesNeverWhereItGoes()
+    {
+        var card = ItemCards.Of(Spec.Modules.Arc.Item, unknown: false);
+        Assert.Equal(new CardTech("arc", "×2 speed · ×2 power"), card.Tech);
+        Assert.Empty(card.Effects);
+        Assert.All(Spec.Modules.Arc.Hosts, host => Assert.DoesNotContain(T($"tool.{host}"), card.Tech!.About));
+        Assert.NotEqual(card, card with { Tech = null });
+        Assert.Null(ItemCards.Of("iron", unknown: false).Tech);
+    }
 }

@@ -8,7 +8,7 @@ using Stillwake.Sim.Items;
 namespace Stillwake.Game.Features.Items;
 
 /// <summary>
-/// A stack sent across with shift flying to the slot it went to, as a picked-up one flies home (0075): its icon glides from
+/// A stack sent across with shift flying to the slot or module socket it went to (0086), as a picked-up one flies home (0075): its icon glides from
 /// the slot it left along a slight arc in a quarter of a second, trailing a thin ribbon of light, and lands in a glint, a
 /// pulse round the slot and a brief flash inside it. Several landings set off one after another; at most
 /// <see cref="Fx.MostRibbons"/> fly at once. Drawn only, on the HUD, in its pixels; it starts as the move is sent and
@@ -28,13 +28,13 @@ public partial class SlotFlights : Node2D
     private const int Kept = 8;
     private static readonly Color Ribbon = Rgb(150, 215, 255), Landed = Rgb(170, 225, 255);
 
-    private sealed class Flight(Texture2D icon, Vector2 from, Rect2 to, Place place, bool fresh, int nth)
+    private sealed class Flight(Texture2D icon, Vector2 from, Rect2 to, Spot spot, bool fresh, int nth)
     {
         public Texture2D Icon { get; } = icon;
         public Vector2 From { get; } = from;
         public Rect2 To { get; } = to;
-        public Place Place { get; } = place;
-        /// <summary>Whether its slot was empty before: its icon there waits until this one lands.</summary>
+        public Spot Spot { get; } = spot;
+        /// <summary>Whether its slot or socket was empty before: its icon there waits until this one lands.</summary>
         public bool Fresh { get; } = fresh;
         public Vector2 At = from;
         /// <summary>How long it has flown, ms; below 0 while it waits its turn.</summary>
@@ -76,19 +76,19 @@ public partial class SlotFlights : Node2D
     public bool Busy => _flights.Count > 0 || _landings.Count > 0;
 
     /// <summary>
-    /// A stack shown as <paramref name="icon"/> flying from <paramref name="from"/> to the slot at <paramref name="to"/>, the
-    /// <paramref name="nth"/> landing of one move; <paramref name="fresh"/> when that slot was empty. None past the cap.
+    /// A stack shown as <paramref name="icon"/> flying from <paramref name="from"/> to the slot or socket <paramref name="spot"/>, at <paramref name="to"/>, the
+    /// <paramref name="nth"/> landing of one move; <paramref name="fresh"/> when it was empty. None past the cap.
     /// </summary>
-    public void Fly(Texture2D icon, Vector2 from, Rect2 to, Place place, bool fresh, int nth = 0)
+    public void Fly(Texture2D icon, Vector2 from, Rect2 to, Spot spot, bool fresh, int nth = 0)
     {
-        if (_flights.Count < Fx.MostRibbons) _flights.Add(new Flight(icon, from, to, place, fresh, nth));
+        if (_flights.Count < Fx.MostRibbons) _flights.Add(new Flight(icon, from, to, spot, fresh, nth));
     }
 
     /// <summary>A landing's pulse round the slot at <paramref name="slot"/> with nothing flying to it: a canister breathed from it (0081).</summary>
     public void Pulse(Rect2 slot) => _landings.Add(new Landing(slot, BreathMs, BreathGrow));
 
-    /// <summary>Whether the slot at <paramref name="place"/> waits for a flight to land in it, empty before: its icon is hidden till then.</summary>
-    public bool Awaits(Place place) => _flights.Exists(f => f.Fresh && f.Place == place);
+    /// <summary>Whether the slot or socket at <paramref name="spot"/> waits for a flight to land in it, empty before: its icon is hidden till then.</summary>
+    public bool Awaits(Spot spot) => _flights.Exists(f => f.Fresh && f.Spot == spot);
 
     public override void _Process(double delta)
     {

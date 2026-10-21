@@ -5,7 +5,8 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
 `packages/sim/src/modules/power`; its rules hold here unchanged.
 
 - **Depends on:** `grid` (machines and what is built, to find nodes), `rooms` (whether a panel stands
-  in space), `items` (what a cable costs, what a charging station holds: `IItemsQueries`, `IItemsOps`).
+  in space), `items` (what a cable costs, what a charging station holds, what a machine's modules add to its draw:
+  `IItemsQueries`, `IItemsOps`).
 - **State** (`PowerState`, members internal): `Cables` — every cable as the cells of its two nodes,
   the lower first, and whether it was paid for, ordered by its ends; `Resting` — the machines told to
   rest, by id, sorted: they draw and make nothing. Saved; a battery's charge is the item's, saved by
@@ -31,7 +32,10 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   machines on it that make power make, none told to rest: one that burns fuel (with a `FuelSlot`: the
   burner generator, which `furnace` rests while its fire is out; 0045) wherever it stands, any other
   only under the stars: every cell of it in space with no back wall behind it (a solar panel in a
-  room, or before a back wall, is in the shade; 0043); its demand, what the machines on it that draw power draw: a station (`Content.Stations`: the
+  room, or before a back wall, is in the shade; 0043); its demand, what the machines on it that draw power draw, each its
+  `Draws` × (1000 + its modules' `Draw`) / 1000, rounded up, a cost (`Find` asks a draw callback, which reads
+  `IItemsQueries.Boost`; [0086](../../docs/decisions/0086-modules-one-socket-for-machines-and-tools.md)), so a station
+  with the arc module draws twice and its network's share falls for every user on it: a station (`Content.Stations`: the
   Former, the circuit assembler, the electric smelter, a grow capsule) whenever crafting does not rest it, whatever
   its slots hold, for a queued one may work a paid unit with its inputs empty; an analyzer only while its slot holds
   something, a charging station (the charger, a drone bay) only while something it holds is short of its capacity; and none told to rest by the
@@ -57,6 +61,7 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
 - **Queries** (`IPowerQueries`): `Cables`; `Networks`; `NodeAt(cell)` — the node a cable laid there
   ends on, or null; `NetworkOf(node)`; `Cabled(node)` — whether a cable ends there, so `building`
   refuses to take a machine apart; `Satisfaction(machineId)` — in thousandths, 0 off every network;
+  `Draw(machineId)` — what it draws while it draws, its modules folded in, rounded up: its panel's bolt (0086);
   `LayProblem(peer, a, b)` — why that peer's `Lay` would be refused, for the cable ghost;
   `MoveProblem(from, to, cable?)` — why that `Move` would be refused, for a dragged end;
   `Charges(machineId)` — whether that charging station fills what it holds this tick (short of full, on a
