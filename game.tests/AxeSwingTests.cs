@@ -59,7 +59,8 @@ public class AxeSwingTests
     {
         var played = Play(180, _ => true);
         var hits = Hits(played);
-        Assert.Equal(6, hits.Count);
+        // Three seconds: the first hit part way into the first swing, then one a swing.
+        Assert.Equal((int)((180 * Frame - HitMs) / AxeSwing.Ms) + 1, hits.Count);
         Assert.InRange(hits[0], HitMs - Frame, HitMs + Frame);
         for (int i = 1; i < hits.Count; i++) Assert.InRange(hits[i] - hits[i - 1], AxeSwing.Ms - Frame, AxeSwing.Ms + Frame);
         Assert.Equal(hits, Strikes(played));

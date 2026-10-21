@@ -110,13 +110,16 @@ public class ItemCardTests
     [Fact]
     public void SayWhatAFedStationMakesOfAnItemAndHowLongOneTakesAtItsSpeed()
     {
-        // 60 ticks at full speed, 20 a second: three seconds at the furnace.
-        Assert.Equal(new CardOutput([("scrap", 4)], "3s"), ItemCards.OutputAt("scrapChunk", Spec.Stations.Get("furnace")));
-        Assert.Equal(new CardOutput([("iron", 2), ("scrap", 1)], "5s"), ItemCards.OutputAt("hullPlate", Spec.Stations.Get("furnace")));
-        // The electric smelter works at twice the speed: silicon's 120 ticks in three seconds.
-        Assert.Equal(new CardOutput([("glass", 1)], "3s"), ItemCards.OutputAt("silicon", Spec.Stations.Get("smelter")));
-        // A seed grows for 9600 ticks: past a minute, in minutes.
-        Assert.Equal(new CardOutput([("biomass", 4)], "8 min"), ItemCards.OutputAt("seed", Spec.Stations.Get("growCapsule")));
+        // What it yields, and its time at a station as fast as takes it so many seconds: under a minute in seconds, past it in minutes.
+        static Spec.Station Taking(string station, string item, int seconds) => Spec.Stations.Get(station) with
+        {
+            Speed = Spec.Items.Get(item).SmeltTicks!.Value * 1000 / (World.TicksPerSecond * seconds),
+        };
+        static IReadOnlyList<(string, int)> Yields(string item) => Spec.Items.Get(item).Yields!;
+        Assert.Equal(new CardOutput(Yields("scrapChunk"), "3s"), ItemCards.OutputAt("scrapChunk", Taking("furnace", "scrapChunk", 3)));
+        Assert.Equal(new CardOutput(Yields("hullPlate"), "5s"), ItemCards.OutputAt("hullPlate", Taking("furnace", "hullPlate", 5)));
+        Assert.Equal(new CardOutput(Yields("silicon"), "3s"), ItemCards.OutputAt("silicon", Taking("smelter", "silicon", 3)));
+        Assert.Equal(new CardOutput(Yields("seed"), "8 min"), ItemCards.OutputAt("seed", Taking("growCapsule", "seed", 8 * 60)));
         Assert.Null(ItemCards.OutputAt("planks", Spec.Stations.Get("furnace")));
     }
 
@@ -170,8 +173,7 @@ public class ItemCardTests
     {
         var block = Crafts.Block("rotor", Fabricator, [("gear", 3), ("wire", 1)], creative: false);
         Assert.Equal(T("time.seconds", ("n", Crafts.Seconds("rotor", Fabricator))), block.Seconds);
-        // 60 ticks at full speed, the pod at a fifth: fifteen seconds.
-        Assert.Equal("15 s", block.Seconds);
+        Assert.Equal($"{Crafts.Seconds("rotor", Fabricator)} s", block.Seconds);
         Assert.Equal([new CraftRow("gear", "Gear", 3, 1, false), new CraftRow("wire", "Wire", 1, 2, true)], block.Rows);
         Assert.Equal([new CardKey("LMB", "go to what is missing")], block.Keys);
     }

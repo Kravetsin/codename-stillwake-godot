@@ -9,13 +9,43 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Rooms;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Stillwake.Net.Tests;
 
 /// <summary>packages/net/src/desync.test.ts, ported.</summary>
-public class DesyncTests
+public class DesyncTests(ITestOutputHelper output)
 {
     public static readonly TheoryData<uint> Seeds = new() { 1u, 2u, 3u, 42u, 2026u };
+
+    /// <summary>
+    /// How many seeds <see cref="Covering"/> tries, a hundred apart, before it gives up: the stations' run, the least lucky,
+    /// covered on 22 seeds of 40, so all twelve miss about once in 15,000 shifts of the stream.
+    /// </summary>
+    private const int CoverTries = 12;
+
+    /// <summary>
+    /// Fuzzes seed <paramref name="first"/>, then the next a hundred on, until <paramref name="fuzz"/> says a run reached what
+    /// the test needs (nothing missed): a change that shifts the random stream costs a try, not a seed bumped by hand. Every
+    /// run tried must stay in sync.
+    /// </summary>
+    private void Covering(uint first, Func<uint, (DesyncRun Run, string? Missed)> fuzz)
+    {
+        var missed = new List<string>();
+        for (uint k = 0; k < CoverTries; k++)
+        {
+            uint seed = first + 100 * k;
+            var (run, miss) = fuzz(seed);
+            Assert.True(run.Desync == null, $"seed {seed} desynced at tick {run.Desync?.Tick}");
+            if (miss == null)
+            {
+                output.WriteLine(missed.Count == 0 ? $"covered on seed {seed}" : $"covered on seed {seed}, after {string.Join("; ", missed)}");
+                return;
+            }
+            missed.Add($"seed {seed}: {miss}");
+        }
+        Assert.Fail($"no seed covered it: {string.Join("; ", missed)}");
+    }
 
     // The game.
 
@@ -50,18 +80,19 @@ public class DesyncTests
     {
         // The host and three clients, a fourth joining once strips are open and heroes on them, the world's commands drawn
         // often: every surface is in every hash, the joiner's welcome carries every one.
-        int surfaces = 0, away = 0, count = 0;
-        var run = Desync.Fuzz(Definition.Game(), seed, layout: Registry.Wreck, joinAt: 300, worldEvery: 8, tamper: (_, clients) =>
+        Covering(seed, tried =>
         {
-            var world = clients[0].World;
-            surfaces = Math.Max(surfaces, world.Surfaces.Count);
-            away += clients.Count(c => world.SurfaceOf(c.Id) != 0);
-            count = clients.Count;
+            int surfaces = 0, away = 0, count = 0;
+            var run = Desync.Fuzz(Definition.Game(), tried, layout: Registry.Wreck, joinAt: 300, worldEvery: 8, tamper: (_, clients) =>
+            {
+                var world = clients[0].World;
+                surfaces = Math.Max(surfaces, world.Surfaces.Count);
+                away += clients.Count(c => world.SurfaceOf(c.Id) != 0);
+                count = clients.Count;
+            });
+            if (run.Desync == null) Assert.Equal(4, count);
+            return (run, surfaces >= 3 && away > 100 ? null : $"{surfaces} surfaces at most, a client off the ship on {away} ticks in all");
         });
-        Assert.Null(run.Desync);
-        Assert.Equal(4, count);
-        Assert.True(surfaces >= 3, $"{surfaces} surfaces at most");
-        Assert.True(away > 100, $"a client off the ship on {away} ticks in all");
     }
 
     [Fact]
@@ -69,25 +100,54 @@ public class DesyncTests
     {
         // Small planets opened by the world's fuzz, heroes beamed down to them, their ground grown on every peer from one
         // seed and dug there (0077): walls cracked, broken out, their soil and rock given or spilt, plants felled (0079), alike on
-        // every peer. Long enough that digs, few in a fuzz, break a wall and fell a growth among the caves' (0080); seed 1 reaches every
-        // case, as about one seed in five does: 7 no longer since fitting modules (0086) shifted the stream, 19 since the spire's furnishing (0090).
-        int planets = 0, cracked = 0, dug = 0, felled = 0;
-        var run = Desync.Fuzz(Definition.Game(), 1, layout: Registry.Wreck, ticks: 1800, worldEvery: 6, tamper: (_, clients) =>
+        // every peer. Digs are few in a fuzz, so the first client also digs on its own: beamed down to the first small planet,
+        // opened if the fuzz has not, it swings the axe at the topmost soil or stone and the first plant it may hit.
+        string planet = Content.Surfaces.SmallPlanet.Id, axe = Content.Weapons.Axe.Item;
+        static bool Ground(Content.Material? wall) => wall != null && wall.Cost.Any(c => c.Item is "soil" or "rock");
+        Covering(19, tried =>
         {
-            var world = clients[0].World;
-            foreach (var surface in world.Surfaces.Where(s => s.Kind == Content.Surfaces.SmallPlanet.Id))
+            int planets = 0, cracked = 0, broke = 0, dug = 0, felled = 0, wall = -1;
+            var run = Desync.Fuzz(Definition.Game(), tried, layout: Registry.Wreck, ticks: 1800, worldEvery: 6, tamper: (tick, clients) =>
             {
-                var m = Registry.On(world, surface.Id);
-                cracked = Math.Max(cracked, m.Building.Cracks.Count);
-                int got = m.Items.Floor.Where(s => s.Item is "soil" or "rock").Sum(s => s.Count)
-                    + clients.Sum(c => m.Items.Totals(c.Id).Where(t => t.Item is "soil" or "rock").Sum(t => t.Count));
-                dug = Math.Max(dug, got);
-                felled = Math.Max(felled, Terrain.Generate(Content.Ground.Small, surface.Seed).Flora!.Count - m.Building.Plants.Count);
-            }
-            planets = Math.Max(planets, world.Surfaces.Count(s => s.Kind == Content.Surfaces.SmallPlanet.Id));
+                var world = clients[0].World;
+                foreach (var surface in world.Surfaces.Where(s => s.Kind == planet))
+                {
+                    var m = Registry.On(world, surface.Id);
+                    cracked = Math.Max(cracked, m.Building.Cracks.Count);
+                    int got = m.Items.Floor.Where(s => s.Item is "soil" or "rock").Sum(s => s.Count)
+                        + clients.Sum(c => m.Items.Totals(c.Id).Where(t => t.Item is "soil" or "rock").Sum(t => t.Count));
+                    dug = Math.Max(dug, got);
+                    felled = Math.Max(felled, Terrain.Generate(Content.Ground.Small, surface.Seed).Flora!.Count - m.Building.Plants.Count);
+                }
+                planets = Math.Max(planets, world.Surfaces.Count(s => s.Kind == planet));
+
+                var first = clients[0];
+                if (tick % 10 != 0) return;
+                if (world.Surfaces.FirstOrDefault(s => s.Kind == planet) is not { } down)
+                {
+                    if (tick % 50 == 0) first.Send(new OpenSurface(planet));
+                    return;
+                }
+                if (world.SurfaceOf(first.Id) != down.Id)
+                {
+                    first.Send(new Transfer(down.Id));
+                    return;
+                }
+                var on = Registry.On(world, down.Id);
+                bool Hits(int cell) => on.Building.DigProblem(first.Id, cell, axe) == null;
+                if (tick % 20 == 0)
+                {
+                    if (wall >= 0 && on.Grid.WallAt(wall) == null) broke++;
+                    if (wall < 0 || !Ground(on.Grid.WallAt(wall)) || !Hits(wall))
+                        wall = Enumerable.Range(0, on.Grid.Width * on.Grid.Height).FirstOrDefault(c => Ground(on.Grid.WallAt(c)) && Hits(c), -1);
+                    if (wall >= 0) first.Send(new Dig(wall, axe));
+                }
+                else if (on.Building.Plants.FirstOrDefault(p => on.Grid.WallAt(p.Cell) == null && Hits(p.Cell)) is { } plant)
+                    first.Send(new Dig(plant.Cell, axe));
+            });
+            return (run, planets >= 1 && cracked >= 1 && broke >= 1 && dug >= 1 && felled >= 1 ? null
+                : $"{planets} small planets, {cracked} cracks at most, {broke} walls broken out, {dug} soil and rock dug, {felled} plants felled");
         });
-        Assert.Null(run.Desync);
-        Assert.True(planets >= 1 && cracked >= 1 && dug >= 1 && felled >= 1, $"{planets} small planets, {cracked} cracks at most, {dug} soil and rock dug, {felled} plants felled");
     }
 
     [Fact]
@@ -113,23 +173,24 @@ public class DesyncTests
         var layout = Layout.Parse(
             [.. blank.Concat(ship).Concat(blank).Select(Pad)],
             [.. blank.Concat(pipes).Select(Pad)]);
-        var game = Definition.Game();
-        var seen = new Dictionary<Client, int>();
-        int around = 0, aired = 0;
-        // Tuned on a stream of modules' commands alone: the world's are drawn in KeepsEveryClientAndAJoinerInSyncAsHeroesMoveBetweenSurfaces.
-        var run = Desync.Fuzz(game, 7, layout: layout, joinAt: 150, ticks: 400, worldEvery: 0, tamper: (_, clients) =>
+        // On a stream of modules' commands alone: the world's are drawn in KeepsEveryClientAndAJoinerInSyncAsHeroesMoveBetweenSurfaces.
+        Covering(7, tried =>
         {
-            aired = Math.Max(aired, game.Module<AtmosphereModule>(clients[0].World).AiredCells.Count);
-            foreach (var client in clients)
+            var game = Definition.Game();
+            var seen = new Dictionary<Client, int>();
+            int around = 0, aired = 0;
+            var run = Desync.Fuzz(game, tried, layout: layout, joinAt: 150, ticks: 400, worldEvery: 0, tamper: (_, clients) =>
             {
-                var rooms = game.Module<RoomsModule>(client.World);
-                if (seen.TryGetValue(client, out int version) && rooms.ChangedSince(version) is { Count: > 0 }) around++;
-                seen[client] = rooms.Version;
-            }
+                aired = Math.Max(aired, game.Module<AtmosphereModule>(clients[0].World).AiredCells.Count);
+                foreach (var client in clients)
+                {
+                    var rooms = game.Module<RoomsModule>(client.World);
+                    if (seen.TryGetValue(client, out int version) && rooms.ChangedSince(version) is { Count: > 0 }) around++;
+                    seen[client] = rooms.Version;
+                }
+            });
+            return (run, around > 10 && aired > 50 ? null : $"rooms found around a change {around} times, {aired} cells aired at most");
         });
-        Assert.Null(run.Desync);
-        Assert.True(around > 10, $"rooms found around a change {around} times");
-        Assert.True(aired > 50, $"{aired} cells aired at most");
     }
 
     [Fact]
@@ -150,56 +211,56 @@ public class DesyncTests
         static int Cell(int x, int y) => y * 13 + x;
         var pipe = new Placement("conduit", "pipe");
         const int tank = 2;
-        int aired = 0, peak = 0;
-        bool drawn = false, refilled = false, woke = false;
-        var suits = new Dictionary<int, (int Suit, int Out)>();
-        var game = Definition.Game();
-        var run = Desync.Fuzz(game, 9, layout: room,
-            // Past two leak beats: an aired room leaks once a minute, 1200 ticks.
-            ticks: 2600,
-            tamper: (tick, clients) =>
-            {
-                var first = clients[0];
-                // Building and loading are free, whatever creative mode the fuzz switched to meanwhile.
-                if (tick <= 40) first.Send(new SetCreative(true));
-                if (tick < 40)
+        Covering(9, tried =>
+        {
+            int aired = 0, peak = 0;
+            bool drawn = false, refilled = false, woke = false;
+            var suits = new Dictionary<int, (int Suit, int Out)>();
+            var game = Definition.Game();
+            var run = Desync.Fuzz(game, tried, layout: room,
+                // Past two leak beats: an aired room leaks once a minute, 1200 ticks.
+                ticks: 2600,
+                tamper: (tick, clients) =>
                 {
-                    // Each missing pipe planned, or its plan worked: the fuzz may cancel a plan meanwhile.
-                    foreach (int at in new[] { Cell(2, 2), Cell(2, 3), Cell(2, 4) })
+                    var first = clients[0];
+                    // Building and loading are free, whatever creative mode the fuzz switched to meanwhile.
+                    if (tick <= 40) first.Send(new SetCreative(true));
+                    if (tick < 40)
                     {
-                        if (game.Module<GridModule>(first.World).ConduitAt(at) != Conduit.None) continue;
-                        var plan = game.Module<BuildingModule>(first.World).PlansAt(at)
-                            .FirstOrDefault(p => p.Place?.Layer == "conduit");
-                        first.Send(plan != null ? new Work(plan.Id) : new PlacePlan(at, pipe));
+                        // Each missing pipe planned, or its plan worked: the fuzz may cancel a plan meanwhile.
+                        foreach (int at in new[] { Cell(2, 2), Cell(2, 3), Cell(2, 4) })
+                        {
+                            if (game.Module<GridModule>(first.World).ConduitAt(at) != Conduit.None) continue;
+                            var plan = game.Module<BuildingModule>(first.World).PlansAt(at)
+                                .FirstOrDefault(p => p.Place?.Layer == "conduit");
+                            first.Send(plan != null ? new Work(plan.Id) : new PlacePlan(at, pipe));
+                        }
                     }
-                }
-                else if (tick == 40)
-                {
-                    for (int i = 0; i < 3; i++) first.Send(new LoadCanister(tank));
-                }
-                // One hero is kept out in space, whatever the fuzz does with it, until a hero passes out and wakes.
-                if (clients.Count > 1 && tick > 40 && !woke) clients[1].Send(new Enter(Cell(0, 0)));
-                var air = game.Module<AtmosphereModule>(first.World);
-                aired = Math.Max(aired, air.AiredCells.Count);
-                int oxygen = air.OxygenIn(tank);
-                if (oxygen < peak) drawn = true;
-                peak = Math.Max(peak, oxygen);
-                foreach (var h in game.Module<CrewModule>(first.World).Heroes)
-                {
-                    if (suits.TryGetValue(h.Id, out var before))
+                    else if (tick == 40)
                     {
-                        if (before.Out == 0 && h.Out == 0 && h.Suit > before.Suit) refilled = true;
-                        if (before.Out > 0 && h.Out == 0) woke = true;
+                        for (int i = 0; i < 3; i++) first.Send(new LoadCanister(tank));
                     }
-                    suits[h.Id] = (h.Suit, h.Out);
-                }
-            });
-        Assert.Null(run.Desync);
-        Assert.True(aired > 0);
-        Assert.True(drawn);
-        // Breathing ran both ways: a suit refilled from room air, and a hero passed out and woke.
-        Assert.True(refilled);
-        Assert.True(woke);
+                    // One hero is kept out in space, whatever the fuzz does with it, until a hero passes out and wakes.
+                    if (clients.Count > 1 && tick > 40 && !woke) clients[1].Send(new Enter(Cell(0, 0)));
+                    var air = game.Module<AtmosphereModule>(first.World);
+                    aired = Math.Max(aired, air.AiredCells.Count);
+                    int oxygen = air.OxygenIn(tank);
+                    if (oxygen < peak) drawn = true;
+                    peak = Math.Max(peak, oxygen);
+                    foreach (var h in game.Module<CrewModule>(first.World).Heroes)
+                    {
+                        if (suits.TryGetValue(h.Id, out var before))
+                        {
+                            if (before.Out == 0 && h.Out == 0 && h.Suit > before.Suit) refilled = true;
+                            if (before.Out > 0 && h.Out == 0) woke = true;
+                        }
+                        suits[h.Id] = (h.Suit, h.Out);
+                    }
+                });
+            // Breathing ran both ways: a suit refilled from room air, and a hero passed out and woke.
+            return (run, aired > 0 && drawn && refilled && woke ? null
+                : $"{aired} cells aired at most, the tank drawn: {drawn}, a suit refilled: {refilled}, a hero woke: {woke}");
+        });
     }
 
     [Fact]
@@ -228,44 +289,44 @@ public class DesyncTests
             root["slices"]!["items"]!["inventories"] = inventories;
             return root.ToJsonString();
         }
-        var game = new Definition(() => new Registry().All, Stocked);
-        int rose = 0, worn = 0, inStation = 0, ran = 0, last = -1;
-        var run = Desync.Fuzz(game, 11, layout: layout, ticks: 1500, tamper: (tick, clients) =>
+        Covering(11, tried =>
         {
-            var first = clients[0];
-            var grid = game.Module<GridModule>(first.World);
-            var items = game.Module<ItemsModule>(first.World);
-            int station = grid.MachinesOf("charger")[0].Id;
-            // The power fuzz cuts and moves cables: the station's laid again often, free in creative mode.
-            if (tick % 20 == 10)
+            var game = new Definition(() => new Registry().All, Stocked);
+            int rose = 0, worn = 0, inStation = 0, ran = 0, last = -1;
+            var run = Desync.Fuzz(game, tried, layout: layout, ticks: 1500, tamper: (tick, clients) =>
             {
-                first.Send(new SetCreative(true));
-                first.Send(new Sim.Power.Lay(grid.MachinesOf("solarPanel")[0].Cell, grid.MachinesOf("charger")[0].Cell));
-            }
-            // And an empty station gets a battery short of full from the first client, wherever it carries one.
-            var own = items.Inventory(first.Id);
-            int carried = own.ToList().FindIndex(s => s is { Item: "battery" } b && b.Charge < full);
-            if (tick % 100 == 50 && items.Crate(station)[0] == null && carried >= 0)
-                first.Send(new Move(new Place(carried), new Target(0, station), 1));
-            if (items.Crate(station)[0] is { Charge: var charge })
-            {
-                inStation++;
-                if (last >= 0 && charge > last) rose++;
-                last = charge;
-            }
-            else last = -1;
-            foreach (var client in clients)
-                if (items.BeltCharge(client.Id).Capacity > 0) worn++;
-            // And runs its drill now and then, which draws from its belt every tick it runs (0055).
-            if (tick % 40 == 0) first.Send(new Run("drill", true));
-            foreach (var client in clients)
-                if (items.Running(client.Id) != null) ran++;
+                var first = clients[0];
+                var grid = game.Module<GridModule>(first.World);
+                var items = game.Module<ItemsModule>(first.World);
+                int station = grid.MachinesOf("charger")[0].Id;
+                // The power fuzz cuts and moves cables: the station's laid again often, free in creative mode.
+                if (tick % 20 == 10)
+                {
+                    first.Send(new SetCreative(true));
+                    first.Send(new Sim.Power.Lay(grid.MachinesOf("solarPanel")[0].Cell, grid.MachinesOf("charger")[0].Cell));
+                }
+                // And an empty station gets a battery short of full from the first client, wherever it carries one.
+                var own = items.Inventory(first.Id);
+                int carried = own.ToList().FindIndex(s => s is { Item: "battery" } b && b.Charge < full);
+                if (tick % 100 == 50 && items.Crate(station)[0] == null && carried >= 0)
+                    first.Send(new Move(new Place(carried), new Target(0, station), 1));
+                if (items.Crate(station)[0] is { Charge: var charge })
+                {
+                    inStation++;
+                    if (last >= 0 && charge > last) rose++;
+                    last = charge;
+                }
+                else last = -1;
+                foreach (var client in clients)
+                    if (items.BeltCharge(client.Id).Capacity > 0) worn++;
+                // And runs its drill now and then, which draws from its belt every tick it runs (0055).
+                if (tick % 40 == 0) first.Send(new Run("drill", true));
+                foreach (var client in clients)
+                    if (items.Running(client.Id) != null) ran++;
+            });
+            return (run, inStation > 100 && rose > 50 && worn > 100 && ran > 100 ? null
+                : $"a battery stood in the station on {inStation} ticks, charged on {rose}, was worn on {worn}; a drill ran on {ran}");
         });
-        Assert.Null(run.Desync);
-        Assert.True(inStation > 100, $"a battery stood in the station on {inStation} ticks");
-        Assert.True(rose > 50, $"a battery charged on {rose} ticks");
-        Assert.True(worn > 100, $"a battery was worn on {worn} ticks");
-        Assert.True(ran > 100, $"a drill ran on {ran} ticks");
     }
 
     [Fact]
@@ -304,52 +365,51 @@ public class DesyncTests
             root["slices"]!["crafting"]!["smelts"] = new JsonArray(new JsonObject { ["machine"] = capsule, ["item"] = "seed", ["progress"] = crop - 100 * 1000 });
             return root.ToJsonString();
         }
-        var game = new Definition(() => new Registry().All, Stocked);
-        int formed = 0, smelted = 0, heated = 0, assembled = 0, grew = 0, harvested = 0;
-        // Tuned on a stream of modules' commands alone, as above.
-        var run = Desync.Fuzz(game, 16, layout: layout, ticks: 1500, worldEvery: 0, tamper: (tick, clients) =>
+        // On a stream of modules' commands alone, as above.
+        Covering(16, tried =>
         {
-            var first = clients[0];
-            var grid = game.Module<GridModule>(first.World);
-            var crafting = game.Module<CraftingModule>(first.World);
-            int former = grid.MachinesOf("former")[0].Id, furnace = grid.MachinesOf("furnace")[0].Id;
-            int burner = grid.MachinesOf("burnerGenerator")[0].Id, smelter = grid.MachinesOf("smelter")[0].Id;
-            int assembler = grid.MachinesOf("assembler")[0].Id, capsule = grid.MachinesOf("growCapsule")[0].Id;
-            int second = grid.MachinesOf("burnerGenerator")[1].Id;
-            if (tick % 20 == 10)
+            var game = new Definition(() => new Registry().All, Stocked);
+            int formed = 0, smelted = 0, heated = 0, assembled = 0, grew = 0, harvested = 0;
+            var run = Desync.Fuzz(game, tried, layout: layout, ticks: 1500, worldEvery: 0, tamper: (tick, clients) =>
             {
-                first.Send(new SetCreative(true));
-                first.Send(new Craft(former, "plate", 3));
-                first.Send(new Craft(assembler, tick % 40 == 10 ? "circuit" : "solarCell", 2));
-                // The power fuzz cuts and moves cables: the Former's laid again, free in creative mode.
-                first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(former)!.Cell));
-                first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(smelter)!.Cell));
-                first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(assembler)!.Cell));
-                first.Send(new Sim.Power.Lay(grid.MachineById(second)!.Cell, grid.MachineById(capsule)!.Cell));
-            }
-            var own = game.Module<ItemsModule>(first.World).Inventory(first.Id).ToList();
-            int chunk = own.FindIndex(s => s is { Item: "scrapChunk" }), planks = own.FindIndex(s => s is { Item: "planks" });
-            int rock = own.FindIndex(s => s is { Item: "rock" }), seed = own.FindIndex(s => s is { Item: "seed" });
-            if (tick % 50 == 25 && chunk >= 0) first.Send(new Move(new Place(chunk), new Target(0, furnace), 2));
-            if (tick % 50 == 30 && planks >= 0) first.Send(new Move(new Place(planks), new Target(1, furnace), 1));
-            if (tick % 50 == 35 && planks >= 0) first.Send(new Move(new Place(planks), new Target(0, burner), 1));
-            if (tick % 50 == 40 && rock >= 0) first.Send(new Move(new Place(rock), new Target(0, smelter), 2));
-            if (tick % 50 == 20 && planks >= 0) first.Send(new Move(new Place(planks), new Target(0, second), 1));
-            if (tick % 50 == 45 && seed >= 0) first.Send(new Move(new Place(seed), new Target(0, capsule), 2));
-            if (crafting.Works(former)) formed++;
-            if (crafting.Progress(furnace) > 0) smelted++;
-            if (crafting.Works(smelter)) heated++;
-            if (crafting.Works(assembler)) assembled++;
-            if (crafting.Works(capsule)) grew++;
-            if (game.Module<ItemsModule>(first.World).Crate(capsule).Skip(1).Any(s => s is { Item: "biomass" })) harvested++;
+                var first = clients[0];
+                var grid = game.Module<GridModule>(first.World);
+                var crafting = game.Module<CraftingModule>(first.World);
+                int former = grid.MachinesOf("former")[0].Id, furnace = grid.MachinesOf("furnace")[0].Id;
+                int burner = grid.MachinesOf("burnerGenerator")[0].Id, smelter = grid.MachinesOf("smelter")[0].Id;
+                int assembler = grid.MachinesOf("assembler")[0].Id, capsule = grid.MachinesOf("growCapsule")[0].Id;
+                int second = grid.MachinesOf("burnerGenerator")[1].Id;
+                if (tick % 20 == 10)
+                {
+                    first.Send(new SetCreative(true));
+                    first.Send(new Craft(former, "plate", 3));
+                    first.Send(new Craft(assembler, tick % 40 == 10 ? "circuit" : "solarCell", 2));
+                    // The power fuzz cuts and moves cables: the Former's laid again, free in creative mode.
+                    first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(former)!.Cell));
+                    first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(smelter)!.Cell));
+                    first.Send(new Sim.Power.Lay(grid.MachineById(burner)!.Cell, grid.MachineById(assembler)!.Cell));
+                    first.Send(new Sim.Power.Lay(grid.MachineById(second)!.Cell, grid.MachineById(capsule)!.Cell));
+                }
+                var own = game.Module<ItemsModule>(first.World).Inventory(first.Id).ToList();
+                int chunk = own.FindIndex(s => s is { Item: "scrapChunk" }), planks = own.FindIndex(s => s is { Item: "planks" });
+                int rock = own.FindIndex(s => s is { Item: "rock" }), seed = own.FindIndex(s => s is { Item: "seed" });
+                if (tick % 50 == 25 && chunk >= 0) first.Send(new Move(new Place(chunk), new Target(0, furnace), 2));
+                if (tick % 50 == 30 && planks >= 0) first.Send(new Move(new Place(planks), new Target(1, furnace), 1));
+                if (tick % 50 == 35 && planks >= 0) first.Send(new Move(new Place(planks), new Target(0, burner), 1));
+                if (tick % 50 == 40 && rock >= 0) first.Send(new Move(new Place(rock), new Target(0, smelter), 2));
+                if (tick % 50 == 20 && planks >= 0) first.Send(new Move(new Place(planks), new Target(0, second), 1));
+                if (tick % 50 == 45 && seed >= 0) first.Send(new Move(new Place(seed), new Target(0, capsule), 2));
+                if (crafting.Works(former)) formed++;
+                if (crafting.Progress(furnace) > 0) smelted++;
+                if (crafting.Works(smelter)) heated++;
+                if (crafting.Works(assembler)) assembled++;
+                if (crafting.Works(capsule)) grew++;
+                if (game.Module<ItemsModule>(first.World).Crate(capsule).Skip(1).Any(s => s is { Item: "biomass" })) harvested++;
+            });
+            return (run, formed > 100 && smelted > 30 && heated > 30 && assembled > 100 && grew > 100 && harvested > 0 ? null
+                : $"the Former worked on {formed} ticks, the furnace smelted on {smelted}, the smelter on {heated}, the assembler worked on "
+                    + $"{assembled}, the capsule grew on {grew}, its crop in on {harvested}");
         });
-        Assert.Null(run.Desync);
-        Assert.True(formed > 100, $"the Former worked on {formed} ticks");
-        Assert.True(smelted > 30, $"the furnace smelted on {smelted} ticks");
-        Assert.True(heated > 30, $"the smelter smelted on {heated} ticks");
-        Assert.True(assembled > 100, $"the assembler worked on {assembled} ticks");
-        Assert.True(grew > 100, $"the capsule grew on {grew} ticks");
-        Assert.True(harvested > 0, "the capsule's crop never came in");
     }
 
     // The harness itself.

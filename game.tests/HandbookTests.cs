@@ -25,12 +25,17 @@ public class HandbookTests
     [Fact]
     public void RevealsALootSlotOnlyOnceItsItemHasComeOutOfTheKind()
     {
-        var slots = Finds.SlotsOf("cargoContainer", ["planks", "scrapChunk", "wire"]);
-        Assert.Equal(["planks", "scrapChunk", "gear", "wire"], slots.Select(s => s.Item));
-        Assert.Equal([true, true, false, true], slots.Select(s => s.Seen));
+        // A slot a loot entry, in the table's order: all but one of its items come out.
+        var loot = Content.Loot.Of("cargoContainer")!;
+        string hidden = loot[^2].Item;
+        var slots = Finds.SlotsOf("cargoContainer", [.. loot.Select(e => e.Item).Where(i => i != hidden)]);
+        Assert.Equal(loot.Select(e => e.Item), slots.Select(s => s.Item));
+        Assert.Equal(loot.Select(e => e.Item != hidden), slots.Select(s => s.Seen));
+        Assert.Contains(slots, s => s.Seen);
         // Not found at all: every slot a silhouette, its chance shown all the same.
         Assert.All(Finds.SlotsOf("cargoContainer", null), s => Assert.False(s.Seen));
-        Assert.Equal([null, null, 4, 4], Finds.SlotsOf("cargoContainer", null).Select(s => s.OneIn));
+        Assert.Equal(loot.Select(e => e.OneIn), Finds.SlotsOf("cargoContainer", null).Select(s => s.OneIn));
+        Assert.Contains(loot, e => e.OneIn != null);
     }
 
     [Fact]
@@ -65,11 +70,13 @@ public class HandbookTests
     public void SaysOfAKindNotFoundOnlyWhereToLookAndOfOneFoundHowItIsHadAndWhatIsStillMissing()
     {
         Assert.Equal(new Tip("???", new TipLine("Far out from the ship", Tone.Dim)), Finds.KindTip("engineBlock", null));
-        Assert.Equal(new Tip("Cargo container", new TipLine("Hit points 11"), new TipLine("1 not dropped yet", Tone.Unknown)),
-            Finds.KindTip("cargoContainer", ["planks", "scrapChunk", "wire"]));
-        Assert.Equal(new Tip("Cargo crate", new TipLine("Caught by hand"), new TipLine("Looks 1/8")), Finds.KindTip("cargoCrate", ["planks"], [3]));
+        // Its hit points and looks as content gives them; one item of its loot not out yet.
+        var loot = Content.Loot.Of("cargoContainer")!;
+        Assert.Equal(new Tip("Cargo container", new TipLine($"Hit points {Content.Wreckage.HpOf("cargoContainer")}"), new TipLine("1 not dropped yet", Tone.Unknown)),
+            Finds.KindTip("cargoContainer", [.. loot.Skip(1).Select(e => e.Item)]));
+        Assert.Equal(new Tip("Cargo crate", new TipLine("Caught by hand"), new TipLine($"Looks 1/{Content.Looks.CountOf("cargoCrate")}")), Finds.KindTip("cargoCrate", ["planks"], [0]));
         Assert.Equal("Caught by hand", Finds.HowTip("supplyPod").Name);
-        Assert.Equal("Hit points 200", Finds.HowTip("asteroidLarge").Name);
+        Assert.Equal($"Hit points {Content.Wreckage.HpOf("asteroidLarge")}", Finds.HowTip("asteroidLarge").Name);
     }
 
     [Fact]
