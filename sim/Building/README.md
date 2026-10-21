@@ -82,15 +82,17 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 - **`Dig(Cell, Tool)` is a weapon's hit on natural ground** (0077), sent as the axe strikes or at the drill's pace: its
   damage (`Weapons`) is added to the cell's crack, and the hit that reaches the wall's `Strength` clears the wall —
   only the wall: its back wall stays — drops its crack and gives what it is made of (its material's `Cost`: soil, rock)
-  to the sender, what does not fit falling at the cell (`GiveOrDrop`). Refused `building.nothingToDig` with no natural
+  to the sender, then the `Yields` of every growth the wall held — the one in its own stone, the one standing on it, the
+  one hanging from it — felled there and then, before derivation's sweep would fell them for nothing; what does not fit
+  falls where each was (`GiveOrDrop`). Refused `building.nothingToDig` with no natural
   wall there (open ground, hull, off the grid), `building.bedrock` for one that never breaks, then as the weapon says
   (`IItemsQueries.WeaponProblem`: `items.flat`, and `items.notRunning` for an electric one its hero does not run). Two
   digs on one cell in a tick apply in the host's order: the one that breaks it gets the yield, the next finds nothing.
   A crack whose wall is gone (a meteor) is dropped in derivation. A tool that deals no damage is our bug and throws.
 - **What grows on a planet's surface** (0079): plants and stones (`Content.Flora`), grown from the seed with the ground
   (`Terrain`), each standing in its cell over the soil it grows from and `Tall` cells up from it. A `Dig` on any of those
-  cells, open (no structure), fells it at one hit, whatever the weapon, giving its kind's `Yields` to the sender (none yet:
-  trees giving wood and seeds come there). A plant whose ground is gone — no wall under its cell, dug, taken apart, a
+  cells, open (no structure), fells it at one hit, whatever the weapon, giving its kind's `Yields` to the sender (an acacia
+  4 planks, a bush a seed, a rock 2 rock; flowers and grass nothing). A plant whose ground is gone — no wall under its cell, dug, taken apart, a
   meteor, or a wall cut to a slope there — or whose cell holds something now is felled in derivation, the tick it happens, looked at only when the grid's
   version moved. A felled plant never grows back; only `Felled` is saved, so a planet's save grows by a number a plant.
 - **What grows in a planet's caves** (0080): the caves' kinds of `Content.Flora.Cave`, grown with the ground too, each holding on
@@ -101,7 +103,10 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   hold is gone (`HoldOf`: the wall under it, over it, or its own), or one on a floor or a ceiling whose hold is cut to a
   slope (they grow on whole walls only, never on slopes, as in Terraria), is felled in derivation; looked at only round the cells the
   grid's log names since the last look (`ChangedSince`), all of them when it names none (a first look, a load). They are many —
-  some thirty-eight thousand on the first planet — and their cells go in `Felled` like a plant's.
+  some thirty-eight thousand on the first planet — and their cells go in `Felled` like a plant's. Felled by a hit or by
+  digging out their hold, they give fixed `Yields`: teal and hanging caps 2 biomass, violet caps a spore, ice crystals an
+  ice and ice veins 2, the amber, rose and ember crystals a crystal and a geode 6, copper veins 2 copper ore. Felled by
+  anything else (a meteor, a sweep after a load), nothing.
 
 ## API
 
@@ -160,7 +165,7 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 
 - Plants on a drawn map (only tests draw them) are not brought back by a load: only a grown surface's ground grows again.
 - A plant's crown over a wall built into it, or a tree's trunk cells above its own: only its own cell holding something fells
-  it. A tree falls to one hit, as a flower does, till felling gives wood (0079).
+  it. A tree falls to one hit, as a flower does, its planks and all: it has no strength of its own yet (0079).
 - A cave growth's other cells, past its own, holding something now (a wall built into hanging threads) leave it standing, as a
   plant's crown does. Moss shows on whichever faces of its stone are open now: dig beside it and it shows there too (0080).
 - Half-dug cells never heal (0077): a crack stays until its wall breaks. Reach and which cell is dug are the

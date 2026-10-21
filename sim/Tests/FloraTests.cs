@@ -91,10 +91,10 @@ public class FloraTests
         Assert.Empty(w.Refusals);
         Assert.Equal(["bellTeal"], Kinds(w));
         Assert.Null(w.M.Building.PlantAt(5));
-        // Nothing but the plant: the ground under it stands, uncracked, and nothing was given.
+        // Nothing but the plant: the ground under it stands, uncracked, and only the tree's planks were given (0080).
         Assert.Equal("soil", w.M.Grid.WallAt(2 * 8 + 5)?.Id);
         Assert.Empty(w.M.Building.Cracks);
-        Assert.Empty(w.M.Items.Totals(0));
+        Assert.Equal(Flora.Get("acacia").Yields, w.M.Items.Totals(0));
     }
 
     [Fact]

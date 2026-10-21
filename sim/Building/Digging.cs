@@ -7,8 +7,8 @@ namespace Stillwake.Sim.Building;
 /// <summary>
 /// A hit of weapon <c>Tool</c> on the natural wall at <c>Cell</c> (0077): sent as the axe strikes, or at the drill's pace
 /// while it works, at a natural wall within the hero's reach. Its damage cracks the wall; the hit that reaches its
-/// strength breaks it out, the back wall behind staying, and gives the sender what it is made of. On a plant standing in an
-/// open cell (0079), it fells the plant.
+/// strength breaks it out, the back wall behind staying, and gives the sender what it is made of and what grew on, in or
+/// from it. On a plant standing in an open cell (0079), it fells the plant.
 /// </summary>
 public sealed record Dig(int Cell, string Tool) : Command;
 
@@ -41,11 +41,11 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// The weapon's damage added to the wall's crack; reaching its strength, the wall is cleared, its crack with it, and
-    /// what it is made of given to the sender, what does not fit falling where it stood.
+    /// what it is made of given to the sender, then the yields of the growths it held, what does not fit falling where it stood.
     /// </summary>
     private void ApplyDig(Dig c)
     {
-        // A plant falls to one hit (0079), whatever the weapon; the plants on a wall broken out go in derivation.
+        // A plant falls to one hit (0079), whatever the weapon.
         if (_grid.WallAt(c.Cell) is not { } wall)
         {
             Fell(PlantAt(c.Cell)!, c.From);
@@ -62,6 +62,18 @@ public sealed partial class BuildingModule
         if (at >= 0) State.Cracks.RemoveAt(at);
         _gridOps.Clear(c.Cell, "structure");
         _itemsOps.GiveOrDrop(c.From, wall.Cost, c.Cell);
+        // What the wall held goes to its digger now; the sweep would fell it the same tick, giving nothing.
+        foreach (var plant in HeldBy(c.Cell)) Fell(plant, c.From);
+    }
+
+    /// <summary>
+    /// The growths <paramref name="cell"/>'s wall holds (<see cref="HoldOf"/>), in cell order: one standing on it, one in
+    /// its own stone, one hanging from it.
+    /// </summary>
+    private IEnumerable<Plant> HeldBy(int cell)
+    {
+        foreach (int at in (int[])[cell - _grid.Width, cell, cell + _grid.Width])
+            if (_plantOwn.TryGetValue(at, out var plant) && HoldOf(plant) == cell) yield return plant;
     }
 
     /// <summary>Where <paramref name="cell"/>'s crack is in <see cref="BuildingState.Cracks"/>; the complement of where it would go when it has none.</summary>

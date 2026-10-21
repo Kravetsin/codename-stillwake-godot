@@ -279,7 +279,7 @@ public class ContentTests
     [Fact]
     public void SmeltingMakesWholeAmountsInWholeTicksOfItemsThatAreNotSalvageAndChainsOnlyUpInHeat()
     {
-        string[] refined = ["silicon", "glass", "biomass", "biofuel"];
+        string[] refined = ["silicon", "glass", "biomass", "biofuel", "copper"];
         foreach (var spec in Content.Items.All)
         {
             Assert.True(spec.Yields != null == (spec.SmeltTicks != null), spec.Id);
@@ -288,7 +288,7 @@ public class ContentTests
             Assert.NotEmpty(spec.Yields);
             foreach (var (item, amount) in spec.Yields)
             {
-                // What the Yields type held in TypeScript, materials and canisters, then silicon, glass, biomass and biofuel.
+                // What the Yields type held in TypeScript, materials and canisters, then silicon, glass, biomass, biofuel and copper.
                 Assert.True(Materials.TryGet(item, out _) || item == "canister" || refined.Contains(item), item);
                 Assert.True(Content.Items.TryGet(item, out var yielded), item);
                 Assert.Null(Loot.Of(item));
@@ -842,15 +842,15 @@ public class ContentTests
     /// <summary>
     /// Every craft is made at some queued station; the pod keeps its twelve and its list stops growing, new crafts
     /// going to machines (0057): the electronics, circuits and solar cells, to the circuit assembler alone, and soil to
-    /// the Former alone (0060).
+    /// the Former alone (0060), as the motor of a planet's copper.
     /// </summary>
     [Fact]
-    public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesAndSoilAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
+    public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilAndMotorsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell", "drone"];
-        Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, "soil"]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        string[] electronics = ["circuit", "solarCell", "drone"], formed = ["soil", "motor"];
+        Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));
-        Assert.Equal(["former"], Stations.All.Where(s => s.Rows.Any(r => r.Contains("soil"))).Select(s => s.Machine));
+        Assert.All(formed, item => Assert.Equal(["former"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(item))).Select(s => s.Machine)));
         Assert.All(Crafts.All, c => Assert.Contains(Stations.All, s => s.Rows.Any(r => r.Contains(c.Item))));
         foreach (var station in Stations.All.Where(s => !s.Fed))
         {
@@ -954,11 +954,21 @@ public class ContentTests
     /// one that lays it out, smelted at a fed one hot enough. A station is reachable when it is built into the ship,
     /// or its blueprint is known and its cost reachable; under the opening rule (0027) a blueprint or craft is
     /// known when granted or when every item of its cost is reachable, and so analysed. Debris of the kinds
-    /// <paramref name="never"/> is left out, as if it never drifted by.
+    /// <paramref name="never"/> is left out, as if it never drifted by. Aboard only: what a planet gives is not had.
     /// </summary>
-    private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, params string[] never)
+    private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, params string[] never) =>
+        Reachable(stations, planet: false, never);
+
+    /// <summary>
+    /// <see cref="Reachable(IReadOnlyList{Station}, string[])"/>, and with <paramref name="planet"/> what a planet's ground
+    /// and growth give besides (0077, 0080), dug and felled with the axe the wreck starts knowing.
+    /// </summary>
+    private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, bool planet, params string[] never)
     {
         var had = new HashSet<string>(StringComparer.Ordinal);
+        if (planet)
+            foreach (var (item, _) in Materials.All.Where(m => m.Breaks).SelectMany(m => m.Cost).Concat(Flora.All.Concat<Flora.Growth>(Flora.Cave).SelectMany(k => k.Yields)))
+                had.Add(item);
         foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Where(k => !never.Contains(k.Item)))
         {
             had.Add(item);
@@ -990,23 +1000,58 @@ public class ContentTests
         return (had, known);
     }
 
-    /// <summary>Every craft and blueprint opens from the wreck's start, by analysing what is caught or made at its stations.</summary>
+    /// <summary>Every craft and blueprint opens from the wreck's start, by analysing what is caught, dug on a planet or made at its stations.</summary>
     [Fact]
     public void EveryCraftAndBlueprintOpensFromTheWrecksStartByAnalysingWhatItsStationsMake()
     {
-        var (_, known) = Reachable(Stations.All);
+        var (_, known) = Reachable(Stations.All, planet: true);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item));
         Assert.Equal([], recipes.Where(id => !known.Contains(id)).ToArray());
     }
 
-    /// <summary>The invariant: every item there is can be had from the wreck, caught or made at a station reachable; but what is found elsewhere.</summary>
+    /// <summary>The invariant: every item there is can be had from the wreck, caught, dug on a planet or made at a station reachable; but what is found elsewhere.</summary>
     [Fact]
     public void EveryItemIsReachableFromTheWreckButWhatIsFoundElsewhere()
     {
-        var (had, _) = Reachable(Stations.All);
+        var (had, _) = Reachable(Stations.All, planet: true);
         var found = Weapons.Found.Select(w => w.Item).ToHashSet();
         Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id) && !found.Contains(id)).ToArray());
         Assert.All(found, id => Assert.DoesNotContain(id, had));
+    }
+
+    /// <summary>
+    /// What the planet's caves give (0080) is had there alone: copper ore from its veins, smelted into copper at the furnace,
+    /// and the motor of it at the Former; ice, crystal and spores. Aboard, none of them.
+    /// </summary>
+    [Fact]
+    public void CopperIceCrystalAndSporesComeFromAPlanetAloneAndTheMotorOfItsCopperAtTheFormer()
+    {
+        string[] planetary = ["copperOre", "copper", "motor", "ice", "crystal", "spore"];
+        var aboard = Reachable(Stations.All).Items;
+        Assert.All(planetary, item => Assert.DoesNotContain(item, aboard));
+        var (down, known) = Reachable(Stations.All, planet: true);
+        Assert.All(planetary, item => Assert.Contains(item, down));
+        Assert.Contains("motor", known);
+        Assert.DoesNotContain("motor", Reachable([.. Stations.All.Where(s => s.Machine != "former")], planet: true).Items);
+        Assert.Equal([("copper", 1)], Content.Items.Get("copperOre").Yields);
+        Assert.Equal(1, Content.Items.Get("copperOre").Heat);
+    }
+
+    /// <summary>
+    /// Growths give fixed counts of real items, none of themselves (0080): every cave kind a player would break for
+    /// something gives it, and what is only to look at gives nothing.
+    /// </summary>
+    [Fact]
+    public void FloraYieldsWholeCountsOfRealItemsAndEveryKindWorthBreakingGivesSome()
+    {
+        foreach (var kind in Flora.All.Concat<Flora.Growth>(Flora.Cave))
+            Assert.All(kind.Yields, y => Assert.True(Content.Items.TryGet(y.Item, out _) && y.Count > 0, $"{kind.Id}: {y.Item}"));
+        var giving = Flora.All.Concat<Flora.Growth>(Flora.Cave).Where(k => k.Yields.Count > 0).Select(k => k.Id).Order(StringComparer.Ordinal);
+        Assert.Equal(
+            ["acacia", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "rock", "veinCopper", "veinIce"],
+            giving);
+        // A geode is a hollow of crystals: more than any one crystal gives.
+        Assert.True(Flora.Get("geode").Yields.Single().Count > Flora.Cave.Where(k => k.Id.StartsWith("crystal", StringComparison.Ordinal)).Max(k => k.Yields.Single().Count));
     }
 
     /// <summary>

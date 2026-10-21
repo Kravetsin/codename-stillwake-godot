@@ -13,7 +13,7 @@ namespace Stillwake.Game.Dev;
 /// mode on, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
 /// generator lit, the analyzer at work, a battery charging, the Former pressing plates endlessly from the iron in its
 /// inputs, the electric smelter smelting rock, the circuit assembler making circuits, a grow capsule growing seeds beside a crate of
-/// the farm's items, seeds, rock and planks; and drones (0062): two in a powered bay in room one beside a supply crate of
+/// the farm's items, seeds, rock and planks, and what a planet's caves give; and drones (0062): two in a powered bay in room one beside a supply crate of
 /// twenty stacks of chunks, planks, iron and seeds, the farm's crate switched off. The furnace already holds chunks and
 /// planks, the Former iron and the capsule seeds, each under half a stack, so from the start drones carry through the
 /// closed door to keep them going for ten minutes and more, and carry what they make back to the crates.
@@ -26,8 +26,14 @@ public static class Testbed
     /// <summary>The farm's items (0060), in the second crate by the grow capsule with rock and planks: the first is full.</summary>
     public static readonly IReadOnlyList<string> Farm = ["seed", "soil", "biomass", "biofuel"];
 
-    /// <summary>What the farm's crate holds: a full stack of each of the farm's items, and of rock and planks for soil.</summary>
-    public static IEnumerable<string> FarmCrate => [.. Farm, "rock", "planks"];
+    /// <summary>What a planet's caves give (0080) and the motor made of their copper, in the farm's crate too: the first is full.</summary>
+    public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", "crystal", "spore", "motor"];
+
+    /// <summary>What the farm's crate holds: a full stack of each of the farm's items, of rock and planks for soil, and of what a planet gives.</summary>
+    public static IEnumerable<string> FarmCrate => [.. Farm, "rock", "planks", .. Planet];
+
+    /// <summary>Whether <paramref name="item"/> goes in the farm's crate rather than the full one.</summary>
+    public static bool InFarmCrate(string item) => Farm.Contains(item) || Planet.Contains(item);
 
     /// <summary>What is found and never made, the arc drill (0075): in the supply crate by the door, the first crate full.</summary>
     public static IEnumerable<string> Found => Weapons.Found.Select(w => w.Item);
@@ -143,7 +149,7 @@ public static class Testbed
         items["creative"] = true;
         var held = new List<JsonObject>
         {
-            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !Farm.Contains(i.Id) && !InSupply.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
+            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
             new() { ["id"] = At(FarmAt), ["slots"] = Slots("crate", [.. FarmCrate.Select(i => Stack(i, Items.Get(i).Stack))]) },
             new() { ["id"] = At(Supply), ["slots"] = Slots("crate", [.. Supplies.Select(s => Stack(s.Item, s.Count)), .. InSupply.Select(f => Stack(f, 1))]) },
             new() { ["id"] = Id("growCapsule"), ["slots"] = Slots("growCapsule", [Stack("seed", Planted)]) },
