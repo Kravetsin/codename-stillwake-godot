@@ -435,6 +435,7 @@ public partial class HeroView : Node2D
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
+        _figure.Ledge = LedgeOf(ship, drawn);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
         // Its own thrust shows at once (0014); others' as the sim says.
         Plume(client.Id, _figure, _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
@@ -688,6 +689,13 @@ public partial class HeroView : Node2D
         return (Room(-1), Room(1));
     }
 
+    /// <summary>
+    /// How far the top of the ladder <paramref name="hero"/> climbs, or of the ledge its jump steps up onto, is over its feet, in
+    /// pixels: what its figure pulls itself up onto (0092), read alike for every hero from where it is.
+    /// </summary>
+    private static double? LedgeOf(Ship ship, Hero hero) =>
+        (Hero.LedgeAbove(ship, hero) ?? Hero.MantleLedge(ship, hero)) is int up ? up * Rig.Cell / Hero.Unit : null;
+
     /// <summary>The middle of <paramref name="cell"/>, in thousandths of a cell.</summary>
     private Point Middle(int cell) => new(cell % _width * Hero.Unit + Hero.Unit / 2, cell / _width * Hero.Unit + Hero.Unit / 2);
 
@@ -767,6 +775,7 @@ public partial class HeroView : Node2D
             shown.Figure.HeadLamp = m.Items.Equipped(id, Content.HelmetLamp.Item);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
+            shown.Figure.Ledge = LedgeOf(ship, hero);
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
             shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);

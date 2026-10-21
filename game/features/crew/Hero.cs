@@ -82,11 +82,13 @@ public sealed class Ship(
 /// (0007); none aboard. The jump's timers (0089): <see cref="Airborne"/>, steps since the feet last stood, kept at
 /// most one past <c>Hero.Coyote</c>, and that once a jump is spent or before the hero first stands, so one made in
 /// mid-air cannot jump; <see cref="Buffered"/>, the steps a press of Space made in the air still jumps on landing;
-/// <see cref="Rising"/>, a jump rising that letting go of Space cuts.
+/// <see cref="Rising"/>, a jump rising that letting go of Space cuts. <see cref="LetGo"/>, steps since the hands let go of a
+/// ladder by a jump or a walk, kept at most one past <c>Hero.Regrab</c>: up grabs none before then (0092). <see cref="Leaping"/>,
+/// in the air from a jump, off the floor or a ladder, till the feet stand: only a jump steps up onto a ledge it fell short of.
 /// </summary>
 public readonly record struct Hero(
     int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor = null,
-    int Airborne = Spec.Coyote + 1, int Buffered = 0, bool Rising = false)
+    int Airborne = Spec.Coyote + 1, int Buffered = 0, bool Rising = false, int LetGo = Spec.Regrab + 1, bool Leaping = false)
 {
     /// <summary>Thousandths of a cell: the unit of every length and speed in <see cref="Spec"/>.</summary>
     public const int Unit = 1000;
@@ -215,31 +217,40 @@ public readonly record struct Hero(
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
         bool held = input.Jump || input.JumpHeld;
-        // Not while rising: a jump off a ladder with up held goes on, not caught by the ladder it left.
-        bool grab = !hero.Climbing && hero.Vy >= 0 && input.Y != 0 && input.X == 0 && !input.Jump &&
-            TouchesLadder(ship, hero.X, hero.Y, input.Y > 0);
+        int letGo = Math.Min(hero.LetGo + 1, Spec.Regrab + 1);
+        // Up grabs a ladder walking, running or rising too, but not for a moment after letting go of one, so a jump off it
+        // with up held goes on; down grabs one standing or falling, no side held (0092).
+        bool grab = !hero.Climbing && !input.Jump &&
+            (input.Y < 0 && letGo > Spec.Regrab && TouchesLadder(ship, hero.X, hero.Y, false)
+                || input.Y > 0 && input.X == 0 && hero.Vy >= 0 && TouchesLadder(ship, hero.X, hero.Y, true));
         if (grab || hero.Climbing)
         {
-            // A ladder centres the hero on it; narrower than a cell, the hero touches nothing beside it but a slope's
-            // solid half, which it may not climb into: it stops on the ladder, or does not take it (0069). A side held
-            // in mid-air only turns the hero on it, so a jump that follows goes that way (0077); on the ground it walks off.
-            bool holds = !input.Jump && (input.X == 0 || hero.Climbing && !Grounded(ship, hero.X, hero.Y));
-            if (holds)
+            bool footed = Grounded(ship, hero.X, hero.Y);
+            // A jump lets go: straight up as from the floor, or to a side, leaping off across and less high (0092).
+            if (input.Jump)
             {
-                var climbed = Climb(ship, CellOf(hero.X) * Unit + Unit / 2, hero.Y, input.Y, facing);
-                if (Clear(ship, climbed.X, climbed.Y)) return climbed;
-                if (hero.Climbing) return hero with { Vx = 0, Vy = 0, Facing = facing };
+                int across = input.X * Spec.Run * Spec.LadderJumpAcross / 1000;
+                int rise = input.X == 0 ? Spec.Jump : Spec.Jump * Spec.LadderJumpRise / 1000;
+                return Fall(ship, hero.X, hero.Y, across, -rise, facing, held) with { Rising = true, LetGo = 0, Leaping = true };
             }
-            // Jumping, either side or straight up, or walking off at the foot lets go.
-            else
-            {
-                var off = Fall(ship, hero.X, hero.Y, Paced(hero.Vx, input, Grounded(ship, hero.X, hero.Y)),
-                    input.Jump ? -Spec.Jump : 0, facing, held);
-                return input.Jump ? off with { Rising = true } : off;
-            }
+            // A side held in mid-air only turns the hero on it, so a jump that follows goes that way (0077); on the ground it
+            // walks off, unless up is held too, which climbs.
+            if (input.X != 0 && input.Y >= 0 && footed)
+                return Fall(ship, hero.X, hero.Y, Paced(hero.Vx, input, footed), 0, facing, held) with { LetGo = 0 };
+            // The hero eases onto the ladder's middle; narrower than a cell, it touches nothing beside it there but a slope's
+            // solid half, which it may not climb into: it stops on the ladder, or does not take it (0069).
+            int x = Centred(hero.X, CellOf(hero.X) * Unit + Unit / 2);
+            if (x != hero.X && !Clear(ship, x, hero.Y)) x = hero.X;
+            int speed = input.Y < 0 ? Spec.ClimbUp : input.Sprint ? Spec.Slide : Spec.ClimbDown;
+            var climbed = Climb(ship, x, hero.Y, input.Y, speed, facing) with { LetGo = letGo };
+            if (Clear(ship, climbed.X, climbed.Y)) return climbed;
+            if (hero.Climbing) return hero with { X = x, Vx = 0, Vy = 0, Facing = facing, LetGo = letGo };
         }
         // A press counts for the buffer's steps, and the ground for the coyote's after the feet leave it (0089).
         bool grounded = hero.Vy >= 0 && Grounded(ship, hero.X, hero.Y);
+        // Pressed against a ledge the jump falls just short of, rising no faster than the assist lifts, it steps up onto it.
+        if (hero.Leaping && !grounded && input.X != 0 && !input.Jump && hero.Vy >= -Spec.MantleRise && Mantle(ship, hero, input.X, facing) is Hero up)
+            return up with { LetGo = letGo, Leaping = true };
         int airborne = grounded ? 0 : Math.Min(hero.Airborne + 1, Spec.Coyote + 1);
         bool jumps = (input.Jump || hero.Buffered > 0) && airborne <= Spec.Coyote;
         int vy = jumps ? -Spec.Jump : hero.Vy;
@@ -251,7 +262,66 @@ public readonly record struct Hero(
             Airborne = jumps ? Spec.Coyote + 1 : airborne,
             Buffered = jumps ? 0 : input.Jump ? Spec.JumpBuffer : Math.Max(0, hero.Buffered - 1),
             Rising = rising && vy < 0,
+            Leaping = jumps || hero.Leaping && !grounded,
+            LetGo = letGo,
         };
+    }
+
+    /// <summary>
+    /// How far a jump falls short of a ledge yet looks on it, in thousandths of a cell: the drawn foot's height over the feet at
+    /// <paramref name="vy"/> (<see cref="Poses.FootLift"/>), rounded down; about 0.3 of a cell at a jump's top, none falling fast.
+    /// </summary>
+    public static int MantleReach(int vy) => (int)(Poses.FootLift(vy) * Unit / Rig.Cell);
+
+    /// <summary>
+    /// The top of the whole wall the feet at (<paramref name="x"/>, <paramref name="y"/>) are pressed against going
+    /// <paramref name="dir"/>, in thousandths of a cell, where the hero fits standing on it <c>Hero.MantleAcross</c> over its
+    /// edge with room to rise there; null for none, or the feet over it already.
+    /// </summary>
+    private static int? LedgeAhead(Ship ship, int x, int y, int dir)
+    {
+        if (MoveX(ship, x, y, dir, true) != x) return null;
+        int column = CellOf(dir > 0 ? x + Half : x - Half - 1), row = CellOf(y - 1);
+        if (!Whole(ship, column, row)) return null;
+        while (row > 0 && Whole(ship, column, row - 1)) row--;
+        int top = row * Unit;
+        if (top >= y || MoveY(ship, x, y, top - y, false, true) != top) return null;
+        int onto = MoveX(ship, x, top, dir * Spec.MantleAcross, true);
+        return onto != x && Clear(ship, onto, top) ? top : null;
+    }
+
+    /// <summary>
+    /// The ledge assist (0092): a step of a hero pressed <paramref name="dir"/> against a ledge its feet are short of by no more
+    /// than its drawn foot clears (<see cref="MantleReach"/>): raised by up to <c>Hero.MantleRise</c>, and the step its feet reach
+    /// the top, put <c>Hero.MantleAcross</c> onto it, standing. Null where it does not apply: the jump falls as any.
+    /// </summary>
+    private static Hero? Mantle(Ship ship, Hero hero, int dir, int facing)
+    {
+        if (LedgeAhead(ship, hero.X, hero.Y, dir) is not int top || hero.Y - top > MantleReach(hero.Vy)) return null;
+        int lift = Math.Min(hero.Y - top, Spec.MantleRise), y = hero.Y - lift;
+        if (y > top) return new Hero(hero.X, y, 0, -lift, false, facing);
+        int x = MoveX(ship, hero.X, y, dir * Spec.MantleAcross, true);
+        return new Hero(x, y, x - hero.X, 0, false, facing);
+    }
+
+    /// <summary>
+    /// How far short of a ledge it steps up onto <paramref name="hero"/>'s feet are, in thousandths of a cell, rising or still in
+    /// the air against it, facing it or not; none otherwise. What the figure pulls up onto, read alike for every hero from where
+    /// it is (0092).
+    /// </summary>
+    public static int? MantleLedge(Ship ship, Hero hero)
+    {
+        if (hero.Climbing || hero.Vy >= 0 || hero.Vy < -Spec.MantleRise || ship.Space(hero.BodyCell(ship.Width))) return null;
+        foreach (int dir in (ReadOnlySpan<int>)[hero.Facing, -hero.Facing])
+            if (LedgeAhead(ship, hero.X, hero.Y, dir) is int top && hero.Y - top <= MantleReach(hero.Vy)) return hero.Y - top;
+        return null;
+    }
+
+    /// <summary><paramref name="x"/> moved <c>Hero.LadderCentring</c> of the way to a ladder's <paramref name="middle"/>, onto it once within <c>Hero.LadderSnap</c>.</summary>
+    private static int Centred(int x, int middle)
+    {
+        int to = x + (middle - x) * Spec.LadderCentring / 1000;
+        return Math.Abs(middle - to) < Spec.LadderSnap ? middle : to;
     }
 
     /// <summary>
@@ -450,16 +520,44 @@ public readonly record struct Hero(
 
     private static double Distance(double dx, double dy) => Math.Sqrt(dx * dx + dy * dy);
 
-    private static Hero Climb(Ship ship, int x, int y, int dir, int facing)
+    /// <summary>
+    /// A step on a ladder at (<paramref name="x"/>, <paramref name="y"/>), <paramref name="dir"/> up or down at
+    /// <paramref name="speed"/>. The step the feet reach its top the hero stands on it, no further than the step went; the
+    /// figure has pulled itself up meanwhile (<see cref="LedgeAbove"/>). Held on at its top while down cannot yet take the
+    /// body into a shaft, it stays on the ladder as it eases onto its middle.
+    /// </summary>
+    private static Hero Climb(Ship ship, int x, int y, int dir, int speed, int facing)
     {
-        int ny = MoveY(ship, x, y, dir * Spec.Climb, true, true);
+        int ny = MoveY(ship, x, y, dir * speed, true, true);
         int column = CellOf(x);
         int before = CellOf(y - 1);
         int after = CellOf(ny - 1);
-        // The feet rose past the ladder's top: the hero steps off and stands on it.
-        if (after < before && Climbable(ship, column, before) && !Climbable(ship, column, after))
+        bool onTop = y % Unit == 0 && !Climbable(ship, column, before) && Climbable(ship, column, CellOf(y));
+        // The feet rose past the ladder's top, or stood on it already: the hero steps off and stands on it.
+        if (dir < 0 && after < before && Climbable(ship, column, before) && !Climbable(ship, column, after))
             return new Hero(x, before * Unit, 0, 0, false, facing);
-        return new Hero(x, ny, 0, ny - y, TouchesLadder(ship, x, ny, false), facing);
+        if (dir < 0 && onTop) return new Hero(x, y, 0, 0, false, facing);
+        bool on = TouchesLadder(ship, x, ny, false) || dir > 0 && ny == y && onTop;
+        return new Hero(x, ny, 0, ny - y, on, facing);
+    }
+
+    /// <summary>
+    /// How far above <paramref name="hero"/>'s feet the top of the ladder it climbs is, in thousandths of a cell: where its
+    /// feet stand on stepping off, the top of the highest ladder cell (or hatch it climbs through) within
+    /// <paramref name="rows"/> rows over its feet, where it fits standing; none off a ladder or with no such top. What the
+    /// figure pulls itself up onto, read alike for every hero from where it is (0092).
+    /// </summary>
+    public static int? LedgeAbove(Ship ship, Hero hero, int rows = 3)
+    {
+        if (!hero.Climbing) return null;
+        int column = CellOf(hero.X), feet = CellOf(hero.Y - 1);
+        for (int row = feet + 1; row >= feet - rows; row--)
+        {
+            if (!Climbable(ship, column, row) || Climbable(ship, column, row - 1)) continue;
+            int top = row * Unit;
+            return top <= hero.Y && Clear(ship, column * Unit + Unit / 2, top) ? hero.Y - top : null;
+        }
+        return null;
     }
 
     private static bool Grounded(Ship ship, int x, int y) => MoveY(ship, x, y, 1, false, true) == y;

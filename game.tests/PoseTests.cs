@@ -156,7 +156,7 @@ public class PoseTests
     [Fact]
     public void TakesRungsOverItsHeadOnALadderOneHandUpWhileTheOtherHolds()
     {
-        var l = LimbsOf(Pose.Climb, Standing with { Climbing = true }, At(0.3));
+        var l = LimbsOf(Pose.Climb, Standing with { Climbing = true, Y = 10300 }, At(0));
         var front = Rig.EndOf(l.FrontArm, Rig.Arm);
         var back = Rig.EndOf(l.BackArm, Rig.Arm);
         Assert.True(Math.Min(front.Y, back.Y) < -Rig.Arm.Upper);
@@ -318,9 +318,10 @@ public class PoseTests
     [Fact]
     public void BendsItsElbowsForwardOnALadderAsArmsBend()
     {
-        for (double at = 0; at < 2; at += 0.1)
+        // The climb's cycle is a cell, read from where the hero is (0092).
+        for (int y = 10000; y < 11000; y += 50)
         {
-            var l = LimbsOf(Pose.Climb, Standing with { Climbing = true }, At(at));
+            var l = LimbsOf(Pose.Climb, Standing with { Climbing = true, Y = y }, At(0));
             Assert.True(l.FrontArm.Lower >= 0 && l.BackArm.Lower >= 0);
         }
     }

@@ -48,12 +48,14 @@ public class PlanetHeroTests
     }
 
     [Fact]
-    public void OnThePlanetAJumpClearsSixCellsWhereAboardItClearsThree()
+    public void OnThePlanetAJumpClearsSixCellsNotSevenWhereAboardItClearsThreeAndStepsUpOntoFour()
     {
         var ship = Surfaces.Ship;
         var planet = Surfaces.TestStrip;
         Assert.Equal((13 - 3) * Unit, Landed(3, ship));
-        Assert.Equal(13 * Unit, Landed(4, ship));
+        // Four with the ledge assist (0092): a held jump falls 46 short of it, inside the drawn foot's reach.
+        Assert.Equal((13 - 4) * Unit, Landed(4, ship));
+        Assert.Equal(13 * Unit, Landed(5, ship));
         Assert.Equal((13 - 6) * Unit, Landed(6, planet));
         Assert.Equal(13 * Unit, Landed(7, planet));
     }

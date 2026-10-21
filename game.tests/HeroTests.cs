@@ -191,8 +191,10 @@ public class HeroTests
         Assert.Equal(4 * Unit - Half, Settle(low.Ship, low.Hero, Right).X);
     }
 
+    // Was JumpsOntoALedgeThreeCellsHighNotFour: a held jump's feet come 46 short of a fourth cell, inside the drawn foot's
+    // reach at its top, so the ledge assist puts the hero on it (0092). Five is still out of reach.
     [Fact]
-    public void JumpsOntoALedgeThreeCellsHighNotFour()
+    public void JumpsOntoALedgeFourCellsHighWithTheLedgeAssistNotFive()
     {
         (Ship Ship, Hero Hero) Ledge(int high)
         {
@@ -208,7 +210,12 @@ public class HeroTests
         Assert.Equal(6 * Unit, Settle(three.Ship, h, Still).Y);
 
         var four = Ledge(4);
-        var g = Run(four.Ship, four.Hero.Step(Jump, four.Ship), Held with { X = 1 }, 200);
+        var f = Run(four.Ship, four.Hero.Step(Jump, four.Ship), Held with { X = 1 }, 200);
+        Assert.True(Column(f) >= 3);
+        Assert.Equal(5 * Unit, f.Y);
+
+        var five = Ledge(5);
+        var g = Run(five.Ship, five.Hero.Step(Jump, five.Ship), Held with { X = 1 }, 200);
         Assert.True(Column(g) < 3);
         Assert.Equal(9 * Unit, g.Y);
     }
@@ -487,15 +494,19 @@ public class HeroTests
         var near = Until(ship, hero, Right, h => Column(h) == 3);
         var grabbed = near.Step(Up, ship);
         Assert.True(grabbed.Climbing);
-        Assert.Equal(3 * Unit + Unit / 2, grabbed.X);
-        Assert.Equal(near.Y - Spec.Climb, grabbed.Y);
-        // The step the feet reach the top, the hero steps off onto it: no hop past it and back.
+        // Eased onto its middle, not snapped (0092).
+        Assert.True(Math.Abs(grabbed.X - 3500) < Math.Abs(near.X - 3500) && grabbed.X != 3500, $"{grabbed.X} from {near.X}");
+        Assert.Equal(near.Y - Spec.ClimbUp, grabbed.Y);
+        // The step the feet reach the top, the hero steps off onto it: no hop past it and back, nor a step longer than a climb's.
         var top = grabbed;
         for (int i = 0; i < 200 && top.Climbing; i++)
         {
+            var was = top;
             top = top.Step(Up, ship);
             Assert.True(top.Y >= 4 * Unit);
+            Assert.InRange(was.Y - top.Y, 0, Spec.ClimbUp);
         }
+        Assert.Equal(3500, top.X);
         Assert.False(top.Climbing);
         Assert.Equal(4 * Unit, top.Y);
         for (int i = 0; i < 30; i++)
@@ -543,7 +554,7 @@ public class HeroTests
             """);
         var grabbed = At(3500, 8 * Unit).Step(Up, ship);
         Assert.True(grabbed.Climbing);
-        Assert.Equal(8 * Unit - Spec.Climb, grabbed.Y);
+        Assert.Equal(8 * Unit - Spec.ClimbUp, grabbed.Y);
     }
 
     [Fact]
@@ -552,7 +563,7 @@ public class HeroTests
         var (ship, _) = Start(LadderMap);
         var caught = At(3500, 6000, vy: 200).Step(Up, ship);
         Assert.True(caught.Climbing);
-        Assert.Equal(6000 - Spec.Climb, caught.Y);
+        Assert.Equal(6000 - Spec.ClimbUp, caught.Y);
     }
 
     [Fact]
@@ -560,7 +571,7 @@ public class HeroTests
     {
         var (ship, _) = Start(LadderMap);
         var on = At(3500, 6500, climbing: true);
-        // Jumping with up held: the hero rises off the ladder, not caught again by it while it rises (0077).
+        // Jumping with up held: the hero rises off the ladder, not caught again by it for Hero.Regrab steps (0077, 0092).
         var h = on.Step(new HeroInput(0, -1, true), ship);
         Assert.False(h.Climbing);
         for (int i = 0; i < 10; i++)
@@ -600,14 +611,20 @@ public class HeroTests
         Assert.True(up.Y < on.Y && up.X > on.X, $"({up.X}, {up.Y})");
     }
 
+    // Was LaddersAreNotGrabbedWhileWalkingOrJumpingNorFromBesideThem: up now grabs walking and rising too, by design (0092).
     [Fact]
-    public void LaddersAreNotGrabbedWhileWalkingOrJumpingNorFromBesideThem()
+    public void LaddersAreGrabbedWithUpWalkingFallingOrRisingButNotOnAJumpsPressNorFromBesideThem()
     {
         var (ship, _) = Start(LadderMap);
         var at = At(3500, 8 * Unit);
-        Assert.False(at.Step(new HeroInput(1, -1, false), ship).Climbing);
+        Assert.True(at.Step(new HeroInput(1, -1, false), ship).Climbing);
+        Assert.True((at with { Vx = Spec.Run }).Step(new HeroInput(1, -1, false, Sprint: true), ship).Climbing);
         var falling = at with { Y = 6500, Vy = 200 };
-        Assert.Equal(200 + ship.FallGravity, falling.Step(new HeroInput(1, -1, false), ship).Vy);
+        Assert.True(falling.Step(new HeroInput(1, -1, false), ship).Climbing);
+        var rising = at with { Y = 6500, Vy = -300 };
+        Assert.True(rising.Step(Up, ship).Climbing);
+        // Down still grabs only with no side held.
+        Assert.False((at with { Y = 4 * Unit }).Step(new HeroInput(1, 1, false), ship).Climbing);
         var midAir = at with { Y = 6500 };
         var jumped = midAir.Step(new HeroInput(0, -1, true), ship);
         Assert.False(jumped.Climbing);
