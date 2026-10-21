@@ -1,0 +1,644 @@
+<title>Жилища творцов дуги</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Golos+Text:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one dark column, like standing in a dead home with the helmet lamp on; pictures carry the page, text is caption.
+   Deliberately single-theme (dark): glow art only reads on black. */
+:root {
+  --ink: #06080c;        /* page: the rock with every lamp off */
+  --panel: #0d1117;      /* framed surfaces */
+  --line: #222a35;
+  --fg: #e1e5ea;
+  --muted: #8b95a3;
+  --arc: #8ec7ff;        /* their lamps: cool blue-white, the one accent */
+  --hot: #ffa860;        /* the hearth: marks gameplay */
+  --violet: #b48cff;     /* the scroll cases: marks the hints at the deep ruins */
+  --font-display: "Press Start 2P", "Courier New", monospace;
+  --font-body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 40px; --s7: 64px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--ink); color: var(--fg); font: 16px/1.55 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: var(--s6) var(--s7);
+}
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--s7); }
+section { display: flex; flex-direction: column; gap: var(--s5); }
+h1, h2 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; }
+h3 { font-family: var(--font-body); font-weight: 600; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.35rem, 3.6vw, 2.3rem); line-height: 1.35; }
+h2 { font-size: clamp(0.95rem, 2.2vw, 1.2rem); line-height: 1.5; }
+h3 { font-size: 1.08rem; line-height: 1.3; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font: 600 0.75rem/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--arc); }
+.muted { color: var(--muted); }
+header { display: flex; flex-direction: column; gap: var(--s4); }
+.lede { font-size: 1.12rem; }
+blockquote { margin: 0; padding: var(--s3) var(--s4); border-left: 2px solid var(--arc); color: var(--muted); max-width: 72ch; font-size: 0.95rem; }
+.facts { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
+.facts li { font: 0.78rem/1 var(--font-mono); color: var(--muted); border: 1px solid var(--line); padding: 6px 8px; border-radius: 3px; font-variant-numeric: tabular-nums; }
+.sechead { display: flex; flex-direction: column; gap: var(--s2); }
+
+/* controls */
+.bar { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s5); align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; flex-wrap: wrap; }
+.seg button { font: 600 0.8rem/1 var(--font-mono); background: transparent; color: var(--muted); border: 0; padding: 9px 12px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--ink); }
+button:focus-visible, textarea:focus-visible, input:focus-visible + span, input[type="checkbox"]:focus-visible { outline: 2px solid var(--arc); outline-offset: 2px; }
+.label { font: 600 0.72rem/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+/* scenes */
+.scene { display: flex; flex-direction: column; gap: var(--s3); }
+.scene-top { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.frame { position: relative; border: 1px solid var(--line); border-radius: 3px; background: #000; overflow-x: auto; }
+.stage { position: relative; width: 100%; }
+.stage img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+body.actual .frame .stage { width: calc(var(--pw) * 3px); max-width: none; }
+.cap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: var(--s3) var(--s6); align-items: start; }
+.cap .name { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
+.cap .letter { font: 700 1.5rem/1 var(--font-display); color: var(--arc); }
+.cap ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.today { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--s5); align-items: center; }
+.today img { display: block; width: 100%; height: auto; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 3px; }
+
+/* catalogue */
+.group { display: flex; flex-direction: column; gap: var(--s4); padding-top: var(--s5); border-top: 1px solid var(--line); }
+.group-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: var(--s5) var(--s4); }
+.card { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; border: 1px solid var(--line); border-radius: 4px; padding: var(--s3); background: var(--panel); }
+.card.dropped { opacity: 0.45; }
+.view { display: flex; align-items: flex-end; justify-content: center; gap: var(--s3); background: #000; border-radius: 3px; padding: var(--s3); min-height: 150px; }
+.view .stage { width: auto; max-width: 100%; }
+.view .stage img { width: calc(var(--pw) * var(--z) * 1px); max-width: 100%; }
+.one { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
+.one img { display: block; image-rendering: pixelated; }
+.one span { font: 0.65rem/1 var(--font-mono); color: var(--muted); }
+.card .top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font: 600 0.64rem/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 6px; border-radius: 3px; border: 1px solid var(--line); color: var(--muted); }
+.tag.game { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 45%, transparent); }
+.tag.hint { color: var(--violet); border-color: color-mix(in srgb, var(--violet) 45%, transparent); }
+.tag.new { color: var(--arc); border-color: color-mix(in srgb, var(--arc) 45%, transparent); }
+dl.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px var(--s3); margin: 0; font-size: 0.88rem; }
+dl.kv dt { font: 600 0.66rem/1.9 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+dl.kv dd { margin: 0; min-width: 0; }
+.chip { display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; box-shadow: 0 0 8px currentColor; }
+.yield { font-family: var(--font-mono); font-size: 0.8rem; }
+.note-s { font-size: 0.85rem; color: var(--muted); }
+.drop { display: flex; gap: 6px; align-items: center; font: 0.75rem/1 var(--font-mono); color: var(--muted); cursor: pointer; align-self: flex-start; }
+.drop input { accent-color: var(--hot); }
+
+/* proposal */
+.plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr)); gap: var(--s5); }
+.plan > div { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; }
+.plan ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 6px; }
+table.items { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 560px; }
+table.items th, table.items td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.items th { font: 600 0.7rem/1.4 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.scroll { overflow-x: auto; }
+code { font-family: var(--font-mono); font-size: 0.86em; color: var(--arc); }
+
+/* form */
+form { display: flex; flex-direction: column; gap: var(--s5); border: 1px solid var(--line); border-radius: 4px; padding: var(--s5); background: var(--panel); }
+.rows { display: flex; flex-direction: column; gap: var(--s3); }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.4fr); gap: var(--s2) var(--s4); align-items: center; padding-bottom: var(--s3); border-bottom: 1px dashed var(--line); }
+.row b { font-weight: 600; }
+.pick { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.pick label { position: relative; cursor: pointer; }
+.pick input { position: absolute; opacity: 0; pointer-events: none; }
+.pick span { display: block; font: 600 0.76rem/1 var(--font-mono); padding: 8px 10px; color: var(--muted); border-right: 1px solid var(--line); white-space: nowrap; }
+.pick label:last-child span { border-right: 0; }
+.pick input:checked + span { color: var(--ink); }
+.pick input[value="take"]:checked + span { background: var(--arc); }
+.pick input[value="change"]:checked + span { background: var(--hot); }
+.pick input[value="drop"]:checked + span { background: #59606c; color: var(--fg); }
+.row input[type="text"] { width: 100%; background: var(--ink); color: var(--fg); border: 1px solid var(--line); border-radius: 3px; padding: 8px 10px; font: 0.9rem/1.3 var(--font-body); }
+.choices { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.choices label { display: flex; gap: var(--s2); align-items: center; border: 1px solid var(--line); border-radius: 4px; padding: 9px 12px; cursor: pointer; font-size: 0.92rem; }
+.choices input { accent-color: var(--arc); }
+textarea { width: 100%; min-height: 110px; background: var(--ink); color: var(--fg); border: 1px solid var(--line); border-radius: 3px; padding: var(--s3); font: 0.95rem/1.5 var(--font-body); resize: vertical; }
+pre#summary { margin: 0; background: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: var(--s4); font: 0.8rem/1.55 var(--font-mono); white-space: pre-wrap; word-break: break-word; color: var(--arc); }
+.btn { font: 600 0.85rem/1 var(--font-mono); background: var(--arc); color: var(--ink); border: 0; border-radius: 3px; padding: 11px 16px; cursor: pointer; }
+.counts { font: 0.8rem/1 var(--font-mono); color: var(--muted); }
+
+@media (max-width: 760px) {
+  .cap, .today { grid-template-columns: minmax(0, 1fr); }
+  .row { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Stillwake · первая планета · руины</span>
+  <h1>Жилища творцов дуги</h1>
+  <p class="lede">Шпиль сейчас пустой: сплав, тайник, ниша с катушкой. Здесь предложение, как сделать руины домом: жилые комнаты прежних хозяев планеты, которые знали дугу и пустили её в быт. Их лампы светят ярче наших и холоднее, чайник греется от спирали, шкатулка играет от искры. Всё ломается и что-то даёт, но главное, чтобы было видно, что тут жили.</p>
+  <blockquote>«Поставить табурет и повесить знамя ничего не стоит, игрок может его сломать и получить ресурс. Я вижу это как жилые помещения бывшей цивилизации, у которой как будто были дуговые технологии в быту… Должно быть уютно и правда чувствоваться, что тут кто-то жил».</blockquote>
+  <ul class="facts">
+    <li>клетка 16 px · герой 44 px</li>
+    <li>комнаты 5 клеток в высоту</li>
+    <li>фон 3–5% · свет от ламп и шлема</li>
+    <li>всё светящееся светит вокруг</li>
+    <li>дуги вживую, кадр держится 2 такта</li>
+    <li>свет приближённый</li>
+  </ul>
+</header>
+
+<section id="today">
+  <div class="sechead"><span class="eyebrow">Что есть</span><h2>Камера шпиля сегодня</h2></div>
+  <div class="today">
+    <img src="{{img:today}}" alt="Скриншот игры: герой с топором в камере шпиля, тайник на полу, ниша с катушкой в стене" width="520" height="300">
+    <div class="rows">
+      <p>Стены и задняя стена сплошь из сплава, на полу тайник, в стене ниша с катушкой. Это правильная оболочка, но внутри не за что зацепиться глазу: ни одной вещи, которая говорила бы о людях.</p>
+      <p class="muted">Ниже три дома, вырезанных в скале. Плитки и свет посчитаны так же, как на странице пещер: те же материалы, та же модель света, герой из спрайтов игры.</p>
+    </div>
+  </div>
+</section>
+
+<section id="scenes">
+  <div class="sechead">
+    <span class="eyebrow">Сцены</span>
+    <h2>Три комнаты, в каждой два настроения</h2>
+    <p class="muted">«Лампы горят» показывает дом, который ещё дышит: почти все дуговые лампы живы. «Последние огни» показывает дом, где горит только то, что не гаснет никогда (очаг, банка со светящимся, голограмма), остальное видно лучом шлема.</p>
+  </div>
+  <div class="bar">
+    <span class="label">Масштаб</span>
+    <div class="seg"><button type="button" id="fitBtn" aria-pressed="true">По ширине</button><button type="button" id="actualBtn" aria-pressed="false">×3, как в игре</button></div>
+    <span class="label">Движение</span>
+    <div class="seg"><button type="button" id="motionOn" aria-pressed="true">Вкл</button><button type="button" id="motionOff" aria-pressed="false">Выкл</button></div>
+  </div>
+  <div id="sceneList" class="rows" style="gap: var(--s7)"></div>
+</section>
+
+<section id="catalogue">
+  <div class="sechead">
+    <span class="eyebrow">Каталог</span>
+    <h2>Вещи дома, каждая отдельно</h2>
+    <p class="muted">Слева вещь в 1×, как она есть в пикселях; справа увеличена. Размер в клетках по занятой площади, крепление, свет и его цвет, анимация и что выпадет, если вещь сломать. Знак <span class="tag game">Геймплей</span> у вещей, которые что-то меняют в игре; <span class="tag hint">Свитки</span> у намёков на глубокие руины; <span class="tag new">Новое</span> у новых предметов. Галочка «убрать» снимает вещь из набора и попадает в итог.</p>
+  </div>
+  <div id="groups" class="rows" style="gap: var(--s6)"></div>
+</section>
+
+<section id="plan">
+  <div class="sechead"><span class="eyebrow">Как это встаёт в игру</span><h2>Предложение</h2></div>
+  <div class="plan">
+    <div>
+      <h3>Где дома и сколько</h3>
+      <ul>
+        <li><b>Новый вид руин, «жилище»:</b> 2–3 комнаты в скале по одной из трёх схем (очаг, спальня, кабинет), вход туннелем через земляную пробку, как у шпиля. Шахты нет: жилище близко к поверхности, его находят, копая.</li>
+        <li><b>Камера шпиля тоже обставлена:</b> стол, стул, знамя, лампа, полка с пустым футляром. Шпиль остаётся постом, а дом домом, но и в шпиле видно людей.</li>
+        <li><b>Сколько:</b> на первой планете 3 жилища (по одному на каждую схему), на маленькой одно. Каждое в своей полосе по ширине, между шпилями, на глубине 8–20 клеток.</li>
+        <li><b>Разнообразие без новых рисунков:</b> лампы в каждом доме гаснут по зерну мира (часть горит, часть нет), обвал случается в одной комнате из трёх, мох и грибы берутся из полосы глубины пещер.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Как это устроить в коде</h3>
+      <ul>
+        <li><b>Префабы в ASCII,</b> как <code>Ruins.Spire</code>: свой символ на каждую вещь, ставятся тем же штампом после пещер.</li>
+        <li><b>Вещи это «наросты» без шанса,</b> как тайник, ниша и лампа шпиля (<code>Flora.Cave</code> с шансом 0): Building уже рубит их, сохраняет и роняет <code>Yields</code>. Отдельного списка не нужно.</li>
+        <li><b>Свет и эффекты</b> из уже принятых: лампа = свет цвета того, что светит (glowing things give light), дуги = код молний электрокопья, искры = частицы-штрихи. Разбитая лампа гаснет с последним треском.</li>
+        <li><b>Открытый вопрос:</b> держит ли флора вещи больше клетки (кровать 3×2, очаг 3×4). Если нет, то якорная клетка плюс занятые рядом.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Что геймплей, а что атмосфера</h3>
+      <ul>
+        <li><b>Дуговые лампы:</b> целая лампа выпадает сама собой (новый предмет). Её можно повесить на корабле или разобрать анализатором на чертёж; по чертежу она строится из стекла, провода и обломков сплава. Светит ярче корабельной, холодным бело-голубым.</li>
+        <li><b>Сундук:</b> маленький тайник, 1–2 мелочи.</li>
+        <li><b>Шкатулка:</b> от удара играет короткую мелодию (её можно написать самому), потом уже ломается.</li>
+        <li><b>Травы и живое растение:</b> шанс семени, редкое дополнение к капсулам снабжения.</li>
+        <li><b>Резонатор:</b> бьёт дугой, если подойти вплотную; даёт медь, провод и кристалл.</li>
+        <li><b>Упавшая балка и завал:</b> мешают пройти, рубятся как сплав.</li>
+        <li><b>Атмосфера:</b> рисунки, зарубки роста, часы, паутина, трещины, накрытый стол. Ломаются в ничто или в горсть камня.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Намёки на глубокие свитки</h3>
+      <ul>
+        <li>В каждом доме стеллаж с футлярами для свитков, и почти все пустые. Один футляр ещё светится фиолетовым: свиток из него унесли вниз.</li>
+        <li>Роспись в кабинете показывает лестницу вниз и несущих футляры, у её подножия фиолетовая метка. Это та же фиолетовая искра, что будет у хранилища.</li>
+        <li>Идея на потом: светящийся футляр ярче, когда герой смотрит в сторону ближайшего хранилища. Компас без слов.</li>
+      </ul>
+      <h3>Сознательно не делаем</h3>
+      <ul>
+        <li>Текста о прошлом на экране: история читается по вещам (визуальный язык).</li>
+        <li>Призраков, записей голосом, NPC.</li>
+        <li>Покачивания запечённых спрайтов в первом срезе: знамёна и занавески висят неподвижно, качаются позже, если понадобится.</li>
+        <li>Мебели на корабль, кроме ламп: это отдельная тема украшения корабля.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="sechead"><h3>Предметы, которые выпадают</h3><p class="muted">Все из <code>Items.cs</code>, кроме двух новых. Новое только там, где оно окупается: у ткани десяток источников и понятное применение, у лампы целый путь к чертежу.</p></div>
+  <div class="scroll">
+    <table class="items">
+      <thead><tr><th>Предмет</th><th>Откуда в домах</th><th>Зачем</th></tr></thead>
+      <tbody id="itemRows"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="pick">
+  <div class="sechead"><span class="eyebrow">Выбор</span><h2>Отметь, что берём</h2><p class="muted">По каждой сцене и группе: берём, переделать, не надо, и заметка. Итог внизу собирается сам, его можно скопировать. Выбор хранится в этом браузере.</p></div>
+  <form id="form" autocomplete="off">
+    <div class="rows" id="pickScenes"><span class="label">Сцены</span></div>
+    <div class="rows"><span class="label">Настроение домов</span>
+      <div class="choices" id="moodChoice">
+        <label><input type="radio" name="mood" id="mood-lit" value="лампы горят"> Лампы горят</label>
+        <label><input type="radio" name="mood" id="mood-dim" value="последние огни"> Последние огни</label>
+        <label><input type="radio" name="mood" id="mood-mix" value="по зерну: часть горит, часть нет"> Смешать по зерну мира</label>
+      </div>
+    </div>
+    <div class="rows" id="pickGroups"><span class="label">Группы вещей</span></div>
+    <div class="rows" id="pickItems"><span class="label">Новые предметы</span></div>
+    <div class="rows"><span class="label">Где дома</span>
+      <div class="choices">
+        <label><input type="radio" name="where" id="where-new" value="новый вид руин"> Новый вид руин, «жилище»</label>
+        <label><input type="radio" name="where" id="where-spire" value="только камера шпиля"> Только обставить шпиль</label>
+        <label><input type="radio" name="where" id="where-both" value="и жилища, и шпиль"> И то и другое</label>
+      </div>
+    </div>
+    <div class="rows"><span class="label">Сколько жилищ на первой планете</span>
+      <div class="choices">
+        <label><input type="radio" name="count" id="count-2" value="2"> 2</label>
+        <label><input type="radio" name="count" id="count-3" value="3"> 3</label>
+        <label><input type="radio" name="count" id="count-5" value="4–5"> 4–5</label>
+      </div>
+    </div>
+    <div class="rows"><label class="label" for="notes">Заметки</label><textarea id="notes" placeholder="Что добавить, что поменять, какие вещи ещё нужны…"></textarea></div>
+    <div class="rows">
+      <div class="bar"><span class="label">Итог</span><span class="counts" id="counts"></span></div>
+      <pre id="summary"></pre>
+      <div class="bar"><button type="button" class="btn" id="copy">Скопировать итог</button><span class="counts" id="copyMsg" role="status"></span></div>
+    </div>
+  </form>
+</section>
+</div>
+
+<script>
+(function () {
+  var CARDS = {{json:cards}};
+  var SCENES = {{json:scenes}};
+  var ITEM = { planks: 'доски', alloyScrap: 'обломок сплава', wire: 'провод', copper: 'медь', glass: 'стекло', crystal: 'кристалл', rock: 'камень', iron: 'железо', gear: 'шестерня', circuit: 'плата', coil: 'катушка', spore: 'споры', seed: 'семя', cloth: 'ткань', arcLamp: 'дуговая лампа' };
+  var NEW = { cloth: 1, arcLamp: 1 };
+  var LIGHT = { arc: ['#8ec7ff', 'холодный бело-голубой'], hot: ['#ff9a4c', 'тёплый оранжевый'], teal: ['#59ffd9', 'бирюзовый'], violet: ['#b380ff', 'фиолетовый'], holo: ['#66e6ff', 'голубой, голограмма'], window: ['#a8d6ff', 'бледно-голубой, рассеянный'] };
+  var ANCHOR = { floor: 'пол', wall: 'задняя стена', ceiling: 'потолок', table: 'стол или пол' };
+  var GROUPS = [
+    ['light', 'Свет', 'Дуговые лампы: главный свет домов и главная находка.'],
+    ['furniture', 'Мебель', 'На чём сидели, спали, что хранили.'],
+    ['kitchen', 'Кухня', 'Очаг, утварь и ужин, который не доели.'],
+    ['cloth', 'Ткань и память', 'Знамёна с эмблемой творцов, гобелены, картины, семья.'],
+    ['child', 'Детское', 'Колыбель, игрушки, рисунки, зарубки на косяке.'],
+    ['knowledge', 'Знание и работа', 'Кабинет: футляры свитков, экран, инструменты, резонатор.'],
+    ['plants', 'Растения', 'Одно пережило хозяев и светится, другое нет.'],
+    ['age', 'Время', 'Пыль, паутина, трещины, обвал.']
+  ];
+  // id, group, name, light, anim, yields, role, note, anchor override
+  var P = [
+    ['ceilLamp', 'light', 'Потолочная лампа', 'arc', 'дуга трещит между электродами, свет чуть дрожит', [['arcLamp', 1]], 'game', 'Целая выпадает сама. Разбитая даёт стекло и провод.'],
+    ['sconce', 'light', 'Бра-трубка', 'arc', 'искра бежит по трубке, мерцание', [['arcLamp', 1]], 'game', 'Тот же предмет, что потолочная: одна лампа, три вида.'],
+    ['floorLamp', 'light', 'Торшер с шаром', 'arc', 'треск в шаре, мерцание', [['arcLamp', 1], ['alloyScrap', 1]], 'game', 'Клетка из рёбер вокруг шара.'],
+    ['lantern', 'light', 'Дуговой фонарь', 'arc', 'короткие разряды за стеклом', [['glass', 1], ['wire', 1]], 'game', 'Переносной: можно подобрать целым и поставить где угодно.'],
+    ['arcCandle', 'light', 'Дуговая свеча', 'arc', 'искра между двумя штырьками, как пламя', [['wire', 1]], '', 'Ставят на стол. Горит даже в «последних огнях».', 'table'],
+    ['lightWindow', 'light', 'Окно-светопанель', 'window', 'пылинки в свете', [['glass', 2], ['alloyScrap', 1]], '', 'Окно в небо, которого здесь нет: под ставнями светящаяся панель.'],
+    ['garland', 'light', 'Гирлянда бусин', 'arc', 'бусины мерцают вразнобой, несколько мёртвых', [['wire', 2], ['glass', 1]], '', 'Над детской.'],
+    ['brokenLamp', 'light', 'Разбитая лампа', 'arc', 'сбоит: темно, вспышка, треск, снова темно', [['glass', 1], ['wire', 1]], '', 'Так выглядит любая лампа после удара.'],
+    ['table', 'furniture', 'Стол', '', '', [['planks', 3], ['alloyScrap', 1]], '', 'Дерево на ножках из сплава, внизу перекладина с меткой дуги.'],
+    ['chair', 'furniture', 'Стул с подушкой', '', '', [['planks', 2]], '', ''],
+    ['stool', 'furniture', 'Табурет', '', '', [['planks', 1]], '', 'На нём часто что-то стоит: чайник, шкатулка.'],
+    ['bench', 'furniture', 'Скамья с пледом', '', '', [['planks', 2], ['cloth', 1]], '', ''],
+    ['bed', 'furniture', 'Кровать', 'arc', 'ночник в изголовье чуть пульсирует', [['planks', 3], ['cloth', 2]], '', 'Одеяло откинуто, будто только что встали.'],
+    ['cradle', 'furniture', 'Колыбель с мобилем', 'arc', 'звёздочки мобиля медленно кружат', [['planks', 2], ['cloth', 1], ['wire', 1]], '', ''],
+    ['wardrobe', 'furniture', 'Шкаф', '', '', [['planks', 4], ['cloth', 1]], '', 'Одна дверца приоткрыта, внутри красный плащ.'],
+    ['chest', 'furniture', 'Сундук', 'arc', 'замок светится', [['planks', 2], ['alloyScrap', 1]], 'game', 'Маленький тайник: ещё 1–2 мелочи (провод, медь, стекло).'],
+    ['hearth', 'kitchen', 'Очаг с дуговой спиралью', 'hot', 'спираль жарко пульсирует, по ней ползут дуги, вверх летят искры', [['alloyScrap', 3], ['copper', 2], ['coil', 1]], 'game', 'Единственный тёплый свет в доме. Горит всегда.'],
+    ['kettle', 'kitchen', 'Дуговой чайник', 'arc', 'редкая искра в кольце-подставке', [['copper', 2]], '', '', 'table'],
+    ['dishes', 'kitchen', 'Недоеденный ужин', '', '', [['rock', 1]], '', 'Тарелки на четверых, чашка на боку, ложка. Бьётся в черепки.', 'table'],
+    ['pots', 'kitchen', 'Горшки и кувшины', '', '', [['rock', 1]], '', 'Один уже разбит.'],
+    ['basin', 'kitchen', 'Каменная мойка', '', '', [['rock', 2], ['copper', 1]], '', 'Белый налёт там, где стояла вода.'],
+    ['shelfJars', 'kitchen', 'Полка с банками', 'teal', 'содержимое банки слабо светится', [['glass', 1], ['spore', 2]], 'game', 'В банке споры: то, что светится, можно забрать.'],
+    ['utensils', 'kitchen', 'Рейлинг с утварью', '', '', [['copper', 2], ['iron', 1]], '', 'Половник, сковорода, нож, венчик из дуговой проволоки.'],
+    ['herbs', 'kitchen', 'Сушёные травы', '', 'покачиваются (позже)', [['seed', 1]], 'game', 'Шанс семени около 30%.'],
+    ['banner', 'cloth', 'Знамя с эмблемой', '', 'покачивается (позже)', [['cloth', 1]], '', 'Эмблема творцов: кольцо, разорванное молнией. Бывает красным и синим.'],
+    ['tapestry', 'cloth', 'Гобелен «Шпиль и дуга»', '', 'покачивается (позже)', [['cloth', 3]], '', 'Шпиль шлёт дугу в небо, творцы стоят кругом. Угол оторван.'],
+    ['rug', 'cloth', 'Ковёр', '', '', [['cloth', 2]], '', ''],
+    ['curtain', 'cloth', 'Занавеска', '', 'покачивается (позже)', [['cloth', 2]], '', 'Отделяет детский угол.'],
+    ['mural', 'cloth', 'Роспись «Лестница вниз»', 'violet', 'метка у подножия медленно пульсирует', [], 'hint', 'Древо молний над творцами, лестница вниз, несущие футляры. Нарисована на стене: не снимается.'],
+    ['frame', 'cloth', 'Картина «Две луны»', '', '', [['planks', 1]], '', 'Небо, которое у них было: две луны и шпиль с горящей лампой.'],
+    ['holoPortrait', 'cloth', 'Семейная голограмма', 'holo', 'бегут скан-линии, изредка кадр дёргается', [['glass', 1], ['circuit', 1]], '', 'Двое взрослых и ребёнок между ними.'],
+    ['clock', 'cloth', 'Остановившиеся часы', '', '', [['planks', 1], ['gear', 1], ['copper', 1]], '', 'Стрелки встали в ту же минуту, что и всё остальное.'],
+    ['coatPegs', 'cloth', 'Вешалка', '', '', [['cloth', 1], ['alloyScrap', 1]], '', 'Длинный шарф, маленькое пальто, сумка.'],
+    ['basket', 'cloth', 'Корзина с пряжей', '', '', [['planks', 1], ['cloth', 1]], '', ''],
+    ['toys', 'child', 'Игрушки', 'arc', 'в упавшем волчке ещё бьётся искра', [['planks', 1], ['wire', 1]], '', 'Зверь на колёсах, тряпичный мяч, волчок.'],
+    ['musicBox', 'child', 'Дуговая шкатулка', 'arc', 'искра бьёт в ритм', [['gear', 1], ['copper', 1]], 'game', 'От удара играет короткую мелодию, со второго ломается.', 'table'],
+    ['drawings', 'child', 'Детские рисунки', '', '', [], '', 'Семья, шпиль с молнией, солнце. Висят низко, на высоте ребёнка.'],
+    ['heightMarks', 'child', 'Зарубки роста', '', '', [], '', 'На косяке у двери, у каждой свой знак. Последняя низко.'],
+    ['desk', 'knowledge', 'Стол с погасшим экраном', 'arc', 'один пиксель так и не погас, мигает', [['planks', 3], ['circuit', 1], ['glass', 1]], '', 'В экран выжжен знак. Открытый футляр, лист.'],
+    ['bookshelf', 'knowledge', 'Стеллаж с футлярами', 'violet', 'один футляр медленно пульсирует', [['planks', 3], ['copper', 1]], 'hint', 'Почти все полки пусты: свитки унесли вниз.'],
+    ['wallShelf', 'knowledge', 'Настенная полка', '', '', [['planks', 1], ['copper', 1]], '', 'Три кодекса, футляр, чашка.'],
+    ['toolRack', 'knowledge', 'Доска с инструментами', '', '', [['planks', 1], ['wire', 3], ['iron', 1]], '', 'У каждого инструмента нарисован контур. Контур дрели пуст: её кто-то взял.'],
+    ['arcDevice', 'knowledge', 'Резонатор', 'arc', 'дуги с шара в землю и в воздух, сильная вспышка света', [['copper', 3], ['wire', 2], ['crystal', 1], ['alloyScrap', 2]], 'game', 'Всё ещё говорит сам с собой. Бьёт дугой, если подойти вплотную.'],
+    ['plantAlive', 'plants', 'Живое растение', 'teal', 'с бутонов поднимаются споры', [['spore', 1], ['seed', 1]], 'game', 'Пережило хозяев. Семя с шансом.'],
+    ['plantDead', 'plants', 'Засохшее растение', '', '', [['rock', 1]], '', ''],
+    ['cobweb', 'age', 'Паутина', '', 'пылинки', [], '', 'Снимается любым ударом.'],
+    ['crack', 'age', 'Трещина', '', '', [], '', 'Рисунок на задней стене.'],
+    ['fallenBeam', 'age', 'Упавшая балка', '', '', [['alloyScrap', 3]], 'game', 'Перегораживает проход, рубится как сплав.'],
+    ['rubble', 'age', 'Завал', '', '', [['rock', 2], ['alloyScrap', 1]], 'game', 'Там, где обвалился потолок.']
+  ];
+  var SCENE_INFO = [
+    ['hearth', 'А', 'Очаг: общая комната и кухня', [
+      'Стол накрыт на четверых, ужин не доели; на столе ещё горит дуговая свеча.',
+      'За аркой кухня: очаг со спиралью, единственный тёплый свет в доме; чайник на табурете, травы под потолком.',
+      'У двери вешалка с шарфом и маленьким пальто, на косяке зарубки роста.',
+      'Свет: потолочная лампа, бра, свеча, окно-светопанель, очаг, банка со спорами, голограмма.'
+    ]],
+    ['bedroom', 'Б', 'Спальня и детский угол', [
+      'Кровать с откинутым одеялом и ночником, шкаф с приоткрытой дверцей, гобелен «Шпиль и дуга».',
+      'За занавеской детская: колыбель с мобилем из искр, гирлянда, игрушки, шкатулка на табурете, рисунки на высоте ребёнка.',
+      'Герой стоит посреди комнаты, луч падает на колыбель.',
+      'Свет: бра, торшер, окно, гирлянда, мобиль, фонарь, голограмма.'
+    ]],
+    ['study', 'В', 'Кабинет, наполовину обрушенный', [
+      'Стеллаж с пустыми футлярами (один светится фиолетовым), стол с погасшим экраном, доска с инструментами.',
+      'Роспись «Лестница вниз» и резонатор, который всё ещё бьёт дугами.',
+      'Дальний конец обвалился: балка упала, на завале растут мох и грибы из пещер, с потолка свисают нити и корни.',
+      'Свет: резонатор, бра, фонарь, сбоящая лампа, роспись, стеллаж, мох и грибы.'
+    ]]
+  ];
+
+  var store = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  function yieldsHtml(y) { if (!y.length) return '<span class="muted">ничего</span>'; return y.map(function (q) { return '<span class="yield">' + ITEM[q[0]] + (q[1] > 1 ? ' ×' + q[1] : '') + (NEW[q[0]] ? ' <span class="tag new">Новое</span>' : '') + '</span>'; }).join(', '); }
+
+  // ---------- scenes ----------
+  var layers = [];
+  var sceneList = document.getElementById('sceneList');
+  SCENE_INFO.forEach(function (s) {
+    var id = s[0], box = el('div', 'scene');
+    var top = el('div', 'scene-top');
+    top.appendChild(el('div', 'name', '<h3 style="display:flex;gap:12px;align-items:baseline"><span class="letter" style="font:1.1rem/1 var(--font-display);color:var(--arc)">' + s[1] + '</span>' + s[2] + '</h3>'));
+    var seg = el('div', 'seg');
+    seg.innerHTML = '<button type="button" data-mood="lit" aria-pressed="true">Лампы горят</button><button type="button" data-mood="dim" aria-pressed="false">Последние огни</button>';
+    top.appendChild(seg); box.appendChild(top);
+    var lit = SCENES[id + '-lit'], frame = el('div', 'frame'), stage = el('div', 'stage');
+    stage.style.setProperty('--pw', lit.size[0]);
+    var img = el('img'); img.src = lit.src; img.width = lit.size[0]; img.height = lit.size[1]; img.alt = s[2] + ': сцена в масштабе игры';
+    var cv = el('canvas'); stage.appendChild(img); stage.appendChild(cv); frame.appendChild(stage); box.appendChild(frame);
+    var L = addLayer(cv, lit);
+    seg.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button'); if (!b) return;
+      var m = b.getAttribute('data-mood'), sc = SCENES[id + '-' + m];
+      Array.prototype.forEach.call(seg.children, function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      img.src = sc.src; resetLayer(L, sc);
+    });
+    var cap = el('div', 'cap');
+    cap.appendChild(el('p', 'muted', s[3][0]));
+    var ul = el('ul'); s[3].slice(1).forEach(function (t) { ul.appendChild(el('li', null, t)); }); cap.appendChild(ul);
+    box.appendChild(cap);
+    sceneList.appendChild(box);
+  });
+
+  // ---------- catalogue ----------
+  var groupsEl = document.getElementById('groups'), dropped = {};
+  try { dropped = JSON.parse(store.get('homes-dropped') || '{}') || {}; } catch (e) { dropped = {}; }
+  GROUPS.forEach(function (g) {
+    var items = P.filter(function (p) { return p[1] === g[0]; });
+    var box = el('div', 'group');
+    box.appendChild(el('div', 'group-head', '<h3 style="font-size:1.3rem">' + g[1] + '</h3><span class="muted" style="font-size:0.9rem">' + g[2] + ' · ' + items.length + '</span>'));
+    var grid = el('div', 'grid');
+    items.forEach(function (p) {
+      var m = CARDS[p[0]]; if (!m) return;
+      var card = el('article', 'card'); card.id = 'card-' + p[0];
+      var z = Math.max(2, Math.min(5, Math.floor(230 / m.size[0]), Math.floor(260 / m.size[1])));
+      var view = el('div', 'view');
+      var one = el('div', 'one'); var i1 = el('img'); i1.src = m.src; i1.width = m.size[0]; i1.height = m.size[1]; i1.alt = ''; one.appendChild(i1); one.appendChild(el('span', null, '1×')); view.appendChild(one);
+      var stage = el('div', 'stage'); stage.style.setProperty('--pw', m.size[0]); stage.style.setProperty('--z', z);
+      var img = el('img'); img.src = m.src; img.width = m.size[0] * z; img.height = m.size[1] * z; img.alt = p[2] + ', увеличено';
+      var cv = el('canvas'); stage.appendChild(img); stage.appendChild(cv); view.appendChild(stage);
+      card.appendChild(view);
+      addLayer(cv, m);
+      var tags = [];
+      if (p[6] === 'game') tags.push('<span class="tag game">Геймплей</span>');
+      if (p[6] === 'hint') tags.push('<span class="tag hint">Свитки</span>');
+      card.appendChild(el('div', 'top', '<h3>' + p[2] + '</h3><span class="tags">' + tags.join('') + '</span>'));
+      var light = p[3] ? '<span class="chip" style="background:' + LIGHT[p[3]][0] + ';color:' + LIGHT[p[3]][0] + '"></span>' + LIGHT[p[3]][1] : '<span class="muted">нет</span>';
+      card.appendChild(el('dl', 'kv',
+        '<dt>Размер</dt><dd>' + m.cells[0] + '×' + m.cells[1] + ' кл. <span class="muted">(' + Math.round(m.px[0]) + '×' + Math.round(m.px[1]) + ' px)</span></dd>' +
+        '<dt>Крепление</dt><dd>' + ANCHOR[p[8] || m.anchor] + '</dd>' +
+        '<dt>Свет</dt><dd>' + light + '</dd>' +
+        '<dt>Анимация</dt><dd>' + (p[4] || '<span class="muted">нет</span>') + '</dd>' +
+        '<dt>Даёт</dt><dd>' + yieldsHtml(p[5]) + '</dd>'));
+      if (p[7]) card.appendChild(el('p', 'note-s', p[7]));
+      var dl = el('label', 'drop', '<input type="checkbox" id="drop-' + p[0] + '"> убрать');
+      var cb = dl.querySelector('input'); cb.checked = !!dropped[p[0]]; card.classList.toggle('dropped', cb.checked);
+      cb.addEventListener('change', function () { dropped[p[0]] = cb.checked; if (!cb.checked) delete dropped[p[0]]; card.classList.toggle('dropped', cb.checked); store.set('homes-dropped', JSON.stringify(dropped)); summary(); });
+      card.appendChild(dl);
+      grid.appendChild(card);
+    });
+    box.appendChild(grid); groupsEl.appendChild(box);
+  });
+
+  // ---------- items table ----------
+  var src = {};
+  P.forEach(function (p) { p[5].forEach(function (q) { (src[q[0]] = src[q[0]] || []).push(p[2].toLowerCase()); }); });
+  var WHY = { cloth: 'Новое. Украшать корабль (ковры, знамёна, занавески), матрасы в каюты; позже фильтры. Даёт около десятка вещей.', arcLamp: 'Новое. Повесить на корабле как есть или разобрать анализатором на чертёж дуговой лампы (стекло, провод, обломок сплава).',
+    planks: 'Топливо и стройка, как сейчас.', alloyScrap: 'Строит сплав обратно, нужен для чертежа лампы.', copper: 'Провод, катушки.', wire: 'Сразу в дело.', glass: 'Стекло без электроплавильни: подарок раннему игроку.', seed: 'Редкая прибавка к семенам из капсул.', spore: 'Как у пещерных грибов.', gear: 'Детали.', circuit: 'Редкая плата раньше ассемблера.', coil: 'Деталь.', iron: 'Как всегда.', rock: 'Горсть камня, в кремний.', crystal: 'Как в пещерах.' };
+  var order = ['arcLamp', 'cloth', 'planks', 'alloyScrap', 'copper', 'wire', 'glass', 'circuit', 'gear', 'coil', 'iron', 'crystal', 'seed', 'spore', 'rock'];
+  var rows = document.getElementById('itemRows');
+  order.forEach(function (k) { if (!src[k]) return; var tr = el('tr'); tr.innerHTML = '<td><b>' + ITEM[k] + '</b>' + (NEW[k] ? ' <span class="tag new">Новое</span>' : '') + '<div class="muted" style="font:0.75rem var(--font-mono)">' + k + '</div></td><td class="muted">' + src[k].join(', ') + '</td><td>' + (WHY[k] || '') + '</td>'; rows.appendChild(tr); });
+
+  // ---------- pick form ----------
+  function pickRow(host, key, title) {
+    var r = el('div', 'row');
+    r.innerHTML = '<b>' + title + '</b><span class="pick">' + [['take', 'Берём'], ['change', 'Переделать'], ['drop', 'Не надо']].map(function (v) {
+      return '<label><input type="radio" name="' + key + '" id="' + key + '-' + v[0] + '" value="' + v[0] + '"><span>' + v[1] + '</span></label>'; }).join('') +
+      '</span><input type="text" id="' + key + '-note" placeholder="Заметка" aria-label="Заметка: ' + title + '">';
+    host.appendChild(r);
+  }
+  SCENE_INFO.forEach(function (s) { pickRow(document.getElementById('pickScenes'), 'scene-' + s[0], s[1] + ' · ' + s[2]); });
+  GROUPS.forEach(function (g) { pickRow(document.getElementById('pickGroups'), 'group-' + g[0], g[1]); });
+  pickRow(document.getElementById('pickItems'), 'item-cloth', 'Ткань (cloth)');
+  pickRow(document.getElementById('pickItems'), 'item-arcLamp', 'Дуговая лампа как предмет и чертёж');
+  var form = document.getElementById('form'), notes = document.getElementById('notes');
+  var saved = {}; try { saved = JSON.parse(store.get('homes-form') || '{}') || {}; } catch (e) { saved = {}; }
+  Array.prototype.forEach.call(form.querySelectorAll('input'), function (i) {
+    if (i.type === 'radio' && saved[i.name] === i.value) i.checked = true;
+    if (i.type === 'text' && saved[i.id]) i.value = saved[i.id];
+  });
+  if (saved.notes) notes.value = saved.notes;
+  function save() {
+    var o = {}; Array.prototype.forEach.call(form.querySelectorAll('input'), function (i) { if (i.type === 'radio' && i.checked) o[i.name] = i.value; if (i.type === 'text' && i.value) o[i.id] = i.value; });
+    o.notes = notes.value; store.set('homes-form', JSON.stringify(o)); return o;
+  }
+  var WORD = { take: 'берём', change: 'переделать', drop: 'не надо' };
+  function summary() {
+    var o = save(), lines = ['Жилища творцов дуги: выбор', ''], n = 0, total = 0;
+    function line(key, title) { total++; var v = o[key], t = o[key + '-note']; if (v) n++; lines.push('- ' + title + ': ' + (v ? WORD[v] : '—') + (t ? ' (' + t + ')' : '')); }
+    lines.push('Сцены:'); SCENE_INFO.forEach(function (s) { line('scene-' + s[0], s[1] + ' ' + s[2]); });
+    lines.push('', 'Настроение: ' + (o.mood || '—'));
+    lines.push('', 'Группы:'); GROUPS.forEach(function (g) { line('group-' + g[0], g[1]); });
+    lines.push('', 'Новые предметы:'); line('item-cloth', 'ткань'); line('item-arcLamp', 'дуговая лампа');
+    lines.push('', 'Где: ' + (o.where || '—'), 'Сколько на первой планете: ' + (o.count || '—'));
+    var d = Object.keys(dropped).filter(function (k) { return dropped[k]; }).map(function (k) { var p = P.filter(function (q) { return q[0] === k; })[0]; return p ? p[2] : k; });
+    lines.push('', 'Убрать вещи: ' + (d.length ? d.join(', ') : 'ничего'));
+    if (o.notes) lines.push('', 'Заметки: ' + o.notes);
+    document.getElementById('summary').textContent = lines.join('\n');
+    document.getElementById('counts').textContent = 'отмечено ' + n + ' из ' + total;
+  }
+  form.addEventListener('change', summary); form.addEventListener('input', summary);
+  form.addEventListener('submit', function (ev) { ev.preventDefault(); });
+  document.getElementById('copy').addEventListener('click', function () {
+    var txt = document.getElementById('summary').textContent, msg = document.getElementById('copyMsg');
+    function fallback() { var r = document.createRange(); r.selectNodeContents(document.getElementById('summary')); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); msg.textContent = 'Выделено: нажми Ctrl+C'; }
+    try { navigator.clipboard.writeText(txt).then(function () { msg.textContent = 'Скопировано'; }, fallback); } catch (e) { fallback(); }
+  });
+  summary();
+
+  var fitBtn = document.getElementById('fitBtn'), actualBtn = document.getElementById('actualBtn');
+  function setActual(on) { document.body.classList.toggle('actual', on); fitBtn.setAttribute('aria-pressed', String(!on)); actualBtn.setAttribute('aria-pressed', String(on)); }
+  fitBtn.addEventListener('click', function () { setActual(false); }); actualBtn.addEventListener('click', function () { setActual(true); });
+
+  // ---------- the live layer: arcs as thin polylines held on twos, glows, streak particles ----------
+  function R() { return Math.random(); }
+  function rr(a, b) { return a + R() * (b - a); }
+  var VOLT = { core: '244,254,255', rim: '85,214,255', glow: [70, 180, 255] };
+  var SPR = {};
+  function sprite(c) {
+    var k = c.join(','); if (SPR[k]) return SPR[k];
+    var s = document.createElement('canvas'); s.width = s.height = 64; var x = s.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(' + k + ',1)'); g.addColorStop(0.25, 'rgba(' + k + ',0.45)'); g.addColorStop(0.6, 'rgba(' + k + ',0.1)'); g.addColorStop(1, 'rgba(' + k + ',0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64); return (SPR[k] = s);
+  }
+  function glow(L, x, y, r, c, a) { if (a <= 0.003) return; var k = L.k, s = r * 2 * k; L.ctx.globalAlpha = Math.min(1, a); L.ctx.drawImage(sprite(c), x * k - s / 2, y * k - s / 2, s, s); }
+  function boltShape(a, b, bulge, branchy, depth) {
+    var dx0 = b[0] - a[0], dy0 = b[1] - a[1], Ln = Math.sqrt(dx0 * dx0 + dy0 * dy0), pts = [a, b];
+    var levels = Math.max(1, Math.min(5, Math.ceil(Math.log(Math.max(Ln, 2) / 1.6) / Math.LN2)));
+    for (var lv = 0; lv < levels; lv++) {
+      var np = [pts[0]];
+      for (var i = 0; i < pts.length - 1; i++) {
+        var p = pts[i], q = pts[i + 1], dx = q[0] - p[0], dy = q[1] - p[1], sl = Math.sqrt(dx * dx + dy * dy) || 1;
+        var off = (R() * 2 - 1) * 0.35 * sl * 0.55 + (lv === 0 ? bulge * Ln : 0);
+        np.push([(p[0] + q[0]) / 2 - dy / sl * off, (p[1] + q[1]) / 2 + dx / sl * off], q);
+      }
+      pts = np;
+    }
+    var br = [];
+    if (depth > 0 && branchy && Ln > 6) for (var j = 1; j < pts.length - 1 && br.length < 2; j++) if (R() < 0.06) {
+      var ang = Math.atan2(dy0, dx0) + (R() < 0.5 ? -1 : 1) * rr(0.4, 1), len = Ln * rr(0.2, 0.45);
+      br.push(boltShape(pts[j], [pts[j][0] + Math.cos(ang) * len, pts[j][1] + Math.sin(ang) * len], 0, false, 0).pts);
+    }
+    return { pts: pts, br: br };
+  }
+  function Bolt(gen, life, w, light) { this.gen = gen; this.life = life; this.age = 0; this.w = w; this.light = light || 0; this.roll(); }
+  Bolt.prototype.roll = function () { var e = this.gen(), s = boltShape(e[0], e[1], rr(-0.15, 0.15), true, 1); this.pts = s.pts; this.br = s.br; this.mid = this.pts[this.pts.length >> 1]; };
+  function path(ctx, pts, k) { ctx.beginPath(); ctx.moveTo(pts[0][0] * k, pts[0][1] * k); for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] * k, pts[i][1] * k); }
+  function drawBolts(L) {
+    var ctx = L.ctx, k = L.k; if (!L.bolts.length) return;
+    L.bolts.forEach(function (b) { for (var i = 0; i < b.pts.length; i += 2) glow(L, b.pts[i][0], b.pts[i][1], 5, VOLT.glow, 0.16); if (b.light) glow(L, b.mid[0], b.mid[1], 16 + 16 * b.light, VOLT.glow, 0.32 * b.light); });
+    ctx.globalAlpha = 1; ctx.lineJoin = 'miter'; ctx.miterLimit = 3; ctx.lineCap = 'round';
+    L.bolts.forEach(function (b) { var f = 1 - 0.5 * b.age / b.life; ctx.strokeStyle = 'rgba(' + VOLT.rim + ',' + f + ')';
+      ctx.lineWidth = Math.max(1.2, 0.75 * k * b.w); b.br.forEach(function (q) { path(ctx, q, k); ctx.stroke(); });
+      ctx.lineWidth = Math.max(1.6, 1.1 * k * b.w); path(ctx, b.pts, k); ctx.stroke(); });
+    L.bolts.forEach(function (b) { ctx.strokeStyle = 'rgba(' + VOLT.core + ',1)';
+      ctx.lineWidth = Math.max(0.8, 0.32 * k * b.w); b.br.forEach(function (q) { path(ctx, q, k); ctx.stroke(); });
+      ctx.lineWidth = Math.max(1, 0.45 * k * b.w); path(ctx, b.pts, k); ctx.stroke(); });
+  }
+  function addLayer(cv, meta) { var L = { cv: cv, ctx: cv.getContext('2d'), vis: false }; resetLayer(L, meta); layers.push(L); if (io) io.observe(cv); else L.vis = true; return L; }
+  function resetLayer(L, meta) {
+    L.meta = meta; L.bolts = []; L.parts = []; L.st = meta.emitters.map(function () { return { v: 1, t: R() * 100, on: 0, burst: 0 }; });
+    meta.emitters.forEach(function (e, i) { if (e.kind === 'motes') for (var n = 0; n < e.n; n++) L.parts.push({ mote: 1, x: rr(e.x0, e.x1), y: rr(e.y0, e.y1), vx: rr(-1.5, 1.5), vy: rr(-1, 1), box: e, c: e.col, ph: R() * 6 }); });
+  }
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) { es.forEach(function (en) { layers.forEach(function (L) { if (L.cv === en.target) L.vis = en.isIntersecting; }); }); }, { rootMargin: '100px' }) : null;
+  if (io) layers.forEach(function (L) { io.observe(L.cv); });
+
+  function tick(L) {
+    var T = 1 / 24;
+    L.meta.emitters.forEach(function (e, i) {
+      var s = L.st[i]; s.t++;
+      if (e.kind === 'arc') {
+        var p = (e.rate || 0.02) * 1.8; if (e.beat) p = s.t % 6 === 0 ? 0.7 : 0;
+        if (R() < p) {
+          var a = e.a, b = e.b, reach = e.reach || 10;
+          var ang = rr(-Math.PI * 0.95, -Math.PI * 0.05), air = [a[0] + Math.cos(ang) * reach * rr(0.6, 1), a[1] + Math.sin(ang) * reach * rr(0.6, 1)];
+          L.bolts.push(new Bolt(function () { return [[a[0] + rr(-0.6, 0.6), a[1] + rr(-0.6, 0.6)], b === 'air' ? [air[0] + rr(-1, 1), air[1] + rr(-1, 1)] : [b[0] + rr(-0.8, 0.8), b[1] + rr(-0.8, 0.8)]]; }, Math.round((e.life || 4) * rr(1, 1.8)), e.w || 0.6, e.light));
+        }
+      } else if (e.kind === 'pulse') {
+        if (s.t % (e.slow ? 1 : 3) === 0) s.target = e.slow ? 1 + e.amp * Math.sin(s.t * 0.06) : 1 + e.amp * rr(-1, 1) * (R() < 0.08 ? 2.5 : 1);
+        s.v += ((s.target || 1) - s.v) * 0.35;
+      } else if (e.kind === 'sputter') {
+        if (s.burst > 0) { s.burst--; s.on = R() < 0.55 ? 1 : 0; if (s.on && R() < 0.7) L.bolts.push(new Bolt(function () { return [[e.a[0], e.a[1]], [e.b[0] + rr(-1, 1), e.b[1] + rr(0, 2)]]; }, 2, 0.5, 0.4)); }
+        else { s.on = 0; if (R() < 0.012) s.burst = Math.round(rr(4, 14)); }
+      } else if (e.kind === 'twinkle' || e.kind === 'bead') {
+        var pts = e.pts || [[e.x, e.y]];
+        if (R() < (e.kind === 'bead' ? 0.12 : 0.22)) { var q = pts[Math.floor(R() * pts.length)]; L.parts.push({ glint: 1, x: q[0] + (e.pts ? 0 : rr(-8, 8)), y: q[1] + (e.pts ? 0 : rr(-8, 8)), life: 8, age: 0, c: e.col || [190, 230, 255] }); }
+      } else if (e.kind === 'spore') {
+        if (R() < (e.n || 4) * 0.012) L.parts.push({ streak: 1, x: e.x + rr(-10, 10), y: e.y + rr(-3, 3), vx: rr(-1.5, 1.5), vy: e.up === false ? rr(3, 6) : -rr(4, 9), life: rr(2.5, 5), age: 0, c: e.col, len: 0.12, wob: R() * 6 });
+      } else if (e.kind === 'embers') {
+        if (R() < 0.22) L.parts.push({ streak: 1, x: e.x + rr(-e.w / 2, e.w / 2), y: e.y, vx: rr(-5, 5), vy: -rr(14, 26), life: rr(0.6, 1.4), age: 0, c: e.col, len: 0.09, hot: 1 });
+      }
+    });
+    for (var j = L.bolts.length - 1; j >= 0; j--) { var b = L.bolts[j]; b.age++; if (b.age >= b.life) { L.bolts.splice(j, 1); continue; } if (b.age % 2 === 0) b.roll(); }
+    for (var n = L.parts.length - 1; n >= 0; n--) {
+      var p2 = L.parts[n];
+      if (p2.mote) { p2.ph += 0.05; p2.x += p2.vx * T + Math.sin(p2.ph) * 0.05; p2.y += p2.vy * T; var bx = p2.box; if (p2.x < bx.x0) p2.x = bx.x1; if (p2.x > bx.x1) p2.x = bx.x0; if (p2.y < bx.y0) p2.y = bx.y1; if (p2.y > bx.y1) p2.y = bx.y0; continue; }
+      if (p2.glint) { p2.age++; if (p2.age >= p2.life) L.parts.splice(n, 1); continue; }
+      p2.age += T; if (p2.age >= p2.life) { L.parts.splice(n, 1); continue; }
+      p2.x += (p2.vx + (p2.wob != null ? Math.sin(p2.age * 2 + p2.wob) * 2 : 0)) * T; p2.y += p2.vy * T; if (p2.hot) p2.vx *= 0.97;
+    }
+  }
+  function draw(L) {
+    var ctx = L.ctx, k = L.k, t;
+    ctx.clearRect(0, 0, L.cv.width, L.cv.height); ctx.globalCompositeOperation = 'lighter';
+    L.meta.emitters.forEach(function (e, i) {
+      var s = L.st[i];
+      if (e.kind === 'pulse') { var d = s.v - 1; if (d > 0) glow(L, e.x, e.y, e.r * 0.5, e.col, d * 2.2); }
+      else if (e.kind === 'sputter' && s.on) { glow(L, e.x, e.y, e.r * 0.45, [120, 200, 255], 0.55); glow(L, e.x, e.y, 3, [230, 250, 255], 0.9); }
+      else if (e.kind === 'mobile') { for (var q = 0; q < 4; q++) { var ang = s.t * 0.045 + q * Math.PI / 2, x = e.x + Math.cos(ang) * e.rx, y = e.y + Math.sin(ang) * e.ry; glow(L, x, y, 3.5, [140, 210, 255], 0.5); glow(L, x, y, 1.2, [240, 252, 255], 0.9); } }
+      else if (e.kind === 'holo') {
+        var band = e.y + (s.t * 0.5) % e.h; ctx.globalAlpha = 0.38; ctx.fillStyle = 'rgb(98,228,244)'; ctx.fillRect(e.x * k, band * k, e.w * k, Math.max(1, 0.6 * k));
+        if (s.t % 70 < 2 || (s.glitch = (s.glitch || 0) - 1) > 0) { ctx.globalAlpha = 0.12; ctx.fillRect(e.x * k, e.y * k, e.w * k, e.h * k); } else if (R() < 0.01) s.glitch = 3;
+      }
+      else if (e.kind === 'pixel') { var on = (s.t % 60) < 44; glow(L, e.x + 0.5, e.y + 0.5, 3, [140, 210, 255], on ? 0.5 : 0.08); }
+    });
+    L.parts.forEach(function (p) {
+      if (p.mote) { var a = 0.25 + 0.2 * Math.sin(p.ph * 2); ctx.globalAlpha = a; ctx.fillStyle = 'rgb(' + p.c.join(',') + ')'; ctx.fillRect(Math.round(p.x * k), Math.round(p.y * k), Math.max(1, k * 0.5), Math.max(1, k * 0.5)); return; }
+      if (p.glint) { var f = Math.sin(Math.PI * p.age / p.life), arm = 2.4 * f; ctx.globalAlpha = f; ctx.strokeStyle = 'rgb(' + p.c.join(',') + ')'; ctx.lineWidth = Math.max(1, 0.35 * k);
+        ctx.beginPath(); ctx.moveTo((p.x - arm) * k, p.y * k); ctx.lineTo((p.x + arm) * k, p.y * k); ctx.moveTo(p.x * k, (p.y - arm) * k); ctx.lineTo(p.x * k, (p.y + arm) * k); ctx.stroke(); glow(L, p.x, p.y, 3, p.c, 0.4 * f); return; }
+      var q2 = p.age / p.life, a2 = Math.min(1, p.age * 3) * (1 - q2);
+      ctx.globalAlpha = a2; ctx.strokeStyle = p.hot ? 'rgba(255,236,190,1)' : 'rgb(' + p.c.join(',') + ')'; ctx.lineWidth = Math.max(1, 0.4 * k); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo((p.x - p.vx * p.len) * k, (p.y - p.vy * p.len) * k); ctx.lineTo(p.x * k, p.y * k); ctx.stroke();
+      glow(L, p.x, p.y, 2.2, p.c, 0.35 * a2);
+    });
+    drawBolts(L);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var moving = !reduce, onB = document.getElementById('motionOn'), offB = document.getElementById('motionOff');
+  function setMotion(on) { moving = on; onB.setAttribute('aria-pressed', String(on)); offB.setAttribute('aria-pressed', String(!on)); if (!on) layers.forEach(function (L) { L.ctx.clearRect(0, 0, L.cv.width, L.cv.height); }); }
+  onB.addEventListener('click', function () { setMotion(true); }); offB.addEventListener('click', function () { setMotion(false); });
+  var acc = 0, last = 0;
+  function frame(now) {
+    requestAnimationFrame(frame);
+    var dt = Math.min(0.1, (now - last) / 1000 || 0); last = now;
+    if (!moving) return;
+    acc += dt; if (acc < 1 / 24) return; acc = Math.min(acc - 1 / 24, 0.1);
+    layers.forEach(function (L) {
+      if (!L.vis) return;
+      var w = L.cv.clientWidth, h = L.cv.clientHeight; if (!w) return;
+      var dpr = window.devicePixelRatio || 1;
+      if (L.cv.width !== Math.round(w * dpr) || L.cv.height !== Math.round(h * dpr)) { L.cv.width = Math.round(w * dpr); L.cv.height = Math.round(h * dpr); }
+      L.k = L.cv.width / L.meta.size[0];
+      tick(L); draw(L);
+    });
+  }
+  window.__homes = { layers: layers, step: function (n) { for (var i = 0; i < (n || 1); i++) layers.forEach(function (L) { var w = L.cv.clientWidth; if (!w) return; var dpr = window.devicePixelRatio || 1; L.cv.width = Math.round(w * dpr); L.cv.height = Math.round(L.cv.clientHeight * dpr); L.k = L.cv.width / L.meta.size[0]; tick(L); draw(L); }); } };
+  setMotion(moving);
+  requestAnimationFrame(frame);
+})();
+</script>

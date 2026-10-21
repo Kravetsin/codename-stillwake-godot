@@ -1,0 +1,247 @@
+<title>Движение героя Stillwake</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a ship's console. A twin viewport sandbox up top, then one card per proposal, the full list, the pick summary. Dark on purpose: the pixel art reads on the hull's dark. */
+:root {
+  --hull: #0b0e13; --panel: #121821; --panel2: #18202b; --line: #243040; --fg: #dde3ea; --mute: #8995a5;
+  --suit: #e8b04a; --new: #5fc8c0; --now: #9aa3ad; --warn: #e39a5b;
+  --display: "Unbounded", "Segoe UI", system-ui, sans-serif; --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--hull); color: var(--fg); font: 15px/1.55 var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 40px; }
+.wrap > *, section > *, .play > * { min-width: 0; }
+.wrap, section, .play, header, .card, .summary { grid-template-columns: minmax(0, 1fr); }
+.fact { overflow-wrap: anywhere; }
+h1, h2, h3 { font-family: var(--display); font-weight: 500; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.15; }
+h2 { font-size: 21px; }
+h3 { font-size: 15.5px; font-weight: 500; }
+p { margin: 0; max-width: 68ch; }
+.mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font: 600 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--suit); }
+.mute { color: var(--mute); }
+header { display: grid; gap: 14px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fact { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font: 12.5px/1.35 var(--mono); color: var(--mute); }
+.fact b { color: var(--fg); font-weight: 600; }
+section { display: grid; gap: 16px; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; justify-content: space-between; }
+
+/* sandbox */
+.play { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 12px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { background: transparent; color: var(--mute); border: 0; padding: 7px 12px; font: 500 13px var(--body); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel2); color: var(--fg); box-shadow: inset 0 -2px 0 var(--suit); }
+.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--mute); cursor: pointer; padding: 4px 6px; }
+.chk input { accent-color: var(--suit); }
+.btn { background: var(--panel2); color: var(--fg); border: 1px solid var(--line); border-radius: 7px; padding: 7px 12px; font: 500 13px var(--body); cursor: pointer; }
+.btn:hover { border-color: var(--mute); }
+button:focus-visible, input:focus-visible, textarea:focus-visible, .views:focus-visible { outline: 2px solid var(--suit); outline-offset: 2px; }
+.views { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-radius: 8px; }
+.view { position: relative; min-width: 0; }
+.view canvas { display: block; width: 100%; height: 330px; border-radius: 7px; background: #06080c; image-rendering: pixelated; }
+.tag { position: absolute; left: 8px; top: 8px; font: 600 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; padding: 5px 7px; border-radius: 4px; background: rgba(6,8,12,0.78); }
+.tag.now { color: var(--now); } .tag.new { color: var(--new); }
+.armed { font: 12.5px var(--mono); color: var(--mute); }
+.armed.on { color: var(--new); }
+.keys { font: 12.5px/1.6 var(--mono); color: var(--mute); }
+kbd { font: 600 11.5px var(--mono); color: var(--fg); background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; }
+.pad { display: none; gap: 8px; flex-wrap: wrap; }
+.pad button { flex: 1 0 60px; padding: 14px 0; font-size: 15px; touch-action: none; user-select: none; }
+@media (pointer: coarse) { .pad { display: flex; } }
+.tune { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px 22px; }
+.tune fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; min-width: 0; }
+.tune legend { font: 600 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--suit); padding: 10px 0 6px; }
+.sl { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; align-items: center; font-size: 13px; }
+.sl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--new); }
+.sl output { font: 12.5px var(--mono); color: var(--new); }
+.sl .was { font: 11.5px var(--mono); color: var(--mute); }
+details.more > summary { cursor: pointer; color: var(--mute); font-size: 13.5px; list-style: none; }
+details.more > summary::before { content: "▸ "; } details.more[open] > summary::before { content: "▾ "; }
+
+/* cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 540px), 1fr)); gap: 18px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.card .views canvas { height: 210px; }
+.card .ttl { display: flex; align-items: baseline; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+.card .rank { font: 600 12px var(--mono); color: var(--suit); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 11.5px/1 var(--mono); padding: 5px 7px; border-radius: 4px; border: 1px solid var(--line); color: var(--mute); }
+.chip.c-S { color: var(--new); } .chip.c-M { color: var(--suit); } .chip.c-L { color: var(--warn); }
+.pick { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.pick .row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.pick .name { font-size: 13px; font-weight: 500; flex: 1 0 140px; }
+.opt { display: inline-flex; position: relative; }
+.opt input { position: absolute; opacity: 0; pointer-events: none; }
+.opt span { font: 500 12.5px var(--body); padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--mute); cursor: pointer; }
+.opt input:checked + span.take { color: #0b0e13; background: var(--new); border-color: var(--new); }
+.opt input:checked + span.change { color: #0b0e13; background: var(--suit); border-color: var(--suit); }
+.opt input:checked + span.drop { color: var(--fg); background: #3a2a26; border-color: #6b4a40; }
+.opt input:focus-visible + span { outline: 2px solid var(--suit); outline-offset: 2px; }
+.note { width: 100%; background: var(--hull); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: 13px var(--body); resize: vertical; min-height: 32px; }
+
+/* table */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 980px; font-size: 13px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+th { font: 600 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--mute); background: var(--panel); position: sticky; top: 0; }
+td.n { font: 600 12px var(--mono); color: var(--suit); }
+td .grp { font: 11px var(--mono); color: var(--mute); display: block; }
+tr.off td { color: var(--mute); }
+.omit { display: grid; gap: 6px; padding-left: 0; margin: 0; list-style: none; }
+.omit li { padding-left: 14px; position: relative; max-width: 90ch; }
+.omit li::before { content: "×"; position: absolute; left: 0; color: var(--warn); }
+.summary { display: grid; gap: 10px; }
+.summary textarea { width: 100%; min-height: 220px; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font: 12.5px/1.55 var(--mono); }
+.audit { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px 24px; }
+.audit div { min-width: 0; }
+.audit h3 { margin-bottom: 6px; color: var(--suit); font-size: 13px; }
+.audit ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; }
+.audit code, td code { font: 12px var(--mono); color: #c9d3de; }
+.src { display: grid; gap: 4px; font-size: 13px; padding-left: 18px; margin: 0; }
+.src a { color: var(--new); }
+#err { color: var(--warn); font: 12px var(--mono); white-space: pre-wrap; }
+@media (max-width: 640px) {
+  .views { grid-template-columns: 1fr; }
+  .view canvas { height: 240px; }
+  .card .views canvas { height: 180px; }
+}
+@media (prefers-reduced-motion: reduce) { .seg button, .btn { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Stillwake · герой · 21 октября 2026</div>
+    <h1>Движение героя: живее, но так же отзывчиво</h1>
+    <p>Слева в каждом окне герой как в игре сейчас: те же числа из <code class="mono">sim/Content/Hero.cs</code>, те же позы из <code class="mono">Pose.cs</code>, те же картинки из <code class="mono">game/art</code>. Справа то же, но с предложениями. Оба получают одни и те же нажатия. Склоны не трогаю, это отдельная работа.</p>
+    <div class="facts">
+      <span class="fact">ходьба/бег <b>7,2 / 13,2 кл/с</b>, сразу, в воздухе так же</span>
+      <span class="fact">прыжок <b>3,99 кл</b>, верх <b>0,32 с</b>, в воздухе <b>0,67 с</b></span>
+      <span class="fact">лестница <b>10,8 кл/с</b> вверх и вниз</span>
+      <span class="fact">плавание <b>1,8 кл/с</b> без инерции · ранец <b>15 кл/с</b></span>
+      <span class="fact">планета g×0,7: <b>6,09 кл, 1,0 с</b></span>
+      <span class="fact">поз: <b>стоит, идёт, бежит, 2 в воздухе, лезет, плывёт</b></span>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-play">
+    <div class="sec-head"><h2 id="h-play">Песочница</h2><span class="armed" id="armed">Автопилот. Кликните по полю, чтобы управлять</span></div>
+    <div class="play">
+      <div class="bar">
+        <div class="seg" role="group" aria-label="Сцена" id="scenes"></div>
+        <label class="chk"><input type="checkbox" id="slow"> замедлить ×4</label>
+        <label class="chk"><input type="checkbox" id="trail" checked> след</label>
+        <label class="chk"><input type="checkbox" id="labels" checked> подписи</label>
+        <label class="chk" id="jetWrap"><input type="checkbox" id="jet" checked> ранец</label>
+        <button class="btn" id="auto">Автопилот</button>
+        <button class="btn" id="reset">С начала</button>
+      </div>
+      <div class="views" id="playViews" tabindex="0" aria-label="Песочница: два героя, одни клавиши">
+        <div class="view"><canvas id="cNow"></canvas><span class="tag now">сейчас</span></div>
+        <div class="view"><canvas id="cNew"></canvas><span class="tag new">предлагаю</span></div>
+      </div>
+      <div class="keys"><kbd>A</kbd><kbd>D</kbd> или <kbd>←</kbd><kbd>→</kbd> идти · <kbd>Shift</kbd> бег, в космосе тяга ранца · <kbd>Space</kbd> прыжок: держать дольше значит выше · <kbd>W</kbd>/<kbd>↑</kbd> лестница · <kbd>S</kbd>/<kbd>↓</kbd> вниз, сквозь пол · <kbd>Shift</kbd>+<kbd>↓</kbd> скользить по лестнице · <kbd>Esc</kbd> отпустить клавиатуру</div>
+      <div class="pad" id="pad">
+        <button class="btn" data-k="left">◀</button><button class="btn" data-k="up">▲</button><button class="btn" data-k="down">▼</button><button class="btn" data-k="right">▶</button><button class="btn" data-k="shift">Shift</button><button class="btn" data-k="jump">Прыжок</button>
+      </div>
+      <details class="more" open>
+        <summary>Числа предложения. Меняются сразу во всех правых окнах</summary>
+        <div class="tune" id="tune"></div>
+        <div class="bar" style="padding-top:8px"><button class="btn" id="defaults">Вернуть предложенные</button></div>
+      </details>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-cards">
+    <div class="sec-head"><h2 id="h-cards">Главное, по порядку</h2><span class="mute" style="font-size:13px">Каждое окно крутит свой сценарий по кругу. Выбор отсюда попадает в итог внизу.</span></div>
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <section aria-labelledby="h-list">
+    <div class="sec-head"><h2 id="h-list">Весь список</h2><span class="mute" style="font-size:13px">S до дня · M два-три дня · L неделя и больше</span></div>
+    <div class="tablewrap"><table id="table"><thead><tr><th>#</th><th>Что</th><th>Что почувствует игрок</th><th>Что меняется, числа</th><th>Цена</th><th>Графика</th><th>Кооп</th><th>Отзывчивость</th><th>Выбор</th></tr></thead><tbody></tbody></table></div>
+    <h3 style="margin-top:6px">Сознательно не предлагаю</h3>
+    <ul class="omit">
+      <li><b>Склоны</b> (0069) и стопы на склонах: это отдельная большая работа, здесь не трогаю.</li>
+      <li><b>Разворот кадрами.</b> Герой смотрит на сторону курсора, как в Terraria. Анимация разворота задержит прицел. Занос показывает разворот телом и при этом ничего не задерживает.</li>
+      <li><b>Присед перед прыжком.</b> Это 80–120 мс до отрыва, а прыжок должен уходить в тот же шаг. Всё «предвкушение» перенесено в толчок ногами после отрыва.</li>
+      <li><b>Сжатие и растяжение спрайта масштабом.</b> На пиксель-арте пиксели поплывут. Сжатие делаю коленями и посадкой тела, как сейчас.</li>
+      <li><b>Новые кадры графики.</b> Герой собран из деталей (0003), позы задаются числами в <code class="mono">Pose.cs</code>. Нового рисования не нужно, разве что антенна, если её захочется спрайтом.</li>
+      <li><b>Подтягивание на уступ по умолчанию.</b> Оно выключено: с ним прыжок берёт четыре клетки. Включается ползунком «уступ», см. строку 14.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="h-sum">
+    <div class="sec-head"><h2 id="h-sum">Итог выбора</h2><button class="btn" id="copy">Скопировать</button></div>
+    <div class="summary"><textarea id="sum" readonly aria-label="Итог выбора"></textarea><span class="mute" id="copied" style="font-size:13px"></span></div>
+  </section>
+
+  <section aria-labelledby="h-audit">
+    <div class="sec-head"><h2 id="h-audit">Что есть сейчас</h2><span class="mute" style="font-size:13px">codename-stillwake-godot @ 2057c0f</span></div>
+    <div class="audit">
+      <div><h3>Ходьба и бег</h3><ul>
+        <li>Скорость сразу полная, без разгона и торможения: <code>Hero.cs:228–242</code> (<code>Fall</code>), числа <code>sim/Content/Hero.cs:17–27</code>.</li>
+        <li>Ходьба 120, бег 220 тысячных за шаг, то есть 7,2 и 13,2 кл/с. В воздухе управление то же.</li>
+        <li>Лицом к курсору: <code>Poses.FaceOf</code>, мёртвая зона 0,25 кл (<code>Pose.cs:91,113</code>).</li>
+      </ul></div>
+      <div><h3>Прыжок и падение</h3><ul>
+        <li>Прыжок срабатывает только в шаг нажатия и только стоя: <code>Hero.cs:218</code>. <code>_jump</code> живёт один шаг (<code>HeroView.cs:878–898</code>).</li>
+        <li>Нет койота, буфера, удержания и среза. <code>HeroInput</code> не знает, держится ли Space.</li>
+        <li>Jump 420, g 21: подъём 3,99 кл («три, не четыре»), верх через 0,32 с, на земле через 0,67 с. MaxFall 1200 (72 кл/с).</li>
+        <li>Планета: <code>Surfaces.Kind.Fall</code>, g×0,7 = 14 (<code>Surfaces.cs:52,69</code>): 6,09 кл и 1,0 с.</li>
+      </ul></div>
+      <div><h3>Лестницы</h3><ul>
+        <li>Хват только с ↑/↓, без ←/→, не на подъёме (Vy ≥ 0) и не в шаг прыжка: <code>Hero.cs:201–202</code>.</li>
+        <li>X встаёт в центр мгновенно (<code>:211</code>). Вверх и вниз по 180 за шаг, 10,8 кл/с. Наверху телепорт на верх лестницы (<code>:404–405</code>).</li>
+        <li>←/→ в воздухе только разворачивает, Space отпускает (<code>:207–216</code>). Цикл рук 3,6 кл (<code>Pose.cs:40</code>), руки скользят по перекладинам.</li>
+      </ul></div>
+      <div><h3>Космос</h3><ul>
+        <li>Плавание 30 за шаг (1,8 кл/с), старт и стоп мгновенные (<code>Hero.cs:348–355</code>).</li>
+        <li>Ранец (<code>Flown</code>, <code>:362–375</code>): тяга 8 за шаг (полная за 0,52 с), потолок 250 (15 кл/с), сопротивление 4. Направление по клавишам или к курсору.</li>
+        <li>Тело стоит прямо и клонится в плавание на 0,22–0,38 рад (0036). Без ранца привязь держит героя в 12 клетках от корабля.</li>
+      </ul></div>
+      <div><h3>Позы</h3><ul>
+        <li>Риг из 7 картинок (<code>hero_*.png</code>, шлем 13×12, торс 12×15) и <code>Pose.cs:6</code>: стоит, идёт, бежит, в воздухе, лезет, плывёт, лежит, без сознания.</li>
+        <li>В воздухе две неподвижные позы по знаку Vy (<code>:245–249</code>). Стоя, руки качаются на ±0,05 рад раз в 2,6 с, а это почти незаметно.</li>
+        <li>Приземление: колени на 3,9 px за 220 мс, всегда одинаково (<code>:56–60</code>). Конечности оседают за 30 мс, голова за 90 мс (<code>Figure.cs:23–25</code>).</li>
+        <li>ADR 0003 обещал «squash on landing, a little backpack lag». Приседание есть, отставания ранца нет.</li>
+      </ul></div>
+      <div><h3>Камера и кооп</h3><ul>
+        <li>Камера жёстко стоит на середине тела каждый кадр: <code>HeroView.cs:398</code>, без упреждения и сглаживания.</li>
+        <li>Пыль: шаги бега, крупинки и кольцо при приземлении (<code>Figure.cs:378–415</code>), факел ранца (<code>JetPlume.cs</code>).</li>
+        <li>По сети раз в 50 мс уходят X, Y, Vx, Vy, Climbing, Facing и Look (<code>Remote.cs:59–67</code>). Чужих рисуем на 150 мс позади, позы считаем у себя (0003).</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-src">
+    <h2 id="h-src">Источники</h2>
+    <ol class="src">
+      <li><a href="https://github.com/NoelFB/Celeste/blob/master/Source/Player/Player.cs">Celeste, Player.cs</a>. Константы: JumpGraceTime 0,1, VarJumpTime 0,2, HalfGravThreshold 40, RunAccel 1000 при MaxRun 90 (бег за 0,09 с), AirMult 0,65, угол 4 px, лазание вверх 45 и вниз 80, сжатие при посадке (1,6; 0,4) и возврат 1,75/с.</li>
+      <li><a href="https://maddymakesgames.com/articles/celeste_and_forgiveness/index.html">Maddy Thorson, «Celeste &amp; Forgiveness»</a>: койот, буфер, полгравитации на верхушке, обход угла.</li>
+      <li><a href="https://gdcvault.com/play/1023148/Math-for-Game-Programmers-Building">Kyle Pittman, «Building a Better Jump», GDC 2016</a>: прыжок задаётся высотой и временем, а гравитация выводится из них.</li>
+      <li><a href="https://www.gamedeveloper.com/design/scroll-back-the-theory-and-practice-of-cameras-in-side-scrollers">Itay Keren, «Scroll Back»</a>: окно камеры высотой в прыжок, привязка к платформе, упреждение (SMB около 25%), сглаживание.</li>
+      <li><a href="http://www.rockpapershotgun.com/2013/10/21/interview-jan-willem-nijman-on-nuclear-thrones-feel/">Jan Willem Nijman о Nuclear Throne, RPS 2013</a>: отдача камеры 6 px, тряска, стоп-кадр 10–20 мс.</li>
+      <li><a href="https://unity.com/en/blog/exploring-procedural-design-rain-world">Rain World, процедурная анимация</a>: тело из двух кругов, конечности поверх, процедурно.</li>
+      <li><a href="https://tasvideos.org/GameResources/SNES/MegaManX/Data">TASVideos, Mega Man X</a>: лестница 1,5 px за кадр. <a href="https://terraria.wiki.gg/wiki/Gravity">Terraria wiki, Gravity</a>: в космосе гравитация 0,25–1, Featherfall.</li>
+      <li><a href="https://spaceengineers.wiki.gg/wiki/Inertial_Dampers">Space Engineers, Inertial Dampers</a>: гашение скорости встречными двигателями. <a href="https://deadspace.fandom.com/wiki/Zero_Gravity">Dead Space, Zero Gravity</a>: прыжки между поверхностями, во второй части ранец.</li>
+      <li><a href="https://www.gamedeveloper.com/design/games-demystified-super-mario-galaxy">«Games Demystified: Super Mario Galaxy»</a>: в малой гравитации прыжок ощущается как земной.</li>
+      <li><a href="https://medienwissenschaft.uni-bayreuth.de/wp-content/uploads/GxD-07-Interfaces.pdf">Card, Moran, Newell по лекции Bayreuth</a>: отклик управления не позже 100 мс.</li>
+    </ol>
+    <div id="err"></div>
+  </section>
+</div>
+
+<script>
+const ART = /*ART*/;
+/*ENGINE*/
+</script>
+<script>
+/*APP*/
+</script>

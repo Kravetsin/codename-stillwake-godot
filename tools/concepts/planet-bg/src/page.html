@@ -1,0 +1,484 @@
+<title>Фон первой планеты</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~70ch) with full-width stage blocks for the live scenes; a single dark look, the game's own night. */
+:root {
+  color-scheme: dark;
+  --bg: #0d1215; --panel: #131a1e; --panel2: #182227; --line: #253139; --fg: #e2e8e3; --muted: #95a8a4; --faint: #6c7f7c;
+  --teal: #7fe8d4; --amber: #ffd27a; --rose: #ff9ab8; --violet: #b49aff; --ink: #0a0e10;
+  --display: 'Exo 2', 'Segoe UI', system-ui, sans-serif; --body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+  --r: 6px;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.read { max-width: 74ch; }
+a { color: var(--teal); }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; text-wrap: balance; letter-spacing: 0.01em; margin: 0; }
+h1 { font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.05; font-weight: 700; }
+h2 { font-size: clamp(1.45rem, 3vw, 1.9rem); line-height: 1.15; }
+h3 { font-size: 1.12rem; line-height: 1.25; }
+p { margin: 0; }
+.eyebrow { font: 500 0.78rem/1.2 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+small, .small { font-size: 0.86rem; color: var(--muted); }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+code { background: var(--panel2); padding: 0.08em 0.35em; border-radius: 4px; }
+header.top { padding-block: 40px 18px; display: grid; gap: 14px; }
+header.top .lede { font-size: 1.08rem; color: #c9d4cf; max-width: 70ch; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 0.9rem var(--mono); }
+nav.toc a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--teal); border-color: var(--teal); }
+section { padding-block: 36px; border-top: 1px solid var(--line); display: grid; gap: 18px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 18px; }
+.cols > * { min-width: 0; }
+ul.plain { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+ul.plain li::marker { color: var(--faint); }
+figure { margin: 0; display: grid; gap: 6px; }
+figure img { width: 100%; height: auto; display: block; border-radius: var(--r); border: 1px solid var(--line); image-rendering: auto; }
+figcaption { font-size: 0.86rem; color: var(--muted); }
+.shots { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+.shots .side { display: grid; gap: 12px; }
+@media (max-width: 760px) { .shots { grid-template-columns: 1fr; } }
+.tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 500 0.78rem var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--panel); }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.issues { counter-reset: n; display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.issues li { padding-left: 2em; position: relative; }
+.issues li::before { counter-increment: n; content: counter(n); position: absolute; left: 0; top: 0.1em; font: 500 0.8rem var(--mono); color: var(--ink); background: var(--amber); width: 1.45em; height: 1.45em; display: grid; place-items: center; border-radius: 3px; }
+.take { display: grid; gap: 8px; }
+.take li b { color: var(--teal); font-weight: 600; }
+.take.no li b { color: var(--rose); }
+
+/* the stage */
+.stage-wrap { display: grid; gap: 10px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.tgroup { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tgroup > .lbl { font: 500 0.72rem var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); margin-right: 2px; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.seg button, .tbtn, .chip { font: 500 0.86rem var(--body); color: var(--fg); background: var(--panel); border: 0; padding: 6px 11px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed=true] { background: var(--teal); color: var(--ink); }
+.seg.off { opacity: 0.4; pointer-events: none; }
+.tbtn { border: 1px solid var(--line); border-radius: var(--r); }
+.tbtn[aria-pressed=true] { border-color: var(--teal); color: var(--teal); }
+.chip { border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; font-size: 0.8rem; background: transparent; color: var(--muted); }
+.chip[aria-pressed=true] { color: var(--fg); background: var(--panel2); border-color: #3b4d56; }
+.chip[aria-pressed=false] { text-decoration: line-through; opacity: 0.6; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, canvas:focus-visible, a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.canvasbox { position: relative; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); background: #000; max-width: 100%; }
+canvas.stage { display: block; width: 100%; aspect-ratio: 16 / 9; image-rendering: pixelated; cursor: grab; touch-action: none; }
+canvas.stage:active { cursor: grabbing; }
+.hint { position: absolute; left: 10px; bottom: 8px; font: 0.76rem var(--mono); color: #e8eee9; background: rgba(8, 12, 14, 0.62); padding: 3px 8px; border-radius: 4px; pointer-events: none; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; font: 0.9rem var(--mono); color: var(--muted); }
+html.ready .loading { display: none; }
+.under { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+canvas.mini { width: 100%; height: 26px; display: block; border-radius: 4px; cursor: pointer; image-rendering: pixelated; }
+.minibox { display: grid; gap: 4px; }
+.minilegend { display: flex; flex-wrap: wrap; gap: 0 10px; justify-content: space-between; font: 0.74rem var(--mono); color: var(--faint); }
+.info { font: 0.82rem var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.dirnote, .bandnote { color: #cfd9d4; font-size: 0.95rem; }
+.holds { display: flex; gap: 6px; }
+.holds button { font: 600 1rem var(--body); min-width: 44px; min-height: 38px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.card.on { border-color: var(--teal); }
+.card .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card .tag { font: 500 0.72rem var(--mono); color: var(--ink); background: var(--amber); padding: 1px 6px; border-radius: 3px; white-space: nowrap; }
+.card ul.layers-l { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 0.86rem; }
+.card ul.layers-l li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dashed var(--line); padding-block: 2px; }
+.card ul.layers-l b { font: 400 0.8rem var(--mono); color: var(--muted); white-space: nowrap; }
+.card .risk { font-size: 0.86rem; color: #d9c7a6; }
+.card button { justify-self: start; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+
+/* the system */
+.gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 820px) { .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 460px) { .gallery { grid-template-columns: 1fr; } }
+.thumb { display: grid; gap: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--panel); color: var(--fg); cursor: pointer; text-align: left; font: inherit; }
+.thumb canvas { width: 100%; aspect-ratio: 16 / 9; display: block; background: #000; }
+.thumb .tcap { display: grid; padding: 7px 10px 9px; gap: 1px; }
+.thumb .tcap small { font-size: 0.78rem; }
+.thumb:hover, .thumb.on { border-color: var(--teal); }
+.recolour { display: flex; flex-wrap: wrap; gap: 6px; background: linear-gradient(#93bfdc, #e8e2c8); border-radius: var(--r); padding: 8px; border: 1px solid var(--line); }
+.recolour figure { display: grid; justify-items: center; gap: 2px; width: calc(25% - 6px); min-width: 70px; }
+.recolour canvas { width: 100%; max-width: 92px; image-rendering: pixelated; }
+.recolour figcaption { font: 0.7rem var(--mono); color: #22302c; text-align: center; }
+.passport { display: grid; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 8px 12px; font-size: 0.86rem; }
+.passport .pphead { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.passport .pp { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.passport .k { color: var(--muted); margin: 0 4px 0 10px; font-size: 0.8rem; }
+.passport .pp .k:first-child { margin-left: 0; }
+.passport .swatch { margin-right: 0; width: 12px; height: 12px; }
+.roll { padding: 6px 12px; }
+
+/* pick form */
+.pickgroups { display: grid; gap: 18px; }
+fieldset.pickgroup { border: 1px solid var(--line); border-radius: var(--r); padding: 6px 14px 10px; margin: 0; min-width: 0; }
+legend { font: 600 1rem var(--display); padding: 0 6px; }
+.pickrow { display: grid; grid-template-columns: minmax(0, 1.5fr) auto minmax(0, 1fr); gap: 8px 14px; align-items: center; padding-block: 8px; border-bottom: 1px dashed var(--line); }
+.pickrow:last-child { border-bottom: 0; }
+.pickname { display: grid; gap: 1px; min-width: 0; }
+.pickname small { font-size: 0.8rem; }
+.verdicts { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.verdicts label { position: relative; }
+.verdicts input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.verdicts span { display: block; padding: 5px 10px; font-size: 0.84rem; background: var(--panel); white-space: nowrap; }
+.verdicts label + label span { border-left: 1px solid var(--line); }
+.verdicts input:checked + span { background: var(--teal); color: var(--ink); }
+.verdicts label:nth-child(2) input:checked + span { background: var(--amber); }
+.verdicts label:nth-child(3) input:checked + span { background: var(--rose); }
+.verdicts input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: -2px; }
+input.note, textarea { width: 100%; font: 0.9rem var(--body); color: var(--fg); background: var(--ink); border: 1px solid var(--line); border-radius: var(--r); padding: 6px 9px; min-width: 0; }
+textarea { font-family: var(--mono); font-size: 0.84rem; line-height: 1.5; }
+@media (max-width: 720px) { .pickrow { grid-template-columns: 1fr; } }
+.sumbox { display: grid; gap: 8px; }
+.sumbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.primary { background: var(--teal); color: var(--ink); border: 0; border-radius: var(--r); padding: 8px 16px; font: 600 0.92rem var(--body); cursor: pointer; }
+footer { padding-block: 26px 50px; border-top: 1px solid var(--line); color: var(--faint); font-size: 0.85rem; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <p class="eyebrow">Stillwake · концепт · первая планета · 2048 × 768 клеток</p>
+  <h1>Фон планеты</h1>
+  <p class="lede">Сейчас за землёй три мягких пятна и одно небо на всю планету. Планет будут сотни, поэтому фон здесь — не картина, а система: палитра, зерно и небольшая библиотека реквизита собирают небо, хребты, холмы и погоду любой планеты в стиле s9 (контур, 3–4 тона, приглушённый свет). Четыре направления — четыре способа компоновки этой системы, все живые: сцену можно двигать за нашей землёй и героем, менять тип планеты или бросить кубик. Плюс зоны внутри планеты, фон пещер по полосам глубины, закат как предложение, цена в Godot и форма выбора.</p>
+  <nav class="toc" aria-label="Разделы">
+    <a href="#now">Сейчас</a><a href="#terraria">Terraria</a><a href="#system">Система</a><a href="#directions">Направления</a><a href="#zones">Зоны</a><a href="#underground">Под землёй</a><a href="#time">Сутки</a><a href="#perf">Цена</a><a href="#pick">Выбор</a>
+  </nav>
+</header>
+
+<section id="now">
+  <p class="eyebrow">01 · что в игре сегодня</p>
+  <h2>Сейчас</h2>
+  <div class="shots">
+    <figure><img src="{{now.webp}}" alt="Планета сейчас: небо с гигантом и солнцем, бледные мезы, холмы с силуэтами акаций, наша земля и герой" width="1280" height="720"><figcaption>Кадр игры (<code>play.cmd --planet</code>, 1280 × 720, дальний зум). Земля, акации, мох — уже в стиле; фон за ними — размытые пятна.</figcaption></figure>
+    <div class="side">
+      <figure><img src="{{now-spire-far.webp}}" alt="Шпиль на краю кадра и склон" width="1280" height="720" loading="lazy"><figcaption><code>--ground=spire-far</code>: шпиль с линзой стоит, но на горизонте ему нечего ответить.</figcaption></figure>
+      <figure><img src="{{now-hall.webp}}" alt="Большой зал бирюзового сада: только задние стены и темнота" width="1280" height="720" loading="lazy"><figcaption><code>--ground=hall</code>: самый пышный зал; за ростками — только задняя стена.</figcaption></figure>
+    </div>
+  </div>
+  <div class="cols">
+    <div class="read" style="display:grid;gap:10px">
+      <h3>Как устроено (<code>render/PlanetSky.cs</code>, ADR 0079)</h3>
+      <div class="tablebox"><table>
+        <thead><tr><th>Слой</th><th>Картинка</th><th>Доля камеры</th></tr></thead>
+        <tbody>
+          <tr><td>Небо, градиент</td><td class="num">1 × 384</td><td class="num">0.04</td></tr>
+          <tr><td>Гигант, солнце</td><td class="num">232 × 150, 181 × 181</td><td>у экрана</td></tr>
+          <tr><td>Облака</td><td class="num">2048 × 160</td><td class="num">0.06 + 1.5 px/с</td></tr>
+          <tr><td>Дальние мезы</td><td class="num">2048 × 288</td><td class="num">0.10</td></tr>
+          <tr><td>Гряда</td><td class="num">2048 × 244</td><td class="num">0.18</td></tr>
+          <tr><td>Холмы с деревьями</td><td class="num">2048 × 234</td><td class="num">0.30</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">Каждый слой повторяется по ширине, его линия земли — земля спавна, сдвинутая на его долю высоты камеры; под слоем — его нижний цвет. Пиксель арта = пиксель мира на любом зуме.</p>
+    </div>
+    <div style="display:grid;gap:10px">
+      <h3>Чего не хватает</h3>
+      <ol class="issues">
+        <li>Слои — мягкие градиенты без рисунка. Земля в s9 с контуром и тонами, фон — нет: два разных мира.</li>
+        <li>Три слоя, середина пустая: между бледными мезами и холмами нет ничего, глубина читается слабо.</li>
+        <li>Холмы при 0.3 повторяются каждые ~427 клеток — 4–5 раз за планету; одна картинка на все 2048 клеток.</li>
+        <li>Чужую планету выдаёт только гигант. Нет форм, которых не бывает на Земле.</li>
+        <li>Шпили (линза, столб света) не отзываются на горизонте — нет ориентира.</li>
+        <li>Под землёй фона нет вовсе: везде естественная задняя стена (0084).</li>
+        <li>Суток нет (0079: «One sky for every planet and every hour»).</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section id="terraria">
+  <p class="eyebrow">02 · как это делает Terraria</p>
+  <h2>Terraria: что у неё есть и что берём</h2>
+  <div class="cols">
+    <div style="display:grid;gap:10px">
+      <h3>Устройство</h3>
+      <ul class="plain">
+        <li><b>Поверхность:</b> небо с градиентом, солнце и луна по дуге, облака, плывущие сами, и <b>три слоя на биом</b> — дальний, средний, ближний. Каждый движется медленнее камеры, дальний почти стоит.</li>
+        <li><b>Наборы по биомам:</b> лес 19 вариантов, снег 14, океан 8, пустыня 7, джунгли 7, багрянец 7, порча 6, святость 6, грибы 5 — 88 картинок поверхности. Мир выбирает по варианту на биом, с 1.4 — до четырёх лесных на мир, по зонам деревьев.</li>
+        <li><b>Переход:</b> вошёл в биом — его фон плавно проступает поверх прежнего.</li>
+        <li><b>Под землёй</b> — один слой-узор на ярус, виден только там, где нет стены: «грунтовой» ярус (9 вариантов), «каменный» (9), лава перед адом (4), свои у льда, джунглей, грибов, порчи, святости. В аду — многослойный фон: башни, пепел, свет лавы снизу.</li>
+        <li><b>Читаемость:</b> фон тонирован в цвет неба, чем дальше — тем ближе к нему; ниже контраст, без тёмного контура. Передний план насыщенный, тайлы с тёмным краем. Ночью темнеет весь фон вместе с небом.</li>
+        <li><b>Сутки:</b> 24 минуты (15 день, 9 ночь), закат и рассвет красят фон. С 1.4 — фоновая жизнь: птицы, бабочки, падающие звёзды.</li>
+      </ul>
+      <p class="small">Источник наборов и подземных ярусов: <a href="https://terraria.wiki.gg/wiki/Biome_backgrounds" target="_blank" rel="noopener">terraria.wiki.gg/wiki/Biome_backgrounds</a>; остальное — по игре.</p>
+    </div>
+    <div style="display:grid;gap:14px">
+      <div style="display:grid;gap:8px"><h3>Берём</h3>
+      <ul class="plain take">
+        <li><b>Больше шагов глубины:</b> 5–7 слоёв вместо 3. Наш кадр меньше (96 × 54 клеток), камера ходит медленно — глубину даёт шаг параллакса, а не масштаб.</li>
+        <li><b>Набор слоёв на зону</b> и плавный переход, по колонкам планеты, а не по счёту блоков.</li>
+        <li><b>Подземный фон по ярусу:</b> наши четыре полосы глубины (0080), только там, где нет задней стены.</li>
+        <li><b>Правило читаемости:</b> дальше — ближе к дымке неба; контур только у ближайшего слоя, свой тёмный, не чёрный; светятся только мелкие точки.</li>
+        <li><b>Фоновая жизнь</b> — как опция.</li>
+      </ul></div>
+      <div style="display:grid;gap:8px"><h3>Не берём</h3>
+      <ul class="plain take no">
+        <li><b>88 картинок:</b> у нас три зоны по одному набору; варианты по зерну — потом.</li>
+        <li><b>Смену суток сейчас:</b> она трогает свет, солнечную панель и игру — отдельное решение (раздел «Сутки»).</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<section id="system">
+  <p class="eyebrow">03 · сотни планет</p>
+  <h2>Система, а не картина</h2>
+  <p class="read">Фон любой планеты собирается из трёх вещей. <b>Данные</b> — палитры и числа в <code>Content</code>: их пишут, а не рисуют. <b>Зерно</b> планеты — откуда шум хребтов, где стоит реквизит, где границы зон, какого размера гигант и сколько лун. <b>Библиотека реквизита</b> — единственный арт: силуэты в индексных тонах, которые красит палитра. Всё на этой странице, кроме земли и героя, собрано именно так. Направления A–D ниже — способы компоновки одной системы: сколько слоёв, их высота и параллакс, какие события в небе.</p>
+  <div class="gallery" id="gallery" aria-label="Шесть типов планет, одна система"></div>
+  <p class="small">Шесть типов из одной системы, направление A, у спавна. Клик открывает планету в живой сцене; там же кнопка «Случайная планета» — новое зерно и палитра из набора.</p>
+  <div class="cols">
+    <div style="display:grid;gap:10px">
+      <h3>Слой из шума и палитры</h3>
+      <ul class="plain">
+        <li><b>Небо</b> — 5 тонов градиента и дымка из палитры неба; гигант (полосы — палитра, размер, наклон, кольцо — зерно), 0–3 луны, солнце.</li>
+        <li><b>Дальние, средние, ближние силуэты</b> — 1D-шум с параметрами слоя: доля камеры, высота, ячейка шума (шероховатость), форма профиля (округлые, столовые, зубчатые, конусы вулканов), дымка, контур. Тоны слоя — 4 роли (свет, основа, тень, линия) из палитры биома, смешанные с дымкой по глубине.</li>
+        <li><b>Реквизит</b> — из библиотеки, по весам биома и по зерну: акации, голые деревья, останцы, кристаллы, грибы, гигантская флора, шпили, арки, парящие скалы.</li>
+        <li><b>Погода и жизнь</b> — малый набор эффектов: облака (кучевые, перистые, пепел), пылевые полосы, сияние, мошки, дым кратеров, «птицы».</li>
+      </ul>
+    </div>
+    <div style="display:grid;gap:10px">
+      <h3>Индексные тона: один реквизит, восемь биомов</h3>
+      <div class="recolour" id="recolour" aria-label="Акация из игры, перекрашенная палитрами восьми биомов"></div>
+      <p class="small">Это настоящая <code>acacia_0.png</code> из игры. Листва разложена по яркости на 5 индексов и заново окрашена рампой биома, ствол — множителем грунта, свечение семян — цветом свечения биома. В игре это шейдер: картинка хранит индекс тона, палитра — цвета.</p>
+    </div>
+  </div>
+  <div class="cols">
+    <div style="display:grid;gap:8px">
+      <h3>Что данные</h3>
+      <div class="tablebox"><table>
+        <thead><tr><th>Что</th><th>Где</th><th>Пример</th></tr></thead>
+        <tbody>
+          <tr><td>Палитра неба</td><td>на тип</td><td>5 тонов + дымка; 6 кураторских: бирюза, нефрит, охра, фиолет, лёд, ржавчина</td></tr>
+          <tr><td>Палитра биома</td><td>на биом</td><td>дальний, ближний, свет, слои пород; мох 5 тонов; листва 5; свечения 1–3</td></tr>
+          <tr><td>Веса реквизита</td><td>на биом</td><td>саванна: акация 6, флора 1; бэдлендс: останец 5, акация 1, голое 1</td></tr>
+          <tr><td>Форма хребтов</td><td>на биом</td><td>округлые / столовые / зубчатые / конусы</td></tr>
+          <tr><td>Параметры слоёв</td><td>на направление</td><td>доля камеры, высота, ячейка шума, дымка, контур, число реквизита</td></tr>
+          <tr><td>Погода</td><td>на тип</td><td>низкие облака: кучевые / пыль / пепел; сияние; цвет мошек</td></tr>
+          <tr><td>Набор биомов</td><td>на тип</td><td>3 зоны: левая, у спавна, правая; пул соседей для случайной</td></tr>
+          <tr><td>Зерно</td><td>на планету</td><td>шум, места реквизита, границы зон, гигант, луны, солнце</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">Генерация — целочисленный хэш от зерна, как у <code>Terrain</code>: все пиры видят одинаковый фон, хотя он только клиентский.</p>
+    </div>
+    <div style="display:grid;gap:8px">
+      <h3>Что арт: библиотека реквизита</h3>
+      <div class="tablebox"><table>
+        <thead><tr><th>Набор</th><th>Силуэты</th><th class="num">≈ картинок</th></tr></thead>
+        <tbody>
+          <tr><td>Общий, для всех</td><td>шпиль руин (3 размера), арка (3), парящая скала (4), останец (4), голое дерево (3), кучевые облака (6), перистые полосы (2). Гигант, луны, шум хребтов — код</td><td class="num">25</td></tr>
+          <tr><td>Саванна</td><td>акация (4 формы × 3 размера), куст (3), гигантский колокольчик (3)</td><td class="num">18</td></tr>
+          <tr><td>Бэдлендс</td><td>сухая акация (2), столб-кактус (3), каменный мост (1); останцы — общие</td><td class="num">6</td></tr>
+          <tr><td>Кристальный</td><td>кластер (5), одиночный шпиль (3), кристальное дерево (2)</td><td class="num">10</td></tr>
+          <tr><td>Ледяной</td><td>ледяной шпиль (4), торос (3); замёрзшее дерево — общее голое</td><td class="num">7</td></tr>
+          <tr><td>Вулканический</td><td>базальтовый столб (4); конусы — профиль, дым — эффект</td><td class="num">4</td></tr>
+          <tr><td>Грибной</td><td>гигантский гриб (5 форм × 2 размера), гриб-полка (2), колокольчик-нить (3)</td><td class="num">15</td></tr>
+          <tr><td><b>Всего</b></td><td>на шесть типов; каждый новый тип — 4–18 своих</td><td class="num"><b>≈ 85</b></td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">Размеры — потому что пиксель-арт не масштабируют: дальний 12–24 px, средний 24–48, ближний 48–80. Силуэты в 4 серых тонах плюс маска свечения. На странице реквизит рисует код (как экспорт 0079) — это тоже путь: тогда «арт» — это код рисования, а не картинки.</p>
+    </div>
+  </div>
+</section>
+
+<section id="directions">
+  <p class="eyebrow">04 · четыре направления, живые</p>
+  <h2>Направления</h2>
+  <p class="read">Сцену можно двигать: кликни по ней, затем <b>← →</b> — идти (Shift — бег), <b>↑ ↓</b> — посмотреть вверх и вниз, или тяни мышью. Внизу — вся планета: клик переносит туда. Земля, мох, акации, колокольчики, шпиль и герой — из игры (наши тайлы и спрайты), фон — код рисования. Кнопка «Ч/Б» показывает одну яркость: так видно, не спорит ли фон с землёй.</p>
+</section>
+</div>
+
+<div class="wrap">
+<div class="stage-wrap" id="viewer">
+  <div class="toolbar">
+    <div class="tgroup"><span class="lbl">Планета</span><div class="seg" data-g="planet"><button type="button" data-v="savanna">Саванна</button><button type="button" data-v="badlands">Бэдлендс</button><button type="button" data-v="crystal">Кристалл</button><button type="button" data-v="ice">Лёд</button><button type="button" data-v="volcanic">Вулкан</button><button type="button" data-v="fungal">Грибы</button></div><button type="button" class="primary roll" data-roll>Случайная планета</button></div>
+    <div class="tgroup"><span class="lbl">Фон</span><div class="seg" data-g="dir"><button type="button" data-v="now">Сейчас</button><button type="button" data-v="A">A</button><button type="button" data-v="B">B</button><button type="button" data-v="C">C</button><button type="button" data-v="D">D</button></div></div>
+    <div class="tgroup"><span class="lbl">Время</span><div class="seg" data-g="tod"><button type="button" data-v="day">День</button><button type="button" data-v="dusk">Закат*</button></div></div>
+    <div class="tgroup"><span class="lbl">Кадр</span><div class="seg" data-g="zoom"><button type="button" data-v="near">Ближе</button><button type="button" data-v="far">Как в игре</button></div><button type="button" class="tbtn" data-t="gray">Ч/Б</button></div>
+    <div class="tgroup"><span class="lbl">Переход</span><div class="seg" data-g="trans"><button type="button" data-v="T1">T1</button><button type="button" data-v="T2">T2</button></div></div>
+    <div class="tgroup"><button type="button" class="tbtn" data-t="life">Жизнь</button><button type="button" class="tbtn" data-t="beacon">Маяк шпилей</button></div>
+  </div>
+  <p class="dirnote"></p>
+  <div class="passport" aria-live="polite"></div>
+  <div class="canvasbox"><canvas class="stage" tabindex="0" aria-label="Живая сцена: фон планеты за землёй и героем; стрелки двигают героя"></canvas><div class="loading">рисую слои…</div><div class="hint">← → идти · Shift бег · ↑ ↓ взгляд · тяни мышью</div></div>
+  <div class="under">
+    <div class="holds"><button type="button" class="tbtn" data-hold="ArrowLeft" aria-label="Идти влево">◀</button><button type="button" class="tbtn" data-hold="ArrowRight" aria-label="Идти вправо">▶</button><button type="button" class="tbtn" data-t="fly">Перелёт ×12</button></div>
+    <span class="info"></span>
+  </div>
+  <div class="minibox">
+    <canvas class="mini" width="1024" height="26" aria-label="Карта планеты по ширине: зоны и шпили; клик переносит героя"></canvas>
+    <div class="minilegend"><span>0 · Бэдлендс</span><span>620</span><span>Саванна · спавн 1024</span><span>1460</span><span>Кристальные поля · 2048</span></div>
+  </div>
+  <div class="layers" style="display:flex;flex-wrap:wrap;gap:6px" aria-label="Слои: выключить, чтобы увидеть по отдельности"></div>
+  <p class="small">* Закат — предложение, в игре суток нет. «Как в игре» — дальний зум: 96 × 54 клетки, мельче и ближе к тому, что видит игрок; «Ближе» — 60 × 34, чтобы разглядеть пиксели.</p>
+</div>
+</div>
+
+<div class="wrap">
+<section style="border-top:0;padding-top:20px">
+  <div class="cards">
+    <article class="card dircard" data-dir="A">
+      <div class="head"><h3>A · Ясный простор</h3><span class="tag">безопасный</span></div>
+      <p>Наш нынешний день, только нарисованный: дальний хребет с двумя шпилями и их столбами, столовые горы, гряда мелких акаций, средние холмы с флорой, ближние — с крупными акациями и мягким контуром. Ближе всех к Terraria-лесу по читаемости.</p>
+      <ul class="layers-l" data-layers="A"></ul>
+      <p class="small">Живёт: облака плывут, корабль-точка пересекает небо, столбы света дрожат, мошки, «птицы» (опц.).</p>
+      <button type="button" class="tbtn" data-show="A">Смотреть A</button>
+    </article>
+    <article class="card dircard" data-dir="B">
+      <div class="head"><h3>B · Чужие формы</h3><span class="tag">самый «инопланетный»</span></div>
+      <p>Парящие скалы с бахромой и светящимися семенами, покачиваются; арки и останцы; гигантские светящиеся колокольчики на ближних холмах; гигант восходит из-за плато; пылевые полосы.</p>
+      <ul class="layers-l" data-layers="B"></ul>
+      <p class="risk">Риск: ближние скалы в небе могут читаться как то, на что можно встать. Держим их не ближе 0.24 и в дымке.</p>
+      <button type="button" class="tbtn" data-show="B">Смотреть B</button>
+    </article>
+    <article class="card dircard" data-dir="C">
+      <div class="head"><h3>C · Небо-событие</h3><span class="tag">небо главное</span></div>
+      <p>Огромный гигант с тенью кольца, две луны, у зенита днём видны звёзды, медленно идёт сияние. Земля низкая: равнина шпилей, их столбы уходят в сияние.</p>
+      <ul class="layers-l" data-layers="C"></ul>
+      <p class="risk">Риск: небо забирает внимание; вверху экрана хотбар ложится на яркого гиганта.</p>
+      <button type="button" class="tbtn" data-show="C">Смотреть C</button>
+    </article>
+    <article class="card dircard" data-dir="D">
+      <div class="head"><h3>D · Дымка и столбы света</h3><span class="tag">настроение s9</span></div>
+      <p>Низкое тёплое солнце с лучами, пять слоёв леса-силуэта, между каждым — полоса дрейфующей дымки, ближний план тёмный.</p>
+      <ul class="layers-l" data-layers="D"></ul>
+      <p class="risk">Риск: тёмный ближний слой рядом с тёмным грунтом — края холмов теряются; проверь в «Ч/Б».</p>
+      <button type="button" class="tbtn" data-show="D">Смотреть D</button>
+    </article>
+  </div>
+</section>
+
+<section id="zones">
+  <p class="eyebrow">05 · разнообразие внутри планеты</p>
+  <h2>Зоны вдоль планеты</h2>
+  <p class="read">Внутри одной планеты три зоны: биом у спавна и два соседа. Набор соседей задаёт тип планеты, границы — зерно (у саванны с зерном 11 — около 540 и 1450 клеток). У каждой зоны свои слои земли в любом направлении, небо общее. Карта под сценой показывает зоны текущей планеты; кнопки ниже переносят героя к границам — пройди «Перелётом», чтобы увидеть переход.</p>
+  <div class="cards">
+    <article class="card"><div class="head"><h3>Левая зона</h3><span class="small mono">0 → граница 1</span></div><p>У саванны — бэдлендс: ржавые мезы со слоями пород, останцы, янтарные огни, на земле больше камней. У ледяного мира — кристальные поля, у вулканического — пепельные равнины.</p><button type="button" class="tbtn" data-goto="b0">К первой границе</button></article>
+    <article class="card"><div class="head"><h3>Зона спавна</h3><span class="small mono">клетка 1024</span></div><p>Главный биом типа: у саванны — бирюзово-зелёные холмы и акации с бахромой; у грибного мира — шляпки в розовых огнях.</p><button type="button" class="tbtn" data-goto="1024">К спавну</button></article>
+    <article class="card"><div class="head"><h3>Правая зона</h3><span class="small mono">граница 2 → 2048</span></div><p>У саванны — кристальные поля: фиолетовые зубчатые хребты, кристаллы с бликами. Случайная планета берёт соседей из пула своего типа.</p><button type="button" class="tbtn" data-goto="b1">Ко второй границе</button></article>
+  </div>
+  <div class="cols">
+    <div style="display:grid;gap:8px"><h3>Переход</h3>
+      <ul class="plain">
+        <li><b>T1</b> — все слои меняются вместе, в окне ±40 клеток: как смена биома в Terraria.</li>
+        <li><b>T2</b> (по умолчанию) — дальние слои смешиваются раньше и шире, до ±300 клеток, ближние — быстро. Новая зона показывается на горизонте задолго до того, как ты в неё пришёл: так и видно издалека.</li>
+      </ul>
+      <p class="small">Технически это два спрайта слоя с весами, сумма весов 1 — точный перелив, без просвета неба.</p>
+    </div>
+    <div style="display:grid;gap:8px"><h3>Передний план</h3>
+      <p>Сегодня земля одна на всю планету. В сцене мох, оттенок грунта, листва акаций и частота камней, кустов и колокольчиков уже идут от палитры и весов зоны — как подсказка, что система доходит и до земли. Форма рельефа одна для всех планет сцены, чтобы сравнивать фон. Настоящие зоны на земле — это генератор (0077, 0079): отдельный вопрос в форме выбора.</p>
+    </div>
+  </div>
+</section>
+
+<section id="underground">
+  <p class="eyebrow">06 · фон пещер по глубине</p>
+  <h2>Под землёй</h2>
+  <div class="cols">
+    <p class="read">Как в Terraria, далёкий фон виден только там, где нет задней стены. Сегодня у пещер везде естественная задняя стена, и снять её нельзя (0084). Предложение: генератор уже знает большие залы — у <b>середины зала</b> задней стены нет, вдоль скал остаётся кайма 1–3 клетки. Получается окно в глубину: дальние слои породы, своё у каждой полосы (0080), силуэты на фоне слабого света. Туннели остаются тёмными и тайными.</p>
+    <p class="read small">Полосы — та же система: рампа породы, цвет свечения, частицы и реквизит (корни, шляпки, кристальные колонны, базальт, дома) — данные и библиотека. На другой планете полоса берёт её палитру.</p>
+    <div class="card" style="align-self:start"><h3>Нужно правило для света</h3><p class="small" style="color:#d9c7a6">Сейчас открытая клетка без задней стены считается небом и пропускает дневной свет (<code>Surfaces.Sky</code>). Окно в зале должно быть не небом: например, небо светит только в клетки над поверхностью своей колонки. Без этого правила зал зальёт дневным светом.</p></div>
+  </div>
+</section>
+</div>
+
+<div class="wrap">
+<div class="stage-wrap" id="uviewer">
+  <div class="toolbar">
+    <div class="tgroup"><span class="lbl">Полоса</span><div class="seg" data-g="band"><button type="button" data-v="cold">Холодные</button><button type="button" data-v="garden">Сад</button><button type="button" data-v="amber">Янтарь</button><button type="button" data-v="lava">Лава</button></div></div>
+    <div class="tgroup"><button type="button" class="tbtn" data-t="ugray">Ч/Б</button></div>
+  </div>
+  <p class="bandnote"></p>
+  <div class="canvasbox"><canvas class="stage" tabindex="0" aria-label="Живая сцена: большой зал, сквозь середину видны дальние слои глубины"></canvas><div class="loading">рисую слои…</div><div class="hint">← → ↑ ↓ смотреть · Shift быстрее · тяни мышью</div></div>
+  <p class="small">Скала и задние стены — наши тайлы камня, тонированные по полосе (0080); середина зала — окно. Свет — шлем героя и ростки; дальние слои себя почти не освещают: видны жилы, отсвет и силуэты.</p>
+</div>
+</div>
+
+<div class="wrap">
+<section style="border-top:0;padding-top:20px">
+  <div class="cards">
+    <article class="card bandcard" data-band="cold"><div class="head"><h3>Холодные пещеры</h3><span class="small mono">0–25 %</span></div><p>Сине-серая порода далёкими слоями, гигантские корни свисают со свода (корни только у поверхности, как в 0080), силуэты ледяных кристаллов, тонкие голубые жилы, капель.</p><button type="button" class="tbtn" data-band-show="cold">Смотреть</button></article>
+    <article class="card bandcard" data-band="garden"><div class="head"><h3>Бирюзовый сад</h3><span class="small mono">25–60 %</span></div><p>Гигантские светящиеся шляпки, нити с бусинами света, бирюзовая дымка, споры поднимаются вверх.</p><button type="button" class="tbtn" data-band-show="garden">Смотреть</button></article>
+    <article class="card bandcard" data-band="amber"><div class="head"><h3>Янтарная глубь</h3><span class="small mono">60–85 %</span></div><p>Устье жеоды в огоньках, кристальные колонны янтаря и розы, вдали — дома создателей арок с бирюзовой лампой (0091), тёплая пыль.</p><button type="button" class="tbtn" data-band-show="amber">Смотреть</button></article>
+    <article class="card bandcard" data-band="lava"><div class="head"><h3>Лавовое ядро</h3><span class="small mono">85–100 %</span></div><p>Базальтовые столбы, лавовое озеро внизу — свет снизу, как в аду Terraria; лавопады, трещины жара, искры вверх, дальний слой дрожит маревом.</p><button type="button" class="tbtn" data-band-show="lava">Смотреть</button></article>
+  </div>
+</section>
+
+<section id="time">
+  <p class="eyebrow">07 · время и свет</p>
+  <h2>Сутки</h2>
+  <div class="cols">
+    <div class="read" style="display:grid;gap:10px">
+      <p><b>В коде суток нет.</b> Свет неба планеты — одна постоянная (<code>Surfaces.Planet</code>: <code>Sky = Light(1000, 970, 900)</code>, тёплый белый), небо одно на все часы (0079, «Deliberately not handled»). У симуляции нет часов: модули считают тики сами.</p>
+      <p>Поэтому всё выше — день, каким он есть. <b>Закат</b> — предложение, его можно включить в сцене: небо фиолетово-оранжевое, солнце у горизонта, проступают звёзды, свечения ярче в 1.5 раза, земля и герой — тёплая полутень.</p>
+      <button type="button" class="tbtn" data-show="D" data-tod="dusk" style="justify-self:start">Показать закат на D</button>
+    </div>
+    <div style="display:grid;gap:8px">
+      <h3>Если идти дальше</h3>
+      <ul class="plain">
+        <li><b>Не надо:</b> вечный день, как сейчас.</li>
+        <li><b>Закат как облик:</b> зона или другая планета всегда в закате. Только картинки и цвет света неба, без часов.</li>
+        <li><b>Полный цикл:</b> время суток из тика мира, одинаковое у всех. Трогает игру: солнечная панель ночью, ценность ламп, видимость. Отдельное решение и ADR.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="perf">
+  <p class="eyebrow">08 · сколько это стоит</p>
+  <h2>Цена в Godot</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th></th><th>Сейчас</th><th>Предложение</th></tr></thead>
+    <tbody>
+      <tr><td>Слоёв</td><td>7 картинок: небо, гигант, облака, солнце, 3 земли</td><td>9–11: небо, гигант, 0–2 луны, 1–2 облака, 4–5 земли; полосы дымки — градиент плюс одна картинка шума</td></tr>
+      <tr><td>Текстуры</td><td class="num">≈ 7.6 МБ</td><td>слой 2048 × 150–300 ≈ 1.2–2.4 МБ (RGBA8); зона ≈ 9–12 МБ плюс свечения ≈ 3–4 МБ; три зоны ≈ 35–45 МБ, в памяти две соседние ≈ 25 МБ. Подземная полоса: 3 слоя 2048 × 560 ≈ 14 МБ с отсветами, грузится по полосе</td></tr>
+      <tr><td>Отрисовок за кадр</td><td class="num">≈ 11</td><td>≈ 20–26, на переходе ещё до 6</td></tr>
+      <tr><td>Сборка при высадке</td><td>картинки готовы</td><td>слой 2048 × 150–300 из шума и реквизита: в браузере здесь ≈ 20 мс на слой; в C# на потоке — того же порядка, ≈ 15 слоёв на планету ≈ 0.5–1 с на фоне, пока идёт высадка; можно хранить готовые PNG в папке сохранения</td></tr>
+      <tr><td>CPU</td><td class="num">&lt; 0.02 мс</td><td>то же плюс покачивание скал и мерцание: &lt; 0.05 мс</td></tr>
+      <tr><td>GPU</td><td>3–4 перекрытия экрана</td><td>5–7: прозрачный верх слоя не рисуем, регион по высоте; на 4060 Ti — доли миллисекунды, встройку проверить <code>--measure</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="cols">
+    <div style="display:grid;gap:8px"><h3>Как рисовать</h3>
+      <ul class="plain">
+        <li><b>Оставить <code>PlanetSky</code></b> (Node2D в экранных координатах, Sprite2D с <code>RegionRect</code> и повтором) и обобщить: список слоёв из данных — на зону картинка, доля камеры, верх, дымка (<code>Content.Backdrop</code>; числа — данные).</li>
+        <li><b>Переход</b> — <code>Modulate.A</code> двух спрайтов слоя по весам зон, как в сцене.</li>
+        <li><b>Живое без CPU:</b> звёзды, сияние, лучи и блики кристаллов — шейдер на одном квадрате (<code>TIME</code>, хэш пикселя). Облака — сдвиг региона, как сейчас. Столбы света — аддитивные спрайты с мерцанием через <code>Modulate</code>. Скалы — Sprite2D с <code>y = sin</code>; «птицы» — до 8 спрайтов по 2 кадра.</li>
+        <li><b>Картинки</b> — экспорт из кода рисования, как в 0079, не руками; импорт без сжатия и mipmap.</li>
+      </ul>
+    </div>
+    <div style="display:grid;gap:8px"><h3>Почему не Parallax2D</h3>
+      <p><code>Parallax2D</code> (Godot 4.3+, заменил ParallaxBackground и ParallaxLayer) умеет <code>scroll_scale</code>, <code>repeat_size</code> и <code>autoscroll</code>. Но наша линия земли по доле высоты камеры и «пиксель арта = пиксель мира на любом зуме» всё равно требуют ставить смещение каждый кадр. Выгода мала, а работающий код уже есть.</p>
+      <p class="small">Подземный фон — тот же узел, видимый вместо неба, когда камера ниже поверхности; окна задаёт генератор, свету нужно правило выше.</p>
+    </div>
+  </div>
+</section>
+
+<section id="pick">
+  <p class="eyebrow">09 · твой выбор</p>
+  <h2>Выбор</h2>
+  <p class="read">Отметь «Беру», «Изменить» или «Не надо», добавь заметку. Итог собирается внизу, его можно скопировать и прислать. Отметки хранятся только в этом браузере.</p>
+  <div class="pickgroups"></div>
+  <label for="pick-general" class="small">Общее</label>
+  <textarea id="pick-general" rows="2" placeholder="что угодно ещё"></textarea>
+  <div class="sumbox">
+    <div class="sumbar"><button type="button" class="primary" id="pick-copy">Скопировать итог</button><button type="button" class="tbtn" id="pick-clear">Сбросить</button><span id="pick-copied" class="small" role="status"></span></div>
+    <textarea id="pick-summary" rows="12" readonly aria-label="Итог выбора"></textarea>
+  </div>
+</section>
+</div>
+
+<footer><div class="wrap">Stillwake · концепт фона первой планеты · 2026-10-21. Земля, флора, шпиль и герой — тайлы и спрайты из <code>game/art</code>; фон, небо и пещеры — код рисования на этой странице.</div></footer>
+
+<script>window.__A = /*ASSETS*/;</script>
+<script>/*APP*/</script>

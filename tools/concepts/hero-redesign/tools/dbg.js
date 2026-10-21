@@ -1,0 +1,1 @@
+setTimeout(()=>{const p=window.__hero.PANELS[0];const h=p.heroes[0].fig;const d=document.createElement('pre');d.id='DBG';const ls=h.draw(p.a,p.e,new DOMMatrix(),p.live());d.textContent=JSON.stringify({beams:ls.filter(l=>l.beam).map(l=>[l.x,l.y,l.ang]),head:h.head,look:h.s.look,drill:h.s.drill,pose:h.s.pose});document.body.appendChild(d);},1500);
