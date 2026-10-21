@@ -193,7 +193,7 @@ public sealed class HeroAutopilot
     /// <c>-- --hills --autopilot</c> (<c>HillsDemo</c>, 0069): over the first hill and back walking, then running right
     /// over it, through the valley and up the long ramp, where it falls into the hole at its top, the high plateau's top
     /// at row <paramref name="plateau"/>; it jumps out and runs on over the peak and off the lone ◢'s cliff to the lone
-    /// ◣'s closed side, and walks back to the ◢'s.
+    /// ◣'s closed side; it jumps that, walks up the stair with air under its steps beyond and back down, and on to the ◢'s.
     /// </summary>
     public static HeroAutopilot HillsRun(int plateau)
     {
@@ -210,6 +210,10 @@ public sealed class HeroAutopilot
             Jump(),
             Hold(new HeroInput(1, 0, false), 40),
             Until(run, (h, p) => p.Stopped(h)),
+            Wait(30),
+            Jump(1),
+            Hold(new HeroInput(1, 0, false), 20),
+            Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)),
             Wait(30),
             Until(new HeroInput(-1, 0, false), (h, p) => p.Stopped(h)),
             Wait(60),

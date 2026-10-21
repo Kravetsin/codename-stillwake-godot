@@ -12,7 +12,7 @@ namespace Stillwake.Game.Dev;
 /// <c>-- --hills</c>: a long aired, lit room with ground of slopes to walk (0069). From the left: a hill up three cells,
 /// its plateau and down three; a valley; a ladder at the foot of a ramp five cells up to a high plateau with a hole one
 /// cell wide right at the ramp's top; down five; a peak; a lone ◢ whose closed side is a cliff; a lone ◣ whose closed
-/// side is a wall; ceiling slopes in the room's top corners and on a block hanging from its ceiling. Stacks lie on the
+/// side is a wall; past it a stair of ◢ with air under its steps, up to a floor; ceiling slopes in the room's top corners and on a block hanging from its ceiling. Stacks lie on the
 /// slopes, dropped there as the world begins. Lamps under the ceiling and low on the back wall, each pair fed by a solar panel on the roof. With
 /// <c>--autopilot</c> the hero walks it (<see cref="Features.Crew.HeroAutopilot.HillsRun"/>).
 /// </summary>
@@ -82,6 +82,9 @@ public static class HillsDemo
         Set(46, Ground - 1, '\\');
         Set(50, Ground - 1, '/');
         Set(54, Ground - 1, '\\');
+        // Past it, a stair of ◢ as a player builds one, air under every step, up to a floor by the room's wall.
+        for (int i = 0; i < 6; i++) Set(56 + i, Ground - 1 - i, '/');
+        Set(62, Ground - 6, '=');
         // Ceiling slopes: the room's top corners, and a block hanging from the ceiling, its lower corners cut.
         Set(1, Top + 1, 'r');
         Set(Width - 2, Top + 1, '7');

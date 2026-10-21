@@ -164,6 +164,117 @@ public class SlopeTests
         Assert.Equal(5 * Unit, HeroTests.Settle(ship, h, Right).Y);
     }
 
+    // A stair built of ◣ one up and one across, air under every step but the lowest, up to a floor on row 4's top.
+    private const string Stairs = """
+        #################
+        #...............#
+        #...............#
+        #...............#
+        #==\............#
+        #...\...........#
+        #....\..........#
+        #.....\.........#
+        #......\........#
+        #.......\.......#
+        #........\......#
+        #################
+        """;
+
+    // The same stair meeting a solid ledge at its top, a cliff down to the ground.
+    private const string StairsToLedge = """
+        #################
+        #...............#
+        #...............#
+        #...............#
+        ###\............#
+        ###.\...........#
+        ###..\..........#
+        ###...\.........#
+        ###....\........#
+        ###.....\.......#
+        ###......\......#
+        #################
+        """;
+
+    /// <summary><paramref name="map"/> in a mirror: ◣ becomes ◢, a stair up to the left one up to the right.</summary>
+    private static string Mirrored(string map) =>
+        string.Join('\n', map.Split('\n').Select(row => new string(row.TrimEnd('\r').Reverse().Select(c => c switch { '/' => '\\', '\\' => '/', _ => c }).ToArray())));
+
+    /// <summary>The ground under the middle at <paramref name="x"/>, worked out from the picture: the first thing down its column.</summary>
+    private static int GroundUnder(Ship ship, int x)
+    {
+        int column = x / Unit;
+        for (int row = 1; ; row++)
+        {
+            int cell = row * ship.Width + column;
+            if (ship.StructureAt(cell) == Structure.Empty) continue;
+            return row * Unit + Shape.TopAt(ship.ShapeAt(cell), x % Unit);
+        }
+    }
+
+    /// <summary>
+    /// Steps <paramref name="keys"/> until the hero stops, asserting every step stands on the ground under its middle at the
+    /// speed of the flat, never in the air: no hop, no fall, no stall, but the last step flush against a wall.
+    /// </summary>
+    private static Hero WalkOnTheGround(Ship ship, Hero hero, HeroInput keys)
+    {
+        int speed = keys.Sprint ? Spec.Run : Spec.Walk;
+        var h = hero;
+        bool slowed = false;
+        for (int i = 0; i < 2000; i++)
+        {
+            var next = h.Step(keys, ship);
+            Assert.True(next.Vy == 0, $"in the air at {next}");
+            Assert.True(GroundUnder(ship, next.X) == next.Y, $"off the ground at {next}: it is at {GroundUnder(ship, next.X)}");
+            if (next.X == h.X) return next;
+            Assert.False(slowed, $"slowed down short of a wall before {next}");
+            slowed = Math.Abs(next.Vx) != speed;
+            h = next;
+        }
+        throw new InvalidOperationException("never stopped");
+    }
+
+    /// <summary>
+    /// Up a stair of slopes with air under its steps, along their one 45° line every step, onto what its top meets and on
+    /// to the wall; and back down it to the far wall: with ◣ and ◢, walking and running, to a floor or a ledge (a player's
+    /// stair stopped dead on its first step: the feet crossed into a step's column under its diagonal, in the air).
+    /// </summary>
+    [Theory]
+    [InlineData(Stairs, false)]
+    [InlineData(Stairs, true)]
+    [InlineData(StairsToLedge, false)]
+    [InlineData(StairsToLedge, true)]
+    public void WalksUpAndDownAStairOfSlopesWithAirUnderItOnItsLineEveryStepEitherWay(string map, bool mirrored)
+    {
+        var ship = HeroTests.ShipFrom(mirrored ? Mirrored(map) : map);
+        var (up, down) = mirrored ? (Right, Left) : (Left, Right);
+        int top = mirrored ? 16 * Unit - Half : 1 * Unit + Half, bottom = mirrored ? 1 * Unit + Half : 16 * Unit - Half;
+        foreach (bool run in new[] { false, true })
+        {
+            var start = new Hero(bottom, 11 * Unit, 0, 0, false, up.X);
+            var climbed = WalkOnTheGround(ship, start, up with { Sprint = run });
+            Assert.Equal((top, 4 * Unit), (climbed.X, climbed.Y));
+            var back = WalkOnTheGround(ship, climbed, down with { Sprint = run });
+            Assert.Equal((bottom, 11 * Unit), (back.X, back.Y));
+        }
+    }
+
+    /// <summary>Under a stair with air under it, its steps' closed sides still stop the hero like walls.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnderAStairOfSlopesTheirClosedSidesAreWalls(bool mirrored)
+    {
+        var ship = HeroTests.ShipFrom(mirrored ? Mirrored(Stairs) : Stairs);
+        // From under the floor at its top toward the stair, the head in row 8: ◣'s left side there stops it.
+        var start = new Hero(mirrored ? 16 * Unit - Half : 1 * Unit + Half, 11 * Unit, 0, 0, false, 1);
+        foreach (bool run in new[] { false, true })
+        {
+            var stopped = HeroTests.Settle(ship, start, (mirrored ? Left : Right) with { Sprint = run });
+            Assert.Equal((mirrored ? 10 * Unit + Half : 7 * Unit - Half, 11 * Unit), (stopped.X, stopped.Y));
+        }
+    }
+
     // A ramp up to a hole one cell wide, the ground going on beyond at the ramp's top.
     private const string HoleBySlope = """
         ##########
