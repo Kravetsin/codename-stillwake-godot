@@ -12,7 +12,10 @@ public static class Layers
     public const int Debris = -20;
 
     // What runs behind the ship's structure: back walls, pipes and their valves, cables (grid's and power's behind).
-    public const int BackWalls = -10, Pipes = -6, Valves = -5, Cables = -4;
+    public const int BackWalls = -11, Pipes = -6, Valves = -5, Cables = -4;
+
+    /// <summary>The ground's soft shadow on its back walls (0088), multiplying them, under all that is drawn over them.</summary>
+    public const int BackShade = -10;
 
     /// <summary>The air in the rooms and the lifepod's reach, over the back walls, behind all that stands in them (atmosphere).</summary>
     public const int Air = -9;
