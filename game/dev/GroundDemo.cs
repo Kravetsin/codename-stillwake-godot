@@ -20,7 +20,8 @@ namespace Stillwake.Game.Dev;
 /// tell the ground from its back wall (0088); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
 /// its longest run of ground with no pit, for <see cref="Features.Crew.HeroAutopilot.Sprint"/> to measure; <c>band0</c>…<c>band3</c> in a
 /// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080); <c>backs</c>
-/// at the spawn, building soil and stone back walls beside it (0084). An
+/// at the spawn, building soil and stone back walls beside it (0084); <c>lava</c> on the floor of the cave nearest the spawn's
+/// column whose lava is open, looking at it. An
 /// axe hit every <see cref="Pace"/> ticks,
 /// sent as a strike sends them: cracks, chips, dust, and the sky falling into the shaft.
 /// </summary>
@@ -78,7 +79,7 @@ public sealed class GroundDemo(string mode)
             int w = m.Grid.Width;
             bool tunnel = mode is "cave" or "drill";
             // In a cave of a band, or a great hall, looking at its growth (0080).
-            if (Caves(mode) && CaveSpot(m, mode) is (int spot, var look))
+            if (Caves(mode) && (mode == "lava" ? LavaSpot(m) : CaveSpot(m, mode)) is (int spot, var look))
             {
                 Target = look;
                 client.Send(new Transfer(_planet.Value, spot));
@@ -213,8 +214,8 @@ public sealed class GroundDemo(string mode)
             .FirstOrDefault();
     }
 
-    /// <summary>Whether <paramref name="mode"/> stands the hero in a cave of a band, <c>band0</c> to <c>band3</c>, or a great hall, <c>hall</c> (0080).</summary>
-    public static bool Caves(string mode) => mode is "band0" or "band1" or "band2" or "band3" or "hall";
+    /// <summary>Whether <paramref name="mode"/> stands the hero in a cave of a band, <c>band0</c> to <c>band3</c>, a great hall, <c>hall</c> (0080), or by the lava, <c>lava</c>.</summary>
+    public static bool Caves(string mode) => mode is "band0" or "band1" or "band2" or "band3" or "hall" or "lava";
 
     /// <summary>
     /// With <c>band0</c>…<c>band3</c> or <c>hall</c> (0080): the cell to stand in, in a cave of that band — for <c>hall</c> the garden's,
@@ -256,6 +257,26 @@ public sealed class GroundDemo(string mode)
             }
         }
         return best.Cell < 0 ? null : (best.Cell, (best.X, best.Y));
+    }
+
+    /// <summary>
+    /// With <c>lava</c>: a cell on a whole floor of stone with room above, within twenty rows over the lava and two to fourteen
+    /// columns beside a cell of its surface open above, the nearest the spawn's column; and that open lava's middle, in cells.
+    /// </summary>
+    private static (int Cell, (double X, double Y) Look)? LavaSpot(Registry m)
+    {
+        var grid = m.Grid;
+        int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w, top = h - m.Rules.Ground!.CoreRows;
+        bool Open(int x, int y) => x > 0 && y > 0 && x < w && y < h && grid.StructureAt(y * w + x) == Sim.Grid.Structure.Empty;
+        bool Lava(int x) => Open(x, top - 1);
+        foreach (int x in Enumerable.Range(0, w).OrderBy(x => Math.Abs(x - sx)).Where(Lava))
+            for (int d = 2; d <= 14; d++)
+                foreach (int fx in new[] { x - d, x + d })
+                    for (int y = top - 2; y > top - 20; y--)
+                        if (Open(fx, y) && Open(fx, y - 1) && Open(fx, y - 2) && grid.WallAt((y + 1) * w + fx) is { Id: "stone" }
+                            && grid.ShapeAt((y + 1) * w + fx) == Sim.Grid.Shape.None)
+                            return (y * w + fx, (x + 0.5, top + 0.5));
+        return null;
     }
 
     /// <summary>The open cell nearest under the spawn, at least twenty rows down, standing on ground with room above: in a cave.</summary>

@@ -17,6 +17,8 @@ public static class GroundLooks
         ["soil"] = new((98, 74, 58), (125, 96, 74), (36, 25, 15), (138, 106, 80)),
         ["stone"] = new((97, 103, 119), (128, 136, 152), (26, 28, 36), (138, 146, 160)),
         ["bedrock"] = new((56, 53, 66), (90, 86, 106), (20, 18, 24), (78, 74, 92)),
+        // Molten under a dark crust: drawn glowing over its tiles by the lava view, these only its chips and edges.
+        ["lava"] = new((150, 40, 12), (255, 150, 40), (40, 10, 4), (255, 190, 80)),
     };
 
     /// <summary>How many of a dig's chips fly per hit, and the dust of a break.</summary>

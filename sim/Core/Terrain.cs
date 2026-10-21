@@ -27,8 +27,9 @@ public static class Terrain
     /// <param name="surface">Each column's surface, its first row of ground before caves and landmarks open it: for tests.</param>
     internal static Layout Generate(Ground g, uint seed, out bool[] hall, out int[] surface)
     {
-        int w = g.Width, h = g.Height, floor = h - g.BedrockRows;
+        int w = g.Width, h = g.Height, floor = h - g.CoreRows;
         int soil = Materials.Get("soil").Code, stone = Materials.Get("stone").Code, bedrock = Materials.Get("bedrock").Code;
+        int lava = Materials.Get(Content.Lava.Material).Code;
         var codes = new int[w * h];
         // 0 sky, 1 solid, 2 open below the surface.
         var kind = new byte[w * h];
@@ -57,7 +58,7 @@ public static class Terrain
         var (t1, t2, c1, c2) = (new int[w], new int[w], new int[w], new int[w]);
         // By depth, how far down from where caves begin to the bedrock (0 to Whole), and the tunnels' width and the caverns'
         // mark there: worked out once, not a cell at a time.
-        int span = Math.Max(1, h - g.BedrockRows - g.Surface - g.CaveFrom);
+        int span = Math.Max(1, h - g.CoreRows - g.Surface - g.CaveFrom);
         var deeperAt = new int[h];
         var widthAt = new int[h];
         var markAt = new int[h];
@@ -75,9 +76,11 @@ public static class Terrain
             for (int x = 0; x < w; x++)
             {
                 int cell = y * w + x;
-                if (x < g.BedrockSide || x >= w - g.BedrockSide || y >= floor)
+                bool side = x < g.BedrockSide || x >= w - g.BedrockSide;
+                if (side || y >= floor)
                 {
-                    (kind[cell], codes[cell]) = (1, bedrock);
+                    // The core: lava over the bedrock, between the bedrock's columns at the sides.
+                    (kind[cell], codes[cell]) = (1, !side && y < floor + g.LavaRows ? lava : bedrock);
                     continue;
                 }
                 if (y < top[x]) continue;
@@ -101,8 +104,8 @@ public static class Terrain
             for (int x = 1; x < w - 1; x++)
             {
                 int cell = y * w + x;
-                if (!Bump(kind, codes, bedrock, cell, w) || kind[cell - 1] == 1) continue;
-                int across = kind[cell + 1] != 1 ? 1 : x + 2 < w && kind[cell + 2] != 1 && Bump(kind, codes, bedrock, cell + 1, w) ? 2 : 0;
+                if (!Bump(kind, codes, soil, stone, cell, w) || kind[cell - 1] == 1) continue;
+                int across = kind[cell + 1] != 1 ? 1 : x + 2 < w && kind[cell + 2] != 1 && Bump(kind, codes, soil, stone, cell + 1, w) ? 2 : 0;
                 bool air = kind[cell - 1] == 0 || kind[cell + across] == 0;
                 for (int i = 0; i < across; i++)
                 {
@@ -135,7 +138,7 @@ public static class Terrain
             for (int x = 1; x < w - 1; x++)
             {
                 int cell = y * w + x;
-                if (kind[cell] != 1 || codes[cell] == bedrock || kind[cell - w] == 1) continue;
+                if (kind[cell] != 1 || codes[cell] != soil && codes[cell] != stone || kind[cell - w] == 1) continue;
                 bool left = kind[cell - 1] == 1, right = kind[cell + 1] == 1;
                 if (right && !left) rows[y][x] = '/';
                 else if (left && !right) rows[y][x] = '\\';
@@ -206,11 +209,11 @@ public static class Terrain
 
     /// <summary>
     /// The depth band of row <paramref name="row"/> of ground <paramref name="g"/> (0080): 0, the coldest, near and above the
-    /// surface's middle, to the last over the bedrock, by <see cref="Content.Flora.Bands"/>' thousandths of the way down.
+    /// surface's middle, to the last over the core, by <see cref="Content.Flora.Bands"/>' thousandths of the way down.
     /// </summary>
     public static int BandOf(Ground g, int row)
     {
-        int span = Math.Max(1, g.Height - g.BedrockRows - g.Surface);
+        int span = Math.Max(1, g.Height - g.CoreRows - g.Surface);
         long down = (long)(row - g.Surface) * 1000 / span;
         int band = 0;
         while (band < Content.Flora.Bands.Count && down >= Content.Flora.Bands[band]) band++;
@@ -226,7 +229,7 @@ public static class Terrain
     /// </summary>
     private static void CaveFlora(Ground g, uint seed, char[][] rows, int[] codes, bool[] hall, int[] top, List<(int, string)> into)
     {
-        int w = g.Width, h = g.Height, floor = h - g.BedrockRows, stone = Materials.Get("stone").Code;
+        int w = g.Width, h = g.Height, floor = h - g.CoreRows, stone = Materials.Get("stone").Code;
         var kinds = Content.Flora.Cave;
         var bands = new int[h];
         for (int y = 0; y < h; y++) bands[y] = BandOf(g, y);
@@ -250,7 +253,8 @@ public static class Terrain
                 int cell = y * w + x;
                 if (Open(x, y))
                 {
-                    if (rows[y + 1][x] == '#') Try(Content.Flora.Anchor.Floor, x, y, cell);
+                    // Nothing grows on the lava under the caves' last row.
+                    if (y + 1 < floor && rows[y + 1][x] == '#') Try(Content.Flora.Anchor.Floor, x, y, cell);
                     if (rows[y - 1][x] == '#') Try(Content.Flora.Anchor.Ceiling, x, y, cell);
                 }
                 else if (rows[y][x] == '#' && codes[cell] == stone && (Open(x, y - 1) || Open(x, y + 1) || Open(x - 1, y) || Open(x + 1, y)))
@@ -297,7 +301,8 @@ public static class Terrain
     }
 
     /// <summary>Whether <paramref name="cell"/> is soil or stone with the open above it: the top of the ground there.</summary>
-    private static bool Bump(byte[] kind, int[] codes, int bedrock, int cell, int w) => kind[cell] == 1 && codes[cell] != bedrock && kind[cell - w] != 1;
+    private static bool Bump(byte[] kind, int[] codes, int soil, int stone, int cell, int w) =>
+        kind[cell] == 1 && (codes[cell] == soil || codes[cell] == stone) && kind[cell - w] != 1;
 
     /// <summary>
     /// The landmarks, at places the seed chooses, none within <see cref="Ground.Clear"/> of the middle: chasms cut from the
@@ -306,7 +311,7 @@ public static class Terrain
     /// <param name="hall">Set for every cell a great hall opens: where the caves' growth is densest (0080).</param>
     private static void Landmarks(Ground g, uint seed, int[] top, byte[] kind, Field ragged, bool[] hall)
     {
-        int w = g.Width, h = g.Height, floor = h - g.BedrockRows;
+        int w = g.Width, h = g.Height, floor = h - g.CoreRows;
         for (int k = 0; k < g.Chasms; k++)
         {
             int cx = Column(g, seed, ChasmAt, k, g.Chasms, g.BedrockSide + g.ChasmWide + 3);

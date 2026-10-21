@@ -317,13 +317,16 @@ public partial class GridView : Node2D
         }
     }
 
-    private static readonly int SoilCode = Materials.Get("soil").Code;
+    private static readonly int SoilCode = Materials.Get("soil").Code, LavaCode = Materials.Get(Stillwake.Content.Lava.Material).Code;
 
-    /// <summary>The living edge on the wall at <paramref name="cell"/> where it shows (<see cref="Grass.Edged"/>), laid from the cell above, up into it.</summary>
+    /// <summary>
+    /// The living edge on the wall at <paramref name="cell"/> where it shows (<see cref="Grass.Edged"/>), laid from the cell above, up
+    /// into it. Lava has none: its surface, its haze and its embers are the lava view's.
+    /// </summary>
     private void DrawTop(int cell)
     {
         int above = cell - _grid.Width, material = _drawn.Material[cell], shape = _drawn.Shape[cell];
-        if (above < 0 || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), shape, _drawn.Structure[above], _drawn.Back[above], SoilCode))
+        if (above < 0 || material == LavaCode || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), shape, _drawn.Structure[above], _drawn.Back[above], SoilCode))
             return;
         var (back, front) = TopNamesOf(material, shape, Grass.VariantOf(cell, GroundArt.TopVariants(shape)));
         Put(_tops, CellOf(above), back);

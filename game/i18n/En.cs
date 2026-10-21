@@ -110,6 +110,7 @@ public static partial class En
         ["material.soil"] = "soil",
         ["material.stone"] = "stone",
         ["material.bedrock"] = "bedrock",
+        ["material.lava"] = "lava",
         ["item.scrap"] = "Scrap",
         ["item.iron"] = "Iron",
         ["item.canister"] = "Oxygen canister",

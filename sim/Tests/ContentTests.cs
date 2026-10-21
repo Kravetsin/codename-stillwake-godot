@@ -46,8 +46,8 @@ public class ContentTests
         foreach (var m in Materials.All)
         {
             Assert.True(m.Leak > 0, m.Id);
-            // Bedrock alone breaks never and is never built (0077).
-            Assert.True(m.Strength > 0 || m.Id == "bedrock", m.Id);
+            // Bedrock and lava alone break never and are never built (0077).
+            Assert.True(m.Strength > 0 || m.Id is "bedrock" or "lava", m.Id);
             Assert.True(m.BuildTicks > 0 == m.Built, m.Id);
         }
     }
@@ -61,7 +61,7 @@ public class ContentTests
             Assert.All(Weapons.All, w => Assert.True(w.Damage < m.Strength, $"{w.Item} on {m.Id}"));
             Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
         }
-        Assert.Equal(["soil", "stone", "bedrock"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
+        Assert.Equal(["soil", "stone", "bedrock", "lava"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
     }
 
     // Machines
