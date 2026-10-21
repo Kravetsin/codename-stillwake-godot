@@ -215,8 +215,10 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   ones.
 - The camera no longer sits on the body's middle (movement review, item 12; `CameraFollow`, numbers in
   `game/Content/Camera.cs`). It leads the way the hero moved its last step, never the way it faces, so turning
-  to aim at the pointer moves nothing: `LeadShare` of the screen's width at a run, at every zoom, the lead
-  turning over `LeadTurnMs` and its size easing over `SmoothMs`, whatever the frame rate. The hero itself is
+  to aim at the pointer moves nothing: `LeadShare` of the screen's width at a run, at every zoom (2 cells of the
+  farthest zoom's 96: the playtest found 6 flew back and forth, so only a light sense of motion is left), the lead
+  turning slowly over `LeadTurnMs`, so a turn or a stop drifts, and its size easing over `SmoothMs`, whatever the
+  frame rate. The hero itself is
   followed exactly across, so the lead shows whole and nothing trails. Up and down under gravity the view always
   eases after the body's middle over `SmoothMs`, through jumps too (the playtest of #137 found a height held
   until landing made the eye hunt), never more than `Catch` cells from it however fast it jumps or falls. Floating

@@ -75,16 +75,17 @@ public class CameraFollowTests
     public void RunningTheCameraLooksTheWholeLeadAheadNothingTrailing(int way)
     {
         var camera = At(Running(0, way));
-        Run(camera, 2, 60, t => Running(t, way));
-        Assert.Equal(way * Reach, camera.X - Running(2, way).X, 1);
+        Run(camera, 5, 60, t => Running(t, way));
+        Assert.Equal(way * Reach, camera.X - Running(5, way).X, 2);
+        Assert.Equal(2, Reach, 9);
     }
 
     [Fact]
     public void TheLeadIsTheSameShareOfTheScreenAtEveryZoom()
     {
         var near = At(Running(0));
-        for (int i = 1; i <= 120; i++) near.Step(Running(i / 60.0), View / 2, StepMs);
-        Assert.Equal(Reach / 2, near.X - Running(2).X, 1);
+        for (int i = 1; i <= 300; i++) near.Step(Running(i / 60.0), View / 2, StepMs);
+        Assert.Equal(Reach / 2, near.X - Running(5).X, 2);
     }
 
     [Fact]
@@ -102,17 +103,22 @@ public class CameraFollowTests
     }
 
     [Fact]
-    public void TurningRoundTheViewSwingsOverWithoutAJump()
+    public void TurningRoundTheViewDriftsOverGently()
     {
         var camera = At(Running(0));
-        Run(camera, 2, 60, t => Running(t));
-        double turnedAt = Running(2).X, before = camera.X, most = 0;
-        Run(camera, 2, 60, t => Running(t, -1, turnedAt), (c, _) =>
+        Run(camera, 5, 60, t => Running(t));
+        double turnedAt = Running(5).X, before = camera.X, most = 0;
+        Run(camera, 0.5, 60, t => Running(t, -1, turnedAt));
+        // Half a second on, the lead is only just past the middle, far from the full lead the other way.
+        Assert.True(camera.Lead.X > -0.3, $"turned to {camera.Lead.X} in half a second");
+        before = camera.X;
+        Run(camera, 4.5, 60, t => Running(t + 0.5, -1, turnedAt), (c, _) =>
         {
             most = Math.Max(most, Math.Abs(c.X - before));
             before = c.X;
         });
-        Assert.True(most < 3 * Spec.Run / (double)Hero.Unit, $"swung {most} cells in a frame");
+        // The view never moves much faster than the hero runs.
+        Assert.True(most < 1.3 * Spec.Run / (double)Hero.Unit, $"swung {most} cells in a frame");
         Assert.Equal(-1, camera.Lead.X, 1);
     }
 
@@ -199,8 +205,8 @@ public class CameraFollowTests
         int top = Stillwake.Content.Jetpack.Top;
         Followed Flying(double t) => new(0, 10 - top * 60 * t / Hero.Unit, 0, -top, true);
         var camera = At(Flying(0));
-        Run(camera, 2, 60, Flying);
-        Assert.Equal(-Reach, camera.Y - Flying(2).Y, 1);
+        Run(camera, 5, 60, Flying);
+        Assert.Equal(-Reach, camera.Y - Flying(5).Y, 2);
         Assert.Equal(-1, camera.Lead.Y, 1);
     }
 

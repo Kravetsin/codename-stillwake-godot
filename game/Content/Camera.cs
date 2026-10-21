@@ -10,14 +10,17 @@ namespace Stillwake.Game;
 /// </summary>
 public static class Camera
 {
-    /// <summary>How far ahead the camera looks at full lead, as a share of the screen's width: 6 cells of the farthest zoom's 96.</summary>
-    public const double LeadShare = 1.0 / 16;
+    /// <summary>
+    /// How far ahead the camera looks at full lead, as a share of the screen's width: 2 cells of the farthest zoom's 96, a light
+    /// sense of motion; the playtest found 6 flew back and forth.
+    /// </summary>
+    public const double LeadShare = 1.0 / 48;
 
     /// <summary>The speed of the full lead, in thousandths of a cell a controller step: a run; a walk leads about half as far.</summary>
     public const int LeadSpeed = Stillwake.Content.Hero.Run;
 
-    /// <summary>How long the lead takes to turn, as the time constant it eases by, in milliseconds.</summary>
-    public const double LeadTurnMs = 350;
+    /// <summary>How long the lead takes to turn, as the time constant it eases by, in milliseconds: slow, so a turn or a stop drifts.</summary>
+    public const double LeadTurnMs = 650;
 
     /// <summary>How long the camera takes to settle, as the time constant it eases by, in milliseconds: the lead's size, and the height.</summary>
     public const double SmoothMs = 180;
