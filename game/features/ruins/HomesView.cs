@@ -160,7 +160,7 @@ public partial class HomesView : Node2D
         return null;
     }
 
-    /// <summary>A hit that deepens a piece's crack: a short shake and chips knocked off; the music box plays.</summary>
+    /// <summary>A hit that deepens a piece's crack: a short shake; the music box plays. What it knocks off is thrown where it struck (<c>HitBurst</c>, 0094).</summary>
     private void Hits(double delta)
     {
         foreach (var crack in _building.Cracks)
@@ -169,9 +169,7 @@ public partial class HomesView : Node2D
             if (_cracks.TryGetValue(crack.Cell, out int was) && was >= crack.Damage) continue;
             _cracks[crack.Cell] = crack.Damage;
             s.Shake = 0.18;
-            var middle = s.Bounds.GetCenter();
-            Glims.Shared.Spray(Chip, middle.X, middle.Y, 3, -Math.PI / 2, (-1.4, 1.4), (20, 50), s.Box.Y + s.Art.BoxH);
-            if (s.Plant.Kind == "musicBox") Tune(middle);
+            if (s.Plant.Kind == "musicBox") Tune(s.Bounds.GetCenter());
         }
         foreach (var s in _inView) s.Shake = Math.Max(0, s.Shake - delta);
     }

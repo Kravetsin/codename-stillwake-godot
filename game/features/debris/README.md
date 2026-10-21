@@ -28,7 +28,13 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   piece's id, it draws pixel-art cracks on the picture's own pixels — dark as the outline, a lit pixel
   under each — from a dent that widens, more and longer as the share grows, before the light falls on
   them. A rise in `Damage` jolts the piece 3 px away from the nearest hero and turns it a little,
-  settling over 220 ms, and throws light from the struck side (0075): for the drill's hits, ten a second, 3 streak sparks; for the axe's, a cross glint, 16 streak sparks sprayed back toward the hero, 14 motes of metal dust lit by the room, 3 dark chips tumbling and glinting, a faint shock ring and a flash of light round it, its picture flaring warm (a `Modulate` past white before the light falls on it) and dying away by 0.84 a 60 Hz frame. If the hit was this player's own, the view nudges a pixel (`Nudged`, `ShipCamera.Nudge`) and it plays `Sound.Chop` there, but for the drill's hits (`OwnHits.ToolOn`), whose strikes the crew plays as it works, apart from them (on the Suit
+  settling over 220 ms, and throws a wreck's hit back toward the hero where it was struck (0075, 0094, `HitLooks.Of[Impact.Wreck]`
+  thrown by `HitBurst`): a cross glint, 16 streak sparks, 14 motes of metal dust lit by the room, 3 dark chips tumbling and
+  glinting, a faint shock ring and a flash of light round it, its picture flaring warm (a `Modulate` past white before the
+  light falls on it) and dying away by 0.84 a 60 Hz frame. The axe's lands on the side facing the nearest hero; a hit
+  under a running drill's bit on the picture's box, within 4 px (`Ui.Bits`, this hero's and friends'), lands where the
+  bit is and throws that drill's share of it (a fifth for the drill's ten hits a second, two fifths for the arc drill's
+  five; its glint and ring by that chance, its light flaring to the share's root), the picture flaring as much. If the hit was this player's own, the view nudges a pixel (`Nudged`, `ShipCamera.Nudge`) and it plays `Sound.Chop` there, but for the drill's hits (`OwnHits.ToolOn`), whose strikes the crew plays as it works, apart from them (on the Suit
   bus, dulled while floating: wrecks are chopped in space, where only what the hero touches is heard, 0042). A wreck gone with hits in it before
   the end of its path was broken (`Fading.Broken`, counting the ticks run since it was last seen, so one
   drifting off its end only fades, a stall between frames or not; one broken past its end, kept there by a

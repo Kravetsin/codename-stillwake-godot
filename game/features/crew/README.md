@@ -515,10 +515,10 @@ Deliberately not handled:
   (`HeldLook.IsDrill`), its own `Weapons.ArcDrill` pace and damage (15 a second to the drill's 10), its picture the
   drill's with the coil tinted (`art/hero_arc_drill*.png`, a placeholder). Found, never made: only the testbed's
   supply crate and `-- --asteroid --arc-drill` hold one till planet ruins do.
-  **Its light** (`render/DrillLight`, 0075, shared with the drill's item card, which throws it into particles of its own): where a running bit bites a wreck (this hero's: the sim would take its hit;
-  another's: its bit touches one), the axe's hit in small and without end, 26 short sparks a second thrown back off
-  the bit, slow dust, now and then a small tumbling chip, a small glint every quarter second and a warm light held
-  there; a wreck's hit by a drill throws nothing of its own (`DebrisView`). The arc drill's coil (`HeldLook.Coil`, the
+  **Its light** (`render/DrillLight`, 0075, shared with the drill's item card, which throws it into particles of its own):
+  only the tool's own; what its hits knock out of what they strike is that object's, thrown where it is struck
+  (0094: `HitBurst`, below and in `features/effects`), so the bit throws nothing, whether it reaches the hit or only
+  spins short of it. The arc drill's coil (`HeldLook.Coil`, the
   copper wound round the stock) besides, while it spins, as fine as a fire's embers (slice 3): hair-thin fine arcs
   (`Bolts`, `fine`), most arched over the stock's top into the dark from one turn to another, a few faint across its
   bright face, 33 a second at full spin; sparks crawling along its top (a short stroke of light, `Flares.Trail`), 10 a
@@ -533,9 +533,12 @@ Deliberately not handled:
   plans are reached), the aim is that cell: "[Hold LMB] Dig", red with "Too hard" on bedrock or "Batteries flat", the
   cell outlined (its slope's half for a slope). The axe's strike sends one `Dig` at the cell of its swing's point
   (`Aiming.DigAt`) and bites, drawn stopped a moment as on a wreck; the drill sends one at its pace (`DrillPace`), its
-  works flag, sparks and strikes firing on ground as on a wreck, and a friend's bit on ground throws sparks too
-  (`Aiming.Bites`). Nothing traces the blade or the bit, which only find wrecks in open space: a shaft, a cave or the
-  strip's shelter dig alike. E digs nothing. What the dig looks like is building's (`DigView`). No sound of its own yet.
+  works flag and strikes firing on ground as on a wreck. Nothing traces the blade or the bit, which only find wrecks in
+  open space: a shaft, a cave or the strip's shelter dig alike. E digs nothing. Each dig is heard and seen as it is sent,
+  and a friend's as its swing or its drill's pace is played here (`Struck`, 0093, 0094): by what it lands on, on that
+  cell's face turned toward the hero who struck (`Impacts.On`), its look a share of the axe's for a faster tool
+  (`Impacts.ShareAt`), the whole for the hit that breaks or fells it. Its cracks and breaks are building's (`DigView`).
+  `Ui.Bits` hands `debris` every running drill's point as drawn, where a wreck it bites is struck.
 - **The helmet lamp** (0077): worn on the head, its bulb shows on the helmet's brow (`Figure.HeadLamp`, a placeholder
   of three warm pixels, drawn unlit), this hero's and every friend's shown; `HeroView.HeadLamps()` says where each
   shines from this frame and the way its head looks (`Figure.HeadLampToward`), which `Main` hands the light

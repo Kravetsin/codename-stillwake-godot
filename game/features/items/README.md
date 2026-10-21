@@ -194,7 +194,8 @@ as everything E works is, in the crew feature (`AimTests`).
   - *A tool* (the fire axe, the harpoon, the drills), edged amber: its held picture whole at 6× in a dark window
     (`ToolPicture`), a drill running in it over and over (`CardLook`): its bit turning through its frames, its lamp lit,
     a warm glow at its point and its light thrown as the hand's is (`render/DrillLight`) into particles of its own
-    drawn at 2× (`EffectsView` without matter): sparks off the point, the arc drill's coil crackling in bursts. Under
+    drawn at 2× (`EffectsView` without matter): the arc drill's coil crackling in bursts, and at the point, as if it bit
+    a wreck, a wreck's hits at its pace, each its share of the axe's (`HitBurst`, 0094). Under
     it its name and kind in amber and three tiles from content, the first in amber, one decimal at most (`CardTile`):
     a weapon's damage a second, damage and seconds between hits (`Content.Weapons`), its effects (none yet) as chips;
     the harpoon's range in cells, reload in seconds and reel speed in cells a second (`Content.Harpoon`). An electric

@@ -125,6 +125,9 @@
     <Compile Include="../game/render/Luminous.cs" Link="Game/Render/Luminous.cs" />
     <Compile Include="../game/render/Flares.cs" Link="Game/Render/Flares.cs" />
     <Compile Include="../game/Content/Fx.cs" Link="Game/Content/Fx.cs" />
+    <Compile Include="../game/Content/HitLooks.cs" Link="Game/Content/HitLooks.cs" />
+    <Compile Include="../game/render/HitBurst.cs" Link="Game/Render/HitBurst.cs" />
+    <Compile Include="../game/features/effects/Impacts.cs" Link="Game/Effects/Impacts.cs" />
     <Compile Include="../game/features/light/Sources.cs" Link="Game/Light/Sources.cs" />
     <Compile Include="../game/features/light/Flicker.cs" Link="Game/Light/Flicker.cs" />
     <Compile Include="../game/features/light/StarField.cs" Link="Game/Light/StarField.cs" />

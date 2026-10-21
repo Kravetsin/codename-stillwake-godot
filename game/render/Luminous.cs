@@ -176,8 +176,6 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>A pressure door's hiss as it shuts: vapour from its seal.</summary>
     public static readonly Luminous SealHiss = new(Glimmer.Wisp, [(226, 234, 246)], (600, 1100))
     { Matter = true, Drag = 2.2, Turbulence = 34, Spin = 1.5, Size = 1.2, Grow = 3.2, Alpha = 0.14 };
-    /// <summary>Off a drill's bit biting a wreck, the axe's sparks shorter and finer, without end; their light is one held at the bit.</summary>
-    public static readonly Luminous DrillSpark = HitSpark with { LifeMs = (180, 420), Width = 0.24, Halo = 2.5, Light = false };
     /// <summary>Dropping from a lamp short of power as it catches, arcing down and bouncing once.</summary>
     public static readonly Luminous LampSpark = new(Glimmer.Streak, Spark, (300, 700))
     { Fade = 1.1, Gravity = 240, Drag = 1, Spin = 2, Stretch = 0.045, Shortest = 0.5, Width = 0.24, Halo = 3, Light = true, Bounce = 0.3 };

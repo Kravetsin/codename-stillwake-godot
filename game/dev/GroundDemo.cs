@@ -80,6 +80,20 @@ public sealed class GroundDemo(string mode)
             var m = Registry.On(world, _planet.Value);
             int w = m.Grid.Width;
             bool tunnel = mode is "cave" or "drill";
+            // hit-…: at the edge of the hero's reach from one kind of object, striking it (0094).
+            if (Hits(mode))
+            {
+                if (HitSpot(m, mode[4..]) is not (int stand, int struck))
+                {
+                    log($"ground demo: no {mode[4..]} found to strike");
+                    return;
+                }
+                _striking = struck;
+                Target = (struck % w + 0.5, struck / w + 0.5);
+                client.Send(new Transfer(_planet.Value, stand));
+                log($"ground demo: beamed down to ({stand % w}, {stand / w}), striking {mode[4..]} at ({struck % w}, {struck / w})");
+                return;
+            }
             // In a cave of a band, or a great hall, looking at its growth (0080).
             if (Caves(mode) && (mode == "lava" ? LavaSpot(m) : CaveSpot(m, mode)) is (int spot, var look))
             {
@@ -102,6 +116,14 @@ public sealed class GroundDemo(string mode)
         }
         if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode) || Spires(mode) || Homes(mode)) return;
         var here = Registry.On(world, _planet.Value);
+        if (Hits(mode))
+        {
+            // Struck till it breaks, then the next of its kind as far off within reach.
+            if (!Is(here, _striking, mode[4..]) && here.Crew.HeroOf(client.Id) is { } hero)
+                _striking = Within(here, hero.Cell, mode[4..]) ?? -1;
+            Target = _striking >= 0 ? (_striking % here.Grid.Width + 0.5, _striking / here.Grid.Width + 0.5) : null;
+            return;
+        }
         if (mode == "backs")
         {
             Backs(client, here);
@@ -152,7 +174,78 @@ public sealed class GroundDemo(string mode)
     /// <summary>How many of <c>slope</c>'s cells were hit.</summary>
     private int _struck;
 
+    /// <summary>The cell <c>hit-…</c> strikes now; -1 once none of its kind is left within reach.</summary>
+    private int _striking = -1;
+
     private bool _planned;
+
+    /// <summary>
+    /// Whether <paramref name="mode"/> strikes one kind of object from the edge of the hero's reach (0094): <c>hit-soil</c>,
+    /// <c>hit-stone</c>, <c>hit-alloy</c> (a natural wall of it, open to the air), <c>hit-tree</c> (an acacia), <c>hit-crystal</c>
+    /// (a cave's crystal); with the drill, or with <c>--axe</c> the axe.
+    /// </summary>
+    public static bool Hits(string mode) => mode.StartsWith("hit-", StringComparison.Ordinal);
+
+    /// <summary>Whether <paramref name="cell"/> holds <paramref name="what"/> to strike, as <see cref="Hits"/> names it.</summary>
+    private static bool Is(Registry m, int cell, string what)
+    {
+        if (cell < 0) return false;
+        if (what is "tree" or "crystal")
+            return m.Grid.WallAt(cell) == null && m.Building.PlantAt(cell)?.Kind is { } kind && (what == "tree" ? kind == "acacia" : kind.StartsWith("crystal", StringComparison.Ordinal));
+        if (m.Grid.WallAt(cell) is not { Natural: true } wall || wall.Id != what) return false;
+        int w = m.Grid.Width;
+        return new[] { cell - w, cell + w, cell - 1, cell + 1 }.Any(c => c >= 0 && c < w * m.Grid.Height && m.Grid.StructureAt(c) == Sim.Grid.Structure.Empty);
+    }
+
+    /// <summary>The body's middle of a hero standing in <paramref name="cell"/>, in cells.</summary>
+    private static (double X, double Y) BodyOf(int cell, int w) => (cell % w + 0.5, cell / w + 1 - Spec.Hero.Height / 2000.0);
+
+    private static double Distance((double X, double Y) a, int cell, int w) =>
+        Math.Sqrt((a.X - cell % w - 0.5) * (a.X - cell % w - 0.5) + (a.Y - cell / w - 0.5) * (a.Y - cell / w - 0.5));
+
+    /// <summary>
+    /// The nearest <paramref name="what"/> to the spawn's column with a place to stand on the ground beside it at the edge of the
+    /// hero's reach, 4.6 to 5.8 cells from its body to the cell's middle, as level with it as can be; and that place and the cell.
+    /// </summary>
+    private static (int Stand, int Struck)? HitSpot(Registry m, string what)
+    {
+        var grid = m.Grid;
+        int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w;
+        bool Open(int x, int y) => x > 0 && y > 0 && x < w - 1 && y < h - 1 && grid.StructureAt(y * w + x) == Sim.Grid.Structure.Empty;
+        bool Stands(int x, int y) => Open(x, y) && Open(x, y - 1) && Open(x, y - 2) && grid.StructureAt((y + 1) * w + x) == Sim.Grid.Structure.Wall
+            && grid.ShapeAt((y + 1) * w + x) == Sim.Grid.Shape.None;
+        for (int d = 0; d < Math.Min(w / 2, 600); d++)
+            foreach (int x in d == 0 ? new[] { sx } : new[] { sx + d, sx - d })
+                for (int y = 2; y < h - 2 && x > 8 && x < w - 8; y++)
+                {
+                    int cell = y * w + x;
+                    if (!Is(m, cell, what)) continue;
+                    (int Stand, double Score)? best = null;
+                    for (int dy = -6; dy <= 6; dy++)
+                        for (int dx = -7; dx <= 7; dx++)
+                        {
+                            if (!Stands(x + dx, y + dy)) continue;
+                            int stand = (y + dy) * w + x + dx;
+                            var body = BodyOf(stand, w);
+                            double far = Distance(body, cell, w);
+                            if (far < 4.6 || far > 5.8) continue;
+                            double score = far - 0.6 * Math.Abs(body.Y - (y + 0.5));
+                            if (best == null || score > best.Value.Score) best = (stand, score);
+                        }
+                    if (best is { } found) return (found.Stand, cell);
+                }
+        return null;
+    }
+
+    /// <summary>The <paramref name="what"/> farthest from a hero in <paramref name="cell"/> still within its reach, past four cells; none for none.</summary>
+    private static int? Within(Registry m, int cell, string what)
+    {
+        int w = m.Grid.Width;
+        var body = (cell % w + 0.5, cell / w + 0.5);
+        return Enumerable.Range(-6, 13).SelectMany(dy => Enumerable.Range(-6, 13).Select(dx => cell + dy * w + dx))
+            .Where(c => Is(m, c, what) && Distance(body, c, w) is >= 4 and <= 5.6)
+            .OrderByDescending(c => Distance(body, c, w)).Select(c => (int?)c).FirstOrDefault();
+    }
 
     /// <summary>
     /// <c>backs</c> (0084): in creative mode, back walls of soil and of stone planned three by three on the ground right of

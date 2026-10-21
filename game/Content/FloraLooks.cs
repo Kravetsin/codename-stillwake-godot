@@ -54,7 +54,6 @@ public static class FloraLooks
     public static readonly Luminous Pebble = Luminous.Chip with { Ramp = [(138, 146, 160), (82, 88, 102)], Gravity = 420, Bounce = 0.25, Size = 1.6, Low = true };
     public const int Fallen = 10;
 
-    /// <summary>A hit that cracks a plant without felling it: this many leaves or pebbles knocked off, and a shake of this many pixels for this many seconds.</summary>
-    public const int Knocked = 3;
+    /// <summary>A hit that cracks a plant without felling it: a shake of this many pixels for this many seconds; what it knocks off is <see cref="HitLooks"/>'.</summary>
     public const float Shake = 1f, ShakeSeconds = 0.18f;
 }

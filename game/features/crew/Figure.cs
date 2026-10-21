@@ -329,9 +329,6 @@ public partial class Figure : Node2D
     /// <summary>Whether the drill held runs (0054, 0055): its bit spins up and its lamp lights; stopped, the lamp goes out and the bit winds down.</summary>
     public bool Spinning { get; set; }
 
-    /// <summary>Whether the drill held bites a wreck now: its bit throws sparks there (<see cref="DrillLight"/>).</summary>
-    public bool Bites { get; set; }
-
     private readonly DrillLight _drillLight = new();
     private Func<(double X, double Y), Vector2>? _heldAt;
 
@@ -709,7 +706,7 @@ public partial class Figure : Node2D
         else _smear.Follow(null, null, false, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
-        _drillLight.Step(inHand && drill ? item : null, _spin, Bites && inHand, Muzzle, Barrel, _heldAt ??= HeldAt, elapsedMs);
+        _drillLight.Step(inHand && drill ? item : null, _spin, _heldAt ??= HeldAt, elapsedMs);
     }
 
     /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>

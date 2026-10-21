@@ -85,7 +85,5 @@ public class DigAimTests
         Assert.Empty(Aiming.UsesOf(aim, pressed: true, held: false, tick: 1, workedOnTick: -1).Commands);
         // On a ladder too: the hands dig as anywhere.
         Assert.Equal(new Dig(At(3, 3), Axe), Aiming.DigAt(m, 0, hero with { Climbing = true }, new Point(3 * Unit + 300, 3 * Unit + 700), Axe));
-        Assert.True(Aiming.Bites(m, new Point(4 * Unit + 500, 3 * Unit + 500)));
-        Assert.False(Aiming.Bites(m, new Point(4 * Unit + 500, 5 * Unit + 500)));
     }
 }
