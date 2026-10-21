@@ -23,7 +23,9 @@ public partial class LightView : Node2D
 {
     private const int Cell = ShipCamera.Cell;
     /// <summary>A lit lamp's warm glow, how far across it reaches, in cells, and how opaque at full light: a faint halo.</summary>
-    private static readonly Color GlowColour = new(0xffd9a0ff);
+    private static readonly Color GlowColour = new(0xffd9a0ff), ArcGlowColour = new(0xb4dcffff);
+
+    private static Color GlowOf(Machine lamp) => lamp.Kind == ArcLampLooks.Kind ? ArcGlowColour : GlowColour;
     private const float GlowCells = 1.75f, GlowAlpha = 0.4f;
     /// <summary>
     /// A burning fire's glow at its machine's mouth, how far across it reaches, in cells, and how opaque it
@@ -49,7 +51,9 @@ public partial class LightView : Node2D
     private readonly Lightmap _lightmap = new();
     private readonly Starlight _starlight;
     private readonly Node2D _lamps = new();
-    private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow, double Floor)> _shown = new();
+    private readonly List<(Machine Lamp, Vector2 At, Sprite2D Glow, double Floor, (Sprite2D Alight, Sprite2D Glow)? Globe)> _shown = new();
+    /// <summary>Rolls an arc lamp's crackle (0091).</summary>
+    private readonly Random _random = new();
     /// <summary>The sparks, glints, ember and arcs of lamps short of power (0075).</summary>
     private readonly LampSparks _sparks = new();
     private readonly List<(Machine Machine, Vector2 At, Sprite2D Glow)> _fires = new();
@@ -155,20 +159,20 @@ public partial class LightView : Node2D
     {
         foreach (var node in _lamps.GetChildren()) node.QueueFree();
         _shown.Clear();
-        foreach (var lamp in _machines.Where(m => m.Kind == "lamp"))
+        foreach (var lamp in _machines.Where(m => m.Kind is "lamp" or ArcLampLooks.Kind))
         {
             var at = new Vector2(lamp.Cell % _grid.Width + 0.5f, lamp.Cell / _grid.Width + 0.5f) * Cell;
             var glow = new Sprite2D
             {
                 Texture = PixelArt.Glow,
                 Position = at,
-                Modulate = GlowColour,
+                Modulate = GlowOf(lamp),
                 Scale = Vector2.One * GlowCells * Cell / PixelArt.Glow.GetWidth(),
                 ZIndex = Layers.Glows,
                 Material = GlowMaterial,
             };
             _lamps.AddChild(glow);
-            _shown.Add((lamp, at, glow, FloorUnder(lamp.Cell)));
+            _shown.Add((lamp, at, glow, FloorUnder(lamp.Cell), lamp.Kind == ArcLampLooks.Kind ? Globe(at) : null));
         }
         _fires.Clear();
         foreach (var m in _machines)
@@ -189,6 +193,32 @@ public partial class LightView : Node2D
         }
     }
 
+    /// <summary>
+    /// An arc lamp's globe alight, lit by the world as its body is, and its glow added unlit (<see cref="ArcLampLooks"/>), over its
+    /// body in the cell whose middle is <paramref name="at"/>; hidden till it shines.
+    /// </summary>
+    private (Sprite2D Alight, Sprite2D Glow) Globe(Vector2 at)
+    {
+        var alight = new Sprite2D { Texture = PixelArt.Picture(ArcLampLooks.Alight), Position = at, ZIndex = Layers.Screens, Visible = false };
+        Lit.Set(alight);
+        var shine = new Sprite2D { Texture = PixelArt.Picture(ArcLampLooks.Glow), Position = at, ZIndex = Layers.Screens, Material = GlowMaterial, Visible = false };
+        _lamps.AddChild(alight);
+        _lamps.AddChild(shine);
+        return (alight, shine);
+    }
+
+    /// <summary>An arc lamp's globe as bright as it <paramref name="shines"/>; at full power its arc crackling across it now and then.</summary>
+    private void ShowGlobe(Sprite2D alight, Sprite2D shine, Vector2 at, float share, float shines, double delta)
+    {
+        var look = ArcLampLooks.Drawn(shines);
+        (alight.Visible, alight.Modulate) = (look.Alight > 0, new Color(1, 1, 1, look.Alight));
+        (shine.Visible, shine.Modulate) = (look.Glow > 0, new Color(1, 1, 1, look.Glow));
+        var arc = ArcLampLooks.Arc;
+        if (!ArcLampLooks.Crackles(share) || _random.NextDouble() >= Crackle.Chance(arc, 0) * delta * Crackle.StepsPerSecond) return;
+        var corner = at - new Vector2(Cell, Cell) / 2;
+        Crackle.Strike(_random, arc, corner + new Vector2(arc.X, arc.Y), corner + new Vector2(arc.X2, arc.Y2));
+    }
+
     public override void _Process(double delta)
     {
         long started = Game.Dev.FrameLog.Begin();
@@ -196,13 +226,17 @@ public partial class LightView : Node2D
         _main.Clear();
         _spots.Clear();
         _sparks.Begin();
-        foreach (var (lamp, at, glow, floor) in _shown)
+        foreach (var (lamp, at, glow, floor, globe) in _shown)
         {
             float share = LampShare(lamp), shines = Flicker.BrightnessOf(share, _timeMs, lamp.Id);
+            if (globe is { } g) ShowGlobe(g.Alight, g.Glow, at, share, shines, delta);
             if (share > 0 && share < 1) _sparks.Lamp(lamp.Id, at, shines, floor, delta * 1000);
             glow.Visible = shines > 0;
-            glow.Modulate = GlowColour with { A = shines * GlowAlpha };
-            _main.Add(new LightSource(at.X, at.Y, L.Lamp, shines, L.LampReach, L.LampKeep, L.LampMost, L.LampSize));
+            glow.Modulate = GlowOf(lamp) with { A = shines * GlowAlpha };
+            // An arc makers' lamp (0091): their cold light, brighter and further.
+            _main.Add(lamp.Kind == "arcLamp"
+                ? new LightSource(at.X, at.Y, L.ArcLamp, shines * L.ArcLampStrength, L.ArcLampReach, L.ArcLampKeep, L.LampMost, L.LampSize)
+                : new LightSource(at.X, at.Y, L.Lamp, shines, L.LampReach, L.LampKeep, L.LampMost, L.LampSize));
         }
         _sparks.End();
         foreach (var (machine, at, glow) in _fires)

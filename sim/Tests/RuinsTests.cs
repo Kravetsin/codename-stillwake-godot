@@ -144,7 +144,8 @@ public class RuinsTests
                         _ => ('#', alloy),
                     };
                     if ((row, code) != want) return $"{at}: ({dx}, {dy}) is {row} of {code}, not {want.Item1} of {want.Item2}";
-                    string? grows = c switch { Ruins.Cache => Ruins.SpireCache, Ruins.Shrine => Ruins.RelicShrine, Ruins.Lamp => Ruins.SpireLamp, _ => null };
+                    string? grows = c switch { Ruins.Cache => Ruins.SpireCache, Ruins.Shrine => Ruins.RelicShrine, Ruins.Lamp => Ruins.SpireLamp, _ => null }
+                        ?? Ruins.SpireFurnishing.Where(p => (p.X, p.Y) == (dx, dy)).Select(p => p.Kind).FirstOrDefault();
                     if (flora.GetValueOrDefault(cell) != grows) return $"{at}: ({dx}, {dy}) grows {flora.GetValueOrDefault(cell) ?? "nothing"}, not {grows ?? "nothing"}";
                 }
         }

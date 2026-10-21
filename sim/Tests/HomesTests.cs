@@ -268,12 +268,12 @@ public class HomesTests
             // Every piece of its scheme stands where its prefab sets it.
             Assert.All(home.Pieces, q => Assert.Contains(m.Building.Plants, p => p.Kind == q.Kind && p.Cell == (hy + q.Y) * l.Width + hx + q.X));
             // A cobweb, in every scheme, to any hit; and a load grows the ground again but for it.
-            var web = PiecesOf(w.On(1), "cobweb").Single();
-            w.Do(new Dig(web.Cell, Axe)).Run();
-            Assert.Empty(PiecesOf(w.On(1), "cobweb"));
+            int webCell = (hy + home.Pieces.Single(p => p.Kind == "cobweb").Y) * l.Width + hx + home.Pieces.Single(p => p.Kind == "cobweb").X;
+            w.Do(new Dig(webCell, Axe)).Run();
+            Assert.DoesNotContain(PiecesOf(w.On(1), "cobweb"), p => p.Cell == webCell);
             int standing = w.On(1).Building.Plants.Count;
             w.Reload().Run(2);
-            Assert.Empty(PiecesOf(w.On(1), "cobweb"));
+            Assert.DoesNotContain(PiecesOf(w.On(1), "cobweb"), p => p.Cell == webCell);
             Assert.Equal(standing, w.On(1).Building.Plants.Count);
         }
     }
@@ -420,5 +420,19 @@ public class HomesTests
         }
         // Every piece is in some home.
         Assert.All(Ruins.Pieces, p => Assert.Contains(Ruins.Homes, h => h.Pieces.Any(q => q.Kind == p.Id)));
+    }
+
+    [Fact]
+    public void TheSpiresChamberIsFurnishedEachPieceHeldAndClearOfItsCacheAndShrine()
+    {
+        Assert.Null(Held(new Ruins.Home("spire", Ruins.Spire, Ruins.SpireFurnishing)));
+        // Nothing stands in the cache's cell nor in the shrine's.
+        Assert.DoesNotContain(Ruins.SpireFurnishing, p => Ruins.Spire[p.Y][p.X] is Ruins.Cache or Ruins.Shrine);
+        foreach (uint seed in Enumerable.Range(1, 20).Select(s => (uint)s))
+        {
+            var l = Terrain.Generate(Ground.Small, seed, out _, out _, out var spires, out _);
+            var (x0, y0) = spires.Single();
+            Assert.All(Ruins.SpireFurnishing, q => Assert.Contains(l.Flora!, p => p.Kind == q.Kind && p.Cell == (y0 + q.Y) * l.Width + x0 + q.X));
+        }
     }
 }

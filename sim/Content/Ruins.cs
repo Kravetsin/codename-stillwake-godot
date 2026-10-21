@@ -66,6 +66,14 @@ public static class Ruins
     /// <summary>A spire's width, in cells.</summary>
     public static int SpireWide => Spire[0].Length;
 
+    /// <summary>
+    /// The spire's chamber furnished (0091, the homes page): a post, not a home, but someone kept it — a table and a chair, a lamp
+    /// hanging over them, a shelf with an empty scroll case, the makers' banner by the shrine, a cobweb in the corner. Pieces by
+    /// kind at their own cells in <see cref="Spire"/>'s columns and rows, as a home's are.
+    /// </summary>
+    public static readonly IReadOnlyList<(string Kind, int X, int Y)> SpireFurnishing =
+        [("cobweb", 1, 26), ("ceilLamp", 2, 26), ("table", 1, 27), ("chair", 3, 27), ("wallShelf", 4, 26), ("banner", 6, 26)];
+
     /// <summary>The resonator (0091): it zaps who comes right up to it.</summary>
     public const string Resonator = "arcDevice";
 

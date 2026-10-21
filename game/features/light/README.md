@@ -60,7 +60,12 @@ Numbers from `game/Content/Light.cs`.
   short (`Flicker`) — and an unlit additive glow. Short of power, in light too (`LampSparks`, 0075), the flicker's timing and
   fades kept: each time it catches, a small warm glint, more often than not a few sparks dropping to the floor under it
   and bouncing once, half the time an arc or two at its socket; rarely an arc while lit; while dark a dull ember in
-  the filament cooling over a second. Nothing flashes the room white.
+  the filament cooling over a second. Nothing flashes the room white. An arc makers' lamp hung aboard (0091, `arcLamp`) is
+  lit alike but in their cold `Light.ArcLamp` (0.56, 0.78, 1), three tenths stronger, keeping 0.78 out to 10 cells, its glow cyan.
+  Its body (`machine_arcLamp`, a dark globe) is the grid's tile whatever its power; while it shines `LightView` lays the globe
+  alight over it (`machine_arcLamp_lit`, lit by the world) and adds its glow (`machine_arcLamp_glow`), both as bright as it
+  shines (`ArcLampLooks`), as a home's lit ceiling lamp draws; at full power the ceiling lamp's arc crackles across it (`Crackle`).
+- **The homes' lamps** (0091): `LightView.Homes`, the light of the arc makers' lamps and hearths near the view (`HomesView`).
 - **Fire:** from where a furnace's or a burner generator's fire gives its light (`LightView.FireAt`, which
   `Main` answers from `FurnaceView.LightAt`: a furnace's bottom row's middle, low in a generator's mouth), `Light.Fire` keeping `Light.FireKeep` a cell
   out to `FireReach` (8) cells, as bright as `LightView.Fire` says (`FurnaceView.BlazeOf`: a new
