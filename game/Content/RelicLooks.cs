@@ -56,7 +56,7 @@ public static class RelicLooks
     /// itself <see cref="BeamWide"/> pixels across, its brightest <see cref="BeamAlpha"/>.
     /// </summary>
     public const int ShaftEvery = 26, ShaftReach = 3, BeamWide = 11;
-    public const float ShaftStrength = 0.62f, ShaftKeep = 0.7f, BeamAlpha = 0.32f;
+    public const float ShaftStrength = 0.9f, ShaftKeep = 0.7f, BeamAlpha = 0.45f;
 
     /// <summary>
     /// The lens's light and the pillar it throws into the sky: <see cref="PillarCells"/> tall, from <see cref="PillarFoot"/> pixels

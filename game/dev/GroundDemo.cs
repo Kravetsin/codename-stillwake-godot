@@ -41,6 +41,9 @@ public sealed class GroundDemo(string mode)
     /// <summary><c>--take-at SECONDS</c> at a spire: the world's tick its nearest relic is struck from, till it is taken (0095).</summary>
     public int? TakeAt { get; init; }
 
+    /// <summary><c>--ground-offset N</c>: the hero stood N columns right of where its mode stands it (left for less than none).</summary>
+    public int Offset { get; init; }
+
     private int? _planet;
     private bool _opened;
     private int _hits;
@@ -118,6 +121,8 @@ public sealed class GroundDemo(string mode)
                 for (int dy = 0; dy < Spec.Ruins.Spire.Count; dy++)
                     if (Spec.Ruins.Spire[dy].IndexOf(Spec.Ruins.Plug) is int px and >= 0)
                         _cells.Add((at / w - (Spec.Ruins.Spire.Count - 3) + dy) * w + at % w - 6 + px);
+            // --ground-offset N: stood N columns off where the mode stands it, for a recording (0095).
+            at += Offset;
             client.Send(new Transfer(_planet.Value, at));
             log($"ground demo: beamed down to ({at % w}, {at / w})");
             return;

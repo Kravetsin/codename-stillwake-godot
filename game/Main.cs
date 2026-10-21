@@ -373,7 +373,7 @@ public partial class Main : Node2D, ITogether
         if (_args.FirstOrDefault(a => a.StartsWith("--ground=", StringComparison.Ordinal)) is { } ground)
         {
             world = GroundDemo.Seed(world, Modules, ArcDrill);
-            _ground = new GroundDemo(ground[9..]) { TakeAt = Arg("--take-at") is { } take ? (int)(double.Parse(take, System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond) : null };
+            _ground = new GroundDemo(ground[9..]) { TakeAt = Arg("--take-at") is { } take ? (int)(double.Parse(take, System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond) : null, Offset = int.Parse(Arg("--ground-offset") ?? "0") };
             if (ground[9..] is "drill" or "poses") AddChild(new GroundHands(_ground));
             else if (GroundDemo.Hits(ground[9..])) AddChild(new GroundHands(_ground, slot: Has("--axe") ? Key.Key1 : Key.Key2));
             else if (GroundDemo.Caves(ground[9..])) AddChild(new GroundHands(_ground, dig: false));
