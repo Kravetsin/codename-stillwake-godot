@@ -83,16 +83,16 @@ public static class Sound
 
     /// <summary>
     /// Boots on a planet's ground (0093), at each half stride as on the deck: on grass (soil under the open sky), bare soil, stone
-    /// (bedrock, lava's crust and the homes' plaster floors too) and the ruins' alloy. Their files are levelled as the audition
-    /// played them beside the deck's step, 8 dB under it, so each sits by the ship's step as the user heard it. A jump off the
-    /// ground pushes off with the step of what it stood on.
+    /// (bedrock, lava's crust and the homes' plaster floors too) and the ruins' alloy. Levelled 13 dB under their files: the
+    /// audition's 8 stood out over everything else in play, so the user had them 5 dB quieter. A jump off the ground pushes
+    /// off with the step of what it stood on. Bare soil's fifth take hissed in its tail and is gone.
     /// </summary>
-    public static readonly Cue StepGrass = new(Shots("crew/step-grass", 6), -8, Heard: new(4, 18));
-    public static readonly Cue StepSoil = new(Shots("crew/step-soil", 5), -8, Heard: new(4, 18));
-    public static readonly Cue StepStone = new(Shots("crew/step-stone", 6), -8, Heard: new(4, 18));
-    public static readonly Cue StepAlloy = new(Shots("crew/step-alloy", 5), -8, Heard: new(4, 18));
+    public static readonly Cue StepGrass = new(Shots("crew/step-grass", 6), -13, Heard: new(4, 18));
+    public static readonly Cue StepSoil = new(Shots("crew/step-soil", 4), -13, Heard: new(4, 18));
+    public static readonly Cue StepStone = new(Shots("crew/step-stone", 6), -13, Heard: new(4, 18));
+    public static readonly Cue StepAlloy = new(Shots("crew/step-alloy", 5), -13, Heard: new(4, 18));
     /// <summary>Moss on a cave's rock underfoot: the grass step, quieter (the audition's proposal).</summary>
-    public static readonly Cue StepMoss = StepGrass with { VolumeDb = -12 };
+    public static readonly Cue StepMoss = StepGrass with { VolumeDb = -17 };
 
     /// <summary>
     /// A landing on natural ground (0093): a light one on <see cref="LandSoft"/>, one from <c>HeroMotion.Landing.Heavy</c> on

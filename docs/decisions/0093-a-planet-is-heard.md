@@ -40,7 +40,7 @@ the planet lacks, and the user picked one set for each, or none.
   its bubbles at random moments over it; a hero touching it hisses at each breath its suit burns. **Caves:** a stalactite's
   drip heard where it splashes, at most one every 0.5 to 2.2 s.
 - **The mix:** each file kept at the audition's level and played at the offset that matched the audition's reference to the
-  game: the steps by the deck's step (8 dB under the file), the landings by the deck's landing (6 under), the hits, breaks and
+  game: the steps by the deck's step (8 dB under the file; 13 after the user found them loud in play), the landings by the deck's landing (6 under), the hits, breaks and
   falls by the axe's swing (1 over), which puts a soil hit as loud as a wreck's chop and a stone's break as a wreck's.
 
 ## Consequences
