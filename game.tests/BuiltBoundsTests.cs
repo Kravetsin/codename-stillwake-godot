@@ -20,7 +20,6 @@ public class BuiltBoundsTests
         Placement.Wall(), Placement.Wall("iron"), Placement.BackWall(), Placement.BackWall("iron"),
         new("structure", "floor"), new("structure", "ladder"), new("structure", "door"),
         new("conduit", "pipe"), new("conduit", "valve"), new("machine", "lamp"), new("machine", "tank"),
-        Placement.Wall() with { Shape = Shape.BottomRight }, Placement.Wall("iron") with { Shape = Shape.TopLeft },
     ];
 
     private static readonly string[] Layers = ["structure", "conduit", "back", "machine"];
@@ -30,9 +29,9 @@ public class BuiltBoundsTests
     {
         var m = new Registry();
         int left = rng.Next(w - 3), top = rng.Next(h - 3), right = rng.Next(left + 2, w), bottom = rng.Next(top + 2, h);
-        // Now and then a wall cut to a shape (0069), as a map draws it; others are built, out in space with no back wall too.
+        // Now and then a wall as a map draws it; others are built, out in space with no back wall too.
         var rows = Enumerable.Range(0, h).Select(y => new string([.. Enumerable.Range(0, w).Select(x =>
-            x >= left && x <= right && y >= top && y <= bottom && rng.Next(12) == 0 ? "/\\r7"[rng.Next(4)] : ' ')])).ToList();
+            x >= left && x <= right && y >= top && y <= bottom && rng.Next(12) == 0 ? '#' : ' ')])).ToList();
         World.Create(1, Layout.Parse(rows), m.All);
         for (int i = 0; i < (right - left + 1) * (bottom - top + 1); i++)
             Place(m, rng, (top + rng.Next(bottom - top + 1)) * w + left + rng.Next(right - left + 1));
@@ -190,7 +189,7 @@ public class BuiltBoundsTests
             int w = rng.Next(6, 40), h = rng.Next(6, 24);
             var m = Ship(rng, w, h);
             var drawn = new DrawnLayers(w, h);
-            int[][] shown = [new int[w * h], new int[w * h], new int[w * h], new int[w * h], new int[w * h], new int[w * h]];
+            int[][] shown = [new int[w * h], new int[w * h], new int[w * h], new int[w * h], new int[w * h]];
             for (int step = 0; step < 40; step++)
             {
                 if (step > 0 && rng.Next(3) != 0) Edit(m, rng);
@@ -200,13 +199,13 @@ public class BuiltBoundsTests
                 int[][] now =
                 [
                     Shown(m.Grid.StructureLayer, view.Structure), m.Grid.MaterialLayer.ToArray(),
-                    Shown(m.Grid.ConduitLayer, view.Conduit), m.Grid.BackLayer.ToArray(), m.Grid.BackMaterialLayer.ToArray(), m.Grid.ShapeLayer.ToArray(),
+                    Shown(m.Grid.ConduitLayer, view.Conduit), m.Grid.BackLayer.ToArray(), m.Grid.BackMaterialLayer.ToArray(),
                 ];
                 var expected = Enumerable.Range(0, w * h).Where(c => now.Where((layer, k) => layer[c] != shown[k][c]).Any())
                     .Select(c => new DrawnLayers.Change(c, shown[0][c], shown[2][c])).ToList();
                 var changes = drawn.Follow(m.Grid, view);
                 Assert.Equal(expected, changes);
-                Assert.Equal(now, new[] { drawn.Structure, drawn.Material, drawn.Conduit, drawn.Back, drawn.BackMaterial, drawn.Shape });
+                Assert.Equal(now, new[] { drawn.Structure, drawn.Material, drawn.Conduit, drawn.Back, drawn.BackMaterial });
                 shown = now;
             }
         }

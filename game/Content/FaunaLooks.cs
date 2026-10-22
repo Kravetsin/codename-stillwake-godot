@@ -82,6 +82,9 @@ public static class FaunaLooks
     /// <summary>How long a creature stands with no hero near before it grazes, in milliseconds.</summary>
     public const double GrazeAfterMs = 1500;
 
+    /// <summary>How long a creature's drawing takes to close a step of its own, two cells, up or down (<c>StepEase</c>, 0106), in milliseconds.</summary>
+    public const double StepMs = 100;
+
     /// <summary>The palette each planet type's creatures are recoloured by: the first planet's the page's «Саванна».</summary>
     public static readonly IReadOnlyDictionary<string, string> PaletteOf = new Dictionary<string, string>
     {

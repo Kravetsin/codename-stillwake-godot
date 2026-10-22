@@ -9,11 +9,11 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --hills</c>: a long aired, lit room with ground of slopes to walk (0069). From the left: a hill up three cells,
-/// its plateau and down three; a valley; a ladder at the foot of a ramp five cells up to a high plateau with a hole one
-/// cell wide right at the ramp's top; down five; a peak; a lone ◢ whose closed side is a cliff; a lone ◣ whose closed
-/// side is a wall; past it a stair of ◢ with air under its steps, up to a floor; ceiling slopes in the room's top corners and on a block hanging from its ceiling. Stacks lie on the
-/// slopes, dropped there as the world begins. Lamps under the ceiling and low on the back wall, each pair fed by a solar panel on the roof. With
+/// <c>-- --hills</c>: a long aired, lit room with ground of one-cell steps to walk (0106). From the left: a hill up three
+/// steps, its plateau and down three; a valley two cells wide and one deep; a ladder at the foot of a stair five steps up to
+/// a high plateau with a hole one cell wide right at the stair's top; down five; a bump; a block two cells high, which a walk
+/// does not step; past it a stair of blocks with air under its steps, up to a floor. Stacks lie on the steps, dropped there as
+/// the world begins. Lamps under the ceiling and low on the back wall, each pair fed by a solar panel on the roof. With
 /// <c>--autopilot</c> the hero walks it (<see cref="Features.Crew.HeroAutopilot.HillsRun"/>).
 /// </summary>
 public static class HillsDemo
@@ -29,11 +29,11 @@ public static class HillsDemo
     /// <summary>The row of the lamps low on the back wall, a cable from each one under the ceiling.</summary>
     private const int LowLamps = Ground - 8;
 
-    /// <summary>The cells above which a stack is dropped as the world begins: each over a slope.</summary>
+    /// <summary>The cells above which a stack is dropped as the world begins: each over a step.</summary>
     private static readonly (int X, int Y)[] Drops = [(7, 17), (14, 16), (20, 18), (27, 14), (39, 15), (45, 17)];
 
     /// <summary>
-    /// A character a cell, for its slopes do not double (0104), its machines drawn at their whole footprints: a panel six by two on the
+    /// A character a cell, for its steps are a cell (0106), its machines drawn at their whole footprints: a panel six by two on the
     /// roof, a lamp two by two, the tank four by four up the left wall beside its vent.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(Rows(), Under(),
@@ -63,48 +63,31 @@ public static class HillsDemo
         {
             for (int y = top; y < Ground; y++) Set(x, y, '#');
         }
-        // Up n cells from the ground at x0, a plateau that long at the top, then down n cells.
+        // Up n steps from the ground at x0, a cell a column, a plateau that long at the top, then down n steps.
         void Hill(int x0, int n, int plateau)
         {
-            for (int i = 0; i < n; i++)
-            {
-                Set(x0 + i, Ground - 1 - i, '/');
-                Fill(x0 + i, Ground - i);
-            }
+            for (int i = 0; i < n; i++) Fill(x0 + i, Ground - 1 - i);
             for (int x = x0 + n; x < x0 + n + plateau; x++) Fill(x, Ground - n);
-            for (int i = 0; i < n; i++)
-            {
-                int x = x0 + n + plateau + i;
-                Set(x, Ground - n + i, '\\');
-                Fill(x, Ground - n + i + 1);
-            }
+            for (int i = 0; i < n; i++) Fill(x0 + n + plateau + i, Ground - n + i);
         }
         Hill(6, 3, 4);
-        // A valley: down into the ground's top row and up again.
-        Set(19, Ground, '\\');
-        Set(20, Ground, '/');
-        // A ladder at the foot of a ramp up five to a high plateau, a floor to step off the ladder onto.
+        // A valley: two cells of the ground's top row taken away, a step down and a step up.
+        Set(19, Ground, '.');
+        Set(20, Ground, '.');
+        // A ladder at the foot of a stair up five to a high plateau, a floor to step off the ladder onto.
         for (int y = Ground - 6; y < Ground; y++) Set(24, y, 'H');
         Set(22, Ground - 6, '=');
         Set(23, Ground - 6, '=');
         Hill(25, 5, 7);
-        // A hole one cell wide at the ramp's top, three deep.
+        // A hole one cell wide at the stair's top, three deep.
         for (int y = HighPlateau; y < HighPlateau + 3; y++) Set(30, y, '.');
-        // A peak; a lone ◢, its closed side a cliff; a lone ◣, its closed side a wall.
-        Set(45, Ground - 1, '/');
-        Set(46, Ground - 1, '\\');
-        Set(50, Ground - 1, '/');
-        Set(54, Ground - 1, '\\');
-        // Past it, a stair of ◢ as a player builds one, air under every step, up to a floor by the room's wall.
-        for (int i = 0; i < 6; i++) Set(56 + i, Ground - 1 - i, '/');
+        // A bump a cell high; a block two high, which a walk does not step up.
+        Fill(45, Ground - 1);
+        Fill(46, Ground - 1);
+        Block(50, Ground - 2, 2, 2, '#');
+        // Past it, a stair of blocks as a player builds one, air under every step, up to a floor by the room's wall.
+        for (int i = 0; i < 6; i++) Set(56 + i, Ground - 1 - i, '#');
         Set(62, Ground - 6, '=');
-        // Ceiling slopes: the room's top corners, and a block hanging from the ceiling, its lower corners cut.
-        Set(1, Top + 1, 'r');
-        Set(Width - 2, Top + 1, '7');
-        for (int x = 53; x <= 57; x++) Set(x, Top + 1, '#');
-        for (int x = 54; x <= 56; x++) Set(x, Top + 2, '#');
-        Set(53, Top + 2, '7');
-        Set(57, Top + 2, 'r');
         foreach (int x in Lamps)
         {
             Block(x, Top + 1, 2, 2, 'L');
@@ -119,7 +102,7 @@ public static class HillsDemo
     }
 
     /// <summary>
-    /// The world with the room's air in every cell of it, and a stack dropped over each slope of <see cref="Drops"/>,
+    /// The world with the room's air in every cell of it, and a stack dropped over each step of <see cref="Drops"/>,
     /// left to settle on it: nothing on the map airs a room this big quickly.
     /// </summary>
     public static World Seed(World world, Func<IReadOnlyList<Module>> modules)

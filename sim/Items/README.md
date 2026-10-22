@@ -7,7 +7,7 @@ mode, the world setting in which nothing is ever taken
 `packages/sim/src/modules/items`; its rules hold here unchanged.
 
 - **Depends on:** `Grid` (`IGridQueries`), for which machines hold items and what holds a stack on
-  the floor up, a slope's diagonal too (`ShapeAt`); `Rooms` (`IRoomsQueries`), for where space is and which open cells are in a room.
+  the floor up; `Rooms` (`IRoomsQueries`), for where space is and which open cells are in a room.
 - **State:** `Inventories` — those changed at least once, by peer id in id order; `Crates` — the
   machines holding something, by machine id in id order; `Creative`; `Floor` — stacks lying about
   (`FloorStack`: id, item, count, charge, module, cell, x, y, vx, vy, by, at, and the `Body` it is part of, if any) in id order, with `NextFloorId`;
@@ -151,15 +151,10 @@ mode, the world setting in which nothing is ever taken
   is not pushed out but falls from there. So a stack ends where a hero walks, never on top of a station. Ladders
   hold none either, as before. A stack an older save left on a machine's top falls off on the first tick after the
   load, with no migration: a position is saved, never where it rests, and every tick reads the rule anew.
-- **Slopes** ([0069](../../docs/decisions/0069-a-cell-has-a-shape.md)): a stack is a point, its bottom middle, and
-  a floor slope (◢ ◣, `Grid`'s `Shape`) holds it on its diagonal, not its cell. Inside means the point is in
-  something built: a whole cell, or the slope's solid half (`Shape.Solid`); in its open half a stack is not
-  pushed out. Falling, it lands on the diagonal at its x (`Shape.TopAt`); moving into a slope's solid half no
-  steeper than it moves (a rise no more than its speed across, a 45° slope taken by anything moving), it skids up
-  onto the diagonal, else stops as against a wall; resting on the diagonal it slides to a stop. When the wall
-  goes, so does its shape, and the stack falls. A ceiling slope (◤ ◥) is whole to a stack, and a slope's open
-  half is no room's, so a stack lying in one falls as aboard even out in space. Pushed out of something built,
-  a stack still goes to an open cell, never onto a slope's open half.
+- **Whole cells only** ([0106](../../docs/decisions/0106-steps-replace-slopes.md)): a stack is a point, its bottom
+  middle, inside something built when that point is in a built cell. Falling, it lands on a cell's top; moving
+  into a built cell it stops as against a wall, never skidding up onto it, so a stack slid at a step stops at its
+  foot.
 - **Picking up** gives as much of a stack as fits into the picker's own slots and leaves the rest.
   The peer that dropped a stack may not take it back for `Floor.OwnPickupDelay` ticks; anyone else
   may at once.

@@ -276,10 +276,10 @@ public sealed class HeroAutopilot
     public static HeroAutopilot Aside() => new([Wait(20), Hold(new HeroInput(-1, 0, false), 25), Wait(1)]);
 
     /// <summary>
-    /// <c>-- --hills --autopilot</c> (<c>HillsDemo</c>, 0069): over the first hill and back walking, then running right
-    /// over it, through the valley and up the long ramp, where it falls into the hole at its top, the high plateau's top
-    /// at row <paramref name="plateau"/>; it jumps out and runs on over the peak and off the lone ◢'s cliff to the lone
-    /// ◣'s closed side; it jumps that, walks up the stair with air under its steps beyond and back down, and on to the ◢'s.
+    /// <c>-- --hills --autopilot</c> (<c>HillsDemo</c>, 0106): over the first hill and back walking, then running right
+    /// over it, through the valley and up the long stair, where it falls into the hole at its top, the high plateau's top
+    /// at row <paramref name="plateau"/>; it jumps out and runs on over the bump to the block two high; it jumps that,
+    /// walks up the stair with air under its steps beyond and back.
     /// </summary>
     public static HeroAutopilot HillsRun(int plateau)
     {
@@ -380,8 +380,6 @@ public sealed class HeroAutopilot
         return (Top(best + 4) - 1) * w + best + 4;
     }
 
-    /// <summary><c>--slopes</c>'s script: into the corridor's far corner, under its sloped ceiling, and stand there.</summary>
-    public static HeroAutopilot SlopesRun() => new([Wait(150), Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)), Wait(1)]);
 
     /// <summary>
     /// The <see cref="Hall"/>'s script (0090), its hands empty (the hotbar's empty third slot): a sprint started, reversed

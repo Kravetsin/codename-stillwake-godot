@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Content;
-using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Render;
 
@@ -48,18 +47,17 @@ public sealed class ShipTiles
         }
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
-            // Its living edge by its top's shape, up into the cell above (0082): two 16 px cells tall, behind the heroes and before
-            // them; each 16 px column in two halves, a cell each (0104), a cell showing the half its column's parity picks.
+            // Its living edge, up into the cell above (0082): two 16 px cells tall, behind the heroes and before them; each 16 px
+            // column in two halves, a cell each (0104), a cell showing the half its column's parity picks.
             var tops = Art($"planet/top_{natural}");
-            foreach (int shape in GroundArt.TopShapes)
-                for (int v = 0; v < GroundArt.TopVariants(shape); v++)
-                    foreach (bool front in (bool[])[false, true])
-                        for (int half = 0; half < 2; half++)
-                        {
-                            var top = tops.GetRegion(new Rect2I(GroundArt.TopColumn(shape, v) * Drawn + half * Cell, front ? 2 * Drawn : 0, Cell, 2 * Drawn));
-                            // A row with nothing in it (bedrock has no tufts before the heroes) is no tile.
-                            if (!top.IsInvisible()) pictures.Add(Picture(TopName(natural, shape, v, front, half), top, Relief.None));
-                        }
+            for (int v = 0; v < GroundArt.TopVariants; v++)
+                foreach (bool front in (bool[])[false, true])
+                    for (int half = 0; half < 2; half++)
+                    {
+                        var top = tops.GetRegion(new Rect2I(v * Drawn + half * Cell, front ? 2 * Drawn : 0, Cell, 2 * Drawn));
+                        // A row with nothing in it (bedrock has no tufts before the heroes) is no tile.
+                        if (!top.IsInvisible()) pictures.Add(Picture(TopName(natural, v, front, half), top, Relief.None));
+                    }
             // Its details over its whole 16 px cells, each cut into the cells it covers: singles along the sheet's first row, features over
             // several on the second.
             var details = Art($"planet/detail_{natural}");
@@ -76,17 +74,6 @@ public sealed class ShipTiles
             // Walls are no things standing in the light: flat.
             pictures.Add(Picture($"wall_{material}", Relief.None));
             for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", Relief.None));
-            // Walls cut to a shape (0069): the same pictures, each cell cut, the diagonal edged as an open side is.
-            foreach (int shape in Shape.Cut)
-            {
-                // The ground's diagonal catches the light as its tops do (0088); the hull's takes its edge's lines.
-                var cut = Materials.Get(material).Natural ? ShapeMasks.Cut(Art($"wall_{material}"), shape, GroundArt.Diagonal(material, shape))
-                    : ShapeMasks.Cut(Art($"wall_{material}"), shape, Art($"wall-edge_{material}_1"));
-                pictures.Add(Picture(WallName(material, shape), Made(WallName(material, shape), cut), Relief.None));
-                for (int open = 1; open < 16; open++)
-                    if ((open & ~Shape.ClosedSides(shape)) == 0)
-                        pictures.Add(Picture(EdgeName(material, open, shape), Made(EdgeName(material, open, shape), ShapeMasks.Cut(Art($"wall-edge_{material}_{open}"), shape)), Relief.None));
-            }
         }
         foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", "floor", "ladder"])
             pictures.Add(Picture(name, Relief.None));
@@ -210,7 +197,7 @@ public sealed class ShipTiles
         return (name, Padded(diffuse, Colors.Transparent), Padded(normal, Flat));
     }
 
-    /// <summary>The pictures made here rather than drawn (walls cut to a shape), by name, as pixels and as textures.</summary>
+    /// <summary>The pictures made here rather than drawn (the ground's edges, those drawn at 16 px halved), by name, as pixels and as textures.</summary>
     private static readonly Dictionary<string, Image> MadeImages = new();
     private static readonly Dictionary<string, Texture2D> MadeTextures = new();
 
@@ -218,7 +205,7 @@ public sealed class ShipTiles
 
     /// <summary>
     /// The picture <paramref name="name"/> of the atlas, before it was padded into it: one drawn
-    /// (<see cref="PixelArt.Picture"/>), or one made here, a wall cut to a shape (0069), for what draws a plan's pictures alone
+    /// (<see cref="PixelArt.Picture"/>), or one made here, for what draws a plan's pictures alone
     /// (a thumbnail, a silhouette, the aim's outline).
     /// </summary>
     public static Texture2D PictureOf(string name)
@@ -263,11 +250,11 @@ public sealed class ShipTiles
     public static string BackName(string material) => $"back_{material}";
 
     /// <summary>
-    /// The living edge of a natural <paramref name="material"/> with a top of <paramref name="shape"/>, variant <paramref name="variant"/>,
-    /// laid from the cell above (0082): the row behind the heroes, or the one <paramref name="front"/> of them.
+    /// The living edge of a natural <paramref name="material"/>, variant <paramref name="variant"/>, laid from the cell above (0082):
+    /// the row behind the heroes, or the one <paramref name="front"/> of them.
     /// </summary>
-    public static string TopName(string material, int shape, int variant, bool front, int half) =>
-        $"top_{material}_{shape}_{variant}_{(front ? "front" : "back")}_{half}";
+    public static string TopName(string material, int variant, bool front, int half) =>
+        $"top_{material}_{variant}_{(front ? "front" : "back")}_{half}";
 
     /// <summary>Detail <paramref name="picture"/> of a natural <paramref name="material"/> (<see cref="GroundDetails"/>), a tile cut a cell at a time.</summary>
     public static string DetailName(string material, int picture) => $"detail_{material}_{picture}";
@@ -288,12 +275,11 @@ public sealed class ShipTiles
     /// <summary>Whether the atlas holds the picture <paramref name="name"/>: an empty one is left out.</summary>
     public bool Has(string name) => _placed.ContainsKey(name);
 
-    /// <summary>A wall of <paramref name="material"/>'s picture, cut to <paramref name="shape"/> (0069).</summary>
-    public static string WallName(string material, int shape) => shape == Shape.None ? $"wall_{material}" : $"wall_{material}_{shape}";
+    /// <summary>A wall of <paramref name="material"/>'s picture.</summary>
+    public static string WallName(string material) => $"wall_{material}";
 
-    /// <summary>The edges of a wall of <paramref name="material"/> on its sides <paramref name="open"/>, cut to <paramref name="shape"/>: only its closed sides have one.</summary>
-    public static string EdgeName(string material, int open, int shape) =>
-        shape == Shape.None ? $"wall-edge_{material}_{open}" : $"wall-edge_{material}_{open}_{shape}";
+    /// <summary>The edges of a wall of <paramref name="material"/> on its sides <paramref name="open"/>.</summary>
+    public static string EdgeName(string material, int open) => $"wall-edge_{material}_{open}";
 
     /// <summary>How a picture stands out toward a light: flat, rolled from side to side (a door), from top to bottom (a hatch), or domed.</summary>
     private enum Relief { None, Across, Down, Round }

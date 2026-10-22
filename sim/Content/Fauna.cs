@@ -128,13 +128,6 @@ public static class Fauna
     public const int StepUp = 2;
 
     /// <summary>
-    /// Where a creature's feet are, for the ground drawn under them (<c>FaunaModule.FeetOf</c>): this many thousandths of its width
-    /// either side of its middle; a foot with no ground under it within a row hangs <see cref="Teeter"/> thousandths of a cell
-    /// under its body, so over an edge it teeters, never tips.
-    /// </summary>
-    public const int FootSpan = 220, Teeter = 1200;
-
-    /// <summary>
     /// Wandering, a creature jumps only up a ledge this many cells high, so it does not bound about; fleeing, it leaps every wall
     /// and gap its jump clears, a landing found for it first.
     /// </summary>

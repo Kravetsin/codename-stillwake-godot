@@ -4,7 +4,7 @@ Light without a word (0019, 0029, 0070): a dim ship lit by its lamps, its fires,
 and by the stars, whole in open space and falling off within a few cells of a hole or an opening. Drawn only: nothing of it reaches the sim. Tuned at the 16 px cell: every reach and count of cells is twice what it was and every keep a cell its square root, so light falls off over the same pixels (0104); the shader walks up to 160 cells a line.
 Numbers from `game/Content/Light.cs`.
 
-- **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors stop light), `ShapeLayer` (a wall cut to a shape stops it with its solid half, 0069), `BackLayer`,
+- **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors stop light, every wall whole, 0106), `BackLayer`,
   `Machines` (lamps, fires; machines dim starlight), `MachineAt`, `Width`/`Height`, `Version`,
   `ChangedSince` and `Built`; `Glims.Shared` and `Flares.Shared` (what glows, 0075); every `render/Glow` in the tree (a
   planner's screen, a charging station's light, a smelter's coils, a grow capsule's lamp, a station's cold mark).
@@ -40,17 +40,13 @@ Numbers from `game/Content/Light.cs`.
   (`Sources.Pack`): its colour falling off by its keep a cell out to its reach as the TypeScript game
   spread it, each colour at most its most, times its strength. The quad's shader walks the cells from
   each texel to the light through an occupancy texture, a byte a cell of what is built (`Sources.Occupy`: wall, closed
-  door, closed hatch, open, by the doorway's shape (0067), or a wall cut to ◢ ◣ ◤ ◥, `Sources.Slope` and its shape's code
-  (0069); a texel set again for each wall or door changed, its shape too,
+  door, closed hatch, open, by the doorway's shape (0067); a texel set again for each wall or door changed,
   and those above and below it), and drops the texel if a wall or a closed door's or hatch's panel stands
   between: shadows to the pixel. A door's panel is the columns of `door_closed_0`, a hatch's the rows of
   `hatch_closed_0`, read from the pictures. The walls a texel is in are passed until the
   line comes out of them, so a wall is lit on the faces light reaches; in a door's or hatch's cell only
   a texel on the panel itself passes it, along the doorway's cells till the line leaves the panel, so a door is
-  lit whole and the back wall beside it stays dark to a light beyond it. In a wall cut to a shape the solid half
-  is a wall and the open half the open: the solid is a half plane in the cell, so the line's two ends there tell it
-  — passed from a texel in the solid till the line comes out of it, so the diagonal is the face lit, stopping a line
-  from the open that reaches it. Light goes on through an open half, and a slope's shadow runs along its diagonal. A lamp (`Light.LampSize`) and a
+  lit whole and the back wall beside it stays dark to a light beyond it. A lamp (`Light.LampSize`) and a
   fire (`Light.FireSize`) have a width: seen from a texel the light is a line across that wide; its two
   ends are walked, and where they disagree — a shadow's edge — seven points between, the share seen
   kept. Edges are soft over as much as the light seen from them is wide, as Godot's PCF softened them.
@@ -83,8 +79,7 @@ Numbers from `game/Content/Light.cs`.
   break lights no more than a busy furnace room. Then each `Glow` at its colour, keeping
   `Light.ScreenKeep` out to `ScreenReach` (3).
 - **Starlight** (0070): `StarField` (plain C#, tested) works it out cell by cell. The stars shine in every
-  open cell with no back wall and past the grid's edge, and into a wall cut to a shape with no back wall,
-  whose open half shows them, though it lets on no more than any wall (0069) — each as brightly as its sky
+  open cell with no back wall and past the grid's edge — each as brightly as its sky
   is open: of the 5×5 cells round it (`Light.StarSky` 2), itself among them, one the stars shine into, a
   lone hole in a back wall, gives `Light.StarHole` (0.5) of them, `Light.StarFullSky` (12) or more the
   whole, so open space is whole everywhere, beside a flat hull too, and a bigger hole is brighter. From there
@@ -115,9 +110,7 @@ Numbers from `game/Content/Light.cs`.
   hero's figure; not fire, glows, particles, plans or overlays.
 - **Cost** on the reference world with its 103 lamps lit (`--perf --lit --measure`, RTX 4060 Ti):
   1.38 ms a frame at zoom 1 and 0.96 ms at zoom 2 with soft edges (0.62 and 0.50 sharp), against 1.61
-  and 0.97 ms with Godot's lights. Walls cut to shapes (0069): 1.20–1.26 ms a frame before and 1.23–1.28 after at
-  zoom 1 (`--view 128,64,1`), 0.78–0.79 both at zoom 2, three runs each — within the runs' spread; with five slopes in
-  every 8×8 room of it, 1.16 and 0.76. Dim lamps of 11 cells (0070), in a 1600×900 window: 1.73–1.82 ms a frame at
+  and 0.97 ms with Godot's lights. Dim lamps of 11 cells (0070), in a 1600×900 window: 1.73–1.82 ms a frame at
   zoom 1 against 1.87–2.02 before, 0.91–0.96 at zoom 2 against 0.88–0.93.
 
 - **Helmet lamps** (0077): a beam and a glow a lamp worn, from its bulb on the helmet (`LightView.HeadLamps`, answered by

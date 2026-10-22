@@ -50,7 +50,7 @@ public static class Impacts
 
     /// <summary>
     /// Where a hit on <paramref name="cell"/> from a hero at (<paramref name="fromX"/>, <paramref name="fromY"/>), in cells, lands:
-    /// on a wall, the face of its solid part open to the air (a whole wall's four sides, a slope's two and its diagonal) turned
+    /// on a wall, the face of its four open to the air turned
     /// most toward the hero, else the closed one turned most toward it, at the point of it nearest the hero, kept off its
     /// corners; on a plant, its cell's middle drawn <see cref="HitLooks.PlantInset"/> of a cell toward the hero.
     /// </summary>
@@ -63,12 +63,10 @@ public static class Impacts
             var (ux, uy) = Unit(hx - 0.5, hy - 0.5, 0, -1);
             return new HitPoint(cx + 0.5 + ux * HitLooks.PlantInset, cy + 0.5 + uy * HitLooks.PlantInset, ux, uy);
         }
-        int shape = grid.ShapeAt(cell);
-        var (mx, my) = Middle(shape);
-        var (dx, dy) = Unit(hx - mx, hy - my, 0, -1);
+        var (dx, dy) = Unit(hx - 0.5, hy - 0.5, 0, -1);
         Face? best = null;
         double bestScore = double.NegativeInfinity;
-        foreach (var face in FacesOf(shape))
+        foreach (var face in Faces)
         {
             // Particles must come out into the air to be seen: any open face beats every closed one.
             double score = face.Nx * dx + face.Ny * dy + (Open(grid, cx, cy, face) ? 3 : 0);
@@ -83,7 +81,7 @@ public static class Impacts
 
     /// <summary>
     /// The floor under <paramref name="point"/>, in cells: the top of the first wall or floor down its column from the open cell
-    /// just off its face, within <see cref="HitLooks.FloorRows"/>; a slope's surface where it is. None past them: chips fall on.
+    /// just off its face, within <see cref="HitLooks.FloorRows"/>. None past them: chips fall on.
     /// </summary>
     public static double? FloorUnder(IGridQueries grid, HitPoint point)
     {
@@ -95,9 +93,7 @@ public static class Impacts
             int cell = r * grid.Width + column;
             int structure = grid.StructureAt(cell);
             if (structure is not (Structure.Wall or Structure.Floor)) continue;
-            double top = r + (double)Shape.TopAt(grid.ShapeAt(cell), (int)((x - column) * Shape.Unit)) / Shape.Unit;
-            // The cell off the face is open above its slope: chips land on the slope under the point, not over it.
-            if (top >= y - 1e-6) return top;
+            if (r >= y - 1e-6) return r;
         }
         return null;
     }
@@ -105,41 +101,18 @@ public static class Impacts
     /// <summary>A face of a wall's solid part, from (Ax, Ay) to (Bx, By) within its cell, its way out (Nx, Ny), and the side it opens to, if any.</summary>
     private readonly record struct Face(double Ax, double Ay, double Bx, double By, double Nx, double Ny, int Dx, int Dy);
 
-    private static readonly double Diagonal = Math.Sqrt(0.5);
     private static readonly Face Top = new(0, 0, 1, 0, 0, -1, 0, -1), Bottom = new(0, 1, 1, 1, 0, 1, 0, 1);
     private static readonly Face Left = new(0, 0, 0, 1, -1, 0, -1, 0), Right = new(1, 0, 1, 1, 1, 0, 1, 0);
 
-    /// <summary>The faces of a wall of <paramref name="shape"/>: a whole wall's four sides; a slope's two whole sides and its diagonal.</summary>
-    private static Face[] FacesOf(int shape) => shape switch
-    {
-        Shape.BottomRight => [Right, Bottom, new(0, 1, 1, 0, -Diagonal, -Diagonal, 0, 0)],
-        Shape.BottomLeft => [Left, Bottom, new(0, 0, 1, 1, Diagonal, -Diagonal, 0, 0)],
-        Shape.TopLeft => [Top, Left, new(1, 0, 0, 1, Diagonal, Diagonal, 0, 0)],
-        Shape.TopRight => [Top, Right, new(0, 0, 1, 1, -Diagonal, Diagonal, 0, 0)],
-        _ => [Top, Right, Bottom, Left],
-    };
+    /// <summary>A wall's four faces.</summary>
+    private static readonly Face[] Faces = [Top, Right, Bottom, Left];
 
-    /// <summary>The middle of a wall's solid part, within its cell: a slope's triangle's.</summary>
-    private static (double X, double Y) Middle(int shape) => shape switch
-    {
-        Shape.BottomRight => (2 / 3.0, 2 / 3.0),
-        Shape.BottomLeft => (1 / 3.0, 2 / 3.0),
-        Shape.TopLeft => (1 / 3.0, 1 / 3.0),
-        Shape.TopRight => (2 / 3.0, 1 / 3.0),
-        _ => (0.5, 0.5),
-    };
-
-    /// <summary>Whether <paramref name="face"/> of the wall at (<paramref name="cx"/>, <paramref name="cy"/>) meets the air: a diagonal always, a side where the next cell does not close it.</summary>
+    /// <summary>Whether <paramref name="face"/> of the wall at (<paramref name="cx"/>, <paramref name="cy"/>) meets the air: where the next cell is no wall.</summary>
     private static bool Open(IGridQueries grid, int cx, int cy, Face face)
     {
-        if (face.Dx == 0 && face.Dy == 0) return true;
         int x = cx + face.Dx, y = cy + face.Dy;
         if (x < 0 || y < 0 || x >= grid.Width || y >= grid.Height) return false;
-        int next = y * grid.Width + x;
-        if (grid.StructureAt(next) != Structure.Wall) return true;
-        // A slope next to it closes this side only if its own solid side faces it.
-        int facing = face.Dx > 0 ? Doorways.Left : face.Dx < 0 ? Doorways.Right : face.Dy > 0 ? Doorways.Up : Doorways.Down;
-        return (Shape.ClosedSides(grid.ShapeAt(next)) & facing) == 0;
+        return grid.StructureAt(y * grid.Width + x) != Structure.Wall;
     }
 
     private static (double X, double Y) Unit(double x, double y, double fallbackX, double fallbackY)

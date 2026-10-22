@@ -1,6 +1,6 @@
 # 0069 — A cell has a shape
 
-- Status: accepted
+- Status: superseded by [0106](0106-steps-replace-slopes.md)
 - Date: 2026-10-19
 
 ## Context

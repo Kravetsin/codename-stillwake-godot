@@ -179,7 +179,6 @@ public class DigTests
         var w = World();
         w.Do(new SetCreative(true)).Run();
         Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.Wall("bedrock")));
-        Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.Wall("bedrock") with { Shape = Shape.BottomLeft }));
         w.Do(new ClearAt(At(3, 1), "back")).Run();
         Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.BackWall("bedrock")));
         Assert.Null(w.M.Building.Problem(At(3, 1), Placement.BackWall("soil")));

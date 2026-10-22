@@ -18,7 +18,7 @@ public class LightSourcesTests
         int[] structure = [Structure.Empty, Structure.Wall, Structure.DoorClosed, Structure.Empty, Structure.Empty, Structure.DoorOpen, Structure.Floor, Structure.Wall];
         var cells = new byte[6];
         // Two rows four wide, the box from the second column on: row by row, what is built only.
-        Sources.Occupy(c => structure[c], _ => Shape.None, 4, structure.Length, new Box(1, 0, 3, 1), cells);
+        Sources.Occupy(c => structure[c], 4, structure.Length, new Box(1, 0, 3, 1), cells);
         // The closed door alone is a hatch (0067).
         Assert.Equal(new[] { Sources.Wall, Sources.Hatch, Sources.Open, Sources.Open, Sources.Open, Sources.Wall }, cells);
     }
@@ -29,7 +29,7 @@ public class LightSourcesTests
         // A door two tall, shut over open, beside a hatch two wide.
         int[] structure = [Structure.DoorClosed, Structure.Empty, Structure.DoorClosed, Structure.DoorClosed, Structure.DoorOpen, Structure.Empty, Structure.Empty, Structure.Empty];
         var cells = new byte[8];
-        Sources.Occupy(c => structure[c], _ => Shape.None, 4, structure.Length, new Box(0, 0, 3, 1), cells);
+        Sources.Occupy(c => structure[c], 4, structure.Length, new Box(0, 0, 3, 1), cells);
         Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Hatch, Sources.Hatch, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
     }
 
@@ -58,16 +58,15 @@ public class LightSourcesTests
         Assert.Equal(0, buffer.Length % Sources.Stride);
     }
 
-    /// <summary>Three cells across: open, a wall, a floor slope ◢ (solid bottom right).</summary>
+    /// <summary>Three cells across: open, a wall, a closed door.</summary>
     private static bool Blocks(double x, double y) =>
-        Sources.Blocks(c => c == 0 ? Structure.Empty : Structure.Wall, c => c == 2 ? Shape.BottomRight : Shape.None, 3, 1, Cell, x, y);
+        Sources.Blocks(c => c switch { 0 => Structure.Empty, 1 => Structure.Wall, _ => Structure.DoorClosed }, 3, 1, Cell, x, y);
 
     [Fact]
-    public void TellsAPointInAWallsSolidFromOneInTheOpen()
+    public void TellsAPointInAWallFromOneInTheOpen()
     {
         Assert.False(Blocks(8, 8));
         Assert.True(Blocks(24, 8));
-        Assert.False(Blocks(36, 4));
         Assert.True(Blocks(44, 12));
         Assert.False(Blocks(60, 8));
     }

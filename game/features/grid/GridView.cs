@@ -220,30 +220,21 @@ public partial class GridView : Node2D
 
     // The pictures' names made once, not a string a cell: a big ship draws half a million cells as it loads.
     private static readonly string[] PipeNames = Names("pipe_");
-    private readonly Dictionary<(int, int), (string Wall, string[] Edges)> _wallNames = new();
+    private readonly Dictionary<int, (string Wall, string[] Edges)> _wallNames = new();
 
     private static string[] Names(string prefix) => Enumerable.Range(0, 16).Select(sides => $"{prefix}{sides}").ToArray();
 
-    /// <summary>A wall of material <paramref name="code"/> cut to <paramref name="shape"/>: its picture, and its edges' by the sides open.</summary>
-    private (string Wall, string[] Edges) WallNamesOf(int code, int shape)
+    /// <summary>A wall of material <paramref name="code"/>: its picture, and its edges' by the sides open.</summary>
+    private (string Wall, string[] Edges) WallNamesOf(int code)
     {
-        if (_wallNames.TryGetValue((code, shape), out var names)) return names;
+        if (_wallNames.TryGetValue(code, out var names)) return names;
         string material = MaterialOf(code);
-        var edges = Enumerable.Range(0, 16).Select(open => ShipTiles.EdgeName(material, open, shape)).ToArray();
-        return _wallNames[(code, shape)] = (ShipTiles.WallName(material, shape), edges);
+        var edges = Enumerable.Range(0, 16).Select(open => ShipTiles.EdgeName(material, open)).ToArray();
+        return _wallNames[code] = (ShipTiles.WallName(material), edges);
     }
 
-    /// <summary>The sides of <paramref name="cell"/> a wall beside it closes: one whose own side facing it is whole (0069).</summary>
-    private int WalledSides(int cell)
-    {
-        int w = _grid.Width, x = cell % w, y = cell / w, sides = 0;
-        bool Closes(int n, int facing) => _drawn.Structure[n] == Structure.Wall && (Shape.ClosedSides(_drawn.Shape[n]) & facing) != 0;
-        if (y > 0 && Closes(cell - w, Down)) sides |= Up;
-        if (x < w - 1 && Closes(cell + 1, Left)) sides |= Right;
-        if (y < _grid.Height - 1 && Closes(cell + w, Up)) sides |= Down;
-        if (x > 0 && Closes(cell - 1, Right)) sides |= Left;
-        return sides;
-    }
+    /// <summary>The sides of <paramref name="cell"/> a wall beside it closes.</summary>
+    private int WalledSides(int cell) => SidesOf(cell, _drawn.Structure, s => s == Structure.Wall);
 
     /// <summary>The sides of <paramref name="cell"/> whose neighbour passes <paramref name="isOne"/>; past the grid's edge none does.</summary>
     private int SidesOf(int cell, int[] layer, Func<int, bool> isOne)
@@ -294,11 +285,10 @@ public partial class GridView : Node2D
         {
             case Structure.Wall:
                 {
-                    int shape = _drawn.Shape[cell];
-                    var (wall, edges) = WallNamesOf(_drawn.Material[cell], shape);
+                    var (wall, edges) = WallNamesOf(_drawn.Material[cell]);
                     _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
-                    // Edged where it faces no wall; a shape only on its whole sides, its diagonal edged in its picture.
-                    int open = ~WalledSides(cell) & Shape.ClosedSides(shape);
+                    // Edged where it faces no wall.
+                    int open = ~WalledSides(cell) & (Up | Right | Down | Left);
                     if (open != 0)
                         Put(_edges, at, edges[open]);
                     DrawDetail(cell);
@@ -325,12 +315,12 @@ public partial class GridView : Node2D
     /// </summary>
     private void DrawTop(int cell)
     {
-        int w = _grid.Width, above = cell - w, material = _drawn.Material[cell], shape = _drawn.Shape[cell];
-        if (above < w || material == LavaCode || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), shape, _drawn.Structure[above], _drawn.Back[above], SoilCode))
+        int w = _grid.Width, above = cell - w, material = _drawn.Material[cell];
+        if (above < w || material == LavaCode || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), _drawn.Structure[above], _drawn.Back[above], SoilCode))
             return;
         // Its 16 px column's variant, the half this cell's column is, laid from two cells over the ground (0104).
         int x = cell % w, half = x % Drawn;
-        var (back, front) = TopNamesOf(material, shape, Grass.VariantOf(cell - half, GroundArt.TopVariants(shape)), half);
+        var (back, front) = TopNamesOf(material, Grass.VariantOf(cell - half, GroundArt.TopVariants), half);
         // A half of a column with nothing in it is no tile (0104).
         if (_tiles.Has(back)) Put(_tops, CellOf(cell - Drawn * w), back);
         if (front != null) Put(_topsFront, CellOf(cell - Drawn * w), front);
@@ -378,7 +368,7 @@ public partial class GridView : Node2D
     {
         if (x < 0 || y < 0 || x >= _grid.Width || y >= _grid.Height) return -1;
         int cell = y * _grid.Width + x, material = _drawn.Material[cell];
-        return _drawn.Structure[cell] == Structure.Wall && _drawn.Shape[cell] == Shape.None && IsNatural(material) ? material : -1;
+        return _drawn.Structure[cell] == Structure.Wall && IsNatural(material) ? material : -1;
     }
 
     /// <summary>The material of the whole ground over every cell of 16 px cell (<paramref name="x"/>, <paramref name="y"/>), the details' (0104); -1 for none.</summary>
@@ -430,8 +420,8 @@ public partial class GridView : Node2D
         _back.SetCell(at, ShipTiles.Source, _tiles.CutAt(grille ? "back_iron_grille" : "back_iron_plain", at.X, at.Y));
     }
 
-    /// <summary>Scratch for <see cref="DrawShade"/>: the walls' shapes round a cell.</summary>
-    private readonly int[] _around = new int[9];
+    /// <summary>Scratch for <see cref="DrawShade"/>: the walls round a cell.</summary>
+    private readonly bool[] _around = new bool[9];
 
     /// <summary>
     /// The shadow the walls round <paramref name="cell"/> cast on its natural back wall (<see cref="GroundShadow"/>, 0088), if any;
@@ -442,14 +432,13 @@ public partial class GridView : Node2D
         int w = _grid.Width, x = cell % w, y = cell / w;
         var at = new Vector2I(x, y);
         Vector2I? tile = null;
-        bool covered = _drawn.Structure[cell] == Structure.Wall && _drawn.Shape[cell] == Shape.None;
+        bool covered = _drawn.Structure[cell] == Structure.Wall;
         if (!covered && _drawn.Back[cell] == Back.Wall && IsNatural(_drawn.BackMaterial[cell]))
         {
             for (int i = 0; i < 9; i++)
             {
                 int nx = x + i % 3 - 1, ny = y + i / 3 - 1;
-                bool wall = nx >= 0 && ny >= 0 && nx < w && ny < _grid.Height && _drawn.Structure[ny * w + nx] == Structure.Wall;
-                _around[i] = wall ? _drawn.Shape[ny * w + nx] : -1;
+                _around[i] = nx >= 0 && ny >= 0 && nx < w && ny < _grid.Height && _drawn.Structure[ny * w + nx] == Structure.Wall;
             }
             tile = _shadows.TileOf(_around);
         }
@@ -471,7 +460,7 @@ public partial class GridView : Node2D
 
     // Names made once, not a string a cell: a planet's ground is back wall and moss over nearly every column.
     private readonly Dictionary<int, string?> _backCuts = new();
-    private readonly Dictionary<(int, int, int, int), (string Back, string? Front)> _topNames = new();
+    private readonly Dictionary<(int, int, int), (string Back, string? Front)> _topNames = new();
     private readonly Dictionary<(int, int), string> _detailNames = new();
     private readonly Dictionary<int, bool> _natural = new();
 
@@ -483,11 +472,11 @@ public partial class GridView : Node2D
         return _backCuts[code] = material == "scrap" ? "back_scrap" : Materials.Get(material).Natural ? ShipTiles.BackName(material) : null;
     }
 
-    private (string Back, string? Front) TopNamesOf(int code, int shape, int variant, int half)
+    private (string Back, string? Front) TopNamesOf(int code, int variant, int half)
     {
-        if (_topNames.TryGetValue((code, shape, variant, half), out var names)) return names;
-        string material = MaterialOf(code), front = ShipTiles.TopName(material, shape, variant, front: true, half);
-        return _topNames[(code, shape, variant, half)] = (ShipTiles.TopName(material, shape, variant, front: false, half), _tiles.Has(front) ? front : null);
+        if (_topNames.TryGetValue((code, variant, half), out var names)) return names;
+        string material = MaterialOf(code), front = ShipTiles.TopName(material, variant, front: true, half);
+        return _topNames[(code, variant, half)] = (ShipTiles.TopName(material, variant, front: false, half), _tiles.Has(front) ? front : null);
     }
 
     private string DetailNameOf(int code, int picture)

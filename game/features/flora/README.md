@@ -39,7 +39,7 @@ draws them — the surface's in `FloraView`, the caves' in `CaveView` — and ti
 Direction C of the cave concept — light that changes with depth — with direction A's glow moss and alien threads in the
 garden: cold blue near the surface, teal and violet in the middle, warm amber and red near the bottom.
 
-- **Reads:** `BuildingModule.Plants` of a cave kind (`Content.Flora.Cave`), `IGridQueries.StructureAt`, `ShapeAt` and
+- **Reads:** `BuildingModule.Plants` of a cave kind (`Content.Flora.Cave`), `IGridQueries.StructureAt` and
   `ChangedSince`, `Terrain.BandOf` for a growth's band, and where each helmet lamp shines (`HeroView.HeadLamps`, as the light
   takes it).
 - **Draws** (`CaveView.cs`) by chunks of 64 × 64 cells, those within a chunk of the view, let go past three: a chunk is two
@@ -47,7 +47,7 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
   each from one atlas packed at the first look of every cave picture (`art/caves`), so a chunk is a batch for each. Some
   thirty-eight thousand growths on the first planet, no node apiece. A floor's growth is planted as a plant is, its lowest drawn row
   `CaveLooks` `Sink` (2, a spike 1) pixels into the wall under it, those rows not drawn; a ceiling's mirrored, its top row
-  as far up into the wall over it; neither ever on a slope (0080); one in
+  as far up into the wall over it (0080); one in
   the rock is 24 × 24 round its cell. A picture is `{kind}_{variant}`, the variant a hash of the cell; a stalactite's and a
   stalagmite's `{kind}_{band}_{variant}`, in its band's stone; moss one picture a face of its stone open now — `top` tufts,
   `bottom` strands, `left`, `right` a film — green in the cold band (`mossGreen`), teal deeper. Along a run
@@ -76,7 +76,7 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
   pixels at a time through the grid's walls): a white point and a cross of its colour, twinkling, as bright as the beam is
   there. Mica draws nothing else.
 - **Drift** (0075's toolkit): spores up from glowcaps, drips from one stalactite in three —
-  each landing on the first solid under its tip, down a slope's diagonal, within `DripRows` (60) cells, and splashing there
+  each landing on the top of the first solid cell under its tip, within `DripRows` (60) cells, and splashing there
   in three flecks (`Planting.DripFloor`); none from a tip with no open cell under it —, faint embers up from the heat's
   cracks — `MotesASecond` (9) from the sources in view, at most `MostMotes` (48) alive, none off the screen.
 - **Tint** (`CaveTint.cs`): one band of colour per depth band, multiplied over all that is drawn under `Layers.Edges` in its
@@ -90,6 +90,6 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
 
 ### Deliberately not handled
 
-- Moss grows only on whole stone, not on slopes or soil; on whichever of its faces are open now, so digging beside it
+- Moss grows only on stone, not on soil; on whichever of its faces are open now, so digging beside it
   shows more of it.
 - The light of a growth past the 56 nearest the view's middle is left out; in a hall seen whole some far ones go dark.

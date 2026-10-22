@@ -23,11 +23,8 @@ public static class Back
 
 public sealed record Machine(int Id, string Kind, int Cell);
 
-/// <summary>
-/// What may be put in a cell: a layer, a kind, a material for walls and back walls, and a wall's
-/// <see cref="Grid.Shape"/> code (0069), none for anything else.
-/// </summary>
-public sealed record Placement(string Layer, string Kind, string? Material = null, int Shape = 0)
+/// <summary>What may be put in a cell: a layer, a kind, and a material for walls and back walls.</summary>
+public sealed record Placement(string Layer, string Kind, string? Material = null)
 {
     public static Placement Wall(string material = "scrap") => new("structure", "wall", material);
     public static Placement BackWall(string material = "scrap") => new("back", "backWall", material);
@@ -48,8 +45,6 @@ public sealed class GridState
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Conduit { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Back { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] BackMaterial { get; set; } = [];
-    /// <summary>Each cell's <see cref="Grid.Shape"/> code (0069), not <see cref="Grid.Shape.None"/> only on a wall.</summary>
-    [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Shape { get; set; } = [];
     /// <summary>Every machine, in id order: ids only grow, and a new one goes last.</summary>
     [JsonInclude] internal List<Machine> Machines { get; set; } = [];
     [JsonInclude] internal int NextMachineId { get; set; } = 1;
@@ -99,11 +94,7 @@ public interface IGridQueries
     ReadOnlySpan<int> BackLayer { get; }
     /// <summary>Each cell's back wall material code, 0 where there is no back wall.</summary>
     ReadOnlySpan<int> BackMaterialLayer { get; }
-    /// <summary>Each cell's <see cref="Shape"/> code (0069): <see cref="Shape.None"/> on anything but a wall cut to a shape.</summary>
-    ReadOnlySpan<int> ShapeLayer { get; }
     int StructureAt(int cell);
-    /// <summary>The <see cref="Shape"/> of the wall at <paramref name="cell"/>: <see cref="Shape.None"/> for a whole wall, no wall, or off the grid.</summary>
-    int ShapeAt(int cell);
     /// <summary>What the wall at <paramref name="cell"/> is made of; null for no wall, or off the grid.</summary>
     Material? WallAt(int cell);
     /// <summary>What the back wall behind <paramref name="cell"/> is made of; null for none, or off the grid.</summary>
@@ -199,7 +190,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         GridLayers.Conduit => State.Conduit[cell],
         GridLayers.Back => State.Back[cell],
         GridLayers.BackMaterial => State.BackMaterial[cell],
-        GridLayers.Shape => State.Shape[cell],
         _ => State.Occupancy[cell],
     };
 
@@ -233,7 +223,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
             Conduit = new int[size],
             Back = new int[size],
             BackMaterial = new int[size],
-            Shape = new int[size],
         };
         int hull = Materials.Get(Materials.DefaultHull).Code;
         var drawn = layout.Materials;
@@ -242,22 +231,13 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
             {
                 char c = layout.Rows[y][x];
                 // A wall and its back wall of the material the map draws there (0077), else of the default hull.
-                int material = drawn != null && drawn[cell] != 0 ? Math.Abs(drawn[cell]) : hull;
+                int material = drawn != null && drawn[cell] != 0 ? drawn[cell] : hull;
                 // Every cell but space has a back wall of the default hull, hull walls included; a solar panel,
                 // making power with no fire, is drawn under the stars, which it needs; a planet's sky has none (0077).
                 if (c != ' ' && (drawn == null || drawn[cell] > 0) && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null })) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = material; }
-                s.Shape[cell] = c switch
-                {
-                    '/' => Shape.BottomRight,
-                    '\\' => Shape.BottomLeft,
-                    'r' => Shape.TopLeft,
-                    '7' => Shape.TopRight,
-                    _ => Shape.None,
-                };
                 s.Structure[cell] = c switch
                 {
                     '#' => Structure.Wall,
-                    _ when s.Shape[cell] != Shape.None => Structure.Wall,
                     '=' => Structure.Floor,
                     'H' => Structure.Ladder,
                     'D' => Structure.DoorClosed,
@@ -394,7 +374,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     public ReadOnlySpan<int> ConduitLayer => State.Conduit;
     public ReadOnlySpan<int> BackLayer => State.Back;
     public ReadOnlySpan<int> BackMaterialLayer => State.BackMaterial;
-    public ReadOnlySpan<int> ShapeLayer => State.Shape;
     public IReadOnlyList<Machine> Machines => State.Machines;
     public Machine? MachineById(int id) => State.ById.GetValueOrDefault(id);
 
@@ -405,7 +384,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     public int StructureAt(int cell) => InBounds(cell) ? State.Structure[cell] : Structure.Empty;
     public int ConduitAt(int cell) => InBounds(cell) ? State.Conduit[cell] : Conduit.None;
-    public int ShapeAt(int cell) => InBounds(cell) ? State.Shape[cell] : Shape.None;
 
     public Material? WallAt(int cell) =>
         InBounds(cell) && State.Structure[cell] == Structure.Wall ? MaterialOf(State.Material[cell]) : null;
@@ -517,9 +495,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     public string? PlacementProblem(int cell, Placement p)
     {
-        // Only a hull wall is cut to a shape (0069): no floor, ladder, door, back wall, conduit or machine.
-        if (p.Shape != Shape.None && (p.Layer != "structure" || p.Kind != "wall" || Array.IndexOf(Shape.Cut, p.Shape) < 0))
-            return "grid.notShapeable";
         if (!InBounds(cell)) return "grid.outOfBounds";
         if (!InZone(cell)) return "grid.outsideZone";
         switch (p.Layer)
@@ -563,11 +538,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                     "ladder" => Structure.Ladder,
                     _ => Structure.DoorClosed,
                 });
-                if (p.Kind == "wall")
-                {
-                    Set(State.Material, GridLayers.Material, cell, Materials.Get(p.Material!).Code);
-                    Set(State.Shape, GridLayers.Shape, cell, p.Shape);
-                }
+                if (p.Kind == "wall") Set(State.Material, GridLayers.Material, cell, Materials.Get(p.Material!).Code);
                 return;
             case "conduit":
                 Set(State.Conduit, GridLayers.Conduit, cell, p.Kind == "pipe" ? Conduit.Pipe : Conduit.ValveOpen);
@@ -596,7 +567,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
             case "structure":
                 Set(State.Structure, GridLayers.Structure, cell, Structure.Empty);
                 Set(State.Material, GridLayers.Material, cell, 0);
-                Set(State.Shape, GridLayers.Shape, cell, Shape.None);
                 break;
             case "conduit": Set(State.Conduit, GridLayers.Conduit, cell, Conduit.None); break;
             case "back":

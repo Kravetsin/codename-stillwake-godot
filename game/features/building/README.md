@@ -17,7 +17,7 @@ and `Work`.
 | `BuildGlow.cs`    | the light of work on plans (0075): spark bursts, glints, the molten spot with its smoke and shimmer, the cut's line, a finished plan's sweep | yes |
 | `Catalogue.cs`    | the menu's fixed frame (0073): its size by the slot size, the rows scrolled, the card under the pointer, the scrollbar's thumb | no    |
 | `BuildMenu.cs`    | the menu shown while the plan is out, docked at the bottom middle, the screen of a rugged tablet: tabs with counts, the search, the cards, the card in hand and the hint, a card's words in the one tooltip; B, / (Esc: `game/menu`) | yes |
-| `DigView.cs`      | digging seen (0077): each crack in `Building.Cracks` drawn in three stages by its share of the wall's strength (`GroundArt.Crack`), on a slope only over its solid half, its middle in it (0079), and a break's chips in the material's colour (`GroundLooks`), dust and a slow cloud, all drawn behind the walls (`Luminous.Low`) so none crosses a shaft's; a friend's digs alike. A hit's own look is thrown by the crew where it strikes (0094, `features/effects`). It reads the short list each frame and redraws only when it changed | yes |
+| `DigView.cs`      | digging seen (0077): each crack in `Building.Cracks` drawn in three stages by its share of the wall's strength, one picture a stage (`GroundArt.Crack(stage)`, 0079), and a break's chips in the material's colour (`GroundLooks`), dust and a slow cloud, all drawn behind the walls (`Luminous.Low`) so none crosses a shaft's; a friend's digs alike. A hit's own look is thrown by the crew where it strikes (0094, `features/effects`). It reads the short list each frame and redraws only when it changed | yes |
 
 Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, the words by the
 pointer; `Hands`: every view of this player's hands wired together, the building first to take the
@@ -28,7 +28,7 @@ thumbnails; `PlanCut`/`BuiltParts`: where a plan being built turns real, and its
 outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`), and the
 tablet's slide and its screen coming on (`TabletMotion`, warm for 1.5 s after it is put away, 0073), by which the wrist
 computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`), both in `game/shared/`. The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
-`drag.test.ts` and `near-grid.test.ts` are ported one for one, walls planned cut to a shape tested in `PlanShapeTests`, the menu's frame in `CatalogueTests`, its slide and screen in `TabletMotionTests`; working a plan is the hero's hands
+`drag.test.ts` and `near-grid.test.ts` are ported one for one, the menu's frame in `CatalogueTests`, its slide and screen in `TabletMotionTests`; working a plan is the hero's hands
 (`features/crew`, `AimTests`).
 
 ## Guarantees
@@ -39,16 +39,8 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 
 - One thing in hand (`Holding`): free, the plan, a card or the cable. The plan put away takes the card;
   the hand freed elsewhere (a hotbar slot, the wheel) puts the plan away.
-- **R slopes walls** (0069, part 2). With a hull wall's card in hand — not a floor, ladder, door, back wall or
-  machine — R turns the shape walls are planned in: whole, ◢, ◣, ◤, ◥ and round again; Shift+R the other way
-  (`PlanHand.Shape`, `PlanHand.Turn`). The shape sticks, for every wall card, until turned again; what is sent is the
-  card's placement with it (`PlanHand.InHand`, `Tools.Shaped`), so a drag plans every cell of its line cut to it, even
-  turned mid-drag. Wall cards' thumbnails and the card in hand show the cut. The pipette picks a wall with its shape
-  (`Tools.ShapePicked`). The ghost, the plan, its dashes and its turning real as it is worked all follow the cut: a
-  cut wall's pictures are the atlas's own (`ShipTiles.PictureOf`, `ImageOf`), so `BlueprintArt`, `PlanShapes` and the
-  aim's outline read them as any picture. A wall planned or in hand runs on into a wall beside it only where that one's
-  facing side is whole (`Blueprint.WallLinksOf`), as the grid draws built walls, so its edges match. The structure
-  tab's hint names R. A wall's shape is changed by taking it apart and planning it again; there is no hammer.
+- **Walls are whole** (0106): a wall card has no shape to turn. A wall planned or in hand joins the walls beside it
+  like any placement that joins (`Blueprint.Joins`), as the grid draws built walls.
 - The open tab is the mode (`PlanHand.Tab`): Air shows the pipes overlay, Power the cables. The overlay
   shown is never kept — `Tools.OverlayShown` from the plan out, the tab and `Ui.AirOn` on each read — so
   with the menu closed it is air or nothing. The air itself is drawn whenever O wants it, under every tab, the

@@ -48,7 +48,7 @@ public static class GroundLooks
 
     /// <summary>
     /// The lit edge of the ground where it meets the open (0088), its lit colour times these: the line under a top's outline,
-    /// the one under that, and the line inside the outline on its other sides. A floor slope's diagonal is lit as a top.
+    /// the one under that, and the line inside the outline on its other sides.
     /// </summary>
     public const double RimTop = 1.28, RimUnder = 1.02, RimSide = 0.96;
 }

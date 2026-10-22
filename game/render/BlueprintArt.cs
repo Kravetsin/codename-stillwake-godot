@@ -29,15 +29,14 @@ public static class BlueprintArt
     /// <summary>
     /// The pictures <paramref name="placement"/> is drawn with, as the ship draws it built: <paramref name="linked"/>
     /// are the sides a pipe reaches toward, a door joins another door on and a wall runs on into another wall: a wall is
-    /// edged on every other side, alone all round, a wall cut to a shape only on its whole sides (0069). A machine is one
-    /// picture from its corner.
+    /// edged on every other side, alone all round. A machine is one picture from its corner.
     /// </summary>
     public static IReadOnlyList<TilePiece> PiecesOf(Placement placement, int linked) => placement.Kind switch
     {
-        "wall" => (~linked & AllSides & Shape.ClosedSides(placement.Shape)) is var open and > 0
-            ? [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!, placement.Shape), Cut: true),
-                new(TileLayer.Edges, ShipTiles.EdgeName(placement.Material!, open, placement.Shape))]
-            : [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!, placement.Shape), Cut: true)],
+        "wall" => (~linked & AllSides) is var open and > 0
+            ? [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!), Cut: true),
+                new(TileLayer.Edges, ShipTiles.EdgeName(placement.Material!, open))]
+            : [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!), Cut: true)],
         // Scrap's and the ground's are tiles laid over the world, cut a cell at a time (0079); iron's a plain panel.
         "backWall" => [placement.Material == "scrap" || Materials.Get(placement.Material!).Natural
             ? new(TileLayer.Back, ShipTiles.BackName(placement.Material!), Cut: true)
@@ -54,7 +53,7 @@ public static class BlueprintArt
     /// <summary>
     /// What <paramref name="placement"/> builds, as one picture: a build menu card's. A pipe or a valve
     /// reaches both ways; a door is a door whole, the shape it is known by; a picture cut over the world gives its first
-    /// cell; a wall cut to a shape shows the cut.
+    /// cell.
     /// </summary>
     public static Texture2D Thumbnail(Placement placement)
     {

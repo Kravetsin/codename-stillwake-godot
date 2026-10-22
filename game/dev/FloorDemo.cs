@@ -9,7 +9,7 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// <c>-- --floor</c>: stacks on the floor of a dark, aired room with no lamps, for recordings. A stack falls from
 /// above a grow capsule and another is thrown over it, both through it onto the floor; one already lies on the
-/// floor, and one falls onto a slope's diagonal.
+/// floor, and one falls onto a step.
 /// </summary>
 public static class FloorDemo
 {
@@ -20,7 +20,7 @@ public static class FloorDemo
         "#................#",
         "#.....gg.........#",
         "#.....gg.........#",
-        "#.....gg...S../#.#",
+        "#.....gg...S..##.#",
         "##################",
     ]);
 

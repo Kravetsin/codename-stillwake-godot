@@ -423,7 +423,7 @@ public partial class CaveView : Node2D
     /// <summary>A drip from the tip of a stalactite at <paramref name="tip"/>, landing on what is under it: none with nowhere to fall.</summary>
     private void Drip(Patch patch, Vector2 tip)
     {
-        if (Planting.DripFloor(_grid.StructureAt, _grid.ShapeAt, _grid.Width, _grid.Height, Cell, tip.X, tip.Y, CaveLooks.DripRows) is double floor)
+        if (Planting.DripFloor(_grid.StructureAt, _grid.Width, _grid.Height, Cell, tip.X, tip.Y, CaveLooks.DripRows) is double floor)
             patch.Drips.Add((tip, (float)floor));
     }
 

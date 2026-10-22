@@ -209,7 +209,7 @@ public sealed class StarField
         var light = _light;
         Array.Clear(kind, 0, n);
         Array.Clear(light, 0, n);
-        ReadOnlySpan<int> structure = grid.StructureLayer, back = grid.BackLayer, shape = grid.ShapeLayer;
+        ReadOnlySpan<int> structure = grid.StructureLayer, back = grid.BackLayer;
         if (machinesListed)
         {
             // A machine dims the light through every cell of its footprint; over the region, every machine is in it.
@@ -233,7 +233,7 @@ public sealed class StarField
             for (int x = 1; x < sw; x++)
             {
                 int gx = x - 1 + box.Left - Sky;
-                row += Starry(structure, back, shape, gw, gh, gx, gy) ? 1 : 0;
+                row += Starry(structure, back, gw, gh, gx, gy) ? 1 : 0;
                 sum[y * sw + x] = sum[(y - 1) * sw + x] + row;
             }
         }
@@ -263,14 +263,13 @@ public sealed class StarField
     }
 
     /// <summary>
-    /// Whether the stars shine into a cell: an open one with no back wall, any past the grid's edge, and a shaped
-    /// wall's open half with no back wall behind it, a wall still for what crosses it (0069).
+    /// Whether the stars shine into a cell: an open one with no back wall, and any past the grid's edge.
     /// </summary>
-    private static bool Starry(ReadOnlySpan<int> structure, ReadOnlySpan<int> back, ReadOnlySpan<int> shape, int width, int height, int gx, int gy)
+    private static bool Starry(ReadOnlySpan<int> structure, ReadOnlySpan<int> back, int width, int height, int gx, int gy)
     {
         if (gx < 0 || gy < 0 || gx >= width || gy >= height) return true;
         int cell = gy * width + gx;
-        return back[cell] == Back.None && (structure[cell] is not (Structure.Wall or Structure.DoorClosed) || shape[cell] != Shape.None);
+        return back[cell] == Back.None && structure[cell] is not (Structure.Wall or Structure.DoorClosed);
     }
 
     private void Texel(byte[] bytes, int at, float light, byte kind)

@@ -43,7 +43,7 @@ namespace Stillwake.Game;
 /// world as the title makes one, the wreck in the middle of the big world, kept nowhere; <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
 /// large, its tiles over <c>--built WxH</c> of it from the top-left, all of it by default), <c>--gallery</c> every picture,
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings,
-/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--ladders</c> a tall one up through a hatch beside a laddered pit, or with <c>--strip</c> the strip's shaft (<see cref="HeroAutopilot.LaddersRun"/>, 0092), <c>--ledges</c> a ledge a jump steps up onto and one it falls short of (0092), <c>--hills</c> ground of slopes to walk (<see cref="HillsDemo"/>), <c>--slopes</c> walls cut to shapes planned with R, lit, and a corridor under a sloped ceiling (<see cref="SlopesDemo"/>), <c>--floor</c> stacks falling through a machine onto a dark floor and a slope (<see cref="FloorDemo"/>), <c>--aside</c> steps the hero
+/// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--ladders</c> a tall one up through a hatch beside a laddered pit, or with <c>--strip</c> the strip's shaft (<see cref="HeroAutopilot.LaddersRun"/>, 0092), <c>--ledges</c> a ledge a jump steps up onto and one it falls short of (0092), <c>--hills</c> ground of one-cell steps to walk (<see cref="HillsDemo"/>), <c>--floor</c> stacks falling through a machine onto a dark floor and a step (<see cref="FloorDemo"/>), <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--store</c> a capacitor bank filling from a panel, then emptying into an arc smelter (<see cref="Features.Power.StoreDemo"/>), <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>, and with <c>--marks &lt;item&gt; --into &lt;slot&gt;</c> that machine emptied and the item carried over its slot, <see cref="MarksDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
@@ -54,7 +54,7 @@ namespace Stillwake.Game;
 /// <c>--tool-cards</c> the drill's card plain and fitted side by side (<see cref="ToolCardsDemo"/>), <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--snap FILE</c> saves the screen to FILE once the world is <c>--snap-at</c> seconds old and quits, <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--allocs</c> with it what was allocated, by type (<see cref="AllocationSampler"/>), <c>--for=seconds</c> quits after a while,
-/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), with <c>--fauna</c> creatures of every kind let out by it (<c>--fauna=fluff</c> one kind) and hunted by script (<see cref="FaunaHands"/>, 0102; <c>--manual</c> leaves them be), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree or <c>--ground=slope</c> cracking slopes (0079), <c>--ground=hit-soil</c> (<c>-stone</c>, <c>-alloy</c>, <c>-tree</c>, <c>-crystal</c>) striking one from the edge of reach with the drill, or with <c>--axe</c> the axe (0094),<c>--ground=band0</c>…<c>band3</c> in a cave of a depth band or <c>--ground=hall</c> in a great hall, looking at its growth (0080), <c>--ground=sprint --autopilot</c> a sprint over its ground and back (<see cref="HeroAutopilot.Sprint"/>, <c>--sprint 250</c> cells), <c>--sweep=DEPTH</c> the camera run along the row that deep under the spawn (<see cref="CameraSweep"/>), <c>--ground=cave</c> or <c>--ground=shaft</c>
+/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), with <c>--fauna</c> creatures of every kind let out by it (<c>--fauna=fluff</c> one kind) and hunted by script (<see cref="FaunaHands"/>, 0102; <c>--manual</c> leaves them be), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree (0079), <c>--ground=hit-soil</c> (<c>-stone</c>, <c>-alloy</c>, <c>-tree</c>, <c>-crystal</c>) striking one from the edge of reach with the drill, or with <c>--axe</c> the axe (0094),<c>--ground=band0</c>…<c>band3</c> in a cave of a depth band or <c>--ground=hall</c> in a great hall, looking at its growth (0080), <c>--ground=sprint --autopilot</c> a sprint over its ground and back (<see cref="HeroAutopilot.Sprint"/>, <c>--sprint 250</c> cells), <c>--sweep=DEPTH</c> the camera run along the row that deep under the spawn (<see cref="CameraSweep"/>), <c>--ground=cave</c> or <c>--ground=shaft</c>
 /// down into a cave with the helmet lamp or digging a shaft (<see cref="GroundDemo"/>), <c>--strip</c> the test strip (0076),
 /// with <c>--autopilot</c> played by a script (<see cref="HeroAutopilot.PlanetRun"/>), with <c>--beam-back</c> back aboard two seconds in,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
@@ -191,7 +191,6 @@ public partial class Main : Node2D, ITogether
         if (Has("--ladders") && !Has("--strip")) _layout = HeroAutopilot.Ladders;
         if (Has("--ledges")) _layout = HeroAutopilot.Ledges;
         if (Has("--hills")) _layout = HillsDemo.Map;
-        if (Has("--slopes")) _layout = SlopesDemo.Map;
         if (Has("--floor")) _layout = FloorDemo.Map;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         if (Has("--testbed") || Has("--jetpack") || Has("--charge") || Has("--dust")) _layout = Testbed.Map;
@@ -200,7 +199,7 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40) : Has("--ledges") && Has("--autopilot") ? HeroAutopilot.LedgesRun() : Has("--ladders") && Has("--autopilot") ? (Has("--strip") ? HeroAutopilot.StripLaddersRun() : HeroAutopilot.LaddersRun()) : Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip")) : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : Has("--ground=spire-climb") && Has("--autopilot") ? HeroAutopilot.SpireClimb() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--slopes") ? HeroAutopilot.SlopesRun() : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
+            var script = Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40) : Has("--ledges") && Has("--autopilot") ? HeroAutopilot.LedgesRun() : Has("--ladders") && Has("--autopilot") ? (Has("--strip") ? HeroAutopilot.StripLaddersRun() : HeroAutopilot.LaddersRun()) : Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip")) : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : Has("--ground=spire-climb") && Has("--autopilot") ? HeroAutopilot.SpireClimb() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             if (Has("--poses")) AddChild(new PosesDemo(script!));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
@@ -320,7 +319,6 @@ public partial class Main : Node2D, ITogether
         if (Opens is { } open) AddChild(new OpenDemo(_hands.Ui, open, () => _m, Arg("--open-at") is { } at ? double.Parse(at, System.Globalization.CultureInfo.InvariantCulture) : 1.0));
         if (_args.FirstOrDefault(a => a.StartsWith("--card=", StringComparison.Ordinal)) is { } card) AddChild(new CardDemo(_hands, card[7..], pick: Has("--pick")));
         if (Has("--tool-cards")) AddChild(new ToolCardsDemo());
-        if (Has("--slopes")) AddChild(new SlopesDemo(_hands));
         if (Has("--asteroid") && !Has("--manual")) AddChild(new AsteroidDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--sortie") && !Has("--manual")) AddChild(new SortieDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--fly")) AddChild(new FarDemo(_debris, () => _session is Session s ? (s.Client, _m) : null));
@@ -386,7 +384,6 @@ public partial class Main : Node2D, ITogether
         if (Has("--grapple")) world = WreckDemo.SeedGrapple(world, Modules);
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
         if (Has("--hills")) world = HillsDemo.Seed(world, Modules);
-        if (Has("--slopes")) world = SlopesDemo.Seed(world, Modules);
         if (Has("--floor")) world = FloorDemo.Seed(world, Modules);
         if (Has("--poses")) world = GroundDemo.Seed(world, Modules);
         if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);

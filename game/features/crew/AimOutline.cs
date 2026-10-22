@@ -58,13 +58,9 @@ public static class AimOutline
 
     private static Vector2 CornerOf(int cell, int width) => new(cell % width * Cell, cell / width * Cell);
 
-    /// <summary>A cell's square; a wall cut to a shape, its solid half as the grid draws it (0069).</summary>
-    private static void OneCell(Outline outline, IGridQueries grid, int cell, Color colour)
-    {
-        var corner = CornerOf(cell, grid.Width);
-        if (grid.ShapeAt(cell) is var shape and not Shape.None) outline.Add(ShapeMasks.Texture(shape), corner, colour);
-        else outline.AddBox(new Rect2(corner, Cell, Cell), colour);
-    }
+    /// <summary>A cell's square.</summary>
+    private static void OneCell(Outline outline, IGridQueries grid, int cell, Color colour) =>
+        outline.AddBox(new Rect2(CornerOf(cell, grid.Width), Cell, Cell), colour);
 
     /// <summary>A machine's picture from its corner, and its socket where power plugs in, as the grid draws them.</summary>
     private static void Machine(Outline outline, string kind, int cell, int width, Color colour)

@@ -28,7 +28,7 @@ by sending `Move`,
 | `AnalyzerScreen.cs`| the screen in that panel: dark, running lines, a check                                         | yes   |
 | `InventoryPanel.cs`| the hotbar, the inventory, the equipment and the hands' tool at the right edge, the open crate, furnace, electric smelter, grow capsule, burner generator, analyzer, charging station or drone bay in the machine frame under the inventory, with the logistics feature's drone badge in the header where drones have work (`Served`, set by `Main`, 0062) and a bay's bolt lit while it charges (`Charger`), the stack in hand; all built again at another slot size | yes   |
 | `EnergyBar.cs`     | the energy tab at the gauge row's right end, always shown: the bolt and the belt's charge in power units (0053, 0081), in a tab under the wrist computer's cuff (0074) | yes   |
-| `FloorLayer.cs`    | stacks on the floor, unlit with a breathing rim, standing on their line and bobbing up from it, along a slope, side by side when still, gliding between the last two ticks, turning in space (`floor-layer.ts`) | yes |
+| `FloorLayer.cs`    | stacks on the floor, unlit with a breathing rim, standing on their line and bobbing up from it, side by side when still, gliding between the last two ticks, turning in space (`floor-layer.ts`) | yes |
 | `SlotFlights.cs`   | a stack sent across with shift flying from its slot or socket to where it landed, on the HUD: its icon on a slight arc, a ribbon of light behind it, a pulse, a flash and a glint on the slot as it lands (0075) | yes   |
 | `PickUpPopups.cs`  | "Scrap (12)" rising over the hero's head, a soft shadow round it, a band of light sweeping across it once (0075) | yes   |
 | `ItemsView.cs`     | the feature: pick-ups, the layers and the panel                                              | yes   |
@@ -293,8 +293,7 @@ as everything E works is, in the crew feature (`AimTests`).
 - **A stack stands out and stands on its floor.** Its picture is drawn unlit, in its own colours in a dark room,
   its pale rim added over it as light (0075) and breathing with its bob, faintest at rest on its line and brightest at
   the top. The rim's lowest pixel sits on the point the sim rests it on, the clear rows under the item's picture
-  counted (`ItemIcons.ClearBelow`); the bob only rises from there. On a floor slope's diagonal it lies turned along it
-  about that point (45°). Moving, it is drawn between where the last two ticks had it, a tick behind: a guess past the
+  counted (`ItemIcons.ClearBelow`); the bob only rises from there. It lies level on a cell's top, never turned (0106). Moving, it is drawn between where the last two ticks had it, a tick behind: a guess past the
   newest would carry a falling stack into the floor for a frame before it landed, which read as sinking.
 - A stack in a cell the hero's body overlaps is picked up unless the sim would refuse it or its
   pick-up is in flight, and vanishes from the floor at once. Passed out the hero picks nothing up, so it never

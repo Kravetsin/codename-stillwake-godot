@@ -32,7 +32,7 @@ public partial class Lightmap : Node
         Code = $$"""
             shader_type canvas_item;
             render_mode unshaded, blend_add;
-            // A texel a cell: 0 open, a quarter a closed hatch, half a closed door, whole a wall, 33 to 36 of 255 a wall cut to a shape; over what is built, its first texel at cell origin.
+            // A texel a cell: 0 open, a quarter a closed hatch, half a closed door, whole a wall; over what is built, its first texel at cell origin.
             uniform sampler2D occupancy : filter_nearest, repeat_disable;
             uniform ivec2 origin = ivec2(0);
             // The columns of its cell a closed door's panel fills, and the rows a closed hatch's does, in pixels: from, to.
@@ -60,18 +60,13 @@ public partial class Lightmap : Node
                 light = COLOR;
             }
 
-            // 2 a wall, 1 a closed door, 3 a closed hatch, 0 open, past what is built too; 4 to 7 a wall cut to ◢ ◣ ◤ ◥ (0069).
+            // 2 a wall, 1 a closed door, 3 a closed hatch, 0 open, past what is built too.
             int kind(ivec2 c) {
                 c -= origin;
                 ivec2 size = textureSize(occupancy, 0);
                 if (c.x < 0 || c.y < 0 || c.x >= size.x || c.y >= size.y) return 0;
                 float v = texelFetch(occupancy, c, 0).r;
-                return v > 0.75 ? 2 : (v > 0.375 ? 1 : (v > 0.19 ? 3 : (v > 0.1 ? int(v * 255.0 + 0.5) - 29 : 0)));
-            }
-
-            // Whether point p, in cells from a shaped wall's corner, lies in its solid half: kind 4 ◢, 5 ◣, 6 ◤, 7 ◥.
-            bool solid(int k, vec2 p) {
-                return k == 4 ? p.x + p.y >= 1.0 : (k == 5 ? p.y >= p.x : (k == 6 ? p.x + p.y <= 1.0 : p.y <= p.x));
+                return v > 0.75 ? 2 : (v > 0.375 ? 1 : (v > 0.19 ? 3 : 0));
             }
 
             // How much of the light reaches a point, cell by cell along the line: none when a wall or a door's or hatch's panel
@@ -98,20 +93,6 @@ public partial class Lightmap : Node
                     if (k == 2) {
                         if (!leaving && !soak_through) return 0.0;
                         inside += (t1 - t0) * span_cells;
-                    } else if (k >= 4) {
-                        // A wall cut to a shape: its solid half as a wall, passed till the line comes out of it, its open
-                        // half as the open. The solid is a half plane in the cell, so the line's two ends there tell it.
-                        bool in0 = solid(k, a + d * t0 - vec2(c)), in1 = solid(k, a + d * t1 - vec2(c));
-                        if (leaving && in0) {
-                            leaving = in1;
-                            inside += (t1 - t0) * span_cells * (in1 ? 1.0 : 0.5);
-                        } else {
-                            leaving = false;
-                            if (in0 || in1) {
-                                if (!soak_through) return 0.0;
-                                inside += (t1 - t0) * span_cells * (in0 && in1 ? 1.0 : 0.5);
-                            }
-                        }
                     } else if (k == 1 || k == 3) {
                         // A door's panel spans columns, a hatch's rows: where the line is across that, in pixels.
                         bool across = k == 3;
@@ -215,14 +196,14 @@ public partial class Lightmap : Node
     /// Where light stops, from the grid's structure a texel a cell over <paramref name="built"/>, what is
     /// built: past it every cell is open. <paramref name="panels"/> the door panel's columns and the hatch panel's rows in pixels.
     /// </summary>
-    public void Occupy(Func<int, int> structureAt, Func<int, int> shapeAt, int width, int size, Box built, Panels panels)
+    public void Occupy(Func<int, int> structureAt, int width, int size, Box built, Panels panels)
     {
         // Nothing built: one open texel, for a texture cannot be empty.
         if (built.IsEmpty) built = new Box(0, 0, 0, 0);
         _occupied = built;
         int w = built.Width, h = built.Height;
         if (_cells.Length != w * h) _cells = new byte[w * h];
-        Sources.Occupy(structureAt, shapeAt, width, size, built, _cells);
+        Sources.Occupy(structureAt, width, size, built, _cells);
         Upload(built, panels);
     }
 
@@ -232,19 +213,19 @@ public partial class Lightmap : Node
     /// past the texture, the whole of what is built laid out anew (<see cref="Occupy"/>). The texture may cover
     /// more than is built: past what is built every cell is open, inside the texture or past it alike.
     /// </summary>
-    public void Follow(Func<int, int> structureAt, Func<int, int> shapeAt, int width, int size, Box built, IReadOnlyList<int> changed, Panels panels)
+    public void Follow(Func<int, int> structureAt, int width, int size, Box built, IReadOnlyList<int> changed, Panels panels)
     {
         var box = _occupied;
         foreach (int c in changed)
             if (_occupancy == null || !box.Contains(c % width, c / width))
             {
-                Occupy(structureAt, shapeAt, width, size, built, panels);
+                Occupy(structureAt, width, size, built, panels);
                 return;
             }
         foreach (int changedCell in changed)
             for (int c = changedCell - width; c <= changedCell + width; c += width)
                 if (c >= 0 && c < size && box.Contains(c % width, c / width))
-                    _cells[(c / width - box.Top) * box.Width + c % width - box.Left] = Sources.Of(structureAt, shapeAt, width, size, c);
+                    _cells[(c / width - box.Top) * box.Width + c % width - box.Left] = Sources.Of(structureAt, width, size, c);
         Upload(box, panels);
     }
 

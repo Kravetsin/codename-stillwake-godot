@@ -52,13 +52,18 @@ public static class Terrain
         var soilDepth = new int[w];
         var mouth = new int[w];
         var caveFrom = new int[w];
+        int gentleWas = 0;
         for (int x = 0; x < w; x++)
         {
             int range = Swell(Noise(seed, Ranges, x, g.RangeWave), g.RangeRise);
             // Terraced: the range rises in steps, so its sides are cliffs.
             if (g.CliffStep > 1) range = (range >= 0 ? range : range - g.CliffStep + 1) / g.CliffStep * g.CliffStep;
-            int rise = range + Swell(Noise(seed, Hills, x, g.HillWave), g.HillRise) + Swell(Noise(seed, Bumps, x, g.BumpWave), g.BumpRise);
-            top[x] = Math.Clamp(g.Surface + rise, 1, floor - 1);
+            // Hills and bumps rise a cell a column at most, from the left: a stair of steps a hero walks up (0106). Only the
+            // range's terraces are cliffs.
+            int gentle = Swell(Noise(seed, Hills, x, g.HillWave), g.HillRise) + Swell(Noise(seed, Bumps, x, g.BumpWave), g.BumpRise);
+            if (x > 0) gentle = Math.Clamp(gentle, gentleWas - 1, gentleWas + 1);
+            gentleWas = gentle;
+            top[x] = Math.Clamp(g.Surface + range + gentle, 1, floor - 1);
             soilDepth[x] = g.SoilLeast + (int)((long)Noise(seed, Soil, x, g.SoilWave) * (g.SoilMost - g.SoilLeast + 1) / Whole);
             // Where the mouths' noise passes its mark caves begin nearer the surface and open as if deeper, the more the
             // further past: at the surface itself from halfway past, as open as at the bedrock at its peak.
@@ -112,9 +117,9 @@ public static class Terrain
         }
         hall = new bool[w * h];
         Landmarks(g, seed, top, kind, caverns, hall);
-        // No spikes: a bump up to Spike cells wide standing up alone, open above, would be cut to a lone ◢◣ peak or left a
-        // post; it is taken away, so the ground under it is the top, row by row down, and hills stay walkable. Out in the
-        // open air it becomes sky; a post in a pit or a cave leaves ground with its back wall, sky only as far as the fade below.
+        // No spikes: a bump up to Spike cells wide standing up alone, open above, would be a post too narrow to stand on; it
+        // is taken away, so the ground under it is the top, row by row down, and hills stay a stair of steps. Out in the open
+        // air it becomes sky; a post in a pit or a cave leaves ground with its back wall, sky only as far as the fade below.
         for (int y = 1; y < h; y++)
             for (int x = 1; x < w - 1; x++)
             {
@@ -154,19 +159,6 @@ public static class Terrain
             var row = rows[y] = new char[w];
             for (int x = 0; x < w; x++) row[x] = kind[y * w + x] switch { 1 => '#', 2 => '.', _ => ' ' };
         }
-        // A cell of soil or stone open above, with one side open and the other solid, is cut to a slope rising toward the solid side.
-        for (int y = 1; y < h; y++)
-            for (int x = 1; x < w - 1; x++)
-            {
-                int cell = y * w + x;
-                if (kind[cell] != 1 || codes[cell] != soil && codes[cell] != stone || kind[cell - w] == 1) continue;
-                bool left = kind[cell - 1] == 1, right = kind[cell + 1] == 1;
-                if (right && !left) rows[y][x] = '/';
-                else if (left && !right) rows[y][x] = '\\';
-                else continue;
-                // A slope under the open sky has no back wall: its open half shows the sky. One in a cave keeps it, dark.
-                if (kind[cell - w] == 0) codes[cell] = -codes[cell];
-            }
         var spawn = SpawnOf(rows, w, h);
         var surfaceTop = TopsOf(rows, w, h);
         var flora = Flora(t, seed, rows, codes, soil, spawn % w, surfaceTop);
@@ -334,7 +326,7 @@ public static class Terrain
                 for (int dx = 0; dx <= right; dx++)
                     for (int i = 0, at = cell + dx; i < kind.Tall; i++, at += step)
                         if (at < 0 || at >= w * h || rows[at / w][x + dx] != '.' || taken[at]) return;
-                // Only on whole walls, never a slope, as Terraria's: no growth floats over a slope or stands in one.
+                // Only on walls the whole width across, as Terraria's: no growth floats over a step's edge.
                 for (int dx = -kind.Wide; dx <= kind.Wide + right; dx++)
                     if (x + dx < 0 || x + dx >= w || !Open(x + dx, y) || rows[y + hold][x + dx] != '#') return;
                 for (int dx = 0; dx <= right; dx++)
@@ -351,7 +343,7 @@ public static class Terrain
     /// middle; each anchored at the highest surface across it (<paramref name="top"/>), <see cref="Ground.SpireRise"/> of its rows
     /// above that, moved down or up only where the grid is too small to hold it. Its cells overwrite the rows and the materials
     /// but where it keeps the ground; what grew in its box, or lay in the rock a cell round it, goes, and its own growths are
-    /// set. Slopes and the other growths beside it were found before it and stay as they are.
+    /// set. The other growths beside it were found before it and stay as they are.
     /// </summary>
     /// <returns>Each spire's left column and top row.</returns>
     private static List<(int X, int Y)> Spires(Ground g, uint seed, int[] top, char[][] rows, int[] codes, List<(int Cell, string Kind)> flora)

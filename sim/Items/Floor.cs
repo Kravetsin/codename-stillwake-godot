@@ -24,32 +24,8 @@ internal static class FloorRules
     private static bool Blocks(IGridQueries grid, int x, int y) =>
         x < 0 || y < 0 || x >= grid.Width || y >= grid.Height || Built(grid, y * grid.Width + x);
 
-    /// <summary>The floor slope (◢ ◣) cell (x, y) is cut to, or <see cref="Shape.None"/>: a stack rests on its diagonal, not its cell (0069).</summary>
-    private static int SlopeAt(IGridQueries grid, int x, int y)
-    {
-        if (x < 0 || y < 0 || x >= grid.Width || y >= grid.Height) return Shape.None;
-        int shape = grid.ShapeAt(y * grid.Width + x);
-        return Shape.IsFloor(shape) ? shape : Shape.None;
-    }
-
-    /// <summary>
-    /// Whether the point (<paramref name="x"/>, <paramref name="y"/>), in thousandths, is in what stops a stack: past the
-    /// grid's edge, in a built cell, or in a floor slope's solid half; its open half is open. A ceiling slope is whole.
-    /// </summary>
-    private static bool InSolid(IGridQueries grid, int x, int y)
-    {
-        int cx = Down(x, Unit), cy = Down(y, Unit);
-        if (!Blocks(grid, cx, cy)) return false;
-        int slope = SlopeAt(grid, cx, cy);
-        return slope == Shape.None || Shape.Solid(slope, x - cx * Unit, y - cy * Unit);
-    }
-
-    /// <summary>Where a stack falling at column <paramref name="x"/> lands in row <paramref name="r"/>: its top, or a slope's diagonal there.</summary>
-    private static int TopOf(IGridQueries grid, int x, int r)
-    {
-        int cx = Down(x, Unit), slope = SlopeAt(grid, cx, r);
-        return r * Unit + (slope == Shape.None ? 0 : Shape.TopAt(slope, x - cx * Unit));
-    }
+    /// <summary>Whether the point (<paramref name="x"/>, <paramref name="y"/>), in thousandths, is in what stops a stack: past the grid's edge, or in a built cell.</summary>
+    private static bool InSolid(IGridQueries grid, int x, int y) => Blocks(grid, Down(x, Unit), Down(y, Unit));
 
     /// <summary>The cell a stack is in: the one its bottom middle point lies just above.</summary>
     public static int CellOf(int x, int y, int width) => Down(y - 1, Unit) * width + Down(x, Unit);
@@ -152,23 +128,16 @@ internal static class FloorRules
             s.Vy = Math.Min(s.Vy + gravity, Tune.MaxFall);
             int nx = s.X + s.Vx;
             if (!InSolid(grid, nx, s.Y - 1)) s.X = nx;
-            // Into a slope's diagonal no steeper than it moves, it skids up onto it; else it stops.
-            else if (SlopeAt(grid, Down(nx, Unit), row) != Shape.None && s.Y - TopOf(grid, nx, row) <= Math.Abs(s.Vx)
-                     && !InSolid(grid, nx, TopOf(grid, nx, row) - 1))
-                (s.X, s.Y) = (nx, TopOf(grid, nx, row));
             else s.Vx = 0;
-            row = Down(s.Y - 1, Unit);
             int x = Down(s.X, Unit);
             if (s.Vy > 0)
             {
                 int to = s.Y + s.Vy;
                 bool landed = false;
-                // From its own row, whose slope it may be above; a whole cell there it is not in.
-                for (int r = row; r <= Down(to - 1, Unit); r++)
+                for (int r = row + 1; r <= Down(to - 1, Unit); r++)
                 {
-                    int top = TopOf(grid, s.X, r);
-                    if (!Blocks(grid, x, r) || top < s.Y || top > to) continue;
-                    s.Y = top;
+                    if (!Blocks(grid, x, r)) continue;
+                    s.Y = r * Unit;
                     s.Vy = 0;
                     landed = true;
                     break;
@@ -181,9 +150,8 @@ internal static class FloorRules
                 if (InSolid(grid, s.X, to - 1)) s.Vy = 0;
                 else s.Y = to;
             }
-            // Resting on something, a slope's diagonal too: it slides to a stop.
-            bool resting = SlopeAt(grid, x, Down(s.Y - 1, Unit)) != Shape.None ? InSolid(grid, s.X, s.Y) : Blocks(grid, x, Down(s.Y - 1, Unit) + 1);
-            if (s.Vy == 0 && resting)
+            // Resting on something: it slides to a stop.
+            if (s.Vy == 0 && Blocks(grid, x, Down(s.Y - 1, Unit) + 1))
                 s.Vx = Math.Sign(s.Vx) * Math.Max(0, Math.Abs(s.Vx) - Tune.Friction);
         }
         if (s.X < 0 || s.Y <= 0 || s.X >= width * Unit || s.Y > height * Unit) return false;

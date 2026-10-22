@@ -17,7 +17,7 @@ namespace Stillwake.Game.Dev;
 /// hero's hands, aimed by <see cref="GroundHands"/> as a mouse would; <c>poses</c> aims the drill round the hero eight ways near
 /// and far; <c>mouth</c> stands it on the rim of the nearest pit, chasm or cave mouth, to see the sky down it; <c>acacia</c> beside the
 /// acacia nearest the spawn, to see one close (0079); <c>pit</c> digs a pit under the spawn, a block left standing on its floor, to
-/// tell the ground from its back wall (0088); <c>slope</c> beside the surface slopes nearest it, each hit once; <c>sprint</c> at the start of
+/// tell the ground from its back wall (0088); <c>sprint</c> at the start of
 /// its longest run of ground with no pit, for <see cref="Features.Crew.HeroAutopilot.Sprint"/> to measure; <c>band0</c>…<c>band3</c> in a
 /// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080); <c>backs</c>
 /// at the spawn, building soil and stone back walls beside it (0084); <c>lava</c> on the floor of the cave nearest the spawn's
@@ -111,9 +111,9 @@ public sealed class GroundDemo(string mode)
                 return;
             }
             int at = Spires(mode) ? SpireSpot(m, mode) ?? m.Crew.Spawn : Homes(mode) ? HomeSpot(m, mode) ?? m.Crew.Spawn : tunnel ? CaveUnder(m) ?? m.Crew.Spawn : mode == "mouth" ? RimNear(m) ?? m.Crew.Spawn : mode == "sprint" ? Features.Crew.HeroAutopilot.SprintStart(m.Grid)
-                : mode == "acacia" ? BesideAcacia(m) ?? m.Crew.Spawn : mode == "slope" ? BesideSlopes(m, _cells) ?? m.Crew.Spawn : m.Crew.Spawn;
+                : mode == "acacia" ? BesideAcacia(m) ?? m.Crew.Spawn : m.Crew.Spawn;
             // The shaft under the feet; the tunnel at head height the way the hero faces, right.
-            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("slope" or "acacia" or "sprint" or "pit") && !Spires(mode) && !Homes(mode); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
+            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("acacia" or "sprint" or "pit") && !Spires(mode) && !Homes(mode); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
             // pit: a pit under the feet, a block of its ground left standing on its floor (0088).
             for (int dy = 1; dy <= PitDepth && mode == "pit"; dy++)
                 for (int dx = -PitSide; dx <= PitSide; dx++)
@@ -176,12 +176,6 @@ public sealed class GroundDemo(string mode)
         }
         if (world.Tick - _hits < Pace) return;
         _hits = world.Tick;
-        // slope: each of its cells hit once, so their cracks show on the slopes' solid halves.
-        if (mode == "slope")
-        {
-            if (_struck < _cells.Count) client.Send(new Dig(_cells[_struck++], Spec.Weapons.Axe.Item));
-            return;
-        }
         if (next >= 0) client.Send(new Dig(_cells[next], Spec.Weapons.Axe.Item));
     }
 
@@ -196,8 +190,6 @@ public sealed class GroundDemo(string mode)
 
     private int? _posing;
 
-    /// <summary>How many of <c>slope</c>'s cells were hit.</summary>
-    private int _struck;
 
     /// <summary>The cell <c>hit-…</c> strikes now; -1 once none of its kind is left within reach.</summary>
     private int _striking = -1;
@@ -237,8 +229,7 @@ public sealed class GroundDemo(string mode)
         var grid = m.Grid;
         int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w;
         bool Open(int x, int y) => x > 0 && y > 0 && x < w - 1 && y < h - 1 && grid.StructureAt(y * w + x) == Sim.Grid.Structure.Empty;
-        bool Stands(int x, int y) => Open(x, y) && Open(x, y - 1) && Open(x, y - 2) && grid.StructureAt((y + 1) * w + x) == Sim.Grid.Structure.Wall
-            && grid.ShapeAt((y + 1) * w + x) == Sim.Grid.Shape.None;
+        bool Stands(int x, int y) => Open(x, y) && Open(x, y - 1) && Open(x, y - 2) && grid.StructureAt((y + 1) * w + x) == Sim.Grid.Structure.Wall;
         for (int d = 0; d < Math.Min(w / 2, 600); d++)
             foreach (int x in d == 0 ? new[] { sx } : new[] { sx + d, sx - d })
                 for (int y = 2; y < h - 2 && x > 8 && x < w - 8; y++)
@@ -299,22 +290,6 @@ public sealed class GroundDemo(string mode)
         return tree == null ? null : (TopOf(m, tree.Cell % w - 3) - 1) * w + tree.Cell % w - 3;
     }
 
-    /// <summary>
-    /// The open cell two columns beside the surface slopes nearest the spawn, the three of them, and the whole cell under the
-    /// first, put in <paramref name="cells"/> to be hit once each.
-    /// </summary>
-    private static int? BesideSlopes(Registry m, List<int> cells)
-    {
-        var grid = m.Grid;
-        int w = grid.Width, sx = m.Crew.Spawn % w;
-        var slopes = Enumerable.Range(2, w - 4).Select(x => (TopOf(m, x) * w + x)).Where(c => grid.ShapeAt(c) != Sim.Grid.Shape.None)
-            .OrderBy(c => Math.Abs(c % w - sx)).Take(3).OrderBy(c => c % w).ToList();
-        if (slopes.Count == 0) return null;
-        cells.AddRange(slopes);
-        cells.Add(slopes[0] + w);
-        int x = slopes[0] % w - 2;
-        return (TopOf(m, x) - 1) * w + x;
-    }
 
     private static int TopOf(Registry m, int x) =>
         Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.StructureAt(y * m.Grid.Width + x) != Sim.Grid.Structure.Empty);
@@ -428,8 +403,7 @@ public sealed class GroundDemo(string mode)
             for (int d = 2; d <= 14; d++)
                 foreach (int fx in new[] { x - d, x + d })
                     for (int y = top - 2; y > top - 20; y--)
-                        if (Open(fx, y) && Open(fx, y - 1) && Open(fx, y - 2) && grid.WallAt((y + 1) * w + fx) is { Id: "stone" }
-                            && grid.ShapeAt((y + 1) * w + fx) == Sim.Grid.Shape.None)
+                        if (Open(fx, y) && Open(fx, y - 1) && Open(fx, y - 2) && grid.WallAt((y + 1) * w + fx) is { Id: "stone" })
                             return (y * w + fx, (x + 0.5, top + 0.5));
         return null;
     }

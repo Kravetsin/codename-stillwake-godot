@@ -18,6 +18,9 @@ public static class HeroMotion
         public const double Gain = 0.003, Smooth = 0.3, Forward = 0.25, Back = 0.22, SettleMs = 60;
     }
 
+    /// <summary>How long the figure takes to close a step of a cell, up or down, the controller made whole (<c>StepEase</c>, 0106), in milliseconds.</summary>
+    public const double StepMs = 100;
+
     /// <summary>
     /// A landing sinks the knees by the fall's speed over <see cref="PerDepth"/>, from <see cref="Least"/> to
     /// <see cref="Most"/> times the old sink, <see cref="Running"/> of that landing at over <see cref="RunningSpeed"/> across;

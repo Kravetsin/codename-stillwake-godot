@@ -46,7 +46,7 @@ public class FloraTests
 
     /// <summary>
     /// The surface's density, measured on the first planet's seed 1, against what it first grew (0079: 18 acacias, 21 bushes, 14
-    /// rocks, 139 bells): the flowers two to three times as many, so a walk passes them often; trees, bushes and rocks at least as
+    /// rocks, 139 bells): the flowers two to three and a half times as many, so a walk passes them often; trees, bushes and rocks at least as
     /// many, spacing keeping them apart. What grows, before the spires clear their boxes (0085).
     /// </summary>
     [Fact]
@@ -55,11 +55,12 @@ public class FloraTests
         var l = Terrain.Generate(PlanetTypes.First with { Ground = PlanetTypes.First.Ground with { Spires = 0 } }, 1);
         int Of(params string[] kinds) => l.Flora!.Count(p => kinds.Contains(p.Kind));
         // At 8 px cells the ground steps twice as finely, so the level ground a tree, a bush or a rock needs is rarer (0104):
-        // they grow about half as often as at 16 px, the flowers, needing none, as often.
+        // they grow about half as often as at 16 px, the flowers, needing none, as often; more since every step of a hill is
+        // whole soil, no slope (0106).
         Assert.InRange(Of("acacia"), 18, 3 * 18);
         Assert.InRange(Of("bush"), 21, 3 * 21);
         Assert.InRange(Of("rock"), 14, 3 * 14);
-        Assert.InRange(Of("bellTeal", "bellViolet", "bellAmber"), 2 * 139, 3 * 139);
+        Assert.InRange(Of("bellTeal", "bellViolet", "bellAmber"), 2 * 139, 7 * 139 / 2);
         Assert.Equal(l.Flora!.OrderBy(p => p.Cell), l.Flora!);
     }
 

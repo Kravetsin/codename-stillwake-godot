@@ -221,7 +221,7 @@ public sealed partial class BuildingModule
     private readonly List<Plant> _nearChanges = [];
 
     /// <summary>
-    /// Whether <paramref name="plant"/>'s hold is gone or cut to a slope (it grows on whole walls only), or its own open cell holds
+    /// Whether <paramref name="plant"/>'s hold is gone (it grows on walls only), or its own open cell holds
     /// something now. A floor's piece may stand on the piece in front under it instead (0091); one on a back wall needs its own.
     /// </summary>
     private bool Uprooted(Plant plant)
@@ -235,7 +235,7 @@ public sealed partial class BuildingModule
         else
             foreach (int hold in HoldsOf(plant))
             {
-                bool whole = _grid.StructureAt(hold) == Structure.Wall && _grid.ShapeAt(hold) == Shape.None;
+                bool whole = _grid.StructureAt(hold) == Structure.Wall;
                 bool onPiece = on == Flora.Anchor.Floor && _plantIn.TryGetValue(hold, out var under) && under != plant && Kinds[under.Kind].On == Flora.Anchor.Floor;
                 if (!whole && !onPiece) return true;
             }

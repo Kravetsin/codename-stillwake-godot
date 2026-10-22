@@ -10,7 +10,7 @@ namespace Stillwake.Sim;
 /// <param name="Materials">
 /// Each cell's material code (<c>Content.Materials</c>), for its wall and its back wall: what one character cannot say (0077).
 /// None given, every one is the default hull, as on every map before the planets; 0 is the open sky: no back wall, and a
-/// wall drawn there of the default hull. A negative code is the material without its back wall: a slope under the sky.
+/// wall drawn there of the default hull.
 /// </param>
 public sealed record Layout(
     int Width, int Height, IReadOnlyList<string> Rows, IReadOnlyList<string>? Under = null,
@@ -133,7 +133,7 @@ public sealed record Layout(
     /// a conduit its top-left, and the cell right of it or under it where the character there is a conduit too, on either map,
     /// so pipes stay one cell wide and meet the ports, which double with the footprints. The under-map's oxygen marks its
     /// tank's top-left. Materials, cables (by their ends' top-left cells), the zone and the plants of a test's map double
-    /// with it: a plant on a floor by its block's bottom-left, any other by its top-left. A slope does not double: it throws.
+    /// with it: a plant on a floor by its block's bottom-left, any other by its top-left.
     /// </summary>
     public Layout Doubled()
     {
@@ -155,8 +155,6 @@ public sealed record Layout(
             for (int x = 0; x < Width; x++)
             {
                 char c = Rows[y][x];
-                if (c is '/' or '\\' or 'r' or '7')
-                    throw new FormatException($"Map cell ({x}, {y}): a slope '{c}' does not double; draw the ground it cuts as cells.");
                 // The block's cells: top-left, top-right, bottom-left, bottom-right.
                 char tl = c, tr = c, bl = c, br = c;
                 if (c == '=') (bl, br) = ('.', '.');

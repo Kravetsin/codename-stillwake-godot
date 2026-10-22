@@ -136,7 +136,7 @@ public partial class BuildingView : Node2D
                 return;
             }
             if (_drag is not { } under || under.Left != left) return;
-            Send(Tools.Shaped(under.Act, _hand.Shape.Get())!, under.From, button.At);
+            Send(under.Act, under.From, button.At);
             _drag = null;
         }
         // The left button is the card's, but on the power tab with no card to place, where it lays the
@@ -156,8 +156,6 @@ public partial class BuildingView : Node2D
             {
                 _hand.Tab.Set(Tools.TabOf(card));
                 _hand.Selected.Set(card);
-                // A wall is picked with its shape (0069).
-                if (card is PlaceTool { Placement.Kind: "wall" }) _hand.Shape.Set(Tools.ShapePicked(CellAt(at), overlay, grid, building));
             }
         }
 
@@ -433,8 +431,7 @@ public partial class BuildingView : Node2D
         _near = [];
         _ui.Reason.Set(null);
         if (tool is PlaceTool && pointer is { } near) _near = NearGrid.Around(near, width, height);
-        // A wall's card places walls cut to the shape in hand, R turning it mid-drag too (0069).
-        Act? act = Tools.Shaped(_drag?.Act ?? (tool as PlaceTool), _hand.Shape.Get());
+        Act? act = _drag?.Act ?? tool as PlaceTool;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
         var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p, building, _brush), building);
         if (act is PlaceTool place)

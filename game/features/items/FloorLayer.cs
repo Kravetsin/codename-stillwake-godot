@@ -116,9 +116,6 @@ public partial class FloorLayer : Node2D
                 if (!inSpace) rise = (1 - Math.Cos((_clockMs - one.RestMs) / BobMs * 2 * Math.PI)) / 2;
             }
             one.View.Position = new Vector2((float)(x / Unit * Cell), (float)(y / Unit * Cell - rise * Bob));
-            // On a slope's diagonal it lies along it, turned about the point it rests on (0069).
-            int shape = Resting(s) && !inSpace ? grid.ShapeAt(s.Cell) : Shape.None;
-            one.View.Rotation = shape == Shape.BottomRight ? -MathF.PI / 4 : shape == Shape.BottomLeft ? MathF.PI / 4 : 0;
             one.Picture.Rotation = inSpace ? (float)((_clockMs + s.Id * 1000) / TurnMs * 2 * Math.PI) : 0;
             one.Rim.Modulate = new Color(1, 1, 1, (float)(RimLow + (RimHigh - RimLow) * rise));
         }
