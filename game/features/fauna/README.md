@@ -47,6 +47,11 @@ the drill's bit are tested against each creature's body as against a wreck's box
   the blade stops on it a moment, the figure's own `Bit`). All drawn only: its place is never held, as a neutral creature has
   no hit-stun and bolts at the blow. A drill's hit is its share of the axe's (`Impacts.ShareOf`): flashes and shakes less, ten
   a second. Fleeing it leans forward and stretches long, ears back and tail flown, all eased in with its flight.
+- **A ram's tell** (0103), read off the sim's `WindUp` and `Charge`: winding up it crouches low and wide (`CreatureMotion.Bracing`,
+  eased in over 120 ms: 16 % wider, 20 % lower), nose tipped down, ears pinned, trembling half a pixel, its hind feet scraping
+  dust back every 130 ms; it snorts as it begins, a puff off its snout and `Sound.Snort` (a canister's hiss low, a placeholder)
+  where it stands. Charging, it gallops at its speed and throws dust behind it every 60 ms. Its hit on a hero is the crew's to
+  show (`features/crew`).
 - **Jumps** read off the sim (a rise faster than 250 a tick from the ground, past any blow's hop): a 70 ms crouch, then a spring
   tall and thin easing back over 380 ms, ears laid back; on landing a squash as hard as the fall was fast.
 - **Seen and heard by what it is** (0093, 0094): `HitLooks.Creatures` names each species' `Impact` (the loper's `Flesh`: white

@@ -21,11 +21,12 @@ public readonly record struct Point(int X, int Y);
 /// (0047): in space the hero keeps its speed, ties no tether, and while <see cref="Thrust"/> is set, a unit
 /// vector in thousandths, gains <c>Jetpack.Accel</c> a step that way up to <c>Jetpack.Top</c>; else it slows
 /// by <c>Jetpack.Drag</c> a step toward what the keys swim. <see cref="JumpHeld"/>, Space held down: let go while a
-/// jump rises, it rises less (<c>Hero.JumpCut</c>); the step <see cref="Jump"/> is set counts as held too.
+/// jump rises, it rises less (<c>Hero.JumpCut</c>); the step <see cref="Jump"/> is set counts as held too. <see cref="Reeling"/>,
+/// knocked by a ram (0103): the keys aside, no ladder taken, the knock's speed kept in the air and braked on the floor.
 /// </summary>
 public readonly record struct HeroInput(
     int X, int Y, bool Jump, int? Face = null, bool Sprint = false, bool Swings = false, Point? Pull = null,
-    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false);
+    bool Jetpack = false, Point? Thrust = null, bool JumpHeld = false, bool Reeling = false);
 
 /// <summary>
 /// The cells the hero moves against and the shapes of their walls (0069); which of them are space, where the
@@ -216,6 +217,12 @@ public readonly record struct Hero(
         if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
+        if (input.Reeling)
+        {
+            // Knocked by a ram (0103): thrown by it, not walked, so the air's control does not eat the knock; the floor brakes it.
+            bool footed = hero.Vy >= 0 && Grounded(ship, hero.X, hero.Y);
+            return Fall(ship, hero.X, hero.Y, footed ? Paced(hero.Vx, default, true) : hero.Vx, hero.Vy, facing, false);
+        }
         bool held = input.Jump || input.JumpHeld;
         int letGo = Math.Min(hero.LetGo + 1, Spec.Regrab + 1);
         // Up grabs a ladder walking, running or rising too, but not for a moment after letting go of one, so a jump off it

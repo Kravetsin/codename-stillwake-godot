@@ -70,6 +70,9 @@ public partial class FaunaView(Ui ui) : Node2D
         /// <summary>Its speed down as last seen, and the fastest it fell since it left the ground: for its jumps and landings.</summary>
         public int LastVy { get; set; }
         public int Fall { get; set; }
+        /// <summary>Its mode as last drawn, so a wind-up begun snorts once; and the time to the next scrape of its feet.</summary>
+        public Mode Was { get; set; }
+        public double ScrapeMs { get; set; }
     }
 
     private readonly Dictionary<int, Shown> _shown = new();
@@ -297,7 +300,9 @@ public partial class FaunaView(Ui ui) : Node2D
             one.Fall = 0;
         }
         one.LastVy = c.VY;
+        motion.Bracing = c.Mode == Mode.WindUp;
         motion.Step(elapsedMs, drawn.X - one.Drawn.X, grounded && !one.Grounded, c.VX == 0 ? watch : null);
+        Rams(one, c, spec, drawn, grounded, elapsedMs);
         // Its legs go by the ground the sim moved it on its last tick, never by a frame's step: a frame's is uneven, a tick's is not.
         double speed = Math.Abs(one.To.X - one.From.X) / Unit * Cell * World.TicksPerSecond;
         bool fleeing = c.Mode == Mode.Flee;
@@ -327,6 +332,38 @@ public partial class FaunaView(Ui ui) : Node2D
         body.Rotation = (float)motion.Tilt(gait.Flee) + one.Lean;
         body.Pose(pose, motion.Flash);
     }
+
+    /// <summary>
+    /// A ram's tell (0103): a wind-up begun snorts a puff off its snout, heard where it is; crouched (<see cref="CreatureMotion.Bracing"/>)
+    /// its hind feet scrape dust back, and charging it throws dust behind it faster.
+    /// </summary>
+    private void Rams(Shown one, Creature c, Spec.Fauna.Species spec, Vector2 feet, bool grounded, double elapsedMs)
+    {
+        int facing = one.Motion.Facing;
+        float wide = spec.Width * Cell * one.Body.Size;
+        if (c.Mode == Mode.WindUp && one.Was != Mode.WindUp)
+        {
+            var snout = feet + new Vector2(facing * wide * 0.5f, -spec.Height * Cell * 0.45f * one.Body.Size);
+            var glims = Glims.Shared;
+            for (int i = 0; i < 6; i++)
+                glims.Add(Puff, snout.X, snout.Y, facing * glims.Between(10, 28), glims.Between(-8, 2), size: glims.Between(2, 3.5));
+            _worldHits.Play(S.Snort, snout, S.Snort.Tune, 0);
+            one.ScrapeMs = 0;
+        }
+        one.Was = c.Mode;
+        if (!grounded || c.Mode is not (Mode.WindUp or Mode.Charge)) return;
+        one.ScrapeMs -= elapsedMs;
+        if (one.ScrapeMs > 0) return;
+        bool charging = c.Mode == Mode.Charge;
+        one.ScrapeMs = charging ? ChargeDustMs : ScrapeEveryMs;
+        var heel = feet + new Vector2(-facing * wide * 0.32f, -0.5f);
+        var dust = Glims.Shared;
+        for (int i = 0; i < (charging ? 2 : 3); i++)
+            dust.Add(Luminous.LandDust, heel.X + dust.Between(-1.5, 1.5), heel.Y, -facing * dust.Between(18, charging ? 40 : 60), -dust.Between(4, 16), feet.Y);
+    }
+
+    /// <summary>How often a crouched rammer scrapes its feet, and a charging one throws dust, in milliseconds.</summary>
+    private const double ScrapeEveryMs = 130, ChargeDustMs = 60;
 
     /// <summary>
     /// How far under a body standing at <paramref name="y"/> the ground lies at <paramref name="x"/>, in thousandths, at most a cell:

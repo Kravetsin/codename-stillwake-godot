@@ -204,6 +204,9 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>A breath of room air at the visor: a pale mote drifting off and fading.</summary>
     public static readonly Luminous VisorMote = new(Glimmer.Mote, [(220, 246, 255), (150, 214, 245)], (900, 1400))
     { Bright = 0.85, Fade = 1.1, Rise = 0.12, Drag = 1.2, Turbulence = 10, Size = 0.55 };
+    /// <summary>Rammed (0103): a jet of the suit's air knocked out of it, a quick pale streak slowing to nothing.</summary>
+    public static readonly Luminous SuitLeak = new(Glimmer.Streak, Air, (260, 480))
+    { Bright = 0.9, Fade = 1.2, Drag = 5, Turbulence = 14, Stretch = 0.05, Shortest = 0.6, Longest = 9, Width = 0.22, Hot = 0.5 };
 }
 
 /// <summary>One luminous particle in flight.</summary>

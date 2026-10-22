@@ -66,6 +66,25 @@ public partial class AirSwirl : Node
         }
     }
 
+    /// <summary>
+    /// Rammed (0103): the suit's air knocked out of it at <paramref name="chest"/>, jets and motes bursting toward the blow, the side
+    /// <paramref name="from"/> says (+1 right), and up, round a faint ring.
+    /// </summary>
+    public void Leak(Vector2 chest, int from)
+    {
+        for (int i = 0; i < Fx.LeakStreaks * Fx.Count; i++)
+        {
+            double a = (from > 0 ? 0 : Math.PI) - from * _glims.Between(0.1, 1.2), s = _glims.Between(60, 150);
+            _glims.Add(Luminous.SuitLeak, chest.X + from * 2, chest.Y + _glims.Between(-2, 2), Math.Cos(a) * s, Math.Sin(a) * s);
+        }
+        for (int i = 0; i < Fx.LeakMotes * Fx.Count; i++)
+        {
+            double a = -Math.PI / 2 + from * _glims.Between(0.2, 1.4), s = _glims.Between(0.5, 1) * Fx.VisorDrift * 2;
+            _glims.Add(Luminous.VisorMote, chest.X + _glims.Between(-2, 2), chest.Y + _glims.Between(-2, 2), Math.Cos(a) * s, Math.Sin(a) * s);
+        }
+        Flares.Shared.Shock(chest.X + from * 2, chest.Y, 2, Fx.LeakRing, 260, Air, 0.5 * Fx.Glow, 0.3);
+    }
+
     public override void _Process(double delta)
     {
         double ms = delta * 1000;

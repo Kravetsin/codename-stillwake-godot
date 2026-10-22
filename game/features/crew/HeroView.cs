@@ -187,6 +187,15 @@ public partial class HeroView : Node2D
     private readonly AirSwirl _air = new();
     /// <summary>Which friend breathed a canister, read off its suit (0081).</summary>
     private readonly CanistersSeen _canisters = new();
+    /// <summary>
+    /// Rams (0103): this client's guard after its own hit, the controller steps it still reels, the creatures charging last frame
+    /// (one leaving its charge by a friend flinches that friend), and the thud, this hero's own through the suit.
+    /// </summary>
+    private readonly Rams.Guard _ramGuard = new();
+    private int _reel;
+    private HashSet<int> _charging = [], _chargingNow = [];
+    private readonly AudioStreamPlayer _thud = Cues.Player(S.RamThud, S.Suit);
+    private readonly Heard2D _othersThud = Cues.Player2D(S.RamThud, S.World, voices: 2);
 
     /// <param name="ui">What the hand holds, the crate open and the piece aimed at, shared with the other features.</param>
     /// <param name="mouse">The pointer and the left button as the world reads them.</param>
@@ -216,7 +225,7 @@ public partial class HeroView : Node2D
         AddChild(_lines);
         _rod = NewRod();
         foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
-                     _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn })
+                     _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud })
             AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
@@ -359,6 +368,8 @@ public partial class HeroView : Node2D
         int? face = Poses.FaceOf(pointed, _current);
         int steps = _clock.Advance(elapsedMs);
         if (steps > 0) _thrust = null;
+        if (passedOut || moved) _reel = 0;
+        else Rammed(client, m);
         for (int due = steps; due > 0; due--)
         {
             // Passed out, the hero takes no orders and only falls; keys pressed meanwhile are spent.
@@ -379,6 +390,12 @@ public partial class HeroView : Node2D
             var input = passedOut
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
                 : taken with { Face = faces, Swings = swinging || _aimsGun || _aimsDrill, Pull = pull, Jetpack = jetpack, Thrust = thrust };
+            // Rammed, the hero is thrown, not walked: no keys, no ladder, a held Up or Space taken by nothing (0103).
+            if (_reel > 0)
+            {
+                input = input with { X = 0, Y = 0, Jump = false, JumpHeld = false, Sprint = false, Thrust = null, Reeling = true };
+                _reel--;
+            }
             (_previous, _current) = (_current, _current.Step(input, ship));
             _steps++;
         }
@@ -447,6 +464,39 @@ public partial class HeroView : Node2D
         _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen), _steps * Hero.StepMs);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();
+    }
+
+    /// <summary>
+    /// A creature's charge touching this hero (0103), as this client sees them, while its guard is open: <c>HitBy</c> sent, and at
+    /// once, a round trip before the sim's word, the hero thrown away from it and reeling, flinching, its suit's air knocked out,
+    /// a thud through the suit. The sim takes the air; the gauge shows it as it drops.
+    /// </summary>
+    private void Rammed(Client client, Registry m)
+    {
+        int tick = client.World.Tick;
+        if (!_ramGuard.Open(tick) || Rams.Contact(m.Fauna.Creatures, _current) is not { } c || m.Fauna.HitByProblem(c.Id) != null) return;
+        client.Send(new Stillwake.Sim.Fauna.HitBy(c.Id));
+        _ramGuard.Sent(tick);
+        int away = Rams.Away(c, _current);
+        _current = Rams.Knocked(_current, away, Content.Fauna.Get(c.Species).Ram);
+        _reel = Spec.Reel;
+        _figure.Flinch(-away);
+        var (x, y) = Chest(_current);
+        _air.Leak(new Vector2(x, y), -away);
+        _thud.Play();
+    }
+
+    /// <summary>
+    /// Whether a creature whose charge ended since last frame touched <paramref name="hero"/>, a friend drawn here (0103): the side
+    /// it came from, +1 right, the way it recoils, for the friend to flinch from; none for none. Its peer sent the hit; this one
+    /// only shows it.
+    /// </summary>
+    private int? RamEndedBy(Registry m, Hero hero)
+    {
+        foreach (var c in m.Fauna.Creatures)
+            if (_charging.Contains(c.Id) && c.Mode != Stillwake.Sim.Fauna.Mode.Charge && Rams.Touches(c, hero, Rams.FriendMargin))
+                return c.VX >= 0 ? 1 : -1;
+        return null;
     }
 
     /// <summary>
@@ -769,6 +819,9 @@ public partial class HeroView : Node2D
         // Only the heroes on this hero's surface: the others stand on another grid (0076).
         int here = _client!.World.SurfaceOf(_client.Id);
         var others = _remote.At(_clockMs).Where(o => _client.World.SurfaceOf(o.Id) == here).ToList();
+        _chargingNow.Clear();
+        foreach (var c in m.Fauna.Creatures)
+            if (c.Mode == Stillwake.Sim.Fauna.Mode.Charge) _chargingNow.Add(c.Id);
         foreach (var (id, shown) in _shownOthers)
             if (!others.Any(o => o.Id == id))
             {
@@ -815,6 +868,14 @@ public partial class HeroView : Node2D
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
             shown.Figure.Ledge = LedgeOf(ship, hero);
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
+            // A charge ended by it: it was rammed, its own peer says so; here it flinches, its air knocked out, heard where it is.
+            if (!out_ && RamEndedBy(m, hero) is int rammedFrom)
+            {
+                shown.Figure.Flinch(rammedFrom);
+                var (cx, cy) = Chest(hero);
+                _air.Leak(new Vector2(cx, cy), rammedFrom);
+                _othersThud.PlayAt(new Vector2(cx, cy));
+            }
             shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
@@ -833,6 +894,7 @@ public partial class HeroView : Node2D
         }
         _canisters.Sweep();
         Others = others.Select(o => (o.Id, o.Seen.Hero)).ToList();
+        (_charging, _chargingNow) = (_chargingNow, _charging);
     }
 
     /// <summary>

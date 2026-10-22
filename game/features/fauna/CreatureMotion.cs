@@ -23,8 +23,20 @@ public sealed class CreatureMotion
     /// <summary>How long a jump's crouch and its spring last, and a landing's squash at its hardest.</summary>
     public const double CrouchMs = 70, SpringMs = 380, LandMs = 260, HardestLanding = 0.26;
 
-    private double _flash, _squash, _flinch, _startle, _shake, _land, _landHard, _clock, _blink, _crouch, _spring;
+    private double _flash, _squash, _flinch, _startle, _shake, _land, _landHard, _clock, _blink, _crouch, _spring, _brace;
     private double _nextBlink = 2400;
+
+    /// <summary>
+    /// Winding up to ram (0103): low and wide, its head down, ears pinned and a tremble, eased in over <see cref="BraceMs"/> and
+    /// let go as it charges. The sim's word: its <c>WindUp</c>.
+    /// </summary>
+    public bool Bracing { get; set; }
+
+    /// <summary>How quickly a wind-up crouches, and how far: wider and lower by these shares, tipped nose down by this many radians.</summary>
+    public const double BraceMs = 120, BraceWide = 0.16, BraceLow = 0.2, BraceTip = 0.16, BracePixels = 0.5;
+
+    /// <summary>How far it is crouched to ram, 0 to 1.</summary>
+    public double Brace => _brace;
 
     /// <summary>The way it faces, +1 right: the way it last moved, or toward a hero it watches while still.</summary>
     public int Facing { get; private set; } = 1;
@@ -60,6 +72,7 @@ public sealed class CreatureMotion
     public void Step(double elapsedMs, double dx, bool landed, int? watch)
     {
         _clock += elapsedMs;
+        _brace = Math.Clamp(_brace + (Bracing ? 1 : -2) * elapsedMs / BraceMs, 0, 1);
         _crouch = Math.Max(0, _crouch - elapsedMs / CrouchMs);
         _spring = Math.Max(0, _spring - elapsedMs / SpringMs);
         if (landed) _land = Math.Max(_land, 0.3 + _landHard);
@@ -99,8 +112,9 @@ public sealed class CreatureMotion
         double breath = 0.015 * Math.Sin(_clock / 520);
         // A jump: crouched low for a blink, then sprung tall and thin, easing back.
         double crouch = _crouch * 0.22, spring = _crouch > 0 ? 0 : _spring * _spring * 0.3;
-        double x = 1 + SquashWide * wobble + land + crouch - spring * 0.6 + 0.1 * flee;
-        double y = 1 - SquashFlat * wobble - land - crouch + spring + breath - 0.07 * flee;
+        double brace = _brace * (3 - 2 * _brace) * _brace;
+        double x = 1 + SquashWide * wobble + land + crouch - spring * 0.6 + 0.1 * flee + BraceWide * brace;
+        double y = 1 - SquashFlat * wobble - land - crouch + spring + breath - 0.07 * flee - BraceLow * brace;
         return (x, y);
     }
 
@@ -108,14 +122,14 @@ public sealed class CreatureMotion
     public bool Leaping => _crouch > 0 || _spring > 0.2;
 
     /// <summary>Its tilt in the world, radians clockwise: its top thrown the way a blow knocks it, leaning the way it flees.</summary>
-    public double Tilt(double flee) => Away * FlinchTilt * _flinch * _flinch + Facing * 0.12 * flee;
+    public double Tilt(double flee) => Away * FlinchTilt * _flinch * _flinch + Facing * 0.12 * flee + Facing * BraceTip * _brace;
 
-    /// <summary>Its shake after a blow, in pixels across: drawn only.</summary>
-    public double Shake => _shake > 0 ? ShakePixels * Math.Sin(_clock * 0.9) * (_shake / ShakeMs) : 0;
+    /// <summary>Its shake after a blow, in pixels across, and the tremble of a wind-up: drawn only.</summary>
+    public double Shake => (_shake > 0 ? ShakePixels * Math.Sin(_clock * 0.9) * (_shake / ShakeMs) : 0) + BracePixels * _brace * Math.Sin(_clock * 0.6);
 
     /// <summary>How wide its eye is: 1 at rest, more startled, none blinking.</summary>
     public double Eye => _blink > 0 ? 0.1 : 1 + 0.45 * _startle;
 
     /// <summary>How flat its ears lie, 0 up to 1 pinned back: back while startled, fleeing or leaping.</summary>
-    public double Ears(double flee) => Math.Max(Math.Max(flee, Leaping ? 1 : 0), _startle);
+    public double Ears(double flee) => Math.Max(Math.Max(Math.Max(flee, Leaping ? 1 : 0), _startle), _brace);
 }
