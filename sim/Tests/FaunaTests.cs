@@ -196,11 +196,11 @@ public class FaunaTests
     }
 
     [Fact]
-    public void ALopersJumpIsAboutFourCellsHighAndTenLongOnTheFirstPlanet()
+    public void ALopersJumpIsAboutFourCellsHighAndSeventeenLongOnTheFirstPlanet()
     {
         int g = Content.PlanetTypes.First.Fall(Tune.Gravity);
         Assert.InRange(Leaps.Height(Loper.Jump, g), 4_000, 4_600);
-        Assert.InRange(Leaps.Length(Loper.Jump, Loper.JumpAcross, g), 9_000, 11_000);
+        Assert.InRange(Leaps.Length(Loper.Jump, Loper.JumpAcross, g), 15_000, 18_000);
         // Every tick of it under a cell, across and down: nothing is passed through.
         Assert.True(Loper.Jump < Unit && Loper.JumpAcross < Unit && Tune.MaxFall < Unit);
     }
@@ -228,6 +228,7 @@ public class FaunaTests
     [InlineData(3)]
     [InlineData(4)]
     [InlineData(8)]
+    [InlineData(12)]
     public void AFleeingLoperLeapsAGapItClearsAndNeverFallsIn(int wide)
     {
         var (_, over, fell) = Flee(Course(gap: wide), wide);
@@ -238,7 +239,7 @@ public class FaunaTests
     [Fact]
     public void AFleeingLoperTurnsAtAGapTooWideToLeap()
     {
-        var (c, over, fell) = Flee(Course(gap: 14), 14);
+        var (c, over, fell) = Flee(Course(gap: 22), 22);
         Assert.False(over);
         Assert.False(fell, "it leapt into the void");
         Assert.True(c.X < 40 * Unit);

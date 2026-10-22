@@ -32,11 +32,11 @@ public static class Fauna
     /// hunter follows and finds it again, corners it at a cliff or a wall, or stuns it (the arc's stun module to come). No
     /// hit-stun: neutral, it bolts at the first blow, and the drill cannot pin it (the user's word). It jumps (the user's word:
     /// pinned to a wall it could do nothing): at 440 a tick up, on the first planet's gravity some 4.4 cells high, clearing a wall
-    /// of four, and 250 across, some ten cells long landing level, clearing a gap of four and more. Twelve hit points: six of the
+    /// of four, and 400 across, some 17 cells long landing level, clearing a gap of a dozen and more. Twelve hit points: six of the
     /// axe's hits. Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
     /// </summary>
     public static readonly Species Loper = new("loper", Width: 2, Height: 2, Hp: 12, Wander: 100, Flee: 750, FleeTicks: 60,
-        Stun: 0, Knock: 200, Hop: 180, Jump: 440, JumpAcross: 250, Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
+        Stun: 0, Knock: 200, Hop: 180, Jump: 440, JumpAcross: 400, Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper];
 

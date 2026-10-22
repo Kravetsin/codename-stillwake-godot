@@ -41,8 +41,8 @@ must agree on where it is and when it dies, so its body, its hit points and its 
   would turn it first flies a leap through the grid, tick by tick as it would move, and takes it if it lands at least a cell on
   and no more than three rows down; else it turns as before. Fleeing, the lowest of three jumps that lands (sized for a ledge
   of two, of three, and its whole jump), over walls and across gaps; wandering, only up a ledge of two at its feet, so it does
-  not bound about. In the air it presses flush on a wall and is carried over once clear. The loper: 440 up and 250 across,
-  4.4 cells high and 10.5 long landing level on the first planet; it clears a wall of four and a gap of eight or so, and
+  not bound about. In the air it presses flush on a wall and is carried over once clear. The loper: 440 up and 400 across,
+  4.4 cells high and 16.8 long landing level on the first planet; it clears a wall of four and a gap of a dozen, and
   turns at a wall of five and at a pit too wide or deep. Still cornerable: under a low ceiling, or by a cliff of four rows
   or more, or a pit past its leap. No draw: it is a pure function of the grid.
 - **The loper,** 2 × 2, 12 hit points: six axe hits, twelve of the drill, six of the fitted drill. Wanders at 2 cells a
