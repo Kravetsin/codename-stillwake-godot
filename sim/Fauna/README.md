@@ -30,8 +30,9 @@ flinching and fleeing, dying into their yields, and gone again when no hero is n
 - **Moving** is integer and per axis, under the surface's gravity (`Kind.Fall(Fauna.Gravity)`, 21 a tick on the first
   planet, at most `Fauna.MaxFall`). Solid is a wall (a slope stood on at its top, whole), a floor or a closed door, and past
   the grid's edge, as for a stack; machines are not. Across: into what is solid it steps up one cell if it stood on the
-  ground and the cell over is free, else stops flush, turned back while walking. Down: it lands flush on what is under it;
-  up, it stops flush under what is over it. A tick moves less than a cell, so the next column or row is the only one entered.
+  ground and the cell over is free, else stops flush, turned back while walking; walking off a step one cell deep it steps down
+  onto it, never falling, so a slope's run of steps is walked. Down: it lands flush on what is under it; up, it stops flush
+  under what is over it. A tick moves less than a cell, so the next column or row is the only one entered.
 - **Modes:** `Idle` (a draw of `IdleLeast`..`IdleMost` ticks) → `Wander` (a draw of its way and of `WanderLeast`..`WanderMost`
   ticks) → `Idle`; a strike → `Hurt` for the species' `HurtTicks`, steering nothing → `Flee` for `FleeTicks`, its way away
   from the nearest hero by reported cell (box distance in cells, the first in id order at a tie; level, or none, the knock's
@@ -41,7 +42,9 @@ flinching and fleeing, dying into their yields, and gone again when no hero is n
   bug and throws. It takes `Items.Damage(sender, tool)` off the creature; at its hit points it dies, its `Yields` drawn as a
   container's loot (`Loots.Roll`) and dropped by nobody on the cell of its top row under its middle, falling to where it stood.
   Else it is knocked: `Hurt`, its speed across the species' `Knock` away from the striker's reported cell (level, or none on
-  the grid: back against its way), `Hop` up. Reach, pace and whether the sender holds the tool are the client's word (0034).
+  the grid: back against its way), `Hop` up unless it rises already; a tool striking faster than `Fauna.KnockPace` (10 ticks, the
+  axe's) knocks and hops its pace's share, rounded down, so the drill's ten hits a second push it about as far as the axe's two
+  and pin it flinching while the bit stays on it. Reach, pace and whether the sender holds the tool are the client's word (0034).
 - **`Release(Species, Cell)`,** a dev command (`--fauna`): a creature idling with its body's bottom left in the cell.
   Refused `fauna.notHere` aboard, `fauna.full` at `Fauna.Max`, `fauna.blocked` off the grid or where its body would be in
   anything solid. An unknown species is our bug.

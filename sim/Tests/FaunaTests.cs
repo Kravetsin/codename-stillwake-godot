@@ -136,6 +136,28 @@ public class FaunaTests
     }
 
     [Fact]
+    public void AWalkerStepsDownAStepOneCellDeepWithoutFalling()
+    {
+        var w = FaunaTesting.Planet("""
+            ##############
+            #............#
+            #............#
+            #............#
+            #######......#
+            ##############
+            """).HeroAt(8, 4);
+        var c = w.Loper(2, 3).Walking(+1);
+        bool down = false;
+        for (int t = 0; t < 120; t++)
+        {
+            w.Run();
+            Assert.Equal(0, c.VY);
+            down |= c.Y == 5 * Unit;
+        }
+        Assert.True(down, "it never stood below the step");
+    }
+
+    [Fact]
     public void AnIdleLoperTakesToWanderingAndBackOnItsOwnDrawingItsWay()
     {
         var w = FaunaTesting.Planet(Room).HeroAt(1, 3);
@@ -171,6 +193,21 @@ public class FaunaTests
             Assert.Equal(0, c.VX);
             Assert.Equal(Spec.Weapons.Axe.Damage, c.Damage);
         }
+    }
+
+    [Fact]
+    public void TheDrillsQuickHitsEachKnockItsPacesShareOfTheAxesAndNoHopWhileRising()
+    {
+        var w = FaunaTesting.Planet(Room).HeroAt(1, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1));
+        var c = w.Loper(5, 3).Still();
+        w.Do(new Strike(c.Id, Drill)).Run();
+        int share = Spec.Weapons.Drill.Pace * 1000 / Tune.KnockPace;
+        Assert.Equal(Loper.Knock * share / 1000, c.VX);
+        int rising = c.VY;
+        Assert.True(rising < 0);
+        // Struck again while it rises: knocked as before, its rise not renewed.
+        w.Do(new Strike(c.Id, Drill)).Run();
+        Assert.Equal(rising + Content.PlanetTypes.First.Fall(Tune.Gravity), c.VY);
     }
 
     [Fact]

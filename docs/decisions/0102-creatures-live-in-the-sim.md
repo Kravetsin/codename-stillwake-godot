@@ -32,15 +32,19 @@ must agree on where it is and when it dies, so its body, its hit points and its 
   drawn alongside the far field's (`DebrisModule.SpawnAround`), some fifteen lines alike: a shared ring waits for a third
   caller and a hash-equality test that proves debris draws as before.
 - **Walking** (`Live.cs`): integer, per axis, under the planet's gravity (`Kind.Fall`, as stacks fall); solid is what
-  stops a stack. A walker steps up one cell, turns back at a wall it cannot step and at a drop of three rows or more, and
-  walks off a shallower one. Modes: idle, wander, flee, hurt; only an idle or a wander begun draws from the Rng.
+  stops a stack. A walker steps up one cell and down one, turns back at a wall it cannot step and at a drop of three rows or
+  more, and walks off a shallower one. Modes: idle, wander, flee, hurt; only an idle or a wander begun draws from the Rng.
 - **The loper,** 2 × 2, 12 hit points: six axe hits, twelve of the drill, six of the fitted drill. Wanders at 2 cells a
-  second, flees at 9 for 3 s (a walking hero loses it, a running one at 13 catches it).
+  second, flees at 6.4 for 3 s: under a hero's walk of 7.2, so a hunter keeps up and lands the next blow, and under a run of
+  13 (tuned in play: at 9 it was out of reach after every hit, and a hunt was a sprint with one swing in it).
 - **A hit** (`Strike(Creature, Tool)`) is any weapon's, its damage the tool's `ToolStats` for its sender (0098), refused
   `fauna.gone`, `items.flat`, `items.notRunning` as wrecks' hits are (0054, 0055). It knocks the creature away from the
-  striker's reported cell (`Knock`, a hop up), a flinch of 6 ticks steering nothing, then flight away from the nearest
-  hero. The last hit drops its yields by nobody from its top row, so they fall where it stood: placeholders, two or three
-  biomass and a seed one time in four. The roll is debris' loot roll, moved to `Core` (`Loots.Roll`) for both.
+  striker's reported cell (`Knock` 200 a tick, 1.6 cells over its flinch, a hop of under a cell), a flinch of 8 ticks steering
+  nothing, then flight away from the nearest hero. A faster tool knocks its pace's share (`Fauna.KnockPace`, the axe's 10
+  ticks): each drill hit a fifth, so the drill pins a creature flinching under its bit rather than batting it out of reach
+  with the first of ten hits a second; no hop renewed while it rises. The last hit drops its yields by nobody from its top
+  row, so they fall where it stood: placeholders, two or three biomass and a seed one time in four. The roll is debris' loot
+  roll, moved to `Core` (`Loots.Roll`) for both.
 - **Dev:** `Release(Species, Cell)`, a command as `world.open` is, refused `fauna.notHere`, `fauna.full`, `fauna.blocked`;
   the client's `--fauna` sends it.
 - **Save format 26:** an empty fauna slice after every other, aboard and on every surface.

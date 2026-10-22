@@ -107,10 +107,13 @@ public sealed partial class FaunaModule : Module<FaunaState>
             return;
         }
         int away = AwayFrom(creature, _crew.HeroOf(c.From)?.Cell);
+        // A tool's pace is its weapon's (0098): the drill's quick hits each knock a share, rounded toward none.
+        int pace = Math.Min(Spec.KnockPace, Content.Weapons.Of(c.Tool)!.Pace);
         creature.Mode = Mode.Hurt;
         creature.ModeLeft = spec.HurtTicks;
-        creature.VX = away * spec.Knock;
-        creature.VY = -spec.Hop;
+        creature.VX = away * spec.Knock * pace / Spec.KnockPace;
+        // No hop while it rises already: a run of quick hits keeps it low rather than juggling it up.
+        if (creature.VY >= 0) creature.VY = -spec.Hop * pace / Spec.KnockPace;
     }
 
     private void Apply(Release c)

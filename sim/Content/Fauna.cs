@@ -26,13 +26,19 @@ public static class Fauna
 
     /// <summary>
     /// The loper: a soft round walker of the first planet's open ground, two cells by two, neutral. It wanders and idles, and
-    /// bolts for three seconds when hit, faster than a walk and slower than a run. Twelve hit points: six of the axe's hits.
-    /// Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
+    /// scampers off for three seconds when hit, a little slower than a hero walks, so a hunter keeps up. Twelve hit points: six
+    /// of the axe's hits. Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
     /// </summary>
-    public static readonly Species Loper = new("loper", Width: 2, Height: 2, Hp: 12, Wander: 100, Flee: 450, FleeTicks: 60,
-        HurtTicks: 6, Knock: 250, Hop: 180, Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
+    public static readonly Species Loper = new("loper", Width: 2, Height: 2, Hp: 12, Wander: 100, Flee: 320, FleeTicks: 60,
+        HurtTicks: 8, Knock: 200, Hop: 180, Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper];
+
+    /// <summary>
+    /// A tool striking this many ticks apart or more knocks a creature its species' whole knock and hop; a faster one its pace's
+    /// share of them, rounded down, so a second of the drill's ten hits pushes about as far as the axe's two (the axe's pace).
+    /// </summary>
+    public const int KnockPace = 10;
 
     /// <summary>The species of that id; one not here is our bug: peers run one build.</summary>
     public static Species Get(string id)

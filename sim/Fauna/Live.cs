@@ -173,7 +173,8 @@ public sealed partial class FaunaModule
 
     /// <summary>
     /// <paramref name="c"/> moved a tick: falling by the surface's gravity, across by its speed, stepping up a cell onto a ledge it
-    /// walks into on the ground; stopped flush against what is solid, turned back by a wall while it walks, landed or hitting its head.
+    /// walks into on the ground and, walking, down a cell off one; stopped flush against what is solid, turned back by a wall while
+    /// it walks, landed or hitting its head.
     /// </summary>
     private void Move(Creature c, Spec.Species spec, bool grounded)
     {
@@ -189,6 +190,10 @@ public sealed partial class FaunaModule
                 c.X = c.VX > 0 ? Down(to + half - 1, Unit) * Unit - half : (Down(to - half, Unit) + 1) * Unit + half;
                 c.VX = c.Mode is Mode.Wander or Mode.Flee ? -c.VX : 0;
             }
+            // Down a step one cell deep as it walks, as up one: a slope's run of steps is walked, not fallen down.
+            if (grounded && c.Mode is Mode.Wander or Mode.Flee && !Overlaps(spec, c.X, c.Y + 1)
+                && !Overlaps(spec, c.X, c.Y + Unit) && Overlaps(spec, c.X, c.Y + Unit + 1))
+                (c.Y, c.VY) = (c.Y + Unit, 0);
         }
         int down = c.Y + c.VY;
         if (!Overlaps(spec, c.X, down)) c.Y = down;
