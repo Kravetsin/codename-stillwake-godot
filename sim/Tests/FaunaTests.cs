@@ -72,11 +72,13 @@ public class FaunaTests
         Assert.Equal(3 * Unit + Unit, c.X);
     }
 
-    [Fact]
-    public void AWalkerTurnsBackAtAWallItCannotStepUpNeverEnteringIt()
+    [Theory]
+    [InlineData(Mode.Wander)]
+    [InlineData(Mode.Flee)]
+    public void AWalkerTurnsBackAtAWallItCannotStepUpNeverEnteringIt(Mode mode)
     {
         var w = FaunaTesting.Planet(Room).HeroAt(1, 3);
-        var c = w.Loper(2, 3).Walking(+1);
+        var c = w.Loper(2, 3).Walking(+1, mode);
         int most = 0;
         bool turned = false;
         for (int t = 0; t < 200; t++)
@@ -92,11 +94,13 @@ public class FaunaTests
         Assert.Equal(4 * Unit, c.Y);
     }
 
-    [Fact]
-    public void AWalkerTurnsBackFromADropOfThreeRowsAtTheLedgesEdge()
+    [Theory]
+    [InlineData(Mode.Wander)]
+    [InlineData(Mode.Flee)]
+    public void AWalkerTurnsBackFromADropOfThreeRowsAtTheLedgesEdge(Mode mode)
     {
         var w = FaunaTesting.Planet(Ledge).HeroAt(8, 5);
-        var c = w.Loper(2, 2).Walking(+1);
+        var c = w.Loper(2, 2).Walking(+1, mode);
         int most = 0;
         for (int t = 0; t < 200; t++)
         {
@@ -106,7 +110,8 @@ public class FaunaTests
         }
         // Its leading edge reaches the ledge's edge at column 7 and goes no farther.
         Assert.True(most <= 7 * Unit, $"its edge reached {most}");
-        Assert.True(most > 7 * Unit - Loper.Wander - 1, $"it turned early, at {most}");
+        int speed = mode == Mode.Flee ? Loper.Flee : Loper.Wander;
+        Assert.True(most > 7 * Unit - speed - 1, $"it turned early, at {most}");
     }
 
     [Fact]
@@ -120,11 +125,13 @@ public class FaunaTests
         Assert.True(Clear(w, c));
     }
 
-    [Fact]
-    public void AWalkerStepsUpAStepOneCellHighOnItsWay()
+    [Theory]
+    [InlineData(Mode.Wander)]
+    [InlineData(Mode.Flee)]
+    public void AWalkerStepsUpAStepOneCellHighOnItsWay(Mode mode)
     {
         var w = FaunaTesting.Planet(Step).HeroAt(1, 4);
-        var c = w.Loper(2, 4).Walking(+1);
+        var c = w.Loper(2, 4).Walking(+1, mode);
         bool up = false;
         for (int t = 0; t < 120; t++)
         {
@@ -135,8 +142,10 @@ public class FaunaTests
         Assert.True(up, "it never stood on the step");
     }
 
-    [Fact]
-    public void AWalkerStepsDownAStepOneCellDeepWithoutFalling()
+    [Theory]
+    [InlineData(Mode.Wander)]
+    [InlineData(Mode.Flee)]
+    public void AWalkerStepsDownAStepOneCellDeepWithoutFalling(Mode mode)
     {
         var w = FaunaTesting.Planet("""
             ##############
@@ -146,7 +155,7 @@ public class FaunaTests
             #######......#
             ##############
             """).HeroAt(8, 4);
-        var c = w.Loper(2, 3).Walking(+1);
+        var c = w.Loper(2, 3).Walking(+1, mode);
         bool down = false;
         for (int t = 0; t < 120; t++)
         {
@@ -224,6 +233,34 @@ public class FaunaTests
         // Out of reach within half a second, a few of the drill's twelve hits taken.
         Assert.InRange(free, 1, 10);
         Assert.True(c.Damage < Loper.Hp / 2, $"{hits} hits, {c.Damage} damage before it got away");
+    }
+
+    [Fact]
+    public void ASprintingHeroCannotCloseTheGapDuringAFleeThenItCalmsAndCanBeFoundAgain()
+    {
+        // The hero's sprint in thousandths a tick: its controller steps 60 times a second, the sim 20.
+        int sprint = Spec.Hero.Run * 60 / World.TicksPerSecond;
+        Assert.True(Loper.Flee > sprint, $"a flee of {Loper.Flee} a tick against a sprint of {sprint}");
+        var wide = Wide(400, 8);
+        var w = FaunaTesting.Planet(wide, FaunaTesting.Lifeless).Breathing().HeroAt(100, 6);
+        var c = w.Loper(102, 6).Still();
+        w.Do(new Strike(c.Id, Axe)).Run();
+        // A hero sprinting after it from where it struck, its body's middle level with the loper's back as the blow lands.
+        long hero = 100 * Unit + Unit / 2, gap = c.X - Loper.Width * Unit / 2 - hero;
+        int ticks = 1;
+        while (c.Mode == Mode.Flee)
+        {
+            w.Run();
+            hero += sprint;
+            ticks++;
+            long now = c.X - Loper.Width * Unit / 2 - hero;
+            Assert.True(now >= gap - 2 * sprint, $"the gap closed to {now} from {gap} on tick {ticks}");
+        }
+        // Calmed within its flight's three seconds, never caught; then it idles and wanders, where a follower finds it.
+        Assert.InRange(ticks, Loper.FleeTicks, Loper.FleeTicks + 1);
+        Assert.True(c.X - Loper.Width * Unit / 2 - hero > gap, "a sprint gained on it");
+        Assert.Equal(Mode.Idle, c.Mode);
+        Assert.Same(c, Only(w));
     }
 
     [Fact]

@@ -33,10 +33,14 @@ must agree on where it is and when it dies, so its body, its hit points and its 
   caller and a hash-equality test that proves debris draws as before.
 - **Walking** (`Live.cs`): integer, per axis, under the planet's gravity (`Kind.Fall`, as stacks fall); solid is what
   stops a stack. A walker steps up one cell and down one, turns back at a wall it cannot step and at a drop of three rows or
-  more, and walks off a shallower one. Modes: idle, wander, flee, hurt; only an idle or a wander begun draws from the Rng.
+  more — at the brink, judged by where its edge gets this tick, so a fleeing one stops there rather than overhanging — and
+  walks off a shallower one. A tick moves under a cell across (the fastest flight 750) and down (`MaxFall` 600), so it never
+  passes through a wall a cell thick. Modes: idle, wander, flee, hurt; only an idle or a wander begun draws from the Rng.
 - **The loper,** 2 × 2, 12 hit points: six axe hits, twelve of the drill, six of the fitted drill. Wanders at 2 cells a
-  second, flees at 6.4 for 3 s: under a hero's walk of 7.2, so a hunter keeps up and lands the next blow, and under a run of
-  13 (tuned in play: at 9 it was out of reach after every hit, and a hunt was a sprint with one swing in it).
+  second, flees at 15 for 3 s, then calms to idling and wandering: faster than a hero's sprint of 13.2, so a blow is the end of
+  the chase for now — the hunter follows and finds it calm again, corners it at a cliff or a wall, or will stun it (the arc's
+  stun module to come). Tuned in play twice: at 9, then 6.4 (under a walk, so a hunter kept up and the drill held it), the
+  user wanted it to outrun a sprint so a stun has a point.
 - **A hit** (`Strike(Creature, Tool)`) is any weapon's, its damage the tool's `ToolStats` for its sender (0098), refused
   `fauna.gone`, `items.flat`, `items.notRunning` as wrecks' hits are (0054, 0055). It knocks the creature away from the
   striker's reported cell (`Knock` 200 a tick, a hop of under a cell). **Hit-stun is the species' own** (`Species.Stun`, ticks
