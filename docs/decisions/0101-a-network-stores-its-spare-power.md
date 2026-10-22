@@ -48,7 +48,9 @@ its own numbers; a battery stays an item, charged by a station.
   bright as it is full within it, green, amber under a quarter as a battery's bar; a spark runs up the lit segments
   while it takes power in and down while it gives out. It gives light in its colour, more the fuller it is, none when
   empty (`StoreLights`). The power overlay's tip on a node of a network with stores adds "Stored: 4520 / 12000" under
-  what it makes and draws. No panel: there is nothing in it to move.
+  what it makes and draws. Out of every overlay, the pointer on a bank shows the one tooltip with only its numbers,
+  grouped as the wrist's energy tab groups them, and an arrow while power moves: "8 400 / 12 000 ↑" (`StoreGauge.Reading`).
+  No panel: there is nothing in it to move.
 - Its picture is a placeholder painted by `tools/ship-art/machines/capacitor-bank.js`; `-- --store` records it filling
   from a panel and emptying into an arc smelter.
 
@@ -69,7 +71,7 @@ its own numbers; a battery stays an item, charged by a station.
 - An idle ship fills its banks; a busy one runs on them, its stations at full speed until they run dry.
 - A burner fed and idle keeps its fuel; the player sees its fire out and its panel saying why.
 - Flows are found in the derivation every tick, as the networks are: a few stores, no cost to speak of.
-- The overlay tip is the only place numbers show; the gauge is read at a glance.
+- Numbers show only by the pointer, on demand; the gauge is read at a glance.
 
 ## Deliberately not handled
 

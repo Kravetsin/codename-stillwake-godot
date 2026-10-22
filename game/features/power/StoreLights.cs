@@ -14,7 +14,7 @@ namespace Stillwake.Game.Features.Power;
 /// the top one as bright as it is full within it, green, amber under a quarter as a battery's bar; a spark running up the
 /// lit segments while it takes power in, down them while it gives power out, none while it holds. Drawn unlit over its
 /// picture (<c>machine_capacitorBank.png</c>), the gauge lighting the room round it a little in its colour (a
-/// <see cref="Glow"/>), more the fuller it is, none when empty. Numbers are in the power overlay's tip.
+/// <see cref="Glow"/>), more the fuller it is, none when empty. Numbers are by the pointer (<see cref="PowerView"/>).
 /// </summary>
 public partial class StoreLights : Node2D
 {

@@ -24,7 +24,12 @@ public partial class StoreDemo : Node
     public override void _Process(double delta)
     {
         _t += delta;
-        if (_fed || _t < FeedAtS || _session() is not var (client, m)) return;
+        if (_session() is not var (client, m)) return;
+        // The pointer rests on the bank, so its tip tells what it holds as it fills and empties.
+        var bank = m.Grid.MachinesOf("capacitorBank")[0].Cell;
+        var at = GetViewport().GetCanvasTransform() * (new Vector2(bank % m.Grid.Width + 1, bank / m.Grid.Width + 1) * Render.ShipCamera.Cell);
+        Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at });
+        if (_fed || _t < FeedAtS) return;
         _fed = true;
         client.Send(new Move(new Place(StoreWorld.RockSlot), new Target(0, m.Grid.MachinesOf("smelter")[0].Id), StoreWorld.Rock));
     }

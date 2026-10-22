@@ -114,7 +114,11 @@ public partial class PowerView : Node2D
         _timeMs += elapsedMs;
         _overlay.Visible = _unplugged.Visible = _ghost.Visible = On;
         // Out of the power overlay, nothing is held; in it, a cable's end may be carried by hand.
-        if (!On) _hands.Release();
+        if (!On)
+        {
+            _hands.Release();
+            TellStore(m, client.World.Tick, pointer);
+        }
         else
         {
             var lines = _ropes.Lines().Select(l => new Line(l.A, l.B, l.Points)).ToList();
@@ -151,10 +155,44 @@ public partial class PowerView : Node2D
         {
             var supply = En.T("power.supply", ("supply", network.Supply), ("demand", network.Demand));
             said = network.Capacity > 0
-                ? [supply, En.T("power.stored", ("stored", network.Stored + network.Flow), ("capacity", network.Capacity))]
+                ? [supply, En.T("power.stored", ("stored", Charges.Grouped(network.Stored + network.Flow)), ("capacity", Charges.Grouped(network.Capacity)))]
                 : [supply];
         }
         _ui.WorldTip.SetLines(said);
+    }
+
+    /// <summary>The bank the pointer's tip tells of, at which tick, and what it says: made anew only when the world moves on.</summary>
+    private (int Bank, int Tick) _storeTold = (-1, -1);
+    private string[] _storeSaid = [];
+
+    /// <summary>
+    /// Out of every overlay, with no card in hand (whose plan's tip it would hide), the pointer on a capacitor bank tells
+    /// what it holds of full and which way its power goes (<see cref="StoreGauge.Reading"/>, 0101), read from the sim as
+    /// the world runs; off it, the tip it set is taken away.
+    /// </summary>
+    private void TellStore(Registry m, int tick, (double X, double Y)? pointer)
+    {
+        // Another overlay's tip is its own; the hands clear the tip as one comes on.
+        if (_ui.OverlayOn != null)
+        {
+            _storeTold = (-1, -1);
+            return;
+        }
+        var bank = _ui.Hand.Get() != Holding.Card && pointer is { } p
+            && p.X >= 0 && p.Y >= 0 && p.X < _size.W && p.Y < _size.H
+            && m.Grid.MachineAt((int)p.Y * _size.W + (int)p.X) is { } machine && m.Power.Store(machine.Id) is { } level
+            ? (machine.Id, level)
+            : ((int, StoreLevel)?)null;
+        if (bank is not var (id, at))
+        {
+            if (_storeTold.Bank < 0) return;
+            _storeTold = (-1, -1);
+            _ui.WorldTip.SetLines(null);
+            return;
+        }
+        if (_storeTold != (id, tick)) _storeSaid = [StoreGauge.Reading(at.Energy, at.Capacity, at.Flow)];
+        _storeTold = (id, tick);
+        _ui.WorldTip.SetLines(_storeSaid);
     }
 
     private readonly List<int> _key = [], _boltsShown = [], _endsShown = [], _unpluggedShown = [];

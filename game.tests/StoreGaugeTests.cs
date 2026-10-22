@@ -19,6 +19,15 @@ public class StoreGaugeTests
     }
 
     [Fact]
+    public void ReadsWhatABankHoldsOfFullGroupedAsTheWristsEnergyWithAnArrowWhilePowerMoves()
+    {
+        string thin = Shared.Charges.Thin.ToString();
+        Assert.Equal($"8{thin}400 / 12{thin}000 {StoreGauge.In}", StoreGauge.Reading(8400, 12000, 4));
+        Assert.Equal($"950 / 12{thin}000 {StoreGauge.Out}", StoreGauge.Reading(950, 12000, -5));
+        Assert.Equal($"0 / 12{thin}000", StoreGauge.Reading(0, 12000, 0));
+    }
+
+    [Fact]
     public void RunsTheSparkUpWhilePowerGoesInDownWhileItComesOutAndNowhereWhileTheBankHolds()
     {
         int Brightest(int flow, double seconds) =>

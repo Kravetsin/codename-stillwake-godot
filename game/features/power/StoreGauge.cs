@@ -28,6 +28,16 @@ public static class StoreGauge
         return segment == 0 ? Math.Clamp(filled, Least, 1) : Math.Clamp(filled, 0, 1);
     }
 
+    /// <summary>The arrows after the reading while power goes in and while it comes out.</summary>
+    public const string In = "↑", Out = "↓";
+
+    /// <summary>
+    /// What the pointer's tip says of a bank (0101): what it holds of full in power-ticks, grouped as the wrist's energy tab
+    /// groups them (<see cref="Shared.Charges.Grouped"/>), and an arrow while it charges or gives out: <c>8 400 / 12 000 ↑</c>.
+    /// </summary>
+    public static string Reading(int energy, int capacity, int flow) =>
+        $"{Shared.Charges.Grouped(energy)} / {Shared.Charges.Grouped(capacity)}" + (flow > 0 ? $" {In}" : flow < 0 ? $" {Out}" : "");
+
     /// <summary>
     /// How strongly the spark lights segment <paramref name="segment"/> at <paramref name="seconds"/>, 0 to 1, by which way
     /// power flows (<paramref name="flow"/>): up the gauge while it goes in, down while it comes out, nowhere while it holds.
