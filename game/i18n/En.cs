@@ -412,6 +412,7 @@ public static partial class En
         ["debris.notWreckage"] = "Catch it by hand",
         ["fauna.gone"] = "It got away",
         ["fauna.notHere"] = "Nothing lives aboard",
+        ["fauna.notAttacking"] = "It is not charging",
         ["fauna.full"] = "Enough creatures here",
         ["fauna.blocked"] = "No room for it there",
         ["items.notRunning"] = "Not running",

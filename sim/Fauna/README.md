@@ -2,15 +2,17 @@
 
 Creatures living on a planet's surface ([0102](../../docs/decisions/0102-creatures-live-in-the-sim.md)): spawned out of
 sight round every hero by the habitats of the surface's planet type, walking and idling, struck by any weapon, knocked,
-flinching and fleeing, dying into their yields, and gone again when no hero is near. The ship has none.
+flinching and fleeing, ramming a hero when cornered ([0103](../../docs/decisions/0103-a-ram-costs-the-suit-air.md)), dying
+into their yields, and gone again when no hero is near. The ship has none.
 
 - **Depends on:** `Grid` (`IGridQueries`: its size, what is solid, back walls), `Crew` (`ICrewQueries`: every hero's
-  reported cell), `Items` (`IItemsQueries`: `Damage`, a tool's hit by `ToolStats` (0098), and `WeaponProblem`, an electric
+  reported cell; `ICrewOps`: `Shock`, a ram's cost to the suit), `Items` (`IItemsQueries`: `Damage`, a tool's hit by `ToolStats` (0098), and `WeaponProblem`, an electric
   tool flat or not running; `IItemsOps`: `DropAt`, the floor a dead creature's yields fall on).
 - **State** (`FaunaState`, members internal, saved and hashed): `Creatures` in spawn order, so in id order, each a
   `Creature` (public, internal setters) `{ Id, Species, X, Y, VX, VY, Damage, Mode, ModeLeft, SeenAt }`: its species by id
   in `Content.Fauna.All`, the bottom middle of its body at `X`, `Y` in thousandths of a cell (`FaunaModule.Unit`), its speed
-  a tick, the hit points weapons took off it, what it is doing (`Mode`: `Idle`, `Wander`, `Flee`, `Hurt`, saved by number)
+  a tick, the hit points weapons took off it, what it is doing (`Mode`: `Idle`, `Wander`, `Flee`, `Hurt`, `WindUp`, `Charge`,
+saved by number)
   and the ticks left of it, and the clock it was last in a hero's keep box; `NextId`, never reused; `Clock`, ticks run on a
   surface with life or creatures. **Derived** from the rest, never saved: its facing (the sign of `VX`; the client keeps
   the last while it stands), whom it flees (the nearest hero, found as a flinch ends), the beat (`Clock % Fauna.Beat`).
@@ -46,7 +48,19 @@ flinching and fleeing, dying into their yields, and gone again when no hero is n
   ticks) → `Idle`; a strike → `Flee` for `FleeTicks` at once, the knock's way, for a species with no hit-stun (`Stun` 0, the
   neutral loper); else → `Hurt` for its `Stun` ticks, steering nothing → `Flee`, its way away from the nearest hero by reported
   cell (box distance in cells, the first in id order at a tie; level, or none, the knock's way) → `Idle`. Only an idle or a
-  wander begun draws from the Rng.
+  wander begun draws from the Rng, and a ram's chance (below).
+- **Rams** (0103): a fleeing walker of a species with a `Ram` that must turn at a wall or a drop it cannot leap, with the
+  nearest hero within `Fauna.RamReach` (6) cells by box distance on the side it would turn to, draws its `RamChance` in a
+  thousand (the tapir's 400, the loper's and the sixleg's 150; the fluff has none); drawn, → `WindUp` for `Fauna.WindUp` (8)
+  ticks, standing still → `Charge` for `Fauna.ChargeTicks` (10) at `Fauna.Charge` (700) a tick toward the nearest hero as the
+  wind-up ends (none, or level with it: → `Flee` instead), along the ground, stepping up and down a cell as a walker, never
+  leaping → `Flee` from the nearest hero; a wall it cannot step up or a drop on its way ends it at once, turned from it, fleeing.
+  A strike in either knocks it into flight as ever.
+- **`HitBy(Creature)`,** from the hero its charge touched, as that hero's client saw it (0034's word): refused `fauna.gone`
+  and `fauna.notAttacking` for one not charging. The sender's suit pays the species' `Ram` (`ICrewOps.Shock`: none in creative
+  mode or for a hero out, the last unit passing it out as the cold would); the creature recoils into `Flee`, back the way it
+  came at its flight's speed, hopping `Hop` unless it rises already. So a charge hits once: a second hero's `HitBy` on it is
+  refused. Read from the creature alone: a command never sees where heroes are.
 - **`Strike(Creature, Tool)`:** refused `fauna.gone` for a creature gone or never spawned, `items.flat` and
   `items.notRunning` for an electric tool as `IItemsQueries.WeaponProblem` says (0055). A tool that deals no damage is our
   bug and throws. It takes `Items.Damage(sender, tool)` off the creature; at its hit points it dies, its `Yields` drawn as a
@@ -76,7 +90,8 @@ flinching and fleeing, dying into their yields, and gone again when no hero is n
 ## Guarantees
 
 - Every creature is on the grid and, but the ticks after a wall is built into it, out of everything solid; its damage is
-  under its hit points; ids only grow; a surface never holds more than `Fauna.Max` (`FaunaInvariantTests`).
+  under its hit points; ids only grow; a surface never holds more than `Fauna.Max`; what is left of its mode is never more
+  than the mode lasts; a charge hurts at most once, and every suit stays from nothing to full (`FaunaInvariantTests`).
 - A surface with no habitats and no creatures leaves the slice and the Rng untouched.
 
 ## Deliberately not handled
@@ -88,3 +103,6 @@ flinching and fleeing, dying into their yields, and gone again when no hero is n
 - **Despawning loses damage;** a half-hunted loper left for 30 s is gone with it.
 - **Unlimited biomass:** lopers spawn while heroes stand by; the cap and the beat are the only limits.
 - **A ring point with no place wastes the beat** for that hero: on a cliff column, or in a cave under the surface.
+- **A ram aims where the hero was reported** as the wind-up ended, up to a second behind; a charge that misses runs on.
+- **A cornered creature recoiling from a hit** may be cornered again and roll again; the hero's knock mostly takes it out of
+  reach. A second hero a charge touched is knocked on its own screen but pays nothing.

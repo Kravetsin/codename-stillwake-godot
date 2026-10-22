@@ -21,6 +21,13 @@ public sealed record Strike(int Creature, string Tool) : Command;
 public sealed record Release(string Species, int Cell) : Command;
 
 /// <summary>
+/// The sender's hero was hit by creature <c>Creature</c>'s charge (0103), as its client saw them touch: its suit pays the species'
+/// <c>Ram</c> (<see cref="ICrewOps.Shock"/>) and the creature recoils, fleeing, so a charge hits once. Refused for a creature gone
+/// (<c>fauna.gone</c>) or not charging (<c>fauna.notAttacking</c>): a second hero it touched on the same charge pays nothing.
+/// </summary>
+public sealed record HitBy(int Creature) : Command;
+
+/// <summary>
 /// Creatures living on a planet's surface (0102): spawned out of sight round every hero by the habitats of its type, walking,
 /// idling, struck, knocked, fleeing and dying into their yields, gone again when no hero is near. The ship has none.
 /// </summary>
@@ -31,19 +38,22 @@ public sealed partial class FaunaModule : Module<FaunaState>
 
     private readonly IGridQueries _grid;
     private readonly ICrewQueries _crew;
+    private readonly ICrewOps _crewOps;
     private readonly IItemsQueries _held;
     private readonly IItemsOps _items;
 
     public override string Id => "fauna";
 
-    public FaunaModule(IGridQueries grid, ICrewQueries crew, IItemsQueries held, IItemsOps items)
+    public FaunaModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items)
     {
         _grid = grid;
         _crew = crew;
+        _crewOps = crewOps;
         _held = held;
         _items = items;
         Handles<Strike>(c => StrikeProblem(c.From, c.Creature, c.Tool) ?? _held.WeaponProblem(c.From, c.Tool, running: true), Apply);
         Handles<Release>(c => ReleaseProblem(c.Species, c.Cell), Apply);
+        Handles<HitBy>(c => HitByProblem(c.Creature), Apply);
         // After crew in the simulation phase: where heroes are is this tick's.
         System(Phase.Simulation, Live);
     }
@@ -72,6 +82,17 @@ public sealed partial class FaunaModule : Module<FaunaState>
     {
         if (Content.Weapons.Of(tool) == null) throw new InvalidOperationException($"fauna.strike: {tool} deals no damage");
         return IndexOf(id) < 0 ? "fauna.gone" : _held.WeaponProblem(peer, tool, running: false);
+    }
+
+    /// <summary>
+    /// Why a hit by creature <paramref name="id"/>'s charge would be refused: it is gone (<c>fauna.gone</c>) or not charging
+    /// (<c>fauna.notAttacking</c>), its charge spent on another hero or ended. What the client asks before it sends.
+    /// </summary>
+    public string? HitByProblem(int id)
+    {
+        int at = IndexOf(id);
+        if (at < 0) return "fauna.gone";
+        return State.Creatures[at].Mode == Mode.Charge ? null : "fauna.notAttacking";
     }
 
     /// <summary>Why a release of <paramref name="species"/> in <paramref name="cell"/> would be refused.</summary>
@@ -118,6 +139,20 @@ public sealed partial class FaunaModule : Module<FaunaState>
         creature.VX = away * (Math.Sign(creature.VX) == away ? Math.Max(Math.Abs(creature.VX), knock) : knock);
         // No hop while it rises already: a run of quick hits keeps it low rather than juggling it up.
         if (creature.VY >= 0) creature.VY = -spec.Hop * pace / Spec.KnockPace;
+    }
+
+    private void Apply(HitBy c)
+    {
+        var creature = State.Creatures[IndexOf(c.Creature)];
+        var spec = Spec.Get(creature.Species);
+        // A ram may take the suit's last unit: the hero passes out, as the cold or the lava would leave it.
+        _crewOps.Shock(c.From, spec.Ram);
+        // It recoils off the hero it struck, hopping back the way it came, fleeing: the hero thrown on, the two part at once. Read
+        // from the creature alone, as commands see no hero's place.
+        creature.Mode = Mode.Flee;
+        creature.ModeLeft = spec.FleeTicks;
+        creature.VX = -(creature.VX >= 0 ? 1 : -1) * spec.Flee;
+        if (creature.VY >= 0) creature.VY = -spec.Hop;
     }
 
     private void Apply(Release c)

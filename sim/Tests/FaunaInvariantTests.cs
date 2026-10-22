@@ -57,9 +57,24 @@ public class FaunaInvariantTests
             if (c.X - half < 0 || c.X + half > Width * Unit || c.Y - spec.Height * Unit < 0 || c.Y > Height * Unit)
                 return $"creature {c.Id} off the grid at ({c.X}, {c.Y})";
             if (w.M.Fauna.Overlaps(spec, c.X, c.Y)) return $"creature {c.Id} in a wall at ({c.X}, {c.Y})";
+            if (c.ModeLeft < 1 || c.ModeLeft > LongestOf(c.Mode, spec)) return $"creature {c.Id} {c.Mode} with {c.ModeLeft} ticks left";
         }
+        foreach (var hero in w.M.Crew.Heroes)
+            if (hero.Suit < 0 || hero.Suit > Content.Crew.Suit) return $"hero {hero.Id}'s suit at {hero.Suit}";
         return null;
     }
+
+    /// <summary>The most ticks <paramref name="mode"/> lasts for a creature of <paramref name="spec"/>: what is left of it never exceeds it.</summary>
+    private static int LongestOf(Mode mode, Tune.Species spec) => mode switch
+    {
+        Mode.Idle => Tune.IdleMost,
+        Mode.Wander => Tune.WanderMost,
+        Mode.Flee => spec.FleeTicks,
+        Mode.Hurt => spec.Stun,
+        Mode.WindUp => Tune.WindUp,
+        Mode.Charge => Tune.ChargeTicks,
+        _ => 0,
+    };
 
     [Property(MaxTest = 60)]
     public Property CreaturesStayOnTheGridOutOfWallsUnderTheirHitPointsAndTheCap() =>
@@ -69,7 +84,7 @@ public class FaunaInvariantTests
             var rng = new Rng(new RngState { S = (uint)run.Seed });
             for (int h = 0; h < 2; h++) w.HeroAt(1 + (int)rng.Below(Width - 2), 2, peer: h);
             w.Run();
-            for (int i = 0; i < run.Releases; i++) w.Do(new Release(Tune.Loper.Id, (int)rng.Below(Width * Height)));
+            for (int i = 0; i < run.Releases; i++) w.Do(new Release(Tune.All[(int)rng.Below((uint)Tune.All.Count)].Id, (int)rng.Below(Width * Height)));
             w.Run();
             string? broken = Broken(w);
             int next = NextId(w);
@@ -87,6 +102,54 @@ public class FaunaInvariantTests
                 broken = Broken(w);
                 if (NextId(w) < next || all.Count > 0 && all[^1].Id >= NextId(w)) broken ??= $"the next id {NextId(w)} after {next}";
                 next = NextId(w);
+            }
+            return (broken == null).Label(broken ?? "");
+        });
+
+    /// <summary>
+    /// Rams (0103), over the same ground: rammers let out by heroes who breathe their suits, struck often so they flee into
+    /// corners, and every hero sending a hit by every charging creature most ticks, by others too: no charge hurts more than once,
+    /// every suit stays within nothing and full, and the creatures keep all the above.
+    /// </summary>
+    [Property(MaxTest = 60)]
+    public Property AChargeHurtsAtMostOnceAndEverySuitStaysWithinItsRange() =>
+        Prop.ForAll(Runs().ToArbitrary(), run =>
+        {
+            var w = FaunaTesting.Planet(Ground(run.Ground));
+            var rng = new Rng(new RngState { S = (uint)run.Seed });
+            int heroes = 3;
+            for (int h = 0; h < heroes; h++) w.HeroAt(1 + (int)rng.Below(Width - 2), 2, peer: h);
+            w.Run();
+            Tune.Species[] rammers = [Tune.Tapir, Tune.Loper, Tune.Sixleg];
+            for (int i = 0; i < run.Releases; i++) w.Do(new Release(rammers[(int)rng.Below(3)].Id, (int)rng.Below(Width * Height)));
+            w.Run();
+            string? broken = Broken(w);
+            // Each creature's hits on its charge, counted from the tick it began charging.
+            var hits = new Dictionary<int, int>();
+            var charging = new HashSet<int>();
+            for (int t = 0; t < run.Ticks && broken == null; t++)
+            {
+                var all = w.M.Fauna.Creatures;
+                if (all.Count > 0 && rng.Below(6) == 0)
+                    w.Do(new Strike(all[(int)rng.Below((uint)all.Count)].Id, Content.Weapons.Axe.Item) { From = (int)rng.Below((uint)heroes) });
+                var sent = new List<HitBy>();
+                foreach (var c in all)
+                    for (int h = 0; h < heroes; h++)
+                        if (c.Mode == Mode.Charge ? rng.Below(2) == 0 : rng.Below(50) == 0) sent.Add(new HitBy(c.Id) { From = h });
+                foreach (var hit in sent) w.Do(hit);
+                if (rng.Below(30) == 0) w.HeroAt(1 + (int)rng.Below(Width - 2), (int)rng.Below(Height), peer: (int)rng.Below((uint)heroes));
+                int refused = w.Refusals.Count;
+                w.Run();
+                var turnedDown = w.Refusals.Skip(refused).Select(r => r.Command).ToHashSet(ReferenceEqualityComparer.Instance);
+                foreach (var hit in sent)
+                    if (!turnedDown.Contains(hit)) hits[hit.Creature] = hits.GetValueOrDefault(hit.Creature) + 1;
+                foreach (var c in w.M.Fauna.Creatures)
+                {
+                    if (c.Mode == Mode.Charge && charging.Add(c.Id)) hits[c.Id] = 0;
+                    else if (c.Mode != Mode.Charge) charging.Remove(c.Id);
+                    if (hits.GetValueOrDefault(c.Id) > 1) broken ??= $"creature {c.Id}'s charge hurt {hits[c.Id]} times";
+                }
+                broken ??= Broken(w);
             }
             return (broken == null).Label(broken ?? "");
         });

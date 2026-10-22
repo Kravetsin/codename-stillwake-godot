@@ -13,6 +13,10 @@ public enum Mode
     Flee = 2,
     /// <summary>Knocked by a hit and flinching, steering nothing: flight follows.</summary>
     Hurt = 3,
+    /// <summary>Cornered, crouched to ram the nearest hero, standing (0103): a charge follows.</summary>
+    WindUp = 4,
+    /// <summary>Charging at the nearest hero as its wind-up ended, along the ground: a hit, a wall or a drop ends it in flight.</summary>
+    Charge = 5,
 }
 
 /// <summary>

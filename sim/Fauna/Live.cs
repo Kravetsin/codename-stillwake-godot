@@ -91,33 +91,58 @@ public sealed partial class FaunaModule
             int way = c.VX >= 0 ? 1 : -1, speed = c.Mode == Mode.Flee ? spec.Flee : spec.Wander;
             if (Blocked(spec, c, way, speed))
             {
-                // Over the wall or across the gap where a jump lands it on the far side; else back.
+                // Over the wall or across the gap where a jump lands it on the far side; else back, or, cornered, it rams.
                 if (JumpFor(spec, c, way, speed) is int jump)
                 {
                     (c.VX, c.VY) = (way * Math.Min(speed, spec.JumpAcross), -jump);
                     Move(c, spec, grounded: false);
                     return;
                 }
+                if (c.Mode == Mode.Flee && Cornered(spec, c, way) && Random.Below(1000) < (uint)spec.RamChance)
+                {
+                    (c.Mode, c.ModeLeft, c.VX) = (Mode.WindUp, Spec.WindUp, 0);
+                    Move(c, spec, grounded);
+                    return;
+                }
                 way = -way;
             }
             c.VX = way * speed;
         }
-        else if (grounded && c.Mode == Mode.Idle) c.VX = 0;
+        else if (grounded && c.Mode == Mode.Charge)
+        {
+            // A wall it cannot step up or a drop ends the charge, never leaped: it turns from it and flees, as a walker turns.
+            int way = c.VX >= 0 ? 1 : -1;
+            if (Blocked(spec, c, way, Spec.Charge)) (c.Mode, c.ModeLeft, c.VX) = (Mode.Flee, spec.FleeTicks, -way * spec.Flee);
+            else c.VX = way * Spec.Charge;
+        }
+        else if (grounded && c.Mode is Mode.Idle or Mode.WindUp) c.VX = 0;
         Move(c, spec, grounded);
     }
 
     /// <summary>
+    /// Whether <paramref name="c"/>, turning from <paramref name="way"/>, is cornered (0103): a species that rams, the nearest hero
+    /// within <c>Fauna.RamReach</c> cells by box distance, and on the side it would turn to.
+    /// </summary>
+    private bool Cornered(Spec.Species spec, Creature c, int way) =>
+        spec.Ram > 0 && Nearest(c) is ({ } hero, int d) && d <= Spec.RamReach && Math.Sign(hero.X * Unit + Unit / 2 - c.X) == -way;
+
+    /// <summary>
     /// The mode after <paramref name="c"/>'s ends: a flinch turns to flight away from the nearest hero; flight and a wander to
-    /// idling; idling to a wander either way. Only an idle or a wander begun draws: its length, and a wander its way.
+    /// idling; idling to a wander either way; a wind-up to a charge at the nearest hero, a charge to flight. Only an idle or a
+    /// wander begun draws: its length, and a wander its way.
     /// </summary>
     private void Next(Creature c, Spec.Species spec)
     {
         switch (c.Mode)
         {
-            case Mode.Hurt:
-                c.Mode = Mode.Flee;
-                c.ModeLeft = spec.FleeTicks;
-                c.VX = FleeWay(c) * spec.Flee;
+            case Mode.Hurt or Mode.Charge:
+                Flees(c, spec);
+                break;
+            case Mode.WindUp:
+                // At the hero nearest now, by its reported cell: none, or level with it, there is nothing to charge at.
+                int at = Nearest(c) is ({ } hero, _) ? Math.Sign(hero.X * Unit + Unit / 2 - c.X) : 0;
+                if (at == 0) Flees(c, spec);
+                else (c.Mode, c.ModeLeft, c.VX) = (Mode.Charge, Spec.ChargeTicks, at * Spec.Charge);
                 break;
             case Mode.Idle:
                 c.Mode = Mode.Wander;
@@ -125,18 +150,25 @@ public sealed partial class FaunaModule
                 c.ModeLeft = Spec.WanderLeast + (int)Random.Below(Spec.WanderMost - Spec.WanderLeast + 1);
                 c.VX = way * spec.Wander;
                 break;
-            default:
+            case Mode.Wander or Mode.Flee:
                 c.Mode = Mode.Idle;
                 c.ModeLeft = Spec.IdleLeast + (int)Random.Below(Spec.IdleMost - Spec.IdleLeast + 1);
                 break;
+            default:
+                throw new InvalidOperationException($"fauna: no mode follows {c.Mode}");
         }
     }
 
-    /// <summary>
-    /// Away from the hero nearest <paramref name="c"/> by box distance in cells, the first in id order at a tie; level with it, or
-    /// with none, the way it was knocked.
-    /// </summary>
-    private int FleeWay(Creature c)
+    /// <summary><paramref name="c"/> fleeing <c>FleeTicks</c> from the nearest hero, at its species' flight.</summary>
+    private void Flees(Creature c, Spec.Species spec)
+    {
+        c.Mode = Mode.Flee;
+        c.ModeLeft = spec.FleeTicks;
+        c.VX = FleeWay(c) * spec.Flee;
+    }
+
+    /// <summary>The hero nearest <paramref name="c"/> by box distance in cells, the first in id order at a tie, and how far; none with none on the grid.</summary>
+    private ((int X, int Y)? Hero, int Distance) Nearest(Creature c)
     {
         int x = Down(c.X, Unit), y = Down(c.Y - 1, Unit);
         (int X, int Y)? nearest = null;
@@ -147,7 +179,16 @@ public sealed partial class FaunaModule
             if (d >= best) continue;
             (best, nearest) = (d, at);
         }
-        if (nearest is { } hero && c.X != hero.X * Unit + Unit / 2) return Math.Sign(c.X - (hero.X * Unit + Unit / 2));
+        return (nearest, best);
+    }
+
+    /// <summary>
+    /// Away from the hero nearest <paramref name="c"/> by box distance in cells, the first in id order at a tie; level with it, or
+    /// with none, the way it was knocked.
+    /// </summary>
+    private int FleeWay(Creature c)
+    {
+        if (Nearest(c).Hero is { } hero && c.X != hero.X * Unit + Unit / 2) return Math.Sign(c.X - (hero.X * Unit + Unit / 2));
         return c.VX >= 0 ? 1 : -1;
     }
 
@@ -218,10 +259,10 @@ public sealed partial class FaunaModule
                 // Flush against the column it would enter: a tick moves less than a cell, so it is the next one. Walking it keeps
                 // its way, its steering next tick jumping or turning; in the air it presses on, so a leap carries it over once clear.
                 c.X = Flush(to, c.VX, half);
-                if (c.Mode is not (Mode.Wander or Mode.Flee)) c.VX = 0;
+                if (c.Mode is not (Mode.Wander or Mode.Flee or Mode.Charge)) c.VX = 0;
             }
             // Down a step one cell deep as it walks, as up one: a slope's run of steps is walked, not fallen down.
-            if (grounded && c.Mode is Mode.Wander or Mode.Flee && !Overlaps(spec, c.X, c.Y + 1)
+            if (grounded && c.Mode is Mode.Wander or Mode.Flee or Mode.Charge && !Overlaps(spec, c.X, c.Y + 1)
                 && !Overlaps(spec, c.X, c.Y + Unit) && Overlaps(spec, c.X, c.Y + Unit + 1))
                 (c.Y, c.VY) = (c.Y + Unit, 0);
         }
