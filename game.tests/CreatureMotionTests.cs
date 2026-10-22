@@ -72,9 +72,32 @@ public class CreatureMotionTests
         Run(new CreatureMotion(), 10);
         var still = Run(new CreatureMotion(), 50, watch: -1);
         Assert.Equal(-1, still.Facing);
-        // It strides as it walks, by the ground covered: faster fleeing, as it covers more.
-        var walk = Run(new CreatureMotion(), 1000, dx: 1);
-        var flee = Run(new CreatureMotion(), 1000, dx: 3);
-        Assert.True(flee.Phase > walk.Phase * 2.5);
+        // It strides by the ground covered, its strides longer the faster: a quicker cadence fleeing, and a bound, but not a blur.
+        var walk = Run(new CreatureMotion(), 1000, dx: 0.5);
+        var flee = Run(new CreatureMotion(), 1000, dx: 4);
+        Assert.True(flee.Phase > walk.Phase && flee.Phase < walk.Phase * 4, $"{flee.Phase:F1} strides fleeing, {walk.Phase:F1} walking");
+        Assert.Equal(CreatureMotion.LongestStride, CreatureMotion.StrideAt(300));
+        Assert.Equal(0, Run(new CreatureMotion(), 500, dx: 0.5).Bound, 3);
+        Assert.True(Enumerable.Range(0, 30).Select(_ => Run(flee, Frame, dx: 4).Bound).Max() > 2);
+    }
+
+    [Fact]
+    public void AJumpCrouchesThenSpringsTallWithItsEarsBackAndAHardLandingSquashesHarder()
+    {
+        var m = new CreatureMotion();
+        m.Jump();
+        m.Step(Frame, 0, false, false, null);
+        Assert.True(m.Scale(false).Y < 0.95, "no crouch");
+        Assert.Equal(1, m.Ears(false));
+        Run(m, CreatureMotion.CrouchMs);
+        Assert.True(m.Scale(false).Y > 1.1, "no spring");
+        double Squash(double hardness)
+        {
+            var l = new CreatureMotion();
+            l.Land(hardness);
+            l.Step(Frame, 0, true, true, null);
+            return l.Scale(false).Y;
+        }
+        Assert.True(Squash(1) < Squash(0) - 0.1, $"{Squash(1):F2} hard against {Squash(0):F2} soft");
     }
 }

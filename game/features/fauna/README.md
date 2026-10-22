@@ -26,7 +26,10 @@ the drill's bit are tested against each creature's body as against a wreck's box
   its top thrown the way it is knocked (320 ms), its eye wide and ears pinned (900 ms), and shakes a pixel either way (70 ms;
   the blade stops on it a moment, the figure's own `Bit`). All drawn only: its place is never held, as a neutral creature has
   no hit-stun and bolts at the blow. A drill's hit is its share of the axe's (`Impacts.ShareOf`): flashes and shakes less, ten
-  a second. Fleeing it leans forward and stretches long, ears back.
+  a second. Fleeing it leans forward and stretches long, ears back, its strides lengthening with speed (9 px at a walk, up to
+  34 at its 15 cells a second) and its body bounding a few pixels a stride, so a flight reads as a gallop, not a blur.
+- **Jumps** read off the sim (a rise faster than 250 a tick from the ground, past any blow's hop): a 70 ms crouch, then a spring
+  tall and thin easing back over 380 ms, ears laid back; on landing a squash as hard as the fall was fast.
 - **Seen and heard by what it is** (0093, 0094): `HitLooks.Creatures` names each species' `Impact` (the loper's `Flesh`: white
   slash streaks, tufts of fur, a warm puff, a white glint and shock line, no blood), thrown from its side facing the hero, its
   share for a drill; `Sound.Creatures` its hit, a body thump under it and its death (placeholders from the files here: the cap's
@@ -41,7 +44,9 @@ the drill's bit are tested against each creature's body as against a wreck's box
 `-- --planet --fauna` lets six lopers out either side of the hero (`dev/FaunaDemo`, the sim's `Release`) and logs every strike
 and every creature gone; without `--manual` `dev/FaunaHands` hunts them as a player's keys and mouse would, the axe first, the
 drill after the first kill (or 16 s), the nearest within 6 rows and 45 columns of where it began, in sight. Record with
-`--write-movie … --fixed-fps 20 --quit-after 900 -- --planet --fauna --zoom 2`.
+`--write-movie … --fixed-fps 20 --quit-after 900 -- --planet --fauna --zoom 2`. `--fauna-drill` stands the hero still with the
+drill on one loper beside it; `--strip --fauna --fauna-course` beams it to the strip's open ground by its walls of three and two
+and its shaft, a loper beside, for its leaps.
 
 ## Deliberately not handled
 

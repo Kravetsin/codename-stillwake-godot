@@ -410,12 +410,12 @@ public partial class Main : Node2D, ITogether
             else if (GroundDemo.Caves(ground[9..])) AddChild(new GroundHands(_ground, dig: false));
         }
         // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077).
-        else if (Has("--planet")) world = GroundDemo.Seed(world, Modules, ArcDrill);
+        else if (Has("--planet") || Has("--strip") && Has("--fauna")) world = GroundDemo.Seed(world, Modules, ArcDrill);
         // --fauna, with --planet: lopers let out by the hero, hunted by script unless --manual (0102).
         if (Has("--fauna"))
         {
-            _faunaDemo = new FaunaDemo(drill: Has("--fauna-drill"));
-            if (!Has("--manual")) AddChild(new FaunaHands(_faunaDemo, () => _hero?.Current, still: Has("--fauna-drill")));
+            _faunaDemo = new FaunaDemo(drill: Has("--fauna-drill"), course: Has("--fauna-course"));
+            if (!Has("--manual")) AddChild(new FaunaHands(_faunaDemo, () => _hero?.Current, still: Has("--fauna-drill"), quick: Has("--fauna-course")));
         }
         PlayDev(world, Has("--gallery") ? null : Has("--store") ? Features.Power.StoreWorld.Map : layout);
     }

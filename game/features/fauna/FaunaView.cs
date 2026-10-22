@@ -41,6 +41,9 @@ public partial class FaunaView(Ui ui) : Node2D
     private const int Overhang = 600;
     private const float MostLean = 0.4f;
 
+    /// <summary>A rise faster than this a tick is a jump, not a blow's hop (an axe's is 180).</summary>
+    private const int JumpTell = 250;
+
     /// <summary>What is shown of a creature: its body, its motion, where it was on the tick before and on the last, its damage.</summary>
     private sealed class Shown(CreatureBody body)
     {
@@ -58,6 +61,9 @@ public partial class FaunaView(Ui ui) : Node2D
         public float Lower { get; set; }
         /// <summary>How far it is drawn tilted to the ground under its feet, radians clockwise, eased.</summary>
         public float Lean { get; set; }
+        /// <summary>Its speed down as last seen, and the fastest it fell since it left the ground: for its jumps and landings.</summary>
+        public int LastVy { get; set; }
+        public int Fall { get; set; }
     }
 
     private readonly Dictionary<int, Shown> _shown = new();
@@ -228,13 +234,22 @@ public partial class FaunaView(Ui ui) : Node2D
         var watched = NearestHero(drawn + new Vector2(0, -spec.Height * Cell / 2));
         var toHero = watched - (drawn + new Vector2(0, -spec.Height * Cell * 0.6f));
         int? watch = toHero.Length() < Watch && Math.Abs(toHero.X) > 2 ? Math.Sign(toHero.X) : null;
+        // A jump read off the sim: a leap up faster than any blow's hop, from the ground; a landing as hard as the fall was fast.
+        if (c.VY <= -JumpTell && one.LastVy >= 0) motion.Jump();
+        if (!grounded) one.Fall = Math.Max(one.Fall, c.VY);
+        else if (!one.Grounded)
+        {
+            motion.Land((double)one.Fall / Spec.Fauna.MaxFall);
+            one.Fall = 0;
+        }
+        one.LastVy = c.VY;
         motion.Step(elapsedMs, drawn.X - one.Drawn.X, grounded, grounded && !one.Grounded, c.VX == 0 ? watch : null);
         one.Grounded = grounded;
         one.Drawn = drawn;
         bool fleeing = c.Mode == Mode.Flee;
         var (sx, sy) = motion.Scale(fleeing);
         var body = one.Body;
-        body.Position = drawn + new Vector2((float)motion.Shake, 0);
+        body.Position = drawn + new Vector2((float)motion.Shake, -(float)motion.Bound);
         body.Scale = new Vector2((float)sx * motion.Facing, (float)sy);
         body.Rotation = (float)motion.Tilt(fleeing) + one.Lean;
         body.Pose(motion, fleeing, grounded, toHero.Length() < Watch ? toHero : null);

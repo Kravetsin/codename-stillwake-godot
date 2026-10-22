@@ -250,7 +250,7 @@ public static class Aiming
     /// <summary>How far the shoulder is above the feet, in thousandths of a cell, the body upright.</summary>
     private const int ShoulderUp = (int)(Rig.Shoulder / Rig.Cell * Hero.Unit);
 
-    /// <summary>The downstroke sampled every this many radians (2В°): the edge moves under a tenth of a cell between two.</summary>
+    /// <summary>The downstroke sampled every this many radians (2°): the edge moves under a tenth of a cell between two.</summary>
     private const double SampleStep = Math.PI / 90;
 
     /// <summary>

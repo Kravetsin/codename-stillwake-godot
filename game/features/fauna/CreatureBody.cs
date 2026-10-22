@@ -60,7 +60,8 @@ public partial class CreatureBody : Node2D
     {
         float rx = _w * 0.44f, ry = _h * 0.34f, cy = -_h * 0.5f;
         // Legs: swinging opposite each other by the stride walking, tucked under in the air.
-        float swing = _grounded ? (float)Math.Sin(_phase * Math.Tau) * _w * 0.08f : 0;
+        // Fleeing, its strides are long and its legs reach fore and aft: a bound.
+        float swing = _grounded ? (float)Math.Sin(_phase * Math.Tau) * _w * (_fleeing ? 0.17f : 0.08f) : 0;
         float lift = _grounded ? 0 : _h * 0.08f;
         foreach (var (x, s) in new[] { (-_w * 0.2f, swing), (_w * 0.18f, -swing) })
         {

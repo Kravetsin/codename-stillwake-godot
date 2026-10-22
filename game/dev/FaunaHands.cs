@@ -9,10 +9,10 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// <c>-- --planet --fauna</c>'s hands (0102), as a player's keys and mouse would: the lopers watched wandering a while, then the
-/// nearest hunted вЂ” run at with Shift held while it is far, walked up to, the pointer on its middle and the left button held вЂ”
+/// nearest hunted — run at with Shift held while it is far, walked up to, the pointer on its middle and the left button held —
 /// with the axe till one dies, then with the drill. Never the sim: only the input a player gives.
 /// </summary>
-public partial class FaunaHands(FaunaDemo demo, Func<Hero?> hero, bool still = false) : Node
+public partial class FaunaHands(FaunaDemo demo, Func<Hero?> hero, bool still = false, bool quick = false) : Node
 {
     /// <summary>Seconds of watching before the hunt, and of the axe before the drill if nothing has died by then.</summary>
     private const double WatchS = 6, AxeS = 16;
@@ -35,7 +35,7 @@ public partial class FaunaHands(FaunaDemo demo, Func<Hero?> hero, bool still = f
         var all = m.Fauna.Creatures;
         if (_seen >= 0 && all.Count < _seen) _dead += _seen - all.Count;
         _seen = all.Count;
-        if (_since < (still ? 1 : WatchS) || all.Count == 0)
+        if (_since < (still || quick ? 1 : WatchS) || all.Count == 0)
         {
             Walk(0, false);
             Hold(false);
