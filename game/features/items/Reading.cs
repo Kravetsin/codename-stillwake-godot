@@ -110,15 +110,13 @@ public sealed record Reading(
 
     /// <summary>
     /// The one tooltip over <paramref name="stack"/>: its item's card, with what this one holds of its own, a battery's charge and a
-    /// tool's module (0098), named in one line with its tech's icon.
+    /// tool's modules (0098), its numbers the sim's fold for them (<see cref="ItemCards.Fitted"/>).
     /// </summary>
     public Tip TipOf(Stack stack)
     {
         var tip = TipOf(stack.Item);
         var card = tip.Card! with { Charge = Charges.MeterOf(stack), Picture = Charges.Picture(stack.Item, stack.Charge) };
-        if (stack.Module is { } module && Content.Modules.TryGet(module, out var spec))
-            card = card with { Fitted = module, Tech = new CardTech(spec.Tech, T("card.fitted", ("module", T($"item.{module}")))) };
-        return tip with { Card = card };
+        return tip with { Card = ItemCards.Fitted(card, ToolStats.ModulesOf(stack)) };
     }
 
     /// <summary>

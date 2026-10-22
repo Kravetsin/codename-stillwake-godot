@@ -25,6 +25,9 @@ public readonly record struct Boost(int Speed, int Draw, int Damage, int Heat)
 
     /// <summary><paramref name="value"/>, a cost (what a machine draws), × (1000 + <paramref name="added"/>) / 1000, rounded up.</summary>
     public static int Cost(int value, int added) => (value * (1000 + added) + 999) / 1000;
+
+    /// <summary>This and what <paramref name="module"/> adds, summed: the one step of every fold of modules, a machine's and a tool's (<see cref="ToolStats"/>).</summary>
+    public Boost Plus(ModuleSpec module) => new(Speed + module.Speed, Draw + module.Draw, Damage + module.Damage, Heat + module.Heat);
 }
 
 public sealed partial class ItemsModule
@@ -43,10 +46,7 @@ public sealed partial class ItemsModule
     {
         var sum = new Boost();
         for (int at = FittedFrom(machine); at < State.Fitted.Count && State.Fitted[at].Machine == machine; at++)
-        {
-            var m = Modules.Get(State.Fitted[at].Module);
-            sum = new Boost(sum.Speed + m.Speed, sum.Draw + m.Draw, sum.Damage + m.Damage, sum.Heat + m.Heat);
-        }
+            sum = sum.Plus(Modules.Get(State.Fitted[at].Module));
         return sum;
     }
 
@@ -68,22 +68,18 @@ public sealed partial class ItemsModule
     }
 
     /// <summary>
-    /// What a hit of weapon <paramref name="tool"/> by <paramref name="peer"/> takes (0098): the weapon's damage, a gain by
-    /// the module fitted into the stack it works with (<see cref="ToolStack"/>), rounded down; the weapon's own while the
-    /// peer carries none, as a hit's sender is not checked for holding its weapon (0034).
+    /// What a hit of weapon <paramref name="tool"/> by <paramref name="peer"/> takes (0098): the damage of the stack it works
+    /// with (<see cref="ToolStack"/>), its modules in it (<see cref="ToolStats"/>); the weapon's own while the peer carries
+    /// none, as a hit's sender is not checked for holding its weapon (0034).
     /// </summary>
     public int Damage(int peer, string tool)
     {
         int damage = Weapons.Of(tool)?.Damage ?? throw new InvalidOperationException($"items.damage: {tool} deals no damage");
-        return ToolStack(peer, tool)?.Module is { } module ? Items.Boost.Gain(damage, Modules.Get(module).Damage) : damage;
+        return ToolStack(peer, tool) is { } stack ? ToolStats.Of(stack).Damage : damage;
     }
 
-    /// <summary>What <paramref name="stack"/>, an electric item, draws a tick it runs: its <c>Draw</c>, a cost by its module, rounded up (0098).</summary>
-    private static int DrawOf(Stack stack)
-    {
-        int draw = Content.Items.Get(stack.Item).Draw!.Value;
-        return stack.Module is { } module ? Items.Boost.Cost(draw, Modules.Get(module).Draw) : draw;
-    }
+    /// <summary>What <paramref name="stack"/>, an electric item, draws a tick it runs, its modules in it (<see cref="ToolStats"/>, 0098).</summary>
+    private static int DrawOf(Stack stack) => ToolStats.Of(stack).Draw;
 
     /// <summary>
     /// Why the sender's <see cref="Fit"/> of what <paramref name="from"/> holds into <paramref name="machine"/> would be

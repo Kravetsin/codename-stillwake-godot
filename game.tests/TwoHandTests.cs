@@ -8,7 +8,7 @@ namespace Stillwake.Game.Tests;
 /// <summary>The two-handed hold (0078): a drill held as a rifle is, both hands on its grips.</summary>
 public class TwoHandTests
 {
-    private static readonly HeldLook[] Held = [HeldLook.Drill, HeldLook.ArcDrill];
+    private static readonly HeldLook[] Held = [HeldLook.Drill];
 
     /// <summary>Every turn the hold takes, a hundredth of a radian apart.</summary>
     private static IEnumerable<double> Turns()
@@ -17,7 +17,7 @@ public class TwoHandTests
     }
 
     [Fact]
-    public void BothDrillsAreHeldInBothHandsTheFarOnAForegripBeforeTheNearOnesGrip()
+    public void TheDrillIsHeldInBothHandsTheFarOnAForegripBeforeTheNearOnesGrip()
     {
         foreach (var look in Held)
         {
@@ -86,7 +86,7 @@ public class TwoHandTests
                     inside++;
                     if (dy > Rig.Shoulder) below++;
                 }
-        Assert.True(inside > 2000 && below > 500, $"only {inside} points aimed at, {below} under the feet");
+        Assert.True(inside > 1000 && below > 250, $"only {inside} points aimed at, {below} under the feet");
         // Straight up or down, or behind above and below, it turns only as far as the clamp lets it.
         var drill = HeldLook.Drill;
         Assert.Equal(-TwoHand.Up, TwoHand.AngleFor(drill, 0, -100));

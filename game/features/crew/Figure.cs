@@ -288,8 +288,19 @@ public partial class Figure : Node2D
     /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
     public string? Wields { get; set; }
 
-    /// <summary>The module fitted into what it wields, as the sim says of the stack its hero works with (0098): the drill's arc coil; none for most.</summary>
-    public string? Fitted { get; set; }
+    /// <summary>The modules fitted into what it wields, as the sim says of the stack its hero works with (0098): laid over its picture; none for most.</summary>
+    public IReadOnlyList<Content.ModuleSpec> Fitted { get; set; } = [];
+
+    private HeldParts? _heldParts;
+
+    /// <summary><paramref name="look"/> with <see cref="Fitted"/> laid over it, made again only when either changes.</summary>
+    private HeldParts PartsOf(HeldLook look)
+    {
+        if (_heldParts is not { } kept || kept.Look != look || !ReferenceEquals(_partsFitted, Fitted)) (_heldParts, _partsFitted) = (HeldParts.Of(look, Fitted), Fitted);
+        return _heldParts!;
+    }
+
+    private IReadOnlyList<Content.ModuleSpec>? _partsFitted;
 
     /// <summary>Where the harpoon or the drill held aims, in pixels of the world: the arm straight, the barrel's or the bit's line through it; none to let it hang.</summary>
     public Vector2? Aim { get; set; }
@@ -536,7 +547,7 @@ public partial class Figure : Node2D
         bool working = _workAt != null && Poses.HoldsIn(pose);
         _workMs = working ? _workMs + elapsedMs : 0;
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
-        var item = HeldLook.Of(Wields, Fitted);
+        var item = HeldLook.Of(Wields);
         bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding;
         bool chopping = _chop != null && item == HeldLook.FireAxe && inHand;
         bool aiming = Aim != null && item?.Aimed == true && inHand, drill = HeldLook.IsDrill(Wields);
@@ -675,9 +686,8 @@ public partial class Figure : Node2D
             int frames = 1 + (item.Spin?.Count ?? 0);
             _spinFrame = _spin > 0 ? (_spinFrame + _spin * HeldLook.SpinFps * elapsedMs / 1000) % frames : 0;
             int frame = (int)_spinFrame;
-            _held.Texture = Picture(item.Loaded != null && Loaded ? item.Loaded
-                : frame > 0 ? item.Spin![frame - 1]
-                : item.Picture);
+            var parts = PartsOf(item);
+            _held.Texture = item.Loaded != null && Loaded ? Picture(item.Loaded) : HeldArt.Of(frame > 0 ? item.Spin![frame - 1] : item.Picture, parts.Layers);
             bool lit = Spinning && item.Lamp != null;
             _lamp.Visible = _lampGlow.Visible = lit;
             // Held by its grip in the fist, or in both hands by its mount on the pivot.
@@ -709,7 +719,7 @@ public partial class Figure : Node2D
         else _smear.Follow(null, null, false, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
-        _drillLight.Step(inHand && drill ? item : null, _spin, _heldAt ??= HeldAt, elapsedMs);
+        _drillLight.Step(inHand && drill && item != null ? PartsOf(item) : null, _spin, _heldAt ??= HeldAt, elapsedMs);
     }
 
     /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>

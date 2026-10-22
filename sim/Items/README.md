@@ -15,7 +15,7 @@ mode, the world setting in which nothing is ever taken
   peer, in peer order (0055); `Fitted` — the modules fitted into machines (`Fitted(Machine, Module)`), by machine, then
   module, ordinal (0086), written to a save only while one is fitted. All saved, as sorted lists; nothing is derived.
 - **Files:** `Stacks.cs` — the rules below, on slots; `Floor.cs` — stacks on the floor; `Items.cs` —
-  the module, its commands and interfaces; `Modules.cs` — modules fitted into machines, `Fit`, `Unfit` and `Boost`;
+  the module, its commands and interfaces; `Modules.cs` — modules fitted into machines, `Fit`, `Unfit` and `Boost`; `ToolStats.cs` — a tool's fold;
   `Fuzz.cs` — its fuzz generator; `State.cs` — its types.
 - **Start:** every inventory and every machine empty: what a hero has, it caught, smelted and crafted.
 
@@ -51,10 +51,12 @@ mode, the world setting in which nothing is ever taken
   value (a tool's wear) is one more such field, copied, compared in `Alike` and carried by the floor alike.
 - **A tool works with its stack** (0098): `ToolStack(peer, item)` is the first stack of that item the peer carries, in
   slot order, one with a module first, so with two drills the fitted one is used, whichever is in hand (the hand is the
-  client's word). `Damage(peer, tool)` is the weapon's `Damage`, a gain by that stack's module (`Boost.Gain`, rounded
-  down: the arc's +1000 makes the drill's 1 a 2), the weapon's own while the peer carries none (a hit's sender is never
-  checked for holding its weapon); `Debris` and `Building` take it off a wreck or a wall. A run draws its tool's `Draw`
-  a cost by that stack's module (`Boost.Cost`, rounded up: 3 → 6), and `items.flat` is judged on it.
+  client's word). What a stack works with is one pure fold, `ToolStats.Of(stack)` (`ToolStats.cs`), which the client's
+  card calls too: its damage a hit, pace and draw, the additions of its modules (`ToolStats.ModulesOf`, any number)
+  summed by `Boost.Plus`, then applied once, damage a gain rounded down (the arc's +1000 makes the drill's 1 a 2), draw a
+  cost rounded up (3 → 6); the pace is the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own while the
+  peer carries none (a hit's sender is never checked for holding its weapon); `Debris` and `Building` take it off a wreck
+  or a wall. A run draws that stack's draw, and `items.flat` is judged on it.
 - **Equipment.** An equipment slot holds only an item whose `Equip` in `Items` is its kind: the jetpack on
   the back, batteries on the belt. A move that would leave anything else in one, put there or swapped in from either side, is
   refused with `items.notEquipment` (`Stacks.Misfit`).

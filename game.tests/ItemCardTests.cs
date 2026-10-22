@@ -237,21 +237,90 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void NameTheModuleFittedIntoADrillInOneLineItsNumbersAsTheDrillsAndItsPictureTheArcs()
+    public void DrawAFittedDrillsTilesFromTheSimsFoldMarkingWhatTheArcChangesAndNamingIt()
     {
         string drill = Spec.Weapons.Drill.Item, arc = Spec.Modules.Arc.Item;
         var plain = With(true).TipOf(new Stack(drill, 1)).Card!;
         var fitted = With(true).TipOf(new Stack(drill, 1, Module: arc)).Card!;
-        Assert.Equal(new CardTech("arc", "Arc module fitted"), fitted.Tech);
-        Assert.Equal(arc, fitted.Fitted);
-        Assert.Null(plain.Tech);
-        Assert.Null(plain.Fitted);
-        // No change to its tiles: what the module adds is felt, not read (0098).
-        Assert.Equal(plain.Tiles, fitted.Tiles);
+        var stats = ToolStats.Of(new Stack(drill, 1, Module: arc));
+        // Every number is the fold's, the one the sim hits and draws by: 20 a second, 2 a hit, every 0.1 s, 6 a tick.
+        Assert.Equal(ItemCards.Number(stats.Damage * (double)World.TicksPerSecond / stats.Pace), fitted.Tiles![0].Value);
+        Assert.Equal(stats.Damage.ToString(), fitted.Tiles[1].Value);
+        Assert.Equal(stats.Draw, fitted.Draw);
+        var up = new CardBoost("arc", true, "×2");
+        Assert.Equal([new CardTile("20", "DPS", up), new CardTile("2", "DMG", up), new CardTile("0.1s", "HIT")], fitted.Tiles);
+        Assert.Equal((6, up), (fitted.Draw, fitted.DrawBoost));
+        Assert.Equal([arc], fitted.Fitted);
+        // The plain drill's, unmarked: no stale draw of 3 on the fitted one, nor a mark on the plain.
+        Assert.Equal([new CardTile("10", "DPS"), new CardTile("1", "DMG"), new CardTile("0.1s", "HIT")], plain.Tiles);
+        Assert.Equal((3, (CardBoost?)null), (plain.Draw, plain.DrawBoost));
+        Assert.Empty(plain.Fitted);
+        Assert.Null(fitted.Tech);
         Assert.NotEqual(plain, fitted);
-        // In the hand and on the card, the arc drill's coil.
-        Assert.Same(HeldLook.ArcDrill, HeldLook.Of(drill, arc));
-        Assert.Same(HeldLook.Drill, HeldLook.Of(drill));
-        Assert.True(HeldLook.IsDrill(drill));
+    }
+
+    /// <summary>A second module that is not in content: half as much again of damage for a quarter less draw.</summary>
+    private static readonly Spec.ModuleSpec Fake = new("fakeModule", "arc", ["drill"], Draw: -250, Damage: 500);
+
+    [Fact]
+    public void FoldTwoModulesStatsSummedOnceAndMarkEachNumberByHowItMoved()
+    {
+        string drill = Spec.Weapons.Drill.Item;
+        // Summed, then applied once: damage 1 × (1000 + 1000 + 500) / 1000 = 2.5, down to 2; draw 3 × 1750 / 1000 = 5.25, up to 6.
+        Assert.Equal(new ToolStats(2, 2, 6), ToolStats.Of(drill, [Spec.Modules.Arc, Fake]));
+        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(drill, [Fake]));
+        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(drill, []));
+        // On the axe, 2 × 1500 / 1000 = 3, a gain alone: it draws nothing.
+        Assert.Equal(new ToolStats(3, 10, 0), ToolStats.Of(Spec.Weapons.Axe.Item, [Fake]));
+        var card = ItemCards.Fitted(ItemCards.Of(Spec.Weapons.Axe.Item, unknown: false), [Fake]);
+        Assert.Equal([new CardTile("6", "DPS", new CardBoost("arc", true, "×1.5")), new CardTile("3", "DMG", new CardBoost("arc", true, "×1.5")), new CardTile("0.5s", "HIT")], card.Tiles);
+        Assert.Null(card.Draw);
+        // A cost that falls is marked down.
+        var lighter = ItemCards.Fitted(ItemCards.Of(drill, unknown: false), [new Spec.ModuleSpec("lighter", "arc", ["drill"], Draw: -500)]);
+        Assert.Equal((2, new CardBoost("arc", false, "×0.7")), (lighter.Draw!.Value, lighter.DrawBoost!));
+        Assert.Equal(ItemCards.Of(drill, unknown: false).Tiles, lighter.Tiles);
+    }
+
+    [Fact]
+    public void ACardsNumbersAreTheSimsForEveryStackAToolCanBe()
+    {
+        // Whatever is fitted, the card never works out a number of its own: the sim's damage and draw for the same stack.
+        foreach (var stack in new[] { new Stack("drill", 1), new Stack("drill", 1, Module: Spec.Modules.Arc.Item) })
+        {
+            var slot = new System.Text.Json.Nodes.JsonObject { ["item"] = stack.Item, ["count"] = 1 };
+            if (stack.Module is { } module) slot["module"] = module;
+            var (m, _) = ItemsWorlds.With(Layout.Parse("..."), items => items["inventories"] = new System.Text.Json.Nodes.JsonArray(
+                new System.Text.Json.Nodes.JsonObject { ["id"] = 0, ["slots"] = new System.Text.Json.Nodes.JsonArray(slot) }));
+            var card = With(true).TipOf(stack).Card!;
+            Assert.Equal(stack, m.Items.ToolStack(0, "drill"));
+            Assert.Equal(m.Items.Damage(0, "drill").ToString(), card.Tiles![1].Value);
+            Assert.Equal(ToolStats.Of(stack).Draw, card.Draw);
+        }
+    }
+
+    [Fact]
+    public void LayEachModulesOverlayOnTheToolsMountsInTheToolsOrderThenTheModulesWithItsCrackle()
+    {
+        var arc = ModuleLooks.Arc;
+        // The arc's coil over the drill's coil mount, crackling there; a plain drill has nothing over it.
+        var fitted = HeldParts.Of(HeldLook.Drill, [Spec.Modules.Arc]);
+        Assert.Equal([new HeldLayer("res://art/module_arc_coil.png", 4, 4)], fitted.Layers);
+        Assert.Equal([(3.0, 3.5, 11.0, 6.5)], fitted.Crackles);
+        Assert.Empty(HeldParts.Of(HeldLook.Drill, []).Layers);
+        Assert.Empty(HeldParts.Of(HeldLook.FireAxe, [Spec.Modules.Arc]).Layers);
+        // Two mounts and two modules: by mount as the tool declares them, then by module as fitted; a mount it lacks shows nothing.
+        var tool = HeldLook.Drill with { Mounts = [new ToolMount("grip", 1, 9, (0, 8, 4, 12)), new ToolMount("coil", 4, 4, (3, 3.5, 11, 6.5))] };
+        IReadOnlyList<ModuleOverlay> second = [new("coil", "second_coil.png"), new("grip", "second_grip.png"), new("barrel", "second_barrel.png")];
+        var both = HeldParts.Overlaid(tool, [arc, second]);
+        Assert.Equal(
+            [new HeldLayer("second_grip.png", 1, 9), new HeldLayer("res://art/module_arc_coil.png", 4, 4), new HeldLayer("second_coil.png", 4, 4)],
+            both.Layers);
+        Assert.Equal([(3.0, 3.5, 11.0, 6.5)], both.Crackles);
+        // Fitted the other way round, the second's coil goes under the arc's.
+        Assert.Equal(
+            [new HeldLayer("second_grip.png", 1, 9), new HeldLayer("second_coil.png", 4, 4), new HeldLayer("res://art/module_arc_coil.png", 4, 4)],
+            HeldParts.Overlaid(tool, [second, arc]).Layers);
+        Assert.Same(HeldLook.Drill, HeldLook.Of(Spec.Weapons.Drill.Item));
+        Assert.True(HeldLook.IsDrill(Spec.Weapons.Drill.Item));
     }
 }

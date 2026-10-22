@@ -685,7 +685,7 @@ public partial class HeroView : Node2D
     /// A figure's hands as <paramref name="wields"/> and <paramref name="busy"/> say, the axe swung toward
     /// <paramref name="swing"/>'s point as far as it is through: this machine's hero's and the others' alike.
     /// </summary>
-    private static void ShowHands(Figure figure, string? wields, string? fitted, Busy? busy, (Point At, double Phase)? swing)
+    private static void ShowHands(Figure figure, string? wields, IReadOnlyList<Content.ModuleSpec> fitted, Busy? busy, (Point At, double Phase)? swing)
     {
         figure.Wields = wields;
         figure.Fitted = fitted;
@@ -694,10 +694,11 @@ public partial class HeroView : Node2D
     }
 
     /// <summary>
-    /// The module fitted into the stack of <paramref name="wields"/> peer <paramref name="peer"/> works with, as the sim holds
-    /// its slots (0098): every peer's alike, a friend's too; none for an empty hand or a plain tool.
+    /// The modules fitted into the stack of <paramref name="wields"/> peer <paramref name="peer"/> works with, as the sim holds
+    /// its slots (0098, <see cref="Sim.Items.ToolStats.ModulesOf"/>): every peer's alike, a friend's too; none for an empty hand or a plain tool.
     /// </summary>
-    private static string? FittedOf(Registry m, int peer, string? wields) => wields == null ? null : m.Items.ToolStack(peer, wields)?.Module;
+    private static IReadOnlyList<Content.ModuleSpec> FittedOf(Registry m, int peer, string? wields) =>
+        wields != null && m.Items.ToolStack(peer, wields) is { } stack ? Sim.Items.ToolStats.ModulesOf(stack) : [];
 
     /// <summary>
     /// How far the floor runs open from <paramref name="hero"/>'s feet to either side, in pixels of the world, looking four

@@ -513,14 +513,15 @@ Deliberately not handled:
   weapon works on every wreck alike: the axe chops an asteroid as any wreck, the drill bores a hull section.
   **The drill with the arc module fitted** (0075, 0098) has arcs on its coil: held, run, aimed and heard as the drill
   (`HeldLook.IsDrill`), at its pace, twice its damage for twice its draw (the sim's, `IItemsQueries.Damage`), its picture
-  the drill's with the coil tinted (`HeldLook.ArcDrill`, `art/hero_arc_drill*.png`, a placeholder). The figure is told the
-  module of the stack its hero works with (`Figure.Fitted`, from `ToolStack`), this hero's and a friend's alike. Till the
+  the drill's with the arc's overlay on its coil mount (`HeldParts`, `ModuleLooks`, `art/module_arc_coil.png`: the turns
+  blue, a placeholder), blended once a frame and kept (`render/HeldArt`). The figure is told the modules of the stack its
+  hero works with (`Figure.Fitted`, `ToolStats.ModulesOf` of `ToolStack`), this hero's and a friend's alike. Till the
   tool bench, only the testbed's supply crate and `-- --asteroid`, `--planet` or `--ground=… --arc-drill` hold one.
   **Its light** (`render/DrillLight`, 0075, shared with the drill's item card, which throws it into particles of its own):
   only the tool's own; what its hits knock out of what they strike is that object's, thrown where it is struck
   (0094: `HitBurst`, below and in `features/effects`), so the bit throws nothing, whether it reaches the hit or only
-  spins short of it. An arc-fitted drill's coil (`HeldLook.Coil`, the
-  copper wound round the stock) besides, while it spins, as fine as a fire's embers (slice 3): hair-thin fine arcs
+  spins short of it. Over every mount an arc module crackles at (`HeldParts.Crackles`, the drill's
+  coil mount, the copper wound round the stock) besides, while it spins, as fine as a fire's embers (slice 3): hair-thin fine arcs
   (`Bolts`, `fine`), most arched over the stock's top into the dark from one turn to another, a few faint across its
   bright face, 33 a second at full spin; sparks crawling along its top (a short stroke of light, `Flares.Trail`), 10 a
   second, now and then leaping off where they end; 7 leaps a second of one or two tiny blue streaks (`Luminous.ArcSpark`);

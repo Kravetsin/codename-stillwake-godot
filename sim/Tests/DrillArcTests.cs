@@ -140,6 +140,56 @@ public class DrillArcTests
         Assert.Empty(fitted.Refusals);
     }
 
+    // One fold for the sim and the card (ToolStats).
+
+    /// <summary>A module that is not in content: half as much again of damage, a quarter less draw.</summary>
+    private static readonly Spec.ModuleSpec Fake = new("fakeModule", "arc", [Drill], Draw: -250, Damage: 500);
+
+    [Fact]
+    public void ToolStatsFoldTheModulesOfAStackAndAreWhatTheSimHitsAndDrawsBy()
+    {
+        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(new Stack(Drill, 1)));
+        Assert.Equal(new ToolStats(2, 2, 6), ToolStats.Of(Fitted));
+        Assert.Equal(new ToolStats(2, 10, 0), ToolStats.Of(new Stack(Spec.Weapons.Axe.Item, 1)));
+        // Two modules summed first, then applied once: damage 1 × 2500 / 1000 down to 2, draw 3 × 1750 / 1000 up to 6.
+        Assert.Equal(new ToolStats(2, 2, 6), ToolStats.Of(Drill, [Spec.Modules.Arc, Fake]));
+        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(Drill, [Fake]));
+        Assert.Equal(ToolStats.Of(Drill, [Spec.Modules.Arc, Fake]), ToolStats.Of(Drill, [Fake, Spec.Modules.Arc]));
+        Assert.Equal([Spec.Modules.Arc], ToolStats.ModulesOf(Fitted));
+        Assert.Same(ToolStats.ModulesOf(Fitted), ToolStats.ModulesOf(Fitted with { }));
+        Assert.Empty(ToolStats.ModulesOf(new Stack(Drill, 1)));
+        // The sim's damage is the fold's for the stack its peer works with.
+        var w = Ground().Put(0, Fitted).GiveItems(1, (Drill, 1));
+        Assert.Equal((ToolStats.Of(Fitted).Damage, ToolStats.Of(new Stack(Drill, 1)).Damage), (w.M.Items.Damage(0, Drill), w.M.Items.Damage(1, Drill)));
+    }
+
+    /// <summary>Soil, stone and alloy side by side in the ground's top row: cells 9, 10 and 11.</summary>
+    private static Scenario Materials() => new(Layout.Parse("....\n....\n####\n####").WithMaterials("....\n....\n.sta\n.sta"));
+
+    /// <summary>The digs <paramref name="stack"/> takes to break <paramref name="cell"/>, a hit every pace.</summary>
+    private static int HitsToBreak(Stack stack, int cell)
+    {
+        var w = Materials().Put(0, stack).Do(new SetCreative(true)).Do(new Run(Drill, true));
+        int hits = 0;
+        while (w.M.Grid.WallAt(cell) != null && hits < 100)
+        {
+            w.Do(new Dig(cell, Drill)).Run(Spec.Weapons.Drill.Pace);
+            hits++;
+        }
+        Assert.Empty(w.Refusals);
+        return hits;
+    }
+
+    [Fact]
+    public void TheFittedDrillBreaksSoilStoneAndAlloyInHalfTheHitsAndABatteryLastsHalfAsLong()
+    {
+        // 4, 12 and 60 strong: a hit every 0.1 s, so soil 0.4 s plain and 0.2 s fitted, stone 1.2 s and 0.6 s, alloy 6 s and 3 s.
+        Assert.Equal((4, 12, 60), (HitsToBreak(new Stack(Drill, 1), 9), HitsToBreak(new Stack(Drill, 1), 10), HitsToBreak(new Stack(Drill, 1), 11)));
+        Assert.Equal((2, 6, 30), (HitsToBreak(Fitted, 9), HitsToBreak(Fitted, 10), HitsToBreak(Fitted, 11)));
+        // A battery: 1800 power-ticks, 600 ticks (30 s) at the plain drill's 3, 300 (15 s) at the fitted 6.
+        Assert.Equal((600, 300), (Full / S / ToolStats.Of(new Stack(Drill, 1)).Draw, Full / S / ToolStats.Of(Fitted).Draw));
+    }
+
     // The module goes with its stack.
 
     [Fact]

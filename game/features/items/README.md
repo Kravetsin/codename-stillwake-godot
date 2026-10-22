@@ -223,10 +223,12 @@ as everything E works is, in the crew feature (`AimTests`).
     it its name and kind in amber and three tiles from content, the first in amber, one decimal at most (`CardTile`):
     a weapon's damage a second, damage and seconds between hits (`Content.Weapons`), its effects (none yet) as chips;
     the harpoon's range in cells, reload in seconds and reel speed in cells a second (`Content.Harpoon`). An electric
-    tool adds a fourth, its `Draw` by a bolt, in power units as a machine shows its own. Then its key and hint. A tool
-    with a module fitted (0098, `Stack.Module`) is drawn with it (the arc's coil) and ends in the module's strip, its
-    tech's icon and one line, "Arc module fitted" (`card.fitted`); its tiles stay the plain tool's: what the module adds
-    is felt, not read. Its slot wears the module's tech icon as a badge in its bottom-left corner (`Slots.BadgeAt`).
+    tool adds a fourth, its `Draw` by a bolt, in power units as a machine shows its own. Then its key and hint. A tool's
+    numbers are the sim's fold (`ToolStats`). With modules fitted (0098, `Stack.Module`, `ItemCards.Fitted`) its picture is
+    put together from the tool's and their overlays (`HeldParts`), every tile and the draw are the fold's for the stack,
+    and a number that differs from the plain tool's is in the tech colour of the module that changes it, with a small arrow
+    up or down and "×2" (`CardBoost`); each module is named on its tech's strip, "Arc module fitted" (`card.fitted`).
+    Nothing on the card names a module: any number of modules compose alike. Its slot wears the module's tech icon as a badge in its bottom-left corner (`Slots.BadgeAt`).
   - *Equipment*, edged green (the medium card): its picture in the window (`WornPicture`) beside its name, kind and one
     number — the helmet lamp on the helmet, its beam reaching out with motes drifting through it, and its reach in
     cells (`Light.HeadLampReach`) with its beam across and a bolt at 0, for it draws nothing; a battery glowing green

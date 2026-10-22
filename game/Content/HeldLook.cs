@@ -18,7 +18,7 @@ namespace Stillwake.Game;
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
-    bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, (double X0, double Y0, double X1, double Y1)? Coil = null,
+    bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, IReadOnlyList<ToolMount>? Mounts = null,
     TwoHands? Both = null)
 {
     /// <summary>
@@ -38,24 +38,13 @@ public sealed record HeldLook(
     /// The drill, <c>art/hero_drill.png</c> (0054): the tube hammer, a motor in a length of tube, held as a rifle is
     /// (0078), the near hand on the frame bent into a loop under its rear, the far one on the stub of a foregrip under
     /// the front of the motor, aimed at the pointer; the edge its long bit, from the chuck to the point, which is what
-    /// drills. Running, the bit turns through three frames and the lamp on its rear cap lights.
+    /// drills. Running, the bit turns through three frames and the lamp on its rear cap lights. Its one mount (0098), the
+    /// coil wound round its stock: its turns from (4, 4), the box of the stock it is wound round.
     /// </summary>
     public static readonly HeldLook Drill = new(
         "res://art/hero_drill.png", (3, 10.5), 0, (25, 5.5), (32, 5.5), Aimed: true,
         Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.5, 4.5),
-        Both: new TwoHands((12, 10.5), (7.5, 10.5)));
-
-    /// <summary>
-    /// The drill with the arc module fitted (0075, 0098): the drill's picture, its coil tinted (a placeholder,
-    /// <c>art/hero_arc_drill*.png</c>); while it runs, arcs crawl over its <see cref="Coil"/>, the box of the stock it is
-    /// wound round, and now and then leap off it.
-    /// </summary>
-    public static readonly HeldLook ArcDrill = Drill with
-    {
-        Picture = "res://art/hero_arc_drill.png",
-        Spin = ["res://art/hero_arc_drill_spin1.png", "res://art/hero_arc_drill_spin2.png", "res://art/hero_arc_drill_spin3.png"],
-        Coil = (3, 3.5, 11, 6.5),
-    };
+        Mounts: [new ToolMount("coil", 4, 4, (3, 3.5, 11, 6.5))], Both: new TwoHands((12, 10.5), (7.5, 10.5)));
 
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
     public const double SpinUpMs = 120, SpinDownMs = 700;
@@ -66,11 +55,9 @@ public sealed record HeldLook(
     /// <summary>The colour of a running item's <see cref="Lamp"/>, "rrggbb": in the hand and on its card.</summary>
     public const string LampColour = "9dff8a";
 
-    /// <summary>How <paramref name="item"/> looks in the hand, <paramref name="module"/> fitted into it (0098); none for an item held as no picture.</summary>
-    public static HeldLook? Of(string? item, string? module = null) =>
-        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon
-        : item == Content.Weapons.Drill.Item ? module == Content.Modules.Arc.Item ? ArcDrill : Drill
-        : null;
+    /// <summary>How <paramref name="item"/> looks in the hand, plain: its modules are laid over it (<see cref="HeldParts"/>, 0098); none for an item held as no picture.</summary>
+    public static HeldLook? Of(string? item) =>
+        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill : null;
 
     /// <summary>Whether <paramref name="item"/> is the drill, a module in it or not: aimed, run on the belt, drilling what its bit touches.</summary>
     public static bool IsDrill(string? item) => item == Content.Weapons.Drill.Item;

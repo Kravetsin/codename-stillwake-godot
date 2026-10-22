@@ -5,9 +5,10 @@ using Godot;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// A drill's own light (0054, 0075, 0094), one a figure: the arc drill's coil, while it runs, as fine as a fire's embers
+/// A drill's own light (0054, 0075, 0094), one a figure: while it runs, the arc's crackle over every mount of it an arc module
+/// is fitted at (<see cref="HeldParts.Crackles"/>, 0098), the drill's coil, as fine as a fire's embers
 /// (slice 3): hair-thin arcs flicking between its turns, sparks crawling along it and now and then leaping a little way off,
-/// micro-glints, a faint blue haze and light pulsing over it, all of it coming in bursts; the plain drill has none. What its
+/// micro-glints, a faint blue haze and light pulsing over it, all of it coming in bursts; a plain drill has none. What its
 /// hits knock out of what they strike is that object's (<see cref="HitBurst"/>), thrown where it is struck, never at the bit.
 /// A figure's throws into the world's particles; an item card's into its own (<c>ToolPicture</c>).
 /// </summary>
@@ -21,7 +22,7 @@ public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
     public DrillLight() : this(Glims.Shared, Flares.Shared, Bolts.Shared) { }
 
     /// <summary>
-    /// Over a running arc drill's coil a second at full speed, on average, times <see cref="Fx.Crackle"/>: fine arcs between
+    /// Over a running drill's arc-fitted mount a second at full speed, on average, times <see cref="Fx.Crackle"/>: fine arcs between
     /// its turns, sparks set crawling along it, sparks leaping off it, micro-glints.
     /// </summary>
     private const double ArcsPerSecond = 33, CrawlsPerSecond = 10, LeapsPerSecond = 7, GlintsPerSecond = 3;
@@ -35,32 +36,42 @@ public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
         public double Ms, LifeMs, X, Way, Speed, Y, Phase;
     }
 
+    /// <summary>One crackling box's own: its crawling sparks, what is due of each kind, its held light.</summary>
+    private sealed class CoilState
+    {
+        public readonly List<Crawl> Crawling = [];
+        public readonly object Light = new();
+        public double Arcs, Crawls, Leaps, Glints;
+    }
+
     private readonly Random _random = new();
-    private readonly List<Crawl> _crawling = [];
-    private readonly object _coilLight = new();
+    private readonly List<CoilState> _coils = [];
     private readonly (double X, double Y)[] _trail = new (double, double)[4];
-    private double _arcs, _crawls, _leaps, _glints, _clockMs;
+    private double _clockMs;
 
     private double Between(double from, double to) => from + (to - from) * _random.NextDouble();
 
     /// <summary>
-    /// The drill <paramref name="elapsedMs"/> on: <paramref name="look"/> held, none without a drill, spinning at
-    /// <paramref name="spin"/> (0 to 1). <paramref name="held"/> takes a point of its picture to the world, as drawn now.
+    /// The drill <paramref name="elapsedMs"/> on: <paramref name="parts"/> held, its modules in it, none without a drill, spinning
+    /// at <paramref name="spin"/> (0 to 1). <paramref name="held"/> takes a point of its picture to the world, as drawn now.
     /// </summary>
-    public void Step(HeldLook? look, double spin, Func<(double X, double Y), Vector2> held, double elapsedMs)
+    public void Step(HeldParts? parts, double spin, Func<(double X, double Y), Vector2> held, double elapsedMs)
     {
-        if (look?.Coil is { } coil && spin > 0.3) Coil(coil, spin, held, elapsedMs);
-        else _crawling.Clear();
+        var boxes = spin > 0.3 && parts != null ? parts.Crackles : [];
+        while (_coils.Count < boxes.Count) _coils.Add(new CoilState());
+        for (int i = 0; i < _coils.Count; i++)
+            if (i >= boxes.Count) _coils[i].Crawling.Clear();
+        if (boxes.Count > 0) _clockMs += elapsedMs;
+        for (int i = 0; i < boxes.Count; i++) Coil(_coils[i], boxes[i], spin, held, elapsedMs);
     }
 
-    /// <summary>The arc drill's coil, the box <paramref name="coil"/> of its picture, crackling: its arcs, crawling and leaping sparks, glints and haze.</summary>
-    private void Coil((double X0, double Y0, double X1, double Y1) coil, double spin, Func<(double X, double Y), Vector2> held, double elapsedMs)
+    /// <summary>The box <paramref name="coil"/> of a drill's picture, crackling: its arcs, crawling and leaping sparks, glints and haze.</summary>
+    private void Coil(CoilState at, (double X0, double Y0, double X1, double Y1) coil, double spin, Func<(double X, double Y), Vector2> held, double elapsedMs)
     {
-        _clockMs += elapsedMs;
         // Electricity comes in bursts: every rate swells and ebbs together on slow noise, from a third of itself to twice.
         double burst = 0.3 + 1.7 * LuminousMath.Noise(_clockMs / BurstMs, 3.7);
         double s = elapsedMs / 1000 * spin * Fx.Crackle * burst;
-        for (_arcs += ArcsPerSecond * s; _arcs >= 1; _arcs--)
+        for (at.Arcs += ArcsPerSecond * s; at.Arcs >= 1; at.Arcs--)
         {
             double x = Between(coil.X0, coil.X1 - 2), y, y1, bulge, bright;
             if (_random.NextDouble() < 0.8)
@@ -72,8 +83,8 @@ public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
             (double, double) from = (x, y), to = (x + Between(1.4, 3), y1);
             _bolts.Add(Ends(held, from, to, bulge), _random.Next(2, 5), bright, width: 0.3, fine: true);
         }
-        for (_crawls += CrawlsPerSecond * s; _crawls >= 1; _crawls--)
-            _crawling.Add(new Crawl
+        for (at.Crawls += CrawlsPerSecond * s; at.Crawls >= 1; at.Crawls--)
+            at.Crawling.Add(new Crawl
             {
                 LifeMs = Between(140, 280),
                 X = Between(coil.X0, coil.X1),
@@ -83,9 +94,9 @@ public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
                 Y = coil.Y0 - Between(0.7, 1.2),
                 Phase = Between(0, Math.Tau),
             });
-        for (int i = _crawling.Count - 1; i >= 0; i--)
+        for (int i = at.Crawling.Count - 1; i >= 0; i--)
         {
-            var c = _crawling[i];
+            var c = at.Crawling[i];
             c.Ms += elapsedMs;
             double u = c.X + c.Way * c.Speed * c.Ms / 1000;
             if (c.Ms < c.LifeMs && u >= coil.X0 && u <= coil.X1)
@@ -95,19 +106,19 @@ public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
             }
             // Off the end of its run: now and then it leaps off where it got to.
             if (_random.NextDouble() < 0.35) Leap(coil, Math.Clamp(u, coil.X0, coil.X1), held);
-            _crawling.RemoveAt(i);
+            at.Crawling.RemoveAt(i);
         }
-        for (_leaps += LeapsPerSecond * s; _leaps >= 1; _leaps--) Leap(coil, Between(coil.X0, coil.X1), held);
-        for (_glints += GlintsPerSecond * s; _glints >= 1; _glints--)
+        for (at.Leaps += LeapsPerSecond * s; at.Leaps >= 1; at.Leaps--) Leap(coil, Between(coil.X0, coil.X1), held);
+        for (at.Glints += GlintsPerSecond * s; at.Glints >= 1; at.Glints--)
         {
-            var at = held((Between(coil.X0, coil.X1), Between(coil.Y0, coil.Y1)));
-            _flares.Glint(at.X, at.Y, Between(1.6, 2.6), Spark, Between(-0.5, 0.5));
+            var glint = held((Between(coil.X0, coil.X1), Between(coil.Y0, coil.Y1)));
+            _flares.Glint(glint.X, glint.Y, Between(1.6, 2.6), Spark, Between(-0.5, 0.5));
         }
         // The haze and its light pulse, a little brighter in a burst.
         double pulse = 0.5 + 0.5 * Math.Sin(_clockMs / 1000 * Math.Tau * PulseHz), lit = spin * Fx.Glow * (0.75 + 0.25 * Math.Min(1, burst));
         var middle = held(((coil.X0 + coil.X1) / 2, (coil.Y0 + coil.Y1) / 2));
         _flares.Bloom(middle.X, middle.Y, 16, Haze, (0.14 + 0.16 * pulse) * lit * Between(0.85, 1));
-        _flares.Hold(_coilLight, middle.X, middle.Y, Haze, (0.06 + 0.05 * pulse) * lit, 2, 0.45f, 0.7);
+        _flares.Hold(at.Light, middle.X, middle.Y, Haze, (0.06 + 0.05 * pulse) * lit, 2, 0.45f, 0.7);
     }
 
     /// <summary>A crawling spark this frame: a short stroke of light along the coil behind it, wavering across its row, flickering.</summary>
