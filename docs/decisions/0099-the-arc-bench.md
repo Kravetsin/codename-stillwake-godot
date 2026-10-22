@@ -61,8 +61,8 @@ spire is the bench, a module for the drill and two more (a station's module, an 
 
 ## Next
 
-- **The arc module in the charger** (the user's decision): it fills ~5× faster, so an accumulator, 1800 ticks (90 s) at the
-  charger's 3 today, fills in about 18 s; it needs effects per host kind (`ModuleSpec` has one `Speed` for all).
+- **The arc module in the charger** (the user's decision): built in [0100](0100-tech-branches.md), effects per host, the
+  charger five times the draw and so the charging: an accumulator in 18 s instead of 90.
 - The bench's own mark ("tunes") on the vise's empty slot; card DPS; a sound for the burst, through the user's audition.
 
 ## Deliberately not handled
