@@ -39,10 +39,13 @@ must agree on where it is and when it dies, so its body, its hit points and its 
   13 (tuned in play: at 9 it was out of reach after every hit, and a hunt was a sprint with one swing in it).
 - **A hit** (`Strike(Creature, Tool)`) is any weapon's, its damage the tool's `ToolStats` for its sender (0098), refused
   `fauna.gone`, `items.flat`, `items.notRunning` as wrecks' hits are (0054, 0055). It knocks the creature away from the
-  striker's reported cell (`Knock` 200 a tick, 1.6 cells over its flinch, a hop of under a cell), a flinch of 8 ticks steering
-  nothing, then flight away from the nearest hero. A faster tool knocks its pace's share (`Fauna.KnockPace`, the axe's 10
-  ticks): each drill hit a fifth, so the drill pins a creature flinching under its bit rather than batting it out of reach
-  with the first of ten hits a second; no hop renewed while it rises. The last hit drops its yields by nobody from its top
+  striker's reported cell (`Knock` 200 a tick, a hop of under a cell). **Hit-stun is the species' own** (`Species.Stun`, ticks
+  steering nothing before it flees, then flight from the nearest hero): neutral creatures have none and bolt the knock's way at
+  the first blow; a hostile may hold still under one. The loper's is 0 (the user's word after the first recording: with an
+  8-tick flinch on every hit the drill held it in place and ground it down; a neutral creature must get away). A faster tool
+  knocks its pace's share (`Fauna.KnockPace`, the axe's 10 ticks): each drill hit a fifth, so ten hits a second do not bat it
+  across the screen; and a blow never slows one already running the knock's way, so the drill's run of small knocks cannot hold
+  it under the bit either. No hop renewed while it rises. The last hit drops its yields by nobody from its top
   row, so they fall where it stood: placeholders, two or three biomass and a seed one time in four. The roll is debris' loot
   roll, moved to `Core` (`Loots.Roll`) for both.
 - **Dev:** `Release(Species, Cell)`, a command as `world.open` is, refused `fauna.notHere`, `fauna.full`, `fauna.blocked`;
@@ -53,6 +56,11 @@ must agree on where it is and when it dies, so its body, its hit points and its 
 
 On this machine, Release build, the first planet with a hero and its cap of 40 lopers walking, struck every half second:
 **0.055 ms** a tick mean against 0.024 idle (`BudgetTests.KeepsAPlanetsTickWithFortyCreaturesUnderBudget`).
+
+## Next
+
+- **Stun from a module:** the arc's stun module will add hit-stun through a hit effect (`HitEffect`, 0054) on the tool, added to
+  the species' own as the strike applies; nothing in the module reads it yet.
 
 ## Rejected
 

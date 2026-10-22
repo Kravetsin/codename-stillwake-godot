@@ -174,21 +174,27 @@ public class FaunaTests
 
     // Hits.
 
+    /// <summary>A room 48 wide, its floor row 4: room to run.</summary>
+    private static readonly string Long = string.Join('\n',
+        [new string('#', 48), .. Enumerable.Repeat("#" + new string('.', 46) + "#", 3), new string('#', 48)]);
+
     [Fact]
-    public void AHitKnocksALoperAwayFromTheStrikerWithAHopThenItFleesAwayAndCalmsDown()
+    public void ALoperHasNoHitStunAHitKnocksItAwayWithAHopAndItFleesAtOnceThenCalmsDown()
     {
-        foreach (var (hero, away) in new[] { (1, +1), (10, -1) })
+        Assert.Equal(0, Loper.Stun);
+        foreach (var (hero, away) in new[] { (20, +1), (27, -1) })
         {
-            var w = FaunaTesting.Planet(Room).HeroAt(hero, 3);
-            var c = w.Loper(5, 3).Still();
+            var w = FaunaTesting.Planet(Long).HeroAt(hero, 3);
+            var c = w.Loper(23, 3).Still();
             w.Do(new Strike(c.Id, Axe)).Run();
-            Assert.Equal(Mode.Hurt, c.Mode);
-            Assert.Equal(away, Math.Sign(c.VX));
-            Assert.True(c.VY < 0, "no hop");
-            w.Run(Loper.HurtTicks);
             Assert.Equal(Mode.Flee, c.Mode);
+            // Knocked at its flight's speed or the knock's, the more: it bolts from the blow.
+            Assert.Equal(away * Math.Max(Loper.Knock, Loper.Flee), c.VX);
+            Assert.True(c.VY < 0, "no hop");
+            while (c.VY != 0) w.Run();
+            w.Run();
             Assert.Equal(away * Loper.Flee, c.VX);
-            w.Run(Loper.FleeTicks + 1);
+            w.Run(Loper.FleeTicks);
             Assert.Equal(Mode.Idle, c.Mode);
             Assert.Equal(0, c.VX);
             Assert.Equal(Spec.Weapons.Axe.Damage, c.Damage);
@@ -196,13 +202,56 @@ public class FaunaTests
     }
 
     [Fact]
-    public void TheDrillsQuickHitsEachKnockItsPacesShareOfTheAxesAndNoHopWhileRising()
+    public void ALoperBeingDrilledGetsAwayFromAHeroStandingStill()
+    {
+        // The hero at column 4 holds its running drill level to the right, its bit reaching three cells from its middle: every
+        // two ticks a strike on the loper while any of its body is within that, as the client sends one.
+        var w = FaunaTesting.Planet(Long).HeroAt(4, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1));
+        var c = w.Loper(5, 3).Still();
+        int reach = 4 * Unit + Unit / 2 + 3 * Unit, half = Loper.Width * Unit / 2, hits = 0, free = -1;
+        for (int t = 0; t < 80; t++)
+        {
+            if (t % Spec.Weapons.Drill.Pace == 0 && c.X - half <= reach && w.M.Fauna.Creatures.Count > 0)
+            {
+                w.Do(new Strike(c.Id, Drill));
+                hits++;
+            }
+            w.Run();
+            if (free < 0 && c.X - half > reach) free = t;
+        }
+        Assert.Same(c, Only(w));
+        Assert.True(c.X - half > reach, $"still under the bit at {c.X}");
+        // Out of reach within half a second, a few of the drill's twelve hits taken.
+        Assert.InRange(free, 1, 10);
+        Assert.True(c.Damage < Loper.Hp / 2, $"{hits} hits, {c.Damage} damage before it got away");
+    }
+
+    [Fact]
+    public void ABlowNeverSlowsALoperRunningTheKnocksWay()
+    {
+        var w = FaunaTesting.Planet(Long).HeroAt(4, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1));
+        var c = w.Loper(10, 3).Walking(+1, Mode.Flee);
+        w.Run();
+        // Sent flying faster than it runs, struck again: not slowed to the blow's speed.
+        c.VX = 2 * Loper.Flee;
+        w.Do(new Strike(c.Id, Drill)).Run();
+        Assert.Equal(2 * Loper.Flee, c.VX);
+        // Running at the hero, it is turned back, bolting.
+        c.Walking(-1, Mode.Flee);
+        w.Do(new Strike(c.Id, Drill)).Run();
+        Assert.Equal(Loper.Flee, c.VX);
+    }
+
+    [Fact]
+    public void TheDrillsQuickHitsEachHopItsPacesShareOfTheAxesAndNoHopWhileRising()
     {
         var w = FaunaTesting.Planet(Room).HeroAt(1, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1));
         var c = w.Loper(5, 3).Still();
         w.Do(new Strike(c.Id, Drill)).Run();
         int share = Spec.Weapons.Drill.Pace * 1000 / Tune.KnockPace;
-        Assert.Equal(Loper.Knock * share / 1000, c.VX);
+        // Its knock a fifth of the axe's, under its flight: it bolts at its flight's speed, hopping a fifth as high.
+        Assert.Equal(Loper.Flee, c.VX);
+        Assert.Equal(-Loper.Hop * share / 1000 + Content.PlanetTypes.First.Fall(Tune.Gravity), c.VY);
         int rising = c.VY;
         Assert.True(rising < 0);
         // Struck again while it rises: knocked as before, its rise not renewed.
@@ -211,15 +260,17 @@ public class FaunaTests
     }
 
     [Fact]
-    public void AStruckLoperFleesAwayFromTheNearestHeroNotTheStriker()
+    public void AStunnedCreatureFleesAwayFromTheNearestHeroAsItsStunEnds()
     {
-        // Struck by hero 1 on its right, it is knocked left; it bolts from hero 0 beside it on the left, the nearer.
+        // No species has hit-stun yet (a hostile's to come): one held stunned, knocked left by hero 1 on its right, bolts from
+        // hero 0 beside it on the left, the nearer, once its stun is out.
         var w = FaunaTesting.Planet(Room).HeroAt(10, 3, peer: 1).HeroAt(4, 3);
-        var c = w.Loper(6, 3).Still();
-        w.Do(new Strike(c.Id, Axe) { From = 1 }).Run();
-        Assert.True(c.VX < 0);
-        w.Run(Loper.HurtTicks);
-        Assert.Equal(Loper.Flee, c.VX);
+        var c = w.Loper(5, 3).Still();
+        (c.Mode, c.ModeLeft, c.VX) = (Mode.Hurt, 3, -Loper.Knock);
+        w.Run(2);
+        Assert.Equal((Mode.Hurt, -Loper.Knock), (c.Mode, c.VX));
+        w.Run();
+        Assert.Equal((Mode.Flee, Loper.Flee), (c.Mode, c.VX));
     }
 
     [Fact]
@@ -474,7 +525,7 @@ public class FaunaTests
         Assert.Equal(Tune.All.Count, Tune.All.Select(s => s.Id).Distinct().Count());
         Assert.All(Tune.All, s =>
         {
-            Assert.True(s.Width > 0 && s.Height > 0 && s.Hp > 0 && s.HurtTicks > 0 && s.FleeTicks > 0);
+            Assert.True(s.Width > 0 && s.Height > 0 && s.Hp > 0 && s.Stun >= 0 && s.FleeTicks > 0);
             // A tick moves less than a cell: the next column or row is the only one entered.
             Assert.True(s.Wander < Unit && s.Flee < Unit && s.Knock < Unit && s.Hop < Unit);
             Assert.All(s.Yields, y => Assert.NotNull(Spec.Items.Get(y.Item)));

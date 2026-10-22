@@ -34,17 +34,19 @@ flinching and fleeing, dying into their yields, and gone again when no hero is n
   onto it, never falling, so a slope's run of steps is walked. Down: it lands flush on what is under it; up, it stops flush
   under what is over it. A tick moves less than a cell, so the next column or row is the only one entered.
 - **Modes:** `Idle` (a draw of `IdleLeast`..`IdleMost` ticks) → `Wander` (a draw of its way and of `WanderLeast`..`WanderMost`
-  ticks) → `Idle`; a strike → `Hurt` for the species' `HurtTicks`, steering nothing → `Flee` for `FleeTicks`, its way away
-  from the nearest hero by reported cell (box distance in cells, the first in id order at a tie; level, or none, the knock's
-  way) → `Idle`. Only an idle or a wander begun draws from the Rng.
+  ticks) → `Idle`; a strike → `Flee` for `FleeTicks` at once, the knock's way, for a species with no hit-stun (`Stun` 0, the
+  neutral loper); else → `Hurt` for its `Stun` ticks, steering nothing → `Flee`, its way away from the nearest hero by reported
+  cell (box distance in cells, the first in id order at a tie; level, or none, the knock's way) → `Idle`. Only an idle or a
+  wander begun draws from the Rng.
 - **`Strike(Creature, Tool)`:** refused `fauna.gone` for a creature gone or never spawned, `items.flat` and
   `items.notRunning` for an electric tool as `IItemsQueries.WeaponProblem` says (0055). A tool that deals no damage is our
   bug and throws. It takes `Items.Damage(sender, tool)` off the creature; at its hit points it dies, its `Yields` drawn as a
   container's loot (`Loots.Roll`) and dropped by nobody on the cell of its top row under its middle, falling to where it stood.
-  Else it is knocked: `Hurt`, its speed across the species' `Knock` away from the striker's reported cell (level, or none on
-  the grid: back against its way), `Hop` up unless it rises already; a tool striking faster than `Fauna.KnockPace` (10 ticks, the
-  axe's) knocks and hops its pace's share, rounded down, so the drill's ten hits a second push it about as far as the axe's two
-  and pin it flinching while the bit stays on it. Reach, pace and whether the sender holds the tool are the client's word (0034).
+  Else it is knocked, stunned or fleeing as its species says (above): its speed across the species' `Knock` away from the
+  striker's reported cell (level, or none on the grid: back against its way), but never slower than it already runs that way,
+  `Hop` up unless it rises already; a tool striking faster than `Fauna.KnockPace` (10 ticks, the axe's) knocks and hops its
+  pace's share, rounded down, so the drill's ten hits a second push it about as far as the axe's two, and cannot hold a
+  fleeing one under the bit. Reach, pace and whether the sender holds the tool are the client's word (0034).
 - **`Release(Species, Cell)`,** a dev command (`--fauna`): a creature idling with its body's bottom left in the cell.
   Refused `fauna.notHere` aboard, `fauna.full` at `Fauna.Max`, `fauna.blocked` off the grid or where its body would be in
   anything solid. An unknown species is our bug.
