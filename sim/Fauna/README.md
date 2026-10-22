@@ -62,6 +62,9 @@ flinching and fleeing, dying into their yields, and gone again when no hero is n
 - **Kept or gone:** by the cell under its middle; in some hero's keep box (`Fauna.Keep`, 80 × 48 either way) it is seen; out
   of every one it is gone `Fauna.Linger` (600) ticks after it was last seen, and at once out of every hard box (110 × 64). No
   hero on the surface, none stays: the last to leave takes them all, damage and all.
+- **Species** (`Content.Fauna.All`): the loper, the tapir, the sixleg and the fluff, one life with numbers by body (0102's
+  slice 3 has the table); each names its `Look`, the design the client draws. The first planet's habitats: the loper, tapir and
+  sixleg on the open surface (weights 3, 2, 2), the fluff on cave floors of band 0 (2) and band 1, the garden (3).
 - **Spawning,** when the clock is a multiple of `Fauna.Beat` (40), on a type with habitats: for each hero in id order with
   fewer than `Fauna.PerKeep` (10) in its keep box, while the surface holds fewer than `Fauna.Max` (40): three draws, always
   taken — the side, the columns out (`RingFrom`..`RingTo`, 62 to 76, past the view's 60), the habitat by weight — then down

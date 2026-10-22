@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
 using Spec = Stillwake.Content;
@@ -6,122 +7,175 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Fauna;
 
 /// <summary>
-/// One creature's placeholder body (0102), drawn in its own pixels, its origin the middle of its feet, facing right: a soft
-/// round body of its species' size on two stubby legs, a belly, ears, a tail tuft and one big eye that watches the hero near it.
-/// Lit as the world is; its white flash an unlit copy over it. The art is the user's to pick later: mechanics first.
+/// One creature's body (0102) in the design its species names, as the user picked it on the loper page: its rig's parts, each a
+/// picture recoloured by the planet's palette (<see cref="CreatureParts"/>), drawn in the rig's order, turned and moved about
+/// its pivot by <see cref="CreaturePose"/> at the screen's resolution as a hero's parts are, its origin the middle of its feet,
+/// facing right. Lit as the world is; its eye in four states; its glowing parts added over it unlit and lighting what is round
+/// them (<see cref="Lights"/>); a blow's white flash an unlit copy over it.
 /// </summary>
 public partial class CreatureBody : Node2D
 {
-    private static readonly Color Fur = new(0.80f, 0.63f, 0.45f), Belly = new(0.93f, 0.83f, 0.68f), Dark = new(0.30f, 0.21f, 0.16f);
-    private static readonly Color White = new(0.97f, 0.97f, 0.93f), Pupil = new(0.10f, 0.08f, 0.08f);
+    /// <summary>A glow's: added over what lies under it, unlit, for it gives light.</summary>
+    private static readonly CanvasItemMaterial GlowMaterial = new()
+    {
+        BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
+        LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
+    };
 
     // Unshaded, so the world's darkness does not grey it: a flash is light.
-    private readonly Flash _flash = new() { Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
-    private float _w = 32, _h = 32;
-    private Color _fur = Fur;
-    private double _phase, _ears, _eye = 1, _white;
-    private bool _grounded = true, _fleeing;
-    private Vector2 _look;
+    private static readonly CanvasItemMaterial FlashMaterial = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+
+    /// <summary>A picture drawn of one node: its colour, its flash, and its glow if it has one.</summary>
+    private sealed record Drawn(int Node, string Part, Sprite2D Colour, Sprite2D White, Sprite2D? Glow, (Vector2 At, Color Colour)[] Spots);
+
+    private readonly List<Drawn> _drawn = [];
+    private readonly Node2D _flash = new();
+    private Transform2D[] _mats = [];
+    private int[] _parents = [];
+    private FaunaArt.Design? _design;
+    private string _palette = "";
+    private double _white;
 
     /// <summary>How far through its death it is, 0 to 1, swelling white and fading; null alive.</summary>
     public double? Dying { get; set; }
 
-    public override void _Ready() => AddChild(_flash);
+    /// <summary>The design it is drawn in.</summary>
+    public FaunaArt.Design? Design => _design;
 
-    /// <summary>Dressed as a creature of <paramref name="species"/>, its fur a shade its own by <paramref name="id"/>.</summary>
-    public void Dress(string species, int id)
+    /// <summary>Dressed as a creature of <paramref name="species"/> in <paramref name="palette"/>: its parts made anew for another design.</summary>
+    public void Dress(string species, string palette)
     {
-        var spec = Spec.Fauna.Get(species);
-        (_w, _h) = (spec.Width * ShipCamera.Cell, spec.Height * ShipCamera.Cell);
-        float shade = (id * 37 % 11 - 5) * 0.012f;
-        _fur = new Color(Fur.R + shade, Fur.G + shade * 0.6f, Fur.B - shade * 0.4f);
-        (Dying, Modulate) = (null, Colors.White);
+        var design = FaunaArt.Designs[Spec.Fauna.Get(species).Look];
+        (Dying, Modulate, _white) = (null, Colors.White, 0);
+        if (design != _design || palette != _palette) Make(design, palette);
+        Fade(1);
     }
 
-    /// <summary>Posed by its motion this frame, its eye on <paramref name="toHero"/> (pixels from the eye, in the world's way) or ahead.</summary>
-    public void Pose(CreatureMotion motion, bool fleeing, bool grounded, Vector2? toHero)
+    private void Make(FaunaArt.Design design, string palette)
     {
-        (_phase, _ears, _eye, _white, _grounded, _fleeing) = (motion.Phase, motion.Ears(fleeing), motion.Eye, motion.Flash, grounded, fleeing);
-        // In the body's own way: mirrored with it.
-        _look = toHero is { } h ? new Vector2(h.X * motion.Facing, h.Y).Normalized() : new Vector2(1, 0.15f);
-        QueueRedraw();
-        _flash.QueueRedraw();
-    }
-
-    public override void _Draw()
-    {
-        float alpha = Dying is double d ? (float)(1 - d) : 1;
-        Shape(this, _fur with { A = alpha }, Belly with { A = alpha }, Dark with { A = alpha });
-        Eye(alpha);
-    }
-
-    /// <summary>The body's silhouette in <paramref name="fur"/>, its belly and its dark tuft and leg ends, on <paramref name="on"/>.</summary>
-    private void Shape(CanvasItem on, Color fur, Color belly, Color dark)
-    {
-        float rx = _w * 0.44f, ry = _h * 0.34f, cy = -_h * 0.5f;
-        // Legs: swinging opposite each other by the stride walking, tucked under in the air.
-        // Fleeing, its strides are long and its legs reach fore and aft: a bound.
-        float swing = _grounded ? (float)Math.Sin(_phase * Math.Tau) * _w * (_fleeing ? 0.17f : 0.08f) : 0;
-        float lift = _grounded ? 0 : _h * 0.08f;
-        foreach (var (x, s) in new[] { (-_w * 0.2f, swing), (_w * 0.18f, -swing) })
+        (_design, _palette) = (design, palette);
+        foreach (var child in GetChildren())
+            if (child != _flash) child.QueueFree();
+        foreach (var child in _flash.GetChildren()) child.QueueFree();
+        _drawn.Clear();
+        var index = CreaturePose.Indexed(design);
+        _parents = new int[design.Rig.Count];
+        for (int i = 0; i < design.Rig.Count; i++) _parents[i] = design.Rig[i].Parent is { } p ? index[p] : -1;
+        _mats = new Transform2D[design.Rig.Count];
+        for (int i = 0; i < design.Rig.Count; i++)
         {
-            float up = _grounded ? Math.Max(0, (float)-Math.Cos(_phase * Math.Tau + (s > 0 ? 0 : Math.PI))) * _h * 0.05f : lift;
-            on.DrawRect(new Rect2(x + s - _w * 0.05f, -_h * 0.22f - up, _w * 0.1f, _h * 0.22f), fur);
-            on.DrawRect(new Rect2(x + s - _w * 0.06f, -_h * 0.06f - up, _w * 0.12f, _h * 0.06f), dark);
+            var node = design.Rig[i];
+            if (node.Drive == FaunaArt.Drive.Eye)
+                foreach (var part in FaunaArt.EyeParts) Add(i, part);
+            else Add(i, node.Part);
         }
-        // The tail's tuft behind, the ears on top: up, laid back when startled or fleeing.
-        on.DrawCircle(new Vector2(-rx * 0.98f, cy - ry * 0.2f), _w * 0.09f, dark);
-        float back = (float)_ears;
-        foreach (var x in new[] { rx * 0.15f, rx * 0.5f })
-        {
-            var root = new Vector2(x, cy - ry * 0.8f);
-            float angle = (float)(-Math.PI / 2 - back * 1.15 - (x > rx * 0.3f ? 0.15 : -0.1));
-            var tip = root + new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * _h * 0.3f;
-            var across = new Vector2((float)-Math.Sin(angle), (float)Math.Cos(angle)) * _w * 0.06f;
-            on.DrawColoredPolygon([root - across, tip, root + across], fur);
-            on.DrawCircle(tip, _w * 0.035f, dark);
-        }
-        on.DrawColoredPolygon(Ellipse(new Vector2(0, cy), rx, ry), fur);
-        on.DrawColoredPolygon(Ellipse(new Vector2(rx * 0.1f, cy + ry * 0.4f), rx * 0.7f, ry * 0.5f), belly);
+        // Glows over the whole body, as the page adds them, then the flash over all.
+        foreach (var d in _drawn)
+            if (d.Glow != null) AddChild(d.Glow);
+        foreach (var d in _drawn) _flash.AddChild(d.White);
+        if (_flash.GetParent() == null) AddChild(_flash);
+        else MoveChild(_flash, GetChildCount() - 1);
     }
 
-    /// <summary>Its eye, front and high: wide when startled, shut blinking, its pupil on the hero it watches.</summary>
-    private void Eye(float alpha)
+    private void Add(int node, string part)
     {
-        var at = new Vector2(_w * 0.2f, -_h * 0.6f);
-        float r = _w * 0.11f * (float)Math.Max(0.35, _eye);
-        if (_eye < 0.3)
+        var design = _design!;
+        var p = design.Parts[part];
+        Sprite2D Sprite(CreatureParts.Kind kind) => new()
         {
-            DrawLine(at - new Vector2(r, 0), at + new Vector2(r, 0), Pupil with { A = alpha }, 1.2f);
-            return;
+            Texture = CreatureParts.Of(design, part, _palette, kind),
+            Centered = false,
+            Offset = new Vector2(-p.PivotX, -p.PivotY),
+        };
+        var colour = Sprite(CreatureParts.Kind.Colour);
+        Lit.Set(colour);
+        var white = Sprite(CreatureParts.Kind.White);
+        white.Material = FlashMaterial;
+        Sprite2D? glow = null;
+        if (p.Glow)
+        {
+            glow = Sprite(CreatureParts.Kind.Glow);
+            glow.Material = GlowMaterial;
         }
-        DrawColoredPolygon(Ellipse(at, r, r * (float)Math.Min(1.15, _eye)), White with { A = alpha });
-        float p = r * (_eye > 1.2 ? 0.38f : 0.55f);
-        DrawCircle(at + _look * (r - p) * 0.8f, p, Pupil with { A = alpha });
-        DrawCircle(at + _look * (r - p) * 0.8f + new Vector2(-p * 0.35f, -p * 0.4f), p * 0.3f, White with { A = alpha });
+        AddChild(colour);
+        _drawn.Add(new Drawn(node, part, colour, white, glow, CreatureParts.SpotsOf(design, part, _palette)));
     }
 
-    private static Vector2[] Ellipse(Vector2 at, float rx, float ry, int points = 18)
+    /// <summary>
+    /// Posed by <paramref name="pose"/> this frame, <paramref name="white"/> its flash, 0 to 1. Every part's place is its parent's
+    /// and its own turn about its pivot; the eye's pictures by its state, the pupil on where it looks, whole pixels.
+    /// </summary>
+    public void Pose(CreaturePose pose, double white)
     {
-        var all = new Vector2[points];
-        for (int i = 0; i < points; i++)
+        var design = _design!;
+        var rig = design.Rig;
+        for (int i = 0; i < rig.Count; i++)
         {
-            double a = i * Math.Tau / points;
-            all[i] = at + new Vector2((float)Math.Cos(a) * rx, (float)Math.Sin(a) * ry);
+            var n = rig[i];
+            var j = pose.Joints[i];
+            var local = new Transform2D((float)j.A, new Vector2(n.X + (float)j.X, n.Y + (float)j.Y));
+            _mats[i] = _parents[i] < 0 ? local : _mats[_parents[i]] * local;
         }
-        return all;
+        var eye = pose.Eye;
+        bool wide = eye == CreaturePose.EyeState.Wide;
+        var travel = wide ? design.Eye.TravelWide : design.Eye.Travel;
+        var look = pose.Look;
+        var pupil = new Vector2(MathF.Round((float)look.X * travel.X), MathF.Round((float)look.Y * travel.Y + (eye == CreaturePose.EyeState.Half ? 1 : 0)));
+        _white = white;
+        foreach (var d in _drawn)
+        {
+            var mat = _mats[d.Node];
+            bool shown = d.Part switch
+            {
+                "eye_open" => !wide,
+                "eye_wide" => wide,
+                "pupil" => !wide && eye != CreaturePose.EyeState.Blink,
+                "pupil_wide" => wide,
+                "lid_half" => eye == CreaturePose.EyeState.Half,
+                "lid_blink" => eye == CreaturePose.EyeState.Blink,
+                _ => true,
+            };
+            if (d.Part is "pupil" or "pupil_wide") mat *= Transform2D.Identity.Translated(pupil);
+            d.Colour.Visible = shown;
+            d.Colour.Transform = mat;
+            d.White.Visible = shown && white > 0.01;
+            d.White.Transform = mat;
+            if (d.Glow != null) d.Glow.Transform = mat;
+        }
+        _flash.Visible = white > 0.01;
+        _flash.Modulate = new Color(1, 1, 1, (float)white);
     }
 
-    /// <summary>The white flash over the body: the same silhouette unlit, as bright as the blow's.</summary>
-    private sealed partial class Flash : Node2D
+    /// <summary>
+    /// Adds the light of its glowing parts, its brightest <see cref="FaunaLooks.MostLights"/> spots, at where they are drawn in the
+    /// world through <paramref name="toWorld"/>, faded with it: what its glow lights round it.
+    /// </summary>
+    public void Lights(List<(Vector2 At, Color Colour)> into, Transform2D toWorld, float alpha)
     {
-        public override void _Draw()
+        int n = 0;
+        foreach (var d in _drawn)
         {
-            var body = (CreatureBody)GetParent();
-            float white = (float)Math.Max(body._white, body.Dying is double d ? Math.Min(1, 1.6 * (1 - d)) * (1 - d) : 0);
-            if (white <= 0.01f) return;
-            var c = new Color(1, 1, 1, white);
-            body.Shape(this, c, c, c);
+            if (d.Glow == null || !d.Colour.Visible) continue;
+            foreach (var (at, colour) in d.Spots)
+            {
+                if (n++ >= FaunaLooks.MostLights) return;
+                into.Add((toWorld * (_mats[d.Node] * at), colour with { A = colour.A * alpha }));
+            }
         }
+    }
+
+    /// <summary>Drawn at <paramref name="alpha"/>, dying: its colours and glows fading, its flash swelling white then gone.</summary>
+    public void Fade(float alpha)
+    {
+        var shade = new Color(1, 1, 1, alpha);
+        foreach (var d in _drawn)
+        {
+            d.Colour.Modulate = shade;
+            if (d.Glow != null) d.Glow.Modulate = shade;
+        }
+        float white = (float)Math.Max(_white, Dying is double t ? Math.Min(1, 1.6 * (1 - t)) * (1 - t) : 0);
+        foreach (var d in _drawn) d.White.Visible = d.Colour.Visible && white > 0.01;
+        _flash.Visible = white > 0.01;
+        _flash.Modulate = new Color(1, 1, 1, white);
     }
 }

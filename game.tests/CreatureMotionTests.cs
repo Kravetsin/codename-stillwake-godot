@@ -10,7 +10,7 @@ public class CreatureMotionTests
 
     private static CreatureMotion Run(CreatureMotion m, double ms, double dx = 0, int? watch = null)
     {
-        for (double t = 0; t < ms; t += Frame) m.Step(Frame, dx, grounded: true, landed: false, watch);
+        for (double t = 0; t < ms; t += Frame) m.Step(Frame, dx, landed: false, watch);
         return m;
     }
 
@@ -22,7 +22,7 @@ public class CreatureMotionTests
         m.Hit(away: 1, share: 1);
         Assert.Equal(1, m.Flash, 3);
         Assert.True(m.Shaking);
-        var (x, y) = m.Scale(fleeing: false);
+        var (x, y) = m.Scale(flee: 0);
         Assert.True(x > 1.15 && y < 0.85, $"squashed to ({x:F2}, {y:F2})");
         Assert.True(m.Eye > 1.3, "its eye goes wide");
         Run(m, CreatureMotion.ShakeMs + Frame);
@@ -30,10 +30,10 @@ public class CreatureMotionTests
         Run(m, CreatureMotion.FlashMs);
         Assert.Equal(0, m.Flash);
         Run(m, CreatureMotion.StartleMs);
-        var (sx, sy) = m.Scale(fleeing: false);
+        var (sx, sy) = m.Scale(flee: 0);
         Assert.InRange(sx, 0.97, 1.03);
         Assert.InRange(sy, 0.97, 1.03);
-        Assert.Equal(0, m.Tilt(fleeing: false), 3);
+        Assert.Equal(0, m.Tilt(flee: 0), 3);
     }
 
     [Fact]
@@ -44,8 +44,8 @@ public class CreatureMotionTests
         double tallest = 0;
         for (double t = 0; t < CreatureMotion.SquashMs; t += Frame)
         {
-            m.Step(Frame, 0, true, false, null);
-            tallest = System.Math.Max(tallest, m.Scale(false).Y);
+            m.Step(Frame, 0, false, null);
+            tallest = System.Math.Max(tallest, m.Scale(0).Y);
         }
         Assert.True(tallest > 1.02, $"never past round: {tallest:F3}");
     }
@@ -65,20 +65,13 @@ public class CreatureMotionTests
     {
         var m = new CreatureMotion();
         m.Hit(away: 1, share: 1);
-        m.Step(Frame, 0, true, false, null);
-        Assert.True(m.Tilt(false) > 0, "thrown right, it tilts clockwise");
+        m.Step(Frame, 0, false, null);
+        Assert.True(m.Tilt(0) > 0, "thrown right, it tilts clockwise");
         Run(m, 200, dx: -2);
         Assert.Equal(-1, m.Facing);
         Run(new CreatureMotion(), 10);
         var still = Run(new CreatureMotion(), 50, watch: -1);
         Assert.Equal(-1, still.Facing);
-        // It strides by the ground covered, its strides longer the faster: a quicker cadence fleeing, and a bound, but not a blur.
-        var walk = Run(new CreatureMotion(), 1000, dx: 0.5);
-        var flee = Run(new CreatureMotion(), 1000, dx: 4);
-        Assert.True(flee.Phase > walk.Phase && flee.Phase < walk.Phase * 4, $"{flee.Phase:F1} strides fleeing, {walk.Phase:F1} walking");
-        Assert.Equal(CreatureMotion.LongestStride, CreatureMotion.StrideAt(300));
-        Assert.Equal(0, Run(new CreatureMotion(), 500, dx: 0.5).Bound, 3);
-        Assert.True(Enumerable.Range(0, 30).Select(_ => Run(flee, Frame, dx: 4).Bound).Max() > 2);
     }
 
     [Fact]
@@ -86,17 +79,17 @@ public class CreatureMotionTests
     {
         var m = new CreatureMotion();
         m.Jump();
-        m.Step(Frame, 0, false, false, null);
-        Assert.True(m.Scale(false).Y < 0.95, "no crouch");
-        Assert.Equal(1, m.Ears(false));
+        m.Step(Frame, 0, false, null);
+        Assert.True(m.Scale(0).Y < 0.95, "no crouch");
+        Assert.Equal(1, m.Ears(0));
         Run(m, CreatureMotion.CrouchMs);
-        Assert.True(m.Scale(false).Y > 1.1, "no spring");
+        Assert.True(m.Scale(0).Y > 1.1, "no spring");
         double Squash(double hardness)
         {
             var l = new CreatureMotion();
             l.Land(hardness);
-            l.Step(Frame, 0, true, true, null);
-            return l.Scale(false).Y;
+            l.Step(Frame, 0, true, null);
+            return l.Scale(0).Y;
         }
         Assert.True(Squash(1) < Squash(0) - 0.1, $"{Squash(1):F2} hard against {Squash(0):F2} soft");
     }

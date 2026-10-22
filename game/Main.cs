@@ -54,7 +54,7 @@ namespace Stillwake.Game;
 /// <c>--tool-cards</c> the drill's card plain and fitted side by side (<see cref="ToolCardsDemo"/>), <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--snap FILE</c> saves the screen to FILE once the world is <c>--snap-at</c> seconds old and quits, <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--allocs</c> with it what was allocated, by type (<see cref="AllocationSampler"/>), <c>--for=seconds</c> quits after a while,
-/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), with <c>--fauna</c> lopers let out by it and hunted by script (<see cref="FaunaHands"/>, 0102; <c>--manual</c> leaves them be), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree or <c>--ground=slope</c> cracking slopes (0079), <c>--ground=hit-soil</c> (<c>-stone</c>, <c>-alloy</c>, <c>-tree</c>, <c>-crystal</c>) striking one from the edge of reach with the drill, or with <c>--axe</c> the axe (0094),<c>--ground=band0</c>…<c>band3</c> in a cave of a depth band or <c>--ground=hall</c> in a great hall, looking at its growth (0080), <c>--ground=sprint --autopilot</c> a sprint over its ground and back (<see cref="HeroAutopilot.Sprint"/>, <c>--sprint 250</c> cells), <c>--sweep=DEPTH</c> the camera run along the row that deep under the spawn (<see cref="CameraSweep"/>), <c>--ground=cave</c> or <c>--ground=shaft</c>
+/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), with <c>--fauna</c> creatures of every kind let out by it (<c>--fauna=fluff</c> one kind) and hunted by script (<see cref="FaunaHands"/>, 0102; <c>--manual</c> leaves them be), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree or <c>--ground=slope</c> cracking slopes (0079), <c>--ground=hit-soil</c> (<c>-stone</c>, <c>-alloy</c>, <c>-tree</c>, <c>-crystal</c>) striking one from the edge of reach with the drill, or with <c>--axe</c> the axe (0094),<c>--ground=band0</c>…<c>band3</c> in a cave of a depth band or <c>--ground=hall</c> in a great hall, looking at its growth (0080), <c>--ground=sprint --autopilot</c> a sprint over its ground and back (<see cref="HeroAutopilot.Sprint"/>, <c>--sprint 250</c> cells), <c>--sweep=DEPTH</c> the camera run along the row that deep under the spawn (<see cref="CameraSweep"/>), <c>--ground=cave</c> or <c>--ground=shaft</c>
 /// down into a cave with the helmet lamp or digging a shaft (<see cref="GroundDemo"/>), <c>--strip</c> the test strip (0076),
 /// with <c>--autopilot</c> played by a script (<see cref="HeroAutopilot.PlanetRun"/>), with <c>--beam-back</c> back aboard two seconds in,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
@@ -399,6 +399,10 @@ public partial class Main : Node2D, ITogether
         if (Has("--die")) world = DieDemo.Seed(world, Modules);
         if (Has("--breathe") || Has("--breathe-air")) world = BreatheDemo.Seed(world, Modules, suit: Has("--breathe") ? 8 : 6);
         if (Has("--handbook")) world = HandbookDemo.Seed(world, Modules);
+        // --fauna=fluff (a species or its look): only that kind let out; --fauna-trace logs their strides a second.
+        string? kind = _args.FirstOrDefault(a => a.StartsWith("--fauna=", StringComparison.Ordinal))?[8..];
+        bool fauna = Has("--fauna") || kind != null;
+        if (Has("--fauna-trace") || Has("--fauna-trace=frames")) (_fauna.Trace, _fauna.TraceFrames) = (Log, Has("--fauna-trace=frames"));
         if (_args.FirstOrDefault(a => a.StartsWith("--ground=", StringComparison.Ordinal)) is { } ground)
         {
             world = GroundDemo.Seed(world, Modules, ArcDrill);
@@ -410,11 +414,11 @@ public partial class Main : Node2D, ITogether
             else if (GroundDemo.Caves(ground[9..])) AddChild(new GroundHands(_ground, dig: false));
         }
         // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077).
-        else if (Has("--planet") || Has("--strip") && Has("--fauna")) world = GroundDemo.Seed(world, Modules, ArcDrill);
-        // --fauna, with --planet: lopers let out by the hero, hunted by script unless --manual (0102).
-        if (Has("--fauna"))
+        else if (Has("--planet") || Has("--strip") && fauna) world = GroundDemo.Seed(world, Modules, ArcDrill);
+        // --fauna, with --planet: creatures let out by the hero, hunted by script unless --manual (0102).
+        if (fauna)
         {
-            _faunaDemo = new FaunaDemo(drill: Has("--fauna-drill"), course: Has("--fauna-course"));
+            _faunaDemo = new FaunaDemo(drill: Has("--fauna-drill"), course: Has("--fauna-course"), kind: kind) { Kill = Has("--fauna-kill") };
             if (!Has("--manual")) AddChild(new FaunaHands(_faunaDemo, () => _hero?.Current, still: Has("--fauna-drill"), quick: Has("--fauna-course")));
         }
         PlayDev(world, Has("--gallery") ? null : Has("--store") ? Features.Power.StoreWorld.Map : layout);
@@ -953,6 +957,7 @@ public partial class Main : Node2D, ITogether
             Homes = () => homes?.Lights ?? [],
             Spires = () => spires?.Lights ?? [],
             Benches = () => benches.Lights,
+            Creatures = () => _fauna.Lights,
         });
         // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
         _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);
@@ -1058,7 +1063,7 @@ public partial class Main : Node2D, ITogether
         _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
         _frameLog?.Mark("debris");
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
-        _fauna.Frame(client, _m.Fauna, _m.Grid, _camera.View(), session.Progress, delta * 1000);
+        _fauna.Frame(client, _m.Fauna, _m.Grid, _camera.View(), session.Progress, delta * 1000, FaunaLooks.PaletteOf.GetValueOrDefault(_m.Rules.Id, FaunaLooks.Palette));
         _frameLog?.Mark("fauna");
         ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");
