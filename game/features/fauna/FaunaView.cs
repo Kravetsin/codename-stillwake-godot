@@ -315,11 +315,13 @@ public partial class FaunaView(Ui ui) : Node2D
         }
         one.LastVy = c.VY;
         motion.Bracing = c.Mode == Mode.WindUp;
+        // Winding up it faces the hero it will charge, however far: it turned back on it (0103).
+        if (c.Mode == Mode.WindUp && Math.Abs(toHero.X) > 2) watch = Math.Sign(toHero.X);
         motion.Step(elapsedMs, drawn.X - one.Drawn.X, grounded && !one.Grounded, c.VX == 0 ? watch : null);
         Rams(one, c, spec, drawn, grounded, elapsedMs);
         // Its legs go by the ground the sim moved it on its last tick, never by a frame's step: a frame's is uneven, a tick's is not.
         double speed = Math.Abs(one.To.X - one.From.X) / Unit * Cell * World.TicksPerSecond;
-        bool fleeing = c.Mode == Mode.Flee;
+        bool fleeing = FaunaModule.Fleeing(c.Mode);
         var gait = one.Gait;
         gait.Step(elapsedMs, speed, grounded, fleeing);
         // Idle with no hero by, a while, it grazes; idle with one near, it watches it.

@@ -290,11 +290,12 @@ public class FaunaTests
     public void ALoperHasNoHitStunAHitKnocksItAwayWithAHopAndItFleesAtOnceThenCalmsDown()
     {
         Assert.Equal(0, Loper.Stun);
-        foreach (var (hero, away) in new[] { (20, +1), (27, -1) })
+        // Struck from past RamBackReach, on the hero's side: it flees, never turning back to ram (0103).
+        foreach (var (hero, away, striker) in new[] { (20, +1, 2), (27, -1, 45) })
         {
-            var w = FaunaTesting.Planet(Long).HeroAt(hero, 3);
+            var w = FaunaTesting.Planet(Long).HeroAt(hero, 3).HeroAt(striker, 3, peer: 1);
             var c = w.Loper(23, 3).Still();
-            w.Do(new Strike(c.Id, Axe)).Run();
+            w.Do(new Strike(c.Id, Axe) { From = 1 }).Run();
             Assert.Equal(Mode.Flee, c.Mode);
             // Knocked at its flight's speed or the knock's, the more: it bolts from the blow.
             Assert.Equal(away * Math.Max(Loper.Knock, Loper.Flee), c.VX);
@@ -341,9 +342,10 @@ public class FaunaTests
         int sprint = Spec.Hero.Run * 60 / World.TicksPerSecond;
         Assert.True(Loper.Flee > sprint, $"a flee of {Loper.Flee} a tick against a sprint of {sprint}");
         var wide = Wide(400, 8);
-        var w = FaunaTesting.Planet(wide, FaunaTesting.Lifeless).Breathing().HeroAt(100, 6);
+        // Struck by a friend past RamBackReach behind the hero: it flees, never turning back to ram (0103).
+        var w = FaunaTesting.Planet(wide, FaunaTesting.Lifeless).Breathing().HeroAt(100, 6).HeroAt(80, 6, peer: 1);
         var c = w.Loper(102, 6).Still();
-        w.Do(new Strike(c.Id, Axe)).Run();
+        w.Do(new Strike(c.Id, Axe) { From = 1 }).Run();
         // A hero sprinting after it from where it struck, its body's middle level with the loper's back as the blow lands.
         long hero = 100 * Unit + Unit / 2, gap = c.X - Loper.Width * Unit / 2 - hero;
         int ticks = 1;

@@ -73,6 +73,8 @@ public class FaunaInvariantTests
         Mode.Hurt => spec.Stun,
         Mode.WindUp => Tune.WindUp,
         Mode.Charge => Tune.ChargeTicks,
+        Mode.Retreat => Tune.RamFleeMost,
+        Mode.Escape => spec.FleeTicks,
         _ => 0,
     };
 
@@ -127,11 +129,15 @@ public class FaunaInvariantTests
             // Each creature's hits on its charge, counted from the tick it began charging.
             var hits = new Dictionary<int, int>();
             var charging = new HashSet<int>();
+            // Each creature's wind-ups since it was last struck: one ram a hit, never a chain.
+            var windUps = new Dictionary<int, int>();
+            var winding = new HashSet<int>();
             for (int t = 0; t < run.Ticks && broken == null; t++)
             {
                 var all = w.M.Fauna.Creatures;
+                Strike? strike = null;
                 if (all.Count > 0 && rng.Below(6) == 0)
-                    w.Do(new Strike(all[(int)rng.Below((uint)all.Count)].Id, Content.Weapons.Axe.Item) { From = (int)rng.Below((uint)heroes) });
+                    w.Do(strike = new Strike(all[(int)rng.Below((uint)all.Count)].Id, Content.Weapons.Axe.Item) { From = (int)rng.Below((uint)heroes) });
                 var sent = new List<HitBy>();
                 foreach (var c in all)
                     for (int h = 0; h < heroes; h++)
@@ -143,8 +149,12 @@ public class FaunaInvariantTests
                 var turnedDown = w.Refusals.Skip(refused).Select(r => r.Command).ToHashSet(ReferenceEqualityComparer.Instance);
                 foreach (var hit in sent)
                     if (!turnedDown.Contains(hit)) hits[hit.Creature] = hits.GetValueOrDefault(hit.Creature) + 1;
+                if (strike != null && !turnedDown.Contains(strike)) windUps[strike.Creature] = 0;
                 foreach (var c in w.M.Fauna.Creatures)
                 {
+                    if (c.Mode == Mode.WindUp && winding.Add(c.Id)) windUps[c.Id] = windUps.GetValueOrDefault(c.Id) + 1;
+                    else if (c.Mode != Mode.WindUp) winding.Remove(c.Id);
+                    if (windUps.GetValueOrDefault(c.Id) > 1) broken ??= $"creature {c.Id} wound up {windUps[c.Id]} times on one hit";
                     if (c.Mode == Mode.Charge && charging.Add(c.Id)) hits[c.Id] = 0;
                     else if (c.Mode != Mode.Charge) charging.Remove(c.Id);
                     if (hits.GetValueOrDefault(c.Id) > 1) broken ??= $"creature {c.Id}'s charge hurt {hits[c.Id]} times";

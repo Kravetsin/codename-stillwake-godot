@@ -109,46 +109,141 @@ public class FaunaRamTests
     [Fact]
     public void EveryWalkerOfTheOpenGroundRamsAndTheTapirHardest()
     {
-        Assert.Equal((5, 400), (Tapir.Ram, Tapir.RamChance));
-        Assert.Equal((3, 3), (Tune.Loper.Ram, Tune.Sixleg.Ram));
+        Assert.Equal((5, 900), (Tapir.Ram, Tapir.RamChance));
+        Assert.Equal((3, 700, 3, 700), (Tune.Loper.Ram, Tune.Loper.RamChance, Tune.Sixleg.Ram, Tune.Sixleg.RamChance));
         Assert.All(Tune.All, s => Assert.InRange(s.RamChance, s.Ram > 0 ? 1 : 0, s.Ram > 0 ? 1000 : 0));
     }
 
+    // Ramming back after a hit.
+
+    /// <summary>
+    /// A tapir struck on the long floor by a hero <paramref name="off"/> columns left of it, on a world of <paramref name="seed"/>:
+    /// the ticks till it begins its charge back at the hero, none in <paramref name="ticks"/>; and whether that charge passed the hero.
+    /// </summary>
+    private static (int? ChargedAt, bool Passed) StruckFrom(Tune.Species species, int off, uint seed, int ticks = 60)
+    {
+        var w = FaunaTesting.Planet(Long, seed: seed).Breathing().HeroAt(8, 3);
+        var c = w.Let(species, 8 + off - 1, 3).Still();
+        w.Do(new Strike(c.Id, Axe)).Run();
+        int? charged = null;
+        bool passed = false;
+        for (int t = 1; t <= ticks; t++)
+        {
+            w.Run();
+            if (c.Mode == Mode.Charge) charged ??= t;
+            passed |= charged != null && c.X < 8 * Unit;
+        }
+        return (charged, passed);
+    }
+
     [Fact]
-    public void AStrikeDuringTheWindUpKnocksItAndItFlees()
+    public void AStruckTapirWithTheHeroEightCellsOffRamsItBackWithinTwoSecondsNineTimesInTen()
+    {
+        var runs = Enumerable.Range(1, 10).Select(seed => StruckFrom(Tapir, 8, (uint)seed)).ToList();
+        int rammed = runs.Count(r => r.ChargedAt <= 2 * World.TicksPerSecond);
+        Assert.True(rammed >= 9, $"{rammed} of 10 rammed back within 2 s: {string.Join(", ", runs)}");
+        // And the charge reaches it: through where it stands.
+        Assert.All(runs.Where(r => r.ChargedAt != null), r => Assert.True(r.Passed));
+    }
+
+    [Fact]
+    public void AStruckLoperRamsBackMostTimesAndTheFluffNever()
+    {
+        int lopers = Enumerable.Range(1, 10).Count(seed => StruckFrom(Tune.Loper, 3, (uint)seed).ChargedAt != null);
+        Assert.InRange(lopers, 5, 10);
+        Assert.All(Enumerable.Range(1, 10), seed => Assert.Null(StruckFrom(Tune.Fluff, 3, (uint)seed, ticks: 200).ChargedAt));
+    }
+
+    [Fact]
+    public void AStruckTapirFleesAMomentThenTurnsWindsUpFacingTheHeroAndCharges()
+    {
+        var w = FaunaTesting.Planet(Long).Breathing().HeroAt(8, 3);
+        var c = w.Let(Tapir, 11, 3).Still();
+        w.Do(new Strike(c.Id, Axe)).Run();
+        Assert.Equal(Mode.Retreat, c.Mode);
+        // Its draw, less the tick that ran since.
+        Assert.InRange(c.ModeLeft, Tune.RamFleeLeast - 1, Tune.RamFleeMost - 1);
+        Assert.True(c.VX > 0, "not fleeing away from the hero");
+        while (c.Mode == Mode.Retreat) w.Run();
+        Assert.Equal(Mode.WindUp, c.Mode);
+        while (c.Mode == Mode.WindUp) w.Run();
+        Assert.Equal((Mode.Charge, -Tune.Charge), (c.Mode, c.VX));
+    }
+
+    [Fact]
+    public void AHeroPastRamBackReachStrikingItIsNotRammedBack()
+    {
+        // Struck from 14 columns off (the client's word on reach): it flees as ever.
+        var w = FaunaTesting.Planet(Long).Breathing().HeroAt(8, 3);
+        var c = w.Let(Tapir, 21, 3).Still();
+        w.Do(new Strike(c.Id, Axe)).Run();
+        Assert.Equal(Mode.Flee, c.Mode);
+    }
+
+    [Fact]
+    public void OneHitOneRamItsChargeSpentItEscapesAndNeverRamsAgainTillStruck()
+    {
+        // In the pen, the hero by its left wall: the charge back meets the wall missing it, then it flees, cornered again and again.
+        var w = FaunaTesting.Planet(Pen).Breathing().HeroAt(3, 3);
+        var c = w.Let(Tapir, 6, 3).Still();
+        w.Do(new Strike(c.Id, Axe)).Run();
+        int windUps = 0;
+        var was = c.Mode;
+        for (int t = 0; t < 400; t++)
+        {
+            w.Run();
+            if (c.Mode == Mode.WindUp && was != Mode.WindUp) windUps++;
+            if (was == Mode.Charge && c.Mode != Mode.Charge) Assert.Equal(Mode.Escape, c.Mode);
+            was = c.Mode;
+        }
+        Assert.Equal(1, windUps);
+        // Struck again, it may ram again.
+        w.Do(new Strike(c.Id, Axe)).Run();
+        Assert.True(FaunaModule.Fleeing(c.Mode));
+    }
+
+    [Fact]
+    public void AStrikeDuringTheWindUpCancelsItsChargeAndKnocksItAway()
     {
         var w = FaunaTesting.Planet(Pen).Breathing().HeroAt(10, 3);
         var c = w.Let(Tapir, 13, 3);
         Assert.True(WindsUp(w, c));
+        int left = c.ModeLeft;
         w.Do(new Strike(c.Id, Axe)).Run();
-        Assert.Equal(Mode.Flee, c.Mode);
+        Assert.True(c.Mode is Mode.Flee or Mode.Retreat, $"{c.Mode}");
         Assert.True(c.VX > 0, "not knocked away from the striker");
         Assert.Equal(Spec.Weapons.Axe.Damage, c.Damage);
+        // When its wind-up would have ended it does not charge: its cycle begins again from the blow.
+        w.Run(left);
+        Assert.NotEqual(Mode.Charge, c.Mode);
     }
 
     // The charge.
 
     [Fact]
-    public void AChargeRunsItsTicksAtItsSpeedThenFlees()
+    public void AChargeRunsAtItsSpeedPastTheHeroByRamPastThenEscapesOnItsWay()
     {
-        var w = FaunaTesting.Planet(Long).Breathing().HeroAt(4, 3);
-        var c = w.Let(Tapir, 30, 3).Charging(-1);
-        for (int t = 1; t < Tune.ChargeTicks; t++)
+        var w = FaunaTesting.Planet(Long).Breathing().HeroAt(20, 3);
+        var c = w.Let(Tapir, 33, 3).Charging(-1);
+        int ticks = 0;
+        while (c.Mode == Mode.Charge)
         {
             int x = c.X;
             w.Run();
-            Assert.Equal((Mode.Charge, x - Tune.Charge), (c.Mode, c.X));
+            ticks++;
+            if (c.Mode == Mode.Charge) Assert.Equal(x - Tune.Charge, c.X);
         }
-        w.Run();
-        Assert.Equal(Mode.Flee, c.Mode);
-        Assert.Equal(Tapir.Flee, c.VX);
+        Assert.True(ticks < Tune.ChargeTicks, "it ran out its charge");
+        Assert.Equal((Mode.Escape, -Tapir.Flee), (c.Mode, c.VX));
+        // Turned to escaping the tick its middle was RamPast cells past the hero's, and on a step that tick.
+        Assert.InRange(20 * Unit + Unit / 2 - c.X, Tune.RamPast * Unit + Tapir.Flee, Tune.RamPast * Unit + Tune.Charge + Tapir.Flee);
     }
 
     [Fact]
     public void AChargeEndsAtAWallFlushWithIt()
     {
-        var w = FaunaTesting.Planet(Pen).Breathing().HeroAt(1, 3);
-        var c = w.Let(Tapir, 12, 3).Charging(+1);
+        var w = FaunaTesting.Planet(Pen).Breathing().HeroAt(16, 3);
+        var c = w.Let(Tapir, 8, 3).Charging(+1);
         int ticks = 0, most = 0;
         while (c.Mode == Mode.Charge)
         {
@@ -158,15 +253,15 @@ public class FaunaRamTests
             Assert.True(Clear(w, c));
         }
         Assert.True(ticks < Tune.ChargeTicks, "it ran out its charge rather than meet the wall");
-        // Flush with the wall, then turned from it, fleeing.
+        // Flush with the wall, short of the hero's middle by less than RamPast, then turned from it, escaping.
         Assert.Equal(17 * Unit - Unit, most);
-        Assert.Equal((Mode.Flee, -Tapir.Flee), (c.Mode, c.VX));
+        Assert.Equal((Mode.Escape, -Tapir.Flee), (c.Mode, c.VX));
     }
 
     [Fact]
     public void AChargeEndsAtADropNeverGoingOffTheLedge()
     {
-        var w = FaunaTesting.Planet(Ledge).Breathing().HeroAt(1, 2);
+        var w = FaunaTesting.Planet(Ledge).Breathing().HeroAt(11, 5);
         var c = w.Let(Tapir, 2, 2).Charging(+1);
         int most = 0;
         while (c.Mode == Mode.Charge)
@@ -175,7 +270,7 @@ public class FaunaRamTests
             most = Math.Max(most, c.X + Tapir.Width * Unit / 2);
             Assert.Equal(3 * Unit, c.Y);
         }
-        Assert.Equal((Mode.Flee, -Tapir.Flee), (c.Mode, c.VX));
+        Assert.Equal((Mode.Escape, -Tapir.Flee), (c.Mode, c.VX));
         Assert.InRange(most, 7 * Unit - Tune.Charge, 7 * Unit);
     }
 
@@ -191,8 +286,8 @@ public class FaunaRamTests
         w.Do(new HitBy(c.Id)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(Tapir.Ram, Suit(w, 1) - Suit(w, 0));
-        // Back the way it came, hopping off the hero.
-        Assert.Equal((Mode.Flee, Tapir.Flee), (c.Mode, c.VX));
+        // Back the way it came, hopping off the hero, its ram spent.
+        Assert.Equal((Mode.Escape, Tapir.Flee), (c.Mode, c.VX));
         Assert.True(c.X > x && c.VY < 0, $"at {c.X} from {x}, rising {c.VY}");
     }
 
@@ -230,7 +325,7 @@ public class FaunaRamTests
         w.Do(new HitBy(c.Id)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(Spec.Crew.Suit, Suit(w, 0));
-        Assert.Equal(Mode.Flee, c.Mode);
+        Assert.Equal(Mode.Escape, c.Mode);
     }
 
     [Fact]

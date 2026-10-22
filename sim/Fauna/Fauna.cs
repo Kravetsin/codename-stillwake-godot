@@ -135,6 +135,9 @@ public sealed partial class FaunaModule : Module<FaunaState>
         bool stunned = spec.Stun > 0;
         int knock = Math.Max(spec.Knock * pace / Spec.KnockPace, stunned ? 0 : spec.Flee);
         (creature.Mode, creature.ModeLeft) = stunned ? (Mode.Hurt, spec.Stun) : (Mode.Flee, spec.FleeTicks);
+        // A rammer struck by a hero near it mostly turns back on it after a moment's flight (0103): two draws, as its mode changes.
+        if (!stunned && spec.Ram > 0 && Near(creature, _crew.HeroOf(c.From)?.Cell, Spec.RamBackReach) && Random.Below(1000) < (uint)spec.RamChance)
+            (creature.Mode, creature.ModeLeft) = (Mode.Retreat, Spec.RamFleeLeast + (int)Random.Below(Spec.RamFleeMost - Spec.RamFleeLeast + 1));
         // A blow never slows one already running the knock's way: a run of the drill's quick hits cannot hold it.
         creature.VX = away * (Math.Sign(creature.VX) == away ? Math.Max(Math.Abs(creature.VX), knock) : knock);
         // No hop while it rises already: a run of quick hits keeps it low rather than juggling it up.
@@ -147,9 +150,9 @@ public sealed partial class FaunaModule : Module<FaunaState>
         var spec = Spec.Get(creature.Species);
         // A ram may take the suit's last unit: the hero passes out, as the cold or the lava would leave it.
         _crewOps.Shock(c.From, spec.Ram);
-        // It recoils off the hero it struck, hopping back the way it came, fleeing: the hero thrown on, the two part at once. Read
-        // from the creature alone, as commands see no hero's place.
-        creature.Mode = Mode.Flee;
+        // It recoils off the hero it struck, hopping back the way it came, escaping, its ram spent: the hero thrown on, the two part
+        // at once. Read from the creature alone.
+        creature.Mode = Mode.Escape;
         creature.ModeLeft = spec.FleeTicks;
         creature.VX = -(creature.VX >= 0 ? 1 : -1) * spec.Flee;
         if (creature.VY >= 0) creature.VY = -spec.Hop;
@@ -193,6 +196,14 @@ public sealed partial class FaunaModule : Module<FaunaState>
             if (dx != 0) return Math.Sign(dx);
         }
         return c.VX > 0 ? -1 : 1;
+    }
+
+    /// <summary>Whether a hero reported at <paramref name="cell"/> is within <paramref name="reach"/> cells of <paramref name="c"/> by box distance; none on the grid is not.</summary>
+    private bool Near(Creature c, int? cell, int reach)
+    {
+        if (cell is not int at || at < 0 || at >= _grid.Width * _grid.Height) return false;
+        int x = Down(c.X, Unit), y = Down(c.Y - 1, Unit);
+        return Math.Max(Math.Abs(x - at % _grid.Width), Math.Abs(y - at / _grid.Width)) <= reach;
     }
 
     /// <summary>The binary search of <paramref name="id"/> among the creatures, in id order as they spawned; -1 for none.</summary>

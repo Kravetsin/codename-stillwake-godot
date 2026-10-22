@@ -19,12 +19,12 @@ public static class FaunaTesting
     }
 
     /// <summary><paramref name="map"/> with its fauna on a planet of <paramref name="kind"/>, the first planet's by default: lopers on its open ground.</summary>
-    public static Scenario Planet(string map, Spec.Surfaces.Kind? kind = null) => Planet(Layout.Parse(map), kind);
+    public static Scenario Planet(string map, Spec.Surfaces.Kind? kind = null, uint seed = 1) => Planet(Layout.Parse(map), kind, seed);
 
-    /// <summary><paramref name="map"/> with its fauna on a planet of <paramref name="kind"/>.</summary>
-    public static Scenario Planet(Layout map, Spec.Surfaces.Kind? kind = null)
+    /// <summary><paramref name="map"/> with its fauna on a planet of <paramref name="kind"/>, its world made from <paramref name="seed"/>.</summary>
+    public static Scenario Planet(Layout map, Spec.Surfaces.Kind? kind = null, uint seed = 1)
     {
-        var w = new Scenario(map);
+        var w = new Scenario(map, seed);
         w.M.Fauna.Where = new On(kind ?? Spec.PlanetTypes.First);
         return w;
     }

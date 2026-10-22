@@ -12,7 +12,7 @@ into their yields, and gone again when no hero is near. The ship has none.
   `Creature` (public, internal setters) `{ Id, Species, X, Y, VX, VY, Damage, Mode, ModeLeft, SeenAt }`: its species by id
   in `Content.Fauna.All`, the bottom middle of its body at `X`, `Y` in thousandths of a cell (`FaunaModule.Unit`), its speed
   a tick, the hit points weapons took off it, what it is doing (`Mode`: `Idle`, `Wander`, `Flee`, `Hurt`, `WindUp`, `Charge`,
-saved by number)
+  `Retreat`, `Escape`, saved by number)
   and the ticks left of it, and the clock it was last in a hero's keep box; `NextId`, never reused; `Clock`, ticks run on a
   surface with life or creatures. **Derived** from the rest, never saved: its facing (the sign of `VX`; the client keeps
   the last while it stands), whom it flees (the nearest hero, found as a flinch ends), the beat (`Clock % Fauna.Beat`).
@@ -27,7 +27,7 @@ saved by number)
   `fauna.notHere`. A drawn planet map (the test strip) has no habitats but creatures let out live there.
 - **A tick,** creatures in id order: kept or gone (below); pushed up a cell, still, while a wall built since stands in its
   body (its head kept on the grid); else its mode's clock counts down, a mode ending picks the next (below); a walker on the
-  ground in `Wander` or `Flee` turns back from a wall it cannot step up and from a drop of `Fauna.Drop` (3) rows or more, in
+  ground wandering or in flight (`Flee`, `Retreat`, `Escape`) turns back from a wall it cannot step up and from a drop of `Fauna.Drop` (3) rows or more, in
   the column just ahead or, over flat ground, the one its edge reaches at its mode's speed this tick (a loper's flight, 15 cells
   a second, would else overhang the brink by most of a cell) — unless it leaps (below) — then goes that speed; idle on the ground it stands still; then it moves. Then, on the beat, spawns.
 - **Moving** is integer and per axis, under the surface's gravity (`Kind.Fall(Fauna.Gravity)`, 21 a tick on the first
@@ -48,17 +48,22 @@ saved by number)
   ticks) → `Idle`; a strike → `Flee` for `FleeTicks` at once, the knock's way, for a species with no hit-stun (`Stun` 0, the
   neutral loper); else → `Hurt` for its `Stun` ticks, steering nothing → `Flee`, its way away from the nearest hero by reported
   cell (box distance in cells, the first in id order at a tie; level, or none, the knock's way) → `Idle`. Only an idle or a
-  wander begun draws from the Rng, and a ram's chance (below).
-- **Rams** (0103): a fleeing walker of a species with a `Ram` that must turn at a wall or a drop it cannot leap, with the
-  nearest hero within `Fauna.RamReach` (6) cells by box distance on the side it would turn to, draws its `RamChance` in a
-  thousand (the tapir's 400, the loper's and the sixleg's 150; the fluff has none); drawn, → `WindUp` for `Fauna.WindUp` (8)
-  ticks, standing still → `Charge` for `Fauna.ChargeTicks` (10) at `Fauna.Charge` (700) a tick toward the nearest hero as the
-  wind-up ends (none, or level with it: → `Flee` instead), along the ground, stepping up and down a cell as a walker, never
-  leaping → `Flee` from the nearest hero; a wall it cannot step up or a drop on its way ends it at once, turned from it, fleeing.
-  A strike in either knocks it into flight as ever.
+  wander begun draws from the Rng, and a ram's draws (below).
+- **Rams** (0103), one a hit. Struck by a hero within `Fauna.RamBackReach` (12) cells of it by box distance (the striker's
+  reported cell), a species with a `Ram` and no stun draws its `RamChance` in a thousand (the tapir's 900, the loper's and the
+  sixleg's 700; the fluff has none); drawn, it flees as ever but in `Retreat`, for a second draw of `RamFleeLeast`..`RamFleeMost`
+  (12..20) ticks, then turns back → `WindUp`; a retreat that must turn at a wall or drop it cannot leap winds up there at once.
+  Not drawn (or struck from farther), it is in `Flee`, and a flight that must turn so, with the nearest hero within
+  `Fauna.RamReach` (6) on the side it would turn to, draws its `RamChance` again: cornered, → `WindUp`. A wind-up is
+  `Fauna.WindUp` (8) ticks standing still, counted from the ground → `Charge` toward the nearest hero by reported cell as it
+  ends (none, level with it or farther than a charge runs: → `Escape` instead), at `Fauna.Charge` (700) a tick along the ground,
+  stepping up and down a cell as a walker, never leaping, till its middle is `Fauna.RamPast` (3) cells past that hero's
+  (→ `Escape` on its way), a wall it cannot step up or a drop (→ `Escape`, turned from it), or `Fauna.ChargeTicks` (40) (→
+  `Escape` from the nearest hero). `Escape` is a flight of `FleeTicks` that never rams → `Idle`: its ram spent, it rams only
+  when struck again. A strike in a wind-up or a charge knocks it and draws anew, as any strike.
 - **`HitBy(Creature)`,** from the hero its charge touched, as that hero's client saw it (0034's word): refused `fauna.gone`
   and `fauna.notAttacking` for one not charging. The sender's suit pays the species' `Ram` (`ICrewOps.Shock`: none in creative
-  mode or for a hero out, the last unit passing it out as the cold would); the creature recoils into `Flee`, back the way it
+  mode or for a hero out, the last unit passing it out as the cold would); the creature recoils into `Escape`, back the way it
   came at its flight's speed, hopping `Hop` unless it rises already. So a charge hits once: a second hero's `HitBy` on it is
   refused. Read from the creature alone: a command never sees where heroes are.
 - **`Strike(Creature, Tool)`:** refused `fauna.gone` for a creature gone or never spawned, `items.flat` and
@@ -108,6 +113,8 @@ saved by number)
 - **Despawning loses damage;** a half-hunted loper left for 30 s is gone with it.
 - **Unlimited biomass:** lopers spawn while heroes stand by; the cap and the beat are the only limits.
 - **A ring point with no place wastes the beat** for that hero: on a cliff column, or in a cave under the surface.
-- **A ram aims where the hero was reported** as the wind-up ended, up to a second behind; a charge that misses runs on.
-- **A cornered creature recoiling from a hit** may be cornered again and roll again; the hero's knock mostly takes it out of
-  reach. A second hero a charge touched is knocked on its own screen but pays nothing.
+- **A ram aims where the hero was reported** as the wind-up ended, up to a second behind; it runs RamPast past that cell.
+- **A second hero a charge touched** is knocked on its own screen but pays nothing.
+- **The drill held on a rammer** draws anew at every one of its quick hits: the retreat begins again each time, so it turns
+  back only once the drilling stops.
+- **A stunned species never rams back** (none has a stun yet): its hit-stun steers its flight.
