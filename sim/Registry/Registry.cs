@@ -4,6 +4,7 @@ using Stillwake.Sim.Building;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
+using Stillwake.Sim.Fauna;
 using Stillwake.Sim.Furnace;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
@@ -45,6 +46,7 @@ public sealed class Registry
     public DebrisModule Debris { get; }
     public FurnaceModule Furnace { get; }
     public LogisticsModule Logistics { get; }
+    public FaunaModule Fauna { get; }
 
     /// <summary>The rules of the kind of surface this registry runs (0076): what the client draws and allows by.</summary>
     public Surfaces.Kind Rules => Grid.Rules;
@@ -79,7 +81,9 @@ public sealed class Registry
         Debris = new DebrisModule(Grid, Crew, Rooms, Items, Items);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting);
-        Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics];
+        // Last, after crew, as its system reads where heroes are; saved last, so its slice is the newest.
+        Fauna = new FaunaModule(Grid, Crew, Items, Items);
+        Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Fauna];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }
 

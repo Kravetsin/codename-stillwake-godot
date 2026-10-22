@@ -226,6 +226,8 @@ public class MigrationsTests
         var root = JsonNode.Parse(save)!.AsObject();
         root["format"] = DronesFormat - 1;
         root["slices"]!.AsObject().Remove("logistics");
+        // Nor the creatures that came after it (0102): their step puts them back after logistics.
+        root["slices"]!.AsObject().Remove("fauna");
         foreach (var held in root["slices"]!["items"]!["crates"]!.AsArray())
             if ((int)held!["id"]! == assembler)
             {
