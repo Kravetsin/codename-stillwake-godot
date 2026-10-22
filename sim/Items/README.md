@@ -53,7 +53,7 @@ mode, the world setting in which nothing is ever taken
   slot order, one with a module first, so with two drills the fitted one is used, whichever is in hand (the hand is the
   client's word). What a stack works with is one pure fold, `ToolStats.Of(stack)` (`ToolStats.cs`), which the client's
   card calls too: its damage a hit, pace and draw, the additions of its modules (`ToolStats.ModulesOf`, any number)
-  summed by `Boost.Plus`, then applied once, damage a gain rounded down (the arc's +1000 makes the drill's 1 a 2), draw a
+  summed by `Boost.Plus`, each module's trades in that tool's item (0100), then applied once, damage a gain rounded down (the arc's +1000 makes the drill's 1 a 2), draw a
   cost rounded up (3 → 6); the pace is the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own while the
   peer carries none (a hit's sender is never checked for holding its weapon); `Debris` and `Building` take it off a wreck
   or a wall. A run draws that stack's draw, and `items.flat` is judged on it.
@@ -103,12 +103,24 @@ mode, the world setting in which nothing is ever taken
   item of `Content.Modules` (the arc module), fitted into a machine by hand and out of every slot, so no move, sort,
   smelt or drone ever sees it. `Fit(Module, Machine)` takes the one item in `Module` (a `Place`: the sender's slot or a
   machine's) into machine `Machine`, which must be one of the module's `Hosts` (the electric smelter, the Former, the
-  circuit assembler; never the furnace or the pod) and hold none of that kind yet: one of each module a machine.
-  `Unfit(Machine, Module, Slot?)` takes it out into the sender's own slot `Slot`, an empty one, or with none wherever
-  it fits there, as a give does. `Boost(machine)` sums what the modules fitted into a machine add, in thousandths added
-  to 1000 (speed, draw, a tool's damage) and heat; `Boost.Gain` rounds a gain down (a station's speed, `Crafting`),
+  circuit assembler, the charger; never the furnace, the pod or the drone bay) and hold none of that kind yet: one of each
+  module a machine. `Unfit(Machine, Module, Slot?)` takes it out into the sender's own slot `Slot`, an empty one, or with
+  none wherever it fits there, as a give does. What a module does is its own in each host (`ModuleSpec.On`, a list of
+  hosts and their effects, trades only today; [0100](../../docs/decisions/0100-tech-branches.md)): `Boost(machine)` sums
+  the trades of the modules fitted into a machine in that machine's kind (`Boost.Plus(module, host)`), in thousandths added
+  to 1000 (speed, draw, a tool's damage) and heat, whole; the arc gives a station +1000 speed and draw, the charger +4000
+  draw, which is its charging; `Boost.Gain` rounds a gain down (a station's speed, `Crafting`),
   `Boost.Cost` a cost up (a machine's draw, `Power`). A machine holding a module is not taken apart (`Building`,
   `building.notEmpty`). In creative mode too: a fit is a move, nothing made or taken.
+- **The arc bench** ([0099](../../docs/decisions/0099-the-arc-bench.md)), a machine with `Tunes` set: its first slot,
+  its vise, holds one tool a module fits (`Modules.Hosted`: the drill) and nothing else, a move or a swap leaving anything
+  else there refused with `items.notTool` (`Stacks.Unfit`); its other slots are its crafts' outputs, only taken from.
+  `Fit(Module, Bench)` puts the module onto that tool's stack (`Stack.Module`, 0098) rather than into `Fitted`:
+  `items.noTool` while the vise holds none, `items.notModule` for what that tool takes not, `items.fitted` while it holds
+  a module, a stack holding one; `Unfit(Bench, Module, Slot?)` takes it off again into the sender's slots as from a
+  machine, `items.noTool` with an empty vise and `items.notFitted` for a module the tool does not hold. Nothing is ever
+  in `Fitted` for a bench, so its `Boost` is nothing. Holding a tool, it is not taken apart (`building.notEmpty`, as
+  any machine holding items). Drones never touch it (`Logistics`).
 - A change of nothing (a cost of zeros) changes nothing and stores no inventory; a machine emptied
   loses its entry.
 - In creative mode nothing is taken; giving still gives: what is taken apart is still there.
@@ -241,9 +253,11 @@ counted twice.
   creative mode). Off with nothing running is no refusal.
   `Fit(Module, Machine)` — refused with `items.noMachine` (no such machine), `items.noCrate`, `items.noSlot`,
   `items.empty` (as a move's source), `items.notModule` (not a module that machine takes: iron, or the arc into a
-  furnace) or `items.fitted` (one of its kind is fitted there). `Unfit(Machine, Module, Slot?)` — refused with
-  `items.notFitted` (no such module in that machine), `items.noSlot` (a slot past the sender's own) or `items.full` (the
-  slot named holds something, or with none named, no room). Queries: `FittedTo(machine)` — its modules, ordinal;
+  furnace) or `items.fitted` (one of its kind is fitted there); at an arc bench, `items.noTool` (an empty vise), and
+  `items.notModule` and `items.fitted` of the tool in it. `Unfit(Machine, Module, Slot?)` — refused with
+  `items.notFitted` (no such module in that machine, or the bench's tool), `items.noTool` (an empty vise), `items.noSlot`
+  (a slot past the sender's own) or `items.full` (the slot named holds something, or with none named, no room). A move
+  leaving anything but a tool a module fits in an arc bench's vise — `items.notTool`. Queries: `FittedTo(machine)` — its modules, ordinal;
   `Boost(machine)`; `FitProblem(peer, from, machine)` — the refusal a fit would get.
 Tests put items into an inventory with `GiveItems`, onto a hero with `Wear`, into a machine with `FillCrate` and a
 stack holding charge into any slot with `Put`, from

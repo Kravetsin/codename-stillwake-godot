@@ -64,7 +64,7 @@ public class ContentTests
         Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
         // The ruins' alloy (0085): six seconds of the drill, three of the drill with the arc module (0098), fifteen of the axe.
         int Seconds(Weapon w) => Materials.Get("alloy").Strength / (w.Damage * World.TicksPerSecond / w.Pace);
-        var fitted = Weapons.Drill with { Damage = Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Damage) };
+        var fitted = Weapons.Drill with { Damage = Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) };
         Assert.Equal((15, 6, 3), (Seconds(Weapons.Axe), Seconds(Weapons.Drill), Seconds(fitted)));
         Assert.True(fitted.Damage < Materials.All.Where(m => m.Breaks).Min(m => m.Strength));
     }
@@ -473,7 +473,7 @@ public class ContentTests
         Assert.Equal(3, draw);
         Assert.Equal(600, Charge.Battery / Charge.Scale / draw);
         // The arc module in it (0098): twice the damage, 20 a second, for twice the draw, 300 ticks of a battery.
-        Assert.Equal((20, 6), (Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Damage) * 20 / Weapons.Drill.Pace, Sim.Items.Boost.Cost(draw, Modules.Arc.Draw)));
+        Assert.Equal((20, 6), (Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) * 20 / Weapons.Drill.Pace, Sim.Items.Boost.Cost(draw, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Draw))));
         Assert.Null(Content.Items.Get(Weapons.Axe.Item).Draw);
         Assert.Equal([("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1), ("circuit", 2)], Crafts.Get(Weapons.Drill.Item).Cost);
         Assert.Equal(160, Crafts.Get(Weapons.Drill.Item).Ticks);
@@ -602,8 +602,10 @@ public class ContentTests
         Assert.Contains(holding, i => i.Id == Content.Logistics.Drone);
         Assert.Contains(Inventory.Equipment, kind => kind == Charge.Belt);
         // Paying never takes what holds charge, so no charge is lost to a recipe, a build or a cable; but the drone, whose
-        // battery becomes its own: made empty, as a crafted battery is, the battery's charge is lost there.
-        var costs = Crafts.All.Where(c => c.Item != Content.Logistics.Drone).Select(c => c.Cost)
+        // battery becomes its own, and the accumulator, a battery wound round a shard (0099): made empty, as a crafted battery
+        // is, the battery's charge is lost there.
+        string[] ofABattery = [Content.Logistics.Drone, "accumulator"];
+        var costs = Crafts.All.Where(c => !ofABattery.Contains(c.Item)).Select(c => c.Cost)
             .Concat(AllBuilds().Select(b => b.Cost))
             .Append(Content.Power.CableCost);
         Assert.All(costs, cost => Assert.DoesNotContain(cost, c => Content.Items.Get(c.Item).Capacity != null));
@@ -862,8 +864,9 @@ public class ContentTests
     [Fact]
     public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilAndMotorsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell", "drone", "arcModule"], formed = ["soil", "motor"];
-        Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        string[] electronics = ["circuit", "solarCell", "drone"], formed = ["soil", "motor"], arc = ["arcModule", "accumulator"];
+        Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed, .. arc]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));
         Assert.All(formed, item => Assert.Equal(["former"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(item))).Select(s => s.Machine)));
         Assert.All(Crafts.All, c => Assert.Contains(Stations.All, s => s.Rows.Any(r => r.Contains(c.Item))));
@@ -877,12 +880,40 @@ public class ContentTests
     }
 
     /// <summary>
-    /// A module (0086) is an item of its own, a stack of one kept in death, made at a station and never found: no wreck,
-    /// container or growth gives one. It fits only electric stations, for it multiplies what they draw: never the furnace's
-    /// planks nor the pod. What it adds is never negative, in whole thousandths.
+    /// The arc bench is the arc branch's station (0099): every craft of a sky shard sits there and nowhere else, each holds a
+    /// shard in its cost, so analysing one opens them together with the bench, and the bench is built of what the pod, the
+    /// Former and salvage give, and a shard: nothing it makes is needed to build it.
     /// </summary>
     [Fact]
-    public void ModulesAreGearMadeNeverLootFittingOnlyElectricStationsAndAddingWholeThousandths()
+    public void EveryArcCraftSitsAtTheArcBenchHoldsAShardAndTheBenchIsBuiltWithoutThem()
+    {
+        var bench = Stations.Get("arcBench");
+        var crafts = bench.Rows.SelectMany(r => r).ToList();
+        Assert.Equal(["arcModule", "accumulator"], crafts);
+        Assert.All(crafts, c => Assert.Contains(Crafts.Get(c).Cost, e => e.Item == Content.Ruins.Shard));
+        Assert.Equal(crafts, Crafts.All.Where(c => c.Cost.Any(e => e.Item == Content.Ruins.Shard)).Select(c => c.Item));
+        Assert.All(crafts, c => Assert.Equal(["arcBench"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(c))).Select(s => s.Machine)));
+        var spec = Machines.Get("arcBench");
+        Assert.True(spec is { Tunes: true, Draws: null, Makes: null, FuelSlot: null, Inputs: 1, Width: 2, Height: 1 });
+        Assert.Contains(spec.Cost, e => e.Item == Content.Ruins.Shard);
+        // Built of what exists before it: none of its cost is made at the bench itself.
+        Assert.All(spec.Cost, e => Assert.DoesNotContain(e.Item, crafts));
+        Assert.All(spec.Cost.Where(e => e.Item != Content.Ruins.Shard), e => Assert.Contains(Stations.All.Where(s => s.Machine != "arcBench"), s => s.Rows.Any(r => r.Contains(e.Item))));
+        Assert.Equal(["arcBench"], Machines.All.Where(m => m.Tunes).Select(m => m.Kind));
+        // The accumulator: three batteries' charge, worn on the belt as one is.
+        Assert.True(Content.Items.Get("accumulator") is { Stack: 1, Equip: "belt", Gear: true, Capacity: Charge.Accumulator });
+        Assert.Equal(3 * Charge.Battery, Charge.Accumulator);
+    }
+
+    /// <summary>
+    /// A module (0086) is an item of its own, a stack of one kept in death, made at a station and never found: no wreck,
+    /// container or growth gives one. It fits only what draws power, for it multiplies that draw: electric stations, the
+    /// charger, electric tools; never the furnace's planks nor the pod, nor the drone bay yet. Every host it names exists, in one
+    /// of its entries at most, and each trade there means something to it (0100): speed a station's, damage a weapon's, heat a
+    /// fed station's. What it adds is never negative, in whole thousandths.
+    /// </summary>
+    [Fact]
+    public void ModulesAreGearMadeNeverLootFittingOnlyWhatDrawsPowerEachTradeMeaningSomethingThere()
     {
         Assert.Equal(Modules.All.Count, Modules.All.Select(m => m.Item).Distinct().Count());
         var given = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).SelectMany(k => Loot.Of(k.Item) ?? []).Select(e => e.Item)
@@ -893,24 +924,63 @@ public class ContentTests
             Assert.True(item is { Stack: 1, Gear: true, Capacity: null, Equip: null }, module.Item);
             Assert.True(Crafts.TryGet(module.Item, out _), module.Item);
             Assert.DoesNotContain(module.Item, given);
-            Assert.NotEmpty(module.Hosts);
+            Assert.NotEmpty(module.On);
             Assert.False(string.IsNullOrEmpty(module.Tech), module.Item);
-            // Its hosts draw power, for it multiplies their draw: electric stations, by kind, or electric weapons, by item (0098).
-            foreach (var host in module.Hosts)
+            Assert.Equal(module.Hosts.Count(), module.Hosts.Distinct().Count());
+            foreach (var on in module.On)
             {
-                if (Weapons.Of(host) != null)
+                Assert.NotEmpty(on.Hosts);
+                Assert.NotEmpty(on.Effects);
+                foreach (var host in on.Hosts)
                 {
-                    Assert.True(Content.Items.Get(host) is { Draw: not null, Stack: 1 }, $"{module.Item} fits {host}");
-                    Assert.False(Machines.TryGet(host, out _), host);
-                    continue;
+                    // Its hosts draw power: electric machines, by kind, or electric weapons, by item (0098).
+                    bool weapon = Weapons.Of(host) != null;
+                    if (weapon)
+                    {
+                        Assert.True(Content.Items.Get(host) is { Draw: not null, Stack: 1 }, $"{module.Item} fits {host}");
+                        Assert.False(Machines.TryGet(host, out _), host);
+                    }
+                    else
+                    {
+                        Assert.True(Machines.TryGet(host, out var machine) && machine is { Draws: not null, Makes: null, Fixed: false, Tunes: false }, $"{module.Item} fits {host}");
+                    }
+                    bool station = Stations.TryGet(host, out var spec);
+                    foreach (var trade in on.Effects.Cast<Trade>())
+                    {
+                        Assert.True(trade.Add >= 0 && trade.Add % (trade.Stat == Stat.Heat ? 1 : 1000) == 0, $"{module.Item} in {host}: {trade}");
+                        Assert.True(trade.Stat switch
+                        {
+                            Stat.Speed => station,
+                            Stat.Damage => weapon,
+                            Stat.Heat => station && spec!.Fed,
+                            _ => true,
+                        }, $"{module.Item} in {host}: {trade.Stat} means nothing there");
+                    }
                 }
-                Assert.True(Stations.TryGet(host, out _) && Machines.Get(host).Draws != null, $"{module.Item} fits {host}");
-                Assert.False(Machines.Get(host).Fixed, host);
             }
-            Assert.True(module is { Speed: >= 0, Draw: >= 0, Damage: >= 0, Heat: >= 0 }, module.Item);
         }
-        Assert.DoesNotContain(Modules.All, m => m.Hosts.Contains("furnace") || m.Hosts.Contains("lifepod"));
-        Assert.Equal((1000, 1000, 1000, 0), (Modules.Arc.Speed, Modules.Arc.Draw, Modules.Arc.Damage, Modules.Arc.Heat));
+        Assert.DoesNotContain(Modules.All, m => m.Hosts.Contains("furnace") || m.Hosts.Contains("lifepod") || m.Hosts.Contains(Content.Logistics.Bay));
+    }
+
+    /// <summary>
+    /// The arc module's numbers, per host (designer-approved, 0100): twice the speed for twice the power in the electric stations,
+    /// twice the damage for twice the draw in the drill, five times the draw, and so the charging, in the charger. Its charger fills
+    /// a battery in 6 s instead of 30, an accumulator in 18 s instead of 90.
+    /// </summary>
+    [Fact]
+    public void TheArcModuleTradesPerHostAsTheDesignerSet()
+    {
+        (int, int, int, int) Adds(string host) =>
+            (Modules.Arc.Adds(host, Stat.Speed), Modules.Arc.Adds(host, Stat.Draw), Modules.Arc.Adds(host, Stat.Damage), Modules.Arc.Adds(host, Stat.Heat));
+        Assert.Equal(["smelter", "former", "assembler", "drill", "charger"], Modules.Arc.Hosts);
+        foreach (var station in new[] { "smelter", "former", "assembler" }) Assert.Equal((1000, 1000, 0, 0), Adds(station));
+        Assert.Equal((0, 1000, 1000, 0), Adds(Weapons.Drill.Item));
+        Assert.Equal((0, 4000, 0, 0), Adds("charger"));
+        Assert.Equal((0, 0, 0, 0), Adds(Content.Logistics.Bay));
+        int draws = Machines.Get("charger").Draws!.Value, fitted = Sim.Items.Boost.Cost(draws, Modules.Arc.Adds("charger", Stat.Draw));
+        Assert.Equal((3, 15), (draws, fitted));
+        Assert.Equal((30, 6), (Charge.Battery / Charge.Scale / draws / World.TicksPerSecond, Charge.Battery / Charge.Scale / fitted / World.TicksPerSecond));
+        Assert.Equal((90, 18), (Charge.Accumulator / Charge.Scale / draws / World.TicksPerSecond, Charge.Accumulator / Charge.Scale / fitted / World.TicksPerSecond));
     }
 
     /// <summary>
@@ -940,6 +1010,8 @@ public class ContentTests
                 Assert.True(station.QueueMost > 0, station.Machine);
                 int most = station.Rows.SelectMany(r => r).Max(craft => Crafts.Get(craft).Cost.Select(c => c.Item).Distinct().Count());
                 if (station.Machine == "lifepod") Assert.Equal(0, spec.Inputs);
+                // The arc bench is paid by hand too; its one input is its tool's (0099).
+                else if (spec.Tunes) Assert.Equal(1, spec.Inputs);
                 else Assert.True(spec.Inputs >= most, $"{station.Machine}: {spec.Inputs} inputs, a craft of {most} items");
                 foreach (var craft in station.Rows.SelectMany(r => r)) Assert.Equal(0, Crafts.Get(craft).Ticks * 1000 % station.Speed);
             }

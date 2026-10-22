@@ -107,6 +107,7 @@ public static class Tools
             Place("smelter", new Placement("machine", "smelter")),
             Place("assembler", new Placement("machine", "assembler")),
             Place("growCapsule", new Placement("machine", "growCapsule")),
+            Place("arcBench", new Placement("machine", "arcBench")),
         ]),
         new("storage", [Place("crate", new Placement("machine", "crate")), Place("droneBay", new Placement("machine", "droneBay"))]),
     ];

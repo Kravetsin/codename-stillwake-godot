@@ -63,7 +63,7 @@ public class ArcModuleTests
         Assert.Equal(2, Carried(w, Arc));
         // Out of every slot: the smelter's slots hold nothing of it.
         Assert.Equal(0, Held(w, smelter, Arc));
-        Assert.Equal(new Boost(1000, 1000, 1000, 0), w.M.Items.Boost(smelter));
+        Assert.Equal(new Boost(1000, 1000, 0, 0), w.M.Items.Boost(smelter));
         Assert.Equal(default, w.M.Items.Boost(Id(w, "former")));
 
         w.Do(new Unfit(smelter, Arc, 20)).Run();
@@ -138,7 +138,7 @@ public class ArcModuleTests
     [Fact]
     public void TheFurnaceAndThePodTakeNoModuleTheElectricStationsTakeTheArc()
     {
-        Assert.Equal(["smelter", "former", "assembler", "drill"], Spec.Modules.Arc.Hosts);
+        Assert.Equal(["smelter", "former", "assembler", "drill", "charger"], Spec.Modules.Arc.Hosts);
         Assert.False(Spec.Modules.Fits(Arc, "furnace"));
         Assert.False(Spec.Modules.Fits(Arc, "lifepod"));
         Assert.False(Spec.Modules.Fits("iron", "smelter"));

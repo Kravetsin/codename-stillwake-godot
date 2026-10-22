@@ -94,10 +94,12 @@ public class ChargesTests
     [Fact]
     public void TheEnergyGaugeIsAShareOfAFullBeltInWholeUnitsLowUnderAQuarterOfWhatIsWorn()
     {
-        // Three batteries on the belt, four cells each (0081): one full battery lights a third of the gauge.
+        // Three stores on the belt (0081), the share of three of the largest, accumulators (0099): a battery is a ninth.
         Assert.Equal(3, Charges.BeltSlots);
-        Assert.Equal(new Belt(1.0 / 3, Units, Low: false, Worn: true), Charges.BeltOf((Full, Full)));
-        Assert.Equal(new Belt(1, 3 * Units, Low: false, Worn: true), Charges.BeltOf((3 * Full, 3 * Full)));
+        Assert.Equal(3 * Spec.Charge.Accumulator / Spec.Charge.Scale, Charges.BeltMost);
+        Assert.Equal(new Belt(1.0 / 9, Units, Low: false, Worn: true), Charges.BeltOf((Full, Full)));
+        Assert.Equal(new Belt(1.0 / 3, 3 * Units, Low: false, Worn: true), Charges.BeltOf((3 * Full, 3 * Full)));
+        Assert.Equal(new Belt(1, 3 * 3 * Units, Low: false, Worn: true), Charges.BeltOf((9 * Full, 9 * Full)));
         // Units round down, as the card's meter: a hair short of a full battery is a power-tick short.
         Assert.Equal(Units - 1, Charges.BeltOf((Full - 1, Full)).Units);
         // Low under a quarter of what the worn batteries hold full, as each slot's bar; an empty one too.
@@ -131,6 +133,29 @@ public class ChargesTests
         });
         var belt = m.Items.BeltCharge(0);
         Assert.Equal((Full * 3 / 4, 2 * Full), belt);
-        Assert.Equal(new Belt(0.25, Full * 3 / 4 / Spec.Charge.Scale, Low: false, Worn: true), Charges.BeltOf(belt));
+        Assert.Equal(new Belt(0.25 / 3, Full * 3 / 4 / Spec.Charge.Scale, Low: false, Worn: true), Charges.BeltOf(belt));
+    }
+
+    [Fact]
+    public void TheEnergyNumberIsTheSumOfEveryStoreOnTheBeltTwoAccumulatorsAndABatteryTwelveThousandSixHundred()
+    {
+        // The playtest's belt (0099): it read 5 400, a belt of three batteries, the share capped at one.
+        int accumulator = Spec.Charge.Accumulator;
+        var (m, _) = ItemsWorlds.With(Layout.Empty, items =>
+        {
+            var slots = new JsonArray();
+            for (int i = 0; i < Spec.Inventory.Total; i++)
+                slots.Add(i == Spec.Inventory.Slots + 2 || i == Spec.Inventory.Slots + 3 ? new JsonObject { ["item"] = "accumulator", ["count"] = 1, ["charge"] = accumulator }
+                    : i == Spec.Inventory.Slots + 4 ? new JsonObject { ["item"] = Battery, ["count"] = 1, ["charge"] = Full } : null);
+            items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        });
+        var belt = m.Items.BeltCharge(0);
+        Assert.Equal((2 * accumulator + Full, 2 * accumulator + Full), belt);
+        var shown = Charges.BeltOf(belt);
+        Assert.Equal(12_600, shown.Units);
+        Assert.Equal(12_600, Charges.UnitsOf(shown.Share));
+        Assert.Equal($"12{Charges.Thin}600", Charges.Grouped(Charges.UnitsOf(shown.Share)));
+        // Three accumulators full fill it; nothing passes its end.
+        Assert.Equal(Charges.BeltMost, Charges.UnitsOf(Charges.BeltOf((3 * accumulator, 3 * accumulator)).Share));
     }
 }

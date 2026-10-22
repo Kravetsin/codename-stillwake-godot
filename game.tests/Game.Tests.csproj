@@ -152,6 +152,7 @@
     <Compile Include="../game/Content/Handbook.cs" Link="Game/Content/Handbook.cs" />
     <Compile Include="../game/features/debris/Finds.cs" Link="Game/Debris/Finds.cs" />
     <Compile Include="../game/Content/HeldLook.cs" Link="Game/Content/HeldLook.cs" />
+    <Compile Include="../game/Content/BenchLook.cs" Link="Game/Content/BenchLook.cs" />
     <Compile Include="../game/Content/ModuleLooks.cs" Link="Game/Content/ModuleLooks.cs" />
     <Compile Include="../game/Content/IconLooks.cs" Link="Game/Content/IconLooks.cs" />
     <Compile Include="../game/Content/TechLooks.cs" Link="Game/Content/TechLooks.cs" />

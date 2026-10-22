@@ -83,6 +83,9 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>A charging station's: the bar of what its battery holds, and what it does now in words.</summary>
     private ColorRect? _charged;
     private Label? _station;
+    /// <summary>A charging station's numbers over its bar: what its battery holds of full, and what goes in a tick while it charges.</summary>
+    private HBoxContainer? _stored;
+    private Label? _storedText, _rate;
     private AnalyzerPanel? _analyzer;
     /// <summary>What the mark between a fed station's slots says by the pointer: what it is too cold for; null while it is not.</summary>
     private string? _tooCold;
@@ -150,6 +153,9 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>Whether a charging station fills what it holds now, by machine id: the power module's <c>Charges</c>.</summary>
     public Func<int, bool>? Charger { get; set; }
+
+    /// <summary>What a charging station puts in a tick, stored scaled, by machine id: the power module's <c>ChargeRate</c>.</summary>
+    public Func<int, int>? ChargeRate { get; set; }
 
     /// <summary>What a machine draws while it works, its modules folded in (0086), by machine id: the power module's <c>Draw</c>.</summary>
     public Func<int, int>? Draw { get; set; }
@@ -257,6 +263,7 @@ public partial class InventoryPanel : CanvasLayer
         _tipSpots.Show(null);
         _built = null;
         (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null, null);
+        (_stored, _storedText, _rate) = (null, null, null);
     }
 
     /// <summary>
@@ -403,7 +410,7 @@ public partial class InventoryPanel : CanvasLayer
     /// </summary>
     private Control? Sockets(int machine, string kind, bool caption = true)
     {
-        var takes = Content.Modules.For(kind).ToList();
+        var takes = HostOf(machine, kind) is { } host ? Content.Modules.For(host).ToList() : [];
         if (takes.Count == 0) return null;
         var row = Style.Gap(new HBoxContainer(), Slots.Gap);
         foreach (var module in takes)
@@ -441,7 +448,17 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>Whether <paramref name="item"/> would go into a socket of open machine <paramref name="machine"/>: a module it takes, not fitted yet.</summary>
     private bool GoesIn(string? item, int machine) =>
-        item != null && _grid?.MachineById(machine) is { } m && Content.Modules.Fits(item, m.Kind) && !FittedTo(machine).Contains(item);
+        item != null && _grid?.MachineById(machine) is { } m && HostOf(machine, m.Kind) is { } host && Content.Modules.Fits(item, host) && !FittedTo(machine).Contains(item);
+
+    /// <summary>
+    /// What machine <paramref name="machine"/>, of <paramref name="kind"/>, takes modules as: its kind, or at an arc bench the tool
+    /// on it, as shown for the open one (<see cref="Reading.Host"/>, 0099); none for a bench holding none.
+    /// </summary>
+    private string? HostOf(int machine, string kind)
+    {
+        if (!MachineSpecs.TryGet(kind, out var spec) || !spec.Tunes) return kind;
+        return machine == Crate && _reading != null ? _reading.Host : _items?.Crate(machine) is { Count: > 0 } slots ? slots[0]?.Item : null;
+    }
 
     /// <summary>
     /// A socket pressed (<see cref="Clicks.OnSocket"/>): a module carried that goes in is fitted; a fitted one begins to
@@ -550,6 +567,7 @@ public partial class InventoryPanel : CanvasLayer
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
             (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null);
+            (_stored, _storedText, _rate) = (null, null, null);
         }
         if (want is not var (crate, kind)) return;
         // A queued station (the lifepod's Fabricator, the Former) docks in the same place, the crafting feature's own panel.
@@ -638,14 +656,21 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>
-    /// A charging station's, as the station mockup: its slot beside a bar of what the battery holds, and under the
-    /// bar what it does now; what it draws is the frame's bolt, lit while it charges.
+    /// A charging station's, as the station mockup: its slot beside a bar of what the battery holds, over the bar what it holds
+    /// and holds full in power units, as its card says it, and while it charges what goes in a tick; under the bar what it does
+    /// now; what it draws is the frame's bolt, lit while it charges.
     /// </summary>
     private Control ChargerBody(int crate)
     {
         var bay = Style.Gap(new HBoxContainer { CustomMinimumSize = new Vector2(196, 0) }, 10);
         bay.AddChild(Box(new Place(0, crate)));
         var right = Style.Gap(new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Alignment = BoxContainer.AlignmentMode.Center }, 4);
+        var numbers = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        (_stored, _storedText) = ItemCardView.PoweredLine("", Style.Text(Style.Mono, 10, Style.Slate300));
+        _stored.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        numbers.AddChild(_stored);
+        numbers.AddChild(_rate = new Label { LabelSettings = Style.Text(Style.Mono, 10, new Color(Charges.Green)), MouseFilter = Control.MouseFilterEnum.Ignore });
+        right.AddChild(numbers);
         var track = new Panel { CustomMinimumSize = new Vector2(0, 10), MouseFilter = Control.MouseFilterEnum.Ignore };
         track.AddThemeStyleboxOverride("panel", Style.Box(new Color("0b1220"), Style.Slate700, radius: 2));
         track.AddChild(_charged = new ColorRect { Color = ItemCardView.Green, MouseFilter = Control.MouseFilterEnum.Ignore });
@@ -1031,6 +1056,19 @@ public partial class InventoryPanel : CanvasLayer
         _charged.OffsetRight = share >= 1 ? -1 : 0;
         _charged.Visible = share > 0;
         _station.Text = T(Charges.StationState(held, charging));
+        var meter = held == null ? null : Charges.MeterOf(held);
+        if (_stored != null && _storedText != null)
+        {
+            _stored.Visible = meter != null;
+            _storedText.Text = meter is { } m ? T("card.stored", ("n", m.Stored), ("all", m.Capacity)) : "";
+        }
+        if (_rate != null)
+        {
+            int rate = charging && Crate is int station ? ChargeRate?.Invoke(station) ?? 0 : 0;
+            _rate.Text = rate > 0 ? T("charger.rate", ("n", ItemCards.Number((double)rate / Content.Charge.Scale))) : "";
+        }
+        // What it draws with its modules: an arc fitted makes it five times (0100).
+        if (Crate is int open && Draw?.Invoke(open) is int draw) _frame?.Describe(T("tool.charger"), draw);
         _frame?.Light(charging);
     }
 

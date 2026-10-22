@@ -39,6 +39,7 @@ public static class Legend
         ('g', "grow capsule: draw its whole footprint"),
         ('R', "drone bay: draw its whole footprint"),
         ('Q', "capacitor bank: draw its whole footprint (0101)"),
+        ('W', "arc bench: draw its whole footprint (0099)"),
         ('O', "lifepod: draw its whole footprint; heroes are made at its hatch"),
         ('S', "where the hero wakes, on a map without a lifepod"),
     ];
@@ -102,6 +103,7 @@ public static class Legend
         'g' => "growCapsule",
         'R' => "droneBay",
         'Q' => "capacitorBank",
+        'W' => "arcBench",
         'O' => "lifepod",
         _ => null,
     };

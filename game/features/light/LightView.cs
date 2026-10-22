@@ -99,6 +99,9 @@ public partial class LightView : Node2D
     /// <summary>The light of the spires round their relics near the view this frame (0096: <c>SpiresView</c>).</summary>
     public Func<IReadOnlyList<LightSource>> Spires { get; set; } = () => [];
 
+    /// <summary>The light of the arc benches' shards this frame (0099: <c>BenchView</c>).</summary>
+    public Func<IReadOnlyList<LightSource>> Benches { get; set; } = () => [];
+
     /// <summary>The lights drawn into the lightmap the last frame.</summary>
     public int LightCount => _lightmap.Drawn;
     public int LampCount => _shown.Count;
@@ -268,6 +271,8 @@ public partial class LightView : Node2D
         for (int i = 0; i < homes.Count; i++) _main.Add(homes[i]);
         var spires = Spires();
         for (int i = 0; i < spires.Count; i++) _main.Add(spires[i]);
+        var benches = Benches();
+        for (int i = 0; i < benches.Count; i++) _main.Add(benches[i]);
         // Flashes first, the brightest moments; then the particles that give light, while the cap lasts (Fx.MostLights).
         foreach (var f in Flares.Shared.Flashes)
         {

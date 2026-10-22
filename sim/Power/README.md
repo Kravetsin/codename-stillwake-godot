@@ -61,8 +61,9 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   order, its `Draws` in power-ticks × its satisfaction / 1000, stored in thousandths
   (`Content.Charge.Scale`), rounded down, shared evenly between those slots, the rest of the division one each to the
   first in slot order, through `IItemsOps.Charge(id, slot, amount)`, never past full. The charger draws
-  3 and fills a battery of 1800 in 600 ticks at full power, 1200 at half; a drone bay draws 4 and shares it between its
-  docked drones (0062). Empty or full it
+  3 and fills a battery of 1800 in 600 ticks at full power, 1200 at half; with the arc module fitted it draws 15, five
+  times, and fills one in 120 ticks, an accumulator in 360 ([0100](../../docs/decisions/0100-tech-branches.md)); a drone
+  bay draws 4 and shares it between its docked drones (0062), and takes no module. Empty or full it
   draws nothing, so it takes nothing from the network. Power owns this rather than items or a module of
   its own: it already knows each machine's satisfaction and depends on items.
 - A map lays its cables from `Layout.Cables`, each end resolved to its node; a cable that ends on no
@@ -80,7 +81,9 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   `Charges(machineId)` — whether that charging station fills what it holds this tick (short of full, on a
   network giving it power): its light and its panel's bolt; `Store(machineId)` — a store's `StoreLevel(Energy,
   Capacity, Flow)`, what it holds after this tick and what went in (out below 0), null for a machine that stores
-  nothing: its gauge; `Needed(machineId)` — whether a fire on that machine's network is wanted (above), false on none.
+  nothing: its gauge; `Needed(machineId)` — whether a fire on that machine's network is wanted (above), false on none;
+  `ChargeRate(machineId)` — what it puts in this tick,
+  stored scaled, 0 while it charges nothing: its panel's "+15/tick" (0100).
 - **Operations** (`IPowerOps`): `Rest(machineId, resting)` — the machine draws or makes nothing from
   the next derivation on, or works again: `research` rests an analyzer with nothing to learn, and
   `crafting` an idle station that draws (nothing queued, a unit done waiting for room or one waiting for

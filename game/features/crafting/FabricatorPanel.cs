@@ -74,7 +74,7 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>The inputs' heading, shown only for a station that has inputs.</summary>
     private Control _inputsHeading = null!;
     /// <summary>The station and the slot size the input slots were lent for: built again only when either changes.</summary>
-    private (int Pod, int Slot)? _inputsFor;
+    private (int Pod, int Slot, string? Tool)? _inputsFor;
     /// <summary>Where the station's module sockets go, under its inputs, and their heading (0086).</summary>
     private readonly HBoxContainer _sockets = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Alignment = BoxContainer.AlignmentMode.End };
     private readonly Label _socketsHeading = new() { Text = T("module.socket"), LabelSettings = AsideText };
@@ -296,7 +296,7 @@ public partial class FabricatorPanel : CanvasLayer
         foreach (var place in places) _recipes.AddChild(place is { } craft ? RecipeSlot(pod, station, craft) : EmptySlot());
         var crafts = places.OfType<string>().ToList();
         _opened.Text = T("crafts.opened", ("n", crafts.Count(_research!.Knows)), ("all", crafts.Count));
-        LendInputs(pod, station);
+        LendInputs(pod, station, outputs);
         for (int i = 0; i < station.QueueMost; i++)
             _queue.AddChild(i < queue.Count ? EntrySlot(pod, queue[i], i == 0, i == 0 ? lacks : []) : EmptySlot());
         for (int i = Inputs(station); i < outputs.Count; i++)
@@ -309,12 +309,15 @@ public partial class FabricatorPanel : CanvasLayer
 
     /// <summary>
     /// The station's input slots, lent by the items feature (<see cref="Lend"/>), so a stack goes in and out by its
-    /// clicks as into any machine; laid out again only for another station or slot size, not on every read.
+    /// clicks as into any machine; laid out again only for another station or slot size, not on every read. An arc bench's one
+    /// input is its tool (0099), under its own word, its sockets those of the tool on it, laid out again for another tool.
     /// </summary>
-    private void LendInputs(int pod, Content.Station station)
+    private void LendInputs(int pod, Content.Station station, IReadOnlyList<Stack?> slots)
     {
         int inputs = Inputs(station);
+        bool tunes = Content.Machines.Get(station.Machine).Tunes;
         _inputsHeading.Visible = _inputs.Visible = inputs > 0;
+        _inputsHeading.GetChild<Label>(0).Text = T(tunes ? "fabricator.tool" : "fabricator.inputs");
         if (_servedFor != pod)
         {
             _servedFor = pod;
@@ -325,8 +328,9 @@ public partial class FabricatorPanel : CanvasLayer
             }
             if (Served?.Invoke(pod) is { } badge) _served.AddChild(badge);
         }
-        if (_inputsFor == (pod, _slot)) return;
-        _inputsFor = (pod, _slot);
+        string? tool = tunes && slots.Count > 0 ? slots[0]?.Item : null;
+        if (_inputsFor == (pod, _slot, tool)) return;
+        _inputsFor = (pod, _slot, tool);
         foreach (var old in _inputs.GetChildren().Concat(_sockets.GetChildren()))
         {
             old.GetParent().RemoveChild(old);

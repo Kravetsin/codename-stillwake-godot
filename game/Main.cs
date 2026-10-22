@@ -110,6 +110,7 @@ public partial class Main : Node2D, ITogether
     private FabricatorPanel? _fabricator;
     private PodView? _pods;
     private StationView? _stations;
+    private BenchView? _benches;
     private Features.Logistics.LogisticsView? _drones;
     private DebrisView _debris = null!;
     private Hands _hands = null!;
@@ -202,6 +203,7 @@ public partial class Main : Node2D, ITogether
             else if (Has("--sortie")) _hero.Start = SortieDemo.StartOf;
             else if (Has("--charge")) _hero.Start = ChargeDemo.StartOf;
             else if (Has("--arc")) _hero.Start = m => OpenDemo.StartOf(m, "smelter");
+            else if (Has("--bench") && Opens == null) _hero.Start = m => OpenDemo.StartOf(m, BenchLook.Kind);
             else if (Has("--die")) _hero.Start = DieDemo.StartOf;
             else if (Has("--breathe") || Has("--breathe-air")) _hero.Start = BreatheDemo.StartOf;
             else if ((Opens ?? Near) is { } opened) _hero.Start = m => OpenDemo.StartOf(m, opened);
@@ -297,6 +299,14 @@ public partial class Main : Node2D, ITogether
         if (Has("--jetpack") && _items != null) AddChild(new JetpackDemo(_items));
         if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
         if (Has("--arc") && _items != null) AddChild(new ArcDemo(_items, _hands.Ui, () => _m));
+        if (Has("--bench") && Opens == null && _items != null) AddChild(new BenchDemo(_items, _hands.Ui, () => _m, () => _fabricator));
+        if (ChargerRace is { } race)
+        {
+            // Over the panels, which are on canvas layers of their own.
+            var over = new CanvasLayer { Layer = 100 };
+            over.AddChild(new ChargerArcDemo(() => _m, () => (_session as Session)?.Client.World.Tick, race == "arc", Arg("--shots")));
+            AddChild(over);
+        }
         if (Arg("--marks") is { } marked && Opens is { } marking && _items != null)
             AddChild(new MarksDemo(_items, marking, marked, int.Parse(Arg("--into") ?? "0"), () => _m));
         if ((Has("--breathe") || Has("--breathe-air")) && _items != null) AddChild(new BreatheDemo(_items, () => _m, canister: Has("--breathe")));
@@ -331,6 +341,9 @@ public partial class Main : Node2D, ITogether
 
     /// <summary><c>--open=&lt;kind&gt;</c>: the machine of that kind the hero opens at the start (<see cref="OpenDemo"/>).</summary>
     private string? Opens => _args.FirstOrDefault(a => a.StartsWith("--open=", StringComparison.Ordinal))?[7..];
+
+    /// <summary><c>--charger=arc|plain</c>: the testbed's charging station filling an empty accumulator, fitted or not (<see cref="ChargerArcDemo"/>).</summary>
+    private string? ChargerRace => _args.FirstOrDefault(a => a.StartsWith("--charger=", StringComparison.Ordinal))?[10..];
 
     /// <summary><c>--near=&lt;kind&gt;</c>: the machine of that kind the hero starts beside, opening nothing: for recording the room round it.</summary>
     private string? Near => _args.FirstOrDefault(a => a.StartsWith("--near=", StringComparison.Ordinal))?[7..];
@@ -372,6 +385,8 @@ public partial class Main : Node2D, ITogether
         if (Has("--jetpack")) world = JetpackDemo.Seed(world, Modules);
         if (Has("--charge")) world = ChargeDemo.Seed(world, Modules);
         if (Has("--arc")) world = ArcDemo.Seed(world, Modules);
+        if (Has("--bench")) world = BenchDemo.Seed(world, Modules);
+        if (ChargerRace is { } race) world = ChargerArcDemo.Seed(world, Modules, race == "arc");
         if (Has("--marks")) world = MarksDemo.Seed(world, Modules, Opens);
         if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules, ArcDrill);
         if (Has("--sortie")) world = SortieDemo.Seed(world, _m, Modules);
@@ -879,6 +894,7 @@ public partial class Main : Node2D, ITogether
         _tanks?.QueueFree();
         _pods?.QueueFree();
         _stations?.QueueFree();
+        _benches?.QueueFree();
         _drones?.QueueFree();
         AddChild(_grid = new GridView(_m.Grid));
         AddChild(_digs = new Features.Building.DigView(_m.Grid, _m.Building));
@@ -904,6 +920,8 @@ public partial class Main : Node2D, ITogether
         AddChild(_tanks = new Features.Atmosphere.TankLooks(_m.Grid, _m.Atmosphere));
         AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
         AddChild(_stations = new StationView(_m.Grid, _m.Crafting, _m.Items));
+        var benches = new BenchView(_m.Grid, _m.Items);
+        AddChild(_benches = benches);
         var ui = _hands.Ui;
         AddChild(_drones = new Features.Logistics.LogisticsView(_m.Grid, _m.Items, _m.Power, _m.Logistics, () => (_session as Session)?.Progress ?? 0,
             () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open)?.Kind == Content.Logistics.Bay ? open : null,
@@ -914,8 +932,8 @@ public partial class Main : Node2D, ITogether
         AddChild(_furnace = fires);
         AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
-            // --lit: every lamp at full power, to measure the light on the reference world.
-            LampShare = Has("--lit") ? _ => 1f : lamp => power.Satisfaction(lamp.Id) / 1000f,
+            // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
+            LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => power.Satisfaction(lamp.Id) / 1000f,
             Fire = m => fires.BlazeOf(m.Id),
             FireAt = FurnaceView.LightAt,
             HeadLamps = () => _hero?.HeadLamps() ?? [],
@@ -924,6 +942,7 @@ public partial class Main : Node2D, ITogether
             Lava = () => lava?.Lights ?? [],
             Homes = () => homes?.Lights ?? [],
             Spires = () => spires?.Lights ?? [],
+            Benches = () => benches.Lights,
         });
         // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
         _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);
@@ -1019,7 +1038,7 @@ public partial class Main : Node2D, ITogether
         SyncGrid(client);
         _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
-        if (_items != null) _items.Panel.Charger = _m.Power.Charges;
+        if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, SpotOf(_hero), session.Progress, delta * 1000);

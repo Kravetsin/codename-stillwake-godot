@@ -82,7 +82,7 @@ public class DrillArcTests
     [Fact]
     public void AFittedDrillDrawsSixATickAPlainOneThreeAndRefusesToRunOnABeltShortOfSix()
     {
-        int plain = Spec.Items.Get(Drill).Draw!.Value, fitted = Boost.Cost(plain, Spec.Modules.Arc.Draw);
+        int plain = Spec.Items.Get(Drill).Draw!.Value, fitted = Boost.Cost(plain, Spec.Modules.Arc.Adds(Drill, Spec.Stat.Draw));
         Assert.Equal((3, 6), (plain, fitted));
         var w = new Scenario("S.......").Put(0, Fitted).Put(Belt, Battery(Full)).Do(new Enter(1)).Run();
         w.Do(new Run(Drill, true)).Run(4);
@@ -142,8 +142,8 @@ public class DrillArcTests
 
     // One fold for the sim and the card (ToolStats).
 
-    /// <summary>A module that is not in content: half as much again of damage, a quarter less draw.</summary>
-    private static readonly Spec.ModuleSpec Fake = new("fakeModule", "arc", [Drill], Draw: -250, Damage: 500);
+    /// <summary>A module that is not in content, for the drill and the axe: half as much again of damage, a quarter less draw.</summary>
+    private static readonly Spec.ModuleSpec Fake = new("fakeModule", "arc", [new([Drill, Spec.Weapons.Axe.Item], [new Spec.Trade(Spec.Stat.Draw, -250), new Spec.Trade(Spec.Stat.Damage, 500)])]);
 
     [Fact]
     public void ToolStatsFoldTheModulesOfAStackAndAreWhatTheSimHitsAndDrawsBy()

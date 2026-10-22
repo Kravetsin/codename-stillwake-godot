@@ -162,6 +162,8 @@ public static class Items
         new("helmetLamp", 1, Equip: "head", Gear: true, Group: ItemGroup.Wearable),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
+        // A battery wound round a sky shard at the arc bench (0099): three batteries' charge, worn and filled as one is.
+        new("accumulator", 1, Equip: "belt", Capacity: Charge.Accumulator, Gear: true, Group: ItemGroup.Wearable),
     ];
 
     private static readonly Dictionary<string, ItemSpec> ById = All.ToDictionary(i => i.Id, StringComparer.Ordinal);

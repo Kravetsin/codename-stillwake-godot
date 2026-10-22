@@ -56,13 +56,19 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
     pod, with a queue of eight; it makes the parts and components (wire, plate, gear, tube, frame, coil,
     rotor), not tools; and alone, soil (0060) and the motor, a rotor, 2 of a planet's copper and a magnetite in 120 ticks (0080). It costs 2 frames, a rotor, 2 gears and a circuit, so it opens once those four are
     analysed (0027). A plate takes 2 s at full power, about 2.8 s at 70%. Idle, it rests and draws nothing.
-  - **The circuit assembler** makes the electronics: 2×2, it draws 2 and works at speed 1000, a queue of eight;
+  - **The circuit assembler** makes the electronics (no longer the arc module, 0099): 2×2, it draws 2 and works at speed 1000, a queue of eight;
     a circuit of a silicon and 2 wire in 80 ticks, a solar cell of a silicon, a glass and a wire in 100, and on a
     row of its own a drone of a rotor, 2 plates, a circuit and a battery in 160 (0062; a drone holds charge of its own,
     made empty, and the battery's is lost there). It
     costs a frame, a rotor, a glass, 2 wire and a circuit, salvaged, so it opens once those five are analysed.
     Idle, it rests as the Former does. The pod and the Former make neither; the pod's list stops growing
     (0057).
+  - **The arc bench** ([0099](../../docs/decisions/0099-the-arc-bench.md)) is the arc branch's station: every craft of a sky
+    shard, the arc module (moved from the assembler, same cost) and the accumulator (a shard, a battery, 2 copper and a
+    circuit in 200 ticks: three batteries' charge). 2×1, no power, speed 1000, a queue of four, **paid by hand only**: its
+    one input slot is its vise, which holds a tool (`Items`), so a craft from the inputs is refused `crafting.noInputs`, as
+    at the pod. Its two outputs follow the vise. It costs a shard, a frame, 2 plates and a gear, so analysing a shard opens
+    it with the arc module (0027).
   - **Inputs** (0057): the Former has 3 input slots and the assembler 4, before their 3 outputs: as many as the
     most distinct items any of their crafts needs (a motor's rotor, copper and magnetite; a drone's rotor, plates, circuit
     and battery, `ContentTests`; the assembler had 3, a solar cell's, until the drone, 0062; the Former 2, a rotor's, until
