@@ -43,8 +43,8 @@ public class TestbedTests
         // A drill with the arc fitted (0098), in the supply crate by the door: no bench fits one yet.
         Assert.Contains(new Stack(Spec.Weapons.Drill.Item, 1, Module: Spec.Modules.Arc.Item), m.Items.Crate(CrateAt(m, Testbed.Supply)));
         Assert.Contains(new Stack(Spec.HelmetLamp.Item, 1), m.Items.Crate(CrateAt(m, Testbed.Supply)));
-        // An arc module for each station and tool it fits (0086, 0098): the dev's way to one before the ruins give its shard.
-        Assert.Equal(4, m.Items.Crate(CrateAt(m, Testbed.Supply)).Count(s => s?.Item == Spec.Modules.Arc.Item));
+        // An arc module for each machine and tool it fits (0086, 0098, 0100): the dev's way to one before the ruins give its shard.
+        Assert.Equal(5, m.Items.Crate(CrateAt(m, Testbed.Supply)).Count(s => s?.Item == Spec.Modules.Arc.Item));
         // A plain drill in the arc bench's vise (0099), to fit there.
         Assert.Equal(new Stack(Spec.Weapons.Drill.Item, 1), m.Items.Crate(IdOf(m, Testbed.BenchHolds.Kind))[0]);
         Assert.Equal(Testbed.FarmCrate.Select(i => new Stack(i, Spec.Items.Get(i).Stack)), farm.Where(s => s != null));

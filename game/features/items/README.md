@@ -4,7 +4,7 @@ This machine's items, ported from `apps/game/src/features/items/` and the item p
 `features/crew/` (`pickup.ts`, `pickup-popups.ts`) (G-08). It reads the sim through `IItemsQueries`,
 `IGridQueries`, `IRoomsQueries` and `IResearchQueries`, handed in every frame from the current
 registry, the debris module's `CaughtFrom` for what its own catches gave, the furnace module's `At` for a furnace or a burner generator (`InventoryPanel.Furnace`)
-and the power module's `Charges` for a charging station (`InventoryPanel.Charger`), and changes it only
+and the power module's `Charges` and `ChargeRate` for a charging station (`InventoryPanel.Charger`, `InventoryPanel.ChargeRate`), and changes it only
 by sending `Move`,
 `Drop`, `PickUp` and `Sort`.
 
@@ -142,8 +142,9 @@ as everything E works is, in the crew feature (`AimTests`).
   it. The open machine's fits and takes in flight show at once, as moves do (`Reading.Fitted`, `Reading.Fitting`).
 - **What fits, by its icon** (0086): with a machine that takes modules open, every slot holding a module it takes shows
   that module's tech icon as its mark, 14 px on a soft dark halo, where a fire's flame sits (`SlotMark.Fits`). A
-  module's card names no machine: a strip at its bottom, its tech icon (24 px, lit and moving) and what it does in one line ("×2 speed
-  · ×2 power", `ItemCard.Tech`).
+  module's card names no machine: a strip at its bottom, its tech icon (24 px, lit and moving) and what it does, a line for
+  each group of its hosts put together from its trades ("×2 speed · ×2 power", "×2 damage · ×2 power", "×5 charging · ×5
+  power": a charging host's draw is its charging; `ItemCard.Tech`, 0100), a line said twice once.
 - **Glowing line icons** (0086, the user's pick on the arc icon page, variant C; 0097): a thin frame and a glyph in
   thin lines, drawn by `IconCanvas` in the page's passes (a mark's dark halo, glow, rim, core) into a texture of the
   icon's pixels; frame, glyph, colours and motion are data (`IconLooks`' `Look`). The frame says the kind: a
@@ -245,9 +246,12 @@ as everything E works is, in the crew feature (`AimTests`).
   full in power-ticks, the units machines draw in (`⚡ 1170 / 1800`), both rounded down (`Charges.MeterOf`).
   No time is shown: a battery is a store for any tool, and how long one lasts is felt, not spelled out.
 - **A charging station's panel** (the station mockup): in its frame's header its name and a bolt with what it
-  draws, lit while it charges (`IPowerQueries.Charges`), dark at 0 otherwise; its slot beside a bar of what the battery
-  holds, and under it "empty", "full", "charging" or "no power" (`Charges.StationState`). The sim refuses
-  anything but a battery there (`items.notBattery`).
+  draws, its modules in it (`InventoryPanel.Draw`, `IPowerQueries.Draw`: 15 with the arc, 0100), lit while it charges
+  (`IPowerQueries.Charges`), dark at 0 otherwise; its slot beside a bar of what the battery holds; over the bar the bolt and
+  what it holds of full in power units, as its card writes it ("2700 / 5400", `card.stored`), and while it charges what
+  goes in a tick at its right ("+15/tick", `IPowerQueries.ChargeRate` through `InventoryPanel.ChargeRate`); under it
+  "empty", "full", "charging" or "no power" (`Charges.StationState`); under its body its module socket (0100). The sim
+  refuses anything but a battery there (`items.notBattery`).
 - **The energy tab** (`EnergyBar`, a layer of its own made by `Main`, 0081), at the gauge row's right end, shows the
   charge of the batteries on the belt (`IItemsQueries.BeltCharge`, `Charges.BeltOf`) always, whatever is held, so the
   gauge row is always as wide as the hotbar: the bolt and the charge in whole power units grouped by thin spaces

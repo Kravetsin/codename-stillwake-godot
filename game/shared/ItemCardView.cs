@@ -217,7 +217,10 @@ public static class ItemCardView
     }
 
     /// <summary>The power bolt before <paramref name="words"/>: a quantity in the units machines draw in.</summary>
-    private static HBoxContainer Powered(string words, LabelSettings settings)
+    private static HBoxContainer Powered(string words, LabelSettings settings) => PoweredLine(words, settings).Row;
+
+    /// <summary>The power bolt before <paramref name="words"/>, and the words' label, for a panel that changes them: a charging station's store (0100).</summary>
+    public static (HBoxContainer Row, Label Words) PoweredLine(string words, LabelSettings settings)
     {
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 4);
         row.AddChild(new TextureRect
@@ -230,8 +233,9 @@ public static class ItemCardView
             SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
-        row.AddChild(Text(words, settings, HorizontalAlignment.Left));
-        return row;
+        var label = Text(words, settings, HorizontalAlignment.Left);
+        row.AddChild(label);
+        return (row, label);
     }
 
     /// <summary>A bar <paramref name="height"/> px tall, <c>bg-[#0b1220] border border-slate-700</c>, filled in charge's green to <paramref name="share"/>.</summary>
