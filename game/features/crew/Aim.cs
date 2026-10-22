@@ -6,6 +6,7 @@ using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Debris;
+using Stillwake.Sim.Fauna;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
 using Spec = Stillwake.Content;
@@ -265,7 +266,21 @@ public static class Aiming
     {
         var struck = new List<Piece>();
         if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return struck;
-        look ??= HeldLook.FireAxe;
+        var edges = SwingEdges(hero, at, look ?? HeldLook.FireAxe);
+        foreach (var p in m.Debris.Pieces)
+        {
+            if (HalfOf(p.Item) is not var (halfW, halfH)) continue;
+            if (edges.Any(e => Crosses(e, p.X - halfW, p.Y - halfH, p.X + halfW, p.Y + halfH))) struck.Add(p);
+        }
+        return struck;
+    }
+
+    /// <summary>
+    /// The edge of <paramref name="look"/>, held as the figure draws it, swung by <paramref name="hero"/> toward <paramref name="at"/>,
+    /// at every sample of the downstroke's last stretch, from the shoulder of the body upright, turned the way the hero faces.
+    /// </summary>
+    private static (double Ax, double Ay, double Bx, double By)[] SwingEdges(Hero hero, Point at, HeldLook look)
+    {
         double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
         double line = Math.Atan2(at.Y - sy, (at.X - sx) * hero.Facing), from = line + AxeSwing.Lead(look);
         int steps = (int)Math.Ceiling(AxeSwing.Through / SampleStep);
@@ -275,13 +290,60 @@ public static class Aiming
             var (a, b) = AxeSwing.EdgeAt(look, from + AxeSwing.Through * i / steps);
             edges[i] = (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
         }
-        foreach (var p in m.Debris.Pieces)
+        return edges;
+    }
+
+    /// <summary>How far past a creature's body its box is struck, in thousandths of a cell: its fur, and a tick's walk.</summary>
+    private const int CreatureMargin = 200;
+
+    /// <summary>The box creature <paramref name="c"/> is struck in, in thousandths of a cell: its body and a margin.</summary>
+    private static (int Left, int Top, int Right, int Bottom) BoxOf(Creature c)
+    {
+        var spec = Spec.Fauna.Get(c.Species);
+        int half = spec.Width * Hero.Unit / 2 + CreatureMargin;
+        return (c.X - half, c.Y - spec.Height * Hero.Unit - CreatureMargin, c.X + half, c.Y + CreatureMargin);
+    }
+
+    /// <summary>
+    /// The creatures a swing of <paramref name="look"/>, the fire axe unless a test says, by <paramref name="hero"/> toward
+    /// <paramref name="at"/> touches as it strikes, in id order (0102): its edge as for a wreck (<see cref="Struck"/>), against each
+    /// creature's body and a margin, wherever the hero stands.
+    /// </summary>
+    public static List<Creature> StruckCreatures(Registry m, Hero hero, Point at, HeldLook? look = null)
+    {
+        var struck = new List<Creature>();
+        var all = m.Fauna.Creatures;
+        if (all.Count == 0) return struck;
+        var edges = SwingEdges(hero, at, look ?? HeldLook.FireAxe);
+        foreach (var c in all)
         {
-            if (HalfOf(p.Item) is not var (halfW, halfH)) continue;
-            if (edges.Any(e => Crosses(e, p.X - halfW, p.Y - halfH, p.X + halfW, p.Y + halfH))) struck.Add(p);
+            var (left, top, right, bottom) = BoxOf(c);
+            if (edges.Any(e => Crosses(e, left, top, right, bottom))) struck.Add(c);
         }
         return struck;
     }
+
+    /// <summary>
+    /// The creatures the bit of <paramref name="look"/>, the drill unless a test says, touches held by <paramref name="hero"/>
+    /// aimed at <paramref name="at"/> (0102), in id order: its bit as for a wreck (<see cref="Touched"/>), wherever the hero stands.
+    /// </summary>
+    public static List<Creature> TouchedCreatures(Registry m, Hero hero, Point at, HeldLook? look = null)
+    {
+        var touched = new List<Creature>();
+        var all = m.Fauna.Creatures;
+        if (all.Count == 0) return touched;
+        var bit = BitOf(hero, at, look ?? HeldLook.Drill);
+        foreach (var c in all)
+        {
+            var (left, top, right, bottom) = BoxOf(c);
+            if (Crosses(bit, left, top, right, bottom)) touched.Add(c);
+        }
+        return touched;
+    }
+
+    /// <summary>A strike with <paramref name="tool"/> on each of <paramref name="touched"/> the sim would let peer <paramref name="peer"/> make.</summary>
+    public static List<Strike> StrikesOf(Registry m, int peer, IEnumerable<Creature> touched, string tool) =>
+        touched.Where(c => m.Fauna.StrikeProblem(peer, c.Id, tool) == null).Select(c => new Strike(c.Id, tool)).ToList();
 
     /// <summary>Whether the segment <paramref name="e"/> meets the box from (<paramref name="left"/>, <paramref name="top"/>) to (<paramref name="right"/>, <paramref name="bottom"/>): clipped to it, something is left.</summary>
     private static bool Crosses((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom) =>
@@ -323,14 +385,19 @@ public static class Aiming
     {
         var touched = new List<Piece>();
         if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return touched;
-        look ??= HeldLook.Drill;
-        double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
-        double angle = TwoHand.AngleFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
-        var (a, b) = (TwoHand.At(look, angle, look.EdgeFrom), TwoHand.At(look, angle, look.EdgeTo));
-        var bit = (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
+        var bit = BitOf(hero, at, look ?? HeldLook.Drill);
         foreach (var p in m.Debris.Pieces)
             if (HalfOf(p.Item) is var (halfW, halfH) && Crosses(bit, p.X - halfW, p.Y - halfH, p.X + halfW, p.Y + halfH)) touched.Add(p);
         return touched;
+    }
+
+    /// <summary>The bit of <paramref name="look"/> held by <paramref name="hero"/> aimed at <paramref name="at"/>, turned at the chest as far as it turns, as the figure draws it.</summary>
+    private static (double Ax, double Ay, double Bx, double By) BitOf(Hero hero, Point at, HeldLook look)
+    {
+        double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
+        double angle = TwoHand.AngleFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
+        var (a, b) = (TwoHand.At(look, angle, look.EdgeFrom), TwoHand.At(look, angle, look.EdgeTo));
+        return (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
     }
 
     /// <summary>

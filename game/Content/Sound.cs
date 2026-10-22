@@ -371,6 +371,19 @@ public static class Sound
             Stillwake.Content.Ruins.Cradle], Chop, MetalBreak),
         (["dishes", "pots", "basin", "plantAlive", "plantDead"], HitStone, CeramicBreak));
 
+    /// <summary>
+    /// A creature struck and killed (0102), by its species, whatever the tool, as a wall or a growth is (0093): placeholders from
+    /// what is here till the user picks — a hit, the cap's squelch lower with a soft body thump under it; its death, a heavy
+    /// landing's thud higher with the squelch. This player's own on Suit, a friend's on World, where it is struck.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, (Cue Hit, Cue Thump, Cue Death)> Creatures = new Dictionary<string, (Cue, Cue, Cue)>
+    {
+        [Stillwake.Content.Fauna.Loper.Id] = (
+            Glowcap with { Tune = 0.8f, Pitch = 0.12f },
+            LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
+            LandHard with { VolumeDb = -2, Tune = 1.25f, Heard = BreakReach }),
+    };
+
     /// <summary>The growths with no sound of their own: in the rock, gone with their stone; or fixed, never felled.</summary>
     public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "veinCopper", "heatCrack", "fossil", "rubble", "mural", "crack"];
 

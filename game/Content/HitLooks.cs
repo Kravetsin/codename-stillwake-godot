@@ -24,6 +24,8 @@ public enum Impact
     Cloth,
     Glass,
     Ceramic,
+    /// <summary>A creature's soft body (0102): tufts of its fur and warm motes, a white shock line; no blood.</summary>
+    Flesh,
 }
 
 /// <summary>
@@ -101,6 +103,17 @@ public static class HitLooks
     /// <summary>Fine pale dust off wood, cloth or crockery.</summary>
     public static readonly Luminous PaleDust = Luminous.HitDust with { Ramp = [(206, 198, 186)], Gravity = 6, LifeMs = (800, 1500) };
 
+    /// <summary>A white slash of a hit on a creature: short, bright and gone at once, the crisp line of the strike.</summary>
+    public static readonly Luminous Slash = new(Glimmer.Streak, [(255, 255, 255), (255, 236, 220)], (70, 140))
+    { Fade = 2, Drag = 6, Stretch = 0.06, Shortest = 2, Longest = 7, Width = 0.35, Hot = 1 };
+
+    /// <summary>A tuft of fur knocked loose: a short soft streak of matter, drifting down and curling.</summary>
+    public static readonly Luminous Tuft = new(Glimmer.Streak, [(236, 214, 176), (190, 160, 120)], (500, 900))
+    { Matter = true, Bright = 0.85, Fade = 0.8, Gravity = 60, Drag = 2.4, Spin = 3, Turbulence = 22, NoiseScale = 0.1, Stretch = 0.05, Shortest = 1, Longest = 2.5, Width = 0.35, Hot = 0 };
+
+    /// <summary>A soft warm puff off a struck body.</summary>
+    public static readonly Luminous Puff = Luminous.HitDust with { Ramp = [(240, 222, 200)], Gravity = -4, LifeMs = (500, 1000) };
+
     private static readonly (int, int, int) Warm = (255, 214, 150), WarmLight = (255, 220, 170), Cold = (214, 240, 255);
 
     /// <summary>Each object's whole hit.</summary>
@@ -163,6 +176,18 @@ public static class HitLooks
             new(CeramicChip, 4, (30, 75), 0.7, Up: 0.7),
             new(PaleDust, 3, (3, 16), 1.6, Up: 0.5, Size: (0.4, 0.65)),
         ]),
+        // Crisp rather than gory: a few hot white slash streaks, tufts of fur and a soft warm puff, the shock line bright.
+        [Impact.Flesh] = new([
+            new(Slash, 4, (110, 220), 0.5),
+            new(Tuft, 5, (25, 70), 1.1, Up: 0.6),
+            new(Puff, 4, (4, 18), 1.8, Up: 0.4, Size: (0.5, 0.85)),
+        ], Glint: 7, GlintColour: (255, 255, 255), Shock: 0.55, Flash: 0.08, FlashColour: (255, 236, 220)),
+    };
+
+    /// <summary>A creature struck, by its species (0102), as <see cref="Sound.Creatures"/> hears it.</summary>
+    public static readonly IReadOnlyDictionary<string, Impact> Creatures = new Dictionary<string, Impact>
+    {
+        [Stillwake.Content.Fauna.Loper.Id] = Impact.Flesh,
     };
 
     /// <summary>A natural wall hit, by its material, as <see cref="Sound.Ground"/> hears it: bedrock and lava never break, so never are.</summary>

@@ -1,6 +1,6 @@
 # 0102 — Creatures live in the sim
 
-- Status: accepted; slice 1 (the sim) built, slice 2 (the client) with it as a stacked change
+- Status: accepted; slices 1 (the sim) and 2 (the client) built
 - Date: 2026-10-22
 - Design: `designs/creatures.md` (the session's scratchpad), its review and the user's decisions, which override its top
 
@@ -64,6 +64,23 @@ must agree on where it is and when it dies, so its body, its hit points and its 
 - **Dev:** `Release(Species, Cell)`, a command as `world.open` is, refused `fauna.notHere`, `fauna.full`, `fauna.blocked`;
   the client's `--fauna` sends it.
 - **Save format 27:** an empty fauna slice after every other, aboard and on every surface.
+
+## Slice 2: the client (`features/fauna`)
+
+- **A blow is felt the frame it is struck.** This player's own `Strike` makes its creature react the frame it is sent, a round
+  trip before the sim's knock arrives; a friend's as the sim's damage rises. The reaction (`CreatureMotion`): a white flash, a
+  squash that springs back past round, a flinch thrown the way it is knocked, a wide eye and pinned ears, a 70 ms shake, the
+  blade stopping on it with the figure's own bite; then the sim's knock, hop and flight, drawn between ticks. All of it is drawn
+  only: the drawing is never held in place (the first version froze it 70 ms, which with the sim's stun read as pinning). A
+  drill's hit is its share of the axe's, as for the ground (0094).
+- **Seen and heard by what it is** (0093, 0094): an `Impact` per species (`Flesh`: white slash streaks, fur tufts, a warm puff,
+  a glint and shock line, no blood) and a hit, thump and death per species, placeholders from the files here till the user
+  picks. Death: a burst, puffs, a ring, the body swelling white and gone; its yields fall as the sim drops them.
+- **The body is a placeholder** (the review's slice-1 art): a round body with ears, legs and one eye that watches a hero within
+  9 cells, walking by the ground covered, leaning as it flees, tilted onto slopes under its feet.
+- **Contact** is the wreck's (0039, 0054): the axe's swept edge and the drill's bit against each creature's body and a margin,
+  but wherever the hero stands, not only out in space.
+- `-- --planet --fauna` lets six lopers out by the hero and, without `--manual`, hunts them by script for recordings.
 
 ## Measured
 
