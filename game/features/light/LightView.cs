@@ -42,10 +42,11 @@ public partial class LightView : Node2D
     /// </summary>
     private const int FireReach = 16;
 
-    /// <summary>The columns of its cell a closed door's picture fills and the rows a closed hatch's does, in pixels: what of them stops light.</summary>
-    private static readonly Lightmap.Panels DoorPanels = new(
-        PanelOf(ShipTiles.ImageOf("door_closed_0"), across: false),
-        PanelOf(ShipTiles.ImageOf(DoorShape.Picture(closed: true, 0)), across: true));
+    /// <summary>
+    /// The columns of its cell a closed door's picture fills and the rows a closed hatch's does, in pixels: what of them stops light.
+    /// A doorway two cells thick (0104) stops it across both, its 16 px panel's frame and all.
+    /// </summary>
+    private static readonly Lightmap.Panels DoorPanels = new((0, Cell), (0, Cell));
 
     private readonly IGridQueries _grid;
     private readonly Lightmap _lightmap = new();
@@ -348,12 +349,4 @@ public partial class LightView : Node2D
         BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
         LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
     };
-
-    /// <summary>The columns of a cell a picture's opaque pixels span, from the first to past the last.</summary>
-    private static (int From, int To) PanelOf(Image picture, bool across)
-    {
-        if (picture.IsCompressed()) picture.Decompress();
-        var used = picture.GetUsedRect();
-        return across ? (used.Position.Y, used.End.Y) : (used.Position.X, used.End.X);
-    }
 }

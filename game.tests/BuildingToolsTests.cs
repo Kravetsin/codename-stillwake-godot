@@ -191,8 +191,9 @@ public class BuildingToolsTests
         Assert.Equal("backWall:scrap", Pick(18));
         Assert.Equal("pipe", Pick(18, "pipes"));
         Assert.Null(Pick(17, "pipes"));
-        w.Step(new PlacePlan(19, new Placement("structure", "door")));
-        Assert.Equal("door", Pick(19));
+        // A ladder's piece, two by two (0104), from 19.
+        w.Step(new PlacePlan(19, new Placement("structure", "ladder")));
+        Assert.Equal("ladder", Pick(32));
         // Under the power overlay, the cable on a node a cable ends at; nothing on one with none.
         Assert.Equal("cable", Pick(0, Tools.Power));
         Assert.Null(Pick(24, Tools.Power));

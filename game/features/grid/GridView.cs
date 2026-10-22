@@ -299,7 +299,8 @@ public partial class GridView : Node2D
                 _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt("floor", x, y));
                 break;
             case Structure.Ladder:
-                _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt("ladder", x, y));
+                // The 16 px ladder over its two columns, paired from its row's left end as its pieces are (0104), not by where it lies.
+                _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt("ladder", LaddersLeftOf(cell), y));
                 break;
             case Structure.DoorClosed or Structure.DoorOpen:
                 DrawDoor(cell);
@@ -387,21 +388,23 @@ public partial class GridView : Node2D
     /// </summary>
     private void DrawDoor(int cell)
     {
-        int links = DoorLinksOf(cell);
-        if (_slides.OpenOf(cell) is not double open)
-        {
-            Put(_doors, CellOf(cell), DoorShape.Picture(_drawn.Structure[cell] == Structure.DoorClosed, links));
-            return;
-        }
-        // Where the cell lies in its straight run, counted from the top or left end the panel slides into.
-        bool hatch = Doorways.IsHatch(links);
-        var (back, ahead, step) = hatch ? (Doorways.Left, Doorways.Right, 1) : (Doorways.Up, Doorways.Down, _grid.Width);
-        int index = 0, length = 1;
-        for (int c = cell; (DoorLinksOf(c) & back) != 0; c -= step) index++;
-        for (int c = cell; (DoorLinksOf(c) & ahead) != 0; c += step) length++;
-        length += index;
+        // Where the cell lies in its doorway, along it from the top or left end the panel slides into and across its thickness.
+        var spot = DoorShape.SpotOf(cell, _grid.Width, _doorLinksOf ??= DoorLinksOf);
         // Eased (0075): slow off, quick through the middle, slow into its slot.
-        Put(_doors, CellOf(cell), DoorShape.Picture(hatch, index, length, (int)Math.Round(DoorLight.Ease(open) * length * Cell)));
+        var (picture, quarter) = _slides.OpenOf(cell) is double open
+            ? DoorShape.TileOf(spot, (int)Math.Round(DoorLight.Ease(open) * spot.Length * Cell))
+            : DoorShape.TileOf(spot, closed: _drawn.Structure[cell] == Structure.DoorClosed);
+        _doors.SetCell(CellOf(cell), ShipTiles.Source, _tiles.At(picture) + new Vector2I(quarter.X, quarter.Y));
+    }
+
+    private Func<int, int>? _doorLinksOf;
+
+    /// <summary>How many ladder cells run on left of <paramref name="cell"/> in its row, as drawn: its column's half of the ladder by their count's parity.</summary>
+    private int LaddersLeftOf(int cell)
+    {
+        int left = 0, x = cell % _grid.Width;
+        while (left < x && _drawn.Structure[cell - left - 1] == Structure.Ladder) left++;
+        return left;
     }
 
     /// <summary>Lays the whole picture <paramref name="name"/> on cell <paramref name="at"/> of <paramref name="layer"/>.</summary>

@@ -29,10 +29,8 @@ public class WreckTests
         from y in Enumerable.Range(2 * top, 2 * (bottom - top + 1))
         from x in Enumerable.Range(2 * left, 2 * (right - left + 1))
         select (y + Drawn.Y) * Wreck.Width + x + Drawn.X;
-    /// <summary>The open half beside a doorway drawn at column <paramref name="x"/>, rows <paramref name="top"/> to <paramref name="bottom"/>: its block's right column, the room's (0104).</summary>
-    private static IEnumerable<int> Beside(int x, int top, int bottom) => Blocks(x, x, top, bottom).Where(c => (c - Drawn.X) % 2 == 1);
-    /// <summary>Room A's cells: the generator's room, where the hero wakes, and the open half of its doorway to B.</summary>
-    private static readonly int[] A = [.. Blocks(46, 53, 19, 22).Concat(Beside(45, 20, 22)).Order()];
+    /// <summary>Room A's cells: the generator's room, where the hero wakes; its doorways fill their blocks (0104).</summary>
+    private static readonly int[] A = [.. Blocks(46, 53, 19, 22).Order()];
     private static readonly int DoorToB = At(45, 21);
     private static readonly int Inner = At(54, 21);
     private static readonly int Outer = At(57, 21);
@@ -99,7 +97,7 @@ public class WreckTests
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
         Assert.Empty(m.Research.Analysed);
         var doors = Wreck.CellsOf('D').Select(m.Grid.StructureAt).ToList();
-        Assert.Equal(Enumerable.Repeat(Structure.DoorClosed, 18), doors);
+        Assert.Equal(Enumerable.Repeat(Structure.DoorClosed, 36), doors);
         var cells = m.Grid.Machines.Select(x => x.Cell).ToArray();
         var (panel, lamp, generator) = (cells[0], cells[1], cells[4]);
         // The generator and the lamp draw what the panel makes: in full.
@@ -207,7 +205,7 @@ public class WreckTests
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
-        Assert.Equal([At(46, 19), Beside(54, 20, 22).First()], m.Rooms.All.Select(r => r.Id));
+        Assert.Equal([At(46, 19), At(55, 20)], m.Rooms.All.Select(r => r.Id));
         Assert.All(m.Rooms.All, r => Assert.Empty(r.Openings));
         Assert.Equal(RoomsModule.Space, m.Rooms.RoomAt(Analyzer));
         int id = m.Grid.MachineAt(Analyzer)?.Id ?? 0;
@@ -260,7 +258,7 @@ public class WreckTests
     public void CyclesTheAirlockWithoutALosingACellOfItsAir()
     {
         var w = AiredWreck();
-        var closet = Blocks(55, 56, 20, 22).Concat(Beside(54, 20, 22)).ToArray();
+        var closet = Blocks(55, 56, 20, 22).ToArray();
         // In: the inner doorway opened, the generator airs the closet too.
         w.Do(new SetDoor(Inner, true)).Run();
         for (int i = 0; i < 600 && AiredIn(w, closet) < closet.Length; i++) w.Run();

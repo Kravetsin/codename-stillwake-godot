@@ -34,7 +34,8 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 - A blueprint is checked against what is known first (`building.unknown`, but in creative mode), then
   against the grid (`IGridQueries.PlacementProblem`, whose keys pass through unchanged), then against
   the other plans: in each cell, structure and machines share one solid slot, and a conduit and a
-  back wall each have their own, as in the grid. A machine's blueprint covers its whole footprint.
+  back wall each have their own, as in the grid. A machine's blueprint covers its whole footprint, and a piece's (0104): a
+  ladder's 2×2, a door's 2×6, a hatch's 6×2 (`Builds.Hatch`, built as a door is, of its blueprint and at its cost).
   Placing one costs nothing.
 - **No blueprint builds bedrock** (0077), front or back: refused `building.unknown`, creative mode or not
   (`Blueprints.Has`). Soil and stone walls and back walls (0084) are blueprints like any, known once soil or rock is analysed.
@@ -49,7 +50,10 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   `building.notEmpty`; a machine a cable
   ends on, only with its cables cut, refused with `building.cabled`. Both are checked again when the
   mark is worked. A machine's mark is kept at the machine's top-left, whichever of its cells was
-  marked. A marked thing is still built, so the grid refuses a plan for that slot until it is gone.
+  marked; a ladder's or a door's at the first cell of its piece (`IGridQueries.PieceOf`, 0104), and taking it apart takes the
+  whole piece: a doorway whole, a ladder's two by two. It gives back its build's cost for as many pieces as its cells make, each
+  item rounded down: two doors side by side give back two, a drawn map's lone door (2×2) a third of one, a ladder piece a
+  meteor broke nothing. A marked thing is still built, so the grid refuses a plan for that slot until it is gone.
 - **`Work` is the left button held on a plan:** one tick of one hero's work, sent every tick the player
   holds E on it within reach. Two heroes on one plan work it twice as fast, and work stopped keeps its
   progress. The tick that reaches its ticks completes it: a blueprint takes its build's `BuildTicks`

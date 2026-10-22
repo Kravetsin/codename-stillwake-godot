@@ -115,6 +115,7 @@ public partial class BuildingView : Node2D
         _brush = Brush.SideOf(Input.IsPhysicalKeyPressed(Key.Ctrl));
         void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
+            act = Drag.Oriented(act, from, to);
             var planned = new List<int>();
             foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to, building, _brush), building))
                 foreach (var c in verdict.Commands)
@@ -335,10 +336,11 @@ public partial class BuildingView : Node2D
     private static int MarkedAt(IGridQueries grid, Sim.Building.Plan p) =>
         p.Clear == "machine" && grid.MachineAt(p.Cell) is { } machine ? machine.Cell : p.Cell;
 
-    /// <summary>The cells a plan covers: a machine's footprint, else its cell.</summary>
+    /// <summary>The cells a plan covers: a machine's footprint, a piece's (a ladder, a doorway, 0104), else its cell.</summary>
     private static IReadOnlyList<int> CellsOf(IGridQueries grid, Sim.Building.Plan p)
     {
-        var machine = p.Place is { Layer: "machine" } place ? (place.Kind, p.Cell)
+        if (p.Clear == "structure" && grid.PieceOf(p.Cell) is { Count: > 0 } piece) return piece;
+        var machine = p.Place is { } place && (place.Layer == "machine" || Stillwake.Content.Builds.PieceOf(place.Kind) != null) ? (place.Kind, p.Cell)
             : p.Clear == "machine" && grid.MachineAt(p.Cell) is { } built ? (built.Kind, built.Cell)
             : ((string Kind, int Cell)?)null;
         return machine is { } mc ? grid.Footprint(mc.Kind, mc.Cell) ?? [p.Cell] : [p.Cell];
@@ -433,6 +435,8 @@ public partial class BuildingView : Node2D
         if (tool is PlaceTool && pointer is { } near) _near = NearGrid.Around(near, width, height);
         Act? act = _drag?.Act ?? tool as PlaceTool;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
+        // The door's card lays a hatch along a stroke drawn across (0104).
+        act = Drag.Oriented(act, _drag?.From ?? p, p);
         var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p, building, _brush), building);
         if (act is PlaceTool place)
         {
@@ -459,7 +463,9 @@ public partial class BuildingView : Node2D
             var seen = new HashSet<(string, int)>();
             void Silhouette(string layer, int cell, bool takes)
             {
-                int at = layer == "machine" && grid.MachineAt(cell) is { } machine ? machine.Cell : cell;
+                // A machine's top-left, a ladder's or a doorway's first cell (0104), whichever of their cells it is.
+                int at = layer == "machine" && grid.MachineAt(cell) is { } machine ? machine.Cell
+                    : layer == "structure" && grid.PieceOf(cell) is { Count: > 1 } piece ? piece[0] : cell;
                 if (!seen.Add((layer, at)) || Tools.BuiltAt(at, layer, grid) is not { } built) return;
                 int joined = Tools.LinksOf(built, at, width, _ => [], grid);
                 if (takes) _taking.Lay(built, at, width, joined);

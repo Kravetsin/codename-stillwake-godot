@@ -126,13 +126,33 @@ public sealed class DrawnLayers
             if (x > 0) Mark(c - 1);
             if (x < w - 1) Mark(c + 1);
             if (Doorways.IsDoor(change.Structure) == Doorways.IsDoor(Structure[c])) continue;
-            foreach (int row in (ReadOnlySpan<int>)[c - w, c + w])
-            {
-                if (x > 0) Mark(row - 1);
-                if (x < w - 1) Mark(row + 1);
-            }
+            // Whether a cell stands in a door reads Thick cells up and down; and every cell of a doorway it joins is drawn by
+            // where it lies along it (0104), so the doorways round it are drawn anew whole.
+            for (int dy = -Doorways.Thick; dy <= Doorways.Thick; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                    if (x + dx >= 0 && x + dx < w) Mark(c + dy * w + dx);
+            foreach (int n in (ReadOnlySpan<int>)[c - w, c + w, x > 0 ? c - 1 : -1, x < w - 1 ? c + 1 : -1]) Flood(n);
         }
         foreach (int c in stale) _marked[c] = false;
+        _flooded.Clear();
         return stale;
+
+        void Flood(int from)
+        {
+            if (from < 0 || from >= size || !Doorways.IsDoor(Structure[from])) return;
+            _todo.Push(from);
+            while (_todo.Count > 0)
+            {
+                int at = _todo.Pop(), ax = at % w;
+                if (!_flooded.Add(at)) continue;
+                Mark(at);
+                foreach (int n in (ReadOnlySpan<int>)[at - w, at + w, ax > 0 ? at - 1 : -1, ax < w - 1 ? at + 1 : -1])
+                    if (n >= 0 && n < size && Doorways.IsDoor(Structure[n]) && !_flooded.Contains(n)) _todo.Push(n);
+            }
+        }
     }
+
+    /// <summary>Scratch for <see cref="Stale"/>'s flood through the doorways round a door cell come or gone.</summary>
+    private readonly Stack<int> _todo = new();
+    private readonly HashSet<int> _flooded = [];
 }

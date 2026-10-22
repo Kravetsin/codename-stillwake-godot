@@ -17,6 +17,9 @@ public static class Camera
     /// </summary>
     public const int Cell = 8;
 
+    /// <summary>The pixels of a cell the art was drawn at (0104): a 16 px picture covers two by two cells.</summary>
+    public const int Drawn = 16;
+
     /// <summary>
     /// How far ahead the camera looks at full lead, as a share of the screen's width: 4 cells of the farthest zoom's 192, a light
     /// sense of motion; the playtest found 6 flew back and forth.

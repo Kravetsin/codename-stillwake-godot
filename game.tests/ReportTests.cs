@@ -27,7 +27,7 @@ public class ReportTests
     /// <summary>A hero standing on the floor of the block (x, y), in its middle.</summary>
     private static Hero HeroIn(int x, int y) => new(x * Block + Unit, (y + 1) * Block, 0, 0, false, 1);
 
-    /// <summary>A cell of the doorway: its block's left column, a door a cell thick (0104).</summary>
+    /// <summary>A cell of the doorway, its block's top-left: a door two cells thick fills its blocks (0104).</summary>
     private const int Door = 7 * 18 + 8;
 
     /// <summary>What <see cref="Report.Of"/> says at world tick <paramref name="tick"/>, the last report sent at <paramref name="reported"/>: by default just now.</summary>

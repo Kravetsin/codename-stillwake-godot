@@ -750,8 +750,8 @@ public class HeroTests
         var closed = Start(Room('D'));
         var stuck = Settle(closed.Ship, atLadder.Step(Up, closed.Ship), Up);
         Assert.True(stuck.Climbing);
-        // Its head under the hatch, a cell thick at its block's top (0104).
-        Assert.Equal(4 * Block + Unit, stuck.Y - Spec.Height);
+        // Its head under the hatch, two cells thick, its block whole (0104).
+        Assert.Equal(5 * Block, stuck.Y - Spec.Height);
     }
 
     // A hatch three wide in a deck, a ladder under its middle (0067).
@@ -808,8 +808,8 @@ public class HeroTests
         // and untied while within the hull; on its tether from the torn edge, as far as it lets the hero.
         Assert.Equal(TornEdge - Spec.Tether, Settle(opened, Hero.At(opened, Spawn), Left).X);
 
-        // With the doorway closed, the hero stops at it, past the generator: at the door, a cell thick on its block's left (0104).
-        Assert.Equal(45 * Block + Unit + Half, Settle(ship, Hero.At(ship, Spawn), Left).X);
+        // With the doorway closed, the hero stops at it, past the generator: at the door, two cells thick, its block whole (0104).
+        Assert.Equal(46 * Block + Half, Settle(ship, Hero.At(ship, Spawn), Left).X);
     }
 
     /// <summary>How far the body's middle is from where its tether is fixed.</summary>

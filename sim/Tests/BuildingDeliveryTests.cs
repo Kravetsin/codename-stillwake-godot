@@ -36,9 +36,10 @@ public class BuildingDeliveryTests
     /// <summary>The plates an iron wall takes, and the scrap a scrap one does.</summary>
     private static readonly int IronPlates = CostIn(Iron.Cost, "plate"), ScrapUnits = CostIn(Scrap.Cost, "scrap");
 
-    /// <summary>Nine characters wide, doubled to 18 cells.</summary>
+    /// <summary>Nine characters wide and five tall, doubled to 18 by 10 cells: a door, six cells tall, fits its room (0104).</summary>
     private const string Open = """
         #########
+        #.......#
         #.......#
         #.......#
         #########
@@ -183,7 +184,7 @@ public class BuildingDeliveryTests
     [Fact]
     public void BlueprintsArePaidByEachWorkingHeroFromTheirOwnInventoryAsTheyReachAPart()
     {
-        // A tank: four plates and a tube, five parts of its 160 ticks, begun every 32 (a door is two parts now, 0104).
+        // A tank: four plates and a tube, five parts of its 160 ticks, begun every 32.
         var tank = Machines.Get("tank");
         Assert.Equal([("plate", 4), ("tube", 1)], tank.Cost);
         var w = new Scenario(Open);
@@ -275,7 +276,7 @@ public class BuildingDeliveryTests
         // Fallen from the blueprint's cell to the floor below it, the bottom of the doubled room, a few ticks down.
         w.Run(20);
         var lying = Assert.Single(w.M.Items.Floor);
-        Assert.Equal(("plate", 2, Below(At(1, 2))), (lying.Item, lying.Count, lying.Cell));
+        Assert.Equal(("plate", 2, Below(At(1, 3))), (lying.Item, lying.Count, lying.Cell));
         Assert.Equal((7, 9), (Count(w, "plate", 5), Count(w, "tube", 5)));
         w.Do(new Deconstruct(At(0, 1), "structure")).Run();
         w.Do(new CancelPlan(2)).Run();
@@ -289,14 +290,14 @@ public class BuildingDeliveryTests
         var w = Stocked(Open).Do(new Deconstruct(At(0, 0), "structure")).Run();
         Hold(w, 1, Costs.ApartTicks(Scrap.BuildTicks));
         Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(At(0, 0)));
-        PlacePlan(w, At(0, 3), new Placement("conduit", "pipe"));
+        PlacePlan(w, At(0, 4), new Placement("conduit", "pipe"));
         Press(w, 2);
         w.Do(new CancelPlan(2)).Run();
         // Out of the hull's corner into the room's nearest cell, not up the hull to its open corner.
-        Assert.Equal(Below(At(1, 2)), Assert.Single(w.M.Items.Floor).Cell);
+        Assert.Equal(Below(At(1, 3)), Assert.Single(w.M.Items.Floor).Cell);
         w.Run(1000 / Content.Floor.SpaceDrift);
         var lying = Assert.Single(w.M.Items.Floor);
-        Assert.Equal(("tube", CostIn(Builds.Get("pipe").Cost, "tube"), Below(At(1, 2))), (lying.Item, lying.Count, lying.Cell));
+        Assert.Equal(("tube", CostIn(Builds.Get("pipe").Cost, "tube"), Below(At(1, 3))), (lying.Item, lying.Count, lying.Cell));
         Assert.Equal(StockScrap + ScrapUnits, Count(w, "scrap"));
         Assert.Equal(StockTube, Count(w, "tube") + Lying(w, "tube"));
     }
@@ -443,17 +444,20 @@ public class BuildingDeliveryTests
         Enumerable.Range(0, 5).Sum(peer => Count(w, item, peer)) + Lying(w, item)
         + w.M.Building.Plans.Sum(p => p.Delivered.Where(s => s.Item == item).Sum(s => s.Count));
 
-    /// <summary>What is built of <paramref name="item"/> on the 144 cells of the doubled map: what taking it all apart would give.</summary>
+    /// <summary>What is built of <paramref name="item"/> on the 180 cells of the doubled map: what taking it all apart would give.</summary>
     private static int Built(Scenario w, string item)
     {
-        int total = 0;
+        int total = 0, doorCells = 0;
         var grid = w.M.Grid;
-        for (int c = 0; c < 144; c++)
+        for (int c = 0; c < 180; c++)
         {
             if (grid.WallAt(c) is { } wall) total += CostIn(wall.Cost, item);
-            if (grid.StructureAt(c) is Structure.DoorClosed or Structure.DoorOpen) total += CostIn(Builds.Get("door").Cost, item);
+            if (grid.StructureAt(c) is Structure.DoorClosed or Structure.DoorOpen) doorCells++;
             if (grid.ConduitAt(c) == Conduit.Pipe) total += CostIn(Builds.Get("pipe").Cost, item);
         }
+        // A door is a piece of twelve cells (0104); doors built side by side come apart as one doorway, giving back each.
+        var door = Builds.Get("door");
+        total += CostIn(door.Cost, item) * doorCells / (door.Across * door.Tall);
         foreach (var m in grid.Machines) total += CostIn(Machines.Get(m.Kind).Cost, item);
         return total;
     }
@@ -489,7 +493,7 @@ public class BuildingDeliveryTests
     {
         var placement = Gen.Elements(IronWall, Placement.Wall("scrap"), Door, new Placement("conduit", "pipe"), Tank);
         // The hull's cells too: taken apart, it lets what lies about out into space.
-        var cell = Gen.Choose(0, 143);
+        var cell = Gen.Choose(0, 179);
         var sender = Gen.Choose(0, 4);
         var id = Gen.Frequency((3, Gen.Choose(1, 5)), (2, Gen.Choose(1, 20)));
         var step = Gen.OneOf(

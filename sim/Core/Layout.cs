@@ -126,10 +126,8 @@ public sealed record Layout(
 
     /// <summary>
     /// This map at the cell's scale (0104): each character drawn a 16 px cell, as maps are, turned into the 2×2 cells of 8 px
-    /// that cover it. Walls, back walls, machines and ladders fill all four; a door fills its block's left column, a hatch (a
-    /// door with none above or below, as <c>Doorways</c> has it, but one alone in a wall standing up or between open cells) its top row, so doorways stay one cell thick, the other half open: in space
-    /// where the character on that side is space, a ladder where it is one; a
-    /// floor and the hero's waking place fill the row a body stands on, the floor its top, <c>S</c> its bottom-left, the rest open;
+    /// that cover it. Walls, back walls, machines, ladders and doors fill all four, so a doorway is two cells thick, as its
+    /// 16 px door was one, and a ladder two wide; a floor and the hero's waking place fill the row a body stands on, the floor its top, <c>S</c> its bottom-left, the rest open;
     /// a conduit its top-left, and the cell right of it or under it where the character there is a conduit too, on either map,
     /// so pipes stay one cell wide and meet the ports, which double with the footprints. The under-map's oxygen marks its
     /// tank's top-left. Materials, cables (by their ends' top-left cells), the zone and the plants of a test's map double
@@ -143,7 +141,6 @@ public sealed record Layout(
         char Main(int x, int y) => x < Width && y < Height ? Rows[y][x] : ' ';
         char Below(int x, int y) => Under != null && x < Width && y < Height ? Under[y][x] : ' ';
         bool Conduit(int x, int y) => IsConduit(Main(x, y)) || Below(x, y) == '-';
-        bool Door(int x, int y) => x >= 0 && y >= 0 && Main(x, y) is 'D' or 'd';
         var rows = new char[h][];
         var under = Under == null ? null : new char[h][];
         for (int y = 0; y < h; y++)
@@ -159,19 +156,6 @@ public sealed record Layout(
                 char tl = c, tr = c, bl = c, br = c;
                 if (c == '=') (bl, br) = ('.', '.');
                 else if (c == 'S') (tl, tr, br) = ('.', '.', '.');
-                else if (c is 'D' or 'd')
-                {
-                    // A hatch as Doorways has it, a door cell with none above or below; one alone by what is round it: in a wall
-                    // standing up, or between open cells across, it is a door.
-                    bool Wall(int cx, int cy) => cx >= 0 && cy >= 0 && Main(cx, cy) is '#' or '=';
-                    bool alone = !Door(x - 1, y) && !Door(x + 1, y);
-                    bool hatch = !Door(x, y - 1) && !Door(x, y + 1)
-                        && !(alone && (Wall(x, y - 1) && Wall(x, y + 1) || !Wall(x - 1, y) && !Wall(x + 1, y)));
-                    // Its open half shows what lies on that side: space beside the hull, a ladder it is climbed through, else a back wall.
-                    char Beside(char n) => n is ' ' or 'H' ? n : '.';
-                    if (hatch) bl = br = Beside(Main(x, y + 1));
-                    else tr = br = Beside(Main(x + 1, y));
-                }
                 else if (IsConduit(c))
                 {
                     tr = Conduit(x + 1, y) ? '-' : '.';

@@ -12,7 +12,7 @@ public class ShutOutTests
     /// <summary>The steps a push may take: 200 ms of a 60 Hz controller.</summary>
     private const int Slide = 12;
 
-    /// <summary>Two rooms joined by a door three characters tall in column 4, open or shut: a cell thick, its block's left (0104).</summary>
+    /// <summary>Two rooms joined by a door three characters tall in column 4, open or shut: two cells thick, its blocks whole (0104).</summary>
     private static Ship Doorway(char door) => HeroTests.ShipFrom($"""
         #########
         #.......#
@@ -43,11 +43,11 @@ public class ShutOutTests
     }
 
     [Theory]
-    [InlineData(8700, 1, 9 * Unit + Half)]
-    [InlineData(8700, -1, 9 * Unit + Half)]
-    [InlineData(8300, 1, 8 * Unit - Half)]
-    [InlineData(8500, 1, 9 * Unit + Half)]
-    [InlineData(8500, -1, 8 * Unit - Half)]
+    [InlineData(9300, 1, 10 * Unit + Half)]
+    [InlineData(9300, -1, 10 * Unit + Half)]
+    [InlineData(8700, 1, 8 * Unit - Half)]
+    [InlineData(9000, 1, 10 * Unit + Half)]
+    [InlineData(9000, -1, 8 * Unit - Half)]
     public void PushesAHeroOutOfADoorShutOnItToTheNearerSideTheWayItFacesOnATie(int x, int facing, int outside)
     {
         var standing = new Hero(x, 6 * Block, 0, 0, false, facing);
@@ -66,7 +66,7 @@ public class ShutOutTests
         Assert.Equal((7000, 4 * Block), (high.X, high.Y));
         Assert.Equal(4 * Block, HeroTests.Settle(shut, high, HeroTests.Still).Y);
         var low = HeroTests.Settle(shut, Run(shut, new Hero(7000, 7 * Block + 125, 0, 0, true, 1), Slide), HeroTests.Still);
-        Assert.True(low.Y - Spec.Height >= 4 * Block + Unit, $"head at {low.Y - Spec.Height}, inside the hatch");
+        Assert.True(low.Y - Spec.Height >= 5 * Block, $"head at {low.Y - Spec.Height}, inside the hatch two cells thick");
     }
 
     [Fact]

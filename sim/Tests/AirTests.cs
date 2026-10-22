@@ -378,7 +378,8 @@ public class AirTests
     {
         var (w, _, door, right) = TwoRooms();
         w.Do(new SetDoor(door, true)).Run(3);
-        var inRight = w.Air().Aired.Where(c => c % 30 > At15(8, 0)).ToList();
+        // Past the doorway, which fills its block (0104).
+        var inRight = w.Air().Aired.Where(c => c % 30 > At15(8, 0) + 1).ToList();
         Assert.NotEmpty(inRight);
         w.Do(new SetDoor(door, false)).Run();
         int shut = w.M.Rooms.RoomAt(right)!.Value;
@@ -672,11 +673,11 @@ public class AirTests
     public void LeaksThroughTheBackWallBehindAnOpenDoorACellOfTheRoomNotAClosedOne()
     {
         var w = new Scenario(AirTesting.OneThick(Two));
-        // Shut, each room its hull and its own cells, the right one the doorway's open half; the door's back walls touch no air.
-        Assert.Equal(new int?[] { (2 * 17 + 4 * 21) * Scrap, (2 * 13 + 4 * 15 + 2) * Scrap }, new[] { LeakAt(w, At15(4, 2)), LeakAt(w, At15(10, 2)) });
+        // Shut, each room its hull and its own cells; the door's back walls touch no air.
+        Assert.Equal(new int?[] { (2 * 17 + 4 * 21) * Scrap, (2 * 13 + 4 * 15) * Scrap }, new[] { LeakAt(w, At15(4, 2)), LeakAt(w, At15(10, 2)) });
         w.Do(new SetDoor(At15(8, 2), true)).Run();
-        // Open, one room: both hulls, both rooms' cells and the doorway's two.
-        Assert.Equal((2 * (17 + 13) + 4 * (21 + 15) + 2 + 2) * Scrap, LeakAt(w, At15(4, 2)));
+        // Open, one room: both hulls, both rooms' cells and the doorway's four (0104).
+        Assert.Equal((2 * (17 + 13) + 4 * (21 + 15) + 4) * Scrap, LeakAt(w, At15(4, 2)));
     }
 
     [Fact]

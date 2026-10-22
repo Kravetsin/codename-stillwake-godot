@@ -716,13 +716,24 @@ public readonly record struct Hero(
     private static bool Solid(Ship ship, int x, int y) =>
         StructureAt(ship, x, y) is null or Structure.Wall or Structure.DoorClosed;
 
-    /// <summary>Ladders, and an open door in line with one: a hatch the ladder climbs through.</summary>
+    /// <summary>Ladders, and an open door in line with one: a hatch the ladder climbs through, two cells thick (0104).</summary>
     private static bool Climbable(Ship ship, int x, int y) => StructureAt(ship, x, y) switch
     {
         Structure.Ladder => true,
-        Structure.DoorOpen => StructureAt(ship, x, y - 1) == Structure.Ladder || StructureAt(ship, x, y + 1) == Structure.Ladder,
+        Structure.DoorOpen => LadderPast(ship, x, y, -1) || LadderPast(ship, x, y, 1),
         _ => false,
     };
+
+    /// <summary>Whether a ladder lies <paramref name="dir"/> of the open door cell (x, y), past no more open door than a hatch is thick.</summary>
+    private static bool LadderPast(Ship ship, int x, int y, int dir)
+    {
+        for (int k = 1; k <= Doorways.Thick; k++)
+        {
+            var s = StructureAt(ship, x, y + k * dir);
+            if (s != Structure.DoorOpen) return s == Structure.Ladder;
+        }
+        return false;
+    }
 
     /// <summary>What holds a hero up from below only: floors, and a ladder's top cell unless climbing.</summary>
     private static bool Holds(Ship ship, int x, int y, bool climbing) =>

@@ -20,7 +20,7 @@ public sealed class ShipTiles
     /// The pixels of a cell the art was drawn at, 16 (0104): sheets of tops and details by its columns; the pictures of a cell
     /// alone, pipes, doors, hatches, valves and the hull's edges, drawn at half their size till they are drawn at 8.
     /// </summary>
-    public const int Drawn = 16;
+    public const int Drawn = Camera.Drawn;
 
     /// <summary>The atlas's width, in cells.</summary>
     private const int Across = 64;
@@ -91,9 +91,12 @@ public sealed class ShipTiles
         foreach (var p in DoorShape.SlidPictures)
         {
             var slid = DoorShape.Slid(PixelsOf(p.Closed)!, PixelsOf(p.Open)!, PixelsOf(p.OverClosed)!, PixelsOf(p.OverOpen)!,
-                PixelsOf(p.NextClosed), PixelsOf(p.NextOpen), Cell, p.Shift, p.Hatch);
-            pictures.Add(Picture(p.Name, Image.CreateFromData(Cell, Cell, false, Image.Format.Rgba8, slid), p.Hatch ? Relief.Down : Relief.Across));
+                PixelsOf(p.NextClosed), PixelsOf(p.NextOpen), Drawn, p.Shift, p.Hatch);
+            pictures.Add(Picture(p.Name, Image.CreateFromData(Drawn, Drawn, false, Image.Format.Rgba8, slid), p.Hatch ? Relief.Down : Relief.Across));
         }
+        // A piece whole (0104), laid from its top-left as a machine is: what a plan, a ghost or a mark of one draws.
+        foreach (var kind in (string[])["door", Builds.Hatch, "ladder"])
+            pictures.Add(Picture(PieceName(kind), Made(PieceName(kind), Whole(kind)), Relief.None));
         pictures.Add(Picture("valve_open", Relief.None, centred: true));
         pictures.Add(Picture("valve_closed", Relief.None, centred: true));
         foreach (var kind in Machines.All.Select(m => m.Kind)) pictures.Add(Picture($"machine_{kind}", Relief.Round));
@@ -136,7 +139,7 @@ public sealed class ShipTiles
             // Cut a cell at a time, a cell drawing the piece where it lies: sheets laid over the world, and the 16 px pictures of what
             // fills a map's character's cells, two by two or two across (0104): a ladder, a floor, iron's panels.
             bool cut = name.StartsWith("wall_") || name.StartsWith("detail_") || name == "back_scrap" || name.StartsWith("back_") && MadeImages.ContainsKey(name)
-                || CutDrawn(name);
+                || CutDrawn(name) || name.StartsWith("door_") || name.StartsWith("hatch_");
             if (cut)
             {
                 for (int j = 0; j < size.Y; j++)
@@ -239,12 +242,46 @@ public sealed class ShipTiles
 
     /// <summary>
     /// Whether <paramref name="name"/> is a picture of one cell drawn at 16 px, now drawn at half its size in the 8 px cell (0104), till
-    /// it is drawn anew: a pipe's, a door's, a hatch's, a valve's and the hull's edges.
+    /// it is drawn anew: a pipe's, a valve's and the hull's edges. A door's and a hatch's are whole, over two by two cells.
     /// </summary>
     public static bool Halved(string name) =>
-        name.StartsWith("pipe_", StringComparison.Ordinal) || name.StartsWith("door_", StringComparison.Ordinal)
-        || name.StartsWith("hatch_", StringComparison.Ordinal) || name.StartsWith("valve_", StringComparison.Ordinal)
+        name.StartsWith("pipe_", StringComparison.Ordinal) || name.StartsWith("valve_", StringComparison.Ordinal)
         || name.StartsWith("wall-edge_", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The picture <paramref name="name"/> at the 16 px it was drawn at (0104), for a build card's, which shows it as it was before
+    /// the cell was halved: what <see cref="Halved"/> halves at its own size, a ground's edges made at it; every other as it is.
+    /// </summary>
+    public static Image DrawnImageOf(string name)
+    {
+        if (!Halved(name)) return ImageOf(name);
+        if (name.StartsWith("wall-edge_", StringComparison.Ordinal) && name.Split('_') is [_, var material, var open]
+            && Materials.TryGet(material, out var m) && m.Natural)
+            return GroundArt.Edge(material, int.Parse(open), Drawn);
+        var image = PixelArt.Picture(name).GetImage();
+        if (image.IsCompressed()) image.Decompress();
+        image.Convert(Image.Format.Rgba8);
+        return image;
+    }
+
+    /// <summary>The picture of a piece of <paramref name="kind"/> whole (0104): a ladder's, a door's or a hatch's.</summary>
+    public static string PieceName(string kind) => $"piece_{kind}";
+
+    /// <summary>A piece of <paramref name="kind"/> whole, shut if a door: its 16 px pictures side by side over its cells.</summary>
+    private static Image Whole(string kind)
+    {
+        if (kind == "ladder") return (Image)Art("ladder").Duplicate();
+        var (across, tall) = Builds.PieceOf(kind)!.Value;
+        bool hatch = kind == Builds.Hatch;
+        var parts = DoorShape.Whole(hatch, (hatch ? across : tall) / DoorShape.Per);
+        var whole = Image.CreateEmpty(across * Cell, tall * Cell, false, Image.Format.Rgba8);
+        for (int i = 0; i < parts.Count; i++)
+        {
+            var part = Art(parts[i]);
+            whole.BlitRect(part, new Rect2I(Vector2I.Zero, part.GetSize()), hatch ? new Vector2I(i * Drawn, 0) : new Vector2I(0, i * Drawn));
+        }
+        return whole;
+    }
 
     /// <summary>The back wall of a natural <paramref name="material"/> (0077), a tile cut a cell at a time as scrap's is.</summary>
     public static string BackName(string material) => $"back_{material}";
