@@ -70,6 +70,16 @@ public class FaunaArtTests
             }
     }
 
+    [Fact]
+    public void EveryDesignsMarkingsAreToldApartAndAtLeastOneOfThemIsThere()
+    {
+        foreach (var design in FaunaArt.Designs.Values)
+        {
+            var (w, h, pixels) = Pixels(Path.Combine(Art, "fauna", design.Id, "marks.png"));
+            int count = Features.Fauna.CreatureVariety.Markings(pixels, w, h).Max() + 1;
+            Assert.InRange(count, 1, Features.Fauna.CreatureVariety.MostMarkings);
+        }
+    }
     private static (int W, int H) Size(string png)
     {
         Assert.True(File.Exists(png), png);

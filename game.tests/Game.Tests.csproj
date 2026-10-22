@@ -40,6 +40,7 @@
     <Compile Include="../game/features/fauna/CreatureMotion.cs" Link="Game/Fauna/CreatureMotion.cs" />
     <Compile Include="../game/features/fauna/CreatureGait.cs" Link="Game/Fauna/CreatureGait.cs" />
     <Compile Include="../game/features/fauna/CreaturePose.cs" Link="Game/Fauna/CreaturePose.cs" />
+    <Compile Include="../game/features/fauna/CreatureVariety.cs" Link="Game/Fauna/CreatureVariety.cs" />
     <Compile Include="../game/Content/FaunaLooks.cs" Link="Game/Content/FaunaLooks.cs" />
     <Compile Include="../game/Content/FaunaArt.cs" Link="Game/Content/FaunaArt.cs" />
     <Compile Include="../game/features/grid/Grass.cs" Link="Game/Grid/Grass.cs" />

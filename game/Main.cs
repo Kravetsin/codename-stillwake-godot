@@ -74,6 +74,9 @@ public partial class Main : Node2D, ITogether
     private readonly Updater _updater = new(Updates.Of(Build));
     /// <summary>The registry of the surface this player's hero is on (0076): what the views draw and the hands work.</summary>
     private Registry _m = null!;
+
+    /// <summary>The seed of the surface drawn, 0 aboard.</summary>
+    private uint _seed;
     /// <summary>The ship's registry, surface 0's, made with the world: a load or a resync brings a new one.</summary>
     private Registry _ship = null!;
     /// <summary>The registry the views draw: a load or a resync brings a new one.</summary>
@@ -418,7 +421,7 @@ public partial class Main : Node2D, ITogether
         // --fauna, with --planet: creatures let out by the hero, hunted by script unless --manual (0102).
         if (fauna)
         {
-            _faunaDemo = new FaunaDemo(drill: Has("--fauna-drill"), course: Has("--fauna-course"), kind: kind) { Kill = Has("--fauna-kill") };
+            _faunaDemo = new FaunaDemo(drill: Has("--fauna-drill"), course: Has("--fauna-course"), kind: kind, herd: Has("--fauna-herd")) { Kill = Has("--fauna-kill") };
             if (!Has("--manual")) AddChild(new FaunaHands(_faunaDemo, () => _hero?.Current, still: Has("--fauna-drill"), quick: Has("--fauna-course")));
         }
         PlayDev(world, Has("--gallery") ? null : Has("--store") ? Features.Power.StoreWorld.Map : layout);
@@ -874,6 +877,8 @@ public partial class Main : Node2D, ITogether
         var here = surface == 0 ? _ship : Registry.On(client.World, surface);
         if (here == _m) return;
         _m = here;
+        // What its creatures' looks grow from, with their ids (0102): the same individuals on every peer.
+        _seed = surface == 0 ? 0 : client.World.Surfaces.First(s => s.Id == surface).Seed;
         _items?.Panel.Close();
         _hands.Ui.OpenCrate.Set(null);
         _hands.Ui.AimedPiece.Set(null);
@@ -1063,7 +1068,7 @@ public partial class Main : Node2D, ITogether
         _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
         _frameLog?.Mark("debris");
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
-        _fauna.Frame(client, _m.Fauna, _m.Grid, _camera.View(), session.Progress, delta * 1000, FaunaLooks.PaletteOf.GetValueOrDefault(_m.Rules.Id, FaunaLooks.Palette));
+        _fauna.Frame(client, _m.Fauna, _m.Grid, _camera.View(), session.Progress, delta * 1000, FaunaLooks.PaletteOf.GetValueOrDefault(_m.Rules.Id, FaunaLooks.Palette), _seed);
         _frameLog?.Mark("fauna");
         ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");

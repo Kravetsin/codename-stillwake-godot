@@ -8,49 +8,74 @@ namespace Stillwake.Game.Features.Fauna;
 /// <summary>
 /// The creatures' parts as pictures (0102): each index map of <c>art/fauna</c> recoloured once, at first use, by a palette — its
 /// R the ramp, its G the tone — into its colours, a white copy for a blow's flash, and its glow map in the glow ramp a tone up;
-/// with the spots its glow lights from. Kept for the run: four designs of a dozen small parts each.
+/// with the spots its glow lights from. An individual's coat (<see cref="CreatureVariety.Tone"/>) and the markings it wears
+/// make their own copies of the parts they touch, kept for the run too: a few steps of each, a dozen small parts a design.
 /// </summary>
 public static class CreatureParts
 {
     /// <summary>What a part is drawn as: its colours, all white (the flash), or its glowing pixels only.</summary>
     public enum Kind { Colour, White, Glow }
 
-    private static readonly Dictionary<(string, string, string, Kind), Texture2D> Made = new();
-    private static readonly Dictionary<(string, string, string), (Vector2 At, Color Colour)[]> Spots = new();
+    /// <summary>The part an individual wears more or fewer of, and more or less boldly.</summary>
+    public const string Marks = "marks";
 
-    /// <summary>Part <paramref name="part"/> of <paramref name="design"/> in <paramref name="palette"/>, as <paramref name="kind"/>.</summary>
-    public static Texture2D Of(FaunaArt.Design design, string part, string palette, Kind kind)
+    /// <summary>What of an individual a part's picture shows: its coat's shade and blend, the markings it wears, their opacity.</summary>
+    private readonly record struct Worn(int Shade, int Hue, int Kept, int Opacity);
+
+    private static readonly Dictionary<(string, string, string, Kind, Worn), Texture2D> Made = new();
+    private static readonly Dictionary<(string, string, string, int), (Vector2 At, Color Colour)[]> Spots = new();
+    private static readonly Dictionary<(string, string), int[]> Markings = new();
+
+    /// <summary>
+    /// Part <paramref name="part"/> of <paramref name="design"/> in <paramref name="palette"/>, as <paramref name="kind"/>, on
+    /// <paramref name="one"/> of a species varying by <paramref name="v"/>.
+    /// </summary>
+    public static Texture2D Of(FaunaArt.Design design, string part, string palette, Kind kind, FaunaLooks.Variety v, CreatureVariety.Individual one)
     {
-        var key = (design.Id, part, palette, kind);
+        bool coat = kind == Kind.Colour && Array.IndexOf(design.Parts[part].Ramps, v.Coat) >= 0;
+        bool marked = part == Marks;
+        var worn = new Worn(coat ? one.Shade : 0, coat ? one.Hue : 0, marked ? KeptOf(design, part, one) : -1,
+            marked && kind == Kind.Colour ? one.Opacity : 1000);
+        var key = (design.Id, part, palette, kind, worn);
         if (Made.TryGetValue(key, out var made)) return made;
         var (w, h, data) = Read(kind == Kind.Glow ? FaunaArt.GlowOf(design.Id, part) : FaunaArt.PictureOf(design.Id, part));
+        var markings = marked ? MarkingsOf(design, part) : null;
         var ramps = FaunaArt.Palettes[palette];
+        byte alpha = (byte)((255 * worn.Opacity + 500) / 1000);
         for (int q = 0; q < w * h; q++)
         {
             int o = q * 4;
             if (data[o + 3] == 0) continue;
+            if (markings != null && !CreatureVariety.Wears(one, markings[q]))
+            {
+                data[o + 3] = 0;
+                continue;
+            }
             var (r, g, b) = kind switch
             {
                 Kind.White => ((byte)255, (byte)255, (byte)255),
                 // A glowing pixel shines a tone brighter than it is painted (the page's glow pass).
                 Kind.Glow => ramps[design.Glow][Math.Min(5, data[o + 1] + 1)],
-                _ => ramps[data[o]][data[o + 1]],
+                _ => CreatureVariety.Tone(ramps, v, one, data[o], data[o + 1]),
             };
-            (data[o], data[o + 1], data[o + 2], data[o + 3]) = (r, g, b, 255);
+            (data[o], data[o + 1], data[o + 2], data[o + 3]) = (r, g, b, alpha);
         }
         return Made[key] = ImageTexture.CreateFromImage(Image.CreateFromData(w, h, false, Image.Format.Rgba8, data));
     }
 
     /// <summary>
     /// Where a part's glow lights from, in its own pixels from its pivot, and the colour: its glowing pixels gathered by squares
-    /// of <see cref="FaunaLooks.SpotPixels"/>, the biggest first. None for a part with no glow.
+    /// of <see cref="FaunaLooks.SpotPixels"/>, the biggest first, only of the markings <paramref name="one"/> wears. None for a
+    /// part with no glow.
     /// </summary>
-    public static (Vector2 At, Color Colour)[] SpotsOf(FaunaArt.Design design, string part, string palette)
+    public static (Vector2 At, Color Colour)[] SpotsOf(FaunaArt.Design design, string part, string palette, CreatureVariety.Individual one)
     {
-        var key = (design.Id, part, palette);
+        bool marked = part == Marks;
+        var key = (design.Id, part, palette, marked ? KeptOf(design, part, one) : -1);
         if (Spots.TryGetValue(key, out var known)) return known;
         if (!design.Parts[part].Glow) return Spots[key] = [];
         var (w, h, data) = Read(FaunaArt.GlowOf(design.Id, part));
+        var markings = marked ? MarkingsOf(design, part) : null;
         var pivot = new Vector2(design.Parts[part].PivotX, design.Parts[part].PivotY);
         var ramp = FaunaArt.Palettes[palette][design.Glow];
         var squares = new Dictionary<(int, int), (Vector2 Sum, Vector3 Colour, int Count)>();
@@ -58,7 +83,7 @@ public static class CreatureParts
             for (int x = 0; x < w; x++)
             {
                 int o = (y * w + x) * 4;
-                if (data[o + 3] == 0) continue;
+                if (data[o + 3] == 0 || markings != null && !CreatureVariety.Wears(one, markings[y * w + x])) continue;
                 var (r, g, b) = ramp[Math.Min(5, data[o + 1] + 1)];
                 var at = (x / FaunaLooks.SpotPixels, y / FaunaLooks.SpotPixels);
                 var (sum, colour, count) = squares.GetValueOrDefault(at);
@@ -67,6 +92,21 @@ public static class CreatureParts
         return Spots[key] = squares.Values.OrderByDescending(s => s.Count).ThenBy(s => s.Sum.Y)
             .Select(s => (s.Sum / s.Count - pivot, new Color(s.Colour.X / s.Count, s.Colour.Y / s.Count, s.Colour.Z / s.Count, Math.Min(1f, s.Count / 4f))))
             .ToArray();
+    }
+
+    /// <summary>The markings of a part's picture, each pixel's (<see cref="CreatureVariety.Markings"/>); its glow map's pixels lie on them.</summary>
+    private static int[] MarkingsOf(FaunaArt.Design design, string part)
+    {
+        if (Markings.TryGetValue((design.Id, part), out var known)) return known;
+        var (w, h, data) = Read(FaunaArt.PictureOf(design.Id, part));
+        return Markings[(design.Id, part)] = CreatureVariety.Markings(data, w, h);
+    }
+
+    /// <summary>The markings <paramref name="one"/> wears of those the part has, as bits: two individuals wearing the same share a picture.</summary>
+    private static int KeptOf(FaunaArt.Design design, string part, CreatureVariety.Individual one)
+    {
+        int count = MarkingsOf(design, part).Max() + 1;
+        return count >= CreatureVariety.MostMarkings ? one.Kept : one.Kept & ((1 << count) - 1);
     }
 
     /// <summary>An index map's pixels as it was painted: imported lossless, read back byte for byte.</summary>

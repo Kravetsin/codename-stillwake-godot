@@ -14,7 +14,7 @@ namespace Stillwake.Game.Dev;
 /// enough to see at once, where spawning never puts one. With <c>--manual</c> that is all; else <see cref="FaunaHands"/> hunts
 /// them, the axe first and then the drill, for recordings.
 /// </summary>
-public sealed class FaunaDemo(bool drill = false, bool course = false, string? kind = null)
+public sealed class FaunaDemo(bool drill = false, bool course = false, string? kind = null, bool herd = false)
 {
     /// <summary>
     /// The species let out: <c>--fauna=fluff</c>'s (a species' id or its look's), else each of them in turn round the hero, so one
@@ -27,8 +27,11 @@ public sealed class FaunaDemo(bool drill = false, bool course = false, string? k
     /// <summary>Where the creatures are let out, in columns from the hero's: some near, some farther, both sides.</summary>
     private static readonly int[] Around = [6, 11, 17, -7, -12, -18];
 
+    /// <summary>With <c>--fauna-herd</c>, five a side of the hero, three columns apart: a herd, to tell its individuals apart.</summary>
+    private static readonly int[] Herd = [-16, -13, -10, -7, -4, 3, 6, 9, 12, 15];
+
     /// <summary>With <c>--fauna-drill</c>, one loper right before the hero, under its drill's bit.</summary>
-    private int[] Offsets => drill ? [1] : course ? [-8] : Around;
+    private int[] Offsets => drill ? [1] : course ? [-8] : herd ? Herd : Around;
 
     /// <summary>
     /// <c>--strip --fauna-course</c>: the cell the hero beams down to, on the strip's open ground at column 64 (its row 29), a loper six

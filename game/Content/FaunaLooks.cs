@@ -102,4 +102,27 @@ public static class FaunaLooks
 
     /// <summary>A glow map's pixels gathered into spots this many pixels square, each a light.</summary>
     public const int SpotPixels = 7;
+
+    /// <summary>The ramps the parts are painted in (the index maps' R, the page's): its fur's two, belly, markings and skin.</summary>
+    public const int FurA = 24, FurB = 25, Belly = 26, Mark = 27, Skin = 28;
+
+    /// <summary>
+    /// How one creature of a species differs from the next (the user's word, 2026-10-22: by size and colour), drawn only:
+    /// <paramref name="Least"/> to <paramref name="Most"/> thousandths of its design's size; its <paramref name="Coat"/> ramp
+    /// shaded up to <paramref name="Shade"/> quarter tones lighter or darker and blended up to <paramref name="Blend"/>
+    /// thousandths toward <paramref name="Toward"/> or <paramref name="Away"/>, the palette's own ramps, in two steps either way;
+    /// one in <paramref name="MorphOneIn"/> a morph, its coat <paramref name="Morph"/> quarter tones off; each marking dropped
+    /// <paramref name="Drop"/> thousandths of the time, those kept at least <paramref name="Faint"/> thousandths opaque.
+    /// </summary>
+    public sealed record Variety(
+        int Least, int Most, int Coat, int Shade, int Toward, int Away, int Blend, int MorphOneIn, int Morph, int Drop, int Faint);
+
+    /// <summary>Each species': the loper tan to rosy or ashen, its stripes one to three; the tapir pale at times; the fluff pink or cream, its spots fewer.</summary>
+    public static readonly IReadOnlyDictionary<string, Variety> Varieties = new Dictionary<string, Variety>
+    {
+        ["loper"] = new(Least: 860, Most: 1140, Coat: FurA, Shade: 3, Toward: FurB, Away: Skin, Blend: 420, MorphOneIn: 7, Morph: -4, Drop: 350, Faint: 450),
+        ["tapir"] = new(Least: 880, Most: 1160, Coat: FurB, Shade: 3, Toward: FurA, Away: Skin, Blend: 450, MorphOneIn: 7, Morph: 4, Drop: 250, Faint: 500),
+        ["sixleg"] = new(Least: 880, Most: 1120, Coat: FurB, Shade: 3, Toward: FurA, Away: Belly, Blend: 450, MorphOneIn: 7, Morph: -4, Drop: 300, Faint: 450),
+        ["fluff"] = new(Least: 820, Most: 1150, Coat: FurB, Shade: 3, Toward: Skin, Away: Belly, Blend: 450, MorphOneIn: 7, Morph: 4, Drop: 250, Faint: 1000),
+    };
 }

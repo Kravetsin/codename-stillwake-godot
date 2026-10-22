@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Fauna;
 
 /// <summary>
 /// One creature's body (0102) in the design its species names, as the user picked it on the loper page: its rig's parts, each a
-/// picture recoloured by the planet's palette (<see cref="CreatureParts"/>), drawn in the rig's order, turned and moved about
+/// picture recoloured by the planet's palette and its individual's coat and markings (<see cref="CreatureParts"/>), drawn in the rig's order, turned and moved about
 /// its pivot by <see cref="CreaturePose"/> at the screen's resolution as a hero's parts are, its origin the middle of its feet,
 /// facing right. Lit as the world is; its eye in four states; its glowing parts added over it unlit and lighting what is round
 /// them (<see cref="Lights"/>); a blow's white flash an unlit copy over it.
@@ -25,8 +25,11 @@ public partial class CreatureBody : Node2D
     // Unshaded, so the world's darkness does not grey it: a flash is light.
     private static readonly CanvasItemMaterial FlashMaterial = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
 
-    /// <summary>A picture drawn of one node: its colour, its flash, and its glow if it has one.</summary>
-    private sealed record Drawn(int Node, string Part, Sprite2D Colour, Sprite2D White, Sprite2D? Glow, (Vector2 At, Color Colour)[] Spots);
+    /// <summary>A picture drawn of one node: its colour, its flash, its glow if it has one, and where that glow lights from.</summary>
+    private sealed record Drawn(int Node, string Part, Sprite2D Colour, Sprite2D White, Sprite2D? Glow)
+    {
+        public (Vector2 At, Color Colour)[] Spots { get; set; } = [];
+    }
 
     private readonly List<Drawn> _drawn = [];
     private readonly Node2D _flash = new();
@@ -42,12 +45,27 @@ public partial class CreatureBody : Node2D
     /// <summary>The design it is drawn in.</summary>
     public FaunaArt.Design? Design => _design;
 
-    /// <summary>Dressed as a creature of <paramref name="species"/> in <paramref name="palette"/>: its parts made anew for another design.</summary>
-    public void Dress(string species, string palette)
+    /// <summary>How big it is drawn, of its design's size: its individual's (<see cref="CreatureVariety.Individual.Size"/>).</summary>
+    public float Size { get; private set; } = 1;
+
+    /// <summary>
+    /// Dressed as <paramref name="one"/>, a creature of <paramref name="species"/>, in <paramref name="palette"/>: its parts made
+    /// anew for another design, their pictures its own coat and markings.
+    /// </summary>
+    public void Dress(string species, string palette, CreatureVariety.Individual one)
     {
         var design = FaunaArt.Designs[Spec.Fauna.Get(species).Look];
         (Dying, Modulate, _white) = (null, Colors.White, 0);
         if (design != _design || palette != _palette) Make(design, palette);
+        var v = FaunaLooks.Varieties[species];
+        foreach (var d in _drawn)
+        {
+            d.Colour.Texture = CreatureParts.Of(design, d.Part, palette, CreatureParts.Kind.Colour, v, one);
+            d.White.Texture = CreatureParts.Of(design, d.Part, palette, CreatureParts.Kind.White, v, one);
+            if (d.Glow != null) d.Glow.Texture = CreatureParts.Of(design, d.Part, palette, CreatureParts.Kind.Glow, v, one);
+            d.Spots = CreatureParts.SpotsOf(design, d.Part, palette, one);
+        }
+        Size = one.Size / 1000f;
         Fade(1);
     }
 
@@ -81,24 +99,20 @@ public partial class CreatureBody : Node2D
     {
         var design = _design!;
         var p = design.Parts[part];
-        Sprite2D Sprite(CreatureParts.Kind kind) => new()
-        {
-            Texture = CreatureParts.Of(design, part, _palette, kind),
-            Centered = false,
-            Offset = new Vector2(-p.PivotX, -p.PivotY),
-        };
-        var colour = Sprite(CreatureParts.Kind.Colour);
+        // Their pictures are the individual's, given as it is dressed.
+        Sprite2D Sprite() => new() { Centered = false, Offset = new Vector2(-p.PivotX, -p.PivotY) };
+        var colour = Sprite();
         Lit.Set(colour);
-        var white = Sprite(CreatureParts.Kind.White);
+        var white = Sprite();
         white.Material = FlashMaterial;
         Sprite2D? glow = null;
         if (p.Glow)
         {
-            glow = Sprite(CreatureParts.Kind.Glow);
+            glow = Sprite();
             glow.Material = GlowMaterial;
         }
         AddChild(colour);
-        _drawn.Add(new Drawn(node, part, colour, white, glow, CreatureParts.SpotsOf(design, part, _palette)));
+        _drawn.Add(new Drawn(node, part, colour, white, glow));
     }
 
     /// <summary>

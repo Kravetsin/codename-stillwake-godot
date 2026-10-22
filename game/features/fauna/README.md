@@ -27,7 +27,14 @@ the drill's bit are tested against each creature's body as against a wreck's box
   one near it notices it, head up, ears perked. Its glowing parts are added over it unlit, and their spots (squares of 7 px of
   a glow map, at most 4 a creature) are lights in their colour (`Lights`, the light view's `Creatures`): the fluff's back and
   antennae light a cave.
-- **Its legs** (`CreatureGait`, plain C#, tested) go by the ground the sim moved it on its last tick, eased over 90 ms, never a
+- **Each its own** (`CreatureVariety`, plain C#, tested; `FaunaLooks.Varieties`, per species): from its id and the surface's seed
+  by an integer hash, the same on every peer and never the world's random stream. Drawn 82–116 % of its design's size (a
+  golden-ratio step an id: any three in spawn order span most of the range), about the middle of its feet, so it still stands
+  on the ground; the sim's box, hit points and speed are the species'. Its coat, the fur ramp only, shaded up to three quarter
+  tones within the ramp and blended a step or two toward a neighbouring ramp of the palette, cool and warm by turns an id; its
+  outline, eye, skin, belly and glow as painted. One in seven a morph, a whole tone darker (loper, sixleg) or paler (tapir,
+  fluff). Each marking of its marks part (a run of touching pixels) dropped a quarter to a third of the time, those kept faint,
+  half or bold; a glowing one lights only where worn. A look's pictures are made once and kept (`CreatureParts`).- **Its legs** (`CreatureGait`, plain C#, tested) go by the ground the sim moved it on its last tick, eased over 90 ms, never a
   frame's step: `MostStrides · tanh(v / (MostStrides · Stride))` strides a second, one each `Stride` pixels at a crawl, rising
   smoothly to a cap (`FaunaLooks.Runs`: the loper's 3.2, the tapir's 2.6, the sixleg's 2.8, the fluff's 3.4), counted by time
   so 60 and 144 frames a second draw alike. From 90 px a second to 200 the pose blends into a gallop: forelegs together, hind
@@ -56,7 +63,7 @@ the drill's bit are tested against each creature's body as against a wreck's box
 
 `-- --planet --fauna` lets six creatures out either side of the hero, every kind in turn (`--fauna=fluff`, a species or a
 look: that kind only), from the hero's row up out of a hill or down to a floor, so in a cave too (`--ground=band1
---fauna=fluff --manual`) (`dev/FaunaDemo`, the sim's `Release`); `--fauna-trace` logs each one's strides a second; it logs every strike
+--fauna=fluff --manual`) (`dev/FaunaDemo`, the sim's `Release`); `--fauna-trace` logs each one's strides a second and its looks as it comes into view; `--fauna-herd` lets out ten of a kind in a row, five a side; it logs every strike
 and every creature gone; without `--manual` `dev/FaunaHands` hunts them as a player's keys and mouse would, the axe first, the
 drill after the first kill (or 16 s), the nearest within 6 rows and 45 columns of where it began, in sight. Record with
 `--write-movie … --fixed-fps 20 --quit-after 900 -- --planet --fauna --zoom 2`. `--fauna-drill` stands the hero still with the
@@ -69,7 +76,7 @@ and its shaft, a loper beside, for its leaps.
 - **A friend's strike shows a round trip late,** as the sim's damage rises, and its tool is guessed: a running drill's bit by the
   creature, else the axe.
 - **No outline or prompt** for a creature under the blade: the hit is the answer.
-- **One look and one set of sounds per species;** no calls, no pain cries: sounds go through the user's audition. Every creature
-  of a kind looks alike.
+- **One design and one set of sounds per species;** no calls, no pain cries: sounds go through the user's audition. Its individuals
+  differ in size, coat and markings only, drawn: a big one is struck, jumps and fits where a small one does.
 - **A dying body's parts show through each other** as they fade, each alone, for its 170 ms under the white swell; a far
   ear's glow is added over the body, as the page adds every glow last.

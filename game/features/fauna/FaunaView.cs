@@ -104,9 +104,9 @@ public partial class FaunaView(Ui ui) : Node2D
     /// <summary>
     /// Shows <paramref name="fauna"/>'s creatures within <paramref name="view"/> (cells) and <see cref="Margin"/> round it,
     /// <paramref name="progress"/> of the way from the last tick to the next, recoloured by <paramref name="palette"/> (the planet's,
-    /// <see cref="FaunaLooks.PaletteOf"/>).
+    /// <see cref="FaunaLooks.PaletteOf"/>), each creature its own individual by its id and the surface's <paramref name="seed"/> (<see cref="CreatureVariety"/>).
     /// </summary>
-    public void Frame(Client client, FaunaModule fauna, IGridQueries grid, Rect2 view, double progress, double elapsedMs, string palette)
+    public void Frame(Client client, FaunaModule fauna, IGridQueries grid, Rect2 view, double progress, double elapsedMs, string palette, uint seed)
     {
         _clockMs += elapsedMs;
         // Another surface, or a load: what was shown was another world's, gone without a puff.
@@ -116,7 +116,7 @@ public partial class FaunaView(Ui ui) : Node2D
             _shown.Clear();
             _of = fauna;
         }
-        _palette = palette;
+        (_palette, _seed) = (palette, seed);
         var all = fauna.Creatures;
         int left = (int)Math.Floor(view.Position.X - Margin) * Unit, right = (int)Math.Ceiling(view.End.X + Margin) * Unit;
         int top = (int)Math.Floor(view.Position.Y - Margin) * Unit, bottom = (int)Math.Ceiling(view.End.Y + Margin) * Unit;
@@ -204,6 +204,7 @@ public partial class FaunaView(Ui ui) : Node2D
     }
 
     private string _palette = FaunaLooks.Palette;
+    private uint _seed;
 
     /// <summary>
     /// Every strike of this player's own seen in flight for the first time: its creature reacts now, a round trip before the sim's
@@ -230,13 +231,13 @@ public partial class FaunaView(Ui ui) : Node2D
     private void Struck(Shown one, string tool, bool own)
     {
         var spec = Spec.Fauna.Get(one.Species);
-        var middle = one.Drawn + new Vector2(0, -spec.Height * Cell / 2);
+        var middle = one.Drawn + new Vector2(0, -spec.Height * Cell / 2 * one.Body.Size);
         var hero = NearestHero(middle);
         int away = middle.X >= hero.X ? 1 : -1;
         double share = Impacts.ShareOf(tool);
         one.Motion.Hit(away, share);
         var impact = HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
-        var side = middle + new Vector2(-away * spec.Width * Cell * 0.4f, Mathf.Clamp(hero.Y - middle.Y, -6, 6));
+        var side = middle + new Vector2(-away * spec.Width * Cell * 0.4f * one.Body.Size, Mathf.Clamp(hero.Y - middle.Y, -6, 6));
         HitBurst.Shared.Throw(HitLooks.Of[impact], side.X, side.Y, -away, -0.25, share, floor: one.Drawn.Y);
         if (S.Creatures.TryGetValue(one.Species, out var cues))
         {
@@ -322,7 +323,7 @@ public partial class FaunaView(Ui ui) : Node2D
         var (sx, sy) = motion.Scale(gait.Flee);
         var body = one.Body;
         body.Position = drawn + new Vector2((float)motion.Shake, 0);
-        body.Scale = new Vector2((float)(sx * (1 + pose.Stretch)) * motion.Facing, (float)(sy * (1 - pose.Stretch * 0.7)));
+        body.Scale = new Vector2((float)(sx * (1 + pose.Stretch)) * motion.Facing, (float)(sy * (1 - pose.Stretch * 0.7))) * body.Size;
         body.Rotation = (float)motion.Tilt(gait.Flee) + one.Lean;
         body.Pose(pose, motion.Flash);
     }
@@ -350,7 +351,9 @@ public partial class FaunaView(Ui ui) : Node2D
     private Shown Take(Creature c)
     {
         var body = _pool.Count > 0 ? _pool.Pop() : Made();
-        body.Dress(c.Species, _palette);
+        var individual = CreatureVariety.Of(FaunaLooks.Varieties[c.Species], _seed, c.Id);
+        body.Dress(c.Species, _palette, individual);
+        Trace?.Invoke($"fauna look: {c.Species} {c.Id} {individual}");
         body.Visible = true;
         var at = new Vector2(c.X, c.Y);
         var design = body.Design!;
@@ -386,7 +389,7 @@ public partial class FaunaView(Ui ui) : Node2D
     private void Die(Shown one)
     {
         var spec = Spec.Fauna.Get(one.Species);
-        var middle = one.Drawn + new Vector2(0, -spec.Height * Cell / 2);
+        var middle = one.Drawn + new Vector2(0, -spec.Height * Cell / 2 * one.Body.Size);
         var impact = HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
         HitBurst.Shared.Throw(HitLooks.Of[impact], middle.X, middle.Y, 0, -1, 1, floor: one.Drawn.Y);
         var glims = Glims.Shared;
@@ -428,7 +431,7 @@ public partial class FaunaView(Ui ui) : Node2D
             _ghosts[i] = (body, left);
             double t = 1 - left / GhostMs;
             body.Dying = t;
-            body.Scale = new Vector2(Math.Sign(body.Scale.X) * (float)(1 + 0.45 * t), (float)(1 + 0.25 * t));
+            body.Scale = new Vector2(Math.Sign(body.Scale.X) * (float)(1 + 0.45 * t), (float)(1 + 0.25 * t)) * body.Size;
             body.Fade((float)(1 - t));
         }
     }

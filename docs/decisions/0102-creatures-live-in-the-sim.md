@@ -126,11 +126,23 @@ The user picked four looks on the loper page ([Лопер: облик](https://c
   Measured (the view's pipeline in a test, 60 and 144 fps, even and ragged frames alike): before, 2.6 strides a second walking
   and 7.2 fleeing for every kind; after, walking 2.4 (loper), 1.9 (tapir), 2.4 (sixleg), 2.5 (fluff), fleeing 3.2, 2.6, 2.8
   and 3.4.
-- **Seen and heard by what it is:** the cool-coated three throw lilac tufts (`Impact.CoolFlesh`); the tapir sounds lower and
+- **One of a kind is not the next** (the user, 2026-10-22: "variety within one species, by size and colour, will give a strong
+  effect"). Drawn only (`CreatureVariety`, plain C#, tested): the sim's 2×2 box, hit points and speed stay the species', so
+  pathing, jumps and the wall tests are untouched, and the blade still meets the sim's box, as for every creature. Each creature's
+  looks come from its id and its surface's seed by an integer hash, never the world's random stream, so every peer draws the
+  same individual and a load brings it back. Its **size** 82–116 % of its design (`FaunaLooks.Varieties`, per species), a
+  golden-ratio step an id so any three in spawn order span most of the range; its **coat** (the fur ramp only: never its
+  outline, eye, skin, belly or glow) shaded up to three quarter tones between its ramp's own tones and blended 21–45 % toward a
+  neighbouring ramp of the palette, cool and warm by turns an id (the loper toward the lavender fur or the rosy skin, the
+  cool-coated three toward the tan fur, the skin or the belly); so a coat lies between its own ramp and its neighbour's a tone
+  either side, in every palette. One in seven is a **morph**, its coat a whole tone off: the loper and the sixleg darker, the
+  tapir and the fluff paler. Its **markings** (the marks part's runs of pixels: the loper's stripes, the tapir's saddle, the
+  sixleg's patches, the fluff's glowing spots) each dropped a quarter to a third of the time, those kept faint, half or bold;
+  the fluff's spots kept bold and lighting only where worn. Recoloured once a look, kept for the run.- **Seen and heard by what it is:** the cool-coated three throw lilac tufts (`Impact.CoolFlesh`); the tapir sounds lower and
   the fluff higher than the loper (placeholders).
 - **Dev:** `--fauna=<species or look>` lets out that kind only (else the six round the hero are every kind in turn), from the
   hero's row up out of a hill or down to a floor, so in a cave too (`--ground=band1 --fauna=fluff`); `--fauna-trace` logs each
-  creature's strides a second.
+  creature's strides a second and each one's looks as it comes into view; `--fauna-herd` lets out ten of a kind in a row.
 
 ## Measured
 
@@ -159,7 +171,8 @@ On this machine, Release build, the first planet with a hero and its cap of 40 l
 - **Nothing aboard:** no creature lives on the ship, nor may be let out there; a pen aboard (the user's later idea) is a
   decision of its own and nothing here blocks it.
 - **Creatures in the ruins:** they spawn on the open surface only; one that wanders into a ruin is welcome there.
-- **Every creature of a kind looks alike** (slice 3): the placeholder's shade of fur by id went with it; one palette a planet.
+- **Size is drawn only:** a big loper and a small one have the same box, hit points and jump; a body drawn 16 % over its box
+  overhangs a wall by a pixel or two, as an overhang already does. No young, no sexes: an individual is a look, not a life.
 - **A dying body's parts show through each other** for its 170 ms of fading, under its white swell: each part fades alone,
   where the page laid the whole on a layer first; and a far ear's glow is added over the body, as the page adds every glow last.
 - **The fluff lives only where its habitat finds a cave floor** in its column inside a hero's keep box; a hero deep in the amber
