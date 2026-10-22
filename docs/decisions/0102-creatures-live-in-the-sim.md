@@ -56,9 +56,10 @@ must agree on where it is and when it dies, so its body, its hit points and its 
 
 - **A blow is felt the frame it is struck.** This player's own `Strike` makes its creature react the frame it is sent, a round
   trip before the sim's knock arrives; a friend's as the sim's damage rises. The reaction (`CreatureMotion`): a white flash, a
-  squash that springs back past round, a flinch thrown the way it is knocked, a wide eye and pinned ears, and a 70 ms stop with
-  the figure's own bite; then the sim's knock and hop, drawn between ticks. A drill's hit is its share of the axe's, as for the
-  ground (0094).
+  squash that springs back past round, a flinch thrown the way it is knocked, a wide eye and pinned ears, a 70 ms shake, the
+  blade stopping on it with the figure's own bite; then the sim's knock, hop and flight, drawn between ticks. All of it is drawn
+  only: the drawing is never held in place (the first version froze it 70 ms, which with the sim's stun read as pinning). A
+  drill's hit is its share of the axe's, as for the ground (0094).
 - **Seen and heard by what it is** (0093, 0094): an `Impact` per species (`Flesh`: white slash streaks, fur tufts, a warm puff,
   a glint and shock line, no blood) and a hit, thump and death per species, placeholders from the files here till the user
   picks. Death: a burst, puffs, a ring, the body swelling white and gone; its yields fall as the sim drops them.

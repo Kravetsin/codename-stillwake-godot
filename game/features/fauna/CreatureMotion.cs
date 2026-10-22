@@ -5,24 +5,24 @@ namespace Stillwake.Game.Features.Fauna;
 /// <summary>
 /// How one creature's body is drawn moving (0102), from what the sim decided and when it was struck: plain C#, tested. A hit
 /// flashes it white and squashes it flat, springing back past round; it flinches back from the blow and its eye goes wide; for
-/// a moment it is held still, the blow's stop. Walking swings its legs by the way it goes, faster as it flees; landing squashes
+/// a moment it shakes, never stopped: the sim moves it on, knocked and fleeing. Walking swings its legs by the way it goes, faster as it flees; landing squashes
 /// it a little; idle, it breathes and blinks. Times in milliseconds, lengths in pixels of the world.
 /// </summary>
 public sealed class CreatureMotion
 {
-    /// <summary>How long a hit's flash, squash, flinch, wide eye and stop last.</summary>
-    public const double FlashMs = 150, SquashMs = 380, FlinchMs = 320, StartleMs = 900, HoldMs = 70;
+    /// <summary>How long a hit's flash, squash, flinch, wide eye and shake last.</summary>
+    public const double FlashMs = 150, SquashMs = 380, FlinchMs = 320, StartleMs = 900, ShakeMs = 70;
 
     /// <summary>The squash at a hit, across and down: wider and flatter, as a ball struck.</summary>
     public const double SquashWide = 0.22, SquashFlat = 0.2;
 
-    /// <summary>How far a flinch tilts the body back from the blow, in radians, and how far a held body shakes, in pixels.</summary>
-    public const double FlinchTilt = 0.38, HoldShake = 1.2;
+    /// <summary>How far a flinch tilts the body back from the blow, in radians, and how far a struck body shakes, in pixels.</summary>
+    public const double FlinchTilt = 0.38, ShakePixels = 1.2;
 
     /// <summary>Pixels walked for one swing of the legs, there and back.</summary>
     public const double Stride = 9;
 
-    private double _flash, _squash, _flinch, _startle, _hold, _land, _clock, _blink;
+    private double _flash, _squash, _flinch, _startle, _shake, _land, _clock, _blink;
     private double _nextBlink = 2400;
 
     /// <summary>The way it faces, +1 right: the way it last moved, or toward a hero it watches while still.</summary>
@@ -43,7 +43,7 @@ public sealed class CreatureMotion
         _squash = Math.Max(_squash, whole);
         _flinch = Math.Max(_flinch, whole);
         _startle = 1;
-        _hold = Math.Max(_hold, HoldMs * whole);
+        _shake = Math.Max(_shake, ShakeMs * whole);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public sealed class CreatureMotion
         _squash = Math.Max(0, _squash - elapsedMs / SquashMs);
         _flinch = Math.Max(0, _flinch - elapsedMs / FlinchMs);
         _startle = Math.Max(0, _startle - elapsedMs / StartleMs);
-        _hold = Math.Max(0, _hold - elapsedMs);
+        _shake = Math.Max(0, _shake - elapsedMs);
         _land = landed ? 1 : Math.Max(0, _land - elapsedMs / 220);
         if (Math.Abs(dx) > 0.05) Facing = Math.Sign(dx);
         else if (watch is int w && w != 0 && _flinch == 0) Facing = w;
@@ -70,8 +70,8 @@ public sealed class CreatureMotion
         }
     }
 
-    /// <summary>Whether a blow's stop holds it where it was struck: its drawn place does not move meanwhile.</summary>
-    public bool Held => _hold > 0;
+    /// <summary>Whether it shakes from a blow: only its drawing, never its place, which the sim keeps moving.</summary>
+    public bool Shaking => _shake > 0;
 
     /// <summary>How white it is drawn, 0 to 1.</summary>
     public double Flash => _flash * _flash;
@@ -95,8 +95,8 @@ public sealed class CreatureMotion
     /// <summary>Its tilt in the world, radians clockwise: its top thrown the way a blow knocks it, leaning the way it flees.</summary>
     public double Tilt(bool fleeing) => Away * FlinchTilt * _flinch * _flinch + (fleeing ? Facing * 0.12 : 0);
 
-    /// <summary>Its shake while a blow holds it, in pixels across.</summary>
-    public double Shake => _hold > 0 ? HoldShake * Math.Sin(_clock * 0.9) * (_hold / HoldMs) : 0;
+    /// <summary>Its shake after a blow, in pixels across: drawn only.</summary>
+    public double Shake => _shake > 0 ? ShakePixels * Math.Sin(_clock * 0.9) * (_shake / ShakeMs) : 0;
 
     /// <summary>How wide its eye is: 1 at rest, more startled, none blinking.</summary>
     public double Eye => _blink > 0 ? 0.1 : 1 + 0.45 * _startle;

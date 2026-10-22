@@ -15,18 +15,18 @@ public class CreatureMotionTests
     }
 
     [Fact]
-    public void ABlowFlashesItWhiteSquashesItFlatAndHoldsItThenAllSettles()
+    public void ABlowFlashesItWhiteSquashesItFlatAndShakesItThenAllSettles()
     {
         var m = new CreatureMotion();
         Assert.Equal(0, m.Flash);
         m.Hit(away: 1, share: 1);
         Assert.Equal(1, m.Flash, 3);
-        Assert.True(m.Held);
+        Assert.True(m.Shaking);
         var (x, y) = m.Scale(fleeing: false);
         Assert.True(x > 1.15 && y < 0.85, $"squashed to ({x:F2}, {y:F2})");
         Assert.True(m.Eye > 1.3, "its eye goes wide");
-        Run(m, CreatureMotion.HoldMs + Frame);
-        Assert.False(m.Held);
+        Run(m, CreatureMotion.ShakeMs + Frame);
+        Assert.False(m.Shaking);
         Run(m, CreatureMotion.FlashMs);
         Assert.Equal(0, m.Flash);
         Run(m, CreatureMotion.StartleMs);

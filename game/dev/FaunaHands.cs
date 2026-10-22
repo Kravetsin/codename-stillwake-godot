@@ -12,7 +12,7 @@ namespace Stillwake.Game.Dev;
 /// nearest hunted вЂ” run at with Shift held while it is far, walked up to, the pointer on its middle and the left button held вЂ”
 /// with the axe till one dies, then with the drill. Never the sim: only the input a player gives.
 /// </summary>
-public partial class FaunaHands(FaunaDemo demo, Func<Hero?> hero) : Node
+public partial class FaunaHands(FaunaDemo demo, Func<Hero?> hero, bool still = false) : Node
 {
     /// <summary>Seconds of watching before the hunt, and of the axe before the drill if nothing has died by then.</summary>
     private const double WatchS = 6, AxeS = 16;
@@ -35,13 +35,13 @@ public partial class FaunaHands(FaunaDemo demo, Func<Hero?> hero) : Node
         var all = m.Fauna.Creatures;
         if (_seen >= 0 && all.Count < _seen) _dead += _seen - all.Count;
         _seen = all.Count;
-        if (_since < WatchS || all.Count == 0)
+        if (_since < (still ? 1 : WatchS) || all.Count == 0)
         {
             Walk(0, false);
             Hold(false);
             return;
         }
-        Wield(_dead > 0 || _since > WatchS + AxeS ? 1 : 0);
+        Wield(still || _dead > 0 || _since > WatchS + AxeS ? 1 : 0);
         // Only those on the hero's own ground, near where it began: it never chases one off a cliff or down a hole.
         _home ??= me.X;
         Creature? nearest = null;
@@ -62,7 +62,8 @@ public partial class FaunaHands(FaunaDemo demo, Func<Hero?> hero) : Node
         double dx = (target.X - me.X) / (double)Hero.Unit;
         // The drill's bit is shorter than the axe's swing: it is held right up against the body.
         double close = _tool == 1 ? DrillCells : StrikeCells;
-        Walk(Math.Abs(dx) > close ? Math.Sign(dx) : 0, Math.Abs(dx) > RunCells);
+        // Standing still (--fauna-drill): the drill held where the loper was, never chasing it.
+        Walk(!still && Math.Abs(dx) > close ? Math.Sign(dx) : 0, !still && Math.Abs(dx) > RunCells);
         var at = GetViewport().GetCanvasTransform() * (new Vector2(target.X, target.Y - spec.Height * Hero.Unit / 2) / Hero.Unit * ShipCamera.Cell);
         Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at, ButtonMask = _holding ? MouseButtonMask.Left : 0 });
         Hold(Math.Abs(dx) <= close + 1.2);

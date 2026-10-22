@@ -14,10 +14,13 @@ namespace Stillwake.Game.Dev;
 /// enough to see at once, where spawning never puts one. With <c>--manual</c> that is all; else <see cref="FaunaHands"/> hunts
 /// them, the axe first and then the drill, for recordings.
 /// </summary>
-public sealed class FaunaDemo
+public sealed class FaunaDemo(bool drill = false)
 {
     /// <summary>Where the lopers are let out, in columns from the hero's: some near, some farther, both sides.</summary>
-    private static readonly int[] Offsets = [6, 11, 17, -7, -12, -18];
+    private static readonly int[] Around = [6, 11, 17, -7, -12, -18];
+
+    /// <summary>With <c>--fauna-drill</c>, one loper right before the hero, under its drill's bit.</summary>
+    private int[] Offsets => drill ? [1] : Around;
 
     private bool _released;
 

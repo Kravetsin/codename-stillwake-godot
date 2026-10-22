@@ -23,9 +23,10 @@ the drill's bit are tested against each creature's body as against a wreck's box
 - **A blow** (`CreatureMotion`, plain C#, tested): this player's own strike reacts the frame it is sent, a round trip before the
   sim's knock; a friend's as the sim's `Damage` rises (an own strike's damage within 0.7 s is not shown twice). It flashes
   white (an unlit copy of the silhouette over it, 150 ms), squashes wide and flat and springs back past round (380 ms), flinches,
-  its top thrown the way it is knocked (320 ms), its eye wide and ears pinned (900 ms), and is held where it was struck a
-  moment, shaking (the blow's stop, 70 ms, with the figure's own `Bit`). A drill's hit is its share of the axe's
-  (`Impacts.ShareOf`): flashes and stops less, ten a second. Fleeing it leans forward and stretches long, ears back.
+  its top thrown the way it is knocked (320 ms), its eye wide and ears pinned (900 ms), and shakes a pixel either way (70 ms;
+  the blade stops on it a moment, the figure's own `Bit`). All drawn only: its place is never held, as a neutral creature has
+  no hit-stun and bolts at the blow. A drill's hit is its share of the axe's (`Impacts.ShareOf`): flashes and shakes less, ten
+  a second. Fleeing it leans forward and stretches long, ears back.
 - **Seen and heard by what it is** (0093, 0094): `HitLooks.Creatures` names each species' `Impact` (the loper's `Flesh`: white
   slash streaks, tufts of fur, a warm puff, a white glint and shock line, no blood), thrown from its side facing the hero, its
   share for a drill; `Sound.Creatures` its hit, a body thump under it and its death (placeholders from the files here: the cap's

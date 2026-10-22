@@ -16,7 +16,7 @@ namespace Stillwake.Game.Features.Fauna;
 /// <summary>
 /// The creatures (features/fauna, 0102): each drawn between ticks where the sim put it, facing the way it goes, its body moved
 /// by <see cref="CreatureMotion"/>. A strike of this player's own reacts the frame it is sent — white flash, squash, flinch, a
-/// wide eye, the blow's stop, its hit thrown and heard by what it struck (0093, 0094) — and the knock follows as the sim moves
+/// wide eye, a shake, its hit thrown and heard by what it struck (0093, 0094) — and the knock follows as the sim moves
 /// it; a friend's shows as the sim's damage rises. One killed in view bursts into a puff. A creature still watches the hero
 /// nearest it. Only creatures within the camera's view and a margin are drawn, from a pool that never frees.
 /// </summary>
@@ -140,7 +140,7 @@ public partial class FaunaView(Ui ui) : Node2D
             if (!_shown.TryGetValue(c.Id, out var one)) continue;
             if (c.Damage > one.Damage)
             {
-                // A friend's strike, or one of this player's own its stop already showed.
+                // A friend's strike, or one of this player's own already shown as it was sent.
                 if (_clockMs - one.OwnAt > OwnMs) Struck(one, ToolOf(one.Drawn), own: false);
                 one.Damage = c.Damage;
             }
@@ -168,7 +168,7 @@ public partial class FaunaView(Ui ui) : Node2D
 
     /// <summary>
     /// A blow on <paramref name="one"/> with <paramref name="tool"/>: it flashes, squashes, flinches away from the hero nearest it
-    /// and stops a moment; its hit thrown from the side facing that hero and heard, this player's own through the suit.
+    /// and shakes a moment, moving on as the sim moves it; its hit thrown from the side facing that hero and heard, this player's own through the suit.
     /// </summary>
     private void Struck(Shown one, string tool, bool own)
     {
@@ -223,8 +223,8 @@ public partial class FaunaView(Ui ui) : Node2D
         one.Lean += (lean - one.Lean) * ease;
         at.Y += one.Lower;
         var motion = one.Motion;
-        // A blow's stop: held where it was struck, shaking, while the knock gathers.
-        var drawn = motion.Held ? one.Drawn : at;
+        // Never held where it was struck: a neutral creature bolts at the blow, and its drawing goes with it, only shaking.
+        var drawn = at;
         var watched = NearestHero(drawn + new Vector2(0, -spec.Height * Cell / 2));
         var toHero = watched - (drawn + new Vector2(0, -spec.Height * Cell * 0.6f));
         int? watch = toHero.Length() < Watch && Math.Abs(toHero.X) > 2 ? Math.Sign(toHero.X) : null;
