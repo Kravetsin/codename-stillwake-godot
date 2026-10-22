@@ -34,6 +34,8 @@ guns, a spear); the bench must take any with no picture drawn per tool.
   holding three batteries' charge (`Charge.Accumulator`, 5400 power-ticks). Every rule that reads `Capacity` takes it: the belt
   drains it as a battery, the charger and a bay fill it, its card and slot bar show it, its empty picture shows at none.
   The battery in its cost is lost with its charge, as a drone's (`ContentTests` names both).
+  The wrist's energy tab sums every store on the belt and counts against a belt of three accumulators (`Charges.BeltMost`,
+  16 200); it had counted against three batteries, so two accumulators and a battery read 5 400, not 12 600.
 - **Its look** is the user's pick, "vise": a ship's bench, copper vise jaws on it, a chip of a shard in the fixed jaw
   (`tools/ship-art/arc-bench/paint.js`). The picture is two cells tall over a one-cell footprint: **a machine picture taller
   than its footprint rises over the cells above** (`ShipTiles.RiseOf`; the tile's origin, a plan's ghost and cut, the aim's
