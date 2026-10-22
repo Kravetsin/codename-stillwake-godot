@@ -51,6 +51,21 @@ public class BurnerGeneratorTests
     private static int Supply(Scenario w) => w.M.Power.NetworkOf(Generator)!.Supply;
 
     [Fact]
+    public void BurnsBiofuelFourTimesAsLongAsAPlank()
+    {
+        Assert.Equal(4 * PlankTicks, Content.Items.Get("biofuel").BurnTicks);
+        var w = new Scenario(Map()).GiveItems(0, ("biofuel", 1));
+        for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(Generator); i++) w.Run();
+        int from = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "biofuel");
+        w.Do(new Move(new Items.Place(from), new Target(Fuel, IdAt(w, Generator)), 1)).Run(2);
+        Assert.Equal(Makes, Supply(w));
+        w.Run(4 * PlankTicks - 4);
+        Assert.Equal(Makes, Supply(w));
+        w.Run(10);
+        Assert.Equal(0, Supply(w));
+    }
+
+    [Fact]
     public void MakesNothingWithAnEmptySlotAndSaysItHasNoFuel()
     {
         var w = SetUp();
