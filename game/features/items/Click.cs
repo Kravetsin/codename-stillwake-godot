@@ -208,7 +208,7 @@ public static class Clicks
     {
         int limit = ItemSpecs.Get(stack.Item).Stack;
         for (int i = from; i < to; i++)
-            if (slots[i] is { } s && s.Item == stack.Item && s.Charge == stack.Charge && s.Count < limit) return i;
+            if (slots[i] is { } s && s.Alike(stack) && s.Count < limit) return i;
         for (int i = from; i < to; i++)
             if (slots[i] == null) return i;
         return null;

@@ -138,7 +138,7 @@ public class ArcModuleTests
     [Fact]
     public void TheFurnaceAndThePodTakeNoModuleTheElectricStationsTakeTheArc()
     {
-        Assert.Equal(["smelter", "former", "assembler"], Spec.Modules.Arc.Hosts);
+        Assert.Equal(["smelter", "former", "assembler", "drill"], Spec.Modules.Arc.Hosts);
         Assert.False(Spec.Modules.Fits(Arc, "furnace"));
         Assert.False(Spec.Modules.Fits(Arc, "lifepod"));
         Assert.False(Spec.Modules.Fits("iron", "smelter"));

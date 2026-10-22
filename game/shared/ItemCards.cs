@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
 using static Stillwake.Game.I18n.En;
 using Spec = Stillwake.Content;
@@ -12,7 +13,8 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// An item's card, from content: its name and kind; a tool's tiles and effects — a weapon's (the fire axe's,
-/// the drill's) damage a second, damage and seconds between hits; the harpoon's range, reload and reel speed; a
+/// the drill's) damage a second, damage and seconds between hits, read from the sim's own fold (<see cref="ToolStats"/>), and
+/// with modules fitted (<see cref="Fitted"/>, 0098) each that differs marked by how; the harpoon's range, reload and reel speed; a
 /// worn item's one number, the helmet lamp's reach. Its words from the i18n table.
 /// </summary>
 public static class ItemCards
@@ -43,16 +45,52 @@ public static class ItemCards
         }
         if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), [], key, unknown);
         var weapon = Spec.Weapons.Of(item)!;
-        double every = (double)weapon.Pace / World.TicksPerSecond;
         return new ItemCard(
-            item, name, kind,
-            [
-                new CardTile(Number(weapon.Damage / every), T("card.dps")),
-                new CardTile(Number(weapon.Damage), T("card.damage")),
-                new CardTile(T("card.seconds", ("n", Number(every))), T("card.hit")),
-            ],
+            item, name, kind, WeaponTiles(item, []),
             weapon.Effects.Select(e => new CardEffect(T($"effect.{e.Id}"), T($"effect.{e.Id}.about"), e.Colour, e.Ground)).ToList(),
             key, unknown);
+    }
+
+    /// <summary>
+    /// <paramref name="card"/>, a tool's, with <paramref name="modules"/> fitted into it (0098): its tiles and draw the fold's for
+    /// them (<see cref="ToolStats"/>), each that differs from the plain tool's marked (<see cref="CardBoost"/>), and the modules
+    /// named for its picture and its strips. The card itself for none, or for an item that is no tool.
+    /// </summary>
+    public static ItemCard Fitted(ItemCard card, IReadOnlyList<Spec.ModuleSpec> modules)
+    {
+        if (modules.Count == 0 || !card.Tool) return card;
+        var fitted = card with { Fitted = [.. modules.Select(m => m.Item)] };
+        if (Spec.Weapons.Of(card.Item) != null) fitted = fitted with { Tiles = WeaponTiles(card.Item, modules) };
+        if (card.Draw == null) return fitted;
+        var (plain, stats) = (ToolStats.Of(card.Item, []), ToolStats.Of(card.Item, modules));
+        return fitted with { Draw = stats.Draw, DrawBoost = BoostOf(stats.Draw, plain.Draw, modules, m => m.Draw) };
+    }
+
+    /// <summary>
+    /// A weapon's tiles, <paramref name="modules"/> fitted (none for the plain one): its damage a second, a hit's damage and the
+    /// seconds between hits, all from <see cref="ToolStats"/>, each that differs from the plain weapon's marked.
+    /// </summary>
+    private static List<CardTile> WeaponTiles(string item, IReadOnlyList<Spec.ModuleSpec> modules)
+    {
+        var (plain, stats) = (ToolStats.Of(item, []), ToolStats.Of(item, modules));
+        double every = (double)stats.Pace / World.TicksPerSecond, was = (double)plain.Pace / World.TicksPerSecond;
+        return
+        [
+            new(Number(stats.Damage / every), T("card.dps"), BoostOf(stats.Damage / every, plain.Damage / was, modules, m => m.Damage)),
+            new(Number(stats.Damage), T("card.damage"), BoostOf(stats.Damage, plain.Damage, modules, m => m.Damage)),
+            new(T("card.seconds", ("n", Number(every))), T("card.hit"), BoostOf(every, was, modules, _ => 0)),
+        ];
+    }
+
+    /// <summary>
+    /// How <paramref name="now"/> differs from the plain tool's <paramref name="was"/>: up or down, by how many times, in the tech
+    /// of the first of <paramref name="modules"/> that <paramref name="adds"/> to it, else the first's; null where they are alike.
+    /// </summary>
+    private static CardBoost? BoostOf(double now, double was, IReadOnlyList<Spec.ModuleSpec> modules, Func<Spec.ModuleSpec, int> adds)
+    {
+        if (now == was || was == 0 || modules.Count == 0) return null;
+        var by = modules.FirstOrDefault(m => adds(m) != 0) ?? modules[0];
+        return new CardBoost(by.Tech, now > was, T("card.many", ("n", Number(now / was))));
     }
 
     /// <summary>The arc's violet-white on a deep violet: a module's socket and strip, as its arcs look (0086).</summary>

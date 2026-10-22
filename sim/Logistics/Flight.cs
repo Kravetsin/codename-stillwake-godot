@@ -218,7 +218,7 @@ public sealed partial class LogisticsModule
         if (FirstOffered(source) is not int start) return null;
         for (int slot = _items.Crate(source.Id).Count - 1; slot >= start && (cargo?.Count ?? 0) < count; slot--)
         {
-            if (_items.Crate(source.Id)[slot] is not { } s || s.Item != item || (cargo != null && s.Charge != cargo.Charge)) continue;
+            if (_items.Crate(source.Id)[slot] is not { } s || s.Item != item || (cargo != null && !s.Alike(cargo))) continue;
             var taken = _itemsOps.TakeFrom(source.Id, slot, count - (cargo?.Count ?? 0))!;
             cargo = cargo == null ? taken : cargo with { Count = cargo.Count + taken.Count };
         }

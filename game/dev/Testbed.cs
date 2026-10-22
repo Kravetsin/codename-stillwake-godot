@@ -35,14 +35,15 @@ public static class Testbed
     /// <summary>Whether <paramref name="item"/> goes in the farm's crate rather than the full one.</summary>
     public static bool InFarmCrate(string item) => Farm.Contains(item) || Planet.Contains(item);
 
-    /// <summary>What is found and never made, the arc drill (0075): in the supply crate by the door, the first crate full.</summary>
-    public static IEnumerable<string> Found => Weapons.Found.Select(w => w.Item);
-
     /// <summary>
-    /// What the supply crate by the door holds besides its supplies, the first crate being full: what is found, the helmet lamp
-    /// (0077), and an arc module for each station it fits (0086), which takes a spire's relic to make.
+    /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), and an
+    /// arc module for each station it fits (0086), which takes a spire's relic to make. A drill with the arc fitted lies there
+    /// too (0098), as no bench fits one yet.
     /// </summary>
-    public static IEnumerable<string> InSupply => [.. Found, HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item)];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Where(h => Machines.TryGet(h, out _)).Select(_ => Modules.Arc.Item)];
+
+    /// <summary>A drill with <paramref name="module"/> fitted, as a save writes its stack (0098): a dev world's, the bench to come.</summary>
+    public static JsonObject FittedDrill(string module) => new() { ["item"] = Weapons.Drill.Item, ["count"] = 1, ["module"] = module };
 
     /// <summary>
     /// Room one holds the lifepod, the crates, the drone bay and the air: a tank with a canister and a generator piped to a
@@ -155,7 +156,7 @@ public static class Testbed
         {
             new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
             new() { ["id"] = At(FarmAt), ["slots"] = Slots("crate", [.. FarmCrate.Select(i => Stack(i, Items.Get(i).Stack))]) },
-            new() { ["id"] = At(Supply), ["slots"] = Slots("crate", [.. Supplies.Select(s => Stack(s.Item, s.Count)), .. InSupply.Select(f => Stack(f, 1))]) },
+            new() { ["id"] = At(Supply), ["slots"] = Slots("crate", [.. Supplies.Select(s => Stack(s.Item, s.Count)), .. InSupply.Select(f => Stack(f, 1)), FittedDrill(Modules.Arc.Item)]) },
             new() { ["id"] = Id("growCapsule"), ["slots"] = Slots("growCapsule", [Stack("seed", Planted)]) },
             new()
             {

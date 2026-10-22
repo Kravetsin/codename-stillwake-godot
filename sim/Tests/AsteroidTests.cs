@@ -116,7 +116,7 @@ public class AsteroidTests
             " #####              ",
         ])).Run(DebrisSpec.Every);
         Pieces(w)[0].Item = kind;
-        w.GiveItems(0, (Drill, 1), (Weapons.ArcDrill.Item, 1));
+        w.GiveItems(0, (Drill, 1));
         for (int i = 0; i < batteries.Length; i++) w.Put(Belt + i, Battery(batteries[i]));
         return w.Do(new Enter(1 * 20 + 12)).Run();
     }

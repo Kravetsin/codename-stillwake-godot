@@ -170,7 +170,7 @@ public class HomesTests
     }
 
     [Fact]
-    public void TheMusicBoxStandsTheAxesFirstSwingAndFallsToItsSecondTheArcDrillsFirst()
+    public void TheMusicBoxStandsTheAxesFirstSwingAndFallsToItsSecond()
     {
         var w = Room((At(3, 3), "musicBox"));
         Hit(w, At(3, 3));
@@ -179,8 +179,9 @@ public class HomesTests
         Hit(w, At(3, 3));
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((1, 1), (Count(w, "gear"), Count(w, "copper")));
-        // The drill's hit is a third of it; the arc drill's, the whole.
-        Assert.Equal((3, 1), ((Flora.Get("musicBox").Strength + Weapons.Drill.Damage - 1) / Weapons.Drill.Damage, Flora.Get("musicBox").Strength / Weapons.ArcDrill.Damage));
+        // The drill's hit is a third of it; with the arc module (0098), two thirds.
+        int fitted = Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Damage), strength = Flora.Get("musicBox").Strength;
+        Assert.Equal((3, 2), ((strength + Weapons.Drill.Damage - 1) / Weapons.Drill.Damage, (strength + fitted - 1) / fitted));
     }
 
     [Fact]

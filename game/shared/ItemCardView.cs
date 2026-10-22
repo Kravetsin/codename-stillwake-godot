@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using static Stillwake.Game.I18n.En;
@@ -91,13 +92,13 @@ public static class ItemCardView
     private static Control ToolCard(ItemCard card)
     {
         var column = Column(0);
-        if (ToolPicture.Of(card.Item) is { } picture)
+        if (ToolPicture.Of(card.Item, [.. card.Fitted.Select(Content.Modules.Get)]) is { } picture)
         {
             picture.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
             column.AddChild(Padded(picture, 5, 5, 7, 0));
         }
         column.AddChild(Padded(Title(card, ToolKindText), 8, 6, 10, 7));
-        column.AddChild(Tiles(card.Tiles!, card.Draw));
+        column.AddChild(Tiles(card.Tiles!, card.Draw, card.DrawBoost));
         if (card.Effects.Count > 0) column.AddChild(Padded(Effects(card.Effects), Pad, 8, Pad, 0));
         if (card.Use is { } how) column.AddChild(UseRow(how, ToolWidth));
         Bottom(card, column);
@@ -143,6 +144,9 @@ public static class ItemCardView
     {
         // A module says what it does, its tech's icon before it; the slot's mark says it fits here, no words needed (0086).
         if (card.Tech is { } tech) column.AddChild(TechStrip(tech));
+        // A tool names each module fitted into it on its tech's strip (0098); its numbers already show what they do.
+        foreach (var module in card.Fitted)
+            column.AddChild(TechStrip(new CardTech(Content.Modules.Get(module).Tech, T("card.fitted", ("module", T($"item.{module}"))))));
         if (card.Here is not (SlotMark.None or SlotMark.Fits)) column.AddChild(HereStrip(card.Here, card.Output));
         if (card.Unknown) column.AddChild(UnknownStrip());
         if (card.Station is { } station) column.AddChild(Station(station));
@@ -244,8 +248,11 @@ public static class ItemCardView
         return track;
     }
 
-    /// <summary>The tiles in a row ruled above and below, each after the first ruled on its left, the first in amber; an electric tool's draw last, a bolt and the number.</summary>
-    private static Control Tiles(IReadOnlyList<CardTile> tiles, int? draw)
+    /// <summary>
+    /// The tiles in a row ruled above and below, each after the first ruled on its left, the first in amber; an electric tool's draw
+    /// last, a bolt and the number. A number its modules change (0098) is in their tech's colour, an arrow and "×2" beside it.
+    /// </summary>
+    private static Control Tiles(IReadOnlyList<CardTile> tiles, int? draw, CardBoost? drawBoost)
     {
         var rules = new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2, BorderWidthBottom = 2 };
         var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -253,16 +260,42 @@ public static class ItemCardView
         for (int i = 0; i < tiles.Count; i++)
         {
             var accent = i == 0 ? Amber : (Color?)null;
-            var number = Text(tiles[i].Value, Style.Text(BoldMono, i == 0 ? 19 : 16, accent ?? Style.Slate100));
+            var boost = tiles[i].Boost;
+            Control number = Text(tiles[i].Value, Style.Text(BoldMono, i == 0 ? 19 : 16, boost is { } b ? TechColour(b.Tech) : accent ?? Style.Slate100));
+            if (boost != null) number = Boosted(number, boost);
             row.AddChild(Tile(number, tiles[i].Label, first: i == 0, accent));
         }
         if (draw is int power)
         {
-            var drawn = Powered(power.ToString(CultureInfo.InvariantCulture), DrawText);
+            var drawn = Powered(power.ToString(CultureInfo.InvariantCulture), drawBoost is { } b ? Style.Text(BoldMono, 16, TechColour(b.Tech)) : DrawText);
             drawn.Alignment = BoxContainer.AlignmentMode.Center;
+            if (drawBoost != null) drawn.AddChild(Mark(drawBoost));
             row.AddChild(Tile(drawn, T("card.draw"), first: false, null));
         }
         return Boxed(rules, row);
+    }
+
+    /// <summary>Technology <paramref name="tech"/>'s colour, its icon's rim: what its modules change on a tool's card is written in it.</summary>
+    private static Color TechColour(string tech) => new(TechLooks.Of(tech).Rim << 8 | 0xff);
+
+    /// <summary><paramref name="number"/> with its <paramref name="boost"/>'s mark beside it, centred together.</summary>
+    private static Control Boosted(Control number, CardBoost boost)
+    {
+        var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center, MouseFilter = Control.MouseFilterEnum.Ignore }, 3);
+        row.AddChild(number);
+        row.AddChild(Mark(boost));
+        return row;
+    }
+
+    /// <summary>A boost's mark, small, in its tech's colour: an arrow up or down over how many times, "×2".</summary>
+    private static Control Mark(CardBoost boost)
+    {
+        var colour = TechColour(boost.Tech);
+        var arrow = new Control { CustomMinimumSize = new Vector2(7, 4), SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter, MouseFilter = Control.MouseFilterEnum.Ignore };
+        arrow.AddChild(new Polygon2D { Color = colour, Polygon = boost.Up ? [new(0, 4), new(3.5f, 0), new(7, 4)] : [new(0, 0), new(7, 0), new(3.5f, 4)] });
+        var mark = Column(1, arrow, Text(boost.Times, Style.Text(BoldMono, 9, colour)));
+        mark.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        return mark;
     }
 
     /// <param name="accent">The first tile's amber, its ground faint amber; null for a plain tile.</param>

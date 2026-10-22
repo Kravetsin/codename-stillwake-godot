@@ -31,11 +31,11 @@ public static class Impacts
 
     /// <summary>
     /// The share of a whole hit <paramref name="tool"/>'s hit at <paramref name="cell"/> throws: a tool's own (<see cref="ShareOf"/>),
-    /// but the whole for the hit that breaks the wall there or fells the growth, once an object, a crystal's only hit among them.
+    /// but the whole for the hit that breaks the wall there or fells the growth, once an object, a crystal's only hit among them:
+    /// one whose <paramref name="damage"/>, the sim's for its sender (<c>IItemsQueries.Damage</c>, a module's boost in it), reaches it.
     /// </summary>
-    public static double ShareAt(IGridQueries grid, BuildingModule building, int cell, string tool)
+    public static double ShareAt(IGridQueries grid, BuildingModule building, int cell, string tool, int damage)
     {
-        int damage = Spec.Weapons.Of(tool)?.Damage ?? 0;
         if (grid.WallAt(cell) is { Natural: true } wall) return CrackAt(building, cell) + damage >= wall.Strength ? 1 : ShareOf(tool);
         if (building.PlantAt(cell) is not { } plant) return ShareOf(tool);
         return CrackAt(building, plant.Cell) + damage >= Spec.Flora.Get(plant.Kind).Strength ? 1 : ShareOf(tool);

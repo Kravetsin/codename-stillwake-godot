@@ -266,8 +266,8 @@ public class DesyncTests(ITestOutputHelper output)
     [Fact]
     public void KeepsEveryClientInSyncWhileBatteriesChargeAndMoveBetweenBeltsAndAStation()
     {
-        // A panel out in space cabled to a charging station by the lifepod, each peer carrying a drill and batteries of
-        // every charge. The fuzz runs the drills and moves the batteries onto belts, into the station, into crates and onto the floor, and
+        // A panel out in space cabled to a charging station by the lifepod, each peer carrying a drill, the second's fitted with
+        // the arc (0098), and batteries of every charge. The fuzz runs the drills and moves the batteries onto belts, into the station, into crates and onto the floor, and
         // cuts the cables; the first client keeps the station cabled and, when it stands empty, fills it.
         var layout = Layout.Parse(
             ["PPP          ", "             ", "#############", "#.OOO.C.....#", "#.OOO.C.....#", "#.OOO.......#", "#############"],
@@ -283,6 +283,7 @@ public class DesyncTests(ITestOutputHelper output)
                 var slots = new JsonArray();
                 for (int i = 0; i < Content.Inventory.Total; i++)
                     slots.Add(i < 3 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = full / 2 * i }
+                        : i == 3 && peer == 1 ? new JsonObject { ["item"] = "drill", ["count"] = 1, ["module"] = Content.Modules.Arc.Item }
                         : i == 3 ? new JsonObject { ["item"] = "drill", ["count"] = 1 } : null);
                 inventories.Add(new JsonObject { ["id"] = peer, ["slots"] = slots });
             }

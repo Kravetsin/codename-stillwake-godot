@@ -30,10 +30,12 @@ public partial class FxBench : Node2D
     private readonly Features.Logistics.Hover[] _hovers = [new(1), new(2), new(3)];
     private readonly Features.Crafting.SmelterHeat _smelter = new();
     private readonly DrillLight _drill = new();
+    /// <summary>The drill with the arc module fitted, as the hand draws it.</summary>
+    private static readonly HeldParts ArcDrill = HeldParts.Of(HeldLook.Drill, [Stillwake.Content.Modules.Arc]);
     private readonly Features.Light.LampSparks _lamp = new();
     private readonly Features.Items.PickUpFlights _flights = new();
     private double _clock, _catchMs, _drillMs;
-    private static readonly double ArcDrillPaceMs = Content.Weapons.ArcDrill.Pace * 1000.0 / Sim.World.TicksPerSecond;
+    private static readonly double DrillPaceMs = Content.Weapons.Drill.Pace * 1000.0 / Sim.World.TicksPerSecond;
 
     public FxBench()
     {
@@ -70,11 +72,11 @@ public partial class FxBench : Node2D
         _lamp.Lamp(1, middle + new Vector2(0, -100), Features.Light.Flicker.BrightnessOf(0.5f, _clock * 1000, 7), middle.Y - 40, ms);
         _lamp.End();
         var grip = middle + new Vector2(60, 90);
-        _drill.Step(HeldLook.ArcDrill, 1, p => grip + new Vector2((float)(p.X - HeldLook.ArcDrill.Grip.X), (float)(p.Y - HeldLook.ArcDrill.Grip.Y)), ms);
+        _drill.Step(ArcDrill, 1, p => grip + new Vector2((float)(p.X - HeldLook.Drill.Grip.X), (float)(p.Y - HeldLook.Drill.Grip.Y)), ms);
         // Its hits on a wreck at its bit, at its pace (0094).
         var bit = grip + new Vector2(29, -5);
-        for (_drillMs += ms; _drillMs >= ArcDrillPaceMs; _drillMs -= ArcDrillPaceMs)
-            HitBurst.Shared.Throw(HitLooks.Of[Impact.Wreck], bit.X, bit.Y, -1, 0, Features.Effects.Impacts.ShareOf(Content.Weapons.ArcDrill.Item));
+        for (_drillMs += ms; _drillMs >= DrillPaceMs; _drillMs -= DrillPaceMs)
+            HitBurst.Shared.Throw(HitLooks.Of[Impact.Wreck], bit.X, bit.Y, -1, 0, Features.Effects.Impacts.ShareOf(Content.Weapons.Drill.Item));
         var chest = middle + new Vector2(150, -40);
         for (_catchMs += ms; _catchMs >= 1500; _catchMs -= 1500)
         {

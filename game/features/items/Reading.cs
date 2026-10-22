@@ -108,11 +108,15 @@ public sealed record Reading(
         return new Tip(T("crafting.tooCold", ("station", T($"station.{hot.Machine}"))));
     }
 
-    /// <summary>The one tooltip over <paramref name="stack"/>: its item's card, with what this one holds of its own, a battery's charge.</summary>
+    /// <summary>
+    /// The one tooltip over <paramref name="stack"/>: its item's card, with what this one holds of its own, a battery's charge and a
+    /// tool's modules (0098), its numbers the sim's fold for them (<see cref="ItemCards.Fitted"/>).
+    /// </summary>
     public Tip TipOf(Stack stack)
     {
         var tip = TipOf(stack.Item);
-        return tip with { Card = tip.Card! with { Charge = Charges.MeterOf(stack), Picture = Charges.Picture(stack.Item, stack.Charge) } };
+        var card = tip.Card! with { Charge = Charges.MeterOf(stack), Picture = Charges.Picture(stack.Item, stack.Charge) };
+        return tip with { Card = ItemCards.Fitted(card, ToolStats.ModulesOf(stack)) };
     }
 
     /// <summary>

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dsj4sqr4kn4n1"
-path="res://.godot/imported/hero_arc_drill.png-14158cdd6c36b88a485bf0b9de96be74.ctex"
+uid="uid://n78dr34gdtua"
+path="res://.godot/imported/module_arc_coil.png-982a40daeca4df60382f152a7cb1760c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hero_arc_drill.png"
-dest_files=["res://.godot/imported/hero_arc_drill.png-14158cdd6c36b88a485bf0b9de96be74.ctex"]
+source_file="res://art/module_arc_coil.png"
+dest_files=["res://.godot/imported/module_arc_coil.png-982a40daeca4df60382f152a7cb1760c.ctex"]
 
 [params]
 

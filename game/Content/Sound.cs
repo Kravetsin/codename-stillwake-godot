@@ -274,7 +274,7 @@ public static class Sound
 
     /// <summary>
     /// Every tool's hit sounds as what it hits (0093), the ground or a wreck: a drill plays the axe's own hit sounds, every
-    /// one it hits (the drill's 10 a second, the arc drill's 5), each <see cref="DrillHitDb"/> under the axe's, so a run of
+    /// one it hits (the drill's 10 a second), each <see cref="DrillHitDb"/> under the axe's, so a run of
     /// them, overlapping, is about as loud as the axe's hits one by one. Its motor's whir stays its own.
     /// </summary>
     public const float DrillHitDb = -4;

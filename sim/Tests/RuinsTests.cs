@@ -104,8 +104,8 @@ public class RuinsTests
     [Fact]
     public void AFasterToolPaysItsShareOfTheAxesShockSoASecondOfHittingCostsAlike()
     {
-        Assert.Equal((5, 1, 2), (BuildingModule.ShockOf(Axe), BuildingModule.ShockOf(Weapons.Drill.Item), BuildingModule.ShockOf(Weapons.ArcDrill.Item)));
-        // Twenty ticks a second: the axe's 2 hits, the drill's 10, the arc drill's 5, each 10 units a second.
+        Assert.Equal((5, 1), (BuildingModule.ShockOf(Axe), BuildingModule.ShockOf(Weapons.Drill.Item)));
+        // Twenty ticks a second: the axe's 2 hits, the drill's 10, each 10 units a second, its module or none.
         Assert.All(Weapons.All, weapon => Assert.Equal(10, BuildingModule.ShockOf(weapon.Item) * 20 / weapon.Pace));
     }
 

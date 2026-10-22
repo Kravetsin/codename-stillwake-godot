@@ -97,17 +97,17 @@ public static class GroundSounds
     public static S.Cue? FallOf(string kind) => S.Growths.TryGetValue(kind, out var sounds) ? sounds.Fall : null;
 
     /// <summary>
-    /// A hit of <paramref name="tool"/>, any tool, at <paramref name="cell"/>: what is hit decides, the natural wall's there, else
-    /// the growth's the hit takes. None for a growth any hit fells alone, its fall saying it; nor for the hit that fells one whose
-    /// fall sounds as its hits do, a bush's last, which would play it twice.
+    /// A hit of any tool at <paramref name="cell"/>, taking <paramref name="damage"/> (the sim's for its sender, a module's boost in
+    /// it): what is hit decides, the natural wall's there, else the growth's the hit takes. None for a growth any hit fells alone, its
+    /// fall saying it; nor for the hit that fells one whose fall sounds as its hits do, a bush's last, which would play it twice.
     /// </summary>
-    public static S.Cue? HitAt(IGridQueries grid, BuildingModule building, int cell, string tool)
+    public static S.Cue? HitAt(IGridQueries grid, BuildingModule building, int cell, int damage)
     {
         if (grid.WallAt(cell) is { Natural: true } wall) return HitOf(wall);
         if (building.PlantAt(cell) is not { } plant || !S.Growths.TryGetValue(plant.Kind, out var sounds) || sounds.Hit is not { } hit)
             return null;
         if (hit != sounds.Fall) return hit;
-        int damage = Spec.Weapons.Of(tool)?.Damage ?? 0, crack = 0;
+        int crack = 0;
         foreach (var c in building.Cracks)
             if (c.Cell == plant.Cell) crack = c.Damage;
         return crack + damage >= Spec.Flora.Get(plant.Kind).Strength ? null : hit;

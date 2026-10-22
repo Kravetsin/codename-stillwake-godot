@@ -13,8 +13,17 @@ public sealed record CardTech(string Tech, string About);
 /// <summary>A key cap and what it does: "LMB" and "craft".</summary>
 public sealed record CardKey(string Key, string Words);
 
-/// <summary>One of a tool's tiles: its number as written and its label; the first, its accent, in amber.</summary>
-public sealed record CardTile(string Value, string Label);
+/// <summary>
+/// One of a tool's tiles: its number as written and its label; the first, its accent, in amber. With modules fitted (0098), how it
+/// differs from the plain tool's, <see cref="Boost"/>; null where it does not.
+/// </summary>
+public sealed record CardTile(string Value, string Label, CardBoost? Boost = null);
+
+/// <summary>
+/// How a tool's number differs with its modules fitted from the plain tool's (0098): in the colour of the technology of the first
+/// module that changes it, <see cref="Tech"/>, up or down, and by how many times, "×2".
+/// </summary>
+public sealed record CardBoost(string Tech, bool Up, string Times);
 
 /// <summary>One item of a craft's cost: its name, how many are carried and needed, and whether that is short.</summary>
 /// <param name="From">Where a raw item short comes from; null when it is not short, or is crafted itself.</param>
@@ -88,8 +97,11 @@ public sealed record ItemCard(
     /// <summary>What this one holds, a battery's charge; null for an item that holds none.</summary>
     public ChargeMeter? Charge { get; init; }
 
-    /// <summary>What an electric tool draws while it works, in the units machines draw in, as a machine shows its own; null for anything else.</summary>
+    /// <summary>What an electric tool draws while it works, in the units machines draw in, as a machine shows its own, its modules in it; null for anything else.</summary>
     public int? Draw { get; init; }
+
+    /// <summary>How <see cref="Draw"/> differs from the plain tool's with its modules fitted (0098); null where it does not.</summary>
+    public CardBoost? DrawBoost { get; init; }
 
     /// <summary>What the open fed station or fire does with it, a line with its slot's mark: smelts, burns or grows here; <see cref="SlotMark.None"/> elsewhere.</summary>
     public SlotMark Here { get; init; }
@@ -100,6 +112,12 @@ public sealed record ItemCard(
     /// <summary>A module's technology and what it does, a strip at its card's bottom (0086); null for anything else.</summary>
     public CardTech? Tech { get; init; }
 
+    /// <summary>
+    /// The modules fitted into this tool (0098), by item, as fitted: its picture put together with theirs, each named on a strip of
+    /// its tech at the card's bottom; none for most.
+    /// </summary>
+    public IReadOnlyList<string> Fitted { get; init; } = [];
+
     /// <summary>Its picture: its item's, or the empty battery's for one holding no charge.</summary>
     public string Picture { get; init; } = Item;
 
@@ -108,7 +126,8 @@ public sealed record ItemCard(
         && (Tiles == null ? other.Tiles == null : other.Tiles != null && Tiles.SequenceEqual(other.Tiles))
         && Effects.SequenceEqual(other.Effects) && Use == other.Use && Worn == other.Worn && Headline == other.Headline && Detail == other.Detail
         && Unknown == other.Unknown && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw
-        && Here == other.Here && Equals(Output, other.Output) && Tech == other.Tech;
+        && Here == other.Here && Equals(Output, other.Output) && Tech == other.Tech && Fitted.SequenceEqual(other.Fitted)
+        && DrawBoost == other.DrawBoost;
 
     public override int GetHashCode()
     {
@@ -124,6 +143,8 @@ public sealed record ItemCard(
         hash.Add(Output);
         hash.Add(Headline);
         hash.Add(Tech);
+        hash.Add(DrawBoost);
+        foreach (var module in Fitted) hash.Add(module);
         foreach (var effect in Effects) hash.Add(effect);
         foreach (var tile in Tiles ?? []) hash.Add(tile);
         return hash.ToHashCode();

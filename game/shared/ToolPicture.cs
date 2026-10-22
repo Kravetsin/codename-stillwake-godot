@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Effects;
 using Stillwake.Game.Render;
+using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Shared;
 
@@ -10,7 +12,8 @@ namespace Stillwake.Game.Shared;
 /// A tool's picture on its card (the item card mockup, layout A): its held picture whole, <see cref="CardLook.ToolScale"/>
 /// times and crisp, in a small dark window. A drill runs on its own, over and over: its bit turning through its frames,
 /// its lamp lit, and its light thrown as the hand's is (<see cref="DrillLight"/>) into particles of its own, drawn over it
-/// at <see cref="CardLook.EffectScale"/> screen pixels a pixel of the world: the arc drill's coil crackling in bursts, and
+/// at <see cref="CardLook.EffectScale"/> screen pixels a pixel of the world: its pictures put together from the tool's and its
+/// modules' overlays (<see cref="HeldParts"/>, 0098), as the hand's are, an arc-fitted mount crackling in bursts, and
 /// at its point, as if it bit a wreck, a wreck's hits at its pace (<see cref="HitBurst"/>, 0094).
 /// </summary>
 public partial class ToolPicture : Control
@@ -38,6 +41,7 @@ public partial class ToolPicture : Control
     };
 
     private readonly HeldLook _look;
+    private readonly HeldParts _parts;
     private readonly Texture2D _still;
     private readonly Texture2D[] _spin = [];
     private readonly TextureRect _picture;
@@ -50,19 +54,20 @@ public partial class ToolPicture : Control
     private readonly double _paceMs, _share;
     private double _clockMs, _spun, _frame, _sinceHitMs;
 
-    public ToolPicture(HeldLook look, string item)
+    public ToolPicture(HeldParts parts, string item)
     {
-        _look = look;
+        var look = _look = parts.Look;
+        _parts = parts;
         _paceMs = (Content.Weapons.Of(item)?.Pace ?? 1) * 1000.0 / Sim.World.TicksPerSecond;
         _share = Features.Effects.Impacts.ShareOf(item);
-        _still = GD.Load<Texture2D>(look.Loaded ?? look.Picture);
+        _still = look.Loaded is { } loaded ? GD.Load<Texture2D>(loaded) : HeldArt.Of(look.Picture, parts.Layers);
         int scale = CardLook.ToolScale;
         var size = _still.GetSize() * scale;
         CustomMinimumSize = new Vector2(Width, size.Y + 2 * Room);
         ClipContents = true;
         MouseFilter = MouseFilterEnum.Ignore;
-        // The arc drill's sparks leap up off its coil: a little more room above it.
-        var origin = new Vector2(Mathf.Round((Width - size.X) / 2), Room + (look.Coil != null ? 3 : 0));
+        // A crackling mount's sparks leap up off it: a little more room above it.
+        var origin = new Vector2(Mathf.Round((Width - size.X) / 2), Room + (parts.Crackles.Count > 0 ? 3 : 0));
         _picture = new TextureRect
         {
             Texture = _still,
@@ -81,7 +86,7 @@ public partial class ToolPicture : Control
             SetProcess(false);
             return;
         }
-        _spin = [.. spin.Select(p => GD.Load<Texture2D>(p))];
+        _spin = [.. spin.Select(p => HeldArt.Of(p, parts.Layers))];
         if (look.Lamp is { } at)
         {
             var colour = new Color(HeldLook.LampColour);
@@ -110,8 +115,9 @@ public partial class ToolPicture : Control
         AddChild(effects);
     }
 
-    /// <summary>The picture of <paramref name="item"/> held, for its card; null for an item held as no picture.</summary>
-    public static ToolPicture? Of(string item) => HeldLook.Of(item) is { } look ? new ToolPicture(look, item) : null;
+    /// <summary>The picture of <paramref name="item"/> held, <paramref name="modules"/> fitted into it (0098), for its card; null for an item held as no picture.</summary>
+    public static ToolPicture? Of(string item, IReadOnlyList<Spec.ModuleSpec> modules) =>
+        HeldLook.Of(item) is { } look ? new ToolPicture(HeldParts.Of(look, modules), item) : null;
 
     public override void _Draw() => DrawWindow(this, Size);
 
@@ -140,7 +146,7 @@ public partial class ToolPicture : Control
         _picture.Texture = frame > 0 ? _spin[frame - 1] : _still;
         foreach (var c in _lit) c.Visible = running;
         var tip = _held(_look.EdgeTo);
-        _light!.Step(_look, _spun, _held, ms);
+        _light!.Step(_parts, _spun, _held, ms);
         // Nothing to bite on a card: while it runs at speed, a wreck's hits at its point, each its share of the axe's.
         _sinceHitMs = running && _spun > 0.5 ? _sinceHitMs + ms : 0;
         for (; _sinceHitMs >= _paceMs; _sinceHitMs -= _paceMs)

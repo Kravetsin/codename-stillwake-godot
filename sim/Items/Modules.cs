@@ -25,6 +25,9 @@ public readonly record struct Boost(int Speed, int Draw, int Damage, int Heat)
 
     /// <summary><paramref name="value"/>, a cost (what a machine draws), × (1000 + <paramref name="added"/>) / 1000, rounded up.</summary>
     public static int Cost(int value, int added) => (value * (1000 + added) + 999) / 1000;
+
+    /// <summary>This and what <paramref name="module"/> adds, summed: the one step of every fold of modules, a machine's and a tool's (<see cref="ToolStats"/>).</summary>
+    public Boost Plus(ModuleSpec module) => new(Speed + module.Speed, Draw + module.Draw, Damage + module.Damage, Heat + module.Heat);
 }
 
 public sealed partial class ItemsModule
@@ -43,12 +46,40 @@ public sealed partial class ItemsModule
     {
         var sum = new Boost();
         for (int at = FittedFrom(machine); at < State.Fitted.Count && State.Fitted[at].Machine == machine; at++)
-        {
-            var m = Modules.Get(State.Fitted[at].Module);
-            sum = new Boost(sum.Speed + m.Speed, sum.Draw + m.Draw, sum.Damage + m.Damage, sum.Heat + m.Heat);
-        }
+            sum = sum.Plus(Modules.Get(State.Fitted[at].Module));
         return sum;
     }
+
+    /// <summary>
+    /// The stack of tool <paramref name="item"/> <paramref name="peer"/> works with (0098): the first it carries, in slot order,
+    /// with a module fitted, else the first it carries; none while it carries none. With two drills, the fitted one drills.
+    /// </summary>
+    public Stack? ToolStack(int peer, string item)
+    {
+        var slots = Inventory(peer);
+        Stack? first = null;
+        for (int i = 0; i < slots.Count; i++)
+        {
+            if (slots[i] is not { } s || s.Item != item) continue;
+            if (s.Module != null) return s;
+            first ??= s;
+        }
+        return first;
+    }
+
+    /// <summary>
+    /// What a hit of weapon <paramref name="tool"/> by <paramref name="peer"/> takes (0098): the damage of the stack it works
+    /// with (<see cref="ToolStack"/>), its modules in it (<see cref="ToolStats"/>); the weapon's own while the peer carries
+    /// none, as a hit's sender is not checked for holding its weapon (0034).
+    /// </summary>
+    public int Damage(int peer, string tool)
+    {
+        int damage = Weapons.Of(tool)?.Damage ?? throw new InvalidOperationException($"items.damage: {tool} deals no damage");
+        return ToolStack(peer, tool) is { } stack ? ToolStats.Of(stack).Damage : damage;
+    }
+
+    /// <summary>What <paramref name="stack"/>, an electric item, draws a tick it runs, its modules in it (<see cref="ToolStats"/>, 0098).</summary>
+    private static int DrawOf(Stack stack) => ToolStats.Of(stack).Draw;
 
     /// <summary>
     /// Why the sender's <see cref="Fit"/> of what <paramref name="from"/> holds into <paramref name="machine"/> would be

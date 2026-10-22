@@ -59,6 +59,8 @@ public interface IItemsQueries
     IReadOnlyList<string> FittedTo(int machine);
     Boost Boost(int machine);
     string? FitProblem(int peer, Place from, int machine);
+    Stack? ToolStack(int peer, string item);
+    int Damage(int peer, string tool);
 }
 
 /// <summary>How a module that depends on the items may change them.</summary>
@@ -117,8 +119,9 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     /// <summary>
-    /// Every run draws its item's <c>Draw</c> from its peer's belt for this tick, in peer order; one whose belt
-    /// cannot pay the tick, or whose item its peer no longer carries, stops (0055).
+    /// Every run draws its item's <c>Draw</c> from its peer's belt for this tick, in peer order, boosted by the module fitted
+    /// into the stack it runs (<see cref="ToolStack"/>, 0098); one whose belt cannot pay the tick, or whose item its peer no
+    /// longer carries, stops (0055).
     /// </summary>
     private void Runs()
     {
@@ -126,7 +129,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         for (int i = 0; i < running.Count;)
         {
             var r = running[i];
-            if (Carries(r.Peer, r.Item) && Drain(r.Peer, Content.Items.Get(r.Item).Draw!.Value)) i++;
+            if (ToolStack(r.Peer, r.Item) is { } stack && Drain(r.Peer, DrawOf(stack))) i++;
             else running.RemoveAt(i);
         }
     }
@@ -482,14 +485,15 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>
     /// Why <paramref name="peer"/>'s hit with <paramref name="weapon"/> would be refused, the same for whatever it hits (0054):
-    /// <c>items.flat</c> for an electric weapon no battery on its belt can pay a tick of (never in creative mode), and with
+    /// <c>items.flat</c> for an electric weapon no battery on its belt can pay a tick of, boosted by its module as it runs
+    /// (never in creative mode), and with
     /// <paramref name="running"/>, as a hit applies, <c>items.notRunning</c> for one its hero does not run (0055). The client asks
     /// without: it sends its <c>Run</c> before the hit, in the same frame.
     /// </summary>
     public string? WeaponProblem(int peer, string weapon, bool running)
     {
         if (Content.Items.Get(weapon).Draw is not int draw) return null;
-        if (!CanDrain(peer, draw)) return "items.flat";
+        if (!CanDrain(peer, ToolStack(peer, weapon) is { } stack ? DrawOf(stack) : draw)) return "items.flat";
         return running && Running(peer) != weapon ? "items.notRunning" : null;
     }
 
@@ -519,15 +523,6 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         foreach (var s in left) FloorRules.LayDown(State, s, cell, 0, _grid.Width, FloorStack.Nobody, body);
     }
 
-    /// <summary>Whether <paramref name="peer"/> carries <paramref name="item"/> in any slot, its equipment too.</summary>
-    private bool Carries(int peer, string item)
-    {
-        var slots = Inventory(peer);
-        for (int i = 0; i < slots.Count; i++)
-            if (slots[i]?.Item == item) return true;
-        return false;
-    }
-
     /// <summary>The first belt slot of <paramref name="peer"/>'s, in slot order, whose battery holds at least <paramref name="amount"/> power-ticks; none for none.</summary>
     private int? Payer(int peer, int amount)
     {
@@ -542,14 +537,15 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>
     /// <c>items.notElectric</c> for an item with no <c>Draw</c>; turning on, <c>items.notHeld</c> when the sender
-    /// carries none, and <c>items.flat</c> when its belt cannot pay a tick of the draw (never in creative mode).
+    /// carries none, and <c>items.flat</c> when its belt cannot pay a tick of the draw, its module's boost in it (never in
+    /// creative mode).
     /// </summary>
     private string? RunProblem(Run c)
     {
-        if (Content.Items.Get(c.Item).Draw is not int draw) return "items.notElectric";
+        if (Content.Items.Get(c.Item).Draw == null) return "items.notElectric";
         if (!c.On) return null;
-        if (!Carries(c.From, c.Item)) return "items.notHeld";
-        return CanDrain(c.From, draw) ? null : "items.flat";
+        if (ToolStack(c.From, c.Item) is not { } stack) return "items.notHeld";
+        return CanDrain(c.From, DrawOf(stack)) ? null : "items.flat";
     }
 
     /// <summary>A hero runs one thing: on replaces what it ran, off stops whatever it runs.</summary>

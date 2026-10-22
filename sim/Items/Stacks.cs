@@ -74,10 +74,10 @@ internal static class Stacks
     private static Stack?[] Copy(IReadOnlyList<Stack?> slots) => [.. slots];
 
     /// <summary>
-    /// Whether two stacks are of one item and hold alike of their own (<see cref="Stack.Charge"/>): only those
-    /// merge, onto a slot or on the floor; a move of one onto the other otherwise swaps them.
+    /// Whether two stacks are of one item and hold alike of their own (<see cref="Stack.Charge"/>, <see cref="Stack.Module"/>):
+    /// only those merge, onto a slot or on the floor; a move of one onto the other otherwise swaps them.
     /// </summary>
-    public static bool Alike(Stack a, Stack b) => a.Item == b.Item && a.Charge == b.Charge;
+    public static bool Alike(Stack a, Stack b) => a.Alike(b);
 
     /// <summary>
     /// Adds <paramref name="count"/> of <paramref name="like"/>, its own count aside, to the first
@@ -244,8 +244,8 @@ internal static class Stacks
     /// <summary>
     /// <paramref name="slots"/> with those from <paramref name="start"/> up to <paramref name="end"/> sorted (0008):
     /// stacks alike (<see cref="Alike"/>) merged up to their limit, the full ones first, then laid from
-    /// <paramref name="start"/> in order of <see cref="ItemGroup"/>, item id (ordinal), charge, fullest first, and
-    /// count, largest first; empty slots after. Every item and every charge kept; the other slots untouched.
+    /// <paramref name="start"/> in order of <see cref="ItemGroup"/>, item id (ordinal), module (ordinal, none first), charge,
+    /// fullest first, and count, largest first; empty slots after. Every item, charge and module kept; the other slots untouched.
     /// </summary>
     public static Stack?[] Sorted(IReadOnlyList<Stack?> slots, int start, int end)
     {
@@ -274,6 +274,8 @@ internal static class Stacks
     {
         int order = Content.Items.Get(a.Item).Group.CompareTo(Content.Items.Get(b.Item).Group);
         if (order == 0) order = string.CompareOrdinal(a.Item, b.Item);
+        // A tool with no module first, then by its module, ordinal: null sorts before any string.
+        if (order == 0) order = string.CompareOrdinal(a.Module, b.Module);
         if (order == 0) order = b.Charge.CompareTo(a.Charge);
         if (order == 0) order = b.Count.CompareTo(a.Count);
         return order;

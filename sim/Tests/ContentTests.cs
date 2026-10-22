@@ -62,9 +62,11 @@ public class ContentTests
             Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
         }
         Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
-        // The ruins' alloy (0085): six seconds of the drill, four of the arc drill, fifteen of the axe.
+        // The ruins' alloy (0085): six seconds of the drill, three of the drill with the arc module (0098), fifteen of the axe.
         int Seconds(Weapon w) => Materials.Get("alloy").Strength / (w.Damage * World.TicksPerSecond / w.Pace);
-        Assert.Equal((15, 6, 4), (Seconds(Weapons.Axe), Seconds(Weapons.Drill), Seconds(Weapons.ArcDrill)));
+        var fitted = Weapons.Drill with { Damage = Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Damage) };
+        Assert.Equal((15, 6, 3), (Seconds(Weapons.Axe), Seconds(Weapons.Drill), Seconds(fitted)));
+        Assert.True(fitted.Damage < Materials.All.Where(m => m.Breaks).Min(m => m.Strength));
     }
 
     // Machines
@@ -451,29 +453,27 @@ public class ContentTests
     }
 
     [Fact]
-    public void EveryWeaponIsAToolOfOneCraftedOrFoundHitsInWholeUnitsAndTheDrillsOutdamageTheAxeOnTheBelt()
+    public void EveryWeaponIsAToolOfOneCraftedHitsInWholeUnitsAndTheDrillsOutdamageTheAxeOnTheBelt()
     {
         Assert.Equal(Weapons.All.Count, Weapons.All.Select(w => w.Item).Distinct().Count());
         foreach (var weapon in Weapons.All)
         {
             Assert.True(weapon.Damage > 0 && weapon.Pace > 0, weapon.Item);
             Assert.Equal(1, Content.Items.Get(weapon.Item).Stack);
-            // Made at a station, or found and never made.
-            Assert.Equal(!Weapons.Found.Contains(weapon), Crafts.TryGet(weapon.Item, out _));
+            // Made at a station: nothing is only found (0098).
+            Assert.True(Crafts.TryGet(weapon.Item, out _), weapon.Item);
             Assert.Same(weapon, Weapons.Of(weapon.Item));
         }
         Assert.Null(Weapons.Of(Harpoon.Item));
         // Damage a second is all that sets them apart (0054): the drill 10, the axe 4.
         Assert.Equal(10, Weapons.Drill.Damage * 20 / Weapons.Drill.Pace);
         Assert.Equal(4, Weapons.Axe.Damage * 20 / Weapons.Axe.Pace);
-        // The arc drill (0075): half as much again as the drill, 15, drawing the same; found, so no station makes it.
-        Assert.Equal(15, Weapons.ArcDrill.Damage * 20 / Weapons.ArcDrill.Pace);
-        Assert.Equal(Content.Items.Get(Weapons.Drill.Item).Draw, Content.Items.Get(Weapons.ArcDrill.Item).Draw);
-        Assert.Equal([Weapons.ArcDrill], Weapons.Found);
         // Electric: it draws every tick it runs (0055), so a full battery runs it 600 ticks, 30 s.
         int draw = Content.Items.Get(Weapons.Drill.Item).Draw!.Value;
         Assert.Equal(3, draw);
         Assert.Equal(600, Charge.Battery / Charge.Scale / draw);
+        // The arc module in it (0098): twice the damage, 20 a second, for twice the draw, 300 ticks of a battery.
+        Assert.Equal((20, 6), (Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Damage) * 20 / Weapons.Drill.Pace, Sim.Items.Boost.Cost(draw, Modules.Arc.Draw)));
         Assert.Null(Content.Items.Get(Weapons.Axe.Item).Draw);
         Assert.Equal([("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1), ("circuit", 2)], Crafts.Get(Weapons.Drill.Item).Cost);
         Assert.Equal(160, Crafts.Get(Weapons.Drill.Item).Ticks);
@@ -895,8 +895,15 @@ public class ContentTests
             Assert.DoesNotContain(module.Item, given);
             Assert.NotEmpty(module.Hosts);
             Assert.False(string.IsNullOrEmpty(module.Tech), module.Item);
+            // Its hosts draw power, for it multiplies their draw: electric stations, by kind, or electric weapons, by item (0098).
             foreach (var host in module.Hosts)
             {
+                if (Weapons.Of(host) != null)
+                {
+                    Assert.True(Content.Items.Get(host) is { Draw: not null, Stack: 1 }, $"{module.Item} fits {host}");
+                    Assert.False(Machines.TryGet(host, out _), host);
+                    continue;
+                }
                 Assert.True(Stations.TryGet(host, out _) && Machines.Get(host).Draws != null, $"{module.Item} fits {host}");
                 Assert.False(Machines.Get(host).Fixed, host);
             }
@@ -1056,14 +1063,12 @@ public class ContentTests
         Assert.Equal([], recipes.Where(id => !known.Contains(id)).ToArray());
     }
 
-    /// <summary>The invariant: every item there is can be had from the wreck, caught, dug on a planet or made at a station reachable; but what is found elsewhere.</summary>
+    /// <summary>The invariant: every item there is can be had from the wreck, caught, dug on a planet or made at a station reachable.</summary>
     [Fact]
-    public void EveryItemIsReachableFromTheWreckButWhatIsFoundElsewhere()
+    public void EveryItemIsReachableFromTheWreck()
     {
         var (had, _) = Reachable(Stations.All, planet: true);
-        var found = Weapons.Found.Select(w => w.Item).ToHashSet();
-        Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id) && !found.Contains(id)).ToArray());
-        Assert.All(found, id => Assert.DoesNotContain(id, had));
+        Assert.Equal([], Content.Items.All.Select(i => i.Id).Where(id => !had.Contains(id)).ToArray());
     }
 
     /// <summary>
