@@ -437,6 +437,12 @@ public partial class Figure : Node2D
     public double? Ledge { get; set; }
 
     /// <summary>
+    /// Where the feet are drawn instead of where the hero stands, in pixels of the world: on the screen's pixels with the
+    /// camera (<see cref="CameraFollow.OnPixels"/>). Set by the crew each frame for its own hero; others' stand where they are.
+    /// </summary>
+    public Vector2? OnPixels { get; set; }
+
+    /// <summary>
     /// Sparks off the gloves sliding down a ladder (0092): <paramref name="count"/> tiny hot streaks flicked up and out from
     /// either hand, at <paramref name="front"/> and <paramref name="back"/> in pixels of the world.
     /// </summary>
@@ -575,7 +581,7 @@ public partial class Figure : Node2D
         double c = Math.Abs(Math.Cos(shown.Tilt)), s = Math.Abs(Math.Sin(shown.Tilt));
         // Lying down, the middle sinks as the body turns, so it comes to rest on the floor.
         _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
-        Position = new Vector2((float)feetX, (float)feetY);
+        Position = OnPixels ?? new Vector2((float)feetX, (float)feetY);
         Scale = new Vector2(hero.Facing, 1);
         // Placing plans, the planner thrusts at them: out fast, back slower.
         double t = 1 - _beamMs / BeamMs;

@@ -451,7 +451,7 @@ public partial class HeroView : Node2D
 
     /// <summary>
     /// The camera after the hero drawn at (<paramref name="x"/>, <paramref name="y"/>), its feet in thousandths of a
-    /// cell: led the way its last step went, the height eased after it (<see cref="CameraFollow"/>).
+    /// cell: led the way its last step went, the height eased after it (<see cref="CameraFollow"/>), it and the hero on whole pixels.
     /// </summary>
     private void Follow(Camera2D camera, Ship ship, double x, double y, double elapsedMs)
     {
@@ -460,7 +460,9 @@ public partial class HeroView : Node2D
         if (_snap) _follow.Snap(hero);
         else _follow.Step(hero, camera.GetViewportRect().Size.X / camera.Zoom.X / Rig.Cell, elapsedMs);
         _snap = false;
-        camera.Position = new Vector2((float)_follow.X, (float)_follow.Y) * (float)Rig.Cell;
+        var (look, feet) = CameraFollow.OnPixels(_follow.X, _follow.Y, x / Hero.Unit, y / Hero.Unit, Rig.Cell * camera.Zoom.X);
+        camera.Position = new Vector2((float)look.X, (float)look.Y) * (float)Rig.Cell;
+        _figure.OnPixels = new Vector2((float)feet.X, (float)feet.Y) * (float)Rig.Cell;
     }
 
     /// <summary>
