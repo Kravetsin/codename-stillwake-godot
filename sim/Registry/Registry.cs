@@ -77,7 +77,7 @@ public sealed class Registry
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Research, Crafting, Crew, Crew);
         Hazards = new HazardsModule(Grid, Grid);
         Debris = new DebrisModule(Grid, Crew, Rooms, Items, Items);
-        Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Crafting, Crafting);
+        Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting);
         Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);

@@ -168,6 +168,9 @@ public static class Migrations
         // 24 → 25: a stack may carry a module fitted into its tool (0098), written only when one does: the same identity, so
         // an older build never loads a fitted drill and drops its module.
         save => save,
+        // 25 → 26: power keeps what each capacitor bank holds (0101), none before: the same identity, so an older build never
+        // loads a bank and drops its charge.
+        save => save,
     ];
 
     /// <summary>

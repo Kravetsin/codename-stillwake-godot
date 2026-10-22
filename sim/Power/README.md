@@ -10,16 +10,19 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
 - **State** (`PowerState`, members internal): `Cables` — every cable as the cells of its two nodes,
   the lower first, and whether it was paid for, ordered by its ends; `Resting` — the machines told to
   rest, by id, sorted: they draw and make nothing. Saved; a battery's charge is the item's, saved by
-  `items`. Derived: `Networks` — what the cables join, in id order, each with its
-  nodes, supply, demand and satisfaction; `Satisfaction` — each cabled user's, by machine id, only
-  looked up. Both found again every tick, in the derivation phase, from the cables: the machines on
+  `items`; `Stores` — what each store holds in power-ticks, `StoreCharge(Machine, Energy)` by machine id, sorted, only
+  those holding something (0101). Derived: `Networks` — what the cables join, in id order, each with its
+  nodes, supply, demand, satisfaction and its stores' `Stored`, `Capacity`, `Flow`, `Intake`, and `Steady`, what its
+  panels make; `Satisfaction` — each cabled user's, by machine id, only looked up; `Flows` — what goes into each
+  cabled store this tick, out below 0. All found again every tick, in the derivation phase, from the cables: the machines on
   them are those at their ends (`MachineAt`), so a tick costs what is cabled, not the ship's machines.
 - **Files:** `PowerNodes.cs` — nodes, spans and networks, and the `Cable`, `Ends` and `PowerNetwork`
   records; `Power.cs` — the module, its queries, operation and commands; `Fuzz.cs` — its fuzz generator.
 
 ## Rules
 
-- **A node** is a machine that makes or draws power (`Makes`, `Draws` in `Content.Machines`), named by
+- **A node** is a machine that makes, draws or stores power (`Makes`, `Draws`, `Store` in `Content.Machines`:
+  `MachineSpec.Powered`), named by
   its top-left cell, whichever of its cells a cable is laid at; or an **anchor**: any other cell with a
   wall, a floor, a door or a back wall and no machine. An anchor is nothing but a cable's end: it
   comes with the first cable laid there and goes with the last cut.
@@ -40,9 +43,19 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   its slots hold, for a queued one may work a paid unit with its inputs empty; an analyzer only while its slot holds
   something, a charging station (the charger, a drone bay) only while something it holds is short of its capacity; and none told to rest by the
   module it works for (`Rest`); a machine taken apart rests no more. Its
-  satisfaction is `floor(1000 × supply / demand)`, at most 1000, and 1000 with no demand: every user
-  on it works at that share, slowed alike. A resting user is still on its network and gets its share.
-  A powered machine with no cable is on no network: it makes nothing and gets nothing.
+  satisfaction is `floor(1000 × served / demand)`, at most 1000, and 1000 with no demand, served being its supply and
+  what its stores give out (below): every user on it works at that share, slowed alike. A resting user is still on its
+  network and gets its share. A powered machine with no cable is on no network: it makes nothing and gets nothing.
+- **A store** (a machine with a `Store`, the capacitor bank; [0101](../../docs/decisions/0101-a-network-stores-its-spare-power.md))
+  holds up to its `Capacity` in power-ticks. Each tick its network settles (`PowerNodes.Settle`), in the derivation
+  phase, from what each store holds as the tick begins, its stores in the reading order of their cells: with supply at
+  or above demand, what is spare goes in, each store up to its `In` and the room it has left, the rest wasted; short,
+  they give out, each up to its `Out` and what it holds, until the shortfall is met. A store never takes from another.
+  The simulation phase adds each store's flow to what it holds (`Settle` in `Power.cs`). The 12000 a bank holds, at 10 in
+  or out a tick, is a minute of its intake.
+- **A fire is wanted** (`Needed`) while its network draws, or its stores could take in, more than its panels make
+  (`Steady`): `furnace` lights a burner generator's next fuel only then. Other fires are not counted, so two burn
+  together and never hand over a tick dark.
 - **A charging station** (a machine with `Charges` in `Content.Machines`, 0053) puts what it draws into
   what its slots hold short of full: each tick, in the simulation phase after the networks are found, in machine id
   order, its `Draws` in power-ticks × its satisfaction / 1000, stored in thousandths
@@ -65,7 +78,9 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   `LayProblem(peer, a, b)` — why that peer's `Lay` would be refused, for the cable ghost;
   `MoveProblem(from, to, cable?)` — why that `Move` would be refused, for a dragged end;
   `Charges(machineId)` — whether that charging station fills what it holds this tick (short of full, on a
-  network giving it power): its light and its panel's bolt.
+  network giving it power): its light and its panel's bolt; `Store(machineId)` — a store's `StoreLevel(Energy,
+  Capacity, Flow)`, what it holds after this tick and what went in (out below 0), null for a machine that stores
+  nothing: its gauge; `Needed(machineId)` — whether a fire on that machine's network is wanted (above), false on none.
 - **Operations** (`IPowerOps`): `Rest(machineId, resting)` — the machine draws or makes nothing from
   the next derivation on, or works again: `research` rests an analyzer with nothing to learn, and
   `crafting` an idle station that draws (nothing queued, a unit done waiting for room or one waiting for
@@ -86,7 +101,10 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
 - Cables join two different nodes, the lower first, in order, each pair once.
 - No cable spans farther than `Content.Power.MaxSpan`, however its ends are moved.
 - A network's satisfaction is between 0 and 1000, and what its users get, `floor(draw × satisfaction /
-1000)` summed, never exceeds its supply.
+1000)` summed, never exceeds its supply and what its stores gave out.
+- Energy is kept: supply + given out = drawn + taken in + wasted, the waste never below 0; a store never holds below 0
+  or past its capacity, moves no more than its `In` or `Out` a tick, and stops short only at one of those limits
+  (`StoreTests`, two properties proven to bite).
 
 ## Tests waiting for other modules
 
@@ -98,7 +116,10 @@ Every test of `power.test.ts` is ported, with `atmosphere` and `building`.
   Refusing it would need `building` to read cables for every wall, and nobody misses a mount.
 - A machine built later with its top-left on an anchor becomes the node there; one built over an
   anchor otherwise leaves the anchor inside it. Both are rare and harmless.
-- No storage, no priorities, no switches, no overload: a short network slows everything on it.
+- No priorities, no switches, no overload: a short network with its stores spent slows everything on it. A store
+  holds no charge back for later and never leaks.
+- A store taken apart (its cables cut first) loses what it held: refusing it would ask `building` to read stores, and a
+  player empties a bank by using it.
 - Networks are found from scratch every tick: tens of cables, so a cache would cost more than it
   saves until the reference world says otherwise. One kept between ticks would also have to follow
   what an analyzer's slot holds and which machines rest, neither of which moves the grid's `Version`.

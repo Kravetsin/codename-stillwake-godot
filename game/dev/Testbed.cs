@@ -47,10 +47,10 @@ public static class Testbed
 
     /// <summary>
     /// Room one holds the lifepod, the crates, the drone bay and the air: a tank with a canister and a generator piped to a
-    /// vent in each room; room two the furnace, the Former, the electric smelter, the circuit assembler, the grow
+    /// vent in each room; room two a capacitor bank by its door, the furnace, the Former, the electric smelter, the circuit assembler, the grow
     /// capsule and the farm's crate, the analyzer, the charging station and the burner generator; then the airlock, no
-    /// vent in it. Eight panels on the roof: the first and the third feed the lamps and the oxygen generator, the second the
-    /// drone bay, the fourth the analyzer and the charging station, the fifth the smelter, the sixth the assembler and the
+    /// vent in it. Eight panels on the roof: the first and the third feed the lamps and the oxygen generator, their spare
+    /// filling the bank (0101), the second the drone bay, the fourth the analyzer and the charging station, the fifth the smelter, the sixth the assembler and the
     /// grow capsule, the last two the two oxygen generators in room two; the burner generator feeds the Former and room
     /// two's right lamp, and through it the airlock's. The grow capsule stands a cell left of the assembler, inside the
     /// bay's zone. Three oxygen generators, piped with the tank to both vents, make more than the rooms leak and the two
@@ -65,8 +65,8 @@ public static class Testbed
             "  ###############################################",
             "  #.......L......#....L.........J.......L...#.L.#",
             "  #.OOO........RRD..............gg...GG.....D...D",
-            "  #.OOO..TTGG..RRD...FF.MM.EE.YYggGG.GGAACBBD...D",
-            "  #.OOOKKTTGGVKK.D.V.FF.MM.EE.YYggGGKK.AACBBD...D",
+            "  #.OOO..TTGG..RRDQQ.FF.MM.EE.YYggGG.GGAACBBD...D",
+            "  #.OOOKKTTGGVKK.DQQVFF.MM.EE.YYggGGKK.AACBBD...D",
             "  ###############################################",
         ],
         [
@@ -83,7 +83,7 @@ public static class Testbed
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
             ((19, 2), (22, 4)), ((25, 2), (39, 6)), ((42, 6), (40, 4)), ((40, 4), (46, 4)), ((42, 6), (24, 6)), ((25, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (37, 5)),
-            ((37, 2), (32, 4)),
+            ((37, 2), (32, 4)), ((19, 2), (18, 6)),
         ]);
 
     /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>

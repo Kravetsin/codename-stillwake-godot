@@ -11,7 +11,8 @@ once, and smelting has moved to `Crafting`.
 - **Depends on:** `Grid` (`IGridQueries`: which machines are furnaces and generators, `MachinesOf`,
   and their cells), `Items` (`IItemsQueries`: their slots; `IItemsOps`: `Consume`, a fuel lit),
   `Atmosphere` (`IAtmosphereQueries`: `AiredAt`; `IAtmosphereOps`: `Breathe`, the air their fire
-  breathes), `Power` (`IPowerOps`: `Rest`, a cold generator makes nothing), `Crafting`
+  breathes), `Power` (`IPowerOps`: `Rest`, a cold generator makes nothing; `IPowerQueries`: `Needed`, whether its
+  network wants a fire), `Crafting`
   (`ICraftingQueries`: `CanSmelt`, whether a furnace has what it can smelt, and `Progress` for its panel;
   `ICraftingOps`: `Heat`, a furnace's fire burns).
 - **State** (`FurnaceState`, members internal): `Fires` — each furnace or generator burning,
@@ -47,15 +48,18 @@ once, and smelting has moved to `Crafting`.
 - **A generator rests while its fire is out:** in the construction phase, before power's derivation,
   each one not burning is told to rest (`IPowerOps.Rest`), one burning to work. `Power` counts no
   resting maker, so a generator makes its `Makes` from the tick after it is lit to the tick after it
-  goes out, and one just built never makes a tick. It burns while it has fuel, whatever its network
-  draws.
+  goes out, and one just built never makes a tick. **It lights its next fuel only while its network wants a fire**
+  (`IPowerQueries.Needed`: its draw and what its stores could take in, more than its panels make; [0101](../../docs/decisions/0101-a-network-stores-its-spare-power.md)):
+  a fuel lit burns to its end, the next waits in its slot, and one on no network never lights. Other fires are not
+  weighed, so two on a network burn together.
 
 ## API
 
 - **Queries:** `At(id)` — furnace or generator `id` as its panel shows it, a `Smelting(Burning, Item,
   Progress, Work, Problem)`: whether it burns, and why it stands still: `crafting.tooCold` (a furnace
   only, what its input holds needs more heat: `ICraftingQueries.TooCold`), `furnace.full` (a furnace
-  only, nothing it can smelt fits), `furnace.noFuel` or `furnace.noAir`; for a furnace with salvage in
+  only, nothing it can smelt fits), `furnace.noFuel`, `furnace.noAir` or `furnace.unneeded` (a generator only, cold with
+  fuel its network does not want); for a furnace with salvage in
   its input, also what it smelts, how far, out of how much work, in thousandths of a tick (crafting's
   measure). A furnace with nothing to smelt says only `Burning` (TypeScript's `{ burning }`). No query
   interface: no module reads it, only the client.
@@ -71,7 +75,7 @@ once, and smelting has moved to `Crafting`.
 
 - A fuel slot takes anything, and an input anything: what does not burn or smelt only sits there.
 - A furnace's fire with nothing left to smelt burns its fuel away, as in Minecraft; a generator's burns
-  with nothing cabled or drawing (the crafting plan: no demand logic, the fuel taken out stops it).
+  out to its end once lit, even if its network stops wanting it: a fire has no paused state (0101).
 - No queue, no recipes beyond `Yields`, no automation: what comes out stays until a hero takes it.
 - The tick a fire lights it does not smelt, and the tick it goes out for air it does: the fire is read
   once, as the tick begins, rather than crafting and the fire looping through each other within a tick.

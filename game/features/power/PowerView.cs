@@ -139,13 +139,21 @@ public partial class PowerView : Node2D
         }
     }
 
-    /// <summary>Beside the pointer on a node, what its network makes against what it would draw.</summary>
+    /// <summary>
+    /// Beside the pointer on a node, what its network makes against what it would draw, and with stores on it what they
+    /// hold of full (0101), the tick's settling counted in.
+    /// </summary>
     private void Tell(Registry m, (double X, double Y)? pointer)
     {
         string[] said = [];
         if (pointer is { } p && p.X >= 0 && p.Y >= 0 && p.X < _size.W && p.Y < _size.H
             && m.Power.NodeAt((int)p.Y * _size.W + (int)p.X) is int node && m.Power.NetworkOf(node) is { } network)
-            said = [En.T("power.supply", ("supply", network.Supply), ("demand", network.Demand))];
+        {
+            var supply = En.T("power.supply", ("supply", network.Supply), ("demand", network.Demand));
+            said = network.Capacity > 0
+                ? [supply, En.T("power.stored", ("stored", network.Stored + network.Flow), ("capacity", network.Capacity))]
+                : [supply];
+        }
         _ui.WorldTip.SetLines(said);
     }
 
@@ -193,7 +201,7 @@ public partial class PowerView : Node2D
         foreach (var machine in m.Grid.Machines)
         {
             var spec = Machines.Get(machine.Kind);
-            if ((spec.Makes != null || spec.Draws != null) && !_byNode.ContainsKey(machine.Cell)) _key.Add(machine.Cell);
+            if (spec.Powered && !_byNode.ContainsKey(machine.Cell)) _key.Add(machine.Cell);
         }
         return _key;
     }
@@ -246,7 +254,7 @@ public partial class PowerView : Node2D
         foreach (var machine in m.Grid.Machines)
         {
             var spec = Machines.Get(machine.Kind);
-            if ((spec.Makes == null && spec.Draws == null) || _byNode.ContainsKey(machine.Cell)) continue;
+            if (!spec.Powered || _byNode.ContainsKey(machine.Cell)) continue;
             var at = CableShape.MiddleOf(m.Grid, machine.Cell);
             _unplugged.AddChild(new Sprite2D
             {

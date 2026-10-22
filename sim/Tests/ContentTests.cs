@@ -772,7 +772,7 @@ public class ContentTests
     {
         foreach (var m in Machines.All)
         {
-            bool powered = m.Makes != null || m.Draws != null;
+            bool powered = m.Powered;
             Assert.True(m.Plug != null == powered, m.Kind);
             if (m.Plug is not { } plug) continue;
             Assert.True(plug.X >= 0 && plug.X < m.Width * 16, m.Kind);

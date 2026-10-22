@@ -127,6 +127,7 @@ public class BurnerGeneratorTests
     [Fact]
     public void TwoGeneratorsOnOneNetworkAddUp()
     {
+        // 0101: a fire weighs only what panels make against the draw, so two burn together and never hand over a tick dark.
         var w = SetUp(two: true);
         Feed(w, 1);
         Feed(w, 1, Second).Run();

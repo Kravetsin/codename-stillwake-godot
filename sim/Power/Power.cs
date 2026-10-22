@@ -25,10 +25,14 @@ public sealed class PowerState
     [JsonInclude] internal List<Cable> Cables { get; set; } = [];
     /// <summary>The machines told to rest by the module they work for, by id, sorted: they draw and make nothing.</summary>
     [JsonInclude] internal List<int> Resting { get; set; } = [];
+    /// <summary>What each store holds, by machine id, sorted; only those holding something (0101).</summary>
+    [JsonInclude] internal List<StoreCharge> Stores { get; set; } = [];
     /// <summary>Derived: the networks the cables join, in id order.</summary>
     [JsonIgnore] internal List<PowerNetwork> Networks { get; set; } = [];
     /// <summary>Derived: each cabled user's satisfaction in thousandths, by machine id; only looked up.</summary>
     [JsonIgnore] internal Dictionary<int, int> Satisfaction { get; set; } = new();
+    /// <summary>Derived: what goes into each cabled store this tick, out below 0, network by network.</summary>
+    [JsonIgnore] internal List<(int Machine, int Flow)> Flows { get; set; } = [];
 }
 
 /// <summary>What any module may read of the power. Lists are live: a reader never writes them.</summary>
@@ -56,6 +60,17 @@ public interface IPowerQueries
     /// capacity, on a network that gives it power. What its light and its panel's bolt show, a drone bay's too.
     /// </summary>
     bool Charges(int machineId);
+    /// <summary>
+    /// What store <paramref name="machineId"/> holds of full and what goes into it this tick, out below 0 (0101); null for a
+    /// machine that stores nothing. What its gauge shows.
+    /// </summary>
+    StoreLevel? Store(int machineId);
+    /// <summary>
+    /// Whether a fire on machine <paramref name="machineId"/>'s network is wanted: it draws, or its stores could take in,
+    /// more than its panels make (<see cref="PowerNetwork.Steady"/>, 0101). A burner generator lights its next fuel only
+    /// then; one on no network never. Fires are not weighed against each other, so two never hand over a tick dark.
+    /// </summary>
+    bool Needed(int machineId);
     /// <summary>Why peer <paramref name="peer"/>'s <see cref="Lay"/> from <paramref name="a"/> to <paramref name="b"/> would be refused: what the cable ghost shows.</summary>
     string? LayProblem(int peer, int a, int b);
     /// <summary>Why a <see cref="Move"/> from node <paramref name="from"/> to cell <paramref name="to"/> would be refused: what a dragged end shows.</summary>
@@ -83,6 +98,8 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     private readonly Predicate<int> _standing;
     private readonly Func<Machine, int> _draw;
     private readonly Func<Machine, bool> _making;
+    private readonly Func<int, int> _stored;
+    private readonly Predicate<StoreCharge> _storeStanding;
 
     public override string Id => "power";
 
@@ -95,23 +112,64 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         _standing = id => _grid.MachineById(id) != null;
         _draw = m => Drawing(m) ? DrawOf(m) : 0;
         _making = m => !IsResting(m.Id);
+        _stored = StoredIn;
+        _storeStanding = s => _grid.MachineById(s.Machine) != null;
         Handles<Lay>(c => LayProblem(c.From, c.A, c.B), ApplyLay);
         Handles<Move>(c => MoveProblem(c.Node, c.To, c.Cable), ApplyMove);
         Handles<Cut>(CutProblem, ApplyCut);
-        // After derivation, at this tick's satisfaction: a charging station fills what it holds.
+        // After derivation, at this tick's satisfaction: a charging station fills what it holds, a store what it settled.
         System(Phase.Simulation, Charge);
+        System(Phase.Simulation, Settle);
         // Every tick: a wall built or broken moves a panel in or out of space, a machine comes or goes.
         System(Phase.Derivation, () =>
         {
-            // A machine taken apart rests no more: nothing else tells it to work again.
+            // A machine taken apart rests no more: nothing else tells it to work again. A store taken apart loses what it held.
             if (!State.Resting.TrueForAll(_standing)) State.Resting = State.Resting.FindAll(_standing);
+            if (!State.Stores.TrueForAll(_storeStanding)) State.Stores = State.Stores.FindAll(_storeStanding);
             Rebuild();
         });
     }
 
     protected override PowerState Init(Layout layout) => new() { Cables = StartingCables(layout) };
 
-    public override void Rebuild() => (State.Networks, State.Satisfaction) = Find(_grid, _rooms, State.Cables, _draw, _making);
+    public override void Rebuild() => (State.Networks, State.Satisfaction, State.Flows) = Find(_grid, _rooms, State.Cables, _draw, _making, _stored);
+
+    /// <summary>Where store <paramref name="machineId"/> stands in <c>Stores</c>, or its complement where it would go.</summary>
+    private int StoreIndex(int machineId)
+    {
+        var stores = State.Stores;
+        int lo = 0, hi = stores.Count - 1;
+        while (lo <= hi)
+        {
+            int mid = lo + ((hi - lo) >> 1);
+            if (stores[mid].Machine == machineId) return mid;
+            if (stores[mid].Machine < machineId) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return ~lo;
+    }
+
+    /// <summary>What store <paramref name="machineId"/> holds, in power-ticks; 0 for one holding nothing.</summary>
+    private int StoredIn(int machineId) => StoreIndex(machineId) is int at and >= 0 ? State.Stores[at].Energy : 0;
+
+    /// <summary>
+    /// Each cabled store takes in or gives out what its network settled in this tick's derivation (0101): read there, from what
+    /// it held as the tick began, so a world loaded settles the same. Never below 0 or past full: <c>Settle</c> keeps to both.
+    /// </summary>
+    private void Settle()
+    {
+        foreach (var (machine, flow) in State.Flows)
+        {
+            if (flow == 0) continue;
+            int at = StoreIndex(machine);
+            int energy = (at >= 0 ? State.Stores[at].Energy : 0) + flow;
+            if (energy < 0 || energy > Spec(_grid.MachineById(machine)!).Store!.Capacity)
+                throw new InvalidOperationException($"Store {machine} would hold {energy}.");
+            if (at < 0) State.Stores.Insert(~at, new StoreCharge(machine, energy));
+            else if (energy == 0) State.Stores.RemoveAt(at);
+            else State.Stores[at] = new StoreCharge(machine, energy);
+        }
+    }
 
     /// <summary>
     /// The cables a map lays, each end resolved to its node as <see cref="Lay"/> would: a machine drawn
@@ -212,6 +270,16 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     public bool Charges(int machineId) =>
         _grid.MachineById(machineId) is { } m && Spec(m).Charges && Drawing(m) && Satisfaction(machineId) > 0;
+
+    public StoreLevel? Store(int machineId)
+    {
+        if (_grid.MachineById(machineId) is not { } m || Spec(m).Store is not { } spec) return null;
+        int flow = State.Flows.Find(f => f.Machine == machineId).Flow;
+        return new StoreLevel(StoredIn(machineId), spec.Capacity, flow);
+    }
+
+    public bool Needed(int machineId) =>
+        _grid.MachineById(machineId) is { } m && NetworkOf(m.Cell) is { } network && network.Demand + network.Intake > network.Steady;
 
     public string? LayProblem(int peer, int a, int b)
     {

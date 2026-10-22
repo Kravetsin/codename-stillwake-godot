@@ -167,6 +167,20 @@ public class ResearchTests
         Assert.True(w.M.Research.Knows(generator));
     }
 
+    /// <summary>The capacitor bank (0101): common parts, no arc in them, so it opens aboard as the burner does.</summary>
+    [Fact]
+    public void OpensTheCapacitorBankOnceFrameCoilPlateAndCircuitAreAnalysed()
+    {
+        var (w, id) = SetUp();
+        w.GiveItems(0, ("frame", 1), ("coil", 1), ("plate", 1), ("circuit", 1));
+        var bank = new Placement("machine", "capacitorBank");
+        Assert.Equal(["frame", "coil", "plate", "circuit"], RecipeOf(w, "capacitorBank").Unanalysed);
+        foreach (var item in new[] { "frame", "coil", "plate" }) Analyse(w, id, item);
+        Assert.False(w.M.Research.Knows(bank));
+        Analyse(w, id, "circuit");
+        Assert.True(w.M.Research.Knows(bank));
+    }
+
     /// <summary>The circuit assembler (0057): a frame, a rotor, glass, wire and a circuit; and its circuit craft, silicon and wire.</summary>
     [Fact]
     public void OpensTheCircuitAssemblerOnceFrameRotorGlassWireAndCircuitAreAnalysedAndCircuitsOfSiliconAndWire()

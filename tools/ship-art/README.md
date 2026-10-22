@@ -17,6 +17,7 @@ means the pixels match but the bytes do not, because the PNG encoder these paint
 | `machines/smelter.js` | `machine_smelter`, `smelter_work_0-2`, `items/glass`, `items/silicon` | none | `node tools/ship-art/machines/smelter.js [artDir]` | pixel-exact 6/6 |
 | `machines/lifepod.js` | `machine_lifepod`, `lifepod_glass` | none | `node tools/ship-art/machines/lifepod.js [artDir]` | pixel-exact 2/2 |
 | `machines/charger.js` | `machine_charger` | none | `node tools/ship-art/machines/charger.js [file]` | pixel-exact 1/1 |
+| `machines/capacitor-bank.js` | `machine_capacitorBank` (0101) | none | `node tools/ship-art/machines/capacitor-bank.js [file]` | exact 1/1 (written by it) |
 | `machines/parts.js` | `items/rotor`; also `wire`, `plate`, `gear` | none | `node tools/ship-art/machines/parts.js [itemsDir]` | `rotor` exact; `wire`, `plate`, `gear` drifted (redrawn by `resource-icons`) |
 | `machines/make.js` | `items/asteroid`; also the first `drill` icon and `hero_drill` | none; writes `.raw`, then `ffmpeg -f rawvideo -pix_fmt rgba -s WxH -i x.raw x.png` | `node tools/ship-art/machines/make.js <dir>` | `asteroid` exact; `drill` and `hero_drill` drifted (replaced by `drill/`) |
 | `burner/make.cjs` | `machine_burnerGenerator`, `burner_wheel_0-3` | none | `node tools/ship-art/burner/make.cjs [file] [zoom]` | exact 5/5 |
