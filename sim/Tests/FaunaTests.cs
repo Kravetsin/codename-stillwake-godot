@@ -610,10 +610,11 @@ public class FaunaTests
     }
 
     [Fact]
-    public void NothingSpawnsUnderBackWallsOnALifelessTypeOrAboard()
+    public void NothingOfTheSurfaceSpawnsUnderBackWallsNorAnythingOnALifelessTypeOrAboard()
     {
         var backed = Wide(400, 12, '.');
-        var caves = FaunaTesting.Planet(backed).HeroAt(200, 10);
+        var sky = Spec.PlanetTypes.First with { Fauna = [.. Spec.PlanetTypes.First.Fauna.Where(h => h.Place == Tune.Place.Surface)] };
+        var caves = FaunaTesting.Planet(backed, sky).HeroAt(200, 10);
         var lifeless = FaunaTesting.Planet(Wide(400, 12), FaunaTesting.Lifeless).HeroAt(200, 10);
         var ship = new Scenario(Wide(400, 12)).HeroAt(200, 10);
         foreach (var w in new[] { caves, lifeless, ship }) w.Run(20 * Tune.Beat);
@@ -636,6 +637,28 @@ public class FaunaTests
         Assert.NotEmpty(caves.M.Fauna.Creatures);
         Assert.Empty(sky.M.Fauna.Creatures);
         Assert.Empty(deeper.M.Fauna.Creatures);
+    }
+
+    [Fact]
+    public void TheFirstPlanetsKindsSpawnByHabitatTheWalkersUnderTheSkyTheFluffOnCaveFloors()
+    {
+        // The user's rule: by habitat. Under the sky the loper, the tapir and the sixleg, each drawn; in the cold band's caves the fluff alone.
+        string[] Spawned(Layout map)
+        {
+            var w = FaunaTesting.Planet(map).Breathing();
+            for (int h = 0; h < 3; h++) w.HeroAt(100 + 200 * h, 10, peer: h);
+            for (int t = 0; t < 60 * Tune.Beat; t++)
+            {
+                w.Run();
+                foreach (var c in w.M.Fauna.Creatures) c.Still();
+            }
+            return [.. w.M.Fauna.Creatures.Select(c => c.Species).Distinct().Order(StringComparer.Ordinal)];
+        }
+        Assert.Equal([Tune.Loper.Id, Tune.Sixleg.Id, Tune.Tapir.Id], Spawned(Wide(700, 12)));
+        Assert.Equal([Tune.Fluff.Id], Spawned(Wide(700, 12, '.')));
+        var first = Spec.PlanetTypes.First.Fauna;
+        Assert.All(first.Where(h => h.Species == Tune.Fluff.Id), h => Assert.Equal((Tune.Place.Band, true), (h.Place, h.Band is 0 or 1)));
+        Assert.All(first.Where(h => h.Species != Tune.Fluff.Id), h => Assert.Equal(Tune.Place.Surface, h.Place));
     }
 
     [Fact]
