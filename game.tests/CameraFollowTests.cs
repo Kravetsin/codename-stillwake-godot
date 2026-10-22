@@ -183,7 +183,7 @@ public class CameraFollowTests
         Run(camera, Look.SmoothMs / 1000, 1000, _ => Standing(0, 9));
         Assert.Equal(10 - (1 - Math.Exp(-1)), camera.Y, 3);
         Run(camera, 1, 60, _ => Standing(0, 9));
-        Assert.Equal(9, camera.Y, 2);
+        Assert.Equal(9, camera.Y);
     }
 
     [Fact]
@@ -263,5 +263,86 @@ public class CameraFollowTests
             return camera.X - Running(1.5).X;
         }).ToList();
         foreach (var end in ends) Assert.InRange(end - ends[0], -0.05, 0.05);
+    }
+
+    /// <summary>Screen pixels a cell at the farthest zoom of a screen 1920 wide.</summary>
+    private const double PerCell = 16 * 1.25;
+
+    /// <summary>
+    /// A run of three seconds, then the hero standing where it stopped, at <paramref name="fps"/>: when, after the stop, the
+    /// camera moved a whole screen pixel, in milliseconds, and the camera and the hero at the end.
+    /// </summary>
+    private static (List<double> Moves, CameraFollow Camera, Followed Hero) Stopping(double fps)
+    {
+        var camera = At(Running(0));
+        Run(camera, 3, fps, t => Running(t));
+        var stopped = Standing(Running(3).X, 10);
+        var moves = new List<double>();
+        double shown = CameraFollow.OnPixels(camera.X, camera.Y, stopped.X, stopped.Y, PerCell).Camera.X;
+        int frames = (int)Math.Round(4 * fps);
+        for (int i = 1; i <= frames; i++)
+        {
+            camera.Step(stopped, View, 1000 / fps);
+            double now = CameraFollow.OnPixels(camera.X, camera.Y, stopped.X, stopped.Y, PerCell).Camera.X;
+            if (now != shown) moves.Add(i * 1000 / fps);
+            shown = now;
+        }
+        return (moves, camera, stopped);
+    }
+
+    [Theory]
+    [InlineData(60)]
+    [InlineData(144)]
+    public void AfterARunTheViewSettlesAtASteadyPaceNeverCrawlingInAndEndsOnTheHero(double fps)
+    {
+        var (moves, camera, hero) = Stopping(fps);
+        // At SettleSpeed the lead's two cells go by a pixel every 50 ms here; an eased tail's last pixels came most of a second apart.
+        double slowest = 1000 / (Look.SettleSpeed * Reach * PerCell);
+        Assert.Equal(50, slowest, 9);
+        var gaps = moves.Zip(moves.Skip(1), (a, b) => b - a).ToList();
+        Assert.True(gaps.Count > 30, $"only {moves.Count} pixels moved");
+        Assert.All(gaps, gap => Assert.True(gap <= slowest + 1000 / fps + 1e-9, $"a pixel {gap} ms after the last: {string.Join(" ", gaps)}"));
+        Assert.True(moves[^1] < 2000, $"still settling {moves[^1]} ms after the stop");
+        Assert.Equal((hero.X, hero.Y), (camera.X, camera.Y));
+        Assert.Equal((0.0, 0.0), camera.Lead);
+    }
+
+    [Fact]
+    public void TheViewSettlesAlikeAt60And144Fps()
+    {
+        var (at60, _, _) = Stopping(60);
+        var (at144, _, _) = Stopping(144);
+        Assert.InRange(at144[^1] - at60[^1], -2000 / 60.0, 2000 / 60.0);
+        Assert.InRange(at144.Count - at60.Count, -2, 2);
+    }
+
+    [Fact]
+    public void AnApproachGoesItsShareButAtLeastItsLeastAndNeverPast()
+    {
+        Assert.Equal(5, CameraFollow.Approach(0, 10, 0.5, 1));
+        Assert.Equal(1, CameraFollow.Approach(0, 1.5, 0.1, 1));
+        Assert.Equal(-1.5, CameraFollow.Approach(0, -1.5, 0.1, 2));
+        Assert.Equal(3, CameraFollow.Approach(3, 3, 0.5, 1));
+    }
+
+    [Fact]
+    public void OnPixelsTheWorldMovesByWholePixelsAndASteadyLeadHoldsTheHeroStill()
+    {
+        double? heroShown = null;
+        for (int i = 0; i < 600; i++)
+        {
+            // A hero running on at no whole number of pixels a frame, the camera a steady 1.937 cells ahead.
+            double feet = 3 + i * 0.01234, middle = 10 - 1.312;
+            var (look, at) = CameraFollow.OnPixels(feet + 1.937, middle + 0.2, feet, 10, PerCell);
+            // Every point of the world a whole pixel apart from frame to frame: the camera an eighth off whole pixels.
+            Assert.Equal(-CameraFollow.Phase, look.X * PerCell - Math.Round(look.X * PerCell), 9);
+            Assert.Equal(-CameraFollow.Phase, look.Y * PerCell - Math.Round(look.Y * PerCell), 9);
+            Assert.Equal(0, at.X * PerCell - Math.Round(at.X * PerCell), 9);
+            // The hero within half a pixel of where it stands, and as far from the screen's middle every frame.
+            Assert.InRange((at.X - feet) * PerCell, -0.5, 0.5);
+            double shown = (at.X - look.X) * PerCell;
+            Assert.Equal(heroShown ?? shown, shown, 9);
+            heroShown = shown;
+        }
     }
 }
