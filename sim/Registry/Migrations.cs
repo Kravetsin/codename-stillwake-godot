@@ -168,7 +168,22 @@ public static class Migrations
         // 24 → 25: a stack may carry a module fitted into its tool (0098), written only when one does: the same identity, so
         // an older build never loads a fitted drill and drops its module.
         save => save,
+        // 25 → 26: creatures (0102): the fauna slice, empty, after every other, aboard and on every surface; none has lived yet.
+        Creatures,
     ];
+
+    /// <summary>
+    /// 25 → 26: the fauna slice (0102), empty, its clock unstarted, after every other slice, aboard and on every surface: what a
+    /// fresh one holds, for nothing lived before. A save already holding it is left as it is.
+    /// </summary>
+    public static JsonObject Creatures(JsonObject save)
+    {
+        static void Add(JsonNode slices) =>
+            slices.AsObject()["fauna"] ??= new JsonObject { ["creatures"] = new JsonArray(), ["nextId"] = 1, ["clock"] = 0 };
+        Add(save["slices"]!);
+        foreach (var surface in save["surfaces"]?.AsArray() ?? []) Add(surface!["slices"]!);
+        return save;
+    }
 
     /// <summary>
     /// 22 → 23: what each Former holds gains a third input, empty, after its two, so its outputs keep their stacks; aboard

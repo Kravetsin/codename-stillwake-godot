@@ -142,18 +142,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
     public static IReadOnlyList<(string Item, int Count)> LootOf(string item, Rng rng)
     {
         var loot = Content.Loot.Of(item);
-        if (loot == null) return [(item, 1)];
-        var got = new List<(string Item, int Count)>();
-        foreach (var entry in loot)
-        {
-            if (entry.OneIn is int oneIn && rng.Below((uint)oneIn) != 0) continue;
-            int count = entry.Min + (int)rng.Below((uint)(entry.Max - entry.Min + 1));
-            if (count <= 0) continue;
-            int at = got.FindIndex(g => g.Item == entry.Item);
-            if (at < 0) got.Add((entry.Item, count));
-            else got[at] = (entry.Item, got[at].Count + count);
-        }
-        return got;
+        return loot == null ? [(item, 1)] : Loots.Roll(loot, rng);
     }
 
     // Commands.

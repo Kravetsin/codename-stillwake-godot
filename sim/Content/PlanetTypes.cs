@@ -43,6 +43,9 @@ public sealed record PlanetType(string Id, Ground Ground) : Surfaces.Kind(Id, []
 
     /// <summary>In a great hall chances are this many percent of a tunnel's.</summary>
     public required int Hall { get; init; }
+
+    /// <summary>What lives on it (0102): each species where it spawns, drawn by weight; none for a lifeless type.</summary>
+    public IReadOnlyList<Content.Fauna.Habitat> Fauna { get; init; } = [];
 }
 
 /// <summary>The planet types there are (0095): each a surface kind a world may open (<see cref="Surfaces.All"/>).</summary>
@@ -117,6 +120,8 @@ public static class PlanetTypes
         PatchWave = 12,
         PatchMost = 220,
         Hall = 700,
+        // Neutral creatures only on the first planet (the user's word); its caves' kinds come by band.
+        Fauna = [new(Content.Fauna.Loper.Id, Content.Fauna.Place.Surface, 1)],
     };
 
     /// <summary>

@@ -126,6 +126,36 @@ public class BudgetTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// The first planet with its cap of forty lopers round a hero (0102), let out over its ground and spawned, walking, idling,
+    /// struck now and then and fleeing: the tick against the planet's idle one.
+    /// </summary>
+    [Fact]
+    public void KeepsAPlanetsTickWithFortyCreaturesUnderBudget()
+    {
+        var w = new Scenario(Layout.Parse(["......", ".S....", "######"]));
+        w.Do(new Crew.Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Content.PlanetTypes.First.Id)).Run();
+        w.Do(new Transfer(1)).Run();
+        var m = w.On(1);
+        w.Do(new Items.SetCreative(true)).Run();
+        var idle = Time(w.World, 300, _ => []);
+        int width = m.Grid.Width, spawn = m.Crew.Spawn, row = spawn / width;
+        // Over the ground either side of the hero, a cell over the first wall down each column.
+        for (int x = spawn % width - 50; m.Fauna.Creatures.Count < Content.Fauna.Max && x < spawn % width + 50; x += 2)
+        {
+            int y = row - 20;
+            while (y < row + 20 && m.Grid.StructureAt((y + 1) * width + x) != Grid.Structure.Wall) y++;
+            w.Do(new Fauna.Release(Content.Fauna.Loper.Id, y * width + x)).Run();
+        }
+        w.Run(Content.Fauna.Beat * Content.Fauna.Max);
+        Assert.Equal(Content.Fauna.Max, m.Fauna.Creatures.Count);
+        var living = Time(w.World, 600, t => t % 10 == 0 && m.Fauna.Creatures.Count > 0
+            ? [new Fauna.Strike(m.Fauna.Creatures[t / 10 % m.Fauna.Creatures.Count].Id, Content.Weapons.Axe.Item)]
+            : []);
+        output.WriteLine($"the first planet idle {idle.Mean:F3} ms a tick; with {Content.Fauna.Max} creatures {living.Mean:F3} ms mean, {living.Max:F3} ms max");
+        Assert.True(living.Mean < 2, $"a planet's tick with its creatures took {living.Mean:F3} ms");
+    }
+
+    /// <summary>
     /// Ten thousand cracks at once, the worst case (0077): hit in descending cell order, so every one is inserted at the
     /// list's head; what they hold, their save and hash, and the tick that sweeps them. Healing keeps real counts tiny.
     /// </summary>

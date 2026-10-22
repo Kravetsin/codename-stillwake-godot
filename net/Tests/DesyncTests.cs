@@ -151,6 +151,53 @@ public class DesyncTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void KeepsEveryClientAndAJoinerInSyncWithCreaturesOnSmallPlanets()
+    {
+        // Creatures on small planets (0102): the first client beamed down lets lopers out over the ground by its hero and
+        // strikes them with the axe, so they are knocked, flee, wander, die into their yields and are gone with the last hero,
+        // alike on every peer and in a joiner's welcome; the fuzz releases and strikes besides.
+        string planet = Content.PlanetTypes.Small.Id, axe = Content.Weapons.Axe.Item, loper = Content.Fauna.Loper.Id;
+        Covering(31, tried =>
+        {
+            int most = 0, fled = 0, killed = 0;
+            var run = Desync.Fuzz(Definition.Game(), tried, layout: Registry.Wreck, ticks: 1200, joinAt: 600, worldEvery: 6, tamper: (tick, clients) =>
+            {
+                var world = clients[0].World;
+                foreach (var surface in world.Surfaces.Where(s => s.Kind == planet))
+                {
+                    var m = Registry.On(world, surface.Id);
+                    most = Math.Max(most, m.Fauna.Creatures.Count);
+                    fled += m.Fauna.Creatures.Count(c => c.Mode == Sim.Fauna.Mode.Flee);
+                    killed = Math.Max(killed, m.Items.Floor.Where(s => s.Item == "biomass").Sum(s => s.Count));
+                }
+                var first = clients[0];
+                if (tick % 10 != 0) return;
+                if (world.Surfaces.FirstOrDefault(s => s.Kind == planet) is not { } down)
+                {
+                    if (tick % 50 == 0) first.Send(new OpenSurface(planet));
+                    return;
+                }
+                if (world.SurfaceOf(first.Id) != down.Id)
+                {
+                    first.Send(new Transfer(down.Id));
+                    return;
+                }
+                var on = Registry.On(world, down.Id);
+                int width = on.Grid.Width, x = 4 + tick / 10 % (width - 8);
+                if (tick % 30 == 0)
+                {
+                    int y = 2;
+                    while (y < on.Grid.Height - 2 && on.Grid.StructureAt((y + 1) * width + x) == Structure.Empty) y++;
+                    first.Send(new Sim.Fauna.Release(loper, y * width + x));
+                }
+                else if (on.Fauna.Creatures.Count > 0)
+                    first.Send(new Sim.Fauna.Strike(on.Fauna.Creatures[tick / 10 % on.Fauna.Creatures.Count].Id, axe));
+            });
+            return (run, most >= 3 && fled >= 1 && killed >= 1 ? null : $"{most} creatures at most, {fled} creature-ticks fleeing, {killed} biomass dropped");
+        });
+    }
+
+    [Fact]
     public void KeepsAJoinerInSyncWhileRoomsAreFoundAgainAroundDoorsFarFromSpace()
     {
         // Rooms closed by doors three cells and more from space: toggled by the fuzz, they are found

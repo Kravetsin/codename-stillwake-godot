@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>Stillwake.Sim.Fauna</AssemblyName><RootNamespace>Stillwake.Sim.Fauna</RootNamespace></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Crew/Crew.csproj" />
+    <ProjectReference Include="../Items/Items.csproj" />
+  </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Stillwake.Sim.Tests" /></ItemGroup>
+</Project>
