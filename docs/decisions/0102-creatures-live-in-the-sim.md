@@ -36,6 +36,15 @@ must agree on where it is and when it dies, so its body, its hit points and its 
   more — at the brink, judged by where its edge gets this tick, so a fleeing one stops there rather than overhanging — and
   walks off a shallower one. A tick moves under a cell across (the fastest flight 750) and down (`MaxFall` 600), so it never
   passes through a wall a cell thick. Modes: idle, wander, flee, hurt; only an idle or a wander begun draws from the Rng.
+- **It jumps** (the user's word after a playtest: pinned to a wall a loper could do nothing). A species' `Jump` (speed up) and
+  `JumpAcross` (speed across in the air) are data; its highest and longest follow under the planet's gravity (`Leaps`). Where it
+  would turn it first flies a leap through the grid, tick by tick as it would move, and takes it if it lands at least a cell on
+  and no more than three rows down; else it turns as before. Fleeing, the lowest of three jumps that lands (sized for a ledge
+  of two, of three, and its whole jump), over walls and across gaps; wandering, only up a ledge of two at its feet, so it does
+  not bound about. In the air it presses flush on a wall and is carried over once clear. The loper: 440 up and 250 across,
+  4.4 cells high and 10.5 long landing level on the first planet; it clears a wall of four and a gap of eight or so, and
+  turns at a wall of five and at a pit too wide or deep. Still cornerable: under a low ceiling, or by a cliff of four rows
+  or more, or a pit past its leap. No draw: it is a pure function of the grid.
 - **The loper,** 2 × 2, 12 hit points: six axe hits, twelve of the drill, six of the fitted drill. Wanders at 2 cells a
   second, flees at 15 for 3 s, then calms to idling and wandering: faster than a hero's sprint of 13.2, so a blow is the end of
   the chase for now — the hunter follows and finds it calm again, corners it at a cliff or a wall, or will stun it (the arc's

@@ -27,13 +27,21 @@ flinching and fleeing, dying into their yields, and gone again when no hero is n
   body (its head kept on the grid); else its mode's clock counts down, a mode ending picks the next (below); a walker on the
   ground in `Wander` or `Flee` turns back from a wall it cannot step up and from a drop of `Fauna.Drop` (3) rows or more, in
   the column just ahead or, over flat ground, the one its edge reaches at its mode's speed this tick (a loper's flight, 15 cells
-  a second, would else overhang the brink by most of a cell), then goes that speed; idle on the ground it stands still; then it moves. Then, on the beat, spawns.
+  a second, would else overhang the brink by most of a cell) — unless it leaps (below) — then goes that speed; idle on the ground it stands still; then it moves. Then, on the beat, spawns.
 - **Moving** is integer and per axis, under the surface's gravity (`Kind.Fall(Fauna.Gravity)`, 21 a tick on the first
   planet, at most `Fauna.MaxFall`). Solid is a wall (a slope stood on at its top, whole), a floor or a closed door, and past
   the grid's edge, as for a stack; machines are not. Across: into what is solid it steps up one cell if it stood on the
-  ground and the cell over is free, else stops flush, turned back while walking; walking off a step one cell deep it steps down
+  ground and the cell over is free, else stops flush, keeping its way for its steering to leap or turn; walking off a step one cell deep it steps down
   onto it, never falling, so a slope's run of steps is walked. Down: it lands flush on what is under it; up, it stops flush
   under what is over it. A tick moves less than a cell, so the next column or row is the only one entered.
+- **Jumps** (`Jump.cs`), for a species with a `Jump`: where a walker would turn, it first tries a leap, flown through the grid
+  tick by tick as the move would fly it (`Lands`), up to 120 ticks: taken if it lands at least a cell on and no more than
+  `Fauna.Drop` rows down, else it turns. Fleeing, it tries the lowest of three — sized to carry its feet over a ledge of
+  `Fauna.WanderLedge` (2) cells, over one of 3, and its whole `Jump` — over walls and across gaps; wandering, only the first and
+  only up a wall at its feet, so it does not bound about. In the air it goes `min(speed, JumpAcross)` across and presses flush on
+  what it meets, carried over once its feet clear it. `Leaps.Height`, `Length` and `SpeedFor` give a jump's shape under a gravity:
+  the loper's 440 up and 250 across on the first planet (21 a tick) rise 4.39 cells and land level 10.5 on (42 ticks). Every
+  tick moves under a cell (the fastest 750 across, 600 down), so nothing passes through a wall.
 - **Modes:** `Idle` (a draw of `IdleLeast`..`IdleMost` ticks) → `Wander` (a draw of its way and of `WanderLeast`..`WanderMost`
   ticks) → `Idle`; a strike → `Flee` for `FleeTicks` at once, the knock's way, for a species with no hit-stun (`Stun` 0, the
   neutral loper); else → `Hurt` for its `Stun` ticks, steering nothing → `Flee`, its way away from the nearest hero by reported

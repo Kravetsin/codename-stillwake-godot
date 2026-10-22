@@ -7,7 +7,7 @@ using Tune = Stillwake.Content.Fauna;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// What creatures must always keep (0102), over random ground вЂ” hills, steps, cliffs, overhangs, pits вЂ” with up to more than the
+/// What creatures must always keep (0102), over random ground — hills, steps, cliffs, overhangs, pits — with up to more than the
 /// cap let out, struck with every weapon from heroes moving anywhere, for long runs: every body on the grid and out of every wall,
 /// its damage under its hit points, ids growing, never more than the cap.
 /// </summary>

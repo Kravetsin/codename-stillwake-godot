@@ -9,12 +9,13 @@ public static class Fauna
     /// <summary>
     /// A species: its body <paramref name="Width"/> × <paramref name="Height"/> cells, its hit points, how fast it wanders and
     /// flees a tick, how long it flees once hurt, its hit-stun — the ticks a hit holds it steering nothing before it flees, 0 for
-    /// a neutral one that bolts at once — the knock a hit gives it across and the hop up, and what it gives when it dies, drawn
-    /// entry by entry as a container's loot is.
+    /// a neutral one that bolts at once — the knock a hit gives it across and the hop up, its jump — the speed up it leaps at
+    /// most, and across it in the air (its highest and longest follow from them under the planet's gravity: `Leaps`), 0 for a
+    /// species that never jumps — and what it gives when it dies, drawn entry by entry as a container's loot is.
     /// </summary>
     public sealed record Species(
         string Id, int Width, int Height, int Hp, int Wander, int Flee, int FleeTicks, int Stun, int Knock, int Hop,
-        IReadOnlyList<LootEntry> Yields);
+        int Jump, int JumpAcross, IReadOnlyList<LootEntry> Yields);
 
     /// <summary>Where a habitat's creatures spawn: on the open ground under the sky, or on a cave's floor in one depth band (0080).</summary>
     public enum Place { Surface, Band }
@@ -29,11 +30,13 @@ public static class Fauna
     /// The loper: a soft round walker of the first planet's open ground, two cells by two, neutral. It wanders and idles, and
     /// bolts for three seconds when hit at 15 cells a second, faster than a hero's sprint of 13.2, then calms and wanders: a
     /// hunter follows and finds it again, corners it at a cliff or a wall, or stuns it (the arc's stun module to come). No
-    /// hit-stun: neutral, it bolts at the first blow, and the drill cannot pin it (the user's word). Twelve hit points: six of
-    /// the axe's hits. Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
+    /// hit-stun: neutral, it bolts at the first blow, and the drill cannot pin it (the user's word). It jumps (the user's word:
+    /// pinned to a wall it could do nothing): at 440 a tick up, on the first planet's gravity some 4.4 cells high, clearing a wall
+    /// of four, and 250 across, some ten cells long landing level, clearing a gap of four and more. Twelve hit points: six of the
+    /// axe's hits. Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
     /// </summary>
     public static readonly Species Loper = new("loper", Width: 2, Height: 2, Hp: 12, Wander: 100, Flee: 750, FleeTicks: 60,
-        Stun: 0, Knock: 200, Hop: 180, Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
+        Stun: 0, Knock: 200, Hop: 180, Jump: 440, JumpAcross: 250, Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper];
 
@@ -79,6 +82,12 @@ public static class Fauna
 
     /// <summary>A walker turns back from a drop this many cells deep or deeper; a shallower one it walks off.</summary>
     public const int Drop = 3;
+
+    /// <summary>
+    /// Wandering, a creature jumps only up a ledge this many cells high, so it does not bound about; fleeing, it leaps every wall
+    /// and gap its jump clears, a landing found for it first.
+    /// </summary>
+    public const int WanderLedge = 2;
 
     /// <summary>What a fall gains a tick aboard's measure, scaled by the planet's gravity (<c>Kind.Fall</c>), as stacks fall; the fastest fall a tick.</summary>
     public const int Gravity = 30, MaxFall = 600;

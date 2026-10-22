@@ -89,7 +89,17 @@ public sealed partial class FaunaModule
         if (grounded && c.Mode is Mode.Wander or Mode.Flee)
         {
             int way = c.VX >= 0 ? 1 : -1, speed = c.Mode == Mode.Flee ? spec.Flee : spec.Wander;
-            if (Blocked(spec, c, way, speed)) way = -way;
+            if (Blocked(spec, c, way, speed))
+            {
+                // Over the wall or across the gap where a jump lands it on the far side; else back.
+                if (JumpFor(spec, c, way, speed) is int jump)
+                {
+                    (c.VX, c.VY) = (way * Math.Min(speed, spec.JumpAcross), -jump);
+                    Move(c, spec, grounded: false);
+                    return;
+                }
+                way = -way;
+            }
             c.VX = way * speed;
         }
         else if (grounded && c.Mode == Mode.Idle) c.VX = 0;
@@ -205,9 +215,10 @@ public sealed partial class FaunaModule
             else if (grounded && !Overlaps(spec, to, c.Y - Unit)) (c.X, c.Y) = (to, c.Y - Unit);
             else
             {
-                // Flush against the column it would enter: a tick moves less than a cell, so it is the next one.
-                c.X = c.VX > 0 ? Down(to + half - 1, Unit) * Unit - half : (Down(to - half, Unit) + 1) * Unit + half;
-                c.VX = c.Mode is Mode.Wander or Mode.Flee ? -c.VX : 0;
+                // Flush against the column it would enter: a tick moves less than a cell, so it is the next one. Walking it keeps
+                // its way, its steering next tick jumping or turning; in the air it presses on, so a leap carries it over once clear.
+                c.X = Flush(to, c.VX, half);
+                if (c.Mode is not (Mode.Wander or Mode.Flee)) c.VX = 0;
             }
             // Down a step one cell deep as it walks, as up one: a slope's run of steps is walked, not fallen down.
             if (grounded && c.Mode is Mode.Wander or Mode.Flee && !Overlaps(spec, c.X, c.Y + 1)
@@ -227,6 +238,10 @@ public sealed partial class FaunaModule
             c.VY = 0;
         }
     }
+
+    /// <summary>The middle of a body <paramref name="half"/> wide either way flush against the column it would enter at <paramref name="to"/> going <paramref name="vx"/>.</summary>
+    private static int Flush(int to, int vx, int half) =>
+        vx > 0 ? Down(to + half - 1, Unit) * Unit - half : (Down(to - half, Unit) + 1) * Unit + half;
 
     /// <summary>Whether a body of <paramref name="spec"/> with its bottom middle at (<paramref name="x"/>, <paramref name="y"/>) is in anything solid or past the grid's edge.</summary>
     internal bool Overlaps(Spec.Species spec, int x, int y)
