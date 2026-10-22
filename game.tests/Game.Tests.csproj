@@ -37,6 +37,7 @@
     <Compile Include="../game/features/crew/CameraFollow.cs" Link="Game/Crew/CameraFollow.cs" />
     <Compile Include="../game/Content/Camera.cs" Link="Game/Content/Camera.cs" />
     <Compile Include="../game/features/crew/Aim.cs" Link="Game/Crew/Aim.cs" />
+    <Compile Include="../game/features/fauna/CreatureMotion.cs" Link="Game/Fauna/CreatureMotion.cs" />
     <Compile Include="../game/features/grid/Grass.cs" Link="Game/Grid/Grass.cs" />
     <Compile Include="../game/features/grid/ChunkReveal.cs" Link="Game/Grid/ChunkReveal.cs" />
     <Compile Include="../game/render/GroundDetails.cs" Link="Game/Render/GroundDetails.cs" />

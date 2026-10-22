@@ -54,7 +54,7 @@ namespace Stillwake.Game;
 /// <c>--tool-cards</c> the drill's card plain and fitted side by side (<see cref="ToolCardsDemo"/>), <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--snap FILE</c> saves the screen to FILE once the world is <c>--snap-at</c> seconds old and quits, <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
 /// and prints the worst with their causes on quitting (<see cref="FrameLog"/>), <c>--allocs</c> with it what was allocated, by type (<see cref="AllocationSampler"/>), <c>--for=seconds</c> quits after a while,
-/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree or <c>--ground=slope</c> cracking slopes (0079), <c>--ground=hit-soil</c> (<c>-stone</c>, <c>-alloy</c>, <c>-tree</c>, <c>-crystal</c>) striking one from the edge of reach with the drill, or with <c>--axe</c> the axe (0094),<c>--ground=band0</c>…<c>band3</c> in a cave of a depth band or <c>--ground=hall</c> in a great hall, looking at its growth (0080), <c>--ground=sprint --autopilot</c> a sprint over its ground and back (<see cref="HeroAutopilot.Sprint"/>, <c>--sprint 250</c> cells), <c>--sweep=DEPTH</c> the camera run along the row that deep under the spawn (<see cref="CameraSweep"/>), <c>--ground=cave</c> or <c>--ground=shaft</c>
+/// <c>--planet</c> opens a planet grown from its seed and beams the hero down to it, the axe, the drill and the helmet lamp on it (0077), with <c>--fauna</c> lopers let out by it and hunted by script (<see cref="FaunaHands"/>, 0102; <c>--manual</c> leaves them be), <c>--zoom 2.4</c> holds the camera at a zoom, <c>--ground=acacia</c> beside a tree or <c>--ground=slope</c> cracking slopes (0079), <c>--ground=hit-soil</c> (<c>-stone</c>, <c>-alloy</c>, <c>-tree</c>, <c>-crystal</c>) striking one from the edge of reach with the drill, or with <c>--axe</c> the axe (0094),<c>--ground=band0</c>…<c>band3</c> in a cave of a depth band or <c>--ground=hall</c> in a great hall, looking at its growth (0080), <c>--ground=sprint --autopilot</c> a sprint over its ground and back (<see cref="HeroAutopilot.Sprint"/>, <c>--sprint 250</c> cells), <c>--sweep=DEPTH</c> the camera run along the row that deep under the spawn (<see cref="CameraSweep"/>), <c>--ground=cave</c> or <c>--ground=shaft</c>
 /// down into a cave with the helmet lamp or digging a shaft (<see cref="GroundDemo"/>), <c>--strip</c> the test strip (0076),
 /// with <c>--autopilot</c> played by a script (<see cref="HeroAutopilot.PlanetRun"/>), with <c>--beam-back</c> back aboard two seconds in,
 /// <c>--auto</c> opens a door per peer, <c>--cheat</c> makes a joiner's world differ so the host must
@@ -112,9 +112,11 @@ public partial class Main : Node2D, ITogether
     private BenchView? _benches;
     private Features.Logistics.LogisticsView? _drones;
     private DebrisView _debris = null!;
+    private Features.Fauna.FaunaView _fauna = null!;
     private Hands _hands = null!;
     private PlanDemo? _demo;
     private GroundDemo? _ground;
+    private FaunaDemo? _faunaDemo;
     private ShimmerDemo? _shimmerDemo;
     private FrameLog? _frameLog;
     private AllocationSampler? _allocs;
@@ -177,6 +179,8 @@ public partial class Main : Node2D, ITogether
             AddChild(new WreckDemo(_debris, _hands.Ui, all: Has("--wrecks"), harpoon: Has("--harpoon"), grapple: Has("--grapple")));
         AddChild(_camera = new ShipCamera());
         _debris.Nudged += _camera.Nudge;
+        AddChild(_fauna = new Features.Fauna.FaunaView(_hands.Ui));
+        _fauna.Nudged += _camera.Nudge;
         if (Has("--world") || Has("--fly") || Has("--asteroid") || Has("--sortie")) _layout = Registry.Wreck;
         if (Has("--gym")) _layout = HeroAutopilot.Gym;
         if (Has("--poses")) _layout = HeroAutopilot.Hall;
@@ -404,6 +408,12 @@ public partial class Main : Node2D, ITogether
         }
         // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077).
         else if (Has("--planet")) world = GroundDemo.Seed(world, Modules, ArcDrill);
+        // --fauna, with --planet: lopers let out by the hero, hunted by script unless --manual (0102).
+        if (Has("--fauna"))
+        {
+            _faunaDemo = new FaunaDemo();
+            if (!Has("--manual")) AddChild(new FaunaHands(_faunaDemo, () => _hero?.Current));
+        }
         PlayDev(world, Has("--gallery") ? null : layout);
     }
 
@@ -1042,6 +1052,9 @@ public partial class Main : Node2D, ITogether
         _frameLog?.Mark("items");
         _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
         _frameLog?.Mark("debris");
+        // After the hero, so a strike it sent this frame flinches its creature at once (0102).
+        _fauna.Frame(client, _m.Fauna, _m.Grid, _camera.View(), session.Progress, delta * 1000);
+        _frameLog?.Mark("fauna");
         ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");
     }
@@ -1066,6 +1079,7 @@ public partial class Main : Node2D, ITogether
         }
         _demo?.Frame(client, _m.Grid, Log);
         _ground?.Frame(client, Log);
+        _faunaDemo?.Frame(client, Log);
         _shimmerDemo?.Frame(client, _m.Grid, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
     }

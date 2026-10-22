@@ -529,8 +529,11 @@ public partial class HeroView : Node2D
                 Struck(_groundHits, m, dig, _current, client.Id);
                 client.Send(dig);
             }
+            // Every creature the blade meets, wherever the hero stands (0102): its flinch is the fauna's to show.
+            var strikes = Aiming.StrikesOf(m, client.Id, Aiming.StruckCreatures(m, _current, _swing.At), Content.Weapons.Axe.Item);
+            foreach (var strike in strikes) client.Send(strike);
             // A blade that bites is drawn stopped on contact a moment (0075).
-            if (hits.Count > 0 || dig != null) _figure.Bit();
+            if (hits.Count > 0 || dig != null || strikes.Count > 0) _figure.Bit();
         }
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
         // its power every tick it runs (0055), and hits every wreck its bit touches each Pace ticks. Flat, it winds down.
@@ -544,7 +547,8 @@ public partial class HeroView : Node2D
         _figure.Spinning = runs;
         // Loaded while its bit is on a piece the sim would let it hit, a wreck or the ground. Its hits sound and look as what
         // they hit, where they hit it (0093, 0094); the bit throws nothing of its own.
-        bool onWreck = runs && Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0;
+        bool onWreck = runs && (Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0
+            || Aiming.StrikesOf(m, client.Id, Aiming.TouchedCreatures(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0);
         bool works = onWreck || runs && Aiming.DigAt(m, client.Id, _current, Aiming.PointOf(pointer!.Value), running!) != null;
         HearDrill(runs, works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
@@ -607,6 +611,8 @@ public partial class HeroView : Node2D
             wreck = true;
         }
         if (wreck) _drillChop.PlayAt(_figure.Muzzle ?? _figure.GlobalPosition, 1, GroundSounds.HitDbOf(drill!));
+        // A creature under the bit is struck at the same pace; how it sounds and flinches is the fauna's (0102).
+        foreach (var strike in Aiming.StrikesOf(m, client.Id, Aiming.TouchedCreatures(m, _current, at), drill!)) client.Send(strike);
         if (Aiming.DigAt(m, client.Id, _current, at, drill!) is { } dig)
         {
             Struck(_groundHits, m, dig, _current, client.Id);

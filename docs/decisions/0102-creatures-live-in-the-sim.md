@@ -1,6 +1,6 @@
-# 0102 — Creatures live in the sim
+# 0102 вЂ” Creatures live in the sim
 
-- Status: accepted; slice 1 (the sim) built, slice 2 (the client) with it as a stacked change
+- Status: accepted; slices 1 (the sim) and 2 (the client) built
 - Date: 2026-10-22
 - Design: `designs/creatures.md` (the session's scratchpad), its review and the user's decisions, which override its top
 
@@ -16,12 +16,12 @@ must agree on where it is and when it dies, so its body, its hit points and its 
 
 - **A module of every surface, `Fauna`** (`sim/Fauna`, `dependsOn` Grid, Crew, Items), as debris is (0006): creatures are
   spawned, moved and killed by the same integer rules on every peer, saved and hashed with the world. Inputs are only
-  commands — `Strike`, the dev `Release` — and the heroes' reported cells. It runs last, after crew, in the simulation phase.
+  commands вЂ” `Strike`, the dev `Release` вЂ” and the heroes' reported cells. It runs last, after crew, in the simulation phase.
 - **State:** each creature's `Id, Species, X, Y, VX, VY, Damage, Mode, ModeLeft, SeenAt`, the module's `NextId` and
   `Clock`. Derived, never stored (the review's cut): its facing, the sign of `VX`; whom it flees, found as its flinch
   ends; the beat, `Clock % Beat`. `SeenAt` stays, as the far field's (0052): despawning by linger needs it.
-- **Habitats are data on the planet type** (`PlanetType.Fauna`, 0095): each a species, a place — the open surface (no back
-  wall) or a cave floor in one depth band (0080, `Terrain.BandOf`) — and a weight. The first planet has lopers on its
+- **Habitats are data on the planet type** (`PlanetType.Fauna`, 0095): each a species, a place вЂ” the open surface (no back
+  wall) or a cave floor in one depth band (0080, `Terrain.BandOf`) вЂ” and a weight. The first planet has lopers on its
   surface; its bands are ready for the glimmite and the driftbell (the design's slices 3 and 5). The ship is no planet
   type: it spawns nothing, draws nothing and its fauna slice never changes, so a ship's run is as before but for the
   slice's bytes.
@@ -34,7 +34,7 @@ must agree on where it is and when it dies, so its body, its hit points and its 
 - **Walking** (`Live.cs`): integer, per axis, under the planet's gravity (`Kind.Fall`, as stacks fall); solid is what
   stops a stack. A walker steps up one cell and down one, turns back at a wall it cannot step and at a drop of three rows or
   more, and walks off a shallower one. Modes: idle, wander, flee, hurt; only an idle or a wander begun draws from the Rng.
-- **The loper,** 2 × 2, 12 hit points: six axe hits, twelve of the drill, six of the fitted drill. Wanders at 2 cells a
+- **The loper,** 2 Г— 2, 12 hit points: six axe hits, twelve of the drill, six of the fitted drill. Wanders at 2 cells a
   second, flees at 6.4 for 3 s: under a hero's walk of 7.2, so a hunter keeps up and lands the next blow, and under a run of
   13 (tuned in play: at 9 it was out of reach after every hit, and a hunt was a sprint with one swing in it).
 - **A hit** (`Strike(Creature, Tool)`) is any weapon's, its damage the tool's `ToolStats` for its sender (0098), refused
@@ -48,6 +48,22 @@ must agree on where it is and when it dies, so its body, its hit points and its 
 - **Dev:** `Release(Species, Cell)`, a command as `world.open` is, refused `fauna.notHere`, `fauna.full`, `fauna.blocked`;
   the client's `--fauna` sends it.
 - **Save format 26:** an empty fauna slice after every other, aboard and on every surface.
+
+## Slice 2: the client (`features/fauna`)
+
+- **A blow is felt the frame it is struck.** This player's own `Strike` makes its creature react the frame it is sent, a round
+  trip before the sim's knock arrives; a friend's as the sim's damage rises. The reaction (`CreatureMotion`): a white flash, a
+  squash that springs back past round, a flinch thrown the way it is knocked, a wide eye and pinned ears, and a 70 ms stop with
+  the figure's own bite; then the sim's knock and hop, drawn between ticks. A drill's hit is its share of the axe's, as for the
+  ground (0094).
+- **Seen and heard by what it is** (0093, 0094): an `Impact` per species (`Flesh`: white slash streaks, fur tufts, a warm puff,
+  a glint and shock line, no blood) and a hit, thump and death per species, placeholders from the files here till the user
+  picks. Death: a burst, puffs, a ring, the body swelling white and gone; its yields fall as the sim drops them.
+- **The body is a placeholder** (the review's slice-1 art): a round body with ears, legs and one eye that watches a hero within
+  9 cells, walking by the ground covered, leaning as it flees, tilted onto slopes under its feet.
+- **Contact** is the wreck's (0039, 0054): the axe's swept edge and the drill's bit against each creature's body and a margin,
+  but wherever the hero stands, not only out in space.
+- `-- --planet --fauna` lets six lopers out by the hero and, without `--manual`, hunts them by script for recordings.
 
 ## Measured
 

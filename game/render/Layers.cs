@@ -47,6 +47,9 @@ public static class Layers
     /// <summary>Stacks on the floor, under the heroes walking over them (items).</summary>
     public const int FloorItems = 9;
 
+    /// <summary>Creatures (fauna, 0102): with the stacks, under the heroes and what they hold.</summary>
+    public const int Creatures = FloorItems;
+
     /// <summary>Fire in a furnace's mouth, under a hero standing before it (furnace).</summary>
     public const int Fire = 10;
 
