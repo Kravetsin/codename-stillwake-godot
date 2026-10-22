@@ -149,8 +149,8 @@ public static class Items
         // Pressed at the Former of rock and planks: what a grow capsule is built on.
         new("soil", 20),
         new("biomass", 20, Yields: [("biofuel", 1)], SmeltTicks: 160),
-        // The engine's fuel, to come; nothing burns it yet.
-        new("biofuel", 20),
+        // The engine's fuel, to come; meanwhile the furnace and the burner generator burn it four times as long as a plank.
+        new("biofuel", 20, BurnTicks: 1600),
         // Tools, made as parts are.
         new("fireAxe", 1, Gear: true, Group: ItemGroup.Tool),
         new("harpoon", 1, Gear: true, Group: ItemGroup.Tool),
