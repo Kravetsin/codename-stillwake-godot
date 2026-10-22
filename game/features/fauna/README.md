@@ -6,16 +6,18 @@ the drill's bit are tested against each creature's body as against a wreck's box
 (`Aiming.StruckCreatures`, `Aiming.TouchedCreatures`, `Aiming.StrikesOf`), and send `Strike`.
 
 - **Reads:** `FaunaModule.Creatures`; `Client.InFlight` — this player's own strikes, seen the frame they are sent; `Ui.Heroes` —
-  whom a creature watches and flinches from; `Ui.Bits` — a friend's running drill by a creature struck; the grid, for the
-  ground under a creature's feet; `Session.Progress`.
+  whom a creature watches and flinches from; `Ui.Bits` — a friend's running drill by a creature struck; `FaunaModule.FeetOf`,
+  the ground under a creature's feet; `Session.Progress`.
 - **Only what the camera sees:** a body only for a creature within the camera's view and 4 cells round it, from a pool that grows
   to the most ever on screen and never frees. A creature gone from the world while drawn was killed: nothing despawns in a
   hero's view.
 - **Drawn between ticks:** each body kept at the tick before and the last, drawn `Progress` of the way between them, a tick
-  behind the sim, so a knock, a step up or down a cell and a landing glide. On the ground its feet are put on the ground under
-  each (a slope's diagonal, the step below an overhang, at most 0.6 of a cell down), the body between the two and tilted to
-  them up to 0.4 rad, eased over 70 ms: the sim stands it on the top of a whole cell. Facing the way it moves; still, toward a
-  hero within 9 cells, else the way it last moved.
+  behind the sim, so a knock and a landing glide. On the ground its feet stand on the ground's own surface under each, as the
+  sim reads it (`FaunaModule.FeetOf`: a slope's diagonal, a foot over an edge hanging 0.6 of a cell), never on the whole cell
+  the sim stands it on, so its whole-cell steps up and down a slope never show: before, it hovered over the flat at a slope's
+  foot and dropped onto it, and dipped then popped up at a slope's start. Its feet follow as fast as it moves and close the
+  rest at a cell each 90 ms (a whole step, a teeter, a landing); the body between them tilted up to 0.4 rad, eased over 90 ms
+  onto a slope and off it. Facing the way it moves; still, toward a hero within 9 cells, else the way it last moved.
 - **The body** (`CreatureBody`): the design its species' `Look` names, as the user picked it on the loper page (classic, tapir,
   sixleg, fluff). Its parts (`art/fauna/<design>/`) are index maps — R the ramp, G the tone — recoloured once at first use by
   the planet's palette (`CreatureParts`, `FaunaLooks.PaletteOf`, the first planet's «Саванна»), with a white copy for the flash
