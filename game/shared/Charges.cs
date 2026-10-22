@@ -22,9 +22,10 @@ public enum ChargeBar
 public sealed record ChargeMeter(int Percent, int Stored, int Capacity, float Share);
 
 /// <summary>
-/// The energy tab by the suit's gauge (0081): what the belt's batteries hold, as a <paramref name="Share"/> of a belt full of
-/// full batteries and in whole power <paramref name="Units"/>; <paramref name="Low"/> under a quarter of what those worn
-/// hold full, as a slot's bar is; <paramref name="Worn"/> while any battery is on the belt.
+/// The energy tab by the suit's gauge (0081): what the belt's stores hold, every one summed, as a <paramref name="Share"/> of
+/// <see cref="Charges.BeltMost"/>, a belt full of the largest stores, and in whole power <paramref name="Units"/>;
+/// <paramref name="Low"/> under a quarter of what those worn hold full, as a slot's bar is; <paramref name="Worn"/> while any
+/// store is on the belt.
 /// </summary>
 public sealed record Belt(double Share, int Units, bool Low, bool Worn);
 
@@ -84,21 +85,30 @@ public static class Charges
         : charging ? "charger.charging"
         : "charger.noPower";
 
-    /// <summary>How many batteries the belt wears at most: a belt full of full batteries is what the energy tab counts against.</summary>
+    /// <summary>How many stores the belt wears at most: batteries, accumulators (0099).</summary>
     public static readonly int BeltSlots = Spec.Inventory.Equipment.Count(e => e == Spec.Charge.Belt);
 
     /// <summary>
-    /// The energy tab from the belt's charge and what its batteries hold full, <paramref name="belt"/> as
+    /// What a belt full of the largest stores worn there holds full, in power units (three accumulators, 16 200): what the
+    /// energy tab's share is of and its number counts up to, the same whatever is worn, so wearing another store never moves it.
+    /// </summary>
+    public static readonly int BeltMost = BeltSlots * Spec.Items.All.Where(i => i.Equip == Spec.Charge.Belt && i.Capacity != null).Max(i => i.Capacity!.Value / Spec.Charge.Scale);
+
+    /// <summary>
+    /// The energy tab from the belt's charge and what its stores hold full, <paramref name="belt"/> as
     /// <c>BeltCharge</c> sums it. Shown always, whatever is held, so the gauge row never changes width.
     /// </summary>
     public static Belt BeltOf((int Charge, int Capacity) belt)
     {
         int charge = Math.Max(0, belt.Charge);
-        double share = (double)charge / ((long)BeltSlots * Spec.Charge.Battery);
+        double share = (double)charge / ((long)BeltMost * Spec.Charge.Scale);
         bool worn = belt.Capacity > 0;
         // Units rounded down, as the card's meter: never more than is there.
         return new Belt(Math.Clamp(share, 0, 1), charge / Spec.Charge.Scale, worn && BarOf(charge, belt.Capacity) != ChargeBar.Good, worn);
     }
+
+    /// <summary>The number the energy tab shows for <paramref name="share"/> of <see cref="BeltMost"/>, as its motion trails it.</summary>
+    public static int UnitsOf(double share) => (int)Math.Round(share * BeltMost);
 
     /// <summary>The thin space between each three digits of the energy tab's number: <c>4 300</c>.</summary>
     public const char Thin = ' ';

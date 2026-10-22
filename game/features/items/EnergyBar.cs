@@ -63,7 +63,6 @@ public partial class EnergyBar : CanvasLayer
     private sealed partial class Tab : Control
     {
         private const int FontSize = 13, ThinWidth = 3;
-        private static readonly int Full = Charges.BeltSlots * (Content.Charge.Battery / Content.Charge.Scale);
         private static readonly Texture2D Bolt = AsciiArt.Bolt(false);
         private static readonly Rect2 BoltAt = new(9, 6, 14, 18);
 
@@ -104,7 +103,7 @@ public partial class EnergyBar : CanvasLayer
             var colour = AsciiArt.Colour(Low ? Look.EnergyLow : Look.Energy).Lerp(Colors.White, flash);
             colour.A = pulse * Bright;
             DrawTextureRect(Bolt, BoltAt, false, Colors.White with { A = Bright });
-            var groups = Charges.Grouped((int)Math.Round(Motion.Trail * Full)).Split(Charges.Thin);
+            var groups = Charges.Grouped(Charges.UnitsOf(Motion.Trail)).Split(Charges.Thin);
             // Right-aligned, a group at a time from the right, a thin space between.
             float x = Size.X - Look.EnergyRight;
             for (int i = groups.Length - 1; i >= 0; i--)
