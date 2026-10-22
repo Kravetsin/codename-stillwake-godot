@@ -187,6 +187,23 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 - All of it is read from `X`, `Y`, `Vx`, `Vy`, `Facing` and the pose, which others' heroes send: friends lean
   and land as their peer draws them. Tested in `MotionTests`.
 
+## Rammed (0103)
+
+- **Contact is this client's word** (`Rams.Contact`, plain C#, tested in `RamsTests`): before the frame's steps, the hero's
+  body box against each creature the sim says charges, its body and `Rams.Margin` (150). Touching, with its guard open
+  (`Rams.Guard`: nothing sent for `Hero.RamGuard`, 20 ticks, after its own hit) and the sim not refusing it, it sends
+  `HitBy`; the sim takes the suit's air.
+- **Thrown at once:** `Rams.Knocked` the way the creature charges, `Hero.KnockAcross` + `KnockAcrossPer` per unit of its
+  `Ram` across and `KnockUp` + `KnockUpPer` up (a tapir's 200 and 180 a step, some five cells on the first planet), off any
+  ladder, its jump's timers spent; then `Hero.Reel` (24) steps with the keys masked and `HeroInput.Reeling`: kept aloft at
+  its speed (the air's control would eat it), braked on the floor, no ladder taken, Space spent.
+- **Seen and heard:** the figure flinches (`Figure.Flinch`, `Poses.Flinched`: thrown back from a blow before it or forward
+  from one behind by `HeroMotion.Flinch.Tilt`, arms up before the visor, quick in and easing out over 460 ms; not lying or
+  tumbling); its suit's air bursts out toward the blow (`AirSwirl.Leak`: pale jets, motes and a ring); a thud through the
+  suit (`Sound.RamThud`, a placeholder). The gauge flashes and drains as the sim's suit drops, as any drop of 5 % does.
+- **A friend rammed** is seen when a creature that was charging last frame leaves its charge within a cell of the friend as
+  drawn: it flinches, puffs and thuds on World. Its own peer sent the hit.
+
 ## Others' heroes
 
 - **Another surface (0076):** moved by the sim to another surface, this hero stands where it arrived, the harpoon's

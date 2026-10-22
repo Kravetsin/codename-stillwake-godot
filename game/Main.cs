@@ -421,7 +421,8 @@ public partial class Main : Node2D, ITogether
         // --fauna, with --planet: creatures let out by the hero, hunted by script unless --manual (0102).
         if (fauna)
         {
-            _faunaDemo = new FaunaDemo(drill: Has("--fauna-drill"), course: Has("--fauna-course"), kind: kind, herd: Has("--fauna-herd")) { Kill = Has("--fauna-kill") };
+            string? ram = _args.FirstOrDefault(a => a.StartsWith("--fauna-ram", StringComparison.Ordinal)) is { } r ? r.Length > 12 ? r[12..] : "hit" : null;
+            _faunaDemo = new FaunaDemo(drill: Has("--fauna-drill"), course: Has("--fauna-course"), kind: kind, herd: Has("--fauna-herd"), ram: ram) { Kill = Has("--fauna-kill") };
             if (!Has("--manual")) AddChild(new FaunaHands(_faunaDemo, () => _hero?.Current, still: Has("--fauna-drill"), quick: Has("--fauna-course")));
         }
         PlayDev(world, Has("--gallery") ? null : Has("--store") ? Features.Power.StoreWorld.Map : layout);

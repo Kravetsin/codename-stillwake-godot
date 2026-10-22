@@ -97,4 +97,12 @@ public static class Hero
 
     /// <summary>Thousandths of <see cref="WalkAccel"/>, <see cref="RunAccel"/> and <see cref="Stop"/> the keys have in the air, rounded down.</summary>
     public const int AirControl = 650;
+
+    /// <summary>
+    /// A ram's knock (0103), in the client: thrown away from the creature at <see cref="KnockAcross"/> and up at
+    /// <see cref="KnockUp"/> a step, each more by its <c>Per</c> for every unit the ram takes — a tapir's five some five cells on
+    /// the first planet, a loper's three some three — with no control for <see cref="Reel"/> steps (0.4 s). Its client sends
+    /// no other hit for <see cref="RamGuard"/> ticks after its own.
+    /// </summary>
+    public const int KnockAcross = 100, KnockAcrossPer = 20, KnockUp = 100, KnockUpPer = 16, Reel = 24, RamGuard = 20;
 }

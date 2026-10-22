@@ -82,7 +82,7 @@ public sealed class Registry
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting);
         // Last, after crew, as its system reads where heroes are; saved last, so its slice is the newest.
-        Fauna = new FaunaModule(Grid, Crew, Items, Items);
+        Fauna = new FaunaModule(Grid, Crew, Crew, Items, Items);
         Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Fauna];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }

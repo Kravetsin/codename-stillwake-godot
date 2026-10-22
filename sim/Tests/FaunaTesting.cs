@@ -19,12 +19,12 @@ public static class FaunaTesting
     }
 
     /// <summary><paramref name="map"/> with its fauna on a planet of <paramref name="kind"/>, the first planet's by default: lopers on its open ground.</summary>
-    public static Scenario Planet(string map, Spec.Surfaces.Kind? kind = null) => Planet(Layout.Parse(map), kind);
+    public static Scenario Planet(string map, Spec.Surfaces.Kind? kind = null, uint seed = 1) => Planet(Layout.Parse(map), kind, seed);
 
-    /// <summary><paramref name="map"/> with its fauna on a planet of <paramref name="kind"/>.</summary>
-    public static Scenario Planet(Layout map, Spec.Surfaces.Kind? kind = null)
+    /// <summary><paramref name="map"/> with its fauna on a planet of <paramref name="kind"/>, its world made from <paramref name="seed"/>.</summary>
+    public static Scenario Planet(Layout map, Spec.Surfaces.Kind? kind = null, uint seed = 1)
     {
-        var w = new Scenario(map);
+        var w = new Scenario(map, seed);
         w.M.Fauna.Where = new On(kind ?? Spec.PlanetTypes.First);
         return w;
     }
@@ -33,10 +33,22 @@ public static class FaunaTesting
     public static readonly Spec.PlanetType Lifeless = Spec.PlanetTypes.First with { Fauna = [] };
 
     /// <summary>A loper let out with its bottom left in (<paramref name="x"/>, <paramref name="y"/>), and the creature it is.</summary>
-    public static Creature Loper(this Scenario w, int x, int y)
+    public static Creature Loper(this Scenario w, int x, int y) => w.Let(Spec.Fauna.Loper, x, y);
+
+    /// <summary>A creature of <paramref name="species"/> let out with its bottom left in (<paramref name="x"/>, <paramref name="y"/>), and the creature it is.</summary>
+    public static Creature Let(this Scenario w, Spec.Fauna.Species species, int x, int y)
     {
-        w.Do(new Release(Spec.Fauna.Loper.Id, w.At(x, y))).Run();
+        w.Do(new Release(species.Id, w.At(x, y))).Run();
         return w.M.Fauna.Creatures[^1];
+    }
+
+    /// <summary><paramref name="c"/> set charging <paramref name="way"/> (+1 right, -1 left), its charge just begun (0103).</summary>
+    public static Creature Charging(this Creature c, int way)
+    {
+        c.Mode = Mode.Charge;
+        c.ModeLeft = Spec.Fauna.ChargeTicks;
+        c.VX = way * Spec.Fauna.Charge;
+        return c;
     }
 
     /// <summary><paramref name="c"/> set walking <paramref name="way"/> (+1 right, -1 left) a long while.</summary>

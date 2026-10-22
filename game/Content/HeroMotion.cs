@@ -77,4 +77,13 @@ public static class HeroMotion
         /// <summary>Sliding (Shift and down, seen by a fall faster than the climb down) the gloves throw this many sparks a step off the rails.</summary>
         public const double SparksPerStep = 0.8;
     }
+
+    /// <summary>
+    /// Rammed (0103): the figure flinches over <see cref="Ms"/>, thrown into it in its first <see cref="In"/> share and easing
+    /// out after; at its height the body tilts <see cref="Tilt"/> away from the blow and the arms come up (<c>Poses.Flinching</c>).
+    /// </summary>
+    public static class Flinch
+    {
+        public const double Ms = 460, In = 0.12, Tilt = 0.42;
+    }
 }

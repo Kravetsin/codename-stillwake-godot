@@ -12,11 +12,14 @@ public static class Fauna
     /// flees a tick, how long it flees once hurt, its hit-stun — the ticks a hit holds it steering nothing before it flees, 0 for
     /// a neutral one that bolts at once — the knock a hit gives it across and the hop up, its jump — the speed up it leaps at
     /// most, and across it in the air (its highest and longest follow from them under the planet's gravity: `Leaps`), 0 for a
-    /// species that never jumps — and what it gives when it dies, drawn entry by entry as a container's loot is.
+    /// species that never jumps — what it gives when it dies, drawn entry by entry as a container's loot is — and its ram (0103):
+    /// the units of suit air a charge of it that hits takes, 0 for one that never rams, and the chance in a thousand that, struck
+    /// by a hero within <see cref="RamBackReach"/>, it turns back on it after a short flight, or, fleeing and cornered with a hero
+    /// near, it winds up to charge rather than turn.
     /// </summary>
     public sealed record Species(
         string Id, string Look, int Width, int Height, int Hp, int Wander, int Flee, int FleeTicks, int Stun, int Knock, int Hop,
-        int Jump, int JumpAcross, IReadOnlyList<LootEntry> Yields);
+        int Jump, int JumpAcross, IReadOnlyList<LootEntry> Yields, int Ram = 0, int RamChance = 0);
 
     /// <summary>Where a habitat's creatures spawn: on the open ground under the sky, or on a cave's floor in one depth band (0080).</summary>
     public enum Place { Surface, Band }
@@ -36,37 +39,38 @@ public static class Fauna
     /// pinned to a wall it could do nothing): at 440 a tick up, on the first planet's gravity some 4.4 cells high, clearing a wall
     /// of four, and 400 across, some 17 cells long landing level, clearing a gap of a dozen and more. Twelve hit points: six of the
     /// axe's hits. Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
+    /// Struck, it mostly turns back and rams (0103, the user's word after playing): seven times in ten, three units of a suit.
     /// </summary>
     public static readonly Species Loper = new("loper", Look: "classic", Width: 2, Height: 2, Hp: 12, Wander: 100, Flee: 750,
         FleeTicks: 60, Stun: 0, Knock: 200, Hop: 180, Jump: 440, JumpAcross: 400,
-        Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
+        Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)], Ram: 3, RamChance: 700);
 
     /// <summary>
     /// The tapir («Тапирчик»): a round, dark-coated walker of the open ground, a glowing seed pod on its snout; the loper's life
     /// in a heavier body. Sixteen hit points (eight of the axe's); a blow knocks it three quarters as far and hops it lower; it
     /// ambles at 1.6 cells a second and bolts at 14, still past a sprint; its jump of 400 up and 360 across is lower and shorter,
     /// 3.6 cells high on the first planet: a wall of three, not of four. It gives more: three or four biomass, a seed one time in
-    /// three (placeholders).
+    /// three (placeholders). Struck, it rams the most often and the hardest (0103): nine times in ten, five units of a suit.
     /// </summary>
     public static readonly Species Tapir = new("tapir", Look: "tapir", Width: 2, Height: 2, Hp: 16, Wander: 80, Flee: 700,
         FleeTicks: 60, Stun: 0, Knock: 150, Hop: 140, Jump: 400, JumpAcross: 360,
-        Yields: [new("biomass", 3, 4), new("seed", 1, 1, OneIn: 3)]);
+        Yields: [new("biomass", 3, 4), new("seed", 1, 1, OneIn: 3)], Ram: 5, RamChance: 900);
 
     /// <summary>
     /// The sixleg («Шестиног»): a barrel-bodied grazer of the open ground on six hooves, its tail a stem hung with glowing
     /// berries. The loper's size and the loper's numbers, but for two more hit points for its barrel: fourteen, seven of the
-    /// axe's.
+    /// axe's; and the loper's ram (0103).
     /// </summary>
     public static readonly Species Sixleg = new("sixleg", Look: "sixleg", Width: 2, Height: 2, Hp: 14, Wander: 100, Flee: 750,
         FleeTicks: 60, Stun: 0, Knock: 200, Hop: 180, Jump: 440, JumpAcross: 400,
-        Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
+        Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)], Ram: 3, RamChance: 700);
 
     /// <summary>
     /// The fluff («Пушок»): a ball of fur on tiny paws, glowing spots down its back and lantern antennae, living on the floors of
     /// the upper caves and the garden band, where its glow lights the dark. Small and light: eight hit points (four of the
     /// axe's); a blow knocks it a fifth farther and hops it higher; it potters at 1.6 cells a second and bolts at 14; its hop is
     /// smaller, 380 up and 360 across, 3.2 cells high on the first planet, still over a ledge of three. One or two biomass, a
-    /// seed one time in four (placeholders).
+    /// seed one time in four (placeholders). It never rams.
     /// </summary>
     public static readonly Species Fluff = new("fluff", Look: "fluff", Width: 2, Height: 2, Hp: 8, Wander: 80, Flee: 700,
         FleeTicks: 60, Stun: 0, Knock: 240, Hop: 220, Jump: 380, JumpAcross: 360,
@@ -129,6 +133,17 @@ public static class Fauna
     /// and gap its jump clears, a landing found for it first.
     /// </summary>
     public const int WanderLedge = 2;
+
+    /// <summary>
+    /// A ram (0103). Struck by a hero within <see cref="RamBackReach"/> cells (box distance, by its reported cell), a rammer that
+    /// draws its <c>RamChance</c> flees a draw of <see cref="RamFleeLeast"/>..<see cref="RamFleeMost"/> ticks (0.6 to 1 s), then
+    /// turns back; fleeing and cornered with the nearest hero within <see cref="RamReach"/>, it draws it again. Either way it
+    /// crouches <see cref="WindUp"/> ticks, standing, then charges the nearest hero at <see cref="Charge"/> a tick (14 cells a
+    /// second, past a hero's sprint of 13.2) till it is <see cref="RamPast"/> cells past it, at most <see cref="ChargeTicks"/>
+    /// (28 cells): a hero farther than that as the wind-up ends is let be.
+    /// </summary>
+    public const int RamReach = 6, RamBackReach = 12, RamFleeLeast = 12, RamFleeMost = 20, WindUp = 8, ChargeTicks = 40, Charge = 700,
+        RamPast = 3;
 
     /// <summary>What a fall gains a tick aboard's measure, scaled by the planet's gravity (<c>Kind.Fall</c>), as stacks fall; the fastest fall a tick.</summary>
     public const int Gravity = 30, MaxFall = 600;

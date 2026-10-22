@@ -46,6 +46,10 @@ public static class Fx
     public const int VisorMotes = 4;
     public const double VisorDrift = 14;
 
+    /// <summary>Rammed (0103): the suit's air knocked out in this many jets and motes, round a ring this many pixels across at its widest.</summary>
+    public const int LeakStreaks = 12, LeakMotes = 10;
+    public const double LeakRing = 16;
+
     /// <summary>The most picked-up icons flying home to the hero on their ribbons of light at once (slice 3): past it a stack shows in the popup alone.</summary>
     public const int MostRibbons = 4;
 }

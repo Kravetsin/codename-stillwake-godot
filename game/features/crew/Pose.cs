@@ -566,6 +566,35 @@ public static class Poses
     public static double Apart(double from, double to) => ((to - from) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
 
     /// <summary>
+    /// Rammed (0103): the arms flung up before the visor, the front knee drawn up, the back leg braced; the body tilted
+    /// <c>HeroMotion.Flinch.Tilt</c> away from the blow by <see cref="Flinched"/>.
+    /// </summary>
+    public static readonly Limbs Flinching = new(B(1.75, 1.35), B(1.25, 1.0), B(0.55, -0.7), B(-0.3, -0.35), 0, 0, false);
+
+    /// <summary>How far into a flinch begun <paramref name="ms"/> ago the figure is drawn, 0 to 1: quick in, easing out.</summary>
+    public static double FlinchOf(double ms)
+    {
+        double t = ms / Feel.Flinch.Ms;
+        if (t is < 0 or >= 1) return 0;
+        if (t < Feel.Flinch.In) return t / Feel.Flinch.In;
+        double out_ = (t - Feel.Flinch.In) / (1 - Feel.Flinch.In);
+        return 1 - out_ * out_ * (3 - 2 * out_);
+    }
+
+    /// <summary>
+    /// <paramref name="limbs"/> flinching <paramref name="by"/> (0 to 1) from a blow on the side <paramref name="ahead"/> says,
+    /// +1 before the figure: thrown back from one before it, forward from one behind. On the floor (<paramref name="pose"/>) its
+    /// lower foot stays on it.
+    /// </summary>
+    public static Limbs Flinched(Limbs limbs, double by, int ahead, Pose pose)
+    {
+        if (by <= 0 || !HoldsIn(pose)) return limbs;
+        var flinch = Flinching with { Tilt = limbs.Tilt - (ahead >= 0 ? 1 : -1) * Feel.Flinch.Tilt, Lift = limbs.Lift };
+        var mixed = Mix(limbs, flinch, by) with { Lift = limbs.Lift, Lying = limbs.Lying };
+        return pose is Pose.Stand or Pose.Walk or Pose.Run ? Grounded(mixed) : mixed;
+    }
+
+    /// <summary>
     /// <paramref name="a"/> turned toward <paramref name="b"/> by <paramref name="by"/>, angles the short
     /// way round, so limbs blend in without unwinding.
     /// </summary>

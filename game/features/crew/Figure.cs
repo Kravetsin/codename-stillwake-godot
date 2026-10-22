@@ -285,6 +285,12 @@ public partial class Figure : Node2D
     /// <summary>The swing playing bit something: its arm is drawn stopped on contact for a moment (0075), the sim untouched.</summary>
     public void Bit() => _bit = true;
 
+    private double _flinchMs = double.PositiveInfinity;
+    private int _flinchFrom = 1;
+
+    /// <summary>Rammed (0103) by something on the side <paramref name="from"/> says, +1 right in the world: the figure flinches from it.</summary>
+    public void Flinch(int from) => (_flinchMs, _flinchFrom) = (0, from >= 0 ? 1 : -1);
+
     /// <summary>The item the front hand holds, by id, the fire axe or the harpoon: its hotbar slot chosen, the hand free; none for an empty hand.</summary>
     public string? Wields { get; set; }
 
@@ -565,6 +571,8 @@ public partial class Figure : Node2D
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _motion.Landing, holding ? _head : null,
             _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null));
+        _flinchMs += elapsedMs;
+        to = Poses.Flinched(to, Poses.FlinchOf(_flinchMs), _flinchFrom * hero.Facing, pose);
         var from = _shown ?? to;
         double within = pose switch { Pose.Float => FloatSettleMs, Pose.Tumble => SlackMs, _ => SettleMs };
         var shown = new Limbs(

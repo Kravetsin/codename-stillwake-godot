@@ -25,7 +25,7 @@ public sealed partial class FaunaModule
         if (spec.Jump <= 0) return null;
         int g = Rules.Fall(Spec.Gravity), across = Math.Min(speed, spec.JumpAcross);
         int low = Leaps.SpeedFor(Spec.WanderLedge * Unit + JumpMargin, g, spec.Jump);
-        if (c.Mode != Mode.Flee)
+        if (!Fleeing(c.Mode))
         {
             int half = spec.Width * Unit / 2, column = Down(way > 0 ? c.X + half : c.X - half - 1, Unit);
             return Solid(column, c.Y / Unit - 1) && Lands(spec, c, way, low, across) ? low : null;

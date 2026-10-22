@@ -429,6 +429,13 @@ public static class Sound
     /// </summary>
     public static readonly Cue Inhale = new(Shots("crew/inhale", 1), -18);
 
+    /// <summary>
+    /// A ram (0103), placeholders from what is here till the audition: its hit a heavy landing's thud, lower, this player's own
+    /// on Suit, a friend's on World; a creature winding up snorts, a canister's hiss low and short, where it stands.
+    /// </summary>
+    public static readonly Cue RamThud = LandHard with { VolumeDb = 0, Tune = 0.72f, Pitch = 0.08f, Heard = ToolReach },
+        Snort = AirFill with { VolumeDb = -6, Tune = 0.7f, Pitch = 0.1f };
+
     /// <summary>The title's music (0035), on the Music bus, faded in with the title and out on leaving it.</summary>
     public static readonly Cue Title = new(["res://audio/music/title-1.ogg"], -2, Loops: true);
 
