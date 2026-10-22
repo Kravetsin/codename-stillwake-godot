@@ -12,7 +12,8 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// What E would work, outlined along the pictures it is drawn with: a machine's whole picture with its
 /// socket, a whole doorway (it opens as one), a valve's wheel, a plan's own pictures joined to the plans
-/// beside it as they are drawn. A mark outlines the machine it takes apart, else its cell.
+/// beside it as they are drawn. A mark outlines the machine it takes apart, else its cell. A dig wider than a cell, its
+/// brush's square (<see cref="Brush"/>).
 /// </summary>
 public static class AimOutline
 {
@@ -27,6 +28,12 @@ public static class AimOutline
         {
             foreach (var plan in m.Building.Plans)
                 if (plan.Id == work.Plan) Plan(outline, m, plan, colour);
+            return;
+        }
+        // A dig's brush wider than a cell: its whole square, whatever of it is ground.
+        if (aim.Square is var (x, y, side))
+        {
+            outline.AddBox(new Rect2(x * Cell, y * Cell, side * Cell, side * Cell), colour);
             return;
         }
         if (grid.MachineAt(aim.Cell) is { } machine)

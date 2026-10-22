@@ -410,10 +410,10 @@ public partial class Main : Node2D, ITogether
         {
             world = GroundDemo.Seed(world, Modules, ArcDrill);
             _ground = new GroundDemo(ground[9..]) { TakeAt = Arg("--take-at") is { } take ? (int)(double.Parse(take, System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond) : null, Offset = int.Parse(Arg("--ground-offset") ?? "0") };
-            if (ground[9..] is "drill" or "poses") AddChild(new GroundHands(_ground));
+            if (ground[9..] is "drill" or "poses") AddChild(new GroundHands(_ground) { Precise = Has("--precise") });
             // With --arc-drill the fitted drill is the first slot and the axe the third (GroundDemo.Seed).
             else if (GroundDemo.Hits(ground[9..]))
-                AddChild(new GroundHands(_ground, slot: Has("--axe") ? (ArcDrill != null ? Key.Key3 : Key.Key1) : ArcDrill != null ? Key.Key1 : Key.Key2));
+                AddChild(new GroundHands(_ground, slot: Has("--axe") ? (ArcDrill != null ? Key.Key3 : Key.Key1) : ArcDrill != null ? Key.Key1 : Key.Key2) { Precise = Has("--precise") });
             else if (GroundDemo.Caves(ground[9..])) AddChild(new GroundHands(_ground, dig: false));
         }
         // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077).

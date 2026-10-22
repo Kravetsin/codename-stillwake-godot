@@ -555,13 +555,18 @@ Deliberately not handled:
   and down with the bit's picture (`HeldLook.SpinUpMs`) and sagging on a piece; and while its bit works on a piece,
   held 0.1 s past a graze, 18 short strikes a second, each its own pitch and loudness (`StrikeTrain`), silent the
   moment it stops.
-- **Digging** (0077): with the axe or a drill held and natural ground under the pointer, in reach (`Aiming.Reaches`, as
-  plans are reached), the aim is that cell: "[Hold LMB] Dig", red with "Too hard" on bedrock or "Batteries flat", the
-  cell outlined (its slope's half for a slope). The axe's strike sends one `Dig` at the cell of its swing's point
-  (`Aiming.DigAt`) and bites, drawn stopped a moment as on a wreck; the drill sends one at its pace (`DrillPace`), its
-  works flag and strikes firing on ground as on a wreck. Nothing traces the blade or the bit, which only find wrecks in
-  open space: a shaft, a cave or the strip's shelter dig alike. E digs nothing. Each dig is heard and seen as it is sent,
-  and a friend's as its swing or its drill's pace is played here (`Struck`, 0093, 0094): by what it lands on, on that
+- **Digging** (0077): with the axe or a drill held and natural ground in the brush round the pointer, in reach
+  (`Aiming.Reaches`, as plans are reached), the aim is a cell of it: "[Hold LMB] Dig", red with "Too hard" on bedrock or
+  "Batteries flat". **The brush** (`Shared/Brush`) is `Builds.Brush` cells a side (2) round the cell corner nearest the
+  pointer, its whole square outlined (`Aim.Square`); Ctrl held is the precise mode, one cell, outlined as before (its
+  slope's half for a slope). The aim takes the pointer's own cell if it could be dug, else the first of the square that
+  could. The axe's strike sends one `Dig` for each cell of the brush round its swing's point that the sim would take, in
+  reach, ascending, each judged alone and taking full damage, but one a plant, so a tree falls as fast as before
+  (`Aiming.DigsAt`); it bites, drawn stopped a moment as on a wreck. The drill sends the same at its pace (`DrillPace`),
+  its works flag and strikes firing on ground as on a wreck. Nothing traces the blade or the bit, which only find wrecks in
+  open space: a shaft, a cave or the strip's shelter dig alike. E digs nothing. A strike is heard and seen once as it is
+  sent, at its dig in the pointer's cell, else its first (`Aiming.LeadOf`), and a friend's as its swing or its drill's
+  pace is played here, by the whole brush, as Ctrl is not sent (`Struck`, 0093, 0094): by what it lands on, on that
   cell's face turned toward the hero who struck (`Impacts.On`), its look a share of the axe's for a faster tool
   (`Impacts.ShareAt`), the whole for the hit that breaks or fells it, judged by the damage the sim gives its striker's
   hit (`IItemsQueries.Damage`, a module's boost in it). Its cracks and breaks are building's (`DigView`).

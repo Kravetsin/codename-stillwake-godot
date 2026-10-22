@@ -91,6 +91,7 @@
     <Compile Include="../game/render/Buttons.cs" Link="Game/Render/Buttons.cs" />
     <Compile Include="../game/render/CableShape.cs" Link="Game/Render/CableShape.cs" />
     <Compile Include="../game/shared/Ui.cs" Link="Game/Shared/Ui.cs" />
+    <Compile Include="../game/shared/Brush.cs" Link="Game/Shared/Brush.cs" />
     <Compile Include="../game/shared/PieceDrawn.cs" Link="Game/Shared/PieceDrawn.cs" />
     <Compile Include="../game/shared/Tip.cs" Link="Game/Shared/Tip.cs" />
     <Compile Include="../game/shared/TipPlace.cs" Link="Game/Shared/TipPlace.cs" />
