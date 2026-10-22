@@ -22,7 +22,10 @@ public class AirTests
     private static readonly Placement Pipe = new("conduit", "pipe");
     private static readonly Placement Wall = Placement.Wall();
 
-    /// <summary>Nine wide: a sealed room of 21 cells, a vent above a tank, hull of 20 scrap walls, all backed in scrap.</summary>
+    /// <summary>
+    /// Nine wide, doubled (0104) with its hull one cell thick (<see cref="AirTesting.OneThick"/>): a sealed room of 21 × 4 cells,
+    /// a vent above a tank, hull of 20 × 2 scrap walls, all backed in scrap.
+    /// </summary>
     private const string Room = """
         #########
         #V......#
@@ -31,15 +34,15 @@ public class AirTests
         #########
         """;
 
-    private static int At(int x, int y) => y * 9 + x;
-    private const int Volume = 21;
-    private const int Hull = 20;
+    private static int At(int x, int y) => AirTesting.Cell(9, x, y);
+    private const int Volume = 21 * 4;
+    private const int Hull = 20 * 2;
     private static int Scrap => Materials.Get("scrap").Leak;
     private static int Iron => Materials.Get("iron").Leak;
     /// <summary>What its air touches leaks: the hull, and the back wall behind each of its cells (0020).</summary>
     private static int Leak => (Hull + Volume) * Scrap;
 
-    /// <summary><see cref="Room"/> with <paramref name="rows"/> rows inside: 7 cells a row, a hull of 14 + 2 × rows cells.</summary>
+    /// <summary><see cref="Room"/> with <paramref name="rows"/> rows drawn inside: 7 characters a row, a hull of 14 + 2 × rows drawn.</summary>
     private static string Deep(int rows) =>
         string.Join("\n", new[] { "#########", "#V......#", "#TT.....#", "#TT.....#" }
             .Concat(Enumerable.Repeat("#.......#", rows - 3)).Append("#########"));
@@ -56,8 +59,9 @@ public class AirTests
     /// <summary>A world from <paramref name="map"/> in creative mode, its vent piped to its tank through a valve if asked.</summary>
     private static Setup SetUp(string map = Room, bool valve = false)
     {
-        var w = new Scenario(map).Do(new Items.SetCreative(true));
-        foreach (int cell in new[] { At(1, 1), At(1, 2), At(1, 3) })
+        var w = new Scenario(AirTesting.OneThick(map)).Do(new Items.SetCreative(true));
+        // From the vent's port to the tank's, every cell of the run.
+        foreach (int cell in AirTesting.Line(9, 1, 1, 1, 3))
             w.Do(new Place(cell, new Placement("conduit", valve && cell == At(1, 2) ? "valve" : "pipe")));
         w.Run();
         var tanks = w.M.Grid.Machines.Where(m => m.Kind == "tank").Select(m => m.Id).ToArray();
@@ -82,8 +86,8 @@ public class AirTests
         return true;
     }
 
-    /// <summary>Steps along rows and columns from the vent at (1, 1) of <see cref="Room"/>, the same as through the room.</summary>
-    private static int FromVent(int cell) => Math.Abs(cell % 9 - 1) + Math.Abs(cell / 9 - 1);
+    /// <summary>Steps along rows and columns from the vent's top-left cell, (1, 1) as <see cref="Room"/> draws it, the same as through the room.</summary>
+    private static int FromVent(int cell) => Math.Abs(cell % 18 - At(1, 1) % 18) + Math.Abs(cell / 18 - At(1, 1) / 18);
 
     /// <summary>Runs until the room is aired, at most <paramref name="limit"/> ticks.</summary>
     private static void AirUp(Scenario w, int room, int limit = 1000)
@@ -102,7 +106,7 @@ public class AirTests
     // Air.
 
     [Fact]
-    public void FillsARoomOutwardFromItsVentACellABeatAUnitEach()
+    public void FillsARoomOutwardFromItsVentCellsPerFillABeatAUnitEach()
     {
         var s = SetUp();
         var (w, room, tanks) = s;
@@ -111,15 +115,16 @@ public class AirTests
         int first = w.Air().Aired.Count;
         Assert.Equal(RoomStatus.Filling, Status(w, room));
         w.Run(10 * Air.TicksPerCell);
-        int beats = first + w.Air().Clock / Air.TicksPerCell - clock / Air.TicksPerCell;
+        // Air.CellsPerFill cells a beat, four of the 8 px cells to the 16 px one a beat aired (0105).
+        int filled = first + Air.CellsPerFill * (w.Air().Clock / Air.TicksPerCell - clock / Air.TicksPerCell);
         var cells = w.Air().Aired;
-        Assert.Equal(beats, cells.Count);
+        Assert.Equal(filled, cells.Count);
         Assert.Contains(At(1, 1), cells);
         // Every aired cell is as near the vent as any cell still empty, or nearer.
         var empty = w.Air().Orders[room].Where(c => !cells.Contains(c)).ToList();
         Assert.True(cells.Max(FromVent) <= empty.Min(FromVent));
-        // Each cell costs a unit, and the room uses its leak from the tick after its first cell.
-        Assert.Equal(Air.Canister - beats - AirTesting.Leaked(Leak, clock, w.Air().Clock), Oxygen(w, tanks[0]));
+        // Each cell costs a unit, and the room uses its leak from the tick after its first cells.
+        Assert.Equal(Air.Canister - filled - AirTesting.Leaked(Leak, clock, w.Air().Clock), Oxygen(w, tanks[0]));
     }
 
     [Fact]
@@ -151,7 +156,8 @@ public class AirTests
         var w = s.W;
         int first = s.Tanks[0], second = s.Tanks[1];
         // The second tank joins the network through a pipe from its port to the first's.
-        w.Do(new Place(At(2, 3), Pipe)).Do(new Place(At(3, 3), Pipe)).Run();
+        foreach (int cell in AirTesting.Line(9, 1, 3, 3, 3).Skip(1)) w.Do(new Place(cell, Pipe));
+        w.Run();
         // Loaded on one tick, so the fill has both to draw from at its first beat.
         w.Do(new LoadCanister(second)).Do(new LoadCanister(first));
         w.Run(4 * Air.TicksPerCell);
@@ -172,8 +178,8 @@ public class AirTests
             """);
         var w = s.W;
         int dry = s.Tanks[0], wet = s.Tanks[1];
-        // The right vent reaches the right tank's port, its bottom-left cell, under the tank.
-        foreach (int cell in new[] { At(7, 1), At(7, 2), At(7, 3), At(6, 3) }) w.Do(new Place(cell, Pipe));
+        // The right vent reaches the right tank's port, at its bottom-left, under the tank.
+        foreach (int cell in AirTesting.Line(9, 7, 1, 7, 3).Concat(AirTesting.Line(9, 7, 3, 6, 3).Skip(1))) w.Do(new Place(cell, Pipe));
         w.Run();
         s.Fill(1, wet);
         w.Run(4 * Air.TicksPerCell);
@@ -187,9 +193,9 @@ public class AirTests
     [Fact]
     public void LeaksThroughItsHullAndBackWallsByTheirMaterialsAndADoorByItsOwnOverAPeriod()
     {
-        // The right wall's middle cell is a closed door, and the left wall is iron: of the twenty hull
-        // cells, one leaks as a door, three as iron, the rest as scrap; each cell's scrap back wall
-        // leaks too, but not the one behind the door, which touches no air.
+        // The right wall's middle is a closed door, and the left wall is iron: of the forty hull cells, two
+        // leak as a door, six as iron, the rest as scrap; each cell's scrap back wall leaks too, but not
+        // the ones behind the door, which touch no air.
         var s = SetUp("""
             #########
             #V......#
@@ -198,12 +204,14 @@ public class AirTests
             #########
             """);
         var w = s.W;
+        // The left wall's one cell thick: the right column of its blocks.
         foreach (int y in new[] { 1, 2, 3 })
-            w.Do(new ClearAt(At(0, y), "structure")).Do(new Place(At(0, y), Placement.Wall("iron")));
+            foreach (int cell in new[] { At(0, y) + 1, At(0, y) + 1 + 18 })
+                w.Do(new ClearAt(cell, "structure")).Do(new Place(cell, Placement.Wall("iron")));
         s.Fill(2);
         AirUp(w, s.Room);
         int before = Oxygen(w, s.Tanks[0]);
-        int leak = (Hull - 4 + Volume) * Scrap + 3 * Iron + Air.DoorLeak;
+        int leak = (Hull - 2 * 4 + Volume) * Scrap + 2 * 3 * Iron + 2 * Air.DoorLeak;
         // Spread over the period, paid by the tank: about half by half way, all of it by its end.
         w.Run(Air.LeakEvery / 2);
         Assert.InRange(before - Oxygen(w, s.Tanks[0]), leak / 2, (leak + 1) / 2);
@@ -239,7 +247,7 @@ public class AirTests
         var w = s.W;
         s.Fill(1);
         DryOut(w, s.Tanks[0], 3000);
-        Assert.True(w.Air().Aired.Count < 330 * 7);
+        Assert.True(w.Air().Aired.Count < 330 * 7 * 4);
         Assert.Equal(RoomStatus.Vacuum, Status(w, s.Room));
         w.Run(10 * Air.TicksPerCell);
         int left = w.Air().Aired.Count;
@@ -303,7 +311,9 @@ public class AirTests
         var w = s.W;
         s.Fill(3);
         AirUp(w, s.Room);
-        w.Do(new ClearAt(At(8, 1), "structure")).Do(new ClearAt(At(8, 2), "structure")).Run();
+        foreach (int y in new[] { 1, 2 })
+            w.Do(new ClearAt(At(8, y), "structure")).Do(new ClearAt(At(8, y) + 18, "structure"));
+        w.Run();
         Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(At(1, 1)));
         int before = Oxygen(w, s.Tanks[0]);
         w.Run();
@@ -320,13 +330,13 @@ public class AirTests
         ###############
         """;
 
-    private static int At15(int x, int y) => y * 15 + x;
+    private static int At15(int x, int y) => AirTesting.Cell(15, x, y);
 
     /// <summary><see cref="Two"/> with its left room aired from three canisters; its vent's pipe cut after if asked.</summary>
     private static (Scenario W, int Left, int Door, int Right) TwoRooms(bool cut = false)
     {
-        var w = new Scenario(Two).Do(new Items.SetCreative(true));
-        foreach (int cell in new[] { At15(1, 1), At15(1, 2), At15(1, 3) }) w.Do(new Place(cell, Pipe));
+        var w = new Scenario(AirTesting.OneThick(Two)).Do(new Items.SetCreative(true));
+        foreach (int cell in AirTesting.Line(15, 1, 1, 1, 3)) w.Do(new Place(cell, Pipe));
         w.Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
         for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
@@ -342,12 +352,14 @@ public class AirTests
     {
         var (w, left, door, right) = TwoRooms(cut: true);
         var held = w.Air().Aired.ToList();
+        int clock = w.Air().Clock;
         w.Do(new SetDoor(door, true)).Run();
         int joined = w.M.Rooms.RoomAt(At15(4, 2))!.Value;
         Assert.Equal(left, joined);
         Assert.Equal(joined, w.M.Rooms.RoomAt(right));
-        // Unpiped, nothing fills and nothing is lost or moved.
-        Assert.Equal(held, w.Air().Aired);
+        // Unpiped, nothing fills and nothing moves: only the leak, due more often over 8 px cells (0104), takes the last aired.
+        int leaked = AirTesting.Leaked(Of(w, joined)!.Leak, clock, w.Air().Clock);
+        Assert.Equal(held.SkipLast(leaked), w.Air().Aired);
         Assert.Equal(RoomStatus.Vacuum, Status(w, joined));
     }
 
@@ -366,7 +378,7 @@ public class AirTests
     {
         var (w, _, door, right) = TwoRooms();
         w.Do(new SetDoor(door, true)).Run(3);
-        var inRight = w.Air().Aired.Where(c => c % 15 > 8).ToList();
+        var inRight = w.Air().Aired.Where(c => c % 30 > At15(8, 0)).ToList();
         Assert.NotEmpty(inRight);
         w.Do(new SetDoor(door, false)).Run();
         int shut = w.M.Rooms.RoomAt(right)!.Value;
@@ -445,13 +457,13 @@ public class AirTests
         "                       ",
     ];
 
-    private static int At23(int x, int y) => y * 23 + x;
+    private static int At23(int x, int y) => AirTesting.Cell(23, x, y);
 
     /// <summary><see cref="Row"/> with its first room aired from its tank, piped to its vent.</summary>
     private static (Scenario W, int Left) AiredRow()
     {
-        var w = new Scenario(Layout.Parse(Row)).Do(new Items.SetCreative(true));
-        foreach (int cell in new[] { At23(2, 2), At23(2, 3), At23(2, 4) }) w.Do(new Place(cell, Pipe));
+        var w = new Scenario(Layout.Parse(Row), doubled: true).Do(new Items.SetCreative(true));
+        foreach (int cell in AirTesting.Line(23, 2, 2, 2, 4)) w.Do(new Place(cell, Pipe));
         w.Run();
         int tank = w.M.Grid.Machines.First(m => m.Kind == "tank").Id;
         for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
@@ -494,13 +506,14 @@ public class AirTests
 
     /// <summary>More than a few cells a tick: the aired cells are merged into a new list, not edited in place.</summary>
     [Fact]
-    public void VentsEightBreachedRoomsAtOnceSixCellsEachFromTheFarEdge()
+    public void VentsEightBreachedRoomsAtOnceTheirVentLossEachFromTheFarEdge()
     {
-        var w = new Scenario(BudgetTests.Reference());
+        var w = new Scenario(BudgetTests.Reference(), doubled: true);
         w.Run(300);
         var before = w.Air().Aired.ToList();
-        // Through the top of the hull, above the first open cell of eight tiles.
-        for (int tile = 0; tile < 8; tile++) w.Do(new ClearAt(tile * 8 + 3, "structure"));
+        // Through the top of the hull, both of its cells thick, above the first open cell of eight tiles.
+        for (int tile = 0; tile < 8; tile++)
+            w.Do(new ClearAt(w.At(tile * 8 + 3, 0), "structure")).Do(new ClearAt(w.At(tile * 8 + 3, 0) + w.Layout.Width, "structure"));
         w.Run();
         var after = w.Air().Aired;
         Assert.Equal(8 * Air.VentLoss, before.Count - after.Count);
@@ -548,8 +561,8 @@ public class AirTests
     private static readonly Gen<Step> Steps = Gen.OneOf(
         Gen.Constant(new Step("load")),
         Gen.Constant(new Step("valve")),
-        Gen.Elements(At(8, 2), At(8, 1), At(0, 2), At(5, 2)).Select(c => new Step("breach", c)),
-        Gen.Elements(At(8, 2), At(8, 1), At(0, 2), At(5, 1), At(5, 2), At(5, 3)).Select(c => new Step("seal", c)),
+        Gen.Elements(At(8, 2), At(8, 1), At(0, 2) + 1, At(5, 2)).Select(c => new Step("breach", c)),
+        Gen.Elements(At(8, 2), At(8, 1), At(0, 2) + 1, At(5, 1), At(5, 2), At(5, 3)).Select(c => new Step("seal", c)),
         Gen.Elements(At(6, 1), At(4, 3)).Select(c => new Step("vent", c)),
         Gen.Elements(At(3, 1), At(7, 3)).Select(c => new Step("breathe", c)),
         Gen.Frequency((2, Gen.Choose(1, 20)), (1, Gen.Choose(1, 1300)), (1, Gen.Elements(1, 1300)))
@@ -638,7 +651,7 @@ public class AirTests
     {
         var s = SetUp();
         var w = s.W;
-        for (int cell = 0; cell < 9 * 5; cell++)
+        for (int cell = 0; cell < 18 * 10; cell++)
         {
             if (w.M.Rooms.RoomAt(cell) != s.Room) continue;
             w.Do(new ClearAt(cell, "back")).Do(new Place(cell, Placement.BackWall("iron")));
@@ -658,12 +671,12 @@ public class AirTests
     [Fact]
     public void LeaksThroughTheBackWallBehindAnOpenDoorACellOfTheRoomNotAClosedOne()
     {
-        var w = new Scenario(Two);
-        // Shut, each room its hull and its own cells; the door's back wall touches no air.
-        Assert.Equal(new int?[] { (17 + 21) * Scrap, (13 + 15) * Scrap }, new[] { LeakAt(w, At15(4, 2)), LeakAt(w, At15(10, 2)) });
+        var w = new Scenario(AirTesting.OneThick(Two));
+        // Shut, each room its hull and its own cells, the right one the doorway's open half; the door's back walls touch no air.
+        Assert.Equal(new int?[] { (2 * 17 + 4 * 21) * Scrap, (2 * 13 + 4 * 15 + 2) * Scrap }, new[] { LeakAt(w, At15(4, 2)), LeakAt(w, At15(10, 2)) });
         w.Do(new SetDoor(At15(8, 2), true)).Run();
-        // Open, one room: both hulls, both rooms' cells and the doorway's.
-        Assert.Equal((17 + 13 + 21 + 15 + 1) * Scrap, LeakAt(w, At15(4, 2)));
+        // Open, one room: both hulls, both rooms' cells and the doorway's two.
+        Assert.Equal((2 * (17 + 13) + 4 * (21 + 15) + 2 + 2) * Scrap, LeakAt(w, At15(4, 2)));
     }
 
     [Fact]

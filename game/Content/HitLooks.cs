@@ -240,12 +240,12 @@ public static class HitLooks
     private static Dictionary<string, Impact> Looking(params (string[] Kinds, Impact Impact)[] groups) =>
         groups.SelectMany(g => g.Kinds.Select(kind => (kind, g.Impact))).ToDictionary(k => k.kind, k => k.Impact);
 
-    /// <summary>A plant's hit lands this share of a cell from its cell's middle toward the hero: its picture fills its cell unevenly.</summary>
-    public const double PlantInset = 0.25;
+    /// <summary>A plant's hit lands this share of a cell from its cell's middle toward the hero: its picture fills its cells unevenly.</summary>
+    public const double PlantInset = 0.5;
 
     /// <summary>A hit's point on a face is kept this share of the face from either corner, off the edge of the next.</summary>
     public const double FaceMargin = 0.15;
 
     /// <summary>How far under a hit chips fall to a floor at most, in cells; past it they fall on out of sight.</summary>
-    public const int FloorRows = 6;
+    public const int FloorRows = 12;
 }

@@ -31,8 +31,8 @@ public static class FloraLooks
     /// The light a glowing part casts (a seed pod, a berry, a bell), as a lamp's falling off by <see cref="LightKeep"/> a cell
     /// out to <see cref="LightReach"/>, at <see cref="LightStrength"/> of its colour; at most <see cref="MostLights"/> a plant.
     /// </summary>
-    public const float LightStrength = 0.9f, LightKeep = 0.4f;
-    public const int LightReach = 2, MostLights = 3;
+    public const float LightStrength = 0.9f, LightKeep = 0.632f;
+    public const int LightReach = 4, MostLights = 3;
 
     /// <summary>
     /// Motes drifting in the daylight (0075's luminous toolkit): <see cref="MotesASecond"/> made while any glowing plant is in

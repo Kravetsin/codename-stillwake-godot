@@ -20,7 +20,9 @@ public static class Builds
     [
         new("floor", [("scrap", 1)], BuildTicks: 7),
         new("ladder", [("scrap", 1)], BuildTicks: 7),
-        new("door", [("plate", 2), ("gear", 1)], BuildTicks: 20),
+        // A cell of a doorway, six cells now (0104): a plate a cell, its six what three cells took; a gear a cell, three more than
+        // it took, for a gear cannot be halved; as long to build.
+        new("door", [("plate", 1), ("gear", 1)], BuildTicks: 10),
         new("pipe", [("tube", 1)], BuildTicks: 7),
         new("valve", [("tube", 1), ("gear", 1)], BuildTicks: 40),
     ];

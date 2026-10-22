@@ -50,17 +50,17 @@ public static class Sound
 
     /// <summary>
     /// How every station's sound carries while it works (0059): the Former's, the smelter's, a furnace's or burner
-    /// generator's fire, a charging station's hum. All on the World bus, all as far: full within 2 cells, gone at 10. Their
+    /// generator's fire, a charging station's hum. All on the World bus, all as far: full within 4 cells, gone at 20. Their
     /// volumes are set by ear and meter so each station at work is about as loud as the next, about −32 LUFS at its loudest
-    /// 400 ms within 2 cells as Godot mixes it: it tells that it works, under a door, a step or a tool.
+    /// 400 ms within 4 cells as Godot mixes it: it tells that it works, under a door, a step or a tool.
     /// </summary>
-    public static readonly Reach StationReach = new(2, 10);
+    public static readonly Reach StationReach = new(4, 20);
 
     /// <summary>
     /// How a hand tool's sound carries where it is placed: the axe's chop, and a friend's harpoon heard on World,
-    /// its shot, its drum and its rod biting (0065). Full within 5 cells, gone at 20.
+    /// its shot, its drum and its rod biting (0065). Full within 10 cells, gone at 40.
     /// </summary>
-    public static readonly Reach ToolReach = new(5, 20);
+    public static readonly Reach ToolReach = new(10, 40);
 
     /// <summary>
     /// The buses (<c>game/default_bus_layout.tres</c>): UI, Ambient, Music and Effects into Master; into
@@ -75,11 +75,11 @@ public static class Sound
     public static readonly IReadOnlyList<string> Buses = [Master, Ui, Ambient, Effects, World, Suit, Helmet, Music];
 
     /// <summary>A boot on the hollow metal deck, at each half stride walking or running.</summary>
-    public static readonly Cue Step = new(Shots("crew/step", 6), -12, Heard: new(4, 18));
+    public static readonly Cue Step = new(Shots("crew/step", 6), -12, Heard: new(8, 36));
     /// <summary>A landing: the same boot on the same deck, louder and a little lower for the body's weight.</summary>
     public static readonly Cue Land = Step with { VolumeDb = -8, Tune = 0.85f };
     /// <summary>The boots pushing off the deck as the hero jumps; walking off an edge makes none.</summary>
-    public static readonly Cue Jump = new(Shots("crew/jump", 4), -12, Heard: new(4, 18));
+    public static readonly Cue Jump = new(Shots("crew/jump", 4), -12, Heard: new(8, 36));
 
     /// <summary>
     /// Boots on a planet's ground (0093), at each half stride as on the deck: on grass (soil under the open sky), bare soil, stone
@@ -87,10 +87,10 @@ public static class Sound
     /// audition's 8 stood out over everything else in play, so the user had them 5 dB quieter. A jump off the ground pushes
     /// off with the step of what it stood on. Bare soil's fifth take hissed in its tail and is gone.
     /// </summary>
-    public static readonly Cue StepGrass = new(Shots("crew/step-grass", 6), -13, Heard: new(4, 18));
-    public static readonly Cue StepSoil = new(Shots("crew/step-soil", 4), -13, Heard: new(4, 18));
-    public static readonly Cue StepStone = new(Shots("crew/step-stone", 6), -13, Heard: new(4, 18));
-    public static readonly Cue StepAlloy = new(Shots("crew/step-alloy", 5), -13, Heard: new(4, 18));
+    public static readonly Cue StepGrass = new(Shots("crew/step-grass", 6), -13, Heard: new(8, 36));
+    public static readonly Cue StepSoil = new(Shots("crew/step-soil", 4), -13, Heard: new(8, 36));
+    public static readonly Cue StepStone = new(Shots("crew/step-stone", 6), -13, Heard: new(8, 36));
+    public static readonly Cue StepAlloy = new(Shots("crew/step-alloy", 5), -13, Heard: new(8, 36));
     /// <summary>Moss on a cave's rock underfoot: the grass step, quieter (the audition's proposal).</summary>
     public static readonly Cue StepMoss = StepGrass with { VolumeDb = -17 };
 
@@ -101,19 +101,19 @@ public static class Sound
     /// <see cref="LandHardestTune"/> of its pitch from <see cref="LandHardestFall"/>, the audition's hop, jump and long fall.
     /// On the ruins' alloy it lands as on the deck, its step louder and lower (<see cref="LandAlloy"/>).
     /// </summary>
-    public static readonly Cue LandSoft = new(Shots("crew/land-soft", 1), -6, Heard: new(4, 18));
-    public static readonly Cue LandHard = new(Shots("crew/land-hard", 3), -6, Heard: new(4, 18));
+    public static readonly Cue LandSoft = new(Shots("crew/land-soft", 1), -6, Heard: new(8, 36));
+    public static readonly Cue LandHard = new(Shots("crew/land-hard", 3), -6, Heard: new(8, 36));
     public static readonly Cue LandAlloy = StepAlloy with { VolumeDb = -4, Tune = 0.85f };
-    public const int LandSoftestFall = 250, LandHardestFall = 900;
+    public const int LandSoftestFall = 500, LandHardestFall = 1800;
     public const float LandSoftestDb = -6, LandHardestTune = 0.88f;
     public static readonly Cue Alarm = new(Shots("crew/alarm", 1), -14, Pitch: 0);
-    public static readonly Cue Screwdriver = new(Shots("building/screwdriver", 5), -16, Heard: new(4, 14));
+    public static readonly Cue Screwdriver = new(Shots("building/screwdriver", 5), -16, Heard: new(8, 28));
     public static readonly Cue Hiss = Looped("atmosphere/hiss", -8, new(6, 24));
     public static readonly Cue Click = new(Shots("ui/click", 2), -12);
     public static readonly Cue VentHum = Looped("atmosphere/vent-hum", -12, new(3, 10));
-    public static readonly Cue DoorOpen = new(Shots("grid/door-open", 1), -8, Heard: new(6, 24));
-    public static readonly Cue DoorClose = new(Shots("grid/door-close", 1), -8, Heard: new(6, 24));
-    public static readonly Cue Valve = new(Shots("grid/valve", 3), -12, Heard: new(4, 14));
+    public static readonly Cue DoorOpen = new(Shots("grid/door-open", 1), -8, Heard: new(12, 48));
+    public static readonly Cue DoorClose = new(Shots("grid/door-close", 1), -8, Heard: new(12, 48));
+    public static readonly Cue Valve = new(Shots("grid/valve", 3), -12, Heard: new(8, 28));
     /// <summary>The one soft click an action makes: a crate opened, a canister loaded, debris caught, an item picked up.</summary>
     public static readonly Cue Act = new(Shots("hands/act", 1), -10);
     /// <summary>
@@ -152,7 +152,7 @@ public static class Sound
     /// and lower as it spins up or down), overlapping, each its pitch within ±<see cref="DrillWhirPitch"/> of the motor's speed.
     /// Never a long recording looped. 6 dB under the strikes, as the user chose it; at <see cref="ToolIdleDb"/>.
     /// </summary>
-    public static readonly Cue DrillWhir = new(Shots("debris/drill-whir", 3), ToolIdleDb, Pitch: 0, Heard: new(5, 20));
+    public static readonly Cue DrillWhir = new(Shots("debris/drill-whir", 3), ToolIdleDb, Pitch: 0, Heard: new(10, 40));
     public const float DrillWhirGrainsPerSecond = 9, DrillWhirPitch = 0.02f;
 
     /// <summary>
@@ -217,7 +217,7 @@ public static class Sound
     /// <summary>
     /// A drone's rotors (0062), one loop a drone where it flies, on the World bus, a station's reach: air through a fan, noise
     /// in a band about 450 Hz chopped 37.5 times a second over a low rustle and a faint 112.5 Hz (the audition's synth #2,
-    /// "Fan"), 4 dB under a station at work (−36 LUFS within 2 cells, standing). Its motor (<see cref="DroneMotor"/>) spins up
+    /// "Fan"), 4 dB under a station at work (−36 LUFS within 4 cells, standing). Its motor (<see cref="DroneMotor"/>) spins up
     /// as it takes off and down once it touches down; flying, it rises <see cref="DroneSpeedPitch"/> in pitch and
     /// <see cref="DroneSpeedDb"/> in volume at full speed, wavers ±<see cref="DroneWobbleCents"/> cents and
     /// ±<see cref="DroneWobbleDb"/> dB on three slow sines (<see cref="DroneWobble"/>), and each drone is tuned within
@@ -243,21 +243,21 @@ public static class Sound
     /// The arc makers' music box hit (0091): a plucked steel tine, synthesised, played at its tune's pitches (<c>HomesLooks.Tune</c>),
     /// so no pitch of its own. A placeholder till the user picks.
     /// </summary>
-    public static readonly Cue MusicBox = new(Shots("ruins/music-box", 1), -12, Pitch: 0, Heard: new(4, 16));
+    public static readonly Cue MusicBox = new(Shots("ruins/music-box", 1), -12, Pitch: 0, Heard: new(8, 32));
 
     /// <summary>The resonator zapping a hero beside it (0091): a short crackle of noise, synthesised. A placeholder till the user picks.</summary>
-    public static readonly Cue Zap = new(Shots("ruins/zap", 1), -10, Pitch: 0.08f, Heard: new(4, 16));
+    public static readonly Cue Zap = new(Shots("ruins/zap", 1), -10, Pitch: 0.08f, Heard: new(8, 32));
 
     /// <summary>
     /// A relic humming in its cradle (0096): the charging station's synthesised hum played half again as high, heard round its
     /// chamber; a placeholder till the user picks, as its discharges are the resonator's <see cref="Zap"/>.
     /// </summary>
-    public static readonly Cue RelicHum = new(["res://audio/power/charger-hum-1.ogg"], -14, Pitch: 0, Loops: true, Heard: new(3, 14), Tune: 1.5f);
+    public static readonly Cue RelicHum = new(["res://audio/power/charger-hum-1.ogg"], -14, Pitch: 0, Loops: true, Heard: new(6, 28), Tune: 1.5f);
 
     /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>
-    public static readonly Cue ChargeFull = new(Shots("power/charge-full", 1), -10, Pitch: 0, Heard: new(4, 16));
-    /// <summary>How far something breaking carries: a wreck, a cell of ground, a tree or a ruin's piece. Full within 6 cells, gone at 28.</summary>
-    public static readonly Reach BreakReach = new(6, 28);
+    public static readonly Cue ChargeFull = new(Shots("power/charge-full", 1), -10, Pitch: 0, Heard: new(8, 32));
+    /// <summary>How far something breaking carries: a wreck, a cell of ground, a tree or a ruin's piece. Full within 12 cells, gone at 56.</summary>
+    public static readonly Reach BreakReach = new(12, 56);
 
     /// <summary>A wreck breaking apart under this player's last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
     public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: BreakReach);
@@ -320,7 +320,7 @@ public static class Sound
     /// A drip off a stalactite landing in a cave (0080), where it splashes: a water drop, at most one every
     /// <see cref="CaveDripLeastS"/> to <see cref="CaveDripMostS"/> s however many fall, up to <see cref="CaveDripLowDb"/> under its cue's.
     /// </summary>
-    public static readonly Cue CaveDrip = new(Shots("flora/cave-drip", 2), -9, Pitch: 0.08f, Heard: new(4, 16));
+    public static readonly Cue CaveDrip = new(Shots("flora/cave-drip", 2), -9, Pitch: 0.08f, Heard: new(8, 32));
     public const double CaveDripLeastS = 0.5, CaveDripMostS = 2.2;
     public const float CaveDripLowDb = -10;
 

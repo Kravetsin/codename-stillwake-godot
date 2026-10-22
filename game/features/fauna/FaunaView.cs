@@ -22,13 +22,13 @@ namespace Stillwake.Game.Features.Fauna;
 public partial class FaunaView(Ui ui) : Node2D
 {
     private const float Cell = ShipCamera.Cell;
-    private const int Unit = FaunaModule.Unit, Margin = 4;
+    private const int Unit = FaunaModule.Unit, Margin = 8;
 
     /// <summary>How long after this player's own strike on a creature the sim's damage rising is that strike's, already shown.</summary>
     private const double OwnMs = 700;
 
     /// <summary>How near a hero a creature watches it, in pixels.</summary>
-    private const float Watch = 9 * Cell;
+    private const float Watch = 18 * Cell;
 
     /// <summary>How long a creature killed is drawn swelling white and fading, in milliseconds.</summary>
     private const double GhostMs = 170;
@@ -37,13 +37,13 @@ public partial class FaunaView(Ui ui) : Node2D
     private const double TiltMs = 90;
 
     /// <summary>How long a body's feet take to close a whole cell between where they are drawn and the ground, past how fast it moves: a step's, a landing's, in milliseconds.</summary>
-    private const double StepMs = 90;
+    private const double StepMs = 45;
 
     /// <summary>The most a body tilts to its feet, radians: over an edge it teeters, never tips.</summary>
     private const float MostLean = 0.4f;
 
-    /// <summary>A rise faster than this a tick is a jump, not a blow's hop (an axe's is 180).</summary>
-    private const int JumpTell = 250;
+    /// <summary>A rise faster than this a tick is a jump, not a blow's hop (an axe's is 360).</summary>
+    private const int JumpTell = 500;
 
     /// <summary>What is shown of a creature: its body, its motion, gait and pose, where it was on the tick before and on the last, its damage.</summary>
     private sealed class Shown(CreatureBody body, CreatureGait gait, CreaturePose pose)
@@ -261,7 +261,7 @@ public partial class FaunaView(Ui ui) : Node2D
     private string ToolOf(Vector2 at)
     {
         foreach (var (x, y, tool) in ui.Bits)
-            if (new Vector2(x, y).DistanceTo(at) < 3 * Cell) return tool;
+            if (new Vector2(x, y).DistanceTo(at) < 6 * Cell) return tool;
         return Spec.Weapons.Axe.Item;
     }
 
@@ -473,7 +473,7 @@ public partial class FaunaView(Ui ui) : Node2D
     /// <summary>The chest of the hero nearest <paramref name="at"/>, as the crew drew them this frame; a cell over it with none.</summary>
     private Vector2 NearestHero(Vector2 at)
     {
-        var nearest = at + new Vector2(0, -Cell * 40);
+        var nearest = at + new Vector2(0, -Cell * 80);
         float best = float.MaxValue;
         foreach (var (x, y) in ui.Heroes)
         {

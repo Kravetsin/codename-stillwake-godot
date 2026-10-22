@@ -8,7 +8,7 @@ the drill's bit are tested against each creature's body as against a wreck's box
 - **Reads:** `FaunaModule.Creatures`; `Client.InFlight` — this player's own strikes, seen the frame they are sent; `Ui.Heroes` —
   whom a creature watches and flinches from; `Ui.Bits` — a friend's running drill by a creature struck; `FaunaModule.FeetOf`,
   the ground under a creature's feet; `Session.Progress`.
-- **Only what the camera sees:** a body only for a creature within the camera's view and 4 cells round it, from a pool that grows
+- **Only what the camera sees:** a body only for a creature within the camera's view and 8 cells round it, from a pool that grows
   to the most ever on screen and never frees. A creature gone from the world while drawn was killed: nothing despawns in a
   hero's view.
 - **Drawn between ticks:** each body kept at the tick before and the last, drawn `Progress` of the way between them, a tick
@@ -17,7 +17,7 @@ the drill's bit are tested against each creature's body as against a wreck's box
   the sim stands it on, so its whole-cell steps up and down a slope never show: before, it hovered over the flat at a slope's
   foot and dropped onto it, and dipped then popped up at a slope's start. Its feet follow as fast as it moves and close the
   rest at a cell each 90 ms (a whole step, a teeter, a landing); the body between them tilted up to 0.4 rad, eased over 90 ms
-  onto a slope and off it. Facing the way it moves; still, toward a hero within 9 cells, else the way it last moved.
+  onto a slope and off it. Facing the way it moves; still, toward a hero within 18 cells, else the way it last moved.
 - **The body** (`CreatureBody`): the design its species' `Look` names, as the user picked it on the loper page (classic, tapir,
   sixleg, fluff). Its parts (`art/fauna/<design>/`) are index maps — R the ramp, G the tone — recoloured once at first use by
   the planet's palette (`CreatureParts`, `FaunaLooks.PaletteOf`, the first planet's «Саванна»), with a white copy for the flash
@@ -25,7 +25,7 @@ the drill's bit are tested against each creature's body as against a wreck's box
   generated into `Content/FaunaArt.cs`. A sprite a part in the rig's order, each hung from its parent's place and turned about
   its pivot (`CreaturePose`, the page's pose, plain C#, tested), drawn at the screen's resolution; lit as the world is (`Lit`),
   with `Layers.Creatures`, under the heroes. Its eye: open, half shut grazing, shut blinking, wide startled, its pupil on the
-  hero within 9 cells by whole pixels. Idle with no hero near for 1.5 s it grazes, head down nibbling and up for a look; with
+  hero within 18 cells by whole pixels. Idle with no hero near for 1.5 s it grazes, head down nibbling and up for a look; with
   one near it notices it, head up, ears perked. Its glowing parts are added over it unlit, and their spots (squares of 7 px of
   a glow map, at most 4 a creature) are lights in their colour (`Lights`, the light view's `Creatures`): the fluff's back and
   antennae light a cave.

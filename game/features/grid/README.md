@@ -74,11 +74,12 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   each breathing a little, fed to the light feature (`LightView.Lava`). Lava is never dug nor built, so the band is the
   ground's rows (`Ground.CoreRows`, `LavaRows`).
 - **Moss** (0079) on soil open to the sky (`Grass.cs`, plain C#, tested: a soil wall, whole or a floor slope, under an
-  empty cell with no back wall), a rule of drawing, never the sim's: one of four pictures a top (`art/planet/grass_{shape}_{v}`,
-  by a hash of the cell), two cells tall, laid from the cell above so its stems rise into it, over the edges. Dug, built
+  empty cell with no back wall), a rule of drawing, never the sim's: one of four pictures a top (`art/planet/top_{material}`'s columns,
+  by a hash of its 16 px column), two 16 px cells tall, each cell the half of the column its own column's parity picks (0104), laid from
+  two cells above so its stems rise into them, over the edges. Its details lie by 16 px cells, cut into the cells they cover. Dug, built
   over or roofed, the soil is bare; its cell's drawing alone lays and clears it, so a change above or below redraws it.
 - **Drawn near the camera** (0079): the grid is drawn in 32 × 32 chunks, a row at a time (`ChunkReveal`): every chunk the
-  view touches whole at once, so nothing pops in on screen, and the chunks within 40 cells round it ahead, nearest first, at
+  view touches whole at once, so nothing pops in on screen, and the chunks within 80 cells round it ahead, nearest first, at
   most 256 drawn cells a frame. A cell changed in a row not drawn yet is drawn with it, from `DrawnLayers`. A planet is built in
   nearly every cell: drawing all 1.5 million at its first look froze it for a second; now some 11 ms that frame at the default
   zoom, 31 ms zoomed far out. Running, the column of chunks ahead is drawn over twenty-odd frames of under a millisecond

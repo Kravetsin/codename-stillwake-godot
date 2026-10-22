@@ -105,12 +105,12 @@ public partial class DigView : Node2D
         glims.Spray(chip, x, y, (int)System.Math.Round(GroundLooks.BreakChips * Fx.Count), -System.Math.PI / 2, (-1.6, 1.6), (25, 80), floor);
     }
 
-    /// <summary>The middle of <paramref name="cell"/> in pixels, and the top of the first solid cell under it within six, for chips to land on.</summary>
+    /// <summary>The middle of <paramref name="cell"/> in pixels, and the top of the first solid cell under it within twelve, for chips to land on.</summary>
     private (double X, double Y, double? Floor) Where(int cell)
     {
         int w = _grid.Width, cx = cell % w, cy = cell / w;
         double? floor = null;
-        for (int row = cy + 1; row <= cy + 6 && row < _grid.Height; row++)
+        for (int row = cy + 1; row <= cy + 12 && row < _grid.Height; row++)
             if (_grid.StructureAt(row * w + cx) is Structure.Wall or Structure.Floor)
             {
                 floor = row * Cell;

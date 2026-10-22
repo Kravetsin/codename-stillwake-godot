@@ -9,13 +9,13 @@ namespace Stillwake.Game.Tests;
 /// <summary>The figure's lean, skid, landing and air poses read from the motion (0090), the hero moved by its own controller.</summary>
 public class MotionTests
 {
-    private const int Unit = Hero.Unit;
+    private const int Unit = Hero.Unit, Block = HeroTests.Block;
 
-    /// <summary>A hall forty cells wide and twenty-four tall, its floor on row 23's top.</summary>
+    /// <summary>A hall forty characters wide and twenty-four tall, its floor on row 23's top.</summary>
     private static readonly Ship Hall = HeroTests.ShipFrom(
         Enumerable.Range(0, 24).Select(r => r is 0 or 23 ? new string('#', 40) : "#" + new string('.', 38) + "#").ToArray());
 
-    private const int Floor = 23 * Unit;
+    private const int Floor = 23 * Block;
 
     private static readonly HeroInput Still = HeroTests.Still, Right = HeroTests.Right, Left = HeroTests.Left;
     private static readonly HeroInput RunRight = Right with { Sprint = true }, RunLeft = Left with { Sprint = true };
@@ -46,7 +46,7 @@ public class MotionTests
 
     private static IEnumerable<HeroInput> Hold(HeroInput keys, int steps) => Enumerable.Repeat(keys, steps);
 
-    private static readonly Hero Standing = new(5 * Unit, Floor, 0, 0, false, 1);
+    private static readonly Hero Standing = new(5 * Block, Floor, 0, 0, false, 1);
 
     [Fact]
     public void LeansFromAccelerationAtMostAQuarterRadianForwardAndAFifthBackOnly()
@@ -101,16 +101,16 @@ public class MotionTests
     [Fact]
     public void AWalkKeptOnAHillNeverLeans()
     {
-        var ship = HeroTests.ShipFrom(SlopeTests.Hill);
+        var ship = SlopeTests.Flat(SlopeTests.Hill);
         foreach (bool run in new[] { false, true })
         {
             var motion = new Motion();
-            var h = new Hero(1 * Unit + 475, 9 * Unit, 0, 0, false, 1);
+            var h = new Hero(1 * Unit + Spec.Width / 2, 12 * Unit, 0, 0, false, 1);
             for (int i = 0; i < 300; i++)
             {
                 var next = h.Step(Right with { Sprint = run }, ship);
                 // Short of the room's far wall, which stops it dead and leans it back.
-                if (next.X > 14 * Unit) break;
+                if (next.X > 13 * Unit) break;
                 h = next;
                 motion.Step(h, PoseOf(h, false, false), Hero.StepMs);
                 // Past setting off, at its speed up the slope, over the top and down: as on the flat.
@@ -148,11 +148,11 @@ public class MotionTests
     }
 
     [Fact]
-    public void AHopLandsLightAHeldJumpFullyAndAFallOfSevenCellsHeavy()
+    public void AHopLandsLightAHeldJumpFullyAndAFallOfFourteenCellsHeavy()
     {
         var hop = Landed([Still with { Jump = true }, .. Hold(Still, 80)]);
         var held = Landed([Still with { Jump = true }, .. Hold(HeroTests.Held, 80)]);
-        var fall = Landed(Hold(Still, 80), cells: 7);
+        var fall = Landed(Hold(Still, 80), cells: 14);
         Assert.True(hop.Depth < 0.7 && hop.Depth >= Look.Landing.Least, $"{hop}");
         Assert.InRange(held.Depth, 0.9, 1.15);
         Assert.True(fall.Depth > 1.3, $"{fall.Depth}");
@@ -185,9 +185,9 @@ public class MotionTests
         PoseTests.Close(Airborne.Fall.FrontLeg.Upper, fall.FrontLeg.Upper, 6);
         PoseTests.Close(Airborne.Fall.BackArm.Lower, fall.BackArm.Lower, 6);
         // No step of the speed moves a limb far: the old poses swapped whole across 0.
-        for (int vy = -Spec.Jump; vy < 600; vy += 6)
+        for (int vy = -Spec.Jump; vy < 1200; vy += 12)
         {
-            var (a, b) = (At(vy), At(vy + 6));
+            var (a, b) = (At(vy), At(vy + 12));
             foreach (var (x, y) in new[] { (a.FrontArm, b.FrontArm), (a.BackArm, b.BackArm), (a.FrontLeg, b.FrontLeg), (a.BackLeg, b.BackLeg) })
                 Assert.True(Math.Abs(x.Upper - y.Upper) < 0.12 && Math.Abs(x.Lower - y.Lower) < 0.12, $"at {vy}: {x} to {y}");
         }
@@ -221,8 +221,8 @@ public class MotionTests
         var top = aloft.OrderBy(f => Math.Abs(f.Hero.Vy)).First();
         Assert.True(TopOf(top.Hero.Vy) > 0.3, $"{top.Hero.Vy}");
         Assert.All(aloft, f => Assert.Equal(0, FlailOf(f.Hero.Vy, f.Now.FallingMs)));
-        // Off nineteen cells it flails, most of the way to its full by the time it lands.
-        var fall = Drive(Standing with { Y = Floor - 19 * Unit }, Hold(Still, 120)).TakeWhile(f => f.Pose == Pose.Air).ToList();
+        // Off thirty-eight cells it flails, most of the way to its full by the time it lands.
+        var fall = Drive(Standing with { Y = Floor - 38 * Unit }, Hold(Still, 120)).TakeWhile(f => f.Pose == Pose.Air).ToList();
         Assert.True(FlailOf(fall[^1].Hero.Vy, fall[^1].Now.FallingMs) > 0.6, $"{fall[^1]}");
         // Walked off, not jumped: no push.
         Assert.All(fall, f => Assert.Equal(0, PushOf(f.Now.SinceJumpMs)));

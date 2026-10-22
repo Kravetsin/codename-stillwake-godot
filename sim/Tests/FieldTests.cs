@@ -22,14 +22,15 @@ public class FieldTests
         """;
 
     private const int Width = Content.World.Width, Height = Content.World.Height;
-    /// <summary>The field's edges, the zone grown by <c>Field.Margin</c>: 448 cells from the grid's left and right, 192 from its top and bottom.</summary>
-    private const int Left = 448, Right = Width - 1 - 448, Top = 192, Bottom = Height - 1 - 192;
+    /// <summary>The field's edges, the zone grown by <c>Field.Margin</c>: 384 cells from the grid's left and right, 128 from its top and bottom.</summary>
+    private const int Left = (Width - Content.World.ZoneWidth) / 2 - FieldSpec.Margin, Right = Width - 1 - Left;
+    private const int Top = (Height - Content.World.ZoneHeight) / 2 - FieldSpec.Margin, Bottom = Height - 1 - Top;
     /// <summary>A row and a column through the middle of the world, inside the field.</summary>
     private const int MidY = Height / 2, MidX = Width / 2;
 
     private static int At(int x, int y) => y * Width + x;
 
-    private static Scenario World() => new(Layout.Parse(PodRoom).InWorld());
+    private static Scenario World() => new(Layout.Parse(PodRoom).Doubled().InWorld());
 
     /// <summary>One world, never stepped, for the queries alone.</summary>
     private static readonly Lazy<Scenario> Still = new(World);
@@ -87,8 +88,8 @@ public class FieldTests
     [Fact]
     public void ChargesTwelveMoreHalfWayToTheEdgeByTheDeeperAxis()
     {
-        // 224 of 448 cells sideways, 96 of 192 up or down: 500 thousandths, 45 × ¼ rounded up.
-        foreach (int cell in new[] { At(Left - 224, MidY), At(Right + 224, MidY), At(MidX, Top - 96), At(MidX, Bottom + 96), At(Left - 224, Top - 10) })
+        // 192 of 384 cells sideways, 64 of 128 up or down: 500 thousandths, 45 × ¼ rounded up.
+        foreach (int cell in new[] { At(Left / 2, MidY), At(Right + Left / 2, MidY), At(MidX, Top / 2), At(MidX, Bottom + Top / 2), At(Left / 2, Top - 10) })
         {
             Assert.Equal(12, Cost(cell));
             var w = Breaths(BroughtIn(cell), 1);
@@ -112,7 +113,7 @@ public class FieldTests
     [Fact]
     public void StopsDrainingOnTheTickTheReportFromInsideLands()
     {
-        var w = Breaths(BroughtIn(At(Left - 224, MidY)), 1);
+        var w = Breaths(BroughtIn(At(Left / 2, MidY)), 1);
         Assert.Equal(Content.Crew.Suit - 13, HeroOf(w).Suit);
         ToBreath(w).Do(new Enter(At(Left + 10, MidY)) { From = 0 }).Run();
         Assert.Equal(Content.Crew.Suit - 14, HeroOf(w).Suit);
@@ -122,7 +123,7 @@ public class FieldTests
     public void AddsTheColdToWhatThrustVents()
     {
         var w = ToBreath(World().Wear(0, JetpackSpec.Item)).Run();
-        int cell = At(Left - 224, MidY);
+        int cell = At(Left / 2, MidY);
         w.Do(new Enter(cell) { From = 0 }).Do(new Enter(cell) { From = 1 }).Do(new Thrust(true) { From = 0 }).Run();
         Breaths(w, 1);
         // Hero 1 breathes and freezes; hero 0 too, and vents 20 ticks of thrust on top.
@@ -133,7 +134,7 @@ public class FieldTests
     [Fact]
     public void DrainsACanisterBreathedPastTheField()
     {
-        var w = BroughtIn(At(Left - 224, MidY)).GiveItems(0, (Content.Crew.Canister, 1));
+        var w = BroughtIn(At(Left / 2, MidY)).GiveItems(0, (Content.Crew.Canister, 1));
         HeroOf(w).Suit = 10;
         w.Do(new Refill { From = 0 }).Run();
         Assert.Equal(10 + Content.Crew.CanisterRefill, HeroOf(w).Suit);

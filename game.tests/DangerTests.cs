@@ -27,14 +27,15 @@ public class DangerTests
     [Fact]
     public void ReadsALowSuitByTheLifepodInVacuumAsNoDangerAndPastItsReachAsLow()
     {
-        var w = new TestWorld("""
+        var w = new TestWorld(Stillwake.Sim.Layout.Parse("""
             #########
             #OOO....#
             #OOO....#
             #OOO....#
             #########
-            """);
-        int byPod = w.M.Crew.Spawn, away = 3 * 9 + 7;
+            """).Doubled());
+        // A cell in the room past the pod's reach: the block (7, 3)'s bottom right, the map doubled (0104).
+        int byPod = w.M.Crew.Spawn, away = 7 * 18 + 15;
         w.Step(new Enter(away) { From = 0 }).Step(new Enter(away) { From = 1 });
         for (int i = 0; i < (Suits.Suit - Low) * Suits.BreathEvery; i++) w.Step();
         w.Step(new Enter(byPod) { From = 1 });

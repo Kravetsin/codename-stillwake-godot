@@ -12,26 +12,26 @@ public class DigAimTests
     private const int Unit = Hero.Unit;
     private static readonly string Axe = Spec.Weapons.Axe.Item, Drill = Spec.Weapons.Drill.Item;
 
-    /// <summary>A shaft down through soil over stone, bedrock at its foot: a room, not space, so no wreck could be aimed at here.</summary>
+    /// <summary>A shaft down through soil over stone, bedrock at its foot: a room, not space, so no wreck could be aimed at here. A character a cell: digging is per cell; wide past the reach.</summary>
     private static TestWorld Shaft() => new(ShaftLayout);
 
     private static Layout ShaftLayout => Layout.Parse("""
-        ################
-        ###...##########
-        ###...##########
-        ################
-        ################
-        ################
+        ################################
+        ###...##########################
+        ###...##########################
+        ################################
+        ################################
+        ################################
         """).WithMaterials("""
-        ssssssssssssssss
-        sss...ssssssssss
-        sss...ssssssssss
-        ssssssssssssssss
-        tttttttttttttttt
-        bbbbbbbbbbbbbbbb
+        ssssssssssssssssssssssssssssssss
+        sss...ssssssssssssssssssssssssss
+        sss...ssssssssssssssssssssssssss
+        ssssssssssssssssssssssssssssssss
+        tttttttttttttttttttttttttttttttt
+        bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
         """);
 
-    private static int At(int x, int y) => y * 16 + x;
+    private static int At(int x, int y) => y * 32 + x;
 
     /// <summary>A hero standing on the shaft's floor, its feet on row 3.</summary>
     private static Hero InShaft => new(4 * Unit + Unit / 2, 3 * Unit, 0, 0, false, 1);
@@ -66,10 +66,10 @@ public class DigAimTests
         var m = Shaft().M;
         var hero = InShaft;
         Assert.Equal(new Prompt("use.dig", "building.bedrock"), Prompts.Of(m, Aiming.AimAt(m, 0, hero with { Y = 5 * Unit }, Centre(4, 5), axe: true)));
-        var far = Aiming.AimAt(m, 0, hero, Centre(15, 0), axe: true);
+        var far = Aiming.AimAt(m, 0, hero, Centre(31, 0), axe: true);
         Assert.False(far!.InReach);
         Assert.Null(Prompts.Of(m, far));
-        Assert.Null(Aiming.DigAt(m, 0, hero, new Point(15 * Unit + 500, 500), Axe));
+        Assert.Null(Aiming.DigAt(m, 0, hero, new Point(31 * Unit + 500, 500), Axe));
     }
 
     [Fact]

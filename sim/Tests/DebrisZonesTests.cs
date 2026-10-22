@@ -25,8 +25,11 @@ public class DebrisZonesTests
     internal static Layout Open(int width, int height, int x, int y, int w = 6, int h = 3) => Layout.Parse(
         [.. Enumerable.Range(0, height).Select(r => r >= y && r < y + h ? (new string(' ', x) + new string('#', w)).PadRight(width) : new string(' ', width))]);
 
-    /// <summary>640×320, the hull at columns 100 to 105 and rows 150 to 152: its stream's box spans columns 36 to 169, rows 138 to 164.</summary>
-    private static readonly Layout Wide = Open(640, 320, 100, 150);
+    /// <summary>
+    /// 1280×640, the hull at columns 200 to 211 and rows 300 to 305: its stream's box spans columns 72 to 339, rows 276 to 329.
+    /// Every length here is twice the 16 px cell's (0104), as the zones' are.
+    /// </summary>
+    private static readonly Layout Wide = Open(1280, 640, 200, 300, 12, 6);
 
     private static IReadOnlyList<Piece> Pieces(Scenario w) => w.M.Debris.Pieces;
     private static IEnumerable<Piece> Far(Scenario w) => Pieces(w).Where(p => p.Zone == DebrisSpec.Far.Id);
@@ -57,30 +60,30 @@ public class DebrisZonesTests
     [Fact]
     public void SpawnsAFarPieceOnTheRingRoundAHeroOutPastTheStreamOutOfItsViewOnItsBeat()
     {
-        var w = new Scenario(Wide).Do(new Enter(400 + 150 * 640)).Run(DebrisSpec.Far.Every - 1);
+        var w = new Scenario(Wide).Do(new Enter(800 + 300 * 1280)).Run(DebrisSpec.Far.Every - 1);
         Assert.Empty(Far(w));
         w.Run();
         var piece = Assert.Single(Far(w));
-        Assert.True(OnRing(CellOf(piece), (400, 150)), $"{CellOf(piece)} off the ring");
+        Assert.True(OnRing(CellOf(piece), (800, 300)), $"{CellOf(piece)} off the ring");
         Assert.Equal((piece.X, 0, DebrisSpec.Far.Every), (piece.Start, piece.End, piece.SeenAt));
         Assert.Equal(500, piece.X % 1000);
         Assert.InRange(piece.Speed, DebrisSpec.Far.DriftMin, DebrisSpec.Far.DriftMax);
         // Every one after it as well, on all four sides of the ring, never where the hero sees.
         var spawns = Spawns(w, 600).Where(s => s.Piece.Zone == DebrisSpec.Far.Id).ToList();
         Assert.True(spawns.Count > 20, $"{spawns.Count} far pieces");
-        Assert.All(spawns, s => Assert.True(OnRing(CellOf(s.Piece), (400, 150)) && !Within(CellOf(s.Piece), (400, 150), DebrisSpec.View)));
-        Assert.All(new Func<(int X, int Y), bool>[] { c => c.X >= 400 + Around.RingFrom.X, c => c.X <= 400 - Around.RingFrom.X, c => c.Y <= 150 - Around.RingFrom.Y, c => c.Y >= 150 + Around.RingFrom.Y },
+        Assert.All(spawns, s => Assert.True(OnRing(CellOf(s.Piece), (800, 300)) && !Within(CellOf(s.Piece), (800, 300), DebrisSpec.View)));
+        Assert.All(new Func<(int X, int Y), bool>[] { c => c.X >= 800 + Around.RingFrom.X, c => c.X <= 800 - Around.RingFrom.X, c => c.Y <= 300 - Around.RingFrom.Y, c => c.Y >= 300 + Around.RingFrom.Y },
             side => Assert.Contains(spawns, s => side(CellOf(s.Piece))));
     }
 
     [Fact]
     public void SpawnsNoFarPieceOffTheGridNorInTheStreamsBoxYetTakesTheDrawsForIt()
     {
-        // The hull a wall down the left edge: its stream's box covers every row out to column 64. The hero
-        // at column 100 is past it, its ring's left side in the box and the rest off the grid.
-        var narrow = Layout.Parse([.. Enumerable.Range(0, 20).Select(_ => "#".PadRight(150))]);
+        // The hull a wall down the left edge: its stream's box covers every row out to column 128. The hero
+        // at column 200 is past it, its ring's left side in the box and the rest off the grid.
+        var narrow = Layout.Parse([.. Enumerable.Range(0, 40).Select(_ => "#".PadRight(300))]);
         var alone = new Scenario(narrow);
-        var watched = new Scenario(narrow).Do(new Enter(10 * 150 + 100));
+        var watched = new Scenario(narrow).Do(new Enter(20 * 300 + 200));
         var (a, b) = (Spawns(alone, 600), Spawns(watched, 600));
         Assert.Empty(Far(watched));
         Assert.All(b, s => Assert.Equal(DebrisSpec.Ship.Id, s.Piece.Zone));
@@ -91,11 +94,11 @@ public class DebrisZonesTests
     [Fact]
     public void TakesNoDrawForTheFarFieldWhileEveryHeroIsInsideTheStreamsBox()
     {
-        // 160×60 round a hull at columns 70 to 75 and rows 25 to 30; the box spans columns 6 to 139, rows 13 to 42.
-        // Both heroes in it, neither seeing where the stream starts (139) nor where it ends (6).
-        var roomy = Open(160, 60, 70, 25, h: 6);
+        // 320×120 round a hull at columns 140 to 151 and rows 50 to 61; the box spans columns 12 to 279, rows 26 to 85.
+        // Both heroes in it, neither seeing where the stream starts (279) nor where it ends (12).
+        var roomy = Open(320, 120, 140, 50, 12, 12);
         var alone = new Scenario(roomy);
-        var near = new Scenario(roomy).Do(new Enter(20 * 160 + 70)).Do(new Enter(40 * 160 + 75) { From = 1 });
+        var near = new Scenario(roomy).Do(new Enter(40 * 320 + 140)).Do(new Enter(80 * 320 + 150) { From = 1 });
         var (a, b) = (Spawns(alone, 800), Spawns(near, 800));
         Assert.Empty(Far(near));
         Assert.True(a.Count > 3);
@@ -134,7 +137,7 @@ public class DebrisZonesTests
     {
         // The stream one short of its cap from the start, a hero far out filling its share meanwhile: the
         // stream's next beat fills it, however many far pieces are out.
-        var w = new Scenario(Wide with { DebrisAtStart = DebrisSpec.Ship.Max - 1 }).Do(new Enter(60 * 640 + 450));
+        var w = new Scenario(Wide with { DebrisAtStart = DebrisSpec.Ship.Max - 1 }).Do(new Enter(120 * 1280 + 900));
         bool full = false;
         for (int t = 0; t < 850 && !full; t++)
         {
@@ -148,7 +151,7 @@ public class DebrisZonesTests
     [Fact]
     public void FillsAHerosShareOfItsKeepBoxAndNoMore()
     {
-        var (each, _) = Peaks(With(Wide, (400, 150)), 850, (400, 150));
+        var (each, _) = Peaks(With(Wide, (800, 300)), 850, (800, 300));
         Assert.Equal(Around.PerHero, each[0]);
     }
 
@@ -156,9 +159,9 @@ public class DebrisZonesTests
     public void LetsTwoHeroesTogetherFillOneShareAndTwoApartFillTwo()
     {
         // Together they share one keep box: never more than one share in it (Peaks), and that share filled.
-        var (shared, _) = Peaks(With(Wide, (400, 150), (400, 150)), 850, (400, 150));
+        var (shared, _) = Peaks(With(Wide, (800, 300), (800, 300)), 850, (800, 300));
         Assert.Equal(Around.PerHero, shared[0]);
-        var (each, apart) = Peaks(With(Wide, (250, 80), (520, 240)), 850, (250, 80), (520, 240));
+        var (each, apart) = Peaks(With(Wide, (500, 160), (1040, 480)), 850, (500, 160), (1040, 480));
         Assert.Equal([Around.PerHero, Around.PerHero], each);
         Assert.True(apart >= 2 * Around.PerHero, $"{apart} far pieces for two heroes apart");
     }
@@ -166,9 +169,9 @@ public class DebrisZonesTests
     [Fact]
     public void StopsAtTheFarFieldsCapTheLowerIdsSpawningFirst()
     {
-        // Six heroes 300 cells apart: six shares are more than the cap.
-        var heroes = Enumerable.Range(0, 6).Select(i => (300 + 300 * i, 200)).ToArray();
-        var w = With(Open(1900, 400, 50, 200), heroes);
+        // Six heroes 600 cells apart: six shares are more than the cap.
+        var heroes = Enumerable.Range(0, 6).Select(i => (600 + 600 * i, 400)).ToArray();
+        var w = With(Open(3800, 800, 100, 400, 12, 6), heroes);
         bool capped = false;
         for (int t = 0; t < 850 && !capped; t++)
         {
@@ -182,10 +185,10 @@ public class DebrisZonesTests
         Assert.True(capped);
     }
 
-    /// <summary>Wide with a hero at (400, 150) and its first far piece spawned; the piece's id.</summary>
+    /// <summary>Wide with a hero at (800, 300) and its first far piece spawned; the piece's id.</summary>
     private static (Scenario W, int Piece) FirstFar()
     {
-        var w = new Scenario(Wide).Do(new Enter(400 + 150 * 640)).Run(DebrisSpec.Far.Every);
+        var w = new Scenario(Wide).Do(new Enter(800 + 300 * 1280)).Run(DebrisSpec.Far.Every);
         return (w, Far(w).Single().Id);
     }
 
@@ -196,7 +199,7 @@ public class DebrisZonesTests
     {
         var (x, y) = CellOf(PieceOf(w, id)!);
         int off = (Around.Keep.Y + Around.Hard.Y) / 2;
-        return (y >= off ? y - off : y + off) * 640 + x;
+        return (y >= off ? y - off : y + off) * 1280 + x;
     }
 
     [Fact]
@@ -216,7 +219,7 @@ public class DebrisZonesTests
     {
         var (w, id) = FirstFar();
         w.Do(new Enter(Aside(w, id))).Run(300);
-        w.Do(new Enter(150 * 640 + 400)).Run();
+        w.Do(new Enter(300 * 1280 + 800)).Run();
         int back = Debris(w).Clock;
         Assert.Equal(back, PieceOf(w, id)!.SeenAt);
         w.Do(new Enter(Aside(w, id))).Run(Around.Linger - 1);
@@ -230,7 +233,7 @@ public class DebrisZonesTests
     {
         var (w, id) = FirstFar();
         var (x, y) = CellOf(PieceOf(w, id)!);
-        w.Do(new Enter(y * 640 + x - Around.Hard.X - 1)).Run();
+        w.Do(new Enter(y * 1280 + x - Around.Hard.X - 1)).Run();
         Assert.Null(PieceOf(w, id));
         // The last hero gone from the world takes the far field with it: no box keeps it.
         var (left, _) = FirstFar();
@@ -242,7 +245,7 @@ public class DebrisZonesTests
     public void NeverRemovesAStreamPieceByDistanceOnlyAtItsEnd()
     {
         // A hero far off, the stream out: its pieces drift on, each gone only past its end.
-        var w = new Scenario(Wide with { DebrisAtStart = 6 }).Do(new Enter(10 * 640 + 630)).Run();
+        var w = new Scenario(Wide with { DebrisAtStart = 6 }).Do(new Enter(20 * 1280 + 1260)).Run();
         var last = Pieces(w).Where(p => p.Zone == DebrisSpec.Ship.Id).ToDictionary(p => p.Id, p => (p.X, p.Speed, p.End));
         Assert.Equal(6, last.Count);
         for (int t = 0; t < Around.Linger + 100; t++)
@@ -262,36 +265,36 @@ public class DebrisZonesTests
     [Fact]
     public void StartsAStreamPieceRightOfEveryHerosViewThatHoldsItsLeadAndDriftsItPastTheShip()
     {
-        // The lead is column 169. One hero in the stream's box sees it, out to 210; a second, out past the box,
-        // sees 211, out to 320: the stream starts at 321, where neither sees a piece appear.
-        var w = With(Wide, (150, 151), (260, 140));
+        // The lead is column 339. One hero in the stream's box sees it, out to 420; a second, out past the box,
+        // sees 421, out to 640: the stream starts at 641, where neither sees a piece appear.
+        var w = With(Wide, (300, 302), (520, 280));
         var spawns = Spawns(w, 800).Where(s => s.Piece.Zone == DebrisSpec.Ship.Id).ToList();
         Assert.True(spawns.Count > 2, $"{spawns.Count} stream pieces");
-        Assert.All(spawns, s => Assert.Equal((321_500, 36_000), (s.Piece.Start, s.Piece.End)));
+        Assert.All(spawns, s => Assert.Equal((641_500, 72_000), (s.Piece.Start, s.Piece.End)));
         // Alone, no one sees the lead: the stream starts on it.
         var alone = Spawns(new Scenario(Wide), 400).Where(s => s.Piece.Zone == DebrisSpec.Ship.Id);
-        Assert.All(alone, s => Assert.Equal(169_500, s.Piece.Start));
+        Assert.All(alone, s => Assert.Equal(339_500, s.Piece.Start));
         // A hero far ahead, not seeing the lead, moves nothing.
-        var ahead = Spawns(With(Wide, (300, 151)), 400).Where(s => s.Piece.Zone == DebrisSpec.Ship.Id);
-        Assert.All(ahead, s => Assert.Equal(169_500, s.Piece.Start));
+        var ahead = Spawns(With(Wide, (600, 302)), 400).Where(s => s.Piece.Zone == DebrisSpec.Ship.Id);
+        Assert.All(ahead, s => Assert.Equal(339_500, s.Piece.Start));
     }
 
     [Fact]
     public void TakesAStreamPiecePastItsEndOnlyOnceNoHeroSeesIt()
     {
-        // The hull at columns 300 to 305: the stream ends at 236. A hero at 200, out past the box, sees from 140 to 260.
-        var map = Open(640, 320, 300, 150) with { DebrisAtStart = 1 };
-        var w = With(map, (200, 151)).Run();
+        // The hull at columns 600 to 611: the stream ends at 472. A hero at 400, out past the box, sees from 280 to 520.
+        var map = Open(1280, 640, 600, 300, 12, 6) with { DebrisAtStart = 1 };
+        var w = With(map, (400, 302)).Run();
         var piece = Pieces(w).Single(p => p.Zone == DebrisSpec.Ship.Id);
-        Assert.Equal(236_000, piece.End);
-        w.Do(new Reel(piece.Id, 141_000, 151_500)).Run();
+        Assert.Equal(472_000, piece.End);
+        w.Do(new Reel(piece.Id, 281_000, 303_000)).Run();
         while (PieceOf(w, piece.Id)!.Reel != null) w.Run();
         Assert.Empty(w.Refusals);
         // Past its end and seen: it drifts on to the view's edge, and is gone the tick it leaves it.
         int ticks = 0;
         while (PieceOf(w, piece.Id) is { } now)
         {
-            Assert.True(now.X / 1000 >= 140, $"at {now.X}, out of sight");
+            Assert.True(now.X / 1000 >= 280, $"at {now.X}, out of sight");
             w.Run();
             ticks++;
         }
@@ -310,11 +313,13 @@ public class DebrisZonesTests
     public void DriftsAFarPieceToTheGridsLeftEdgeAndNoFurther()
     {
         // A hero by the left edge, above the stream's box: whatever it spawns stays in its keep box till the
-        // edge takes it. Its first piece is reeled to a cell from the edge, to be there soon.
-        var w = new Scenario(Wide).Do(new Enter(60 * 640 + 30)).Run(DebrisSpec.Far.Every);
+        // edge takes it. Its first piece is reeled to two cells from the edge, to be there soon.
+        var w = new Scenario(Wide).Do(new Enter(120 * 1280 + 60)).Run(DebrisSpec.Far.Every);
+        // A beat whose draw falls off the grid spawns nothing, and the ring's left side is off it.
+        for (int t = 0; t < 100 && !Far(w).Any(); t++) w.Run();
         var first = Far(w).First();
         Assert.Equal(0, first.End);
-        w.Do(new Reel(first.Id, 1_000, first.Y)).Run();
+        w.Do(new Reel(first.Id, 2_000, first.Y)).Run();
         Assert.Empty(w.Refusals);
         var last = new Dictionary<int, (int X, int Speed)>();
         (int X, int Speed) lastOfFirst = (first.X, first.Speed);
@@ -322,7 +327,7 @@ public class DebrisZonesTests
         {
             w.Run();
             var now = Far(w).ToDictionary(p => p.Id, p => (p.X, p.Speed));
-            Assert.All(now.Values, p => Assert.InRange(p.X, 0, 640 * 1000 - 1));
+            Assert.All(now.Values, p => Assert.InRange(p.X, 0, 1280 * 1000 - 1));
             foreach (var (id, was) in last.Where(kv => !now.ContainsKey(kv.Key)))
                 Assert.True(was.X - was.Speed < 0, $"piece {id} gone at {was.X}");
             if (now.TryGetValue(first.Id, out var seen)) lastOfFirst = seen;
@@ -338,23 +343,23 @@ public class DebrisZonesTests
         var hull = (Left: 100, Right: 105, Top: 150, Bottom: 152);
         int TierFrom(int x, int y) => DebrisModule.TierOf(DebrisSpec.Far, x, y, hull).From;
         Assert.Equal(0, TierFrom(102, 151));
-        Assert.Equal((0, 128), (TierFrom(105 + 127, 151), TierFrom(105 + 128, 151)));
-        Assert.Equal((128, 256), (TierFrom(100 - 255, 151), TierFrom(100 - 256, 151)));
-        Assert.Equal((0, 128), (TierFrom(102, 152 + 63), TierFrom(102, 152 + 64)));
-        Assert.Equal((128, 256), (TierFrom(102, 150 - 127), TierFrom(102, 150 - 128)));
+        Assert.Equal((0, 256), (TierFrom(105 + 255, 151), TierFrom(105 + 256, 151)));
+        Assert.Equal((256, 512), (TierFrom(100 - 511, 151), TierFrom(100 - 512, 151)));
+        Assert.Equal((0, 256), (TierFrom(102, 152 + 127), TierFrom(102, 152 + 128)));
+        Assert.Equal((256, 512), (TierFrom(102, 150 - 255), TierFrom(102, 150 - 256)));
         // The deeper of the two decides.
-        Assert.Equal(128, TierFrom(105 + 20, 152 + 70));
+        Assert.Equal(256, TierFrom(105 + 40, 152 + 140));
         Assert.Equal(0, DebrisModule.TierOf(DebrisSpec.Ship, 5000, 5000, hull).From);
     }
 
     [Fact]
     public void DrawsTheFarthestTiersKindsForAHeroFarOut()
     {
-        // Every point of its ring 700 cells and more from the hull: machine blocks drift by more often than scrap there.
+        // Every point of its ring 1400 cells and more from the hull: machine blocks drift by more often than scrap there.
         var kinds = new List<string>();
         for (uint seed = 1; seed <= 5; seed++)
         {
-            var w = new Scenario(Open(1400, 300, 50, 150), seed).Do(new Enter(150 * 1400 + 900));
+            var w = new Scenario(Open(2800, 600, 100, 300, 12, 6), seed).Do(new Enter(300 * 2800 + 1800));
             kinds.AddRange(Spawns(w, 700).Where(s => s.Piece.Zone == DebrisSpec.Far.Id).Select(s => s.Piece.Item));
         }
         Assert.True(kinds.Count > 120, $"{kinds.Count} spawned");
@@ -365,35 +370,14 @@ public class DebrisZonesTests
     [Fact]
     public void ReloadsTheFarFieldAndPlaysOnAlikeTheHullFoundAgain()
     {
-        Scenario Played() => With(Wide, (400, 150), (250, 60)).Run(400);
+        Scenario Played() => With(Wide, (800, 300), (500, 120)).Run(400);
         var (kept, loaded) = (Played(), Played().Reload());
         Assert.NotEmpty(Far(loaded));
         Assert.Equal(kept.World.Hash(), loaded.World.Hash());
         // The ship grown after the load: both find its new box, the far field kept out of it alike.
-        foreach (var w in new[] { kept, loaded }) w.Do(new Place(140 * 640 + 300, Placement.Wall())).Run(400);
+        foreach (var w in new[] { kept, loaded }) w.Do(new Place(280 * 1280 + 600, Placement.Wall())).Run(400);
         Assert.Equal(kept.World.Hash(), loaded.World.Hash());
         Assert.Equal(Pieces(kept).Select(p => (p.Id, p.X, p.Y, p.SeenAt)), Pieces(loaded).Select(p => (p.Id, p.X, p.Y, p.SeenAt)));
-    }
-
-    [Fact]
-    public void UpgradesAnOldSavesPiecesToTheStreamUnseenAndItsBeatToTheStreams()
-    {
-        var old = new System.Text.Json.Nodes.JsonObject
-        {
-            ["slices"] = new System.Text.Json.Nodes.JsonObject
-            {
-                ["debris"] = new System.Text.Json.Nodes.JsonObject
-                {
-                    ["pieces"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject { ["id"] = 3 }),
-                    ["nextSpawn"] = 592,
-                },
-            },
-        };
-        var debris = Migrations.Steps[10 - Migrations.Oldest](old)["slices"]!["debris"]!;
-        Assert.Equal(("ship", 0), ((string)debris["pieces"]![0]!["zone"]!, (int)debris["pieces"]![0]!["seenAt"]!));
-        Assert.Null(debris["nextSpawn"]);
-        Assert.Equal(("ship", 592), ((string)debris["beats"]![0]!["zone"]!, (int)debris["beats"]![0]!["next"]!));
-        Assert.Single(debris["beats"]!.AsArray());
     }
 
     [Fact]

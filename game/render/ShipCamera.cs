@@ -10,15 +10,15 @@ namespace Stillwake.Game.Render;
 /// </summary>
 public partial class ShipCamera : Camera2D
 {
-    /// <summary>Pixels per cell at zoom 1.</summary>
-    public const int Cell = 16;
+    /// <summary>Pixels per cell at zoom 1: 8 (0104), a map's character two by two of them.</summary>
+    public const int Cell = Stillwake.Game.Camera.Cell;
 
     /// <summary>
     /// The most of the world a screen shows, in cells, at the farthest zoom, where a game starts: the same
     /// for every player whatever their screen, as Terraria keeps it; a bigger screen draws it larger. Within
     /// the debris' <c>Debris.View</c> both ways, so no piece appears or vanishes in sight (0052).
     /// </summary>
-    public static readonly Vector2 Farthest = new(96, 54);
+    public static readonly Vector2 Farthest = new(192, 108);
 
     /// <summary>How near the player may zoom, as a multiple of the farthest, and one key press's step.</summary>
     public const float LevelMax = 2, LevelStep = 0.2f;
@@ -73,10 +73,10 @@ public partial class ShipCamera : Camera2D
     /// <summary>Centres a world point, in cells.</summary>
     public void Follow(Vector2 cells) => Position = cells * Cell;
 
-    /// <summary>Frames a world rectangle, in cells, with two cells of margin, as far out as needed.</summary>
+    /// <summary>Frames a world rectangle, in cells, with four cells of margin, as far out as needed.</summary>
     public void Fit(Rect2 cells)
     {
-        const int margin = 2;
+        const int margin = 4;
         var screen = GetViewportRect().Size;
         float w = (cells.Size.X + margin * 2) * Cell, h = (cells.Size.Y + margin * 2) * Cell;
         SetZoom(Mathf.Clamp(Mathf.Min(screen.X / w, screen.Y / h), FitMin, FarthestZoom(screen) * LevelMax));

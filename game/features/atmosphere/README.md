@@ -28,9 +28,9 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
   or went (the aired cells merged with the last survey's); a frame eases and writes only the cells
   still on their way. The pulse of draining rooms is laid out again only when the rooms or those
   draining change. So a big world costs what is built, and a still ship nothing.
-- With O, the lifepod's air is a ragged aura about its reach (its 3×3 and `Crew.PodReach` round it, as
+- With O, the lifepod's air is a ragged aura about its reach (its 6×6 and `Crew.PodReach` round it, as
   `ByPod` counts), wavering and thinning at its edge rather than marking it exactly, with a few motes.
-- Always, without O: motes gliding in all air, quieter than with O (0.4 a cell, 1500 at most); blown
+- Always, without O: motes gliding in all air, quieter than with O (0.1 a cell, a 16 px drawing's 0.4, 1500 at most); blown
   out of a filling room's vents to the edge of its air; swept out of a venting room. Each glides on a
   heading that turns a little at a time and is drawn to a fraction of a pixel, so none jitters.
 - Air streams out of each opening of a room venting while it holds air or its vents still pour some

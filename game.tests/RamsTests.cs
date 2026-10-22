@@ -14,7 +14,7 @@ namespace Stillwake.Game.Tests;
 /// </summary>
 public class RamsTests
 {
-    private const int Unit = Hero.Unit;
+    private const int Unit = Hero.Unit, Block = HeroTests.Block;
 
     /// <summary>A room of open cells, its floor row 13, with a tapir standing with its feet's middle at the point given, in <paramref name="mode"/>, running <paramref name="vx"/>.</summary>
     private static Creature Tapir(int x, int y, Mode mode, int vx = 0)
@@ -38,27 +38,27 @@ public class RamsTests
     {
         // Its body's edge a margin short of the hero's: touched; a little more off: not.
         int edge = Standing.X + Spec.Hero.Width / 2 + Spec.Fauna.Tapir.Width * Unit / 2;
-        Assert.Equal(1, Rams.Contact([Tapir(edge + Rams.Margin - 1, 13 * Unit, Mode.Charge, -700)], Standing)?.Id);
-        Assert.Null(Rams.Contact([Tapir(edge + Rams.Margin + 1, 13 * Unit, Mode.Charge, -700)], Standing));
+        Assert.Equal(1, Rams.Contact([Tapir(edge + Rams.Margin - 1, 13 * Unit, Mode.Charge, -1400)], Standing)?.Id);
+        Assert.Null(Rams.Contact([Tapir(edge + Rams.Margin + 1, 13 * Unit, Mode.Charge, -1400)], Standing));
         foreach (var mode in new[] { Mode.Idle, Mode.Wander, Mode.Flee, Mode.Hurt, Mode.WindUp })
             Assert.Null(Rams.Contact([Tapir(Standing.X, 13 * Unit, mode)], Standing));
         // Jumped clear over it: the feet above its back and the margin.
         var over = Standing with { Y = 13 * Unit - Spec.Fauna.Tapir.Height * Unit - Rams.Margin - 1 };
-        Assert.Null(Rams.Contact([Tapir(Standing.X, 13 * Unit, Mode.Charge, 700)], over));
+        Assert.Null(Rams.Contact([Tapir(Standing.X, 13 * Unit, Mode.Charge, 1400)], over));
     }
 
     [Fact]
     public void AHeroIsThrownTheWayTheCreatureChargesOffItsLadderAndHarderByABiggerRam()
     {
         var climbing = Standing with { Climbing = true, LetGo = 9 };
-        var thrown = Rams.Knocked(climbing, Rams.Away(Tapir(Standing.X + 300, 13 * Unit, Mode.Charge, -700), climbing), Spec.Fauna.Tapir.Ram);
+        var thrown = Rams.Knocked(climbing, Rams.Away(Tapir(Standing.X + 600, 13 * Unit, Mode.Charge, -1400), climbing), Spec.Fauna.Tapir.Ram);
         Assert.False(thrown.Climbing);
         Assert.Equal(0, thrown.LetGo);
         Assert.True(thrown.Vx < 0 && thrown.Vy < 0, $"thrown at ({thrown.Vx}, {thrown.Vy})");
         var lighter = Rams.Knocked(Standing, -1, Spec.Fauna.Loper.Ram);
         Assert.True(Math.Abs(lighter.Vx) < Math.Abs(thrown.Vx) && lighter.Vy > thrown.Vy);
         // Still, away from its middle.
-        Assert.Equal(1, Rams.Away(Tapir(Standing.X - 300, 13 * Unit, Mode.Charge), Standing));
+        Assert.Equal(1, Rams.Away(Tapir(Standing.X - 600, 13 * Unit, Mode.Charge), Standing));
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class RamsTests
         Assert.True(guard.Open(50));
     }
 
-    /// <summary>A room 30 wide, its floor row 8, a ladder three cells tall standing on it in column 14.</summary>
+    /// <summary>A room 30 characters wide, its floor row 8, a ladder three tall standing on it in column 14.</summary>
     private const string Floor = """
         ##############################
         #............................#
@@ -90,7 +90,7 @@ public class RamsTests
     public void ReelingTheKnockIsKeptAloftAndNoHeldKeyWalksOrTakesALadder()
     {
         var ship = HeroTests.ShipFrom(Floor);
-        var hero = Rams.Knocked(new Hero(12 * Unit + 500, 8 * Unit, 0, 0, false, 1), +1, Spec.Fauna.Tapir.Ram);
+        var hero = Rams.Knocked(new Hero(12 * Block + 1000, 8 * Block, 0, 0, false, 1), +1, Spec.Fauna.Tapir.Ram);
         var keys = new HeroInput(-1, -1, true, JumpHeld: true, Sprint: true, Reeling: true);
         int vx = hero.Vx;
         var h = hero;
@@ -101,10 +101,10 @@ public class RamsTests
             Assert.Equal(vx, h.Vx);
         }
         // Thrown past the ladder and down again, then braked on the floor.
-        h = HeroTests.Until(ship, h, keys, x => x.Vy == 0 && x.Y == 8 * Unit);
-        Assert.True(h.X > 15 * Unit, $"landed at {h.X}");
+        h = HeroTests.Until(ship, h, keys, x => x.Vy == 0 && x.Y == 8 * Block);
+        Assert.True(h.X > 15 * Block, $"landed at {h.X}");
         h = HeroTests.Until(ship, h, keys, x => x.Vx == 0);
-        Assert.Equal(8 * Unit, h.Y);
+        Assert.Equal(8 * Block, h.Y);
 
         // Not reeling, the air's control eats the same knock in a few steps toward what the keys hold.
         var walked = hero;

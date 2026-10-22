@@ -35,7 +35,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 | `JetPlume.cs`      | a jetpack's plume (0075): its core of light, streaks, motes, pool of light, shimmer | yes |
 | `RodLight.cs`      | the harpoon's light (0075): the shot's glint and gas, the rod's trail and wake, the bite, the taut line's bead, the zip home | yes |
 | `AimOutline.cs`    | what the aim outline traces: a machine's picture and socket, a whole doorway (door or hatch, 0067), a valve's wheel, a plan's own pictures | yes |
-| `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`); `HillsRun`, the walk over `-- --hills`; `Feel`, `-- --feel` with `--hills`, `--strip` or `--planet`: tap and held jumps, a run, a coyote jump, traced every step (0089); `PosesRun` in the `Hall`, `-- --poses --autopilot --lit`: a sprint reversed and stopped, a hop, a held jump, falls of 8 and 21 cells, the drill held through jumps (0090); `LaddersRun` in `Ladders`, `-- --ladders --autopilot --lit`, and `StripLaddersRun` with `--strip`: a ladder grabbed running and mid-jump, slid, leapt off, pulled up out of (0092) | no    |
+| `HeroAutopilot.cs` | scripted runs for recordings, and the gym map with a ladder; `Jetpack()`, the flight out of the testbed's airlock (`-- --jetpack`, `game/dev/JetpackDemo.cs`); `HillsRun`, the walk over `-- --hills`; `Feel`, `-- --feel` with `--hills`, `--strip` or `--planet`: tap and held jumps, a run, a coyote jump, traced every step (0089); `PosesRun` in the `Hall`, `-- --poses --autopilot --lit`: a sprint reversed and stopped, a hop, a held jump, falls of 8 and 21 characters, 16 and 42 cells, the drill held through jumps (0090); `LaddersRun` in `Ladders`, `-- --ladders --autopilot --lit`, and `StripLaddersRun` with `--strip`: a ladder grabbed running and mid-jump, slid, leapt off, pulled up out of (0092) | no    |
 | `Report.cs`        | `Report.Of`: the `crew` `Enter` telling the sim where the hero is (`report.ts`), on a room's change and as its report every `Crew.ReportEvery` ticks (0050); `ExertOf` and `ThrustOf`, what it breathes and vents; `RefillOf`, a canister breathed once; `Cold`, how hard the cold bites at a cell | no    |
 | `Frost.cs`         | the frost past the field: one full-screen shader quad over the world, under the HUD (0050) | yes   |
 | `Danger.cs`        | `SuitDanger`, `Danger.Of` (`danger.ts`) and `Danger.Read`, what the gauge reads, room air included | no    |
@@ -63,7 +63,7 @@ too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests`, `BodiesTe
 - A step never ends inside a wall, a closed door or past the grid's edge, and out in space the body's
   middle never gets farther than `Hero.Tether` from where the tether is tied, with no jetpack worn (both
   FsCheck properties). The one way in is a door shut on the hero, by anyone: then each step, keys aside,
-  pushes it `Hero.PushStep` (a cell in the 200 ms a door slides) toward the nearest place it fits beside
+  pushes it `Hero.PushStep` (two cells, a 16 px one, in the 200 ms a door slides) toward the nearest place it fits beside
   the doorway, on top of it or under it, the way it faces first on a tie: a hatch shut under its feet
   lifts it onto it, one shut over its head drops it below (`ShutOutTests`). Its own client pushes it, as
   every hero moves (0002), and its next report says where it went. With no such place (doors shut on
@@ -79,19 +79,19 @@ too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests`, `BodiesTe
 
 ## Holes and floors
 
-The TypeScript had none of these rules; they came from playtest 1, where a hole one cell wide let one
+The TypeScript had none of these rules; they came from playtest 1, where a hole one 16 px cell wide let one
 player down and not the other, and a floor could be jumped up through but not dropped through.
 
-- **A hole one cell wide is fallen into** (`Hero.Caught`): the body, 950 wide, fits a cell with 50
-  thousandths to spare, but a step walks 120 and runs 220, so a walk used to pass over that window or land
+- **A hole two cells wide is fallen into** (`Hero.Caught`): the body, 1900 wide, fits two cells with 100
+  thousandths to spare, but a step walks 240 and runs 440, so a walk used to pass over that window or land
   in it by where the hero happened to start, and tapping the keys only ever reached positions a step apart.
-  Now a step taken standing stops at the first place on its way where the body fits over a cell it can
-  fall into (nothing solid, no floor, no ladder top), and the hero falls in. A hole is crossed by jumping
+  Now a step taken standing stops at the first place on its way where the body fits over the run of cells it can
+  fall into (nothing solid, no floor, no ladder top; the body, wider than a cell, fits two, 0104), and the hero falls in. A hole is crossed by jumping
   it, as a wider one is. Wider holes and ledges are fallen off where they were, at the same place.
-- **Down over a hole slides in** (`Hero.Slid`): standing with the body's middle over such a cell and
+- **Down over a hole slides in** (`Hero.Slid`): standing with the body's middle over such a hole and
   nothing else pressed, down moves the hero up to a walk's step a frame toward where it fits, and it falls.
   With the middle beside the hole, down does nothing. Not a narrower body: to never step past the window it
-  would have to be 780 wide, against Terraria's proportions (0005); the stop keeps the body and is exact.
+  would have to be 1560 wide, against Terraria's proportions (0005); the stop keeps the body and is exact.
 - **Down drops through floors** (`Hero.OnFloors`): standing on floors alone, down (S or the down arrow),
   walking or not, steps the feet a thousandth into the floor's row, and a row the feet are in is never
   landed on, so the hero falls through: no timer, nothing kept. Held, it drops through every floor it lands
@@ -109,7 +109,7 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   slope beside the middle holds the box at its point nearest the middle (so a hole at a ramp's top is walked onto
   and caught as any, `Hero.Caught`). Mixed footing stands on the higher, but a corner no more than half a width
   above the ground under the middle gives way to it (`Hero.Landing`): off a plateau down a slope the feet follow
-  the slope rather than hang on the corner and drop half a cell.
+  the slope rather than hang on the corner and drop.
 - **Walking** (`Hero.Walk`) moves in parts that end as the box's leading edge reaches its column's last thousandth
   or its middle crosses into another column; after each the feet step up onto ground no more than half a width
   above them, the head permitting, and stick to ground that fell by no more than the part walked. The next column's
@@ -132,11 +132,11 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   is still the only band that may overlap anything. A ceiling slope's top is whole to the feet, and its closed sides
   stop the box like a wall. No slide along the diagonal: a head that meets it stops, as under a flat ceiling.
   **Swimming and pulled**, every shape is whole. **Down on a slope** does nothing; down through floors and the
-  one-cell-hole catch work as before.
+  hole catch work as before.
 - Tested in `SlopeTests`: a hill up and down grounded every step both ways, walking and running; mixed footing;
   closed sides and a ceiling slope on the floor stopping the hero; climbing a slope from its open side; the hole at a
   ramp's top from either side; a ladder at a ramp's foot; swimming into a slope; a jump into a ceiling slope from its
-  open side stopping at the diagonal; a corridor three high with bevelled top corners, walked into either way, and a
+  open side stopping at the diagonal; a corridor six high with bevelled top corners, walked into either way, and a
   run of ◤ along a ceiling; and a property that, on random ships of walls, slopes, floors, ladders and doors,
   whatever the keys, nothing above the box's lowest half width or the feet is ever in a wall's solid, whole or a
   slope's half, nor a closed door.
@@ -152,15 +152,15 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   press in the air jumps again. A hero made in mid-air counts as not having stood.
 - **As high as Space is held:** `HeroInput.JumpHeld` is Space held down (the press's step counts as held). Let go
   while a jump rises (`Hero.Rising`), the rise speed is halved once (`Hero.JumpCut`); below `Hero.Apex` up or down
-  with Space held, gravity eases to `Ship.ApexGravity` (12 aboard); coming down it is `Ship.FallGravity` (24 aboard,
-  21 on a planet: `Hero.FallGravity`, `Hero.PlanetFallGravity` of the kind's own). Held to its top, a jump of
-  `Hero.Jump` 415 rises 3954 thousandths in 22 steps and lands 20 later; a tap, 1222 in 11. On a planet: 6014 in 33,
-  28 down, 61 steps in all. A fall not jumped eases too with Space held; a jump off a ladder is cut as any.
+  with Space held, gravity eases to `Ship.ApexGravity` (25 aboard); coming down it is `Ship.FallGravity` (48 aboard,
+  43 on a planet: `Hero.FallGravity`, `Hero.PlanetFallGravity` of the kind's own). Held to its top, a jump of
+  `Hero.Jump` 830 rises 7898 thousandths in 22 steps and lands 20 later; a tap, 2444 in 11. On a planet: 11598 in 32,
+  27 down, 59 steps in all (its gravity rounds to 29, not 28, 0104). A fall not jumped eases too with Space held; a jump off a ladder is cut as any.
 - **The walk's start and stop:** the speed across is kept between steps (`Hero.Vx`, what the step moved, or what it
   walked where the walk ended as the body dropped off an edge or into a hole: only what stops the body takes it) and eased
-  toward what the keys ask (`Hero.Paced`): `WalkAccel` 30 a step (full walk in 4), `RunAccel` 32 (full run in 7),
-  `Stop` 30 with no key or turning (a walk stops in 4, a run in 8, a run let go of Shift slows to a walk in 4). In
-  the air each is `AirControl` (650 thousandths) of it, rounded down: 19, 20, 19. Speed carries off a ledge, a jump,
+  toward what the keys ask (`Hero.Paced`): `WalkAccel` 60 a step (full walk in 4), `RunAccel` 64 (full run in 7),
+  `Stop` 60 with no key or turning (a walk stops in 4, a run in 8, a run let go of Shift slows to a walk in 4). In
+  the air each is `AirControl` (650 thousandths) of it, rounded down: 39, 41, 39. Speed carries off a ledge, a jump,
   the harpoon's pull and a swim into gravity; a door's push leaves none. Slopes are walked at whatever the speed:
   `Walk` takes any step, so the parts that end at a column's last thousandth are as before (`SlopeTests` walk the
   hill and the stairs from standing).
@@ -171,37 +171,37 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 
 ## The figure answers its motion (0090)
 
-- **Lean:** on the floor the body leans `HeroMotion.Lean.Gain` (0.006) radians per thousandth of a cell a step gained a
+- **Lean:** on the floor the body leans `HeroMotion.Lean.Gain` (0.003) radians per thousandth of a cell a step gained a
   step, the change smoothed by 0.3 a step (by time, so a friend's speed seen a send at a time leans it as far), at most
   0.25 forward and 0.22 back. At speed it is upright again but for the run's own 0.15. The tilt settles in 60 ms.
 - **No skid:** a stop or a turn only leans the body. The skid pose and its streaks were taken out: tapping left and
   right made the legs dance on the spot.
-- **Landing:** the knees sink `Poses.Land.Sink` times the fall over 420 (0.35 to 1.8; ×0.6 landing at over 60 across),
-  springing back in 150 ms plus 110 by the fall over 600. A hop (229) sinks 0.55, a held jump (398) 0.95, eight cells
-  (597) 1.42 and heavy (from 480): its ring goes out to 34 px, at 0.45 for 260 ms, and two light streaks race out either
-  side (`Luminous.LandStreak`); a lighter landing's ring goes out 3 + 26 × the fall over 1200 (at least 0.2 of it).
-- **Air:** from `Poses.Airborne.Rise` to `Fall` as the speed goes from -150 to 300, smoothstepped; within 60 of still
+- **Landing:** the knees sink `Poses.Land.Sink` times the fall over 840 (0.35 to 1.8; ×0.6 landing at over 120 across),
+  springing back in 150 ms plus 110 by the fall over 1200. A hop (458) sinks 0.55, a held jump (806) 0.96, sixteen cells
+  (1194) 1.42 and heavy (from 960): its ring goes out to 34 px, at 0.45 for 260 ms, and two light streaks race out either
+  side (`Luminous.LandStreak`); a lighter landing's ring goes out 3 + 26 × the fall over 2400 (at least 0.2 of it).
+- **Air:** from `Poses.Airborne.Rise` to `Fall` as the speed goes from -300 to 600, smoothstepped; within 120 of still
   the knees tuck toward `Top`, up to half; for 110 ms after a jump the legs push straight (`Push`); falling faster
-  than 300 for over 450 ms the arms flail, fully 300 ms later (the front arm calm while it holds an item); moving
-  faster than 100 across the body tips 0.1 into its way. A two-handed item keeps both fists on its grips throughout.
+  than 600 for over 450 ms the arms flail, fully 300 ms later (the front arm calm while it holds an item); moving
+  faster than 200 across the body tips 0.1 into its way. A two-handed item keeps both fists on its grips throughout.
 - All of it is read from `X`, `Y`, `Vx`, `Vy`, `Facing` and the pose, which others' heroes send: friends lean
   and land as their peer draws them. Tested in `MotionTests`.
 
 ## Rammed (0103)
 
 - **Contact is this client's word** (`Rams.Contact`, plain C#, tested in `RamsTests`): before the frame's steps, the hero's
-  body box against each creature the sim says charges, its body and `Rams.Margin` (150). Touching, with its guard open
+  body box against each creature the sim says charges, its body and `Rams.Margin` (300). Touching, with its guard open
   (`Rams.Guard`: nothing sent for `Hero.RamGuard`, 20 ticks, after its own hit) and the sim not refusing it, it sends
   `HitBy`; the sim takes the suit's air.
 - **Thrown at once:** `Rams.Knocked` the way the creature charges, `Hero.KnockAcross` + `KnockAcrossPer` per unit of its
-  `Ram` across and `KnockUp` + `KnockUpPer` up (a tapir's 200 and 180 a step, some five cells on the first planet), off any
+  `Ram` across and `KnockUp` + `KnockUpPer` up (a tapir's 400 and 360 a step, some ten cells on the first planet), off any
   ladder, its jump's timers spent; then `Hero.Reel` (24) steps with the keys masked and `HeroInput.Reeling`: kept aloft at
   its speed (the air's control would eat it), braked on the floor, no ladder taken, Space spent.
 - **Seen and heard:** the figure flinches (`Figure.Flinch`, `Poses.Flinched`: thrown back from a blow before it or forward
   from one behind by `HeroMotion.Flinch.Tilt`, arms up before the visor, quick in and easing out over 460 ms; not lying or
   tumbling); its suit's air bursts out toward the blow (`AirSwirl.Leak`: pale jets, motes and a ring); a thud through the
   suit (`Sound.RamThud`, a placeholder). The gauge flashes and drains as the sim's suit drops, as any drop of 5 % does.
-- **A friend rammed** is seen when a creature that was charging last frame leaves its charge within a cell of the friend as
+- **A friend rammed** is seen when a creature that was charging last frame leaves its charge within two cells of the friend as
   drawn: it flinches, puffs and thuds on World. Its own peer sent the hit.
 
 ## Others' heroes
@@ -211,8 +211,8 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   effects.
 - **A planet's rules (0076):** `Ship.Of` takes the kind of the surface (`Registry.Rules`): the hero floats only where
   `IRoomsQueries.Afloat` says, never on a planet, its open sky included, so no swim, tether, thrust or muffle there;
-  and a fall gains the kind's gravity a step (`Ship.Gravity`, `Surfaces.Kind.Fall` of `Hero.Gravity`: 14 on the
-  test strip, against 21 aboard), so a jump clears six cells where aboard it clears three (`PlanetHeroTests`), and
+  and a fall gains the kind's gravity a step (`Ship.Gravity`, `Surfaces.Kind.Fall` of `Hero.Gravity`: 29 on the
+  test strip, against 42 aboard), so a jump reaches twelve cells (11.6, the ledge assist the rest, 0104) where aboard it clears six (`PlanetHeroTests`), and
   comes down at half as much again (`Hero.PlanetFallGravity`, 0089).
   `--strip --autopilot` plays the strip (`HeroAutopilot.PlanetRun`): out of the shelter, onto the cliff, down the
   shaft into the cave.
@@ -239,7 +239,7 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   of work goes by name, and one not known makes no hero. A new tool needs no new field.
 - Each other hero is drawn 150 ms behind its newest sample, between the two around then, placed by the
   sender's stamps; it walks on 100 ms along its last speed when samples run out, then stands; a gap
-  wider than three cells is a jump; one silent for three seconds is hidden with its tether.
+  wider than six cells is a jump; one silent for three seconds is hidden with its tether.
 - Only those on this hero's surface (`World.SurfaceOf`, 0076), each in its suit (`Suits.Of`, the world's `Players`), posed by how it moves, lying while the sim
   says it is out, its head turned as sent, the plan in its hands as sent; its tether drawn too. They
   sway the cables as this hero does (`HeroView.Others`).
@@ -265,7 +265,7 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   the TypeScript boxed its cells two pixels of the world wide. A mark on a wall, back wall, floor, ladder,
   pipe or door still outlines its cell, a wall cut to a shape its solid half (`render/ShapeMasks.cs`, 0069). Traced once per aim: a door or plan added beside the one aimed at
   shows in its outline when the pointer next moves to another cell.
-- The body's middle is `Height / 2` rounded down, 1312 above the feet, where the TypeScript has 1312.5:
+- The body's middle is `Height / 2` rounded down, 2625 above the feet at 8 px (0104); at 16 px 1312, where the TypeScript has 1312.5:
   positions stay whole numbers. A tether cut back to its limit no longer leaves a half thousandth.
   Others' heroes between samples are rounded to whole thousandths too.
 - Suits are recoloured from the PNGs, drawn in `Suits.Drawn` (`e0a030`, an older first suit): each of
@@ -277,8 +277,8 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   ones.
 - The camera no longer sits on the body's middle (movement review, item 12; `CameraFollow`, numbers in
   `game/Content/Camera.cs`). It leads the way the hero moved its last step, never the way it faces, so turning
-  to aim at the pointer moves nothing: `LeadShare` of the screen's width at a run, at every zoom (2 cells of the
-  farthest zoom's 96: the playtest found 6 flew back and forth, so only a light sense of motion is left), the lead
+  to aim at the pointer moves nothing: `LeadShare` of the screen's width at a run, at every zoom (4 cells of the
+  farthest zoom's 192: the playtest found 12 flew back and forth, so only a light sense of motion is left), the lead
   turning slowly over `LeadTurnMs`, so a turn or a stop drifts, and its size easing over `SmoothMs`, whatever the
   frame rate. The hero itself is
   followed exactly across, so the lead shows whole and nothing trails. Up and down under gravity the view always
@@ -294,7 +294,7 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 
 ## The jetpack and the swim (0047)
 
-- In space the hero swims at `Hero.Swim`, 30 thousandths of a cell a step (about 1.8 cells a second), on its
+- In space the hero swims at `Hero.Swim`, 60 thousandths of a cell a step (about 3.6 cells a second), on its
   tether; Shift there does not swim faster. Aboard, walking and running are as they were, and only running
   exerts (`Report.Exerting`).
 - **With a jetpack worn** (`IItemsQueries.Equipped`, the sim's inventory, `HeroInput.Jetpack`) the hero ties
@@ -352,7 +352,9 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   energy tab (`EnergyBar`, 0053, 0081) sits right of the gauge, always: the two fill the hotbar's
   width (`Slots.GaugeRowOf`). The energy tab is added first, so the red edges and the dark cover it too.
 - The host passes `crew`'s `Leave` as the farewell of a peer whose link closes (`Main.Host`).
-- The tether's anchor is the controller's own (0007), sent with the hero.
+- The tether's anchor is the controller's own (0007), sent with the hero: tied where the body's middle last was in the hull, not
+  its cell's middle as in the TypeScript: at 8 px a cell's middle sits under a standing hero's, so a hero walked off a floor into
+  space sank a pixel below its top and the floor's end stopped it swimming back (0104).
 
 ## The cold past the field (0050)
 
@@ -458,7 +460,7 @@ Deliberately not handled:
   the arm straight, the fist at its end, the grip, the hold, `HeldLook.FireAxe`), from its middle
   crossing the line to `AxeSwing.Through` past it, from the shoulder of the body upright, sampled every
   2° as segments against each wreck's aim box (`Aiming.Struck`); never the raised stretch over the head.
-  It reaches 1.62 cells ahead of the shoulder.
+  It reaches 3.24 cells ahead of the shoulder.
   Aboard it plays and touches nothing; at air it touches nothing. Once begun it plays through and
   strikes, let go or not; presses during it do nothing; held as it ends, the next begins at once,
   toward the pointer then, so clicking is no faster than holding. Putting the axe away, the hand taken,
@@ -585,20 +587,20 @@ Deliberately not handled:
   the hold eight ways round the shoulder, near and far, standing and on a ladder, facing either way, into PNGs and quits.
 - **Ladders** (0077, 0092): up grabs one walking, running, falling or rising, but not for `Hero.Regrab` 12 steps after a jump or
   a walk off one, so a jump off with up held goes on; down grabs standing or falling with no side held. The hero eases onto its
-  middle (`LadderCentring` 450 of the way a step, about 5 steps) and climbs up at 110 a step (6.6 cells a second), down at 150
-  (9), with Shift sliding at 300 (18). A side held in mid-air turns the hero on it, ready to jump that way, side then jump or
+  middle (between its two cells, a ladder two wide as a 16 px one was, 0104; `LadderCentring` 450 of the way a step, about 5 steps) and climbs up at 220 a step (13.2 cells a second), down at 300
+  (18), with Shift sliding at 600 (36). A side held in mid-air turns the hero on it, ready to jump that way, side then jump or
   jump then side; on the ground a side walks off unless up is held; Space with a side leaps off at 0.9 of the run and 0.85 of
   the jump, straight up as from the floor. At the top the body rises to it and stands; the figure has pulled itself up meanwhile
-  onto `Hero.LedgeAbove`, hands on the ledge, the front foot stepping up (`Poses.PullUp`). The limbs' cycle is 4 cells climbed,
-  read from the hero's height (`HeroMotion.Ladder`): a hand over the other every 2 cells; a slide, read from `Vy`, raises the
+  onto `Hero.LedgeAbove`, hands on the ledge, the front foot stepping up (`Poses.PullUp`). The limbs' cycle is 8 cells climbed,
+  read from the hero's height (`HeroMotion.Ladder`): a hand over the other every 4 cells; a slide, read from `Vy`, raises the
   hands to the rails and throws `Luminous.RailSpark`s. A friend's hero shows all of it from `Climbing`, `X`, `Y` and `Vy`. The
   hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder. `-- --ladders --autopilot --lit`
   records it (`HeroAutopilot.LaddersRun`; with `--strip`, the strip's shaft).
 - **Ledge assist** (0092): a jump (`Hero.Leaping`) pressed toward a whole wall whose top its feet are short of by no more than
-  the drawn foot clears (`Hero.MantleReach`, from `Poses.FootLift`: 297 at the top, 278 rising, 36 falling fast), rising no
-  faster than 110 a step, is raised up to `MantleRise` 110 a step and put `MantleAcross` 60 onto the top, standing; the figure
-  steps up in the pull-up's end (`Hero.MantleLedge`, read from any hero's position). A held jump now gets onto four cells
-  aboard, not five; on the planet six, not seven. `-- --ledges --autopilot --lit` records it (`HeroAutopilot.LedgesRun`).
+  the drawn foot clears (`Hero.MantleReach`, from `Poses.FootLift`: 594 at the top, 556 rising, 72 falling fast), rising no
+  faster than 220 a step, is raised up to `MantleRise` 220 a step and put `MantleAcross` 120 onto the top, standing; the figure
+  steps up in the pull-up's end (`Hero.MantleLedge`, read from any hero's position). A held jump now gets onto eight cells
+  aboard, not ten; on the planet twelve, not fourteen. `-- --ledges --autopilot --lit` records it (`HeroAutopilot.LedgesRun`).
 - The pointer and the left button are the world's (`render/WorldButtons`): the mouse, or a script's.
   The left press is read apart from the card's (`Buttons.TakeClick`, `keys.ts`'s `takeClick`).
 - A press on a door or valve is built from it as shown (`Shared.Predicted.Grid`, passed to `Aiming.AimAt`): it asks

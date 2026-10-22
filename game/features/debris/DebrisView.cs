@@ -26,13 +26,13 @@ public partial class DebrisView(Ui ui) : Node2D
     private const float Cell = ShipCamera.Cell;
     private const int Unit = DebrisModule.Unit;
     /// <summary>A piece drawn as its item, with no pictures of its own: its size, in cells.</summary>
-    private const float ItemSize = 0.8f;
+    private const float ItemSize = 1.6f;
     /// <summary>A wreck rocks this far either way, in radians, once in <see cref="RockMs"/>.</summary>
     private const double Rock = 0.08, RockMs = 7000;
     /// <summary>A hit knocks a piece <see cref="JoltPixels"/> away from the nearest hero and turns it <see cref="JoltTurn"/>, settling over <see cref="JoltMs"/>.</summary>
     private const double JoltMs = 220, JoltPixels = 3, JoltTurn = 0.07;
     /// <summary>Cells round the camera's view a piece is still drawn in: the biggest wreck's half and a frame's drift.</summary>
-    private const int Margin = 4;
+    private const int Margin = 8;
     /// <summary>Pictures made at the start, small pieces' and wrecks': more than the far field shows in view at once (0052).</summary>
     private const int WarmSmall = 48, WarmWrecks = 32;
     private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");

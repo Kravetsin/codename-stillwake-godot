@@ -10,7 +10,7 @@ public readonly record struct Edge(int X1, int Y1, int X2, int Y2, double Alpha)
 public static class NearGrid
 {
     /// <summary>How far around the pointer the grid shows, in cells.</summary>
-    public const int Near = 7;
+    public const int Near = 14;
     /// <summary>How strongly an edge right at the pointer is drawn.</summary>
     private const double Strongest = 0.35;
 

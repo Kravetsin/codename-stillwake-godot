@@ -67,11 +67,11 @@ public class BodiesTests
     }
 
     [Fact]
-    public void ListsThePlayersBodyAfterHomeInItsSuitHalfACellAboveWhereItLies()
+    public void ListsThePlayersBodyAfterHomeInItsSuitACellAboveWhereItLies()
     {
         var list = Markers.Of(3 * 20 + 4, 20, [(2, new Hero(12_500, 7_000, 0, 0, false, 1), Suits.All[1])], (new Pile(0, 50, 8_500, 6_000), Suits.All[2]));
         Assert.Equal([MarkerIcon.Home, MarkerIcon.Body, MarkerIcon.Friend], list.Select(m => m.Icon));
-        Assert.Equal(new Marker(MarkerIcon.Body, 8.5, 5.5, Suits.All[2]), list[1]);
+        Assert.Equal(new Marker(MarkerIcon.Body, 8.5, 5.0, Suits.All[2]), list[1]);
         Assert.Equal(2, Markers.Of(0, 20, [(2, new Hero(0, 0, 0, 0, false, 1), Suits.All[1])]).Count);
     }
 }

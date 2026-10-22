@@ -16,7 +16,7 @@ public class HarpoonTests
     private const double Flies = Spec.RodSpeed / 50.0, Returns = Spec.ReturnSpeed / 50.0;
 
     /// <summary>
-    /// A world of still pieces, each a box 1000 across round its middle, that the rod meets in the order they
+    /// A world of still pieces, each a box 2000 across round its middle, that the rod meets in the order they
     /// were put and sticks in where it enters; those the sim would refuse and those it reels, by id; and a wall
     /// standing up at <see cref="Wall"/>, met if nearer, which lets go once it no longer <see cref="Holds"/>.
     /// </summary>
@@ -34,8 +34,8 @@ public class HarpoonTests
         {
             foreach (var (id, (x, y)) in At)
             {
-                if (Refused.Contains(id) || Math.Abs(from.Y - y) > 500) continue;
-                double left = x - 500;
+                if (Refused.Contains(id) || Math.Abs(from.Y - y) > 1000) continue;
+                double left = x - 1000;
                 if (from.X <= left && to.X >= left && !(Wall < left)) return new RodHit(id, (left, from.Y));
             }
             return Wall is double wall && from.X <= wall && to.X >= wall ? new RodHit(null, (wall, from.Y)) : null;
@@ -56,11 +56,11 @@ public class HarpoonTests
         for (double t = 0; t < ms; t += 10) shot.Step(10, false, hold ?? Out(), world.World);
     }
 
-    /// <summary>A harpoon hooked in piece 1, a box from 7500 to 8500 cells along the barrel.</summary>
+    /// <summary>A harpoon hooked in piece 1, a box from 15000 to 17000 thousandths along the barrel.</summary>
     private static (HarpoonShot Shot, Pieces World) Hooked()
     {
         var world = new Pieces();
-        world.At[1] = (8_000, 0);
+        world.At[1] = (16_000, 0);
         var shot = new HarpoonShot();
         shot.Step(10, true, Out(), world.World);
         Run(shot, 250, world);
@@ -73,10 +73,10 @@ public class HarpoonTests
     {
         var shot = new HarpoonShot();
         Assert.True(shot.Ready);
-        var step = shot.Step(10, true, new GunHold(true, (300, -200), (0, -2)), new Pieces().World);
+        var step = shot.Step(10, true, new GunHold(true, (600, -400), (0, -2)), new Pieces().World);
         Assert.True(step.Fired);
         Assert.Equal(Rod.Flying, shot.Rod);
-        Assert.Equal(((300.0, -200.0), (0.0, -1.0)), (shot.Tip, shot.Heading));
+        Assert.Equal(((600.0, -400.0), (0.0, -1.0)), (shot.Tip, shot.Heading));
         Assert.Equal(HarpoonShot.CooldownMs, shot.CooldownLeftMs);
         Assert.Equal(5_000, HarpoonShot.CooldownMs);
         Assert.False(shot.Ready);
@@ -89,7 +89,7 @@ public class HarpoonTests
         shot.Step(10, true, Out(), world.World);
         shot.Step(100, false, Out(), world.World);
         Assert.Equal(100 * Flies, shot.Tip.X, 6);
-        // 20 cells at 40 a second: 500 ms out; then back at 80 a second.
+        // 40 cells at 80 a second: 500 ms out; then back at 160 a second.
         Run(shot, Spec.Range / Flies - 100, world);
         Assert.Equal((Rod.Returning, (double)Spec.Range), (shot.Rod, shot.Tip.X));
         Run(shot, Spec.Range / Returns - 20, world);
@@ -135,20 +135,20 @@ public class HarpoonTests
     public void HooksThePieceItMeetsAndRidesItWithoutReelingTillAFreshPress()
     {
         var world = new Pieces();
-        world.At[1] = (8_000, 0);
+        world.At[1] = (16_000, 0);
         var shot = new HarpoonShot();
         shot.Step(10, true, Out(), world.World);
         int? hooked = null;
         for (int i = 0; i < 25 && hooked == null; i++) hooked = shot.Step(10, false, Out(), world.World).Hooked;
         Assert.Equal(1, hooked);
         Assert.Equal((Rod.Hooked, 1), (shot.Rod, shot.Piece));
-        Assert.Equal((7_500.0, 0.0), shot.Tip);
+        Assert.Equal((15_000.0, 0.0), shot.Tip);
         // The piece drifts: the rod rides it, slack; frames with no fresh press never reel, held or not.
-        world.At[1] = (7_000, 300);
+        world.At[1] = (14_000, 600);
         Run(shot, 2_000, world);
-        Assert.Equal((Rod.Hooked, (6_500.0, 300.0)), (shot.Rod, shot.Tip));
+        Assert.Equal((Rod.Hooked, (13_000.0, 600.0)), (shot.Rod, shot.Tip));
         var reel = shot.Step(10, true, Out(), world.World).Reel;
-        Assert.Equal(HarpoonShot.ReelOf(1, Muzzle, (7_000, 300)), reel);
+        Assert.Equal(HarpoonShot.ReelOf(1, Muzzle, (14_000, 600)), reel);
         Assert.Equal(Rod.Reeling, shot.Rod);
     }
 
@@ -160,7 +160,7 @@ public class HarpoonTests
         world.Reeled.Add(1);
         Run(shot, 1_000, world);
         Assert.Equal(Rod.Reeling, shot.Rod);
-        var moved = (2_000.0, 1_000.0);
+        var moved = (4_000.0, 2_000.0);
         Assert.Equal(HarpoonShot.ReelOf(1, moved, world.At[1]), shot.Step(10, true, Out(moved), world.World).Reel);
         world.Reeled.Remove(1);
         shot.Step(10, false, Out(), world.World);
@@ -181,10 +181,10 @@ public class HarpoonTests
         Assert.Equal(Rod.Returning, refused.Rod);
 
         var (drifted, c) = Hooked();
-        c.At[1] = (Spec.Range + 400, 0);
+        c.At[1] = (Spec.Range + 800, 0);
         drifted.Step(10, false, Out(), c.World);
         Assert.Equal(Rod.Hooked, drifted.Rod);
-        c.At[1] = (Spec.Range + 600, 0);
+        c.At[1] = (Spec.Range + 1_200, 0);
         drifted.Step(10, false, Out(), c.World);
         Assert.Equal(Rod.Returning, drifted.Rod);
 
@@ -192,7 +192,7 @@ public class HarpoonTests
         var (reeling, d) = Hooked();
         reeling.Step(10, true, Out(), d.World);
         d.Reeled.Add(1);
-        d.At[1] = (Spec.Range + 2_000, 0);
+        d.At[1] = (Spec.Range + 4_000, 0);
         reeling.Step(10, false, Out(), d.World);
         Assert.Equal(Rod.Reeling, reeling.Rod);
         d.At.Remove(1);
@@ -235,11 +235,11 @@ public class HarpoonTests
     [Fact]
     public void ReelsAPieceToThePointItsStopBeforeTheMuzzleOnTheWayToIt()
     {
-        Assert.Equal(new Reel(4, 900, 1_200), HarpoonShot.ReelOf(4, (0, 0), (3_000, 4_000)));
-        Assert.Equal(new Reel(4, 10_000 - Spec.Stop, 2_000), HarpoonShot.ReelOf(4, (10_000, 2_000), (1_000, 2_000)));
+        Assert.Equal(new Reel(4, 1_800, 2_400), HarpoonShot.ReelOf(4, (0, 0), (6_000, 8_000)));
+        Assert.Equal(new Reel(4, 20_000 - Spec.Stop, 4_000), HarpoonShot.ReelOf(4, (20_000, 4_000), (2_000, 4_000)));
         // Nearer than the stop, it is pushed out to it; on the muzzle, it stays.
-        Assert.Equal(new Reel(4, Spec.Stop, 0), HarpoonShot.ReelOf(4, (0, 0), (200, 0)));
-        Assert.Equal(new Reel(4, 500, 500), HarpoonShot.ReelOf(4, (500, 500), (500, 500)));
+        Assert.Equal(new Reel(4, Spec.Stop, 0), HarpoonShot.ReelOf(4, (0, 0), (400, 0)));
+        Assert.Equal(new Reel(4, 1_000, 1_000), HarpoonShot.ReelOf(4, (1_000, 1_000), (1_000, 1_000)));
     }
 
     [Theory]
@@ -263,16 +263,16 @@ public class HarpoonTests
     [Fact]
     public void TheLineHangsSlackHookedAndIsWoundInTautToItsSpanReeling()
     {
-        var line = new HarpoonLine((0, 0), (10_000, 0));
-        for (int i = 0; i < 120; i++) line.Update((0, 0), (10_000, 0), taut: false, 1000.0 / 60);
-        Assert.Equal(11_500, line.Length, 0);
-        line.Update((0, 0), (10_000, 0), taut: true, 1000.0 / 60);
-        Assert.Equal(11_100, line.Length, 0);
-        for (int i = 0; i < 10; i++) line.Update((0, 0), (10_000, 0), taut: true, 1000.0 / 60);
+        var line = new HarpoonLine((0, 0), (20_000, 0));
+        for (int i = 0; i < 120; i++) line.Update((0, 0), (20_000, 0), taut: false, 1000.0 / 60);
+        Assert.Equal(23_000, line.Length, 0);
+        line.Update((0, 0), (20_000, 0), taut: true, 1000.0 / 60);
+        Assert.Equal(22_200, line.Length, 0);
+        for (int i = 0; i < 10; i++) line.Update((0, 0), (20_000, 0), taut: true, 1000.0 / 60);
+        Assert.Equal(20_000, line.Length, 0);
+        // Reeled in at ten cells a second, it stays as long as the way it spans.
+        for (int i = 1; i <= 60; i++) line.Update((0, 0), (20_000 - i * 10_000 / 60.0, 0), taut: true, 1000.0 / 60);
         Assert.Equal(10_000, line.Length, 0);
-        // Reeled in at five cells a second, it stays as long as the way it spans.
-        for (int i = 1; i <= 60; i++) line.Update((0, 0), (10_000 - i * 5_000 / 60.0, 0), taut: true, 1000.0 / 60);
-        Assert.Equal(5_000, line.Length, 0);
     }
 
     /// <summary>A harpoon reeling piece 1 in, the sim showing the reel, sent from <see cref="Muzzle"/>.</summary>
@@ -294,27 +294,27 @@ public class HarpoonTests
     }
 
     [Fact]
-    public void ReelsAgainToFollowAHeroThatSwimsMoreThanACellOnceTheWaitIsOver()
+    public void ReelsAgainToFollowAHeroThatSwimsMoreThanTwoCellsOnceTheWaitIsOver()
     {
         var (shot, world) = Reeling();
         Assert.Equal(500, HarpoonShot.FollowMs);
-        var swum = (0.0, Spec.FollowBeyond + 500.0);
+        var swum = (0.0, Spec.FollowBeyond + 1_000.0);
         // Swum off at once: the first goes once the wait since the press is over, then none while it stays.
         var sent = Sent(shot, world, 1_000, swum);
         Assert.Equal([HarpoonShot.ReelOf(1, swum, world.At[1])], sent);
-        // On a cell and more again: once more, the wait since the last long over.
-        var farther = (0.0, 3 * Spec.FollowBeyond + 500.0);
+        // On two cells and more again: once more, the wait since the last long over.
+        var farther = (0.0, 3 * Spec.FollowBeyond + 1_000.0);
         Assert.Equal([HarpoonShot.ReelOf(1, farther, world.At[1])], Sent(shot, world, 20, farther));
     }
 
     [Fact]
-    public void NeverReelsAgainForLessThanACellNorSoonerThanTheWait()
+    public void NeverReelsAgainForLessThanTwoCellsNorSoonerThanTheWait()
     {
         var (shot, world) = Reeling();
-        Assert.Empty(Sent(shot, world, 2_000, (0, Spec.FollowBeyond - 200)));
+        Assert.Empty(Sent(shot, world, 2_000, (0, Spec.FollowBeyond - 400)));
         // Far enough, but within the wait after a press: held back till it is over.
         Assert.NotNull(shot.Step(10, true, Out(), world.World).Reel);
-        var swum = (0.0, Spec.FollowBeyond + 500.0);
+        var swum = (0.0, Spec.FollowBeyond + 1_000.0);
         Assert.Empty(Sent(shot, world, HarpoonShot.FollowMs - 20, swum));
         Assert.Single(Sent(shot, world, 20, swum));
     }
@@ -333,31 +333,31 @@ public class HarpoonTests
 
     // The grapple: the rod stuck in the ship's structure pulls the hero to it.
 
-    /// <summary>A harpoon whose rod is stuck in a wall 6000 along the barrel, the hero's middle a little behind the muzzle.</summary>
+    /// <summary>A harpoon whose rod is stuck in a wall 12000 along the barrel, the hero's middle a little behind the muzzle.</summary>
     private static (HarpoonShot Shot, Pieces World) Gripping()
     {
-        var world = new Pieces { Wall = 6_000 };
+        var world = new Pieces { Wall = 12_000 };
         var shot = new HarpoonShot();
         shot.Step(10, true, Out(), world.World);
         bool gripped = false;
         for (int i = 0; i < 30 && !gripped; i++) gripped = shot.Step(10, false, Out(), world.World).Gripped;
         Assert.True(gripped);
-        Assert.Equal((Rod.Hooked, (int?)null, (6_000.0, 0.0)), (shot.Rod, shot.Piece, shot.Tip));
+        Assert.Equal((Rod.Hooked, (int?)null, (12_000.0, 0.0)), (shot.Rod, shot.Piece, shot.Tip));
         return (shot, world);
     }
 
-    private static readonly (double X, double Y) Behind = (-300, 1_000);
+    private static readonly (double X, double Y) Behind = (-600, 2_000);
 
     [Fact]
     public void HooksTheNearerOfAPieceAndAWall()
     {
-        var world = new Pieces { Wall = 6_000 };
-        world.At[1] = (8_000, 0);
+        var world = new Pieces { Wall = 12_000 };
+        world.At[1] = (16_000, 0);
         var shot = new HarpoonShot();
         shot.Step(10, true, Out(), world.World);
         Run(shot, 250, world);
         Assert.Equal((Rod.Hooked, (int?)null), (shot.Rod, shot.Piece));
-        world.Wall = 9_000;
+        world.Wall = 18_000;
         var other = new HarpoonShot();
         other.Step(10, true, Out(), world.World);
         Run(other, 250, world);
@@ -373,11 +373,11 @@ public class HarpoonTests
         Assert.Equal((Rod.Hooked, (Point?)null), (shot.Rod, shot.PullTo));
         shot.Step(10, true, Out(middle: Behind), world.World);
         Assert.Equal(Rod.Pulling, shot.Rod);
-        var to = HarpoonShot.PullOf(Behind, (6_000, 0));
+        var to = HarpoonShot.PullOf(Behind, (12_000, 0));
         Assert.Equal(to, shot.PullTo);
-        Assert.Equal(Spec.PullStop, Math.Sqrt(Math.Pow(6_000 - to.X, 2) + Math.Pow(to.Y, 2)), 0);
+        Assert.Equal(Spec.PullStop, Math.Sqrt(Math.Pow(12_000 - to.X, 2) + Math.Pow(to.Y, 2)), 0);
         // On its way, presses and keys do nothing; there, it hangs.
-        shot.Step(10, true, Out(middle: (2_000, 600), letsGo: true), world.World);
+        shot.Step(10, true, Out(middle: (4_000, 1_200), letsGo: true), world.World);
         Assert.Equal(Rod.Pulling, shot.Rod);
         shot.Step(10, false, Out(middle: (to.X, to.Y)), world.World);
         Assert.Equal(Rod.Hanging, shot.Rod);
@@ -393,11 +393,11 @@ public class HarpoonTests
     {
         var (shot, world) = Gripping();
         shot.Step(10, true, Out(middle: Behind), world.World);
-        shot.Step(10, false, Out(middle: (1_000, 800)), world.World);
+        shot.Step(10, false, Out(middle: (2_000, 1_600)), world.World);
         Assert.Equal(Rod.Pulling, shot.Rod);
-        shot.Step(10, false, Out(middle: (1_000, 800)), world.World);
+        shot.Step(10, false, Out(middle: (2_000, 1_600)), world.World);
         Assert.Equal(Rod.Hanging, shot.Rod);
-        shot.Step(10, true, Out(middle: (1_000, 800)), world.World);
+        shot.Step(10, true, Out(middle: (2_000, 1_600)), world.World);
         Assert.Equal(Rod.Returning, shot.Rod);
     }
 
@@ -411,7 +411,7 @@ public class HarpoonTests
         Assert.Equal((Rod.Returning, (Point?)null), (pulled.Rod, pulled.PullTo));
 
         var (far, b) = Gripping();
-        far.Step(10, false, Out(muzzle: (6_000 - Spec.Range - 10, 0)), b.World);
+        far.Step(10, false, Out(muzzle: (12_000 - Spec.Range - 20, 0)), b.World);
         Assert.Equal(Rod.Returning, far.Rod);
     }
 
@@ -434,8 +434,8 @@ public class HarpoonTests
     public void PullsTheHerosMiddleStraightToThePointAtItsSpeedAndHoldsItThereWithoutGravity()
     {
         var ship = HeroTests.ShipFrom(["############", .. Enumerable.Repeat("#..........#", 8), "############"]);
-        var hero = Hero.At(ship, 8 * 12 + 2);
-        var to = new Point(8_500, 3_200);
+        var hero = Hero.At(ship, HeroTests.BlockCell(ship, 2, 8));
+        var to = new Point(17_000, 6_400);
         var pull = HeroTests.Still with { Pull = to };
         var first = hero.Step(pull, ship);
         double moved = Math.Sqrt(Math.Pow(first.Middle.X - hero.Middle.X, 2) + Math.Pow(first.Middle.Y - hero.Middle.Y, 2));
@@ -446,9 +446,9 @@ public class HarpoonTests
         Assert.Equal((to, 0, 0), (held.Middle, held.Vx, held.Vy));
         Assert.True(held.Step(HeroTests.Still, ship).Y > held.Y);
         // Pulled at a wall, it stops flush against it.
-        var wall = HeroTests.Settle(ship, hero, HeroTests.Still with { Pull = new Point(11_500, 5_000) });
-        Assert.Equal(11 * Hero.Unit - Stillwake.Content.Hero.Width / 2, wall.X);
-        Assert.Equal(10, Hero.PullStep * 60 / Hero.Unit);
+        var wall = HeroTests.Settle(ship, hero, HeroTests.Still with { Pull = new Point(23_000, 10_000) });
+        Assert.Equal(11 * HeroTests.Block - Stillwake.Content.Hero.Width / 2, wall.X);
+        Assert.Equal(20, Math.Round(Hero.PullStep * 60.0 / Hero.Unit));
     }
 
     [Fact]
@@ -464,11 +464,11 @@ public class HarpoonTests
     }
 
     [Fact]
-    public void PullsToHalfACellShortOfTheHookOrNotAtAllFromNearer()
+    public void PullsToACellShortOfTheHookOrNotAtAllFromNearer()
     {
-        Assert.Equal(new Point(3_000 - Spec.PullStop, 0), HarpoonShot.PullOf((0, 0), (3_000, 0)));
-        Assert.Equal(new Point(300, -400 + Spec.PullStop), HarpoonShot.PullOf((300, 2_000), (300, -400)));
-        Assert.Equal(new Point(100, 100), HarpoonShot.PullOf((100, 100), (300, 100)));
+        Assert.Equal(new Point(6_000 - Spec.PullStop, 0), HarpoonShot.PullOf((0, 0), (6_000, 0)));
+        Assert.Equal(new Point(600, -800 + Spec.PullStop), HarpoonShot.PullOf((600, 4_000), (600, -800)));
+        Assert.Equal(new Point(200, 200), HarpoonShot.PullOf((200, 200), (600, 200)));
     }
 
     [Fact]
@@ -491,10 +491,10 @@ public class HarpoonTests
     {
         var (shot, world) = (new HarpoonShot(), new Pieces());
         Assert.Null(shot.Seen);
-        shot.Step(10, true, new GunHold(true, (300, -200), (0, -2)), world.World);
+        shot.Step(10, true, new GunHold(true, (600, -400), (0, -2)), world.World);
         var flying = shot.Seen;
-        Assert.Equal(new RodSeen(Rod.Flying, new Point(300, -200 - Spec.Range)), flying);
-        Run(shot, 100, world, new GunHold(true, (300, -200), (0, -2)));
+        Assert.Equal(new RodSeen(Rod.Flying, new Point(600, -400 - Spec.Range)), flying);
+        Run(shot, 100, world, new GunHold(true, (600, -400), (0, -2)));
         Assert.Equal(flying, shot.Seen);
     }
 
@@ -502,10 +502,10 @@ public class HarpoonTests
     public void ShowsOthersARodInAPieceWhereItSticksFromItsMiddleHookedOrReeling()
     {
         var (shot, world) = Hooked();
-        var hooked = new RodSeen(Rod.Hooked, new Point(-500, 0), 1);
+        var hooked = new RodSeen(Rod.Hooked, new Point(-1_000, 0), 1);
         Assert.Equal(hooked, shot.Seen);
         // The piece drifts: the rod rides it, and what others are told holds.
-        world.At[1] = (7_000, 300);
+        world.At[1] = (14_000, 600);
         shot.Step(10, false, Out(), world.World);
         Assert.Equal(hooked, shot.Seen);
         shot.Step(10, true, Out(), world.World);
@@ -515,13 +515,13 @@ public class HarpoonTests
     [Fact]
     public void ShowsOthersARodInTheStructureWhereItSticksAndNoPointOnTheWayBack()
     {
-        var world = new Pieces { Wall = 6_000 };
+        var world = new Pieces { Wall = 12_000 };
         var shot = new HarpoonShot();
         shot.Step(10, true, Out(), world.World);
         Run(shot, 200, world);
-        Assert.Equal(new RodSeen(Rod.Hooked, new Point(6_000, 0)), shot.Seen);
+        Assert.Equal(new RodSeen(Rod.Hooked, new Point(12_000, 0)), shot.Seen);
         shot.Step(10, true, Out(middle: (0, 0)), world.World);
-        Assert.Equal(new RodSeen(Rod.Pulling, new Point(6_000, 0)), shot.Seen);
+        Assert.Equal(new RodSeen(Rod.Pulling, new Point(12_000, 0)), shot.Seen);
         world.Holds = false;
         shot.Step(10, false, Out(), world.World);
         Assert.Equal(new RodSeen(Rod.Returning), shot.Seen);

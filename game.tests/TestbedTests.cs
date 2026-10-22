@@ -64,7 +64,7 @@ public class TestbedTests
         Assert.True(m.Items.Creative);
         Assert.True(m.Furnace.At(IdOf(m, "furnace")).Burning);
         Assert.True(m.Furnace.At(IdOf(m, "burnerGenerator")).Burning);
-        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 6 + 46);
+        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 92);
         Assert.NotNull(airlock);
         Assert.All(m.Rooms.All, room => Assert.Equal(room.Id == airlock ? RoomStatus.Vacuum : RoomStatus.Aired, m.Atmosphere.StatusOf(room.Id)));
         Assert.All(m.Grid.Machines.Where(x => Spec.Machines.Get(x.Kind).Draws != null), x => Assert.Equal(1000, m.Power.Satisfaction(x.Id)));
@@ -105,7 +105,7 @@ public class TestbedTests
         Assert.False(m.Logistics.Served(Crates(m)[1]));
         Assert.True(m.Logistics.Served(supply) && m.Logistics.Served(Crates(m)[0]));
         // Room one, beside the pod: through the closed door from room two, powered to charge its drones.
-        Assert.True(m.Grid.MachineById(bay)!.Cell % Testbed.Map.Width < 17);
+        Assert.True(m.Grid.MachineById(bay)!.Cell % Testbed.Map.Width < 34);
         Assert.Equal(Testbed.Drones, m.Items.Crate(bay).Count(s => s?.Item == Spec.Logistics.Drone) + m.Logistics.Drones.Count);
         Assert.Equal(1000, m.Power.Satisfaction(bay));
         Assert.All((string[])["furnace", "former", "growCapsule", "smelter", "assembler"], kind => Assert.True(m.Logistics.Reached(IdOf(m, kind)), kind));
@@ -142,7 +142,7 @@ public class TestbedTests
         int left = m.Items.Crate(crates[0]).Sum(s => s?.Item == "scrapChunk" ? s.Count : 0);
         Assert.True(Testbed.Supplies.Where(s => s.Item == "scrapChunk").Sum(s => s.Count) - left >= 120, $"{left} chunks left");
         // The air held: every room but the airlock aired.
-        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 6 + 46);
+        var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 92);
         Assert.All(m.Rooms.All.Where(r => r.Id != airlock), r => Assert.Equal(RoomStatus.Aired, m.Atmosphere.StatusOf(r.Id)));
         // Two drones, many jobs, few launches: a drone takes its next job from where it is.
         Assert.True(launched.Count < 60, $"{launched.Count} launches");

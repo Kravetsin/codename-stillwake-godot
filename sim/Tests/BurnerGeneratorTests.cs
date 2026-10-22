@@ -22,7 +22,8 @@ public class BurnerGeneratorTests
             two ? [((1, 1), (11, 1)), ((1, 1), (8, 1))] : [((1, 1), (11, 1))]);
     }
 
-    private static int At(int x, int y) => y * 14 + x;
+    /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>): its block's top-left, doubled (0104).</summary>
+    private static int At(int x, int y) => 2 * y * 28 + 2 * x;
     private static readonly int Generator = At(1, 1), Second = At(8, 1), Lamp = At(11, 1);
     private static readonly int Makes = Machines.Get("burnerGenerator").Makes!.Value;
     private static readonly int Fuel = Machines.Get("burnerGenerator").FuelSlot!.Value;
@@ -31,7 +32,7 @@ public class BurnerGeneratorTests
     /// <summary>The world, its room aired, a peer 0 carrying <paramref name="planks"/> planks.</summary>
     private static Scenario SetUp(bool two = false, int planks = 4)
     {
-        var w = new Scenario(Map(two)).GiveItems(0, ("planks", planks));
+        var w = new Scenario(Map(two), doubled: true).GiveItems(0, ("planks", planks));
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(Generator); i++) w.Run();
         Assert.True(w.M.Atmosphere.AiredAt(Generator));
         return w;
@@ -54,7 +55,7 @@ public class BurnerGeneratorTests
     public void BurnsBiofuelFourTimesAsLongAsAPlank()
     {
         Assert.Equal(4 * PlankTicks, Content.Items.Get("biofuel").BurnTicks);
-        var w = new Scenario(Map()).GiveItems(0, ("biofuel", 1));
+        var w = new Scenario(Map(), doubled: true).GiveItems(0, ("biofuel", 1));
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(Generator); i++) w.Run();
         int from = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "biofuel");
         w.Do(new Move(new Items.Place(from), new Target(Fuel, IdAt(w, Generator)), 1)).Run(2);
@@ -128,7 +129,8 @@ public class BurnerGeneratorTests
         Feed(w, 2).Run();
         Assert.Equal(1000, LampPower(w));
         // A hole in the hull: the room is space, and the fire's next breath finds none.
-        w.Do(new ClearAt(At(13, 1), "structure")).Run();
+        // Through both cells of the wall's thickness.
+        w.Do(new ClearAt(At(13, 1), "structure")).Do(new ClearAt(At(13, 1) + 1, "structure")).Run();
         w.Run(FurnaceContent.BreathEvery);
         Assert.Equal(new Smelting(false, Problem: "furnace.noAir"), w.M.Furnace.At(IdAt(w, Generator)));
         w.Run();

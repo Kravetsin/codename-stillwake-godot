@@ -35,17 +35,17 @@ public class RichFindsTests
     }
 
     [Fact]
-    public void SpawnsDerelictsOnlyInTheFarFieldsOuterTiersThePodsAndTheRichRockOnlyPast256()
+    public void SpawnsDerelictsOnlyInTheFarFieldsOuterTiersThePodsAndTheRichRockOnlyPast512()
     {
-        // 1400×600, the hull at columns 50 to 55 and rows 300 to 302; two heroes whose rings lie mostly
-        // in the 128 tier, two far past 256.
-        var map = DebrisZonesTests.Open(1400, 600, 50, 300);
-        var hull = (Left: 50, Right: 55, Top: 300, Bottom: 302);
+        // 2800×1200, the hull at columns 100 to 111 and rows 600 to 605; two heroes whose rings lie mostly
+        // in the 256 tier, two far past 512. Lengths twice the 16 px cell's (0104), as the tiers' are.
+        var map = DebrisZonesTests.Open(2800, 1200, 100, 600, 12, 6);
+        var hull = (Left: 100, Right: 111, Top: 600, Bottom: 605);
         var spawned = new List<(string Zone, string Item, int X, int Y)>();
         for (uint seed = 1; seed <= 6; seed++)
         {
             var w = new Scenario(map, seed);
-            (int X, int Y)[] heroes = [(240, 300), (240, 380), (700, 300), (700, 120)];
+            (int X, int Y)[] heroes = [(480, 600), (480, 760), (1400, 600), (1400, 240)];
             for (int i = 0; i < heroes.Length; i++) w.Do(new Enter(heroes[i].Y * map.Width + heroes[i].X) { From = i });
             spawned.AddRange(Spawned(w, 600));
         }
@@ -53,12 +53,12 @@ public class RichFindsTests
         var far = spawned.Where(s => s.Zone == DebrisSpec.Far.Id).ToList();
         Assert.True(far.Count > 2000, $"{far.Count} far pieces spawned");
         var derelicts = far.Where(s => Derelicts.Contains(s.Item)).ToList();
-        Assert.All(derelicts, s => Assert.True(Tier(s) >= 128, $"{s.Item} at ({s.X}, {s.Y}), tier {Tier(s)}"));
-        Assert.All(far.Where(s => s.Item is "podCluster" || Rocks.Contains(s.Item)), s => Assert.True(Tier(s) >= 256, $"{s.Item} in tier {Tier(s)}"));
-        Assert.Contains(derelicts, s => Tier(s) == 128);
+        Assert.All(derelicts, s => Assert.True(Tier(s) >= 256, $"{s.Item} at ({s.X}, {s.Y}), tier {Tier(s)}"));
+        Assert.All(far.Where(s => s.Item is "podCluster" || Rocks.Contains(s.Item)), s => Assert.True(Tier(s) >= 512, $"{s.Item} in tier {Tier(s)}"));
         Assert.Contains(derelicts, s => Tier(s) == 256);
+        Assert.Contains(derelicts, s => Tier(s) == 512);
         Assert.Contains(far, s => s.Item == "asteroidRich");
-        // Rare: a few in a hundred even out past 256.
+        // Rare: a few in a hundred even out past 512.
         double share = derelicts.Count / (double)far.Count;
         Assert.InRange(share, 0.005, 0.05);
         // Nothing but the stream's own kinds by the ship.
@@ -68,9 +68,9 @@ public class RichFindsTests
     [Fact]
     public void NeverSpawnsADerelictInTheStreamNorAnyRockButAsteroidsInTheBand()
     {
-        // 200×120, the hull at columns 90 to 95 and rows 50 to 52, no hero out: the stream and the band only.
+        // 400×240, the hull at columns 180 to 191 and rows 100 to 105, no hero out: the stream and the band only.
         var spawned = new List<(string Zone, string Item, int X, int Y)>();
-        for (uint seed = 1; seed <= 4; seed++) spawned.AddRange(Spawned(new Scenario(DebrisZonesTests.Open(200, 120, 90, 50), seed), 60_000));
+        for (uint seed = 1; seed <= 4; seed++) spawned.AddRange(Spawned(new Scenario(DebrisZonesTests.Open(400, 240, 180, 100, 12, 6), seed), 60_000));
         var stream = spawned.Where(s => s.Zone == DebrisSpec.Ship.Id).ToList();
         var band = spawned.Where(s => s.Zone == DebrisSpec.Asteroids.Id).ToList();
         Assert.True(stream.Count > 1000, $"{stream.Count} stream pieces");
@@ -81,14 +81,14 @@ public class RichFindsTests
     }
 
     [Fact]
-    public void PutsTheRichRockOnlyOnTheBandsFarEdgeRows36To44Out()
+    public void PutsTheRichRockOnlyOnTheBandsFarEdgeRows72To88Out()
     {
-        var hull = (Left: 90, Right: 95, Top: 50, Bottom: 52);
+        var hull = (Left: 180, Right: 191, Top: 100, Bottom: 105);
         int column = hull.Right + Band.Lead;
         // The band's tier by row, every piece of it spawning Lead columns right of the hull.
         for (int out_ = Band.From; out_ <= Band.To; out_++)
         {
-            int expected = out_ >= 36 ? 72 : 0;
+            int expected = out_ >= 72 ? 144 : 0;
             Assert.Equal(expected, DebrisModule.TierOf(DebrisSpec.Asteroids, column, hull.Top - out_, hull).From);
             Assert.Equal(expected, DebrisModule.TierOf(DebrisSpec.Asteroids, column, hull.Bottom + out_, hull).From);
         }
@@ -97,11 +97,11 @@ public class RichFindsTests
         // Over many asteroids, the rich ones all came from the far edge.
         var band = new List<(string Zone, string Item, int X, int Y)>();
         for (uint seed = 1; seed <= 4; seed++)
-            band.AddRange(Spawned(new Scenario(DebrisZonesTests.Open(200, 120, 90, 50), seed), 60_000).Where(s => s.Zone == DebrisSpec.Asteroids.Id));
+            band.AddRange(Spawned(new Scenario(DebrisZonesTests.Open(400, 240, 180, 100, 12, 6), seed), 60_000).Where(s => s.Zone == DebrisSpec.Asteroids.Id));
         int Out(int row) => row < hull.Top ? hull.Top - row : row - hull.Bottom;
-        Assert.All(band.Where(s => s.Item == "asteroidRich"), s => Assert.InRange(Out(s.Y), 36, 44));
-        Assert.Contains(band, s => Out(s.Y) < 36);
-        Assert.Contains(band, s => Out(s.Y) >= 36);
+        Assert.All(band.Where(s => s.Item == "asteroidRich"), s => Assert.InRange(Out(s.Y), 72, 88));
+        Assert.Contains(band, s => Out(s.Y) < 72);
+        Assert.Contains(band, s => Out(s.Y) >= 72);
     }
 
     /// <summary>

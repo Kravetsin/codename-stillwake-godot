@@ -125,9 +125,9 @@ public class DrillArcTests
             " #...#              ",
             " #...#              ",
             " #####              ",
-        ])).Run(DebrisSpec.Every);
+        ]), doubled: true).Run(DebrisSpec.Every);
         w.M.Debris.Pieces[0].Item = "hullSection";
-        return w.Put(0, drill).Do(new SetCreative(true)).Do(new Enter(1 * 20 + 12)).Run();
+        return w.Put(0, drill).Do(new SetCreative(true)).Do(new Enter(w.At(12, 1))).Run();
     }
 
     [Fact]
@@ -208,7 +208,7 @@ public class DrillArcTests
     [Fact]
     public void MovesIntoACrateAndBackAndSwapsWithAPlainDrillKeepingItsModule()
     {
-        var w = new Scenario(Layout.Parse(["#######", "#S..KK#", "#.....#", "#######"])).Put(0, Fitted).GiveItems(0, (Drill, 1));
+        var w = new Scenario(Layout.Parse(["#######", "#S..KK#", "#.....#", "#######"]), doubled: true).Put(0, Fitted).GiveItems(0, (Drill, 1));
         int crate = w.M.Grid.MachinesOf("crate").Single().Id;
         Assert.Equal(new Stack(Drill, 1), At(w, 1));
         // Whole onto the plain drill: they swap, as two batteries of different charge do.
@@ -230,8 +230,8 @@ public class DrillArcTests
     [Fact]
     public void ThrownPickedUpAndSavedItKeepsItsModuleOnTheFloorAndInTheSlot()
     {
-        var w = new Scenario(Layout.Parse(["#######", "#S....#", "#######"])).Put(0, Fitted).Put(1, new Stack(Drill, 1));
-        w.Do(new Drop(new Slot(0), 1, 1 * 7 + 3, 1)).Do(new Drop(new Slot(1), 1, 1 * 7 + 3, 1)).Run(60);
+        var w = new Scenario(Layout.Parse(["#######", "#S....#", "#######"]), doubled: true).Put(0, Fitted).Put(1, new Stack(Drill, 1));
+        w.Do(new Drop(new Slot(0), 1, w.At(3, 1), 1)).Do(new Drop(new Slot(1), 1, w.At(3, 1), 1)).Run(60);
         Assert.Equal([Arc, null], w.M.Items.Floor.Select(s => s.Module));
         w.Reload();
         Assert.Equal([Arc, null], w.M.Items.Floor.Select(s => s.Module));
@@ -245,7 +245,7 @@ public class DrillArcTests
     [Fact]
     public void ASaveWithNoModuleOnAnyStackWritesNoneAndOneWithAFittedDrillLoadsItBack()
     {
-        var w = new Scenario(Layout.Parse(["#######", "#S....#", "#######"])).GiveItems(0, (Drill, 1), ("iron", 3));
+        var w = new Scenario(Layout.Parse(["#######", "#S....#", "#######"]), doubled: true).GiveItems(0, (Drill, 1), ("iron", 3));
         Assert.DoesNotContain("module", w.World.Save());
         w.Put(5, Fitted).Reload();
         Assert.Equal(Fitted, At(w, 5));
@@ -254,8 +254,8 @@ public class DrillArcTests
     [Fact]
     public void ItsHeroKeepsItWhenItDiesAsGear()
     {
-        var w = new Scenario(Layout.Parse(["##########", "#S.......#", "#........#", "##########"])).Put(0, Fitted).GiveItems(0, ("scrap", 5));
-        w.Do(new Enter(1 * 10 + 5)).Run();
+        var w = new Scenario(Layout.Parse(["##########", "#S.......#", "#........#", "##########"]), doubled: true).Put(0, Fitted).GiveItems(0, ("scrap", 5));
+        w.Do(new Enter(w.At(5, 1))).Run();
         for (int i = 0; i < 2 * Spec.Crew.Suit * Spec.Crew.BreathEvery && w.M.Crew.HeroOf(0)!.Out == 0; i++) w.Run();
         Assert.Equal([("scrap", 5)], w.M.Items.Floor.Select(s => (s.Item, s.Count)));
         Assert.Equal(Fitted, At(w, 0));
@@ -264,7 +264,7 @@ public class DrillArcTests
     [Fact]
     public void ItGoesWithItsHeroToAnotherSurfaceAndRunsOnThere()
     {
-        var w = new Scenario(Layout.Parse(["............", ".##########.", ".#..D..S..#.", ".##########.", "............"]));
+        var w = new Scenario(Layout.Parse(["............", ".##########.", ".#..D..S..#.", ".##########.", "............"]), doubled: true);
         w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Spec.Surfaces.TestStrip.Id)).Run();
         w.Put(0, Fitted).Put(Belt, Battery(Full)).Do(new Run(Drill, true)).Run();
         w.Do(new Transfer(1)).Run();
@@ -295,7 +295,7 @@ public class DrillArcTests
     [Property(MaxTest = 30)]
     public Property EachArcModuleIsInExactlyOnePlace(PositiveInt seed)
     {
-        var w = new Scenario(Layout.Parse(Sealed))
+        var w = new Scenario(Layout.Parse(Sealed), doubled: true)
             .GiveItems(0, (Arc, 2), (Drill, 1)).Put(3, Fitted)
             .GiveItems(1, ("iron", 9)).Put(4, Fitted).Put(Belt, Battery(Full), peer: 1)
             .GiveItems(2, (Arc, 1), (Drill, 2)).Put(6, Fitted, peer: 2);

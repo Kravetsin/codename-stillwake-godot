@@ -219,7 +219,7 @@ public class DesyncTests(ITestOutputHelper output)
         var blank = Enumerable.Repeat("", 3);
         var layout = Layout.Parse(
             [.. blank.Concat(ship).Concat(blank).Select(Pad)],
-            [.. blank.Concat(pipes).Select(Pad)]);
+            [.. blank.Concat(pipes).Select(Pad)]).Doubled();
         // On a stream of modules' commands alone: the world's are drawn in KeepsEveryClientAndAJoinerInSyncAsHeroesMoveBetweenSurfaces.
         Covering(7, tried =>
         {
@@ -254,8 +254,9 @@ public class DesyncTests(ITestOutputHelper output)
             ".#TT.......#.",
             ".###########.",
             ".............",
-        ]);
-        static int Cell(int x, int y) => y * 13 + x;
+        ]).Doubled();
+        // The cell of the drawing's character at (x, y): its block's top-left, doubled (0104).
+        static int Cell(int x, int y) => 2 * y * 26 + 2 * x;
         var pipe = new Placement("conduit", "pipe");
         const int tank = 2;
         Covering(9, tried =>
@@ -275,7 +276,8 @@ public class DesyncTests(ITestOutputHelper output)
                     if (tick < 40)
                     {
                         // Each missing pipe planned, or its plan worked: the fuzz may cancel a plan meanwhile.
-                        foreach (int at in new[] { Cell(2, 2), Cell(2, 3), Cell(2, 4) })
+                        // Down from the vent's port to the tank's, a cell wide.
+                        foreach (int at in Enumerable.Range(0, 5).Select(i => Cell(2, 2) + i * 26))
                         {
                             if (game.Module<GridModule>(first.World).ConduitAt(at) != Conduit.None) continue;
                             var plan = game.Module<BuildingModule>(first.World).PlansAt(at)
@@ -319,7 +321,7 @@ public class DesyncTests(ITestOutputHelper output)
         var layout = Layout.Parse(
             ["PPP          ", "             ", "#############", "#.OOO.C.....#", "#.OOO.C.....#", "#.OOO.......#", "#############"],
             null,
-            [((0, 0), (6, 3))]);
+            [((0, 0), (6, 3))]).Doubled();
         int full = Content.Items.Get("battery").Capacity!.Value;
         string Stocked(string save)
         {
@@ -386,7 +388,7 @@ public class DesyncTests(ITestOutputHelper output)
         var layout = Layout.Parse(
             ["PPP PPP          ", "                 ", "#################", "#.OOO.QQ.QQ.L.L.#", "#.OOO.QQ.QQ.....#", "#.OOO...........#", "#################"],
             null,
-            [((0, 0), (6, 3)), ((4, 0), (6, 3)), ((9, 3), (6, 3)), ((12, 3), (6, 3)), ((14, 3), (9, 3))]);
+            [((0, 0), (6, 3)), ((4, 0), (6, 3)), ((9, 3), (6, 3)), ((12, 3), (6, 3)), ((14, 3), (9, 3))]).Doubled();
         Covering(21, tried =>
         {
             var game = new Definition(() => new Registry().All);
@@ -428,7 +430,7 @@ public class DesyncTests(ITestOutputHelper output)
         var layout = Layout.Parse(
             ["############################", "#.......OOO..............gg#", "#FF.TT..OOOMMBB.EE.YY.BB.gg#", "#FF.TTV.OOOMMBB.EE.YY.BB.gg#", "############################"],
             ["", "", "    o", "    ---"],
-            [((13, 2), (11, 2)), ((13, 2), (16, 2)), ((13, 2), (19, 2)), ((22, 2), (25, 2))]);
+            [((13, 2), (11, 2)), ((13, 2), (16, 2)), ((13, 2), (19, 2)), ((22, 2), (25, 2))]).Doubled();
         int crop = Content.Items.Get("seed").SmeltTicks!.Value * 1000;
         string Stocked(string save)
         {

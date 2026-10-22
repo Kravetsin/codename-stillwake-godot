@@ -20,7 +20,7 @@ public partial class DroneLight : Node2D
     /// Dust motes and faint veils a second where a drone's wash meets a floor at full spin, at its lowest, times
     /// <see cref="Fx.Count"/>; a third as many at the edge of <see cref="WashReach"/>, the cells over a floor it stirs.
     /// </summary>
-    public const double DustPerSecond = 14, VeilsPerSecond = 2, WashReach = 2.5;
+    public const double DustPerSecond = 14, VeilsPerSecond = 2, WashReach = 5;
     /// <summary>The most drones whose air shimmers: each reads the screen again.</summary>
     public const int Shimmers = 3;
     /// <summary>The rotors' middles, from the body's, as it faces right: either side and up.</summary>

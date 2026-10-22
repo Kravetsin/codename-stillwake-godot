@@ -168,18 +168,6 @@ public class DebrisFoundTests
         Assert.Empty(w.M.Debris.Found);
     }
 
-    [Fact]
-    public void UpgradesAFormat17SaveToAWorldThatHasFoundNothingAndPlaysOn()
-    {
-        string old = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "format-17.json"));
-        Assert.Null(JsonNode.Parse(old)!["slices"]!["debris"]!["found"]);
-        var m = new Registry();
-        var world = World.Load(Migrations.Upgrade(old), m.All);
-        Assert.Empty(m.Debris.Found);
-        for (int i = 0; i < 200; i++) world.Step([]);
-        Assert.Contains("\"found\":[]", world.Save());
-    }
-
     // The record's invariants, whatever is caught, broken, reeled or refused.
 
     private sealed record Step(int Action, int Kind, int Times, int Ticks);

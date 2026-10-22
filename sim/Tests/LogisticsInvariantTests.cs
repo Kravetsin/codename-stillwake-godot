@@ -22,14 +22,14 @@ public class LogisticsInvariantTests
         int[] Charges, (string Item, int Count)[] Left, (string Item, int Count)[] Right, (string Item, int Count)? Input,
         (string Item, int Count)[] Outputs, Step[] Steps);
 
-    /// <summary>A step: a wall built or taken down at a cell inside the hull, the door worked, a machine switched, then some ticks.</summary>
+    /// <summary>A step: a wall built or taken down at a character of the map inside the hull, its block, the door worked, a machine switched, then some ticks.</summary>
     public sealed record Step(string Type, int Cell, int Ticks);
 
     /// <summary>Nothing that burns and nothing a furnace would smelt without fuel: what is there only moves.</summary>
     private static readonly string[] Stock = ["iron", "plate", "scrapChunk", "gear", "wire", "rock"];
 
     private const int Width = 24;
-    private static readonly int Door = 10 + 2 * Width;
+    private static readonly (int X, int Y) Door = (10, 2);
     private static readonly int[] Switched = [LogisticsTests.Furnace, LogisticsTests.Left, LogisticsTests.Right];
 
     private static Gen<(string Item, int Count)> Stacked =>
@@ -43,7 +43,7 @@ public class LogisticsInvariantTests
         var step = Gen.Frequency(
             (3, from c in inside from t in Gen.Choose(1, 60) select new Step("wall", c, t)),
             (3, from c in inside from t in Gen.Choose(1, 60) select new Step("clear", c, t)),
-            (2, from t in Gen.Choose(1, 60) select new Step("door", Door, t)),
+            (2, from t in Gen.Choose(1, 60) select new Step("door", Door.Y * Width + Door.X, t)),
             (2, from m in Gen.Elements(Switched) from t in Gen.Choose(1, 60) select new Step("off", m, t)),
             (2, from m in Gen.Elements(Switched) from t in Gen.Choose(1, 60) select new Step("on", m, t)),
             (4, from t in Gen.Choose(1, 200) select new Step("wait", 0, t)));
@@ -100,9 +100,10 @@ public class LogisticsInvariantTests
             var start = Totals(w);
             foreach (var s in run.Steps.Append(new Step("wait", 0, 300)))
             {
-                if (s.Type == "wall") w.Do(new Place(s.Cell, Placement.Wall()));
-                else if (s.Type == "clear") w.Do(new ClearAt(s.Cell, "structure"));
-                else if (s.Type == "door") w.Do(new SetDoor(s.Cell, w.M.Grid.StructureAt(s.Cell) == Structure.DoorClosed));
+                var block = LogisticsTests.Block(w, s.Cell % Width, s.Cell / Width);
+                if (s.Type == "wall") foreach (int cell in block) w.Do(new Place(cell, Placement.Wall()));
+                else if (s.Type == "clear") foreach (int cell in block) w.Do(new ClearAt(cell, "structure"));
+                else if (s.Type == "door") w.Do(new SetDoor(block[0], w.M.Grid.StructureAt(block[0]) == Structure.DoorClosed));
                 else if (s.Type is "on" or "off") w.Do(new SetServed(s.Cell, s.Type == "on"));
                 for (int t = 0; t < s.Ticks; t++)
                 {
@@ -168,7 +169,8 @@ public class LogisticsInvariantTests
             w.Do(new SetEndless(former, 1, true));
             for (int t = 0; t < 3000; t++)
             {
-                if (doors > 0 && t % 400 == 0) w.Do(new SetDoor(Door + 2 * Width, w.M.Grid.StructureAt(Door + 2 * Width) == Structure.DoorClosed));
+                int door = w.At(Door.X, Door.Y + 2);
+                if (doors > 0 && t % 400 == 0) w.Do(new SetDoor(door, w.M.Grid.StructureAt(door) == Structure.DoorClosed));
                 w.Run();
                 Assert.All(w.M.Logistics.Drones, d => Assert.True(d.Stack.Charge > 0, $"tick {t}: drone {d.Id} flat at cell {d.Cell}"));
                 Assert.Equal(0, LogisticsTests.OnFloor(w, Tune.Drone));

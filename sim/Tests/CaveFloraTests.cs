@@ -19,8 +19,8 @@ public class CaveFloraTests
         l.Flora!.Select(p => (p.Cell, Kind: Flora.Cave.FirstOrDefault(k => k.Id == p.Kind)!)).Where(p => p.Kind != null && !Ruins.Growths.Contains(p.Kind.Id));
 
     /// <summary>
-    /// Whether every cave growth of <paramref name="l"/> is where it may be: in a cave — an open cell with a back wall, its
-    /// <c>Tall</c> cells open, on a whole wall or under one — or in stone beside a cave cell; in a band it lives in; roots near
+    /// Whether every cave growth of <paramref name="l"/> is where it may be, in each of its <c>Across</c> columns: in a cave — an
+    /// open cell with a back wall, its <c>Tall</c> cells open, on a whole wall or under one — or in stone, its block beside a cave cell (0104); in a band it lives in; roots near
     /// the surface (but under a spire, whose tip stands over the ground the roots grew under, 0085); and no two in one cell. A
     /// home's collapsed end is grown over by its prefab, not the caves (0091): what lies in a home's box is the home's.
     /// </summary>
@@ -38,20 +38,20 @@ public class CaveFloraTests
             switch (kind.On)
             {
                 case Flora.Anchor.Rock:
-                    if (At(cell) != '#' || l.Materials![cell] != Stone || !new[] { cell - w, cell + w, cell - 1, cell + 1 }.Any(n => At(n) == '.'))
-                        return $"{where}: not stone beside a cave";
-                    if (!cells.Add(cell)) return $"{where}: shares a cell";
+                    var block = Enumerable.Range(0, kind.Across).SelectMany(dx => Enumerable.Range(0, kind.Tall).Select(i => cell + i * w + dx)).ToList();
+                    if (block.Any(c => At(c) != '#' || l.Materials![c] != Stone)) return $"{where}: not stone";
+                    if (!block.Any(c => new[] { c - w, c + w, c - 1, c + 1 }.Any(n => At(n) == '.'))) return $"{where}: not beside a cave";
+                    if (!block.All(cells.Add)) return $"{where}: shares a cell";
                     if (kind.Floors && At(cell - w) != '.') return $"{where}: not in a floor";
                     break;
                 default:
                     int step = kind.On == Flora.Anchor.Floor ? -w : w;
-                    // On whole walls only, never a slope.
-                    if (At(cell - step) != '#') return $"{where}: nothing whole holds it";
-                    for (int dx = 1; dx <= kind.Wide; dx++)
-                        if (At(cell - step + dx) != '#' || At(cell - step - dx) != '#' || At(cell + dx) != '.' || At(cell - dx) != '.')
-                            return $"{where}: no room either side";
-                    for (int i = 0; i < kind.Tall; i++)
-                        if (At(cell + i * step) != '.' || !cells.Add(cell + i * step)) return $"{where}: its cell {i} not open and its own";
+                    // On whole walls only, never a slope, and room either side.
+                    for (int dx = -kind.Wide; dx < kind.Across + kind.Wide; dx++)
+                        if (At(cell - step + dx) != '#' || At(cell + dx) != '.') return $"{where}: nothing whole holds its column {dx}";
+                    for (int dx = 0; dx < kind.Across; dx++)
+                        for (int i = 0; i < kind.Tall; i++)
+                            if (At(cell + i * step + dx) != '.' || !cells.Add(cell + i * step + dx)) return $"{where}: its cell ({dx}, {i}) not open and its own";
                     break;
             }
             bool spired = spires?.Any(s => x >= s.X && x < s.X + Ruins.SpireWide) == true;
@@ -116,7 +116,7 @@ public class CaveFloraTests
 
     /// <summary>
     /// A cave in stone: a glowcap on its floor at (2, 2), a stalactite from its ceiling at (5, 1), moss in the wall at (7, 2),
-    /// threads two cells long hanging at (4, 1).
+    /// threads two characters long hanging at (4, 1); doubled.
     /// </summary>
     private static Scenario Cave()
     {
@@ -131,8 +131,11 @@ public class CaveFloraTests
             t......t
             tttttttt
             """) with { Flora = [(1 * 8 + 4, "threadViolet"), (1 * 8 + 5, "stalactite"), (2 * 8 + 2, "glowcapTeal"), (2 * 8 + 7, "moss")] };
-        return new Scenario(layout);
+        return new Scenario(layout, doubled: true);
     }
+
+    /// <summary>The lower row of the drawn character at (<paramref name="x"/>, <paramref name="y"/>): the wall a ceiling's growth hangs from.</summary>
+    private static int Bottom(Scenario w, int x, int y) => w.At(x, y) + w.Layout.Width;
 
     /// <summary>The axe's hits that break stone.</summary>
     private static readonly int Hits = (Materials.Get("stone").Strength + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage;
@@ -143,7 +146,7 @@ public class CaveFloraTests
     public void AHitOnAGrowthFellsItAndOnHangingThreadsAnyCellTheyHangIn()
     {
         var w = Cave();
-        w.Do(new Dig(2 * 8 + 2, Weapons.Axe.Item)).Do(new Dig(2 * 8 + 4, Weapons.Axe.Item)).Run();
+        w.Do(new Dig(w.At(2, 2), Weapons.Axe.Item)).Do(new Dig(w.At(4, 2), Weapons.Axe.Item)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(["stalactite", "moss"], Kinds(w));
         Assert.Empty(w.M.Building.Cracks);
@@ -154,7 +157,7 @@ public class CaveFloraTests
     {
         var w = Cave();
         // The floor under the glowcap, the ceiling over the stalactite, the stone the moss is in, hit together till they break.
-        int[] holds = [3 * 8 + 2, 0 * 8 + 5, 2 * 8 + 7];
+        int[] holds = [w.At(2, 3), Bottom(w, 5, 0), w.At(7, 2)];
         for (int hit = 1; hit < Hits; hit++)
         {
             foreach (int cell in holds) w.Do(new Dig(cell, Weapons.Axe.Item));
@@ -183,7 +186,7 @@ public class CaveFloraTests
     public void AHitOnStoneWithMossInItDigsTheStoneNotTheMoss()
     {
         var w = Cave();
-        w.Do(new Dig(2 * 8 + 7, Weapons.Axe.Item)).Run();
+        w.Do(new Dig(w.At(7, 2), Weapons.Axe.Item)).Run();
         Assert.Single(w.M.Building.Cracks);
         Assert.Contains("moss", Kinds(w));
     }

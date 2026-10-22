@@ -39,13 +39,13 @@ public static class Markers
 
     /// <summary>
     /// This player's markers: home at the crew's <paramref name="spawn"/> cell, where a hero is made again; then the
-    /// body it left last (<see cref="Bodies.Latest"/>), half a cell above where its stacks lie, in its suit's
+    /// body it left last (<see cref="Bodies.Latest"/>), a cell above where its stacks lie, in its suit's
     /// colour, while there is one; then each friend at its body's middle in its suit's colour, in the order given.
     /// </summary>
     public static List<Marker> Of(int spawn, int width, IReadOnlyList<(int Id, Hero Hero, int Colour)> friends, (Pile Pile, int Colour)? body = null)
     {
         var list = new List<Marker>(friends.Count + 2) { new(MarkerIcon.Home, spawn % width + 0.5, spawn / width + 0.5, HomeColour) };
-        if (body is var (pile, suit)) list.Add(new Marker(MarkerIcon.Body, pile.X / Hero.Unit, pile.Y / Hero.Unit - 0.5, suit));
+        if (body is var (pile, suit)) list.Add(new Marker(MarkerIcon.Body, pile.X / Hero.Unit, pile.Y / Hero.Unit - 1.0, suit));
         foreach (var (id, hero, colour) in friends)
         {
             var middle = hero.Middle;

@@ -11,7 +11,7 @@ namespace Stillwake.Game.Render;
 /// </summary>
 public static class GroundShadow
 {
-    private const int Cell = 16, Side = 3 * Cell;
+    private const int Cell = Camera.Cell, Side = 3 * Cell;
 
     /// <summary>Whether pixel (<paramref name="px"/>, <paramref name="py"/>) of a cell lies in the solid of <paramref name="shape"/>, at its middle.</summary>
     public static bool Covers(int shape, int px, int py) =>

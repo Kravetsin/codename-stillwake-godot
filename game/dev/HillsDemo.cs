@@ -18,7 +18,7 @@ namespace Stillwake.Game.Dev;
 /// </summary>
 public static class HillsDemo
 {
-    private const int Width = 64, Height = 21, Top = 1, Ground = 19;
+    private const int Width = 64, Height = 22, Top = 2, Ground = 20;
 
     /// <summary>The row of the high plateau's top, where the hole is: the autopilot knows the hero is in it below that.</summary>
     public const int HighPlateau = Ground - 5;
@@ -30,13 +30,21 @@ public static class HillsDemo
     private const int LowLamps = Ground - 8;
 
     /// <summary>The cells above which a stack is dropped as the world begins: each over a slope.</summary>
-    private static readonly (int X, int Y)[] Drops = [(7, 16), (14, 15), (20, 17), (27, 13), (39, 14), (45, 16)];
+    private static readonly (int X, int Y)[] Drops = [(7, 17), (14, 16), (20, 18), (27, 14), (39, 15), (45, 17)];
 
+    /// <summary>
+    /// A character a cell, for its slopes do not double (0104), its machines drawn at their whole footprints: a panel six by two on the
+    /// roof, a lamp two by two, the tank four by four up the left wall beside its vent.
+    /// </summary>
     public static readonly Layout Map = Layout.Parse(Rows(), Under(),
         [.. Lamps.SelectMany(x => new[] { ((x, 0), (x, Top + 1)), ((x, Top + 1), (x, LowLamps)) })]);
 
-    /// <summary>The pipe from the tank's port to the vent beside it, under them.</summary>
-    private static string[] Under() => [.. Enumerable.Range(0, Height).Select(y => y == Ground - 1 ? "   --" : "")];
+    /// <summary>The pipe from the tank's port, its left column's third cell, along under it and up under the vent beside it.</summary>
+    private static string[] Under() =>
+        [.. Enumerable.Range(0, Height).Select(y => y == TankTop + 2 ? "  -----" : y == TankTop || y == TankTop + 1 ? "      -" : "")];
+
+    /// <summary>The tank's top row, hung on the left wall under the first lamp: machines need no floor.</summary>
+    private const int TankTop = Top + 4;
 
     private static string[] Rows()
     {
@@ -45,6 +53,11 @@ public static class HillsDemo
             for (int x = 0; x < Width; x++)
                 map[y, x] = y < Top ? ' ' : x == 0 || x == Width - 1 || y == Top || y >= Ground ? '#' : '.';
         void Set(int x, int y, char c) => map[y, x] = c;
+        void Block(int x0, int y0, int w, int h, char c)
+        {
+            for (int y = y0; y < y0 + h; y++)
+                for (int x = x0; x < x0 + w; x++) Set(x, y, c);
+        }
         // Solid from a cell's row down to the ground.
         void Fill(int x, int top)
         {
@@ -94,13 +107,13 @@ public static class HillsDemo
         Set(57, Top + 2, 'r');
         foreach (int x in Lamps)
         {
-            Set(x, Top + 1, 'L');
-            Set(x, LowLamps, 'L');
-            for (int dx = -1; dx <= 1; dx++) Set(x + dx, 0, 'P');
+            Block(x, Top + 1, 2, 2, 'L');
+            Block(x, LowLamps, 2, 2, 'L');
+            Block(x - 2, 0, 6, 2, 'P');
         }
         // A tank and its vent by the start: the room leaks as any does, and the tank, filled as the world begins, makes it up for an hour.
-        Set(3, Ground - 1, 'V');
-        foreach (var (dx, dy) in (ReadOnlySpan<(int, int)>)[(0, 0), (1, 0), (0, 1), (1, 1)]) Set(4 + dx, Ground - 2 + dy, 'T');
+        Block(2, TankTop, 4, 4, 'T');
+        Block(6, TankTop, 2, 2, 'V');
         Set(1, Ground - 1, 'S');
         return [.. Enumerable.Range(0, Height).Select(y => new string([.. Enumerable.Range(0, Width).Select(x => map[y, x])]))];
     }

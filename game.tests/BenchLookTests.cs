@@ -68,10 +68,10 @@ public class BenchLookTests
         foreach (var name in (string[])[BenchLook.Glow, BenchLook.FitGlow])
             Assert.Equal((BenchLook.Width + 2 * BenchLook.GlowMargin, BenchLook.Height + 2 * BenchLook.GlowMargin), SizeOf($"res://art/{name}.png"));
         Assert.Equal($"machine_{BenchLook.Kind}", BenchLook.Body);
-        // Two cells across, one tall: its picture rises a cell over its footprint, the vise over the bench.
+        // Four cells across, two tall (0104): its picture rises two cells over its footprint, the vise over the bench.
         var spec = Spec.Machines.Get(BenchLook.Kind);
-        Assert.Equal((2, 1), (spec.Width, spec.Height));
-        Assert.Equal(BenchLook.Height - 16, BenchLook.TableTop - 1);
+        Assert.Equal((4, 2), (spec.Width, spec.Height));
+        Assert.Equal(BenchLook.TableTop - 1, BenchLook.Height - spec.Height * Camera.Cell);
 
         var front = Pixels(Path.Combine(Art, $"{BenchLook.Front}.png"));
         var jaws = Enumerable.Range(0, 32 * 32).Where(i => front[i] >> 24 != 0).ToArray();

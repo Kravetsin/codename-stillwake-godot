@@ -12,7 +12,7 @@ namespace Stillwake.Sim.Tests;
 /// <summary>packages/sim/src/modules/crew/crew.test.ts, ported.</summary>
 public class CrewTests
 {
-    /// <summary>Nine wide: a sealed room of 21 cells with a vent above a tank, the spawn inside it.</summary>
+    /// <summary>Nine wide, doubled to 18 (0104): a sealed room of 84 cells with a vent above a tank, the spawn inside it.</summary>
     private const string Room = """
         #########
         #V..S...#
@@ -21,17 +21,28 @@ public class CrewTests
         #########
         """;
 
-    private static int At(int x, int y) => y * 9 + x;
+    /// <summary>The cell at (<paramref name="x"/>, <paramref name="y"/>) of the doubled room.</summary>
+    private static int Cell(int x, int y) => y * 18 + x;
+    /// <summary>The cell of the drawn character at (<paramref name="x"/>, <paramref name="y"/>): its block's top-left.</summary>
+    private static int At(int x, int y) => Cell(2 * x, 2 * y);
+    /// <summary>
+    /// A breach through the right wall, a cell tall and the doubled wall's two deep: a hole two cells tall would flood the
+    /// room into space (Rooms).
+    /// </summary>
+    private static readonly int[] Breach = [Cell(16, 4), Cell(17, 4)];
     /// <summary>A corner of the hull: in no room, so no air.</summary>
     private static readonly int Outside = At(0, 0);
-    /// <summary>Room's leak a minute: twenty scrap hull cells and the scrap back walls behind its 21 cells.</summary>
-    private static int Leak => (20 + 21) * Materials.Get("scrap").Leak;
+    /// <summary>The room's corner farthest from the vent: the bottom-right cell of the drawn (7, 3).</summary>
+    private static readonly int Far = Cell(15, 7);
+    /// <summary>Room's leak a minute: the scrap back walls behind its 84 cells and the 40 of its hull's inner layer, two cells thick (Rooms, 0104).</summary>
+    private static int Leak => (84 + 40) * Materials.Get("scrap").Leak;
 
     /// <summary>A world from <see cref="Room"/>, its vent piped to its tank in creative mode, with <paramref name="canisters"/> loaded.</summary>
     private static (Scenario W, int Tank, int Room) SetUp(int canisters = 0)
     {
         var w = new Scenario(Room).Do(new Items.SetCreative(true));
-        foreach (int cell in new[] { At(1, 1), At(1, 2), At(1, 3) })
+        // Down the left column from the vent's port to the tank's, at (0, 2) of its 4×4.
+        foreach (int cell in Enumerable.Range(2, 5).Select(y => Cell(2, y)))
             w.Do(new Place(cell, new Placement("conduit", "pipe")));
         w.Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
@@ -67,7 +78,8 @@ public class CrewTests
     [Fact]
     public void WakesAtTheMapsSOrAtTheFirstCellOfAMapWithoutOne()
     {
-        Assert.Equal(At(4, 1), new Scenario(Room).M.Crew.Spawn);
+        // S stands in its block's bottom-left cell.
+        Assert.Equal(At(4, 1) + 18, new Scenario(Room).M.Crew.Spawn);
         Assert.Equal(0, new Scenario("#..#").M.Crew.Spawn);
     }
 
@@ -133,7 +145,7 @@ public class CrewTests
         w.Run(Content.Crew.PassOut - 1);
         Assert.Equal(1, HeroOf(w)?.Out);
         w.Run();
-        Assert.Equal((0, At(4, 1), Content.Crew.Suit, 0, 0), All(w, HeroOf(w)));
+        Assert.Equal((0, At(4, 1) + 18, Content.Crew.Suit, 0, 0), All(w, HeroOf(w)));
     }
 
     [Fact]
@@ -153,7 +165,7 @@ public class CrewTests
         Assert.Equal(
             oxygen - 2 * (1 + Content.Crew.Refill) - AirTesting.Leaked(Leak, clock, AirClock(w)),
             w.M.Atmosphere.OxygenIn(tank));
-        Assert.Equal(21, Aired(w).Count);
+        Assert.Equal(84, Aired(w).Count);
         // Full, it takes only its breath.
         Breaths(w, 10);
         Assert.Equal(Content.Crew.Suit, HeroOf(w)?.Suit);
@@ -165,14 +177,15 @@ public class CrewTests
         var (w, _, room) = SetUp(1);
         AirUp(w, room);
         // The vent's pipe cut: nothing pays, nothing fills.
-        w.Do(new ClearAt(At(1, 2), "conduit")).Run();
+        w.Do(new ClearAt(Cell(2, 4), "conduit")).Run();
         w.Do(EnterAt(At(4, 1))).Run();
-        int clock = AirClock(w);
+        // Counted from here: the leak of the ticks since the cut, a fifth of a cell a tick, is the room's already.
+        int clock = AirClock(w), aired = Aired(w).Count;
         Breaths(w, 1);
         Assert.Equal(Content.Crew.Suit, HeroOf(w)?.Suit);
-        // The corner farthest from the vent went first; the hull and back walls leak the room's air too.
-        Assert.DoesNotContain(At(7, 3), Aired(w));
-        Assert.Equal(21 - 1 - AirTesting.Leaked(Leak, clock, AirClock(w)), Aired(w).Count);
+        // The corner farthest from the vent went first; the back walls leak the room's air too.
+        Assert.DoesNotContain(Far, Aired(w));
+        Assert.Equal(aired - 1 - AirTesting.Leaked(Leak, clock, AirClock(w)), Aired(w).Count);
     }
 
     [Fact]
@@ -180,16 +193,16 @@ public class CrewTests
     {
         var (w, _, room) = SetUp(1);
         AirUp(w, room);
-        w.Do(new ClearAt(At(1, 2), "conduit")).Run();
+        w.Do(new ClearAt(Cell(2, 4), "conduit")).Run();
         // At the far end, where the air goes first.
-        w.Do(EnterAt(At(7, 3))).Run();
-        for (int i = 0; i < 30 && Aired(w).Contains(At(7, 3)); i++) Breaths(w, 1);
-        Assert.DoesNotContain(At(7, 3), Aired(w));
+        w.Do(EnterAt(Far)).Run();
+        for (int i = 0; i < 30 && Aired(w).Contains(Far); i++) Breaths(w, 1);
+        Assert.DoesNotContain(Far, Aired(w));
         int suit = HeroOf(w)?.Suit ?? 0;
         Breaths(w, 2);
         Assert.Equal(suit - 2, HeroOf(w)?.Suit);
         // The room still holds air nearer the vent.
-        Assert.True(Aired(w).Count > 10, $"{Aired(w).Count} aired");
+        Assert.True(Aired(w).Count > 40, $"{Aired(w).Count} aired");
     }
 
     [Fact]
@@ -199,7 +212,8 @@ public class CrewTests
         AirUp(w, room);
         w.Do(EnterAt(At(4, 1))).Run();
         Breaths(w, 1);
-        w.Do(new ClearAt(At(8, 2), "structure")).Run();
+        foreach (int cell in Breach) w.Do(new ClearAt(cell, "structure"));
+        w.Run();
         Assert.Equal(RoomStatus.Venting, w.M.Atmosphere.StatusOf(room));
         Breaths(w, 2);
         Assert.Equal(Content.Crew.Suit - 2, HeroOf(w)?.Suit);
@@ -207,7 +221,7 @@ public class CrewTests
 
     // The lifepod.
 
-    /// <summary>Eleven wide: the lifepod in a room with no air at all, its hatch at (4, 4).</summary>
+    /// <summary>Eleven wide, doubled to 22: the lifepod's 6×6 from (6, 4) in a room with no air at all, its hatch at (8, 9).</summary>
     private const string PodRoom = """
         ###########
         #.........#
@@ -217,10 +231,10 @@ public class CrewTests
         ###########
         """;
 
-    private static int AtPod(int x, int y) => y * 11 + x;
-    private static readonly int Hatch = AtPod(4, 4);
-    /// <summary>The last cells either side of the pod its air reaches, and the first past them.</summary>
-    private static readonly int Reached = AtPod(6, 3), Beyond = AtPod(7, 3);
+    private static int AtPod(int x, int y) => y * 22 + x;
+    private static readonly int Hatch = AtPod(6 + Content.Crew.PodHatch.X, 4 + Content.Crew.PodHatch.Y);
+    /// <summary>The last cell right of the pod (its column 11) its air reaches, and the first past it.</summary>
+    private static readonly int Reached = AtPod(13, 6), Beyond = AtPod(14, 6);
 
     /// <summary>The pod room with hero 0 brought in at <paramref name="cell"/>.</summary>
     private static Scenario PodWorld(int cell)
@@ -242,9 +256,9 @@ public class CrewTests
     public void ReachesTheCellsWithinPodReachOfThePodEitherWayAndNoneWithoutOne()
     {
         var w = new Scenario(PodRoom);
-        Assert.Equal(1, Content.Crew.PodReach);
-        foreach (int cell in new[] { Hatch, AtPod(3, 2), Reached, AtPod(2, 1), AtPod(6, 5) }) Assert.True(w.M.Crew.ByPod(cell), $"{cell}");
-        foreach (int cell in new[] { Beyond, AtPod(9, 1), AtPod(1, 1), -5, 999 }) Assert.False(w.M.Crew.ByPod(cell), $"{cell}");
+        Assert.Equal(2, Content.Crew.PodReach);
+        foreach (int cell in new[] { Hatch, AtPod(6, 4), Reached, AtPod(4, 2), AtPod(13, 11) }) Assert.True(w.M.Crew.ByPod(cell), $"{cell}");
+        foreach (int cell in new[] { Beyond, AtPod(18, 2), AtPod(3, 2), -5, 999 }) Assert.False(w.M.Crew.ByPod(cell), $"{cell}");
         Assert.False(new Scenario(Room).M.Crew.ByPod(At(4, 1)));
     }
 
@@ -407,8 +421,8 @@ public class CrewTests
                 else if (s.Type == "thrust") w.Do(new Thrust(s.Ticks == 1) { From = s.Hero });
                 else if (s.Type == "refill") w.Do(new Refill { From = s.Hero });
                 else if (s.Type == "load") w.Do(new LoadCanister(tank));
-                else if (s.Type == "breach" && w.M.Grid.StructureAt(At(8, 2)) == Structure.Wall)
-                    w.Do(new ClearAt(At(8, 2), "structure"));
+                else if (s.Type == "breach" && w.M.Grid.StructureAt(Breach[0]) == Structure.Wall)
+                    foreach (int cell in Breach) w.Do(new ClearAt(cell, "structure"));
                 w.Run(s.Type == "wait" ? s.Ticks : 1);
                 var heroes = w.Crew().Heroes;
                 for (int i = 0; i < heroes.Count; i++)

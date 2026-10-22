@@ -93,7 +93,7 @@ A living document: what is decided about the game and what is still open. Techni
   unlike the Factory in Tossit.
 - **Characters** are assembled from parts with simple keyframed movement; the parts exist mainly for
   customization ([0003](decisions/0003-character-rig.md)).
-- **Pixel art,** a pixel of art a pixel of the world, sixteen to a cell, on trial until the team
+- **Pixel art,** a pixel of art a pixel of the world, eight to a cell (0104; drawn at sixteen till redrawn), on trial until the team
   settles the style: doors, pipes and machines are tiles and pictures (first drawn as text in the
   TypeScript prototype, now PNGs in `game/art`); a wall is cut from its material's one picture where it stands, so walls
   side by side make one surface; the hero's parts are pictures too, moved and turned smoothly by

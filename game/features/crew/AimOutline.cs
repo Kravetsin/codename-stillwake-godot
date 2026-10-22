@@ -42,7 +42,7 @@ public static class AimOutline
         int conduit = shown.ConduitAt(grid, aim.Cell);
         if (conduit is Conduit.ValveOpen or Conduit.ValveClosed)
         {
-            var valve = PixelArt.Picture(conduit == Conduit.ValveOpen ? "valve_open" : "valve_closed");
+            var valve = ShipTiles.PictureOf(conduit == Conduit.ValveOpen ? "valve_open" : "valve_closed");
             outline.Add(valve, CornerOf(aim.Cell, width) + new Vector2(Cell, Cell) / 2, 0, 1, colour);
             return;
         }
@@ -82,7 +82,7 @@ public static class AimOutline
         while (next.Count > 0)
         {
             int c = next.Pop(), linked = Doorways.LinksOf(c, width, size, StructureAt);
-            outline.Add(PixelArt.Picture(DoorShape.Picture(shown.StructureAt(grid, c) == Structure.DoorClosed, linked)), CornerOf(c, width), colour);
+            outline.Add(ShipTiles.PictureOf(DoorShape.Picture(shown.StructureAt(grid, c) == Structure.DoorClosed, linked)), CornerOf(c, width), colour);
             foreach (var (side, n) in (ReadOnlySpan<(int, int)>)[(Doorways.Up, c - width), (Doorways.Right, c + 1), (Doorways.Down, c + width), (Doorways.Left, c - 1)])
                 if ((linked & side) != 0 && seen.Add(n)) next.Push(n);
         }

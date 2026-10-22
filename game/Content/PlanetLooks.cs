@@ -24,7 +24,7 @@ public static class PlanetLooks
     /// The first planet's, the "Stillwake" style's (0079): its warm day; the coldest band a cool blue-grey, the garden as it is,
     /// the amber deep warmer, the ember band a warm red-brown.
     /// </summary>
-    public static readonly Look First = new("planet", [(0.86f, 0.94f, 1f), (0.94f, 1f, 0.98f), (1f, 0.9f, 0.88f), (1f, 0.78f, 0.66f)], TintFrom: 40, TintOver: 60);
+    public static readonly Look First = new("planet", [(0.86f, 0.94f, 1f), (0.94f, 1f, 0.98f), (1f, 0.9f, 0.88f), (1f, 0.78f, 0.66f)], TintFrom: 80, TintOver: 120);
 
     /// <summary>By surface kind: every planet type, and the test strip, drawn under the first planet's rules and sky.</summary>
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>

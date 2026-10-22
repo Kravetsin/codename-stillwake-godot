@@ -77,7 +77,7 @@ public partial class BuildGlow : Node2D
         var fan = Math.Cos(heading) < 0 ? Fan : (-Fan.Item2, -Fan.Item1);
         Glims.Shared.Spray(look, tip.X, tip.Y, bursts * BurstSparks, heading, fan, Speed, inSpace ? null : floor);
         Flares.Shared.Glint(tip.X, tip.Y, 4.5, TipGlint, _random.Next(2) * 0.25);
-        Flares.Shared.Flash(tip.X, tip.Y, FlickerLight, 0.45 * Fx.Glow, 2, 0.3f, 0.7);
+        Flares.Shared.Flash(tip.X, tip.Y, FlickerLight, 0.45 * Fx.Glow, 4, 0.548f, 0.7);
     }
 
     /// <summary>Where plan <paramref name="plan"/>, over <paramref name="box"/>, turns real now; none before any work.</summary>
@@ -144,7 +144,7 @@ public partial class BuildGlow : Node2D
                 }
                 w.Shimmer.Box = new Rect2(w.Tip.X - 8, w.Tip.Y - 22, 16, 22);
                 w.Shimmer.Amplitude = (float)(0.4 * w.Heat);
-                Flares.Shared.Hold(w, w.Tip.X, w.Tip.Y, MoltenLight, 0.5 * w.Heat * Fx.Glow, 2, 0.3f, 0.6);
+                Flares.Shared.Hold(w, w.Tip.X, w.Tip.Y, MoltenLight, 0.5 * w.Heat * Fx.Glow, 4, 0.548f, 0.6);
             }
             // Motes rising off the line where it turns real, shared among the plans being worked.
             if (working && cutting > 0 && w.Cut is { } cut && motes > 0)

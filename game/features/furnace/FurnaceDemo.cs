@@ -12,13 +12,14 @@ namespace Stillwake.Game.Features.Furnace;
 /// </summary>
 public static class FurnaceDemo
 {
-    /// <summary>The furnace's top-left cell in the wreck: in room A, between its vent and the lifepod.</summary>
-    private const int X = 49, Y = 21;
+    /// <summary>The furnace's top-left cell in the wreck: in room A, between its vent and the lifepod; the drawing's (49, 21), doubled.</summary>
+    private const int X = 2 * 49, Y = 2 * 21;
 
     public static World Create(IReadOnlyList<Module> modules)
     {
         var rows = Registry.WreckMap.Rows.ToArray();
-        for (int y = Y; y < Y + 2; y++) rows[y] = rows[y][..X] + "FF" + rows[y][(X + 2)..];
+        var spec = Content.Machines.Get("furnace");
+        for (int y = Y; y < Y + spec.Height; y++) rows[y] = rows[y][..X] + new string('F', spec.Width) + rows[y][(X + spec.Width)..];
         var layout = Registry.WreckMap with { Rows = rows };
         var save = JsonNode.Parse(World.Create(1, layout, modules).Save())!;
         var furnace = save["slices"]!["grid"]!["machines"]!.AsArray().First(m => (string?)m!["kind"] == "furnace")!;

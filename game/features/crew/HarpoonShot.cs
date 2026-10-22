@@ -85,7 +85,7 @@ public sealed class HarpoonShot
     public const double MostPerFrameMs = 100;
 
     /// <summary>Pulled this near the point it is pulled to, in thousandths of a cell, the hero is there.</summary>
-    private const double There = 20;
+    private const double There = 40;
 
     private static readonly double PerMs = World.TicksPerSecond / 1000.0;
 
@@ -251,7 +251,7 @@ public sealed class HarpoonShot
         // Pressed again, the reel goes again from where the hero is now; the last reel wins (0044).
         if (pressed) return Send(reel);
         if (!world.Reeled(piece)) return Free(default);
-        // The hero swum on: the reel follows it, the point before the gun sent again once it is a cell off.
+        // The hero swum on: the reel follows it, the point before the gun sent again once it is two cells off.
         double dx = reel.ToX - _sentTo.X, dy = reel.ToY - _sentTo.Y;
         bool moved = dx * dx + dy * dy > (double)Spec.FollowBeyond * Spec.FollowBeyond;
         return moved && _sinceSentMs >= FollowMs ? Send(reel) : default;

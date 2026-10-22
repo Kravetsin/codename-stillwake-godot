@@ -8,7 +8,8 @@ namespace Stillwake.Sim.Tests;
 /// <summary>Rams (0103): a cornered creature winds up and charges the nearest hero, and a charge that hits costs its suit air.</summary>
 public class FaunaRamTests
 {
-    private const int Unit = FaunaModule.Unit;
+    /// <summary>A cell, and a character of a doubled map: two cells across and down (0104).</summary>
+    private const int Unit = FaunaModule.Unit, Cell = 2 * Unit;
     private static readonly string Axe = Spec.Weapons.Axe.Item;
     private static readonly Tune.Species Tapir = Tune.Tapir;
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
@@ -76,13 +77,13 @@ public class FaunaRamTests
         Assert.Equal(Tune.WindUp, held);
         Assert.Equal(Mode.Charge, c.Mode);
         Assert.Equal(-Tune.Charge, c.VX);
-        Assert.Equal(4 * Unit, c.Y);
+        Assert.Equal(4 * Cell, c.Y);
     }
 
     [Fact]
     public void ACorneredTapirWithTheHeroBeyondReachTurnsAsEver()
     {
-        // Its middle at the wall is in column 15; the hero's cell nine columns off is past RamReach's six.
+        // Its middle at the wall is in column 32; the hero's cell 20 columns off is past RamReach's 12.
         var w = FaunaTesting.Planet(Pen).Breathing().HeroAt(6, 3);
         var c = w.Let(Tapir, 13, 3);
         Assert.False(WindsUp(w, c));
@@ -131,7 +132,7 @@ public class FaunaRamTests
         {
             w.Run();
             if (c.Mode == Mode.Charge) charged ??= t;
-            passed |= charged != null && c.X < 8 * Unit;
+            passed |= charged != null && c.X < 8 * Cell;
         }
         return (charged, passed);
     }
@@ -173,7 +174,7 @@ public class FaunaRamTests
     [Fact]
     public void AHeroPastRamBackReachStrikingItIsNotRammedBack()
     {
-        // Struck from 14 columns off (the client's word on reach): it flees as ever.
+        // Struck from 28 columns off (the client's word on reach): it flees as ever.
         var w = FaunaTesting.Planet(Long).Breathing().HeroAt(8, 3);
         var c = w.Let(Tapir, 21, 3).Still();
         w.Do(new Strike(c.Id, Axe)).Run();
@@ -236,7 +237,7 @@ public class FaunaRamTests
         Assert.True(ticks < Tune.ChargeTicks, "it ran out its charge");
         Assert.Equal((Mode.Escape, -Tapir.Flee), (c.Mode, c.VX));
         // Turned to escaping the tick its middle was RamPast cells past the hero's, and on a step that tick.
-        Assert.InRange(20 * Unit + Unit / 2 - c.X, Tune.RamPast * Unit + Tapir.Flee, Tune.RamPast * Unit + Tune.Charge + Tapir.Flee);
+        Assert.InRange(w.HeroMiddle(20) - c.X, Tune.RamPast * Unit + Tapir.Flee, Tune.RamPast * Unit + Tune.Charge + Tapir.Flee);
     }
 
     [Fact]
@@ -254,7 +255,7 @@ public class FaunaRamTests
         }
         Assert.True(ticks < Tune.ChargeTicks, "it ran out its charge rather than meet the wall");
         // Flush with the wall, short of the hero's middle by less than RamPast, then turned from it, escaping.
-        Assert.Equal(17 * Unit - Unit, most);
+        Assert.Equal(17 * Cell - Cell, most);
         Assert.Equal((Mode.Escape, -Tapir.Flee), (c.Mode, c.VX));
     }
 
@@ -268,10 +269,10 @@ public class FaunaRamTests
         {
             w.Run();
             most = Math.Max(most, c.X + Tapir.Width * Unit / 2);
-            Assert.Equal(3 * Unit, c.Y);
+            Assert.Equal(3 * Cell, c.Y);
         }
         Assert.Equal((Mode.Escape, -Tapir.Flee), (c.Mode, c.VX));
-        Assert.InRange(most, 7 * Unit - Tune.Charge, 7 * Unit);
+        Assert.InRange(most, 7 * Cell - Tune.Charge, 7 * Cell);
     }
 
     // Hit by it.

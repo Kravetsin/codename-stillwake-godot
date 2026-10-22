@@ -4,7 +4,7 @@ namespace Stillwake.Content;
 /// What grows on a planet (0079, 0080): on its surface, the kinds of plant and the stones lying about that the ground's
 /// generator (<c>Terrain</c>) sets on open soil under the sky; in its caves, the glowing things, crystals and stone it sets on
 /// their floors, from their ceilings and in the rock round them, by depth band; and the pieces of the ruins' homes (0091). Each
-/// stands in its own cell and <c>Tall</c> of its column, a home's piece in <c>Across</c> columns; the client draws it as large as it is. A hit fells one, or breaking out the wall it holds on to, giving its <see cref="Growth.Yields"/>.
+/// stands in <c>Across</c> columns from its own cell, <c>Tall</c> cells of each, two by two at the least (0104); the client draws it as large as it is. A hit fells one, or breaking out the wall it holds on to, giving its <see cref="Growth.Yields"/>.
 /// </summary>
 public static class Flora
 {
@@ -33,9 +33,9 @@ public static class Flora
     {
         /// <summary>
         /// The columns it stands in (0091), its own and to the right, each holding on to the wall under it (over it from a
-        /// ceiling, its own in the rock): 1 for all but a ruin's wider pieces.
+        /// ceiling, its own in the rock): 2, a 16 px column of 8 px cells (0104), for all but a ruin's wider pieces.
         /// </summary>
-        public int Across { get; init; } = 1;
+        public int Across { get; init; } = 2;
 
         /// <summary>
         /// Behind what stands in front (0091): a back wall's pieces, a rug. A cell holds one growth in front and one behind; a hit
@@ -81,13 +81,13 @@ public static class Flora
     /// </summary>
     public static readonly IReadOnlyList<Kind> All =
     [
-        new("acacia", Tall: 9, Level: 1, Room: 3, Clear: 12, Chance: 260, Apart: 12) { Yields = [("planks", 10)], Strength = 12 },
-        new("bush", Tall: 1, Level: 1, Room: 2, Clear: 2, Chance: 160, Apart: 5) { Yields = [("seed", 1)], Strength = 4 },
-        new("rock", Tall: 1, Level: 1, Room: 1, Clear: 2, Chance: 65, Apart: 6) { Yields = [("rock", 2)], Strength = 8 },
-        new("bellTeal", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 100, Apart: 3),
-        new("bellViolet", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 80, Apart: 3),
-        new("bellAmber", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 75, Apart: 4),
-        new("tuft", Tall: 1, Level: 0, Room: 0, Clear: 1, Chance: 150, Apart: 2),
+        new("acacia", Tall: 18, Level: 2, Room: 6, Clear: 24, Chance: 260, Apart: 24) { Yields = [("planks", 10)], Strength = 12 },
+        new("bush", Tall: 2, Level: 2, Room: 4, Clear: 4, Chance: 160, Apart: 10) { Yields = [("seed", 1)], Strength = 4 },
+        new("rock", Tall: 2, Level: 2, Room: 2, Clear: 4, Chance: 65, Apart: 12) { Yields = [("rock", 2)], Strength = 8 },
+        new("bellTeal", Tall: 2, Level: 0, Room: 0, Clear: 2, Chance: 100, Apart: 6),
+        new("bellViolet", Tall: 2, Level: 0, Room: 0, Clear: 2, Chance: 80, Apart: 6),
+        new("bellAmber", Tall: 2, Level: 0, Room: 0, Clear: 2, Chance: 75, Apart: 8),
+        new("tuft", Tall: 2, Level: 0, Room: 0, Clear: 2, Chance: 150, Apart: 4),
     ];
 
     /// <summary>
@@ -121,34 +121,34 @@ public static class Flora
     public static readonly IReadOnlyList<CaveKind> Cave =
     [
         // On floors: glowing mushrooms in clusters, crystals by band, stalagmites.
-        new("crystalRose", Anchor.Floor, Tall: 1, Wide: 0, Apart: 8, Chances: [0, 0, 160, 0]) { Yields = [("crystal", 1)] },
-        new("crystalIce", Anchor.Floor, Tall: 1, Wide: 0, Apart: 6, Chances: [380, 40, 0, 0]) { Yields = [("ice", 1)] },
-        new("crystalAmber", Anchor.Floor, Tall: 1, Wide: 0, Apart: 6, Chances: [0, 0, 380, 40]) { Yields = [("crystal", 1)] },
-        new("crystalEmber", Anchor.Floor, Tall: 1, Wide: 0, Apart: 6, Chances: [0, 0, 30, 380]) { Yields = [("crystal", 1)] },
-        new("glowcapViolet", Anchor.Floor, Tall: 1, Wide: 0, Apart: 4, Chances: [0, 220, 160, 0]) { Yields = [("spore", 1)] },
-        new("glowcapTeal", Anchor.Floor, Tall: 1, Wide: 0, Apart: 3, Chances: [30, 420, 90, 15]) { Yields = [("biomass", 2)] },
-        new("stalagmite", Anchor.Floor, Tall: 1, Wide: 0, Apart: 4, Chances: [400, 240, 320, 320]),
+        new("crystalRose", Anchor.Floor, Tall: 2, Wide: 0, Apart: 16, Chances: [0, 0, 160, 0]) { Yields = [("crystal", 1)] },
+        new("crystalIce", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [380, 40, 0, 0]) { Yields = [("ice", 1)] },
+        new("crystalAmber", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 380, 40]) { Yields = [("crystal", 1)] },
+        new("crystalEmber", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 30, 380]) { Yields = [("crystal", 1)] },
+        new("glowcapViolet", Anchor.Floor, Tall: 2, Wide: 0, Apart: 8, Chances: [0, 220, 160, 0]) { Yields = [("spore", 1)] },
+        new("glowcapTeal", Anchor.Floor, Tall: 2, Wide: 0, Apart: 6, Chances: [30, 420, 90, 15]) { Yields = [("biomass", 2)] },
+        new("stalagmite", Anchor.Floor, Tall: 2, Wide: 0, Apart: 8, Chances: [400, 240, 320, 320]),
         // From ceilings: roots near the surface, crystals, the garden's threads and hanging caps, stalactites that drip.
-        new("crystalIceHang", Anchor.Ceiling, Tall: 1, Wide: 0, Apart: 6, Chances: [320, 30, 0, 0]) { Yields = [("ice", 1)] },
-        new("crystalAmberHang", Anchor.Ceiling, Tall: 1, Wide: 0, Apart: 6, Chances: [0, 0, 280, 60]) { Yields = [("crystal", 1)] },
-        new("hangcap", Anchor.Ceiling, Tall: 1, Wide: 0, Apart: 7, Chances: [0, 200, 60, 0]) { Yields = [("biomass", 2)] },
-        new("threadTeal", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 5, Chances: [30, 320, 0, 0]),
-        new("threadViolet", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 5, Chances: [0, 500, 90, 0]),
-        new("roots", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 2, Chances: [2000, 0, 0, 0]) { Shallow = 24 },
-        new("stalactite", Anchor.Ceiling, Tall: 1, Wide: 0, Apart: 3, Chances: [700, 460, 620, 540]),
+        new("crystalIceHang", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 12, Chances: [320, 30, 0, 0]) { Yields = [("ice", 1)] },
+        new("crystalAmberHang", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 280, 60]) { Yields = [("crystal", 1)] },
+        new("hangcap", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 14, Chances: [0, 200, 60, 0]) { Yields = [("biomass", 2)] },
+        new("threadTeal", Anchor.Ceiling, Tall: 4, Wide: 0, Apart: 10, Chances: [30, 320, 0, 0]),
+        new("threadViolet", Anchor.Ceiling, Tall: 4, Wide: 0, Apart: 10, Chances: [0, 500, 90, 0]),
+        new("roots", Anchor.Ceiling, Tall: 4, Wide: 0, Apart: 4, Chances: [2000, 0, 0, 0]) { Shallow = 48 },
+        new("stalactite", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 6, Chances: [700, 460, 620, 540]),
         // In the rock by a cave: a rare geode, fossils, veins, the heat's glowing cracks along the floors over the bedrock, glow
         // moss on its faces, and last mica that glints in a beam, which gives way where the moss fills a hall's walls.
-        new("geode", Anchor.Rock, Tall: 1, Wide: 0, Apart: 40, Chances: [0, 4, 10, 4]) { Yields = [("crystal", 6)] },
-        new("fossil", Anchor.Rock, Tall: 1, Wide: 0, Apart: 20, Chances: [0, 30, 50, 0]),
-        new("veinIce", Anchor.Rock, Tall: 1, Wide: 0, Apart: 2, Chances: [360, 0, 0, 0]) { Yields = [("ice", 2)] },
-        new("veinCopper", Anchor.Rock, Tall: 1, Wide: 0, Apart: 2, Chances: [0, 60, 360, 140]) { Yields = [("copperOre", 2)] },
-        new("heatCrack", Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 2400]) { Floors = true, Yields = [("magnetite", 2)] },
-        new("moss", Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [360, 2000, 500, 0]),
-        new("mica", Anchor.Rock, Tall: 1, Wide: 0, Apart: 2, Chances: [1600, 900, 1400, 800]) { Yields = [("mica", 1)] },
+        new("geode", Anchor.Rock, Tall: 2, Wide: 0, Apart: 80, Chances: [0, 4, 10, 4]) { Yields = [("crystal", 6)] },
+        new("fossil", Anchor.Rock, Tall: 2, Wide: 0, Apart: 40, Chances: [0, 30, 50, 0]),
+        new("veinIce", Anchor.Rock, Tall: 2, Wide: 0, Apart: 4, Chances: [360, 0, 0, 0]) { Yields = [("ice", 2)] },
+        new("veinCopper", Anchor.Rock, Tall: 2, Wide: 0, Apart: 4, Chances: [0, 60, 360, 140]) { Yields = [("copperOre", 2)] },
+        new("heatCrack", Anchor.Rock, Tall: 2, Wide: 0, Apart: 2, Chances: [0, 0, 0, 2400]) { Floors = true, Yields = [("magnetite", 2)] },
+        new("moss", Anchor.Rock, Tall: 2, Wide: 0, Apart: 2, Chances: [360, 2000, 500, 0]),
+        new("mica", Anchor.Rock, Tall: 2, Wide: 0, Apart: 4, Chances: [1600, 900, 1400, 800]) { Yields = [("mica", 1)] },
         // The ruins' (0085, Content.Ruins): never grown, no chance in any band, set where a spire is stamped. A cache on the
         // floor of its chamber, the lens in its tip's alloy; its relic's cradle is a piece (0096).
-        new(Ruins.SpireCache, Anchor.Floor, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 0]) { Yields = [("alloyScrap", 4), ("wire", 6), ("silicon", 2)] },
-        new(Ruins.SpireLamp, Anchor.Rock, Tall: 1, Wide: 0, Apart: 1, Chances: [0, 0, 0, 0]),
+        new(Ruins.SpireCache, Anchor.Floor, Tall: 2, Wide: 0, Apart: 2, Chances: [0, 0, 0, 0]) { Yields = [("alloyScrap", 4), ("wire", 6), ("silicon", 2)] },
+        new(Ruins.SpireLamp, Anchor.Rock, Tall: 2, Wide: 0, Apart: 2, Chances: [0, 0, 0, 0]),
     ];
 
     /// <summary>

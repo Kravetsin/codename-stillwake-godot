@@ -27,13 +27,15 @@ public class LavaTests
         bbbbbbb
         """;
 
-    private const int Width = 7;
-    private static int At(int x, int y) => y * Width + x;
+    /// <summary>The map is 7 characters wide, doubled (0104): a character is 2×2 cells.</summary>
+    private const int Width = 2 * 7;
+    /// <summary>The top-left cell of the character at (<paramref name="x"/>, <paramref name="y"/>).</summary>
+    private static int At(int x, int y) => 2 * y * Width + 2 * x;
 
-    /// <summary>Where a hero standing on the lava at column 4 is reported: its body's middle, two rows over its feet.</summary>
+    /// <summary>Where a hero standing on the lava at column 4 is reported: its body's middle, Lava.Reach rows over the lava's top.</summary>
     private static readonly int OnLava = At(4, 2);
 
-    private static Scenario World() => new(Layout.Parse(Map).WithMaterials(Ground));
+    private static Scenario World() => new(Layout.Parse(Map).WithMaterials(Ground), doubled: true);
     private static Hero HeroOf(Scenario w) => w.M.Crew.HeroOf(0)!;
 
     /// <summary>A world with hero 0 brought in at <paramref name="cell"/> with a full suit on a breath's tick, run through it.</summary>
@@ -59,7 +61,7 @@ public class LavaTests
         Assert.False(crew.Burns(At(0, 2)));
         Assert.False(crew.Burns(At(4, 5)));
         Assert.False(crew.Burns(-1));
-        Assert.False(crew.Burns(Width * 6));
+        Assert.False(crew.Burns(At(0, 6)));
     }
 
     [Fact]

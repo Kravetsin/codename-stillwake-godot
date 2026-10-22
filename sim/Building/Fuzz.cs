@@ -21,7 +21,7 @@ public sealed partial class BuildingModule
     private static readonly string[] FuzzLayers = ["structure", "conduit", "machine", "back"];
 
     /// <summary>How far round what is built cells are mostly drawn: as players build, by their ship.</summary>
-    private const int FuzzMargin = 16;
+    private const int FuzzMargin = 32;
 
     /// <summary>
     /// Draws every command, refused ones included: off the grid, on nothing, twice on one thing, E on a

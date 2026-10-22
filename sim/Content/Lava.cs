@@ -18,8 +18,8 @@ public static class Lava
     public const int Burn = 15;
 
     /// <summary>
-    /// How many rows under a hero's reported cell, its body's middle, lava burns it: a hero's feet are two rows under its
-    /// middle standing (<see cref="Hero.Height"/> 2625 thousandths, the middle 1312 over the feet).
+    /// How many rows under a hero's reported cell, its body's middle, lava burns it: a hero's feet are four rows under its
+    /// middle standing (<see cref="Hero.Height"/> 5250 thousandths, the middle 2625 over the feet).
     /// </summary>
-    public const int Reach = 2;
+    public const int Reach = 4;
 }

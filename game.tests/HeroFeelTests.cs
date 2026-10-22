@@ -12,11 +12,11 @@ namespace Stillwake.Game.Tests;
 /// </summary>
 public class HeroFeelTests
 {
-    private const int Unit = Hero.Unit;
+    private const int Unit = Hero.Unit, Block = HeroTests.Block;
     private static readonly HeroInput Still = HeroTests.Still, Right = HeroTests.Right, Left = HeroTests.Left, Held = HeroTests.Held;
     private static readonly HeroInput Jump = Still with { Jump = true };
 
-    // A ledge three cells wide over a pit four deep; head room above it.
+    // A ledge three characters wide over a pit four deep; head room above it.
     private const string Ledge = """
         ############
         #..........#
@@ -30,7 +30,7 @@ public class HeroFeelTests
         ############
         """;
 
-    // A hall twelve cells tall, the floor on row 13's top.
+    // A hall twelve characters tall, the floor on row 13's top.
     private const string Hall = """
         ##########
         #........#
@@ -57,7 +57,7 @@ public class HeroFeelTests
     /// <summary>The hero walked off the ledge's edge: right after the step whose start still stood on it.</summary>
     private static Hero OffTheLedge(Ship ship)
     {
-        var h = Hero.At(ship, 4 * ship.Width + 1);
+        var h = Hero.At(ship, HeroTests.BlockCell(ship, 1, 4));
         for (int i = 0; i < 200; i++)
         {
             h = h.Step(Right, ship);
@@ -108,9 +108,9 @@ public class HeroFeelTests
     public void ASpacePressedUpToSixStepsBeforeLandingJumpsOnLandingAndOneEarlierDoesNot()
     {
         var ship = HeroTests.ShipFrom(Hall);
-        var high = new Hero(3500, 7 * Unit, 0, 0, false, 1);
+        var high = new Hero(7000, 7 * Block, 0, 0, false, 1);
         var (landing, landed) = Fallen(ship, high);
-        Assert.Equal(13 * Unit, landed.Y);
+        Assert.Equal(13 * Block, landed.Y);
         Assert.Equal(6, Spec.JumpBuffer);
         for (int early = 1; early <= Spec.JumpBuffer + 1; early++)
         {
@@ -119,12 +119,12 @@ public class HeroFeelTests
             var h = high;
             for (int i = 1; i <= landing + 1; i++) h = h.Step(i == press ? Jump : Still, ship);
             if (early <= Spec.JumpBuffer) Assert.True(h.Vy < 0, $"no buffered jump pressed {early} steps early: {h}");
-            else Assert.Equal((13 * Unit, 0), (h.Y, h.Vy));
+            else Assert.Equal((13 * Block, 0), (h.Y, h.Vy));
         }
         // Held on, a buffered jump rises as high as one from standing.
         var buffered = high;
         for (int i = 1; i <= landing + 1; i++) buffered = buffered.Step(i < landing ? Still : i == landing ? Jump : Held, ship);
-        Assert.Equal(Rise(ship, landed, Held), Rise(ship, buffered, Held) + (13 * Unit - buffered.Y));
+        Assert.Equal(Rise(ship, landed, Held), Rise(ship, buffered, Held) + (13 * Block - buffered.Y));
     }
 
     /// <summary>How far the feet rise from <paramref name="hero"/> stepping <paramref name="after"/> till it comes down.</summary>
@@ -141,12 +141,12 @@ public class HeroFeelTests
     }
 
     [Fact]
-    public void ATapJumpsUnderHalfAsHighAsAJumpHeldToItsTopWhichClearsThreeCellsNotFour()
+    public void ATapJumpsUnderHalfAsHighAsAJumpHeldToItsTopWhichClearsSevenCellsNotEight()
     {
         var ship = HeroTests.ShipFrom(Hall);
-        var standing = Hero.At(ship, 12 * ship.Width + 1);
+        var standing = Hero.At(ship, HeroTests.BlockCell(ship, 1, 12));
         int held = Rise(ship, standing, Held), tap = Rise(ship, standing, Still);
-        Assert.InRange(held, 3 * Unit + 1, 4 * Unit - 1);
+        Assert.InRange(held, 3 * Block + 1, 4 * Block - 1);
         Assert.True(tap < held / 2, $"tap {tap}, held {held}");
         // Let go halfway up, it rises between the two.
         var h = standing.Step(Jump, ship);
@@ -159,15 +159,15 @@ public class HeroFeelTests
     public void AHeldJumpHangsAtItsTopAndComesDownFasterThanItWentUp()
     {
         var ship = HeroTests.ShipFrom(Hall);
-        Assert.Equal((21, 12, 24), (ship.Gravity, ship.ApexGravity, ship.FallGravity));
+        Assert.Equal((42, 25, 48), (ship.Gravity, ship.ApexGravity, ship.FallGravity));
         // Near the top, Space held, it gains the eased gravity a step.
-        var h = Hero.At(ship, 12 * ship.Width + 1).Step(Jump, ship);
+        var h = Hero.At(ship, HeroTests.BlockCell(ship, 1, 12)).Step(Jump, ship);
         while (h.Vy < -Spec.Apex) h = h.Step(Held, ship);
         Assert.Equal(h.Vy + ship.ApexGravity, h.Step(Held, ship).Vy);
-        var (up, down) = Airtime(ship, Hero.At(ship, 12 * ship.Width + 1));
+        var (up, down) = Airtime(ship, Hero.At(ship, HeroTests.BlockCell(ship, 1, 12)));
         Assert.Equal((22, 20), (up, down));
         // A fall off an edge, Space not held, gains the fall's gravity from its second step.
-        var falling = new Hero(3500, 7 * Unit, 0, 0, false, 1).Step(Still, ship);
+        var falling = new Hero(7000, 7 * Block, 0, 0, false, 1).Step(Still, ship);
         Assert.Equal(ship.Gravity, falling.Vy);
         Assert.Equal(ship.Gravity + ship.FallGravity, falling.Step(Still, ship).Vy);
     }
@@ -183,22 +183,23 @@ public class HeroFeelTests
     }
 
     [Fact]
-    public void OnAPlanetAHeldJumpClearsSixCellsInAboutASecondDownFasterThanUp()
+    public void OnAPlanetAHeldJumpClearsElevenCellsInAboutASecondDownFasterThanUp()
     {
-        var world = new TestWorld(Layout.Parse(Hall));
+        var world = new TestWorld(Layout.Parse(Hall).Doubled());
         var ship = Ship.Of(world.M.Grid, world.M.Rooms, rules: Surfaces.TestStrip);
-        Assert.Equal((14, 8, 21), (ship.Gravity, ship.ApexGravity, ship.FallGravity));
+        Assert.Equal((29, 17, 43), (ship.Gravity, ship.ApexGravity, ship.FallGravity));
         var standing = Hero.At(ship, world.M.Crew.Spawn);
-        Assert.InRange(Rise(ship, standing, Held), 6 * Unit + 1, 7 * Unit - 1);
-        // 61 steps, a second: 33 up, 28 down.
-        Assert.Equal((33, 28), Airtime(ship, standing));
+        // Eleven cells, not the twelve of twice the 16 px cell's six: the planet's gravity rounds to 29, not 28 (0104).
+        Assert.InRange(Rise(ship, standing, Held), 11 * Unit + 1, 12 * Unit - 1);
+        // 59 steps, about a second: 32 up, 27 down.
+        Assert.Equal((32, 27), Airtime(ship, standing));
     }
 
     [Fact]
     public void AWalkGetsUpToSpeedInFourStepsARunInSevenAndBothStopShortly()
     {
         var ship = HeroTests.ShipFrom(Hall);
-        var standing = Hero.At(ship, 12 * ship.Width + 1);
+        var standing = Hero.At(ship, HeroTests.BlockCell(ship, 1, 12));
         var run = Right with { Sprint = true };
         Assert.Equal(Spec.WalkAccel, standing.Step(Right, ship).Vx);
         Assert.True(Steps(ship, standing, Right, 3).Vx < Spec.Walk);
@@ -224,13 +225,13 @@ public class HeroFeelTests
     {
         var ship = HeroTests.ShipFrom(Hall);
         int air = Spec.WalkAccel * Spec.AirControl / 1000;
-        Assert.Equal(19, air);
-        var aloft = new Hero(3500, 5 * Unit, 0, 0, false, 1);
+        Assert.Equal(39, air);
+        var aloft = new Hero(7000, 5 * Block, 0, 0, false, 1);
         Assert.Equal(air, aloft.Step(Right, ship).Vx);
         Assert.True(Steps(ship, aloft, Right, 6).Vx < Spec.Walk);
         Assert.Equal(Spec.Walk, Steps(ship, aloft, Right, 7).Vx);
         // A jump keeps the speed it was walked at, and let go in the air it slows by the same share.
-        var standing = Hero.At(ship, 12 * ship.Width + 1);
+        var standing = Hero.At(ship, HeroTests.BlockCell(ship, 1, 12));
         var jumped = Steps(ship, standing, Right, 4).Step(Right with { Jump = true }, ship);
         Assert.Equal(Spec.Walk, jumped.Vx);
         Assert.Equal(Spec.Walk - Spec.Stop * Spec.AirControl / 1000, jumped.Step(Held, ship).Vx);

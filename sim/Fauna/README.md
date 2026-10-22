@@ -27,37 +27,38 @@ into their yields, and gone again when no hero is near. The ship has none.
   `fauna.notHere`. A drawn planet map (the test strip) has no habitats but creatures let out live there.
 - **A tick,** creatures in id order: kept or gone (below); pushed up a cell, still, while a wall built since stands in its
   body (its head kept on the grid); else its mode's clock counts down, a mode ending picks the next (below); a walker on the
-  ground wandering or in flight (`Flee`, `Retreat`, `Escape`) turns back from a wall it cannot step up and from a drop of `Fauna.Drop` (3) rows or more, in
-  the column just ahead or, over flat ground, the one its edge reaches at its mode's speed this tick (a loper's flight, 15 cells
-  a second, would else overhang the brink by most of a cell) — unless it leaps (below) — then goes that speed; idle on the ground it stands still; then it moves. Then, on the beat, spawns.
-- **Moving** is integer and per axis, under the surface's gravity (`Kind.Fall(Fauna.Gravity)`, 21 a tick on the first
+  ground wandering or in flight (`Flee`, `Retreat`, `Escape`) turns back from a wall it cannot step up and from a drop of `Fauna.Drop` (6) rows or more, in
+  the column just ahead or, over flat ground, any its edge reaches at its mode's speed this tick (a loper's flight, 30 cells
+  a second, would else overhang the brink by more than a cell) — unless it leaps (below) — then goes that speed; idle on the ground it stands still; then it moves. Then, on the beat, spawns.
+- **Moving** is integer and per axis, under the surface's gravity (`Kind.Fall(Fauna.Gravity)`, 42 a tick on the first
   planet, at most `Fauna.MaxFall`). Solid is a wall (a slope stood on at its top, whole), a floor or a closed door, and past
-  the grid's edge, as for a stack; machines are not. Across: into what is solid it steps up one cell if it stood on the
-  ground and the cell over is free, else stops flush, keeping its way for its steering to leap or turn; walking off a step one cell deep it steps down
-  onto it, never falling, so a slope's run of steps is walked. Down: it lands flush on what is under it; up, it stops flush
-  under what is over it. A tick moves less than a cell, so the next column or row is the only one entered.
+  the grid's edge, as for a stack; machines are not. Across: into what is solid it steps up as many cells as it fits, up to `Fauna.StepUp` (2, the 16 px cell
+  it stepped before, 0104), if it stood on the ground, else stops flush, keeping its way for its steering to leap or turn; walking off a step
+  as deep it steps down onto it, never falling, so a slope's run of steps is walked. Down: it lands flush on what is under it; up, it
+  stops flush under what is over it. It moves in parts of under a cell each way (its flight is 1500 a tick, its fall up to 1200), so
+  no wall or floor a cell thick is passed.
 - **Jumps** (`Jump.cs`), for a species with a `Jump`: where a walker would turn, it first tries a leap, flown through the grid
-  tick by tick as the move would fly it (`Lands`), up to 120 ticks: taken if it lands at least a cell on and no more than
+  tick by tick as the move would fly it (`Lands`), up to 120 ticks: taken if it lands at least two cells on and no more than
   `Fauna.Drop` rows down, else it turns. Fleeing, it tries the lowest of three — sized to carry its feet over a ledge of
-  `Fauna.WanderLedge` (2) cells, over one of 3, and its whole `Jump` — over walls and across gaps; wandering, only the first and
+  `Fauna.WanderLedge` (4) cells, over one a step higher (6), and its whole `Jump` — over walls and across gaps; wandering, only the first and
   only up a wall at its feet, so it does not bound about. In the air it goes `min(speed, JumpAcross)` across and presses flush on
   what it meets, carried over once its feet clear it. `Leaps.Height`, `Length` and `SpeedFor` give a jump's shape under a gravity:
-  the loper's 440 up and 400 across on the first planet (21 a tick) rise 4.39 cells and land level 16.8 on (42 ticks). Every
-  tick moves under a cell (the fastest 750 across, 600 down), so nothing passes through a wall.
+  the loper's 880 up and 800 across on the first planet (42 a tick) rise some 8.8 cells and land level some 34 on. A leap is flown
+  in the move's parts of under a cell, so nothing passes through a wall.
 - **Modes:** `Idle` (a draw of `IdleLeast`..`IdleMost` ticks) → `Wander` (a draw of its way and of `WanderLeast`..`WanderMost`
   ticks) → `Idle`; a strike → `Flee` for `FleeTicks` at once, the knock's way, for a species with no hit-stun (`Stun` 0, the
   neutral loper); else → `Hurt` for its `Stun` ticks, steering nothing → `Flee`, its way away from the nearest hero by reported
   cell (box distance in cells, the first in id order at a tie; level, or none, the knock's way) → `Idle`. Only an idle or a
   wander begun draws from the Rng, and a ram's draws (below).
-- **Rams** (0103), one a hit. Struck by a hero within `Fauna.RamBackReach` (12) cells of it by box distance (the striker's
+- **Rams** (0103), one a hit. Struck by a hero within `Fauna.RamBackReach` (24) cells of it by box distance (the striker's
   reported cell), a species with a `Ram` and no stun draws its `RamChance` in a thousand (the tapir's 900, the loper's and the
   sixleg's 700; the fluff has none); drawn, it flees as ever but in `Retreat`, for a second draw of `RamFleeLeast`..`RamFleeMost`
   (12..20) ticks, then turns back → `WindUp`; a retreat that must turn at a wall or drop it cannot leap winds up there at once.
   Not drawn (or struck from farther), it is in `Flee`, and a flight that must turn so, with the nearest hero within
-  `Fauna.RamReach` (6) on the side it would turn to, draws its `RamChance` again: cornered, → `WindUp`. A wind-up is
+  `Fauna.RamReach` (12) on the side it would turn to, draws its `RamChance` again: cornered, → `WindUp`. A wind-up is
   `Fauna.WindUp` (8) ticks standing still, counted from the ground → `Charge` toward the nearest hero by reported cell as it
-  ends (none, level with it or farther than a charge runs: → `Escape` instead), at `Fauna.Charge` (700) a tick along the ground,
-  stepping up and down a cell as a walker, never leaping, till its middle is `Fauna.RamPast` (3) cells past that hero's
+  ends (none, level with it or farther than a charge runs: → `Escape` instead), at `Fauna.Charge` (1400) a tick along the ground,
+  stepping up and down a step as a walker, never leaping, till its middle is `Fauna.RamPast` (6) cells past that hero's
   (→ `Escape` on its way), a wall it cannot step up or a drop (→ `Escape`, turned from it), or `Fauna.ChargeTicks` (40) (→
   `Escape` from the nearest hero). `Escape` is a flight of `FleeTicks` that never rams → `Idle`: its ram spent, it rams only
   when struck again. A strike in a wind-up or a charge knocks it and draws anew, as any strike.
@@ -80,17 +81,16 @@ into their yields, and gone again when no hero is near. The ship has none.
   anything solid. An unknown species is our bug.
 - **`FeetOf(creature)`,** a query for the client's drawing: the ground's surface under its back and front feet
   (`Fauna.FootSpan`, 22 % of its width either side of its middle), a slope's diagonal or a cell's top, read in its feet's row and
-  the two under, so a whole cell's step of its body moves neither foot; a foot with none there hangs `Fauna.Teeter` (0.6 of a
-  cell) under its body. Up and down a run of slopes each foot moves no faster than the body walks across
-  (`FaunaFootingTests`), where the body's own `Y` steps a whole cell in a tick.- **Kept or gone:** by the cell under its middle; in some hero's keep box (`Fauna.Keep`, 80 × 48 either way) it is seen; out
-  of every one it is gone `Fauna.Linger` (600) ticks after it was last seen, and at once out of every hard box (110 × 64). No
+  the four under, so a step of its body moves neither foot; a foot with none there hangs `Fauna.Teeter` (1.2 cells) under its body. Up and down a run of slopes each foot moves no faster than the body walks across
+  (`FaunaFootingTests`), where the body's own `Y` steps a whole cell in a tick.- **Kept or gone:** by the cell under its middle; in some hero's keep box (`Fauna.Keep`, 160 × 96 either way) it is seen; out
+  of every one it is gone `Fauna.Linger` (600) ticks after it was last seen, and at once out of every hard box (220 × 128). No
   hero on the surface, none stays: the last to leave takes them all, damage and all.
 - **Species** (`Content.Fauna.All`): the loper, the tapir, the sixleg and the fluff, one life with numbers by body (0102's
   slice 3 has the table); each names its `Look`, the design the client draws. The first planet's habitats: the loper, tapir and
   sixleg on the open surface (weights 3, 2, 2), the fluff on cave floors of band 0 (2) and band 1, the garden (3).
 - **Spawning,** when the clock is a multiple of `Fauna.Beat` (40), on a type with habitats: for each hero in id order with
   fewer than `Fauna.PerKeep` (10) in its keep box, while the surface holds fewer than `Fauna.Max` (40): three draws, always
-  taken — the side, the columns out (`RingFrom`..`RingTo`, 62 to 76, past the view's 60), the habitat by weight — then down
+  taken — the side, the columns out (`RingFrom`..`RingTo`, 124 to 152, past the view's 120), the habitat by weight — then down
   that column from the top of the hero's keep box, the first row where the species' body stands in every cell open, on
   something solid, and of the habitat's place: no back wall under the open sky (`Place.Surface`), a back wall in its depth
   band (`Place.Band`, `Terrain.BandOf`) in a cave. None off the grid, without a place, or with a cell in any hero's view

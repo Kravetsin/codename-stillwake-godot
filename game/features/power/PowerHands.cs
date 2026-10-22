@@ -24,7 +24,7 @@ public readonly record struct SocketLight((double X, double Y) At, Light Light);
 public sealed class PowerHands
 {
     /// <summary>How near a middle press must be to a cable, in cells, to cut it.</summary>
-    public const double CutReach = 0.35;
+    public const double CutReach = 0.7;
 
     private Grip? _grip;
     /// <summary>The node the cable being laid runs from now: the last support placed, or where it began.</summary>

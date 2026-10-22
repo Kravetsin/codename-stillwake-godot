@@ -15,7 +15,7 @@ public class BuildingTests
     private static readonly Placement Pipe = new("conduit", "pipe");
     private static readonly Placement Tank = new("machine", "tank");
 
-    /// <summary>Nine cells wide: cell (x, y) is y * 9 + x.</summary>
+    /// <summary>Nine characters wide, doubled to 18 cells (0104).</summary>
     private const string Open = """
         #########
         #.......#
@@ -23,7 +23,8 @@ public class BuildingTests
         #.......#
         #########
         """;
-    private static int At(int x, int y) => y * 9 + x;
+    /// <summary>The cell of the character at (<paramref name="x"/>, <paramref name="y"/>) of a nine-wide map: its block's top-left.</summary>
+    private static int At(int x, int y) => 2 * y * 18 + 2 * x;
 
     /// <summary>A plan as a value, its deliveries as text, so plans compare by what they hold.</summary>
     internal static (int Id, int Cell, int Progress, Placement? Place, string? Clear, string Delivered) Of(Plan p) =>
@@ -208,23 +209,27 @@ public class BuildingTests
             #HTT=D
             ######
             """);
-        Assert.Equal([8, 9, 14, 15], w.M.Grid.Footprint("tank", 8));
-        Assert.Null(w.M.Grid.Footprint("tank", 5));
-        Assert.Null(w.M.Grid.Footprint("tank", 19));
-        Assert.Equal([23], w.M.Grid.Footprint("vent", 23));
-        Assert.Null(w.M.Grid.Footprint("nothing", 8));
+        // Doubled to twelve wide: the tank's 4×4 from (4, 2).
+        int tank = 2 * 12 + 4;
+        Assert.Equal(Enumerable.Range(0, 16).Select(i => tank + i / 4 * 12 + i % 4), w.M.Grid.Footprint("tank", tank));
+        Assert.Null(w.M.Grid.Footprint("tank", 9));
+        Assert.Null(w.M.Grid.Footprint("tank", 5 * 12 + 2));
+        int vent = 6 * 12 + 10;
+        Assert.Equal([vent, vent + 1, vent + 12, vent + 13], w.M.Grid.Footprint("vent", vent));
+        Assert.Null(w.M.Grid.Footprint("nothing", tank));
     }
 
     // Deconstruction.
 
-    /// <summary>Seven wide: a tank, a pipe, a floor and a ladder in a room.</summary>
+    /// <summary>Seven wide, doubled to 14: a tank, a pipe, a floor and a ladder in a room.</summary>
     private const string Room = """
         #######
         #TT.-.#
         #TT=H.#
         #######
         """;
-    private static int Cell(int x, int y) => y * 7 + x;
+    /// <summary>The cell of the character at (<paramref name="x"/>, <paramref name="y"/>) of a seven-wide map: its block's top-left.</summary>
+    private static int Cell(int x, int y) => 2 * y * 14 + 2 * x;
 
     [Fact]
     public void MarksWhatALayerOfACellHoldsOnce()
@@ -258,15 +263,15 @@ public class BuildingTests
             #######
             """);
         int pod = w.M.Grid.Machines.Single().Id;
-        w.Do(new Deconstruct(8, "machine")).Do(new Deconstruct(23, "machine")).Run();
+        w.Do(new Deconstruct(Cell(1, 1), "machine")).Do(new Deconstruct(Cell(2, 3), "machine")).Run();
         w.Do(new Items.SetCreative(true)).Run();
-        w.Do(new Deconstruct(16, "machine")).Do(new PlacePlan(8, new Placement("machine", "lifepod"))).Run();
-        w.Do(new PlacePlan(12, new Placement("machine", "lifepod"))).Run();
+        w.Do(new Deconstruct(Cell(2, 2), "machine")).Do(new PlacePlan(Cell(1, 1), new Placement("machine", "lifepod"))).Run();
+        w.Do(new PlacePlan(Cell(5, 1), new Placement("machine", "lifepod"))).Run();
         Assert.Equal(Enumerable.Repeat("building.fixed", 5), Reasons(w));
         Assert.Empty(w.M.Building.Plans);
-        Assert.Equal(pod, w.M.Grid.MachineAt(16)?.Id);
+        Assert.Equal(pod, w.M.Grid.MachineAt(Cell(2, 2))?.Id);
         // What it stands on and behind it are still the ship's to change.
-        w.Do(new Deconstruct(8, "back")).Run();
+        w.Do(new Deconstruct(Cell(1, 1), "back")).Run();
         Assert.Equal(5, w.Refusals.Count);
     }
 
@@ -369,7 +374,7 @@ public class BuildingTests
     /// <summary>A placePlan (with a placement), a deconstruct (with a layer) or a cancelPlan (with an id).</summary>
     private sealed record Step(int Cell, Placement? Placement, string? Layer, int Id);
 
-    /// <summary>Nine wide, with room for a tank in the open: cell (x, y) is y * 9 + x.</summary>
+    /// <summary>Nine wide, doubled to 18, with room for a tank in the open.</summary>
     private const string Crowded = """
         #########
         #TT.-...#
@@ -378,9 +383,9 @@ public class BuildingTests
         #########
         """;
 
-    /// <summary>Cells -1 to 46, a third of them from a few, so plans clash as fast-check's small values make them.</summary>
+    /// <summary>Cells -1 to 181, a third of them from a few, so plans clash as fast-check's small values make them.</summary>
     private static readonly Gen<int> Cells = Gen.Frequency(
-        (2, Gen.Choose(-1, 46)),
+        (2, Gen.Choose(-1, 181)),
         (1, Gen.Choose(-1, 4)),
         (1, Gen.Elements(At(1, 1), At(2, 2), At(4, 1), At(3, 2), At(4, 3))));
 
@@ -440,11 +445,11 @@ public class BuildingTests
         return true;
     }
 
-    /// <summary>The cells a blueprint covers on the nine-wide map, worked out here, not by the module.</summary>
+    /// <summary>The cells a blueprint covers on the nine-wide map, doubled, worked out here, not by the module.</summary>
     private static IEnumerable<int> FootprintOf(Plan p)
     {
         if (p.Place is not { Layer: "machine" } place) return [p.Cell];
         var spec = Machines.Get(place.Kind);
-        return Enumerable.Range(0, spec.Height).SelectMany(dy => Enumerable.Range(0, spec.Width).Select(dx => p.Cell + dy * 9 + dx));
+        return Enumerable.Range(0, spec.Height).SelectMany(dy => Enumerable.Range(0, spec.Width).Select(dx => p.Cell + dy * 18 + dx));
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
@@ -15,8 +16,15 @@ namespace Stillwake.Game.Render;
 public sealed class ShipTiles
 {
     private const int Cell = ShipCamera.Cell;
+
+    /// <summary>
+    /// The pixels of a cell the art was drawn at, 16 (0104): sheets of tops and details by its columns; the pictures of a cell
+    /// alone, pipes, doors, hatches, valves and the hull's edges, drawn at half their size till they are drawn at 8.
+    /// </summary>
+    public const int Drawn = 16;
+
     /// <summary>The atlas's width, in cells.</summary>
-    private const int Across = 32;
+    private const int Across = 64;
 
     private readonly Dictionary<string, (Vector2I At, Vector2I Size)> _placed = new();
 
@@ -40,24 +48,27 @@ public sealed class ShipTiles
         }
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
-            // Its living edge by its top's shape, up into the cell above (0082): two cells tall, behind the heroes and before them.
+            // Its living edge by its top's shape, up into the cell above (0082): two 16 px cells tall, behind the heroes and before
+            // them; each 16 px column in two halves, a cell each (0104), a cell showing the half its column's parity picks.
             var tops = Art($"planet/top_{natural}");
             foreach (int shape in GroundArt.TopShapes)
                 for (int v = 0; v < GroundArt.TopVariants(shape); v++)
                     foreach (bool front in (bool[])[false, true])
-                    {
-                        var top = tops.GetRegion(new Rect2I(GroundArt.TopColumn(shape, v) * Cell, front ? 2 * Cell : 0, Cell, 2 * Cell));
-                        // A row with nothing in it (bedrock has no tufts before the heroes) is no tile.
-                        if (!top.IsInvisible()) pictures.Add(Picture(TopName(natural, shape, v, front), top, Relief.None));
-                    }
-            // Its details over its whole cells: singles along the sheet's first row, features over several cells on the second.
+                        for (int half = 0; half < 2; half++)
+                        {
+                            var top = tops.GetRegion(new Rect2I(GroundArt.TopColumn(shape, v) * Drawn + half * Cell, front ? 2 * Drawn : 0, Cell, 2 * Drawn));
+                            // A row with nothing in it (bedrock has no tufts before the heroes) is no tile.
+                            if (!top.IsInvisible()) pictures.Add(Picture(TopName(natural, shape, v, front, half), top, Relief.None));
+                        }
+            // Its details over its whole 16 px cells, each cut into the cells it covers: singles along the sheet's first row, features over
+            // several on the second.
             var details = Art($"planet/detail_{natural}");
             for (int k = 0; k < GroundDetails.Singles; k++)
-                pictures.Add(Picture(DetailName(natural, k), details.GetRegion(new Rect2I(k * Cell, 0, Cell, Cell)), Relief.None));
+                pictures.Add(Picture(DetailName(natural, k), details.GetRegion(new Rect2I(k * Drawn, 0, Drawn, Drawn)), Relief.None));
             for (int f = 0, at = 0; f < GroundDetails.Features.Length; at += GroundDetails.Features[f++])
             {
-                int side = GroundDetails.Features[f] * Cell;
-                pictures.Add(Picture(DetailName(natural, GroundDetails.Singles + f), details.GetRegion(new Rect2I(at * Cell, Cell, side, side)), Relief.None));
+                int side = GroundDetails.Features[f] * Drawn;
+                pictures.Add(Picture(DetailName(natural, GroundDetails.Singles + f), details.GetRegion(new Rect2I(at * Drawn, Drawn, side, side)), Relief.None));
             }
         }
         foreach (var material in Materials.All.Select(m => m.Id))
@@ -135,7 +146,10 @@ public sealed class ShipTiles
         Set.AddSource(source, 0);
         foreach (var (name, (at, size)) in _placed)
         {
-            bool cut = name.StartsWith("wall_") || name.StartsWith("detail_") || name == "back_scrap" || name.StartsWith("back_") && MadeImages.ContainsKey(name);
+            // Cut a cell at a time, a cell drawing the piece where it lies: sheets laid over the world, and the 16 px pictures of what
+            // fills a map's character's cells, two by two or two across (0104): a ladder, a floor, iron's panels.
+            bool cut = name.StartsWith("wall_") || name.StartsWith("detail_") || name == "back_scrap" || name.StartsWith("back_") && MadeImages.ContainsKey(name)
+                || CutDrawn(name);
             if (cut)
             {
                 for (int j = 0; j < size.Y; j++)
@@ -150,6 +164,9 @@ public sealed class ShipTiles
             source.GetTileData(at, 0).TextureOrigin = -(size - Vector2I.One) * Cell / 2 + new Vector2I(0, rise * Cell);
         }
     }
+
+    /// <summary>The 16 px pictures cut into the cells of what fills a character's cells (0104): a ladder, a floor, iron's back walls.</summary>
+    public static bool CutDrawn(string name) => name is "ladder" or "floor" or "back_iron_plain" or "back_iron_grille";
 
     /// <summary>The source every tile is in.</summary>
     public const int Source = 0;
@@ -218,15 +235,29 @@ public sealed class ShipTiles
         return MadeImages.TryGetValue(name, out var image) ? image : Art(name);
     }
 
-    /// <summary>The picture <c>res://art/{name}.png</c> as pixels to work on.</summary>
+    /// <summary>
+    /// The picture <c>res://art/{name}.png</c> as pixels to work on; one of a cell alone drawn at 16 px (<see cref="Halved"/>) at half
+    /// its size, kept as made so every reader of it (a plan, an outline, the light's panels) sees the same.
+    /// </summary>
     private static Image Art(string name)
     {
         if (MadeImages.TryGetValue(name, out var made)) return made;
         var image = PixelArt.Picture(name).GetImage();
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
-        return image;
+        if (!Halved(name)) return image;
+        image.Resize(Mathf.Max(1, image.GetWidth() * Cell / Drawn), Mathf.Max(1, image.GetHeight() * Cell / Drawn), Image.Interpolation.Nearest);
+        return Made(name, image);
     }
+
+    /// <summary>
+    /// Whether <paramref name="name"/> is a picture of one cell drawn at 16 px, now drawn at half its size in the 8 px cell (0104), till
+    /// it is drawn anew: a pipe's, a door's, a hatch's, a valve's and the hull's edges.
+    /// </summary>
+    public static bool Halved(string name) =>
+        name.StartsWith("pipe_", StringComparison.Ordinal) || name.StartsWith("door_", StringComparison.Ordinal)
+        || name.StartsWith("hatch_", StringComparison.Ordinal) || name.StartsWith("valve_", StringComparison.Ordinal)
+        || name.StartsWith("wall-edge_", StringComparison.Ordinal);
 
     /// <summary>The back wall of a natural <paramref name="material"/> (0077), a tile cut a cell at a time as scrap's is.</summary>
     public static string BackName(string material) => $"back_{material}";
@@ -235,7 +266,8 @@ public sealed class ShipTiles
     /// The living edge of a natural <paramref name="material"/> with a top of <paramref name="shape"/>, variant <paramref name="variant"/>,
     /// laid from the cell above (0082): the row behind the heroes, or the one <paramref name="front"/> of them.
     /// </summary>
-    public static string TopName(string material, int shape, int variant, bool front) => $"top_{material}_{shape}_{variant}_{(front ? "front" : "back")}";
+    public static string TopName(string material, int shape, int variant, bool front, int half) =>
+        $"top_{material}_{shape}_{variant}_{(front ? "front" : "back")}_{half}";
 
     /// <summary>Detail <paramref name="picture"/> of a natural <paramref name="material"/> (<see cref="GroundDetails"/>), a tile cut a cell at a time.</summary>
     public static string DetailName(string material, int picture) => $"detail_{material}_{picture}";

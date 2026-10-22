@@ -13,7 +13,8 @@ public static class Surfaces
 
     /// <summary>
     /// A kind of surface: its id, saved with each surface of it, and its ground drawn as a map in <see cref="Legend"/>'s
-    /// characters, or, for a <see cref="PlanetType"/>, grown from each surface's seed.
+    /// characters, a character a 16 px cell doubled to the 8 px cells as a surface of it opens (0104), or, for a
+    /// <see cref="PlanetType"/>, grown from each surface's seed.
     /// </summary>
     public record Kind(string Id, IReadOnlyList<string> Rows)
     {
@@ -55,7 +56,7 @@ public static class Surfaces
     public static readonly Kind Ship = new("ship", []);
 
     /// <summary>
-    /// Ground under open sky, a cliff, hills and a cave down a shaft with a ladder, drawn by hand for tests and --strip: under
+    /// Ground under open sky, a cliff, hills and a cave down a shaft with a ladder, drawn by hand for tests and --strip, a character a 16 px cell and doubled as it opens (0104): under
     /// the first planet's rules (<see cref="PlanetTypes.First"/>). Heroes beam down to its <c>S</c>, in a shelter at the cliff's foot.
     /// </summary>
     public static readonly Kind TestStrip = new("testStrip", Strip())

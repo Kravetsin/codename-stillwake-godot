@@ -15,7 +15,7 @@ public static class HeroMotion
     /// </summary>
     public static class Lean
     {
-        public const double Gain = 0.006, Smooth = 0.3, Forward = 0.25, Back = 0.22, SettleMs = 60;
+        public const double Gain = 0.003, Smooth = 0.3, Forward = 0.25, Back = 0.22, SettleMs = 60;
     }
 
     /// <summary>
@@ -26,7 +26,7 @@ public static class HeroMotion
     /// </summary>
     public static class Landing
     {
-        public const int PerDepth = 420, RunningSpeed = 60, LongFall = 600, Heavy = 480;
+        public const int PerDepth = 840, RunningSpeed = 120, LongFall = 1200, Heavy = 960;
         public const double Least = 0.35, Most = 1.8, Running = 0.6, Ms = 150, LongerMs = 110;
 
         /// <summary>
@@ -34,7 +34,7 @@ public static class HeroMotion
         /// <see cref="RingFall"/> (at least <see cref="RingLeast"/> of it), out to <see cref="HeavyRing"/> landing heavy;
         /// it fades in <see cref="RingMs"/>, <see cref="HeavyRingMs"/> heavy, at <see cref="RingAlpha"/> or <see cref="HeavyRingAlpha"/>.
         /// </summary>
-        public const double Ring = 26, RingFall = 1200, RingLeast = 0.2, HeavyRing = 34, RingMs = 1000.0 / 6, HeavyRingMs = 260,
+        public const double Ring = 26, RingFall = 2400, RingLeast = 0.2, HeavyRing = 34, RingMs = 1000.0 / 6, HeavyRingMs = 260,
             RingAlpha = 0.32, HeavyRingAlpha = 0.45;
 
         /// <summary>Light streaks a heavy landing sends along the floor to either side.</summary>
@@ -50,7 +50,7 @@ public static class HeroMotion
     /// </summary>
     public static class Air
     {
-        public const int RiseBelow = -150, Blend = 450, Apex = 60, FlailSpeed = 300, DriftSpeed = 100;
+        public const int RiseBelow = -300, Blend = 900, Apex = 120, FlailSpeed = 600, DriftSpeed = 200;
         public const double Tuck = 0.5, PushMs = 110, FlailAfterMs = 450, FlailMs = 300, Drift = 0.1;
     }
 
@@ -63,7 +63,7 @@ public static class HeroMotion
     /// </summary>
     public static class Ladder
     {
-        public const double Stride = 4, Grip = 0.6, HandTop = -8.6, HandRange = 8.8, HandOut = 8.4, HandSwing = 3,
+        public const double Stride = 8, Grip = 0.6, HandTop = -8.6, HandRange = 8.8, HandOut = 8.4, HandSwing = 3,
             FootTop = 8.4, FootRange = 8.8, FootOut = 3.8, FootSwing = 3.8;
 
         /// <summary>

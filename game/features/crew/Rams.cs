@@ -13,7 +13,7 @@ namespace Stillwake.Game.Features.Crew;
 public static class Rams
 {
     /// <summary>How far past a creature's body it touches a hero, in thousandths of a cell: its fur, and a little of a tick's run.</summary>
-    public const int Margin = 150;
+    public const int Margin = 300;
 
     /// <summary>
     /// The first creature in id order charging (the sim's <see cref="Mode.Charge"/>) whose body and <see cref="Margin"/> touch
@@ -39,7 +39,7 @@ public static class Rams
     /// How near a friend a creature whose charge ended must be for that friend to be the one it hit, in thousandths of a cell: the
     /// friend is drawn a little behind, the creature a tick on past it.
     /// </summary>
-    public const int FriendMargin = 1000;
+    public const int FriendMargin = 2000;
 
     /// <summary>
     /// Which way across a ram by <paramref name="c"/> throws <paramref name="hero"/>: the way it charges, so a hero it reached past

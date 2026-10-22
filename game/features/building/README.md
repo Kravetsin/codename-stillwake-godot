@@ -170,7 +170,7 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   streaks each fanned down-biased from its side facing the nearest hero within a little past the hands'
   reach and toward that hero (`Tools.SparksOf`, the heroes from `Ui.Heroes`, set by `crew`); with none
   near, from its middle, upward. Aboard they fall and bounce once off the first wall or floor under them
-  (six cells at most), in space they drift. Each burst glints at the tip and flickers a light there. The
+  (twelve cells at most), in space they drift. Each burst glints at the tip and flickers a light there. The
   tip glows as a molten spot, hotter the longer its plan is worked (0.006 a 60 Hz frame, cooling 0.012
   once no burst came for 250 ms), lighting round it, faint smoke rising and the air over it shimmering
   (`render/Shimmer.cs`). The cut where a blueprint turns real (0063) is a thin line of sky light bleeding

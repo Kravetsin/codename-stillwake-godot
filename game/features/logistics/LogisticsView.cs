@@ -209,7 +209,9 @@ public partial class LogisticsView : Node2D
             int toX = d.To % width * (int)Unit + (int)Unit / 2, toY = d.To / width * (int)Unit + (int)Unit / 2;
             var (x, y) = Served.Smoothed(d.X, d.Y, toX, toY, Tune.Speed, progress);
             int cell = (int)(y / Unit) * width + (int)(x / Unit);
+            // Its picture reaches into the second cell up (0104): a ceiling there is over it too.
             int above = cell < width ? Structure.Wall : _grid.StructureAt(cell - width);
+            if (!Hover.Solid(above)) above = cell < 2 * width ? Structure.Wall : _grid.StructureAt(cell - 2 * width);
             f.Hover.Step(delta, x / Unit * Cell, y / Unit * Cell - Hover.Lift(_grid.StructureAt(cell), above, Look),
                 Math.Sign(toX - d.X) * Cruise, Math.Sign(toY - d.Y) * Cruise, 1, Cruise, Look);
         }
@@ -246,12 +248,12 @@ public partial class LogisticsView : Node2D
         _light.End();
     }
 
-    /// <summary>The top of the first solid cell under (<paramref name="x"/>, <paramref name="y"/>), pixels, within four cells; none past them.</summary>
+    /// <summary>The top of the first solid cell under (<paramref name="x"/>, <paramref name="y"/>), pixels, within eight cells; none past them.</summary>
     private double? FloorUnder(double x, double y)
     {
         int cx = (int)Math.Floor(x / Cell), cy = (int)Math.Floor(y / Cell);
         if (cx < 0 || cx >= _grid.Width) return null;
-        for (int row = Math.Max(0, cy + 1); row <= cy + 4 && row < _grid.Height; row++)
+        for (int row = Math.Max(0, cy + 1); row <= cy + 8 && row < _grid.Height; row++)
             if (Hover.Solid(_grid.StructureAt(row * _grid.Width + cx))) return row * Cell;
         return null;
     }

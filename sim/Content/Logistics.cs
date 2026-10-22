@@ -7,10 +7,10 @@ namespace Stillwake.Content;
 public static class Logistics
 {
     /// <summary>A bay's zone: the cells within this many of its footprint, a square; a machine is in when any cell of it is.</summary>
-    public const int Reach = 16;
+    public const int Reach = 32;
 
-    /// <summary>Thousandths of a cell a flying drone moves a tick, cell centre to cell centre: four cells a second.</summary>
-    public const int Speed = 200;
+    /// <summary>Thousandths of a cell a flying drone moves a tick, cell centre to cell centre: eight cells a second.</summary>
+    public const int Speed = 400;
 
     /// <summary>A bay looks for a job every this many ticks, bays spread by their ids; it launches one drone at most a look.</summary>
     public const int LookEvery = 10;

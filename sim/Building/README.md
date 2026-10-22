@@ -94,7 +94,8 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   digs on one cell in a tick apply in the host's order: the one that breaks it gets the yield, the next finds nothing.
   A crack whose wall or plant is gone (a meteor) is dropped in derivation. A tool that deals no damage is our bug and throws.
 - **What grows on a planet's surface** (0079): plants and stones (`Content.Flora`), grown from the seed with the ground
-  (`Terrain`), each standing in its cell over the soil it grows from and `Tall` cells up from it. A `Dig` on any of those
+  (`Terrain`), each standing in its cell over the soil it grows from, `Across` columns (2 at the least, 0104) and `Tall` cells up
+  from it; one in the rock a block of two by two walls. A `Dig` on any of those
   cells, open (no structure), adds the weapon's damage to the plant's crack, kept by the plant's own cell whichever of its
   cells was hit, healing as a wall's does; reaching its kind's `Strength` (an acacia 12, a rock 8, a bush 4; 0 for flowers,
   grass and every cave growth, which fall to any hit) fells it, its crack dropped, giving its kind's `Yields` to the
@@ -168,7 +169,7 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   `building.notEmpty` or `building.cabled`; `Dig(Cell, Tool)`, refused with `building.nothingToDig` (no natural wall nor plant there), `building.bedrock`,
   `items.flat` or `items.notRunning`. A mark is refused `building.natural` besides.
 - **Fuzz:** every command, refused ones too: placements of every kind, walls cut to every shape and a shape on
-  what may have none, mostly within 16 cells of
+  what may have none, mostly within 32 cells of
   what the grid has built, as players build, now and then at any cell of the grid or one off it, so
   the build zone's edge is drawn too; marks mostly within what is built (TypeScript draws from the
   wreck as drawn, which in the big world of 0048 would miss the ship); cancels of ids that are and

@@ -68,12 +68,12 @@ public class TwoHandTests
     [Fact]
     public void TurnsSoTheBitsLineRunsThroughThePointWithinTheClampAndStopsAtItBeyond()
     {
-        // Every point from one cell to five round the shoulder, a degree apart: where the turn lands inside the clamp, the
+        // Every point from two cells to ten round the shoulder, a degree apart: where the turn lands inside the clamp, the
         // bit's line runs through it, the cells under the feet included.
         int inside = 0, below = 0;
         foreach (var look in Held)
             for (int deg = -180; deg < 180; deg++)
-                for (double cells = 1; cells <= 5; cells += 0.5)
+                for (double cells = 2; cells <= 10; cells += 1)
                 {
                     double dx = Math.Cos(deg * Math.PI / 180) * cells * Rig.Cell, dy = Math.Sin(deg * Math.PI / 180) * cells * Rig.Cell;
                     double turn = TwoHand.AngleFor(look, dx, dy);
@@ -102,17 +102,17 @@ public class TwoHandTests
     {
         // The body stays upright: the pivot rises and comes out instead, the bit's point ahead of the shoulder at the feet.
         var tip = TwoHand.At(HeldLook.Drill, TwoHand.Down, HeldLook.Drill.EdgeTo);
-        Assert.InRange(tip.X, Rig.W / 2, Rig.W / 2 + Rig.Cell);
+        Assert.InRange(tip.X, Rig.W / 2, Rig.W / 2 + 2 * Rig.Cell);
         Assert.InRange(tip.Y, Rig.Shoulder - 2, Rig.Shoulder + 4);
     }
 
     [Fact]
-    public void HoldsTheDrillAcrossTheChestItsBitNoMoreThanACellAndAHalfBeyondTheBody()
+    public void HoldsTheDrillAcrossTheChestItsBitNoMoreThanThreeCellsBeyondTheBody()
     {
         var look = HeldLook.Drill;
         // Aimed level, the tube's middle row runs across the chest, between the shoulder and the hip.
         var tube = TwoHand.At(look, 0, (12, 5));
         Assert.InRange(tube.Y, 0, Rig.Shoulder - Rig.Hip);
-        Assert.InRange(TwoHand.At(look, 0, look.EdgeTo).X, Rig.W / 2, Rig.W / 2 + 1.5 * Rig.Cell);
+        Assert.InRange(TwoHand.At(look, 0, look.EdgeTo).X, Rig.W / 2, Rig.W / 2 + 3 * Rig.Cell);
     }
 }

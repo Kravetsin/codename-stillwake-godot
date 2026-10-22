@@ -18,7 +18,7 @@ and motion are the user's picks from "Drone Look Concepts": drone A (the steel q
 | `Whir.cs`          | a drone's rotors heard: its motor, and from it, its speed and its id, its loop's pitch and volume | no |
 | `ServedBadge.cs`   | a machine's drone badge, a wrist key at the right of its frame's header (0081): shows and toggles whether drones serve it | yes |
 | `LogisticsView.cs` | in the world: drones in flight with their cargo and their lamps' light, taking off and landing; docked drones, their pads' strips, charge lamps and light; a bay's beacon; a bay's zone; drones heard | yes |
-| `DroneLight.cs`    | drones in light (0075): rotor discs and their rims' glints, fine dust and faint veils spread along a floor within 2.5 cells under them (no falling streaks), the lamp's trail, the air shimmering under the nearest three, a puff and a ring setting down or lifting off | yes |
+| `DroneLight.cs`    | drones in light (0075): rotor discs and their rims' glints, fine dust and faint veils spread along a floor within 5 cells under them (no falling streaks), the lamp's trail, the air shimmering under the nearest three, a puff and a ring setting down or lifting off | yes |
 
 `Served.cs`, `Hover.cs` and `Whir.cs` are compiled again into `game.tests/` (`ServedTests`, `HoverTests`, `DroneSoundTests`). The testbed (`-- --testbed`) runs two drones from a
 powered bay in room one through the closed door, keeping the furnace, the Former and the grow capsule going from the
@@ -55,8 +55,8 @@ starts the hero in the middle of the room, and `--card=droneBay --pick` holds a 
   toward a lamp is brighter (`PixelArt.Lit`), its eye and status lamp unlit over it, turned with it. It follows a target
   on a spring (`Hover`, `DroneLook.Lively`: 3.2 Hz, damping 0.5, stepped at 240 Hz): where the sim has it between ticks
   (`Served.Smoothed`) and its speed, so it eases off and in, springs a little past a stop and rounds a corner. The
-  target flies 8 pixels over the cell's centre, or 2 under a wall, floor or closed door above, so it never pokes into a
-  ceiling. It leans into its speed (9 degrees cruising) and its acceleration (at most 20), faces the way it flies, bobs
+  target flies 8 pixels over the cell's centre, or 2 under a wall, floor or closed door in either of the two cells above,
+  which its picture reaches into, so it does not poke into a ceiling (one in the cell right above, it still does by 4 pixels). It leans into its speed (9 degrees cruising) and its acceleration (at most 20), faces the way it flies, bobs
   1.5 pixels every 1.1 s (half at speed), its rotors turning with its spin. Its cargo hangs from the clamp under its body
   on a short tether, upright, its jaws over the stack's corners, swinging as a pendulum the drone's acceleration pushes
   back. Its lamp shines sky while its rotors run and lights round it a little; flying home low (`Low`) it blinks amber

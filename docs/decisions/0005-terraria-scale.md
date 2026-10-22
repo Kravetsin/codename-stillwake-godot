@@ -1,6 +1,6 @@
 # 0005 — Terraria scale
 
-- Status: accepted
+- Status: accepted; the 16 px cell, the reference world and the doorway of three cells superseded by [0104](0104-the-cell-is-8-px.md), its air by [0105](0105-a-room-airs-four-cells-a-beat.md)
 - Date: 2026-10-11
 
 ## Context

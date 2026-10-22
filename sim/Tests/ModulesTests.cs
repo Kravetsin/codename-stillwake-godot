@@ -93,7 +93,7 @@ public class ModulesTests
     /// <summary>
     /// What modules keep between ticks — rooms found again around a change, the air's survey, leaks and
     /// orders — is what a load finds from scratch: a world loaded from the live one's save before every
-    /// tick, fed the same commands, hashes the same after it. Closed rooms three cells from space, so
+    /// tick, fed the same commands, hashes the same after it. Closed rooms six cells from space, the drawing doubled (0104), so
     /// changes are followed around them; builds out in space above, so breaches flood a ship's box that
     /// grows and shrinks; with the air read every tick, as an open panel does, and without; and a few ticks
     /// that write more than the grid's log holds, so every reader finds what it follows again from scratch.
@@ -104,7 +104,7 @@ public class ModulesTests
     [InlineData(8u, true)]
     public void KeepsWhatItFollowsBetweenTicksAsAWorldLoadedEveryTickFindsIt(uint seed, bool readAir)
     {
-        var layout = BudgetTests.Reference(38, 30, shipWidth: 32, shipHeight: 24, margin: 3);
+        var layout = BudgetTests.Reference(38, 30, shipWidth: 32, shipHeight: 24, margin: 3).Doubled();
         var rng = new Rng(new RngState { S = seed });
         var live = new Registry();
         var world = World.Create(seed, layout, [.. live.All, new Builder(live)]);
@@ -119,9 +119,9 @@ public class ModulesTests
             var loaded = new Registry();
             var copy = World.Load(world.Save(), [.. loaded.All, new Builder(loaded)]);
             var commands = RandomCommands(world, rng);
-            if (rng.Below(2) == 0) commands.Add(ShipEdit(live.Grid, rng, 3, 3, 32, 24));
+            if (rng.Below(2) == 0) commands.Add(ShipEdit(live.Grid, rng, 6, 6, 64, 48));
             // Out in the space above the ship, so what is built grows and shrinks.
-            if (rng.Below(3) == 0) commands.AddRange(SpaceEdit(live.Grid, rng, 19, 0, 1, 3));
+            if (rng.Below(3) == 0) commands.AddRange(SpaceEdit(live.Grid, rng, 38, 0, 2, 6));
             // Now and then a door worked more times in a tick than the grid's log holds: every reader falls behind it.
             int door = live.Grid.StructureLayer.IndexOfAny(Structure.DoorClosed, Structure.DoorOpen);
             if (i % 100 == 60 && door >= 0)

@@ -203,32 +203,32 @@ public static class Floor
     /// </summary>
     public const int OwnPickupDelay = 40;
 
-    /// <summary>How fast a stack is thrown forward, in thousandths of a cell a tick: about three cells.</summary>
-    public const int ThrowSpeed = 200;
+    /// <summary>How fast a stack is thrown forward, in thousandths of a cell a tick: about six cells.</summary>
+    public const int ThrowSpeed = 400;
 
     /// <summary>How fast a stack is thrown up, in thousandths of a cell a tick.</summary>
-    public const int ThrowLift = 150;
+    public const int ThrowLift = 300;
 
     /// <summary>Inside the ship: what a stack gains falling each tick.</summary>
-    public const int Gravity = 30;
+    public const int Gravity = 60;
 
     /// <summary>Inside the ship: a stack's fastest fall.</summary>
-    public const int MaxFall = 500;
+    public const int MaxFall = 1000;
 
     /// <summary>Inside the ship: what landing takes off a stack's speed.</summary>
-    public const int Friction = 40;
+    public const int Friction = 80;
 
     /// <summary>
     /// Out in space, where nothing falls or slows it, how fast a stack drifts back past the moving ship
     /// as debris does: past the grid's edge it is gone, thrown away.
     /// </summary>
-    public const int SpaceDrift = 30;
+    public const int SpaceDrift = 60;
 
     /// <summary>
     /// How many steps through what is built a stack inside it is pushed out to the nearest room cell:
     /// past a wall's thickness and out of the middle of the largest machine.
     /// </summary>
-    public const int PushReach = 3;
+    public const int PushReach = 6;
 
     /// <summary>
     /// How long what a hero left where it died lies before it is gone, wherever it is: ten minutes at 20

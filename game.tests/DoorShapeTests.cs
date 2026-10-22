@@ -105,12 +105,13 @@ public class DoorShapeTests
     public void NamesEachCellOfASlidingDoorwayByThePanelOverIt()
     {
         Assert.Equal("door_closed_4", DoorShape.Picture(false, 0, 3, 0));
-        Assert.Equal("door_open_1", DoorShape.Picture(false, 2, 3, 48));
-        Assert.Equal("door_slid_4_5_1_4", DoorShape.Picture(false, 0, 3, 20));
-        Assert.Equal("door_slid_4_5_1_4", DoorShape.Picture(false, 0, 3, 21));
-        Assert.Equal("door_open_5", DoorShape.Picture(false, 1, 3, 40));
-        Assert.Equal("door_slid_1_1_x_8", DoorShape.Picture(false, 2, 3, 8));
-        Assert.Equal("hatch_slid_2_10_8_2", DoorShape.Picture(true, 0, 3, 18));
+        // Shifts in pixels of 8 px cells (0104).
+        Assert.Equal("door_open_1", DoorShape.Picture(false, 2, 3, 24));
+        Assert.Equal("door_slid_4_5_1_4", DoorShape.Picture(false, 0, 3, 12));
+        Assert.Equal("door_slid_4_5_1_4", DoorShape.Picture(false, 0, 3, 13));
+        Assert.Equal("door_open_5", DoorShape.Picture(false, 1, 3, 20));
+        Assert.Equal("door_slid_1_1_x_4", DoorShape.Picture(false, 2, 3, 4));
+        Assert.Equal("hatch_slid_2_10_8_2", DoorShape.Picture(true, 0, 3, 10));
         Assert.Equal("hatch_slid_0_0_x_6", DoorShape.Picture(true, 0, 1, 6));
     }
 

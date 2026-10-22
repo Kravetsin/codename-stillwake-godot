@@ -271,15 +271,16 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
                 if (outside || back[Cell(c)] != Back.Wall) openings[index[here]].Add(Cell(c));
                 continue;
             }
-            if (!outside) continue;
-            // A solid cell with the outside beyond it is hull to every room it borders, once each.
+            // A solid cell with the outside beyond it is hull to every room it borders, once each; one with a wall cell beyond it
+            // away from a room, the outside beyond that, is that room's too: a wall two cells thick, a 16 px cell (0104).
             Neighbours(c, width, size, near);
             for (int i = 0; i < 4; i++)
             {
                 int id = near[i] == Edge ? Space : roomOf[near[i]];
-                if (id < 0) continue;
+                if (id < 0 || !outside && !Through(roomOf, width, near[i ^ 1])) continue;
                 bool seen = false;
-                for (int j = 0; j < i; j++) if (near[j] != Edge && roomOf[near[j]] == id) seen = true;
+                for (int j = 0; j < i; j++)
+                    if (near[j] != Edge && roomOf[near[j]] == id && (outside || Through(roomOf, width, near[j ^ 1]))) seen = true;
                 if (!seen) hulls[index[id]].Add(Cell(c));
             }
         }
@@ -294,6 +295,12 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         if (x == 0 || x == width - 1 || c < width || c >= roomOf.Length - width) return true;
         return roomOf[c - 1] == Space || roomOf[c + 1] == Space || roomOf[c - width] == Space || roomOf[c + width] == Space;
     }
+
+    /// <summary>
+    /// Whether <paramref name="c"/>, beyond a solid cell from a room, is solid with the outside beyond it: the room's wall two cells
+    /// thick, a 16 px cell's (0104), its inner layer in the hull as a wall of one is. <see cref="Edge"/> is not.
+    /// </summary>
+    private static bool Through(int[] roomOf, int width, int c) => c != Edge && roomOf[c] == Solid && Outside(roomOf, width, c);
 
     private bool IsOpening(int c, ReadOnlySpan<int> back) => Outside(State.RoomOf, _grid.Width, c) || back[c] != Back.Wall;
 
@@ -416,18 +423,19 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         }
         var madeIds = made.Select(r => r.Id).ToList();
 
-        // Rooms whose cells stayed: their hull and openings, where space came or went near them or a back wall changed.
+        // Rooms whose cells stayed: their hull and openings, where space came or went near them or a back wall changed. Its hull
+        // reaches two cells into a wall, so a room three cells from where space moved may see its hull change.
         var again = new List<int>();
         for (int i = 0; i < region.Count; i++)
         {
             int c = region[i];
             if ((was[i] == Space) == (roomOf[c] == Space)) continue;
             int cx = c % width, cy = c / width;
-            for (int dy = -2; dy <= 2; dy++)
-                for (int dx = -2; dx <= 2; dx++)
+            for (int dy = -3; dy <= 3; dy++)
+                for (int dx = -3; dx <= 3; dx++)
                 {
                     int x = cx + dx, y = cy + dy;
-                    if (Math.Abs(dx) + Math.Abs(dy) > 2 || x < 0 || x >= width || y < 0 || y >= height) continue;
+                    if (Math.Abs(dx) + Math.Abs(dy) > 3 || x < 0 || x >= width || y < 0 || y >= height) continue;
                     int id = roomOf[y * width + x];
                     if (id >= 0 && madeIds.BinarySearch(id) < 0) again.Add(id);
                 }
@@ -522,15 +530,20 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         int width = _grid.Width, size = State.RoomOf.Length;
         var roomOf = State.RoomOf;
         cells.Sort();
-        Span<int> near = stackalloc int[4];
+        Span<int> near = stackalloc int[4], beyond = stackalloc int[4];
         var hull = new List<int>();
         var openings = new List<int>();
         foreach (int c in cells)
         {
             if (IsOpening(c, back)) openings.Add(c);
             Neighbours(c, width, size, near);
-            foreach (int n in near)
-                if (n != Edge && roomOf[n] == Solid && Outside(roomOf, width, n)) hull.Add(n);
+            for (int i = 0; i < 4; i++)
+            {
+                int n = near[i];
+                if (n == Edge || roomOf[n] != Solid) continue;
+                Neighbours(n, width, size, beyond);
+                if (Outside(roomOf, width, n) || Through(roomOf, width, beyond[i])) hull.Add(n);
+            }
         }
         return new Room(id, cells.Count, [.. hull.Distinct().Order()], openings);
     }

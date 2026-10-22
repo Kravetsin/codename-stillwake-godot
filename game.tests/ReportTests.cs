@@ -9,7 +9,7 @@ namespace Stillwake.Game.Tests;
 /// <summary>Telling the sim where the hero is: apps/game/src/features/crew/report.test.ts, one for one.</summary>
 public class ReportTests
 {
-    private const int Unit = Hero.Unit;
+    private const int Unit = Hero.Unit, Block = HeroTests.Block;
 
     private static (Registry M, World World) WorldFrom(Layout layout)
     {
@@ -17,14 +17,18 @@ public class ReportTests
         return (m, World.Create(1, layout, m.All));
     }
 
-    /// <summary>Nine wide: two rooms three tall either side of a doorway, space above.</summary>
+    /// <summary>Nine characters wide: two rooms three tall either side of a doorway, space above; eighteen cells (0104).</summary>
     private static (Registry M, World World) TwoRooms() =>
-        WorldFrom(Layout.Parse([".........", "#########", "#...D...#", "#...D...#", "#...D...#", "#########"]));
+        WorldFrom(Layout.Parse([".........", "#########", "#...D...#", "#...D...#", "#...D...#", "#########"]).Doubled());
 
-    private static int At(int x, int y) => y * 9 + x;
+    /// <summary>The cell a body's middle is in in the block (x, y) of a map <paramref name="width"/> characters wide: its bottom right.</summary>
+    private static int At(int x, int y, int width = 9) => (2 * y + 1) * 2 * width + 2 * x + 1;
 
-    /// <summary>A hero standing on the floor of cell (x, y).</summary>
-    private static Hero HeroIn(int x, int y) => new(x * Unit + Unit / 2, (y + 1) * Unit, 0, 0, false, 1);
+    /// <summary>A hero standing on the floor of the block (x, y), in its middle.</summary>
+    private static Hero HeroIn(int x, int y) => new(x * Block + Unit, (y + 1) * Block, 0, 0, false, 1);
+
+    /// <summary>A cell of the doorway: its block's left column, a door a cell thick (0104).</summary>
+    private const int Door = 7 * 18 + 8;
 
     /// <summary>What <see cref="Report.Of"/> says at world tick <paramref name="tick"/>, the last report sent at <paramref name="reported"/>: by default just now.</summary>
     private static Command? ReportOf(Registry m, Hero hero, int tick = 0, int reported = 0) =>
@@ -41,9 +45,9 @@ public class ReportTests
     public void NamesTheCellUnderTheMiddleOfTheBody()
     {
         // Standing in row 4, the hero's middle is in row 3.
-        Assert.Equal(At(2, 3), HeroIn(2, 4).BodyCell(9));
-        // The middle a unit above the line between rows 2 and 3.
-        Assert.Equal(At(2, 2), (HeroIn(2, 4) with { Y = 3 * Unit + Hero.MiddleUp - 1 }).BodyCell(9));
+        Assert.Equal(At(2, 3), HeroIn(2, 4).BodyCell(18));
+        // The middle a thousandth above the line between rows 2 and 3.
+        Assert.Equal(At(2, 2), (HeroIn(2, 4) with { Y = 3 * Block + Hero.MiddleUp - 1 }).BodyCell(18));
     }
 
     [Fact]
@@ -64,7 +68,7 @@ public class ReportTests
         var s = WorldFrom(Layout.Parse(
             ["PPP      ", "#########", "#V......#", "#GG.....#", "#GG.....#", "#########"],
             ["", "", " -", " -", " -"],
-            [((0, 0), (1, 3))]));
+            [((0, 0), (1, 3))]).Doubled());
         var air = s.M.Atmosphere;
         for (int i = 0; i < 600 && !air.AiredAt(At(5, 3)); i++) s.World.Step([]);
         Assert.True(air.AiredAt(At(5, 3)));
@@ -78,13 +82,13 @@ public class ReportTests
     public void EntersAgainOnComingIntoOrLeavingTheLifepodsReachInsideOneRoomWithoutAir()
     {
         // A room with no air, the lifepod at its left end: the pod's reach runs to column 4.
-        var s = WorldFrom(Layout.Parse(["............", "############", "#OOO.......#", "#OOO.......#", "#OOO.......#", "############"]));
-        int At12(int x, int y) => y * 12 + x;
+        var s = WorldFrom(Layout.Parse(["............", "############", "#OOO.......#", "#OOO.......#", "#OOO.......#", "############"]).Doubled());
+        int At12(int x, int y) => At(x, y, 12);
         Tell(s, HeroIn(9, 4));
-        Assert.Null(Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 12, 0, HeroIn(8, 4), 0, 0));
-        Assert.Equal(new Enter(At12(4, 3)), Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 12, 0, HeroIn(4, 4), 0, 0));
+        Assert.Null(Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 24, 0, HeroIn(8, 4), 0, 0));
+        Assert.Equal(new Enter(At12(4, 3)), Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 24, 0, HeroIn(4, 4), 0, 0));
         Tell(s, HeroIn(4, 4));
-        Assert.Equal(new Enter(At12(5, 3)), Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 12, 0, HeroIn(5, 4), 0, 0));
+        Assert.Equal(new Enter(At12(5, 3)), Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 24, 0, HeroIn(5, 4), 0, 0));
     }
 
     [Fact]
@@ -92,10 +96,10 @@ public class ReportTests
     {
         var s = TwoRooms();
         Tell(s, HeroIn(6, 4));
-        s.World.Step([new SetDoor(At(4, 3), true)]);
+        s.World.Step([new SetDoor(Door, true)]);
         // The open doorway makes one room: walking into the left part is no change of room.
         Tell(s, HeroIn(2, 4));
-        s.World.Step([new SetDoor(At(4, 3), false)]);
+        s.World.Step([new SetDoor(Door, false)]);
         // Shut, the left room is a room of its own again, with the id the joined room had.
         Assert.Equal(new Enter(At(2, 3)), ReportOf(s.M, HeroIn(2, 4)));
     }
@@ -120,18 +124,18 @@ public class ReportTests
     public void TellsTheSimWhereAHeroFlyingOutIsAboutOnceASecond()
     {
         // Out in space, where no room or air changes: only the clock sends.
-        var s = WorldFrom(Layout.Parse([new string('.', 60), new string('.', 60), new string('.', 60)]));
+        var s = WorldFrom(Layout.Parse([new string('.', 60), new string('.', 60), new string('.', 60)]).Doubled());
         int reported = -Stillwake.Content.Crew.ReportEvery, sent = 0;
         for (int x = 0; x < 50; x++)
         {
             var hero = HeroIn(x, 2);
-            var said = Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 60, 0, hero, s.World.Tick, reported);
+            var said = Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, 120, 0, hero, s.World.Tick, reported);
             if (said != null) (reported, sent) = (s.World.Tick, sent + 1);
             s.World.Step(said != null ? [said] : []);
         }
-        // A cell a tick for 50 ticks: the first report brings it in, then one every 20 ticks.
+        // A block a tick for 50 ticks: the first report brings it in, then one every 20 ticks.
         Assert.Equal(3, sent);
-        Assert.Equal(60 + 40, s.M.Crew.HeroOf(0)!.Cell);
+        Assert.Equal(At(40, 1, 60), s.M.Crew.HeroOf(0)!.Cell);
     }
 
     [Fact]
@@ -140,15 +144,15 @@ public class ReportTests
         var m = new Registry();
         World.Create(1, Layout.Parse(["S"]).InWorld(), m.All);
         int width = m.Grid.Width, midY = m.Grid.Height / 2;
-        // The field's left edge is 448 cells from the grid's.
+        // The field's left edge is 384 cells from the grid's: the zone's 512 less the field's 128.
         float Cold(int x) => Report.Cold(m.Crew, midY * width + x);
-        Assert.Equal(0, Cold(448));
+        Assert.Equal(0, Cold(384));
         Assert.Equal(0, Cold(width / 2));
         Assert.Equal(1, Cold(0));
         Assert.Equal(1, Report.Cold(m.Crew, -1));
         // A unit of 45 a breath, eased out, shows a little; 12 of 45 at half depth nearly half.
-        Assert.InRange(Cold(447), 0.04f, 0.05f);
-        Assert.InRange(Cold(224), 0.45f, 0.47f);
-        for (int x = 447; x > 0; x--) Assert.True(Cold(x - 1) >= Cold(x), $"{x}");
+        Assert.InRange(Cold(383), 0.04f, 0.05f);
+        Assert.InRange(Cold(192), 0.45f, 0.47f);
+        for (int x = 383; x > 0; x--) Assert.True(Cold(x - 1) >= Cold(x), $"{x}");
     }
 }

@@ -16,10 +16,10 @@ public sealed class Tether
     /// A line out in space: no gravity, only a slow drift, a wave along the line. Thousandths of a cell. The
     /// tether's, and the harpoon's (<see cref="HarpoonLine"/>).
     /// </summary>
-    public static readonly RopeStyle Space = new(Links: 20, Keep: 0.95, Gravity: 0, Drift: 0.5, DriftSpeed: 0.01, Wave: 0.35);
+    public static readonly RopeStyle Space = new(Links: 20, Keep: 0.95, Gravity: 0, Drift: 1.0, DriftSpeed: 0.01, Wave: 0.35);
     public static int Links => Space.Links;
     /// <summary>How much longer than the way it spans the line is let out, and the least it is.</summary>
-    private const double Slack = 1.25, Shortest = 1000;
+    private const double Slack = 1.25, Shortest = 2000;
     /// <summary>The share of the difference the reel takes in each step, so the line pays out smoothly.</summary>
     private const double Reel = 0.05;
 

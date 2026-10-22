@@ -19,7 +19,7 @@ public sealed class ChunkReveal
     /// How far round the view the chunks are drawn ahead, in cells: over two seconds of a sprint, so the chunks it runs into are
     /// drawn long before they show.
     /// </summary>
-    public const int Margin = 40;
+    public const int Margin = 80;
     /// <summary>
     /// The cells drawn ahead a frame, at most: a row past it is finished. About half a millisecond with the tile layers' own update,
     /// what a 240 Hz frame can spare.

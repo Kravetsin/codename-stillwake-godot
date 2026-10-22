@@ -93,7 +93,7 @@ public partial class FloraView : Node2D
         // Planted: its lowest drawn row Sink pixels under the top of the ground it grows from, the rows there not drawn.
         int x = plant.Cell % _grid.Width, y = plant.Cell / _grid.Width;
         var (top, bottom) = UsedRows(texture);
-        var (px, py, from, rows) = Planting.Picture(Spec.Anchor.Floor, x, y, Cell, (int)size.X, (int)size.Y, top, bottom, look.Sink);
+        var (px, py, from, rows) = Planting.Picture(Spec.Anchor.Floor, x, y, Cell, Spec.Get(plant.Kind).Across, (int)size.X, (int)size.Y, top, bottom, look.Sink);
         var corner = new Vector2(px, py);
         var picture = new Sprite2D
         {
@@ -172,7 +172,7 @@ public partial class FloraView : Node2D
     private void Felled(int cell, string kind, float tall)
     {
         int w = _grid.Width;
-        double x = (cell % w + 0.5) * Cell, ground = (cell / w + 1) * Cell, y = ground - Math.Min(tall, 3 * Cell) / 2;
+        double x = (cell % w + Spec.Get(kind).Across / 2.0) * Cell, ground = (cell / w + 1) * Cell, y = ground - Math.Min(tall, 6 * Cell) / 2;
         var look = kind == "rock" ? FloraLooks.Pebble : FloraLooks.Leaf;
         Glims.Shared.Spray(look, x, y, (int)Math.Round(FloraLooks.Fallen * Fx.Count), -Math.PI / 2, (-1.4, 1.4), (20, 60), ground);
         if (GroundSounds.FallOf(kind) is { } fall) _falls.Play(fall, new Vector2((float)x, (float)y));
@@ -208,7 +208,7 @@ public partial class FloraView : Node2D
             {
                 x = glims.Between(view.Position.X, view.End.X);
                 if (GroundUnder(x, view) is not double ground) continue;
-                y = ground - glims.Between(4, 6 * Cell);
+                y = ground - glims.Between(4, 12 * Cell);
                 look = FloraLooks.Mote with { Ramp = FloraLooks.AirMote };
             }
             var mote = glims.Add(look, x, y, glims.Between(-3, 3), glims.Between(-4, 0), bright: glims.Between(0.4, 0.9), size: glims.Between(0.5, 0.9));

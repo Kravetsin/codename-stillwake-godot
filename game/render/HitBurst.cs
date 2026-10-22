@@ -36,7 +36,7 @@ public sealed class HitBurst(Glims glims, Flares flares)
         }
         if (look.Glint > 0 && glims.Between(0, 1) < share) flares.Glint(x, y, look.Glint, look.GlintColour, glims.Between(-0.2, 0.2));
         if (look.Shock > 0 && glims.Between(0, 1) < share) flares.Shock(x, y, 2, 17, 11 * FrameMs, ShockColour, look.Shock * Fx.Glow);
-        if (look.Flash > 0) flares.Flash(x, y, look.FlashColour, look.Flash * Fx.Glow * Math.Sqrt(share), 2, 0.45f, FlashDecay);
+        if (look.Flash > 0) flares.Flash(x, y, look.FlashColour, look.Flash * Fx.Glow * Math.Sqrt(share), 4, 0.671f, FlashDecay);
     }
 
     /// <summary><paramref name="expected"/> rounded down or up by chance, so as many come on average.</summary>

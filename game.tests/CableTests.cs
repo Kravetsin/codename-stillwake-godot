@@ -32,27 +32,28 @@ public class CableShapeTests
     [Fact]
     public void MeetsAMachineAtItsSocketAnAnchorAtItsMiddle()
     {
-        var w = new TestWorld(Layout.Parse(["#GG.....", ".GG....."]));
-        // The generator covers columns 1–2, rows 0–1; its top-left names it.
+        var w = new TestWorld(Layout.Parse(["#GG.....", ".GG....."]).Doubled());
+        // Doubled (0104), the generator covers columns 2–5, rows 0–3; its top-left names it.
         var plug = Machines.Get("generator").Plug!.Value;
-        Assert.Equal((1 + plug.X / 16.0, plug.Y / 16.0), CableShape.EndOf(w.M.Grid, 1));
+        Assert.Equal((2 + plug.X / (double)Camera.Cell, plug.Y / (double)Camera.Cell), CableShape.EndOf(w.M.Grid, 2));
         Assert.Equal((0.5, 0.5), CableShape.EndOf(w.M.Grid, 0));
     }
 
-    // A panel out in space over a room's roof, a lamp under the roof inside; the roof is row 2.
+    // A panel out in space over a room's roof, a lamp under the roof inside; the roof is row 2, rows 4 and 5 doubled (0104).
     private static readonly string[] Roofed = ["PPP     ", "        ", "########", "#..L...#", "#......#", "########"];
 
-    private static TestWorld With(string[] rows, ((int, int), (int, int)) cable) => new(Layout.Parse(rows, null, [cable]));
+    /// <summary>The drawing doubled: sixteen cells wide.</summary>
+    private static TestWorld With(string[] rows, ((int, int), (int, int)) cable) => new(Layout.Parse(rows, null, [cable]).Doubled());
 
     [Fact]
     public void IsHeldWhereItGoesThroughFloatingOutsideAndHangingAboard()
     {
         var w = With(Roofed, ((0, 0), (3, 3)));
-        var (pieces, feeds) = CableShape.PiecesOf(w.M.Grid, w.M.Rooms, 0, 3 * 8 + 3);
+        var (pieces, feeds) = CableShape.PiecesOf(w.M.Grid, w.M.Rooms, 0, 6 * 16 + 6);
         Assert.Equal([false, true], pieces.Select(p => p.Hangs));
         Assert.Single(feeds);
-        // In the roof's row, where the pieces meet.
-        Assert.Equal(2, (int)Math.Floor(feeds[0].Y));
+        // In the roof's rows, where the pieces meet.
+        Assert.InRange((int)Math.Floor(feeds[0].Y), 4, 5);
         Assert.Equal(feeds[0], pieces[0].To);
         Assert.Equal(feeds[0], pieces[1].From);
     }
@@ -61,7 +62,7 @@ public class CableShapeTests
     public void IsOneHangingPieceBetweenTwoThingsAboard()
     {
         var w = With(["########", "#.L..L.#", "#......#", "########"], ((2, 1), (5, 1)));
-        var (pieces, feeds) = CableShape.PiecesOf(w.M.Grid, w.M.Rooms, 8 + 2, 8 + 5);
+        var (pieces, feeds) = CableShape.PiecesOf(w.M.Grid, w.M.Rooms, 2 * 16 + 4, 2 * 16 + 10);
         Assert.True(Assert.Single(pieces).Hangs);
         Assert.Empty(feeds);
     }
@@ -70,10 +71,19 @@ public class CableShapeTests
 /// <summary>Cables as ropes: apps/game/src/features/power/ropes.test.ts, one for one.</summary>
 public class CableRopesTests
 {
-    /// <summary>A room with a lamp in each top corner and a cable between them, hanging across the room.</summary>
+    /// <summary>
+    /// A room with a lamp in each top corner and a cable between them, hanging across the room; drawn ten wide and doubled
+    /// (0104), twenty cells: the lamps at 42 and 56, a cell under the ceiling's two.
+    /// </summary>
     private static readonly string[] Rows = ["##########", "#L......L#", "#........#", "#........#", "##########"];
-    private static readonly TestWorld Sim = new(Layout.Parse(Rows, [], [((1, 1), (8, 1))]));
-    private static readonly List<(double X, double Y)> Rest = CableShape.ShapeOf(Sim.M.Grid, Sim.M.Rooms, 10 + 1, 10 + 8);
+    private const int NearLamp = 2 * 20 + 2, FarLamp = 2 * 20 + 16;
+    private static readonly TestWorld Sim = World([((1, 1), (8, 1))]);
+    private static readonly List<(double X, double Y)> Rest = CableShape.ShapeOf(Sim.M.Grid, Sim.M.Rooms, NearLamp, FarLamp);
+    /// <summary>How far from its hang at rest a cable is still at rest, in cells: under two pixels and a half.</summary>
+    private const double AtRest = 0.3;
+
+    private static TestWorld World(((int, int), (int, int))[]? cables = null, string[]? rows = null) =>
+        new(Layout.Parse(rows ?? Rows, [], cables ?? []).Doubled());
 
     private static void Sync(CableRopes ropes, TestWorld w) => ropes.Sync(w.M.Grid, w.M.Rooms, w.M.Power.Cables);
 
@@ -102,18 +112,18 @@ public class CableRopesTests
         var ropes = new CableRopes();
         Sync(ropes, Sim);
         Run(ropes, 3);
-        Assert.True(OffRest(ropes) < 0.15);
+        Assert.True(OffRest(ropes) < AtRest);
     }
 
     [Fact]
     public void LaidLaterFallFromStraightIntoTheSameHang()
     {
         var ropes = new CableRopes();
-        Sync(ropes, new TestWorld(Layout.Parse(Rows)));
+        Sync(ropes, World());
         Sync(ropes, Sim);
-        Assert.True(OffRest(ropes) > 0.5);
+        Assert.True(OffRest(ropes) > 1);
         Run(ropes, 10);
-        Assert.True(OffRest(ropes) < 0.15);
+        Assert.True(OffRest(ropes) < AtRest);
     }
 
     [Fact]
@@ -125,15 +135,16 @@ public class CableRopesTests
         double step = Hero.Walk / 1000.0;
         double moved = 0;
         // Across the room at walking speed, the body's middle at the cable's height.
-        for (double x = 1; x < 9; x += step)
+        double half = Hero.Width / 2000.0, tall = Hero.Height / 1000.0;
+        for (double x = 2; x < 18; x += step)
         {
-            var hero = new Body(x - 0.475, x + 0.475, middle.Y - 1.3, middle.Y + 1.3, step, 0);
+            var hero = new Body(x - half, x + half, middle.Y - tall / 2, middle.Y + tall / 2, step, 0);
             ropes.Update(Rope.StepMs, [hero]);
             moved = Math.Max(moved, OffRest(ropes));
         }
-        Assert.True(moved > 0.05);
+        Assert.True(moved > 0.1);
         Run(ropes, 20);
-        Assert.True(OffRest(ropes) < 0.15);
+        Assert.True(OffRest(ropes) < AtRest);
     }
 
     [Fact]
@@ -143,7 +154,7 @@ public class CableRopesTests
         Sync(alone, Sim);
         Sync(beside, Sim);
         var middle = Rest[Rest.Count >> 1];
-        var hero = new Body(middle.X - 0.5, middle.X + 0.5, middle.Y - 1, middle.Y + 1, 0, 0);
+        var hero = new Body(middle.X - 1, middle.X + 1, middle.Y - 2, middle.Y + 2, 0, 0);
         Run(alone, 2);
         Run(beside, 2, [hero]);
         Assert.Equal(PointsOf(alone), PointsOf(beside));
@@ -154,26 +165,26 @@ public class CableRopesTests
     {
         var ropes = new CableRopes();
         Sync(ropes, Sim);
-        var hand = (4.5, 3.5);
-        ropes.Hold(new Held(10 + 8, null, hand));
+        var hand = (9.0, 7.0);
+        ropes.Hold(new Held(FarLamp, null, hand));
         Run(ropes, 2);
         Near(hand, PointsOf(ropes)[^1]);
         Near(Rest[0], PointsOf(ropes)[0]);
         ropes.Hold(null);
         Run(ropes, 10);
-        Assert.True(OffRest(ropes) < 0.15);
+        Assert.True(OffRest(ropes) < AtRest);
     }
 
     [Fact]
     public void CarriedToAnotherNodeWaitWhereLetGoUntilTheWorldMovesThemThenHangThere()
     {
-        // The cable ran from the lamp at 11 to the wall at 28; let go on the lamp at 18, it stays there.
-        var before = new TestWorld(Layout.Parse(Rows, [], [((1, 1), (8, 2))]));
+        // The cable ran from the lamp at 42 to the wall at 96; let go on the lamp at 56, it stays there.
+        var before = World([((1, 1), (8, 2))]);
         var ropes = new CableRopes();
         Sync(ropes, before);
         Run(ropes, 2);
         var lamp = Rest[^1];
-        ropes.Land(10 + 8, new Held(20 + 8, null, lamp));
+        ropes.Land(FarLamp, new Held(4 * 20 + 16, null, lamp));
         Run(ropes, 1);
         Near(lamp, PointsOf(ropes)[^1]);
         // The world has it there: it goes on as the same rope, not a jump to another shape, and hangs.
@@ -181,7 +192,7 @@ public class CableRopesTests
         Sync(ropes, Sim);
         Assert.Equal(carried, PointsOf(ropes));
         Run(ropes, 10);
-        Assert.True(OffRest(ropes) < 0.15);
+        Assert.True(OffRest(ropes) < AtRest);
     }
 
     [Fact]
@@ -190,31 +201,31 @@ public class CableRopesTests
         var ropes = new CableRopes();
         Sync(ropes, Sim);
         Run(ropes, 2);
-        var away = (4.5, 3.5);
-        ropes.Land(20 + 4, new Held(10 + 8, null, away));
+        var away = (9.0, 7.0);
+        ropes.Land(4 * 20 + 8, new Held(FarLamp, null, away));
         Run(ropes, 1);
         Near(away, PointsOf(ropes)[^1]);
         Run(ropes, 10);
-        Assert.True(OffRest(ropes) < 0.15);
+        Assert.True(OffRest(ropes) < AtRest);
     }
 
     [Fact]
     public void LaidByHandAreDrawnAsTheRopeTheyWereLaidAsAndGoOnAsItOnceTheWorldHasThem()
     {
         var ropes = new CableRopes();
-        Sync(ropes, new TestWorld(Layout.Parse(Rows)));
+        Sync(ropes, World());
         var from = Rest[0];
         var to = Rest[^1];
-        // Laid from the far lamp, 18, to the near one, 11: the rope runs the other way to the cable.
+        // Laid from the far lamp, 56, to the near one, 42: the rope runs the other way to the cable.
         var rope = CableRopes.LayingRope(to);
         for (int i = 0; i < 60; i++) rope.Update(to, from, Rope.StepMs, CableRopes.HangFor);
-        ropes.Adopt(new Laid(10 + 8, 10 + 1, to, from, rope));
-        Assert.Equal([(18, 11)], ropes.Lines().Select(l => (l.A, l.B)));
+        ropes.Adopt(new Laid(FarLamp, NearLamp, to, from, rope));
+        Assert.Equal([(FarLamp, NearLamp)], ropes.Lines().Select(l => (l.A, l.B)));
         var laid = rope.Points.Select(k => (k.X, k.Y)).Reverse().ToList();
         Sync(ropes, Sim);
         Assert.Equal(laid, PointsOf(ropes));
         Run(ropes, 10);
-        Assert.True(OffRest(ropes) < 0.15);
+        Assert.True(OffRest(ropes) < AtRest);
     }
 
     // Beyond ropes.test.ts: what a screen faster than the ropes' 60 steps a second shows, and cables through the hull.
@@ -224,7 +235,7 @@ public class CableRopesTests
     {
         // Laid later, the cable falls into its hang: drawn 240 times a second, every frame shows it lower.
         var ropes = new CableRopes();
-        Sync(ropes, new TestWorld(Layout.Parse(Rows)));
+        Sync(ropes, World());
         Sync(ropes, Sim);
         var last = PointsOf(ropes)[CableShape.Steps / 2];
         for (int frame = 0; frame < 40; frame++)
@@ -239,10 +250,10 @@ public class CableRopesTests
     [Fact]
     public void LetGoBetweenTwoStepsGoOnFromWhereTheyWereDrawn()
     {
-        var before = new TestWorld(Layout.Parse(Rows, [], [((1, 1), (8, 2))]));
+        var before = World([((1, 1), (8, 2))]);
         var ropes = new CableRopes();
         Sync(ropes, before);
-        ropes.Land(10 + 8, new Held(20 + 8, null, Rest[^1]));
+        ropes.Land(FarLamp, new Held(4 * 20 + 16, null, Rest[^1]));
         // Frames a third of a step long: the world has the cable there while it is drawn between steps.
         for (int frame = 0; frame < 100; frame++) ropes.Update(Rope.StepMs / 3, []);
         var drawn = PointsOf(ropes).ToList();
@@ -250,23 +261,24 @@ public class CableRopesTests
         Assert.All(PointsOf(ropes).Zip(drawn), p => Near(p.Second, p.First));
     }
 
-    /// <summary>A panel out in space over a room's roof, a lamp under the roof inside; the roof is row 2.</summary>
+    /// <summary>A panel out in space over a room's roof, a lamp under the roof inside; the roof is row 2, doubled rows 4 and 5.</summary>
     private static readonly string[] Roofed = ["PPP     ", "        ", "########", "#..L...#", "#......#", "########"];
 
     [Fact]
     public void CarriedFromThroughTheHullToANodeOnItGoOnFromWhereTheyWereDrawn()
     {
-        // The panel's cable ran in through the roof to the lamp at 27; its end is let go on the roof at 21.
-        var through = new TestWorld(Layout.Parse(Roofed, [], [((0, 0), (3, 3))]));
-        var onRoof = new TestWorld(Layout.Parse(Roofed, [], [((0, 0), (5, 2))]));
+        // Sixteen wide, doubled: the panel's cable ran in through the roof to the lamp at 102; its end is let go on the roof at 74.
+        var through = World([((0, 0), (3, 3))], Roofed);
+        var onRoof = World([((0, 0), (5, 2))], Roofed);
+        const int lamp = 6 * 16 + 6, onIt = 4 * 16 + 10;
         Assert.NotEqual(
-            CableShape.PiecesOf(through.M.Grid, through.M.Rooms, 0, 27).Pieces.Count,
-            CableShape.PiecesOf(onRoof.M.Grid, onRoof.M.Rooms, 0, 21).Pieces.Count);
+            CableShape.PiecesOf(through.M.Grid, through.M.Rooms, 0, lamp).Pieces.Count,
+            CableShape.PiecesOf(onRoof.M.Grid, onRoof.M.Rooms, 0, onIt).Pieces.Count);
         var ropes = new CableRopes();
         Sync(ropes, through);
         Run(ropes, 2);
-        var roof = CableShape.EndOf(onRoof.M.Grid, 21);
-        ropes.Land(21, new Held(27, null, roof));
+        var roof = CableShape.EndOf(onRoof.M.Grid, onIt);
+        ropes.Land(onIt, new Held(lamp, null, roof));
         Run(ropes, 1);
         var carried = PointsOf(ropes).ToList();
         // The world has it there, its pieces changed: it goes on along the line it was drawn as, not from a new shape.
@@ -274,14 +286,14 @@ public class CableRopesTests
         var now = PointsOf(ropes);
         Near(carried[0], now[0]);
         Near(carried[^1], now[^1]);
-        Assert.All(now, p => Assert.True(CableShape.DistanceTo(carried, p) < 0.01, $"{p} is off the line"));
+        Assert.All(now, p => Assert.True(CableShape.DistanceTo(carried, p) < 0.02, $"{p} is off the line"));
     }
 }
 
 /// <summary>The hands on cables: apps/game/src/features/power/wiring.test.ts, one for one.</summary>
 public class WiringTests
 {
-    // Ten wide. A machine is node 11; an anchor, node 15, has a cable to it; node 18 has none.
+    // Ten wide. A machine four cells across is node 11; an anchor, node 15, has a cable to it; node 18 has none.
     private const int Machine = 11, Support = 15;
     private static readonly Line[] Lines = [new(Machine, Support, [(1.8, 1.5), (3.5, 1.7), (5.5, 1.5)])];
     private static bool IsMachine(int n) => n == Machine;
@@ -294,7 +306,8 @@ public class WiringTests
     public void TakesASupportWithCablesOnItAndLaysFromAMachineOrABareAnchor()
     {
         Assert.Equal(new SupportGrip(Support), Wiring.GripAt((5.5, 1.5), Lines, Support, IsMachine));
-        Assert.Equal(new LayGrip(Machine), Wiring.GripAt((1.2, 1.2), Lines, Machine, IsMachine));
+        // Pressed on the machine away from its socket, farther than a cable's end is taken from (0104).
+        Assert.Equal(new LayGrip(Machine), Wiring.GripAt((3.5, 3.5), Lines, Machine, IsMachine));
         Assert.Equal(new LayGrip(18), Wiring.GripAt((8.5, 1.5), Lines, 18, IsMachine));
         Assert.Null(Wiring.GripAt((8.5, 3.5), Lines, null, IsMachine));
     }

@@ -17,7 +17,7 @@ public static class AirLook
         Code = """
             shader_type canvas_item;
             render_mode unshaded;
-            uniform float cell = 16.0;
+            uniform float cell = 8.0;
             // Where the texture's first cell lies in the world, in pixels: it covers only what is built.
             uniform vec2 origin = vec2(0.0);
             uniform bool overlay = false;

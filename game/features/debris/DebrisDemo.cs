@@ -18,7 +18,7 @@ namespace Stillwake.Game.Features.Debris;
 /// </summary>
 public partial class DebrisDemo : CanvasLayer
 {
-    /// <summary>The cargo crate the hero catches: its id, row and column at the start, and speed.</summary>
+    /// <summary>The cargo crate the hero catches: its id, row and column at the start, and speed, as the others: in the wreck's drawing, doubled in <see cref="Seed"/> (0104).</summary>
     private const int Crate = 1, CrateRow = 15, CrateSpeed = 40;
     private const double CrateX = 82.5;
     /// <summary>When the autopilot has the hero waiting outside the airlock, in seconds.</summary>
@@ -32,8 +32,8 @@ public partial class DebrisDemo : CanvasLayer
     {
         var root = JsonNode.Parse(world.Save())!;
         int width = Registry.WreckMap.Width;
-        // Where the sim would start and end them: the lead right and left of the hull, kept on the grid.
-        const int Right = 57, Left = 34, Lead = Stillwake.Content.Debris.Lead;
+        // Where the sim would start and end them: the lead right and left of the hull, its drawn columns doubled, kept on the grid.
+        const int Right = 2 * 57 + 1, Left = 2 * 34, Lead = Stillwake.Content.Debris.Lead;
         int start = Math.Min(width - 1, Right + Lead) * 1000 + 500, end = Math.Max(0, Left - Lead) * 1000;
         (string Item, double X, int Row, int Speed)[] drifting =
         [
@@ -55,9 +55,9 @@ public partial class DebrisDemo : CanvasLayer
                 ["id"] = i + 1,
                 ["zone"] = Stillwake.Content.Debris.Ship.Id,
                 ["item"] = item,
-                ["x"] = (int)(x * 1000),
-                ["y"] = row * 1000 + 500,
-                ["speed"] = speed,
+                ["x"] = (int)(x * 2000),
+                ["y"] = row * 2000 + 1000,
+                ["speed"] = speed * 2,
                 ["start"] = start,
                 ["end"] = end,
             });

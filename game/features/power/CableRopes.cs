@@ -33,9 +33,9 @@ public sealed record CableLine(int A, int B, IReadOnlyList<(double X, double Y)>
 public sealed class CableRopes
 {
     /// <summary>Aboard: gravity pulls a cable into its hang, and air slows its swing. Cells, steps of 1/60 s.</summary>
-    private static readonly RopeStyle Hanging = new(CableShape.Steps, Keep: 0.97, Gravity: 0.004, Drift: 0, DriftSpeed: 0, Wave: 0);
+    private static readonly RopeStyle Hanging = new(CableShape.Steps, Keep: 0.97, Gravity: 0.008, Drift: 0, DriftSpeed: 0, Wave: 0);
     /// <summary>Out in space: nothing pulls it, and it drifts slowly as the tether does.</summary>
-    private static readonly RopeStyle Floating = new(CableShape.Steps, Keep: 0.95, Gravity: 0, Drift: 0.0005, DriftSpeed: 0.01, Wave: 0.35);
+    private static readonly RopeStyle Floating = new(CableShape.Steps, Keep: 0.95, Gravity: 0, Drift: 0.001, DriftSpeed: 0.01, Wave: 0.35);
     /// <summary>
     /// How much longer than its span a hanging cable is: a parabola <see cref="CableShape.Sag"/> of its
     /// span deep is that much longer, so at rest it hangs where it is picked by. Out in space, a little slack.

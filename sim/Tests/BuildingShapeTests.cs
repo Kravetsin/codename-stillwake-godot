@@ -21,7 +21,7 @@ public class BuildingShapeTests
 
     private static Scenario Stocked()
     {
-        var w = new Scenario(Open);
+        var w = new Scenario(Open, cells: true);
         w.GiveItems(0, ("scrap", 100), ("plate", 100));
         return w;
     }

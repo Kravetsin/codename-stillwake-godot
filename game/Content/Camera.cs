@@ -12,7 +12,13 @@ namespace Stillwake.Game;
 public static class Camera
 {
     /// <summary>
-    /// How far ahead the camera looks at full lead, as a share of the screen's width: 2 cells of the farthest zoom's 96, a light
+    /// Pixels a cell at zoom 1: 8, a map's character two by two of them (0104). Every picture keeps its pixels; a cell is half
+    /// what it was.
+    /// </summary>
+    public const int Cell = 8;
+
+    /// <summary>
+    /// How far ahead the camera looks at full lead, as a share of the screen's width: 4 cells of the farthest zoom's 192, a light
     /// sense of motion; the playtest found 6 flew back and forth.
     /// </summary>
     public const double LeadShare = 1.0 / 48;
@@ -33,5 +39,5 @@ public static class Camera
     public const double SettleSpeed = 0.5;
 
     /// <summary>The farthest the body's middle gets above or below the screen's middle under gravity, in cells, however fast it moves.</summary>
-    public const double Catch = 1.5;
+    public const double Catch = 3;
 }

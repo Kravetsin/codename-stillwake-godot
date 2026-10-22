@@ -15,11 +15,11 @@ public static class Jetpack
     public const int TicksPerUnit = 10;
 
     /// <summary>What thrust adds to the hero's speed a step: full speed in about half a second.</summary>
-    public const int Accel = 8;
+    public const int Accel = 16;
 
-    /// <summary>The fastest the jetpack flies: 15 cells a second.</summary>
-    public const int Top = 250;
+    /// <summary>The fastest the jetpack flies: 30 cells a second.</summary>
+    public const int Top = 500;
 
-    /// <summary>What a coast loses a step without thrust: some seven cells from full speed to a stop.</summary>
-    public const int Drag = 4;
+    /// <summary>What a coast loses a step without thrust: some fourteen cells from full speed to a stop.</summary>
+    public const int Drag = 8;
 }

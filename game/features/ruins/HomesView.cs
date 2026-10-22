@@ -86,7 +86,7 @@ public partial class HomesView : Node2D
         if (_building.Plants.Count != _count) Follow();
         var view = _view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();
         _inView.Clear();
-        var near = view.Grow(6 * Cell);
+        var near = view.Grow(12 * Cell);
         foreach (var s in _shown)
             if (near.Intersects(s.Bounds)) _inView.Add(s);
         Hits(delta);
@@ -153,7 +153,7 @@ public partial class HomesView : Node2D
         var corner = box - new Vector2(art.OriginX, art.OriginY);
         var shown = new Shown(plant, art, name, box, corner, lit, spec.Behind, (float)(HomesLooks.Hash(plant.Cell) % 1000 / 1000.0 * Mathf.Tau)) { Fed = fed };
         if (plant.Kind == Spec.Ruins.Niche && _hearts.FirstOrDefault(h => h.Niche == plant.Cell) is { } heart)
-            shown.Sparks = new RelicSparks(_random, RelicArt.Niche, box, heart.Cable.Where((p, i) => i % 3 == 0 && p.DistanceTo(box) < 3 * Cell).ToList(), heart.Floor, small: true);
+            shown.Sparks = new RelicSparks(_random, RelicArt.Niche, box, heart.Cable.Where((p, i) => i % 3 == 0 && p.DistanceTo(box) < 6 * Cell).ToList(), heart.Floor, small: true);
         foreach (var e in art.Emitters)
             if (e.Kind == Emits.Motes)
                 for (int i = 0; i < e.Count; i++)
@@ -182,7 +182,7 @@ public partial class HomesView : Node2D
             var (_, nx, ny) = home.Pieces.First(p => p.Kind == Spec.Ruins.Niche);
             int x0 = relic.Cell % w - nx, y0 = relic.Cell / w - ny;
             var feeds = home.Pieces.Where(p => HomesLooks.Fed.Contains(p.Kind)).Select(p => (p.Kind, Cell: (y0 + p.Y) * w + x0 + p.X)).ToList();
-            var heart = new Heart(relic.Cell, new Rect2I(x0, y0, home.Wide, home.Tall), [.. feeds.Select(f => f.Cell)], (y0 + home.Tall - 1) * Cell) { Taken = relic.Taken };
+            var heart = new Heart(relic.Cell, new Rect2I(x0, y0, home.Wide, home.Tall), [.. feeds.Select(f => f.Cell)], (y0 + home.Tall - 2) * Cell) { Taken = relic.Taken };
             heart.Cable.AddRange(CableOf(relic.Cell, y0, feeds));
             _hearts.Add(heart);
         }
@@ -201,7 +201,7 @@ public partial class HomesView : Node2D
         var corner = Box(Spec.Ruins.Niche, niche);
         var side = corner + new Vector2(RelicArt.NicheSide.X, RelicArt.NicheSide.Y);
         var top = corner + new Vector2(RelicArt.NicheTop.X, RelicArt.NicheTop.Y);
-        float ceiling = (homeTop + 1) * Cell + 1;
+        float ceiling = (homeTop + 2) * Cell + 1;
         var cable = new List<Vector2>();
         void Run(Vector2 a, Vector2 b)
         {
@@ -232,10 +232,10 @@ public partial class HomesView : Node2D
         return HomesLooks.MoodOf(plant.Kind, plant.Cell, heart?.Feeds.Contains(plant.Cell) == true, heart != null, heart?.Taken == true, Mood);
     }
 
-    /// <summary>A chair faces its table or desk, the nearest within three columns in its row; else either way, by its cell.</summary>
+    /// <summary>A chair faces its table or desk, the nearest within six columns in its row; else either way, by its cell.</summary>
     private int? Facing(int cell)
     {
-        for (int d = 1; d <= 3; d++)
+        for (int d = 1; d <= 6; d++)
         {
             if (_building.PlantAt(cell + d)?.Kind is "table" or "desk") return 0;
             if (_building.PlantAt(cell - d)?.Kind is "table" or "desk") return 1;
@@ -433,7 +433,7 @@ public partial class HomesView : Node2D
             {
                 bool arc = HomesLooks.IsArc(l.Colour);
                 var at = s.Box + new Vector2(l.X, l.Y);
-                int reach = (int)Math.Ceiling(l.Reach * (arc ? HomesLooks.ArcReach : 1));
+                int reach = (int)Math.Ceiling(l.Reach * HomesLooks.PageCells * (arc ? HomesLooks.ArcReach : 1));
                 if (!view.Grow(reach * Cell).HasPoint(at)) continue;
                 // Fed by a relic's chip, the makers' arc burns violet-white as the relic does (0096).
                 var colour = arc && s.Fed ? RelicLooks.Light : l.Colour;
@@ -459,7 +459,7 @@ public partial class HomesView : Node2D
             foreach (var hero in heroes)
             {
                 int cell = (int)(hero.Y / Cell) * w + (int)(hero.X / Cell);
-                if (hero.X < 0 || hero.Y < 0 || !_building.Zaps(cell) || hero.DistanceTo(sphere) > 4 * Cell) continue;
+                if (hero.X < 0 || hero.Y < 0 || !_building.Zaps(cell) || hero.DistanceTo(sphere) > 8 * Cell) continue;
                 if (_random.NextDouble() < delta / 0.12)
                 {
                     var to = hero + new Vector2((float)Between(-4, 4), (float)Between(-8, 6));

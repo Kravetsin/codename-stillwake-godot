@@ -33,7 +33,7 @@ public class StationsTests
 
     private static Scenario World()
     {
-        var w = new Scenario(Layout.Parse(Rows, Under, [((3, 0), (11, 4)), ((9, 0), (14, 4)), ((15, 0), (17, 4)), ((19, 0), (20, 3))]));
+        var w = new Scenario(Layout.Parse(Rows, Under, [((3, 0), (11, 4)), ((9, 0), (14, 4)), ((15, 0), (17, 4)), ((19, 0), (20, 3))]), doubled: true);
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 4)); i++) w.Run();
         return w;
     }

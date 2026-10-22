@@ -20,8 +20,16 @@ public class PlanetRulesTests
         """;
 
     private static readonly Content.Surfaces.Kind Strip = Content.Surfaces.TestStrip;
-    private static readonly int Width = Strip.Rows[0].Length;
-    private static int On(int x, int y) => y * Width + x;
+    /// <summary>The strip's width in cells: drawn a character a 16 px cell, it is doubled as it opens (0104).</summary>
+    private static readonly int Width = 2 * Strip.Rows[0].Length;
+    /// <summary>The top-left cell of the strip's character at (<paramref name="x"/>, <paramref name="y"/>).</summary>
+    private static int On(int x, int y) => 2 * y * Width + 2 * x;
+
+    /// <summary>The bottom-left cell of the strip's character at (<paramref name="x"/>, <paramref name="y"/>): what stands on the ground under it is there.</summary>
+    private static int Feet(int x, int y) => On(x, y) + Width;
+
+    /// <summary>The cell (<paramref name="x"/>, <paramref name="y"/>) of the strip, a cell of its own.</summary>
+    private static int Cell(int x, int y) => y * Width + x;
 
     /// <summary>The strip's ground: its top row on the flat, where the hero wakes, at column 30.</summary>
     private const int Ground = 30;
@@ -81,7 +89,7 @@ public class PlanetRulesTests
         Assert.All(speeds.Zip(speeds.Skip(1)), p => Assert.Equal(fall, p.Second - p.First));
         Assert.Equal(x, s.X);
         w.Run(200);
-        Assert.Equal((On(20, Ground - 1), 0, 0), (s.Cell, s.Vx, s.Vy));
+        Assert.Equal((Feet(20, Ground - 1), 0, 0), (s.Cell, s.Vx, s.Vy));
     }
 
     [Fact]
@@ -115,23 +123,23 @@ public class PlanetRulesTests
     {
         var w = Down();
         var m = w.On(1);
-        // A box of walls up in the sky, five by five inside, its back walled, and air put in every cell of it.
+        // A box of walls a cell thick up in the sky, five by five cells inside, its back walled, and air put in every cell of it.
         var inside = new List<int>();
-        for (int y = 10; y <= 16; y++)
-            for (int x = 20; x <= 26; x++)
+        for (int y = 20; y <= 26; y++)
+            for (int x = 40; x <= 46; x++)
             {
-                bool wall = y is 10 or 16 || x is 20 or 26;
-                m.Grid.Place(On(x, y), wall ? Placement.Wall() : Placement.BackWall());
-                if (!wall) inside.Add(On(x, y));
+                bool wall = y is 20 or 26 || x is 40 or 46;
+                m.Grid.Place(Cell(x, y), wall ? Placement.Wall() : Placement.BackWall());
+                if (!wall) inside.Add(Cell(x, y));
             }
         w.Run();
-        int room = m.Rooms.RoomAt(On(23, 13))!.Value;
+        int room = m.Rooms.RoomAt(Cell(43, 23))!.Value;
         Assert.NotEqual(Rooms.RoomsModule.Space, room);
         // Put in through a save: what the atmosphere keeps of its air is found again on a load.
         ((AtmosphereState)m.Atmosphere.Slice).Aired.AddRange(inside);
         m = w.Reload().On(1);
         // In its middle, where its air lasts longest as it leaks through the walls: a paying breath and four more.
-        w.Do(new Enter(On(23, 13))).Run(Strip.ThinAir!.Value * Content.Crew.BreathEvery);
+        w.Do(new Enter(Cell(43, 23))).Run(Strip.ThinAir!.Value * Content.Crew.BreathEvery);
         Assert.Equal(Content.Crew.Suit, m.Crew.HeroOf(0)!.Suit);
     }
 
@@ -140,7 +148,7 @@ public class PlanetRulesTests
     {
         var w = Down();
         var crew = w.On(1).Crew;
-        int cells = Width * Strip.Rows.Count;
+        int cells = Width * 2 * Strip.Rows.Count;
         Assert.All(Enumerable.Range(0, cells), cell => Assert.Equal(0, crew.EdgeCost(cell)));
         // At the strip's very corner, outside, the suit still pays its thin air alone.
         w.Do(new Enter(0)).Run(Strip.ThinAir!.Value * Content.Crew.BreathEvery);
@@ -178,7 +186,7 @@ public class PlanetRulesTests
     {
         var w = Down(("scrap", 5));
         var m = w.On(1);
-        int cell = On(16, Ground - 1);
+        int cell = Feet(16, Ground - 1);
         w.Do(new PlacePlan(cell, new Placement("machine", "furnace")))
             .Do(new PlacePlan(cell, new Placement("conduit", "pipe")))
             .Run();

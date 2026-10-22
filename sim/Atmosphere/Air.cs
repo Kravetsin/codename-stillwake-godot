@@ -250,13 +250,6 @@ public sealed partial class AtmosphereModule
         return taken;
     }
 
-    /// <summary>The first cell of a room's order without air: where its vents put the next.</summary>
-    private int? NextEmpty(Survey s, int room)
-    {
-        foreach (int cell in OrderOf(room)) if (!s.AiredAt[cell]) return cell;
-        return null;
-    }
-
     private void ApplyEdits(Survey s, Edits edits)
     {
         if (edits.Removed.Count == 0 && edits.Added.Count == 0) return;
@@ -432,7 +425,7 @@ public sealed partial class AtmosphereModule
     /// <summary>
     /// One tick of air: generators make their share; a room open to space loses <c>Air.VentLoss</c>
     /// cells from the far edge and every vent in it or in space drains its network; on a fill beat each
-    /// filling room airs the first empty cell of its order, paid from the first of its vents that can
+    /// filling room airs the first <c>Air.CellsPerFill</c> empty cells of its order, each paid from the first of its vents that can
     /// pay; then every other room holding air uses its leak, spread over each <c>Air.LeakEvery</c> ticks.
     /// </summary>
     private void StepAir()
@@ -455,14 +448,21 @@ public sealed partial class AtmosphereModule
             foreach (var room in rooms)
             {
                 if (!s.VentsIn.TryGetValue(room.Id, out var vents) || Status(s, room) != RoomStatus.Filling) continue;
-                int? network = null;
-                foreach (int n in vents) if (OxygenOn(s, n) > 0) { network = n; break; }
-                var next = NextEmpty(s, room.Id);
-                if (network == null || next == null) continue;
-                Draw(s, network.Value, 1);
-                edits.Added.Add(next.Value);
-                s.AiredAt[next.Value] = true;
-                s.AiredIn[room.Id] += 1;
+                // Up to CellsPerFill of its first empty cells, in order, each paid as the one before it.
+                int filled = 0;
+                foreach (int next in OrderOf(room.Id))
+                {
+                    if (filled == Content.Air.CellsPerFill) break;
+                    if (s.AiredAt[next]) continue;
+                    int? network = null;
+                    foreach (int n in vents) if (OxygenOn(s, n) > 0) { network = n; break; }
+                    if (network == null) break;
+                    Draw(s, network.Value, 1);
+                    edits.Added.Add(next);
+                    s.AiredAt[next] = true;
+                    s.AiredIn[room.Id] += 1;
+                    filled++;
+                }
             }
         }
 

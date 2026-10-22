@@ -45,18 +45,20 @@ public class FloraTests
     }
 
     /// <summary>
-    /// The surface's density, measured on the first planet's seed 1: some two to three times what it first grew (0079: 18
-    /// acacias, 21 bushes, 14 rocks, 139 bells), so a walk passes trees and bushes often; spacing keeps them apart. What grows,
-    /// before the spires clear their boxes (0085).
+    /// The surface's density, measured on the first planet's seed 1, against what it first grew (0079: 18 acacias, 21 bushes, 14
+    /// rocks, 139 bells): the flowers two to three times as many, so a walk passes them often; trees, bushes and rocks at least as
+    /// many, spacing keeping them apart. What grows, before the spires clear their boxes (0085).
     /// </summary>
     [Fact]
-    public void TheFirstPlanetsSurfaceGrowsTwoToThreeTimesItsFirstTreesBushesRocksAndFlowers()
+    public void TheFirstPlanetsSurfaceGrowsAtLeastItsFirstTreesBushesAndRocksAndTwoToThreeTimesItsFlowers()
     {
         var l = Terrain.Generate(PlanetTypes.First with { Ground = PlanetTypes.First.Ground with { Spires = 0 } }, 1);
         int Of(params string[] kinds) => l.Flora!.Count(p => kinds.Contains(p.Kind));
-        Assert.InRange(Of("acacia"), 2 * 18, 3 * 18);
-        Assert.InRange(Of("bush"), 2 * 21, 3 * 21);
-        Assert.InRange(Of("rock"), 2 * 14, 3 * 14);
+        // At 8 px cells the ground steps twice as finely, so the level ground a tree, a bush or a rock needs is rarer (0104):
+        // they grow about half as often as at 16 px, the flowers, needing none, as often.
+        Assert.InRange(Of("acacia"), 18, 3 * 18);
+        Assert.InRange(Of("bush"), 21, 3 * 21);
+        Assert.InRange(Of("rock"), 14, 3 * 14);
         Assert.InRange(Of("bellTeal", "bellViolet", "bellAmber"), 2 * 139, 3 * 139);
         Assert.Equal(l.Flora!.OrderBy(p => p.Cell), l.Flora!);
     }
@@ -91,8 +93,11 @@ public class FloraTests
             ssssssss
             tttttttt
             """) with { Flora = [(1 * 8 + 2, "bellTeal"), (1 * 8 + 5, "acacia")] };
-        return new Scenario(layout);
+        return new Scenario(layout, doubled: true);
     }
+
+    /// <summary>The own cell of a plant drawn at (<paramref name="x"/>, <paramref name="y"/>): its block's bottom-left, on the ground.</summary>
+    private static int Own(Scenario w, int x, int y) => w.At(x, y) + w.Layout.Width;
 
     private static string[] Kinds(Scenario w) => w.M.Building.Plants.Select(p => p.Kind).ToArray();
 
@@ -102,14 +107,14 @@ public class FloraTests
         var w = Meadow();
         Assert.Equal(["bellTeal", "acacia"], Kinds(w));
         // The acacia's trunk, a row above its own cell.
-        Assert.Equal("acacia", w.M.Building.PlantAt(5)?.Kind);
+        Assert.Equal("acacia", w.M.Building.PlantAt(w.At(5, 0))?.Kind);
         // A tree takes hits to its strength (0080), each on any of its cells.
-        for (int hit = 0; hit < Flora.Get("acacia").Strength / Weapons.Axe.Damage; hit++) w.Do(new Dig(5, Weapons.Axe.Item)).Run();
+        for (int hit = 0; hit < Flora.Get("acacia").Strength / Weapons.Axe.Damage; hit++) w.Do(new Dig(w.At(5, 0), Weapons.Axe.Item)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(["bellTeal"], Kinds(w));
-        Assert.Null(w.M.Building.PlantAt(5));
+        Assert.Null(w.M.Building.PlantAt(w.At(5, 0)));
         // Nothing but the plant: the ground under it stands, uncracked, and only the tree's planks were given (0080).
-        Assert.Equal("soil", w.M.Grid.WallAt(2 * 8 + 5)?.Id);
+        Assert.Equal("soil", w.M.Grid.WallAt(w.At(5, 2))?.Id);
         Assert.Empty(w.M.Building.Cracks);
         Assert.Equal(Flora.Get("acacia").Yields, w.M.Items.Totals(0));
     }
@@ -118,7 +123,7 @@ public class FloraTests
     public void AHitOnOpenGroundWithNoPlantStillDigsNothing()
     {
         var w = Meadow();
-        w.Do(new Dig(1 * 8 + 3, Weapons.Axe.Item)).Run();
+        w.Do(new Dig(w.At(3, 1), Weapons.Axe.Item)).Run();
         Assert.Equal(["building.nothingToDig"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(2, w.M.Building.Plants.Count);
     }
@@ -127,7 +132,7 @@ public class FloraTests
     public void APlantGoesWithTheGroundUnderItOnTheTickItBreaks()
     {
         var w = Meadow();
-        int under = 2 * 8 + 2;
+        int under = w.At(2, 2);
         w.Do(new Dig(under, Weapons.Axe.Item)).Run();
         Assert.Equal(2, w.M.Building.Plants.Count);
         w.Do(new Dig(under, Weapons.Axe.Item)).Run();
@@ -140,10 +145,10 @@ public class FloraTests
     {
         var w = Meadow();
         w.Do(new SetCreative(true)).Run();
-        w.Do(new PlacePlan(1 * 8 + 2, new Placement("structure", "ladder"))).Run();
+        w.Do(new PlacePlan(Own(w, 2, 1), new Placement("structure", "ladder"))).Run();
         int plan = w.M.Building.Plans.Single().Id;
         for (int i = 0; i < 100 && w.M.Building.Plans.Count > 0; i++) w.Do(new Work(plan)).Run();
-        Assert.Equal(Structure.Ladder, w.M.Grid.StructureAt(1 * 8 + 2));
+        Assert.Equal(Structure.Ladder, w.M.Grid.StructureAt(Own(w, 2, 1)));
         Assert.Equal(["acacia"], Kinds(w));
     }
 

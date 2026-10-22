@@ -23,7 +23,7 @@ public partial class LavaView : Node2D
     private const int Cell = ShipCamera.Cell;
 
     /// <summary>The concept's value noise, and how open the surface is over a pixel's column, blended across a cell.</summary>
-    private const string Common = """
+    private static readonly string Common = $$"""
         uniform sampler2D open_cells : filter_linear, repeat_disable;
         // The surface's row in pixels of the world.
         uniform float surface = 0.0;
@@ -47,7 +47,7 @@ public partial class LavaView : Node2D
         }
 
         float opened() {
-            return texture(open_cells, vec2(world.x / 16.0 / float(textureSize(open_cells, 0).x), 0.5)).r;
+            return texture(open_cells, vec2(world.x / {{Cell}}.0 / float(textureSize(open_cells, 0).x), 0.5)).r;
         }
         """;
 

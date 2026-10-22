@@ -4,8 +4,8 @@ namespace Stillwake.Game;
 
 /// <summary>
 /// How the arc bench looks (0099), the user's "vise" (<c>tools/ship-art/arc-bench/paint.js</c>): a ship's bench, copper vise
-/// jaws on it with a chip of a sky shard set in the fixed jaw. Its picture is two cells across and two tall, its footprint
-/// the bottom row, the vise standing up out of it (<c>ShipTiles.RiseOf</c>). A tool on it is drawn as the hand
+/// jaws on it with a chip of a sky shard set in the fixed jaw. Its picture is four cells across and four tall, its footprint
+/// the bottom two rows, the vise standing up out of it (<c>ShipTiles.RiseOf</c>). A tool on it is drawn as the hand
 /// draws it, its modules on it (<see cref="HeldParts"/>), clamped where it says (<see cref="HeldLook.Clamp"/>), the jaws laid
 /// over it; so any tool sits on it with no picture drawn for it. In pixels of its picture from its top-left.
 /// </summary>
@@ -49,7 +49,7 @@ public static class BenchLook
     /// <summary>The shard's light (0096's violet-white): where it stands, how far it reaches, in cells, and how strong it is.</summary>
     public static readonly (float X, float Y) LightAt = (17.5f, 14);
     public static readonly (float R, float G, float B) Light = (0.74f, 0.62f, 1f);
-    public const int Reach = 4;
+    public const int Reach = 8;
     public const float Strength = 0.75f;
 
     /// <summary>The shard's arcs at rest: now and then a small one off its tip into the air.</summary>

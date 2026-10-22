@@ -19,22 +19,22 @@ public static class Debris
     public const int Jitter = 80;
     public const int Max = 20;
     public const int AtStart = 8;
-    public const int DriftMin = 30;
-    public const int DriftMax = 55;
-    public const int Margin = 12;
-    public const int Lead = 64;
+    public const int DriftMin = 60;
+    public const int DriftMax = 110;
+    public const int Margin = 24;
+    public const int Lead = 128;
 
     /// <summary>
     /// A hero's view round their reported cell, in cells either way: more than the farthest zoom shows on any
-    /// screen (the client's 96×54 cells), with room for a report's lag. No zone spawns a piece in any hero's, nor takes one away in it but at the grid's edge.
+    /// screen (the client's 192×108 cells), with room for a report's lag. No zone spawns a piece in any hero's, nor takes one away in it but at the grid's edge.
     /// </summary>
-    public static readonly HalfBox View = new(60, 34);
+    public static readonly HalfBox View = new(120, 68);
 
     /// <summary>
     /// How far from the pointer, in thousandths of a cell, a piece is still aimed at: a piece drifting by
     /// is small and moving, and a pointer exactly on it is hard to keep.
     /// </summary>
-    public const int AimRadius = 1500;
+    public const int AimRadius = 3000;
 
     /// <summary>
     /// The stream's kinds by weight: its one tier. Three times 0041's, so the rare soil clod fits in whole numbers
@@ -63,18 +63,18 @@ public static class Debris
     /// <summary>
     /// The far field round every hero out past the stream (0052), tuned by <c>DebrisDensityTests</c>: a hero
     /// sees some 4 pieces at the default zoom and 30 to 40 at the farthest, hovering or flying. The ring hugs
-    /// the farthest view (60 × 34), so what spawns on its right drifts into sight soon; a beat every tick
+    /// the farthest view (120 × 68), so what spawns on its right drifts into sight soon; a beat every tick
     /// while a hero's keep box holds fewer than 110, so a hero flying by jetpack meets a piece a second;
     /// pieces left out of the small keep box go soon, at the hard box. 640 in all: four heroes' shares and
     /// what lingers. No jitter, so a world with no hero out takes no draw for it. Small salvage near the
-    /// ship; the farther out, the more and the bigger the wrecks. Out past 128 the derelicts (0056), one spawn
-    /// in some 80, and past 256 one in 28, with big and rich rock: a sortie's prize, one or two a sortie
+    /// ship; the farther out, the more and the bigger the wrecks. Out past 256 the derelicts (0056), one spawn
+    /// in some 80, and past 512 one in 28, with big and rich rock: a sortie's prize, one or two a sortie
     /// (<c>DebrisDensityTests</c>). Cable racks are about as rare a spawn as in the stream, 1 in 28 to 43, since a
     /// flying hero meets 150 to 300 spawns a minute: found circuits are a moderate bonus and the assembler makes
     /// most (0056, amended). The weights are 0052's four times over, so the rare fit in whole.
     /// </summary>
     public static readonly DebrisZone Far = new("far",
-        new AroundHeroes(PerHero: 110, RingFrom: new(61, 36), RingTo: new(64, 42), Keep: new(68, 48), Hard: new(100, 64), Linger: 600),
+        new AroundHeroes(PerHero: 110, RingFrom: new(122, 72), RingTo: new(128, 84), Keep: new(136, 96), Hard: new(200, 128), Linger: 600),
         Every: 1, Jitter: 0, Max: 640, DriftMin, DriftMax,
         [
             new(0,
@@ -82,13 +82,13 @@ public static class Debris
                 ("scrapChunk", 48), ("hullPlate", 32), ("cargoCrate", 24), ("supplyPod", 16), ("hullSection", 16),
                 ("cargoContainer", 12), ("machineBlock", 8), ("cableRack", 4), ("tankCluster", 8), ("shieldSlab", 4),
             ]),
-            new(128,
+            new(256,
             [
                 ("scrapChunk", 24), ("hullPlate", 24), ("cargoCrate", 20), ("supplyPod", 20), ("hullSection", 16),
                 ("cargoContainer", 16), ("machineBlock", 12), ("cableRack", 4), ("tankCluster", 12), ("shieldSlab", 8),
                 ("engineBlock", 1), ("cargoHold", 1),
             ]),
-            new(256,
+            new(512,
             [
                 ("scrapChunk", 8), ("hullPlate", 12), ("cargoCrate", 12), ("supplyPod", 20), ("hullSection", 12),
                 ("cargoContainer", 16), ("machineBlock", 16), ("cableRack", 5), ("tankCluster", 16), ("shieldSlab", 12),
@@ -97,18 +97,18 @@ public static class Debris
         ]);
 
     /// <summary>
-    /// The asteroid band (0054): rock in two bands 22 to 44 rows above the hull's top and below its bottom,
-    /// past the tether's 12 cells, so only a jetpack reaches it. Rare: a beat every 3 to 5 minutes, 4 on
+    /// The asteroid band (0054): rock in two bands 44 to 88 rows above the hull's top and below its bottom,
+    /// past the tether's 24 cells, so only a jetpack reaches it. Rare: a beat every 3 to 5 minutes, 4 on
     /// average, at most 2 out; drifting from the stream's start to its end as the stream does. Small and
-    /// middling rock nearer; on its far edge, rows 36 to 44 out, more large and the rich (0056). Every piece
-    /// of the band spawns <see cref="Lead"/> (64) columns right of the hull, so its distance is twice its rows
-    /// past it once they pass 32: the far edge is the tier from 72.
+    /// middling rock nearer; on its far edge, rows 72 to 88 out, more large and the rich (0056). Every piece
+    /// of the band spawns <see cref="Lead"/> (128) columns right of the hull, so its distance is twice its rows
+    /// past it once they pass 64: the far edge is the tier from 144.
     /// </summary>
-    public static readonly DebrisZone Asteroids = new("asteroids", new HullBand(From: 22, To: 44, Lead), Every: 3600, Jitter: 2400, Max: 2,
+    public static readonly DebrisZone Asteroids = new("asteroids", new HullBand(From: 44, To: 88, Lead), Every: 3600, Jitter: 2400, Max: 2,
         DriftMin, DriftMax,
         [
             new(0, [("asteroidSmall", 3), ("asteroid", 4), ("asteroidLarge", 1)]),
-            new(2 * 36, [("asteroidSmall", 1), ("asteroid", 3), ("asteroidLarge", 3), ("asteroidRich", 2)]),
+            new(2 * 72, [("asteroidSmall", 1), ("asteroid", 3), ("asteroidLarge", 3), ("asteroidRich", 2)]),
         ]);
 
     /// <summary>Every zone, in the order they spawn on a tick: the stream first, so a world with no hero out draws as it always did.</summary>

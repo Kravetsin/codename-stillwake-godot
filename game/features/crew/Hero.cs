@@ -11,7 +11,7 @@ public readonly record struct Point(int X, int Y);
 
 /// <summary>
 /// What the player holds during one step; <see cref="Y"/> is -1 for up, 1 for down: down a ladder, else into
-/// a hole one cell wide or through the floors stood on. <see cref="Jump"/> is set once
+/// a hole two cells wide or through the floors stood on. <see cref="Jump"/> is set once
 /// per press. <see cref="Face"/> is the side the pointer is on, which the hero faces whichever way it
 /// walks; with none, it faces the way it walks; swimming, the way it swims. <see cref="Sprint"/>, Shift
 /// held, runs aboard; in space it only thrusts, with a jetpack worn. <see cref="Swings"/>, the axe
@@ -79,8 +79,8 @@ public sealed class Ship(
 /// <summary>
 /// One hero's movement (apps/game/src/features/crew/hero.ts): <see cref="X"/> is the middle of the box
 /// and <see cref="Y"/> its bottom, where the feet are, in thousandths of a cell. <see cref="Anchor"/>,
-/// out in space, is where the tether is fixed: the middle of the last cell not in space the body left
-/// (0007); none aboard. The jump's timers (0089): <see cref="Airborne"/>, steps since the feet last stood, kept at
+/// out in space, is where the tether is fixed: the body's middle where it last was in a cell not in space
+/// (0007, 0104); none aboard. The jump's timers (0089): <see cref="Airborne"/>, steps since the feet last stood, kept at
 /// most one past <c>Hero.Coyote</c>, and that once a jump is spent or before the hero first stands, so one made in
 /// mid-air cannot jump; <see cref="Buffered"/>, the steps a press of Space made in the air still jumps on landing;
 /// <see cref="Rising"/>, a jump rising that letting go of Space cuts. <see cref="LetGo"/>, steps since the hands let go of a
@@ -98,16 +98,19 @@ public readonly record struct Hero(
     public const double StepMs = 1000.0 / 60;
 
     /// <summary>
-    /// How far the body's middle is above the feet: half the height rounded down, 1312 where the
-    /// TypeScript has 1312.5, so every position stays a whole number.
+    /// How far the body's middle is above the feet: half the height rounded down, so every position stays a whole
+    /// number (the TypeScript's 1312.5 at 16 px; 2625 now, 0104).
     /// </summary>
     public const int MiddleUp = Spec.Height / 2;
 
     private const int Half = Spec.Width / 2;
 
-    /// <summary>A hero standing on the bottom of <paramref name="cell"/>, in the middle.</summary>
+    /// <summary>
+    /// A hero standing on the bottom of <paramref name="cell"/>, its middle on the cell's right edge: the middle of the 16 px block
+    /// whose bottom-left a map's S or a lifepod's hatch is (0104), where a body nearly two cells wide fits.
+    /// </summary>
     public static Hero At(Ship ship, int cell) =>
-        new(cell % ship.Width * Unit + Unit / 2, (cell / ship.Width + 1) * Unit, 0, 0, false, 1);
+        new((cell % ship.Width + 1) * Unit, (cell / ship.Width + 1) * Unit, 0, 0, false, 1);
 
     /// <summary>The cell the hero's body is in: the one under the middle of its box.</summary>
     public int BodyCell(int width) => CellOf(Y - MiddleUp) * width + CellOf(X);
@@ -143,9 +146,9 @@ public readonly record struct Hero(
         int left = before.BodyCell(ship.Width);
         // Back within the hull, the tether comes off; it ties again where the body next leaves it.
         if (ship.Hull(at)) return after;
-        Point? tied = before.Anchor ?? (ship.Space(left) && !ship.Hull(left)
-            ? null
-            : new Point(left % ship.Width * Unit + Unit / 2, left / ship.Width * Unit + Unit / 2));
+        // Tied where the body's middle last was in the hull, not its cell's middle: at 8 px a cell's middle is under a standing
+        // hero's, so the tether would sink it below the floor it walked off and the floor's end would stop it swimming back (0104).
+        Point? tied = before.Anchor ?? (ship.Space(left) && !ship.Hull(left) ? null : before.Middle);
         if (tied is not Point anchor) return after;
         bool Within(int x, int y) => Distance(x - anchor.X, y - MiddleUp - anchor.Y) <= Spec.Tether;
         if (Within(after.X, after.Y)) return after with { Anchor = anchor };
@@ -172,8 +175,8 @@ public readonly record struct Hero(
         return after with { X = to.X, Y = to.Y, Vx = to.X - before.X, Vy = to.Y - before.Y, Anchor = anchor };
     }
 
-    /// <summary>How far a door shut on the hero pushes it a step: a cell in the 200 ms a door takes to slide.</summary>
-    public const int PushStep = Unit / 12;
+    /// <summary>How far a door shut on the hero pushes it a step: two cells, a 16 px one (0104), in the 200 ms a door takes to slide.</summary>
+    public const int PushStep = Unit / 6;
 
     /// <summary>
     /// The hero pushed a step out of a door or hatch shut on it, keys aside: a closed door in its box where it no longer
@@ -244,9 +247,9 @@ public readonly record struct Hero(
             // walks off, unless up is held too, which climbs.
             if (input.X != 0 && input.Y >= 0 && footed)
                 return Fall(ship, hero.X, hero.Y, Paced(hero.Vx, input, footed), 0, facing, held) with { LetGo = 0 };
-            // The hero eases onto the ladder's middle; narrower than a cell, it touches nothing beside it there but a slope's
-            // solid half, which it may not climb into: it stops on the ladder, or does not take it (0069).
-            int x = Centred(hero.X, CellOf(hero.X) * Unit + Unit / 2);
+            // The hero eases onto the ladder's middle; narrower than its two cells, it touches nothing beside it there but a
+            // slope's solid half, which it may not climb into: it stops on the ladder, or does not take it (0069).
+            int x = Centred(hero.X, LadderMiddle(ship, hero.X, hero.Y));
             if (x != hero.X && !Clear(ship, x, hero.Y)) x = hero.X;
             int speed = input.Y < 0 ? Spec.ClimbUp : input.Sprint ? Spec.Slide : Spec.ClimbDown;
             var climbed = Climb(ship, x, hero.Y, input.Y, speed, facing) with { LetGo = letGo };
@@ -276,7 +279,7 @@ public readonly record struct Hero(
 
     /// <summary>
     /// How far a jump falls short of a ledge yet looks on it, in thousandths of a cell: the drawn foot's height over the feet at
-    /// <paramref name="vy"/> (<see cref="Poses.FootLift"/>), rounded down; about 0.3 of a cell at a jump's top, none falling fast.
+    /// <paramref name="vy"/> (<see cref="Poses.FootLift"/>), rounded down; about 0.6 of a cell at a jump's top, little falling fast.
     /// </summary>
     public static int MantleReach(int vy) => (int)(Poses.FootLift(vy) * Unit / Rig.Cell);
 
@@ -554,7 +557,7 @@ public readonly record struct Hero(
     /// <paramref name="rows"/> rows over its feet, where it fits standing; none off a ladder or with no such top. What the
     /// figure pulls itself up onto, read alike for every hero from where it is (0092).
     /// </summary>
-    public static int? LedgeAbove(Ship ship, Hero hero, int rows = 3)
+    public static int? LedgeAbove(Ship ship, Hero hero, int rows = 6)
     {
         if (!hero.Climbing) return null;
         int column = CellOf(hero.X), feet = CellOf(hero.Y - 1);
@@ -562,7 +565,7 @@ public readonly record struct Hero(
         {
             if (!Climbable(ship, column, row) || Climbable(ship, column, row - 1)) continue;
             int top = row * Unit;
-            return top <= hero.Y && Clear(ship, column * Unit + Unit / 2, top) ? hero.Y - top : null;
+            return top <= hero.Y && Clear(ship, LadderMiddle(ship, hero.X, hero.Y), top) ? hero.Y - top : null;
         }
         return null;
     }
@@ -572,8 +575,8 @@ public readonly record struct Hero(
     /// <summary>
     /// Where a hero standing at <paramref name="y"/> and walking from <paramref name="x"/> to <paramref name="nx"/>
     /// stops: at the first place on the way where its body fits over a hole below the feet, or null for none, the walk
-    /// going on to <paramref name="nx"/>. A step is longer than the 50 thousandths a cell leaves beside the body, so
-    /// unstopped a walk steps over a hole one cell wide or into it by where it began (playtest 1).
+    /// going on to <paramref name="nx"/>. A step is longer than the 100 thousandths two cells leave beside the body, so
+    /// unstopped a walk steps over a hole two cells wide or into it by where it began (playtest 1).
     /// </summary>
     private static int? Caught(Ship ship, int x, int nx, int y)
     {
@@ -582,7 +585,10 @@ public readonly record struct Hero(
         for (int c = CellOf(x); c != CellOf(nx) + dir; c += dir)
         {
             if (!Open(ship, c, row)) continue;
-            int lo = c * Unit + Half, hi = (c + 1) * Unit - Half;
+            // The hole is the run of open cells this one is in: the body, wider than a cell (0104), fits over two.
+            var (a, b) = HoleOf(ship, c, row);
+            int lo = a * Unit + Half, hi = (b + 1) * Unit - Half;
+            if (lo > hi) continue;
             if (dir > 0 && x < lo && nx >= lo) return Math.Min(nx, hi);
             if (dir < 0 && x > hi && nx <= hi) return Math.Max(nx, lo);
         }
@@ -595,10 +601,33 @@ public readonly record struct Hero(
     /// </summary>
     private static int Slid(Ship ship, int x, int y)
     {
-        int c = CellOf(x);
-        if (!Open(ship, c, CellOf(y))) return x;
-        int to = Math.Clamp(x, c * Unit + Half, (c + 1) * Unit - Half);
+        int c = CellOf(x), row = CellOf(y);
+        if (!Open(ship, c, row)) return x;
+        var (a, b) = HoleOf(ship, c, row);
+        if (a * Unit + Half > (b + 1) * Unit - Half) return x;
+        int to = Math.Clamp(x, a * Unit + Half, (b + 1) * Unit - Half);
         return MoveX(ship, x, y, Math.Clamp(to - x, -Spec.Walk, Spec.Walk), true);
+    }
+
+    /// <summary>The run of cells open to fall into along <paramref name="row"/> round <paramref name="column"/>: no wider than the body needs.</summary>
+    private static (int Left, int Right) HoleOf(Ship ship, int column, int row)
+    {
+        int a = column, b = column, most = 2 * Spec.Width / Unit + 1;
+        while (b - a < most && Open(ship, a - 1, row)) a--;
+        while (b - a < most && Open(ship, b + 1, row)) b++;
+        return (a, b);
+    }
+
+    /// <summary>
+    /// The middle of the ladder a hero at <paramref name="x"/>, its feet at <paramref name="y"/>, climbs: between its column and a
+    /// column beside it that holds a ladder too, the nearer first, a ladder two cells wide as a 16 px one is (0104); else its column's middle.
+    /// </summary>
+    private static int LadderMiddle(Ship ship, int x, int y)
+    {
+        int column = CellOf(x), near = x - column * Unit < Unit / 2 ? column - 1 : column + 1;
+        foreach (int beside in (ReadOnlySpan<int>)[near, 2 * column - near])
+            if (TouchesLadderIn(ship, beside, y, true)) return Math.Max(column, beside) * Unit;
+        return column * Unit + Unit / 2;
     }
 
     /// <summary>
@@ -621,9 +650,11 @@ public readonly record struct Hero(
     private static bool Open(Ship ship, int x, int y) => !Solid(ship, x, y) && !Holds(ship, x, y, false);
 
     /// <summary>Whether the hero's column holds a ladder beside the body, or also just below the feet.</summary>
-    private static bool TouchesLadder(Ship ship, int x, int y, bool belowFeet)
+    private static bool TouchesLadder(Ship ship, int x, int y, bool belowFeet) => TouchesLadderIn(ship, CellOf(x), y, belowFeet);
+
+    /// <summary>Whether <paramref name="column"/> holds a ladder beside a body with its feet at <paramref name="y"/>, or also just below them.</summary>
+    private static bool TouchesLadderIn(Ship ship, int column, int y, bool belowFeet)
     {
-        int column = CellOf(x);
         int last = CellOf(belowFeet ? y : y - 1);
         for (int row = CellOf(y - Spec.Height); row <= last; row++)
             if (Climbable(ship, column, row)) return true;

@@ -14,6 +14,40 @@ public class RoomsTests
     private static (int, int)[] Summary(Scenario w) => w.M.Rooms.All.Select(r => (r.Id, r.Volume)).ToArray();
 
     [Fact]
+    public void TakesTheInnerLayerOfAWallTwoCellsThickIntoTheHullAsAWallOfOneButNoneOfAWallOfThree()
+    {
+        // A 16 px wall is two 8 px cells (0104): its inner layer is hull, as a one-cell wall is; past a wall of three, nothing.
+        // The partition inside, beside the outer wall, has no outside beyond it away from either room.
+        var w = new Scenario("""
+            ..........
+            .########.
+            .##..#..#.
+            .##..#..#.
+            .########.
+            ..........
+            """, cells: true);
+        Assert.Equal(2, w.M.Rooms.All.Count);
+        var left = w.M.Rooms.All[0];
+        Assert.Equal(
+            new[] { w.At(3, 1), w.At(4, 1), w.At(2, 2), w.At(2, 3), w.At(3, 4), w.At(4, 4) },
+            left.Hull);
+        var right = w.M.Rooms.All[1];
+        Assert.Equal(new[] { w.At(6, 1), w.At(7, 1), w.At(8, 2), w.At(8, 3), w.At(6, 4), w.At(7, 4) }, right.Hull);
+        var thick = new Scenario("""
+            .........
+            .#######.
+            .#######.
+            .#######.
+            .###.###.
+            .#######.
+            .#######.
+            .#######.
+            .........
+            """, cells: true);
+        Assert.Empty(Assert.Single(thick.M.Rooms.All).Hull);
+    }
+
+    [Fact]
     public void FindsASealedRoomWithTheHullItLeaksThroughAndNoOpenings()
     {
         var w = new Scenario("""
@@ -22,7 +56,7 @@ public class RoomsTests
             .#...#.
             .#####.
             .......
-            """);
+            """, cells: true);
         var room = Assert.Single(w.M.Rooms.All);
         Assert.Equal(w.At(2, 2), room.Id);
         Assert.Equal(3, room.Volume);
@@ -44,7 +78,7 @@ public class RoomsTests
             .#..D..#.
             .#######.
             .........
-            """);
+            """, cells: true);
         var all = w.M.Rooms.RoomOfCells.ToArray();
         Assert.Equal(9 * 5, all.Length);
         for (int cell = 0; cell < all.Length; cell++) Assert.Equal(w.M.Rooms.RoomAt(cell) ?? RoomsModule.Solid, all[cell]);
@@ -63,7 +97,7 @@ public class RoomsTests
             .#..D..#.
             .#######.
             .........
-            """);
+            """, cells: true);
         Assert.Equal(new[] { (w.At(2, 2), 2), (w.At(5, 2), 2) }, Summary(w));
         w.Do(new SetDoor(w.At(4, 2), true)).Run();
         Assert.Equal(new[] { (w.At(2, 2), 5) }, Summary(w));
@@ -80,7 +114,7 @@ public class RoomsTests
             .#.....
             .#####.
             .......
-            """);
+            """, cells: true);
         var room = Assert.Single(w.M.Rooms.All);
         Assert.Equal(4, room.Volume);
         Assert.Equal(new[] { w.At(5, 2) }, room.Openings);
@@ -97,7 +131,7 @@ public class RoomsTests
             .#.....
             .#####.
             .......
-            """);
+            """, cells: true);
         Assert.Empty(w.M.Rooms.All);
         Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(3, 2)));
     }
@@ -114,7 +148,7 @@ public class RoomsTests
             .########.
             ..........
             """);
-        Assert.Equal(new[] { (w.At(2, 2), 3), (w.At(4, 2), 12) }, Summary(w));
+        Assert.Equal(new[] { (w.At(2, 2), 3 * 4), (w.At(4, 2), 12 * 4) }, Summary(w));
     }
 
     [Fact]
@@ -125,7 +159,7 @@ public class RoomsTests
             #.. ..#
             #.....#
             #######
-            """);
+            """, cells: true);
         Assert.Equal(w.At(1, 1), w.M.Rooms.RoomAt(w.At(3, 1)));
         Assert.Equal(new[] { w.At(3, 1) }, w.M.Rooms.RoomById(w.At(1, 1))!.Openings);
         w.Do(new Place(w.At(3, 1), Placement.BackWall())).Run();
@@ -137,9 +171,9 @@ public class RoomsTests
     [Fact]
     public void FindsTheWrecksRoomsAsTheTypeScriptSimDoes()
     {
-        var w = new Scenario(Layout.Parse(Wreck.Rows, Wreck.Under));
-        // As packages/sim/src/modules/wreck.test.ts expects: A and the airlock; torn B is space.
-        Assert.Equal(new[] { w.At(46, 19), w.At(55, 20) }, w.M.Rooms.All.Select(r => r.Id));
+        var w = new Scenario(Layout.Parse(Wreck.Rows, Wreck.Under), doubled: true);
+        // As packages/sim/src/modules/wreck.test.ts expects: A and the airlock, named by the open half of its inner doorway; torn B is space.
+        Assert.Equal(new[] { w.At(46, 19), w.At(54, 20) + 1 }, w.M.Rooms.All.Select(r => r.Id));
         Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(41, 21)));
         Assert.Equal(new[] { "solarPanel", "lamp", "lifepod", "analyzer", "generator", "vent" }, w.M.Grid.Machines.Select(m => m.Kind));
     }

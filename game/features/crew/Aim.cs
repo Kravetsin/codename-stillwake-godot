@@ -68,13 +68,13 @@ public static class Aiming
             ? (size.W * Hero.Unit / (2 * PixelsPerCell) + WreckMargin, size.H * Hero.Unit / (2 * PixelsPerCell) + WreckMargin)
             : null;
 
-    private const int PixelsPerCell = 16, WreckMargin = 250;
+    private const int PixelsPerCell = Camera.Cell, WreckMargin = 500;
 
     /// <summary>Half a small piece's picture each way, in thousandths of a cell: they are a cell or a little more across.</summary>
-    private const int SmallHalf = 500;
+    private const int SmallHalf = 1000;
 
     /// <summary>How far inside a picture's edge the harpoon's rod sticks, in thousandths of a cell: its point sinks in.</summary>
-    private const int Bite = 150;
+    private const int Bite = 300;
 
     /// <summary>
     /// The box a piece is struck in, half its size each way in thousandths of a cell, and half its picture:
@@ -294,7 +294,7 @@ public static class Aiming
     }
 
     /// <summary>How far past a creature's body its box is struck, in thousandths of a cell: its fur, and a tick's walk.</summary>
-    private const int CreatureMargin = 200;
+    private const int CreatureMargin = 400;
 
     /// <summary>The box creature <paramref name="c"/> is struck in, in thousandths of a cell: its body and a margin.</summary>
     private static (int Left, int Top, int Right, int Bottom) BoxOf(Creature c)

@@ -21,7 +21,10 @@ namespace Stillwake.Game.Features.Items;
 /// </summary>
 public partial class ItemsDemo : Control
 {
-    /// <summary>The demo's room: the hero wakes at S; the panel P out in space above the roof powers the analyzer and two lamps.</summary>
+    /// <summary>
+    /// The demo's room, drawn a character a 16 px cell and doubled (0104): the hero wakes at S; the panel P out in space above
+    /// the roof powers the analyzer and two lamps.
+    /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
             "        PPP       ",
@@ -31,10 +34,10 @@ public partial class ItemsDemo : Control
             "#.KK...S..AA..FF.#",
             "##################",
         ],
-        cables: [((9, 0), (10, 3)), ((8, 0), (4, 2)), ((10, 0), (13, 2))]) with
+        cables: [((9, 0), (10, 3)), ((8, 0), (4, 2)), ((10, 0), (13, 2))]).Doubled() with
     { Known = Spec.Research.StartKnown };
 
-    /// <summary>The wire lying on the floor, column and row.</summary>
+    /// <summary>The wire lying on the floor, the drawing's column and row: in its cells' bottom-left, doubled.</summary>
     private static readonly (int X, int Y) Lying = (12, 4);
 
     /// <summary>
@@ -58,15 +61,15 @@ public partial class ItemsDemo : Control
             slots.Add(i < carried.Length && carried[i] is var (item, count) ? Stack(item, count) : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         items["crates"] = new JsonArray(new JsonObject { ["id"] = analyzer, ["slots"] = new JsonArray(Stack("iron", 1)) });
-        int width = Map.Width;
+        int width = Map.Width, x = 2 * Lying.X, y = 2 * Lying.Y + 1;
         items["floor"] = new JsonArray(new JsonObject
         {
             ["id"] = 1,
             ["item"] = "wire",
             ["count"] = 2,
-            ["cell"] = Lying.Y * width + Lying.X,
-            ["x"] = Lying.X * 1000 + 500,
-            ["y"] = (Lying.Y + 1) * 1000,
+            ["cell"] = y * width + x,
+            ["x"] = x * 1000 + 500,
+            ["y"] = (y + 1) * 1000,
             ["vx"] = 0,
             ["vy"] = 0,
             ["by"] = 99,
@@ -89,7 +92,8 @@ public partial class ItemsDemo : Control
         _view = view;
         MouseFilter = MouseFilterEnum.Ignore;
         static Place Inv(int slot) => new(slot);
-        int Column(HeroSpot h) => h.X / 1000;
+        // The drawing's column: two cells.
+        int Column(HeroSpot h) => h.X / 2000;
         // The hotbar: the wheel and a key choose a slot.
         At(0.3, () => Wheel(MouseButton.WheelDown));
         At(0.5, () => Wheel(MouseButton.WheelDown));
@@ -169,9 +173,9 @@ public partial class ItemsDemo : Control
         _target = _view.Panel.CenterOf(place);
     }
 
-    /// <summary>Points at the middle of cell (<paramref name="x"/>, <paramref name="y"/>), wherever the camera takes it.</summary>
+    /// <summary>Points at the middle of the drawing's cell (<paramref name="x"/>, <paramref name="y"/>), wherever the camera takes it.</summary>
     private void Aim(int x, int y) =>
-        _follow = () => GetViewport().GetCanvasTransform() * (new Vector2(x + 0.5f, y + 0.5f) * ShipCamera.Cell);
+        _follow = () => GetViewport().GetCanvasTransform() * (new Vector2(2 * x + 1, 2 * y + 1) * ShipCamera.Cell);
 
     private int MachineId(char c) => _view.Grid?.MachineAt(Map.CellsOf(c).First())?.Id ?? -1;
     private int FurnaceId() => MachineId('F');

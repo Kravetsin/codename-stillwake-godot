@@ -32,7 +32,7 @@ public static class CableShape
         int x = node % grid.Width, y = node / grid.Width;
         var machine = grid.MachineAt(node);
         var plug = machine != null && machine.Cell == node ? Machines.Get(machine.Kind).Plug : null;
-        return plug is { } p ? (x + p.X / 16.0, y + p.Y / 16.0) : (x + 0.5, y + 0.5);
+        return plug is { } p ? (x + p.X / (double)Camera.Cell, y + p.Y / (double)Camera.Cell) : (x + 0.5, y + 0.5);
     }
 
     /// <summary>A node's middle, in cells: what the other end of a cable aims at.</summary>

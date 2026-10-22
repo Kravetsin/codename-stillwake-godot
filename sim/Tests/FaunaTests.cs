@@ -9,7 +9,8 @@ namespace Stillwake.Sim.Tests;
 /// <summary>Creatures (0102): how a loper walks, takes hits and dies, and where and when creatures spawn and go.</summary>
 public class FaunaTests
 {
-    private const int Unit = FaunaModule.Unit;
+    /// <summary>A cell, and a character of a doubled map: two cells across and down (0104).</summary>
+    private const int Unit = FaunaModule.Unit, Cell = 2 * Unit;
     private static readonly string Axe = Spec.Weapons.Axe.Item, Drill = Spec.Weapons.Drill.Item;
     private static readonly Tune.Species Loper = Tune.Loper;
     private static readonly int Belt = Spec.Inventory.Slots + 2;
@@ -68,8 +69,8 @@ public class FaunaTests
         var w = FaunaTesting.Planet(Room).HeroAt(1, 3);
         var c = w.Loper(3, 2).Still();
         w.Run(30);
-        Assert.Equal((4 * Unit, 0), (c.Y, c.VY));
-        Assert.Equal(3 * Unit + Unit, c.X);
+        Assert.Equal((4 * Cell, 0), (c.Y, c.VY));
+        Assert.Equal(3 * Cell + Cell, c.X);
     }
 
     [Theory]
@@ -89,9 +90,9 @@ public class FaunaTests
             Assert.True(Clear(w, c));
         }
         Assert.True(turned);
-        // Flush with the wall at column 11: its right edge at 11 cells.
-        Assert.Equal(11 * Unit - Unit, most);
-        Assert.Equal(4 * Unit, c.Y);
+        // Flush with the wall at column 11: its right edge at its left.
+        Assert.Equal(11 * Cell - Cell, most);
+        Assert.Equal(4 * Cell, c.Y);
     }
 
     [Theory]
@@ -106,12 +107,12 @@ public class FaunaTests
         {
             w.Run();
             most = Math.Max(most, c.X + Loper.Width * Unit / 2);
-            Assert.Equal(3 * Unit, c.Y);
+            Assert.Equal(3 * Cell, c.Y);
         }
         // Its leading edge reaches the ledge's edge at column 7 and goes no farther.
-        Assert.True(most <= 7 * Unit, $"its edge reached {most}");
+        Assert.True(most <= 7 * Cell, $"its edge reached {most}");
         int speed = mode == Mode.Flee ? Loper.Flee : Loper.Wander;
-        Assert.True(most > 7 * Unit - speed - 1, $"it turned early, at {most}");
+        Assert.True(most > 7 * Cell - speed - 1, $"it turned early, at {most}");
     }
 
     [Fact]
@@ -120,8 +121,8 @@ public class FaunaTests
         var w = FaunaTesting.Planet(Low).HeroAt(8, 4);
         var c = w.Loper(2, 2).Walking(+1);
         w.Run(120);
-        Assert.Equal(5 * Unit, c.Y);
-        Assert.True(c.X > 7 * Unit);
+        Assert.Equal(5 * Cell, c.Y);
+        Assert.True(c.X > 7 * Cell);
         Assert.True(Clear(w, c));
     }
 
@@ -136,7 +137,7 @@ public class FaunaTests
         for (int t = 0; t < 120; t++)
         {
             w.Run();
-            up |= c.Y == 4 * Unit && c.X > 7 * Unit + Unit;
+            up |= c.Y == 4 * Cell && c.X > 7 * Cell + Cell;
             Assert.True(Clear(w, c));
         }
         Assert.True(up, "it never stood on the step");
@@ -161,9 +162,64 @@ public class FaunaTests
         {
             w.Run();
             Assert.Equal(0, c.VY);
-            down |= c.Y == 5 * Unit;
+            down |= c.Y == 5 * Cell;
         }
         Assert.True(down, "it never stood below the step");
+    }
+
+    /// <summary>A room a cell to a character, 30 wide, its floor row 10, a step <paramref name="high"/> cells high from column 15 to its side wall.</summary>
+    private static Layout StepOf(int high) => Layout.Parse([.. Enumerable.Range(0, 11).Select(y => new string([.. Enumerable.Range(0, 30)
+        .Select(x => y == 0 || y == 10 || x == 0 || x == 29 || x >= 15 && y >= 10 - high ? '#' : '.')]))]);
+
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    public void AWalkerStepsUpTwoCellsButNotThreeWithoutAJump(int high, bool steps)
+    {
+        var w = FaunaTesting.Planet(StepOf(high), cells: true).HeroAt(1, 9);
+        var c = w.Loper(5, 9).Walking(+1);
+        bool up = false, jumped = false;
+        for (int t = 0; t < 200 && !up; t++)
+        {
+            w.Run();
+            jumped |= c.VY < 0;
+            up |= c.Y == (10 - high) * Unit && c.X - Loper.Width * Unit / 2 >= 15 * Unit;
+            Assert.True(Clear(w, c));
+        }
+        // Up a step of three it leaps, as up a ledge (WanderLedge), never walks.
+        Assert.Equal(steps, up && !jumped);
+    }
+
+    [Fact]
+    public void FasterThanACellATickACreatureNeverPassesAWallOrAFloorOneCellThick()
+    {
+        // Fleeing at 1500 a tick and falling at most 1200, it moves in parts of under a cell (0104).
+        Assert.True(Loper.Flee > Unit && Tune.MaxFall > Unit);
+        var w = FaunaTesting.Planet(Layout.Parse([.. Enumerable.Range(0, 8).Select(y => new string([.. Enumerable.Range(0, 30)
+            .Select(x => y == 0 || y == 7 || x == 0 || x == 29 || x == 15 ? '#' : '.')]))]), cells: true).HeroAt(1, 6);
+        var c = w.Loper(5, 6).Walking(+1, Mode.Flee);
+        int most = 0;
+        for (int t = 0; t < 60; t++)
+        {
+            w.Run();
+            most = Math.Max(most, c.X + Loper.Width * Unit / 2);
+            Assert.True(Clear(w, c));
+        }
+        Assert.Equal(15 * Unit, most);
+
+        var shaft = FaunaTesting.Planet(Layout.Parse([.. Enumerable.Range(0, 40).Select(y => new string([.. Enumerable.Range(0, 12)
+            .Select(x => y == 0 || y == 39 || x == 0 || x == 11 || y == 30 ? '#' : '.')]))]), cells: true).HeroAt(1, 29);
+        var falling = shaft.Loper(4, 4).Still();
+        int fastest = 0;
+        for (int t = 0; t < 60; t++)
+        {
+            fastest = Math.Max(fastest, falling.VY);
+            shaft.Run();
+            Assert.True(Clear(shaft, falling));
+        }
+        Assert.Equal(Tune.MaxFall, fastest);
+        Assert.Equal((30 * Unit, 0), (falling.Y, falling.VY));
     }
 
     // Jumps.
@@ -189,20 +245,18 @@ public class FaunaTests
         {
             w.Run();
             Assert.True(Clear(w, c), $"in a wall at ({c.X}, {c.Y})");
-            over |= c.X - Loper.Width * Unit / 2 >= (40 + past) * Unit && c.VY == 0;
-            fell |= c.Y > 9 * Unit;
+            over |= c.X - Loper.Width * Unit / 2 >= (40 + past) * Cell && c.VY == 0;
+            fell |= c.Y > 9 * Cell;
         }
         return (c, over, fell);
     }
 
     [Fact]
-    public void ALopersJumpIsAboutFourCellsHighAndSeventeenLongOnTheFirstPlanet()
+    public void ALopersJumpIsAboutNineCellsHighAndThirtyFourLongOnTheFirstPlanet()
     {
         int g = Content.PlanetTypes.First.Fall(Tune.Gravity);
-        Assert.InRange(Leaps.Height(Loper.Jump, g), 4_000, 4_600);
-        Assert.InRange(Leaps.Length(Loper.Jump, Loper.JumpAcross, g), 15_000, 18_000);
-        // Every tick of it under a cell, across and down: nothing is passed through.
-        Assert.True(Loper.Jump < Unit && Loper.JumpAcross < Unit && Tune.MaxFall < Unit);
+        Assert.InRange(Leaps.Height(Loper.Jump, g), 8_000, 9_200);
+        Assert.InRange(Leaps.Length(Loper.Jump, Loper.JumpAcross, g), 30_000, 36_000);
     }
 
     [Theory]
@@ -221,7 +275,7 @@ public class FaunaTests
     {
         var (c, over, _) = Flee(Course(wall: 6), 1);
         Assert.False(over);
-        Assert.True(c.X < 40 * Unit);
+        Assert.True(c.X < 40 * Cell);
     }
 
     [Theory]
@@ -242,7 +296,7 @@ public class FaunaTests
         var (c, over, fell) = Flee(Course(gap: 22), 22);
         Assert.False(over);
         Assert.False(fell, "it leapt into the void");
-        Assert.True(c.X < 40 * Unit);
+        Assert.True(c.X < 40 * Cell);
     }
 
     [Fact]
@@ -257,8 +311,8 @@ public class FaunaTests
             {
                 w.Run();
                 Assert.True(Clear(w, c));
-                over |= c.X - Loper.Width * Unit / 2 >= 41 * Unit;
-                fell |= c.Y > 9 * Unit;
+                over |= c.X - Loper.Width * Unit / 2 >= 41 * Cell;
+                fell |= c.Y > 9 * Cell;
             }
             Assert.Equal(gets, over);
             Assert.False(fell);
@@ -317,7 +371,7 @@ public class FaunaTests
         // two ticks a strike on the loper while any of its body is within that, as the client sends one.
         var w = FaunaTesting.Planet(Long).HeroAt(4, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1));
         var c = w.Loper(5, 3).Still();
-        int reach = 4 * Unit + Unit / 2 + 3 * Unit, half = Loper.Width * Unit / 2, hits = 0, free = -1;
+        int reach = w.HeroMiddle(4) + 3 * Cell, half = Loper.Width * Unit / 2, hits = 0, free = -1;
         for (int t = 0; t < 80; t++)
         {
             if (t % Spec.Weapons.Drill.Pace == 0 && c.X - half <= reach && w.M.Fauna.Creatures.Count > 0)
@@ -347,7 +401,7 @@ public class FaunaTests
         var c = w.Loper(102, 6).Still();
         w.Do(new Strike(c.Id, Axe) { From = 1 }).Run();
         // A hero sprinting after it from where it struck, its body's middle level with the loper's back as the blow lands.
-        long hero = 100 * Unit + Unit / 2, gap = c.X - Loper.Width * Unit / 2 - hero;
+        long hero = w.HeroMiddle(100), gap = c.X - Loper.Width * Unit / 2 - hero;
         int ticks = 1;
         while (c.Mode == Mode.Flee)
         {
@@ -423,7 +477,7 @@ public class FaunaTests
             w.Do(new Strike(c.Id, Axe)).Run(3);
             Assert.Equal(i * Spec.Weapons.Axe.Damage, c.Damage);
             c.Still();
-            (c.X, c.Y, c.VY) = (6 * Unit, 4 * Unit, 0);
+            (c.X, c.Y, c.VY) = (6 * Cell, 4 * Cell, 0);
         }
         Assert.Equal(c, Only(w));
         w.Do(new Strike(c.Id, Axe)).Run();
@@ -435,8 +489,8 @@ public class FaunaTests
         Assert.All(w.M.Items.Floor, s =>
         {
             Assert.Equal(FloorStack.Nobody, s.By);
-            Assert.Equal(4 * Unit, s.Y);
-            Assert.Equal(6 * Unit + Unit / 2, s.X);
+            Assert.Equal(4 * Cell, s.Y);
+            Assert.Equal(6 * Cell + Unit / 2, s.X);
         });
     }
 
@@ -513,18 +567,18 @@ public class FaunaTests
     public void AReleaseIsRefusedAboardIntoAWallOffTheGridAndAtTheCap()
     {
         var ship = new Scenario(Room).HeroAt(1, 3);
-        ship.Do(new Release(Loper.Id, ship.At(3, 3))).Run();
+        ship.Do(new Release(Loper.Id, ship.Feet(3, 3))).Run();
         Assert.Equal(["fauna.notHere"], Reasons(ship));
         Assert.Empty(ship.M.Fauna.Creatures);
 
         var w = FaunaTesting.Planet(Room).HeroAt(1, 3);
-        // In the side wall, its body a cell into the wall on the right, its head in the ceiling, off the grid.
-        foreach (int cell in new[] { w.At(0, 3), w.At(10, 3), w.At(4, 1), -1, 12 * 5 })
+        // In the side wall, its body a character into the wall on the right, its head in the ceiling, off the grid.
+        foreach (int cell in new[] { w.Feet(0, 3), w.Feet(10, 3), w.Feet(4, 1), -1, w.Layout.Width * w.Layout.Height })
             w.Do(new Release(Loper.Id, cell));
         w.Run();
         Assert.Equal(Enumerable.Repeat("fauna.blocked", 5), Reasons(w));
         w.Refusals.Clear();
-        for (int i = 0; i < Tune.Max + 1; i++) w.Do(new Release(Loper.Id, w.At(1 + i % 9, 3)));
+        for (int i = 0; i < Tune.Max + 1; i++) w.Do(new Release(Loper.Id, w.Feet(1 + i % 9, 3)));
         w.Run();
         Assert.Equal(Tune.Max, w.M.Fauna.Creatures.Count);
         Assert.Equal(["fauna.full"], Reasons(w));
@@ -542,8 +596,8 @@ public class FaunaTests
 
         w.HeroAt(10, 6).Run();
         w.Loper(12, 6).Still();
-        // Past the hard box across, 111 columns from the cell under its middle.
-        w.HeroAt(13 + Tune.Hard.X + 1, 6).Run();
+        // Past the hard box across from the cell under its middle, the left one of the character at column 13.
+        w.HeroAt(13 + Tune.Hard.X / 2 + 1, 6).Run();
         Assert.Empty(w.M.Fauna.Creatures);
     }
 
@@ -552,7 +606,7 @@ public class FaunaTests
     {
         var w = FaunaTesting.Planet(Wide(260, 8), FaunaTesting.Lifeless).HeroAt(10, 6);
         var c = w.Loper(12, 6).Still();
-        w.HeroAt(13 + Tune.Keep.X + 1, 6).Run();
+        w.HeroAt(13 + Tune.Keep.X / 2 + 1, 6).Run();
         w.Run(Tune.Linger - 2);
         Assert.Same(c, Only(w));
         w.Run();
@@ -576,10 +630,11 @@ public class FaunaTests
             foreach (var c in w.M.Fauna.Creatures.Where(c => c.Id > seen))
             {
                 Assert.Equal(0, w.World.Tick % Tune.Beat);
-                int left = c.X / Unit - 1, top = c.Y / Unit - 2;
-                foreach (var hero in new[] { 200, 150 })
-                    Assert.False(left + 1 >= hero - Tune.View.X && left <= hero + Tune.View.X, $"creature {c.Id} spawned at {left} in view of {hero}");
-                Assert.Equal((11 * Unit, Mode.Idle), (c.Y, c.Mode));
+                var spec = Tune.Get(c.Species);
+                int left = c.X / Unit - spec.Width / 2, top = c.Y / Unit - spec.Height;
+                foreach (var hero in new[] { 2 * 200, 2 * 150 })
+                    Assert.False(left + spec.Width - 1 >= hero - Tune.View.X && left <= hero + Tune.View.X, $"creature {c.Id} spawned at {left} in view of {hero}");
+                Assert.Equal((11 * Cell, Mode.Idle), (c.Y, c.Mode));
                 Assert.True(top >= 0);
                 seen = c.Id;
             }
@@ -601,7 +656,7 @@ public class FaunaTests
                 foreach (var c in w.M.Fauna.Creatures) c.Still();
             }
         }
-        int InKeep(int h) => w.M.Fauna.Creatures.Count(c => Math.Abs(c.X / Unit - (100 + 200 * h)) <= Tune.Keep.X);
+        int InKeep(int h) => w.M.Fauna.Creatures.Count(c => Math.Abs(c.X / Unit - 2 * (100 + 200 * h)) <= Tune.Keep.X);
         Settle();
         Assert.Equal([Tune.PerKeep, Tune.PerKeep, Tune.PerKeep], Enumerable.Range(0, 3).Select(InKeep));
         // Three more: six shares of ten would pass the cap of forty.
@@ -631,7 +686,7 @@ public class FaunaTests
         // Rows this near the top are the first planet's band 0, the cold; band 1 is far under them.
         var cold = Spec.PlanetTypes.First with { Fauna = [new(Loper.Id, Tune.Place.Band, 1, Band: 0)] };
         var garden = Spec.PlanetTypes.First with { Fauna = [new(Loper.Id, Tune.Place.Band, 1, Band: 1)] };
-        Assert.Equal(0, Terrain.BandOf(cold, 10));
+        Assert.Equal(0, Terrain.BandOf(cold, 2 * 12));
         var caves = FaunaTesting.Planet(Wide(400, 12, '.'), cold).Breathing().HeroAt(200, 10);
         var sky = FaunaTesting.Planet(Wide(400, 12), cold).Breathing().HeroAt(200, 10);
         var deeper = FaunaTesting.Planet(Wide(400, 12, '.'), garden).Breathing().HeroAt(200, 10);
@@ -686,12 +741,10 @@ public class FaunaTests
         Assert.Equal(Tune.All.Count, Tune.All.Select(s => s.Id).Distinct().Count());
         Assert.All(Tune.All, s =>
         {
+            // Faster than a cell a tick is moved in parts (0104): FasterThanACellATickACreatureNeverPassesAWallOrAFloorOneCellThick.
             Assert.True(s.Width > 0 && s.Height > 0 && s.Hp > 0 && s.Stun >= 0 && s.FleeTicks > 0);
-            // A tick moves less than a cell: the next column or row is the only one entered.
-            Assert.True(s.Wander < Unit && s.Flee < Unit && s.Knock < Unit && s.Hop < Unit);
             Assert.All(s.Yields, y => Assert.NotNull(Spec.Items.Get(y.Item)));
         });
-        Assert.True(Tune.MaxFall < Unit);
         foreach (var type in Spec.PlanetTypes.All)
             Assert.All(type.Fauna, h =>
             {
@@ -710,8 +763,9 @@ public class FaunaTests
     {
         var w = FaunaTesting.Planet(Room).HeroAt(1, 3);
         var c = w.Loper(5, 3).Still();
-        w.Do(new Place(w.At(5, 3), Grid.Placement.Wall())).Do(new Place(w.At(6, 3), Grid.Placement.Wall())).Run();
-        Assert.Equal(3 * Unit, c.Y);
+        // A wall a cell high under each half of it.
+        w.Do(new Place(w.Feet(5, 3), Grid.Placement.Wall())).Do(new Place(w.Feet(6, 3), Grid.Placement.Wall())).Run();
+        Assert.Equal(4 * Cell - Unit, c.Y);
         Assert.True(Clear(w, c));
     }
 }

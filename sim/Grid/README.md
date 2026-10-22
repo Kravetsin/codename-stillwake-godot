@@ -108,6 +108,13 @@ valve open/closed, machines by `Data.MachineOf`. A machine is drawn as its whole
 draws part of one does not load. Every character but a space has a back wall of the default hull,
 hull walls included. A map's machines take ids 1, 2, … by their top-left cells in reading order.
 
+**A cell is 8 px** ([0104](../../docs/decisions/0104-the-cell-is-8-px.md)); maps are drawn a character a 16 px cell and doubled
+(`Layout.Doubled()`): a character's 2×2 cells all its wall, back wall, machine or ladder; a door one cell thick down its block's
+left column, a hatch along its top row, the other half open (space beside the hull, a ladder a ladder runs on through); a floor
+its top row; `S` its bottom-left; a conduit its top-left and the cells toward neighbouring conduits, one cell wide, meeting the
+doubled ports. A slope does not double. The wreck, the test strip, the ruins' prefabs and test scenarios are doubled; a test
+of a rule per cell reads its map a character a cell.
+
 A map may come with its cells' materials (`Layout.Materials`, 0077): a planet's ground grown from its seed
 (`Terrain`), or a test's material map (`Layout.WithMaterials`, `Legend.Materials`: `s` soil, `t` stone, `b` bedrock, `a` the ruins' alloy, 0085, `p` the homes' plaster, 0091).
 A wall and the back wall behind a cell are then of that cell's material; a code of 0 is open sky, with no back wall, and a

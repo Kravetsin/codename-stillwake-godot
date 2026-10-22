@@ -22,7 +22,7 @@ public class FormerTests
         IReadOnlyList<((int X, int Y) A, (int X, int Y) B)>? cables = !cabled ? null
             : @short ? [((0, 0), (1, 3)), ((0, 0), (4, 3))]
             : [((0, 0), (1, 3))];
-        return new Scenario(Layout.Parse(rows, null, cables)).GiveItems(0, ("iron", 40));
+        return new Scenario(Layout.Parse(rows, null, cables), doubled: true).GiveItems(0, ("iron", 40));
     }
 
     private static int Former(Scenario w) => w.M.Grid.MachinesOf("former").Single().Id;

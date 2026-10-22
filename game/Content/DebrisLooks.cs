@@ -27,7 +27,7 @@ public static class DebrisLooks
 
     /// <summary>
     /// Wreckage, aimed at by its whole picture rather than near its middle (0034): its picture's size in
-    /// pixels of the world, sixteen to a cell, outline included.
+    /// pixels of the world, eight to a cell, outline included.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, (int W, int H)> Wrecks = new Dictionary<string, (int, int)>
     {
@@ -42,7 +42,7 @@ public static class DebrisLooks
         ["asteroidSmall"] = (24, 24),
         ["asteroidLarge"] = (48, 48),
         ["asteroidRich"] = (40, 40),
-        // Derelicts (0056): the biggest pieces out, 5 to 6 cells across.
+        // Derelicts (0056): the biggest pieces out, 10 to 12 cells across.
         ["engineBlock"] = (80, 48),
         ["cargoHold"] = (96, 48),
         ["podCluster"] = (64, 64),

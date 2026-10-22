@@ -52,11 +52,11 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
   Electronics need circuits besides, salvaged from cable racks and derelicts, or made at the circuit assembler.
   - The pod is the most basic bench, slow on purpose (speed 200, a fifth): a wire takes 5 s there, a plate
     10, a rotor 15, a frame 20, the harpoon 30, while the hero is out salvaging. It needs no power and no air.
-  - **The Former** is the first powered station: 2×2, it draws 3 and works at speed 1000, five times the
+  - **The Former** is the first powered station: 4×4, it draws 3 and works at speed 1000, five times the
     pod, with a queue of eight; it makes the parts and components (wire, plate, gear, tube, frame, coil,
     rotor), not tools; and alone, soil (0060) and the motor, a rotor, 2 of a planet's copper and a magnetite in 120 ticks (0080). It costs 2 frames, a rotor, 2 gears and a circuit, so it opens once those four are
     analysed (0027). A plate takes 2 s at full power, about 2.8 s at 70%. Idle, it rests and draws nothing.
-  - **The circuit assembler** makes the electronics (no longer the arc module, 0099): 2×2, it draws 2 and works at speed 1000, a queue of eight;
+  - **The circuit assembler** makes the electronics (no longer the arc module, 0099): 4×4, it draws 2 and works at speed 1000, a queue of eight;
     a circuit of a silicon and 2 wire in 80 ticks, a solar cell of a silicon, a glass and a wire in 100, and on a
     row of its own a drone of a rotor, 2 plates, a circuit and a battery in 160 (0062; a drone holds charge of its own,
     made empty, and the battery's is lost there). It
@@ -65,7 +65,7 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
     (0057).
   - **The arc bench** ([0099](../../docs/decisions/0099-the-arc-bench.md)) is the arc branch's station: every craft of a sky
     shard, the arc module (moved from the assembler, same cost) and the accumulator (a shard, a battery, 2 copper and a
-    circuit in 200 ticks: three batteries' charge). 2×1, no power, speed 1000, a queue of four, **paid by hand only**: its
+    circuit in 200 ticks: three batteries' charge). 4×2, no power, speed 1000, a queue of four, **paid by hand only**: its
     one input slot is its vise, which holds a tool (`Items`), so a craft from the inputs is refused `crafting.noInputs`, as
     at the pod. Its two outputs follow the vise. It costs a shard, a frame, 2 plates and a gear, so analysing a shard opens
     it with the arc module (0027).
@@ -113,7 +113,7 @@ rather than part of `Items`: it asks `Research` what is known, and research depe
   chunk smelts in 60 ticks of fire into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap, rock in 160
   into 2 silicon, biomass in 160 into a biofuel, a planet's copper ore in 160 into a copper (an ingot an ore, so a
   vein's 2 ore are 2 copper, a motor's worth with a magnetite).
-  - **The electric smelter** is the second fed station: 2×2, it draws 4 and works at speed 2000, twice the
+  - **The electric smelter** is the second fed station: 4×4, it draws 4 and works at speed 2000, twice the
     furnace, at heat 2; an input and three outputs, no fuel. It costs a frame, 2 coils, 4 plates and a
     circuit, so it opens once those four are analysed. Rock takes 4 s there at full power; silicon, which
     needs heat 2, smelts into glass in 3 s, there only. Like a queued station that draws, it rests while it

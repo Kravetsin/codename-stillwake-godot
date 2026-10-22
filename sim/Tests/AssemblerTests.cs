@@ -19,7 +19,7 @@ public class AssemblerTests
     {
         string[] rows = ["PPP         ", "            ", "############", "#YY.GG.....#", "#YY.GG.....#", "############"];
         IReadOnlyList<((int X, int Y) A, (int X, int Y) B)> cables = @short ? [((0, 0), (1, 3)), ((0, 0), (4, 3))] : [((0, 0), (1, 3))];
-        return new Scenario(Layout.Parse(rows, null, cables)).GiveItems(0, ("silicon", 10), ("wire", 20), ("glass", 4));
+        return new Scenario(Layout.Parse(rows, null, cables), doubled: true).GiveItems(0, ("silicon", 10), ("wire", 20), ("glass", 4));
     }
 
     private static int Assembler(Scenario w) => w.M.Grid.MachinesOf("assembler").Single().Id;
@@ -127,7 +127,7 @@ public class AssemblerTests
     [Fact]
     public void MakesOnlyElectronicsAndTheFormerNoneOfThemWhoeverSendsIt()
     {
-        var w = new Scenario(Layout.Parse(["########", "#YY.MM.#", "#YY.MM.#", "########"]))
+        var w = new Scenario(Layout.Parse(["########", "#YY.MM.#", "#YY.MM.#", "########"]), doubled: true)
             .GiveItems(1, ("iron", 4), ("silicon", 2), ("wire", 4));
         int assembler = Assembler(w), former = w.M.Grid.MachinesOf("former").Single().Id;
         w.Do(new Craft(assembler, "plate", 1) { From = 1 }).Run();

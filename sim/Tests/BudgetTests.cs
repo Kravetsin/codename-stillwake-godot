@@ -6,7 +6,8 @@ using Xunit.Abstractions;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// A sim tick on the reference world (CLAUDE.md's budgets: 256×128, every layer in use), timed with a
+/// A sim tick on the reference world (CLAUDE.md's budgets: 512×256, the 256×128 drawing doubled to the 8 px cells, 0104, every
+/// layer in use), timed with a
 /// Stopwatch here, never in the sim. The bound asserted is loose, for slow CI machines; the output
 /// says how far under 2 ms a tick stays. Timed alone, after the other tests: a CI runner's few cores
 /// shared with them made a 2 ms tick read as 10.
@@ -19,6 +20,9 @@ public class BudgetTests(ITestOutputHelper output)
     /// each tile's tank also starts with a canister and is piped to its vent, so every room fills and leaks.
     /// </summary>
     internal static Layout Reference() => Reference(256, 128);
+
+    /// <summary>The reference world as a sim runs it (0104): the drawing doubled, 512×256.</summary>
+    internal static Layout ReferenceWorld() => Reference().Doubled();
 
     /// <summary>
     /// The reference tile over <paramref name="shipWidth"/>×<paramref name="shipHeight"/>, <paramref name="margin"/>
@@ -51,9 +55,9 @@ public class BudgetTests(ITestOutputHelper output)
     public void SavesASmallShipInALargeWorldNoBiggerThanTheShipAlone()
     {
         // Bytes rather than time, so it never flakes: what a save holds is what a hash, a welcome and a load cost.
-        string ship = World.Create(1, Reference(), new Registry().All).Save();
-        string large = World.Create(1, Reference(1024, 512), new Registry().All).Save();
-        output.WriteLine($"the ship alone {ship.Length / 1024} KB, in a 1024×512 world {large.Length / 1024} KB");
+        string ship = World.Create(1, ReferenceWorld(), new Registry().All).Save();
+        string large = World.Create(1, Reference(1024, 512).Doubled(), new Registry().All).Save();
+        output.WriteLine($"the ship alone {ship.Length / 1024} KB, in a 2048×1024 world {large.Length / 1024} KB");
         Assert.True(large.Length < ship.Length * 3 / 2, $"{large.Length} bytes for the large world, {ship.Length} for the ship");
     }
 
@@ -139,11 +143,12 @@ public class BudgetTests(ITestOutputHelper output)
         w.Do(new Items.SetCreative(true)).Run();
         var idle = Time(w.World, 300, _ => []);
         int width = m.Grid.Width, spawn = m.Crew.Spawn, row = spawn / width;
-        // Over the ground either side of the hero, a cell over the first wall down each column.
-        for (int x = spawn % width - 50; m.Fauna.Creatures.Count < Content.Fauna.Max && x < spawn % width + 50; x += 2)
+        // Over the ground either side of the hero, a body's width apart, a cell over the first wall down any of its columns.
+        int body = Content.Fauna.Loper.Width;
+        for (int x = spawn % width - 100; m.Fauna.Creatures.Count < Content.Fauna.Max && x < spawn % width + 100; x += body)
         {
-            int y = row - 20;
-            while (y < row + 20 && m.Grid.StructureAt((y + 1) * width + x) != Grid.Structure.Wall) y++;
+            int y = row - 40;
+            while (y < row + 40 && Enumerable.Range(x, body).All(c => m.Grid.StructureAt((y + 1) * width + c) != Grid.Structure.Wall)) y++;
             w.Do(new Fauna.Release(Content.Fauna.Loper.Id, y * width + x)).Run();
         }
         w.Run(Content.Fauna.Beat * Content.Fauna.Max);
@@ -184,23 +189,23 @@ public class BudgetTests(ITestOutputHelper output)
 
     /// <summary>The reference ship alone, and in the corner of a world of space: rooms are found again only around a door, so the space costs nothing.</summary>
     [Theory]
-    [InlineData(256, 128)]
-    [InlineData(1024, 512)]
+    [InlineData(512, 256)]
+    [InlineData(2048, 1024)]
     public void KeepsASimTickWithTheReferenceShipUnderBudget(int width, int height)
     {
         var m = new Registry();
-        var world = World.Create(1, Reference(width, height), m.All);
+        var world = World.Create(1, Reference(width / 2, height / 2).Doubled(), m.All);
         Assert.True(m.Rooms.All.Count > 500);
         // Filling first, so the timed ticks fill, leak and survey hundreds of rooms.
         Time(world, 100, _ => []);
         var still = Time(world, 300, _ => []);
-        Assert.True(m.Atmosphere.AiredCells.Count > 5000);
+        Assert.True(m.Atmosphere.AiredCells.Count > 20000);
         // A door opened and shut every tick: rooms found again, orders and leaks with them.
         var door = Enumerable.Range(0, width * height).First(c => m.Grid.StructureAt(c) == Structure.DoorClosed);
         var toggling = Time(world, 300, t => [new SetDoor(door, t % 2 == 0)]);
         // The same without atmosphere, for its share of the tick.
         var bare = new Registry();
-        var without = World.Create(1, Reference(width, height), bare.All.Where(x => x != bare.Atmosphere).ToList());
+        var without = World.Create(1, Reference(width / 2, height / 2).Doubled(), bare.All.Where(x => x != bare.Atmosphere).ToList());
         Time(without, 100, _ => []);
         var others = Time(without, 300, _ => []);
         var othersToggling = Time(without, 300, t => [new SetDoor(door, t % 2 == 0)]);
@@ -217,19 +222,22 @@ public class BudgetTests(ITestOutputHelper output)
     /// again: rooms are found again only round the change, so neither the world nor the ship costs anything.
     /// </summary>
     [Theory]
-    [InlineData(1024, 512, 256, 128, 8)]
-    [InlineData(2048, 1024, 256, 128, 400)]
-    [InlineData(1024, 512, 1024, 512, 0)]
+    [InlineData(2048, 1024, 512, 256, 16)]
+    [InlineData(2048, 1024, 512, 256, 400)]
+    [InlineData(2048, 1024, 2048, 1024, 0)]
     public void KeepsABreachBesideSpaceAndAWallBuiltOutsideAsCheapInALargeWorldAsInASmallShip(int width, int height, int shipWidth, int shipHeight, int margin)
     {
-        var w = new Scenario(Reference(width, height, shipWidth, shipHeight, margin));
-        int wall = w.At(margin + 9, margin);
-        Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(wall));
+        // Drawn at half each way and doubled (0104): margins and cells in the drawing's characters.
+        var w = new Scenario(Reference(width / 2, height / 2, shipWidth / 2, shipHeight / 2, margin / 2), doubled: true);
+        // The hull's top wall is two cells thick: a breach is both, a column through it.
+        int wall = w.At(margin / 2 + 9, margin / 2), under = wall + w.M.Grid.Width;
+        Assert.Equal((Structure.Wall, Structure.Wall), (w.M.Grid.StructureAt(wall), w.M.Grid.StructureAt(under)));
         Time(w.World, 100, _ => []);
         // What a tick costs anyway, the air of every room in it: a change may add a little, not the ship or the world.
         var still = Time(w.World, 100, _ => []);
         double bound = 4 * still.Mean + 1;
-        IReadOnlyList<Command> Breach(int i) => [i % 2 == 0 ? new ClearAt(wall, "structure") : new Place(wall, Placement.Wall())];
+        IReadOnlyList<Command> Breach(int i) =>
+            i % 2 == 0 ? [new ClearAt(wall, "structure"), new ClearAt(under, "structure")] : [new Place(wall, Placement.Wall()), new Place(under, Placement.Wall())];
         Time(w.World, 10, Breach);
         var breaching = Time(w.World, 100, Breach);
         Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(wall));
@@ -240,7 +248,7 @@ public class BudgetTests(ITestOutputHelper output)
         Assert.True(breaching.Mean < bound, "a breach costs the ship or the world");
         if (margin == 0) return;
         // A cell of space it closes, whose space must be walked to know it still reaches the outside.
-        int outside = w.At(margin + 9, margin - 1);
+        int outside = wall - w.M.Grid.Width;
         IReadOnlyList<Command> Build(int i) => [i % 2 == 0 ? new Place(outside, Placement.Wall()) : new ClearAt(outside, "structure")];
         var building = Time(w.World, 100, Build);
         output.WriteLine($"tick building and taking apart a wall outside the hull: {building.Mean:F3} ms mean, {building.Max:F3} ms max");
@@ -280,7 +288,7 @@ public class BudgetTests(ITestOutputHelper output)
                 Item = "scrapChunk",
                 X = x,
                 Y = y,
-                Speed = 30 + (int)rng.Below(26),
+                Speed = Content.Debris.DriftMin + (int)rng.Below(Content.Debris.DriftMax - Content.Debris.DriftMin + 1),
                 Start = x,
                 End = 0,
                 SeenAt = debris.Clock,
@@ -306,7 +314,7 @@ public class BudgetTests(ITestOutputHelper output)
         string[] tile = ["########", "#FF.AA.#", "#FF.AA.#", "#......#", "#.TT.V.#", "#.TT...#", "#......#", "########"];
         string[] under = ["", "", "", "", "  o  -", "  ----", "", ""];
         string[] Rows(string[] of) => [.. Enumerable.Range(0, 256).Select(y => string.Concat(Enumerable.Repeat(of[y % 8].PadRight(8), 32)))];
-        var w = new Scenario(Layout.Parse(Rows(tile), Rows(under)));
+        var w = new Scenario(Layout.Parse(Rows(tile), Rows(under)), doubled: true);
         foreach (var m in w.M.Grid.Machines)
         {
             if (m.Kind == "furnace") w.FillCrate(m.Id, ("scrapChunk", 10), ("planks", 50));
@@ -352,10 +360,10 @@ public class BudgetTests(ITestOutputHelper output)
         for (int k = 0; k < 17; k++) Stamp('K', 3 + 4 * k, 3, 2, 1);
         for (int k = 0; k < 11; k++) Stamp('F', 4 + 6 * k, 7, 2, 2);
         foreach (int x in new[] { 10, 30, 50 }) Stamp('K', x, 10, 2, 1);
-        var w = new Scenario(Layout.Parse([.. rows.Select(r => new string(r))], [.. under.Select(r => new string(r))]));
+        var w = new Scenario(Layout.Parse([.. rows.Select(r => new string(r))], [.. under.Select(r => new string(r))]), doubled: true);
         Assert.True(w.M.Grid.Machines.Count >= 40);
         foreach (var bay in w.M.Grid.MachinesOf(Content.Logistics.Bay)) LogisticsTests.Dock(w, bay.Id, 4);
-        var crates = w.M.Grid.MachinesOf("crate").Where(c => c.Cell / W == 3).ToList();
+        var crates = w.M.Grid.MachinesOf("crate").Where(c => c.Cell == w.At(c.Cell % w.M.Grid.Width / 2, 3)).ToList();
         for (int k = 0; k < crates.Count; k += 2)
             w.FillCrate(crates[k].Id, [.. Enumerable.Repeat(("scrapChunk", 10), 12), .. Enumerable.Repeat(("planks", 50), 4)]);
         foreach (var f in w.M.Grid.MachinesOf("furnace")) w.Put(0, new Items.Stack("scrapChunk", 1), crate: f.Id).Put(1, new Items.Stack("planks", 10), crate: f.Id);

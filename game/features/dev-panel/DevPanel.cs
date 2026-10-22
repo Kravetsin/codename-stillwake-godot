@@ -144,18 +144,38 @@ public partial class DevPanel : CanvasLayer
         Say("");
     }
 
-    /// <summary>Hits a random wall of the outer hull, where a meteor would, if any is left.</summary>
+    /// <summary>
+    /// Hits a random wall of the outer hull beside a room, where a meteor would, if any is left, and the wall cell behind it
+    /// away from the room: a hull two cells thick (0104) is breached through.
+    /// </summary>
     private void Meteor()
     {
         if (_session() is not Session s) return;
         var m = _modules();
-        var walls = m.Rooms.All.SelectMany(r => r.Hull).Where(cell => m.Grid.StructureAt(cell) == Structure.Wall).ToList();
-        if (walls.Count == 0)
+        int width = m.Grid.Width, height = m.Grid.Height;
+        bool Wall(int x, int y) => x >= 0 && y >= 0 && x < width && y < height && m.Grid.StructureAt(y * width + x) == Structure.Wall;
+        var hits = new List<(int Cell, int? Behind)>();
+        foreach (var room in m.Rooms.All)
+            foreach (int cell in room.Hull)
+            {
+                int x = cell % width, y = cell / width;
+                if (!Wall(x, y)) continue;
+                foreach (var (dx, dy) in ((int, int)[])[(0, -1), (-1, 0), (1, 0), (0, 1)])
+                {
+                    int rx = x + dx, ry = y + dy;
+                    if (rx < 0 || ry < 0 || rx >= width || ry >= height || m.Rooms.RoomAt(ry * width + rx) != room.Id) continue;
+                    hits.Add((cell, Wall(x - dx, y - dy) ? (y - dy) * width + x - dx : null));
+                    break;
+                }
+            }
+        if (hits.Count == 0)
         {
             Say("No hull wall left to hit.");
             return;
         }
-        s.Client.Send(new MeteorHit(walls[Random.Shared.Next(walls.Count)]));
+        var (hit, behind) = hits[Random.Shared.Next(hits.Count)];
+        s.Client.Send(new MeteorHit(hit));
+        if (behind is int through) s.Client.Send(new MeteorHit(through));
         Say("");
     }
 

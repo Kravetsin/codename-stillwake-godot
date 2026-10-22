@@ -28,8 +28,7 @@ public class StoreTests
         "#QQ.QQ.......GG.GG.GG..#",
         "########################",
     ];
-    private const int Width = 24;
-    private static int At((int X, int Y) p) => p.Y * Width + p.X;
+    private static int At(Scenario w, (int X, int Y) p) => w.At(p.X, p.Y);
     private static readonly (int, int)[] Panels = [(0, 0), (4, 0), (8, 0)], Lamps = [(7, 3), (9, 3), (11, 3)], Generators = [(13, 3), (16, 3), (19, 3)];
     private static readonly (int, int) First = (1, 3), Second = (4, 3);
     private static readonly StoreSpec Bank = Machines.Get("capacitorBank").Store!;
@@ -47,14 +46,14 @@ public class StoreTests
         if (second) cables.Add((Second, hub));
         cables.AddRange(Lamps.Take(generators ? 3 : lamps).Select(l => (l, hub)));
         if (generators) cables.AddRange(Generators.Select(g => (g, Lamps[2])));
-        return new Scenario(Layout.Parse(Rows, null, (Pairs)cables), with: m => [new Rester(m.Power)]);
+        return new Scenario(Layout.Parse(Rows, null, (Pairs)cables), with: m => [new Rester(m.Power)], doubled: true);
     }
 
     private static int IdAt(Scenario w, (int X, int Y) cell) => w.M.Grid.MachineAt(w.At(cell.X, cell.Y))!.Id;
     private static StoreLevel Level(Scenario w, (int, int) bank) => w.M.Power.Store(IdAt(w, bank))!;
     private static int Energy(Scenario w, (int, int) bank) => Level(w, bank).Energy;
     private static int Lit(Scenario w, int lamp = 0) => w.M.Power.Satisfaction(IdAt(w, Lamps[lamp]));
-    private static PowerNetwork Network(Scenario w) => w.M.Power.NetworkOf(At(First))!;
+    private static PowerNetwork Network(Scenario w) => w.M.Power.NetworkOf(At(w, First))!;
 
     /// <summary>The world reloaded with each bank named holding what is given, as a save would have it.</summary>
     private static Scenario Holding(Scenario w, params ((int, int) Bank, int Energy)[] stores)
@@ -177,7 +176,7 @@ public class StoreTests
     {
         var w = Holding(World(panels: 1, lamps: 1, first: false), (First, 700)).Run(20);
         Assert.Equal(new StoreLevel(700, Bank.Capacity, 0), Level(w, First));
-        Assert.Null(w.M.Power.NetworkOf(At(First)));
+        Assert.Null(w.M.Power.NetworkOf(At(w, First)));
     }
 
     [Fact]
@@ -215,7 +214,7 @@ public class StoreTests
             ["PPP             ", "                ", "################", "#BB.TT..QQ.L...#", "#BB.TTV.QQ.....#", "################"],
             ["", "", "", "    o", "    ---"],
             panel ? [((1, 3), (8, 3)), ((11, 3), (8, 3)), ((0, 0), (1, 3))] : [((1, 3), (8, 3)), ((11, 3), (8, 3))]),
-            with: m => [new Rester(m.Power)]).GiveItems(0, ("planks", 4));
+            with: m => [new Rester(m.Power)], doubled: true).GiveItems(0, ("planks", 4));
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 3)); i++) w.Run();
         Assert.True(w.M.Atmosphere.AiredAt(w.At(1, 3)));
         return w;
@@ -263,8 +262,8 @@ public class StoreTests
     public void ABurnerOnNoNetworkNeverLights()
     {
         var w = new Scenario(Layout.Parse(
-            ["############", "#BB.TT.....#", "#BB.TTV....#", "############"], ["", "    o", "    ---"])).GiveItems(0, ("planks", 4));
-        for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(13); i++) w.Run();
+            ["############", "#BB.TT.....#", "#BB.TTV....#", "############"], ["", "    o", "    ---"]), doubled: true).GiveItems(0, ("planks", 4));
+        for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 1)); i++) w.Run();
         int from = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "planks");
         w.Do(new Move(new Items.Place(from), new Target(0, w.M.Grid.MachinesOf("burnerGenerator")[0].Id), 1)).Run(5);
         Assert.Equal("furnace.unneeded", w.M.Furnace.At(w.M.Grid.MachinesOf("burnerGenerator")[0].Id).Problem);

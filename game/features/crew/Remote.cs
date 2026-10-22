@@ -105,7 +105,7 @@ public sealed class RemoteHeroes
     /// <summary>A hero silent this long has gone, its peer with it.</summary>
     public const double GoneMs = 3000;
     /// <summary>Farther than this between two samples is a jump, such as waking at the spawn, not a walk.</summary>
-    private const int Snap = 3 * Hero.Unit;
+    private const int Snap = 6 * Hero.Unit;
     /// <summary>How fast the estimate of a peer's clock may slip later, per millisecond heard: a path that grows slower is followed, slowly.</summary>
     private const double Slip = 0.01;
     /// <summary>A sample this much later than the estimate says starts it over: the sender was asleep.</summary>

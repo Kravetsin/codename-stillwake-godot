@@ -29,7 +29,8 @@ public class SurfacesTests
         """;
 
     private static readonly string Strip = Content.Surfaces.TestStrip.Id;
-    private static readonly int StripWidth = Content.Surfaces.TestStrip.Rows[0].Length;
+    /// <summary>The strip's width in cells: drawn a character a 16 px cell, it is doubled as it opens (0104).</summary>
+    private static readonly int StripWidth = 2 * Content.Surfaces.TestStrip.Rows[0].Length;
     private static readonly int Belt = Content.Inventory.Slots + 2;
     private static readonly string Drill = Content.Weapons.Drill.Item;
 
@@ -131,7 +132,8 @@ public class SurfacesTests
         Assert.NotEqual(0u, strip.Seed);
         var m = w.On(1);
         Assert.Equal(StripWidth, m.Grid.Width);
-        Assert.Equal(29 * StripWidth + 30, m.Crew.Spawn);
+        // Its S drawn at (30, 29): the bottom-left cell of that character.
+        Assert.Equal((2 * 29 + 1) * StripWidth + 2 * 30, m.Crew.Spawn);
         // Its own modules, the world's globals shared.
         Assert.NotSame(w.M.Grid, m.Grid);
         Assert.Same(w.M.Players, m.Players);
@@ -235,7 +237,7 @@ public class SurfacesTests
         w.Do(new Transfer(1)).Run();
         var m = w.On(1);
         // Up in the sky, its suit all but empty: the next breath its thin air makes it pay passes it out.
-        int sky = 5 * StripWidth + 14;
+        int sky = 10 * StripWidth + 28;
         w.Do(new Enter(sky) { Surface = 1 }).Run();
         m.Crew.HeroOf(0)!.Suit = 1;
         w.Run(Content.Surfaces.TestStrip.ThinAir!.Value * Content.Crew.BreathEvery);

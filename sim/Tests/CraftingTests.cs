@@ -34,7 +34,7 @@ public class CraftingTests
     private static Scenario World(bool start = false)
     {
         var layout = Layout.Parse(Room);
-        return new Scenario(start ? layout with { Known = Content.Research.StartKnown } : layout);
+        return new Scenario(start ? layout with { Known = Content.Research.StartKnown } : layout, doubled: true);
     }
 
     private static int Count(Scenario w, string item, int peer = 0) =>
@@ -132,7 +132,7 @@ public class CraftingTests
     public void RefusesACraftOrCancelAtAFedStationItsInputItsQueue()
     {
         // A furnace beside the pod: a station, but fed, so it takes no craft and has no entry to cancel.
-        var w = new Scenario(Layout.Parse(["#########", "#.OOO...#", "#.OOOFF.#", "#.OOOFF.#", "#########"])).GiveItems(0, ("scrap", 10));
+        var w = new Scenario(Layout.Parse(["#########", "#.OOO...#", "#.OOOFF.#", "#.OOOFF.#", "#########"]), doubled: true).GiveItems(0, ("scrap", 10));
         int furnace = w.M.Grid.MachinesOf("furnace").Single().Id;
         Craft(w, "wire", at: furnace);
         Cancel(w, 1, at: furnace);

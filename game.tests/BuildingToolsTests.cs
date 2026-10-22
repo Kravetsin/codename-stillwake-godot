@@ -180,36 +180,38 @@ public class BuildingToolsTests
     [Fact]
     public void PicksTheCardOfWhatIsUnderThePointerAPlanFirstThenWhatIsBuiltInTheOverlaysLayers()
     {
-        // Seven cells wide: cell (x, y) is y * 7 + x. A tank at 8; a pipe at 11; open cells behind
-        // walls; a cable along the top, from the hull's corner at 0 to 6.
-        string[] rows = ["#######", "#TT -.#", "#TT...#", "#######"];
-        var w = new TestWorld(Layout.Parse(rows, null, [((0, 0), (6, 0))]));
+        // Drawn a character a cell, the tank its whole 4×4 (0104); twelve cells wide: cell (x, y) is y * 12 + x. A tank at 13;
+        // a pipe at 18; open cells behind walls; a cable along the top, from the hull's corner at 0 to 11.
+        string[] rows = ["############", "#TTTT -....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"];
+        var w = new TestWorld(Layout.Parse(rows, null, [((0, 0), (11, 0))]));
         string? Pick(int cell, string? overlay = null) =>
             What(Tools.CardAt(cell, overlay, w.M.Grid, w.M.Building, w.M.Power, w.M.Research));
         Assert.Equal($"wall:{w.M.Grid.WallAt(0)!.Id}", Pick(0));
-        Assert.Equal("tank", Pick(9));
-        Assert.Equal("backWall:scrap", Pick(11));
-        Assert.Equal("pipe", Pick(11, "pipes"));
-        Assert.Null(Pick(10, "pipes"));
-        w.Step(new PlacePlan(12, new Placement("structure", "door")));
-        Assert.Equal("door", Pick(12));
+        Assert.Equal("tank", Pick(14));
+        Assert.Equal("backWall:scrap", Pick(18));
+        Assert.Equal("pipe", Pick(18, "pipes"));
+        Assert.Null(Pick(17, "pipes"));
+        w.Step(new PlacePlan(19, new Placement("structure", "door")));
+        Assert.Equal("door", Pick(19));
         // Under the power overlay, the cable on a node a cable ends at; nothing on one with none.
         Assert.Equal("cable", Pick(0, Tools.Power));
-        Assert.Null(Pick(14, Tools.Power));
+        Assert.Null(Pick(24, Tools.Power));
     }
 
     [Fact]
     public void ShowsAndPicksOnlyTheCardsTheWorldKnowsTheCableAlways()
     {
         // The tank and the wall of the scrap the hull is of, in a world knowing only its start.
-        var w = new TestWorld(Layout.Parse(["#######", "#TT ..#", "#TT...#", "#######"]) with { Known = Research.StartKnown });
+        var w = new TestWorld(Layout.Parse(["############", "#TTTT .....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"])
+            with
+        { Known = Research.StartKnown });
         var known = Tools.All.Where(each => Tools.Known(each, w.M.Research)).Select(What).ToList();
         Assert.Contains("cable", known);
         Assert.Contains("furnace", known);
         Assert.Contains("analyzer", known);
         Assert.Contains("crate", known);
         Assert.False(Tools.Known(Card("tank"), w.M.Research));
-        Assert.Null(Tools.CardAt(9, null, w.M.Grid, w.M.Building, w.M.Power, w.M.Research));
+        Assert.Null(Tools.CardAt(14, null, w.M.Grid, w.M.Building, w.M.Power, w.M.Research));
         Assert.Equal("wall:scrap", What(Tools.CardAt(0, null, w.M.Grid, w.M.Building, w.M.Power, w.M.Research)));
     }
 }

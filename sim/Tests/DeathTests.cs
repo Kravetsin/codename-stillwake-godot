@@ -175,16 +175,6 @@ public class DeathTests
         Assert.Empty(Floor(w));
     }
 
-    [Fact]
-    public void GivesTheStacksOfASaveBeforeBodiesNoBody()
-    {
-        string old = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "format-14.json"));
-        var m = new Registry();
-        var world = World.Load(Migrations.Upgrade(old), m.All);
-        Assert.All(m.Items.Floor, s => Assert.Null(s.Body));
-        Assert.DoesNotContain("\"body\":", world.Save());
-    }
-
     // Invariants.
 
     /// <summary>An <c>Enter</c> of a hero somewhere, a pick-up of the <c>Id</c>-th stack on the floor, or a wait of <c>Ticks</c>.</summary>

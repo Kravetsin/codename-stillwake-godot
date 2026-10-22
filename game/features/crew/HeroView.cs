@@ -759,7 +759,7 @@ public partial class HeroView : Node2D
         wields != null && m.Items.ToolStack(peer, wields) is { } stack ? Sim.Items.ToolStats.ModulesOf(stack) : [];
 
     /// <summary>
-    /// How far the floor runs open from <paramref name="hero"/>'s feet to either side, in pixels of the world, looking four
+    /// How far the floor runs open from <paramref name="hero"/>'s feet to either side, in pixels of the world, looking eight
     /// cells along its lowest row: a landing's dust spreads no further, so none passes the walls of a shaft (0077).
     /// </summary>
     private static (double Left, double Right) FloorRoom(Sim.Grid.IGridQueries grid, Hero hero)
@@ -767,7 +767,7 @@ public partial class HeroView : Node2D
         int w = grid.Width, cx = hero.X / Hero.Unit, row = (hero.Y - 1) / Hero.Unit;
         double Room(int dir)
         {
-            for (int i = 1; i <= 4; i++)
+            for (int i = 1; i <= 8; i++)
             {
                 int x = cx + dir * i;
                 if (x < 0 || x >= w || row < 0 || row >= grid.Height) break;

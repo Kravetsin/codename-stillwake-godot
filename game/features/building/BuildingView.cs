@@ -71,12 +71,12 @@ public partial class BuildingView : Node2D
     /// <summary>Bursts of sparks off a tick of work on a plan (0075).</summary>
     private const double BurstsPerTick = 0.42;
     /// <summary>How far below a spark a floor is looked for, in cells: past it, sparks fall out of sight.</summary>
-    private const int FloorDepth = 6;
+    private const int FloorDepth = 12;
     /// <summary>Each blueprint being built: its ticks of work in all, to tell one finished from one cancelled as it goes.</summary>
     private readonly Dictionary<int, int> _ticks = [];
     private readonly BuildGlow _glow = new();
     /// <summary>How far from a plan, in pixels, a hero still turns its sparks toward it: a little past the hands' reach.</summary>
-    private const double SparkReach = (Stillwake.Content.Hero.Reach / 1000.0 + 2) * Cell;
+    private const double SparkReach = (Stillwake.Content.Hero.Reach / 1000.0 + 4) * Cell;
     /// <summary>The screwdriver, moved to each plan as it sparks: a few ticks at once, from plans worked side by side.</summary>
     private readonly Heard2D _screwdriver = Cues.Player2D(S.Screwdriver, S.World, voices: 4);
 

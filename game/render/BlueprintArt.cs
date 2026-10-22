@@ -41,8 +41,9 @@ public static class BlueprintArt
         // Scrap's and the ground's are tiles laid over the world, cut a cell at a time (0079); iron's a plain panel.
         "backWall" => [placement.Material == "scrap" || Materials.Get(placement.Material!).Natural
             ? new(TileLayer.Back, ShipTiles.BackName(placement.Material!), Cut: true)
-            : new(TileLayer.Back, $"back_{placement.Material}_plain")],
-        "floor" or "ladder" => [new(TileLayer.Fixtures, placement.Kind)],
+            : new(TileLayer.Back, $"back_{placement.Material}_plain", Cut: true)],
+        // A 16 px picture over the cells of a character's, cut a cell at a time where it lies (0104).
+        "floor" or "ladder" => [new(TileLayer.Fixtures, placement.Kind, Cut: true)],
         // A planned door is shut, a door or a hatch by the doors it joins (0067).
         "door" => [new(TileLayer.Doors, DoorShape.Picture(closed: true, linked))],
         "pipe" => [new(TileLayer.Pipes, $"pipe_{linked}")],
@@ -65,7 +66,8 @@ public static class BlueprintArt
         foreach (var piece in pieces)
         {
             var image = ShipTiles.ImageOf(piece.Picture);
-            if (piece.Cut) image = image.GetRegion(new Rect2I(0, 0, Cell, Cell));
+            // A sheet gives its first cell; a 16 px picture cut over its cells, all of it (0104).
+            if (piece.Cut && !ShipTiles.CutDrawn(piece.Picture)) image = image.GetRegion(new Rect2I(0, 0, Cell, Cell));
             // A valve's wheel sits in the middle of its cell, as the grid lays it.
             var at = piece.Layer == TileLayer.Valves ? new Vector2I(Cell / 2 - image.GetWidth() / 2, Cell / 2 - image.GetHeight() / 2) : Vector2I.Zero;
             size = new Vector2I(Mathf.Max(size.X, at.X + image.GetWidth()), Mathf.Max(size.Y, at.Y + image.GetHeight()));

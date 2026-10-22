@@ -45,7 +45,7 @@ stamped into the ground with it, felled by hits or with what holds them. This fe
   chamber's walls, the ledge over it and the slab by it, sparks dripping; every 2.6–5.5 s a big branchy discharge into the
   chamber's metal, a flash of its violet-white re-lighting the room, sparks raining, the zap heard. Its light breathes with the
   hum; a light every 26 px up the light well's column lights the ledges; the lens burns in the tip and throws a pillar of light
-  72 cells up the sky, a thin white core in it, motes rising in the beam; its roots glow in the rock round the chamber, where the
+  144 cells up the sky, a thin white core in it, motes rising in the beam; its roots glow in the rock round the chamber, where the
   rock still stands (V1's fulgurites, drawn again only when the grid or the light changes). A hit on the cradle arcs into the
   nearest hero as the sim shocks whoever struck.
 - **Taken:** watched, the cradle sparks three seconds more, its arcs thinning out, a last discharge into the slab at

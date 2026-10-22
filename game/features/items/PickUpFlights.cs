@@ -88,7 +88,7 @@ public partial class PickUpFlights : Node2D
             {
                 Flares.Shared.Glint(chest.X, chest.Y, 6, Landed);
                 Flares.Shared.Shock(chest.X, chest.Y, 2, 11, 12 * Glim.SampleMs, Landed, 0.35 * Fx.Glow, 0.26);
-                Flares.Shared.Flash(chest.X, chest.Y, Ribbon, 0.3 * Fx.Glow, 2, 0.45f, 0.82);
+                Flares.Shared.Flash(chest.X, chest.Y, Ribbon, 0.3 * Fx.Glow, 4, 0.671f, 0.82);
             }
             else Flares.Shared.Glint(chest.X, chest.Y, 4, Landed);
             _flights.RemoveAt(i);

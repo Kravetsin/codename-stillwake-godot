@@ -28,10 +28,10 @@ public class HazardsTests
     private static (Scenario W, int Tank, int Room) Aired()
     {
         var w = new Scenario(Room).Do(new Items.SetCreative(true));
-        w.Do(new Place(w.At(1, 1), new Placement("conduit", "pipe")))
-            .Do(new Place(w.At(1, 2), new Placement("conduit", "valve")))
-            .Do(new Place(w.At(1, 3), new Placement("conduit", "pipe")))
-            .Run();
+        // From the vent's port to the tank's, every cell of the run.
+        foreach (int cell in AirTesting.Line(9, 1, 1, 1, 3))
+            w.Do(new Place(cell, new Placement("conduit", cell == w.At(1, 2) ? "valve" : "pipe")));
+        w.Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
         for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
         w.Run();
@@ -41,16 +41,19 @@ public class HazardsTests
         return (w, tank, room);
     }
 
+    /// <summary>Meteors on both cells of the hull's thickness at the drawn cell (8, 2): a breach (0104).</summary>
+    private static Scenario Breach(Scenario w) => w.Do(new MeteorHit(w.At(8, 2))).Do(new MeteorHit(w.At(8, 2) + 1));
+
     [Fact]
     public void BreakAHullWallSoTheRoomVentsAndDrainsItsNetwork()
     {
         var (w, tank, room) = Aired();
         Assert.Empty(w.M.Rooms.RoomById(room)!.Openings);
         int before = w.M.Atmosphere.OxygenIn(tank);
-        w.Do(new MeteorHit(w.At(8, 2))).Run();
-        Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(w.At(8, 2)));
+        Breach(w).Run();
+        Assert.Equal((Structure.Empty, Structure.Empty), (w.M.Grid.StructureAt(w.At(8, 2)), w.M.Grid.StructureAt(w.At(8, 2) + 1)));
         Assert.Equal(room, w.M.Rooms.RoomAt(w.At(4, 2)));
-        Assert.Equal(new[] { w.At(8, 2) }, w.M.Rooms.RoomById(room)!.Openings);
+        Assert.Equal(new[] { w.At(8, 2) + 1 }, w.M.Rooms.RoomById(room)!.Openings);
         Assert.Equal(RoomStatus.Venting, w.M.Atmosphere.StatusOf(room));
         Assert.Equal(before - Content.Air.VentDrain, w.M.Atmosphere.OxygenIn(tank));
     }
@@ -59,7 +62,7 @@ public class HazardsTests
     public void StopDrainingTheNetworkOnceAValveCutsTheVentOff()
     {
         var (w, tank, _) = Aired();
-        w.Do(new MeteorHit(w.At(8, 2))).Run(2);
+        Breach(w).Run(2);
         w.Do(new SetValve(w.At(1, 2), false)).Run();
         int cut = w.M.Atmosphere.OxygenIn(tank);
         w.Run(10);
@@ -72,11 +75,11 @@ public class HazardsTests
     {
         var (w, tank, room) = Aired();
         w.Do(new SetCreative(true)).Run();
-        w.Do(new MeteorHit(w.At(8, 2))).Run();
-        w.Do(new PlacePlan(w.At(8, 2), Placement.Wall("scrap"))).Run();
-        int plan = w.M.Building.Plans[0].Id;
-        for (int i = 0; i <= Content.Materials.Get("scrap").BuildTicks; i++) w.Do(new Work(plan)).Run();
-        Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(w.At(8, 2)));
+        Breach(w).Run();
+        w.Do(new PlacePlan(w.At(8, 2), Placement.Wall("scrap"))).Do(new PlacePlan(w.At(8, 2) + 1, Placement.Wall("scrap"))).Run();
+        foreach (int plan in w.M.Building.Plans.Select(p => p.Id).ToArray())
+            for (int i = 0; i <= Content.Materials.Get("scrap").BuildTicks; i++) w.Do(new Work(plan)).Run();
+        Assert.Equal((Structure.Wall, Structure.Wall), (w.M.Grid.StructureAt(w.At(8, 2)), w.M.Grid.StructureAt(w.At(8, 2) + 1)));
         Assert.Empty(Assert.Single(w.M.Rooms.All).Openings);
         // Built at once, the tank is far from dry; a fresh canister fills the room again all the same.
         w.Do(new LoadCanister(tank)).Run();
@@ -103,8 +106,8 @@ public class HazardsTests
         Assert.Equal(held, w.M.Items.Inventory(0));
     }
 
-    /// <summary>Cell (x, y) of the nine-wide <see cref="Room"/>, before a scenario is there to ask.</summary>
-    private static int RoomCell(int x, int y) => y * 9 + x;
+    /// <summary>Cell (x, y) of the nine-wide <see cref="Room"/> as drawn, doubled, before a scenario is there to ask.</summary>
+    private static int RoomCell(int x, int y) => AirTesting.Cell(9, x, y);
 
     [Fact]
     public void BreakThePipeRunningThroughTheWallToo()
@@ -119,7 +122,7 @@ public class HazardsTests
     [Fact]
     public void HitOnlyWallsNotAnOpenCellADoorOrACellOffTheGrid()
     {
-        var w = new Scenario("#D#\n#.#\n###")
+        var w = new Scenario("#D#\n#.#\n###", cells: true)
             .Do(new MeteorHit(4))
             .Do(new MeteorHit(1))
             .Do(new MeteorHit(-1))
@@ -132,7 +135,7 @@ public class HazardsTests
     [Fact]
     public void GridReadsPipesAndValves()
     {
-        var w = new Scenario("-vx.");
+        var w = new Scenario("-vx.", cells: true);
         Assert.Equal(new[] { Conduit.Pipe, Conduit.ValveOpen, Conduit.ValveClosed, Conduit.None },
             Enumerable.Range(0, 4).Select(w.M.Grid.ConduitAt));
         Assert.Equal(Conduit.None, w.M.Grid.ConduitAt(-1));

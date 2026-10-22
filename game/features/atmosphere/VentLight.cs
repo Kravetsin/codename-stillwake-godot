@@ -39,7 +39,7 @@ public partial class VentLight : Node2D
     {
         if (_jets.Length != streams.Count) (_jets, _puffs) = (new double[streams.Count], new double[streams.Count]);
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();
-        view = view.Grow(2 * Cell);
+        view = view.Grow(4 * Cell);
         _seen.Clear();
         for (int i = 0; i < streams.Count; i++)
         {
@@ -63,7 +63,7 @@ public partial class VentLight : Node2D
             var way = Vector2.FromAngle((float)heading);
             if (shown < Shimmers)
             {
-                var middle = at + way * Cell * 0.7f;
+                var middle = at + way * Cell * 1.4f;
                 _shimmers[shown].Box = new Rect2(middle - new Vector2(15, 16), new Vector2(30, 32));
                 _shimmers[shown++].Amplitude = 0.6f;
             }

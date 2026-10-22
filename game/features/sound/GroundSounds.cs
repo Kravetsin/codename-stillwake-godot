@@ -22,13 +22,13 @@ public static class GroundSounds
 
     /// <summary>
     /// What the boots of a hero with its feet at (<paramref name="x"/>, <paramref name="y"/>), thousandths of a cell, stand on: the
-    /// cell under the middle of its feet, else under either edge, in the row its feet are in or the one under it (a jump pushing off
+    /// cell under the middle of its feet, else under either edge, in the row its feet are in or the two under it (a jump pushing off
     /// is a little way up already); none where nothing holds it up there, in the air.
     /// </summary>
     public static Footing? FootingOf(IGridQueries grid, IReadOnlyList<Plant> plants, int x, int y)
     {
         if (x < 0 || y < 0) return null;
-        for (int row = y / Unit; row <= y / Unit + 1 && row < grid.Height; row++)
+        for (int row = y / Unit; row <= y / Unit + 2 && row < grid.Height; row++)
             foreach (int foot in (ReadOnlySpan<int>)[x, x - Half, x + Half - 1])
             {
                 int column = foot / Unit;

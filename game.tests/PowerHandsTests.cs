@@ -13,12 +13,12 @@ namespace Stillwake.Game.Tests;
 /// <summary>The hands on cables on the power tab (0030): no card carries, the cable card lays, the middle button cuts.</summary>
 public class PowerHandsTests
 {
-    // Nine wide: a lamp at (1, 2) cabled to a peg on the ceiling at (4, 1).
-    private const int W = 9;
+    // Drawn nine wide and doubled (0104), eighteen: a lamp at (2, 4) cabled to a peg on the ceiling at (8, 2).
+    private const int W = 18;
     private static int At(int x, int y) => y * W + x;
 
     private static TestWorld World() => new(Layout.Parse(
-        ["         ", "#########", "#L......#", "#########"], null, [((1, 2), (4, 1))]));
+        ["         ", "#########", "#L......#", "#########"], null, [((1, 2), (4, 1))]).Doubled());
 
     private static List<Line> Lines(IGridQueries grid, IPowerQueries power) =>
         power.Cables.Select(c => new Line(c.A, c.B, [CableShape.EndOf(grid, c.A), CableShape.EndOf(grid, c.B)])).ToList();
@@ -41,9 +41,9 @@ public class PowerHandsTests
     public void CarriesAPegWithNoCardInHandAndLaysNothing()
     {
         var w = World();
-        var sent = Drag(w, Holding.Plan, CableShape.EndOf(w.M.Grid, At(4, 1)), (6.5, 1.5));
+        var sent = Drag(w, Holding.Plan, CableShape.EndOf(w.M.Grid, At(8, 2)), (12.5, 2.5));
         var move = Assert.IsType<Move>(Assert.Single(sent));
-        Assert.Equal((At(4, 1), At(6, 1)), (move.Node, move.To));
+        Assert.Equal((At(8, 2), At(12, 2)), (move.Node, move.To));
     }
 
     [Fact]
@@ -51,9 +51,9 @@ public class PowerHandsTests
     {
         var w = World();
         w.Step(new SetCreative(true));
-        var sent = Drag(w, Holding.Cable, CableShape.EndOf(w.M.Grid, At(4, 1)), (6.5, 1.5));
+        var sent = Drag(w, Holding.Cable, CableShape.EndOf(w.M.Grid, At(8, 2)), (12.5, 2.5));
         var lay = Assert.IsType<Lay>(Assert.Single(sent));
-        Assert.Equal((At(4, 1), At(6, 1)), (lay.A, lay.B));
+        Assert.Equal((At(8, 2), At(12, 2)), (lay.A, lay.B));
     }
 
     [Fact]

@@ -70,17 +70,18 @@ public class StarFalloffTests
             else rows.Add(new string('#', 40));
         }
         var m = new Registry();
-        World.Create(1, Layout.Parse(rows), m.All);
+        World.Create(1, Layout.Parse(rows).Doubled(), m.All);
         var field = new StarField((0.9f, 0.9f, 0.8f), L.GroundKeep, L.GroundDownKeep);
         field.Work(m.Grid);
-        // Six cells down the shaft daylight still shows; the cave five cells round the bend from the shaft's foot is black.
-        Assert.True(RedAt(field, 10, 12) > 30, $"{RedAt(field, 10, 12)} six cells down");
-        Assert.True(RedAt(field, 10, 9) > RedAt(field, 10, 12));
-        Assert.Equal(0, RedAt(field, 15, 19));
+        // Drawn a character a 16 px cell and doubled (0104): twelve cells down the shaft daylight still shows; the cave ten cells
+        // round the bend from the shaft's foot is black.
+        Assert.True(RedAt(field, 20, 24) > 30, $"{RedAt(field, 20, 24)} twelve cells down");
+        Assert.True(RedAt(field, 20, 18) > RedAt(field, 20, 24));
+        Assert.Equal(0, RedAt(field, 30, 38));
         // Aboard, the stars' keep is the same every way.
         var aboard = new StarField((0.9f, 0.9f, 0.8f));
         aboard.Work(m.Grid);
-        Assert.True(RedAt(aboard, 10, 12) < RedAt(field, 10, 12));
+        Assert.True(RedAt(aboard, 20, 24) < RedAt(field, 20, 24));
     }
 
     [Fact]
@@ -93,8 +94,8 @@ public class StarFalloffTests
         var none = Worked(Hall());
         Assert.Equal((int)(L.StarHole * L.Star.R * 255), RedAt(field, hx, hy));
         Assert.True(RedAt(field, hx + 1, hy) > 0 && RedAt(field, hx, hy - 1) > 0);
-        // A few cells, where the stars' light once ran some forty.
-        Assert.InRange(HoleShows(), 2, 10);
+        // A few cells, where the stars' light once ran some eighty: twice the 16 px cells it was tuned in (0104).
+        Assert.InRange(HoleShows(), 4, 20);
         // A few cells from the hole the hall is as it is with none: dark, but by the hull, where its walls let a little through.
         var r = field.Region;
         for (int y = r.Top; y <= r.Bottom; y++)
@@ -131,7 +132,7 @@ public class StarFalloffTests
             step = RedAt(field, x, Hy);
         }
         // Further in the hall is as it is walled whole.
-        Assert.InRange(Shows(L.StarKeep * L.StarKeep), 2, 10);
+        Assert.InRange(Shows(L.StarKeep * L.StarKeep), 4, 20);
         for (int y = 0; y < H; y++)
             for (int x = 0; x <= last - Shows(L.StarKeep * L.StarKeep) - Math.Abs(y - Hy); x++) Assert.Equal(TexelAt(none, x, y), TexelAt(field, x, y));
         Assert.Equal(0, RedAt(none, W / 2, Hy));
@@ -142,7 +143,7 @@ public class StarFalloffTests
     {
         var m = Hall();
         int hx = Hx, hy = Hy, cell = hy * W + hx;
-        Assert.InRange(HoleShows(), 2, 10);
+        Assert.InRange(HoleShows(), 4, 20);
         m.Grid.Clear(cell, "back");
         var field = Worked(m);
         var before = field.Texels.ToArray();

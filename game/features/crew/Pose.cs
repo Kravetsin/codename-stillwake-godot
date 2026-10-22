@@ -38,10 +38,10 @@ public readonly record struct Moment(double Travelled, double TimeMs, double? La
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
 {
-    /// <summary>Cells walked per full cycle of the legs: two steps. A climb's cycle is a cell, by its rungs (<see cref="Ladder"/>).</summary>
+    /// <summary>Cells walked per full cycle of the legs: two steps. A climb's is <c>Ladder.Stride</c> cells (<see cref="Ladder"/>).</summary>
     public static class Stride
     {
-        public const double Walk = 2.8, Run = 4.6;
+        public const double Walk = 5.6, Run = 9.2;
     }
 
     /// <summary>
@@ -111,7 +111,7 @@ public static class Poses
 
     private const double BreathMs = 2600, DriftMs = 3400;
     /// <summary>Within this many cells of the body's middle the pointer turns nobody: no flicker over the hero.</summary>
-    private const double FaceDeadzone = 0.25;
+    private const double FaceDeadzone = 0.5;
 
     /// <summary>
     /// The head's turn toward a point <paramref name="dx"/> ahead of its neck, the way the hero faces, and

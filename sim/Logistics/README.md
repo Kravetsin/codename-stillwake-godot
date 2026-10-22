@@ -46,10 +46,10 @@ job from where they are, and fly home with no work left or their charge low. A m
   output's machine, then the lowest id, carrying up to that room. Of all of them, the source nearest by Manhattan
   distance between the drone's cell and the source's top-left, then the lowest source id, then the first slot there
   holding the item, a refill before an output, then the lowest target id.
-- **What a job costs** (`Affords`): `Draw` × ticks a cell × the Manhattan lengths from where the drone is to the source,
+- **What a job costs** (`Affords`): `Draw` × the ticks, rounded up, a drone at its bay's speed takes over the Manhattan lengths from where the drone is to the source,
   on to the target and home to the bay's top-left, the legs from the source and the target each with the width and
-  height of its machine less two (a drone arrives at any of its cells), and `Spare` (2) cells; its charge must hold at least that.
-- **A bay** (`droneBay`, 2×2, four slots, a charging station drawing 4) looks when `(Ticks + id) % LookEvery == 0`,
+  height of its machine less two (a drone arrives at any of its cells), and `Spare` (4) cells, the 16 px cell's two (0104); its charge must hold at least that.
+- **A bay** (`droneBay`, 4×4, four slots, a charging station drawing 4) looks when `(Ticks + id) % LookEvery == 0`,
   bays in id order, each tick after the drones have flown. Its first slot holding a drone charged to `LaunchAt` floods
   its zone — the cells within `Reach` of its footprint — breadth first from its passable cells through passable cells
   (aired, or a door's, closed too), finds the job from the bay, and launches that drone on it when it affords it.

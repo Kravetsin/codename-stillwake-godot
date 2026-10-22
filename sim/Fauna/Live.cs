@@ -214,9 +214,9 @@ public sealed partial class FaunaModule
 
     /// <summary>
     /// Whether a walker standing as <paramref name="c"/> stands must turn from <paramref name="way"/>: the grid's edge, a wall in the
-    /// column ahead it cannot step up (more than a cell high, or no room over its body to rise into), or no floor there within
-    /// <c>Fauna.Drop</c> rows under its feet; or such a drop in the column its leading edge reaches going <paramref name="speed"/>
-    /// this tick, so a fleeing one turns at the brink rather than past it. A wall is met flush as it moves.
+    /// column ahead it cannot step up (more than <c>Fauna.StepUp</c> cells high, or no room over its body to rise into), or no floor
+    /// there within <c>Fauna.Drop</c> rows under its feet; or such a drop in a column its leading edge reaches going
+    /// <paramref name="speed"/> this tick, so a fleeing one turns at the brink rather than past it. A wall is met flush as it moves.
     /// </summary>
     private bool Blocked(Spec.Species spec, Creature c, int way, int speed)
     {
@@ -227,8 +227,13 @@ public sealed partial class FaunaModule
         int reached = Down(way > 0 ? c.X + half + speed - 1 : c.X - half - speed, Unit);
         int feet = c.Y / Unit;
         // Only over flat ground: a step up met first is climbed this tick, and a column off the grid is the edge's, met next tick.
-        return reached != column && reached >= 0 && reached < _grid.Width && !Solid(column, feet - 1) && !Solid(reached, feet - 1)
-            && Falls(reached, feet);
+        if (Rise(column, feet) > 0) return false;
+        for (int at = column + way; at != reached + way; at += way)
+        {
+            if (at < 0 || at >= _grid.Width || Rise(at, feet) > 0) return false;
+            if (Falls(at, feet)) return true;
+        }
+        return false;
     }
 
     /// <summary>Whether no floor lies in <paramref name="column"/> within <c>Fauna.Drop</c> rows from <paramref name="feet"/> down.</summary>
@@ -239,18 +244,27 @@ public sealed partial class FaunaModule
         return true;
     }
 
+    /// <summary>How many rows of <paramref name="column"/> over <paramref name="feet"/>, at most <c>Fauna.StepUp</c>, its highest solid one stands: a step's height, 0 for none.</summary>
+    private int Rise(int column, int feet)
+    {
+        for (int k = Spec.StepUp; k >= 1; k--)
+            if (Solid(column, feet - k)) return k;
+        return 0;
+    }
+
     /// <summary>Whether the column just ahead of <paramref name="c"/>'s leading edge turns it back: a wall it cannot step up, or a drop.</summary>
     private bool Ahead(Spec.Species spec, Creature c, int column)
     {
         int half = spec.Width * Unit / 2;
-        int feet = c.Y / Unit, top = feet - spec.Height;
-        if (Solid(column, feet - 1))
+        int feet = c.Y / Unit, top = feet - spec.Height, rise = Rise(column, feet);
+        if (rise > 0)
         {
-            // Up one cell: the column ahead free of the body raised, and the row over the body free where it stands.
-            for (int row = top - 1; row < feet - 1; row++)
+            // Up the step: the column ahead free of the body raised, and the rows over the body free where it stands.
+            for (int row = top - rise; row < feet - rise; row++)
                 if (Solid(column, row)) return true;
             for (int x = Down(c.X - half, Unit); x <= Down(c.X + half - 1, Unit); x++)
-                if (Solid(x, top - 1)) return true;
+                for (int row = top - rise; row < top; row++)
+                    if (Solid(x, row)) return true;
             return false;
         }
         for (int row = top; row < feet - 1; row++)
@@ -259,42 +273,96 @@ public sealed partial class FaunaModule
     }
 
     /// <summary>
-    /// <paramref name="c"/> moved a tick: falling by the surface's gravity, across by its speed, stepping up a cell onto a ledge it
-    /// walks into on the ground and, walking, down a cell off one; stopped flush against what is solid, turned back by a wall while
-    /// it walks, landed or hitting its head.
+    /// <paramref name="c"/> moved a tick: falling by the surface's gravity, across by its speed, stepping up onto a ledge it walks
+    /// into on the ground and, walking, down off one, each up to <c>Fauna.StepUp</c> cells; stopped flush against what is solid,
+    /// turned back by a wall while it walks, landed or hitting its head. It moves in parts of under a cell, so no wall a cell
+    /// thick is passed at speed (0104).
     /// </summary>
     private void Move(Creature c, Spec.Species spec, bool grounded)
     {
         c.VY = Math.Min(c.VY + Rules.Fall(Spec.Gravity), Spec.MaxFall);
         if (c.VX != 0)
         {
-            int to = c.X + c.VX, half = spec.Width * Unit / 2;
-            if (!Overlaps(spec, to, c.Y)) c.X = to;
-            else if (grounded && !Overlaps(spec, to, c.Y - Unit)) (c.X, c.Y) = (to, c.Y - Unit);
+            int x = c.X, y = c.Y;
+            bool walks = Walks(c.Mode);
+            // Flush against what it met, walking it keeps its way, its steering next tick jumping or turning; in the air it presses
+            // on, so a leap carries it over once clear.
+            if (Across(spec, ref x, ref y, c.VX, grounded, walks, out bool down) && !walks) c.VX = 0;
+            // Down a step as it walks, as up one: a slope's run of steps is walked, not fallen down.
+            if (down) c.VY = 0;
+            (c.X, c.Y) = (x, y);
+        }
+        int to = c.Y;
+        if (Upright(spec, c.X, ref to, c.VY)) c.VY = 0;
+        c.Y = to;
+    }
+
+    /// <summary>
+    /// A body of <paramref name="spec"/> at (<paramref name="x"/>, <paramref name="y"/>) moved <paramref name="vx"/> across in parts
+    /// of under a cell, on the ground stepping up onto what it walks into and, <paramref name="walks"/>, down off a ledge, each up
+    /// to <c>Fauna.StepUp</c> cells. Whether it met what is solid, then flush against the column it would enter; <paramref name="down"/>
+    /// whether it stepped down.
+    /// </summary>
+    private bool Across(Spec.Species spec, ref int x, ref int y, int vx, bool grounded, bool walks, out bool down)
+    {
+        int half = spec.Width * Unit / 2, parts = Math.Abs(vx) / Unit + 1;
+        bool met = false;
+        down = false;
+        for (int i = 0; i < parts && !met; i++)
+        {
+            int to = x + Part(vx, i, parts);
+            if (!Overlaps(spec, to, y)) x = to;
+            else if (grounded && StepOnto(spec, to, y) is int up) (x, y) = (to, y - up);
+            else (x, met) = (Flush(to, vx, half), true);
+            if (grounded && walks && StepOff(spec, x, y) is var off and > 0) (y, down) = (y + off, true);
+        }
+        return met;
+    }
+
+    /// <summary>
+    /// A body of <paramref name="spec"/> at <paramref name="y"/> moved <paramref name="vy"/> down (up, when less than none) in parts
+    /// of under a cell: whether it landed or hit its head, then flush against what stopped it.
+    /// </summary>
+    private bool Upright(Spec.Species spec, int x, ref int y, int vy)
+    {
+        int parts = Math.Abs(vy) / Unit + 1;
+        for (int i = 0; i < parts; i++)
+        {
+            int to = y + Part(vy, i, parts);
+            if (!Overlaps(spec, x, to)) y = to;
             else
             {
-                // Flush against the column it would enter: a tick moves less than a cell, so it is the next one. Walking it keeps
-                // its way, its steering next tick jumping or turning; in the air it presses on, so a leap carries it over once clear.
-                c.X = Flush(to, c.VX, half);
-                if (!Walks(c.Mode)) c.VX = 0;
+                y = vy > 0 ? Down(to - 1, Unit) * Unit : (Down(to - spec.Height * Unit, Unit) + 1 + spec.Height) * Unit;
+                return true;
             }
-            // Down a step one cell deep as it walks, as up one: a slope's run of steps is walked, not fallen down.
-            if (grounded && Walks(c.Mode) && !Overlaps(spec, c.X, c.Y + 1)
-                && !Overlaps(spec, c.X, c.Y + Unit) && Overlaps(spec, c.X, c.Y + Unit + 1))
-                (c.Y, c.VY) = (c.Y + Unit, 0);
         }
-        int down = c.Y + c.VY;
-        if (!Overlaps(spec, c.X, down)) c.Y = down;
-        else if (c.VY > 0)
+        return false;
+    }
+
+    /// <summary>The <paramref name="i"/>th of <paramref name="parts"/> parts of <paramref name="v"/>, whole, the parts summing to it.</summary>
+    private static int Part(int v, int i, int parts) => v * (i + 1) / parts - v * i / parts;
+
+    /// <summary>How far up, a cell at a time to <c>Fauna.StepUp</c>, a body walking into what is solid at (<paramref name="x"/>, <paramref name="y"/>) fits; null when it does not.</summary>
+    private int? StepOnto(Spec.Species spec, int x, int y)
+    {
+        for (int k = 1; k <= Spec.StepUp; k++)
+            if (!Overlaps(spec, x, y - k * Unit)) return k * Unit;
+        return null;
+    }
+
+    /// <summary>
+    /// How far down, a cell at a time to <c>Fauna.StepUp</c>, the ground lies under a body at (<paramref name="x"/>, <paramref name="y"/>)
+    /// with none right under it; 0 for none so near, or ground right under it.
+    /// </summary>
+    private int StepOff(Spec.Species spec, int x, int y)
+    {
+        if (Overlaps(spec, x, y + 1)) return 0;
+        for (int k = 1; k <= Spec.StepUp; k++)
         {
-            c.Y = Down(down - 1, Unit) * Unit;
-            c.VY = 0;
+            if (Overlaps(spec, x, y + k * Unit)) return 0;
+            if (Overlaps(spec, x, y + k * Unit + 1)) return k * Unit;
         }
-        else
-        {
-            c.Y = (Down(down - spec.Height * Unit, Unit) + 1 + spec.Height) * Unit;
-            c.VY = 0;
-        }
+        return 0;
     }
 
     /// <summary>The middle of a body <paramref name="half"/> wide either way flush against the column it would enter at <paramref name="to"/> going <paramref name="vx"/>.</summary>

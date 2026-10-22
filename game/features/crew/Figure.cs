@@ -36,7 +36,7 @@ public partial class Figure : Node2D
     private const double Back = Rig.W * 0.62;
     /// <summary>Motes of dust a boot kicks up running, and the grains a landing throws at least and at most to either side, by its fall (0075).</summary>
     private const int DustRun = 5, DustLandLeast = 3, DustLandMost = 9;
-    private const double DustLandPerSpeed = 1.0 / 50;
+    private const double DustLandPerSpeed = 1.0 / 100;
 
     /// <summary>Each part's joint, the pixel it turns at, as art.ts draws it.</summary>
     private static readonly Dictionary<string, Vector2> Joints = new()

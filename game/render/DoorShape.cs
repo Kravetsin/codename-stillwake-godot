@@ -84,7 +84,7 @@ public static class DoorShape
     private static bool Panel(byte[] closed, byte[] open, int i) =>
         closed[i] != open[i] || closed[i + 1] != open[i + 1] || closed[i + 2] != open[i + 2] || closed[i + 3] != open[i + 3];
 
-    private const int Cell = 16, None = -1;
+    private const int Cell = Camera.Cell, None = -1;
 
     /// <summary>The piece cell <paramref name="index"/> of a doorway <paramref name="length"/> long is, by its joins: a door cell alone is a hatch.</summary>
     private static int PieceAt(bool hatch, int index, int length)

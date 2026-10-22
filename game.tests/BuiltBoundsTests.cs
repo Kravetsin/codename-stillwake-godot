@@ -56,7 +56,7 @@ public class BuiltBoundsTests
             {
                 int cell = y * w + x, roll = rng.Next(10_000);
                 if (roll >= holes) m.Grid.Place(cell, Placement.BackWall());
-                if (roll >= 9_900) m.Grid.Place(cell, Placement.Wall());
+                if (roll >= 9_900 && m.Grid.PlacementProblem(cell, Placement.Wall()) == null) m.Grid.Place(cell, Placement.Wall());
                 if (roll is >= 9_850 and < 9_900 && m.Grid.PlacementProblem(cell, new Placement("machine", "lamp")) == null) m.Grid.Place(cell, new Placement("machine", "lamp"));
             }
         return m;

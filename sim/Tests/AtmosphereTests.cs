@@ -14,8 +14,8 @@ namespace Stillwake.Sim.Tests;
 public class AtmosphereTests
 {
     /// <summary>
-    /// A sealed room nine wide, with a vent above a tank, and three canisters for peer 0. A tank's port
-    /// is its bottom-left cell, a vent's its own; <see cref="Setup.PipeUp"/> lays the pipe joining them.
+    /// A sealed room nine wide, doubled (0104), with a vent above a tank, and three canisters for peer 0. A tank's port
+    /// is the top-left of its bottom-left block, a vent's its top-left; <see cref="Setup.PipeUp"/> lays the pipe joining them.
     /// </summary>
     private const string Room = """
         #########
@@ -25,7 +25,10 @@ public class AtmosphereTests
         #########
         """;
 
-    private static int At(int x, int y) => y * 9 + x;
+    private static int At(int x, int y) => AirTesting.Cell(9, x, y);
+
+    /// <summary>The four cells of the character drawn at (<paramref name="x"/>, <paramref name="y"/>).</summary>
+    private static int[] Block(int x, int y) => [At(x, y), At(x, y) + 1, At(x, y) + 18, At(x, y) + 19];
 
     /// <summary>The canisters in peer <paramref name="peer"/>'s inventory.</summary>
     private static int Canisters(Scenario w, int peer) =>
@@ -37,7 +40,7 @@ public class AtmosphereTests
     {
         public void PipeUp()
         {
-            foreach (int cell in new[] { At(1, 1), At(1, 2), At(1, 3) })
+            foreach (int cell in AirTesting.Line(9, 1, 1, 1, 3))
                 W.Do(new Place(cell, new Placement("conduit", "pipe")));
             W.Run();
         }
@@ -47,7 +50,7 @@ public class AtmosphereTests
 
     private static Setup SetUp(Layout map)
     {
-        var w = new Scenario(map).GiveItems(0, ("canister", 3));
+        var w = new Scenario(map, doubled: true).GiveItems(0, ("canister", 3));
         var machines = w.M.Grid.Machines;
         int tank = machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
         int vent = machines.FirstOrDefault(m => m.Kind == "vent")?.Id ?? 0;
@@ -57,7 +60,7 @@ public class AtmosphereTests
 
     // Back walls.
 
-    /// <summary><see cref="Room"/> with no back wall behind cell (5, 2).</summary>
+    /// <summary><see cref="Room"/> with no back wall behind the block drawn at (5, 2).</summary>
     private static readonly string OpenBehind = ReplaceFirst(Room, "#TT.....#", "#TT.. ..#");
 
     /// <summary>TypeScript's <c>replace</c> with a string: the first occurrence only.</summary>
@@ -73,10 +76,10 @@ public class AtmosphereTests
         return room is >= 0 ? w.M.Atmosphere.StatusOf(room.Value) : null;
     }
 
-    /// <summary>E held on plan 1 for <paramref name="ticks"/> ticks by peer 0.</summary>
-    private static void WorkOn(Scenario w, int ticks)
+    /// <summary>E held on plan <paramref name="plan"/> for <paramref name="ticks"/> ticks by peer 0.</summary>
+    private static void WorkOn(Scenario w, int ticks, int plan = 1)
     {
-        for (int i = 0; i < ticks; i++) w.Do(new Work(1)).Run();
+        for (int i = 0; i < ticks; i++) w.Do(new Work(plan)).Run();
     }
 
     [Fact]
@@ -87,10 +90,11 @@ public class AtmosphereTests
         s.PipeUp();
         Assert.Equal(RoomStatus.Venting, StatusAt(w));
         var iron = Materials.Get("iron");
-        w.GiveItems(0, [.. iron.Cost]);
-        w.Do(new PlacePlan(At(5, 2), Placement.BackWall("iron"))).Run();
-        WorkOn(w, 1 + iron.BuildTicks);
-        Assert.Equal("iron", w.M.Grid.BackAt(At(5, 2))?.Id);
+        w.GiveItems(0, [.. iron.Cost.Select(c => (c.Item, 4 * c.Count))]);
+        foreach (int cell in Block(5, 2)) w.Do(new PlacePlan(cell, Placement.BackWall("iron")));
+        w.Run();
+        foreach (int plan in w.M.Building.Plans.Select(p => p.Id).ToArray()) WorkOn(w, 1 + iron.BuildTicks, plan);
+        Assert.All(Block(5, 2), cell => Assert.Equal("iron", w.M.Grid.BackAt(cell)?.Id));
         w.Do(new LoadCanister(s.Tank)).Run();
         Assert.Equal(RoomStatus.Filling, StatusAt(w));
     }
@@ -177,14 +181,14 @@ public class AtmosphereTests
     {
         // Two tanks and a vent between: machine ids 1, 2 and 3 in reading order; the second is filled.
         var m = new Registry();
-        World.Create(1, Layout.Parse(["TTVTT", "TT.TT"], ["", "   o"]), m.All);
+        World.Create(1, Layout.Parse(["TTVTT", "TT.TT"], ["", "   o"]).Doubled(), m.All);
         var tanks = m.Grid.Machines.Where(x => x.Kind == "tank").Select(x => m.Atmosphere.OxygenIn(x.Id));
         Assert.Equal(new[] { 0, Air.Canister }, tanks);
         var bare = Assert.Throws<FormatException>(() =>
-            World.Create(1, Layout.Parse(["TT.", "TT."], ["  o"]), new Registry().All));
+            World.Create(1, Layout.Parse(["TT.", "TT."], ["  o"]).Doubled(), new Registry().All));
         Assert.Contains("'o' is under no tank", bare.Message);
         var vent = Assert.Throws<FormatException>(() =>
-            World.Create(1, Layout.Parse(["TTV", "TT."], ["  o"]), new Registry().All));
+            World.Create(1, Layout.Parse(["TTV", "TT."], ["  o"]).Doubled(), new Registry().All));
         Assert.Contains("'o' is under no tank", vent.Message);
     }
 
@@ -258,8 +262,8 @@ public class AtmosphereTests
     // Generators.
 
     /// <summary>
-    /// <see cref="Room"/> with a generator in place of the tank, its port its bottom-left cell too,
-    /// cabled to a solar panel out in space below the room.
+    /// <see cref="Room"/> with a generator in place of the tank, its port where the tank's is,
+    /// cabled to a solar panel out in space below the room; drawn, for <see cref="SetUp(Layout)"/> to double.
     /// </summary>
     private static readonly Layout Generated = Layout.Parse(
         [.. Layout.Parse(Room.Replace("TT", "GG")).Rows, "PPP"], null, [((0, 5), (1, 2))]);
@@ -299,7 +303,8 @@ public class AtmosphereTests
         Assert.True(w.M.Atmosphere.AiredCells.Count >= 10);
         var survey = SurveyOf(w, s.Room)!;
         Assert.Equal((Air.GeneratorRate, (string?)null), (survey.Made, survey.Problem));
-        for (int i = 0; i < 100 * Every && w.M.Atmosphere.StatusOf(s.Room) != RoomStatus.Aired; i++) w.Run();
+        // As long as at 16 px: four times the cells, and a unit made four times as often (0104).
+        for (int i = 0; i < 4 * 100 * Every && w.M.Atmosphere.StatusOf(s.Room) != RoomStatus.Aired; i++) w.Run();
         survey = SurveyOf(w, s.Room)!;
         Assert.Equal((RoomStatus.Aired, (int?)null), (survey.Status, survey.Lasts));
     }
@@ -347,9 +352,9 @@ public class AtmosphereReadingTests
     {
         string[] rows = ["#########", "#V......#", "#TT.....#", "#TT.....#", "#########"];
         string[] under = ["", " -", " -o", " -"];
-        var w = new Scenario(Layout.Parse(rows, under), with: m => [new Breather(m.Atmosphere)]);
-        int tank = w.M.Grid.MachineAt(9 * 2 + 1)!.Id;
-        int cell = 9 * 1 + 4;
+        var w = new Scenario(Layout.Parse(rows, under), with: m => [new Breather(m.Atmosphere)], doubled: true);
+        int tank = w.M.Grid.MachineAt(w.At(1, 2))!.Id;
+        int cell = w.At(4, 1);
         w.Run(60);
         Assert.True(w.M.Atmosphere.AiredAt(cell));
         // The room aired and its tank emptied, as filling a room bigger than a canister leaves it.
@@ -363,7 +368,9 @@ public class AtmosphereReadingTests
         w.World.Step(commands);
         loaded.Step(commands);
 
-        Assert.Equal(aired, w.M.Atmosphere.AiredCells.Count);
+        // Paid from the canister, no cell taken; the fill beat airs back what the leak, due more often over 8 px cells, took (0104).
+        int volume = w.M.Rooms.RoomById(w.M.Rooms.RoomAt(cell)!.Value)!.Volume;
+        Assert.Equal(Math.Min(aired + Air.CellsPerFill, volume), w.M.Atmosphere.AiredCells.Count);
         Assert.Equal(r.Atmosphere.AiredCells.Count, w.M.Atmosphere.AiredCells.Count);
         Assert.Equal(loaded.Hash(), w.World.Hash());
     }

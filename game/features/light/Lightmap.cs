@@ -25,11 +25,11 @@ public partial class Lightmap : Node
     /// <summary>The most texels a map has across: past it, a texel covers more pixels of the world.</summary>
     private const int MostTexels = 4096;
     /// <summary>Cells of map beyond the view, so a frame's lag in the camera shows no dark edge.</summary>
-    private const int Margin = 4;
+    private const int Margin = 8;
 
     private static readonly Shader Shader = new()
     {
-        Code = """
+        Code = $$"""
             shader_type canvas_item;
             render_mode unshaded, blend_add;
             // A texel a cell: 0 open, a quarter a closed hatch, half a closed door, whole a wall, 33 to 36 of 255 a wall cut to a shape; over what is built, its first texel at cell origin.
@@ -41,12 +41,12 @@ public partial class Lightmap : Node
             // A beam's half width, as the cosine of its half angle, and the soft edge either side of it (0077: the helmet lamp).
             uniform float beam_cos = 0.866;
             uniform float beam_soft = 0.08;
-            // What light keeps of itself a cell of the way into solid ground (0077): it fades within two or three cells.
-            uniform float wall_keep = 0.35;
+            // What light keeps of itself a cell of the way into solid ground (0077): it fades within four to six cells.
+            uniform float wall_keep = 0.592;
             // Under a planet (0080): light reaches the open behind solid ground too, keeping wall_keep a cell of it, so a shadow cast by
             // rock fades in as the rock between thickens rather than starting along the rock's face. Aboard, a wall stops it.
             uniform bool soak_through = false;
-            const float CELL = 16.0;
+            const float CELL = {{Cell}}.0;
             varying vec2 world;
             varying flat vec2 centre;
             varying flat vec4 light;
@@ -91,7 +91,8 @@ public partial class Lightmap : Node
                 // How far, in cells, the line runs through the walls the point is in before it comes out of them.
                 float inside = 0.0, span_cells = length(d);
                 float t0 = 0.0;
-                for (int i = 0; i < 80; i++) {
+                // As far as the light reaches at its most, twice the 16 px cells it was tuned in (0104).
+                for (int i = 0; i < 160; i++) {
                     float t1 = min(min(next.x, next.y), 1.0);
                     int k = kind(c);
                     if (k == 2) {
@@ -146,7 +147,7 @@ public partial class Lightmap : Node
                 float dist = length(world - centre) / CELL;
                 if (dist >= reach) discard;
                 // As the TypeScript game spread light: keep a cell, faded out over the last cells.
-                float fall = pow(shape.y, dist) * clamp((reach - dist) / min(4.0, reach / 2.0), 0.0, 1.0);
+                float fall = pow(shape.y, dist) * clamp((reach - dist) / min(8.0, reach / 2.0), 0.0, 1.0);
                 // Most past 1 marks a beam: 2 and its heading as a share of a turn, its most whole. Off its way, it fades out.
                 float most = shape.z;
                 if (most > 1.5) {

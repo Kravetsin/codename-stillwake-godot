@@ -32,8 +32,11 @@ public class AsteroidTests
 
     // The band.
 
-    /// <summary>200×120, the hull at columns 90 to 95 and rows 50 to 52: its bands are rows 6 to 28 and 74 to 96.</summary>
-    private static readonly Layout Tall = DebrisZonesTests.Open(200, 120, 90, 50);
+    /// <summary>
+    /// 400×240, the hull at columns 180 to 191 and rows 100 to 105: its bands are rows 12 to 56 and 149 to 193. Its lengths are
+    /// twice the 16 px cell's (0104), as the band's are.
+    /// </summary>
+    private static readonly Layout Tall = DebrisZonesTests.Open(400, 240, 180, 100, 12, 6);
 
     [Fact]
     public void SpawnsAsteroidsRarelyOnlyInTheBandsAboveAndBelowTheHullNeverMoreThanTwoOut()
@@ -59,20 +62,20 @@ public class AsteroidTests
         {
             Assert.StartsWith("asteroid", p.Item);
             int row = p.Y / 1000;
-            Assert.True(row is >= 50 - 44 and <= 50 - 22 or >= 52 + 22 and <= 52 + 44, $"an asteroid in row {row}");
-            Assert.Equal(((95 + Band.Lead) * 1000 + 500, (90 - Band.Lead) * 1000), (p.Start, p.End));
+            Assert.True(row is >= 100 - 88 and <= 100 - 44 or >= 105 + 44 and <= 105 + 88, $"an asteroid in row {row}");
+            Assert.Equal(((191 + Band.Lead) * 1000 + 500, (180 - Band.Lead) * 1000), (p.Start, p.End));
         });
-        Assert.Contains(seen, p => p.Y / 1000 < 50);
-        Assert.Contains(seen, p => p.Y / 1000 > 52);
+        Assert.Contains(seen, p => p.Y / 1000 < 100);
+        Assert.Contains(seen, p => p.Y / 1000 > 105);
         // None in the gap nor in the stream's rows: the band is past the tether.
-        Assert.DoesNotContain(seen, p => p.Y / 1000 is > 28 and < 74);
+        Assert.DoesNotContain(seen, p => p.Y / 1000 is > 56 and < 149);
     }
 
     [Fact]
     public void KeepsAtMostTwoAsteroidsOutAlongAHullSoLongTheyOutliveTheBeats()
     {
-        // A hull a thousand cells long: an asteroid takes some 30 000 ticks to drift past it, so the band fills.
-        var w = new Scenario(DebrisZonesTests.Open(1200, 100, 100, 50, w: 1000, h: 1));
+        // A hull two thousand cells long: an asteroid takes some 30 000 ticks to drift past it, so the band fills.
+        var w = new Scenario(DebrisZonesTests.Open(2400, 200, 200, 100, w: 2000, h: 2));
         int most = 0, full = 0;
         for (int t = 0; t < 40_000; t++)
         {
@@ -89,7 +92,7 @@ public class AsteroidTests
     public void SpawnsNoAsteroidWhereTheBandIsOffTheGridYetTakesItsDraws()
     {
         // A hull filling a short grid: both bands lie past its edges.
-        var w = new Scenario(DebrisZonesTests.Open(200, 20, 90, 8));
+        var w = new Scenario(DebrisZonesTests.Open(400, 40, 180, 16, 12, 6));
         w.Run(20_000);
         Assert.DoesNotContain(Pieces(w), p => p.Zone == DebrisSpec.Asteroids.Id);
         var beat = ((DebrisState)w.M.Debris.Slice).Beats.Single(b => b.Zone == DebrisSpec.Asteroids.Id);
