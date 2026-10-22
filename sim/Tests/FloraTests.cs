@@ -145,7 +145,8 @@ public class FloraTests
     {
         var w = Meadow();
         w.Do(new SetCreative(true)).Run();
-        w.Do(new PlacePlan(Own(w, 2, 1), new Placement("structure", "ladder"))).Run();
+        // A ladder piece, two by two (0104): the block over the ground, the plant's own cell in it.
+        w.Do(new PlacePlan(w.At(2, 1), new Placement("structure", "ladder"))).Run();
         int plan = w.M.Building.Plans.Single().Id;
         for (int i = 0; i < 100 && w.M.Building.Plans.Count > 0; i++) w.Do(new Work(plan)).Run();
         Assert.Equal(Structure.Ladder, w.M.Grid.StructureAt(Own(w, 2, 1)));

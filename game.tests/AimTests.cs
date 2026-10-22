@@ -199,8 +199,8 @@ public class AimTests
 
         // Along room A, where the hero wakes: the closed doorway to room B stops the hero, until opened.
         var h = Run(Hero.At(ShipNow(), HeroTests.Spawn), HeroTests.Left, 120);
-        // At the door, a cell thick on its block's left (0104).
-        Assert.Equal(45 * Block + Unit + Spec.Hero.Width / 2, h.X);
+        // At the door, two cells thick, its block whole (0104).
+        Assert.Equal(46 * Block + Spec.Hero.Width / 2, h.X);
         Use(h, 45, 22);
         h = Run(h, HeroTests.Left, 900);
         // Into room B, torn open to space, and out past its torn edge as far as the tether lets the hero.

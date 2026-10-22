@@ -4,73 +4,86 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>One door, every shape (0067): which door cells are a door's and which a hatch's, and their pictures.</summary>
+/// <summary>
+/// One door, every shape (0067): which door cells are a door's and which a hatch's, and their pictures, the 16 px door's over
+/// two by two cells (0104).
+/// </summary>
 public class DoorShapeTests
 {
     /// <summary>
-    /// Each cell of <paramref name="rows"/> a door (<c>D</c> shut, <c>d</c> open) as the grid draws it, else <c>null</c>:
-    /// its picture, by the sides it joins its doorway on as the sim has them.
+    /// Each cell of <paramref name="rows"/> a door (<c>D</c> shut, <c>d</c> open) as the grid draws it, else <c>null</c>: its
+    /// picture and its quarter of it, <c>picture@x,y</c>, by where it lies in its doorway as the sim joins it.
     /// </summary>
     private static string?[,] Drawn(params string[] rows)
     {
         int h = rows.Length, w = rows[0].Length;
         int StructureAt(int c) => rows[c / w][c % w] switch { 'D' => Structure.DoorClosed, 'd' => Structure.DoorOpen, _ => Structure.Empty };
+        int LinksOf(int c) => Doorways.LinksOf(c, w, w * h, StructureAt);
         var drawn = new string?[h, w];
         for (int c = 0; c < w * h; c++)
             if (Doorways.IsDoor(StructureAt(c)))
-                drawn[c / w, c % w] = DoorShape.Picture(StructureAt(c) == Structure.DoorClosed, Doorways.LinksOf(c, w, w * h, StructureAt));
+            {
+                var (picture, (x, y)) = DoorShape.TileOf(DoorShape.SpotOf(c, w, LinksOf), closed: StructureAt(c) == Structure.DoorClosed);
+                drawn[c / w, c % w] = $"{picture}@{x},{y}";
+            }
         return drawn;
     }
 
+    private static IEnumerable<string?> Column(string?[,] drawn, int x) => Enumerable.Range(0, drawn.GetLength(0)).Select(y => drawn[y, x]);
+    private static IEnumerable<string?> Row(string?[,] drawn, int y) => Enumerable.Range(0, drawn.GetLength(1)).Select(x => drawn[y, x]);
+
     [Fact]
-    public void ADoorwayThreeTallIsADoorItsWindowAtTheTopAndItsStripesAtTheBottom()
+    public void ADoorwayTwoThickAndSixTallIsADoorItsWindowAtTheTopAndItsStripesAtTheBottom()
     {
-        var drawn = Drawn(".D.", ".D.", ".d.");
-        Assert.Equal(new[] { "door_closed_4", "door_closed_5", "door_open_1" }, new[] { drawn[0, 1], drawn[1, 1], drawn[2, 1] });
+        var drawn = Drawn(".DD.", ".DD.", ".DD.", ".DD.", ".dd.", ".dd.");
+        Assert.Equal(new string?[] { "door_closed_4@0,0", "door_closed_4@0,1", "door_closed_5@0,0", "door_closed_5@0,1", "door_open_1@0,0", "door_open_1@0,1" }, Column(drawn, 1));
+        Assert.Equal(new string?[] { "door_closed_4@1,0", "door_closed_4@1,1", "door_closed_5@1,0", "door_closed_5@1,1", "door_open_1@1,0", "door_open_1@1,1" }, Column(drawn, 2));
     }
 
     [Fact]
-    public void ADoorwayThreeWideIsAHatchJoinedEndToEnd()
+    public void ADoorwaySixWideAndTwoTallIsAHatchJoinedEndToEnd()
     {
-        var drawn = Drawn("...", "DDD", "...");
-        Assert.Equal(new[] { "hatch_closed_2", "hatch_closed_10", "hatch_closed_8" }, new[] { drawn[1, 0], drawn[1, 1], drawn[1, 2] });
-        Assert.Equal("hatch_open_10", Drawn("ddd")[0, 1]);
+        var drawn = Drawn("......", "DDDDDD", "DDDDDD", "......");
+        Assert.Equal(new string?[] { "hatch_closed_2@0,0", "hatch_closed_2@1,0", "hatch_closed_10@0,0", "hatch_closed_10@1,0", "hatch_closed_8@0,0", "hatch_closed_8@1,0" }, Row(drawn, 1));
+        Assert.Equal(new string?[] { "hatch_closed_2@0,1", "hatch_closed_2@1,1", "hatch_closed_10@0,1", "hatch_closed_10@1,1", "hatch_closed_8@0,1", "hatch_closed_8@1,1" }, Row(drawn, 2));
+        Assert.Equal("hatch_open_10@0,0", Drawn("dddddd", "dddddd")[0, 2]);
     }
 
     [Fact]
-    public void ADoorCellAloneIsAHatch()
+    public void ADoorTwoByTwoAloneIsAHatch()
     {
-        // No hero fits through a door one cell tall; a shaft one cell wide is where a hatch goes (0005).
-        Assert.Equal("hatch_closed_0", Drawn("...", ".D.", "...")[1, 1]);
-        Assert.Equal("hatch_open_0", Drawn("d")[0, 0]);
+        // No hero fits through a door one 16 px cell tall; a shaft one wide is where a hatch goes (0005).
+        var drawn = Drawn("....", ".DD.", ".DD.", "....");
+        Assert.Equal(new string?[] { "hatch_closed_0@0,0", "hatch_closed_0@1,0", "hatch_closed_0@0,1", "hatch_closed_0@1,1" }, new[] { drawn[1, 1], drawn[1, 2], drawn[2, 1], drawn[2, 2] });
     }
 
     [Fact]
     public void ADoorAndAHatchTouchingAtACornerKeepTheirShapes()
     {
-        var drawn = Drawn("D..", "D..", ".DD");
-        Assert.Equal(new[] { "door_closed_4", "door_closed_1" }, new[] { drawn[0, 0], drawn[1, 0] });
-        Assert.Equal(new[] { "hatch_closed_2", "hatch_closed_8" }, new[] { drawn[2, 1], drawn[2, 2] });
+        var drawn = Drawn("DD....", "DD....", "DD....", "DD....", "..DDDD", "..DDDD");
+        Assert.Equal(new string?[] { "door_closed_4@0,0", "door_closed_4@0,1", "door_closed_1@0,0", "door_closed_1@0,1", null, null }, Column(drawn, 0));
+        Assert.Equal(new string?[] { null, null, "hatch_closed_2@0,0", "hatch_closed_2@1,0", "hatch_closed_8@0,0", "hatch_closed_8@1,0" }, Row(drawn, 4));
     }
 
     [Fact]
-    public void AHatchMeetingADoorEndsBesideItAndTheDoorTakesTheCellWhereTheyMeet()
+    public void AHatchMeetingADoorEndsBesideItAndTheDoorTakesTheCellsWhereTheyMeet()
     {
-        // An L: a hatch three wide, a door hanging from its right end's cell, which is the door's top.
-        var l = Drawn("DDDD", "...D", "...D");
-        Assert.Equal(new[] { "hatch_closed_2", "hatch_closed_10", "hatch_closed_8", "door_closed_4" }, new[] { l[0, 0], l[0, 1], l[0, 2], l[0, 3] });
-        Assert.Equal(new[] { "door_closed_5", "door_closed_1" }, new[] { l[1, 3], l[2, 3] });
-        // A T: the hatch's two arms end either side of the door.
-        var t = Drawn("DDDDD", "..D..", "..D..");
-        Assert.Equal(new[] { "hatch_closed_2", "hatch_closed_8", "door_closed_4", "hatch_closed_2", "hatch_closed_8" }, new[] { t[0, 0], t[0, 1], t[0, 2], t[0, 3], t[0, 4] });
+        // An L: a hatch six wide, a door hanging from its right end, whose top it is.
+        var l = Drawn("DDDDDDDD", "DDDDDDDD", "......DD", "......DD");
+        Assert.Equal(new string?[] { "hatch_closed_2@0,0", "hatch_closed_2@1,0", "hatch_closed_10@0,0", "hatch_closed_10@1,0", "hatch_closed_8@0,0", "hatch_closed_8@1,0",
+            "door_closed_4@0,0", "door_closed_4@1,0" }, Row(l, 0));
+        Assert.Equal(new string?[] { "door_closed_4@0,0", "door_closed_4@0,1", "door_closed_1@0,0", "door_closed_1@0,1" }, Column(l, 6));
     }
 
     [Fact]
-    public void ADeckTwoCellsThickDrawsItsHatchAsARowOfShortDoors()
+    public void FindsWhereACellLiesAlongItsDoorwayAndAcrossIt()
     {
-        var drawn = Drawn("DDD", "DDD");
-        for (int x = 0; x < 3; x++)
-            Assert.Equal(new[] { "door_closed_4", "door_closed_1" }, new[] { drawn[0, x], drawn[1, x] });
+        int w = 4;
+        string[] rows = [".DD.", ".DD.", ".DD.", ".DD.", ".DD.", ".DD."];
+        int StructureAt(int c) => rows[c / w][c % w] == 'D' ? Structure.DoorClosed : Structure.Empty;
+        int LinksOf(int c) => Doorways.LinksOf(c, w, w * rows.Length, StructureAt);
+        Assert.Equal(new DoorShape.Spot(false, 3, 6, 1), DoorShape.SpotOf(3 * w + 2, w, LinksOf));
+        Assert.Equal(new DoorShape.Spot(false, 0, 6, 0), DoorShape.SpotOf(1, w, LinksOf));
     }
 
     [Fact]
@@ -105,13 +118,12 @@ public class DoorShapeTests
     public void NamesEachCellOfASlidingDoorwayByThePanelOverIt()
     {
         Assert.Equal("door_closed_4", DoorShape.Picture(false, 0, 3, 0));
-        // Shifts in pixels of 8 px cells (0104).
-        Assert.Equal("door_open_1", DoorShape.Picture(false, 2, 3, 24));
-        Assert.Equal("door_slid_4_5_1_4", DoorShape.Picture(false, 0, 3, 12));
-        Assert.Equal("door_slid_4_5_1_4", DoorShape.Picture(false, 0, 3, 13));
-        Assert.Equal("door_open_5", DoorShape.Picture(false, 1, 3, 20));
-        Assert.Equal("door_slid_1_1_x_4", DoorShape.Picture(false, 2, 3, 4));
-        Assert.Equal("hatch_slid_2_10_8_2", DoorShape.Picture(true, 0, 3, 10));
+        Assert.Equal("door_open_1", DoorShape.Picture(false, 2, 3, 48));
+        Assert.Equal("door_slid_4_5_1_4", DoorShape.Picture(false, 0, 3, 20));
+        Assert.Equal("door_slid_4_5_1_4", DoorShape.Picture(false, 0, 3, 21));
+        Assert.Equal("door_open_5", DoorShape.Picture(false, 1, 3, 40));
+        Assert.Equal("door_slid_1_1_x_8", DoorShape.Picture(false, 2, 3, 8));
+        Assert.Equal("hatch_slid_2_10_8_2", DoorShape.Picture(true, 0, 3, 18));
         Assert.Equal("hatch_slid_0_0_x_6", DoorShape.Picture(true, 0, 1, 6));
     }
 

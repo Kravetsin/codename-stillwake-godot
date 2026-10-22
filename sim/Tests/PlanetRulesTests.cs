@@ -196,7 +196,8 @@ public class PlanetRulesTests
         Assert.NotEqual("building.notHere", w.M.Building.Problem(w.At(2, 2), new Placement("machine", "furnace")));
 
         w.Refusals.Clear();
-        w.Do(new PlacePlan(cell, new Placement("structure", "ladder"))).Run();
+        // A ladder piece, two by two (0104), over the ground from the block's top-left.
+        w.Do(new PlacePlan(On(16, Ground - 1), new Placement("structure", "ladder"))).Run();
         var plan = Assert.Single(m.Building.Plans);
         for (int i = 0; i < Content.Builds.Get("ladder").BuildTicks; i++) w.Do(new Work(plan.Id)).Run();
         Assert.Empty(w.Refusals);

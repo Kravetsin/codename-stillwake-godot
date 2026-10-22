@@ -14,6 +14,8 @@ namespace Stillwake.Game.Features.Grid;
 public static class DoorLight
 {
     private const int Cell = ShipCamera.Cell;
+    /// <summary>A doorway's thickness in pixels: two cells, the 16 px door's (0104).</summary>
+    private const int Thick = Stillwake.Sim.Grid.Doorways.Thick * Cell;
     private static readonly (int, int, int) Edge = (255, 236, 205), Warm = (255, 200, 140), Seal = (255, 230, 190), Floor = (240, 236, 226);
 
     /// <summary>The ease a panel slides by: slow off, quick through the middle, slow in.</summary>
@@ -30,8 +32,8 @@ public static class DoorLight
         float reach = (float)(length * Cell * (1 - open));
         // Across the doorway at its leading edge, from the middle out each way, clear at the ends.
         var (middle, along) = hatch
-            ? (corner + new Vector2(reach - 0.4f, Cell / 2f), new Vector2(0, Cell / 2f))
-            : (corner + new Vector2(Cell / 2f, reach - 0.4f), new Vector2(Cell / 2f, 0));
+            ? (corner + new Vector2(reach - 0.4f, Thick / 2f), new Vector2(0, Thick / 2f))
+            : (corner + new Vector2(Thick / 2f, reach - 0.4f), new Vector2(Thick / 2f, 0));
         foreach (int side in (ReadOnlySpan<int>)[-1, 1])
         {
             var end = middle + along * side;
@@ -51,15 +53,15 @@ public static class DoorLight
             for (int i = 0; i < Math.Round(7 * Fx.Count); i++)
             {
                 var at = hatch ? corner + new Vector2((float)glims.Between(0.5, 2), (float)glims.Between(2, 14)) : corner + new Vector2((float)glims.Between(2, 14), (float)glims.Between(0.5, 2));
-                glims.Add(Luminous.SlotDust, at.X, at.Y, glims.Between(-3, 3), glims.Between(2, 8), hatch ? corner.Y + Cell : corner.Y + span,
+                glims.Add(Luminous.SlotDust, at.X, at.Y, glims.Between(-3, 3), glims.Between(2, 8), hatch ? corner.Y + Thick : corner.Y + span,
                     size: glims.Between(0.4, 0.6));
             }
-            var slot = hatch ? corner + new Vector2(0.8f, Cell / 2f) : corner + new Vector2(Cell / 2f, 0.8f);
+            var slot = hatch ? corner + new Vector2(0.8f, Thick / 2f) : corner + new Vector2(Thick / 2f, 0.8f);
             Flares.Shared.Glint(slot.X, slot.Y, 5, Seal);
             return;
         }
         // Shut: where the panel meets the frame, a door's floor, a hatch's right end.
-        var seal = hatch ? corner + new Vector2(span - 0.4f, Cell / 2f) : corner + new Vector2(Cell / 2f, span - 0.4f);
+        var seal = hatch ? corner + new Vector2(span - 0.4f, Thick / 2f) : corner + new Vector2(Thick / 2f, span - 0.4f);
         Flares.Shared.Glint(seal.X, seal.Y, 5, Seal);
         if (!hatch) Flares.Shared.Shock(seal.X, seal.Y + 0.1, 4, 4 + 18 * Fx.Length, 11 * Glim.SampleMs, Floor, 0.32 * Fx.Glow, 0.26, 0.12);
         foreach (int side in (ReadOnlySpan<int>)[-1, 1])

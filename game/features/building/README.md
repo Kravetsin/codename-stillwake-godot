@@ -23,8 +23,8 @@ Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, 
 pointer; `Hands`: every view of this player's hands wired together, the building first to take the
 buttons; `PointerTip`), `game/i18n/En.cs` (the words), `game/render/` (`Buttons`/`WorldButtons`: the mouse
 as the world reads it; `BlueprintArt`/`PlanTiles`: the ship's own tiles for plans, ghosts and
-thumbnails; `PlanCut`/`BuiltParts`: where a plan being built turns real, and its real share drawn lit;
-`Blueprint`: how planned pipes, doors and walls join their neighbours (a planned door is drawn a door or a hatch by `DoorShape`, 0067), which the crew's aim
+thumbnails, a card's at the art's 16 px whatever the cell (0104); `PlanCut`/`BuiltParts`: where a plan being built turns real, and its real share drawn lit;
+`Blueprint`: how planned pipes and walls join their neighbours (a planned door, hatch or ladder is its piece whole, 0104), which the crew's aim
 outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`), and the
 tablet's slide and its screen coming on (`TabletMotion`, warm for 1.5 s after it is put away, 0073), by which the wrist
 computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`), both in `game/shared/`. The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
@@ -60,11 +60,14 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   alone, without pipes, machines or cables. A plan for anything else the sim refuses `building.notHere`.
 - **A stroke is laid with the brush** (`Shared/Brush`, `Builds.Brush` cells a side, 2): at each point of a drag its
   stamp (`Drag.StampOf`) round the cell corner nearest the pointer, so a stroke builds as much per area as one 16 px cell
-  did. Walls, back walls and ladders take the square, so a ladder is built two cells wide; a floor a row as wide in the pointer's
-  row, one cell thick as a doubled map lays it; a door, a pipe, a valve and a machine one cell, as a doorway and a pipe run are one cell
-  thick and a footprint is placed once; a removal one cell. Each cell is its own `PlacePlan`, each stamp's ascending, none
-  twice, each judged alone (`Drag.StrokeOf`). Ctrl held is the precise mode: one cell, as before. The ghost in hand shows
-  the stamp.
+  did. Walls and back walls take the square; a floor a row as wide in the pointer's row, one cell thick as a doubled map lays
+  it; a pipe, a valve and a machine one cell, as a pipe run is one cell thick and a footprint is placed once; a removal one cell.
+  Each cell is its own `PlacePlan`, each stamp's ascending, none twice, each judged alone (`Drag.StrokeOf`). Ctrl held is the
+  precise mode: one cell, as before. The ghost in hand shows the stamp.
+- **Pieces are placed whole** (0104), Ctrl or not: a ladder's 2×2, laid along a drag a piece's length a step, so a shaft grows
+  two cells at a time; a door's 2×6 round the pointer where the stroke began, a hatch's 6×2 (`Drag.Oriented`) when the stroke
+  runs further across than down. Each is one `PlacePlan` at its top-left, drawn, ghosted and marked as its whole picture from
+  there, as a machine is; a removal on any of its cells marks the whole piece.
 - Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still

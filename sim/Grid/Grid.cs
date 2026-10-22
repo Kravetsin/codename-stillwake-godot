@@ -124,8 +124,17 @@ public interface IGridQueries
     IReadOnlyList<Machine> MachinesOf(string kind);
     /// <summary>The cells where conduits meet machine <paramref name="m"/>, in the order its kind lists its ports.</summary>
     IReadOnlyList<int> PortsOf(Machine m);
-    /// <summary>The cells a machine of <paramref name="kind"/> covers with its top-left at <paramref name="cell"/>; null when it is no machine or does not fit on the grid.</summary>
+    /// <summary>
+    /// The cells a machine or a piece (a ladder, a door, a hatch, 0104) of <paramref name="kind"/> covers with its top-left at
+    /// <paramref name="cell"/>, ascending; null when it is neither or does not fit on the grid.
+    /// </summary>
     IReadOnlyList<int>? Footprint(string kind, int cell);
+    /// <summary>
+    /// The cells of the piece the structure at <paramref name="cell"/> is part of, ascending, taken apart as one (0104): a door
+    /// cell's whole doorway (<see cref="Doorways"/>); a ladder cell's two by two, its columns paired from the left end of its
+    /// row's run of ladder and its rows from the top of its column's; any other structure its own cell; none for none.
+    /// </summary>
+    IReadOnlyList<int> PieceOf(int cell);
     string? PlacementProblem(int cell, Placement placement);
     /// <summary>
     /// The structure and conduit codes of the cells the <see cref="SetDoor"/>s and <see cref="SetValve"/>s
@@ -439,13 +448,40 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     public IReadOnlyList<int>? Footprint(string kind, int cell)
     {
-        if (!Content.Machines.TryGet(kind, out var spec) || !InBounds(cell)) return null;
+        var size = Content.Machines.TryGet(kind, out var spec) ? (spec.Width, spec.Height) : Builds.PieceOf(kind);
+        if (size is not var (across, tall) || !InBounds(cell)) return null;
         int x = cell % State.Width, y = cell / State.Width;
-        if (x + spec.Width > State.Width || y + spec.Height > State.Height) return null;
+        if (x + across > State.Width || y + tall > State.Height) return null;
         var cells = new List<int>();
-        for (int dy = 0; dy < spec.Height; dy++)
-            for (int dx = 0; dx < spec.Width; dx++)
+        for (int dy = 0; dy < tall; dy++)
+            for (int dx = 0; dx < across; dx++)
                 cells.Add((y + dy) * State.Width + x + dx);
+        return cells;
+    }
+
+    public IReadOnlyList<int> PieceOf(int cell)
+    {
+        if (!InBounds(cell)) return [];
+        int s = State.Structure[cell];
+        if (s == Structure.Empty) return [];
+        if (s is Structure.DoorClosed or Structure.DoorOpen)
+        {
+            var doorway = DoorwayOf(cell, _structureAt).ToArray();
+            Array.Sort(doorway);
+            return doorway;
+        }
+        if (s != Structure.Ladder) return [cell];
+        int w = State.Width, x = cell % w, y = cell / w;
+        bool Ladder(int cx, int cy) => cx >= 0 && cy >= 0 && cx < w && cy < State.Height && State.Structure[cy * w + cx] == Structure.Ladder;
+        int left = 0, up = 0;
+        while (Ladder(x - left - 1, y)) left++;
+        while (Ladder(x, y - up - 1)) up++;
+        var (across, tall) = Builds.PieceOf("ladder") ?? (1, 1);
+        int x0 = x - left % across, y0 = y - up % tall;
+        var cells = new List<int>(across * tall);
+        for (int cy = y0; cy < y0 + tall; cy++)
+            for (int cx = x0; cx < x0 + across; cx++)
+                if (Ladder(cx, cy)) cells.Add(cy * w + cx);
         return cells;
     }
 
@@ -525,8 +561,12 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         switch (p.Layer)
         {
             case "structure":
-                if (State.Structure[cell] != Structure.Empty) return "grid.occupied";
-                if (State.Occupancy[cell] != 0) return "grid.machineInTheWay";
+                // A piece (a ladder, a door, a hatch, 0104) needs every cell it covers as one cell needs its own.
+                IReadOnlyList<int>? covers = Builds.PieceOf(p.Kind) == null ? [cell] : Footprint(p.Kind, cell);
+                if (covers == null) return "grid.outOfBounds";
+                if (!covers.All(InZone)) return "grid.outsideZone";
+                if (covers.Any(c => State.Structure[c] != Structure.Empty)) return "grid.occupied";
+                if (covers.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
                 if (p.Kind == "wall" && !Materials.TryGet(p.Material ?? "", out _)) return "grid.noSuchMaterial";
                 return null;
             case "conduit":
@@ -556,13 +596,21 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         switch (p.Layer)
         {
             case "structure":
-                Set(State.Structure, GridLayers.Structure, cell, p.Kind switch
+                int code = p.Kind switch
                 {
                     "wall" => Structure.Wall,
                     "floor" => Structure.Floor,
                     "ladder" => Structure.Ladder,
                     _ => Structure.DoorClosed,
-                });
+                };
+                if (Builds.PieceOf(p.Kind) != null)
+                {
+                    var piece = Footprint(p.Kind, cell)!;
+                    foreach (int c in piece) Set(State.Structure, GridLayers.Structure, c, code);
+                    Grow(piece[^1]);
+                    return;
+                }
+                Set(State.Structure, GridLayers.Structure, cell, code);
                 if (p.Kind == "wall")
                 {
                     Set(State.Material, GridLayers.Material, cell, Materials.Get(p.Material!).Code);

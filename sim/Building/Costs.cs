@@ -20,7 +20,7 @@ internal static class Costs
     public static Build BuildOf(Placement placement) => placement.Layer switch
     {
         "structure" when placement.Kind == "wall" => Wall(Materials.Get(placement.Material!)),
-        "structure" or "conduit" => Builds.Get(placement.Kind),
+        "structure" or "conduit" => Builds.Get(Builds.BuiltAs(placement.Kind)),
         "machine" => Machine(placement.Kind),
         "back" => Wall(Materials.Get(placement.Material!)),
         _ => throw new ArgumentException($"building: no layer {placement.Layer}"),
@@ -37,8 +37,8 @@ internal static class Costs
                 {
                     Structure.Empty => null,
                     Structure.Floor => Builds.Get("floor"),
-                    Structure.Ladder => Builds.Get("ladder"),
-                    _ => Builds.Get("door"),
+                    Structure.Ladder => Share(Builds.Get("ladder"), grid.PieceOf(cell).Count),
+                    _ => Share(Builds.Get("door"), grid.PieceOf(cell).Count),
                 };
             case "conduit":
                 return grid.ConduitAt(cell) switch
@@ -54,6 +54,19 @@ internal static class Costs
             default:
                 return null;
         }
+    }
+
+    /// <summary>
+    /// A piece of <paramref name="cells"/> cells built as <paramref name="build"/>: its cost for as many of its pieces as those cells
+    /// make, each item rounded down, so a doorway of two doors gives back two and a ladder piece a meteor broke gives nothing;
+    /// its ticks to take apart the whole piece's (0104).
+    /// </summary>
+    private static Build Share(Build build, int cells)
+    {
+        int whole = build.Across * build.Tall;
+        if (cells == whole) return build;
+        var cost = build.Cost.Select(c => (c.Item, Count: c.Count * cells / whole)).Where(c => c.Count > 0).ToList();
+        return build with { Cost = cost };
     }
 
     /// <summary>Ticks to take apart what took <paramref name="buildTicks"/> to build: a share of them, rounded up.</summary>

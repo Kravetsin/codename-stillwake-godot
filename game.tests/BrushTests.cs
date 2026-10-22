@@ -16,6 +16,7 @@ public class BrushTests
     private static readonly PlaceTool Floor = new("floor", new Placement("structure", "floor"), "floor");
     private static readonly PlaceTool Ladder = new("ladder", new Placement("structure", "ladder"), "ladder");
     private static readonly PlaceTool Door = new("door", new Placement("structure", "door"), "door");
+    private static readonly PlaceTool Hatch = Door with { Placement = new Placement("structure", Stillwake.Content.Builds.Hatch) };
     private static readonly PlaceTool Pipe = new("pipe", new Placement("conduit", "pipe"), "pipe");
     private static readonly PlaceTool Tank = new("tank", new Placement("machine", "tank"), "tank");
     private static readonly Remove Removal = new(["machine", "conduit", "structure", "back"]);
@@ -50,28 +51,35 @@ public class BrushTests
     }
 
     [Fact]
-    public void WallsBackWallsAndLaddersTakeTheSquareAFloorItsTopRowTheRestOneCell()
+    public void WallsAndBackWallsTakeTheSquarePiecesTheirOwnSizeAFloorItsTopRowTheRestOneCell()
     {
         Assert.Equal((2, 2), Drag.StampOf(Wall, 2));
         Assert.Equal((2, 2), Drag.StampOf(BackWall, 2));
-        Assert.Equal((2, 2), Drag.StampOf(Ladder, 2));
         Assert.Equal((2, 1), Drag.StampOf(Floor, 2));
-        foreach (Act act in (Act[])[Door, Pipe, Tank, Removal]) Assert.Equal((1, 1), Drag.StampOf(act, 2));
-        foreach (Act act in (Act[])[Wall, Ladder, Floor]) Assert.Equal((1, 1), Drag.StampOf(act, 1));
+        // A ladder, a door and a hatch are pieces of their own size, precise or not (0104).
+        foreach (int side in (int[])[1, 2])
+        {
+            Assert.Equal((2, 2), Drag.StampOf(Ladder, side));
+            Assert.Equal((2, 6), Drag.StampOf(Door, side));
+            Assert.Equal((6, 2), Drag.StampOf(Hatch, side));
+        }
+        foreach (Act act in (Act[])[Pipe, Tank, Removal]) Assert.Equal((1, 1), Drag.StampOf(act, 2));
+        foreach (Act act in (Act[])[Wall, Floor]) Assert.Equal((1, 1), Drag.StampOf(act, 1));
     }
 
     [Fact]
-    public void ALadderDraggedDownIsTwoCellsWideEachCellOnce()
+    public void ALadderDraggedDownIsLaidAPieceAtATwoCellsAStep()
     {
-        var cells = Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 4.1), Building(), side: 2);
-        Assert.Equal([14, 15, 24, 25, 34, 35, 44, 45], cells);
+        Assert.Equal([14, 34], Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 4.1), Building(), side: 2));
+        // Dragged a cell, it is still the one piece; precise, it is a piece all the same.
+        Assert.Equal([14], Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 2.9), Building(), side: 2));
+        Assert.Equal([14], Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 1.9), Building(), side: 1));
     }
 
     [Fact]
-    public void AFloorDraggedAcrossIsOneRowThePointersAndPreciseIsOneCell()
+    public void AFloorDraggedAcrossIsOneRowThePointers()
     {
         Assert.Equal([12, 13, 14], Drag.StrokeOf(W, H, Floor, (2.6, 1.5), (4.4, 1.2), Building(), side: 2));
-        Assert.Equal([14], Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 1.9), Building(), side: 1));
     }
 
     [Fact]
@@ -86,10 +94,20 @@ public class BrushTests
     }
 
     [Fact]
-    public void AMachineADoorAndAPipeArePlacedInTheCellUnderThePointerOnce()
+    public void AMachineADoorAndAPipeArePlacedWhereTheStrokeBeganOnce()
     {
         Assert.Equal([12], Drag.StrokeOf(W, H, Tank, (2.9, 1.9), (7.2, 1.4), Building(), side: 2));
-        Assert.Equal([12, 22, 32], Drag.StrokeOf(W, H, Door, (2.9, 1.9), (2.9, 3.4), Building(), side: 2));
+        // A door's piece round the pointer, kept on the grid: six tall from the top row.
+        Assert.Equal([2], Drag.StrokeOf(W, H, Door, (2.9, 1.9), (2.9, 3.4), Building(), side: 2));
         Assert.Equal([12, 13, 14], Drag.StrokeOf(W, H, Pipe, (2.9, 1.9), (4.1, 1.4), Building(), side: 2));
+    }
+
+    [Fact]
+    public void TheDoorsCardLaysAHatchAlongAStrokeDrawnAcross()
+    {
+        Assert.Equal(Hatch, Drag.Oriented(Door, (2.9, 1.9), (6.2, 2.4)));
+        Assert.Equal(Door, Drag.Oriented(Door, (2.9, 1.9), (3.2, 4.4)));
+        Assert.Equal(Door, Drag.Oriented(Door, (2.9, 1.9), (2.9, 1.9)));
+        Assert.Equal(Ladder, Drag.Oriented(Ladder, (2.9, 1.9), (6.2, 2.4)));
     }
 }

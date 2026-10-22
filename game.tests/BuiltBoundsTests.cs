@@ -220,6 +220,18 @@ public class BuiltBoundsTests
         Assert.Equal(new[] { 0, 1, 4, 5, 6, 7, 8, 9, 10, 11 }, stale.Order());
     }
 
+    [Fact]
+    public void ADoorCellComeCallsStaleTheWholeDoorwayItJoinsDrawnByWhereItsCellsLie()
+    {
+        // A door two thick and six tall, a cell come under its left column: every cell of it is drawn anew (0104).
+        var drawn = new DrawnLayers(4, 10);
+        for (int y = 0; y < 7; y++)
+            for (int x = 1; x < 3; x++)
+                if (y < 6 || x == 1) drawn.Structure[y * 4 + x] = Structure.DoorClosed;
+        var stale = drawn.Stale([new DrawnLayers.Change(6 * 4 + 1, Structure.Empty, Conduit.None)]);
+        Assert.Subset(stale.ToHashSet(), Enumerable.Range(0, 6).SelectMany(y => new[] { y * 4 + 1, y * 4 + 2 }).ToHashSet());
+    }
+
     /// <summary>A back wall built and taken apart again and again in one cell, more writes than the grid's log holds.</summary>
     private static void Outrun(Registry m, Random rng)
     {

@@ -26,14 +26,26 @@ grain of the hero's own body, and lets a later change replace slopes with steps.
   - ×4: oxygen counted by area (0105).
   - ÷4, rounded to the nearest, a half up: a wall's or a back wall's build ticks a cell (scrap 3, iron 7, soil 3, stone 5,
     alloy 10). Halved, rounded up: a wall's cost a cell (scrap 1), so a wall of the same length, one cell thick, costs about
-    what it did. A door costs a plate and a gear a cell, 10 ticks: a doorway of six cells costs six plates, as three did, and
-    six gears where it took three, a gear not halving.
+    what it did.
   - Unchanged, per cell: strength, leak, what a dug cell yields, weapons' damage and pace, every tick count, hit points.
   - A per-cell falloff in the client (a light's keep) becomes its square root: light falls off over the same pixels.
-- **Maps are drawn a character a 16 px cell and doubled** (`Layout.Doubled()`): walls, back walls, machines and ladders fill
-  the 2×2 cells of their character; a door fills its block's left column and a hatch its top row, so doorways are one cell
-  thick and six long, the other half open (space beside the hull, a ladder it is climbed through); a lone door is a door
-  standing in a wall, a hatch between walls across; a floor fills its block's top row; `S` its bottom-left; a conduit its
+- **Pieces: a ladder, a door and a hatch are built whole, the size and the price of what they were at 16 px** (the user, after
+  playing the 8 px build: "shrinking these objects was a bad idea"). A ladder is a piece 2×2, a scrap and 7 ticks, as a 16 px
+  ladder cell was; a door 2×6 and a hatch 6×2 (`Builds.Hatch`, a door on its side, of its blueprint and price), six plates and
+  three gears and 60 ticks, as a doorway of three 16 px cells was (`Builds`' `Across` and `Tall`, `Builds.PieceOf`). One blueprint
+  covers a piece's footprint (`IGridQueries.Footprint`), refused if any of its cells is taken; building it fills all of them.
+  A mark on any of its cells takes the whole piece apart, kept at its first cell (`IGridQueries.PieceOf`): a doorway whole, a
+  ladder's two by two, its columns paired from the left end of its row's run and its rows from the top of its column's; it
+  gives back its piece's cost for as many pieces as its cells make, each item rounded down, so a drawn map's lone door (2×2)
+  gives a third of a door, what one 16 px door cell cost, and a ladder piece a meteor broke gives nothing.
+- **A doorway is two cells thick** (`Doorways.Thick`): a door cell in a run of more than two up and down stands in a door; every
+  other lies in a hatch; a cell joins the door cells above and below it and those either side that stand as it does, so a door's
+  two columns open and shut as one, a hatch's two rows too, and a hatch still stops beside a door (0067). The client draws
+  each 16 px door or hatch picture whole over two by two cells, by where a cell lies along its doorway and across it
+  (`DoorShape.SpotOf`, `TileOf`). A hero climbs through an open hatch as far as it is thick.
+- **Maps are drawn a character a 16 px cell and doubled** (`Layout.Doubled()`): walls, back walls, machines, ladders and doors
+  fill the 2×2 cells of their character, so a doubled doorway of three `D`s is a door 2×6 standing in a hull two cells thick;
+  a floor fills its block's top row; `S` its bottom-left; a conduit its
   top-left and the cells toward neighbouring conduits, so pipes stay one cell wide and meet the doubled ports; materials,
   cables, the zone and plants double with the map. Slopes throw: they are not doubled. The wreck, the strip, the ruins'
   prefabs, the dev maps and test scenarios (by default; `cells: true` reads a map a character a cell) are doubled.
@@ -44,8 +56,10 @@ grain of the hero's own body, and lets a later change replace slopes with steps.
 - **Creatures step up and down `Fauna.StepUp` = 2 cells**, the one 16 px cell they stepped, and move in parts of under a cell, so
   a flight of 1500 a tick never passes a wall one cell thick.
 - **The reference world is 512×256** (the 256×128 drawing doubled); CLAUDE.md's line is the user's to change.
-- **Pictures drawn at 16 px:** what fills a character's cells (a ladder, a floor, iron's back walls) is cut by where it lies;
-  what is one cell (pipes, doors, hatches, valves, the hull's edges) is drawn at half its size till it is drawn at 8 px. A
+- **Pictures drawn at 16 px:** what fills a character's cells (a floor, iron's back walls) is cut by where it lies; a ladder by
+  its run's columns from its left end; a door's and a hatch's whole over its pieces' cells; what is one cell (pipes, valves, the
+  hull's edges) is drawn at half its size till it is drawn at 8 px. A plan, a ghost or a mark of a piece is its whole picture
+  from its top-left, as a machine's is. A build card shows its thing at the art's 16 px, never `Camera.Cell`. A
   planet's living edge is a 16 px column's half by its column's parity, laid from two cells over the ground; its details lie
   by 16 px cells.
 - **Saves are format 28**; every save before is refused, its steps and fixtures deleted (0031's list shows them grey).
@@ -56,7 +70,9 @@ grain of the hero's own body, and lets a later change replace slopes with steps.
   within the budgets (the PR's report).
 - **Hull walls doubled to one cell thick:** the wreck would lose its 16 px walls; a hull two cells thick leaking through its
   inner layer keeps both the look and the leak.
-- **Doors two cells thick:** the user chose doors matching a one-cell hull.
+- **Doors one cell thick, and ladders and doors laid a cell at a time:** first chosen to match a one-cell hull; the user overruled
+  it after playing: two thin halves side by side read as broken, and a door a hero barely fits read as a slot.
+- **A door costing per cell:** a doorway of twelve cells cannot split six plates and three gears; one blueprint a piece can.
 - **Light tuned at the old scale behind a conversion in the shader:** every number would then mean 16 px cells while the
   sim's mean 8; reaches and keeps were converted where they are written instead.
 
@@ -68,8 +84,11 @@ grain of the hero's own body, and lets a later change replace slopes with steps.
   12, and clears twelve with the ledge assist.
 - Planet surfaces grow fewer trees, bushes and rocks: level ground over their doubled `Level` columns is rarer at the finer
   grain (`FloraTests`); flowers are unchanged.
-- One-cell gaps between walls, tiny rooms, become common: visible and harmless. A lone ladder cell is climbed centred on
-  itself; a two-wide ladder centred between its columns.
+- One-cell gaps between walls, tiny rooms, become common: visible and harmless. A ladder is climbed centred between its
+  two columns.
+- Two doors built side by side, or end to end, open as one doorway and come apart as one, giving back both. A hatch built over
+  a door's column, touching it, gives the door its cells where they meet, as 0067 had it a cell thick.
+- A ladder cell or a door cell lost alone (a meteor) leaves its piece drawn as it was till something beside it changes.
 - The planet costs some four times what it did: grown in about 0.6 s, opened on a tick of about 1.7 s, some 290 MB held by the
   sim (the PR's measurements).
 - The tether ties at the body's middle as it leaves the hull (0007), not the middle of its cell: at 8 px a cell's middle lies

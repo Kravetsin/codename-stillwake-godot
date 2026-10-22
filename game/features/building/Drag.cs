@@ -6,6 +6,7 @@ using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
+using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Features.Building;
 
@@ -41,16 +42,27 @@ public static class Drag
 
     /// <summary>
     /// The brush <paramref name="act"/> lays at each point of a drag, columns by rows, with a brush <paramref name="side"/> cells
-    /// across (<see cref="Brush"/>): walls, back walls and ladders the square, so a ladder is two cells wide; a floor its top
-    /// row, one cell thick as a doubled map draws it; a door, a pipe, a valve, a machine and a removal one cell, as a doorway,
-    /// a pipe run and a footprint are one cell thick or placed once.
+    /// across (<see cref="Brush"/>): walls and back walls the square; a ladder, a door and a hatch their piece (0104); a floor its
+    /// top row, one cell thick as a doubled map draws it; a pipe, a valve, a machine and a removal one cell, as a pipe run is one
+    /// cell thick and a footprint placed once.
     /// </summary>
     public static (int W, int H) StampOf(Act act, int side) => act switch
     {
-        PlaceTool { Placement.Kind: "wall" or "backWall" or "ladder" } => (side, side),
+        // A piece is its own size, a ladder's two by two, a door's two by six, however fine the brush (0104).
+        PlaceTool p when Spec.Builds.PieceOf(p.Placement.Kind) is { } piece => piece,
+        PlaceTool { Placement.Kind: "wall" or "backWall" } => (side, side),
         PlaceTool { Placement.Kind: "floor" } => (side, 1),
         _ => (1, 1),
     };
+
+    /// <summary>
+    /// <paramref name="act"/> as a stroke from world point <paramref name="from"/> to <paramref name="to"/> places it: the door's
+    /// card a hatch when the stroke runs further across than down (0104), as a doorway drawn across was one; every other as it is.
+    /// </summary>
+    public static Act Oriented(Act act, (double X, double Y) from, (double X, double Y) to) =>
+        act is PlaceTool { Placement.Kind: "door" } door && Math.Abs(to.X - from.X) > Math.Abs(to.Y - from.Y)
+            ? door with { Placement = door.Placement with { Kind = Spec.Builds.Hatch } }
+            : act;
 
     /// <summary>The top-left cell of <paramref name="stamp"/> round a world point, kept on the grid; a one-cell stamp is <see cref="SpotAt"/>.</summary>
     public static Spot StampAt(int width, int height, (double X, double Y) p, (int W, int H) stamp)
@@ -68,7 +80,20 @@ public static class Drag
     public static List<int> LineOf(int width, Act act, Spot from, Spot to, (int W, int H)? stamp = null)
     {
         var (w, h) = stamp ?? (1, 1);
-        if (act is PlaceTool { Placement.Layer: "machine" }) return [from.Y * width + from.X];
+        if (act is PlaceTool { Placement.Layer: "machine" } or PlaceTool { Placement.Kind: "door" or Spec.Builds.Hatch }) return [from.Y * width + from.X];
+        // A ladder's pieces laid end to end along the drag, a piece's length a step (0104): their top-left cells only.
+        if (act is PlaceTool { Placement.Kind: "ladder" })
+        {
+            bool along = Math.Abs(to.X - from.X) > Math.Abs(to.Y - from.Y);
+            int far = along ? to.X - from.X : to.Y - from.Y, size = along ? w : h;
+            var pieces = new List<int>();
+            for (int i = 0; i <= Math.Abs(far) / size; i++)
+            {
+                int x = along ? from.X + Math.Sign(far) * i * size : from.X, y = along ? from.Y : from.Y + Math.Sign(far) * i * size;
+                pieces.Add(y * width + x);
+            }
+            return pieces;
+        }
         if (act is PlaceTool { Placement.Kind: "wall" or "backWall" })
         {
             // From the begun stamp's side away from the end to the end stamp's far side, so both stamps are inside.

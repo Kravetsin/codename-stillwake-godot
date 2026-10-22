@@ -26,11 +26,16 @@ public class LightSourcesTests
     [Fact]
     public void TellsAClosedDoorsPanelFromAClosedHatchsByTheDoorwaysShape()
     {
-        // A door two tall, shut over open, beside a hatch two wide.
-        int[] structure = [Structure.DoorClosed, Structure.Empty, Structure.DoorClosed, Structure.DoorClosed, Structure.DoorOpen, Structure.Empty, Structure.Empty, Structure.Empty];
-        var cells = new byte[8];
-        Sources.Occupy(c => structure[c], _ => Shape.None, 4, structure.Length, new Box(0, 0, 3, 1), cells);
-        Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Hatch, Sources.Hatch, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
+        // A door three tall, shut over shut over open, beside a hatch two wide: a door stands in a run of more than two (0104).
+        int[] structure =
+        [
+            Structure.DoorClosed, Structure.Empty, Structure.Empty, Structure.Empty,
+            Structure.DoorClosed, Structure.Empty, Structure.DoorClosed, Structure.DoorClosed,
+            Structure.DoorOpen, Structure.Empty, Structure.Empty, Structure.Empty,
+        ];
+        var cells = new byte[12];
+        Sources.Occupy(c => structure[c], _ => Shape.None, 4, structure.Length, new Box(0, 0, 3, 2), cells);
+        Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Door, Sources.Open, Sources.Hatch, Sources.Hatch, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
     }
 
     [Fact]

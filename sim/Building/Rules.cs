@@ -16,22 +16,29 @@ public sealed partial class BuildingModule
     /// </summary>
     private static string SlotOf(string layer) => layer is "conduit" or "back" ? layer : "solid";
 
-    /// <summary>The cells a blueprint for <paramref name="place"/> at <paramref name="cell"/> covers: a machine's whole footprint, otherwise its one cell.</summary>
+    /// <summary>
+    /// The cells a blueprint for <paramref name="place"/> at <paramref name="cell"/> covers: a machine's or a piece's whole footprint
+    /// (a ladder's, a door's, 0104), otherwise its one cell.
+    /// </summary>
     private IReadOnlyList<int> Covers(int cell, Placement place) =>
-        place.Layer == "machine" ? _grid.Footprint(place.Kind, cell) ?? [cell] : [cell];
+        place.Layer == "machine" || Builds.PieceOf(place.Kind) != null ? _grid.Footprint(place.Kind, cell) ?? [cell] : [cell];
 
-    /// <summary>The cells a plan covers: a blueprint's, or the whole machine a mark names.</summary>
+    /// <summary>The cells a plan covers: a blueprint's, or the whole machine or piece a mark names.</summary>
     private IReadOnlyList<int> Covers(Plan plan)
     {
         if (plan.Place is { } place) return Covers(plan.Cell, place);
+        if (plan.Clear == "structure") return _grid.PieceOf(plan.Cell) is { Count: > 0 } piece ? piece : [plan.Cell];
         var machine = plan.Clear == "machine" ? _grid.MachineAt(plan.Cell) : null;
         return (machine != null ? _grid.Footprint(machine.Kind, machine.Cell) : null) ?? [plan.Cell];
     }
 
-    /// <summary>Where a mark to clear <paramref name="layer"/> at <paramref name="cell"/> is kept, or null when that layer is empty there.</summary>
+    /// <summary>
+    /// Where a mark to clear <paramref name="layer"/> at <paramref name="cell"/> is kept, or null when that layer is empty there: a
+    /// machine's at its top-left, a piece's at its first cell (0104), whichever of their cells was marked.
+    /// </summary>
     private int? MarkedCell(int cell, string layer) => layer switch
     {
-        "structure" => _grid.StructureAt(cell) == Structure.Empty ? null : cell,
+        "structure" => _grid.PieceOf(cell) is { Count: > 0 } piece ? piece[0] : null,
         "conduit" => _grid.ConduitAt(cell) == Conduit.None ? null : cell,
         "machine" => _grid.MachineAt(cell)?.Cell,
         "back" => _grid.BackAt(cell) == null ? null : cell,
@@ -93,7 +100,7 @@ public sealed partial class BuildingModule
     private string? PlaceProblem(int cell, Placement place)
     {
         if (place.Layer == "machine" && IsFixed(place.Kind)) return "building.fixed";
-        if (!Rules.Allows(place.Kind)) return "building.notHere";
+        if (!Rules.Allows(Builds.BuiltAs(place.Kind))) return "building.notHere";
         if (Unbuilt(place) || !_research.Knows(place)) return "building.unknown";
         var gridProblem = _grid.PlacementProblem(cell, place);
         if (gridProblem != null) return gridProblem;

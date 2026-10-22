@@ -55,18 +55,16 @@ public class DoubledTests
     }
 
     [Fact]
-    public void ADoorwayDoublesToOneCellThickTwiceAsLongAndAHatchAcrossTheSame()
+    public void ADoorwayDoublesToTwoCellsThickTwiceAsLongAndAHatchAcrossTheSame()
     {
-        // A door stands in its blocks' left column, the right one open to what lies beside it: the room, or space.
-        Assert.Equal([".##.", ".##.", ".D..", ".D..", ".D..", ".D..", ".D..", ".D..", ".##.", ".##."], Doubled(".#.", ".D.", ".D.", ".D.", ".#.").Rows.Select(r => r[1..5]));
-        Assert.Equal(["D ", "D ", "D ", "D "], Doubled("D ", "D ").Rows.Select(r => r[..2]));
-        // A hatch lies in their top row, the row under it open; one alone is a hatch, as Doorways has it, the ladder it is in kept.
-        Assert.Equal(["##DD##", "##HH##"], Doubled("#D#", "#H#").Rows.Take(2));
-        Assert.Equal(["##DDDDDD##", "##......##"], Doubled("#DDD#", ".....").Rows.Take(2));
+        // A door fills its blocks, two cells thick as its 16 px door was one (0104).
+        Assert.Equal([".##.", ".##.", ".DD.", ".DD.", ".DD.", ".DD.", ".DD.", ".DD.", ".##.", ".##."], Doubled(".#.", ".D.", ".D.", ".D.", ".#.").Rows.Select(r => r[1..5]));
+        Assert.Equal(["##DD##", "##DD##", "##HH##"], Doubled("#D#", "#H#").Rows.Take(3));
+        Assert.Equal(["##DDDDDD##", "##DDDDDD##", ".........."], Doubled("#DDD#", ".....").Rows.Take(3));
     }
 
     [Fact]
-    public void ADoubledDoorwayTogglesWholeSixCellsTall()
+    public void ADoubledDoorwayTogglesWholeTwoCellsThickAndSixTall()
     {
         var w = new Scenario("""
             ###
@@ -75,8 +73,8 @@ public class DoubledTests
             .D.
             ###
             """);
-        w.Do(new SetDoor(w.At(1, 2), true)).Run();
-        var door = Enumerable.Range(2, 6).Select(y => y * w.M.Grid.Width + 2).ToList();
+        w.Do(new SetDoor(w.At(1, 2) + 1, true)).Run();
+        var door = Enumerable.Range(2, 6).SelectMany(y => new[] { y * w.M.Grid.Width + 2, y * w.M.Grid.Width + 3 }).ToList();
         Assert.All(door, c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
         Assert.Empty(w.Refusals);
     }

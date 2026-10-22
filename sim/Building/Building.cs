@@ -198,7 +198,8 @@ public sealed partial class BuildingModule : Module<BuildingState>
         else if (Costs.BuiltAt(_grid, plan.Cell, plan.Clear!) is { } built)
         {
             // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
-            _gridOps.Clear(plan.Cell, plan.Clear!);
+            // A ladder or a doorway comes apart whole, as it was built (0104).
+            foreach (int cell in plan.Clear == "structure" ? _grid.PieceOf(plan.Cell) : [plan.Cell]) _gridOps.Clear(cell, plan.Clear!);
             _itemsOps.GiveOrDrop(from, built.Cost, plan.Cell);
         }
         State.Plans.RemoveAll(p => p.Id == plan.Id);

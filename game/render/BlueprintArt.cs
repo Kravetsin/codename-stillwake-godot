@@ -43,33 +43,36 @@ public static class BlueprintArt
             ? new(TileLayer.Back, ShipTiles.BackName(placement.Material!), Cut: true)
             : new(TileLayer.Back, $"back_{placement.Material}_plain", Cut: true)],
         // A 16 px picture over the cells of a character's, cut a cell at a time where it lies (0104).
-        "floor" or "ladder" => [new(TileLayer.Fixtures, placement.Kind, Cut: true)],
-        // A planned door is shut, a door or a hatch by the doors it joins (0067).
-        "door" => [new(TileLayer.Doors, DoorShape.Picture(closed: true, linked))],
+        "floor" => [new(TileLayer.Fixtures, placement.Kind, Cut: true)],
+        // A piece whole from its top-left (0104), as a machine is: a ladder, or a door or a hatch, planned shut.
+        "ladder" => [new(TileLayer.Fixtures, ShipTiles.PieceName(placement.Kind))],
+        "door" or Builds.Hatch => [new(TileLayer.Doors, ShipTiles.PieceName(placement.Kind))],
         "pipe" => [new(TileLayer.Pipes, $"pipe_{linked}")],
         "valve" => [new(TileLayer.Pipes, $"pipe_{linked}"), new(TileLayer.Valves, "valve_open")],
         _ => [new(TileLayer.Machines, $"machine_{placement.Kind}", Rise: ShipTiles.RiseOf(placement.Kind))],
     };
 
     /// <summary>
-    /// What <paramref name="placement"/> builds, as one picture: a build menu card's. A pipe or a valve
-    /// reaches both ways; a door is a door whole, the shape it is known by; a picture cut over the world gives its first
-    /// cell; a wall cut to a shape shows the cut.
+    /// What <paramref name="placement"/> builds, as one picture: a build menu card's, at the art's 16 px (0104), as it was before
+    /// the cell was halved. A pipe or a valve reaches both ways; a door is a door's piece alone, the shape it is known by; a
+    /// picture cut over the world gives its first 16 px; a wall cut to a shape shows the cut, at the cell's size.
     /// </summary>
     public static Texture2D Thumbnail(Placement placement)
     {
         if (Thumbs.TryGetValue(placement, out var kept)) return kept;
         int linked = placement.Layer == "conduit" ? Left | Right : 0;
         var layers = new List<(Image Image, Vector2I At)>();
-        var size = new Vector2I(Cell, Cell);
-        IReadOnlyList<TilePiece> pieces = placement.Kind == "door" ? [new(TileLayer.Doors, "door_closed_0")] : PiecesOf(placement, linked);
+        int side = placement.Shape == Shape.None ? ShipTiles.Drawn : Cell;
+        var size = new Vector2I(side, side);
+        IReadOnlyList<TilePiece> pieces = (placement.Kind is "door" or Builds.Hatch) ? [new(TileLayer.Doors, "door_closed_0")]
+            : placement.Kind == "ladder" ? [new(TileLayer.Fixtures, "ladder")] : PiecesOf(placement, linked);
         foreach (var piece in pieces)
         {
-            var image = ShipTiles.ImageOf(piece.Picture);
-            // A sheet gives its first cell; a 16 px picture cut over its cells, all of it (0104).
-            if (piece.Cut && !ShipTiles.CutDrawn(piece.Picture)) image = image.GetRegion(new Rect2I(0, 0, Cell, Cell));
+            var image = side == Cell ? ShipTiles.ImageOf(piece.Picture) : ShipTiles.DrawnImageOf(piece.Picture);
+            // A sheet gives its first 16 px; a 16 px picture cut over its cells, all of it (0104).
+            if (piece.Cut && !ShipTiles.CutDrawn(piece.Picture)) image = image.GetRegion(new Rect2I(0, 0, side, side));
             // A valve's wheel sits in the middle of its cell, as the grid lays it.
-            var at = piece.Layer == TileLayer.Valves ? new Vector2I(Cell / 2 - image.GetWidth() / 2, Cell / 2 - image.GetHeight() / 2) : Vector2I.Zero;
+            var at = piece.Layer == TileLayer.Valves ? new Vector2I(side / 2 - image.GetWidth() / 2, side / 2 - image.GetHeight() / 2) : Vector2I.Zero;
             size = new Vector2I(Mathf.Max(size.X, at.X + image.GetWidth()), Mathf.Max(size.Y, at.Y + image.GetHeight()));
             layers.Add((image, at));
         }

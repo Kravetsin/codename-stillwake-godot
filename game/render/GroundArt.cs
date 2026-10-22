@@ -26,17 +26,18 @@ public static class GroundArt
 
     /// <summary>
     /// The edges of a cell of <paramref name="material"/> on its sides <paramref name="open"/> (up 1, right 2, down 4, left 8),
-    /// catching the light (0088): a dark outline, inside it two lit lines on top and one on the other sides; transparent elsewhere.
+    /// catching the light (0088): a dark outline, inside it two lit lines on top and one on the other sides; transparent elsewhere;
+    /// <paramref name="cell"/> pixels square, a 16 px one for a build card (0104).
     /// </summary>
-    public static Image Edge(string material, int open)
+    public static Image Edge(string material, int open, int cell = Cell)
     {
         var look = GroundLooks.Of[material];
-        var image = Image.CreateEmpty(Cell, Cell, false, Image.Format.Rgba8);
-        for (int y = 0; y < Cell; y++)
-            for (int x = 0; x < Cell; x++)
+        var image = Image.CreateEmpty(cell, cell, false, Image.Format.Rgba8);
+        for (int y = 0; y < cell; y++)
+            for (int x = 0; x < cell; x++)
             {
-                int up = (open & 1) != 0 ? y : Cell, right = (open & 2) != 0 ? Cell - 1 - x : Cell;
-                int down = (open & 4) != 0 ? Cell - 1 - y : Cell, left = (open & 8) != 0 ? x : Cell;
+                int up = (open & 1) != 0 ? y : cell, right = (open & 2) != 0 ? cell - 1 - x : cell;
+                int down = (open & 4) != 0 ? cell - 1 - y : cell, left = (open & 8) != 0 ? x : cell;
                 int nearest = System.Math.Min(System.Math.Min(up, right), System.Math.Min(down, left));
                 if (nearest == 0) image.SetPixel(x, y, Colour(look.Outline));
                 else if (up == 1) image.SetPixel(x, y, Colour(look.Lit, GroundLooks.RimTop));
