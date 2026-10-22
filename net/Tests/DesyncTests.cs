@@ -378,6 +378,45 @@ public class DesyncTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void KeepsEveryClientInSyncWhileCapacitorBanksFillAndGiveOut()
+    {
+        // Two panels out in space cabled to two banks and two lamps (0101). The fuzz cuts and moves the cables; the first
+        // client lays the banks' and the lamps' again often and the first panel's now and then, so the banks fill while it
+        // is cabled and light the lamps while it is not.
+        var layout = Layout.Parse(
+            ["PPP PPP          ", "                 ", "#################", "#.OOO.QQ.QQ.L.L.#", "#.OOO.QQ.QQ.....#", "#.OOO...........#", "#################"],
+            null,
+            [((0, 0), (6, 3)), ((4, 0), (6, 3)), ((9, 3), (6, 3)), ((12, 3), (6, 3)), ((14, 3), (9, 3))]);
+        Covering(21, tried =>
+        {
+            var game = new Definition(() => new Registry().All);
+            int filled = 0, gave = 0;
+            var run = Desync.Fuzz(game, tried, layout: layout, ticks: 1500, tamper: (tick, clients) =>
+            {
+                var first = clients[0];
+                var grid = game.Module<GridModule>(first.World);
+                var power = game.Module<Sim.Power.PowerModule>(first.World);
+                int Cell(string kind, int nth) => grid.MachinesOf(kind)[nth].Cell;
+                if (tick % 20 == 10)
+                {
+                    first.Send(new SetCreative(true));
+                    first.Send(new Sim.Power.Lay(Cell("capacitorBank", 0), Cell("capacitorBank", 1)));
+                    first.Send(new Sim.Power.Lay(Cell("capacitorBank", 0), Cell("lamp", 0)));
+                    first.Send(new Sim.Power.Lay(Cell("capacitorBank", 1), Cell("lamp", 1)));
+                }
+                if (tick % 300 == 150) first.Send(new Sim.Power.Lay(Cell("solarPanel", 0), Cell("capacitorBank", 0)));
+                foreach (var bank in grid.MachinesOf("capacitorBank"))
+                {
+                    int flow = power.Store(bank.Id)!.Flow;
+                    if (flow > 0) filled++;
+                    if (flow < 0) gave++;
+                }
+            });
+            return (run, filled > 100 && gave > 50 ? null : $"a bank filled on {filled} ticks and gave out on {gave}");
+        });
+    }
+
+    [Fact]
     public void KeepsEveryClientInSyncWhileEveryKindOfStationWorks()
     {
         // An aired room with the lifepod, a furnace, and a Former, an electric smelter and a circuit assembler cabled

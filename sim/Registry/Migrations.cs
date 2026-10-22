@@ -168,12 +168,15 @@ public static class Migrations
         // 24 → 25: a stack may carry a module fitted into its tool (0098), written only when one does: the same identity, so
         // an older build never loads a fitted drill and drops its module.
         save => save,
-        // 25 → 26: creatures (0102): the fauna slice, empty, after every other, aboard and on every surface; none has lived yet.
+        // 25 → 26: power keeps what each capacitor bank holds (0101), none before: the same identity, so an older build never
+        // loads a bank and drops its charge.
+        save => save,
+        // 26 → 27: creatures (0102): the fauna slice, empty, after every other, aboard and on every surface; none has lived yet.
         Creatures,
     ];
 
     /// <summary>
-    /// 25 → 26: the fauna slice (0102), empty, its clock unstarted, after every other slice, aboard and on every surface: what a
+    /// 26 → 27: the fauna slice (0102), empty, its clock unstarted, after every other slice, aboard and on every surface: what a
     /// fresh one holds, for nothing lived before. A save already holding it is left as it is.
     /// </summary>
     public static JsonObject Creatures(JsonObject save)

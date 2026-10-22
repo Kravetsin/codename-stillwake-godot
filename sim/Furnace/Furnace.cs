@@ -40,6 +40,7 @@ public sealed class FurnaceModule : Module<FurnaceState>
     private readonly IItemsOps _itemsOps;
     private readonly IAtmosphereQueries _air;
     private readonly IAtmosphereOps _airOps;
+    private readonly IPowerQueries _power;
     private readonly IPowerOps _powerOps;
     private readonly ICraftingQueries _crafting;
     private readonly ICraftingOps _craftingOps;
@@ -48,8 +49,9 @@ public sealed class FurnaceModule : Module<FurnaceState>
 
     public FurnaceModule(
         IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IAtmosphereQueries air, IAtmosphereOps airOps,
-        IPowerOps powerOps, ICraftingQueries crafting, ICraftingOps craftingOps)
+        IPowerQueries power, IPowerOps powerOps, ICraftingQueries crafting, ICraftingOps craftingOps)
     {
+        _power = power;
         _grid = grid;
         _items = items;
         _itemsOps = itemsOps;
@@ -87,6 +89,7 @@ public sealed class FurnaceModule : Module<FurnaceState>
             : smelter && !_crafting.CanSmelt(id) ? "furnace.full"
             : !burning && FuelIn(machine) == null ? "furnace.noFuel"
             : !aired ? "furnace.noAir"
+            : !smelter && !burning && !_power.Needed(id) ? "furnace.unneeded"
             : null;
         if (!smelter) return new Smelting(burning, Problem: problem);
         return new Smelting(burning, input, _crafting.Progress(id), work!.Value, problem);
@@ -178,6 +181,8 @@ public sealed class FurnaceModule : Module<FurnaceState>
     {
         if (cell < 0 || FuelIn(m) is not int burns) return 0;
         if (m.Kind == Smelter && !_crafting.CanSmelt(m.Id)) return 0;
+        // A generator burns only what its network would take: a fuel lit burns to its end, the next waits (0101).
+        if (m.Kind == Generator && !_power.Needed(m.Id)) return 0;
         _itemsOps.Consume(m.Id, Content.Machines.Get(m.Kind).FuelSlot!.Value);
         return burns;
     }

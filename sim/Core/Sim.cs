@@ -12,7 +12,7 @@ namespace Stillwake.Sim;
 public sealed class World
 {
     /// <summary>Bumped whenever saved data changes shape; a save of another format is refused.</summary>
-    public const int SaveFormat = 26;
+    public const int SaveFormat = 27;
 
     /// <summary>How many ticks a second of game time holds: the host releases them at this pace.</summary>
     public const int TicksPerSecond = 20;
@@ -31,7 +31,7 @@ public sealed class World
 
     // In id order, which is their index: surface 0, the ship, is the modules the world was made with.
     private readonly List<Running> _surfaces = [];
-    // Peer → surface, for peers off the ship only: a peer not listed is on the ship.
+    // Peer в†’ surface, for peers off the ship only: a peer not listed is on the ship.
     private readonly SortedDictionary<int, int> _where = new();
     // Moves asked by modules while the surfaces ran, made once they all have, in the order asked.
     private readonly List<(int Peer, int Surface)> _sends = [];

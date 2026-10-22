@@ -32,6 +32,10 @@ namespace Stillwake.Content;
 /// between them (<see cref="Charge"/>): the charger's one, a drone bay's four. Its slots take only items with a
 /// <c>Capacity</c>, and it draws only while one is short of full.
 /// </param>
+/// <param name="Store">
+/// A store of its network's energy (0101): it takes in what the network makes beyond what it draws and gives it back
+/// when the network draws more than it makes, within its <see cref="StoreSpec"/>. It neither makes nor draws.
+/// </param>
 /// <param name="Tunes">
 /// A bench a tool is fitted at (0099): its first slot holds one tool a module fits (<c>Modules</c>' hosts) and nothing else,
 /// and a module fitted with it as the target goes onto that tool's stack. Its other slots are what it crafts; its crafts are
@@ -52,7 +56,18 @@ public sealed record MachineSpec(
     int? FuelSlot = null,
     bool Fixed = false,
     bool Charges = false,
-    bool Tunes = false);
+    StoreSpec? Store = null,
+    bool Tunes = false)
+{
+    /// <summary>Whether it is a node cables end on: it makes power, draws it or stores it.</summary>
+    public bool Powered => Makes != null || Draws != null || Store != null;
+}
+
+/// <summary>
+/// What a network's store holds and moves, in power-ticks (0101): <paramref name="Capacity"/> full, at most
+/// <paramref name="In"/> taken in a tick and <paramref name="Out"/> given out.
+/// </summary>
+public sealed record StoreSpec(int Capacity, int In, int Out);
 
 /// <summary>The machines, by the kind saves and the grid name them.</summary>
 public static class Machines
@@ -76,6 +91,9 @@ public static class Machines
         new("burnerGenerator", 2, 2, [], [("frame", 1), ("rotor", 1), ("coil", 1), ("scrap", 6)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0),
         // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
         new("charger", 1, 2, [], [("frame", 1), ("coil", 1), ("wire", 4), ("circuit", 1)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: true),
+        // Keeps what its network makes and nothing draws, and gives it back when the network draws more than it makes (0101):
+        // a minute at its most taken in fills it, two of a spare panel's. Basic infrastructure, not arc-gated; a bigger arc store may come later.
+        new("capacitorBank", 2, 2, [], [("frame", 1), ("coil", 2), ("plate", 2), ("circuit", 1)], BuildTicks: 200, Plug: (16, 4), Store: new(12000, 10, 10)),
         // Presses and turns parts at full speed while it draws (Stations): two inputs, the most any craft of its needs, then three outputs. Rests idle.
         new("former", 2, 2, [], [("frame", 2), ("rotor", 1), ("gear", 2), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 6, Inputs: 3),
         // Smelts on power, twice the furnace's speed and hotter (Stations): its input, then three outputs. Rests idle.

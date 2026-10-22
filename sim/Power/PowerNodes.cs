@@ -16,13 +16,28 @@ public sealed record Ends(int A, int B);
 /// <param name="Supply">Power its makers make a tick.</param>
 /// <param name="Demand">Power its users would draw a tick.</param>
 /// <param name="Satisfaction">What share of its draw each user gets, in thousandths: all slowed alike when short.</param>
-public sealed record PowerNetwork(int Id, IReadOnlyList<int> Nodes, int Supply, int Demand, int Satisfaction);
+/// <param name="Stored">Power-ticks its stores hold as the tick begins (0101).</param>
+/// <param name="Capacity">What its stores hold full.</param>
+/// <param name="Flow">What goes into its stores this tick, in power-ticks; below 0, what they give out.</param>
+/// <param name="Intake">What its stores could take in this tick: each its <c>In</c>, or the room it has left if less.</param>
+/// <param name="Steady">What of its supply its makers that burn nothing make: its panels under the stars.</param>
+public sealed record PowerNetwork(
+    int Id, IReadOnlyList<int> Nodes, int Supply, int Demand, int Satisfaction, int Stored = 0, int Capacity = 0, int Flow = 0, int Intake = 0, int Steady = 0);
+
+/// <summary>A store on a network as it settles a tick: what it holds as the tick begins, and its limits.</summary>
+internal readonly record struct Banked(int Energy, StoreSpec Spec);
+
+/// <summary>What store <c>Machine</c> holds, in power-ticks, above 0 (0101).</summary>
+public sealed record StoreCharge(int Machine, int Energy);
+
+/// <summary>A store as its picture and the overlay show it: what it holds of full, and what goes in this tick, out below 0.</summary>
+public sealed record StoreLevel(int Energy, int Capacity, int Flow);
 
 /// <summary>Nodes, spans and networks (packages/sim/src/modules/power/nodes.ts).</summary>
 internal static class PowerNodes
 {
     public static MachineSpec Spec(Machine m) => Content.Machines.Get(m.Kind);
-    public static bool IsPowered(MachineSpec s) => s.Makes != null || s.Draws != null;
+    public static bool IsPowered(MachineSpec s) => s.Powered;
 
     /// <summary>
     /// The node a cable laid at <paramref name="cell"/> ends on: a machine that makes or draws power,
@@ -81,11 +96,14 @@ internal static class PowerNodes
     /// The networks the cables join, in id order, with each user's satisfaction by machine id. Supply is
     /// what the makers make, each only while <paramref name="making"/> says it works: one that burns fuel
     /// anywhere, any other under the stars; demand what the users draw now, as <paramref name="draw"/> says: none
-    /// while one rests, its modules folded in (0086). Satisfaction is <c>floor(1000 × supply / demand)</c>, at
-    /// most 1000, and 1000 with nothing drawn. A powered machine with no cable is on no network.
+    /// while one rests, its modules folded in (0086). Its stores, holding what <paramref name="stored"/> says by machine
+    /// id, settle the tick (<see cref="Settle"/>, 0101); satisfaction is <c>floor(1000 × served / demand)</c>, served
+    /// being supply and what the stores gave, at most 1000, and 1000 with nothing drawn. Flows are each cabled store's
+    /// this tick, by machine id: in above 0, out below. A powered machine with no cable is on no network.
     /// </summary>
-    public static (List<PowerNetwork> Networks, Dictionary<int, int> Satisfaction) Find(
-        IGridQueries grid, IRoomsQueries rooms, IReadOnlyList<Cable> cables, Func<Machine, int> draw, Func<Machine, bool> making)
+    public static (List<PowerNetwork> Networks, Dictionary<int, int> Satisfaction, List<(int Machine, int Flow)> Flows) Find(
+        IGridQueries grid, IRoomsQueries rooms, IReadOnlyList<Cable> cables, Func<Machine, int> draw, Func<Machine, bool> making,
+        Func<int, int> stored)
     {
         var ends = new List<int>(cables.Count * 2);
         foreach (var c in cables) { ends.Add(c.A); ends.Add(c.B); }
@@ -119,7 +137,10 @@ internal static class PowerNodes
 
         var supply = new int[lists.Count];
         var demand = new int[lists.Count];
+        var steady = new int[lists.Count];
         var users = new List<(int Id, int Network)>();
+        // In node order, so a network's stores come in the reading order of their cells.
+        var stores = new List<(int Id, int Network, Banked Banked)>();
         // A network's machines are those whose top-left a cable ends on: found from the ends, not every machine.
         for (int at = 0; at < nodes.Length; at++)
         {
@@ -129,23 +150,69 @@ internal static class PowerNodes
             if (!IsPowered(s)) continue;
             int network = networkOf[at];
             // A fire needs no stars: its module rests it while it is out.
-            if (s.Makes is int makes && making(m) && (s.FuelSlot != null || UnderStars(grid, rooms, m))) supply[network] += makes;
+            if (s.Makes is int makes && making(m) && (s.FuelSlot != null || UnderStars(grid, rooms, m)))
+            {
+                supply[network] += makes;
+                if (s.FuelSlot == null) steady[network] += makes;
+            }
             if (s.Draws != null)
             {
                 demand[network] += draw(m);
                 users.Add((m.Id, network));
             }
+            if (s.Store is { } store) stores.Add((m.Id, network, new Banked(stored(m.Id), store)));
         }
 
         var networks = new List<PowerNetwork>(lists.Count);
+        var flows = new List<(int Machine, int Flow)>(stores.Count);
+        var held = new List<Banked>();
+        var ids = new List<int>();
+        var flowed = new int[stores.Count];
         for (int n = 0; n < lists.Count; n++)
         {
+            held.Clear();
+            ids.Clear();
+            foreach (var (id, network, h) in stores)
+                if (network == n) { held.Add(h); ids.Add(id); }
+            var flow = flowed.AsSpan(0, held.Count);
+            int served = Settle(supply[n], demand[n], held, flow);
+            int energy = 0, capacity = 0, moved = 0, intake = 0;
+            for (int i = 0; i < held.Count; i++)
+            {
+                flows.Add((ids[i], flow[i]));
+                (energy, capacity, moved, intake) = (energy + held[i].Energy, capacity + held[i].Spec.Capacity, moved + flow[i], intake + Intake(held[i]));
+            }
             // Both are never negative, so integer division is the floor.
-            int satisfaction = demand[n] == 0 ? 1000 : Math.Min(1000, 1000 * supply[n] / demand[n]);
-            networks.Add(new PowerNetwork(lists[n][0], lists[n], supply[n], demand[n], satisfaction));
+            int satisfaction = demand[n] == 0 ? 1000 : Math.Min(1000, 1000 * served / demand[n]);
+            networks.Add(new PowerNetwork(lists[n][0], lists[n], supply[n], demand[n], satisfaction, energy, capacity, moved, intake, steady[n]));
         }
         var byMachine = new Dictionary<int, int>(users.Count);
         foreach (var (id, network) in users) byMachine[id] = networks[network].Satisfaction;
-        return (networks, byMachine);
+        return (networks, byMachine, flows);
+    }
+
+    /// <summary>What store <paramref name="h"/> could take in this tick: its <c>In</c>, or the room it has left if less.</summary>
+    public static int Intake(Banked h) => Math.Max(0, Math.Min(h.Spec.In, h.Spec.Capacity - h.Energy));
+
+    /// <summary>
+    /// How a network's <paramref name="stores"/> settle a tick (0101), in the order given: with <paramref name="supply"/> at
+    /// or above <paramref name="demand"/>, what is spare goes into them, each up to its <see cref="Intake"/>, the rest wasted;
+    /// short, they give out, each up to its <c>Out</c> and what it holds, until the shortfall is met. Writes each store's
+    /// flow into <paramref name="flows"/>, in above 0 and out below, and returns what the users are served: supply and
+    /// what the stores gave. A store never takes from another: only spare supply goes in.
+    /// </summary>
+    public static int Settle(int supply, int demand, IReadOnlyList<Banked> stores, Span<int> flows)
+    {
+        bool spare = supply >= demand;
+        int left = spare ? supply - demand : demand - supply, served = supply;
+        for (int i = 0; i < stores.Count; i++)
+        {
+            var h = stores[i];
+            int moved = Math.Min(left, spare ? Intake(h) : Math.Min(h.Spec.Out, h.Energy));
+            flows[i] = spare ? moved : -moved;
+            left -= moved;
+            if (!spare) served += moved;
+        }
+        return served;
     }
 }

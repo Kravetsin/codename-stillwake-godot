@@ -47,7 +47,7 @@ must agree on where it is and when it dies, so its body, its hit points and its 
   roll, moved to `Core` (`Loots.Roll`) for both.
 - **Dev:** `Release(Species, Cell)`, a command as `world.open` is, refused `fauna.notHere`, `fauna.full`, `fauna.blocked`;
   the client's `--fauna` sends it.
-- **Save format 26:** an empty fauna slice after every other, aboard and on every surface.
+- **Save format 27:** an empty fauna slice after every other, aboard and on every surface.
 
 ## Measured
 

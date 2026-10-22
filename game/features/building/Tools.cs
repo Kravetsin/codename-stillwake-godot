@@ -97,6 +97,7 @@ public static class Tools
             Place("lamp", new Placement("machine", "lamp")),
             Place("arcLamp", new Placement("machine", "arcLamp")),
             Place("charger", new Placement("machine", "charger")),
+            Place("capacitorBank", new Placement("machine", "capacitorBank")),
         ], Power),
         new("production",
         [
