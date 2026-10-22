@@ -14,6 +14,9 @@ Cables hanging between their nodes and the power tab's overlay, where they are l
 | `PowerHands.cs` | the hands on the power tab: the Cable card lays and leads on through supports, no card carries a peg or plug, a middle press near a cable cuts (`mode.ts`) | no    |
 | `PowerView.cs`  | the cables, pegs, plugs, grommets and bolts; the overlay, its colours and the ghost    | yes   |
 | `ChargerLights.cs` | each charging station's light and the battery in its bay (0053)                     | yes   |
+| `StoreLights.cs` | each capacitor bank's gauge, its spark and its light (0101)                          | yes   |
+| `StoreGauge.cs`  | how the gauge reads: segments lit by how full, the spark's way and place (tested)     | no    |
+| `StoreWorld.cs`, `StoreDemo.cs` | the world of `-- --store` and its script: a bank filling, then emptying into an arc smelter | `StoreDemo` |
 
 `game/render/CableShape.cs` (`render/cable.ts`: ends, hangs, pieces through the hull) and
 `game/render/Rope.cs` (the tether's rope, now also started from given points and brushed by bodies)
@@ -29,6 +32,14 @@ moving on every frame at 240 Hz, let go between two steps, and moved off a hull 
   room round it a little in the same green (a `Glow`), none while dark. Read every 100 ms; the pulse
   runs every frame. The picture is a placeholder (a cabinet, a light, a bay) until art is picked.
 
+- **A capacitor bank without a word** (`StoreLights`, 0101): its gauge of six segments lit from the foot as far as it
+  is full (`IPowerQueries.Store`), the top one as bright as it is full within it, the lowest never dark until empty;
+  green, amber under a quarter as a battery's bar. A spark runs up the lit segments while it takes power in and down
+  them while it gives out, every 0.9 s, none while it holds. Drawn unlit over its picture, it lights the room round it
+  in its colour, more the fuller it is, none when empty (a `Glow`). Read every 100 ms. The power overlay's tip on a node
+  of a network with stores adds what they hold of full under what it makes and draws; out of every overlay, with no card
+  in hand, the pointer on a bank shows the one tooltip saying only "8 400 / 12 000 ↑" (`StoreGauge.Reading`: grouped as
+  the wrist's energy tab, ↑ charging, ↓ giving out), read from `IPowerQueries.Store` as the world runs (`PowerView`).
 - A cable is the same rope throughout: laid, it is the rope it was dragged as from the first press; a
   carried end is the real cable, highlighted white (red where it may not be let go); dropped on a node
   it waits there until the world moves it and goes on from where it hangs, never snapping back unless the

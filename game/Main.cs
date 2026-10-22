@@ -45,7 +45,7 @@ namespace Stillwake.Game;
 /// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings,
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--ladders</c> a tall one up through a hatch beside a laddered pit, or with <c>--strip</c> the strip's shaft (<see cref="HeroAutopilot.LaddersRun"/>, 0092), <c>--ledges</c> a ledge a jump steps up onto and one it falls short of (0092), <c>--hills</c> ground of slopes to walk (<see cref="HillsDemo"/>), <c>--slopes</c> walls cut to shapes planned with R, lit, and a corridor under a sloped ceiling (<see cref="SlopesDemo"/>), <c>--floor</c> stacks falling through a machine onto a dark floor and a slope (<see cref="FloorDemo"/>), <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
-/// <c>--furnace</c> a lit furnace in the wreck, <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>, and with <c>--marks &lt;item&gt; --into &lt;slot&gt;</c> that machine emptied and the item carried over its slot, <see cref="MarksDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
+/// <c>--furnace</c> a lit furnace in the wreck, <c>--store</c> a capacitor bank filling from a panel, then emptying into an arc smelter (<see cref="Features.Power.StoreDemo"/>), <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>, and with <c>--marks &lt;item&gt; --into &lt;slot&gt;</c> that machine emptied and the item carried over its slot, <see cref="MarksDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
 /// jetpack put on and flown out of the airlock (<see cref="JetpackDemo"/>), <c>--items</c> a room with a crate, a furnace and an
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand, <c>--arc-drill</c> with the arc module in the drill), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
@@ -90,6 +90,7 @@ public partial class Main : Node2D, ITogether
     private FurnaceView? _furnace;
     private AnalyzerScreens? _screens;
     private Features.Power.ChargerLights? _chargers;
+    private Features.Power.StoreLights? _stores;
     private Features.Atmosphere.TankLooks? _tanks;
     private ShipCamera _camera = null!;
     private Stars _stars = null!;
@@ -321,6 +322,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--sortie") && !Has("--manual")) AddChild(new SortieDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--fly")) AddChild(new FarDemo(_debris, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null, () => _fabricator));
+        if (Has("--store")) AddChild(new Features.Power.StoreDemo(() => _session is Session s ? (s.Client, _m) : null));
         if (Has("--fx-bench")) AddChild(new FxBench());
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--allocs")) _allocs = new AllocationSampler();
@@ -372,6 +374,7 @@ public partial class Main : Node2D, ITogether
         var layout = Has("--perf") ? PerfLayout() : _layout;
         var world = Has("--gallery") ? DevWorlds.Gallery(modules)
             : Has("--furnace") ? FurnaceDemo.Create(modules)
+            : Has("--store") ? Features.Power.StoreWorld.Create(modules)
             : Has("--testbed") || Has("--jetpack") || Has("--charge") || Has("--dust") ? Testbed.Create(modules)
             : World.Create(1, layout, modules);
         if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
@@ -414,7 +417,7 @@ public partial class Main : Node2D, ITogether
             _faunaDemo = new FaunaDemo();
             if (!Has("--manual")) AddChild(new FaunaHands(_faunaDemo, () => _hero?.Current));
         }
-        PlayDev(world, Has("--gallery") ? null : layout);
+        PlayDev(world, Has("--gallery") ? null : Has("--store") ? Features.Power.StoreWorld.Map : layout);
     }
 
     /// <summary>The title's Testbed button, in a debug build: the testbed played as <c>--testbed</c> plays it.</summary>
@@ -897,6 +900,7 @@ public partial class Main : Node2D, ITogether
         _furnace?.QueueFree();
         _screens?.QueueFree();
         _chargers?.QueueFree();
+        _stores?.QueueFree();
         _tanks?.QueueFree();
         _pods?.QueueFree();
         _stations?.QueueFree();
@@ -922,6 +926,7 @@ public partial class Main : Node2D, ITogether
         var (caves, lava, homes, spires) = (_caves, _lava, _homes, _spires);
         AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
         AddChild(_chargers = new Features.Power.ChargerLights(_m.Grid, _m.Items, _m.Power));
+        AddChild(_stores = new Features.Power.StoreLights(_m.Grid, _m.Power));
         AddChild(_tanks = new Features.Atmosphere.TankLooks(_m.Grid, _m.Atmosphere));
         AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
         AddChild(_stations = new StationView(_m.Grid, _m.Crafting, _m.Items));
