@@ -114,9 +114,9 @@ public class DigAimTests
         Assert.Equal([new Dig(At(4, 4), Axe), new Dig(At(5, 4), Axe)], Aiming.DigsAt(m, 0, InShaft with { Y = 4 * Unit }, P(4.9, 4.9), Axe, brush: 2));
         // At the edge of reach, only the near cells.
         var far = InShaft with { X = 9 * Unit + Unit / 2 };
-        var cut = Aiming.DigsAt(m, 0, far, P(15, 1), Axe, brush: 2);
-        Assert.All(cut, d => Assert.True(Aiming.Reaches(far, d.Cell, 16)));
-        Assert.True(cut.Count < 4);
+        var cut = Aiming.DigsAt(m, 0, far, P(21, 1), Axe, brush: 2);
+        Assert.All(cut, d => Assert.True(Aiming.Reaches(far, d.Cell, 32)));
+        Assert.InRange(cut.Count, 1, 3);
     }
 
     [Fact]
@@ -151,8 +151,8 @@ public class DigAimTests
     public void AStrikeIsHeardAtTheDigInThePointersCellElseTheFirst()
     {
         Dig a = new(At(4, 3), Axe), b = new(At(5, 3), Axe);
-        Assert.Equal(b, Aiming.LeadOf([a, b], P(5.2, 3.5), 16));
-        Assert.Equal(a, Aiming.LeadOf([a, b], P(5.2, 2.5), 16));
-        Assert.Null(Aiming.LeadOf([], P(5.2, 2.5), 16));
+        Assert.Equal(b, Aiming.LeadOf([a, b], P(5.2, 3.5), 32));
+        Assert.Equal(a, Aiming.LeadOf([a, b], P(5.2, 2.5), 32));
+        Assert.Null(Aiming.LeadOf([], P(5.2, 2.5), 32));
     }
 }
