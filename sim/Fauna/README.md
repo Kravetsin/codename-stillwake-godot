@@ -16,7 +16,7 @@ saved by number)
   and the ticks left of it, and the clock it was last in a hero's keep box; `NextId`, never reused; `Clock`, ticks run on a
   surface with life or creatures. **Derived** from the rest, never saved: its facing (the sign of `VX`; the client keeps
   the last while it stands), whom it flees (the nearest hero, found as a flinch ends), the beat (`Clock % Fauna.Beat`).
-- **Files:** `Fauna.cs` — the module, `Strike`, `Release`, queries; `Live.cs` — the system: keeping, modes, steering,
+- **Files:** `Fauna.cs` — the module, `Strike`, `Release`, queries; `Footing.cs` — `FeetOf`; `Live.cs` — the system: keeping, modes, steering,
   moving; `Spawn.cs` — the ring and the habitats; `State.cs`; `Fuzz.cs`.
 - **Runs** last in `Registry.All`, after `Crew` in the simulation phase, so where heroes are is this tick's; saved last.
 
@@ -73,7 +73,11 @@ saved by number)
 - **`Release(Species, Cell)`,** a dev command (`--fauna`): a creature idling with its body's bottom left in the cell.
   Refused `fauna.notHere` aboard, `fauna.full` at `Fauna.Max`, `fauna.blocked` off the grid or where its body would be in
   anything solid. An unknown species is our bug.
-- **Kept or gone:** by the cell under its middle; in some hero's keep box (`Fauna.Keep`, 80 × 48 either way) it is seen; out
+- **`FeetOf(creature)`,** a query for the client's drawing: the ground's surface under its back and front feet
+  (`Fauna.FootSpan`, 22 % of its width either side of its middle), a slope's diagonal or a cell's top, read in its feet's row and
+  the two under, so a whole cell's step of its body moves neither foot; a foot with none there hangs `Fauna.Teeter` (0.6 of a
+  cell) under its body. Up and down a run of slopes each foot moves no faster than the body walks across
+  (`FaunaFootingTests`), where the body's own `Y` steps a whole cell in a tick.- **Kept or gone:** by the cell under its middle; in some hero's keep box (`Fauna.Keep`, 80 × 48 either way) it is seen; out
   of every one it is gone `Fauna.Linger` (600) ticks after it was last seen, and at once out of every hard box (110 × 64). No
   hero on the surface, none stays: the last to leave takes them all, damage and all.
 - **Species** (`Content.Fauna.All`): the loper, the tapir, the sixleg and the fluff, one life with numbers by body (0102's
@@ -97,7 +101,8 @@ saved by number)
 ## Deliberately not handled
 
 - **Creatures do not collide** with each other or with heroes, as debris does not (0006).
-- **A slope is stood on at its top:** a walker on one floats over its diagonal; the client draws it down to the diagonal.
+- **A slope is stood on at its top:** a walker on one floats over its diagonal, its body stepping a whole cell a tick; the client
+  draws its feet on the diagonal by `FeetOf`.
 - **Senses through rock:** fleeing is from the nearest hero by box distance, walls between or not.
 - **A creature walled in to the grid's top** stays in the wall: it rises only while there is a row over its head.
 - **Despawning loses damage;** a half-hunted loper left for 30 s is gone with it.

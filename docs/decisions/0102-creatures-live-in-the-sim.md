@@ -138,7 +138,15 @@ The user picked four looks on the loper page ([Лопер: облик](https://c
   either side, in every palette. One in seven is a **morph**, its coat a whole tone off: the loper and the sixleg darker, the
   tapir and the fluff paler. Its **markings** (the marks part's runs of pixels: the loper's stripes, the tapir's saddle, the
   sixleg's patches, the fluff's glowing spots) each dropped a quarter to a third of the time, those kept faint, half or bold;
-  the fluff's spots kept bold and lighting only where worn. Recoloured once a look, kept for the run.- **Seen and heard by what it is:** the cool-coated three throw lilac tufts (`Impact.CoolFlesh`); the tapir sounds lower and
+  the fluff's spots kept bold and lighting only where worn. Recoloured once a look, kept for the run.- **Down a slope without a snap** (the user: "at some point it straightens onto flat ground and drops sharply"). The sim stands
+  a creature on the top of a slope's whole cell and steps its body a whole cell in a tick; the client drew each foot relative to
+  that row, at most 0.6 of a cell down, so at a slope's foot the body hovered over the flat until the sim stepped it down and
+  then dropped 56 px in two frames, and at a slope's start dipped and popped up. Now the sim's `FeetOf` reads the ground's own
+  surface under each foot, in the feet's row and the two under, so the body's steps move neither foot, and the client draws
+  the feet there, closing anything else (a whole step, an edge's teeter, a landing) at a cell each 90 ms, the tilt eased in and
+  out over 90 ms. The sim's physics are unchanged; `FaunaFootingTests` walks and flees a loper over a hill of slopes and back,
+  its feet never moving up or down faster than it walks across. Measured in the same recorded walk: 59 frames where a
+  grounded body moved more up or down than across before, none after.- **Seen and heard by what it is:** the cool-coated three throw lilac tufts (`Impact.CoolFlesh`); the tapir sounds lower and
   the fluff higher than the loper (placeholders).
 - **Dev:** `--fauna=<species or look>` lets out that kind only (else the six round the hero are every kind in turn), from the
   hero's row up out of a hill or down to a floor, so in a cave too (`--ground=band1 --fauna=fluff`); `--fauna-trace` logs each
@@ -165,7 +173,7 @@ On this machine, Release build, the first planet with a hero and its cap of 40 l
 ## Deliberately not handled
 
 - **Creatures collide with nothing alive:** not with each other nor with heroes.
-- **A slope is stood on at its top;** the client draws a creature down onto the diagonal.
+- **A slope is stood on at its top;** the client draws a creature's feet on the diagonal (`FaunaModule.FeetOf`).
 - **They sense through rock;** flight is from the nearest hero by box distance.
 - **Despawning forgets damage,** and hunting gives biomass without end but the cap and the beat.
 - **Nothing aboard:** no creature lives on the ship, nor may be let out there; a pen aboard (the user's later idea) is a
