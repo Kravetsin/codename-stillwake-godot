@@ -48,8 +48,8 @@ public static class Testbed
 
     /// <summary>
     /// Room one holds the lifepod, the crates, the drone bay and the air: a tank with a canister and a generator piped to a
-    /// vent in each room; room two the arc bench by its door with a capacitor bank standing on it, the furnace, the Former,
-    /// the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the analyzer, the charging station
+    /// vent in each room, and a capacitor bank on the supply crate by the pod; room two the arc bench by its door, the
+    /// furnace, the Former, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the analyzer, the charging station
     /// and the burner generator; then the airlock, no vent in it. Eleven panels on the roof: the first and the third feed the
     /// lamps and the oxygen generator, their spare filling the bank (0101), the second the drone bay, the fourth the analyzer,
     /// the fifth the smelter, the sixth the assembler and the grow capsule, the seventh and eighth the two oxygen generators in
@@ -67,8 +67,8 @@ public static class Testbed
             "       PPP  PPP    PPP   PPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",
             "  #.......L......#....L.........J.......L...#.L.#",
-            "  #.OOO........RRDQQ............gg...GG.....D...D",
-            "  #.OOO..TTGG..RRDQQ.FF.MM.EE.YYggGG.GGAACBBD...D",
+            "  #.OOOQQ......RRD..............gg...GG.....D...D",
+            "  #.OOOQQTTGG..RRD...FF.MM.EE.YYggGG.GGAACBBD...D",
             "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBD...D",
             "  ###############################################",
         ],
@@ -86,7 +86,7 @@ public static class Testbed
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
             ((19, 2), (22, 4)), ((25, 2), (39, 6)), ((42, 6), (40, 4)), ((40, 4), (46, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (37, 5)),
-            ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((19, 2), (18, 5)),
+            ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)),
         ]);
 
     /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>
