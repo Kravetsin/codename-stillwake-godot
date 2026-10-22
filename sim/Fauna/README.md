@@ -25,8 +25,9 @@ flinching and fleeing, dying into their yields, and gone again when no hero is n
   `fauna.notHere`. A drawn planet map (the test strip) has no habitats but creatures let out live there.
 - **A tick,** creatures in id order: kept or gone (below); pushed up a cell, still, while a wall built since stands in its
   body (its head kept on the grid); else its mode's clock counts down, a mode ending picks the next (below); a walker on the
-  ground in `Wander` or `Flee` turns back from a wall it cannot step up and from a drop of `Fauna.Drop` (3) rows or more, then
-  goes its mode's speed; idle on the ground it stands still; then it moves. Then, on the beat, spawns.
+  ground in `Wander` or `Flee` turns back from a wall it cannot step up and from a drop of `Fauna.Drop` (3) rows or more, in
+  the column just ahead or, over flat ground, the one its edge reaches at its mode's speed this tick (a loper's flight, 15 cells
+  a second, would else overhang the brink by most of a cell), then goes that speed; idle on the ground it stands still; then it moves. Then, on the beat, spawns.
 - **Moving** is integer and per axis, under the surface's gravity (`Kind.Fall(Fauna.Gravity)`, 21 a tick on the first
   planet, at most `Fauna.MaxFall`). Solid is a wall (a slope stood on at its top, whole), a floor or a closed door, and past
   the grid's edge, as for a stack; machines are not. Across: into what is solid it steps up one cell if it stood on the

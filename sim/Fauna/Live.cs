@@ -88,9 +88,9 @@ public sealed partial class FaunaModule
         bool grounded = Grounded(spec, c);
         if (grounded && c.Mode is Mode.Wander or Mode.Flee)
         {
-            int way = c.VX >= 0 ? 1 : -1;
-            if (Blocked(spec, c, way)) way = -way;
-            c.VX = way * (c.Mode == Mode.Flee ? spec.Flee : spec.Wander);
+            int way = c.VX >= 0 ? 1 : -1, speed = c.Mode == Mode.Flee ? spec.Flee : spec.Wander;
+            if (Blocked(spec, c, way, speed)) way = -way;
+            c.VX = way * speed;
         }
         else if (grounded && c.Mode == Mode.Idle) c.VX = 0;
         Move(c, spec, grounded);
@@ -147,13 +147,34 @@ public sealed partial class FaunaModule
     /// <summary>
     /// Whether a walker standing as <paramref name="c"/> stands must turn from <paramref name="way"/>: the grid's edge, a wall in the
     /// column ahead it cannot step up (more than a cell high, or no room over its body to rise into), or no floor there within
-    /// <c>Fauna.Drop</c> rows under its feet.
+    /// <c>Fauna.Drop</c> rows under its feet; or such a drop in the column its leading edge reaches going <paramref name="speed"/>
+    /// this tick, so a fleeing one turns at the brink rather than past it. A wall is met flush as it moves.
     /// </summary>
-    private bool Blocked(Spec.Species spec, Creature c, int way)
+    private bool Blocked(Spec.Species spec, Creature c, int way, int speed)
     {
         int half = spec.Width * Unit / 2;
         int column = Down(way > 0 ? c.X + half : c.X - half - 1, Unit);
         if (column < 0 || column >= _grid.Width) return true;
+        if (Ahead(spec, c, column)) return true;
+        int reached = Down(way > 0 ? c.X + half + speed - 1 : c.X - half - speed, Unit);
+        int feet = c.Y / Unit;
+        // Only over flat ground: a step up met first is climbed this tick, and a column off the grid is the edge's, met next tick.
+        return reached != column && reached >= 0 && reached < _grid.Width && !Solid(column, feet - 1) && !Solid(reached, feet - 1)
+            && Falls(reached, feet);
+    }
+
+    /// <summary>Whether no floor lies in <paramref name="column"/> within <c>Fauna.Drop</c> rows from <paramref name="feet"/> down.</summary>
+    private bool Falls(int column, int feet)
+    {
+        for (int row = feet; row < feet + Spec.Drop; row++)
+            if (Solid(column, row)) return false;
+        return true;
+    }
+
+    /// <summary>Whether the column just ahead of <paramref name="c"/>'s leading edge turns it back: a wall it cannot step up, or a drop.</summary>
+    private bool Ahead(Spec.Species spec, Creature c, int column)
+    {
+        int half = spec.Width * Unit / 2;
         int feet = c.Y / Unit, top = feet - spec.Height;
         if (Solid(column, feet - 1))
         {
@@ -166,9 +187,7 @@ public sealed partial class FaunaModule
         }
         for (int row = top; row < feet - 1; row++)
             if (Solid(column, row)) return true;
-        for (int row = feet; row < feet + Spec.Drop; row++)
-            if (Solid(column, row)) return false;
-        return true;
+        return Falls(column, feet);
     }
 
     /// <summary>

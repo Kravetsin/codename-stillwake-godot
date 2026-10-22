@@ -1,4 +1,4 @@
-# 0102 вЂ” Creatures live in the sim
+# 0102 — Creatures live in the sim
 
 - Status: accepted; slices 1 (the sim) and 2 (the client) built
 - Date: 2026-10-22
@@ -16,12 +16,12 @@ must agree on where it is and when it dies, so its body, its hit points and its 
 
 - **A module of every surface, `Fauna`** (`sim/Fauna`, `dependsOn` Grid, Crew, Items), as debris is (0006): creatures are
   spawned, moved and killed by the same integer rules on every peer, saved and hashed with the world. Inputs are only
-  commands вЂ” `Strike`, the dev `Release` вЂ” and the heroes' reported cells. It runs last, after crew, in the simulation phase.
+  commands — `Strike`, the dev `Release` — and the heroes' reported cells. It runs last, after crew, in the simulation phase.
 - **State:** each creature's `Id, Species, X, Y, VX, VY, Damage, Mode, ModeLeft, SeenAt`, the module's `NextId` and
   `Clock`. Derived, never stored (the review's cut): its facing, the sign of `VX`; whom it flees, found as its flinch
   ends; the beat, `Clock % Beat`. `SeenAt` stays, as the far field's (0052): despawning by linger needs it.
-- **Habitats are data on the planet type** (`PlanetType.Fauna`, 0095): each a species, a place вЂ” the open surface (no back
-  wall) or a cave floor in one depth band (0080, `Terrain.BandOf`) вЂ” and a weight. The first planet has lopers on its
+- **Habitats are data on the planet type** (`PlanetType.Fauna`, 0095): each a species, a place — the open surface (no back
+  wall) or a cave floor in one depth band (0080, `Terrain.BandOf`) — and a weight. The first planet has lopers on its
   surface; its bands are ready for the glimmite and the driftbell (the design's slices 3 and 5). The ship is no planet
   type: it spawns nothing, draws nothing and its fauna slice never changes, so a ship's run is as before but for the
   slice's bytes.
@@ -33,10 +33,14 @@ must agree on where it is and when it dies, so its body, its hit points and its 
   caller and a hash-equality test that proves debris draws as before.
 - **Walking** (`Live.cs`): integer, per axis, under the planet's gravity (`Kind.Fall`, as stacks fall); solid is what
   stops a stack. A walker steps up one cell and down one, turns back at a wall it cannot step and at a drop of three rows or
-  more, and walks off a shallower one. Modes: idle, wander, flee, hurt; only an idle or a wander begun draws from the Rng.
-- **The loper,** 2 Г— 2, 12 hit points: six axe hits, twelve of the drill, six of the fitted drill. Wanders at 2 cells a
-  second, flees at 6.4 for 3 s: under a hero's walk of 7.2, so a hunter keeps up and lands the next blow, and under a run of
-  13 (tuned in play: at 9 it was out of reach after every hit, and a hunt was a sprint with one swing in it).
+  more — at the brink, judged by where its edge gets this tick, so a fleeing one stops there rather than overhanging — and
+  walks off a shallower one. A tick moves under a cell across (the fastest flight 750) and down (`MaxFall` 600), so it never
+  passes through a wall a cell thick. Modes: idle, wander, flee, hurt; only an idle or a wander begun draws from the Rng.
+- **The loper,** 2 × 2, 12 hit points: six axe hits, twelve of the drill, six of the fitted drill. Wanders at 2 cells a
+  second, flees at 15 for 3 s, then calms to idling and wandering: faster than a hero's sprint of 13.2, so a blow is the end of
+  the chase for now — the hunter follows and finds it calm again, corners it at a cliff or a wall, or will stun it (the arc's
+  stun module to come). Tuned in play twice: at 9, then 6.4 (under a walk, so a hunter kept up and the drill held it), the
+  user wanted it to outrun a sprint so a stun has a point.
 - **A hit** (`Strike(Creature, Tool)`) is any weapon's, its damage the tool's `ToolStats` for its sender (0098), refused
   `fauna.gone`, `items.flat`, `items.notRunning` as wrecks' hits are (0054, 0055). It knocks the creature away from the
   striker's reported cell (`Knock` 200 a tick, a hop of under a cell). **Hit-stun is the species' own** (`Species.Stun`, ticks

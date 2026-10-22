@@ -27,11 +27,12 @@ public static class Fauna
 
     /// <summary>
     /// The loper: a soft round walker of the first planet's open ground, two cells by two, neutral. It wanders and idles, and
-    /// scampers off for three seconds when hit, a little slower than a hero walks, so a hunter keeps up. No hit-stun: neutral, it
-    /// bolts at the first blow, and the drill cannot pin it (the user's word). Twelve hit points: six of the axe's hits. Its
-    /// yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
+    /// bolts for three seconds when hit at 15 cells a second, faster than a hero's sprint of 13.2, then calms and wanders: a
+    /// hunter follows and finds it again, corners it at a cliff or a wall, or stuns it (the arc's stun module to come). No
+    /// hit-stun: neutral, it bolts at the first blow, and the drill cannot pin it (the user's word). Twelve hit points: six of
+    /// the axe's hits. Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
     /// </summary>
-    public static readonly Species Loper = new("loper", Width: 2, Height: 2, Hp: 12, Wander: 100, Flee: 320, FleeTicks: 60,
+    public static readonly Species Loper = new("loper", Width: 2, Height: 2, Hp: 12, Wander: 100, Flee: 750, FleeTicks: 60,
         Stun: 0, Knock: 200, Hop: 180, Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper];
