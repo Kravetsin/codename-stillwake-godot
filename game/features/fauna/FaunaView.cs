@@ -7,7 +7,6 @@ using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Fauna;
-using Stillwake.Sim.Grid;
 using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content;
 
@@ -34,21 +33,29 @@ public partial class FaunaView(Ui ui) : Node2D
     /// <summary>How long a creature killed is drawn swelling white and fading, in milliseconds.</summary>
     private const double GhostMs = 170;
 
-    /// <summary>How quickly a body eases down onto a slope under it, or back up off one, in milliseconds.</summary>
-    private const double LowerMs = 70;
+    /// <summary>How quickly a body's tilt to the ground under its feet eases in and out, onto a slope and off it, in milliseconds.</summary>
+    private const double TiltMs = 90;
 
-    /// <summary>The deepest a foot is drawn reaching down, in thousandths, and the most a body tilts to its feet, radians: over an edge it teeters, never tips.</summary>
-    private const int Overhang = 600;
+    /// <summary>How long a body's feet take to close a whole cell between where they are drawn and the ground, past how fast it moves: a step's, a landing's, in milliseconds.</summary>
+    private const double StepMs = 90;
+
+    /// <summary>The most a body tilts to its feet, radians: over an edge it teeters, never tips.</summary>
     private const float MostLean = 0.4f;
 
     /// <summary>A rise faster than this a tick is a jump, not a blow's hop (an axe's is 180).</summary>
     private const int JumpTell = 250;
 
-    /// <summary>What is shown of a creature: its body, its motion, where it was on the tick before and on the last, its damage.</summary>
-    private sealed class Shown(CreatureBody body)
+    /// <summary>What is shown of a creature: its body, its motion, gait and pose, where it was on the tick before and on the last, its damage.</summary>
+    private sealed class Shown(CreatureBody body, CreatureGait gait, CreaturePose pose)
     {
         public CreatureBody Body { get; } = body;
         public CreatureMotion Motion { get; set; } = new();
+        public CreatureGait Gait { get; } = gait;
+        public CreaturePose Pose { get; } = pose;
+        /// <summary>How long it has stood idle with no hero near, how much it grazes and how much it watches a hero, eased.</summary>
+        public double AloneMs { get; set; }
+        public double Graze { get; set; }
+        public double Notice { get; set; }
         public Vector2 From { get; set; }
         public Vector2 To { get; set; }
         public int Tick { get; set; } = -1;
@@ -57,8 +64,12 @@ public partial class FaunaView(Ui ui) : Node2D
         public bool Grounded { get; set; }
         public double OwnAt { get; set; } = double.NegativeInfinity;
         public string Species { get; set; } = "";
-        /// <summary>How far under the sim's place it is drawn, in pixels: down onto a slope's diagonal, eased.</summary>
-        public float Lower { get; set; }
+        /// <summary>The ground under its back and front feet on the tick before and on the last (<see cref="FaunaModule.FeetOf"/>), thousandths.</summary>
+        public (int Back, int Front) FeetFrom { get; set; }
+        public (int Back, int Front) FeetTo { get; set; }
+        /// <summary>Where its feet are drawn, in pixels down the world, and where the sim's place was drawn last frame: NaN before its first.</summary>
+        public float Feet { get; set; } = float.NaN;
+        public Vector2 Was { get; set; }
         /// <summary>How far it is drawn tilted to the ground under its feet, radians clockwise, eased.</summary>
         public float Lean { get; set; }
         /// <summary>Its speed down as last seen, and the fastest it fell since it left the ground: for its jumps and landings.</summary>
@@ -83,6 +94,11 @@ public partial class FaunaView(Ui ui) : Node2D
     /// <summary>The creatures drawn last frame, and the bodies ever made: for the frame log and scripted runs.</summary>
     public (int Drawn, int Made) Bodies => (_shown.Count, _shown.Count + _pool.Count + _ghosts.Count);
 
+    private readonly List<(Vector2 At, Color Colour)> _lights = [];
+
+    /// <summary>Where each glowing part of a creature drawn shines from this frame, in pixels of the world, and its colour: the light view's.</summary>
+    public IReadOnlyList<(Vector2 At, Color Colour)> Lights => _lights;
+
     public override void _Ready()
     {
         ZIndex = Layers.Creatures;
@@ -92,9 +108,10 @@ public partial class FaunaView(Ui ui) : Node2D
 
     /// <summary>
     /// Shows <paramref name="fauna"/>'s creatures within <paramref name="view"/> (cells) and <see cref="Margin"/> round it,
-    /// <paramref name="progress"/> of the way from the last tick to the next.
+    /// <paramref name="progress"/> of the way from the last tick to the next, recoloured by <paramref name="palette"/> (the planet's,
+    /// <see cref="FaunaLooks.PaletteOf"/>), each creature its own individual by its id and the surface's <paramref name="seed"/> (<see cref="CreatureVariety"/>).
     /// </summary>
-    public void Frame(Client client, FaunaModule fauna, IGridQueries grid, Rect2 view, double progress, double elapsedMs)
+    public void Frame(Client client, FaunaModule fauna, Rect2 view, double progress, double elapsedMs, string palette, uint seed)
     {
         _clockMs += elapsedMs;
         // Another surface, or a load: what was shown was another world's, gone without a puff.
@@ -104,6 +121,7 @@ public partial class FaunaView(Ui ui) : Node2D
             _shown.Clear();
             _of = fauna;
         }
+        (_palette, _seed) = (palette, seed);
         var all = fauna.Creatures;
         int left = (int)Math.Floor(view.Position.X - Margin) * Unit, right = (int)Math.Ceiling(view.End.X + Margin) * Unit;
         int top = (int)Math.Floor(view.Position.Y - Margin) * Unit, bottom = (int)Math.Ceiling(view.End.Y + Margin) * Unit;
@@ -137,7 +155,7 @@ public partial class FaunaView(Ui ui) : Node2D
                 one = Take(c);
                 _shown[c.Id] = one;
             }
-            Follow(one, c, client.World.Tick);
+            Follow(one, c, client.World.Tick, fauna);
         }
         OwnStrikes(client.InFlight);
 
@@ -150,9 +168,48 @@ public partial class FaunaView(Ui ui) : Node2D
                 if (_clockMs - one.OwnAt > OwnMs) Struck(one, ToolOf(one.Drawn), own: false);
                 one.Damage = c.Damage;
             }
-            Place(one, c, grid, progress, elapsedMs);
+            Place(one, c, progress, elapsedMs);
+        }
+        // What their glowing parts light this frame: the fluff's spots in a cave, the tapir's pod at dusk.
+        _lights.Clear();
+        foreach (var one in _shown.Values) one.Body.Lights(_lights, one.Body.Transform, 1);
+        foreach (var (body, leftMs) in _ghosts) body.Lights(_lights, body.Transform, (float)(leftMs / GhostMs));
+        if (Trace != null) Traced(all);
+    }
+
+    /// <summary><c>--fauna-trace</c>: each creature drawn, once a second, its strides that second, its speed and what it did.</summary>
+    public Action<string>? Trace { get; set; }
+
+    private double _tracedAt;
+    private readonly Dictionary<int, double> _tracedPhase = [];
+
+    /// <summary><c>--fauna-trace=frames</c>: also every frame, each creature drawn, where on the screen and its strides, for recordings.</summary>
+    public bool TraceFrames { get; set; }
+
+
+    private void Traced(IReadOnlyList<Creature> all)
+    {
+        if (TraceFrames)
+            foreach (var c in all)
+                if (_shown.TryGetValue(c.Id, out var one))
+                {
+                    var at = GetViewport().GetCanvasTransform() * one.Body.Position;
+                    Trace!($"fauna frame {Engine.GetProcessFrames()}: {c.Species} {c.Id} {c.Mode} at {at.X:F0},{at.Y:F0} stride {one.Gait.Phase:F3} gallop {one.Gait.Gallop:F2} air {one.Gait.Air:F2}");
+                }
+        if (_clockMs - _tracedAt < 1000) return;
+        double seconds = (_clockMs - _tracedAt) / 1000;
+        _tracedAt = _clockMs;
+        foreach (var c in all)
+        {
+            if (!_shown.TryGetValue(c.Id, out var one)) continue;
+            double was = _tracedPhase.GetValueOrDefault(c.Id, one.Gait.Phase);
+            _tracedPhase[c.Id] = one.Gait.Phase;
+            Trace!($"fauna trace: {c.Species} {c.Id} {c.Mode}: {(one.Gait.Phase - was) / seconds:F2} strides/s at {one.Gait.Speed:F0} px/s, gallop {one.Gait.Gallop:F2}");
         }
     }
+
+    private string _palette = FaunaLooks.Palette;
+    private uint _seed;
 
     /// <summary>
     /// Every strike of this player's own seen in flight for the first time: its creature reacts now, a round trip before the sim's
@@ -179,13 +236,13 @@ public partial class FaunaView(Ui ui) : Node2D
     private void Struck(Shown one, string tool, bool own)
     {
         var spec = Spec.Fauna.Get(one.Species);
-        var middle = one.Drawn + new Vector2(0, -spec.Height * Cell / 2);
+        var middle = one.Drawn + new Vector2(0, -spec.Height * Cell / 2 * one.Body.Size);
         var hero = NearestHero(middle);
         int away = middle.X >= hero.X ? 1 : -1;
         double share = Impacts.ShareOf(tool);
         one.Motion.Hit(away, share);
         var impact = HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
-        var side = middle + new Vector2(-away * spec.Width * Cell * 0.4f, Mathf.Clamp(hero.Y - middle.Y, -6, 6));
+        var side = middle + new Vector2(-away * spec.Width * Cell * 0.4f * one.Body.Size, Mathf.Clamp(hero.Y - middle.Y, -6, 6));
         HitBurst.Shared.Throw(HitLooks.Of[impact], side.X, side.Y, -away, -0.25, share, floor: one.Drawn.Y);
         if (S.Creatures.TryGetValue(one.Species, out var cues))
         {
@@ -205,35 +262,46 @@ public partial class FaunaView(Ui ui) : Node2D
         return Spec.Weapons.Axe.Item;
     }
 
-    /// <summary><paramref name="one"/>'s tick positions kept, the one before and the last, for drawing between them.</summary>
-    private static void Follow(Shown one, Creature c, int tick)
+    /// <summary><paramref name="one"/>'s tick positions and the ground under its feet kept, the tick before's and the last's, for drawing between them.</summary>
+    private static void Follow(Shown one, Creature c, int tick, FaunaModule fauna)
     {
         var at = new Vector2(c.X, c.Y);
-        if (one.Tick < 0 || tick - one.Tick > 1) (one.From, one.To) = (at, at);
-        else if (tick != one.Tick) (one.From, one.To) = (one.To, at);
+        if (one.Tick < 0 || tick - one.Tick > 1)
+        {
+            var feet = fauna.FeetOf(c);
+            (one.From, one.To, one.FeetFrom, one.FeetTo) = (at, at, feet, feet);
+        }
+        else if (tick != one.Tick) (one.From, one.To, one.FeetFrom, one.FeetTo) = (one.To, at, one.FeetTo, fauna.FeetOf(c));
         one.Tick = tick;
     }
 
-    private void Place(Shown one, Creature c, IGridQueries grid, double progress, double elapsedMs)
+    private void Place(Shown one, Creature c, double progress, double elapsedMs)
     {
-        var at = one.From.Lerp(one.To, (float)Math.Clamp(progress, 0, 1)) / Unit * Cell;
+        float p = (float)Math.Clamp(progress, 0, 1);
+        var at = one.From.Lerp(one.To, p) / Unit * Cell;
         var spec = Spec.Fauna.Get(c.Species);
         bool grounded = c.VY == 0;
-        // Onto the ground under each foot, the diagonals of slopes and the step below an overhang: the body drawn between the
-        // two and tilted to them, eased, so a step on or off a slope glides rather than pops.
-        int span = spec.Width * Unit * 22 / 100;
-        var (back, front) = grounded ? (GroundUnder(grid, c.X - span, c.Y), GroundUnder(grid, c.X + span, c.Y)) : (0, 0);
-        float lower = (back + front) / 2f / Unit * Cell, lean = Math.Clamp((float)Math.Atan2(front - back, 2.0 * span) * 0.8f, -MostLean, MostLean);
-        float ease = (float)Math.Min(1, elapsedMs / LowerMs);
-        one.Lower += (lower - one.Lower) * ease;
-        one.Lean += (lean - one.Lean) * ease;
-        at.Y += one.Lower;
+        // On the ground its feet are on the ground's own surface, the sim's (FeetOf): a slope's diagonal, never the whole cell the
+        // sim stands it on, so the body's whole-cell steps up and down a slope never show (0069). Drawn between ticks as it moves.
+        int span = spec.Width * Unit * Spec.Fauna.FootSpan / 1000;
+        float back = Mathf.Lerp(one.FeetFrom.Back, one.FeetTo.Back, p), front = Mathf.Lerp(one.FeetFrom.Front, one.FeetTo.Front, p);
+        float feet = grounded ? (back + front) / 2 / Unit * Cell : at.Y;
+        float lean = grounded ? Math.Clamp((float)Math.Atan2(front - back, 2.0 * span) * 0.8f, -MostLean, MostLean) : 0;
+        // Its feet follow as fast as it moves, and close what is left at a cell each StepMs: a slope is walked exactly, a step,
+        // an edge's teeter, a landing or a leap glides. By time, not by frame: the same at 60 frames a second and at 144.
+        if (float.IsNaN(one.Feet)) one.Feet = feet;
+        float most = Math.Abs(at.X - one.Was.X) + Math.Abs(at.Y - one.Was.Y) + (float)(Cell * elapsedMs / StepMs);
+        one.Feet += Math.Clamp(feet - one.Feet, -most, most);
+        one.Was = at;
+        one.Lean += (lean - one.Lean) * (float)CreatureGait.Ease(elapsedMs, TiltMs);
+        at.Y = one.Feet;
         var motion = one.Motion;
         // Never held where it was struck: a neutral creature bolts at the blow, and its drawing goes with it, only shaking.
         var drawn = at;
         var watched = NearestHero(drawn + new Vector2(0, -spec.Height * Cell / 2));
         var toHero = watched - (drawn + new Vector2(0, -spec.Height * Cell * 0.6f));
-        int? watch = toHero.Length() < Watch && Math.Abs(toHero.X) > 2 ? Math.Sign(toHero.X) : null;
+        bool near = toHero.Length() < Watch;
+        int? watch = near && Math.Abs(toHero.X) > 2 ? Math.Sign(toHero.X) : null;
         // A jump read off the sim: a leap up faster than any blow's hop, from the ground; a landing as hard as the fall was fast.
         if (c.VY <= -JumpTell && one.LastVy >= 0) motion.Jump();
         if (!grounded) one.Fall = Math.Max(one.Fall, c.VY);
@@ -243,51 +311,62 @@ public partial class FaunaView(Ui ui) : Node2D
             one.Fall = 0;
         }
         one.LastVy = c.VY;
-        motion.Step(elapsedMs, drawn.X - one.Drawn.X, grounded, grounded && !one.Grounded, c.VX == 0 ? watch : null);
+        motion.Step(elapsedMs, drawn.X - one.Drawn.X, grounded && !one.Grounded, c.VX == 0 ? watch : null);
+        // Its legs go by the ground the sim moved it on its last tick, never by a frame's step: a frame's is uneven, a tick's is not.
+        double speed = Math.Abs(one.To.X - one.From.X) / Unit * Cell * World.TicksPerSecond;
+        bool fleeing = c.Mode == Mode.Flee;
+        var gait = one.Gait;
+        gait.Step(elapsedMs, speed, grounded, fleeing);
+        // Idle with no hero by, a while, it grazes; idle with one near, it watches it.
+        bool idle = c.Mode == Mode.Idle && grounded;
+        one.AloneMs = idle && !near ? one.AloneMs + elapsedMs : 0;
+        one.Graze += ((one.AloneMs > FaunaLooks.GrazeAfterMs ? 1 : 0) - one.Graze) * CreatureGait.Ease(elapsedMs, FaunaLooks.GrazeMs);
+        one.Notice += ((idle && near ? 1 : 0) - one.Notice) * CreatureGait.Ease(elapsedMs, FaunaLooks.BlendMs);
         one.Grounded = grounded;
         one.Drawn = drawn;
-        bool fleeing = c.Mode == Mode.Flee;
-        var (sx, sy) = motion.Scale(fleeing);
-        var body = one.Body;
-        body.Position = drawn + new Vector2((float)motion.Shake, -(float)motion.Bound);
-        body.Scale = new Vector2((float)sx * motion.Facing, (float)sy);
-        body.Rotation = (float)motion.Tilt(fleeing) + one.Lean;
-        body.Pose(motion, fleeing, grounded, toHero.Length() < Watch ? toHero : null);
-    }
-
-    /// <summary>
-    /// How far under a body standing at <paramref name="y"/> the ground lies at <paramref name="x"/>, in thousandths, at most a cell:
-    /// the sim stands a creature on the top of the row under it, a floor slope's whole, with its body overhanging a step (0102); a
-    /// foot is drawn on the diagonal there, or on the step a cell down.
-    /// </summary>
-    private static int GroundUnder(IGridQueries grid, int x, int y)
-    {
-        int column = x / Unit, row = y / Unit;
-        if (x < 0 || column >= grid.Width) return 0;
-        for (int r = row; r <= row + 1 && r < grid.Height; r++)
+        // Its eye on the hero it watches, in the body's own way: mirrored with it.
+        (double, double)? look = null;
+        if (near && toHero.LengthSquared() > 0)
         {
-            int cell = r * grid.Width + column;
-            if (grid.StructureAt(cell) is not (Structure.Wall or Structure.Floor or Structure.DoorClosed)) continue;
-            int shape = grid.ShapeAt(cell);
-            return Math.Min(Overhang, (r - row) * Unit + (Shape.IsFloor(shape) ? Shape.TopAt(shape, x - column * Unit) : 0));
+            var l = new Vector2(toHero.X * motion.Facing, toHero.Y).Normalized();
+            look = (l.X, l.Y);
         }
-        return Overhang;
+        var pose = one.Pose;
+        pose.Set(new CreaturePose.Doing(gait.Phase, gait.Walking, gait.Gallop, gait.Air, gait.Flee, one.Graze, one.Notice, motion.Clock,
+            motion.Ears(gait.Flee), motion.Eye, look));
+        var (sx, sy) = motion.Scale(gait.Flee);
+        var body = one.Body;
+        body.Position = drawn + new Vector2((float)motion.Shake, 0);
+        body.Scale = new Vector2((float)(sx * (1 + pose.Stretch)) * motion.Facing, (float)(sy * (1 - pose.Stretch * 0.7))) * body.Size;
+        body.Rotation = (float)motion.Tilt(gait.Flee) + one.Lean;
+        body.Pose(pose, motion.Flash);
     }
 
     /// <summary>A body for <paramref name="c"/> come into view, from the pool or new, unmoved and unstruck.</summary>
     private Shown Take(Creature c)
     {
         var body = _pool.Count > 0 ? _pool.Pop() : Made();
-        body.Dress(c.Species, c.Id);
+        var individual = CreatureVariety.Of(FaunaLooks.Varieties[c.Species], _seed, c.Id);
+        body.Dress(c.Species, _palette, individual);
+        Trace?.Invoke($"fauna look: {c.Species} {c.Id} {individual}");
         body.Visible = true;
         var at = new Vector2(c.X, c.Y);
-        return new Shown(body) { Damage = c.Damage, Species = c.Species, From = at, To = at, Drawn = at / Unit * Cell, Grounded = c.VY == 0 };
+        var design = body.Design!;
+        var run = FaunaLooks.Runs[design.Id];
+        return new Shown(body, new CreatureGait(run), new CreaturePose(design, run))
+        {
+            Damage = c.Damage,
+            Species = c.Species,
+            From = at,
+            To = at,
+            Drawn = at / Unit * Cell,
+            Grounded = c.VY == 0,
+        };
     }
 
     private CreatureBody Made()
     {
         var body = new CreatureBody { Visible = false };
-        Lit.Set(body);
         AddChild(body);
         return body;
     }
@@ -305,14 +384,14 @@ public partial class FaunaView(Ui ui) : Node2D
     private void Die(Shown one)
     {
         var spec = Spec.Fauna.Get(one.Species);
-        var middle = one.Drawn + new Vector2(0, -spec.Height * Cell / 2);
+        var middle = one.Drawn + new Vector2(0, -spec.Height * Cell / 2 * one.Body.Size);
         var impact = HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
         HitBurst.Shared.Throw(HitLooks.Of[impact], middle.X, middle.Y, 0, -1, 1, floor: one.Drawn.Y);
         var glims = Glims.Shared;
         for (int i = 0; i < 14; i++)
         {
             double a = glims.Between(0, Math.Tau), s = glims.Between(10, 46);
-            glims.Add(HitLooks.Tuft, middle.X + Math.Cos(a) * 4, middle.Y + Math.Sin(a) * 4, Math.Cos(a) * s, Math.Sin(a) * s - 10, one.Drawn.Y);
+            glims.Add(HitLooks.TuftOf(impact), middle.X + Math.Cos(a) * 4, middle.Y + Math.Sin(a) * 4, Math.Cos(a) * s, Math.Sin(a) * s - 10, one.Drawn.Y);
         }
         for (int i = 0; i < 7; i++)
         {
@@ -347,8 +426,8 @@ public partial class FaunaView(Ui ui) : Node2D
             _ghosts[i] = (body, left);
             double t = 1 - left / GhostMs;
             body.Dying = t;
-            body.Scale = new Vector2(Math.Sign(body.Scale.X) * (float)(1 + 0.45 * t), (float)(1 + 0.25 * t));
-            body.QueueRedraw();
+            body.Scale = new Vector2(Math.Sign(body.Scale.X) * (float)(1 + 0.45 * t), (float)(1 + 0.25 * t)) * body.Size;
+            body.Fade((float)(1 - t));
         }
     }
 

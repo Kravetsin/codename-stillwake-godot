@@ -102,6 +102,9 @@ public partial class LightView : Node2D
     /// <summary>The light of the arc benches' shards this frame (0099: <c>BenchView</c>).</summary>
     public Func<IReadOnlyList<LightSource>> Benches { get; set; } = () => [];
 
+    /// <summary>Where each glowing part of a creature drawn shines from this frame and its colour (0102: <c>FaunaView</c>).</summary>
+    public Func<IReadOnlyList<(Vector2 At, Color Colour)>> Creatures { get; set; } = () => [];
+
     /// <summary>The lights drawn into the lightmap the last frame.</summary>
     public int LightCount => _lightmap.Drawn;
     public int LampCount => _shown.Count;
@@ -263,6 +266,14 @@ public partial class LightView : Node2D
         // A plant's glowing parts: a seed pod, a berry, a bell, a small pool of light round each.
         foreach (var (at, colour) in Glows())
             _main.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), 1, FloraLooks.LightReach, FloraLooks.LightKeep, 1));
+        // A creature's glowing parts: the fluff's spots and antennae, the tapir's pod, the sixleg's berries; faded as it dies.
+        var creatures = Creatures();
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            var (at, colour) = creatures[i];
+            _main.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), FaunaLooks.LightStrength * colour.A, FaunaLooks.LightReach,
+                FaunaLooks.LightKeep, 1));
+        }
         var caves = Caves();
         for (int i = 0; i < caves.Count; i++) _main.Add(caves[i]);
         var lava = Lava();
