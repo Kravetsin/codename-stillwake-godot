@@ -22,6 +22,9 @@ job from where they are, and fly home with no work left or their charge low. A m
 
 ## Rules
 
+- **Never the arc bench** (0099): a machine with `Tunes` set is neither a target nor a source (`Takes`, `OutputsOf`), so
+  `Servable` says no: its vise holds a tool by hand and its crafts are paid by hand.
+
 - **What is wanted** (`Wants`), of a served machine in the flood:
   - a fed station (the furnace, the smelter, the grow capsule) or one with a fire (the burner generator): each item its
     inputs hold, its fuel slot included, or remember (`IItemsQueries.KeptAt`) burnt down to nothing, once, kept at its

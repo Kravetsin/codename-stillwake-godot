@@ -602,8 +602,10 @@ public class ContentTests
         Assert.Contains(holding, i => i.Id == Content.Logistics.Drone);
         Assert.Contains(Inventory.Equipment, kind => kind == Charge.Belt);
         // Paying never takes what holds charge, so no charge is lost to a recipe, a build or a cable; but the drone, whose
-        // battery becomes its own: made empty, as a crafted battery is, the battery's charge is lost there.
-        var costs = Crafts.All.Where(c => c.Item != Content.Logistics.Drone).Select(c => c.Cost)
+        // battery becomes its own, and the accumulator, a battery wound round a shard (0099): made empty, as a crafted battery
+        // is, the battery's charge is lost there.
+        string[] ofABattery = [Content.Logistics.Drone, "accumulator"];
+        var costs = Crafts.All.Where(c => !ofABattery.Contains(c.Item)).Select(c => c.Cost)
             .Concat(AllBuilds().Select(b => b.Cost))
             .Append(Content.Power.CableCost);
         Assert.All(costs, cost => Assert.DoesNotContain(cost, c => Content.Items.Get(c.Item).Capacity != null));
@@ -862,8 +864,9 @@ public class ContentTests
     [Fact]
     public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilAndMotorsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell", "drone", "arcModule"], formed = ["soil", "motor"];
-        Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        string[] electronics = ["circuit", "solarCell", "drone"], formed = ["soil", "motor"], arc = ["arcModule", "accumulator"];
+        Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed, .. arc]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));
         Assert.All(formed, item => Assert.Equal(["former"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(item))).Select(s => s.Machine)));
         Assert.All(Crafts.All, c => Assert.Contains(Stations.All, s => s.Rows.Any(r => r.Contains(c.Item))));
@@ -874,6 +877,32 @@ public class ContentTests
             Assert.All(placed, craft => Assert.True(Crafts.TryGet(craft, out _), $"{station.Machine} lays out {craft}"));
             foreach (var row in station.Rows) Assert.InRange(row.Count, 1, Stations.RowMost);
         }
+    }
+
+    /// <summary>
+    /// The arc bench is the arc branch's station (0099): every craft of a sky shard sits there and nowhere else, each holds a
+    /// shard in its cost, so analysing one opens them together with the bench, and the bench is built of what the pod, the
+    /// Former and salvage give, and a shard: nothing it makes is needed to build it.
+    /// </summary>
+    [Fact]
+    public void EveryArcCraftSitsAtTheArcBenchHoldsAShardAndTheBenchIsBuiltWithoutThem()
+    {
+        var bench = Stations.Get("arcBench");
+        var crafts = bench.Rows.SelectMany(r => r).ToList();
+        Assert.Equal(["arcModule", "accumulator"], crafts);
+        Assert.All(crafts, c => Assert.Contains(Crafts.Get(c).Cost, e => e.Item == Content.Ruins.Shard));
+        Assert.Equal(crafts, Crafts.All.Where(c => c.Cost.Any(e => e.Item == Content.Ruins.Shard)).Select(c => c.Item));
+        Assert.All(crafts, c => Assert.Equal(["arcBench"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(c))).Select(s => s.Machine)));
+        var spec = Machines.Get("arcBench");
+        Assert.True(spec is { Tunes: true, Draws: null, Makes: null, FuelSlot: null, Inputs: 1, Width: 2, Height: 1 });
+        Assert.Contains(spec.Cost, e => e.Item == Content.Ruins.Shard);
+        // Built of what exists before it: none of its cost is made at the bench itself.
+        Assert.All(spec.Cost, e => Assert.DoesNotContain(e.Item, crafts));
+        Assert.All(spec.Cost.Where(e => e.Item != Content.Ruins.Shard), e => Assert.Contains(Stations.All.Where(s => s.Machine != "arcBench"), s => s.Rows.Any(r => r.Contains(e.Item))));
+        Assert.Equal(["arcBench"], Machines.All.Where(m => m.Tunes).Select(m => m.Kind));
+        // The accumulator: three batteries' charge, worn on the belt as one is.
+        Assert.True(Content.Items.Get("accumulator") is { Stack: 1, Equip: "belt", Gear: true, Capacity: Charge.Accumulator });
+        Assert.Equal(3 * Charge.Battery, Charge.Accumulator);
     }
 
     /// <summary>
@@ -940,6 +969,8 @@ public class ContentTests
                 Assert.True(station.QueueMost > 0, station.Machine);
                 int most = station.Rows.SelectMany(r => r).Max(craft => Crafts.Get(craft).Cost.Select(c => c.Item).Distinct().Count());
                 if (station.Machine == "lifepod") Assert.Equal(0, spec.Inputs);
+                // The arc bench is paid by hand too; its one input is its tool's (0099).
+                else if (spec.Tunes) Assert.Equal(1, spec.Inputs);
                 else Assert.True(spec.Inputs >= most, $"{station.Machine}: {spec.Inputs} inputs, a craft of {most} items");
                 foreach (var craft in station.Rows.SelectMany(r => r)) Assert.Equal(0, Crafts.Get(craft).Ticks * 1000 % station.Speed);
             }

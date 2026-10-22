@@ -759,7 +759,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// A move as <see cref="Stacks.Moved"/> makes it, onto an inventory as a whole into its own slots only,
     /// or why it is refused: also when it leaves an equipment slot of an inventory side holding what is not
     /// worn there (<c>items.notEquipment</c>), or a machine side holding what it does not take: a charging
-    /// station anything without a charge to fill (<c>items.notBattery</c>), put in or swapped in.
+    /// station anything without a charge to fill (<c>items.notBattery</c>), an arc bench's tool slot anything but a tool a module
+    /// fits (<c>items.notTool</c>, 0099), put in or swapped in.
     /// </summary>
     private string? Moved(
         IReadOnlyList<Stack?> from, IReadOnlyList<Stack?> to, bool same, Place src, Target dst, int count,

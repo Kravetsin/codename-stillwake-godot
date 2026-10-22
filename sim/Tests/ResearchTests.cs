@@ -121,16 +121,21 @@ public class ResearchTests
     }
 
     [Fact]
-    public void AnAnalysedSkyShardOpensTheArcModuleOnceAndStaysToBeWoundIntoOne()
+    public void AnAnalysedSkyShardOpensTheArcModuleAndTheArcBenchOnceAndStaysToBeWoundIntoOne()
     {
         // The relic (0096): its blueprint opens by analysing a shard, the rest of its cost known; the shard stays for the module.
+        // The arc bench, a shard in its cost, opens with it (0099).
         var (w, id) = SetUp();
         w.GiveItems(0, (Content.Ruins.Shard, 2), ("coil", 1), ("circuit", 1), ("frame", 1));
-        foreach (string part in (string[])["coil", "circuit", "frame"]) Analyse(w, id, part);
+        foreach (string part in (string[])["coil", "circuit", "frame", "plate", "gear"]) Analyse(w, id, part);
+        var bench = new Placement("machine", "arcBench");
         Assert.False(w.M.Research.Knows("arcModule"));
+        Assert.False(w.M.Research.Knows(bench));
         Assert.Equal([Content.Ruins.Shard], RecipeOf(w, "arcModule").Unanalysed);
+        Assert.Equal([Content.Ruins.Shard], RecipeOf(w, "arcBench").Unanalysed);
         Analyse(w, id, Content.Ruins.Shard);
         Assert.True(w.M.Research.Knows("arcModule"));
+        Assert.True(w.M.Research.Knows(bench));
         Assert.Equal(2, w.M.Items.Totals(0).Where(t => t.Item == Content.Ruins.Shard).Sum(t => t.Count));
         // Once: a second shard put in has nothing new to teach.
         Put(w, id, Content.Ruins.Shard);

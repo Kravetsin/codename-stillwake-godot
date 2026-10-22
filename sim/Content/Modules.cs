@@ -50,4 +50,7 @@ public static class Modules
 
     /// <summary>The modules a host of <paramref name="kind"/> takes, a socket each, in <see cref="All"/>'s order; none for most.</summary>
     public static IEnumerable<ModuleSpec> For(string kind) => All.Where(m => m.Hosts.Contains(kind));
+
+    /// <summary>Whether some module fits a host of <paramref name="kind"/>: a station, or a tool an arc bench takes (0099).</summary>
+    public static bool Hosted(string? kind) => kind != null && All.Any(m => m.Hosts.Contains(kind));
 }

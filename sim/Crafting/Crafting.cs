@@ -157,8 +157,10 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         if (!Makes(station, c.Recipe)) return "crafting.notHere";
         if (Queue(c.Machine).Count >= station.QueueMost) return "crafting.full";
         if (!c.FromInputs) return _items.ShortOf(c.From, Times(craft.Cost, c.Count));
-        // The pod is paid by hand by design (0057): with no inputs, an entry fed from them would wait for ever.
-        return (Content.Machines.Get(station.Machine).Inputs ?? 0) == 0 ? "crafting.noInputs" : null;
+        // The pod is paid by hand by design (0057): with no inputs, an entry fed from them would wait for ever; the arc bench's
+        // one input is its tool's (0099).
+        var spec = Content.Machines.Get(station.Machine);
+        return (spec.Inputs ?? 0) == 0 || spec.Tunes ? "crafting.noInputs" : null;
     }
 
     private void ApplyCraft(Craft c)

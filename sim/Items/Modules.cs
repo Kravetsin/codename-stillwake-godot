@@ -4,13 +4,13 @@ namespace Stillwake.Sim.Items;
 
 /// <summary>
 /// Fits the module in <c>Module</c>, a slot of the sender's or of a machine, into machine <c>Machine</c> (0086): one of
-/// each kind a machine, out of its slots.
+/// each kind a machine, out of its slots; at an arc bench, into the tool on its first slot, onto that stack (0099).
 /// </summary>
 public sealed record Fit(Place Module, int Machine) : Command;
 
 /// <summary>
-/// Takes module <c>Module</c> out of machine <c>Machine</c> into the sender's own slot <c>Slot</c>, an empty one, or with
-/// none wherever it fits there (0086).
+/// Takes module <c>Module</c> out of machine <c>Machine</c>, or out of the tool on an arc bench (0099), into the sender's own
+/// slot <c>Slot</c>, an empty one, or with none wherever it fits there (0086).
 /// </summary>
 public sealed record Unfit(int Machine, string Module, int? Slot = null) : Command;
 
@@ -83,7 +83,9 @@ public sealed partial class ItemsModule
 
     /// <summary>
     /// Why the sender's <see cref="Fit"/> of what <paramref name="from"/> holds into <paramref name="machine"/> would be
-    /// refused: a client asks it while a module is held over a socket.
+    /// refused: a client asks it while a module is held over a socket. At an arc bench (0099) the tool on it is the host:
+    /// <c>items.noTool</c> while it holds none, <c>items.notModule</c> for what that tool takes not, <c>items.fitted</c> for
+    /// one holding a module already, as a stack holds one.
     /// </summary>
     public string? FitProblem(int peer, Place from, int machine)
     {
@@ -92,6 +94,12 @@ public sealed partial class ItemsModule
         var slots = SideOf(peer, from);
         if (from.Slot < 0 || from.Slot >= slots.Count) return "items.noSlot";
         if (slots[from.Slot] is not { } stack) return "items.empty";
+        if (Tunes(machine))
+        {
+            if (ToolOn(machine) is not { } tool) return "items.noTool";
+            if (!Modules.Fits(stack.Item, tool.Item)) return "items.notModule";
+            return tool.Module != null ? "items.fitted" : null;
+        }
         if (!Modules.Fits(stack.Item, m.Kind)) return "items.notModule";
         return FittedIndex(machine, stack.Item) >= 0 ? "items.fitted" : null;
     }
@@ -102,12 +110,31 @@ public sealed partial class ItemsModule
             throw new InvalidOperationException("items.fit: refused in apply");
         SetSide(c.From, c.Module, left);
         ForgetEmptied(c.Module);
+        if (Tunes(c.Machine))
+        {
+            // Read after the take: the module may have come out of the bench's own slots.
+            var bench = Crate(c.Machine).ToArray();
+            bench[0] = bench[0]! with { Module = taken.Item };
+            SetMachine(c.Machine, bench);
+            return;
+        }
         State.Fitted.Insert(~FittedIndex(c.Machine, taken.Item), new Fitted(c.Machine, taken.Item));
     }
 
+    /// <summary>The tool on arc bench <paramref name="bench"/>'s first slot (0099); none while it holds none.</summary>
+    private Stack? ToolOn(int bench) => Crate(bench) is { Count: > 0 } slots ? slots[0] : null;
+
+    /// <summary>Whether machine <paramref name="machine"/> is an arc bench (<c>MachineSpec.Tunes</c>, 0099).</summary>
+    private bool Tunes(int machine) => HolderOf(machine)?.Tunes == true;
+
     private string? UnfitProblem(Unfit c)
     {
-        if (FittedIndex(c.Machine, c.Module) < 0) return "items.notFitted";
+        if (Tunes(c.Machine))
+        {
+            if (ToolOn(c.Machine) is not { } tool) return "items.noTool";
+            if (tool.Module != c.Module) return "items.notFitted";
+        }
+        else if (FittedIndex(c.Machine, c.Module) < 0) return "items.notFitted";
         var slots = Inventory(c.From);
         if (c.Slot is not int slot) return FullFor(c.From, [(c.Module, 1)]);
         if (slot < 0 || slot >= Own) return "items.noSlot";
@@ -116,7 +143,13 @@ public sealed partial class ItemsModule
 
     private void ApplyUnfit(Unfit c)
     {
-        State.Fitted.RemoveAt(FittedIndex(c.Machine, c.Module));
+        if (Tunes(c.Machine))
+        {
+            var bench = Crate(c.Machine).ToArray();
+            bench[0] = bench[0]! with { Module = null };
+            SetMachine(c.Machine, bench);
+        }
+        else State.Fitted.RemoveAt(FittedIndex(c.Machine, c.Module));
         if (c.Slot is not int slot)
         {
             Give(c.From, [(c.Module, 1)]);

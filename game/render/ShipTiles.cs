@@ -144,8 +144,10 @@ public sealed class ShipTiles
                 continue;
             }
             source.CreateTile(at, size);
-            // A tile is drawn centred on its cell: one larger than a cell is moved so its corner is the cell's.
-            source.GetTileData(at, 0).TextureOrigin = -(size - Vector2I.One) * Cell / 2;
+            // A tile is drawn centred on its cell: one larger than a cell is moved so its corner is the cell's; a machine's picture
+            // taller than its footprint stands up out of it, its bottom the footprint's (0099).
+            int rise = name.StartsWith("machine_") && Machines.TryGet(name["machine_".Length..], out var spec) ? Mathf.Max(0, size.Y - spec.Height) : 0;
+            source.GetTileData(at, 0).TextureOrigin = -(size - Vector2I.One) * Cell / 2 + new Vector2I(0, rise * Cell);
         }
     }
 
@@ -237,6 +239,19 @@ public sealed class ShipTiles
 
     /// <summary>Detail <paramref name="picture"/> of a natural <paramref name="material"/> (<see cref="GroundDetails"/>), a tile cut a cell at a time.</summary>
     public static string DetailName(string material, int picture) => $"detail_{material}_{picture}";
+
+    private static readonly Dictionary<string, int> Rises = new();
+
+    /// <summary>
+    /// How many cells machine <paramref name="kind"/>'s picture stands above its footprint (0099): its bottom rows are the
+    /// footprint, the rest rises over the cells above, as the arc bench's vise does; none for most, and for no machine.
+    /// </summary>
+    public static int RiseOf(string kind)
+    {
+        if (Rises.TryGetValue(kind, out int kept)) return kept;
+        int rise = Machines.TryGet(kind, out var spec) ? Mathf.Max(0, (PixelArt.Picture($"machine_{kind}").GetHeight() + Cell - 1) / Cell - spec.Height) : 0;
+        return Rises[kind] = rise;
+    }
 
     /// <summary>Whether the atlas holds the picture <paramref name="name"/>: an empty one is left out.</summary>
     public bool Has(string name) => _placed.ContainsKey(name);

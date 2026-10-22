@@ -68,19 +68,33 @@ public sealed partial class ItemsModule
     private static readonly ItemSpec[] Electric = [.. Content.Items.All.Where(i => i.Draw != null)];
 
     /// <summary>
-    /// A module fitted, mostly from a slot holding one, the sender's or a machine's, into a machine that takes it or
-    /// any machine (<c>items.notModule</c>, or <c>items.fitted</c> where one is), now and then from any slot or into
-    /// a machine that is not there; or taken out, mostly one fitted, into a slot of the sender's or wherever it fits
-    /// (<c>items.full</c>, <c>items.noSlot</c>), now and then one that is not there (<c>items.notFitted</c>).
+    /// A module fitted, mostly from a slot holding one, the sender's or a machine's, into a machine that takes it, an arc bench
+    /// (into its tool, 0099) or any machine (<c>items.notModule</c>, <c>items.noTool</c>, or <c>items.fitted</c> where one is), now
+    /// and then from any slot or into a machine that is not there; or taken out, mostly one fitted, a machine's or a bench's
+    /// tool's, into a slot of the sender's or wherever it fits (<c>items.full</c>, <c>items.noSlot</c>), now and then one that
+    /// is not there (<c>items.notFitted</c>); or a stack moved onto a bench's tool slot, mostly a tool it takes, now and then
+    /// anything (<c>items.notTool</c>).
     /// </summary>
     private Command FitOrUnfit(Rng rng, int from, Stack?[]? own)
     {
         int Below(int n) => (int)rng.Below((uint)n);
         var machines = _grid.Machines;
         int AnyMachine() => machines.Count > 0 && Below(6) != 0 ? machines[Below(machines.Count)].Id : Below(60);
+        var benches = machines.Where(m => Machines.Get(m.Kind).Tunes).ToList();
+        if (benches.Count > 0 && Below(4) == 0)
+        {
+            var tools = new List<int>();
+            for (int i = 0; i < (own?.Length ?? 0); i++)
+                if (Modules.Hosted(own![i]?.Item)) tools.Add(i);
+            int slot = tools.Count > 0 && Below(4) != 0 ? tools[Below(tools.Count)] : Below(Content.Inventory.Total);
+            return new Move(new Place(slot), new Target(0, benches[Below(benches.Count)].Id), 1) { From = from };
+        }
         if (Below(2) == 0)
         {
-            var fitted = State.Fitted;
+            // What is fitted: a machine's, and a bench's tool's.
+            var fitted = State.Fitted.ToList();
+            foreach (var bench in benches)
+                if (ToolOn(bench.Id)?.Module is { } on) fitted.Add(new Fitted(bench.Id, on));
             var (machine, module) = fitted.Count > 0 && Below(4) != 0
                 ? (fitted[Below(fitted.Count)] is var f ? (f.Machine, f.Module) : default)
                 : (AnyMachine(), Below(3) == 0 ? "iron" : Modules.All[Below(Modules.All.Count)].Item);
@@ -94,7 +108,7 @@ public sealed partial class ItemsModule
             for (int i = 0; i < held.Slots.Length; i++)
                 if (Modules.TryGet(held.Slots[i]?.Item, out _)) holding.Add(new Place(i, held.Id));
         var what = holding.Count > 0 && Below(5) != 0 ? holding[Below(holding.Count)] : new Place(Below(Content.Inventory.Total + 1) - 1);
-        var hosts = machines.Where(m => Modules.All.Any(s => s.Hosts.Contains(m.Kind))).ToList();
+        var hosts = machines.Where(m => Modules.Hosted(m.Kind) || Machines.Get(m.Kind).Tunes).ToList();
         int into = hosts.Count > 0 && Below(3) != 0 ? hosts[Below(hosts.Count)].Id : AnyMachine();
         return new Fit(what, into) { From = from };
     }

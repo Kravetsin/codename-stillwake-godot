@@ -1,6 +1,7 @@
 # 0086 — Modules: one socket for machines and tools
 
 - Status: accepted; slice 1 built (the arc module in electric stations); the arc on the drill, then unlock modules, next.
+  Amended by [0099](0099-the-arc-bench.md): the arc module is made at the arc bench, not the assembler.
   Amended by [0096](0096-the-sky-shard.md): the arc module is made of a sky shard, not the arc coil; its slice 2 by
   [0098](0098-the-tool-bench-modules-in-tools.md): no `Run(Slot)`, a tool works with its stack, fitted at a tool bench.
 - Date: 2026-10-21

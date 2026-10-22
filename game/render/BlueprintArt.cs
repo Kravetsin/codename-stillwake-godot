@@ -8,8 +8,11 @@ namespace Stillwake.Game.Render;
 /// <summary>Which of a set of tile layers a piece of a placement goes on, back to front, as the grid draws what is built.</summary>
 public enum TileLayer { Back, Pipes, Valves, Walls, Edges, Fixtures, Doors, Machines }
 
-/// <summary>A picture of the ship's atlas laid on a cell: whole from its top-left, or <c>Cut</c> from a picture laid over the world.</summary>
-public readonly record struct TilePiece(TileLayer Layer, string Picture, bool Cut = false);
+/// <summary>
+/// A picture of the ship's atlas laid on a cell: whole from its top-left, or <c>Cut</c> from a picture laid over the world; a
+/// machine's standing <c>Rise</c> cells above its footprint (<see cref="ShipTiles.RiseOf"/>, the arc bench's vise, 0099).
+/// </summary>
+public readonly record struct TilePiece(TileLayer Layer, string Picture, bool Cut = false, int Rise = 0);
 
 /// <summary>
 /// What a placement looks like built (render/blueprint-art.ts): the ship's own pictures, for plans,
@@ -44,7 +47,7 @@ public static class BlueprintArt
         "door" => [new(TileLayer.Doors, DoorShape.Picture(closed: true, linked))],
         "pipe" => [new(TileLayer.Pipes, $"pipe_{linked}")],
         "valve" => [new(TileLayer.Pipes, $"pipe_{linked}"), new(TileLayer.Valves, "valve_open")],
-        _ => [new(TileLayer.Machines, $"machine_{placement.Kind}")],
+        _ => [new(TileLayer.Machines, $"machine_{placement.Kind}", Rise: ShipTiles.RiseOf(placement.Kind))],
     };
 
     /// <summary>

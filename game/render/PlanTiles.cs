@@ -100,21 +100,23 @@ public partial class PlanTiles : Node2D
                 Put(piece.Layer, at, tile);
                 continue;
             }
-            // A tile covers its picture from the cell, whole cells of it: one cut from a picture over the world, one.
+            // A tile covers its picture from the cell, whole cells of it: one cut from a picture over the world, one; a machine's
+            // that rises over its footprint from the cells above (0099).
             var size = (piece.Cut ? Vector2I.One : _tiles.SizeOf(piece.Picture)) * Cell;
-            var (real, plan) = line.Split((at.X * Cell, at.Y * Cell, size.X, size.Y));
-            Region(plan, at, tile, (rect, source) => _cutPieces[(int)piece.Layer].Add((rect, source)));
-            Region(real, at, tile, (rect, source) => _built?.Add(piece.Layer, rect, source));
+            var corner = at * Cell - new Vector2I(0, piece.Rise * Cell);
+            var (real, plan) = line.Split((corner.X, corner.Y, size.X, size.Y));
+            Region(plan, corner, tile, (rect, source) => _cutPieces[(int)piece.Layer].Add((rect, source)));
+            Region(real, corner, tile, (rect, source) => _built?.Add(piece.Layer, rect, source));
             _cut[(int)piece.Layer].QueueRedraw();
         }
     }
 
-    /// <summary>The atlas region under <paramref name="part"/> of the tile at <paramref name="tile"/> laid at cell <paramref name="at"/>, handed to <paramref name="to"/> with where it goes; nothing for an empty part.</summary>
-    private static void Region((int X, int Y, int W, int H) part, Vector2I at, Vector2I tile, System.Action<Rect2, Rect2> to)
+    /// <summary>The atlas region under <paramref name="part"/> of the tile at <paramref name="tile"/> laid from pixel <paramref name="corner"/>, handed to <paramref name="to"/> with where it goes; nothing for an empty part.</summary>
+    private static void Region((int X, int Y, int W, int H) part, Vector2I corner, Vector2I tile, System.Action<Rect2, Rect2> to)
     {
         if (part.W <= 0 || part.H <= 0) return;
         var rect = new Rect2(part.X, part.Y, part.W, part.H);
-        to(rect, new Rect2((Vector2)(tile * Cell) + rect.Position - (Vector2)(at * Cell), rect.Size));
+        to(rect, new Rect2((Vector2)(tile * Cell) + rect.Position - (Vector2)corner, rect.Size));
     }
 
     private void DrawCut(Sketch g, List<(Rect2 Rect, Rect2 Source)> pieces)

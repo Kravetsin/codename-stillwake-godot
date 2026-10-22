@@ -32,6 +32,11 @@ namespace Stillwake.Content;
 /// between them (<see cref="Charge"/>): the charger's one, a drone bay's four. Its slots take only items with a
 /// <c>Capacity</c>, and it draws only while one is short of full.
 /// </param>
+/// <param name="Tunes">
+/// A bench a tool is fitted at (0099): its first slot holds one tool a module fits (<c>Modules</c>' hosts) and nothing else,
+/// and a module fitted with it as the target goes onto that tool's stack. Its other slots are what it crafts; its crafts are
+/// paid by hand, and drones never touch it.
+/// </param>
 public sealed record MachineSpec(
     string Kind,
     int Width,
@@ -46,7 +51,8 @@ public sealed record MachineSpec(
     int? Inputs = null,
     int? FuelSlot = null,
     bool Fixed = false,
-    bool Charges = false);
+    bool Charges = false,
+    bool Tunes = false);
 
 /// <summary>The machines, by the kind saves and the grid name them.</summary>
 public static class Machines
@@ -82,6 +88,9 @@ public static class Machines
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does.
         new("droneBay", 2, 2, [], [("frame", 2), ("plate", 4), ("circuit", 2), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true),
         new("lifepod", 3, 3, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true),
+        // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
+        // crafts; unpowered, its shard is its power. A shard in its cost, so analysing one opens it with the arc module (0027).
+        new("arcBench", 2, 1, [], [("arcShard", 1), ("frame", 1), ("plate", 2), ("gear", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true),
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);
