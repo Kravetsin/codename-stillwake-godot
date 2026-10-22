@@ -40,7 +40,7 @@ flinching and fleeing, dying into their yields, and gone again when no hero is n
   `Fauna.WanderLedge` (2) cells, over one of 3, and its whole `Jump` — over walls and across gaps; wandering, only the first and
   only up a wall at its feet, so it does not bound about. In the air it goes `min(speed, JumpAcross)` across and presses flush on
   what it meets, carried over once its feet clear it. `Leaps.Height`, `Length` and `SpeedFor` give a jump's shape under a gravity:
-  the loper's 440 up and 250 across on the first planet (21 a tick) rise 4.39 cells and land level 10.5 on (42 ticks). Every
+  the loper's 440 up and 400 across on the first planet (21 a tick) rise 4.39 cells and land level 16.8 on (42 ticks). Every
   tick moves under a cell (the fastest 750 across, 600 down), so nothing passes through a wall.
 - **Modes:** `Idle` (a draw of `IdleLeast`..`IdleMost` ticks) → `Wander` (a draw of its way and of `WanderLeast`..`WanderMost`
   ticks) → `Idle`; a strike → `Flee` for `FleeTicks` at once, the knock's way, for a species with no hit-stun (`Stun` 0, the
