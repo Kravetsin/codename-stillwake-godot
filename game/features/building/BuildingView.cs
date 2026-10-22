@@ -63,8 +63,10 @@ public partial class BuildingView : Node2D
     private List<Rect2> _machines = [];
     private List<Edge> _near = [];
     private int _width;
-    /// <summary>The drag under way: what it does, the button that began it and the cell it began on.</summary>
-    private (Act Act, bool Left, Spot From)? _drag;
+    /// <summary>The drag under way: what it does, the button that began it and the point it began at, in cells.</summary>
+    private (Act Act, bool Left, (double X, double Y) From)? _drag;
+    /// <summary>The side of the brush this frame: one cell with Ctrl held (<see cref="Brush"/>).</summary>
+    private int _brush = Brush.SideOf(false);
     /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
     private Dictionary<int, int> _worked = [];
     private double _owedBursts;
@@ -109,10 +111,12 @@ public partial class BuildingView : Node2D
             var s = Drag.SpotAt(width, height, p);
             return s.Y * width + s.X;
         }
-        void Send(Act act, Spot from, Spot to)
+        // Ctrl held builds one cell, the precise mode; else the brush.
+        _brush = Brush.SideOf(Input.IsPhysicalKeyPressed(Key.Ctrl));
+        void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
             var planned = new List<int>();
-            foreach (var verdict in Drag.Judge(act, Drag.CellsOf(width, act, from, to, building), building))
+            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to, building, _brush), building))
                 foreach (var c in verdict.Commands)
                 {
                     client.Send(c);
@@ -128,11 +132,11 @@ public partial class BuildingView : Node2D
             if (button.Down)
             {
                 // The first button down has the drag; another pressed meanwhile is let be.
-                if (_drag == null && Drag.OnGrid(width, height, button.At)) _drag = (act, left, Drag.SpotAt(width, height, button.At));
+                if (_drag == null && Drag.OnGrid(width, height, button.At)) _drag = (act, left, button.At);
                 return;
             }
             if (_drag is not { } under || under.Left != left) return;
-            Send(Tools.Shaped(under.Act, _hand.Shape.Get())!, under.From, Drag.SpotAt(width, height, button.At));
+            Send(Tools.Shaped(under.Act, _hand.Shape.Get())!, under.From, button.At);
             _drag = null;
         }
         // The left button is the card's, but on the power tab with no card to place, where it lays the
@@ -432,8 +436,7 @@ public partial class BuildingView : Node2D
         // A wall's card places walls cut to the shape in hand, R turning it mid-drag too (0069).
         Act? act = Tools.Shaped(_drag?.Act ?? (tool as PlaceTool), _hand.Shape.Get());
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
-        var end = Drag.SpotAt(width, height, p);
-        var verdicts = Drag.Judge(act, Drag.CellsOf(width, act, _drag?.From ?? end, end, building), building);
+        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p, building, _brush), building);
         if (act is PlaceTool place)
         {
             // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.

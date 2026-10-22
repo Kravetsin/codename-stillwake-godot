@@ -11,7 +11,7 @@ and `Work`.
 | ----------------- | ---------------------------------------------------------------------------------------------- | ----- |
 | `Tools.cs`        | the cards and tabs, `CostOf`, `OverlayFor`, `TabFor`, `LayersFor`, `Known`, the pipette's `CardAt` (`tools.ts`); how a plan joins what is beside it, `LinksOf`, `StubsOf` | no    |
 | `PlanHand.cs`     | the card in hand and the plan out, kept in step with `Ui.Hand` and `Ui.OverlayOn` (`tools.ts`'s stores) | no    |
-| `Drag.cs`         | a drag's line of cells and what the card or removal would do in each (`drag.ts`)               | no    |
+| `Drag.cs`         | a drag's line of cells, laid with the brush, and what the card or removal would do in each (`drag.ts`) | no    |
 | `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
 | `BuildingView.cs` | plans as ghosts in marching dashes along their silhouettes turning real as they are built, marks in red dashes turning into their red ghost as they are taken down, ghosts, the tips, the buttons, the pipette, plan work | yes |
 | `BuildGlow.cs`    | the light of work on plans (0075): spark bursts, glints, the molten spot with its smoke and shimmer, the cut's line, a finished plan's sweep | yes |
@@ -58,6 +58,13 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - **A surface's build list** (0076): only the cards the kind of the hero's surface allows are shown
   (`Tools.Allowed`, by `Registry.Rules`; the cable as `cable`), nor picked by Q: on the test strip, the structure tab
   alone, without pipes, machines or cables. A plan for anything else the sim refuses `building.notHere`.
+- **A stroke is laid with the brush** (`Shared/Brush`, `Builds.Brush` cells a side, 2): at each point of a drag its
+  stamp (`Drag.StampOf`) round the cell corner nearest the pointer, so a stroke builds as much per area as one 16 px cell
+  did. Walls, back walls and ladders take the square, so a ladder is built two cells wide; a floor a row as wide in the pointer's
+  row, one cell thick as a doubled map lays it; a door, a pipe, a valve and a machine one cell, as a doorway and a pipe run are one cell
+  thick and a footprint is placed once; a removal one cell. Each cell is its own `PlacePlan`, each stamp's ascending, none
+  twice, each judged alone (`Drag.StrokeOf`). Ctrl held is the precise mode: one cell, as before. The ghost in hand shows
+  the stamp.
 - Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
@@ -39,23 +40,54 @@ public static class Drag
     }
 
     /// <summary>
-    /// The cells a drag from <paramref name="from"/> to <paramref name="to"/> covers: a straight line along
-    /// the longer axis, horizontal on a tie. Walls and back walls fill the rectangle between its two corners
-    /// instead, row by row from where it began, so a room's worth is one drag. A machine goes only where the drag began.
+    /// The brush <paramref name="act"/> lays at each point of a drag, columns by rows, with a brush <paramref name="side"/> cells
+    /// across (<see cref="Brush"/>): walls, back walls and ladders the square, so a ladder is two cells wide; a floor its top
+    /// row, one cell thick as a doubled map draws it; a door, a pipe, a valve, a machine and a removal one cell, as a doorway,
+    /// a pipe run and a footprint are one cell thick or placed once.
     /// </summary>
-    public static List<int> LineOf(int width, Act act, Spot from, Spot to)
+    public static (int W, int H) StampOf(Act act, int side) => act switch
     {
+        PlaceTool { Placement.Kind: "wall" or "backWall" or "ladder" } => (side, side),
+        PlaceTool { Placement.Kind: "floor" } => (side, 1),
+        _ => (1, 1),
+    };
+
+    /// <summary>The top-left cell of <paramref name="stamp"/> round a world point, kept on the grid; a one-cell stamp is <see cref="SpotAt"/>.</summary>
+    public static Spot StampAt(int width, int height, (double X, double Y) p, (int W, int H) stamp)
+    {
+        var (x, y) = Brush.Corner(width, height, p, stamp.W, stamp.H);
+        return new(x, y);
+    }
+
+    /// <summary>
+    /// The cells a drag from <paramref name="from"/> to <paramref name="to"/>, the top-left cells of its <paramref name="stamp"/>
+    /// (one cell unless said), covers: the stamp laid at each cell of a straight line along the longer axis, horizontal on
+    /// a tie, its cells ascending, none twice. Walls and back walls fill the rectangle round both ends' stamps instead, row
+    /// by row from where it began, so a room's worth is one drag. A machine goes only where the drag began.
+    /// </summary>
+    public static List<int> LineOf(int width, Act act, Spot from, Spot to, (int W, int H)? stamp = null)
+    {
+        var (w, h) = stamp ?? (1, 1);
         if (act is PlaceTool { Placement.Layer: "machine" }) return [from.Y * width + from.X];
-        if (act is PlaceTool { Placement.Kind: "wall" or "backWall" }) return RectangleOf(width, from, to);
+        if (act is PlaceTool { Placement.Kind: "wall" or "backWall" })
+        {
+            // From the begun stamp's side away from the end to the end stamp's far side, so both stamps are inside.
+            bool right = to.X >= from.X, down = to.Y >= from.Y;
+            return RectangleOf(width, new(right ? from.X : from.X + w - 1, down ? from.Y : from.Y + h - 1),
+                new(right ? to.X + w - 1 : to.X, down ? to.Y + h - 1 : to.Y));
+        }
         bool across = Math.Abs(to.X - from.X) >= Math.Abs(to.Y - from.Y);
         int length = across ? Math.Abs(to.X - from.X) : Math.Abs(to.Y - from.Y);
         int step = Math.Sign(across ? to.X - from.X : to.Y - from.Y);
         var cells = new List<int>();
+        var seen = new HashSet<int>();
         for (int i = 0; i <= length; i++)
         {
             int x = across ? from.X + i * step : from.X;
             int y = across ? from.Y : from.Y + i * step;
-            cells.Add(y * width + x);
+            for (int dy = 0; dy < h; dy++)
+                for (int dx = 0; dx < w; dx++)
+                    if (seen.Add((y + dy) * width + x + dx)) cells.Add((y + dy) * width + x + dx);
         }
         return cells;
     }
@@ -66,8 +98,19 @@ public static class Drag
     /// and takes off only those
     /// (<see cref="Judge"/>).
     /// </summary>
-    public static List<int> CellsOf(int width, Act act, Spot from, Spot to, BuildingModule building) =>
-        act is Remove && CancelsWalls(building, from.Y * width + from.X) ? RectangleOf(width, from, to) : LineOf(width, act, from, to);
+    public static List<int> CellsOf(int width, Act act, Spot from, Spot to, BuildingModule building, (int W, int H)? stamp = null) =>
+        act is Remove && CancelsWalls(building, from.Y * width + from.X) ? RectangleOf(width, from, to) : LineOf(width, act, from, to, stamp);
+
+    /// <summary>
+    /// The cells a stroke of <paramref name="act"/> from world point <paramref name="from"/> to <paramref name="to"/>, in cells,
+    /// covers with a brush <paramref name="side"/> cells across: its stamp (<see cref="StampOf"/>) round each end, laid as
+    /// <see cref="CellsOf"/> lays a drag.
+    /// </summary>
+    public static List<int> StrokeOf(int width, int height, Act act, (double X, double Y) from, (double X, double Y) to, BuildingModule building, int side)
+    {
+        var stamp = StampOf(act, side);
+        return CellsOf(width, act, StampAt(width, height, from, stamp), StampAt(width, height, to, stamp), building, stamp);
+    }
 
     /// <summary>Whether a removal begun at <paramref name="cell"/> cancels only walls' and back walls' blueprints: begun where nothing else is planned.</summary>
     private static bool CancelsWalls(BuildingModule building, int cell) =>

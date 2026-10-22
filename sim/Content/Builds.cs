@@ -34,6 +34,12 @@ public static class Builds
     /// </summary>
     public const int CrackHeals = 200;
 
+    /// <summary>
+    /// The side, in cells, of the square a strike or a build stroke covers (the client's brush): 2 at 8 px cells, so
+    /// digging and building go as fast per area as one 16 px cell did; 1 at 16 px. Ctrl held strikes or builds one cell.
+    /// </summary>
+    public const int Brush = 2;
+
     private static readonly Dictionary<string, Build> ById = All.ToDictionary(b => b.Id, StringComparer.Ordinal);
 
     /// <summary>The build by its id; throws for an id that is none.</summary>
