@@ -166,6 +166,104 @@ public class FaunaTests
         Assert.True(down, "it never stood below the step");
     }
 
+    // Jumps.
+
+    /// <summary>
+    /// Ground 80 wide and 16 tall, its top at row 9 under eight open rows and a ceiling, with a wall <paramref name="wall"/> cells
+    /// high standing on it at column 40, or a pit <paramref name="gap"/> wide from column 40 down to the bottom row.
+    /// </summary>
+    private static Layout Course(int wall = 0, int gap = 0) =>
+        Layout.Parse([.. Enumerable.Range(0, 16).Select(y => new string([.. Enumerable.Range(0, 80).Select(x =>
+            y == 0 || x == 0 || x == 79 || y == 15 ? '#'
+            : y >= 9 ? (gap > 0 && x >= 40 && x < 40 + gap ? '.' : '#')
+            : wall > 0 && x == 40 && y >= 9 - wall ? '#' : '.')]))]);
+
+    /// <summary>A loper fleeing right from column 30 on the course, its run till it calms, and whether it ever stood past column 40 plus <paramref name="past"/>.</summary>
+    private static (Creature C, bool Over, bool Fell) Flee(Layout course, int past)
+    {
+        var w = FaunaTesting.Planet(course, FaunaTesting.Lifeless).Breathing().HeroAt(20, 8);
+        var c = w.Loper(30, 8).Walking(+1, Mode.Flee);
+        c.ModeLeft = 200;
+        bool over = false, fell = false;
+        for (int t = 0; t < 200; t++)
+        {
+            w.Run();
+            Assert.True(Clear(w, c), $"in a wall at ({c.X}, {c.Y})");
+            over |= c.X - Loper.Width * Unit / 2 >= (40 + past) * Unit && c.VY == 0;
+            fell |= c.Y > 9 * Unit;
+        }
+        return (c, over, fell);
+    }
+
+    [Fact]
+    public void ALopersJumpIsAboutFourCellsHighAndTenLongOnTheFirstPlanet()
+    {
+        int g = Content.PlanetTypes.First.Fall(Tune.Gravity);
+        Assert.InRange(Leaps.Height(Loper.Jump, g), 4_000, 4_600);
+        Assert.InRange(Leaps.Length(Loper.Jump, Loper.JumpAcross, g), 9_000, 11_000);
+        // Every tick of it under a cell, across and down: nothing is passed through.
+        Assert.True(Loper.Jump < Unit && Loper.JumpAcross < Unit && Tune.MaxFall < Unit);
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void AFleeingLoperJumpsAWallItClears(int high)
+    {
+        var (_, over, fell) = Flee(Course(wall: high), 1);
+        Assert.True(over, $"it never got over a wall {high} high");
+        Assert.False(fell);
+    }
+
+    [Fact]
+    public void AFleeingLoperTurnsAtAWallTooHighToClear()
+    {
+        var (c, over, _) = Flee(Course(wall: 6), 1);
+        Assert.False(over);
+        Assert.True(c.X < 40 * Unit);
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(8)]
+    public void AFleeingLoperLeapsAGapItClearsAndNeverFallsIn(int wide)
+    {
+        var (_, over, fell) = Flee(Course(gap: wide), wide);
+        Assert.True(over, $"it never got across a gap {wide} wide");
+        Assert.False(fell, "it fell in");
+    }
+
+    [Fact]
+    public void AFleeingLoperTurnsAtAGapTooWideToLeap()
+    {
+        var (c, over, fell) = Flee(Course(gap: 14), 14);
+        Assert.False(over);
+        Assert.False(fell, "it leapt into the void");
+        Assert.True(c.X < 40 * Unit);
+    }
+
+    [Fact]
+    public void AWanderingLoperJumpsUpALedgeOfTwoButNotAWallOfThreeNorAGap()
+    {
+        foreach (var (course, gets) in new[] { (Course(wall: 2), true), (Course(wall: 3), false), (Course(gap: 3), false) })
+        {
+            var w = FaunaTesting.Planet(course, FaunaTesting.Lifeless).Breathing().HeroAt(20, 8);
+            var c = w.Loper(36, 8).Walking(+1);
+            bool over = false, fell = false;
+            for (int t = 0; t < 300; t++)
+            {
+                w.Run();
+                Assert.True(Clear(w, c));
+                over |= c.X - Loper.Width * Unit / 2 >= 41 * Unit;
+                fell |= c.Y > 9 * Unit;
+            }
+            Assert.Equal(gets, over);
+            Assert.False(fell);
+        }
+    }
+
     [Fact]
     public void AnIdleLoperTakesToWanderingAndBackOnItsOwnDrawingItsWay()
     {
