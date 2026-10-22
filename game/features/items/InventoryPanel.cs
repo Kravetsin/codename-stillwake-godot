@@ -403,7 +403,7 @@ public partial class InventoryPanel : CanvasLayer
     /// </summary>
     private Control? Sockets(int machine, string kind, bool caption = true)
     {
-        var takes = Content.Modules.For(kind).ToList();
+        var takes = HostOf(machine, kind) is { } host ? Content.Modules.For(host).ToList() : [];
         if (takes.Count == 0) return null;
         var row = Style.Gap(new HBoxContainer(), Slots.Gap);
         foreach (var module in takes)
@@ -441,7 +441,17 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>Whether <paramref name="item"/> would go into a socket of open machine <paramref name="machine"/>: a module it takes, not fitted yet.</summary>
     private bool GoesIn(string? item, int machine) =>
-        item != null && _grid?.MachineById(machine) is { } m && Content.Modules.Fits(item, m.Kind) && !FittedTo(machine).Contains(item);
+        item != null && _grid?.MachineById(machine) is { } m && HostOf(machine, m.Kind) is { } host && Content.Modules.Fits(item, host) && !FittedTo(machine).Contains(item);
+
+    /// <summary>
+    /// What machine <paramref name="machine"/>, of <paramref name="kind"/>, takes modules as: its kind, or at an arc bench the tool
+    /// on it, as shown for the open one (<see cref="Reading.Host"/>, 0099); none for a bench holding none.
+    /// </summary>
+    private string? HostOf(int machine, string kind)
+    {
+        if (!MachineSpecs.TryGet(kind, out var spec) || !spec.Tunes) return kind;
+        return machine == Crate && _reading != null ? _reading.Host : _items?.Crate(machine) is { Count: > 0 } slots ? slots[0]?.Item : null;
+    }
 
     /// <summary>
     /// A socket pressed (<see cref="Clicks.OnSocket"/>): a module carried that goes in is fitted; a fitted one begins to

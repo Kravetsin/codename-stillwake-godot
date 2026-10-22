@@ -91,7 +91,7 @@ public static class Crafts
     }
 
     /// <summary>Whether <paramref name="station"/> takes items in, so a craft may be fed from its inputs: the Former and the assembler, not the pod.</summary>
-    public static bool HasInputs(Content.Station station) => (Content.Machines.Get(station.Machine).Inputs ?? 0) > 0;
+    public static bool HasInputs(Content.Station station) => Content.Machines.Get(station.Machine) is var spec && (spec.Inputs ?? 0) > 0 && !spec.Tunes;
 
     /// <summary>How many units a click queues.</summary>
     public static int CountFor(bool shift) => shift ? Many : 1;

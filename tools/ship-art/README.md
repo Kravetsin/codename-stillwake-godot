@@ -39,6 +39,8 @@ means the pixels match but the bytes do not, because the PNG encoder these paint
 | `grow-capsule/drones.js` | the first drone bay and drone icon placeholders | none | `node tools/ship-art/grow-capsule/drones.js <outDir>` | 0/2, drifted (replaced by `drones/`) |
 | `clod-icon/icon.js` | `items/soilClod` | `game/art/items` (preview), `farm/tools` lib | `node tools/ship-art/clod-icon/icon.js game/art/items <outDir>` | exact 1/1 |
 | `tablet/export.cjs` (headless Chrome) | `tablet_frame`, `tablet_plate`, `tablet_stylus` | Chrome | `node tools/ship-art/tablet/export.cjs <outDir>` | exact 3/3 |
+| `arc-bench/paint.js` | candidates, six benches; the user's pick, `vise/`: `machine_arcBench`, `arcBench_alight`, `arcBench_front`, `arcBench_glow`, `arcBench_fit_glow` (0099) | `game/art` (`hero_drill`, `module_arc_coil`, previews) | `node tools/ship-art/arc-bench/paint.js [outDir]`, then copy `vise/`'s five | exact 5/5 |
+| `arc-bench/accumulator.js` | `items/accumulator`, `items/accumulator_empty` (a placeholder, 0099) | none | `node tools/ship-art/arc-bench/accumulator.js [itemsDir]` | exact 2/2 |
 | `wrist/export.cjs` (headless Chrome) | `wrist_body`, `wrist_cuff`, `wrist_display`, `wrist_display_docked`, `wrist_dock`, `wrist_gauge` | Chrome | `node tools/ship-art/wrist/export.cjs <outDir>` | exact 6/6 |
 
 `machines/comp.js` lays one PNG over another (`node comp.js a.png b.png out.png <png.js>`). Painters that draw

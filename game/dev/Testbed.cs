@@ -37,17 +37,18 @@ public static class Testbed
 
     /// <summary>
     /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), and an
-    /// arc module for each station it fits (0086), which takes a spire's relic to make. A drill with the arc fitted lies there
-    /// too (0098), as no bench fits one yet.
+    /// arc module for each station and tool it fits (0086, 0098), which takes a spire's relic to make, and an empty accumulator
+    /// (0099), the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc
+    /// bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Where(h => Machines.TryGet(h, out _)).Select(_ => Modules.Arc.Item)];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator"];
 
     /// <summary>A drill with <paramref name="module"/> fitted, as a save writes its stack (0098): a dev world's, the bench to come.</summary>
     public static JsonObject FittedDrill(string module) => new() { ["item"] = Weapons.Drill.Item, ["count"] = 1, ["module"] = module };
 
     /// <summary>
     /// Room one holds the lifepod, the crates, the drone bay and the air: a tank with a canister and a generator piped to a
-    /// vent in each room; room two the furnace, the Former, the electric smelter, the circuit assembler, the grow
+    /// vent in each room; room two the arc bench by its door, the furnace, the Former, the electric smelter, the circuit assembler, the grow
     /// capsule and the farm's crate, the analyzer, the charging station and the burner generator; then the airlock, no
     /// vent in it. Eight panels on the roof: the first and the third feed the lamps and the oxygen generator, the second the
     /// drone bay, the fourth the analyzer and the charging station, the fifth the smelter, the sixth the assembler and the
@@ -66,7 +67,7 @@ public static class Testbed
             "  #.......L......#....L.........J.......L...#.L.#",
             "  #.OOO........RRD..............gg...GG.....D...D",
             "  #.OOO..TTGG..RRD...FF.MM.EE.YYggGG.GGAACBBD...D",
-            "  #.OOOKKTTGGVKK.D.V.FF.MM.EE.YYggGGKK.AACBBD...D",
+            "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBD...D",
             "  ###############################################",
         ],
         [
@@ -88,6 +89,9 @@ public static class Testbed
 
     /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>
     public const int AirTicks = 200;
+
+    /// <summary>The arc bench by room two's door (0099) and what it holds at the start: a plain drill in its vise.</summary>
+    public static readonly (string Kind, string Tool) BenchHolds = ("arcBench", Weapons.Drill.Item);
 
     /// <summary>What the analyzer holds at the start: an item no world has analysed yet.</summary>
     public const string Analysing = "gear";
@@ -164,6 +168,7 @@ public static class Testbed
                 ["slots"] = Slots("furnace", [.. FurnaceHolds.Select(h => Stack(h.Item, h.Count))]),
             },
             new() { ["id"] = Id("analyzer"), ["slots"] = Slots("analyzer", [Stack(Analysing, 1)]) },
+            new() { ["id"] = Id(BenchHolds.Kind), ["slots"] = Slots(BenchHolds.Kind, [Stack(BenchHolds.Tool, 1)]) },
             new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
             new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },

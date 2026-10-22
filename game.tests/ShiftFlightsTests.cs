@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Items;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Items;
 using Xunit;
@@ -52,12 +53,16 @@ public class ShiftFlightsTests
         Assert.True(sent > 0, kind);
     }
 
+    /// <summary>What a panel of <paramref name="kind"/> takes modules as: its kind, or at an arc bench every tool it may hold (0099).</summary>
+    private static IEnumerable<string> HostsOf(string kind) =>
+        Spec.Machines.Get(kind).Tunes ? Spec.Items.All.Select(i => i.Id).Where(Spec.Modules.Hosted) : [kind];
+
     [Theory]
     [MemberData(nameof(Panels))]
     public void EverySocketShiftedOutOfFliesItsModuleIntoTheBag(string? kind)
     {
         if (kind == null) return;
-        foreach (var module in Spec.Modules.For(kind))
+        foreach (var module in HostsOf(kind).SelectMany(Spec.Modules.For))
         {
             var bag = new Stack?[Spec.Inventory.Total];
             var result = Clicks.OnSocket(null, new SocketClick(Machine, module.Item, Fitted: true, Shift: true, null, bag));
@@ -79,6 +84,42 @@ public class ShiftFlightsTests
         Assert.Equal(new Flight(new SlotSpot(new Place(12))), fitted.Flight);
         // A machine that takes none, the furnace: into its input as before.
         Assert.IsType<Move>(Clicks.On(null, SlotClick.Of(Showing("furnace", arc, new Place(12)), new Place(12), false, true, Machine)).Command);
+    }
+
+    [Fact]
+    public void AtTheArcBenchTheToolGoesInTheViseAndAModuleShiftedFromTheBagIntoTheToolOnItFlying()
+    {
+        var arc = Spec.Modules.Arc.Item;
+        const string bench = "arcBench", drill = "drill";
+        Assert.Contains(drill, HostsOf(bench));
+        // A drill shifted from the bag goes into the vise, the bench's first slot, flying there.
+        var into = Clicks.On(null, SlotClick.Of(Showing(bench, drill, new Place(12)), new Place(12), false, true, Machine));
+        Assert.Equal(new Move(new Place(12), new Target(null, Machine), 1), into.Command);
+        Assert.Equal(new Flight(new SlotSpot(new Place(12))), into.Flight);
+        // Its sockets are the tool's: with the drill in the vise, the arc shifted from the bag goes into it.
+        var shown = Showing(bench, arc, new Place(12));
+        ((Stack?[])shown.Crate!)[0] = new Stack(drill, 1);
+        Assert.Equal(drill, shown.Host);
+        Assert.Equal([arc], shown.Free);
+        Assert.Equal(SlotMark.Fits, shown.HereOf(arc));
+        var fit = Clicks.On(null, SlotClick.Of(shown, new Place(12), false, true, Machine));
+        Assert.Equal(new Fit(new Place(12), Machine), fit.Command);
+        Assert.Equal(new Flight(new SlotSpot(new Place(12)), new SocketSpot(Machine, arc)), fit.Flight);
+        // An empty vise has no socket: the module goes as any stack, to the vise, which the sim refuses.
+        var empty = Showing(bench, arc, new Place(12));
+        Assert.Null(empty.Host);
+        Assert.Empty(empty.Free);
+        Assert.IsType<Move>(Clicks.On(null, SlotClick.Of(empty, new Place(12), false, true, Machine)).Command);
+        // The tool on it is shown fitted at once, the module gone from its slot, as a fit in flight elsewhere is.
+        Stack?[] bag = [new Stack(arc, 1)];
+        Stack?[] vise = [new Stack(drill, 1), null, null];
+        var (inventory, slots, fitted) = Reading.Fitting(bag, vise, [], [new Fit(new Place(0), Machine)], Machine, tunes: true);
+        Assert.Null(inventory[0]);
+        Assert.Equal([arc], fitted);
+        Assert.Equal(new Stack(drill, 1, Module: arc), slots![0]);
+        (_, slots, fitted) = Reading.Fitting(bag, [new Stack(drill, 1, Module: arc), null, null], [arc], [new Unfit(Machine, arc, 3)], Machine, tunes: true);
+        Assert.Empty(fitted);
+        Assert.Equal(new Stack(drill, 1), slots![0]);
     }
 
     [Fact]

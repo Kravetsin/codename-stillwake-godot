@@ -16,6 +16,7 @@ mockups it follows: "Fabricator panel" and "Lifepod", variant C.
 | `Crafts.cs`           | a recipe's fixed place, how its slot looks, where a click on a short one goes, where a short item comes from, its block on the card, the bar, what a station is doing | no |
 | `FabricatorPanel.cs`  | any queued station's panel under the inventory, in the machine frame: header, bolt and screen; recipes on the left, the shared queue and outputs on the right | yes |
 | `FabricatorScreen.cs` | the panel's small screen: lines running while it works, READY idle, dark with no power | yes   |
+| `BenchView.cs`        | the arc bench (0099): the tool in its vise drawn as the hand draws it, its modules on it, clamped at its `HeldLook.Clamp` on `BenchLook.Clamp`, the jaws over it; the shard alight and breathing, its glow and violet-white light, a small arc off its tip now and then; a module going onto the tool (the sim's stack) a burst of arcs from the shard into the tool's first mount, toned down | yes |
 | `StationView.cs`      | over a station's picture: the Former's flywheel, gears and press head moving, the smelter's coils glowing and lighting the room, the assembler's arm dipping and its screen lighting the room green, while it works; a cold-blue mark on a fed station too cold for its input | yes |
 | `ArcCrackle.cs`       | a station with the arc module fitted, at work (0086): violet-white arcs crawling along its body's outline every 70–260 ms, now and then a burst or one leaping down a side, and a flickering violet-white light; nothing stopped | yes |
 | `SmelterHeat.cs`      | an electric smelter at work in light (0075): its element's glow pulsing, a fine crackle along its top and bottom edges every 0.3–1 s (now and then two or three), a hot fleck drifting up every 0.6–1.6 s, a blue arc at its contacts every 1–2.5 s, a faint shimmer; nothing stopped | yes |
@@ -58,7 +59,7 @@ caves give (0080), drawn as ASCII in the icons' outlined palette till the user p
   least, empty places dim. One not known yet is a dark silhouette; one known but short of an item for
   a unit is dimmed and grey; in creative mode every one is known and ready. A click on a ready one queues one, a shift-click five, refused whole by the sim
   when unpaid; a click on a short one pulses the first item it lacks that this station makes itself (`Crafts.MissingCraft`), amber,
-  twice; a silhouette does nothing. At a station with inputs (the Former, the assembler; not the pod) a right-click on
+  twice; a silhouette does nothing. At a station with inputs (the Former, the assembler; not the pod, nor the arc bench, whose one input is its vise) a right-click on
   a known recipe queues it **from the inputs** (shift ×5), whatever is carried. A tool's recipe (the fire axe) is tinted amber, a worn item's (the jetpack, the battery) green,
   each edged in its colour, full under the pointer, as their slots are everywhere (`Shared.SlotLooks`); a silhouette is not. Every slot is `Ui.Slot` wide, built again when the slot size changes.
 - No status line: the screen says whether it works, the queue's slot filling and full says the rest,

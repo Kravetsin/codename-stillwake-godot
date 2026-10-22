@@ -34,8 +34,14 @@ public sealed record Reading(
     /// </summary>
     public IReadOnlyList<string> Fitted { get; init; } = [];
 
+    /// <summary>
+    /// What the open machine's modules go into, as a host's kind: the machine's own kind, or at an arc bench the item of the
+    /// tool on it (0099), none while it holds none; none with no machine open.
+    /// </summary>
+    public string? Host => Kind != null && Content.Machines.TryGet(Kind, out var spec) && spec.Tunes ? Crate is { Count: > 0 } slots ? slots[0]?.Item : null : Kind;
+
     /// <summary>The modules the open machine has a socket for and holds none of: where a module shifted from the bag goes.</summary>
-    public IReadOnlyList<string> Free => Kind == null ? [] : Content.Modules.For(Kind).Select(m => m.Item).Where(m => !Fitted.Contains(m)).ToList();
+    public IReadOnlyList<string> Free => Host == null ? [] : Content.Modules.For(Host).Select(m => m.Item).Where(m => !Fitted.Contains(m)).ToList();
 
     /// <summary>Whether a slot holding <paramref name="item"/> shows the violet "?": in some cost and not analysed yet, never in creative mode.</summary>
     public bool Unknown(string item) => ItemCards.Unknown(item, Creative, Analysed);
@@ -48,7 +54,7 @@ public sealed record Reading(
     public SlotMark HereOf(string item)
     {
         if (Kind == null) return SlotMark.None;
-        if (Content.Modules.Fits(item, Kind)) return SlotMark.Fits;
+        if (Host != null && Content.Modules.Fits(item, Host)) return SlotMark.Fits;
         if (Content.Stations.TryGet(Kind, out var station) && station.Fed && CraftingModule.Processes(station, item))
             return station.Process == "grow" ? SlotMark.Grows : SlotMark.Smelts;
         return Content.Machines.TryGet(Kind, out var machine) && machine.FuelSlot != null && Content.Items.Get(item).BurnTicks != null
@@ -148,7 +154,10 @@ public sealed record Reading(
             slots = shown.Crates.Where(c => c.Crate == id).Select(c => c.Slots).FirstOrDefault() ?? items.Crate(id);
             kind = grid.MachineById(id)?.Kind;
         }
-        (var inventory, slots, var fitted) = Fitting(shown.Inventory, slots, crate is int open ? items.FittedTo(open) : [], inFlight, crate);
+        // An arc bench's are its tool's (0099), on the stack in its first slot.
+        bool tunes = kind != null && Content.Machines.TryGet(kind, out var spec) && spec.Tunes;
+        IReadOnlyList<string> modules = tunes ? slots is { Count: > 0 } && slots[0]?.Module is { } on ? [on] : [] : crate is int open ? items.FittedTo(open) : [];
+        (var inventory, slots, var fitted) = Fitting(shown.Inventory, slots, modules, inFlight, crate, tunes);
         // Copied: the sim's list is live, and a reading stands for what was read.
         var analysed = research.Analysed.ToList();
         if (kind != "analyzer") return new Reading(inventory, slots, items.Creative, kind, null, analysed) { Fitted = fitted };
@@ -160,10 +169,12 @@ public sealed record Reading(
     /// <summary>
     /// The slots and machine <paramref name="crate"/>'s modules as this peer's fits and takes in <paramref name="inFlight"/>
     /// will leave them (0086), after its moves: a module fitted leaves the slot it was in, one taken out lands in the slot
-    /// it names, empty as shown. One the sim refuses shows back a round trip later, as a refused move does.
+    /// it names, empty as shown. One the sim refuses shows back a round trip later, as a refused move does. At an arc bench
+    /// (<paramref name="tunes"/>, 0099) the tool on its first slot is shown holding what is fitted.
     /// </summary>
     public static (IReadOnlyList<Stack?> Inventory, IReadOnlyList<Stack?>? Crate, IReadOnlyList<string> Fitted) Fitting(
-        IReadOnlyList<Stack?> inventory, IReadOnlyList<Stack?>? crateSlots, IReadOnlyList<string> fitted, IReadOnlyList<Command> inFlight, int? crate)
+        IReadOnlyList<Stack?> inventory, IReadOnlyList<Stack?>? crateSlots, IReadOnlyList<string> fitted, IReadOnlyList<Command> inFlight, int? crate,
+        bool tunes = false)
     {
         if (!inFlight.Any(c => c is Fit or Unfit)) return (inventory, crateSlots, fitted.ToList());
         var own = inventory.ToArray();
@@ -184,6 +195,7 @@ public sealed record Reading(
                 if (unfit.Slot is int slot && slot >= 0 && slot < own.Length && own[slot] == null) own[slot] = new Stack(unfit.Module, 1);
             }
         }
+        if (tunes && open is { Length: > 0 } && open[0] is { } tool) open[0] = tool with { Module = modules.Count > 0 ? modules[0] : null };
         return (own, open, modules);
     }
 }

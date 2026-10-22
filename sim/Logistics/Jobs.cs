@@ -139,14 +139,15 @@ public sealed partial class LogisticsModule
     /// </summary>
     private static bool Takes(Machine m)
     {
-        if (!Machines.TryGet(m.Kind, out var spec) || spec.Charges) return false;
+        // An arc bench takes a tool by hand and is paid by hand (0099): drones never touch it.
+        if (!Machines.TryGet(m.Kind, out var spec) || spec.Charges || spec.Tunes) return false;
         if (Stations.TryGet(m.Kind, out var station)) return station.Fed || spec.Inputs > 0;
         return spec.FuelSlot != null;
     }
 
     /// <summary>The first output slot of a machine of <paramref name="m"/>'s kind, its slots past its inputs; null for one with none.</summary>
     private static int? OutputsOf(Machine m) =>
-        Machines.TryGet(m.Kind, out var spec) && spec.Inputs is int inputs && inputs < (spec.Slots ?? 0) ? inputs : null;
+        Machines.TryGet(m.Kind, out var spec) && !spec.Tunes && spec.Inputs is int inputs && inputs < (spec.Slots ?? 0) ? inputs : null;
 
     /// <summary>
     /// The crate in the flood to take <paramref name="stack"/> from machine <paramref name="from"/>, and its room for a
