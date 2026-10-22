@@ -109,9 +109,13 @@ public sealed partial class FaunaModule : Module<FaunaState>
         int away = AwayFrom(creature, _crew.HeroOf(c.From)?.Cell);
         // A tool's pace is its weapon's (0098): the drill's quick hits each knock a share, rounded toward none.
         int pace = Math.Min(Spec.KnockPace, Content.Weapons.Of(c.Tool)!.Pace);
-        creature.Mode = Mode.Hurt;
-        creature.ModeLeft = spec.HurtTicks;
-        creature.VX = away * spec.Knock * pace / Spec.KnockPace;
+        // Stunned, it steers nothing a while, then flees; with no stun, a neutral one, it bolts at once, the knock's way, at its
+        // flight's speed or the knock's if more: hops off quick hits never ground it long enough to steer, so it runs from the first.
+        bool stunned = spec.Stun > 0;
+        int knock = Math.Max(spec.Knock * pace / Spec.KnockPace, stunned ? 0 : spec.Flee);
+        (creature.Mode, creature.ModeLeft) = stunned ? (Mode.Hurt, spec.Stun) : (Mode.Flee, spec.FleeTicks);
+        // A blow never slows one already running the knock's way: a run of the drill's quick hits cannot hold it.
+        creature.VX = away * (Math.Sign(creature.VX) == away ? Math.Max(Math.Abs(creature.VX), knock) : knock);
         // No hop while it rises already: a run of quick hits keeps it low rather than juggling it up.
         if (creature.VY >= 0) creature.VY = -spec.Hop * pace / Spec.KnockPace;
     }

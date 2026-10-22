@@ -8,11 +8,12 @@ public static class Fauna
 {
     /// <summary>
     /// A species: its body <paramref name="Width"/> × <paramref name="Height"/> cells, its hit points, how fast it wanders and
-    /// flees a tick, how long it flees once hurt and how long a hit's flinch lasts, the knock a hit gives it across and the hop
-    /// up, and what it gives when it dies, drawn entry by entry as a container's loot is.
+    /// flees a tick, how long it flees once hurt, its hit-stun — the ticks a hit holds it steering nothing before it flees, 0 for
+    /// a neutral one that bolts at once — the knock a hit gives it across and the hop up, and what it gives when it dies, drawn
+    /// entry by entry as a container's loot is.
     /// </summary>
     public sealed record Species(
-        string Id, int Width, int Height, int Hp, int Wander, int Flee, int FleeTicks, int HurtTicks, int Knock, int Hop,
+        string Id, int Width, int Height, int Hp, int Wander, int Flee, int FleeTicks, int Stun, int Knock, int Hop,
         IReadOnlyList<LootEntry> Yields);
 
     /// <summary>Where a habitat's creatures spawn: on the open ground under the sky, or on a cave's floor in one depth band (0080).</summary>
@@ -26,11 +27,12 @@ public static class Fauna
 
     /// <summary>
     /// The loper: a soft round walker of the first planet's open ground, two cells by two, neutral. It wanders and idles, and
-    /// scampers off for three seconds when hit, a little slower than a hero walks, so a hunter keeps up. Twelve hit points: six
-    /// of the axe's hits. Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
+    /// scampers off for three seconds when hit, a little slower than a hero walks, so a hunter keeps up. No hit-stun: neutral, it
+    /// bolts at the first blow, and the drill cannot pin it (the user's word). Twelve hit points: six of the axe's hits. Its
+    /// yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
     /// </summary>
     public static readonly Species Loper = new("loper", Width: 2, Height: 2, Hp: 12, Wander: 100, Flee: 320, FleeTicks: 60,
-        HurtTicks: 8, Knock: 200, Hop: 180, Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
+        Stun: 0, Knock: 200, Hop: 180, Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper];
 
