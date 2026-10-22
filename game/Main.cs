@@ -299,6 +299,13 @@ public partial class Main : Node2D, ITogether
         if (Has("--charge") && _items != null) AddChild(new ChargeDemo(_items, _hands.Ui, () => _m));
         if (Has("--arc") && _items != null) AddChild(new ArcDemo(_items, _hands.Ui, () => _m));
         if (Has("--bench") && Opens == null && _items != null) AddChild(new BenchDemo(_items, _hands.Ui, () => _m, () => _fabricator));
+        if (ChargerRace is { } race)
+        {
+            // Over the panels, which are on canvas layers of their own.
+            var over = new CanvasLayer { Layer = 100 };
+            over.AddChild(new ChargerArcDemo(() => _m, () => (_session as Session)?.Client.World.Tick, race == "arc", Arg("--shots")));
+            AddChild(over);
+        }
         if (Arg("--marks") is { } marked && Opens is { } marking && _items != null)
             AddChild(new MarksDemo(_items, marking, marked, int.Parse(Arg("--into") ?? "0"), () => _m));
         if ((Has("--breathe") || Has("--breathe-air")) && _items != null) AddChild(new BreatheDemo(_items, () => _m, canister: Has("--breathe")));
@@ -332,6 +339,9 @@ public partial class Main : Node2D, ITogether
 
     /// <summary><c>--open=&lt;kind&gt;</c>: the machine of that kind the hero opens at the start (<see cref="OpenDemo"/>).</summary>
     private string? Opens => _args.FirstOrDefault(a => a.StartsWith("--open=", StringComparison.Ordinal))?[7..];
+
+    /// <summary><c>--charger=arc|plain</c>: the testbed's charging station filling an empty accumulator, fitted or not (<see cref="ChargerArcDemo"/>).</summary>
+    private string? ChargerRace => _args.FirstOrDefault(a => a.StartsWith("--charger=", StringComparison.Ordinal))?[10..];
 
     /// <summary><c>--near=&lt;kind&gt;</c>: the machine of that kind the hero starts beside, opening nothing: for recording the room round it.</summary>
     private string? Near => _args.FirstOrDefault(a => a.StartsWith("--near=", StringComparison.Ordinal))?[7..];
@@ -373,6 +383,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--charge")) world = ChargeDemo.Seed(world, Modules);
         if (Has("--arc")) world = ArcDemo.Seed(world, Modules);
         if (Has("--bench")) world = BenchDemo.Seed(world, Modules);
+        if (ChargerRace is { } race) world = ChargerArcDemo.Seed(world, Modules, race == "arc");
         if (Has("--marks")) world = MarksDemo.Seed(world, Modules, Opens);
         if (Has("--asteroid")) world = AsteroidDemo.Seed(world, _m, Modules, ArcDrill);
         if (Has("--sortie")) world = SortieDemo.Seed(world, _m, Modules);
@@ -1022,7 +1033,7 @@ public partial class Main : Node2D, ITogether
         SyncGrid(client);
         _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
-        if (_items != null) _items.Panel.Charger = _m.Power.Charges;
+        if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
         if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, SpotOf(_hero), session.Progress, delta * 1000);

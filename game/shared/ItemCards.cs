@@ -63,7 +63,7 @@ public static class ItemCards
         if (Spec.Weapons.Of(card.Item) != null) fitted = fitted with { Tiles = WeaponTiles(card.Item, modules) };
         if (card.Draw == null) return fitted;
         var (plain, stats) = (ToolStats.Of(card.Item, []), ToolStats.Of(card.Item, modules));
-        return fitted with { Draw = stats.Draw, DrawBoost = BoostOf(stats.Draw, plain.Draw, modules, m => m.Draw) };
+        return fitted with { Draw = stats.Draw, DrawBoost = BoostOf(stats.Draw, plain.Draw, modules, m => m.Adds(card.Item, Spec.Stat.Draw)) };
     }
 
     /// <summary>
@@ -74,10 +74,11 @@ public static class ItemCards
     {
         var (plain, stats) = (ToolStats.Of(item, []), ToolStats.Of(item, modules));
         double every = (double)stats.Pace / World.TicksPerSecond, was = (double)plain.Pace / World.TicksPerSecond;
+        int Damage(Spec.ModuleSpec m) => m.Adds(item, Spec.Stat.Damage);
         return
         [
-            new(Number(stats.Damage / every), T("card.dps"), BoostOf(stats.Damage / every, plain.Damage / was, modules, m => m.Damage)),
-            new(Number(stats.Damage), T("card.damage"), BoostOf(stats.Damage, plain.Damage, modules, m => m.Damage)),
+            new(Number(stats.Damage / every), T("card.dps"), BoostOf(stats.Damage / every, plain.Damage / was, modules, Damage)),
+            new(Number(stats.Damage), T("card.damage"), BoostOf(stats.Damage, plain.Damage, modules, Damage)),
             new(T("card.seconds", ("n", Number(every))), T("card.hit"), BoostOf(every, was, modules, _ => 0)),
         ];
     }
@@ -97,13 +98,35 @@ public static class ItemCards
     public const string ModuleColour = "d9c8ff", ModuleGround = "221a3d";
 
     /// <summary>
-    /// A module's strip at the bottom of its card (0086): its technology's icon and what it does, its speed and power as
-    /// times, "×2 speed · ×2 power"; never where it goes, for modules will be many and so will what takes them.
+    /// A module's strip at the bottom of its card (0086): its technology's icon and what it does, a line for each group of its
+    /// hosts (0100), put together from its effects, "×2 speed · ×2 power", "×5 charging · ×5 power"; a line said twice, once.
+    /// Never where it goes, for modules will be many and so will what takes them.
     /// </summary>
-    private static CardTech TechOf(Spec.ModuleSpec module)
+    private static CardTech TechOf(Spec.ModuleSpec module) =>
+        new(module.Tech, string.Join("\n", module.On.Select(LineOf).Where(line => line.Length > 0).Distinct()));
+
+    /// <summary>
+    /// What a module does in the hosts of <paramref name="on"/>, its trades in their order as times, "×2 speed · ×2 power"; at a
+    /// charging station the draw is what it charges (0053), so a draw trade there says both, "×5 charging · ×5 power".
+    /// </summary>
+    private static string LineOf(Spec.HostEffects on)
     {
-        string Times(int added) => Number((1000 + added) / 1000.0);
-        return new CardTech(module.Tech, T("card.techAbout", ("speed", Times(module.Speed)), ("power", Times(module.Draw))));
+        bool charges = on.Hosts.Any(host => Spec.Machines.TryGet(host, out var machine) && machine.Charges);
+        var words = new List<string>();
+        foreach (var trade in on.Effects.OfType<Spec.Trade>())
+        {
+            string times = Number((1000 + trade.Add) / 1000.0);
+            if (trade.Stat == Spec.Stat.Draw && charges) words.Add(T("card.trade.charging", ("n", times)));
+            words.Add(trade.Stat switch
+            {
+                Spec.Stat.Speed => T("card.trade.speed", ("n", times)),
+                Spec.Stat.Draw => T("card.trade.power", ("n", times)),
+                Spec.Stat.Damage => T("card.trade.damage", ("n", times)),
+                // Heat is whole levels, not thousandths (0086).
+                _ => T("card.trade.heat", ("n", trade.Add)),
+            });
+        }
+        return string.Join(" · ", words);
     }
 
     /// <summary>

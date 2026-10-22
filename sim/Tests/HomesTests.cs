@@ -180,7 +180,7 @@ public class HomesTests
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((1, 1), (Count(w, "gear"), Count(w, "copper")));
         // The drill's hit is a third of it; with the arc module (0098), two thirds.
-        int fitted = Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Damage), strength = Flora.Get("musicBox").Strength;
+        int fitted = Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)), strength = Flora.Get("musicBox").Strength;
         Assert.Equal((3, 2), ((strength + Weapons.Drill.Damage - 1) / Weapons.Drill.Damage, (strength + fitted - 1) / fitted));
     }
 

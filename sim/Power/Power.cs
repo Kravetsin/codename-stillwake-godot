@@ -56,6 +56,11 @@ public interface IPowerQueries
     /// capacity, on a network that gives it power. What its light and its panel's bolt show, a drone bay's too.
     /// </summary>
     bool Charges(int machineId);
+    /// <summary>
+    /// What charging station <paramref name="machineId"/> puts into what it holds this tick, stored scaled (<c>Charge.Scale</c>):
+    /// its draw, its modules in it, times its share, rounded down; 0 while it charges nothing. What its panel's rate says.
+    /// </summary>
+    int ChargeRate(int machineId);
     /// <summary>Why peer <paramref name="peer"/>'s <see cref="Lay"/> from <paramref name="a"/> to <paramref name="b"/> would be refused: what the cable ghost shows.</summary>
     string? LayProblem(int peer, int a, int b);
     /// <summary>Why a <see cref="Move"/> from node <paramref name="from"/> to cell <paramref name="to"/> would be refused: what a dragged end shows.</summary>
@@ -178,9 +183,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         foreach (var kind in Chargers)
             foreach (var m in _grid.MachinesOf(kind))
             {
-                if (!Charges(m.Id)) continue;
-                // Both are never negative, so integer division is the floor.
-                int amount = DrawOf(m) * Content.Charge.Scale * Satisfaction(m.Id) / 1000;
+                int amount = ChargeRate(m.Id);
                 if (amount <= 0) continue;
                 var slots = _items.Crate(m.Id);
                 int shortOf = 0;
@@ -212,6 +215,10 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     public bool Charges(int machineId) =>
         _grid.MachineById(machineId) is { } m && Spec(m).Charges && Drawing(m) && Satisfaction(machineId) > 0;
+
+    // Both are never negative, so integer division is the floor.
+    public int ChargeRate(int machineId) =>
+        Charges(machineId) ? DrawOf(_grid.MachineById(machineId)!) * Content.Charge.Scale * Satisfaction(machineId) / 1000 : 0;
 
     public string? LayProblem(int peer, int a, int b)
     {

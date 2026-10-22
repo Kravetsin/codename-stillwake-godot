@@ -15,8 +15,8 @@ public sealed record Fit(Place Module, int Machine) : Command;
 public sealed record Unfit(int Machine, string Module, int? Slot = null) : Command;
 
 /// <summary>
-/// What the modules fitted into one machine add, summed, in thousandths added to 1000 (0086): its speed, its draw, a
-/// tool's damage; and its heat, whole. Gains round down, costs up.
+/// What the modules fitted into one host add, summed, in thousandths added to 1000 (0086): its speed, its draw, a
+/// tool's damage; and its heat, whole. Each module's own trades in that host (0100). Gains round down, costs up.
 /// </summary>
 public readonly record struct Boost(int Speed, int Draw, int Damage, int Heat)
 {
@@ -26,8 +26,28 @@ public readonly record struct Boost(int Speed, int Draw, int Damage, int Heat)
     /// <summary><paramref name="value"/>, a cost (what a machine draws), × (1000 + <paramref name="added"/>) / 1000, rounded up.</summary>
     public static int Cost(int value, int added) => (value * (1000 + added) + 999) / 1000;
 
-    /// <summary>This and what <paramref name="module"/> adds, summed: the one step of every fold of modules, a machine's and a tool's (<see cref="ToolStats"/>).</summary>
-    public Boost Plus(ModuleSpec module) => new(Speed + module.Speed, Draw + module.Draw, Damage + module.Damage, Heat + module.Heat);
+    /// <summary>
+    /// This and what <paramref name="module"/>'s trades add in a host of <paramref name="host"/> (0100), summed: the one step of
+    /// every fold of modules, a machine's and a tool's (<see cref="ToolStats"/>). Nothing for a host it fits not.
+    /// </summary>
+    public Boost Plus(ModuleSpec module, string host)
+    {
+        var sum = this;
+        var effects = module.In(host);
+        for (int i = 0; i < effects.Count; i++)
+        {
+            if (effects[i] is not Trade trade) continue;
+            sum = trade.Stat switch
+            {
+                Stat.Speed => sum with { Speed = sum.Speed + trade.Add },
+                Stat.Draw => sum with { Draw = sum.Draw + trade.Add },
+                Stat.Damage => sum with { Damage = sum.Damage + trade.Add },
+                Stat.Heat => sum with { Heat = sum.Heat + trade.Add },
+                _ => throw new InvalidOperationException($"items.boost: {trade.Stat} is no stat"),
+            };
+        }
+        return sum;
+    }
 }
 
 public sealed partial class ItemsModule
@@ -41,12 +61,14 @@ public sealed partial class ItemsModule
         return fitted;
     }
 
-    /// <summary>What the modules fitted into machine <paramref name="machine"/> add, summed (0086); nothing for none.</summary>
+    /// <summary>What the modules fitted into machine <paramref name="machine"/> add there, by its kind (0100), summed (0086); nothing for none.</summary>
     public Boost Boost(int machine)
     {
         var sum = new Boost();
-        for (int at = FittedFrom(machine); at < State.Fitted.Count && State.Fitted[at].Machine == machine; at++)
-            sum = sum.Plus(Modules.Get(State.Fitted[at].Module));
+        int at = FittedFrom(machine);
+        if (at >= State.Fitted.Count || State.Fitted[at].Machine != machine || _grid.MachineById(machine) is not { } m) return sum;
+        for (; at < State.Fitted.Count && State.Fitted[at].Machine == machine; at++)
+            sum = sum.Plus(Modules.Get(State.Fitted[at].Module), m.Kind);
         return sum;
     }
 

@@ -53,7 +53,7 @@ mode, the world setting in which nothing is ever taken
   slot order, one with a module first, so with two drills the fitted one is used, whichever is in hand (the hand is the
   client's word). What a stack works with is one pure fold, `ToolStats.Of(stack)` (`ToolStats.cs`), which the client's
   card calls too: its damage a hit, pace and draw, the additions of its modules (`ToolStats.ModulesOf`, any number)
-  summed by `Boost.Plus`, then applied once, damage a gain rounded down (the arc's +1000 makes the drill's 1 a 2), draw a
+  summed by `Boost.Plus`, each module's trades in that tool's item (0100), then applied once, damage a gain rounded down (the arc's +1000 makes the drill's 1 a 2), draw a
   cost rounded up (3 → 6); the pace is the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own while the
   peer carries none (a hit's sender is never checked for holding its weapon); `Debris` and `Building` take it off a wreck
   or a wall. A run draws that stack's draw, and `items.flat` is judged on it.
@@ -103,10 +103,13 @@ mode, the world setting in which nothing is ever taken
   item of `Content.Modules` (the arc module), fitted into a machine by hand and out of every slot, so no move, sort,
   smelt or drone ever sees it. `Fit(Module, Machine)` takes the one item in `Module` (a `Place`: the sender's slot or a
   machine's) into machine `Machine`, which must be one of the module's `Hosts` (the electric smelter, the Former, the
-  circuit assembler; never the furnace or the pod) and hold none of that kind yet: one of each module a machine.
-  `Unfit(Machine, Module, Slot?)` takes it out into the sender's own slot `Slot`, an empty one, or with none wherever
-  it fits there, as a give does. `Boost(machine)` sums what the modules fitted into a machine add, in thousandths added
-  to 1000 (speed, draw, a tool's damage) and heat; `Boost.Gain` rounds a gain down (a station's speed, `Crafting`),
+  circuit assembler, the charger; never the furnace, the pod or the drone bay) and hold none of that kind yet: one of each
+  module a machine. `Unfit(Machine, Module, Slot?)` takes it out into the sender's own slot `Slot`, an empty one, or with
+  none wherever it fits there, as a give does. What a module does is its own in each host (`ModuleSpec.On`, a list of
+  hosts and their effects, trades only today; [0100](../../docs/decisions/0100-tech-branches.md)): `Boost(machine)` sums
+  the trades of the modules fitted into a machine in that machine's kind (`Boost.Plus(module, host)`), in thousandths added
+  to 1000 (speed, draw, a tool's damage) and heat, whole; the arc gives a station +1000 speed and draw, the charger +4000
+  draw, which is its charging; `Boost.Gain` rounds a gain down (a station's speed, `Crafting`),
   `Boost.Cost` a cost up (a machine's draw, `Power`). A machine holding a module is not taken apart (`Building`,
   `building.notEmpty`). In creative mode too: a fit is a move, nothing made or taken.
 - **The arc bench** ([0099](../../docs/decisions/0099-the-arc-bench.md)), a machine with `Tunes` set: its first slot,

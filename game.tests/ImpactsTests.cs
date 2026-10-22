@@ -14,7 +14,7 @@ public class ImpactsTests
 {
     private static readonly string Axe = Spec.Weapons.Axe.Item, Drill = Spec.Weapons.Drill.Item;
     /// <summary>A hit of the drill, plain and with the arc module fitted (0098).</summary>
-    private static readonly int Bite = Spec.Weapons.Drill.Damage, ArcBite = Sim.Items.Boost.Gain(Bite, Spec.Modules.Arc.Damage);
+    private static readonly int Bite = Spec.Weapons.Drill.Damage, ArcBite = Sim.Items.Boost.Gain(Bite, Spec.Modules.Arc.Adds(Spec.Weapons.Drill.Item, Spec.Stat.Damage));
 
     /// <summary>
     /// Row 1: soil, two soil walls side by side, stone, plaster, alloy, a floor slope ◢ of soil; row 2 soil underneath. Over row 1

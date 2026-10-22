@@ -229,7 +229,8 @@ public class ItemCardTests
     public void CardAModuleWithItsTechAndWhatItDoesNeverWhereItGoes()
     {
         var card = ItemCards.Of(Spec.Modules.Arc.Item, unknown: false);
-        Assert.Equal(new CardTech("arc", "×2 speed · ×2 power"), card.Tech);
+        // A line for each group of hosts, from its trades (0100): the stations', the drill's, the charger's, whose draw is its charging.
+        Assert.Equal(new CardTech("arc", "×2 speed · ×2 power\n×2 damage · ×2 power\n×5 charging · ×5 power"), card.Tech);
         Assert.Empty(card.Effects);
         Assert.All(Spec.Modules.Arc.Hosts, host => Assert.DoesNotContain(T($"tool.{host}"), card.Tech!.About));
         Assert.NotEqual(card, card with { Tech = null });
@@ -260,7 +261,7 @@ public class ItemCardTests
     }
 
     /// <summary>A second module that is not in content: half as much again of damage for a quarter less draw.</summary>
-    private static readonly Spec.ModuleSpec Fake = new("fakeModule", "arc", ["drill"], Draw: -250, Damage: 500);
+    private static readonly Spec.ModuleSpec Fake = new("fakeModule", "arc", [new(["drill", Spec.Weapons.Axe.Item], [new Spec.Trade(Spec.Stat.Draw, -250), new Spec.Trade(Spec.Stat.Damage, 500)])]);
 
     [Fact]
     public void FoldTwoModulesStatsSummedOnceAndMarkEachNumberByHowItMoved()
@@ -276,7 +277,7 @@ public class ItemCardTests
         Assert.Equal([new CardTile("6", "DPS", new CardBoost("arc", true, "×1.5")), new CardTile("3", "DMG", new CardBoost("arc", true, "×1.5")), new CardTile("0.5s", "HIT")], card.Tiles);
         Assert.Null(card.Draw);
         // A cost that falls is marked down.
-        var lighter = ItemCards.Fitted(ItemCards.Of(drill, unknown: false), [new Spec.ModuleSpec("lighter", "arc", ["drill"], Draw: -500)]);
+        var lighter = ItemCards.Fitted(ItemCards.Of(drill, unknown: false), [new Spec.ModuleSpec("lighter", "arc", [new(["drill"], [new Spec.Trade(Spec.Stat.Draw, -500)])])]);
         Assert.Equal((2, new CardBoost("arc", false, "×0.7")), (lighter.Draw!.Value, lighter.DrawBoost!));
         Assert.Equal(ItemCards.Of(drill, unknown: false).Tiles, lighter.Tiles);
     }
