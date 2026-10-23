@@ -50,7 +50,7 @@ public partial class BuildMenu : CanvasLayer
     private readonly List<(Panel Box, TextureRect Picture, Label Count)> _cards = [];
     /// <summary>Beside the tablet while the plan is out: the three layers stacked, the focused one lit (0110).</summary>
     private readonly Control _focus = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private const int FocusWidth = FocusIcon + 8, FocusHeight = 3 * (FocusIcon + 4) + 4;
+    private const int FocusWidth = FocusIcon + 8, FocusHeight = 2 * (FocusIcon + 4) + 4;
     private const int FocusIcon = 22;
     private readonly List<(PanelContainer Box, string Id)> _tabBoxes = [];
 
@@ -227,11 +227,11 @@ public partial class BuildMenu : CanvasLayer
     }
 
 
-    /// <summary>The layers' pictures, top to bottom as they stand: objects, walls, back walls (0110).</summary>
+    /// <summary>The layers' pictures, top to bottom as they stand: the front, the back walls (0110).</summary>
     private static readonly Placement[] FocusLooks =
-        [new("machine", "crate"), Placement.Wall("scrap"), Placement.BackWall("scrap")];
+        [Placement.Wall("scrap"), Placement.BackWall("scrap")];
 
-    /// <summary>The three layers stacked, no words: the focused one edged sky and whole, the others dim.</summary>
+    /// <summary>The two layers stacked, no words: the focused one edged sky and whole, the other dim.</summary>
     private void DrawFocus()
     {
         var focus = (int)_hand.Focus.Get();
@@ -300,17 +300,16 @@ public partial class BuildMenu : CanvasLayer
         // A press anywhere but the search field ends the typing; the press goes on to whatever it was for.
         if (e is InputEventMouseButton { Pressed: true } press && _search.HasFocus() && !_search.GetGlobalRect().HasPoint(press.Position))
             _search.ReleaseFocus();
+        // The middle button toggles the open plan's layer aboard (0110), before the dev camera's pan can take it.
+        if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } && _hand.Shown != null)
+        {
+            _hand.ToggleFocus();
+            GetViewport().SetInputAsHandled();
+        }
     }
 
     public override void _UnhandledInput(InputEvent e)
     {
-        // The wheel over the world turns the open plan's layer (0110); over the tablet it scrolled the cards before it got here.
-        if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } wheel && _hand.PlanOut.Get())
-        {
-            _hand.TurnFocus(wheel.ButtonIndex == MouseButton.WheelDown ? 1 : -1);
-            GetViewport().SetInputAsHandled();
-            return;
-        }
         // Esc puts the plan away through Shared.Escape, before it opens the game menu.
         if (e is not InputEventKey { Pressed: true } key || key.Echo) return;
         switch (key.PhysicalKeycode)
@@ -364,7 +363,7 @@ public partial class BuildMenu : CanvasLayer
         Tool? tool = toolMenu ? _hand.ToolCard.Get() : _hand.Selected.Get();
         _search.Visible = !toolMenu;
         if (toolMenu && _search.Text != "") _search.Text = "";
-        _focus.Visible = !toolMenu;
+        _focus.Visible = _hand.Shown != null;
         string query = _search.Text.Trim();
         _list = query == "" ? [.. shownTab?.Tools ?? []] : Tools.Matching(tabs.SelectMany(t => t.Tools), query);
         if (_reveal)

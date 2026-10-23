@@ -39,6 +39,13 @@ internal static class PowerNodes
     public static MachineSpec Spec(Machine m) => Content.Machines.Get(m.Kind);
     public static bool IsPowered(MachineSpec s) => s.Powered;
 
+    /// <summary>Pixels of a machine's picture to a cell, as <see cref="MachineSpec.Plug"/> counts them.</summary>
+    private const int PlugPixels = 8;
+
+    /// <summary>The cell machine <paramref name="m"/>'s plug is in (0110): its top-left for one with no plug.</summary>
+    public static int PlugCell(IGridQueries grid, Machine m) =>
+        Spec(m).Plug is { } p ? m.Cell + p.X / PlugPixels + p.Y / PlugPixels * grid.Width : m.Cell;
+
     /// <summary>
     /// The node a cable laid at <paramref name="cell"/> ends on: a machine that makes or draws power,
     /// named by its top-left cell; or an anchor, the cell itself, where a wall, a floor, a door or a back

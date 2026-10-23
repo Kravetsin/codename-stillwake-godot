@@ -12,7 +12,6 @@ and `Work`.
 | `Tools.cs`        | the cards and tabs, `CostOf`, `OverlayFor`, `TabFor`, `LayersFor`, `Known`, the pipette's `CardAt` (`tools.ts`); how a plan joins what is beside it, `LinksOf`, `StubsOf` | no    |
 | `PlanHand.cs`     | the card in hand and the plan out, kept in step with `Ui.Hand` and `Ui.OverlayOn` (`tools.ts`'s stores) | no    |
 | `Drag.cs`         | a drag's line of cells, laid a stamp at a time, and what the card or removal would do in each (`drag.ts`) | no    |
-| `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
 | `BuildingView.cs` | plans as ghosts in marching dashes along their silhouettes turning real as they are built, marks in red dashes turning into their red ghost as they are taken down, ghosts, the tips, the buttons, the pipette, plan work | yes |
 | `BuildGlow.cs`    | the light of work on plans (0075): spark bursts, glints, the molten spot with its smoke and shimmer, the cut's line, a finished plan's sweep | yes |
 | `Catalogue.cs`    | the menu's fixed frame (0073): its size by the slot size, the rows scrolled, the card under the pointer, the scrollbar's thumb | no    |
@@ -28,7 +27,7 @@ thumbnails, a card's at the art's 16 px whatever the cell (0104); `PlanCut`/`Bui
 outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`), and the
 tablet's slide and its screen coming on (`TabletMotion`, warm for 1.5 s after it is put away, 0073), by which the wrist
 computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`), both in `game/shared/`. The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
-`drag.test.ts` and `near-grid.test.ts` are ported one for one, the menu's frame in `CatalogueTests`, its slide and screen in `TabletMotionTests`; working a plan is the hero's hands
+`drag.test.ts` is ported one for one; the grid round the pointer is gone (0110), the menu's frame in `CatalogueTests`, its slide and screen in `TabletMotionTests`; working a plan is the hero's hands
 (`features/crew`, `AimTests`).
 
 ## Guarantees
@@ -37,23 +36,28 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   (`Blueprints.Has`): soil and stone besides the hull's, no bedrock; then one for each it builds a back wall of. A natural back
   wall's plan shows the ground's own back tile.
 - **The left button plans, the right removes in the focused layer** (0108, 0110, `Tools.ActOf`): every card places what it
-  places on the left. The open plan has a focus (`PlanHand.Focus`), one of three layers: objects (machines, doors, hatches,
-  ladders, floors), walls, back walls. A card picked sets it to its own (`Tools.FocusOf`); the wheel over the world turns it
-  (`Tools.Cycled`, down toward the back), the card staying in hand; over the tablet the wheel still scrolls the cards, and
-  with the plan out the hotbar is chosen by number keys only. The right button, by click or drag, with a card or none, marks
-  or cancels in the focused layer only (`Tools.RemovalIn`; back walls behind machines too): what else is under the drag's
-  start decides nothing. The focused layer is drawn whole, the other two at 35% (`Tools.AlphasOf`, set by `Main` on the
-  grid's layers and the machines' views), so the back wall behind a lifepod shows. Beside the tablet's right bezel three
-  stacked pictures, no words, show the layers, the focused one lit. The ghost before a press is the card's, the removal's
-  while the right button is held. There is no removal card. A tab with nothing known is not shown.
+  places on the left. The open plan has a focus (`PlanHand.Focus`), one of two layers: the front (everything that cannot
+  stack in a cell: walls, machines, doors, hatches, ladders, floors and the other pieces) and the back walls. A card picked
+  sets it to its own (`Tools.FocusOf`); a press of the middle button toggles it (`PlanHand.ToggleFocus`, `Tools.Toggled`),
+  the card staying in hand. The wheel is the hotbar's over the world and scrolls the cards over the tablet, as before. The
+  right button, by click or drag, with a card or none, marks or cancels in the focused layer only (`Tools.RemovalIn`; back
+  walls behind machines too): everything of that layer in the rectangle, each piece once; what else is under the drag's
+  start decides nothing. The focused layer is drawn whole, the other at 35% (`Tools.AlphasOf` of `PlanHand.Shown`, set by
+  `Main` on the grid's layers and the machines' views), so the back wall behind a lifepod shows. Beside the tablet's right
+  bezel two stacked pictures, no words, show the layers, the focused one lit. Away from the ship (`PlanHand.Aboard`) the
+  middle button toggles nothing, nothing fades, the pictures hide, and the axe's and drill's fade round the pointer is off
+  too (`PlanHand.SeesThrough`), so the ground never shows what is in it; a card still sets what the right button takes.
+  The ghost before a press is the card's, the removal's while the right button is held. There is no removal card. No grid
+  is drawn: the ghost and the pointer's outline show where a card snaps. A tab with nothing known is not shown.
 - **The hand tools' menus** (0110): holding the stripper or the wrench, the plan put away, the same tablet shows that
   tool's cards alone (`Tools.CardsOf`) on one tab named for it, with no search: the stripper's cable, the wrench's pipe
   and valve. Each card shows how many of its item the player carries and its cost in the tooltip; the card picked
   (`PlanHand.ToolCard`, the first when the tool comes into the hand) decides what the left button lays. The tool put away
-  closes it.
+  closes it. Away from the ship there is no such menu, and the two tools lay and cut nothing (`PlanHand.ToolCards`, the
+  overlay not shown); the sim refuses `power.notAboard` and `pipes.notAboard` too.
 
 - One thing in hand (`Holding`): free, the plan or a card. The plan put away takes the card;
-  the hand freed elsewhere (a hotbar slot by its number) puts the plan away.
+  the hand freed elsewhere (a hotbar slot by its number or the wheel) puts the plan away.
 - **Walls are whole** (0106): a wall card has no shape to turn. A wall planned or in hand joins the walls beside it
   like any placement that joins (`Blueprint.Joins`), as the grid draws built walls.
 - The overlay shown is never kept — `Tools.OverlayShown` from the plan out, the tab, the item wielded and `Ui.AirOn` on

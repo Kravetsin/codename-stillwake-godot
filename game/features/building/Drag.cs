@@ -126,22 +126,21 @@ public static class Drag
         return CellsOf(width, act, StampAt(width, height, from, stamp), StampAt(width, height, to, stamp), stamp);
     }
 
-    /// <summary>Whether a thing of <paramref name="layer"/> at <paramref name="cell"/>, a <paramref name="wall"/> or not, is <paramref name="remove"/>'s to take (0110).</summary>
-    private static bool Takes(Remove remove, string layer, bool wall) =>
-        remove.Layers.Contains(layer) && (layer != "structure" || remove.Walls is not bool walls || walls == wall);
+    /// <summary>Whether a thing of <paramref name="layer"/> is <paramref name="remove"/>'s to take (0110).</summary>
+    private static bool Takes(Remove remove, string layer) => remove.Layers.Contains(layer);
 
     /// <summary>The plans at <paramref name="cell"/> in <paramref name="remove"/>'s layer, a blueprint by what it places, a mark by what it takes (0107).</summary>
-    private static List<Plan> PlansIn(BuildingModule building, IGridQueries? grid, int cell, Remove remove) =>
+    private static List<Plan> PlansIn(BuildingModule building, int cell, Remove remove) =>
         building.PlansAt(cell).Where(p => p.Place is { } place
-            ? Takes(remove, place.Layer, place.Kind == "wall")
-            : Takes(remove, p.Clear!, grid?.StructureAt(p.Cell) == Structure.Wall)).ToList();
+            ? Takes(remove, place.Layer)
+            : Takes(remove, p.Clear!)).ToList();
 
     /// <summary>What at <paramref name="cell"/> a mark of <paramref name="remove"/> would take, as <see cref="BuildingModule.ClearAt"/> finds it: its layer's things only, a layer at a time.</summary>
-    public static List<(string Layer, int Cell)> ThingsIn(Remove remove, int cell, BuildingModule building, IGridQueries? grid)
+    public static List<(string Layer, int Cell)> ThingsIn(Remove remove, int cell, BuildingModule building)
     {
         var things = new List<(string, int)>();
         foreach (string layer in remove.Layers)
-            if (building.ClearAt(cell, [layer]) is { } next && Takes(remove, layer, grid?.StructureAt(next.Cell) == Structure.Wall)) things.Add(next);
+            if (building.ClearAt(cell, [layer]) is { } next && Takes(remove, layer)) things.Add(next);
         return things;
     }
 
@@ -175,15 +174,14 @@ public static class Drag
     /// <summary>
     /// What <paramref name="act"/> would do in each of <paramref name="cells"/>, as the sim judges it now.
     /// Removing cancels plans in its layer if the drag begins on one, a mark included, and marks what is built in its
-    /// layer otherwise (0110): the focused layer only, whatever else is under where it began. <paramref name="grid"/> tells
-    /// walls from the rest of the structure, for a removal that tells them apart.
+    /// layer otherwise (0110): the focused layer only, whatever else is under where it began.
     /// </summary>
-    public static List<Verdict> Judge(Act act, IReadOnlyList<int> cells, BuildingModule building, IGridQueries? grid = null)
+    public static List<Verdict> Judge(Act act, IReadOnlyList<int> cells, BuildingModule building)
     {
         // A machine spans several cells of a line, yet takes one mark and is cancelled once.
         var cancelled = new HashSet<int>();
         var marked = new HashSet<(string, int)>();
-        bool cancels = act is Remove of && cells.Count > 0 && PlansIn(building, grid, cells[0], of).Count > 0;
+        bool cancels = act is Remove of && cells.Count > 0 && PlansIn(building, cells[0], of).Count > 0;
         var verdicts = new List<Verdict>();
         foreach (int cell in cells)
         {
@@ -197,7 +195,7 @@ public static class Drag
                     }
                 case Remove remove when cancels:
                     {
-                        var here = PlansIn(building, grid, cell, remove);
+                        var here = PlansIn(building, cell, remove);
                         var ids = here.Select(p => p.Id).Where(id => !cancelled.Contains(id)).ToList();
                         foreach (int id in ids) cancelled.Add(id);
                         verdicts.Add(new Verdict(cell, here.Count > 0 ? null : "building.noPlan",
@@ -207,7 +205,7 @@ public static class Drag
                 case Remove remove:
                     {
                         // Everything of the focused layer in the cell, each piece once over the whole drag.
-                        var things = ThingsIn(remove, cell, building, grid);
+                        var things = ThingsIn(remove, cell, building);
                         if (things.Count == 0)
                         {
                             verdicts.Add(new Verdict(cell, "building.nothingThere", []));

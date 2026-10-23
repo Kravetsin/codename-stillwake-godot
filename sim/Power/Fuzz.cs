@@ -6,7 +6,7 @@ public sealed partial class PowerModule
     private const int Span = Content.Power.MaxSpan + 3;
 
     /// <summary>
-    /// Lays cables between built cells a few apart, a cell anywhere now and then (refused as no node or
+    /// Lays cables between built cells a few apart, a cell anywhere now and then (refused as no node, away from the ship or
     /// too long); moves the ends at a node, or one cable's, to a cell near or anywhere (refused as taut,
     /// no node, no cable there or twice); and cuts one already laid or a pair never cabled.
     /// </summary>

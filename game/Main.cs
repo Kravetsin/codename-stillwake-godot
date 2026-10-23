@@ -880,6 +880,7 @@ public partial class Main : Node2D, ITogether
     {
         int surface = client.World.SurfaceOf(client.Id);
         var here = surface == 0 ? _ship : Registry.On(client.World, surface);
+        _hands.Plan.Aboard.Set(surface == 0);
         if (here == _m) return;
         _m = here;
         // What its creatures' looks grow from, with their ids (0102): the same individuals on every peer.
@@ -1103,11 +1104,11 @@ public partial class Main : Node2D, ITogether
         _shimmerDemo?.Frame(client, _m.Grid, Log);
         _layerDemo?.Frame(client, _m, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
-        // The open plan draws its focused layer whole and the others faded (0110).
-        var fade = Features.Building.Tools.AlphasOf(_hands.Plan.PlanOut.Get() ? _hands.Plan.Focus.Get() : null);
+        // The open plan draws its focused layer whole and the other faded, aboard only (0110).
+        var fade = Features.Building.Tools.AlphasOf(_hands.Plan.Shown);
         _grid?.Fade(fade);
         foreach (var view in (CanvasItem?[])[_screens, _chargers, _stores, _tanks, _pods, _stations, _benches, _furnace])
-            if (view != null) view.Modulate = new Color(1, 1, 1, fade.Objects);
+            if (view != null) view.Modulate = new Color(1, 1, 1, fade.Front);
     }
 
     private readonly List<Body> _bodies = [];

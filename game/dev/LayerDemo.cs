@@ -13,7 +13,7 @@ namespace Stillwake.Game.Dev;
 /// A script for the plan menu's buttons and the hand tools (0107, 0108), by the generator of the wreck's first room, the
 /// hero carrying the axe (<c>-- --layer-demo MODE</c>): <c>plan</c> the tablet out with the scrap back wall's card and back
 /// walls planned over open space by a left drag; <c>remove</c> the scrap wall's card marking the ceiling by a right drag;
-/// <c>focus</c> the plan out with the back walls focused by the wheel, the rest faded, the pointer on the lifepod (0110);
+/// <c>focus</c> the plan out with the back walls focused by the middle button, the front faded, the pointer on the lifepod (0110);
 /// <c>axe</c> the axe swung by the right button at the room's back wall, refused as a ship's, and <c>aim</c> its aim just
 /// before; <c>strip</c> the stripper held, a cable laid from the generator to the wall, the cables' overlay showing; <c>pipe</c>
 /// the wrench held, a pipe laid aslant from the generator's port to a joint and a branch on from it, the pipes' overlay
@@ -78,10 +78,9 @@ public sealed class LayerDemo(Hands hands, string mode)
                 Move(0);
                 break;
             case "focus" when tick == 20:
-                log("B, the wheel twice: the back walls focused, the rest faded; the pointer on the lifepod");
+                log("B, the middle button: the back walls focused, the front faded; the pointer on the lifepod");
                 hands.Plan.Toggle();
-                hands.Plan.TurnFocus(1);
-                hands.Plan.TurnFocus(1);
+                hands.Plan.ToggleFocus();
                 _pointer = grid.MachinesOf("lifepod").FirstOrDefault() is { } pod ? (pod.Cell % w + 3.0, pod.Cell / w + 3.0) : At(3.5, -2.5);
                 break;
             case "axe" when tick == 20:

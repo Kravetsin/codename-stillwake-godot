@@ -26,6 +26,19 @@ public class PipesTests
     private static Scenario World() => new Scenario(Vents, cells: true).GiveItems(0, ("tube", 20), ("gear", 4));
     private static int Tubes(Scenario w) => w.M.Items.Totals(0).Where(t => t.Item == "tube").Sum(t => t.Count);
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
+
+    [Fact]
+    public void RefusesPipesAndValvesAwayFromTheShip()
+    {
+        var w = new Scenario(Layout.Parse(["........", ".######.", ".#.S..#.", ".######."]));
+        w.Do(new Crew.Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
+        w.GiveItems(0, (Content.Piping.Item, 4), ("gear", 4)).Do(new Transfer(1)).Run();
+        var m = w.On(1);
+        int ground = m.Crew.Spawn + m.Grid.Width;
+        w.Do(new LayPipe(ground, ground + 2)).Do(new MakeValve(ground, true)).Run();
+        Assert.Equal(["pipes.notAboard", "pipes.notAboard"], Reasons(w));
+        Assert.Empty(m.Pipes.Spans);
+    }
     private static int VentAt(Scenario w, int cell) => w.M.Grid.MachineAt(cell)!.Id;
 
     [Fact]

@@ -177,33 +177,61 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void TheWheelTurnsTheFocusRoundTheThreeLayersAndACardPickedSetsItsOwn()
+    public void TheMiddleButtonTogglesTheTwoLayersAboardOnlyAndACardPickedSetsItsOwn()
     {
-        Assert.Equal(Focus.Walls, Tools.Cycled(Focus.Objects, 1));
-        Assert.Equal(Focus.Back, Tools.Cycled(Focus.Walls, 1));
-        Assert.Equal(Focus.Objects, Tools.Cycled(Focus.Back, 1));
-        Assert.Equal(Focus.Back, Tools.Cycled(Focus.Objects, -1));
-        Assert.Equal(Focus.Objects, Tools.Cycled(Focus.Objects, 3));
+        Assert.Equal(Focus.Back, Tools.Toggled(Focus.Front));
+        Assert.Equal(Focus.Front, Tools.Toggled(Focus.Back));
         var plan = new PlanHand(new Ui());
-        Assert.Equal(Focus.Objects, plan.Focus.Get());
-        plan.TurnFocus(1);
-        plan.TurnFocus(1);
-        Assert.Equal(Focus.Back, plan.Focus.Get());
+        Assert.Equal(Focus.Front, plan.Focus.Get());
+        // With the plan away it toggles nothing.
+        plan.ToggleFocus();
+        Assert.Equal(Focus.Front, plan.Focus.Get());
+        Assert.Null(plan.Shown);
+        plan.Toggle();
+        plan.ToggleFocus();
+        Assert.Equal(Focus.Back, plan.Shown);
         plan.Pick(Card("wall:scrap"));
-        Assert.Equal(Focus.Walls, plan.Focus.Get());
+        Assert.Equal(Focus.Front, plan.Focus.Get());
         plan.Pick(Card("backWall:iron"));
         Assert.Equal(Focus.Back, plan.Focus.Get());
         plan.Pick(Card("door"));
-        Assert.Equal(Focus.Objects, plan.Focus.Get());
+        Assert.Equal(Focus.Front, plan.Focus.Get());
+        // It toggles with a card in hand too; the card stays.
         plan.Pick(Card("tank"));
-        Assert.Equal(Focus.Objects, plan.Focus.Get());
-        // The wheel turns it with a card in hand too; the card stays.
-        plan.TurnFocus(-1);
+        plan.ToggleFocus();
         Assert.Equal((Focus.Back, "tank"), (plan.Focus.Get(), What(plan.Selected.Get())));
         // Only the focused layer is whole.
-        Assert.Equal((1f, 1f, 1f), Tools.AlphasOf(null));
-        Assert.Equal((Tools.Faded, Tools.Faded, 1f), Tools.AlphasOf(Focus.Back));
-        Assert.Equal((1f, Tools.Faded, Tools.Faded), Tools.AlphasOf(Focus.Objects));
+        Assert.Equal((1f, 1f), Tools.AlphasOf(null));
+        Assert.Equal((Tools.Faded, 1f), Tools.AlphasOf(Focus.Back));
+        Assert.Equal((1f, Tools.Faded), Tools.AlphasOf(Focus.Front));
+    }
+
+    [Fact]
+    public void AwayFromTheShipNothingTogglesNothingFadesAndTheHandToolsHaveNoMenu()
+    {
+        var ui = new Ui();
+        var plan = new PlanHand(ui);
+        // Aboard, the axe's dig fades the front round the pointer with the plan away, not with it out.
+        Assert.True(plan.SeesThrough(digsBack: true));
+        Assert.False(plan.SeesThrough(digsBack: false));
+        ui.Wielded.Set(HandTools.Stripper);
+        Assert.Equal(Tools.Cable, plan.ToolCard.Get());
+        plan.Aboard.Set(false);
+        Assert.Empty(plan.ToolCards);
+        Assert.Null(plan.ToolCard.Get());
+        Assert.False(plan.SeesThrough(digsBack: true));
+        ui.Wielded.Set(null);
+        plan.Toggle();
+        plan.ToggleFocus();
+        Assert.Equal(Focus.Front, plan.Focus.Get());
+        Assert.Null(plan.Shown);
+        Assert.False(plan.SeesThrough(digsBack: true));
+        // A back wall's card still sets what the right button takes; the world draws whole.
+        plan.Pick(Card("backWall:iron"));
+        Assert.Equal(Focus.Back, plan.Focus.Get());
+        Assert.Equal((1f, 1f), Tools.AlphasOf(plan.Shown));
+        plan.Aboard.Set(true);
+        Assert.Equal(Focus.Back, plan.Shown);
     }
 
     [Fact]
@@ -301,14 +329,11 @@ public class BuildingToolsTests
                 Assert.Equal(card.Placement, Assert.IsType<PlaceTool>(Tools.ActOf(card, false, focus)).Placement);
                 var removal = Assert.IsType<Remove>(Tools.ActOf(card, true, focus));
                 Assert.Equal(Tools.RemovalIn(focus).Layers, removal.Layers);
-                Assert.Equal(Tools.RemovalIn(focus).Walls, removal.Walls);
             }
-        Assert.Null(Tools.ActOf(null, false, Focus.Walls));
+        Assert.Null(Tools.ActOf(null, false, Focus.Front));
         // With no card in hand the right still removes: in the focused layer.
         Assert.Equal(["back"], Assert.IsType<Remove>(Tools.ActOf(null, true, Focus.Back)).Layers);
-        Assert.Equal(["structure"], Tools.RemovalIn(Focus.Walls).Layers);
-        Assert.True(Tools.RemovalIn(Focus.Walls).Walls);
-        Assert.False(Tools.RemovalIn(Focus.Objects).Walls);
+        Assert.Equal(Tools.FrontLayers, Tools.RemovalIn(Focus.Front).Layers);
         // No removal card and no cable card: the stripper lays cables (0108).
         Assert.Empty(Tools.Matching(Tools.All, "remove"));
         Assert.DoesNotContain(Tools.Tabs.Single(t => t.Id == "power").Tools, t => t.Id == "cable");
@@ -322,16 +347,19 @@ public class BuildingToolsTests
         var w = new TestWorld(Layout.Parse(["############", "#TTTT .HH..#", "#TTTT..HH..#", "#TTTT......#", "#TTTT......#", "############"]));
         Sim.Command[] Judged(Focus focus, int from, int to) =>
             [.. Drag.Judge(Tools.RemovalIn(focus), Drag.CellsOf(12, Tools.RemovalIn(focus), new(from % 12, from / 12), new(to % 12, to / 12)),
-                w.M.Building, w.M.Grid).SelectMany(v => v.Commands)];
-        // Begun on the wall at 0, the objects take the tank and the ladder in the rectangle, each once, never the walls.
-        Assert.Equal([new Deconstruct(13, "machine"), new Deconstruct(19, "structure")], Judged(Focus.Objects, 0, 33));
-        // Begun on the tank, the walls take only the walls in the rectangle, row by row from where it began.
-        Assert.Equal([new Deconstruct(12, "structure"), new Deconstruct(1, "structure"), new Deconstruct(0, "structure")], Judged(Focus.Walls, 13, 0));
+                w.M.Building).SelectMany(v => v.Commands)];
+        // Begun on the wall at 0, the front takes the walls, the tank and the ladder in the rectangle, each piece once, never a back wall.
+        var front = Judged(Focus.Front, 0, 33).Cast<Deconstruct>().ToList();
+        Assert.Contains(new Deconstruct(0, "structure"), front);
+        Assert.Contains(new Deconstruct(13, "machine"), front);
+        Assert.Contains(new Deconstruct(19, "structure"), front);
+        Assert.Equal(front.Count, front.Distinct().Count());
+        Assert.DoesNotContain(front, d => d.Layer == "back" || d.Cell is 20 or 31 or 32);
         // The back walls behind the tank, never the tank.
         Assert.Equal([new Deconstruct(13, "back"), new Deconstruct(14, "back")], Judged(Focus.Back, 13, 14));
-        // On a back-wall mark only the back's focus cancels it; the walls' finds no wall there.
+        // On a back-wall mark only the back's focus cancels it; the front's takes the tank instead.
         w.Step(new Deconstruct(13, "back"));
-        Assert.Empty(Judged(Focus.Walls, 13, 13));
+        Assert.Equal([new Deconstruct(13, "machine")], Judged(Focus.Front, 13, 13));
         Assert.Single(Judged(Focus.Back, 13, 13).OfType<CancelPlan>());
     }
 }

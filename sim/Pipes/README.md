@@ -43,9 +43,9 @@ wrench, valves on joints, and the networks they join, along which air flows betw
   command would be refused, for the wrench's ghost; `AfterToggles(commands)` — whether each valve the `SetValve`s among
   them name would be open, for what a client shows before its tick runs (0014). Static: `LengthOf(width, a, b)`,
   `CostOf(length)`.
-- **Commands:** `LayPipe(A, B)` — `pipes.offGrid`, `pipes.sameCell`, `pipes.outsideZone`, `pipes.tooLong`, `pipes.twice`,
+- **Commands:** `LayPipe(A, B)` — `pipes.notAboard` (away from the ship, 0110), `pipes.offGrid`, `pipes.sameCell`, `pipes.outsideZone`, `pipes.tooLong`, `pipes.twice`,
   then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, then whether the refund fits; `MakeValve(Cell,
-  Valve)` — `pipes.noJoint`, `pipes.already`, `pipes.noValve`, then the items; `SetValve(Cell, Open)` — `pipes.noValve`.
+  Valve)` — making one, `pipes.notAboard`, `pipes.noJoint`, `pipes.already`, `pipes.noValve`, then the items; `SetValve(Cell, Open)` — `pipes.noValve`.
 
 ## Invariants
 

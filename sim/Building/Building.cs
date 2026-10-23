@@ -44,7 +44,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
     private readonly IGridOps _gridOps;
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
-    private readonly IPowerQueries _power;
+    private readonly IPowerOps _powerOps;
     private readonly IResearchQueries _research;
     private readonly ICraftingQueries _crafting;
     private readonly ICrewQueries _crew;
@@ -54,13 +54,13 @@ public sealed partial class BuildingModule : Module<BuildingState>
 
     public BuildingModule(
         IGridQueries grid, IGridOps gridOps, IItemsQueries items, IItemsOps itemsOps,
-        IPowerQueries power, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps)
+        IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps)
     {
         _grid = grid;
         _gridOps = gridOps;
         _items = items;
         _itemsOps = itemsOps;
-        _power = power;
+        _powerOps = powerOps;
         _research = research;
         _crafting = crafting;
         _crew = crew;
@@ -194,11 +194,14 @@ public sealed partial class BuildingModule : Module<BuildingState>
         {
             // Plans claim their slots, so nothing can fill one first: a refusal here is our bug.
             _gridOps.Place(plan.Cell, place);
+            // A machine built with its plug on a peg takes that peg's cables (0110).
+            if (place.Layer == "machine" && _grid.MachineAt(plan.Cell) is { } made) _powerOps.Plug(made.Id);
         }
         else if (Costs.BuiltAt(_grid, plan.Cell, plan.Clear!) is { } built)
         {
             // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
-            // A ladder or a doorway comes apart whole, as it was built (0104).
+            // A ladder or a doorway comes apart whole, as it was built (0104); a machine's cables stay, on a peg (0110).
+            if (plan.Clear == "machine" && _grid.MachineAt(plan.Cell) is { } machine) _powerOps.Unplug(machine.Id);
             foreach (int cell in plan.Clear == "structure" ? _grid.PieceOf(plan.Cell) : [plan.Cell]) _gridOps.Clear(cell, plan.Clear!);
             _itemsOps.GiveOrDrop(from, built.Cost, plan.Cell);
         }

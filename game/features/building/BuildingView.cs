@@ -34,7 +34,6 @@ public partial class BuildingView : Node2D
     /// <summary>The dashes round each group of plans and the badge on a planned machine.</summary>
     private static readonly Color Dashes = AsciiArt.Colour(0xc8f6ff, 0.95f), Badge = AsciiArt.Colour(0x6fe3ff), BadgeBack = AsciiArt.Colour(0x0b1a24);
     private static readonly Color Mark = AsciiArt.Colour(0xe05555), Fits = AsciiArt.Colour(0x7fe08a), Refused = AsciiArt.Colour(0xe05555);
-    private static readonly Color GridLine = AsciiArt.Colour(0x9fb4c8);
     /// <summary>A hole in a group smaller than a cell is part of its silhouette, not outlined: a ladder's rungs, a grille.</summary>
     private const int SmallestHole = Cell * Cell;
 
@@ -49,7 +48,7 @@ public partial class BuildingView : Node2D
     // The ghost in hand as a plan is drawn, but plainly green or red.
     private readonly PlanTiles _fits = new(tint: 0.45f) { ZIndex = Layers.PlanGhost, Modulate = Fits with { A = 0.8f } };
     private readonly PlanTiles _refused = new(tint: 0.45f) { ZIndex = Layers.PlanGhost, Modulate = Refused with { A = 0.8f } };
-    private readonly Sketch _badges = new(Layers.PlanMarks), _hands = new(Layers.PlanHands);
+    private readonly Sketch _badges = new(Layers.PlanMarks);
     /// <summary>The marching dashes round plans; round back walls, behind what is built; round marks, in red.</summary>
     private readonly MarchingDashes _outline = new(Layers.PlanMarks) { Modulate = Dashes }, _backOutline = new(Layers.PlanBacks) { Modulate = Dashes },
         _markOutline = new(Layers.PlanMarks) { Modulate = Mark with { A = 0.95f } },
@@ -61,7 +60,6 @@ public partial class BuildingView : Node2D
 
     private string _drawn = "", _outlined = "", _takingKey = "";
     private List<Rect2> _machines = [];
-    private List<Edge> _near = [];
     private int _width;
     /// <summary>The drag under way: what it does, whether the right button began it, the point it began at, in cells, and the card it began with.</summary>
     private (Act Act, bool Right, (double X, double Y) From, Tool? Card)? _drag;
@@ -86,9 +84,8 @@ public partial class BuildingView : Node2D
         _ui = ui;
         _hand = hand;
         _plans = new(BackAlpha, backZ: Layers.PlanBacks, built: _built) { ZIndex = Layers.Plans, Modulate = Plan };
-        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _markOutline, _taking, _takingOutline, _keptOutline, _cancelOutline, _badges, _fits, _refused, _hands, _screwdriver, _glow]) AddChild(node);
+        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _markOutline, _taking, _takingOutline, _keptOutline, _cancelOutline, _badges, _fits, _refused, _screwdriver, _glow]) AddChild(node);
         _badges.Paint = PaintBadges;
-        _hands.Paint = PaintHands;
     }
 
     /// <summary>
@@ -116,7 +113,7 @@ public partial class BuildingView : Node2D
         {
             act = Drag.Oriented(act, from, to);
             var planned = new List<int>();
-            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building, grid))
+            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building))
                 foreach (var c in verdict.Commands)
                 {
                     client.Send(c);
@@ -158,7 +155,6 @@ public partial class BuildingView : Node2D
         bool onGrid = pointer is { } p0 && Drag.OnGrid(width, height, p0);
         ShowTray(onGrid ? CellAt(pointer!.Value) : null, grid, building);
         Ghost(tool, pointer, onGrid, grid, building, _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null);
-        _hands.QueueRedraw();
     }
 
     /// <summary>
@@ -421,15 +417,13 @@ public partial class BuildingView : Node2D
         List<(string, int, int, IReadOnlyList<Rim>)> cancelled, System.Text.StringBuilder takenKey)
     {
         int width = grid.Width, height = grid.Height;
-        _near = [];
         _ui.Reason.Set(null);
-        if (tool is PlaceTool && pointer is { } near) _near = NearGrid.Around(near, width, height);
         // Before a press, what the button held would do: the card's, the focused layer's removal while the right is held (0110).
         Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
         // The door's card lays a hatch along a stroke drawn across (0104).
         act = Drag.Oriented(act, _drag?.From ?? p, p);
-        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building, grid);
+        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building);
         if (act is PlaceTool place)
         {
             // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.
@@ -442,7 +436,7 @@ public partial class BuildingView : Node2D
         else
         {
             // What it would take, as its marks will look: each thing's red ghost and dashes round its silhouette.
-            // What it may not take (a crate not empty, a machine cabled), its silhouette dim, its reason by the pointer.
+            // What it may not take (a crate not empty), its silhouette dim, its reason by the pointer.
             var seen = new HashSet<(string, int)>();
             void Silhouette(string layer, int cell, bool takes)
             {
@@ -476,17 +470,11 @@ public partial class BuildingView : Node2D
                     if (c is Sim.Building.Deconstruct d) Silhouette(d.Layer, d.Cell, takes: true);
                     else if (c is CancelPlan cancel) Cancelled(v.Cell, cancel.Id);
                 if (v.Problem != null && act is Remove remove)
-                    foreach (var (layer, at) in Drag.ThingsIn(remove, v.Cell, building, grid)) Silhouette(layer, at, takes: false);
+                    foreach (var (layer, at) in Drag.ThingsIn(remove, v.Cell, building)) Silhouette(layer, at, takes: false);
             }
         }
         // A removal's rectangle over open cells as well as things says nothing of the open ones while it takes something.
         bool takes = verdicts.Any(v => v.Commands.Count > 0);
         _ui.Reason.Set(verdicts.FirstOrDefault(v => v.Problem != null && !(takes && v.Problem == "building.nothingThere"))?.Problem);
-    }
-
-    private void PaintHands(Sketch g)
-    {
-        foreach (var e in _near)
-            g.DrawLine(new Vector2(e.X1, e.Y1) * Cell, new Vector2(e.X2, e.Y2) * Cell, GridLine with { A = (float)e.Alpha }, 1);
     }
 }

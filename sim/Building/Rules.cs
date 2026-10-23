@@ -64,14 +64,13 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Why taking <paramref name="layer"/> out of <paramref name="cell"/> would leave something behind:
-    /// <c>building.cabled</c> for a machine a cable ends on, <c>building.notEmpty</c> for one holding
-    /// items (a crate, a furnace), a module fitted (0086) or a station with crafts queued.
+    /// <c>building.notEmpty</c> for a machine holding items (a crate, a furnace), a module fitted (0086) or a station with
+    /// crafts queued. A machine cables end on comes apart, its cables kept (0110).
     /// </summary>
     private string? InUse(int cell, string layer)
     {
         var machine = layer == "machine" ? _grid.MachineAt(cell) : null;
         if (machine == null) return null;
-        if (_power.Cabled(machine.Cell)) return "building.cabled";
         bool holds = _items.Crate(machine.Id).Any(s => s != null) || _items.FittedTo(machine.Id).Count > 0
             || _crafting.Queue(machine.Id).Count > 0;
         return holds ? "building.notEmpty" : null;

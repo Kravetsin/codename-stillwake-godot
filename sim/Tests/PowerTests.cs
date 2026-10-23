@@ -206,19 +206,49 @@ public class PowerTests
         Assert.Equal(120, Store(w, Generator));
     }
 
+    /// <summary>Works every plan to its end, a tick of E at a time.</summary>
+    private static void WorkAll(Scenario w)
+    {
+        for (int i = 0; i < 400 && w.M.Building.Plans.Count > 0; i++) w.Do(new Work(w.M.Building.Plans[0].Id)).Run();
+        Assert.Empty(w.M.Building.Plans);
+    }
+
     [Fact]
-    public void KeepsACabledMachineFromBeingTakenApartMarkedOrCabledAfterItsMark()
+    public void AWiredMachineComesApartItsCableLeftOnAPegWhereItsPlugWasAndBuiltAgainThereItPlugsBackIn()
     {
         var w = World();
+        // The generator's plug, 16 px across its picture at 8 a cell: two cells right of its top-left.
+        int peg = Generator + 2;
         w.Do(new Deconstruct(Generator, "machine")).Run();
-        Assert.Equal(["building.cabled"], Reasons(w));
-        w.Do(new Cut(Generator, Panel)).Run();
-        w.Do(new Deconstruct(Generator, "machine")).Run();
-        int plan = w.M.Building.Plans[0].Id;
-        Lay(w, Generator, Panel).Run();
-        w.Do(new Work(plan)).Run();
-        Assert.Equal(["building.cabled", "building.cabled"], Reasons(w));
-        Assert.Equal("generator", w.M.Grid.MachineAt(Generator)?.Kind);
+        WorkAll(w);
+        Assert.Empty(w.Refusals);
+        Assert.Null(w.M.Grid.MachineAt(Generator));
+        Assert.Equal([(Panel, peg, true)], CablesOf(w));
+        Assert.Equal([Panel, peg], w.M.Power.Networks.Single().Nodes);
+        // Saved and loaded, the peg stays.
+        w = w.Reload();
+        Assert.Equal([(Panel, peg, true)], CablesOf(w));
+
+        // Built again with its plug on the peg, the cable plugs in and the panel feeds it.
+        w.GiveItems(0, ("frame", 1), ("rotor", 1), ("tube", 1), ("wire", 2)).Do(new PlacePlan(Generator, new Grid.Placement("machine", "generator"))).Run();
+        WorkAll(w);
+        Assert.Empty(w.Refusals);
+        Assert.Equal([(Panel, Generator, true)], CablesOf(w));
+        Assert.Equal([Panel, Generator], w.M.Power.Networks.Single().Nodes);
+        Assert.Equal(1000, w.M.Power.Satisfaction(IdAt(w, Generator)));
+    }
+
+    [Fact]
+    public void RefusesCablesAwayFromTheShip()
+    {
+        var w = new Scenario(Layout.Parse(["........", ".######.", ".#.S..#.", ".######."]));
+        w.Do(new Crew.Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
+        w.GiveItems(0, ("wire", 4)).Do(new Transfer(1)).Run();
+        var m = w.On(1);
+        int ground = m.Crew.Spawn + m.Grid.Width;
+        w.Do(new Lay(ground, ground + 2)).Do(new Move(ground, ground + 3)).Run();
+        Assert.Equal(["power.notAboard", "power.notAboard"], Reasons(w));
+        Assert.Empty(m.Power.Cables);
     }
 
     private sealed record Step(bool Lay, int A, int B, int Peer);
@@ -339,7 +369,7 @@ public class PowerTests
         // Resting, it is still on the network: it gets the network's share, drawing on it or not.
         Assert.Equal(1000, w.M.Power.Satisfaction(second));
         Assert.Equal(new[] { second }, RestingIds(w));
-        w.Reload();
+        w = w.Reload();
         Assert.Equal(4, w.M.Power.Networks[0].Demand);
         w.Do(new RestMachine(second, false)).Do(new RestMachine(second, false)).Run();
         Assert.Equal((8, 625), (w.M.Power.Networks[0].Demand, w.M.Power.Networks[0].Satisfaction));

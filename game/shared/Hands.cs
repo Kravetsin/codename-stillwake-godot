@@ -76,8 +76,9 @@ public partial class Hands : Node2D
         IReadOnlyList<ButtonEvent> laid = piping ? buttons.TakeLeft() : [];
         if (wiring || piping) _building.Frame(client, m, [], [], false, pointer);
         else _building.Frame(client, m, buttons.TakeLeft(), buttons.TakeRight(), buttons.HoldsRight, pointer);
-        // With the plan put away, the front fades round the pointer while the right button digs back walls; the open plan fades by its focus (0110).
-        bool seeThrough = !Plan.PlanOut.Get() && !wiring && !piping && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight);
+        // With the plan put away, aboard, the front fades round the pointer while the right button digs back walls; the open plan fades by its focus.
+        // Never away from the ship (0110): the ground would show what is in it.
+        bool seeThrough = Plan.SeesThrough(!wiring && !piping && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight));
         Lit.SeeThrough(pointer is { } at && seeThrough ? new Vector2((float)at.X, (float)at.Y) * ShipCamera.Cell : null);
         _power.Frame(client, m, buttons, wiring ? cuts : [], pointer, bodies, elapsedMs);
         _pipesBuilt.Frame(client, m);

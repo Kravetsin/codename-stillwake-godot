@@ -14,7 +14,7 @@ public class DragTests
     private static readonly PlaceTool Tank = new("tank", new Placement("machine", "tank"), "tank");
     private static readonly PlaceTool BackWall = new("backWallScrap", Placement.BackWall(), "backWall");
     private static readonly PlaceTool Floor = new("floor", new Placement("structure", "floor"), "floor");
-    private static readonly Remove Removal = Tools.RemovalIn(Focus.Objects);
+    private static readonly Remove Removal = Tools.RemovalIn(Focus.Front);
     private const int W = 10;
 
     [Fact]
@@ -113,7 +113,7 @@ public class DragTests
 
     /// <summary>What a drag of the right button judges over <paramref name="cells"/> in <paramref name="focus"/> (0110).</summary>
     private static List<Verdict> Removing(TestWorld w, Focus focus, IReadOnlyList<int> cells) =>
-        Drag.Judge(Tools.RemovalIn(focus), cells, w.M.Building, w.M.Grid);
+        Drag.Judge(Tools.RemovalIn(focus), cells, w.M.Building);
 
     private static List<int> Rectangle(Spot from, Spot to) => Drag.CellsOf(12, Removal, from, to);
 
@@ -121,13 +121,12 @@ public class DragTests
     public void TakesWhatIsInTheFocusedLayerOnly()
     {
         var w = Start();
-        Assert.Equal([new Deconstruct(14, "machine")], Removing(w, Focus.Objects, [14]).SelectMany(v => v.Commands));
+        Assert.Equal([new Deconstruct(14, "machine")], Removing(w, Focus.Front, [14]).SelectMany(v => v.Commands));
         Assert.Equal([new Deconstruct(14, "back")], Removing(w, Focus.Back, [14]).SelectMany(v => v.Commands));
-        Assert.Equal([new Deconstruct(0, "structure")], Removing(w, Focus.Walls, [0]).SelectMany(v => v.Commands));
-        // A wall is no object, a machine no wall, and the open cell at 17 holds no wall.
-        Is("building.nothingThere", [], Removing(w, Focus.Objects, [0])[0]);
-        Is("building.nothingThere", [], Removing(w, Focus.Walls, [14])[0]);
-        Is("building.nothingThere", [], Removing(w, Focus.Walls, [17])[0]);
+        Assert.Equal([new Deconstruct(0, "structure")], Removing(w, Focus.Front, [0]).SelectMany(v => v.Commands));
+        // The front takes walls and machines alike; the open cell at 17 holds nothing of it.
+        Assert.Equal([new Deconstruct(0, "structure"), new Deconstruct(14, "machine")], Removing(w, Focus.Front, [0, 14]).SelectMany(v => v.Commands));
+        Is("building.nothingThere", [], Removing(w, Focus.Front, [17])[0]);
     }
 
     [Fact]
@@ -136,7 +135,7 @@ public class DragTests
         var w = Start();
         // The wall marked already: nothing left to mark there.
         w.Step(new Deconstruct(0, "structure"));
-        var verdicts = Removing(w, Focus.Walls, [17, 0]);
+        var verdicts = Removing(w, Focus.Front, [17, 0]);
         Is("building.nothingThere", [], verdicts[0]);
         Is("building.planned", [], verdicts[1]);
     }
@@ -145,7 +144,7 @@ public class DragTests
     public void MarksAMachineOnceHoweverManyOfItsCellsTheLineCrosses()
     {
         var w = Start();
-        Assert.Equal([new Deconstruct(13, "machine")], Removing(w, Focus.Objects, [13, 14]).SelectMany(v => v.Commands));
+        Assert.Equal([new Deconstruct(13, "machine")], Removing(w, Focus.Front, [13, 14]).SelectMany(v => v.Commands));
     }
 
     [Fact]
@@ -154,7 +153,7 @@ public class DragTests
         var w = Start();
         w.Step(Plan(21, Floor.Placement), Plan(17, new Placement("machine", "tank")));
         // Ids follow the order the plans were made: floor 1, tank 2 over (5, 1) to (8, 4).
-        var verdicts = Removing(w, Focus.Objects, [21, 33, 18, 17, 29]);
+        var verdicts = Removing(w, Focus.Front, [21, 33, 18, 17, 29]);
         Assert.Equal([null, "building.noPlan", null, null, null], verdicts.Select(v => v.Problem));
         Assert.Equal([new CancelPlan(1), new CancelPlan(2)], verdicts.SelectMany(v => v.Commands));
     }
@@ -167,7 +166,7 @@ public class DragTests
         w.Step(Plan(19, Wall.Placement), Plan(17, Placement.BackWall()), Plan(31, Wall.Placement));
         var cells = Rectangle(new(7, 1), new(5, 2));
         Assert.Equal([19, 18, 17, 31, 30, 29], cells);
-        Assert.Equal([new CancelPlan(1), new CancelPlan(3)], Removing(w, Focus.Walls, cells).SelectMany(v => v.Commands));
+        Assert.Equal([new CancelPlan(1), new CancelPlan(3)], Removing(w, Focus.Front, cells).SelectMany(v => v.Commands));
         Assert.Equal([new CancelPlan(2)], Removing(w, Focus.Back, Rectangle(new(5, 1), new(7, 2))).SelectMany(v => v.Commands));
     }
 
@@ -175,10 +174,10 @@ public class DragTests
     public void RemovesOverTheRectangleBetweenItsCornersMarkingEachThingOfTheLayerInItOnce()
     {
         var w = Start();
-        // From (3, 1) to (6, 2): two of the tank's columns, the gap and back walls; the objects take the tank alone.
+        // From (3, 1) to (6, 2): two of the tank's columns, the gap and back walls; the front takes the tank alone.
         var cells = Rectangle(new(3, 1), new(6, 2));
         Assert.Equal([15, 16, 17, 18, 27, 28, 29, 30], cells);
-        Assert.Equal([new Deconstruct(15, "machine")], Removing(w, Focus.Objects, cells).SelectMany(v => v.Commands));
+        Assert.Equal([new Deconstruct(15, "machine")], Removing(w, Focus.Front, cells).SelectMany(v => v.Commands));
         // Begun on the tank, the back takes every back wall in it, those behind the tank too.
         var back = Removing(w, Focus.Back, cells).SelectMany(v => v.Commands).Cast<Deconstruct>().ToList();
         Assert.All(back, d => Assert.Equal("back", d.Layer));
@@ -197,7 +196,7 @@ public class DragTests
         var w = Start();
         w.Step(new Deconstruct(0, "structure"), Plan(19, Wall.Placement));
         // The mark is plan 1, the wall's blueprint plan 2.
-        Assert.Equal([new CancelPlan(1)], Removing(w, Focus.Walls, [0]).SelectMany(v => v.Commands));
-        Assert.Equal([new Deconstruct(14, "machine")], Removing(w, Focus.Objects, [14, 19]).SelectMany(v => v.Commands));
+        Assert.Equal([new CancelPlan(1)], Removing(w, Focus.Front, [0]).SelectMany(v => v.Commands));
+        Assert.Equal([new Deconstruct(14, "machine")], Removing(w, Focus.Front, [14, 19]).SelectMany(v => v.Commands));
     }
 }

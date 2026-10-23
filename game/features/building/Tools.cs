@@ -25,17 +25,15 @@ public sealed record PlaceTool(string Id, Placement Placement, string Label) : T
 public sealed record HandCard(string Id, string Label, string Item, IReadOnlyList<(string Item, int Count)> Cost) : Tool(Id, Label);
 
 /// <summary>
-/// A removal from <paramref name="Layers"/>, in the order they are taken; of the structure only walls when
-/// <paramref name="Walls"/> is true, only what is not a wall when false (0110).
+/// A removal from <paramref name="Layers"/>, in the order they are taken (0110).
 /// </summary>
-public sealed record Remove(IReadOnlyList<string> Layers, bool? Walls = null) : Act;
+public sealed record Remove(IReadOnlyList<string> Layers) : Act;
 
-/// <summary>The layer the open plan works in (0110): its right button removes there, the others drawn faded.</summary>
+/// <summary>The layer the open plan works in (0110): its right button removes there, the other drawn faded.</summary>
 public enum Focus
 {
-    /// <summary>Machines, doors, ladders, floors: what stands in front of the walls.</summary>
-    Objects,
-    Walls,
+    /// <summary>What cannot stack in a cell: walls, machines, doors, hatches, ladders, floors and the other pieces.</summary>
+    Front,
     Back,
 }
 
@@ -138,24 +136,14 @@ public static class Tools
             _ => [],
         };
 
-    /// <summary>The layer a card's placement is in (0110): a back wall's the back, a wall's the walls, the rest the objects.</summary>
-    public static Focus FocusOf(Tool tool) => tool switch
-    {
-        PlaceTool { Placement.Layer: "back" } => Focus.Back,
-        PlaceTool { Placement.Kind: "wall" } => Focus.Walls,
-        _ => Focus.Objects,
-    };
+    /// <summary>The layer a card's placement is in (0110): a back wall's the back, every other the front.</summary>
+    public static Focus FocusOf(Tool tool) => tool is PlaceTool { Placement.Layer: "back" } ? Focus.Back : Focus.Front;
 
-    /// <summary>The layer the wheel turns to from <paramref name="focus"/>: a notch down toward the back, round again.</summary>
-    public static Focus Cycled(Focus focus, int step) => (Focus)((((int)focus + step) % 3 + 3) % 3);
+    /// <summary>The layer the middle button turns to from <paramref name="focus"/>: the other one (0110).</summary>
+    public static Focus Toggled(Focus focus) => focus == Focus.Front ? Focus.Back : Focus.Front;
 
-    /// <summary>What the right button takes in <paramref name="focus"/>: back walls (those behind machines too), walls, or the rest of the front.</summary>
-    public static Remove RemovalIn(Focus focus) => focus switch
-    {
-        Focus.Back => new Remove(["back"]),
-        Focus.Walls => new Remove(["structure"], Walls: true),
-        _ => new Remove(FrontLayers, Walls: false),
-    };
+    /// <summary>What the right button takes in <paramref name="focus"/>: back walls (those behind machines too), or all of the front.</summary>
+    public static Remove RemovalIn(Focus focus) => new(focus == Focus.Back ? ["back"] : FrontLayers);
 
     /// <summary>
     /// What a drag in the open plan does (0110): the left button places what the card in hand places, if one is; the
@@ -166,9 +154,13 @@ public static class Tools
     /// <summary>How opaque a layer out of focus is drawn while the plan is open (0110).</summary>
     public const float Faded = 0.35f;
 
-    /// <summary>How opaque the objects, the walls and the back walls are drawn: the focused layer whole, the others <see cref="Faded"/>; all whole with no focus.</summary>
-    public static (float Objects, float Walls, float Back) AlphasOf(Focus? focus) => focus is not { } f ? (1, 1, 1)
-        : (f == Focus.Objects ? 1 : Faded, f == Focus.Walls ? 1 : Faded, f == Focus.Back ? 1 : Faded);
+    /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other <see cref="Faded"/>; both whole with no focus.</summary>
+    public static (float Front, float Back) AlphasOf(Focus? focus) => focus switch
+    {
+        Focus.Front => (1, Faded),
+        Focus.Back => (Faded, 1),
+        _ => (1, 1),
+    };
 
     /// <summary>The stripper's card (0110): a cable, a wire each.</summary>
     public static readonly HandCard Cable = new("cable", En.T("tool.cable"), "wire", Content.Power.CableCost);
@@ -208,7 +200,7 @@ public static class Tools
     /// <summary>The layers Q picks in, in the order they are taken: what the ship is built of.</summary>
     public static readonly IReadOnlyList<string> Layers = ["machine", "structure", "back"];
 
-    /// <summary>The layers the right button marks in the objects' focus: <see cref="Layers"/> but the back walls, walls left out (0110).</summary>
+    /// <summary>The layers the right button marks in the front's focus: <see cref="Layers"/> but the back walls (0110).</summary>
     public static readonly IReadOnlyList<string> FrontLayers = ["machine", "structure"];
 
     /// <summary>Whether <paramref name="tool"/> is a card the world knows (0024): its blueprint.</summary>

@@ -73,8 +73,8 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
 ## API
 
 - **Queries** (`IPowerQueries`): `Cables`; `Networks`; `NodeAt(cell)` — the node a cable laid there
-  ends on, or null; `NetworkOf(node)`; `Cabled(node)` — whether a cable ends there, so `building`
-  refuses to take a machine apart; `Satisfaction(machineId)` — in thousandths, 0 off every network;
+  ends on, or null; `NetworkOf(node)`;
+  `Satisfaction(machineId)` — in thousandths, 0 off every network;
   `Draw(machineId)` — what it draws while it draws, its modules folded in, rounded up: its panel's bolt (0086);
   `LayProblem(peer, a, b)` — why that peer's `Lay` would be refused, for the cable ghost;
   `MoveProblem(from, to, cable?)` — why that `Move` would be refused, for a dragged end;
@@ -89,13 +89,17 @@ its users would draw each network can give (ADR 0017); cables move by hand (0021
   `crafting` an idle station that draws (nothing queued, a unit done waiting for room or one waiting for
   its inputs; a fed one with nothing it can work), from their simulation systems, so it shows from the
   next tick; `furnace` a burner generator whose fire is out, from its construction system, so it shows this tick.
-  Resting a resting machine does nothing.
+  Resting a resting machine does nothing. `Unplug(machineId)` — `building`, as it takes a machine apart: every cable
+  ending on it moves to the cell its plug is in (its `Plug` pixels, eight to a cell, from its top-left), a peg there; `Plug(machineId)`
+  — `building`, as it builds a powered machine: every cable ending on a peg at its plug's cell moves to it (0110). A cable that
+  would then end where it starts or join a pair already joined stays where it was.
 - **Commands:** `Lay(A, B)` — a cable between the nodes at those cells, paid from the sender
   (`Content.Power.CableCost`, nothing in creative mode: paid only if `Take` took something), refused
-  with `power.noNode`, `power.sameNode`, `power.tooLong`, `power.twice` or `items.notEnough`;
+  with `power.notAboard` (away from the ship, 0110), `power.noNode`, `power.sameNode`, `power.tooLong`, `power.twice` or
+  `items.notEnough`;
   `Cut(A, B)` — takes the cable between those node cells away, giving back what was paid, refused with
   `power.noCable` or `items.full`; `Move(Node, To, Cable?)` — every cable ending at node `Node`, or
-  only `Cable` (an `Ends`), to the node at cell `To`, refused with `power.noCable`, `power.noNode`,
+  only `Cable` (an `Ends`), to the node at cell `To`, refused with `power.notAboard`, `power.noCable`, `power.noNode`,
   `power.sameNode`, `power.twice` or `power.taut`. TypeScript's `move { from }` is `Node` here:
   `From` is the sender on every command.
 
@@ -117,11 +121,14 @@ Every test of `power.test.ts` is ported, with `atmosphere` and `building`.
 
 - An anchor's wall taken apart or broken leaves the cable ending in the air: it keeps working.
   Refusing it would need `building` to read cables for every wall, and nobody misses a mount.
-- A machine built later with its top-left on an anchor becomes the node there; one built over an
-  anchor otherwise leaves the anchor inside it. Both are rare and harmless.
+- A machine built later with its top-left on an anchor becomes the node there, and one with its plug on a peg takes its
+  cables (0110); one built over an anchor otherwise leaves the anchor inside it, unplugged. A machine taken apart
+  other than by `building` (a meteor, the dev panel's clear) leaves its cables ending at its top-left, in the air.
+- A peg left where a plug was may stand farther from a cable's other end than a cable spans, by up to the machine's
+  size: it keeps working, as only laying and moving check the span.
 - No priorities, no switches, no overload: a short network with its stores spent slows everything on it. A store
   holds no charge back for later and never leaks.
-- A store taken apart (its cables cut first) loses what it held: refusing it would ask `building` to read stores, and a
+- A store taken apart loses what it held: refusing it would ask `building` to read stores, and a
   player empties a bank by using it.
 - Networks are found from scratch every tick: tens of cables, so a cache would cost more than it
   saves until the reference world says otherwise. One kept between ticks would also have to follow

@@ -206,6 +206,8 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
     /// </summary>
     public string? LayProblem(int peer, int a, int b)
     {
+        // Pipes are laid aboard only (0110): away from the ship the wrench does nothing.
+        if (Rules != Content.Surfaces.Ship) return "pipes.notAboard";
         int size = _grid.Width * _grid.Height;
         if (a < 0 || b < 0 || a >= size || b >= size) return "pipes.offGrid";
         if (a == b) return "pipes.sameCell";
@@ -225,6 +227,7 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
     {
         var there = ValveAt(cell);
         if (!valve) return there == null ? "pipes.noValve" : there.Paid ? _items.FullFor(peer, Content.Piping.ValveCost) : null;
+        if (Rules != Content.Surfaces.Ship) return "pipes.notAboard";
         if (!Piped(cell) || IsPort(cell)) return "pipes.noJoint";
         if (there != null) return "pipes.already";
         return _items.ShortOf(peer, Content.Piping.ValveCost);

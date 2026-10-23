@@ -78,12 +78,12 @@ public partial class GridView : Node2D
         foreach (var player in (Node[])[_opens, _closes]) AddChild(player);
     }
 
-    /// <summary>The objects, the walls and the back walls drawn as opaque as the open plan's focus has them (0110); all whole with the plan away.</summary>
-    public void Fade((float Objects, float Walls, float Back) alpha)
+    /// <summary>The front and the back walls drawn as opaque as the open plan's focus has them (0110); all whole with the plan away.</summary>
+    public void Fade((float Front, float Back) alpha)
     {
         foreach (var layer in (CanvasItem[])[_back, _shade]) layer.Modulate = new Color(1, 1, 1, alpha.Back);
-        foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Walls);
-        foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Objects);
+        foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
+        foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
     }
 
     private TileMapLayer Layer(int z, float share = 1)

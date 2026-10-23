@@ -110,7 +110,6 @@
     <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />
     <Compile Include="../game/features/building/PlanHand.cs" Link="Game/Building/PlanHand.cs" />
     <Compile Include="../game/features/building/Drag.cs" Link="Game/Building/Drag.cs" />
-    <Compile Include="../game/features/building/NearGrid.cs" Link="Game/Building/NearGrid.cs" />
     <Compile Include="../game/features/building/Catalogue.cs" Link="Game/Building/Catalogue.cs" />
     <Compile Include="../game/shared/TabletMotion.cs" Link="Game/Shared/TabletMotion.cs" />
     <Compile Include="../game/shared/TabletLayout.cs" Link="Game/Shared/TabletLayout.cs" />

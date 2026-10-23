@@ -8,7 +8,7 @@ cell (a wall, a ladder, a tank) as heroes work on it, paying its cost an item a 
 
 - **Depends on:** `Grid` (`IGridQueries`, `IGridOps`) and `Items` (`IItemsQueries`, `IItemsOps`; `WeaponProblem` for a dig); `Crew`
   (`ICrewQueries.Heroes`), so a wall does not finish on a hero, and `ICrewOps.Shock`, the resonator's zap (0091) and a relic's cradle's (0096);
-  `Power` (`IPowerQueries.Cabled`), to keep a cabled machine standing; `Research`
+  `Power` (`IPowerOps.Unplug`, `Plug`), to keep a machine's cables on a peg as it goes and plug them back in as it is built; `Research`
   (`IResearchQueries.Knows`), to refuse a blueprint not known (ADR 0024); `Crafting`
   (`ICraftingQueries.Queue`), to keep a station with crafts queued standing (0057).
 - **State** (`BuildingState`, members internal): `Plans` in the order they were made, each a `Plan`
@@ -47,9 +47,8 @@ cell (a wall, a ladder, a tank) as heroes work on it, paying its cost an item a 
 - A mark needs something in that layer of that cell, and one thing takes one mark. A machine holding
   items (a crate, a furnace), a module fitted (`IItemsQueries.FittedTo`, 0086) or a station with crafts queued is marked
   only empty, refused with
-  `building.notEmpty`; a machine a cable
-  ends on, only with its cables cut, refused with `building.cabled`. Both are checked again when the
-  mark is worked. A machine's mark is kept at the machine's top-left, whichever of its cells was
+  `building.notEmpty`, checked again when the mark is worked. A machine cables end on comes apart with them plugged in
+  (0110): `IPowerOps.Unplug` leaves each on a peg at its plug's cell, and a machine built is `Plug`ged into a peg at its plug's. A machine's mark is kept at the machine's top-left, whichever of its cells was
   marked; a ladder's or a door's at the first cell of its piece (`IGridQueries.PieceOf`, 0104), and taking it apart takes the
   whole piece: a doorway whole, a ladder's two by two. It gives back its build's cost for as many pieces as its cells make, each
   item rounded down: two doors side by side give back two, a drawn map's lone door (2×2) a third of one, a ladder piece a
@@ -171,9 +170,9 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   would get, leaving out whether an electric weapon runs, as the client asks before it sends.
 - **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.notHere`, `building.unknown`,
   grid's keys or `building.planned`; `Deconstruct(Cell, Layer)`, refused with `building.nothingThere`,
-  `building.fixed`, `building.planned`, `building.notEmpty` or `building.cabled`; `CancelPlan(Id)`, refused with
+  `building.fixed`, `building.planned` or `building.notEmpty`; `CancelPlan(Id)`, refused with
   `building.noPlan`; `Work(Plan)`, refused with `building.noPlan`, `items.notEnough`,
-  `building.notEmpty` or `building.cabled`; `Dig(Cell, Tool, Back)`, refused with `building.builtWall` (a ship's wall or back wall), `building.nothingToDig` (no wall nor plant there; no back wall, `Back`), `building.bedrock`,
+  or `building.notEmpty`; `Dig(Cell, Tool, Back)`, refused with `building.builtWall` (a ship's wall or back wall), `building.nothingToDig` (no wall nor plant there; no back wall, `Back`), `building.bedrock`,
   `items.flat` or `items.notRunning`. A mark is refused `building.natural` besides.
 - **Fuzz:** every command, refused ones too: placements of every kind, mostly within 32 cells of
   what the grid has built, as players build, now and then at any cell of the grid or one off it, so
