@@ -168,7 +168,7 @@ public class DragTests
         var w = Start();
         // Wall 1 at 19, back wall 2 at 17, wall 3 at 31, pipe 4 at 30.
         w.Step(Plan(19, Wall.Placement), Plan(17, Placement.BackWall()), Plan(31, Wall.Placement), Plan(30, new Placement("conduit", "pipe")));
-        var cells = Drag.CellsOf(12, Removal, new(7, 1), new(5, 2), w.M.Building);
+        var cells = Drag.CellsOf(12, Removal, new(7, 1), new(5, 2));
         Assert.Equal([19, 18, 17, 31, 30, 29], cells);
         var verdicts = Drag.Judge(Removal, cells, w.M.Building);
         Assert.Equal([null, "building.noPlan", null, null, "building.noPlan", "building.noPlan"], verdicts.Select(v => v.Problem));
@@ -176,16 +176,17 @@ public class DragTests
     }
 
     [Fact]
-    public void RemovesAlongALineBegunOnAnyOtherPlanOnAMarkOrOnWhatIsBuilt()
+    public void RemovesOverTheRectangleBetweenItsCornersMarkingEachThingInItOnce()
     {
         var w = Start();
-        w.Step(Plan(19, Wall.Placement), Plan(19, new Placement("conduit", "pipe")), Plan(30, new Placement("conduit", "pipe")),
-            new Deconstruct(0, "structure"));
-        // A wall's blueprint sharing its cell with a pipe's, a pipe's, a mark, what is built: each a line, as before.
-        foreach (var from in new Spot[] { new(7, 1), new(6, 2), new(0, 0), new(2, 1) })
-            Assert.Equal(Drag.LineOf(12, Removal, from, new(1, 2)), Drag.CellsOf(12, Removal, from, new(1, 2), w.M.Building));
+        // From (3, 1) to (6, 2): two of the tank's columns, the gap, a pipe, and back walls under them.
+        var cells = Drag.CellsOf(12, Removal, new(3, 1), new(6, 2));
+        Assert.Equal([15, 16, 17, 18, 27, 28, 29, 30], cells);
+        Assert.Equal([new Deconstruct(15, "machine"), new Deconstruct(18, "conduit"), new Deconstruct(29, "back"), new Deconstruct(30, "back")], Drag.Judge(Removal, cells, w.M.Building).SelectMany(v => v.Commands));
+        // Dragged back the other way, the same rectangle from its other corner.
+        Assert.Equal([30, 29, 28, 27, 18, 17, 16, 15], Drag.CellsOf(12, Removal, new(6, 2), new(3, 1)));
         // Placing, as LineOf lays it.
-        Assert.Equal(Drag.LineOf(12, Wall, new(7, 1), new(5, 2)), Drag.CellsOf(12, Wall, new(7, 1), new(5, 2), w.M.Building));
+        Assert.Equal(Drag.LineOf(12, Wall, new(7, 1), new(5, 2)), Drag.CellsOf(12, Wall, new(7, 1), new(5, 2)));
     }
 
     [Fact]

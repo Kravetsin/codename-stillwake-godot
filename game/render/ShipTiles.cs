@@ -236,16 +236,18 @@ public sealed class ShipTiles
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
         if (!Halved(name)) return image;
-        image.Resize(Mathf.Max(1, image.GetWidth() * Cell / Drawn), Mathf.Max(1, image.GetHeight() * Cell / Drawn), Image.Interpolation.Nearest);
+        // A pipe keeps its 16 px thickness: its middle cell of the picture, the arms running on to the edges as they did.
+        if (name.StartsWith("pipe_", StringComparison.Ordinal)) image = image.GetRegion(new Rect2I((Drawn - Cell) / 2, (Drawn - Cell) / 2, Cell, Cell));
+        else image.Resize(Mathf.Max(1, image.GetWidth() * Cell / Drawn), Mathf.Max(1, image.GetHeight() * Cell / Drawn), Image.Interpolation.Nearest);
         return Made(name, image);
     }
 
     /// <summary>
     /// Whether <paramref name="name"/> is a picture of one cell drawn at 16 px, now drawn at half its size in the 8 px cell (0104), till
-    /// it is drawn anew: a pipe's, a valve's and the hull's edges. A door's and a hatch's are whole, over two by two cells.
+    /// it is drawn anew: the hull's edges, and a pipe's middle cut out at its own thickness. A valve's wheel, a door and a hatch are whole.
     /// </summary>
     public static bool Halved(string name) =>
-        name.StartsWith("pipe_", StringComparison.Ordinal) || name.StartsWith("valve_", StringComparison.Ordinal)
+        name.StartsWith("pipe_", StringComparison.Ordinal)
         || name.StartsWith("wall-edge_", StringComparison.Ordinal);
 
     /// <summary>

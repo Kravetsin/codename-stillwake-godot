@@ -21,7 +21,6 @@ public class BrushTests
     private static readonly PlaceTool Tank = new("tank", new Placement("machine", "tank"), "tank");
     private static readonly Remove Removal = new(["machine", "conduit", "structure", "back"]);
 
-    private static BuildingModule Building() => new TestWorld(Layout.Parse(["..........", "..........", "..........", "..........", "..........", ".........."])).M.Building;
 
     [Fact]
     public void AnEvenBrushIsRoundTheCellCornerNearestThePointerAnOddOneCentredOnItsCell()
@@ -70,36 +69,36 @@ public class BrushTests
     [Fact]
     public void ALadderDraggedDownIsLaidAPieceAtATwoCellsAStep()
     {
-        Assert.Equal([14, 34], Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 4.1), Building(), side: 2));
+        Assert.Equal([14, 34], Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 4.1), side: 2));
         // Dragged a cell, it is still the one piece; precise, it is a piece all the same.
-        Assert.Equal([14], Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 2.9), Building(), side: 2));
-        Assert.Equal([14], Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 1.9), Building(), side: 1));
+        Assert.Equal([14], Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 2.9), side: 2));
+        Assert.Equal([14], Drag.StrokeOf(W, H, Ladder, (4.9, 1.9), (4.9, 1.9), side: 1));
     }
 
     [Fact]
     public void AFloorDraggedAcrossIsOneRowThePointers()
     {
-        Assert.Equal([12, 13, 14], Drag.StrokeOf(W, H, Floor, (2.6, 1.5), (4.4, 1.2), Building(), side: 2));
+        Assert.Equal([12, 13, 14], Drag.StrokeOf(W, H, Floor, (2.6, 1.5), (4.4, 1.2), side: 2));
     }
 
     [Fact]
     public void AWallRectangleTakesBothEndsSquaresRowByRowFromWhereItBegan()
     {
-        var cells = Drag.StrokeOf(W, H, Wall, (2.9, 1.9), (5.1, 3.1), Building(), side: 2);
+        var cells = Drag.StrokeOf(W, H, Wall, (2.9, 1.9), (5.1, 3.1), side: 2);
         Assert.Equal([12, 13, 14, 15, 22, 23, 24, 25, 32, 33, 34, 35], cells);
-        var back = Drag.StrokeOf(W, H, Wall, (5.1, 3.1), (2.9, 1.9), Building(), side: 2);
+        var back = Drag.StrokeOf(W, H, Wall, (5.1, 3.1), (2.9, 1.9), side: 2);
         Assert.Equal([35, 34, 33, 32, 25, 24, 23, 22, 15, 14, 13, 12], back);
         // A click, not dragged: one square.
-        Assert.Equal([12, 13, 22, 23], Drag.StrokeOf(W, H, Wall, (2.9, 1.9), (2.9, 1.9), Building(), side: 2));
+        Assert.Equal([12, 13, 22, 23], Drag.StrokeOf(W, H, Wall, (2.9, 1.9), (2.9, 1.9), side: 2));
     }
 
     [Fact]
     public void AMachineADoorAndAPipeArePlacedWhereTheStrokeBeganOnce()
     {
-        Assert.Equal([12], Drag.StrokeOf(W, H, Tank, (2.9, 1.9), (7.2, 1.4), Building(), side: 2));
+        Assert.Equal([12], Drag.StrokeOf(W, H, Tank, (2.9, 1.9), (7.2, 1.4), side: 2));
         // A door's piece round the pointer, kept on the grid: six tall from the top row.
-        Assert.Equal([2], Drag.StrokeOf(W, H, Door, (2.9, 1.9), (2.9, 3.4), Building(), side: 2));
-        Assert.Equal([12, 13, 14], Drag.StrokeOf(W, H, Pipe, (2.9, 1.9), (4.1, 1.4), Building(), side: 2));
+        Assert.Equal([2], Drag.StrokeOf(W, H, Door, (2.9, 1.9), (2.9, 3.4), side: 2));
+        Assert.Equal([12, 13, 14], Drag.StrokeOf(W, H, Pipe, (2.9, 1.9), (4.1, 1.4), side: 2));
     }
 
     [Fact]

@@ -38,7 +38,8 @@ public static class PlanShapes
         foreach (var piece in pieces)
         {
             var (mask, w, h) = MaskOf(piece.Picture);
-            var at = piece.Cut ? (cut.X * Cell, cut.Y * Cell, Cell, Cell, 0, 0)
+            // A cut picture shorter than its cells (a floor's 4 px slab) is read only as far as it goes.
+            var at = piece.Cut ? (cut.X * Cell, cut.Y * Cell, Mathf.Clamp(w - cut.X * Cell, 0, Cell), Mathf.Clamp(h - cut.Y * Cell, 0, Cell), 0, 0)
                 // A valve's wheel sits in the middle of its cell.
                 : piece.Layer == TileLayer.Valves ? (0, 0, w, h, (Cell - w) / 2, (Cell - h) / 2)
                 : (0, 0, w, h, 0, 0);

@@ -104,7 +104,8 @@ public partial class Lightmap : Node
                             leaving = x1 >= span.x && x1 <= span.y;
                         } else {
                             leaving = false;
-                            if (max(min(x0, x1), span.x) < min(max(x0, x1), span.y)) return 0.0;
+                            // Touching counts: a line along the panel's axis keeps x0 == x1, and a whole-cell panel stops it too.
+                            if (max(min(x0, x1), span.x) <= min(max(x0, x1), span.y)) return 0.0;
                         }
                     } else {
                         leaving = false;

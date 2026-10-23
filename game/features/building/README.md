@@ -53,7 +53,7 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - **A stroke is laid with the brush** (`Shared/Brush`, `Builds.Brush` cells a side, 2): at each point of a drag its
   stamp (`Drag.StampOf`) round the cell corner nearest the pointer, so a stroke builds as much per area as one 16 px cell
   did. Walls and back walls take the square; a floor a row as wide in the pointer's row, one cell thick as a doubled map lays
-  it; a pipe, a valve and a machine one cell, as a pipe run is one cell thick and a footprint is placed once; a removal one cell.
+  it; a pipe, a valve and a machine one cell, as a pipe run is one cell thick and a footprint is placed once; a removal one cell, a corner of its rectangle.
   Each cell is its own `PlacePlan`, each stamp's ascending, none twice, each judged alone (`Drag.StrokeOf`). Ctrl held is the
   precise mode: one cell, as before. The ghost in hand shows the stamp.
 - **Pieces are placed whole** (0104), Ctrl or not: a ladder's 2×2, laid along a drag a piece's length a step, so a shaft grows
@@ -66,8 +66,8 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   drawn a row at a time; aslant, it is a room's worth. Middle drags cancel plans when begun on one,
   else mark what is built in the tab's layers (Air: pipes, valves, machines). Begun where only walls' and back
   walls' blueprints are planned, a middle drag takes them off over the same rectangle (`Drag.CellsOf`), and only
-  them: a pipe or machine planned inside it stays. Begun on any other plan, a mark or what is built, it runs
-  along a line as before: a rectangle of marks on built walls was not asked for. Q picks the card under the
+  them: a pipe or machine planned inside it stays. Begun on any other plan, a mark or what is built, it fills the
+  rectangle too, every thing in it marked or cancelled once, a piece or a machine once. Q picks the card under the
   pointer onto its tab, known cards only. A drag ends with the hand that began it.
 - The right button held on a plan is the hero's, whatever the hand holds (crew's `Aiming.UsesOf`): within
   its reach it works one tick per tick released, at most five a frame; the sim takes an item from the hero

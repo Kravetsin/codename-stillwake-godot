@@ -117,7 +117,7 @@ public partial class BuildingView : Node2D
         {
             act = Drag.Oriented(act, from, to);
             var planned = new List<int>();
-            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to, building, _brush), building))
+            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to, _brush), building))
                 foreach (var c in verdict.Commands)
                 {
                     client.Send(c);
@@ -437,7 +437,7 @@ public partial class BuildingView : Node2D
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
         // The door's card lays a hatch along a stroke drawn across (0104).
         act = Drag.Oriented(act, _drag?.From ?? p, p);
-        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p, building, _brush), building);
+        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p, _brush), building);
         if (act is PlaceTool place)
         {
             // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.
@@ -495,7 +495,9 @@ public partial class BuildingView : Node2D
                 if (v.Problem != null && building.ClearAt(v.Cell, layers) is { } next) Silhouette(next.Layer, next.Cell, takes: false);
             }
         }
-        _ui.Reason.Set(verdicts.FirstOrDefault(v => v.Problem != null)?.Problem);
+        // A removal's rectangle over open cells as well as things says nothing of the open ones while it takes something.
+        bool takes = verdicts.Any(v => v.Commands.Count > 0);
+        _ui.Reason.Set(verdicts.FirstOrDefault(v => v.Problem != null && !(takes && v.Problem == "building.nothingThere"))?.Problem);
     }
 
     private void PaintHands(Sketch g)
