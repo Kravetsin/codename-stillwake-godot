@@ -4,6 +4,7 @@ using FsCheck.Xunit;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Rooms;
 using Xunit;
 using Air = Stillwake.Content.Air;
@@ -19,7 +20,6 @@ public class AirTests
     /// <summary>A minute of ticks: leaks are counted over ten.</summary>
     private const int Minute = 60 * 20;
 
-    private static readonly Placement Pipe = new("conduit", "pipe");
     private static readonly Placement Wall = Placement.Wall();
 
     /// <summary>
@@ -60,9 +60,10 @@ public class AirTests
     private static Setup SetUp(string map = Room, bool valve = false)
     {
         var w = new Scenario(AirTesting.OneThick(map)).Do(new Items.SetCreative(true));
-        // From the vent's port to the tank's, every cell of the run.
-        foreach (int cell in AirTesting.Line(9, 1, 1, 1, 3))
-            w.Do(new Place(cell, new Placement("conduit", valve && cell == At(1, 2) ? "valve" : "pipe")));
+        // From the vent's port to the tank's, a span, or two through a valve.
+        var run = AirTesting.Line(9, 1, 1, 1, 3).ToArray();
+        if (valve) w.Pipe(run[0], At(1, 2), run[^1]).Do(new MakeValve(At(1, 2), true));
+        else w.Pipe(run[0], run[^1]);
         w.Run();
         var tanks = w.M.Grid.Machines.Where(m => m.Kind == "tank").Select(m => m.Id).ToArray();
         int room = w.M.Rooms.RoomAt(At(4, 2)) ?? throw new InvalidOperationException("set up");
@@ -156,8 +157,8 @@ public class AirTests
         var w = s.W;
         int first = s.Tanks[0], second = s.Tanks[1];
         // The second tank joins the network through a pipe from its port to the first's.
-        foreach (int cell in AirTesting.Line(9, 1, 3, 3, 3).Skip(1)) w.Do(new Place(cell, Pipe));
-        w.Run();
+        var run = AirTesting.Line(9, 1, 3, 3, 3).ToArray();
+        w.Pipe(run[0], run[^1]).Run();
         // Loaded on one tick, so the fill has both to draw from at its first beat.
         w.Do(new LoadCanister(second)).Do(new LoadCanister(first));
         w.Run(4 * Air.TicksPerCell);
@@ -179,8 +180,8 @@ public class AirTests
         var w = s.W;
         int dry = s.Tanks[0], wet = s.Tanks[1];
         // The right vent reaches the right tank's port, at its bottom-left, under the tank.
-        foreach (int cell in AirTesting.Line(9, 7, 1, 7, 3).Concat(AirTesting.Line(9, 7, 3, 6, 3).Skip(1))) w.Do(new Place(cell, Pipe));
-        w.Run();
+        var down = AirTesting.Line(9, 7, 1, 7, 3).ToArray();
+        w.Pipe(down[0], down[^1], AirTesting.Line(9, 7, 3, 6, 3).Last()).Run();
         s.Fill(1, wet);
         w.Run(4 * Air.TicksPerCell);
         int filled = w.Air().Aired.Count;
@@ -336,14 +337,14 @@ public class AirTests
     private static (Scenario W, int Left, int Door, int Right) TwoRooms(bool cut = false)
     {
         var w = new Scenario(AirTesting.OneThick(Two)).Do(new Items.SetCreative(true));
-        foreach (int cell in AirTesting.Line(15, 1, 1, 1, 3)) w.Do(new Place(cell, Pipe));
-        w.Run();
+        var run = AirTesting.Line(15, 1, 1, 1, 3).ToArray();
+        w.Pipe(run[0], run[^1]).Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
         for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
         w.Run();
         int left = w.M.Rooms.RoomAt(At15(4, 2))!.Value;
         AirUp(w, left);
-        if (cut) w.Do(new ClearAt(At15(1, 2), "conduit")).Run();
+        if (cut) w.Do(new CutPipe(run[0], run[^1])).Run();
         return (w, left, At15(8, 2), At15(10, 2));
     }
 
@@ -464,8 +465,8 @@ public class AirTests
     private static (Scenario W, int Left) AiredRow()
     {
         var w = new Scenario(Layout.Parse(Row), doubled: true).Do(new Items.SetCreative(true));
-        foreach (int cell in AirTesting.Line(23, 2, 2, 2, 4)) w.Do(new Place(cell, Pipe));
-        w.Run();
+        var run = AirTesting.Line(23, 2, 2, 2, 4).ToArray();
+        w.Pipe(run[0], run[^1]).Run();
         int tank = w.M.Grid.Machines.First(m => m.Kind == "tank").Id;
         for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
         w.Run();
@@ -599,7 +600,7 @@ public class AirTests
                 switch (step.Type)
                 {
                     case "load": w.Do(new LoadCanister(tank)); break;
-                    case "valve": w.Do(new SetValve(At(1, 2), w.M.Grid.ConduitAt(At(1, 2)) == Conduit.ValveClosed)); break;
+                    case "valve": w.Do(new SetValve(At(1, 2), !w.M.Pipes.ValveAt(At(1, 2))!.Open)); break;
                     case "breach": w.Do(new ClearAt(step.Cell, "structure")); break;
                     case "breathe": w.Do(new Enter(step.Cell)); break;
                     case "vent":
@@ -705,7 +706,7 @@ public class AirTests
             #########
             """);
         var w = s.W;
-        for (int x = 2; x <= 7; x++) w.Do(new Place(At(x, 1), Pipe));
+        w.Pipe(At(1, 1), At(7, 1));
         s.Fill(1);
         w.Do(new ClearAt(At(8, 2), "structure")).Run();
         int held = Oxygen(w, s.Tanks[0]);

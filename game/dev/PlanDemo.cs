@@ -149,7 +149,7 @@ public sealed class PlanDemo(Hands hands, Layout layout)
                 _pointer = Of(Around(1, 2));
                 break;
             case 146:
-                log("B on the air tab: pipes over the air");
+                log("B on the air tab: the air under the menu");
                 hands.Plan.Toggle();
                 hands.Menu.ShowTab("air");
                 break;

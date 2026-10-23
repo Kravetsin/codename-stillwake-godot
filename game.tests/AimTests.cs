@@ -7,6 +7,7 @@ using Stillwake.Sim.Building;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Pipes;
 using Xunit;
 using Spec = Stillwake.Content;
 
@@ -46,7 +47,7 @@ public class AimTests
 
     private const string Corridor = """
         ########
-        #..D.v.#
+        #..D-v-#
         ########
         """;
 
@@ -70,7 +71,7 @@ public class AimTests
         var client = new Client(World.Create(1, Layout.Parse(Corridor).Doubled(), m.All), new Fed(), 1);
         client.Send(new SetDoor(At(3, 1), true));
         client.Send(new SetValve(At(5, 1), false));
-        var shown = Predicted.Grid(client, m.Grid);
+        var shown = Predicted.Grid(client, m.Grid, m.Pipes);
         var door = Aiming.AimAt(m, 0, HeroOn(2, 1), Centre(3, 1), shown: shown);
         Assert.Equal(new SetDoor(At(3, 1), false), door?.Press?.Command);
         Assert.Equal("use.closeDoor", Prompts.Of(m, door)?.Action);
@@ -83,10 +84,9 @@ public class AimTests
     public void WorksTheDoorWhenAValveSharesItsCell()
     {
         var w = Drawn(Corridor);
-        // A valve built into the door's cell, by hand, for free.
-        w.Step(new SetCreative(true), new PlacePlan(At(3, 1), new Placement("conduit", "valve")));
-        while (w.M.Building.Plans.Count > 0) w.Step(new Work(1));
-        Assert.True(w.M.Grid.ConduitAt(At(3, 1)) is Conduit.ValveOpen or Conduit.ValveClosed);
+        // A valve made on a joint in the door's cell, for free.
+        w.Step(new SetCreative(true), new LayPipe(At(3, 1), At(4, 1)), new MakeValve(At(3, 1), true));
+        Assert.NotNull(w.M.Pipes.ValveAt(At(3, 1)));
         Assert.Equal(new SetDoor(At(3, 1), true), Aiming.AimAt(w.M, 0, HeroOn(2, 1), Centre(3, 1))?.Press?.Command);
     }
 
@@ -124,7 +124,7 @@ public class AimTests
     public void WorksTheOldestPlanInACellAndLeavesETheDoorUnderIt()
     {
         var w = Drawn(Corridor);
-        w.Step(new Deconstruct(At(3, 1), "structure"), new PlacePlan(At(3, 1), new Placement("conduit", "pipe")));
+        w.Step(new Deconstruct(At(3, 1), "structure"), new Deconstruct(At(3, 1), "back"));
         Assert.Equal(
             new Aim(At(3, 1), true, new Use(new SetDoor(At(3, 1), true), null), new WorkAim(1, null)),
             Aiming.AimAt(w.M, 0, HeroOn(2, 1), Centre(3, 1)));
@@ -142,10 +142,10 @@ public class AimTests
     [Fact]
     public void WorksAPlanItCanBeforeAnOlderOneItCannot()
     {
-        // Nine wide, eighteen cells. A tank is planned over a pipe, and the pipe is marked: two plans in its cell, the pipe's block's top left.
-        var w = new TestWorld(Layout.Parse(["#########", "#.....-.#", "#.......#", "#########"]).Doubled());
+        // Nine wide, eighteen cells. A tank is planned, and the back wall behind its corner marked: two plans in that cell.
+        var w = new TestWorld(Layout.Parse(["#########", "#.......#", "#.......#", "#########"]).Doubled());
         const int pipe = 2 * 18 + 12;
-        w.Step(new PlacePlan(pipe, new Placement("machine", "tank")), new Deconstruct(pipe, "conduit"));
+        w.Step(new PlacePlan(pipe, new Placement("machine", "tank")), new Deconstruct(pipe, "back"));
         var q = w.M.Building;
         Assert.Equal([(1, "items.notEnough"), (2, (string?)null)], q.PlansAt(pipe).Select(p => (p.Id, q.WorkProblem(p.Id, 0))));
         Assert.Equal(new WorkAim(2, null), Aiming.AimAt(w.M, 0, HeroOn(5, 1), Centre(6, 1))?.Work);
@@ -154,9 +154,9 @@ public class AimTests
     [Fact]
     public void KeepsWorkingABlueprintItHasPaidIntoNotPassingToTheNextInItsCell()
     {
-        // A wall and a pipe through it, both planned in one cell, for a hero carrying scrap and tubes.
+        // A wall planned and the back wall behind it marked, in one cell, for a hero carrying scrap.
         var w = WithStore(Hall(1));
-        w.Step(new PlacePlan(Inside(0), Placement.Wall("scrap")), new PlacePlan(Inside(0), new Placement("conduit", "pipe")));
+        w.Step(new PlacePlan(Inside(0), Placement.Wall("scrap")), new Deconstruct(Inside(0), "back"));
         var hero = HeroOn(2, 1);
         Assert.Equal(new WorkAim(1, null), Aiming.AimAt(w.M, 0, hero, Centre(1, 1))?.Work);
         // Its first part paid and begun (0063): held on, the hands work the wall on.
@@ -222,12 +222,12 @@ public class AimTests
     {
         var m = new Registry();
         var (_, client) = LocalSession.Create(World.Create(1, HeroTests.Wreck, m.All));
-        Ship ShipNow() => Ship.Of(m.Grid, m.Rooms, cell => Predicted.Grid(client, m.Grid).StructureAt(m.Grid, cell));
+        Ship ShipNow() => Ship.Of(m.Grid, m.Rooms, cell => Predicted.Grid(client, m.Grid, m.Pipes).StructureAt(m.Grid, cell));
         var h = Hero.At(ShipNow(), HeroTests.Spawn);
         for (int i = 0; i < 120; i++) h = h.Step(HeroTests.Left, ShipNow());
         if (Aiming.AimAt(m, 0, h, Centre(45, 22))?.Press is { } press) client.Send(press.Command);
         // Sent, not released: the world still has the doorway shut.
-        Assert.Contains(Predicted.Grid(client, m.Grid).Structure!, shown => shown.Value != m.Grid.StructureAt(shown.Key));
+        Assert.Contains(Predicted.Grid(client, m.Grid, m.Pipes).Structure!, shown => shown.Value != m.Grid.StructureAt(shown.Key));
         for (int i = 0; i < 900; i++) h = h.Step(HeroTests.Left, ShipNow());
         // Into room B, torn open to space, and out past its torn edge as far as the tether lets the hero.
         // The tether cuts a move back to its length rounded toward its anchor: within a thousandth of a cell.

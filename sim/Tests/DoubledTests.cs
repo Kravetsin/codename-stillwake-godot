@@ -39,9 +39,9 @@ public class DoubledTests
         var w = new Scenario(layout);
         var network = Assert.Single(w.M.Pipes.Networks);
         Assert.Equal(["tank", "vent"], network.Machines.Select(id => w.M.Grid.MachineById(id)!.Kind).Order(StringComparer.Ordinal));
-        // One cell wide: the left column of each block from the vent's port down to the tank's.
+        // One straight span down the left column of each block from the vent's port to the tank's (0109).
         int width = layout.Width;
-        Assert.Equal(Enumerable.Range(2, 7).Select(y => y * width + 2), network.Cells);
+        Assert.Equal([2 * width + 2, 8 * width + 2], network.Cells);
     }
 
     [Fact]
@@ -137,28 +137,29 @@ public class DoubledTests
                 if (m.Kind != kind || m.Cell != cell / t.width * 2 * doubled.Width + cell % t.width * 2) return false;
                 if (big.M.Grid.Footprint(m.Kind, m.Cell) is not { } cells || cells.Any(c => big.M.Grid.MachineAt(c)?.Id != m.Id)) return false;
             }
-            // Each drawn conduit's block's top-left is in a network exactly when the drawn cell carries, and two carrying drawn
-            // cells side by side share theirs.
-            int Big(int x, int y) => 2 * y * doubled.Width + 2 * x;
-            bool Carries(char c) => c is '-' or 'v';
-            for (int y = 0; y < t.height; y++)
-                for (int x = 0; x < t.width; x++)
-                {
-                    char c = rows[y][x];
-                    int? net = big.M.Pipes.NetworkAt(Big(x, y));
-                    if (Carries(c) != (net != null)) return false;
-                    if (x + 1 < t.width && Carries(c) && Carries(rows[y][x + 1]) && big.M.Pipes.NetworkAt(Big(x + 1, y)) != net) return false;
-                    if (y + 1 < t.height && Carries(c) && Carries(rows[y + 1][x]) && big.M.Pipes.NetworkAt(Big(x, y + 1)) != net) return false;
-                }
-            // No network joins drawn cells the drawing keeps apart. A closed valve's other half is pipe, alone between two of them.
-            var small = new Scenario(drawn with { Rows = [.. rows.Select(r => new string([.. r.Select(c => c is 'V' or 'L' ? '.' : c)]))] });
-            var drawnOf = new Dictionary<int, int>();
-            for (int c = 0; c < t.width * t.height; c++)
+            // The spans join their ends exactly as the doubled drawing's pipes run (0109): two span ends share a network when the
+            // cells that carry, a closed valve not, join them side by side; every end not a closed valve is in one.
+            int w = doubled.Width, size = w * doubled.Height;
+            var carries = new bool[size];
+            for (int c = 0; c < size; c++) carries[c] = doubled.At(c) is '-' or 'v';
+            foreach (int c in doubled.CellsOf('-', under: true)) carries[c] = true;
+            var component = new int[size];
+            Array.Fill(component, -1);
+            for (int start = 0; start < size; start++)
             {
-                if (small.M.Pipes.NetworkAt(c) is not int was) continue;
-                int now = big.M.Pipes.NetworkAt(Big(c % t.width, c / t.width))!.Value;
-                if (drawnOf.TryGetValue(now, out int other) && other != was) return false;
-                drawnOf[now] = was;
+                if (!carries[start] || component[start] >= 0) continue;
+                var queue = new Queue<int>([start]);
+                component[start] = start;
+                while (queue.TryDequeue(out int c))
+                    foreach (int n in (int[])[c % w > 0 ? c - 1 : -1, c % w < w - 1 ? c + 1 : -1, c - w, c + w])
+                        if (n >= 0 && n < size && carries[n] && component[n] < 0) { component[n] = start; queue.Enqueue(n); }
+            }
+            var ends = big.M.Pipes.Spans.SelectMany(p => new[] { p.A, p.B }).Distinct().Where(c => big.M.Pipes.ValveAt(c) is not { Open: false }).ToList();
+            foreach (int u in ends)
+            {
+                if (big.M.Pipes.NetworkAt(u) == null || !carries[u]) return false;
+                foreach (int v in ends)
+                    if ((big.M.Pipes.NetworkAt(u) == big.M.Pipes.NetworkAt(v)) != (component[u] == component[v])) return false;
             }
             return true;
         });

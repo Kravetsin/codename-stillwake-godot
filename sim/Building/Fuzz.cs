@@ -9,11 +9,10 @@ public sealed partial class BuildingModule
     [
         .. Materials.All.Select(m => Placement.Wall(m.Id)),
         .. new[] { "floor", "ladder", "door", Builds.Hatch }.Select(kind => new Placement("structure", kind)),
-        .. new[] { "pipe", "valve" }.Select(kind => new Placement("conduit", kind)),
         .. Machines.All.Select(m => new Placement("machine", m.Kind)),
         .. Materials.All.Select(m => Placement.BackWall(m.Id)),
     ];
-    private static readonly string[] FuzzLayers = ["structure", "conduit", "machine", "back"];
+    private static readonly string[] FuzzLayers = ["structure", "machine", "back"];
 
     /// <summary>How far round what is built cells are mostly drawn: as players build, by their ship.</summary>
     private const int FuzzMargin = 32;

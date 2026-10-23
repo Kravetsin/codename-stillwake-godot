@@ -42,9 +42,7 @@ public class CrewTests
     {
         var w = new Scenario(Room).Do(new Items.SetCreative(true));
         // Down the left column from the vent's port to the tank's, at (0, 2) of its 4×4.
-        foreach (int cell in Enumerable.Range(2, 5).Select(y => Cell(2, y)))
-            w.Do(new Place(cell, new Placement("conduit", "pipe")));
-        w.Run();
+        w.Pipe(Cell(2, 2), Cell(2, 6)).Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
         for (int i = 0; i < canisters; i++) w.Do(new LoadCanister(tank));
         // Off once built: in creative mode a suit never empties.
@@ -177,7 +175,7 @@ public class CrewTests
         var (w, _, room) = SetUp(1);
         AirUp(w, room);
         // The vent's pipe cut: nothing pays, nothing fills.
-        w.Do(new ClearAt(Cell(2, 4), "conduit")).Run();
+        w.Do(new Pipes.CutPipe(Cell(2, 2), Cell(2, 6))).Run();
         w.Do(EnterAt(At(4, 1))).Run();
         // Counted from here: the leak of the ticks since the cut, a fifth of a cell a tick, is the room's already.
         int clock = AirClock(w), aired = Aired(w).Count;
@@ -193,7 +191,7 @@ public class CrewTests
     {
         var (w, _, room) = SetUp(1);
         AirUp(w, room);
-        w.Do(new ClearAt(Cell(2, 4), "conduit")).Run();
+        w.Do(new Pipes.CutPipe(Cell(2, 2), Cell(2, 6))).Run();
         // At the far end, where the air goes first.
         w.Do(EnterAt(Far)).Run();
         for (int i = 0; i < 30 && Aired(w).Contains(Far); i++) Breaths(w, 1);

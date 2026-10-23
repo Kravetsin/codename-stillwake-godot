@@ -89,37 +89,36 @@ public class ButtonsTests
     }
 }
 
-/// <summary>Oxygen as the pipes overlay shows it flowing: apps/game/src/features/pipes/flow.test.ts, one for one.</summary>
+/// <summary>Oxygen as the pipes overlay shows it flowing (0109): along spans, away from where it comes in.</summary>
 public class FlowTests
 {
-    // Five wide: a run along the middle row with a branch down from its third cell.
+    // Five wide: a span along the middle row to a joint at its third cell, on to its end, and a branch down from the joint.
     private const int W = 5;
     private static int At(int x, int y) => y * W + x;
-    private static readonly int[] Pipes = [At(0, 1), At(1, 1), At(2, 1), At(3, 1), At(4, 1), At(2, 2), At(2, 3)];
+    private static readonly (int, int)[] Spans = [(At(0, 1), At(2, 1)), (At(2, 1), At(4, 1)), (At(2, 1), At(2, 3))];
 
     [Fact]
-    public void CountsEachCellItsFewestStepsFromASourceAndLeavesOutWhatNoneReaches()
+    public void FlowsAwayFromTheSourcesIntoEveryBranchCountingHowFarAlongEachStarts()
     {
-        var steps = Flow.StepsFrom(Pipes, W, [At(0, 1), At(9, 9)]);
-        Assert.Equal(0, steps[At(0, 1)]);
-        Assert.Equal(4, steps[At(4, 1)]);
-        Assert.Equal(4, steps[At(2, 3)]);
-        Assert.Empty(Flow.StepsFrom(Pipes, W, []));
+        var runs = Flow.RunsOf(Spans, W, [At(0, 1), At(9, 9)], _ => true);
+        Assert.Equal(3, runs.Count);
+        Assert.Contains(new Run(0.5, 1.5, 1, 0, 2, 0), runs);
+        Assert.Contains(new Run(2.5, 1.5, 0, 1, 2, 2), runs);
+        Assert.Contains(new Run(2.5, 1.5, 1, 0, 2, 2), runs);
+        Assert.Empty(Flow.RunsOf(Spans, W, [], _ => true));
     }
 
     [Fact]
-    public void FlowsAwayFromTheSourcesIntoEveryBranch()
+    public void StopsAtANodeThatCarriesNothing()
     {
-        var runs = Flow.RunsOf(Flow.StepsFrom(Pipes, W, [At(0, 1)]), W);
-        Assert.Equal(Pipes.Length - 1, runs.Count);
-        Assert.Contains(new Run(2.5, 1.5, 0, 1, 2), runs);
-        Assert.DoesNotContain(runs, r => r.X == 1.5 && r.Dx == -1);
+        Assert.Empty(Flow.RunsOf(Spans, W, [At(0, 1)], c => c != At(2, 1)));
+        Assert.Equal([(At(0, 1), At(2, 1))], Flow.SpansIn(Spans, [At(0, 1)]));
     }
 
     [Fact]
     public void MovesItsDotsOnSmoothlyOneEverySoManyCells()
     {
-        var runs = Flow.RunsOf(Flow.StepsFrom([At(0, 0), At(1, 0), At(2, 0), At(3, 0), At(4, 0)], W, [At(0, 0)]), W);
+        var runs = Flow.RunsOf([(At(0, 0), At(4, 0))], W, [At(0, 0)], _ => true);
         Assert.Equal([(0.5, 0.5), (2.5, 0.5)], Flow.DotsOf(runs, 0, 2).Order());
         Assert.Equal([(1.0, 0.5), (3.0, 0.5)], Flow.DotsOf(runs, 0.5, 2).Order());
     }

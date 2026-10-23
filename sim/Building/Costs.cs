@@ -20,7 +20,7 @@ internal static class Costs
     public static Build BuildOf(Placement placement) => placement.Layer switch
     {
         "structure" when placement.Kind == "wall" => Wall(Materials.Get(placement.Material!)),
-        "structure" or "conduit" => Builds.Get(Builds.BuiltAs(placement.Kind)),
+        "structure" => Builds.Get(Builds.BuiltAs(placement.Kind)),
         "machine" => Machine(placement.Kind),
         "back" => Wall(Materials.Get(placement.Material!)),
         _ => throw new ArgumentException($"building: no layer {placement.Layer}"),
@@ -39,13 +39,6 @@ internal static class Costs
                     Structure.Floor => Builds.Get("floor"),
                     Structure.Ladder => Share(Builds.Get("ladder"), grid.PieceOf(cell).Count),
                     _ => Share(Builds.Get("door"), grid.PieceOf(cell).Count),
-                };
-            case "conduit":
-                return grid.ConduitAt(cell) switch
-                {
-                    Conduit.None => null,
-                    Conduit.Pipe => Builds.Get("pipe"),
-                    _ => Builds.Get("valve"),
                 };
             case "machine":
                 return grid.MachineAt(cell) is { } m ? Machine(m.Kind) : null;

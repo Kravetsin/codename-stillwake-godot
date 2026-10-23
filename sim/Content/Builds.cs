@@ -25,8 +25,6 @@ public static class Builds
         new("ladder", [("scrap", 1)], BuildTicks: 7, Across: 2, Tall: 2),
         // A doorway whole, two cells thick and six tall (0104): what its three 16 px cells cost and took.
         new("door", [("plate", 6), ("gear", 3)], BuildTicks: 60, Across: 2, Tall: 6),
-        new("pipe", [("tube", 1)], BuildTicks: 7),
-        new("valve", [("tube", 1), ("gear", 1)], BuildTicks: 40),
     ];
 
     /// <summary>Taking a thing apart is this many times faster than building it; its ticks round up.</summary>

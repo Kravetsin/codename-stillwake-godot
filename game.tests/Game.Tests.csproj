@@ -127,7 +127,7 @@
     <Compile Include="../game/features/power/StoreGauge.cs" Link="Game/Power/StoreGauge.cs" />
     <Compile Include="../game/features/power/StoreWorld.cs" Link="Game/Power/StoreWorld.cs" />
     <Compile Include="../game/features/pipes/Flow.cs" Link="Game/Pipes/Flow.cs" />
-    <Compile Include="../game/features/pipes/Valves.cs" Link="Game/Pipes/Valves.cs" />
+    <Compile Include="../game/features/pipes/PipeHands.cs" Link="Game/Pipes/PipeHands.cs" />
     <Compile Include="../game/features/atmosphere/Explain.cs" Link="Game/Atmosphere/Explain.cs" />
     <Compile Include="../game/features/atmosphere/Streams.cs" Link="Game/Atmosphere/Streams.cs" />
     <Compile Include="../game/features/atmosphere/AirField.cs" Link="Game/Atmosphere/AirField.cs" />

@@ -5,7 +5,7 @@ namespace Stillwake.Sim.Grid;
 
 /// <summary>
 /// What a save holds of a grown surface's grid (0077): its size and zone, its machines, and the cells changed since its
-/// ground grew from the seed, each as <c>cell, structure, material, conduit, back, backMaterial</c>, ascending by
+/// ground grew from the seed, each as <c>cell, structure, material, back, backMaterial</c>, ascending by
 /// cell. The ground itself is grown again from the seed as the save loads.
 /// </summary>
 public sealed class GrownGrid
@@ -22,7 +22,7 @@ public sealed class GrownGrid
 public sealed partial class GridModule
 {
     /// <summary>The layers a cell's edit holds, in order, after its cell.</summary>
-    private const int Layers = 5;
+    private const int Layers = 4;
 
     /// <summary>Whether this grid grew from a seed (<see cref="Layout.Grown"/>): then it saves its edits, not every cell.</summary>
     private bool _grown;
@@ -45,11 +45,11 @@ public sealed partial class GridModule
     public bool GrownBack(int cell)
     {
         if (!_grown || BackAt(cell) == null) return false;
-        return !_base.TryGetValue(cell, out var was) || was[3] == State.Back[cell] && was[4] == State.BackMaterial[cell];
+        return !_base.TryGetValue(cell, out var was) || was[2] == State.Back[cell] && was[3] == State.BackMaterial[cell];
     }
 
     private static int[] Of(GridState s, int cell) =>
-        [s.Structure[cell], s.Material[cell], s.Conduit[cell], s.Back[cell], s.BackMaterial[cell]];
+        [s.Structure[cell], s.Material[cell], s.Back[cell], s.BackMaterial[cell]];
 
     /// <summary>The cells that differ now from the ground as it grew, ascending, each with its layers: what a save holds.</summary>
     internal int[] Edits()
@@ -91,8 +91,8 @@ public sealed partial class GridModule
             int cell = edits[i];
             _base[cell] = Of(s, cell);
             _touched.Add(cell);
-            (s.Structure[cell], s.Material[cell], s.Conduit[cell], s.Back[cell], s.BackMaterial[cell]) =
-                (edits[i + 1], edits[i + 2], edits[i + 3], edits[i + 4], edits[i + 5]);
+            (s.Structure[cell], s.Material[cell], s.Back[cell], s.BackMaterial[cell]) =
+                (edits[i + 1], edits[i + 2], edits[i + 3], edits[i + 4]);
         }
         return s;
     }

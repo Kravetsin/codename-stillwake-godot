@@ -8,4 +8,7 @@ public static class HandTools
 {
     /// <summary>The stripper: lays cables from the inventory and cuts them, refunded.</summary>
     public const string Stripper = "stripper";
+
+    /// <summary>The wrench (0109): lays pipe spans from the inventory and takes them away, refunded; turns joints into valves.</summary>
+    public const string Wrench = "wrench";
 }

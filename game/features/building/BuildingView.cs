@@ -132,7 +132,7 @@ public partial class BuildingView : Node2D
             if (button.Down)
             {
                 // The first button down has the drag; another pressed meanwhile is let be. A front-only card's right does nothing.
-                if (_drag == null && tool != null && Tools.ActOf(tool, back, overlay) is { } act && Drag.OnGrid(width, height, button.At))
+                if (_drag == null && tool != null && Tools.ActOf(tool, back) is { } act && Drag.OnGrid(width, height, button.At))
                     _drag = (act, back, button.At, tool);
                 return;
             }
@@ -147,7 +147,7 @@ public partial class BuildingView : Node2D
         {
             _hand.PickWanted = false;
             if (pointer is { } at && Drag.OnGrid(width, height, at)
-                && Tools.CardAt(CellAt(at), overlay, grid, building, m.Research) is { } card)
+                && Tools.CardAt(CellAt(at), grid, building, m.Research) is { } card)
             {
                 _hand.Tab.Set(Tools.TabOf(card));
                 _hand.Selected.Set(card);
@@ -157,7 +157,7 @@ public partial class BuildingView : Node2D
         tool = _hand.Selected.Get();
         bool onGrid = pointer is { } p0 && Drag.OnGrid(width, height, p0);
         ShowTray(onGrid ? CellAt(pointer!.Value) : null, grid, building);
-        Ghost(tool, pointer, onGrid, grid, building, Tools.ActOf(tool, Layering.Back(false, holdsRight), overlay));
+        Ghost(tool, pointer, onGrid, grid, building, Tools.ActOf(tool, Layering.Back(false, holdsRight)));
         _hands.QueueRedraw();
     }
 
@@ -197,9 +197,6 @@ public partial class BuildingView : Node2D
             if (cut != null) _glow.Cut(p.Id, BoxOf(CellsOf(grid, p), width), cut);
             shapes.Add((p, place, p.Cell, linked));
         }
-        // Built pipes reach toward planned ones beside them, drawn as plans.
-        var conduits = plans.Where(p => p.Place is { Layer: "conduit" }).Select(p => p.Cell).ToHashSet();
-        foreach (var (cell, sides) in Tools.StubsOf(conduits, width, c => grid.ConduitAt(c) != Conduit.None)) _plans.Stub(cell, width, sides);
         _marked.Begin();
         foreach (var p in plans)
         {
@@ -441,14 +438,6 @@ public partial class BuildingView : Node2D
                 building.PlansAt(c).Select(o => o.Place).OfType<Placement>().Concat(cells.Contains(c) ? [place.Placement] : []);
             foreach (var v in verdicts)
                 (v.Problem != null ? _refused : _fits).Lay(place.Placement, v.Cell, width, Tools.LinksOf(place.Placement, v.Cell, width, Beside, grid));
-            // Built and planned pipes beside it reach toward it, in its colour.
-            bool Conduit(int c) => grid.ConduitAt(c) != Sim.Grid.Conduit.None || building.PlansAt(c).Any(o => o.Place is { Layer: "conduit" });
-            if (place.Placement.Layer == "conduit")
-                foreach (var refused in (bool[])[false, true])
-                {
-                    var those = verdicts.Where(v => v.Problem != null == refused).Select(v => v.Cell).ToHashSet();
-                    foreach (var (cell, sides) in Tools.StubsOf(those, width, Conduit)) (refused ? _refused : _fits).Stub(cell, width, sides);
-                }
         }
         else
         {

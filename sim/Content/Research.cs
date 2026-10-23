@@ -17,5 +17,5 @@ public static class Research
     /// back walls a torn room is closed with, the wire its cables are made of, and the fire axe wreckage
     /// is broken with.
     /// </summary>
-    public static readonly IReadOnlyList<string> StartKnown = ["furnace", "analyzer", "crate", "wallScrap", "backWallScrap", "wire", "fireAxe", "screwdriver", HandTools.Stripper];
+    public static readonly IReadOnlyList<string> StartKnown = ["furnace", "analyzer", "crate", "wallScrap", "backWallScrap", "wire", "fireAxe", "screwdriver", HandTools.Stripper, HandTools.Wrench];
 }

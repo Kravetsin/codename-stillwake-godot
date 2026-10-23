@@ -15,15 +15,14 @@ namespace Stillwake.Game.Features.Grid;
 /// </summary>
 public sealed class DrawnLayers
 {
-    /// <summary>A cell whose drawing changed, and its structure and conduit as drawn before: a door or valve heard moving.</summary>
-    public readonly record struct Change(int Cell, int Structure, int Conduit);
+    /// <summary>A cell whose drawing changed, and its structure as drawn before: a door heard moving.</summary>
+    public readonly record struct Change(int Cell, int Structure);
 
     public int Width { get; }
     public int Height { get; }
     /// <summary>The layers as drawn, a code a cell: empty past what was ever built, as the grid's are.</summary>
     public int[] Structure { get; }
     public int[] Material { get; }
-    public int[] Conduit { get; }
     public int[] Back { get; }
     public int[] BackMaterial { get; }
 
@@ -38,7 +37,7 @@ public sealed class DrawnLayers
     {
         (Width, Height) = (width, height);
         int size = width * height;
-        (Structure, Material, Conduit, Back, BackMaterial) = (new int[size], new int[size], new int[size], new int[size], new int[size]);
+        (Structure, Material, Back, BackMaterial) = (new int[size], new int[size], new int[size], new int[size]);
         _marked = new bool[size];
     }
 
@@ -51,18 +50,17 @@ public sealed class DrawnLayers
         var changes = new List<Change>();
         if (grid.Version != _version)
         {
-            ReadOnlySpan<int> s = grid.StructureLayer, m = grid.MaterialLayer, cd = grid.ConduitLayer, b = grid.BackLayer, bm = grid.BackMaterialLayer;
-            int[] ds = Structure, dm = Material, dcd = Conduit, db = Back, dbm = BackMaterial;
-            var apart = (shown.Structure, shown.Conduit);
+            ReadOnlySpan<int> s = grid.StructureLayer, m = grid.MaterialLayer, b = grid.BackLayer, bm = grid.BackMaterialLayer;
+            int[] ds = Structure, dm = Material, db = Back, dbm = BackMaterial;
+            var apart = shown.Structure;
             // The world's codes at a cell; one a toggle in flight shows apart is looked at below.
-            void Follow(int c, ReadOnlySpan<int> s, ReadOnlySpan<int> m, ReadOnlySpan<int> cd, ReadOnlySpan<int> b, ReadOnlySpan<int> bm)
+            void Follow(int c, ReadOnlySpan<int> s, ReadOnlySpan<int> m, ReadOnlySpan<int> b, ReadOnlySpan<int> bm)
             {
-                if ((s[c] != ds[c] || cd[c] != dcd[c] || m[c] != dm[c] || b[c] != db[c] || bm[c] != dbm[c])
-                    && apart.Structure?.ContainsKey(c) != true && apart.Conduit?.ContainsKey(c) != true)
-                    Take(c, s[c], m[c], cd[c], b[c], bm[c], changes);
+                if ((s[c] != ds[c] || m[c] != dm[c] || b[c] != db[c] || bm[c] != dbm[c]) && apart?.ContainsKey(c) != true)
+                    Take(c, s[c], m[c], b[c], bm[c], changes);
             }
             if (grid.ChangedSince(_version) is { } log)
-                foreach (var change in log) Follow(change.Cell, s, m, cd, b, bm);
+                foreach (var change in log) Follow(change.Cell, s, m, b, bm);
             else
             {
                 // The first drawing, or the grid's log let go of what changed: every row of what is built, now and last time.
@@ -70,10 +68,10 @@ public sealed class DrawnLayers
                 int w = Width;
                 for (int y = box.Top; y <= box.Bottom; y++)
                 {
-                    if (BuiltRows.Same(s, ds, w, box, y) && BuiltRows.Same(cd, dcd, w, box, y) && BuiltRows.Same(m, dm, w, box, y)
+                    if (BuiltRows.Same(s, ds, w, box, y) && BuiltRows.Same(m, dm, w, box, y)
                         && BuiltRows.Same(b, db, w, box, y) && BuiltRows.Same(bm, dbm, w, box, y))
                         continue;
-                    for (int c = y * w + box.Left, end = c + box.Width; c < end; c++) Follow(c, s, m, cd, b, bm);
+                    for (int c = y * w + box.Left, end = c + box.Width; c < end; c++) Follow(c, s, m, b, bm);
                 }
             }
             (_looked, _version) = (grid.Built, grid.Version);
@@ -83,7 +81,6 @@ public sealed class DrawnLayers
         foreach (int c in _apart) Look(grid, shown, c, changes);
         _apart.Clear();
         if (shown.Structure != null) _apart.AddRange(shown.Structure.Keys);
-        if (shown.Conduit != null) _apart.AddRange(shown.Conduit.Keys);
         foreach (int c in _apart) Look(grid, shown, c, changes);
         if (changes.Count > before) changes.Sort((a, b) => a.Cell.CompareTo(b.Cell));
         return changes;
@@ -91,16 +88,16 @@ public sealed class DrawnLayers
 
     private void Look(IGridQueries grid, ShownGrid shown, int c, List<Change> changes)
     {
-        int s = shown.StructureAt(grid, c), cd = shown.ConduitAt(grid, c);
+        int s = shown.StructureAt(grid, c);
         int m = grid.MaterialLayer[c], b = grid.BackLayer[c], bm = grid.BackMaterialLayer[c];
-        if (s == Structure[c] && cd == Conduit[c] && m == Material[c] && b == Back[c] && bm == BackMaterial[c]) return;
-        Take(c, s, m, cd, b, bm, changes);
+        if (s == Structure[c] && m == Material[c] && b == Back[c] && bm == BackMaterial[c]) return;
+        Take(c, s, m, b, bm, changes);
     }
 
-    private void Take(int c, int s, int m, int cd, int b, int bm, List<Change> changes)
+    private void Take(int c, int s, int m, int b, int bm, List<Change> changes)
     {
-        changes.Add(new Change(c, Structure[c], Conduit[c]));
-        (Structure[c], Material[c], Conduit[c], Back[c], BackMaterial[c]) = (s, m, cd, b, bm);
+        changes.Add(new Change(c, Structure[c]));
+        (Structure[c], Material[c], Back[c], BackMaterial[c]) = (s, m, b, bm);
     }
 
     /// <summary>

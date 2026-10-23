@@ -8,13 +8,12 @@ namespace Stillwake.Sim.Building;
 public sealed partial class BuildingModule
 {
     /// <summary>The layers deconstruction looks in, in the order it takes them.</summary>
-    private static readonly string[] ClearOrder = ["machine", "conduit", "structure", "back"];
+    private static readonly string[] ClearOrder = ["machine", "structure", "back"];
 
     /// <summary>
-    /// Structure and machines exclude each other in a cell; a conduit runs through either, and a back
-    /// wall stands behind all three.
+    /// Structure and machines exclude each other in a cell, and a back wall stands behind both.
     /// </summary>
-    private static string SlotOf(string layer) => layer is "conduit" or "back" ? layer : "solid";
+    private static string SlotOf(string layer) => layer is "back" ? layer : "solid";
 
     /// <summary>
     /// The cells a blueprint for <paramref name="place"/> at <paramref name="cell"/> covers: a machine's or a piece's whole footprint
@@ -39,7 +38,6 @@ public sealed partial class BuildingModule
     private int? MarkedCell(int cell, string layer) => layer switch
     {
         "structure" => _grid.PieceOf(cell) is { Count: > 0 } piece ? piece[0] : null,
-        "conduit" => _grid.ConduitAt(cell) == Conduit.None ? null : cell,
         "machine" => _grid.MachineAt(cell)?.Cell,
         "back" => _grid.BackAt(cell) == null ? null : cell,
         _ => null,
@@ -48,10 +46,9 @@ public sealed partial class BuildingModule
     private bool IsMarked(string layer, int cell) => State.Plans.Exists(p => p.Clear == layer && p.Cell == cell);
 
     /// <summary>
-    /// What deconstruction takes from a cell next, of <paramref name="layers"/> in their order (the pipes
-    /// overlay asks for a pipe before the machine under it), else a machine, then a conduit, then the
-    /// structure, then the back wall; passing over what is marked already, so a second pass over a pipe
-    /// in a wall marks the wall. When everything there is marked, the top one, which a mark would refuse.
+    /// What deconstruction takes from a cell next, of <paramref name="layers"/> in their order, else a machine, then
+    /// the structure, then the back wall; passing over what is marked already, so a second pass over a
+    /// machine marks what stands behind. When everything there is marked, the top one, which a mark would refuse.
     /// </summary>
     private (string Layer, int Cell)? NextToClear(int cell, IReadOnlyList<string>? layers)
     {

@@ -46,9 +46,9 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   the hand freed elsewhere (a hotbar slot, the wheel) puts the plan away.
 - **Walls are whole** (0106): a wall card has no shape to turn. A wall planned or in hand joins the walls beside it
   like any placement that joins (`Blueprint.Joins`), as the grid draws built walls.
-- The open tab is the mode (`PlanHand.Tab`): Air shows the pipes overlay. The overlay
-  shown is never kept — `Tools.OverlayShown` from the plan out, the tab, the item wielded and `Ui.AirOn` on each read — so
-  with the menu closed it is the cables while the stripper is held (0108), else air or nothing. The air itself is drawn whenever O wants it, under every tab, the
+- The overlay shown is never kept — `Tools.OverlayShown` from the plan out, the tab, the item wielded and `Ui.AirOn` on
+  each read — so with the menu closed it is the cables while the stripper is held (0108), the pipes while the wrench is
+  (0109), else air or nothing; no tab has an overlay of its own now. The air itself is drawn whenever O wants it, under every tab, the
   tab's pipes or cables over it (0072); the overlay shown stays the tab's, for the buttons and the pointer's tip.
   The menu opens on the tab it closed on; a card picked opens
   its tab; another tab lets the card go; a tab with nothing known is never the tab.
@@ -66,7 +66,7 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still
   drawn a row at a time; aslant, it is a room's worth. Right drags cancel plans in their layers when begun
-  on one, else mark what is built in their layers (a front card on Air: pipes, valves, machines) over their rectangle, only in the
+  on one, else mark what is built in their layers over their rectangle, only in the
   layer of the first thing under where the drag began; a back wall card's back walls only, those behind machines too. Begun where only walls' and back
   walls' blueprints are planned, a drag takes them off over the same rectangle (`Drag.CellsOf`), and only
   them: a pipe or machine planned inside it stays. Begun on any other plan, a mark or what is built, it fills the
@@ -111,14 +111,9 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   menu's top is `Ui.MenuTop`, which the prompt for E keeps above.
 - A plan is a ghost of what it builds (`PlanTiles`): its own picture greyed and lifted 60% toward white,
   a little blue, at 88% opacity (back walls 65%, as they are behind; 70% and 45% before 0064), so what was planned — a wall's or back wall's material too, for the other players — stays
-  plain to see; unlit, so it reads in the dark, and giving no light. Pipes, doors and walls join what is
+  plain to see; unlit, so it reads in the dark, and giving no light. Doors and walls join what is
   planned and built beside them, as the grid draws them built, so a row of walls is one wall.
-- A planned pipe or valve, and one in hand, reaches toward every conduit beside it, built, planned or in
-  the same drag, as `GridView` joins built ones; a built pipe beside it gets a stub toward it in its look
-  (`Tools.StubsOf`), and a planned one beside a ghost the ghost's, so they meet with no half cell between.
-  Stubs are drawn with the plan, over the machines a built pipe runs behind. A stub is the pipe's arms toward
-  the plans only (`Blueprint.ArmsOf`), never its joint: a built pipe ending at a plan drawn whole as a ghost
-  looked unbuilt, so a run half built could not be told from one not begun.
+- Pipes are not planned: the wrench lays them as spans (0109, `features/pipes`).
 - Round each group of plans — walls, back walls, ladders, doors, floors, each machine on its own — dashes as
   wide as the aim's outline (a screen pixel at 1080 lines, whatever the zoom) march clockwise, 3 line widths on in
   5, 5 a second, along the group's silhouette (0064): a strip just outside the opaque pixels of its pictures,

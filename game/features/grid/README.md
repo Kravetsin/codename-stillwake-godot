@@ -6,13 +6,12 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
 - **Reads:** `IGridQueries` only — `AfterToggles` through `Predicted.Grid`, `ChangedSince`, `StructureLayer`, `MaterialLayer`, `ConduitLayer`, `BackLayer`,
   `BackMaterialLayer`, `Machines`, `Version`, `Built`; the machine's `Plug` from `Content.Machines` for its socket.
 - **Draws:** a `TileMapLayer` per kind of picture, back to front: back walls (scrap cut from its
-  picture, iron a panel with a grille in about one cell of seven), pipes reaching toward their
-  neighbours, valves, walls cut from their material's picture, their edges on every side that faces no
+  picture, iron a panel with a grille in about one cell of seven), walls cut from their material's picture, their edges on every side that faces no
   wall (`ShipTiles.WallName`, `ShipTiles.EdgeName`; every wall whole, 0106), floors and ladders, doors and hatches (shut or slid open; a door cell joined to one above or below
   is a door's, every other a hatch's, joined as the sim's `Doorways` joins them, one straight run a doorway;
   pictures by `render/DoorShape.cs`, 0067),
   machines over their footprints; a sprite per power socket.
-- **Heard:** a door or valve that moved, where it stands (0033); a doorway once, at its cell joined
+- **Heard:** a door that moved (a valve is the pipes' own, 0109), where it stands (0033); a doorway once, at its cell joined
   neither above nor to its left (`DoorShape.Leads`).
 - **Slid:** a doorway seen to open or shut slides its panel over 0.2 s, whatever its length (`DoorSlides`, plain C#,
   tested): one panel across all its cells, a door's rising into its top, a hatch's sliding into its left end. Each

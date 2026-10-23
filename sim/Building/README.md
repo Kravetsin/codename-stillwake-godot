@@ -1,7 +1,7 @@
 # Building
 
 Plans, and the work that turns them into the ship. A plan is a blueprint, which puts something in a
-cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a part as they go
+cell (a wall, a ladder, a tank) as heroes work on it, paying its cost an item a part as they go
 (ADR 0063), or a mark on what a layer of a cell holds, taken out by heroes' work. Both complete through
 `Grid`'s operations, paid from and refunded to the inventories in `Items`. Ported from
 `packages/sim/src/modules/building`; its rules hold here but for the payment a part at a time.
@@ -33,8 +33,8 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   walls, back walls, floors, ladders and doors. Marks and work are not asked: nothing else can be built there.
 - A blueprint is checked against what is known first (`building.unknown`, but in creative mode), then
   against the grid (`IGridQueries.PlacementProblem`, whose keys pass through unchanged), then against
-  the other plans: in each cell, structure and machines share one solid slot, and a conduit and a
-  back wall each have their own, as in the grid. A machine's blueprint covers its whole footprint, and a piece's (0104): a
+  the other plans: in each cell, structure and machines share one solid slot, and a back wall has its
+  own, as in the grid. A machine's blueprint covers its whole footprint, and a piece's (0104): a
   ladder's 2×2, a door's 2×6, a hatch's 6×2 (`Builds.Hatch`, built as a door is, of its blueprint and at its cost).
   Placing one costs nothing.
 - **No blueprint builds bedrock** (0077), front or back: refused `building.unknown`, creative mode or not
@@ -154,7 +154,7 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 - **Queries:** `Plans` — live, read-only; `PlansAt(cell)` — every plan covering the cell;
   `Problem(cell, placement)` and `Problem(cell, layer)` — the refusal a `PlacePlan` or a
   `Deconstruct` would get, for the client's ghost; `ClearAt(cell, layers?)` — what a removal takes
-  from a cell next, of the layers given or all (a machine, then a conduit, then the structure, then
+  from a cell next, of the layers given or all (a machine, then the structure, then
   the back wall, passing over what is marked already; when all is marked, the top one) and where its
   mark is kept, as `(Layer, Cell)`, null for nothing there; `WorkProblem(planId, peer)` — the refusal
   that peer's `Work` would get; `Lacking(planId)` — what a blueprint still lacks of its cost, nothing in

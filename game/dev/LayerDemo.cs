@@ -15,7 +15,9 @@ namespace Stillwake.Game.Dev;
 /// walls planned over open space by a left drag; <c>remove</c> the scrap wall's card marking the ceiling by a right drag;
 /// <c>fade</c> the back wall's card aimed at the ceiling, the walls round the pointer faded to show the back wall behind;
 /// <c>axe</c> the axe swung by the right button at the room's back wall, refused as a ship's, and <c>aim</c> its aim just
-/// before; <c>strip</c> the stripper held, a cable laid from the generator to the wall, the cables' overlay showing.
+/// before; <c>strip</c> the stripper held, a cable laid from the generator to the wall, the cables' overlay showing; <c>pipe</c>
+/// the wrench held, a pipe laid aslant from the generator's port to a joint and a branch on from it, the pipes' overlay
+/// showing; <c>valve</c> the same with the branch's joint made a valve and shut, the wrench put away.
 /// </summary>
 public sealed class LayerDemo(Hands hands, string mode)
 {
@@ -46,7 +48,7 @@ public sealed class LayerDemo(Hands hands, string mode)
         if (grid.MachinesOf("generator").FirstOrDefault() is not { } generator) return;
         int w = grid.Width, gx = generator.Cell % w, gy = generator.Cell / w;
         // Each step once, on the first frame of its tick or after: frames outnumber ticks.
-        int tick = client.World.Tick switch { >= 40 => 40, >= 30 => 30, >= 20 => 20, >= 18 => 18, >= 10 => 10, _ => -1 };
+        int tick = client.World.Tick switch { >= 60 => 60, >= 50 => 50, >= 40 => 40, >= 30 => 30, >= 20 => 20, >= 18 => 18, >= 10 => 10, _ => -1 };
         if (tick <= _done) return;
         _done = tick;
         (double, double) At(double dx, double dy) => (gx + dx, gy + dy);
@@ -63,7 +65,7 @@ public sealed class LayerDemo(Hands hands, string mode)
                 log("B: the scrap wall's card; a right drag over the ceiling marks it for removal");
                 hands.Plan.Toggle();
                 hands.Menu.Pick(Card("wallScrap"));
-                _pointer = At(-1.5, -4.5);
+                _pointer = At(2.5, -5.5);
                 Press(Buttons.Right);
                 break;
             case "plan" or "remove" when tick == 30:
@@ -86,6 +88,42 @@ public sealed class LayerDemo(Hands hands, string mode)
                 log("the axe swung by the right button at the room's back wall");
                 _pointer = At(5.5, -2.5);
                 Press(Buttons.Right);
+                break;
+            case "pipe" or "valve" when tick == 10:
+                log("creative; the wrench held: the pipes show");
+                client.Send(new Sim.Items.SetCreative(true));
+                Wield(m, client.Id, Content.HandTools.Wrench);
+                break;
+            case "pipe" or "valve" when tick == 20:
+                log("a pipe laid aslant from the generator's port to a joint on the back wall");
+                _pointer = At(0.5, 2.5);
+                Press(Buttons.Left);
+                break;
+            case "pipe" or "valve" when tick == 30:
+                _pointer = At(5.5, -3.5);
+                Move(0);
+                break;
+            case "pipe" or "valve" when tick == 40:
+                log("a branch on from the joint, down and right");
+                _pointer = At(5.5, -3.5);
+                Press(Buttons.Left);
+                _pointer = At(9.5, -0.5);
+                Move(0);
+                break;
+            case "pipe" or "valve" when tick == 50:
+                _pointer = At(-1.5, -4.5);
+                Press(Buttons.Left);
+                _pointer = At(5.5, -3.5);
+                Move(0);
+                _pointer = At(7.5, 1.5);
+                if (mode == "valve")
+                {
+                    log("the joint made a valve and shut; the wrench put away");
+                    int joint = (gy - 4) * w + gx + 5;
+                    client.Send(new Sim.Pipes.MakeValve(joint, true));
+                    client.Send(new Sim.Pipes.SetValve(joint, false));
+                    Wield(m, client.Id, Content.Weapons.Axe.Item);
+                }
                 break;
             case "strip" when tick == 10:
                 log("creative, so the cable is paid; the stripper held: the cables show");

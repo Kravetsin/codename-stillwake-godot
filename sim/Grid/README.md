@@ -10,7 +10,7 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
 - **Zone:** the box where anything may be built, saved with the grid: the map's `Layout.Zone`, the
   world's middle 1024×512 for a new world, the whole grid for a map that sets none (tests, dev maps).
 - **Cells:** numbered row by row from the top-left, `cell = y * width + x`.
-- **State** (`GridState`, members internal): the layers as `int[]` codes (`Structure`, `Conduit`,
+- **State** (`GridState`, members internal): the layers as `int[]` codes (`Structure`,
   `Back`, the materials of walls and back walls), `Zone` (a `Box`), `Machines` (in id order), `NextMachineId`.
   Derived, rebuilt after a load and kept current by every machine placed or cleared: `Occupancy`, the
   id of the machine covering each cell; `ById`, every machine by its id; `ByKind`, each kind's
@@ -29,7 +29,6 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
 | Layer     | Holds                                                                                     |
 | --------- | ----------------------------------------------------------------------------------------- |
 | structure | empty, hull wall (with a material), floor, ladder, door (open or closed)                  |
-| conduit   | none, pipe, valve (open or closed); runs through walls and under machines                 |
 | machine   | machines from `Data.Machines`, each covering its footprint                                |
 | back      | none, back wall (with a material): the wall behind a cell, closing a room behind (0020)   |
 
@@ -39,8 +38,7 @@ Every cell is whole: there are no slopes ([0106](../../docs/decisions/0106-steps
 Walls, floors, ladders and doors are one structure per cell. A ladder, a door and a hatch are placed as pieces (0104), a
 ladder's 2×2, a door's 2×6, a hatch's 6×2 (`Builds.PieceOf`), every cell of one free of structure and machines, all of them
 filled at once. A machine needs every footprint cell free
-of structure and of other machines. Conduits need only a free conduit slot, and a back wall only a
-free back slot: it stands behind anything, and in space.
+of structure and of other machines. A back wall needs only a free back slot: it stands behind anything, and in space.
 
 ## API
 
@@ -59,10 +57,10 @@ free back slot: it stands behind anything, and in space.
   it, and a reader the log let go of looks again within it; `Zone` — the build zone, nothing placed
   outside it; every layer as codes, a
   cell each, live and read-only, as TypeScript's `layers()`: `StructureLayer`, `MaterialLayer` (a
-  wall's material, 0 for none), `ConduitLayer`, `BackLayer`, `BackMaterialLayer`; `StructureAt(cell)`, `ConduitAt(cell)`,
+  wall's material, 0 for none), `BackLayer`, `BackMaterialLayer`; `StructureAt(cell)`,
   `MachineAt(cell)`, `MachineById(id)` — null for none or one taken apart —, `Machines` — every
   machine in id order —, `MachinesOf(kind)` — one kind's, in id order, for the systems that work one
-  kind (furnaces, analyzers, vents, tanks, generators) —, `PortsOf(machine)` — the cells where conduits meet it, from its
+  kind (furnaces, analyzers, vents, tanks, generators) —, `PortsOf(machine)` — the cells where pipes meet it (`pipes`, 0109), from its
   kind's port offsets —, `WallAt(cell)` and `BackAt(cell)` — the `Material` of the wall or back
   wall there, null for none —, `GrownBack(cell)` — whether that back wall is a grown ground's own, unchanged since it
   grew, false aboard, on drawn maps and for one a hero built (0084) —, `Footprint(kind, cell)` — the cells a machine or a piece of that
@@ -70,8 +68,8 @@ free back slot: it stands behind anything, and in space.
   structure there is part of, taken apart as one (0104), ascending: a door cell's whole doorway, a ladder cell's two by two (its
   columns paired from the left end of its row's run of ladder, its rows from the top of its column's), any other structure its
   own cell, none for none —, `PlacementProblem(cell, placement)`,
-  `AfterToggles(commands)` — the structure and conduit codes of just the cells the `SetDoor`s and
-  `SetValve`s among the commands would change, each as it would apply and skipped where refused,
+  `AfterToggles(commands)` — the structure codes of just the cells the `SetDoor`s among the commands
+  would change, each as it would apply and skipped where refused,
   every other cell as the world has it: what a client shows of its own toggles before their tick runs
   (0014). Not copies of the layers: those were 16 MB a tick on a 2048×1024 world while a toggle was in
   flight.
@@ -80,9 +78,8 @@ free back slot: it stands behind anything, and in space.
   cell. Only in commands or construction: modules reading the grid in derivation trust that nothing
   changes it after.
 - **Commands:** `SetDoor(cell, open)` — opens or shuts the whole doorway, the straight run of door cells
-  `cell` is in (`Doorways`, 0067), every cell of it, a part-open one too; refused with `grid.noDoor`. `SetValve(cell, open)`,
-  refused with `grid.noValve`. Each says the state its sender saw it should take, not a flip (0071): a door or
-  valve already so is left alone, the grid's version too, so two peers opening one door at once leave it open.
+  `cell` is in (`Doorways`, 0067), every cell of it, a part-open one too; refused with `grid.noDoor`. It says the state its sender saw it should take, not a flip (0071): a door
+  already so is left alone, the grid's version too, so two peers opening one door at once leave it open.
 - **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.outsideZone` (the cell, or any cell of a
   machine's footprint, outside the zone), `grid.occupied`, `grid.machineInTheWay`,
   `grid.blocked`, `grid.noSuchMaterial`, `grid.noSuchMachine`.
@@ -113,8 +110,7 @@ Natural materials (`Material.Natural`) are walls like any other to the grid: wha
 **A grown grid saves its edits** (0077, `Grown.cs`): on a layout grown from a seed (`Layout.Grown`), the grid notes what each
 cell held as grown on its first write (derived: `_base`, never saved) and a save holds, in place of its layers, a
 `GrownGrid`: its size, zone, machines, next machine id and `edits`, the cells that differ now from the ground as grown,
-ascending, each `cell, structure, material, conduit, back, backMaterial` (five layers after the cell since 0106; the save format
-stays 28, and a format-28 save's `shape` key is ignored). Loading, it is handed the ground grown
+ascending, each `cell, structure, material, back, backMaterial` (four layers after the cell since 0109, pipes being spans). Loading, it is handed the ground grown
 again from the surface's seed and lays the edits on it. A cell changed and changed back is no edit, so every peer saves
 and hashes the same edits whatever its history (`GrownSaveTests`). A drawn map (the ship, the strip, tests) saves every
 layer as runs, as ever.

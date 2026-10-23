@@ -1,48 +1,61 @@
 # Pipes
 
-Pipe networks: the runs of pipes that carry oxygen between tanks and vents, found from the grid's
-conduit layer and machines. Ported from `packages/sim/src/modules/pipes`; its rules hold here
-unchanged.
+Pipes as spans (ADR 0109): straight pipes between machines' ports and joints, laid and taken away by hand with the
+wrench, valves on joints, and the networks they join, along which air flows between the machines on them. Shaped as
+`power`'s cables are; the per-cell conduit layer of the grid is gone.
 
-- **Depends on:** `Grid`, through `IGridQueries` (`ConduitLayer`, `ChangedSince`, `Machines`, `PortsOf`).
-- **State:** nothing saved. Derived: `NetworkOf` per cell (a network's id, or `PipeNetworks.None`), the
-  networks in id order, the grid's `Version` they were found at, and the networks' own `Version`.
-- **Files:** `PipeNetworks.cs` — the rules below, on plain arrays; `Pipes.cs` — the module.
+- **Depends on:** `grid` (`IGridQueries`: `Machines`, `PortsOf`, `MachineAt`, `Zone`, `ChangedSince`), `items`
+  (`IItemsQueries`, `IItemsOps`: what a span or a valve costs, given back).
+- **State** (`PipesState`, members internal): `Spans` — every `PipeSpan(A, B, Paid)`, its node cells the lower first,
+  ordered by its ends; `Valves` — every `Valve(Cell, Open, Paid)`, by cell. Saved. Derived: `NetworkOf` (node cell → its
+  network), `Networks` in id order, the grid's version last looked at, `Version`, and `Stale` (a span or valve changed).
+- **Files:** `Pipes.cs` — the module, its records, queries and commands; `PipeNetworks.cs` — the networks from the spans,
+  and a map's drawn pipes as spans; `Fuzz.cs` — its fuzz generator.
 
 ## Rules
 
-- Pipes and open valves carry; a closed valve does not, so it splits a run in two and belongs to no
-  network. Conduits join side by side, never corner to corner.
-- A network is a component of the cells that carry; its id is its smallest cell.
-- A machine joins every network one of its ports stands on (`IGridQueries.PortsOf`): a vent through
-  its own cell, a tank through its bottom-left. A pipe under another cell of a machine does not
-  connect it.
-- Networks are found again on the tick a conduit or machine changes: a system in the derivation phase
-  asks the grid's log, on each tick its `Version` moved, for the cells changed since the networks were
-  found (0051), and finds them again, bumping `Version`, when a conduit or a machine is among them, or
-  the log no longer reaches back that far. Read networks in systems at or after derivation, never in
-  commands or construction.
+- **A node** is a cell a span ends at: a machine's port (`IGridQueries.PortsOf`: a vent's own cell, a tank's bottom-left)
+  or a **joint**, any other cell of the build zone, a wall, a back wall, open space or a machine's other cell alike. A
+  joint comes with the first span laid to it and goes with the last cut. A port whose machine is taken apart stays a
+  joint; a machine built with a port on a node joins it.
+- **A span** joins two different cells of the zone straight, at any angle, at most `Content.Piping.MaxSpan` (12) long;
+  two cells take one span at most. Its length is the square root of the cells' squared distance, an integer, rounded up
+  (`LengthOf`: 3 by 4 is 5, 1 by 1 is 2). It costs one `Content.Piping.Item` (a tube) per started
+  `CellsPerItem` (4) cells, taken from the sender as it is laid, given back as it is cut; in creative mode it costs
+  nothing and gives nothing back (`Paid`). It takes no cell: it passes through walls and seals nothing.
+- **A valve** is a joint that opens and closes (`MakeValve(cell, true)`, `Content.Piping.ValveCost`, open as made;
+  `MakeValve(cell, false)` turns it back, refunded). Only a joint becomes one, never a port. `SetValve(cell, open)` says
+  the state its sender saw it should take (0071): one already so is left alone. Its last span cut, a valve goes with it,
+  refunded.
+- **A network** is a component of the nodes that carry, joined by spans; a closed valve carries nothing, so it splits its
+  spans apart and is in no network. Its id is its smallest node cell; its cells are its nodes in order; its machines,
+  every machine with a port among them, by id. Found again in the derivation phase when a span or valve changed, or a
+  machine came or went (the grid's log, 0051); never in commands.
+- **Maps** draw pipes as cells (`-`, `v` open, `x` closed, `-` under machines): every drawn pipe cell that is a valve, a
+  machine's port, an end, a corner or a branch is a node, every straight run between two nodes a span, cut by a joint every
+  12 cells from its start (`PipeNetworks.FromLayout`). A lone pipe joining nothing is dropped. They count as paid. The
+  machines a drawing connected are connected the same (`DoubledTests`).
 
 ## API
 
-- **Queries** (`IPipesQueries`): `NetworkAt(cell)` — a network's id, or null; `NetworksOf(machineId)`
-  — the networks a machine has a port on, in id order; `Network(id)`; `Networks` in id order, each a
-  `Network(Id, Cells, Machines)` with cells in cell order and machines by id. `Networks` is the same
-  list until a conduit or machine changes: a reader may compare it by reference. `Version` — bumped
-  each time the networks are found again, never saved: what `atmosphere` keeps of the networks, it
-  keeps while this stays.
-- **Commands, operations, events:** none.
+- **Queries** (`IPipesQueries`): `NetworkAt(cell)`, `NetworksOf(machineId)`, `Network(id)`, `Networks`, `Version` as
+  before; `Spans`, `Valves`, `ValveAt(cell)`; `LayProblem(peer, a, b)` and `ValveProblem(peer, cell, valve)` — why that
+  command would be refused, for the wrench's ghost; `AfterToggles(commands)` — whether each valve the `SetValve`s among
+  them name would be open, for what a client shows before its tick runs (0014). Static: `LengthOf(width, a, b)`,
+  `CostOf(length)`.
+- **Commands:** `LayPipe(A, B)` — `pipes.offGrid`, `pipes.sameCell`, `pipes.outsideZone`, `pipes.tooLong`, `pipes.twice`,
+  then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, then whether the refund fits; `MakeValve(Cell,
+  Valve)` — `pipes.noJoint`, `pipes.already`, `pipes.noValve`, then the items; `SetValve(Cell, Open)` — `pipes.noValve`.
 
 ## Invariants
 
-- Every pipe and open valve is in exactly one network, shared with every pipe and open valve beside it;
-  closed valves and empty cells are in none.
-- What the networks are depends on the grid alone: the same after a load as before it.
+- Every node not a closed valve is in exactly one network, shared with every carrying node a span joins it to.
+- Every valve stands on a joint some span ends at.
+- What the networks are depends on the spans, valves and machines alone: the same after a load as before it.
 
 ## Deliberately not handled
 
-- **Identity.** Ids are smallest cells, so closing a valve splits a network and opening one merges two;
-  nothing links networks across a rebuild. Atmosphere keys oxygen on what it owns (tanks), not on
-  network ids.
-- Pipes only: wires join this when they arrive and make it generic.
-- A rebuild is a full pass over the grid, on each conduit or machine change.
+- **Identity.** Network ids are smallest cells, so shutting a valve splits a network and opening one merges two.
+- **Meteors** break walls, not pipes: a span passes through a wall and stays (0109).
+- **Spans crossing** do not join: only shared ends do.
+- **Taking a machine apart** with spans on its ports is allowed: its ports stay joints.

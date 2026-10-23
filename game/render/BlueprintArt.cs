@@ -46,8 +46,6 @@ public static class BlueprintArt
         // A piece whole from its top-left (0104), as a machine is: a ladder, or a door or a hatch, planned shut.
         "ladder" => [new(TileLayer.Fixtures, ShipTiles.PieceName(placement.Kind))],
         "door" or Builds.Hatch => [new(TileLayer.Doors, ShipTiles.PieceName(placement.Kind))],
-        "pipe" => [new(TileLayer.Pipes, $"pipe_{linked}")],
-        "valve" => [new(TileLayer.Pipes, $"pipe_{linked}"), new(TileLayer.Valves, "valve_open")],
         _ => [new(TileLayer.Machines, $"machine_{placement.Kind}", Rise: ShipTiles.RiseOf(placement.Kind))],
     };
 

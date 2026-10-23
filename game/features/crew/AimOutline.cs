@@ -46,10 +46,9 @@ public static class AimOutline
             Doorway(outline, grid, shown, aim.Cell, colour);
             return;
         }
-        int conduit = shown.ConduitAt(grid, aim.Cell);
-        if (conduit is Conduit.ValveOpen or Conduit.ValveClosed)
+        if (shown.ValveOpenAt(m.Pipes, aim.Cell) is bool open)
         {
-            var valve = ShipTiles.PictureOf(conduit == Conduit.ValveOpen ? "valve_open" : "valve_closed");
+            var valve = ShipTiles.PictureOf(open ? "valve_open" : "valve_closed");
             outline.Add(valve, CornerOf(aim.Cell, width) + new Vector2(Cell, Cell) / 2, 0, 1, colour);
             return;
         }

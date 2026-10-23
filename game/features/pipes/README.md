@@ -1,22 +1,21 @@
-# pipes (client): the pipes overlay
+# pipes (client): spans, the wrench and the pipes overlay
 
-P brings every pipe network out of the dimmed ship in a colour of its own, ported from
-`apps/game/src/features/pipes/` (G-08). Reads `sim/Pipes` (`Networks`), `IGridQueries`
-(`ConduitLayer`, `ChangedSince`, `Built`, `Machines`, `PortsOf`), `Atmosphere.OxygenIn` and `Power.Satisfaction`.
+The pipes as built, the wrench's hands and the overlay that shows every network while it is held (0109), ported from
+`apps/game/src/features/pipes/` (G-08) and made spans. Reads `sim/Pipes` (`Spans`, `Valves`, `Networks`, `NetworkAt`,
+`LayProblem`), `IGridQueries` (`Machines`, `PortsOf`, `MachineAt`), `Atmosphere.OxygenIn` and `Power.Satisfaction`; sends
+`LayPipe`, `CutPipe` and `MakeValve` (a valve's E is the crew's `SetValve`).
 
-| File              | Holds                                                                  | Godot |
-| ----------------- | ---------------------------------------------------------------------- | ----- |
-| `Flow.cs`         | steps from the sources, runs and dots of oxygen, the palette (`flow.ts`, `oxygen.ts`) | no    |
-| `PipesOverlay.cs` | the overlay: dim, network colours (faded when dry), valves, sockets, dots | yes   |
-| `Valves.cs`       | the cells holding a valve, kept up with the grid's log                | no    |
+| File              | Holds                                                                                          | Godot |
+| ----------------- | ---------------------------------------------------------------------------------------------- | ----- |
+| `PipesView.cs`    | every span as the pipe art's straight run along it at any angle, 4 px thick; a flange at each joint, a valve's wheel open or shut, heard turning | yes |
+| `PipeHands.cs`    | the wrench: a left drag lays, Ctrl and a click makes or unmakes a valve, a right press takes the nearest span away (tested) | no |
+| `Flow.cs`         | oxygen along spans from the sources, its runs and dots, the palette (`flow.ts`, `oxygen.ts`; tested) | no |
+| `PipesOverlay.cs` | the overlay while the wrench is held: networks in colours of their own (faded when dry), valves, sockets, dots; the span being laid green or red with its reason, its length and cost by the pointer | yes |
 
-- Oxygen runs from tanks holding some and powered generators; a network none feeds is faded and still.
-- Read every 250 ms once the world ticked; the dots move every frame. `flow.test.ts` is ported.
-- Valves are kept up with the grid's log (`Valves`, 0051): only the cells changed since the last read are
-  looked at. A grid not seen before, or one whose log no longer reaches back, is looked at within its
-  `Built` only, where every conduit is: a big world of space costs nothing. `BuiltBoundsTests` holds
-  them to a whole look.
-- Out of the overlay the grid draws the pipes (`features/grid`). Planned pipes are the building's: they
-  join every conduit beside them, built, planned or in the same drag, as built ones do, with a stub on a
-  built neighbour (`features/building`). The overlay draws only what is built; colouring plans by the
-  network they will join waits on a decision.
+- The overlay shows only while the wrench is held (`Tools.OverlayShown`); the plan menu has no pipes, valves or pipe
+  overlay. Its buttons are the wrench's (`Hands`): the building takes none.
+- A press on a machine's cell stands for its nearest port (`PipeHands.CellAt`); anywhere else, the cell itself.
+- Oxygen runs from tanks holding some and powered generators; a network none feeds is faded and still. Read every
+  250 ms once the world ticked; the dots move every frame.
+- Out of the overlay the pipes are `PipesView`'s, lit as the ship is, behind what stands in front (`Layers.Pipes`,
+  `Valves`); redrawn only when the spans, valves or grid change.

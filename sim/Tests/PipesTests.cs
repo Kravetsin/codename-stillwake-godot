@@ -1,202 +1,178 @@
-using FsCheck;
-using FsCheck.Fluent;
-using FsCheck.Xunit;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Pipes;
 using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>packages/sim/src/modules/pipes/pipes.test.ts, ported; and the grid queries pipes reads.</summary>
+/// <summary>Pipes as spans (0109): laid and cut with the wrench, joints and valves, the networks they join, and maps' pipes as spans.</summary>
 public class PipesTests
 {
-    private static readonly Placement Pipe = new("conduit", "pipe");
+    /// <summary>Three vents, two cells square, their ports their top-left cells: (0, 0), (12, 4) and (0, 8); open cells between.</summary>
+    private const string Vents = """
+        VV..............
+        VV..............
+        ................
+        ................
+        ............VV..
+        ............VV..
+        ................
+        ................
+        VV..............
+        VV..............
+        """;
+
     private static readonly Placement Vent = new("machine", "vent");
 
-    private static (int, int)[] Summary(Scenario w) => w.M.Pipes.Networks.Select(n => (n.Id, n.Cells.Count)).ToArray();
+    private static Scenario World() => new Scenario(Vents, cells: true).GiveItems(0, ("tube", 20), ("gear", 4));
+    private static int Tubes(Scenario w) => w.M.Items.Totals(0).Where(t => t.Item == "tube").Sum(t => t.Count);
+    private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
+    private static int VentAt(Scenario w, int cell) => w.M.Grid.MachineAt(cell)!.Id;
 
     [Fact]
-    public void MakesOneNetworkOfEachRunOfPipesNamedByItsSmallestCell()
+    public void MeasuresASpanByItsRootRoundedUpAndPricesItATubeAStartedFourCells()
     {
+        Assert.Equal(5, PipesModule.LengthOf(16, 0, 4 * 16 + 3));
+        Assert.Equal(2, PipesModule.LengthOf(16, 0, 17));
+        Assert.Equal(12, PipesModule.LengthOf(16, 0, 12));
+        Assert.Equal(13, PipesModule.LengthOf(16, 0, 12 * 16 + 5));
+        Assert.Equal([("tube", 1)], PipesModule.CostOf(1));
+        Assert.Equal([("tube", 1)], PipesModule.CostOf(4));
+        Assert.Equal([("tube", 2)], PipesModule.CostOf(5));
+        Assert.Equal([("tube", 3)], PipesModule.CostOf(Content.Piping.MaxSpan));
+    }
+
+    [Fact]
+    public void LaysAStraightSpanAndADiagonalOneThroughAJointJoiningTwoVentsPaidByLength()
+    {
+        var w = World();
+        int a = w.At(0, 0), joint = w.At(6, 0), b = w.At(12, 4);
+        w.Do(new LayPipe(a, joint)).Run();
+        Assert.Equal(20 - 2, Tubes(w));
+        Assert.Empty(w.M.Pipes.NetworksOf(VentAt(w, b)));
+        // Six across and four down: the root of 52 rounded up, 8 cells, two tubes.
+        w.Do(new LayPipe(b, joint)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(20 - 4, Tubes(w));
+        Assert.Equal([new PipeSpan(a, joint, true), new PipeSpan(joint, b, true)], w.M.Pipes.Spans);
+        var network = Assert.Single(w.M.Pipes.Networks);
+        Assert.Equal(a, network.Id);
+        Assert.Equal(new[] { a, joint, b }, network.Cells);
+        Assert.Equal(new[] { VentAt(w, a), VentAt(w, b) }, network.Machines);
+        Assert.Equal(a, w.M.Pipes.NetworkAt(joint));
+        Assert.Null(w.M.Pipes.NetworkAt(w.At(3, 0)));
+    }
+
+    [Fact]
+    public void BranchesAtAJointWithManySpansAndAClosedValveShutsItsBranchOff()
+    {
+        var w = World();
+        int a = w.At(0, 0), joint = w.At(6, 4), valve = w.At(3, 7), b = w.At(12, 4), c = w.At(0, 8);
+        w.Do(new LayPipe(a, joint)).Do(new LayPipe(joint, b)).Do(new LayPipe(joint, valve)).Do(new LayPipe(valve, c)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(new[] { VentAt(w, a), VentAt(w, b), VentAt(w, c) }, Assert.Single(w.M.Pipes.Networks).Machines);
+        w.Do(new MakeValve(valve, true)).Run();
+        Assert.Equal(new Valve(valve, true, true), w.M.Pipes.ValveAt(valve));
+        Assert.Single(w.M.Pipes.Networks);
+        // Shut, the branch past it is a network of its own, the valve in none.
+        w.Do(new SetValve(valve, false)).Run();
+        Assert.Equal(new[] { VentAt(w, a), VentAt(w, b) }, w.M.Pipes.Network(a)!.Machines);
+        Assert.Equal(new[] { VentAt(w, c) }, w.M.Pipes.Network(c)!.Machines);
+        Assert.Null(w.M.Pipes.NetworkAt(valve));
+        int version = w.M.Pipes.Version;
+        w.Do(new SetValve(valve, false)).Run();
+        Assert.Equal(version, w.M.Pipes.Version);
+        w.Do(new SetValve(valve, true)).Run();
+        Assert.Single(w.M.Pipes.Networks);
+        w.Reload();
+        Assert.Equal(new Valve(valve, true, true), w.M.Pipes.ValveAt(valve));
+        Assert.Equal(4, w.M.Pipes.Spans.Count);
+    }
+
+    [Fact]
+    public void CuttingRefundsItsTubesAndAValveLeftOnNoSpanGoesWithItRefundedToo()
+    {
+        var w = World();
+        int a = w.At(0, 0), joint = w.At(6, 0);
+        w.Do(new LayPipe(a, joint)).Do(new MakeValve(joint, true)).Run();
+        Assert.Equal((18 - 1, 3), (Tubes(w), w.M.Items.Totals(0).Single(t => t.Item == "gear").Count));
+        w.Do(new MakeValve(joint, false)).Run();
+        Assert.Null(w.M.Pipes.ValveAt(joint));
+        Assert.Equal(18, Tubes(w));
+        w.Do(new MakeValve(joint, true)).Do(new CutPipe(joint, a)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(w.M.Pipes.Spans);
+        Assert.Empty(w.M.Pipes.Valves);
+        Assert.Empty(w.M.Pipes.Networks);
+        Assert.Equal(20, Tubes(w));
+        Assert.Equal(4, w.M.Items.Totals(0).Single(t => t.Item == "gear").Count);
+    }
+
+    [Fact]
+    public void RefusesEveryBadSpanAndCut()
+    {
+        var w = World();
+        int a = w.At(0, 0);
+        w.Do(new LayPipe(-1, a)).Do(new LayPipe(a, a)).Do(new LayPipe(a, w.At(13, 0)))
+            .Do(new LayPipe(a, w.At(5, 0))).Do(new LayPipe(w.At(5, 0), a)).Do(new CutPipe(a, w.At(6, 0))).Run();
+        Assert.Equal(["pipes.offGrid", "pipes.sameCell", "pipes.tooLong", "pipes.twice", "pipes.noPipe"], Reasons(w));
+        // Nothing to pay with.
+        var poor = new Scenario(Vents, cells: true);
+        poor.Do(new LayPipe(a, w.At(5, 0))).Run();
+        Assert.Equal("items.notEnough", Assert.Single(poor.Refusals).Reason);
+        // Outside the build zone.
+        var zoned = new Scenario(Sim.Layout.Parse(Vents) with { Zone = new Box(0, 0, 7, 9) }).GiveItems(0, ("tube", 5));
+        zoned.Do(new LayPipe(a, w.At(9, 0))).Run();
+        Assert.Equal("pipes.outsideZone", Assert.Single(zoned.Refusals).Reason);
+        Assert.Equal("pipes.outsideZone", zoned.M.Pipes.LayProblem(0, a, w.At(9, 0)));
+    }
+
+    [Fact]
+    public void RefusesAValveOffAJointTwiceOrUnpaidAndATurnOfNone()
+    {
+        var w = World();
+        int a = w.At(0, 0), joint = w.At(6, 0);
+        w.Do(new LayPipe(a, joint)).Run();
+        w.Do(new MakeValve(w.At(3, 0), true)).Do(new MakeValve(a, true)).Do(new MakeValve(joint, false)).Do(new SetValve(joint, true))
+            .Do(new MakeValve(joint, true)).Do(new MakeValve(joint, true)).Run();
+        Assert.Equal(["pipes.noJoint", "pipes.noJoint", "pipes.noValve", "pipes.noValve", "pipes.already"], Reasons(w));
+        var poor = new Scenario(Vents, cells: true).GiveItems(0, ("tube", 2));
+        poor.Do(new LayPipe(a, joint)).Do(new MakeValve(joint, true)).Run();
+        Assert.Equal("items.notEnough", Assert.Single(poor.Refusals).Reason);
+    }
+
+    [Fact]
+    public void APortWhoseMachineIsTakenAwayStaysAJointAndAMachinePutBackJoinsAgain()
+    {
+        var w = World();
+        int a = w.At(0, 0), b = w.At(12, 4);
+        w.Do(new LayPipe(a, w.At(6, 0))).Do(new LayPipe(w.At(6, 0), b)).Run();
+        int id = VentAt(w, b);
+        w.Do(new ClearAt(b, "machine")).Run();
+        Assert.Equal(new[] { VentAt(w, a) }, w.M.Pipes.Network(a)!.Machines);
+        Assert.Equal(3, w.M.Pipes.Network(a)!.Cells.Count);
+        w.Do(new Place(b, Vent)).Run();
+        Assert.Equal(new[] { VentAt(w, a), id + 2 }, w.M.Pipes.Network(a)!.Machines);
+    }
+
+    [Fact]
+    public void AMapsPipesBecomeSpansEndsCornersBranchesAndValvesJointsALongRunCutEveryTwelveCells()
+    {
+        // A run of 30 to a corner, 3 down to a branch; along the bottom a closed valve.
         var w = new Scenario("""
-            ---..
-            ..-..
-            .....
-            -....
-            --...
+            ------------------------------.
+            .............................-.
+            .............................-.
+            .....-----x--------------------
             """, cells: true);
-        var networks = w.M.Pipes.Networks;
-        Assert.Equal(2, networks.Count);
-        Assert.Equal(w.At(0, 0), networks[0].Id);
-        Assert.Equal(new[] { w.At(0, 0), w.At(1, 0), w.At(2, 0), w.At(2, 1) }, networks[0].Cells);
-        Assert.Empty(networks[0].Machines);
-        Assert.Equal(w.At(0, 3), networks[1].Id);
-        Assert.Equal(new[] { w.At(0, 3), w.At(0, 4), w.At(1, 4) }, networks[1].Cells);
-        Assert.Empty(networks[1].Machines);
-        Assert.Equal(w.At(0, 0), w.M.Pipes.NetworkAt(w.At(2, 1)));
-        Assert.Null(w.M.Pipes.NetworkAt(w.At(3, 3)));
-        Assert.Null(w.M.Pipes.NetworkAt(-1));
-    }
-
-    /// <summary>A pipe laid out in space, then taken up: what is built shrinks past it, and the network still loses it.</summary>
-    [Fact]
-    public void FindsANetworkAgainWhenAPipeAtTheEdgeOfWhatIsBuiltIsTakenUp()
-    {
-        var w = new Scenario(Layout.Parse(["---     "]));
-        w.Do(new Place(w.At(3, 0), Pipe)).Do(new Place(w.At(4, 0), Pipe)).Run();
-        Assert.Equal(new[] { (0, 5) }, Summary(w));
-        w.Do(new ClearAt(w.At(4, 0), "conduit")).Run();
-        Assert.Equal(new Box(0, 0, 3, 0), w.M.Grid.Built);
-        Assert.Equal(new[] { (0, 4) }, Summary(w));
-    }
-
-    [Fact]
-    public void JoinsPipesSideBySideOnlyNotCornerToCorner()
-    {
-        var w = new Scenario("""
-            -.
-            .-
-            """, cells: true);
-        Assert.Equal(new[] { (0, 1), (3, 1) }, Summary(w));
-    }
-
-    [Fact]
-    public void SplitsANetworkAtAClosedValveAndJoinsItAgainWhenTheValveOpens()
-    {
-        var w = new Scenario("--v--", cells: true);
-        Assert.Equal(new[] { (0, 5) }, Summary(w));
-        w.Do(new SetValve(2, false)).Run();
-        Assert.Equal(new[] { (0, 2), (3, 2) }, Summary(w));
-        // A closed valve carries nothing, so it belongs to no network.
-        Assert.Null(w.M.Pipes.NetworkAt(2));
-        w.Do(new SetValve(2, true)).Run();
-        Assert.Equal(new[] { (0, 5) }, Summary(w));
-    }
-
-    [Fact]
-    public void JoinsTwoNetworksWhenThePipeBetweenThemIsBuilt()
-    {
-        var w = new Scenario("--.--", cells: true);
-        Assert.Equal(new[] { (0, 2), (3, 2) }, Summary(w));
-        w.Do(new Place(2, Pipe)).Run();
-        Assert.Equal(new[] { (0, 5) }, Summary(w));
-        w.Do(new ClearAt(2, "conduit")).Run();
-        Assert.Equal(new[] { (0, 2), (3, 2) }, Summary(w));
-    }
-
-    [Fact]
-    public void PutsAMachineOnTheNetworkItsPortStandsOnAndOnlyThroughItsPort()
-    {
-        // A vent's port is its top-left cell; a tank's is the top-left of its bottom-left block.
-        var w = new Scenario("""
-            V---
-            ....
-            TT..
-            TT..
-            """);
-        var tank = w.M.Grid.Machines.Single(m => m.Kind == "tank");
-        var vent = w.M.Grid.Machines.Single(m => m.Kind == "vent");
-        Assert.Empty(w.M.Pipes.NetworksOf(vent.Id));
-        // The port and the vent's cell between it and the run.
-        w.Do(new Place(w.At(0, 0), Pipe)).Do(new Place(w.At(0, 0) + 1, Pipe)).Do(new Place(w.At(1, 2), Pipe)).Run();
-        Assert.Equal(new[] { w.At(0, 0) }, w.M.Pipes.NetworksOf(vent.Id));
-        Assert.Equal(new[] { vent.Id }, w.M.Pipes.Network(w.At(0, 0))?.Machines);
-        // Under the tank but not its port: no connection.
-        Assert.Empty(w.M.Pipes.NetworksOf(tank.Id));
-        w.Do(new Place(w.At(0, 3), Pipe)).Run();
-        Assert.Equal(new[] { w.At(0, 3) }, w.M.Pipes.NetworksOf(tank.Id));
-    }
-
-    [Fact]
-    public void LetsGoOfAMachineThatIsTakenAwayAndTakesUpOnePutBack()
-    {
-        var w = new Scenario("-V-");
-        var vent = w.M.Grid.Machines[0];
-        int port = w.At(1, 0);
-        // The vent's port, and the cell between it and the pipe drawn left of it.
-        w.Do(new Place(port - 1, Pipe)).Do(new Place(port, Pipe)).Run();
-        Assert.Equal(new[] { vent.Id }, w.M.Pipes.Network(0)?.Machines);
-        w.Do(new ClearAt(port, "machine")).Run();
-        Assert.Empty(w.M.Pipes.Network(0)!.Machines);
-        w.Do(new Place(port, Vent)).Run();
-        Assert.Equal(new[] { vent.Id + 1 }, w.M.Pipes.Network(0)?.Machines);
-        // Replaced in one tick, so as many machines stand as before: still noticed.
-        w.Do(new ClearAt(port, "machine")).Do(new Place(port, Vent)).Run();
-        Assert.Equal(new[] { vent.Id + 2 }, w.M.Pipes.Network(0)?.Machines);
-    }
-
-    [Fact]
-    public void KeepsWhatItFoundWhileConduitsAndMachinesStayAsTheyAre()
-    {
-        var w = new Scenario("-.D.-");
-        var found = w.M.Pipes.Networks;
-        w.Run(20).Do(new SetDoor(2, true)).Run();
-        Assert.Same(found, w.M.Pipes.Networks);
-    }
-
-    private static readonly char[] Chars = [' ', '-', '-', '-', 'v', 'x', '#'];
-
-    /// <summary>
-    /// Every pipe and open valve is in one network shared with its neighbours, whatever valves do, and
-    /// a load finds the same: the invariant test of pipes.test.ts.
-    /// </summary>
-    [Property(MaxTest = 300)]
-    public Property PutsEveryPipeAndOpenValveInOneNetworkSharedWithItsNeighboursAsAfterALoad()
-    {
-        var gen =
-            from width in Gen.Choose(1, 12)
-            from height in Gen.Choose(1, 10)
-            from cells in Gen.Elements(Chars).ArrayOf(width * height)
-            from count in Gen.Choose(0, 8)
-            from toggles in Gen.Choose(0, width * height - 1).ArrayOf(count)
-            select (width, height, cells, toggles);
-        return Prop.ForAll(gen.ToArbitrary(), t =>
-        {
-            var rows = Enumerable.Range(0, t.height).Select(y => new string(t.cells, y * t.width, t.width)).ToArray();
-            var w = new Scenario(Layout.Parse(rows));
-            int size = t.width * t.height;
-            foreach (int cell in t.toggles)
-                if (w.M.Grid.ConduitLayer[cell] is Conduit.ValveOpen or Conduit.ValveClosed)
-                    w.Do(new SetValve(cell, w.M.Grid.ConduitLayer[cell] == Conduit.ValveClosed)).Run();
-
-            bool Carries(int c) => w.M.Grid.ConduitLayer[c] is Conduit.Pipe or Conduit.ValveOpen;
-            var counts = new SortedDictionary<int, int>();
-            for (int cell = 0; cell < size; cell++)
-            {
-                var id = w.M.Pipes.NetworkAt(cell);
-                if ((id != null) != Carries(cell)) return false;
-                if (id == null) continue;
-                // Cells come in order, so a network's first cell is its smallest: its id.
-                if (!counts.ContainsKey(id.Value) && cell != id) return false;
-                counts[id.Value] = counts.GetValueOrDefault(id.Value) + 1;
-                int x = cell % t.width;
-                foreach (int n in new[] { x > 0 ? cell - 1 : -1, x < t.width - 1 ? cell + 1 : -1, cell - t.width, cell + t.width })
-                    if (n >= 0 && n < size && Carries(n) && w.M.Pipes.NetworkAt(n) != id) return false;
-            }
-            var networks = w.M.Pipes.Networks;
-            if (!networks.Select(n => (n.Id, n.Cells.Count)).SequenceEqual(counts.Select(kv => (kv.Key, kv.Value)))) return false;
-            if (networks.Any(n => n.Cells.Where((c, i) => i > 0 && c <= n.Cells[i - 1]).Any())) return false;
-            static string Text(IReadOnlyList<Pipes.Network> ns) =>
-                string.Join(";", ns.Select(n => $"{n.Id}:{string.Join(",", n.Cells)}:{string.Join(",", n.Machines)}"));
-            string before = Text(networks);
-            w.Reload();
-            return before == Text(w.M.Pipes.Networks);
-        });
-    }
-
-    /// <summary>grid.test.ts, the queries pipes reads: a machine's ports and the conduit layer.</summary>
-    [Fact]
-    public void GridReadsAMachinesPortsAndItsConduitLayer()
-    {
-        var w = new Scenario("""
-            V...
-            TT-.
-            TTvx
-            """);
-        var vent = w.M.Grid.Machines.Single(m => m.Kind == "vent");
-        var tank = w.M.Grid.Machines.Single(m => m.Kind == "tank");
-        Assert.Equal(new[] { w.At(0, 0) }, w.M.Grid.PortsOf(vent));
-        Assert.Equal(new[] { w.At(0, 2) }, w.M.Grid.PortsOf(tank));
-        Assert.Equal(new[] { Conduit.Pipe, Conduit.None, Conduit.ValveOpen, Conduit.ValveClosed },
-            new[] { w.At(2, 1), w.At(3, 1), w.At(2, 2), w.At(3, 2) }.Select(c => w.M.Grid.ConduitLayer[c]));
+        (int, int) Span(int x0, int y0, int x1, int y1) => (w.At(x0, y0), w.At(x1, y1));
+        Assert.Equal(
+            new[] { Span(0, 0, 12, 0), Span(12, 0, 24, 0), Span(24, 0, 29, 0), Span(29, 0, 29, 3), Span(5, 3, 10, 3), Span(10, 3, 22, 3), Span(22, 3, 29, 3), Span(29, 3, 30, 3) }
+                .OrderBy(s => s.Item1).ThenBy(s => s.Item2),
+            w.M.Pipes.Spans.Select(s => (s.A, s.B)));
+        Assert.All(w.M.Pipes.Spans, s => Assert.True(s.Paid));
+        Assert.Equal(new Valve(w.At(10, 3), false, true), Assert.Single(w.M.Pipes.Valves));
+        // Shut, the valve cuts the bottom run's left end off.
+        Assert.Equal(new[] { w.At(0, 0), w.At(5, 3) }, w.M.Pipes.Networks.Select(n => n.Id));
+        Assert.Equal(new[] { w.At(5, 3) }, w.M.Pipes.Network(w.At(5, 3))!.Cells);
     }
 }

@@ -12,7 +12,7 @@ namespace Stillwake.Sim;
 public sealed class World
 {
     /// <summary>Bumped whenever saved data changes shape; a save of another format is refused.</summary>
-    public const int SaveFormat = 28;
+    public const int SaveFormat = 29;
 
     /// <summary>How many ticks a second of game time holds: the host releases them at this pace.</summary>
     public const int TicksPerSecond = 20;

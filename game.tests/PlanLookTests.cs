@@ -27,42 +27,13 @@ public class PlanLookTests
     }
 
     [Fact]
-    public void APlannedPipeJoinsBuiltPipesAndAMachineJoinsNothing()
+    public void AMachineJoinsNothing()
     {
         var grid = new TestWorld("""
-            .-..
+            ....
             ..#.
             """).M.Grid;
-        Assert.Equal(Blueprint.Up, Tools.LinksOf(new Placement("conduit", "pipe"), 5, 4, _ => [], grid));
-        Assert.Equal(Blueprint.Up | Blueprint.Right, Tools.LinksOf(new Placement("conduit", "valve"), 5, 4, c => c == 6 ? [new Placement("conduit", "pipe")] : [], grid));
         Assert.Equal(0, Tools.LinksOf(new Placement("machine", "vent"), 5, 4, c => [new Placement("machine", "vent")], grid));
-    }
-
-    [Fact]
-    public void ABuiltPipeBesidePlannedOnesReachesTowardThemButNeverRoundARowsEnd()
-    {
-        var grid = new TestWorld("""
-            .-.-
-            ....
-            """).M.Grid;
-        bool Built(int c) => grid.ConduitAt(c) != Conduit.None;
-        Assert.Equal([(1, Blueprint.Right | Blueprint.Down), (3, Blueprint.Left)], Tools.StubsOf(new HashSet<int> { 2, 5 }, 4, Built).OrderBy(s => s.Cell));
-        // Cell 4 starts the row under the pipe at 3, which ends its own: no stub.
-        Assert.Empty(Tools.StubsOf(new HashSet<int> { 4 }, 4, Built));
-        // What reaches is the caller's to say: a ghost's reach takes planned pipes too.
-        Assert.Equal([(6, Blueprint.Left)], Tools.StubsOf(new HashSet<int> { 5 }, 4, c => c == 6));
-    }
-
-    [Fact]
-    public void ABuiltPipesStubIsItsArmsTowardThePlansOnlyLeavingItsJointToTheGrid()
-    {
-        // The joint of pipe_0, 6 pixels square in the cell's middle; a built pipe's joint drawn as a ghost made it look unbuilt.
-        var joint = (X: 5, Y: 5, W: 6, H: 6);
-        Assert.Equal([(5, 11, 6, 5)], Blueprint.ArmsOf(Blueprint.Down, joint, Cell));
-        Assert.Equal([(5, 0, 6, 5), (11, 5, 5, 6), (5, 11, 6, 5), (0, 5, 5, 6)], Blueprint.ArmsOf(15, joint, Cell));
-        Assert.Empty(Blueprint.ArmsOf(0, joint, Cell));
-        foreach (var arm in Blueprint.ArmsOf(15, joint, Cell))
-            Assert.False(arm.X < joint.X + joint.W && joint.X < arm.X + arm.W && arm.Y < joint.Y + joint.H && joint.Y < arm.Y + arm.H);
     }
 
     /// <summary>A mask from rows drawn with '#' for an opaque pixel.</summary>
@@ -157,7 +128,7 @@ public class PlanLookTests
     }
 
     [Fact]
-    public void APlanBeingBuiltTurnsRealFromTheBottomAsItIsWorkedAndAFloorOrAConduitFromTheLeft()
+    public void APlanBeingBuiltTurnsRealFromTheBottomAsItIsWorkedAndAFloorFromTheLeft()
     {
         // A wall at cell (2, 3) half worked: its bottom half real, its top half a plan.
         var wall = PlanCut.Of((2 * Cell, 3 * Cell, Cell, Cell), PlanCut.FromLeftFor("structure", "wall"), 1, 2);
@@ -171,8 +142,8 @@ public class PlanLookTests
         var tank = PlanCut.Of((0, 0, 2 * Cell, 2 * Cell), false, 3, 5);
         Assert.Equal(19, Height(tank, 0) + Height(tank, Cell));
         Assert.Equal((3, 16), (Height(tank, 0), Height(tank, Cell)));
-        // A floor and a valve, half in, real on their left.
-        Assert.True(PlanCut.FromLeftFor("structure", "floor") && PlanCut.FromLeftFor("conduit", "valve"));
+        // A floor, half in, real on its left.
+        Assert.True(PlanCut.FromLeftFor("structure", "floor"));
         Assert.False(PlanCut.FromLeftFor("back", "backWall") || PlanCut.FromLeftFor("machine", "vent"));
         var floor = PlanCut.Of((Cell, 0, Cell, Cell), true, 1, 2);
         Assert.Equal(((16, 0, 8, 4), (24, 0, 8, 4)), floor.Split((16, 0, 16, 4)));

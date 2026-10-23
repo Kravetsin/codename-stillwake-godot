@@ -71,7 +71,7 @@ public sealed class Registry
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Grid, Items, Power, Power, Knowledge, Knowledge);
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);
-        Pipes = new PipesModule(Grid);
+        Pipes = new PipesModule(Grid, Items, Items);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
         Crew = new CrewModule(Atmosphere, Grid, Items, Items, Players, Players);
         // Building reads where heroes are only as its commands apply, never in a system, so it keeps its place in the run

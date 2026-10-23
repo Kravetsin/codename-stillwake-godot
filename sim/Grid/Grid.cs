@@ -9,11 +9,6 @@ public static class Structure
     public const int Empty = 0, Wall = 1, Floor = 2, Ladder = 3, DoorClosed = 4, DoorOpen = 5;
 }
 
-/// <summary>Conduit codes as stored in saves.</summary>
-public static class Conduit
-{
-    public const int None = 0, Pipe = 1, ValveOpen = 2, ValveClosed = 3;
-}
 
 /// <summary>Back wall codes as stored in saves.</summary>
 public static class Back
@@ -42,7 +37,6 @@ public sealed class GridState
     [JsonInclude] internal Box Zone { get; set; }
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Structure { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Material { get; set; } = [];
-    [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Conduit { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] Back { get; set; } = [];
     [JsonInclude, JsonConverter(typeof(Runs))] internal int[] BackMaterial { get; set; } = [];
     /// <summary>Every machine, in id order: ids only grow, and a new one goes last.</summary>
@@ -90,7 +84,6 @@ public interface IGridQueries
     ReadOnlySpan<int> StructureLayer { get; }
     /// <summary>Each cell's wall material code (<c>Materials</c>), 0 where no wall stands.</summary>
     ReadOnlySpan<int> MaterialLayer { get; }
-    ReadOnlySpan<int> ConduitLayer { get; }
     ReadOnlySpan<int> BackLayer { get; }
     /// <summary>Each cell's back wall material code, 0 where there is no back wall.</summary>
     ReadOnlySpan<int> BackMaterialLayer { get; }
@@ -104,8 +97,6 @@ public interface IGridQueries
     /// none, for one a hero built, and on a surface that did not grow, the ship or a drawn map.
     /// </summary>
     bool GrownBack(int cell);
-    /// <summary>The conduit code at <paramref name="cell"/>: <see cref="Conduit.None"/> off the grid.</summary>
-    int ConduitAt(int cell);
     Machine? MachineAt(int cell);
     /// <summary>Machine <paramref name="id"/>; null for none, or one taken apart.</summary>
     Machine? MachineById(int id);
@@ -113,7 +104,7 @@ public interface IGridQueries
     IReadOnlyList<Machine> Machines { get; }
     /// <summary>The machines of <paramref name="kind"/>, in id order: what a system walks that works one kind.</summary>
     IReadOnlyList<Machine> MachinesOf(string kind);
-    /// <summary>The cells where conduits meet machine <paramref name="m"/>, in the order its kind lists its ports.</summary>
+    /// <summary>The cells where pipes meet machine <paramref name="m"/>, in the order its kind lists its ports.</summary>
     IReadOnlyList<int> PortsOf(Machine m);
     /// <summary>
     /// The cells a machine or a piece (a ladder, a door, a hatch, 0104) of <paramref name="kind"/> covers with its top-left at
@@ -128,12 +119,11 @@ public interface IGridQueries
     IReadOnlyList<int> PieceOf(int cell);
     string? PlacementProblem(int cell, Placement placement);
     /// <summary>
-    /// The structure and conduit codes of the cells the <see cref="SetDoor"/>s and <see cref="SetValve"/>s
-    /// among <paramref name="toggles"/> would change, in order, each as its command would apply it and skipped
+    /// The structure codes of the cells the <see cref="SetDoor"/>s among <paramref name="toggles"/> would change, in order, each as its command would apply it and skipped
     /// where it would be refused: what a client shows of its own toggles before their tick runs (0014). Every
     /// other cell is as the world has it; a cell set back is listed at its own code. The world is untouched.
     /// </summary>
-    (IReadOnlyDictionary<int, int> Structure, IReadOnlyDictionary<int, int> Conduit) AfterToggles(IReadOnlyList<Command> toggles);
+    IReadOnlyDictionary<int, int> AfterToggles(IReadOnlyList<Command> toggles);
 }
 
 /// <summary>How a module that depends on the grid may change it.</summary>
@@ -148,8 +138,6 @@ public interface IGridOps
 /// peers opening one door at once leave it open, where a toggle would shut it again.
 /// </summary>
 public sealed record SetDoor(int Cell, bool Open) : Command;
-/// <summary>Opens (<c>Open</c>) or shuts the valve at <c>Cell</c>, as <see cref="SetDoor"/> does a door.</summary>
-public sealed record SetValve(int Cell, bool Open) : Command;
 
 /// <summary>The ship's cells in layers (packages/sim/src/modules/grid).</summary>
 public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridOps
@@ -163,7 +151,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     {
         _structureAt = c => State.Structure[c];
         _now = ValueAt;
-        // Already as asked, a door or valve is left alone, the version too: nothing derived from the grid is redone.
+        // Already as asked, a door is left alone, the version too: nothing derived from the grid is redone.
         Handles<SetDoor>(c => IsDoor(State.Structure, c.Cell) ? null : "grid.noDoor", c =>
         {
             int to = DoorCode(c.Open);
@@ -171,13 +159,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
             if (!Differs(State.Structure, doorway, to)) return;
             State.Version++;
             foreach (int cell in doorway) Set(State.Structure, GridLayers.Structure, cell, to);
-        });
-        Handles<SetValve>(c => IsValve(State.Conduit, c.Cell) ? null : "grid.noValve", c =>
-        {
-            int to = ValveCode(c.Open);
-            if (State.Conduit[c.Cell] == to) return;
-            State.Version++;
-            Set(State.Conduit, GridLayers.Conduit, c.Cell, to);
         });
     }
 
@@ -196,7 +177,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     {
         GridLayers.Structure => State.Structure[cell],
         GridLayers.Material => State.Material[cell],
-        GridLayers.Conduit => State.Conduit[cell],
         GridLayers.Back => State.Back[cell],
         GridLayers.BackMaterial => State.BackMaterial[cell],
         _ => State.Occupancy[cell],
@@ -229,7 +209,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
             Zone = layout.Zone ?? new Box(0, 0, layout.Width - 1, layout.Height - 1),
             Structure = new int[size],
             Material = new int[size],
-            Conduit = new int[size],
             Back = new int[size],
             BackMaterial = new int[size],
         };
@@ -254,28 +233,18 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                     _ => Structure.Empty,
                 };
                 if (s.Structure[cell] == Structure.Wall) s.Material[cell] = material;
-                s.Conduit[cell] = c switch
-                {
-                    '-' => Conduit.Pipe,
-                    'v' => Conduit.ValveOpen,
-                    'x' => Conduit.ValveClosed,
-                    _ => Conduit.None,
-                };
             }
-        foreach (int cell in layout.CellsOf('-', under: true)) s.Conduit[cell] = Conduit.Pipe;
         foreach (var (kind, cell) in layout.Machines()) s.Machines.Add(new Machine(s.NextMachineId++, kind, cell));
         return s;
     }
 
-    /// <summary>A real door or valve most of the time, any cell (off the grid too) otherwise, so refusals are drawn; opened or shut at random, so one already as asked is too.</summary>
+    /// <summary>A real door most of the time, any cell (off the grid too) otherwise, so refusals are drawn; opened or shut at random, so one already as asked is too.</summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         int size = State.Width * State.Height;
         int Pick(List<int> cells) =>
             cells.Count > 0 && rng.Below(4) != 0 ? cells[(int)rng.Below((uint)cells.Count)] : (int)rng.Below((uint)size + 2) - 1;
-        if (rng.Below(2) == 0)
-            return new SetDoor(Pick(CellsWith(State.Structure, Structure.DoorClosed, Structure.DoorOpen)), rng.Below(2) == 0) { From = from };
-        return new SetValve(Pick(CellsWith(State.Conduit, Conduit.ValveOpen, Conduit.ValveClosed)), rng.Below(2) == 0) { From = from };
+        return new SetDoor(Pick(CellsWith(State.Structure, Structure.DoorClosed, Structure.DoorOpen)), rng.Below(2) == 0) { From = from };
     }
 
     /// <summary>The cells holding <paramref name="a"/> or <paramref name="b"/>, in reading order: within <see cref="Built"/>, where anything is.</summary>
@@ -312,7 +281,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     }
 
     private bool IsBuilt(int c) =>
-        State.Structure[c] != Structure.Empty || State.Conduit[c] != Conduit.None || State.Back[c] != Back.None || State.Occupancy[c] != 0;
+        State.Structure[c] != Structure.Empty || State.Back[c] != Back.None || State.Occupancy[c] != 0;
 
     private void Grow(int c)
     {
@@ -380,7 +349,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     public Box Zone => State.Zone;
     public ReadOnlySpan<int> StructureLayer => State.Structure;
     public ReadOnlySpan<int> MaterialLayer => State.Material;
-    public ReadOnlySpan<int> ConduitLayer => State.Conduit;
     public ReadOnlySpan<int> BackLayer => State.Back;
     public ReadOnlySpan<int> BackMaterialLayer => State.BackMaterial;
     public IReadOnlyList<Machine> Machines => State.Machines;
@@ -392,7 +360,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     private static readonly Machine[] NoMachines = [];
 
     public int StructureAt(int cell) => InBounds(cell) ? State.Structure[cell] : Structure.Empty;
-    public int ConduitAt(int cell) => InBounds(cell) ? State.Conduit[cell] : Conduit.None;
 
     public Material? WallAt(int cell) =>
         InBounds(cell) && State.Structure[cell] == Structure.Wall ? MaterialOf(State.Material[cell]) : null;
@@ -422,7 +389,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     private bool InBounds(int cell) => cell >= 0 && cell < State.Width * State.Height;
     private bool InZone(int cell) => State.Zone.Contains(cell % State.Width, cell / State.Width);
     private bool IsDoor(int[] structure, int cell) => InBounds(cell) && structure[cell] is Structure.DoorClosed or Structure.DoorOpen;
-    private bool IsValve(int[] conduit, int cell) => InBounds(cell) && conduit[cell] is Conduit.ValveOpen or Conduit.ValveClosed;
 
     public IReadOnlyList<int>? Footprint(string kind, int cell)
     {
@@ -463,27 +429,20 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         return cells;
     }
 
-    public (IReadOnlyDictionary<int, int> Structure, IReadOnlyDictionary<int, int> Conduit) AfterToggles(IReadOnlyList<Command> toggles)
+    public IReadOnlyDictionary<int, int> AfterToggles(IReadOnlyList<Command> toggles)
     {
         // Only the toggled cells: copying the layers cost a big world 16 MB a tick while a toggle was in flight.
         var structure = new Dictionary<int, int>();
-        var conduit = new Dictionary<int, int>();
         int StructureAt(int c) => structure.TryGetValue(c, out int code) ? code : State.Structure[c];
         foreach (var t in toggles)
         {
             if (t is SetDoor door && InBounds(door.Cell) && StructureAt(door.Cell) is Structure.DoorClosed or Structure.DoorOpen)
                 foreach (int cell in DoorwayOf(door.Cell, StructureAt)) structure[cell] = DoorCode(door.Open);
-            if (t is SetValve valve && InBounds(valve.Cell))
-            {
-                int code = conduit.TryGetValue(valve.Cell, out int shown) ? shown : State.Conduit[valve.Cell];
-                if (code is Conduit.ValveOpen or Conduit.ValveClosed) conduit[valve.Cell] = ValveCode(valve.Open);
-            }
         }
-        return (structure, conduit);
+        return structure;
     }
 
     private static int DoorCode(bool open) => open ? Structure.DoorOpen : Structure.DoorClosed;
-    private static int ValveCode(bool open) => open ? Conduit.ValveOpen : Conduit.ValveClosed;
 
     private static bool Differs(int[] layer, List<int> cells, int code)
     {
@@ -544,8 +503,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (covers.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
                 if (p.Kind == "wall" && !Materials.TryGet(p.Material ?? "", out _)) return "grid.noSuchMaterial";
                 return null;
-            case "conduit":
-                return State.Conduit[cell] == Conduit.None ? null : "grid.occupied";
             case "back":
                 if (State.Back[cell] != Back.None) return "grid.occupied";
                 return Materials.TryGet(p.Material ?? "", out _) ? null : "grid.noSuchMaterial";
@@ -588,9 +545,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 Set(State.Structure, GridLayers.Structure, cell, code);
                 if (p.Kind == "wall") Set(State.Material, GridLayers.Material, cell, Materials.Get(p.Material!).Code);
                 return;
-            case "conduit":
-                Set(State.Conduit, GridLayers.Conduit, cell, p.Kind == "pipe" ? Conduit.Pipe : Conduit.ValveOpen);
-                return;
             case "back":
                 Set(State.Back, GridLayers.Back, cell, Back.Wall);
                 Set(State.BackMaterial, GridLayers.BackMaterial, cell, Materials.Get(p.Material!).Code);
@@ -616,7 +570,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 Set(State.Structure, GridLayers.Structure, cell, Structure.Empty);
                 Set(State.Material, GridLayers.Material, cell, 0);
                 break;
-            case "conduit": Set(State.Conduit, GridLayers.Conduit, cell, Conduit.None); break;
             case "back":
                 Set(State.Back, GridLayers.Back, cell, Back.None);
                 Set(State.BackMaterial, GridLayers.BackMaterial, cell, 0);

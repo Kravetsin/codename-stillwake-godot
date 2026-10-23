@@ -8,7 +8,6 @@ public enum GridLayers : byte
     Structure = 1,
     /// <summary>A wall's material.</summary>
     Material = 2,
-    Conduit = 4,
     Back = 8,
     BackMaterial = 16,
     /// <summary>The machine covering the cell: one came, went or took another's place.</summary>
