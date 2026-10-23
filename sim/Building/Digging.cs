@@ -9,8 +9,10 @@ namespace Stillwake.Sim.Building;
 /// while it works, at a natural wall within the hero's reach. Its damage cracks the wall; the hit that reaches its
 /// strength breaks it out, the back wall behind staying, and gives the sender what it is made of and what grew on, in or
 /// from it. On a plant standing in an open cell (0079), it cracks the plant by its own cell, felling it at its strength.
+/// <c>Back</c> (0107, the right button) hits the back wall instead, any that breaks, a ship's too: its own crack, its
+/// material's strength, its cost to the sender, what hangs on it felled for them.
 /// </summary>
-public sealed record Dig(int Cell, string Tool) : Command;
+public sealed record Dig(int Cell, string Tool, bool Back = false) : Command;
 
 /// <summary>Digging a planet's ground (0077): cracks kept by cell, a wall broken out at its strength.</summary>
 public sealed partial class BuildingModule
@@ -22,7 +24,7 @@ public sealed partial class BuildingModule
     /// Why peer <paramref name="peer"/>'s hit of <paramref name="tool"/> on <paramref name="cell"/> would be refused: what the
     /// client shows before it sends, which leaves out whether an electric weapon runs, as a hit on debris does.
     /// </summary>
-    public string? DigProblem(int peer, int cell, string tool) => DigProblemOf(peer, cell, tool, running: false);
+    public string? DigProblem(int peer, int cell, string tool, bool back = false) => DigProblemOf(peer, cell, tool, back, running: false);
 
     /// <summary>
     /// <c>building.nothingToDig</c> for no natural wall there (a hull wall is taken apart with a mark) nor a plant in an open
@@ -30,9 +32,15 @@ public sealed partial class BuildingModule
     /// for one nothing breaks, then what the weapon says (<see cref="IItemsQueries.WeaponProblem"/>): flat, or, as the
     /// command applies, not running. A tool that deals no damage is our bug: the client sends weapons only.
     /// </summary>
-    private string? DigProblemOf(int peer, int cell, string tool, bool running)
+    private string? DigProblemOf(int peer, int cell, string tool, bool back, bool running)
     {
         if (Weapons.Of(tool) == null) throw new InvalidOperationException($"building.dig: {tool} deals no damage");
+        // A back wall (0107): any material, built or grown, breaks at its strength; bedrock and lava never.
+        if (back)
+        {
+            if (_grid.BackAt(cell) is not { } behind) return "building.nothingToDig";
+            return behind.Strength == Material.Unbreakable ? "building.bedrock" : _items.WeaponProblem(peer, tool, running);
+        }
         if (_grid.WallAt(cell) is not { Natural: true } wall)
             return PlantAt(cell) != null && _grid.StructureAt(cell) == Structure.Empty ? _items.WeaponProblem(peer, tool, running) : "building.nothingToDig";
         if (!wall.Breaks) return "building.bedrock";
@@ -45,6 +53,17 @@ public sealed partial class BuildingModule
     /// </summary>
     private void ApplyDig(Dig c)
     {
+        if (c.Back)
+        {
+            var back = _grid.BackAt(c.Cell)!;
+            if (!Cracked(c.Cell, back.Strength, _items.Damage(c.From, c.Tool), back: true)) return;
+            // What hangs on it goes to its digger now; the sweep would fell it for nothing.
+            var hung = HungOn(c.Cell);
+            _gridOps.Clear(c.Cell, "back");
+            _itemsOps.GiveOrDrop(c.From, back.Cost, c.Cell);
+            foreach (var plant in hung) Fell(plant, c.From);
+            return;
+        }
         // A plant is cracked by its own cell, whichever of its cells is hit; one of no strength falls to any hit.
         if (_grid.WallAt(c.Cell) is not { } wall)
         {
@@ -92,34 +111,49 @@ public sealed partial class BuildingModule
     /// <paramref name="cell"/>'s crack: true, its crack dropped, once it reaches <paramref name="strength"/>; else false, the
     /// crack kept deeper, its last hit now.
     /// </summary>
-    private bool Cracked(int cell, int strength, int hit)
+    private bool Cracked(int cell, int strength, int hit, bool back = false)
     {
-        int at = CrackIndex(cell);
+        int at = CrackIndex(cell, back);
         int damage = (at >= 0 ? State.Cracks[at].Damage : 0) + hit;
         if (damage >= strength)
         {
             if (at >= 0) State.Cracks.RemoveAt(at);
             return true;
         }
-        if (at >= 0) State.Cracks[at] = new Crack(cell, damage, State.Clock);
-        else State.Cracks.Insert(~at, new Crack(cell, damage, State.Clock));
+        if (at >= 0) State.Cracks[at] = new Crack(cell, damage, State.Clock, back);
+        else State.Cracks.Insert(~at, new Crack(cell, damage, State.Clock, back));
         return false;
     }
 
-    /// <summary>Where <paramref name="cell"/>'s crack is in <see cref="BuildingState.Cracks"/>; the complement of where it would go when it has none.</summary>
-    private int CrackIndex(int cell)
+    /// <summary>
+    /// Where <paramref name="cell"/>'s crack in the front or the <paramref name="back"/> layer is in <see cref="BuildingState.Cracks"/>
+    /// (by cell, the front's first); the complement of where it would go when it has none.
+    /// </summary>
+    private int CrackIndex(int cell, bool back = false)
     {
         var cracks = State.Cracks;
+        long key = cell * 2L + (back ? 1 : 0);
         int lo = 0, hi = cracks.Count - 1;
         while (lo <= hi)
         {
             int mid = lo + ((hi - lo) >> 1);
-            int at = cracks[mid].Cell;
-            if (at == cell) return mid;
-            if (at < cell) lo = mid + 1;
+            long at = cracks[mid].Cell * 2L + (cracks[mid].Back ? 1 : 0);
+            if (at == key) return mid;
+            if (at < key) lo = mid + 1;
             else hi = mid - 1;
         }
         return ~lo;
+    }
+
+    /// <summary>The growths hung on <paramref name="cell"/>'s back wall (<see cref="Flora.Anchor.Back"/>), in cell order: felled with it.</summary>
+    private List<Plant> HungOn(int cell)
+    {
+        var hung = new List<Plant>();
+        foreach (var layer in (Dictionary<int, Plant>[])[_plantIn, _plantBehind])
+            if (layer.TryGetValue(cell, out var plant) && !hung.Contains(plant) && Kinds[plant.Kind].On == Flora.Anchor.Back && HoldsOf(plant).Contains(cell))
+                hung.Add(plant);
+        hung.Sort(ByCell);
+        return hung;
     }
 
     /// <summary>
@@ -130,11 +164,15 @@ public sealed partial class BuildingModule
     private void SweepCracks()
     {
         int now = ++State.Clock;
-        if (State.Cracks.Count > 0) State.Cracks.RemoveAll(k => now - k.At >= Builds.CrackHeals || !Crackable(k.Cell));
+        if (State.Cracks.Count > 0) State.Cracks.RemoveAll(k => now - k.At >= Builds.CrackHeals || !Crackable(k.Cell, k.Back));
     }
 
-    /// <summary>Whether <paramref name="cell"/> holds what a crack is kept for: a natural wall that breaks, or the own cell of a plant with strength.</summary>
-    private bool Crackable(int cell) => _grid.WallAt(cell) is { } wall
+    /// <summary>
+    /// Whether <paramref name="cell"/> holds what a crack is kept for: a natural wall that breaks, or the own cell of a plant with
+    /// strength; in the <paramref name="back"/> layer, a back wall that breaks.
+    /// </summary>
+    private bool Crackable(int cell, bool back) => back ? _grid.BackAt(cell) is { } behind && behind.Strength != Material.Unbreakable
+        : _grid.WallAt(cell) is { } wall
         ? wall.Breaks
         : _plantOwn.TryGetValue(cell, out var plant) && Kinds[plant.Kind].Strength > 0;
 

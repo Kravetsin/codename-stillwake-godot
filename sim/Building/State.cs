@@ -22,9 +22,9 @@ public sealed record Plan(int Id, int Cell, int Progress, Placement? Place, stri
 
 /// <summary>
 /// A natural wall at <c>Cell</c> dug part way (0077): <c>Damage</c> of its <c>Strength</c> taken by weapons' hits, the last on
-/// tick <c>At</c> of the building's clock; <c>Builds.CrackHeals</c> ticks after it, healed.
+/// tick <c>At</c> of the building's clock; <c>Builds.CrackHeals</c> ticks after it, healed. <c>Back</c>: its back wall's (0107).
 /// </summary>
-public sealed record Crack(int Cell, int Damage, int At);
+public sealed record Crack(int Cell, int Damage, int At, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Back = false);
 
 /// <summary>
 /// The building slice. Public so modules can be typed by it, its members internal: others read it

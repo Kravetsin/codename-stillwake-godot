@@ -205,7 +205,8 @@ public static class Aiming
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null, int brush = 1)
+        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null, int brush = 1,
+        bool back = false)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -234,7 +235,9 @@ public static class Aiming
             // A swing begun now faces the pointer (Poses.FaceOf), and so does the stroke it is judged by; the drill always does.
             string tool = axe ? Spec.Weapons.Axe.Item : drill!;
             // Natural ground under the brush is dug where it is (0077), in a shaft or a cave as under the open sky; a plant felled (0079).
-            if (DugAim(m, peer, hero, point, cell, tool, brush) is { } dug) return dug;
+            // The right button's: the back walls under it, whatever they are of (0107), and nothing else.
+            if (DugAim(m, peer, hero, point, cell, tool, brush, back) is { } dug) return dug;
+            if (back) return new Aim(cell, inReach);
             var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
             var touched = axe ? Struck(m, toward, PointOf(point)) : Touched(m, toward, PointOf(point));
             if (touched.FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
@@ -409,7 +412,7 @@ public static class Aiming
     /// it did to one cell; none where the sim would refuse it, nor off the grid. Each takes its full damage. Wherever the hero
     /// stands, a shaft or a cave too: no swing nor bit is traced, the cells are the pointer's.
     /// </summary>
-    public static List<Dig> DigsAt(Registry m, int peer, Hero hero, Point at, string tool, int brush)
+    public static List<Dig> DigsAt(Registry m, int peer, Hero hero, Point at, string tool, int brush, bool back = false)
     {
         var digs = new List<Dig>();
         var grid = m.Grid;
@@ -417,7 +420,12 @@ public static class Aiming
         var felled = new List<Plant>();
         foreach (int cell in Brush.Cells(grid.Width, grid.Height, (at.X / (double)Hero.Unit, at.Y / (double)Hero.Unit), brush))
         {
-            if (!Digs(m, peer, hero, cell, tool)) continue;
+            if (!Digs(m, peer, hero, cell, tool, back)) continue;
+            if (back)
+            {
+                digs.Add(new Dig(cell, tool, Back: true));
+                continue;
+            }
             if (grid.WallAt(cell) is not { Natural: true } && m.Building.PlantAt(cell) is { } plant)
             {
                 if (felled.Contains(plant)) continue;
@@ -437,12 +445,16 @@ public static class Aiming
         return digs.Count > 0 ? digs[0] : null;
     }
 
-    /// <summary>Whether a strike of <paramref name="tool"/> digs <paramref name="cell"/>: natural ground or a plant there, within reach, as the sim would take it.</summary>
-    private static bool Digs(Registry m, int peer, Hero hero, int cell, string tool) =>
-        IsGround(m, cell) && Reaches(hero, cell, m.Grid.Width) && m.Building.DigProblem(peer, cell, tool) == null;
+    /// <summary>
+    /// Whether a strike of <paramref name="tool"/> digs <paramref name="cell"/>: natural ground or a plant there, or with
+    /// <paramref name="back"/> its back wall, within reach, as the sim would take it.
+    /// </summary>
+    private static bool Digs(Registry m, int peer, Hero hero, int cell, string tool, bool back = false) =>
+        IsGround(m, cell, back) && Reaches(hero, cell, m.Grid.Width) && m.Building.DigProblem(peer, cell, tool, back) == null;
 
-    /// <summary>Whether <paramref name="cell"/> holds what is dug: a natural wall, or a plant (0079).</summary>
-    private static bool IsGround(Registry m, int cell) => m.Grid.WallAt(cell) is { Natural: true } || m.Building.PlantAt(cell) != null;
+    /// <summary>Whether <paramref name="cell"/> holds what is dug: a natural wall, or a plant (0079); a back wall of any material for the right button (0107).</summary>
+    private static bool IsGround(Registry m, int cell, bool back = false) =>
+        back ? m.Grid.BackAt(cell) != null : m.Grid.WallAt(cell) is { Natural: true } || m.Building.PlantAt(cell) != null;
 
     /// <summary>
     /// The aim of a strike of <paramref name="tool"/> with the brush <paramref name="brush"/> cells across round
@@ -450,14 +462,14 @@ public static class Aiming
     /// could be dug, else the first cell that could, else the pointer's own if it is ground, else the first that is, with why
     /// the sim would refuse it; none with no ground in the square.
     /// </summary>
-    private static Aim? DugAim(Registry m, int peer, Hero hero, (double X, double Y) point, int cell, string tool, int brush)
+    private static Aim? DugAim(Registry m, int peer, Hero hero, (double X, double Y) point, int cell, string tool, int brush, bool back = false)
     {
         var grid = m.Grid;
-        var ground = Brush.Cells(grid.Width, grid.Height, point, brush).Where(c => IsGround(m, c)).OrderBy(c => c == cell ? 0 : 1).ToList();
+        var ground = Brush.Cells(grid.Width, grid.Height, point, brush).Where(c => IsGround(m, c, back)).OrderBy(c => c == cell ? 0 : 1).ToList();
         if (ground.Count == 0) return null;
-        int at = ground.FirstOrDefault(c => Digs(m, peer, hero, c, tool), ground[0]);
+        int at = ground.FirstOrDefault(c => Digs(m, peer, hero, c, tool, back), ground[0]);
         (int, int, int)? square = brush > 1 && Brush.Corner(grid.Width, grid.Height, point, brush, brush) is var (x, y) ? (x, y, brush) : null;
-        return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Dig(at, tool), m.Building.DigProblem(peer, at, tool)), Square: square);
+        return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Dig(at, tool, back), m.Building.DigProblem(peer, at, tool, back)), Square: square);
     }
 
     private static int? CellAt(IGridQueries grid, Point at)
@@ -502,13 +514,13 @@ public static class Aiming
 
     /// <summary>
     /// What the hands do this frame: <paramref name="pressed"/> is E, or the left button on a piece of
-    /// debris; <paramref name="held"/> the left button. A press within reach sends what is pressed, unless
-    /// the sim would refuse it. Held on a plan, it sends one <see cref="Work"/> for every tick released since
-    /// the last it sent for, so a peer drawing fewer frames than the ticks it runs builds as fast as any other;
-    /// a hold just begun sends one. A tick that begins a part of a blueprint pays its item (0063).
-    /// <paramref name="tick"/> is the client's world tick.
+    /// debris; <paramref name="held"/> the left button with a screwdriver in hand (0107). A press within reach sends what is
+    /// pressed, unless the sim would refuse it. Held on a plan, it sends <paramref name="pace"/> <see cref="Work"/> (the
+    /// screwdriver's) for every tick released since the last it sent for, so a peer drawing fewer frames than the ticks it
+    /// runs builds as fast as any other; a hold just begun sends one tick's. A tick that begins a part of a blueprint pays
+    /// its item (0063). <paramref name="tick"/> is the client's world tick.
     /// </summary>
-    public static Uses UsesOf(Aim? aim, bool pressed, bool held, int tick, int workedOnTick)
+    public static Uses UsesOf(Aim? aim, bool pressed, bool held, int tick, int workedOnTick, int pace = 1)
     {
         if (aim is not { InReach: true }) return new([], null, -1);
         if (pressed && aim.Crate is int crate) return new([], crate, -1);
@@ -519,7 +531,7 @@ public static class Aiming
         // A hold just begun sends one; so does a load that took the world's tick back.
         bool fresh = workedOnTick < 0 || tick < workedOnTick;
         int due = fresh ? 1 : Math.Min(tick - workedOnTick, MaxWorkPerFrame);
-        for (int i = 0; i < due; i++) commands.Add(new Work(work.Plan));
+        for (int i = 0; i < due * pace; i++) commands.Add(new Work(work.Plan));
         return new(commands, null, due > 0 ? tick : workedOnTick);
     }
 }

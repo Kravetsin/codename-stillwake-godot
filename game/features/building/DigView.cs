@@ -21,9 +21,11 @@ public partial class DigView : Node2D
 
     private readonly IGridQueries _grid;
     private readonly BuildingModule _building;
-    /// <summary>The cracks drawn, by cell: how deep, and what the wall was made of, for its dust once it breaks.</summary>
-    private readonly Dictionary<int, (int Damage, Material Material)> _drawn = new();
-    private readonly List<int> _gone = [];
+    /// <summary>The cracks drawn, by cell and layer, a back wall's too (0107): how deep, and what the wall was made of, for its dust once it breaks.</summary>
+    private readonly Dictionary<(int Cell, bool Back), (int Damage, Material Material)> _drawn = new();
+    private readonly List<(int Cell, bool Back)> _gone = [];
+
+    private Material? MaterialAt(int cell, bool back) => back ? _grid.BackAt(cell) : _grid.WallAt(cell);
 
     /// <summary>The stages of cracks, three (0079).</summary>
     private const int Stages = 3;
@@ -51,36 +53,36 @@ public partial class DigView : Node2D
         var cracks = _building.Cracks;
         foreach (var crack in cracks)
         {
-            if (_drawn.TryGetValue(crack.Cell, out var was) && was.Damage == crack.Damage) continue;
-            var material = _grid.WallAt(crack.Cell);
-            if (material == null) continue;
-            _drawn[crack.Cell] = (crack.Damage, material);
+            var key = (crack.Cell, crack.Back);
+            if (_drawn.TryGetValue(key, out var was) && was.Damage == crack.Damage) continue;
+            if (MaterialAt(crack.Cell, crack.Back) is not { } material) continue;
+            _drawn[key] = (crack.Damage, material);
             changed = true;
         }
         _gone.Clear();
-        foreach (var (cell, _) in _drawn)
-            if (!Holds(cracks, cell)) _gone.Add(cell);
-        foreach (int cell in _gone)
+        foreach (var (key, _) in _drawn)
+            if (!Holds(cracks, key)) _gone.Add(key);
+        foreach (var key in _gone)
         {
             // Gone with its wall: broken out. A crack gone with the wall still there was swept: nothing to show.
-            if (_grid.WallAt(cell) == null) Break(cell, _drawn[cell].Material);
-            _drawn.Remove(cell);
+            if (MaterialAt(key.Cell, key.Back) == null) Break(key.Cell, _drawn[key].Material);
+            _drawn.Remove(key);
             changed = true;
         }
         if (changed) QueueRedraw();
     }
 
-    private static bool Holds(IReadOnlyList<Crack> cracks, int cell)
+    private static bool Holds(IReadOnlyList<Crack> cracks, (int Cell, bool Back) key)
     {
         foreach (var c in cracks)
-            if (c.Cell == cell) return true;
+            if (c.Cell == key.Cell && c.Back == key.Back) return true;
         return false;
     }
 
     public override void _Draw()
     {
         int w = _grid.Width;
-        foreach (var (cell, (damage, material)) in _drawn)
+        foreach (var ((cell, _), (damage, material)) in _drawn)
         {
             int stage = System.Math.Clamp(damage * Stages / System.Math.Max(1, material.Strength), 0, Stages - 1);
             DrawTexture(Texture(stage), new Vector2(cell % w, cell / w) * Cell);

@@ -152,6 +152,8 @@ public static class Items
         // The engine's fuel, to come; meanwhile the furnace and the burner generator burn it four times as long as a plank.
         new("biofuel", 20, BurnTicks: 1600),
         // Tools, made as parts are.
+        // Every hero comes aboard with one (Inventory.Kit, 0107): it builds plans and takes marks apart.
+        new("screwdriver", 1, Gear: true, Group: ItemGroup.Tool),
         new("fireAxe", 1, Gear: true, Group: ItemGroup.Tool),
         new("harpoon", 1, Gear: true, Group: ItemGroup.Tool),
         // Electric: draws from the belt's batteries while it drills (0053, 0054).
@@ -186,6 +188,9 @@ public static class Inventory
 
     /// <summary>The first row of <see cref="Slots"/>, chosen with keys 1 to 9: a sort leaves it as it is (0008).</summary>
     public const int Hotbar = 9;
+
+    /// <summary>What every hero comes aboard with, into its first slots (0107): the screwdriver that builds.</summary>
+    public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1)];
 
     /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
     public static readonly IReadOnlyList<string> Equipment = ["head", "back", "belt", "belt", "belt"];

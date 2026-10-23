@@ -101,7 +101,7 @@ public class ModulesTests
     [Theory]
     [InlineData(5u, false)]
     [InlineData(5u, true)]
-    [InlineData(8u, true)]
+    [InlineData(9u, true)]
     public void KeepsWhatItFollowsBetweenTicksAsAWorldLoadedEveryTickFindsIt(uint seed, bool readAir)
     {
         var layout = BudgetTests.Reference(38, 30, shipWidth: 32, shipHeight: 24, margin: 3).Doubled();

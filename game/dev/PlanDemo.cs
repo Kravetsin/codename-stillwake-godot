@@ -96,13 +96,15 @@ public sealed class PlanDemo(Hands hands, Layout layout)
                 log("a wall planned along the ceiling");
                 break;
             case 44:
-                log("the right button held on the blueprint builds it, the menu still open");
-                Held = Buttons.Right;
+                log("the tablet away: the screwdriver, first in the hotbar, held on the blueprint builds it");
+                hands.Plan.PutPlanAway();
+                Held = Buttons.Left;
                 Press(Held);
                 break;
             case 76:
                 Held = 0;
                 Release();
+                hands.Plan.Toggle();
                 break;
             case 80:
                 log("the power tab: the cables overlay");

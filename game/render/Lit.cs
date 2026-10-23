@@ -50,6 +50,10 @@ public static class Lit
             uniform sampler2D spotmap : filter_linear, repeat_disable, hint_default_black;
             uniform vec2 lightmap_at = vec2(0.0);
             uniform float lightmap_texel = 1.0;
+            // The walls round see_at (pixels) fade to see_least within see_radius, so the back wall worked behind shows (0107).
+            uniform vec2 see_at = vec2(0.0);
+            uniform float see_radius = 0.0;
+            uniform float see_least = 0.35;
             varying vec2 world;
             """;
 
@@ -108,6 +112,8 @@ public static class Lit
                 vec3 lit = min(star * scale + lamps * scale * mix(1.0, facing, relief), 1.0 - ambient);
                 vec3 light = lit + spots * min(1.0, spot_most / max(brightest, 0.0001));
                 COLOR.rgb *= ambient + light * share;
+                if (blocks && see_radius > 0.0)
+                    COLOR.a *= mix(see_least, 1.0, smoothstep(see_radius * 0.5, see_radius, distance(world, see_at)));
             }
             """;
 
@@ -115,6 +121,27 @@ public static class Lit
     private static (Texture2D Texture, Rect2 Rect)? _starlight;
     private static (Texture2D Main, Texture2D Spots)? _lightmaps;
     private static (Vector2 At, float Texel) _placed = (Vector2.Zero, 1);
+    private static Vector2? _seeThrough;
+
+    /// <summary>How far round the pointer the walls fade while the back layer is worked, in pixels: three cells (0107).</summary>
+    public const float SeeRadius = 3 * ShipCamera.Cell;
+
+    /// <summary>
+    /// Fades the walls, edges and doors round <paramref name="at"/>, in pixels of the world, to about a third, so the back wall
+    /// the right button works shows through them (0107); null for none. Set every frame, sent only when it moves.
+    /// </summary>
+    public static void SeeThrough(Vector2? at)
+    {
+        if (at == _seeThrough) return;
+        _seeThrough = at;
+        foreach (var material in Made.Values) See(material);
+    }
+
+    private static void See(ShaderMaterial material)
+    {
+        material.SetShaderParameter("see_at", _seeThrough ?? Vector2.Zero);
+        material.SetShaderParameter("see_radius", _seeThrough == null ? 0f : SeeRadius);
+    }
 
     /// <summary>
     /// Lights <paramref name="item"/> from now on, by the lamps and the stars. One that takes less than
@@ -147,6 +174,7 @@ public static class Lit
         if (_starlight is var (stars, starsAt)) ShowStars(kept, stars, starsAt);
         if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);
         Place(kept);
+        See(kept);
         return Made[(share, cracks)] = kept;
     }
 

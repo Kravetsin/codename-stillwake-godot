@@ -223,7 +223,7 @@ public class SurfacesTests
         Assert.Null(w.M.Players.ColourOf(0));
         // Back aboard, its inventory with it: coming back, it wakes at the ship's spawn with what it had.
         Assert.Equal(0, w.World.SurfaceOf(0));
-        Assert.Equal(new Stack("scrap", 7), w.M.Items.Inventory(0)[0]);
+        Assert.Equal(new Stack("scrap", 7), w.M.Items.Inventory(0).First(s => s?.Item == "scrap"));
         w.Do(new Enter(w.M.Crew.Spawn) { Surface = 0 }).Run();
         Assert.Empty(w.Refusals);
         Assert.NotNull(w.M.Crew.HeroOf(0));
@@ -251,7 +251,8 @@ public class SurfacesTests
         var hero = w.M.Crew.HeroOf(0)!;
         Assert.Equal((w.M.Crew.Spawn, Content.Crew.Suit, 0), (hero.Cell, hero.Suit, hero.Out));
         // The gear it kept came with it; the body stays on the strip.
-        Assert.Equal(new Stack(Content.Weapons.Axe.Item, 1), w.M.Items.Inventory(0).First(s => s != null));
+        Assert.Equal(new Stack(Content.Weapons.Axe.Item, 1), w.M.Items.Inventory(0).First(s => s?.Item == Content.Weapons.Axe.Item));
+        Assert.Contains(new Stack(Content.Screwdrivers.Basic.Item, 1), w.M.Items.Inventory(0));
         Assert.Single(m.Items.Floor);
         Assert.Equal([0], Holding(w, 0));
     }

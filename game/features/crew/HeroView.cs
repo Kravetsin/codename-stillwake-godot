@@ -104,7 +104,7 @@ public partial class HeroView : Node2D
     /// What the outline was traced for: the aim's cell, its plan, whether the sim would refuse it, and the
     /// cell's structure, conduit and machine, and the brush's square; traced again only when one of them changes.
     /// </summary>
-    private (int Cell, int? Plan, bool Refused, int Structure, int Conduit, int? Machine, (int, int, int)? Square)? _traced;
+    private (int Cell, int? Plan, bool Refused, int Structure, int Conduit, int? Machine, (int, int, int)? Square, bool Back)? _traced;
     private int _steps;
     /// <summary>The world tick the last <c>Enter</c> went out on: the report waits <c>Crew.ReportEvery</c> after it (0050).</summary>
     private int _reportedAt = -Content.Crew.ReportEvery;
@@ -117,6 +117,8 @@ public partial class HeroView : Node2D
     private AxeSwing _swing;
     private int _swingFace = 1;
     private bool _grabHeld;
+    /// <summary>Whether the swing under way was begun with the right button: it digs the back walls (0107).</summary>
+    private bool _swingBack;
     /// <summary>
     /// The harpoon (0044): this hero's rod and the cooldown every harpoon it holds waits for, the line to the
     /// rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the pointer.
@@ -520,11 +522,11 @@ public partial class HeroView : Node2D
     /// <summary>
     /// What the hands do at the pointer: the aim said and outlined while the hero is awake, whatever the
     /// hand holds, doors and valves as <paramref name="shown"/>; E on what it works whatever the hand holds,
-    /// so a door opens with a card or a cable out; the right button held works plans whatever the hand
-    /// holds (0030); the left button grabs only with a free hand, as it is the card's otherwise, and held
+    /// so a door opens with a card or a cable out; the left button held works plans with the screwdriver in
+    /// hand (0107); the left button grabs only with a free hand, as it is the card's otherwise, and held
     /// or clicked swings the fire axe toward the pointer while the hand wields it (<see cref="AxeSwing"/>),
-    /// unless the click grabbed a piece. Passed out, the hands do nothing: a press is spent, a hold works
-    /// no plan and swings no axe.
+    /// unless the click grabbed a piece; the right button swings it, or runs the drill, at the back walls alone.
+    /// Passed out, the hands do nothing: a press is spent, a hold works no plan and swings no axe.
     /// </summary>
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, Pose pose,
         double elapsedMs, bool handFree)
@@ -532,11 +534,14 @@ public partial class HeroView : Node2D
         bool axe = handFree && _ui.Wielded.Get() == Content.Weapons.Axe.Item;
         bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
         string? drill = handFree && HeldLook.IsDrill(_ui.Wielded.Get()) ? _ui.Wielded.Get() : null;
+        var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
         // Ctrl held strikes one cell, the precise mode; else the brush.
         _brush = Brush.SideOf(Input.IsPhysicalKeyPressed(Key.Ctrl));
-        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown, brush: _brush) : null;
+        // The right button is the back layer's (0107): a swing begun with it, or the drill run on it, digs the back walls.
+        bool back = (axe || drill != null) && (_swing.Phase != null ? _swingBack : Layering.Back(_mouse.Buttons.HoldsLeft, _mouse.Buttons.HoldsRight));
+        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown, brush: _brush, back: back) : null;
         var prompt = passedOut ? null : Prompts.Of(m, aim);
-        TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
+        TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null, back);
         _prompt.Show(prompt);
         _prompt.Place(_ui.MenuTop);
         _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);
@@ -548,40 +553,42 @@ public partial class HeroView : Node2D
         // With the harpoon's rod out of the gun, a click is the gun's: hooked, it reels, even on a piece in reach.
         bool grab = clicked && aim?.Piece != null && !(gun && _harpoon.Rod != Rod.Seated);
         bool acts = !passedOut && handFree;
-        var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, !passedOut && _mouse.Buttons.HoldsRight, client.World.Tick, _workedOnTick);
+        bool builds = acts && driver != null && _mouse.Buttons.HoldsLeft;
+        var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, builds, client.World.Tick, _workedOnTick, driver?.Work ?? 1);
         _workedOnTick = uses.WorkedOnTick;
         foreach (var command in uses.Commands) client.Send(command);
         if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister)) _act.Play(Floats);
         // Held on a plan it can work, the hero turns its screwdriver at it.
-        bool working = !passedOut && _mouse.Buttons.HoldsRight && aim is { InReach: true, Work.Problem: null };
-        // A right click with a canister in hand breathes it (0047), unless it works a plan.
+        bool working = builds && aim is { InReach: true, Work.Problem: null };
+        // A right click with a canister in hand breathes it (0047).
         bool rightClicked = _mouse.Buttons.TakeRightClick();
-        if (rightClicked && acts && _ui.Wielded.Get() == Content.Crew.Canister && aim is not { InReach: true, Work.Problem: null })
-            Breathe(client, m);
+        if (rightClicked && acts && _ui.Wielded.Get() == Content.Crew.Canister) Breathe(client, m);
         // The axe: a swing begun toward the pointer plays through and, as it strikes, hits every wreck its
         // blade meets, let go or not; put away, it stops unstruck. A wreck's chop is heard where it takes the hit (DebrisView).
         bool grabbed = grab && uses.Commands.Any(c => c is Sim.Debris.Grab);
         _grabHeld = (_grabHeld || grabbed) && _mouse.Buttons.HoldsLeft;
         bool swings = acts && axe && !working && Poses.HoldsIn(pose);
         if (!swings) _swing.Stop();
-        bool wanted = swings && pointer != null && !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked);
+        bool wanted = swings && pointer != null && !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked || _mouse.Buttons.HoldsRight || rightClicked);
         var swung = _swing.Advance(elapsedMs, wanted, pointer is { } aimed ? Aiming.PointOf(aimed) : default);
         if (swung.Begun)
         {
             _swingFace = Poses.FaceOf(pointer, _current) ?? _current.Facing;
             _current = _current with { Facing = _swingFace };
+            _swingBack = Layering.Back(_mouse.Buttons.HoldsLeft || clicked, _mouse.Buttons.HoldsRight || rightClicked);
         }
         if (swung.Whooshes) _swingSound.Play();
         if (swung.Hits)
         {
-            var hits = Aiming.HitsOf(m, client.Id, _current, _swing.At);
+            // A back swing digs the back walls only: no wreck nor creature is in their layer.
+            var hits = _swingBack ? [] : Aiming.HitsOf(m, client.Id, _current, _swing.At);
             foreach (var hit in hits) client.Send(hit);
             // The ground under the brush round the swing's point is dug as it strikes, in reach (0077), heard once.
-            var digs = Aiming.DigsAt(m, client.Id, _current, _swing.At, Content.Weapons.Axe.Item, _brush);
+            var digs = Aiming.DigsAt(m, client.Id, _current, _swing.At, Content.Weapons.Axe.Item, _brush, _swingBack);
             if (Aiming.LeadOf(digs, _swing.At, m.Grid.Width) is { } lead) Struck(_groundHits, m, lead, _current, client.Id);
             foreach (var dig in digs) client.Send(dig);
             // Every creature the blade meets, wherever the hero stands (0102): its flinch is the fauna's to show.
-            var strikes = Aiming.StrikesOf(m, client.Id, Aiming.StruckCreatures(m, _current, _swing.At), Content.Weapons.Axe.Item);
+            var strikes = _swingBack ? [] : Aiming.StrikesOf(m, client.Id, Aiming.StruckCreatures(m, _current, _swing.At), Content.Weapons.Axe.Item);
             foreach (var strike in strikes) client.Send(strike);
             // A blade that bites is drawn stopped on contact a moment (0075).
             if (hits.Count > 0 || digs.Count > 0 || strikes.Count > 0) _figure.Bit();
@@ -590,17 +597,17 @@ public partial class HeroView : Node2D
         // its power every tick it runs (0055), and hits every wreck its bit touches each Pace ticks. Flat, it winds down.
         bool wieldsDrill = acts && drill != null && !working && Poses.HoldsIn(pose);
         _aimsDrill = wieldsDrill && pointer != null;
-        var running = Motor.Wanted(m.Items, client.Id, _aimsDrill ? drill : null, _mouse.Buttons.HoldsLeft, _grabHeld);
+        var running = Motor.Wanted(m.Items, client.Id, _aimsDrill ? drill : null, _mouse.Buttons.HoldsLeft || _mouse.Buttons.HoldsRight, _grabHeld);
         // Sent before this frame's hits, so the host applies the run first: a hit of the drill needs it.
         if (Motor.RunOf(m.Items, client.Id, running) is { } run) client.Send(run);
         bool runs = running != null;
-        Drill(client, m, runs ? pointer : null, drill);
+        Drill(client, m, runs ? pointer : null, drill, back);
         _figure.Spinning = runs;
         // Loaded while its bit is on a piece the sim would let it hit, a wreck or the ground. Its hits sound and look as what
         // they hit, where they hit it (0093, 0094); the bit throws nothing of its own.
         bool onWreck = runs && (Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0
             || Aiming.StrikesOf(m, client.Id, Aiming.TouchedCreatures(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0);
-        bool works = onWreck || runs && Aiming.DigsAt(m, client.Id, _current, Aiming.PointOf(pointer!.Value), running!, _brush).Count > 0;
+        bool works = onWreck || runs && Aiming.DigsAt(m, client.Id, _current, Aiming.PointOf(pointer!.Value), running!, _brush, back).Count > 0;
         HearDrill(runs, works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
@@ -651,10 +658,18 @@ public partial class HeroView : Node2D
     /// The drill running at <paramref name="pointer"/>, in cells, or not at all with none: when its pace says (<see cref="DrillPace"/>),
     /// a hit for each wreck its bit touches that the sim would take, heard as the wreck sounds hit, the chop, once a hit (0093).
     /// </summary>
-    private void Drill(Client client, Registry m, (double X, double Y)? pointer, string? drill)
+    private void Drill(Client client, Registry m, (double X, double Y)? pointer, string? drill, bool back)
     {
         if (!_drillPace.Due(client.World.Tick, pointer != null && drill != null, Content.Weapons.Of(drill)?.Pace ?? 1)) return;
         var at = Aiming.PointOf(pointer!.Value);
+        if (back)
+        {
+            // On the right button the bit digs the back walls alone (0107).
+            var behind = Aiming.DigsAt(m, client.Id, _current, at, drill!, _brush, back: true);
+            if (Aiming.LeadOf(behind, at, m.Grid.Width) is { } first) Struck(_groundHits, m, first, _current, client.Id);
+            foreach (var dig in behind) client.Send(dig);
+            return;
+        }
         bool wreck = false;
         foreach (var hit in Aiming.HitsOf(m, client.Id, Aiming.Touched(m, _current, at), drill!))
         {
@@ -715,6 +730,15 @@ public partial class HeroView : Node2D
         var at = Impacts.On(m.Grid, dig.Cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
         var point = new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell));
         int damage = m.Items.Damage(peer, dig.Tool);
+        // A back wall sounds and chips as its material, a hull's as a wreck's metal (0107).
+        if (dig.Back)
+        {
+            if (m.Grid.BackAt(dig.Cell) is not { } behind) return;
+            voices.Play(S.Ground.TryGetValue(behind.Id, out var sounds) ? sounds.Hit : S.Chop, point, offsetDb: GroundSounds.HitDbOf(dig.Tool));
+            var look = HitLooks.Ground.TryGetValue(behind.Id, out var ground) ? ground : Impact.Alloy;
+            HitBurst.Shared.Throw(HitLooks.Of[look], point.X, point.Y, at.Nx, at.Ny, Impacts.ShareOf(dig.Tool), Impacts.FloorUnder(m.Grid, at) * Rig.Cell);
+            return;
+        }
         if (GroundSounds.HitAt(m.Grid, m.Building, dig.Cell, damage) is { } hit)
             voices.Play(hit, point, offsetDb: GroundSounds.HitDbOf(dig.Tool));
         if (Impacts.At(m.Grid, m.Building, dig.Cell) is not { } impact) return;
@@ -791,15 +815,19 @@ public partial class HeroView : Node2D
     /// <summary>A point in thousandths of a cell, in the world's pixels.</summary>
     private static Vector2 Pixels(Point at) => new Vector2(at.X, at.Y) * (float)(Rig.Cell / Hero.Unit);
 
-    /// <summary>Outlines <paramref name="aim"/>, green, or red when the sim would <paramref name="refuse"/>; nothing with none.</summary>
-    private void TraceAim(Registry m, ShownGrid shown, Aim? aim, bool refuse)
+    /// <summary>
+    /// Outlines <paramref name="aim"/>, green, or red when the sim would <paramref name="refuse"/>; nothing with none. Aimed at
+    /// the <paramref name="back"/> layer (0107), the line is dashed and drawn a pixel inside.
+    /// </summary>
+    private void TraceAim(Registry m, ShownGrid shown, Aim? aim, bool refuse, bool back = false)
     {
         var grid = m.Grid;
         var traced = aim is { } a
-            ? (a.Cell, a.Work?.Plan, refuse, shown.StructureAt(grid, a.Cell), shown.ConduitAt(grid, a.Cell), grid.MachineAt(a.Cell)?.Id, a.Square)
-            : ((int, int?, bool, int, int, int?, (int, int, int)?)?)null;
+            ? (a.Cell, a.Work?.Plan, refuse, shown.StructureAt(grid, a.Cell), shown.ConduitAt(grid, a.Cell), grid.MachineAt(a.Cell)?.Id, a.Square, back)
+            : ((int, int?, bool, int, int, int?, (int, int, int)?, bool)?)null;
         if (traced == _traced) return;
         _traced = traced;
+        _outline.Dashed = back;
         // Ground dug at is outlined over the hero and its tool, which may stand in front of it (0077).
         _outline.ZIndex = aim?.Press?.Command is Sim.Building.Dig ? Layers.Dug : Layers.Aim;
         _outline.Begin();

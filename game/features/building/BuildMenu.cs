@@ -164,12 +164,12 @@ public partial class BuildMenu : CanvasLayer
         _foot.Size = new Vector2(_at.Width - 2 * Catalogue.Pad, Catalogue.FootHeight);
         foreach (var (box, _) in _cards) box.QueueFree();
         _cards.Clear();
-        int icon = Slots.IconOf(_ui.SlotScale.Get());
+        int icon = _at.Icon;
         for (int i = 0; i < Catalogue.Columns * Catalogue.Rows; i++)
         {
-            var box = new Panel { MouseFilter = Control.MouseFilterEnum.Ignore, Size = new Vector2(_at.Slot, _at.Slot) };
+            var box = new Panel { MouseFilter = Control.MouseFilterEnum.Ignore, Size = new Vector2(_at.Card, _at.Card) };
             var picture = Picture(icon);
-            picture.Position = new Vector2((_at.Slot - icon) / 2, (_at.Slot - icon) / 2);
+            picture.Position = new Vector2((_at.Card - icon) / 2, (_at.Card - icon) / 2);
             box.AddChild(picture);
             _grid.AddChild(box);
             _cards.Add((box, picture));
@@ -219,7 +219,14 @@ public partial class BuildMenu : CanvasLayer
     }
 
     /// <summary>A card's picture: what it builds, as the ship draws it; the cable its plug.</summary>
-    public static Texture2D ThumbOf(Tool tool) => tool is PlaceTool p ? BlueprintArt.Thumbnail(p.Placement) : AsciiArt.Plug();
+    public static Texture2D ThumbOf(Tool tool) => tool switch
+    {
+        // A material's card shows both its layers, its wall before its back wall (0107).
+        PlaceTool { Back: { } back } p => BlueprintArt.Layered(p.Placement, back),
+        PlaceTool p => BlueprintArt.Thumbnail(p.Placement),
+        RemoveTool => AsciiArt.Removal(),
+        _ => AsciiArt.Plug(),
+    };
 
     /// <summary>A card clicked: picked, or let go when it is the one in hand. The menu stays open.</summary>
     public void Pick(Tool tool) => _hand.Pick(tool);
@@ -292,7 +299,8 @@ public partial class BuildMenu : CanvasLayer
         }
         var tabs = Tools.Tabs
             .Select(t => t with { Tools = t.Tools.Where(each => Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
-            .Where(t => t.Tools.Count > 0)
+            // The removal card is on every tab: a tab with nothing else known is not shown, nor counts it.
+            .Where(t => t.Tools.Any(c => c is not RemoveTool))
             .ToList();
         var shownTab = tabs.FirstOrDefault(t => t.Id == _hand.Tab.Get()) ?? tabs.FirstOrDefault();
         // A tab the world shows nothing on is never the mode: the one shown instead is.
@@ -313,7 +321,7 @@ public partial class BuildMenu : CanvasLayer
         }
         _top = System.Math.Clamp(_top, 0, Catalogue.LastTop(_list.Count));
         FindHovered();
-        string tabsKey = string.Join(",", tabs.Select(t => $"{t.Id}:{t.Tools.Count}"));
+        string tabsKey = string.Join(",", tabs.Select(t => $"{t.Id}:{t.Tools.Count(c => c is not RemoveTool)}"));
         if (tabsKey != _tabsShown)
         {
             _tabsShown = tabsKey;
@@ -353,7 +361,7 @@ public partial class BuildMenu : CanvasLayer
         float x = 0;
         foreach (var tab in tabs)
         {
-            string name = En.T($"build.tab.{tab.Id}"), count = tab.Tools.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string name = En.T($"build.tab.{tab.Id}"), count = tab.Tools.Count(c => c is not RemoveTool).ToString(System.Globalization.CultureInfo.InvariantCulture);
             var box = Tablet.Tab(name, count, x);
             string id = tab.Id;
             box.GuiInput += e =>
@@ -407,7 +415,7 @@ public partial class BuildMenu : CanvasLayer
             _heldPicture.Texture = ThumbOf(tool);
             _heldName.Text = tool.Label;
         }
-        _hint.Text = shownTab != null ? En.T(Tools.HintOf(shownTab.Id)) : "";
+        _hint.Text = shownTab != null ? En.T(Tools.HintOf(shownTab.Id, tool)) : "";
     }
 
     /// <summary>The card in hand: the selected slot's look, sky edged twice as thick.</summary>

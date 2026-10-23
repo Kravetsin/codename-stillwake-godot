@@ -25,6 +25,36 @@ public static class BlueprintArt
     private const int Right = 2, Left = 8, AllSides = 15;
 
     private static readonly Dictionary<Placement, ImageTexture> Thumbs = new();
+    private static readonly Dictionary<Placement, ImageTexture> Layereds = new();
+
+    /// <summary>
+    /// A material's card (0107): a square of its wall at the bottom left, edged dark, before a square of its back wall, dimmed,
+    /// at the top right, so the card says it builds both layers. Cut from the pictures, never scaled, so each pixel stays whole.
+    /// </summary>
+    public static Texture2D Layered(Placement front, Placement back)
+    {
+        if (Layereds.TryGetValue(front, out var kept)) return kept;
+        int side = ShipTiles.Drawn, part = side * 11 / 16, off = side - part;
+        var picture = Image.CreateEmpty(side, side, false, Image.Format.Rgba8);
+        var behind = Thumbnail(back).GetImage();
+        behind.Convert(Image.Format.Rgba8);
+        for (int y = 0; y < part; y++)
+            for (int x = off; x < side; x++)
+            {
+                var c = behind.GetPixel(x, y);
+                picture.SetPixel(x, y, new Color(c.R * 0.6f, c.G * 0.6f, c.B * 0.6f, c.A));
+            }
+        var edge = new Color(0.06f, 0.08f, 0.1f);
+        for (int i = 0; i <= part; i++)
+        {
+            picture.SetPixel(i, off - 1, edge);
+            picture.SetPixel(part, off - 1 + i, edge);
+        }
+        var wall = Thumbnail(front).GetImage();
+        wall.Convert(Image.Format.Rgba8);
+        picture.BlendRect(wall, new Rect2I(0, off, part, part), new Vector2I(0, off));
+        return Layereds[front] = ImageTexture.CreateFromImage(picture);
+    }
 
     /// <summary>
     /// The pictures <paramref name="placement"/> is drawn with, as the ship draws it built: <paramref name="linked"/>

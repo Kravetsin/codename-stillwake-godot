@@ -6,20 +6,26 @@ namespace Stillwake.Game.Features.Building;
 /// <summary>
 /// The build menu's frame (0073), in screen pixels for a slot of <paramref name="Slot"/>: a fixed panel docked at the
 /// bottom middle, its size set by the slot size alone, never by the tab or how many cards it holds. The tab strip on
-/// top, then <see cref="Columns"/> by <see cref="Rows"/> cards, the inventory's slots, scrolled a row at a time, a
+/// top, then <see cref="Columns"/> by <see cref="Rows"/> cards, each a step of the art larger than the inventory's slot (0107), scrolled a row at a time, a
 /// scrollbar beside them, and the line of the card in hand and the hint under them.
 /// </summary>
 public readonly record struct Catalogue(int Slot)
 {
-    /// <summary>Cards in a row and rows shown at once: 42 before the grid scrolls.</summary>
-    public const int Columns = 14, Rows = 3;
+    /// <summary>Cards in a row and rows shown at once: 20 before the grid scrolls, two rows of big cards in the frame three of slots took (0107).</summary>
+    public const int Columns = 10, Rows = 2;
+
+    /// <summary>A card's picture: the 16 px art a whole step larger than in a slot, ×3 at the normal slot, ×4 at the large.</summary>
+    public int Icon => Slot - 2 * Slots.Inset + 16;
+
+    /// <summary>A card's side: its picture inset as a slot's is.</summary>
+    public int Card => Icon + 2 * Slots.Inset;
 
     /// <summary>The tablet's strips (<see cref="TabletLayout"/>): its padding, the tabs, the line under the cards, the scrollbar.</summary>
     public const int Pad = TabletLayout.Pad, TabHeight = TabletLayout.TabHeight, FootHeight = TabletLayout.FootHeight,
         BarWidth = TabletLayout.BarWidth, ThumbLeast = TabletLayout.ThumbLeast;
 
     /// <summary>From one card's left edge to the next's.</summary>
-    public int Step => Slot + Slots.Gap;
+    public int Step => Card + Slots.Gap;
 
     public int GridWidth => Columns * Step - Slots.Gap;
     public int GridHeight => Rows * Step - Slots.Gap;
@@ -64,7 +70,7 @@ public readonly record struct Catalogue(int Slot)
     {
         if (x < 0 || y < 0 || x >= GridWidth || y >= GridHeight) return null;
         int column = (int)x / Step, row = (int)y / Step;
-        if ((int)x - column * Step >= Slot || (int)y - row * Step >= Slot) return null;
+        if ((int)x - column * Step >= Card || (int)y - row * Step >= Card) return null;
         int index = (top + row) * Columns + column;
         return index < count ? index : null;
     }

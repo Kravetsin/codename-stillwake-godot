@@ -68,7 +68,7 @@ public class ItemCardTests
         var card = ItemCards.Of("fireAxe", unknown: false);
         Assert.True(card.Tool);
         Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
-        Assert.Equal(new CardKey("LMB", "hold on debris or ground to break it"), card.Use);
+        Assert.Equal(new CardKey("LMB / RMB", "hold on debris or ground to break it; RMB, a back wall"), card.Use);
         Assert.Empty(card.Effects);
     }
 

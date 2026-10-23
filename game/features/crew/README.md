@@ -410,8 +410,14 @@ Deliberately not handled:
 
 ## The hands
 
+- **Left is the front, right the back** (0107, `Layering.Back`: the right alone). The screwdriver, first in the hotbar of every
+  hero (`Inventory.Kit`), builds a plan and takes a mark apart with the left button held on it, `Screwdriver.Work` ticks a tick;
+  nothing else in hand works plans. The axe swung by the right button, and the drill run on it, dig the back walls under the brush
+  alone (`Dig.Back`, `Aiming.DigsAt(…, back)`), no wreck nor creature; the swing keeps the button it began with. The aim of a back
+  dig is outlined dashed, a pixel inside (`Outline.Dashed`). A canister's right click still breathes it. A friend's swing is drawn
+  on the front layer: which button began it is not sent.
 - One aim (`Aiming.AimAt`) for everything the hands work under the pointer: a plan in the cell (the
-  left button held), a crate, furnace or analyzer, a tank, a door, a valve (E), else a wreck whose
+  left button held with the screwdriver), a crate, furnace or analyzer, a tank, a door, a valve (E), else a wreck whose
   picture is under the pointer (`DebrisLooks.Wrecks`, reached at its nearest edge), else the nearest
   small piece of debris out in space (E or the left button). Pieces with a grab in flight are passed over
   (`Shared.Predicted.Grabbing`).

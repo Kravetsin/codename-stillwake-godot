@@ -75,8 +75,9 @@ public class DebrisTests
     private static int Count(Scenario w, string item, int peer) =>
         w.M.Items.Inventory(peer).Sum(s => s?.Item == item ? s.Count : 0);
 
+    /// <summary>What <paramref name="peer"/> holds besides the kit it came aboard with (0107).</summary>
     private static Stillwake.Sim.Items.Stack[] Held(Scenario w, int peer) =>
-        w.M.Items.Inventory(peer).Where(s => s != null).Select(s => s!).ToArray();
+        w.M.Items.Inventory(peer).Where(s => s != null && s.Item != Content.Screwdrivers.Basic.Item).Select(s => s!).ToArray();
 
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
 

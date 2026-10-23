@@ -32,7 +32,7 @@ public partial class WorldButtons : Node2D
         return (at.X, at.Y);
     }
 
-    private static bool Ours(MouseButton b) => b is MouseButton.Left or MouseButton.Right or MouseButton.Middle;
+    private static bool Ours(MouseButton b) => b is MouseButton.Left or MouseButton.Right;
 
     public override void _Notification(int what)
     {

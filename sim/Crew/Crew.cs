@@ -97,6 +97,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             }
             Add(new Hero { Id = c.From, Cell = c.Cell, Suit = Content.Crew.Suit });
             _playersOps.Dress(c.From);
+            _itemsOps.Kit(c.From);
         });
         Handles<Leave>(
             c => HeroOf(c.From) == null ? "crew.noHero" : null,
