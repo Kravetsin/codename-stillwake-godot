@@ -33,7 +33,7 @@ public class ArcBenchTests
         "##########",
     ];
 
-    private static Scenario World() => new Scenario(Layout.Parse(Rows, null, [((0, 0), (4, 3))]))
+    private static Scenario World() => new Scenario(Layout.Parse(Rows, null, [((0, 0), (4, 3))]), doubled: true)
         .GiveItems(0, (Drill, 1), (Arc, 2), ("iron", 10));
 
     private static int Id(Scenario w, string kind) => w.M.Grid.MachinesOf(kind).Single().Id;

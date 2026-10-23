@@ -23,7 +23,7 @@ public class PipesTests
             .....
             -....
             --...
-            """);
+            """, cells: true);
         var networks = w.M.Pipes.Networks;
         Assert.Equal(2, networks.Count);
         Assert.Equal(w.At(0, 0), networks[0].Id);
@@ -55,14 +55,14 @@ public class PipesTests
         var w = new Scenario("""
             -.
             .-
-            """);
+            """, cells: true);
         Assert.Equal(new[] { (0, 1), (3, 1) }, Summary(w));
     }
 
     [Fact]
     public void SplitsANetworkAtAClosedValveAndJoinsItAgainWhenTheValveOpens()
     {
-        var w = new Scenario("--v--");
+        var w = new Scenario("--v--", cells: true);
         Assert.Equal(new[] { (0, 5) }, Summary(w));
         w.Do(new SetValve(2, false)).Run();
         Assert.Equal(new[] { (0, 2), (3, 2) }, Summary(w));
@@ -75,7 +75,7 @@ public class PipesTests
     [Fact]
     public void JoinsTwoNetworksWhenThePipeBetweenThemIsBuilt()
     {
-        var w = new Scenario("--.--");
+        var w = new Scenario("--.--", cells: true);
         Assert.Equal(new[] { (0, 2), (3, 2) }, Summary(w));
         w.Do(new Place(2, Pipe)).Run();
         Assert.Equal(new[] { (0, 5) }, Summary(w));
@@ -86,7 +86,7 @@ public class PipesTests
     [Fact]
     public void PutsAMachineOnTheNetworkItsPortStandsOnAndOnlyThroughItsPort()
     {
-        // A vent's port is its own cell; a tank's is its bottom-left cell.
+        // A vent's port is its top-left cell; a tank's is the top-left of its bottom-left block.
         var w = new Scenario("""
             V---
             ....
@@ -96,7 +96,8 @@ public class PipesTests
         var tank = w.M.Grid.Machines.Single(m => m.Kind == "tank");
         var vent = w.M.Grid.Machines.Single(m => m.Kind == "vent");
         Assert.Empty(w.M.Pipes.NetworksOf(vent.Id));
-        w.Do(new Place(w.At(0, 0), Pipe)).Do(new Place(w.At(1, 2), Pipe)).Run();
+        // The port and the vent's cell between it and the run.
+        w.Do(new Place(w.At(0, 0), Pipe)).Do(new Place(w.At(0, 0) + 1, Pipe)).Do(new Place(w.At(1, 2), Pipe)).Run();
         Assert.Equal(new[] { w.At(0, 0) }, w.M.Pipes.NetworksOf(vent.Id));
         Assert.Equal(new[] { vent.Id }, w.M.Pipes.Network(w.At(0, 0))?.Machines);
         // Under the tank but not its port: no connection.
@@ -110,14 +111,16 @@ public class PipesTests
     {
         var w = new Scenario("-V-");
         var vent = w.M.Grid.Machines[0];
-        w.Do(new Place(1, Pipe)).Run();
+        int port = w.At(1, 0);
+        // The vent's port, and the cell between it and the pipe drawn left of it.
+        w.Do(new Place(port - 1, Pipe)).Do(new Place(port, Pipe)).Run();
         Assert.Equal(new[] { vent.Id }, w.M.Pipes.Network(0)?.Machines);
-        w.Do(new ClearAt(1, "machine")).Run();
+        w.Do(new ClearAt(port, "machine")).Run();
         Assert.Empty(w.M.Pipes.Network(0)!.Machines);
-        w.Do(new Place(1, Vent)).Run();
+        w.Do(new Place(port, Vent)).Run();
         Assert.Equal(new[] { vent.Id + 1 }, w.M.Pipes.Network(0)?.Machines);
         // Replaced in one tick, so as many machines stand as before: still noticed.
-        w.Do(new ClearAt(1, "machine")).Do(new Place(1, Vent)).Run();
+        w.Do(new ClearAt(port, "machine")).Do(new Place(port, Vent)).Run();
         Assert.Equal(new[] { vent.Id + 2 }, w.M.Pipes.Network(0)?.Machines);
     }
 

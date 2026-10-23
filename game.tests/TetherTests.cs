@@ -29,7 +29,7 @@ public class TetherTests
     [Fact]
     public void RunsFromWhereItIsTiedToTheClipEndsPinnedInLinksOfItsLength()
     {
-        var clip = (5000.0, 2000.0);
+        var clip = (10000.0, 4000.0);
         var line = new Tether(Anchor, clip);
         Run(line, clip, 3);
         Assert.Equal(Tether.Links + 1, line.Points.Count);
@@ -41,12 +41,12 @@ public class TetherTests
     [Fact]
     public void IsLetOutALittleLongerThanTheWayItSpansAndReeledInAsTheHeroComesBack()
     {
-        var line = new Tether(Anchor, (8000, 0));
-        Run(line, (8000, 0), 5);
-        Assert.True(line.Length > 8000);
-        Assert.True(line.Length < 8000 * 1.3);
-        Run(line, (2000, 0), 5);
-        Assert.True(line.Length < 3000);
+        var line = new Tether(Anchor, (16000, 0));
+        Run(line, (16000, 0), 5);
+        Assert.True(line.Length > 16000);
+        Assert.True(line.Length < 16000 * 1.3);
+        Run(line, (4000, 0), 5);
+        Assert.True(line.Length < 6000);
     }
 
     [Fact]
@@ -56,18 +56,18 @@ public class TetherTests
         var line = new Tether(Anchor, clip);
         Run(line, clip, 5);
         Assert.Equal(Spec.Tether, line.Length);
-        Assert.True(OffLine(line, clip) < 150);
+        Assert.True(OffLine(line, clip) < 300);
     }
 
     [Fact]
     public void DriftsWhenLooseNeverRestingAndNeverFarOff()
     {
-        var clip = (4000.0, 0.0);
+        var clip = (8000.0, 0.0);
         var line = new Tether(Anchor, clip);
         Run(line, clip, 2);
         var before = line.Points.Select(p => (p.X, p.Y)).ToArray();
         Run(line, clip, 2);
-        Assert.Contains(line.Points.Select((p, i) => Hypot(p.X - before[i].X, p.Y - before[i].Y)), d => d > 50);
+        Assert.Contains(line.Points.Select((p, i) => Hypot(p.X - before[i].X, p.Y - before[i].Y)), d => d > 100);
         Run(line, clip, 30);
         Assert.All(line.Points, p => Assert.True(Hypot(p.X, p.Y) <= line.Length));
     }
@@ -75,13 +75,13 @@ public class TetherTests
     [Fact]
     public void DoesNotFlipAsTheHeroCrossesBelowWhereItIsTied()
     {
-        var line = new Tether(Anchor, (600, 6000));
-        Run(line, (600, 6000), 3);
+        var line = new Tether(Anchor, (1200, 12000));
+        Run(line, (1200, 12000), 3);
         var middle = () => line.Points[Tether.Links / 2];
         var before = (middle().X, middle().Y);
         // Across the vertical through the anchor at the swimming speed: the line's middle follows
         // less far than the hero went, where a line drawn by which side the hero is on would flip.
-        for (int x = 600; x >= -600; x -= Spec.Swim) line.Update((0, 0), (x, 6000), Hero.StepMs);
-        Assert.True(Hypot(middle().X - before.X, middle().Y - before.Item2) < 1200);
+        for (int x = 1200; x >= -1200; x -= Spec.Swim) line.Update((0, 0), (x, 12000), Hero.StepMs);
+        Assert.True(Hypot(middle().X - before.X, middle().Y - before.Item2) < 2400);
     }
 }

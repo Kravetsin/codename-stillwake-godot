@@ -49,15 +49,15 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - **`ship`, the stream** (`ByHull(Margin, Lead)`): the stream past the ship, as before zones, its one
   tier `Debris.Kinds`, the only zone with soil clods (0060). Its **box** is the hull grown by `Lead` columns either way and `Margin` rows.
 - **`far`, the far field** (`AroundHeroes`): round every hero out past every stream's box, from the
-  cell its client last reported (`Hero.Cell`, about once a second, 0050). Three tiers, at 0, 128 and 256
+  cell its client last reported (`Hero.Cell`, about once a second, 0050). Three tiers, at 0, 256 and 512
   cells: small salvage near the ship, more and bigger wrecks the farther out, but cable racks about as rare a spawn
   as in the stream (4, 4 and 5), so found circuits are a moderate bonus (0056, amended);
-  past 128 the **derelicts** too, and past 256 big and rich rock ([0056](../../docs/decisions/0056-rich-finds-far-out.md)):
-  an engine block and a cargo hold one spawn in 79 past 128; with the pod cluster one in 28 past 256.
-- **`asteroids`, the asteroid band** (`HullBand(From, To, Lead)`, 0054): two bands of rows, 22 to 44 past the
-  hull's top row and as far past its bottom row, beyond the tether's 12 cells; across, the stream's way, from
+  past 256 the **derelicts** too, and past 512 big and rich rock ([0056](../../docs/decisions/0056-rich-finds-far-out.md)):
+  an engine block and a cargo hold one spawn in 79 past 256; with the pod cluster one in 28 past 512.
+- **`asteroids`, the asteroid band** (`HullBand(From, To, Lead)`, 0054): two bands of rows, 44 to 88 past the
+  hull's top row and as far past its bottom row, beyond the tether's 24 cells; across, the stream's way, from
   `Lead` right of the hull to as far left of it. Two tiers of the asteroid's kinds (0056): small, middling and large
-  nearer, and from 72, its far edge, rows 36 to 44 out (every piece spawning `Lead` across, `d` is twice its rows
+  nearer, and from 144, its far edge, rows 72 to 88 out (every piece spawning `Lead` across, `d` is twice its rows
   there), more large and the ore-rich. Not a stream's box: the far field
   spawns in it as anywhere. A beat every 3 to 5 minutes (`Every` 3600, `Jitter` 2400), at most 2 out.
 
@@ -70,8 +70,8 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - **No zone on a planet** (0076): on a surface whose kind has no debris (`Surfaces.Kind.Debris` false, the test strip)
   no zone beats and the world's first pieces are not put out: nothing spawns, nothing is drawn from the Rng. Each
   surface's debris drifts round its own heroes only, so a hero on a planet has none of the ship's round it.
-- **A hero's view** (`Debris.View`, 60 × 34 cells either way round its reported cell): more than the
-  farthest zoom shows on any screen (96 × 54 cells, `ShipCamera.Farthest`). No zone spawns a piece in any hero's view, nor takes one away in it
+- **A hero's view** (`Debris.View`, 120 × 68 cells either way round its reported cell): more than the
+  farthest zoom shows on any screen (192 × 108 cells, `ShipCamera.Farthest`). No zone spawns a piece in any hero's view, nor takes one away in it
   but at the grid's edge, so no one sees debris appear or vanish.
 - **A beat:** on the clock its `Beat.Next`, the next is due `Every` plus `Below(Jitter + 1)` ticks on;
   a zone with no jitter draws nothing for it, so a beat that spawns nothing takes nothing from the Rng.
@@ -99,7 +99,7 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
 - **The far field's beat** (`AroundHeroes`), with a hull: for each hero on the grid in id order, while
   fewer than the zone's `Max` (640) are out — so at the cap lower ids spawn first — and skipping, with
   no draw, a hero whose reported cell is in a stream's box or that already has `PerHero` (110) of the
-  zone in its `Keep` box (68 × 48 cells either way): a point on the ring round its cell, drawn as a
+  zone in its `Keep` box (136 × 96 cells either way): a point on the ring round its cell, drawn as a
   side of four (right, left, up, down), an offset along it (up to `RingTo`'s other half-size either way)
   and a depth across it (from `RingFrom` to `RingTo`: 61 to 64 columns, 36 to 42 rows, just past the
   farthest view, so what spawns on the right drifts into sight within a minute); then a kind
@@ -185,8 +185,9 @@ half as tall), each tier from its `From` up to the next's (`DebrisModule.TierOf`
   600 pieces and four
   heroes in a debug build (`BudgetTests`).
 - **Density:** `DebrisDensityTests` flies a hero by jetpack and hovers one, and counts the far pieces in the
-  default zoom's view (40 × 22) and the farthest's (120 × 68): hovering some 4.7 and 40, a new piece in the
-  default view every 11 s; flying at 15 cells a second some 4 and 31, never empty more than 1.4 s. Pieces
+  default zoom's view (40 × 22) and the farthest's (120 × 68): hovering some 3.5 in the default view, a new piece
+  in it every 15 s, at the 8 px cell (0104) just short of its band (3.5 to 7, 12 s: that test is skipped, to retune); flying at
+  30 cells a second some 3.6, never empty more than 3 s. Pieces
   spread evenly hold about a ninth as many in the default view as in the farthest.
 - **Fuzz:** a grab, a hit with a weapon drawn among `Weapons.All` or a reel, one in three each, at a piece that is out three times in four,
   else an id from 0 to `NextId + 1`, gone or never spawned; a reel's point is anywhere from a grid's

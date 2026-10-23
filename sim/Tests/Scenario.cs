@@ -53,16 +53,29 @@ public sealed class Scenario
     private readonly List<Command> _pending = [];
     private readonly Func<Registry, IEnumerable<Module>>? _with;
 
-    public Scenario(string map, uint seed = 1, Func<Registry, IEnumerable<Module>>? with = null)
-        : this(Layout.Parse(map), seed, with) { }
+    /// <summary>
+    /// A world on <paramref name="map"/>, drawn a character a 16 px cell and doubled to the 8 px cells (<see cref="Layout.Doubled"/>,
+    /// 0104), as the wreck and the strip are: machines, bodies and distances keep their sizes. A test of a rule per cell (a dug
+    /// cell, rooms, pipes, air) passes <paramref name="cells"/> and reads its map a character a cell.
+    /// </summary>
+    public Scenario(string map, uint seed = 1, Func<Registry, IEnumerable<Module>>? with = null, bool cells = false)
+        : this(Layout.Parse(map), seed, with, doubled: !cells) { }
 
     /// <param name="with">Test modules run after the registered ones, made anew on every load.</param>
-    public Scenario(Layout layout, uint seed = 1, Func<Registry, IEnumerable<Module>>? with = null)
+    /// <param name="doubled">
+    /// Whether <paramref name="layout"/> is drawn a character a 16 px cell, to be doubled, its characters' cells what
+    /// <see cref="At"/> names; else it is the world's own, as <c>Registry.Wreck</c> and a grown ground are.
+    /// </param>
+    public Scenario(Layout layout, uint seed = 1, Func<Registry, IEnumerable<Module>>? with = null, bool doubled = false)
     {
-        Layout = layout;
+        Scale = doubled ? 2 : 1;
+        Layout = doubled ? layout.Doubled() : layout;
         _with = with;
-        World = World.Create(seed, layout, Modules());
+        World = World.Create(seed, Layout, Modules());
     }
+
+    /// <summary>The cells a character of the map is across and down: 2 on a doubled map, else 1.</summary>
+    public int Scale { get; }
 
     /// <summary>
     /// A fresh registry, the builder after it, then the scenario's own test modules: the ship's. Another surface opened gets
@@ -87,7 +100,8 @@ public sealed class Scenario
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => modules.GetEnumerator();
     }
 
-    public int At(int x, int y) => y * Layout.Width + x;
+    /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>): its block's top-left on a doubled map.</summary>
+    public int At(int x, int y) => y * Scale * Layout.Width + x * Scale;
     public Scenario Do(Command c) { _pending.Add(c); return this; }
 
     public Scenario Run(int ticks = 1)

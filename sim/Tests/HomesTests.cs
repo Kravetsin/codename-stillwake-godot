@@ -14,10 +14,14 @@ namespace Stillwake.Sim.Tests;
 public class HomesTests
 {
     private const int W = 12;
+    /// <summary>The drawn room's cell at (<paramref name="x"/>, <paramref name="y"/>): where its pieces are listed, before it doubles.</summary>
     private static int At(int x, int y) => y * W + x;
+
+    /// <summary>The lower row of the drawn character at (<paramref name="x"/>, <paramref name="y"/>): a floor piece's own cell.</summary>
+    private static int Bottom(Scenario w, int x, int y) => w.At(x, y) + w.Layout.Width;
     private static readonly string Axe = Weapons.Axe.Item;
 
-    /// <summary>A home in miniature: an alloy room, its back wall plaster over an alloy wainscot, its floor row 4.</summary>
+    /// <summary>A home in miniature: an alloy room, its back wall plaster over an alloy wainscot, its floor row 4, doubled as a home's prefab is.</summary>
     private static Scenario Room(params (int Cell, string Kind)[] pieces) => new(Layout.Parse("""
         ############
         #..........#
@@ -30,7 +34,7 @@ public class HomesTests
         appppppppppa
         aaaaaaaaaaaa
         aaaaaaaaaaaa
-        """) with { Flora = [.. pieces.OrderBy(p => p.Cell)] });
+        """) with { Flora = [.. pieces.OrderBy(p => p.Cell)] }, doubled: true);
 
     private static int Count(Scenario w, string item, int peer = 0) => w.M.Items.Totals(peer).Where(t => t.Item == item).Sum(t => t.Count);
     private static string[] Kinds(Scenario w) => w.M.Building.Plants.Select(p => p.Kind).ToArray();
@@ -46,8 +50,8 @@ public class HomesTests
     public void TheirBackWallsArePlasterOverAnAlloyWainscotAndPlasterIsNeverBuilt()
     {
         var w = Room();
-        Assert.Equal("plaster", w.M.Grid.BackAt(At(3, 2))?.Id);
-        Assert.Equal("alloy", w.M.Grid.BackAt(At(3, 3))?.Id);
+        Assert.Equal("plaster", w.M.Grid.BackAt(w.At(3, 2))?.Id);
+        Assert.Equal("alloy", w.M.Grid.BackAt(w.At(3, 3))?.Id);
         var plaster = Materials.Get("plaster");
         Assert.True(plaster.Natural && !plaster.Built);
     }
@@ -55,16 +59,16 @@ public class HomesTests
     [Fact]
     public void AHitOnAnyCellOfTheBedHitsItAndTheThirdSwingFellsItForItsPlanksAndCloth()
     {
-        // The bed stands three cells across and two up from its own, the bottom-left at (2, 3).
+        // The bed stands three characters across and two up from its own, the bottom-left of (2, 3).
         var w = Room((At(2, 3), "bed"));
         var bed = w.M.Building.Plants.Single();
-        Assert.All((int[])[At(2, 3), At(3, 3), At(4, 3), At(2, 2), At(4, 2)], cell => Assert.Equal(bed, w.M.Building.PlantAt(cell)));
-        Assert.Null(w.M.Building.PlantAt(At(5, 3)));
-        Assert.Null(w.M.Building.PlantAt(At(2, 1)));
+        Assert.All((int[])[w.At(2, 3), w.At(3, 3), w.At(4, 3), w.At(2, 2), w.At(4, 2)], cell => Assert.Equal(bed, w.M.Building.PlantAt(cell)));
+        Assert.Null(w.M.Building.PlantAt(w.At(5, 3)));
+        Assert.Null(w.M.Building.PlantAt(w.At(2, 1)));
         // Its crack is kept by its own cell, whichever is hit: six hit points, three swings.
-        Hit(w, At(4, 2), 2);
-        Assert.Equal((At(2, 3), 4), (w.M.Building.Cracks.Single().Cell, w.M.Building.Cracks.Single().Damage));
-        Hit(w, At(3, 3));
+        Hit(w, w.At(4, 2), 2);
+        Assert.Equal((Bottom(w, 2, 3), 4), (w.M.Building.Cracks.Single().Cell, w.M.Building.Cracks.Single().Damage));
+        Hit(w, w.At(3, 3));
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((3, 2), (Count(w, "planks"), Count(w, "cloth")));
@@ -74,11 +78,11 @@ public class HomesTests
     public void LampsFallToASwingAndAWholeOneGivesAnArcLampTheChestToAnyHitWithItsSmallCache()
     {
         var w = Room((At(5, 1), "ceilLamp"), (At(7, 3), "chest"), (At(9, 1), "sconce"));
-        Hit(w, At(5, 1));
-        Hit(w, At(9, 1));
+        Hit(w, w.At(5, 1));
+        Hit(w, w.At(9, 1));
         Assert.Equal(2, Count(w, "arcLamp"));
         Assert.Equal(0, Flora.Get("chest").Strength);
-        Hit(w, At(7, 3));
+        Hit(w, w.At(7, 3));
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((2, 1, 1, 1), (Count(w, "planks"), Count(w, "alloyScrap"), Count(w, "wire"), Count(w, "glass")));
     }
@@ -86,13 +90,13 @@ public class HomesTests
     [Fact]
     public void FellingTheTableFellsWhatStandsOnItItsYieldsToTheSameHero()
     {
-        // The table two cells across on the floor, the dishes and the candle on it, a row up.
+        // The table two characters across on the floor, the dishes and the candle on it, a row up.
         var w = Room((At(3, 3), "table"), (At(3, 2), "dishes"), (At(4, 2), "arcCandle"));
         // The dishes first: crockery falls to any hit, the table stands.
-        Hit(w, At(3, 2));
+        Hit(w, w.At(3, 2));
         Assert.Equal(["arcCandle", "table"], Kinds(w).Order(StringComparer.Ordinal));
         Assert.Equal(1, Count(w, "rock"));
-        Hit(w, At(4, 3), 3);
+        Hit(w, w.At(4, 3), 3);
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((3, 1, 1), (Count(w, "planks"), Count(w, "alloyScrap"), Count(w, "wire")));
         Assert.Empty(w.M.Items.Floor);
@@ -103,16 +107,16 @@ public class HomesTests
     {
         // A stool in front of the child's drawings hung low on the back wall, a mural painted beside them.
         var w = Room((At(2, 3), "stool"), (At(1, 3), "drawings"), (At(5, 2), "mural"));
-        Assert.Equal("stool", w.M.Building.PlantAt(At(2, 3))!.Kind);
-        Assert.Equal("drawings", w.M.Building.PlantAt(At(1, 3))!.Kind);
-        Hit(w, At(2, 3));
+        Assert.Equal("stool", w.M.Building.PlantAt(w.At(2, 3))!.Kind);
+        Assert.Equal("drawings", w.M.Building.PlantAt(w.At(1, 3))!.Kind);
+        Hit(w, w.At(2, 3));
         Assert.DoesNotContain("stool", Kinds(w));
-        Assert.Equal("drawings", w.M.Building.PlantAt(At(2, 3))!.Kind);
-        Hit(w, At(2, 3));
+        Assert.Equal("drawings", w.M.Building.PlantAt(w.At(2, 3))!.Kind);
+        Hit(w, w.At(2, 3));
         Assert.DoesNotContain("drawings", Kinds(w));
         // The mural is painted on the plaster: no hit takes it, a hit there finds nothing.
-        Assert.Null(w.M.Building.PlantAt(At(6, 2)));
-        Hit(w, At(6, 2));
+        Assert.Null(w.M.Building.PlantAt(w.At(6, 2)));
+        Hit(w, w.At(6, 2));
         Assert.Equal("building.nothingToDig", w.Refusals.Single().Reason);
         Assert.Contains("mural", Kinds(w));
     }
@@ -122,7 +126,7 @@ public class HomesTests
     {
         var w = Room((At(5, 3), "bench"));
         // The bench's right column stands on the alloy at (6, 4): thirty swings of the axe.
-        Hit(w, At(6, 4), Materials.Get("alloy").Strength / Weapons.Axe.Damage);
+        Hit(w, w.At(6, 4), Materials.Get("alloy").Strength / Weapons.Axe.Damage);
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((2, 1, 1), (Count(w, "planks"), Count(w, "cloth"), Count(w, "alloyScrap")));
@@ -132,7 +136,7 @@ public class HomesTests
     public void AWallBuiltInAPiecesOwnCellFellsItForAnyoneAndOneOnABackWallToo()
     {
         var w = Room((At(3, 3), "basket"), (At(6, 1), "holoPortrait"));
-        w.Do(new Place(At(3, 3), Placement.Wall("scrap"))).Do(new Place(At(6, 1), Placement.Wall("scrap"))).Run();
+        w.Do(new Place(Bottom(w, 3, 3), Placement.Wall("scrap"))).Do(new Place(w.At(6, 1), Placement.Wall("scrap"))).Run();
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal(0, Count(w, "planks"));
         var dropped = w.M.Items.Floor.Select(s => (s.Item, s.Count, s.By)).Order().ToArray();
@@ -155,16 +159,16 @@ public class HomesTests
             appppppppppa
             aaaaaattaaaa
             aaaaaaaaaaaa
-            """) with { Flora = [(At(3, 3), "fallenBeam"), (At(6, 3), "rubble")] });
-        Assert.All((int[])[At(3, 3), At(4, 3), At(6, 3), At(7, 3)], cell => Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(cell)));
-        Assert.Equal("fallenBeam", w.M.Building.PlantAt(At(4, 3))!.Kind);
+            """) with { Flora = [(At(3, 3), "fallenBeam"), (At(6, 3), "rubble")] }, doubled: true);
+        Assert.All((int[])[w.At(3, 3), w.At(4, 3), w.At(6, 3), w.At(7, 3)], cell => Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(cell)));
+        Assert.Equal("fallenBeam", w.M.Building.PlantAt(w.At(4, 3))!.Kind);
         // Its right wall dug out, sixty damage of alloy, and the beam goes, its scrap with the wall's.
-        Hit(w, At(4, 3), Materials.Get("alloy").Strength / Weapons.Axe.Damage);
+        Hit(w, w.At(4, 3), Materials.Get("alloy").Strength / Weapons.Axe.Damage);
         Assert.DoesNotContain("fallenBeam", Kinds(w));
-        Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(At(3, 3)));
+        Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(w.At(3, 3)));
         Assert.Equal(1 + 3, Count(w, "alloyScrap"));
         // The rubble's stone, six swings.
-        Hit(w, At(6, 3), Materials.Get("stone").Strength / Weapons.Axe.Damage);
+        Hit(w, w.At(6, 3), Materials.Get("stone").Strength / Weapons.Axe.Damage);
         Assert.DoesNotContain("rubble", Kinds(w));
         Assert.Equal((1 + 2, 1 + 3 + 1), (Count(w, "rock"), Count(w, "alloyScrap")));
     }
@@ -173,10 +177,10 @@ public class HomesTests
     public void TheMusicBoxStandsTheAxesFirstSwingAndFallsToItsSecond()
     {
         var w = Room((At(3, 3), "musicBox"));
-        Hit(w, At(3, 3));
+        Hit(w, w.At(3, 3));
         Assert.Contains("musicBox", Kinds(w));
         Assert.Equal(Weapons.Axe.Damage, w.M.Building.Cracks.Single().Damage);
-        Hit(w, At(3, 3));
+        Hit(w, w.At(3, 3));
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((1, 1), (Count(w, "gear"), Count(w, "copper")));
         // The drill's hit is a third of it; with the arc module (0098), two thirds.
@@ -191,62 +195,64 @@ public class HomesTests
         Assert.Equal((1, 2, 3, 6), (Swings("ceilLamp"), Swings("chair"), Swings("table"), Swings("hearth")));
         Assert.Equal(Flora.Get("acacia").Strength, Flora.Get(Ruins.Resonator).Strength);
         var w = Room((At(2, 3), "chair"), (At(5, 3), "hearth"));
-        Hit(w, At(2, 2), Swings("chair") - 1);
+        Hit(w, w.At(2, 2), Swings("chair") - 1);
         Assert.Contains("chair", Kinds(w));
-        Hit(w, At(2, 3));
+        Hit(w, w.At(2, 3));
         Assert.DoesNotContain("chair", Kinds(w));
         // The hearth stands floor to ceiling, its flue too: a hit up there is a hit on it.
-        Assert.Equal("hearth", w.M.Building.PlantAt(At(6, 1))!.Kind);
-        Hit(w, At(6, 1), Swings("hearth"));
+        Assert.Equal("hearth", w.M.Building.PlantAt(w.At(6, 1))!.Kind);
+        Hit(w, w.At(6, 1), Swings("hearth"));
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((3, 2, 1), (Count(w, "alloyScrap"), Count(w, "copper"), Count(w, "coil")));
     }
 
-    /// <summary>A room with a resonator at (5, 3), three cells up, and heroes 0 and 1 brought in on a breath's tick.</summary>
-    private static Scenario Resonating(int near, int far)
+    /// <summary>A room with a resonator at (5, 3), three characters up, and heroes 0 and 1 brought in on a breath's tick at drawn cells.</summary>
+    private static Scenario Resonating((int X, int Y) near, (int X, int Y) far)
     {
         var w = Room((At(5, 3), Ruins.Resonator));
         while (w.Crew().Clock % Content.Crew.BreathEvery != Content.Crew.BreathEvery - 1) w.Run();
-        w.Do(new Enter(near) { From = 0 }).Do(new Enter(far) { From = 1 }).Run();
+        w.Do(new Enter(w.At(near.X, near.Y)) { From = 0 }).Do(new Enter(w.At(far.X, far.Y)) { From = 1 }).Run();
         return w;
     }
 
     [Fact]
     public void TheResonatorZapsAHeroRightByItEveryBreathAndNotOneACellFurther()
     {
-        Assert.True(Room((At(5, 3), Ruins.Resonator)).M.Building.Zaps(At(6, 2)));
-        var w = Resonating(near: At(6, 2), far: At(8, 2));
+        var room = Room((At(5, 3), Ruins.Resonator));
+        Assert.True(room.M.Building.Zaps(room.At(6, 2)));
+        var w = Resonating(near: (6, 2), far: (8, 2));
         int Suit(int peer) => w.M.Crew.HeroOf(peer)!.Suit;
         // Both breathe the room's thin air alike; the one beside it pays its zap besides, each breath.
         Assert.Equal(Suit(1) - Ruins.Zap, Suit(0));
         w.Run(Content.Crew.BreathEvery);
         Assert.Equal(Suit(1) - 2 * Ruins.Zap, Suit(0));
-        // A cell either way of its three: up to its sphere's row and over it, beside it, never two columns off.
-        Assert.True(w.M.Building.Zaps(At(4, 1)));
-        Assert.True(w.M.Building.Zaps(At(6, 3)));
-        Assert.False(w.M.Building.Zaps(At(7, 2)));
-        Assert.False(w.M.Building.Zaps(At(3, 2)));
+        // A character either way of its three: up to its sphere's row and over it, beside it, never two columns off.
+        Assert.True(w.M.Building.Zaps(w.At(4, 1)));
+        Assert.True(w.M.Building.Zaps(w.At(6, 3)));
+        Assert.False(w.M.Building.Zaps(w.At(7, 2)));
+        Assert.False(w.M.Building.Zaps(w.At(3, 2)));
     }
 
     [Fact]
     public void AFelledResonatorZapsNoMoreAndInCreativeModeItNeverDid()
     {
-        var w = Resonating(near: At(6, 2), far: At(8, 2));
-        Hit(w, At(5, 1), (Flora.Get(Ruins.Resonator).Strength + 1) / Weapons.Axe.Damage);
+        var w = Resonating(near: (6, 2), far: (8, 2));
+        Hit(w, w.At(5, 1), (Flora.Get(Ruins.Resonator).Strength + 1) / Weapons.Axe.Damage);
         Assert.Empty(w.M.Building.Plants);
-        Assert.False(w.M.Building.Zaps(At(6, 2)));
+        Assert.False(w.M.Building.Zaps(w.At(6, 2)));
         Assert.Equal((3, 2, 1, 2), (Count(w, "copper"), Count(w, "wire"), Count(w, "crystal"), Count(w, "alloyScrap")));
         int gap = w.M.Crew.HeroOf(1)!.Suit - w.M.Crew.HeroOf(0)!.Suit;
         w.Run(3 * Content.Crew.BreathEvery);
         Assert.Equal(gap, w.M.Crew.HeroOf(1)!.Suit - w.M.Crew.HeroOf(0)!.Suit);
-        var creative = Room((At(5, 3), Ruins.Resonator)).Do(new SetCreative(true)).Do(new Enter(At(6, 2))).Run(3 * Content.Crew.BreathEvery);
+        var creative = Room((At(5, 3), Ruins.Resonator));
+        creative.Do(new SetCreative(true)).Do(new Enter(creative.At(6, 2))).Run(3 * Content.Crew.BreathEvery);
         Assert.Equal(Content.Crew.Suit, creative.M.Crew.HeroOf(0)!.Suit);
     }
 
     [Fact]
     public void ZappedDryAHeroPassesOutAsTheColdLeavesIt()
     {
-        var w = Resonating(near: At(6, 2), far: At(8, 2));
+        var w = Resonating(near: (6, 2), far: (8, 2));
         for (int i = 0; i < 40 && w.M.Crew.HeroOf(0)!.Out == 0; i++) w.Run(Content.Crew.BreathEvery);
         Assert.True(w.M.Crew.HeroOf(0)!.Out > 0);
         Assert.Equal(0, w.M.Crew.HeroOf(1)!.Out);
@@ -283,7 +289,7 @@ public class HomesTests
 
     /// <summary>
     /// Why the homes stamped on <paramref name="l"/> of ground <paramref name="g"/> break a rule, or null: each at least
-    /// <c>HomeClear</c> columns from the middle, clear of the others and two columns clear of every spire, inside the planet over
+    /// <c>HomeClear</c> columns from the middle, clear of the others and four columns, two of a prefab's characters, clear of every spire, inside the planet over
     /// its lava, its ceiling <c>HomeDeepLeast</c> to <c>HomeDeepMost</c> under the lowest surface across it (or moved up to fit),
     /// every cell of it as its prefab draws it, nothing grown in its box but its pieces, each where its anchor holds it.
     /// </summary>
@@ -300,7 +306,7 @@ public class HomesTests
             string at = $"the {home.Id} at ({x0}, {y0})";
             if (g.HomeClear > 0 && x0 + home.Wide - 1 >= middle - g.HomeClear && x0 < middle + g.HomeClear) return $"{at}: within {g.HomeClear} of the middle";
             if (homes.Where((_, j) => j != i).Any(o => o.X < x0 + home.Wide && x0 < o.X + o.Home.Wide)) return $"{at}: overlaps another";
-            if (spires.Any(s => s.X < x0 + home.Wide + 2 && x0 - 2 < s.X + Ruins.SpireWide)) return $"{at}: by a spire";
+            if (spires.Any(s => s.X < x0 + home.Wide + 4 && x0 - 4 < s.X + Ruins.SpireWide)) return $"{at}: by a spire";
             if (x0 <= g.BedrockSide || x0 + home.Wide >= w - g.BedrockSide || y0 < 1 || y0 + home.Tall > floor - 1) return $"{at}: not inside the planet over its lava";
             int deep = y0 - Enumerable.Range(x0, home.Wide).Max(x => surface[x]);
             if (deep > g.HomeDeepMost || deep < g.HomeDeepLeast && y0 + home.Tall != floor - 1) return $"{at}: {deep} under its ground";

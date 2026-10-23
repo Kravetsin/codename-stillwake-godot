@@ -207,7 +207,7 @@ public class MachineSoundTests
         // Every sound a station makes at work fades the same way, so a station sounds as loud as the next at any distance.
         var stations = new[] { Sound.FormerStroke, Sound.FormerMotor, Sound.SmelterHum, Sound.SmelterCrackle, Sound.Fire, Sound.ChargerHum };
         Assert.All(stations, cue => Assert.Same(Sound.StationReach, cue.Heard));
-        Assert.Equal(0.25f, Sound.StationReach.Share(6), 6);
+        Assert.Equal(0.25f, Sound.StationReach.Share(12), 6);
         // The stroke only a little over its motor, and quieter than a door or a step.
         Assert.InRange(Sound.FormerStroke.VolumeDb - Sound.FormerMotor.VolumeDb, 0, 4);
         Assert.True(Sound.FormerStroke.VolumeDb < Sound.DoorOpen.VolumeDb && Sound.FormerStroke.VolumeDb < Sound.Step.VolumeDb);

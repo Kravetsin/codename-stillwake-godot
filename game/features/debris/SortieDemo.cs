@@ -22,18 +22,18 @@ namespace Stillwake.Game.Features.Debris;
 /// </summary>
 public partial class SortieDemo : CanvasLayer
 {
-    /// <summary>Rows above the top of what is built the hero starts: past 128, so the far field round it is its outermost tier.</summary>
-    private const int Above = 140;
+    /// <summary>Rows above the top of what is built the hero starts: past 256, so the far field round it is its outermost tier.</summary>
+    private const int Above = 280;
 
     /// <summary>The pieces: their kind, and cells right of the hero's middle (left when negative) and up from its cell's top, in thousandths, to their middles.</summary>
     private static readonly (string Item, int Right, int Up)[] Finds =
     [
-        ("engineBlock", 3_900, 300),
-        ("cargoHold", -12_000, 4_000),
-        ("podCluster", 4_000, 8_000),
-        ("asteroidLarge", 15_000, -3_000),
-        ("asteroidRich", -6_000, -5_000),
-        ("asteroidSmall", -15_000, -4_000),
+        ("engineBlock", 7_800, 600),
+        ("cargoHold", -24_000, 8_000),
+        ("podCluster", 8_000, 16_000),
+        ("asteroidLarge", 30_000, -6_000),
+        ("asteroidRich", -12_000, -10_000),
+        ("asteroidSmall", -30_000, -8_000),
     ];
 
     /// <summary>Where the hero starts: <see cref="Above"/> rows over the top of what is built, above the spawn.</summary>

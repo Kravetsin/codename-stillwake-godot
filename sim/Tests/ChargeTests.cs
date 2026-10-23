@@ -32,7 +32,7 @@ public class ChargeTests
         var cables = new List<((int X, int Y) A, (int X, int Y) B)>();
         if (cabled) cables.Add(((0, 0), (1, 3)));
         if (half) cables.AddRange([((0, 0), (3, 3)), ((0, 0), (5, 3)), ((0, 0), (6, 3)), ((0, 0), (7, 3))]);
-        var w = new Scenario(Layout.Parse(rows, null, cables));
+        var w = new Scenario(Layout.Parse(rows, null, cables), doubled: true);
         Assert.Equal("charger", w.M.Grid.MachineById(Charger)!.Kind);
         return w;
     }
@@ -88,7 +88,8 @@ public class ChargeTests
     public void TheStationIsOneByTwoDrawsThreeAndIsOpenedByAnalysis()
     {
         var spec = Machines.Get("charger");
-        Assert.Equal((1, 2, 3, 1, true), (spec.Width, spec.Height, spec.Draws, spec.Slots, spec.Charges));
+        // One by two as a map draws it, a character a 16 px cell (0104).
+        Assert.Equal((1, 2, 3, 1, true), (spec.Width / 2, spec.Height / 2, spec.Draws, spec.Slots, spec.Charges));
         Assert.Equal([("frame", 1), ("coil", 1), ("wire", 4), ("circuit", 1)], spec.Cost);
         Assert.DoesNotContain("charger", Content.Research.StartKnown);
         Assert.Equal(600, Full / PerTick);
@@ -267,11 +268,12 @@ public class ChargeTests
                    from count in Gen.Elements(1, 2, 999)
                    from peer in Gen.Choose(0, 1)
                    select (Step)new Moving(new Move(src, dst, count) { From = peer });
+        // At column x of the map's row 4, the room's lower row, doubled (0104).
         var drop = from src in Places
                    from x in Gen.Choose(1, width - 2)
                    from facing in Gen.Choose(-1, 1)
                    from peer in Gen.Choose(0, 1)
-                   select (Step)new Dropping(new Drop(src, 1, 4 * width + x, facing) { From = peer });
+                   select (Step)new Dropping(new Drop(src, 1, 2 * 4 * (2 * width) + 2 * x, facing) { From = peer });
         var pick = from which in Gen.Choose(0, 5) from peer in Gen.Choose(0, 1) select (Step)new Picking(which, peer);
         var wait = Gen.Choose(1, 200).Select(t => (Step)new Waiting(t));
         var step = Gen.Frequency((6, move), (2, drop), (2, pick), (1, wait));

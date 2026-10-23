@@ -12,8 +12,8 @@ namespace Stillwake.Game.Tests;
 /// <summary>The slots of a crate and the inventory as this peer shows them, with its own moves in flight (0014).</summary>
 public class CrateTests
 {
-    /// <summary>A room with a crate drawn below it, and peer 0 carrying scrap and iron.</summary>
-    private static readonly Layout Store = Layout.Parse(["##########", "#........#", "#........#", "#........#", "##########", "KK"]);
+    /// <summary>A room with a crate drawn below it, and peer 0 carrying scrap and iron; drawn ten wide and doubled (0104).</summary>
+    private static readonly Layout Store = Layout.Parse(["##########", "#........#", "#........#", "#........#", "##########", "KK"]).Doubled();
 
     private static Registry WithStore(out World world)
     {
@@ -34,7 +34,7 @@ public class CrateTests
         var crate = m.Grid.Machines.First(c => c.Kind == "crate").Id;
         var (_, client) = LocalSession.Create(world);
         client.Send(new Move(new Place(0), new Target(Crate: crate), 100));
-        client.Send(new Drop(new Place(1), 10, 11, 1));
+        client.Send(new Drop(new Place(1), 10, 2 * 20 + 2, 1));
         var shown = Reading.Of(client.Id, client.InFlight, m.Items, m.Grid, m.Research, crate);
         Assert.Equal(new Stack("scrap", 260), shown.At(new Place(0)));
         Assert.Equal(new Stack("iron", 50), shown.At(new Place(1)));

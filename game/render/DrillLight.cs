@@ -118,7 +118,7 @@ public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
         double pulse = 0.5 + 0.5 * Math.Sin(_clockMs / 1000 * Math.Tau * PulseHz), lit = spin * Fx.Glow * (0.75 + 0.25 * Math.Min(1, burst));
         var middle = held(((coil.X0 + coil.X1) / 2, (coil.Y0 + coil.Y1) / 2));
         _flares.Bloom(middle.X, middle.Y, 16, Haze, (0.14 + 0.16 * pulse) * lit * Between(0.85, 1));
-        _flares.Hold(at.Light, middle.X, middle.Y, Haze, (0.06 + 0.05 * pulse) * lit, 2, 0.45f, 0.7);
+        _flares.Hold(at.Light, middle.X, middle.Y, Haze, (0.06 + 0.05 * pulse) * lit, 4, 0.671f, 0.7);
     }
 
     /// <summary>A crawling spark this frame: a short stroke of light along the coil behind it, wavering across its row, flickering.</summary>

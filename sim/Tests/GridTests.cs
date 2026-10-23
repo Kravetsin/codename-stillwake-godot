@@ -13,7 +13,7 @@ public class GridTests
     [Fact]
     public void SaysWhatAWallAndABackWallAreMadeOf()
     {
-        var w = new Scenario("#..\n...");
+        var w = new Scenario("#..\n...", cells: true);
         Assert.Equal("scrap", w.M.Grid.WallAt(0)?.Id);
         Assert.Equal("scrap", w.M.Grid.BackAt(1)?.Id);
         Assert.Null(w.M.Grid.WallAt(1));
@@ -49,7 +49,7 @@ public class GridTests
     [Fact]
     public void LeavesADoorOpenWhenTwoPeersOpenItAtOnceOrOneLate()
     {
-        var w = new Scenario("#D#\n#D#\n#.#");
+        var w = new Scenario("#D#\n#D#\n#.#", cells: true);
         int before = w.M.Grid.Version;
         w.Do(new SetDoor(1, true) { From = 0 }).Do(new SetDoor(4, true) { From = 1 }).Run();
         Assert.Equal((Structure.DoorOpen, Structure.DoorOpen), (w.M.Grid.StructureAt(1), w.M.Grid.StructureAt(4)));
@@ -63,7 +63,7 @@ public class GridTests
     [Fact]
     public void LeavesADoorOrValveAlreadyAsAskedAloneAndOpensAMixedDoorwayWhole()
     {
-        var w = new Scenario("#D#v\n###x\n#d#.\n#D#.");
+        var w = new Scenario("#D#v\n###x\n#d#.\n#D#.", cells: true);
         int before = w.M.Grid.Version;
         w.Do(new SetDoor(1, false)).Do(new SetValve(3, true)).Do(new SetValve(7, false)).Run();
         Assert.Equal(before, w.M.Grid.Version);
@@ -91,7 +91,7 @@ public class GridTests
     [InlineData("D..|D..|.DD", 1, 2, "D..|D..|.dd")]
     public void SetsOnlyTheStraightRunTheCellIsIn(string map, int x, int y, string after)
     {
-        var w = new Scenario(map.Replace('|', '\n'));
+        var w = new Scenario(map.Replace('|', '\n'), cells: true);
         w.Do(new SetDoor(w.At(x, y), true)).Run();
         int width = map.IndexOf('|');
         string Shown(int c) => w.M.Grid.StructureAt(c) switch { Structure.DoorClosed => "D", Structure.DoorOpen => "d", _ => "." };
@@ -146,7 +146,7 @@ public class GridTests
             select (rows: Enumerable.Range(0, height).Select(y => new string(cells, y * width, width)).ToArray(), edits: edits.Take(60).ToList(), reload);
         return Prop.ForAll(gen.ToArbitrary(), t =>
         {
-            var w = new Scenario(Layout.Parse(t.rows));
+            var w = new Scenario(Layout.Parse(WholeVents(t.rows)));
             var grid = w.M.Grid;
             int size = grid.Width * grid.Height;
             for (int i = 0; i < t.edits.Count; i++)
@@ -176,6 +176,29 @@ public class GridTests
         });
     }
 
+    /// <summary>
+    /// <paramref name="rows"/> with each vent drawn whole (0104): in reading order, a <c>V</c> not yet covered starts a vent's footprint
+    /// where it fits, else it becomes open ship, <c>.</c>; as <see cref="Layout.Machines"/> reads them.
+    /// </summary>
+    internal static string[] WholeVents(string[] rows)
+    {
+        var vent = Content.Machines.Get("vent");
+        var cells = rows.Select(r => r.ToCharArray()).ToArray();
+        var claimed = cells.Select(r => new bool[r.Length]).ToArray();
+        for (int y = 0; y < cells.Length; y++)
+            for (int x = 0; x < cells[y].Length; x++)
+            {
+                if (cells[y][x] != 'V' || claimed[y][x]) continue;
+                bool fits = y + vent.Height <= cells.Length && x + vent.Width <= cells[y].Length
+                    && Enumerable.Range(0, vent.Height).All(dy => Enumerable.Range(0, vent.Width).All(dx => !claimed[y + dy][x + dx]));
+                if (!fits) { cells[y][x] = '.'; continue; }
+                for (int dy = 0; dy < vent.Height; dy++)
+                    for (int dx = 0; dx < vent.Width; dx++)
+                        (cells[y + dy][x + dx], claimed[y + dy][x + dx]) = ('V', true);
+            }
+        return [.. cells.Select(r => new string(r))];
+    }
+
     private static bool AsAScanFinds(GridModule grid, int size, int ids)
     {
         var all = grid.Machines;
@@ -194,8 +217,9 @@ public class GridTests
     /// <summary>The zone of <see cref="Zoned"/>'s 10×6 map of space: columns 2 to 7, rows 1 to 4.</summary>
     private static readonly Box SmallZone = new(2, 1, 7, 4);
 
-    private static Scenario Zoned() =>
-        new(Layout.Parse(Enumerable.Repeat(new string(' ', 10), 6).ToArray()) with { Zone = SmallZone });
+    /// <param name="doubled">Whether the map and its zone are drawn a character a 16 px cell, for a machine's footprint (0104).</param>
+    private static Scenario Zoned(bool doubled = false) =>
+        new(Layout.Parse(Enumerable.Repeat(new string(' ', 10), 6).ToArray()) with { Zone = SmallZone }, doubled: doubled);
 
     private static readonly Placement[] EveryLayer = [Placement.Wall(), new("conduit", "pipe"), Placement.BackWall()];
 
@@ -229,8 +253,8 @@ public class GridTests
     [Fact]
     public void RefusesAMachineWhoseFootprintStraddlesTheZonesEdgeAndBuildsOneJustInside()
     {
-        // A furnace is 2×2: its top-left at (6, 3) covers the zone's last two columns and rows.
-        var w = Zoned();
+        // A furnace is drawn 2×2: its top-left at (6, 3) covers the zone's last two columns and rows.
+        var w = Zoned(doubled: true);
         foreach (var (x, y) in new[] { (7, 3), (6, 4), (1, 1), (2, 0), (7, 4) })
             w.Do(new Place(w.At(x, y), new Placement("machine", "furnace")));
         w.Run();
@@ -302,7 +326,7 @@ public class GridAfterTogglesTests
     [Fact]
     public void ShowTheLayersAsTheirCommandsWouldLeaveThemSkippingWhatTheyWouldRefuse()
     {
-        var w = new Scenario("#D#v\n#D#-");
+        var w = new Scenario("#D#v\n#D#-", cells: true);
         Command[] toggles = [new SetDoor(5, true), new SetValve(3, false), new SetDoor(0, true), new SetValve(7, true)];
         var (structure, conduit) = w.M.Grid.AfterToggles(toggles);
         int[] shownStructure = Over(w.M.Grid.StructureLayer, structure), shownConduit = Over(w.M.Grid.ConduitLayer, conduit);
@@ -316,7 +340,7 @@ public class GridAfterTogglesTests
     [Fact]
     public void ListOnlyTheCellsTheToggledDoorwaysAndValvesCover()
     {
-        var w = new Scenario("#D#v\n#D#-\n#.#.");
+        var w = new Scenario("#D#v\n#D#-\n#.#.", cells: true);
         var (structure, conduit) = w.M.Grid.AfterToggles([new SetDoor(5, true), new SetValve(3, false), new SetDoor(0, true)]);
         Assert.Equal(new[] { 1, 5 }, structure.Keys.Order());
         Assert.Equal(new[] { 3 }, conduit.Keys);
@@ -325,7 +349,7 @@ public class GridAfterTogglesTests
     [Fact]
     public void FoldInOrderSoEachToggleSeesTheOnesBeforeItAndTheWorldIsLeftBe()
     {
-        var w = new Scenario("#d#\n#D#");
+        var w = new Scenario("#d#\n#D#", cells: true);
         ulong hash = w.World.Hash();
         int[] live = w.M.Grid.StructureLayer.ToArray();
         var (structure, _) = w.M.Grid.AfterToggles([new SetDoor(1, false), new SetDoor(4, true)]);

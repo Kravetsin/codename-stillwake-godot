@@ -22,41 +22,13 @@ another surface exists.
 `Wreck` is the world every new game starts in: the wreck of `Content.Wreck` centred in a world of
 `Content.World`'s size, its build zone in the middle (`Layout.InWorld`,
 [0048](../../docs/decisions/0048-a-big-world-a-build-zone-inside-it.md)). `WreckMap` is the wreck as
-drawn, 192×96 with no zone: dev runs and the tests whose cells are the drawing's play it.
+drawn, 192×96 a character a 16 px cell, doubled to 384×192 cells (`Layout.Doubled`, 0104), with no zone: dev runs and the
+tests whose cells are the drawing's play it.
 
 ## Migrations
 
 `Migrations.cs` turns a save of any format since `Migrations.Oldest` into this build's
 ([0031](../../docs/decisions/0031-worlds-the-title-and-migrations.md)), a step a format, each with a
-fixture in `Tests/Fixtures`. Format 10 moved worlds into the big world (0048): the save's grid is
-centred in `Content.World` by the offset its own size gives, (928, 464) for the wreck, and every cell
-saved moves by it — the five layers, machines, floor stacks (their `x`, `y` in thousandths too), cable
-ends, plans, aired cells, the crew's spawn, pod and heroes — as does every piece of debris (`x`, `y`,
-`start`, `end`, its reel's point); the grid gets the world's zone. A cell off the old grid, which only
-the fuzz reports, becomes -1.
-
-Format 14 moved what a furnace was smelting from its fire to crafting's `smelts` (0057), in thousandths of a
-tick, dropped the fires kept only for it, and put crafting's slice before building's, as the modules now run.
-
-Format 15 lets a floor stack carry a body tag (`body`: peer and tick died, 0061), written only when it has one: the
-step changes nothing but the format, and the stacks of older saves are no one's body.
-
-Format 16 gave the Former and the circuit assembler their input slots (0057): what each held gains its inputs,
-empty, in front, so what it made stays in its outputs; a machine already of its new size is left as it is.
-Entries saved before have no feed and load as paid.
-
-Format 17 brought drones (0062): an empty `logistics` slice (no machine switched off, no drone flying), last, its
-clock the save's tick; and the circuit
-assembler's fourth input, empty, after its three, so its outputs keep their stacks (an assembler of seven slots, as
-format 16's step now pads one from before, is left as it is).
-
-Format 18 brought the Handbook (0066): debris's `found`, empty, for nothing in an older save says which kind of
-debris an item came out of; one already there is left as it is.
-
-Format 20 brought the world's globals (0076): `players` (each hero's suit colour, out of crew's heroes, in peer order)
-and `knowledge` (research's `granted` and `analysed`), the first two slices; a save already holding `players` is
-left as it is.
-
-Format 21 brought digging (0077): building's `cracks`, empty, the ship's and every surface's, and a grown surface's grid saved as
-its seed's edits (`GrownGrid`; no older save holds a grown surface); a `cracks` already there is left
-as it is.
+fixture in `Tests/Fixtures`. Format 28 halved the cell (0104): a save from before holds cells and lengths of another scale,
+and a planet's edits laid on a ground that now grows differently, so none migrates. `Oldest` is 28, there are no steps yet,
+and the title lists older saves grey with the reason.

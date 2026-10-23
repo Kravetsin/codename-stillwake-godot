@@ -23,8 +23,8 @@ public static class CaveLooks
         public bool ByBand { get; init; }
         public (float R, float G, float B)? Light { get; init; }
         public float Strength { get; init; } = 0.8f;
-        public float Keep { get; init; } = 0.55f;
-        public int Reach { get; init; } = 3;
+        public float Keep { get; init; } = 0.742f;
+        public int Reach { get; init; } = 6;
         /// <summary>How far its base sinks under the ground's top edge, or its top up into a ceiling, in pixels: planted, not set on it.</summary>
         public int Sink { get; init; } = 2;
         public int Glints { get; init; }
@@ -37,30 +37,30 @@ public static class CaveLooks
 
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>
     {
-        ["glowcapTeal"] = new(3) { Light = Teal, Strength = 1.5f, Keep = 0.8f, Reach = 8 },
-        ["glowcapViolet"] = new(3) { Light = Violet, Strength = 1.5f, Keep = 0.8f, Reach = 8 },
-        ["crystalIce"] = new(3) { Light = Blue, Strength = 1.5f, Keep = 0.8f, Reach = 8, Glints = 2, GlintColour = (232, 248, 255) },
-        ["crystalAmber"] = new(3) { Light = Amber, Strength = 1.5f, Keep = 0.8f, Reach = 8, Glints = 2, GlintColour = (255, 242, 192) },
-        ["crystalRose"] = new(3) { Light = Rose, Strength = 1.35f, Keep = 0.8f, Reach = 8, Glints = 2, GlintColour = (255, 224, 220) },
-        ["crystalEmber"] = new(3) { Light = Ember, Strength = 1.5f, Keep = 0.8f, Reach = 8, Glints = 1, GlintColour = (255, 240, 176) },
+        ["glowcapTeal"] = new(3) { Light = Teal, Strength = 1.5f, Keep = 0.894f, Reach = 16 },
+        ["glowcapViolet"] = new(3) { Light = Violet, Strength = 1.5f, Keep = 0.894f, Reach = 16 },
+        ["crystalIce"] = new(3) { Light = Blue, Strength = 1.5f, Keep = 0.894f, Reach = 16, Glints = 2, GlintColour = (232, 248, 255) },
+        ["crystalAmber"] = new(3) { Light = Amber, Strength = 1.5f, Keep = 0.894f, Reach = 16, Glints = 2, GlintColour = (255, 242, 192) },
+        ["crystalRose"] = new(3) { Light = Rose, Strength = 1.35f, Keep = 0.894f, Reach = 16, Glints = 2, GlintColour = (255, 224, 220) },
+        ["crystalEmber"] = new(3) { Light = Ember, Strength = 1.5f, Keep = 0.894f, Reach = 16, Glints = 1, GlintColour = (255, 240, 176) },
         ["stalagmite"] = new(3) { ByBand = true, Sink = 1 },
         ["stalactite"] = new(3) { ByBand = true, Sink = 1 },
-        ["crystalIceHang"] = new(3) { Light = Blue, Strength = 1.4f, Keep = 0.78f, Reach = 8, Glints = 2, GlintColour = (232, 248, 255) },
-        ["crystalAmberHang"] = new(3) { Light = Amber, Strength = 1.4f, Keep = 0.78f, Reach = 8, Glints = 2, GlintColour = (255, 242, 192) },
-        ["hangcap"] = new(3) { Light = Violet, Strength = 1.3f, Keep = 0.76f, Reach = 7 },
-        ["threadViolet"] = new(3) { Light = Violet, Strength = 1.1f, Keep = 0.74f, Reach = 6 },
-        ["threadTeal"] = new(3) { Light = Teal, Strength = 1.1f, Keep = 0.74f, Reach = 6 },
-        ["roots"] = new(3) { Light = Green, Strength = 0.8f, Keep = 0.66f, Reach = 4 },
-        ["moss"] = new(4) { Light = Teal, Strength = 1f, Keep = 0.7f, Reach = 5 },
+        ["crystalIceHang"] = new(3) { Light = Blue, Strength = 1.4f, Keep = 0.883f, Reach = 16, Glints = 2, GlintColour = (232, 248, 255) },
+        ["crystalAmberHang"] = new(3) { Light = Amber, Strength = 1.4f, Keep = 0.883f, Reach = 16, Glints = 2, GlintColour = (255, 242, 192) },
+        ["hangcap"] = new(3) { Light = Violet, Strength = 1.3f, Keep = 0.872f, Reach = 14 },
+        ["threadViolet"] = new(3) { Light = Violet, Strength = 1.1f, Keep = 0.86f, Reach = 12 },
+        ["threadTeal"] = new(3) { Light = Teal, Strength = 1.1f, Keep = 0.86f, Reach = 12 },
+        ["roots"] = new(3) { Light = Green, Strength = 0.8f, Keep = 0.812f, Reach = 8 },
+        ["moss"] = new(4) { Light = Teal, Strength = 1f, Keep = 0.837f, Reach = 10 },
         ["mica"] = new(0) { Glints = 3 },
         ["veinIce"] = new(3) { Glints = 3, GlintColour = (232, 250, 255) },
         ["veinCopper"] = new(3) { Glints = 3, GlintColour = (255, 208, 138) },
         ["fossil"] = new(3),
-        ["geode"] = new(2) { Light = Violet, Strength = 1.4f, Keep = 0.78f, Reach = 7, Glints = 2, GlintColour = (240, 216, 255) },
-        ["heatCrack"] = new(4) { Light = Ember, Strength = 1.3f, Keep = 0.74f, Reach = 6 },
+        ["geode"] = new(2) { Light = Violet, Strength = 1.4f, Keep = 0.883f, Reach = 14, Glints = 2, GlintColour = (240, 216, 255) },
+        ["heatCrack"] = new(4) { Light = Ember, Strength = 1.3f, Keep = 0.86f, Reach = 12 },
         // The ruins' (0085): a cache's small teal lamp; the spire's lens in its tip, here its glass dark, lit over it by the
         // spires' view while its relic stands (0096).
-        [Spec.Ruins.SpireCache] = new(1) { Light = Teal, Strength = 1.1f, Keep = 0.7f, Reach = 4 },
+        [Spec.Ruins.SpireCache] = new(1) { Light = Teal, Strength = 1.1f, Keep = 0.837f, Reach = 8 },
         [Spec.Ruins.SpireLamp] = new(1),
     };
 
@@ -107,7 +107,7 @@ public static class CaveLooks
     public static readonly Luminous Drip = new(Glimmer.Streak, [(236, 250, 255), (180, 220, 245)], (2600, 2800))
     { Bright = 0.8, Fade = 0.2, Gravity = 420, Drag = 0, Width = 0.22, Stretch = 0.03, Shortest = 2, Longest = 6, Matter = true, Bounce = 0 };
 
-    public const int DripRows = 60, SplashDrops = 3;
+    public const int DripRows = 120, SplashDrops = 3;
 
     /// <summary>A drop of a drip's splash: a fleck thrown up off where it landed, falling back.</summary>
     public static readonly Luminous Splash = new(Glimmer.Streak, [(236, 250, 255), (180, 220, 245)], (180, 320))

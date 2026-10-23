@@ -12,7 +12,7 @@ namespace Stillwake.Sim;
 public sealed class World
 {
     /// <summary>Bumped whenever saved data changes shape; a save of another format is refused.</summary>
-    public const int SaveFormat = 27;
+    public const int SaveFormat = 28;
 
     /// <summary>How many ticks a second of game time holds: the host releases them at this pace.</summary>
     public const int TicksPerSecond = 20;
@@ -177,7 +177,7 @@ public sealed class World
         var kind = Content.Surfaces.Get(c.Kind);
         var ship = _surfaces[0].Modules as IModules ?? throw new InvalidOperationException("This world cannot open surfaces.");
         uint seed = _rngOver.Below(1UL << 32);
-        var layout = kind is Content.PlanetType type ? Terrain.Generate(type, seed) : Layout.Parse(kind.Rows);
+        var layout = kind is Content.PlanetType type ? Terrain.Generate(type, seed) : Layout.Parse(kind.Rows).Doubled();
         var modules = ship.Another();
         var surface = Attach(new Surface(_surfaces.Count, kind.Id, seed), modules);
         foreach (var m in modules) m.Create(layout);

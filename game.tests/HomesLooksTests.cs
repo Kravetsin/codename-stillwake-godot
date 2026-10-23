@@ -29,15 +29,16 @@ public class HomesLooksTests
     [Fact]
     public void APieceStandsOnTheFloorHangsFromTheCeilingAndSitsInTheMiddleOfItsBackWallsCells()
     {
-        // The table, 32 by 18, its two columns from (7, 9): its bottom on the floor's top, its middle the columns'.
-        Assert.Equal((7 * 16, 10 * 16 - 18), HomesLooks.BoxAt("table", Anchor.Floor, 7, 9, 2, 1));
+        // At the 8 px cell (0104), each piece a drawn character's two by two cells, a floor's at its block's bottom-left.
+        // The table, 32 by 18, its four columns from (14, 19): its bottom on the floor's top, its middle the columns'.
+        Assert.Equal((14 * 8, 20 * 8 - 18), HomesLooks.BoxAt("table", Anchor.Floor, 14, 19, 4, 2));
         // The dishes on it, a pixel into its top.
-        Assert.Equal(10 * 16 - 18 + 1 - 9, HomesLooks.BoxAt("dishes", Anchor.Floor, 7, 8, 1, 1, standsOn: 10 * 16 - 18 + HomesLooks.SinksInto("table")).Y);
-        // The ceiling lamp from the underside of the ceiling over (10, 5); a frame in the middle of its two cells' height.
-        Assert.Equal(5 * 16, HomesLooks.BoxAt("ceilLamp", Anchor.Ceiling, 10, 5, 1, 1).Y);
-        Assert.Equal(6 * 16 + (16 - 18) / 2, HomesLooks.BoxAt("frame", Anchor.Back, 13, 6, 2, 1).Y);
-        // The fallen beam lies on the floor under its walls, its high end over the room, as the page draws it.
-        var beam = HomesLooks.BoxAt("fallenBeam", Anchor.Rock, 22, 9, 2, 1);
+        Assert.Equal(20 * 8 - 18 + 1 - 9, HomesLooks.BoxAt("dishes", Anchor.Floor, 14, 17, 2, 2, standsOn: 20 * 8 - 18 + HomesLooks.SinksInto("table")).Y);
+        // The ceiling lamp from the underside of the ceiling over (20, 10); a frame in the middle of its two cells' height.
+        Assert.Equal(10 * 8, HomesLooks.BoxAt("ceilLamp", Anchor.Ceiling, 20, 10, 2, 2).Y);
+        Assert.Equal(12 * 8 + (16 - 18) / 2, HomesLooks.BoxAt("frame", Anchor.Back, 26, 12, 4, 2).Y);
+        // The fallen beam lies on the floor under its walls, both its rows, its high end over the room, as the page draws it.
+        var beam = HomesLooks.BoxAt("fallenBeam", Anchor.Rock, 44, 18, 4, 2);
         Assert.Equal((340, 159 - 30), beam);
     }
 

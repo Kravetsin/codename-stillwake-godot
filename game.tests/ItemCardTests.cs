@@ -35,8 +35,8 @@ public class ItemCardTests
         Assert.Equal(ItemCards.Number(Spec.Harpoon.Range / 1000.0), tiles[0].Value);
         Assert.Equal($"{ItemCards.Number((double)Spec.Harpoon.CooldownTicks / World.TicksPerSecond)}s", tiles[1].Value);
         Assert.Equal($"{ItemCards.Number(Spec.Harpoon.ReelSpeed * World.TicksPerSecond / 1000.0)}/s", tiles[2].Value);
-        // As content stands: 20 cells, 100 ticks, 400 thousandths a tick of 20 a second.
-        Assert.Equal([new CardTile("20", "RANGE"), new CardTile("5s", "RELOAD"), new CardTile("8/s", "REEL")], tiles);
+        // As content stands: 40 cells, 100 ticks, 800 thousandths a tick of 20 a second; a cell half what it was (0104).
+        Assert.Equal([new CardTile("40", "RANGE"), new CardTile("5s", "RELOAD"), new CardTile("16/s", "REEL")], tiles);
     }
 
     [Fact]
@@ -92,8 +92,8 @@ public class ItemCardTests
         Assert.True(lamp.Worn);
         Assert.False(lamp.Tool);
         Assert.Equal(new CardTile(Light.HeadLampReach.ToString(), "CELLS REACH"), lamp.Headline);
-        // As content stands: 9 cells, 30 degrees either side.
-        Assert.Equal(new CardTile("9", "CELLS REACH"), lamp.Headline);
+        // As content stands: 18 of the 8 px cells (0104), 30 degrees either side.
+        Assert.Equal(new CardTile("18", "CELLS REACH"), lamp.Headline);
         Assert.Equal("BEAM 60°", lamp.Detail);
         // It draws nothing: the card shows a bolt and 0 rather than saying so.
         Assert.Null(lamp.Draw);

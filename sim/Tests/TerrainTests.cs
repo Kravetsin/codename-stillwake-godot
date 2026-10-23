@@ -37,13 +37,13 @@ public class TerrainTests
     {
         var l = Terrain.Generate(PlanetTypes.Small, seed);
         bool Is(int x, int y, string material) => l.Rows[y][x] == '#' && l.Materials![y * l.Width + x] == Code(material);
-        int floor = l.Height - Small.CoreRows;
-        var sides = Enumerable.Range(0, l.Height).SelectMany(y => new[] { (0, y), (l.Width - 1, y) });
+        int floor = l.Height - Small.CoreRows, side = Small.BedrockSide;
+        var sides = Enumerable.Range(0, l.Height).SelectMany(y => Enumerable.Range(0, side).SelectMany(x => new[] { (x, y), (l.Width - 1 - x, y) }));
         var bedrock = Enumerable.Range(floor + Small.LavaRows, Small.BedrockRows).SelectMany(y => Enumerable.Range(0, l.Width).Select(x => (x, y)));
         // The lava under every column between the sides, solid, the bedrock under it: nothing falls out of the bottom.
-        var lava = Enumerable.Range(floor, Small.LavaRows).SelectMany(y => Enumerable.Range(1, l.Width - 2).Select(x => (x, y)));
+        var lava = Enumerable.Range(floor, Small.LavaRows).SelectMany(y => Enumerable.Range(side, l.Width - 2 * side).Select(x => (x, y)));
         // Nowhere else: the ground inside is soil and stone.
-        var inside = Enumerable.Range(0, floor).SelectMany(y => Enumerable.Range(1, l.Width - 2).Select(x => (x, y)));
+        var inside = Enumerable.Range(0, floor).SelectMany(y => Enumerable.Range(side, l.Width - 2 * side).Select(x => (x, y)));
         return Small.LavaRows > 0 && Small.BedrockRows > 0
             && sides.Concat(bedrock).All(c => Is(c.Item1, c.Item2, "bedrock")) && lava.All(c => Is(c.Item1, c.Item2, "lava"))
             && inside.All(c => Math.Abs(l.Materials![c.Item2 * l.Width + c.Item1]) is var m && m != Code("bedrock") && m != Code("lava"));
@@ -79,10 +79,10 @@ public class TerrainTests
     }
 
     [Property(MaxTest = 60)]
-    public Property SoilLiesOverStoneAtMostEightDeepAndTheSkyHasNoMaterial() => Prop.ForAll(Seeds, seed =>
+    public Property SoilLiesOverStoneAtMostSixteenDeepAndTheSkyHasNoMaterial() => Prop.ForAll(Seeds, seed =>
     {
         var l = Terrain.Generate(BareType, seed);
-        for (int x = 1; x < l.Width - 1; x++)
+        for (int x = Small.BedrockSide; x < l.Width - Small.BedrockSide; x++)
         {
             int top = TopOf(l, x), soil = SoilAt(l, x, top);
             if (soil > Small.SoilMost) return false;
@@ -95,14 +95,14 @@ public class TerrainTests
     });
 
     [Fact]
-    public void TheSoilBandIsAtLeastThreeDeepNearlyEverywhere()
+    public void TheSoilBandIsAtLeastSixDeepNearlyEverywhere()
     {
         // Thinner where a spike was taken off the top or the ground carved open to the sky (a mouth, a chasm, a pit): on a
         // planet a few columns in a hundred. A tiny ground may be half chasm, so this is measured on planets.
         foreach (uint seed in Enumerable.Range(1, 6).Select(s => (uint)s))
         {
             var l = Terrain.Generate(PlanetTypes.First, seed);
-            int thin = Enumerable.Range(1, l.Width - 2).Count(x => SoilAt(l, x, TopOf(l, x)) < Planet.SoilLeast);
+            int thin = Enumerable.Range(Planet.BedrockSide, l.Width - 2 * Planet.BedrockSide).Count(x => SoilAt(l, x, TopOf(l, x)) < Planet.SoilLeast);
             Assert.True(thin * 10 <= l.Width, $"seed {seed}: {thin} thin columns");
         }
     }

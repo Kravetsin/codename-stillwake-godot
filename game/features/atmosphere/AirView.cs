@@ -67,6 +67,8 @@ public partial class AirView : Node2D
     private const double BreathsPerSecond = 1.6;
     private readonly Random _random = new();
     private readonly AudioStreamPlayer2D _hiss = Cues.Player2D(S.Hiss, S.World), _hum = Cues.Player2D(S.VentHum, S.World);
+    /// <summary>Half a vent's side, in cells: from its top-left cell to its middle.</summary>
+    private static readonly double VentHalf = Machines.Get("vent").Width / 2.0;
     /// <summary>Vents with oxygen behind them, in pixels: the ship's hum comes from them.</summary>
     private List<Vector2> _blowing = [];
 
@@ -92,7 +94,7 @@ public partial class AirView : Node2D
         // The alarm is light (0075): each venting room lit red on the beat, its cells only faintly painted over.
         _pulse.Modulate = new Color(1, 1, 1, (float)(0.06 + 0.12 * pulse));
         foreach (var (room, at, reach) in _alarms)
-            Flares.Shared.Hold((Alarm, room), at.X, at.Y, AlarmLight, (0.12 + 0.3 * pulse) * Fx.Glow, reach, 0.75f, 0.6);
+            Flares.Shared.Hold((Alarm, room), at.X, at.Y, AlarmLight, (0.12 + 0.3 * pulse) * Fx.Glow, reach, 0.866f, 0.6);
         _vents.Step(_streams, elapsedMs);
         Breathe(elapsedMs);
         Nearest(_hiss, _streams.Select(s => new Vector2((float)s.X, (float)s.Y) * Cell));
@@ -250,10 +252,10 @@ public partial class AirView : Node2D
         _field.Survey(roomOf, m.Atmosphere.AiredCells, venting, m.Grid.Built);
         _fillingVents = m.Grid.Machines
             .Where(x => x.Kind == "vent" && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && a.Status == RoomStatus.Filling)
-            .Select(x => ((x.Cell % width + 0.5) * Cell, (x.Cell / width + 0.5) * Cell)).ToList();
+            .Select(x => ((x.Cell % width + VentHalf) * Cell, (x.Cell / width + VentHalf) * Cell)).ToList();
         _blowing = m.Grid.Machines
             .Where(x => x.Kind == "vent" && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && (a.Oxygen > 0 || a.Made > 0))
-            .Select(x => new Vector2((x.Cell % width + 0.5f) * Cell, (x.Cell / width + 0.5f) * Cell)).ToList();
+            .Select(x => new Vector2((float)((x.Cell % width + VentHalf) * Cell), (float)((x.Cell / width + VentHalf) * Cell))).ToList();
         var pod = m.Grid.Machines.FirstOrDefault(x => x.Kind == "lifepod");
         _reach = null;
         var reach = new Vector4();
@@ -290,7 +292,7 @@ public partial class AirView : Node2D
 
     /// <summary>
     /// The middle of each of <paramref name="rooms"/>, in pixels, and how far its light reaches to fill it, in cells: about the
-    /// side of a square of its size, three to eight. Only <paramref name="built"/> holds rooms.
+    /// side of a square of its size, six to sixteen. Only <paramref name="built"/> holds rooms.
     /// </summary>
     private static List<(int Room, Vector2 At, int Reach)> Middles(ReadOnlySpan<int> roomOf, int width, Stillwake.Sim.Box built, HashSet<int> rooms)
     {
@@ -306,7 +308,7 @@ public partial class AirView : Node2D
         var middles = new List<(int, Vector2, int)>();
         foreach (int room in rooms.Order())
             if (sums.TryGetValue(room, out var s))
-                middles.Add((room, new Vector2((float)(s.X / s.N), (float)(s.Y / s.N)) * Cell, Math.Clamp((int)Math.Ceiling(Math.Sqrt(s.N)), 3, 8)));
+                middles.Add((room, new Vector2((float)(s.X / s.N), (float)(s.Y / s.N)) * Cell, Math.Clamp((int)Math.Ceiling(Math.Sqrt(s.N)), 6, 16)));
         return middles;
     }
 

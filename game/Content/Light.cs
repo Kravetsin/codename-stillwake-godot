@@ -10,7 +10,8 @@ namespace Stillwake.Game;
 /// <see cref="WallOut"/>, so a wall is lit where light falls on it, darker deeper in, and a wall a cell
 /// thick lets next to none through. It spreads in <see cref="Rounds"/> sweeps each way across and down.
 /// As it is drawn, a cell's light is blended with its neighbours' of its own side only, walls with walls
-/// and rooms with rooms, so light is smooth and blocks keep their edges.
+/// and rooms with rooms, so light is smooth and blocks keep their edges. Tuned at the 16 px cell: what is a reach or a count of cells
+/// here is twice it, and what a cell keeps the square root of it, so light falls off over the same pixels (0104).
 ///
 /// What gives it off, in colours that may pass 1 so a room round it is lit fully: the stars in every open
 /// cell with no back wall, as much as its sky is open (<see cref="StarHole"/> to whole), a lamp's bulb in
@@ -27,39 +28,39 @@ namespace Stillwake.Game;
 /// </summary>
 public static class Light
 {
-    public const int Margin = 24;
+    public const int Margin = 48;
     public const int Rounds = 2;
     /// <summary>
     /// Starlight crossing a cell keeps this much of itself, a machine's <see cref="StarMachine"/>: through a
     /// hole or a doorway it falls off within a few cells, and only open space is lit by the stars whole.
     /// </summary>
-    public const float StarKeep = 0.6f, StarMachine = 0.48f;
+    public const float StarKeep = 0.775f, StarMachine = 0.693f;
 
     /// <summary>
-    /// Under a planet's sky (0077), what daylight keeps crossing a cell of air in from the open: it dies a cell or two into a
+    /// Under a planet's sky (0077), what daylight keeps crossing a cell of air in from the open: it dies a few cells into a
     /// cave mouth or a shaft, so tunnels ahead are black but for what lamps, fires and glows light; and no ambient light
     /// there (<see cref="Ambient"/> is the ship's alone), so unlit ground is black too.
     /// </summary>
-    public const float GroundKeep = 0.3f;
+    public const float GroundKeep = 0.548f;
 
     /// <summary>Under a planet's sky, what daylight keeps falling a cell down through air: down a shaft or a cave mouth it lights
-    /// some six to eight cells, fading, while round a bend it dies within one or two (<see cref="GroundKeep"/>).</summary>
-    public const float GroundDownKeep = 0.8f;
+    /// some twelve to sixteen cells, fading, while round a bend it dies within two to four (<see cref="GroundKeep"/>).</summary>
+    public const float GroundDownKeep = 0.894f;
 
     /// <summary>
     /// Under a planet's sky, what daylight keeps going down a cell through its ground (0079): the top few cells of soil under the
     /// sun are lit, fading, as the "Stillwake" style shows them, where sideways and up a wall keeps only <see cref="WallDeep"/>.
     /// </summary>
-    public const float GroundSoak = 0.72f;
+    public const float GroundSoak = 0.849f;
     /// <summary>
     /// The stars' light in a lone hole in a back wall, against whole in open space: a cell's sky is the cells
     /// within <see cref="StarSky"/> of it, and with <see cref="StarFullSky"/> of them open to the stars, itself
     /// among them, it is lit whole — beside a flat hull too; between, as many as are open.
     /// </summary>
     public const float StarHole = 0.5f;
-    public const int StarSky = 2, StarFullSky = 12;
+    public const int StarSky = 4, StarFullSky = 39;
     public const float WallIn = 0.7f;
-    public const float WallDeep = 0.3f;
+    public const float WallDeep = 0.548f;
     public const float WallOut = 0.06f;
     public static readonly (float R, float G, float B) Star = (0.62f, 0.66f, 0.8f);
 
@@ -78,8 +79,8 @@ public static class Light
     /// cells, so a room is lit to walk and its corners dark, and fires, screens and glows read in it.
     /// </summary>
     public static readonly (float R, float G, float B) Lamp = (0.8f, 0.64f, 0.42f);
-    public const float LampKeep = 0.74f;
-    public const int LampReach = 8;
+    public const float LampKeep = 0.86f;
+    public const int LampReach = 16;
     public const float LampMost = 1f;
 
     /// <summary>
@@ -87,16 +88,16 @@ public static class Light
     /// homes' lamps are (the page's arc light, a fifth wider, three tenths stronger).
     /// </summary>
     public static readonly (float R, float G, float B) ArcLamp = (0.56f, 0.78f, 1f);
-    public const float ArcLampKeep = 0.78f, ArcLampStrength = 1.3f;
-    public const int ArcLampReach = 10;
+    public const float ArcLampKeep = 0.883f, ArcLampStrength = 1.3f;
+    public const int ArcLampReach = 20;
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
-    public const float FireKeep = 0.72f;
+    public const float FireKeep = 0.849f;
     // An ember's light is a bright point, not a wash: the furnace's fire lights the room round it anyway.
     public const float Particle = 1.2f;
-    public const float ParticleKeep = 0.2f;
+    public const float ParticleKeep = 0.447f;
     public const float ParticleMost = 1f;
     /// <summary>A planner's screen, keeping this a cell: softer than an ember's.</summary>
-    public const float ScreenKeep = 0.5f;
+    public const float ScreenKeep = 0.707f;
 
     /// <summary>
     /// How wide a lamp's bulb and a fire's mouth are, in pixels: a shadow's edge is soft over as much as
@@ -111,9 +112,9 @@ public static class Light
     /// is never pitch black behind it.
     /// </summary>
     public static readonly (float R, float G, float B) HeadLamp = (0.95f, 0.82f, 0.6f);
-    public const float HeadLampKeep = 0.8f, HeadLampSize = 3f, HeadLampHalfAngle = 0.5236f;
-    public const int HeadLampReach = 9;
-    public const float HeadGlow = 0.4f, HeadGlowKeep = 0.5f;
-    public const int HeadGlowReach = 2;
+    public const float HeadLampKeep = 0.894f, HeadLampSize = 3f, HeadLampHalfAngle = 0.5236f;
+    public const int HeadLampReach = 18;
+    public const float HeadGlow = 0.4f, HeadGlowKeep = 0.707f;
+    public const int HeadGlowReach = 4;
     public static readonly (float R, float G, float B) Ambient = (0.04f, 0.045f, 0.06f);
 }

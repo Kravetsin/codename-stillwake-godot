@@ -105,7 +105,7 @@ public partial class ChargerLights : Node2D
     /// <summary>A station read: its hum placed and told whether it charges, and the blip once its battery comes full.</summary>
     private void Listen(int id, Vector2 corner, bool charging, float share)
     {
-        var middle = corner + new Vector2(ShipCamera.Cell / 2, ShipCamera.Cell);
+        var middle = corner + new Vector2(ShipCamera.Cell, 2 * ShipCamera.Cell);
         if (!_heard.TryGetValue(id, out var heard))
         {
             heard = _heard[id] = new Heard(Cues.Player2D(S.ChargerHum, S.World)) { Share = share };

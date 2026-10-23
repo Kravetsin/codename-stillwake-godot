@@ -41,7 +41,7 @@ public class ArcModuleTests
         ((0, 0), (1, 3)), ((3, 0), (4, 3)), ((6, 0), (7, 3)),
     ];
 
-    private static Scenario World() => new Scenario(Layout.Parse(Rows, null, Cables)).GiveItems(0, (Arc, 3), ("iron", 40), ("rock", 4)).Run(2);
+    private static Scenario World() => new Scenario(Layout.Parse(Rows, null, Cables), doubled: true).GiveItems(0, (Arc, 3), ("iron", 40), ("rock", 4)).Run(2);
 
     private static int Id(Scenario w, string kind) => w.M.Grid.MachinesOf(kind).Single().Id;
     private static int SlotOf(Scenario w, string item, int peer = 0) => w.M.Items.Inventory(peer).ToList().FindIndex(s => s?.Item == item);
@@ -127,7 +127,7 @@ public class ArcModuleTests
         Assert.Equal(was, Items());
 
         // A bag with no room left: it stays fitted.
-        var full = new Scenario(Layout.Parse(Rows, null, Cables)).GiveItems(0, (Arc, 1));
+        var full = new Scenario(Layout.Parse(Rows, null, Cables), doubled: true).GiveItems(0, (Arc, 1));
         FitArc(full, Id(full, "smelter"));
         full.GiveItems(0, ("iron", 500 * Spec.Inventory.Slots));
         full.Do(new Unfit(Id(full, "smelter"), Arc)).Run();
@@ -176,7 +176,7 @@ public class ArcModuleTests
     public void OnANetworkShortOfItsDoubledDrawTheSmelterWorksAtItsShareOfTheDoubledSpeedRoundedDown()
     {
         string[] rows = ["PPP         ", "            ", "############", "#EE........#", "#EE........#", "############"];
-        var w = new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3))])).GiveItems(0, (Arc, 1), ("rock", 1)).Run(2);
+        var w = new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3))]), doubled: true).GiveItems(0, (Arc, 1), ("rock", 1)).Run(2);
         int smelter = Id(w, "smelter");
         FitArc(w, smelter);
         w.Do(new Move(new Slot(SlotOf(w, "rock")), new Target(0, smelter), 1)).Run().Run();
@@ -229,7 +229,7 @@ public class ArcModuleTests
     [Fact]
     public void AMachineHoldingAModuleIsNotTakenApartNorItsMarkWorked()
     {
-        var w = new Scenario(Layout.Parse(["##########", "#EE......#", "#EE......#", "##########"])).GiveItems(0, (Arc, 1));
+        var w = new Scenario(Layout.Parse(["##########", "#EE......#", "#EE......#", "##########"]), doubled: true).GiveItems(0, (Arc, 1));
         int smelter = Id(w, "smelter");
         int cell = w.M.Grid.MachineById(smelter)!.Cell;
         FitArc(w, smelter);
@@ -278,7 +278,12 @@ public class ArcModuleTests
             "#RR.KK.TTVD..VEE..KK...#",
             "########################",
         ];
-        var w = LogisticsTests.Aired(rows, LogisticsTests.RoomsUnder).GiveItems(0, (Arc, 1), ("rock", 2));
+        var w = new Scenario(Layout.Parse(rows, LogisticsTests.RoomsUnder), doubled: true);
+        // LogisticsTests.Aired's world, on the doubled map: both rooms aired, then the bay's drones docked.
+        var vented = w.M.Grid.MachinesOf("vent").Select(v => w.M.Rooms.RoomAt(v.Cell) ?? 0).ToArray();
+        for (int i = 0; i < 2000 && !vented.All(r => w.M.Atmosphere.StatusOf(r) == Atmosphere.RoomStatus.Aired); i++) w.Run();
+        Assert.All(vented, r => Assert.Equal(Atmosphere.RoomStatus.Aired, w.M.Atmosphere.StatusOf(r)));
+        LogisticsTests.Dock(w, w.M.Grid.MachinesOf(Spec.Logistics.Bay).Single().Id, 2).GiveItems(0, (Arc, 1), ("rock", 2));
         int smelter = Id(w, "smelter");
         int left = w.M.Grid.MachinesOf("crate").First().Id;
         LogisticsTests.Spread(w, left, ("rock", 50));
@@ -312,7 +317,7 @@ public class ArcModuleTests
     [Property(MaxTest = 30)]
     public Property FitsAndTakesNeitherMakeNorLoseAModule(PositiveInt seed)
     {
-        var w = new Scenario(Layout.Parse(Sealed)).GiveItems(0, (Arc, 2)).GiveItems(1, (Arc, 1), ("iron", 9)).GiveItems(2, (Arc, 2));
+        var w = new Scenario(Layout.Parse(Sealed), doubled: true).GiveItems(0, (Arc, 2)).GiveItems(1, (Arc, 1), ("iron", 9)).GiveItems(2, (Arc, 2));
         int before = Arcs(w);
         var rng = new Rng(new RngState { S = (uint)seed.Get });
         for (int i = 0; i < 300; i++)

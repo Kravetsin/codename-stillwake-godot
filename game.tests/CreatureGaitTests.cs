@@ -13,7 +13,7 @@ public class CreatureGaitTests
     public static TheoryData<string> Designs() => [.. FaunaLooks.Runs.Keys];
 
     /// <summary>A species' speed in pixels a second at <paramref name="perTick"/> thousandths of a cell a tick.</summary>
-    private static double Px(int perTick) => perTick / 1000.0 * 16 * 20;
+    private static double Px(int perTick) => perTick / 1000.0 * Camera.Cell * 20;
 
     [Theory]
     [MemberData(nameof(Designs))]
@@ -39,7 +39,7 @@ public class CreatureGaitTests
         {
             var run = FaunaLooks.Runs[species.Look];
             double walk = CreatureGait.StridesAt(Px(species.Wander), run), flee = CreatureGait.StridesAt(Px(species.Flee), run);
-            // Before: 2.6 a second walking, 7.3 fleeing at 15 cells a second.
+            // Before: 2.6 a second walking, 7.3 fleeing at 30 cells a second.
             Assert.InRange(walk, 1.7, 2.7);
             Assert.InRange(flee, 2.5, 3.5);
             Assert.True(flee < walk * 1.8, $"{species.Id}: {flee:F2} fleeing against {walk:F2} walking");
@@ -60,7 +60,7 @@ public class CreatureGaitTests
         {
             double ms = 1000 / fps * (ragged ? 0.7 + 0.6 * rng.NextDouble() : 1);
             int tick = (int)(now / 50);
-            double speed = tick < 20 ? Px(100) : tick < 60 ? Px(750) : 0;
+            double speed = tick < 20 ? Px(200) : tick < 60 ? Px(1500) : 0;
             double before = gait.Phase;
             gait.Step(ms, speed, grounded: true, fleeing: tick is >= 20 and < 60);
             now += ms;
@@ -97,12 +97,12 @@ public class CreatureGaitTests
             return g;
         }
         Assert.Equal((0, 0), (At(0).Walking, At(0).Gallop));
-        Assert.Equal((1, 0), (At(Px(100)).Walking, At(Px(100)).Gallop));
-        // A blow's knock, 200 a tick, is no gallop; a flight is a whole one.
-        Assert.Equal(0, At(Px(200)).Gallop);
-        Assert.Equal(1, At(Px(750)).Gallop, 3);
+        Assert.Equal((1, 0), (At(Px(200)).Walking, At(Px(200)).Gallop));
+        // A blow's knock, 400 a tick, is no gallop; a flight is a whole one.
+        Assert.Equal(0, At(Px(400)).Gallop);
+        Assert.Equal(1, At(Px(1500)).Gallop, 3);
         var air = new CreatureGait(run);
-        for (int i = 0; i < 60; i++) air.Step(1000.0 / 60, Px(400), grounded: false, fleeing: true);
+        for (int i = 0; i < 60; i++) air.Step(1000.0 / 60, Px(800), grounded: false, fleeing: true);
         Assert.Equal(0, air.Phase);
         Assert.True(air.Air > 0.99 && air.Flee > 0.99);
     }

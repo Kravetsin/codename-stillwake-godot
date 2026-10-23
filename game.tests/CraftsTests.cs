@@ -22,7 +22,7 @@ public class CraftsTests
     private static readonly Content.Station Fabricator = Content.Stations.Get("lifepod");
     private static readonly Content.Station Assembler = Content.Stations.Get("assembler");
 
-    private static TestWorld Start() => new(Layout.Parse(Room) with { Known = Content.Research.StartKnown });
+    private static TestWorld Start() => new(Layout.Parse(Room).Doubled() with { Known = Content.Research.StartKnown });
 
     private static Look LookOf(TestWorld w, string craft) =>
         Crafts.LookOf(w.M.Research.Knows(craft), Crafts.Lines(craft, w.M.Items.Totals(0)), w.M.Items.Creative);
@@ -62,7 +62,7 @@ public class CraftsTests
     [Fact]
     public void LaysAUnitsCostAgainstWhatIsCarriedShortOnlyOutOfCreativeMode()
     {
-        var w = new TestWorld(Room).Give(0, ("gear", 3), ("wire", 1));
+        var w = new TestWorld(Layout.Parse(Room).Doubled()).Give(0, ("gear", 3), ("wire", 1));
         var lines = Crafts.Lines("rotor", w.M.Items.Totals(0));
         Assert.Equal([new CostLine("gear", 3, 1), new CostLine("wire", 1, 2)], lines);
         Assert.Equal([false, true], lines.Select(l => Crafts.Short(l, creative: false)));
@@ -129,7 +129,7 @@ public class CraftsTests
     [Fact]
     public void FillsTheBarOfTheUnitAtWorkFullWhileItWaitsAndSaysWhatItIsDoing()
     {
-        var w = new TestWorld(Room).Give(0, ("scrap", 2));
+        var w = new TestWorld(Layout.Parse(Room).Doubled()).Give(0, ("scrap", 2));
         Assert.Equal(Doing.Ready, Crafts.DoingOf(w.M.Crafting.Queue(Pod), w.M.Crafting.Progress(Pod)));
         w.Step(new Craft(Pod, "wire", 1));
         int work = Crafts.WorkOf("wire");

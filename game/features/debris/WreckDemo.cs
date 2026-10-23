@@ -24,7 +24,10 @@ namespace Stillwake.Game.Features.Debris;
 /// </summary>
 public partial class WreckDemo : CanvasLayer
 {
-    /// <summary>A scrap of hull far to the left, so debris has a ship to drift past; the hero wakes out in space at S.</summary>
+    /// <summary>
+    /// A scrap of hull far to the left, so debris has a ship to drift past; the hero wakes out in space at S. Drawn a character a
+    /// 16 px cell and doubled (0104), as the pieces' places below are in its drawing's cells, doubled in <see cref="Seed"/>.
+    /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
             new string(' ', 120),
@@ -43,7 +46,7 @@ public partial class WreckDemo : CanvasLayer
             "",
             "",
             "",
-        ]) with
+        ]).Doubled() with
     { Known = Spec.Research.StartKnown };
 
     /// <summary>The section chopped, and the others: id, cells right of and below the hero's cell, damage.</summary>
@@ -58,7 +61,7 @@ public partial class WreckDemo : CanvasLayer
         (6, "hullPlate", 15.5, 1, 0),
     ];
     /// <summary>How fast they drift, slower than the sim's own, so the section stays in reach as it is chopped.</summary>
-    private const int Speed = 12;
+    private const int Speed = 24;
 
     /// <summary>For <c>--harpoon</c>: a crate up and right, out of the hands' reach, and a hull section farther, below.</summary>
     private static readonly (int Id, string Item, double Right, int Below, int Damage)[] Shootable =
@@ -74,7 +77,7 @@ public partial class WreckDemo : CanvasLayer
         double at = 4;
         foreach (var (item, _) in Spec.Wreckage.All)
         {
-            double width = DebrisLooks.Wrecks[item].W / 16.0;
+            double width = DebrisLooks.Wrecks[item].W / (2.0 * ShipCamera.Cell);
             row.Add((row.Count + 1, item, at + width / 2, 0, 0));
             at += width + 2;
         }
@@ -99,7 +102,7 @@ public partial class WreckDemo : CanvasLayer
             "  #.....S................#",
             "  ########################",
             "",
-        ]) with
+        ]).Doubled() with
     { Known = Spec.Research.StartKnown };
 
     /// <summary><paramref name="world"/>, on <see cref="Hall"/>, with a harpoon in peer 0's first hotbar slot, put in through its save.</summary>
@@ -118,7 +121,8 @@ public partial class WreckDemo : CanvasLayer
         var root = JsonNode.Parse(world.Save())!;
         int width = Map.Width, spawn = Map.CellsOf('S').First();
         int sx = spawn % width, sy = spawn / width;
-        const int Right = 6, Left = 2, Lead = Spec.Debris.Lead;
+        // The hull's columns, its drawing's doubled.
+        const int Right = 13, Left = 4, Lead = Spec.Debris.Lead;
         int start = Math.Min(width - 1, Right + Lead) * 1000 + 500, end = Math.Max(0, Left - Lead) * 1000;
         var pieces = new JsonArray();
         foreach (var (id, item, right, below, damage) in drifting)
@@ -127,18 +131,18 @@ public partial class WreckDemo : CanvasLayer
                 ["id"] = id,
                 ["zone"] = Spec.Debris.Ship.Id,
                 ["item"] = item,
-                ["x"] = (int)((sx + right) * 1000),
-                ["y"] = (sy + below) * 1000 + 500,
+                ["x"] = (int)((sx + 2 * right) * 1000),
+                ["y"] = (sy + 2 * below) * 1000,
                 ["speed"] = Speed,
                 ["start"] = start,
                 ["end"] = end,
                 ["damage"] = damage,
             });
-        // Waking in space, the hero leaves no back wall where it woke.
+        // Waking in space, the hero leaves no back wall where it woke: S's block, its bottom-left.
         var grid = root["slices"]!["grid"]!;
         var back = Runs.Cells(grid["back"]!);
         var backMaterial = Runs.Cells(grid["backMaterial"]!);
-        back[spawn] = backMaterial[spawn] = 0;
+        foreach (int cell in (int[])[spawn, spawn + 1, spawn - width, spawn - width + 1]) back[cell] = backMaterial[cell] = 0;
         grid["back"] = Runs.Node(back);
         grid["backMaterial"] = Runs.Node(backMaterial);
         var debris = root["slices"]!["debris"]!;
@@ -353,9 +357,9 @@ public partial class WreckDemo : CanvasLayer
             Mouse(false);
             _clicking = false;
         }
-        // In the ceiling over the hall's middle, then in its right wall, in thousandths of a cell.
+        // In the ceiling over the hall's middle, then in its right wall, in thousandths of a cell of the doubled hall.
         // Hanging, the pointer goes back into the hall, where a player would aim next.
-        var at = _stage is 4 or 5 ? new Vector2(13_000, 5_000) : _shotAt == 1 ? new Vector2(15_500, 1_900) : new Vector2(25_100, 5_500);
+        var at = _stage is 4 or 5 ? new Vector2(26_000, 10_000) : _shotAt == 1 ? new Vector2(31_000, 3_800) : new Vector2(50_200, 11_000);
         var aim = GetViewport().GetCanvasTransform() * (at / 1000f * ShipCamera.Cell);
         _pos = _pos.MoveToward(aim, (float)(1500 * delta));
         void Next(string said)
@@ -462,7 +466,7 @@ public partial class WreckDemo : CanvasLayer
         {
             float gap = piece.X / 1000f * ShipCamera.Cell - _ui.Heroes[0].X;
             float half = DebrisLooks.Wrecks[piece.Item].W / 2f;
-            Swim(aimed ? null : gap > half + ShipCamera.Cell ? Key.D : gap < half * 0.5f ? Key.A : null);
+            Swim(aimed ? null : gap > half + 2 * ShipCamera.Cell ? Key.D : gap < half * 0.5f ? Key.A : null);
         }
         Pointer();
     }

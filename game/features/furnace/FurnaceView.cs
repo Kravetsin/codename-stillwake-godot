@@ -215,12 +215,12 @@ public partial class FurnaceView : Node2D
 
     /// <summary>
     /// Where a machine's fire gives its light, in pixels from its top left; null for a machine with none.
-    /// The furnace's from the middle of its bottom row, where the TypeScript game's gave it; a generator's
+    /// The furnace's from the middle of its lower half, where the TypeScript game's gave it; a generator's
     /// from low in its mouth.
     /// </summary>
     public static Vector2? LightAt(string kind) => kind switch
     {
-        FurnaceModule.Smelter => new Vector2(Cell, Cell * 1.5f),
+        FurnaceModule.Smelter => new Vector2(2 * Cell, 3 * Cell),
         FurnaceModule.Generator => FireAt(kind) + new Vector2(5, 7),
         _ => null,
     };

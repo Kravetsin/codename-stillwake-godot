@@ -32,7 +32,7 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
   `Full` cells from the middle of the screen (the hero), then fading as the square of what is left of
   the way to `Silent`, where it stops. A vent hums loud only close by (3 → 10), doors and venting carry far
   (6 → 24). Every station at work carries alike (`Sound.StationReach`, 2 → 10, 0059) and is about as loud as the
-  next: about −32 LUFS at its loudest 400 ms within 2 cells, under a step, a door or any tool. Godot's own fall-off has no
+  next: about −32 LUFS at its loudest 400 ms within 4 cells, under a step, a door or any tool. Godot's own fall-off has no
   full-volume stretch, so `Heard2D` turns it off and sets the volume each frame; Godot still pans.
 - **Tool idle** (`Sound.ToolIdleDb`, −8 dB): the one volume of every tool sound made while it works nothing, the drill's
   motor running free (`DrillWhir`) and the axe's swing (`Swing`). Their files are levelled alike, the whir's grains as a
@@ -70,7 +70,7 @@ The first sound pass (ADR 0033), what is heard in space (0042), machines heard a
     or the action's thump (`ActSound`) on a crate or pod; the drum (`Sound.Drum`, a loop) from the click
     that reels till the piece is in or the line comes free, never on a miss; and `Sound.Ready` as the
     hero's cooldown ends with a harpoon in hand, the gun ready, not the rod back. No sound of the line
-    going taut. Others' harpoons (0065) on World where they are, at `Sound.ToolReach` (5 → 20 cells), as
+    going taut. Others' harpoons (0065) on World where they are, at `Sound.ToolReach` (10 → 40 cells), as
     their steps are, so silent while this hero floats: the shot at the gun, the bite where the rod sticks
     (`Sound.Chop`, or `Sound.ActInSpace` on a crate or pod), the drum at the gun, one looped player a hero, while
     it reels or pulls; no ready cue.

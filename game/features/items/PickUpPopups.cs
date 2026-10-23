@@ -19,9 +19,9 @@ public partial class PickUpPopups : Control
     /// <summary>How long a line stays, rising and fading, in ms; another of its item meanwhile adds to it.</summary>
     public const double PopupMs = 1200;
     /// <summary>How far a line rises over its life, in cells.</summary>
-    private const float Rise = 1.2f;
+    private const float Rise = 2.4f;
     /// <summary>Lines stacked above the head, newest lowest, this far apart in cells.</summary>
-    private const float Gap = 0.7f;
+    private const float Gap = 1.4f;
 
     private sealed class Line(string item, int count, Label text)
     {

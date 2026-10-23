@@ -1,7 +1,7 @@
 # Light (client)
 
 Light without a word (0019, 0029, 0070): a dim ship lit by its lamps, its fires, whatever glows,
-and by the stars, whole in open space and falling off within a few cells of a hole or an opening. Drawn only: nothing of it reaches the sim.
+and by the stars, whole in open space and falling off within a few cells of a hole or an opening. Drawn only: nothing of it reaches the sim. Tuned at the 16 px cell: every reach and count of cells is twice what it was and every keep a cell its square root, so light falls off over the same pixels (0104); the shader walks up to 160 cells a line.
 Numbers from `game/Content/Light.cs`.
 
 - **Reads:** `IGridQueries` — `StructureLayer` (walls and closed doors stop light), `ShapeLayer` (a wall cut to a shape stops it with its solid half, 0069), `BackLayer`,
@@ -15,15 +15,15 @@ Numbers from `game/Content/Light.cs`.
   shader is told (`origin`). Past the texture every cell is open, so a texture that still covers what
   was built is drawn alike. Lamps are laid out again only when the log names a machine's cell. Starlight
   is worked out again only round the cells changed in structure, back wall or machine
-  (`StarField.Follow`): within `StarField.Reach` (12) cells and a sky's reach (`Light.StarSky`, 2) of
-  them, from what lies within `Reach` more. A change alters the sky of the cells within 2 of it; light
+  (`StarField.Follow`): within `StarField.Reach` (some 24) cells and a sky's reach (`Light.StarSky`, 4) of
+  them, from what lies within `Reach` more. A change alters the sky of the cells within 4 of it; light
   keeps at most the brightest way through cells of any kinds (into a wall `WallIn`, on `WallDeep` or
-  out `WallOut`, through the open `StarKeep`), so past 12 cells what crossed a changed cell, or came
+  out `WallOut`, through the open `StarKeep`), so past some 24 cells what crossed a changed cell, or came
   from a changed sky, is under the faintest light a texel shows, and every texel there is as it was; and
   light from past twice the reach is as faint where it is written. The texels are those working it all out gives,
   byte for byte (`BuiltBoundsTests`, over ships and halls where the light runs far). A first look, or
   one the log no longer reaches back to, lays everything out anew, as before (F-6 slice 0): starlight
-  over `Built` and 4 cells of space round it, past which every cell is open stars at full, which is what
+  over `Built` and 8 cells of space round it, past which every cell is open stars at full, which is what
   the texel at the texture's edge holds, and `Lit` reads that edge texel for anything beyond. A door
   toggled every tick on a fully built 1024×512 world cost the light 35 ms a frame, starlight 33 ms a
   change; now 0.9 and 1.5 ms (debug build), whatever the size of the ship. Since starlight falls off
@@ -31,7 +31,7 @@ Numbers from `game/Content/Light.cs`.
 - **No Godot lights.** Godot lights a drawn thing by at most 15 lights and drops the rest: a furnace's
   embers once pushed a lamp out and whole tile chunks went dark. All light is composed here instead,
   with no limit on how many lights touch a thing.
-- **Lightmap** (`Lightmap.cs`): two `SubViewport`s over the view and a margin of 4 cells, sized from the view's size alone with a
+- **Lightmap** (`Lightmap.cs`): two `SubViewport`s over the view and a margin of 8 cells, sized from the view's size alone with a
   texel spare, so the camera moving never resizes them (a resize remakes both textures, some 4 ms; sized to where the view
   fell on the pixels, they once changed by a texel nearly every frame of a run), HDR, cleared
   each frame, a texel a world pixel (more pixels a texel past 4096 texels across), laid with their
@@ -54,21 +54,21 @@ Numbers from `game/Content/Light.cs`.
   fire (`Light.FireSize`) have a width: seen from a texel the light is a line across that wide; its two
   ends are walked, and where they disagree — a shadow's edge — seven points between, the share seen
   kept. Edges are soft over as much as the light seen from them is wide, as Godot's PCF softened them.
-- **Lamps:** `Light.Lamp` (0.8, 0.64, 0.42), dim and warm, keeping `Light.LampKeep` (0.74) a cell, each
-  colour at most `Light.LampMost`, out to `Light.LampReach` (8) cells: a room lit to walk, its corners
+- **Lamps:** `Light.Lamp` (0.8, 0.64, 0.42), dim and warm, keeping `Light.LampKeep` (0.86) a cell, each
+  colour at most `Light.LampMost`, out to `Light.LampReach` (16) cells: a room lit to walk, its corners
   dark, so a fire, a screen or a machine's glow reads in it; as bright as `LightView.LampShare` says — the power it gets, flickering when
   short (`Flicker`) — and an unlit additive glow. Short of power, in light too (`LampSparks`, 0075), the flicker's timing and
   fades kept: each time it catches, a small warm glint, more often than not a few sparks dropping to the floor under it
   and bouncing once, half the time an arc or two at its socket; rarely an arc while lit; while dark a dull ember in
   the filament cooling over a second. Nothing flashes the room white. An arc makers' lamp hung aboard (0091, `arcLamp`) is
-  lit alike but in their cold `Light.ArcLamp` (0.56, 0.78, 1), three tenths stronger, keeping 0.78 out to 10 cells, its glow cyan.
+  lit alike but in their cold `Light.ArcLamp` (0.56, 0.78, 1), three tenths stronger, keeping 0.883 out to 20 cells, its glow cyan.
   Its body (`machine_arcLamp`, a dark globe) is the grid's tile whatever its power; while it shines `LightView` lays the globe
   alight over it (`machine_arcLamp_lit`, lit by the world) and adds its glow (`machine_arcLamp_glow`), both as bright as it
   shines (`ArcLampLooks`), as a home's lit ceiling lamp draws; at full power the ceiling lamp's arc crackles across it (`Crackle`).
 - **The homes' lamps** (0091): `LightView.Homes`, the light of the arc makers' lamps and hearths near the view (`HomesView`).
 - **Fire:** from where a furnace's or a burner generator's fire gives its light (`LightView.FireAt`, which
   `Main` answers from `FurnaceView.LightAt`: a furnace's bottom row's middle, low in a generator's mouth), `Light.Fire` keeping `Light.FireKeep` a cell
-  out to `FireReach` (8) cells, as bright as `LightView.Fire` says (`FurnaceView.BlazeOf`: a new
+  out to `FireReach` (16) cells, as bright as `LightView.Fire` says (`FurnaceView.BlazeOf`: a new
   brightness with each picture of the flames, which the glow breathes toward, past whole as a coal cracks: 0075), and a glow at the mouth.
   The furnace view runs before this one each frame, so the light follows the picture shown.
 - **Spots:** first each flash of `Flares.Shared` (0075: a hit's, a break's, a spark burst's flicker, a

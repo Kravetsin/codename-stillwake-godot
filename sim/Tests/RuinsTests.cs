@@ -14,12 +14,16 @@ namespace Stillwake.Sim.Tests;
 public class RuinsTests
 {
     private const int W = 9;
+    /// <summary>The drawn chamber's cell at (<paramref name="x"/>, <paramref name="y"/>): where its growths are listed, before it doubles.</summary>
     private static int At(int x, int y) => y * W + x;
+
+    /// <summary>The lower row of the drawn character at (<paramref name="x"/>, <paramref name="y"/>): a floor growth's own cell.</summary>
+    private static int Bottom(Scenario w, int x, int y) => w.At(x, y) + w.Layout.Width;
     private static readonly string Axe = Weapons.Axe.Item;
 
     /// <summary>
     /// A spire's chamber in miniature: alloy all round, a cache on its floor at (1, 3), the relic's cradle three across from (3, 3),
-    /// a chip's niche on the back wall at (7, 1), and a bush on soil out at (6, 3) beside the cradle.
+    /// a chip's niche on the back wall at (7, 1), and a bush on soil out at (6, 3) beside the cradle; doubled, as a spire is.
     /// </summary>
     private static Scenario Chamber() => new(Layout.Parse("""
         #########
@@ -33,7 +37,7 @@ public class RuinsTests
         a.......a
         a.......a
         aaaaaasaa
-        """) with { Flora = [(At(7, 1), Ruins.Niche), (At(1, 3), Ruins.SpireCache), (At(3, 3), Ruins.Cradle), (At(6, 3), "bush")] });
+        """) with { Flora = [(At(7, 1), Ruins.Niche), (At(1, 3), Ruins.SpireCache), (At(3, 3), Ruins.Cradle), (At(6, 3), "bush")] }, doubled: true);
 
     private static int Count(Scenario w, string item, int peer = 0) => w.M.Items.Totals(peer).Where(t => t.Item == item).Sum(t => t.Count);
     private static string[] Kinds(Scenario w) => w.M.Building.Plants.Select(p => p.Kind).ToArray();
@@ -44,29 +48,33 @@ public class RuinsTests
         var w = Chamber();
         int hits = Materials.Get("alloy").Strength / Weapons.Axe.Damage;
         Assert.Equal(30, hits);
-        for (int i = 0; i < hits - 1; i++) w.Do(new Dig(At(7, 4), Axe)).Run();
-        Assert.Equal("alloy", w.M.Grid.WallAt(At(7, 4))?.Id);
+        for (int i = 0; i < hits - 1; i++) w.Do(new Dig(w.At(7, 4), Axe)).Run();
+        Assert.Equal("alloy", w.M.Grid.WallAt(w.At(7, 4))?.Id);
         Assert.Equal(58, w.M.Building.Cracks.Single().Damage);
-        w.Do(new Dig(At(7, 4), Axe)).Run();
+        w.Do(new Dig(w.At(7, 4), Axe)).Run();
         Assert.Empty(w.Refusals);
-        Assert.Null(w.M.Grid.WallAt(At(7, 4)));
+        Assert.Null(w.M.Grid.WallAt(w.At(7, 4)));
         Assert.Equal(1, Count(w, "alloyScrap"));
         // Its back wall stays, alloy too.
-        Assert.Equal("alloy", w.M.Grid.BackAt(At(7, 4))?.Id);
+        Assert.Equal("alloy", w.M.Grid.BackAt(w.At(7, 4))?.Id);
     }
 
     [Fact]
     public void ASpireCacheOpensToAnyHitGivingItsScrapWireAndSilicon()
     {
         var w = Chamber();
-        w.Do(new Dig(At(1, 3), Axe)).Run();
+        w.Do(new Dig(w.At(1, 3), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal((4, 6, 2), (Count(w, "alloyScrap"), Count(w, "wire"), Count(w, "silicon")));
         Assert.DoesNotContain(Ruins.SpireCache, Kinds(w));
     }
 
     /// <summary>The chamber with hero 0 by the cradle and hero 1 across it, both in on the same tick, breathing alike.</summary>
-    private static Scenario WithHeroes() => Chamber().Do(new Enter(At(2, 3)) { From = 0 }).Do(new Enter(At(6, 2)) { From = 1 }).Run();
+    private static Scenario WithHeroes()
+    {
+        var w = Chamber();
+        return w.Do(new Enter(w.At(2, 3)) { From = 0 }).Do(new Enter(w.At(6, 2)) { From = 1 }).Run();
+    }
 
     private static int Suit(Scenario w, int peer) => w.M.Crew.HeroOf(peer)!.Suit;
     private static bool Taken(Scenario w, string kind) => w.M.Building.Relics.Single(r => r.Kind == kind).Taken;
@@ -76,21 +84,21 @@ public class RuinsTests
     {
         var w = WithHeroes();
         var cradle = w.M.Building.Plants.Single(p => p.Kind == Ruins.Cradle);
-        // Three across and three up from its own cell: a hit on its top right is a hit on it.
-        Assert.Equal(cradle, w.M.Building.PlantAt(At(5, 1)));
+        // Three characters across and three up from its own cell: a hit on its top right is a hit on it.
+        Assert.Equal(cradle, w.M.Building.PlantAt(w.At(5, 1)));
         // By cell: the niche up on the wall first.
-        Assert.Equal([new Relic(At(7, 1), Ruins.Niche, false), new Relic(At(3, 3), Ruins.Cradle, false)], w.M.Building.Relics);
+        Assert.Equal([new Relic(w.At(7, 1), Ruins.Niche, false), new Relic(Bottom(w, 3, 3), Ruins.Cradle, false)], w.M.Building.Relics);
         int swings = Flora.Get(Ruins.Cradle).Strength / Weapons.Axe.Damage;
         Assert.Equal(4, swings);
         for (int i = 1; i < swings; i++)
         {
-            w.Do(new Dig(At(5, 1), Axe)).Run();
+            w.Do(new Dig(w.At(5, 1), Axe)).Run();
             // Untouched it only glows: the shock is the striker's alone, as the two breathe alike.
             Assert.Equal(i * Ruins.CradleShock, Suit(w, 1) - Suit(w, 0));
         }
         Assert.Contains(Ruins.Cradle, Kinds(w));
         Assert.Equal(0, Count(w, Ruins.Shard));
-        w.Do(new Dig(At(4, 2), Axe)).Run();
+        w.Do(new Dig(w.At(4, 2), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(swings * Ruins.CradleShock, Suit(w, 1) - Suit(w, 0));
         Assert.Equal(4, Count(w, Ruins.Shard));
@@ -113,7 +121,7 @@ public class RuinsTests
     public void AHitOnAnythingElseInTheChamberShocksNobody()
     {
         var w = WithHeroes();
-        w.Do(new Dig(At(1, 3), Axe)).Do(new Dig(At(6, 3), Axe)).Run();
+        w.Do(new Dig(w.At(1, 3), Axe)).Do(new Dig(w.At(6, 3), Axe)).Run();
         Assert.Equal(Suit(w, 1), Suit(w, 0));
     }
 
@@ -121,7 +129,7 @@ public class RuinsTests
     public void TheHomesNicheGivesItsOneShardToASwingAndShocksNobody()
     {
         var w = WithHeroes();
-        w.Do(new Dig(At(7, 1), Axe)).Run();
+        w.Do(new Dig(w.At(7, 1), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(1, Count(w, Ruins.Shard));
         Assert.Equal(Suit(w, 1), Suit(w, 0));
@@ -154,7 +162,7 @@ public class RuinsTests
     public void ACradleWhoseFloorIsDugOutFallsGivingItsShardsToTheDiggerUnshocked()
     {
         var w = WithHeroes();
-        for (int i = 0; i < Materials.Get("alloy").Strength / Weapons.Axe.Damage; i++) w.Do(new Dig(At(4, 4), Axe)).Run();
+        for (int i = 0; i < Materials.Get("alloy").Strength / Weapons.Axe.Damage; i++) w.Do(new Dig(w.At(4, 4), Axe)).Run();
         Assert.DoesNotContain(Ruins.Cradle, Kinds(w));
         Assert.True(Taken(w, Ruins.Cradle));
         Assert.Equal(Suit(w, 1), Suit(w, 0));
@@ -176,19 +184,22 @@ public class RuinsTests
     [Fact]
     public void AFloorBuiltOverACacheFellsItAndItsYieldsFallThereForAnyone()
     {
-        var w = BuildFloor(Chamber(), At(1, 3));
+        var w = Chamber();
+        BuildFloor(w, Bottom(w, 1, 3));
         Assert.DoesNotContain(Ruins.SpireCache, Kinds(w));
         // Nobody felled it: nothing in the builder's hands, its yields let fall at its cell, anyone's at once, lying on the
         // floor built there, a cell up.
         Assert.Equal(0, Count(w, "alloyScrap"));
         var floor = w.M.Items.Floor.OrderBy(s => s.Item, StringComparer.Ordinal).Select(s => (s.Item, s.Count, s.Cell, s.By));
-        Assert.Equal([("alloyScrap", 4, At(1, 2), FloorStack.Nobody), ("silicon", 2, At(1, 2), FloorStack.Nobody), ("wire", 6, At(1, 2), FloorStack.Nobody)], floor);
+        int up = w.At(1, 3);
+        Assert.Equal([("alloyScrap", 4, up, FloorStack.Nobody), ("silicon", 2, up, FloorStack.Nobody), ("wire", 6, up, FloorStack.Nobody)], floor);
     }
 
     [Fact]
     public void AnyGrowthFelledByNobodyDropsItsYieldsOnceEvenAcrossALoad()
     {
-        var w = BuildFloor(Chamber(), At(6, 3));
+        var w = Chamber();
+        BuildFloor(w, Bottom(w, 6, 3));
         Assert.Equal([("seed", 1)], w.M.Items.Floor.Select(s => (s.Item, s.Count)));
         // Felled is saved: a load grows the ground's growth again but for it, and drops nothing more.
         w.Reload().Run(5);
@@ -231,8 +242,10 @@ public class RuinsTests
                         _ => ('#', alloy),
                     };
                     if ((row, code) != want) return $"{at}: ({dx}, {dy}) is {row} of {code}, not {want.Item1} of {want.Item2}";
-                    string? grows = c switch { Ruins.Cache => Ruins.SpireCache, Ruins.Lamp => Ruins.SpireLamp, _ => null }
-                        ?? Ruins.SpireFurnishing.Where(p => (p.X, p.Y) == (dx, dy)).Select(p => p.Kind).FirstOrDefault();
+                    string? drawn = c switch { Ruins.Cache => Ruins.SpireCache, Ruins.Lamp => Ruins.SpireLamp, _ => null };
+                    // A growth the prefab draws grows once in its character's 2×2 (0104): a floor's at its bottom-left, else its top-left.
+                    if (drawn != null && (dx % 2 != 0 || dy % 2 != (Flora.Get(drawn).On == Flora.Anchor.Floor ? 1 : 0))) drawn = null;
+                    string? grows = drawn ?? Ruins.SpireFurnishing.Where(p => (p.X, p.Y) == (dx, dy)).Select(p => p.Kind).FirstOrDefault();
                     if (flora.GetValueOrDefault(cell) != grows) return $"{at}: ({dx}, {dy}) grows {flora.GetValueOrDefault(cell) ?? "nothing"}, not {grows ?? "nothing"}";
                 }
         }

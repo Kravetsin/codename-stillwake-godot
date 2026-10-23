@@ -12,7 +12,8 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// What E would work, outlined along the pictures it is drawn with: a machine's whole picture with its
 /// socket, a whole doorway (it opens as one), a valve's wheel, a plan's own pictures joined to the plans
-/// beside it as they are drawn. A mark outlines the machine it takes apart, else its cell.
+/// beside it as they are drawn. A mark outlines the machine it takes apart, else its cell. A dig wider than a cell, its
+/// brush's square (<see cref="Brush"/>).
 /// </summary>
 public static class AimOutline
 {
@@ -29,6 +30,12 @@ public static class AimOutline
                 if (plan.Id == work.Plan) Plan(outline, m, plan, colour);
             return;
         }
+        // A dig's brush wider than a cell: its whole square, whatever of it is ground.
+        if (aim.Square is var (x, y, side))
+        {
+            outline.AddBox(new Rect2(x * Cell, y * Cell, side * Cell, side * Cell), colour);
+            return;
+        }
         if (grid.MachineAt(aim.Cell) is { } machine)
         {
             Machine(outline, machine.Kind, machine.Cell, width, colour);
@@ -42,7 +49,7 @@ public static class AimOutline
         int conduit = shown.ConduitAt(grid, aim.Cell);
         if (conduit is Conduit.ValveOpen or Conduit.ValveClosed)
         {
-            var valve = PixelArt.Picture(conduit == Conduit.ValveOpen ? "valve_open" : "valve_closed");
+            var valve = ShipTiles.PictureOf(conduit == Conduit.ValveOpen ? "valve_open" : "valve_closed");
             outline.Add(valve, CornerOf(aim.Cell, width) + new Vector2(Cell, Cell) / 2, 0, 1, colour);
             return;
         }
@@ -50,6 +57,15 @@ public static class AimOutline
     }
 
     private static Vector2 CornerOf(int cell, int width) => new(cell % width * Cell, cell / width * Cell);
+
+    /// <summary>The box round <paramref name="cells"/>, in pixels.</summary>
+    private static Rect2 BoxOf(IReadOnlyList<int> cells, int width)
+    {
+        int left = int.MaxValue, top = int.MaxValue, right = 0, bottom = 0;
+        foreach (int c in cells)
+            (left, top, right, bottom) = (Math.Min(left, c % width), Math.Min(top, c / width), Math.Max(right, c % width), Math.Max(bottom, c / width));
+        return new Rect2(left * Cell, top * Cell, (right - left + 1) * Cell, (bottom - top + 1) * Cell);
+    }
 
     /// <summary>A cell's square; a wall cut to a shape, its solid half as the grid draws it (0069).</summary>
     private static void OneCell(Outline outline, IGridQueries grid, int cell, Color colour)
@@ -77,12 +93,15 @@ public static class AimOutline
     {
         int width = grid.Width, size = width * grid.Height;
         int StructureAt(int c) => shown.StructureAt(grid, c);
+        int LinksOf(int c) => Doorways.LinksOf(c, width, size, StructureAt);
         var seen = new HashSet<int> { cell };
         var next = new Stack<int>([cell]);
         while (next.Count > 0)
         {
-            int c = next.Pop(), linked = Doorways.LinksOf(c, width, size, StructureAt);
-            outline.Add(PixelArt.Picture(DoorShape.Picture(shown.StructureAt(grid, c) == Structure.DoorClosed, linked)), CornerOf(c, width), colour);
+            int c = next.Pop(), linked = LinksOf(c);
+            // Its quarter of its 16 px piece's picture (0104).
+            var (picture, quarter) = DoorShape.TileOf(DoorShape.SpotOf(c, width, LinksOf), closed: StructureAt(c) == Structure.DoorClosed);
+            outline.Add(ShipTiles.PictureOf(picture), CornerOf(c, width), colour, new Rect2(quarter.X * Cell, quarter.Y * Cell, Cell, Cell));
             foreach (var (side, n) in (ReadOnlySpan<(int, int)>)[(Doorways.Up, c - width), (Doorways.Right, c + 1), (Doorways.Down, c + width), (Doorways.Left, c - 1)])
                 if ((linked & side) != 0 && seen.Add(n)) next.Push(n);
         }
@@ -95,6 +114,8 @@ public static class AimOutline
         if (plan.Place is not { } place)
         {
             if (plan.Clear == "machine" && m.Grid.MachineAt(plan.Cell) is { } built) Machine(outline, built.Kind, built.Cell, width, colour);
+            // A ladder's or a doorway's whole piece, which it takes apart (0104).
+            else if (plan.Clear == "structure" && m.Grid.PieceOf(plan.Cell) is { Count: > 1 } piece) outline.AddBox(BoxOf(piece, width), colour);
             else OneCell(outline, m.Grid, plan.Cell, colour);
             return;
         }

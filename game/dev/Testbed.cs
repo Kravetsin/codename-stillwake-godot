@@ -58,7 +58,7 @@ public static class Testbed
     /// two's right lamp, and through it the airlock's. The grow capsule stands a cell left of the assembler, inside the
     /// bay's zone. Three oxygen generators, piped with the tank to both vents, make more than the rooms leak and the two
     /// fires breathe, so the air holds however long a session runs; one alone ran room two dry in three minutes.
-    /// Sixty cells of space past the airlock, room for a jetpack to fly.
+    /// Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104).
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
@@ -87,7 +87,7 @@ public static class Testbed
             ((19, 2), (22, 4)), ((25, 2), (39, 6)), ((42, 6), (40, 4)), ((40, 4), (46, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (37, 5)),
             ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)),
-        ]);
+        ]).Doubled();
 
     /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>
     public const int AirTicks = 200;
@@ -107,8 +107,8 @@ public static class Testbed
     /// <summary>How much of it: a few plates' worth, under half a stack, so drones bring a stack at once (0062).</summary>
     public const int Pressed = 6;
 
-    /// <summary>The crates by their top-left cells on the map: the full one; the supply crate by the pod; the farm's, switched off.</summary>
-    public static readonly (int X, int Y) Full = (14, 7), Supply = (7, 7), FarmAt = (36, 7);
+    /// <summary>The crates by their top-left cells on the map, its drawing doubled (0104): the full one; the supply crate by the pod; the farm's, switched off.</summary>
+    public static readonly (int X, int Y) Full = (28, 14), Supply = (14, 14), FarmAt = (72, 14);
 
     /// <summary>What the supply crate holds at the start: what keeps the furnace, the Former and the grow capsule going (0062).</summary>
     public static readonly IReadOnlyList<(string Item, int Count)> Supplies = [.. Enumerable.Repeat(("scrapChunk", 50), 4), ("planks", 50), ("iron", 500), ("seed", 10)];

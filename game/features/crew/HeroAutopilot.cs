@@ -13,7 +13,7 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public sealed class HeroAutopilot
 {
-    /// <summary>A room with a ladder up to a floor, for recording climbing.</summary>
+    /// <summary>A room with a ladder up to a floor, for recording climbing; drawn a character a 16 px block (0104).</summary>
     public static readonly Layout Gym = Layout.Parse("""
         ################
         #..............#
@@ -26,10 +26,10 @@ public sealed class HeroAutopilot
         #....H.........#
         #.S..H.........#
         ################
-        """);
+        """).Doubled();
 
     /// <summary>
-    /// A hall for recording the figure's motion (0090), <c>-- --poses</c>: a ladder up to a floor eight cells over the deck and
+    /// A hall for recording the figure's motion (0090), <c>-- --poses</c>: a ladder up to a floor eight characters over the deck and
     /// one up to a floor twenty-one over it, each walked off; lamps under its ceiling and halfway down, lit with <c>--lit</c>.
     /// </summary>
     public static readonly Layout Hall = Layout.Parse(
@@ -42,11 +42,11 @@ public sealed class HeroAutopilot
             > 23 => "#" + new string('.', 7) + "H" + new string('.', 23) + "H" + new string('.', 12) + "#",
             > 10 => "#" + new string('.', 31) + "H" + new string('.', 12) + "#",
             _ => "#" + new string('.', 44) + "#",
-        }))]);
+        }))]).Doubled();
 
     /// <summary>
-    /// A shaft for recording the ladder (0092), <c>-- --ladders --autopilot --lit</c>: a ladder fourteen cells tall in column 8
-    /// up through an open hatch into the room above; right of it a pit four cells deep with a ladder up out of it in column 16,
+    /// A shaft for recording the ladder (0092), <c>-- --ladders --autopilot --lit</c>: a ladder fourteen characters tall in column 8
+    /// up through an open hatch into the room above; right of it a pit four characters deep with a ladder up out of it in column 16,
     /// and the floor on beyond.
     /// </summary>
     public static readonly Layout Ladders = Layout.Parse(
@@ -60,11 +60,11 @@ public sealed class HeroAutopilot
             > 9 and < 20 => "#.......H.......H..........#",
             > 6 => "#.......H...................#"[..27] + "#",
             _ => "#" + new string('.', 26) + "#",
-        }))]);
+        }))]).Doubled();
 
     /// <summary>
-    /// Two ledges for recording the ledge assist (0092), <c>-- --ledges --autopilot --lit</c>: one four cells high, which a held
-    /// jump falls 46 short of and steps up onto, and one five high, which it falls clearly short of.
+    /// Two ledges for recording the ledge assist (0092), <c>-- --ledges --autopilot --lit</c>: one four characters high, which a held
+    /// jump falls 102 short of and steps up onto, and one five high, which it falls clearly short of.
     /// </summary>
     public static readonly Layout Ledges = Layout.Parse(
         [.. Enumerable.Range(0, 13).Select(r => ShaftLamps(r, r switch
@@ -74,7 +74,7 @@ public sealed class HeroAutopilot
             >= 8 => "#......." + new string('#', 6) + "......" + new string('#', 10),
             >= 7 => "#......." + new string('.', 6) + "......" + new string('#', 10),
             _ => "#" + new string('.', 28) + "#",
-        }))]);
+        }))]).Doubled();
 
     private static string ShaftLamps(int row, string cells) =>
         row is 2 or 9 or 14 or 19 ? string.Concat(cells.Select((c, x) => c == '.' && x % 5 == 1 ? 'L' : c)) : cells;
@@ -160,26 +160,32 @@ public sealed class HeroAutopilot
     private static Act Walk(int dir, Func<Hero, bool> until) => new(new HeroInput(dir, 0, false), (h, _) => until(h));
     private static int Column(Hero h) => h.X / Hero.Unit;
 
+    /// <summary>The map character the hero's middle is in, on a map drawn a character a 16 px block (0104).</summary>
+    private static int Block(Hero h) => h.X / (2 * Hero.Unit);
+
+    /// <summary>A map character's height and width in thousandths of a cell: two cells.</summary>
+    private const int Drawn = 2 * Hero.Unit;
+
     /// <summary>A point <paramref name="right"/> cells right of the hero's middle and <paramref name="below"/> under it.</summary>
     private static Func<Hero, (double, double)?> Beside(double right, double below) =>
         h => ((double)h.X / Hero.Unit + right, (double)h.Middle.Y / Hero.Unit + below);
 
-    /// <summary>E on the cell at (<paramref name="x"/>, <paramref name="y"/>), then a wait while the host runs it.</summary>
-    private static Act Press(int x, int y) => new(Still, (_, p) => p.Steps >= 20, _ => (x + 0.5, y + 0.5), Press: true);
+    /// <summary>E on the map character at (<paramref name="x"/>, <paramref name="y"/>), its block's top-left cell, a door's, then a wait while the host runs it.</summary>
+    private static Act Press(int x, int y) => new(Still, (_, p) => p.Steps >= 20, _ => (2 * x + 0.5, 2 * y + 0.5), Press: true);
 
-    /// <summary>The wreck's script: its cells are the wreck's, as content draws it.</summary>
+    /// <summary>The wreck's script: its columns and rows are the wreck's characters, as content draws it.</summary>
     public static HeroAutopilot Wreck()
     {
         return new HeroAutopilot(
         [
-            Hold(Still, 25, Beside(-3, -2.5)),
-            Hold(Still, 25, Beside(-3, 2)),
+            Hold(Still, 25, Beside(-6, -5)),
+            Hold(Still, 25, Beside(-6, 4)),
             Until(new HeroInput(-1, 0, false), (h, p) => p.Stopped(h)),
             Press(45, 21),
             Until(new HeroInput(-1, 0, false), (h, p) => h.Anchor != null && p.Stopped(h)),
             Hold(new HeroInput(-1, -1, false), 40),
-            Until(new HeroInput(0, 1, false), (h, _) => h.Y >= 23 * Hero.Unit),
-            Walk(1, h => Column(h) >= 49),
+            Until(new HeroInput(0, 1, false), (h, _) => h.Y >= 23 * Drawn),
+            Walk(1, h => Block(h) >= 49),
             Wait(20),
             Jump(),
             Wait(45),
@@ -188,8 +194,8 @@ public sealed class HeroAutopilot
             Press(54, 21),
             Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)),
             Press(57, 21),
-            Walk(1, h => h.Anchor != null && Column(h) >= 62),
-            Hold(new HeroInput(1, -1, false), 60, Beside(4, -3)),
+            Walk(1, h => h.Anchor != null && Block(h) >= 62),
+            Hold(new HeroInput(1, -1, false), 60, Beside(8, -6)),
             Wait(40),
         ]);
     }
@@ -209,16 +215,16 @@ public sealed class HeroAutopilot
             Press(17, 6),
             Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)),
             Press(44, 6),
-            Walk(1, h => Column(h) >= 46),
+            Walk(1, h => Block(h) >= 46),
             Press(44, 6),
             Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)),
             Press(48, 6),
-            Walk(1, h => Column(h) >= 50),
+            Walk(1, h => Block(h) >= 50),
             Hold(thrust with { X = 1 }, 40),
             Hold(thrust with { Y = -1 }, 18),
             Wait(50),
             Hold(thrust with { X = -1 }, 30),
-            Hold(thrust, 45, Beside(6, 1.5)),
+            Hold(thrust, 45, Beside(12, 3)),
             Wait(240),
         ]);
     }
@@ -302,16 +308,16 @@ public sealed class HeroAutopilot
 
     /// <summary>
     /// <c>--strip</c>'s script (0076): beamed down into the shelter at the cliff's foot, out of it, a jump onto the cliff
-    /// five cells up that only a planet's lower gravity allows, over the hills and down the shaft into the dark cave, to
+    /// five characters up that only a planet's lower gravity allows, over the hills and down the shaft into the dark cave, to
     /// its far wall.
     /// </summary>
     public static HeroAutopilot PlanetRun() => new(
     [
         Wait(90),
-        Walk(-1, h => Column(h) <= 27),
+        Walk(-1, h => Block(h) <= 27),
         Jump(1),
         Hold(new HeroInput(1, 0, false), 90),
-        Walk(1, h => Column(h) >= 71),
+        Walk(1, h => Block(h) >= 71),
         Until(new HeroInput(1, 0, false), (h, p) => p.Stopped(h)),
         Wait(120),
     ]);
@@ -352,7 +358,7 @@ public sealed class HeroAutopilot
 
     /// <summary>
     /// Where <see cref="Sprint"/> starts: the cell over the ground at the start of the longest run of columns whose ground steps
-    /// up or down at most four cells from one to the next, so a sprint there is never caught in a pit.
+    /// up or down at most eight cells from one to the next, so a sprint there is never caught in a pit.
     /// </summary>
     public static int SprintStart(Stillwake.Sim.Grid.IGridQueries grid)
     {
@@ -367,11 +373,11 @@ public sealed class HeroAutopilot
         for (int x = 1; x < w; x++)
         {
             int top = Top(x);
-            if (Math.Abs(top - last) > 4) start = x;
+            if (Math.Abs(top - last) > 8) start = x;
             if (x - start > bestLength) (best, bestLength) = (start, x - start);
             last = top;
         }
-        return (Top(best + 2) - 1) * w + best + 2;
+        return (Top(best + 4) - 1) * w + best + 4;
     }
 
     /// <summary><c>--slopes</c>'s script: into the corridor's far corner, under its sloped ceiling, and stand there.</summary>
@@ -379,14 +385,14 @@ public sealed class HeroAutopilot
 
     /// <summary>
     /// The <see cref="Hall"/>'s script (0090), its hands empty (the hotbar's empty third slot): a sprint started, reversed
-    /// and stopped, a tap and a held jump, the eight-cell floor walked off, the twenty-one-cell one walked off, then the drill
+    /// and stopped, a tap and a held jump, the floor eight characters up walked off, the one twenty-one up walked off, then the drill
     /// taken out and held aimed ahead through a jump on the spot and a running one.
     /// </summary>
     public static HeroAutopilot PosesRun(int wait = 40)
     {
         var run = new HeroInput(1, 0, false, Sprint: true);
         var up = new HeroInput(0, -1, false);
-        var ahead = Beside(2.5, 0.4);
+        var ahead = Beside(5, 0.8);
         return new HeroAutopilot(
         [
             new(Still, (_, p) => p.Steps >= wait, Slot: 3),
@@ -398,22 +404,22 @@ public sealed class HeroAutopilot
             new(Still, (_, p) => p.Steps >= 50, LetsGo: true),
             Jump(),
             Wait(80),
-            Walk(-1, h => Column(h) <= 8),
+            Walk(-1, h => Block(h) <= 8),
             Until(up, (h, p) => p.Steps > 2 && !h.Climbing),
-            Walk(1, h => Column(h) >= 16),
+            Walk(1, h => Block(h) >= 16),
             Until(Still, (h, p) => p.Stopped(h)),
             Wait(30),
-            Walk(1, h => Column(h) >= 32),
+            Walk(1, h => Block(h) >= 32),
             Until(up, (h, p) => p.Steps > 2 && !h.Climbing),
-            Walk(1, h => Column(h) >= 42),
+            Walk(1, h => Block(h) >= 42),
             Until(Still, (h, p) => p.Stopped(h)),
             Wait(40),
             new(Still, (_, p) => p.Steps >= 30, ahead, Slot: 2),
             new(new HeroInput(0, 0, true), (_, p) => p.Steps >= 1, ahead),
             Hold(Still, 80, ahead),
-            new(run with { X = -1, Jump = true }, (_, p) => p.Steps >= 1, Beside(-2.5, 0.4)),
-            Hold(run with { X = -1 }, 50, Beside(-2.5, 0.4)),
-            Hold(Still, 40, Beside(-2.5, 0.4)),
+            new(run with { X = -1, Jump = true }, (_, p) => p.Steps >= 1, Beside(-5, 0.8)),
+            Hold(run with { X = -1 }, 50, Beside(-5, 0.8)),
+            Hold(Still, 40, Beside(-5, 0.8)),
         ])
         { _trace = true };
     }
@@ -432,10 +438,10 @@ public sealed class HeroAutopilot
             Until(new HeroInput(1, -1, false, Sprint: true), (h, _) => h.Climbing),
             Until(up, (h, p) => p.Steps > 2 && !h.Climbing),
             Wait(40),
-            Until(new HeroInput(0, 1, false), (h, _) => h.Y > 12 * Hero.Unit),
+            Until(new HeroInput(0, 1, false), (h, _) => h.Y > 12 * Drawn),
             Until(new HeroInput(0, 1, false, Sprint: true), (h, p) => p.Stopped(h)),
             Wait(30),
-            Walk(1, h => Column(h) >= 12),
+            Walk(1, h => Block(h) >= 12),
             Hold(new HeroInput(1, 0, false, Sprint: true), 6),
             Hold(new HeroInput(1, -1, true, Sprint: true), 1),
             Until(new HeroInput(1, -1, false, Sprint: true), (h, p) => h.Climbing || p.Steps > 90),
@@ -456,7 +462,8 @@ public sealed class HeroAutopilot
     public static HeroAutopilot SpireClimb()
     {
         int? light = null;
-        int At(double cells) => (int)((light!.Value - 4 + cells) * Hero.Unit);
+        // The hero starts under the light, in the middle of the spire's fifth character: its left side nine cells left.
+        int At(double blocks) => (int)((light!.Value - 9) * Hero.Unit + blocks * Drawn);
         HeroInput Side(int dir) => new(dir, 0, false);
         Act Landed(int dir) => Until(Side(dir), (h, p) => p.Steps > 3 && h.Airborne == 0);
         return new HeroAutopilot(
@@ -474,17 +481,17 @@ public sealed class HeroAutopilot
         { _trace = true };
     }
     /// <summary>
-    /// The <see cref="Ledges"/> script (0092): a held jump at the four-cell ledge, stepped up onto; off its far side, and a held
-    /// jump at the five-cell one, falling short.
+    /// The <see cref="Ledges"/> script (0092): a held jump at the ledge four characters high, stepped up onto; off its far side, and a held
+    /// jump at the one five high, falling short.
     /// </summary>
     public static HeroAutopilot LedgesRun() => new(
     [
         Wait(40),
-        Walk(1, h => Column(h) >= 6),
+        Walk(1, h => Block(h) >= 6),
         Jump(1),
         Hold(new HeroInput(1, 0, false), 70),
-        Walk(1, h => Column(h) >= 15 && h.Vy == 0 && h.Y > 10 * Hero.Unit),
-        Walk(1, h => Column(h) >= 18),
+        Walk(1, h => Block(h) >= 15 && h.Vy == 0 && h.Y > 10 * Drawn),
+        Walk(1, h => Block(h) >= 18),
         Jump(1),
         Hold(new HeroInput(1, 0, false), 80),
         Wait(40),
@@ -498,16 +505,16 @@ public sealed class HeroAutopilot
     public static HeroAutopilot StripLaddersRun() => new(
     [
         Wait(90),
-        Walk(-1, h => Column(h) <= 27),
+        Walk(-1, h => Block(h) <= 27),
         Jump(1),
         Hold(new HeroInput(1, 0, false), 90),
-        Walk(1, h => Column(h) >= 70),
+        Walk(1, h => Block(h) >= 70),
         Until(new HeroInput(0, 1, false), (h, p) => p.Steps > 12),
         Until(new HeroInput(0, 1, false, Sprint: true), (h, p) => p.Stopped(h)),
         Wait(30),
         Until(new HeroInput(0, -1, false), (h, p) => p.Steps > 2 && !h.Climbing),
         Wait(30),
-        Walk(-1, h => Column(h) <= 66),
+        Walk(-1, h => Block(h) <= 66),
         Wait(30),
     ])
     { _trace = true };
@@ -518,17 +525,17 @@ public sealed class HeroAutopilot
         return new HeroAutopilot(
         [
             Wait(15),
-            Walk(1, h => Column(h) == 5),
+            Walk(1, h => Block(h) == 5),
             Until(new HeroInput(0, -1, false), (h, p) => p.Steps > 2 && !h.Climbing),
-            Walk(1, h => Column(h) >= 12),
+            Walk(1, h => Block(h) >= 12),
             Until(Still, (h, p) => p.Stopped(h)),
             Wait(20),
-            Walk(-1, h => Column(h) <= 8),
+            Walk(-1, h => Block(h) <= 8),
             Jump(),
             Wait(70),
-            Walk(-1, h => Column(h) <= 5),
+            Walk(-1, h => Block(h) <= 5),
             Until(new HeroInput(0, 1, false), (h, p) => p.Stopped(h)),
-            Walk(-1, h => Column(h) <= 2),
+            Walk(-1, h => Block(h) <= 2),
             Jump(1),
             Wait(60),
         ]);
@@ -543,7 +550,7 @@ public sealed class HeroAutopilot
     {
         int run = hills ? 1 : -1;
         var acts = new List<Act> { Wait(hills ? 30 : 90) };
-        if (strip) acts.Add(Walk(-1, h => Column(h) <= 27));
+        if (strip) acts.Add(Walk(-1, h => Block(h) <= 27));
         acts.AddRange(
         [
             Wait(20),
@@ -562,7 +569,7 @@ public sealed class HeroAutopilot
                 Until(new HeroInput(0, -1, false), (h, p) => p.Steps > 2 && !h.Climbing),
                 Wait(20),
             ]);
-        if (strip) acts.AddRange([Walk(1, h => Column(h) >= 27), Jump(1), Hold(new HeroInput(1, 0, false), 90)]);
+        if (strip) acts.AddRange([Walk(1, h => Block(h) >= 27), Jump(1), Hold(new HeroInput(1, 0, false), 90)]);
         if (hills || strip)
             acts.AddRange(
             [

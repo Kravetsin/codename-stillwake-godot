@@ -11,9 +11,9 @@ namespace Stillwake.Game.Dev;
 public static class DevWorlds
 {
     /// <summary>
-    /// The reference world of CLAUDE.md's budgets (dev/perf-map.ts): 256×128 cells, every layer in
+    /// The reference world of CLAUDE.md's budgets (dev/perf-map.ts): drawn 256×128, doubled to 512×256 cells (0104), every layer in
     /// use — walls, floors, ladders, doors, pipe runs with valves, tanks and vents — and a lamp in one
-    /// room of five, about a hundred shadowed lights. Given a size, a world that large with the same tiles
+    /// room of five, about a hundred shadowed lights. Given a drawing's size, a world twice that with the same tiles
     /// over <paramref name="builtWidth"/>×<paramref name="builtHeight"/> of it from the top-left, the rest
     /// space: what a large build area costs.
     /// </summary>
@@ -40,7 +40,7 @@ public static class DevWorlds
             rows.Add(row.PadRight(width));
         }
         rows[1] = "#TTS" + rows[1][4..];
-        return Layout.Parse(rows);
+        return Layout.Parse(rows).Doubled();
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ public static class DevWorlds
             "                                        ",
         ];
         string[] under = ["", "", "", "", "", "", "", "               ----------"];
-        var layout = Layout.Parse(rows, under);
+        var layout = Layout.Parse(rows, under).Doubled();
         var save = JsonNode.Parse(World.Create(1, layout, modules).Save())!;
         // Iron is built, never drawn on a map: the right room is turned to iron in the save.
         var grid = save["slices"]!["grid"]!;
@@ -76,10 +76,10 @@ public static class DevWorlds
         for (int cell = 0; cell < layout.Width * layout.Height; cell++)
         {
             int x = cell % layout.Width, y = cell / layout.Width;
-            if (x >= 24 && material[cell] != 0) material[cell] = iron;
-            if (x >= 24 && back[cell] != 0) backMaterial[cell] = iron;
-            // A hole in the left room's back wall, where the stars shine in.
-            if (x is >= 11 and <= 12 && y is >= 2 and <= 3) { back[cell] = 0; backMaterial[cell] = 0; }
+            if (x >= 48 && material[cell] != 0) material[cell] = iron;
+            if (x >= 48 && back[cell] != 0) backMaterial[cell] = iron;
+            // A hole in the left room's back wall, where the stars shine in: its drawing's cells, doubled.
+            if (x is >= 22 and <= 25 && y is >= 4 and <= 7) { back[cell] = 0; backMaterial[cell] = 0; }
         }
         grid["material"] = Runs.Node(material);
         grid["back"] = Runs.Node(back);

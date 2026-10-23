@@ -11,7 +11,8 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   globals with the ship's; an open entry shows its slice of the world's save as JSON, the first 20 000 characters of it.
 - **Controls:** the world's speed ×4 and back, creative mode (`items`' `SetCreative`, read at the
   click so two quick clicks switch it back), and a meteor on a random wall of the outer hull
-  (`hazards`' `MeteorHit`), or a line saying none is left. Surfaces (0076): `open planet` opens a planet grown from its seed
+  beside a room (`hazards`' `MeteorHit`), with the wall cell behind it away from the room, so a hull two cells thick (0104)
+  is breached through; or a line saying none is left. Surfaces (0076): `open planet` opens a planet grown from its seed
   (0077), `open strip` the test strip (`world.open`), `to ship` and `down` beam this hero aboard or down to the surface
   opened last (`world.transfer`), or say none is open.
 - **Sounds:** a board, shut at the start, with a button for every cue in `Sound.All`, so a new cue

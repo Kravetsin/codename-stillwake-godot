@@ -18,8 +18,8 @@ namespace Stillwake.Game.Features.Debris;
 /// </summary>
 public partial class FarDemo(DebrisView view, Func<(Client Client, Registry M)?> world) : Node
 {
-    /// <summary>Rows above the top of what is built the hero starts: out of the stream's box (its margin is 12).</summary>
-    private const int Above = 30;
+    /// <summary>Rows above the top of what is built the hero starts: out of the stream's box (its margin is 24).</summary>
+    private const int Above = 60;
     private double _seconds, _printed, _breathed;
 
     /// <summary>
@@ -64,7 +64,7 @@ public partial class FarDemo(DebrisView view, Func<(Client Client, Registry M)?>
         var random = new Random(51);
         for (int i = 0; i < pieces; i++)
         {
-            int x = (sx - 40 + random.Next(161)) * 1000 + 500, y = Math.Max(0, sy - 40 + random.Next(81)) * 1000 + 500;
+            int x = (sx - 80 + random.Next(321)) * 1000 + 500, y = Math.Max(0, sy - 80 + random.Next(161)) * 1000 + 500;
             list.Add(new JsonObject
             {
                 ["id"] = next++,

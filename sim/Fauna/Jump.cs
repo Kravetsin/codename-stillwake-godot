@@ -9,7 +9,7 @@ namespace Stillwake.Sim.Fauna;
 public sealed partial class FaunaModule
 {
     /// <summary>How far over what it must clear a jump is sized to carry the body's feet, in thousandths: room to land on it.</summary>
-    private const int JumpMargin = 200;
+    private const int JumpMargin = 400;
 
     /// <summary>The most ticks a leap is flown looking for its landing: past any jump's whole flight.</summary>
     private const int LeapTicks = 120;
@@ -17,7 +17,7 @@ public sealed partial class FaunaModule
     /// <summary>
     /// The speed up of a leap <paramref name="c"/>, standing and blocked going <paramref name="way"/> at <paramref name="speed"/>,
     /// makes over what blocks it, or null to turn: none for a species that never jumps; wandering, only up a wall at its feet as
-    /// high as <c>Fauna.WanderLedge</c>, sized for it; fleeing, the lowest of a jump sized for that ledge, one a cell higher and its
+    /// high as <c>Fauna.WanderLedge</c>, sized for it; fleeing, the lowest of a jump sized for that ledge, one a step higher and its
     /// whole jump that lands it on the far side.
     /// </summary>
     private int? JumpFor(Spec.Species spec, Creature c, int way, int speed)
@@ -30,7 +30,7 @@ public sealed partial class FaunaModule
             int half = spec.Width * Unit / 2, column = Down(way > 0 ? c.X + half : c.X - half - 1, Unit);
             return Solid(column, c.Y / Unit - 1) && Lands(spec, c, way, low, across) ? low : null;
         }
-        int higher = Leaps.SpeedFor((Spec.WanderLedge + 1) * Unit + JumpMargin, g, spec.Jump);
+        int higher = Leaps.SpeedFor((Spec.WanderLedge + Spec.StepUp) * Unit + JumpMargin, g, spec.Jump);
         foreach (int v in new[] { low, higher, spec.Jump })
             if (Lands(spec, c, way, v, across)) return v;
         return null;
@@ -39,22 +39,23 @@ public sealed partial class FaunaModule
     /// <summary>
     /// Whether a leap of <paramref name="c"/> at <paramref name="vy"/> up and <paramref name="across"/> going <paramref name="way"/>,
     /// flown through the grid as <see cref="Move"/> moves it in the air — falling, pressing flush on what it meets — lands it at
-    /// least a cell on and no deeper than <c>Fauna.Drop</c> rows down, a drop it turns from walking but leaps down fleeing (off a
+    /// least two cells on and no deeper than <c>Fauna.Drop</c> rows down, a drop it turns from walking but leaps down fleeing (off a
     /// pillar it jumped onto): a reachable landing, not the void nor back where it stood.
     /// </summary>
     private bool Lands(Spec.Species spec, Creature c, int way, int vy, int across)
     {
-        int g = Rules.Fall(Spec.Gravity), half = spec.Width * Unit / 2;
+        int g = Rules.Fall(Spec.Gravity);
         int x = c.X, y = c.Y, vx = way * across, up = -vy;
         for (int t = 0; t < LeapTicks; t++)
         {
             up = Math.Min(up + g, Spec.MaxFall);
-            int to = x + vx;
-            x = Overlaps(spec, to, y) ? Flush(to, vx, half) : to;
-            int down = y + up;
-            if (!Overlaps(spec, x, down)) y = down;
-            else if (up > 0) return (x - c.X) * way >= Unit && Down(down - 1, Unit) * Unit <= c.Y + Spec.Drop * Unit;
-            else (y, up) = ((Down(down - spec.Height * Unit, Unit) + 1 + spec.Height) * Unit, 0);
+            Across(spec, ref x, ref y, vx, grounded: false, walks: false, out _);
+            if (Upright(spec, x, ref y, up))
+            {
+                // Two cells on, the 16 px cell it was (0104): not back where it stood.
+                if (up > 0) return (x - c.X) * way >= 2 * Unit && y <= c.Y + Spec.Drop * Unit;
+                up = 0;
+            }
             if (y > c.Y + Spec.Drop * Unit) return false;
         }
         return false;
@@ -86,11 +87,11 @@ public static class Leaps
         return across * ticks;
     }
 
-    /// <summary>The least speed up, in tens, whose jump carries the feet <paramref name="height"/> up; at most <paramref name="most"/>.</summary>
+    /// <summary>The least speed up, in twenties (tens of the 16 px cell, 0104), whose jump carries the feet <paramref name="height"/> up; at most <paramref name="most"/>.</summary>
     public static int SpeedFor(int height, int g, int most)
     {
         int v = 0;
-        while (v < most && Height(v, g) < height) v += 10;
+        while (v < most && Height(v, g) < height) v += 20;
         return Math.Min(v, most);
     }
 }

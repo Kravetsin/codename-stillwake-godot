@@ -55,7 +55,7 @@ public sealed record Emitter(Emits Kind, float X, float Y)
     public (float X, float Y)[] Points { get; init; } = [];
 }
 
-/// <summary>A piece's own light, the page's: from (X, Y) of its box, its colour, reaching Reach cells at Strength.</summary>
+/// <summary>A piece's own light, the page's: from (X, Y) of its box, its colour, reaching Reach of the page's cells (<see cref="HomesLooks.PageCells"/>) at Strength.</summary>
 public sealed record HomeLight(float X, float Y, (float R, float G, float B) Colour, float Reach, float Strength);
 
 public static partial class HomesArt
@@ -79,7 +79,7 @@ public static partial class HomesArt
 /// </summary>
 public static class HomesLooks
 {
-    private const int Cell = 16;
+    private const int Cell = Camera.Cell;
 
     /// <summary>
     /// The picture of piece <paramref name="kind"/> at <paramref name="cell"/>: its variant by a hash of its cell, lit or dark; lit and
@@ -143,7 +143,7 @@ public static class HomesLooks
             Anchor.Floor => (left, (standsOn ?? (y + 1) * Cell) - art.BoxH),
             Anchor.Ceiling => (left, y * Cell),
             Anchor.Back => (left, y * Cell + (tall * Cell - art.BoxH) / 2),
-            _ => ((x + across) * Cell + RockOver.GetValueOrDefault(kind) - art.BoxW, (y + 1) * Cell - 1 - art.BoxH),
+            _ => ((x + across) * Cell + RockOver.GetValueOrDefault(kind) - art.BoxW, (y + tall) * Cell - 1 - art.BoxH),
         };
     }
 
@@ -157,7 +157,10 @@ public static class HomesLooks
     /// Their lamps burn brighter and colder than ours (the page's scenes widen every arc light a fifth and strengthen it by
     /// three tenths): a light's reach and strength times these; its keep a cell, as the caves' lights.
     /// </summary>
-    public const float ArcReach = 1.2f, ArcStrength = 1.3f, Keep = 0.72f, LightSize = 4f;
+    public const float ArcReach = 1.2f, ArcStrength = 1.3f, Keep = 0.849f, LightSize = 4f;
+
+    /// <summary>A piece's light reaches in the page's cells (<see cref="HomeLight"/>), each 16 px: two of ours (0104).</summary>
+    public const float PageCells = 2;
 
     /// <summary>The page's arc colour, (0.56, 0.78, 1): the lights it strengthens.</summary>
     public static bool IsArc((float R, float G, float B) c) => Math.Abs(c.R - 0.56f) < 0.01f && Math.Abs(c.B - 1f) < 0.01f;

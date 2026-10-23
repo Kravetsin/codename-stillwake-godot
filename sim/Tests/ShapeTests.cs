@@ -90,7 +90,7 @@ public class ShapeTests
     [Fact]
     public void ReadsTheFourSlopesOffAMapAsWallsOfTheDefaultHullCutToThem()
     {
-        var w = new Scenario(Shapes);
+        var w = new Scenario(Shapes, cells: true);
         Assert.Equal(new[] { Shape.BottomRight, Shape.BottomLeft, Shape.TopLeft, Shape.TopRight }, Enumerable.Range(1, 4).Select(x => w.M.Grid.ShapeAt(w.At(x, 1))));
         Assert.All(Enumerable.Range(1, 4), x => Assert.Equal(Content.Materials.DefaultHull, w.M.Grid.WallAt(w.At(x, 1))?.Id));
         Assert.All(Enumerable.Range(1, 4), x => Assert.NotNull(w.M.Grid.BackAt(w.At(x, 1))));
@@ -102,7 +102,7 @@ public class ShapeTests
     [Fact]
     public void TakingASlopedWallApartTakesItsShapeWithItAndTheLogNamesIt()
     {
-        var w = new Scenario(Shapes);
+        var w = new Scenario(Shapes, cells: true);
         int version = w.M.Grid.Version, cell = w.At(1, 1);
         w.Do(new ClearAt(cell, "structure")).Run();
         Assert.Equal(Shape.None, w.M.Grid.ShapeAt(cell));
@@ -115,7 +115,7 @@ public class ShapeTests
     [Fact]
     public void KeepsItsShapesThroughASaveAndALoad()
     {
-        var w = new Scenario(Shapes).Reload();
+        var w = new Scenario(Shapes, cells: true).Reload();
         Assert.Equal(new[] { Shape.BottomRight, Shape.BottomLeft, Shape.TopLeft, Shape.TopRight }, Enumerable.Range(1, 4).Select(x => w.M.Grid.ShapeAt(w.At(x, 1))));
     }
 

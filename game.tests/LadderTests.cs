@@ -11,10 +11,10 @@ namespace Stillwake.Game.Tests;
 /// <summary>The whole ladder (0092): grabbed on the move, eased onto, climbed, slid, leapt off, pulled up out of, its hands on its rungs.</summary>
 public class LadderTests
 {
-    private const int Unit = Hero.Unit;
+    private const int Unit = Hero.Unit, Block = HeroTests.Block;
     private static readonly HeroInput Still = HeroTests.Still, Up = Still with { Y = -1 }, Down = Still with { Y = 1 };
 
-    /// <summary>A ladder up a shaft one cell wide in column 3 into the room above, whose floor is row 5's top; a hall below.</summary>
+    /// <summary>A ladder up a shaft a character (two cells) wide in column 3 into the room above, whose floor is row 5's top; a hall below.</summary>
     private static readonly string[] Shaft =
     [
         "#######",
@@ -32,12 +32,12 @@ public class LadderTests
 
     private static Ship ShipOf(string[] rows, Surfaces.Kind? rules = null)
     {
-        var world = new TestWorld(Layout.Parse(rows));
+        var world = new TestWorld(Layout.Parse(rows).Doubled());
         return Ship.Of(world.M.Grid, world.M.Rooms, rules: rules);
     }
 
     private static readonly Ship Aboard = ShipOf(Shaft);
-    private const int Deck = 10 * Unit, Top = 5 * Unit, Middle = 3 * Unit + Unit / 2;
+    private const int Deck = 10 * Block, Top = 5 * Block, Middle = 3 * Block + Block / 2;
 
     private static Hero At(int x, int y, bool climbing = false, int vx = 0, int vy = 0) => new(x, y, vx, vy, climbing, 1);
 
@@ -48,14 +48,14 @@ public class LadderTests
     }
 
     [Fact]
-    public void ClimbsUpAtSixPointSixCellsASecondDownAtNineAndSlidesWithShiftAtEighteen()
+    public void ClimbsUpAtThirteenPointTwoCellsASecondDownAtEighteenAndSlidesWithShiftAtThirtySix()
     {
-        var on = At(Middle, 8 * Unit + 500, climbing: true);
+        var on = At(Middle, 8 * Block + 1000, climbing: true);
         Assert.Equal(on.Y - Spec.ClimbUp, on.Step(Up, Aboard).Y);
         Assert.Equal(on.Y + Spec.ClimbDown, on.Step(Down, Aboard).Y);
         var slid = on.Step(Down with { Sprint = true }, Aboard);
         Assert.Equal((on.Y + Spec.Slide, Spec.Slide, true), (slid.Y, slid.Vy, slid.Climbing));
-        Assert.Equal((6.6, 9.0, 18.0), (Spec.ClimbUp * 60 / 1000.0, Spec.ClimbDown * 60 / 1000.0, Spec.Slide * 60 / 1000.0));
+        Assert.Equal((13.2, 18.0, 36.0), (Spec.ClimbUp * 60 / 1000.0, Spec.ClimbDown * 60 / 1000.0, Spec.Slide * 60 / 1000.0));
         // Slid to the floor, it stands on it at the ladder's foot.
         var down = HeroTests.Settle(Aboard, on, Down with { Sprint = true });
         Assert.Equal(Deck, down.Y);
@@ -64,7 +64,7 @@ public class LadderTests
     [Fact]
     public void UpGrabsTheLadderFromARunAndClimbsOnWithTheSideStillHeld()
     {
-        var running = At(Middle - 450, Deck, vx: Spec.Run);
+        var running = At(Middle - 900, Deck, vx: Spec.Run);
         var keys = new HeroInput(1, -1, false, Sprint: true);
         var grabbed = running.Step(keys, Aboard);
         Assert.True(grabbed.Climbing);
@@ -80,7 +80,7 @@ public class LadderTests
     [Fact]
     public void UpGrabsTheLadderFromAJumpRising()
     {
-        var jumped = At(Middle - 300, Deck).Step(new HeroInput(0, -1, true), Aboard);
+        var jumped = At(Middle - 600, Deck).Step(new HeroInput(0, -1, true), Aboard);
         Assert.False(jumped.Climbing);
         Assert.True(jumped.Vy < 0);
         var caught = jumped.Step(Up, Aboard);
@@ -91,32 +91,32 @@ public class LadderTests
     [Fact]
     public void EasesOntoTheLaddersMiddleOverFiveStepsNotAtOnce()
     {
-        var h = At(Middle - 450, Deck);
+        var h = At(Middle - 900, Deck);
         var xs = new List<int>();
         for (int i = 0; i < 8; i++)
         {
             h = h.Step(Up, Aboard);
             xs.Add(h.X);
         }
-        Assert.Equal(Middle - 248, xs[0]);
+        Assert.Equal(Middle - 495, xs[0]);
         Assert.Equal(4, xs.FindIndex(x => x == Middle));
         for (int i = 1; i < xs.Count; i++) Assert.True(xs[i] >= xs[i - 1]);
         // From the far edge of its column it takes a step more.
-        var edge = Run(Aboard, At(3 * Unit, Deck), Up, 6);
+        var edge = Run(Aboard, At(3 * Block, Deck), Up, 6);
         Assert.Equal(Middle, edge.X);
     }
 
     [Fact]
     public void LeapsOffToASideAcrossAndLessHighButStraightUpAsFromTheFloor()
     {
-        var on = At(Middle, Deck - 500, climbing: true);
+        var on = At(Middle, Deck - 1000, climbing: true);
         var leapt = on.Step(new HeroInput(1, 0, true), Aboard);
         Assert.False(leapt.Climbing);
         Assert.Equal(Spec.Run * Spec.LadderJumpAcross / 1000, leapt.Vx);
         Assert.Equal(-(Spec.Jump * Spec.LadderJumpRise / 1000) + Aboard.Gravity, leapt.Vy);
         Assert.True(leapt.Rising);
         var flown = Run(Aboard, leapt, new HeroInput(1, 0, false, JumpHeld: true), 12);
-        Assert.True(flown.X > on.X + 3 * Unit / 2, $"{flown.X}");
+        Assert.True(flown.X > on.X + 3 * Block / 2, $"{flown.X}");
         var up = on.Step(new HeroInput(0, 0, true), Aboard);
         Assert.Equal((0, -Spec.Jump + Aboard.Gravity), (up.Vx, up.Vy));
     }
@@ -124,7 +124,7 @@ public class LadderTests
     [Fact]
     public void UpGrabsNoLadderForAMomentAfterAJumpOffItThenCatchesItAgain()
     {
-        var on = At(Middle, 9 * Unit, climbing: true);
+        var on = At(Middle, 9 * Block, climbing: true);
         var h = on.Step(new HeroInput(0, -1, true), Aboard);
         int steps = 1;
         while (!h.Climbing && steps < 40)
@@ -135,7 +135,7 @@ public class LadderTests
         Assert.True(h.Climbing);
         // The jump's step and Hero.Regrab more go by before up takes it again.
         Assert.Equal(Spec.Regrab + 2, steps);
-        Assert.True(h.Y < on.Y - 2 * Unit, $"{h.Y}");
+        Assert.True(h.Y < on.Y - 2 * Block, $"{h.Y}");
     }
 
     [Fact]
@@ -155,7 +155,7 @@ public class LadderTests
         Assert.Equal(Top, HeroTests.Settle(Aboard, h, Up).Y);
         // The ledge read on the way, its top three rows over the feet and less each step: what the figure pulls up onto.
         Assert.True(ledges.Count > 20);
-        Assert.True(ledges[0] <= 3 * Unit + Unit && ledges[^1] < Spec.ClimbUp);
+        Assert.True(ledges[0] <= 3 * Block + Unit && ledges[^1] < Spec.ClimbUp);
         for (int i = 1; i < ledges.Count; i++) Assert.Equal(ledges[i - 1] - Spec.ClimbUp, ledges[i]);
     }
 
@@ -163,16 +163,16 @@ public class LadderTests
     public void ReadsNoLedgeUnderAClosedHatchNorOffALadder()
     {
         var hatched = ShipOf(Shaft.Select((r, y) => y == 4 ? "###D###" : r).ToArray());
-        Assert.Null(Hero.LedgeAbove(hatched, At(Middle, 7 * Unit + 500, climbing: true)));
-        var opened = ShipOf(Shaft.Select((r, y) => y == 4 ? "#..d..#" : r).ToArray());
-        Assert.Equal(1500 + Unit, Hero.LedgeAbove(opened, At(Middle, 6 * Unit + 500, climbing: true)));
-        Assert.Null(Hero.LedgeAbove(Aboard, At(Middle, 6 * Unit + 500)));
+        Assert.Null(Hero.LedgeAbove(hatched, At(Middle, 7 * Block + 1000, climbing: true)));
+        var opened = ShipOf(Shaft.Select((r, y) => y == 4 ? "###d###" : r).ToArray());
+        Assert.Equal(3000 + Block, Hero.LedgeAbove(opened, At(Middle, 6 * Block + 1000, climbing: true)));
+        Assert.Null(Hero.LedgeAbove(Aboard, At(Middle, 6 * Block + 1000)));
     }
 
     [Fact]
     public void DownAtTheTopOfAShaftEasesOntoItsMiddleOnTheLadderAndThenClimbsDown()
     {
-        var h = At(Middle - 300, Top);
+        var h = At(Middle - 600, Top);
         var seen = new List<Hero>();
         for (int i = 0; i < 12; i++)
         {
@@ -180,14 +180,14 @@ public class LadderTests
             seen.Add(h);
         }
         Assert.All(seen, s => Assert.True(s.Climbing));
-        Assert.True(h.Y > Top + Unit && h.X == Middle, $"{h}");
+        Assert.True(h.Y > Top + Block && h.X == Middle, $"{h}");
     }
 
     [Fact]
     public void ClimbsAndLeapsOnAPlanetAsAboardItsJumpUnderItsOwnGravity()
     {
         var planet = ShipOf(Shaft, Surfaces.TestStrip);
-        var on = At(Middle, 8 * Unit, climbing: true);
+        var on = At(Middle, 8 * Block, climbing: true);
         Assert.Equal(on.Y - Spec.ClimbUp, on.Step(Up, planet).Y);
         Assert.Equal(on.Y + Spec.Slide, on.Step(Down with { Sprint = true }, planet).Y);
         var leapt = on.Step(new HeroInput(-1, 0, true), planet);
@@ -202,11 +202,11 @@ public class LadderTests
         LimbsOf(Pose.Climb, At(Middle, y, climbing: true, vy: vy), new Moment(0, 0, Ledge: ledge));
 
     [Fact]
-    public void HandsReachOverEachOtherEveryTwoCellsClimbedReadFromTheHeight()
+    public void HandsReachOverEachOtherEveryFourCellsClimbedReadFromTheHeight()
     {
         // The cycle is Ladder.Stride cells climbed, whatever pose came before; a hand reaches over the other every half of it.
         int stride = (int)(Look.Ladder.Stride * Unit), half = stride / 2;
-        Assert.Equal(2 * Unit, half);
+        Assert.Equal(2 * Block, half);
         foreach (int y in new[] { 9 * Unit, 8 * Unit + 370, 7 * Unit + 910 })
         {
             PoseTests.Close(Climbing(y).FrontArm.Upper, Climbing(y - stride).FrontArm.Upper, 6);

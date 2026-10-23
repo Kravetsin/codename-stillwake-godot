@@ -22,7 +22,7 @@ namespace Stillwake.Game.Features.Light;
 public sealed class StarField
 {
     /// <summary>Cells of open space worked out round what is built, so its edge is lit as the space beyond it: its sky open whole.</summary>
-    public const int Margin = 4;
+    public const int Margin = 8;
     /// <summary>How far round a cell its sky is counted: <see cref="L.StarSky"/>, within the margin.</summary>
     private const int Sky = L.StarSky < Margin ? L.StarSky : Margin;
     private const byte Air = 0, Machine = 1, Wall = 2;

@@ -93,8 +93,8 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   map that sets no zone the field reaches past the grid, so no cell on it costs anything. A planet's grid sets none (0076):
   its whole grid is its field.
 - **Lava burns** ([0087](../../docs/decisions/0087-the-planets-core-is-lava.md)): `Burns(cell)`, public on the module, is
-  whether a wall of lava (`Content.Lava.Material`) is at the reported cell or up to `Lava.Reach` (2) rows under it — where
-  the feet of a hero standing on it are, its middle 1312 thousandths over them. At every breath the suit alone pays
+  whether a wall of lava (`Content.Lava.Material`) is at the reported cell or up to `Lava.Reach` (4) rows under it — where
+  the feet of a hero standing on it are, its middle 2625 thousandths over them. At every breath the suit alone pays
   `Lava.Burn` (15) more for it, with the cold: with the breath itself a full suit (45) is gone on the third breath, two
   to three seconds after the sim hears of the hero there, and the hero passes out, dies and wakes at the pod as from any
   empty suit. It reads the reported cell, so a report up to a second late (0050) burns a second late.

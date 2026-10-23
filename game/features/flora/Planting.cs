@@ -26,14 +26,15 @@ public static class Planting
     public const double LightOff = 3;
 
     /// <summary>
-    /// Where a picture <paramref name="width"/> × <paramref name="height"/> of a growth in cell (<paramref name="x"/>,
-    /// <paramref name="y"/>) is drawn and which of its rows show: on a floor its lowest opaque row, <paramref name="bottom"/>,
-    /// <paramref name="sink"/> pixels into the ground, the rows in it cut off, so the ground's top edge covers its base; from a
-    /// ceiling its highest, <paramref name="top"/>, as far up into the ceiling, mirrored; standing in the middle of its cell.
+    /// Where a picture <paramref name="width"/> × <paramref name="height"/> of a growth at cell (<paramref name="x"/>,
+    /// <paramref name="y"/>), <paramref name="across"/> columns from it, is drawn and which of its rows show: on a floor its
+    /// lowest opaque row, <paramref name="bottom"/>, <paramref name="sink"/> pixels into the ground, the rows in it cut off, so
+    /// the ground's top edge covers its base; from a ceiling its highest, <paramref name="top"/>, as far up into the ceiling,
+    /// mirrored; standing in the middle of its columns.
     /// </summary>
-    public static (int X, int Y, int From, int Rows) Picture(Anchor on, int x, int y, int cell, int width, int height, int top, int bottom, int sink)
+    public static (int X, int Y, int From, int Rows) Picture(Anchor on, int x, int y, int cell, int across, int width, int height, int top, int bottom, int sink)
     {
-        int left = x * cell + cell / 2 - width / 2;
+        int left = x * cell + across * cell / 2 - width / 2;
         if (on == Anchor.Ceiling)
         {
             int ceiling = y * cell, corner = ceiling - sink - top, from = Math.Clamp(ceiling - corner, 0, height);
@@ -44,15 +45,16 @@ public static class Planting
     }
 
     /// <summary>
-    /// Where the light of a growth in cell (<paramref name="x"/>, <paramref name="y"/>) shines from, given the middle of its glow
+    /// Where the light of a growth at cell (<paramref name="x"/>, <paramref name="y"/>) shines from, given the middle of its glow
     /// (<paramref name="glowX"/>, <paramref name="glowY"/>): always in the open, <see cref="LightOff"/> off the face of what
     /// holds it, for a light in a wall lights nothing in the open and one on a face casts its shadow along it. One on a floor
-    /// or from a ceiling is held off it in its own open cell; one in the rock shines from just past its face open nearest
-    /// its glow, along it no nearer a corner than the same; null for one with no face open.
+    /// or from a ceiling is held off it in its own open cells; one in the rock, its block <paramref name="across"/> by
+    /// <paramref name="tall"/> cells down and right of its own, shines from just past its face open nearest its glow, along it
+    /// no nearer a corner than the same; null for one with no face open.
     /// </summary>
-    public static (double X, double Y)? Light(Anchor on, int x, int y, int cell, double glowX, double glowY, Faces open)
+    public static (double X, double Y)? Light(Anchor on, int x, int y, int cell, int across, int tall, double glowX, double glowY, Faces open)
     {
-        double left = x * cell, top = y * cell, right = left + cell, bottom = top + cell;
+        double left = x * cell, top = y * cell, right = left + across * cell, bottom = top + (on == Anchor.Rock ? tall : 1) * cell;
         switch (on)
         {
             case Anchor.Floor:
@@ -76,21 +78,21 @@ public static class Planting
     }
 
     /// <summary>
-    /// The band along <paramref name="face"/> of moss in cell (<paramref name="x"/>, <paramref name="y"/>), drawn the whole
-    /// edge of its cell, <paramref name="thick"/> pixels, where a run of it goes on <paramref name="before"/> or
-    /// <paramref name="after"/> it along that face: a run joins, rather than repeating a piece with its ends. Null for a lone
-    /// piece, which keeps its own ends.
+    /// The band along <paramref name="face"/> of moss at cell (<paramref name="x"/>, <paramref name="y"/>), its block
+    /// <paramref name="across"/> by <paramref name="tall"/> cells, drawn the whole edge of its block, <paramref name="thick"/>
+    /// pixels, where a run of it goes on <paramref name="before"/> or <paramref name="after"/> it along that face: a run joins,
+    /// rather than repeating a piece with its ends. Null for a lone piece, which keeps its own ends.
     /// </summary>
-    public static (int X, int Y, int W, int H)? Strip(Faces face, int x, int y, int cell, int thick, bool before, bool after)
+    public static (int X, int Y, int W, int H)? Strip(Faces face, int x, int y, int cell, int across, int tall, int thick, bool before, bool after)
     {
         if (!before && !after) return null;
-        int left = x * cell, top = y * cell;
+        int left = x * cell, top = y * cell, wide = across * cell, high = tall * cell;
         return face switch
         {
-            Faces.Up => (left, top, cell, thick),
-            Faces.Down => (left, top + cell - 1, cell, thick),
-            Faces.Left => (left, top, thick, cell),
-            _ => (left + cell - 1, top, thick, cell),
+            Faces.Up => (left, top, wide, thick),
+            Faces.Down => (left, top + high - 1, wide, thick),
+            Faces.Left => (left, top, thick, high),
+            _ => (left + wide - 1, top, thick, high),
         };
     }
 

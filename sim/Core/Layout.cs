@@ -124,6 +124,82 @@ public sealed record Layout(
         return this with { Materials = codes };
     }
 
+    /// <summary>
+    /// This map at the cell's scale (0104): each character drawn a 16 px cell, as maps are, turned into the 2×2 cells of 8 px
+    /// that cover it. Walls, back walls, machines, ladders and doors fill all four, so a doorway is two cells thick, as its
+    /// 16 px door was one, and a ladder two wide; a floor and the hero's waking place fill the row a body stands on, the floor its top, <c>S</c> its bottom-left, the rest open;
+    /// a conduit its top-left, and the cell right of it or under it where the character there is a conduit too, on either map,
+    /// so pipes stay one cell wide and meet the ports, which double with the footprints. The under-map's oxygen marks its
+    /// tank's top-left. Materials, cables (by their ends' top-left cells), the zone and the plants of a test's map double
+    /// with it: a plant on a floor by its block's bottom-left, any other by its top-left. A slope does not double: it throws.
+    /// </summary>
+    public Layout Doubled()
+    {
+        if (Grown) throw new InvalidOperationException("A grown ground grows at its own scale: it does not double.");
+        int w = 2 * Width, h = 2 * Height;
+        bool IsConduit(char c) => c is '-' or 'v' or 'x';
+        char Main(int x, int y) => x < Width && y < Height ? Rows[y][x] : ' ';
+        char Below(int x, int y) => Under != null && x < Width && y < Height ? Under[y][x] : ' ';
+        bool Conduit(int x, int y) => IsConduit(Main(x, y)) || Below(x, y) == '-';
+        var rows = new char[h][];
+        var under = Under == null ? null : new char[h][];
+        for (int y = 0; y < h; y++)
+        {
+            rows[y] = new char[w];
+            if (under != null) Array.Fill(under[y] = new char[w], ' ');
+        }
+        for (int y = 0; y < Height; y++)
+            for (int x = 0; x < Width; x++)
+            {
+                char c = Rows[y][x];
+                if (c is '/' or '\\' or 'r' or '7')
+                    throw new FormatException($"Map cell ({x}, {y}): a slope '{c}' does not double; draw the ground it cuts as cells.");
+                // The block's cells: top-left, top-right, bottom-left, bottom-right.
+                char tl = c, tr = c, bl = c, br = c;
+                if (c == '=') (bl, br) = ('.', '.');
+                else if (c == 'S') (tl, tr, br) = ('.', '.', '.');
+                else if (IsConduit(c))
+                {
+                    tr = Conduit(x + 1, y) ? '-' : '.';
+                    bl = Conduit(x, y + 1) ? '-' : '.';
+                    br = '.';
+                }
+                (rows[2 * y][2 * x], rows[2 * y][2 * x + 1], rows[2 * y + 1][2 * x], rows[2 * y + 1][2 * x + 1]) = (tl, tr, bl, br);
+                if (under == null) continue;
+                char u = Under![y][x];
+                if (u == 'o') under[2 * y][2 * x] = 'o';
+                else if (u == '-')
+                {
+                    under[2 * y][2 * x] = '-';
+                    if (Conduit(x + 1, y)) under[2 * y][2 * x + 1] = '-';
+                    if (Conduit(x, y + 1)) under[2 * y + 1][2 * x] = '-';
+                }
+            }
+        int Moved(int cell) => cell / Width * 2 * w + cell % Width * 2;
+        int[]? materials = null;
+        if (Materials != null)
+        {
+            materials = new int[w * h];
+            for (int cell = 0; cell < Materials.Count; cell++)
+            {
+                int at = Moved(cell);
+                materials[at] = materials[at + 1] = materials[at + w] = materials[at + w + 1] = Materials[cell];
+            }
+        }
+        return this with
+        {
+            Width = w,
+            Height = h,
+            Rows = [.. rows.Select(r => new string(r))],
+            Under = under?.Select(r => new string(r)).ToArray(),
+            Cables = Cables?.Select(c => (Moved(c.A), Moved(c.B))).ToArray(),
+            Zone = Zone is { } z ? new Box(2 * z.Left, 2 * z.Top, 2 * z.Right + 1, 2 * z.Bottom + 1) : null,
+            Materials = materials,
+            Flora = Flora?.Select(p => (Moved(p.Cell) + (Content.Flora.Get(p.Kind).On == Content.Flora.Anchor.Floor ? w : 0), p.Kind))
+                .OrderBy(p => p.Item1).ToArray(),
+        };
+    }
+
     private static void Check(string[] rows, string legend, string which)
     {
         for (int y = 0; y < rows.Length; y++)

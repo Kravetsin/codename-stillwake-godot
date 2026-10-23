@@ -22,7 +22,8 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
   change of structure is. **Rooms** are the components of the open cells left, openings included.
 - A room's **id** is its smallest cell. Its **openings** are its cells touching space or the grid's
   edge, or with no back wall; its **hull** is the walls and closed doors next to it with space or the
-  edge beyond. Both in cell order.
+  edge beyond, or with a wall or closed door beyond them away from it that has (a wall two cells thick, 16 px, 0104). Both in
+  cell order.
 - Rooms are looked at again, by a derivation system, only on a tick the grid's `Version` moved: then
   the grid's log names the cells whose structure or back wall changed since the rooms were last found
   (`IGridQueries.ChangedSince`, 0051). When the log no longer reaches back that far, every room is
@@ -33,7 +34,7 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
     cells of a change, which they may join or split. Space comes in from the grid's edge and from the
     space round them, through open cells that are no opening; the open cells left make the rooms,
     each its smallest cell's. The rooms whose cells stayed have their hull and openings found again
-    where space came or went within two cells of them, or a back wall of theirs changed. A door, a
+    where space came or went within three cells of them, or a back wall of theirs changed: a hull reaches two cells into a wall. A door, a
     breach or a wall built costs the rooms it touches, not the ship.
   - A change that may close space off — a cell space passed stops passing it — is followed by a walk
     through the space beside it, which stops at the grid's edge or past what is built, where all is
@@ -72,7 +73,7 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
 ## Deliberately not handled
 
 As in the TypeScript module: rooms have no identity across a rebuild; a hole two cells wide floods a
-room into space; a wall two cells thick leaks nothing; a notch in the hull is a tiny room open to
+room into space; a wall three cells thick leaks nothing (one of two, a 16 px wall, leaks through its inner layer, 0104); a notch in the hull is a tiny room open to
 space.
 
 A room a change touches is flooded whole: a door in a great hall costs the hall, and a pocket closed

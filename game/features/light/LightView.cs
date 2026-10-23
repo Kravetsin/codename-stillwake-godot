@@ -26,26 +26,27 @@ public partial class LightView : Node2D
     private static readonly Color GlowColour = new(0xffd9a0ff), ArcGlowColour = new(0xb4dcffff);
 
     private static Color GlowOf(Machine lamp) => lamp.Kind == ArcLampLooks.Kind ? ArcGlowColour : GlowColour;
-    private const float GlowCells = 1.75f, GlowAlpha = 0.4f;
+    private const float GlowCells = 3.5f, GlowAlpha = 0.4f;
     /// <summary>
     /// A burning fire's glow at its machine's mouth, how far across it reaches, in cells, and how opaque it
     /// is at the fire's full light: it shows the fire as the source of its light where a lamp already
     /// lights the furnace nearly whole, and jumps with it.
     /// </summary>
     private static readonly Color FireGlowColour = new(0xff8a3cff);
-    private const float FireGlowCells = 3, FireGlowAlpha = 0.55f;
+    private const float FireGlowCells = 6, FireGlowAlpha = 0.55f;
     /// <summary>How far a glowing particle and a planner's screen light, in cells: what they pass, not their room.</summary>
-    private const int ParticleReach = 2, ScreenReach = 3;
+    private const int ParticleReach = 4, ScreenReach = 6;
     /// <summary>
     /// How far a furnace's fire reaches, in cells: falling off by <see cref="L.FireKeep"/> a cell, it gives
-    /// under a seventh of its light six cells off, where a lamp still gives a third of its own.
+    /// under a seventh of its light twelve cells off, where a lamp still gives a third of its own.
     /// </summary>
-    private const int FireReach = 8;
+    private const int FireReach = 16;
 
-    /// <summary>The columns of its cell a closed door's picture fills and the rows a closed hatch's does, in pixels: what of them stops light.</summary>
-    private static readonly Lightmap.Panels DoorPanels = new(
-        PanelOf(PixelArt.Picture("door_closed_0").GetImage(), across: false),
-        PanelOf(PixelArt.Picture(DoorShape.Picture(closed: true, 0)).GetImage(), across: true));
+    /// <summary>
+    /// The columns of its cell a closed door's picture fills and the rows a closed hatch's does, in pixels: what of them stops light.
+    /// A doorway two cells thick (0104) stops it across both, its 16 px panel's frame and all.
+    /// </summary>
+    private static readonly Lightmap.Panels DoorPanels = new((0, Cell), (0, Cell));
 
     private readonly IGridQueries _grid;
     private readonly Lightmap _lightmap = new();
@@ -170,7 +171,9 @@ public partial class LightView : Node2D
         _shown.Clear();
         foreach (var lamp in _machines.Where(m => m.Kind is "lamp" or ArcLampLooks.Kind))
         {
-            var at = new Vector2(lamp.Cell % _grid.Width + 0.5f, lamp.Cell / _grid.Width + 0.5f) * Cell;
+            // The middle of its picture, its footprint's (two by two cells, 0104).
+            var spec = Stillwake.Content.Machines.Get(lamp.Kind);
+            var at = new Vector2(lamp.Cell % _grid.Width + spec.Width / 2f, lamp.Cell / _grid.Width + spec.Height / 2f) * Cell;
             var glow = new Sprite2D
             {
                 Texture = PixelArt.Glow,
@@ -224,7 +227,7 @@ public partial class LightView : Node2D
         (shine.Visible, shine.Modulate) = (look.Glow > 0, new Color(1, 1, 1, look.Glow));
         var arc = ArcLampLooks.Arc;
         if (!ArcLampLooks.Crackles(share) || _random.NextDouble() >= Crackle.Chance(arc, 0) * delta * Crackle.StepsPerSecond) return;
-        var corner = at - new Vector2(Cell, Cell) / 2;
+        var corner = at - new Vector2(ShipTiles.Drawn, ShipTiles.Drawn) / 2;
         Crackle.Strike(_random, arc, corner + new Vector2(arc.X, arc.Y), corner + new Vector2(arc.X2, arc.Y2));
     }
 
@@ -326,13 +329,13 @@ public partial class LightView : Node2D
     /// <summary>Whether a point of the world, in pixels, lies where light stops.</summary>
     private bool Blocks(double x, double y) => Sources.Blocks(_grid.StructureAt, _grid.ShapeAt, _grid.Width, _grid.Height, Cell, x, y);
 
-    /// <summary>The top of the first solid cell under <paramref name="cell"/>, in pixels, within ten; else six cells under it.</summary>
+    /// <summary>The top of the first solid cell under <paramref name="cell"/>, in pixels, within twenty; else twelve cells under it.</summary>
     private double FloorUnder(int cell)
     {
         int w = _grid.Width, x = cell % w, y = cell / w;
-        for (int row = y + 1; row <= y + 10 && row < _grid.Height; row++)
+        for (int row = y + 1; row <= y + 20 && row < _grid.Height; row++)
             if (_grid.StructureAt(row * w + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed) return row * Cell;
-        return (y + 7) * Cell;
+        return (y + 14) * Cell;
     }
 
     private static (float R, float G, float B) Rgb((int R, int G, int B) c) => (c.R / 255f, c.G / 255f, c.B / 255f);
@@ -346,12 +349,4 @@ public partial class LightView : Node2D
         BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
         LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
     };
-
-    /// <summary>The columns of a cell a picture's opaque pixels span, from the first to past the last.</summary>
-    private static (int From, int To) PanelOf(Image picture, bool across)
-    {
-        if (picture.IsCompressed()) picture.Decompress();
-        var used = picture.GetUsedRect();
-        return across ? (used.Position.Y, used.End.Y) : (used.Position.X, used.End.X);
-    }
 }

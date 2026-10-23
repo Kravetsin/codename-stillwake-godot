@@ -63,20 +63,22 @@ public partial class BuildingView : Node2D
     private List<Rect2> _machines = [];
     private List<Edge> _near = [];
     private int _width;
-    /// <summary>The drag under way: what it does, the button that began it and the cell it began on.</summary>
-    private (Act Act, bool Left, Spot From)? _drag;
+    /// <summary>The drag under way: what it does, the button that began it and the point it began at, in cells.</summary>
+    private (Act Act, bool Left, (double X, double Y) From)? _drag;
+    /// <summary>The side of the brush this frame: one cell with Ctrl held (<see cref="Brush"/>).</summary>
+    private int _brush = Brush.SideOf(false);
     /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
     private Dictionary<int, int> _worked = [];
     private double _owedBursts;
     /// <summary>Bursts of sparks off a tick of work on a plan (0075).</summary>
     private const double BurstsPerTick = 0.42;
     /// <summary>How far below a spark a floor is looked for, in cells: past it, sparks fall out of sight.</summary>
-    private const int FloorDepth = 6;
+    private const int FloorDepth = 12;
     /// <summary>Each blueprint being built: its ticks of work in all, to tell one finished from one cancelled as it goes.</summary>
     private readonly Dictionary<int, int> _ticks = [];
     private readonly BuildGlow _glow = new();
     /// <summary>How far from a plan, in pixels, a hero still turns its sparks toward it: a little past the hands' reach.</summary>
-    private const double SparkReach = (Stillwake.Content.Hero.Reach / 1000.0 + 2) * Cell;
+    private const double SparkReach = (Stillwake.Content.Hero.Reach / 1000.0 + 4) * Cell;
     /// <summary>The screwdriver, moved to each plan as it sparks: a few ticks at once, from plans worked side by side.</summary>
     private readonly Heard2D _screwdriver = Cues.Player2D(S.Screwdriver, S.World, voices: 4);
 
@@ -109,10 +111,13 @@ public partial class BuildingView : Node2D
             var s = Drag.SpotAt(width, height, p);
             return s.Y * width + s.X;
         }
-        void Send(Act act, Spot from, Spot to)
+        // Ctrl held builds one cell, the precise mode; else the brush.
+        _brush = Brush.SideOf(Input.IsPhysicalKeyPressed(Key.Ctrl));
+        void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
+            act = Drag.Oriented(act, from, to);
             var planned = new List<int>();
-            foreach (var verdict in Drag.Judge(act, Drag.CellsOf(width, act, from, to, building), building))
+            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to, building, _brush), building))
                 foreach (var c in verdict.Commands)
                 {
                     client.Send(c);
@@ -128,11 +133,11 @@ public partial class BuildingView : Node2D
             if (button.Down)
             {
                 // The first button down has the drag; another pressed meanwhile is let be.
-                if (_drag == null && Drag.OnGrid(width, height, button.At)) _drag = (act, left, Drag.SpotAt(width, height, button.At));
+                if (_drag == null && Drag.OnGrid(width, height, button.At)) _drag = (act, left, button.At);
                 return;
             }
             if (_drag is not { } under || under.Left != left) return;
-            Send(Tools.Shaped(under.Act, _hand.Shape.Get())!, under.From, Drag.SpotAt(width, height, button.At));
+            Send(Tools.Shaped(under.Act, _hand.Shape.Get())!, under.From, button.At);
             _drag = null;
         }
         // The left button is the card's, but on the power tab with no card to place, where it lays the
@@ -333,10 +338,11 @@ public partial class BuildingView : Node2D
     private static int MarkedAt(IGridQueries grid, Sim.Building.Plan p) =>
         p.Clear == "machine" && grid.MachineAt(p.Cell) is { } machine ? machine.Cell : p.Cell;
 
-    /// <summary>The cells a plan covers: a machine's footprint, else its cell.</summary>
+    /// <summary>The cells a plan covers: a machine's footprint, a piece's (a ladder, a doorway, 0104), else its cell.</summary>
     private static IReadOnlyList<int> CellsOf(IGridQueries grid, Sim.Building.Plan p)
     {
-        var machine = p.Place is { Layer: "machine" } place ? (place.Kind, p.Cell)
+        if (p.Clear == "structure" && grid.PieceOf(p.Cell) is { Count: > 0 } piece) return piece;
+        var machine = p.Place is { } place && (place.Layer == "machine" || Stillwake.Content.Builds.PieceOf(place.Kind) != null) ? (place.Kind, p.Cell)
             : p.Clear == "machine" && grid.MachineAt(p.Cell) is { } built ? (built.Kind, built.Cell)
             : ((string Kind, int Cell)?)null;
         return machine is { } mc ? grid.Footprint(mc.Kind, mc.Cell) ?? [p.Cell] : [p.Cell];
@@ -432,8 +438,9 @@ public partial class BuildingView : Node2D
         // A wall's card places walls cut to the shape in hand, R turning it mid-drag too (0069).
         Act? act = Tools.Shaped(_drag?.Act ?? (tool as PlaceTool), _hand.Shape.Get());
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
-        var end = Drag.SpotAt(width, height, p);
-        var verdicts = Drag.Judge(act, Drag.CellsOf(width, act, _drag?.From ?? end, end, building), building);
+        // The door's card lays a hatch along a stroke drawn across (0104).
+        act = Drag.Oriented(act, _drag?.From ?? p, p);
+        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p, building, _brush), building);
         if (act is PlaceTool place)
         {
             // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.
@@ -459,7 +466,9 @@ public partial class BuildingView : Node2D
             var seen = new HashSet<(string, int)>();
             void Silhouette(string layer, int cell, bool takes)
             {
-                int at = layer == "machine" && grid.MachineAt(cell) is { } machine ? machine.Cell : cell;
+                // A machine's top-left, a ladder's or a doorway's first cell (0104), whichever of their cells it is.
+                int at = layer == "machine" && grid.MachineAt(cell) is { } machine ? machine.Cell
+                    : layer == "structure" && grid.PieceOf(cell) is { Count: > 1 } piece ? piece[0] : cell;
                 if (!seen.Add((layer, at)) || Tools.BuiltAt(at, layer, grid) is not { } built) return;
                 int joined = Tools.LinksOf(built, at, width, _ => [], grid);
                 if (takes) _taking.Lay(built, at, width, joined);

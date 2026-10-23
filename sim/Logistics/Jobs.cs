@@ -193,14 +193,14 @@ public sealed partial class LogisticsModule
 
     // Charge.
 
-    /// <summary>Ticks a drone takes over a cell, at its bay's speed, rounded up.</summary>
-    private static int TicksPerCell(Machine bay) => (Unit + BayOf(bay).Speed - 1) / BayOf(bay).Speed;
+    /// <summary>Ticks a drone takes over <paramref name="cells"/> cells, at its bay's speed, rounded up.</summary>
+    private static int TicksOver(Machine bay, int cells) => (cells * Unit + BayOf(bay).Speed - 1) / BayOf(bay).Speed;
 
-    /// <summary>The cells a drone may be short of home by and still turn back: the one it is crossing and one to spare.</summary>
-    private const int Spare = 2;
+    /// <summary>The cells a drone may be short of home by and still turn back: the one it is crossing and three to spare, the 16 px cell's two (0104).</summary>
+    private const int Spare = 4;
 
     /// <summary>What a drone of <paramref name="bay"/> spends flying <paramref name="cells"/> cells, stored.</summary>
-    private static int Cost(Machine bay, int cells) => cells * TicksPerCell(bay) * Tune.Draw * Content.Charge.Scale;
+    private static int Cost(Machine bay, int cells) => TicksOver(bay, cells) * Tune.Draw * Content.Charge.Scale;
 
     /// <summary>
     /// Whether <paramref name="charge"/> covers <paramref name="job"/> from <paramref name="from"/> and the way home after:

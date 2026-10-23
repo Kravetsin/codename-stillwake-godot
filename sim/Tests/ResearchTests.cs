@@ -13,7 +13,9 @@ namespace Stillwake.Sim.Tests;
 public class ResearchTests
 {
     private const int Width = 10;
-    private const int Analyzer = 3 * Width + 1;
+    /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>), doubled (0104).</summary>
+    private static int At(int x, int y) => 2 * y * 2 * Width + 2 * x;
+    private static readonly int Analyzer = At(1, 3);
     private const int Ticks = Content.Research.Ticks;
     private const int Work = Ticks * 1000;
 
@@ -45,7 +47,7 @@ public class ResearchTests
     /// <summary>The world on <paramref name="layout"/>, a peer 0 carrying materials and parts, and the analyzer's id.</summary>
     private static (Scenario W, int Id) SetUp(Layout? layout = null)
     {
-        var w = new Scenario(layout ?? StartMap())
+        var w = new Scenario(layout ?? StartMap(), doubled: true)
             .GiveItems(0, ("iron", 5), ("scrap", 5), ("plate", 5), ("gear", 5), ("wire", 5), ("planks", 5), ("fireAxe", 1));
         return (w, w.M.Grid.MachineAt(Analyzer)?.Id ?? 0);
     }
@@ -240,12 +242,12 @@ public class ResearchTests
         Assert.True(RecipeOf(w, "solarPanel").Known);
         Assert.True(w.M.Research.Knows(panel));
         // Paid an item a part from what the hero carries, the analysed items taken back out among it.
-        w.Do(new PlacePlan(4, panel)).Run();
+        w.Do(new PlacePlan(At(4, 0), panel)).Run();
         Assert.Empty(w.Refusals);
         int plan = w.M.Building.Plans.Single().Id;
         for (int t = 0; t < Content.Machines.Get("solarPanel").BuildTicks; t++) w.Do(new Work(plan)).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal("solarPanel", w.M.Grid.MachineAt(4)?.Kind);
+        Assert.Equal("solarPanel", w.M.Grid.MachineAt(At(4, 0))?.Kind);
         Assert.Equal(0, w.M.Items.Inventory(0).Sum(s => s?.Item is "circuit" or "solarCell" or "frame" ? s.Count : 0));
         Assert.Equal(3, w.M.Items.Inventory(0).Sum(s => s?.Item == "wire" ? s.Count : 0));
     }
@@ -336,7 +338,7 @@ public class ResearchTests
         Assert.All(fresh.M.Research.Recipes().SelectMany(r => r.Unanalysed), item => Assert.True(Analysable.NeedsAnalysis(item), item));
         Assert.All(Content.Items.All.Select(i => i.Id), item =>
         {
-            var w = new Scenario(StartMap()).GiveItems(0, (item, 1));
+            var w = new Scenario(StartMap(), doubled: true).GiveItems(0, (item, 1));
             int id = w.M.Grid.MachineAt(Analyzer)?.Id ?? 0;
             Put(w, id, item).Run();
             var at = w.M.Research.At(id);
@@ -365,13 +367,13 @@ public class ResearchTests
     public void OpensByTheItemsOfItsCostThatNeedAnalysisAndListsOnlyThoseAsUnanalysed()
     {
         // A world granted nothing: the furnace's cost holds nothing to learn, so it is open from the start.
-        var w = new Scenario(Map([]));
+        var w = new Scenario(Map([]), doubled: true);
         var furnace = RecipeOf(w, "furnace");
         Assert.False(furnace.Granted);
         Assert.Empty(furnace.Unanalysed);
         Assert.True(furnace.Known && w.M.Research.Knows("furnace"));
         // The wreck's grants: the crate's iron and planks still wait for the analyzer for what else they go into.
-        var start = new Scenario(StartMap());
+        var start = new Scenario(StartMap(), doubled: true);
         Assert.Empty(RecipeOf(start, "furnace").Unanalysed);
         Assert.Equal(["planks", "iron"], RecipeOf(start, "crate").Unanalysed);
     }
@@ -434,7 +436,7 @@ public class ResearchTests
     public void AnalysesAnItemOnceThatTwoAnalyzersFinishOnOneTick()
     {
         var (w, id) = SetUp(StartMap(two: true));
-        int second = w.M.Grid.MachineAt(Analyzer + 2)?.Id ?? 0;
+        int second = w.M.Grid.MachineAt(At(3, 3))?.Id ?? 0;
         // Five against two analyzers drawing two each: both in full.
         int slot = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "iron");
         w.Do(new Items.Move(new Items.Place(slot), new Target(Crate: id), 1));
@@ -456,11 +458,11 @@ public class ResearchTests
     {
         var (w, _) = SetUp();
         var wall = Placement.Wall("iron");
-        w.Do(new PlacePlan(3 * Width + 6, wall)).Run();
+        w.Do(new PlacePlan(At(6, 3), wall)).Run();
         Assert.Equal(new[] { "building.unknown" }, w.Refusals.Select(r => r.Reason));
-        Assert.Equal("building.unknown", w.M.Building.Problem(3 * Width + 6, wall));
+        Assert.Equal("building.unknown", w.M.Building.Problem(At(6, 3), wall));
         w.Do(new SetCreative(true)).Run();
-        w.Do(new PlacePlan(3 * Width + 6, wall)).Run();
+        w.Do(new PlacePlan(At(6, 3), wall)).Run();
         Assert.Equal(new[] { "building.unknown" }, w.Refusals.Select(r => r.Reason));
         Assert.Single(w.M.Building.Plans);
     }

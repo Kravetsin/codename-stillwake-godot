@@ -50,7 +50,7 @@ public partial class GridView : Node2D
         _drawn = new DrawnLayers(grid.Width, grid.Height);
         _reveal = new ChunkReveal(grid.Width, grid.Height);
         _drawRow = DrawRow;
-        _groundAt = GroundAt;
+        _groundAt = GroundOf16;
         // Walls and doors take the share of light a wall keeps of what reaches its face; the rest all of it.
         _back = Layer(Layers.BackWalls);
         // The ground's soft shadow on natural back walls, multiplying them as lit (0088).
@@ -148,7 +148,7 @@ public partial class GridView : Node2D
     private readonly Func<int, int, int, int> _drawRow;
 
     /// <summary>Cells of view round the screen drawn at once: the camera may move after this reads it, a frame's run at most.</summary>
-    private const int Pad = 2;
+    private const int Pad = 4;
 
     /// <summary>Draws what the view needs: the chunks on screen whole, those round it ahead a little a frame.</summary>
     private void Reveal()
@@ -264,11 +264,11 @@ public partial class GridView : Node2D
         if (!blank)
         {
             foreach (var layer in _cellLayers) layer.EraseCell(at);
-            // The living edge is laid from the cell above its ground, and only this cell's drawing lays it there.
-            if (y > 0)
+            // The living edge is laid from two cells above its ground, a 16 px cell (0104), and only this cell's drawing lays it there.
+            if (y > 1)
             {
-                _tops.EraseCell(new Vector2I(x, y - 1));
-                _topsFront.EraseCell(new Vector2I(x, y - 1));
+                _tops.EraseCell(new Vector2I(x, y - Drawn));
+                _topsFront.EraseCell(new Vector2I(x, y - Drawn));
             }
         }
 
@@ -306,10 +306,11 @@ public partial class GridView : Node2D
                     break;
                 }
             case Structure.Floor:
-                Put(_fixtures, at, "floor");
+                _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt("floor", x, y));
                 break;
             case Structure.Ladder:
-                Put(_fixtures, at, "ladder");
+                // The 16 px ladder over its two columns, paired from its row's left end as its pieces are (0104), not by where it lies.
+                _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt("ladder", LaddersLeftOf(cell), y));
                 break;
             case Structure.DoorClosed or Structure.DoorOpen:
                 DrawDoor(cell);
@@ -325,28 +326,34 @@ public partial class GridView : Node2D
     /// </summary>
     private void DrawTop(int cell)
     {
-        int above = cell - _grid.Width, material = _drawn.Material[cell], shape = _drawn.Shape[cell];
-        if (above < 0 || material == LavaCode || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), shape, _drawn.Structure[above], _drawn.Back[above], SoilCode))
+        int w = _grid.Width, above = cell - w, material = _drawn.Material[cell], shape = _drawn.Shape[cell];
+        if (above < w || material == LavaCode || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), shape, _drawn.Structure[above], _drawn.Back[above], SoilCode))
             return;
-        var (back, front) = TopNamesOf(material, shape, Grass.VariantOf(cell, GroundArt.TopVariants(shape)));
-        Put(_tops, CellOf(above), back);
-        if (front != null) Put(_topsFront, CellOf(above), front);
+        // Its 16 px column's variant, the half this cell's column is, laid from two cells over the ground (0104).
+        int x = cell % w, half = x % Drawn;
+        var (back, front) = TopNamesOf(material, shape, Grass.VariantOf(cell - half, GroundArt.TopVariants(shape)), half);
+        // A half of a column with nothing in it is no tile (0104).
+        if (_tiles.Has(back)) Put(_tops, CellOf(cell - Drawn * w), back);
+        if (front != null) Put(_topsFront, CellOf(cell - Drawn * w), front);
     }
 
     /// <summary>The detail <paramref name="cell"/> shows over its ground (<see cref="GroundDetails"/>), if any.</summary>
     private void DrawDetail(int cell)
     {
+        // By the 16 px cells the details were drawn for (0104): this cell the piece of its own one it lies in.
         int x = cell % _grid.Width, y = cell / _grid.Width;
-        var detail = GroundDetails.At(x, y, _groundAt);
-        if (detail.Picture >= 0) _details.SetCell(new Vector2I(x, y), ShipTiles.Source, _tiles.CutAt(DetailNameOf(_drawn.Material[cell], detail.Picture), detail.Dx, detail.Dy));
+        var detail = GroundDetails.At(x / Drawn, y / Drawn, _groundAt);
+        if (detail.Picture >= 0)
+            _details.SetCell(new Vector2I(x, y), ShipTiles.Source,
+                _tiles.CutAt(DetailNameOf(_drawn.Material[cell], detail.Picture), detail.Dx * Drawn + x % Drawn, detail.Dy * Drawn + y % Drawn));
     }
 
     /// <summary>Draws the details of the drawn cells of <paramref name="cell"/>'s block anew, which its own change may have changed.</summary>
     private void DrawDetails(int cell)
     {
-        int w = _grid.Width, x0 = cell % w / GroundDetails.Block * GroundDetails.Block, y0 = cell / w / GroundDetails.Block * GroundDetails.Block;
-        for (int y = y0; y < Math.Min(y0 + GroundDetails.Block, _grid.Height); y++)
-            for (int x = x0; x < Math.Min(x0 + GroundDetails.Block, w); x++)
+        int w = _grid.Width, x0 = cell % w / DetailBlock * DetailBlock, y0 = cell / w / DetailBlock * DetailBlock;
+        for (int y = y0; y < Math.Min(y0 + DetailBlock, _grid.Height); y++)
+            for (int x = x0; x < Math.Min(x0 + DetailBlock, w); x++)
             {
                 int c = y * w + x;
                 if (!_reveal.Drawn(c)) continue;
@@ -359,7 +366,13 @@ public partial class GridView : Node2D
     /// <summary>Scratch for <see cref="Sync"/>: the blocks of details drawn anew, each once.</summary>
     private readonly HashSet<int> _blocks = [];
 
-    private int BlockOf(int cell) => cell / _grid.Width / GroundDetails.Block * (_grid.Width / GroundDetails.Block + 1) + cell % _grid.Width / GroundDetails.Block;
+    private int BlockOf(int cell) => cell / _grid.Width / DetailBlock * (_grid.Width / DetailBlock + 1) + cell % _grid.Width / DetailBlock;
+
+    /// <summary>The cells of the art's 16 px cell across and down (0104).</summary>
+    private const int Drawn = ShipTiles.Drawn / Cell;
+
+    /// <summary>A block of the details' features, in cells: theirs of 16 px cells, doubled.</summary>
+    private const int DetailBlock = GroundDetails.Block * Drawn;
 
     /// <summary>The material of the whole wall of natural ground at (<paramref name="x"/>, <paramref name="y"/>) as drawn; -1 for any other cell or past the grid.</summary>
     private int GroundAt(int x, int y)
@@ -369,27 +382,39 @@ public partial class GridView : Node2D
         return _drawn.Structure[cell] == Structure.Wall && _drawn.Shape[cell] == Shape.None && IsNatural(material) ? material : -1;
     }
 
+    /// <summary>The material of the whole ground over every cell of 16 px cell (<paramref name="x"/>, <paramref name="y"/>), the details' (0104); -1 for none.</summary>
+    private int GroundOf16(int x, int y)
+    {
+        int material = GroundAt(x * Drawn, y * Drawn);
+        for (int dy = 0; dy < Drawn && material >= 0; dy++)
+            for (int dx = 0; dx < Drawn && material >= 0; dx++)
+                if (GroundAt(x * Drawn + dx, y * Drawn + dy) != material) material = -1;
+        return material;
+    }
+
     /// <summary>
     /// A door cell, shut, open or part way while its panel slides: a doorway is one door or hatch, by its shape (0067),
     /// its pictures joined where its cells meet, its panel sliding as one across all of them.
     /// </summary>
     private void DrawDoor(int cell)
     {
-        int links = DoorLinksOf(cell);
-        if (_slides.OpenOf(cell) is not double open)
-        {
-            Put(_doors, CellOf(cell), DoorShape.Picture(_drawn.Structure[cell] == Structure.DoorClosed, links));
-            return;
-        }
-        // Where the cell lies in its straight run, counted from the top or left end the panel slides into.
-        bool hatch = Doorways.IsHatch(links);
-        var (back, ahead, step) = hatch ? (Doorways.Left, Doorways.Right, 1) : (Doorways.Up, Doorways.Down, _grid.Width);
-        int index = 0, length = 1;
-        for (int c = cell; (DoorLinksOf(c) & back) != 0; c -= step) index++;
-        for (int c = cell; (DoorLinksOf(c) & ahead) != 0; c += step) length++;
-        length += index;
+        // Where the cell lies in its doorway, along it from the top or left end the panel slides into and across its thickness.
+        var spot = DoorShape.SpotOf(cell, _grid.Width, _doorLinksOf ??= DoorLinksOf);
         // Eased (0075): slow off, quick through the middle, slow into its slot.
-        Put(_doors, CellOf(cell), DoorShape.Picture(hatch, index, length, (int)Math.Round(DoorLight.Ease(open) * length * Cell)));
+        var (picture, quarter) = _slides.OpenOf(cell) is double open
+            ? DoorShape.TileOf(spot, (int)Math.Round(DoorLight.Ease(open) * spot.Length * Cell))
+            : DoorShape.TileOf(spot, closed: _drawn.Structure[cell] == Structure.DoorClosed);
+        _doors.SetCell(CellOf(cell), ShipTiles.Source, _tiles.At(picture) + new Vector2I(quarter.X, quarter.Y));
+    }
+
+    private Func<int, int>? _doorLinksOf;
+
+    /// <summary>How many ladder cells run on left of <paramref name="cell"/> in its row, as drawn: its column's half of the ladder by their count's parity.</summary>
+    private int LaddersLeftOf(int cell)
+    {
+        int left = 0, x = cell % _grid.Width;
+        while (left < x && _drawn.Structure[cell - left - 1] == Structure.Ladder) left++;
+        return left;
     }
 
     /// <summary>Lays the whole picture <paramref name="name"/> on cell <paramref name="at"/> of <paramref name="layer"/>.</summary>
@@ -403,8 +428,9 @@ public partial class GridView : Node2D
             _back.SetCell(at, ShipTiles.Source, _tiles.CutAt(cut, at.X, at.Y));
             return;
         }
-        bool grille = HashOf((at.Y << 16) | at.X) % 7 == 0;
-        Put(_back, at, grille ? "back_iron_grille" : "back_iron_plain");
+        // A panel or a grille a 16 px cell, cut into its cells (0104).
+        bool grille = HashOf(((at.Y / Drawn) << 16) | (at.X / Drawn)) % 7 == 0;
+        _back.SetCell(at, ShipTiles.Source, _tiles.CutAt(grille ? "back_iron_grille" : "back_iron_plain", at.X, at.Y));
     }
 
     /// <summary>Scratch for <see cref="DrawShade"/>: the walls' shapes round a cell.</summary>
@@ -448,7 +474,7 @@ public partial class GridView : Node2D
 
     // Names made once, not a string a cell: a planet's ground is back wall and moss over nearly every column.
     private readonly Dictionary<int, string?> _backCuts = new();
-    private readonly Dictionary<(int, int, int), (string Back, string? Front)> _topNames = new();
+    private readonly Dictionary<(int, int, int, int), (string Back, string? Front)> _topNames = new();
     private readonly Dictionary<(int, int), string> _detailNames = new();
     private readonly Dictionary<int, bool> _natural = new();
 
@@ -460,11 +486,11 @@ public partial class GridView : Node2D
         return _backCuts[code] = material == "scrap" ? "back_scrap" : Materials.Get(material).Natural ? ShipTiles.BackName(material) : null;
     }
 
-    private (string Back, string? Front) TopNamesOf(int code, int shape, int variant)
+    private (string Back, string? Front) TopNamesOf(int code, int shape, int variant, int half)
     {
-        if (_topNames.TryGetValue((code, shape, variant), out var names)) return names;
-        string material = MaterialOf(code), front = ShipTiles.TopName(material, shape, variant, front: true);
-        return _topNames[(code, shape, variant)] = (ShipTiles.TopName(material, shape, variant, front: false), _tiles.Has(front) ? front : null);
+        if (_topNames.TryGetValue((code, shape, variant, half), out var names)) return names;
+        string material = MaterialOf(code), front = ShipTiles.TopName(material, shape, variant, front: true, half);
+        return _topNames[(code, shape, variant, half)] = (ShipTiles.TopName(material, shape, variant, front: false, half), _tiles.Has(front) ? front : null);
     }
 
     private string DetailNameOf(int code, int picture)

@@ -23,9 +23,11 @@ public sealed record WorkAim(int Plan, string? Problem);
 /// The cell under the pointer and what the hands do there: the left button held works a plan; E toggles
 /// a door or valve, puts a canister into a tank, grabs a piece of debris or opens crate <see cref="Crate"/>.
 /// <see cref="Piece"/> names the piece of debris a press grabs, or the wreck a swing of the axe would hit
-/// (0034, 0039), which is outlined itself, not its cell.
+/// (0034, 0039), which is outlined itself, not its cell. <see cref="Square"/> is the brush a dig covers, its top-left column
+/// and row and its side, when it is wider than a cell (<see cref="Brush"/>): outlined whole.
 /// </summary>
-public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null);
+public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null,
+    (int X, int Y, int Side)? Square = null);
 
 /// <summary>
 /// What the hands send this frame, the crate they open if any, and the tick work was last sent on: -1 when
@@ -68,13 +70,13 @@ public static class Aiming
             ? (size.W * Hero.Unit / (2 * PixelsPerCell) + WreckMargin, size.H * Hero.Unit / (2 * PixelsPerCell) + WreckMargin)
             : null;
 
-    private const int PixelsPerCell = 16, WreckMargin = 250;
+    private const int PixelsPerCell = Camera.Cell, WreckMargin = 500;
 
     /// <summary>Half a small piece's picture each way, in thousandths of a cell: they are a cell or a little more across.</summary>
-    private const int SmallHalf = 500;
+    private const int SmallHalf = 1000;
 
     /// <summary>How far inside a picture's edge the harpoon's rod sticks, in thousandths of a cell: its point sinks in.</summary>
-    private const int Bite = 150;
+    private const int Bite = 300;
 
     /// <summary>
     /// The box a piece is struck in, half its size each way in thousandths of a cell, and half its picture:
@@ -195,14 +197,15 @@ public static class Aiming
     /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/>, a small piece is still
     /// grabbed, but no wreck by the pointer is aimed at: the first a swing toward the pointer begun now
     /// would touch is (<see cref="Struck"/>), wherever the pointer is. With a <paramref name="drill"/>, the plain or the arc
-    /// drill, by its item, the same, the first wreck its bit aimed at the pointer touches (<see cref="Touched"/>). With a <paramref name="gun"/>, the
+    /// drill, by its item, the same, the first wreck its bit aimed at the pointer touches (<see cref="Touched"/>); ground or a plant in
+    /// the <paramref name="brush"/>'s square round the pointer is dug first (<see cref="DugAim"/>). With a <paramref name="gun"/>, the
     /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked. A door or valve is
     /// opened or shut as <paramref name="shown"/> shows it (the world's without it): with this peer's own toggles in
     /// flight, the next press undoes them, and a press says what its sender saw should become of it.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null)
+        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null, int brush = 1)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -230,9 +233,8 @@ public static class Aiming
         {
             // A swing begun now faces the pointer (Poses.FaceOf), and so does the stroke it is judged by; the drill always does.
             string tool = axe ? Spec.Weapons.Axe.Item : drill!;
-            // Natural ground under the pointer is dug where it is (0077), in a shaft or a cave as under the open sky; a plant felled (0079).
-            if (grid.WallAt(cell) is { Natural: true } || m.Building.PlantAt(cell) != null)
-                return new Aim(cell, inReach, new Use(new Dig(cell, tool), m.Building.DigProblem(peer, cell, tool)));
+            // Natural ground under the brush is dug where it is (0077), in a shaft or a cave as under the open sky; a plant felled (0079).
+            if (DugAim(m, peer, hero, point, cell, tool, brush) is { } dug) return dug;
             var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
             var touched = axe ? Struck(m, toward, PointOf(point)) : Touched(m, toward, PointOf(point));
             if (touched.FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
@@ -294,7 +296,7 @@ public static class Aiming
     }
 
     /// <summary>How far past a creature's body its box is struck, in thousandths of a cell: its fur, and a tick's walk.</summary>
-    private const int CreatureMargin = 200;
+    private const int CreatureMargin = 400;
 
     /// <summary>The box creature <paramref name="c"/> is struck in, in thousandths of a cell: its body and a margin.</summary>
     private static (int Left, int Top, int Right, int Bottom) BoxOf(Creature c)
@@ -401,14 +403,61 @@ public static class Aiming
     }
 
     /// <summary>
-    /// The dig a strike of <paramref name="tool"/> at <paramref name="at"/>, in thousandths of a cell, sends (0077): at the
-    /// natural wall of the cell there, within the hero's reach, as plans are reached; none where the sim would refuse it.
-    /// Wherever the hero stands, a shaft or a cave too: no swing nor bit is traced, the cell is the pointer's.
+    /// The digs a strike of <paramref name="tool"/> at <paramref name="at"/>, in thousandths of a cell, sends (0077) with a brush
+    /// <paramref name="brush"/> cells across round it (<see cref="Brush"/>), ascending: one at each natural wall or plant of its
+    /// square within the hero's reach, as plans are reached, but one a plant, at its first cell, so a tree falls as fast as
+    /// it did to one cell; none where the sim would refuse it, nor off the grid. Each takes its full damage. Wherever the hero
+    /// stands, a shaft or a cave too: no swing nor bit is traced, the cells are the pointer's.
     /// </summary>
-    public static Dig? DigAt(Registry m, int peer, Hero hero, Point at, string tool)
+    public static List<Dig> DigsAt(Registry m, int peer, Hero hero, Point at, string tool, int brush)
     {
-        if (CellAt(m.Grid, at) is not int cell || m.Grid.WallAt(cell) is not { Natural: true } && m.Building.PlantAt(cell) == null || !Reaches(hero, cell, m.Grid.Width)) return null;
-        return m.Building.DigProblem(peer, cell, tool) == null ? new Dig(cell, tool) : null;
+        var digs = new List<Dig>();
+        var grid = m.Grid;
+        if (CellAt(grid, at) == null) return digs;
+        var felled = new List<Plant>();
+        foreach (int cell in Brush.Cells(grid.Width, grid.Height, (at.X / (double)Hero.Unit, at.Y / (double)Hero.Unit), brush))
+        {
+            if (!Digs(m, peer, hero, cell, tool)) continue;
+            if (grid.WallAt(cell) is not { Natural: true } && m.Building.PlantAt(cell) is { } plant)
+            {
+                if (felled.Contains(plant)) continue;
+                felled.Add(plant);
+            }
+            digs.Add(new Dig(cell, tool));
+        }
+        return digs;
+    }
+
+    /// <summary>The dig of <paramref name="digs"/> heard and seen as a strike's own at <paramref name="at"/>: the one in its cell, else the first.</summary>
+    public static Dig? LeadOf(IReadOnlyList<Dig> digs, Point at, int width)
+    {
+        int x = (int)Math.Floor(at.X / (double)Hero.Unit), y = (int)Math.Floor(at.Y / (double)Hero.Unit);
+        foreach (var dig in digs)
+            if (dig.Cell == y * width + x) return dig;
+        return digs.Count > 0 ? digs[0] : null;
+    }
+
+    /// <summary>Whether a strike of <paramref name="tool"/> digs <paramref name="cell"/>: natural ground or a plant there, within reach, as the sim would take it.</summary>
+    private static bool Digs(Registry m, int peer, Hero hero, int cell, string tool) =>
+        IsGround(m, cell) && Reaches(hero, cell, m.Grid.Width) && m.Building.DigProblem(peer, cell, tool) == null;
+
+    /// <summary>Whether <paramref name="cell"/> holds what is dug: a natural wall, or a plant (0079).</summary>
+    private static bool IsGround(Registry m, int cell) => m.Grid.WallAt(cell) is { Natural: true } || m.Building.PlantAt(cell) != null;
+
+    /// <summary>
+    /// The aim of a strike of <paramref name="tool"/> with the brush <paramref name="brush"/> cells across round
+    /// <paramref name="point"/>, in cells, when ground or a plant is in its square: at the pointer's <paramref name="cell"/> if it
+    /// could be dug, else the first cell that could, else the pointer's own if it is ground, else the first that is, with why
+    /// the sim would refuse it; none with no ground in the square.
+    /// </summary>
+    private static Aim? DugAim(Registry m, int peer, Hero hero, (double X, double Y) point, int cell, string tool, int brush)
+    {
+        var grid = m.Grid;
+        var ground = Brush.Cells(grid.Width, grid.Height, point, brush).Where(c => IsGround(m, c)).OrderBy(c => c == cell ? 0 : 1).ToList();
+        if (ground.Count == 0) return null;
+        int at = ground.FirstOrDefault(c => Digs(m, peer, hero, c, tool), ground[0]);
+        (int, int, int)? square = brush > 1 && Brush.Corner(grid.Width, grid.Height, point, brush, brush) is var (x, y) ? (x, y, brush) : null;
+        return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Dig(at, tool), m.Building.DigProblem(peer, at, tool)), Square: square);
     }
 
     private static int? CellAt(IGridQueries grid, Point at)

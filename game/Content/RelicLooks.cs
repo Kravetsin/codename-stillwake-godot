@@ -36,7 +36,7 @@ public static class RelicLooks
     /// <see cref="SmallFlash"/> of it), reaching <see cref="FlashReach"/> cells and dying by <see cref="FlashDecay"/> a 60 Hz frame.
     /// </summary>
     public const double FlashStrength = 2.4, SmallFlash = 0.75, FlashDecay = 0.1;
-    public const int FlashReach = 12;
+    public const int FlashReach = 24;
 
     /// <summary>
     /// The hum: its light breathing over <see cref="HumSeconds"/> between <see cref="HumLow"/> and 1 of its strength, as the page eases
@@ -55,21 +55,21 @@ public static class RelicLooks
     /// lens, <see cref="ShaftStrength"/> strong out to <see cref="ShaftReach"/> cells, so the ledges either side catch it; the beam
     /// itself <see cref="BeamWide"/> pixels across, its brightest <see cref="BeamAlpha"/>.
     /// </summary>
-    public const int ShaftEvery = 26, ShaftReach = 3, BeamWide = 11;
-    public const float ShaftStrength = 0.9f, ShaftKeep = 0.7f, BeamAlpha = 0.45f;
+    public const int ShaftEvery = 26, ShaftReach = 6, BeamWide = 11;
+    public const float ShaftStrength = 0.9f, ShaftKeep = 0.837f, BeamAlpha = 0.45f;
 
     /// <summary>
     /// The lens's light and the pillar it throws into the sky: <see cref="PillarCells"/> tall, from <see cref="PillarFoot"/> pixels
     /// across at the lens to <see cref="PillarTop"/> at its top, <see cref="PillarAlpha"/> at its foot fading up; a thin white core.
     /// </summary>
-    public const int LensReach = 7, PillarCells = 72, PillarFoot = 8, PillarTop = 46;
+    public const int LensReach = 14, PillarCells = 144, PillarFoot = 8, PillarTop = 46;
     public const float LensStrength = 1.4f, PillarAlpha = 0.5f, CoreAlpha = 0.5f;
 
     /// <summary>
     /// The cradle's own light from its heart (the page's reach), breathing with its hum; the chip's is its picture's (<c>HomesArt</c>).
     /// </summary>
-    public const int CradleReach = 9;
-    public const float CradleStrength = 2.6f, LightKeep = 0.72f, LightSize = 4f;
+    public const int CradleReach = 18;
+    public const float CradleStrength = 2.6f, LightKeep = 0.849f, LightSize = 4f;
 
     /// <summary>
     /// The roots (V1's fulgurites): <see cref="Roots"/> veins of fused glass from the cradle down and out into the rock, each

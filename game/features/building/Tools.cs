@@ -189,7 +189,8 @@ public static class Tools
                     Structure.Wall => Placement.Wall(grid.WallAt(cell)!.Id) with { Shape = grid.ShapeAt(cell) },
                     Structure.Floor => new Placement(layer, "floor"),
                     Structure.Ladder => new Placement(layer, "ladder"),
-                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer, "door"),
+                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer,
+                        Doorways.IsHatch(Doorways.LinksOf(cell, grid.Width, grid.Width * grid.Height, grid.StructureAt)) ? Builds.Hatch : "door"),
                     _ => null,
                 };
             default:
@@ -255,7 +256,7 @@ public static class Tools
             return power.NodeAt(cell) is int node && power.Cabled(node) ? Cable : null;
         if (PlacementAt(cell, LayersFor(overlay), grid, building) is not { } placed) return null;
         var card = All.OfType<PlaceTool>().FirstOrDefault(each =>
-            each.Placement.Layer == placed.Layer && each.Placement.Kind == placed.Kind && each.Placement.Material == placed.Material);
+            each.Placement.Layer == placed.Layer && each.Placement.Kind == Builds.BuiltAs(placed.Kind) && each.Placement.Material == placed.Material);
         // What is not known, or not built here, is not picked: it could not be planned.
         return card != null && Known(card, research) && Allowed(card, building.Rules) ? card : null;
     }

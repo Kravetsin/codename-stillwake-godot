@@ -68,11 +68,12 @@ public class ItemsFloorTests
     public void LetsAStackThrownIntoSpaceFlyOnAndDriftAwayAndPastTheEdgeItIsGone()
     {
         var w = Room().GiveItems(0, ("scrap", 2));
-        Drop(w, Own(0), 1, At(14, 1), 0, 1);
+        // From the room's lowest row: from row 1 its lift, doubled (0104), carries it off the top of the six-row map.
+        Drop(w, Own(0), 1, At(14, 3), 0, 1);
         w.Run(10);
         // Flying on as thrown, less the drift back past the moving ship; nothing falls in space.
         Assert.True(Column(w) > 14);
-        Assert.True(Floor(w)[0].Cell / Width <= 1);
+        Assert.True(Floor(w)[0].Cell / Width <= 3);
         w.Run(200);
         Assert.Empty(Floor(w));
         // One let go out there, not thrown, drifts back the other way.
@@ -100,6 +101,20 @@ public class ItemsFloorTests
     }
 
     private static int CellOf(string[] map, int x, int y) => y * map[0].Length + x;
+
+    /// <summary>
+    /// As <see cref="DroppedInto"/> on <paramref name="map"/> doubled (0104), as its machines need, each of <paramref name="at"/> a
+    /// cell of the doubled map.
+    /// </summary>
+    private static Scenario DoubledDroppedInto(string[] map, params (int X, int Y)[] at)
+    {
+        var w = new Scenario(Layout.Parse(map), doubled: true).GiveItems(0, ("scrap", at.Length));
+        foreach (var (x, y) in at) Drop(w, Own(0), 1, Doubled(map, x, y));
+        return w;
+    }
+
+    /// <summary>The cell (<paramref name="x"/>, <paramref name="y"/>) of <paramref name="map"/> doubled.</summary>
+    private static int Doubled(string[] map, int x, int y) => y * 2 * map[0].Length + x;
     private static (string, int, int)[] Lying(Scenario w) => Floor(w).Select(s => (s.Item, s.Count, s.Cell)).ToArray();
 
     /// <summary>A room whose hull has space to its left and above.</summary>
@@ -151,7 +166,10 @@ public class ItemsFloorTests
         Assert.Equal(CellOf(map, 3, 1), Floor(w)[0].Cell);
     }
 
-    /// <summary>A room with a grow capsule (2×3) standing on its floor, two rows of air above the capsule.</summary>
+    /// <summary>
+    /// A room with a grow capsule standing on its floor, two rows of air above the capsule; doubled, the capsule's 4×6 from
+    /// (6, 6) and the floor's top at row 12.
+    /// </summary>
     private static readonly string[] Capsule =
         ["##########", "#........#", "#........#", "#..gg....#", "#..gg....#", "#..gg....#", "#========#", "##########"];
 
@@ -159,35 +177,36 @@ public class ItemsFloorTests
     public void AStackFallingOntoAMachineFallsThroughItOntoTheFloorBeneath()
     {
         // Let go still above the capsule, and thrown over it: both lie on the floor it stands on.
-        var w = DroppedInto(Capsule, (3, 1));
-        Drop(w.GiveItems(0, ("canister", 1)), Own(0), 1, CellOf(Capsule, 2, 2), 0, 1);
+        var w = DoubledDroppedInto(Capsule, (6, 2));
+        Drop(w.GiveItems(0, ("canister", 1)), Own(0), 1, Doubled(Capsule, 4, 4), 0, 1);
         w.Run(80);
-        Assert.All(Floor(w), s => Assert.Equal((6 * 1000, 0, 0), (s.Y, s.Vx, s.Vy)));
-        Assert.Equal(CellOf(Capsule, 3, 5), Floor(w)[0].Cell);
-        Assert.Equal(5, Floor(w)[1].Cell / Capsule[0].Length);
+        Assert.All(Floor(w), s => Assert.Equal((12 * 1000, 0, 0), (s.Y, s.Vx, s.Vy)));
+        Assert.Equal(Doubled(Capsule, 6, 11), Floor(w)[0].Cell);
+        Assert.Equal(11, Floor(w)[1].Cell / (2 * Capsule[0].Length));
     }
 
     [Fact]
     public void LeavesAStackInsideAMachineWhereItIsToFallToTheFloorUnderIt()
     {
+        // Doubled, the tank's 4×4 from (2, 2) stands on the hull at row 6.
         string[] map = ["######", "#TT..#", "#TT..#", "######"];
-        var w = DroppedInto(map, (2, 2), (1, 1));
+        var w = DoubledDroppedInto(map, (5, 5), (2, 2));
         w.Run(40);
-        Assert.Equal([("scrap", 1, CellOf(map, 2, 2)), ("scrap", 1, CellOf(map, 1, 2))], Lying(w));
+        Assert.Equal([("scrap", 1, Doubled(map, 5, 5)), ("scrap", 1, Doubled(map, 2, 5))], Lying(w));
     }
 
     [Fact]
     public void AStackLeftOnAMachineByAnOlderSaveFallsOffItOnTheNextTick()
     {
-        var w = DroppedInto(Capsule, (3, 1));
+        var w = DoubledDroppedInto(Capsule, (6, 2));
         w.Run(80);
         // Where the rule that machines hold stacks left it: on the capsule's top.
         var s = Floor(w)[0];
-        (s.Y, s.Cell) = (3 * 1000, CellOf(Capsule, 3, 2));
+        (s.Y, s.Cell) = (6 * 1000, Doubled(Capsule, 6, 5));
         w.Reload().Run();
         Assert.True(Floor(w)[0].Vy > 0);
         w.Run(40);
-        Assert.Equal((CellOf(Capsule, 3, 5), 6 * 1000), (Floor(w)[0].Cell, Floor(w)[0].Y));
+        Assert.Equal((Doubled(Capsule, 6, 11), 12 * 1000), (Floor(w)[0].Cell, Floor(w)[0].Y));
     }
 
     [Fact]

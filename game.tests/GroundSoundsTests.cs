@@ -59,14 +59,14 @@ public class GroundSoundsTests
         Assert.Equal(Footing.Grass, At(m, 2 * Unit + 200, Unit));
         // A jump a third of a cell up already still pushes off the stone under it.
         Assert.Equal(Footing.Stone, At(m, 4 * Unit + 500, Unit - 300));
-        // High in the air, nothing: the caller keeps what it last stood on.
+        // High in the air, nothing: the caller keeps what it last stood on. Two drawn rows up, four of the 8 px cells (0104).
         Assert.Null(At(m, 4 * Unit + 500, -1));
         Assert.Null(At(new TestWorld(Layout.Parse("""
             ....
             ....
             ....
             ####
-            """)).M, 1500, 1000));
+            """).Doubled()).M, 3000, 2000));
     }
 
     [Fact]

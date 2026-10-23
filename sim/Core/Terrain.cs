@@ -112,7 +112,7 @@ public static class Terrain
         }
         hall = new bool[w * h];
         Landmarks(g, seed, top, kind, caverns, hall);
-        // No spikes: a bump one or two cells wide standing up alone, open above, would be cut to a lone ◢◣ peak or left a
+        // No spikes: a bump up to Spike cells wide standing up alone, open above, would be cut to a lone ◢◣ peak or left a
         // post; it is taken away, so the ground under it is the top, row by row down, and hills stay walkable. Out in the
         // open air it becomes sky; a post in a pit or a cave leaves ground with its back wall, sky only as far as the fade below.
         for (int y = 1; y < h; y++)
@@ -120,7 +120,13 @@ public static class Terrain
             {
                 int cell = y * w + x;
                 if (!Bump(kind, codes, soil, stone, cell, w) || kind[cell - 1] == 1) continue;
-                int across = kind[cell + 1] != 1 ? 1 : x + 2 < w && kind[cell + 2] != 1 && Bump(kind, codes, soil, stone, cell + 1, w) ? 2 : 0;
+                int across = 0;
+                for (int n = 1; n <= Spike && x + n < w && Bump(kind, codes, soil, stone, cell + n - 1, w); n++)
+                    if (kind[cell + n] != 1)
+                    {
+                        across = n;
+                        break;
+                    }
                 bool air = kind[cell - 1] == 0 || kind[cell + across] == 0;
                 for (int i = 0; i < across; i++)
                 {
@@ -136,7 +142,7 @@ public static class Terrain
         // under an overhang keep theirs: a hero falling down one sees the rock go by.
         for (int x = 0; x < w; x++)
         {
-            int fade = g.MouthFadeLeast + (int)((long)Noise(seed, MouthFade, x, 6) * (g.MouthFadeMost - g.MouthFadeLeast + 1) / Whole);
+            int fade = g.MouthFadeLeast + (int)((long)Noise(seed, MouthFade, x, 12) * (g.MouthFadeMost - g.MouthFadeLeast + 1) / Whole);
             for (int y = 0; y < h && y < top[x] + fade && kind[y * w + x] != 1; y++)
                 (kind[y * w + x], codes[y * w + x]) = (0, 0);
         }
@@ -177,7 +183,7 @@ public static class Terrain
     /// What grows on the surface (0079), column by column from the left: on whole soil with the open sky above it, one draw
     /// a column picks a kind of its type's <see cref="PlanetType.Plants"/> by its chances, set where it has room — its ground level with
     /// its own, no ground higher across its crown, the last of its kind far enough, the last plant's level ground not
-    /// shared — and nowhere within two columns of the spawn. A column's top is its first solid cell, so nothing grows in a cave.
+    /// shared — and none of its columns within <see cref="SpawnClear"/> of the spawn. A column's top is its first solid cell, so nothing grows in a cave.
     /// </summary>
     private static List<(int Cell, string Kind)> Flora(PlanetType t, uint seed, char[][] rows, int[] codes, int soil, int spawnX, int[] top)
     {
@@ -187,27 +193,29 @@ public static class Terrain
         var kinds = t.Plants;
         var last = new int[kinds.Count];
         Array.Fill(last, int.MinValue / 2);
-        int lastX = int.MinValue / 2, lastLevel = 0;
+        int lastX = int.MinValue / 2, lastLevel = 0, lastAcross = 1;
         var flora = new List<(int, string)>();
         for (int x = g.BedrockSide + 1; x < w - g.BedrockSide - 1; x++)
         {
             int y = top[x];
-            if (!Soil(x, y) || Math.Abs(x - spawnX) <= 2) continue;
+            if (!Soil(x, y)) continue;
             int roll = (int)((long)Lattice(seed, Plants, x, 0) * 1000 / Whole), from = 0, k = 0;
             while (k < kinds.Count && roll >= from + kinds[k].Chance) from += kinds[k++].Chance;
             if (k == kinds.Count) continue;
             var kind = kinds[k];
-            if (x - last[k] < kind.Apart || x - lastX <= Math.Max(lastLevel, kind.Level) || y - kind.Clear < 0) continue;
+            if (x + kind.Across - 1 >= spawnX - SpawnClear && x <= spawnX + SpawnClear) continue;
+            // Its columns, the last plant's and the level ground round each kept apart.
+            if (x - last[k] < kind.Apart || x - lastX < lastAcross + Math.Max(lastLevel, kind.Level) || y - kind.Clear < 0) continue;
             bool room = true;
-            int reach = Math.Max(kind.Level, kind.Room);
-            for (int dx = -reach; dx <= reach && room; dx++)
+            int reach = Math.Max(kind.Level, kind.Room), right = kind.Across - 1;
+            for (int dx = -reach; dx <= reach + right && room; dx++)
             {
                 int cx = x + dx;
-                room = cx >= 0 && cx < w && top[cx] >= y && (Math.Abs(dx) > kind.Level || top[cx] == y && Soil(cx, y));
+                room = cx >= 0 && cx < w && top[cx] >= y && (dx < -kind.Level || dx > kind.Level + right || top[cx] == y && Soil(cx, y));
             }
             if (!room) continue;
             flora.Add(((y - 1) * w + x, kind.Id));
-            (last[k], lastX, lastLevel) = (x, x, kind.Level);
+            (last[k], lastX, lastLevel, lastAcross) = (x, x, kind.Level, kind.Across);
         }
         return flora;
     }
@@ -263,6 +271,9 @@ public static class Terrain
         var patches = new Field(seed, CavePatch, t.PatchWave, t.PatchWave, w);
         var patch = new int[w];
         bool Open(int x, int y) => rows[y][x] == '.';
+        // A growth in the rock is two by two from its own cell (0104): its block, not its cell, is what lies beside a cave.
+        bool BlockBeside(int x, int y) => x + 1 < w - 1 && y + 1 < h - 1
+            && (Open(x, y - 1) || Open(x + 1, y - 1) || Open(x, y + 2) || Open(x + 1, y + 2) || Open(x - 1, y) || Open(x - 1, y + 1) || Open(x + 2, y) || Open(x + 2, y + 1));
         for (int y = 1; y < floor; y++)
         {
             Array.Fill(last, int.MinValue / 2);
@@ -277,7 +288,7 @@ public static class Terrain
                     if (y + 1 < floor && rows[y + 1][x] == '#') Try(Content.Flora.Anchor.Floor, x, y, cell);
                     if (rows[y - 1][x] == '#') Try(Content.Flora.Anchor.Ceiling, x, y, cell);
                 }
-                else if (rows[y][x] == '#' && codes[cell] == stone && (Open(x, y - 1) || Open(x, y + 1) || Open(x - 1, y) || Open(x + 1, y)))
+                else if (rows[y][x] == '#' && codes[cell] == stone && BlockBeside(x, y))
                     Try(Content.Flora.Anchor.Rock, x, y, cell);
             }
         }
@@ -302,18 +313,32 @@ public static class Terrain
             }
             if (k < 0) return;
             var kind = kinds[k];
-            if (x - last[k] < kind.Apart || (on != Content.Flora.Anchor.Rock && x - lastOn[(int)on] <= 1)) return;
+            // Its columns, and on a floor or a ceiling a column's gap after the last of its anchor's.
+            int right = kind.Across - 1;
+            if (x - last[k] < kind.Apart || (on != Content.Flora.Anchor.Rock && x - lastOn[(int)on] < 2 * kind.Across)) return;
             if (kind.Shallow is int shallow && y - top[x] > shallow) return;
             if (kind.Floors && !Open(x, y - 1)) return;
-            int step = on == Content.Flora.Anchor.Ceiling ? w : -w, hold = on == Content.Flora.Anchor.Ceiling ? -1 : 1;
-            if (on != Content.Flora.Anchor.Rock)
+            if (x + right >= w) return;
+            if (on == Content.Flora.Anchor.Rock)
             {
-                for (int i = 0, at = cell; i < kind.Tall; i++, at += step)
-                    if (at < 0 || at >= w * h || rows[at / w][x] != '.' || taken[at]) return;
+                // Its cells all stone walls, down and right of its own, none another's.
+                for (int dx = 0; dx <= right; dx++)
+                    for (int i = 0, at = cell + dx; i < kind.Tall; i++, at += w)
+                        if (at >= w * h || rows[at / w][x + dx] != '#' || codes[at] != stone || taken[at]) return;
+                for (int dx = 0; dx <= right; dx++)
+                    for (int i = 0, at = cell + dx; i < kind.Tall; i++, at += w) taken[at] = true;
+            }
+            else
+            {
+                int step = on == Content.Flora.Anchor.Ceiling ? w : -w, hold = on == Content.Flora.Anchor.Ceiling ? -1 : 1;
+                for (int dx = 0; dx <= right; dx++)
+                    for (int i = 0, at = cell + dx; i < kind.Tall; i++, at += step)
+                        if (at < 0 || at >= w * h || rows[at / w][x + dx] != '.' || taken[at]) return;
                 // Only on whole walls, never a slope, as Terraria's: no growth floats over a slope or stands in one.
-                for (int dx = -kind.Wide; dx <= kind.Wide; dx++)
+                for (int dx = -kind.Wide; dx <= kind.Wide + right; dx++)
                     if (x + dx < 0 || x + dx >= w || !Open(x + dx, y) || rows[y + hold][x + dx] != '#') return;
-                for (int i = 0, at = cell; i < kind.Tall; i++, at += step) taken[at] = true;
+                for (int dx = 0; dx <= right; dx++)
+                    for (int i = 0, at = cell + dx; i < kind.Tall; i++, at += step) taken[at] = true;
             }
             into.Add((cell, kind.Id));
             (last[k], lastOn[(int)on]) = (x, x);
@@ -369,7 +394,8 @@ public static class Terrain
                         Content.Ruins.Lamp => Content.Ruins.SpireLamp,
                         _ => null,
                     };
-                    if (kind != null) flora.Add((cell, kind));
+                    // A growth the prefab draws is two by two (0104): set once, at its block's bottom-left on a floor, else its top-left.
+                    if (kind != null && dx % 2 == 0 && dy % 2 == (Content.Flora.Get(kind).On == Content.Flora.Anchor.Floor ? 1 : 0)) flora.Add((cell, kind));
                 }
             foreach (var (kind, px, py) in Content.Ruins.SpireFurnishing) flora.Add(((y0 + py) * w + x0 + px, kind));
             spires.Add((x0, y0));
@@ -385,18 +411,21 @@ public static class Terrain
     private static bool Stamped((int Cell, string Kind) p, int w, int left, int right, Func<int, int, bool> inBox)
     {
         int x = p.Cell % w;
-        if (x < left - 1 || x > right + 1) return false;
         var kind = Content.Flora.Get(p.Kind);
-        if (kind.On == Content.Flora.Anchor.Rock) return inBox(p.Cell, 1);
+        if (x + kind.Across - 1 < left - 1 || x > right + 1) return false;
+        bool rock = kind.On == Content.Flora.Anchor.Rock;
         int step = kind.On == Content.Flora.Anchor.Floor ? -w : w;
-        if (inBox(p.Cell - step, 0)) return true;
-        for (int i = 0, cell = p.Cell; i < kind.Tall; i++, cell += step)
-            if (inBox(cell, 0)) return true;
+        for (int dx = 0; dx < kind.Across; dx++)
+        {
+            if (!rock && inBox(p.Cell + dx - step, 0)) return true;
+            for (int i = 0, cell = p.Cell + dx; i < kind.Tall; i++, cell += step)
+                if (inBox(cell, rock ? 1 : 0)) return true;
+        }
         return false;
     }
 
     /// <summary>How many columns either side of a home's box no spire may come into.</summary>
-    private const int HomeMargin = 2;
+    private const int HomeMargin = 4;
 
     /// <summary>
     /// The arc makers' homes (0091), stamped after the spires, last of all: <see cref="Ground.Homes"/> of them, their schemes in
@@ -467,6 +496,12 @@ public static class Terrain
         return homes;
     }
 
+    /// <summary>The columns either side of the spawn no plant stands in: two 16 px columns (0104).</summary>
+    private const int SpawnClear = 4;
+
+    /// <summary>The widest bump taken away as a spike: two 16 px columns (0104).</summary>
+    private const int Spike = 4;
+
     /// <summary>Whether <paramref name="cell"/> is soil or stone with the open above it: the top of the ground there.</summary>
     private static bool Bump(byte[] kind, int[] codes, int soil, int stone, int cell, int w) =>
         kind[cell] == 1 && (codes[cell] == soil || codes[cell] == stone) && kind[cell - w] != 1;
@@ -481,15 +516,15 @@ public static class Terrain
         int w = g.Width, h = g.Height, floor = h - g.CoreRows;
         for (int k = 0; k < g.Chasms; k++)
         {
-            int cx = Column(g, seed, ChasmAt, k, g.Chasms, g.BedrockSide + g.ChasmWide + 3);
+            int cx = Column(g, seed, ChasmAt, k, g.Chasms, g.BedrockSide + g.ChasmWide + 6);
             int deep = g.ChasmDeep / 2 + (int)((long)Lattice(seed, ChasmAt, k, 1) * (g.ChasmDeep / 2 + 1) / Whole);
-            int wide = Math.Max(2, g.ChasmWide / 2 + (int)((long)Lattice(seed, ChasmAt, k, 2) * (g.ChasmWide / 2 + 1) / Whole));
+            int wide = Math.Max(4, g.ChasmWide / 2 + (int)((long)Lattice(seed, ChasmAt, k, 2) * (g.ChasmWide / 2 + 1) / Whole));
             int bottom = Math.Min(floor - 1, top[cx] + deep);
             for (int y = 0; y <= bottom; y++)
             {
-                // It wanders a cell or two either way as it goes down, and narrows toward its foot.
-                int at = cx + Swell(Noise(seed + (uint)k, ChasmWander, y, 9), 2);
-                int across = Math.Max(1, wide * (bottom - y + deep / 2) / (deep + deep / 2));
+                // It wanders up to four cells either way as it goes down, and narrows toward its foot.
+                int at = cx + Swell(Noise(seed + (uint)k, ChasmWander, y, 18), 4);
+                int across = Math.Max(2, wide * (bottom - y + deep / 2) / (deep + deep / 2));
                 for (int x = Math.Max(g.BedrockSide, at - across / 2); x < Math.Min(w - g.BedrockSide, at - across / 2 + across); x++)
                     if (y >= top[x]) kind[y * w + x] = 2;
             }
@@ -497,10 +532,10 @@ public static class Terrain
         var row = new int[w];
         for (int k = 0; k < g.Halls; k++)
         {
-            int hx = Column(g, seed, HallAt, k, g.Halls, g.BedrockSide + g.HallWide + 1);
+            int hx = Column(g, seed, HallAt, k, g.Halls, g.BedrockSide + g.HallWide + 2);
             int rx = g.HallWide / 2 + (int)((long)Lattice(seed, HallAt, k, 1) * (g.HallWide / 2 + 1) / Whole);
             int ry = g.HallTall / 2 + (int)((long)Lattice(seed, HallAt, k, 2) * (g.HallTall / 2 + 1) / Whole);
-            int highest = top[hx] + g.HallFrom, lowest = floor - 2 - ry;
+            int highest = top[hx] + g.HallFrom, lowest = floor - 4 - ry;
             if (lowest < highest) continue;
             int hy = highest + (int)((long)Lattice(seed, HallAt, k, 3) * (lowest - highest + 1) / Whole);
             long rx2 = (long)rx * rx, ry2 = (long)ry * ry;
@@ -532,8 +567,8 @@ public static class Terrain
     }
 
     /// <summary>
-    /// Where heroes beam down: on the flat column nearest the middle, the ground whole under it and beside it level,
-    /// the two cells above it open; to the left of the middle first at a tie. The middle's column when none is flat.
+    /// Where heroes beam down: on the flat column nearest the middle, the ground whole under it and two columns either side level
+    /// with it, six rows of sky over it at least; to the left of the middle first at a tie. The middle's column when none is flat.
     /// </summary>
     private static int SpawnOf(char[][] rows, int w, int h)
     {
@@ -545,9 +580,9 @@ public static class Terrain
         }
         bool Flat(int x)
         {
-            if (x < 1 || x >= w - 1) return false;
+            if (x < 2 || x >= w - 2) return false;
             int y = TopOf(x);
-            return y >= 3 && y < h && rows[y][x] == '#' && TopOf(x - 1) == y && TopOf(x + 1) == y;
+            return y >= 6 && y < h && rows[y][x] == '#' && TopOf(x - 2) == y && TopOf(x - 1) == y && TopOf(x + 1) == y && TopOf(x + 2) == y;
         }
         int middle = w / 2;
         for (int d = 0; d < w; d++)

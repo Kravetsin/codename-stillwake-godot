@@ -14,7 +14,7 @@ public class SortTests
     private static readonly int CrateSlots = Machines.Get("crate").Slots!.Value;
 
     /// <summary>A crate at the left and a furnace at the right.</summary>
-    private static Scenario Store() => new(Layout.Parse(["#KK.FF#", "#...FF#"]));
+    private static Scenario Store() => new(Layout.Parse(["#KK.FF#", "#...FF#"]), doubled: true);
 
     private static int CrateOf(Scenario w) => w.M.Grid.MachineAt(w.At(1, 0))!.Id;
     private static int FurnaceOf(Scenario w) => w.M.Grid.MachineAt(w.At(4, 0))!.Id;

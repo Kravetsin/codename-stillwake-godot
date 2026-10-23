@@ -27,7 +27,7 @@ public partial class StoreDemo : Node
         if (_session() is not var (client, m)) return;
         // The pointer rests on the bank, so its tip tells what it holds as it fills and empties.
         var bank = m.Grid.MachinesOf("capacitorBank")[0].Cell;
-        var at = GetViewport().GetCanvasTransform() * (new Vector2(bank % m.Grid.Width + 1, bank / m.Grid.Width + 1) * Render.ShipCamera.Cell);
+        var at = GetViewport().GetCanvasTransform() * (new Vector2(bank % m.Grid.Width + 2, bank / m.Grid.Width + 2) * Render.ShipCamera.Cell);
         Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at });
         if (_fed || _t < FeedAtS) return;
         _fed = true;

@@ -16,10 +16,10 @@ public class BuildingDeliveryTests
     /// <summary>What every hero in these tests carries from the start.</summary>
     private const int StockScrap = 360, StockIron = 60, StockPlate = 60, StockGear = 20, StockTube = 20;
 
-    /// <summary>A world from <paramref name="map"/> with peers 0 to 3 carrying the stock.</summary>
+    /// <summary>A world from <paramref name="map"/>, doubled (0104), with peers 0 to 3 carrying the stock.</summary>
     private static Scenario Stocked(Layout map)
     {
-        var w = new Scenario(map);
+        var w = new Scenario(map, doubled: true);
         foreach (int peer in new[] { 0, 1, 2, 3 }) w.GiveItems(peer, ("scrap", StockScrap), ("iron", StockIron), ("plate", StockPlate), ("gear", StockGear), ("tube", StockTube));
         return w;
     }
@@ -36,14 +36,18 @@ public class BuildingDeliveryTests
     /// <summary>The plates an iron wall takes, and the scrap a scrap one does.</summary>
     private static readonly int IronPlates = CostIn(Iron.Cost, "plate"), ScrapUnits = CostIn(Scrap.Cost, "scrap");
 
-    /// <summary>Nine cells wide: cell (x, y) is y * 9 + x.</summary>
+    /// <summary>Nine characters wide and five tall, doubled to 18 by 10 cells: a door, six cells tall, fits its room (0104).</summary>
     private const string Open = """
         #########
         #.......#
         #.......#
+        #.......#
         #########
         """;
-    private static int At(int x, int y) => y * 9 + x;
+    /// <summary>The cell of the character at (<paramref name="x"/>, <paramref name="y"/>) of a nine-wide map: its block's top-left.</summary>
+    private static int At(int x, int y) => 2 * y * 18 + 2 * x;
+    /// <summary>The cell below <paramref name="cell"/>: a block's bottom-left below its top-left.</summary>
+    private static int Below(int cell) => cell + 18;
 
     /// <summary>E on <paramref name="plan"/> by peer <paramref name="from"/>, and the tick it lands on.</summary>
     private static Scenario Press(Scenario w, int plan, int from = 0) => w.Do(new Work(plan) { From = from }).Run();
@@ -82,35 +86,38 @@ public class BuildingDeliveryTests
     [Fact]
     public void BlueprintsTakeAnItemAsEachPartOfTheirWorkBeginsAndStopWhereAPartIsNotPaidFor()
     {
+        // A wall cell costs one item now (0104): a tank's five, four plates and a tube, make the parts.
+        var tank = Machines.Get("tank");
+        int parts = tank.Cost.Sum(c => c.Count), plates = CostIn(tank.Cost, "plate");
         var w = new Scenario(Open);
-        w.GiveItems(5, ("scrap", 1));
-        PlacePlan(w, At(1, 1), Placement.Wall("scrap"));
-        Assert.Equal((0, ScrapUnits), w.M.Building.Parts(1));
+        w.GiveItems(5, ("plate", 1));
+        PlacePlan(w, At(1, 1), Tank);
+        Assert.Equal((0, parts), w.M.Building.Parts(1));
         Press(w, 1, 5);
-        Assert.Equal([("scrap", 1)], Delivered(PlanOf(w, 1)));
-        Assert.Equal((0, 1), (Count(w, "scrap", 5), PlanOf(w, 1)!.Progress));
-        Assert.Equal((1, ScrapUnits), w.M.Building.Parts(1));
-        Assert.Equal<(string, int)>([("scrap", ScrapUnits - 1)], w.M.Building.Lacking(1));
-        // The second part begins at the build's ticks times 1/2, rounded down: 13 ticks split 6 and 7.
-        int second = Scrap.BuildTicks * 1 / ScrapUnits;
-        Assert.Equal(6, second);
+        Assert.Equal([("plate", 1)], Delivered(PlanOf(w, 1)));
+        Assert.Equal((0, 1), (Count(w, "plate", 5), PlanOf(w, 1)!.Progress));
+        Assert.Equal((1, parts), w.M.Building.Parts(1));
+        Assert.Equal<(string, int)>([("plate", plates - 1), ("tube", 1)], w.M.Building.Lacking(1));
+        // The second part begins at the build's ticks times 1/5, rounded down: 160 ticks split in fives of 32.
+        int second = tank.BuildTicks * 1 / parts;
+        Assert.Equal(32, second);
         Hold(w, 1, second - 1, 5);
         Assert.Empty(w.Refusals);
         Press(w, 1, 5);
         Assert.Equal(["items.notEnough"], Reasons(w));
         Assert.Equal("items.notEnough", w.M.Building.WorkProblem(1, 5));
         Assert.Equal(second, PlanOf(w, 1)!.Progress);
-        Assert.Equal((1, ScrapUnits), w.M.Building.Parts(1));
-        Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(At(1, 1)));
-        w.GiveItems(5, ("scrap", 1));
+        Assert.Equal((1, parts), w.M.Building.Parts(1));
+        Assert.Empty(w.M.Grid.Machines);
+        w.GiveItems(5, ("plate", plates - 1), ("tube", 1));
         Assert.Null(w.M.Building.WorkProblem(1, 5));
         Press(w, 1, 5);
-        Assert.Equal((0, second + 1), (Count(w, "scrap", 5), PlanOf(w, 1)!.Progress));
-        Assert.Equal((ScrapUnits, ScrapUnits), w.M.Building.Parts(1));
-        Assert.Empty(w.M.Building.Lacking(1));
-        Hold(w, 1, Scrap.BuildTicks - second - 1, 5);
+        Assert.Equal((plates - 2, second + 1), (Count(w, "plate", 5), PlanOf(w, 1)!.Progress));
+        Assert.Equal((2, parts), w.M.Building.Parts(1));
+        Hold(w, 1, tank.BuildTicks - second - 1, 5);
         Assert.Single(w.Refusals);
-        Assert.Equal(Scrap, w.M.Grid.WallAt(At(1, 1)));
+        Assert.Equal((0, 0), (Count(w, "plate", 5), Count(w, "tube", 5)));
+        Assert.Equal("tank", w.M.Grid.MachineAt(At(1, 1))?.Kind);
         Assert.Empty(w.M.Building.Plans);
     }
 
@@ -177,29 +184,29 @@ public class BuildingDeliveryTests
     [Fact]
     public void BlueprintsArePaidByEachWorkingHeroFromTheirOwnInventoryAsTheyReachAPart()
     {
-        // A door: two plates and a gear, three parts of its 20 ticks, begun at 0, 6 and 13.
-        var door = Builds.Get("door");
-        Assert.Equal([("plate", 2), ("gear", 1)], door.Cost);
-        Assert.Equal((6, 13), (door.BuildTicks * 1 / 3, door.BuildTicks * 2 / 3));
+        // A tank: four plates and a tube, five parts of its 160 ticks, begun every 32.
+        var tank = Machines.Get("tank");
+        Assert.Equal([("plate", 4), ("tube", 1)], tank.Cost);
         var w = new Scenario(Open);
         w.GiveItems(5, ("plate", 1));
-        w.GiveItems(6, ("plate", 9), ("gear", 9));
-        PlacePlan(w, At(1, 1), Door);
-        Hold(w, 1, 6, 5);
-        Assert.Equal((0, 6), (Count(w, "plate", 5), PlanOf(w, 1)!.Progress));
+        w.GiveItems(6, ("plate", 9), ("tube", 9));
+        PlacePlan(w, At(1, 1), Tank);
+        Hold(w, 1, 32, 5);
+        Assert.Equal((0, 32), (Count(w, "plate", 5), PlanOf(w, 1)!.Progress));
         // Out of plates at the second part: the hero who brought what it had cannot work on.
         Assert.Equal("items.notEnough", w.M.Building.WorkProblem(1, 5));
         Press(w, 1, 6);
         Assert.Equal(8, Count(w, "plate", 6));
-        // Both at work on one tick each, twice as fast; the second still pays nothing at the third part.
-        for (int t = 7; t < 13; t += 2) w.Do(new Work(1) { From = 5 }).Do(new Work(1) { From = 6 }).Run();
-        Assert.Equal(13, PlanOf(w, 1)!.Progress);
+        Press(w, 1, 6);
+        // Both at work on one tick each, twice as fast; the first still pays nothing at the third part.
+        for (int t = 34; t < 64; t += 2) w.Do(new Work(1) { From = 5 }).Do(new Work(1) { From = 6 }).Run();
+        Assert.Equal(64, PlanOf(w, 1)!.Progress);
         Assert.Empty(w.Refusals);
         Press(w, 1, 5);
         Assert.Equal(["items.notEnough"], Reasons(w));
-        Hold(w, 1, door.BuildTicks - 13, 6);
-        Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(At(1, 1)));
-        Assert.Equal((8, 8), (Count(w, "plate", 6), Count(w, "gear", 6)));
+        Hold(w, 1, tank.BuildTicks - 64, 6);
+        Assert.Equal("tank", w.M.Grid.MachineAt(At(1, 1))?.Kind);
+        Assert.Equal((6, 8), (Count(w, "plate", 6), Count(w, "tube", 6)));
     }
 
     [Fact]
@@ -210,7 +217,7 @@ public class BuildingDeliveryTests
         Assert.Empty(w.Refusals);
         var machine = Assert.Single(w.M.Grid.Machines);
         Assert.Equal(("tank", At(1, 1)), (machine.Kind, machine.Cell));
-        foreach (int cell in new[] { At(1, 1), At(2, 1), At(1, 2), At(2, 2) })
+        foreach (int cell in Enumerable.Range(0, 16).Select(i => At(1, 1) + i / 4 * 18 + i % 4))
             Assert.Equal(machine.Id, w.M.Grid.MachineAt(cell)?.Id);
         var cost = Machines.Get("tank").Cost;
         Assert.Equal((StockPlate - CostIn(cost, "plate"), StockTube - CostIn(cost, "tube")), (Count(w, "plate"), Count(w, "tube")));
@@ -258,18 +265,19 @@ public class BuildingDeliveryTests
     public void BlueprintsLetWhatWasPutInFallWhereTheyStoodWhenCancelledAMarkDropsNothing()
     {
         var w = new Scenario(Open);
-        w.GiveItems(5, ("plate", 9), ("gear", 9));
-        PlacePlan(w, At(1, 1), Door);
-        // Into the door's second part of three: two plates put in, the gear not yet.
-        Hold(w, 1, 7, 5);
+        w.GiveItems(5, ("plate", 9), ("tube", 9));
+        PlacePlan(w, At(1, 1), Tank);
+        // Into the tank's third part of five: two plates put in, the rest not yet.
+        Hold(w, 1, 33, 5);
         Assert.Equal([("plate", 2)], Delivered(PlanOf(w, 1)));
         w.Do(new CancelPlan(1) { From = 2 }).Run();
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Building.Plans);
-        // Fallen from the blueprint's cell to the floor below it.
+        // Fallen from the blueprint's cell to the floor below it, the bottom of the doubled room, a few ticks down.
+        w.Run(20);
         var lying = Assert.Single(w.M.Items.Floor);
-        Assert.Equal(("plate", 2, At(1, 2)), (lying.Item, lying.Count, lying.Cell));
-        Assert.Equal((7, 9), (Count(w, "plate", 5), Count(w, "gear", 5)));
+        Assert.Equal(("plate", 2, Below(At(1, 3))), (lying.Item, lying.Count, lying.Cell));
+        Assert.Equal((7, 9), (Count(w, "plate", 5), Count(w, "tube", 5)));
         w.Do(new Deconstruct(At(0, 1), "structure")).Run();
         w.Do(new CancelPlan(2)).Run();
         Assert.Equal(2, Lying(w, "plate"));
@@ -282,14 +290,14 @@ public class BuildingDeliveryTests
         var w = Stocked(Open).Do(new Deconstruct(At(0, 0), "structure")).Run();
         Hold(w, 1, Costs.ApartTicks(Scrap.BuildTicks));
         Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(At(0, 0)));
-        PlacePlan(w, At(0, 3), new Placement("conduit", "pipe"));
+        PlacePlan(w, At(0, 4), new Placement("conduit", "pipe"));
         Press(w, 2);
         w.Do(new CancelPlan(2)).Run();
         // Out of the hull's corner into the room's nearest cell, not up the hull to its open corner.
-        Assert.Equal(At(1, 2), Assert.Single(w.M.Items.Floor).Cell);
+        Assert.Equal(Below(At(1, 3)), Assert.Single(w.M.Items.Floor).Cell);
         w.Run(1000 / Content.Floor.SpaceDrift);
         var lying = Assert.Single(w.M.Items.Floor);
-        Assert.Equal(("tube", CostIn(Builds.Get("pipe").Cost, "tube"), At(1, 2)), (lying.Item, lying.Count, lying.Cell));
+        Assert.Equal(("tube", CostIn(Builds.Get("pipe").Cost, "tube"), Below(At(1, 3))), (lying.Item, lying.Count, lying.Cell));
         Assert.Equal(StockScrap + ScrapUnits, Count(w, "scrap"));
         Assert.Equal(StockTube, Count(w, "tube") + Lying(w, "tube"));
     }
@@ -303,17 +311,19 @@ public class BuildingDeliveryTests
         PlacePlan(w, At(1, 1), Door);
         Press(w, 1, 5);
         w.Do(new SetCreative(true)).Run();
-        PlacePlan(w, At(3, 1), IronWall);
+        // A vent of two parts, as an iron wall was before a wall cell cost one plate (0104).
+        int ventTicks = Machines.Get("vent").BuildTicks;
+        PlacePlan(w, At(3, 1), new Placement("machine", "vent"));
         Assert.Empty(w.M.Building.Lacking(2));
         Hold(w, 1, Builds.Get("door").BuildTicks - 1, 7);
-        Hold(w, 2, IronWallTicks / 2, 7);
+        Hold(w, 2, ventTicks / 2, 7);
         // Drawn as far built as its work has gone, nothing paid.
-        Assert.Equal((1, IronPlates), w.M.Building.Parts(2));
+        Assert.Equal((1, 2), w.M.Building.Parts(2));
         Assert.Empty(Delivered(PlanOf(w, 2)));
-        Hold(w, 2, IronWallTicks - IronWallTicks / 2, 7);
+        Hold(w, 2, ventTicks - ventTicks / 2, 7);
         Assert.Empty(w.Refusals);
         Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(At(1, 1)));
-        Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(At(3, 1)));
+        Assert.Equal("vent", w.M.Grid.MachineAt(At(3, 1))?.Kind);
         Assert.Equal((9, 9), (Count(w, "plate", 7), Count(w, "gear", 7)));
     }
 
@@ -434,17 +444,20 @@ public class BuildingDeliveryTests
         Enumerable.Range(0, 5).Sum(peer => Count(w, item, peer)) + Lying(w, item)
         + w.M.Building.Plans.Sum(p => p.Delivered.Where(s => s.Item == item).Sum(s => s.Count));
 
-    /// <summary>What is built of <paramref name="item"/> on the 36 cells of the map: what taking it all apart would give.</summary>
+    /// <summary>What is built of <paramref name="item"/> on the 180 cells of the doubled map: what taking it all apart would give.</summary>
     private static int Built(Scenario w, string item)
     {
-        int total = 0;
+        int total = 0, doorCells = 0;
         var grid = w.M.Grid;
-        for (int c = 0; c < 36; c++)
+        for (int c = 0; c < 180; c++)
         {
             if (grid.WallAt(c) is { } wall) total += CostIn(wall.Cost, item);
-            if (grid.StructureAt(c) is Structure.DoorClosed or Structure.DoorOpen) total += CostIn(Builds.Get("door").Cost, item);
+            if (grid.StructureAt(c) is Structure.DoorClosed or Structure.DoorOpen) doorCells++;
             if (grid.ConduitAt(c) == Conduit.Pipe) total += CostIn(Builds.Get("pipe").Cost, item);
         }
+        // A door is a piece of twelve cells (0104); doors built side by side come apart as one doorway, giving back each.
+        var door = Builds.Get("door");
+        total += CostIn(door.Cost, item) * doorCells / (door.Across * door.Tall);
         foreach (var m in grid.Machines) total += CostIn(Machines.Get(m.Kind).Cost, item);
         return total;
     }
@@ -480,7 +493,7 @@ public class BuildingDeliveryTests
     {
         var placement = Gen.Elements(IronWall, Placement.Wall("scrap"), Door, new Placement("conduit", "pipe"), Tank);
         // The hull's cells too: taken apart, it lets what lies about out into space.
-        var cell = Gen.Choose(0, 35);
+        var cell = Gen.Choose(0, 179);
         var sender = Gen.Choose(0, 4);
         var id = Gen.Frequency((3, Gen.Choose(1, 5)), (2, Gen.Choose(1, 20)));
         var step = Gen.OneOf(

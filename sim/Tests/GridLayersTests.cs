@@ -13,7 +13,7 @@ public class GridLayersTests
         var w = new Scenario("""
              #D-v
             .=Hdx
-            """);
+            """, cells: true);
         var g = w.M.Grid;
         int scrap = Materials.Get("scrap").Code;
         Assert.Equal(new[] { 0, 1, 4, 0, 0, 0, 2, 3, 5, 0 }, g.StructureLayer.ToArray());

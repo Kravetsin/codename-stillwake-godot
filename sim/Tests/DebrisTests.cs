@@ -40,10 +40,11 @@ public class DebrisTests
 
     /// <summary>
     /// Space all round a small hull, wide and tall enough that neither its lead nor its margin reaches
-    /// the grid's edges: the hull spans columns 70 to 75 and rows 25 to 30.
+    /// the grid's edges; doubled (0104), the hull spans columns 140 to 151 and rows 50 to 61.
     /// </summary>
     private static readonly Layout Roomy = Layout.Parse(
-        Enumerable.Range(0, 60).Select(y => y is >= 25 and <= 30 ? (new string(' ', 70) + "######").PadRight(160) : new string(' ', 160)).ToArray());
+        Enumerable.Range(0, 60).Select(y => y is >= 25 and <= 30 ? (new string(' ', 70) + "######").PadRight(160) : new string(' ', 160)).ToArray())
+        .Doubled();
 
     /// <summary>A piece as it was when seen: what the query hands out is live.</summary>
     private sealed record Seen(int Id, string Item, int X, int Y, int Speed, int Start, int End)
@@ -104,8 +105,8 @@ public class DebrisTests
         Assert.Empty(Pieces(w));
         w.Run();
         var piece = Assert.Single(Pieces(w));
-        int start = (75 + DebrisSpec.Lead) * 1000 + 500;
-        Assert.Equal((1, start, start, (70 - DebrisSpec.Lead) * 1000), (piece.Id, piece.X, piece.Start, piece.End));
+        int start = (151 + DebrisSpec.Lead) * 1000 + 500;
+        Assert.Equal((1, start, start, (140 - DebrisSpec.Lead) * 1000), (piece.Id, piece.X, piece.Start, piece.End));
         Assert.Contains(piece.Item, DebrisSpec.Kinds.Select(k => k.Item));
     }
 
@@ -113,13 +114,13 @@ public class DebrisTests
     public void BeginsAWorldWithItsMapsPiecesAlreadyAlongTheirWayThenSpawnsOnItsBeat()
     {
         var w = new Scenario(Roomy with { DebrisAtStart = 6 }).Run();
-        int start = (75 + DebrisSpec.Lead) * 1000 + 500, end = (70 - DebrisSpec.Lead) * 1000;
+        int start = (151 + DebrisSpec.Lead) * 1000 + 500, end = (140 - DebrisSpec.Lead) * 1000;
         Assert.Equal([1, 2, 3, 4, 5, 6], Pieces(w).Select(p => p.Id));
         Assert.All(Pieces(w), p => Assert.Equal((start, end), (p.Start, p.End)));
         Assert.All(Pieces(w), p => Assert.InRange(p.X, end, start));
-        Assert.All(Pieces(w), p => Assert.InRange(p.Y / 1000, 25 - DebrisSpec.Margin, 30 + DebrisSpec.Margin));
+        Assert.All(Pieces(w), p => Assert.InRange(p.Y / 1000, 50 - DebrisSpec.Margin, 61 + DebrisSpec.Margin));
         // Spread along the way, not bunched at its start.
-        Assert.Contains(Pieces(w), p => p.X < start - 30_000);
+        Assert.Contains(Pieces(w), p => p.X < start - 60_000);
         w.Run(DebrisSpec.Every - 1);
         Assert.Equal(start, Pieces(w).Single(p => p.Id == 7).X);
     }
@@ -166,8 +167,9 @@ public class DebrisTests
     [Fact]
     public void FliesInTheHullsRowsAndItsMarginAndInEveryOneOfThem()
     {
-        var rows = Watch(new Scenario(Roomy), 40000).Select(p => p.Y).Distinct().Order();
-        int top = 25 - DebrisSpec.Margin, bottom = 30 + DebrisSpec.Margin;
+        // Twice the rows of the 16 px cell: twice the watch, and twice again for a piece that stays out twice as long.
+        var rows = Watch(new Scenario(Roomy), 160000).Select(p => p.Y).Distinct().Order();
+        int top = 50 - DebrisSpec.Margin, bottom = 61 + DebrisSpec.Margin;
         Assert.Equal(Enumerable.Range(top, bottom - top + 1).Select(y => y * 1000 + 500), rows);
     }
 
@@ -175,10 +177,10 @@ public class DebrisTests
     public void FollowsAShipGrownTallerFoundAgainOnEveryBeat()
     {
         var w = new Scenario(Roomy);
-        w.Do(new Place(55 * 160 + 72, Placement.Wall("scrap"))).Run();
-        var rows = Watch(w, 20000).Select(p => p.Y / 1000).ToList();
-        Assert.Equal(59, rows.Max());
-        Assert.Equal(25 - DebrisSpec.Margin, rows.Min());
+        w.Do(new Place(110 * 320 + 144, Placement.Wall("scrap"))).Run();
+        var rows = Watch(w, 80000).Select(p => p.Y / 1000).ToList();
+        Assert.Equal(119, rows.Max());
+        Assert.Equal(50 - DebrisSpec.Margin, rows.Min());
     }
 
     [Fact]
@@ -209,9 +211,9 @@ public class DebrisTests
     [Fact]
     public void SpawnsAgainWithinItsBeatAndJitterNeverMoreThanItsCapWithIdsNeverReused()
     {
-        // A hull so wide that pieces stay out long enough to reach the cap.
+        // A hull so wide that pieces stay out long enough to reach the cap, doubled for the doubled lead and drift.
         var w = new Scenario(Layout.Parse(
-            Enumerable.Range(0, 8).Select(y => y == 4 ? new string(' ', 75) + new string('#', 151) : "").ToArray()));
+            Enumerable.Range(0, 8).Select(y => y == 4 ? new string(' ', 75) + new string('#', 151) : "").ToArray()), doubled: true);
         int last = 0, spawns = 0, gap = DebrisSpec.Every, peak = 0;
         var gaps = new HashSet<int>();
         for (int tick = 1; tick <= 8000; tick++)
@@ -233,7 +235,7 @@ public class DebrisTests
             peak = Math.Max(peak, out_.Count);
             Assert.True(out_.Count <= DebrisSpec.Max);
             Assert.Equal(out_.Select(p => p.Id).Order(), out_.Select(p => p.Id));
-            Assert.All(out_, p => Assert.True(p.X >= p.End && p.X <= p.Start && p.Y < 8000));
+            Assert.All(out_, p => Assert.True(p.X >= p.End && p.X <= p.Start && p.Y < 16000));
         }
         Assert.Equal(DebrisSpec.Max, peak);
         // The jitter at work: beats of more than one length.
@@ -611,18 +613,9 @@ public class DebrisTests
     }
 
     [Fact]
-    public void BeginsEveryPieceUnhurtAndUpgradesAnOldSavesPiecesUnhurtToo()
+    public void BeginsEveryPieceUnhurt()
     {
         Assert.All(Pieces(new Scenario(Registry.Wreck).Run()), p => Assert.Equal(0, p.Damage));
-        var old = new System.Text.Json.Nodes.JsonObject
-        {
-            ["slices"] = new System.Text.Json.Nodes.JsonObject
-            {
-                ["debris"] = new System.Text.Json.Nodes.JsonObject { ["pieces"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject { ["id"] = 3 }) },
-            },
-        };
-        var upgraded = Migrations.Steps[3 - Migrations.Oldest](old);
-        Assert.Equal(0, (int)upgraded["slices"]!["debris"]!["pieces"]![0]!["damage"]!);
     }
 
     // The harpoon reels a piece to a point (0044).
@@ -790,19 +783,9 @@ public class DebrisTests
     }
 
     [Fact]
-    public void BeginsEveryPieceUnreeledAndUpgradesAnOldSavesPiecesUnreeledToo()
+    public void BeginsEveryPieceUnreeled()
     {
         Assert.All(Pieces(new Scenario(Registry.Wreck).Run()), p => Assert.Null(p.Reel));
-        var old = new System.Text.Json.Nodes.JsonObject
-        {
-            ["slices"] = new System.Text.Json.Nodes.JsonObject
-            {
-                ["debris"] = new System.Text.Json.Nodes.JsonObject { ["pieces"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject { ["id"] = 3 }) },
-            },
-        };
-        var piece = Migrations.Steps[6 - Migrations.Oldest](old)["slices"]!["debris"]!["pieces"]![0]!.AsObject();
-        Assert.True(piece.ContainsKey("reel"));
-        Assert.Null(piece["reel"]);
     }
 
     // The README's invariants, whatever happens: a hull grown and cut down, heroes in and out of space

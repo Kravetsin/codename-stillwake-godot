@@ -79,7 +79,7 @@ public class GridLogTests
         return Prop.ForAll(gen.ToArbitrary(), t =>
         {
             var grid = new GridModule { LogCapacity = t.capacity };
-            var world = World.Create(1, Layout.Parse(t.rows), [grid, new Builder(grid, grid)]);
+            var world = World.Create(1, Layout.Parse(GridTests.WholeVents(t.rows)), [grid, new Builder(grid, grid)]);
             int size = grid.Width * grid.Height;
             if (size == 0) return true.Label("no cells");
             // Each version's layers, and the writes made by then: a command writes each of a cell's layers at most once.
@@ -116,20 +116,22 @@ public class GridLogTests
     [Fact]
     public void NamesTheLayersOfACellBuiltAndNotOneOpenedAndClosedAgain()
     {
-        var w = new Scenario(Layout.Parse(["#D#  ", "#..V "]));
+        var w = new Scenario(Layout.Parse(["#D#  ", "#..V "]), doubled: true);
         int before = w.M.Grid.Version;
-        w.Do(new SetDoor(1, true)).Run().Do(new SetDoor(1, false)).Do(new Place(3, Placement.Wall("iron"))).Run();
-        Assert.Equal([new CellChange(3, GridLayers.Structure | GridLayers.Material)], w.M.Grid.ChangedSince(before));
+        w.Do(new SetDoor(w.At(1, 0), true)).Run().Do(new SetDoor(w.At(1, 0), false)).Do(new Place(w.At(3, 0), Placement.Wall("iron"))).Run();
+        Assert.Equal([new CellChange(w.At(3, 0), GridLayers.Structure | GridLayers.Material)], w.M.Grid.ChangedSince(before));
         int built = w.M.Grid.Version;
-        w.Do(new ClearAt(8, "machine")).Do(new Place(4, Placement.BackWall("iron"))).Do(new ClearAt(7, "machine")).Run();
-        Assert.Equal([new CellChange(4, GridLayers.Back | GridLayers.BackMaterial), new CellChange(8, GridLayers.Machine)], w.M.Grid.ChangedSince(built));
+        var vent = w.M.Grid.Footprint("vent", w.At(3, 1))!;
+        w.Do(new ClearAt(w.At(3, 1), "machine")).Do(new Place(w.At(4, 0), Placement.BackWall("iron"))).Do(new ClearAt(w.At(2, 1), "machine")).Run();
+        Assert.Equal([new CellChange(w.At(4, 0), GridLayers.Back | GridLayers.BackMaterial), .. vent.Select(c => new CellChange(c, GridLayers.Machine))],
+            w.M.Grid.ChangedSince(built));
         Assert.Empty(w.M.Grid.ChangedSince(w.M.Grid.Version)!);
     }
 
     [Fact]
     public void KnowsNoVersionFromBeforeALoad()
     {
-        var w = new Scenario("#D#\n#.#");
+        var w = new Scenario("#D#\n#.#", cells: true);
         w.Do(new SetDoor(1, true)).Run().Do(new SetDoor(1, false)).Run();
         int version = w.M.Grid.Version;
         Assert.Equal(2, version);

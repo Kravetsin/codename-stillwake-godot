@@ -21,7 +21,7 @@ public partial class BodyView : Node2D
     /// <summary>How much of the suit's colour the beacon's light gives while on.</summary>
     private const float BeaconLight = 0.85f;
     /// <summary>Where the beacon sits above the point the body lies on: atop the chest of a figure on its back, in cells.</summary>
-    private const float BeaconUp = 0.9f;
+    private const float BeaconUp = 1.8f;
 
     private sealed class Shown(Figure figure, Glow glow)
     {

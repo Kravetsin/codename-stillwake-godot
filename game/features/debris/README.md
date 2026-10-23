@@ -9,7 +9,7 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   `Ui.AimedPiece` — the piece the crew's hands would catch or chop; `Ui.Heroes` — who most likely
   struck a piece; `Session.Progress`.
 - **Only what the camera sees (0052):** a piece gets a picture only while its middle is within the
-  camera's view (`ShipCamera.View`) and 4 cells round it, and only those are drawn between ticks and
+  camera's view (`ShipCamera.View`) and 8 cells round it, and only those are drawn between ticks and
   faded. Pictures come from two pools, a wreck's and a small piece's, that grow to the most ever on
   screen and never free, 48 small and 32 wrecks made in `_Ready` so a cloud drifting in makes none;
   every debris texture is loaded there too. Only wrecks take the cracking
@@ -56,7 +56,7 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   autopilot leaves the hero outside the airlock; there the pointer goes to it and E catches it,
   planks landing in the hotbar. With `--host` the demo is hosted, so a guest
   sees the catch.
-- **Recording:** `-- --fly` (`FarDemo`, `HeroAutopilot.Fly`): the big world, the hero floating 30 rows
+- **Recording:** `-- --fly` (`FarDemo`, `HeroAutopilot.Fly`): the big world, the hero floating 60 rows
   above what is built with a jetpack worn and canisters breathed when the suit runs low; it waits 25 s
   while the far field spawns round it (0052), then flies right, up and back through it. `--far=N` puts N
   far pieces out round the start through the save; with `--edge=N` it starts past the field instead.
@@ -71,7 +71,7 @@ with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (00
   asteroids held still either side of it, and a canister breathed when the suit runs half empty. The drill bores the right one till it breaks into rock (12 s),
   then the left one till the belt is flat and the drill winds down, red "Batteries flat"; then the axe chops
   that one till it breaks (0054). `--manual` leaves the script off.
-- **Recording:** `-- --sortie` (`SortieDemo`): the big world, the hero 140 rows above the hull, in the far field's
+- **Recording:** `-- --sortie` (`SortieDemo`): the big world, the hero 280 rows above the hull, in the far field's
   outermost tier, with a jetpack, the drill and the axe, ten canisters and two full batteries; one of each derelict
   and of the asteroid's new kinds round it, still (0056). The drill bores the engine block till it breaks into its
   loot (18 s). `--manual` leaves the script off, to try them by hand.

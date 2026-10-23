@@ -26,7 +26,7 @@ public class PowerTests
 {
     /// <summary>
     /// Sixteen wide: a solar panel out in space above a sealed room, its generator piped to a vent. Two
-    /// rows of space between; the room's right wall is past a span from the generator.
+    /// rows of space between; the room's right wall is past a span from the generator. Drawn a character a 16 px cell, doubled (0104).
     /// </summary>
     private static readonly string[] Rows =
     [
@@ -38,7 +38,11 @@ public class PowerTests
         "################",
     ];
     private static readonly string[] Under = ["", "", "", "", " ---"];
-    private static int At(int x, int y) => y * 16 + x;
+    private const int Width = 2 * 16;
+    /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>): its block's top-left.</summary>
+    private static int At(int x, int y) => 2 * y * Width + 2 * x;
+    /// <summary>The four cells of the map's character at (<paramref name="x"/>, <paramref name="y"/>).</summary>
+    private static int[] Block(int x, int y) => [At(x, y), At(x, y) + 1, At(x, y) + Width, At(x, y) + Width + 1];
     private static readonly int Panel = At(0, 0), Generator = At(1, 3), Second = At(4, 3);
     private static readonly Pairs ToFirst = [((0, 0), (1, 3))];
     private static readonly int CableWire = Content.Power.CableCost.Single(c => c.Item == "wire").Count;
@@ -46,7 +50,7 @@ public class PowerTests
     private static Layout Map(Pairs? cables = null, string[]? rows = null) =>
         Layout.Parse(rows ?? Rows, Under, cables ?? ToFirst);
 
-    private static Scenario World(Pairs? cables = null, string[]? rows = null) => new(Map(cables, rows));
+    private static Scenario World(Pairs? cables = null, string[]? rows = null) => new(Map(cables, rows), doubled: true);
 
     private static int IdAt(Scenario w, int cell) => w.M.Grid.MachineAt(cell)?.Id ?? 0;
     private static int Wire(Scenario w, int peer = 0) =>
@@ -170,7 +174,8 @@ public class PowerTests
         var w = World([((2, 2), (2, 3))], torn);
         Assert.Equal(Rooms.RoomsModule.Space, w.M.Rooms.RoomAt(At(5, 2)));
         Assert.Equal(5, w.M.Power.Networks[0].Supply);
-        foreach (int x in new[] { 2, 3, 4 }) w.Do(new Place(At(x, 2), Grid.Placement.BackWall()));
+        foreach (int x in new[] { 2, 3, 4 })
+            foreach (int cell in Block(x, 2)) w.Do(new Place(cell, Grid.Placement.BackWall()));
         w.Run();
         Assert.Equal(0, w.M.Power.Networks[0].Supply);
     }
@@ -184,20 +189,21 @@ public class PowerTests
         var n = w.M.Power.Networks[0];
         Assert.Equal((5, 8, 625), (n.Supply, n.Demand, n.Satisfaction));
         Assert.Equal(625, w.M.Power.Satisfaction(IdAt(w, Second)));
-        // Unpiped, the second keeps all it makes: 187.5 a minute, thirty units in 192 ticks.
+        // Unpiped, the second keeps all it makes: 750 a minute, a hundred and twenty units in 192 ticks, four times what a
+        // 16 px cell's generator made (0104).
         const int ticks = 192;
         w.Run(ticks);
         Assert.Equal(ticks * Content.Air.GeneratorRate * 625 / 1000 / Content.Air.LeakEvery, Store(w, Second));
-        Assert.Equal(30, Store(w, Second));
+        Assert.Equal(120, Store(w, Second));
     }
 
     [Fact]
     public void RunsAGeneratorAtFullPowerAtItsRateItsFractionCarried()
     {
-        var w = new Scenario(Layout.Parse(Rows, [], ToFirst));
+        var w = new Scenario(Layout.Parse(Rows, [], ToFirst), doubled: true);
         w.Run(120);
-        // Three hundred a minute: one every four ticks.
-        Assert.Equal(30, Store(w, Generator));
+        // Twelve hundred a minute, four times a 16 px cell's (0104): one a tick.
+        Assert.Equal(120, Store(w, Generator));
     }
 
     [Fact]
@@ -222,9 +228,9 @@ public class PowerTests
     /// fast-check's small values make them; one in six in the top rows, the panel's and open space.
     /// </summary>
     private static readonly Gen<int> Cells = Gen.Frequency(
-        (3, Gen.Choose(0, 16 * 6 - 1)),
+        (3, Gen.Choose(0, Width * 12 - 1)),
         (2, Gen.Elements(At(0, 0), At(2, 0), At(1, 3), At(2, 4), At(4, 3), At(0, 3), At(8, 3), At(15, 4), At(13, 5))),
-        (1, Gen.Choose(0, 16 * 2 - 1)));
+        (1, Gen.Choose(0, Width * 4 - 1)));
 
     [Property(MaxTest = 100)]
     public Property KeepsCablesBetweenDistinctNodesInSpanOnceEachAndSatisfactionWhatSupplyAllows()
@@ -320,7 +326,7 @@ public class PowerTests
 
     // Beyond power.test.ts: resting (research's analyzer), drawing on a slot, and the map's cables.
 
-    private static Scenario Resting(Pairs? cables = null) => new(Map(cables), with: m => [new Rester(m.Power)]);
+    private static Scenario Resting(Pairs? cables = null) => new(Map(cables), with: m => [new Rester(m.Power)], doubled: true);
     private static IReadOnlyList<int> RestingIds(Scenario w) => ((PowerState)w.M.Power.Slice).Resting;
 
     [Fact]
@@ -356,7 +362,7 @@ public class PowerTests
     public void AnAnalyzerDrawsOnlyWhileItsFirstSlotHoldsSomething()
     {
         string[] rows = [.. Rows[..3], "#AA............#", "#AA............#", Rows[5]];
-        var w = new Scenario(Layout.Parse(rows, null, ToFirst));
+        var w = new Scenario(Layout.Parse(rows, null, ToFirst), doubled: true);
         int analyzer = IdAt(w, Generator);
         Assert.Equal((0, 1000), (w.M.Power.Networks[0].Demand, w.M.Power.Satisfaction(analyzer)));
         w.FillCrate(analyzer, ("scrap", 1)).Run();
@@ -379,7 +385,7 @@ public class PowerTests
         var w = new Scenario(Registry.Wreck);
         int width = w.Layout.Width;
         var (x, y) = Layout.OffsetInWorld(Registry.WreckMap.Width, Registry.WreckMap.Height);
-        int At(int cx, int cy) => (cy + y) * width + cx + x;
+        int At(int cx, int cy) => (2 * cy + y) * width + 2 * cx + x;
         var n = Assert.Single(w.M.Power.Networks);
         Assert.Equal(new[] { At(50, 17), At(50, 19), At(46, 21) }, n.Nodes);
         Assert.Equal((5, 5, 1000), (n.Supply, n.Demand, n.Satisfaction));

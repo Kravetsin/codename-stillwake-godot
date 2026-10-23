@@ -19,7 +19,12 @@ public class FurnaceTests
     private static readonly string[] Rows = ["##########", "#FF.TT...#", "#FF.TTV..#", "##########"];
     private static readonly string[] Under = ["", "    o", "    ---"];
 
-    private static int At(int x, int y) => y * 10 + x;
+    /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>): its block's top-left, doubled (0104).</summary>
+    private static int At(int x, int y) => 2 * y * 20 + 2 * x;
+    /// <summary>A hole through the hull's right wall, two cells thick: the top row of its block at (9, 1).</summary>
+    private static readonly int[] Hole = [At(9, 1), At(9, 1) + 1];
+    private static Command[] Breach() => [.. Hole.Select(c => new ClearAt(c, "structure"))];
+    private static Command[] Seal() => [.. Hole.Select(c => new Place(c, Grid.Placement.Wall()))];
     private static readonly int FurnaceAt = At(1, 1);
     private static readonly int Tank = At(4, 1);
     private static readonly int Fuel = Content.Machines.Get("furnace").FuelSlot!.Value;
@@ -31,7 +36,7 @@ public class FurnaceTests
     /// <summary>The world, its room aired, a peer 0 carrying <paramref name="carry"/>, and the furnace's machine id.</summary>
     private static (Scenario W, int Id) SetUp(params (string Item, int Count)[] carry)
     {
-        var w = new Scenario(Layout.Parse(Rows, Under))
+        var w = new Scenario(Layout.Parse(Rows, Under), doubled: true)
             .GiveItems(0, carry.Length > 0 ? carry : [("scrapChunk", 2), ("planks", 2)]);
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(FurnaceAt); i++) w.Run();
         Assert.True(w.M.Atmosphere.AiredAt(FurnaceAt));
@@ -49,6 +54,7 @@ public class FurnaceTests
 
     private static int FuelOf(Scenario w, int id) => w.M.Items.Crate(id)[Fuel]?.Count ?? 0;
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
+    private static Scenario Do(Scenario w, IEnumerable<Command> commands) { foreach (var c in commands) w.Do(c); return w; }
 
     [Fact]
     public void LightsOnlyWithSalvageToSmeltFuelAndAirUsingOneFuelUp()
@@ -139,7 +145,7 @@ public class FurnaceTests
         Put(w, id, "scrapChunk", 0);
         Assert.True(w.M.Furnace.At(id).Burning);
         // A hole in the hull: the room is space, and the fire's next breath finds none.
-        w.Do(new ClearAt(At(9, 1), "structure")).Run();
+        Do(w, Breach()).Run();
         w.Run(FurnaceContent.BreathEvery);
         var at = w.M.Furnace.At(id);
         Assert.False(at.Burning);
@@ -156,7 +162,7 @@ public class FurnaceTests
         var (w, id) = SetUp();
         Put(w, id, "planks", Fuel);
         Put(w, id, "scrapChunk", 0, 2);
-        w.Run(10).Do(new ClearAt(At(9, 1), "structure"));
+        Do(w.Run(10), Breach());
         bool wentOut = false;
         for (int i = 0; i < 3 * FurnaceContent.BreathEvery; i++)
         {
@@ -220,8 +226,8 @@ public class FurnaceTests
         w.M.Items.Inventory(0).Concat(w.M.Items.Crate(id)).Sum(s => s?.Item == item ? s.Count : 0)
         + w.M.Items.Floor.Sum(s => s.Item == item ? s.Count : 0);
 
-    /// <summary>A step of a hero at a furnace: a command, then ticks run.</summary>
-    private sealed record Step(Command Command, int Ticks);
+    /// <summary>A step of a hero at a furnace: its commands, then ticks run.</summary>
+    private sealed record Step(Command[] Commands, int Ticks);
 
     /// <summary>
     /// Items change only by moves, one fuel used up as a fire is lit, and smelting: chunks turn into
@@ -236,11 +242,11 @@ public class FurnaceTests
             from slot in Gen.Choose(0, 3)
             from dst in Gen.Elements<int?>(0, Fuel, 2, null)
             from count in Gen.Choose(1, 3)
-            select (Command)new Move(new Items.Place(slot), new Target(dst, id), count),
+            select new Command[] { new Move(new Items.Place(slot), new Target(dst, id), count) },
             from slot in Gen.Choose(0, 4)
             from count in Gen.Elements(1, 999)
-            select (Command)new Move(new Items.Place(slot, id), new Target(), count),
-            Gen.Elements<Command>(new ClearAt(At(9, 1), "structure"), new Place(At(9, 1), Grid.Placement.Wall())));
+            select new Command[] { new Move(new Items.Place(slot, id), new Target(), count) },
+            Gen.Elements(Breach(), Seal()));
         var step = from c in command from ticks in Gen.Choose(0, 150) select new Step(c, ticks);
         var steps = from n in Gen.Choose(0, 20) from s in step.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
@@ -251,7 +257,7 @@ public class FurnaceTests
             int planks = Everywhere(w, id, "planks");
             foreach (var s in all)
             {
-                w.Do(s.Command);
+                Do(w, s.Commands);
                 for (int t = 0; t <= s.Ticks; t++)
                 {
                     w.Run();

@@ -23,7 +23,7 @@ public readonly record struct Segments(double Upper, double Lower, double Width)
 public static class Rig
 {
     /// <summary>Pixels per cell at zoom 1, as the camera draws the world.</summary>
-    public const double Cell = 16;
+    public const double Cell = Camera.Cell;
 
     public const double W = (double)Spec.Width / Hero.Unit * Cell;
     public const double H = (double)Spec.Height / Hero.Unit * Cell;

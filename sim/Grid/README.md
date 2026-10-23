@@ -52,7 +52,9 @@ wall or a ceiling slope); `ClosedSides(shape)` — the sides it fills whole, as 
 (the cell's bottom, 1000, for a whole wall or a floor slope); `IsFloor(shape)`, `IsCeiling(shape)`. A ramp of ◢ rises a thousandth a thousandth, with no step between its cells or onto a
 plateau beside its top.
 
-Walls, floors, ladders and doors are one structure per cell. A machine needs every footprint cell free
+Walls, floors, ladders and doors are one structure per cell. A ladder, a door and a hatch are placed as pieces (0104), a
+ladder's 2×2, a door's 2×6, a hatch's 6×2 (`Builds.PieceOf`), every cell of one free of structure and machines, all of them
+filled at once. A machine needs every footprint cell free
 of structure and of other machines. Conduits need only a free conduit slot, and a back wall only a
 free back slot: it stands behind anything, and in space.
 
@@ -79,8 +81,11 @@ free back slot: it stands behind anything, and in space.
   kind (furnaces, analyzers, vents, tanks, generators) —, `PortsOf(machine)` — the cells where conduits meet it, from its
   kind's port offsets —, `WallAt(cell)` and `BackAt(cell)` — the `Material` of the wall or back
   wall there, null for none —, `GrownBack(cell)` — whether that back wall is a grown ground's own, unchanged since it
-  grew, false aboard, on drawn maps and for one a hero built (0084) —, `Footprint(kind, cell)` — the cells a machine of that kind would cover
-  from that top-left, null when it is no machine or does not fit —, `PlacementProblem(cell, placement)`,
+  grew, false aboard, on drawn maps and for one a hero built (0084) —, `Footprint(kind, cell)` — the cells a machine or a piece of that
+  kind would cover from that top-left, null when it is neither or does not fit —, `PieceOf(cell)` — the cells of the piece the
+  structure there is part of, taken apart as one (0104), ascending: a door cell's whole doorway, a ladder cell's two by two (its
+  columns paired from the left end of its row's run of ladder, its rows from the top of its column's), any other structure its
+  own cell, none for none —, `PlacementProblem(cell, placement)`,
   `AfterToggles(commands)` — the structure and conduit codes of just the cells the `SetDoor`s and
   `SetValve`s among the commands would change, each as it would apply and skipped where refused,
   every other cell as the world has it: what a client shows of its own toggles before their tick runs
@@ -107,6 +112,13 @@ free back slot: it stands behind anything, and in space.
 valve open/closed, machines by `Data.MachineOf`. A machine is drawn as its whole footprint; a map that
 draws part of one does not load. Every character but a space has a back wall of the default hull,
 hull walls included. A map's machines take ids 1, 2, … by their top-left cells in reading order.
+
+**A cell is 8 px** ([0104](../../docs/decisions/0104-the-cell-is-8-px.md)); maps are drawn a character a 16 px cell and doubled
+(`Layout.Doubled()`): a character's 2×2 cells all its wall, back wall, machine, ladder or door, so a doorway is two cells thick
+as its 16 px door was one; a floor
+its top row; `S` its bottom-left; a conduit its top-left and the cells toward neighbouring conduits, one cell wide, meeting the
+doubled ports. A slope does not double. The wreck, the test strip, the ruins' prefabs and test scenarios are doubled; a test
+of a rule per cell reads its map a character a cell.
 
 A map may come with its cells' materials (`Layout.Materials`, 0077): a planet's ground grown from its seed
 (`Terrain`), or a test's material map (`Layout.WithMaterials`, `Legend.Materials`: `s` soil, `t` stone, `b` bedrock, `a` the ruins' alloy, 0085, `p` the homes' plaster, 0091).
@@ -137,9 +149,10 @@ layer as runs, as ever.
   a scan of them all finds it, after any change and after a load; `Box.None` when there is none.
 - Stored codes are part of the save format: never renumber them; shapes too.
 - A shape lies only on a wall: placed with one, by a map or a placement, cleared with it (`ShapeTests`, over any building, shaped or not, taking apart and toggling).
-- A doorway is one straight run, its shape derived, never stored (`Doorways`, 0067): a door cell with a
-  door cell above or below stands in a door, joined up and down; every other lies in a hatch, joined to
-  the hatch cells either side. The client draws, hears and lights doorways by the same joins.
+- A doorway is one straight run, `Doorways.Thick` (2) cells thick (0104), its shape derived, never stored (`Doorways`, 0067): a
+  door cell in a run of more than two door cells up and down stands in a door; every other lies in a hatch. A cell joins the
+  door cells above and below it and those either side that stand as it does, so a door's two columns are one doorway, a
+  hatch's two rows another, and a hatch run stops beside a door. The client draws, hears and lights doorways by the same joins.
 
 ## Deliberately not handled
 

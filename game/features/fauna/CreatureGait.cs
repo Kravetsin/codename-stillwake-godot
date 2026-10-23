@@ -5,7 +5,7 @@ namespace Stillwake.Game.Features.Fauna;
 /// <summary>
 /// How fast a creature's legs go (0102): plain C#, tested. Its speed is the sim's, the ground it covered on the last tick, eased
 /// so a step up or a turn does not jolt its legs; its strides are counted by time at a rate that grows with that speed and is
-/// capped (<see cref="StridesAt"/>), so a flight at 15 cells a second is a gallop of long bounds rather than a blur. Times in
+/// capped (<see cref="StridesAt"/>), so a flight at 30 cells a second is a gallop of long bounds rather than a blur. Times in
 /// milliseconds, speeds in pixels a second; the same at any frame rate.
 /// </summary>
 public sealed class CreatureGait(FaunaLooks.Run run)

@@ -42,7 +42,7 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
 - **Reads:** `BuildingModule.Plants` of a cave kind (`Content.Flora.Cave`), `IGridQueries.StructureAt`, `ShapeAt` and
   `ChangedSince`, `Terrain.BandOf` for a growth's band, and where each helmet lamp shines (`HeroView.HeadLamps`, as the light
   takes it).
-- **Draws** (`CaveView.cs`) by chunks of 32 × 32 cells, those within a chunk of the view, let go past three: a chunk is two
+- **Draws** (`CaveView.cs`) by chunks of 64 × 64 cells, those within a chunk of the view, let go past three: a chunk is two
   canvas items, its pictures lit (`Lit`, at `Layers.Flora`, over the ground) and their glows added unlit (at `Layers.Flora` too, behind the heroes; the glints last of it),
   each from one atlas packed at the first look of every cave picture (`art/caves`), so a chunk is a batch for each. Some
   thirty-eight thousand growths on the first planet, no node apiece. A floor's growth is planted as a plant is, its lowest drawn row
@@ -63,8 +63,8 @@ garden: cold blue near the surface, teal and violet in the middle, warm amber an
   not kept; the spire's lens in its tip, its glass dark (`spireLamp_0`, exported from the relic page by `tools/homes-art`, 0096),
   lit over it while its relic stands by the ruins' view.
 - **Light** (`CaveLooks`): each glowing growth's one light, every piece of a kind alike, from its glow's middle, in its colour —
-  teal, violet, ice-blue, amber, rose, ember, green near the surface — at its strength and keep out to its reach (8 cells for a
-  cap or a crystal, 5 for moss, 4 for roots): the only light in a cave, so a cluster lights the walls, the floor and a hero
+  teal, violet, ice-blue, amber, rose, ember, green near the surface — at its strength and keep out to its reach (16 cells for a
+  cap or a crystal, 10 for moss, 8 for roots): the only light in a cave, so a cluster lights the walls, the floor and a hero
   round it. Always from the open (`Planting.Light`):
   one on a floor or from a ceiling held `LightOff` (3 px) off its face, one in the rock from just past its open face nearest
   its glow — a light in a wall lit only the rock round it, cut off along the face, and one on a face cast its shadow along

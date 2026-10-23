@@ -32,7 +32,7 @@ public sealed class Mote
 public sealed class AirMotes(int cell, Func<double>? random = null)
 {
     /// <summary>Motes a cell of air, and the most in rooms at once: a big ship thins out rather than costing frames.</summary>
-    public const double PerCell = 0.4;
+    public const double PerCell = 0.1;
     public const int Most = 1500;
     /// <summary>Motes in the pod's reach.</summary>
     public const int InReach = 10;
@@ -86,7 +86,7 @@ public sealed class AirMotes(int cell, Func<double>? random = null)
             {
                 var (vx, vy) = fillingVents[(int)(_random() * fillingVents.Count)];
                 double a = -Math.PI / 2 + (_random() - 0.5) * 2.2, speed = 25 + _random() * 30;
-                Add(MoteKind.Room, vx + (_random() - 0.5) * cell / 2, vy, Math.Cos(a) * speed, Math.Sin(a) * speed);
+                Add(MoteKind.Room, vx + (_random() - 0.5) * cell, vy, Math.Cos(a) * speed, Math.Sin(a) * speed);
             }
             else if (airedCells.Count > 0)
             {

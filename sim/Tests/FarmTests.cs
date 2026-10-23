@@ -25,7 +25,7 @@ public class FarmTests
     {
         string[] rows = ["PPP         ", "            ", "############", "#gg........#", "#gg.GG.....#", "#gg.GG.....#", "############"];
         IReadOnlyList<((int X, int Y) A, (int X, int Y) B)> cables = @short ? [((0, 0), (1, 3)), ((0, 0), (4, 4))] : [((0, 0), (1, 3))];
-        return new Scenario(Layout.Parse(rows, null, cables)).GiveItems(0, ("seed", 10), ("rock", 2), ("planks", 2));
+        return new Scenario(Layout.Parse(rows, null, cables), doubled: true).GiveItems(0, ("seed", 10), ("rock", 2), ("planks", 2));
     }
 
     /// <summary>A sealed room aired by a tank piped to a vent, holding a furnace, and an electric smelter on a panel of its own.</summary>
@@ -33,7 +33,7 @@ public class FarmTests
     {
         var w = new Scenario(Layout.Parse(
                 ["PPP       ", "          ", "##########", "#FF.TT.EE#", "#FF.TTVEE#", "##########"],
-                ["", "", "", "    o", "    ---"], [((0, 0), (7, 3))]))
+                ["", "", "", "    o", "    ---"], [((0, 0), (7, 3))]), doubled: true)
             .GiveItems(0, ("biomass", 4), ("seed", 2), ("planks", 2));
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 3)); i++) w.Run();
         return w;
@@ -268,7 +268,7 @@ public class FarmTests
     {
         var w = new Scenario(Layout.Parse(
                 ["PPP   PPP      ", "               ", "###############", "#OOO..........#", "#OOO.MM.YY....#", "#OOO.MM.YY....#", "###############"],
-                null, [((0, 0), (5, 4)), ((6, 0), (8, 4))]))
+                null, [((0, 0), (5, 4)), ((6, 0), (8, 4))]), doubled: true)
             .GiveItems(0, ("rock", 3), ("planks", 3));
         int former = w.M.Grid.MachinesOf("former").Single().Id;
         int pod = w.M.Grid.MachinesOf("lifepod").Single().Id, assembler = w.M.Grid.MachinesOf("assembler").Single().Id;

@@ -20,9 +20,9 @@ public partial class FloorLayer : Node2D
     private const int Unit = 1000;
     private const float Cell = ShipCamera.Cell;
     /// <summary>How big a stack is drawn, as a share of a cell, and its rim round it, as a share of the picture.</summary>
-    private const float Size = 0.6f, RimSize = 1.18f;
+    private const float Size = 1.2f, RimSize = 1.18f;
     /// <summary>How far apart stacks at rest in one cell are drawn, as a share of a cell.</summary>
-    private const float Spread = 0.35f;
+    private const float Spread = 0.7f;
     /// <summary>A stack at rest rises this many pixels off the line it lies on and back, over this many ms: alive, not part of the floor.</summary>
     private const float Bob = 1.5f;
     private const double BobMs = 1600;

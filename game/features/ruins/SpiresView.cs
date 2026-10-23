@@ -67,7 +67,7 @@ public partial class SpiresView : Node2D
         _seconds += delta;
         if (_building.Plants.Count != _count) Follow();
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();
-        var near = view.Grow(8 * Cell);
+        var near = view.Grow(16 * Cell);
         foreach (var s in _spires) s.InView = near.Intersects(s.Bounds);
         Strikes();
         _owed = Math.Min(_owed + delta, 0.25);
@@ -117,21 +117,22 @@ public partial class SpiresView : Node2D
         var kind = Spec.Flora.Get(Spec.Ruins.Cradle);
         var (bx, by) = HomesLooks.BoxAt(Spec.Ruins.Cradle, kind.On, relic.Cell % w, relic.Cell / w, kind.Across, kind.Tall);
         var corner = new Vector2(bx, by);
-        int chamberFloor = (y0 + Spec.Ruins.Spire.Count - 2) * Cell;
+        int chamberFloor = (y0 + Spec.Ruins.Spire.Count - 4) * Cell;
         var far = new List<Vector2>();
-        // The chamber's metal round the cradle: its walls' inner faces, the ledge over its left, the slab at its right, the cache.
-        for (int y = (y0 + 23) * Cell + 2; y < chamberFloor; y += 6)
+        // The chamber's metal round the cradle: its walls' inner faces, the ledge over its left, the slab at its right, the cache;
+        // at Spire's cells, its drawing's doubled (0104).
+        for (int y = (y0 + 46) * Cell + 2; y < chamberFloor; y += 6)
         {
-            far.Add(new Vector2((x0 + 1) * Cell, y));
-            far.Add(new Vector2((x0 + 8) * Cell, y));
+            far.Add(new Vector2((x0 + 2) * Cell, y));
+            far.Add(new Vector2((x0 + 16) * Cell, y));
         }
-        for (int x = (x0 + 1) * Cell + 4; x < (x0 + 4) * Cell; x += 8) far.Add(new Vector2(x, (y0 + 23) * Cell));
-        for (int x = (x0 + 6) * Cell + 2; x < (x0 + 8) * Cell; x += 8) far.Add(new Vector2(x, Slab(x0, y0).Y));
-        far.Add(new Vector2((x0 + 1) * Cell + 8, chamberFloor - 12));
+        for (int x = (x0 + 2) * Cell + 4; x < (x0 + 8) * Cell; x += 8) far.Add(new Vector2(x, (y0 + 46) * Cell));
+        for (int x = (x0 + 12) * Cell + 2; x < (x0 + 16) * Cell; x += 8) far.Add(new Vector2(x, Slab(x0, y0).Y));
+        far.Add(new Vector2((x0 + 2) * Cell + 8, chamberFloor - 12));
         var sparks = new RelicSparks(_random, RelicArt.Cradle, corner, far, chamberFloor, small: false);
         var spire = new Spire(relic.Cell, x0, y0, corner, sparks, Roots(relic.Cell, sparks.Core.X, chamberFloor + 6))
         {
-            Bounds = new Rect2(x0 * Cell - 8 * Cell, (y0 - RelicLooks.PillarCells) * Cell, 25 * Cell, (RelicLooks.PillarCells + Spec.Ruins.Spire.Count + 9) * Cell),
+            Bounds = new Rect2(x0 * Cell - 16 * Cell, (y0 - RelicLooks.PillarCells) * Cell, 50 * Cell, (RelicLooks.PillarCells + Spec.Ruins.Spire.Count + 18) * Cell),
         };
         return spire;
     }
@@ -170,7 +171,10 @@ public partial class SpiresView : Node2D
     }
 
     /// <summary>The near corner of the slab at the chamber's right, the relic's nearest metal: where its last discharge goes.</summary>
-    private static Vector2 Slab(int x0, int y0) => new((x0 + 6) * Cell + 1, (y0 + Spec.Ruins.Spire.Count - 4) * Cell);
+    private static Vector2 Slab(int x0, int y0) => new((x0 + 12) * Cell + 1, (y0 + Spec.Ruins.Spire.Count - 8) * Cell);
+
+    /// <summary>The middle of the flue down the spire's middle, the light's: its drawn column 4, our columns 8 and 9 (0104).</summary>
+    private static float Flue(int x0) => (x0 + 9) * Cell;
 
     /// <summary>How much a spire still burns: 1 while its relic stands and while it sparks out, then going dark.</summary>
     private double Burns(Spire s)
@@ -201,7 +205,7 @@ public partial class SpiresView : Node2D
         if (s.Sparks.Step(_seconds)) Flash(s, s.Sparks.Core, 1);
         if (Burns(s) > 0 && _random.NextDouble() < RelicLooks.Motes)
         {
-            float cx = (s.X0 + 4) * Cell + Cell / 2f;
+            float cx = Flue(s.X0);
             s.Motes.Add(new Mote(cx + (float)(_random.NextDouble() - 0.5) * RelicLooks.BeamWide * 0.8f, s.Sparks.Core.Y - (float)_random.NextDouble() * 20,
                 -(float)(10 + _random.NextDouble() * 16), (float)(2 + _random.NextDouble() * 3)));
         }
@@ -240,7 +244,7 @@ public partial class SpiresView : Node2D
         var core = s.Sparks.Core;
         Vector2? nearest = null;
         foreach (var h in heroes)
-            if (h.X >= 0 && h.DistanceTo(core) < (Spec.Hero.Reach / 1000f + 2) * Cell && (nearest == null || h.DistanceTo(core) < nearest.Value.DistanceTo(core))) nearest = h;
+            if (h.X >= 0 && h.DistanceTo(core) < (Spec.Hero.Reach / 1000f + 4) * Cell && (nearest == null || h.DistanceTo(core) < nearest.Value.DistanceTo(core))) nearest = h;
         if (nearest is { } hero) s.Sparks.Zap(hero + new Vector2((float)(_random.NextDouble() * 6 - 3), -(float)(_random.NextDouble() * 10)));
         _zap.PlayAt(nearest ?? core, 1 + (float)(_random.NextDouble() * 0.16 - 0.08), 0);
     }
@@ -258,8 +262,8 @@ public partial class SpiresView : Node2D
             var core = s.Sparks.Core;
             float relic = s.Taken ? burns * (float)s.Sparks.Fade : burns;
             if (relic > 0) _lights.Add(new LightSource(core.X, core.Y, RelicLooks.Light, RelicLooks.CradleStrength * (float)hum * relic, RelicLooks.CradleReach, RelicLooks.LightKeep, 1, RelicLooks.LightSize));
-            float cx = (s.X0 + 4) * Cell + Cell / 2f;
-            for (float y = core.Y - 30; y > s.Y0 * Cell + Cell; y -= RelicLooks.ShaftEvery)
+            float cx = Flue(s.X0);
+            for (float y = core.Y - 30; y > s.Y0 * Cell + 2 * Cell; y -= RelicLooks.ShaftEvery)
                 if (view.Grow(RelicLooks.ShaftReach * Cell).HasPoint(new Vector2(cx, y)))
                     _lights.Add(new LightSource(cx, y, RelicLooks.Light, RelicLooks.ShaftStrength * burns * (float)(0.85 + 0.15 * hum), RelicLooks.ShaftReach, RelicLooks.ShaftKeep, 1, RelicLooks.LightSize));
             if (Lens(s) && view.Grow(RelicLooks.LensReach * Cell).HasPoint(new Vector2(cx, s.Y0 * Cell + 8)))
@@ -286,7 +290,7 @@ public partial class SpiresView : Node2D
     }
 
     /// <summary>Whether a spire's lens still stands in its tip: dug out, it throws no pillar.</summary>
-    private bool Lens(Spire s) => _building.PlantAt(s.Y0 * _grid.Width + s.X0 + 4)?.Kind == Spec.Ruins.SpireLamp;
+    private bool Lens(Spire s) => _building.PlantAt(s.Y0 * _grid.Width + s.X0 + 8)?.Kind == Spec.Ruins.SpireLamp;
 
     private void Paint(Painter on, Coat coat)
     {
@@ -330,7 +334,7 @@ public partial class SpiresView : Node2D
     /// <summary>The beam up the light well, from over the relic to the lens: one lit column, its motes rising.</summary>
     private void Beam(Painter on, Spire s, float burns)
     {
-        float cx = (s.X0 + 4) * Cell + Cell / 2f, bottom = s.Sparks.Core.Y - 12, top = s.Y0 * Cell + 2;
+        float cx = Flue(s.X0), bottom = s.Sparks.Core.Y - 12, top = s.Y0 * Cell + 2;
         float half = RelicLooks.BeamWide / 2f, a = RelicLooks.BeamAlpha * burns * (float)(0.8 + 0.2 * Hum(_seconds));
         float[] at = [-half, -half * 0.3f, 0, half * 0.3f, half];
         float[] alpha = [0, a * 0.7f, a, a * 0.7f, 0];
@@ -346,10 +350,10 @@ public partial class SpiresView : Node2D
     /// <summary>The lens alight and the pillar it throws into the sky, seen from any hill round.</summary>
     private void Pillar(Painter on, Spire s, float burns)
     {
-        var lens = new Vector2((s.X0 + 4) * Cell - 4, s.Y0 * Cell - 4);
+        var lens = new Vector2((s.X0 + 8) * Cell - 4, s.Y0 * Cell - 4);
         on.DrawTexture(_lensGlow, lens, new Color(1, 1, 1, burns));
         on.DrawTexture(_lens, lens, new Color(1, 1, 1, burns));
-        float cx = (s.X0 + 4) * Cell + Cell / 2f, foot = s.Y0 * Cell + 1, top = (s.Y0 - RelicLooks.PillarCells) * Cell;
+        float cx = Flue(s.X0), foot = s.Y0 * Cell + 1, top = (s.Y0 - RelicLooks.PillarCells) * Cell;
         float flicker = burns * (float)(0.75 + 0.25 * Hum(_seconds) + (_random.NextDouble() - 0.5) * 0.1);
         float mid = foot + (top - foot) * 0.3f, wf = RelicLooks.PillarFoot / 2f, wt = RelicLooks.PillarTop / 2f, wm = wf + (wt - wf) * 0.3f;
         var c0 = Rgb((220, 205, 255), RelicLooks.PillarAlpha * flicker);

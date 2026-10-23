@@ -11,7 +11,7 @@ and `Work`.
 | ----------------- | ---------------------------------------------------------------------------------------------- | ----- |
 | `Tools.cs`        | the cards and tabs, `CostOf`, `OverlayFor`, `TabFor`, `LayersFor`, `Known`, the pipette's `CardAt` (`tools.ts`); how a plan joins what is beside it, `LinksOf`, `StubsOf` | no    |
 | `PlanHand.cs`     | the card in hand and the plan out, kept in step with `Ui.Hand` and `Ui.OverlayOn` (`tools.ts`'s stores) | no    |
-| `Drag.cs`         | a drag's line of cells and what the card or removal would do in each (`drag.ts`)               | no    |
+| `Drag.cs`         | a drag's line of cells, laid with the brush, and what the card or removal would do in each (`drag.ts`) | no    |
 | `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
 | `BuildingView.cs` | plans as ghosts in marching dashes along their silhouettes turning real as they are built, marks in red dashes turning into their red ghost as they are taken down, ghosts, the tips, the buttons, the pipette, plan work | yes |
 | `BuildGlow.cs`    | the light of work on plans (0075): spark bursts, glints, the molten spot with its smoke and shimmer, the cut's line, a finished plan's sweep | yes |
@@ -23,8 +23,8 @@ Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, 
 pointer; `Hands`: every view of this player's hands wired together, the building first to take the
 buttons; `PointerTip`), `game/i18n/En.cs` (the words), `game/render/` (`Buttons`/`WorldButtons`: the mouse
 as the world reads it; `BlueprintArt`/`PlanTiles`: the ship's own tiles for plans, ghosts and
-thumbnails; `PlanCut`/`BuiltParts`: where a plan being built turns real, and its real share drawn lit;
-`Blueprint`: how planned pipes, doors and walls join their neighbours (a planned door is drawn a door or a hatch by `DoorShape`, 0067), which the crew's aim
+thumbnails, a card's at the art's 16 px whatever the cell (0104); `PlanCut`/`BuiltParts`: where a plan being built turns real, and its real share drawn lit;
+`Blueprint`: how planned pipes and walls join their neighbours (a planned door, hatch or ladder is its piece whole, 0104), which the crew's aim
 outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`), and the
 tablet's slide and its screen coming on (`TabletMotion`, warm for 1.5 s after it is put away, 0073), by which the wrist
 computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`), both in `game/shared/`. The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
@@ -58,6 +58,16 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - **A surface's build list** (0076): only the cards the kind of the hero's surface allows are shown
   (`Tools.Allowed`, by `Registry.Rules`; the cable as `cable`), nor picked by Q: on the test strip, the structure tab
   alone, without pipes, machines or cables. A plan for anything else the sim refuses `building.notHere`.
+- **A stroke is laid with the brush** (`Shared/Brush`, `Builds.Brush` cells a side, 2): at each point of a drag its
+  stamp (`Drag.StampOf`) round the cell corner nearest the pointer, so a stroke builds as much per area as one 16 px cell
+  did. Walls and back walls take the square; a floor a row as wide in the pointer's row, one cell thick as a doubled map lays
+  it; a pipe, a valve and a machine one cell, as a pipe run is one cell thick and a footprint is placed once; a removal one cell.
+  Each cell is its own `PlacePlan`, each stamp's ascending, none twice, each judged alone (`Drag.StrokeOf`). Ctrl held is the
+  precise mode: one cell, as before. The ghost in hand shows the stamp.
+- **Pieces are placed whole** (0104), Ctrl or not: a ladder's 2×2, laid along a drag a piece's length a step, so a shaft grows
+  two cells at a time; a door's 2×6 round the pointer where the stroke began, a hatch's 6×2 (`Drag.Oriented`) when the stroke
+  runs further across than down. Each is one `PlacePlan` at its top-left, drawn, ghosted and marked as its whole picture from
+  there, as a machine is; a removal on any of its cells marks the whole piece.
 - Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still
@@ -170,7 +180,7 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   streaks each fanned down-biased from its side facing the nearest hero within a little past the hands'
   reach and toward that hero (`Tools.SparksOf`, the heroes from `Ui.Heroes`, set by `crew`); with none
   near, from its middle, upward. Aboard they fall and bounce once off the first wall or floor under them
-  (six cells at most), in space they drift. Each burst glints at the tip and flickers a light there. The
+  (twelve cells at most), in space they drift. Each burst glints at the tip and flickers a light there. The
   tip glows as a molten spot, hotter the longer its plan is worked (0.006 a 60 Hz frame, cooling 0.012
   once no burst came for 250 ms), lighting round it, faint smoke rising and the air over it shimmering
   (`render/Shimmer.cs`). The cut where a blueprint turns real (0063) is a thin line of sky light bleeding

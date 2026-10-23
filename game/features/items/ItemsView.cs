@@ -93,7 +93,7 @@ public partial class ItemsView : Node2D
             {
                 var stack = items.Floor.First(s => s.Id == id);
                 _popups.Add(stack.Item, items.PickUpAmount(client.Id, id));
-                _flights.Fly(stack.Item, new Vector2(stack.X, stack.Y) / 1000 * ShipCamera.Cell - new Vector2(0, 0.4f * ShipCamera.Cell));
+                _flights.Fly(stack.Item, new Vector2(stack.X, stack.Y) / 1000 * ShipCamera.Cell - new Vector2(0, 0.8f * ShipCamera.Cell));
                 client.Send(new PickUp(id));
                 _pick.Play(spot.Floats);
             }

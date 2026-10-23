@@ -18,7 +18,7 @@ public class StationInputsTests
     private static Scenario World()
     {
         string[] rows = ["PPP         ", "            ", "############", "#MM.OOO....#", "#MM.OOO....#", "#...OOO....#", "############"];
-        return new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3))])).GiveItems(0, ("iron", 40));
+        return new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3))]), doubled: true).GiveItems(0, ("iron", 40));
     }
 
     private static int Former(Scenario w) => w.M.Grid.MachinesOf("former").Single().Id;
@@ -217,7 +217,7 @@ public class StationInputsTests
     [Fact]
     public void RefusesAnEndlessSwitchOfAPaidEntryOfNoneAndAtWhatIsNoQueuedStation()
     {
-        var w = new Scenario(Layout.Parse(["PPP         ", "            ", "############", "#MM.FF.....#", "#MM.FF.....#", "############"], null, [((0, 0), (1, 3))]))
+        var w = new Scenario(Layout.Parse(["PPP         ", "            ", "############", "#MM.FF.....#", "#MM.FF.....#", "############"], null, [((0, 0), (1, 3))]), doubled: true)
             .GiveItems(0, ("iron", 40));
         int former = Former(w), furnace = w.M.Grid.MachinesOf("furnace").Single().Id;
         w.Do(new Craft(former, "gear", 2)).Run();

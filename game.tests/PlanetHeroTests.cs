@@ -9,11 +9,11 @@ namespace Stillwake.Game.Tests;
 /// <summary>The hero controller on a planet (0076): its lower gravity, and no floating anywhere, the open sky included.</summary>
 public class PlanetHeroTests
 {
-    private const int Unit = Hero.Unit;
+    private const int Unit = Hero.Unit, Block = HeroTests.Block;
     private static readonly HeroInput Still = new(0, 0, false), Right = Still with { X = 1 }, Jump = Still with { Jump = true };
 
     /// <summary>
-    /// A hall twelve cells tall, the hero at its left on the floor, a ledge <paramref name="high"/> cells high three
+    /// A hall twelve characters tall, the hero at its left on the floor, a ledge <paramref name="high"/> characters high three
     /// columns to its right; the hall's world and the ship of it under <paramref name="rules"/>.
     /// </summary>
     private static (Ship Ship, Hero Hero) Ledge(int high, Surfaces.Kind rules)
@@ -21,7 +21,7 @@ public class PlanetHeroTests
         var rows = new[] { "########" }.Concat(Enumerable.Repeat("#......#", 12)).Append("########").ToArray();
         for (int y = 13 - high; y <= 12; y++) rows[y] = "#...####";
         rows[12] = "#S." + rows[12][3..];
-        var world = new TestWorld(Layout.Parse(rows));
+        var world = new TestWorld(Layout.Parse(rows).Doubled());
         var ship = Ship.Of(world.M.Grid, world.M.Rooms, rules: rules);
         return (ship, Hero.At(ship, world.M.Crew.Spawn));
     }
@@ -48,16 +48,17 @@ public class PlanetHeroTests
     }
 
     [Fact]
-    public void OnThePlanetAJumpClearsSixCellsNotSevenWhereAboardItClearsThreeAndStepsUpOntoFour()
+    public void OnThePlanetAJumpReachesTwelveCellsNotFourteenWhereAboardItClearsSixAndStepsUpOntoEight()
     {
         var ship = Surfaces.Ship;
         var planet = Surfaces.TestStrip;
-        Assert.Equal((13 - 3) * Unit, Landed(3, ship));
-        // Four with the ledge assist (0092): a held jump falls 46 short of it, inside the drawn foot's reach.
-        Assert.Equal((13 - 4) * Unit, Landed(4, ship));
-        Assert.Equal(13 * Unit, Landed(5, ship));
-        Assert.Equal((13 - 6) * Unit, Landed(6, planet));
-        Assert.Equal(13 * Unit, Landed(7, planet));
+        Assert.Equal((13 - 3) * Block, Landed(3, ship));
+        // Eight cells with the ledge assist (0092): a held jump falls 102 short of them, inside the drawn foot's reach.
+        Assert.Equal((13 - 4) * Block, Landed(4, ship));
+        Assert.Equal(13 * Block, Landed(5, ship));
+        // Twelve on the planet with the assist too: 402 short, as its gravity rounds to 29 (0104).
+        Assert.Equal((13 - 6) * Block, Landed(6, planet));
+        Assert.Equal(13 * Block, Landed(7, planet));
     }
 
     [Fact]
@@ -70,15 +71,15 @@ public class PlanetHeroTests
             """).Step(new OpenSurface(Surfaces.TestStrip.Id));
         var m = Registry.On(world.World, 1);
         var ship = Ship.Of(m.Grid, m.Rooms, rules: m.Rules);
-        int width = m.Grid.Width, sky = 5 * width + 20;
+        int width = m.Grid.Width, sky = 10 * width + 40;
         Assert.False(ship.Space(sky));
         Assert.True(Ship.Of(world.M.Grid, world.M.Rooms).Space(0));
 
         var falling = Hero.At(ship, sky);
         var landed = HeroTests.Settle(ship, falling, Still);
-        Assert.Equal((falling.X, 30 * Unit), (landed.X, landed.Y));
+        Assert.Equal((falling.X, 60 * Unit), (landed.X, landed.Y));
         // Thrusting up with a jetpack worn lifts nothing: it falls all the same, untethered.
         var thrusting = HeroTests.Settle(ship, falling, Still with { Jetpack = true, Thrust = new Point(0, -Unit) });
-        Assert.Equal((falling.X, 30 * Unit, null), (thrusting.X, thrusting.Y, thrusting.Anchor));
+        Assert.Equal((falling.X, 60 * Unit, null), (thrusting.X, thrusting.Y, thrusting.Anchor));
     }
 }

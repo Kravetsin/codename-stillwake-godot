@@ -77,7 +77,7 @@ public static partial class En
         ["gear.screwdriver"] = "Screwdriver",
         ["gear.screwdriver.about"] = "Hold RMB on a plan to build it. Always at hand; better tools will go in this slot.",
         ["hint.build"] = "Drag: plan · hold RMB: build · MMB: remove · Q: pick · B: close",
-        ["hint.structure"] = "Drag: plan · R: slope · hold RMB: build · MMB: remove · Q: pick · B: close",
+        ["hint.structure"] = "Drag: plan · Ctrl: 1 cell · R: slope · RMB: build · MMB: remove · Q: pick · B: close",
         ["hint.air"] = "Drag: plan · hold RMB: build · MMB: remove pipes, machines · Q: pick · B: close",
         ["hint.power"] = "Drag: move peg, plug · Cable: lay · MMB: cut · hold RMB: build · B: close",
         ["build.tab.structure"] = "Structure",

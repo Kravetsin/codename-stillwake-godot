@@ -16,7 +16,11 @@ namespace Stillwake.Sim.Tests;
 public class PlanetYieldsTests
 {
     private const int W = 8;
+    /// <summary>The drawn map's cell at (<paramref name="x"/>, <paramref name="y"/>): where its growths are listed, before it doubles.</summary>
     private static int At(int x, int y) => y * W + x;
+
+    /// <summary>The lower row of the drawn character at (<paramref name="x"/>, <paramref name="y"/>): a floor growth's own cell, the wall a ceiling's hangs from.</summary>
+    private static int Bottom(Scenario w, int x, int y) => w.At(x, y) + w.Layout.Width;
 
     /// <summary>
     /// A cave in stone: a geode in the left wall at (0, 1), an ice crystal hanging at (3, 1), a teal cap at (2, 2), an amber
@@ -36,7 +40,7 @@ public class PlanetYieldsTests
     {
         Flora = [(At(0, 1), "geode"), (At(3, 1), "crystalIceHang"), (At(2, 2), "glowcapTeal"), (At(3, 2), "crystalAmber"),
             (At(5, 2), "glowcapViolet"), (At(6, 2), "stalagmite"), (At(7, 2), "veinCopper")],
-    });
+    }, doubled: true);
 
     private static readonly string Axe = Weapons.Axe.Item;
 
@@ -56,7 +60,8 @@ public class PlanetYieldsTests
     [Fact]
     public void ADugCopperVeinGivesItsOreToTheDiggerWithItsRock()
     {
-        var w = DigOut(Cave(), At(7, 2));
+        var w = Cave();
+        DigOut(w, w.At(7, 2));
         Assert.Empty(w.Refusals);
         Assert.Equal((2, 1), (Count(w, "copperOre"), Count(w, "rock")));
         Assert.DoesNotContain("veinCopper", Kinds(w));
@@ -64,15 +69,19 @@ public class PlanetYieldsTests
     }
 
     [Fact]
-    public void ADugGeodeGivesSixCrystals() =>
-        Assert.Equal(6, Count(DigOut(Cave(), At(0, 1)), "crystal"));
+    public void ADugGeodeGivesSixCrystals()
+    {
+        var w = Cave();
+        Assert.Equal(6, Count(DigOut(w, w.At(0, 1)), "crystal"));
+    }
 
     [Fact]
     public void BreakingTheFloorUnderACrystalOrTheCeilingOverOneGivesItToTheDigger()
     {
-        var w = DigOut(Cave(), At(3, 3));
+        var w = Cave();
+        DigOut(w, w.At(3, 3));
         Assert.Equal((1, 0), (Count(w, "crystal"), Count(w, "ice")));
-        DigOut(w, At(3, 0));
+        DigOut(w, Bottom(w, 3, 0));
         Assert.Equal(1, Count(w, "ice"));
         Assert.DoesNotContain("crystalAmber", Kinds(w));
         Assert.DoesNotContain("crystalIceHang", Kinds(w));
@@ -84,32 +93,33 @@ public class PlanetYieldsTests
     public void AHitOnATealCapGivesBiomassOnAVioletOneSporesAndOnAStalagmiteNothing()
     {
         var w = Cave();
-        w.Do(new Dig(At(2, 2), Axe)).Do(new Dig(At(5, 2), Axe)).Do(new Dig(At(6, 2), Axe)).Run();
+        w.Do(new Dig(w.At(2, 2), Axe)).Do(new Dig(w.At(5, 2), Axe)).Do(new Dig(w.At(6, 2), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal((2, 1), (Count(w, "biomass"), Count(w, "spore")));
         Assert.Equal(3, w.M.Items.Totals(0).Sum(t => t.Count));
-        Assert.Equal(["geode", "crystalIceHang", "crystalAmber", "veinCopper"], Kinds(w));
+        // By own cell: the vein's is its block's top row, the amber crystal's its block's bottom (0104).
+        Assert.Equal(["geode", "crystalIceHang", "veinCopper", "crystalAmber"], Kinds(w));
     }
 
     [Fact]
     public void WhatAFullInventoryCannotTakeFallsWhereTheGrowthWas()
     {
         var w = Cave().GiveItems(0, ("scrap", Content.Items.Get("scrap").Stack * Inventory.Slots));
-        w.Do(new Dig(At(2, 2), Axe)).Run();
-        DigOut(w, At(7, 2));
+        w.Do(new Dig(w.At(2, 2), Axe)).Run();
+        DigOut(w, w.At(7, 2));
         var floor = w.M.Items.Floor.Select(s => (s.Item, s.Count, s.Cell)).OrderBy(s => s.Item, StringComparer.Ordinal);
-        Assert.Equal([("biomass", 2, At(2, 2)), ("copperOre", 2, At(7, 2)), ("rock", 1, At(7, 2))], floor);
+        Assert.Equal([("biomass", 2, Bottom(w, 2, 2)), ("copperOre", 2, w.At(7, 2)), ("rock", 1, w.At(7, 2))], floor);
     }
 
     [Fact]
     public void AFelledAcaciaGivesPlanksABushASeedAndASurfaceRockRock()
     {
         var w = Meadow();
-        Fell(w, At(1, 0));
-        Fell(w, At(4, 1));
+        Fell(w, w.At(1, 0));
+        Fell(w, w.At(4, 1));
         Assert.Equal((10, 1), (Count(w, "planks"), Count(w, "seed")));
         // The rock's soil dug from under it: it goes to the digger too, whole, with the soil.
-        w.Do(new Dig(At(6, 2), Axe)).Do(new Dig(At(6, 2), Axe)).Run();
+        w.Do(new Dig(w.At(6, 2), Axe)).Do(new Dig(w.At(6, 2), Axe)).Run();
         Assert.Equal((2, 1), (Count(w, "rock"), Count(w, "soil")));
         Assert.Empty(w.M.Building.Plants);
         Assert.Empty(w.M.Building.Cracks);
@@ -124,7 +134,7 @@ public class PlanetYieldsTests
         ........
         ........
         ssssssss
-        """) with { Flora = [(At(1, 1), "acacia"), (At(4, 1), "bush"), (At(6, 1), "rock")] });
+        """) with { Flora = [(At(1, 1), "acacia"), (At(4, 1), "bush"), (At(6, 1), "rock")] }, doubled: true);
 
     /// <summary>Hits <paramref name="cell"/> with the axe, a hit a tick, till what stands there is felled; the hits it took.</summary>
     private static int Fell(Scenario w, int cell)
@@ -146,11 +156,12 @@ public class PlanetYieldsTests
         int axe = Weapons.Axe.Damage, pace = Weapons.Axe.Pace;
         Assert.Equal((12, 8, 4), (Flora.Get("acacia").Strength, Flora.Get("rock").Strength, Flora.Get("bush").Strength));
         // Swings at the axe's pace, the first at once: a tree's sixth lands two and a half seconds in, three of swinging.
-        Assert.Equal(Flora.Get("acacia").Strength / axe, Fell(w, At(1, 1)));
+        Assert.Equal(Flora.Get("acacia").Strength / axe, Fell(w, w.At(1, 1)));
         Assert.Equal(3 * World.TicksPerSecond, Flora.Get("acacia").Strength / axe * pace);
-        Assert.Equal(Flora.Get("rock").Strength / axe, Fell(w, At(6, 1)));
-        Assert.Equal(Flora.Get("bush").Strength / axe, Fell(w, At(4, 1)));
-        Assert.Equal(1, Fell(Cave(), At(2, 2)));
+        Assert.Equal(Flora.Get("rock").Strength / axe, Fell(w, w.At(6, 1)));
+        Assert.Equal(Flora.Get("bush").Strength / axe, Fell(w, w.At(4, 1)));
+        var cave = Cave();
+        Assert.Equal(1, Fell(cave, cave.At(2, 2)));
     }
 
     [Fact]
@@ -158,24 +169,24 @@ public class PlanetYieldsTests
     {
         var w = Meadow();
         int axe = Weapons.Axe.Damage;
-        w.Do(new Dig(At(1, 1), Axe)).Run().Do(new Dig(At(1, 0), Axe)).Run();
+        w.Do(new Dig(w.At(1, 1), Axe)).Run().Do(new Dig(w.At(1, 0), Axe)).Run();
         // Cracked by its own cell, wherever it was hit; still standing, nothing given.
-        Assert.Equal([new Crack(At(1, 1), 2 * axe, w.M.Building.Cracks[0].At)], w.M.Building.Cracks);
+        Assert.Equal([new Crack(Bottom(w, 1, 1), 2 * axe, w.M.Building.Cracks[0].At)], w.M.Building.Cracks);
         Assert.Contains("acacia", w.M.Building.Plants.Select(p => p.Kind));
         Assert.Equal(0, Count(w, "planks"));
         w.Run(Builds.CrackHeals);
         Assert.Empty(w.M.Building.Cracks);
-        Assert.Equal(Flora.Get("acacia").Strength / axe, Fell(w, At(1, 0)));
+        Assert.Equal(Flora.Get("acacia").Strength / axe, Fell(w, w.At(1, 0)));
     }
 
     [Fact]
     public void ATreeCrackedAndThenFelledByItsGroundLeavesNoCrackBehind()
     {
         var w = Meadow();
-        w.Do(new Dig(At(1, 0), Axe)).Run();
+        w.Do(new Dig(w.At(1, 0), Axe)).Run();
         Assert.Single(w.M.Building.Cracks);
         // Its soil dug out from under it: the tree goes whole to the digger, its crack with it.
-        w.Do(new Dig(At(1, 2), Axe)).Run().Do(new Dig(At(1, 2), Axe)).Run();
+        w.Do(new Dig(w.At(1, 2), Axe)).Run().Do(new Dig(w.At(1, 2), Axe)).Run();
         Assert.Equal((10, 1), (Count(w, "planks"), Count(w, "soil")));
         Assert.Empty(w.M.Building.Cracks);
     }
@@ -193,9 +204,9 @@ public class PlanetYieldsTests
             t......t
             tttttttt
             tttttttt
-            """) with { Flora = [(At(0, 1), "mica"), (At(3, 2), "heatCrack")] });
-        DigOut(w, At(0, 1));
-        DigOut(w, At(3, 2));
+            """) with { Flora = [(At(0, 1), "mica"), (At(3, 2), "heatCrack")] }, doubled: true);
+        DigOut(w, w.At(0, 1));
+        DigOut(w, w.At(3, 2));
         Assert.Equal((1, 2, 2), (Count(w, "mica"), Count(w, "magnetite"), Count(w, "rock")));
     }
 
@@ -204,7 +215,7 @@ public class PlanetYieldsTests
     {
         var w = new Scenario(Layout.Parse(
                 ["PPP       ", "          ", "##########", "#FF.TT.EE#", "#FF.TTVEE#", "##########"],
-                ["", "", "", "    o", "    ---"], [((0, 0), (7, 3))]))
+                ["", "", "", "    o", "    ---"], [((0, 0), (7, 3))]), doubled: true)
             .GiveItems(0, ("copperOre", 4), ("planks", 2));
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 3)); i++) w.Run();
         return w;
@@ -238,7 +249,7 @@ public class PlanetYieldsTests
     /// <summary>A lifepod, a Former and an assembler, the Former and the assembler each on a panel of their own.</summary>
     private static Scenario Workshop() => new(Layout.Parse(
         ["PPP   PPP      ", "               ", "###############", "#OOO..........#", "#OOO.MM.YY....#", "#OOO.MM.YY....#", "###############"],
-        null, [((0, 0), (5, 4)), ((6, 0), (8, 4))]));
+        null, [((0, 0), (5, 4)), ((6, 0), (8, 4))]), doubled: true);
 
     [Fact]
     public void AMotorIsPressedOfARotorTwoCopperAndAMagnetiteAtTheFormerAlone()

@@ -20,6 +20,7 @@ public static class StoreWorld
     /// <summary>Where the hero carries the rock, and how much.</summary>
     public const int RockSlot = 20, Rock = 50;
 
+    /// <summary>The room, drawn a character a 16 px cell and doubled (0104).</summary>
     public static readonly Layout Map = Layout.Parse(
         [
             "                              ",
@@ -33,7 +34,7 @@ public static class StoreWorld
             "##############################",
         ],
         ["", "", "", "", "", "      o", "      ---"],
-        [((9, 1), (10, 5)), ((6, 4), (10, 5)), ((12, 4), (10, 5)), ((13, 5), (10, 5))]);
+        [((9, 1), (10, 5)), ((6, 4), (10, 5)), ((12, 4), (10, 5)), ((13, 5), (10, 5))]).Doubled();
 
     /// <summary>The world, its room aired, the bank holding <see cref="Holds"/>, the smelter fitted and the hero carrying rock.</summary>
     public static World Create(IReadOnlyList<Module> modules)

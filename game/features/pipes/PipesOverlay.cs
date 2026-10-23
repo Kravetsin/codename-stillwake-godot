@@ -25,8 +25,8 @@ public partial class PipesOverlay : Node2D
     /// <summary>A network with no oxygen coming into it, against one with: faded.</summary>
     private const float DryAlpha = 0.45f;
     /// <summary>Oxygen's dots: how fast they run, in cells a second, and how many cells apart.</summary>
-    private const double FlowSpeed = 2;
-    private const int DotEvery = 3;
+    private const double FlowSpeed = 4;
+    private const int DotEvery = 6;
     private static readonly Color ValveOpen = AsciiArt.Colour(0x4caf6a), ValveClosed = AsciiArt.Colour(0xd05050), ValveEdge = AsciiArt.Colour(0x10161d);
 
     private readonly Sketch _view = new(Layers.Overlay);

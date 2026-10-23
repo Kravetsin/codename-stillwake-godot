@@ -8,8 +8,8 @@ namespace Stillwake.Game.Tests;
 /// <summary>Poses and the head: apps/game/src/features/crew/pose.test.ts, one for one.</summary>
 public class PoseTests
 {
-    private static readonly Hero Standing = new(5500, 10000, 0, 0, false, 1);
-    private static readonly Hero Walking = Standing with { Vx = 120 };
+    private static readonly Hero Standing = new(11000, 20000, 0, 0, false, 1);
+    private static readonly Hero Walking = Standing with { Vx = 240 };
 
     private static Moment At(double travelled, double timeMs = 0) => new(travelled, timeMs);
 
@@ -21,19 +21,19 @@ public class PoseTests
     public void PoseOfReadsWhatTheHeroDoesFromHowItMoves()
     {
         Assert.Equal(Pose.Stand, PoseOf(Standing, false, false));
-        Assert.Equal(Pose.Walk, PoseOf(Standing with { Vx = 120 }, false, false));
-        Assert.Equal(Pose.Run, PoseOf(Standing with { Vx = -220 }, false, false));
-        Assert.Equal(Pose.Air, PoseOf(Standing with { Vx = 240, Vy = -420 }, false, false));
-        Assert.Equal(Pose.Air, PoseOf(Standing with { Vy = 21 }, false, false));
+        Assert.Equal(Pose.Walk, PoseOf(Standing with { Vx = 240 }, false, false));
+        Assert.Equal(Pose.Run, PoseOf(Standing with { Vx = -440 }, false, false));
+        Assert.Equal(Pose.Air, PoseOf(Standing with { Vx = 480, Vy = -840 }, false, false));
+        Assert.Equal(Pose.Air, PoseOf(Standing with { Vy = 42 }, false, false));
         Assert.Equal(Pose.Climb, PoseOf(Standing with { Climbing = true }, false, false));
-        Assert.Equal(Pose.Float, PoseOf(Standing with { Vy = 120 }, true, false));
+        Assert.Equal(Pose.Float, PoseOf(Standing with { Vy = 240 }, true, false));
     }
 
     [Fact]
     public void JumpedOnlyLeavingTheDeckOrALadderRising()
     {
-        var ship = new Ship(10, 12, cell => cell / 10 == 10 && cell % 10 < 5 ? Stillwake.Sim.Grid.Structure.Floor : Stillwake.Sim.Grid.Structure.Empty, _ => false);
-        var standing = new Hero(2500, 10000, 0, 0, false, 1);
+        var ship = new Ship(20, 24, cell => cell / 20 == 20 && cell % 20 < 10 ? Stillwake.Sim.Grid.Structure.Floor : Stillwake.Sim.Grid.Structure.Empty, _ => false);
+        var standing = new Hero(5000, 20000, 0, 0, false, 1);
         var jumped = standing.Step(new HeroInput(0, 0, true), ship);
         Assert.True(Jumped(Pose.Stand, PoseOf(jumped, false, false), jumped));
         Assert.True(Jumped(Pose.Run, Pose.Air, jumped));
@@ -43,7 +43,7 @@ public class PoseTests
         Assert.True(Jumped(Pose.Walk, Pose.Air, risen));
 
         // Walking off the floor's edge, the hero falls: no jump.
-        var atEdge = new Hero(5400, 10000, 0, 0, false, 1);
+        var atEdge = new Hero(10800, 20000, 0, 0, false, 1);
         var off = atEdge.Step(new HeroInput(1, 0, false), ship);
         for (int i = 0; i < 10 && PoseOf(off, false, false) != Pose.Air; i++) off = off.Step(new HeroInput(1, 0, false), ship);
         Assert.Equal(Pose.Air, PoseOf(off, false, false));
@@ -59,8 +59,8 @@ public class PoseTests
     [Fact]
     public void LandsOnceAJumpComesDownNotAtItsTop()
     {
-        var ship = new Ship(10, 12, cell => cell / 10 == 10 ? Stillwake.Sim.Grid.Structure.Floor : Stillwake.Sim.Grid.Structure.Empty, _ => false);
-        var hero = new Hero(2500, 10000, 0, 0, false, 1);
+        var ship = new Ship(20, 24, cell => cell / 20 == 20 ? Stillwake.Sim.Grid.Structure.Floor : Stillwake.Sim.Grid.Structure.Empty, _ => false);
+        var hero = new Hero(5000, 20000, 0, 0, false, 1);
         Pose? was = PoseOf(hero, false, false);
         int fall = 0;
         var landed = new List<int>();
@@ -73,16 +73,16 @@ public class PoseTests
             if (Landed(was, now, fall)) landed.Add(hero.Y);
             was = now;
         }
-        Assert.Equal([10000], landed);
+        Assert.Equal([20000], landed);
         Assert.False(Landed(Pose.Air, Pose.Stand, 0));
-        Assert.True(Landed(Pose.Air, Pose.Run, 21));
-        Assert.False(Landed(Pose.Walk, Pose.Stand, 400));
+        Assert.True(Landed(Pose.Air, Pose.Run, 42));
+        Assert.False(Landed(Pose.Walk, Pose.Stand, 800));
     }
 
     [Fact]
     public void PoseOfLiesOnTheFloorPassedOutAndTumblesInSpace()
     {
-        Assert.Equal(Pose.Lie, PoseOf(Standing with { Vy = 21 }, false, true));
+        Assert.Equal(Pose.Lie, PoseOf(Standing with { Vy = 42 }, false, true));
         Assert.Equal(Pose.Tumble, PoseOf(Standing, true, true));
     }
 
@@ -156,7 +156,7 @@ public class PoseTests
     [Fact]
     public void TakesRungsOverItsHeadOnALadderOneHandUpWhileTheOtherHolds()
     {
-        var l = LimbsOf(Pose.Climb, Standing with { Climbing = true, Y = 10300 }, At(0));
+        var l = LimbsOf(Pose.Climb, Standing with { Climbing = true, Y = 20600 }, At(0));
         var front = Rig.EndOf(l.FrontArm, Rig.Arm);
         var back = Rig.EndOf(l.BackArm, Rig.Arm);
         Assert.True(Math.Min(front.Y, back.Y) < -Rig.Arm.Upper);
@@ -216,7 +216,7 @@ public class PoseTests
     [Fact]
     public void StaysUprightAfloatWhicheverWayAndHoweverFastItSwims()
     {
-        int[] speeds = [-160, -80, 0, 80, 160];
+        int[] speeds = [-320, -160, 0, 160, 320];
         foreach (int vx in speeds)
             foreach (int vy in speeds)
                 foreach (int facing in new[] { -1, 1 })
@@ -231,7 +231,7 @@ public class PoseTests
     [Fact]
     public void TrailsItsLegsSwimmingAlongDrawsThemUpSinkingAndHangsThemRising()
     {
-        var across = LimbsOf(Pose.Float, Standing with { Vx = 80 }, At(0, 300));
+        var across = LimbsOf(Pose.Float, Standing with { Vx = 160 }, At(0, 300));
         // A foot in the world, the body turned forward by its tilt: behind the middle when negative.
         double Ahead(Limbs l, Bend leg)
         {
@@ -239,16 +239,16 @@ public class PoseTests
             return end.X * Math.Cos(l.Tilt) - (end.Y + Rig.H / 2 - Rig.Hip) * Math.Sin(l.Tilt);
         }
         Assert.True(Ahead(across, across.FrontLeg) < 0 && Ahead(across, across.BackLeg) < 0);
-        var sinking = LimbsOf(Pose.Float, Standing with { Vy = 80 }, At(0, 300));
+        var sinking = LimbsOf(Pose.Float, Standing with { Vy = 160 }, At(0, 300));
         Assert.True(sinking.FrontLeg.Upper > 0.6 && sinking.FrontLeg.Lower < -1);
-        var rising = LimbsOf(Pose.Float, Standing with { Vy = -80 }, At(0, 300));
+        var rising = LimbsOf(Pose.Float, Standing with { Vy = -160 }, At(0, 300));
         Assert.True(Math.Abs(rising.FrontLeg.Lower) < 0.3 && Math.Abs(rising.BackLeg.Lower) < 0.3);
     }
 
     [Fact]
     public void PaddlesWithTheFreeHandsAndKeepsTheAxeHandCalm()
     {
-        var swimming = Standing with { Vx = 80 };
+        var swimming = Standing with { Vx = 160 };
         double Range(Func<Limbs, double> of, bool wields)
         {
             var seen = Enumerable.Range(0, 12).Select(k => of(LimbsOf(Pose.Float, swimming, At(0, k * Adrift.PaddleMs / 12) with { Wields = wields }))).ToList();
@@ -284,13 +284,13 @@ public class PoseTests
     public void KeepsAFootUnderTheBodyRunningSoItNeverSinksFar()
     {
         for (double at = 0; at < Stride.Run; at += 0.1)
-            Assert.True(LimbsOf(Pose.Run, Standing with { Vx = 220 }, At(at)).Lift > -Rig.Hip * 0.18);
+            Assert.True(LimbsOf(Pose.Run, Standing with { Vx = 440 }, At(at)).Lift > -Rig.Hip * 0.18);
     }
 
     [Fact]
     public void RunsLeaningInElbowsBentKneesHigherThanItWalks()
     {
-        var run = LimbsOf(Pose.Run, Standing with { Vx = 220 }, At(Stride.Run / 2));
+        var run = LimbsOf(Pose.Run, Standing with { Vx = 440 }, At(Stride.Run / 2));
         var walk = LimbsOf(Pose.Walk, Walking, At(Stride.Walk / 2));
         Assert.True(run.Tilt > walk.Tilt);
         Assert.True(run.FrontArm.Lower > 1.2);
@@ -300,7 +300,7 @@ public class PoseTests
     [Fact]
     public void HoldsThePlanInOneHandAfloatTheOtherSwimmingOn()
     {
-        var swimming = Standing with { Vx = 80 };
+        var swimming = Standing with { Vx = 160 };
         var free = LimbsOf(Pose.Float, swimming, At(0, 300));
         var holding = LimbsOf(Pose.Float, swimming, At(0, 300) with { Plan = 0 });
         Assert.Equal(free.BackArm, holding.BackArm);
@@ -310,16 +310,16 @@ public class PoseTests
     [Fact]
     public void KeepsItsStrokeOnTheDiagonalTimedNotByDistance()
     {
-        var across = LimbsOf(Pose.Float, Standing with { Vx = 80 }, At(0, 500));
-        var diagonal = LimbsOf(Pose.Float, Standing with { Vx = 80, Vy = 80 }, At(7, 500));
+        var across = LimbsOf(Pose.Float, Standing with { Vx = 160 }, At(0, 500));
+        var diagonal = LimbsOf(Pose.Float, Standing with { Vx = 160, Vy = 160 }, At(7, 500));
         Assert.Equal(across.FrontArm, diagonal.FrontArm);
     }
 
     [Fact]
     public void BendsItsElbowsForwardOnALadderAsArmsBend()
     {
-        // The climb's cycle is a cell, read from where the hero is (0092).
-        for (int y = 10000; y < 11000; y += 50)
+        // Through the climb's cycle, read from where the hero is (0092).
+        for (int y = 20000; y < 22000; y += 100)
         {
             var l = LimbsOf(Pose.Climb, Standing with { Climbing = true, Y = y }, At(0));
             Assert.True(l.FrontArm.Lower >= 0 && l.BackArm.Lower >= 0);

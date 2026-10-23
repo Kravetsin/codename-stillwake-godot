@@ -22,7 +22,7 @@ public partial class Heard2D : AudioStreamPlayer2D
     {
         (_reach, _volumeDb) = (reach, volumeDb);
         Attenuation = 0;
-        MaxDistance = (reach.Silent + 1) * ShipCamera.Cell;
+        MaxDistance = (reach.Silent + 2) * ShipCamera.Cell;
         VolumeDb = volumeDb;
     }
 

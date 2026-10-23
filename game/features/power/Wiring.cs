@@ -27,7 +27,7 @@ public sealed record LayGrip(int Node) : Grip(Node);
 public static class Wiring
 {
     /// <summary>How near a press must be to a cable's end at a machine, in cells, to take that end.</summary>
-    private const double EndReach = 0.5;
+    private const double EndReach = 1;
     /// <summary>How finely the way back from the pointer is walked for a support, in cells.</summary>
     private const double Step = 0.25;
 

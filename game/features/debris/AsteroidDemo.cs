@@ -26,8 +26,8 @@ public partial class AsteroidDemo : CanvasLayer
     /// <summary>What the belt's battery holds, in thousandths of full: 300 ticks of the drill running, 240 of them on the first rock.</summary>
     public const int Charge = 500;
 
-    /// <summary>The asteroids, by id: cells right of the hero's middle (left when negative), and up from its cell's top, to their middles.</summary>
-    private static readonly (int Id, int Right, int Up)[] Rocks = [(1, 2_050, 300), (2, -2_050, 300)];
+    /// <summary>The asteroids, by id: thousandths of a cell right of the hero's middle (left when negative), and up from its cell's top, to their middles.</summary>
+    private static readonly (int Id, int Right, int Up)[] Rocks = [(1, 4_100, 600), (2, -4_100, 600)];
 
     /// <summary>
     /// <paramref name="world"/>, read through <paramref name="m"/>: peer 0 out at <see cref="FarDemo.StartOf"/> with the

@@ -10,13 +10,16 @@ namespace Stillwake.Game.Tests;
 /// <summary>What an analyzer's panel shows: its stage, how far it is, and what the item in it goes into once analysed.</summary>
 public class LessonsTests
 {
-    /// <summary>An analyzer in a room, cabled to a solar panel unless <paramref name="powered"/> is false; the world granted what the wreck is.</summary>
+    /// <summary>
+    /// An analyzer in a room, cabled to a solar panel unless <paramref name="powered"/> is false; the world granted what the wreck is.
+    /// Drawn ten wide and doubled (0104): the analyzer's top-left is (2, 6).
+    /// </summary>
     private static (TestWorld W, int Analyzer) World(bool powered = true)
     {
         string[] map = ["PPP       ", "          ", "##########", "#AA......#", "#AA......#", "##########"];
-        var layout = Layout.Parse(map, null, powered ? [((0, 0), (1, 3))] : []);
+        var layout = Layout.Parse(map, null, powered ? [((0, 0), (1, 3))] : []).Doubled();
         var w = new TestWorld(layout with { Known = Content.Research.StartKnown }).Give(0, ("iron", 2), ("scrap", 1));
-        return (w, w.M.Grid.MachineAt(31)!.Id);
+        return (w, w.M.Grid.MachineAt(6 * 20 + 2)!.Id);
     }
 
     private static Lessons Shown(TestWorld w, int analyzer) =>

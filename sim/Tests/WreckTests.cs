@@ -22,10 +22,15 @@ public class WreckTests
     private static readonly Layout Wreck = Registry.Wreck;
     /// <summary>Where the wreck's drawing lies in the world: its top-left cell, centred.</summary>
     private static readonly (int X, int Y) Drawn = Layout.OffsetInWorld(Registry.WreckMap.Width, Registry.WreckMap.Height);
-    /// <summary>The world's cell at (<paramref name="x"/>, <paramref name="y"/>) of the wreck as content draws it.</summary>
-    private static int At(int x, int y) => (y + Drawn.Y) * Wreck.Width + x + Drawn.X;
-    /// <summary>Room A's cells: the generator's room, where the hero wakes.</summary>
-    private static readonly int[] A = Enumerable.Range(0, 4 * 8).Select(i => At(46 + i % 8, 19 + i / 8)).ToArray();
+    /// <summary>The world's cell at (<paramref name="x"/>, <paramref name="y"/>) of the wreck as content draws it: its block's top-left, doubled (0104).</summary>
+    private static int At(int x, int y) => (2 * y + Drawn.Y) * Wreck.Width + 2 * x + Drawn.X;
+    /// <summary>The cells of the drawing's characters from (<paramref name="left"/>, <paramref name="top"/>) to (<paramref name="right"/>, <paramref name="bottom"/>), doubled.</summary>
+    private static IEnumerable<int> Blocks(int left, int right, int top, int bottom) =>
+        from y in Enumerable.Range(2 * top, 2 * (bottom - top + 1))
+        from x in Enumerable.Range(2 * left, 2 * (right - left + 1))
+        select (y + Drawn.Y) * Wreck.Width + x + Drawn.X;
+    /// <summary>Room A's cells: the generator's room, where the hero wakes; its doorways fill their blocks (0104).</summary>
+    private static readonly int[] A = [.. Blocks(46, 53, 19, 22).Order()];
     private static readonly int DoorToB = At(45, 21);
     private static readonly int Inner = At(54, 21);
     private static readonly int Outer = At(57, 21);
@@ -35,7 +40,7 @@ public class WreckTests
     private static bool Torn(int x, int y) => x < WreckRows.Rows[y].Length && WreckRows.Rows[y][x] == ' ';
     private static readonly int Panel = At(50, 17);
     /// <summary>The lifepod's top-left cell, in A against the airlock's inner doorway, and its hatch.</summary>
-    private static readonly int Pod = At(51, 20), Hatch = At(52, 22);
+    private static readonly int Pod = At(51, 20), Hatch = Pod + Content.Crew.PodHatch.Y * Wreck.Width + Content.Crew.PodHatch.X;
     /// <summary>A cell of open space, far from the hull.</summary>
     private static readonly int Space = At(10, 10);
 
@@ -66,7 +71,7 @@ public class WreckTests
         Assert.All(hull, h => Assert.True(built.Contains(h.x, h.y)));
         // The whole wreck inside the zone, a margin of the zone's space round it on every side.
         int margin = new[] { built.Left - m.Grid.Zone.Left, built.Top - m.Grid.Zone.Top, m.Grid.Zone.Right - built.Right, m.Grid.Zone.Bottom - built.Bottom }.Min();
-        Assert.True(margin >= 200, $"{margin} cells from the hull to the zone's edge");
+        Assert.True(margin >= 160, $"{margin} cells from the hull to the zone's edge");
         // A hero on a tether from the hull, half a cell in, stays clear of the grid's edge, all of its box.
         Assert.True((margin + 256) * 1000 - 500 > HeroSpec.Tether + HeroSpec.Height / 2);
     }
@@ -78,8 +83,8 @@ public class WreckTests
         World.Create(1, Wreck, m.All);
         var zone = m.Grid.Zone;
         int pod = m.Grid.MachinesOf("lifepod").Single().Cell;
-        // The drawing's 192×96 centred in the zone's 1024×512: (416, 208) in, then the pod's own (51, 20).
-        Assert.Equal((416 + 51, 208 + 20), (pod % m.Grid.Width - zone.Left, pod / m.Grid.Width - zone.Top));
+        // The drawing's 192×96, doubled to 384×192, centred in the zone's 1024×512: (320, 160) in, then the pod's own (102, 40).
+        Assert.Equal((320 + 102, 160 + 40), (pod % m.Grid.Width - zone.Left, pod / m.Grid.Width - zone.Top));
         Assert.Equal(Pod, pod);
     }
 
@@ -92,7 +97,7 @@ public class WreckTests
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
         Assert.Empty(m.Research.Analysed);
         var doors = Wreck.CellsOf('D').Select(m.Grid.StructureAt).ToList();
-        Assert.Equal(Enumerable.Repeat(Structure.DoorClosed, 9), doors);
+        Assert.Equal(Enumerable.Repeat(Structure.DoorClosed, 36), doors);
         var cells = m.Grid.Machines.Select(x => x.Cell).ToArray();
         var (panel, lamp, generator) = (cells[0], cells[1], cells[4]);
         // The generator and the lamp draw what the panel makes: in full.
@@ -230,13 +235,15 @@ public class WreckTests
     }
 
     [Fact]
-    public void LetsFourHeroesBreathingInAOutrunTheGeneratorWithinAMinute()
+    public void KeepsAWholeWithFourHeroesBreathingInItForAMinuteForABreathIsACellOfItsAir()
     {
+        // A breath is a cell of air and the cell a quarter of what it was (0104): the generator, making four times what it
+        // did, outruns four heroes now, an accepted change to retune after a playtest.
         var w = AiredWreck();
         // Out of the pod's reach, whose air would pay their breaths.
         foreach (int peer in new[] { 1, 2, 3, 4 }) w.Do(new Enter(At(45 + peer, 21)) { From = peer });
         w.Run(60 * 20);
-        Assert.True(AiredIn(w, A) < A.Length);
+        Assert.Equal(A.Length, AiredIn(w, A));
     }
 
     [Fact]
@@ -251,7 +258,7 @@ public class WreckTests
     public void CyclesTheAirlockWithoutALosingACellOfItsAir()
     {
         var w = AiredWreck();
-        var closet = new[] { 55, 56 }.SelectMany(x => new[] { 20, 21, 22 }.Select(y => At(x, y))).ToArray();
+        var closet = Blocks(55, 56, 20, 22).ToArray();
         // In: the inner doorway opened, the generator airs the closet too.
         w.Do(new SetDoor(Inner, true)).Run();
         for (int i = 0; i < 600 && AiredIn(w, closet) < closet.Length; i++) w.Run();
@@ -277,7 +284,7 @@ public class WreckTests
             {
                 if (!Torn(x, y)) continue;
                 bool edge = x == BLeft || y == BTop || y == BBottom;
-                w.Do(new Place(At(x, y), edge ? Placement.Wall("scrap") : Placement.BackWall("scrap")));
+                foreach (int cell in Blocks(x, x, y, y)) w.Do(new Place(cell, edge ? Placement.Wall("scrap") : Placement.BackWall("scrap")));
             }
         w.Run();
         var room = w.M.Rooms.RoomAt(Analyzer);

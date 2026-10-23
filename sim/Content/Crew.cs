@@ -21,10 +21,10 @@ public static class Crew
     /// <summary>The pod's air a breath: twice a calm breath, so a suit fills by the pod even in vacuum, slowly.</summary>
     public const int PodRefill = 2;
     /// <summary>How far from the pod's cells its air reaches a hero's, in cells either way: standing by it.</summary>
-    public const int PodReach = 1;
+    public const int PodReach = 2;
 
     /// <summary>The pod's hatch, where heroes are made, from its top-left cell: the middle of its bottom row.</summary>
-    public static readonly (int X, int Y) PodHatch = (1, 2);
+    public static readonly (int X, int Y) PodHatch = (2, 5);
 
     /// <summary>
     /// What a canister breathed into the suit gives it, in units, up to full: absolute, so a bigger suit

@@ -25,7 +25,7 @@ public class ChargerArcTests
         List<((int X, int Y) A, (int X, int Y) B)> cables = @short
             ? [((0, 0), (1, 3)), ((0, 0), (9, 3))]
             : [((0, 0), (3, 0)), ((3, 0), (6, 0)), ((0, 0), (1, 3))];
-        var w = new Scenario(Layout.Parse(rows, null, cables)).GiveItems(0, (Arc, 2)).Run(2);
+        var w = new Scenario(Layout.Parse(rows, null, cables), doubled: true).GiveItems(0, (Arc, 2)).Run(2);
         Assert.Equal("charger", w.M.Grid.MachineById(Charger(w))!.Kind);
         return w;
     }
@@ -139,7 +139,7 @@ public class ChargerArcTests
         Assert.Equal(["items.fitted"], Reasons(w));
         Assert.Equal(1, w.M.Items.Inventory(0).Sum(s => s?.Item == Arc ? s.Count : 0));
         // Uncabled, so only the module keeps it standing.
-        var loose = new Scenario(Layout.Parse(["#####", "#C..#", "#C..#", "#####"])).GiveItems(0, (Arc, 1));
+        var loose = new Scenario(Layout.Parse(["#####", "#C..#", "#C..#", "#####"]), doubled: true).GiveItems(0, (Arc, 1));
         Fit(loose, Charger(loose)).Do(new Deconstruct(loose.M.Grid.MachineById(Charger(loose))!.Cell, "machine")).Run();
         Assert.Equal(["building.notEmpty"], Reasons(loose));
         loose.Do(new Unfit(Charger(loose), Arc)).Do(new Deconstruct(loose.M.Grid.MachineById(Charger(loose))!.Cell, "machine")).Run();

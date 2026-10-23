@@ -53,7 +53,7 @@ public static class FaunaLooks
 {
     /// <summary>
     /// A design's gait at speed: <paramref name="Stride"/> pixels walked a stride at a slow walk, its strides lengthening as it goes
-    /// faster so it takes at most <paramref name="MostStrides"/> a second however fast it runs — a 15-cell-a-second flight a gallop
+    /// faster so it takes at most <paramref name="MostStrides"/> a second however fast it runs — a 30-cell-a-second flight a gallop
     /// of long bounds, not a blur of legs; at a full gallop its legs reach <paramref name="Reach"/> farther, its body bounds
     /// <paramref name="Bound"/> pixels a stride, rocks <paramref name="Rock"/> radians nose up and down and stretches
     /// <paramref name="Stretch"/> of its length out and gathers.
@@ -97,8 +97,8 @@ public static class FaunaLooks
     /// pixels' middle, at <see cref="LightStrength"/> of their colour, falling off by <see cref="LightKeep"/> a cell out to
     /// <see cref="LightReach"/>; the brightest <see cref="MostLights"/> spots of a creature.
     /// </summary>
-    public const float LightStrength = 1.1f, LightKeep = 0.7f;
-    public const int LightReach = 5, MostLights = 4;
+    public const float LightStrength = 1.1f, LightKeep = 0.837f;
+    public const int LightReach = 10, MostLights = 4;
 
     /// <summary>A glow map's pixels gathered into spots this many pixels square, each a light.</summary>
     public const int SpotPixels = 7;

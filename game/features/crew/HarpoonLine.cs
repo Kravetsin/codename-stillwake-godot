@@ -16,10 +16,10 @@ public sealed class HarpoonLine
     /// <summary>The share of the difference the line pays out in each step, so it slackens smoothly.</summary>
     private const double PayOut = 0.15;
     /// <summary>
-    /// How much the drum winds in a step at most, in thousandths of a cell: 24 cells a second, so slack goes in
-    /// a moment and a piece reeled at 5 a second never leaves the line loose behind it.
+    /// How much the drum winds in a step at most, in thousandths of a cell: 48 cells a second, so slack goes in
+    /// a moment and a piece reeled at 16 a second never leaves the line loose behind it.
     /// </summary>
-    private const double WindIn = 400;
+    private const double WindIn = 800;
     /// <summary>Wound in to its span, the rope is held this short of it, so it pulls straight at once, as a line under load.</summary>
     private const double Stretch = 0.7;
 

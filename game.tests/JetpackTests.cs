@@ -17,16 +17,16 @@ public class JetpackTests
     private static (Ship Ship, Hero Hero) Adrift()
     {
         var opened = HeroTests.Opened();
-        return (opened, Hero.At(opened, 40 * opened.Width + 120));
+        return (opened, Hero.At(opened, 80 * opened.Width + 240));
     }
 
     private static double Speed(Hero h) => Math.Sqrt((double)h.Vx * h.Vx + (double)h.Vy * h.Vy);
 
     [Fact]
-    public void SwimsSlowlyInSpaceAboutTwoCellsASecond()
+    public void SwimsSlowlyInSpaceAboutThreeAndAHalfCellsASecond()
     {
-        Assert.Equal(30, Spec.Swim);
-        Assert.InRange(Spec.Swim * 60 / (double)Unit, 1.7, 1.9);
+        Assert.Equal(60, Spec.Swim);
+        Assert.InRange(Spec.Swim * 60 / (double)Unit, 3.5, 3.7);
         var (ship, h) = Adrift();
         Assert.Equal(h.X + Spec.Swim, h.Step(HeroTests.Right, ship).X);
     }
@@ -45,18 +45,18 @@ public class JetpackTests
         // Down and to the left at once, along the unit vector the keys give.
         var diagonal = Hero.ThrustToward(-1, 1, h.Middle, null)!.Value;
         var turned = Adrift().Hero.Step(Worn with { Thrust = diagonal }, ship);
-        Assert.Equal((-6, 6), (turned.Vx, turned.Vy));
+        Assert.Equal((-11, 11), (turned.Vx, turned.Vy));
     }
 
     [Fact]
-    public void CoastsOnWithoutThrustSlowingToAStopOverSomeSevenCells()
+    public void CoastsOnWithoutThrustSlowingToAStopOverSomeFifteenCells()
     {
         var (ship, h) = Adrift();
         for (int i = 0; i < 60; i++) h = h.Step(Worn with { Thrust = East }, ship);
         int from = h.X, steps = 0;
         for (; h.Vx > 0 && steps < 600; steps++) h = h.Step(Worn, ship);
         Assert.Equal((0, 0), (h.Vx, h.Vy));
-        Assert.InRange(h.X - from, 6 * Unit, 9 * Unit);
+        Assert.InRange(h.X - from, 12 * Unit, 18 * Unit);
         Assert.InRange(steps, Pack.Top / Pack.Drag - 2, Pack.Top / Pack.Drag + 2);
     }
 
@@ -97,9 +97,9 @@ public class JetpackTests
     {
         var opened = HeroTests.Opened();
         var h = Hero.At(opened, HeroTests.Spawn);
-        for (int i = 0; i < 3000 && h.X < (HeroTests.Wreck.Width - 3) * Unit; i++) h = h.Step(Worn with { X = 1, Thrust = East }, opened);
+        for (int i = 0; i < 3000 && h.X < (HeroTests.Wreck.Width - 6) * Unit; i++) h = h.Step(Worn with { X = 1, Thrust = East }, opened);
         Assert.Null(h.Anchor);
-        Assert.True(h.X > HeroTests.Spawn % opened.Width * Unit + Spec.Tether + 20 * Unit);
+        Assert.True(h.X > HeroTests.Spawn % opened.Width * Unit + Spec.Tether + 40 * Unit);
         // Taken off out there, it swims on slowly, still on no tether: none is tied in open space.
         var off = h.Step(HeroTests.Right, opened);
         Assert.Null(off.Anchor);

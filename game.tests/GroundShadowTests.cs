@@ -7,7 +7,7 @@ namespace Stillwake.Game.Tests;
 /// <summary>The soft shadow walls cast on a natural back wall (0088): three tones along their open edges, none under the walls.</summary>
 public class GroundShadowTests
 {
-    private const int Cell = 16, Open = -1, Whole = Shape.None;
+    private const int Cell = Camera.Cell, Open = -1, Whole = Shape.None;
 
     private static int At(byte[] shade, int x, int y) => shade[y * Cell + x];
 
@@ -24,7 +24,7 @@ public class GroundShadowTests
         var shade = GroundShadow.Of([Whole, Open, Open, Whole, Open, Open, Whole, Open, Open])!;
         for (int y = 0; y < Cell; y++)
         {
-            Assert.Equal([3, 2, 1, 1, 0, 0], new[] { At(shade, 0, y), At(shade, 1, y), At(shade, 2, y), At(shade, 3, y), At(shade, 4, y), At(shade, 15, y) });
+            Assert.Equal([3, 2, 1, 1, 0, 0], new[] { At(shade, 0, y), At(shade, 1, y), At(shade, 2, y), At(shade, 3, y), At(shade, 4, y), At(shade, Cell - 1, y) });
         }
     }
 
@@ -32,10 +32,10 @@ public class GroundShadowTests
     public void AWallOnlyAtACornerShadowsOnlyThatCorner()
     {
         var shade = GroundShadow.Of([Open, Open, Open, Open, Open, Open, Open, Open, Whole])!;
-        Assert.True(At(shade, 15, 15) > 0);
+        Assert.True(At(shade, Cell - 1, Cell - 1) > 0);
         Assert.Equal(0, At(shade, 0, 0));
-        Assert.Equal(0, At(shade, 15, 0));
-        Assert.Equal(0, At(shade, 0, 15));
+        Assert.Equal(0, At(shade, Cell - 1, 0));
+        Assert.Equal(0, At(shade, 0, Cell - 1));
     }
 
     [Fact]
@@ -46,7 +46,8 @@ public class GroundShadowTests
         for (int y = 0; y < Cell; y++)
             for (int x = 0; x < Cell; x++)
                 if (GroundShadow.Covers(Shape.BottomRight, x, y)) Assert.Equal(0, At(shade, x, y));
-        Assert.Equal(GroundLooks.ShadowSteps, At(shade, 7, 7));
-        Assert.Equal(0, At(shade, 2, 2));
+        // Just over the diagonal of the 8 px cell (0104), and at its far corner.
+        Assert.Equal(GroundLooks.ShadowSteps, At(shade, 3, 3));
+        Assert.Equal(0, At(shade, 0, 0));
     }
 }

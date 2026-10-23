@@ -32,7 +32,7 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
 - **Air stays where it is.** Each room's cells are ordered breadth first through the room from the
   vents standing in it (piped or not), in vent id order, neighbours up, left, right, down; a room with
   no vent is ordered from its middle, the cell nearest the mean of its cells (rounded down; the
-  smallest such cell on a tie). Vents air the first empty cell of the order, and whatever takes air
+  smallest such cell on a tie). Vents air the first empty cells of the order, and whatever takes air
   takes the last aired one, so a room's air gathers around its vents and never jumps.
 - **When the rooms change, or a room's vents or their order,** the orders of the rooms they touch are found again
   and the air stays put; cells no longer in a room lose theirs. So a door opened onto an empty room
@@ -59,9 +59,8 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
      found again, both are found afresh.
   3. A room open to space loses `Air.VentLoss` cells from the far edge, and every vent in it — or
      standing in space — drains its network by `Air.VentDrain`.
-  4. Every `Air.TicksPerCell` ticks, each filling room airs the next cell of its order, paying one unit
-     from the first of its vents (in id order) whose network holds any. More vents do not fill it
-     faster.
+  4. Every `Air.TicksPerCell` ticks, each filling room airs the next `Air.CellsPerFill` (4) cells of its order (0105), paying
+     one unit each from the first of its vents (in id order) whose network holds any. More vents do not fill it faster.
   5. Every other room holding air uses its leak, through what its air touches (0020) — the material
      `Leak` of the back wall behind each of its cells and of each hull wall, or `Air.DoorLeak` for a
      door in its hull, every `Air.LeakEvery` ticks — spread over the period: on each tick what is due

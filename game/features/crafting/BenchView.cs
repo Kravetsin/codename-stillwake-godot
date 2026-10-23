@@ -64,7 +64,7 @@ public partial class BenchView : Node2D
         {
             _here.Add(m.Id);
             if (!_shown.TryGetValue(m.Id, out var s)) _shown[m.Id] = s = Made();
-            // Its picture rises a cell over its footprint, the vise over the bench (0099).
+            // Its picture rises over its footprint, the vise over the bench (0099).
             var corner = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width - ShipTiles.RiseOf(m.Kind)) * Cell;
             var slots = _items.Crate(m.Id);
             var tool = slots.Count > 0 ? slots[0] : null;
@@ -146,7 +146,7 @@ public partial class BenchView : Node2D
         (s.Burst, s.NextStrike) = (BenchLook.BurstMs, 0);
         var (lx, ly) = BenchLook.LightAt;
         Flares.Shared.Flash(corner.X + lx, corner.Y + ly, RelicLooks.Hot, RelicLooks.FlashStrength * BenchLook.FlashStrength * RelicLooks.SmallFlash,
-            BenchLook.Reach + 2, RelicLooks.LightKeep, RelicLooks.FlashDecay * 1.5);
+            BenchLook.Reach + 4, RelicLooks.LightKeep, RelicLooks.FlashDecay * 1.5);
     }
 
     /// <summary>Where the burst's arcs strike, in the bench's picture: the middle of the tool's first mount's box, else where the page drew the drill's coil.</summary>

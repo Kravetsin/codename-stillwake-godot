@@ -93,8 +93,8 @@ public class ContentTests
             Assert.True(k.Tall >= 1 && k.Wide >= 0 && k.Apart >= 1 && k.Chances.All(c => c >= 0), k.Id);
             // Grown by some chance in some band, or set by a ruin (0085) and never grown.
             Assert.Equal(!Ruins.Growths.Contains(k.Id), k.Chances.Any(c => c > 0));
-            // What lies in the rock lies in its own cell.
-            if (k.On == Flora.Anchor.Rock) Assert.True(k.Tall == 1 && k.Wide == 0, k.Id);
+            // What lies in the rock lies in its own block of two by two cells, a 16 px cell (0104).
+            if (k.On == Flora.Anchor.Rock) Assert.True(k is { Tall: 2, Across: 2, Wide: 0 }, k.Id);
             else Assert.False(k.Floors, k.Id);
         });
         // A slot draws under 10000 and walks its anchor's chances; at their most, in a hall's dense patch, they may pass it,
@@ -121,11 +121,12 @@ public class ContentTests
     public void HeroHasPositiveWholeNumberStats() => AllPositive(typeof(Hero));
 
     [Fact]
-    public void HeroFitsThroughADoorwayThreeCellsTallAndAShaftOneWideAndCentresOnALadder()
+    public void HeroFitsThroughADoorwayThreeCellsTallAndAShaftOneWideAtSixteenPixelsAndCentresOnALadder()
     {
-        Assert.True(Hero.Height > 2 * Cell);
-        Assert.True(Hero.Height < 3 * Cell);
-        Assert.True(Hero.Width < Cell);
+        // Six and two of the 8 px cells (0104).
+        Assert.True(Hero.Height > 5 * Cell);
+        Assert.True(Hero.Height < 6 * Cell);
+        Assert.True(Hero.Width < 2 * Cell);
         Assert.Equal(0, Hero.Width % 2);
     }
 
@@ -136,7 +137,7 @@ public class ContentTests
     }
 
     [Fact]
-    public void HeroJumpsOntoALedgeThreeCellsHighNotFourAndSixOnAPlanet()
+    public void HeroJumpsOntoALedgeSevenCellsHighNotEightAndElevenOnAPlanet()
     {
         // A jump held to its top, as the controller steps it: eased gravity below Hero.Apex (0089).
         static int Rise(int gravity)
@@ -150,8 +151,9 @@ public class ContentTests
             }
         }
         int aboard = Rise(Hero.Gravity), planet = Rise(PlanetTypes.First.Fall(Hero.Gravity));
-        Assert.True(aboard > 3 * Cell && aboard < 4 * Cell, $"rise {aboard}");
-        Assert.True(planet > 6 * Cell && planet < 7 * Cell, $"rise {planet}");
+        Assert.True(aboard > 7 * Cell && aboard < 8 * Cell, $"rise {aboard}");
+        // Eleven and a half, not twelve: the planet's gravity on the hero's rounds down to 29, not twice the 14 it was (0104).
+        Assert.True(planet > 11 * Cell && planet < 12 * Cell, $"rise {planet}");
     }
 
     // Items
@@ -185,7 +187,7 @@ public class ContentTests
         Assert.Empty(pod.Cost);
         Assert.Equal((0, null, null), (pod.Inputs, pod.Makes, pod.Draws));
         Assert.Contains(Legend.Map, e => Legend.MachineOf(e.Char) == "lifepod");
-        Assert.Single(Layout.Parse(Wreck.Rows).Machines(), m => m.Kind == "lifepod");
+        Assert.Single(Layout.Parse(Wreck.Rows).Doubled().Machines(), m => m.Kind == "lifepod");
         var (x, y) = Content.Crew.PodHatch;
         Assert.True(x >= 0 && x < pod.Width && y >= 0 && y < pod.Height);
     }
@@ -720,6 +722,9 @@ public class ContentTests
     [Fact]
     public void BuildsComeApartFasterThanTheyGoUpByAWholeFactor() => Assert.True(Builds.DeconstructSpeedup > 1);
 
+    [Fact]
+    public void TheBrushCoversAtLeastOneCell() => Assert.InRange(Builds.Brush, 1, 4);
+
     /// <summary>
     /// Drones (0062): every number positive and whole; a bay is a charging station of slots on the power grid, a drone an
     /// item of a stack of one holding charge, made at the assembler; a drone crosses at most a cell a tick, launches short
@@ -894,7 +899,7 @@ public class ContentTests
         Assert.Equal(crafts, Crafts.All.Where(c => c.Cost.Any(e => e.Item == Content.Ruins.Shard)).Select(c => c.Item));
         Assert.All(crafts, c => Assert.Equal(["arcBench"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(c))).Select(s => s.Machine)));
         var spec = Machines.Get("arcBench");
-        Assert.True(spec is { Tunes: true, Draws: null, Makes: null, FuelSlot: null, Inputs: 1, Width: 2, Height: 1 });
+        Assert.True(spec is { Tunes: true, Draws: null, Makes: null, FuelSlot: null, Inputs: 1, Width: 4, Height: 2 });
         Assert.Contains(spec.Cost, e => e.Item == Content.Ruins.Shard);
         // Built of what exists before it: none of its cost is made at the bench itself.
         Assert.All(spec.Cost, e => Assert.DoesNotContain(e.Item, crafts));

@@ -22,14 +22,17 @@ public class LightShapeTests
         Assert.DoesNotContain(Sources.Hatch, cells);
     }
 
-    // A room walled round with a shaped wall standing in it, every cell backed as a map draws it.
-    private static readonly string[] Room = ["#######", "#.....#", "#../..#", "#.....#", "#######"];
+    // A room walled round with a shaped wall standing in it, every cell backed as a map draws it; its walls thicker than a cell's
+    // sky reaches (<c>Light.StarSky</c>), so only the hole lets the stars in (0104).
+    private static readonly string[] Walls = ["###############", "###############", "###############", "###############"];
+    private static readonly string[] Room = [.. Walls, "####.......####", "####.......####", "####.../...####", "####.......####", "####.......####", .. Walls];
+    private const int Width = 15, SlopeX = 7, SlopeY = 6;
 
     private static (byte[] Texels, Box Region) Starlight(string[] rows, bool backed)
     {
         var m = new Registry();
         World.Create(1, Layout.Parse(rows), m.All);
-        if (!backed) m.Grid.Clear(2 * 7 + 3, "back");
+        if (!backed) m.Grid.Clear(SlopeY * Width + SlopeX, "back");
         var field = new StarField();
         field.Work(m.Grid);
         return (field.Texels, field.Region);
@@ -44,13 +47,13 @@ public class LightShapeTests
         var backed = Starlight(Room, backed: true);
         var open = Starlight(Room, backed: false);
         // Its face takes a lone hole's starlight, as a wall's face lit by it; backed, it is dark.
-        Assert.Equal((byte)(Math.Min(1, L.StarHole * L.Star.R / L.WallIn) * 255), RedAt(open, 3, 2));
-        Assert.True(RedAt(backed, 3, 2) < RedAt(open, 3, 2) / 4, $"{RedAt(backed, 3, 2)}");
+        Assert.Equal((byte)(Math.Min(1, L.StarHole * L.Star.R / L.WallIn) * 255), RedAt(open, SlopeX, SlopeY));
+        Assert.True(RedAt(backed, SlopeX, SlopeY) < RedAt(open, SlopeX, SlopeY) / 4, $"{RedAt(backed, SlopeX, SlopeY)}");
         // The room beside it keeps no more than what comes out of a wall, where a hole there would light it.
-        var hole = Starlight(["#######", "#.....#", "#.....#", "#.....#", "#######"], backed: false);
-        Assert.InRange(RedAt(open, 2, 2), 0, (int)(L.WallOut * L.StarKeep * L.Star.R * 255) + 1);
-        Assert.True(RedAt(hole, 2, 2) > 4 * RedAt(open, 2, 2), $"{RedAt(hole, 2, 2)} against {RedAt(open, 2, 2)}");
+        var hole = Starlight([.. Room.Select(r => r.Replace('/', '.'))], backed: false);
+        Assert.InRange(RedAt(open, SlopeX - 1, SlopeY), 0, (int)(L.WallOut * L.StarKeep * L.Star.R * 255) + 1);
+        Assert.True(RedAt(hole, SlopeX - 1, SlopeY) > 4 * RedAt(open, SlopeX - 1, SlopeY), $"{RedAt(hole, SlopeX - 1, SlopeY)} against {RedAt(open, SlopeX - 1, SlopeY)}");
         // Its alpha says a wall, so a picture in the open beside it blends it not.
-        Assert.Equal(255, open.Texels[((2 - open.Region.Top) * open.Region.Width + 3 - open.Region.Left) * 4 + 3]);
+        Assert.Equal(255, open.Texels[((SlopeY - open.Region.Top) * open.Region.Width + SlopeX - open.Region.Left) * 4 + 3]);
     }
 }

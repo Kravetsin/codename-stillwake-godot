@@ -23,13 +23,13 @@ public class SmelterTests
         IReadOnlyList<((int X, int Y) A, (int X, int Y) B)>? cables = !cabled ? null
             : @short ? [((0, 0), (1, 3)), ((0, 0), (4, 3))]
             : [((0, 0), (1, 3))];
-        return new Scenario(Layout.Parse(rows, null, cables)).GiveItems(0, ("rock", 4), ("silicon", 4), ("glass", 2));
+        return new Scenario(Layout.Parse(rows, null, cables), doubled: true).GiveItems(0, ("rock", 4), ("silicon", 4), ("glass", 2));
     }
 
     /// <summary>A sealed room aired by a tank piped to a vent, holding a furnace, as the furnace's tests.</summary>
     private static Scenario Furnace()
     {
-        var w = new Scenario(Layout.Parse(["##########", "#FF.TT...#", "#FF.TTV..#", "##########"], ["", "    o", "    ---"]))
+        var w = new Scenario(Layout.Parse(["##########", "#FF.TT...#", "#FF.TTV..#", "##########"], ["", "    o", "    ---"]), doubled: true)
             .GiveItems(0, ("rock", 2), ("silicon", 2), ("planks", 2));
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 1)); i++) w.Run();
         return w;

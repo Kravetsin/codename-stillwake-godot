@@ -24,7 +24,7 @@ public class HelmetLampTests
     [Fact]
     public void TheLifepodMakesOneOfAPlateTwoWireAndSiliconOnceTheyAreAnalysed()
     {
-        var w = new Scenario(Layout.Parse(Room) with { Known = [] }).GiveItems(0, ("plate", 1), ("wire", 2), ("silicon", 1));
+        var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true).GiveItems(0, ("plate", 1), ("wire", 2), ("silicon", 1));
         Assert.Contains(Lamp, Stations.Get("lifepod").Rows.SelectMany(r => r));
         Assert.Equal([("plate", 1), ("wire", 2), ("silicon", 1)], Crafts.Get(Lamp).Cost);
         Assert.False(w.M.Research.Knows(Lamp));
@@ -39,7 +39,7 @@ public class HelmetLampTests
     [Fact]
     public void IsWornOnTheHeadAloneAndDrawsNothingThere()
     {
-        var w = new Scenario(Layout.Parse(Room)).GiveItems(0, (Lamp, 1));
+        var w = new Scenario(Room).GiveItems(0, (Lamp, 1));
         w.Do(new Move(new Items.Place(0), new Target(Back), 1)).Run();
         Assert.Equal(["items.notEquipment"], w.Refusals.Select(r => r.Reason));
         w.Do(new Move(new Items.Place(0), new Target(Head), 1)).Run(100);
