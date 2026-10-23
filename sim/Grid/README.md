@@ -35,8 +35,8 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
 Every cell is whole: there are no slopes ([0106](../../docs/decisions/0106-steps-replace-slopes.md), superseding
 0069). Ground rises in steps of whole cells, which heroes and creatures step up.
 
-Walls, floors, ladders and doors are one structure per cell. A ladder, a door and a hatch are placed as pieces (0104), a
-ladder's 2×2, a door's 2×6, a hatch's 6×2 (`Builds.PieceOf`), every cell of one free of structure and machines, all of them
+Walls, floors, ladders and doors are one structure per cell. A ladder and a door segment are placed as pieces (0104), a
+ladder's 2×2, a door segment's 2×2 (`Builds.PieceOf`), every cell of one free of structure and machines, all of them
 filled at once. A machine needs every footprint cell free
 of structure and of other machines. A back wall needs only a free back slot: it stands behind anything, and in space.
 
@@ -65,8 +65,8 @@ of structure and of other machines. A back wall needs only a free back slot: it 
   wall there, null for none —, `GrownBack(cell)` — whether that back wall is a grown ground's own, unchanged since it
   grew, false aboard, on drawn maps and for one a hero built (0084) —, `Footprint(kind, cell)` — the cells a machine or a piece of that
   kind would cover from that top-left, null when it is neither or does not fit —, `PieceOf(cell)` — the cells of the piece the
-  structure there is part of, taken apart as one (0104), ascending: a door cell's whole doorway, a ladder cell's two by two (its
-  columns paired from the left end of its row's run of ladder, its rows from the top of its column's), any other structure its
+  structure there is part of, taken apart as one (0104), ascending: a ladder cell's or a door cell's two by two (its
+  columns paired from the left end of its row's run of the same, its rows from the top of its column's), any other structure its
   own cell, none for none —, `PlacementProblem(cell, placement)`,
   `AfterToggles(commands)` — the structure codes of just the cells the `SetDoor`s among the commands
   would change, each as it would apply and skipped where refused,

@@ -95,7 +95,7 @@ public sealed class ShipTiles
             pictures.Add(Picture(p.Name, Image.CreateFromData(Drawn, Drawn, false, Image.Format.Rgba8, slid), p.Hatch ? Relief.Down : Relief.Across));
         }
         // A piece whole (0104), laid from its top-left as a machine is: what a plan, a ghost or a mark of one draws.
-        foreach (var kind in (string[])["door", Builds.Hatch, "ladder"])
+        foreach (var kind in (string[])["door", "ladder"])
             pictures.Add(Picture(PieceName(kind), Made(PieceName(kind), Whole(kind)), Relief.None));
         pictures.Add(Picture("valve_open", Relief.None, centred: true));
         pictures.Add(Picture("valve_closed", Relief.None, centred: true));
@@ -266,24 +266,11 @@ public sealed class ShipTiles
         return image;
     }
 
-    /// <summary>The picture of a piece of <paramref name="kind"/> whole (0104): a ladder's, a door's or a hatch's.</summary>
+    /// <summary>The picture of a piece of <paramref name="kind"/> whole (0104): a ladder's or a door segment's.</summary>
     public static string PieceName(string kind) => $"piece_{kind}";
 
-    /// <summary>A piece of <paramref name="kind"/> whole, shut if a door: its 16 px pictures side by side over its cells.</summary>
-    private static Image Whole(string kind)
-    {
-        if (kind == "ladder") return (Image)Art("ladder").Duplicate();
-        var (across, tall) = Builds.PieceOf(kind)!.Value;
-        bool hatch = kind == Builds.Hatch;
-        var parts = DoorShape.Whole(hatch, (hatch ? across : tall) / DoorShape.Per);
-        var whole = Image.CreateEmpty(across * Cell, tall * Cell, false, Image.Format.Rgba8);
-        for (int i = 0; i < parts.Count; i++)
-        {
-            var part = Art(parts[i]);
-            whole.BlitRect(part, new Rect2I(Vector2I.Zero, part.GetSize()), hatch ? new Vector2I(i * Drawn, 0) : new Vector2I(0, i * Drawn));
-        }
-        return whole;
-    }
+    /// <summary>A piece of <paramref name="kind"/> whole, its 16 px picture: a ladder's, or a door segment's shut, a door one segment long.</summary>
+    private static Image Whole(string kind) => (Image)Art(kind == "ladder" ? "ladder" : DoorShape.Whole(false, 1)[0]).Duplicate();
 
     /// <summary>The back wall of a natural <paramref name="material"/> (0077), a tile cut a cell at a time as scrap's is.</summary>
     public static string BackName(string material) => $"back_{material}";

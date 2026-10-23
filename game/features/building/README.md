@@ -73,8 +73,8 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   line); a machine is placed once where the stroke began. Each cell is its own `PlacePlan`, ascending, none twice, each
   judged alone (`Drag.StrokeOf`). Only digging keeps the 2×2 brush (`Shared/Brush`, Ctrl for one cell).
 - **Pieces are placed whole** (0104): a ladder's 2×2, laid along a drag a piece's length a step, so a shaft grows
-  two cells at a time; a door's 2×6 round the pointer where the stroke began, a hatch's 6×2 (`Drag.Oriented`) when the stroke
-  runs further across than down. Each is one `PlacePlan` at its top-left, drawn, ghosted and marked as its whole picture from
+  two cells at a time, and a door's 2×2 segments the same: a run down is a door, a run across a hatch, one alone a
+  hatch. Each is one `PlacePlan` at its top-left, drawn, ghosted and marked as its whole picture from
   there, as a machine is; a removal on any of its cells marks the whole piece.
 - Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges

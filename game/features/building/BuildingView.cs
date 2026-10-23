@@ -111,7 +111,6 @@ public partial class BuildingView : Node2D
 
         void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
-            act = Drag.Oriented(act, from, to);
             var planned = new List<int>();
             foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building))
                 foreach (var c in verdict.Commands)
@@ -421,8 +420,6 @@ public partial class BuildingView : Node2D
         // Before a press, what the button held would do: the card's, the focused layer's removal while the right is held (0110).
         Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
-        // The door's card lays a hatch along a stroke drawn across (0104).
-        act = Drag.Oriented(act, _drag?.From ?? p, p);
         var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building);
         if (act is PlaceTool place)
         {

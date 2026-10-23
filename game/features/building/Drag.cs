@@ -41,20 +41,11 @@ public static class Drag
     }
 
     /// <summary>
-    /// What <paramref name="act"/> lays at each point of a drag, columns by rows: a ladder, a door and a hatch their piece (0104);
+    /// What <paramref name="act"/> lays at each point of a drag, columns by rows: a ladder and a door segment their piece (0104);
     /// everything else one cell, a click one cell, as building has no brush (the dig's stays, <see cref="Brush"/>).
     /// </summary>
     public static (int W, int H) StampOf(Act act) =>
         act is PlaceTool p && Spec.Builds.PieceOf(p.Placement.Kind) is { } piece ? piece : (1, 1);
-
-    /// <summary>
-    /// <paramref name="act"/> as a stroke from world point <paramref name="from"/> to <paramref name="to"/> places it: the door's
-    /// card a hatch when the stroke runs further across than down (0104), as a doorway drawn across was one; every other as it is.
-    /// </summary>
-    public static Act Oriented(Act act, (double X, double Y) from, (double X, double Y) to) =>
-        act is PlaceTool { Placement.Kind: "door" } door && Math.Abs(to.X - from.X) > Math.Abs(to.Y - from.Y)
-            ? door with { Placement = door.Placement with { Kind = Spec.Builds.Hatch } }
-            : act;
 
     /// <summary>The top-left cell of <paramref name="stamp"/> round a world point, kept on the grid; a one-cell stamp is <see cref="SpotAt"/>.</summary>
     public static Spot StampAt(int width, int height, (double X, double Y) p, (int W, int H) stamp)
@@ -72,9 +63,10 @@ public static class Drag
     public static List<int> LineOf(int width, Act act, Spot from, Spot to, (int W, int H)? stamp = null)
     {
         var (w, h) = stamp ?? (1, 1);
-        if (act is PlaceTool { Placement.Layer: "machine" } or PlaceTool { Placement.Kind: "door" or Spec.Builds.Hatch }) return [from.Y * width + from.X];
-        // A ladder's pieces laid end to end along the drag, a piece's length a step (0104): their top-left cells only.
-        if (act is PlaceTool { Placement.Kind: "ladder" })
+        if (act is PlaceTool { Placement.Layer: "machine" }) return [from.Y * width + from.X];
+        // Ladder pieces or door segments laid end to end along the drag, a piece's length a step (0104): a run of segments
+        // down is a door, one across a hatch. Their top-left cells only.
+        if (act is PlaceTool { Placement.Kind: "ladder" or "door" })
         {
             bool along = Math.Abs(to.X - from.X) > Math.Abs(to.Y - from.Y);
             int far = along ? to.X - from.X : to.Y - from.Y, size = along ? w : h;

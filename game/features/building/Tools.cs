@@ -232,8 +232,7 @@ public static class Tools
                     Structure.Wall => Placement.Wall(grid.WallAt(cell)!.Id),
                     Structure.Floor => new Placement(layer, "floor"),
                     Structure.Ladder => new Placement(layer, "ladder"),
-                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer,
-                        Doorways.IsHatch(Doorways.LinksOf(cell, grid.Width, grid.Width * grid.Height, grid.StructureAt)) ? Builds.Hatch : "door"),
+                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer, "door"),
                     _ => null,
                 };
             default:
@@ -260,7 +259,7 @@ public static class Tools
     public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research)
     {
         if (PlacementAt(cell, Layers, grid, building) is not { } placed) return null;
-        bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == Builds.BuiltAs(placed.Kind) && p.Material == placed.Material;
+        bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == placed.Kind && p.Material == placed.Material;
         var card = All.OfType<PlaceTool>().FirstOrDefault(each => Places(each.Placement));
         // What is not known, or not built here, is not picked: it could not be planned.
         return card != null && Known(card, research) && Allowed(card, building.Rules) ? card : null;

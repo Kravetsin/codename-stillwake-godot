@@ -7,8 +7,8 @@ using Xunit;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// Pieces (0104): a ladder two by two and a door two by six, a hatch six by two, each placed, paid, built and taken apart as one
-/// thing, the size and the price of the 16 px cell or doorway it was; a doorway two cells thick opens and shuts whole.
+/// Pieces (0104): a ladder two by two and a door segment two by two, each placed, paid, built and taken apart as one thing,
+/// the size and the price of the 16 px cell it was; a run of segments is one doorway, a door down and a hatch across.
 /// </summary>
 public class PieceTests
 {
@@ -28,7 +28,7 @@ public class PieceTests
 
     private const int Width = 12;
     private static int At(int x, int y) => y * Width + x;
-    private static readonly Placement Ladder = new("structure", "ladder"), Door = new("structure", "door"), Hatch = new("structure", Builds.Hatch);
+    private static readonly Placement Ladder = new("structure", "ladder"), Door = new("structure", "door");
 
     private static Scenario Stocked()
     {
@@ -70,13 +70,12 @@ public class PieceTests
     {
         var w = Stocked();
         Assert.Equal("grid.occupied", w.M.Building.Problem(At(10, 2), Ladder));
-        Assert.Equal("grid.occupied", w.M.Building.Problem(At(2, 4), Door));
-        Assert.Equal("grid.occupied", w.M.Building.Problem(At(6, 2), Hatch));
+        Assert.Equal("grid.occupied", w.M.Building.Problem(At(10, 4), Door));
         Assert.Equal("grid.outOfBounds", w.M.Building.Problem(At(11, 9), Ladder));
         Assert.Null(w.M.Building.Problem(At(1, 1), Door));
         w.Do(new PlacePlan(At(1, 1), Door)).Run();
-        // The piece claims its cells: a ladder over its lower half is planned there already.
-        Assert.Equal("building.planned", w.M.Building.Problem(At(2, 5), Ladder));
+        // The piece claims its cells: a ladder over its lower right cell is planned there already.
+        Assert.Equal("building.planned", w.M.Building.Problem(At(2, 2), Ladder));
     }
 
     [Fact]
@@ -97,45 +96,47 @@ public class PieceTests
     }
 
     [Fact]
-    public void ADoorIsOnePieceTwoBySixCostingWhatThreeDoorCellsDidAndBuiltAsLong()
+    public void ADoorSegmentIsOnePieceTwoByTwoCostingWhatA16PxDoorCellDid()
     {
         var w = Stocked();
         w.Do(new PlacePlan(At(5, 2), Door)).Run();
         var plan = Assert.Single(w.M.Building.Plans);
-        // What a doorway of three 16 px cells cost and took (0104).
-        Assert.Equal([("plate", 6), ("gear", 3)], w.M.Building.CostOf(plan.Id));
-        Assert.Equal(60, w.M.Building.TicksFor(plan.Id));
+        Assert.All(Box(5, 2, 2, 2), c => Assert.Equal(plan.Id, w.M.Building.PlansAt(c).Single().Id));
+        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.CostOf(plan.Id));
+        Assert.Equal(20, w.M.Building.TicksFor(plan.Id));
         Finish(w, plan.Id);
         Assert.Empty(w.Refusals);
-        Assert.All(Box(5, 2, 2, 6), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
-        Assert.Equal((14, 7), (Count(w, "plate"), Count(w, "gear")));
+        Assert.All(Box(5, 2, 2, 2), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
+        Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(At(5, 4)));
+        Assert.Equal((18, 9), (Count(w, "plate"), Count(w, "gear")));
     }
 
     [Fact]
-    public void AHatchIsADoorOnItsSideAtADoorsCostKnownWithIt()
+    public void SegmentsRunDownAreADoorRunAcrossAHatchAndOneAloneAHatchTheHeroFitsThrough()
     {
         var w = Stocked();
-        Assert.Equal(w.M.Building.CostFor(Door), w.M.Building.CostFor(Hatch));
-        Assert.Equal(Research.Blueprints.Of(Door), Research.Blueprints.Of(Hatch));
-        w.Do(new SetCreative(true)).Do(new PlacePlan(At(3, 4), Hatch)).Run();
-        Finish(w, w.M.Building.Plans.Single().Id);
-        Assert.All(Box(3, 4, 6, 2), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
-        Assert.All(Box(3, 4, 6, 2), c =>
-            Assert.True(Doorways.IsHatch(Doorways.LinksOf(c, Width, Width * 10, w.M.Grid.StructureAt))));
+        w.Do(new Place(At(1, 1), Door)).Do(new Place(At(1, 3), Door)).Do(new Place(At(1, 5), Door))
+            .Do(new Place(At(5, 2), Door)).Do(new Place(At(7, 2), Door)).Do(new Place(At(5, 6), Door)).Run();
+        bool Hatch(int c) => Doorways.IsHatch(Doorways.LinksOf(c, Width, Width * 10, w.M.Grid.StructureAt));
+        Assert.All(Box(1, 1, 2, 6), c => Assert.False(Hatch(c)));
+        Assert.All(Box(5, 2, 4, 2).Concat(Box(5, 6, 2, 2)), c => Assert.True(Hatch(c)));
+        // A lone segment is two cells wide: the hero, 1.9 cells, fits through it.
+        Assert.True(Stillwake.Content.Hero.Width < Builds.Get("door").Across * 1000);
     }
 
     [Fact]
-    public void ADoorTwoCellsThickOpensAndShutsWholeFromAnyOfItsCells()
+    public void ARunOfSegmentsOpensAndShutsWholeFromAnyOfItsCells()
     {
         var w = Stocked();
-        w.Do(new Place(At(5, 2), Door)).Do(new Place(At(8, 2), Door)).Run();
-        w.Do(new SetDoor(At(6, 7), true)).Run();
-        Assert.All(Box(5, 2, 2, 6), c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
-        Assert.All(Box(8, 2, 2, 6), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
-        w.Do(new SetDoor(At(5, 2), false)).Run();
-        Assert.All(Box(5, 2, 2, 6), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
-        Assert.All(Box(5, 2, 2, 6), c =>
-            Assert.False(Doorways.IsHatch(Doorways.LinksOf(c, Width, Width * 10, w.M.Grid.StructureAt))));
+        w.Do(new Place(At(1, 1), Door)).Do(new Place(At(1, 3), Door)).Do(new Place(At(1, 5), Door))
+            .Do(new Place(At(5, 2), Door)).Do(new Place(At(7, 2), Door)).Run();
+        w.Do(new SetDoor(At(2, 6), true)).Run();
+        Assert.All(Box(1, 1, 2, 6), c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
+        Assert.All(Box(5, 2, 4, 2), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
+        w.Do(new SetDoor(At(8, 3), true)).Run();
+        Assert.All(Box(5, 2, 4, 2), c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
+        w.Do(new SetDoor(At(1, 1), false)).Run();
+        Assert.All(Box(1, 1, 2, 6), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
         Assert.Empty(w.Refusals);
     }
 
@@ -160,23 +161,25 @@ public class PieceTests
     }
 
     [Fact]
-    public void ADoorComesApartWholeGivingBackWhatItCost()
+    public void ADoorComesApartASegmentAtATimeGivingBackWhatItCost()
     {
         var w = Stocked();
-        w.Do(new Place(At(5, 2), Door)).Run();
-        w.Do(new Deconstruct(At(6, 6), "structure")).Run();
+        w.Do(new Place(At(1, 1), Door)).Do(new Place(At(1, 3), Door)).Do(new Place(At(1, 5), Door)).Run();
+        // Marked by its lower right cell, the middle segment is kept at its top-left.
+        w.Do(new Deconstruct(At(2, 4), "structure")).Run();
         var mark = Assert.Single(w.M.Building.Plans);
-        Assert.Equal(At(5, 2), mark.Cell);
-        Assert.Equal([("plate", 6), ("gear", 3)], w.M.Building.RefundOf(mark.Id));
+        Assert.Equal(At(1, 3), mark.Cell);
+        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.RefundOf(mark.Id));
         Finish(w, mark.Id);
-        Assert.All(Box(5, 2, 2, 6), c => Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(c)));
-        Assert.Equal((26, 13), (Count(w, "plate"), Count(w, "gear")));
+        Assert.All(Box(1, 3, 2, 2), c => Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(c)));
+        Assert.All(Box(1, 1, 2, 2).Concat(Box(1, 5, 2, 2)), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
+        Assert.Equal((22, 11), (Count(w, "plate"), Count(w, "gear")));
     }
 
     [Fact]
-    public void ADoorwayOfADrawnMapsLoneDoorGivesBackItsShareOfADoor()
+    public void ADrawnMapsLoneDoorIsOneSegment()
     {
-        // A lone door character doubles to two by two: a third of a door, two plates and a gear, as one 16 px door cell cost.
+        // A lone door character doubles to two by two: one segment, two plates and a gear, as one 16 px door cell cost.
         var w = new Scenario("""
             ###
             #D#

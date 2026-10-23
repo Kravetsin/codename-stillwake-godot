@@ -20,7 +20,7 @@ internal static class Costs
     public static Build BuildOf(Placement placement) => placement.Layer switch
     {
         "structure" when placement.Kind == "wall" => Wall(Materials.Get(placement.Material!)),
-        "structure" => Builds.Get(Builds.BuiltAs(placement.Kind)),
+        "structure" => Builds.Get(placement.Kind),
         "machine" => Machine(placement.Kind),
         "back" => Wall(Materials.Get(placement.Material!)),
         _ => throw new ArgumentException($"building: no layer {placement.Layer}"),
@@ -51,7 +51,7 @@ internal static class Costs
 
     /// <summary>
     /// A piece of <paramref name="cells"/> cells built as <paramref name="build"/>: its cost for as many of its pieces as those cells
-    /// make, each item rounded down, so a doorway of two doors gives back two and a ladder piece a meteor broke gives nothing;
+    /// make, each item rounded down, so a door segment gives back a whole one and a ladder piece a meteor broke gives nothing;
     /// its ticks to take apart the whole piece's (0104).
     /// </summary>
     private static Build Share(Build build, int cells)

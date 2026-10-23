@@ -8,8 +8,8 @@ namespace Stillwake.Content;
 /// parts, salvage or planks for what is built before there are any.
 /// </param>
 /// <param name="BuildTicks">Ticks of a hero's work to build it.</param>
-/// <param name="Across">Its piece's cells across, built and taken apart as one (0104): a ladder's two, a door's two; 1 for a cell.</param>
-/// <param name="Tall">Its piece's cells down: a ladder's two, a door's six; 1 for a cell.</param>
+/// <param name="Across">Its piece's cells across, built and taken apart as one (0104): a ladder's two, a door segment's two; 1 for a cell.</param>
+/// <param name="Tall">Its piece's cells down: a ladder's two, a door segment's two; 1 for a cell.</param>
 public sealed record Build(string Id, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, int Across = 1, int Tall = 1);
 
 /// <summary>
@@ -23,8 +23,8 @@ public static class Builds
         new("floor", [("scrap", 1)], BuildTicks: 7),
         // A piece the size of a 16 px ladder cell (0104), costing and taking what one did.
         new("ladder", [("scrap", 1)], BuildTicks: 7, Across: 2, Tall: 2),
-        // A doorway whole, two cells thick and six tall (0104): what its three 16 px cells cost and took.
-        new("door", [("plate", 6), ("gear", 3)], BuildTicks: 60, Across: 2, Tall: 6),
+        // A door segment, a 16 px door cell (0104), costing and taking what one did; a run of them is one doorway.
+        new("door", [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 2),
     ];
 
     /// <summary>Taking a thing apart is this many times faster than building it; its ticks round up.</summary>
@@ -42,20 +42,14 @@ public static class Builds
     /// </summary>
     public const int Brush = 2;
 
-    /// <summary>A door laid on its side, six cells across and two tall (0104): built as a door is, of its blueprint and at its cost.</summary>
-    public const string Hatch = "hatch";
-
-    /// <summary>The build a placement of <paramref name="kind"/> is: a hatch is a door's; every other its own.</summary>
-    public static string BuiltAs(string kind) => kind == Hatch ? "door" : kind;
-
     /// <summary>
     /// The cells across and down of a piece of <paramref name="kind"/>, placed and taken apart as one (0104): a ladder's 2×2, a
-    /// door's 2×6, a hatch's 6×2; null for what is placed a cell at a time.
+    /// door segment's 2×2; null for what is placed a cell at a time.
     /// </summary>
     public static (int Across, int Tall)? PieceOf(string kind)
     {
-        if (!ById.TryGetValue(BuiltAs(kind), out var build) || build.Across * build.Tall == 1) return null;
-        return kind == Hatch ? (build.Tall, build.Across) : (build.Across, build.Tall);
+        if (!ById.TryGetValue(kind, out var build) || build.Across * build.Tall == 1) return null;
+        return (build.Across, build.Tall);
     }
 
     private static readonly Dictionary<string, Build> ById = All.ToDictionary(b => b.Id, StringComparer.Ordinal);
