@@ -44,9 +44,18 @@ public partial class LightView : Node2D
 
     /// <summary>
     /// The columns of its cell a closed door's picture fills and the rows a closed hatch's does, in pixels: what of them stops light.
-    /// A doorway two cells thick (0104) stops it across both, its 16 px panel's frame and all.
+    /// Of a doorway two cells thick (0104), in pixels of both: its 16 px picture's, so no light falls past the panel drawn.
     /// </summary>
-    private static readonly Lightmap.Panels DoorPanels = new((0, Cell), (0, Cell));
+    private static readonly Lightmap.Panels DoorPanels = new(
+        PanelOf(PixelArt.Picture("door_closed_0").GetImage(), across: false),
+        PanelOf(PixelArt.Picture(DoorShape.Picture(hatch: true, 0, 1, 0)).GetImage(), across: true));
+
+    private static (int From, int To) PanelOf(Image picture, bool across)
+    {
+        if (picture.IsCompressed()) picture.Decompress();
+        var used = picture.GetUsedRect();
+        return across ? (used.Position.Y, used.End.Y) : (used.Position.X, used.End.X);
+    }
 
     private readonly IGridQueries _grid;
     private readonly Lightmap _lightmap = new();

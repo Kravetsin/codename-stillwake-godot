@@ -11,7 +11,7 @@ and `Work`.
 | ----------------- | ---------------------------------------------------------------------------------------------- | ----- |
 | `Tools.cs`        | the cards and tabs, `CostOf`, `OverlayFor`, `TabFor`, `LayersFor`, `Known`, the pipette's `CardAt` (`tools.ts`); how a plan joins what is beside it, `LinksOf`, `StubsOf` | no    |
 | `PlanHand.cs`     | the card in hand and the plan out, kept in step with `Ui.Hand` and `Ui.OverlayOn` (`tools.ts`'s stores) | no    |
-| `Drag.cs`         | a drag's line of cells, laid with the brush, and what the card or removal would do in each (`drag.ts`) | no    |
+| `Drag.cs`         | a drag's line of cells, laid a stamp at a time, and what the card or removal would do in each (`drag.ts`) | no    |
 | `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
 | `BuildingView.cs` | plans as ghosts in marching dashes along their silhouettes turning real as they are built, marks in red dashes turning into their red ghost as they are taken down, ghosts, the tips, the buttons, the pipette, plan work | yes |
 | `BuildGlow.cs`    | the light of work on plans (0075): spark bursts, glints, the molten spot with its smoke and shimmer, the cut's line, a finished plan's sweep | yes |
@@ -50,13 +50,10 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - **A surface's build list** (0076): only the cards the kind of the hero's surface allows are shown
   (`Tools.Allowed`, by `Registry.Rules`; the cable as `cable`), nor picked by Q: on the test strip, the structure tab
   alone, without pipes, machines or cables. A plan for anything else the sim refuses `building.notHere`.
-- **A stroke is laid with the brush** (`Shared/Brush`, `Builds.Brush` cells a side, 2): at each point of a drag its
-  stamp (`Drag.StampOf`) round the cell corner nearest the pointer, so a stroke builds as much per area as one 16 px cell
-  did. Walls and back walls take the square; a floor a row as wide in the pointer's row, one cell thick as a doubled map lays
-  it; a pipe, a valve and a machine one cell, as a pipe run is one cell thick and a footprint is placed once; a removal one cell, a corner of its rectangle.
-  Each cell is its own `PlacePlan`, each stamp's ascending, none twice, each judged alone (`Drag.StrokeOf`). Ctrl held is the
-  precise mode: one cell, as before. The ghost in hand shows the stamp.
-- **Pieces are placed whole** (0104), Ctrl or not: a ladder's 2×2, laid along a drag a piece's length a step, so a shaft grows
+- **Building has no brush**: a click places one cell, a drag many (walls and back walls a rectangle, a floor and a pipe a
+  line); a machine is placed once where the stroke began. Each cell is its own `PlacePlan`, ascending, none twice, each
+  judged alone (`Drag.StrokeOf`). Only digging keeps the 2×2 brush (`Shared/Brush`, Ctrl for one cell).
+- **Pieces are placed whole** (0104): a ladder's 2×2, laid along a drag a piece's length a step, so a shaft grows
   two cells at a time; a door's 2×6 round the pointer where the stroke began, a hatch's 6×2 (`Drag.Oriented`) when the stroke
   runs further across than down. Each is one `PlacePlan` at its top-left, drawn, ghosted and marked as its whole picture from
   there, as a machine is; a removal on any of its cells marks the whole piece.
@@ -64,7 +61,8 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still
   drawn a row at a time; aslant, it is a room's worth. Middle drags cancel plans when begun on one,
-  else mark what is built in the tab's layers (Air: pipes, valves, machines). Begun where only walls' and back
+  else mark what is built in the tab's layers (Air: pipes, valves, machines) over their rectangle, only in the layer of the first
+  thing under where the drag began: begun on a back wall, back walls, those behind machines too, and no machine. Begun where only walls' and back
   walls' blueprints are planned, a middle drag takes them off over the same rectangle (`Drag.CellsOf`), and only
   them: a pipe or machine planned inside it stays. Begun on any other plan, a mark or what is built, it fills the
   rectangle too, every thing in it marked or cancelled once, a piece or a machine once. Q picks the card under the

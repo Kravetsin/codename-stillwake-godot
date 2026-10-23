@@ -21,9 +21,10 @@ public readonly record struct LightSource(
 public static class Sources
 {
     /// <summary>
-    /// How the shader tells a cell: open, a closed hatch (its panel across blocks), a closed door (its panel up and down blocks), a wall.
+    /// How the shader tells a cell: open, a closed hatch (its panel across blocks), a closed door (its panel up and down blocks), a wall;
+    /// a doorway two cells thick (0104), its far column's or row's own, so its 16 px panel stops light where it is drawn.
     /// </summary>
-    public const byte Open = 0, Hatch = 64, Door = 128, Wall = 255;
+    public const byte Open = 0, Hatch = 64, HatchFar = 96, Door = 128, DoorFar = 160, Wall = 255;
 
     /// <summary>Floats an instance takes in the multimesh: a 2D transform, a colour, custom data.</summary>
     public const int Stride = 16;
@@ -50,7 +51,11 @@ public static class Sources
             case Structure.Wall:
                 return Wall;
             case Structure.DoorClosed:
-                return Doorways.IsHatch(Doorways.LinksOf(cell, width, size, structureAt)) ? Hatch : Door;
+                {
+                    var spot = Render.DoorShape.SpotOf(cell, width, c => Doorways.LinksOf(c, width, size, structureAt));
+                    bool far = spot.Across % Doorways.Thick == 1;
+                    return spot.Hatch ? (far ? HatchFar : Hatch) : (far ? DoorFar : Door);
+                }
             default:
                 return Open;
         }

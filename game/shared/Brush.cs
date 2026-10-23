@@ -5,7 +5,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// The cells a strike or a build stroke covers (the brush): a square <see cref="Spec.Builds.Brush"/> cells a side round the
+/// The cells a strike covers (the brush; building has none): a square <see cref="Spec.Builds.Brush"/> cells a side round the
 /// cell corner nearest the pointer, or one cell in precise mode, Ctrl held. Each cell is sent as its own command, in
 /// ascending order, each judged alone by the sim. Written for any side, so it is 1 at 16 px cells and 2 at 8 px.
 /// </summary>

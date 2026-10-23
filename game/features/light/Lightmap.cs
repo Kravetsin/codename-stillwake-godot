@@ -32,10 +32,11 @@ public partial class Lightmap : Node
         Code = $$"""
             shader_type canvas_item;
             render_mode unshaded, blend_add;
-            // A texel a cell: 0 open, a quarter a closed hatch, half a closed door, whole a wall; over what is built, its first texel at cell origin.
+            // A texel a cell: 0 open, a quarter a closed hatch (3/8 its far row), half a closed door (5/8 its far column), whole a wall;
+            // over what is built, its first texel at cell origin.
             uniform sampler2D occupancy : filter_nearest, repeat_disable;
             uniform ivec2 origin = ivec2(0);
-            // The columns of its cell a closed door's panel fills, and the rows a closed hatch's does, in pixels: from, to.
+            // The columns of its doorway a closed door's panel fills, and the rows a closed hatch's does, in pixels of its two cells: from, to.
             uniform vec2 panel = vec2(6.0, 10.0);
             uniform vec2 hatch = vec2(6.0, 10.0);
             // A beam's half width, as the cosine of its half angle, and the soft edge either side of it (0077: the helmet lamp).
@@ -60,13 +61,13 @@ public partial class Lightmap : Node
                 light = COLOR;
             }
 
-            // 2 a wall, 1 a closed door, 3 a closed hatch, 0 open, past what is built too.
+            // 2 a wall, 1 a closed door, 3 a closed hatch, 4 and 5 their far column and row, 0 open, past what is built too.
             int kind(ivec2 c) {
                 c -= origin;
                 ivec2 size = textureSize(occupancy, 0);
                 if (c.x < 0 || c.y < 0 || c.x >= size.x || c.y >= size.y) return 0;
                 float v = texelFetch(occupancy, c, 0).r;
-                return v > 0.75 ? 2 : (v > 0.375 ? 1 : (v > 0.19 ? 3 : 0));
+                return v > 0.75 ? 2 : (v > 0.56 ? 4 : (v > 0.44 ? 1 : (v > 0.31 ? 5 : (v > 0.19 ? 3 : 0))));
             }
 
             // How much of the light reaches a point, cell by cell along the line: none when a wall or a door's or hatch's panel
@@ -93,12 +94,13 @@ public partial class Lightmap : Node
                     if (k == 2) {
                         if (!leaving && !soak_through) return 0.0;
                         inside += (t1 - t0) * span_cells;
-                    } else if (k == 1 || k == 3) {
-                        // A door's panel spans columns, a hatch's rows: where the line is across that, in pixels.
-                        bool across = k == 3;
+                    } else if (k == 1 || k >= 3) {
+                        // A door's panel spans columns, a hatch's rows: where the line is across that, in pixels of the doorway.
+                        bool across = k == 3 || k == 5;
+                        float far = k >= 4 ? CELL : 0.0;
                         vec2 span = across ? hatch : panel;
-                        float x0 = across ? (a.y + d.y * t0 - float(c.y)) * CELL : (a.x + d.x * t0 - float(c.x)) * CELL;
-                        float x1 = across ? (a.y + d.y * t1 - float(c.y)) * CELL : (a.x + d.x * t1 - float(c.x)) * CELL;
+                        float x0 = (across ? a.y + d.y * t0 - float(c.y) : a.x + d.x * t0 - float(c.x)) * CELL + far;
+                        float x1 = (across ? a.y + d.y * t1 - float(c.y) : a.x + d.x * t1 - float(c.x)) * CELL + far;
                         bool on = x0 >= span.x && x0 <= span.y;
                         if (leaving && on) {
                             leaving = x1 >= span.x && x1 <= span.y;

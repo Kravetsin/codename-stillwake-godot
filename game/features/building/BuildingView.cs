@@ -65,8 +65,7 @@ public partial class BuildingView : Node2D
     private int _width;
     /// <summary>The drag under way: what it does, the button that began it and the point it began at, in cells.</summary>
     private (Act Act, bool Left, (double X, double Y) From)? _drag;
-    /// <summary>The side of the brush this frame: one cell with Ctrl held (<see cref="Brush"/>).</summary>
-    private int _brush = Brush.SideOf(false);
+
     /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
     private Dictionary<int, int> _worked = [];
     private double _owedBursts;
@@ -111,13 +110,12 @@ public partial class BuildingView : Node2D
             var s = Drag.SpotAt(width, height, p);
             return s.Y * width + s.X;
         }
-        // Ctrl held builds one cell, the precise mode; else the brush.
-        _brush = Brush.SideOf(Input.IsPhysicalKeyPressed(Key.Ctrl));
+
         void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
             act = Drag.Oriented(act, from, to);
             var planned = new List<int>();
-            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to, _brush), building))
+            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building))
                 foreach (var c in verdict.Commands)
                 {
                     client.Send(c);
@@ -437,7 +435,7 @@ public partial class BuildingView : Node2D
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
         // The door's card lays a hatch along a stroke drawn across (0104).
         act = Drag.Oriented(act, _drag?.From ?? p, p);
-        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p, _brush), building);
+        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building);
         if (act is PlaceTool place)
         {
             // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.

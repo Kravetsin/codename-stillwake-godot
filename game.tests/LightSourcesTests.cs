@@ -38,6 +38,18 @@ public class LightSourcesTests
         Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Door, Sources.Open, Sources.Hatch, Sources.Hatch, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
     }
 
+
+    [Fact]
+    public void TellsADoorwaysFarColumnAndRowSoItsPanelStopsLightWhereItIsDrawn()
+    {
+        // A door two wide and three tall beside a hatch two tall and three wide (0104): each its near and its far half.
+        const int D = Structure.DoorClosed, E = Structure.Empty;
+        int[] structure = [D, D, E, D, D, D, D, D, E, D, D, D, D, D, E, E, E, E];
+        var cells = new byte[18];
+        Sources.Occupy(c => structure[c], 6, structure.Length, new Box(0, 0, 5, 2), cells);
+        Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Hatch, Sources.Hatch, Sources.Hatch }, cells[..6]);
+        Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.HatchFar, Sources.HatchFar, Sources.HatchFar }, cells[6..12]);
+    }
     [Fact]
     public void DrawsALightWhoseReachTouchesTheViewThoughItStandsOffItAndNoneBeyond()
     {

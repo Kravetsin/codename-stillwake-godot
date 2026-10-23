@@ -117,7 +117,7 @@ public class DragTests
         var w = Start();
         Assert.Equal(
             [new Deconstruct(14, "machine"), new Deconstruct(18, "conduit"), new Deconstruct(0, "structure")],
-            Drag.Judge(Removal, [14, 18, 0], w.M.Building).SelectMany(v => v.Commands));
+            new[] { 14, 18, 0 }.SelectMany(c => Drag.Judge(Removal, [c], w.M.Building).SelectMany(v => v.Commands)));
         Assert.Equal("building.nothingThere", Drag.Judge(Removal, [17], w.M.Building)[0].Problem);
     }
 
@@ -179,14 +179,27 @@ public class DragTests
     public void RemovesOverTheRectangleBetweenItsCornersMarkingEachThingInItOnce()
     {
         var w = Start();
-        // From (3, 1) to (6, 2): two of the tank's columns, the gap, a pipe, and back walls under them.
+        // From (3, 1) to (6, 2): two of the tank's columns, the gap, a pipe, and back walls; begun on the tank, it alone.
         var cells = Drag.CellsOf(12, Removal, new(3, 1), new(6, 2));
         Assert.Equal([15, 16, 17, 18, 27, 28, 29, 30], cells);
-        Assert.Equal([new Deconstruct(15, "machine"), new Deconstruct(18, "conduit"), new Deconstruct(29, "back"), new Deconstruct(30, "back")], Drag.Judge(Removal, cells, w.M.Building).SelectMany(v => v.Commands));
+        Assert.Equal([new Deconstruct(15, "machine")], Drag.Judge(Removal, cells, w.M.Building).SelectMany(v => v.Commands));
         // Dragged back the other way, the same rectangle from its other corner.
         Assert.Equal([30, 29, 28, 27, 18, 17, 16, 15], Drag.CellsOf(12, Removal, new(6, 2), new(3, 1)));
         // Placing, as LineOf lays it.
         Assert.Equal(Drag.LineOf(12, Wall, new(7, 1), new(5, 2)), Drag.CellsOf(12, Wall, new(7, 1), new(5, 2)));
+    }
+
+    [Fact]
+    public void ARemovalTakesOnlyTheLayerOfWhatIsUnderWhereItBegan()
+    {
+        var w = Start();
+        // Begun on a back wall at (5, 2) to (3, 1): the back walls in the rectangle, those behind the tank too, not the tank.
+        Assert.Equal(
+            [new Deconstruct(29, "back"), new Deconstruct(28, "back"), new Deconstruct(27, "back"), new Deconstruct(16, "back"), new Deconstruct(15, "back")],
+            Drag.Judge(Removal, Drag.CellsOf(12, Removal, new(5, 2), new(3, 1)), w.M.Building).SelectMany(v => v.Commands));
+        // Begun on the tank, the tank alone; begun on the pipe, the pipe alone, not the back walls beside it.
+        Assert.Equal([new Deconstruct(15, "machine")], Drag.Judge(Removal, Drag.CellsOf(12, Removal, new(3, 1), new(6, 2)), w.M.Building).SelectMany(v => v.Commands));
+        Assert.Equal([new Deconstruct(18, "conduit")], Drag.Judge(Removal, Drag.CellsOf(12, Removal, new(6, 1), new(7, 2)), w.M.Building).SelectMany(v => v.Commands));
     }
 
     [Fact]
@@ -197,7 +210,7 @@ public class DragTests
         // The mark is plan 1, the wall's blueprint plan 2.
         Assert.Equal([new CancelPlan(1)], Drag.Judge(Removal, [0], w.M.Building).SelectMany(v => v.Commands));
         Assert.Equal(
-            [new Deconstruct(14, "machine"), new Deconstruct(19, "back")],
+            [new Deconstruct(14, "machine")],
             Drag.Judge(Removal, [14, 19], w.M.Building).SelectMany(v => v.Commands));
     }
 }
