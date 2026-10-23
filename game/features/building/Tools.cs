@@ -146,10 +146,11 @@ public static class Tools
     public static Remove RemovalIn(Focus focus) => new(focus == Focus.Back ? ["back"] : FrontLayers);
 
     /// <summary>
-    /// What a drag in the open plan does (0110): the left button places what the card in hand places, if one is; the
-    /// <paramref name="right"/> marks or cancels in the <paramref name="focus"/>ed layer, a card in hand or not.
+    /// What a drag in the open plan does (0110): the left button places what the card in hand places, if one is of the
+    /// <paramref name="focus"/>ed layer; the <paramref name="right"/> marks or cancels in that layer, a card in hand or not.
     /// </summary>
-    public static Act? ActOf(Tool? tool, bool right, Focus focus) => right ? RemovalIn(focus) : tool as PlaceTool;
+    public static Act? ActOf(Tool? tool, bool right, Focus focus) =>
+        right ? RemovalIn(focus) : tool is PlaceTool place && FocusOf(place) == focus ? place : null;
 
     /// <summary>How opaque a layer out of focus is drawn while the plan is open (0110).</summary>
     public const float Faded = 0.35f;

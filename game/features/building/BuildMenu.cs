@@ -48,10 +48,10 @@ public partial class BuildMenu : CanvasLayer
     private readonly TextureRect _heldPicture = Picture(20);
     private readonly Label _heldName = Tablet.Text("", Render.Style.Slate100), _hint = Tablet.Text("", Render.Style.Slate500, Tablet.HintSize);
     private readonly List<(Panel Box, TextureRect Picture, Label Count)> _cards = [];
-    /// <summary>Beside the tablet while the plan is out: the three layers stacked, the focused one lit (0110).</summary>
-    private readonly Control _focus = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private const int FocusWidth = FocusIcon + 8, FocusHeight = 2 * (FocusIcon + 4) + 4;
-    private const int FocusIcon = 22;
+    /// <summary>Beside the tablet while the plan is out: the two layers' buttons stacked, the focused one lit (0110).</summary>
+    private readonly Control _focus = new() { MouseFilter = Control.MouseFilterEnum.Stop };
+    private const int FocusWidth = FocusBox + 8, FocusHeight = 2 * (FocusBox + 4) + 4;
+    private const int FocusBox = 28;
     private readonly List<(PanelContainer Box, string Id)> _tabBoxes = [];
 
     private Catalogue _at;
@@ -106,6 +106,14 @@ public partial class BuildMenu : CanvasLayer
         _focus.AnchorLeft = _focus.AnchorRight = 0.5f;
         _focus.AnchorTop = _focus.AnchorBottom = 1;
         _focus.Draw += DrawFocus;
+        _focus.MouseExited += _focus.QueueRedraw;
+        _focus.GuiInput += e =>
+        {
+            if (e is InputEventMouseMotion) _focus.QueueRedraw();
+            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press) return;
+            if (FocusButtonAt(press.Position) is { } layer) _hand.FocusOn(layer);
+            _focus.AcceptEvent();
+        };
         _root.AddChild(_focus);
         hand.Focus.Subscribe(_focus.QueueRedraw);
 
@@ -227,21 +235,59 @@ public partial class BuildMenu : CanvasLayer
     }
 
 
-    /// <summary>The layers' pictures, top to bottom as they stand: the front, the back walls (0110).</summary>
-    private static readonly Placement[] FocusLooks =
-        [Placement.Wall("scrap"), Placement.BackWall("scrap")];
+    /// <summary>The button of layer <c>i</c> (<see cref="Focus"/>), top to bottom: the front, the back walls (0110).</summary>
+    private static Rect2 FocusButton(int i) => new(4, 4 + i * (FocusBox + 4), FocusBox, FocusBox);
 
-    /// <summary>The two layers stacked, no words: the focused one edged sky and whole, the other dim.</summary>
+    private static Focus? FocusButtonAt(Vector2 at) =>
+        FocusButton(0).HasPoint(at) ? Focus.Front : FocusButton(1).HasPoint(at) ? Focus.Back : null;
+
+    /// <summary>The two layers' buttons stacked, no words, painted as the tablet's tabs are: the focused one lit sky.</summary>
     private void DrawFocus()
     {
-        var focus = (int)_hand.Focus.Get();
-        for (int i = 0; i < FocusLooks.Length; i++)
+        var focus = _hand.Focus.Get();
+        var hovered = FocusButtonAt(_focus.GetLocalMousePosition());
+        foreach (var layer in (Focus[])[Focus.Front, Focus.Back])
         {
-            bool lit = i == focus;
-            var box = new Rect2(4, 4 + i * (FocusIcon + 4), FocusIcon, FocusIcon);
-            _focus.DrawRect(box, (lit ? Sky950 : Render.Style.Slate950) with { A = 0.9f });
-            _focus.DrawRect(box, lit ? Sky500 : Render.Style.Slate700, false, lit ? 2 : 1);
-            _focus.DrawTextureRect(BlueprintArt.Thumbnail(FocusLooks[i]), box.Grow(-3), false, new Color(1, 1, 1, lit ? 1 : Tools.Faded));
+            bool on = layer == focus, over = layer == hovered;
+            var box = FocusButton((int)layer);
+            _focus.DrawStyleBox(Render.Style.Box(on ? Render.Style.Sky700 : over ? Render.Style.Slate700 : Render.Style.Slate800,
+                on ? Render.Style.Sky700 : Render.Style.Slate800), box);
+            var ink = on ? Colors.White : over ? Render.Style.Slate100 : Render.Style.Slate300;
+            if (layer == Focus.Front) DrawFrontIcon(box.Grow(-4), ink);
+            else DrawBackIcon(box.Grow(-4), ink);
+        }
+    }
+
+    /// <summary>The front: a solid bright block before a faint grid.</summary>
+    private void DrawFrontIcon(Rect2 icon, Color ink)
+    {
+        var grid = ink with { A = 0.3f };
+        for (float d = 0; d <= icon.Size.X; d += 5)
+        {
+            _focus.DrawLine(icon.Position + new Vector2(d, 0), icon.Position + new Vector2(d, icon.Size.Y), grid);
+            _focus.DrawLine(icon.Position + new Vector2(0, d), icon.Position + new Vector2(icon.Size.X, d), grid);
+        }
+        var block = new Rect2(icon.Position + new Vector2(5, 5), new Vector2(10, 10));
+        _focus.DrawRect(block.Grow(1), Render.Style.Slate950);
+        _focus.DrawRect(block, ink);
+    }
+
+    /// <summary>The back: a dim hatched block behind a dotted outline where the front would stand.</summary>
+    private void DrawBackIcon(Rect2 icon, Color ink)
+    {
+        const float side = 12;
+        var dim = ink with { A = 0.55f };
+        var o = icon.Position + new Vector2(1, 1);
+        _focus.DrawRect(new Rect2(o, new Vector2(side, side)), dim, false, 1);
+        for (float k = 3; k < 2 * side; k += 3)
+            _focus.DrawLine(o + new Vector2(Mathf.Min(k, side), Mathf.Max(0, k - side)), o + new Vector2(Mathf.Max(0, k - side), Mathf.Min(k, side)), dim);
+        var front = icon.Position + new Vector2(7, 7);
+        for (float d = 0; d < side; d += 4)
+        {
+            _focus.DrawRect(new Rect2(front + new Vector2(d, 0), new Vector2(2, 1)), ink);
+            _focus.DrawRect(new Rect2(front + new Vector2(d, side - 1), new Vector2(2, 1)), ink);
+            _focus.DrawRect(new Rect2(front + new Vector2(0, d), new Vector2(1, 2)), ink);
+            _focus.DrawRect(new Rect2(front + new Vector2(side - 1, d), new Vector2(1, 2)), ink);
         }
     }
     /// <summary>The tablet slid and its screen lit for this frame (<see cref="Tablet.Step"/>); its chip shows once it is gone.</summary>
@@ -300,8 +346,8 @@ public partial class BuildMenu : CanvasLayer
         // A press anywhere but the search field ends the typing; the press goes on to whatever it was for.
         if (e is InputEventMouseButton { Pressed: true } press && _search.HasFocus() && !_search.GetGlobalRect().HasPoint(press.Position))
             _search.ReleaseFocus();
-        // The middle button toggles the open plan's layer aboard (0110), before the dev camera's pan can take it.
-        if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } && _hand.Shown != null)
+        // The middle button toggles the open plan's layer (0110), before the dev camera's pan can take it.
+        if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } && _hand.PlanOut.Get())
         {
             _hand.ToggleFocus();
             GetViewport().SetInputAsHandled();
@@ -353,7 +399,8 @@ public partial class BuildMenu : CanvasLayer
         var tabs = toolMenu
             ? [new Tab(_ui.Wielded.Get()!, [.. _hand.ToolCards])]
             : Tools.Tabs
-                .Select(t => t with { Tools = t.Tools.Where(each => Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
+                // The focused layer's cards alone (0110): the back walls' in the back, every other in the front.
+                .Select(t => t with { Tools = t.Tools.Where(each => Tools.FocusOf(each) == _hand.Focus.Get() && Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
                 // A tab with nothing known is not shown.
                 .Where(t => t.Tools.Count > 0)
                 .ToList();
@@ -363,7 +410,7 @@ public partial class BuildMenu : CanvasLayer
         Tool? tool = toolMenu ? _hand.ToolCard.Get() : _hand.Selected.Get();
         _search.Visible = !toolMenu;
         if (toolMenu && _search.Text != "") _search.Text = "";
-        _focus.Visible = _hand.Shown != null;
+        _focus.Visible = _hand.PlanOut.Get();
         string query = _search.Text.Trim();
         _list = query == "" ? [.. shownTab?.Tools ?? []] : Tools.Matching(tabs.SelectMany(t => t.Tools), query);
         if (_reveal)

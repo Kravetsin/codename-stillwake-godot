@@ -19,8 +19,12 @@ seams read as separate pieces the right button does not take.
 **1. A focused layer** (`Focus`, `PlanHand.Focus`), one of two: the front, everything that cannot stack in a cell (walls,
 machines, doors, hatches, ladders, floors and the other pieces), and the back walls.
 
-- A card picked sets the focus to its own layer (`Tools.FocusOf`). A press of the middle button with the plan open toggles
-  it (`PlanHand.ToggleFocus`, `Tools.Toggled`); the card stays in hand. The wheel keeps its old work: the hotbar's slots
+- **The layers are strictly apart.** The menu shows the focused layer's cards alone, the search too: the back walls' in the
+  back, every other in the front. A card picked sets the focus to its own layer (`Tools.FocusOf`). A press of the middle
+  button with the plan open toggles it (`PlanHand.ToggleFocus`, `Tools.Toggled`), as does a click on a layer's button
+  (`PlanHand.FocusOn`): the card in hand is kept for the layer left, and the one kept for the layer reached comes back to
+  hand, so the card in hand is always of the focused layer, one a layer; the plan put away forgets both. The left button
+  places only a card of the focused layer (`Tools.ActOf`). The wheel keeps its old work: the hotbar's slots
   over the world, the cards scrolled over the tablet. Nothing else takes the middle button in play; the dev camera's pan
   keeps it only with the plan away, as the plan takes the press first.
 - The right button, by click or rectangle, with a card or none, marks or cancels in the focused layer only
@@ -30,12 +34,13 @@ machines, doors, hatches, ladders, floors and the other pieces), and the back wa
 - The focused layer draws whole, the other at 35% everywhere in view (`Tools.AlphasOf`, the grid's tile layers and the
   machines' views), replacing the fade round the pointer while a back wall's card aimed. That fade stays for the axe and the
   drill digging back walls with the plan away.
-- Beside the tablet, two stacked pictures with no words show the layers, the focused one lit.
+- Beside the tablet, two stacked buttons with no words, painted as the tablet's tabs (`Tablet.PaintTab`'s colours), the
+  focused one lit sky: the front a solid bright block before a faint grid, the back a dim hatched block behind a dotted
+  outline, drawn in code.
 - No grid is drawn while the plan is open: the ghost and the pointer's outline already show where a card snaps.
-- **Away from the ship** (`PlanHand.Aboard`, `PlanHand.Shown`) the middle button toggles nothing, nothing fades, the pictures
-  hide, and the axe's and the drill's fade round the pointer is off as well (`PlanHand.SeesThrough`); the right button still
-  digs back walls there. Seeing through the ground would show what it hides. A card picked still sets what the right button
-  takes.
+- **Away from the ship** (`PlanHand.Aboard`, `PlanHand.Shown`) nothing fades, and the axe's and the drill's fade round the
+  pointer is off as well (`PlanHand.SeesThrough`); the right button still digs back walls there. Seeing through the ground
+  would show what it hides. The plan's layers still turn and keep apart wherever the plan works.
 
 **2. The hand tools' menus.** Holding the stripper or the wrench opens the plan's tablet with that tool's cards alone
 (`Tools.CardsOf`): the cable; the pipe and the valve. Each shows how many of its item the player carries and its cost. The
@@ -59,13 +64,13 @@ into it, so one built again where it stood is wired again. It costs a pass over 
 - **A focus kept with the plan away:** nothing works by it then; the weapons keep 0107's left-front, right-back.
 - **The wheel turning three layers (objects, walls, back walls):** the wheel is the hotbar's, and walls and the other
   pieces never share a cell, so one front layer with the middle button's toggle is enough.
-- **A toggle letting the card go when the focus leaves its layer:** the left would then plan nothing; the card stays.
+- **A card kept in hand when the focus leaves its layer:** the left placed in a layer the right did not take (a bug in
+  play); one card a layer, brought back with it, instead.
 - **A peg card for the stripper:** a second card for what Ctrl+drag already does.
 
 ## Accepted limitations
 
 - Pipes, cables, plans and lights do not fade with a layer out of focus.
 - A rectangle in the front's focus marks walls, floors and the machines on them alike.
-- The layers' pictures are the scrap wall and the scrap back wall, placeholders.
 - A machine taken apart other than by `building` (a meteor, a dev clear) leaves its cables at its top-left, in the air;
   a peg left at a plug may stand up to a machine's size farther than a cable spans, and keeps working.

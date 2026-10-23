@@ -22,7 +22,7 @@ public sealed class PlanHand
     public Store<string> Tab { get; } = new(Tools.Tabs[0].Id);
 
 
-    /// <summary>The layer the open plan works in (0110): a card picked sets it to its own, the middle button toggles it aboard.</summary>
+    /// <summary>The layer the open plan works in (0110): a card picked sets it to its own, the middle button or a layer's button turns it.</summary>
     public Store<Focus> Focus { get; } = new(Building.Focus.Front);
 
     /// <summary>Whether this player's hero is on the ship (0110): away from it the layers neither toggle nor fade, and the stripper and the wrench do nothing.</summary>
@@ -42,21 +42,33 @@ public sealed class PlanHand
 
     private readonly Ui _ui;
 
+    /// <summary>The card each layer had in hand when the focus left it, by <see cref="Building.Focus"/>; and the card in hand.</summary>
+    private readonly Tool?[] _kept = new Tool?[2];
+    private Tool? _held;
+
     /// <summary>Q pressed with the menu open: the building takes the card under the pointer at its next frame.</summary>
     public bool PickWanted { get; set; }
 
     public PlanHand(Ui ui)
     {
         _ui = ui;
+        // A card of the other layer picked takes the focus there, the one in hand kept for coming back (0110).
         Selected.Subscribe(() =>
         {
-            if (Selected.Get() is { } tool) Focus.Set(Tools.FocusOf(tool));
+            if (Selected.Get() is { } tool && Tools.FocusOf(tool) != Focus.Get())
+            {
+                _kept[(int)Focus.Get()] = _held;
+                Focus.Set(Tools.FocusOf(tool));
+            }
+            _held = Selected.Get();
         });
         ui.Wielded.Subscribe(() => ToolCard.Set(ToolCards.Count > 0 ? ToolCards[0] : null));
         Aboard.Subscribe(() => ToolCard.Set(ToolCards.Count > 0 ? ToolCards[0] : null));
         PlanOut.Subscribe(() =>
         {
-            if (!PlanOut.Get()) Selected.Set(null);
+            if (PlanOut.Get()) return;
+            Selected.Set(null);
+            System.Array.Clear(_kept);
         });
         Tab.Subscribe(() =>
         {
@@ -79,10 +91,22 @@ public sealed class PlanHand
     /// <summary>B: takes the plan out, or puts it away.</summary>
     public void Toggle() => PlanOut.Set(!PlanOut.Get());
 
-    /// <summary>The middle button with the plan out, aboard: the focus to the other layer. Away from the ship it does nothing.</summary>
-    public void ToggleFocus()
+    /// <summary>The middle button with the plan out: the focus to the other layer.</summary>
+    public void ToggleFocus() => FocusOn(Tools.Toggled(Focus.Get()));
+
+    /// <summary>
+    /// A layer's button, or the middle button, with the plan out: the focus to <paramref name="focus"/>, the card in hand kept
+    /// for the layer it leaves and the one kept for <paramref name="focus"/> back in hand, so a card always is of the focused layer.
+    /// </summary>
+    public void FocusOn(Focus focus)
     {
-        if (PlanOut.Get() && Aboard.Get()) Focus.Set(Tools.Toggled(Focus.Get()));
+        if (!PlanOut.Get() || focus == Focus.Get()) return;
+        _kept[(int)Focus.Get()] = Selected.Get();
+        var back = _kept[(int)focus];
+        _kept[(int)focus] = null;
+        Focus.Set(focus);
+        if (back != null) Tab.Set(Tools.TabOf(back));
+        Selected.Set(back);
     }
 
     /// <summary>A card of the hand tool's menu picked: what its left button lays from now on. A card it does not offer is let be.</summary>

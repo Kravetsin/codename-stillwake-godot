@@ -177,7 +177,7 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void TheMiddleButtonTogglesTheTwoLayersAboardOnlyAndACardPickedSetsItsOwn()
+    public void TheMiddleButtonTogglesTheTwoLayersWithThePlanOutAndACardPickedSetsItsOwn()
     {
         Assert.Equal(Focus.Back, Tools.Toggled(Focus.Front));
         Assert.Equal(Focus.Front, Tools.Toggled(Focus.Back));
@@ -196,10 +196,19 @@ public class BuildingToolsTests
         Assert.Equal(Focus.Back, plan.Focus.Get());
         plan.Pick(Card("door"));
         Assert.Equal(Focus.Front, plan.Focus.Get());
-        // It toggles with a card in hand too; the card stays.
+        // It toggles with a card in hand too: the card is kept for its layer and comes back with it, one card a layer.
         plan.Pick(Card("tank"));
         plan.ToggleFocus();
-        Assert.Equal((Focus.Back, "tank"), (plan.Focus.Get(), What(plan.Selected.Get())));
+        Assert.Equal((Focus.Back, "backWall:iron"), (plan.Focus.Get(), What(plan.Selected.Get())));
+        plan.ToggleFocus();
+        Assert.Equal((Focus.Front, "tank"), (plan.Focus.Get(), What(plan.Selected.Get())));
+        plan.FocusOn(Focus.Back);
+        Assert.Equal((Focus.Back, "backWall:iron"), (plan.Focus.Get(), What(plan.Selected.Get())));
+        // Put away, the plan forgets both.
+        plan.Toggle();
+        plan.Toggle();
+        plan.ToggleFocus();
+        Assert.Equal((Focus.Front, null), (plan.Focus.Get(), What(plan.Selected.Get())));
         // Only the focused layer is whole.
         Assert.Equal((1f, 1f), Tools.AlphasOf(null));
         Assert.Equal((Tools.Faded, 1f), Tools.AlphasOf(Focus.Back));
@@ -207,7 +216,7 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void AwayFromTheShipNothingTogglesNothingFadesAndTheHandToolsHaveNoMenu()
+    public void AwayFromTheShipNothingFadesAndTheHandToolsHaveNoMenu()
     {
         var ui = new Ui();
         var plan = new PlanHand(ui);
@@ -223,7 +232,8 @@ public class BuildingToolsTests
         ui.Wielded.Set(null);
         plan.Toggle();
         plan.ToggleFocus();
-        Assert.Equal(Focus.Front, plan.Focus.Get());
+        // The plan's layers turn away too; nothing fades.
+        Assert.Equal(Focus.Back, plan.Focus.Get());
         Assert.Null(plan.Shown);
         Assert.False(plan.SeesThrough(digsBack: true));
         // A back wall's card still sets what the right button takes; the world draws whole.
@@ -326,7 +336,10 @@ public class BuildingToolsTests
         foreach (var card in Tools.All.OfType<PlaceTool>())
             foreach (var focus in Enum.GetValues<Focus>())
             {
-                Assert.Equal(card.Placement, Assert.IsType<PlaceTool>(Tools.ActOf(card, false, focus)).Placement);
+                // The left places a card of the focused layer only (0110).
+                var left = Tools.ActOf(card, false, focus);
+                if (Tools.FocusOf(card) == focus) Assert.Equal(card.Placement, Assert.IsType<PlaceTool>(left).Placement);
+                else Assert.Null(left);
                 var removal = Assert.IsType<Remove>(Tools.ActOf(card, true, focus));
                 Assert.Equal(Tools.RemovalIn(focus).Layers, removal.Layers);
             }
@@ -361,5 +374,35 @@ public class BuildingToolsTests
         w.Step(new Deconstruct(13, "back"));
         Assert.Equal([new Deconstruct(13, "machine")], Judged(Focus.Front, 13, 13));
         Assert.Single(Judged(Focus.Back, 13, 13).OfType<CancelPlan>());
+    }
+
+    [Fact]
+    public void WithTheBackFocusedAFrontCardIsNotInHandAndPlacesNothing()
+    {
+        // The bug: the back focused by the middle button, a wall's card still placed walls the right could not take.
+        var plan = new PlanHand(new Ui());
+        plan.Toggle();
+        plan.Pick(Card("wall:scrap"));
+        plan.ToggleFocus();
+        Assert.Equal((Focus.Back, null), (plan.Focus.Get(), What(plan.Selected.Get())));
+        Assert.Null(Tools.ActOf(Card("wall:scrap"), false, Focus.Back));
+        Assert.Equal(["back"], Assert.IsType<Remove>(Tools.ActOf(plan.Selected.Get(), true, plan.Focus.Get())).Layers);
+    }
+
+    [Fact]
+    public void AfterAWallAndABackWallTheWallComesOffWithTheFrontFocusedAgain()
+    {
+        // The bug: a back wall's card picked after a wall's, the wall could not be taken without its card picked again.
+        var w = new TestWorld(Layout.Parse(["############", "#..........#", "############"]));
+        var plan = new PlanHand(new Ui());
+        plan.Toggle();
+        plan.Pick(Card("wall:scrap"));
+        plan.Pick(Card("backWall:scrap"));
+        Sim.Command[] Right() =>
+            [.. Drag.Judge(Tools.ActOf(plan.Selected.Get(), true, plan.Focus.Get())!, [0], w.M.Building).SelectMany(v => v.Commands)];
+        Assert.DoesNotContain(new Deconstruct(0, "structure"), Right());
+        plan.ToggleFocus();
+        Assert.Equal((Focus.Front, "wall:scrap"), (plan.Focus.Get(), What(plan.Selected.Get())));
+        Assert.Equal([new Deconstruct(0, "structure")], Right());
     }
 }

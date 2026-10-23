@@ -8,6 +8,19 @@ namespace Stillwake.Game.Dev;
 /// <summary>A script for recordings: every doorway opened at tick 20 and shut at tick 40, so shadows and doors are seen to follow.</summary>
 public static class Autopilot
 {
+    /// <summary><c>-- --segments</c>: a door of three segments in a room's wall and a hatch of one in its floor (0104), for <c>--doors</c>.</summary>
+    public static readonly Layout Segments = Layout.Parse(
+    [
+        "#############",
+        "#.LL..#..LL.#",
+        "#.LL..D..LL.#",
+        "#.....D.....#",
+        "#.....D..S..#",
+        "###D#########",
+        "#...........#",
+        "#############",
+    ]);
+
     public static IReadOnlyList<Command> At(int tick, IGridQueries grid)
     {
         if (tick != 20 && tick != 40) return [];

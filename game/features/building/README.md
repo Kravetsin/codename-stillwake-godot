@@ -38,15 +38,18 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - **The left button plans, the right removes in the focused layer** (0108, 0110, `Tools.ActOf`): every card places what it
   places on the left. The open plan has a focus (`PlanHand.Focus`), one of two layers: the front (everything that cannot
   stack in a cell: walls, machines, doors, hatches, ladders, floors and the other pieces) and the back walls. A card picked
-  sets it to its own (`Tools.FocusOf`); a press of the middle button toggles it (`PlanHand.ToggleFocus`, `Tools.Toggled`),
-  the card staying in hand. The wheel is the hotbar's over the world and scrolls the cards over the tablet, as before. The
+  sets it to its own (`Tools.FocusOf`); the middle button or a click on a layer's button turns it (`PlanHand.ToggleFocus`,
+  `PlanHand.FocusOn`), the card in hand kept for the layer left and the one kept for the layer reached brought back, so the
+  card in hand is always the focused layer's; the menu and its search show that layer's cards alone, and the left places
+  only them. The wheel is the hotbar's over the world and scrolls the cards over the tablet, as before. The
   right button, by click or drag, with a card or none, marks or cancels in the focused layer only (`Tools.RemovalIn`; back
   walls behind machines too): everything of that layer in the rectangle, each piece once; what else is under the drag's
   start decides nothing. The focused layer is drawn whole, the other at 35% (`Tools.AlphasOf` of `PlanHand.Shown`, set by
   `Main` on the grid's layers and the machines' views), so the back wall behind a lifepod shows. Beside the tablet's right
-  bezel two stacked pictures, no words, show the layers, the focused one lit. Away from the ship (`PlanHand.Aboard`) the
-  middle button toggles nothing, nothing fades, the pictures hide, and the axe's and drill's fade round the pointer is off
-  too (`PlanHand.SeesThrough`), so the ground never shows what is in it; a card still sets what the right button takes.
+  bezel two stacked buttons, no words, painted as the tablet's tabs, the focused one lit: a bright block before a faint grid,
+  a dim hatched block behind a dotted outline. Away from the ship (`PlanHand.Aboard`)
+  nothing fades and the axe's and drill's fade round the pointer is off
+  too (`PlanHand.SeesThrough`), so the ground never shows what is in it.
   The ghost before a press is the card's, the removal's while the right button is held. There is no removal card. No grid
   is drawn: the ghost and the pointer's outline show where a card snaps. A tab with nothing known is not shown.
 - **The hand tools' menus** (0110): holding the stripper or the wrench, the plan put away, the same tablet shows that
