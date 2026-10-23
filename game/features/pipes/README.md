@@ -7,8 +7,8 @@ The pipes as built, the wrench's hands and the overlay that shows every network 
 
 | File              | Holds                                                                                          | Godot |
 | ----------------- | ---------------------------------------------------------------------------------------------- | ----- |
-| `PipesView.cs`    | every span as the pipe art's straight run along it at any angle, 4 px thick; a flange at each joint, a valve's wheel open or shut, heard turning | yes |
-| `PipeHands.cs`    | the wrench: a left drag lays, Ctrl and a click makes or unmakes a valve, a right press takes the nearest span away (tested) | no |
+| `PipesView.cs`    | every span one continuous straight tube at any angle, 4 px thick, coloured a row at a time from the pipe art's run (0110), no per-cell seams; a flange only at joints, a valve's wheel open or shut, heard turning | yes |
+| `PipeHands.cs`    | the wrench by its menu's card (0110): with the pipe a left drag lays and a right press takes the nearest span away, that span lit whole while hovered; with the valve the left makes a valve on a joint, the right takes it off (tested) | no |
 | `Flow.cs`         | oxygen along spans from the sources, its runs and dots, the palette (`flow.ts`, `oxygen.ts`; tested) | no |
 | `PipesOverlay.cs` | the overlay while the wrench is held: networks in colours of their own (faded when dry), valves, sockets, dots; the span being laid green or red with its reason, its length and cost by the pointer | yes |
 

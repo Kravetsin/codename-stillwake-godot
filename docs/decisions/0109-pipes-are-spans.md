@@ -1,6 +1,6 @@
 # 0109 — Pipes are straight spans, laid with the wrench
 
-- Status: accepted; supersedes the conduit layer of the grid and the pipe and valve cards of the plan menu (0107, 0108)
+- Status: accepted; the wrench's Ctrl+click valve and the drawing superseded by [0110](0110-the-plan-has-a-focused-layer.md); supersedes the conduit layer of the grid and the pipe and valve cards of the plan menu (0107, 0108)
 - Date: 2026-10-23
 - Design: agreed by both developers in chat; no design file
 

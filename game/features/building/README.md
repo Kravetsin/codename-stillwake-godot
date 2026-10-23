@@ -36,14 +36,24 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - **The cards follow the blueprints** (0077, 0084, 0108): a card for each material a blueprint builds a wall of
   (`Blueprints.Has`): soil and stone besides the hull's, no bedrock; then one for each it builds a back wall of. A natural back
   wall's plan shows the ground's own back tile.
-- **The left button plans, the right removes** (0108, `Tools.ActOf`): every card places what it places on the left; on the right
-  it marks or cancels in its layer, a back wall's card back walls only (those behind machines too), any other card the front
-  layers (`Tools.FrontLayersFor`). The ghost before a press is the card's, the removal's while the right button is held. While a
-  back wall's card aims the walls, edges and doors round the pointer fade (`Lit.SeeThrough`, from `Hands`), so the back wall
-  shows. There is no removal card and no cable card: the stripper lays cables (`features/power`). A tab with nothing known is not shown.
+- **The left button plans, the right removes in the focused layer** (0108, 0110, `Tools.ActOf`): every card places what it
+  places on the left. The open plan has a focus (`PlanHand.Focus`), one of three layers: objects (machines, doors, hatches,
+  ladders, floors), walls, back walls. A card picked sets it to its own (`Tools.FocusOf`); the wheel over the world turns it
+  (`Tools.Cycled`, down toward the back), the card staying in hand; over the tablet the wheel still scrolls the cards, and
+  with the plan out the hotbar is chosen by number keys only. The right button, by click or drag, with a card or none, marks
+  or cancels in the focused layer only (`Tools.RemovalIn`; back walls behind machines too): what else is under the drag's
+  start decides nothing. The focused layer is drawn whole, the other two at 35% (`Tools.AlphasOf`, set by `Main` on the
+  grid's layers and the machines' views), so the back wall behind a lifepod shows. Beside the tablet's right bezel three
+  stacked pictures, no words, show the layers, the focused one lit. The ghost before a press is the card's, the removal's
+  while the right button is held. There is no removal card. A tab with nothing known is not shown.
+- **The hand tools' menus** (0110): holding the stripper or the wrench, the plan put away, the same tablet shows that
+  tool's cards alone (`Tools.CardsOf`) on one tab named for it, with no search: the stripper's cable, the wrench's pipe
+  and valve. Each card shows how many of its item the player carries and its cost in the tooltip; the card picked
+  (`PlanHand.ToolCard`, the first when the tool comes into the hand) decides what the left button lays. The tool put away
+  closes it.
 
 - One thing in hand (`Holding`): free, the plan or a card. The plan put away takes the card;
-  the hand freed elsewhere (a hotbar slot, the wheel) puts the plan away.
+  the hand freed elsewhere (a hotbar slot by its number) puts the plan away.
 - **Walls are whole** (0106): a wall card has no shape to turn. A wall planned or in hand joins the walls beside it
   like any placement that joins (`Blueprint.Joins`), as the grid draws built walls.
 - The overlay shown is never kept — `Tools.OverlayShown` from the plan out, the tab, the item wielded and `Ui.AirOn` on
@@ -65,12 +75,9 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still
-  drawn a row at a time; aslant, it is a room's worth. Right drags cancel plans in their layers when begun
-  on one, else mark what is built in their layers over their rectangle, only in the
-  layer of the first thing under where the drag began; a back wall card's back walls only, those behind machines too. Begun where only walls' and back
-  walls' blueprints are planned, a drag takes them off over the same rectangle (`Drag.CellsOf`), and only
-  them: a pipe or machine planned inside it stays. Begun on any other plan, a mark or what is built, it fills the
-  rectangle too, every thing in it marked or cancelled once, a piece or a machine once. Q picks the card under the
+  drawn a row at a time; aslant, it is a room's worth. Right drags work their rectangle (`Drag.CellsOf`) in the
+  focused layer alone (0110): begun on a plan of that layer, a mark included, they cancel its plans in it; else they
+  mark everything of that layer built in it, each piece or machine once. Q picks the card under the
   pointer onto its tab, known cards only, a back wall's its own. A drag ends with the card that began it.
 - **The menu only plans** (0107). Plans are built and marks taken apart by the hero's hands with the screwdriver from the
   hotbar, the menu put away: the left button held on one (crew's `Aiming.UsesOf`), within its reach, works

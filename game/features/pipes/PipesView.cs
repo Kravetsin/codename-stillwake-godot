@@ -12,7 +12,7 @@ namespace Stillwake.Game.Features.Pipes;
 
 /// <summary>
 /// The pipes as they are built (0109): each span a straight pipe from the middle of one end's cell to the other's, at any
-/// angle, the pipe art's straight run along it, its thickness the art's; a joint a small flange, a valve its wheel, open or
+/// angle, one continuous tube coloured from the pipe art's run, its thickness the art's (0110); a joint a small flange, a valve its wheel, open or
 /// shut as the world has it, heard turning. Lit as the ship is, behind what stands in front. Redrawn when the spans or
 /// valves change, read every frame by a cheap key.
 /// </summary>
@@ -26,11 +26,12 @@ public partial class PipesView : Node2D
     private List<int> _joints = [];
     private int _width = 1;
     private string _key = "";
-    private static Texture2D? _run, _flange;
+    private static Texture2D? _flange;
+    private static Color[]? _profile;
 
     public PipesView()
     {
-        _pipes.TextureRepeat = TextureRepeatEnum.Enabled;
+
         Lit.Set(_pipes);
         Lit.Set(_valves);
         _pipes.Paint = PaintPipes;
@@ -38,15 +39,29 @@ public partial class PipesView : Node2D
         foreach (var node in (Node[])[_pipes, _valves, _turns]) AddChild(node);
     }
 
-    /// <summary>The pipe art's straight run, its opaque rows only: what a span repeats along itself.</summary>
-    private static Texture2D Run
+    /// <summary>
+    /// The pipe art's straight run across its thickness, a colour a row, each its most common along the run: one tube with no
+    /// rivets or seams, drawn whole along a span at any angle (0110).
+    /// </summary>
+    private static Color[] Profile
     {
         get
         {
-            if (_run != null) return _run;
+            if (_profile != null) return _profile;
             var image = ShipTiles.ImageOf("pipe_10");
             var used = image.GetUsedRect();
-            return _run = ImageTexture.CreateFromImage(image.GetRegion(new Rect2I(0, used.Position.Y, image.GetWidth(), used.Size.Y)));
+            _profile = new Color[used.Size.Y];
+            for (int row = 0; row < used.Size.Y; row++)
+            {
+                var counts = new Dictionary<Color, int>();
+                for (int x = 0; x < image.GetWidth(); x++)
+                {
+                    var c = image.GetPixel(x, used.Position.Y + row);
+                    if (c.A > 0) counts[c] = counts.GetValueOrDefault(c) + 1;
+                }
+                _profile[row] = counts.Count == 0 ? Colors.Transparent : counts.OrderByDescending(e => e.Value).ThenBy(e => e.Key.ToRgba32()).First().Key;
+            }
+            return _profile;
         }
     }
 
@@ -77,14 +92,14 @@ public partial class PipesView : Node2D
 
     private void PaintPipes(Sketch g)
     {
-        var run = Run;
-        float thick = run.GetHeight();
+        var profile = Profile;
+        float half = profile.Length / 2f;
         foreach (var span in _spans)
         {
             Vector2 a = MiddleOf(span.A, _width), b = MiddleOf(span.B, _width);
             float length = a.DistanceTo(b);
             g.DrawSetTransform(a, (b - a).Angle());
-            g.DrawTextureRect(run, new Rect2(0, -thick / 2, length, thick), tile: true);
+            for (int row = 0; row < profile.Length; row++) g.DrawRect(new Rect2(0, row - half, length, 1), profile[row]);
         }
         g.DrawSetTransform(Vector2.Zero);
         // A flange at every joint, over the runs that meet there; a machine's port has its socket.

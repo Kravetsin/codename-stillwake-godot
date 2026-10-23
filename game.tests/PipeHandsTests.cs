@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The wrench's hands (0109): a left drag lays a span, Ctrl and a click makes a valve, a right press takes a span away.</summary>
+/// <summary>The wrench's hands (0109): a left drag lays a span, a right press takes a span away; the valve card makes and takes valves (0110).</summary>
 public class PipeHandsTests
 {
     // Drawn a cell a character, sixteen wide: a vent (2×2) at (0, 0), its port its top-left.
@@ -22,10 +22,10 @@ public class PipeHandsTests
         return w;
     }
 
-    private static List<Command> Do(TestWorld w, IReadOnlyList<ButtonEvent> left, bool ctrl = false, IReadOnlyList<ButtonEvent>? cuts = null, PipeHands? hands = null)
+    private static List<Command> Do(TestWorld w, IReadOnlyList<ButtonEvent> left, bool valves = false, IReadOnlyList<ButtonEvent>? cuts = null, PipeHands? hands = null)
     {
         var sent = new List<Command>();
-        (hands ?? new PipeHands()).Update(left, ctrl, cuts ?? [], left.Count > 0 ? left[^1].At : null, w.M.Grid, w.M.Pipes, 0, sent.Add);
+        (hands ?? new PipeHands()).Update(left, valves, cuts ?? [], left.Count > 0 ? left[^1].At : null, w.M.Grid, w.M.Pipes, 0, sent.Add);
         return sent;
     }
 
@@ -44,14 +44,34 @@ public class PipeHandsTests
     }
 
     [Fact]
-    public void ACtrlClickMakesAJointAValveAndAValveAJointAgain()
+    public void WithTheValveCardTheLeftMakesAValveOnAJointAndTheRightTakesItOffNeverASpan()
     {
         var w = World();
         w.Step(new LayPipe(At(0, 0), At(5, 0)));
-        Assert.Equal([new MakeValve(At(5, 0), true)], Do(w, [new ButtonEvent(true, Middle(5, 0)), new ButtonEvent(false, Middle(5, 0))], ctrl: true));
+        var press = new ButtonEvent(true, Middle(5, 0));
+        Assert.Equal([new MakeValve(At(5, 0), true)], Do(w, [press, new ButtonEvent(false, Middle(5, 0))], valves: true));
+        // No valve there yet: the right takes nothing, the span stays.
+        Assert.Empty(Do(w, [], valves: true, cuts: [press]));
         w.Step(new MakeValve(At(5, 0), true));
-        Assert.Equal([new MakeValve(At(5, 0), false)], Do(w, [new ButtonEvent(true, Middle(5, 0))], ctrl: true));
+        // A valve already: the left makes no second; the right takes it off.
+        Assert.Empty(Do(w, [press], valves: true));
+        Assert.Equal([new MakeValve(At(5, 0), false)], Do(w, [], valves: true, cuts: [press]));
     }
+
+    [Fact]
+    public void HoveringASpanWithThePipeCardLightsTheWholeSpanTheRightWouldTake()
+    {
+        var w = World();
+        w.Step(new LayPipe(At(0, 0), At(6, 3)));
+        var hands = new PipeHands();
+        hands.Update([], false, [], Middle(3, 1), w.M.Grid, w.M.Pipes, 0, _ => { });
+        Assert.Equal((At(0, 0), At(6, 3)), (hands.Hovered!.A, hands.Hovered.B));
+        hands.Update([], true, [], Middle(3, 1), w.M.Grid, w.M.Pipes, 0, _ => { });
+        Assert.Null(hands.Hovered);
+        hands.Update([], false, [], Middle(12, 0), w.M.Grid, w.M.Pipes, 0, _ => { });
+        Assert.Null(hands.Hovered);
+    }
+
 
     [Fact]
     public void ARightPressTakesAwayTheSpanNearItAndNoneFurtherOff()

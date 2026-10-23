@@ -9,8 +9,8 @@ namespace Stillwake.Game.Features.Pipes;
 
 /// <summary>
 /// The hands at work on pipes with the wrench (0109): a left drag lays a span from the cell pressed to the cell let go,
-/// a machine's cell standing for its nearest port; a left click with Ctrl turns the joint there into a valve, or the valve
-/// back; a right press takes the span nearest it away. While dragging, the span runs from its start to the pointer in the
+/// a machine's cell standing for its nearest port; a right press takes the span nearest it away; with the menu's valve card
+/// (0110) the buttons make and take valves instead. While dragging, the span runs from its start to the pointer in the
 /// colour of what the sim would say, its reason beside it. Plain C#: <c>PipesOverlay</c> draws what it leaves here.
 /// </summary>
 public sealed class PipeHands
@@ -59,15 +59,20 @@ public sealed class PipeHands
     }
 
     /// <summary>
-    /// One frame with the wrench held: the left presses and releases since the last, <paramref name="ctrl"/> whether Ctrl is
-    /// held, the right presses, <paramref name="cuts"/>, and the pointer, in cells. Commands go out through
-    /// <paramref name="send"/> as peer <paramref name="peer"/>.
+    /// One frame with the wrench held: the left presses and releases since the last, <paramref name="valves"/> whether its menu's
+    /// valve card is picked (0110), the right presses, <paramref name="cuts"/>, and the pointer, in cells. With the pipe card the left
+    /// lays and the right takes the nearest span away; with the valve card the left makes a valve on the joint pressed and the
+    /// right takes one off. Commands go out through <paramref name="send"/> as peer <paramref name="peer"/>.
     /// </summary>
-    public void Update(IReadOnlyList<ButtonEvent> left, bool ctrl, IReadOnlyList<ButtonEvent> cuts, (double X, double Y)? pointer,
+    public void Update(IReadOnlyList<ButtonEvent> left, bool valves, IReadOnlyList<ButtonEvent> cuts, (double X, double Y)? pointer,
         IGridQueries grid, IPipesQueries pipes, int peer, Action<Command> send)
     {
         foreach (var button in cuts)
-            if (button.Down && Nearest(pipes.Spans, grid.Width, button.At) is { } cut) send(new CutPipe(cut.A, cut.B));
+        {
+            if (!button.Down) continue;
+            if (!valves && Nearest(pipes.Spans, grid.Width, button.At) is { } cut) send(new CutPipe(cut.A, cut.B));
+            else if (valves && CellAt(grid, button.At) is >= 0 and int at && pipes.ValveAt(at) != null) send(new MakeValve(at, false));
+        }
         foreach (var button in left)
         {
             int cell = CellAt(grid, button.At);
@@ -75,19 +80,25 @@ public sealed class PipeHands
             {
                 _from = null;
                 if (cell < 0) continue;
-                // With Ctrl, a click turns a joint into a valve and a valve back; nothing is laid.
-                if (ctrl) send(new MakeValve(cell, pipes.ValveAt(cell) == null));
+                if (valves)
+                {
+                    if (pipes.ValveAt(cell) == null) send(new MakeValve(cell, true));
+                }
                 else _from = cell;
                 continue;
             }
             if (_from is int start && cell >= 0 && cell != start && pipes.LayProblem(peer, start, cell) == null) send(new LayPipe(start, cell));
             _from = null;
         }
-        Laying = _from is int from && pointer is { } at && CellAt(grid, at) is var to and >= 0
+        Laying = _from is int from && pointer is { } p && CellAt(grid, p) is var to and >= 0
             ? (from, to, to == from ? null : pipes.LayProblem(peer, from, to))
             : null;
+        Hovered = !valves && Laying == null && pointer is { } over ? Nearest(pipes.Spans, grid.Width, over) : null;
     }
 
+    /// <summary>The span the right button would take away now, with the pipe card in hand and nothing being laid: drawn lit.</summary>
+    public PipeSpan? Hovered { get; private set; }
+
     /// <summary>Lets go of whatever is held: the wrench put away mid-drag.</summary>
-    public void Release() => (_from, Laying) = (null, null);
+    public void Release() => (_from, Laying, Hovered) = (null, null, null);
 }

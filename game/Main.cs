@@ -1103,6 +1103,11 @@ public partial class Main : Node2D, ITogether
         _shimmerDemo?.Frame(client, _m.Grid, Log);
         _layerDemo?.Frame(client, _m, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
+        // The open plan draws its focused layer whole and the others faded (0110).
+        var fade = Features.Building.Tools.AlphasOf(_hands.Plan.PlanOut.Get() ? _hands.Plan.Focus.Get() : null);
+        _grid?.Fade(fade);
+        foreach (var view in (CanvasItem?[])[_screens, _chargers, _stores, _tanks, _pods, _stations, _benches, _furnace])
+            if (view != null) view.Modulate = new Color(1, 1, 1, fade.Objects);
     }
 
     private readonly List<Body> _bodies = [];

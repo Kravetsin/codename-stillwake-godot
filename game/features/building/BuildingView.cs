@@ -64,7 +64,7 @@ public partial class BuildingView : Node2D
     private List<Edge> _near = [];
     private int _width;
     /// <summary>The drag under way: what it does, whether the right button began it, the point it began at, in cells, and the card it began with.</summary>
-    private (Act Act, bool Right, (double X, double Y) From, Tool Card)? _drag;
+    private (Act Act, bool Right, (double X, double Y) From, Tool? Card)? _drag;
 
     /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
     private Dictionary<int, int> _worked = [];
@@ -93,8 +93,8 @@ public partial class BuildingView : Node2D
 
     /// <summary>
     /// One frame: the plans brought up to the world, the presses since the last read the cables did not take, the
-    /// <paramref name="left"/> button's in the front layer and the <paramref name="right"/> one's in the back (0107), the
-    /// ghost drawn, of the back layer while only the right button is held (<paramref name="holdsRight"/>).
+    /// <paramref name="left"/> button's placing the card and the <paramref name="right"/> one's removing in the focused layer (0110), the
+    /// ghost drawn, the removal's while the right button is held (<paramref name="holdsRight"/>).
     /// </summary>
     public void Frame(Client client, Registry m, IReadOnlyList<ButtonEvent> left, IReadOnlyList<ButtonEvent> right, bool holdsRight,
         (double X, double Y)? pointer)
@@ -116,7 +116,7 @@ public partial class BuildingView : Node2D
         {
             act = Drag.Oriented(act, from, to);
             var planned = new List<int>();
-            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building))
+            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building, grid))
                 foreach (var c in verdict.Commands)
                 {
                     client.Send(c);
@@ -131,8 +131,8 @@ public partial class BuildingView : Node2D
         {
             if (button.Down)
             {
-                // The first button down has the drag; another pressed meanwhile is let be. A front-only card's right does nothing.
-                if (_drag == null && tool != null && Tools.ActOf(tool, back) is { } act && Drag.OnGrid(width, height, button.At))
+                // The first button down has the drag; another pressed meanwhile is let be. The right removes in the focused layer, card or none (0110).
+                if (_drag == null && _hand.PlanOut.Get() && Tools.ActOf(tool, back, _hand.Focus.Get()) is { } act && Drag.OnGrid(width, height, button.At))
                     _drag = (act, back, button.At, tool);
                 return;
             }
@@ -157,7 +157,7 @@ public partial class BuildingView : Node2D
         tool = _hand.Selected.Get();
         bool onGrid = pointer is { } p0 && Drag.OnGrid(width, height, p0);
         ShowTray(onGrid ? CellAt(pointer!.Value) : null, grid, building);
-        Ghost(tool, pointer, onGrid, grid, building, Tools.ActOf(tool, Layering.Back(false, holdsRight)));
+        Ghost(tool, pointer, onGrid, grid, building, _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null);
         _hands.QueueRedraw();
     }
 
@@ -424,12 +424,12 @@ public partial class BuildingView : Node2D
         _near = [];
         _ui.Reason.Set(null);
         if (tool is PlaceTool && pointer is { } near) _near = NearGrid.Around(near, width, height);
-        // Before a press, what the button held would do: the front layer's, the back's with the right alone (0107).
+        // Before a press, what the button held would do: the card's, the focused layer's removal while the right is held (0110).
         Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
         // The door's card lays a hatch along a stroke drawn across (0104).
         act = Drag.Oriented(act, _drag?.From ?? p, p);
-        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building);
+        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building, grid);
         if (act is PlaceTool place)
         {
             // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.
@@ -443,7 +443,6 @@ public partial class BuildingView : Node2D
         {
             // What it would take, as its marks will look: each thing's red ghost and dashes round its silhouette.
             // What it may not take (a crate not empty, a machine cabled), its silhouette dim, its reason by the pointer.
-            var layers = (act as Remove)?.Layers;
             var seen = new HashSet<(string, int)>();
             void Silhouette(string layer, int cell, bool takes)
             {
@@ -476,7 +475,8 @@ public partial class BuildingView : Node2D
                 foreach (var c in v.Commands)
                     if (c is Sim.Building.Deconstruct d) Silhouette(d.Layer, d.Cell, takes: true);
                     else if (c is CancelPlan cancel) Cancelled(v.Cell, cancel.Id);
-                if (v.Problem != null && building.ClearAt(v.Cell, layers) is { } next) Silhouette(next.Layer, next.Cell, takes: false);
+                if (v.Problem != null && act is Remove remove)
+                    foreach (var (layer, at) in Drag.ThingsIn(remove, v.Cell, building, grid)) Silhouette(layer, at, takes: false);
             }
         }
         // A removal's rectangle over open cells as well as things says nothing of the open ones while it takes something.

@@ -30,7 +30,7 @@ public partial class PipesOverlay : Node2D
     private const double FlowSpeed = 4;
     private const int DotEvery = 6;
     private static readonly Color ValveOpen = AsciiArt.Colour(0x4caf6a), ValveClosed = AsciiArt.Colour(0xd05050), ValveEdge = AsciiArt.Colour(0x10161d),
-        Loose = new(0.6f, 0.65f, 0.7f, DryAlpha), Fits = new(0.45f, 0.9f, 0.55f), Refused = new(0.95f, 0.35f, 0.35f);
+        Loose = new(0.6f, 0.65f, 0.7f, DryAlpha), Fits = new(0.45f, 0.9f, 0.55f), Refused = new(0.95f, 0.35f, 0.35f), Hovered = new(1f, 0.85f, 0.45f);
 
     private readonly Ui _ui;
     private readonly Sketch _view = new(Layers.Overlay), _ghost = new(Layers.OverlayHands);
@@ -52,13 +52,13 @@ public partial class PipesOverlay : Node2D
     }
 
     /// <summary>
-    /// One frame while the overlay is on: the wrench's hands with the left buttons, <paramref name="ctrl"/> and the right
+    /// One frame while the overlay is on: the wrench's hands with the left buttons, <paramref name="valves"/> (the valve card) and the right
     /// presses, <paramref name="cuts"/>; the networks read again at most every <see cref="RefreshMs"/>, the dots moved on.
     /// </summary>
-    public void Frame(Client client, Registry m, IReadOnlyList<ButtonEvent> left, bool ctrl, IReadOnlyList<ButtonEvent> cuts,
+    public void Frame(Client client, Registry m, IReadOnlyList<ButtonEvent> left, bool valves, IReadOnlyList<ButtonEvent> cuts,
         (double X, double Y)? pointer, double elapsedMs)
     {
-        _hands.Update(left, ctrl, cuts, pointer, m.Grid, m.Pipes, client.Id, client.Send);
+        _hands.Update(left, valves, cuts, pointer, m.Grid, m.Pipes, client.Id, client.Send);
         if (_hands.Laying is { Why: { } why }) _ui.Reason.Set(why);
         else if (_hands.Laying is var (from, to, _) && from != to)
         {
@@ -141,6 +141,14 @@ public partial class PipesOverlay : Node2D
 
     private void PaintGhost(Sketch g)
     {
+        // The whole span the right button would take away, lit along its length and its two ends (0110).
+        if (_hands.Hovered is { } span)
+        {
+            Vector2 a = PipesView.MiddleOf(span.A, _width), b = PipesView.MiddleOf(span.B, _width);
+            g.DrawLine(a, b, Hovered with { A = 0.35f }, 7);
+            g.DrawLine(a, b, Hovered, 1);
+            foreach (var end in (Vector2[])[a, b]) g.DrawRect(new Rect2(end - new Vector2(3, 3), new Vector2(6, 6)), Hovered, false, 1);
+        }
         if (_hands.Laying is not var (from, to, why) || from == to) return;
         g.DrawLine(PipesView.MiddleOf(from, _width), PipesView.MiddleOf(to, _width), why == null ? Fits : Refused, 3);
     }

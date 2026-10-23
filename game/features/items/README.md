@@ -89,7 +89,7 @@ as everything E works is, in the crew feature (`AimTests`).
   by `Main`) goes the same way, flying from where it is drawn. `ShiftFlightsTests` shift-clicks every item from every
   slot of every panel (none open and each machine kind in content) and every socket, and fails on a command with no flight.
   Over every panel, under the stack carried; several landings one after another, `Fx.MostRibbons` at most.
-- One hand (0022, `Ui.Hand`): 1–9 and the wheel over the world choose a hotbar slot and free the hand,
+- One hand (0022, `Ui.Hand`): 1–9 and, with the plan away, the wheel over the world choose a hotbar slot and free the hand (with the plan out the wheel turns its layer, 0110),
   putting the plan away; Tab frees it too as it opens the inventory. Q throws the chosen slot's whole
   stack from the hero's cell the way it faces, and does nothing while a card is in hand. The chosen
   slot is edged 2 px near-white only while the hand is free. Each hotbar slot shows the digit that

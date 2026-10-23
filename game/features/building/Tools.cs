@@ -18,8 +18,26 @@ public abstract record Tool(string Id, string Label) : Act;
 /// <summary>A card that places <paramref name="Placement"/> along a drag of the left button, and marks its layer along one of the right (0108).</summary>
 public sealed record PlaceTool(string Id, Placement Placement, string Label) : Tool(Id, Label);
 
-/// <summary>A removal from <paramref name="Layers"/>, in the order they are taken.</summary>
-public sealed record Remove(IReadOnlyList<string> Layers) : Act;
+/// <summary>
+/// A card of a hand tool's menu (0110): what the stripper's or the wrench's left button lays, paid from the inventory as it
+/// is laid; <paramref name="Item"/> is the one whose count the card shows.
+/// </summary>
+public sealed record HandCard(string Id, string Label, string Item, IReadOnlyList<(string Item, int Count)> Cost) : Tool(Id, Label);
+
+/// <summary>
+/// A removal from <paramref name="Layers"/>, in the order they are taken; of the structure only walls when
+/// <paramref name="Walls"/> is true, only what is not a wall when false (0110).
+/// </summary>
+public sealed record Remove(IReadOnlyList<string> Layers, bool? Walls = null) : Act;
+
+/// <summary>The layer the open plan works in (0110): its right button removes there, the others drawn faded.</summary>
+public enum Focus
+{
+    /// <summary>Machines, doors, ladders, floors: what stands in front of the walls.</summary>
+    Objects,
+    Walls,
+    Back,
+}
 
 /// <summary>A tab of the build menu, its cards, and the overlay it shows while open, if any: the tab is the mode (0030).</summary>
 public sealed record Tab(string Id, IReadOnlyList<Tool> Tools, string? Overlay = null);
@@ -113,22 +131,55 @@ public static class Tools
 
     /// <summary>What a card costs, by <paramref name="costFor"/> (the sim's own rule) for what it places.</summary>
     public static IReadOnlyList<(string Item, int Count)> CostOf(Tool tool, System.Func<Placement, IReadOnlyList<(string Item, int Count)>> costFor) =>
-        tool is PlaceTool p ? costFor(p.Placement) : [];
+        tool switch
+        {
+            PlaceTool p => costFor(p.Placement),
+            HandCard h => h.Cost,
+            _ => [],
+        };
 
-    /// <summary>Whether <paramref name="tool"/> is a back wall's card: its right button marks back walls only, and the front fades while it aims (0108).</summary>
-    public static bool IsBack(Tool? tool) => tool is PlaceTool { Placement.Layer: "back" };
+    /// <summary>The layer a card's placement is in (0110): a back wall's the back, a wall's the walls, the rest the objects.</summary>
+    public static Focus FocusOf(Tool tool) => tool switch
+    {
+        PlaceTool { Placement.Layer: "back" } => Focus.Back,
+        PlaceTool { Placement.Kind: "wall" } => Focus.Walls,
+        _ => Focus.Objects,
+    };
+
+    /// <summary>The layer the wheel turns to from <paramref name="focus"/>: a notch down toward the back, round again.</summary>
+    public static Focus Cycled(Focus focus, int step) => (Focus)((((int)focus + step) % 3 + 3) % 3);
+
+    /// <summary>What the right button takes in <paramref name="focus"/>: back walls (those behind machines too), walls, or the rest of the front.</summary>
+    public static Remove RemovalIn(Focus focus) => focus switch
+    {
+        Focus.Back => new Remove(["back"]),
+        Focus.Walls => new Remove(["structure"], Walls: true),
+        _ => new Remove(FrontLayers, Walls: false),
+    };
 
     /// <summary>
-    /// What a drag of <paramref name="tool"/> does (0108): the left button places what the card places; the
-    /// <paramref name="right"/> marks or cancels in the card's layer — back walls only for a back wall's card, those behind
-    /// machines too; for any other, the front layers (<see cref="FrontLayers"/>).
+    /// What a drag in the open plan does (0110): the left button places what the card in hand places, if one is; the
+    /// <paramref name="right"/> marks or cancels in the <paramref name="focus"/>ed layer, a card in hand or not.
     /// </summary>
-    public static Act? ActOf(Tool? tool, bool right) => tool switch
-    {
-        PlaceTool p when right => new Remove(IsBack(p) ? ["back"] : FrontLayers),
-        PlaceTool p => p,
-        _ => null,
-    };
+    public static Act? ActOf(Tool? tool, bool right, Focus focus) => right ? RemovalIn(focus) : tool as PlaceTool;
+
+    /// <summary>How opaque a layer out of focus is drawn while the plan is open (0110).</summary>
+    public const float Faded = 0.35f;
+
+    /// <summary>How opaque the objects, the walls and the back walls are drawn: the focused layer whole, the others <see cref="Faded"/>; all whole with no focus.</summary>
+    public static (float Objects, float Walls, float Back) AlphasOf(Focus? focus) => focus is not { } f ? (1, 1, 1)
+        : (f == Focus.Objects ? 1 : Faded, f == Focus.Walls ? 1 : Faded, f == Focus.Back ? 1 : Faded);
+
+    /// <summary>The stripper's card (0110): a cable, a wire each.</summary>
+    public static readonly HandCard Cable = new("cable", En.T("tool.cable"), "wire", Content.Power.CableCost);
+
+    /// <summary>The wrench's cards (0110): a pipe, a tube per started <see cref="Piping.CellsPerItem"/> cells; a valve on a joint.</summary>
+    public static readonly HandCard Pipe = new("pipe", En.T("tool.pipe"), Piping.Item, [(Piping.Item, 1)]),
+        Valve = new("valve", En.T("tool.valve"), "gear", Piping.ValveCost);
+
+    /// <summary>The cards of the menu the item <paramref name="wielded"/> opens: the stripper's cable, the wrench's pipe and valve; none for any other.</summary>
+    public static IReadOnlyList<HandCard> CardsOf(string? wielded) =>
+        wielded == HandTools.Stripper ? [Cable] : wielded == HandTools.Wrench ? [Pipe, Valve] : [];
 
     /// <summary>
     /// The overlay that shows: the open tab's, if the menu is open and the tab has one; else the one the item
@@ -149,15 +200,15 @@ public static class Tools
     }
 
     /// <summary>The tab a card is on.</summary>
-    public static string TabOf(Tool tool) => Tabs.First(t => t.Tools.Contains(tool)).Id;
+    public static string TabOf(Tool tool) => Tabs.FirstOrDefault(t => t.Tools.Contains(tool))?.Id ?? "";
 
-    /// <summary>What the buttons do, an i18n key: with a back wall's card in hand, its own.</summary>
-    public static string HintOf(string tab, Tool? held = null) => IsBack(held) ? "hint.back" : "hint.build";
+    /// <summary>What the buttons do, an i18n key: a hand tool's card its own, the plan's the same on every tab.</summary>
+    public static string HintOf(Tool? held = null) => held is HandCard h ? $"hint.{h.Id}" : "hint.build";
 
     /// <summary>The layers Q picks in, in the order they are taken: what the ship is built of.</summary>
     public static readonly IReadOnlyList<string> Layers = ["machine", "structure", "back"];
 
-    /// <summary>The layers a front card's right button marks: <see cref="Layers"/> but the back walls, a back wall card's (0108).</summary>
+    /// <summary>The layers the right button marks in the objects' focus: <see cref="Layers"/> but the back walls, walls left out (0110).</summary>
     public static readonly IReadOnlyList<string> FrontLayers = ["machine", "structure"];
 
     /// <summary>Whether <paramref name="tool"/> is a card the world knows (0024): its blueprint.</summary>

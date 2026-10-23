@@ -718,8 +718,8 @@ public partial class InventoryPanel : CanvasLayer
             GetViewport().SetInputAsHandled();
             Refresh();
         }
-        // Over the world only: a panel under the pointer takes the wheel before it gets here.
-        else if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown or MouseButton.WheelUp } wheel)
+        // Over the world only: a panel under the pointer takes the wheel before it gets here; with the plan out it turns the plan's layer (0110).
+        else if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown or MouseButton.WheelUp } wheel && HandFree)
         {
             _ui.Hand.Set(Holding.Free);
             _chosen = Hotbar.WheelSlot(_chosen, wheel.ButtonIndex == MouseButton.WheelDown ? 1 : -1);

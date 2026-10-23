@@ -16,8 +16,8 @@ namespace Stillwake.Game.Shared;
 /// This player's hands on the ship and the views that explain it (App.tsx's part of the TypeScript game
 /// for these features): the plan and its menu, cables, the pipes and air, the air overlay's chip, and
 /// the words by the pointer, sharing one <see cref="Shared.Ui"/>. Each frame the building takes the
-/// buttons, but while the stripper is held, when the cables take them (0108), or the wrench, the pipes (0109). While a back wall's card aims, or the
-/// right button digs with no card, the walls round the pointer fade, so the back wall shows (<see cref="Lit.SeeThrough"/>).
+/// buttons, but while the stripper is held, when the cables take them (0108), or the wrench, the pipes (0109), by the card of its menu (0110). With the plan away, while the
+/// right button digs, the walls round the pointer fade, so the back wall shows (<see cref="Lit.SeeThrough"/>).
 /// </summary>
 public partial class Hands : Node2D
 {
@@ -69,7 +69,6 @@ public partial class Hands : Node2D
         string? overlay = Ui.OverlayOn;
         if (overlay != _overlayWas) Ui.WorldTip.Set(null);
         _overlayWas = overlay;
-        var tool = Plan.Selected.Get();
         // The cables show only while the stripper is held (0108), the pipes while the wrench is (0109): then the buttons are
         // that feature's, the left laying, the right taking away; else the card's.
         bool wiring = overlay == PowerView.Id, piping = overlay == PipesOverlay.Id;
@@ -77,13 +76,13 @@ public partial class Hands : Node2D
         IReadOnlyList<ButtonEvent> laid = piping ? buttons.TakeLeft() : [];
         if (wiring || piping) _building.Frame(client, m, [], [], false, pointer);
         else _building.Frame(client, m, buttons.TakeLeft(), buttons.TakeRight(), buttons.HoldsRight, pointer);
-        // The front fades round the pointer while a back wall's card aims, or while the right button digs with no card.
-        bool seeThrough = Tools.IsBack(tool) || tool == null && !wiring && !piping && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight);
+        // With the plan put away, the front fades round the pointer while the right button digs back walls; the open plan fades by its focus (0110).
+        bool seeThrough = !Plan.PlanOut.Get() && !wiring && !piping && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight);
         Lit.SeeThrough(pointer is { } at && seeThrough ? new Vector2((float)at.X, (float)at.Y) * ShipCamera.Cell : null);
         _power.Frame(client, m, buttons, wiring ? cuts : [], pointer, bodies, elapsedMs);
         _pipesBuilt.Frame(client, m);
         _pipes.Visible = piping;
-        if (piping) _pipes.Frame(client, m, laid, Input.IsPhysicalKeyPressed(Key.Ctrl), cuts, pointer, elapsedMs);
+        if (piping) _pipes.Frame(client, m, laid, Plan.ToolCard.Get() == Tools.Valve, cuts, pointer, elapsedMs);
         else _pipes.Release();
         _air.Frame(client, m, pointer, elapsedMs);
         Menu.Frame(m);

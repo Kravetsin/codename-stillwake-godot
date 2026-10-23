@@ -13,11 +13,11 @@ namespace Stillwake.Game.Dev;
 /// A script for the plan menu's buttons and the hand tools (0107, 0108), by the generator of the wreck's first room, the
 /// hero carrying the axe (<c>-- --layer-demo MODE</c>): <c>plan</c> the tablet out with the scrap back wall's card and back
 /// walls planned over open space by a left drag; <c>remove</c> the scrap wall's card marking the ceiling by a right drag;
-/// <c>fade</c> the back wall's card aimed at the ceiling, the walls round the pointer faded to show the back wall behind;
+/// <c>focus</c> the plan out with the back walls focused by the wheel, the rest faded, the pointer on the lifepod (0110);
 /// <c>axe</c> the axe swung by the right button at the room's back wall, refused as a ship's, and <c>aim</c> its aim just
 /// before; <c>strip</c> the stripper held, a cable laid from the generator to the wall, the cables' overlay showing; <c>pipe</c>
 /// the wrench held, a pipe laid aslant from the generator's port to a joint and a branch on from it, the pipes' overlay
-/// showing; <c>valve</c> the same with the branch's joint made a valve and shut, the wrench put away.
+/// showing, its menu out and the first span hovered; <c>valve</c> the same with the branch's joint made a valve and shut, the wrench put away.
 /// </summary>
 public sealed class LayerDemo(Hands hands, string mode)
 {
@@ -77,11 +77,12 @@ public sealed class LayerDemo(Hands hands, string mode)
                 _pointer = At(3.5, -2.5);
                 Move(0);
                 break;
-            case "fade" when tick == 20:
-                log("the back wall's card aimed at the ceiling: the walls round the pointer fade");
+            case "focus" when tick == 20:
+                log("B, the wheel twice: the back walls focused, the rest faded; the pointer on the lifepod");
                 hands.Plan.Toggle();
-                hands.Menu.Pick(Card("backWallScrap"));
-                _pointer = At(3.5, -5.5);
+                hands.Plan.TurnFocus(1);
+                hands.Plan.TurnFocus(1);
+                _pointer = grid.MachinesOf("lifepod").FirstOrDefault() is { } pod ? (pod.Cell % w + 3.0, pod.Cell / w + 3.0) : At(3.5, -2.5);
                 break;
             case "axe" when tick == 20:
             case "aim" when tick == 18:
@@ -124,6 +125,11 @@ public sealed class LayerDemo(Hands hands, string mode)
                     client.Send(new Sim.Pipes.SetValve(joint, false));
                     Wield(m, client.Id, Content.Weapons.Axe.Item);
                 }
+                break;
+            case "pipe" when tick == 60:
+                log("the first span hovered: lit whole, what the right button would take");
+                _pointer = At(3, -0.5);
+                Move(0);
                 break;
             case "strip" when tick == 10:
                 log("creative, so the cable is paid; the stripper held: the cables show");
