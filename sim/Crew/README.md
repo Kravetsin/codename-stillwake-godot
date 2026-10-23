@@ -46,7 +46,7 @@ made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod 
   exertion included; on the others it pays nothing. Air taken from a room or the pod works as aboard.
 - **Suit colours** tell heroes apart: `Crew.Colours` of them, kept by the world's `Players` (0076), so two heroes on
   two surfaces never wear one. A hero coming in wears the first colour no hero wears, or with all worn, the least worn
-  (the first on a tie) (`Players.Dress`). `PickColour(Colour)` puts the sender's hero into a colour no other hero
+  (the first on a tie) (`Players.Dress`), and a peer's first hero is given the kit, the screwdriver (`IItemsOps.Kit`, 0107). `PickColour(Colour)` puts the sender's hero into a colour no other hero
   wears, on any surface.
 - `Leave` takes the sender's hero out, its colour freed: the host sends it on behalf of a peer it
   heard leave (`Host.Disconnect`'s farewell, which the game passes). Whatever electric tool it ran stops

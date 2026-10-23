@@ -21,6 +21,8 @@ public static class Crafts
         new("frame", [("plate", 2)], Ticks: 80),
         new("coil", [("wire", 3)], Ticks: 60),
         new("fireAxe", [("iron", 2), ("planks", 1)], Ticks: 60),
+        // Made again of scrap should one be lost: without it nothing is built (0107).
+        new("screwdriver", [("scrap", 2)], Ticks: 20),
         // The harpoon of what the jetpack is made of, and less, so it opens first (0068).
         new("harpoon", [("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 100),
         new("jetpack", [("frame", 1), ("tube", 2), ("coil", 1), ("circuit", 1), ("canister", 1), ("wire", 2)], Ticks: 160),

@@ -55,7 +55,8 @@ public sealed partial class BuildingModule
                     // mostly on a crack, so walls break within a run, or anywhere, mostly on the ground a planet is made of.
                     int cell = _plants.Count > 0 && Below(4) == 0 ? (FuzzPlant(Below) is var p && Below(2) == 0 ? p.Cell : HoldOf(p))
                         : State.Cracks.Count > 0 && Below(2) == 0 ? State.Cracks[Below(State.Cracks.Count)].Cell : Cell();
-                    return new Dig(cell, Weapons.All[Below(Weapons.All.Count)].Item) { From = from };
+                    // A quarter of digs hit the back wall (0107), ship and ground alike.
+                    return new Dig(cell, Weapons.All[Below(Weapons.All.Count)].Item, Back: Below(4) == 0) { From = from };
                 }
             case 0:
                 return new PlacePlan(Cell(), FuzzPlacements[Below(FuzzPlacements.Length)]) { From = from };

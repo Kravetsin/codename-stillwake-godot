@@ -78,6 +78,7 @@ public interface IItemsOps
     bool Drain(int peer, int amount);
     void StopRunning(int peer);
     void LeaveBody(int peer, int cell);
+    void Kit(int peer);
     Stack? TakeFrom(int id, int slot, int count);
     int PutIn(int id, Stack stack);
     void LayDown(Stack stack, int cell);
@@ -499,6 +500,16 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>Stops whatever <paramref name="peer"/>'s hero runs: crew's, as the hero passes out or leaves. Nothing while it runs nothing.</summary>
     public void StopRunning(int peer) => State.Running.RemoveAll(r => r.Peer == peer);
+
+    /// <summary>
+    /// What a hero comes aboard with (0107), given the first time <paramref name="peer"/> has a hero: <see cref="Content.Inventory.Kit"/>
+    /// in its first slots. Nothing for a peer that has an inventory already, emptied or not.
+    /// </summary>
+    public void Kit(int peer)
+    {
+        if (State.Inventories.Exists(h => h.Id == peer)) return;
+        Give(peer, Content.Inventory.Kit);
+    }
 
     /// <summary>
     /// <paramref name="peer"/>'s hero died in <paramref name="cell"/> (0061): every stack in its own slots that is

@@ -33,9 +33,18 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 
 ## Guarantees
 
-- **The cards follow the blueprints** (0077, 0084): a wall or back wall card for each material a blueprint builds it of
-  (`Blueprints.Has`): soil and stone walls and back walls besides the hull's, no bedrock. A natural back wall's card and plan
-  show the ground's own back tile.
+- **The cards follow the blueprints** (0077, 0084, 0107): a card for each material a blueprint builds a wall of
+  (`Blueprints.Has`): soil and stone besides the hull's, no bedrock. It plans the wall on the left button and the back wall of
+  the same material on the right (`PlaceTool.Back`); its picture is its wall's square before a dimmed square of its back wall
+  (`BlueprintArt.Layered`). A natural back wall's plan shows the ground's own back tile.
+- **Left is the front, right the back** (0107, `Tools.ActOf`): with the right button alone a material's card plans back walls and
+  the removal card marks them; doors, ladders, floors, pipes, machines and the cable are front only, their right doing nothing.
+  The ghost before a press is the front's, the back's while the right button is held. While it is held the walls, edges and
+  doors round the pointer fade (`Lit.SeeThrough`, from `Hands`), so the back wall shows.
+- **The removal card** (`RemoveTool`), first on every tab and free, replaces the middle button: on the left it cancels plans or
+  marks what is built in the tab's front layers (`Tools.FrontLayersFor`), on the right back walls only. On the power tab its left
+  press near a cable cuts it (`Hands`). The search finds one of them; a tab's count leaves it out, and a tab with nothing else
+  known is not shown.
 
 - One thing in hand (`Holding`): free, the plan, a card or the cable. The plan put away takes the card;
   the hand freed elsewhere (a hotbar slot, the wheel) puts the plan away.
@@ -60,15 +69,16 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still
-  drawn a row at a time; aslant, it is a room's worth. Middle drags cancel plans when begun on one,
-  else mark what is built in the tab's layers (Air: pipes, valves, machines) over their rectangle, only in the layer of the first
-  thing under where the drag began: begun on a back wall, back walls, those behind machines too, and no machine. Begun where only walls' and back
-  walls' blueprints are planned, a middle drag takes them off over the same rectangle (`Drag.CellsOf`), and only
+  drawn a row at a time; aslant, it is a room's worth. The removal card's drags cancel plans in their layers when begun
+  on one, else mark what is built in their layers (left on Air: pipes, valves, machines) over their rectangle, only in the
+  layer of the first thing under where the drag began; the right's back walls only, those behind machines too. Begun where only walls' and back
+  walls' blueprints are planned, a drag takes them off over the same rectangle (`Drag.CellsOf`), and only
   them: a pipe or machine planned inside it stays. Begun on any other plan, a mark or what is built, it fills the
   rectangle too, every thing in it marked or cancelled once, a piece or a machine once. Q picks the card under the
-  pointer onto its tab, known cards only. A drag ends with the hand that began it.
-- The right button held on a plan is the hero's, whatever the hand holds (crew's `Aiming.UsesOf`): within
-  its reach it works one tick per tick released, at most five a frame; the sim takes an item from the hero
+  pointer onto its tab, known cards only, a back wall's its material's. A drag ends with the card that began it.
+- **The menu only plans** (0107). Plans are built and marks taken apart by the hero's hands with the screwdriver from the
+  hotbar, the menu put away: the left button held on one (crew's `Aiming.UsesOf`), within its reach, works
+  `Screwdriver.Work` ticks per tick released, at most five ticks a frame; the sim takes an item from the hero
   as each part of a blueprint begins (0063). There is no delivery apart from work.
 - A cost reads the same in the menu and under the pointer (`CostLine.Lacking`): what this player carries
   over what is still needed — the cost less what was put in — green when it covers it, red when not.
@@ -81,9 +91,10 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   item taking it apart gives back, its icon at 32 pixels and "+2" in green — the sim's refund
   (`BuildingModule.RefundOf`, what the mark's last tick gives). A blueprint lacking something under the
   pointer is told first.
-- **The menu is a docked catalogue of fixed size** (0073): 638×204 px at the normal slot, 862×252 at the large, 12 px
+- **The menu is a docked catalogue of fixed size** (0073): 622×192 px at the normal slot, 782×224 at the large, 12 px
   above the bottom edge in the middle, whatever the tab, the search or the number of cards (`Catalogue`). Tabs with
-  their counts of known cards and the search field on top; 14 by 3 cards, the inventory's slots, the card in hand
+  their counts of known cards and the search field on top; 10 by 2 cards a step of the art larger than the inventory's
+  slots (0107: 56 px with 48 px pictures, 72 with 64), the card in hand
   edged sky blue; the wheel anywhere over the panel scrolls a row a notch (never the hotbar), a thin bar showing
   where. A tab opens at its top row; a card taken by Q is scrolled into view. Picking a card leaves the menu open.
 - **The menu is a rugged tablet's screen** (0073): its frame a 9-slice of pixel art at two screen pixels a pixel

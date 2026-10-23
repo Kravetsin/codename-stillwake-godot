@@ -16,8 +16,9 @@ namespace Stillwake.Game.Shared;
 /// This player's hands on the ship and the views that explain it (App.tsx's part of the TypeScript game
 /// for these features): the plan and its menu, cables, the pipes and air, the air overlay's chip, and
 /// the words by the pointer, sharing one <see cref="Shared.Ui"/>. Each frame the building takes the
-/// buttons first, then the power tab what is left to it; a middle press on the power tab goes to the
-/// cables when one is in reach to cut, else to the building's removal (0030).
+/// buttons first, then the power tab what is left to it; the removal card's left press on the power tab
+/// goes to the cables when one is in reach to cut, else to the building's removal (0030, 0107). While the
+/// right button is held the walls round the pointer fade, so the back wall it works shows (<see cref="Lit.SeeThrough"/>).
 /// </summary>
 public partial class Hands : Node2D
 {
@@ -32,7 +33,7 @@ public partial class Hands : Node2D
     private readonly PipesOverlay _pipes = new();
     private readonly AirView _air;
     private readonly PointerTip _tip;
-    /// <summary>Whether the middle drag under way began on a cable: its release goes where its press went.</summary>
+    /// <summary>Whether the removal card's drag under way began on a cable: its release goes where its press went.</summary>
     private bool _cutting;
     private string? _overlayWas;
     /// <summary>What this player carries is read this often into <see cref="Ui.Carried"/>: a panel reads on a timer.</summary>
@@ -69,14 +70,20 @@ public partial class Hands : Node2D
         string? overlay = Ui.OverlayOn;
         if (overlay != _overlayWas) Ui.WorldTip.Set(null);
         _overlayWas = overlay;
-        var removing = new List<ButtonEvent>();
+        var tool = Plan.Selected.Get();
+        // The left button is the card's, but on the power tab with no card to place, where it lays the cable or carries pegs
+        // and plugs: the power feature's, which takes it itself.
+        bool wiring = overlay == PowerView.Id && tool is not (PlaceTool or RemoveTool);
+        var left = new List<ButtonEvent>();
         var cuts = new List<ButtonEvent>();
-        foreach (var button in buttons.TakeMiddle())
+        foreach (var button in wiring ? [] : buttons.TakeLeft())
         {
-            if (button.Down) _cutting = overlay == PowerView.Id && _power.NearCable(button.At);
-            (_cutting ? cuts : removing).Add(button);
+            if (button.Down) _cutting = tool is RemoveTool && overlay == PowerView.Id && _power.NearCable(button.At);
+            (_cutting ? cuts : left).Add(button);
         }
-        _building.Frame(client, m, buttons, removing, pointer);
+        _building.Frame(client, m, left, buttons.TakeRight(), buttons.HoldsRight, pointer);
+        Lit.SeeThrough(pointer is { } at && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight)
+            ? new Vector2((float)at.X, (float)at.Y) * ShipCamera.Cell : null);
         _power.Frame(client, m, buttons, cuts, pointer, bodies, elapsedMs);
         _pipes.Visible = overlay == PipesOverlay.Id;
         if (_pipes.Visible) _pipes.Frame(client, m, elapsedMs);

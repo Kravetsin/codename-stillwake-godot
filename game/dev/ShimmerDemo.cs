@@ -61,21 +61,23 @@ public sealed class ShimmerDemo(Hands hands)
                 Release();
                 break;
             case 55:
-                log("the ceiling over it marked for taking down");
+                log("the ceiling over it marked for taking down with the removal card");
+                hands.Menu.Pick(Card("remove"));
                 _pointer = At(-1.5, -2.5);
-                Press(Buttons.Middle);
+                Press(Buttons.Left);
                 break;
             case 57:
                 _pointer = At(3.5, -2.5);
-                hands.Mouse.Buttons.OnPointer(false, Buttons.Middle, _pointer.Value);
+                hands.Mouse.Buttons.OnPointer(false, Buttons.Left, _pointer.Value);
                 break;
             case 59:
                 Release();
                 break;
             case 70:
-                log("the plan welded, aimed at");
+                log("the tablet away, the screwdriver in hand: the plan welded, aimed at");
+                hands.Plan.PutPlanAway();
                 _pointer = At(0.5, -0.5);
-                Press(Buttons.Right);
+                Press(Buttons.Left);
                 break;
             case 160:
                 Release();

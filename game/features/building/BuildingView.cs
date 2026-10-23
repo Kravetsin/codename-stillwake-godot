@@ -63,8 +63,8 @@ public partial class BuildingView : Node2D
     private List<Rect2> _machines = [];
     private List<Edge> _near = [];
     private int _width;
-    /// <summary>The drag under way: what it does, the button that began it and the point it began at, in cells.</summary>
-    private (Act Act, bool Left, (double X, double Y) From)? _drag;
+    /// <summary>The drag under way: what it does, whether the right button began it, the point it began at, in cells, and the card it began with.</summary>
+    private (Act Act, bool Right, (double X, double Y) From, Tool Card)? _drag;
 
     /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
     private Dictionary<int, int> _worked = [];
@@ -92,10 +92,12 @@ public partial class BuildingView : Node2D
     }
 
     /// <summary>
-    /// One frame: the plans brought up to the world, the buttons pressed since the last read — the
-    /// middle one's <paramref name="removing"/>, those the cables did not take — the ghost drawn.
+    /// One frame: the plans brought up to the world, the presses since the last read the cables did not take, the
+    /// <paramref name="left"/> button's in the front layer and the <paramref name="right"/> one's in the back (0107), the
+    /// ghost drawn, of the back layer while only the right button is held (<paramref name="holdsRight"/>).
     /// </summary>
-    public void Frame(Client client, Registry m, Buttons buttons, IReadOnlyList<ButtonEvent> removing, (double X, double Y)? pointer)
+    public void Frame(Client client, Registry m, IReadOnlyList<ButtonEvent> left, IReadOnlyList<ButtonEvent> right, bool holdsRight,
+        (double X, double Y)? pointer)
     {
         var grid = m.Grid;
         var building = m.Building;
@@ -103,7 +105,6 @@ public partial class BuildingView : Node2D
         DrawPlans(grid, building, m.Rooms);
 
         var tool = _hand.Selected.Get();
-        var holds = _ui.Hand.Get();
         string? overlay = _ui.OverlayOn;
         int CellAt((double X, double Y) p)
         {
@@ -123,29 +124,24 @@ public partial class BuildingView : Node2D
                 }
             if (planned.Count > 0) _ui.Plan(planned);
         }
-        // A drag ends with the hand that began it: a card swapped or put away mid-drag sends nothing.
-        if (_drag is { } d && (d.Act is Remove ? holds == Holding.Free : d.Act != tool)) _drag = null;
+        // A drag ends with the card that began it: a card swapped or put away mid-drag sends nothing.
+        if (_drag is { } d && d.Card != tool) _drag = null;
 
-        void DragWith(ButtonEvent button, Act act, bool left)
+        void DragWith(ButtonEvent button, bool back)
         {
             if (button.Down)
             {
-                // The first button down has the drag; another pressed meanwhile is let be.
-                if (_drag == null && Drag.OnGrid(width, height, button.At)) _drag = (act, left, button.At);
+                // The first button down has the drag; another pressed meanwhile is let be. A front-only card's right does nothing.
+                if (_drag == null && tool != null && Tools.ActOf(tool, back, overlay) is { } act && Drag.OnGrid(width, height, button.At))
+                    _drag = (act, back, button.At, tool);
                 return;
             }
-            if (_drag is not { } under || under.Left != left) return;
+            if (_drag is not { } under || under.Right != back) return;
             Send(under.Act, under.From, button.At);
             _drag = null;
         }
-        // The left button is the card's, but on the power tab with no card to place, where it lays the
-        // cable or carries pegs and plugs: the power feature's.
-        bool wiring = overlay == Tools.Power && tool is not PlaceTool;
-        foreach (var button in wiring ? [] : buttons.TakeLeft())
-            if (tool is PlaceTool place) DragWith(button, place, left: true);
-        // The middle button removes in the tab's layers with the menu open.
-        foreach (var button in removing)
-            if (holds != Holding.Free) DragWith(button, new Remove(Tools.LayersFor(overlay)), left: false);
+        foreach (var button in left) DragWith(button, back: false);
+        foreach (var button in right) DragWith(button, back: true);
         // Q picks the card of what is under the pointer, onto its own tab.
         if (_hand.PickWanted)
         {
@@ -161,7 +157,7 @@ public partial class BuildingView : Node2D
         tool = _hand.Selected.Get();
         bool onGrid = pointer is { } p0 && Drag.OnGrid(width, height, p0);
         ShowTray(onGrid ? CellAt(pointer!.Value) : null, grid, building);
-        Ghost(tool, pointer, onGrid, grid, building);
+        Ghost(tool, pointer, onGrid, grid, building, Tools.ActOf(tool, Layering.Back(false, holdsRight), overlay));
         _hands.QueueRedraw();
     }
 
@@ -397,7 +393,7 @@ public partial class BuildingView : Node2D
     }
 
     /// <summary>The ghost of the card along a drag, or of a removal: its own pictures, green where the sim would take it and red where not.</summary>
-    private void Ghost(Tool? tool, (double X, double Y)? pointer, bool onGrid, IGridQueries grid, BuildingModule building)
+    private void Ghost(Tool? tool, (double X, double Y)? pointer, bool onGrid, IGridQueries grid, BuildingModule building, Act? hovered)
     {
         _fits.Begin();
         _refused.Begin();
@@ -408,7 +404,7 @@ public partial class BuildingView : Node2D
         var takenKey = new System.Text.StringBuilder();
         try
         {
-            GhostOf(tool, pointer, onGrid, grid, building, taken, kept, cancelled, takenKey);
+            GhostOf(tool, pointer, onGrid, grid, building, hovered, taken, kept, cancelled, takenKey);
         }
         finally
         {
@@ -423,7 +419,7 @@ public partial class BuildingView : Node2D
         }
     }
 
-    private void GhostOf(Tool? tool, (double X, double Y)? pointer, bool onGrid, IGridQueries grid, BuildingModule building,
+    private void GhostOf(Tool? tool, (double X, double Y)? pointer, bool onGrid, IGridQueries grid, BuildingModule building, Act? hovered,
         List<(string, int, int, IReadOnlyList<Rim>)> taken, List<(string, int, int, IReadOnlyList<Rim>)> kept,
         List<(string, int, int, IReadOnlyList<Rim>)> cancelled, System.Text.StringBuilder takenKey)
     {
@@ -431,7 +427,8 @@ public partial class BuildingView : Node2D
         _near = [];
         _ui.Reason.Set(null);
         if (tool is PlaceTool && pointer is { } near) _near = NearGrid.Around(near, width, height);
-        Act? act = _drag?.Act ?? tool as PlaceTool;
+        // Before a press, what the button held would do: the front layer's, the back's with the right alone (0107).
+        Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
         // The door's card lays a hatch along a stroke drawn across (0104).
         act = Drag.Oriented(act, _drag?.From ?? p, p);

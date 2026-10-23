@@ -28,18 +28,18 @@ public class ButtonsTests
     }
 
     [Fact]
-    public void ReadsMiddlePressesAndReleasesAndWhetherTheRightButtonIsHeld()
+    public void ReadsRightPressesAndReleasesWhileTheLeftIsHeldAndWhetherTheRightButtonIsHeld()
     {
         var buttons = new Buttons();
-        Pointer(buttons, "down", Buttons.Right, 0, 0);
+        Pointer(buttons, "down", Buttons.Left, 0, 0);
+        Pointer(buttons, "move", Buttons.Left | Buttons.Right, Cell, 0);
         Assert.True(buttons.HoldsRight);
-        Pointer(buttons, "move", Buttons.Right | Buttons.Middle, Cell, 0);
-        Pointer(buttons, "move", Buttons.Right, 2 * Cell, 0);
-        Assert.Equal([new ButtonEvent(true, (1, 0)), new ButtonEvent(false, (2, 0))], buttons.TakeMiddle());
+        Pointer(buttons, "move", Buttons.Left, 2 * Cell, 0);
+        Assert.Equal([new ButtonEvent(true, (1, 0)), new ButtonEvent(false, (2, 0))], buttons.TakeRight());
         Pointer(buttons, "up", 0, 2 * Cell, 0);
         Assert.False(buttons.HoldsRight);
-        Assert.Empty(buttons.TakeMiddle());
-        Assert.Empty(buttons.TakeLeft());
+        Assert.Empty(buttons.TakeRight());
+        Assert.Equal(2, buttons.TakeLeft().Count);
     }
 
     [Fact]

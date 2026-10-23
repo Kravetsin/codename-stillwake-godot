@@ -45,6 +45,31 @@ public partial class Outline : CanvasGroup
         },
     };
 
+    // The back layer's line (0107): the ring just inside the masks, a pixel in from the front's, in dashes 3 widths long.
+    private static readonly ShaderMaterial DashedRing = new()
+    {
+        Shader = new Shader
+        {
+            Code = $$"""
+                shader_type canvas_item;
+                render_mode unshaded;
+                uniform sampler2D masks : hint_screen_texture, repeat_disable, filter_nearest;
+
+                void fragment() {
+                    vec4 here = textureLod(masks, SCREEN_UV, 0.0);
+                    int width = int(max(1.0, round(1.0 / (SCREEN_PIXEL_SIZE.y * {{LinesPerPixel}}.0))));
+                    float clear = 1.0;
+                    for (int i = 1; i <= width; i++)
+                        for (int dx = -1; dx <= 1; dx++)
+                            for (int dy = -1; dy <= 1; dy++)
+                                clear = min(clear, textureLod(masks, SCREEN_UV + vec2(float(dx), float(dy)) * float(i) * SCREEN_PIXEL_SIZE, 0.0).a);
+                    bool dash = mod(floor((FRAGCOORD.x + FRAGCOORD.y) / (3.0 * float(width))), 2.0) < 0.5;
+                    COLOR = here.a > 0.001 && clear < 0.001 && dash ? vec4(here.rgb / here.a, here.a) : vec4(0.0);
+                }
+                """,
+        },
+    };
+
     // A mask: the picture's shape, solid in the colour it is tinted.
     private static readonly ShaderMaterial Flat = new()
     {
@@ -88,6 +113,12 @@ public partial class Outline : CanvasGroup
         ZIndex = z;
         Material = Ring;
         Visible = false;
+    }
+
+    /// <summary>Whether the line is the back layer's (0107): dashed, a pixel inside the front's.</summary>
+    public bool Dashed
+    {
+        set => Material = value ? DashedRing : Ring;
     }
 
     /// <summary>Starts an outline: what was added before is let go.</summary>

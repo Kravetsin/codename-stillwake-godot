@@ -144,7 +144,7 @@ public class DebrisFoundTests
     public void RecordsWhatFloatsOffAFullInventoryAsSeen()
     {
         var w = Out("cargoCrate");
-        w.GiveItems(0, ("canister", Inventory.Slots * ItemSpecs.Get("canister").Stack));
+        w.GiveItems(0, ("canister", (Inventory.Slots - Inventory.Kit.Count) * ItemSpecs.Get("canister").Stack));
         w.Do(new Grab(1)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal([], w.M.Debris.CaughtFrom(1)!);

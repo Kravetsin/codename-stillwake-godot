@@ -126,9 +126,13 @@ public static class Drag
         return CellsOf(width, act, StampAt(width, height, from, stamp), StampAt(width, height, to, stamp), stamp);
     }
 
-    /// <summary>Whether a removal begun at <paramref name="cell"/> cancels only walls' and back walls' blueprints: begun where nothing else is planned.</summary>
-    private static bool CancelsWalls(BuildingModule building, int cell) =>
-        building.PlansAt(cell) is { Count: > 0 } here && here.All(IsWallBlueprint);
+    /// <summary>Whether a removal begun at <paramref name="cell"/> cancels only walls' and back walls' blueprints: begun where nothing else of its layers is planned.</summary>
+    private static bool CancelsWalls(BuildingModule building, int cell, IReadOnlyList<string> layers) =>
+        PlansIn(building, cell, layers) is { Count: > 0 } here && here.All(IsWallBlueprint);
+
+    /// <summary>The plans at <paramref name="cell"/> in <paramref name="layers"/>, a blueprint by what it places, a mark by what it takes (0107).</summary>
+    private static List<Plan> PlansIn(BuildingModule building, int cell, IReadOnlyList<string> layers) =>
+        building.PlansAt(cell).Where(p => layers.Contains(p.Place?.Layer ?? p.Clear!)).ToList();
 
     private static bool IsWallBlueprint(Plan plan) => plan.Place is { Kind: "wall" or "backWall" };
 
@@ -161,7 +165,7 @@ public static class Drag
 
     /// <summary>
     /// What <paramref name="act"/> would do in each of <paramref name="cells"/>, as the sim judges it now.
-    /// Removing cancels plans if the drag begins on one, a mark included, and marks what is built in its
+    /// Removing cancels plans in its layers if the drag begins on one, a mark included, and marks what is built in its
     /// layers otherwise, only the layer of the first thing under where it began; begun where only walls and back walls are
     /// planned, it cancels only their blueprints.
     /// </summary>
@@ -170,8 +174,9 @@ public static class Drag
         // A machine spans several cells of a line, yet takes one mark and is cancelled once.
         var cancelled = new HashSet<int>();
         var marked = new HashSet<(string, int)>();
-        bool cancels = cells.Count > 0 && building.PlansAt(cells[0]).Count > 0;
-        bool walls = cancels && CancelsWalls(building, cells[0]);
+        IReadOnlyList<string> taken = act is Remove of ? of.Layers : [];
+        bool cancels = cells.Count > 0 && PlansIn(building, cells[0], taken).Count > 0;
+        bool walls = cancels && CancelsWalls(building, cells[0], taken);
         // Begun on something built, only its layer is taken: begun on a back wall, back walls, those behind machines too.
         IReadOnlyList<string>? layers = act is Remove r && !cancels && cells.Count > 0 && building.ClearAt(cells[0], r.Layers) is { } first
             ? [first.Layer] : null;
@@ -189,7 +194,7 @@ public static class Drag
                 case Remove remove when cancels:
                     {
                         // Begun on a wall's blueprint, a pipe or machine planned in the rectangle is let be.
-                        IReadOnlyList<Plan> here = walls ? building.PlansAt(cell).Where(IsWallBlueprint).ToList() : building.PlansAt(cell);
+                        IReadOnlyList<Plan> here = walls ? PlansIn(building, cell, taken).Where(IsWallBlueprint).ToList() : PlansIn(building, cell, taken);
                         var ids = here.Select(p => p.Id).Where(id => !cancelled.Contains(id)).ToList();
                         foreach (int id in ids) cancelled.Add(id);
                         verdicts.Add(new Verdict(cell, here.Count > 0 ? null : "building.noPlan",

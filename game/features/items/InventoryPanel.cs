@@ -311,8 +311,8 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>
     /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058): the head's slot
-    /// over the back's over the belt's three, then the hands' tool, each row under its name; no silhouettes in
-    /// empty slots.
+    /// over the back's over the belt's three, each row under its name; no silhouettes in empty slots. The screwdriver is
+    /// a hotbar item (0107), so the hands have no slot.
     /// </summary>
     private WristScreen Body(int size)
     {
@@ -324,10 +324,6 @@ public partial class InventoryPanel : CanvasLayer
             foreach (var place in Equipment.Of(kind)) row.AddChild(Box(place));
             column.AddChild(row);
         }
-        column.AddChild(Caption("hands"));
-        var hands = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
-        hands.AddChild(ToolSlot(size));
-        column.AddChild(hands);
         var body = new WristScreen(WristPieces.Body, WristArt.Screen, 4, lit: true);
         body.AddChild(column);
         return body;
@@ -341,27 +337,6 @@ public partial class InventoryPanel : CanvasLayer
         MouseFilter = Control.MouseFilterEnum.Ignore,
     };
 
-    /// <summary>
-    /// The tool the right button works with, the equipment's last row: the screwdriver everyone has. Only shown
-    /// for now (0030): nothing is put in it until a tool better than the screwdriver exists.
-    /// </summary>
-    private Control ToolSlot(int size)
-    {
-        var slot = new Panel { CustomMinimumSize = new Vector2(size, size), MouseFilter = Control.MouseFilterEnum.Stop };
-        slot.AddThemeStyleboxOverride("panel", SlotLooks.Of(SlotTint.Plain, false, false));
-        var icon = new TextureRect
-        {
-            Texture = GD.Load<Texture2D>("res://art/tool_screwdriver.png"),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.Scale,
-            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        slot.AddChild(icon);
-        icon.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.Minsize, Slots.Inset);
-        _tipSpots.Add(slot, () => new Tip(T("gear.screwdriver"), [new TipLine(T("gear.screwdriver.about"), Tone.Dim)]));
-        return slot;
-    }
 
     private SlotBox Box(Place place, string? key = null)
     {

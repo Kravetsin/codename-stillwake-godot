@@ -231,6 +231,7 @@ counted twice.
   `amount` power-ticks from the first belt battery that holds that much, as above: a run's tick. `StopRunning(peer)` —
   stops whatever that peer's hero runs: `Crew`, as the hero passes out or leaves. `LeaveBody(peer, cell)` — leaves
   that peer's body on `cell`, as above: `Crew`, as its hero passes out; the caller passes a cell on the grid.
+  `Kit(peer)` — gives `Inventory.Kit` (the screwdriver, 0107) to a peer with no inventory yet: `Crew`, as its first hero comes in.
 - **Commands:** `SetCreative(On)`, from the dev panel, with no refusals.
   `Move(Src, Dst, Count)` — `Src` a `Place(Slot, Crate?)`, `Dst` a `Target(Slot?, Crate?)`, no crate
   meaning the sender's inventory; refused with `items.noCrate` (a side names no machine holding

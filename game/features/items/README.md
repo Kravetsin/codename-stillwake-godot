@@ -109,8 +109,7 @@ as everything E works is, in the crew feature (`AimTests`).
   `equip.<kind>`): an empty slot darker, its edge faint, a worn one edged a little green, no silhouettes.
   While a stack is in hand or dragged, the equipment slots that would wear it (`Equipment.GlowOf`, from
   `Items.Equip`) are lit green with a glow and the others dimmed; the sim decides (`items.notEquipment`).
-  Its last row, **Hands** (`equip.hands`), shows the screwdriver the right button works with: display-only
-  (0030), nothing is put in it; its tooltip says what it does, no key is written on it.
+  The screwdriver is a hotbar item (0107), so there is no **Hands** row: every hero comes aboard with one in its first slot.
 - **Look: a wrist computer** (0074). Every panel is a screen in the build tablet's scuffed metal, pixel art at two
   screen pixels a pixel, 9-slices whose edges tile, so the large slot's frames are as crisp; the slots, their sizes and
   places, digits, counts, marks, bars, the stack in hand and the tooltip are as they were, drawn on the screens.
@@ -238,7 +237,7 @@ as everything E works is, in the crew feature (`AimTests`).
   before it, 24 px and moving: "Smelts
   here", "Burns here" or "Grows here" (`ItemCard.Here`, `Reading.HereOf`), a fed station adding what it makes of one
   and how long one takes there at its speed, "→ scrap ×4 · 3s" (`ItemCards.OutputAt`); a violet band, the "?" mark
-  and "Not analysed", while unanalysed; a station's block. The screwdriver's gear slot keeps its line tip: it builds, and has no damage to tile.
+  and "Not analysed", while unanalysed; a station's block.
 - **Charge** (0053): a slot holding a battery draws a thin bar along its icon's foot, no numbers: green,
   amber under a quarter of full, an empty track at none (`Charges.BarOf`); an empty battery shows its own
   picture (`battery_empty`, `Charges.Picture`), in a slot, in the hand, on its card and on the floor. Its

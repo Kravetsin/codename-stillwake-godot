@@ -43,6 +43,28 @@ public static class AsciiArt
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['h'] = 0x7c8794, ['l'] = 0xc5ccd8 });
 
+    /// <summary>The removal card's picture (0107): a square in a mark's red dashes, crossed, as what it marks is shown.</summary>
+    public static ImageTexture Removal() => Texture("removal",
+    [
+        "rr.rr.rr.rr.rr.r",
+        "r..............r",
+        "...............r",
+        "r..x........x...",
+        "r...x......x...r",
+        ".....x....x....r",
+        "r.....x..x......",
+        "r......xx......r",
+        "r......xx......r",
+        "......x..x.....r",
+        "r....x....x.....",
+        "r...x......x...r",
+        "...x........x..r",
+        "r...............",
+        "r..............r",
+        "r.rr.rr.rr.rr.rr",
+    ],
+        new Dictionary<char, uint> { ['r'] = 0xe04848, ['x'] = 0xf07070 });
+
     /// <summary>A book with a star on its cover: the Handbook's (0066), a placeholder till its picture is picked.</summary>
     public static ImageTexture Book() => Texture("book",
     [

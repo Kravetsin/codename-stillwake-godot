@@ -54,8 +54,9 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   whole piece: a doorway whole, a ladder's two by two. It gives back its build's cost for as many pieces as its cells make, each
   item rounded down: two doors side by side give back two, a drawn map's lone door (2×2) a third of one, a ladder piece a
   meteor broke nothing. A marked thing is still built, so the grid refuses a plan for that slot until it is gone.
-- **`Work` is the left button held on a plan:** one tick of one hero's work, sent every tick the player
-  holds E on it within reach. Two heroes on one plan work it twice as fast, and work stopped keeps its
+- **`Work` is the left button held on a plan with the screwdriver in hand** (0107): one tick of one hero's work, sent
+  `Screwdriver.Work` times a tick the player holds it on the plan within reach, the client's pace (the sim does not check the
+  screwdriver, as it does not a weapon, 0034). Two heroes on one plan work it twice as fast, and work stopped keeps its
   progress. The tick that reaches its ticks completes it: a blueprint takes its build's `BuildTicks`
   (`Materials` for walls and back walls, `Builds`, `Machines`) and is built; a mark takes those of what
   it names divided by `Builds.DeconstructSpeedup`, rounded up, and takes it apart, refunding its whole
@@ -94,6 +95,12 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   (`IItemsQueries.WeaponProblem`: `items.flat`, and `items.notRunning` for an electric one its hero does not run). Two
   digs on one cell in a tick apply in the host's order: the one that breaks it gets the yield, the next finds nothing.
   A crack whose wall or plant is gone (a meteor) is dropped in derivation. A tool that deals no damage is our bug and throws.
+- **`Dig(Cell, Tool, Back: true)` hits the back wall** (0107, the right button): any back wall, a ship's built one, a hero's soil
+  or the ground's own, cracks by its material's `Strength` in a crack of its own (`Crack.Back`, kept after the front's of its cell,
+  healed and swept alike, never saved when false) and at its strength is cleared, the wall in front staying, its material's `Cost`
+  given to the sender, what hangs on it (`Flora.Anchor.Back`) felled for them. Refused `building.nothingToDig` with no back wall
+  (off the grid too), `building.bedrock` for one of a material nothing breaks (bedrock, lava), then as the weapon says. A ship's
+  back wall dug out opens its room to space, as one taken apart does.
 - **What grows on a planet's surface** (0079): plants and stones (`Content.Flora`), grown from the seed with the ground
   (`Terrain`), each standing in its cell over the soil it grows from, `Across` columns (2 at the least, 0104) and `Tall` cells up
   from it; one in the rock a block of two by two walls. A `Dig` on any of those
@@ -160,19 +167,19 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   ascending by cell, live and read-only, only ever fewer; `PlantAt(cell)` — the plant a hit there takes, the one in front first, then the one behind, never a fixed one (one in the rock in
   its stone's), null for none; `HoldOf(plant)` — the cell it holds on to in its own column (0080); `Zaps(cell)` — whether a hero
   reported there stands right by a resonator (0091); `Relics` — every relic grown, `Relic(Cell, Kind, Taken)`, by cell (0096);
-  `ShockOf(tool)` — what a hit of it on a cradle costs its striker; `DigProblem(peer, cell, tool)` — the refusal a `Dig`
+  `ShockOf(tool)` — what a hit of it on a cradle costs its striker; `DigProblem(peer, cell, tool, back)` — the refusal a `Dig`
   would get, leaving out whether an electric weapon runs, as the client asks before it sends.
 - **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.notHere`, `building.unknown`,
   grid's keys or `building.planned`; `Deconstruct(Cell, Layer)`, refused with `building.nothingThere`,
   `building.fixed`, `building.planned`, `building.notEmpty` or `building.cabled`; `CancelPlan(Id)`, refused with
   `building.noPlan`; `Work(Plan)`, refused with `building.noPlan`, `items.notEnough`,
-  `building.notEmpty` or `building.cabled`; `Dig(Cell, Tool)`, refused with `building.nothingToDig` (no natural wall nor plant there), `building.bedrock`,
+  `building.notEmpty` or `building.cabled`; `Dig(Cell, Tool, Back)`, refused with `building.nothingToDig` (no natural wall nor plant there; no back wall, `Back`), `building.bedrock`,
   `items.flat` or `items.notRunning`. A mark is refused `building.natural` besides.
 - **Fuzz:** every command, refused ones too: placements of every kind, mostly within 32 cells of
   what the grid has built, as players build, now and then at any cell of the grid or one off it, so
   the build zone's edge is drawn too; marks mostly within what is built (TypeScript draws from the
   wreck as drawn, which in the big world of 0048 would miss the ship); cancels of ids that are and
-  are not there; `Work` mostly on the oldest plan or a mark, so plans complete within a run; `Dig` with every weapon,
+  are not there; `Work` mostly on the oldest plan or a mark, so plans complete within a run; `Dig` with every weapon, a quarter of them on the back layer,
   a quarter of the time on a plant (one in an open cell sought over three more draws, for most of a cave's lie in rock) or on
   what holds it (0079, 0080), half the rest on a crack, so walls break within a run, else anywhere, which on a small planet is mostly its ground; on
   grown ground half of all its draws are digs.

@@ -6,19 +6,19 @@ namespace Stillwake.Game.Render;
 public readonly record struct ButtonEvent(bool Down, (double X, double Y) At);
 
 /// <summary>
-/// The mouse buttons as the world reads them (render/camera.ts's <c>take*</c>): the left and middle
-/// buttons' presses and releases since the last take, in order, at their world points, and whether the
-/// right one is held (0030: it works plans while held). Read from the buttons held after each event, so
-/// a press or release of one button while another is held still counts. Only what began with a press on
-/// the world is the world's: a drag begun on a panel crosses it unread.
+/// The mouse buttons as the world reads them (render/camera.ts's <c>take*</c>): the left and right buttons' presses
+/// and releases since the last take, in order, at their world points, and whether each is held. The left button is
+/// the front layer, the right the back (0107). Read from the buttons held after each event, so a press or release of
+/// one button while another is held still counts. Only what began with a press on the world is the world's: a drag
+/// begun on a panel crosses it unread.
 /// </summary>
 public sealed class Buttons
 {
     /// <summary>The bits of the buttons held, as Godot's <c>MouseButtonMask</c> and the browser's <c>buttons</c>.</summary>
-    public const int Left = 1, Right = 2, Middle = 4;
+    public const int Left = 1, Right = 2;
 
-    private List<ButtonEvent> _left = [], _middle = [];
-    private bool _leftDown, _rightDown, _middleDown, _ours, _clicked, _rightClicked;
+    private List<ButtonEvent> _left = [], _right = [];
+    private bool _leftDown, _rightDown, _ours, _clicked, _rightClicked;
 
     /// <summary>
     /// One pointer event: <paramref name="pressedOnWorld"/> when it is a press that reached the world
@@ -36,21 +36,19 @@ public sealed class Buttons
             if (left) _clicked = true;
         }
         bool right = (held & Right) != 0;
-        if (right && !_rightDown) _rightClicked = true;
-        _rightDown = right;
-        bool middle = (held & Middle) != 0;
-        if (middle != _middleDown)
+        if (right != _rightDown)
         {
-            _middleDown = middle;
-            _middle.Add(new ButtonEvent(middle, at));
+            _rightDown = right;
+            _right.Add(new ButtonEvent(right, at));
+            if (right) _rightClicked = true;
         }
-        if (held == 0) _ours = false;
+        if ((held & (Left | Right)) == 0) _ours = false;
     }
 
     /// <summary>Whether the left button is held now, pressed on the world.</summary>
     public bool HoldsLeft => _leftDown;
 
-    /// <summary>Whether the right button is held now, pressed on the world: the hero works the plans under the pointer.</summary>
+    /// <summary>Whether the right button is held now, pressed on the world: what the hands do, they do to the back layer.</summary>
     public bool HoldsRight => _rightDown;
 
     /// <summary>
@@ -64,7 +62,7 @@ public sealed class Buttons
         return clicked;
     }
 
-    /// <summary>Whether the right button was pressed on the world since the last call: a canister in hand is breathed (0047).</summary>
+    /// <summary>Whether the right button was pressed on the world since the last call: a canister in hand is breathed (0047), an axe swung at the back.</summary>
     public bool TakeRightClick()
     {
         bool clicked = _rightClicked;
@@ -80,11 +78,21 @@ public sealed class Buttons
         return taken;
     }
 
-    /// <summary>Middle-button presses and releases since the last call, as the left's: what removes.</summary>
-    public IReadOnlyList<ButtonEvent> TakeMiddle()
+    /// <summary>Right-button presses and releases since the last call, as the left's: the card's back layer.</summary>
+    public IReadOnlyList<ButtonEvent> TakeRight()
     {
-        var taken = _middle;
-        _middle = [];
+        var taken = _right;
+        _right = [];
         return taken;
     }
+}
+
+/// <summary>Which layer the buttons work (0107): the left the front, the right the back, everywhere.</summary>
+public static class Layering
+{
+    /// <summary>
+    /// Whether what the hands do with <paramref name="left"/> and <paramref name="right"/> held goes to the back layer: the
+    /// right alone. Both held, the front keeps them.
+    /// </summary>
+    public static bool Back(bool left, bool right) => right && !left;
 }
